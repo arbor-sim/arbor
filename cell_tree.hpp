@@ -10,160 +10,82 @@
 #include <memory>
 
 #include "vector/include/Vector.hpp"
+#include "tree.hpp"
+#include "util.hpp"
 
+// The tree data structure that describes the branches of a cell tree.
+// A cell is represented as a tree where each node may have any number of
+// children. Typically in a cell only the soma has more than two branches,
+// however this rule does not appear to be strictly followed in the PCP data
+// sets.
+//
+// To optimize some computations it is important the the tree be balanced,
+// in the sense that the depth of the tree be minimized. This means that it is
+// necessary that any node in the tree may be used as the root. In the PCP data
+// sets it appears that the soma was always index 0, however we need more
+// flexibility in choosing the root.
 class cell_tree {
     public :
 
+    // use a signed 16-bit integer for storage of indexes, which is reasonable given
+    // that typical cells have at most 1000-2000 nodes
     using int_type = int16_t;
     using index_type = memory::HostVector<int_type>;
     using index_view = index_type::view_type;
 
+    /// construct from a parent index
     cell_tree(std::vector<int> const& parent_index)
     {
-        using range = memory::Range;
-
-        // n = number of compartment in cell
-        auto n = parent_index.size();
-
-        // On completion of this loop child_count[i] is the number of children of compartment i
-        // compensate count for compartment 0, which has itself as its own parent
-        index_type child_count(n, 0);
-        child_count[0] = -1;
-        for(auto i : parent_index) {
-            ++child_count[i];
+        // handle the case of an empty parent list, which implies a single-compartment model
+        std::vector<int> branch_index;
+        if(parent_index.size()>0) {
+            branch_index = tree_.init_from_parent_index(parent_index);
+        }
+        else {
+            branch_index = tree_.init_from_parent_index(std::vector<int>({0}));
         }
 
-        // Find the number of branches by summing the number of children of all
-        // compartments with more than 1 child.
-        auto nbranches = std::accumulate(
-            child_count.begin(), child_count.end(), 0,
-            [](int total, int count) {return count > 1 ? total+count : total;}
-        );
-        nbranches++; // add an additional branch for the root/soma compartment
-
-        // allocate space for storing branch data
-        // note that the child data is generated after this loop
-        data_   = index_type(4*nbranches);
-        data_(memory::all) = 0; // initialize to zero
-        depth_  = data_(0*nbranches, 1*nbranches);
-        length_ = data_(1*nbranches, 2*nbranches);
-        parent_ = data_(2*nbranches, 3*nbranches);
-        end_    = data_(3*nbranches, 4*nbranches);
-
-        // index of the branch for each compartment
-        std::vector<int> branch_index(n);
-
-        auto bcount=0;
-        for(auto i : range(1,n)) {
-            // index of the parent of compartment i
-            auto parent_node = parent_index[i]; // the branch index of the parent of compartment i
-            auto parent_branch = branch_index[parent_node];
-            // reference to this compartment's parent index (to be determined)
-            auto& this_branch = branch_index[i];
-
-            // if this compartments's parent has more than one child, then this is the first
-            // compartment in a branch, so mark it as such
-            if(child_count[parent_node]>1) {
-                bcount++;
-                this_branch = bcount;
-                parent_[bcount] = parent_branch;
-                depth_[bcount]  = depth_[parent_branch]+1;
-            }
-            // not the first compartment in a branch, so inherit the parent's branch number
-            else {
-                this_branch = parent_branch;
-            }
-            length_[this_branch]++;
-            end_[this_branch] = i;
-        }
-
-        // the number of children is the number of branches, excluding the root branch
-        // num_children is equivalent to the number of edges in the graph
-        auto num_children = nbranches-1;
-        child_data_  = index_type(nbranches+1 + num_children, 0);
-        child_index_ = child_data_(0, nbranches+1);
-        children_    = child_data_(nbranches+1, memory::end);
-
-        for(auto i : range(0, nbranches)) {
-            // the number of children of a branch is the number of children of
-            // the tail compartment in the branch
-            auto c = child_count[end_[i]];
-            child_index_[i+1] = c > 1 ? c : 0;
-        }
-        std::partial_sum(child_index_.begin(), child_index_.end(), child_index_.begin());
-
-        for(auto i : range(1, nbranches)) {
-            auto p = parent_[i];
-            children_[child_index_[p]] = i;
-            ++child_index_[p];
-        }
-
-        // use rotate to calculate indexes (after reverse iterator support is
-        // available in the vector library!)
-        //std::rotate(child_index_.rbegin(), child_index_.rbegin()+1,
-        //            child_index_.rend());
-        for(auto i=nbranches-1; i>0; --i) {
-            child_index_[i+1] = child_index_[i];
-        }
-        child_index_[0] = 0;
-
-        // Mark the parent of the root node as -1.
-        // This simplifies the implementation of some algorithms on the tree
-        // data structure.
-        parent_[0] = -1;
+        // if needed, calculate meta-data like length[] and end[] arrays for data
     }
 
-    /// memory used to store cell tree (in bytes)
-    size_t memory() const {
-        return   sizeof(int_type)*data_.size()
-               + sizeof(int_type)*child_data_.size()
-               + sizeof(cell_tree);
-    }
-
-    size_t num_branches() const {
-        return child_index_.size()-1;
-    }
-
-    size_t num_children(size_t b) const {
-        return child_index_[b+1] - child_index_[b];
-    }
-
-    const index_view children(size_t b) const {
-        return children_(child_index_[b], child_index_[b+1]);
-    }
-
-    /// generate a graphviz .dot file for visualizing cell branch structure
-    void to_graphviz(std::string const& fname) const {
-
-        std::ofstream fid(fname);
-
-        fid << "graph cell {" << std::endl;
-        for(auto b : memory::Range(0,num_branches())) {
-            if(children(b).size()) {
-                for(auto c : children(b)) {
-                    fid << "  " << b << " -- " << c << ";" << std::endl;
-                }
-            }
-        }
-        fid << "}" << std::endl;
-    }
-
-    /// update the depth of each branch to distance from leaf
-    int_type depth_from_leaf() {
-        return depth_from_leaf(0);
-    }
-
+    /// Minimize the depth of the tree.
+    /// Pick a root node that minimizes the depth of the tree.
+    /*
     int_type balance() {
         if(num_branches()==1) {
             return 0;
         }
 
-        auto max       = std::max_element(depth_.begin(), depth_.end());
-        auto max_leaf  = std::distance(depth_.begin(), max);
+        // calculate the depth of each branch from the root
+        //      pre-order traversal of the tree
+        index_type depth(num_branches());
+        auto depth_from_root = [this, &depth] (int_type b) -> void
+        {
+            auto d = depth[tree.parent(b)] + 1;
+            depth[b] = d;
+            for(auto c : tree.children(b)) {
+                depth_from_root(c);
+            }
+        }
+        depth[0]=0;
+        depth_from_root(0);
+
+        auto max       = std::max_element(depth.begin(), depth.end());
+        auto max_leaf  = std::distance(depth.begin(), max);
         auto original_depth = *max;
 
         // Calculate the depth of each compartment as the maximum distance
         // from a child leaf
+        //      post-order traversal of the tree
+        auto depth_from_leaf = [this, &depth] (int_type b)
+        {
+            int_type max_depth = 0;
+            for(auto c : children(branch)) {
+                max_depth = std::max(max_depth, depth_from_leaf(c));
+            }
+            depth[b] = max_depth;
+            return max_depth+1;
+        }
         depth_from_leaf(0);
 
         // Walk back from the deepest leaf towards the root.
@@ -175,18 +97,18 @@ class cell_tree {
         sub_tree max_sub_tree(0, 0, 0);
         auto distance_from_max_leaf = 1;
         auto parent = max_leaf;
-        auto pos = parent_[max_leaf];
+        auto pos = parent(max_leaf);
         while(pos != -1) {
             for(auto c : children(pos)) {
                 if(c!=parent) {
-                    auto diameter = depth_[c] + 1 + distance_from_max_leaf;
+                    auto diameter = depth[c] + 1 + distance_from_max_leaf;
                     if(diameter>max_sub_tree.diameter) {
                         max_sub_tree.set(pos, diameter, distance_from_max_leaf);
                     }
                 }
             }
             parent = pos;
-            pos = parent_[pos];
+            pos = parent(pos);
             ++distance_from_max_leaf;
         }
 
@@ -198,7 +120,7 @@ class cell_tree {
         // nothing to do if the current root is also the root of the
         // balanced tree
         if(max_sub_tree.root==0 && max_sub_tree.depth==new_depth) {
-            std::cout << " root " << 0 << " diameter " << original_depth << std::endl;
+            std::cout << " root " << 0 << " depth " << original_depth << std::endl;
             return *max;
         }
 
@@ -206,20 +128,60 @@ class cell_tree {
         auto count = new_depth;
         auto new_root = max_leaf;
         while(count) {
-            new_root = parent_[new_root];
+            new_root = parent(new_root);
             --count;
         }
 
-        const auto root_children = children(new_root);
-        auto diameter = *std::max_element(root_children.begin(), root_children.end());
-
-        std::cout << " root " << new_root << " depth "
-                  << original_depth << " -> " << new_depth  << std::endl;
+        // change the root on the tree
+        tree.change_root(new_root);
 
         return new_depth;
     }
+    */
+
+    /// memory used to store cell tree (in bytes)
+    size_t memory() const {
+        return tree_.memory() + sizeof(cell_tree) - sizeof(tree);
+    }
+
+    /// returns the number of branches in the cell
+    size_t num_branches() const {
+        return tree_.num_nodes();
+    }
+
+    /// returns the number of child branches of branch b
+    size_t num_children(size_t b) const {
+        return tree_.num_children(b);
+    }
+
+    /// returns a list of the children of branch b
+    const index_view children(size_t b) const {
+        return tree_.children(b);
+    }
+
+    /// returns the parent of branch b
+    int_type parent(size_t b) const {
+        return tree_.parent(b);
+    }
+
+    /// generates a graphviz .dot file that visualizes cell branch structure
+    void to_graphviz(std::string const& fname) const {
+
+        std::ofstream fid(fname);
+
+        fid << "graph cell {" << std::endl;
+        for(auto b : range(0,num_branches())) {
+            if(children(b).size()) {
+                for(auto c : children(b)) {
+                    fid << "  " << b << " -- " << c << ";" << std::endl;
+                }
+            }
+        }
+        fid << "}" << std::endl;
+    }
 
     private :
+
 
     /// helper type for sub-tree computation
     /// use in balance()
@@ -249,33 +211,7 @@ class cell_tree {
         int depth;
     };
 
-    /// Recursive traversal of cell tree to determine ordering as maximum depth
-    /// from a child leaf. Performs a post-order traversal.
-    int_type depth_from_leaf(int branch) {
-        int_type max_depth = 0;
-        for(auto b : children(branch)) {
-            max_depth = std::max(max_depth, depth_from_leaf(b));
-        }
-        depth_[branch] = max_depth;
-        return max_depth+1;
-    }
-
-
-    index_type data_;
-
-    // depth of the branch in cell tree
-    index_view depth_;
-    // number of compartments in branch
-    index_view length_;
-    // index of the parent compartment for this branch
-    index_view parent_;
-    // index of the last compartment in the branch
-    index_view end_;
-
-    // index of the last compartment in the branch
-    index_type child_data_;
-
-    index_view child_index_;
-    index_view children_;
+    // storage for the tree structure of cell branches
+    tree tree_;
 };
 
