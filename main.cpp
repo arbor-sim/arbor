@@ -103,12 +103,7 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(3), 0);
         EXPECT_EQ(tree.num_children(4), 0);
     }
-}
-
-TEST(cell_tree, test_balance) {
     {
-        // a cell with the following structure
-        // should be rebalanced around node 1
         //              0
         //             / \
         //            1   2
@@ -128,6 +123,25 @@ TEST(cell_tree, test_balance) {
         EXPECT_EQ(tree.num_children(4), 2);
         EXPECT_EQ(tree.num_children(5), 0);
         EXPECT_EQ(tree.num_children(6), 0);
+    }
+}
+
+TEST(tree, change_root) {
+    {
+        // a cell with the following structure
+        // should be rebalanced around node 1
+        //              0
+        //             / \
+        //            1   2
+        //           / \
+        //          3   4
+        //             / \
+        //            5   6
+        std::vector<int> parent_index = {0,0,0,1,1,4,4};
+        tree t;
+        t.init_from_parent_index(parent_index);
+
+        auto new_tree = t.change_root(1);
     }
 }
 

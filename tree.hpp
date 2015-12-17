@@ -175,6 +175,34 @@ class tree {
         return sizeof(int_type)*data_.size() + sizeof(tree);
     }
 
+    tree change_root(int b) const {
+        assert(b<num_nodes());
+
+        // no need to rebalance if the root node has been requested
+        if(b==0) {
+            return tree(*this);
+        }
+
+        // create new tree with memory allocated
+        tree new_tree;
+        new_tree.init(num_nodes());
+
+        // add the root node
+        //new_tree.parents_[0] = -1;
+        new_tree.child_index_[0] = 0;
+
+        // allocate space for the permutation vector that
+        // will represent the permutation performed on the branches
+        // during the rebalancing
+        index_type p(num_nodes()+1);
+        std::cout << "allocated for array of size " << p.size() << std::endl;
+
+        // recersively rebalance the tree
+        new_tree.add_children(0, b, p, *this, true);
+
+        return new_tree;
+    }
+
     private :
 
     void init(int nnode) {
@@ -200,58 +228,70 @@ class tree {
         assert(parents_.size()     == nnode);
     }
 
-    /// Renumber the sub-tree with old_branch as its root with new_branch as
-    /// the new index of old_branch. This is a helper function for the
+    /// Renumber the sub-tree with old_node as its root with new_node as
+    /// the new index of old_node. This is a helper function for the
     /// renumbering required when a new root node is chosen to improve
     /// the balance of the tree.
-    /// Optionally add the parent of old_branch as a child of new_branch, which
+    /// Optionally add the parent of old_node as a child of new_node, which
     /// will be applied recursively until the old root has been processed,
     /// which indicates that the renumbering is finished.
-    /*
-    int add_child( int new_branch, int old_branch, index_view p,
-                   bool parent_as_child)
+    ///
+    /// precondition - the node new node has already been placed in the tree
+    int add_children(
+        int new_node,
+        int old_node,
+        index_view p,
+        tree const& old_tree,
+        bool parent_as_child
+    )
     {
+        std::cout << "add_children(old " << old_node << ", new " << new_node << ", " << parent_as_child << ")" << std::endl;
+
         // check for the senitel that indicates that the old root has
         // been processed
-        if(old_branch==-1) {
+        if(old_node==-1) {
             assert(parent_as_child); // sanity check
-            return new_branch;
+            return new_node;
         }
 
-        auto kids = children(old_branch);
-        auto pos = new_child_index[new_branch];
+        auto old_children = old_tree.children(old_node);
+        auto pos = child_index_[new_node];
 
-        new_child_index[new_branch+1] = pos + kids.size();
-        // add an extra one if adding the parent as a child
-        if(parent_as_child) {
-            ++new_child_index[new_branch+1];
-        }
+        auto n_children = old_children.size() + (parent_as_child ? 1 : 0);
+        child_index_[new_node+1] = pos + n_children;
+        std::cout << "  inserting " << n_children << " into " << child_index_(new_node, new_node+2) << std::endl;
 
+        std::cout << " inserting";
         // first renumber the children
-        for(auto b : kids) {
-            p[new_branch] = b;
-            new_children[pos++] = new_branch++;
+        for(auto b : old_children) {
+            std::cout << " " << b;
+            new_node++;
+            p[new_node] = b;
+            children_[pos++] = new_node;
         }
         // then add and renumber the parent as a child
         if(parent_as_child) {
-            p[new_branch] = parents_[old_branch];
-            new_children[pos++] = new_branch++;
+            std::cout << " " << yellow(std::to_string(old_tree.parent(old_node)));
+            new_node++;
+            p[new_node] = old_tree.parent(old_node);
+            children_[pos++] = new_node;
         }
+        std::cout << std::endl;
 
         // then visit the sub-tree of each child recursively
         //      - traverse _down_ the tree
-        for(auto b : kids) {
-            new_branch = add_children(new_branch, b, p, false);
+        //auto child_range = range();
+        for(auto b : old_children) {
+            new_node = add_children(new_node, b, p, old_tree, false);
         }
         // finally visit the parent recursively
         //      - traverse _up_ the tree towards the old root
         if(parent_as_child) {
-            new_branch = add_children(new_branch, parents_[old_branch], p, true);
+            new_node = add_children(new_node, parents_[old_node], p, old_tree, true);
         }
 
-        return new_branch;
+        return new_node;
     }
-    */
 
     index_type data_;
     index_view children_;
