@@ -187,11 +187,6 @@ class tree {
         tree new_tree;
         new_tree.init(num_nodes());
 
-        // mark all nodes
-        new_tree.parents_(memory::all) = -1;
-        new_tree.child_index_(memory::all) = -1;
-        new_tree.children_(memory::all) = -1;
-
         // add the root node
         new_tree.parents_[0] = -1;
         new_tree.child_index_[0] = 0;
@@ -209,6 +204,8 @@ class tree {
             new_tree.children_.begin(), new_tree.children_.end(),
             new_tree.children_.begin(), [&p] (int i) {return p[i];}
         );
+
+        //std::swap(data_, new_tree.data_);
 
         return new_tree;
     }
@@ -313,6 +310,7 @@ class tree {
     }
 
     index_type data_;
+
     index_view children_;
     index_view child_index_;
     index_view parents_;

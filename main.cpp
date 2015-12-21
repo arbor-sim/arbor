@@ -221,24 +221,23 @@ TEST(cell_tree, balance) {
     }
 }
 
-/*
 void test_json() {
     json  cell_data;
     std::ifstream("cells_small.json") >> cell_data;
 
-    for(auto c : range(0,20)) {
-    //for(auto c : range(0,cell_data.size())) {
+    for(auto c : range(0,cell_data.size())) {
         std::vector<int> parent_index = cell_data[c]["parent_index"];
         cell_tree tree(parent_index);
         std::cout << "cell " << c << " ";
-        tree.balance();
-        tree.to_graphviz("cell_" + std::to_string(c) + ".dot");
-        std::cout << memory::util::yellow("---------") << std::endl;
+        //tree.balance();
+        //tree.to_graphviz("cell_" + std::to_string(c) + ".dot");
+        tree.to_graphviz("cell" + std::to_string(c) + ".dot");
+        //std::cout << memory::util::yellow("---------") << std::endl;
     }
 }
-*/
 
 int main(int argc, char **argv) {
+    test_json();
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
