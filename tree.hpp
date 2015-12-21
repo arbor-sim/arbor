@@ -175,7 +175,7 @@ class tree {
         return sizeof(int_type)*data_.size() + sizeof(tree);
     }
 
-    tree change_root(int b) const {
+    tree change_root(int b) {
         assert(b<num_nodes());
 
         // no need to rebalance if the root node has been requested
@@ -205,6 +205,10 @@ class tree {
             new_tree.children_.begin(), [&p] (int i) {return p[i];}
         );
 
+        // copy in new data
+        // this should be done with a swap, to avoid a malloc-free, however
+        // using std::swap gives a seg fault... todo
+        data_ = new_tree.data_;
         //std::swap(data_, new_tree.data_);
 
         return new_tree;
