@@ -41,16 +41,16 @@ flags = [
     'c++',
     '-I',
     '.',
-    '-I',
-    '/usr/include/c++/4.9.2',
     '-isystem',
-    '/usr/lib/gcc/x86_64-unknown-linux-gnu/4.9.2/include'
+    '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/c++/4.2.1'
     '-isystem',
-    '/usr/local/include',
-    '-I',
-    '/home/bcumming/software/github/modparser/tests',
-    '-I',
-    '/home/bcumming/software/msolve/json',
+    '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/c++/4.2.1/bits'
+#    '-I',
+#    '/usr/include/c++/4.9.2',
+#    '-isystem',
+#    '/usr/lib/gcc/x86_64-unknown-linux-gnu/4.9.2/include'
+#    '-isystem',
+#    '/usr/local/include',
 ]
  
  

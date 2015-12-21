@@ -9,8 +9,8 @@ using memory::util::white;
 using memory::util::blue;
 using memory::util::cyan;
 
-#include <vector>
 #include <ostream>
+#include <vector>
 
 template <typename T>
 std::ostream&

@@ -1,7 +1,10 @@
 #pragma once
 
 #include <algorithm>
+#include <numeric>
 #include <vector>
+
+#include <cassert>
 
 #include "vector/include/Vector.hpp"
 #include "util.hpp"
@@ -23,17 +26,14 @@ class tree {
     }
 
     tree(tree&& other)
+    : data_(std::move(other.data_))
     {
-        data_ = std::move(other.data_);
         set_ranges(other.num_nodes());
     }
 
     tree() = default;
 
     /// create the tree from a parent_index
-    /// maybe this should be an initializer, not a constructor, because
-    /// we currently return the branch index in place of the parent_index
-    /// which feels like bad design.
     template <typename I>
     std::vector<I>
     init_from_parent_index(std::vector<I> const& parent_index)
@@ -187,18 +187,28 @@ class tree {
         tree new_tree;
         new_tree.init(num_nodes());
 
+        // mark all nodes
+        new_tree.parents_(memory::all) = -1;
+        new_tree.child_index_(memory::all) = -1;
+        new_tree.children_(memory::all) = -1;
+
         // add the root node
-        //new_tree.parents_[0] = -1;
+        new_tree.parents_[0] = -1;
         new_tree.child_index_[0] = 0;
 
         // allocate space for the permutation vector that
         // will represent the permutation performed on the branches
         // during the rebalancing
-        index_type p(num_nodes()+1);
-        std::cout << "allocated for array of size " << p.size() << std::endl;
+        index_type p(num_nodes(), -1);
 
         // recersively rebalance the tree
-        new_tree.add_children(0, b, p, *this, true);
+        new_tree.add_children(0, b, 0, p, *this);
+
+        // renumber the child indexes
+        std::transform(
+            new_tree.children_.begin(), new_tree.children_.end(),
+            new_tree.children_.begin(), [&p] (int i) {return p[i];}
+        );
 
         return new_tree;
     }
@@ -236,58 +246,67 @@ class tree {
     /// will be applied recursively until the old root has been processed,
     /// which indicates that the renumbering is finished.
     ///
-    /// precondition - the node new node has already been placed in the tree
+    /// precondition - the node new_node has already been placed in the tree
+    /// precondition - all of new_node's children have been added to the tree
+    ///     new_node : the new index of the node whose children are to be added
+    ///                to the tree
+    ///     old_node : the index of new_node in the original tree
+    ///     parent_node : equals index of old_node's parent in the original tree
+    ///                   should be a child of new_node
+    ///                 : equals -1 if the old_node's parent is not a child of
+    ///                   new_node
+    ///     p : permutation vector, p[i] is the new index of node i in the old
+    ///         tree
     int add_children(
         int new_node,
         int old_node,
+        int parent_node,
         index_view p,
-        tree const& old_tree,
-        bool parent_as_child
+        tree const& old_tree
     )
     {
-        std::cout << "add_children(old " << old_node << ", new " << new_node << ", " << parent_as_child << ")" << std::endl;
-
         // check for the senitel that indicates that the old root has
         // been processed
         if(old_node==-1) {
-            assert(parent_as_child); // sanity check
+            //assert(parent_node<0); // sanity check
             return new_node;
         }
 
+        p[old_node] = new_node;
+
+        // the list of the children of the original node
         auto old_children = old_tree.children(old_node);
-        auto pos = child_index_[new_node];
 
-        auto n_children = old_children.size() + (parent_as_child ? 1 : 0);
-        child_index_[new_node+1] = pos + n_children;
-        std::cout << "  inserting " << n_children << " into " << child_index_(new_node, new_node+2) << std::endl;
+        auto this_node = new_node;
+        auto pos = child_index_[this_node];
 
-        std::cout << " inserting";
-        // first renumber the children
+        auto add_parent_as_child = parent_node>=0 && old_node>0;
+        //
+        // STEP 1 : add the child indexes for this_node
+        //
+        // first add the children of the node
         for(auto b : old_children) {
-            std::cout << " " << b;
-            new_node++;
-            p[new_node] = b;
-            children_[pos++] = new_node;
+            if(b != parent_node) {
+                children_[pos++] = b;
+            }
         }
-        // then add and renumber the parent as a child
-        if(parent_as_child) {
-            std::cout << " " << yellow(std::to_string(old_tree.parent(old_node)));
-            new_node++;
-            p[new_node] = old_tree.parent(old_node);
-            children_[pos++] = new_node;
+        // then add the node's parent as a child if applicable
+        if(add_parent_as_child) {
+            children_[pos++] = old_tree.parent(old_node);
         }
-        std::cout << std::endl;
+        child_index_[this_node+1] = pos;
 
-        // then visit the sub-tree of each child recursively
-        //      - traverse _down_ the tree
-        //auto child_range = range();
+        //
+        // STEP 2 : recursively add each child's children
+        //
+        new_node++;
         for(auto b : old_children) {
-            new_node = add_children(new_node, b, p, old_tree, false);
+            if(b != parent_node) {
+                new_node = add_children(new_node, b, -1, p, old_tree);
+            }
         }
-        // finally visit the parent recursively
-        //      - traverse _up_ the tree towards the old root
-        if(parent_as_child) {
-            new_node = add_children(new_node, parents_[old_node], p, old_tree, true);
+        if(add_parent_as_child) {
+            new_node = add_children(new_node, old_tree.parent(old_node), old_node, p, old_tree);
         }
 
         return new_node;
