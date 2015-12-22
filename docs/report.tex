@@ -1,0 +1,108 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Stylish Article
+% LaTeX Template
+% Version 2.0 (13/4/14)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Mathias Legrand (legrand.mathias@gmail.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%   PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[fleqn,10pt]{SelfArx} % Document font size and equations flushed left
+
+\usepackage{xspace}
+\usepackage{color}
+
+%----------------------------------------------------------------------------------------
+%   COLUMNS
+%----------------------------------------------------------------------------------------
+
+\setlength{\columnsep}{0.55cm} % Distance between the two columns of text
+\setlength{\fboxrule}{0.75pt} % Width of the border around the abstract
+
+%----------------------------------------------------------------------------------------
+%   COLORS
+%----------------------------------------------------------------------------------------
+
+\definecolor{color1}{RGB}{0,0,90} % Color of the article title and sections
+\definecolor{color2}{RGB}{0,20,20} % Color of the boxes behind the abstract and headings
+
+%----------------------------------------------------------------------------------------
+%   PLOTTING and DRAWING
+%----------------------------------------------------------------------------------------
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usetikzlibrary{shapes,arrows,backgrounds,fit,shapes.geometric,calc}
+\usetikzlibrary{pgfplots.groupplots}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+
+%----------------------------------------------------------------------------------------
+%   HYPERLINKS
+%----------------------------------------------------------------------------------------
+
+\usepackage{hyperref} % Required for hyperlinks
+\hypersetup{hidelinks,colorlinks,breaklinks=true,urlcolor=color2,citecolor=color1,linkcolor=color1,bookmarksopen=false,pdftitle={Title},pdfauthor={Author}}
+
+%----------------------------------------------------------------------------------------
+%   CUSTOM COMMANDS
+%----------------------------------------------------------------------------------------
+
+\newcommand{\HWtwelve}{HW12\xspace}
+\newcommand{\HWtwelves}{HW12$^*$\xspace}
+\newcommand{\HWeight}{HW8\xspace}
+\newcommand{\HWsix}{HW6\xspace}
+\newcommand{\HWfour}{HW4\xspace}
+\newcommand{\SBeight}{SB8\xspace}
+
+\newcommand{\HWtwelvecode}{E5-2690v3\xspace}
+\newcommand{\HWtwelvescode}{E5-2680v3\xspace}
+\newcommand{\HWeightcode}{E5-1660v3\xspace}
+\newcommand{\HWsixcode}{E5-1650v3\xspace}
+\newcommand{\HWfourcode}{E5-1620v3\xspace}
+\newcommand{\SBeightcode}{E5-2670\xspace}
+
+\newcommand{\todo}[1]{\textbf{\textcolor{blue}{TODO: #1}}} % add a comment to the article
+
+\newcommand{\tbl}[1]{\textbf{Table \ref{#1}}\xspace}
+\newcommand{\fig}[1]{\textbf{Figure \ref{#1}}\xspace}
+\newcommand{\eq}[1]{\textbf{(\ref{#1})}\xspace}
+\newcommand{\ssec}[1]{\textbf{\S\ref{#1}}\xspace}
+
+\newcommand{\pder}[2]{\frac{\partial{#1}}{\partial{#2}}}
+
+%----------------------------------------------------------------------------------------
+%   ARTICLE INFORMATION
+%----------------------------------------------------------------------------------------
+
+\JournalInfo{CSCS}      % name of "journal" on upper right corner
+\Archive{working document}
+
+\PaperTitle{Cable Equation}
+
+%===============================================================================
+
+\begin{document}
+
+\flushbottom    % Makes all text pages the same height
+\maketitle      % Print the title and authors
+\tableofcontents
+
+\thispagestyle{empty} % Removes page numbering from the first page
+
+%------------------------------------------------
+\input{formulation.tex}
+
+
+\end{document}
+

@@ -32,3 +32,11 @@
 *.dot
 *.pdf
 *.jpg
+
+# latex output
+*.aux
+*.log
+*.out
+*.pdf
+*.toc
+

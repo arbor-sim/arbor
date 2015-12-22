@@ -1,0 +1,14 @@
+\section*{Introduction}
+
+The cable equation is a nonlinear parabolic PDE that can be written in the form
+\begin{equation}
+    c_m \pder{V}{t} = \frac{1}{2ar_{L}} \pder{}{x} \left( a^2 \pder{V}{x} \right) - i_m + i_e,
+\end{equation}
+where
+\begin{itemize}
+    \item $V$ is the potential relative to the ECM $[mV]$
+    \item $a$ is the cable radius \todo{units}
+    \item $c_m$ is the {specific membrane capacitance}, approximately the same for all neurons $\approx 10~nF/mm^2$. Related to \emph{membrane capacitance} $C_m$ by the relationship $C_m=c_{m}A$, where $A$ is the surface area of the cell.
+    \item $i_m$ is the membrane current \todo{units}
+    \item $r_L$ is intracellular resistivity, typical value $1~k\Omega$
+\end{itemize}
