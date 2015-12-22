@@ -7,8 +7,53 @@ The cable equation is a nonlinear parabolic PDE that can be written in the form
 where
 \begin{itemize}
     \item $V$ is the potential relative to the ECM $[mV]$
-    \item $a$ is the cable radius \todo{units}
+    \item $a$ is the cable radius \todo{units} $[mm]$?
     \item $c_m$ is the {specific membrane capacitance}, approximately the same for all neurons $\approx 10~nF/mm^2$. Related to \emph{membrane capacitance} $C_m$ by the relationship $C_m=c_{m}A$, where $A$ is the surface area of the cell.
-    \item $i_m$ is the membrane current \todo{units}
+    \item $i_m$ is the membrane current \todo{units}. The total contribution from ion and synaptic channels is expressed as a the product of current per unit area $i_m$ and the surface area.
+    \item $i_e$ is the electrode current flowing into the cell, divided by surface area, i.e. $i_e=I_e/A$.
     \item $r_L$ is intracellular resistivity, typical value $1~k\Omega$
 \end{itemize}
+
+Note that the standard convention is followed, whereby membrane and synapse currents ($i_m$) are positive when outward, and electrod currents ($i_e$) are positive inward.
+
+\begin{table*}[htp!]
+    \begin{center}
+
+    \begin{tabular}{llll}
+        \hline
+        quality & symbol & unit  & notes \\
+        \hline
+        energy     & $J$ & joule   $j$  & work to push 1 $N$ through 1 $m$ \\
+        charge     & $q$ & coulomb $C$  & $6.25\cdot10^{18}$ electrons, $[A\cdot s]$ \\
+        current    & $I$ & ampere  $A$  & $[C\cdot s^{-1}]$, $A$ is SI base unit\\
+        voltage    & $V$ & volt    $V$  & potential work per unit charge \\
+        resistance & $R$ & ohm $\Omega$ & recall Ohm's law $V=IR$ \\
+        capacitance& $C$ & farad   $F$  & $C=\frac{q}{V}$, $[J\cdot C^{2}]$\\
+        \hline
+    \end{tabular}
+
+    \begin{tabular}{llll}
+        \hline
+        symbol & unit & equivalents & SI base \\
+        \hline
+        $J$    & $j$      &  $J\cdot s^{-1}$, $V\cdot A$ &
+            $kg\cdot m^{2}\cdot s^{-2}$ \\
+
+        $q$    & $C$      & $s\cdot A$ &
+            $s\cdot A$ \\
+
+        $I$    & $A$      &  & \\
+
+        $V$    & $V$      &  &
+            $kg\cdot m^{2}\cdot s^{-3}\cdot A^{-1}$ \\
+
+        $R$    & $\Omega$ &   & \\
+        $C$    & $F$      &   & \\
+        \hline
+    \end{tabular}
+
+    \end{center}
+    \caption{Symbols and quantities.}
+\end{table*}
+
+
