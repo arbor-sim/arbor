@@ -2,6 +2,7 @@
 
 The cable equation is a nonlinear parabolic PDE that can be written in the form
 \begin{equation}
+    \label{eq:cable}
     c_m \pder{V}{t} = \frac{1}{2ar_{L}} \pder{}{x} \left( a^2 \pder{V}{x} \right) - i_m + i_e,
 \end{equation}
 where
@@ -15,6 +16,14 @@ where
 \end{itemize}
 
 Note that the standard convention is followed, whereby membrane and synapse currents ($i_m$) are positive when outward, and electrod currents ($i_e$) are positive inward.
+
+The PDE in (\ref{eq:cable}) is derived from the following mass balance expression for a cable segment
+\begin{equation}
+    \label{eq:cable}
+    2\pi a \Delta x c_m \pder{V}{t} = -\left. \left( \frac{\pi a^2}{r_L}\pder{V}{x} \right) \right|_\text{left}
+                                      +\left. \left( \frac{\pi a^2}{r_L}\pder{V}{x} \right) \right|_\text{right}
+                                      - 2\pi a \Delta x (i_m - i_e)
+\end{equation}
 
 \begin{table*}[htp!]
     \begin{center}
@@ -42,13 +51,17 @@ Note that the standard convention is followed, whereby membrane and synapse curr
         $q$    & $C$      & $s\cdot A$ &
             $s\cdot A$ \\
 
-        $I$    & $A$      &  & \\
+        $I$    & $A$  & $C\cdot s^{-1}$ &
+            $A$ \\
 
-        $V$    & $V$      &  &
+        $V$    & $V$      & $W\cdot A$ &
             $kg\cdot m^{2}\cdot s^{-3}\cdot A^{-1}$ \\
 
-        $R$    & $\Omega$ &   & \\
-        $C$    & $F$      &   & \\
+        $R$    & $\Omega$ & $V\cdot A^{-1}$ &
+            $kg\cdot m^{2}\cdot s^{-3}\cdot A^{-2}$ \\
+
+        $C$    & $F$      & $C\cdot V^{-1}$  &
+            $kg^{-1}\cdot m^{-2}\cdot s^{4}\cdot A^{2}$ \\
         \hline
     \end{tabular}
 
