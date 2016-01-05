@@ -49,14 +49,32 @@ class cell_tree {
     }
 
     /// construct from a tree
+    // copy constructor
     cell_tree(tree const& t)
     : tree_(t)
-    {}
+    { }
 
-    /// construct from a tree
+    // move constructor
     cell_tree(tree&& t)
     : tree_(std::move(t))
-    {}
+    { }
+
+    /// construct from a cell tree
+    // copy constructor
+    cell_tree(cell_tree const& other)
+    : tree_(other.tree_),
+      soma_(other.soma())
+    { }
+
+    // move constructor
+    cell_tree(cell_tree&& other)
+    : tree_(std::move(other.tree_)),
+      soma_(other.soma())
+    { }
+
+    int_type soma() const {
+        return soma_;
+    }
 
     /// Minimize the depth of the tree.
     int_type balance() {
@@ -64,7 +82,12 @@ class cell_tree {
         auto new_root = find_minimum_root();
 
         // change the root on the tree
-        tree_.change_root(new_root);
+        auto p = tree_.change_root(new_root);
+
+        // keep track of the soma_
+        if(p.size()) {
+            soma_ = p[soma_];
+        }
 
         return new_root;
     }
@@ -241,4 +264,6 @@ class cell_tree {
 
     // storage for the tree structure of cell segments
     tree tree_;
+
+    int_type soma_ = 0;
 };

@@ -138,13 +138,13 @@ TEST(tree, change_root) {
         std::vector<int> parent_index = {0,0,0};
         tree t;
         t.init_from_parent_index(parent_index);
-        auto new_tree = t.change_root(1);
+        t.change_root(1);
 
-        EXPECT_EQ(new_tree.num_nodes(), 3);
+        EXPECT_EQ(t.num_nodes(), 3);
 
-        EXPECT_EQ(new_tree.num_children(0), 1);
-        EXPECT_EQ(new_tree.num_children(1), 1);
-        EXPECT_EQ(new_tree.num_children(2), 0);
+        EXPECT_EQ(t.num_children(0), 1);
+        EXPECT_EQ(t.num_children(1), 1);
+        EXPECT_EQ(t.num_children(2), 0);
     }
     {
         // a cell with the following structure
@@ -157,15 +157,15 @@ TEST(tree, change_root) {
         std::vector<int> parent_index = {0,0,0,1,1};
         tree t;
         t.init_from_parent_index(parent_index);
-        auto new_tree = t.change_root(1);
+        t.change_root(1);
 
-        EXPECT_EQ(new_tree.num_nodes(), 5);
+        EXPECT_EQ(t.num_nodes(), 5);
 
-        EXPECT_EQ(new_tree.num_children(0), 3);
-        EXPECT_EQ(new_tree.num_children(1), 0);
-        EXPECT_EQ(new_tree.num_children(2), 0);
-        EXPECT_EQ(new_tree.num_children(3), 1);
-        EXPECT_EQ(new_tree.num_children(4), 0);
+        EXPECT_EQ(t.num_children(0), 3);
+        EXPECT_EQ(t.num_children(1), 0);
+        EXPECT_EQ(t.num_children(2), 0);
+        EXPECT_EQ(t.num_children(3), 1);
+        EXPECT_EQ(t.num_children(4), 0);
     }
     {
         // a cell with the following structure
@@ -183,19 +183,17 @@ TEST(tree, change_root) {
         tree t;
         t.init_from_parent_index(parent_index);
 
-        auto new_tree = t.change_root(1);
+        t.change_root(1);
 
-        EXPECT_EQ(new_tree.num_nodes(), 7);
+        EXPECT_EQ(t.num_nodes(), 7);
 
-        EXPECT_EQ(new_tree.num_children(0), 3);
-        EXPECT_EQ(new_tree.num_children(1), 0);
-        EXPECT_EQ(new_tree.num_children(2), 2);
-        EXPECT_EQ(new_tree.num_children(3), 0);
-        EXPECT_EQ(new_tree.num_children(4), 0);
-        EXPECT_EQ(new_tree.num_children(5), 1);
-        EXPECT_EQ(new_tree.num_children(6), 0);
-
-        auto T = cell_tree(new_tree);
+        EXPECT_EQ(t.num_children(0), 3);
+        EXPECT_EQ(t.num_children(1), 0);
+        EXPECT_EQ(t.num_children(2), 2);
+        EXPECT_EQ(t.num_children(3), 0);
+        EXPECT_EQ(t.num_children(4), 0);
+        EXPECT_EQ(t.num_children(5), 1);
+        EXPECT_EQ(t.num_children(6), 0);
     }
 }
 
@@ -215,7 +213,24 @@ TEST(cell_tree, balance) {
 
         t.balance();
 
+        // the soma (original root) has moved to 5 in the new tree
+        EXPECT_EQ(t.soma(), 5);
+
         EXPECT_EQ(t.num_segments(), 7);
+        EXPECT_EQ(t.num_children(0),3);
+        EXPECT_EQ(t.num_children(1),0);
+        EXPECT_EQ(t.num_children(2),2);
+        EXPECT_EQ(t.num_children(3),0);
+        EXPECT_EQ(t.num_children(4),0);
+        EXPECT_EQ(t.num_children(5),1);
+        EXPECT_EQ(t.num_children(6),0);
+        EXPECT_EQ(t.parent(0),-1);
+        EXPECT_EQ(t.parent(1), 0);
+        EXPECT_EQ(t.parent(2), 0);
+        EXPECT_EQ(t.parent(3), 0);
+        EXPECT_EQ(t.parent(4), 2);
+        EXPECT_EQ(t.parent(5), 2);
+        EXPECT_EQ(t.parent(6), 5);
 
         t.to_graphviz("cell.dot");
     }

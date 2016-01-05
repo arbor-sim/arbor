@@ -175,12 +175,12 @@ class tree {
         return sizeof(int_type)*data_.size() + sizeof(tree);
     }
 
-    tree change_root(int b) {
+    index_type change_root(int b) {
         assert(b<num_nodes());
 
         // no need to rebalance if the root node has been requested
         if(b==0) {
-            return tree(*this);
+            return index_type();
         }
 
         // create new tree with memory allocated
@@ -188,6 +188,7 @@ class tree {
         new_tree.init(num_nodes());
 
         // add the root node
+        new_tree.data_(memory::all) = -std::numeric_limits<int_type>::min();
         new_tree.parents_[0] = -1;
         new_tree.child_index_[0] = 0;
 
@@ -205,13 +206,12 @@ class tree {
             new_tree.children_.begin(), [&p] (int i) {return p[i];}
         );
 
-        // copy in new data
-        // this should be done with a swap, to avoid a malloc-free, however
-        // using std::swap gives a seg fault... todo
-        data_ = new_tree.data_;
-        //std::swap(data_, new_tree.data_);
+        // copy in new data with a move because the information in
+        // new_tree is not kept
+        std::swap(data_, new_tree.data_);
+        set_ranges(new_tree.num_nodes());
 
-        return new_tree;
+        return p;
     }
 
     private :
@@ -289,11 +289,13 @@ class tree {
         for(auto b : old_children) {
             if(b != parent_node) {
                 children_[pos++] = b;
+                parents_[pos] = new_node;
             }
         }
         // then add the node's parent as a child if applicable
         if(add_parent_as_child) {
             children_[pos++] = old_tree.parent(old_node);
+            parents_[pos] = new_node;
         }
         child_index_[this_node+1] = pos;
 
