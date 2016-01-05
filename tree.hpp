@@ -188,7 +188,6 @@ class tree {
         new_tree.init(num_nodes());
 
         // add the root node
-        new_tree.data_(memory::all) = -std::numeric_limits<int_type>::min();
         new_tree.parents_[0] = -1;
         new_tree.child_index_[0] = 0;
 

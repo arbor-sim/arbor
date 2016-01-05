@@ -22,6 +22,7 @@
 
 \usepackage{xspace}
 \usepackage{color}
+\usepackage{bm} % bold math
 
 %----------------------------------------------------------------------------------------
 %   COLUMNS
@@ -58,20 +59,6 @@
 %   CUSTOM COMMANDS
 %----------------------------------------------------------------------------------------
 
-\newcommand{\HWtwelve}{HW12\xspace}
-\newcommand{\HWtwelves}{HW12$^*$\xspace}
-\newcommand{\HWeight}{HW8\xspace}
-\newcommand{\HWsix}{HW6\xspace}
-\newcommand{\HWfour}{HW4\xspace}
-\newcommand{\SBeight}{SB8\xspace}
-
-\newcommand{\HWtwelvecode}{E5-2690v3\xspace}
-\newcommand{\HWtwelvescode}{E5-2680v3\xspace}
-\newcommand{\HWeightcode}{E5-1660v3\xspace}
-\newcommand{\HWsixcode}{E5-1650v3\xspace}
-\newcommand{\HWfourcode}{E5-1620v3\xspace}
-\newcommand{\SBeightcode}{E5-2670\xspace}
-
 \newcommand{\todo}[1]{\textbf{\textcolor{blue}{TODO: #1}}} % add a comment to the article
 
 \newcommand{\tbl}[1]{\textbf{Table \ref{#1}}\xspace}
@@ -80,6 +67,8 @@
 \newcommand{\ssec}[1]{\textbf{\S\ref{#1}}\xspace}
 
 \newcommand{\pder}[2]{\frac{\partial{#1}}{\partial{#2}}}
+\newcommand{\deriv}[1]{~\text{d}{#1}}
+\newcommand{\vv}[1]{\bm{#1}\xspace}
 
 %----------------------------------------------------------------------------------------
 %   ARTICLE INFORMATION
@@ -101,8 +90,16 @@
 \thispagestyle{empty} % Removes page numbering from the first page
 
 %------------------------------------------------
+\section{Formulation}
 \input{formulation.tex}
 
+\section{Symbols and Units}
+\input{symbols.tex}
+
+%*************************************************
+\bibliographystyle{abbrv}
+\bibliography{bibliography}
+%*************************************************
 
 \end{document}
 
