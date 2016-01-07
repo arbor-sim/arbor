@@ -4,6 +4,12 @@ report.pdf : *.tex
 force : report.pdf
 	pdflatex report.tex
 
+bib : *.tex bibliography.bib
+	pdflatex report.tex
+	bibtex report
+	pdflatex report.tex
+	pdflatex report.tex
+
 clean :
 	rm -f *.pdf
 	rm -f *.log
