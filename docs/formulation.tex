@@ -1,5 +1,41 @@
-\section*{Introduction}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Brief background for derivation of the cable equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+See \cite{lindsay_2004} for a detailed derivation of the cable equation, and extensions to the one-dimensional model that account for radial variation of potential.
 
+The one-dimensional cable equation introduced later in equations~\eq{eq:cable} and~\eq{eq:cable_balance} is based on the following expression in three dimensions (based on Maxwell's equations adapted for neurological modelling)
+\begin{equation}
+    \nabla \cdot \vv{J} = 0,
+\end{equation}
+where $\vv{J}$ is current density (units $A/m^2$).
+Current density is in turn defined in terms of electric field $\vv{E}$ (units $V/m$)
+\begin{equation}
+    \vv{J} = \sigma \vv{E},
+\end{equation}
+where $\sigma$ is the specific electrical conductivity of intra-cellular fluid (typically 3.3 $S/m$).
+
+The derivation of the cable equation is based on two assumptions:
+\begin{enumerate}
+    \item that charge disperion is effectively instantaneous for the purposes of dendritic modelling.
+    \item that diffusion of magnetic field is instant, i.e. it behaves quasi-statically in the sense that it is determined by the electric field through the Maxwell equations.
+\end{enumerate}
+Under these conditions, $\vv{E}$ is conservative, and as such can be expressed in terms of a potential field
+\begin{equation}
+    \vv{E} = \nabla \phi,
+\end{equation}
+where the extra/intra-cellular potential field $\phi$ has units $mV$.
+
+The derivation of the one-dimensional conservation equation \eq{eq:cable_balance} is based on the assumption that the intra-cellular potential (i.e. inside the cell) does not vary radially.
+That is, potential is a function of the axial distance $x$ alone
+\begin{equation}
+    \vv{E} = \nabla \phi = \pder{V}{x}.
+\end{equation}
+This is not strictly true, because a potential field that is a variable of $x$ and $t$ alone can't support the axial gradients required to drive the potential difference over the cell membrane.
+I am still trying to get my head around the assumptions made in mapping a three-dimensional problem to a pseudo one-dimensional one.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{The cable equation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 The cable equation is a nonlinear parabolic PDE that can be written in the form
 \begin{equation}
     \label{eq:cable}
@@ -37,43 +73,38 @@ Equation~\eq{eq:cable_balance} handles the general case where a cable might lie 
     \int_{\Omega}{c_m \pder{V}{t} } \deriv{v} =
         & - \int_{\Gamma_{\text{left}}}  \left( \frac{1}{r_L}\pder{V}{x} \right) \deriv{s} \nonumber \\
         & + \int_{\Gamma_{\text{right}}} \left( \frac{1}{r_L}\pder{V}{x} \right) \deriv{s} \nonumber \\
-        & - \int_{\Gamma_{ext}} {(i_m - i_e)} \deriv{s} \nonumber
+        & - \int_{\Gamma_{ext}} {(i_m - i_e)} \deriv{s}
+    \label{eq:cable_balance_1D}
 \end{align}
 
 Note that some information is lost when going from a three-dimensional description of a neuron to a system of branching one-dimensional cable segments.
-If the cell is represented by cylinders or frustrums\footnote{a frustrum is a truncated cone, where the truncation plane is parallel to the base of the cone.}, the definition of volume and surface area at branch points are not exact as far as I can see.
+If the cell is represented by cylinders or frustrums\footnote{a frustrum is a truncated cone, where the truncation plane is parallel to the base of the cone.}, the three-dimensional values for volume and surface area at branch points can't be retrieved from the one-dimensional description.
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.5\textwidth]{./images/cable.pdf}
+    \end{center}
+    \caption{A single segment, or control volume, on an unbranching dendrite.}
+    \label{fig:segment}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Assumptions of the cable equation}
+\subsection{Finite volume discretization}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-See \cite{lindsay_2004} for a detailed derivation of the cable equation, and extensions to the one-dimensional model that account for radial variation of potential.
+The finite volume method is a natural choice for the solution of the conservation law in~\eq{eq:cable_balance} and~\eq{eq:cable_balance_1D}.
 
-The formulation in equations~\eq{eq:cable} and~\eq{eq:cable_balance} is based on the following expression in three dimensions (based on Maxwell's equations adapted for neurological modelling)
-\begin{equation}
-    \nabla \cdot \vv{J} = 0,
-\end{equation}
-where $\vv{J}$ is current density (units $A/m^2$).
-Current density is in turn defined in terms of electric field $\vv{E}$ (units $V/m$)
-\begin{equation}
-    \vv{J} = \sigma \vv{E},
-\end{equation}
-where $\sigma$ is the specific electrical conductivity of intra-cellular fluid (typically 3.3 $S/m$).
+\begin{itemize}
+    \item   the $x_i$ are spaced uniformly with distance $x_{i+1}-x_{i} = \Delta x$
+    \item   control volumes are formed by locating the boundaries between adjacent points at $(x_{i+1}+x_{i})/2$
+    \item   this discretization differs from the finite difference method used in Neuron because the equation is explicitly solved for at the end of cable segments, and because the finite volume discretization is applied to all points. Neuron uses special algebraic \emph{zero area} formulation for nodes at branch points.
+\end{itemize}
 
-The derivation of the cable equation is based on two assumptions:
-\begin{enumerate}
-    \item that charge disperion is effectively instantaneous for the purposes of dendritic modelling.
-    \item that diffusion of magnetic field is instant, i.e. it behaves quasi-statically in the sense that it is determined by the electric field through the Maxwell equations.
-\end{enumerate}
-Under these conditions, $\vv{E}$ is conservative, and as such can be expressed in terms of a potential field
+We proceed by defining the \emph{volume average} of a quantity $\varphi$ as follows:
 \begin{equation}
-    \vv{E} = \nabla \phi,
+    \bar{\varphi}_i = \frac{1}{v_i} \int_{\Omega_i}{\varphi}\deriv{v},
 \end{equation}
-where the extra/intra-cellular potential field $\phi$ has units $mV$.
-
-The derivation of the one-dimensional conservation equation \eq{eq:cable_balance} is based on the assumption that the intra-cellular potential (i.e. inside the cell) does not vary radially.
-That is, potential is a function of the axial distance $x$ alone
+where $\Omega_i$ is the control volume with the point $x_i$ at its centroid illustrated in \fig{fig:segment}, and $v_i$ is the volume of the control volume $\Omega_i$.
+The integral one the left hand side of~\eq{eq:cable_balance} can be expressed in terms of the volume average of $V$
 \begin{equation}
-    \vv{E} = \nabla \phi = \pder{V}{x}.
+    \int_{\Omega}{c_m \pder{V}{t} } \deriv{v} = \frac{c_m}{v_i} V_i
 \end{equation}
-This is not strictly true, because a potential field that is a variable of $x$ and $t$ alone can't support the axial gradients required to drive the potential difference over the cell membrane.
-I am still trying to get my head around the assumptions made in mapping a three-dimensional problem to a pseudo one-dimensional one.
