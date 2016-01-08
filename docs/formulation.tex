@@ -110,6 +110,7 @@ where $\Omega_i$ is the control volume with the point $x_i$ at its centroid illu
 The integral one the left hand side of~\eq{eq:cable_balance} can be expressed in terms of the volume average of $V$
 \begin{equation}
     \int_{\Omega}{c_m \pder{V}{t} } \deriv{v} = \frac{c_m}{\Delta_i} \pder{\bar{V}_i}{t}.
+    \label{eq:dvdt}
 \end{equation}
 
 In the FV formulation the voltage $V_i$ at the node $x_i$ is equal to the volume average, i.e. $V_i=\bar{V}_i$.
@@ -165,13 +166,30 @@ The $i_m$ term is dependent on the potential difference over the cell membrane $
 The current terms are an average per unit area, therefore the total flux 
 \begin{align}
     q_{i}^{\text{m}}
-        = & (i_m(V_i) - i_e(x_i))\int_{\Gamma_{ext}} {1} \deriv{s} \nonumber \\
-          & \sigma_i\cdot(i_m(V_i) - i_e(x_i)),
+        & = (i_m(V_i) - i_e(x_i))\int_{\Gamma_{ext}} {1} \deriv{s} \nonumber \\
+        & = \sigma_i\cdot(i_m(V_i) - i_e(x_i)),
+        \label{eq:q_im}
 \end{align}
 where $\sigma_i$ is the surface area the of the exterior of the cable segment, i.e. the surface corresponding to the cell membrane.
 
-Each cable segment is modeled as a frustrum, with left and right radii $a_{i,\ell}$ and $a_{i,r}$.
+Each cable segment is a conical frustrum, as illustrated in \fig{fig:segment}.
+The lateral surface area of a frustrum with height $\Delta x_i$ and radii of $a_{i,\ell}$ and $a_{i,r}$ is
+\begin{equation}
+    \sigma_i = \pi (a_{i,\ell} + a_{i,r})+\sqrt{\Delta x_i^2 + (a_{i,\ell} - a_{i,r})^2}.
+    \label{eq:frustrum_volume}
+\end{equation}
 
 %-------------------------------------------------------------------------------
 \subsubsection{Putting it all together}
 %-------------------------------------------------------------------------------
+By substituting the volume averaging of the temporal derivative in~\eq{eq:dvdt} approximations for the flux over the surfaces in~\eq{eq:q_ij} and~\eq{eq:frustrum_volume} respectively into the conservation equation~\eq{eq:cable_balance} we get the following ODE defined for each node in the cell
+\begin{equation}
+    \frac{c_m}{\Delta_i} \dder{\bar{V}_i}{t}
+       = -\sum_{j\in\mathcal{N}_i} {\frac{\sigma_{i,j}}{r_L \Delta x_{i,j}} (V_i-V_j)} + \sigma_i\cdot(i_m(V_i) - i_e(x_i)),
+    \label{eq:ode}
+\end{equation}
+where
+\begin{itemize}
+    \item   $\sigma_{i,j}=\pi a_{i,j}^2$ is the area of the surface between two adjacent segments $i$ and $j$. Care must be taken if the neighbour is a child or parent of the other at a branch point. In this case, the radius is that of the child segment (which ever has the largest index in the minimum degree ordering used for numbering segments). \todo{what about if we balance the tree so that the parent-child relationship is swapped?, maybe the relationship ``farther from soma'' has to used to choose.}
+    \item   $\sigma_{i}=(a_{i,\ell} + a_{i,r})+\sqrt{\Delta x_i^2 + (a_{i,\ell} - a_{i,r})^2}.$ is the lateral area of the conical frustrum describing segment $i$. For this area, we take the value of the segment radius at the left and right of the frustrum iteself, regardless of whether either end lies at a branch point.
+\end{itemize}
