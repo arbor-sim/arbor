@@ -53,10 +53,10 @@ where
 
 Note that the standard convention is followed, whereby membrane and synapse currents ($i_m$) are positive when outward, and electrod currents ($i_e$) are positive inward.
 
-The PDE in (\ref{eq:cable}) is derived from the following mass balance expression for a cable segment:
+The PDE in (\ref{eq:cable}) is derived from the following mass balance expression for a cable segment $i$:
 \begin{align}
     \int_{\Omega}{c_m \pder{V}{t} } \deriv{v} =
-        & - \sum_{n\in\mathcal{N}} {\int_{\Gamma_{n}}  \left( \frac{1}{r_L}\pder{V}{x} \cdot \vv{n} \right) \deriv{s} } \nonumber \\
+        & - \sum_{j\in\mathcal{N}_i} {\int_{\Gamma_{i,j}} \frac{1}{r_L}\pder{V}{x} n_{i,j} \deriv{s} } \nonumber \\
         & - \int_{\Gamma_{ext}} {(i_m - i_e)} \deriv{s}
     \label{eq:cable_balance}
 \end{align}
@@ -67,13 +67,13 @@ The external surface $\Gamma_{ext}$ is the cell membrane at the interface betwee
 The current, which is the conserved quantity in our conservation law, over the surface is composed of the synapse and ion channel contributions.
 This is derived from a thin film approximation to the cell membrane, whereby the membrane is treated as an infinitesimally thin interface between the intra and extra cellular regions.
 
-The internal surfaces are the interface between the cable segment and its neighbour segments which are denoted by the set $\mathcal N$.
+The internal surfaces are the interface between the cable segment and its neighbour segments which are denoted by the set $\mathcal{N}_i$.
 Equation~\eq{eq:cable_balance} handles the general case where a cable might lie at a branch, and can be simplified for a one dimensional segment:
 \begin{align}
     \int_{\Omega}{c_m \pder{V}{t} } \deriv{v} =
-        & - \int_{\Gamma_{\text{left}}}  \left( \frac{1}{r_L}\pder{V}{x} \right) \deriv{s} \nonumber \\
-        & + \int_{\Gamma_{\text{right}}} \left( \frac{1}{r_L}\pder{V}{x} \right) \deriv{s} \nonumber \\
-        & - \int_{\Gamma_{ext}} {(i_m - i_e)} \deriv{s}
+        \quad &   \int_{\Gamma_{\text{left}}}  \left( \frac{1}{r_L}\pder{V}{x} \right) \deriv{s} \nonumber \\
+        -&  \int_{\Gamma_{\text{right}}} \left( \frac{1}{r_L}\pder{V}{x} \right) \deriv{s} \nonumber \\
+        -&  \int_{\Gamma_{ext}} {(i_m - i_e)} \deriv{s}
     \label{eq:cable_balance_1D}
 \end{align}
 
@@ -99,6 +99,9 @@ The finite volume method is a natural choice for the solution of the conservatio
     \item   this discretization differs from the finite difference method used in Neuron because the equation is explicitly solved for at the end of cable segments, and because the finite volume discretization is applied to all points. Neuron uses special algebraic \emph{zero area} formulation for nodes at branch points.
 \end{itemize}
 
+%-------------------------------------------------------------------------------
+\subsubsection{Temporal derivative}
+%-------------------------------------------------------------------------------
 We proceed by defining the \emph{volume average} of a quantity $\varphi$ as follows:
 \begin{equation}
     \bar{\varphi}_i = \frac{1}{v_i} \int_{\Omega_i}{\varphi}\deriv{v},
@@ -106,5 +109,69 @@ We proceed by defining the \emph{volume average} of a quantity $\varphi$ as foll
 where $\Omega_i$ is the control volume with the point $x_i$ at its centroid illustrated in \fig{fig:segment}, and $v_i$ is the volume of the control volume $\Omega_i$.
 The integral one the left hand side of~\eq{eq:cable_balance} can be expressed in terms of the volume average of $V$
 \begin{equation}
-    \int_{\Omega}{c_m \pder{V}{t} } \deriv{v} = \frac{c_m}{v_i} V_i
+    \int_{\Omega}{c_m \pder{V}{t} } \deriv{v} = \frac{c_m}{\Delta_i} \pder{\bar{V}_i}{t}.
 \end{equation}
+
+In the FV formulation the voltage $V_i$ at the node $x_i$ is equal to the volume average, i.e. $V_i=\bar{V}_i$.
+This is effectively treats voltage as a piecewise continuous funtion, with discontinuities at the boundary between adjacent segements.
+
+%-------------------------------------------------------------------------------
+\subsubsection{Intra-cellular flux}
+%-------------------------------------------------------------------------------
+The intracellular flux terms in~\eq{eq:cable_balance} are sum of the flux over interface between adjacent cable segments
+\begin{equation}
+    \sum_{j\in\mathcal{N}_i} {\int_{\Gamma_{i,j}}  \left( \frac{1}{r_L}\pder{V}{x} n_{i,j} \right) \deriv{s} }
+\end{equation}
+
+For the segment centred at $x_i$ with neighbour $x_j$
+\begin{align}
+    q_{i,j} &= \int_{\Gamma_{i,j}}  \left( \frac{1}{r_L}\pder{V}{x} n_{i,j} \right) \deriv{s} \nonumber \\
+            &= \int_{\Gamma_{i,j}}  \frac{1}{r_L}\frac{V_i-V_j}{\Delta x_{i,j}} \deriv{s}
+          \label{eq:q_ij_intermediate}
+\end{align}
+where:
+\begin{itemize}
+    \item $q_{i,j}$ is the \emph{flux} of charge over the interface $\Gamma_{i,j}$
+    \item $\Delta x_{i,j}$ is the distance between $x_i$ and $x_j$, i.e. $\Delta x_{i,j}=|x_i-x_j|$.
+\end{itemize}
+
+The terms inside the integral in equation~\eq{eq:q_ij_intermediate} are constant everywhere on the surface $\Gamma_{i,j}$, so the integral becomes
+\begin{align}
+  q_{i,j} &= \int_{\Gamma_{i,j}}  \frac{1}{r_L}\frac{V_i-V_j}{\Delta x_{i,j}} \deriv{s} \nonumber \\
+          &= \frac{1}{r_L}\frac{V_i-V_j}{\Delta x_{i,j}} \int_{\Gamma_{i,j}} 1 \deriv{s} \nonumber \\
+          &= \frac{1}{r_L}\frac{V_i-V_j}{\Delta x_{i,j}} \sigma_{i,j} \nonumber \\
+          &= \frac{\pi a_{i,j}^2}{r_L \Delta x_{i,j}} (V_i-V_j)
+          \label{eq:q_ij}
+\end{align}
+where $\sigma_{i,j}=\pi a_{i,j}^2$ is the area of the surface $\Gamma_{i,j}$, which is a circle of radius $a_{r,j}$.
+
+Some symmetries
+\begin{itemize}
+    \item $\sigma_{i,j}=\sigma_{j,i}$ : surface area of $\Gamma_{i,j}$
+    \item $\Delta_{i,j}=\Delta_{j,i}$ : distance between $x_i$ and $x_j$
+    \item $n_{i,j}=-n_{j,i}$ : surface ``norm''/orientation
+    \item $q_{i,j}=n_{j,i}q_{i,j}=-q_{j,i}$ : charge flux over $\Gamma_{i,j}$
+\end{itemize}
+
+%-------------------------------------------------------------------------------
+\subsubsection{Cell membrane flux}
+%-------------------------------------------------------------------------------
+The final term in~\eq{eq:cable_balance} with an integral is the cell membrane flux contribution
+\begin{equation}
+    q_{i}^{\text{m}} = \int_{\Gamma_{ext}} {(i_m - i_e)} \deriv{s},
+\end{equation}
+where the current $i_m$ is due to ion channel and synapses, and $i_e$ is any artificial electrode current.
+The $i_m$ term is dependent on the potential difference over the cell membrane $V_i$.
+The current terms are an average per unit area, therefore the total flux 
+\begin{align}
+    q_{i}^{\text{m}}
+        = & (i_m(V_i) - i_e(x_i))\int_{\Gamma_{ext}} {1} \deriv{s} \nonumber \\
+          & \sigma_i\cdot(i_m(V_i) - i_e(x_i)),
+\end{align}
+where $\sigma_i$ is the surface area the of the exterior of the cable segment, i.e. the surface corresponding to the cell membrane.
+
+Each cable segment is modeled as a frustrum, with left and right radii $a_{i,\ell}$ and $a_{i,r}$.
+
+%-------------------------------------------------------------------------------
+\subsubsection{Putting it all together}
+%-------------------------------------------------------------------------------
