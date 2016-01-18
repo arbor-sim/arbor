@@ -1,0 +1,26 @@
+%-----------------------------------
+\subsection{The conic frustrum}
+%-----------------------------------
+The derivation of the surface area of conic frustrum.
+The edge length $l$ is defined
+\begin{equation}
+    l = \sqrt{(x_r - x_l)^2 + (a_r - a_l)^2} = \sqrt{\Delta x^2 + \Delta a^2}.
+\end{equation}
+The lateral area of the surface is found by integrating along surface of rotation:
+\begin{align}
+    \sigma_{\text{lateral}}
+        &= \int_{0}^{l} {2\pi a(s)} \deriv{s} \nonumber \\
+        &= 2\pi \int_{0}^{l} {a_{\ell} + \frac{s}{l}\left( a_r - a_\ell \right)} \deriv{s} \nonumber \\
+        &= 2\pi \left[ a_{\ell}s + \frac{s^2}{2l}\left( a_r - a_\ell \right) \right]_0^l \nonumber \\
+        &= \pi l \left( a_{\ell} + a_r \right) \nonumber \\
+        &= \pi \left( a_{\ell} + a_r \right) \sqrt{\Delta x^2 + \Delta a^2}. \label{eq:frustrum_area}
+\end{align}
+
+There are two degenerate cases of interest. The first is the \emph{cylinder}, for which the radii at each end are euqal, i.e. $a_\ell = a_r = a$. In this case the lateral area of the surface is
+\begin{equation}
+    \sigma_{\text{lateral}} = 2\pi a \Delta x.
+\end{equation}
+The second is a cone, for which $a_\ell=0$ and $a_r=a$:
+\begin{equation}
+    \sigma_{\text{lateral}} = \pi a \sqrt{\Delta x^2 + a^2}.
+\end{equation}
