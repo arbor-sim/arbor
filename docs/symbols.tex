@@ -41,3 +41,27 @@
     \end{center}
     \caption{Symbols and quantities.}
 \end{table*}
+%-------------------------------------------------------------------------------
+\subsubsection{Units}
+%-------------------------------------------------------------------------------
+Reffering to the cable equation first defined in~\eq{eq:cable}
+\begin{equation*}
+    c_m \pder{V}{t} = \frac{1}{2\pi a r_{L}} \pder{}{x} \left( a^2 \pder{V}{x} \right) - i_m + i_e,
+\end{equation*}
+
+If the units are taken to be
+\begin{itemize}
+    \item $c_m = F\cdot cm^{-2}$
+    \item $V = V$
+    \item $a = cm$
+    \item $r_L = \Omega\cdot cm$
+\end{itemize}
+Then the units of each term in equation are $A\cdot cm^{-2}$.
+In practice, the units above are not used, for example distances are usually measured in $\mu m$ and areas in $cm^2$.
+But if we work term-by-term, scaling for these factors is manageable.
+
+A useful identity to use when performing the dimensional analysis relates capacitance and resistance
+\begin{equation*}
+    1~F = 1~\Omega^{-1} \cdot s
+\end{equation*}
+
