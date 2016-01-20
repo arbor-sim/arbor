@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 
 #include "cell_tree.hpp"
+#include "swcio.hpp"
 #include "json/src/json.hpp"
 
 using json = nlohmann::json;
@@ -248,6 +249,169 @@ TEST(cell_tree, json_load) {
         //tree.to_graphviz("cell_" + std::to_string(c) + ".dot");
         tree.to_graphviz("cell" + std::to_string(c) + ".dot");
     }
+}
+
+// SWC tests
+TEST(cell_record, construction)
+{
+    using namespace neuron::io;
+
+    {
+        // force an invalid type
+        cell_record::kind invalid_type = static_cast<cell_record::kind>(100);
+        EXPECT_THROW(cell_record cell(invalid_type, 7, 1., 1., 1., 1., 5),
+                     std::invalid_argument);
+    }
+
+    {
+        // invalid id
+        EXPECT_THROW(cell_record cell(
+                         cell_record::custom, -3, 1., 1., 1., 1., 5),
+                     std::invalid_argument);
+    }
+
+    {
+        // invalid parent id
+        EXPECT_THROW(cell_record cell(
+                         cell_record::custom, 0, 1., 1., 1., 1., -5),
+                     std::invalid_argument);
+    }
+
+    {
+        // invalid radius
+        EXPECT_THROW(cell_record cell(
+                         cell_record::custom, 0, 1., 1., 1., -1., -1),
+                     std::invalid_argument);
+    }
+
+    {
+        // parent_id > id
+        EXPECT_THROW(cell_record cell(
+                         cell_record::custom, 0, 1., 1., 1., 1., 2),
+                     std::invalid_argument);
+    }
+
+    {
+        // parent_id == id
+        EXPECT_THROW(cell_record cell(
+                         cell_record::custom, 0, 1., 1., 1., 1., 0),
+                     std::invalid_argument);
+    }
+
+    {
+        // check standard construction by value
+        cell_record cell(cell_record::custom, 0, 1., 1., 1., 1., -1);
+        EXPECT_EQ(cell.id(), 0);
+        EXPECT_EQ(cell.type(), cell_record::custom);
+        EXPECT_EQ(cell.x(), 1.);
+        EXPECT_EQ(cell.y(), 1.);
+        EXPECT_EQ(cell.z(), 1.);
+        EXPECT_EQ(cell.radius(), 1.);
+        EXPECT_EQ(cell.diameter(), 2*1.);
+        EXPECT_EQ(cell.parent_id(), -1);
+    }
+
+    {
+        // check copy constructor
+        cell_record proto_cell(cell_record::custom, 0, 1., 1., 1., 1., -1);
+        cell_record cell(proto_cell);
+        EXPECT_EQ(cell.id(), 0);
+        EXPECT_EQ(cell.type(), cell_record::custom);
+        EXPECT_EQ(cell.x(), 1.);
+        EXPECT_EQ(cell.y(), 1.);
+        EXPECT_EQ(cell.z(), 1.);
+        EXPECT_EQ(cell.radius(), 1.);
+        EXPECT_EQ(cell.diameter(), 2*1.);
+        EXPECT_EQ(cell.parent_id(), -1);
+    }
+}
+
+TEST(swc_parser, invalid_input)
+{
+    using namespace neuron::io;
+
+    {
+        // check empty file
+        cell_record cell;
+        std::istringstream is("");
+        EXPECT_THROW(is >> cell, std::runtime_error);
+    }
+
+    {
+        // check comment-only file
+        cell_record cell;
+        std::istringstream is("#comment\n#comment\n");
+        EXPECT_THROW(is >> cell, std::runtime_error);
+    }
+
+    {
+        // check incomplete lines; missing parent
+        std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
+        cell_record cell;
+        EXPECT_THROW(is >> cell, std::logic_error);
+    }
+
+    {
+        // check incomplete lines; missing newline
+        // FIXME: we should probably accept such files
+        std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830 -1");
+        cell_record cell;
+        EXPECT_THROW(is >> cell, std::runtime_error);
+    }
+
+    {
+        // Check long lines
+        std::istringstream is(std::string(256, 'a') + "\n");
+        cell_record cell;
+        EXPECT_THROW(is >> cell, std::runtime_error);
+    }
+
+    {
+        // Check non-parsable values
+        std::istringstream is("1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
+        cell_record cell;
+        EXPECT_THROW(is >> cell, std::logic_error);
+    }
+
+    {
+        // Check invalid cell value
+        std::istringstream is("1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
+        cell_record cell;
+        EXPECT_THROW(is >> cell, std::invalid_argument);
+    }
+}
+
+
+TEST(swc_parser, valid_input)
+{
+    using namespace neuron::io;
+
+    {
+        // check valid input
+        std::istringstream is("\
+# this is a comment\n\
+# this is a comment\n\
+1 1 14.566132 34.873772 7.857000 0.717830 -1  # end-of-line comment\n\
+");
+        cell_record cell;
+        EXPECT_NO_THROW(is >> cell);
+        EXPECT_EQ(cell.id(), 0);    // zero-based indexing
+        EXPECT_EQ(cell.type(), cell_record::soma);
+        EXPECT_FLOAT_EQ(cell.x(), 14.566132);
+        EXPECT_FLOAT_EQ(cell.y(), 34.873772);
+        EXPECT_FLOAT_EQ(cell.z(),  7.857000);
+        EXPECT_FLOAT_EQ(cell.radius(), 0.717830);
+        EXPECT_FLOAT_EQ(cell.parent_id(), -1);
+    }
+
+    {
+        // Test multiple records
+    }
+
+    {
+        // Test input ending with comments
+    }
+
 }
 
 int main(int argc, char **argv) {
