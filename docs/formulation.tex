@@ -212,6 +212,63 @@ is the area of the surface between two adjacent segments $i$ and $j$, and
 is the lateral area of the conical frustrum describing segment $i$.
 
 %-------------------------------------------------------------------------------
+\subsubsection{Time Stepping}
+%-------------------------------------------------------------------------------
+The finite volume discretization approximates spatial derivatives, reducing the original continuous formulation into the set of ODEs, with one ODE for each compartment, in equation~\eq{eq:ode}.
+Here we employ an implicit euler temporal integration sheme, wherby the temporal derivative on the lhs is approximated using forward differences
+\begin{align}
+    \sigma_i c_m \frac{V_i^{k+1}-V_i^{k}}{\Delta t}
+        = & -\sum_{j\in\mathcal{N}_i} {\frac{\sigma_{i,j}}{r_L \Delta x_{i,j}} (V_i^{k+1}-V_j^{k+1})} \nonumber \\
+          & - \sigma_i\cdot(i_m(V_i^{k}) - i_e),
+    \label{eq:ode_subs}
+\end{align}
+Where $V^k$ is the value of $V$ in compartment $i$ at time step $k$.
+Note that on the rhs the value of $V$ at the target time step $k+1$ is used, with the exception of calculating the ion channel and synaptic currents $i_m$.
+The current $i_m$ is often a nonlinear function of voltage, so if it was formulated in terms of $V^{k+1}$ the system in~\eq{eq:ode_subs} would be nonlinear, requiring Newton iterations to resolve.
+
+The equations can be rearranged to have all unknown voltage values on the lhs, and values that can be calculated directly on the rhs:
+\begin{align}
+      & V_i^{k+1} + \sum_{j\in\mathcal{N}_i} {\frac{\alpha_{ij}}{\sigma_i} (V_i^{k+1}-V_j^{k+1})}
+            \nonumber \\
+    = & V_i^k - \frac{2\Delta t}{ac_m}(i_m^{k} - i_e),
+    \label{eq:ode_linsys}
+\end{align}
+where the value
+\begin{equation}
+    \alpha_{ij} = \alpha_{ji} = \frac{\Delta t \sigma_{ij}}{ c_m \Delta x_{ij}}
+    \label{eq:alpha_linsys}
+\end{equation}
+is a constant that can be computed for each interface between adjacent compartments during set up.
+
+%-------------------------------------------------------------------------------
+\subsubsection{Example: unbranched uniform cable}
+%-------------------------------------------------------------------------------
+For an unrbanched uniform cable of constant radius $a$, with length $L$ and $n$ compartments, the linear system for internal compartments (i.e. not at the end points of the cable) is simplified by the following observations
+\begin{align}
+    \Delta x_{ij} &= \Delta x = \frac{L}{n-1}, \nonumber \\
+    \sigma_{ij}   &= \pi a^2, \nonumber \\
+    \sigma_{i}    &= 2 \pi a \Delta x, \nonumber \\
+    \alpha_{ij}   &= \frac{\pi a^2\Delta t}{c_m\Delta x}, \nonumber \\
+    \frac{\alpha_{ij}}{\sigma_i}
+                  &= \frac{a\Delta t}{2c_m\Delta x^2}. \nonumber
+\end{align}
+With these simplifications, the lhs of the linear system is
+\begin{align}
+    & V_i^{k+1} + \beta (V_i^{k+1}-V_{i+1}^{k+1}) + \beta (V_i^{k+1}-V_{i-1}^{k+1})
+            \nonumber \\
+            = & (1+2\beta)V_i^{k+1} - \beta V_{i+1}^{k+1} - \beta V_{i-1}^{k+1}.
+\end{align}
+where $\beta=\frac{a\Delta t}{2c_m\Delta x^2}$.
+
+The end points of the cable, i.e. the compartments for $x_1$ and $x_n$, have to be handled differently.
+If we assume that a no-flux boundary condition, i.e. $\vv{J}\cdot\vv{n}=0$, is imposed at the end of the cable, the lhs of the linear system are
+\begin{align}
+    (1+2\beta)V_1^{k+1} - 2\beta V_{2}^{k+1}, \quad\quad & \text{left} \nonumber \\
+    (1+2\beta)V_n^{k+1} - 2\beta V_{n-1}^{k+1}, \quad\quad & \text{right} \nonumber
+\end{align}
+where we note that the ratio $\alpha_{ij}/\sigma_{i}=2\beta$ because the surface area of the control volumes at the boundary are half those on the interior.
+
+%-------------------------------------------------------------------------------
 \subsubsection{Handling branches}
 %-------------------------------------------------------------------------------
 The value of the lateral area $\sigma_i$ in~\eq{eq:sigma_i} is the sum of the areaof each branch at branch points.
