@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <exception>
 #include <iostream>
 #include <sstream>
@@ -68,48 +69,62 @@ public:
         , y_(0)
         , z_(0)
         , r_(0)
-        , parent_id_(0)
+        , parent_id_(-1)
     { }
 
     cell_record(const cell_record &other) = default;
     cell_record &operator=(const cell_record &other) = default;
 
-    kind type()
+    friend bool operator==(const cell_record &lhs,
+                           const cell_record &rhs)
+    {
+        return lhs.id_ == rhs.id_;
+    }
+
+    friend bool operator!=(const cell_record &lhs,
+                           const cell_record &rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const cell_record &cell);
+
+    kind type() const
     {
         return type_;
     }
 
-    int id()
+    int id() const
     {
         return id_;
     }
 
-    int parent_id()
+    int parent() const
     {
         return parent_id_;
     }
 
-    float x()
+    float x() const
     {
         return x_;
     }
 
-    float y()
+    float y() const
     {
         return y_;
     }
 
-    float z()
+    float z() const
     {
         return z_;
     }
 
-    float radius()
+    float radius() const
     {
         return r_;
     }
 
-    float diameter()
+    float diameter() const
     {
         return 2*r_;
     }
@@ -136,7 +151,6 @@ public:
     {
         init_linebuff();
     }
-               
 
     swc_parser()
         : delim_(" ")
@@ -152,7 +166,7 @@ public:
         delete[] linebuff_;
     }
 
-    cell_record parse_record(std::istream &is)
+    std::istream &parse_record(std::istream &is, cell_record &cell)
     {
         while (!is.eof() && !is.bad()) {
             // consume empty and comment lines first
@@ -161,17 +175,21 @@ public:
                 break;
         }
 
-        if (is.eof())
-            throw std::runtime_error("unexpected eof found");
-
         if (is.bad())
-            throw std::runtime_error("i/o error");
+            // let the caller check for such events
+            return is;
+
+        if (is.eof() &&
+            (linebuff_[0] == 0 || linebuff_[0] == comment_prefix_))
+            // last line is either empty or a comment; don't parse anything
+            return is;
 
         if (is.fail() && is.gcount() == max_line_ - 1)
             throw std::runtime_error("too long line detected");
 
         std::istringstream line(linebuff_);
-        return parse_record(line);
+        cell = parse_record(line);
+        return is;
     }
 
 private:
@@ -186,16 +204,15 @@ private:
             // If we try to read past the eof; fail bit will also be set
             // FIXME: better throw a custom parse_error exception
             throw std::logic_error("could not parse value");
-
-        if (is.bad())
-            throw std::runtime_error("i/o error");
     }
 
+    // FIXME: need not to be a member function
     template<typename T>
     T parse_value_strict(std::istream &is)
     {
         T val;
         is >> val;
+        // std::cout << val << "\n";
         check_parse_status(is);
 
         // everything's fine
@@ -246,12 +263,23 @@ cell_record swc_parser::parse_record(std::istringstream &is)
 std::istream &operator>>(std::istream &is, cell_record &cell)
 {
     swc_parser parser;
-    cell = parser.parse_record(is);
+    parser.parse_record(is, cell);
     return is;
 }
 
-std::ostream &operator<<(std::ostream &os, const cell_record &cell);
+std::ostream &operator<<(std::ostream &os, const cell_record &cell)
+{
+    // output in one-based indexing
+    os << cell.id_+1 << " "
+       << cell.type_ << " "
+       << std::setprecision(7) << cell.x_    << " "
+       << std::setprecision(7) << cell.y_    << " "
+       << std::setprecision(7) << cell.z_    << " "
+       << std::setprecision(7) << cell.r_    << " "
+       << ((cell.parent_id_ == -1) ? cell.parent_id_ : cell.parent_id_+1);
 
+    return os;
+}
 
 }   // end of neuron::io
 }   // end of neuron
