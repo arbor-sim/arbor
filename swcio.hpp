@@ -194,8 +194,7 @@ private:
     T parse_value_strict(std::istream &is)
     {
         T val;
-        is >> val;
-        check_parse_status(is);
+        check_parse_status(is >> val);
 
         // everything's fine
         return val;
@@ -215,8 +214,7 @@ template<>
 cell_record::kind swc_parser::parse_value_strict(std::istream &is)
 {
     int val;
-    is >> val;
-    check_parse_status(is);
+    check_parse_status(is >> val);
 
     // Let cell_record's constructor check for the type validity
     return static_cast<cell_record::kind>(val);
