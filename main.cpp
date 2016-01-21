@@ -1,4 +1,3 @@
-#include <array>
 #include <iostream>
 #include <fstream>
 #include <numeric>
@@ -359,7 +358,7 @@ TEST(swc_parser, invalid_input)
     }
 
     {
-        // Check invalid cell value
+        // Check invalid cell type
         std::istringstream is("1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
         cell_record cell;
         EXPECT_THROW(is >> cell, std::invalid_argument);

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cmath>
 #include <exception>
 #include <iostream>
 #include <sstream>
