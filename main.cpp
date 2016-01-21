@@ -344,13 +344,6 @@ TEST(swc_parser, invalid_input)
     }
 
     {
-        // Check long lines
-        std::istringstream is(std::string(256, 'a') + "\n");
-        cell_record cell;
-        EXPECT_THROW(is >> cell, std::runtime_error);
-    }
-
-    {
         // Check non-parsable values
         std::istringstream is("1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
         cell_record cell;

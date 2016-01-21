@@ -1,5 +1,5 @@
 CC=clang++
-FLAGS=-std=c++11 -g
+FLAGS=-std=c++11 -g -pedantic
 
 test.exe : main.cpp *.hpp makefile gtest.o
 	$(CC) $(FLAGS) main.cpp -o test.exe gtest.o -pthread

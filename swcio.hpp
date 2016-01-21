@@ -12,6 +12,11 @@ namespace io
 {
 
 
+static bool starts_with(const std::string &str, const std::string &prefix)
+{
+    return (str.find(prefix) == 0);
+}
+
 class cell_record 
 {
 public:
@@ -140,37 +145,22 @@ class swc_parser
 {
 public:
     swc_parser(const std::string &delim,
-               char comment_prefix,
-               std::size_t max_fields,
-               std::size_t max_line)
+               std::string comment_prefix)
         : delim_(delim)
         , comment_prefix_(comment_prefix)
-        , max_fields_(max_fields)
-        , max_line_(max_line)
-    {
-        init_linebuff();
-    }
+    { }
 
     swc_parser()
         : delim_(" ")
-        , comment_prefix_('#')
-        , max_fields_(7)
-        , max_line_(256)
-    {
-        init_linebuff();
-    }
-
-    ~swc_parser()
-    {
-        delete[] linebuff_;
-    }
+        , comment_prefix_("#")
+    { }
 
     std::istream &parse_record(std::istream &is, cell_record &cell)
     {
         while (!is.eof() && !is.bad()) {
             // consume empty and comment lines first
-            is.getline(linebuff_, max_line_);
-            if (linebuff_[0] && linebuff_[0] != comment_prefix_)
+            std::getline(is, linebuff_);
+            if (!linebuff_.empty() && !starts_with(linebuff_, comment_prefix_))
                 break;
         }
 
@@ -179,11 +169,11 @@ public:
             return is;
 
         if (is.eof() &&
-            (linebuff_[0] == 0 || linebuff_[0] == comment_prefix_))
+            (linebuff_.empty() || starts_with(linebuff_, comment_prefix_)))
             // last line is either empty or a comment; don't parse anything
             return is;
 
-        if (is.fail() && is.gcount() == max_line_ - 1)
+        if (is.fail())
             throw std::runtime_error("too long line detected");
 
         std::istringstream line(linebuff_);
@@ -192,11 +182,6 @@ public:
     }
 
 private:
-    void init_linebuff()
-    {
-        linebuff_ = new char[max_line_];
-    }
-
     void check_parse_status(const std::istream &is)
     {
         if (is.fail())
@@ -205,13 +190,11 @@ private:
             throw std::logic_error("could not parse value");
     }
 
-    // FIXME: need not to be a member function
     template<typename T>
     T parse_value_strict(std::istream &is)
     {
         T val;
         is >> val;
-        // std::cout << val << "\n";
         check_parse_status(is);
 
         // everything's fine
@@ -222,10 +205,8 @@ private:
     cell_record parse_record(std::istringstream &is);
 
     std::string delim_;
-    char comment_prefix_;
-    std::size_t max_fields_;
-    std::size_t max_line_;
-    char *linebuff_;
+    std::string comment_prefix_;
+    std::string linebuff_;
 };
 
 
