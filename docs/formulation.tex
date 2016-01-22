@@ -235,7 +235,7 @@ The equations can be rearranged to have all unknown voltage values on the lhs, a
 \end{align}
 where the value
 \begin{equation}
-    \alpha_{ij} = \alpha_{ji} = \frac{\Delta t \sigma_{ij}}{ c_m \Delta x_{ij}}
+    \alpha_{ij} = \alpha_{ji} = \frac{\Delta t \sigma_{ij}}{ c_m r_L \Delta x_{ij}}
     \label{eq:alpha_linsys}
 \end{equation}
 is a constant that can be computed for each interface between adjacent compartments during set up.
@@ -248,9 +248,9 @@ For an unrbanched uniform cable of constant radius $a$, with length $L$ and $n$ 
     \Delta x_{ij} &= \Delta x = \frac{L}{n-1}, \nonumber \\
     \sigma_{ij}   &= \pi a^2, \nonumber \\
     \sigma_{i}    &= 2 \pi a \Delta x, \nonumber \\
-    \alpha_{ij}   &= \frac{\pi a^2\Delta t}{c_m\Delta x}, \nonumber \\
+    \alpha_{ij}   &= \frac{\pi a^2\Delta t}{c_m r_L\Delta x}, \nonumber \\
     \frac{\alpha_{ij}}{\sigma_i}
-                  &= \frac{a\Delta t}{2c_m\Delta x^2}. \nonumber
+                  &= \frac{a\Delta t}{2c_m r_L\Delta x^2}. \nonumber
 \end{align}
 With these simplifications, the lhs of the linear system is
 \begin{align}
@@ -258,7 +258,7 @@ With these simplifications, the lhs of the linear system is
             \nonumber \\
             = & (1+2\beta)V_i^{k+1} - \beta V_{i+1}^{k+1} - \beta V_{i-1}^{k+1}.
 \end{align}
-where $\beta=\frac{a\Delta t}{2c_m\Delta x^2}$.
+where $\beta=\frac{a\Delta t}{2c_m r_L\Delta x^2}$.
 
 The end points of the cable, i.e. the compartments for $x_1$ and $x_n$, have to be handled differently.
 If we assume that a no-flux boundary condition, i.e. $\vv{J}\cdot\vv{n}=0$, is imposed at the end of the cable, the lhs of the linear system are
