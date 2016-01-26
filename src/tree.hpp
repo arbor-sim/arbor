@@ -58,10 +58,6 @@ class tree {
             }
         }
 
-        // The number of children is the number of branches, excluding the root branch.
-        // num_children is equivalent to the number of edges in the graph.
-        auto nchildren = nbranches-1;
-
         // allocate memory for storing the tree
         init(nbranches);
 

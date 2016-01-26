@@ -192,7 +192,6 @@ class cell_tree {
 
         auto max       = std::max_element(depth.begin(), depth.end());
         auto max_leaf  = std::distance(depth.begin(), max);
-        auto original_depth = *max;
 
         // Calculate the depth of each compartment as the maximum distance
         // from a child leaf
