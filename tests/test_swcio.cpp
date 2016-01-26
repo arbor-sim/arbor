@@ -5,7 +5,7 @@
 
 #include "gtest.h"
 
-#include "swcio.hpp"
+#include "../src/swcio.hpp"
 
 // SWC tests
 void expect_cell_equals(const neuron::io::cell_record &expected,
@@ -180,3 +180,23 @@ TEST(swc_parser, valid_input)
     }
 }
 
+TEST(swc_parser, from_allen_db)
+{
+    using namespace neuron;
+
+    auto fname = "../data/example.swc";
+    std::ifstream fid(fname);
+    if(!fid.is_open()) {
+        std::cerr << "unable to open file " << fname << "... skipping test" << std::endl;
+        return;
+    }
+
+    // load the cell records into a std::vector
+    std::vector<io::cell_record> nodes;
+    io::cell_record node;
+    while( !(fid >> node).eof()) {
+        nodes.push_back(std::move(node));
+    }
+    // verify that the correct number of nodes was read
+    EXPECT_EQ(nodes.size(), 1058u);
+}
