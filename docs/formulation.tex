@@ -47,7 +47,7 @@ where
     \item $V$ is the potential relative to the ECM $[mV]$
     \item $a$ is the cable radius $(mm)$, and can vary with $x$
     \item $c_m$ is the {specific membrane capacitance}, approximately the same for all neurons $\approx 10~nF/mm^2$. Related to \emph{membrane capacitance} $C_m$ by the relationship $C_m=c_{m}A$, where $A$ is the surface area of the cell.
-    \item $i_m$ is the membrane current $[A]$. The total contribution from ion and synaptic channels is expressed as a the product of current per unit area $i_m$ and the surface area.
+    \item $i_m$ is the membrane current $[A\cdot/mm^{2}]$ per unit area. The total contribution from ion and synaptic channels is expressed as a the product of current per unit area $i_m$ and the surface area.
     \item $i_e$ is the electrode current flowing into the cell, divided by surface area, i.e. $i_e=I_e/A$.
     \item $r_L$ is intracellular resistivity, typical value $1~k\Omega \text{cm}$
 \end{itemize}
@@ -230,7 +230,7 @@ The equations can be rearranged to have all unknown voltage values on the lhs, a
 \begin{align}
       & V_i^{k+1} + \sum_{j\in\mathcal{N}_i} {\frac{\alpha_{ij}}{\sigma_i} (V_i^{k+1}-V_j^{k+1})}
             \nonumber \\
-    = & V_i^k - \frac{2\Delta t}{ac_m}(i_m^{k} - i_e),
+    = & V_i^k - \frac{\Delta t}{c_m}(i_m^{k} - i_e),
     \label{eq:ode_linsys}
 \end{align}
 where the value
