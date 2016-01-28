@@ -122,15 +122,15 @@ class cell_tree {
 
         std::ofstream fid(fname);
 
-        fid << "graph cell {" << std::endl;
+        fid << "graph cell {" << '\n';
         for(auto b : range(0,num_segments())) {
             if(children(b).size()) {
                 for(auto c : children(b)) {
-                    fid << "  " << b << " -- " << c << ";" << std::endl;
+                    fid << "  " << b << " -- " << c << ";" << '\n';
                 }
             }
         }
-        fid << "}" << std::endl;
+        fid << "}" << std::endl; // flush at end of output?
     }
 
     index_type depth_from_leaf()
@@ -192,7 +192,6 @@ class cell_tree {
 
         auto max       = std::max_element(depth.begin(), depth.end());
         auto max_leaf  = std::distance(depth.begin(), max);
-        auto original_depth = *max;
 
         // Calculate the depth of each compartment as the maximum distance
         // from a child leaf

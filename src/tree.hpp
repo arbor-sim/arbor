@@ -58,10 +58,6 @@ class tree {
             }
         }
 
-        // The number of children is the number of branches, excluding the root branch.
-        // num_children is equivalent to the number of edges in the graph.
-        auto nchildren = nbranches-1;
-
         // allocate memory for storing the tree
         init(nbranches);
 
@@ -132,13 +128,13 @@ class tree {
         return branch_index;
     }
 
-    int num_children() const {
+    size_t num_children() const {
         return children_.size();
     }
-    int num_children(int b) const {
+    size_t num_children(size_t b) const {
         return child_index_[b+1] - child_index_[b];
     }
-    int num_nodes() const {
+    size_t num_nodes() const {
         return child_index_.size() - 1;
     }
 
@@ -153,7 +149,7 @@ class tree {
     }
 
     /// return the list of all children of branch b
-    const index_view children(int b) const {
+    const index_view children(size_t b) const {
         return children_(child_index_[b], child_index_[b+1]);
     }
 
@@ -163,10 +159,10 @@ class tree {
     }
 
     /// return the parent of branch b
-    int_type parent(int b) const {
+    int_type parent(size_t b) const {
         return parents_[b];
     }
-    int_type& parent(int b) {
+    int_type& parent(size_t b) {
         return parents_[b];
     }
 
@@ -175,7 +171,7 @@ class tree {
         return sizeof(int_type)*data_.size() + sizeof(tree);
     }
 
-    index_type change_root(int b) {
+    index_type change_root(size_t b) {
         assert(b<num_nodes());
 
         // no need to rebalance if the root node has been requested
@@ -226,16 +222,16 @@ class tree {
         auto nchild = nnode - 1;
         // data_ is partitioned as follows:
         // data_ = [children_[nchild], child_index_[nnode+1], parents_[nnode]]
-        assert(data_.size() == nchild + (nnode+1) + nnode);
+        assert(data_.size() == unsigned(nchild + (nnode+1) + nnode));
         children_    = data_(0, nchild);
         child_index_ = data_(nchild, nchild+nnode+1);
         parents_     = data_(nchild+nnode+1, memory::end);
 
         // check that arrays have appropriate size
         // this should be moved into a unit test
-        assert(children_.size()    == nchild);
-        assert(child_index_.size() == nnode+1);
-        assert(parents_.size()     == nnode);
+        assert(children_.size()    == unsigned(nchild));
+        assert(child_index_.size() == unsigned(nnode+1));
+        assert(parents_.size()     == unsigned(nnode));
     }
 
     /// Renumber the sub-tree with old_node as its root with new_node as
