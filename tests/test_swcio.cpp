@@ -5,7 +5,7 @@
 
 #include "gtest.h"
 
-#include "../src/swcio.hpp"
+#include <swcio.hpp>
 
 // SWC tests
 void expect_cell_equals(const neuron::io::cell_record &expected,
@@ -187,7 +187,7 @@ TEST(swc_parser, from_allen_db)
     auto fname = "../data/example.swc";
     std::ifstream fid(fname);
     if(!fid.is_open()) {
-        std::cerr << "unable to open file " << fname << "... skipping test" << std::endl;
+        std::cerr << "unable to open file " << fname << "... skipping test\n";
         return;
     }
 

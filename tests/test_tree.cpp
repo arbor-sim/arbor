@@ -5,7 +5,7 @@
 
 #include "gtest.h"
 
-#include "../src/cell_tree.hpp"
+#include <cell_tree.hpp>
 #include "json/src/json.hpp"
 
 using json = nlohmann::json;
