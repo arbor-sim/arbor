@@ -79,16 +79,41 @@ public:
     cell_record(const cell_record &other) = default;
     cell_record &operator=(const cell_record &other) = default;
 
+    // Equality and comparison operators
     friend bool operator==(const cell_record &lhs,
                            const cell_record &rhs)
     {
         return lhs.id_ == rhs.id_;
     }
 
+    friend bool operator<(const cell_record &lhs,
+                          const cell_record &rhs)
+    {
+        return lhs.id_ < rhs.id_;
+    }
+
+    friend bool operator<=(const cell_record &lhs,
+                           const cell_record &rhs)
+    {
+        return (lhs < rhs) || (lhs == rhs);
+    }
+
     friend bool operator!=(const cell_record &lhs,
                            const cell_record &rhs)
     {
         return !(lhs == rhs);
+    }
+
+    friend bool operator>(const cell_record &lhs,
+                          const cell_record &rhs)
+    {
+        return !(lhs < rhs) && (lhs != rhs);
+    }
+
+    friend bool operator>=(const cell_record &lhs,
+                           const cell_record &rhs)
+    {
+        return !(lhs < rhs);
     }
 
     friend std::ostream &operator<<(std::ostream &os, const cell_record &cell);

@@ -87,6 +87,22 @@ TEST(cell_record, construction)
     }
 }
 
+TEST(cell_record, comparison)
+{
+    using namespace nestmc::io;
+
+    {
+        // check comparison operators
+        cell_record cell0(cell_record::custom, 0, 1., 1., 1., 1., -1);
+        cell_record cell1(cell_record::custom, 0, 2., 3., 4., 5., -1);
+        cell_record cell2(cell_record::custom, 1, 2., 3., 4., 5., -1);
+        EXPECT_EQ(cell0, cell1);
+        EXPECT_LT(cell0, cell2);
+        EXPECT_GT(cell2, cell1);
+    }
+
+}
+
 TEST(swc_parser, invalid_input)
 {
     using namespace nestmc::io;
