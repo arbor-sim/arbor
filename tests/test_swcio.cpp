@@ -111,14 +111,14 @@ TEST(swc_parser, invalid_input)
         // check incomplete lines; missing parent
         std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
         cell_record cell;
-        EXPECT_THROW(is >> cell, std::logic_error);
+        EXPECT_THROW(is >> cell, swc_parse_error);
     }
 
     {
         // Check non-parsable values
         std::istringstream is("1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
         cell_record cell;
-        EXPECT_THROW(is >> cell, std::logic_error);
+        EXPECT_THROW(is >> cell, swc_parse_error);
     }
 
     {

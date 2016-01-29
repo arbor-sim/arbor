@@ -166,6 +166,18 @@ private:
     int parent_id_;     // cell parent's id
 };
 
+class swc_parse_error : public std::runtime_error
+{
+public:
+    explicit swc_parse_error(const char *msg)
+        : std::runtime_error(msg)
+    { }
+
+    explicit swc_parse_error(const std::string &msg)
+        : std::runtime_error(msg)
+    { }
+};
+
 class swc_parser
 {
 public:
@@ -199,7 +211,7 @@ public:
             return is;
 
         if (is.fail())
-            throw std::runtime_error("too long line detected");
+            throw swc_parse_error("too long line detected");
 
         std::istringstream line(linebuff_);
         cell = parse_record(line);
@@ -211,8 +223,7 @@ private:
     {
         if (is.fail())
             // If we try to read past the eof; fail bit will also be set
-            // FIXME: better throw a custom parse_error exception
-            throw std::logic_error("could not parse value");
+            throw swc_parse_error("could not parse value");
     }
 
     template<typename T>
@@ -270,15 +281,16 @@ std::istream &operator>>(std::istream &is, cell_record &cell)
     return is;
 }
 
+
 std::ostream &operator<<(std::ostream &os, const cell_record &cell)
 {
     // output in one-based indexing
     os << cell.id_+1 << " "
        << cell.type_ << " "
-       << std::setprecision(7) << cell.x_    << " "
-       << std::setprecision(7) << cell.y_    << " "
-       << std::setprecision(7) << cell.z_    << " "
-       << std::setprecision(7) << cell.r_    << " "
+       << std::setprecision(7) << cell.x_ << " "
+       << std::setprecision(7) << cell.y_ << " "
+       << std::setprecision(7) << cell.z_ << " "
+       << std::setprecision(7) << cell.r_ << " "
        << ((cell.parent_id_ == -1) ? cell.parent_id_ : cell.parent_id_+1);
 
     return os;
