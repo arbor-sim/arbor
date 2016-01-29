@@ -5,7 +5,7 @@
 #include <sstream>
 #include <type_traits>
 
-namespace neuron
+namespace nestmc
 {
 
 namespace io
@@ -259,5 +259,5 @@ std::ostream &operator<<(std::ostream &os, const cell_record &cell)
     return os;
 }
 
-}   // end of neuron::io
-}   // end of neuron
+}   // end of nestmc::io
+}   // end of nestmc

@@ -8,8 +8,8 @@
 #include <swcio.hpp>
 
 // SWC tests
-void expect_cell_equals(const neuron::io::cell_record &expected,
-                        const neuron::io::cell_record &actual)
+void expect_cell_equals(const nestmc::io::cell_record &expected,
+                        const nestmc::io::cell_record &actual)
 {
     EXPECT_EQ(expected.id(), actual.id());
     EXPECT_EQ(expected.type(), actual.type());
@@ -22,7 +22,7 @@ void expect_cell_equals(const neuron::io::cell_record &expected,
 
 TEST(cell_record, construction)
 {
-    using namespace neuron::io;
+    using namespace nestmc::io;
 
     {
         // force an invalid type
@@ -89,7 +89,7 @@ TEST(cell_record, construction)
 
 TEST(swc_parser, invalid_input)
 {
-    using namespace neuron::io;
+    using namespace nestmc::io;
 
     {
         // check incomplete lines; missing parent
@@ -116,7 +116,7 @@ TEST(swc_parser, invalid_input)
 
 TEST(swc_parser, valid_input)
 {
-    using namespace neuron::io;
+    using namespace nestmc::io;
 
     {
         // check empty file; no cell may be parsed
@@ -182,7 +182,7 @@ TEST(swc_parser, valid_input)
 
 TEST(swc_parser, from_allen_db)
 {
-    using namespace neuron;
+    using namespace nestmc;
 
     auto fname = "../data/example.swc";
     std::ifstream fid(fname);
