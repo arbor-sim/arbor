@@ -2,8 +2,11 @@
 
 #include <exception>
 #include <iostream>
+#include <map>
 #include <sstream>
 #include <type_traits>
+#include <unordered_set>
+#include <vector>
 
 namespace nestmc
 {
@@ -20,9 +23,10 @@ static bool starts_with(const std::string &str, const std::string &prefix)
 class cell_record 
 {
 public:
+    using id_type = int;
 
-    // FIXME: enum's are not completely type-safe, since they can accept anything
-    // that can be casted to their underlying type.
+    // FIXME: enum's are not completely type-safe, since they can accept
+    // anything that can be casted to their underlying type.
     // 
     // More on SWC files: http://research.mssm.edu/cnic/swc.html
     enum kind {
@@ -48,22 +52,7 @@ public:
         , r_(r)
         , parent_id_(parent_id)
     {
-        // Check cell type as well; enum's do not offer complete type safety,
-        // since you can cast anything that fits to its underlying type
-        if (type_ < 0 || type_ > custom)
-            throw std::invalid_argument("unknown cell type");
-
-        if (id_ < 0)
-            throw std::invalid_argument("negative ids not allowed");
-        
-        if (parent_id_ < -1)
-            throw std::invalid_argument("parent_id < -1 not allowed");
-
-        if (parent_id_ >= id_)
-            throw std::invalid_argument("parent_id >= id is not allowed");
-
-        if (r_ < 0)
-            throw std::invalid_argument("negative radii are not allowed");
+        check_consistency();
     }
     
     cell_record()
@@ -123,12 +112,12 @@ public:
         return type_;
     }
 
-    int id() const
+    id_type id() const
     {
         return id_;
     }
 
-    int parent() const
+    id_type parent() const
     {
         return parent_id_;
     }
@@ -158,12 +147,47 @@ public:
         return 2*r_;
     }
 
+    void renumber(id_type new_id, std::map<id_type, id_type> &idmap)
+    {
+        auto old_id = id_;
+        id_ = new_id;
+
+        // Obtain parent_id from the map
+        auto new_parent_id = idmap.find(parent_id_);
+        if (new_parent_id != idmap.end()) {
+            parent_id_ = new_parent_id->second;
+        }
+
+        check_consistency();
+        idmap.insert(std::make_pair(old_id, new_id));
+    }
+
 private:
+    void check_consistency() const
+    {
+        // Check cell type as well; enum's do not offer complete type safety,
+        // since you can cast anything that fits to its underlying type
+        if (type_ < 0 || type_ > custom)
+            throw std::invalid_argument("unknown cell type");
+
+        if (id_ < 0)
+            throw std::invalid_argument("negative ids not allowed");
+        
+        if (parent_id_ < -1)
+            throw std::invalid_argument("parent_id < -1 not allowed");
+
+        if (parent_id_ >= id_)
+            throw std::invalid_argument("parent_id >= id is not allowed");
+
+        if (r_ < 0)
+            throw std::invalid_argument("negative radii are not allowed");
+    }
+
     kind type_;         // cell type
-    int id_;            // cell id
+    id_type id_;        // cell id
     float x_, y_, z_;   // cell coordinates
     float r_;           // cell radius
-    int parent_id_;     // cell parent's id
+    id_type parent_id_; // cell parent's id
 };
 
 class swc_parse_error : public std::runtime_error
@@ -249,7 +273,7 @@ private:
 template<>
 cell_record::kind swc_parser::parse_value_strict(std::istream &is)
 {
-    int val;
+    cell_record::id_type val;
     check_parse_status(is >> val);
 
     // Let cell_record's constructor check for the type validity
@@ -294,6 +318,55 @@ std::ostream &operator<<(std::ostream &os, const cell_record &cell)
        << ((cell.parent_id_ == -1) ? cell.parent_id_ : cell.parent_id_+1);
 
     return os;
+}
+
+//
+// Reads cells from an input stream until an eof is encountered and returns a
+// cleaned sequence of cell records.
+//
+// For more information check here:
+//   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
+//
+std::vector<cell_record> swc_read_cells(std::istream &is)
+{
+    std::vector<cell_record> cells;
+    std::unordered_set<cell_record::id_type> ids;
+
+    std::size_t          num_trees = 0;
+    cell_record::id_type last_id   = -1;
+    bool                 needsort  = false;
+
+    cell_record curr_cell;
+    while ( !(is >> curr_cell).eof()) {
+        if (curr_cell.parent() == -1 && ++num_trees > 1)
+            // only a single tree is allowed
+            break;
+
+        auto inserted = ids.insert(curr_cell.id());
+        if (inserted.second) {
+            // not a duplicate; insert cell
+            cells.push_back(curr_cell);
+            if (!needsort && curr_cell.id() < last_id)
+                needsort = true;
+
+            last_id = curr_cell.id();
+        }
+    }
+
+    if (needsort)
+        std::sort(cells.begin(), cells.end());
+
+    // Renumber cells if necessary
+    std::map<cell_record::id_type, cell_record::id_type> idmap;
+    cell_record::id_type next_id = 0;
+    for (auto &c : cells) {
+        if (c.id() != next_id)
+            c.renumber(next_id, idmap);
+
+        ++next_id;
+    }
+
+    return std::move(cells);
 }
 
 }   // end of nestmc::io

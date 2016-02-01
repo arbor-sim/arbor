@@ -1,3 +1,4 @@
+#include <array>
 #include <iostream>
 #include <fstream>
 #include <numeric>
@@ -191,7 +192,7 @@ TEST(swc_parser, valid_input)
                 ++nr_records;
             }
         } catch (std::exception &e) {
-            ADD_FAILURE();
+            ADD_FAILURE() << "unexpected exception thrown\n";
         }
     }
 }
@@ -215,4 +216,80 @@ TEST(swc_parser, from_allen_db)
     }
     // verify that the correct number of nodes was read
     EXPECT_EQ(nodes.size(), 1058u);
+}
+
+TEST(swc_parser, input_cleaning)
+{
+    using namespace nestmc::io;
+    
+    {
+        // Check duplicates
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+
+        auto cells = swc_read_cells(is);
+        EXPECT_EQ(2, cells.size());
+    }
+
+    {
+        // Check multiple trees
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "3 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+
+        auto cells = swc_read_cells(is);
+        EXPECT_EQ(2, cells.size());
+    }
+
+    {
+        // Check unsorted input
+        std::stringstream is;
+        is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+
+        std::array<cell_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
+        auto cells = swc_read_cells(is);
+        ASSERT_EQ(4, cells.size());
+        
+        auto expected_id = expected_id_list.cbegin();
+        for (const auto &c : cells) {
+            EXPECT_EQ(*expected_id, c.id());
+            ++expected_id;
+        }
+    }
+
+    {
+        // Check holes in numbering
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "21 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "31 1 14.566132 34.873772 7.857000 0.717830 21\n";
+        is << "41 1 14.566132 34.873772 7.857000 0.717830 21\n";
+        is << "51 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "61 1 14.566132 34.873772 7.857000 0.717830 51\n";
+
+        auto cells = swc_read_cells(is);
+        std::array<cell_record::id_type, 6> expected_id_list =
+            {{ 0, 1, 2, 3, 4, 5 }};
+        std::array<cell_record::id_type, 6> expected_parent_list =
+            {{ -1, 0, 1, 1, 0, 4 }};
+        ASSERT_EQ(6, cells.size());
+
+        auto expected_id = expected_id_list.cbegin();
+        auto expected_parent = expected_parent_list.cbegin();
+        for (const auto &c : cells) {
+            EXPECT_EQ(*expected_id, c.id());
+            EXPECT_EQ(*expected_parent, c.parent());
+            ++expected_id;
+            ++expected_parent;
+        }
+        
+    }
 }
