@@ -117,14 +117,16 @@ TEST(swc_parser, invalid_input)
 
     {
         // Check non-parsable values
-        std::istringstream is("1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
+        std::istringstream is(
+            "1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
         cell_record cell;
         EXPECT_THROW(is >> cell, swc_parse_error);
     }
 
     {
         // Check invalid cell type
-        std::istringstream is("1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
+        std::istringstream is(
+            "1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
         cell_record cell;
         EXPECT_THROW(is >> cell, std::invalid_argument);
     }
@@ -214,6 +216,7 @@ TEST(swc_parser, from_allen_db)
     while( !(fid >> node).eof()) {
         nodes.push_back(std::move(node));
     }
+
     // verify that the correct number of nodes was read
     EXPECT_EQ(nodes.size(), 1058u);
 }
