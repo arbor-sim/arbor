@@ -18,10 +18,9 @@ set(TEST_SOURCES
 
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
 
-#target_link_libraries(test_compiler LINK_PUBLIC compiler gtest)
+target_link_libraries(test.exe LINK_PUBLIC cellalgo)
 
-#set_target_properties( test.exe
-#   PROPERTIES
-#   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-#)
-
+set_target_properties(test.exe
+   PROPERTIES
+   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
+)
