@@ -86,9 +86,10 @@ bool starts_with(const std::string &str, const std::string &prefix)
 
 void check_parse_status(const std::istream &is)
 {
-    if (is.fail())
+    if (is.fail()) {
         // If we try to read past the eof; fail bit will also be set
         throw swc_parse_error("could not parse value");
+    }
 }
 
 template<typename T>
