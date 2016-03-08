@@ -224,7 +224,7 @@ TEST(swc_parser, from_allen_db)
 TEST(swc_parser, input_cleaning)
 {
     using namespace nestmc::io;
-    
+
     {
         // Check duplicates
         std::stringstream is;
@@ -260,7 +260,7 @@ TEST(swc_parser, input_cleaning)
         std::array<cell_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
         auto cells = swc_read_cells(is);
         ASSERT_EQ(4u, cells.size());
-        
+
         auto expected_id = expected_id_list.cbegin();
         for (const auto &c : cells) {
             EXPECT_EQ(*expected_id, c.id());
