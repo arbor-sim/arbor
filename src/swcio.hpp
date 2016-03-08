@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -59,6 +60,16 @@ public:
 
     cell_record(const cell_record &other) = default;
     cell_record &operator=(const cell_record &other) = default;
+
+    bool strict_equals(const cell_record &other)
+    {
+        return id_ == other.id_ &&
+            x_ == other.x_ &&
+            y_ == other.y_ &&
+            z_ == other.z_ &&
+            r_ == other.r_ &&
+            parent_id_ == other.parent_id_;
+    }
 
     // Equality and comparison operators
     friend bool operator==(const cell_record &lhs,
@@ -151,6 +162,7 @@ private:
     id_type parent_id_; // cell parent's id
 };
 
+
 class swc_parse_error : public std::runtime_error
 {
 public:
@@ -199,6 +211,104 @@ std::istream &operator>>(std::istream &is, cell_record &cell);
 //   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
 //
 std::vector<cell_record> swc_read_cells(std::istream &is);
+
+class cell_record_stream_iterator :
+        public std::iterator<std::forward_iterator_tag, cell_record>
+{
+public:
+    struct eof_tag { };
+
+    cell_record_stream_iterator(std::istream &is)
+        : is_(is)
+        , eof_(false)
+    {
+        read_next_record();
+    }
+
+    cell_record_stream_iterator(std::istream &is, eof_tag)
+        : is_(is)
+        , eof_(true)
+    { }
+
+
+    cell_record_stream_iterator &operator++()
+    {
+        if (eof_) {
+            throw std::out_of_range("attempt to read past eof");
+        }
+
+        read_next_record();
+        return *this;
+    }
+
+    cell_record_stream_iterator operator++(int);
+
+    value_type operator*()
+    {
+        return curr_record_;
+    }
+
+    bool operator==(const cell_record_stream_iterator &other)
+    {
+        if (eof_ && other.eof_) {
+            return true;
+        } else {
+            return curr_record_.strict_equals(other.curr_record_);
+        }
+    }
+
+    bool operator!=(const cell_record_stream_iterator &other)
+    {
+        return !(*this == other);
+    }
+
+private:
+    void read_next_record()
+    {
+        parser_.parse_record(is_, curr_record_);
+        if (is_.eof()) {
+            eof_ = true;
+        }
+    }
+
+    std::istream &is_;
+    swc_parser parser_;
+    cell_record curr_record_;
+
+    // indicator of eof; we need a way to define an end() iterator without
+    // seeking to the end of file
+    bool eof_;
+};
+
+
+class cell_record_range_raw
+{
+public:
+    using value_type     = cell_record;
+    using reference      = value_type &;
+    using const_referene = const value_type &;
+    using iterator       = cell_record_stream_iterator;
+    using const_iterator = const cell_record_stream_iterator;
+
+    cell_record_range_raw(std::istream &is)
+        : is_(is)
+    { }
+
+    iterator begin()
+    {
+        return cell_record_stream_iterator(is_);
+    }
+
+    iterator end()
+    {
+        iterator::eof_tag eof;
+        return cell_record_stream_iterator(is_, eof);
+    }
+
+private:
+    std::istream &is_;
+};
+
 
 }   // end of nestmc::io
 }   // end of nestmc
