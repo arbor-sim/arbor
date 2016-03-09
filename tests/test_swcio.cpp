@@ -1,4 +1,5 @@
 #include <array>
+#include <exception>
 #include <iostream>
 #include <fstream>
 #include <numeric>
@@ -302,9 +303,8 @@ TEST(cell_record_ranges, raw)
     using namespace nestmc::io;
 
     {
-        std::stringstream is;
-
         // Check valid usage
+        std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
         is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
@@ -316,5 +316,43 @@ TEST(cell_record_ranges, raw)
         }
 
         EXPECT_EQ(4u, cells.size());
+
+        bool entered = false;
+        auto citer = cells.begin();
+        for (auto c : get_cell_records<swc_io_raw>(is)) {
+            EXPECT_TRUE(c.strict_equals(*citer++));
+            entered = true;
+        }
+
+        EXPECT_TRUE(entered);
+    }
+
+    {
+        // Check out of bounds reads
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+
+        auto ibegin = get_cell_records<swc_io_raw>(is).begin();
+
+        EXPECT_NO_THROW(++ibegin);
+        EXPECT_THROW(*ibegin, std::out_of_range);
+
+    }
+
+    {
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+
+        // Check postfix operator++
+        auto iter = get_cell_records<swc_io_raw>(is).begin();
+        auto iend   = get_cell_records<swc_io_raw>(is).end();
+
+        cell_record c;
+        EXPECT_NO_THROW(c = *iter++);
+        EXPECT_EQ(-1, c.parent());
+        EXPECT_EQ(iend, iter);
+
+        // Try to read past eof
+        EXPECT_THROW(*iter, std::out_of_range);
     }
 }

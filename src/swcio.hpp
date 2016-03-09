@@ -61,7 +61,7 @@ public:
     cell_record(const cell_record &other) = default;
     cell_record &operator=(const cell_record &other) = default;
 
-    bool strict_equals(const cell_record &other)
+    bool strict_equals(const cell_record &other) const
     {
         return id_ == other.id_ &&
             x_ == other.x_ &&
@@ -223,6 +223,8 @@ public:
         : is_(is)
         , eof_(false)
     {
+        is_.clear();
+        is_.seekg(std::ios_base::beg);
         read_next_record();
     }
 
@@ -231,6 +233,12 @@ public:
         , eof_(true)
     { }
 
+    cell_record_stream_iterator(const cell_record_stream_iterator &other)
+        : is_(other.is_)
+        , parser_(other.parser_)
+        , curr_record_(other.curr_record_)
+        , eof_(other.eof_)
+    { }
 
     cell_record_stream_iterator &operator++()
     {
@@ -242,14 +250,23 @@ public:
         return *this;
     }
 
-    cell_record_stream_iterator operator++(int);
+    cell_record_stream_iterator operator++(int)
+    {
+        cell_record_stream_iterator ret(*this);
+        operator++();
+        return ret;
+    }
 
     value_type operator*()
     {
+        if (eof_) {
+            throw std::out_of_range("attempt to read past eof");
+        }
+
         return curr_record_;
     }
 
-    bool operator==(const cell_record_stream_iterator &other)
+    bool operator==(const cell_record_stream_iterator &other) const
     {
         if (eof_ && other.eof_) {
             return true;
@@ -261,6 +278,16 @@ public:
     bool operator!=(const cell_record_stream_iterator &other)
     {
         return !(*this == other);
+    }
+
+    friend std::ostream &operator<<(std::ostream &os,
+                                    const cell_record_stream_iterator &iter)
+    {
+        os << "{ is_.tellg(): " << iter.is_.tellg()  << ", "
+           << "curr_record_: "  << iter.curr_record_ << ", "
+           << "eof_: "          << iter.eof_         << "}";
+
+        return os;
     }
 
 private:
