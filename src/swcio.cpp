@@ -1,7 +1,9 @@
+#include <algorithm>
 #include <iomanip>
 #include <map>
 #include <sstream>
 #include <unordered_set>
+
 #include <swcio.hpp>
 
 namespace nestmc
@@ -38,7 +40,7 @@ void cell_record::check_consistency() const
     if (id_ < 0) {
         throw std::invalid_argument("negative ids not allowed");
     }
-        
+
     if (parent_id_ < -1) {
         throw std::invalid_argument("parent_id < -1 not allowed");
     }

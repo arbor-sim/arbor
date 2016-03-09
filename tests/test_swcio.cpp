@@ -224,7 +224,7 @@ TEST(swc_parser, from_allen_db)
 TEST(swc_parser, input_cleaning)
 {
     using namespace nestmc::io;
-    
+
     {
         // Check duplicates
         std::stringstream is;
@@ -234,7 +234,7 @@ TEST(swc_parser, input_cleaning)
         is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
 
         auto cells = swc_read_cells(is);
-        EXPECT_EQ(2, cells.size());
+        EXPECT_EQ(2u, cells.size());
     }
 
     {
@@ -246,7 +246,7 @@ TEST(swc_parser, input_cleaning)
         is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
 
         auto cells = swc_read_cells(is);
-        EXPECT_EQ(2, cells.size());
+        EXPECT_EQ(2u, cells.size());
     }
 
     {
@@ -259,8 +259,8 @@ TEST(swc_parser, input_cleaning)
 
         std::array<cell_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
         auto cells = swc_read_cells(is);
-        ASSERT_EQ(4, cells.size());
-        
+        ASSERT_EQ(4u, cells.size());
+
         auto expected_id = expected_id_list.cbegin();
         for (const auto &c : cells) {
             EXPECT_EQ(*expected_id, c.id());
@@ -283,7 +283,7 @@ TEST(swc_parser, input_cleaning)
             {{ 0, 1, 2, 3, 4, 5 }};
         std::array<cell_record::id_type, 6> expected_parent_list =
             {{ -1, 0, 1, 1, 0, 4 }};
-        ASSERT_EQ(6, cells.size());
+        ASSERT_EQ(6u, cells.size());
 
         auto expected_id = expected_id_list.cbegin();
         auto expected_parent = expected_parent_list.cbegin();
@@ -293,7 +293,7 @@ TEST(swc_parser, input_cleaning)
             ++expected_id;
             ++expected_parent;
         }
-        
+
     }
 }
 
