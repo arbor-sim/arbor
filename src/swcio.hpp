@@ -13,14 +13,14 @@ namespace io
 {
 
 
-class cell_record 
+class cell_record
 {
 public:
     using id_type = int;
 
     // FIXME: enum's are not completely type-safe, since they can accept
     // anything that can be casted to their underlying type.
-    // 
+    //
     // More on SWC files: http://research.mssm.edu/cnic/swc.html
     enum kind {
         undefined = 0,
@@ -34,7 +34,7 @@ public:
     };
 
     // cell records assume zero-based indexing; root's parent remains -1
-    cell_record(kind type, int id, 
+    cell_record(kind type, int id,
                 float x, float y, float z, float r,
                 int parent_id)
         : type_(type)
@@ -47,7 +47,7 @@ public:
     {
         check_consistency();
     }
-    
+
     cell_record()
         : type_(cell_record::undefined)
         , id_(0)
@@ -212,6 +212,7 @@ std::istream &operator>>(std::istream &is, cell_record &cell);
 //
 std::vector<cell_record> swc_read_cells(std::istream &is);
 
+
 class cell_record_stream_iterator :
         public std::iterator<std::forward_iterator_tag, cell_record>
 {
@@ -309,6 +310,25 @@ private:
     std::istream &is_;
 };
 
+class cell_record_range_clean
+{
+};
+
+struct swc_io_raw
+{
+    using cell_range_type = cell_record_range_raw;
+};
+
+struct swc_io_clean
+{
+    using cell_range_type = cell_record_range_raw;
+};
+
+template<typename T = swc_io_clean>
+ typename T::cell_range_type get_cell_records(std::istream &is)
+{
+    return typename T::cell_range_type(is);
+}
 
 }   // end of nestmc::io
 }   // end of nestmc

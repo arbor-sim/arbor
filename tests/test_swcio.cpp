@@ -311,10 +311,10 @@ TEST(cell_record_ranges, raw)
         is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
 
         std::vector<cell_record> cells;
-        for (auto &&c : cell_record_range_raw(is)) {
+        for (auto c : get_cell_records<swc_io_raw>(is)) {
             cells.push_back(c);
         }
 
-        EXPECT_EQ(4, cells.size());
+        EXPECT_EQ(4u, cells.size());
     }
 }
