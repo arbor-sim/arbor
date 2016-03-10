@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -12,14 +13,14 @@ namespace io
 {
 
 
-class cell_record 
+class cell_record
 {
 public:
     using id_type = int;
 
     // FIXME: enum's are not completely type-safe, since they can accept
     // anything that can be casted to their underlying type.
-    // 
+    //
     // More on SWC files: http://research.mssm.edu/cnic/swc.html
     enum kind {
         undefined = 0,
@@ -33,7 +34,7 @@ public:
     };
 
     // cell records assume zero-based indexing; root's parent remains -1
-    cell_record(kind type, int id, 
+    cell_record(kind type, int id,
                 float x, float y, float z, float r,
                 int parent_id)
         : type_(type)
@@ -46,7 +47,7 @@ public:
     {
         check_consistency();
     }
-    
+
     cell_record()
         : type_(cell_record::undefined)
         , id_(0)
@@ -59,6 +60,16 @@ public:
 
     cell_record(const cell_record &other) = default;
     cell_record &operator=(const cell_record &other) = default;
+
+    bool strict_equals(const cell_record &other) const
+    {
+        return id_ == other.id_ &&
+            x_ == other.x_ &&
+            y_ == other.y_ &&
+            z_ == other.z_ &&
+            r_ == other.r_ &&
+            parent_id_ == other.parent_id_;
+    }
 
     // Equality and comparison operators
     friend bool operator==(const cell_record &lhs,
@@ -151,16 +162,27 @@ private:
     id_type parent_id_; // cell parent's id
 };
 
+
 class swc_parse_error : public std::runtime_error
 {
 public:
-    explicit swc_parse_error(const char *msg)
+    explicit swc_parse_error(const char *msg, std::size_t lineno)
         : std::runtime_error(msg)
+        , lineno_(lineno)
     { }
 
-    explicit swc_parse_error(const std::string &msg)
+    explicit swc_parse_error(const std::string &msg, std::size_t lineno)
         : std::runtime_error(msg)
+        , lineno_(lineno)
     { }
+
+    std::size_t lineno() const
+    {
+        return lineno_;
+    }
+
+private:
+    std::size_t lineno_;
 };
 
 class swc_parser
@@ -170,12 +192,19 @@ public:
                std::string comment_prefix)
         : delim_(delim)
         , comment_prefix_(comment_prefix)
+        , lineno_(0)
     { }
 
     swc_parser()
         : delim_(" ")
         , comment_prefix_("#")
+        , lineno_(0)
     { }
+
+    std::size_t lineno() const
+    {
+        return lineno_;
+    }
 
     std::istream &parse_record(std::istream &is, cell_record &cell);
 
@@ -186,10 +215,135 @@ private:
     std::string delim_;
     std::string comment_prefix_;
     std::string linebuff_;
+    std::size_t lineno_;
 };
 
 
 std::istream &operator>>(std::istream &is, cell_record &cell);
+
+class cell_record_stream_iterator :
+        public std::iterator<std::forward_iterator_tag, cell_record>
+{
+public:
+    struct eof_tag { };
+
+    cell_record_stream_iterator(std::istream &is)
+        : is_(is)
+        , eof_(false)
+    {
+        is_.clear();
+        is_.seekg(std::ios_base::beg);
+        read_next_record();
+    }
+
+    cell_record_stream_iterator(std::istream &is, eof_tag)
+        : is_(is)
+        , eof_(true)
+    { }
+
+    cell_record_stream_iterator(const cell_record_stream_iterator &other)
+        : is_(other.is_)
+        , parser_(other.parser_)
+        , curr_record_(other.curr_record_)
+        , eof_(other.eof_)
+    { }
+
+    cell_record_stream_iterator &operator++()
+    {
+        if (eof_) {
+            throw std::out_of_range("attempt to read past eof");
+        }
+
+        read_next_record();
+        return *this;
+    }
+
+    cell_record_stream_iterator operator++(int)
+    {
+        cell_record_stream_iterator ret(*this);
+        operator++();
+        return ret;
+    }
+
+    value_type operator*()
+    {
+        if (eof_) {
+            throw std::out_of_range("attempt to read past eof");
+        }
+
+        return curr_record_;
+    }
+
+    bool operator==(const cell_record_stream_iterator &other) const
+    {
+        if (eof_ && other.eof_) {
+            return true;
+        } else {
+            return curr_record_.strict_equals(other.curr_record_);
+        }
+    }
+
+    bool operator!=(const cell_record_stream_iterator &other)
+    {
+        return !(*this == other);
+    }
+
+    friend std::ostream &operator<<(std::ostream &os,
+                                    const cell_record_stream_iterator &iter)
+    {
+        os << "{ is_.tellg(): " << iter.is_.tellg()  << ", "
+           << "curr_record_: "  << iter.curr_record_ << ", "
+           << "eof_: "          << iter.eof_         << "}";
+
+        return os;
+    }
+
+private:
+    void read_next_record()
+    {
+        parser_.parse_record(is_, curr_record_);
+        if (is_.eof()) {
+            eof_ = true;
+        }
+    }
+
+    std::istream &is_;
+    swc_parser parser_;
+    cell_record curr_record_;
+
+    // indicator of eof; we need a way to define an end() iterator without
+    // seeking to the end of file
+    bool eof_;
+};
+
+
+class cell_record_range_raw
+{
+public:
+    using value_type     = cell_record;
+    using reference      = value_type &;
+    using const_referene = const value_type &;
+    using iterator       = cell_record_stream_iterator;
+    using const_iterator = const cell_record_stream_iterator;
+
+    cell_record_range_raw(std::istream &is)
+        : is_(is)
+    { }
+
+    iterator begin()
+    {
+        return cell_record_stream_iterator(is_);
+    }
+
+    iterator end()
+    {
+        iterator::eof_tag eof;
+        return cell_record_stream_iterator(is_, eof);
+    }
+
+private:
+    std::istream &is_;
+};
 
 //
 // Reads cells from an input stream until an eof is encountered and returns a
@@ -198,7 +352,52 @@ std::istream &operator>>(std::istream &is, cell_record &cell);
 // For more information check here:
 //   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
 //
-std::vector<cell_record> swc_read_cells(std::istream &is);
+
+class cell_record_range_clean
+{
+public:
+    using value_type     = cell_record;
+    using reference      = value_type &;
+    using const_referene = const value_type &;
+    using iterator       = std::vector<cell_record>::iterator;
+    using const_iterator = std::vector<cell_record>::const_iterator;
+
+    cell_record_range_clean(std::istream &is);
+
+    iterator begin()
+    {
+        return cells_.begin();
+    }
+
+    iterator end()
+    {
+        return cells_.end();
+    }
+
+    std::size_t size()
+    {
+        return cells_.size();
+    }
+
+private:
+    std::vector<cell_record> cells_;
+};
+
+struct swc_io_raw
+{
+    using cell_range_type = cell_record_range_raw;
+};
+
+struct swc_io_clean
+{
+    using cell_range_type = cell_record_range_clean;
+};
+
+template<typename T = swc_io_clean>
+ typename T::cell_range_type swc_get_records(std::istream &is)
+{
+    return typename T::cell_range_type(is);
+}
 
 }   // end of nestmc::io
 }   // end of nestmc

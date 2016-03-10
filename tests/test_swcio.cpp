@@ -1,4 +1,5 @@
 #include <array>
+#include <exception>
 #include <iostream>
 #include <fstream>
 #include <numeric>
@@ -128,7 +129,7 @@ TEST(swc_parser, invalid_input)
         std::istringstream is(
             "1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
         cell_record cell;
-        EXPECT_THROW(is >> cell, std::invalid_argument);
+        EXPECT_THROW(is >> cell, swc_parse_error);
     }
 }
 
@@ -185,16 +186,12 @@ TEST(swc_parser, valid_input)
             swc_input << c << "\n";
 
         swc_input << "# this is a final comment\n";
-        try {
-            std::size_t nr_records = 0;
-            cell_record cell;
-            while ( !(swc_input >> cell).eof()) {
-                ASSERT_LT(nr_records, cells_orig.size());
-                expect_cell_equals(cells_orig[nr_records], cell);
-                ++nr_records;
-            }
-        } catch (std::exception &e) {
-            ADD_FAILURE() << "unexpected exception thrown\n";
+
+        std::size_t nr_records = 0;
+        for (auto cell : swc_get_records<swc_io_raw>(swc_input)) {
+            ASSERT_LT(nr_records, cells_orig.size());
+            expect_cell_equals(cells_orig[nr_records], cell);
+            ++nr_records;
         }
     }
 }
@@ -212,8 +209,7 @@ TEST(swc_parser, from_allen_db)
 
     // load the cell records into a std::vector
     std::vector<io::cell_record> nodes;
-    io::cell_record node;
-    while( !(fid >> node).eof()) {
+    for (auto node : io::swc_get_records<io::swc_io_raw>(fid)) {
         nodes.push_back(std::move(node));
     }
 
@@ -233,8 +229,7 @@ TEST(swc_parser, input_cleaning)
         is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        auto cells = swc_read_cells(is);
-        EXPECT_EQ(2u, cells.size());
+        EXPECT_EQ(2u, swc_get_records(is).size());
     }
 
     {
@@ -245,7 +240,7 @@ TEST(swc_parser, input_cleaning)
         is << "3 1 14.566132 34.873772 7.857000 0.717830 -1\n";
         is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        auto cells = swc_read_cells(is);
+        auto cells = swc_get_records(is);
         EXPECT_EQ(2u, cells.size());
     }
 
@@ -258,14 +253,15 @@ TEST(swc_parser, input_cleaning)
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
 
         std::array<cell_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
-        auto cells = swc_read_cells(is);
-        ASSERT_EQ(4u, cells.size());
 
         auto expected_id = expected_id_list.cbegin();
-        for (const auto &c : cells) {
+        for (auto c : swc_get_records(is)) {
             EXPECT_EQ(*expected_id, c.id());
             ++expected_id;
         }
+
+        // Check that we have read through the whole input
+        EXPECT_EQ(expected_id_list.end(), expected_id);
     }
 
     {
@@ -278,21 +274,101 @@ TEST(swc_parser, input_cleaning)
         is << "51 1 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "61 1 14.566132 34.873772 7.857000 0.717830 51\n";
 
-        auto cells = swc_read_cells(is);
         std::array<cell_record::id_type, 6> expected_id_list =
             {{ 0, 1, 2, 3, 4, 5 }};
         std::array<cell_record::id_type, 6> expected_parent_list =
             {{ -1, 0, 1, 1, 0, 4 }};
-        ASSERT_EQ(6u, cells.size());
 
         auto expected_id = expected_id_list.cbegin();
         auto expected_parent = expected_parent_list.cbegin();
-        for (const auto &c : cells) {
+        for (auto c : swc_get_records(is)) {
             EXPECT_EQ(*expected_id, c.id());
             EXPECT_EQ(*expected_parent, c.parent());
             ++expected_id;
             ++expected_parent;
         }
 
+        // Check that we have read through the whole input
+        EXPECT_EQ(expected_id_list.end(), expected_id);
+        EXPECT_EQ(expected_parent_list.end(), expected_parent);
+    }
+}
+
+TEST(cell_record_ranges, raw)
+{
+    using namespace nestmc::io;
+
+    {
+        // Check valid usage
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+
+        std::vector<cell_record> cells;
+        for (auto c : swc_get_records<swc_io_raw>(is)) {
+            cells.push_back(c);
+        }
+
+        EXPECT_EQ(4u, cells.size());
+
+        bool entered = false;
+        auto citer = cells.begin();
+        for (auto c : swc_get_records<swc_io_raw>(is)) {
+            expect_cell_equals(c, *citer++);
+            entered = true;
+        }
+
+        EXPECT_TRUE(entered);
+    }
+
+    {
+        // Check out of bounds reads
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+
+        auto ibegin = swc_get_records<swc_io_raw>(is).begin();
+
+        EXPECT_NO_THROW(++ibegin);
+        EXPECT_THROW(*ibegin, std::out_of_range);
+
+    }
+
+    {
+        // Check iterator increments
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+
+        auto iter = swc_get_records<swc_io_raw>(is).begin();
+        auto iend = swc_get_records<swc_io_raw>(is).end();
+
+        cell_record c;
+        EXPECT_NO_THROW(c = *iter++);
+        EXPECT_EQ(-1, c.parent());
+        EXPECT_EQ(iend, iter);
+
+        // Try to read past eof
+        EXPECT_THROW(*iter, std::out_of_range);
+    }
+
+    {
+        // Check parse error context
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "3 10 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+
+        std::vector<cell_record> cells;
+        try {
+            for (auto c : swc_get_records<swc_io_raw>(is)) {
+                cells.push_back(c);
+            }
+
+            ADD_FAILURE() << "expected an exception\n";
+        } catch (const swc_parse_error &e) {
+            EXPECT_EQ(3u, e.lineno());
+        }
     }
 }
