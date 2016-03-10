@@ -294,7 +294,6 @@ TEST(swc_parser, input_cleaning)
             ++expected_id;
             ++expected_parent;
         }
-
     }
 }
 
