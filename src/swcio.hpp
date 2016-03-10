@@ -166,13 +166,23 @@ private:
 class swc_parse_error : public std::runtime_error
 {
 public:
-    explicit swc_parse_error(const char *msg)
+    explicit swc_parse_error(const char *msg, std::size_t lineno)
         : std::runtime_error(msg)
+        , lineno_(lineno)
     { }
 
-    explicit swc_parse_error(const std::string &msg)
+    explicit swc_parse_error(const std::string &msg, std::size_t lineno)
         : std::runtime_error(msg)
+        , lineno_(lineno)
     { }
+
+    std::size_t lineno() const
+    {
+        return lineno_;
+    }
+
+private:
+    std::size_t lineno_;
 };
 
 class swc_parser
@@ -182,12 +192,19 @@ public:
                std::string comment_prefix)
         : delim_(delim)
         , comment_prefix_(comment_prefix)
+        , lineno_(0)
     { }
 
     swc_parser()
         : delim_(" ")
         , comment_prefix_("#")
+        , lineno_(0)
     { }
+
+    std::size_t lineno() const
+    {
+        return lineno_;
+    }
 
     std::istream &parse_record(std::istream &is, cell_record &cell);
 
@@ -198,6 +215,7 @@ private:
     std::string delim_;
     std::string comment_prefix_;
     std::string linebuff_;
+    std::size_t lineno_;
 };
 
 

@@ -13,7 +13,7 @@ namespace io
 
 //
 // cell_record implementation
-// 
+//
 void cell_record::renumber(id_type new_id, std::map<id_type, id_type> &idmap)
 {
     auto old_id = id_;
@@ -79,26 +79,26 @@ std::ostream &operator<<(std::ostream &os, const cell_record &cell)
 
 //
 // Utility functions
-// 
+//
 
 bool starts_with(const std::string &str, const std::string &prefix)
 {
     return (str.find(prefix) == 0);
 }
 
-void check_parse_status(const std::istream &is)
+void check_parse_status(const std::istream &is, const swc_parser &parser)
 {
     if (is.fail()) {
         // If we try to read past the eof; fail bit will also be set
-        throw swc_parse_error("could not parse value");
+        throw swc_parse_error("could not parse value", parser.lineno());
     }
 }
 
 template<typename T>
-T parse_value_strict(std::istream &is)
+T parse_value_strict(std::istream &is, const swc_parser &parser)
 {
     T val;
-    check_parse_status(is >> val);
+    check_parse_status(is >> val, parser);
 
     // everything's fine
     return val;
@@ -106,10 +106,10 @@ T parse_value_strict(std::istream &is)
 
 // specialize parsing for cell types
 template<>
-cell_record::kind parse_value_strict(std::istream &is)
+cell_record::kind parse_value_strict(std::istream &is, const swc_parser &parser)
 {
     cell_record::id_type val;
-    check_parse_status(is >> val);
+    check_parse_status(is >> val, parser);
 
     // Let cell_record's constructor check for the type validity
     return static_cast<cell_record::kind>(val);
@@ -117,13 +117,14 @@ cell_record::kind parse_value_strict(std::istream &is)
 
 //
 // swc_parser implementation
-// 
+//
 
 std::istream &swc_parser::parse_record(std::istream &is, cell_record &cell)
 {
     while (!is.eof() && !is.bad()) {
         // consume empty and comment lines first
         std::getline(is, linebuff_);
+        ++lineno_;
         if (!linebuff_.empty() && !starts_with(linebuff_, comment_prefix_))
             break;
     }
@@ -140,23 +141,29 @@ std::istream &swc_parser::parse_record(std::istream &is, cell_record &cell)
     }
 
     if (is.fail()) {
-        throw swc_parse_error("too long line detected");
+        throw swc_parse_error("too long line detected", lineno_);
     }
 
     std::istringstream line(linebuff_);
-    cell = parse_record(line);
+    try {
+        cell = parse_record(line);
+    } catch (std::invalid_argument &e) {
+        // Rethrow as a parse error
+        throw swc_parse_error(e.what(), lineno_);
+    }
+
     return is;
 }
 
 cell_record swc_parser::parse_record(std::istringstream &is)
 {
-    auto id = parse_value_strict<int>(is);
-    auto type = parse_value_strict<cell_record::kind>(is);
-    auto x = parse_value_strict<float>(is);
-    auto y = parse_value_strict<float>(is);
-    auto z = parse_value_strict<float>(is);
-    auto r = parse_value_strict<float>(is);
-    auto parent_id = parse_value_strict<cell_record::id_type>(is);
+    auto id = parse_value_strict<int>(is, *this);
+    auto type = parse_value_strict<cell_record::kind>(is, *this);
+    auto x = parse_value_strict<float>(is, *this);
+    auto y = parse_value_strict<float>(is, *this);
+    auto z = parse_value_strict<float>(is, *this);
+    auto r = parse_value_strict<float>(is, *this);
+    auto parent_id = parse_value_strict<cell_record::id_type>(is, *this);
 
     // Convert to zero-based, leaving parent_id as-is if -1
     if (parent_id != -1) {

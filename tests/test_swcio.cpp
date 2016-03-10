@@ -129,7 +129,7 @@ TEST(swc_parser, invalid_input)
         std::istringstream is(
             "1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
         cell_record cell;
-        EXPECT_THROW(is >> cell, std::invalid_argument);
+        EXPECT_THROW(is >> cell, swc_parse_error);
     }
 }
 
@@ -340,12 +340,12 @@ TEST(cell_record_ranges, raw)
     }
 
     {
+        // Check iterator increments
         std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
 
-        // Check postfix operator++
         auto iter = get_cell_records<swc_io_raw>(is).begin();
-        auto iend   = get_cell_records<swc_io_raw>(is).end();
+        auto iend = get_cell_records<swc_io_raw>(is).end();
 
         cell_record c;
         EXPECT_NO_THROW(c = *iter++);
@@ -354,5 +354,25 @@ TEST(cell_record_ranges, raw)
 
         // Try to read past eof
         EXPECT_THROW(*iter, std::out_of_range);
+    }
+
+    {
+        // Check parse error context
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "3 10 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+
+        std::vector<cell_record> cells;
+        try {
+            for (auto c : get_cell_records<swc_io_raw>(is)) {
+                cells.push_back(c);
+            }
+
+            FAIL() << "expected an exception";
+        } catch (const swc_parse_error &e) {
+            EXPECT_EQ(3u, e.lineno());
+        }
     }
 }
