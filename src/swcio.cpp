@@ -174,9 +174,8 @@ cell_record swc_parser::parse_record(std::istringstream &is)
 }
 
 
-std::vector<cell_record> swc_read_cells(std::istream &is)
+cell_record_range_clean::cell_record_range_clean(std::istream &is)
 {
-    std::vector<cell_record> cells;
     std::unordered_set<cell_record::id_type> ids;
 
     std::size_t          num_trees = 0;
@@ -184,40 +183,38 @@ std::vector<cell_record> swc_read_cells(std::istream &is)
     bool                 needsort  = false;
 
     cell_record curr_cell;
-    while ( !(is >> curr_cell).eof()) {
-        if (curr_cell.parent() == -1 && ++num_trees > 1) {
+    for (auto c : swc_get_records<swc_io_raw>(is)) {
+        if (c.parent() == -1 && ++num_trees > 1) {
             // only a single tree is allowed
             break;
         }
 
-        auto inserted = ids.insert(curr_cell.id());
+        auto inserted = ids.insert(c.id());
         if (inserted.second) {
             // not a duplicate; insert cell
-            cells.push_back(curr_cell);
-            if (!needsort && curr_cell.id() < last_id) {
+            cells_.push_back(c);
+            if (!needsort && c.id() < last_id) {
                 needsort = true;
             }
 
-            last_id = curr_cell.id();
+            last_id = c.id();
         }
     }
 
     if (needsort) {
-        std::sort(cells.begin(), cells.end());
+        std::sort(cells_.begin(), cells_.end());
     }
 
     // Renumber cells if necessary
     std::map<cell_record::id_type, cell_record::id_type> idmap;
     cell_record::id_type next_id = 0;
-    for (auto &c : cells) {
+    for (auto &c : cells_) {
         if (c.id() != next_id) {
             c.renumber(next_id, idmap);
         }
 
         ++next_id;
     }
-
-    return std::move(cells);
 }
 
 }   // end of nestmc::io

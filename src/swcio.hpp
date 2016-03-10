@@ -221,16 +221,6 @@ private:
 
 std::istream &operator>>(std::istream &is, cell_record &cell);
 
-//
-// Reads cells from an input stream until an eof is encountered and returns a
-// cleaned sequence of cell records.
-//
-// For more information check here:
-//   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
-//
-std::vector<cell_record> swc_read_cells(std::istream &is);
-
-
 class cell_record_stream_iterator :
         public std::iterator<std::forward_iterator_tag, cell_record>
 {
@@ -355,8 +345,42 @@ private:
     std::istream &is_;
 };
 
+//
+// Reads cells from an input stream until an eof is encountered and returns a
+// cleaned sequence of cell records.
+//
+// For more information check here:
+//   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
+//
+
 class cell_record_range_clean
 {
+public:
+    using value_type     = cell_record;
+    using reference      = value_type &;
+    using const_referene = const value_type &;
+    using iterator       = std::vector<cell_record>::iterator;
+    using const_iterator = std::vector<cell_record>::const_iterator;
+
+    cell_record_range_clean(std::istream &is);
+
+    iterator begin()
+    {
+        return cells_.begin();
+    }
+
+    iterator end()
+    {
+        return cells_.end();
+    }
+
+    std::size_t size()
+    {
+        return cells_.size();
+    }
+
+private:
+    std::vector<cell_record> cells_;
 };
 
 struct swc_io_raw
@@ -366,11 +390,11 @@ struct swc_io_raw
 
 struct swc_io_clean
 {
-    using cell_range_type = cell_record_range_raw;
+    using cell_range_type = cell_record_range_clean;
 };
 
 template<typename T = swc_io_clean>
- typename T::cell_range_type get_cell_records(std::istream &is)
+ typename T::cell_range_type swc_get_records(std::istream &is)
 {
     return typename T::cell_range_type(is);
 }
