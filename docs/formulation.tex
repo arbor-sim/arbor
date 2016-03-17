@@ -269,7 +269,52 @@ If we assume that a no-flux boundary condition, i.e. $\vv{J}\cdot\vv{n}=0$, is i
 where we note that the ratio $\alpha_{ij}/\sigma_{i}=2\beta$ because the surface area of the control volumes at the boundary are half those on the interior.
 
 %-------------------------------------------------------------------------------
-\subsubsection{Handling branches}
+\subsubsection{The Soma}
+%-------------------------------------------------------------------------------
+We model the soma as a sphere with a centre $\vv{x}_s$ and a radius $r_s$.
+The soma is conceptually treated as the center of the cell: the point from which all other parts of the cell branch.
+It requires special treatment, because of its size relative to the radius of the dendrites and axons that branch off from it.
+
+Though the soma is usually visualized as a sphere, it is \emph{worth noting} that Neuron models the soma as a cylinder
+\begin{itemize}
+    \item A cylinder that has the same diameter as length ($L=2r$) has the same area as a sphere with radius $r$, i.e. $4\pi r^2$.
+    \item However a sphere has 4/3 times the volume of the cylinder.
+\end{itemize}
+
+If the soma is modelled as a single compartment the potential is assumed constant throughout the cell.
+This is exactly the same model used to handle branches, with the main difference being how the area and volume of the control volume centred on the soma are calculated as a result of the spherical model.
+
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.5\textwidth]{./images/soma.pdf}
+    \end{center}
+    \caption{A soma with two dendrites.}
+    \label{fig:soma}
+\end{figure}
+
+\fig{fig:soma} shows a soma that is attached to two unbranched dendrites.
+In this example the simplest possible compartment model is used, with three compartments: one for the soma and one for each of the dendrites.
+The soma CV extends to half way along each dendrite.
+To calculate the flux from the soma compartment to the dendrites the flux over the CV face half way along each dendrite has to be computed.
+For this we use the voltage defined at each end of the dendrite, which raises the question about what value to use for the end of the dendrite that is attached to the soma.
+For this we use the voltage as defined for the soma, i.e. we use the same value at the start for each dendrite, as illustrated in \fig{fig:soma}.
+
+This effectivly of ``collapses'' the node that defines the start of dendrites attached to the soma onto the soma in the mathematical formulation.
+This requires a little slight of hand when loading the cell description from file (for example a \verb!.swc! file).
+In such file formats there would be 5 points used to describe the cell in \fig{fig:soma}:
+\begin{itemize}
+    \item 1 to describe the center of the soma.
+    \item 2 for each dendrite: 1 describing where the dendrite is attached to the soma, and 1 for the terminal end.
+\end{itemize}
+However, in the mathematical formulation there are only 3 values that are solved for: the soma and one for each of the dendrites.
+
+On a side note, one possible extension is to model the soma as a set of shells, like an onion.
+Conceptually this would look like an additional branch from the surface of the soma, with the central core being the terminal of the branch.
+However, the cable equation would have to be reformulated in spherical coordinates.
+
+
+%-------------------------------------------------------------------------------
+\subsubsection{Handling Branches}
 %-------------------------------------------------------------------------------
 The value of the lateral area $\sigma_i$ in~\eq{eq:sigma_i} is the sum of the areaof each branch at branch points.
 
