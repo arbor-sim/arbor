@@ -2,6 +2,9 @@ set(HEADERS
     ../src/swcio.hpp
     ../src/tree.hpp
     ../src/cell_tree.hpp
+    ../src/point.hpp
+    ../src/math.hpp
+    ../src/segment.hpp
 )
 
 set(TEST_SOURCES
@@ -11,6 +14,8 @@ set(TEST_SOURCES
     # unit tests
     test_swcio.cpp
     test_tree.cpp
+    test_point.cpp
+    test_segment.cpp
 
     # unit test driver
     main.cpp
