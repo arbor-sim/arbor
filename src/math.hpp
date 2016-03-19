@@ -13,7 +13,7 @@ namespace nestmc {
     T area_frustrum(T L, T r1, T r2)
     {
         auto dr = r1 - r2;
-        return pi<double>() * (r1+r2) * sqrt(L*L + dr*dr);
+        return pi<double>() * (r1+r2) * std::sqrt(L*L + dr*dr);
     }
 
     template <typename T>

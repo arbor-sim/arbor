@@ -1,4 +1,5 @@
 #include <limits>
+#include <cmath>
 
 #include "gtest.h"
 
@@ -97,8 +98,8 @@ TEST(point, norm)
     point<double> p1(1, 1, 1);
     point<double> p2(1, 2, 3);
 
-    EXPECT_EQ(norm(p1), sqrt(3.));
-    EXPECT_EQ(norm(p2), sqrt(1.+4.+9.));
+    EXPECT_EQ(norm(p1), std::sqrt(3.));
+    EXPECT_EQ(norm(p2), std::sqrt(1.+4.+9.));
 }
 
 TEST(point, dot)
