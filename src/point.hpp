@@ -11,7 +11,7 @@ struct point {
     value_type z;
 
     constexpr point(T a, T b, T c)
-    : x(a), y(b), z(c)
+    : x{a}, y{b}, z{c}
     {}
 
     // initialize to NaN by default
@@ -20,6 +20,10 @@ struct point {
       y(std::numeric_limits<T>::quiet_NaN()),
       z(std::numeric_limits<T>::quiet_NaN())
     {}
+
+    constexpr bool is_set() const {
+        return (x==x && y==y && z==z);
+    }
 };
 
 template <typename T>

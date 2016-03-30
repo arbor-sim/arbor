@@ -36,6 +36,11 @@ enum class segmentKind {
     axon
 };
 
+// forward declarations of segment specializations
+class soma_segment;
+class cable_segment;
+
+// abstract base class for a cell segment
 class segment {
     public:
 
@@ -46,17 +51,42 @@ class segment {
         return kind_;
     }
 
+    bool is_soma() const
+    {
+        return kind_==segmentKind::soma;
+    }
+
+    bool is_dendrite() const
+    {
+        return kind_==segmentKind::dendrite;
+    }
+
+    bool is_axon() const
+    {
+        return kind_==segmentKind::axon;
+    }
+
     virtual value_type volume() const = 0;
-    virtual value_type area()  const = 0;
+    virtual value_type area()   const = 0;
 
     virtual ~segment() = default;
+
+    virtual cable_segment* as_cable()
+    {
+        return nullptr;
+    }
+
+    virtual soma_segment* as_soma()
+    {
+        return nullptr;
+    }
 
     protected:
 
     segmentKind kind_;
 };
 
-class spherical_segment : public segment
+class soma_segment : public segment
 {
     public :
 
@@ -65,16 +95,16 @@ class spherical_segment : public segment
     using base::value_type;
     using base::point_type;
 
-    spherical_segment() = delete;
+    soma_segment() = delete;
 
-    spherical_segment(value_type r)
+    soma_segment(value_type r)
     :   radius_{r}
     {
         kind_ = segmentKind::soma;
     }
 
-    spherical_segment(value_type r, point_type const &c)
-    :   spherical_segment(r)
+    soma_segment(value_type r, point_type const &c)
+    :   soma_segment(r)
     {
         center_ = c;
         kind_ = segmentKind::soma;
@@ -82,15 +112,28 @@ class spherical_segment : public segment
 
     value_type volume() const override
     {
-        return 4./3. * pi<value_type>() * radius_ * radius_ * radius_;
+        return math::volume_sphere(radius_);
     }
 
     value_type area() const override
     {
-        return 4. * pi<value_type>() * radius_ * radius_;
+        return math::area_sphere(radius_);
     }
 
-    virtual ~spherical_segment() = default;
+    value_type radius() const
+    {
+        return radius_;
+    }
+
+    point_type const& center() const
+    {
+        return center_;
+    }
+
+    soma_segment* as_soma() override
+    {
+        return this;
+    }
 
     private :
 
@@ -100,61 +143,121 @@ class spherical_segment : public segment
     point_type center_;
 };
 
-class frustrum_segment : public segment
+class cable_segment : public segment
 {
     public :
 
-    using segment::kind_;
     using base = segment;
+    using base::kind_;
     using base::value_type;
     using base::point_type;
 
-    frustrum_segment() = delete;
+    // delete the default constructor
+    cable_segment() = delete;
 
-    frustrum_segment(
+    // constructors for a cable with no location information
+    cable_segment(
+        segmentKind k,
+        std::vector<value_type> r,
+        std::vector<value_type> lens
+    ) {
+        kind_ = k;
+        assert(k==segmentKind::dendrite || k==segmentKind::axon);
+
+        radii_   = std::move(r);
+        lengths_ = std::move(lens);
+    }
+
+    cable_segment(
         segmentKind k,
         value_type r1,
         value_type r2,
         value_type len
+    )
+    : cable_segment{k, {r1, r2}, std::vector<value_type>{len}}
+    { }
+
+    // constructor that lets the user describe the cable as a
+    // seriew of radii and locations
+    cable_segment(
+        segmentKind k,
+        std::vector<value_type> r,
+        std::vector<point_type> p
     ) {
-        r1_ = r1;
-        r2_ = r2;
-        length_ = len;
         kind_ = k;
-        assert(k==segmentKind::dendrite || k ==segmentKind::axon);
+        assert(k==segmentKind::dendrite || k==segmentKind::axon);
+
+        radii_     = std::move(r);
+        locations_ = std::move(p);
+        update_lengths();
     }
 
-    frustrum_segment(
+    // helper that lets user specify with the radius and location
+    // of just the end points of the cable
+    //  i.e.    describing the cable as a single frustrum
+    cable_segment(
         segmentKind k,
         value_type r1,
         value_type r2,
         point_type const& p1,
         point_type const& p2
     )
-    : frustrum_segment(k, r1, r2, norm(p1-p2))
-    {
-        p1_ = p1;
-        p2_ = p2;
-    }
+    :   cable_segment(k, {r1, r2}, {p1, p2})
+    { }
 
     value_type volume() const override
     {
-        return volume_frustrum(length_, r1_, r2_);
-    }
-    value_type area()   const override
-    {
-        return area_frustrum(length_, r1_, r2_);
+        auto sum = value_type{0};
+        for(auto i=0; i<num_sub_segments(); ++i) {
+            sum += math::volume_frustrum(lengths_[i], radii_[i], radii_[i+1]);
+        }
+        return sum;
+
     }
 
-    virtual ~frustrum_segment() = default;
+    value_type area() const override
+    {
+        auto sum = value_type{0};
+        for(auto i=0; i<num_sub_segments(); ++i) {
+            sum += math::area_frustrum(lengths_[i], radii_[i], radii_[i+1]);
+        }
+        return sum;
+    }
+
+    bool has_locations() const {
+        return locations_.size() > 0;
+    }
+
+    // the number sub-segments that define the cable segment
+    int num_sub_segments() const {
+        return radii_.size()-1;
+    }
+
+    std::vector<value_type> const& lengths() const
+    {
+        return lengths_;
+    }
+
+    cable_segment* as_cable() override
+    {
+        return this;
+    }
 
     private :
 
-    value_type length_;
-    value_type r1_;
-    value_type r2_;
-    point_type p1_;
-    point_type p2_;
+    void update_lengths()
+    {
+        if(locations_.size()) {
+            lengths_.resize(num_sub_segments());
+            for(auto i=0; i<num_sub_segments(); ++i) {
+                lengths_[i] = norm(locations_[i] - locations_[i+1]);
+            }
+        }
+    }
+
+    std::vector<value_type> lengths_;
+    std::vector<value_type> radii_;
+    std::vector<point_type> locations_;
 };
 
 using segment_ptr = std::unique_ptr<segment>;

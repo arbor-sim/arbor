@@ -50,13 +50,15 @@ class cell_tree {
 
     /// construct from a tree
     // copy constructor
-    cell_tree(tree const& t)
-    : tree_(t)
+    cell_tree(tree const& t, int s)
+    : tree_(t),
+      soma_(s)
     { }
 
     // move constructor
-    cell_tree(tree&& t)
-    : tree_(std::move(t))
+    cell_tree(tree&& t, int s)
+    : tree_(std::move(t)),
+      soma_(s)
     { }
 
     /// construct from a cell tree
@@ -166,12 +168,11 @@ class cell_tree {
         }
 
         std::string to_string() const {
-            std::string s;
-
-            s += "[" + std::to_string(root) + ","
-                + std::to_string(diameter)  + "," + std::to_string(depth) + "]";
-
-            return s;
+            return
+               "[" + std::to_string(root) + ","
+                   + std::to_string(diameter)  + ","
+                   + std::to_string(depth) +
+               "]";
         }
 
         int root;

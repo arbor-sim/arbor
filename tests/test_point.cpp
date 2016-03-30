@@ -17,7 +17,7 @@ TEST(point, construction)
 
     {
         // initializer list
-        point<float> p = {1, 2, 3};
+        point<float> p{1, 2, 3};
         EXPECT_EQ(p.x, 1.);
         EXPECT_EQ(p.y, 2.);
         EXPECT_EQ(p.z, 3.);

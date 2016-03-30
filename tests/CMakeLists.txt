@@ -1,10 +1,11 @@
 set(HEADERS
+    ../src/cell.hpp
+    ../src/cell_tree.hpp
+    ../src/math.hpp
+    ../src/point.hpp
+    ../src/segment.hpp
     ../src/swcio.hpp
     ../src/tree.hpp
-    ../src/cell_tree.hpp
-    ../src/point.hpp
-    ../src/math.hpp
-    ../src/segment.hpp
 )
 
 set(TEST_SOURCES
@@ -12,10 +13,11 @@ set(TEST_SOURCES
     gtest-all.cpp
 
     # unit tests
-    test_swcio.cpp
-    test_tree.cpp
+    test_cell.cpp
     test_point.cpp
     test_segment.cpp
+    test_swcio.cpp
+    test_tree.cpp
 
     # unit test driver
     main.cpp
