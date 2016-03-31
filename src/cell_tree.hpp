@@ -33,6 +33,9 @@ class cell_tree {
     using index_type = memory::HostVector<int_type>;
     using index_view = index_type::view_type;
 
+    /// default empty constructor
+    cell_tree() = default;
+
     /// construct from a parent index
     cell_tree(std::vector<int> const& parent_index)
     {
@@ -68,11 +71,27 @@ class cell_tree {
       soma_(other.soma())
     { }
 
+    // assignment from rvalue
+    cell_tree& operator=(cell_tree&& other)
+    {
+        std::swap(other.tree_, tree_);
+        std::swap(other.soma_, soma_);
+        return *this;
+    }
+
+    // assignment
+    cell_tree& operator=(cell_tree const& other)
+    {
+        tree_ = other.tree_;
+        soma_ = other.soma_;
+        return *this;
+    }
+
     // move constructor
     cell_tree(cell_tree&& other)
-    : tree_(std::move(other.tree_)),
-      soma_(other.soma())
-    { }
+    {
+        *this = std::move(other);
+    }
 
     int_type soma() const {
         return soma_;
@@ -262,8 +281,14 @@ class cell_tree {
         }
     }
 
-    // storage for the tree structure of cell segments
+    //////////////////////////////////////////////////
+    // state
+    //////////////////////////////////////////////////
+
+    /// storage for the tree structure of cell segments
     tree tree_;
 
+    /// index of the soma
     int_type soma_ = 0;
 };
+

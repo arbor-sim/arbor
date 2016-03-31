@@ -5,22 +5,26 @@
 namespace nestmc {
 namespace math {
     template <typename T>
-    T constexpr pi() {
+    T constexpr pi()
+    {
         return T(3.1415926535897932384626433832795);
     }
 
     template <typename T>
-    T constexpr mean(T a, T b) {
+    T constexpr mean(T a, T b)
+    {
         return (a+b) / T(2);
     }
 
     template <typename T>
-    T constexpr square(T a) {
+    T constexpr square(T a)
+    {
         return a*a;
     }
 
     template <typename T>
-    T constexpr cube(T a) {
+    T constexpr cube(T a)
+    {
         return a*a*a;
     }
 

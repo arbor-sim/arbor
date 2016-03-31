@@ -19,19 +19,33 @@ class tree {
     using index_type = memory::HostVector<int_type>;
     using index_view = index_type::view_type;
 
-    tree(tree const& other)
-    :   data_(other.data_)
-    {
+    tree() = default;
+
+    tree& operator=(tree&& other) {
+        std::swap(data_, other.data_);
+        std::swap(child_index_, other.child_index_);
+        std::swap(children_, other.children_);
+        std::swap(parents_, other.parents_);
+        return *this;
+    }
+
+    tree& operator=(tree const& other) {
+        data_ = other.data_;
         set_ranges(other.num_nodes());
+        return *this;
+    }
+
+    // copy constructors take advantage of the assignment operators
+    // defined above
+    tree(tree const& other)
+    {
+        *this = other;
     }
 
     tree(tree&& other)
-    : data_(std::move(other.data_))
     {
-        set_ranges(other.num_nodes());
+        *this = std::move(other);
     }
-
-    tree() = default;
 
     /// create the tree from a parent_index
     template <typename I>
@@ -135,7 +149,10 @@ class tree {
         return child_index_[b+1] - child_index_[b];
     }
     size_t num_nodes() const {
-        return child_index_.size() - 1;
+        // the number of nodes is the size of the child index minus 1
+        // ... except for the case of an empty tree
+        auto sz = child_index_.size();
+        return sz ? sz - 1 : 0;
     }
 
     /// return the child index
@@ -219,19 +236,26 @@ class tree {
     }
 
     void set_ranges(int nnode) {
-        auto nchild = nnode - 1;
-        // data_ is partitioned as follows:
-        // data_ = [children_[nchild], child_index_[nnode+1], parents_[nnode]]
-        assert(data_.size() == unsigned(nchild + (nnode+1) + nnode));
-        children_    = data_(0, nchild);
-        child_index_ = data_(nchild, nchild+nnode+1);
-        parents_     = data_(nchild+nnode+1, memory::end);
+        if(nnode) {
+            auto nchild = nnode - 1;
+            // data_ is partitioned as follows:
+            // data_ = [children_[nchild], child_index_[nnode+1], parents_[nnode]]
+            assert(data_.size() == unsigned(nchild + (nnode+1) + nnode));
+            children_    = data_(0, nchild);
+            child_index_ = data_(nchild, nchild+nnode+1);
+            parents_     = data_(nchild+nnode+1, memory::end);
 
-        // check that arrays have appropriate size
-        // this should be moved into a unit test
-        assert(children_.size()    == unsigned(nchild));
-        assert(child_index_.size() == unsigned(nnode+1));
-        assert(parents_.size()     == unsigned(nnode));
+            // check that arrays have appropriate size
+            // this should be moved into a unit test
+            assert(children_.size()    == unsigned(nchild));
+            assert(child_index_.size() == unsigned(nnode+1));
+            assert(parents_.size()     == unsigned(nnode));
+        }
+        else {
+            children_    = data_(0, 0);
+            child_index_ = data_(0, 0);
+            parents_     = data_(0, 0);
+        }
     }
 
     /// Renumber the sub-tree with old_node as its root with new_node as
@@ -304,15 +328,24 @@ class tree {
             }
         }
         if(add_parent_as_child) {
-            new_node = add_children(new_node, old_tree.parent(old_node), old_node, p, old_tree);
+            new_node =
+                add_children(
+                    new_node, old_tree.parent(old_node), old_node, p, old_tree
+                );
         }
 
         return new_node;
     }
 
+    //////////////////////////////////////////////////
+    // state
+    //////////////////////////////////////////////////
     index_type data_;
 
-    index_view children_;
-    index_view child_index_;
-    index_view parents_;
+    // provide default parameters so that tree type can
+    // be default constructed
+    index_view children_   = data_(0,0);
+    index_view child_index_= data_(0,0);
+    index_view parents_    = data_(0,0);
 };
+

@@ -8,27 +8,14 @@
 #include "point.hpp"
 #include "util.hpp"
 
-/*
-    We start with a high-level description of the cell
-    - list of branches of the cell
-        - soma, dendrites, axons
-        - spatial locations if provided
-            - bare minimum spatial information required is length and radius
-              at each end for each of the branches, and a soma radius
-        - model properties of each branch
-            - mechanisms
-            - clamps
-            - synapses
-        - list of compartments if they have been provided
-
-    This description is not used for solving the system
-    From the description we can then build a cell solver
-    - e.g. the FVM formulation
-    - e.g. Green's functions
-
-*/
-
 namespace nestmc {
+
+template <typename T,
+          typename valid = typename std::is_floating_point<T>::type>
+struct segment_properties {
+    T rL = 180.0;   // resistivity [Ohm.cm]
+    T cm = 0.01;    // capacitance [F/m^2] : 10 nF/mm^2 = 0.01 F/m^2
+};
 
 enum class segmentKind {
     soma,
@@ -80,6 +67,8 @@ class segment {
     {
         return nullptr;
     }
+
+    segment_properties<value_type> properties;
 
     protected:
 

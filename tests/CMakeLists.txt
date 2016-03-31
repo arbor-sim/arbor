@@ -18,6 +18,7 @@ set(TEST_SOURCES
     test_segment.cpp
     test_swcio.cpp
     test_tree.cpp
+    test_run.cpp
 
     # unit test driver
     main.cpp
