@@ -101,7 +101,7 @@ namespace nestmc {
     void cell::add_cable(cell::index_type parent, Args ...args)
     {
         // check for a valid parent id
-        if(parent>num_segments()) {
+        if(parent>=num_segments()) {
             throw std::out_of_range(
                 "parent index of cell segment is out of range"
             );
