@@ -145,7 +145,6 @@ TEST(cell_type, multiple_cables)
         EXPECT_EQ(c.area(), 8. + math::area_sphere(soma_radius));
 
         // construct the graph
-        c.construct();
         auto const& con = c.graph();
 
         EXPECT_EQ(con.num_segments(), 5u);

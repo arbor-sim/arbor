@@ -1,7 +1,9 @@
 #pragma once
 
-#include <vector>
+#include <mutex>
 #include <stdexcept>
+#include <thread>
+#include <vector>
 
 #include "segment.hpp"
 #include "cell_tree.hpp"
@@ -16,6 +18,9 @@ namespace nestmc {
         using index_type = int;
         using value_type = double;
         using point_type = point<value_type>;
+
+        // constructor
+        cell();
 
         /// add a soma to the cell
         /// radius must be specified
@@ -37,8 +42,17 @@ namespace nestmc {
 
         bool has_soma() const;
 
+        class segment* segment(int index);
+        class segment const* segment(int index) const;
+
         /// access pointer to the soma
+        /// returns nullptr if the cell has no soma
         soma_segment* soma();
+
+        /// access pointer to a cable segment
+        /// will throw an std::out_of_range exception if
+        /// the cable index is not valid
+        cable_segment* cable(int index);
 
         /// the volume of the cell
         value_type volume() const;
@@ -47,10 +61,6 @@ namespace nestmc {
         value_type area() const;
 
         std::vector<segment_ptr> const& segments() const;
-
-        /// generate the internal representation of the connectivity
-        /// graph for the cell segments
-        void construct();
 
         /// the connectivity graph for the cell segments
         cell_tree const& graph() const;
@@ -61,6 +71,11 @@ namespace nestmc {
 
         private:
 
+        /// generate the internal representation of the connectivity
+        /// graph for the cell segments
+        void construct() const;
+
+
         //
         // the local description of the cell which can be modified by the user
         // in a ad-hoc manner (adding segments, modifying segments, etc)
@@ -70,15 +85,15 @@ namespace nestmc {
         std::vector<index_type> parents_;
         // the segments
         std::vector<segment_ptr> segments_;
-        // index of the soma
-        int soma_ = -1;
 
         //
         // fixed cell description, which is computed from the layout description
-        // above
+        // this computed whenever a call to the graph() method is made
+        // the graph method is const, so tree_ is mutable
         //
+        // note: this isn't remotely thread safe!
 
-        cell_tree tree_;
+        mutable cell_tree tree_;
     };
 
     // create a cable by forwarding cable construction parameters provided by the user

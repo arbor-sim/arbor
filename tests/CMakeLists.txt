@@ -16,6 +16,7 @@ set(TEST_SOURCES
     test_cell.cpp
     test_point.cpp
     test_segment.cpp
+    test_stimulus.cpp
     test_swcio.cpp
     test_tree.cpp
     test_run.cpp

@@ -20,7 +20,8 @@ struct segment_properties {
 enum class segmentKind {
     soma,
     dendrite,
-    axon
+    axon,
+    none
 };
 
 // forward declarations of segment specializations
@@ -68,11 +69,45 @@ class segment {
         return nullptr;
     }
 
+    virtual bool is_placeholder() const
+    {
+        return false;
+    }
+
     segment_properties<value_type> properties;
 
     protected:
 
     segmentKind kind_;
+};
+
+class placeholder_segment : public segment
+{
+    public:
+
+    using base = segment;
+    using base::kind_;
+    using base::value_type;
+
+    placeholder_segment()
+    {
+        kind_ = segmentKind::none;
+    }
+
+    value_type volume() const override
+    {
+        return std::numeric_limits<value_type>::quiet_NaN();
+    }
+
+    value_type area() const override
+    {
+        return std::numeric_limits<value_type>::quiet_NaN();
+    }
+
+    bool is_placeholder() const override
+    {
+        return true;
+    }
 };
 
 class soma_segment : public segment

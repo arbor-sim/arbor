@@ -2,11 +2,22 @@
 
 namespace nestmc {
 
+cell::cell()
+{
+    // insert a placeholder segment for the soma
+    segments_.push_back(make_segment<placeholder_segment>());
+    parents_.push_back(0);
+}
+
 int cell::num_segments() const
 {
     return segments_.size();
 }
 
+//
+// note: I think that we have to enforce that the soma is the first
+//       segment that is added
+//
 void cell::add_soma(value_type radius, point_type center)
 {
     if(has_soma()) {
@@ -15,24 +26,15 @@ void cell::add_soma(value_type radius, point_type center)
         );
     }
 
-    // soma has intself as its own parent
-    soma_ = num_segments();
-    parents_.push_back(num_segments());
-
     // add segment for the soma
     if(center.is_set()) {
-        segments_.push_back(
-            make_segment<soma_segment>(radius, center)
-        );
+        segments_[0] = make_segment<soma_segment>(radius, center);
     }
     else {
-        segments_.push_back(
-            make_segment<soma_segment>(radius)
-        );
+        segments_[0] = make_segment<soma_segment>(radius);
     }
 }
 
-// add a cable that is provided by the user as a segment_ptr
 void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
 {
     // check for a valid parent id
@@ -52,16 +54,44 @@ void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
     parents_.push_back(parent);
 }
 
+segment* cell::segment(int index)
+{
+    if(index<0 || index>=num_segments()) {
+        throw std::out_of_range(
+            "attempt to access a segment with invalid index"
+        );
+    }
+    return segments_[index].get();
+}
+
+segment const* cell::segment(int index) const
+{
+    if(index<0 || index>=num_segments()) {
+        throw std::out_of_range(
+            "attempt to access a segment with invalid index"
+        );
+    }
+    return segments_[index].get();
+}
+
 
 bool cell::has_soma() const
 {
-    return soma_ > -1;
+    return !segment(0)->is_placeholder();
 }
 
 soma_segment* cell::soma()
 {
     if(has_soma()) {
-        return segments_[soma_].get()->as_soma();
+        return segment(0)->as_soma();
+    }
+    return nullptr;
+}
+
+cable_segment* cell::cable(int index)
+{
+    if(index>0 && index<num_segments()) {
+        return segment(index)->as_cable();
     }
     return nullptr;
 }
@@ -95,7 +125,7 @@ std::vector<segment_ptr> const& cell::segments() const
     return segments_;
 }
 
-void cell::construct()
+void cell::construct() const
 {
     if(num_segments()) {
         tree_ = cell_tree(parents_);
@@ -104,6 +134,7 @@ void cell::construct()
 
 cell_tree const& cell::graph() const
 {
+    construct();
     return tree_;
 }
 
