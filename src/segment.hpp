@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "math.hpp"
+#include "parameter_list.hpp"
 #include "point.hpp"
 #include "util.hpp"
 
@@ -76,9 +77,40 @@ class segment {
 
     segment_properties<value_type> properties;
 
+    void add_mechanism(parameter_list p)
+    {
+        auto it = std::find_if(
+            mechanisms_.begin(), mechanisms_.end(),
+            [&p](parameter_list const& l){return l.name() == p.name();}
+        );
+        if(it!=mechanisms_.end()) {
+            throw std::out_of_range(
+                "attempt to add a mechanism parameter set to a segment which has an existing mechanism with the same name"
+            );
+        }
+
+        mechanisms_.push_back(std::move(p));
+    }
+
+    parameter_list& mechanism(std::string const& n)
+    {
+        auto it = std::find_if(
+            mechanisms_.begin(), mechanisms_.end(),
+            [&n](parameter_list const& l){return l.name() == n;}
+        );
+        if(it==mechanisms_.end()) {
+            throw std::out_of_range(
+                "attempt to access a parameter that is not defined in a segment"
+            );
+        }
+
+        return *it;
+    }
+
     protected:
 
     segmentKind kind_;
+    std::vector<parameter_list> mechanisms_;
 };
 
 class placeholder_segment : public segment
