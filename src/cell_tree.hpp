@@ -13,6 +13,9 @@
 #include "tree.hpp"
 #include "util.hpp"
 
+namespace nest {
+namespace mc {
+
 /// The tree data structure that describes the segments of a cell tree.
 /// A cell is represented as a tree where each node may have any number of
 /// children. Typically in a cell only the soma has more than two segments,
@@ -25,8 +28,8 @@
 /// sets it appears that the soma was always index 0, however we need more
 /// flexibility in choosing the root.
 class cell_tree {
-    public :
-
+    using range = memory::Range;
+public :
     // use a signed 16-bit integer for storage of indexes, which is reasonable given
     // that typical cells have at most 1000-2000 segments
     using int_type = int16_t;
@@ -40,15 +43,12 @@ class cell_tree {
     cell_tree(std::vector<int> const& parent_index)
     {
         // handle the case of an empty parent list, which implies a single-compartment model
-        std::vector<int> segment_index;
         if(parent_index.size()>0) {
-            segment_index = tree_.init_from_parent_index(parent_index);
+            tree_ = tree(parent_index);
         }
         else {
-            segment_index = tree_.init_from_parent_index(std::vector<int>({0}));
+            tree_ = tree(std::vector<int>({0}));
         }
-
-        // if needed, calculate meta-data like length[] and end[] arrays for data
     }
 
     /// construct from a tree
@@ -91,6 +91,10 @@ class cell_tree {
     cell_tree(cell_tree&& other)
     {
         *this = std::move(other);
+    }
+
+    tree const& graph() const {
+        return tree_;
     }
 
     int_type soma() const {
@@ -169,8 +173,7 @@ class cell_tree {
         return depth;
     }
 
-    private :
-
+private :
 
     /// helper type for sub-tree computation
     /// use in balance()
@@ -291,4 +294,7 @@ class cell_tree {
     /// index of the soma
     int_type soma_ = 0;
 };
+
+} // namespace mc
+} // namespace nest
 

@@ -1,19 +1,20 @@
 #include "gtest.h"
 
 #include "../src/cell.hpp"
+#include "../src/fvm.hpp"
 
 TEST(run, init)
 {
-    using namespace nestmc;
+    using namespace nest::mc;
 
-    nestmc::cell cell;
+    nest::mc::cell cell;
 
     cell.add_soma(12.6157/2.0);
     //auto& props = cell.soma()->properties;
 
     cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
 
-    EXPECT_EQ(cell.graph().num_segments(), 2u);
+    EXPECT_EQ(cell.tree().num_segments(), 2u);
 
     /*
     for(auto &s : cell.segments()) {
@@ -41,19 +42,23 @@ TEST(run, init)
     EXPECT_EQ(cell.soma()->mechanism("hh").get("gl").value, 0.0003);
     EXPECT_EQ(cell.soma()->mechanism("hh").get("el").value, -54.3);
 
+
+    cell.segment(1)->set_compartments(2);
+
+    //using fvm_cell = fvm::fvm_cell<double, int>;
+    //fvm_cell fvcell(cell);
     // print out the parameters if you want...
     //std::cout << soma_hh << "\n";
-
 }
 
 // test out the parameter infrastructure
 TEST(run, parameters)
 {
-    nestmc::parameter_list list("test");
+    nest::mc::parameter_list list("test");
     EXPECT_EQ(list.name(), "test");
     EXPECT_EQ(list.num_parameters(), 0);
 
-    nestmc::parameter p("a", 0.12, {0, 10});
+    nest::mc::parameter p("a", 0.12, {0, 10});
 
     // add_parameter() returns a bool that indicates whether
     // it was able to successfull add the parameter

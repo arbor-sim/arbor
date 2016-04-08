@@ -11,6 +11,8 @@
 using json = nlohmann::json;
 using range = memory::Range;
 
+using namespace nest::mc;
+
 TEST(cell_tree, from_parent_index) {
     // tree with single branch corresponding to the root node
     // this is equivalent to a single compartment model
@@ -137,8 +139,7 @@ TEST(tree, change_root) {
         //                      |
         //                      2
         std::vector<int> parent_index = {0,0,0};
-        tree t;
-        t.init_from_parent_index(parent_index);
+        tree t(parent_index);
         t.change_root(1);
 
         EXPECT_EQ(t.num_nodes(), 3u);
@@ -156,8 +157,7 @@ TEST(tree, change_root) {
         //           / \             |
         //          3   4            4
         std::vector<int> parent_index = {0,0,0,1,1};
-        tree t;
-        t.init_from_parent_index(parent_index);
+        tree t(parent_index);
         t.change_root(1u);
 
         EXPECT_EQ(t.num_nodes(), 5u);
@@ -181,8 +181,7 @@ TEST(tree, change_root) {
         //             / \.
         //            5   6
         std::vector<int> parent_index = {0,0,0,1,1,4,4};
-        tree t;
-        t.init_from_parent_index(parent_index);
+        tree t(parent_index);
 
         t.change_root(1);
 
@@ -239,7 +238,8 @@ TEST(cell_tree, balance) {
 
 // this test doesn't test anything yet... it just loads each cell in turn
 // from a json file and creates a .dot file for it
-TEST(cell_tree, json_load) {
+TEST(cell_tree, json_load)
+{
     json  cell_data;
     std::ifstream("../data/cells_small.json") >> cell_data;
 
@@ -251,3 +251,13 @@ TEST(cell_tree, json_load) {
     }
 }
 
+TEST(tree, make_parent_index)
+{
+    {
+        std::vector<int> parent_index = {0,0,1,2,3,4,3,6,0,8};
+        std::vector<int> counts = {1,3,2,2,2};
+        tree t(parent_index);
+        auto new_pid = make_parent_index(t, counts);
+        EXPECT_EQ(parent_index.size(), new_pid.size());
+    }
+}

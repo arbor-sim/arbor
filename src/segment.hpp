@@ -4,12 +4,15 @@
 
 #include <vector>
 
+#include "compartment.hpp"
 #include "math.hpp"
 #include "parameter_list.hpp"
 #include "point.hpp"
+#include "algorithms.hpp"
 #include "util.hpp"
 
-namespace nestmc {
+namespace nest {
+namespace mc {
 
 template <typename T,
           typename valid = typename std::is_floating_point<T>::type>
@@ -54,6 +57,9 @@ class segment {
     {
         return kind_==segmentKind::axon;
     }
+
+    virtual int num_compartments() const = 0;
+    virtual void set_compartments(int) = 0;
 
     virtual value_type volume() const = 0;
     virtual value_type area()   const = 0;
@@ -140,6 +146,14 @@ class placeholder_segment : public segment
     {
         return true;
     }
+
+    int num_compartments() const override
+    {
+        return 0;
+    }
+
+    virtual void set_compartments(int) override
+    { }
 };
 
 class soma_segment : public segment
@@ -191,6 +205,15 @@ class soma_segment : public segment
         return this;
     }
 
+    /// soma has one and one only compartments
+    int num_compartments() const override
+    {
+        return 1;
+    }
+
+    void set_compartments(int n) override
+    { }
+
     private :
 
     // store the center and radius of the soma
@@ -230,7 +253,7 @@ class cable_segment : public segment
         value_type r2,
         value_type len
     )
-    : cable_segment{k, {r1, r2}, std::vector<value_type>{len}}
+    : cable_segment{k, {r1, r2}, {len}}
     { }
 
     // constructor that lets the user describe the cable as a
@@ -268,7 +291,6 @@ class cable_segment : public segment
             sum += math::volume_frustrum(lengths_[i], radii_[i], radii_[i+1]);
         }
         return sum;
-
     }
 
     value_type area() const override
@@ -280,12 +302,19 @@ class cable_segment : public segment
         return sum;
     }
 
-    bool has_locations() const {
+    value_type length() const
+    {
+        return algorithms::sum(lengths_);
+    }
+
+    bool has_locations() const
+    {
         return locations_.size() > 0;
     }
 
     // the number sub-segments that define the cable segment
-    int num_sub_segments() const {
+    int num_sub_segments() const
+    {
         return radii_.size()-1;
     }
 
@@ -297,6 +326,53 @@ class cable_segment : public segment
     cable_segment* as_cable() override
     {
         return this;
+    }
+
+    int num_compartments() const override
+    {
+        return num_compartments_;
+    }
+
+    void set_compartments(int n) override
+    {
+        if(n<1) {
+            throw std::out_of_range(
+                "number of compartments in a segment must be one or more"
+            );
+        }
+        num_compartments_ = n;
+    }
+
+    value_type radius(value_type loc) const
+    {
+        if(loc>=1.) return radii_.back();
+        if(loc<=0.) return radii_.front();
+
+        auto len = length();
+        value_type pos = loc*len;
+
+        // This could be cached using a partial sum.
+        // In fact a lot of this stuff can be cached if
+        // we find ourselves having to do it over and over again.
+        // The time to cache it might be when update_lengths() is called.
+        auto sum = value_type(0);
+        auto i=0;
+        for(i=0; i<num_sub_segments(); ++i) {
+            if(sum+lengths_[i]>pos) {
+                break;
+            }
+            sum += lengths_[i];
+        }
+
+        auto rel = (len - sum)/lengths_[i];
+
+        return rel*radii_[i] + (1.-rel)*radii_[i+1];
+    }
+
+    /// iterable range type for simple compartment representation
+    compartment_range compartments() const
+    {
+        return {num_compartments(), radii_.front(), radii_.back(), length()};
     }
 
     private :
@@ -311,17 +387,24 @@ class cable_segment : public segment
         }
     }
 
+    int num_compartments_ = 1;
     std::vector<value_type> lengths_;
     std::vector<value_type> radii_;
     std::vector<point_type> locations_;
 };
 
+/// Unique pointer wrapper for abstract segment base class
 using segment_ptr = std::unique_ptr<segment>;
 
-template <typename T, typename... Args>
-segment_ptr make_segment(Args&&... args) {
-    return segment_ptr(new T(std::forward<Args>(args)...));
+/// Helper for constructing segments in a segment_ptr unique pointer wrapper.
+/// Forwards the supplied arguments to construct a segment of type SegmentType.
+/// e.g. auto my_cable = make_segment<cable>(segmentKind::dendrite, ... );
+template <typename SegmentType, typename... Args>
+segment_ptr make_segment(Args&&... args)
+{
+    return segment_ptr(new SegmentType(std::forward<Args>(args)...));
 }
 
-} // namespace nestmc
+} // namespace mc
+} // namespace nest
 

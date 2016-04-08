@@ -5,6 +5,8 @@
 
 #include "../src/point.hpp"
 
+using namespace nest::mc;
+
 TEST(point, construction)
 {
     {

@@ -3,6 +3,9 @@
 #include <limits>
 #include <ostream>
 
+namespace nest {
+namespace mc {
+
 template <typename T>
 struct point {
     using value_type = T;
@@ -21,51 +24,61 @@ struct point {
       z(std::numeric_limits<T>::quiet_NaN())
     {}
 
-    constexpr bool is_set() const {
+    constexpr bool is_set() const
+    {
         return (x==x && y==y && z==z);
     }
 };
 
 template <typename T>
-constexpr point<T>  operator+ (
+constexpr point<T>
+operator+ (
     point<T> const& lhs,
-    point<T> const& rhs)
-{
+    point<T> const& rhs
+) {
     return point<T>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 }
 
 template <typename T>
-constexpr point<T>  operator- (
+constexpr point<T>
+operator- (
     point<T> const& lhs,
-    point<T> const& rhs)
-{
+    point<T> const& rhs
+) {
     return point<T>(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
 }
 
 template <typename T>
-constexpr point<T> operator* (
+constexpr point<T>
+operator* (
     T alpha,
-    point<T> const& p)
-{
+    point<T> const& p
+) {
     return point<T>(alpha*p.x, alpha*p.y, alpha*p.z);
 }
 
 template <typename T>
-T norm(point<T> const& p)
+T
+norm(point<T> const& p)
 {
     return sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
 }
 
 template <typename T>
-constexpr T dot(
+constexpr T
+dot(
     point<T> const& lhs,
-    point<T> const& rhs)
-{
+    point<T> const& rhs
+) {
     return lhs.x*rhs.x + lhs.y*rhs.y + lhs.z*rhs.z;
 }
 
+} // namespace mc
+} // namespace nest
+
 template <typename T>
-std::ostream& operator << (std::ostream& o, point<T> const& p) {
+std::ostream& operator << (std::ostream& o, nest::mc::point<T> const& p)
+{
     return o << "[" << p.x << ", " << p.y << ", " << p.z << "]";
 }
 

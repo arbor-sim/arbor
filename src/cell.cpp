@@ -1,12 +1,15 @@
 #include "cell.hpp"
+#include "tree.hpp"
 
-namespace nestmc {
+namespace nest {
+namespace mc {
 
 cell::cell()
 {
     // insert a placeholder segment for the soma
     segments_.push_back(make_segment<placeholder_segment>());
     parents_.push_back(0);
+    stale_ = true;
 }
 
 int cell::num_segments() const
@@ -33,6 +36,7 @@ void cell::add_soma(value_type radius, point_type center)
     else {
         segments_[0] = make_segment<soma_segment>(radius);
     }
+    stale_ = true;
 }
 
 void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
@@ -52,6 +56,7 @@ void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
     }
     segments_.push_back(std::move(cable));
     parents_.push_back(parent);
+    stale_ = true;
 }
 
 segment* cell::segment(int index)
@@ -82,14 +87,21 @@ bool cell::has_soma() const
 
 soma_segment* cell::soma()
 {
+    stale_ = true;
     if(has_soma()) {
         return segment(0)->as_soma();
     }
     return nullptr;
 }
 
+// this breaks the use of stale_, because the user could modify a cable obtained from
+// this call, without the stale_ tag being set.
+//
+// set stale_ to true, then expect the user to make any modifications before calling
+// graph() etc.
 cable_segment* cell::cable(int index)
 {
+    stale_ = true;
     if(index>0 && index<num_segments()) {
         return segment(index)->as_cable();
     }
@@ -125,14 +137,43 @@ std::vector<segment_ptr> const& cell::segments() const
     return segments_;
 }
 
-void cell::construct() const
+std::vector<int> cell::compartment_counts() const
 {
-    if(num_segments()) {
-        tree_ = cell_tree(parents_);
+    std::vector<int> comp_count;
+    comp_count.reserve(num_segments());
+    for(auto const& s : segments()) {
+        comp_count.push_back(s->num_compartments());
     }
+    return comp_count;
+
 }
 
-cell_tree const& cell::graph() const
+void cell::construct() const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    if(stale_) {
+        tree_ = cell_tree(parents_);
+        auto counts = compartment_counts();
+        parent_index_ = make_parent_index(tree_.graph(), counts);
+        segment_index_ = algorithms::make_index(counts);
+    }
+    stale_ = false;
+}
+
+std::vector<int> const& cell::parent_index() const
+{
+    construct();
+    return parent_index_;
+}
+
+std::vector<int> const& cell::segment_index() const
+{
+    construct();
+    return segment_index_;
+}
+
+cell_tree const& cell::tree() const
 {
     construct();
     return tree_;
@@ -143,4 +184,5 @@ std::vector<int> const& cell::segment_parents() const
     return parents_;
 }
 
-} // namespace nestmc
+} // namespace mc
+} // namespace nest

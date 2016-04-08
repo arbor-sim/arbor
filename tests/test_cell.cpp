@@ -7,7 +7,7 @@ TEST(cell_type, soma)
     // test that insertion of a soma works
     //      define with no centre point
     {
-        nestmc::cell c;
+        nest::mc::cell c;
         auto soma_radius = 2.1;
 
         EXPECT_EQ(c.has_soma(), false);
@@ -22,7 +22,7 @@ TEST(cell_type, soma)
     // test that insertion of a soma works
     //      define with centre point @ (0,0,1)
     {
-        nestmc::cell c;
+        nest::mc::cell c;
         auto soma_radius = 3.2;
 
         EXPECT_EQ(c.has_soma(), false);
@@ -40,7 +40,7 @@ TEST(cell_type, soma)
 
 TEST(cell_type, add_segment)
 {
-    using namespace nestmc;
+    using namespace nest::mc;
     //  add a pre-defined segment
     {
         cell c;
@@ -103,7 +103,7 @@ TEST(cell_type, add_segment)
 
 TEST(cell_type, multiple_cables)
 {
-    using namespace nestmc;
+    using namespace nest::mc;
 
     // generate a cylindrical cable segment of length 1/pi and radius 1
     //      volume = 1
@@ -145,7 +145,7 @@ TEST(cell_type, multiple_cables)
         EXPECT_EQ(c.area(), 8. + math::area_sphere(soma_radius));
 
         // construct the graph
-        auto const& con = c.graph();
+        auto const& con = c.tree();
 
         EXPECT_EQ(con.num_segments(), 5u);
         EXPECT_EQ(con.parent(0), -1);

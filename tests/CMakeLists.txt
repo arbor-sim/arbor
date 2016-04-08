@@ -14,12 +14,14 @@ set(TEST_SOURCES
 
     # unit tests
     test_cell.cpp
+    test_compartments.cpp
     test_point.cpp
+    test_algorithms.cpp
+    test_run.cpp
     test_segment.cpp
     test_stimulus.cpp
     test_swcio.cpp
     test_tree.cpp
-    test_run.cpp
 
     # unit test driver
     main.cpp

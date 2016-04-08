@@ -7,8 +7,8 @@
 
 TEST(segments, soma)
 {
-    using namespace nestmc;
-    using nestmc::math::pi;
+    using namespace nest::mc;
+    using nest::mc::math::pi;
 
     {
         auto s = make_segment<soma_segment>(1.0);
@@ -29,8 +29,8 @@ TEST(segments, soma)
 
 TEST(segments, cable)
 {
-    using namespace nestmc;
-    using nestmc::math::pi;
+    using namespace nest::mc;
+    using nest::mc::math::pi;
 
     // take advantage of fact that a cable segment with constant radius 1 and
     // length 1 has volume=1. and area=2
@@ -63,8 +63,8 @@ TEST(segments, cable)
 
 TEST(segments, cable_positions)
 {
-    using namespace nestmc;
-    using nestmc::math::pi;
+    using namespace nest::mc;
+    using nest::mc::math::pi;
 
     // single frustrum of length 1 and radii 1 and 2
     // the centre of each end are at the origin (0,0,0) and (0,1,0)

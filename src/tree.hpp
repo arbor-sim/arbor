@@ -7,11 +7,15 @@
 #include <cassert>
 
 #include "vector/include/Vector.hpp"
+#include "algorithms.hpp"
 #include "util.hpp"
 
-using range = memory::Range;
+namespace nest {
+namespace mc {
 
 class tree {
+    using range = memory::Range;
+
     public :
 
     using int_type = int16_t;
@@ -49,14 +53,21 @@ class tree {
 
     /// create the tree from a parent_index
     template <typename I>
-    std::vector<I>
-    init_from_parent_index(std::vector<I> const& parent_index)
+    tree(std::vector<I> const& parent_index)
     {
+        // validate the inputs
+        if(!algorithms::is_minimal_degree(parent_index)) {
+            throw std::domain_error(
+                "parent index used to build a tree did not satisfy minimal degree ordering"
+            );
+        }
+
         // n = number of compartment in cell
         auto n = parent_index.size();
 
-        // On completion of this loop child_count[i] is the number of children of compartment i
-        // compensate count for compartment 0, which has itself as its own parent
+        // On completion of this loop child_count[i] is the number of children
+        // of compartment i compensate count for compartment 0, which has itself
+        // as its own parent
         index_type child_count(n, 0);
         child_count[0] = -1;
         for(auto i : parent_index) {
@@ -137,9 +148,6 @@ class tree {
             child_index_[i+1] = child_index_[i];
         }
         child_index_[0] = 0;
-
-        // return the branch index to the caller for later use
-        return branch_index;
     }
 
     size_t num_children() const {
@@ -344,8 +352,46 @@ class tree {
 
     // provide default parameters so that tree type can
     // be default constructed
-    index_view children_   = data_(0,0);
-    index_view child_index_= data_(0,0);
-    index_view parents_    = data_(0,0);
+    index_view children_   = data_(0, 0);
+    index_view child_index_= data_(0, 0);
+    index_view parents_    = data_(0, 0);
 };
 
+template <typename C>
+std::vector<int> make_parent_index(tree const& t, C const& counts)
+{
+    using range = memory::Range;
+
+    if(   !algorithms::is_positive(counts)
+        || counts.size() != t.num_nodes() )
+    {
+        throw std::domain_error(
+            "make_parent_index requires one non-zero count per segment"
+        );
+    }
+    auto index = algorithms::make_index(counts);
+    auto num_compartments = index.back();
+    std::vector<int> parent_index(num_compartments);
+    auto pos = 0;
+    for(auto i : range(0, t.num_nodes())) {
+        // get the parent of this segment
+        // taking care for the case where the root node has -1 as its parent
+        auto parent = t.parent(i);
+        parent = parent>=0 ? parent : 0;
+        parent_index[pos++] = index[parent];
+        while(pos<index[i]) {
+            parent_index[pos] = pos-1;
+            pos++;
+        }
+    }
+
+    // if one of these assertions is tripped, we have to improve
+    // the input validation above
+    assert(pos==num_compartments);
+    assert(algorithms::is_minimal_degree(parent_index));
+
+    return parent_index;
+}
+
+} // namespace mc
+} // namespace nest

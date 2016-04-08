@@ -2,7 +2,8 @@
 
 #include <cmath>
 
-namespace nestmc {
+namespace nest {
+namespace mc {
 namespace math {
     template <typename T>
     T constexpr pi()
@@ -61,6 +62,7 @@ namespace math {
         return T(4) * pi<T>() * square(r);
     }
 
-} // namespace nestmc::math
-} // namespace nestmc
+} // namespace math
+} // namespace mc
+} // namespace nest
 

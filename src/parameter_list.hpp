@@ -6,7 +6,8 @@
 #include <string>
 #include <vector>
 
-namespace nestmc {
+namespace nest {
+namespace mc {
 
     template <typename T>
     struct value_range {
@@ -159,5 +160,6 @@ namespace nestmc {
         }
     };
 
-} // namespace nestmc
+} // namespace mc
+} // namespace nest
 

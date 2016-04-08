@@ -1,127 +1,166 @@
 #pragma once
 
-#include <cmath>
+#include <iterator>
+#include <utility>
 
-#include <vector>
+namespace nest {
+namespace mc {
 
-#include "point.hpp"
+/// Defines the simplest type of compartment
+/// The compartment is a conic frustrum
+struct compartment {
+    using value_type = double;
+    using size_type = int;
+    using value_pair = std::pair<value_type, value_type>;
 
-/*
-    We start with a high-level description of the cell
-    - list of branches of the cell
-        - soma, dendrites, axons
-        - spatial locations if provided
-            - bare minimum spatial information required is length and radius
-              at each end for each of the branches, and a soma radius
-        - model properties of each branch
-            - mechanisms
-            - clamps
-            - synapses
-        - list of compartments if they have been provided
+    compartment() = delete;
 
-    This description is not used for solving the system
-    From the description we can then build a cell solver
-    - e.g. the FVM formulation
-    - e.g. Green's functions
-
-*/
-
-namespace nestmc {
-
-template <typename T>
-T constexpr pi() {
-    return 3.141592653589793238462643383279502;
-}
-
-template <typename T>
-class compartment {
-    using value_type = T;
-    using point_type = point<value_type>;
-
-    constexpr compartment()
-    :   p1_{point_type()},
-        p2_{point_type()},
-        radius1_{std::numeric_limits<value_type>::quiet_NaN()},
-        radius2_{std::numeric_limits<value_type>::quiet_NaN()}
-    {}
-
-    constexpr compartment(
-        point_type const& p1,
-        point_type const& p2,
+    compartment(
+        size_type idx,
+        value_type len,
         value_type r1,
         value_type r2
     )
-    :   p1_{p1},
-        p2_{p2},
-        radius1_{r1},
-        radius2_{r2}
+    :   index{idx},
+        radius{r1, r2},
+        length{len}
     {}
 
-    value_type length() const {
-        return norm(p1_-p2_);
-    }
 
-    value_type area() const {
-        return volume_frustrum(length(), radius1_, radius2_);
-    }
+    size_type index;
+    std::pair<value_type, value_type> radius;
+    value_type length;
+};
 
-    value_type volume() const {
-        return volume_frustrum(length(), radius1_, radius2_);
-    }
+/// The simplest type of compartment iterator :
+///     - divide a segment into n compartments of equal length
+///     - assume that the radius varies linearly from one end of the segment
+///       to the other
+class compartment_iterator :
+    public std::iterator<std::forward_iterator_tag, compartment>
+{
 
-    constexpr point_type midpoint() const {
-        return 0.5*(p1_+p2_);
-    }
+    public:
 
-    constexpr point_type midradius() const {
-        return 0.5*(radius1_+radius2_);
-    }
+    using base = std::iterator<std::forward_iterator_tag, compartment>;
+    using size_type = base::value_type::size_type;
+    using real_type = base::value_type::value_type;
 
-    private :
+    compartment_iterator() = delete;
 
-    value_type area_frustrum(
-        value_type L,
-        value_type r1,
-        value_type r2
-    ) const
+    compartment_iterator(
+        size_type idx,
+        real_type len,
+        real_type rad,
+        real_type delta_rad
+    )
+    :   index_(idx),
+        radius_(rad),
+        delta_radius_(delta_rad),
+        length_(len)
+    { }
+
+    compartment_iterator(compartment_iterator const& other) = default;
+
+    compartment_iterator& operator++()
     {
-        auto dr = r1 - r2;
-        return pi<double>() * (r1+r2) * std::sqrt(L*L + dr*dr);
+        index_++;
+        radius_ += delta_radius_;
+        return *this;
     }
 
-    value_type volume_frustrum(
-        value_type L,
-        value_type r1,
-        value_type r2
-    ) const
+    compartment_iterator operator++(int)
     {
-        auto meanr = (r1+r2) / 2.;
-        return pi<double>() * meanr * meanr * L;
+        compartment_iterator ret(*this);
+        operator++();
+        return ret;
     }
 
-    point_type p1_;
-    point_type p2_;
-    value_type radius1_;
-    value_type radius2_;
-};
+    compartment operator*() const
+    {
+        return
+            compartment(
+                index_, length_, radius_, radius_ + delta_radius_
+            );
+    }
 
-class segment {
+    bool operator==(compartment_iterator const& other) const
+    {
+        return other.index_ == index_;
+    }
 
-    private :
-
-    double length_;
-    double radius_start_;
-    double radius_end_;
-    std::vector<compartment> compartments_;
-    segmentKind kind_;
-};
-
-class abstract_cell {
-    abstract_cell() = default;
+    bool operator!=(compartment_iterator const& other) const
+    {
+        return !operator==(other);
+    }
 
     private :
+
+    size_type index_;
+    real_type radius_;
+    const real_type delta_radius_;
+    const real_type length_;
 };
 
-} // namespace nestmc 
+class compartment_range {
+    public:
+
+    using size_type = compartment_iterator::size_type;
+    using real_type = compartment_iterator::real_type;
+
+    compartment_range(
+        size_type num_compartments,
+        real_type radius_L,
+        real_type radius_R,
+        real_type length
+    )
+    :   num_compartments_(num_compartments),
+        radius_L_(radius_L),
+        radius_R_(radius_R),
+        length_(length)
+    {}
+
+    compartment_iterator begin() const
+    {
+        return {0, compartment_length(), radius_L_, delta_radius()};
+    }
+
+    compartment_iterator cbegin() const
+    {
+        return begin();
+    }
+
+    /// With 0-based indexing compartment number "num_compartments_" is
+    /// one past the end
+    compartment_iterator end() const
+    {
+        return {num_compartments_, 0, 0, 0};
+    }
+
+    compartment_iterator cend() const
+    {
+        return end();
+    }
+
+    real_type delta_radius() const
+    {
+        return (radius_R_ - radius_L_) / num_compartments_;
+    }
+
+    real_type compartment_length() const
+    {
+        return length_ / num_compartments_;
+    }
+
+    private:
+
+    size_type num_compartments_;
+    real_type radius_L_;
+    real_type radius_R_;
+    real_type length_;
+};
+
+} // namespace mc
+} // namespace nest
 
 

@@ -3,7 +3,8 @@
 
 #include "parameter_list.hpp"
 
-namespace nestmc {
+namespace nest {
+namespace mc {
 
     bool parameter_list::add_parameter(parameter p)
     {
@@ -75,25 +76,28 @@ namespace nestmc {
                 [&n](parameter const& p) {return p.name == n;}
             );
     }
+} // namespace mc
+} // namespace nest
 
+/*
+static std::ostream&
+operator<<(std::ostream& o, nest::mc::parameter const& p)
+{
+    return o
+        << "parameter("
+        << "name " << p.name
+        << " : value " << p.value
+        << " : range " << p.range
+        << ")";
+}
 
-    std::ostream& operator<<(std::ostream& o, parameter const& p)
-    {
-        return o
-            << "parameter("
-            << "name " << p.name
-            << " : value " << p.value
-            << " : range " << p.range
-            << ")";
+static std::ostream&
+operator<<(std::ostream& o, nest::mc::parameter_list const& l)
+{
+    o << "parameters \"" << l.name() << "\" :\n";
+    for(nest::mc::parameter const& p : l.parameters()) {
+        o << " " << p << "\n";
     }
-
-    std::ostream& operator<<(std::ostream& o, parameter_list const& l)
-    {
-        o << "parameters \"" << l.name() << "\" :\n";
-        for(auto const& p : l.parameters()) {
-            o << "  " << p << "\n";
-        }
-        return o;
-    }
-
-} // namespace nestmc
+    return o;
+}
+*/
