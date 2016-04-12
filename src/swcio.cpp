@@ -12,9 +12,9 @@ namespace io
 {
 
 //
-// cell_record implementation
+// swc_record implementation
 //
-void cell_record::renumber(id_type new_id, std::map<id_type, id_type> &idmap)
+void swc_record::renumber(id_type new_id, std::map<id_type, id_type> &idmap)
 {
     auto old_id = id_;
     id_ = new_id;
@@ -29,12 +29,12 @@ void cell_record::renumber(id_type new_id, std::map<id_type, id_type> &idmap)
     idmap.insert(std::make_pair(old_id, new_id));
 }
 
-void cell_record::check_consistency() const
+void swc_record::check_consistency() const
 {
-    // Check cell type as well; enum's do not offer complete type safety,
+    // Check record type as well; enum's do not offer complete type safety,
     // since you can cast anything that fits to its underlying type
     if (type_ < 0 || type_ > custom) {
-        throw std::invalid_argument("unknown cell type");
+        throw std::invalid_argument("unknown record type");
     }
 
     if (id_ < 0) {
@@ -54,24 +54,24 @@ void cell_record::check_consistency() const
     }
 }
 
-std::istream &operator>>(std::istream &is, cell_record &cell)
+std::istream &operator>>(std::istream &is, swc_record &record)
 {
     swc_parser parser;
-    parser.parse_record(is, cell);
+    parser.parse_record(is, record);
     return is;
 }
 
 
-std::ostream &operator<<(std::ostream &os, const cell_record &cell)
+std::ostream &operator<<(std::ostream &os, const swc_record &record)
 {
     // output in one-based indexing
-    os << cell.id_+1 << " "
-       << cell.type_ << " "
-       << std::setprecision(7) << cell.x_ << " "
-       << std::setprecision(7) << cell.y_ << " "
-       << std::setprecision(7) << cell.z_ << " "
-       << std::setprecision(7) << cell.r_ << " "
-       << ((cell.parent_id_ == -1) ? cell.parent_id_ : cell.parent_id_+1);
+    os << record.id_+1 << " "
+       << record.type_ << " "
+       << std::setprecision(7) << record.x_ << " "
+       << std::setprecision(7) << record.y_ << " "
+       << std::setprecision(7) << record.z_ << " "
+       << std::setprecision(7) << record.r_ << " "
+       << ((record.parent_id_ == -1) ? record.parent_id_ : record.parent_id_+1);
 
     return os;
 }
@@ -104,22 +104,22 @@ T parse_value_strict(std::istream &is, const swc_parser &parser)
     return val;
 }
 
-// specialize parsing for cell types
+// specialize parsing for record types
 template<>
-cell_record::kind parse_value_strict(std::istream &is, const swc_parser &parser)
+swc_record::kind parse_value_strict(std::istream &is, const swc_parser &parser)
 {
-    cell_record::id_type val;
+    swc_record::id_type val;
     check_parse_status(is >> val, parser);
 
-    // Let cell_record's constructor check for the type validity
-    return static_cast<cell_record::kind>(val);
+    // Let swc_record's constructor check for the type validity
+    return static_cast<swc_record::kind>(val);
 }
 
 //
 // swc_parser implementation
 //
 
-std::istream &swc_parser::parse_record(std::istream &is, cell_record &cell)
+std::istream &swc_parser::parse_record(std::istream &is, swc_record &record)
 {
     while (!is.eof() && !is.bad()) {
         // consume empty and comment lines first
@@ -146,7 +146,7 @@ std::istream &swc_parser::parse_record(std::istream &is, cell_record &cell)
 
     std::istringstream line(linebuff_);
     try {
-        cell = parse_record(line);
+        record = parse_record(line);
     } catch (std::invalid_argument &e) {
         // Rethrow as a parse error
         throw swc_parse_error(e.what(), lineno_);
@@ -155,34 +155,34 @@ std::istream &swc_parser::parse_record(std::istream &is, cell_record &cell)
     return is;
 }
 
-cell_record swc_parser::parse_record(std::istringstream &is)
+swc_record swc_parser::parse_record(std::istringstream &is)
 {
     auto id = parse_value_strict<int>(is, *this);
-    auto type = parse_value_strict<cell_record::kind>(is, *this);
+    auto type = parse_value_strict<swc_record::kind>(is, *this);
     auto x = parse_value_strict<float>(is, *this);
     auto y = parse_value_strict<float>(is, *this);
     auto z = parse_value_strict<float>(is, *this);
     auto r = parse_value_strict<float>(is, *this);
-    auto parent_id = parse_value_strict<cell_record::id_type>(is, *this);
+    auto parent_id = parse_value_strict<swc_record::id_type>(is, *this);
 
     // Convert to zero-based, leaving parent_id as-is if -1
     if (parent_id != -1) {
         parent_id--;
     }
 
-    return cell_record(type, id-1, x, y, z, r, parent_id);
+    return swc_record(type, id-1, x, y, z, r, parent_id);
 }
 
 
-cell_record_range_clean::cell_record_range_clean(std::istream &is)
+swc_record_range_clean::swc_record_range_clean(std::istream &is)
 {
-    std::unordered_set<cell_record::id_type> ids;
+    std::unordered_set<swc_record::id_type> ids;
 
     std::size_t          num_trees = 0;
-    cell_record::id_type last_id   = -1;
+    swc_record::id_type last_id   = -1;
     bool                 needsort  = false;
 
-    cell_record curr_cell;
+    swc_record curr_record;
     for (auto c : swc_get_records<swc_io_raw>(is)) {
         if (c.parent() == -1 && ++num_trees > 1) {
             // only a single tree is allowed
@@ -191,8 +191,8 @@ cell_record_range_clean::cell_record_range_clean(std::istream &is)
 
         auto inserted = ids.insert(c.id());
         if (inserted.second) {
-            // not a duplicate; insert cell
-            cells_.push_back(c);
+            // not a duplicate; insert record
+            records_.push_back(c);
             if (!needsort && c.id() < last_id) {
                 needsort = true;
             }
@@ -202,13 +202,13 @@ cell_record_range_clean::cell_record_range_clean(std::istream &is)
     }
 
     if (needsort) {
-        std::sort(cells_.begin(), cells_.end());
+        std::sort(records_.begin(), records_.end());
     }
 
-    // Renumber cells if necessary
-    std::map<cell_record::id_type, cell_record::id_type> idmap;
-    cell_record::id_type next_id = 0;
-    for (auto &c : cells_) {
+    // Renumber records if necessary
+    std::map<swc_record::id_type, swc_record::id_type> idmap;
+    swc_record::id_type next_id = 0;
+    for (auto &c : records_) {
         if (c.id() != next_id) {
             c.renumber(next_id, idmap);
         }
