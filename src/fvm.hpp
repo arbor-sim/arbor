@@ -30,6 +30,10 @@ class fvm_cell {
     using index_view = typename index_type::view_type;
 
     fvm_cell(nest::mc::cell const& cell);
+
+    private:
+
+    index_type parent_index_;
 };
 
 ////////////////////////////////////////////////////////////
@@ -39,7 +43,7 @@ class fvm_cell {
 template <typename T, typename I>
 fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
 {
-    auto const& parent_index = cell.parent_index();
+    parent_index_ = cell.parent_index();
     auto const& segment_index = cell.segment_index();
     auto num_fv = segment_index.back();
 
@@ -65,7 +69,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
 
             for(auto c : cable->compartments()) {
                 auto rhs = segment_index[seg_idx] + c.index;
-                auto lhs = parent_index[rhs];
+                auto lhs = parent_index_[rhs];
 
                 auto rad_C = math::mean(left(c.radius), right(c.radius));
                 auto len = c.length/2;
@@ -85,9 +89,8 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         ++seg_idx;
     }
 
-    //std::cout << "volumes " << fv_volumes << " : " << sum(fv_volumes) << "\n";
-    std::cout << "areas   " << sum(fv_areas)   << ", " << cell.volume() << "\n";
-    std::cout << "volumes " << sum(fv_volumes) << ", " << cell.area() << "\n";
+    //std::cout << "areas   " << algorithms::sum(fv_volumes) << ", " << cell.volume() << "\n";
+    //std::cout << "volumes " << algorithms::sum(fv_areas)   << ", " << cell.area() << "\n";
 }
 
 } // namespace fvm

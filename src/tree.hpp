@@ -296,7 +296,6 @@ class tree {
         // check for the senitel that indicates that the old root has
         // been processed
         if(old_node==-1) {
-            //assert(parent_node<0); // sanity check
             return new_node;
         }
 
@@ -378,8 +377,17 @@ std::vector<int> make_parent_index(tree const& t, C const& counts)
         // taking care for the case where the root node has -1 as its parent
         auto parent = t.parent(i);
         parent = parent>=0 ? parent : 0;
-        parent_index[pos++] = index[parent];
-        while(pos<index[i]) {
+
+        // the index of the first compartment in the segment
+        // is calculated differently for the root (i.e when i==parent)
+        if(i!=parent) {
+            parent_index[pos++] = index[parent+1]-1;
+        }
+        else {
+            parent_index[pos++] = parent;
+        }
+        // number the remaining compartments in the segment consecutively
+        while(pos<index[i+1]) {
             parent_index[pos] = pos-1;
             pos++;
         }

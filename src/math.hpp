@@ -29,6 +29,14 @@ namespace math {
         return a*a*a;
     }
 
+    // area of a circle
+    //   pi r-squared
+    template <typename T>
+    T constexpr area_circle(T r)
+    {
+        return pi<T>() * square(r);
+    }
+
     // volume of a conic frustrum
     template <typename T>
     T constexpr area_frustrum(T L, T r1, T r2)

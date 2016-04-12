@@ -6,10 +6,9 @@
 
 #include <swcio.hpp>
 
-namespace nestmc
-{
-namespace io
-{
+namespace nest {
+namespace mc {
+namespace io {
 
 //
 // cell_record implementation
@@ -217,5 +216,6 @@ cell_record_range_clean::cell_record_range_clean(std::istream &is)
     }
 }
 
-}   // end of nestmc::io
-}   // end of nestmc
+} // namespace io
+} // namespace mc
+} // namespace nest

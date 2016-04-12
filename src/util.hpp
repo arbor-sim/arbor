@@ -29,6 +29,17 @@ operator << (std::ostream &o, std::vector<T>const& v)
     return o;
 }
 
+template <typename T>
+std::ostream& print(std::ostream &o, std::vector<T>const& v)
+{
+    o << "[";
+    for(auto const& i: v) {
+        o << i << ", ";
+    }
+    o << "]";
+    return o;
+}
+
 namespace nest {
 namespace mc {
 namespace util {

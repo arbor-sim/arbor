@@ -10,8 +10,8 @@
 #include <swcio.hpp>
 
 // SWC tests
-void expect_cell_equals(const nestmc::io::cell_record &expected,
-                        const nestmc::io::cell_record &actual)
+void expect_cell_equals(const nest::mc::io::cell_record &expected,
+                        const nest::mc::io::cell_record &actual)
 {
     EXPECT_EQ(expected.id(), actual.id());
     EXPECT_EQ(expected.type(), actual.type());
@@ -24,7 +24,7 @@ void expect_cell_equals(const nestmc::io::cell_record &expected,
 
 TEST(cell_record, construction)
 {
-    using namespace nestmc::io;
+    using namespace nest::mc::io;
 
     {
         // force an invalid type
@@ -91,7 +91,7 @@ TEST(cell_record, construction)
 
 TEST(cell_record, comparison)
 {
-    using namespace nestmc::io;
+    using namespace nest::mc::io;
 
     {
         // check comparison operators
@@ -107,7 +107,7 @@ TEST(cell_record, comparison)
 
 TEST(swc_parser, invalid_input)
 {
-    using namespace nestmc::io;
+    using namespace nest::mc::io;
 
     {
         // check incomplete lines; missing parent
@@ -136,7 +136,7 @@ TEST(swc_parser, invalid_input)
 
 TEST(swc_parser, valid_input)
 {
-    using namespace nestmc::io;
+    using namespace nest::mc::io;
 
     {
         // check empty file; no cell may be parsed
@@ -198,7 +198,7 @@ TEST(swc_parser, valid_input)
 
 TEST(swc_parser, from_allen_db)
 {
-    using namespace nestmc;
+    using namespace nest::mc;
 
     auto fname = "../data/example.swc";
     std::ifstream fid(fname);
@@ -219,7 +219,7 @@ TEST(swc_parser, from_allen_db)
 
 TEST(swc_parser, input_cleaning)
 {
-    using namespace nestmc::io;
+    using namespace nest::mc::io;
 
     {
         // Check duplicates
@@ -296,7 +296,7 @@ TEST(swc_parser, input_cleaning)
 
 TEST(cell_record_ranges, raw)
 {
-    using namespace nestmc::io;
+    using namespace nest::mc::io;
 
     {
         // Check valid usage

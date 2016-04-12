@@ -6,12 +6,9 @@
 #include <string>
 #include <vector>
 
-namespace nestmc
-{
-
-namespace io
-{
-
+namespace nest {
+namespace mc {
+namespace io {
 
 class cell_record
 {
@@ -399,5 +396,7 @@ template<typename T = swc_io_clean>
     return typename T::cell_range_type(is);
 }
 
-}   // end of nestmc::io
-}   // end of nestmc
+} // namespace io
+} // namespace mc
+} // namespace nest
+

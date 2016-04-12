@@ -16,14 +16,6 @@ TEST(run, init)
 
     EXPECT_EQ(cell.tree().num_segments(), 2u);
 
-    /*
-    for(auto &s : cell.segments()) {
-        std::cout << "volume : " << s->volume()
-                  << " area : " << s->area()
-                  << " ratio : " << s->volume()/s->area() << std::endl;
-    }
-    */
-
     // in this context (i.e. attached to a segment on a high-level cell)
     // a mechanism is essentially a set of parameters
     // - the only "state" is that used to define parameters
@@ -43,12 +35,11 @@ TEST(run, init)
     EXPECT_EQ(cell.soma()->mechanism("hh").get("el").value, -54.3);
 
 
-    cell.segment(1)->set_compartments(2);
+    cell.segment(1)->set_compartments(200);
 
     using fvm_cell = fvm::fvm_cell<double, int>;
     fvm_cell fvcell(cell);
-    // print out the parameters if you want...
-    //std::cout << soma_hh << "\n";
+
 }
 
 // test out the parameter infrastructure
