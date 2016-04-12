@@ -25,6 +25,7 @@ TEST(algorithms, make_index)
         auto index = nest::mc::algorithms::make_index(v);
 
         EXPECT_EQ(index.size(), 11u);
+        EXPECT_EQ(index.front(), 0);
         EXPECT_EQ(index.back(), nest::mc::algorithms::sum(v));
     }
 
@@ -34,6 +35,7 @@ TEST(algorithms, make_index)
         auto index = nest::mc::algorithms::make_index(v);
 
         EXPECT_EQ(index.size(), 11u);
+        EXPECT_EQ(index.front(), 0);
         EXPECT_EQ(index.back(), nest::mc::algorithms::sum(v));
     }
 }

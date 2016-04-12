@@ -1,3 +1,5 @@
+#include <cmath>
+
 #include "gtest.h"
 
 #include "../src/compartment.hpp"
