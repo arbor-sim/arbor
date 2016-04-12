@@ -371,4 +371,11 @@ TEST(cell_record_ranges, raw)
             EXPECT_EQ(3u, e.lineno());
         }
     }
+
+    {
+        // Test empty range
+        std::stringstream is("");
+        EXPECT_TRUE(swc_get_records<swc_io_raw>(is).empty());
+        EXPECT_TRUE(swc_get_records<swc_io_clean>(is).empty());
+    }
 }

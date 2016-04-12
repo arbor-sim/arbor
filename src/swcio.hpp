@@ -265,7 +265,7 @@ public:
         return ret;
     }
 
-    value_type operator*()
+    value_type operator*() const
     {
         if (eof_) {
             throw std::out_of_range("attempt to read past eof");
@@ -283,7 +283,7 @@ public:
         }
     }
 
-    bool operator!=(const cell_record_stream_iterator &other)
+    bool operator!=(const cell_record_stream_iterator &other) const
     {
         return !(*this == other);
     }
@@ -320,25 +320,30 @@ private:
 class cell_record_range_raw
 {
 public:
-    using value_type     = cell_record;
-    using reference      = value_type &;
-    using const_referene = const value_type &;
-    using iterator       = cell_record_stream_iterator;
-    using const_iterator = const cell_record_stream_iterator;
+    using value_type      = cell_record;
+    using reference       = value_type &;
+    using const_reference = const value_type &;
+    using iterator        = cell_record_stream_iterator;
+    using const_iterator  = const cell_record_stream_iterator;
 
     cell_record_range_raw(std::istream &is)
         : is_(is)
     { }
 
-    iterator begin()
+    iterator begin() const
     {
         return cell_record_stream_iterator(is_);
     }
 
-    iterator end()
+    iterator end() const
     {
         iterator::eof_tag eof;
         return cell_record_stream_iterator(is_, eof);
+    }
+
+    bool empty() const
+    {
+        return begin() == end();
     }
 
 private:
@@ -377,6 +382,11 @@ public:
     std::size_t size()
     {
         return cells_.size();
+    }
+
+    bool empty() const
+    {
+        return cells_.empty();
     }
 
 private:
