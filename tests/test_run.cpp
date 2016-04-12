@@ -45,8 +45,8 @@ TEST(run, init)
 
     cell.segment(1)->set_compartments(2);
 
-    //using fvm_cell = fvm::fvm_cell<double, int>;
-    //fvm_cell fvcell(cell);
+    using fvm_cell = fvm::fvm_cell<double, int>;
+    fvm_cell fvcell(cell);
     // print out the parameters if you want...
     //std::cout << soma_hh << "\n";
 }

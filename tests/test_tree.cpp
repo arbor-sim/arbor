@@ -253,11 +253,69 @@ TEST(cell_tree, json_load)
 
 TEST(tree, make_parent_index)
 {
+    // just the soma
+    {
+        std::vector<int> parent_index = {0};
+        std::vector<int> counts = {1};
+        nest::mc::tree t(parent_index);
+        auto new_parent_index = make_parent_index(t, counts);
+        EXPECT_EQ(parent_index.size(), new_parent_index.size());
+    }
+    // just a soma with 5 compartments
+    {
+        std::vector<int> parent_index = {0};
+        std::vector<int> counts = {5};
+        nest::mc::tree t(parent_index);
+        auto new_parent_index = make_parent_index(t, counts);
+        EXPECT_EQ(new_parent_index.size(), counts[0]);
+        EXPECT_EQ(new_parent_index[0], 0);
+        for(auto i=1; i<new_parent_index.size(); ++i) {
+            EXPECT_EQ(new_parent_index[i], i-1);
+        }
+    }
+    // some trees with single compartment per segment
+    {
+        auto trees = {
+            // 0
+            // |
+            // 1
+            std::vector<int>{0,0},
+            //          0
+            //         / \
+            //        1   2
+            std::vector<int>{0,0,0},
+            //          0
+            //         / \
+            //        1   4
+            //       / \  |\
+            //      2   3 5 6
+            std::vector<int>{0,0,0,1,1,2,2}
+        };
+        for(auto &parent_index : trees) {
+            std::vector<int> counts(parent_index.size(), 1);
+            nest::mc::tree t(parent_index);
+            auto new_parent_index = make_parent_index(t, counts);
+            EXPECT_EQ(parent_index, new_parent_index);
+        }
+    }
+    // a tree with multiple compartments per segment
+    //
+    //              0
+    //             / \
+    //            1   8
+    //           /     \
+    //          2       9
+    //         /
+    //        3
+    //       / \
+    //      4   6
+    //     /     \
+    //    5       7
     {
         std::vector<int> parent_index = {0,0,1,2,3,4,3,6,0,8};
         std::vector<int> counts = {1,3,2,2,2};
-        tree t(parent_index);
-        auto new_pid = make_parent_index(t, counts);
-        EXPECT_EQ(parent_index.size(), new_pid.size());
+        nest::mc::tree t(parent_index);
+        auto new_parent_index = make_parent_index(t, counts);
+        EXPECT_EQ(parent_index, new_parent_index);
     }
 }
