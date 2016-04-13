@@ -2,14 +2,14 @@
 
 #include <algorithm>
 
-#include "cell.hpp"
-#include "segment.hpp"
+#include <cell.hpp>
+#include <segment.hpp>
+#include <math.hpp>
+#include <matrix.hpp>
+#include <util.hpp>
+#include <algorithms.hpp>
 
-#include "math.hpp"
-#include "util.hpp"
-#include "algorithms.hpp"
-
-#include "../vector/include/Vector.hpp"
+#include <vector/include/Vector.hpp>
 
 namespace nest {
 namespace mc {
@@ -33,7 +33,7 @@ class fvm_cell {
 
     private:
 
-    index_type parent_index_;
+    matrix<value_type, size_type> matrix_;
 };
 
 ////////////////////////////////////////////////////////////
@@ -42,8 +42,8 @@ class fvm_cell {
 
 template <typename T, typename I>
 fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
+:   matrix_(cell.parent_index())
 {
-    parent_index_ = cell.parent_index();
     auto const& segment_index = cell.segment_index();
     auto num_fv = segment_index.back();
 
@@ -69,7 +69,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
 
             for(auto c : cable->compartments()) {
                 auto rhs = segment_index[seg_idx] + c.index;
-                auto lhs = parent_index_[rhs];
+                auto lhs = matrix_.p()[rhs];
 
                 auto rad_C = math::mean(left(c.radius), right(c.radius));
                 auto len = c.length/2;
@@ -89,8 +89,10 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         ++seg_idx;
     }
 
-    //std::cout << "areas   " << algorithms::sum(fv_volumes) << ", " << cell.volume() << "\n";
-    //std::cout << "volumes " << algorithms::sum(fv_areas)   << ", " << cell.area() << "\n";
+    for(auto i=0; i<num_fv; ++i) {
+        //auto area = fv_areas[i];
+    }
+
 }
 
 } // namespace fvm

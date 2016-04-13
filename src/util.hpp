@@ -65,6 +65,21 @@ namespace util {
         return p.second;
     }
 
+    template <typename T>
+    struct is_std_vector : std::false_type {};
+
+    template <typename T, typename C>
+    struct is_std_vector<std::vector<T,C>> : std::true_type {};
+
+    template <typename T>
+    struct is_container :
+        std::conditional<
+             is_std_vector<typename std::decay<T>::type>::value ||
+             memory::is_array<T>::value,
+             std::true_type,
+             std::false_type
+        >::type
+    {};
 } // namespace util
 } // namespace mc
 } // namespace nest

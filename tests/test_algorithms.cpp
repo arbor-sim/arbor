@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include "../src/algorithms.hpp"
-#include "../src/util.hpp"
+#include <algorithms.hpp>
+#include <util.hpp>
 
 TEST(algorithms, sum)
 {

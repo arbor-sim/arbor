@@ -13,10 +13,11 @@ set(TEST_SOURCES
     gtest-all.cpp
 
     # unit tests
+    test_algorithms.cpp
     test_cell.cpp
     test_compartments.cpp
+    test_matrix.cpp
     test_point.cpp
-    test_algorithms.cpp
     test_run.cpp
     test_segment.cpp
     test_stimulus.cpp
