@@ -253,7 +253,7 @@ class cable_segment : public segment
         value_type r2,
         value_type len
     )
-    : cable_segment{k, {r1, r2}, {len}}
+    : cable_segment{k, std::vector<value_type>{r1, r2}, std::vector<value_type>{len}}
     { }
 
     // constructor that lets the user describe the cable as a

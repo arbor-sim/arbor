@@ -372,7 +372,7 @@ std::vector<int> make_parent_index(tree const& t, C const& counts)
     auto num_compartments = index.back();
     std::vector<int> parent_index(num_compartments);
     auto pos = 0;
-    for(auto i : range(0, t.num_nodes())) {
+    for(int i : range(0, t.num_nodes())) {
         // get the parent of this segment
         // taking care for the case where the root node has -1 as its parent
         auto parent = t.parent(i);
