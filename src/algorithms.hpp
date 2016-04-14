@@ -35,6 +35,11 @@ namespace algorithms{
     template <typename C>
     C make_index(C const& c)
     {
+        static_assert(
+            std::is_integral<typename C::value_type>::value,
+            "make_index only applies to integral types"
+        );
+
         C out(c.size()+1);
         out[0] = 0;
         std::partial_sum(c.begin(), c.end(), out.begin()+1);
@@ -69,15 +74,21 @@ namespace algorithms{
         );
     }
 
-    template <typename C>
+    template <
+        typename C,
+        typename = typename std::enable_if<std::is_integral<typename C::value_type>::value>
+    >
     bool is_minimal_degree(C const& c)
     {
         static_assert(
             std::is_integral<typename C::value_type>::value,
             "is_minimal_degree only applies to integral types"
         );
-        for(auto i=0; i<c.size(); ++i) {
-            if(i<c[i]) {
+
+        using value_type = typename C::value_type;
+        auto i = value_type(0);
+        for(auto v : c) {
+            if(i++<v) {
                 return false;
             }
         }
@@ -91,8 +102,8 @@ namespace algorithms{
             std::is_integral<typename C::value_type>::value,
             "is_positive only applies to integral types"
         );
-        for(auto i=0; i<c.size(); ++i) {
-            if(c[i]<1) {
+        for(auto v : c) {
+            if(v<1) {
                 return false;
             }
         }

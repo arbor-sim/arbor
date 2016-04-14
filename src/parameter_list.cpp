@@ -45,7 +45,13 @@ namespace mc {
 
     parameter& parameter_list::get(std::string const& n)
     {
-        return *find_by_name(n);
+        auto it = find_by_name(n);
+        if(it==parameters_.end()) {
+            throw std::domain_error(
+                "parameter list does not contain parameter"
+            );
+        }
+        return *it;
     }
 
     std::string const& parameter_list::name() const {

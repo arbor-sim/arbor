@@ -171,13 +171,13 @@ class soma_segment : public segment
     :   radius_{r}
     {
         kind_ = segmentKind::soma;
+        mechanisms_.push_back(membrane_parameters());
     }
 
     soma_segment(value_type r, point_type const &c)
     :   soma_segment(r)
     {
         center_ = c;
-        kind_ = segmentKind::soma;
     }
 
     value_type volume() const override
@@ -245,6 +245,9 @@ class cable_segment : public segment
 
         radii_   = std::move(r);
         lengths_ = std::move(lens);
+
+        // add default membrane parameters
+        mechanisms_.push_back(membrane_parameters());
     }
 
     cable_segment(
@@ -253,7 +256,7 @@ class cable_segment : public segment
         value_type r2,
         value_type len
     )
-    : cable_segment{k, {r1, r2}, {len}}
+    : cable_segment{k, std::vector<value_type>{r1, r2}, std::vector<value_type>{len}}
     { }
 
     // constructor that lets the user describe the cable as a
@@ -269,6 +272,9 @@ class cable_segment : public segment
         radii_     = std::move(r);
         locations_ = std::move(p);
         update_lengths();
+
+        // add default membrane parameters
+        mechanisms_.push_back(membrane_parameters());
     }
 
     // helper that lets user specify with the radius and location

@@ -39,7 +39,6 @@ TEST(run, init)
 
     using fvm_cell = fvm::fvm_cell<double, int>;
     fvm_cell fvcell(cell);
-
 }
 
 // test out the parameter infrastructure
@@ -54,16 +53,16 @@ TEST(run, parameters)
     // add_parameter() returns a bool that indicates whether
     // it was able to successfull add the parameter
     EXPECT_EQ(list.add_parameter(std::move(p)), true);
-    EXPECT_EQ(list.num_parameters(), 1u);
+    EXPECT_EQ(list.num_parameters(), 1);
 
     // test in place construction of a parameter
     EXPECT_EQ(list.add_parameter({"b", -3.0}), true);
-    EXPECT_EQ(list.num_parameters(), 2u);
+    EXPECT_EQ(list.num_parameters(), 2);
 
     // check that adding a parameter that already exists returns false
     // and does not increase the number of parameters
     EXPECT_EQ(list.add_parameter({"b", -3.0}), false);
-    EXPECT_EQ(list.num_parameters(), 2u);
+    EXPECT_EQ(list.num_parameters(), 2);
 
     auto &parms = list.parameters();
     EXPECT_EQ(parms[0].name, "a");

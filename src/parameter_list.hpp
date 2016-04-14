@@ -136,6 +136,35 @@ namespace mc {
 
     std::ostream& operator<<(std::ostream& o, parameter_list const& l);
 
+    ///////////////////////////////////////////////////////////////////////////
+    //  predefined parameter sets
+    ///////////////////////////////////////////////////////////////////////////
+
+    /// default set of parameters for the cell membrane that are added to every
+    /// segment when it is created.
+    class membrane_parameters
+    : public parameter_list
+    {
+        public:
+
+        using base = parameter_list;
+
+        using base::value_type;
+
+        using base::set;
+        using base::get;
+        using base::parameters;
+        using base::has_parameter;
+
+        membrane_parameters()
+        : base("membrane")
+        {
+            base::add_parameter({"r_L",   0.01, {0., 1e9}}); // typically 10 nF/mm^2 == 0.01 F/m2
+            base::add_parameter({"c_m", 180.00, {0., 1e9}}); // Ohm.cm
+        }
+    };
+
+    /// parameters for the classic Hodgkin & Huxley model (1952)
     class hh_parameters
     : public parameter_list
     {
