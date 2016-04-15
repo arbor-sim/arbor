@@ -143,11 +143,13 @@ class matrix {
     void setup()
     {
         const auto n = size();
+        constexpr auto default_value
+            = std::numeric_limits<value_type>::quiet_NaN();
 
-        l_   = vector_type(n);
-        d_   = vector_type(n);
-        u_   = vector_type(n);
-        rhs_ = vector_type(n);
+        l_   = vector_type(n, default_value);
+        d_   = vector_type(n, default_value);
+        u_   = vector_type(n, default_value);
+        rhs_ = vector_type(n, default_value);
     }
 
     /// the parent indice that describe matrix structure

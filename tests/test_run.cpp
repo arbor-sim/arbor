@@ -34,11 +34,25 @@ TEST(run, init)
     EXPECT_EQ(cell.soma()->mechanism("hh").get("gl").value, 0.0003);
     EXPECT_EQ(cell.soma()->mechanism("hh").get("el").value, -54.3);
 
-
-    cell.segment(1)->set_compartments(200);
+    cell.segment(1)->set_compartments(10);
 
     using fvm_cell = fvm::fvm_cell<double, int>;
     fvm_cell fvcell(cell);
+    EXPECT_EQ(fvcell.matrix().size(), 11);
+
+    fvcell.setup_matrx(0.01);
+
+    auto& J = fvcell.matrix();
+    //std::cout << "l" << J.l() << "\n";
+    //std::cout << "d" << J.d() << "\n";
+    //std::cout << "u" << J.u() << "\n";
+
+    J.rhs()(memory::all) = 1.;
+    J.rhs()[0] = 10.;
+
+    J.solve();
+
+    //std::cout << "x" << J.rhs() << "\n";
 }
 
 // test out the parameter infrastructure

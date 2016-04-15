@@ -24,6 +24,8 @@ class fvm_cell {
     /// the integral index type
     using size_type  = I;
 
+    using matrix_type = matrix<value_type, size_type>;
+
     /// the container used for indexes
     using index_type = memory::HostVector<size_type>;
     /// view into index container
@@ -40,10 +42,15 @@ class fvm_cell {
     /// build the matrix for a given time step
     void setup_matrx(value_type dt);
 
+    matrix_type& matrix()
+    {
+        return matrix_;
+    }
+
     private:
 
     /// the linear system for implicit time stepping of cell state
-    matrix<value_type, size_type> matrix_;
+    matrix_type matrix_;
 
     /// cv_areas_[i] is the surface area of CV i
     vector_type cv_areas_;
@@ -88,7 +95,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
                 );
             }
             cv_areas_[0] += math::area_sphere(soma->radius());
-            // d[0] += cv_areas_[0];
         }
         else if(auto cable = s->as_cable()) {
             // loop over each compartment in the cable
@@ -119,17 +125,10 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
                 auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
                 cv_areas_[j] += al;
                 cv_areas_[i] += ar;
-
-                // d[j] += al;
-                // d[i] += ar;
-                // l[i] -= alpha_ij;
-                // u[i] -= alpha_ij;
             }
         }
         else {
-            throw std::domain_error(
-                    "FVM lowering encountered unsuported segment type"
-            );
+            throw std::domain_error("FVM lowering encountered unsuported segment type");
         }
         ++seg_idx;
     }
@@ -158,19 +157,20 @@ void fvm_cell<T, I>::setup_matrx(T dt)
     //        .     .  .
     //       l[i] . . d[i]
     //
-    d(all) = 0;
-    for(auto i : d.range()) {
+
+    //d(all) = cv_areas_ + dt*(alpha_ + alpha_(p));
+    //d[0]  = cv_areas_[0];
+
+    d(all) = cv_areas_;
+    for(auto i=1; i<d.size(); ++i) {
         auto a = dt * alpha_[i];
 
-        // add area of CV and contribution from face with parent CV to diagonal
-        d[i] += cv_areas_[i] + a;
+        d[i] +=  a;
+        l[i]  = -a;
+        u[i]  = -a;
 
         // add contribution to the diagonal of parent
         d[p[i]] += a;
-
-        // note the symmetry
-        l[i] = -a;
-        u[i] = -a;
     }
 }
 
