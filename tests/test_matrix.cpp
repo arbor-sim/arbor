@@ -16,7 +16,7 @@ TEST(matrix, construct_from_parent_only)
         std::vector<int> p = {0,0,1};
         matrix_type m{p};
         EXPECT_EQ(m.num_cells(), 1);
-        EXPECT_EQ(m.size(), 3);
+        EXPECT_EQ(m.size(), 3u);
         EXPECT_EQ(p.size(), 3u);
 
         auto mp = m.p();
@@ -31,9 +31,8 @@ TEST(matrix, construct_from_parent_only)
         std::vector<int> p = {0,0,1};
         matrix_type m{std::move(p)};
         EXPECT_EQ(m.num_cells(), 1);
-        EXPECT_EQ(m.size(), 3);
+        EXPECT_EQ(m.size(), 3u);
         EXPECT_EQ(p.size(), 3u);
-        EXPECT_EQ(m.size(), 3);
 
         auto mp = m.p();
         EXPECT_EQ(mp[0], 0);
@@ -48,7 +47,7 @@ TEST(matrix, construct_from_parent_only)
         std::iota(p.begin()+1, p.end(), 0);
         matrix_type m{p};
         EXPECT_EQ(m.num_cells(), 1);
-        EXPECT_EQ(m.size(), 3);
+        EXPECT_EQ(m.size(), 3u);
         EXPECT_EQ(p.size(), 3u);
 
         auto mp = m.p();
@@ -63,7 +62,7 @@ TEST(matrix, construct_from_parent_only)
         std::iota(p.begin()+1, p.end(), 0);
         matrix_type m{std::move(p)};
         EXPECT_EQ(m.num_cells(), 1);
-        EXPECT_EQ(m.size(), 3);
+        EXPECT_EQ(m.size(), 3u);
         EXPECT_EQ(p.size(), 0u); // 0 implies moved from
 
         auto mp = m.p();
@@ -98,7 +97,7 @@ TEST(matrix, solve)
             std::iota(p.begin()+1, p.end(), 0);
             matrix_type m{p};
 
-            EXPECT_EQ(m.size(), (int)n);
+            EXPECT_EQ(m.size(), n);
             EXPECT_EQ(m.num_cells(), 1);
 
             m.d()(memory::all) =  2;

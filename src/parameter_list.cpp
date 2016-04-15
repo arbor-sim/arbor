@@ -85,8 +85,7 @@ namespace mc {
 } // namespace mc
 } // namespace nest
 
-/*
-static std::ostream&
+std::ostream&
 operator<<(std::ostream& o, nest::mc::parameter const& p)
 {
     return o
@@ -97,7 +96,7 @@ operator<<(std::ostream& o, nest::mc::parameter const& p)
         << ")";
 }
 
-static std::ostream&
+std::ostream&
 operator<<(std::ostream& o, nest::mc::parameter_list const& l)
 {
     o << "parameters \"" << l.name() << "\" :\n";
@@ -106,4 +105,3 @@ operator<<(std::ostream& o, nest::mc::parameter_list const& l)
     }
     return o;
 }
-*/

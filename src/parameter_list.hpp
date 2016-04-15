@@ -54,15 +54,6 @@ namespace mc {
         value_type max;
     };
 
-    template <typename T>
-    std::ostream& operator<<(std::ostream& o, value_range<T> const& r)
-    {
-        return
-            o << "[ "
-              << (r.has_lower_bound() ? std::to_string(r.min) : "-inf") << ", "
-              << (r.has_upper_bound() ? std::to_string(r.max) : "inf") << "]";
-    }
-
     struct parameter {
         using value_type = double;
         using range_type = value_range<value_type>;
@@ -90,8 +81,6 @@ namespace mc {
         value_type value;
         range_type range;
     };
-
-    std::ostream& operator<<(std::ostream& o, parameter const& p);
 
     // Use a dumb container class for now
     // might have to use a more sophisticated interface in the future if need be
@@ -134,8 +123,6 @@ namespace mc {
 
     };
 
-    std::ostream& operator<<(std::ostream& o, parameter_list const& l);
-
     ///////////////////////////////////////////////////////////////////////////
     //  predefined parameter sets
     ///////////////////////////////////////////////////////////////////////////
@@ -159,8 +146,8 @@ namespace mc {
         membrane_parameters()
         : base("membrane")
         {
-            base::add_parameter({"r_L",   0.01, {0., 1e9}}); // typically 10 nF/mm^2 == 0.01 F/m2
-            base::add_parameter({"c_m", 180.00, {0., 1e9}}); // Ohm.cm
+            base::add_parameter({"c_m",   0.01, {0., 1e9}}); // typically 10 nF/mm^2 == 0.01 F/m2
+            base::add_parameter({"r_L", 180.00, {0., 1e9}}); // Ohm.cm
         }
     };
 
@@ -191,4 +178,23 @@ namespace mc {
 
 } // namespace mc
 } // namespace nest
+
+template <typename T>
+std::ostream& operator<<(std::ostream& o, nest::mc::value_range<T> const& r)
+{
+    o << "[";
+    if(r.has_lower_bound())
+        o << r.min;
+    else
+        o<< "-inf";
+    o << ", ";
+    if(r.has_upper_bound())
+        o << r.max;
+    else
+        o<< "inf";
+    return o << "]";
+}
+
+std::ostream& operator<<(std::ostream& o, nest::mc::parameter const& p);
+std::ostream& operator<<(std::ostream& o, nest::mc::parameter_list const& l);
 

@@ -57,7 +57,7 @@ class matrix {
     }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)
-    size_type size() const
+    std::size_t size() const
     {
         return parent_index_.size();
     }
