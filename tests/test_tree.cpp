@@ -267,10 +267,10 @@ TEST(tree, make_parent_index)
         std::vector<int> counts = {5};
         nest::mc::tree t(parent_index);
         auto new_parent_index = make_parent_index(t, counts);
-        EXPECT_EQ(new_parent_index.size(), counts[0]);
+        EXPECT_EQ(new_parent_index.size(), (unsigned)counts[0]);
         EXPECT_EQ(new_parent_index[0], 0);
-        for(auto i=1; i<new_parent_index.size(); ++i) {
-            EXPECT_EQ(new_parent_index[i], i-1);
+        for(auto i=1u; i<new_parent_index.size(); ++i) {
+            EXPECT_EQ((unsigned)new_parent_index[i], i-1);
         }
     }
     // some trees with single compartment per segment
@@ -281,13 +281,13 @@ TEST(tree, make_parent_index)
             // 1
             std::vector<int>{0,0},
             //          0
-            //         / \
+            //         / \.
             //        1   2
             std::vector<int>{0,0,0},
             //          0
-            //         / \
+            //         / \.
             //        1   4
-            //       / \  |\
+            //       / \  |\.
             //      2   3 5 6
             std::vector<int>{0,0,0,1,1,2,2}
         };
@@ -301,15 +301,15 @@ TEST(tree, make_parent_index)
     // a tree with multiple compartments per segment
     //
     //              0
-    //             / \
+    //             / \.
     //            1   8
-    //           /     \
+    //           /     \.
     //          2       9
-    //         /
+    //         /.
     //        3
-    //       / \
+    //       / \.
     //      4   6
-    //     /     \
+    //     /     \.
     //    5       7
     {
         std::vector<int> parent_index = {0,0,1,2,3,4,3,6,0,8};

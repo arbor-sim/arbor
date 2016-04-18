@@ -1,5 +1,6 @@
 #pragma once
 
+#include <utility>
 #include <cmath>
 
 namespace nest {
@@ -15,6 +16,12 @@ namespace math {
     T constexpr mean(T a, T b)
     {
         return (a+b) / T(2);
+    }
+
+    template <typename T>
+    T constexpr mean(std::pair<T,T> const& p)
+    {
+        return (p.first+p.second) / T(2);
     }
 
     template <typename T>
