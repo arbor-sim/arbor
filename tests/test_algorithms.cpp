@@ -169,3 +169,89 @@ TEST(algorithms, is_positive)
         )
     );
 }
+
+TEST(algorithms, is_contiguously_numbered)
+{
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\
+    //     3 7 4
+    //    /     \
+    //   5       6
+    //
+    EXPECT_FALSE(
+        nest::mc::algorithms::is_contiguously_numbered(
+            std::vector<int>{0, 0, 1, 2, 2, 3, 4, 2}
+        )
+    );
+
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\
+    //     3 6 5
+    //    /     \
+    //   4       7
+    //
+    EXPECT_FALSE(
+        nest::mc::algorithms::is_contiguously_numbered(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 2, 5}
+        )
+    );
+
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\
+    //     3 7 5
+    //    /     \
+    //   4       6
+    //
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_contiguously_numbered(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 2}
+        )
+    );
+
+    //
+    //         0
+    //         |
+    //         1
+    //        / \
+    //       2   7
+    //      / \
+    //     3   5
+    //    /     \
+    //   4       6
+    //
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_contiguously_numbered(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 1}
+        )
+    );
+
+    // Soma-only list
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_contiguously_numbered(
+            std::vector<int>{0}
+        )
+    );
+
+    // Empty list
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_contiguously_numbered(
+            std::vector<int>{}
+        )
+    );
+
+}

@@ -15,11 +15,8 @@ class swc_record
 public:
     using id_type = int;
 
-    // FIXME: enum's are not completely type-safe, since they can accept
-    // anything that can be casted to their underlying type.
-    //
     // More on SWC files: http://research.mssm.edu/cnic/swc.html
-    enum kind {
+    enum class kind {
         undefined = 0,
         soma,
         axon,
@@ -31,9 +28,9 @@ public:
     };
 
     // swc records assume zero-based indexing; root's parent remains -1
-    swc_record(kind type, int id,
-                float x, float y, float z, float r,
-                int parent_id)
+    swc_record(swc_record::kind type, int id,
+               float x, float y, float z, float r,
+               int parent_id)
         : type_(type)
         , id_(id)
         , x_(x)
@@ -46,7 +43,7 @@ public:
     }
 
     swc_record()
-        : type_(swc_record::undefined)
+        : type_(swc_record::kind::undefined)
         , id_(0)
         , x_(0)
         , y_(0)
@@ -409,4 +406,3 @@ template<typename T = swc_io_clean>
 } // namespace io
 } // namespace mc
 } // namespace nest
-

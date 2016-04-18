@@ -32,7 +32,8 @@ void swc_record::check_consistency() const
 {
     // Check record type as well; enum's do not offer complete type safety,
     // since you can cast anything that fits to its underlying type
-    if (type_ < 0 || type_ > custom) {
+    if (static_cast<int>(type_) < 0 ||
+        static_cast<int>(type_) > static_cast<int>(kind::custom)) {
         throw std::invalid_argument("unknown record type");
     }
 
@@ -65,7 +66,7 @@ std::ostream &operator<<(std::ostream &os, const swc_record &record)
 {
     // output in one-based indexing
     os << record.id_+1 << " "
-       << record.type_ << " "
+       << static_cast<int>(record.type_) << " "
        << std::setprecision(7) << record.x_ << " "
        << std::setprecision(7) << record.y_ << " "
        << std::setprecision(7) << record.z_ << " "
@@ -177,9 +178,9 @@ swc_record_range_clean::swc_record_range_clean(std::istream &is)
 {
     std::unordered_set<swc_record::id_type> ids;
 
-    std::size_t          num_trees = 0;
+    std::size_t         num_trees = 0;
     swc_record::id_type last_id   = -1;
-    bool                 needsort  = false;
+    bool                needsort  = false;
 
     swc_record curr_record;
     for (auto c : swc_get_records<swc_io_raw>(is)) {

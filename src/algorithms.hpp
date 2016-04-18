@@ -99,6 +99,32 @@ namespace algorithms{
         return true;
     }
 
+    template<typename C>
+    bool is_contiguously_numbered(const C &parent_list)
+    {
+        static_assert(
+            std::is_integral<typename C::value_type>::value,
+            "integral type required"
+        );
+
+        std::vector<bool> is_leaf(parent_list.size(), false);
+
+        auto ret = true;
+        for (std::size_t i = 1; i < parent_list.size(); ++i) {
+            if (is_leaf[parent_list[i]]) {
+                ret = false;
+                break;
+            }
+
+            if (parent_list[i] != i-1) {
+                // we have a branch and i-1 is a leaf node
+                is_leaf[i-1] = true;
+            }
+        }
+
+        return ret;
+    }
+
 } // namespace algorithms
 } // namespace mc
 } // namespace nest

@@ -36,43 +36,43 @@ TEST(swc_record, construction)
     {
         // invalid id
         EXPECT_THROW(swc_record record(
-                         swc_record::custom, -3, 1., 1., 1., 1., 5),
+                         swc_record::kind::custom, -3, 1., 1., 1., 1., 5),
                      std::invalid_argument);
     }
 
     {
         // invalid parent id
         EXPECT_THROW(swc_record record(
-                         swc_record::custom, 0, 1., 1., 1., 1., -5),
+                         swc_record::kind::custom, 0, 1., 1., 1., 1., -5),
                      std::invalid_argument);
     }
 
     {
         // invalid radius
         EXPECT_THROW(swc_record record(
-                         swc_record::custom, 0, 1., 1., 1., -1., -1),
+                         swc_record::kind::custom, 0, 1., 1., 1., -1., -1),
                      std::invalid_argument);
     }
 
     {
         // parent_id > id
         EXPECT_THROW(swc_record record(
-                         swc_record::custom, 0, 1., 1., 1., 1., 2),
+                         swc_record::kind::custom, 0, 1., 1., 1., 1., 2),
                      std::invalid_argument);
     }
 
     {
         // parent_id == id
         EXPECT_THROW(swc_record record(
-                         swc_record::custom, 0, 1., 1., 1., 1., 0),
+                         swc_record::kind::custom, 0, 1., 1., 1., 1., 0),
                      std::invalid_argument);
     }
 
     {
         // check standard construction by value
-        swc_record record(swc_record::custom, 0, 1., 1., 1., 1., -1);
+        swc_record record(swc_record::kind::custom, 0, 1., 1., 1., 1., -1);
         EXPECT_EQ(record.id(), 0);
-        EXPECT_EQ(record.type(), swc_record::custom);
+        EXPECT_EQ(record.type(), swc_record::kind::custom);
         EXPECT_EQ(record.x(), 1.);
         EXPECT_EQ(record.y(), 1.);
         EXPECT_EQ(record.z(), 1.);
@@ -83,7 +83,7 @@ TEST(swc_record, construction)
 
     {
         // check copy constructor
-        swc_record record_orig(swc_record::custom, 0, 1., 1., 1., 1., -1);
+        swc_record record_orig(swc_record::kind::custom, 0, 1., 1., 1., 1., -1);
         swc_record record(record_orig);
         expect_record_equals(record_orig, record);
     }
@@ -95,9 +95,9 @@ TEST(swc_record, comparison)
 
     {
         // check comparison operators
-        swc_record record0(swc_record::custom, 0, 1., 1., 1., 1., -1);
-        swc_record record1(swc_record::custom, 0, 2., 3., 4., 5., -1);
-        swc_record record2(swc_record::custom, 1, 2., 3., 4., 5., -1);
+        swc_record record0(swc_record::kind::custom, 0, 1., 1., 1., 1., -1);
+        swc_record record1(swc_record::kind::custom, 0, 2., 3., 4., 5., -1);
+        swc_record record2(swc_record::kind::custom, 1, 2., 3., 4., 5., -1);
         EXPECT_EQ(record0, record1);
         EXPECT_LT(record0, record2);
         EXPECT_GT(record2, record1);
@@ -131,6 +131,31 @@ TEST(swc_parser, invalid_input)
         swc_record record;
         EXPECT_THROW(is >> record, swc_parse_error);
     }
+
+    {
+        // Non-contiguous numbering in branches is considered invalid
+        //        1
+        //       / \
+        //      2   3
+        //     /
+        //    4
+        std::stringstream is;
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 1 14.566132 34.873772 7.857000 0.717830 2\n";
+
+        std::vector<swc_record> records;
+        try {
+            for (auto c : swc_get_records<swc_io_clean>(is)) {
+                records.push_back(std::move(c));
+            }
+
+            FAIL() << "expected swc_parse_error, none was thrown\n";
+        } catch (const swc_parse_error &e) {
+            SUCCEED();
+        }
+    }
 }
 
 
@@ -162,7 +187,7 @@ TEST(swc_parser, valid_input)
         swc_record record;
         EXPECT_NO_THROW(is >> record);
         EXPECT_EQ(0, record.id());    // zero-based indexing
-        EXPECT_EQ(swc_record::soma, record.type());
+        EXPECT_EQ(swc_record::kind::soma, record.type());
         EXPECT_FLOAT_EQ(14.566132, record.x());
         EXPECT_FLOAT_EQ(34.873772, record.y());
         EXPECT_FLOAT_EQ( 7.857000, record.z());
@@ -173,9 +198,9 @@ TEST(swc_parser, valid_input)
     {
         // check valid input with a series of records
         std::vector<swc_record> records_orig = {
-            swc_record(swc_record::soma, 0,
+            swc_record(swc_record::kind::soma, 0,
                         14.566132, 34.873772, 7.857000, 0.717830, -1),
-            swc_record(swc_record::dendrite, 1,
+            swc_record(swc_record::kind::dendrite, 1,
                         14.566132+1, 34.873772+1, 7.857000+1, 0.717830+1, -1)
         };
 
@@ -229,7 +254,7 @@ TEST(swc_parser, input_cleaning)
         is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        EXPECT_EQ(2u, swc_get_records(is).size());
+        EXPECT_EQ(2u, swc_get_records<swc_io_clean>(is).size());
     }
 
     {
@@ -240,7 +265,7 @@ TEST(swc_parser, input_cleaning)
         is << "3 1 14.566132 34.873772 7.857000 0.717830 -1\n";
         is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        auto records = swc_get_records(is);
+        auto records = swc_get_records<swc_io_clean>(is);
         EXPECT_EQ(2u, records.size());
     }
 
@@ -255,7 +280,7 @@ TEST(swc_parser, input_cleaning)
         std::array<swc_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
 
         auto expected_id = expected_id_list.cbegin();
-        for (auto c : swc_get_records(is)) {
+        for (auto c : swc_get_records<swc_io_clean>(is)) {
             EXPECT_EQ(*expected_id, c.id());
             ++expected_id;
         }
@@ -281,7 +306,7 @@ TEST(swc_parser, input_cleaning)
 
         auto expected_id = expected_id_list.cbegin();
         auto expected_parent = expected_parent_list.cbegin();
-        for (auto c : swc_get_records(is)) {
+        for (auto c : swc_get_records<swc_io_clean>(is)) {
             EXPECT_EQ(*expected_id, c.id());
             EXPECT_EQ(*expected_parent, c.parent());
             ++expected_id;
