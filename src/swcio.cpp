@@ -4,6 +4,7 @@
 #include <sstream>
 #include <unordered_set>
 
+#include <algorithms.hpp>
 #include <swcio.hpp>
 
 namespace nest {
@@ -183,21 +184,21 @@ swc_record_range_clean::swc_record_range_clean(std::istream &is)
     bool                needsort  = false;
 
     swc_record curr_record;
-    for (auto c : swc_get_records<swc_io_raw>(is)) {
-        if (c.parent() == -1 && ++num_trees > 1) {
+    for (auto r : swc_get_records<swc_io_raw>(is)) {
+        if (r.parent() == -1 && ++num_trees > 1) {
             // only a single tree is allowed
             break;
         }
 
-        auto inserted = ids.insert(c.id());
+        auto inserted = ids.insert(r.id());
         if (inserted.second) {
             // not a duplicate; insert record
-            records_.push_back(c);
-            if (!needsort && c.id() < last_id) {
+            records_.push_back(r);
+            if (!needsort && r.id() < last_id) {
                 needsort = true;
             }
 
-            last_id = c.id();
+            last_id = r.id();
         }
     }
 
@@ -208,12 +209,22 @@ swc_record_range_clean::swc_record_range_clean(std::istream &is)
     // Renumber records if necessary
     std::map<swc_record::id_type, swc_record::id_type> idmap;
     swc_record::id_type next_id = 0;
-    for (auto &c : records_) {
-        if (c.id() != next_id) {
-            c.renumber(next_id, idmap);
+    for (auto &r : records_) {
+        if (r.id() != next_id) {
+            r.renumber(next_id, idmap);
         }
 
         ++next_id;
+    }
+
+    // Reject if branches are not contiguously numbered
+    std::vector<swc_record::id_type> parent_list = { 0 };
+    for (std::size_t i = 1; i < records_.size(); ++i) {
+        parent_list.push_back(records_[i].parent());
+    }
+
+    if (!nest::mc::algorithms::is_contiguously_numbered(parent_list)) {
+        throw swc_parse_error("branches are not contiguously numbered", 0);
     }
 }
 

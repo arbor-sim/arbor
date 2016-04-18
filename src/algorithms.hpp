@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <numeric>
 #include <type_traits>
+#include <vector>
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
