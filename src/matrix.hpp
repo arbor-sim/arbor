@@ -24,6 +24,8 @@ class matrix {
     using index_type  = memory::HostVector<size_type>;
     using index_view  = typename index_type::view_type;
 
+    matrix() = default;
+
     /// construct matrix for one or more cells, with combined parent index
     /// and a cell index
     template <
