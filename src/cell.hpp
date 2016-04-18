@@ -11,7 +11,15 @@
 namespace nest {
 namespace mc {
 
-// high-level abstract representation of a cell and its segments
+/// wrapper around compartment layout information derived from a high level cell
+/// description
+struct compartment_model {
+    cell_tree tree;
+    std::vector<int> parent_index;
+    std::vector<int> segment_index;
+};
+
+/// high-level abstract representation of a cell and its segments
 class cell {
     public:
 
@@ -61,10 +69,10 @@ class cell {
     /// the surface area of the cell
     value_type area() const;
 
-    std::vector<segment_ptr> const& segments() const;
+    /// the total number of compartments over all segments
+    int num_compartments() const;
 
-    /// the connectivity graph for the cell segments
-    cell_tree const& tree() const;
+    std::vector<segment_ptr> const& segments() const;
 
     /// return reference to array that enumerates the index of the parent of
     /// each segment
@@ -73,46 +81,14 @@ class cell {
     /// return a vector with the compartment count for each segment in the cell
     std::vector<int> compartment_counts() const;
 
-    /// return the parent index for the compartments
-    std::vector<int> const& parent_index() const;
-
-    /// Return the segment index for the compartments
-    /// the segment index is an index into parent_index for looking
-    /// up the set of compartments associated with a segment.
-    /// i.e. the compartments for segment i are in the half open range
-    ///     [segment_index()[i], segmend_index()[i+1])
-    std::vector<int> const& segment_index() const;
+    compartment_model model() const;
 
     private:
-
-    /// generate the internal representation of the connectivity
-    /// graph for the cell segments
-    void construct() const;
-
-    //
-    // the local description of the cell which can be modified by the user
-    // in a ad-hoc manner (adding segments, modifying segments, etc)
-    //
 
     // storage for connections
     std::vector<index_type> parents_;
     // the segments
     std::vector<segment_ptr> segments_;
-
-    // used internally to mark whether derived data (tree_, parent_index_, etc)
-    // are out of date
-    mutable bool stale_ = true;
-
-    //
-    // fixed cell description, which is computed from the layout description
-    // this computed whenever a call to the graph() method is made
-    // the graph method is const, so tree_ is mutable
-    //
-
-    mutable std::mutex mutex_;
-    mutable cell_tree tree_;
-    mutable std::vector<int> parent_index_;
-    mutable std::vector<int> segment_index_;
 };
 
 // create a cable by forwarding cable construction parameters provided by the user
@@ -125,7 +101,6 @@ void cell::add_cable(cell::index_type parent, Args ...args)
             "parent index of cell segment is out of range"
         );
     }
-    stale_ = true;
     segments_.push_back(make_segment<cable_segment>(std::forward<Args>(args)...));
     parents_.push_back(parent);
 }

@@ -97,18 +97,19 @@ class fvm_cell {
 
 template <typename T, typename I>
 fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
-:   matrix_        {cell.parent_index()}
-,   cv_areas_      {size(), T(0)}
-,   face_alpha_    {size(), T(0)}
-,   cv_capacitance_{size(), T(0)}
-,   current_       {size(), T(0)}
-,   voltage_       {size(), T(0)}
+:   cv_areas_      {cell.num_compartments(), T(0)}
+,   face_alpha_    {cell.num_compartments(), T(0)}
+,   cv_capacitance_{cell.num_compartments(), T(0)}
+,   current_       {cell.num_compartments(), T(0)}
+,   voltage_       {cell.num_compartments(), T(0)}
 {
     using util::left;
     using util::right;
 
+    const auto graph = cell.model();
+    matrix_ = matrix_type(graph.parent_index);
     auto parent_index = matrix_.p();
-    auto const& segment_index = cell.segment_index();
+    auto const& segment_index = graph.segment_index;
 
     auto seg_idx = 0;
     for(auto const& s : cell.segments()) {

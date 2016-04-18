@@ -9,7 +9,6 @@ cell::cell()
     // insert a placeholder segment for the soma
     segments_.push_back(make_segment<placeholder_segment>());
     parents_.push_back(0);
-    stale_ = true;
 }
 
 int cell::num_segments() const
@@ -36,7 +35,6 @@ void cell::add_soma(value_type radius, point_type center)
     else {
         segments_[0] = make_segment<soma_segment>(radius);
     }
-    stale_ = true;
 }
 
 void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
@@ -56,7 +54,6 @@ void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
     }
     segments_.push_back(std::move(cable));
     parents_.push_back(parent);
-    stale_ = true;
 }
 
 segment* cell::segment(int index)
@@ -87,21 +84,14 @@ bool cell::has_soma() const
 
 soma_segment* cell::soma()
 {
-    stale_ = true;
     if(has_soma()) {
         return segment(0)->as_soma();
     }
     return nullptr;
 }
 
-// this breaks the use of stale_, because the user could modify a cable obtained from
-// this call, without the stale_ tag being set.
-//
-// set stale_ to true, then expect the user to make any modifications before calling
-// graph() etc.
 cable_segment* cell::cable(int index)
 {
-    stale_ = true;
     if(index>0 && index<num_segments()) {
         return segment(index)->as_cable();
     }
@@ -145,38 +135,27 @@ std::vector<int> cell::compartment_counts() const
         comp_count.push_back(s->num_compartments());
     }
     return comp_count;
-
 }
 
-void cell::construct() const
+int cell::num_compartments() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    if(stale_) {
-        tree_ = cell_tree(parents_);
-        auto counts = compartment_counts();
-        parent_index_ = make_parent_index(tree_.graph(), counts);
-        segment_index_ = algorithms::make_index(counts);
+    auto n = 0;
+    for(auto &s : segments_) {
+        n += s->num_compartments();
     }
-    stale_ = false;
+    return n;
 }
 
-std::vector<int> const& cell::parent_index() const
+compartment_model cell::model() const
 {
-    construct();
-    return parent_index_;
-}
+    compartment_model m;
 
-std::vector<int> const& cell::segment_index() const
-{
-    construct();
-    return segment_index_;
-}
+    m.tree = cell_tree(parents_);
+    auto counts = compartment_counts();
+    m.parent_index = make_parent_index(m.tree.graph(), counts);
+    m.segment_index = algorithms::make_index(counts);
 
-cell_tree const& cell::tree() const
-{
-    construct();
-    return tree_;
+    return m;
 }
 
 std::vector<int> const& cell::segment_parents() const
