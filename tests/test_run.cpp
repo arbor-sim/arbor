@@ -15,7 +15,7 @@ TEST(run, cable)
     cell.add_cable(0, segmentKind::dendrite, 1e-4, 1e-4, 4e-1);
 
     std::cout << cell.segment(1)->area() << " is the area\n";
-    EXPECT_EQ(cell.tree().num_segments(), 2u);
+    EXPECT_EQ(cell.model().tree.num_segments(), 2u);
 
     cell.soma()->add_mechanism(hh_parameters());
 
@@ -49,8 +49,6 @@ TEST(run, cable)
     J.rhs()[0] = 10.;
 
     J.solve();
-
-    //std::cout << "x" << J.rhs() << "\n";
 }
 
 TEST(run, init)
@@ -64,7 +62,8 @@ TEST(run, init)
 
     cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
 
-    EXPECT_EQ(cell.tree().num_segments(), 2u);
+    const auto m = cell.model();
+    EXPECT_EQ(m.tree.num_segments(), 2u);
 
     // in this context (i.e. attached to a segment on a high-level cell)
     // a mechanism is essentially a set of parameters
