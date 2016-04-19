@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include <algorithm>
 #include <numeric>
 #include <type_traits>
@@ -85,14 +87,19 @@ namespace algorithms{
             "is_minimal_degree only applies to integral types"
         );
 
-        using value_type = typename C::value_type;
-        auto i = value_type(0);
-        for(auto v : c) {
-            if(i++<v) {
-                return false;
-            }
+        if(c.size()==0u) {
+            return true;
         }
-        return true;
+
+        using value_type = typename C::value_type;
+        if(c[0] != value_type(0)) {
+            return false;
+        }
+        auto i = value_type(1);
+        auto it = std::find_if(
+            c.begin()+1, c.end(), [&i](value_type v) { return v>=(i++); }
+        );
+        return it==c.end();
     }
 
     template <typename C>

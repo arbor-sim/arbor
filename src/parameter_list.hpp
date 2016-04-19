@@ -146,8 +146,8 @@ namespace mc {
         membrane_parameters()
         : base("membrane")
         {
-            base::add_parameter({"c_m",   0.01, {0., 1e9}}); // typically 10 nF/mm^2 == 0.01 F/m2
-            base::add_parameter({"r_L", 180.00, {0., 1e9}}); // Ohm.cm
+            base::add_parameter({"r_L",   0.01, {0., 1e9}}); // typically 10 nF/mm^2 == 0.01 F/m2
+            base::add_parameter({"c_m", 180.00, {0., 1e9}}); // Ohm.cm
         }
     };
 

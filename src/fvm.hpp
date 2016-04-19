@@ -149,8 +149,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
                 face_alpha_[i] = area_face  / (c_m * r_L * c.length);
                 cv_capacitance_[i] = c_m;
 
-                std::cout << "radius " << radius_center << ", c_m " << c_m << ", r_L " << r_L << ", dx " << c.length << "\n";
-
                 auto halflen = c.length/2;
 
                 auto al = math::area_frustrum(halflen, left(c.radius), radius_center);

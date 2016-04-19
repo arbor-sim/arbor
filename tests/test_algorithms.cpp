@@ -48,11 +48,6 @@ TEST(algorithms, minimal_degree)
     }
 
     {
-        std::vector<int> v = {0, 1, 2, 3, 4};
-        EXPECT_TRUE(nest::mc::algorithms::is_minimal_degree(v));
-    }
-
-    {
         std::vector<int> v = {0, 0, 1, 2, 3, 4};
         EXPECT_TRUE(nest::mc::algorithms::is_minimal_degree(v));
     }
@@ -74,6 +69,11 @@ TEST(algorithms, minimal_degree)
 
     {
         std::vector<int> v = {0, 2};
+        EXPECT_FALSE(nest::mc::algorithms::is_minimal_degree(v));
+    }
+
+    {
+        std::vector<int> v = {0, 1, 2};
         EXPECT_FALSE(nest::mc::algorithms::is_minimal_degree(v));
     }
 }
