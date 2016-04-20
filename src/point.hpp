@@ -73,6 +73,20 @@ dot(
     return lhs.x*rhs.x + lhs.y*rhs.y + lhs.z*rhs.z;
 }
 
+template<typename T>
+bool operator==(const point<T> &rhs, const point<T> &lhs)
+{
+    return (rhs.x == lhs.x) &&
+           (rhs.y == lhs.y) &&
+           (rhs.z == lhs.z);
+}
+
+template<typename T>
+bool operator!=(const point<T> &rhs, const point<T> &lhs)
+{
+    return !(rhs == lhs);
+}
+
 } // namespace mc
 } // namespace nest
 
@@ -81,5 +95,3 @@ std::ostream& operator << (std::ostream& o, nest::mc::point<T> const& p)
 {
     return o << "[" << p.x << ", " << p.y << ", " << p.z << "]";
 }
-
-
