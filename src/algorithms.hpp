@@ -171,7 +171,7 @@ namespace algorithms{
         }
 
         auto num_child = child_count(parent_index);
-        std::vector<typename C::value_type> branch_index(
+        std::vector<typename C::value_type> branch_runs(
             parent_index.size(), 0
         );
 
@@ -182,16 +182,16 @@ namespace algorithms{
                 ++num_branches;
             }
 
-            branch_index[i] = num_branches;
+            branch_runs[i] = num_branches;
         }
 
-        return branch_index;
+        return branch_runs;
     }
 
     template<typename C>
     std::vector<typename C::value_type> branches_fast(const C &parent_index)
     {
-        return branches<C, false>(parent_index);
+        return branches<C,false>(parent_index);
     }
 
 } // namespace algorithms

@@ -6,6 +6,9 @@
 #include <string>
 #include <vector>
 
+#include <cell.hpp>
+#include <point.hpp>
+
 namespace nest {
 namespace mc {
 namespace io {
@@ -14,6 +17,7 @@ class swc_record
 {
 public:
     using id_type = int;
+    using coord_type = double;
 
     // More on SWC files: http://research.mssm.edu/cnic/swc.html
     enum class kind {
@@ -29,7 +33,7 @@ public:
 
     // swc records assume zero-based indexing; root's parent remains -1
     swc_record(swc_record::kind type, int id,
-               float x, float y, float z, float r,
+               coord_type x, coord_type y, coord_type z, coord_type r,
                int parent_id)
         : type_(type)
         , id_(id)
@@ -119,29 +123,34 @@ public:
         return parent_id_;
     }
 
-    float x() const
+    coord_type x() const
     {
         return x_;
     }
 
-    float y() const
+    coord_type y() const
     {
         return y_;
     }
 
-    float z() const
+    coord_type z() const
     {
         return z_;
     }
 
-    float radius() const
+    coord_type radius() const
     {
         return r_;
     }
 
-    float diameter() const
+    coord_type diameter() const
     {
         return 2*r_;
+    }
+
+    nest::mc::point<coord_type> coord() const
+    {
+        return nest::mc::point<coord_type>(x_, y_, z_);
     }
 
     void renumber(id_type new_id, std::map<id_type, id_type> &idmap);
@@ -149,11 +158,11 @@ public:
 private:
     void check_consistency() const;
 
-    kind type_;         // record type
-    id_type id_;        // record id
-    float x_, y_, z_;   // record coordinates
-    float r_;           // record radius
-    id_type parent_id_; // record parent's id
+    kind type_;             // record type
+    id_type id_;            // record id
+    coord_type x_, y_, z_;  // record coordinates
+    coord_type r_;          // record radius
+    id_type parent_id_;     // record parent's id
 };
 
 
@@ -398,10 +407,12 @@ struct swc_io_clean
 };
 
 template<typename T = swc_io_clean>
- typename T::record_range_type swc_get_records(std::istream &is)
+typename T::record_range_type swc_get_records(std::istream &is)
 {
     return typename T::record_range_type(is);
 }
+
+cell swc_read_cell(std::istream &is);
 
 } // namespace io
 } // namespace mc

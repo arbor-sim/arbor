@@ -5,7 +5,9 @@
 #include <unordered_set>
 
 #include <algorithms.hpp>
+#include <point.hpp>
 #include <swcio.hpp>
+#include <util.hpp>
 
 namespace nest {
 namespace mc {
@@ -160,10 +162,10 @@ swc_record swc_parser::parse_record(std::istringstream &is)
 {
     auto id = parse_value_strict<int>(is, *this);
     auto type = parse_value_strict<swc_record::kind>(is, *this);
-    auto x = parse_value_strict<float>(is, *this);
-    auto y = parse_value_strict<float>(is, *this);
-    auto z = parse_value_strict<float>(is, *this);
-    auto r = parse_value_strict<float>(is, *this);
+    auto x = parse_value_strict<swc_record::coord_type>(is, *this);
+    auto y = parse_value_strict<swc_record::coord_type>(is, *this);
+    auto z = parse_value_strict<swc_record::coord_type>(is, *this);
+    auto r = parse_value_strict<swc_record::coord_type>(is, *this);
     auto parent_id = parse_value_strict<swc_record::id_type>(is, *this);
 
     // Convert to zero-based, leaving parent_id as-is if -1
@@ -223,9 +225,96 @@ swc_record_range_clean::swc_record_range_clean(std::istream &is)
         parent_list.push_back(records_[i].parent());
     }
 
-    if (!nest::mc::algorithms::is_contiguously_numbered(parent_list)) {
+    if (!nest::mc::algorithms::has_contiguous_segments(parent_list)) {
         throw swc_parse_error("branches are not contiguously numbered", 0);
     }
+}
+
+//
+// Convenience functions for returning the radii and the coordinates of a series
+// of swc records
+//
+static std::vector<swc_record::coord_type>
+swc_radii(const std::vector<swc_record> &records)
+{
+    std::vector<swc_record::coord_type> radii;
+    for (const auto &r : records) {
+        radii.push_back(r.radius());
+    }
+
+    return radii;
+}
+
+static std::vector<nest::mc::point<swc_record::coord_type> >
+swc_points(const std::vector<swc_record> &records)
+{
+    std::vector<nest::mc::point<swc_record::coord_type> > points;
+    for (const auto &r : records) {
+        points.push_back(r.coord());
+    }
+
+    return points;
+}
+
+static void make_cable(cell &cell,
+                       const std::vector<swc_record::id_type> &branch_index,
+                       const std::vector<swc_record> &branch_run)
+{
+    auto new_parent = branch_index[branch_run.back().id()] - 1;
+    cell.add_cable(new_parent, nest::mc::segmentKind::dendrite,
+                   swc_radii(branch_run), swc_points(branch_run));
+}
+
+cell swc_read_cell(std::istream &is)
+{
+    cell newcell;
+    std::vector<swc_record::id_type> parent_list;
+    std::vector<swc_record> swc_records;
+    for (const auto &r : swc_get_records<swc_io_clean>(is)) {
+        swc_records.push_back(r);
+        parent_list.push_back(r.parent());
+    }
+
+    // The parent of soma must be 0
+    if (!parent_list.empty()) {
+        parent_list[0] = 0;
+    }
+
+    auto branch_index = nest::mc::algorithms::branches(parent_list);
+    std::vector<swc_record> branch_run;
+
+    branch_run.reserve(parent_list.size());
+    auto last_branch_point = branch_index[0];
+    for (auto i = 0u; i < swc_records.size(); ++i) {
+        if (branch_index[i] != last_branch_point) {
+            // New branch encountered; add to cell the current one
+            const auto &p = branch_run.back();
+            if (p.parent() == -1) {
+                // This is a soma
+                newcell.add_soma(p.radius(), p.coord());
+                last_branch_point = i;
+            } else {
+                last_branch_point = i - 1;
+                make_cable(newcell, branch_index, branch_run);
+            }
+
+            // Reset the branch run
+            branch_run.clear();
+            if (p.parent() != -1) {
+                // Add parent of the current cell to the branch,
+                // if not branching from soma
+                branch_run.push_back(swc_records[parent_list[i]]);
+            }
+        }
+
+        branch_run.push_back(swc_records[i]);
+    }
+
+    if (!branch_run.empty()) {
+        make_cable(newcell, branch_index, branch_run);
+    }
+
+    return newcell;
 }
 
 } // namespace io

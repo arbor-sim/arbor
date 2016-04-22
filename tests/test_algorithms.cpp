@@ -195,9 +195,9 @@ TEST(algorithms, has_contiguous_segments)
     //       1
     //       |
     //       2
-    //      /|\
+    //      /|\.
     //     3 6 5
-    //    /     \
+    //    /     \.
     //   4       7
     //
     EXPECT_FALSE(
@@ -212,9 +212,9 @@ TEST(algorithms, has_contiguous_segments)
     //       1
     //       |
     //       2
-    //      /|\
+    //      /|\.
     //     3 7 5
-    //    /     \
+    //    /     \.
     //   4       6
     //
     EXPECT_TRUE(
@@ -227,11 +227,11 @@ TEST(algorithms, has_contiguous_segments)
     //         0
     //         |
     //         1
-    //        / \
+    //        / \.
     //       2   7
-    //      / \
+    //      / \.
     //     3   5
-    //    /     \
+    //    /     \.
     //   4       6
     //
     EXPECT_TRUE(
@@ -260,17 +260,17 @@ TEST(algorithms, child_count)
     {
         //
         //        0
-        //       /|\
+        //       /|\.
         //      1 4 6
-        //     /  |  \
+        //     /  |  \.
         //    2   5   7
-        //   /         \
+        //   /         \.
         //  3           8
-        //             / \
+        //             / \.
         //            9   11
-        //           /     \
+        //           /     \.
         //          10      12
-        //                   \
+        //                   \.
         //                    13
         //
         std::vector<int> parent_index =
@@ -292,17 +292,17 @@ TEST(algorithms, branches)
     {
         //
         //        0
-        //       /|\
+        //       /|\.
         //      1 4 6
-        //     /  |  \
+        //     /  |  \.
         //    2   5   7
-        //   /         \
+        //   /         \.
         //  3           8
-        //             / \
+        //             / \.
         //            9   11
-        //           /     \
+        //           /     \.
         //          10      12
-        //                   \
+        //                   \.
         //                    13
         //
         std::vector<int> parent_index =
@@ -340,9 +340,9 @@ TEST(algorithms, branches)
         //    1
         //    |
         //    2
-        //   / \
+        //   / \.
         //  3   4
-        //       \
+        //       \.
         //        5
         //
         std::vector<int> parent_index =

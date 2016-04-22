@@ -3,10 +3,12 @@
 #include <iostream>
 #include <fstream>
 #include <numeric>
+#include <type_traits>
 #include <vector>
 
 #include "gtest.h"
 
+#include <cell.hpp>
 #include <swcio.hpp>
 
 // SWC tests
@@ -250,9 +252,9 @@ TEST(swc_parser, input_cleaning)
         // Check duplicates
         std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
         EXPECT_EQ(2u, swc_get_records<swc_io_clean>(is).size());
     }
@@ -261,9 +263,9 @@ TEST(swc_parser, input_cleaning)
         // Check multiple trees
         std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "3 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
         auto records = swc_get_records<swc_io_clean>(is);
         EXPECT_EQ(2u, records.size());
@@ -272,9 +274,9 @@ TEST(swc_parser, input_cleaning)
     {
         // Check unsorted input
         std::stringstream is;
-        is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "3 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
 
         std::array<swc_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
@@ -293,11 +295,11 @@ TEST(swc_parser, input_cleaning)
         // Check holes in numbering
         std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "21 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "31 1 14.566132 34.873772 7.857000 0.717830 21\n";
-        is << "41 1 14.566132 34.873772 7.857000 0.717830 21\n";
-        is << "51 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "61 1 14.566132 34.873772 7.857000 0.717830 51\n";
+        is << "21 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "31 2 14.566132 34.873772 7.857000 0.717830 21\n";
+        is << "41 2 14.566132 34.873772 7.857000 0.717830 21\n";
+        is << "51 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "61 2 14.566132 34.873772 7.857000 0.717830 51\n";
 
         std::array<swc_record::id_type, 6> expected_id_list =
             {{ 0, 1, 2, 3, 4, 5 }};
@@ -327,9 +329,9 @@ TEST(swc_record_ranges, raw)
         // Check valid usage
         std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "3 2 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
         std::vector<swc_record> records;
         for (auto c : swc_get_records<swc_io_raw>(is)) {
@@ -381,9 +383,9 @@ TEST(swc_record_ranges, raw)
         // Check parse error context
         std::stringstream is;
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-        is << "2 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "3 10 14.566132 34.873772 7.857000 0.717830 1\n";
-        is << "4 1 14.566132 34.873772 7.857000 0.717830 1\n";
+        is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
         std::vector<swc_record> records;
         try {
@@ -402,5 +404,86 @@ TEST(swc_record_ranges, raw)
         std::stringstream is("");
         EXPECT_TRUE(swc_get_records<swc_io_raw>(is).empty());
         EXPECT_TRUE(swc_get_records<swc_io_clean>(is).empty());
+    }
+}
+
+TEST(swc_io, cell_construction)
+{
+    using namespace nest::mc;
+
+    {
+        //
+        //    0
+        //    |
+        //    1
+        //    |
+        //    2
+        //   / \.
+        //  3   4
+        //       \.
+        //        5
+        //
+
+        std::stringstream is;
+        is << "1 1 0 0 0 2.1 -1\n";
+        is << "2 2 0.1 1.2 1.2 1.3 1\n";
+        is << "3 2 1.0 2.0 2.2 1.1 2\n";
+        is << "4 2 1.5 3.3 1.3 2.2 3\n";
+        is << "5 2 2.5 5.3 2.5 0.7 3\n";
+        is << "6 2 3.5 2.3 3.7 3.4 5\n";
+
+        using point_type = point<double>;
+        std::vector<point_type> points = {
+            { 0.0, 0.0, 0.0 },
+            { 0.1, 1.2, 1.2 },
+            { 1.0, 2.0, 2.2 },
+            { 1.5, 3.3, 1.3 },
+            { 2.5, 5.3, 2.5 },
+            { 3.5, 2.3, 3.7 },
+        };
+
+        cell cell = io::swc_read_cell(is);
+        EXPECT_TRUE(cell.has_soma());
+        EXPECT_EQ(4, cell.num_segments());
+
+        EXPECT_EQ(norm(points[1]-points[2]), cell.cable(1)->length());
+        EXPECT_EQ(norm(points[2]-points[3]), cell.cable(2)->length());
+        EXPECT_EQ(norm(points[2]-points[4]) + norm(points[4]-points[5]),
+                  cell.cable(3)->length());
+
+
+        // Check each segment separately
+        EXPECT_TRUE(cell.segment(0)->is_soma());
+        EXPECT_EQ(2.1, cell.soma()->radius());
+        EXPECT_EQ(point_type(0, 0, 0), cell.soma()->center());
+
+        for (auto i = 1; i < cell.num_segments(); ++i) {
+            EXPECT_TRUE(cell.segment(i)->is_dendrite());
+        }
+
+        EXPECT_EQ(1, cell.cable(1)->num_sub_segments());
+        EXPECT_EQ(1, cell.cable(2)->num_sub_segments());
+        EXPECT_EQ(2, cell.cable(3)->num_sub_segments());
+
+
+        // Check the radii
+        EXPECT_EQ(1.3, cell.cable(1)->radius(0));
+        EXPECT_EQ(1.1, cell.cable(1)->radius(1));
+
+        EXPECT_EQ(1.1, cell.cable(2)->radius(0));
+        EXPECT_EQ(2.2, cell.cable(2)->radius(1));
+
+        EXPECT_EQ(1.1, cell.cable(3)->radius(0));
+        EXPECT_EQ(3.4, cell.cable(3)->radius(1));
+
+        auto len_ratio = norm(points[2]-points[4]) / cell.cable(3)->length();
+        EXPECT_NEAR(.7, cell.cable(3)->radius(len_ratio), 1e-15);
+
+        // Double-check radii at joins are equal
+        EXPECT_EQ(cell.cable(1)->radius(1),
+                  cell.cable(2)->radius(0));
+
+        EXPECT_EQ(cell.cable(1)->radius(1),
+                  cell.cable(3)->radius(0));
     }
 }
