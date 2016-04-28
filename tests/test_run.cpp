@@ -13,11 +13,18 @@ TEST(run, cable)
 
     // 1um radius and 4mm long, all in cm
     cell.add_cable(0, segmentKind::dendrite, 1e-4, 1e-4, 4e-1);
+    cell.add_cable(0, segmentKind::dendrite, 1e-4, 1e-4, 4e-1);
 
-    std::cout << cell.segment(1)->area() << " is the area\n";
-    EXPECT_EQ(cell.model().tree.num_segments(), 2u);
+    //std::cout << cell.segment(1)->area() << " is the area\n";
+    EXPECT_EQ(cell.model().tree.num_segments(), 3u);
+
+    // add passive to all 3 segments in the cell
+    for(auto& seg :cell.segments()) {
+        seg->add_mechanism(pas_parameters());
+    }
 
     cell.soma()->add_mechanism(hh_parameters());
+    cell.segment(2)->add_mechanism(hh_parameters());
 
     auto& soma_hh = cell.soma()->mechanism("hh");
 
@@ -27,23 +34,24 @@ TEST(run, cable)
     soma_hh.set("el", -54.387);
 
     cell.segment(1)->set_compartments(4);
+    cell.segment(2)->set_compartments(4);
 
     using fvm_cell = fvm::fvm_cell<double, int>;
     fvm_cell fvcell(cell);
     auto& J = fvcell.jacobian();
-    EXPECT_EQ(J.size(), 5u);
+    EXPECT_EQ(J.size(), 9u);
 
     fvcell.setup_matrix(0.02);
     EXPECT_EQ(fvcell.cv_areas().size(), J.size());
 
-    auto& cable_parms = cell.segment(1)->mechanism("membrane");
-    std::cout << soma_hh << std::endl;
-    std::cout << cable_parms << std::endl;
+    //auto& cable_parms = cell.segment(1)->mechanism("membrane");
+    //std::cout << soma_hh << std::endl;
+    //std::cout << cable_parms << std::endl;
 
-    std::cout << "l " << J.l() << "\n";
-    std::cout << "d " << J.d() << "\n";
-    std::cout << "u " << J.u() << "\n";
-    std::cout << "p " << J.p() << "\n";
+    //std::cout << "l " << J.l() << "\n";
+    //std::cout << "d " << J.d() << "\n";
+    //std::cout << "u " << J.u() << "\n";
+    //std::cout << "p " << J.p() << "\n";
 
     J.rhs()(memory::all) = 1.;
     J.rhs()[0] = 10.;
@@ -91,11 +99,7 @@ TEST(run, init)
     EXPECT_EQ(J.size(), 11u);
 
     fvcell.setup_matrix(0.01);
-    std::cout << "areas " << fvcell.cv_areas() << "\n";
-
-    //std::cout << "l" << J.l() << "\n";
-    //std::cout << "d" << J.d() << "\n";
-    //std::cout << "u" << J.u() << "\n";
+    //std::cout << "areas " << fvcell.cv_areas() << "\n";
 
     J.rhs()(memory::all) = 1.;
     J.rhs()[0] = 10.;

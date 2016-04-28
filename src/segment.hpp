@@ -113,6 +113,31 @@ class segment {
         return *it;
     }
 
+    const parameter_list& mechanism(std::string const& n) const
+    {
+        auto it = std::find_if(
+            mechanisms_.begin(), mechanisms_.end(),
+            [&n](parameter_list const& l){return l.name() == n;}
+        );
+        if(it==mechanisms_.end()) {
+            throw std::out_of_range(
+                "attempt to access a parameter that is not defined in a segment"
+            );
+        }
+
+        return *it;
+    }
+
+    std::vector<parameter_list>& mechanisms()
+    {
+        return mechanisms_;
+    }
+
+    const std::vector<parameter_list>& mechanisms() const
+    {
+        return mechanisms_;
+    }
+
     protected:
 
     segmentKind kind_;

@@ -17,6 +17,7 @@ set(TEST_SOURCES
     test_cell.cpp
     test_compartments.cpp
     test_matrix.cpp
+    test_mechanisms.cpp
     test_point.cpp
     test_run.cpp
     test_segment.cpp

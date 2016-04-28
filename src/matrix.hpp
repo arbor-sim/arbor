@@ -67,7 +67,7 @@ class matrix {
     /// the total memory used to store the matrix
     std::size_t memory() const
     {
-        auto s = 5 * (sizeof(value_type) * size() + sizeof(vector_type));
+        auto s = 6 * (sizeof(value_type) * size() + sizeof(vector_type));
         s     += sizeof(size_type) * (parent_index_.size() + cell_index_.size())
                 + 2*sizeof(index_type);
         s     += sizeof(matrix);
@@ -79,6 +79,11 @@ class matrix {
     {
         return cell_index_.size() - 1;
     }
+
+    /// FIXME : make modparser use the correct accessors (l,d,u,rhs) instead of these
+    view_type vec_rhs() { return rhs_; }
+    view_type vec_d()   { return d_; }
+    view_type vec_v()   { return v_; }
 
     /// the vector holding the lower part of the matrix
     view_type l()
@@ -102,6 +107,12 @@ class matrix {
     view_type rhs()
     {
         return rhs_;
+    }
+
+    /// the vector holding the solution (voltage)
+    view_type v()
+    {
+        return v_;
     }
 
     /// the vector holding the parent index
@@ -152,6 +163,7 @@ class matrix {
         d_   = vector_type(n, default_value);
         u_   = vector_type(n, default_value);
         rhs_ = vector_type(n, default_value);
+        v_   = vector_type(n, default_value);
     }
 
     /// the parent indice that describe matrix structure
@@ -164,8 +176,10 @@ class matrix {
     vector_type l_;
     vector_type d_;
     vector_type u_;
+
     /// after calling solve, the solution is stored in rhs_
     vector_type rhs_;
+    vector_type v_; // should this be in the matrix? not so sure...
 };
 
 } // namespace nest

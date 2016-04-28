@@ -1,13 +1,19 @@
 #pragma once
 
 #include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
 
+#include <algorithms.hpp>
 #include <cell.hpp>
-#include <segment.hpp>
+#include <ion.hpp>
 #include <math.hpp>
 #include <matrix.hpp>
+#include <mechanism.hpp>
+#include <mechanism_interface.hpp>
 #include <util.hpp>
-#include <algorithms.hpp>
+#include <segment.hpp>
 
 #include <vector/include/Vector.hpp>
 
@@ -24,7 +30,15 @@ class fvm_cell {
     /// the integral index type
     using size_type  = I;
 
+    /// the type used to store matrix information
     using matrix_type = matrix<value_type, size_type>;
+
+    /// mechanism type
+    using mechanism_type =
+        nest::mc::mechanisms::mechanism_ptr<value_type, size_type>;
+
+    /// ion species storage
+    using ion_type = mechanisms::ion<value_type, size_type>;
 
     /// the container used for indexes
     using index_type = memory::HostVector<size_type>;
@@ -44,24 +58,34 @@ class fvm_cell {
 
     /// TODO this should be const
     /// which requires const_view in the vector library
-    matrix_type& jacobian();
+    matrix_type& jacobian() {
+        return matrix_;
+    }
 
     /// TODO this should be const
     /// return list of CV areas in :
     ///          um^2
     ///     1e-6.mm^2
     ///     1e-8.cm^2
-    vector_view cv_areas();
+    vector_view cv_areas() {
+        return cv_areas_;
+    }
 
     /// TODO this should be const
     /// return the capacitance of each CV surface
-    /// note that this is the total capacitance, not per unit area
-    /// which is equivalent to sigma_i * c_m
-    vector_view cv_capacitance();
+    /// this is the total capacitance, not per unit area,
+    /// i.e. equivalent to sigma_i * c_m
+    vector_view cv_capacitance() {
+        return cv_capacitance_;
+    }
 
-    std::size_t size() const
-    {
+    std::size_t size() const {
         return matrix_.size();
+    }
+
+    /// return reference to in iterable container of the mechanisms
+    std::vector<mechanism_type>& mechanisms() {
+        return mechanisms_;
     }
 
     private:
@@ -89,11 +113,16 @@ class fvm_cell {
     /// the potential in mV in each CV
     vector_type voltage_;
 
+    /// the set of mechanisms present in the cell
+    std::vector<mechanism_type> mechanisms_;
+
+    /// the ion species
+    std::map<mechanisms::ionKind, ion_type> ions_;
 };
 
-////////////////////////////////////////////////////////////
-// Implementation
-////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// Implementation ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename I>
 fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
@@ -106,8 +135,16 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     using util::left;
     using util::right;
 
+    // TODO: potential code stink
+    // matrix_ is a member, but it is not initialized with the other members
+    // above because it requires the parent_index, which is calculated
+    // "on the fly" by cell.model().
+    // cell.model() is quite expensive, and the information it calculates is
+    // used elsewhere, so we defer the intialization to inside the constructor
+    // body.
     const auto graph = cell.model();
     matrix_ = matrix_type(graph.parent_index);
+
     auto parent_index = matrix_.p();
     auto const& segment_index = graph.segment_index;
 
@@ -170,27 +207,102 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     for(auto i=0u; i<size(); ++i) {
         cv_capacitance_[i] /= cv_areas_[i];
     }
-}
 
-template <typename T, typename I>
-typename fvm_cell<T,I>::matrix_type&
-fvm_cell<T,I>::jacobian()
-{
-    return matrix_;
-}
+    /////////////////////////////////////////////
+    //  create mechanisms
+    /////////////////////////////////////////////
 
-template <typename T, typename I>
-typename fvm_cell<T,I>::vector_view
-fvm_cell<T,I>::cv_areas()
-{
-    return cv_areas_;
-}
+    // FIXME : candidate for a private member function
 
-template <typename T, typename I>
-typename fvm_cell<T,I>::vector_view
-fvm_cell<T,I>::cv_capacitance()
-{
-    return cv_capacitance_;
+    // for each mechanism in the cell record the indexes of the segments that
+    // contain the mechanism
+    std::map<std::string, std::vector<int>> mech_map;
+
+    for(auto i=0; i<cell.num_segments(); ++i) {
+        for(const auto& mech : cell.segment(i)->mechanisms()) {
+            // FIXME : Membrane has to be a proper mechanism,
+            //         because it is exposed via the public interface.
+            //         This if statement is bad
+            if(mech.name() != "membrane") {
+                mech_map[mech.name()].push_back(i);
+            }
+        }
+    }
+
+    // Create the mechanism implementations with the state for each mechanism
+    // instance.
+    // TODO : this works well for density mechanisms (e.g. ion channels), but
+    // does it work for point processes (e.g. synapses)?
+    for(auto& mech : mech_map) {
+        auto& helper = nest::mc::mechanisms::get_mechanism_helper(mech.first);
+
+        // calculate the number of compartments that contain the mechanism
+        auto num_comp = 0u;
+        for(auto seg : mech.second) {
+            num_comp += segment_index[seg+1] - segment_index[seg];
+        }
+
+        // build a vector of the indexes of the compartments that contain
+        // the mechanism
+        std::vector<int> compartment_index(num_comp);
+        auto pos = 0u;
+        for(auto seg : mech.second) {
+            auto seg_size = segment_index[seg+1] - segment_index[seg];
+            std::iota(
+                compartment_index.data() + pos,
+                compartment_index.data() + pos + seg_size,
+                segment_index[seg]
+            );
+            pos += seg_size;
+        }
+
+        // instantiate the mechanism
+        mechanisms_.push_back(
+            helper->new_mechanism(
+                &matrix_,
+                index_view(compartment_index.data(), compartment_index.size())
+            )
+        );
+    }
+
+    /////////////////////////////////////////////
+    // build the ion species
+    // FIXME : this should be a private member function
+    /////////////////////////////////////////////
+    for(auto ion : mechanisms::ion_kinds()) {
+        auto indexes =
+            std::make_pair(std::vector<int>(size()), std::vector<int>(size()));
+        auto ends =
+            std::make_pair(indexes.first.begin(), indexes.second.begin());
+
+        // after the loop the range
+        //      [indexes.first.begin(), ends.first)
+        // will hold the indexes of the compartments that require ion
+        for(auto& mech : mechanisms_) {
+            if(mech->uses_ion(ion)) {
+                ends.second =
+                    std::set_union(
+                        mech->node_index().begin(), mech->node_index().end(),
+                        indexes.first.begin(), ends.first,
+                        indexes.second.begin()
+                    );
+                std::swap(indexes.first, indexes.second);
+                std::swap(ends.first, ends.second);
+            }
+        }
+
+        // create the ion state
+        if(auto n = std::distance(indexes.first.begin(), ends.first)) {
+            ions_.emplace(ion, index_view(indexes.first.data(), n));
+        }
+
+        // join the ion reference in each mechanism into the cell-wide ion state
+        for(auto& mech : mechanisms_) {
+            if(mech->uses_ion(ion)) {
+                mech->set_ion(ion, ions_[ion]);
+            }
+        }
+    }
 }
 
 template <typename T, typename I>
@@ -236,6 +348,9 @@ void fvm_cell<T, I>::setup_matrix(T dt)
     }
 }
 
+
 } // namespace fvm
 } // namespace mc
 } // namespace nest
+
+

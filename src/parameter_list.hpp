@@ -169,10 +169,33 @@ namespace mc {
         hh_parameters()
         : base("hh")
         {
-            base::add_parameter({"gnabar", 0.12,  {0., 1e9}});
-            base::add_parameter({"gkbar",  0.036, {0., 1e9}});
-            base::add_parameter({"gl",     0.0003,{0., 1e9}});
+            base::add_parameter({"gnabar", 0.12,  {0, 1e9}});
+            base::add_parameter({"gkbar",  0.036, {0, 1e9}});
+            base::add_parameter({"gl",     0.0003,{0, 1e9}});
             base::add_parameter({"el",     -54.3});
+        }
+    };
+
+    /// parameters for passive channel
+    class pas_parameters
+    : public parameter_list
+    {
+        public:
+
+        using base = parameter_list;
+
+        using base::value_type;
+
+        using base::set;
+        using base::get;
+        using base::parameters;
+        using base::has_parameter;
+
+        pas_parameters()
+        : base("pas")
+        {
+            base::add_parameter({"g", 0.001, {0, 1e9}});
+            base::add_parameter({"e", -70});
         }
     };
 

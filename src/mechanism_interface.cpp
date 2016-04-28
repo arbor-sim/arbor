@@ -1,21 +1,41 @@
 #include "mechanism_interface.hpp"
 
-/*  include the mechanisms
+//
+//  include the mechanisms
+//
+
 #include <mechanisms/hh.hpp>
 #include <mechanisms/pas.hpp>
-*/
 
 namespace nest {
 namespace mc {
 namespace mechanisms {
 
-std::map<std::string, mechanism_helper<double, int>> mechanism_map;
+std::map<std::string, mechanism_helper_ptr<value_type, index_type>> mechanism_helpers;
 
 void setup_mechanism_helpers() {
-    /*  manually insert
-    mechanism_map["hh"]  = mechanisms::hh;
-    mechanism_map["pas"] = mechanisms::pas;
-    */
+    mechanism_helpers["pas"] =
+        make_mechanism_helper<
+            mechanisms::pas::helper<value_type, index_type>
+        >();
+
+    mechanism_helpers["hh"] =
+        make_mechanism_helper<
+            mechanisms::hh::helper<value_type, index_type>
+        >();
+}
+
+mechanism_helper_ptr<value_type, index_type>&
+get_mechanism_helper(const std::string& name)
+{
+    auto helper = mechanism_helpers.find(name);
+    if(helper==mechanism_helpers.end()) {
+        throw std::out_of_range(
+            nest::mc::util::pprintf("there is no mechanism named \'%\'", name)
+        );
+    }
+
+    return helper->second;
 }
 
 } // namespace mechanisms

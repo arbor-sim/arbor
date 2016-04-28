@@ -6,6 +6,8 @@
 #include <numeric>
 #include <type_traits>
 
+#include "util.hpp"
+
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
  * that uses them.
@@ -115,6 +117,57 @@ namespace algorithms{
             }
         }
         return true;
+    }
+
+    template<typename C>
+    bool is_sorted(const C& c)
+    {
+        return std::is_sorted(c.begin(), c.end());
+    }
+
+    template<typename C>
+    bool is_unique(const C& c)
+    {
+        return std::adjacent_find(c.begin(), c.end()) == c.end();
+    }
+
+    /// Return and index that maps entries in sub to their corresponding
+    /// values in super, where sub is a subset of super.
+    ///
+    /// Both sets are sorted and have unique entries.
+    /// Complexity is O(n), where n is size of super
+    template<typename C>
+    // C::iterator models forward_iterator
+    // C::value_type is_integral
+    C index_into(const C& super, const C& sub)
+    {
+        //EXPECTS {s \in super : \forall s \in sub};
+        EXPECTS(is_unique(super) && is_unique(sub));
+        EXPECTS(is_sorted(super) && is_sorted(sub));
+        EXPECTS(sub.size() <= super.size());
+
+        static_assert(
+            std::is_integral<typename C::value_type>::value,
+            "index_into only applies to integral types"
+        );
+
+        C out(sub.size()); // out will have one entry for each index in sub
+
+        auto sub_it=sub.begin();
+        auto super_it=super.begin();
+        auto sub_idx=0u, super_idx = 0u;
+
+        while(sub_it!=sub.end() && super_it!=super.end()) {
+            if(*sub_it==*super_it) {
+                out[sub_idx] = super_idx;
+                ++sub_it; ++sub_idx;
+            }
+            ++super_it; ++super_idx;
+        }
+
+        EXPECTS(sub_idx==sub.size());
+
+        return out;
     }
 
 } // namespace algorithms
