@@ -88,6 +88,39 @@ class fvm_cell {
         return mechanisms_;
     }
 
+    /// return reference to list of ions
+    //std::map<mechanisms::ionKind, ion_type> ions_;
+    std::map<mechanisms::ionKind, ion_type>& ions() {
+        return ions_;
+    }
+    std::map<mechanisms::ionKind, ion_type> const& ions() const {
+        return ions_;
+    }
+
+    /// return reference to sodium ion
+    ion_type& ion_na() {
+        return ions_[mechanisms::ionKind::na];
+    }
+    ion_type const& ion_na() const {
+        return ions_[mechanisms::ionKind::na];
+    }
+
+    /// return reference to calcium ion
+    ion_type& ion_ca() {
+        return ions_[mechanisms::ionKind::ca];
+    }
+    ion_type const& ion_ca() const {
+        return ions_[mechanisms::ionKind::ca];
+    }
+
+    /// return reference to pottasium ion
+    ion_type& ion_k() {
+        return ions_[mechanisms::ionKind::k];
+    }
+    ion_type const& ion_k() const {
+        return ions_[mechanisms::ionKind::k];
+    }
+
     private:
 
     /// the linear system for implicit time stepping of cell state
@@ -303,6 +336,24 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
             }
         }
     }
+
+    // FIXME: Hard code parameters for now.
+    //        Take defaults for reversal potential of sodium and potassium from
+    //        the default values in Neuron.
+    //        We don't use the other parameters for the HH model, so I leave the NaN.
+    //        To set them I would have to go spelunking in the Neuron source.
+    using memory::all;
+    ion_ca().reversal_potential()(all)     = std::numeric_limits<value_type>::quiet_NaN();
+    ion_ca().internal_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
+    ion_ca().external_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
+
+    ion_na().reversal_potential()(all)     = -50.0;
+    ion_na().internal_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
+    ion_na().external_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
+
+    ion_k().reversal_potential()(all)     = -77.0;
+    ion_k().internal_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
+    ion_k().external_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
 }
 
 template <typename T, typename I>
@@ -347,7 +398,6 @@ void fvm_cell<T, I>::setup_matrix(T dt)
         rhs[i] = cv_areas_[i] * (voltage_[i] - dt/cv_capacitance_[i]*current_[i]);
     }
 }
-
 
 } // namespace fvm
 } // namespace mc

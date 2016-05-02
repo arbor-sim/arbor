@@ -28,15 +28,17 @@ enum class ionKind {ca, na, k};
 [[gnu::unused]] static
 std::string to_string(ionKind k)
 {
-    if(k==ionKind::na) return "sodium";
-    if(k==ionKind::ca) return "calcium";
-    if(k==ionKind::k)  return "pottasium";
-    return "unkown ion";
+    switch(k) {
+        case ionKind::na : return "sodium";
+        case ionKind::ca : return "calcium";
+        case ionKind::k  : return "pottasium";
+    }
+    return "unkown";
 }
 
 /// and a little helper to iterate over them
 [[gnu::unused]] static
-std::initializer_list<ionKind> ion_kinds()
+std::vector<ionKind> ion_kinds()
 {
     return {ionKind::ca, ionKind::na, ionKind::k};
 }

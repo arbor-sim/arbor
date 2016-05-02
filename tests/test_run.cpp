@@ -9,6 +9,9 @@ TEST(run, cable)
 
     nest::mc::cell cell;
 
+    // setup global state for the mechanisms
+    nest::mc::mechanisms::setup_mechanism_helpers();
+
     cell.add_soma(6e-4); // 6um in cm
 
     // 1um radius and 4mm long, all in cm
@@ -44,6 +47,17 @@ TEST(run, cable)
     fvcell.setup_matrix(0.02);
     EXPECT_EQ(fvcell.cv_areas().size(), J.size());
 
+    // inspect ion channels
+    /*
+    std::cout << "ion na index : " << fvcell.ion_na().node_index() << "\n";
+    std::cout << "ion ca index : " << fvcell.ion_ca().node_index() << "\n";
+    std::cout << "ion k  index : " << fvcell.ion_k().node_index() << "\n";
+
+    std::cout << "ion na E : " << fvcell.ion_na().reversal_potential() << "\n";
+    std::cout << "ion ca E : " << fvcell.ion_ca().reversal_potential() << "\n";
+    std::cout << "ion k  E : " << fvcell.ion_k().reversal_potential() << "\n";
+    */
+
     //auto& cable_parms = cell.segment(1)->mechanism("membrane");
     //std::cout << soma_hh << std::endl;
     //std::cout << cable_parms << std::endl;
@@ -64,6 +78,9 @@ TEST(run, init)
     using namespace nest::mc;
 
     nest::mc::cell cell;
+
+    // setup global state for the mechanisms
+    nest::mc::mechanisms::setup_mechanism_helpers();
 
     cell.add_soma(12.6157/2.0);
     //auto& props = cell.soma()->properties;
