@@ -20,7 +20,7 @@ int cell::num_segments() const
 // note: I think that we have to enforce that the soma is the first
 //       segment that is added
 //
-void cell::add_soma(value_type radius, point_type center)
+soma_segment* cell::add_soma(value_type radius, point_type center)
 {
     if(has_soma()) {
         throw std::domain_error(
@@ -35,9 +35,11 @@ void cell::add_soma(value_type radius, point_type center)
     else {
         segments_[0] = make_segment<soma_segment>(radius);
     }
+
+    return segments_[0]->as_soma();
 }
 
-void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
+cable_segment* cell::add_cable(cell::index_type parent, segment_ptr&& cable)
 {
     // check for a valid parent id
     if(cable->is_soma()) {
@@ -54,6 +56,8 @@ void cell::add_cable(cell::index_type parent, segment_ptr&& cable)
     }
     segments_.push_back(std::move(cable));
     parents_.push_back(parent);
+
+    return segments_.back()->as_cable();
 }
 
 segment* cell::segment(int index)

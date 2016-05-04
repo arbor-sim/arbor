@@ -33,18 +33,18 @@ class cell {
 
     /// add a soma to the cell
     /// radius must be specified
-    void add_soma(value_type radius, point_type center=point_type());
+    soma_segment* add_soma(value_type radius, point_type center=point_type());
 
     /// add a cable
     /// parent is the index of the parent segment for the cable section
     /// cable is the segment that will be moved into the cell
-    void add_cable(index_type parent, segment_ptr&& cable);
+    cable_segment* add_cable(index_type parent, segment_ptr&& cable);
 
     /// add a cable by constructing it in place
     /// parent is the index of the parent segment for the cable section
     /// args are the arguments to be used to consruct the new cable
     template <typename... Args>
-    void add_cable(index_type parent, Args ...args);
+    cable_segment* add_cable(index_type parent, Args ...args);
 
     /// the number of segments in the cell
     int num_segments() const;
@@ -93,7 +93,7 @@ class cell {
 
 // create a cable by forwarding cable construction parameters provided by the user
 template <typename... Args>
-void cell::add_cable(cell::index_type parent, Args ...args)
+cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
 {
     // check for a valid parent id
     if(parent>=num_segments()) {
@@ -103,6 +103,8 @@ void cell::add_cable(cell::index_type parent, Args ...args)
     }
     segments_.push_back(make_segment<cable_segment>(std::forward<Args>(args)...));
     parents_.push_back(parent);
+
+    return segments_.back()->as_cable();
 }
 
 } // namespace mc

@@ -16,7 +16,7 @@ INITIAL {}
 
 PARAMETER {
     g = .001    (S/cm2) :<0,1e9>
-    e = -70 (mV)
+    e = -65 (mV) : we use -65 for the ball and stick model, instead of Neuron default of -70
 }
 
 ASSIGNED {

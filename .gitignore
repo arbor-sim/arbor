@@ -32,6 +32,7 @@
 *.dot
 *.pdf
 *.jpg
+*.dat
 
 # latex output
 *.aux

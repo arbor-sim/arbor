@@ -22,13 +22,16 @@ TEST(mechanisms, helpers) {
                                    //0 1 2 3 4 5 6 7 8 9
     std::vector<int> parent_index = {0,0,1,2,3,4,0,6,7,8};
     memory::HostVector<int> node_indices = std::vector<int>{0,6,7,8,9};
+    auto n = node_indices.size();
 
-    nest::mc::matrix<double, int> matrix(parent_index);
+    //nest::mc::matrix<double, int> matrix(parent_index);
+    memory::HostVector<double> vec_i(n, 0.);
+    memory::HostVector<double> vec_v(n, 0.);
 
     auto& helper = nest::mc::mechanisms::get_mechanism_helper("hh");
-    auto mech = helper->new_mechanism(&matrix, node_indices);
+    auto mech = helper->new_mechanism(vec_v, vec_i, node_indices);
 
     EXPECT_EQ(mech->name(), "hh");
     EXPECT_EQ(mech->size(), 5u);
-    EXPECT_EQ(mech->matrix_, &matrix);
+    //EXPECT_EQ(mech->matrix_, &matrix);
 }

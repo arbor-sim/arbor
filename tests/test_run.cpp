@@ -3,6 +3,94 @@
 #include "../src/cell.hpp"
 #include "../src/fvm.hpp"
 
+// based on hh/Neuron/steps_B.py
+TEST(run, single_compartment)
+{
+    using namespace nest::mc;
+
+    nest::mc::cell cell;
+
+    // setup global state for the mechanisms
+    nest::mc::mechanisms::setup_mechanism_helpers();
+
+    // Soma with diameter 18.8um -> 1.88e-3 cm and HH channel
+    auto soma = cell.add_soma(1.88e-3/2.0);
+    soma->add_mechanism(hh_parameters());
+
+    std::cout << soma->mechanism("membrane");
+
+    // make the lowered finite volume cell
+    fvm::fvm_cell<double, int> model(cell);
+
+    std::cout << "CV areas " << model.cv_areas() << "\n";
+
+    std::cout << "-----------------------------\n";
+
+    // set initial conditions
+    using memory::all;
+    model.voltage()(all) = -65.;
+    model.initialize(); // have to do this _after_ initial conditions are set
+
+    std::cout << "-----------------------------\n";
+
+    // run the simulation
+    //auto dt = 0.02 / 1000.; // convert ms to s
+    //auto tfinal = 100./1000.;
+    auto dt     =   0.02; // ms
+    auto tfinal =   5; // ms
+    int nt = tfinal/dt;
+    std::vector<double> result;
+    result.push_back(model.voltage()[0]);
+    for(auto i=0; i<nt; ++i) {
+        model.advance(dt);
+        result.push_back(model.voltage()[0]);
+    }
+    std::cout << "took " << nt << " time steps" << std::endl;
+
+    {
+        std::ofstream fid("v.dat");
+        auto t = 0.;
+        for(auto v:result) {
+            fid << t << " " << v << "\n";
+            t += dt;
+        }
+    }
+}
+
+TEST(run, ball_and_stick)
+{
+    using namespace nest::mc;
+
+    nest::mc::cell cell;
+
+    // setup global state for the mechanisms
+    nest::mc::mechanisms::setup_mechanism_helpers();
+
+    // Soma with diameter 12.6157 and HH channel
+    auto soma = cell.add_soma(12.6157/2.0);
+    soma->add_mechanism(hh_parameters());
+
+    // add dendrite with passive channel and 10 compartments
+    auto dendrite = cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
+    dendrite->set_compartments(5);
+    dendrite->add_mechanism(pas_parameters());
+
+    // make the lowered finite volume cell
+    fvm::fvm_cell<double, int> model(cell);
+
+    std::cout << "CV areas " << model.cv_areas() << "\n";
+
+    // set initial conditions
+    using memory::all;
+    model.voltage()(all) = -65.;
+
+    // run the simulation
+    auto dt = 0.02; // ms
+    model.advance(dt);
+
+    std::cout << model.voltage() << "\n";
+}
+
 TEST(run, cable)
 {
     using namespace nest::mc;

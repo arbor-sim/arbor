@@ -79,6 +79,11 @@ class fvm_cell {
         return cv_capacitance_;
     }
 
+    /// return the voltage in each CV
+    vector_view voltage() {
+        return voltage_;
+    }
+
     std::size_t size() const {
         return matrix_.size();
     }
@@ -121,7 +126,16 @@ class fvm_cell {
         return ions_[mechanisms::ionKind::k];
     }
 
+    /// make a time step
+    void advance(value_type dt);
+
+    /// set initial states
+    void initialize();
+
     private:
+
+    /// current time
+    value_type t_ = value_type{0};
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
@@ -241,6 +255,8 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         cv_capacitance_[i] /= cv_areas_[i];
     }
 
+    std::cout << "capacitance " << cv_capacitance_ << "\n";
+
     /////////////////////////////////////////////
     //  create mechanisms
     /////////////////////////////////////////////
@@ -290,12 +306,13 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         }
 
         // instantiate the mechanism
+        index_view node_index(compartment_index.data(), compartment_index.size());
         mechanisms_.push_back(
-            helper->new_mechanism(
-                &matrix_,
-                index_view(compartment_index.data(), compartment_index.size())
-            )
+            helper->new_mechanism(voltage_, current_, node_index)
         );
+        std::cout << "created mech " << mech.first
+                  << " with size " << mechanisms_.back()->size()
+                  << " and indexes " << node_index << "\n";
     }
 
     /////////////////////////////////////////////
@@ -340,20 +357,23 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     // FIXME: Hard code parameters for now.
     //        Take defaults for reversal potential of sodium and potassium from
     //        the default values in Neuron.
-    //        We don't use the other parameters for the HH model, so I leave the NaN.
-    //        To set them I would have to go spelunking in the Neuron source.
+    //        Neuron's defaults are defined in the file
+    //          nrn/src/nrnoc/membdef.h
     using memory::all;
-    ion_ca().reversal_potential()(all)     = std::numeric_limits<value_type>::quiet_NaN();
-    ion_ca().internal_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
-    ion_ca().external_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
 
-    ion_na().reversal_potential()(all)     = -50.0;
-    ion_na().internal_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
-    ion_na().external_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
+    constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
 
-    ion_k().reversal_potential()(all)     = -77.0;
-    ion_k().internal_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
-    ion_k().external_concentration()(all) = std::numeric_limits<value_type>::quiet_NaN();
+    ion_na().reversal_potential()(all)     = 115+DEF_vrest; // mV
+    ion_na().internal_concentration()(all) =  10.0;         // mM
+    ion_na().external_concentration()(all) = 140.0;         // mM
+
+    ion_k().reversal_potential()(all)     = -12.0+DEF_vrest;// mV
+    ion_k().internal_concentration()(all) =  54.4;          // mM
+    ion_k().external_concentration()(all) =  2.5;           // mM
+
+    ion_ca().reversal_potential()(all)     = 12.5 * std::log(2.0/5e-5);// mV
+    ion_ca().internal_concentration()(all) = 5e-5;          // mM
+    ion_ca().external_concentration()(all) = 2.0;           // mM
 }
 
 template <typename T, typename I>
@@ -397,6 +417,53 @@ void fvm_cell<T, I>::setup_matrix(T dt)
     for(auto i=0u; i<d.size(); ++i) {
         rhs[i] = cv_areas_[i] * (voltage_[i] - dt/cv_capacitance_[i]*current_[i]);
     }
+}
+
+template <typename T, typename I>
+void fvm_cell<T, I>::initialize()
+{
+    // initialize mechanism states
+    for(auto& m : mechanisms_) {
+        m->nrn_init();
+    }
+}
+
+template <typename T, typename I>
+void fvm_cell<T, I>::advance(T dt)
+{
+    using memory::all;
+
+    current_(all) = 0.;
+
+    // update currents
+    for(auto& m : mechanisms_) {
+        m->set_params(t_, dt);
+        m->nrn_current();
+    }
+
+    //if(t_>=10.) {
+        current_[0] -= 0.1;
+    //}
+    //std::cout << "t " << t_ << " current " << current_;
+
+    // set matrix diagonals and rhs
+    setup_matrix(dt);
+
+    //std::cout << " rhs " << matrix_.rhs() << " d " << matrix_.d();
+
+    // solve the linear system
+    matrix_.solve();
+
+    voltage_(all) = matrix_.rhs();
+
+    //std::cout << " v " << voltage_ << "\n";
+
+    // update states
+    for(auto& m : mechanisms_) {
+        m->nrn_state();
+    }
+
+    t_ += dt;
 }
 
 } // namespace fvm
