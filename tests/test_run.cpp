@@ -37,7 +37,8 @@ TEST(run, single_compartment)
     //auto dt = 0.02 / 1000.; // convert ms to s
     //auto tfinal = 100./1000.;
     auto dt     =   0.02; // ms
-    auto tfinal =   5; // ms
+    auto tfinal =   5.0; // ms
+    //auto tfinal =   0.10; // ms
     int nt = tfinal/dt;
     std::vector<double> result;
     result.push_back(model.voltage()[0]);
