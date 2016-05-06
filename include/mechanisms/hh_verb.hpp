@@ -73,11 +73,10 @@ public:
         htau            = data_(14*field_size, 15*size());
 
         // set initial values for variables and parameters
-        std::fill(gnabar.data(), gnabar.data()+size(), 1.2);
-        std::fill(gl.data(), gl.data()+size(), 0.0029999999999999997);
-        std::fill(gkbar.data(), gkbar.data()+size(), 0.35999999999999997);
-        std::fill(el.data(), el.data()+size(), -54.299999999999997);
-
+        std::fill(gnabar.data(), gnabar.data()+size(), 0.12);
+        std::fill(gkbar.data(), gkbar.data()+size(), 0.036);
+        std::fill(gl.data(), gl.data()+size(), 0.0003);
+        std::fill(el.data(), el.data()+size(), -54.3);
     }
 
     using base::size;
@@ -138,23 +137,24 @@ public:
             m[i_] = minf[i_]+(m[i_]-minf[i_])*exp( -dt/mtau[i_]);
             h[i_] = hinf[i_]+(h[i_]-hinf[i_])*exp( -dt/htau[i_]);
             n[i_] = ninf[i_]+(n[i_]-ninf[i_])*exp( -dt/ntau[i_]);
+            printf("m h n : %18.14f %18.14f %18.14f\n", m[i_], h[i_], n[i_]);
         }
     }
 
     void rates(const int i_, value_type v) {
         value_type ll3_, ll1_, ll0_, alpha, beta, ll2_, sum, q10;
         q10 = std::pow( 3, (celsius- 6.2999999999999998)/ 10);
-        //ll2_ =  -v+ 40;
+        printf("q10 %18.14f\n", q10);
         ll2_ =  -(v+ 40);
         ll0_ = ll2_/(exp(ll2_/ 10)- 1);
         alpha =  0.10000000000000001*ll0_;
         beta =  4*exp( -(v+ 65)/ 18);
 
-        std::cout << "v  " << v << "\n";
+        //std::cout << "v  " << v << " dt " << dt << "\n";
         //std::cout << "m (alpha, beta) : " << alpha << " " << beta << "\n";
 
         sum = alpha+beta;
-        mtau[i_] =  1/q10*sum;
+        mtau[i_] =  1/(q10*sum);
         minf[i_] = alpha/sum;
 
         //////////////////////////////////////////////////////////
@@ -165,7 +165,7 @@ public:
         //std::cout << "h (alpha, beta) : " << alpha << " " << beta << "\n";
 
         sum = alpha+beta;
-        htau[i_] =  1/q10*sum;
+        htau[i_] =  1/(q10*sum);
         hinf[i_] = alpha/sum;
 
         //////////////////////////////////////////////////////////
@@ -178,8 +178,11 @@ public:
 
         //std::cout << "n (alpha, beta) : " << alpha << " " << beta << "\n";
 
+        //printf("m_inf, h_inf, n_inf : %18.16f %18.16f %18.16f\n",
+               //minf[i_], hinf[i_], ninf[i_]);
+
         sum = alpha+beta;
-        ntau[i_] =  1/q10*sum;
+        ntau[i_] =  1/(q10*sum); // TODO : make modparser insert parenthesis
         ninf[i_] = alpha/sum;
     }
 

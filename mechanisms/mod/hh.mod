@@ -29,7 +29,6 @@ NEURON {
 }
 
 PARAMETER {
-    : neuron uses S/cm2, i have to scale by a factor of 10
     gnabar = .12 (S/cm2)  : <0,1e9>
     gkbar = .036 (S/cm2)  : <0,1e9>
     gl = .0003 (S/cm2)    : <0,1e9>

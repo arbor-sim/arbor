@@ -400,9 +400,9 @@ void fvm_cell<T, I>::setup_matrix(T dt)
     //        .     .  .
     //       l[i] . . d[i]
     //
-    d(all) = cv_areas_;
+    d(all) = 1.0;
     for(auto i=1u; i<d.size(); ++i) {
-        auto a = dt * face_alpha_[i];
+        auto a = dt * face_alpha_[i]; // TODO get this right
 
         d[i] +=  a;
         l[i]  = -a;
@@ -413,9 +413,10 @@ void fvm_cell<T, I>::setup_matrix(T dt)
     }
 
     // the RHS of the linear system is
-    //      sigma_i * (V[i] - dt/cm*(im - ie))
+    //      V[i] - dt/cm*(im - ie)
+    auto factor = 10.*dt;
     for(auto i=0u; i<d.size(); ++i) {
-        rhs[i] = cv_areas_[i] * (voltage_[i] - dt/cv_capacitance_[i]*current_[i]);
+        rhs[i] = voltage_[i] - factor/cv_capacitance_[i]*current_[i];
     }
 }
 
@@ -441,20 +442,23 @@ void fvm_cell<T, I>::advance(T dt)
         m->nrn_current();
     }
 
-    //if(t_>=10.) {
-        current_[0] -= 0.1;
-    //}
+    if(t_>=5. && t_<8.) {
+        current_[0] -= 0.01;
+    }
+
     //std::cout << "t " << t_ << " current " << current_;
 
     // set matrix diagonals and rhs
     setup_matrix(dt);
 
-    //std::cout << " rhs " << matrix_.rhs() << " d " << matrix_.d();
+    //printf("rhs %18.14f    d %18.14f\n", matrix_.rhs()[0], matrix_.d()[0]);
 
     // solve the linear system
     matrix_.solve();
 
     voltage_(all) = matrix_.rhs();
+
+    //printf("v solve %18.14f\n", voltage_[0]);
 
     //std::cout << " v " << voltage_ << "\n";
 
@@ -464,6 +468,7 @@ void fvm_cell<T, I>::advance(T dt)
     }
 
     t_ += dt;
+    //std::cout << "******************\n";
 }
 
 } // namespace fvm

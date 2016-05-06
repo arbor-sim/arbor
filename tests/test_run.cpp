@@ -3,7 +3,7 @@
 #include "../src/cell.hpp"
 #include "../src/fvm.hpp"
 
-// based on hh/Neuron/steps_B.py
+// based on hh/Neuron/steps_A.py
 TEST(run, single_compartment)
 {
     using namespace nest::mc;
@@ -15,6 +15,7 @@ TEST(run, single_compartment)
 
     // Soma with diameter 18.8um -> 1.88e-3 cm and HH channel
     auto soma = cell.add_soma(1.88e-3/2.0);
+    soma->mechanism("membrane").set("r_L", 123); // no effect for single compartment cell
     soma->add_mechanism(hh_parameters());
 
     std::cout << soma->mechanism("membrane");
@@ -22,23 +23,21 @@ TEST(run, single_compartment)
     // make the lowered finite volume cell
     fvm::fvm_cell<double, int> model(cell);
 
-    std::cout << "CV areas " << model.cv_areas() << "\n";
+    //std::cout << "CV areas " << model.cv_areas() << "\n";
 
-    std::cout << "-----------------------------\n";
+    //std::cout << "-----------------------------\n";
 
     // set initial conditions
     using memory::all;
     model.voltage()(all) = -65.;
     model.initialize(); // have to do this _after_ initial conditions are set
 
-    std::cout << "-----------------------------\n";
+    //std::cout << "-----------------------------\n";
 
     // run the simulation
-    //auto dt = 0.02 / 1000.; // convert ms to s
-    //auto tfinal = 100./1000.;
     auto dt     =   0.02; // ms
-    auto tfinal =   5.0; // ms
     //auto tfinal =   0.10; // ms
+    auto tfinal =   10.; // ms
     int nt = tfinal/dt;
     std::vector<double> result;
     result.push_back(model.voltage()[0]);
