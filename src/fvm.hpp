@@ -310,9 +310,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         mechanisms_.push_back(
             helper->new_mechanism(voltage_, current_, node_index)
         );
-        std::cout << "created mech " << mech.first
-                  << " with size " << mechanisms_.back()->size()
-                  << " and indexes " << node_index << "\n";
     }
 
     /////////////////////////////////////////////
@@ -400,9 +397,12 @@ void fvm_cell<T, I>::setup_matrix(T dt)
     //        .     .  .
     //       l[i] . . d[i]
     //
-    d(all) = 1.0;
+    //d(all) = 1.0;
+    d(all) = cv_areas_;
     for(auto i=1u; i<d.size(); ++i) {
-        auto a = dt * face_alpha_[i]; // TODO get this right
+        // TODO get this right
+        // probably requires scaling a by cv_areas_[i] and cv_areas_[p[i]]
+        auto a = 1e7*dt * face_alpha_[i];
 
         d[i] +=  a;
         l[i]  = -a;
@@ -411,12 +411,14 @@ void fvm_cell<T, I>::setup_matrix(T dt)
         // add contribution to the diagonal of parent
         d[p[i]] += a;
     }
+    //std::cout << "d " << d << " l " << l << " u " << u << "\n";
 
     // the RHS of the linear system is
     //      V[i] - dt/cm*(im - ie)
     auto factor = 10.*dt;
     for(auto i=0u; i<d.size(); ++i) {
-        rhs[i] = voltage_[i] - factor/cv_capacitance_[i]*current_[i];
+        //rhs[i] = voltage_[i] - factor/cv_capacitance_[i]*current_[i];
+        rhs[i] = cv_areas_[i]*(voltage_[i] - factor/cv_capacitance_[i]*current_[i]);
     }
 }
 
@@ -442,9 +444,13 @@ void fvm_cell<T, I>::advance(T dt)
         m->nrn_current();
     }
 
-    if(t_>=5. && t_<8.) {
-        current_[0] -= 0.01;
-    }
+    // the factor scales the injected current to 10^2.nA
+    auto ie_factor = 100.;
+    auto ie = 0.1;
+    auto loc = size()-1;
+    //auto loc = 0;
+    if(t_>=5. && t_<8.)
+      current_[loc] -= ie_factor*ie/cv_areas_[loc];
 
     //std::cout << "t " << t_ << " current " << current_;
 

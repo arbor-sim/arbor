@@ -13,8 +13,8 @@ TEST(run, single_compartment)
     // setup global state for the mechanisms
     nest::mc::mechanisms::setup_mechanism_helpers();
 
-    // Soma with diameter 18.8um -> 1.88e-3 cm and HH channel
-    auto soma = cell.add_soma(1.88e-3/2.0);
+    // Soma with diameter 18.8um and HH channel
+    auto soma = cell.add_soma(18.8/2.0);
     soma->mechanism("membrane").set("r_L", 123); // no effect for single compartment cell
     soma->add_mechanism(hh_parameters());
 
@@ -36,8 +36,7 @@ TEST(run, single_compartment)
 
     // run the simulation
     auto dt     =   0.02; // ms
-    //auto tfinal =   0.10; // ms
-    auto tfinal =   10.; // ms
+    auto tfinal =   30.; // ms
     int nt = tfinal/dt;
     std::vector<double> result;
     result.push_back(model.voltage()[0]);
@@ -66,13 +65,13 @@ TEST(run, ball_and_stick)
     // setup global state for the mechanisms
     nest::mc::mechanisms::setup_mechanism_helpers();
 
-    // Soma with diameter 12.6157 and HH channel
+    // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    // add dendrite with passive channel and 10 compartments
+    // add dendrite of length 200 um and diameter 1 um with passive channel
     auto dendrite = cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
-    dendrite->set_compartments(5);
+    dendrite->set_compartments(5); // 5 compartments
     dendrite->add_mechanism(pas_parameters());
 
     // make the lowered finite volume cell
@@ -83,12 +82,30 @@ TEST(run, ball_and_stick)
     // set initial conditions
     using memory::all;
     model.voltage()(all) = -65.;
+    model.initialize(); // have to do this _after_ initial conditions are set
 
     // run the simulation
     auto dt = 0.02; // ms
-    model.advance(dt);
+    auto tfinal = 20.; // ms
+    int nt = tfinal/dt;
+    std::vector<double> result;
+    result.push_back(model.voltage()[0]);
+    for(auto i=0; i<nt; ++i) {
+        model.advance(dt);
+        result.push_back(model.voltage()[0]);
+    }
+    std::cout << "took " << nt << " time steps" << std::endl;
 
     std::cout << model.voltage() << "\n";
+
+    {
+        std::ofstream fid("v.dat");
+        auto t = 0.;
+        for(auto v:result) {
+            fid << t << " " << v << "\n";
+            t += dt;
+        }
+    }
 }
 
 TEST(run, cable)
