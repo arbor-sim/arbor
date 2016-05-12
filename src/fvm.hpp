@@ -14,6 +14,7 @@
 #include <mechanism_interface.hpp>
 #include <util.hpp>
 #include <segment.hpp>
+#include <stimulus.hpp>
 
 #include <vector/include/Vector.hpp>
 
@@ -165,6 +166,8 @@ class fvm_cell {
 
     /// the ion species
     std::map<mechanisms::ionKind, ion_type> ions_;
+
+    std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -232,7 +235,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
                 auto radius_center = math::mean(c.radius);
                 auto area_face = math::area_circle( radius_center );
                 face_alpha_[i] = area_face  / (c_m * r_L * c.length);
-                cv_capacitance_[i] = c_m;
 
                 auto halflen = c.length/2;
 
@@ -371,6 +373,13 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     ion_ca().reversal_potential()(all)     = 12.5 * std::log(2.0/5e-5);// mV
     ion_ca().internal_concentration()(all) = 5e-5;          // mM
     ion_ca().external_concentration()(all) = 2.0;           // mM
+
+    // add the stimulii
+    for(const auto& stim : cell.stimulii()) {
+        auto idx = find_compartment_index(stim.first, graph);
+        std::cout << "adding stimulus at compartment " << idx << "\n";
+        stimulii_.push_back( {idx, stim.second} );
+    }
 }
 
 template <typename T, typename I>
@@ -402,7 +411,7 @@ void fvm_cell<T, I>::setup_matrix(T dt)
     for(auto i=1u; i<d.size(); ++i) {
         // TODO get this right
         // probably requires scaling a by cv_areas_[i] and cv_areas_[p[i]]
-        auto a = 1e7*dt * face_alpha_[i];
+        auto a = 1e5*dt * face_alpha_[i];
 
         d[i] +=  a;
         l[i]  = -a;
@@ -438,19 +447,20 @@ void fvm_cell<T, I>::advance(T dt)
 
     current_(all) = 0.;
 
-    // update currents
+    // update currents from ion channels
     for(auto& m : mechanisms_) {
         m->set_params(t_, dt);
         m->nrn_current();
     }
 
-    // the factor scales the injected current to 10^2.nA
-    auto ie_factor = 100.;
-    auto ie = 0.1;
-    auto loc = size()-1;
-    //auto loc = 0;
-    if(t_>=5. && t_<8.)
-      current_[loc] -= ie_factor*ie/cv_areas_[loc];
+    // add current contributions from stimulii
+    for(auto& stim : stimulii_) {
+        auto ie = stim.second.amplitude(t_);
+        auto loc = stim.first;
+
+        // the factor of 100 scales the injected current to 10^2.nA
+        current_[loc] -= 100.*ie/cv_areas_[loc];
+    }
 
     //std::cout << "t " << t_ << " current " << current_;
 

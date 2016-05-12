@@ -4,6 +4,20 @@
 namespace nest {
 namespace mc {
 
+int find_compartment_index(
+    segment_location const& location,
+    compartment_model const& graph
+) {
+    EXPECTS(location.segment<graph.segment_index.size());
+    const auto& si = graph.segment_index;
+    const auto seg = location.segment;
+
+    auto first = si[seg];
+    auto n = si[seg+1] - first;
+    auto index = std::floor(n*location.position);
+    return index<n ? first+index : first+n-1;
+}
+
 cell::cell()
 {
     // insert a placeholder segment for the soma
@@ -160,6 +174,20 @@ compartment_model cell::model() const
     m.segment_index = algorithms::make_index(counts);
 
     return m;
+}
+
+
+void cell::add_stimulus( segment_location loc, i_clamp stim)
+{
+    if(!(loc.segment<num_segments())) {
+        throw std::out_of_range(
+            util::pprintf(
+                "can't insert stimulus in segment % of a cell with % segments",
+                loc.segment, num_segments()
+            )
+        );
+    }
+    stimulii_.push_back({loc, std::move(stim)});
 }
 
 std::vector<int> const& cell::segment_parents() const

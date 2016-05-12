@@ -5,8 +5,9 @@
 #include <thread>
 #include <vector>
 
-#include "segment.hpp"
-#include "cell_tree.hpp"
+#include <segment.hpp>
+#include <cell_tree.hpp>
+#include <stimulus.hpp>
 
 namespace nest {
 namespace mc {
@@ -18,6 +19,21 @@ struct compartment_model {
     std::vector<int> parent_index;
     std::vector<int> segment_index;
 };
+
+struct segment_location {
+    segment_location(int s, double l)
+    : segment(s), position(l)
+    {
+        EXPECTS(position>=0. && position<=1.);
+    }
+    int segment;
+    double position;
+};
+
+int find_compartment_index(
+    segment_location const& location,
+    compartment_model const& graph
+);
 
 /// high-level abstract representation of a cell and its segments
 class cell {
@@ -83,12 +99,28 @@ class cell {
 
     compartment_model model() const;
 
+    void add_stimulus(segment_location loc, i_clamp stim);
+
+    std::vector<std::pair<segment_location, i_clamp>>&
+    stimulii() {
+        return stimulii_;
+    }
+
+    const std::vector<std::pair<segment_location, i_clamp>>&
+    stimulii() const {
+        return stimulii_;
+    }
+
     private:
 
     // storage for connections
     std::vector<index_type> parents_;
+
     // the segments
     std::vector<segment_ptr> segments_;
+
+    // the stimulii
+    std::vector<std::pair<segment_location, i_clamp>> stimulii_;
 };
 
 // create a cable by forwarding cable construction parameters provided by the user
