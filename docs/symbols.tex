@@ -1,3 +1,113 @@
+%-------------------------------------------------------------------------------
+%\subsubsection{Balancing Units}
+%-------------------------------------------------------------------------------
+Ensuring that units are balanced and correct requires care.
+Take the description of the nonlinear system of ODEs that arises from the finite volume discretisation
+\begin{equation}
+    \label{eq:linsys_FV}
+      V_i^{k+1} + \sum_{j\in\mathcal{N}_i} {\frac{\Delta t \alpha_{ij}}{\sigma_i} (V_i^{k+1}-V_j^{k+1})}
+    = V_i^k - \frac{\Delta t}{c_m}(i_m^{k} - i_e).
+\end{equation}
+The choice of units for a parameter, e.g. $\mu m^2$ or $m^2$ for the area $\sigma_{ij}$, introduces a constant of proportionality wherever it is used ($10^{-12}$ in the case of $\mu m^2 \rightarrow m^2$).
+Wherever terms are added in \eq{eq:linsys_FV} the units must be checked, and constants of proportionality balanced.
+
+First, appropriate units for each of the parameters and variables are chosen in~\tbl{tbl:units}.
+We try to use the same units as NEURON, except for the specific membrane capacitance $c_m$, for which $F\cdot m^{-2}$ is used in place of $nF\cdot mm^{-2}$.
+In \eq{eq:linsys_FV} we choose units of $mV \equiv 10^{-3}V$ for each term because of the $V_i$ terms on either side of the equation.
+
+\begin{table}[hp!]
+\begin{tabular}{lllr}
+    \hline
+    term                      &   units                 &  normalized units                         & NEURON \\
+    \hline
+    $t$                       &   $ms$                  &  $10^{-3} \cdot s$                        & yes    \\
+    $V$                       &   $mV$                  &  $10^{-3} \cdot V$                        & yes    \\
+    $a,~\Delta x$             &   $\mu m$               &  $10^{-6} \cdot m$                        & yes    \\
+    $\sigma_{i},~\sigma_{ij}$ &   $\mu m^2$             &  $10^{-12} \cdot m^2$                     & yes    \\
+    $c_m$                     &   $F\cdot m^{-2}$       &  $s\cdot A\cdot V^{-1}\cdot m^{-2}$       & no     \\
+    $r_L$                     &   $\Omega\cdot cm$ &    $  10^{-2} \cdot A^{-1}\cdot V\cdot m$      & yes    \\
+    $\overline{g}$            &   $S\cdot cm^{-2}$      &  $10^{4} \cdot A\cdot V^{-1}\cdot m^{-2}$ & yes    \\
+    $I_e$                     &   $nA$                  &  $10^{-9} \cdot A$                        & yes    \\
+    \hline
+\end{tabular}
+\caption{The units chosen for parameters and variables in NEST MC. The NEURON column indicates whether the same units have been used as NEURON.}
+\label{tbl:units}
+\end{table}
+
+%------------------------------------------
+\subsubsection{current terms}
+%------------------------------------------
+Membrane current is calculated as follows $i_m = \overline{g}(E-V)$, with units
+\begin{align}
+    \unit{ i_m } &=  \unit{ \overline{g} } \unit{ V } \nonumber \\
+                       &=  10^{4} \cdot A\cdot V^{-1}\cdot m^{-2} \cdot 10^{-3} \cdot V \nonumber \\
+                       &=  10 \cdot A \cdot m^{-2}. \label{eq:im_unit}
+\end{align}
+The injected current $I_e$ has units $nA$, which has to be expressed in terms of current per unit area $i_e=I_e / \sigma_i$ with units
+\begin{align}
+    \unit{ i_e } &=  \unit{ I_e } \unit{ \sigma_i }^{-1} \nonumber \\
+                       &=  10^{-9}\cdot A \cdot 10^{12} \cdot m^{-2} \nonumber \\
+                       &=  10^{3} \cdot A \cdot m ^{-2}, \label{eq:ie_unit}
+\end{align}
+which must be scaled by $10^2$ to match $i_m$ in \eq{eq:im_unit}.
+
+The units for the flux coefficent can be calculated as follows:
+\begin{align}
+    \unit{ \frac{\Delta t}{c_m} } &= 10^{-3} \cdot s \cdot s^{-1}\cdot A^{-1}\cdot V\cdot m^2 \nonumber \\
+                                  &= 10^{-3} \cdot A^{-1} \cdot V\cdot m^2. \label{eq:dtcm_unit}
+\end{align}
+From \eq{eq:im_unit} and \eq{eq:dtcm_unit} that the units of the full current term are
+\begin{align}
+    \unit{ \frac{\Delta t}{c_m}\left(i_m - i_e\right) }
+        &= 10^{-3} \cdot A^{-1} \cdot V\cdot m^2 \cdot 10 \cdot A \cdot m^{-2} \nonumber \\
+        &= 10^{-2} \cdot V,
+\end{align}
+which must be scaled by $10$ to match the units of $mV\equiv10^{-3}V$.
+%------------------------------------------
+\subsubsection{flux terms}
+%------------------------------------------
+The coefficients in the linear system have the units
+\begin{equation}
+    \unit{ \frac{\Delta t\alpha_{ij}}{\sigma_i} }
+    =
+    \unit{ \frac{\Delta t \sigma_{ij} } {c_m r_L \Delta x_{ij} \sigma_i} }
+    =
+    \unit{ \frac{\Delta t } {c_m r_L \Delta x_{ij} } },
+\end{equation}
+where we we simplify by noting that $\unit{\sigma_{ij}}=\unit{\sigma_i}$.
+The units of the term $c_m r_L$ on the denominator are calculated as follows
+\begin{align}
+    \unit{c_m r_L}
+    &= s \cdot A \cdot V^{-1} \cdot m^{-2} \cdot 10^{-2} \cdot A^{-1} \cdot V \cdot m \nonumber \\
+    &= 10^{-2} \cdot s \cdot m^{-1},
+\end{align}
+so the units of the denominator are
+\begin{align}
+    \unit{c_m r_L \Delta x_{ij}}
+    &= 10^{-2} \cdot s \cdot m^{-1} \cdot 10^{-6} \cdot m \nonumber \\
+    &= 10^{-8} \cdot s,
+\end{align}
+and hence
+\begin{align}
+    \unit{\frac{\Delta t } {c_m r_L \Delta x_{ij} }}
+    &= 10^{8} \cdot s^{-1} \cdot 10^{-3} \cdot s \nonumber \\
+    &= 10^{5}.
+\end{align}
+
+So, the terms with $\alpha_{ij}$ must be scaled by $10^5$ to match the units of $mV$.
+%------------------------------------------
+\subsubsection{discretization with scaling}
+%------------------------------------------
+Here is something that I wish the NEURON documentation had provided:
+\begin{align}
+&     V_i^{k+1} + \sum_{j\in\mathcal{N}_i} {10^5 \cdot \frac{\Delta t \alpha_{ij}}{\sigma_i} (V_i^{k+1}-V_j^{k+1})} \nonumber \\
+&   = V_i^k - 10\cdot \frac{\Delta t}{c_m}(i_m^{k} - 10^2\cdot I_e/\sigma_i).
+\end{align}
+%------------------------------------------
+\subsection{Supplementary Unit Information}
+%------------------------------------------
+Here is some information about units scraped from Wikipedia for convenience.
+
 \begin{table*}[htp!]
     \begin{center}
 
@@ -14,6 +124,8 @@
         conductance& $g$ & siemens $S$  & $g=1/R$ i.e. inverse of resistance \\
         \hline
     \end{tabular}
+
+    \vspace{20pt}
 
     \begin{tabular}{llll}
         \hline
@@ -44,27 +156,4 @@
     \end{center}
     \caption{Symbols and quantities.}
 \end{table*}
-%-------------------------------------------------------------------------------
-\subsubsection{Units}
-%-------------------------------------------------------------------------------
-Reffering to the cable equation first defined in~\eq{eq:cable}
-\begin{equation*}
-    c_m \pder{V}{t} = \frac{1}{2\pi a r_{L}} \pder{}{x} \left( a^2 \pder{V}{x} \right) - i_m + i_e,
-\end{equation*}
-
-If the units are taken to be
-\begin{itemize}
-    \item $c_m = F\cdot cm^{-2}$
-    \item $V = V$
-    \item $a = cm$
-    \item $r_L = \Omega\cdot cm$
-\end{itemize}
-Then the units of each term in equation are $A\cdot cm^{-2}$.
-In practice, the units above are not used, for example distances are usually measured in $\mu m$ and areas in $cm^2$.
-But if we work term-by-term, scaling for these factors is manageable.
-
-A useful identity to use when performing the dimensional analysis relates capacitance and resistance
-\begin{equation*}
-    1~F = 1~\Omega^{-1} \cdot s
-\end{equation*}
 
