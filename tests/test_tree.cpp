@@ -232,7 +232,7 @@ TEST(cell_tree, balance) {
         EXPECT_EQ(t.parent(5), 2);
         EXPECT_EQ(t.parent(6), 5);
 
-        t.to_graphviz("cell.dot");
+        //t.to_graphviz("cell.dot");
     }
 }
 
@@ -246,8 +246,7 @@ TEST(cell_tree, json_load)
     for(auto c : range(0,cell_data.size())) {
         std::vector<int> parent_index = cell_data[c]["parent_index"];
         cell_tree tree(parent_index);
-        //tree.to_graphviz("cell_" + std::to_string(c) + ".dot");
-        tree.to_graphviz("cell" + std::to_string(c) + ".dot");
+        //tree.to_graphviz("cell" + std::to_string(c) + ".dot");
     }
 }
 

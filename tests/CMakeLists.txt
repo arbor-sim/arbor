@@ -8,10 +8,10 @@ set(HEADERS
     ../src/tree.hpp
 )
 
-set(TEST_SOURCES
-    # google test framework
-    gtest-all.cpp
+# google test framework
+add_library(gtest gtest-all.cpp gtest.h)
 
+set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
     test_cell.cpp
@@ -26,14 +26,29 @@ set(TEST_SOURCES
     test_tree.cpp
 
     # unit test driver
-    main.cpp
+    test.cpp
+)
+
+set(VALIDATION_SOURCES
+    # unit tests
+    validate_soma.cpp
+
+    # unit test driver
+    validate.cpp
 )
 
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 
-target_link_libraries(test.exe LINK_PUBLIC cellalgo)
+target_link_libraries(test.exe LINK_PUBLIC cellalgo gtest)
+target_link_libraries(validate.exe LINK_PUBLIC cellalgo gtest)
 
 set_target_properties(test.exe
+   PROPERTIES
+   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
+)
+
+set_target_properties(validate.exe
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
 )

@@ -434,6 +434,8 @@ void fvm_cell<T, I>::setup_matrix(T dt)
 template <typename T, typename I>
 void fvm_cell<T, I>::initialize()
 {
+    t_ = 0.;
+
     // initialize mechanism states
     for(auto& m : mechanisms_) {
         m->nrn_init();

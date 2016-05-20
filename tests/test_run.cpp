@@ -1,39 +1,17 @@
 #include <fstream>
 
 #include "gtest.h"
+#include "util.hpp"
 
 #include "../src/cell.hpp"
 #include "../src/fvm.hpp"
-
-void write_vis_file(const std::string& fname, std::vector<std::vector<double>> values)
-{
-    auto m = values.size();
-    if(!m) return;
-
-    std::ofstream fid(fname);
-    if(!fid.is_open()) return;
-
-    auto n = values[0].size();
-    for(const auto& v : values) {
-        std::cout << n << " ----- " << v.size() << "\n";
-        if(n!=v.size()) {
-            std::cerr << "all output arrays must have the same length\n";
-            return;
-        }
-    }
-
-    for(auto i=0u; i<n; ++i) {
-        for(auto j=0u; j<m; ++j) {
-            fid << " " << values[j][i];
-        }
-        fid << "\n";
-    }
-}
 
 // based on hh/Neuron/steps_A.py
 TEST(run, single_compartment)
 {
     using namespace nest::mc;
+
+    std::vector<std::vector<double>> results(2);
 
     nest::mc::cell cell;
 
@@ -46,7 +24,8 @@ TEST(run, single_compartment)
     soma->add_mechanism(hh_parameters());
 
     // add stimulus to the soma
-    cell.add_stimulus({0,0}, {5., 3., 0.1});
+    //cell.add_stimulus({0,0}, {5., 3., 0.1});
+    cell.add_stimulus({0,0.5}, {10., 100., 0.1});
 
     // make the lowered finite volume cell
     fvm::fvm_cell<double, int> model(cell);
@@ -57,31 +36,26 @@ TEST(run, single_compartment)
     model.initialize(); // have to do this _after_ initial conditions are set
 
     // run the simulation
-    auto dt     =   0.025; // ms
-    auto tfinal =   25.; // ms
+    auto dt     =   0.0005; // ms
+    auto tfinal =   120.; // ms
     int nt = tfinal/dt;
-    std::vector<double> result;
-    result.push_back(model.voltage()[0]);
+    results[0].push_back(0.);
+    results[1].push_back(model.voltage()[0]);
     for(auto i=0; i<nt; ++i) {
         model.advance(dt);
-        result.push_back(model.voltage()[0]);
+        // save voltage at soma
+        results[0].push_back((i+1)*dt);
+        results[1].push_back(model.voltage()[0]);
     }
 
-    {
-        std::ofstream fid("v.dat");
-        auto t = 0.;
-        for(auto v:result) {
-            fid << t << " " << v << "\n";
-            t += dt;
-        }
-    }
+    write_vis_file("v.dat", results);
 }
 
 TEST(run, ball_and_stick)
 {
     using namespace nest::mc;
 
-    std::vector<std::vector<double>> results(4);
+    std::vector<std::vector<double>> results(3);
 
     nest::mc::cell cell;
 
@@ -94,12 +68,14 @@ TEST(run, ball_and_stick)
 
     // add dendrite of length 200 um and diameter 1 um with passive channel
     auto dendrite = cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
-    dendrite->set_compartments(81); // 5 compartments
+    dendrite->set_compartments(10);
     dendrite->add_mechanism(pas_parameters());
 
+    dendrite->mechanism("membrane").set("r_L", 100); // no effect for single compartment cell
+
     // add stimulus
-    //cell.add_stimulus({0,0}, {5., 3., 0.1}); // soma
-    cell.add_stimulus({1,1}, {5., 30., 0.1});
+    //cell.add_stimulus({0,0}, {5., 1., 0.1}); // soma
+    cell.add_stimulus({1,1}, {5., 1., 0.5});
 
     // make the lowered finite volume cell
     fvm::fvm_cell<double, int> model(cell);
@@ -112,19 +88,18 @@ TEST(run, ball_and_stick)
     model.initialize(); // have to do this _after_ initial conditions are set
 
     // run the simulation
-    auto dt = 0.02; // ms
+    auto pos = model.size()-1;
+    auto dt = 0.001; // ms
     auto tfinal = 25.; // ms
     int nt = tfinal/dt;
     results[0].push_back(0.);
     results[1].push_back(model.voltage()[0]);
-    results[2].push_back(model.voltage()[10]);
-    results[3].push_back(model.voltage()[20]);
+    results[2].push_back(model.voltage()[pos]);
     for(auto i=0; i<nt; ++i) {
         model.advance(dt);
         results[0].push_back((i+1)*dt);
         results[1].push_back(model.voltage()[0]);
-        results[2].push_back(model.voltage()[10]);
-        results[3].push_back(model.voltage()[20]);
+        results[2].push_back(model.voltage()[pos]);
     }
 
     write_vis_file("v.dat", results);
