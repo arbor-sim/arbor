@@ -3,13 +3,16 @@
 #include "gtest.h"
 #include "util.hpp"
 
-#include "../src/cell.hpp"
-#include "../src/fvm.hpp"
+#include <cell.hpp>
+#include <fvm.hpp>
+
+#include <json/src/json.hpp>
 
 // based on hh/Neuron/steps_A.py
 TEST(soma, resolutions)
 {
     using namespace nest::mc;
+    using namespace nlohmann;
 
     nest::mc::cell cell;
 
@@ -22,15 +25,34 @@ TEST(soma, resolutions)
     soma->add_mechanism(hh_parameters());
 
     // add stimulus to the soma
-    //cell.add_stimulus({0,0}, {5., 3., 0.1});
     cell.add_stimulus({0,0.5}, {10., 100., 0.1});
 
     // make the lowered finite volume cell
     fvm::fvm_cell<double, int> model(cell);
 
-    auto i =0;
-    for(auto dt : {0.02, 0.01, 0.005, 0.002, 0.001}) {
-        std::vector<std::vector<double>> results(2);
+    // load data from file
+    std::string input_name = "../nrn/soma.json";
+    json  cell_data;
+    {
+        auto fid = std::ifstream(input_name);
+        if(!fid.is_open()) {
+            std::cerr << "error : unable to open file " << input_name
+                      << " : run the validation generation script first\n";
+            return;
+        }
+
+        try {
+            fid >> cell_data;
+        }
+        catch (...) {
+            std::cerr << "error : incorrectly formatted json file " << input_name << "\n";
+            return;
+        }
+    }
+
+    for(auto& run : cell_data) {
+        std::vector<double> v;
+        double dt = run["dt"];
 
         // set initial conditions
         using memory::all;
@@ -40,16 +62,16 @@ TEST(soma, resolutions)
         // run the simulation
         auto tfinal =   120.; // ms
         int nt = tfinal/dt;
-        results[0].push_back(0.);
-        results[1].push_back(model.voltage()[0]);
+        v.push_back(model.voltage()[0]);
         for(auto i=0; i<nt; ++i) {
             model.advance(dt);
             // save voltage at soma
-            results[0].push_back((i+1)*dt);
-            results[1].push_back(model.voltage()[0]);
+            v.push_back(model.voltage()[0]);
         }
-        write_vis_file("v_" + std::to_string(i) + ".dat", results);
-        ++i;
+
+        std::cout << v << "\n";
+        auto spike_times = find_spikes(v, 0., dt);
+        std::cout << "dt " << dt << " : spikes " << spike_times << "\n";
     }
 }
 

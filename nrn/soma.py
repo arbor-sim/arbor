@@ -1,7 +1,18 @@
 import os.path
-from neuron import h, gui
 from matplotlib import pyplot
 import numpy as np
+import json
+import argparse
+from neuron import gui, h
+
+parser = argparse.ArgumentParser(description='generate spike train info for a soma with hh channels')
+parser.add_argument('--plot', action='store_true', dest='plot')
+args = parser.parse_args()
+
+if args.plot :
+    print '-- plotting turned on'
+else :
+    print '-- plotting turned off'
 
 soma = h.Section(name='soma')
 
@@ -17,51 +28,43 @@ stim.delay = 10
 stim.dur = 100
 stim.amp = 0.1
 
+spike_counter = h.APCount(soma(0.5))
+spike_counter.thresh = 0
+
 v_vec = h.Vector()        # Membrane potential vector
 t_vec = h.Vector()        # Time stamp vector
+s_vec = h.Vector()        # Time stamp vector
 v_vec.record(soma(0.5)._ref_v)
 t_vec.record(h._ref_t)
+spike_counter.record(s_vec)
+
 simdur = 120
 
 # initialize plot
-pyplot.figure(figsize=(8,4)) # Default figsize is (8,6)
-
-pyplot.subplot(2,1,1)
-pyplot.grid()
+if args.plot :
+    pyplot.figure(figsize=(8,4)) # Default figsize is (8,6)
 
 h.tstop = simdur
 
 # run neuron with multiple dt
-
-for dt in [0.02, 0.01, 0.005, 0.002, 0.001]:
+results = []
+#for dt in [0.02, 0.01, 0.005, 0.0005, 0.0001]:
+for dt in [0.02, 0.0001]:
     h.dt = dt
     h.run()
-    pyplot.plot(t_vec, v_vec, label='neuron ' + str(dt))
-    #pyplot.plot(t_vec, v_vec, 'k', label='neuron ' + str(dt))
+    results.append({"dt": dt, "spikes": s_vec.to_python()})
+    if args.plot :
+        pyplot.plot(t_vec, v_vec, label='neuron ' + str(dt))
 
-pyplot.xlim([102.5,105])
-pyplot.ylim([0,40])
+# save the spike info as in json format
+fp = open('soma.json', 'w')
+json.dump(results, fp, indent=1)
 
-pyplot.legend()
-pyplot.subplot(2,1,2)
-pyplot.grid()
-step = 0
-while os.path.isfile('../tests/v_' + str(step) + '.dat') :
-    fname = '../tests/v_' + str(step) + '.dat'
-    print 'loading ' + fname
-    data = np.loadtxt(fname)
-    t = data[:,0]
-    v = data[:,1]
-    #pyplot.plot(t, v, 'b', label=fname)
-    pyplot.plot(t, v, label=fname)
-    step = step + 1
-
-pyplot.xlabel('time (ms)')
-pyplot.ylabel('mV')
-
-pyplot.xlim([102.5,105])
-pyplot.ylim([0,40])
-
-pyplot.legend()
-pyplot.show()
+if args.plot :
+    pyplot.xlabel('time (ms)')
+    pyplot.ylabel('mV')
+    pyplot.xlim([0, 120])
+    pyplot.grid()
+    pyplot.legend()
+    pyplot.show()
 

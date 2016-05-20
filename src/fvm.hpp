@@ -257,8 +257,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         cv_capacitance_[i] /= cv_areas_[i];
     }
 
-    std::cout << "capacitance " << cv_capacitance_ << "\n";
-
     /////////////////////////////////////////////
     //  create mechanisms
     /////////////////////////////////////////////
