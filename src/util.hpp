@@ -28,7 +28,7 @@ operator << (std::ostream &o, std::vector<T>const& v)
 {
     o << "[";
     for(auto const& i: v) {
-        o << i << ", ";
+        o << i << ",";
     }
     o << "]";
     return o;
@@ -39,7 +39,7 @@ std::ostream& print(std::ostream &o, std::vector<T>const& v)
 {
     o << "[";
     for(auto const& i: v) {
-        o << i << ", ";
+        o << i << ",";
     }
     o << "]";
     return o;

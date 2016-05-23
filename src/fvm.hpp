@@ -375,7 +375,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     // add the stimulii
     for(const auto& stim : cell.stimulii()) {
         auto idx = find_compartment_index(stim.first, graph);
-        std::cout << "adding stimulus at compartment " << idx << "\n";
         stimulii_.push_back( {idx, stim.second} );
     }
 }

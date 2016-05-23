@@ -69,9 +69,15 @@ TEST(soma, resolutions)
             v.push_back(model.voltage()[0]);
         }
 
-        std::cout << v << "\n";
-        auto spike_times = find_spikes(v, 0., dt);
-        std::cout << "dt " << dt << " : spikes " << spike_times << "\n";
+        // get the spike times from the NEST MC and NEURON simulations respectively
+        auto nst_spike_times = find_spikes(v, 0., dt);
+        auto nrn_spike_times = run["spikes"].get<std::vector<double>>();
+        auto comparison = compare_spikes(nst_spike_times, nrn_spike_times);
+
+        // Assert that relative error is less than 1%.
+        // For a 100 ms simulation this asserts that the difference between NEST and NEURON
+        // at a given time step size is less than 1 ms.
+        EXPECT_TRUE(comparison.max_relative_error()*100. < 1.);
     }
 }
 
