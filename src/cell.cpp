@@ -155,9 +155,9 @@ std::vector<int> cell::compartment_counts() const
     return comp_count;
 }
 
-int cell::num_compartments() const
+size_t cell::num_compartments() const
 {
-    auto n = 0;
+    auto n = 0u;
     for(auto &s : segments_) {
         n += s->num_compartments();
     }

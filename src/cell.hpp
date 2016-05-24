@@ -86,7 +86,7 @@ class cell {
     value_type area() const;
 
     /// the total number of compartments over all segments
-    int num_compartments() const;
+    size_t num_compartments() const;
 
     std::vector<segment_ptr> const& segments() const;
 

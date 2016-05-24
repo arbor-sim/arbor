@@ -16,10 +16,11 @@ set(TEST_SOURCES
     test_algorithms.cpp
     test_cell.cpp
     test_compartments.cpp
+    test_fvm.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_parameters.cpp
     test_point.cpp
-    test_run.cpp
     test_segment.cpp
     test_stimulus.cpp
     test_swcio.cpp
