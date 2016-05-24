@@ -32,6 +32,7 @@
 *.dot
 *.pdf
 *.jpg
+*.dat
 
 # latex output
 *.aux
@@ -47,3 +48,5 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 
+# mechanism implementations generated my modparser
+include/mechanisms

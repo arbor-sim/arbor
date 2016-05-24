@@ -6,23 +6,21 @@
 #include <string>
 #include <vector>
 
-namespace nestmc
-{
+#include <cell.hpp>
+#include <point.hpp>
 
-namespace io
-{
+namespace nest {
+namespace mc {
+namespace io {
 
-
-class cell_record
+class swc_record
 {
 public:
     using id_type = int;
+    using coord_type = double;
 
-    // FIXME: enum's are not completely type-safe, since they can accept
-    // anything that can be casted to their underlying type.
-    //
     // More on SWC files: http://research.mssm.edu/cnic/swc.html
-    enum kind {
+    enum class kind {
         undefined = 0,
         soma,
         axon,
@@ -33,10 +31,10 @@ public:
         custom
     };
 
-    // cell records assume zero-based indexing; root's parent remains -1
-    cell_record(kind type, int id,
-                float x, float y, float z, float r,
-                int parent_id)
+    // swc records assume zero-based indexing; root's parent remains -1
+    swc_record(swc_record::kind type, int id,
+               coord_type x, coord_type y, coord_type z, coord_type r,
+               int parent_id)
         : type_(type)
         , id_(id)
         , x_(x)
@@ -48,8 +46,8 @@ public:
         check_consistency();
     }
 
-    cell_record()
-        : type_(cell_record::undefined)
+    swc_record()
+        : type_(swc_record::kind::undefined)
         , id_(0)
         , x_(0)
         , y_(0)
@@ -58,10 +56,10 @@ public:
         , parent_id_(-1)
     { }
 
-    cell_record(const cell_record &other) = default;
-    cell_record &operator=(const cell_record &other) = default;
+    swc_record(const swc_record &other) = default;
+    swc_record &operator=(const swc_record &other) = default;
 
-    bool strict_equals(const cell_record &other) const
+    bool strict_equals(const swc_record &other) const
     {
         return id_ == other.id_ &&
             x_ == other.x_ &&
@@ -72,43 +70,43 @@ public:
     }
 
     // Equality and comparison operators
-    friend bool operator==(const cell_record &lhs,
-                           const cell_record &rhs)
+    friend bool operator==(const swc_record &lhs,
+                           const swc_record &rhs)
     {
         return lhs.id_ == rhs.id_;
     }
 
-    friend bool operator<(const cell_record &lhs,
-                          const cell_record &rhs)
+    friend bool operator<(const swc_record &lhs,
+                          const swc_record &rhs)
     {
         return lhs.id_ < rhs.id_;
     }
 
-    friend bool operator<=(const cell_record &lhs,
-                           const cell_record &rhs)
+    friend bool operator<=(const swc_record &lhs,
+                           const swc_record &rhs)
     {
         return (lhs < rhs) || (lhs == rhs);
     }
 
-    friend bool operator!=(const cell_record &lhs,
-                           const cell_record &rhs)
+    friend bool operator!=(const swc_record &lhs,
+                           const swc_record &rhs)
     {
         return !(lhs == rhs);
     }
 
-    friend bool operator>(const cell_record &lhs,
-                          const cell_record &rhs)
+    friend bool operator>(const swc_record &lhs,
+                          const swc_record &rhs)
     {
         return !(lhs < rhs) && (lhs != rhs);
     }
 
-    friend bool operator>=(const cell_record &lhs,
-                           const cell_record &rhs)
+    friend bool operator>=(const swc_record &lhs,
+                           const swc_record &rhs)
     {
         return !(lhs < rhs);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const cell_record &cell);
+    friend std::ostream &operator<<(std::ostream &os, const swc_record &record);
 
     kind type() const
     {
@@ -125,29 +123,34 @@ public:
         return parent_id_;
     }
 
-    float x() const
+    coord_type x() const
     {
         return x_;
     }
 
-    float y() const
+    coord_type y() const
     {
         return y_;
     }
 
-    float z() const
+    coord_type z() const
     {
         return z_;
     }
 
-    float radius() const
+    coord_type radius() const
     {
         return r_;
     }
 
-    float diameter() const
+    coord_type diameter() const
     {
         return 2*r_;
+    }
+
+    nest::mc::point<coord_type> coord() const
+    {
+        return nest::mc::point<coord_type>(x_, y_, z_);
     }
 
     void renumber(id_type new_id, std::map<id_type, id_type> &idmap);
@@ -155,11 +158,11 @@ public:
 private:
     void check_consistency() const;
 
-    kind type_;         // cell type
-    id_type id_;        // cell id
-    float x_, y_, z_;   // cell coordinates
-    float r_;           // cell radius
-    id_type parent_id_; // cell parent's id
+    kind type_;             // record type
+    id_type id_;            // record id
+    coord_type x_, y_, z_;  // record coordinates
+    coord_type r_;          // record radius
+    id_type parent_id_;     // record parent's id
 };
 
 
@@ -206,11 +209,11 @@ public:
         return lineno_;
     }
 
-    std::istream &parse_record(std::istream &is, cell_record &cell);
+    std::istream &parse_record(std::istream &is, swc_record &record);
 
 private:
     // Read the record from a string stream; will be treated like a single line
-    cell_record parse_record(std::istringstream &is);
+    swc_record parse_record(std::istringstream &is);
 
     std::string delim_;
     std::string comment_prefix_;
@@ -219,15 +222,15 @@ private:
 };
 
 
-std::istream &operator>>(std::istream &is, cell_record &cell);
+std::istream &operator>>(std::istream &is, swc_record &record);
 
-class cell_record_stream_iterator :
-        public std::iterator<std::forward_iterator_tag, cell_record>
+class swc_record_stream_iterator :
+        public std::iterator<std::forward_iterator_tag, swc_record>
 {
 public:
     struct eof_tag { };
 
-    cell_record_stream_iterator(std::istream &is)
+    swc_record_stream_iterator(std::istream &is)
         : is_(is)
         , eof_(false)
     {
@@ -236,19 +239,19 @@ public:
         read_next_record();
     }
 
-    cell_record_stream_iterator(std::istream &is, eof_tag)
+    swc_record_stream_iterator(std::istream &is, eof_tag)
         : is_(is)
         , eof_(true)
     { }
 
-    cell_record_stream_iterator(const cell_record_stream_iterator &other)
+    swc_record_stream_iterator(const swc_record_stream_iterator &other)
         : is_(other.is_)
         , parser_(other.parser_)
         , curr_record_(other.curr_record_)
         , eof_(other.eof_)
     { }
 
-    cell_record_stream_iterator &operator++()
+    swc_record_stream_iterator &operator++()
     {
         if (eof_) {
             throw std::out_of_range("attempt to read past eof");
@@ -258,14 +261,14 @@ public:
         return *this;
     }
 
-    cell_record_stream_iterator operator++(int)
+    swc_record_stream_iterator operator++(int)
     {
-        cell_record_stream_iterator ret(*this);
+        swc_record_stream_iterator ret(*this);
         operator++();
         return ret;
     }
 
-    value_type operator*()
+    value_type operator*() const
     {
         if (eof_) {
             throw std::out_of_range("attempt to read past eof");
@@ -274,7 +277,7 @@ public:
         return curr_record_;
     }
 
-    bool operator==(const cell_record_stream_iterator &other) const
+    bool operator==(const swc_record_stream_iterator &other) const
     {
         if (eof_ && other.eof_) {
             return true;
@@ -283,13 +286,13 @@ public:
         }
     }
 
-    bool operator!=(const cell_record_stream_iterator &other)
+    bool operator!=(const swc_record_stream_iterator &other) const
     {
         return !(*this == other);
     }
 
     friend std::ostream &operator<<(std::ostream &os,
-                                    const cell_record_stream_iterator &iter)
+                                    const swc_record_stream_iterator &iter)
     {
         os << "{ is_.tellg(): " << iter.is_.tellg()  << ", "
            << "curr_record_: "  << iter.curr_record_ << ", "
@@ -309,7 +312,7 @@ private:
 
     std::istream &is_;
     swc_parser parser_;
-    cell_record curr_record_;
+    swc_record curr_record_;
 
     // indicator of eof; we need a way to define an end() iterator without
     // seeking to the end of file
@@ -317,28 +320,33 @@ private:
 };
 
 
-class cell_record_range_raw
+class swc_record_range_raw
 {
 public:
-    using value_type     = cell_record;
-    using reference      = value_type &;
-    using const_referene = const value_type &;
-    using iterator       = cell_record_stream_iterator;
-    using const_iterator = const cell_record_stream_iterator;
+    using value_type      = swc_record;
+    using reference       = value_type &;
+    using const_reference = const value_type &;
+    using iterator        = swc_record_stream_iterator;
+    using const_iterator  = const swc_record_stream_iterator;
 
-    cell_record_range_raw(std::istream &is)
+    swc_record_range_raw(std::istream &is)
         : is_(is)
     { }
 
-    iterator begin()
+    iterator begin() const
     {
-        return cell_record_stream_iterator(is_);
+        return swc_record_stream_iterator(is_);
     }
 
-    iterator end()
+    iterator end() const
     {
         iterator::eof_tag eof;
-        return cell_record_stream_iterator(is_, eof);
+        return swc_record_stream_iterator(is_, eof);
+    }
+
+    bool empty() const
+    {
+        return begin() == end();
     }
 
 private:
@@ -346,58 +354,66 @@ private:
 };
 
 //
-// Reads cells from an input stream until an eof is encountered and returns a
-// cleaned sequence of cell records.
+// Reads records from an input stream until an eof is encountered and returns a
+// cleaned sequence of swc records.
 //
 // For more information check here:
 //   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
 //
 
-class cell_record_range_clean
+class swc_record_range_clean
 {
 public:
-    using value_type     = cell_record;
+    using value_type     = swc_record;
     using reference      = value_type &;
     using const_referene = const value_type &;
-    using iterator       = std::vector<cell_record>::iterator;
-    using const_iterator = std::vector<cell_record>::const_iterator;
+    using iterator       = std::vector<swc_record>::iterator;
+    using const_iterator = std::vector<swc_record>::const_iterator;
 
-    cell_record_range_clean(std::istream &is);
+    swc_record_range_clean(std::istream &is);
 
     iterator begin()
     {
-        return cells_.begin();
+        return records_.begin();
     }
 
     iterator end()
     {
-        return cells_.end();
+        return records_.end();
     }
 
     std::size_t size()
     {
-        return cells_.size();
+        return records_.size();
+    }
+
+    bool empty() const
+    {
+        return records_.empty();
     }
 
 private:
-    std::vector<cell_record> cells_;
+    std::vector<swc_record> records_;
 };
 
 struct swc_io_raw
 {
-    using cell_range_type = cell_record_range_raw;
+    using record_range_type = swc_record_range_raw;
 };
 
 struct swc_io_clean
 {
-    using cell_range_type = cell_record_range_clean;
+    using record_range_type = swc_record_range_clean;
 };
 
 template<typename T = swc_io_clean>
- typename T::cell_range_type swc_get_records(std::istream &is)
+typename T::record_range_type swc_get_records(std::istream &is)
 {
-    return typename T::cell_range_type(is);
+    return typename T::record_range_type(is);
 }
 
-}   // end of nestmc::io
-}   // end of nestmc
+cell swc_read_cell(std::istream &is);
+
+} // namespace io
+} // namespace mc
+} // namespace nest

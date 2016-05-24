@@ -7,11 +7,15 @@
 #include <cassert>
 
 #include "vector/include/Vector.hpp"
+#include "algorithms.hpp"
 #include "util.hpp"
 
-using range = memory::Range;
+namespace nest {
+namespace mc {
 
 class tree {
+    using range = memory::Range;
+
     public :
 
     using int_type = int16_t;
@@ -19,30 +23,51 @@ class tree {
     using index_type = memory::HostVector<int_type>;
     using index_view = index_type::view_type;
 
-    tree(tree const& other)
-    :   data_(other.data_)
-    {
+    tree() = default;
+
+    tree& operator=(tree&& other) {
+        std::swap(data_, other.data_);
+        std::swap(child_index_, other.child_index_);
+        std::swap(children_, other.children_);
+        std::swap(parents_, other.parents_);
+        return *this;
+    }
+
+    tree& operator=(tree const& other) {
+        data_ = other.data_;
         set_ranges(other.num_nodes());
+        return *this;
+    }
+
+    // copy constructors take advantage of the assignment operators
+    // defined above
+    tree(tree const& other)
+    {
+        *this = other;
     }
 
     tree(tree&& other)
-    : data_(std::move(other.data_))
     {
-        set_ranges(other.num_nodes());
+        *this = std::move(other);
     }
-
-    tree() = default;
 
     /// create the tree from a parent_index
     template <typename I>
-    std::vector<I>
-    init_from_parent_index(std::vector<I> const& parent_index)
+    tree(std::vector<I> const& parent_index)
     {
+        // validate the inputs
+        if(!algorithms::is_minimal_degree(parent_index)) {
+            throw std::domain_error(
+                "parent index used to build a tree did not satisfy minimal degree ordering"
+            );
+        }
+
         // n = number of compartment in cell
         auto n = parent_index.size();
 
-        // On completion of this loop child_count[i] is the number of children of compartment i
-        // compensate count for compartment 0, which has itself as its own parent
+        // On completion of this loop child_count[i] is the number of children
+        // of compartment i compensate count for compartment 0, which has itself
+        // as its own parent
         index_type child_count(n, 0);
         child_count[0] = -1;
         for(auto i : parent_index) {
@@ -123,9 +148,6 @@ class tree {
             child_index_[i+1] = child_index_[i];
         }
         child_index_[0] = 0;
-
-        // return the branch index to the caller for later use
-        return branch_index;
     }
 
     size_t num_children() const {
@@ -135,7 +157,10 @@ class tree {
         return child_index_[b+1] - child_index_[b];
     }
     size_t num_nodes() const {
-        return child_index_.size() - 1;
+        // the number of nodes is the size of the child index minus 1
+        // ... except for the case of an empty tree
+        auto sz = child_index_.size();
+        return sz ? sz - 1 : 0;
     }
 
     /// return the child index
@@ -219,19 +244,26 @@ class tree {
     }
 
     void set_ranges(int nnode) {
-        auto nchild = nnode - 1;
-        // data_ is partitioned as follows:
-        // data_ = [children_[nchild], child_index_[nnode+1], parents_[nnode]]
-        assert(data_.size() == unsigned(nchild + (nnode+1) + nnode));
-        children_    = data_(0, nchild);
-        child_index_ = data_(nchild, nchild+nnode+1);
-        parents_     = data_(nchild+nnode+1, memory::end);
+        if(nnode) {
+            auto nchild = nnode - 1;
+            // data_ is partitioned as follows:
+            // data_ = [children_[nchild], child_index_[nnode+1], parents_[nnode]]
+            assert(data_.size() == unsigned(nchild + (nnode+1) + nnode));
+            children_    = data_(0, nchild);
+            child_index_ = data_(nchild, nchild+nnode+1);
+            parents_     = data_(nchild+nnode+1, memory::end);
 
-        // check that arrays have appropriate size
-        // this should be moved into a unit test
-        assert(children_.size()    == unsigned(nchild));
-        assert(child_index_.size() == unsigned(nnode+1));
-        assert(parents_.size()     == unsigned(nnode));
+            // check that arrays have appropriate size
+            // this should be moved into a unit test
+            assert(children_.size()    == unsigned(nchild));
+            assert(child_index_.size() == unsigned(nnode+1));
+            assert(parents_.size()     == unsigned(nnode));
+        }
+        else {
+            children_    = data_(0, 0);
+            child_index_ = data_(0, 0);
+            parents_     = data_(0, 0);
+        }
     }
 
     /// Renumber the sub-tree with old_node as its root with new_node as
@@ -264,7 +296,6 @@ class tree {
         // check for the senitel that indicates that the old root has
         // been processed
         if(old_node==-1) {
-            //assert(parent_node<0); // sanity check
             return new_node;
         }
 
@@ -304,15 +335,71 @@ class tree {
             }
         }
         if(add_parent_as_child) {
-            new_node = add_children(new_node, old_tree.parent(old_node), old_node, p, old_tree);
+            new_node =
+                add_children(
+                    new_node, old_tree.parent(old_node), old_node, p, old_tree
+                );
         }
 
         return new_node;
     }
 
+    //////////////////////////////////////////////////
+    // state
+    //////////////////////////////////////////////////
     index_type data_;
 
-    index_view children_;
-    index_view child_index_;
-    index_view parents_;
+    // provide default parameters so that tree type can
+    // be default constructed
+    index_view children_   = data_(0, 0);
+    index_view child_index_= data_(0, 0);
+    index_view parents_    = data_(0, 0);
 };
+
+template <typename C>
+std::vector<int> make_parent_index(tree const& t, C const& counts)
+{
+    using range = memory::Range;
+
+    if(   !algorithms::is_positive(counts)
+        || counts.size() != t.num_nodes() )
+    {
+        throw std::domain_error(
+            "make_parent_index requires one non-zero count per segment"
+        );
+    }
+    auto index = algorithms::make_index(counts);
+    auto num_compartments = index.back();
+    std::vector<int> parent_index(num_compartments);
+    auto pos = 0;
+    for(int i : range(0, t.num_nodes())) {
+        // get the parent of this segment
+        // taking care for the case where the root node has -1 as its parent
+        auto parent = t.parent(i);
+        parent = parent>=0 ? parent : 0;
+
+        // the index of the first compartment in the segment
+        // is calculated differently for the root (i.e when i==parent)
+        if(i!=parent) {
+            parent_index[pos++] = index[parent+1]-1;
+        }
+        else {
+            parent_index[pos++] = parent;
+        }
+        // number the remaining compartments in the segment consecutively
+        while(pos<index[i+1]) {
+            parent_index[pos] = pos-1;
+            pos++;
+        }
+    }
+
+    // if one of these assertions is tripped, we have to improve
+    // the input validation above
+    assert(pos==num_compartments);
+    assert(algorithms::is_minimal_degree(parent_index));
+
+    return parent_index;
+}
+
+} // namespace mc
+} // namespace nest

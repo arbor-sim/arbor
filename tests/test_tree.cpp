@@ -11,6 +11,8 @@
 using json = nlohmann::json;
 using range = memory::Range;
 
+using namespace nest::mc;
+
 TEST(cell_tree, from_parent_index) {
     // tree with single branch corresponding to the root node
     // this is equivalent to a single compartment model
@@ -28,8 +30,17 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_segments(), 1u);
         EXPECT_EQ(tree.num_children(0), 0u);
     }
-    // tree with two segments off the root node
+
     {
+        //
+        //        0               0
+        //       / \             / \.
+        //      1   4      =>   1   2
+        //     /     \.
+        //    2       5
+        //   /
+        //  3
+        //
         std::vector<int> parent_index =
             {0, 0, 1, 2, 0, 4};
         cell_tree tree(parent_index);
@@ -41,9 +52,18 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(2), 0u);
     }
     {
-        // tree with three segments off the root node
+        //
+        //        0               0
+        //       /|\             /|\.
+        //      1 4 6      =>   1 2 3
+        //     /  |  \.
+        //    2   5   7
+        //   /         \.
+        //  3           8
+        //
         std::vector<int> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8};
+
         cell_tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 4u);
         // the root has 3 children
@@ -52,9 +72,29 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(1), 0u);
         EXPECT_EQ(tree.num_children(2), 0u);
         EXPECT_EQ(tree.num_children(3), 0u);
+
+        // Check new structure
+        EXPECT_EQ(-1, tree.parent(0));
+        EXPECT_EQ(0, tree.parent(1));
+        EXPECT_EQ(0, tree.parent(2));
+        EXPECT_EQ(0, tree.parent(3));
     }
     {
-        // tree with three segments off the root node, and another 2 segments off of the third branch from the root node
+        //
+        //        0               0
+        //       /|\             /|\.
+        //      1 4 6      =>   1 2 3
+        //     /  |  \             / \.
+        //    2   5   7           4   5
+        //   /         \.
+        //  3           8
+        //             / \.
+        //            9   11
+        //           /     \.
+        //          10     12
+        //                   \.
+        //                   13
+        //
         std::vector<int> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12};
         cell_tree tree(parent_index);
@@ -68,6 +108,14 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(2), 0u);
         EXPECT_EQ(tree.num_children(4), 0u);
         EXPECT_EQ(tree.num_children(5), 0u);
+
+        // Check new structure
+        EXPECT_EQ(-1, tree.parent(0));
+        EXPECT_EQ(0, tree.parent(1));
+        EXPECT_EQ(0, tree.parent(2));
+        EXPECT_EQ(0, tree.parent(3));
+        EXPECT_EQ(3, tree.parent(4));
+        EXPECT_EQ(3, tree.parent(5));
     }
     {
         //
@@ -137,8 +185,7 @@ TEST(tree, change_root) {
         //                      |
         //                      2
         std::vector<int> parent_index = {0,0,0};
-        tree t;
-        t.init_from_parent_index(parent_index);
+        tree t(parent_index);
         t.change_root(1);
 
         EXPECT_EQ(t.num_nodes(), 3u);
@@ -156,8 +203,7 @@ TEST(tree, change_root) {
         //           / \             |
         //          3   4            4
         std::vector<int> parent_index = {0,0,0,1,1};
-        tree t;
-        t.init_from_parent_index(parent_index);
+        tree t(parent_index);
         t.change_root(1u);
 
         EXPECT_EQ(t.num_nodes(), 5u);
@@ -181,8 +227,7 @@ TEST(tree, change_root) {
         //             / \.
         //            5   6
         std::vector<int> parent_index = {0,0,0,1,1,4,4};
-        tree t;
-        t.init_from_parent_index(parent_index);
+        tree t(parent_index);
 
         t.change_root(1);
 
@@ -233,21 +278,89 @@ TEST(cell_tree, balance) {
         EXPECT_EQ(t.parent(5), 2);
         EXPECT_EQ(t.parent(6), 5);
 
-        t.to_graphviz("cell.dot");
+        //t.to_graphviz("cell.dot");
     }
 }
 
 // this test doesn't test anything yet... it just loads each cell in turn
 // from a json file and creates a .dot file for it
-TEST(cell_tree, json_load) {
+TEST(cell_tree, json_load)
+{
     json  cell_data;
     std::ifstream("../data/cells_small.json") >> cell_data;
 
     for(auto c : range(0,cell_data.size())) {
         std::vector<int> parent_index = cell_data[c]["parent_index"];
         cell_tree tree(parent_index);
-        //tree.to_graphviz("cell_" + std::to_string(c) + ".dot");
-        tree.to_graphviz("cell" + std::to_string(c) + ".dot");
+        //tree.to_graphviz("cell" + std::to_string(c) + ".dot");
     }
 }
 
+TEST(tree, make_parent_index)
+{
+    // just the soma
+    {
+        std::vector<int> parent_index = {0};
+        std::vector<int> counts = {1};
+        nest::mc::tree t(parent_index);
+        auto new_parent_index = make_parent_index(t, counts);
+        EXPECT_EQ(parent_index.size(), new_parent_index.size());
+    }
+    // just a soma with 5 compartments
+    {
+        std::vector<int> parent_index = {0};
+        std::vector<int> counts = {5};
+        nest::mc::tree t(parent_index);
+        auto new_parent_index = make_parent_index(t, counts);
+        EXPECT_EQ(new_parent_index.size(), (unsigned)counts[0]);
+        EXPECT_EQ(new_parent_index[0], 0);
+        for(auto i=1u; i<new_parent_index.size(); ++i) {
+            EXPECT_EQ((unsigned)new_parent_index[i], i-1);
+        }
+    }
+    // some trees with single compartment per segment
+    {
+        auto trees = {
+            // 0
+            // |
+            // 1
+            std::vector<int>{0,0},
+            //          0
+            //         / \.
+            //        1   2
+            std::vector<int>{0,0,0},
+            //          0
+            //         / \.
+            //        1   4
+            //       / \  |\.
+            //      2   3 5 6
+            std::vector<int>{0,0,0,1,1,2,2}
+        };
+        for(auto &parent_index : trees) {
+            std::vector<int> counts(parent_index.size(), 1);
+            nest::mc::tree t(parent_index);
+            auto new_parent_index = make_parent_index(t, counts);
+            EXPECT_EQ(parent_index, new_parent_index);
+        }
+    }
+    // a tree with multiple compartments per segment
+    //
+    //              0
+    //             / \.
+    //            1   8
+    //           /     \.
+    //          2       9
+    //         /.
+    //        3
+    //       / \.
+    //      4   6
+    //     /     \.
+    //    5       7
+    {
+        std::vector<int> parent_index = {0,0,1,2,3,4,3,6,0,8};
+        std::vector<int> counts = {1,3,2,2,2};
+        nest::mc::tree t(parent_index);
+        auto new_parent_index = make_parent_index(t, counts);
+        EXPECT_EQ(parent_index, new_parent_index);
+    }
+}
