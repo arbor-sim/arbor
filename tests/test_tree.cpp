@@ -30,8 +30,17 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_segments(), 1u);
         EXPECT_EQ(tree.num_children(0), 0u);
     }
-    // tree with two segments off the root node
+
     {
+        //
+        //        0               0
+        //       / \             / \
+        //      1   4      =>   1   2
+        //     /     \
+        //    2       5
+        //   /
+        //  3
+        //
         std::vector<int> parent_index =
             {0, 0, 1, 2, 0, 4};
         cell_tree tree(parent_index);
@@ -43,9 +52,18 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(2), 0u);
     }
     {
-        // tree with three segments off the root node
+        //
+        //        0               0
+        //       /|\             /|\
+        //      1 4 6      =>   1 2 3
+        //     /  |  \
+        //    2   5   7
+        //   /         \
+        //  3           8
+        //
         std::vector<int> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8};
+
         cell_tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 4u);
         // the root has 3 children
@@ -54,9 +72,29 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(1), 0u);
         EXPECT_EQ(tree.num_children(2), 0u);
         EXPECT_EQ(tree.num_children(3), 0u);
+
+        // Check new structure
+        EXPECT_EQ(-1, tree.parent(0));
+        EXPECT_EQ(0, tree.parent(1));
+        EXPECT_EQ(0, tree.parent(2));
+        EXPECT_EQ(0, tree.parent(3));
     }
     {
-        // tree with three segments off the root node, and another 2 segments off of the third branch from the root node
+        //
+        //        0               0
+        //       /|\             /|\
+        //      1 4 6      =>   1 2 3
+        //     /  |  \             / \
+        //    2   5   7           4   5
+        //   /         \
+        //  3           8
+        //             / \
+        //            9   11
+        //           /     \
+        //          10     12
+        //                   \
+        //                   13
+        //
         std::vector<int> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12};
         cell_tree tree(parent_index);
@@ -70,6 +108,14 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(2), 0u);
         EXPECT_EQ(tree.num_children(4), 0u);
         EXPECT_EQ(tree.num_children(5), 0u);
+
+        // Check new structure
+        EXPECT_EQ(-1, tree.parent(0));
+        EXPECT_EQ(0, tree.parent(1));
+        EXPECT_EQ(0, tree.parent(2));
+        EXPECT_EQ(0, tree.parent(3));
+        EXPECT_EQ(3, tree.parent(4));
+        EXPECT_EQ(3, tree.parent(5));
     }
     {
         //

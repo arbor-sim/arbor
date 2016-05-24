@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <numeric>
 #include <type_traits>
+#include <vector>
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
@@ -115,6 +116,89 @@ namespace algorithms{
             }
         }
         return true;
+    }
+
+    template<typename C>
+    bool has_contiguous_segments(const C &parent_index)
+    {
+        static_assert(
+            std::is_integral<typename C::value_type>::value,
+            "integral type required"
+        );
+
+        if (!is_minimal_degree(parent_index)) {
+            return false;
+        }
+
+        std::vector<bool> is_leaf(parent_index.size(), false);
+
+        for (std::size_t i = 1; i < parent_index.size(); ++i) {
+            auto p = parent_index[i];
+            if (is_leaf[p]) {
+                return false;
+            }
+
+            if (p != i-1) {
+                // we have a branch and i-1 is a leaf node
+                is_leaf[i-1] = true;
+            }
+        }
+
+        return true;
+    }
+
+    template<typename C>
+    std::vector<typename C::value_type> child_count(const C &parent_index)
+    {
+        static_assert(
+            std::is_integral<typename C::value_type>::value,
+            "integral type required"
+        );
+
+        std::vector<typename C::value_type> count(parent_index.size(), 0);
+        for (std::size_t i = 1; i < parent_index.size(); ++i) {
+            ++count[parent_index[i]];
+        }
+
+        return count;
+    }
+
+    template<typename C, bool CheckStrict = true>
+    std::vector<typename C::value_type> branches(const C &parent_index)
+    {
+        static_assert(
+            std::is_integral<typename C::value_type>::value,
+            "integral type required"
+        );
+
+        if (CheckStrict && !has_contiguous_segments(parent_index)) {
+            throw std::invalid_argument(
+                "parent_index has not contiguous branch numbering"
+            );
+        }
+
+        auto num_child = child_count(parent_index);
+        std::vector<typename C::value_type> branch_runs(
+            parent_index.size(), 0
+        );
+
+        std::size_t num_branches = (num_child[0] == 1) ? 1 : 0;
+        for (std::size_t i = 1; i < parent_index.size(); ++i) {
+            auto p = parent_index[i];
+            if (num_child[p] > 1) {
+                ++num_branches;
+            }
+
+            branch_runs[i] = num_branches;
+        }
+
+        return branch_runs;
+    }
+
+    template<typename C>
+    std::vector<typename C::value_type> branches_fast(const C &parent_index)
+    {
+        return branches<C,false>(parent_index);
     }
 
 } // namespace algorithms

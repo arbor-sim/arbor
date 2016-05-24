@@ -12,6 +12,9 @@ TEST(point, construction)
     {
         // default constructor
         point<float> p;
+
+        EXPECT_FALSE(p.is_set());
+
         // expect NaN, which returns false when comparing for equality
         EXPECT_NE(p.x, p.x);
         EXPECT_NE(p.y, p.y);
@@ -36,10 +39,7 @@ TEST(point, construction)
 
         // copy constructor
         auto p2 = p1;
-
-        EXPECT_EQ(p1.x, p2.x);
-        EXPECT_EQ(p1.y, p2.y);
-        EXPECT_EQ(p1.z, p2.z);
+        EXPECT_EQ(p1, p2);
     }
 }
 
@@ -64,9 +64,7 @@ TEST(point, addition)
 
     auto p = p1 + p2;
 
-    EXPECT_EQ(p.x, 2);
-    EXPECT_EQ(p.y, 4);
-    EXPECT_EQ(p.z, 6);
+    EXPECT_EQ(point<double>(2, 4, 6), p);
 }
 
 TEST(point, subtraction)
@@ -77,9 +75,7 @@ TEST(point, subtraction)
 
     auto p = p1 - p2;
 
-    EXPECT_EQ(p.x, 0);
-    EXPECT_EQ(p.y, 0);
-    EXPECT_EQ(p.z, 0);
+    EXPECT_EQ(point<double>(0, 0, 0), p);
 }
 
 TEST(point, scalar_prod)
@@ -89,9 +85,7 @@ TEST(point, scalar_prod)
 
     auto p = 0.5 * p1;
 
-    EXPECT_EQ(p.x, 0.5);
-    EXPECT_EQ(p.y, 1.0);
-    EXPECT_EQ(p.z, 1.5);
+    EXPECT_EQ(point<double>(0.5, 1.0, 1.5), p);
 }
 
 TEST(point, norm)
@@ -114,4 +108,3 @@ TEST(point, dot)
 
     EXPECT_EQ(dot(p1,p2), 2.);
 }
-

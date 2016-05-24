@@ -169,3 +169,196 @@ TEST(algorithms, is_positive)
         )
     );
 }
+
+TEST(algorithms, has_contiguous_segments)
+{
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\.
+    //     3 7 4
+    //    /     \.
+    //   5       6
+    //
+    EXPECT_FALSE(
+        nest::mc::algorithms::has_contiguous_segments(
+            std::vector<int>{0, 0, 1, 2, 2, 3, 4, 2}
+        )
+    );
+
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\.
+    //     3 6 5
+    //    /     \.
+    //   4       7
+    //
+    EXPECT_FALSE(
+        nest::mc::algorithms::has_contiguous_segments(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 2, 5}
+        )
+    );
+
+    //
+    //       0
+    //       |
+    //       1
+    //       |
+    //       2
+    //      /|\.
+    //     3 7 5
+    //    /     \.
+    //   4       6
+    //
+    EXPECT_TRUE(
+        nest::mc::algorithms::has_contiguous_segments(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 2}
+        )
+    );
+
+    //
+    //         0
+    //         |
+    //         1
+    //        / \.
+    //       2   7
+    //      / \.
+    //     3   5
+    //    /     \.
+    //   4       6
+    //
+    EXPECT_TRUE(
+        nest::mc::algorithms::has_contiguous_segments(
+            std::vector<int>{0, 0, 1, 2, 3, 2, 5, 1}
+        )
+    );
+
+    // Soma-only list
+    EXPECT_TRUE(
+        nest::mc::algorithms::has_contiguous_segments(
+            std::vector<int>{0}
+        )
+    );
+
+    // Empty list
+    EXPECT_TRUE(
+        nest::mc::algorithms::has_contiguous_segments(
+            std::vector<int>{}
+        )
+    );
+}
+
+TEST(algorithms, child_count)
+{
+    {
+        //
+        //        0
+        //       /|\.
+        //      1 4 6
+        //     /  |  \.
+        //    2   5   7
+        //   /         \.
+        //  3           8
+        //             / \.
+        //            9   11
+        //           /     \.
+        //          10      12
+        //                   \.
+        //                    13
+        //
+        std::vector<int> parent_index =
+            { 0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12 };
+        std::vector<int> expected_child_count =
+            { 3, 1, 1, 0, 1, 0, 1, 1, 2, 1, 0, 1, 1, 0 };
+
+        // auto count = nest::mc::algorithms::child_count(parent_index);
+        EXPECT_EQ(expected_child_count,
+                  nest::mc::algorithms::child_count(parent_index));
+    }
+
+}
+
+TEST(algorithms, branches)
+{
+    using namespace nest::mc;
+
+    {
+        //
+        //        0
+        //       /|\.
+        //      1 4 6
+        //     /  |  \.
+        //    2   5   7
+        //   /         \.
+        //  3           8
+        //             / \.
+        //            9   11
+        //           /     \.
+        //          10      12
+        //                   \.
+        //                    13
+        //
+        std::vector<int> parent_index =
+            { 0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12 };
+        std::vector<int> expected_branches =
+            { 0, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5 };
+
+        auto actual_branches = algorithms::branches_fast(parent_index);
+        EXPECT_EQ(expected_branches, actual_branches);
+    }
+
+    {
+        //
+        //    0
+        //    |
+        //    1
+        //    |
+        //    2
+        //    |
+        //    3
+        //
+        std::vector<int> parent_index =
+            { 0, 0, 1, 2 };
+        std::vector<int> expected_branches =
+            { 0, 1, 1, 1 };
+
+        auto actual_branches = algorithms::branches_fast(parent_index);
+        EXPECT_EQ(expected_branches, actual_branches);
+    }
+
+    {
+        //
+        //    0
+        //    |
+        //    1
+        //    |
+        //    2
+        //   / \.
+        //  3   4
+        //       \.
+        //        5
+        //
+        std::vector<int> parent_index =
+            { 0, 0, 1, 2, 2, 4 };
+        std::vector<int> expected_branches =
+            { 0, 1, 1, 2, 3, 3 };
+
+        auto actual_branches = algorithms::branches_fast(parent_index);
+        EXPECT_EQ(expected_branches, actual_branches);
+    }
+
+    {
+        std::vector<int> parent_index = { 0 };
+        std::vector<int> expected_branches = { 0 };
+
+        auto actual_branches = algorithms::branches_fast(parent_index);
+        EXPECT_EQ(expected_branches, actual_branches);
+    }
+}
