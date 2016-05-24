@@ -32,6 +32,7 @@ set(TEST_SOURCES
 set(VALIDATION_SOURCES
     # unit tests
     validate_soma.cpp
+    validate_ball_and_stick.cpp
 
     # unit test driver
     validate.cpp

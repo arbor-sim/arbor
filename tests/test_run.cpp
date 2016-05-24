@@ -48,7 +48,7 @@ TEST(run, single_compartment)
         results[1].push_back(model.voltage()[0]);
     }
 
-    write_vis_file("v.dat", results);
+    testing::write_vis_file("v.dat", results);
 }
 
 TEST(run, ball_and_stick)
@@ -102,7 +102,7 @@ TEST(run, ball_and_stick)
         results[2].push_back(model.voltage()[pos]);
     }
 
-    write_vis_file("v.dat", results);
+    testing::write_vis_file("v.dat", results);
 }
 
 TEST(run, cable)

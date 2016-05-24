@@ -50,14 +50,14 @@ h.tstop = simdur
 # run neuron with multiple dt
 start = timer()
 results = []
-for dt in [0.02, 0.01, 0.001, 0.0001]:
+for dt in [0.05, 0.02, 0.01, 0.001, 0.0001]:
     h.dt = dt
     h.run()
     results.append({"dt": dt, "spikes": s_vec.to_python()})
     if args.plot :
         pyplot.plot(t_vec, v_vec, label='neuron ' + str(dt))
-end = timer()
 
+end = timer()
 print "took ", end-start, " seconds"
 
 # save the spike info as in json format

@@ -2,10 +2,17 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <iomanip>
 
 #include <cmath>
 
 #include <util.hpp>
+#include <json/src/json.hpp>
+
+// helpful code for running tests
+// a bit messy: refactor when it gets heavier and obvious patterns emerge...
+
+namespace testing{
 
 [[gnu::unused]] static
 void write_vis_file(const std::string& fname, std::vector<std::vector<double>> values)
@@ -30,6 +37,28 @@ void write_vis_file(const std::string& fname, std::vector<std::vector<double>> v
         }
         fid << "\n";
     }
+}
+
+[[gnu::unused]] static
+nlohmann::json
+load_spike_data(const std::string& input_name)
+{
+    nlohmann::json cell_data;
+    auto fid = std::ifstream(input_name);
+    if(!fid.is_open()) {
+        std::cerr << "error : unable to open file " << input_name
+                  << " : run the validation generation script first\n";
+        return {};
+    }
+
+    try {
+        fid >> cell_data;
+    }
+    catch (...) {
+        std::cerr << "error : incorrectly formatted json file " << input_name << "\n";
+        return {};
+    }
+    return cell_data;
 }
 
 template <typename T>
@@ -72,16 +101,25 @@ struct spike_comparison {
     }
 };
 
+[[gnu::unused]] static
 std::ostream&
 operator<< (std::ostream& o, spike_comparison const& spikes)
 {
-    return o << "[" << spikes.min << ", " << spikes.max << "], "
-             << "mean " << spikes.mean << ", rms " << spikes.rms
-             << ", diffs " << spikes.diff;
+    // use snprintf because C++ is just awful for formatting output
+    char buffer[512];
+    snprintf(
+        buffer, sizeof(buffer),
+        "min,max = %10.8f,%10.8f | mean,rms = %10.8f,%10.8f | max_rel = %10.8f",
+        spikes.min, spikes.max, spikes.mean, spikes.rms,
+        spikes.max_relative_error()*100
+    );
+    return o << buffer;
 }
 
 template <typename T>
-spike_comparison compare_spikes(std::vector<T> const& spikes, std::vector<T> const& baseline)
+spike_comparison compare_spikes(
+    std::vector<T> const& spikes,
+    std::vector<T> const& baseline)
 {
     spike_comparison c;
 
@@ -112,3 +150,4 @@ spike_comparison compare_spikes(std::vector<T> const& spikes, std::vector<T> con
     return c;
 }
 
+} // namespace testing
