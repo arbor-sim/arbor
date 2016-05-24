@@ -5,8 +5,9 @@
 #include <thread>
 #include <vector>
 
-#include "segment.hpp"
-#include "cell_tree.hpp"
+#include <segment.hpp>
+#include <cell_tree.hpp>
+#include <stimulus.hpp>
 
 namespace nest {
 namespace mc {
@@ -18,6 +19,21 @@ struct compartment_model {
     std::vector<int> parent_index;
     std::vector<int> segment_index;
 };
+
+struct segment_location {
+    segment_location(int s, double l)
+    : segment(s), position(l)
+    {
+        EXPECTS(position>=0. && position<=1.);
+    }
+    int segment;
+    double position;
+};
+
+int find_compartment_index(
+    segment_location const& location,
+    compartment_model const& graph
+);
 
 /// high-level abstract representation of a cell and its segments
 class cell {
@@ -33,18 +49,18 @@ class cell {
 
     /// add a soma to the cell
     /// radius must be specified
-    void add_soma(value_type radius, point_type center=point_type());
+    soma_segment* add_soma(value_type radius, point_type center=point_type());
 
     /// add a cable
     /// parent is the index of the parent segment for the cable section
     /// cable is the segment that will be moved into the cell
-    void add_cable(index_type parent, segment_ptr&& cable);
+    cable_segment* add_cable(index_type parent, segment_ptr&& cable);
 
     /// add a cable by constructing it in place
     /// parent is the index of the parent segment for the cable section
     /// args are the arguments to be used to consruct the new cable
     template <typename... Args>
-    void add_cable(index_type parent, Args ...args);
+    cable_segment* add_cable(index_type parent, Args ...args);
 
     /// the number of segments in the cell
     int num_segments() const;
@@ -70,7 +86,7 @@ class cell {
     value_type area() const;
 
     /// the total number of compartments over all segments
-    int num_compartments() const;
+    size_t num_compartments() const;
 
     std::vector<segment_ptr> const& segments() const;
 
@@ -83,17 +99,33 @@ class cell {
 
     compartment_model model() const;
 
+    void add_stimulus(segment_location loc, i_clamp stim);
+
+    std::vector<std::pair<segment_location, i_clamp>>&
+    stimulii() {
+        return stimulii_;
+    }
+
+    const std::vector<std::pair<segment_location, i_clamp>>&
+    stimulii() const {
+        return stimulii_;
+    }
+
     private:
 
     // storage for connections
     std::vector<index_type> parents_;
+
     // the segments
     std::vector<segment_ptr> segments_;
+
+    // the stimulii
+    std::vector<std::pair<segment_location, i_clamp>> stimulii_;
 };
 
 // create a cable by forwarding cable construction parameters provided by the user
 template <typename... Args>
-void cell::add_cable(cell::index_type parent, Args ...args)
+cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
 {
     // check for a valid parent id
     if(parent>=num_segments()) {
@@ -103,6 +135,8 @@ void cell::add_cable(cell::index_type parent, Args ...args)
     }
     segments_.push_back(make_segment<cable_segment>(std::forward<Args>(args)...));
     parents_.push_back(parent);
+
+    return segments_.back()->as_cable();
 }
 
 } // namespace mc

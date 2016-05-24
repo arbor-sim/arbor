@@ -33,7 +33,8 @@ PARAMETER {
     gkbar = .036 (S/cm2)  : <0,1e9>
     gl = .0003 (S/cm2)    : <0,1e9>
     el = -54.3 (mV)
-    celsius = 37 (degC)
+    celsius = 6.3 (degC)
+    :celsius = 37 (degC)
 }
 
 STATE {

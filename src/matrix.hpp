@@ -19,10 +19,10 @@ class matrix {
     using size_type  = I;
 
     // define storage types
-    using vector_type = memory::HostVector<value_type>;
-    using view_type   = typename vector_type::view_type;
-    using index_type  = memory::HostVector<size_type>;
-    using index_view  = typename index_type::view_type;
+    using vector_type      = memory::HostVector<value_type>;
+    using vector_view_type = typename vector_type::view_type;
+    using index_type       = memory::HostVector<size_type>;
+    using index_view_type  = typename index_type::view_type;
 
     matrix() = default;
 
@@ -67,7 +67,7 @@ class matrix {
     /// the total memory used to store the matrix
     std::size_t memory() const
     {
-        auto s = 5 * (sizeof(value_type) * size() + sizeof(vector_type));
+        auto s = 6 * (sizeof(value_type) * size() + sizeof(vector_type));
         s     += sizeof(size_type) * (parent_index_.size() + cell_index_.size())
                 + 2*sizeof(index_type);
         s     += sizeof(matrix);
@@ -80,32 +80,45 @@ class matrix {
         return cell_index_.size() - 1;
     }
 
+    /// FIXME : make modparser use the correct accessors (l,d,u,rhs) instead of these
+    vector_view_type vec_rhs() { return rhs(); }
+    vector_view_type vec_d()   { return d(); }
+    vector_view_type vec_v()   { return v(); }
+
     /// the vector holding the lower part of the matrix
-    view_type l()
+    vector_view_type l()
     {
         return l_;
     }
 
     /// the vector holding the diagonal of the matrix
-    view_type d()
+    vector_view_type d()
     {
         return d_;
     }
 
     /// the vector holding the upper part of the matrix
-    view_type u()
+    vector_view_type u()
     {
         return u_;
     }
 
     /// the vector holding the right hand side of the linear equation system
-    view_type rhs()
+    vector_view_type rhs()
     {
         return rhs_;
     }
 
+    /// the vector holding the solution (voltage)
+    vector_view_type v()
+    {
+        EXPECTS(has_voltage_);
+
+        return v_;
+    }
+
     /// the vector holding the parent index
-    index_view p()
+    index_view_type p()
     {
         return parent_index_;
     }
@@ -115,7 +128,16 @@ class matrix {
     /// and can be accessed via rhs()
     void solve()
     {
-        index_view const& p = parent_index_;
+        /*
+        std::cout << "solving matrix :\n";
+        std::cout << "  l   " << l_   << "\n";
+        std::cout << "  d   " << d_   << "\n";
+        std::cout << "  u   " << u_   << "\n";
+        std::cout << "  rhs " << rhs_ << "\n";
+        */
+
+        // FIXME make a const view
+        index_view_type const& p = parent_index_;
         auto const ncells = num_cells();
 
         // loop over submatrices
@@ -137,6 +159,17 @@ class matrix {
                 rhs_[i] /= d_[i];
             }
         }
+        //std::cout << "  v   " << rhs_ << "\n";
+    }
+
+    void add_voltage(vector_view_type v_ext)
+    {
+        EXPECTS(v_ext.size()==size());
+
+        std::cout << "============ adding voltage" << std::endl;
+
+        v_ = v_ext;
+        has_voltage_ = true;
     }
 
     private:
@@ -164,8 +197,12 @@ class matrix {
     vector_type l_;
     vector_type d_;
     vector_type u_;
+
     /// after calling solve, the solution is stored in rhs_
     vector_type rhs_;
+    vector_view_type v_;
+
+    bool has_voltage_=false;
 };
 
 } // namespace nest

@@ -4,7 +4,7 @@
 
 TEST(stimulus, i_clamp)
 {
-    using namespace nestmc;
+    using namespace nest::mc;
 
     // stimulus with delay 2, duration 0.5, amplitude 6.0
     i_clamp stim(2.0, 0.5, 6.0);

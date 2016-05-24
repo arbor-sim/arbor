@@ -137,7 +137,7 @@ TEST(swc_parser, invalid_input)
     {
         // Non-contiguous numbering in branches is considered invalid
         //        1
-        //       / \
+        //       / \.
         //      2   3
         //     /
         //    4

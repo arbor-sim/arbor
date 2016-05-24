@@ -1,6 +1,7 @@
 #pragma once
 
-namespace nestmc {
+namespace nest {
+namespace mc {
 
 class i_clamp {
     public:
@@ -49,4 +50,5 @@ class i_clamp {
     value_type amplitude_ = 0;
 };
 
-} // namespace nestmc
+} // namespace mc
+} // namespace nest

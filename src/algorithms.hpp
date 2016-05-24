@@ -7,6 +7,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "util.hpp"
+
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
  * that uses them.
@@ -130,15 +132,16 @@ namespace algorithms{
             return false;
         }
 
-        std::vector<bool> is_leaf(parent_index.size(), false);
+        int n = parent_index.size();
+        std::vector<bool> is_leaf(n, false);
 
-        for (std::size_t i = 1; i < parent_index.size(); ++i) {
+        for(auto i=1; i<n; ++i) {
             auto p = parent_index[i];
-            if (is_leaf[p]) {
+            if(is_leaf[p]) {
                 return false;
             }
 
-            if (p != i-1) {
+            if(p != i-1) {
                 // we have a branch and i-1 is a leaf node
                 is_leaf[i-1] = true;
             }
@@ -163,7 +166,7 @@ namespace algorithms{
         return count;
     }
 
-    template<typename C, bool CheckStrict = true>
+    template<typename C>
     std::vector<typename C::value_type> branches(const C &parent_index)
     {
         static_assert(
@@ -171,11 +174,7 @@ namespace algorithms{
             "integral type required"
         );
 
-        if (CheckStrict && !has_contiguous_segments(parent_index)) {
-            throw std::invalid_argument(
-                "parent_index has not contiguous branch numbering"
-            );
-        }
+        EXPECTS(has_contiguous_segments(parent_index));
 
         auto num_child = child_count(parent_index);
         std::vector<typename C::value_type> branch_runs(
@@ -196,9 +195,54 @@ namespace algorithms{
     }
 
     template<typename C>
-    std::vector<typename C::value_type> branches_fast(const C &parent_index)
+    bool is_sorted(const C& c)
     {
-        return branches<C,false>(parent_index);
+        return std::is_sorted(c.begin(), c.end());
+    }
+
+    template<typename C>
+    bool is_unique(const C& c)
+    {
+        return std::adjacent_find(c.begin(), c.end()) == c.end();
+    }
+
+    /// Return and index that maps entries in sub to their corresponding
+    /// values in super, where sub is a subset of super.
+    ///
+    /// Both sets are sorted and have unique entries.
+    /// Complexity is O(n), where n is size of super
+    template<typename C>
+    // C::iterator models forward_iterator
+    // C::value_type is_integral
+    C index_into(const C& super, const C& sub)
+    {
+        //EXPECTS {s \in super : \forall s \in sub};
+        EXPECTS(is_unique(super) && is_unique(sub));
+        EXPECTS(is_sorted(super) && is_sorted(sub));
+        EXPECTS(sub.size() <= super.size());
+
+        static_assert(
+            std::is_integral<typename C::value_type>::value,
+            "index_into only applies to integral types"
+        );
+
+        C out(sub.size()); // out will have one entry for each index in sub
+
+        auto sub_it=sub.begin();
+        auto super_it=super.begin();
+        auto sub_idx=0u, super_idx = 0u;
+
+        while(sub_it!=sub.end() && super_it!=super.end()) {
+            if(*sub_it==*super_it) {
+                out[sub_idx] = super_idx;
+                ++sub_it; ++sub_idx;
+            }
+            ++super_it; ++super_idx;
+        }
+
+        EXPECTS(sub_idx==sub.size());
+
+        return out;
     }
 
 } // namespace algorithms

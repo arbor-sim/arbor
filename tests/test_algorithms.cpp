@@ -255,6 +255,84 @@ TEST(algorithms, has_contiguous_segments)
     );
 }
 
+TEST(algorithms, is_unique)
+{
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_unique(
+            std::vector<int>{}
+        )
+    );
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_unique(
+            std::vector<int>{0}
+        )
+    );
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_unique(
+            std::vector<int>{0,1,100}
+        )
+    );
+    EXPECT_FALSE(
+        nest::mc::algorithms::is_unique(
+            std::vector<int>{0,0}
+        )
+    );
+    EXPECT_FALSE(
+        nest::mc::algorithms::is_unique(
+            std::vector<int>{0,1,2,2,3,4}
+        )
+    );
+    EXPECT_FALSE(
+        nest::mc::algorithms::is_unique(
+            std::vector<int>{0,1,2,3,4,4}
+        )
+    );
+}
+
+TEST(algorithms, is_sorted)
+{
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{}
+        )
+    );
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{100}
+        )
+    );
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{0,1,2}
+        )
+    );
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{0,2,100}
+        )
+    );
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{0,0}
+        )
+    );
+    EXPECT_TRUE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{0,1,2,2,2,2,3,4,5,5,5}
+        )
+    );
+    EXPECT_FALSE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{0,1,2,1}
+        )
+    );
+    EXPECT_FALSE(
+        nest::mc::algorithms::is_sorted(
+            std::vector<int>{1,0}
+        )
+    );
+}
+
 TEST(algorithms, child_count)
 {
     {
@@ -310,7 +388,7 @@ TEST(algorithms, branches)
         std::vector<int> expected_branches =
             { 0, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5 };
 
-        auto actual_branches = algorithms::branches_fast(parent_index);
+        auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
     }
 
@@ -329,7 +407,7 @@ TEST(algorithms, branches)
         std::vector<int> expected_branches =
             { 0, 1, 1, 1 };
 
-        auto actual_branches = algorithms::branches_fast(parent_index);
+        auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
     }
 
@@ -350,7 +428,7 @@ TEST(algorithms, branches)
         std::vector<int> expected_branches =
             { 0, 1, 1, 2, 3, 3 };
 
-        auto actual_branches = algorithms::branches_fast(parent_index);
+        auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
     }
 
@@ -358,7 +436,47 @@ TEST(algorithms, branches)
         std::vector<int> parent_index = { 0 };
         std::vector<int> expected_branches = { 0 };
 
-        auto actual_branches = algorithms::branches_fast(parent_index);
+        auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
+    }
+}
+
+TEST(algorithms, index_into)
+{
+    using C = std::vector<int>;
+
+    // by default index_into assumes that the inputs satisfy
+    // quite a strong set of prerequisites
+    //
+    // TODO: test that the EXPECTS() catch bad inputs when DEBUG mode is enabled
+    //       put this in a seperate unit test
+    auto tests = {
+        std::make_pair(C{}, C{}),
+        std::make_pair(C{100}, C{}),
+        std::make_pair(C{0,1,3,4,6,7,10,11}, C{0,4,6,7,11}),
+        std::make_pair(C{0,1,3,4,6,7,10,11}, C{0}),
+        std::make_pair(C{0,1,3,4,6,7,10,11}, C{11}),
+        std::make_pair(C{0,1,3,4,6,7,10,11}, C{4}),
+        std::make_pair(C{0,1,3,4,6,7,10,11}, C{0,11}),
+        std::make_pair(C{0,1,3,4,6,7,10,11}, C{4,11}),
+        std::make_pair(C{0,1,3,4,6,7,10,11}, C{0,1,3,4,6,7,10,11})
+    };
+
+    auto test_result = [] (const C& super, const C& sub, const C& index) {
+        if(sub.size()!=index.size()) return false;
+        for(auto i=0u; i<sub.size(); ++i) {
+            if(index[i]>=C::value_type(super.size())) return false;
+            if(super[index[i]]!=sub[i]) return false;
+        }
+        return true;
+    };
+
+    for(auto& t : tests) {
+        EXPECT_TRUE(
+            test_result(
+                t.first, t.second,
+                nest::mc::algorithms::index_into(t.first, t.second)
+            )
+        );
     }
 }

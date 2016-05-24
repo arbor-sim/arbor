@@ -116,7 +116,6 @@ TEST(matrix, solve)
 
             EXPECT_NEAR(0., std::sqrt(err), 1e-8);
         }
-
     }
 }
 

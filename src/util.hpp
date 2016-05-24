@@ -2,6 +2,11 @@
 
 #include "vector/include/Vector.hpp"
 
+#ifdef DEBUG
+#define EXPECTS(expression) assert(expression)
+#else
+#define EXPECTS(expression)
+#endif
 
 /*
 using memory::util::red;
@@ -23,7 +28,7 @@ operator << (std::ostream &o, std::vector<T>const& v)
 {
     o << "[";
     for(auto const& i: v) {
-        o << i << ", ";
+        o << i << ",";
     }
     o << "]";
     return o;
@@ -34,7 +39,7 @@ std::ostream& print(std::ostream &o, std::vector<T>const& v)
 {
     o << "[";
     for(auto const& i: v) {
-        o << i << ", ";
+        o << i << ",";
     }
     o << "]";
     return o;
@@ -80,6 +85,45 @@ namespace util {
              std::false_type
         >::type
     {};
+
+    // printf with variadic templates for simplified string creation
+    // mostly used to simplify error string creation
+    [[gnu::unused]] static
+    std::string pprintf(const char *s) {
+        std::string errstring;
+        while(*s) {
+            if(*s == '%' && s[1]!='%') {
+                // instead of throwing an exception, replace with ??
+                //throw std::runtime_error("pprintf: the number of arguments did not match the format ");
+                errstring += "<?>";
+            }
+            else {
+                errstring += *s;
+            }
+            ++s;
+        }
+        return errstring;
+    }
+
+    template <typename T, typename ... Args>
+    std::string pprintf(const char *s, T value, Args... args) {
+        std::string errstring;
+        while(*s) {
+            if(*s == '%' && s[1]!='%') {
+                std::stringstream str;
+                str << value;
+                errstring += str.str();
+                errstring += pprintf(++s, args...);
+                return errstring;
+            }
+            else {
+                errstring += *s;
+                ++s;
+            }
+        }
+        return errstring;
+    }
+
 } // namespace util
 } // namespace mc
 } // namespace nest

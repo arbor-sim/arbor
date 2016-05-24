@@ -34,9 +34,9 @@ TEST(cell_tree, from_parent_index) {
     {
         //
         //        0               0
-        //       / \             / \
+        //       / \             / \.
         //      1   4      =>   1   2
-        //     /     \
+        //     /     \.
         //    2       5
         //   /
         //  3
@@ -54,11 +54,11 @@ TEST(cell_tree, from_parent_index) {
     {
         //
         //        0               0
-        //       /|\             /|\
+        //       /|\             /|\.
         //      1 4 6      =>   1 2 3
-        //     /  |  \
+        //     /  |  \.
         //    2   5   7
-        //   /         \
+        //   /         \.
         //  3           8
         //
         std::vector<int> parent_index =
@@ -82,17 +82,17 @@ TEST(cell_tree, from_parent_index) {
     {
         //
         //        0               0
-        //       /|\             /|\
+        //       /|\             /|\.
         //      1 4 6      =>   1 2 3
-        //     /  |  \             / \
+        //     /  |  \             / \.
         //    2   5   7           4   5
-        //   /         \
+        //   /         \.
         //  3           8
-        //             / \
+        //             / \.
         //            9   11
-        //           /     \
+        //           /     \.
         //          10     12
-        //                   \
+        //                   \.
         //                   13
         //
         std::vector<int> parent_index =
@@ -278,7 +278,7 @@ TEST(cell_tree, balance) {
         EXPECT_EQ(t.parent(5), 2);
         EXPECT_EQ(t.parent(6), 5);
 
-        t.to_graphviz("cell.dot");
+        //t.to_graphviz("cell.dot");
     }
 }
 
@@ -292,8 +292,7 @@ TEST(cell_tree, json_load)
     for(auto c : range(0,cell_data.size())) {
         std::vector<int> parent_index = cell_data[c]["parent_index"];
         cell_tree tree(parent_index);
-        //tree.to_graphviz("cell_" + std::to_string(c) + ".dot");
-        tree.to_graphviz("cell" + std::to_string(c) + ".dot");
+        //tree.to_graphviz("cell" + std::to_string(c) + ".dot");
     }
 }
 
