@@ -123,6 +123,12 @@ class cell {
     std::vector<std::pair<segment_location, i_clamp>> stimulii_;
 };
 
+// Checks that two cells have the same
+//  - number and type of segments
+//  - volume and area properties of each segment
+//  - number of compartments in each segment
+bool cell_basic_equality(cell const& lhs, cell const& rhs);
+
 // create a cable by forwarding cable construction parameters provided by the user
 template <typename... Args>
 cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
