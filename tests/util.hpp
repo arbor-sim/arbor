@@ -111,7 +111,7 @@ operator<< (std::ostream& o, spike_comparison const& spikes)
         buffer, sizeof(buffer),
         "min,max = %10.8f,%10.8f | mean,rms = %10.8f,%10.8f | max_rel = %10.8f",
         spikes.min, spikes.max, spikes.mean, spikes.rms,
-        spikes.max_relative_error()*100
+        spikes.max_relative_error()
     );
     return o << buffer;
 }
