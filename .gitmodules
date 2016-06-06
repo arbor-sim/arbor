@@ -4,3 +4,6 @@
 [submodule "json"]
 	path = json
 	url = git@github.com:bcumming/json.git
+[submodule "modparser"]
+	path = modparser
+	url = git@github.com:eth-cscs/modparser.git
