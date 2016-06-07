@@ -1,6 +1,6 @@
 [submodule "vector"]
-	path = vector
+	path = external/vector
 	url = git@github.com:bcumming/vector.git
 [submodule "json"]
-	path = json
+	path = external/json
 	url = git@github.com:bcumming/json.git
