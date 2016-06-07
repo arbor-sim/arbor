@@ -240,6 +240,7 @@ TEST(ball_and_3stick, neuron_baseline)
     };
 
     std::vector<result> results;
+    auto start = testing::tic();
     for(auto run_index=0u; run_index<cell_data.size(); ++run_index) {
         auto& run = cell_data[run_index];
         int num_compartments = run["nseg"];
@@ -274,6 +275,8 @@ TEST(ball_and_3stick, neuron_baseline)
 
         results.push_back( {num_compartments, dt, v, measurements} );
     }
+    auto time_taken = testing::toc(start);
+    std::cout << "took " << time_taken << " seconds\n";
 
     // print results
     auto colors = {memory::util::kWhite, memory::util::kGreen, memory::util::kYellow};

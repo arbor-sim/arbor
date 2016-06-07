@@ -89,7 +89,7 @@ for nseg in [5, 11, 51, 101] :
     # record spikes
     # this is a bit verbose, no?
     spike_counter_soma = h.APCount(soma(0.5))
-    spike_counter_soma.thresh = -0
+    spike_counter_soma.thresh = 0
     spike_counter_dend = h.APCount(dend[0](1))
     spike_counter_dend.thresh = -20
     spike_counter_clamp = h.APCount(dend[1](1.0))

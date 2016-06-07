@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <iomanip>
+#include <chrono>
 
 #include <cmath>
 
@@ -13,6 +14,22 @@
 // a bit messy: refactor when it gets heavier and obvious patterns emerge...
 
 namespace testing{
+
+using time_point    = std::chrono::time_point<std::chrono::system_clock>;
+using duration_type = std::chrono::duration<double>;
+
+static inline
+time_point tic()
+{
+    return std::chrono::system_clock::now();
+}
+
+static inline
+double toc(time_point start)
+{
+    return duration_type(tic() - start).count();
+}
+
 
 [[gnu::unused]] static
 void write_vis_file(const std::string& fname, std::vector<std::vector<double>> values)
