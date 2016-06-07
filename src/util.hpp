@@ -45,6 +45,21 @@ std::ostream& print(std::ostream &o, std::vector<T>const& v)
     return o;
 }
 
+template <typename T>
+bool operator ==(const std::vector<T>& lhs, const std::vector<T>& rhs)
+{
+    if(lhs.size() != rhs.size()) {
+        return false;
+    }
+    return std::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+
+template <typename T>
+bool operator !=(const std::vector<T>& lhs, const std::vector<T>& rhs)
+{
+    return !(lhs==rhs);
+}
+
 namespace nest {
 namespace mc {
 namespace util {

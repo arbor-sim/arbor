@@ -76,6 +76,16 @@ class segment {
         return nullptr;
     }
 
+    virtual const cable_segment* as_cable() const
+    {
+        return nullptr;
+    }
+
+    virtual const soma_segment* as_soma() const
+    {
+        return nullptr;
+    }
+
     virtual bool is_placeholder() const
     {
         return false;
@@ -230,6 +240,11 @@ class soma_segment : public segment
         return this;
     }
 
+    const soma_segment* as_soma() const override
+    {
+        return this;
+    }
+
     /// soma has one and one only compartments
     int num_compartments() const override
     {
@@ -355,6 +370,11 @@ class cable_segment : public segment
     }
 
     cable_segment* as_cable() override
+    {
+        return this;
+    }
+
+    const cable_segment* as_cable() const override
     {
         return this;
     }

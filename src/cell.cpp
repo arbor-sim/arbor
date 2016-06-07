@@ -195,5 +195,41 @@ std::vector<int> const& cell::segment_parents() const
     return parents_;
 }
 
+// Rough and ready comparison of two cells.
+// We don't use an operator== because equality of two cells is open to
+// interpretation. For example, it is possible to have two viable representations
+// of a cell: with and without location information for the cables.
+//
+// Checks that two cells have the same
+//  - number and type of segments
+//  - volume and area properties of each segment
+//  - number of compartments in each segment
+bool cell_basic_equality(cell const& lhs, cell const& rhs)
+{
+    if(lhs.num_segments() != rhs.num_segments()) {
+        return false;
+    }
+    if(lhs.segment_parents() != rhs.segment_parents()) {
+        return false;
+    }
+    for(auto i=0; i<lhs.num_segments(); ++i) {
+        // a quick and dirty test
+        auto& l = *lhs.segment(i);
+        auto& r = *rhs.segment(i);
+
+        if(l.kind() != r.kind()) return false;
+        if(l.area() != r.area()) return false;
+        if(l.volume() != r.volume()) return false;
+        if(l.as_cable()) {
+            if(   l.as_cable()->num_compartments()
+               != r.as_cable()->num_compartments())
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 } // namespace mc
 } // namespace nest

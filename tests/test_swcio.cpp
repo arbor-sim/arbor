@@ -487,3 +487,31 @@ TEST(swc_io, cell_construction)
                   cell.cable(3)->radius(0));
     }
 }
+
+// check that simple ball and stick model with one dendrite attached to a soma
+// which is used in the validation tests can be loaded from file and matches
+// the one generated with the C++ interface
+TEST(swc_parser, from_file_ball_and_stick)
+{
+    auto fname = "../data/ball_and_stick.swc";
+    std::ifstream fid(fname);
+    if(!fid.is_open()) {
+        std::cerr << "unable to open file " << fname << "... skipping test\n";
+        return;
+    }
+
+    // read the file into a cell object
+    auto cell = nest::mc::io::swc_read_cell(fid);
+
+    // verify that the correct number of nodes was read
+    EXPECT_EQ(cell.num_segments(), 2);
+    EXPECT_EQ(cell.num_compartments(), 2u);
+
+    // make an equivalent cell via C++ interface
+    nest::mc::cell local_cell;
+    local_cell.add_soma(6.30785);
+    local_cell.add_cable(0, nest::mc::segmentKind::dendrite, 0.5, 0.5, 200);
+
+    EXPECT_TRUE(nest::mc::cell_basic_equality(local_cell, cell));
+}
+
