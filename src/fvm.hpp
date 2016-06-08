@@ -16,7 +16,7 @@
 #include <segment.hpp>
 #include <stimulus.hpp>
 
-#include <vector/include/Vector.hpp>
+#include <Vector.hpp>
 
 namespace nest {
 namespace mc {

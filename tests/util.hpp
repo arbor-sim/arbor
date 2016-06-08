@@ -8,7 +8,7 @@
 #include <cmath>
 
 #include <util.hpp>
-#include <json/src/json.hpp>
+#include <json.hpp>
 
 // helpful code for running tests
 // a bit messy: refactor when it gets heavier and obvious patterns emerge...

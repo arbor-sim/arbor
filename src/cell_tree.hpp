@@ -9,7 +9,7 @@
 #include <ostream>
 #include <vector>
 
-#include "vector/include/Vector.hpp"
+#include <Vector.hpp>
 #include "tree.hpp"
 #include "util.hpp"
 

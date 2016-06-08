@@ -6,7 +6,7 @@
 
 #include <cassert>
 
-#include "vector/include/Vector.hpp"
+#include <Vector.hpp>
 #include "algorithms.hpp"
 #include "util.hpp"
 

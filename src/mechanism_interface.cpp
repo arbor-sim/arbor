@@ -4,8 +4,9 @@
 //  include the mechanisms
 //
 
-#include <mechanisms/hh.hpp>
-#include <mechanisms/pas.hpp>
+#include <hh.hpp>
+#include <pas.hpp>
+
 
 namespace nest {
 namespace mc {

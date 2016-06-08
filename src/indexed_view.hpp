@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector/include/Vector.hpp>
+#include <Vector.hpp>
 
 namespace nest {
 namespace mc {
