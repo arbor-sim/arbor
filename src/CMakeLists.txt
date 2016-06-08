@@ -9,3 +9,5 @@ set(BASE_SOURCES
 )
 
 add_library(cellalgo ${BASE_SOURCES} ${HEADERS})
+add_dependencies(cellalgo build_all_mods)
+
