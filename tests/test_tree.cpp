@@ -6,7 +6,7 @@
 #include "gtest.h"
 
 #include <cell_tree.hpp>
-#include "json/src/json.hpp"
+#include <json.hpp>
 
 using json = nlohmann::json;
 using range = memory::Range;
