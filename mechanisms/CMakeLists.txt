@@ -5,7 +5,6 @@ set(modcc "${CMAKE_BINARY_DIR}/external/bin/modcc")
 foreach(mech ${mechanisms})
     set(mod "${CMAKE_CURRENT_SOURCE_DIR}/mod/${mech}.mod")
     set(hpp "${CMAKE_CURRENT_SOURCE_DIR}/${mech}.hpp")
-    message(STATUS "add_cc for ${hpp}")
     add_custom_command(OUTPUT "${hpp}"
                        DEPENDS modparser "${mod}"
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
