@@ -35,6 +35,7 @@ public:
     :   vec_v_(vec_v)
     ,   vec_i_(vec_i)
     ,   node_index_(node_index)
+    ,   vec_area_(nullptr, 0)
     {}
 
     std::size_t size() const
@@ -63,14 +64,20 @@ public:
     virtual void nrn_init()     = 0;
     virtual void nrn_state()    = 0;
     virtual void nrn_current()  = 0;
+    virtual void net_receive(int, value_type) {};
     virtual bool uses_ion(ionKind) const = 0;
     virtual void set_ion(ionKind k, ion_type& i) = 0;
+
+    void set_areas(view_type area) {
+        vec_area_ = area;
+    }
 
     virtual mechanismKind kind() const = 0;
 
     view_type vec_v_;
     view_type vec_i_;
     index_type node_index_;
+    view_type vec_area_;
 };
 
 template <typename T, typename I>
@@ -87,5 +94,5 @@ make_mechanism(
 }
 
 } // namespace mechanisms
-} // namespace nest
 } // namespace mc
+} // namespace nest

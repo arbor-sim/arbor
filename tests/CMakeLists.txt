@@ -16,6 +16,7 @@ set(TEST_SOURCES
     test_algorithms.cpp
     test_cell.cpp
     test_compartments.cpp
+    test_event_queue.cpp
     test_fvm.cpp
     test_matrix.cpp
     test_mechanisms.cpp
@@ -24,6 +25,7 @@ set(TEST_SOURCES
     test_segment.cpp
     test_stimulus.cpp
     test_swcio.cpp
+    test_synapses.cpp
     test_tree.cpp
 
     # unit test driver
@@ -32,8 +34,9 @@ set(TEST_SOURCES
 
 set(VALIDATION_SOURCES
     # unit tests
-    validate_soma.cpp
     validate_ball_and_stick.cpp
+    validate_soma.cpp
+    validate_synapses.cpp
 
     # unit test driver
     validate.cpp
