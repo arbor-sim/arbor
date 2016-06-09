@@ -195,6 +195,16 @@ std::vector<int> const& cell::segment_parents() const
     return parents_;
 }
 
+void cell::add_synapse(segment_location loc)
+{
+    synapses_.push_back(loc);
+}
+
+const std::vector<segment_location>& cell::synapses() const
+{
+    return synapses_;
+}
+
 // Rough and ready comparison of two cells.
 // We don't use an operator== because equality of two cells is open to
 // interpretation. For example, it is possible to have two viable representations

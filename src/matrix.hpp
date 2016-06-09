@@ -18,10 +18,12 @@ class matrix {
     using size_type  = I;
 
     // define storage types
-    using vector_type      = memory::HostVector<value_type>;
-    using vector_view_type = typename vector_type::view_type;
-    using index_type       = memory::HostVector<size_type>;
-    using index_view_type  = typename index_type::view_type;
+    using vector_type            = memory::HostVector<value_type>;
+    using vector_view_type       = typename vector_type::view_type;
+    using const_vector_view_type = typename vector_type::const_view_type;
+    using index_type             = memory::HostVector<size_type>;
+    using index_view_type        = typename index_type::view_type;
+    using const_index_view_type  = typename index_type::const_view_type;
 
     matrix() = default;
 
@@ -84,41 +86,62 @@ class matrix {
     vector_view_type vec_d()   { return d(); }
     vector_view_type vec_v()   { return v(); }
 
+    const_vector_view_type vec_rhs() const { return rhs(); }
+    const_vector_view_type vec_d()   const { return d(); }
+    const_vector_view_type vec_v()   const { return v(); }
+
     /// the vector holding the lower part of the matrix
-    vector_view_type l()
-    {
+    vector_view_type l() {
+        return l_;
+    }
+
+    const_vector_view_type l() const {
         return l_;
     }
 
     /// the vector holding the diagonal of the matrix
-    vector_view_type d()
-    {
+    vector_view_type d() {
+        return d_;
+    }
+
+    const vector_view_type d() const {
         return d_;
     }
 
     /// the vector holding the upper part of the matrix
-    vector_view_type u()
-    {
+    vector_view_type u() {
+        return u_;
+    }
+    const vector_view_type u() const {
         return u_;
     }
 
     /// the vector holding the right hand side of the linear equation system
-    vector_view_type rhs()
-    {
+    vector_view_type rhs() {
+        return rhs_;
+    }
+
+    const_vector_view_type rhs() const {
         return rhs_;
     }
 
     /// the vector holding the solution (voltage)
-    vector_view_type v()
-    {
+    vector_view_type v() {
         EXPECTS(has_voltage_);
+        return v_;
+    }
 
+    const_vector_view_type v() const {
+        EXPECTS(has_voltage_);
         return v_;
     }
 
     /// the vector holding the parent index
-    index_view_type p()
-    {
+    index_view_type p() {
+        return parent_index_;
+    }
+
+    const_index_view_type p() const {
         return parent_index_;
     }
 

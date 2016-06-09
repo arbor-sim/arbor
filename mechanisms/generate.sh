@@ -1,4 +1,8 @@
-for mech in pas hh
+#flags="-t cpu -O"
+flags="-t cpu"
+
+for mech in pas hh expsyn
 do
-    ../external/modparser/bin/modcc -t cpu -o ../include/mechanisms/$mech.hpp ./mod/$mech.mod
+    echo ../external/modparser/bin/modcc ${flags} -o ../include/mechanisms/$mech.hpp ./mod/$mech.mod
+    ../external/modparser/bin/modcc ${flags} -o ../include/mechanisms/$mech.hpp ./mod/$mech.mod
 done
