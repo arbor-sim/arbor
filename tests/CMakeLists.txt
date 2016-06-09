@@ -42,6 +42,7 @@ set(VALIDATION_SOURCES
     validate.cpp
 )
 
+add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
 add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 

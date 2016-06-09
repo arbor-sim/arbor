@@ -11,6 +11,11 @@
 #include "../src/cell.hpp"
 #include "../src/swcio.hpp"
 
+// Path to data directory can be overriden at compile time.
+#if !defined(DATADIR)
+#define DATADIR "../data"
+#endif
+
 // SWC tests
 void expect_record_equals(const nest::mc::io::swc_record &expected,
                           const nest::mc::io::swc_record &actual)
@@ -227,7 +232,8 @@ TEST(swc_parser, from_allen_db)
 {
     using namespace nest::mc;
 
-    auto fname = "../data/example.swc";
+    std::string datadir{DATADIR};
+    auto fname = datadir+"/example.swc";
     std::ifstream fid(fname);
     if(!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
@@ -493,7 +499,8 @@ TEST(swc_io, cell_construction)
 // the one generated with the C++ interface
 TEST(swc_parser, from_file_ball_and_stick)
 {
-    auto fname = "../data/ball_and_stick.swc";
+    std::string datadir{DATADIR};
+    auto fname = datadir+"/ball_and_stick.swc";
     std::ifstream fid(fname);
     if(!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
