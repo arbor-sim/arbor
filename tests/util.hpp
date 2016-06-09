@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include <json.hpp>
+#include <json/src/json.hpp>
 #include <util.hpp>
 
 // helpful code for running tests

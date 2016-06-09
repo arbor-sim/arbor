@@ -1,5 +1,5 @@
 #include <fstream>
-#include <json.hpp>
+#include <json/src/json.hpp>
 
 #include "gtest.h"
 #include "util.hpp"

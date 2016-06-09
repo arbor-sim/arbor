@@ -4,7 +4,7 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
-#include <Vector.hpp>
+#include <vector/include/Vector.hpp>
 
 #include "algorithms.hpp"
 #include "util.hpp"

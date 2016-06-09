@@ -4,8 +4,8 @@
 //  include the mechanisms
 //
 
-#include <hh.hpp>
-#include <pas.hpp>
+#include <mechanisms/hh.hpp>
+#include <mechanisms/pas.hpp>
 
 
 namespace nest {

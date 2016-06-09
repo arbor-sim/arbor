@@ -1,6 +1,6 @@
 #include <fstream>
 #include <iostream>
-#include <json.hpp>
+#include <json/src/json.hpp>
 #include <numeric>
 #include <vector>
 
