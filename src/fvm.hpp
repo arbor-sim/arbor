@@ -20,7 +20,7 @@
 
 #include <vector/include/Vector.hpp>
 
-#include <include/mechanisms/expsyn.hpp>
+#include <mechanisms/expsyn.hpp>
 
 namespace nest {
 namespace mc {

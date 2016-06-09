@@ -16,10 +16,10 @@ export CC=`which gcc`
 export CXX=`which g++`
 
 # build modparser
-cd modparser
+cd external/modparser
 cmake .
 make -j
-cd ..
+cd ../..
 
 # create mechanisms
 cd mechanisms

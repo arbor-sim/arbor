@@ -1,9 +1,9 @@
-#include "gtest.h"
-
 #include <vector>
 
-#include <algorithms.hpp>
-#include <util.hpp>
+#include "gtest.h"
+#include "util.hpp"
+
+#include "../src/algorithms.hpp"
 
 TEST(algorithms, sum)
 {

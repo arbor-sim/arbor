@@ -1,7 +1,7 @@
 #include "gtest.h"
 
-#include <mechanism_interface.hpp>
-#include <matrix.hpp>
+#include "../src/mechanism_interface.hpp"
+#include "../src/matrix.hpp"
 
 TEST(mechanisms, helpers) {
     nest::mc::mechanisms::setup_mechanism_helpers();

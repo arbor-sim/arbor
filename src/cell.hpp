@@ -5,9 +5,9 @@
 #include <thread>
 #include <vector>
 
-#include <segment.hpp>
-#include <cell_tree.hpp>
-#include <stimulus.hpp>
+#include "segment.hpp"
+#include "cell_tree.hpp"
+#include "stimulus.hpp"
 
 namespace nest {
 namespace mc {

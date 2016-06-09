@@ -4,7 +4,6 @@
 
 #include "../src/segment.hpp"
 
-
 TEST(segments, soma)
 {
     using namespace nest::mc;

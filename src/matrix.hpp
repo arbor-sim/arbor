@@ -1,10 +1,9 @@
 #pragma once
 
 #include <type_traits>
+#include <vector/include/Vector.hpp>
 
 #include "util.hpp"
-
-#include <vector/include/Vector.hpp>
 
 namespace nest {
 namespace mc {

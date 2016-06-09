@@ -1,12 +1,11 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <numeric>
 #include <vector>
+#include <vector/include/Vector.hpp>
 
-#include <cassert>
-
-#include "vector/include/Vector.hpp"
 #include "algorithms.hpp"
 #include "util.hpp"
 

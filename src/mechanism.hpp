@@ -1,14 +1,12 @@
 #pragma once
 
-#pragma once
-
 #include <memory>
 #include <string>
 
 #include "indexed_view.hpp"
+#include "ion.hpp"
 #include "parameter_list.hpp"
 #include "util.hpp"
-#include "ion.hpp"
 
 namespace nest {
 namespace mc {

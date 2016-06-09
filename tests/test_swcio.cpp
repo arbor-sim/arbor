@@ -8,8 +8,8 @@
 
 #include "gtest.h"
 
-#include <cell.hpp>
-#include <swcio.hpp>
+#include "../src/cell.hpp"
+#include "../src/swcio.hpp"
 
 // SWC tests
 void expect_record_equals(const nest::mc::io::swc_record &expected,
