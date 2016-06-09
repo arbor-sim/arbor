@@ -8,7 +8,6 @@
 
 #include "../src/cell_tree.hpp"
 
-
 using json = nlohmann::json;
 using range = memory::Range;
 

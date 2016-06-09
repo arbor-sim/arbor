@@ -3,9 +3,8 @@
 
 #include "gtest.h"
 
-#include "../src/matrix.hpp"
 #include "../src/math.hpp"
-
+#include "../src/matrix.hpp"
 
 TEST(matrix, construct_from_parent_only)
 {

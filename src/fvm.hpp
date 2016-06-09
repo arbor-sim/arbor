@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <Vector.hpp>
 
 #include "algorithms.hpp"
 #include "cell.hpp"
@@ -15,8 +16,6 @@
 #include "segment.hpp"
 #include "stimulus.hpp"
 #include "util.hpp"
-
-#include <Vector.hpp>
 
 namespace nest {
 namespace mc {

@@ -5,7 +5,6 @@
 
 #include "../src/algorithms.hpp"
 
-
 TEST(algorithms, sum)
 {
     // sum of 10 times 2 is 20
