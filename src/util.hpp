@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vector/include/Vector.hpp"
+#include <vector/include/Vector.hpp>
 
 #ifdef DEBUG
 #define EXPECTS(expression) assert(expression)

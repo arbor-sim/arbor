@@ -1,8 +1,7 @@
 #pragma once
 
-#include <iostream>
-
 #include <algorithm>
+#include <iostream>
 #include <numeric>
 #include <type_traits>
 #include <vector>

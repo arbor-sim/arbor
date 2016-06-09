@@ -1,10 +1,10 @@
 #include <numeric>
+#include <vector>
 
 #include "gtest.h"
 
-#include <matrix.hpp>
-#include <math.hpp>
-#include <vector/include/Vector.hpp>
+#include "../src/math.hpp"
+#include "../src/matrix.hpp"
 
 TEST(matrix, construct_from_parent_only)
 {

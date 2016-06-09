@@ -4,10 +4,10 @@
 #include <sstream>
 #include <unordered_set>
 
-#include <algorithms.hpp>
-#include <point.hpp>
-#include <swcio.hpp>
-#include <util.hpp>
+#include "algorithms.hpp"
+#include "point.hpp"
+#include "swcio.hpp"
+#include "util.hpp"
 
 namespace nest {
 namespace mc {

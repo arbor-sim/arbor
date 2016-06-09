@@ -39,3 +39,4 @@ include_directories(${CMAKE_SOURCE_DIR})
 add_subdirectory(mechanisms)
 add_subdirectory(src)
 add_subdirectory(tests)
+

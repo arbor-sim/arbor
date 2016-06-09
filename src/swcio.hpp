@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include <cell.hpp>
-#include <point.hpp>
+#include "cell.hpp"
+#include "point.hpp"
 
 namespace nest {
 namespace mc {

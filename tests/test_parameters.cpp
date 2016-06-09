@@ -1,10 +1,9 @@
-
 #include <fstream>
 
 #include "gtest.h"
 #include "util.hpp"
 
-#include <parameter_list.hpp>
+#include "../src/parameter_list.hpp"
 
 // test out the parameter infrastructure
 TEST(parameters, setting)

@@ -4,19 +4,18 @@
 #include <map>
 #include <string>
 #include <vector>
-
-#include <algorithms.hpp>
-#include <cell.hpp>
-#include <ion.hpp>
-#include <math.hpp>
-#include <matrix.hpp>
-#include <mechanism.hpp>
-#include <mechanism_interface.hpp>
-#include <util.hpp>
-#include <segment.hpp>
-#include <stimulus.hpp>
-
 #include <vector/include/Vector.hpp>
+
+#include "algorithms.hpp"
+#include "cell.hpp"
+#include "ion.hpp"
+#include "math.hpp"
+#include "matrix.hpp"
+#include "mechanism.hpp"
+#include "mechanism_interface.hpp"
+#include "segment.hpp"
+#include "stimulus.hpp"
+#include "util.hpp"
 
 namespace nest {
 namespace mc {
