@@ -8,6 +8,11 @@
 
 #include "../src/cell_tree.hpp"
 
+// Path to data directory can be overriden at compile time.
+#if !defined(DATADIR)
+#define DATADIR "../data"
+#endif
+
 using json = nlohmann::json;
 using range = memory::Range;
 
@@ -287,7 +292,10 @@ TEST(cell_tree, balance) {
 TEST(cell_tree, json_load)
 {
     json  cell_data;
-    std::ifstream("../data/cells_small.json") >> cell_data;
+    std::string path{DATADIR};
+
+    path += "/cells_small.json";
+    std::ifstream(path) >> cell_data;
 
     for(auto c : range(0,cell_data.size())) {
         std::vector<int> parent_index = cell_data[c]["parent_index"];
