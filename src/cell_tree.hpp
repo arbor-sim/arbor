@@ -32,9 +32,10 @@ class cell_tree {
 public :
     // use a signed 16-bit integer for storage of indexes, which is reasonable given
     // that typical cells have at most 1000-2000 segments
-    using int_type = int16_t;
-    using index_type = memory::HostVector<int_type>;
-    using index_view = index_type::view_type;
+    using int_type        = int16_t;
+    using index_type      = memory::HostVector<int_type>;
+    using view_type       = index_type::view_type;
+    using const_view_type = index_type::const_view_type;
 
     /// default empty constructor
     cell_tree() = default;
@@ -133,7 +134,7 @@ public :
     }
 
     /// returns a list of the children of segment b
-    const index_view children(size_t b) const {
+    const_view_type children(size_t b) const {
         return tree_.children(b);
     }
 

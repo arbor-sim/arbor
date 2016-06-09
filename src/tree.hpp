@@ -21,7 +21,8 @@ class tree {
     using int_type = int16_t;
 
     using index_type = memory::HostVector<int_type>;
-    using index_view = index_type::view_type;
+    using view_type  = index_type::view_type;
+    using const_view_type = index_type::const_view_type;
 
     tree() = default;
 
@@ -164,22 +165,22 @@ class tree {
     }
 
     /// return the child index
-    const index_view child_index() const {
+    const_view_type child_index() {
         return child_index_;
     }
 
     /// return the list of all children
-    const index_view children() const {
+    const_view_type children() const {
         return children_;
     }
 
     /// return the list of all children of branch b
-    const index_view children(size_t b) const {
+    const_view_type children(size_t b) const {
         return children_(child_index_[b], child_index_[b+1]);
     }
 
     /// return the list of parents
-    const index_view parents() const {
+    const_view_type parents() const {
         return parents_;
     }
 
@@ -289,7 +290,7 @@ class tree {
         int new_node,
         int old_node,
         int parent_node,
-        index_view p,
+        view_type p,
         tree const& old_tree
     )
     {
@@ -351,9 +352,9 @@ class tree {
 
     // provide default parameters so that tree type can
     // be default constructed
-    index_view children_   = data_(0, 0);
-    index_view child_index_= data_(0, 0);
-    index_view parents_    = data_(0, 0);
+    view_type children_   = data_(0, 0);
+    view_type child_index_= data_(0, 0);
+    view_type parents_    = data_(0, 0);
 };
 
 template <typename C>

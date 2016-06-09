@@ -25,8 +25,9 @@ In \eq{eq:linsys_FV} we choose units of $mV \equiv 10^{-3}V$ for each term becau
     $a,~\Delta x$             &   $\mu m$               &  $10^{-6} \cdot m$                        & yes    \\
     $\sigma_{i},~\sigma_{ij}$ &   $\mu m^2$             &  $10^{-12} \cdot m^2$                     & yes    \\
     $c_m$                     &   $F\cdot m^{-2}$       &  $s\cdot A\cdot V^{-1}\cdot m^{-2}$       & no     \\
-    $r_L$                     &   $\Omega\cdot cm$ &    $  10^{-2} \cdot A^{-1}\cdot V\cdot m$      & yes    \\
+    $r_L$                     &   $\Omega\cdot cm$      &  $10^{-2} \cdot A^{-1}\cdot V\cdot m$     & yes    \\
     $\overline{g}$            &   $S\cdot cm^{-2}$      &  $10^{4} \cdot A\cdot V^{-1}\cdot m^{-2}$ & yes    \\
+    $g_s$                     &   $\mu S$               &  $10^{-6} \cdot A\cdot V^{-1}$            & yes    \\
     $I_e$                     &   $nA$                  &  $10^{-9} \cdot A$                        & yes    \\
     \hline
 \end{tabular}
@@ -43,6 +44,16 @@ Membrane current is calculated as follows $i_m = \overline{g}(E-V)$, with units
                        &=  10^{4} \cdot A\cdot V^{-1}\cdot m^{-2} \cdot 10^{-3} \cdot V \nonumber \\
                        &=  10 \cdot A \cdot m^{-2}. \label{eq:im_unit}
 \end{align}
+The point process currents are calculated as point sources which must be turned into current densities as follows $i_m = g_s(E-V)/\sigma_i$.
+The units for the synaptic conductance $g_s$ are $\mu S$, so the units are calculated as follows
+\begin{align}
+    \unit{ i_m } &=  \unit{ g_s } \unit{ V } \unit{\sigma_i}^-1 \nonumber \\
+                 &=  10^{-6} \cdot A\cdot V^{-1} \cdot 10^{-3} \cdot 10^{12} \cdot m^{-2} \nonumber \\
+                 &=  10^{3} \cdot A \cdot m^{-2}, \label{eq:ims_unit}
+\end{align}
+which must be scaled by $10^{2}$ to match that of of the density channels in \eq{eq:im_unit}.
+
+
 The injected current $I_e$ has units $nA$, which has to be expressed in terms of current per unit area $i_e=I_e / \sigma_i$ with units
 \begin{align}
     \unit{ i_e } &=  \unit{ I_e } \unit{ \sigma_i }^{-1} \nonumber \\

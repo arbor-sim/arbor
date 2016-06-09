@@ -111,6 +111,11 @@ class cell {
         return stimulii_;
     }
 
+    void add_synapse(segment_location loc);
+
+    const std::vector<segment_location>& synapses() const;
+
+
     private:
 
     // storage for connections
@@ -121,6 +126,9 @@ class cell {
 
     // the stimulii
     std::vector<std::pair<segment_location, i_clamp>> stimulii_;
+
+    // the synapses
+    std::vector<segment_location> synapses_;
 };
 
 // Checks that two cells have the same

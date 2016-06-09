@@ -2,21 +2,25 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
 #include <algorithms.hpp>
 #include <cell.hpp>
+#include <event_queue.hpp>
 #include <ion.hpp>
 #include <math.hpp>
 #include <matrix.hpp>
 #include <mechanism.hpp>
 #include <mechanism_interface.hpp>
-#include <util.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
+#include <util.hpp>
 
 #include <vector/include/Vector.hpp>
+
+#include <include/mechanisms/expsyn.hpp>
 
 namespace nest {
 namespace mc {
@@ -45,11 +49,13 @@ class fvm_cell {
     using index_type = memory::HostVector<size_type>;
     /// view into index container
     using index_view = typename index_type::view_type;
+    using const_index_view = typename index_type::const_view_type;
 
     /// the container used for values
     using vector_type = memory::HostVector<value_type>;
     /// view into value container
     using vector_view = typename vector_type::view_type;
+    using const_vector_view = typename vector_type::const_view_type;
 
     /// constructor
     fvm_cell(nest::mc::cell const& cell);
@@ -57,31 +63,31 @@ class fvm_cell {
     /// build the matrix for a given time step
     void setup_matrix(value_type dt);
 
-    /// TODO this should be const
     /// which requires const_view in the vector library
-    matrix_type& jacobian() {
+    const matrix_type& jacobian() {
         return matrix_;
     }
 
-    /// TODO this should be const
     /// return list of CV areas in :
     ///          um^2
     ///     1e-6.mm^2
     ///     1e-8.cm^2
-    vector_view cv_areas() {
+    const_vector_view cv_areas() const {
         return cv_areas_;
     }
 
-    /// TODO this should be const
     /// return the capacitance of each CV surface
     /// this is the total capacitance, not per unit area,
     /// i.e. equivalent to sigma_i * c_m
-    vector_view cv_capacitance() {
+    const_vector_view cv_capacitance() const {
         return cv_capacitance_;
     }
 
     /// return the voltage in each CV
     vector_view voltage() {
+        return voltage_;
+    }
+    const_vector_view voltage() const {
         return voltage_;
     }
 
@@ -130,8 +136,15 @@ class fvm_cell {
     /// make a time step
     void advance(value_type dt);
 
+    /// advance solution to target time tfinal with maximum step size dt
+    void advance_to(value_type tfinal, value_type dt);
+
     /// set initial states
     void initialize();
+
+    event_queue& queue() {
+        return events_;
+    }
 
     private:
 
@@ -161,6 +174,11 @@ class fvm_cell {
     /// the potential in mV in each CV
     vector_type voltage_;
 
+    /// synapses
+    using synapse_type =
+        mechanisms::ExpSyn::mechanism_ExpSyn<value_type, size_type>;
+    std::size_t synapse_index_;
+
     /// the set of mechanisms present in the cell
     std::vector<mechanism_type> mechanisms_;
 
@@ -168,6 +186,9 @@ class fvm_cell {
     std::map<mechanisms::ionKind, ion_type> ions_;
 
     std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
+
+    /// event queue
+    event_queue events_;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -293,7 +314,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
 
         // build a vector of the indexes of the compartments that contain
         // the mechanism
-        std::vector<int> compartment_index(num_comp);
+        index_type compartment_index(num_comp);
         auto pos = 0u;
         for(auto seg : mech.second) {
             auto seg_size = segment_index[seg+1] - segment_index[seg];
@@ -306,41 +327,30 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         }
 
         // instantiate the mechanism
-        index_view node_index(compartment_index.data(), compartment_index.size());
         mechanisms_.push_back(
-            helper->new_mechanism(voltage_, current_, node_index)
+            helper->new_mechanism(voltage_, current_, compartment_index)
         );
     }
 
     /////////////////////////////////////////////
     // build the ion species
-    // FIXME : this should be a private member function
     /////////////////////////////////////////////
     for(auto ion : mechanisms::ion_kinds()) {
-        auto indexes =
-            std::make_pair(std::vector<int>(size()), std::vector<int>(size()));
-        auto ends =
-            std::make_pair(indexes.first.begin(), indexes.second.begin());
-
-        // after the loop the range
-        //      [indexes.first.begin(), ends.first)
-        // will hold the indexes of the compartments that require ion
+        // find the compartment indexes of all compartments that have a
+        // mechanism that depends on/influences ion
+        std::set<int> index_set;
         for(auto& mech : mechanisms_) {
             if(mech->uses_ion(ion)) {
-                ends.second =
-                    std::set_union(
-                        mech->node_index().begin(), mech->node_index().end(),
-                        indexes.first.begin(), ends.first,
-                        indexes.second.begin()
-                    );
-                std::swap(indexes.first, indexes.second);
-                std::swap(ends.first, ends.second);
+                for(auto idx : mech->node_index()) {
+                    index_set.insert(idx);
+                }
             }
         }
+        std::vector<int> indexes(index_set.begin(), index_set.end());
 
         // create the ion state
-        if(auto n = std::distance(indexes.first.begin(), ends.first)) {
-            ions_.emplace(ion, index_view(indexes.first.data(), n));
+        if(indexes.size()) {
+            ions_.emplace(ion, index_type(indexes));
         }
 
         // join the ion reference in each mechanism into the cell-wide ion state
@@ -356,7 +366,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     //        the default values in Neuron.
     //        Neuron's defaults are defined in the file
     //          nrn/src/nrnoc/membdef.h
-    using memory::all;
+    auto all = memory::all;
 
     constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
 
@@ -377,6 +387,24 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         auto idx = find_compartment_index(stim.first, graph);
         stimulii_.push_back( {idx, stim.second} );
     }
+
+    // add the synapses
+    std::vector<size_type> synapse_indexes;
+    synapse_indexes.reserve(cell.synapses().size());
+    for(auto loc : cell.synapses()) {
+        synapse_indexes.push_back(
+            find_compartment_index(loc, graph)
+        );
+    }
+
+    mechanisms_.push_back(
+        mechanisms::make_mechanism<synapse_type>(
+            voltage_, current_, index_view(synapse_indexes)
+        )
+    );
+    synapse_index_ = mechanisms_.size()-1;
+    // don't forget to give point processes access to cv_areas_
+    mechanisms_[synapse_index_]->set_areas(cv_areas_);
 }
 
 template <typename T, typename I>
@@ -406,8 +434,6 @@ void fvm_cell<T, I>::setup_matrix(T dt)
     //d(all) = 1.0;
     d(all) = cv_areas_;
     for(auto i=1u; i<d.size(); ++i) {
-        // TODO get this right
-        // probably requires scaling a by cv_areas_[i] and cv_areas_[p[i]]
         auto a = 1e5*dt * face_alpha_[i];
 
         d[i] +=  a;
@@ -417,7 +443,6 @@ void fvm_cell<T, I>::setup_matrix(T dt)
         // add contribution to the diagonal of parent
         d[p[i]] += a;
     }
-    //std::cout << "d " << d << " l " << l << " u " << u << "\n";
 
     // the RHS of the linear system is
     //      V[i] - dt/cm*(im - ie)
@@ -461,21 +486,13 @@ void fvm_cell<T, I>::advance(T dt)
         current_[loc] -= 100.*ie/cv_areas_[loc];
     }
 
-    //std::cout << "t " << t_ << " current " << current_;
-
     // set matrix diagonals and rhs
     setup_matrix(dt);
-
-    //printf("rhs %18.14f    d %18.14f\n", matrix_.rhs()[0], matrix_.d()[0]);
 
     // solve the linear system
     matrix_.solve();
 
     voltage_(all) = matrix_.rhs();
-
-    //printf("v solve %18.14f\n", voltage_[0]);
-
-    //std::cout << " v " << voltage_ << "\n";
 
     // update states
     for(auto& m : mechanisms_) {
@@ -483,7 +500,30 @@ void fvm_cell<T, I>::advance(T dt)
     }
 
     t_ += dt;
-    //std::cout << "******************\n";
+}
+
+template <typename T, typename I>
+void fvm_cell<T, I>::advance_to(T tfinal, T dt)
+{
+    if(t_>=tfinal) {
+        return;
+    }
+
+    do {
+        auto tnext = std::min(tfinal, t_+dt);
+        auto next = events_.pop_if_before(tnext);
+        // if there is an event before tnext...
+        if(next.first) {
+            tnext = next.second.time;
+        }
+        advance(tnext-t_);
+        t_ = tnext;
+        if(next.first) { // handle event
+            auto &e = next.second;
+
+            mechanisms_[synapse_index_]->net_receive(e.target, e.weight);
+        }
+    } while(t_<tfinal);
 }
 
 } // namespace fvm
