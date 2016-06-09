@@ -1,14 +1,13 @@
 #pragma once
 
 #include <cmath>
-
 #include <vector>
 
+#include "algorithms.hpp"
 #include "compartment.hpp"
 #include "math.hpp"
 #include "parameter_list.hpp"
 #include "point.hpp"
-#include "algorithms.hpp"
 #include "util.hpp"
 
 namespace nest {

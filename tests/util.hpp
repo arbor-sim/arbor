@@ -1,14 +1,13 @@
+#include <chrono>
+#include <cmath>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <iomanip>
-#include <chrono>
 
-#include <cmath>
-
-#include <util.hpp>
 #include <json.hpp>
+#include <util.hpp>
 
 // helpful code for running tests
 // a bit messy: refactor when it gets heavier and obvious patterns emerge...

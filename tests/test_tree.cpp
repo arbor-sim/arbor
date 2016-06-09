@@ -1,8 +1,8 @@
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <json.hpp>
 #include <numeric>
 #include <vector>
-#include <json.hpp>
 
 #include "gtest.h"
 

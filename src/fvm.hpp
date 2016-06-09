@@ -12,9 +12,9 @@
 #include "matrix.hpp"
 #include "mechanism.hpp"
 #include "mechanism_interface.hpp"
-#include "util.hpp"
 #include "segment.hpp"
 #include "stimulus.hpp"
+#include "util.hpp"
 
 #include <Vector.hpp>
 

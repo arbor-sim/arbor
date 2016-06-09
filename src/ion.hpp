@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Vector.hpp>
+
 #include "indexed_view.hpp"
 
 namespace nest {
