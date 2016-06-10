@@ -19,8 +19,6 @@
 #include <util.hpp>
 
 #include <vector/include/Vector.hpp>
-#include <optionalm/optionalm.h>
-
 #include <mechanisms/expsyn.hpp>
 
 namespace nest {

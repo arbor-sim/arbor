@@ -1,4 +1,4 @@
-/*! \file optionalm.h
+/*! \file optional.h
  *  \brief An option class with a monadic interface.
  *
  *  The std::option<T> class was proposed for inclusion into C++14, but was
@@ -14,20 +14,18 @@
  *  is the lack of constexpr versions of the methods and constructors.
  */
 
-#ifndef HF_OPTIONALM_H_
-#define HF_OPTIONALM_H_
+#ifndef UTIL_OPTIONAL_H_
+#define UTIL_OPTIONAL_H_
 
 #include <type_traits>
 #include <stdexcept>
 #include <utility>
 
-#include <optionalm/uninitialized.h>
+#include "util/uninitialized.hpp"
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wlogical-op-parentheses"
-
-namespace hf {
-namespace optionalm {
+namespace nest {
+namespace mc {
+namespace util {
 
 template <typename X> struct optional;
 
@@ -64,7 +62,7 @@ namespace detail {
         template <typename Y> friend struct optional;
 
     protected:
-        typedef hf::optionalm::uninitialized<X> D;
+        typedef util::uninitialized<X> D;
 
     public:
         typedef typename D::reference_type reference_type;
@@ -281,7 +279,7 @@ struct optional<void>: detail::optional_base<void> {
     bool operator==(const Y &y) const { return false; }
 
     bool operator==(const optional<void> &o) const {
-        return set && o.set || !set && !o.set;
+        return (set && o.set) || (!set && !o.set);
     }
 };
 
@@ -292,7 +290,6 @@ typename std::enable_if<
     optional<typename std::common_type<typename detail::wrapped_type<A>::type,typename detail::wrapped_type<B>::type>::type>
 >::type
 operator|(A &&a,B &&b) {
-    typedef typename std::common_type<typename detail::wrapped_type<A>::type,typename detail::wrapped_type<B>::type>::type common;
     return a?a:b;
 }
 
@@ -311,8 +308,6 @@ inline optional<void> provided(bool condition) { return condition?optional<void>
 template <typename X>
 optional<X> just(X &&x) { return optional<X>(std::forward<X>(x)); }
 
-}} // namespace hf::optionalm
+}}} // namespace nest::mc::util
 
-#pragma clang diagnostic pop
-
-#endif // ndef HF_OPTIONALM_H_
+#endif // ndef UTIL_OPTIONALM_H_

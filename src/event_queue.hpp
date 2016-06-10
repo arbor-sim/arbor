@@ -4,7 +4,7 @@
 #include <ostream>
 #include <queue>
 
-#include <optionalm/optionalm.h>
+#include "util/optional.hpp"
 
 namespace nest {
 namespace mc {
@@ -46,14 +46,14 @@ public :
     }
 
     // pop until
-    hf::optionalm::optional<local_event> pop_if_before(float t_until) {
+    util::optional<local_event> pop_if_before(float t_until) {
          if (!queue_.empty() && queue_.top().time < t_until) {
              auto ev = queue_.top();
              queue_.pop();
              return ev;
          }
          else {
-             return hf::optionalm::nothing;
+             return util::nothing;
          }
     }
 
