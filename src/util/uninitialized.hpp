@@ -1,3 +1,5 @@
+#pragma once
+
 /* Represent a possibly-uninitialized value, reference or void.
  *
  * The uninitialized<X> structure holds space for an item of
@@ -6,9 +8,6 @@
  * Specialisations for reference types X & and for the void type
  * allow for the handling of non-value types in a uniform manner.
  */
-
-#ifndef UTIL_UNINITIALIZED_H_
-#define UTIL_UNINITIALIZED_H_
 
 namespace nest {
 namespace mc {
@@ -23,10 +22,10 @@ private:
     typename std::aligned_storage<sizeof(X),alignof(X)>::type data;
 
 public:
-    typedef X *pointer_type;
-    typedef const X *const_pointer_type;
-    typedef X &reference_type;
-    typedef const X &const_reference_type;
+    using pointer_type=X *;
+    using const_pointer_type=const X *;
+    using reference_type=X &;
+    using const_reference_type=const X &;
 
     pointer_type ptr() { return reinterpret_cast<X *>(&data); }
     const_pointer_type cptr() const { return reinterpret_cast<const X *>(&data); }
@@ -64,10 +63,10 @@ private:
     X *data;
 
 public:
-    typedef X *pointer_type;
-    typedef const X *const_pointer_type;
-    typedef X &reference_type;
-    typedef const X &const_reference_type;
+    using pointer_type=X *;
+    using const_pointer_type=const X *;
+    using reference_type=X &;
+    using const_reference_type=const X &;
 
     pointer_type ptr() { return data; }
     const_pointer_type cptr() const { return data; }
@@ -92,10 +91,10 @@ public:
  */
 template <>
 struct uninitialized<void> {
-    typedef void *pointer_type;
-    typedef const void *const_pointer_type;
-    typedef void reference_type;
-    typedef void const_reference_type;
+    using pointer_type=void *;
+    using const_pointer_type=const void *;
+    using reference_type=void;
+    using const_reference_type=void;
 
     pointer_type ptr() { return nullptr; }
     const_pointer_type cptr() const { return nullptr; }
@@ -126,6 +125,4 @@ template <typename... Y>
 struct uninitialized_can_construct<void,Y...>: std::true_type {};
 
 }}} // namespace nest::mc::util
-
-#endif // ndef UTIL_UNINITIALIZED_H_
 

@@ -1,3 +1,5 @@
+#pragma once
+
 /*! \file optional.h
  *  \brief An option class with a monadic interface.
  *
@@ -13,9 +15,6 @@
  *  One point of difference between the proposal N3672 and this implementation
  *  is the lack of constexpr versions of the methods and constructors.
  */
-
-#ifndef UTIL_OPTIONAL_H_
-#define UTIL_OPTIONAL_H_
 
 #include <type_traits>
 #include <stdexcept>
@@ -43,8 +42,8 @@ struct nothing_t {};
 constexpr nothing_t nothing{};
 
 namespace detail {
-    template <typename Y> struct lift_type { typedef optional<Y> type; };
-    template <typename Y> struct lift_type<optional<Y>> { typedef optional<Y> type; };
+    template <typename Y> struct lift_type { using type=optional<Y>; };
+    template <typename Y> struct lift_type<optional<Y>> { using type=optional<Y>; };
 
     struct optional_tag {};
 
@@ -52,23 +51,23 @@ namespace detail {
         enum {value=std::is_base_of<optional_tag,typename std::decay<X>::type>::value };
     };
 
-    template <typename D,typename X> struct wrapped_type_ { typedef X type; };
-    template <typename D,typename X> struct wrapped_type_<optional<D>,X> { typedef D type; };
+    template <typename D,typename X> struct wrapped_type_ { using type=X; };
+    template <typename D,typename X> struct wrapped_type_<optional<D>,X> { using type=D; };
 
-    template <typename X> struct wrapped_type { typedef typename wrapped_type_<typename std::decay<X>::type,X>::type type; };
+    template <typename X> struct wrapped_type { using type=typename wrapped_type_<typename std::decay<X>::type,X>::type; };
 
     template <typename X>
     struct optional_base: detail::optional_tag {
         template <typename Y> friend struct optional;
 
     protected:
-        typedef util::uninitialized<X> D;
+        using D=util::uninitialized<X>;
 
     public:
-        typedef typename D::reference_type reference_type;
-        typedef typename D::const_reference_type const_reference_type;
-        typedef typename D::pointer_type pointer_type;
-        typedef typename D::const_pointer_type const_pointer_type;
+        using reference_type=typename D::reference_type;
+        using const_reference_type=typename D::const_reference_type;
+        using pointer_type=typename D::pointer_type;
+        using const_pointer_type=typename D::const_pointer_type;
 
     protected:
         bool set;
@@ -118,8 +117,8 @@ namespace detail {
 
         template <typename F>
         auto bind(F &&f) -> typename lift_type<decltype(data.apply(std::forward<F>(f)))>::type {
-            typedef decltype(data.apply(std::forward<F>(f))) F_result_type;
-            typedef typename lift_type<F_result_type>::type result_type;
+            using F_result_type=decltype(data.apply(std::forward<F>(f)));
+            using result_type=typename lift_type<F_result_type>::type;
 
             if (!set) return result_type();
             else return bind_impl<result_type,std::is_same<F_result_type,void>::value>::bind(data,std::forward<F>(f));
@@ -127,8 +126,8 @@ namespace detail {
 
         template <typename F>
         auto bind(F &&f) const -> typename lift_type<decltype(data.apply(std::forward<F>(f)))>::type {
-            typedef decltype(data.apply(std::forward<F>(f))) F_result_type;
-            typedef typename lift_type<F_result_type>::type result_type;
+            using F_result_type=decltype(data.apply(std::forward<F>(f)));
+            using result_type=typename lift_type<F_result_type>::type;
 
             if (!set) return result_type();
             else return bind_impl<result_type,std::is_same<F_result_type,void>::value>::bind(data,std::forward<F>(f));
@@ -158,7 +157,7 @@ namespace detail {
 
 template <typename X>
 struct optional: detail::optional_base<X> {
-    typedef detail::optional_base<X> base;
+    using base=detail::optional_base<X>;
     using base::set;
     using base::ref;
     using base::reset;
@@ -224,7 +223,7 @@ struct optional: detail::optional_base<X> {
 
 template <typename X>
 struct optional<X &>: detail::optional_base<X &> {
-    typedef detail::optional_base<X &> base;
+    using base=detail::optional_base<X &>;
     using base::set;
     using base::ref;
     using base::data;
@@ -257,7 +256,7 @@ struct optional<X &>: detail::optional_base<X &> {
 
 template <>
 struct optional<void>: detail::optional_base<void> {
-    typedef detail::optional_base<void> base;
+    using base=detail::optional_base<void>;
     using base::set;
 
     optional(): base() {}
@@ -299,7 +298,7 @@ typename std::enable_if<
     optional<typename detail::wrapped_type<B>::type>
 >::type
 operator&(A &&a,B &&b) {
-    typedef optional<typename detail::wrapped_type<B>::type> result_type;
+    using result_type=optional<typename detail::wrapped_type<B>::type>;
     return a?b:result_type();
 }
 
@@ -309,5 +308,3 @@ template <typename X>
 optional<X> just(X &&x) { return optional<X>(std::forward<X>(x)); }
 
 }}} // namespace nest::mc::util
-
-#endif // ndef UTIL_OPTIONALM_H_
