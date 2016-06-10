@@ -18,7 +18,7 @@ TEST(event_queue, push)
     std::vector<float> times;
     while(q.size()) {
         times.push_back(
-            q.pop_if_before(std::numeric_limits<float>::max()).second.time
+            q.pop_if_before(std::numeric_limits<float>::max())->time
         );
     }
 
@@ -44,7 +44,7 @@ TEST(event_queue, push_range)
     std::vector<float> times;
     while(q.size()) {
         times.push_back(
-            q.pop_if_before(std::numeric_limits<float>::max()).second.time
+            q.pop_if_before(std::numeric_limits<float>::max())->time
         );
     }
 
@@ -68,26 +68,26 @@ TEST(event_queue, pop_if_before)
     EXPECT_EQ(q.size(), 4u);
 
     auto e1 = q.pop_if_before(0.);
-    EXPECT_FALSE(e1.first);
+    EXPECT_FALSE(e1);
     EXPECT_EQ(q.size(), 4u);
 
     auto e2 = q.pop_if_before(5.);
-    EXPECT_TRUE(e2.first);
-    EXPECT_EQ(e2.second.target, 1u);
+    EXPECT_TRUE(e2);
+    EXPECT_EQ(e2->target, 1u);
     EXPECT_EQ(q.size(), 3u);
 
     auto e3 = q.pop_if_before(5.);
-    EXPECT_TRUE(e3.first);
-    EXPECT_EQ(e3.second.target, 2u);
+    EXPECT_TRUE(e3);
+    EXPECT_EQ(e3->target, 2u);
     EXPECT_EQ(q.size(), 2u);
 
     auto e4 = q.pop_if_before(2.5);
-    EXPECT_FALSE(e4.first);
+    EXPECT_FALSE(e4);
     EXPECT_EQ(q.size(), 2u);
 
     auto e5 = q.pop_if_before(5.);
-    EXPECT_TRUE(e5.first);
-    EXPECT_EQ(e5.second.target, 3u);
+    EXPECT_TRUE(e5);
+    EXPECT_EQ(e5->target, 3u);
     EXPECT_EQ(q.size(), 1u);
 
     q.pop_if_before(5.);
@@ -95,5 +95,5 @@ TEST(event_queue, pop_if_before)
 
     // empty queue should always return "false"
     auto e6 = q.pop_if_before(100.);
-    EXPECT_FALSE(e6.first);
+    EXPECT_FALSE(e6);
 }
