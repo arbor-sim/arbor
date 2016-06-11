@@ -7,7 +7,7 @@
 
 #if defined(__clang__)
 // refer: https://llvm.org/bugs/show_bug.cgi?id=21629
-#pragma clang diagnostic ignored "-Wmissing-braces"
+//#pragma clang diagnostic ignored "-Wmissing-braces"
 #endif
 
 using namespace nest::mc::util;
@@ -66,7 +66,7 @@ TEST(optionalm,deref) {
 
 TEST(optionalm,ctor_conv) {
     optional<std::array<int,3>> x{{1,2,3}};
-    EXPECT_EQ(3,x->size());
+    EXPECT_EQ(3u,x->size());
 }
 
 TEST(optionalm,ctor_ref) {
