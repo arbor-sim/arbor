@@ -107,7 +107,7 @@ namespace detail {
 
         template <typename Y>
         bool operator==(const optional<Y> &o) const {
-            return set && o.set && ref()==o.ref() || !set && !o.set;
+            return (set && o.set && ref()==o.ref()) || (!set && !o.set);
         }
 
         void reset() {
