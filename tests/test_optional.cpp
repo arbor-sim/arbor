@@ -5,11 +5,6 @@
 #include "gtest.h"
 #include "util/optional.hpp"
 
-#if defined(__clang__)
-// refer: https://llvm.org/bugs/show_bug.cgi?id=21629
-//#pragma clang diagnostic ignored "-Wmissing-braces"
-#endif
-
 using namespace nest::mc::util;
 
 TEST(optionalm,ctors) {
