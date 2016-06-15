@@ -369,11 +369,11 @@ TEST(algorithms, branches)
 
     {
         //
-        //        0
-        //       /|\.
-        //      1 4 6
-        //     /  |  \.
-        //    2   5   7
+        //        0                        0
+        //       /|\.                     /|\.
+        //      1 4 6                    1 2 3
+        //     /  |  \.           =>        / \.
+        //    2   5   7                    4   5
         //   /         \.
         //  3           8
         //             / \.
@@ -386,58 +386,100 @@ TEST(algorithms, branches)
         std::vector<int> parent_index =
             { 0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12 };
         std::vector<int> expected_branches =
-            { 0, 1, 1, 1, 2, 2, 3, 3, 3, 4, 4, 5, 5, 5 };
+            { 0, 1, 4, 6, 9, 11, 14 };
+        std::vector<int> expected_parent_index =
+            { 0, 0, 0, 0, 3, 3 };
 
         auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
+
+        auto actual_parent_index =
+            algorithms::make_parent_index(parent_index, actual_branches);
+        EXPECT_EQ(expected_parent_index, actual_parent_index);
+
+        // Check find_branch
+        EXPECT_EQ(0, algorithms::find_branch(actual_branches,  0));
+        EXPECT_EQ(1, algorithms::find_branch(actual_branches,  1));
+        EXPECT_EQ(1, algorithms::find_branch(actual_branches,  2));
+        EXPECT_EQ(1, algorithms::find_branch(actual_branches,  3));
+        EXPECT_EQ(2, algorithms::find_branch(actual_branches,  4));
+        EXPECT_EQ(2, algorithms::find_branch(actual_branches,  5));
+        EXPECT_EQ(3, algorithms::find_branch(actual_branches,  6));
+        EXPECT_EQ(3, algorithms::find_branch(actual_branches,  7));
+        EXPECT_EQ(3, algorithms::find_branch(actual_branches,  8));
+        EXPECT_EQ(4, algorithms::find_branch(actual_branches,  9));
+        EXPECT_EQ(4, algorithms::find_branch(actual_branches, 10));
+        EXPECT_EQ(5, algorithms::find_branch(actual_branches, 11));
+        EXPECT_EQ(5, algorithms::find_branch(actual_branches, 12));
+        EXPECT_EQ(5, algorithms::find_branch(actual_branches, 13));
+        EXPECT_EQ(6, algorithms::find_branch(actual_branches, 55));
+
+        // Check expand_branches
+        auto expanded = algorithms::expand_branches(actual_branches);
+        EXPECT_EQ(parent_index.size(), expanded.size());
+        for (std::size_t i = 0; i < parent_index.size(); ++i) {
+            EXPECT_EQ(algorithms::find_branch(actual_branches, i),
+                      expanded[i]);
+        }
     }
 
     {
         //
-        //    0
-        //    |
-        //    1
+        //    0      0
+        //    |      |
+        //    1  =>  1
         //    |
         //    2
         //    |
         //    3
         //
-        std::vector<int> parent_index =
-            { 0, 0, 1, 2 };
-        std::vector<int> expected_branches =
-            { 0, 1, 1, 1 };
+        std::vector<int> parent_index          = { 0, 0, 1, 2 };
+        std::vector<int> expected_branches     = { 0, 1, 4 };
+        std::vector<int> expected_parent_index = { 0, 0 };
 
         auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
+
+        auto actual_parent_index =
+            algorithms::make_parent_index(parent_index, actual_branches);
+        EXPECT_EQ(expected_parent_index, actual_parent_index);
     }
 
     {
         //
-        //    0
-        //    |
-        //    1
-        //    |
-        //    2
+        //    0           0
+        //    |           |
+        //    1     =>    1
+        //    |          / \.
+        //    2         2   3
         //   / \.
         //  3   4
         //       \.
         //        5
         //
-        std::vector<int> parent_index =
-            { 0, 0, 1, 2, 2, 4 };
-        std::vector<int> expected_branches =
-            { 0, 1, 1, 2, 3, 3 };
+        std::vector<int> parent_index          = { 0, 0, 1, 2, 2, 4 };
+        std::vector<int> expected_branches     = { 0, 1, 3, 4, 6 };
+        std::vector<int> expected_parent_index = { 0, 0, 1, 1 };
 
         auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
+
+        auto actual_parent_index =
+            algorithms::make_parent_index(parent_index, actual_branches);
+        EXPECT_EQ(expected_parent_index, actual_parent_index);
     }
 
     {
-        std::vector<int> parent_index = { 0 };
-        std::vector<int> expected_branches = { 0 };
+        std::vector<int> parent_index          = { 0 };
+        std::vector<int> expected_branches     = { 0, 1 };
+        std::vector<int> expected_parent_index = { 0 };
 
         auto actual_branches = algorithms::branches(parent_index);
         EXPECT_EQ(expected_branches, actual_branches);
+
+        auto actual_parent_index =
+            algorithms::make_parent_index(parent_index, actual_branches);
+        EXPECT_EQ(expected_parent_index, actual_parent_index);
     }
 }
 
