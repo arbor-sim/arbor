@@ -60,7 +60,7 @@ nlohmann::json
 load_spike_data(const std::string& input_name)
 {
     nlohmann::json cell_data;
-    auto fid = std::ifstream(input_name);
+    std::ifstream fid(input_name);
     if(!fid.is_open()) {
         std::cerr << "error : unable to open file " << input_name
                   << " : run the validation generation script first\n";
