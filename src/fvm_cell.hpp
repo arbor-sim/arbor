@@ -146,6 +146,18 @@ class fvm_cell {
         return events_;
     }
 
+    // returns the compartment index of a segment location
+    int compartment_index(segment_location loc) {
+        EXPECTS(loc.segment < segment_index_.size());
+
+        const auto seg = loc.segment;
+
+        auto first = segment_index_[seg];
+        auto n = segment_index_[seg+1] - first;
+        auto index = std::floor(n*loc.position);
+        return index<n ? first+index : first+n-1;
+    }
+
     private:
 
     /// current time
@@ -153,6 +165,9 @@ class fvm_cell {
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
+
+    /// index for fast lookup of compartment index ranges of segments
+    index_type segment_index_;
 
     /// cv_areas_[i] is the surface area of CV i
     vector_type cv_areas_;
@@ -217,7 +232,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     matrix_ = matrix_type(graph.parent_index);
 
     auto parent_index = matrix_.p();
-    auto const& segment_index = graph.segment_index;
+    segment_index_ = graph.segment_index;
 
     auto seg_idx = 0;
     for(auto const& s : cell.segments()) {
@@ -250,7 +265,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
             auto c_m = cable->mechanism("membrane").get("c_m").value;
             auto r_L = cable->mechanism("membrane").get("r_L").value;
             for(auto c : cable->compartments()) {
-                auto i = segment_index[seg_idx] + c.index;
+                auto i = segment_index_[seg_idx] + c.index;
                 auto j = parent_index[i];
 
                 auto radius_center = math::mean(c.radius);
@@ -309,7 +324,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         // calculate the number of compartments that contain the mechanism
         auto num_comp = 0u;
         for(auto seg : mech.second) {
-            num_comp += segment_index[seg+1] - segment_index[seg];
+            num_comp += segment_index_[seg+1] - segment_index_[seg];
         }
 
         // build a vector of the indexes of the compartments that contain
@@ -317,11 +332,11 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         index_type compartment_index(num_comp);
         auto pos = 0u;
         for(auto seg : mech.second) {
-            auto seg_size = segment_index[seg+1] - segment_index[seg];
+            auto seg_size = segment_index_[seg+1] - segment_index_[seg];
             std::iota(
                 compartment_index.data() + pos,
                 compartment_index.data() + pos + seg_size,
-                segment_index[seg]
+                segment_index_[seg]
             );
             pos += seg_size;
         }
