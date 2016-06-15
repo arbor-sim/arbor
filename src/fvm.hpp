@@ -19,7 +19,6 @@
 #include <util.hpp>
 
 #include <vector/include/Vector.hpp>
-
 #include <mechanisms/expsyn.hpp>
 
 namespace nest {
@@ -510,18 +509,14 @@ void fvm_cell<T, I>::advance_to(T tfinal, T dt)
     }
 
     do {
-        auto tnext = std::min(tfinal, t_+dt);
-        auto next = events_.pop_if_before(tnext);
-        // if there is an event before tnext...
-        if(next.first) {
-            tnext = next.second.time;
-        }
+        auto tstep = std::min(tfinal, t_+dt);
+        auto next = events_.pop_if_before(tstep);
+        auto tnext = next? next->time: tstep;
+
         advance(tnext-t_);
         t_ = tnext;
-        if(next.first) { // handle event
-            auto &e = next.second;
-
-            mechanisms_[synapse_index_]->net_receive(e.target, e.weight);
+        if (next) { // handle event
+            mechanisms_[synapse_index_]->net_receive(next->target, next->weight);
         }
     } while(t_<tfinal);
 }

@@ -20,6 +20,7 @@ set(TEST_SOURCES
     test_fvm.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_optional.cpp
     test_parameters.cpp
     test_point.cpp
     test_segment.cpp
@@ -27,6 +28,7 @@ set(TEST_SOURCES
     test_swcio.cpp
     test_synapses.cpp
     test_tree.cpp
+    test_uninitialized.cpp
 
     # unit test driver
     test.cpp

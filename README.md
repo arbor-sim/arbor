@@ -15,19 +15,10 @@ module load cmake
 export CC=`which gcc`
 export CXX=`which g++`
 
-# build modparser
-cd external/modparser
-cmake .
-make -j
-cd ../..
-
-# create mechanisms
-cd mechanisms
-./generate.sh
-cd ..
-
-# build main project
-cmake .
+# build main project (out-of-tree)
+mkdir build
+cd build
+cmake ..
 make -j
 
 # test

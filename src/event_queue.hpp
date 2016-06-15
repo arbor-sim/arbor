@@ -1,9 +1,10 @@
 #pragma once
 
+#include <cstdint>
 #include <ostream>
 #include <queue>
 
-#include <cstdint>
+#include "util/optional.hpp"
 
 namespace nest {
 namespace mc {
@@ -45,14 +46,14 @@ public :
     }
 
     // pop until
-    std::pair<bool, local_event> pop_if_before(float t_until) {
+    util::optional<local_event> pop_if_before(float t_until) {
          if (!queue_.empty() && queue_.top().time < t_until) {
              auto ev = queue_.top();
              queue_.pop();
-             return {true, ev};
+             return ev;
          }
          else {
-             return {false, {}};
+             return util::nothing;
          }
     }
 
