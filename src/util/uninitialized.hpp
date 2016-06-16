@@ -9,6 +9,9 @@
  * allow for the handling of non-value types in a uniform manner.
  */
 
+#include <type_traits>
+#include <utility>
+
 namespace nest {
 namespace mc {
 namespace util {
@@ -34,9 +37,14 @@ public:
     const_reference_type cref() const { return *reinterpret_cast<const X *>(&data); }
 
     // Copy construct the value.
-    template <typename Y=X,
-              typename =typename std::enable_if<std::is_copy_constructible<Y>::value>::type>
-    void construct(const X &x) { new(&data) X(x); }
+    template <
+        typename Y = X,
+        typename = typename
+            std::enable_if< std::is_copy_constructible<Y>::value >::type
+    >
+    void construct(const X &x) {
+        new(&data) X(x);
+    }
 
     // General constructor for X, forwarding arguments.
     template <typename... Y,
@@ -47,7 +55,10 @@ public:
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    typename std::result_of<F(reference_type)>::type apply(F &&f) { return f(ref()); }
+    typename std::result_of<F(reference_type)>::type
+    apply(F &&f) {
+        return f(ref());
+    }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
@@ -112,17 +123,26 @@ struct uninitialized<void> {
     typename std::result_of<F()>::type apply(F &&f) const { return f(); }
 };
 
+// proposed change...
+// is this too much?
 template <typename...>
-struct uninitialized_can_construct: std::false_type {};
+struct uninitialized_can_construct_: std::false_type {};
 
 template <typename X,typename... Y>
-struct uninitialized_can_construct<X,Y...>: std::integral_constant<bool,std::is_constructible<X,Y...>::value> {};
+struct uninitialized_can_construct_<X,Y...>: std::integral_constant<bool,std::is_constructible<X,Y...>::value> {};
 
 template <typename X,typename Y>
-struct uninitialized_can_construct<X &,Y>: std::integral_constant<bool,std::is_convertible<X &,Y>::value> {};
+struct uninitialized_can_construct_<X &,Y>: std::integral_constant<bool,std::is_convertible<X &,Y>::value> {};
 
 template <typename... Y>
-struct uninitialized_can_construct<void,Y...>: std::true_type {};
+struct uninitialized_can_construct_<void,Y...>: std::true_type {};
 
-}}} // namespace nest::mc::util
 
+template <typename... X>
+constexpr bool uninitialized_can_construct() {
+    return uninitialized_can_construct_<X...>::value;
+}
+
+} // namespace util
+} // namespace mc
+} // namespace nest

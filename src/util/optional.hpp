@@ -29,81 +29,145 @@ namespace util {
 template <typename X> struct optional;
 
 struct optional_unset_error: std::runtime_error {
-    explicit optional_unset_error(const std::string &what_str): std::runtime_error(what_str) {}
-    optional_unset_error(): std::runtime_error("optional value unset") {}
+    explicit optional_unset_error(const std::string &what_str)
+        : std::runtime_error(what_str)
+    {}
+
+    optional_unset_error()
+        : std::runtime_error("optional value unset")
+    {}
 };
 
 struct optional_invalid_dereference: std::runtime_error {
-    explicit optional_invalid_dereference(const std::string &what_str): std::runtime_error(what_str) {}
-    optional_invalid_dereference(): std::runtime_error("derefernce of optional<void> value") {}
+    explicit optional_invalid_dereference(const std::string &what_str)
+        : std::runtime_error(what_str)
+    {}
+
+    optional_invalid_dereference()\
+        : std::runtime_error("derefernce of optional<void> value")
+    {}
 };
 
 struct nothing_t {};
 constexpr nothing_t nothing{};
 
 namespace detail {
-    template <typename Y> struct lift_type { using type=optional<Y>; };
-    template <typename Y> struct lift_type<optional<Y>> { using type=optional<Y>; };
+    // the only change I make is to add an underscore after lift_type_
+    template <typename Y>
+    struct lift_type_
+    { using type=optional<Y>; };
+
+    template <typename Y>
+    struct lift_type_<optional<Y>>
+    { using type=optional<Y>; };
+
+    // ... then use an alias template to remove the need for a ::type in user code
+    // this is in the same vain as the metafunctions like std::decay_t that were introduced in C++14
+    template <typename Y>
+    using lift_type = typename lift_type_<Y>::type;
 
     struct optional_tag {};
 
-    template <typename X> struct is_optional {
-        enum {value=std::is_base_of<optional_tag,typename std::decay<X>::type>::value };
-    };
+    // constexpr function instead
+    template <typename X>
+    constexpr bool is_optional() {
+        return std::is_base_of<optional_tag, typename std::decay<X>::type>::value;
+    }
 
-    template <typename D,typename X> struct wrapped_type_ { using type=X; };
-    template <typename D,typename X> struct wrapped_type_<optional<D>,X> { using type=D; };
+    // you were kind of using the same pattern here...
+    template <typename D,typename X>
+    struct wrapped_type_
+    { using type=X; };
 
-    template <typename X> struct wrapped_type { using type=typename wrapped_type_<typename std::decay<X>::type,X>::type; };
+    template <typename D,typename X>
+    struct wrapped_type_<optional<D>,X>
+    { using type=D; };
+
+    // but we can simplify the following with an alias template
+    //template <typename X> struct wrapped_type { using type=typename wrapped_type_<typename std::decay<X>::type,X>::type; };
+    template <typename X>
+    using wrapped_type =
+        typename wrapped_type_<typename std::decay<X>::type, X>::type;
 
     template <typename X>
     struct optional_base: detail::optional_tag {
         template <typename Y> friend struct optional;
 
     protected:
+        // D is used throughout, so maybe give it a more descriptive name like unitinitialized_type ?
+        // whatever, I have the style of using CamelCase for template parameters, and lower case with underscore
+        // for "typedefed" types inside the class
         using D=util::uninitialized<X>;
 
     public:
-        using reference_type=typename D::reference_type;
-        using const_reference_type=typename D::const_reference_type;
-        using pointer_type=typename D::pointer_type;
-        using const_pointer_type=typename D::const_pointer_type;
+        // sorry, I like spaces around = signs and spaces after commas
+        using reference_type = typename D::reference_type;
+        using const_reference_type = typename D::const_reference_type;
+        using pointer_type = typename D::pointer_type;
+        using const_pointer_type = typename D::const_pointer_type;
 
     protected:
         bool set;
         D data;
 
-        optional_base(): set(false) {}
+        // don't be afraid of vertical space
+        optional_base() : set(false)
+        {}
 
+        // I am not too fussy, you could get away with this...
         template <typename T>
-        optional_base(bool set_,T&& init): set(set_) { if (set) data.construct(std::forward<T>(init)); }
+        optional_base(bool set_, T&& init) : set(set_) {
+            if (set) {
+                data.construct(std::forward<T>(init));
+            }
+        }
 
-        reference_type ref() { return data.ref(); }
+        // I could be persuaded to go one line for these, but a bit of vertical alignment helps
+        reference_type       ref()       { return data.ref(); }
         const_reference_type ref() const { return data.cref(); }
 
     public:
-        ~optional_base() { if (set) data.destruct(); }
+        // I know that this is annoying..
+        //~optional_base() { if (set) data.destruct(); }
+        ~optional_base() {
+            if (set) {
+                data.destruct();
+            }
+        }
 
         const_pointer_type operator->() const { return data.ptr(); }
-        pointer_type operator->() { return data.ptr(); }
-            
+        pointer_type       operator->()       { return data.ptr(); }
+
         const_reference_type operator*() const { return ref(); }
-        reference_type operator*() { return ref(); }
-            
+        reference_type       operator*()       { return ref(); }
+
         reference_type get() {
-            if (set) return ref();
-            else throw optional_unset_error();
+            if (set) {
+                return ref();
+            }
+            else {
+                throw optional_unset_error();
+            }
         }
 
         const_reference_type get() const {
-            if (set) return ref();
-            else throw optional_unset_error();
+            if (set) {
+                return ref();
+            }
+            else {
+                throw optional_unset_error();
+            }
         }
 
-        explicit operator bool() const { return set; }
+        // how about the following as a compromise for simple one-liners?
+        explicit operator bool() const
+        { return set; }
 
+        // though this is just one more line...
         template <typename Y>
-        bool operator==(const Y &y) const { return set && ref()==y; }
+        bool operator==(const Y &y) const {
+            return set && ref()==y;
+        }
 
         template <typename Y>
         bool operator==(const optional<Y> &o) const {
@@ -111,47 +175,68 @@ namespace detail {
         }
 
         void reset() {
-            if (set) data.destruct();
+            if (set) {
+                data.destruct();
+            }
             set=false;
         }
 
+        // see how we remove another typename and another ::type below
         template <typename F>
-        auto bind(F &&f) -> typename lift_type<decltype(data.apply(std::forward<F>(f)))>::type {
-            using F_result_type=decltype(data.apply(std::forward<F>(f)));
-            using result_type=typename lift_type<F_result_type>::type;
+        auto bind(F &&f) -> lift_type<decltype(data.apply(std::forward<F>(f)))> {
+            using F_result_type = decltype(data.apply(std::forward<F>(f)));
+            using result_type = lift_type<F_result_type>;
 
-            if (!set) return result_type();
+            if (!set) {
+                return result_type();
+            }
             else return bind_impl<result_type,std::is_same<F_result_type,void>::value>::bind(data,std::forward<F>(f));
         }
 
         template <typename F>
-        auto bind(F &&f) const -> typename lift_type<decltype(data.apply(std::forward<F>(f)))>::type {
-            using F_result_type=decltype(data.apply(std::forward<F>(f)));
-            using result_type=typename lift_type<F_result_type>::type;
+        auto bind(F &&f) const -> lift_type<decltype(data.apply(std::forward<F>(f)))> {
+            using F_result_type = decltype(data.apply(std::forward<F>(f)));
+            using result_type = lift_type<F_result_type>;
 
-            if (!set) return result_type();
-            else return bind_impl<result_type,std::is_same<F_result_type,void>::value>::bind(data,std::forward<F>(f));
+            if (!set) {
+                return result_type();
+            }
+            else {
+                return
+                    bind_impl<
+                        result_type,
+                        std::is_same<F_result_type,void>::value
+                    >::bind(data, std::forward<F>(f));
+            }
         }
 
         template <typename F>
-        auto operator>>(F &&f) -> decltype(this->bind(std::forward<F>(f))) { return bind(std::forward<F>(f)); }
+        auto operator>>(F &&f) -> decltype(this->bind(std::forward<F>(f))) {
+            return bind(std::forward<F>(f));
+        }
 
         template <typename F>
-        auto operator>>(F &&f) const -> decltype(this->bind(std::forward<F>(f))) { return bind(std::forward<F>(f)); }
+        auto operator>>(F &&f) const -> decltype(this->bind(std::forward<F>(f))) {
+            return bind(std::forward<F>(f));
+        }
 
     private:
-        template <typename R,bool F_void_return>
+        template <typename R, bool F_void_return>
         struct bind_impl {
             template <typename DT,typename F>
-            static R bind(DT &d,F &&f) { return R(d.apply(std::forward<F>(f))); }
+            static R bind(DT &d,F &&f) {
+                return R(d.apply(std::forward<F>(f)));
+            }
         };
 
         template <typename R>
         struct bind_impl<R,true> {
             template <typename DT,typename F>
-            static R bind(DT &d,F &&f) { d.apply(std::forward<F>(f)); return R(true); }
+            static R bind(DT &d,F &&f) {
+                d.apply(std::forward<F>(f));
+                return R(true);
+            }
         };
-        
     };
 }
 
@@ -166,8 +251,19 @@ struct optional: detail::optional_base<X> {
     optional(): base() {}
     optional(nothing_t): base() {}
 
-    template <typename Y=X,typename = typename std::enable_if<std::is_copy_constructible<Y>::value>::type>
-    optional(const X &x): base(true,x) {}
+    // ... this makes it much easier to read
+    template <
+        typename Y = X,
+        typename = typename std::enable_if<std::is_copy_constructible<Y>::value>::type
+        // and this is how it would look with my style :
+      //typename = std::enable_if<std::is_copy_constructible<Y>()>
+    >
+    optional(const X &x)
+    :   base(true,x)
+    {}
+
+    // and out of curiosity, this is how it would have looked if the C++ standards
+    // folks had got it right the first time
 
     template <typename Y=X,typename = typename std::enable_if<std::is_move_constructible<Y>::value>::type>
     optional(X &&x): base(true,std::move(x)) {}
@@ -182,9 +278,16 @@ struct optional: detail::optional_base<X> {
     template <typename T>
     optional(optional<T> &&ot): base(ot.set,std::move(ot.ref())) {}
 
-    template <typename Y,typename = typename std::enable_if<!detail::is_optional<Y>::value>::type>
+    // constexpr yay!
+    //template <typename Y,typename = typename std::enable_if<!detail::is_optional<Y>::value>::type>
+    template <
+        typename Y,
+        typename = typename std::enable_if<!detail::is_optional<Y>()>::type
+    >
     optional &operator=(Y &&y) {
-        if (set) ref()=std::forward<Y>(y);
+        if (set) {
+            ref()=std::forward<Y>(y);
+        }
         else {
             set=true;
             data.construct(std::forward<Y>(y));
@@ -192,23 +295,38 @@ struct optional: detail::optional_base<X> {
         return *this;
     }
 
-    optional &operator=(const optional &o) {
+    // small style point
+    //optional &operator=(const optional &o) {
+    optional& operator=(const optional &o) {
         if (set) {
-            if (o.set) ref()=o.ref();
-            else reset();
+            if (o.set) {
+                ref()=o.ref();
+            }
+            else {
+                reset();
+            }
         }
         else {
             set=o.set;
-            if (set) data.construct(o.ref());
+            if (set) {
+                data.construct(o.ref());
+            }
         }
         return *this;
     }
 
-    template <typename Y=X, typename =typename std::enable_if<
-        std::is_move_assignable<Y>::value &&
-        std::is_move_constructible<Y>::value
-    >::type>
-    optional &operator=(optional &&o) {
+    // this is much clearer
+    // I line the closing template > like I would a curly brace
+    template <
+        typename Y=X,
+        typename = typename
+            std::enable_if<
+                std::is_move_assignable<Y>::value &&
+                std::is_move_constructible<Y>::value
+            >::type
+    >
+    optional& operator=(optional &&o) {
+        // fix the {} !
         if (set) {
             if (o.set) ref()=std::move(o.ref());
             else reset();
@@ -235,7 +353,7 @@ struct optional<X &>: detail::optional_base<X &> {
     template <typename T>
     optional(optional<T &> &ot): base(ot.set,ot.ref()) {}
 
-    template <typename Y,typename = typename std::enable_if<!detail::is_optional<Y>::value>::type>
+    template <typename Y,typename = typename std::enable_if<!detail::is_optional<Y>()>::type>
     optional &operator=(Y &y) {
         set=true;
         ref()=y;
@@ -285,26 +403,37 @@ struct optional<void>: detail::optional_base<void> {
 
 template <typename A,typename B>
 typename std::enable_if<
-    detail::is_optional<A>::value || detail::is_optional<B>::value,
-    optional<typename std::common_type<typename detail::wrapped_type<A>::type,typename detail::wrapped_type<B>::type>::type>
+    detail::is_optional<A>() || detail::is_optional<B>(),
+    optional<
+        typename std::common_type<
+            typename detail::wrapped_type<A>,
+            typename detail::wrapped_type<B>
+        >::type
+    >
 >::type
 operator|(A &&a,B &&b) {
-    return a?a:b;
+    return a ? a : b;
 }
 
 template <typename A,typename B>
 typename std::enable_if<
-    detail::is_optional<A>::value || detail::is_optional<B>::value,
-    optional<typename detail::wrapped_type<B>::type>
+    detail::is_optional<A>() || detail::is_optional<B>(),
+    optional<detail::wrapped_type<B>>
 >::type
-operator&(A &&a,B &&b) {
-    using result_type=optional<typename detail::wrapped_type<B>::type>;
+operator&(A&& a,B&& b) {
+    using result_type=optional<detail::wrapped_type<B>>;
     return a?b:result_type();
 }
 
-inline optional<void> provided(bool condition) { return condition?optional<void>(true):optional<void>(); }
+inline optional<void> provided(bool condition) {
+    return condition ? optional<void>(true) : optional<void>();
+}
 
 template <typename X>
-optional<X> just(X &&x) { return optional<X>(std::forward<X>(x)); }
+optional<X> just(X &&x) {
+    return optional<X>(std::forward<X>(x));
+}
 
-}}} // namespace nest::mc::util
+} // namespace util
+} // namespace mc
+} // namespace nest
