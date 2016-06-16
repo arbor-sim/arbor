@@ -5,12 +5,14 @@
  * The uninitialized<X> structure holds space for an item of
  * type X, leaving its construction or destruction to the user.
  * 
- * Specialisations for reference types X & and for the void type
+ * Specialisations for reference types X& and for the void type
  * allow for the handling of non-value types in a uniform manner.
  */
 
 #include <type_traits>
 #include <utility>
+
+#include "util/meta.hpp"
 
 namespace nest {
 namespace mc {
@@ -22,47 +24,47 @@ namespace util {
 template <typename X>
 struct uninitialized {
 private:
-    typename std::aligned_storage<sizeof(X),alignof(X)>::type data;
+    typename std::aligned_storage<sizeof(X), alignof(X)>::type data;
 
 public:
-    using pointer_type=X *;
-    using const_pointer_type=const X *;
-    using reference_type=X &;
-    using const_reference_type=const X &;
+    using pointer_type = X*;
+    using const_pointer_type = const X*;
+    using reference_type = X&;
+    using const_reference_type = const X&;
 
-    pointer_type ptr() { return reinterpret_cast<X *>(&data); }
-    const_pointer_type cptr() const { return reinterpret_cast<const X *>(&data); }
+    pointer_type ptr() { return reinterpret_cast<X*>(&data); }
+    const_pointer_type cptr() const { return reinterpret_cast<const X*>(&data); }
 
-    reference_type ref() { return *reinterpret_cast<X *>(&data); }
-    const_reference_type cref() const { return *reinterpret_cast<const X *>(&data); }
+    reference_type ref() { return *reinterpret_cast<X*>(&data); }
+    const_reference_type cref() const { return *reinterpret_cast<const X*>(&data); }
 
     // Copy construct the value.
     template <
         typename Y = X,
-        typename = typename
-            std::enable_if< std::is_copy_constructible<Y>::value >::type
+        typename = enable_if_copy_constructible_t<Y>
     >
-    void construct(const X &x) {
+    void construct(const X& x) {
         new(&data) X(x);
     }
 
     // General constructor for X, forwarding arguments.
-    template <typename... Y,
-              typename =typename std::enable_if<std::is_constructible<X,Y...>::value>::type>
-    void construct(Y&& ...args) { new(&data) X(std::forward<Y>(args)...); }
+    template <
+        typename... Y,
+        typename = enable_if_constructible_t<X, Y...>
+    >
+    void construct(Y&& ...args) {
+        new(&data) X(std::forward<Y>(args)...);
+    }
 
     void destruct() { ptr()->~X(); }
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    typename std::result_of<F(reference_type)>::type
-    apply(F &&f) {
-        return f(ref());
-    }
+    result_of_t<F(reference_type)> apply(F&& f) { return f(ref()); }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    typename std::result_of<F(const_reference_type)>::type apply(F &&f) const { return f(cref()); }
+    result_of_t<F(const_reference_type)> apply(F&& f) const { return f(cref()); }
 };
 
 /* Maintains storage for a pointer of type X, representing
@@ -74,10 +76,10 @@ private:
     X *data;
 
 public:
-    using pointer_type=X *;
-    using const_pointer_type=const X *;
-    using reference_type=X &;
-    using const_reference_type=const X &;
+    using pointer_type = X*;
+    using const_pointer_type = const X*;
+    using reference_type = X&;
+    using const_reference_type = const X&;
 
     pointer_type ptr() { return data; }
     const_pointer_type cptr() const { return data; }
@@ -85,15 +87,20 @@ public:
     reference_type ref() { return *data; }
     const_reference_type cref() const { return *data; }
 
-    void construct(X &x) { data=&x; }
+    void construct(X& x) { data = &x; }
     void destruct() {}
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    typename std::result_of<F(reference_type)>::type apply(F &&f) { return f(ref()); }
+    result_of_t<F(reference_type)> apply(F&& f) {
+        return f(ref());
+    }
+
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    typename std::result_of<F(const_reference_type)>::type apply(F &&f) const { return f(cref()); }
+    result_of_t<F(const_reference_type)> apply(F&& f) const {
+        return f(cref());
+    }
 };
 
 /* Wrap a void type in an uninitialized template.
@@ -102,10 +109,10 @@ public:
  */
 template <>
 struct uninitialized<void> {
-    using pointer_type=void *;
-    using const_pointer_type=const void *;
-    using reference_type=void;
-    using const_reference_type=void;
+    using pointer_type = void*;
+    using const_pointer_type = const void*;
+    using reference_type = void;
+    using const_reference_type = void;
 
     pointer_type ptr() { return nullptr; }
     const_pointer_type cptr() const { return nullptr; }
@@ -120,28 +127,8 @@ struct uninitialized<void> {
 
     // Equivalent to f()
     template <typename F>
-    typename std::result_of<F()>::type apply(F &&f) const { return f(); }
+    result_of_t<F()> apply(F&& f) const { return f(); }
 };
-
-// proposed change...
-// is this too much?
-template <typename...>
-struct uninitialized_can_construct_: std::false_type {};
-
-template <typename X,typename... Y>
-struct uninitialized_can_construct_<X,Y...>: std::integral_constant<bool,std::is_constructible<X,Y...>::value> {};
-
-template <typename X,typename Y>
-struct uninitialized_can_construct_<X &,Y>: std::integral_constant<bool,std::is_convertible<X &,Y>::value> {};
-
-template <typename... Y>
-struct uninitialized_can_construct_<void,Y...>: std::true_type {};
-
-
-template <typename... X>
-constexpr bool uninitialized_can_construct() {
-    return uninitialized_can_construct_<X...>::value;
-}
 
 } // namespace util
 } // namespace mc
