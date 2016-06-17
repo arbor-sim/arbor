@@ -521,4 +521,3 @@ TEST(swc_parser, from_file_ball_and_stick)
 
     EXPECT_TRUE(nest::mc::cell_basic_equality(local_cell, cell));
 }
-

@@ -244,8 +244,9 @@ std::vector<typename C::value_type> make_parent_index(
         "integral type required"
     );
 
-    if (parent_index.empty() && branch_index.empty())
+    if (parent_index.empty() && branch_index.empty()) {
         return {};
+    }
 
     EXPECTS(parent_index.size() == branch_index.back());
     EXPECTS(has_contiguous_segments(parent_index));
