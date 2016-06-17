@@ -131,7 +131,6 @@ namespace detail {
         reference_type       operator*()       { return ref(); }
 
         reference_type get() {
-            // I find this super verbose :(
             if (set) {
                 return ref();
             }
