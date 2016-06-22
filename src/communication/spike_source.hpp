@@ -1,44 +1,39 @@
 #pragma once
 
 #include <cell.hpp>
-#include <fvm_cell.hpp>
 #include <util/optional.hpp>
 
 namespace nest {
 namespace mc {
 
-// generic spike source
-class spike_source {
-    public:
-
-    virtual util::optional<float> test(float t) = 0;
-};
-
 // spike detector for a lowered cell
 template <typename Cell>
-class spike_detector : public spike_source
+class spike_detector
 {
-    public:
+public:
     using cell_type = Cell;
 
     spike_detector(
-        cell_type const* cell,
+        const cell_type& cell,
         segment_location loc,
         double thresh,
         float t_init
     )
-        :   cell_(cell),
-            location_(loc),
-            threshold_(thresh),
-            previous_t_(t_init)
+    :   location_(loc),
+        threshold_(thresh),
+        previous_t_(t_init)
     {
-        previous_v_ = cell->voltage(location_);
+        previous_v_ = cell.voltage(location_);
         is_spiking_ = previous_v_ >= thresh ? true : false;
     }
 
-    util::optional<float> test(float t) override {
+    util::optional<float> test(const cell_type& cell, float t)
+    {
         util::optional<float> result = util::nothing;
-        auto v = cell_->voltage(location_);
+        auto v = cell.voltage(location_);
+
+        // these if statements could be simplified, but I keep them like
+        // this to clearly reflect the finite state machine
         if (!is_spiking_) {
             if (v>=threshold_) {
                 // the threshold has been passed, so estimate the time using
@@ -69,10 +64,18 @@ class spike_detector : public spike_source
         return location_;
     }
 
-    private:
+    float t() const {
+        return previous_t_;
+    }
+
+    float v() const {
+        return previous_v_;
+    }
+
+private:
 
     // parameters/data
-    cell_type* cell_;
+    //const cell_type* cell_;
     segment_location location_;
     double threshold_;
 
@@ -82,6 +85,7 @@ class spike_detector : public spike_source
     bool is_spiking_;
 };
 
+/*
 // spike generator according to a Poisson process
 class poisson_generator : public spike_source
 {
@@ -111,6 +115,7 @@ class poisson_generator : public spike_source
     float firing_rate_;
     float previous_t_;
 };
+*/
 
 
 } // namespace mc

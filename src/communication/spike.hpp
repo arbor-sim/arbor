@@ -5,6 +5,7 @@
 
 namespace nest {
 namespace mc {
+namespace communication {
 
 template <
     typename I,
@@ -24,17 +25,21 @@ struct spike {
 
 } // namespace mc
 } // namespace nest
+} // namespace communication
 
 /// custom stream operator for printing nest::mc::spike<> values
 template <typename I>
-std::ostream& operator <<(std::ostream& o, nest::mc::spike<I> s) {
+std::ostream& operator <<(std::ostream& o, nest::mc::communication::spike<I> s) {
     return o << "spike[t " << s.time << ", src " << s.source << "]";
 }
 
 /// less than comparison operator for nest::mc::spike<> values
 /// spikes are ordered by spike time, for use in sorting and queueing
 template <typename I>
-bool operator <(nest::mc::spike<I> lhs, nest::mc::spike<I> rhs) {
+bool operator <(
+    nest::mc::communication::spike<I> lhs,
+    nest::mc::communication::spike<I> rhs)
+{
     return lhs.time < rhs.time;
 }
 
