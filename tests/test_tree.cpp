@@ -142,20 +142,27 @@ TEST(cell_tree, from_parent_index) {
     {
         //
         //              0
-        //             / \.
-        //            1   2
+        //             /|\.
+        //            1 4 5
         //           / \.
-        //          3   4
-        std::vector<int> parent_index = {0,0,0,1,1};
+        //          2   3
+        std::vector<int> parent_index = {0,0,1,1,0,0};
         cell_tree tree(parent_index);
 
-        EXPECT_EQ(tree.num_segments(), 5u);
+        EXPECT_EQ(tree.num_segments(), 6u);
 
-        EXPECT_EQ(tree.num_children(0), 2u);
+        EXPECT_EQ(tree.num_children(0), 3u);
         EXPECT_EQ(tree.num_children(1), 2u);
         EXPECT_EQ(tree.num_children(2), 0u);
         EXPECT_EQ(tree.num_children(3), 0u);
         EXPECT_EQ(tree.num_children(4), 0u);
+
+        // Check children
+        EXPECT_EQ(1, tree.children(0)[0]);
+        EXPECT_EQ(4, tree.children(0)[1]);
+        EXPECT_EQ(5, tree.children(0)[2]);
+        EXPECT_EQ(2, tree.children(1)[0]);
+        EXPECT_EQ(3, tree.children(1)[1]);
     }
     {
         //              0

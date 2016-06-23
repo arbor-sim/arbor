@@ -17,7 +17,7 @@ class tree {
 
     public :
 
-    using int_type = int16_t;
+    using int_type = int;
 
     using index_type = memory::HostVector<int_type>;
     using view_type  = index_type::view_type;
@@ -62,92 +62,22 @@ class tree {
             );
         }
 
-        // n = number of compartment in cell
-        auto n = parent_index.size();
+        auto new_parent_index = algorithms::make_parent_index(
+            parent_index, algorithms::branches(parent_index));
 
-        // On completion of this loop child_count[i] is the number of children
-        // of compartment i compensate count for compartment 0, which has itself
-        // as its own parent
-        index_type child_count(n, 0);
-        child_count[0] = -1;
-        for(auto i : parent_index) {
-            ++child_count[i];
-        }
+        init(new_parent_index.size());
+        parents_(memory::all) = new_parent_index;
+        parents_[0] = -1;
 
-        // Find the number of branches by summing the number of children of all
-        // compartments with more than 1 child.
-        auto nbranches = 1 + child_count[0]; // children of the root node are counted differently
-        for(auto i : range(1,n)) {
-            if(child_count[i]>1) {
-                nbranches += child_count[i];
-            }
-        }
+        child_index_(memory::all) =
+            algorithms::make_index(algorithms::child_count(parents_));
 
-        // allocate memory for storing the tree
-        init(nbranches);
-
-        // index of the branch for each compartment
-        std::vector<I> branch_index(n);
-
-        // Mark the parent of the root node as -1.
-        // This simplifies the implementation of some algorithms on the tree
-        parents_[0]=-1;
-
-        // bcount records how many branches have been created in the loop
-        auto bcount=0;
-
-        for(auto i : range(1,n)) {
-            // the branch index of the parent of compartment i
-            auto parent_node = parent_index[i];
-            // index of the parent of compartment i
-            auto parent_branch = branch_index[parent_node];
-
-            // if this compartments's parent
-            //  - has more than one child
-            //  - or is the root branch
-            // this is the first compartment in a branch, so mark it as such
-            if(child_count[parent_node]>1 || parent_node==0) {
-                bcount++;
-                branch_index[i] = bcount;
-                parents_[bcount] = parent_branch;
-            }
-            // not the first compartment in a branch,
-            // so inherit the parent's branch number
-            else {
-                branch_index[i] = parent_branch;
-            }
-        }
-
-        child_index_(memory::all) = 0;
-        // the root node has to be handled separately: all of its children must
-        // be counted
-        child_index_[1] = child_count[0];
-        for(auto i : range(1, n)) {
-            if(child_count[i]>1) {
-                child_index_[branch_index[i]+1] = child_count[i];
-            }
-        }
-        std::partial_sum(child_index_.begin(), child_index_.end(), child_index_.begin());
-
-        // Fill in the list of children of each branch.
-        // Requires some additional book keeping to keep track of how many
-        // children have already been filled in for each branch.
-        for(auto i : range(1, nbranches)) {
-            // parents_[i] is the parent of branch i, for which i must be added
-            // as a child, and child_index_[p] is the index into which the next
-            // child of p is to be stored
+        std::vector<int> pos(parents_.size(), 0);
+        for (auto i = 1u; i < parents_.size(); ++i) {
             auto p = parents_[i];
-            children_[child_index_[p]] = i;
-            ++child_index_[p];
+            children_[child_index_[p] + pos[p]] = i;
+            ++pos[p];
         }
-
-        // The child index has already been calculated as a side-effect of the
-        // loop above, but is shifted one value to the left, so perform a
-        // rotation to the right.
-        for(auto i=nbranches-1; i>=00; --i) {
-            child_index_[i+1] = child_index_[i];
-        }
-        child_index_[0] = 0;
     }
 
     size_t num_children() const {
