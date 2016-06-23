@@ -52,7 +52,7 @@ class cell_group {
 
     void splat(std::string fname) {
         char buffer[128];
-        auto fid = std::ofstream(fname);
+        std::ofstream fid(fname);
         for(auto i=0u; i<tt.size(); ++i) {
             sprintf(buffer, "%8.4f %16.8f %16.8f\n", tt[i], vs[i], vd[i]);
             fid << buffer;

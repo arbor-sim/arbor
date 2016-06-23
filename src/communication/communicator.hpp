@@ -10,7 +10,6 @@
 #include <algorithms.hpp>
 #include <event_queue.hpp>
 
-
 #include "connection.hpp"
 
 namespace nest {
@@ -205,7 +204,7 @@ private:
 
     // thread private storage for accumulating spikes
     using local_spike_store_type =
-        nest::mc::threading:: enumerable_thread_specific<std::vector<spike_type>>;
+        nest::mc::threading::enumerable_thread_specific<std::vector<spike_type>>;
     /*
 #ifdef WITH_TBB
     using local_spike_store_type =

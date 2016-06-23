@@ -24,6 +24,7 @@ set( WITH_TBB "OFF" CACHE BOOL "use TBB for on-node threading" )
 if( "${WITH_TBB}" STREQUAL "ON" )
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_TBB ${TBB_DEFINITIONS}")
+    link_directories(${TBB_LIBRARY})
 endif()
 
 

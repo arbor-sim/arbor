@@ -15,7 +15,7 @@ namespace mc {
 namespace threading {
 
 template <typename T>
-class enumerable_thread_specific;
+using enumerable_thread_specific = tbb::enumerable_thread_specific<T>;
 
 struct parallel_for {
     template <typename F>
