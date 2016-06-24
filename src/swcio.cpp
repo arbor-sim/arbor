@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <functional>
 #include <iomanip>
 #include <map>
 #include <sstream>
@@ -230,88 +231,60 @@ swc_record_range_clean::swc_record_range_clean(std::istream &is)
     }
 }
 
-//
-// Convenience functions for returning the radii and the coordinates of a series
-// of swc records
-//
-static std::vector<swc_record::coord_type>
-swc_radii(const std::vector<swc_record> &records)
-{
-    std::vector<swc_record::coord_type> radii;
-    for (const auto &r : records) {
-        radii.push_back(r.radius());
-    }
-
-    return radii;
-}
-
-static std::vector<nest::mc::point<swc_record::coord_type> >
-swc_points(const std::vector<swc_record> &records)
-{
-    std::vector<nest::mc::point<swc_record::coord_type> > points;
-    for (const auto &r : records) {
-        points.push_back(r.coord());
-    }
-
-    return points;
-}
-
-static void make_cable(cell &cell,
-                       const std::vector<swc_record::id_type> &branch_index,
-                       const std::vector<swc_record> &branch_run)
-{
-    auto new_parent = branch_index[branch_run.back().id()] - 1;
-    cell.add_cable(new_parent, nest::mc::segmentKind::dendrite,
-                   swc_radii(branch_run), swc_points(branch_run));
-}
-
 cell swc_read_cell(std::istream &is)
 {
+    using namespace nest::mc;
+
     cell newcell;
-    std::vector<swc_record::id_type> parent_list;
+    std::vector<swc_record::id_type> parent_index;
     std::vector<swc_record> swc_records;
     for (const auto &r : swc_get_records<swc_io_clean>(is)) {
         swc_records.push_back(r);
-        parent_list.push_back(r.parent());
+        parent_index.push_back(r.parent());
     }
 
-    // The parent of soma must be 0
-    if (!parent_list.empty()) {
-        parent_list[0] = 0;
+    if (parent_index.empty()) {
+        return newcell;
     }
 
-    auto branch_index = nest::mc::algorithms::branches(parent_list);
-    std::vector<swc_record> branch_run;
+    // The parent of soma must be 0, while in SWC files is -1
+    parent_index[0] = 0;
+    auto branch_index     = algorithms::branches(parent_index);
+    auto new_parent_index = algorithms::make_parent_index(parent_index,
+                                                          branch_index);
 
-    branch_run.reserve(parent_list.size());
-    auto last_branch_point = branch_index[0];
-    for (auto i = 0u; i < swc_records.size(); ++i) {
-        if (branch_index[i] != last_branch_point) {
-            // New branch encountered; add to cell the current one
-            const auto &p = branch_run.back();
-            if (p.parent() == -1) {
-                // This is a soma
-                newcell.add_soma(p.radius(), p.coord());
-                last_branch_point = i;
-            } else {
-                last_branch_point = i - 1;
-                make_cable(newcell, branch_index, branch_run);
-            }
+    // sanity check
+    EXPECTS(new_parent_index.size() == branch_index.size() - 1);
 
-            // Reset the branch run
-            branch_run.clear();
-            if (p.parent() != -1) {
-                // Add parent of the current cell to the branch,
-                // if not branching from soma
-                branch_run.push_back(swc_records[parent_list[i]]);
-            }
+    // Add the soma first; then the segments
+    newcell.add_soma(swc_records[0].radius(), swc_records[0].coord());
+    for (std::size_t i = 1; i < new_parent_index.size(); ++i) {
+        auto b_start = std::next(swc_records.begin(), branch_index[i]);
+        auto b_end   = std::next(swc_records.begin(), branch_index[i+1]);
+
+        std::vector<swc_record::coord_type> radii;
+        std::vector<nest::mc::point<swc_record::coord_type>> points;
+        if (new_parent_index[i] != 0) {
+            // include the parent of current record if not branching from soma
+            auto p = parent_index[branch_index[i]];
+            radii.push_back(swc_records[p].radius());
+            points.push_back(swc_records[p].coord());
         }
 
-        branch_run.push_back(swc_records[i]);
-    }
+        // extract the radii and the points
+        std::for_each(b_start, b_end,
+                      [&radii](const swc_record& r) {
+                          radii.push_back(r.radius());
+                      });
 
-    if (!branch_run.empty()) {
-        make_cable(newcell, branch_index, branch_run);
+        std::for_each(b_start, b_end,
+                      [&points](const swc_record& r) {
+                          points.push_back(r.coord());
+                      });
+
+        // add the new cable
+        newcell.add_cable(new_parent_index[i],
+                          nest::mc::segmentKind::dendrite, radii, points);
     }
 
     return newcell;

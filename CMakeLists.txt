@@ -20,26 +20,28 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # TBB support
-set( WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
-if(${WITH_TBB})
+set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
+if(WITH_TBB)
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_TBB ${TBB_DEFINITIONS}")
-    link_directories(${TBB_LIBRARY})
 endif()
 
 # MPI support
-# relies on the user specifying an MPI-aware compiler wrapper
-set( WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism" )
-if(${WITH_MPI})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
+set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
+if(WITH_MPI)
+    find_package(MPI REQUIRED)
+    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
+    add_definitions(-DWITH_MPI)
+    # unfortunate workaround for C++ detection in system mpi.h
+    add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
+    set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
 endif()
 
 # Cray systems
-set( SYSTEM_CRAY OFF CACHE BOOL "add flags for compilation on Cray systems" )
-if( ${SYSTEM_CRAY} )
+set(SYSTEM_CRAY OFF CACHE BOOL "add flags for compilation on Cray systems")
+if(SYSTEM_CRAY)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
-
 
 # targets for extermal dependencies
 include(ExternalProject)
