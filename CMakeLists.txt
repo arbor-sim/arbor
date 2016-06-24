@@ -20,13 +20,22 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # TBB support
-set( WITH_TBB "OFF" CACHE BOOL "use TBB for on-node threading" )
-if( "${WITH_TBB}" STREQUAL "ON" )
+set(WITH_TBB "ON" CACHE BOOL "use TBB for on-node threading")
+if("${WITH_TBB}" STREQUAL "ON")
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_TBB ${TBB_DEFINITIONS}")
-    link_directories(${TBB_LIBRARY})
 endif()
 
+# MPI support
+set(WITH_MPI "ON" CACHE BOOL "use MPI for distributed processing")
+if("${WITH_MPI}" STREQUAL "ON")
+    find_package(MPI REQUIRED)
+    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
+    add_definitions(-DWITH_MPI)
+    # unfortunate workaround for C++ detection in system mpi.h
+    add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
+    set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
+endif()
 
 # targets for extermal dependencies
 include(ExternalProject)
