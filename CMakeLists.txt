@@ -11,7 +11,6 @@ set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include("CompilerOptions")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
-# -g -std=c++11 -pthread -Wall")
 
 # this generates a .json file with full compilation command for each file
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
@@ -19,6 +18,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 # generated .a and .so go into /lib
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# TBB support
+set( WITH_TBB "OFF" CACHE BOOL "use TBB for on-node threading" )
+if( "${WITH_TBB}" STREQUAL "ON" )
+    find_package(TBB REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_TBB ${TBB_DEFINITIONS}")
+    link_directories(${TBB_LIBRARY})
+endif()
+
 
 # targets for extermal dependencies
 include(ExternalProject)
@@ -37,9 +45,15 @@ externalproject_add(modparser
 include_directories(${CMAKE_SOURCE_DIR}/external)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_SOURCE_DIR}/miniapp)
 include_directories(${CMAKE_SOURCE_DIR})
+
+if( "${WITH_TBB}" STREQUAL "ON" )
+    include_directories(${TBB_INCLUDE_DIRS})
+endif()
 
 add_subdirectory(mechanisms)
 add_subdirectory(src)
 add_subdirectory(tests)
+add_subdirectory(miniapp)
 

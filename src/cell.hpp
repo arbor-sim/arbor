@@ -26,6 +26,9 @@ struct segment_location {
     {
         EXPECTS(position>=0. && position<=1.);
     }
+    friend bool operator==(segment_location l, segment_location r) {
+        return l.segment==r.segment && l.position==r.position;
+    }
     int segment;
     double position;
 };
@@ -99,6 +102,9 @@ class cell {
 
     compartment_model model() const;
 
+    //////////////////
+    // stimulii
+    //////////////////
     void add_stimulus(segment_location loc, i_clamp stim);
 
     std::vector<std::pair<segment_location, i_clamp>>&
@@ -111,10 +117,27 @@ class cell {
         return stimulii_;
     }
 
+    //////////////////
+    // synapses
+    //////////////////
     void add_synapse(segment_location loc);
 
     const std::vector<segment_location>& synapses() const;
 
+    //////////////////
+    // spike detectors
+    //////////////////
+    void add_detector(segment_location loc, double threshold);
+
+    std::vector<std::pair<segment_location, double>>&
+    detectors() {
+        return spike_detectors_;
+    }
+
+    const std::vector<std::pair<segment_location, double>>&
+    detectors() const {
+        return spike_detectors_;
+    }
 
     private:
 
@@ -129,6 +152,9 @@ class cell {
 
     // the synapses
     std::vector<segment_location> synapses_;
+
+    // the sensors
+    std::vector<std::pair<segment_location, double>> spike_detectors_;
 };
 
 // Checks that two cells have the same

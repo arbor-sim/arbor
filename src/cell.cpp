@@ -177,7 +177,7 @@ compartment_model cell::model() const
 }
 
 
-void cell::add_stimulus( segment_location loc, i_clamp stim)
+void cell::add_stimulus(segment_location loc, i_clamp stim)
 {
     if(!(loc.segment<num_segments())) {
         throw std::out_of_range(
@@ -188,6 +188,11 @@ void cell::add_stimulus( segment_location loc, i_clamp stim)
         );
     }
     stimulii_.push_back({loc, std::move(stim)});
+}
+
+void cell::add_detector(segment_location loc, double threshold)
+{
+    spike_detectors_.push_back({loc, threshold});
 }
 
 std::vector<int> const& cell::segment_parents() const

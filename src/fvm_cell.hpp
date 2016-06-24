@@ -29,6 +29,8 @@ template <typename T, typename I>
 class fvm_cell {
     public :
 
+    fvm_cell() = default;
+
     /// the real number type
     using value_type = T;
     /// the integral index type
@@ -83,54 +85,30 @@ class fvm_cell {
     }
 
     /// return the voltage in each CV
-    vector_view voltage() {
-        return voltage_;
-    }
-    const_vector_view voltage() const {
-        return voltage_;
-    }
+    vector_view       voltage()       { return voltage_; }
+    const_vector_view voltage() const { return voltage_; }
 
-    std::size_t size() const {
-        return matrix_.size();
-    }
+    std::size_t size() const { return matrix_.size(); }
 
     /// return reference to in iterable container of the mechanisms
-    std::vector<mechanism_type>& mechanisms() {
-        return mechanisms_;
-    }
+    std::vector<mechanism_type>& mechanisms() { return mechanisms_; }
 
     /// return reference to list of ions
     //std::map<mechanisms::ionKind, ion_type> ions_;
-    std::map<mechanisms::ionKind, ion_type>& ions() {
-        return ions_;
-    }
-    std::map<mechanisms::ionKind, ion_type> const& ions() const {
-        return ions_;
-    }
+    std::map<mechanisms::ionKind, ion_type>&       ions()       { return ions_; }
+    std::map<mechanisms::ionKind, ion_type> const& ions() const { return ions_; }
 
     /// return reference to sodium ion
-    ion_type& ion_na() {
-        return ions_[mechanisms::ionKind::na];
-    }
-    ion_type const& ion_na() const {
-        return ions_[mechanisms::ionKind::na];
-    }
+    ion_type&       ion_na()       { return ions_[mechanisms::ionKind::na]; }
+    ion_type const& ion_na() const { return ions_[mechanisms::ionKind::na]; }
 
     /// return reference to calcium ion
-    ion_type& ion_ca() {
-        return ions_[mechanisms::ionKind::ca];
-    }
-    ion_type const& ion_ca() const {
-        return ions_[mechanisms::ionKind::ca];
-    }
+    ion_type&       ion_ca()       { return ions_[mechanisms::ionKind::ca]; }
+    ion_type const& ion_ca() const { return ions_[mechanisms::ionKind::ca]; }
 
     /// return reference to pottasium ion
-    ion_type& ion_k() {
-        return ions_[mechanisms::ionKind::k];
-    }
-    ion_type const& ion_k() const {
-        return ions_[mechanisms::ionKind::k];
-    }
+    ion_type&       ion_k()       { return ions_[mechanisms::ionKind::k]; }
+    ion_type const& ion_k() const { return ions_[mechanisms::ionKind::k]; }
 
     /// make a time step
     void advance(value_type dt);
@@ -138,12 +116,25 @@ class fvm_cell {
     /// advance solution to target time tfinal with maximum step size dt
     void advance_to(value_type tfinal, value_type dt);
 
+    /// pass an event to the appropriate synapse and call net_receive
+    void apply_event(local_event e) {
+        mechanisms_[synapse_index_]->net_receive(e.target, e.weight);
+    }
+
+    mechanism_type& synapses() {
+        return mechanisms_[synapse_index_];
+    }
+
     /// set initial states
     void initialize();
 
-    event_queue& queue() {
-        return events_;
-    }
+    /// returns the compartment index of a segment location
+    int compartment_index(segment_location loc) const;
+
+    /// returns voltage at a segment location
+    value_type voltage(segment_location loc) const;
+
+    value_type time() const { return t_; }
 
     private:
 
@@ -152,6 +143,9 @@ class fvm_cell {
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
+
+    /// index for fast lookup of compartment index ranges of segments
+    index_type segment_index_;
 
     /// cv_areas_[i] is the surface area of CV i
     vector_type cv_areas_;
@@ -216,7 +210,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     matrix_ = matrix_type(graph.parent_index);
 
     auto parent_index = matrix_.p();
-    auto const& segment_index = graph.segment_index;
+    segment_index_ = graph.segment_index;
 
     auto seg_idx = 0;
     for(auto const& s : cell.segments()) {
@@ -249,7 +243,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
             auto c_m = cable->mechanism("membrane").get("c_m").value;
             auto r_L = cable->mechanism("membrane").get("r_L").value;
             for(auto c : cable->compartments()) {
-                auto i = segment_index[seg_idx] + c.index;
+                auto i = segment_index_[seg_idx] + c.index;
                 auto j = parent_index[i];
 
                 auto radius_center = math::mean(c.radius);
@@ -308,7 +302,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         // calculate the number of compartments that contain the mechanism
         auto num_comp = 0u;
         for(auto seg : mech.second) {
-            num_comp += segment_index[seg+1] - segment_index[seg];
+            num_comp += segment_index_[seg+1] - segment_index_[seg];
         }
 
         // build a vector of the indexes of the compartments that contain
@@ -316,11 +310,11 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         index_type compartment_index(num_comp);
         auto pos = 0u;
         for(auto seg : mech.second) {
-            auto seg_size = segment_index[seg+1] - segment_index[seg];
+            auto seg_size = segment_index_[seg+1] - segment_index_[seg];
             std::iota(
                 compartment_index.data() + pos,
                 compartment_index.data() + pos + seg_size,
-                segment_index[seg]
+                segment_index_[seg]
             );
             pos += seg_size;
         }
@@ -451,13 +445,30 @@ void fvm_cell<T, I>::setup_matrix(T dt)
         rhs[i] = cv_areas_[i]*(voltage_[i] - factor/cv_capacitance_[i]*current_[i]);
     }
 }
+template <typename T, typename I>
+int fvm_cell<T, I>::compartment_index(segment_location loc) const
+{
+    EXPECTS(loc.segment < segment_index_.size());
+
+    const auto seg = loc.segment;
+
+    auto first = segment_index_[seg];
+    auto n = segment_index_[seg+1] - first;
+    auto index = std::floor(n*loc.position);
+    return index<n ? first+index : first+n-1;
+}
+
+template <typename T, typename I>
+T fvm_cell<T, I>::voltage(segment_location loc) const
+{
+    return voltage_[compartment_index(loc)];
+}
 
 template <typename T, typename I>
 void fvm_cell<T, I>::initialize()
 {
     t_ = 0.;
 
-    // initialize mechanism states
     for(auto& m : mechanisms_) {
         m->nrn_init();
     }
@@ -485,15 +496,12 @@ void fvm_cell<T, I>::advance(T dt)
         current_[loc] -= 100.*ie/cv_areas_[loc];
     }
 
-    // set matrix diagonals and rhs
-    setup_matrix(dt);
-
     // solve the linear system
+    setup_matrix(dt);
     matrix_.solve();
-
     voltage_(all) = matrix_.rhs();
 
-    // update states
+    // integrate state of gating variables etc.
     for(auto& m : mechanisms_) {
         m->nrn_state();
     }
@@ -501,6 +509,7 @@ void fvm_cell<T, I>::advance(T dt)
     t_ += dt;
 }
 
+/*
 template <typename T, typename I>
 void fvm_cell<T, I>::advance_to(T tfinal, T dt)
 {
@@ -520,6 +529,7 @@ void fvm_cell<T, I>::advance_to(T tfinal, T dt)
         }
     } while(t_<tfinal);
 }
+*/
 
 } // namespace fvm
 } // namespace mc
