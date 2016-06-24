@@ -9,22 +9,31 @@
 namespace nest {
 namespace mc {
 
-struct local_event {
+struct postsynaptic_spike_event {
     uint32_t target;
     float time;
     float weight;
+
+    float event_time() const { return time; }
 };
 
-inline bool operator < (local_event const& l, local_event const& r) {
-    return l.time < r.time;
-}
+struct sample_event {
+    uint32_t sampler_index;
+    float time;
 
-inline bool operator > (local_event const& l, local_event const& r) {
-    return l.time > r.time;
-}
+    float event_time() const { return time; }
+};
 
+/* Event objects must have a method event_time() which returns a value
+ * from a type with a total ordering with respect to <, >, etc.
+ */     
+
+template <type Event>
 class event_queue {
 public :
+    using value_type = Event;
+    using time_type = template std::result_of<decltype(&Event::event_time)(Event)>::type;
+
     // create
     event_queue() {}
 
@@ -46,8 +55,8 @@ public :
     }
 
     // pop until
-    util::optional<local_event> pop_if_before(float t_until) {
-         if (!queue_.empty() && queue_.top().time < t_until) {
+    util::optional<value_type> pop_if_before(time_type t_until) {
+         if (!queue_.empty() && event_time(queue_.top()) < t_until) {
              auto ev = queue_.top();
              queue_.pop();
              return ev;
@@ -58,10 +67,16 @@ public :
     }
 
 private:
+    struct event_greater {
+        bool operator(const Event &a, const Event &b) {
+            return a.event_time() > b.event_time();
+        }
+    };
+
     std::priority_queue<
-        local_event,
-        std::vector<local_event>,
-        std::greater<local_event>
+        Event,
+        std::vector<Event>,
+        event_greater
     > queue_;
 };
 

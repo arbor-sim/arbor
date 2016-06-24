@@ -90,9 +90,15 @@ public:
     }
 
     id_type target_lid(id_type gid) {
-        EXPECTS(is_local_group(gid));
+        EXPECTS(is_local_group(gid)); 
 
         return gid - target_gid_map_[domain_id()];
+    }
+
+    id_type group_lid(id_type gid) {
+        EXPECTS(is_local_group(gid));
+
+        return gid - group_gid_map_[domain_id()];
     }
 
     // builds the optimized data structure

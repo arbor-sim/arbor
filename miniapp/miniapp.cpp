@@ -101,6 +101,19 @@ struct model {
     // TODO : only stored here because init_communicator() and update_gids() are split
     std::vector<id_type> source_map;
     std::vector<id_type> target_map;
+
+    // sampling // WIP COME BACK HERE
+    struct simple_sampler {
+        index_type group_gid;
+        std::string name;
+        double dt;
+
+        std::vector<std::pair<float,double>> tv;
+        util::optional<float> operator()(float t, double v) {
+            define
+        }
+        
+        
 };
 
 // define some global model parameters
@@ -269,6 +282,25 @@ void all_to_all_model(nest::mc::io::options& opt, model& m) {
     auto start_network = timer.tic();
     m.init_communicator();
 
+    // monitor soma and dendrite on a few cells
+    float sample_dt = 0.1;
+    index_type monitor_group_gids = { 0, 1, 2 };
+    for (auto gid : monitor_group_gids) {
+        if (!m.communicator.is_local_group(gid)) {
+            continue;
+        }
+
+        lid = m.communicator.group_lid(gid);
+        index_type probe_soma = m.cell_groups[lid].probe_gid_range().first;
+        index_type probe_dend = probe_soma+1;
+
+        // WIP COME BACK HERE
+        m.cell_groups[lid].samplers = {
+            { probe_soma, m.make_simple_sampler(gid, "vsoma", sample_dt) },
+            { probe_dend, m.make_simple_sampler(gid, "vdend", sample_dt) }
+        };
+    }
+
     // lid is local cell/group id
     for (auto lid=0u; lid<ncell_local; ++lid) {
         auto target = m.communicator.target_gid_from_group_lid(lid);
@@ -347,6 +379,13 @@ mc::cell make_cell(int compartments_per_segment, int num_synapses) {
     for (auto i=0; i<num_synapses; ++i) {
         cell.add_synapse({1, 0.5});
     }
+
+    // add probes: 
+    auto probe_soma = cell.add_probe(nest::mc::cell::membrane_potential, {0,0});
+    auto probe_dendrite = cell.add_probe(nest::mc::cell::membrane_potential, {1,0.5});
+
+    EXPECT(probe_soma==0);
+    EXPECT(probe_dendrite==1);
 
     return cell;
 }
