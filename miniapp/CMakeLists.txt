@@ -1,7 +1,7 @@
 set(HEADERS
 )
 set(MINIAPP_SOURCES
-    mpi.cpp
+    #    mpi.cpp
     io.cpp
     miniapp.cpp
 )
