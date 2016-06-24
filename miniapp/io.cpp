@@ -6,14 +6,12 @@ namespace io {
 
 // read simulation options from json file with name fname
 // for now this is just a placeholder
-options read_options(std::string fname)
-{
+options read_options(std::string fname) {
     // 10 cells, 1 synapses per cell, 10 compartments per segment
-    return {5, 1, 100};
+    return {100, 1, 100};
 }
 
-std::ostream& operator<<(std::ostream& o, const options& opt)
-{
+std::ostream& operator<<(std::ostream& o, const options& opt) {
     o << "simultion options:\n";
     o << "  cells                : " << opt.cells << "\n";
     o << "  compartments/segment : " << opt.compartments_per_segment << "\n";

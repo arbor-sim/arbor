@@ -2,15 +2,30 @@
 
 #include <algorithm>
 #include <iostream>
+#include <type_traits>
 #include <vector>
 
 #include <cassert>
 
 #include <mpi.h>
-#include "utils.hpp" 
-#include "utils.hpp" 
+
+#include <algorithms.hpp>
+
+namespace nest {
+namespace mc {
 namespace mpi {
 
+    // prototypes
+    void init(int *argc, char ***argv);
+    void finalize();
+    bool is_root();
+    int rank();
+    int size();
+    void barrier();
+    bool ballot(bool vote);
+
+    // type traits for automatically setting MPI_Datatype information
+    // for C++ types
     template <typename T>
     struct mpi_traits {
         constexpr static size_t count() {
@@ -41,15 +56,15 @@ namespace mpi {
     static_assert(sizeof(size_t)==sizeof(unsigned long),
                   "size_t and unsigned long are not equivalent");
 
-    bool init(int *argc, char ***argv);
-    bool finalize();
-    bool is_root();
-    int rank();
-    int size();
-    void barrier();
-
-    template <typename T>
+    // Gather individual values of type T from each rank into a std::vector on
+    // the root rank.
+    // T must be trivially copyable
+    template<typename T>
     std::vector<T> gather(T value, int root) {
+        static_assert(
+            true,//std::is_trivially_copyable<T>::value,
+            "gather can only be performed on trivally copyable types");
+
         using traits = mpi_traits<T>;
         auto buffer_size = (rank()==root) ? size() : 0;
         std::vector<T> buffer(buffer_size);
@@ -61,8 +76,15 @@ namespace mpi {
         return buffer;
     }
 
+    // Gather individual values of type T from each rank into a std::vector on
+    // the every rank.
+    // T must be trivially copyable
     template <typename T>
     std::vector<T> gather_all(T value) {
+        static_assert(
+            true,//std::is_trivially_copyable<T>::value,
+            "gather_all can only be performed on trivally copyable types");
+
         using traits = mpi_traits<T>;
         std::vector<T> buffer(size());
 
@@ -75,12 +97,16 @@ namespace mpi {
 
     template <typename T>
     std::vector<T> gather_all(const std::vector<T> &values) {
+        static_assert(
+            true,//std::is_trivially_copyable<T>::value,
+            "gather_all can only be performed on trivally copyable types");
+
         using traits = mpi_traits<T>;
         auto counts = gather_all(int(values.size()));
-        for(auto& c : counts) {
+        for (auto& c : counts) {
             c *= traits::count();
         }
-        auto displs = algorithms::make_map(counts);
+        auto displs = algorithms::make_index(counts);
 
         std::vector<T> buffer(displs.back()/traits::count());
 
@@ -98,8 +124,9 @@ namespace mpi {
     template <typename T>
     T reduce(T value, MPI_Op op, int root) {
         using traits = mpi_traits<T>;
-        static_assert(traits::is_mpi_native_type(),
-                      "can only perform reductions on MPI native types");
+        static_assert(
+            traits::is_mpi_native_type(),
+            "can only perform reductions on MPI native types");
 
         T result;
 
@@ -111,8 +138,9 @@ namespace mpi {
     template <typename T>
     T reduce(T value, MPI_Op op) {
         using traits = mpi_traits<T>;
-        static_assert(traits::is_mpi_native_type(),
-                      "can only perform reductions on MPI native types");
+        static_assert(
+            traits::is_mpi_native_type(),
+            "can only perform reductions on MPI native types");
 
         T result;
 
@@ -131,10 +159,12 @@ namespace mpi {
         return {reduce<T>(value, MPI_MIN, root), reduce<T>(value, MPI_MAX, root)};
     }
 
-    bool ballot(bool vote);
-
     template <typename T>
     T broadcast(T value, int root) {
+        static_assert(
+            true,//std::is_trivially_copyable<T>::value,
+            "broadcast can only be performed on trivally copyable types");
+
         using traits = mpi_traits<T>;
 
         MPI_Bcast(&value, traits::count(), traits::mpi_type(), root, MPI_COMM_WORLD);
@@ -144,6 +174,10 @@ namespace mpi {
 
     template <typename T>
     T broadcast(int root) {
+        static_assert(
+            true,//std::is_trivially_copyable<T>::value,
+            "broadcast can only be performed on trivally copyable types");
+
         using traits = mpi_traits<T>;
         T value;
 
@@ -153,3 +187,5 @@ namespace mpi {
     }
 
 } // namespace mpi
+} // namespace mc
+} // namespace nest

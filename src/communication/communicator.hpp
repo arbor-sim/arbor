@@ -29,17 +29,17 @@ namespace communication {
 template <typename CommunicationPolicy>
 class communicator {
 public:
-    using index_type = uint32_t;
+    using id_type = uint32_t;
     using communication_policy_type = CommunicationPolicy;
 
-    using spike_type = spike<index_type>;
+    using spike_type = spike<id_type>;
 
-    communicator( index_type n_groups, std::vector<index_type> target_counts) :
+    communicator() = default;
+
+    communicator(id_type n_groups, std::vector<id_type> target_counts) :
         num_groups_local_(n_groups),
         num_targets_local_(target_counts.size())
     {
-        communicator_id_ = communication_policy_.id();
-
         target_map_ = nest::mc::algorithms::make_index(target_counts);
         num_targets_local_ = target_map_.back();
 
@@ -51,10 +51,20 @@ public:
         group_gid_map_  = communication_policy_.make_map(num_groups_local_);
 
         // transform the target ids from lid to gid
-        auto first_target = target_gid_map_[communicator_id_];
-        for(auto &id : target_map_) {
+        auto first_target = target_gid_map_[domain_id()];
+        for (auto &id : target_map_) {
             id += first_target;
         }
+    }
+
+    id_type target_gid_from_group_lid(id_type lid) const {
+        EXPECTS(lid<num_groups_local_);
+        return target_map_[lid];
+    }
+
+    id_type group_gid_from_group_lid(id_type lid) const {
+        EXPECTS(lid<num_groups_local_);
+        return group_gid_map_[domain_id()] + lid;
     }
 
     void add_connection(connection con) {
@@ -62,39 +72,39 @@ public:
         connections_.push_back(con);
     }
 
-    bool is_local_target(index_type gid) {
-        return gid>=target_gid_map_[communicator_id_]
-            && gid<target_gid_map_[communicator_id_+1];
+    bool is_local_target(id_type gid) {
+        return gid>=target_gid_map_[domain_id()]
+            && gid<target_gid_map_[domain_id()+1];
     }
 
-    bool is_local_group(index_type gid) {
-        return gid>=group_gid_map_[communicator_id_]
-            && gid<group_gid_map_[communicator_id_+1];
+    bool is_local_group(id_type gid) {
+        return gid>=group_gid_map_[domain_id()]
+            && gid<group_gid_map_[domain_id()+1];
     }
 
     /// return the global id of the first group in domain d
     /// the groups in domain d are in the contiguous half open range
     ///     [domain_first_group(d), domain_first_group(d+1))
-    index_type group_gid_first(int d) const {
+    id_type group_gid_first(int d) const {
         return group_gid_map_[d];
     }
 
-    index_type target_lid(index_type gid) {
+    id_type target_lid(id_type gid) {
         EXPECTS(is_local_group(gid));
 
-        return gid - target_gid_map_[communicator_id_];
+        return gid - target_gid_map_[domain_id()];
     }
 
     // builds the optimized data structure
     void construct() {
-        if(!std::is_sorted(connections_.begin(), connections_.end())) {
+        if (!std::is_sorted(connections_.begin(), connections_.end())) {
             std::sort(connections_.begin(), connections_.end());
         }
     }
 
     float min_delay() {
         auto local_min = std::numeric_limits<float>::max();
-        for(auto& con : connections_) {
+        for (auto& con : connections_) {
             local_min = std::min(local_min, con.delay());
         }
 
@@ -103,7 +113,7 @@ public:
 
     // return the local group index of the group which hosts the target with
     // global id gid
-    index_type local_group_from_global_target(index_type gid) {
+    id_type local_group_from_global_target(id_type gid) {
         // assert that gid is in range
         EXPECTS(is_local_target(gid));
 
@@ -133,10 +143,11 @@ public:
         // on each node
         //profiler_.enter("global exchange");
         auto global_spikes = communication_policy_.gather_spikes(local_spikes());
+        num_spikes_ += global_spikes.size();
         clear_thread_spike_buffers();
         //profiler_.leave();
 
-        for(auto& q : events_) {
+        for (auto& q : events_) {
             q.clear();
         }
 
@@ -144,7 +155,7 @@ public:
 
         //profiler_.enter("make events");
         // check all global spikes to see if they will generate local events
-        for(auto spike : global_spikes) {
+        for (auto spike : global_spikes) {
             // search for targets
             auto targets =
                 std::equal_range(
@@ -152,7 +163,7 @@ public:
                 );
 
             // generate an event for each target
-            for(auto it=targets.first; it!=targets.second; ++it) {
+            for (auto it=targets.first; it!=targets.second; ++it) {
                 auto gidx = local_group_from_global_target(it->destination());
 
                 events_[gidx].push_back(it->make_event(spike));
@@ -164,56 +175,62 @@ public:
         //profiler_.leave(); // event generation
     }
 
-    const std::vector<local_event>& queue(int i)
+    uint64_t num_spikes() const
     {
+        return num_spikes_;
+    }
+
+    int domain_id() const {
+        return communication_policy_.id();
+    }
+
+    int num_domains() const {
+        return communication_policy_.size();
+    }
+
+    const std::vector<local_event>& queue(int i) const {
         return events_[i];
     }
 
-    std::vector<connection>const& connections() const {
+    const std::vector<connection>& connections() const {
         return connections_;
     }
 
-    communication_policy_type& communication_policy() {
+    communication_policy_type communication_policy() const {
         return communication_policy_;
     }
 
-    const std::vector<index_type>& local_target_map() const {
+    const std::vector<id_type>& local_target_map() const {
         return target_map_;
     }
 
     std::vector<spike_type> local_spikes() {
         std::vector<spike_type> spikes;
-        for(auto& v : thread_spikes_) {
+        for (auto& v : thread_spikes_) {
             spikes.insert(spikes.end(), v.begin(), v.end());
         }
         return spikes;
     }
 
     void clear_thread_spike_buffers() {
-        for(auto& v : thread_spikes_) {
+        for (auto& v : thread_spikes_) {
             v.clear();
         }
     }
 
 private:
 
+    //
+    //  both of these can be fixed with double buffering
+    //
     // FIXME : race condition on the thread_spikes_ buffers when exchange() modifies/access them
     //         ... other threads will be pushing to them simultaneously
-    // FIXME : race condition on the group-specific event queues when exchange pusheds to them
-    //         ... other threads will be accessing them to get events
+    // FIXME : race condition on the group-specific event queues when exchange pushes to them
+    //         ... other threads will be accessing them to update their event queues
 
     // thread private storage for accumulating spikes
     using local_spike_store_type =
         nest::mc::threading::enumerable_thread_specific<std::vector<spike_type>>;
-    /*
-#ifdef WITH_TBB
-    using local_spike_store_type =
-        tbb::enumerable_thread_specific<std::vector<spike_type>>;
-#else
-    using local_spike_store_type =
-        std::array<std::vector<spike_type>, 1>;
-#endif
-    */
     local_spike_store_type thread_spikes_;
 
     std::vector<connection> connections_;
@@ -221,30 +238,28 @@ private:
 
     // local target group i has targets in the half open range
     //      [target_map_[i], target_map_[i+1])
-    std::vector<index_type> target_map_;
+    std::vector<id_type> target_map_;
 
     // for keeping track of how time is spent where
     //util::Profiler profiler_;
 
     // the number of groups and targets handled by this communicator
-    index_type num_groups_local_;
-    index_type num_targets_local_;
+    id_type num_groups_local_;
+    id_type num_targets_local_;
 
     // index maps for the global distribution of groups and targets
 
     // communicator i has the groups in the half open range :
     //      [group_gid_map_[i], group_gid_map_[i+1])
-    std::vector<index_type> group_gid_map_;
+    std::vector<id_type> group_gid_map_;
 
     // communicator i has the targets in the half open range :
     //      [target_gid_map_[i], target_gid_map_[i+1])
-    std::vector<index_type> target_gid_map_;
-
-    // each communicator has a unique id
-    // e.g. for MPI this could be the MPI rank
-    index_type communicator_id_;
+    std::vector<id_type> target_gid_map_;
 
     communication_policy_type communication_policy_;
+
+    uint64_t num_spikes_ = 0u;
 };
 
 } // namespace communication

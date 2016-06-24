@@ -13,13 +13,8 @@ class spike_detector
 public:
     using cell_type = Cell;
 
-    spike_detector(
-        const cell_type& cell,
-        segment_location loc,
-        double thresh,
-        float t_init
-    )
-    :   location_(loc),
+    spike_detector( const cell_type& cell, segment_location loc, double thresh, float t_init) :
+        location_(loc),
         threshold_(thresh),
         previous_t_(t_init)
     {
@@ -27,8 +22,7 @@ public:
         is_spiking_ = previous_v_ >= thresh ? true : false;
     }
 
-    util::optional<float> test(const cell_type& cell, float t)
-    {
+    util::optional<float> test(const cell_type& cell, float t) {
         util::optional<float> result = util::nothing;
         auto v = cell.voltage(location_);
 
@@ -56,26 +50,17 @@ public:
         return result;
     }
 
-    bool is_spiking() const {
-        return is_spiking_;
-    }
+    bool is_spiking() const { return is_spiking_; }
 
-    segment_location location() const {
-        return location_;
-    }
+    segment_location location() const { return location_; }
 
-    float t() const {
-        return previous_t_;
-    }
+    float t() const { return previous_t_; }
 
-    float v() const {
-        return previous_v_;
-    }
+    float v() const { return previous_v_; }
 
 private:
 
     // parameters/data
-    //const cell_type* cell_;
     segment_location location_;
     double threshold_;
 
@@ -84,38 +69,6 @@ private:
     float previous_v_;
     bool is_spiking_;
 };
-
-/*
-// spike generator according to a Poisson process
-class poisson_generator : public spike_source
-{
-    public:
-
-    poisson_generator(float r)
-    :   dist_(0.0f, 1.0f),
-        firing_rate_(r)
-    {}
-
-    util::optional<float> test(float t) {
-        // generate a uniformly distrubuted random number x \in [0,1]
-        // if  (x > r*dt)  we have a spike in the interval
-        std::vector<float> spike_times;
-        if(dist_(generator_) > firing_rate_*(t-previous_t_)) {
-            return t;
-        }
-        return util::nothing;
-    }
-
-    private:
-
-    std::mt19937 generator_; // for now default initialized
-    std::uniform_real_distribution<float> dist_;
-
-    // firing rate in spikes/ms
-    float firing_rate_;
-    float previous_t_;
-};
-*/
 
 
 } // namespace mc

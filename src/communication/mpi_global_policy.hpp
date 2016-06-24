@@ -6,32 +6,34 @@
 #include <cstdint>
 
 #include <communication/spike.hpp>
+#include <communication/mpi.hpp>
 #include <algorithms.hpp>
 
-#include "mpi.hpp"
 
 namespace nest {
 namespace mc {
 namespace communication {
 
 struct mpi_global_policy {
-    std::vector<spike<uint32_t>> const
-    gather_spikes(const std::vector<spike<uint32_t>>& local_spikes) {
+    using id_type = uint32_t;
+
+    std::vector<spike<id_type>> const
+    gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
         return mpi::gather_all(local_spikes);
     }
 
-    int id() const {
-        return mpi::rank();
-    }
+    int id() const { return mpi::rank(); }
 
-    /*
+    int size() const { return mpi::size(); }
+
     template <typename T>
     T min(T value) const {
+        return nest::mc::mpi::reduce(value, MPI_MIN);
     }
-    */
 
-    int num_communicators() const {
-        return mpi::size();
+    template <typename T>
+    T max(T value) const {
+        return nest::mc::mpi::reduce(value, MPI_MAX);
     }
 
     template <

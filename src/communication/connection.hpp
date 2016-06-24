@@ -11,36 +11,28 @@ namespace communication {
 
 class connection {
 public:
-    using index_type = uint32_t;
-    connection(index_type src, index_type dest, float w, float d)
-    :   source_(src),
+    using id_type = uint32_t;
+    connection(id_type src, id_type dest, float w, float d) :
+        source_(src),
         destination_(dest),
         weight_(w),
         delay_(d)
-    { }
+    {}
 
-    float weight() const {
-        return weight_;
-    }
-    float delay() const {
-        return delay_;
-    }
+    float weight() const { return weight_; }
+    float delay() const { return delay_; }
 
-    index_type source() const {
-        return source_;
-    }
-    index_type destination() const {
-        return destination_;
-    }
+    id_type source() const { return source_; }
+    id_type destination() const { return destination_; }
 
-    local_event make_event(spike<index_type> s) {
+    local_event make_event(spike<id_type> s) {
         return {destination_, s.time + delay_, weight_};
     }
 
 private:
 
-    index_type source_;
-    index_type destination_;
+    id_type source_;
+    id_type destination_;
     float weight_;
     float delay_;
 };
@@ -54,12 +46,12 @@ bool operator< (connection lhs, connection rhs) {
 }
 
 static inline
-bool operator< (connection lhs, connection::index_type rhs) {
+bool operator< (connection lhs, connection::id_type rhs) {
     return lhs.source() < rhs;
 }
 
 static inline
-bool operator< (connection::index_type lhs, connection rhs) {
+bool operator< (connection::id_type lhs, connection rhs) {
     return lhs < rhs.source();
 }
 

@@ -12,8 +12,10 @@ namespace mc {
 namespace communication {
 
 struct serial_global_policy {
-    std::vector<spike<uint32_t>> const
-    gather_spikes(const std::vector<spike<uint32_t>>& local_spikes) {
+    using id_type = uint32_t;
+
+    std::vector<spike<id_type>> const
+    gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
         return local_spikes;
     }
 
@@ -21,7 +23,7 @@ struct serial_global_policy {
         return 0;
     }
 
-    static int num_communicators() {
+    static int size() {
         return 1;
     }
 
