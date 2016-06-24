@@ -20,11 +20,24 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # TBB support
-set( WITH_TBB "OFF" CACHE BOOL "use TBB for on-node threading" )
-if( "${WITH_TBB}" STREQUAL "ON" )
+set( WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
+if(${WITH_TBB})
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_TBB ${TBB_DEFINITIONS}")
     link_directories(${TBB_LIBRARY})
+endif()
+
+# MPI support
+# relies on the user specifying an MPI-aware compiler wrapper
+set( WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism" )
+if(${WITH_MPI})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_MPI")
+endif()
+
+# Cray systems
+set( SYSTEM_CRAY OFF CACHE BOOL "add flags for compilation on Cray systems" )
+if( ${SYSTEM_CRAY} )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
 
 
