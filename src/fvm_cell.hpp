@@ -138,7 +138,7 @@ public:
 
     value_type probe(uint32_t i) const {
         auto p = probes_[i];
-        return (*p.first)[p.second];
+        return (this->*p.first)[p.second];
     }
 
     std::size_t num_probes() const { return probes_.size(); }
@@ -187,7 +187,7 @@ private:
 
     std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
 
-    std::vector<std::pair<const vector_type*, uint32_t>> probes_;
+    std::vector<std::pair<const vector_type fvm_cell::*, uint32_t>> probes_;
 
     /*
     /// spike event queue
@@ -415,10 +415,10 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         uint32_t comp = find_compartment_index(probe.first, graph);
         switch (probe.second) {
         case nest::mc::cell::membrane_voltage:
-            probes_.push_back({&voltage_, comp});
+            probes_.push_back({&fvm_cell::voltage_, comp});
             break;
         case nest::mc::cell::membrane_current:
-            probes_.push_back({&current_, comp});
+            probes_.push_back({&fvm_cell::current_, comp});
             break;
         default:
             throw std::logic_error("unrecognized probe sort");
