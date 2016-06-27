@@ -8,7 +8,7 @@ namespace io {
 // for now this is just a placeholder
 options read_options(std::string fname) {
     // 10 cells, 1 synapses per cell, 10 compartments per segment
-    return {100, 1, 100};
+    return {10, 1, 100};
 }
 
 std::ostream& operator<<(std::ostream& o, const options& opt) {

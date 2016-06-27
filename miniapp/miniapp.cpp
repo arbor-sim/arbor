@@ -6,11 +6,12 @@
 #include <mechanism_interface.hpp>
 
 #include "io.hpp"
-#include "threading/threading.hpp"
-#include "profiling/profiler.hpp"
-#include "communication/communicator.hpp"
-#include "communication/serial_global_policy.hpp"
-#include "communication/mpi_global_policy.hpp"
+
+#include <threading/threading.hpp>
+#include <profiling/profiler.hpp>
+#include <communication/communicator.hpp>
+#include <communication/serial_global_policy.hpp>
+#include <communication/mpi_global_policy.hpp>
 
 using namespace nest;
 
@@ -142,9 +143,13 @@ int main(int argc, char** argv) {
     mc::io::options opt;
     try {
         opt = mc::io::read_options("");
+        #ifdef WITH_MPI
         if (mc::mpi::rank()==0) {
             std::cout << opt << "\n";
         }
+        #else
+        std::cout << opt << "\n";
+        #endif
     }
     catch (std::exception e) {
         std::cerr << e.what() << std::endl;
@@ -152,13 +157,12 @@ int main(int argc, char** argv) {
     }
 
     model m;
-    //ring_model(opt, m);
     all_to_all_model(opt, m);
 
-    /////////////////////////////////////////////////////
+    //
     //  time stepping
-    /////////////////////////////////////////////////////
-    auto tfinal = 50.;
+    //
+    auto tfinal = 20.;
     auto dt = 0.01;
 
     auto id = m.communicator.domain_id();
@@ -168,8 +172,9 @@ int main(int argc, char** argv) {
     }
 
     m.run(tfinal, dt);
+
     if (!id) {
-        m.print_times();
+        //mc::util::data::profilers_.local().performance_tree().print(std::cout, 0.001);
         std::cout << "there were " << m.communicator.num_spikes() << " spikes\n";
     }
 
@@ -244,7 +249,6 @@ void all_to_all_model(nest::mc::io::options& opt, model& m) {
     auto basic_cell = make_cell(opt.compartments_per_segment, opt.cells-1);
 
     // make a vector for storing all of the cells
-    auto start_init = timer.tic();
     id_type ncell_global = opt.cells;
     id_type ncell_local  = ncell_global / m.communicator.num_domains();
     int remainder = ncell_global - (ncell_local*m.communicator.num_domains());
@@ -261,7 +265,6 @@ void all_to_all_model(nest::mc::io::options& opt, model& m) {
             m.cell_groups[i] = make_lowered_cell(i, basic_cell);
         }
     );
-    m.time_init = timer.toc(start_init);
 
     //
     //  network creation

@@ -21,6 +21,16 @@ class enumerable_thread_specific {
 
     public :
 
+    enumerable_thread_specific() = default;
+
+    enumerable_thread_specific(const T& init) :
+        data{init}
+    {}
+
+    enumerable_thread_specific(T&& init) :
+        data{std::move(init)}
+    {}
+
     T& local() {
         return data[0];
     }

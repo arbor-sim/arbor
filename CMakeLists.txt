@@ -23,7 +23,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
 if(WITH_TBB)
     find_package(TBB REQUIRED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITH_TBB ${TBB_DEFINITIONS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
+    add_definitions(-DWITH_TBB)
 endif()
 
 # MPI support
@@ -35,6 +36,12 @@ if(WITH_MPI)
     # unfortunate workaround for C++ detection in system mpi.h
     add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
+endif()
+
+# Profiler support
+set(WITH_PROFILING OFF CACHE BOOL "use built in profiling of miniapp" )
+if(WITH_PROFILING)
+    add_definitions(-DWITH_PROFILING)
 endif()
 
 # Cray systems
