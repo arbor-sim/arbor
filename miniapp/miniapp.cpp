@@ -11,7 +11,6 @@
 #include <profiling/profiler.hpp>
 #include <communication/communicator.hpp>
 #include <communication/serial_global_policy.hpp>
-#include <communication/mpi_global_policy.hpp>
 
 using namespace nest;
 
@@ -21,6 +20,7 @@ using id_type = uint32_t;
 using numeric_cell = mc::fvm::fvm_cell<real_type, index_type>;
 using cell_group   = mc::cell_group<numeric_cell>;
 #ifdef WITH_MPI
+#include <communication/mpi_global_policy.hpp>
 using communicator_type =
     mc::communication::communicator<mc::communication::mpi_global_policy>;
 #else
@@ -32,17 +32,6 @@ struct model {
     communicator_type communicator;
     std::vector<cell_group> cell_groups;
 
-    double time_init;
-    double time_network;
-    double time_solve;
-    double time_comms;
-    void print_times() const {
-        std::cout << "initialization took " << time_init << " s\n";
-        std::cout << "network        took " << time_network << " s\n";
-        std::cout << "solve          took " << time_solve << " s\n";
-        std::cout << "comms          took " << time_comms << " s\n";
-    }
-
     int num_groups() const {
         return cell_groups.size();
     }
@@ -50,30 +39,32 @@ struct model {
     void run(double tfinal, double dt) {
         auto t = 0.;
         auto delta = communicator.min_delay();
-        time_solve = 0.;
-        time_comms = 0.;
         while(t<tfinal) {
-            auto start_solve = mc::util::timer_type::tic();
             mc::threading::parallel_for::apply(
                 0, num_groups(),
                 [&](int i) {
+                        mc::util::profiler_enter("stepping","events");
                     cell_groups[i].enqueue_events(communicator.queue(i));
+                        mc::util::profiler_leave();
                     cell_groups[i].advance(t+delta, dt);
+                        mc::util::profiler_enter("events");
                     communicator.add_spikes(cell_groups[i].spikes());
                     cell_groups[i].clear_spikes();
+                        mc::util::profiler_leave(2);
                 }
             );
-            time_solve += mc::util::timer_type::toc(start_solve);
 
-            auto start_comms = mc::util::timer_type::tic();
+                mc::util::profiler_enter("stepping", "exchange");
             communicator.exchange();
-            time_comms += mc::util::timer_type::toc(start_comms);
+                mc::util::profiler_leave(2);
 
             t += delta;
         }
     }
 
     void init_communicator() {
+            mc::util::profiler_enter("setup", "communicator");
+
         // calculate the source and synapse distribution serially
         std::vector<id_type> target_counts(num_groups());
         std::vector<id_type> source_counts(num_groups());
@@ -87,9 +78,12 @@ struct model {
 
         //  create connections
         communicator = communicator_type(num_groups(), target_counts);
+
+            mc::util::profiler_leave(2);
     }
 
     void update_gids() {
+            mc::util::profiler_enter("setup", "globalize");
         auto com_policy = communicator.communication_policy();
         auto global_source_map = com_policy.make_map(source_map.back());
         auto domain_idx = communicator.domain_id();
@@ -97,6 +91,7 @@ struct model {
             cell_groups[i].set_source_gids(source_map[i]+global_source_map[domain_idx]);
             cell_groups[i].set_target_gids(target_map[i]+communicator.target_gid_from_group_lid(0));
         }
+            mc::util::profiler_leave(2);
     }
 
     // TODO : only stored here because init_communicator() and update_gids() are split
@@ -162,7 +157,7 @@ int main(int argc, char** argv) {
     //
     //  time stepping
     //
-    auto tfinal = 20.;
+    auto tfinal = 10.;
     auto dt = 0.01;
 
     auto id = m.communicator.domain_id();
@@ -174,7 +169,7 @@ int main(int argc, char** argv) {
     m.run(tfinal, dt);
 
     if (!id) {
-        //mc::util::data::profilers_.local().performance_tree().print(std::cout, 0.001);
+        mc::util::profiler_output(0.00001);
         std::cout << "there were " << m.communicator.num_spikes() << " spikes\n";
     }
 
@@ -206,7 +201,6 @@ void ring_model(nest::mc::io::options& opt, model& m) {
     auto basic_cell = make_cell(opt.compartments_per_segment, 1);
 
     // make a vector for storing all of the cells
-    auto start_init = mc::util::timer_type::tic();
     m.cell_groups = std::vector<cell_group>(opt.cells);
 
     // initialize the cells in parallel
@@ -214,15 +208,17 @@ void ring_model(nest::mc::io::options& opt, model& m) {
         0, opt.cells,
         [&](int i) {
             // initialize cell
+                mc::util::profiler_enter("setup");
+                    mc::util::profiler_enter("make cell");
             m.cell_groups[i] = make_lowered_cell(i, basic_cell);
+                    mc::util::profiler_leave();
+                mc::util::profiler_leave();
         }
     );
-    m.time_init = mc::util::timer_type::toc(start_init);
 
     //
     //  network creation
     //
-    auto start_network = mc::util::timer_type::tic();
     m.init_communicator();
 
     for (auto i=0u; i<(id_type)opt.cells; ++i) {
@@ -232,18 +228,13 @@ void ring_model(nest::mc::io::options& opt, model& m) {
         });
     }
 
-    m.communicator.construct();
-
     m.update_gids();
-
-    m.time_network = mc::util::timer_type::toc(start_network);
 }
 
 void all_to_all_model(nest::mc::io::options& opt, model& m) {
     //
     //  make cells
     //
-    auto timer = mc::util::timer_type();
 
     // make a basic cell
     auto basic_cell = make_cell(opt.compartments_per_segment, opt.cells-1);
@@ -262,16 +253,18 @@ void all_to_all_model(nest::mc::io::options& opt, model& m) {
     mc::threading::parallel_for::apply(
         0, ncell_local,
         [&](int i) {
+                mc::util::profiler_enter("setup", "cells");
             m.cell_groups[i] = make_lowered_cell(i, basic_cell);
+                mc::util::profiler_leave(2);
         }
     );
 
     //
     //  network creation
     //
-    auto start_network = timer.tic();
     m.init_communicator();
 
+        mc::util::profiler_enter("setup", "connections");
     // lid is local cell/group id
     for (auto lid=0u; lid<ncell_local; ++lid) {
         auto target = m.communicator.target_gid_from_group_lid(lid);
@@ -288,10 +281,9 @@ void all_to_all_model(nest::mc::io::options& opt, model& m) {
     }
 
     m.communicator.construct();
+        mc::util::profiler_leave(2);
 
     m.update_gids();
-
-    m.time_network = timer.toc(start_network);
 }
 
 ///////////////////////////////////////
@@ -333,8 +325,8 @@ mc::cell make_cell(int compartments_per_segment, int num_synapses) {
     // add dendrite of length 200 um and diameter 1 um with passive channel
     std::vector<mc::cable_segment*> dendrites;
     dendrites.push_back(cell.add_cable(0, mc::segmentKind::dendrite, 0.5, 0.5, 200));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25, 100));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25, 100));
+    //dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25, 100));
+    //dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25, 100));
 
     for (auto d : dendrites) {
         d->add_mechanism(mc::pas_parameters());

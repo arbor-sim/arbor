@@ -18,11 +18,11 @@ namespace nest {
 namespace mc {
 namespace util {
 
-static inline std::string green(std::string s)  { return s; }
-static inline std::string yellow(std::string s) { return s; }
-static inline std::string white(std::string s)  { return s; }
-static inline std::string red(std::string s)    { return s; }
-static inline std::string cyan(std::string s)   { return s; }
+inline std::string green(std::string s)  { return s; }
+inline std::string yellow(std::string s) { return s; }
+inline std::string white(std::string s)  { return s; }
+inline std::string red(std::string s)    { return s; }
+inline std::string cyan(std::string s)   { return s; }
 
 namespace impl {
 
@@ -30,7 +30,7 @@ namespace impl {
     ///     - for easy comparison of strings over MPI
     ///     - for fast searching of regions named with strings
     static inline
-    size_t hash(char* s) {
+    size_t hash(const char* s) {
         size_t h = 5381;
 
         while (*s) {
@@ -143,7 +143,7 @@ namespace impl {
                         n.print_sub(stream, indent + 2, threshold, total);
                     }
                 }
-                if (other >= threshold && children.size()) {
+                if (other>=std::max(threshold, 0.01) && children.size()) {
                     label = indent_str + "  other";
                     percentage = 100.*other/total;
                     snprintf(buffer, sizeof(buffer), "%-25s%10.3f%10.1f",
@@ -188,14 +188,10 @@ public:
     using profiler_node = impl::profiler_node;
 
     explicit region_type(std::string n) :
-        //name_(std::move(n))
-        name_(n)
+        name_(std::move(n))
     {
-        std::cout << "creating region " << name_ << "\n";
         start_time_ = timer_type::tic();
-        std::cout << "  started timer " << name_ << "\n";
         hash_ = impl::hash(n);
-        std::cout << "  hashed " << name_ << " -> " << hash_ << "\n";
     }
 
     explicit region_type(const char* n) :
@@ -304,21 +300,26 @@ public:
 
     void enter(const char* name) {
         if (!is_activated()) return;
-        auto start = timer_type::tic();
         current_region_ = current_region_->subregion(name);
         current_region_->start_time();
-        self_time_ += timer_type::toc(start);
     }
 
     void leave() {
         if (!is_activated()) return;
-        auto start = timer_type::tic();
         if (current_region_->parent()==nullptr) {
             throw std::out_of_range("attempt to leave root memory tracing region");
         }
         current_region_->end_time();
         current_region_ = current_region_->parent();
-        self_time_ += timer_type::toc(start);
+    }
+
+    // step up multiple n levels in one call
+    void leave(int n) {
+        EXPECTS(n>=1);
+
+        while(n--) {
+            leave();
+        }
     }
 
     region_type& regions() {
@@ -327,10 +328,6 @@ public:
 
     region_type* current_region() {
         return current_region_;
-    }
-
-    double self_time() const {
-        return self_time_;
     }
 
     bool is_in_root() const {
@@ -348,17 +345,26 @@ public:
                   );
         }
         activate();
+        start_time_ = timer_type::tic();
         root_region_.start_time();
     }
 
     void stop() {
         if (!is_in_root()) {
             throw std::out_of_range(
-                    "attempt to profiler that is not in the root region"
+                    "profiler must be in root region when stopped"
                   );
         }
         root_region_.end_time();
+        stop_time_ = timer_type::tic();
+
         deactivate();
+    }
+
+    timer_type::time_point start_time() const { return start_time_; }
+    timer_type::time_point stop_time()  const { return stop_time_; }
+    double wall_time() const {
+        return timer_type::difference(start_time_, stop_time_);
     }
 
     region_type::profiler_node performance_tree() {
@@ -372,18 +378,13 @@ private:
     void activate()   { activated_ = true;  }
     void deactivate() { activated_ = false; }
 
+    timer_type::time_point start_time_;
+    timer_type::time_point stop_time_;
     bool activated_ = false;
     region_type root_region_;
     region_type* current_region_ = &root_region_;
-    double self_time_ = 0.;
 };
 
-namespace data {
-    using profiler_wrapper = nest::mc::threading::enumerable_thread_specific<profiler>;
-    profiler_wrapper profilers_(profiler("root"));
-}
-
-/*
 #ifdef WITH_PROFILING
 namespace data {
     using profiler_wrapper = nest::mc::threading::enumerable_thread_specific<profiler>;
@@ -408,8 +409,18 @@ inline void profiler_stop() {
 inline void profiler_enter(const char* n) {
     get_profiler().enter(n);
 }
+
+template <class...Args>
+void profiler_enter(const char* n, Args... args) {
+    get_profiler().enter(n);
+    profiler_enter(args...);
+}
+
 inline void profiler_leave() {
     get_profiler().leave();
+}
+inline void profiler_leave(int nlevels) {
+    get_profiler().leave(nlevels);
 }
 
 // iterate over all profilers and ensure that they have the same start stop times
@@ -420,14 +431,28 @@ inline void stop_profilers() {
     }
 }
 
+inline void profiler_output(double threshold) {
+    stop_profilers();
+    auto p = impl::profiler_node(0, "results");
+    for(auto& thread_profiler : data::profilers_) {
+        std::cout << "fusing profiler : " << thread_profiler.wall_time() << " s\n";
+        p.fuse(thread_profiler.performance_tree());
+    }
+    p.print(std::cout, threshold);
+}
+
 #else
-*/
 inline void profiler_start() {}
 inline void profiler_stop() {}
-inline void profiler_enter(const char* n) {}
+inline void profiler_enter(const char*) {}
+template <class...Args>
+void profiler_enter(const char*, Args... args) {}
+inline void profiler_enter(const char*, const char*, const char*) {}
 inline void profiler_leave() {}
+inline void profiler_leave(int) {}
 inline void stop_profilers() {}
-//#endif
+inline void profiler_output(double threshold) {}
+#endif
 
 } // namespace util
 } // namespace mc

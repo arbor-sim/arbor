@@ -7,6 +7,8 @@
 #include <communication/spike.hpp>
 #include <communication/spike_source.hpp>
 
+#include <profiling/profiler.hpp>
+
 namespace nest {
 namespace mc {
 
@@ -76,6 +78,7 @@ class cell_group {
             // integrate cell state
             cell_.advance(tnext - cell_.time());
 
+                nest::mc::util::profiler_enter("events");
             // check for new spikes
             for (auto& s : spike_sources_) {
                 if (auto spike = s.source.test(cell_, cell_.time())) {
@@ -93,6 +96,7 @@ class cell_group {
                     cell_.apply_event(e.get());
                 }
             }
+                nest::mc::util::profiler_leave();
         }
 
     }

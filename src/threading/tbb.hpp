@@ -32,16 +32,16 @@ std::string description() {
 struct timer {
     using time_point = tbb::tick_count;
 
-    static
-    inline time_point tic()
-    {
+    static inline time_point tic() {
         return tbb::tick_count::now();
     }
 
-    static
-    inline double toc(time_point t)
-    {
+    static inline double toc(time_point t) {
         return (tic() - t).seconds();
+    }
+
+    static inline double difference(time_point b, time_point e) {
+        return (e-b).seconds();
     }
 };
 
