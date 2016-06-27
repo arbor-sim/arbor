@@ -27,7 +27,7 @@ namespace fvm {
 
 template <typename T, typename I>
 class fvm_cell {
-    public :
+public:
 
     fvm_cell() = default;
 
@@ -117,7 +117,7 @@ class fvm_cell {
     void advance_to(value_type tfinal, value_type dt);
 
     /// pass an event to the appropriate synapse and call net_receive
-    void apply_event(local_event e) {
+    void apply_event(postsynaptic_spike_event e) {
         mechanisms_[synapse_index_]->net_receive(e.target, e.weight);
     }
 
@@ -136,7 +136,14 @@ class fvm_cell {
 
     value_type time() const { return t_; }
 
-    private:
+    value_type probe(uint32_t i) const {
+        auto p = probes_[i];
+        return (*p.first)[p.second];
+    }
+
+    std::size_t num_probes() const { return probes_.size(); }
+
+private:
 
     /// current time
     value_type t_ = value_type{0};
@@ -180,8 +187,12 @@ class fvm_cell {
 
     std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
 
-    /// event queue
-    event_queue events_;
+    std::vector<std::pair<const vector_type*, uint32_t>> probes_;
+
+    /*
+    /// spike event queue
+    event_queue<postsynaptic_spike_event> events_;
+    */
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -398,6 +409,21 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
     synapse_index_ = mechanisms_.size()-1;
     // don't forget to give point processes access to cv_areas_
     mechanisms_[synapse_index_]->set_areas(cv_areas_);
+
+    // record probe locations by index into corresponding state vector
+    for (auto probe : cell.probes()) {
+        uint32_t comp = find_compartment_index(probe.first, graph);
+        switch (probe.second) {
+        case nest::mc::cell::membrane_voltage:
+            probes_.push_back({&voltage_, comp});
+            break;
+        case nest::mc::cell::membrane_current:
+            probes_.push_back({&current_, comp});
+            break;
+        default:
+            throw std::logic_error("unrecognized probe sort");
+        }
+    }
 }
 
 template <typename T, typename I>

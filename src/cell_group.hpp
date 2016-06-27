@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include <cell.hpp>
@@ -14,6 +15,7 @@ namespace mc {
 // for the next desired sample.
 
 struct sampler {
+    using index_type = int;
     using time_type = float;
     using value_type = double;
 
@@ -86,16 +88,16 @@ public:
     void advance(double tfinal, double dt) {
         while (cell_.time()<tfinal) {
             // take any pending samples
-            while (sample_event m = sample_events_.pop_if_before(cell_.time())) {
-                auto &sampler = samplers_[m.sampler_index];
-                EXPECT((bool)sampler.sample);
+            float cell_time = cell_.time();
+            while (auto m = sample_events_.pop_if_before(cell_time)) {
+                auto &sampler = samplers_[m->sampler_index];
+                EXPECTS((bool)sampler.sample);
 
                 index_type probe_index = sampler.probe_gid-first_probe_gid_;
                 auto next = sampler.sample(cell_.time(), cell_.probe(probe_index));
                 if (next) {
-                    EXPECT(*next>m.time);
-                    m.time = *next;
-                    sample_events_.push(m);
+                    m->time = std::max(*next, cell_time);
+                    sample_events_.push(*m);
                 }
             }
 
@@ -158,8 +160,12 @@ public:
         spikes_.clear();
     }
 
-    std::vector<sampler> samplers;
-
+    void add_sampler(const sampler &s, float start_time = 0) {
+        unsigned sampler_index = samplers_.size();
+        samplers_.push_back(s);
+        sample_events_.push({sampler_index, start_time});
+    }
+        
 private:
 
 #ifdef SPLAT
@@ -189,6 +195,9 @@ private:
  
     /// the global id of the first probe in this group
     index_type first_probe_gid_;
+
+    /// collection of samplers to be run against probes in this group
+    std::vector<sampler> samplers_;
 };
 
 } // namespace mc

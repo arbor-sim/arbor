@@ -43,7 +43,7 @@ namespace mpi {
     template <>                 \
     struct mpi_traits<T> {  \
         constexpr static size_t count()            { return 1; } \
-        constexpr static MPI_Datatype mpi_type()   { return M; } \
+        /* constexpr */ static MPI_Datatype mpi_type()   { return M; } \
         constexpr static bool is_mpi_native_type() { return true; } \
     };
 

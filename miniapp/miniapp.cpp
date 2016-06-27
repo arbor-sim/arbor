@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 
 #include <cell.hpp>
 #include <cell_group.hpp>
@@ -11,6 +13,7 @@
 #include "communication/communicator.hpp"
 #include "communication/serial_global_policy.hpp"
 #include "communication/mpi_global_policy.hpp"
+#include "util/optional.hpp"
 
 using namespace nest;
 
@@ -26,6 +29,8 @@ using communicator_type =
 using communicator_type =
     mc::communication::communicator<mc::communication::serial_global_policy>;
 #endif
+
+using nest::mc::util::optional;
 
 struct model {
     communicator_type communicator;
@@ -102,18 +107,62 @@ struct model {
     std::vector<id_type> source_map;
     std::vector<id_type> target_map;
 
-    // sampling // WIP COME BACK HERE
-    struct simple_sampler {
-        index_type group_gid;
+    // traces from probes
+    struct trace_data {
+        using sample_type = std::pair<float,double>;
         std::string name;
-        double dt;
+        index_type id;
+        std::vector<sample_type> samples;
+    };
 
-        std::vector<std::pair<float,double>> tv;
-        util::optional<float> operator()(float t, double v) {
-            define
+    // different traces may be written to by different threads;
+    // during simulation, each trace_sampler will be responsible for its
+    // corresponding element in the traces vector.
+
+    std::vector<trace_data> traces;
+
+    // make a sampler that records to traces
+    struct simple_sampler_functor {
+        std::vector<trace_data> &traces_;
+        size_t trace_index_ = 0;
+        float requested_sample_time_ = 0;
+        float dt_ = 0;
+
+        simple_sampler_functor(std::vector<trace_data> &traces, size_t index, float dt) :
+            traces_(traces), trace_index_(index), dt_(dt) {}
+
+        optional<float> operator()(float t, double v) {
+            traces_[trace_index_].samples.push_back({t,v});
+            return requested_sample_time_ += dt_;
         }
-        
-        
+    };
+
+    mc::sampler make_simple_sampler(index_type probe_gid, const std::string name,
+                                       index_type id, float dt)
+    {
+        traces.push_back(trace_data{name, id});
+        return {probe_gid, simple_sampler_functor(traces, traces.size()-1, dt)};
+    }
+
+    void reset_traces() {
+        // do not call during simulation: thread-unsafe access to traces.
+        traces.clear();
+    }
+
+    void dump_traces() {
+        // do not call during simulation: thread-unsafe access to traces.
+        for (const auto& trace: traces) {
+            std::stringstream path;
+            path << "trace_" << trace.id << "_" << trace.name << ".dat";
+
+            std::ofstream file(path.str());
+            file << "time\t" << trace.name << "\n";
+            for (const auto& sample: trace.samples) {
+                file << sample.first << "\t" << sample.second << "\n";
+            }
+            file.close();
+        }
+    }
 };
 
 // define some global model parameters
@@ -185,6 +234,7 @@ int main(int argc, char** argv) {
         m.print_times();
         std::cout << "there were " << m.communicator.num_spikes() << " spikes\n";
     }
+    m.dump_traces();
 
 #ifdef SPLAT
     if (!mc::mpi::rank()) {
@@ -284,21 +334,18 @@ void all_to_all_model(nest::mc::io::options& opt, model& m) {
 
     // monitor soma and dendrite on a few cells
     float sample_dt = 0.1;
-    index_type monitor_group_gids = { 0, 1, 2 };
+    index_type monitor_group_gids[] = { 0, 1, 2 };
     for (auto gid : monitor_group_gids) {
         if (!m.communicator.is_local_group(gid)) {
             continue;
         }
 
-        lid = m.communicator.group_lid(gid);
-        index_type probe_soma = m.cell_groups[lid].probe_gid_range().first;
-        index_type probe_dend = probe_soma+1;
+        auto lid = m.communicator.group_lid(gid);
+        auto probe_soma = m.cell_groups[lid].probe_gid_range().first;
+        auto probe_dend = probe_soma+1;
 
-        // WIP COME BACK HERE
-        m.cell_groups[lid].samplers = {
-            { probe_soma, m.make_simple_sampler(gid, "vsoma", sample_dt) },
-            { probe_dend, m.make_simple_sampler(gid, "vdend", sample_dt) }
-        };
+        m.cell_groups[lid].add_sampler(m.make_simple_sampler(probe_soma, "vsoma", gid, sample_dt));
+        m.cell_groups[lid].add_sampler(m.make_simple_sampler(probe_dend, "vdend", gid, sample_dt));
     }
 
     // lid is local cell/group id
@@ -381,11 +428,12 @@ mc::cell make_cell(int compartments_per_segment, int num_synapses) {
     }
 
     // add probes: 
-    auto probe_soma = cell.add_probe(nest::mc::cell::membrane_potential, {0,0});
-    auto probe_dendrite = cell.add_probe(nest::mc::cell::membrane_potential, {1,0.5});
+    auto probe_soma = cell.add_probe({0, 0}, mc::cell::membrane_voltage);
+    auto probe_dendrite = cell.add_probe({1, 0.5}, mc::cell::membrane_voltage);
 
-    EXPECT(probe_soma==0);
-    EXPECT(probe_dendrite==1);
+    EXPECTS(probe_soma==0);
+    EXPECTS(probe_dendrite==1);
+    (void)probe_soma, (void)probe_dendrite;
 
     return cell;
 }

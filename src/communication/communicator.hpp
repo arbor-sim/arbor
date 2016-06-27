@@ -194,7 +194,7 @@ public:
         return communication_policy_.size();
     }
 
-    const std::vector<local_event>& queue(int i) const {
+    const std::vector<postsynaptic_spike_event>& queue(int i) const {
         return events_[i];
     }
 
@@ -240,7 +240,7 @@ private:
     local_spike_store_type thread_spikes_;
 
     std::vector<connection> connections_;
-    std::vector<std::vector<nest::mc::local_event>> events_;
+    std::vector<std::vector<postsynaptic_spike_event>> events_;
 
     // local target group i has targets in the half open range
     //      [target_map_[i], target_map_[i+1])
