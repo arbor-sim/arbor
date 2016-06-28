@@ -9,18 +9,7 @@
 #include "threading/threading.hpp"
 #include "profiling/profiler.hpp"
 #include "communication/communicator.hpp"
-#include "communication/serial_global_policy.hpp"
-
-#ifdef WITH_MPI
-
-#include "communication/mpi_global_policy.hpp"
-using global_policy = nest::mc::communication::mpi_global_policy;
-
-#else
-
-using global_policy = nest::mc::communication::serial_global_policy;
-
-#endif
+#include "communication/global_policy.hpp"
 
 using namespace nest;
 
@@ -30,27 +19,9 @@ using id_type = uint32_t;
 using numeric_cell = mc::fvm::fvm_cell<real_type, index_type>;
 using cell_group   = mc::cell_group<numeric_cell>;
 
+using global_policy = nest::mc::communication::global_policy;
 using communicator_type =
     mc::communication::communicator<global_policy>;
-
-template <typename Policy>
-struct policy_guard {
-    policy_guard(int argc, char **&argv) {
-        Policy::setup(argc, argv);
-    }
-
-    policy_guard() = delete;
-    policy_guard(policy_guard &&) = delete;
-    policy_guard(const policy_guard &) = delete;
-    policy_guard &operator=(policy_guard &&) = delete;
-    policy_guard &operator=(const policy_guard &) = delete;
-
-    ~policy_guard() {
-        Policy::teardown();
-    }
-};
-
-using global_policy_guard = policy_guard<global_policy>;
 
 struct model {
     communicator_type communicator;
@@ -161,7 +132,7 @@ void all_to_all_model(nest::mc::io::options& opt, model& m);
 // main
 ///////////////////////////////////////
 int main(int argc, char** argv) {
-    global_policy_guard _(argc, argv);
+    nest::mc::communication::global_policy_guard(argc, argv);
 
     setup();
 
