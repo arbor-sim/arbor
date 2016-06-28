@@ -6,6 +6,7 @@ set(BASE_SOURCES
     mechanism_interface.cpp
     parameter_list.cpp
     swcio.cpp
+    util/debug.cpp
 )
 
 add_library(cellalgo ${BASE_SOURCES} ${HEADERS})

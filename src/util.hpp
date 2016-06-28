@@ -2,12 +2,6 @@
 
 #include <vector/include/Vector.hpp>
 
-#ifdef DEBUG
-#define EXPECTS(expression) assert(expression)
-#else
-#define EXPECTS(expression)
-#endif
-
 /*
 using memory::util::red;
 using memory::util::yellow;

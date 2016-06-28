@@ -9,6 +9,7 @@
 #include "point.hpp"
 #include "swcio.hpp"
 #include "util.hpp"
+#include "util/debug.hpp"
 
 namespace nest {
 namespace mc {

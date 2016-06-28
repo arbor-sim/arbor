@@ -8,6 +8,7 @@
 #include "segment.hpp"
 #include "cell_tree.hpp"
 #include "stimulus.hpp"
+#include "util/debug.hpp"
 
 namespace nest {
 namespace mc {
