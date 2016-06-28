@@ -218,8 +218,10 @@ void profiler_enter(const char* n);
 /// enter nested profiler regions in a single call
 template <class...Args>
 void profiler_enter(const char* n, Args... args) {
+#ifdef WITH_PROFILING
     get_profiler().enter(n);
     profiler_enter(args...);
+#endif
 }
 
 /// move up one level in the profiler

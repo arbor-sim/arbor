@@ -150,7 +150,7 @@ int main(int argc, char** argv) {
     //
     //  time stepping
     //
-    auto tfinal = 200.;
+    auto tfinal = 20.;
     auto dt = 0.01;
 
     auto id = m.communicator.domain_id();
