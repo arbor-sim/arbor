@@ -17,9 +17,11 @@
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util.hpp>
+#include <profiling/profiler.hpp>
 
 #include <vector/include/Vector.hpp>
 #include <mechanisms/expsyn.hpp>
+
 
 namespace nest {
 namespace mc {
@@ -113,9 +115,6 @@ public:
     /// make a time step
     void advance(value_type dt);
 
-    /// advance solution to target time tfinal with maximum step size dt
-    void advance_to(value_type tfinal, value_type dt);
-
     /// pass an event to the appropriate synapse and call net_receive
     void apply_event(postsynaptic_spike_event e) {
         mechanisms_[synapse_index_]->net_receive(e.target, e.weight);
@@ -188,11 +187,6 @@ private:
     std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
 
     std::vector<std::pair<const vector_type fvm_cell::*, uint32_t>> probes_;
-
-    /*
-    /// spike event queue
-    event_queue<postsynaptic_spike_event> events_;
-    */
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -505,12 +499,15 @@ void fvm_cell<T, I>::advance(T dt)
 {
     using memory::all;
 
+        mc::util::profiler_enter("current");
     current_(all) = 0.;
 
     // update currents from ion channels
     for(auto& m : mechanisms_) {
+            mc::util::profiler_enter(m->name().c_str());
         m->set_params(t_, dt);
         m->nrn_current();
+            mc::util::profiler_leave();
     }
 
     // add current contributions from stimulii
@@ -521,41 +518,28 @@ void fvm_cell<T, I>::advance(T dt)
         // the factor of 100 scales the injected current to 10^2.nA
         current_[loc] -= 100.*ie/cv_areas_[loc];
     }
+        mc::util::profiler_leave();
 
+        mc::util::profiler_enter("matrix", "setup");
     // solve the linear system
     setup_matrix(dt);
+        mc::util::profiler_leave(); mc::util::profiler_enter("solve");
     matrix_.solve();
+        mc::util::profiler_leave();
     voltage_(all) = matrix_.rhs();
+        mc::util::profiler_leave();
 
+        mc::util::profiler_enter("state");
     // integrate state of gating variables etc.
     for(auto& m : mechanisms_) {
+            mc::util::profiler_enter(m->name().c_str());
         m->nrn_state();
+            mc::util::profiler_leave();
     }
+        mc::util::profiler_leave();
 
     t_ += dt;
 }
-
-/*
-template <typename T, typename I>
-void fvm_cell<T, I>::advance_to(T tfinal, T dt)
-{
-    if(t_>=tfinal) {
-        return;
-    }
-
-    do {
-        auto tstep = std::min(tfinal, t_+dt);
-        auto next = events_.pop_if_before(tstep);
-        auto tnext = next? next->time: tstep;
-
-        advance(tnext-t_);
-        t_ = tnext;
-        if (next) { // handle event
-            mechanisms_[synapse_index_]->net_receive(next->target, next->weight);
-        }
-    } while(t_<tfinal);
-}
-*/
 
 } // namespace fvm
 } // namespace mc

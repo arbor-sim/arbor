@@ -21,29 +21,26 @@ class enumerable_thread_specific {
 
     public :
 
-    T& local() {
-        return data[0];
-    }
-    const T& local() const {
-        return data[0];
-    }
+    enumerable_thread_specific() = default;
 
-    auto begin() -> decltype(data.begin())
-    {
-        return data.begin();
-    }
-    auto end() -> decltype(data.end())
-    {
-        return data.end();
-    }
-    auto cbegin() -> decltype(data.cbegin())
-    {
-        return data.cbegin();
-    }
-    auto cend() -> decltype(data.cend())
-    {
-        return data.cend();
-    }
+    enumerable_thread_specific(const T& init) :
+        data{init}
+    {}
+
+    enumerable_thread_specific(T&& init) :
+        data{std::move(init)}
+    {}
+
+    T& local() { return data[0]; }
+    const T& local() const { return data[0]; }
+
+    auto size() -> decltype(data.size()) const { return data.size(); }
+
+    auto begin() -> decltype(data.begin()) { return data.begin(); }
+    auto end()   -> decltype(data.end())   { return data.end(); }
+
+    auto cbegin() -> decltype(data.cbegin()) const { return data.cbegin(); }
+    auto cend()   -> decltype(data.cend())   const { return data.cend(); }
 };
 
 
@@ -59,24 +56,23 @@ struct parallel_for {
     }
 };
 
-static inline
-std::string description() {
+inline std::string description() {
     return "serial";
 }
 
 struct timer {
     using time_point = std::chrono::time_point<std::chrono::system_clock>;
 
-    static
-    inline time_point tic()
-    {
+    static inline time_point tic() {
         return std::chrono::system_clock::now();
     }
 
-    static
-    inline double toc(time_point t)
-    {
+    static inline double toc(time_point t) {
         return std::chrono::duration<double>(tic() - t).count();
+    }
+
+    static inline double difference(time_point b, time_point e) {
+        return std::chrono::duration<double>(e-b).count();
     }
 };
 

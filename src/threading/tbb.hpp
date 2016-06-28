@@ -24,28 +24,35 @@ struct parallel_for {
     }
 };
 
-static
-std::string description() {
+inline std::string description() {
     return "TBB";
 }
 
 struct timer {
     using time_point = tbb::tick_count;
 
-    static
-    inline time_point tic()
-    {
+    static inline time_point tic() {
         return tbb::tick_count::now();
     }
 
-    static
-    inline double toc(time_point t)
-    {
+    static inline double toc(time_point t) {
         return (tic() - t).seconds();
+    }
+
+    static inline double difference(time_point b, time_point e) {
+        return (e-b).seconds();
     }
 };
 
 } // threading
 } // mc
 } // nest
+
+namespace tbb {
+    /// comparison operator for tbb::tick_count type
+    /// returns true iff time stamp l occurred before timestamp r
+    inline bool operator< (tbb::tick_count l, tbb::tick_count r) {
+        return (l-r).seconds() < 0.;
+    }
+}
 
