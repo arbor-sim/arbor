@@ -1,8 +1,6 @@
 #include "profiler.hpp"
 
-#ifdef WITH_MPI
-#include <communication/mpi.hpp>
-#endif
+#include <communication/global_policy.hpp>
 
 namespace nest {
 namespace mc {
@@ -319,11 +317,9 @@ void profiler_output(double threshold) {
 
     p.scale(1./nthreads);
 
-#ifdef WITH_MPI
-    bool print = nest::mc::mpi::rank()==0 ? true : false;
-#else
-    bool print = true;
-#endif
+    auto ncomms = communication::global_policy::size();
+    auto comm_rank = communication::global_policy::id();
+    bool print = comm_rank==0 ? true : false;
     if(print) {
         std::cout << " ---------------------------------------------------- \n";
         std::cout << "|                      profiler                      |\n";
@@ -333,12 +329,10 @@ void profiler_output(double threshold) {
             line, sizeof(line), "%-18s%10.3f s\n",
             "wall time", float(wall_time));
         std::cout << line;
-        #ifdef WITH_MPI
         std::snprintf(
             line, sizeof(line), "%-18s%10d\n",
-            "MPI ranks", int(nest::mc::mpi::size()));
+            "communicators", int(ncomms));
         std::cout << line;
-        #endif
         std::snprintf(
             line, sizeof(line), "%-18s%10d\n",
             "threads", int(nthreads));
@@ -352,23 +346,16 @@ void profiler_output(double threshold) {
         std::cout << "\n\n";
     }
 
-    nlohmann::json as_json = p.as_json();
+    nlohmann::json as_json;
     as_json["wall time"] = wall_time;
     as_json["threads"] = nthreads;
     as_json["efficiency"] = efficiency;
-#ifdef WITH_MPI
-    as_json["communicators"] = nest::mc::mpi::size();
-    as_json["rank"] = nest::mc::mpi::rank();
-#else
-    as_json["communicators"] = 1;
-    as_json["rank"] = 0;
-#endif
+    as_json["communicators"] = ncomms;
+    as_json["rank"] = comm_rank;
+    as_json["regions"] = p.as_json();
 
-#ifdef WITH_MPI
-    std::ofstream fid("profile_" + std::to_string(mpi::rank()));
-#else
-    std::ofstream fid("profile");
-#endif
+    auto fname = std::string("profile_" + std::to_string(comm_rank));
+    std::ofstream fid(fname);
     fid << std::setw(1) << as_json;
 }
 

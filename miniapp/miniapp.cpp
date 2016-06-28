@@ -6,11 +6,10 @@
 #include <mechanism_interface.hpp>
 
 #include "io.hpp"
-
-#include <threading/threading.hpp>
-#include <profiling/profiler.hpp>
-#include <communication/communicator.hpp>
-#include <communication/serial_global_policy.hpp>
+#include "threading/threading.hpp"
+#include "profiling/profiler.hpp"
+#include "communication/communicator.hpp"
+#include "communication/global_policy.hpp"
 
 using namespace nest;
 
@@ -19,14 +18,10 @@ using index_type = int;
 using id_type = uint32_t;
 using numeric_cell = mc::fvm::fvm_cell<real_type, index_type>;
 using cell_group   = mc::cell_group<numeric_cell>;
-#ifdef WITH_MPI
-#include <communication/mpi_global_policy.hpp>
+
+using global_policy = nest::mc::communication::global_policy;
 using communicator_type =
-    mc::communication::communicator<mc::communication::mpi_global_policy>;
-#else
-using communicator_type =
-    mc::communication::communicator<mc::communication::serial_global_policy>;
-#endif
+    mc::communication::communicator<global_policy>;
 
 struct model {
     communicator_type communicator;
@@ -118,7 +113,7 @@ namespace synapses {
 mc::cell make_cell(int compartments_per_segment, int num_synapses);
 
 /// do basic setup (initialize global state, print banner, etc)
-void setup(int argc, char** argv);
+void setup();
 
 /// helper function for initializing cells
 cell_group make_lowered_cell(int cell_index, const mc::cell& c);
@@ -127,26 +122,24 @@ cell_group make_lowered_cell(int cell_index, const mc::cell& c);
 void ring_model(nest::mc::io::options& opt, model& m);
 void all_to_all_model(nest::mc::io::options& opt, model& m);
 
+
 ///////////////////////////////////////
 // main
 ///////////////////////////////////////
 int main(int argc, char** argv) {
+    nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
-    setup(argc, argv);
+    setup();
 
     // read parameters
     mc::io::options opt;
     try {
         opt = mc::io::read_options("");
-        #ifdef WITH_MPI
-        if (mc::mpi::rank()==0) {
+        if (!global_policy::id()) {
             std::cout << opt << "\n";
         }
-        #else
-        std::cout << opt << "\n";
-        #endif
     }
-    catch (std::exception e) {
+    catch (std::exception& e) {
         std::cerr << e.what() << std::endl;
         exit(1);
     }
@@ -175,17 +168,13 @@ int main(int argc, char** argv) {
     }
 
 #ifdef SPLAT
-    if (!mc::mpi::rank()) {
+    if (!global_policy::id()) {
         //for (auto i=0u; i<m.cell_groups.size(); ++i) {
         m.cell_groups[0].splat("cell0.txt");
         m.cell_groups[1].splat("cell1.txt");
         m.cell_groups[2].splat("cell2.txt");
         //}
     }
-#endif
-
-#ifdef WITH_MPI
-    mc::mpi::finalize();
 #endif
 }
 
@@ -291,25 +280,15 @@ void all_to_all_model(nest::mc::io::options& opt, model& m) {
 // function definitions
 ///////////////////////////////////////
 
-void setup(int argc, char** argv) {
-#ifdef WITH_MPI
-    mc::mpi::init(&argc, &argv);
-
+void setup() {
     // print banner
-    if (mc::mpi::rank()==0) {
+    if (!global_policy::id()) {
         std::cout << "====================\n";
         std::cout << "  starting miniapp\n";
         std::cout << "  - " << mc::threading::description() << " threading support\n";
-        std::cout << "  - MPI support\n";
+        std::cout << "  - communication policy: " << global_policy::name() << "\n";
         std::cout << "====================\n";
     }
-#else
-    // print banner
-    std::cout << "====================\n";
-    std::cout << "  starting miniapp\n";
-    std::cout << "  - " << mc::threading::description() << " threading support\n";
-    std::cout << "====================\n";
-#endif
 
     // setup global state for the mechanisms
     mc::mechanisms::setup_mechanism_helpers();

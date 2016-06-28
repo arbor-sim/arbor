@@ -1,5 +1,9 @@
 #pragma once
 
+#ifndef WITH_MPI
+#error "mpi_global_policy.hpp should only be compiled in a WITH_MPI build"
+#endif
+
 #include <type_traits>
 #include <vector>
 
@@ -9,7 +13,6 @@
 #include <communication/mpi.hpp>
 #include <algorithms.hpp>
 
-
 namespace nest {
 namespace mc {
 namespace communication {
@@ -17,22 +20,22 @@ namespace communication {
 struct mpi_global_policy {
     using id_type = uint32_t;
 
-    std::vector<spike<id_type>> const
-    gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
+    std::vector<spike<id_type>> 
+    static gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
         return mpi::gather_all(local_spikes);
     }
 
-    int id() const { return mpi::rank(); }
+    static int id() { return mpi::rank(); }
 
-    int size() const { return mpi::size(); }
+    static int size() { return mpi::size(); }
 
     template <typename T>
-    T min(T value) const {
+    static T min(T value) {
         return nest::mc::mpi::reduce(value, MPI_MIN);
     }
 
     template <typename T>
-    T max(T value) const {
+    static T max(T value) {
         return nest::mc::mpi::reduce(value, MPI_MAX);
     }
 
@@ -40,11 +43,24 @@ struct mpi_global_policy {
         typename T,
         typename = typename std::enable_if<std::is_integral<T>::value>
     >
-    std::vector<T> make_map(T local) {
+    static std::vector<T> make_map(T local) {
         return algorithms::make_index(mpi::gather_all(local));
     }
+
+    static void setup(int& argc, char**& argv) {
+        nest::mc::mpi::init(&argc, &argv);
+    }
+
+    static void teardown() {
+        nest::mc::mpi::finalize();
+    }
+
+    static const char* name() { return "MPI"; }
+
+private:
 };
 
 } // namespace communication
 } // namespace mc
 } // namespace nest
+
