@@ -53,6 +53,11 @@ add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 target_link_libraries(test.exe LINK_PUBLIC cellalgo gtest)
 target_link_libraries(validate.exe LINK_PUBLIC cellalgo gtest)
 
+if(WITH_TBB)
+    target_link_libraries(test.exe LINK_PUBLIC ${TBB_LIBRARIES})
+    target_link_libraries(validate.exe LINK_PUBLIC ${TBB_LIBRARIES})
+endif()
+
 set_target_properties(test.exe
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
@@ -62,3 +67,4 @@ set_target_properties(validate.exe
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
 )
+

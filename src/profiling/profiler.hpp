@@ -12,7 +12,10 @@
 #include <cassert>
 #include <cstdlib>
 
+#include <json/src/json.hpp>
+
 #include <threading/threading.hpp>
+#include <util.hpp>
 
 namespace nest {
 namespace mc {
@@ -24,15 +27,13 @@ inline std::string white(std::string s)  { return s; }
 inline std::string red(std::string s)    { return s; }
 inline std::string cyan(std::string s)   { return s; }
 
-namespace impl {
+using timer_type = nest::mc::threading::timer;
 
+namespace impl {
     /// simple hashing function for strings
-    ///     - for easy comparison of strings over MPI
-    ///     - for fast searching of regions named with strings
     static inline
     size_t hash(const char* s) {
         size_t h = 5381;
-
         while (*s) {
             h = ((h << 5) + h) + int(*s);
             ++s;
@@ -45,131 +46,39 @@ namespace impl {
     size_t hash(const std::string& s) {
         return hash(s.c_str());
     }
-
-    struct profiler_node {
-        double value;
-        std::string name;
-        std::vector<profiler_node> children;
-
-        profiler_node() :
-            value(0.), name("")
-        {}
-
-        profiler_node(double v, const std::string& n) :
-            value(v), name(n)
-        {}
-
-        void print(int indent=0) {
-            std::string s = std::string(indent, ' ') + name;
-            std::cout << s
-                      << std::string(60-s.size(), '.')
-                      << value
-                      << "\n";
-            for (auto& n : children) {
-                n.print(indent+2);
-            }
-        }
-
-        friend profiler_node operator+ (
-            const profiler_node& lhs,
-            const profiler_node& rhs)
-        {
-            assert(lhs.name == rhs.name);
-            auto node = lhs;
-            node.fuse(rhs);
-            return node;
-        }
-
-        friend bool operator== (
-            const profiler_node& lhs,
-            const profiler_node& rhs)
-        {
-            return lhs.name == rhs.name;
-        }
-
-        void print(std::ostream& stream, double threshold) {
-            // convert threshold from proportion to time
-            threshold *= value;
-            print_sub(stream, 0, threshold, value);
-        }
-
-        void print_sub(
-            std::ostream& stream,
-            int indent,
-            double threshold,
-            double total)
-        {
-            char buffer[512];
-
-            if (value < threshold) {
-                std::cout << green("not printing ") << name << std::endl;
-                return;
-            }
-
-            auto max_contribution =
-                std::accumulate(
-                        children.begin(), children.end(), -1.,
-                        [] (double lhs, const profiler_node& rhs) {
-                            return lhs > rhs.value ? lhs : rhs.value;
-                        }
-                );
-
-            // print the table row
-            auto const indent_str = std::string(indent, ' ');
-            auto label = indent_str + name;
-            float percentage = 100.*value/total;
-            snprintf(buffer, sizeof(buffer), "%-25s%10.3f%10.1f",
-                            label.c_str(),
-                            float(value),
-                            float(percentage));
-            bool print_children =
-                threshold==0. ? children.size()>0
-                              : max_contribution >= threshold;
-
-            if (print_children) {
-                stream << white(buffer) << std::endl;
-            }
-            else {
-                stream << buffer << std::endl;
-            }
-
-            if (print_children) {
-                auto other = 0.;
-                for (auto &n : children) {
-                    if (n.value<threshold || n.name=="other") {
-                        other += n.value;
-                    }
-                    else {
-                        n.print_sub(stream, indent + 2, threshold, total);
-                    }
-                }
-                if (other>=std::max(threshold, 0.01) && children.size()) {
-                    label = indent_str + "  other";
-                    percentage = 100.*other/total;
-                    snprintf(buffer, sizeof(buffer), "%-25s%10.3f%10.1f",
-                                    label.c_str(), float(other), percentage);
-                    stream << buffer << std::endl;
-                }
-            }
-        }
-
-        void fuse(const profiler_node& other) {
-            for (auto& n : other.children) {
-                auto it = std::find(children.begin(), children.end(), n);
-                if (it!=children.end()) {
-                    (*it).fuse(n);
-                }
-                else {
-                    children.push_back(n);
-                }
-            }
-
-            value += other.value;
-        }
-    };
 } // namespace impl
 
-using timer_type = nest::mc::threading::timer;
+/// The tree data structure that is generated by post-processing of
+/// a profiler.
+struct profiler_node {
+    double value;
+    std::string name;
+    std::vector<profiler_node> children;
+    using json = nlohmann::json;
+
+    profiler_node() :
+        value(0.), name("")
+    {}
+
+    profiler_node(double v, const std::string& n) :
+        value(v), name(n)
+    {}
+
+    void print(int indent=0);
+    void print(std::ostream& stream, double threshold);
+    void print_sub(std::ostream& stream, int indent, double threshold, double total);
+    void fuse(const profiler_node& other);
+    /// return wall time spend in "other" region
+    double time_in_other() const;
+    /// scale the value in each node by factor
+    /// performed to all children recursively
+    void scale(double factor);
+
+    json as_json() const;
+};
+
+profiler_node operator+ (const profiler_node& lhs, const profiler_node& rhs);
+bool operator== (const profiler_node& lhs, const profiler_node& rhs);
 
 // a region in the profiler, has
 // - name
@@ -185,14 +94,11 @@ class region_type {
 
 public:
 
-    using profiler_node = impl::profiler_node;
-
     explicit region_type(std::string n) :
-        name_(std::move(n))
-    {
-        start_time_ = timer_type::tic();
-        hash_ = impl::hash(n);
-    }
+        name_(std::move(n)),
+        hash_(impl::hash(n)),
+        start_time_(timer_type::tic())
+    {}
 
     explicit region_type(const char* n) :
         region_type(std::string(n))
@@ -204,85 +110,24 @@ public:
         parent_ = p;
     }
 
-    const std::string& name() const {
-        return name_;
-    }
+    const std::string& name() const { return name_; }
+    void name(std::string n) { name_ = std::move(n); }
 
-    void name(std::string n) {
-        name_ = std::move(n);
-    }
-
-    region_type* parent() {
-        return parent_;
-    }
+    region_type* parent() { return parent_; }
 
     void start_time() { start_time_ = timer_type::tic(); }
     void end_time  () { total_time_ += timer_type::toc(start_time_); }
+    double total() const { return total_time_; }
 
-    bool has_subregions() const {
-        return subregions_.size() > 0;
-    }
+    bool has_subregions() const { return subregions_.size() > 0; }
 
-    size_t hash() const {
-        return hash_;
-    }
+    size_t hash() const { return hash_; }
 
-    region_type* subregion(const char* n) {
-        size_t hsh = impl::hash(n);
-        auto s = subregions_.find(hsh);
-        if (s == subregions_.end()) {
-            subregions_[hsh] = util::make_unique<region_type>(n, this);
-            return subregions_[hsh].get();
-        }
-        return s->second.get();
-    }
+    region_type* subregion(const char* n);
 
-    double subregion_contributions() const {
-        return
-            std::accumulate(
-                subregions_.begin(), subregions_.end(), 0.,
-                [](double l, decltype(*(subregions_.begin())) r) {
-                    return l+r.second->total();
-                }
-            );
-    }
+    double subregion_contributions() const;
 
-    double total() const {
-        return total_time_;
-    }
-
-    profiler_node populate_performance_tree() const {
-        profiler_node tree(total(), name());
-
-        for (auto &it : subregions_) {
-            tree.children.push_back(it.second->populate_performance_tree());
-        }
-
-        // sort the contributions in descending order
-        std::stable_sort(
-            tree.children.begin(), tree.children.end(),
-            [](const profiler_node& lhs, const profiler_node& rhs) {
-                return lhs.value>rhs.value;
-            }
-        );
-
-        if (tree.children.size()) {
-            // find the contribution of parts of the code that were not explicitly profiled
-            auto contributions =
-                std::accumulate(
-                    tree.children.begin(), tree.children.end(), 0.,
-                    [](double v, profiler_node& n) {
-                        return v+n.value;
-                    }
-                );
-            auto other = total() - contributions;
-
-            // add the "other" category
-            tree.children.emplace_back(other, std::string("other"));
-        }
-
-        return tree;
-    }
+    profiler_node populate_performance_tree() const;
 };
 
 class profiler {
@@ -298,81 +143,46 @@ public:
         profiler(other.root_region_.name())
     {}
 
-    void enter(const char* name) {
-        if (!is_activated()) return;
-        current_region_ = current_region_->subregion(name);
-        current_region_->start_time();
-    }
+    /// step down into level with name
+    void enter(const char* name);
 
-    void leave() {
-        if (!is_activated()) return;
-        if (current_region_->parent()==nullptr) {
-            throw std::out_of_range("attempt to leave root memory tracing region");
-        }
-        current_region_->end_time();
-        current_region_ = current_region_->parent();
-    }
+    /// step up one level
+    void leave();
 
-    // step up multiple n levels in one call
-    void leave(int n) {
-        EXPECTS(n>=1);
+    /// step up multiple n levels in one call
+    void leave(int n);
 
-        while(n--) {
-            leave();
-        }
-    }
+    /// return a reference to the root region
+    region_type& regions() { return root_region_; }
 
-    region_type& regions() {
-        return root_region_;
-    }
+    /// return a pointer to the current region
+    region_type* current_region() { return current_region_; }
 
-    region_type* current_region() {
-        return current_region_;
-    }
+    /// return if in the root region (i.e. the highest level)
+    bool is_in_root() const { return &root_region_ == current_region_; }
 
-    bool is_in_root() const {
-        return &root_region_ == current_region_;
-    }
+    /// return if the profiler has been activated
+    bool is_activated() const { return activated_; }
 
-    bool is_activated() const {
-        return activated_;
-    }
+    /// start (activate) the profiler
+    void start();
 
-    void start() {
-        if (is_activated()) {
-            throw std::out_of_range(
-                    "attempt to start an already running profiler"
-                  );
-        }
-        activate();
-        start_time_ = timer_type::tic();
-        root_region_.start_time();
-    }
+    /// stop (deactivate) the profiler
+    void stop();
 
-    void stop() {
-        if (!is_in_root()) {
-            throw std::out_of_range(
-                    "profiler must be in root region when stopped"
-                  );
-        }
-        root_region_.end_time();
-        stop_time_ = timer_type::tic();
-
-        deactivate();
-    }
-
+    /// the time stamp at which the profiler was started (avtivated)
     timer_type::time_point start_time() const { return start_time_; }
+
+    /// the time stamp at which the profiler was stopped (deavtivated)
     timer_type::time_point stop_time()  const { return stop_time_; }
+
+    /// the time in seconds between activation and deactivation of the profiler
     double wall_time() const {
         return timer_type::difference(start_time_, stop_time_);
     }
 
-    region_type::profiler_node performance_tree() {
-        if (is_activated()) {
-            stop();
-        }
-        return root_region_.populate_performance_tree();
-    }
+    /// stop the profiler then generate the performance tree ready for output
+    profiler_node performance_tree();
 
 private:
     void activate()   { activated_ = true;  }
@@ -388,71 +198,40 @@ private:
 #ifdef WITH_PROFILING
 namespace data {
     using profiler_wrapper = nest::mc::threading::enumerable_thread_specific<profiler>;
-    profiler_wrapper profilers_(profiler("root"));
+    extern profiler_wrapper profilers_;
 }
+#endif
 
-inline profiler& get_profiler() {
-    auto& p = data::profilers_.local();
-    if (!p.is_activated()) {
-        p.start();
-    }
-    return p;
-}
+/// get a reference to the thread private profiler
+/// will lazily create and start the profiler it it has not already been done so
+profiler& get_profiler();
 
-// this will throw an exception if the profler has already been started
-inline void profiler_start() {
-    data::profilers_.local().start();
-}
-inline void profiler_stop() {
-    get_profiler().stop();
-}
-inline void profiler_enter(const char* n) {
-    get_profiler().enter(n);
-}
+/// start thread private profiler
+void profiler_start();
 
+/// stop thread private profiler
+void profiler_stop();
+
+/// enter a profiling region with name n
+void profiler_enter(const char* n);
+
+/// enter nested profiler regions in a single call
 template <class...Args>
 void profiler_enter(const char* n, Args... args) {
     get_profiler().enter(n);
     profiler_enter(args...);
 }
 
-inline void profiler_leave() {
-    get_profiler().leave();
-}
-inline void profiler_leave(int nlevels) {
-    get_profiler().leave(nlevels);
-}
+/// move up one level in the profiler
+void profiler_leave();
+/// move up multiple profiler levels in one call
+void profiler_leave(int nlevels);
 
-// iterate over all profilers and ensure that they have the same start stop times
-inline void stop_profilers() {
-    std::cout << "::profiler : stopping " << data::profilers_.size() << " profilers\n";
-    for (auto& p : data::profilers_) {
-        p.stop();
-    }
-}
+/// iterate and stop them
+void stop_profilers();
 
-inline void profiler_output(double threshold) {
-    stop_profilers();
-    auto p = impl::profiler_node(0, "results");
-    for(auto& thread_profiler : data::profilers_) {
-        std::cout << "fusing profiler : " << thread_profiler.wall_time() << " s\n";
-        p.fuse(thread_profiler.performance_tree());
-    }
-    p.print(std::cout, threshold);
-}
-
-#else
-inline void profiler_start() {}
-inline void profiler_stop() {}
-inline void profiler_enter(const char*) {}
-template <class...Args>
-void profiler_enter(const char*, Args... args) {}
-inline void profiler_enter(const char*, const char*, const char*) {}
-inline void profiler_leave() {}
-inline void profiler_leave(int) {}
-inline void stop_profilers() {}
-inline void profiler_output(double threshold) {}
-#endif
+/// print the collated profiler to std::cout
+void profiler_output(double threshold);
 
 } // namespace util
 } // namespace mc

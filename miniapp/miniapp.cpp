@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
     //
     //  time stepping
     //
-    auto tfinal = 10.;
+    auto tfinal = 200.;
     auto dt = 0.01;
 
     auto id = m.communicator.domain_id();
@@ -168,8 +168,9 @@ int main(int argc, char** argv) {
 
     m.run(tfinal, dt);
 
+    mc::util::profiler_output(0.001);
+
     if (!id) {
-        mc::util::profiler_output(0.00001);
         std::cout << "there were " << m.communicator.num_spikes() << " spikes\n";
     }
 

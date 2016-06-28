@@ -56,8 +56,7 @@ struct parallel_for {
     }
 };
 
-static inline
-std::string description() {
+inline std::string description() {
     return "serial";
 }
 

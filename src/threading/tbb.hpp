@@ -24,8 +24,7 @@ struct parallel_for {
     }
 };
 
-static
-std::string description() {
+inline std::string description() {
     return "TBB";
 }
 
@@ -48,4 +47,12 @@ struct timer {
 } // threading
 } // mc
 } // nest
+
+namespace tbb {
+    /// comparison operator for tbb::tick_count type
+    /// returns true iff time stamp l occurred before timestamp r
+    inline bool operator< (tbb::tick_count l, tbb::tick_count r) {
+        return (l-r).seconds() < 0.;
+    }
+}
 
