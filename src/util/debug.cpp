@@ -1,12 +1,16 @@
-#include <cstdio>
 #include <cstdlib>
+#include <iostream>
 
 #include "util/debug.hpp"
 
 bool nest::mc::util::failed_assertion(const char *assertion, const char *file,
                                       int line, const char *func)
 {
-    std::fprintf(stderr, "%s:%d %s: Assertion `%s' failed.\n", file, line, func, assertion);
+    // Explicit flush, as we can't assume default buffering semantics on stderr/cerr,
+    // and abort() mignt not flush streams.
+
+    std::cerr << file << ':' << line << " " << func
+              << ": Assertion `" << assertion << "' failed." << std::endl;
     std::abort();
     return false;
 }
