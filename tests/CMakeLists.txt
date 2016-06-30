@@ -50,21 +50,23 @@ add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
 add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 
-target_link_libraries(test.exe LINK_PUBLIC cellalgo gtest)
-target_link_libraries(validate.exe LINK_PUBLIC cellalgo gtest)
+set(TARGETS test.exe validate.exe)
 
-if(WITH_TBB)
-    target_link_libraries(test.exe LINK_PUBLIC ${TBB_LIBRARIES})
-    target_link_libraries(validate.exe LINK_PUBLIC ${TBB_LIBRARIES})
-endif()
+foreach(target ${TARGETS})
+    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
 
-set_target_properties(test.exe
-   PROPERTIES
-   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-)
+    if(WITH_TBB)
+	target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
+    endif()
 
-set_target_properties(validate.exe
-   PROPERTIES
-   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-)
+    if(WITH_MPI)
+	target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
+	set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+    endif()
+
+    set_target_properties(${target}
+       PROPERTIES
+       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
+    )
+endforeach()
 
