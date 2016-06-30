@@ -18,12 +18,14 @@ set(TEST_SOURCES
     test_compartments.cpp
     test_event_queue.cpp
     test_fvm.cpp
+    test_cell_group.cpp
     test_matrix.cpp
     test_mechanisms.cpp
     test_optional.cpp
     test_parameters.cpp
     test_point.cpp
     test_segment.cpp
+    test_spikes.cpp
     test_stimulus.cpp
     test_swcio.cpp
     test_synapses.cpp
@@ -38,7 +40,7 @@ set(VALIDATION_SOURCES
     # unit tests
     validate_ball_and_stick.cpp
     validate_soma.cpp
-    validate_synapses.cpp
+    #validate_synapses.cpp
 
     # unit test driver
     validate.cpp
@@ -48,15 +50,23 @@ add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
 add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 
-target_link_libraries(test.exe LINK_PUBLIC cellalgo gtest)
-target_link_libraries(validate.exe LINK_PUBLIC cellalgo gtest)
+set(TARGETS test.exe validate.exe)
 
-set_target_properties(test.exe
-   PROPERTIES
-   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-)
+foreach(target ${TARGETS})
+    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
 
-set_target_properties(validate.exe
-   PROPERTIES
-   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-)
+    if(WITH_TBB)
+	target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
+    endif()
+
+    if(WITH_MPI)
+	target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
+	set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+    endif()
+
+    set_target_properties(${target}
+       PROPERTIES
+       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
+    )
+endforeach()
+

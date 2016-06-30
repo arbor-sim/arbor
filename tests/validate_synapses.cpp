@@ -4,7 +4,7 @@
 #include "util.hpp"
 
 #include <cell.hpp>
-#include <fvm.hpp>
+#include <fvm_cell.hpp>
 
 #include <json/src/json.hpp>
 

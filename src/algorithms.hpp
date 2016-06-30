@@ -208,7 +208,7 @@ std::vector<typename C::value_type> expand_branches(const C& branch_index)
 
     std::vector<typename C::value_type> expanded(branch_index.back());
     for (std::size_t i = 0; i < branch_index.size()-1; ++i) {
-        for (std::size_t j = branch_index[i]; j < branch_index[i+1]; ++j) {
+        for (auto j = branch_index[i]; j < branch_index[i+1]; ++j) {
             expanded[j] = i;
         }
     }

@@ -26,6 +26,9 @@ struct segment_location {
     {
         EXPECTS(position>=0. && position<=1.);
     }
+    friend bool operator==(segment_location l, segment_location r) {
+        return l.segment==r.segment && l.position==r.position;
+    }
     int segment;
     double position;
 };
@@ -35,14 +38,31 @@ int find_compartment_index(
     compartment_model const& graph
 );
 
+enum class probeKind {
+    membrane_voltage,
+    membrane_current
+};
+
 /// high-level abstract representation of a cell and its segments
 class cell {
-    public:
+public:
 
     // types
     using index_type = int;
     using value_type = double;
     using point_type = point<value_type>;
+    struct probe_instance {
+        segment_location location;
+        probeKind kind;
+    };
+    struct stimulus_instance {
+        segment_location location;
+        i_clamp clamp;
+    };
+    struct detector_instance {
+        segment_location location;
+        double threshold;
+    };
 
     // constructor
     cell();
@@ -99,24 +119,55 @@ class cell {
 
     compartment_model model() const;
 
+    //////////////////
+    // stimulii
+    //////////////////
     void add_stimulus(segment_location loc, i_clamp stim);
 
-    std::vector<std::pair<segment_location, i_clamp>>&
+    std::vector<stimulus_instance>&
     stimulii() {
         return stimulii_;
     }
 
-    const std::vector<std::pair<segment_location, i_clamp>>&
+    const std::vector<stimulus_instance>&
     stimulii() const {
         return stimulii_;
     }
 
+    //////////////////
+    // synapses
+    //////////////////
     void add_synapse(segment_location loc);
 
     const std::vector<segment_location>& synapses() const;
 
+    //////////////////
+    // spike detectors
+    //////////////////
+    void add_detector(segment_location loc, double threshold);
 
-    private:
+    std::vector<detector_instance>&
+    detectors() {
+        return spike_detectors_;
+    }
+
+    const std::vector<detector_instance>&
+    detectors() const {
+        return spike_detectors_;
+    }
+
+    //////////////////
+    // probes
+    //////////////////
+    index_type add_probe(segment_location loc, probeKind kind) {
+        probes_.push_back({loc, kind});
+        return probes_.size()-1;
+    }
+
+    const std::vector<probe_instance>&
+    probes() const { return probes_; }
+
+private:
 
     // storage for connections
     std::vector<index_type> parents_;
@@ -125,10 +176,16 @@ class cell {
     std::vector<segment_ptr> segments_;
 
     // the stimulii
-    std::vector<std::pair<segment_location, i_clamp>> stimulii_;
+    std::vector<stimulus_instance> stimulii_;
 
     // the synapses
     std::vector<segment_location> synapses_;
+
+    // the sensors
+    std::vector<detector_instance> spike_detectors_;
+
+    // the probes
+    std::vector<probe_instance> probes_;
 };
 
 // Checks that two cells have the same

@@ -7,8 +7,9 @@
 TEST(event_queue, push)
 {
     using namespace nest::mc;
+    using ps_event_queue = event_queue<postsynaptic_spike_event>;
 
-    event_queue q;
+    ps_event_queue q;
 
     q.push({1u, 2.f, 2.f});
     q.push({4u, 1.f, 2.f});
@@ -30,15 +31,16 @@ TEST(event_queue, push)
 TEST(event_queue, push_range)
 {
     using namespace nest::mc;
+    using ps_event_queue = event_queue<postsynaptic_spike_event>;
 
-    local_event events[] = {
+    postsynaptic_spike_event events[] = {
         {1u, 2.f, 2.f},
         {4u, 1.f, 2.f},
         {8u, 20.f, 2.f},
         {2u, 8.f, 2.f}
     };
 
-    event_queue q;
+    ps_event_queue q;
     q.push(std::begin(events), std::end(events));
 
     std::vector<float> times;
@@ -54,15 +56,16 @@ TEST(event_queue, push_range)
 TEST(event_queue, pop_if_before)
 {
     using namespace nest::mc;
+    using ps_event_queue = event_queue<postsynaptic_spike_event>;
 
-    local_event events[] = {
+    postsynaptic_spike_event events[] = {
         {1u, 1.f, 2.f},
         {2u, 2.f, 2.f},
         {3u, 3.f, 2.f},
         {4u, 4.f, 2.f}
     };
 
-    event_queue q;
+    ps_event_queue q;
     q.push(std::begin(events), std::end(events));
 
     EXPECT_EQ(q.size(), 4u);

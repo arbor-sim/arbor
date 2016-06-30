@@ -9,22 +9,31 @@
 namespace nest {
 namespace mc {
 
-struct local_event {
+struct postsynaptic_spike_event {
     uint32_t target;
     float time;
     float weight;
 };
 
-inline bool operator < (local_event const& l, local_event const& r) {
-    return l.time < r.time;
-}
+inline float event_time(const postsynaptic_spike_event &ev) { return ev.time; }
 
-inline bool operator > (local_event const& l, local_event const& r) {
-    return l.time > r.time;
-}
+struct sample_event {
+    uint32_t sampler_index;
+    float time;
+};
 
+inline float event_time(const sample_event &ev) { return ev.time; }
+
+/* Event objects must have a method event_time() which returns a value
+ * from a type with a total ordering with respect to <, >, etc.
+ */     
+
+template <typename Event>
 class event_queue {
 public :
+    using value_type = Event;
+    using time_type = decltype(event_time(std::declval<Event>()));
+
     // create
     event_queue() {}
 
@@ -37,7 +46,7 @@ public :
     }
 
     // push thing
-    void push(local_event e) {
+    void push(const value_type &e) {
          queue_.push(e);
     }
 
@@ -46,8 +55,8 @@ public :
     }
 
     // pop until
-    util::optional<local_event> pop_if_before(float t_until) {
-         if (!queue_.empty() && queue_.top().time < t_until) {
+    util::optional<value_type> pop_if_before(time_type t_until) {
+         if (!queue_.empty() && event_time(queue_.top()) < t_until) {
              auto ev = queue_.top();
              queue_.pop();
              return ev;
@@ -58,10 +67,16 @@ public :
     }
 
 private:
+    struct event_greater {
+        bool operator()(const Event &a, const Event &b) {
+            return event_time(a) > event_time(b);
+        }
+    };
+
     std::priority_queue<
-        local_event,
-        std::vector<local_event>,
-        std::greater<local_event>
+        Event,
+        std::vector<Event>,
+        event_greater
     > queue_;
 };
 
@@ -69,7 +84,7 @@ private:
 } // namespace mc
 
 inline
-std::ostream& operator<< (std::ostream& o, nest::mc::local_event e)
+std::ostream& operator<< (std::ostream& o, const nest::mc::postsynaptic_spike_event& e)
 {
     return o << "event[" << e.target << "," << e.time << "," << e.weight << "]";
 }

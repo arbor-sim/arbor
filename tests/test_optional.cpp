@@ -282,7 +282,7 @@ TEST(optionalm,conversion) {
 
 TEST(optionalm,or_operator) {
     optional<const char *> default_msg="default";
-    auto x=nullptr | default_msg;
+    auto x=(char *)0 | default_msg;
     EXPECT_TRUE((bool)x);
     EXPECT_STREQ("default",x.get());
 

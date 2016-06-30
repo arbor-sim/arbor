@@ -3,8 +3,8 @@
 #include "gtest.h"
 #include "util.hpp"
 
-#include "../src/cell.hpp"
-#include "../src/fvm.hpp"
+#include <cell.hpp>
+#include <fvm_cell.hpp>
 
 TEST(fvm, cable)
 {
