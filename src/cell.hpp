@@ -40,12 +40,14 @@ int find_compartment_index(
 
 /// high-level abstract representation of a cell and its segments
 class cell {
-    public:
+public:
 
     // types
     using index_type = int;
     using value_type = double;
     using point_type = point<value_type>;
+
+    enum probe_sort { membrane_voltage, membrane_current };
 
     // constructor
     cell();
@@ -139,7 +141,18 @@ class cell {
         return spike_detectors_;
     }
 
-    private:
+    //////////////////
+    // probes
+    //////////////////
+    index_type add_probe(segment_location loc, enum probe_sort sort) {
+        probes_.push_back({loc, sort});
+        return probes_.size()-1;
+    }
+
+    const std::vector<std::pair<segment_location, enum probe_sort>>&
+    probes() const { return probes_; }
+
+private:
 
     // storage for connections
     std::vector<index_type> parents_;
@@ -155,6 +168,9 @@ class cell {
 
     // the sensors
     std::vector<std::pair<segment_location, double>> spike_detectors_;
+
+    // the probes
+    std::vector<std::pair<segment_location, enum probe_sort>> probes_;
 };
 
 // Checks that two cells have the same

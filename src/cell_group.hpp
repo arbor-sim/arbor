@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
 
 #include <cell.hpp>
@@ -12,10 +13,21 @@
 namespace nest {
 namespace mc {
 
+// samplers take a time and sample value, and return an optional time
+// for the next desired sample.
+
+struct sampler {
+    using index_type = int;
+    using time_type = float;
+    using value_type = double;
+
+    index_type probe_gid;   // samplers are attached to probes
+    std::function<util::optional<time_type>(time_type, value_type)> sample;
+};
+    
 template <typename Cell>
 class cell_group {
-    public :
-
+public:
     using index_type = uint32_t;
     using cell_type = Cell;
     using value_type = typename cell_type::value_type;
@@ -52,6 +64,18 @@ class cell_group {
         first_target_gid_ = lid;
     }
 
+    index_type num_probes() const {
+        return cell_.num_probes();
+    }
+
+    void set_probe_gids(index_type gid) {
+        first_probe_gid_ = gid;
+    }
+
+    std::pair<index_type, index_type> probe_gid_range() const {
+        return { first_probe_gid_, first_probe_gid_+cell_.num_probes() };
+    }
+
 #ifdef SPLAT
     void splat(std::string fname) {
         char buffer[128];
@@ -65,6 +89,20 @@ class cell_group {
 
     void advance(double tfinal, double dt) {
         while (cell_.time()<tfinal) {
+            // take any pending samples
+            float cell_time = cell_.time();
+            while (auto m = sample_events_.pop_if_before(cell_time)) {
+                auto &sampler = samplers_[m->sampler_index];
+                EXPECTS((bool)sampler.sample);
+
+                index_type probe_index = sampler.probe_gid-first_probe_gid_;
+                auto next = sampler.sample(cell_.time(), cell_.probe(probe_index));
+                if (next) {
+                    m->time = std::max(*next, cell_time);
+                    sample_events_.push(*m);
+                }
+            }
+
 #ifdef SPLAT
             tt.push_back(cell_.time());
             vs.push_back(cell_.voltage({0,0.0}));
@@ -126,7 +164,13 @@ class cell_group {
         spikes_.clear();
     }
 
-    private :
+    void add_sampler(const sampler &s, float start_time = 0) {
+        unsigned sampler_index = samplers_.size();
+        samplers_.push_back(s);
+        sample_events_.push({sampler_index, start_time});
+    }
+        
+private:
 
 #ifdef SPLAT
     // REMOVE as soon as we have a better way to probe cell state
@@ -145,10 +189,19 @@ class cell_group {
     std::vector<communication::spike<index_type>> spikes_;
 
     /// pending events to be delivered
-    event_queue events_;
+    event_queue<postsynaptic_spike_event> events_;
+
+    /// pending samples to be taken
+    event_queue<sample_event> sample_events_;
 
     /// the global id of the first target (e.g. a synapse) in this group
     index_type first_target_gid_;
+ 
+    /// the global id of the first probe in this group
+    index_type first_probe_gid_;
+
+    /// collection of samplers to be run against probes in this group
+    std::vector<sampler> samplers_;
 };
 
 } // namespace mc

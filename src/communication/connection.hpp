@@ -25,7 +25,7 @@ public:
     id_type source() const { return source_; }
     id_type destination() const { return destination_; }
 
-    local_event make_event(spike<id_type> s) {
+    postsynaptic_spike_event make_event(spike<id_type> s) {
         return {destination_, s.time + delay_, weight_};
     }
 
