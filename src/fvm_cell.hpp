@@ -382,8 +382,8 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
 
     // add the stimulii
     for(const auto& stim : cell.stimulii()) {
-        auto idx = find_compartment_index(stim.first, graph);
-        stimulii_.push_back( {idx, stim.second} );
+        auto idx = find_compartment_index(stim.location, graph);
+        stimulii_.push_back( {idx, stim.clamp} );
     }
 
     // add the synapses
@@ -406,16 +406,16 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
 
     // record probe locations by index into corresponding state vector
     for (auto probe : cell.probes()) {
-        uint32_t comp = find_compartment_index(probe.first, graph);
-        switch (probe.second) {
-        case nest::mc::cell::membrane_voltage:
-            probes_.push_back({&fvm_cell::voltage_, comp});
-            break;
-        case nest::mc::cell::membrane_current:
-            probes_.push_back({&fvm_cell::current_, comp});
-            break;
-        default:
-            throw std::logic_error("unrecognized probe sort");
+        uint32_t comp = find_compartment_index(probe.location, graph);
+        switch (probe.kind) {
+            case probeKind::membrane_voltage:
+                probes_.push_back({&fvm_cell::voltage_, comp});
+                break;
+            case probeKind::membrane_current:
+                probes_.push_back({&fvm_cell::current_, comp});
+                break;
+            default:
+                throw std::logic_error("unrecognized probeKind");
         }
     }
 }

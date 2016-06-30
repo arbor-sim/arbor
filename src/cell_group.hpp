@@ -24,7 +24,7 @@ struct sampler {
     index_type probe_gid;   // samplers are attached to probes
     std::function<util::optional<time_type>(time_type, value_type)> sample;
 };
-    
+
 template <typename Cell>
 class cell_group {
 public:
@@ -49,7 +49,7 @@ public:
 
         for (auto& d : c.detectors()) {
             spike_sources_.push_back( {
-                0u, spike_detector_type(cell_, d.first, d.second, 0.f)
+                0u, spike_detector_type(cell_, d.location, d.threshold, 0.f)
             });
         }
     }
@@ -76,23 +76,14 @@ public:
         return { first_probe_gid_, first_probe_gid_+cell_.num_probes() };
     }
 
-#ifdef SPLAT
-    void splat(std::string fname) {
-        char buffer[128];
-        std::ofstream fid(fname);
-        for (auto i=0u; i<tt.size(); ++i) {
-            sprintf(buffer, "%8.4f %16.8f %16.8f\n", tt[i], vs[i], vd[i]);
-            fid << buffer;
-        }
-    }
-#endif
-
     void advance(double tfinal, double dt) {
         while (cell_.time()<tfinal) {
             // take any pending samples
             float cell_time = cell_.time();
+
+                nest::mc::util::profiler_enter("sampling");
             while (auto m = sample_events_.pop_if_before(cell_time)) {
-                auto &sampler = samplers_[m->sampler_index];
+                auto& sampler = samplers_[m->sampler_index];
                 EXPECTS((bool)sampler.sample);
 
                 index_type probe_index = sampler.probe_gid-first_probe_gid_;
@@ -102,12 +93,8 @@ public:
                     sample_events_.push(*m);
                 }
             }
+                nest::mc::util::profiler_leave();
 
-#ifdef SPLAT
-            tt.push_back(cell_.time());
-            vs.push_back(cell_.voltage({0,0.0}));
-            vd.push_back(cell_.voltage({1,0.5}));
-#endif
             // look for events in the next time step
             auto tstep = std::min(tfinal, cell_.time()+dt);
             auto next = events_.pop_if_before(tstep);
@@ -164,20 +151,14 @@ public:
         spikes_.clear();
     }
 
-    void add_sampler(const sampler &s, float start_time = 0) {
-        unsigned sampler_index = samplers_.size();
+    void add_sampler(const sampler& s, float start_time = 0) {
+        auto sampler_index = uint32_t(samplers_.size());
         samplers_.push_back(s);
         sample_events_.push({sampler_index, start_time});
     }
-        
+
 private:
 
-#ifdef SPLAT
-    // REMOVE as soon as we have a better way to probe cell state
-    std::vector<float> tt;
-    std::vector<float> vs;
-    std::vector<float> vd;
-#endif
 
     /// the lowered cell state (e.g. FVM) of the cell
     cell_type cell_;

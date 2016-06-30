@@ -38,6 +38,11 @@ int find_compartment_index(
     compartment_model const& graph
 );
 
+enum class probeKind {
+    membrane_voltage,
+    membrane_current
+};
+
 /// high-level abstract representation of a cell and its segments
 class cell {
 public:
@@ -46,8 +51,18 @@ public:
     using index_type = int;
     using value_type = double;
     using point_type = point<value_type>;
-
-    enum probe_sort { membrane_voltage, membrane_current };
+    struct probe_instance {
+        segment_location location;
+        probeKind kind;
+    };
+    struct stimulus_instance {
+        segment_location location;
+        i_clamp clamp;
+    };
+    struct detector_instance {
+        segment_location location;
+        double threshold;
+    };
 
     // constructor
     cell();
@@ -109,12 +124,12 @@ public:
     //////////////////
     void add_stimulus(segment_location loc, i_clamp stim);
 
-    std::vector<std::pair<segment_location, i_clamp>>&
+    std::vector<stimulus_instance>&
     stimulii() {
         return stimulii_;
     }
 
-    const std::vector<std::pair<segment_location, i_clamp>>&
+    const std::vector<stimulus_instance>&
     stimulii() const {
         return stimulii_;
     }
@@ -131,12 +146,12 @@ public:
     //////////////////
     void add_detector(segment_location loc, double threshold);
 
-    std::vector<std::pair<segment_location, double>>&
+    std::vector<detector_instance>&
     detectors() {
         return spike_detectors_;
     }
 
-    const std::vector<std::pair<segment_location, double>>&
+    const std::vector<detector_instance>&
     detectors() const {
         return spike_detectors_;
     }
@@ -144,12 +159,12 @@ public:
     //////////////////
     // probes
     //////////////////
-    index_type add_probe(segment_location loc, enum probe_sort sort) {
-        probes_.push_back({loc, sort});
+    index_type add_probe(segment_location loc, probeKind kind) {
+        probes_.push_back({loc, kind});
         return probes_.size()-1;
     }
 
-    const std::vector<std::pair<segment_location, enum probe_sort>>&
+    const std::vector<probe_instance>&
     probes() const { return probes_; }
 
 private:
@@ -161,16 +176,16 @@ private:
     std::vector<segment_ptr> segments_;
 
     // the stimulii
-    std::vector<std::pair<segment_location, i_clamp>> stimulii_;
+    std::vector<stimulus_instance> stimulii_;
 
     // the synapses
     std::vector<segment_location> synapses_;
 
     // the sensors
-    std::vector<std::pair<segment_location, double>> spike_detectors_;
+    std::vector<detector_instance> spike_detectors_;
 
     // the probes
-    std::vector<std::pair<segment_location, enum probe_sort>> probes_;
+    std::vector<probe_instance> probes_;
 };
 
 // Checks that two cells have the same
