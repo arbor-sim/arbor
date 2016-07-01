@@ -212,8 +212,6 @@ public:
     std::istream &parse_record(std::istream &is, swc_record &record);
 
 private:
-    // Getline version supporting both windows and linux line endings
-    std::istream &safe_getline(std::istream& is, std::string& t);
 
     // Read the record from a string stream; will be treated like a single line
     swc_record parse_record(std::istringstream &is);
