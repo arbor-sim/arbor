@@ -133,6 +133,9 @@ public:
     /// returns voltage at a segment location
     value_type voltage(segment_location loc) const;
 
+    /// returns current at a segment location
+    value_type current(segment_location loc) const;
+
     value_type time() const { return t_; }
 
     value_type probe(uint32_t i) const {
@@ -482,6 +485,12 @@ template <typename T, typename I>
 T fvm_cell<T, I>::voltage(segment_location loc) const
 {
     return voltage_[compartment_index(loc)];
+}
+
+template <typename T, typename I>
+T fvm_cell<T, I>::current(segment_location loc) const
+{
+    return current_[compartment_index(loc)];
 }
 
 template <typename T, typename I>
