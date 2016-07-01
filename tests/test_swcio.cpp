@@ -525,24 +525,22 @@ TEST(swc_parser, from_file_ball_and_stick)
 // check that windows EOL are supported in linux.
 // This test is based on the ball_and_stick.swc with windows endings inserted
 // manually in a file stream, regression test for issue_34
-TEST(swc_parser, windows_eol)
+TEST(swc_parser, windows_mac_eol)
 {
-    std::string datadir{ DATADIR };
-    auto fname = datadir + "/ball_and_stick.swc";
-    std::ifstream fid(fname);
 
     // Check valid usage
     std::stringstream is;
     is << "# ball and stick model with\r\n";
-    is << "#   - soma with radius 12.6157/2\r\n";
+    is << "#   - soma with radius 12.6157 2\r\n";
     is << "#   - dendrite with length 200 and radius 0.5\r\n";
-    is << "\r\n";
-    is << "1 1     0.0     0.0     0.0     6.30785 - 1\r\n";
-    is << "2 2     6.30785 0.0     0.0     0.5      1\r\n";
-    is << "3 2   206.30785 0.0     0.0     0.5      2\r\n";
+    is << "\n";
+    is << "1 1     0.0     0.0     0.0     6.30785 -1\r";  // Test old style max eol
+    is << "2 2     6.30785 0.0     0.0     0.5      1\r";
+    is << "3 2   206.30785 0.0     0.0     0.5      2\r";
+    is << "\n";
 
     // read the file into a cell object
-    auto cell = nest::mc::io::swc_read_cell(fid);
+    auto cell = nest::mc::io::swc_read_cell(is);
 
     // verify that the correct number of nodes was read
     EXPECT_EQ(cell.num_segments(), 2);
