@@ -36,6 +36,7 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
     '-DNDEBUG',
+    '-DWITH_TBB',
     '-std=c++11',
     '-x',
     'c++',
@@ -47,6 +48,8 @@ flags = [
     'include',
     '-I',
     'external',
+    '-I',
+    'miniapp',
 #    '-isystem',
 #    '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/c++/4.2.1',
 #    '-I',
