@@ -12,6 +12,8 @@ struct cl_options {
     uint32_t cells;
     uint32_t synapses_per_cell;
     uint32_t compartments_per_segment;
+    double tfinal;
+    double dt;
 };
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);

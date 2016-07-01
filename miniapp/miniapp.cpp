@@ -220,16 +220,17 @@ int main(int argc, char** argv) {
     //
     //  time stepping
     //
-    auto tfinal = 50.;
-    auto dt = 0.025;
+    auto tfinal = options.tfinal;
+    auto dt     = options.dt;
 
     auto id = m.communicator.domain_id();
 
     if (id==0) {
+        // use std::endl to force flush of output on cluster jobs
         std::cout << "\n";
         std::cout << ":: simulation to " << tfinal << " ms in "
                   << std::ceil(tfinal / dt) << " steps of "
-                  << dt << " ms\n";
+                  << dt << " ms" << std::endl;
     }
 
     // add some spikes to the system to start it
