@@ -1,4 +1,5 @@
 #include "profiler.hpp"
+#include "util/debug.hpp"
 
 #include <communication/global_policy.hpp>
 
