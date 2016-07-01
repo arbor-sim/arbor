@@ -24,6 +24,7 @@ set(TEST_SOURCES
     test_optional.cpp
     test_parameters.cpp
     test_point.cpp
+    test_probe.cpp
     test_segment.cpp
     test_spikes.cpp
     test_stimulus.cpp
