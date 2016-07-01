@@ -143,13 +143,15 @@ std::istream& swc_parser::safe_getline(std::istream& is, std::string& t)
         case '\n':
             return is;
         case '\r':
-            if (sb->sgetc() == '\n')
+            if (sb->sgetc() == '\n') {
                 sb->sbumpc();
+            }
             return is;
         case EOF:
             // Also handle the case when the last line has no line ending
-            if (t.empty())
+            if (t.empty()) {
                 is.setstate(std::ios::eofbit);
+            }
             return is;
         default:
             t += (char)c;
@@ -165,7 +167,9 @@ std::istream &swc_parser::parse_record(std::istream &is, swc_record &record)
 
         ++lineno_;
         if (!linebuff_.empty() && !starts_with(linebuff_, comment_prefix_))
+        {
             break;
+        }
     }
 
     if (is.bad()) {
