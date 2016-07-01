@@ -533,7 +533,7 @@ TEST(swc_parser, windows_mac_eol)
     is << "# ball and stick model with\r\n";
     is << "#   - soma with radius 12.6157 2\r\n";
     is << "#   - dendrite with length 200 and radius 0.5\r\n";
-    is << "\n";
+    is << "\r\n";                                          // parser stubles over empty line with \r\n
     is << "1 1     0.0     0.0     0.0     6.30785 -1\r";  // Test old style max eol
     is << "2 2     6.30785 0.0     0.0     0.5      1\r";
     is << "3 2   206.30785 0.0     0.0     0.5      2\r";
