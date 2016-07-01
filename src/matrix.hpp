@@ -4,6 +4,7 @@
 #include <vector/include/Vector.hpp>
 
 #include "util.hpp"
+#include "util/debug.hpp"
 
 namespace nest {
 namespace mc {

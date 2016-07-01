@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "util.hpp"
+#include "util/debug.hpp"
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
