@@ -129,9 +129,14 @@ std::istream &swc_parser::parse_record(std::istream &is, swc_record &record)
     while (!is.eof() && !is.bad()) {
         // consume empty and comment lines first
         std::getline(is, linebuff_);
+
         ++lineno_;
-        if (!linebuff_.empty() && !starts_with(linebuff_, comment_prefix_))
+        if (!linebuff_.empty() &&
+            !starts_with(linebuff_, comment_prefix_) &&
+            !starts_with(linebuff_, "\r")) 
+        {
             break;
+        }
     }
 
     if (is.bad()) {

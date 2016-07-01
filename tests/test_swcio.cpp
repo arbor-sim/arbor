@@ -521,3 +521,35 @@ TEST(swc_parser, from_file_ball_and_stick)
 
     EXPECT_TRUE(nest::mc::cell_basic_equality(local_cell, cell));
 }
+
+// check that windows EOL are supported in linux.
+// This test is based on the ball_and_stick.swc with windows endings inserted
+// manually in a file stream, regression test for issue_34
+TEST(swc_parser, windows_eol)
+{
+
+    // Check valid usage
+    std::stringstream is;
+    is << "# ball and stick model with\r\n";
+    is << "#   - soma with radius 12.6157 2\r\n";
+    is << "#   - dendrite with length 200 and radius 0.5\r\n";
+    is << "\r\n";                                          // parser stubles over empty line with \r\n
+    is << "1 1     0.0     0.0     0.0     6.30785 -1\r\n";  
+    is << "2 2     6.30785 0.0     0.0     0.5      1\r\n";
+    is << "3 2   206.30785 0.0     0.0     0.5      2\r\n";
+    is << "\n";
+
+    // read the file into a cell object
+    auto cell = nest::mc::io::swc_read_cell(is);
+
+    // verify that the correct number of nodes was read
+    EXPECT_EQ(cell.num_segments(), 2);
+    EXPECT_EQ(cell.num_compartments(), 2u);
+
+    // make an equivalent cell via C++ interface
+    nest::mc::cell local_cell;
+    local_cell.add_soma(6.30785);
+    local_cell.add_cable(0, nest::mc::segmentKind::dendrite, 0.5, 0.5, 200);
+
+    EXPECT_TRUE(nest::mc::cell_basic_equality(local_cell, cell));
+}
