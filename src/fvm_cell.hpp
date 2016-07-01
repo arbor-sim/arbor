@@ -96,7 +96,6 @@ public:
     std::vector<mechanism_type>& mechanisms() { return mechanisms_; }
 
     /// return reference to list of ions
-    //std::map<mechanisms::ionKind, ion_type> ions_;
     std::map<mechanisms::ionKind, ion_type>&       ions()       { return ions_; }
     std::map<mechanisms::ionKind, ion_type> const& ions() const { return ions_; }
 
@@ -132,6 +131,15 @@ public:
 
     /// returns voltage at a segment location
     value_type voltage(segment_location loc) const;
+
+    /// flags if solution is physically realistic.
+    /// here we define physically realistic as the voltage being within reasonable bounds.
+    /// use a simple test of the voltage at the soma is reasonable, i.e. in the range
+    ///     v_soma \in (-1000mv, 1000mv)
+    bool is_physical_solution() const {
+        auto v = voltage_[0];
+        return (v>-1000.) && (v<1000.);
+    }
 
     value_type time() const { return t_; }
 
