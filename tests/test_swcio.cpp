@@ -13,12 +13,12 @@
 
 // Path to data directory can be overriden at compile time.
 #if !defined(DATADIR)
-#define DATADIR "../data"
+#   define DATADIR "../data"
 #endif
 
 // SWC tests
-void expect_record_equals(const nest::mc::io::swc_record &expected,
-                          const nest::mc::io::swc_record &actual)
+void expect_record_equals(const nest::mc::io::swc_record& expected,
+                          const nest::mc::io::swc_record& actual)
 {
     EXPECT_EQ(expected.id(), actual.id());
     EXPECT_EQ(expected.type(), actual.type());
@@ -159,7 +159,7 @@ TEST(swc_parser, invalid_input)
             }
 
             FAIL() << "expected swc_parse_error, none was thrown\n";
-        } catch (const swc_parse_error &e) {
+        } catch (const swc_parse_error& e) {
             SUCCEED();
         }
     }
@@ -187,6 +187,58 @@ TEST(swc_parser, valid_input)
         expect_record_equals(record_orig, record);
     }
 
+    {
+        // check comment not starting at first character
+        swc_record record, record_orig;
+        std::istringstream is("   #comment");
+        EXPECT_NO_THROW(is >> record);
+        expect_record_equals(record_orig, record);
+    }
+
+    {
+        // check whitespace lines
+        swc_record record;
+        std::stringstream is;
+        is << "#comment\n";
+        is << "      \t\n";
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
+
+        EXPECT_NO_THROW(is >> record);
+        swc_record record_expected(
+            swc_record::kind::soma,
+            0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
+
+        expect_record_equals(record_expected, record);
+    }
+
+    {
+        // check windows eol
+        swc_record record;
+        std::stringstream is;
+        is << "#comment\r\n";
+        is << "\r\n";
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\r\n";
+
+        EXPECT_NO_THROW(is >> record);
+        swc_record record_expected(
+            swc_record::kind::soma,
+            0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
+
+        expect_record_equals(record_expected, record);
+    }
+
+    {
+        // check old-style mac eol; these eol are treated as simple whitespace
+        // characters, so in the following case no parse error shall be thrown
+        // and no record shall be read
+        swc_record record, record_expected;
+        std::stringstream is;
+        is << "#comment\r";
+        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\r";
+
+        EXPECT_NO_THROW(is >> record);
+        expect_record_equals(record_expected, record);
+    }
 
     {
         // check last line case (no newline at the end)
@@ -233,9 +285,9 @@ TEST(swc_parser, from_allen_db)
     using namespace nest::mc;
 
     std::string datadir{DATADIR};
-    auto fname = datadir+"/example.swc";
+    auto fname = datadir + "/example.swc";
     std::ifstream fid(fname);
-    if(!fid.is_open()) {
+    if (!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
         return;
     }
@@ -400,7 +452,7 @@ TEST(swc_record_ranges, raw)
             }
 
             ADD_FAILURE() << "expected an exception\n";
-        } catch (const swc_parse_error &e) {
+        } catch (const swc_parse_error& e) {
             EXPECT_EQ(3u, e.lineno());
         }
     }
@@ -432,11 +484,11 @@ TEST(swc_io, cell_construction)
 
         std::stringstream is;
         is << "1 1 0 0 0 2.1 -1\n";
-        is << "2 2 0.1 1.2 1.2 1.3 1\n";
-        is << "3 2 1.0 2.0 2.2 1.1 2\n";
-        is << "4 2 1.5 3.3 1.3 2.2 3\n";
-        is << "5 2 2.5 5.3 2.5 0.7 3\n";
-        is << "6 2 3.5 2.3 3.7 3.4 5\n";
+        is << "2 3 0.1 1.2 1.2 1.3 1\n";
+        is << "3 3 1.0 2.0 2.2 1.1 2\n";
+        is << "4 3 1.5 3.3 1.3 2.2 3\n";
+        is << "5 3 2.5 5.3 2.5 0.7 3\n";
+        is << "6 3 3.5 2.3 3.7 3.4 5\n";
 
         using point_type = point<double>;
         std::vector<point_type> points = {
@@ -500,47 +552,15 @@ TEST(swc_io, cell_construction)
 TEST(swc_parser, from_file_ball_and_stick)
 {
     std::string datadir{DATADIR};
-    auto fname = datadir+"/ball_and_stick.swc";
+    auto fname = datadir + "/ball_and_stick.swc";
     std::ifstream fid(fname);
-    if(!fid.is_open()) {
+    if (!fid.is_open()) {
         std::cerr << "unable to open file " << fname << "... skipping test\n";
         return;
     }
 
     // read the file into a cell object
     auto cell = nest::mc::io::swc_read_cell(fid);
-
-    // verify that the correct number of nodes was read
-    EXPECT_EQ(cell.num_segments(), 2);
-    EXPECT_EQ(cell.num_compartments(), 2u);
-
-    // make an equivalent cell via C++ interface
-    nest::mc::cell local_cell;
-    local_cell.add_soma(6.30785);
-    local_cell.add_cable(0, nest::mc::segmentKind::dendrite, 0.5, 0.5, 200);
-
-    EXPECT_TRUE(nest::mc::cell_basic_equality(local_cell, cell));
-}
-
-// check that windows EOL are supported in linux.
-// This test is based on the ball_and_stick.swc with windows endings inserted
-// manually in a file stream, regression test for issue_34
-TEST(swc_parser, windows_eol)
-{
-
-    // Check valid usage
-    std::stringstream is;
-    is << "# ball and stick model with\r\n";
-    is << "#   - soma with radius 12.6157 2\r\n";
-    is << "#   - dendrite with length 200 and radius 0.5\r\n";
-    is << "\r\n";                                          // parser stubles over empty line with \r\n
-    is << "1 1     0.0     0.0     0.0     6.30785 -1\r\n";  
-    is << "2 2     6.30785 0.0     0.0     0.5      1\r\n";
-    is << "3 2   206.30785 0.0     0.0     0.5      2\r\n";
-    is << "\n";
-
-    // read the file into a cell object
-    auto cell = nest::mc::io::swc_read_cell(is);
 
     // verify that the correct number of nodes was read
     EXPECT_EQ(cell.num_segments(), 2);
