@@ -1,3 +1,5 @@
+#include <numeric>
+
 #include "profiler.hpp"
 #include "util/debug.hpp"
 
@@ -373,4 +375,3 @@ void profiler_output(double threshold) {}
 } // namespace util
 } // namespace mc
 } // namespace nest
-

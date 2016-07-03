@@ -18,7 +18,7 @@ namespace io {
 //
 // swc_record implementation
 //
-void swc_record::renumber(id_type new_id, std::map<id_type, id_type> &idmap)
+void swc_record::renumber(id_type new_id, std::map<id_type, id_type>& idmap)
 {
     auto old_id = id_;
     id_ = new_id;
@@ -59,7 +59,7 @@ void swc_record::check_consistency() const
     }
 }
 
-std::istream &operator>>(std::istream &is, swc_record &record)
+std::istream& operator>>(std::istream& is, swc_record& record)
 {
     swc_parser parser;
     parser.parse_record(is, record);
@@ -67,7 +67,7 @@ std::istream &operator>>(std::istream &is, swc_record &record)
 }
 
 
-std::ostream &operator<<(std::ostream &os, const swc_record &record)
+std::ostream& operator<<(std::ostream& os, const swc_record& record)
 {
     // output in one-based indexing
     os << record.id_+1 << " "
@@ -86,12 +86,28 @@ std::ostream &operator<<(std::ostream &os, const swc_record &record)
 // Utility functions
 //
 
-bool starts_with(const std::string &str, const std::string &prefix)
+std::string::size_type find_first_non_whitespace(const std::string& str)
 {
-    return (str.find(prefix) == 0);
+    return str.find_first_not_of(" \f\n\r\t\v");
 }
 
-void check_parse_status(const std::istream &is, const swc_parser &parser)
+bool starts_with(const std::string& str, const std::string& prefix)
+{
+    // ignore leading whitespace
+    auto pos = find_first_non_whitespace(str);
+    if (pos == std::string::npos) {
+        return false;
+    }
+
+    return str.find(prefix, pos) == pos;
+}
+
+bool is_space(const std::string& str)
+{
+    return find_first_non_whitespace(str) == std::string::npos;
+}
+
+void check_parse_status(const std::istream& is, const swc_parser& parser)
 {
     if (is.fail()) {
         // If we try to read past the eof; fail bit will also be set
@@ -99,8 +115,23 @@ void check_parse_status(const std::istream &is, const swc_parser &parser)
     }
 }
 
+nest::mc::segmentKind convert_kind(const swc_record::kind& kind)
+{
+    switch (kind) {
+    case swc_record::kind::soma:
+        return segmentKind::soma;
+    case swc_record::kind::dendrite:
+        return segmentKind::dendrite;
+    case swc_record::kind::axon:
+        return segmentKind::axon;
+    default:
+        throw swc_parse_error("no known conversion for swc record type", 0);
+    }
+}
+
+
 template<typename T>
-T parse_value_strict(std::istream &is, const swc_parser &parser)
+T parse_value_strict(std::istream& is, const swc_parser& parser)
 {
     T val;
     check_parse_status(is >> val, parser);
@@ -111,7 +142,7 @@ T parse_value_strict(std::istream &is, const swc_parser &parser)
 
 // specialize parsing for record types
 template<>
-swc_record::kind parse_value_strict(std::istream &is, const swc_parser &parser)
+swc_record::kind parse_value_strict(std::istream& is, const swc_parser& parser)
 {
     swc_record::id_type val;
     check_parse_status(is >> val, parser);
@@ -124,17 +155,15 @@ swc_record::kind parse_value_strict(std::istream &is, const swc_parser &parser)
 // swc_parser implementation
 //
 
-std::istream &swc_parser::parse_record(std::istream &is, swc_record &record)
+std::istream& swc_parser::parse_record(std::istream& is, swc_record& record)
 {
     while (!is.eof() && !is.bad()) {
         // consume empty and comment lines first
         std::getline(is, linebuff_);
 
         ++lineno_;
-        if (!linebuff_.empty() &&
-            !starts_with(linebuff_, comment_prefix_) &&
-            !starts_with(linebuff_, "\r")) 
-        {
+        if (!is_space(linebuff_) &&
+            !starts_with(linebuff_, comment_prefix_)) {
             break;
         }
     }
@@ -145,7 +174,7 @@ std::istream &swc_parser::parse_record(std::istream &is, swc_record &record)
     }
 
     if (is.eof() &&
-        (linebuff_.empty() || starts_with(linebuff_, comment_prefix_))) {
+        (is_space(linebuff_) || starts_with(linebuff_, comment_prefix_))) {
         // last line is either empty or a comment; don't parse anything
         return is;
     }
@@ -157,7 +186,7 @@ std::istream &swc_parser::parse_record(std::istream &is, swc_record &record)
     std::istringstream line(linebuff_);
     try {
         record = parse_record(line);
-    } catch (std::invalid_argument &e) {
+    } catch (std::invalid_argument& e) {
         // Rethrow as a parse error
         throw swc_parse_error(e.what(), lineno_);
     }
@@ -165,7 +194,7 @@ std::istream &swc_parser::parse_record(std::istream &is, swc_record &record)
     return is;
 }
 
-swc_record swc_parser::parse_record(std::istringstream &is)
+swc_record swc_parser::parse_record(std::istringstream& is)
 {
     auto id = parse_value_strict<int>(is, *this);
     auto type = parse_value_strict<swc_record::kind>(is, *this);
@@ -184,7 +213,7 @@ swc_record swc_parser::parse_record(std::istringstream &is)
 }
 
 
-swc_record_range_clean::swc_record_range_clean(std::istream &is)
+swc_record_range_clean::swc_record_range_clean(std::istream& is)
 {
     std::unordered_set<swc_record::id_type> ids;
 
@@ -218,7 +247,7 @@ swc_record_range_clean::swc_record_range_clean(std::istream &is)
     // Renumber records if necessary
     std::map<swc_record::id_type, swc_record::id_type> idmap;
     swc_record::id_type next_id = 0;
-    for (auto &r : records_) {
+    for (auto& r : records_) {
         if (r.id() != next_id) {
             r.renumber(next_id, idmap);
         }
@@ -237,14 +266,14 @@ swc_record_range_clean::swc_record_range_clean(std::istream &is)
     }
 }
 
-cell swc_read_cell(std::istream &is)
+cell swc_read_cell(std::istream& is)
 {
     using namespace nest::mc;
 
     cell newcell;
     std::vector<swc_record::id_type> parent_index;
     std::vector<swc_record> swc_records;
-    for (const auto &r : swc_get_records<swc_io_clean>(is)) {
+    for (const auto& r : swc_get_records<swc_io_clean>(is)) {
         swc_records.push_back(r);
         parent_index.push_back(r.parent());
     }
@@ -290,7 +319,7 @@ cell swc_read_cell(std::istream &is)
 
         // add the new cable
         newcell.add_cable(new_parent_index[i],
-                          nest::mc::segmentKind::dendrite, radii, points);
+                          convert_kind(b_start->type()), radii, points);
     }
 
     return newcell;
