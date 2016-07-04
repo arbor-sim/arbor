@@ -8,7 +8,7 @@ namespace util {
 
 class iosfmt_guard {
 public:
-    explicit iosfmt_guard(std::ios &stream): save_(nullptr), stream_(stream) {
+    explicit iosfmt_guard(std::ios& stream) : save_(nullptr), stream_(stream) {
         save_.copyfmt(stream_);
     }
 

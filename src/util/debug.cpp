@@ -3,7 +3,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iostream>
-#include <thread>
+#include <mutex>
 
 #include "util/debug.hpp"
 #include "util/ioutil.hpp"
@@ -16,8 +16,8 @@ namespace util {
 std::mutex global_debug_cerr_mutex;
 #endif
 
-bool failed_assertion(const char *assertion, const char *file,
-                                      int line, const char *func)
+bool failed_assertion(const char* assertion, const char* file,
+                      int line, const char* func)
 {
     // Explicit flush, as we can't assume default buffering semantics on stderr/cerr,
     // and abort() might not flush streams.
@@ -28,7 +28,9 @@ bool failed_assertion(const char *assertion, const char *file,
     return false;
 }
 
-std::ostream& debug_emit_trace_leader(std::ostream &out, const char* file, int line, const char* varlist) {
+std::ostream& debug_emit_trace_leader(std::ostream& out, const char* file,
+                                      int line, const char* varlist)
+{
     iosfmt_guard _(out);
 
     const char* leaf = std::strrchr(file, '/');

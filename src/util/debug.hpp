@@ -29,7 +29,7 @@ extern std::mutex global_debug_cerr_mutex;
 #endif
 
 template <typename... Args>
-void debug_emit_trace(const char *file, int line, const char *varlist, const Args&... args) {
+void debug_emit_trace(const char* file, int line, const char* varlist, const Args&... args) {
 #ifdef WITH_TBB
     std::stringstream out;
 #else
