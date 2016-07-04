@@ -7,6 +7,7 @@ set(BASE_SOURCES
     parameter_list.cpp
     profiling/profiler.cpp
     swcio.cpp
+    util/debug.cpp
 )
 
 if(${WITH_MPI})

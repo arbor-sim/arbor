@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "util.hpp"
+#include "util/debug.hpp"
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
@@ -248,7 +249,7 @@ std::vector<typename C::value_type> make_parent_index(
         return {};
     }
 
-    EXPECTS(parent_index.size() == branch_index.back());
+    EXPECTS(parent_index.size() == unsigned(branch_index.back()));
     EXPECTS(has_contiguous_segments(parent_index));
     EXPECTS(is_strictly_monotonic_increasing(branch_index));
 

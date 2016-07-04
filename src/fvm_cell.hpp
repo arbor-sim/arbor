@@ -141,6 +141,10 @@ public:
         return (v>-1000.) && (v<1000.);
     }
 
+    /// returns current at a segment location
+    value_type current(segment_location loc) const;
+
+
     value_type time() const { return t_; }
 
     value_type probe(uint32_t i) const {
@@ -476,7 +480,7 @@ void fvm_cell<T, I>::setup_matrix(T dt)
 template <typename T, typename I>
 int fvm_cell<T, I>::compartment_index(segment_location loc) const
 {
-    EXPECTS(loc.segment < segment_index_.size());
+    EXPECTS(unsigned(loc.segment) < segment_index_.size());
 
     const auto seg = loc.segment;
 
@@ -490,6 +494,12 @@ template <typename T, typename I>
 T fvm_cell<T, I>::voltage(segment_location loc) const
 {
     return voltage_[compartment_index(loc)];
+}
+
+template <typename T, typename I>
+T fvm_cell<T, I>::current(segment_location loc) const
+{
+    return current_[compartment_index(loc)];
 }
 
 template <typename T, typename I>

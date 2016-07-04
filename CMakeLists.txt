@@ -1,7 +1,7 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required(VERSION 2.8)
 
 # project info
-project (cell_algorithms)
+project(cell_algorithms)
 enable_language(CXX)
 
 # save incoming CXX flags for forwarding to modparser external project
@@ -18,6 +18,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 # generated .a and .so go into /lib
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+
+# enable assertions?
+set(WITH_ASSERTIONS OFF CACHE BOOL "enable EXPECTS() assertions in code")
+if(WITH_ASSERTIONS)
+    add_definitions("-DWITH_ASSERTIONS")
+endif()
 
 # TBB support
 set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )

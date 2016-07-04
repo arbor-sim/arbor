@@ -13,8 +13,7 @@ namespace nest {
 namespace mc {
 namespace io {
 
-class swc_record
-{
+class swc_record {
 public:
     using id_type = int;
     using coord_type = double;
@@ -56,10 +55,10 @@ public:
         , parent_id_(-1)
     { }
 
-    swc_record(const swc_record &other) = default;
-    swc_record &operator=(const swc_record &other) = default;
+    swc_record(const swc_record& other) = default;
+    swc_record& operator=(const swc_record& other) = default;
 
-    bool strict_equals(const swc_record &other) const
+    bool strict_equals(const swc_record& other) const
     {
         return id_ == other.id_ &&
             x_ == other.x_ &&
@@ -70,43 +69,43 @@ public:
     }
 
     // Equality and comparison operators
-    friend bool operator==(const swc_record &lhs,
-                           const swc_record &rhs)
+    friend bool operator==(const swc_record& lhs,
+                           const swc_record& rhs)
     {
         return lhs.id_ == rhs.id_;
     }
 
-    friend bool operator<(const swc_record &lhs,
-                          const swc_record &rhs)
+    friend bool operator<(const swc_record& lhs,
+                          const swc_record& rhs)
     {
         return lhs.id_ < rhs.id_;
     }
 
-    friend bool operator<=(const swc_record &lhs,
-                           const swc_record &rhs)
+    friend bool operator<=(const swc_record& lhs,
+                           const swc_record& rhs)
     {
         return (lhs < rhs) || (lhs == rhs);
     }
 
-    friend bool operator!=(const swc_record &lhs,
-                           const swc_record &rhs)
+    friend bool operator!=(const swc_record& lhs,
+                           const swc_record& rhs)
     {
         return !(lhs == rhs);
     }
 
-    friend bool operator>(const swc_record &lhs,
-                          const swc_record &rhs)
+    friend bool operator>(const swc_record& lhs,
+                          const swc_record& rhs)
     {
         return !(lhs < rhs) && (lhs != rhs);
     }
 
-    friend bool operator>=(const swc_record &lhs,
-                           const swc_record &rhs)
+    friend bool operator>=(const swc_record& lhs,
+                           const swc_record& rhs)
     {
         return !(lhs < rhs);
     }
 
-    friend std::ostream &operator<<(std::ostream &os, const swc_record &record);
+    friend std::ostream& operator<<(std::ostream& os, const swc_record& record);
 
     kind type() const
     {
@@ -153,7 +152,7 @@ public:
         return nest::mc::point<coord_type>(x_, y_, z_);
     }
 
-    void renumber(id_type new_id, std::map<id_type, id_type> &idmap);
+    void renumber(id_type new_id, std::map<id_type, id_type>& idmap);
 
 private:
     void check_consistency() const;
@@ -169,12 +168,12 @@ private:
 class swc_parse_error : public std::runtime_error
 {
 public:
-    explicit swc_parse_error(const char *msg, std::size_t lineno)
+    explicit swc_parse_error(const char* msg, std::size_t lineno)
         : std::runtime_error(msg)
         , lineno_(lineno)
     { }
 
-    explicit swc_parse_error(const std::string &msg, std::size_t lineno)
+    explicit swc_parse_error(const std::string& msg, std::size_t lineno)
         : std::runtime_error(msg)
         , lineno_(lineno)
     { }
@@ -188,11 +187,9 @@ private:
     std::size_t lineno_;
 };
 
-class swc_parser
-{
+class swc_parser {
 public:
-    swc_parser(const std::string &delim,
-               std::string comment_prefix)
+    swc_parser(const std::string& delim, std::string comment_prefix)
         : delim_(delim)
         , comment_prefix_(comment_prefix)
         , lineno_(0)
@@ -209,11 +206,11 @@ public:
         return lineno_;
     }
 
-    std::istream &parse_record(std::istream &is, swc_record &record);
+    std::istream& parse_record(std::istream& is, swc_record& record);
 
 private:
     // Read the record from a string stream; will be treated like a single line
-    swc_record parse_record(std::istringstream &is);
+    swc_record parse_record(std::istringstream& is);
 
     std::string delim_;
     std::string comment_prefix_;
@@ -222,15 +219,14 @@ private:
 };
 
 
-std::istream &operator>>(std::istream &is, swc_record &record);
+std::istream& operator>>(std::istream& is, swc_record& record);
 
 class swc_record_stream_iterator :
-        public std::iterator<std::forward_iterator_tag, swc_record>
-{
+        public std::iterator<std::forward_iterator_tag, swc_record> {
 public:
     struct eof_tag { };
 
-    swc_record_stream_iterator(std::istream &is)
+    swc_record_stream_iterator(std::istream& is)
         : is_(is)
         , eof_(false)
     {
@@ -239,19 +235,19 @@ public:
         read_next_record();
     }
 
-    swc_record_stream_iterator(std::istream &is, eof_tag)
+    swc_record_stream_iterator(std::istream& is, eof_tag)
         : is_(is)
         , eof_(true)
     { }
 
-    swc_record_stream_iterator(const swc_record_stream_iterator &other)
+    swc_record_stream_iterator(const swc_record_stream_iterator& other)
         : is_(other.is_)
         , parser_(other.parser_)
         , curr_record_(other.curr_record_)
         , eof_(other.eof_)
     { }
 
-    swc_record_stream_iterator &operator++()
+    swc_record_stream_iterator& operator++()
     {
         if (eof_) {
             throw std::out_of_range("attempt to read past eof");
@@ -277,7 +273,7 @@ public:
         return curr_record_;
     }
 
-    bool operator==(const swc_record_stream_iterator &other) const
+    bool operator==(const swc_record_stream_iterator& other) const
     {
         if (eof_ && other.eof_) {
             return true;
@@ -286,13 +282,13 @@ public:
         }
     }
 
-    bool operator!=(const swc_record_stream_iterator &other) const
+    bool operator!=(const swc_record_stream_iterator& other) const
     {
         return !(*this == other);
     }
 
-    friend std::ostream &operator<<(std::ostream &os,
-                                    const swc_record_stream_iterator &iter)
+    friend std::ostream& operator<<(std::ostream& os,
+                                    const swc_record_stream_iterator& iter)
     {
         os << "{ is_.tellg(): " << iter.is_.tellg()  << ", "
            << "curr_record_: "  << iter.curr_record_ << ", "
@@ -310,7 +306,7 @@ private:
         }
     }
 
-    std::istream &is_;
+    std::istream& is_;
     swc_parser parser_;
     swc_record curr_record_;
 
@@ -320,16 +316,15 @@ private:
 };
 
 
-class swc_record_range_raw
-{
+class swc_record_range_raw {
 public:
     using value_type      = swc_record;
-    using reference       = value_type &;
-    using const_reference = const value_type &;
+    using reference       = value_type&;
+    using const_reference = const value_type&;
     using iterator        = swc_record_stream_iterator;
     using const_iterator  = const swc_record_stream_iterator;
 
-    swc_record_range_raw(std::istream &is)
+    swc_record_range_raw(std::istream& is)
         : is_(is)
     { }
 
@@ -350,7 +345,7 @@ public:
     }
 
 private:
-    std::istream &is_;
+    std::istream& is_;
 };
 
 //
@@ -361,16 +356,15 @@ private:
 //   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
 //
 
-class swc_record_range_clean
-{
+class swc_record_range_clean {
 public:
     using value_type     = swc_record;
-    using reference      = value_type &;
-    using const_referene = const value_type &;
+    using reference      = value_type&;
+    using const_referene = const value_type&;
     using iterator       = std::vector<swc_record>::iterator;
     using const_iterator = std::vector<swc_record>::const_iterator;
 
-    swc_record_range_clean(std::istream &is);
+    swc_record_range_clean(std::istream& is);
 
     iterator begin()
     {
@@ -407,12 +401,12 @@ struct swc_io_clean
 };
 
 template<typename T = swc_io_clean>
-typename T::record_range_type swc_get_records(std::istream &is)
+typename T::record_range_type swc_get_records(std::istream& is)
 {
     return typename T::record_range_type(is);
 }
 
-cell swc_read_cell(std::istream &is);
+cell swc_read_cell(std::istream& is);
 
 } // namespace io
 } // namespace mc

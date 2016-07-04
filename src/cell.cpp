@@ -1,5 +1,6 @@
 #include "cell.hpp"
 #include "tree.hpp"
+#include "util/debug.hpp"
 
 namespace nest {
 namespace mc {
@@ -8,7 +9,7 @@ int find_compartment_index(
     segment_location const& location,
     compartment_model const& graph
 ) {
-    EXPECTS(location.segment<graph.segment_index.size());
+    EXPECTS(unsigned(location.segment)<graph.segment_index.size());
     const auto& si = graph.segment_index;
     const auto seg = location.segment;
 
