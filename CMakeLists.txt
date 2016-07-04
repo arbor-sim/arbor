@@ -25,6 +25,12 @@ if(WITH_ASSERTIONS)
     add_definitions("-DWITH_ASSERTIONS")
 endif()
 
+# enable traces?
+set(WITH_TRACE OFF CACHE BOOL "enable TRACE() macros in code")
+if(WITH_TRACE)
+    add_definitions("-DWITH_TRACE")
+endif()
+
 # TBB support
 set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
 if(WITH_TBB)
