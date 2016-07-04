@@ -14,7 +14,7 @@ The following parameters are used to describe the size, connectivity and resolut
 - `synapses_per_cell` the number of synapses per cell, must be in the range `[0,cells-1]`
 - `compartments` the number of compartments per segment.
 
-All cells have identical morphology, a soma with a dendrite attached. The dendrite branchesas illustrated (roughly) below
+All cells have identical morphology, a soma with a dendrite attached. The dendrite branches as illustrated (roughly) below
 
 
 ```
@@ -36,8 +36,12 @@ If it is zero, then there are no connections between the cells (not much of a ne
 If it is `cells-1`, then an all to all network is formed, with each cell having a single connection to the other `cells-1` cells.
 If `synapses_per_cell` is less than `cells-1`, the connections are determined randomly.
 
-Note that the to avoid numerical instability, the number of synapses per cell should be greater than 200.
+Note that the to avoid numerical instability, the number of synapses per cell should be greater than 200 (or zero!).
 The number of synapses per cell required for stability is dependent on the number of compartments per segment (fewer compartments is more stable) and the time step size (smaller time step sizes increase stability).
+If there are numeric instabilities the simulation will print a warning
+```
+warning: solution out of bounds
+```
 
 ### time stepping parameters
 
@@ -54,9 +58,9 @@ There are two ways to specify the model properties, i.e. the number of cells, co
 
 - `-n integer` : `ncells`
 - `-s integer` : `synapses_per_cell`
-- `-c integer' : `compartments`
-- `-d float'   : `dt`
-- `-t float'   : `tfinal`
+- `-c integer` : `compartments`
+- `-d float`   : `dt`
+- `-t float`   : `tfinal`
 - `-i filename` : name of json file with parameters
 
 For example
