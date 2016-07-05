@@ -172,7 +172,7 @@ TEST(algorithms, is_positive)
     );
 }
 
-TEST(algorithms, has_contiguous_segments)
+TEST(algorithms, has_contiguous_compartments)
 {
     //
     //       0
@@ -186,7 +186,7 @@ TEST(algorithms, has_contiguous_segments)
     //   5       6
     //
     EXPECT_FALSE(
-        nest::mc::algorithms::has_contiguous_segments(
+        nest::mc::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 2, 3, 4, 2}
         )
     );
@@ -203,7 +203,7 @@ TEST(algorithms, has_contiguous_segments)
     //   4       7
     //
     EXPECT_FALSE(
-        nest::mc::algorithms::has_contiguous_segments(
+        nest::mc::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 2, 5}
         )
     );
@@ -220,7 +220,7 @@ TEST(algorithms, has_contiguous_segments)
     //   4       6
     //
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_segments(
+        nest::mc::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 5, 2}
         )
     );
@@ -237,21 +237,34 @@ TEST(algorithms, has_contiguous_segments)
     //   4       6
     //
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_segments(
+        nest::mc::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 5, 1}
+        )
+    );
+
+    //
+    //     0
+    //    / \
+    //   1   2
+    //  / \
+    // 3   4
+    //
+    EXPECT_TRUE(
+        nest::mc::algorithms::has_contiguous_compartments(
+            std::vector<int>{0, 0, 0, 1, 1}
         )
     );
 
     // Soma-only list
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_segments(
+        nest::mc::algorithms::has_contiguous_compartments(
             std::vector<int>{0}
         )
     );
 
     // Empty list
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_segments(
+        nest::mc::algorithms::has_contiguous_compartments(
             std::vector<int>{}
         )
     );
