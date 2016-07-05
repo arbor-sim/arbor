@@ -40,7 +40,7 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
     debug_emit(out, args...);
 
 #ifdef WITH_TBB
-    std::lock_guard<std::mutex> _(global_debug_cerr_mutex);
+    std::lock_guard<std::mutex> guard(global_debug_cerr_mutex);
     std::cerr << out.rdbuf();
 #else
     out.flush();
