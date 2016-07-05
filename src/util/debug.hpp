@@ -1,7 +1,6 @@
 #pragma once
 
 #include <iostream>
-#include <memory>
 #include <sstream>
 #include <mutex>
 
@@ -31,26 +30,20 @@ extern std::mutex global_debug_cerr_mutex;
 
 template <typename... Args>
 void debug_emit_trace(const char* file, int line, const char* varlist, const Args&... args) {
-    constexpr bool multithreaded = nest::mc::threading::multithreaded();
+    if (nest::mc::threading::multithreaded()) {
+        std::stringstream buffer;
 
-    std::unique_ptr<std::ostream> buffer;
-    std::ostream* out = &std::cerr;
+        debug_emit_trace_leader(buffer, file, line, varlist);
+        debug_emit(buffer, args...);
 
-    if (multithreaded) {
-        buffer.reset(new std::stringstream());
-        out = buffer.get();
-    }
-
-    debug_emit_trace_leader(*out, file, line, varlist);
-    debug_emit(*out, args...);
-
-    if (multithreaded) {
         std::lock_guard<std::mutex> guard(global_debug_cerr_mutex);
-        std::cerr << out->rdbuf();
+        std::cerr << buffer.rdbuf();
         std::cerr.flush();
     }
     else {
-        out->flush();
+        debug_emit_trace_leader(std::cerr, file, line, varlist);
+        debug_emit(std::cerr, args...);
+        std::cerr.flush();
     }
 }
 
