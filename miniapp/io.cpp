@@ -69,7 +69,7 @@ cl_options read_options(int argc, char** argv) {
     }
 
     if(options.ifname == "") {
-        options.check();
+        options.check_and_normalize();
         return options;
     }
     else {
@@ -98,7 +98,7 @@ cl_options read_options(int argc, char** argv) {
                           << options.ifname << "\n";
                 exit(1);
             }
-            options.check();
+            options.check_and_normalize();
             return options;
         }
     }
