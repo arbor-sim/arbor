@@ -16,7 +16,9 @@ struct cl_options {
     double dt;
     bool all_to_all;
 
-    void check() {
+    // TODO the normalize bit should be moved to the model_parameters when
+    // we start having more models
+    void check_and_normalize() {
         if(all_to_all) {
             synapses_per_cell = cells - 1;
         }
