@@ -1,7 +1,7 @@
 #pragma once
 
 #if !defined(WITH_SERIAL)
-    #error this header can only be loaded if WITH_SERIAL is set
+    #error "this header can only be loaded if WITH_SERIAL is set"
 #endif
 
 #include <array>
@@ -75,6 +75,8 @@ struct timer {
         return std::chrono::duration<double>(e-b).count();
     }
 };
+
+constexpr bool multithreaded() { return false; }
 
 
 } // threading

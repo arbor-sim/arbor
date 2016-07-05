@@ -1,8 +1,11 @@
 #pragma once
 
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <mutex>
+
+#include "threading/threading.hpp"
 
 namespace nest {
 namespace mc {
@@ -24,27 +27,31 @@ void debug_emit(std::ostream& out, const Head& head, const Tail&... tail) {
     debug_emit(out, tail...);
 }
 
-#ifdef WITH_TBB
 extern std::mutex global_debug_cerr_mutex;
-#endif
 
 template <typename... Args>
 void debug_emit_trace(const char* file, int line, const char* varlist, const Args&... args) {
-#ifdef WITH_TBB
-    std::stringstream out;
-#else
-    auto &out = std::cerr;
-#endif
+    constexpr bool multithreaded = nest::mc::threading::multithreaded();
 
-    debug_emit_trace_leader(out, file, line, varlist);
-    debug_emit(out, args...);
+    std::unique_ptr<std::ostream> buffer;
+    std::ostream* out = &std::cerr;
 
-#ifdef WITH_TBB
-    std::lock_guard<std::mutex> guard(global_debug_cerr_mutex);
-    std::cerr << out.rdbuf();
-#else
-    out.flush();
-#endif
+    if (multithreaded) {
+        buffer.reset(new std::stringstream());
+        out = buffer.get();
+    }
+
+    debug_emit_trace_leader(*out, file, line, varlist);
+    debug_emit(*out, args...);
+
+    if (multithreaded) {
+        std::lock_guard<std::mutex> guard(global_debug_cerr_mutex);
+        std::cerr << out->rdbuf();
+        std::cerr.flush();
+    }
+    else {
+        out->flush();
+    }
 }
 
 } // namespace util
@@ -56,7 +63,6 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
 #else
     #define TRACE(...)
 #endif
-
 
 #ifdef WITH_ASSERTIONS
     #ifdef __GNUC__

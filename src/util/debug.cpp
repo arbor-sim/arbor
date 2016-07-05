@@ -12,9 +12,7 @@ namespace nest {
 namespace mc {
 namespace util {
 
-#ifdef WITH_TBB
 std::mutex global_debug_cerr_mutex;
-#endif
 
 bool failed_assertion(const char* assertion, const char* file,
                       int line, const char* func)
