@@ -16,7 +16,7 @@ namespace io {
 cl_options read_options(int argc, char** argv) {
 
     // set default options
-    const cl_options default_options{"", 1000, 500, 100};
+    const cl_options default_options{"", 1000, 500, 100, 100., 0.025, false};
 
     cl_options options;
     // parse command line arguments
@@ -33,7 +33,7 @@ cl_options read_options(int argc, char** argv) {
             "c", "ncompartments", "number of compartments per segment",
             false, 100, "non negative integer");
         TCLAP::ValueArg<std::string> ifile_arg(
-            "i", "ifile", "number of compartments per segment",
+            "i", "ifile", "json file with model parameters",
             false, "","file name string");
         TCLAP::ValueArg<double> tfinal_arg(
             "t", "tfinal", "time to simulate in ms",
@@ -41,6 +41,8 @@ cl_options read_options(int argc, char** argv) {
         TCLAP::ValueArg<double> dt_arg(
             "d", "dt", "time step size in ms",
             false, 0.025, "positive real number");
+        TCLAP::SwitchArg all_to_all_arg(
+            "a","alltoall","all to all network", cmd, false);
 
         cmd.add(ncells_arg);
         cmd.add(nsynapses_arg);
@@ -57,6 +59,7 @@ cl_options read_options(int argc, char** argv) {
         options.ifname = ifile_arg.getValue();
         options.tfinal = tfinal_arg.getValue();
         options.dt = dt_arg.getValue();
+        options.all_to_all = all_to_all_arg.getValue();
     }
     // catch any exceptions in command line handling
     catch(TCLAP::ArgException &e) {
@@ -66,6 +69,7 @@ cl_options read_options(int argc, char** argv) {
     }
 
     if(options.ifname == "") {
+        options.check();
         return options;
     }
     else {
@@ -82,6 +86,7 @@ cl_options read_options(int argc, char** argv) {
                 options.compartments_per_segment = fopts["compartments"];
                 options.dt = fopts["dt"];
                 options.tfinal = fopts["tfinal"];
+                options.all_to_all = fopts["all_to_all"];
             }
             catch(std::domain_error e) {
                 std::cerr << "error: unable to open parameters in "
@@ -93,6 +98,7 @@ cl_options read_options(int argc, char** argv) {
                           << options.ifname << "\n";
                 exit(1);
             }
+            options.check();
             return options;
         }
     }
@@ -107,6 +113,7 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  synapses/cell        : " << options.synapses_per_cell << "\n";
     o << "  simulation time      : " << options.tfinal << "\n";
     o << "  dt                   : " << options.dt << "\n";
+    o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
     o << "  input file name      : " << options.ifname << "\n";
 
     return o;

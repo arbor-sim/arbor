@@ -38,7 +38,7 @@ struct model {
 
     void run(double tfinal, double dt) {
         auto t = 0.;
-        auto delta = communicator.min_delay();
+        auto delta = std::min(double(communicator.min_delay()), tfinal);
         while (t<tfinal) {
             mc::threading::parallel_for::apply(
                 0, num_groups(),
@@ -46,7 +46,9 @@ struct model {
                         mc::util::profiler_enter("stepping","events");
                     cell_groups[i].enqueue_events(communicator.queue(i));
                         mc::util::profiler_leave();
-                    cell_groups[i].advance(t+delta, dt);
+
+                    cell_groups[i].advance(std::min(t+delta, tfinal), dt);
+
                         mc::util::profiler_enter("events");
                     communicator.add_spikes(cell_groups[i].spikes());
                     cell_groups[i].clear_spikes();
@@ -205,7 +207,7 @@ int main(int argc, char** argv) {
     mc::io::cl_options options;
     try {
         options = mc::io::read_options(argc, argv);
-        if (!global_policy::id()) {
+        if (global_policy::id()==0) {
             std::cout << options << "\n";
         }
     }
@@ -235,7 +237,9 @@ int main(int argc, char** argv) {
 
     // add some spikes to the system to start it
     auto first = m.communicator.group_gid_first(id);
-    first += 20 - (first%20); // round up to multiple of 20
+    if(first%20) {
+        first += 20 - (first%20); // round up to multiple of 20
+    }
     auto last  = m.communicator.group_gid_first(id+1);
     for (auto i=first; i<last; i+=20) {
         m.communicator.add_spike({i, 0});
@@ -245,7 +249,7 @@ int main(int argc, char** argv) {
 
     mc::util::profiler_output(0.001);
 
-    if (!id) {
+    if (id==0) {
         std::cout << "there were " << m.communicator.num_spikes() << " spikes\n";
     }
 
@@ -261,10 +265,8 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
     //  make cells
     //
 
-    // calculate how many synapses per cell
-    auto synapses_per_cell =
-        std::min(options.synapses_per_cell, options.cells-1);
-    auto is_all_to_all = synapses_per_cell == (options.cells-1);
+    auto synapses_per_cell = options.synapses_per_cell;
+    auto is_all_to_all = options.all_to_all;
 
     // make a basic cell
     auto basic_cell =
@@ -303,7 +305,7 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
     // RNG distributions for connection delays and source cell ids
     auto weight_distribution = std::exponential_distribution<float>(0.75);
     auto source_distribution =
-        std::uniform_int_distribution<uint32_t>(0u, options.cells-2);
+        std::uniform_int_distribution<uint32_t>(0u, options.cells-1);
 
     // calculate the weight of synaptic connections, which is chosen so that
     // the sum of all synaptic weights on a cell is
@@ -374,7 +376,7 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
 
 void setup() {
     // print banner
-    if (!global_policy::id()) {
+    if (global_policy::id()==0) {
         std::cout << "====================\n";
         std::cout << "  starting miniapp\n";
         std::cout << "  - " << mc::threading::description() << " threading support\n";

@@ -13,6 +13,7 @@ The following parameters are used to describe the size, connectivity and resolut
 - `cells` is the total number of cells in the network.
 - `synapses_per_cell` the number of synapses per cell, must be in the range `[0,cells-1]`
 - `compartments` the number of compartments per segment.
+- `all_to_all` toggle whether to make an all to all network
 
 All cells have identical morphology, a soma with a dendrite attached. The dendrite branches as illustrated (roughly) below
 
@@ -33,8 +34,8 @@ For example, when `compartments=100`, the total number of compartments in each c
 
 The `synapses_per_cell` parameter is in the range `[0,cells-1]`.
 If it is zero, then there are no connections between the cells (not much of a network).
-If it is `cells-1`, then an all to all network is formed, with each cell having a single connection to the other `cells-1` cells.
-If `synapses_per_cell` is less than `cells-1`, the connections are determined randomly.
+By default, the source gid of each synapse is chosen at random from the global set of cells (excluding the cell of the synapse).
+If the `all_to_all` flag is set, `synapses_per_cell` is set to `cells-1`, i.e. one connection for each cell (excluding the cell of the synapse)
 
 Note that the to avoid numerical instability, the number of synapses per cell should be greater than 200 (or zero!).
 The number of synapses per cell required for stability is dependent on the number of compartments per segment (fewer compartments is more stable) and the time step size (smaller time step sizes increase stability).
@@ -75,7 +76,6 @@ will run a simulation with 1000 cells, with 500 synapses per cell, 50 compartmen
 
 To run the same simulation that we ran with the command line arguments with an input file:
 
-
 ```
 > cat input.json
 {
@@ -83,7 +83,8 @@ To run the same simulation that we ran with the command line arguments with an i
     "synapses": 500,
     "compartments": 50,
     "dt": 0.02,
-    "tfinal": 100.0
+    "tfinal": 100.0,
+    "all_to_all": false
 }
 > ./miniapp.exe -i input.json
 ```

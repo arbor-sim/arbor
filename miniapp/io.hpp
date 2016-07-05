@@ -14,6 +14,13 @@ struct cl_options {
     uint32_t compartments_per_segment;
     double tfinal;
     double dt;
+    bool all_to_all;
+
+    void check() {
+        if(all_to_all) {
+            synapses_per_cell = cells - 1;
+        }
+    }
 };
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);

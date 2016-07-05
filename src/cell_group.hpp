@@ -102,7 +102,7 @@ public:
 
             // integrate cell state
             cell_.advance(tnext - cell_.time());
-            if(!cell_.is_physical_solution()) {
+            if (!cell_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds\n";
             }
 
