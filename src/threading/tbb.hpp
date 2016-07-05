@@ -44,6 +44,8 @@ struct timer {
     }
 };
 
+constexpr bool multithreaded() { return true; }
+
 } // threading
 } // mc
 } // nest
