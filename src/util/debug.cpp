@@ -31,7 +31,7 @@ bool failed_assertion(const char* assertion, const char* file,
 std::ostream& debug_emit_trace_leader(std::ostream& out, const char* file,
                                       int line, const char* varlist)
 {
-    iosfmt_guard _(out);
+    iosfmt_guard guard(out);
 
     const char* leaf = std::strrchr(file, '/');
     out << (leaf?leaf+1:file) << ':' << line << " ";

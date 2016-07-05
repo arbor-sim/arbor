@@ -52,30 +52,22 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
 } // namespace nest
 
 #ifdef WITH_TRACE
-
-#define TRACE(vars...) nest::mc::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
-
+    #define TRACE(vars...) nest::mc::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
 #else
-
-#define TRACE(...)
-
+    #define TRACE(...)
 #endif
 
 
 #ifdef WITH_ASSERTIONS
+    #ifdef __GNUC__
+        #define DEBUG_FUNCTION_NAME __PRETTY_FUNCTION__
+    #else
+        #define DEBUG_FUNCTION_NAME __func__
+    #endif
 
-#ifdef __GNUC__
-#define DEBUG_FUNCTION_NAME __PRETTY_FUNCTION__
-#else
-#define DEBUG_FUNCTION_NAME __func__
-#endif
-
-#define EXPECTS(condition) \
-(void)((condition) || \
+    #define EXPECTS(condition) \
+       (void)((condition) || \
        nest::mc::util::failed_assertion(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
-
 #else
-
-#define EXPECTS(condition)
-
-#endif //  def WITH_ASSERTIONS
+    #define EXPECTS(condition)
+#endif // def WITH_ASSERTIONS
