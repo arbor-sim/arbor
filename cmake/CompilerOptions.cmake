@@ -12,3 +12,11 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
 
     set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
 endif()
+
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
+    # Disable warning for unused template parameter
+    # this is raised by a templated function in the json library
+
+    set(CXXOPT_WALL "${CXXOPT_WALL} -wd488")
+endif()
+
