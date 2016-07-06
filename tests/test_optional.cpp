@@ -53,7 +53,7 @@ TEST(optionalm,deref) {
         explicit foo(int a_): a(a_) {}
         double value() { return 3.0*a; }
     };
-    
+
     optional<foo> f=foo(2);
     EXPECT_EQ(6.0,f->value());
     EXPECT_EQ(2,(*f).a);
@@ -88,22 +88,20 @@ TEST(optionalm,assign_returns) {
     EXPECT_EQ(&a,bp);
 }
 
-namespace {
-    struct nomove {
-        int value;
+struct nomove {
+    int value;
 
-        nomove(): value(0) {}
-        nomove(int i): value(i) {}
-        nomove(const nomove &n): value(n.value) {}
-        nomove(nomove &&n) = delete;
+    nomove(): value(0) {}
+    nomove(int i): value(i) {}
+    nomove(const nomove &n): value(n.value) {}
+    nomove(nomove &&n) = delete;
 
-        nomove &operator=(const nomove &n) { value=n.value; return *this; }
+    nomove &operator=(const nomove &n) { value=n.value; return *this; }
 
-        bool operator==(const nomove &them) const { return them.value==value; }
-        bool operator!=(const nomove &them) const { return !(*this==them); }
-    };
-}
- 
+    bool operator==(const nomove &them) const { return them.value==value; }
+    bool operator!=(const nomove &them) const { return !(*this==them); }
+};
+
 TEST(optionalm,ctor_nomove) {
     optional<nomove> a(nomove(3));
     EXPECT_EQ(nomove(3),a.get());
@@ -116,30 +114,28 @@ TEST(optionalm,ctor_nomove) {
     EXPECT_EQ(nomove(4),b.get());
 }
 
-namespace {
-    struct nocopy {
-        int value;
+struct nocopy {
+    int value;
 
-        nocopy(): value(0) {}
-        nocopy(int i): value(i) {}
-        nocopy(const nocopy &n) = delete;
-        nocopy(nocopy &&n) {
-            value=n.value;
-            n.value=0;
-        }
+    nocopy(): value(0) {}
+    nocopy(int i): value(i) {}
+    nocopy(const nocopy &n) = delete;
+    nocopy(nocopy &&n) {
+        value=n.value;
+        n.value=0;
+    }
 
-        nocopy &operator=(const nocopy &n) = delete;
-        nocopy &operator=(nocopy &&n) {
-            value=n.value;
-            n.value=-1;
-            return *this;
-        }
+    nocopy &operator=(const nocopy &n) = delete;
+    nocopy &operator=(nocopy &&n) {
+        value=n.value;
+        n.value=-1;
+        return *this;
+    }
 
-        bool operator==(const nocopy &them) const { return them.value==value; }
-        bool operator!=(const nocopy &them) const { return !(*this==them); }
-    };
-}
-    
+    bool operator==(const nocopy &them) const { return them.value==value; }
+    bool operator!=(const nocopy &them) const { return !(*this==them); }
+};
+
 TEST(optionalm,ctor_nocopy) {
     optional<nocopy> a(nocopy(5));
     EXPECT_EQ(nocopy(5),a.get());
@@ -152,12 +148,10 @@ TEST(optionalm,ctor_nocopy) {
     EXPECT_EQ(nocopy(6),b.get());
 }
 
-namespace {
-    optional<double> odd_half(int n) {
-        optional<double> h;
-        if (n%2==1) h=n/2.0;
-        return h;
-    }
+optional<double> odd_half(int n) {
+    optional<double> h;
+    if (n%2==1) h=n/2.0;
+    return h;
 }
 
 TEST(optionalm,bind) {
@@ -199,7 +193,7 @@ TEST(optionalm,void) {
 
 TEST(optionalm,bind_to_void) {
     optional<int> a,b(3);
-    
+
     int call_count=0;
     auto vf=[&call_count](int i) -> void { ++call_count; };
 
@@ -213,12 +207,14 @@ TEST(optionalm,bind_to_void) {
     EXPECT_TRUE((bool)x);
     EXPECT_EQ(1,call_count);
 }
-    
+
 TEST(optionalm,bind_to_optional_void) {
     optional<int> a,b(3),c(4);
-    
+
     int count=0;
-    auto count_if_odd=[&count](int i) { return i%2?(++count,optional<void>(true)):optional<void>(); };
+    auto count_if_odd=[&count](int i) {
+        return i%2?(++count,optional<void>(true)):optional<void>();
+    };
 
     auto x=a >> count_if_odd;
     EXPECT_EQ(typeid(optional<void>),typeid(x));
@@ -242,12 +238,10 @@ TEST(optionalm,bind_with_ref) {
     EXPECT_EQ(11,*a);
 }
 
-namespace {
-    struct check_cref {
-        int operator()(const int &) { return 10; }
-        int operator()(int &) { return 11; }
-    };
-}
+struct check_cref {
+    int operator()(const int &) { return 10; }
+    int operator()(int &) { return 11; }
+};
 
 TEST(optionalm,bind_constness) {
     check_cref checker;
@@ -314,7 +308,7 @@ TEST(optionalm,and_operator) {
     auto zb=false & b;
     EXPECT_EQ(typeid(zb),typeid(b));
     EXPECT_FALSE((bool)zb);
-    
+
     auto b3=b & 3;
     EXPECT_EQ(typeid(b3),typeid(optional<int>));
     EXPECT_TRUE((bool)b3);

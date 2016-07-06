@@ -332,7 +332,9 @@ struct optional<X&>: detail::optional_base<X&> {
     template <typename T>
     optional(optional<T&>& ot): base(ot.set,ot.ref()) {}
 
-    template <typename Y,typename = typename std::enable_if<!detail::is_optional<Y>()>::type>
+    template <
+        typename Y,
+        typename = typename std::enable_if<!detail::is_optional<Y>::value>>
     optional& operator=(Y& y) {
         set = true;
         ref() = y;
@@ -363,7 +365,7 @@ struct optional<void>: detail::optional_base<void> {
 
     template <typename T>
     optional(const optional<T>& o): base(o.set,true) {}
-    
+
     template <typename T>
     optional& operator=(T) {
         set = true;
