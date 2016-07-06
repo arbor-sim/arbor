@@ -332,22 +332,19 @@ struct optional<X&>: detail::optional_base<X&> {
     template <typename T>
     optional(optional<T&>& ot): base(ot.set,ot.ref()) {}
 
-    /*
-    template <
-        typename Y,
-        typename = typename std::enable_if<!detail::is_optional<Y>::value>::type>
-    */
     template <typename Y>
     optional& operator=(Y& y) {
         set = true;
-        ref() = y;
+        data.construct(y);
         return *this;
     }
 
     template <typename Y>
     optional& operator=(optional<Y&>& o) {
         set = o.set;
-        data.construct(o);
+        if (o.set) {
+           data.construct(o.get());
+        }
         return *this;
     }
 };
