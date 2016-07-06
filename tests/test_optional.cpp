@@ -90,8 +90,8 @@ TEST(optionalm,assign_returns) {
 
 TEST(optionalm,assign_reference) {
     double a=3.0;
-    optional<double &> ar;
-    optional<double &> br;
+    optional<double&> ar;
+    optional<double&> br;
 
     ar = a;
     EXPECT_TRUE(ar);
