@@ -88,6 +88,23 @@ TEST(optionalm,assign_returns) {
     EXPECT_EQ(&a,bp);
 }
 
+TEST(optionalm,assign_reference) {
+    double a=3.0;
+    optional<double&> ar;
+    optional<double&> br;
+
+    ar = a;
+    EXPECT_TRUE(ar);
+    *ar = 5.0;
+    EXPECT_EQ(5.0, a);
+
+    br = ar;
+    EXPECT_TRUE(br);
+
+    *br = 7.0;
+    EXPECT_EQ(7.0, a);
+}
+
 struct nomove {
     int value;
 
@@ -148,7 +165,7 @@ TEST(optionalm,ctor_nocopy) {
     EXPECT_EQ(nocopy(6),b.get());
 }
 
-optional<double> odd_half(int n) {
+static optional<double> odd_half(int n) {
     optional<double> h;
     if (n%2==1) h=n/2.0;
     return h;
