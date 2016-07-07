@@ -226,6 +226,13 @@ namespace detail {
     template <typename T>
     using enable_unless_optional_t = enable_if_t<!is_optional<T>::value>;
 
+    // avoid nonnull address warnings when using operator| with e.g. char array constants
+    template <typename T>
+    bool decay_bool(const T* x) { return static_cast<bool>(x); }
+
+    template <typename T>
+    bool decay_bool(const T& x) { return static_cast<bool>(x); }
+
 } // namespace detail
 
 template <typename X>
@@ -398,7 +405,7 @@ typename std::enable_if<
     >
 >::type
 operator|(A&& a,B&& b) {
-    return a ? a : b;
+    return detail::decay_bool(a) ? a : b;
 }
 
 template <typename A,typename B>
