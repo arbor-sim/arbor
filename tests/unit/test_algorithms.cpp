@@ -3,7 +3,7 @@
 #include "gtest.h"
 
 #include "algorithms.hpp"
-#include "util.hpp"
+#include "../test_util.hpp"
 #include "util/debug.hpp"
 
 

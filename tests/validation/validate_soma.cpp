@@ -2,7 +2,7 @@
 #include <json/src/json.hpp>
 
 #include "gtest.h"
-#include "util.hpp"
+#include "../test_util.hpp"
 
 #include <cell.hpp>
 #include <fvm_cell.hpp>
