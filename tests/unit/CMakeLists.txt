@@ -8,9 +8,6 @@ set(HEADERS
     ${PROJECT_SOURCE_DIR}/src/tree.hpp
 )
 
-# google test framework
-add_library(gtest gtest-all.cpp gtest.h)
-
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp

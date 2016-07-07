@@ -23,9 +23,6 @@ set(VALIDATION_SOURCES
     validate.cpp
 )
 
-# google test framework
-add_library(gtest_validate gtest-all.cpp gtest.h)
-
 add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
 
 add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
@@ -33,7 +30,7 @@ add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 set(TARGETS validate.exe)
 
 foreach(target ${TARGETS})
-	target_link_libraries(${target} LINK_PUBLIC cellalgo gtest_validate)
+    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
     
     if(WITH_TBB)
 	target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})

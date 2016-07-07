@@ -16,8 +16,10 @@
 #add_subdirectory(regression)
 
 # google test framework
-# This fails with lots of  undefined reference to `testing::UnitTest::Run()'
-#add_library(GTEST gtest-all.cpp gtest.h)
+add_library(gtest gtest-all.cpp)
+
+# tests look for gtest.h here
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 # Unit tests
 add_subdirectory(unit)
