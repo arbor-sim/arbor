@@ -1,73 +1,26 @@
-set(HEADERS
-    ../src/cell.hpp
-    ../src/cell_tree.hpp
-    ../src/math.hpp
-    ../src/point.hpp
-    ../src/segment.hpp
-    ../src/swcio.hpp
-    ../src/tree.hpp
-)
+# Large test, employing the full simulator. 
+# validated using deltas on output data
+#add_subdirectory(delta)
+
+# Test for the internode communication (eg. mpi)
+#add_subdirectory(global_communication)
+
+# Test to check integration between components of the site_name
+#add_subdirectory(integration)
+
+# Check for performance: This could include stand alone tests
+# These do not necessarily be run automatically
+#add_subdirectory(performance)
+
+# Numbered tests based on bugs in the tracker
+#add_subdirectory(regression)
 
 # google test framework
-add_library(gtest gtest-all.cpp gtest.h)
+# This fails with lots of  undefined reference to `testing::UnitTest::Run()'
+#add_library(GTEST gtest-all.cpp gtest.h)
 
-set(TEST_SOURCES
-    # unit tests
-    test_algorithms.cpp
-    test_cell.cpp
-    test_compartments.cpp
-    test_event_queue.cpp
-    test_fvm.cpp
-    test_cell_group.cpp
-    test_matrix.cpp
-    test_mechanisms.cpp
-    test_optional.cpp
-    test_parameters.cpp
-    test_point.cpp
-    test_probe.cpp
-    test_segment.cpp
-    test_spikes.cpp
-    test_stimulus.cpp
-    test_swcio.cpp
-    test_synapses.cpp
-    test_tree.cpp
-    test_uninitialized.cpp
+# Unit tests
+add_subdirectory(unit)
 
-    # unit test driver
-    test.cpp
-)
-
-set(VALIDATION_SOURCES
-    # unit tests
-    validate_ball_and_stick.cpp
-    validate_soma.cpp
-    #validate_synapses.cpp
-
-    # unit test driver
-    validate.cpp
-)
-
-add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
-add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
-add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
-
-set(TARGETS test.exe validate.exe)
-
-foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
-
-    if(WITH_TBB)
-	target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
-    endif()
-
-    if(WITH_MPI)
-	target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
-	set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-    endif()
-
-    set_target_properties(${target}
-       PROPERTIES
-       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-    )
-endforeach()
-
+# Test validating models, possebly needing other software installed
+add_subdirectory(validation)
