@@ -11,7 +11,7 @@ set(HEADERS
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
-    #test_cell.cpp
+    test_cell.cpp
     test_compartments.cpp
     test_event_queue.cpp
     test_fvm.cpp
@@ -27,7 +27,7 @@ set(TEST_SOURCES
     test_stimulus.cpp
     test_swcio.cpp
     test_synapses.cpp
-    #test_tree.cpp
+    test_tree.cpp
     test_uninitialized.cpp
 
     # unit test driver

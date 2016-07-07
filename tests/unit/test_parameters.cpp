@@ -1,7 +1,7 @@
 #include <fstream>
 
 #include "gtest.h"
-#include "util.hpp"
+#include "../test_util.hpp"
 
 #include "../src/parameter_list.hpp"
 
