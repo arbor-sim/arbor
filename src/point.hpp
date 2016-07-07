@@ -62,7 +62,7 @@ template <typename T>
 T
 norm(point<T> const& p)
 {
-    return sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
+    return std::sqrt(p.x*p.x + p.y*p.y + p.z*p.z);
 }
 
 template <typename T>
