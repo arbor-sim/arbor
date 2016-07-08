@@ -178,7 +178,7 @@ if(NOT TBB_FOUND)
     # Search for the libraries
     find_library(TBB_${_comp}_LIBRARY_RELEASE ${_comp}
         HINTS ${TBB_LIBRARY} ${TBB_SEARCH_DIR}
-        PATHS ${TBB_DEFAULT_SEARCH_DIR}
+        PATHS ${TBB_DEFAULT_SEARCH_DIR} ENV LIBRARY_PATH
         PATH_SUFFIXES "${TBB_LIB_PATH_SUFFIX}")
 
     find_library(TBB_${_comp}_LIBRARY_DEBUG ${_comp}_debug
