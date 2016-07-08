@@ -32,7 +32,7 @@ struct point {
 
 template <typename T>
 constexpr point<T>
-operator+( point<T> const& lhs, point<T> const& rhs) {
+operator+(point<T> const& lhs, point<T> const& rhs) {
     return point<T>(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
 }
 
