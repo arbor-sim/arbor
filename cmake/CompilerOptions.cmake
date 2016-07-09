@@ -13,10 +13,21 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
 endif()
 
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
+
+    # compiler flags for generating KNL-specific AVX512 instructions
+    # supported in gcc 4.9.x and later
+    #set(CXXOPT_KNL "-mavx512f")
+    set(CXXOPT_KNL "-march=knl")
+endif()
+
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
     # Disable warning for unused template parameter
     # this is raised by a templated function in the json library
 
     set(CXXOPT_WALL "${CXXOPT_WALL} -wd488")
+
+    # compiler flags for generating KNL-specific AVX512 instructions
+    set(CXXOPT_KNL "-xMIC-AVX512")
 endif()
 

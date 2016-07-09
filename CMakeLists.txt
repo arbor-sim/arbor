@@ -62,6 +62,12 @@ if(SYSTEM_CRAY)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
 
+# Cray systems
+set(TARGET_KNL OFF CACHE BOOL "target Intel KNL architecture")
+if(TARGET_KNL)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
+endif()
+
 # targets for extermal dependencies
 include(ExternalProject)
 externalproject_add(modparser
