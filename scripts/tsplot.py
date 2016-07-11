@@ -5,6 +5,7 @@ import json
 import numpy as np
 import sys
 import re
+import logging
 import matplotlib as M
 import matplotlib.pyplot as P
 from itertools import chain, islice, cycle
@@ -173,7 +174,7 @@ class PlotData:
                 for i in xrange(n):
                     prefix = '' if k=='name' else k+'='
                     if vs[i] is not None:
-                        labels[i] += ', '+k+'='+str(vs[i])
+                        labels[i] += u', '+k+u'='+unicode(vs[i])
 
         except StopIteration:
             pass
@@ -190,7 +191,7 @@ def gather_ts_plots(tss, groupby):
     for ts in tss:
         key = tuple([ts.meta.get(g) for g in groupby])
         if key is () or None in key or key not in group_lookup:
-            pretty_key=', '.join([str(k)+'='+str(v) for k,v in zip(groupby, key) if v is not None])
+            pretty_key=', '.join([unicode(k)+u'='+unicode(v) for k,v in zip(groupby, key) if v is not None])
             pd = PlotData(pretty_key)
             pd.series = [ts]
             plot_groups.append(pd)
@@ -242,7 +243,7 @@ def plot_plots(plot_groups, save=None):
         uniq_units = list(set([s.units() for s in group.series]))
         uniq_units.sort()
         if len(uniq_units)>2:
-            logger.warning('more than two different units on the same plot')
+            logging.warning('more than two different units on the same plot')
             uniq_units = uniq_units[:2]
 
         # store each series in a slot corresponding to one of the units,
