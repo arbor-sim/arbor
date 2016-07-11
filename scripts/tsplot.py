@@ -28,12 +28,14 @@ def parse_clargs():
     P.add_argument('-t', '--abscissae', metavar='RANGE', dest='trange',
                    type=parse_range_spec, 
                    help='restrict time axis to RANGE (see below)')
-    P.add_argument('-g', '--group', metavar='KEY,...',  dest='groupby',
+    P.add_argument('-g', '--group', metavar='KEY,...', dest='groupby',
                    type=lambda s: s.split(','), 
                    help='plot series with same KEYs on the same axes')
-
-    P.add_argument('-o', '--out', metavar='FILE',  dest='outfile',
+    P.add_argument('-o', '--out', metavar='FILE', dest='outfile',
                    help='save plot to file FILE')
+    P.add_argument('-x', '--exclude', metavar='NUM', dest='exclude',
+                   type=float,
+                   help='remove extreme points outside NUM times the 0.9-interquantile range of the median')
 
     P.epilog =  'A range is specifed by a pair of floating point numbers min,max where '
     P.epilog += 'either may be omitted to indicate the minimum or maximum of the corresponding '
@@ -61,11 +63,31 @@ class TimeSeries:
         self.y[:ny] = ys[:ny]
 
         self.meta = dict(kwargs)
+        self.ex_ts = None
 
-    def tclip(self, bounds):
+    def trestrict(self, bounds):
         clip = range_meet(self.trange(), bounds)
         self.t = np.ma.masked_outside(self.t, v1=clip[0], v2=clip[1])
-        self.y = np.ma.masked_where(np.ma.getmask(self.t), self.y)
+        self.y = np.ma.masked_array(self.y, mask=self.t.mask)
+
+    def exclude_outliers(self, iqr_factor):
+        yfinite = np.ma.masked_invalid(self.y).compressed()
+        l_, lq, median, uq, u_ = np.percentile(yfinite, [0, 5.0, 50.0, 95.0, 100])
+        lb = median - iqr_factor*(uq-lq)
+        ub = median + iqr_factor*(uq-lq)
+        
+        np_err_save = np.seterr(all='ignore')
+        yex = np.ma.masked_where(np.isfinite(self.y)&(self.y<=ub)&(self.y>=lb), self.y)
+        np.seterr(**np_err_save)
+
+        tex = np.ma.masked_array(self.t, mask=yex.mask)
+        self.ex_ts = TimeSeries(tex.compressed(), yex.compressed())
+        self.ex_ts.meta = dict(self.meta)
+
+        self.y = np.ma.filled(np.ma.masked_array(self.y, mask=~yex.mask), np.nan)
+
+    def excluded(self):
+        return self.ex_ts
 
     def name(self):
         return self.meta.get('name',"")   # value of 'name' attribute in source
@@ -287,7 +309,12 @@ def plot_plots(plot_groups, save=None):
             colours = cycle(palette[ui])
             line = next(lines)
             for s, l in series_by_unit[ui]:
-                plot.plot(s.t, s.y, color=next(colours), ls=line, label=l)
+                c = next(colours)
+                plot.plot(s.t, s.y, color=c, ls=line, label=l)
+                # treat exluded points especially
+                ex = s.excluded()
+                ymin, ymax = s.yrange()
+                plot.plot(ex.t, np.clip(ex.y, ymin, ymax), marker='x', ls='', color=c)
 
             if first_plot:
                 plot.legend(loc=2, fontsize='small')
@@ -313,7 +340,11 @@ for filename in args.inputs:
 
 if args.trange:
     for ts in tss:
-        ts.tclip(args.trange)
+        ts.trestrict(args.trange)
+
+if args.exclude:
+    for ts in tss:
+        ts.exclude_outliers(args.exclude)
 
 groupby = args.groupby if args.groupby else []
 plots = gather_ts_plots(tss, groupby)
