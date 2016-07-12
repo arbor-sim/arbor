@@ -17,7 +17,6 @@ if LooseVersion(M.__version__)<LooseVersion("1.5.0"):
     logging.critical("require matplotlib version ≥ 1.5.0")
     sys.exit(1)
 
-
 # Read timeseries data from multiple files, plot each in one planel, with common
 # time axis, and optionally sharing a vertical axis as governed by the configuration.
 
@@ -39,7 +38,7 @@ def parse_clargs():
     P.add_argument('-g', '--group', metavar='KEY,...', dest='groupby',
                    type=lambda s: s.split(','), 
                    help='plot series with same KEYs on the same axes')
-    P.add_argument('-o', '--out', metavar='FILE', dest='outfile',
+    P.add_argument('-o', '--output', metavar='FILE', dest='outfile',
                    help='save plot to file FILE')
     P.add_argument('-x', '--exclude', metavar='NUM', dest='exclude',
                    type=float,
