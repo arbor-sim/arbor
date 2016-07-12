@@ -30,6 +30,7 @@ treated specially:
    all included traces, or an object representing a mapping of trace names to their
    corresponding unit string.
  * `name` is taken as the title of the corresponding plot, if it is unambiguous.
+ * `label` is ignored: the _label_ for a trace is its name in the data object.
 
 ## Operation
 
@@ -50,6 +51,9 @@ tsplot -g units,id data.json ...
 ```
 A subplot can comprise data with to two differint units, and will be plotted
 with two differing vertical axes.
+
+Note that for the purposes of tsplot, the value of the key _label_ is the
+propertu name of the trace in its json representation.
 
 ### Restricting data
 

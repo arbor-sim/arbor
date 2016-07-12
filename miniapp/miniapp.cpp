@@ -111,7 +111,7 @@ struct model {
             double value;
         };
         std::string name;
-        std::string unit;
+        std::string units;
         index_type id;
         std::vector<sample_type> samples;
     };
@@ -140,9 +140,9 @@ struct model {
     };
 
     mc::sampler make_simple_sampler(
-        index_type probe_gid, const std::string& name, const std::string& unit, index_type id, float dt)
+        index_type probe_gid, const std::string& name, const std::string& units, index_type id, float dt)
     {
-        traces.push_back(trace_data{name, unit, id});
+        traces.push_back(trace_data{name, units, id});
         return {probe_gid, simple_sampler_functor(traces, traces.size()-1, dt)};
     }
 
@@ -159,7 +159,7 @@ struct model {
 
             nlohmann::json jrep;
             jrep["name"] = trace.name;
-            jrep["units"] = trace.unit;
+            jrep["units"] = trace.units;
             jrep["id"] = trace.id;
  
             auto& jt = jrep["data"]["time"];
