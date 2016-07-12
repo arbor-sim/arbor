@@ -1,4 +1,5 @@
 #!env python
+#coding: utf-8
 
 import argparse
 import json
@@ -8,7 +9,14 @@ import re
 import logging
 import matplotlib as M
 import matplotlib.pyplot as P
+from distutils.version import LooseVersion
 from itertools import chain, islice, cycle
+
+# Run-time check for matplot lib version for line style functionality.
+if LooseVersion(M.__version__)<LooseVersion("1.5.0"):
+    logging.critical("require matplotlib version ≥ 1.5.0")
+    sys.exit(1)
+
 
 # Read timeseries data from multiple files, plot each in one planel, with common
 # time axis, and optionally sharing a vertical axis as governed by the configuration.
@@ -25,7 +33,7 @@ def parse_clargs():
     P = argparse.ArgumentParser(description='Plot time series data on one or more graphs.')
     P.add_argument('inputs', metavar='FILE', nargs='+',
                    help='time series data in JSON format')
-    P.add_argument('-t', '--abscissae', metavar='RANGE', dest='trange',
+    P.add_argument('-t', '--trange', metavar='RANGE', dest='trange',
                    type=parse_range_spec, 
                    help='restrict time axis to RANGE (see below)')
     P.add_argument('-g', '--group', metavar='KEY,...', dest='groupby',
@@ -313,8 +321,9 @@ def plot_plots(plot_groups, save=None):
                 plot.plot(s.t, s.y, color=c, ls=line, label=l)
                 # treat exluded points especially
                 ex = s.excluded()
-                ymin, ymax = s.yrange()
-                plot.plot(ex.t, np.clip(ex.y, ymin, ymax), marker='x', ls='', color=c)
+                if ex is not None:
+                    ymin, ymax = s.yrange()
+                    plot.plot(ex.t, np.clip(ex.y, ymin, ymax), marker='x', ls='', color=c)
 
             if first_plot:
                 plot.legend(loc=2, fontsize='small')
