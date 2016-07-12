@@ -1,7 +1,7 @@
 tsplot
 ------
 
-The `tsplot.py` script is a wrapper around matplotlib for displaying a collection of
+The `tsplot` script is a wrapper around matplotlib for displaying a collection of
 time series plots.
 
 ## Input data
