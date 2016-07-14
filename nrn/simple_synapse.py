@@ -8,7 +8,20 @@ from neuron import gui, h
 
 parser = argparse.ArgumentParser(description='generate spike train ball and stick model with hh channels at soma and pas channels in dendrite')
 parser.add_argument('--plot', action='store_true', dest='plot')
-args = parser.parse_args()
+parser.add_argument('--synapse', metavar='SYN', dest='synapse',
+                    choices=['exp', 'exp2'],
+                    default='exp',
+                    help='use synapse type SYN (exp or exp2)')
+
+# hack to make things work with nrniv ... -python:
+# throw away args before -python foo.py if -python present.
+
+if '-python' in sys.argv:
+    argv = sys.argv[sys.argv.index('-python')+2:]
+else:
+    argv = sys.argv
+
+args = parser.parse_args(argv)
 
 soma = h.Section(name='soma')
 dend = h.Section(name='dend')
@@ -62,8 +75,16 @@ for nseg in [5, 11, 51, 101] :
     dend.nseg=nseg
 
     # add a synapse
-    syn_ = h.ExpSyn(dend(0.5))
-    syn_.tau = 2
+    if args.synapse == 'exp':
+        syn_ = h.ExpSyn(dend(0.5))
+        syn_.tau = 2
+    elif args.synapse == 'exp2':
+        syn_ = h.Exp2Syn(dend(0.5))
+        syn_.tau1 = 0.5 # artificially slow onset
+        syn_.tau2 = 2
+    else:
+        raise RuntimeError('unrecognized synapse type')
+
     ncstim = h.NetCon(stim, syn_)
     ncstim.delay = 1 # 1 ms delay (arrives at 10ms)
     ncstim.weight[0] = 0.04 # NetCon weight is a vector
@@ -127,7 +148,7 @@ end = timer()
 print "took ", end-start, " seconds"
 
 # save the spike info as in json format
-fp = open('simple_synapse.json', 'w')
+fp = open('simple_'+args.synapse+'_synapse.json', 'w')
 json.dump(results, fp, indent=2)
 
 if args.plot :
