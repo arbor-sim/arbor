@@ -1,13 +1,16 @@
 #include <fstream>
-
-#include "gtest.h"
-#include "../test_util.hpp"
-
-#include <cell.hpp>
-#include <fvm_cell.hpp>
+#include <iterator>
 
 #include <json/src/json.hpp>
 
+#include <cell.hpp>
+#include <cell_group.hpp>
+#include <fvm_cell.hpp>
+#include <mechanism_interface.hpp>
+
+#include "gtest.h"
+#include "../test_util.hpp"
+#include "validation_data.hpp"
 
 // For storing the results of a simulation along with the information required
 // to compare two simulations for accuracy.
@@ -51,7 +54,7 @@ TEST(simple_synapse, neuron_baseline)
     nest::mc::cell cell;
 
     // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
+    mechanisms::setup_mechanism_helpers();
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);
@@ -67,8 +70,19 @@ TEST(simple_synapse, neuron_baseline)
     // add stimulus
     cell.add_synapse({1, 0.5});
 
+    // add porbes
+    auto probe_soma = cell.add_probe({0,0}, probeKind::membrane_voltage);
+    auto probe_dend = cell.add_probe({1,0.5}, probeKind::membrane_voltage);
+
+    // injected spike events
+    postsynaptic_spike_event synthetic_events[] = {
+        {0u, 10.0, 0.04},
+        {0u, 20.0, 0.04},
+        {0u, 40.0, 0.04}
+    };
+
     // load data from file
-    auto cell_data = testing::load_spike_data("../nrn/simple_synapse.json");
+    auto cell_data = testing::g_validation_data.load("simple_exp_synapse.json");
     EXPECT_TRUE(cell_data.size()>0);
     if(cell_data.size()==0) return;
 
@@ -91,34 +105,26 @@ TEST(simple_synapse, neuron_baseline)
         std::vector<std::vector<double>> v(2);
 
         // make the lowered finite volume cell
-        fvm::fvm_cell<double, int> model(cell);
-        auto graph = cell.model();
-
-        // set initial conditions
-        using memory::all;
-        model.voltage()(all) = -65.;
-        model.initialize(); // have to do this _after_ initial conditions are set
+        cell_group<fvm::fvm_cell<double, int>> group(cell);
+        group.set_source_gids(0);
+        group.set_target_gids(0);
 
         // add the 3 spike events to the queue
-        model.queue().push({0u, 10.0, 0.04});
-        model.queue().push({0u, 20.0, 0.04});
-        model.queue().push({0u, 40.0, 0.04});
+        group.enqueue_events(synthetic_events);
 
         // run the simulation
-        auto soma_comp = nest::mc::find_compartment_index({0,0}, graph);
-        auto dend_comp = nest::mc::find_compartment_index({1,0.5}, graph);
-        v[0].push_back(model.voltage()[soma_comp]);
-        v[1].push_back(model.voltage()[dend_comp]);
+        v[0].push_back(group.cell().probe(probe_soma));
+        v[1].push_back(group.cell().probe(probe_dend));
         double t  = 0.;
         while(t < tfinal) {
             t += dt;
-            model.advance_to(t, dt);
-            // save voltage at soma
-            v[0].push_back(model.voltage()[soma_comp]);
-            v[1].push_back(model.voltage()[dend_comp]);
+            group.advance(t, dt);
+            // save voltage at soma and dendrite
+            v[0].push_back(group.cell().probe(probe_soma));
+            v[1].push_back(group.cell().probe(probe_dend));
         }
 
-        results.push_back( {num_compartments, dt, v, measurements} );
+        results.push_back({num_compartments, dt, v, measurements});
     }
 
     // print results
