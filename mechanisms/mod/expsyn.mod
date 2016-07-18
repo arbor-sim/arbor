@@ -1,5 +1,5 @@
 NEURON {
-    POINT_PROCESS ExpSyn
+    POINT_PROCESS expsyn
     RANGE tau, e
     NONSPECIFIC_CURRENT i
 }

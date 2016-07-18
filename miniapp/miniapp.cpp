@@ -425,8 +425,9 @@ mc::cell make_cell(int compartments_per_segment, int num_synapses) {
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
     // distribute the synapses at random locations the terminal dendrites in a
     // round robin manner
+    nest::mc::parameter_list syn_default("expsyn");
     for (auto i=0; i<num_synapses; ++i) {
-        cell.add_synapse({2+(i%2), distribution(gen)});
+        cell.add_synapse({2+(i%2), distribution(gen)}, syn_default);
     }
 
     // add probes: 

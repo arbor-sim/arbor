@@ -20,8 +20,6 @@
 #include <profiling/profiler.hpp>
 
 #include <vector/include/Vector.hpp>
-#include <mechanisms/expsyn.hpp>
-
 
 namespace nest {
 namespace mc {
@@ -185,10 +183,12 @@ private:
     /// the potential in mV in each CV
     vector_type voltage_;
 
+#if 0
     /// synapses
     using synapse_type =
         mechanisms::ExpSyn::mechanism_ExpSyn<value_type, size_type>;
-    std::size_t synapse_index_;
+#endif
+    std::size_t synapse_index_; // synapses at the end of mechanisms_, from here
 
     /// the set of mechanisms present in the cell
     std::vector<mechanism_type> mechanisms_;
@@ -342,6 +342,52 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         );
     }
 
+    synapse_index_ = mechanisms_.size();
+
+    std::multimap<std::string, int> syn_map;
+    for (const auto& syn: cell.synapses()) {
+        syn_map.insert({syn.mechanism.name(), find_compartment_index(syn.location, graph)});
+    }
+
+    auto syn_i = syn_map.begin();
+    while (syn_i!=syn_map.end()) {
+        const auto& mech_name = syn_i->first;
+        auto& helper = nest::mc::mechanisms::get_mechanism_helper(mech_name);
+
+        auto span = syn_map.equal_range(mech_name);
+        auto num_comp = std::distance(span.first, span.second);
+
+        index_type compartment_index(num_comp);
+        for (auto p = compartment_index.data(); syn_i!=span.second; ++p, ++syn_i) {
+            *p = syn_i->second;
+        }
+
+        auto mech = helper->new_mechanism(voltage_, current_, compartment_index);
+        mech->set_areas(cv_areas_);
+        mechanisms_.push_back(std::move(mech));
+    }
+
+#if 0
+    // add the synapses
+    std::vector<size_type> synapse_indexes;
+    synapse_indexes.reserve(cell.synapses().size());
+    for(auto loc : cell.synapses()) {
+        synapse_indexes.push_back(
+            find_compartment_index(loc, graph)
+        );
+    }
+
+    mechanisms_.push_back(
+        mechanisms::make_mechanism<synapse_type>(
+            voltage_, current_, index_view(synapse_indexes)
+        )
+    );
+    synapse_index_ = mechanisms_.size()-1;
+    // don't forget to give point processes access to cv_areas_
+    mechanisms_[synapse_index_]->set_areas(cv_areas_);
+#endif
+
+
     /////////////////////////////////////////////
     // build the ion species
     /////////////////////////////////////////////
@@ -397,24 +443,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         auto idx = find_compartment_index(stim.location, graph);
         stimulii_.push_back( {idx, stim.clamp} );
     }
-
-    // add the synapses
-    std::vector<size_type> synapse_indexes;
-    synapse_indexes.reserve(cell.synapses().size());
-    for(auto loc : cell.synapses()) {
-        synapse_indexes.push_back(
-            find_compartment_index(loc, graph)
-        );
-    }
-
-    mechanisms_.push_back(
-        mechanisms::make_mechanism<synapse_type>(
-            voltage_, current_, index_view(synapse_indexes)
-        )
-    );
-    synapse_index_ = mechanisms_.size()-1;
-    // don't forget to give point processes access to cv_areas_
-    mechanisms_[synapse_index_]->set_areas(cv_areas_);
 
     // record probe locations by index into corresponding state vector
     for (auto probe : cell.probes()) {

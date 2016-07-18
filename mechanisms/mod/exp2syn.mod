@@ -1,5 +1,5 @@
 NEURON {
-	POINT_PROCESS Exp2Syn
+	POINT_PROCESS exp2syn
 	RANGE tau1, tau2, e
 	NONSPECIFIC_CURRENT i
 }
@@ -11,8 +11,8 @@ UNITS {
 }
 
 PARAMETER {
-	tau1=.1 (ms) : <1e-9,1e9>
-	tau2 = 10 (ms) : <1e-9,1e9>
+	tau1 = .5 (ms) : <1e-9,1e9>
+	tau2 = 2  (ms) : <1e-9,1e9>
 	e=0	(mV)
 }
 
