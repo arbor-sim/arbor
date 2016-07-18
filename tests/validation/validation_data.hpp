@@ -8,7 +8,8 @@
 
 namespace testing {
 
-struct data_loader {
+class data_loader {
+public:
     // set where to find the validation JSON files
     void set_path(const std::string& path) { path_=path; }
 
