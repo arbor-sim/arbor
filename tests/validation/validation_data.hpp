@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <json/src/json.hpp>
 
 #ifndef DATADIR

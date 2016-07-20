@@ -1,3 +1,4 @@
+#include <cstring>
 #include <iostream>
 #include <fstream>
 #include <numeric>
@@ -14,7 +15,7 @@ int usage(const char* argv0) {
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
 
-    if (argv[1] && (!strcmp(argv[1], "-p") || !strcmp(argv[1], "--path"))) {
+    if (argv[1] && (!std::strcmp(argv[1], "-p") || !std::strcmp(argv[1], "--path"))) {
         if (argv[2]) {
             testing::g_validation_data.set_path(argv[2]);
         }
