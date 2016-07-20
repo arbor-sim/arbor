@@ -130,7 +130,7 @@ public:
     }
 
     template <typename R>
-    void enqueue_events(R events) {
+    void enqueue_events(const R& events) {
         for (auto e : events) {
             e.target -= first_target_gid_;
             events_.push(e);

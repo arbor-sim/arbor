@@ -1,23 +1,11 @@
-set(HEADERS
-    ${PROJECT_SOURCE_DIR}/src/cell.hpp
-    ${PROJECT_SOURCE_DIR}/src/cell_tree.hpp
-    ${PROJECT_SOURCE_DIR}/src/math.hpp
-    ${PROJECT_SOURCE_DIR}/src/point.hpp
-    ${PROJECT_SOURCE_DIR}/src/segment.hpp
-    ${PROJECT_SOURCE_DIR}/src/swcio.hpp
-    ${PROJECT_SOURCE_DIR}/src/tree.hpp
-)
-
-set(TEST_SOURCES
-    # unit test driver
-    test.cpp
-)
-
 set(VALIDATION_SOURCES
     # unit tests
     validate_ball_and_stick.cpp
     validate_soma.cpp
-    #validate_synapses.cpp
+    validate_synapses.cpp
+
+    # support code
+    validation_data.cpp
 
     # unit test driver
     validate.cpp

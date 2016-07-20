@@ -191,7 +191,7 @@ namespace synapses {
 ///////////////////////////////////////
 
 /// make a single abstract cell
-mc::cell make_cell(int compartments_per_segment, int num_synapses);
+mc::cell make_cell(int compartments_per_segment, int num_synapses, const std::string& syn_type);
 
 /// do basic setup (initialize global state, print banner, etc)
 void setup();
@@ -277,7 +277,7 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
 
     // make a basic cell
     auto basic_cell =
-        make_cell(options.compartments_per_segment, synapses_per_cell);
+        make_cell(options.compartments_per_segment, synapses_per_cell, options.syn_type);
 
     auto num_domains = global_policy::size();
     auto domain_id = global_policy::id();
@@ -400,7 +400,7 @@ void setup() {
 }
 
 // make a high level cell description for use in simulation
-mc::cell make_cell(int compartments_per_segment, int num_synapses) {
+mc::cell make_cell(int compartments_per_segment, int num_synapses, const std::string& syn_type) {
     nest::mc::cell cell;
 
     // Soma with diameter 12.6157 um and HH channel
@@ -425,8 +425,9 @@ mc::cell make_cell(int compartments_per_segment, int num_synapses) {
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
     // distribute the synapses at random locations the terminal dendrites in a
     // round robin manner
+    nest::mc::parameter_list syn_default(syn_type);
     for (auto i=0; i<num_synapses; ++i) {
-        cell.add_synapse({2+(i%2), distribution(gen)});
+        cell.add_synapse({2+(i%2), distribution(gen)}, syn_default);
     }
 
     // add probes: 
