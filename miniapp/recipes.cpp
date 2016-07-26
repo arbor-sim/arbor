@@ -46,7 +46,7 @@ public:
 
 struct cell_connection_endpoint {
     cell_id_type cell;
-    int endpoint_index;
+    unsigned endpoint_index;
 };
 
 struct cell_connection {
@@ -79,8 +79,8 @@ struct probe_distribution {
 };
 
 struct basic_recipe_param {
-    int num_compartments = 1;
-    int num_synapses = 1;
+    unsigned num_compartments = 1;
+    unsigned num_synapses = 1;
     std::string synapse_type = "expsyn";
     float min_connection_delay_ms = 20.0;
     float mean_connection_delay_ms = 20.75;
@@ -92,9 +92,8 @@ public:
     basic_cell_recipe(cell_id_type ncell, basic_recipe_param param, probe_distribution pdist):
         ncell_(ncell), param_(std::move(param)), pdist_(std::move(pdist))
     {
-        using exp_param = std::exponential_distribution<float>::param_type;
-        delay_distribution_.param(exp_param{param_.mean_connection_delay_ms
-                            - param_.min_connection_delay_ms});
+        delay_distribution_param = exp_param{param_.mean_connection_delay_ms
+                            - param_.min_connection_delay_ms};
     }
 
     cell get_cell(cell_id_type i) const override {
@@ -142,7 +141,8 @@ public:
 protected:
     template <typename Rng>
     cell_connection draw_connection_params(Rng& rng) const {
-        float delay = param_.min_connection_delay_ms + delay_distribution_(rng);
+        std::exponential_distribution<float> delay_dist(delay_distribution_param);
+        float delay = param_.min_connection_delay_ms + delay_dist(rng);
         float weight = param_.syn_weight_per_cell/param_.num_synapses;
         return cell_connection{{0, 0}, {0, 0}, weight, delay};
     }
@@ -150,8 +150,10 @@ protected:
     cell_id_type ncell_;
     basic_recipe_param param_;
     probe_distribution pdist_;
-    std::exponential_distribution<float> delay_distribution_;
     static constexpr int basic_cell_segments = 3;
+
+    using exp_param = std::exponential_distribution<float>::param_type;
+    exp_param delay_distribution_param;
 };
 
 class basic_ring_recipe: public basic_cell_recipe {
@@ -166,7 +168,7 @@ public:
         auto gen = std::mt19937(i); // replace this with hashing generator...
 
         cell_id_type prev = i==0? ncell_-1: i-1;
-        for (int t=0; t<param_.num_synapses; ++t) {
+        for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_connection cc = draw_connection_params(gen);
             cc.source = {prev, 0};
             cc.dest = {i, t};
@@ -192,7 +194,7 @@ public:
 
         std::uniform_int_distribution<cell_id_type> source_distribution(0, ncell_-2);
 
-        for (int t=0; t<param_.num_synapses; ++t) {
+        for (unsigned t=0; t<param_.num_synapses; ++t) {
             auto source = source_distribution(source_gen);
             if (source>=i) ++source;
 
@@ -223,11 +225,11 @@ public:
         std::vector<cell_connection> conns;
         auto conn_param_gen = std::mt19937(i); // replace this with hashing generator...
 
-        for (int t=0; t<param_.num_synapses; ++t) {
-            auto source = t>=(int)i? t+1: t;
+        for (unsigned t=0; t<param_.num_synapses; ++t) {
+            cell_id_type source = t>=i? t+1: t;
             EXPECTS(source<ncell_);
 
-            cell_connection cc = draw_connection_params(gen);
+            cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
@@ -237,3 +239,5 @@ public:
     }
 };
 
+} // namespace mc
+} // namespace nest
