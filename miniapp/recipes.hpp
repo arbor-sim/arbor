@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <stdexcept>
 
 namespace nest {
@@ -67,13 +68,17 @@ struct basic_recipe_param {
     float syn_weight_per_cell = 0.3;
 };
 
-std::unique_ptr<recipe> make_ring_recipe(
+std::unique_ptr<recipe> make_basic_ring_recipe(
         cell_id_type ncell,
         basic_recipe_param param,
-        cell_count_type cell_fan_in,
         probe_distribution pdist = probe_distribution{});
 
-std::unique_ptr<recipe> make_ring_recipe(
+std::unique_ptr<recipe> make_basic_kgraph_recipe(
+        cell_id_type ncell,
+        basic_recipe_param param,
+        probe_distribution pdist = probe_distribution{});
+
+std::unique_ptr<recipe> make_basic_rgraph_recipe(
         cell_id_type ncell,
         basic_recipe_param param,
         cell_count_type cell_fan_in,
