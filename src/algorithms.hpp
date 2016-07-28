@@ -90,12 +90,12 @@ bool is_minimal_degree(C const& c)
         "is_minimal_degree only applies to integral types"
     );
 
-    if(c.size()==0u) {
+    if (c.size()==0u) {
         return true;
     }
 
     using value_type = typename C::value_type;
-    if(c[0] != value_type(0)) {
+    if (c[0] != value_type(0)) {
         return false;
     }
     auto i = value_type(1);

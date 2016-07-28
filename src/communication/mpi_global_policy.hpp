@@ -4,14 +4,13 @@
 #error "mpi_global_policy.hpp should only be compiled in a WITH_MPI build"
 #endif
 
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
-#include <cstdint>
-
-#include <communication/spike.hpp>
-#include <communication/mpi.hpp>
 #include <algorithms.hpp>
+#include <communication/mpi.hpp>
+#include <spike.hpp>
 
 namespace nest {
 namespace mc {

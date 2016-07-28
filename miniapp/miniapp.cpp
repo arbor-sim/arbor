@@ -2,23 +2,24 @@
 #include <fstream>
 #include <sstream>
 
-#include <cell.hpp>
-#include <cell_group.hpp>
-#include <fvm_cell.hpp>
-#include <mechanism_interface.hpp>
-
-#include "io.hpp"
+#include "catypes.hpp"
+#include "cell.hpp"
+#include "cell_group.hpp"
+#include "fvm_cell.hpp"
+#include "mechanism_catalogue.hpp"
 #include "threading/threading.hpp"
 #include "profiling/profiler.hpp"
 #include "communication/communicator.hpp"
 #include "communication/global_policy.hpp"
 #include "util/optional.hpp"
 
+#include "io.hpp"
+
 using namespace nest;
 
 using real_type = double;
-using index_type = int;
-using id_type = uint32_t;
+using index_type = mc::cell_gid_type;
+using id_type = mc::cell_gid_type;
 using numeric_cell = mc::fvm::fvm_cell<real_type, index_type>;
 using cell_group   = mc::cell_group<numeric_cell>;
 
@@ -112,7 +113,7 @@ struct model {
         };
         std::string name;
         std::string units;
-        index_type id;
+        mc::cell_gid_type id;
         std::vector<sample_type> samples;
     };
 
@@ -140,10 +141,10 @@ struct model {
     };
 
     mc::sampler make_simple_sampler(
-        index_type probe_gid, const std::string& name, const std::string& units, index_type id, float dt)
+        mc::cell_member_type probe_id, const std::string& name, const std::string& units, float dt)
     {
-        traces.push_back(trace_data{name, units, id});
-        return {probe_gid, simple_sampler_functor(traces, traces.size()-1, dt)};
+        traces.push_back(trace_data{name, units, probe_id.gid});
+        return {probe_id, simple_sampler_functor(traces, traces.size()-1, dt)};
     }
 
     void reset_traces() {
@@ -161,10 +162,10 @@ struct model {
             jrep["name"] = trace.name;
             jrep["units"] = trace.units;
             jrep["id"] = trace.id;
- 
+
             auto& jt = jrep["data"]["time"];
             auto& jy = jrep["data"][trace.name];
-                 
+
             for (const auto& sample: trace.samples) {
                 jt.push_back(sample.time);
                 jy.push_back(sample.value);
@@ -363,18 +364,18 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
         }
 
         auto lid = m.communicator.group_lid(gid);
-        auto probe_soma = m.cell_groups[lid].probe_gid_range().first;
-        auto probe_dend = probe_soma+1;
-        auto probe_dend_current = probe_soma+2;
+        mc::cell_member_type probe_soma = {gid, m.cell_groups[lid].probe_gid_range().first};
+        mc::cell_member_type probe_dend = {gid, probe_soma.index+1};
+        mc::cell_member_type probe_dend_current = {gid, probe_soma.index+2};
 
         m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_soma, "vsoma", "mV", gid, sample_dt)
+            m.make_simple_sampler(probe_soma, "vsoma", "mV", sample_dt)
         );
         m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_dend, "vdend", "mV", gid, sample_dt)
+            m.make_simple_sampler(probe_dend, "vdend", "mV", sample_dt)
         );
         m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_dend_current, "idend", "mA/cm²", gid, sample_dt)
+            m.make_simple_sampler(probe_dend_current, "idend", "mA/cm²", sample_dt)
         );
     }
 
@@ -394,9 +395,6 @@ void setup() {
         std::cout << "  - communication policy: " << global_policy::name() << "\n";
         std::cout << "====================\n";
     }
-
-    // setup global state for the mechanisms
-    mc::mechanisms::setup_mechanism_helpers();
 }
 
 // make a high level cell description for use in simulation
@@ -446,4 +444,3 @@ mc::cell make_cell(int compartments_per_segment, int num_synapses, const std::st
 cell_group make_lowered_cell(int cell_index, const mc::cell& c) {
     return cell_group(c);
 }
-

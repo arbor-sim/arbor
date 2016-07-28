@@ -2,16 +2,20 @@
 
 #include <cstdint>
 
+#include <catypes.hpp>
 #include <event_queue.hpp>
-#include <communication/spike.hpp>
+#include <spike.hpp>
 
 namespace nest {
 namespace mc {
-namespace communication {
+
+using connection_end_type = packed_cell_member_type;
 
 class connection {
 public:
-    using id_type = uint32_t;
+    //using id_type = cell_member_type;
+    using id_type = std::uint32_t;
+
     connection(id_type src, id_type dest, float w, float d) :
         source_(src),
         destination_(dest),
@@ -55,12 +59,11 @@ bool operator< (connection::id_type lhs, connection rhs) {
     return lhs < rhs.source();
 }
 
-} // namespace communication
 } // namespace mc
 } // namespace nest
 
 static inline
-std::ostream& operator<<(std::ostream& o, nest::mc::communication::connection const& con) {
+std::ostream& operator<<(std::ostream& o, nest::mc::connection const& con) {
     char buff[512];
     snprintf(
         buff, sizeof(buff), "con [%10u -> %10u : weight %8.4f, delay %8.4f]",

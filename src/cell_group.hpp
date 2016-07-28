@@ -5,8 +5,8 @@
 
 #include <cell.hpp>
 #include <event_queue.hpp>
-#include <communication/spike.hpp>
-#include <communication/spike_source.hpp>
+#include <spike.hpp>
+#include <spike_source.hpp>
 
 #include <profiling/profiler.hpp>
 
@@ -17,11 +17,10 @@ namespace mc {
 // for the next desired sample.
 
 struct sampler {
-    using index_type = int;
     using time_type = float;
     using value_type = double;
 
-    index_type probe_gid;   // samplers are attached to probes
+    cell_member_type probe_id;   // samplers are attached to probes
     std::function<util::optional<time_type>(time_type, value_type)> sample;
 };
 
@@ -86,7 +85,7 @@ public:
                 auto& sampler = samplers_[m->sampler_index];
                 EXPECTS((bool)sampler.sample);
 
-                index_type probe_index = sampler.probe_gid-first_probe_gid_;
+                index_type probe_index = sampler.probe_id.index;
                 auto next = sampler.sample(cell_.time(), cell_.probe(probe_index));
                 if (next) {
                     m->time = std::max(*next, cell_time);
@@ -137,7 +136,7 @@ public:
         }
     }
 
-    const std::vector<communication::spike<index_type>>&
+    const std::vector<spike<index_type>>&
     spikes() const {
         return spikes_;
     }
@@ -170,7 +169,7 @@ private:
     std::vector<spike_source_type> spike_sources_;
 
     //. spikes that are generated
-    std::vector<communication::spike<index_type>> spikes_;
+    std::vector<spike<index_type>> spikes_;
 
     /// pending events to be delivered
     event_queue<postsynaptic_spike_event> events_;

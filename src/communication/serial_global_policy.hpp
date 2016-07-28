@@ -1,11 +1,10 @@
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
-#include <cstdint>
-
-#include <communication/spike.hpp>
+#include <spike.hpp>
 
 namespace nest {
 namespace mc {

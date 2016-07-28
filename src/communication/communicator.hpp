@@ -5,7 +5,7 @@
 #include <vector>
 #include <random>
 
-#include <communication/spike.hpp>
+#include <spike.hpp>
 #include <threading/threading.hpp>
 #include <algorithms.hpp>
 #include <event_queue.hpp>

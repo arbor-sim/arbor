@@ -3,6 +3,8 @@
 #include <iterator>
 #include <utility>
 
+#include "catypes.hpp"
+
 namespace nest {
 namespace mc {
 
@@ -10,7 +12,7 @@ namespace mc {
 /// The compartment is a conic frustrum
 struct compartment {
     using value_type = double;
-    using size_type = int;
+    using size_type = cell_local_size_type;
     using value_pair = std::pair<value_type, value_type>;
 
     compartment() = delete;
@@ -103,8 +105,7 @@ class compartment_iterator :
 };
 
 class compartment_range {
-    public:
-
+public:
     using size_type = compartment_iterator::size_type;
     using real_type = compartment_iterator::real_type;
 

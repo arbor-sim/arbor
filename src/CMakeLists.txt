@@ -3,7 +3,6 @@ set(HEADERS
 )
 set(BASE_SOURCES
     cell.cpp
-    mechanism_interface.cpp
     parameter_list.cpp
     profiling/profiler.cpp
     swcio.cpp

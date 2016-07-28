@@ -1,6 +1,7 @@
 #include <fstream>
 #include <json/src/json.hpp>
 
+#include <catypes.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
 
@@ -17,9 +18,6 @@ TEST(soma, neuron_baseline)
 
     nest::mc::cell cell;
 
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
-
     // Soma with diameter 18.8um and HH channel
     auto soma = cell.add_soma(18.8/2.0);
     soma->mechanism("membrane").set("r_L", 123); // no effect for single compartment cell
@@ -29,7 +27,7 @@ TEST(soma, neuron_baseline)
     cell.add_stimulus({0,0.5}, {10., 100., 0.1});
 
     // make the lowered finite volume cell
-    fvm::fvm_cell<double, int> model(cell);
+    fvm::fvm_cell<double, cell_local_size_type> model(cell);
 
     // load data from file
     auto cell_data = testing::g_validation_data.load("soma.json");
@@ -85,9 +83,6 @@ TEST(soma, convergence)
 
     nest::mc::cell cell;
 
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
-
     // Soma with diameter 18.8um and HH channel
     auto soma = cell.add_soma(18.8/2.0);
     soma->mechanism("membrane").set("r_L", 123); // no effect for single compartment cell
@@ -97,7 +92,7 @@ TEST(soma, convergence)
     cell.add_stimulus({0,0.5}, {10., 100., 0.1});
 
     // make the lowered finite volume cell
-    fvm::fvm_cell<double, int> model(cell);
+    fvm::fvm_cell<double, cell_local_size_type> model(cell);
 
     // generate baseline solution with small dt=0.0001
     std::vector<double> baseline_spike_times;

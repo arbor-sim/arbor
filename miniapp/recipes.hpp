@@ -7,9 +7,6 @@
 namespace nest {
 namespace mc {
 
-using cell_id_type = std::size_t;
-using cell_size_type = std::size_t;
-
 struct cell_count_info {
     cell_size_type num_sources;
     cell_size_type num_targets;
@@ -28,10 +25,7 @@ public:
  * (cell index, source/target index on cell).
  */
 
-struct cell_connection_endpoint {
-    cell_id_type cell;
-    unsigned endpoint_index;
-};
+using cell_connection_endpoint = cell_member_type;
 
 struct cell_connection {
     cell_connection_endpoint source;
@@ -43,11 +37,11 @@ struct cell_connection {
 
 class recipe {
 public:
-    virtual cell_id_type num_cells() const =0;
+    virtual cell_size_type num_cells() const =0;
 
-    virtual cell get_cell(cell_id_type) const =0; 
-    virtual cell_count_info get_cell_count_info(cell_id_type) const =0;
-    virtual std::vector<cell_connection> connections_on(cell_id_type) const =0;
+    virtual cell get_cell(cell_gid_type) const =0; 
+    virtual cell_count_info get_cell_count_info(cell_gid_type) const =0;
+    virtual std::vector<cell_connection> connections_on(cell_gid_type) const =0;
 };
 
 // miniapp-specific recipes
@@ -69,19 +63,19 @@ struct basic_recipe_param {
 };
 
 std::unique_ptr<recipe> make_basic_ring_recipe(
-        cell_id_type ncell,
+        cell_gid_type ncell,
         basic_recipe_param param,
         probe_distribution pdist = probe_distribution{});
 
 std::unique_ptr<recipe> make_basic_kgraph_recipe(
-        cell_id_type ncell,
+        cell_gid_type ncell,
         basic_recipe_param param,
         probe_distribution pdist = probe_distribution{});
 
 std::unique_ptr<recipe> make_basic_rgraph_recipe(
-        cell_id_type ncell,
+        cell_gid_type ncell,
         basic_recipe_param param,
-        cell_count_type cell_fan_in,
+        cell_size_type cell_fan_in,
         probe_distribution pdist = probe_distribution{});
 
 } // namespace mc
