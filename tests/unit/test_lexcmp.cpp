@@ -56,3 +56,55 @@ TEST(lexcmp_def,three) {
     EXPECT_GT(s,p);
 }
 
+// test fields accessed by reference-returning member function
+
+class lexcmp_test_refmemfn {
+public:
+    explicit lexcmp_test_refmemfn(int foo): foo_(foo) {}
+
+    const int &foo() const { return foo_; }
+    int &foo() { return foo_; }
+
+private:
+    int foo_;
+};
+
+DEFINE_LEXICOGRAPHIC_ORDERING(lexcmp_test_refmemfn, (a.foo()), (b.foo()))
+
+TEST(lexcmp_def,refmemfn) {
+    lexcmp_test_refmemfn p{3};
+    const lexcmp_test_refmemfn q{4};
+
+    EXPECT_LE(p,q);
+    EXPECT_LT(p,q);
+    EXPECT_NE(p,q);
+    EXPECT_GE(q,p);
+    EXPECT_GT(q,p);
+}
+
+// test comparison via proxy tuple object
+
+class lexcmp_test_valmemfn {
+public:
+    explicit lexcmp_test_valmemfn(int foo, int bar): foo_(foo), bar_(bar) {}
+    int foo() const { return foo_; }
+    int bar() const { return bar_; }
+
+private:
+    int foo_;
+    int bar_;
+};
+
+DEFINE_LEXICOGRAPHIC_ORDERING_BY_VALUE(lexcmp_test_valmemfn, (a.foo(),a.bar()), (b.foo(),b.bar()))
+
+TEST(lexcmp_def,proxy) {
+    lexcmp_test_valmemfn p{3,2}, q{3,4};
+
+    EXPECT_LE(p,q);
+    EXPECT_LT(p,q);
+    EXPECT_NE(p,q);
+    EXPECT_GE(q,p);
+    EXPECT_GT(q,p);
+}
+
+
