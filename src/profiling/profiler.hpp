@@ -226,6 +226,7 @@ void profiler_enter(const char* n, Args... args) {
 
 /// move up one level in the profiler
 void profiler_leave();
+
 /// move up multiple profiler levels in one call
 void profiler_leave(int nlevels);
 
@@ -238,3 +239,8 @@ void profiler_output(double threshold);
 } // namespace util
 } // namespace mc
 } // namespace nest
+
+// define some helper macros to make instrumentation of the source code with calls
+// to the profiler a little less visually distracting
+#define PE nest::mc::util::profiler_enter
+#define PL nest::mc::util::profiler_leave

@@ -43,29 +43,29 @@ struct model {
             mc::threading::parallel_for::apply(
                 0, num_groups(),
                 [&](int i) {
-                        mc::util::profiler_enter("stepping","events");
+                    PE("stepping","events");
                     cell_groups[i].enqueue_events(communicator.queue(i));
-                        mc::util::profiler_leave();
+                    PL();
 
                     cell_groups[i].advance(std::min(t+delta, tfinal), dt);
 
-                        mc::util::profiler_enter("events");
+                    PE("events");
                     communicator.add_spikes(cell_groups[i].spikes());
                     cell_groups[i].clear_spikes();
-                        mc::util::profiler_leave(2);
+                    PL(2);
                 }
             );
 
-                mc::util::profiler_enter("stepping", "exchange");
+            PE("stepping", "exchange");
             communicator.exchange();
-                mc::util::profiler_leave(2);
+            PL(2);
 
             t += delta;
         }
     }
 
     void init_communicator() {
-            mc::util::profiler_enter("setup", "communicator");
+        PE("setup", "communicator");
 
         // calculate the source and synapse distribution serially
         std::vector<id_type> target_counts(num_groups());
@@ -81,11 +81,11 @@ struct model {
         //  create connections
         communicator = communicator_type(num_groups(), target_counts);
 
-            mc::util::profiler_leave(2);
+        PL(2);
     }
 
     void update_gids() {
-            mc::util::profiler_enter("setup", "globalize");
+        PE("setup", "globalize");
         auto com_policy = communicator.communication_policy();
         auto global_source_map = com_policy.make_map(source_map.back());
         auto domain_idx = communicator.domain_id();
@@ -97,7 +97,7 @@ struct model {
                 target_map[i]+communicator.target_gid_from_group_lid(0)
             );
         }
-            mc::util::profiler_leave(2);
+        PL(2);
     }
 
     // TODO : only stored here because init_communicator() and update_gids() are split
@@ -296,9 +296,9 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
     mc::threading::parallel_for::apply(
         0, ncell_local,
         [&](int i) {
-                mc::util::profiler_enter("setup", "cells");
+            PE("setup", "cells");
             m.cell_groups[i] = make_lowered_cell(i, basic_cell);
-                mc::util::profiler_leave(2);
+            PL(2);
         }
     );
 
@@ -307,7 +307,7 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
     //
     m.init_communicator();
 
-        mc::util::profiler_enter("setup", "connections");
+    PE("setup", "connections");
 
     // RNG distributions for connection delays and source cell ids
     auto weight_distribution = std::exponential_distribution<float>(0.75);
@@ -351,8 +351,7 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
     //  setup probes
     //
 
-    mc::util::profiler_leave();
-    mc::util::profiler_enter("probes");
+    PL(); PE("probes");
 
     // monitor soma and dendrite on a few cells
     float sample_dt = 0.1;
@@ -378,7 +377,7 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
         );
     }
 
-        mc::util::profiler_leave(2);
+    PL(2);
 }
 
 ///////////////////////////////////////

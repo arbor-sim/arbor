@@ -513,15 +513,15 @@ void fvm_cell<T, I>::advance(T dt)
 {
     using memory::all;
 
-        mc::util::profiler_enter("current");
+    PE("current");
     current_(all) = 0.;
 
     // update currents from ion channels
     for(auto& m : mechanisms_) {
-            mc::util::profiler_enter(m->name().c_str());
+        PE(m->name().c_str());
         m->set_params(t_, dt);
         m->nrn_current();
-            mc::util::profiler_leave();
+        PL();
     }
 
     // add current contributions from stimulii
@@ -532,25 +532,25 @@ void fvm_cell<T, I>::advance(T dt)
         // the factor of 100 scales the injected current to 10^2.nA
         current_[loc] -= 100.*ie/cv_areas_[loc];
     }
-        mc::util::profiler_leave();
+    PL();
 
-        mc::util::profiler_enter("matrix", "setup");
+    PE("matrix", "setup");
     // solve the linear system
     setup_matrix(dt);
-        mc::util::profiler_leave(); mc::util::profiler_enter("solve");
+    PL(); PE("solve");
     matrix_.solve();
-        mc::util::profiler_leave();
+    PL();
     voltage_(all) = matrix_.rhs();
-        mc::util::profiler_leave();
+    PL();
 
-        mc::util::profiler_enter("state");
+    PE("state");
     // integrate state of gating variables etc.
     for(auto& m : mechanisms_) {
-            mc::util::profiler_enter(m->name().c_str());
+        PE(m->name().c_str());
         m->nrn_state();
-            mc::util::profiler_leave();
+        PL();
     }
-        mc::util::profiler_leave();
+    PL();
 
     t_ += dt;
 }
