@@ -81,7 +81,7 @@ public:
             // take any pending samples
             float cell_time = cell_.time();
 
-                nest::mc::util::profiler_enter("sampling");
+            PE("sampling");
             while (auto m = sample_events_.pop_if_before(cell_time)) {
                 auto& sampler = samplers_[m->sampler_index];
                 EXPECTS((bool)sampler.sample);
@@ -93,7 +93,7 @@ public:
                     sample_events_.push(*m);
                 }
             }
-                nest::mc::util::profiler_leave();
+            PL();
 
             // look for events in the next time step
             auto tstep = std::min(tfinal, cell_.time()+dt);
@@ -106,7 +106,7 @@ public:
                 std::cerr << "warning: solution out of bounds\n";
             }
 
-                nest::mc::util::profiler_enter("events");
+            PE("events");
             // check for new spikes
             for (auto& s : spike_sources_) {
                 if (auto spike = s.source.test(cell_, cell_.time())) {
@@ -124,13 +124,13 @@ public:
                     cell_.apply_event(e.get());
                 }
             }
-                nest::mc::util::profiler_leave();
+            PL();
         }
 
     }
 
     template <typename R>
-    void enqueue_events(R events) {
+    void enqueue_events(const R& events) {
         for (auto e : events) {
             e.target -= first_target_gid_;
             events_.push(e);

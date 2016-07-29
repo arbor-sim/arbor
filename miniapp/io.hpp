@@ -11,6 +11,7 @@ struct cl_options {
     std::string ifname;
     uint32_t cells;
     uint32_t synapses_per_cell;
+    std::string syn_type;
     uint32_t compartments_per_segment;
     double tfinal;
     double dt;

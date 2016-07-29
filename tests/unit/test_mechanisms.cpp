@@ -6,7 +6,7 @@
 TEST(mechanisms, helpers) {
     nest::mc::mechanisms::setup_mechanism_helpers();
 
-    EXPECT_EQ(nest::mc::mechanisms::mechanism_helpers.size(), 2u);
+    EXPECT_EQ(nest::mc::mechanisms::mechanism_helpers.size(), 4u);
 
     // verify that the hh and pas channels are available
     EXPECT_EQ(nest::mc::mechanisms::get_mechanism_helper("hh")->name(), "hh");

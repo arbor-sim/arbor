@@ -20,8 +20,6 @@
 #include <profiling/profiler.hpp>
 
 #include <vector/include/Vector.hpp>
-#include <mechanisms/expsyn.hpp>
-
 
 namespace nest {
 namespace mc {
@@ -185,10 +183,7 @@ private:
     /// the potential in mV in each CV
     vector_type voltage_;
 
-    /// synapses
-    using synapse_type =
-        mechanisms::ExpSyn::mechanism_ExpSyn<value_type, size_type>;
-    std::size_t synapse_index_;
+    std::size_t synapse_index_; // synapses at the end of mechanisms_, from here
 
     /// the set of mechanisms present in the cell
     std::vector<mechanism_type> mechanisms_;
@@ -342,6 +337,25 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         );
     }
 
+    synapse_index_ = mechanisms_.size();
+
+    std::map<std::string, std::vector<int>> syn_map;
+    for (const auto& syn : cell.synapses()) {
+        syn_map[syn.mechanism.name()].push_back(find_compartment_index(syn.location, graph));
+    }
+
+    for (const auto &syni : syn_map) {
+        const auto& mech_name = syni.first;
+        auto& helper = nest::mc::mechanisms::get_mechanism_helper(mech_name);
+
+        index_type compartment_index(syni.second);
+
+        auto mech = helper->new_mechanism(voltage_, current_, compartment_index);
+        mech->set_areas(cv_areas_);
+        mechanisms_.push_back(std::move(mech));
+    }
+
+
     /////////////////////////////////////////////
     // build the ion species
     /////////////////////////////////////////////
@@ -397,24 +411,6 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         auto idx = find_compartment_index(stim.location, graph);
         stimulii_.push_back( {idx, stim.clamp} );
     }
-
-    // add the synapses
-    std::vector<size_type> synapse_indexes;
-    synapse_indexes.reserve(cell.synapses().size());
-    for(auto loc : cell.synapses()) {
-        synapse_indexes.push_back(
-            find_compartment_index(loc, graph)
-        );
-    }
-
-    mechanisms_.push_back(
-        mechanisms::make_mechanism<synapse_type>(
-            voltage_, current_, index_view(synapse_indexes)
-        )
-    );
-    synapse_index_ = mechanisms_.size()-1;
-    // don't forget to give point processes access to cv_areas_
-    mechanisms_[synapse_index_]->set_areas(cv_areas_);
 
     // record probe locations by index into corresponding state vector
     for (auto probe : cell.probes()) {
@@ -517,15 +513,15 @@ void fvm_cell<T, I>::advance(T dt)
 {
     using memory::all;
 
-        mc::util::profiler_enter("current");
+    PE("current");
     current_(all) = 0.;
 
     // update currents from ion channels
     for(auto& m : mechanisms_) {
-            mc::util::profiler_enter(m->name().c_str());
+        PE(m->name().c_str());
         m->set_params(t_, dt);
         m->nrn_current();
-            mc::util::profiler_leave();
+        PL();
     }
 
     // add current contributions from stimulii
@@ -536,25 +532,25 @@ void fvm_cell<T, I>::advance(T dt)
         // the factor of 100 scales the injected current to 10^2.nA
         current_[loc] -= 100.*ie/cv_areas_[loc];
     }
-        mc::util::profiler_leave();
+    PL();
 
-        mc::util::profiler_enter("matrix", "setup");
+    PE("matrix", "setup");
     // solve the linear system
     setup_matrix(dt);
-        mc::util::profiler_leave(); mc::util::profiler_enter("solve");
+    PL(); PE("solve");
     matrix_.solve();
-        mc::util::profiler_leave();
+    PL();
     voltage_(all) = matrix_.rhs();
-        mc::util::profiler_leave();
+    PL();
 
-        mc::util::profiler_enter("state");
+    PE("state");
     // integrate state of gating variables etc.
     for(auto& m : mechanisms_) {
-            mc::util::profiler_enter(m->name().c_str());
+        PE(m->name().c_str());
         m->nrn_state();
-            mc::util::profiler_leave();
+        PL();
     }
-        mc::util::profiler_leave();
+    PL();
 
     t_ += dt;
 }

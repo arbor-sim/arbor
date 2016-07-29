@@ -6,6 +6,8 @@
 
 #include <mechanisms/hh.hpp>
 #include <mechanisms/pas.hpp>
+#include <mechanisms/expsyn.hpp>
+#include <mechanisms/exp2syn.hpp>
 
 
 namespace nest {
@@ -23,6 +25,16 @@ void setup_mechanism_helpers() {
     mechanism_helpers["hh"] =
         make_mechanism_helper<
             mechanisms::hh::helper<value_type, index_type>
+        >();
+
+    mechanism_helpers["expsyn"] =
+        make_mechanism_helper<
+            mechanisms::expsyn::helper<value_type, index_type>
+        >();
+
+    mechanism_helpers["exp2syn"] =
+        make_mechanism_helper<
+            mechanisms::exp2syn::helper<value_type, index_type>
         >();
 }
 
