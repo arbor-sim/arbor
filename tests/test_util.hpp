@@ -55,28 +55,6 @@ void write_vis_file(const std::string& fname, std::vector<std::vector<double>> v
     }
 }
 
-[[gnu::unused]] static
-nlohmann::json
-load_spike_data(const std::string& input_name)
-{
-    nlohmann::json cell_data;
-    std::ifstream fid(input_name);
-    if(!fid.is_open()) {
-        std::cerr << "error : unable to open file " << input_name
-                  << " : run the validation generation script first\n";
-        return {};
-    }
-
-    try {
-        fid >> cell_data;
-    }
-    catch (...) {
-        std::cerr << "error : incorrectly formatted json file " << input_name << "\n";
-        return {};
-    }
-    return cell_data;
-}
-
 template <typename T>
 std::vector<T> find_spikes(std::vector<T> const& v, T threshold, T dt)
 {

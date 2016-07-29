@@ -111,6 +111,7 @@ struct model {
             double value;
         };
         std::string name;
+        std::string units;
         index_type id;
         std::vector<sample_type> samples;
     };
@@ -139,9 +140,9 @@ struct model {
     };
 
     mc::sampler make_simple_sampler(
-        index_type probe_gid, const std::string name, index_type id, float dt)
+        index_type probe_gid, const std::string& name, const std::string& units, index_type id, float dt)
     {
-        traces.push_back(trace_data{name, id});
+        traces.push_back(trace_data{name, units, id});
         return {probe_gid, simple_sampler_functor(traces, traces.size()-1, dt)};
     }
 
@@ -156,14 +157,20 @@ struct model {
             auto path = "trace_" + std::to_string(trace.id)
                       + "_" + trace.name + ".json";
 
-            nlohmann::json json;
-            json["name"] = trace.name;
+            nlohmann::json jrep;
+            jrep["name"] = trace.name;
+            jrep["units"] = trace.units;
+            jrep["id"] = trace.id;
+ 
+            auto& jt = jrep["data"]["time"];
+            auto& jy = jrep["data"][trace.name];
+                 
             for (const auto& sample: trace.samples) {
-                json["time"].push_back(sample.time);
-                json["value"].push_back(sample.value);
+                jt.push_back(sample.time);
+                jy.push_back(sample.value);
             }
             std::ofstream file(path);
-            file << std::setw(1) << json << std::endl;
+            file << std::setw(1) << jrep << std::endl;
         }
     }
 };
@@ -184,7 +191,7 @@ namespace synapses {
 ///////////////////////////////////////
 
 /// make a single abstract cell
-mc::cell make_cell(int compartments_per_segment, int num_synapses);
+mc::cell make_cell(int compartments_per_segment, int num_synapses, const std::string& syn_type);
 
 /// do basic setup (initialize global state, print banner, etc)
 void setup();
@@ -270,7 +277,7 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
 
     // make a basic cell
     auto basic_cell =
-        make_cell(options.compartments_per_segment, synapses_per_cell);
+        make_cell(options.compartments_per_segment, synapses_per_cell, options.syn_type);
 
     auto num_domains = global_policy::size();
     auto domain_id = global_policy::id();
@@ -344,8 +351,8 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
     //  setup probes
     //
 
-        mc::util::profiler_leave();
-        mc::util::profiler_enter("probes");
+    mc::util::profiler_leave();
+    mc::util::profiler_enter("probes");
 
     // monitor soma and dendrite on a few cells
     float sample_dt = 0.1;
@@ -358,12 +365,16 @@ void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
         auto lid = m.communicator.group_lid(gid);
         auto probe_soma = m.cell_groups[lid].probe_gid_range().first;
         auto probe_dend = probe_soma+1;
+        auto probe_dend_current = probe_soma+2;
 
         m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_soma, "vsoma", gid, sample_dt)
+            m.make_simple_sampler(probe_soma, "vsoma", "mV", gid, sample_dt)
         );
         m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_dend, "vdend", gid, sample_dt)
+            m.make_simple_sampler(probe_dend, "vdend", "mV", gid, sample_dt)
+        );
+        m.cell_groups[lid].add_sampler(
+            m.make_simple_sampler(probe_dend_current, "idend", "mA/cm²", gid, sample_dt)
         );
     }
 
@@ -389,7 +400,7 @@ void setup() {
 }
 
 // make a high level cell description for use in simulation
-mc::cell make_cell(int compartments_per_segment, int num_synapses) {
+mc::cell make_cell(int compartments_per_segment, int num_synapses, const std::string& syn_type) {
     nest::mc::cell cell;
 
     // Soma with diameter 12.6157 um and HH channel
@@ -414,17 +425,20 @@ mc::cell make_cell(int compartments_per_segment, int num_synapses) {
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
     // distribute the synapses at random locations the terminal dendrites in a
     // round robin manner
+    nest::mc::parameter_list syn_default(syn_type);
     for (auto i=0; i<num_synapses; ++i) {
-        cell.add_synapse({2+(i%2), distribution(gen)});
+        cell.add_synapse({2+(i%2), distribution(gen)}, syn_default);
     }
 
     // add probes: 
     auto probe_soma = cell.add_probe({0, 0}, mc::probeKind::membrane_voltage);
     auto probe_dendrite = cell.add_probe({1, 0.5}, mc::probeKind::membrane_voltage);
+    auto probe_dendrite_current = cell.add_probe({1, 0.5}, mc::probeKind::membrane_current);
 
     EXPECTS(probe_soma==0);
     EXPECTS(probe_dendrite==1);
-    (void)probe_soma, (void)probe_dendrite;
+    EXPECTS(probe_dendrite_current==2);
+    (void)probe_soma, (void)probe_dendrite, (void)probe_dendrite_current;
 
     return cell;
 }

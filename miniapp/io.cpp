@@ -16,7 +16,7 @@ namespace io {
 cl_options read_options(int argc, char** argv) {
 
     // set default options
-    const cl_options default_options{"", 1000, 500, 100, 100., 0.025, false};
+    const cl_options default_options{"", 1000, 500, "expsyn", 100, 100., 0.025, false};
 
     cl_options options;
     // parse command line arguments
@@ -29,6 +29,9 @@ cl_options read_options(int argc, char** argv) {
         TCLAP::ValueArg<uint32_t> nsynapses_arg(
             "s", "nsynapses", "number of synapses per cell",
             false, 500, "non negative integer");
+        TCLAP::ValueArg<std::string> syntype_arg(
+            "S", "syntype", "type of synapse (expsyn or exp2syn)",
+            false, "expsyn", "synapse type");
         TCLAP::ValueArg<uint32_t> ncompartments_arg(
             "c", "ncompartments", "number of compartments per segment",
             false, 100, "non negative integer");
@@ -46,6 +49,7 @@ cl_options read_options(int argc, char** argv) {
 
         cmd.add(ncells_arg);
         cmd.add(nsynapses_arg);
+        cmd.add(syntype_arg);
         cmd.add(ncompartments_arg);
         cmd.add(ifile_arg);
         cmd.add(dt_arg);
@@ -55,6 +59,7 @@ cl_options read_options(int argc, char** argv) {
 
         options.cells = ncells_arg.getValue();
         options.synapses_per_cell = nsynapses_arg.getValue();
+        options.syn_type = syntype_arg.getValue();
         options.compartments_per_segment = ncompartments_arg.getValue();
         options.ifname = ifile_arg.getValue();
         options.tfinal = tfinal_arg.getValue();

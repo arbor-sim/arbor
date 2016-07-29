@@ -4,11 +4,21 @@ from matplotlib import pyplot
 import numpy as np
 import json
 import argparse
+import sys
 from neuron import gui, h
 
 parser = argparse.ArgumentParser(description='generate spike train ball and stick model with hh channels at soma and pas channels in dendrite')
 parser.add_argument('--plot', action='store_true', dest='plot')
-args = parser.parse_args()
+
+# hack to make things work with nrniv ... -python:
+# throw away args before -python foo.py if -python present.
+
+if '-python' in sys.argv:
+    argv = sys.argv[sys.argv.index('-python')+2:]
+else:
+    argv = sys.argv
+
+args = parser.parse_args(argv)
 
 soma = h.Section(name='soma')
 dend = h.Section(name='dend')

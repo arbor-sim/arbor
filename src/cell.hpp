@@ -52,6 +52,11 @@ public:
     using index_type = int;
     using value_type = double;
     using point_type = point<value_type>;
+    
+    struct synapse_instance {
+        segment_location location;
+        parameter_list mechanism;
+    };
     struct probe_instance {
         segment_location location;
         probeKind kind;
@@ -138,9 +143,13 @@ public:
     //////////////////
     // synapses
     //////////////////
-    void add_synapse(segment_location loc);
-
-    const std::vector<segment_location>& synapses() const;
+    void add_synapse(segment_location loc, parameter_list p)
+    {
+        synapses_.push_back(synapse_instance{loc, std::move(p)});
+    }
+    const std::vector<synapse_instance>& synapses() const {
+        return synapses_;
+    }
 
     //////////////////
     // spike detectors
@@ -180,7 +189,7 @@ private:
     std::vector<stimulus_instance> stimulii_;
 
     // the synapses
-    std::vector<segment_location> synapses_;
+    std::vector<synapse_instance> synapses_;
 
     // the sensors
     std::vector<detector_instance> spike_detectors_;
