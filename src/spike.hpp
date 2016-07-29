@@ -6,13 +6,10 @@
 namespace nest {
 namespace mc {
 
-template <
-    typename I,
-    typename = typename std::enable_if<std::is_integral<I>::value>
->
+template <typename I>
 struct spike {
     using id_type = I;
-    id_type source = 0;
+    id_type source = id_type{};
     float time = -1.;
 
     spike() = default;

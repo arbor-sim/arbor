@@ -3,8 +3,9 @@ set(HEADERS
 set(MINIAPP_SOURCES
     #    mpi.cpp
     io.cpp
-    miniapp.cpp
+#    miniapp.cpp
     recipes.cpp
+    model.cpp
 )
 
 add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})

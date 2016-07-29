@@ -105,9 +105,7 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
         std::vector<std::vector<double>> v(2);
 
         // make the lowered finite volume cell
-        cell_group<lowered_cell> group(cell);
-        group.set_source_gids(0);
-        group.set_target_gids(0);
+        cell_group<lowered_cell> group(0, cell);
 
         // add the 3 spike events to the queue
         group.enqueue_events(synthetic_events);

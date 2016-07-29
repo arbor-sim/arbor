@@ -1,5 +1,3 @@
-#include <limits>
-
 #include "gtest.h"
 
 #include <catypes.hpp>
@@ -36,7 +34,7 @@ TEST(cell_group, test)
 
     using cell_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
 
-    auto cell = cell_type{make_cell()};
+    auto cell = cell_type{0, make_cell()};
 
     cell.advance(50, 0.01);
 

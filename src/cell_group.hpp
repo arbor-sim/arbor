@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 
+#include <catypes.hpp>
 #include <cell.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
@@ -27,52 +28,33 @@ struct sampler {
 template <typename Cell>
 class cell_group {
 public:
-    using index_type = uint32_t;
+    using index_type = cell_gid_type;
     using cell_type = Cell;
     using value_type = typename cell_type::value_type;
     using size_type  = typename cell_type::value_type;
     using spike_detector_type = spike_detector<Cell>;
+    using source_id_type = cell_member_type;
 
     struct spike_source_type {
-        index_type index;
+        source_id_type source_id;
         spike_detector_type source;
     };
 
     cell_group() = default;
 
-    cell_group(const cell& c) :
-        cell_{c}
+    cell_group(cell_gid_type gid, const cell& c) :
+        gid_base_{gid}, cell_{c}
     {
         cell_.voltage()(memory::all) = -65.;
         cell_.initialize();
 
+        source_id_type source_id={gid_base_,0};
         for (auto& d : c.detectors()) {
-            spike_sources_.push_back( {
-                0u, spike_detector_type(cell_, d.location, d.threshold, 0.f)
+            ++source_id.index;
+            spike_sources_.push_back({
+                source_id, spike_detector_type(cell_, d.location, d.threshold, 0.f)
             });
         }
-    }
-
-    void set_source_gids(index_type gid) {
-        for (auto& s : spike_sources_) {
-            s.index = gid++;
-        }
-    }
-
-    void set_target_gids(index_type lid) {
-        first_target_gid_ = lid;
-    }
-
-    index_type num_probes() const {
-        return cell_.num_probes();
-    }
-
-    void set_probe_gids(index_type gid) {
-        first_probe_gid_ = gid;
-    }
-
-    std::pair<index_type, index_type> probe_gid_range() const {
-        return { first_probe_gid_, first_probe_gid_+cell_.num_probes() };
     }
 
     void advance(double tfinal, double dt) {
@@ -80,7 +62,7 @@ public:
             // take any pending samples
             float cell_time = cell_.time();
 
-                nest::mc::util::profiler_enter("sampling");
+            util::profiler_enter("sampling");
             while (auto m = sample_events_.pop_if_before(cell_time)) {
                 auto& sampler = samplers_[m->sampler_index];
                 EXPECTS((bool)sampler.sample);
@@ -92,7 +74,7 @@ public:
                     sample_events_.push(*m);
                 }
             }
-                nest::mc::util::profiler_leave();
+            util::profiler_leave();
 
             // look for events in the next time step
             auto tstep = std::min(tfinal, cell_.time()+dt);
@@ -105,11 +87,11 @@ public:
                 std::cerr << "warning: solution out of bounds\n";
             }
 
-                nest::mc::util::profiler_enter("events");
+            util::profiler_enter("events");
             // check for new spikes
             for (auto& s : spike_sources_) {
                 if (auto spike = s.source.test(cell_, cell_.time())) {
-                    spikes_.push_back({s.index, spike.get()});
+                    spikes_.push_back({s.source_id, spike.get()});
                 }
             }
 
@@ -123,7 +105,7 @@ public:
                     cell_.apply_event(e.get());
                 }
             }
-                nest::mc::util::profiler_leave();
+            util::profiler_leave();
         }
 
     }
@@ -136,10 +118,8 @@ public:
         }
     }
 
-    const std::vector<spike<index_type>>&
-    spikes() const {
-        return spikes_;
-    }
+    const std::vector<spike<source_id_type>>&
+    spikes() const { return spikes_; }
 
     cell_type&       cell()       { return cell_; }
     const cell_type& cell() const { return cell_; }
@@ -160,7 +140,8 @@ public:
     }
 
 private:
-
+    /// gid of first cell in group
+    cell_gid_type gid_base_;
 
     /// the lowered cell state (e.g. FVM) of the cell
     cell_type cell_;
@@ -169,7 +150,7 @@ private:
     std::vector<spike_source_type> spike_sources_;
 
     //. spikes that are generated
-    std::vector<spike<index_type>> spikes_;
+    std::vector<spike<source_id_type>> spikes_;
 
     /// pending events to be delivered
     event_queue<postsynaptic_spike_event> events_;
