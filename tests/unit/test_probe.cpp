@@ -1,5 +1,6 @@
 #include "gtest.h"
 
+#include "catypes.hpp"
 #include "cell.hpp"
 #include "fvm_cell.hpp"
 
@@ -16,9 +17,9 @@ TEST(probe, instantiation)
     auto p2 = c1.add_probe(loc2, probeKind::membrane_current);
 
     // expect locally provided probe ids to be numbered sequentially from zero.
-    
-    EXPECT_EQ(0, p1);
-    EXPECT_EQ(1, p2);
+
+    EXPECT_EQ(0u, p1);
+    EXPECT_EQ(1u, p2);
 
     // expect the probes() return to be a collection with these two probes.
 
@@ -51,11 +52,11 @@ TEST(probe, fvm_cell)
     auto pv0 = bs.add_probe(loc0, probeKind::membrane_voltage);
     auto pv1 = bs.add_probe(loc1, probeKind::membrane_voltage);
     auto pi2 = bs.add_probe(loc2, probeKind::membrane_current);
-    
+
     i_clamp stim(0, 100, 0.3);
     bs.add_stimulus({1, 1}, stim);
 
-    fvm::fvm_cell<double, int> lcell(bs);
+    fvm::fvm_cell<double, cell_local_size_type> lcell(bs);
     lcell.setup_matrix(0.01);
     lcell.initialize();
 

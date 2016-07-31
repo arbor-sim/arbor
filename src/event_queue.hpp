@@ -4,13 +4,14 @@
 #include <ostream>
 #include <queue>
 
+#include "catypes.hpp"
 #include "util/optional.hpp"
 
 namespace nest {
 namespace mc {
 
 struct postsynaptic_spike_event {
-    uint32_t target;
+    cell_member_type target;
     float time;
     float weight;
 };
@@ -18,7 +19,7 @@ struct postsynaptic_spike_event {
 inline float event_time(const postsynaptic_spike_event &ev) { return ev.time; }
 
 struct sample_event {
-    uint32_t sampler_index;
+    std::uint32_t sampler_index;
     float time;
 };
 
@@ -26,7 +27,7 @@ inline float event_time(const sample_event &ev) { return ev.time; }
 
 /* Event objects must have a method event_time() which returns a value
  * from a type with a total ordering with respect to <, >, etc.
- */     
+ */
 
 template <typename Event>
 class event_queue {

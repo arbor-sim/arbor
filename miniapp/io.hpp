@@ -1,6 +1,10 @@
 #pragma once
 
-#include <json/src/json.hpp>
+#include <string>
+#include <cstdint>
+#include <iosfwd>
+#include <stdexcept>
+#include <utility>
 
 namespace nest {
 namespace mc {
@@ -16,19 +20,24 @@ struct cl_options {
     double tfinal;
     double dt;
     bool all_to_all;
+};
 
-    // TODO the normalize bit should be moved to the model_parameters when
-    // we start having more models
-    void check_and_normalize() {
-        if(all_to_all) {
-            synapses_per_cell = cells - 1;
-        }
-    }
+class usage_error: public std::runtime_error {
+public:
+    template <typename S>
+    usage_error(S&& whatmsg): std::runtime_error(std::forward<S>(whatmsg)) {}
+};
+
+class model_description_error: public std::runtime_error {
+public:
+    template <typename S>
+    model_description_error(S&& whatmsg): std::runtime_error(std::forward<S>(whatmsg)) {}
 };
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
 cl_options read_options(int argc, char** argv);
+
 
 } // namespace io
 } // namespace mc

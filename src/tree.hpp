@@ -1,4 +1,4 @@
-#pragma once
+ #pragma once
 
 #include <algorithm>
 #include <cassert>
@@ -12,16 +12,18 @@
 namespace nest {
 namespace mc {
 
+template <typename IntT, typename SizeT = std::size_t>
 class tree {
     using range = memory::Range;
 
-    public :
-
-    using int_type = int;
+public:
+    using int_type = IntT;
+    using size_type = SizeT;
 
     using index_type = memory::HostVector<int_type>;
-    using view_type  = index_type::view_type;
-    using const_view_type = index_type::const_view_type;
+    using view_type  = typename index_type::view_type;
+    using const_view_type = typename index_type::const_view_type;
+    static constexpr int_type no_parent = (int_type)-1;
 
     tree() = default;
 
@@ -67,12 +69,12 @@ class tree {
 
         init(new_parent_index.size());
         parents_(memory::all) = new_parent_index;
-        parents_[0] = -1;
+        parents_[0] = no_parent;
 
         child_index_(memory::all) =
             algorithms::make_index(algorithms::child_count(parents_));
 
-        std::vector<int> pos(parents_.size(), 0);
+        std::vector<int_type> pos(parents_.size(), 0);
         for (auto i = 1u; i < parents_.size(); ++i) {
             auto p = parents_[i];
             children_[child_index_[p] + pos[p]] = i;
@@ -80,16 +82,18 @@ class tree {
         }
     }
 
-    size_t num_children() const {
-        return children_.size();
+    size_type num_children() const {
+        return static_cast<size_type>(children_.size());
     }
-    size_t num_children(size_t b) const {
+
+    size_type num_children(size_t b) const {
         return child_index_[b+1] - child_index_[b];
     }
-    size_t num_nodes() const {
+
+    size_type num_nodes() const {
         // the number of nodes is the size of the child index minus 1
         // ... except for the case of an empty tree
-        auto sz = child_index_.size();
+        auto sz = static_cast<size_type>(child_index_.size());
         return sz ? sz - 1 : 0;
     }
 
@@ -104,7 +108,7 @@ class tree {
     }
 
     /// return the list of all children of branch b
-    const_view_type children(size_t b) const {
+    const_view_type children(size_type b) const {
         return children_(child_index_[b], child_index_[b+1]);
     }
 
@@ -122,7 +126,7 @@ class tree {
     }
 
     /// memory used to store tree (in bytes)
-    size_t memory() const {
+    std::size_t memory() const {
         return sizeof(int_type)*data_.size() + sizeof(tree);
     }
 
@@ -164,17 +168,16 @@ class tree {
         return p;
     }
 
-    private :
-
-    void init(int nnode) {
-        auto nchild = nnode -1;
+private:
+    void init(size_type nnode) {
+        auto nchild = nnode - 1;
 
         data_ = index_type(nchild + (nnode + 1) + nnode);
         set_ranges(nnode);
     }
 
-    void set_ranges(int nnode) {
-        if(nnode) {
+    void set_ranges(size_type nnode) {
+        if (nnode) {
             auto nchild = nnode - 1;
             // data_ is partitioned as follows:
             // data_ = [children_[nchild], child_index_[nnode+1], parents_[nnode]]
@@ -215,17 +218,17 @@ class tree {
     ///                   new_node
     ///     p : permutation vector, p[i] is the new index of node i in the old
     ///         tree
-    int add_children(
-        int new_node,
-        int old_node,
-        int parent_node,
+    int_type add_children(
+        int_type new_node,
+        int_type old_node,
+        int_type parent_node,
         view_type p,
         tree const& old_tree
     )
     {
-        // check for the senitel that indicates that the old root has
+        // check for the sentinel that indicates that the old root has
         // been processed
-        if(old_node==-1) {
+        if (old_node==no_parent) {
             return new_node;
         }
 
@@ -237,7 +240,7 @@ class tree {
         auto this_node = new_node;
         auto pos = child_index_[this_node];
 
-        auto add_parent_as_child = parent_node>=0 && old_node>0;
+        auto add_parent_as_child = parent_node!=no_parent && old_node>0;
         //
         // STEP 1 : add the child indexes for this_node
         //
@@ -259,12 +262,12 @@ class tree {
         // STEP 2 : recursively add each child's children
         //
         new_node++;
-        for(auto b : old_children) {
-            if(b != parent_node) {
-                new_node = add_children(new_node, b, -1, p, old_tree);
+        for (auto b : old_children) {
+            if (b != parent_node) {
+                new_node = add_children(new_node, b, no_parent, p, old_tree);
             }
         }
-        if(add_parent_as_child) {
+        if (add_parent_as_child) {
             new_node =
                 add_children(
                     new_node, old_tree.parent(old_node), old_node, p, old_tree
@@ -286,38 +289,38 @@ class tree {
     view_type parents_    = data_(0, 0);
 };
 
-template <typename C>
-std::vector<int> make_parent_index(tree const& t, C const& counts)
+template <typename IntT, typename SizeT, typename C>
+std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
 {
     using range = memory::Range;
+    using int_type = typename tree<IntT, SizeT>::int_type;
+    constexpr auto no_parent = tree<IntT, SizeT>::no_parent;
 
-    if(   !algorithms::is_positive(counts)
-        || counts.size() != t.num_nodes() )
-    {
+    if (!algorithms::is_positive(counts) || counts.size() != t.num_nodes()) {
         throw std::domain_error(
             "make_parent_index requires one non-zero count per segment"
         );
     }
     auto index = algorithms::make_index(counts);
     auto num_compartments = index.back();
-    std::vector<int> parent_index(num_compartments);
-    auto pos = 0;
-    for(int i : range(0, t.num_nodes())) {
+    std::vector<int_type> parent_index(num_compartments);
+    int_type pos = 0;
+    for (int_type i : range(0, t.num_nodes())) {
         // get the parent of this segment
         // taking care for the case where the root node has -1 as its parent
         auto parent = t.parent(i);
-        parent = parent>=0 ? parent : 0;
+        parent = parent!=no_parent ? parent : 0;
 
         // the index of the first compartment in the segment
         // is calculated differently for the root (i.e when i==parent)
-        if(i!=parent) {
+        if (i!=parent) {
             parent_index[pos++] = index[parent+1]-1;
         }
         else {
             parent_index[pos++] = parent;
         }
         // number the remaining compartments in the segment consecutively
-        while(pos<index[i+1]) {
+        while (pos<index[i+1]) {
             parent_index[pos] = pos-1;
             pos++;
         }

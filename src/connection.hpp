@@ -2,16 +2,17 @@
 
 #include <cstdint>
 
+#include <catypes.hpp>
 #include <event_queue.hpp>
-#include <communication/spike.hpp>
+#include <spike.hpp>
 
 namespace nest {
 namespace mc {
-namespace communication {
 
 class connection {
 public:
-    using id_type = uint32_t;
+    using id_type = cell_member_type;
+
     connection(id_type src, id_type dest, float w, float d) :
         source_(src),
         destination_(dest),
@@ -30,7 +31,6 @@ public:
     }
 
 private:
-
     id_type source_;
     id_type destination_;
     float weight_;
@@ -55,16 +55,12 @@ bool operator< (connection::id_type lhs, connection rhs) {
     return lhs < rhs.source();
 }
 
-} // namespace communication
 } // namespace mc
 } // namespace nest
 
 static inline
-std::ostream& operator<<(std::ostream& o, nest::mc::communication::connection const& con) {
-    char buff[512];
-    snprintf(
-        buff, sizeof(buff), "con [%10u -> %10u : weight %8.4f, delay %8.4f]",
-        con.source(), con.destination(), con.weight(), con.delay()
-    );
-    return o << buff;
+std::ostream& operator<<(std::ostream& o, nest::mc::connection const& con) {
+    return o << "con [" << con.source() << " -> " << con.destination()
+             << " : weight " << con.weight()
+             << ", delay " << con.delay() << "]";
 }

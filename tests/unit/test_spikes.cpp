@@ -1,7 +1,7 @@
 #include "gtest.h"
 
-#include <communication/spike.hpp>
-#include <communication/spike_source.hpp>
+#include <spike.hpp>
+#include <spike_source.hpp>
 
 struct cell_proxy {
     double voltage(nest::mc::segment_location loc) const {

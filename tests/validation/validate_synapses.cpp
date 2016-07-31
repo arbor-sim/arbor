@@ -3,6 +3,7 @@
 
 #include <json/src/json.hpp>
 
+#include <catypes.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <fvm_cell.hpp>
@@ -50,11 +51,9 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
 {
     using namespace nest::mc;
     using namespace nlohmann;
+    using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 
     nest::mc::cell cell;
-
-    // setup global state for the mechanisms
-    mechanisms::setup_mechanism_helpers();
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);
@@ -77,9 +76,9 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
 
     // injected spike events
     postsynaptic_spike_event synthetic_events[] = {
-        {0u, 10.0, 0.04},
-        {0u, 20.0, 0.04},
-        {0u, 40.0, 0.04}
+        {{0u, 0u}, 10.0, 0.04},
+        {{0u, 0u}, 20.0, 0.04},
+        {{0u, 0u}, 40.0, 0.04}
     };
 
     // load data from file
@@ -106,9 +105,7 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
         std::vector<std::vector<double>> v(2);
 
         // make the lowered finite volume cell
-        cell_group<fvm::fvm_cell<double, int>> group(cell);
-        group.set_source_gids(0);
-        group.set_target_gids(0);
+        cell_group<lowered_cell> group(0, cell);
 
         // add the 3 spike events to the queue
         group.enqueue_events(synthetic_events);

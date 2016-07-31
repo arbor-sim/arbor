@@ -1,15 +1,11 @@
-#include <limits>
-
 #include "gtest.h"
 
+#include <catypes.hpp>
 #include <fvm_cell.hpp>
 #include <cell_group.hpp>
 
 nest::mc::cell make_cell() {
     using namespace nest::mc;
-
-    // setup global state for the mechanisms
-    mechanisms::setup_mechanism_helpers();
 
     nest::mc::cell cell;
 
@@ -36,13 +32,12 @@ TEST(cell_group, test)
 {
     using namespace nest::mc;
 
-    using cell_type = cell_group<fvm::fvm_cell<double, int>>;
+    using cell_group_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
+    auto group = cell_group_type{0, make_cell()};
 
-    auto cell = cell_type{make_cell()};
-
-    cell.advance(50, 0.01);
+    group.advance(50, 0.01);
 
     // a bit lame...
-    EXPECT_EQ(cell.spikes().size(), 4u);
+    EXPECT_EQ(group.spikes().size(), 4u);
 }
 

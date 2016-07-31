@@ -1,6 +1,6 @@
 #include "gtest.h"
 
-#include "../src/cell.hpp"
+#include "cell.hpp"
 
 TEST(cell_type, soma)
 {
@@ -59,7 +59,7 @@ TEST(cell_type, add_segment)
             );
         c.add_cable(0, std::move(seg));
 
-        EXPECT_EQ(c.num_segments(), 2);
+        EXPECT_EQ(c.num_segments(), 2u);
     }
 
     //  add segment on the fly
@@ -78,7 +78,7 @@ TEST(cell_type, add_segment)
             segmentKind::dendrite, cable_radius, cable_radius, cable_length
         );
 
-        EXPECT_EQ(c.num_segments(), 2);
+        EXPECT_EQ(c.num_segments(), 2u);
     }
     {
         cell c;
@@ -97,7 +97,7 @@ TEST(cell_type, add_segment)
             std::vector<double>{cable_length, cable_length, cable_length}
         );
 
-        EXPECT_EQ(c.num_segments(), 2);
+        EXPECT_EQ(c.num_segments(), 2u);
     }
 }
 
@@ -137,7 +137,7 @@ TEST(cell_type, multiple_cables)
         c.add_cable(1, seg(segmentKind::dendrite));
         c.add_cable(1, seg(segmentKind::dendrite));
 
-        EXPECT_EQ(c.num_segments(), 5);
+        EXPECT_EQ(c.num_segments(), 5u);
         // each of the 5 segments has volume 1 by design
         EXPECT_EQ(c.volume(), 5.);
         // each of the 4 cables has volume 2., and the soma has an awkward area
@@ -148,12 +148,14 @@ TEST(cell_type, multiple_cables)
         const auto model = c.model();
         auto const& con = model.tree;
 
+        auto no_parent = cell_tree::no_parent;
+
         EXPECT_EQ(con.num_segments(), 5u);
-        EXPECT_EQ(con.parent(0), -1);
-        EXPECT_EQ(con.parent(1), 0);
-        EXPECT_EQ(con.parent(2), 0);
-        EXPECT_EQ(con.parent(3), 1);
-        EXPECT_EQ(con.parent(4), 1);
+        EXPECT_EQ(con.parent(0), no_parent);
+        EXPECT_EQ(con.parent(1), 0u);
+        EXPECT_EQ(con.parent(2), 0u);
+        EXPECT_EQ(con.parent(3), 1u);
+        EXPECT_EQ(con.parent(4), 1u);
         EXPECT_EQ(con.num_children(0), 2u);
         EXPECT_EQ(con.num_children(1), 2u);
         EXPECT_EQ(con.num_children(2), 0u);
