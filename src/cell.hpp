@@ -45,6 +45,11 @@ enum class probeKind {
     membrane_current
 };
 
+struct probe_spec {
+    segment_location location;
+    probeKind kind;
+};
+
 /// high-level abstract representation of a cell and its segments
 class cell {
 public:
@@ -59,14 +64,12 @@ public:
         segment_location location;
         parameter_list mechanism;
     };
-    struct probe_instance {
-        segment_location location;
-        probeKind kind;
-    };
+
     struct stimulus_instance {
         segment_location location;
         i_clamp clamp;
     };
+
     struct detector_instance {
         segment_location location;
         double threshold;
@@ -171,12 +174,12 @@ public:
     //////////////////
     // probes
     //////////////////
-    index_type add_probe(segment_location loc, probeKind kind) {
-        probes_.push_back({loc, kind});
+    index_type add_probe(probe_spec p) {
+        probes_.push_back(p);
         return probes_.size()-1;
     }
 
-    const std::vector<probe_instance>&
+    const std::vector<probe_spec>&
     probes() const { return probes_; }
 
 private:
@@ -197,7 +200,7 @@ private:
     std::vector<detector_instance> spike_detectors_;
 
     // the probes
-    std::vector<probe_instance> probes_;
+    std::vector<probe_spec> probes_;
 };
 
 // Checks that two cells have the same

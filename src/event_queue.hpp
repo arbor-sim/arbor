@@ -67,6 +67,11 @@ public :
          }
     }
 
+    // clear everything
+    void clear() {
+        queue_ = decltype(queue_){};
+    }
+
 private:
     struct event_greater {
         bool operator()(const Event &a, const Event &b) {

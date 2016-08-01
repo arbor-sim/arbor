@@ -13,8 +13,8 @@ TEST(probe, instantiation)
     segment_location loc1{0, 0};
     segment_location loc2{1, 0.6};
 
-    auto p1 = c1.add_probe(loc1, probeKind::membrane_voltage);
-    auto p2 = c1.add_probe(loc2, probeKind::membrane_current);
+    auto p1 = c1.add_probe({loc1, probeKind::membrane_voltage});
+    auto p2 = c1.add_probe({loc2, probeKind::membrane_current});
 
     // expect locally provided probe ids to be numbered sequentially from zero.
 
@@ -49,9 +49,9 @@ TEST(probe, fvm_cell)
     segment_location loc1{1, 1};
     segment_location loc2{1, 0.5};
 
-    auto pv0 = bs.add_probe(loc0, probeKind::membrane_voltage);
-    auto pv1 = bs.add_probe(loc1, probeKind::membrane_voltage);
-    auto pi2 = bs.add_probe(loc2, probeKind::membrane_current);
+    auto pv0 = bs.add_probe({loc0, probeKind::membrane_voltage});
+    auto pv1 = bs.add_probe({loc1, probeKind::membrane_voltage});
+    auto pi2 = bs.add_probe({loc2, probeKind::membrane_current});
 
     i_clamp stim(0, 100, 0.3);
     bs.add_stimulus({1, 1}, stim);

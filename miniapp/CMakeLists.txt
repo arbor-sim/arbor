@@ -4,8 +4,6 @@ set(MINIAPP_SOURCES
     io.cpp
     miniapp.cpp
     miniapp_recipes.cpp
-    model.cpp
-    trace_sampler.cpp
 )
 
 add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})

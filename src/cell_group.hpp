@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 
 #include <catypes.hpp>
@@ -37,8 +38,7 @@ public:
     cell_group(cell_gid_type gid, const cell& c) :
         gid_base_{gid}, cell_{c}
     {
-        cell_.voltage()(memory::all) = -65.;
-        cell_.initialize();
+        initialize_cells();
 
         source_id_type source_id={gid_base_,0};
         for (auto& d : c.detectors()) {
@@ -46,6 +46,14 @@ public:
             spike_sources_.push_back({
                 source_id, spike_detector_type(cell_, d.location, d.threshold, 0.f)
             });
+        }
+    }
+
+    void reset() {
+        remove_samplers();
+        initialize_cells();
+        for (auto& spike_source: spike_sources) {
+            spike_source.source.reset(cell_, 0.f);
         }
     }
 
@@ -132,7 +140,17 @@ public:
         sample_events_.push({sampler_index, start_time});
     }
 
+    void remove_samplers() {
+        sample_events_.clear();
+        samplers_.clear();
+    }
+
 private:
+    void initialize_cells() {
+        cell_.voltage()(memory::all) = -65.;
+        cell_.initialize();
+    }
+
     /// gid of first cell in group
     cell_gid_type gid_base_;
 

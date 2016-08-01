@@ -13,13 +13,11 @@ class spike_detector
 public:
     using cell_type = Cell;
 
-    spike_detector( const cell_type& cell, segment_location loc, double thresh, float t_init) :
+    spike_detector(const cell_type& cell, segment_location loc, double thresh, float t_init) :
         location_(loc),
-        threshold_(thresh),
-        previous_t_(t_init)
+        threshold_(thresh)
     {
-        previous_v_ = cell.voltage(location_);
-        is_spiking_ = previous_v_ >= thresh ? true : false;
+        reset(cell, t_init);
     }
 
     util::optional<float> test(const cell_type& cell, float t) {
@@ -57,6 +55,12 @@ public:
     float t() const { return previous_t_; }
 
     float v() const { return previous_v_; }
+
+    void reset(const cell_type& cell, float t_init) {
+        previous_t_ = t_init;
+        previous_v_ = cell.voltage(location_);
+        is_spiking_ = previous_v_ >= threshold_;
+    }
 
 private:
 
