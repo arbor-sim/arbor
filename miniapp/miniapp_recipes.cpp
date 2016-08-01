@@ -112,7 +112,7 @@ protected:
     cell_gid_type ncell_;
     basic_recipe_param param_;
     probe_distribution pdist_;
-    static constexpr int basic_cell_segments = 3;
+    static constexpr int basic_cell_segments = 4;
 
     using exp_param = std::exponential_distribution<float>::param_type;
     exp_param delay_distribution_param;

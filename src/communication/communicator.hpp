@@ -50,7 +50,7 @@ public:
 
 
     void add_connection(connection con) {
-        EXPECTS(is_local_target(con.destination()));
+        EXPECTS(is_local_cell(con.destination().gid));
         connections_.push_back(con);
     }
 
@@ -114,10 +114,10 @@ public:
             // generate an event for each target
             for (auto it=targets.first; it!=targets.second; ++it) {
                 auto gidx = it->destination().gid - cell_gid_from_;
-
                 events_[gidx].push_back(it->make_event(spike));
             }
         }
+
 
         //profiler_.leave(); // make events
 

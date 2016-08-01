@@ -34,7 +34,7 @@ struct model {
         cell_groups_ = std::vector<cell_group_type>{cell_to_-cell_from_};
 
         threading::parallel_vector<probe_record> probes;
-        threading::parallel_for::apply(cell_from_, cell_to_, 
+        threading::parallel_for::apply(cell_from_, cell_to_,
             [&](cell_gid_type i) {
                 PE("setup", "cells");
                 auto cell = rec.get_cell(i);
@@ -50,8 +50,18 @@ struct model {
             });
 
         probes_.assign(probes.begin(), probes.end());
+
         communicator_ = communicator_type(cell_from_, cell_to_);
+        for (cell_gid_type i=cell_from_; i<cell_to_; ++i) {
+            for (const auto& cc: rec.connections_on(i)) {
+                // currently cell_connection and connection are basically the same data;
+                // merge?
+                communicator_.add_connection(connection{cc.source, cc.dest, cc.weight, cc.delay});
+            }
+        }
+        communicator_.construct();
     }
+
 
     void reset() {
         t_ = 0.;

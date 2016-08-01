@@ -64,11 +64,11 @@ public:
 
             PE("sampling");
             while (auto m = sample_events_.pop_if_before(cell_time)) {
-                auto& sampler = samplers_[m->sampler_index];
-                EXPECTS((bool)sampler.sample);
+                auto& sampler_spec = samplers_[m->sampler_index];
+                EXPECTS((bool)sampler_spec.sampler);
 
-                index_type probe_index = sampler.probe_id.index;
-                auto next = sampler.sampler(cell_.time(), cell_.probe(probe_index));
+                index_type probe_index = sampler_spec.probe_id.index;
+                auto next = sampler_spec.sampler(cell_.time(), cell_.probe(probe_index));
                 if (next) {
                     m->time = std::max(*next, cell_time);
                     sample_events_.push(*m);
