@@ -10,20 +10,33 @@
 namespace nest {
 namespace mc {
 
+/* An event class Event must comply with the following conventions:
+ * Typedefs:
+ *     time_type               floating point type used to represent event times
+ * Member functions:
+ *     time_type when() const  return time value associated with event
+ */
+
+template <typename TimeT>
 struct postsynaptic_spike_event {
+    using time_type = TimeT;
+
     cell_member_type target;
-    float time;
+    time_type time;
     float weight;
+
+    time_type when() const { return time; }
 };
 
-inline float event_time(const postsynaptic_spike_event &ev) { return ev.time; }
-
+template <typename TimeT>
 struct sample_event {
-    std::uint32_t sampler_index;
-    float time;
-};
+    using time_type = TimeT;
 
-inline float event_time(const sample_event &ev) { return ev.time; }
+    std::uint32_t sampler_index;
+    time_type time;
+
+    time_type when() const { return time; }
+};
 
 /* Event objects must have a method event_time() which returns a value
  * from a type with a total ordering with respect to <, >, etc.
@@ -33,7 +46,7 @@ template <typename Event>
 class event_queue {
 public :
     using value_type = Event;
-    using time_type = decltype(event_time(std::declval<Event>()));
+    using time_type = typename Event::time_type;
 
     // create
     event_queue() {}
@@ -47,7 +60,7 @@ public :
     }
 
     // push thing
-    void push(const value_type &e) {
+    void push(const value_type& e) {
          queue_.push(e);
     }
 
@@ -57,7 +70,7 @@ public :
 
     // pop until
     util::optional<value_type> pop_if_before(time_type t_until) {
-         if (!queue_.empty() && event_time(queue_.top()) < t_until) {
+         if (!queue_.empty() && queue_.top().when() < t_until) {
              auto ev = queue_.top();
              queue_.pop();
              return ev;
@@ -74,8 +87,8 @@ public :
 
 private:
     struct event_greater {
-        bool operator()(const Event &a, const Event &b) {
-            return event_time(a) > event_time(b);
+        bool operator()(const Event& a, const Event& b) {
+            return a.when() > b.when();
         }
     };
 
@@ -89,8 +102,8 @@ private:
 } // namespace nest
 } // namespace mc
 
-inline
-std::ostream& operator<< (std::ostream& o, const nest::mc::postsynaptic_spike_event& e)
+template <typename T>
+inline std::ostream& operator<<(std::ostream& o, const nest::mc::postsynaptic_spike_event<T>& e)
 {
     return o << "event[" << e.target << "," << e.time << "," << e.weight << "]";
 }

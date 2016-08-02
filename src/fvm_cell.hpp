@@ -113,7 +113,8 @@ public:
     void advance(value_type dt);
 
     /// pass an event to the appropriate synapse and call net_receive
-    void apply_event(postsynaptic_spike_event e) {
+    template <typename TimeT>
+    void apply_event(postsynaptic_spike_event<TimeT> e) {
         mechanisms_[synapse_index_]->net_receive(e.target.index, e.weight);
     }
 
@@ -343,7 +344,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
 
     synapse_index_ = mechanisms_.size();
 
-    std::map<std::string, std::vector<cell_local_index_type>> syn_map;
+    std::map<std::string, std::vector<cell_lid_type>> syn_map;
     for (const auto& syn : cell.synapses()) {
         syn_map[syn.mechanism.name()].push_back(find_compartment_index(syn.location, graph));
     }
@@ -373,7 +374,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
                 }
             }
         }
-        std::vector<cell_local_index_type> indexes(index_set.begin(), index_set.end());
+        std::vector<cell_lid_type> indexes(index_set.begin(), index_set.end());
 
         // create the ion state
         if(indexes.size()) {

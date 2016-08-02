@@ -33,7 +33,7 @@ class cell_tree {
     using range = memory::Range;
 
 public:
-    using int_type        = cell_local_index_type;
+    using int_type        = cell_lid_type;
     using size_type       = cell_local_size_type;
 
     using index_type      = memory::HostVector<int_type>;

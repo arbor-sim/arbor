@@ -6,15 +6,17 @@
 namespace nest {
 namespace mc {
 
-template <typename I>
+template <typename I, typename TimeT>
 struct spike {
     using id_type = I;
+    using time_type = TimeT;
+
     id_type source = id_type{};
-    float time = -1.;
+    time_type time = -1.;
 
     spike() = default;
 
-    spike(id_type s, float t) :
+    spike(id_type s, time_type t) :
         source(s), time(t)
     {}
 };
@@ -23,15 +25,15 @@ struct spike {
 } // namespace nest
 
 /// custom stream operator for printing nest::mc::spike<> values
-template <typename I>
-std::ostream& operator<<(std::ostream& o, nest::mc::spike<I> s) {
+template <typename I, typename T>
+std::ostream& operator<<(std::ostream& o, nest::mc::spike<I, T> s) {
     return o << "spike[t " << s.time << ", src " << s.source << "]";
 }
 
 /// less than comparison operator for nest::mc::spike<> values
 /// spikes are ordered by spike time, for use in sorting and queueing
-template <typename I>
-bool operator<(nest::mc::spike<I> lhs, nest::mc::spike<I> rhs) {
+template <typename I, typename T>
+bool operator<(nest::mc::spike<I, T> lhs, nest::mc::spike<I, T> rhs) {
     return lhs.time < rhs.time;
 }
 

@@ -75,7 +75,7 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
     auto probe_dend = cell.add_probe({{1,0.5}, probeKind::membrane_voltage});
 
     // injected spike events
-    postsynaptic_spike_event synthetic_events[] = {
+    postsynaptic_spike_event<float> synthetic_events[] = {
         {{0u, 0u}, 10.0, 0.04},
         {{0u, 0u}, 20.0, 0.04},
         {{0u, 0u}, 40.0, 0.04}

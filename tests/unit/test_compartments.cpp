@@ -15,13 +15,13 @@ TEST(compartments, compartment)
 
     {
         nest::mc::compartment c(100, 1.2, 2.1, 2.2);
-        EXPECT_EQ(c.index, 100);
+        EXPECT_EQ(c.index, 100u);
         EXPECT_EQ(c.length, 1.2);
         EXPECT_EQ(left(c.radius), 2.1);
         EXPECT_EQ(right(c.radius), 2.2);
 
         auto c2 = c;
-        EXPECT_EQ(c2.index, 100);
+        EXPECT_EQ(c2.index, 100u);
         EXPECT_EQ(c2.length, 1.2);
         EXPECT_EQ(left(c2.radius), 2.1);
         EXPECT_EQ(right(c2.radius), 2.2);
@@ -29,7 +29,7 @@ TEST(compartments, compartment)
 
     {
         nest::mc::compartment c{100, 1, 2, 3};
-        EXPECT_EQ(c.index, 100);
+        EXPECT_EQ(c.index, 100u);
         EXPECT_EQ(c.length, 1.);
         EXPECT_EQ(left(c.radius), 2.);
         EXPECT_EQ(right(c.radius), 3.);
@@ -54,7 +54,7 @@ TEST(compartments, compartment_iterator)
     ++it;
     {
         auto c = *it;
-        EXPECT_EQ(c.index, 1);
+        EXPECT_EQ(c.index, 1u);
         EXPECT_EQ(left(c.radius), 3.0);
         EXPECT_EQ(right(c.radius), 5.0);
         EXPECT_EQ(c.length, 2.5);
@@ -65,7 +65,7 @@ TEST(compartments, compartment_iterator)
     // returned iterator should be unchanged
     {
         auto c = *(it++);
-        EXPECT_EQ(c.index, 1);
+        EXPECT_EQ(c.index, 1u);
         EXPECT_EQ(left(c.radius), 3.0);
         EXPECT_EQ(right(c.radius), 5.0);
         EXPECT_EQ(c.length, 2.5);
@@ -73,7 +73,7 @@ TEST(compartments, compartment_iterator)
     // while the iterator itself was updated
     {
         auto c = *it;
-        EXPECT_EQ(c.index, 2);
+        EXPECT_EQ(c.index, 2u);
         EXPECT_EQ(left(c.radius), 5.0);
         EXPECT_EQ(right(c.radius), 7.0);
         EXPECT_EQ(c.length, 2.5);
@@ -84,7 +84,7 @@ TEST(compartments, compartment_iterator)
         // copy iterator
         auto it2 = it;
         auto c = *it2;
-        EXPECT_EQ(c.index, 2);
+        EXPECT_EQ(c.index, 2u);
         EXPECT_EQ(left(c.radius), 5.0);
         EXPECT_EQ(right(c.radius), 7.0);
         EXPECT_EQ(c.length, 2.5);
@@ -96,7 +96,7 @@ TEST(compartments, compartment_iterator)
 
         // check the copy has updated correctly when incremented
         c= *it2;
-        EXPECT_EQ(c.index, 3);
+        EXPECT_EQ(c.index, 3u);
         EXPECT_EQ(left(c.radius), 7.0);
         EXPECT_EQ(right(c.radius), 9.0);
         EXPECT_EQ(c.length, 2.5);
@@ -112,7 +112,7 @@ TEST(compartments, compartment_range)
         EXPECT_EQ((*rng.end()).index, 10);
         EXPECT_NE(rng.begin(), rng.end());
 
-        auto count = 0;
+        int count = 0;
         for(auto c : rng) {
             EXPECT_EQ(c.index, count);
             auto er = 1.0 + double(count)/10.;

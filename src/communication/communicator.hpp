@@ -26,13 +26,14 @@ namespace communication {
 // Once all connections have been specified, the construct() method can be used
 // to build the data structures required for efficient spike communication and
 // event generation.
-template <typename CommunicationPolicy>
+template <typename TimeT, typename CommunicationPolicy>
 class communicator {
 public:
     using id_type = cell_gid_type;
+    using time_type = TimeT;
     using communication_policy_type = CommunicationPolicy;
 
-    using spike_type = spike<cell_member_type>;
+    using spike_type = spike<cell_member_type, time_type>;
 
     communicator() = default;
 
@@ -49,7 +50,7 @@ public:
     }
 
 
-    void add_connection(connection con) {
+    void add_connection(connection<time_type> con) {
         EXPECTS(is_local_cell(con.destination().gid));
         connections_.push_back(con);
     }
@@ -65,8 +66,8 @@ public:
         }
     }
 
-    float min_delay() {
-        auto local_min = std::numeric_limits<float>::max();
+    time_type min_delay() {
+        auto local_min = std::numeric_limits<time_type>::max();
         for (auto& con : connections_) {
             local_min = std::min(local_min, con.delay());
         }
@@ -113,7 +114,7 @@ public:
 
             // generate an event for each target
             for (auto it=targets.first; it!=targets.second; ++it) {
-                auto gidx = it->destination().gid - cell_gid_from_;
+                auto gidx = cell_group_index(it->destination().gid);
                 events_[gidx].push_back(it->make_event(spike));
             }
         }
@@ -126,11 +127,11 @@ public:
 
     uint64_t num_spikes() const { return num_spikes_; }
 
-    const std::vector<postsynaptic_spike_event>& queue(int i) const {
+    const std::vector<postsynaptic_spike_event<time_type>>& queue(int i) const {
         return events_[i];
     }
 
-    const std::vector<connection>& connections() const {
+    const std::vector<connection<time_type>>& connections() const {
         return connections_;
     }
 
@@ -152,7 +153,20 @@ public:
         }
     }
 
+    void reset() {
+        // remove all in-flight spikes/events
+        clear_thread_spike_buffers();
+        for (auto& evbuf: events_) {
+            evbuf.clear();
+        }
+    }
+
 private:
+    std::size_t cell_group_index(cell_gid_type cell_gid) const {
+        // this will be more elaborate when there is more than one cell per cell group
+        EXPECTS(cell_gid>=cell_gid_from_ && cell_gid<cell_gid_to_);
+        return cell_gid-cell_gid_from_;
+    }
 
     //
     //  both of these can be fixed with double buffering
@@ -167,8 +181,8 @@ private:
         nest::mc::threading::enumerable_thread_specific<std::vector<spike_type>>;
     local_spike_store_type thread_spikes_;
 
-    std::vector<connection> connections_;
-    std::vector<std::vector<postsynaptic_spike_event>> events_;
+    std::vector<connection<time_type>> connections_;
+    std::vector<std::vector<postsynaptic_spike_event<time_type>>> events_;
 
     // for keeping track of how time is spent where
     //util::Profiler profiler_;
