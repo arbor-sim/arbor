@@ -14,7 +14,7 @@ TEST(synapses, add_to_cell)
     nest::mc::cell cell;
 
     // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
+    // nest::mc::mechanisms::setup_mechanism_helpers();
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);
@@ -30,15 +30,15 @@ TEST(synapses, add_to_cell)
     EXPECT_EQ(3u, cell.synapses().size());
     const auto& syns = cell.synapses();
 
-    EXPECT_EQ(syns[0].location.segment, 0);
+    EXPECT_EQ(syns[0].location.segment, 0u);
     EXPECT_EQ(syns[0].location.position, 0.1);
     EXPECT_EQ(syns[0].mechanism.name(), "expsyn");
 
-    EXPECT_EQ(syns[1].location.segment, 1);
+    EXPECT_EQ(syns[1].location.segment, 1u);
     EXPECT_EQ(syns[1].location.position, 0.2);
     EXPECT_EQ(syns[1].mechanism.name(), "exp2syn");
 
-    EXPECT_EQ(syns[2].location.segment, 0);
+    EXPECT_EQ(syns[2].location.segment, 0u);
     EXPECT_EQ(syns[2].location.position, 0.3);
     EXPECT_EQ(syns[2].mechanism.name(), "expsyn");
 }

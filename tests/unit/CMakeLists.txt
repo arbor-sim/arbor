@@ -17,6 +17,8 @@ set(TEST_SOURCES
     test_event_queue.cpp
     test_fvm.cpp
     test_cell_group.cpp
+    test_lexcmp.cpp
+    test_mask_stream.cpp
     test_matrix.cpp
     test_mechanisms.cpp
     test_optional.cpp

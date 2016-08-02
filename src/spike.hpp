@@ -1,19 +1,15 @@
 #pragma once
 
-#include <type_traits>
 #include <ostream>
+#include <type_traits>
 
 namespace nest {
 namespace mc {
-namespace communication {
 
-template <
-    typename I,
-    typename = typename std::enable_if<std::is_integral<I>::value>
->
+template <typename I>
 struct spike {
     using id_type = I;
-    id_type source = 0;
+    id_type source = id_type{};
     float time = -1.;
 
     spike() = default;
@@ -25,24 +21,17 @@ struct spike {
 
 } // namespace mc
 } // namespace nest
-} // namespace communication
 
 /// custom stream operator for printing nest::mc::spike<> values
 template <typename I>
-std::ostream& operator<<(
-    std::ostream& o,
-    nest::mc::communication::spike<I> s)
-{
+std::ostream& operator<<(std::ostream& o, nest::mc::spike<I> s) {
     return o << "spike[t " << s.time << ", src " << s.source << "]";
 }
 
 /// less than comparison operator for nest::mc::spike<> values
 /// spikes are ordered by spike time, for use in sorting and queueing
 template <typename I>
-bool operator<(
-    nest::mc::communication::spike<I> lhs,
-    nest::mc::communication::spike<I> rhs)
-{
+bool operator<(nest::mc::spike<I> lhs, nest::mc::spike<I> rhs) {
     return lhs.time < rhs.time;
 }
 

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "algorithms.hpp"
+#include "catypes.hpp"
 #include "compartment.hpp"
 #include "math.hpp"
 #include "parameter_list.hpp"
@@ -36,6 +37,7 @@ class segment {
     public:
 
     using value_type = double;
+    using size_type = cell_local_size_type;
     using point_type = point<value_type>;
 
     segmentKind kind() const {
@@ -57,8 +59,8 @@ class segment {
         return kind_==segmentKind::axon;
     }
 
-    virtual int num_compartments() const = 0;
-    virtual void set_compartments(int) = 0;
+    virtual size_type num_compartments() const = 0;
+    virtual void set_compartments(size_type) = 0;
 
     virtual value_type volume() const = 0;
     virtual value_type area()   const = 0;
@@ -153,13 +155,12 @@ class segment {
     std::vector<parameter_list> mechanisms_;
 };
 
-class placeholder_segment : public segment
-{
-    public:
-
+class placeholder_segment : public segment {
+public:
     using base = segment;
     using base::kind_;
     using base::value_type;
+    using base::size_type;
 
     placeholder_segment()
     {
@@ -181,23 +182,22 @@ class placeholder_segment : public segment
         return true;
     }
 
-    int num_compartments() const override
+    size_type num_compartments() const override
     {
         return 0;
     }
 
-    virtual void set_compartments(int) override
+    virtual void set_compartments(size_type) override
     { }
 };
 
-class soma_segment : public segment
-{
-    public :
-
+class soma_segment : public segment {
+public:
     using base = segment;
     using base::kind_;
     using base::value_type;
     using base::point_type;
+    using base::size_type;
 
     soma_segment() = delete;
 
@@ -245,12 +245,12 @@ class soma_segment : public segment
     }
 
     /// soma has one and one only compartments
-    int num_compartments() const override
+    size_type num_compartments() const override
     {
         return 1;
     }
 
-    void set_compartments(int n) override
+    void set_compartments(size_type n) override
     { }
 
     private :
@@ -261,10 +261,8 @@ class soma_segment : public segment
     point_type center_;
 };
 
-class cable_segment : public segment
-{
-    public :
-
+class cable_segment : public segment {
+public:
     using base = segment;
     using base::kind_;
     using base::value_type;
@@ -332,7 +330,7 @@ class cable_segment : public segment
     value_type volume() const override
     {
         auto sum = value_type{0};
-        for(auto i=0; i<num_sub_segments(); ++i) {
+        for (auto i=0u; i<num_sub_segments(); ++i) {
             sum += math::volume_frustrum(lengths_[i], radii_[i], radii_[i+1]);
         }
         return sum;
@@ -341,7 +339,7 @@ class cable_segment : public segment
     value_type area() const override
     {
         auto sum = value_type{0};
-        for(auto i=0; i<num_sub_segments(); ++i) {
+        for (auto i=0u; i<num_sub_segments(); ++i) {
             sum += math::area_frustrum(lengths_[i], radii_[i], radii_[i+1]);
         }
         return sum;
@@ -358,7 +356,7 @@ class cable_segment : public segment
     }
 
     // the number sub-segments that define the cable segment
-    int num_sub_segments() const
+    size_type num_sub_segments() const
     {
         return radii_.size()-1;
     }
@@ -378,12 +376,12 @@ class cable_segment : public segment
         return this;
     }
 
-    int num_compartments() const override
+    size_type num_compartments() const override
     {
         return num_compartments_;
     }
 
-    void set_compartments(int n) override
+    void set_compartments(size_type n) override
     {
         if(n<1) {
             throw std::out_of_range(
@@ -406,8 +404,8 @@ class cable_segment : public segment
         // we find ourselves having to do it over and over again.
         // The time to cache it might be when update_lengths() is called.
         auto sum = value_type(0);
-        auto i=0;
-        for(i=0; i<num_sub_segments(); ++i) {
+        size_type i = 0;
+        for (i = 0; i<num_sub_segments(); ++i) {
             if(sum+lengths_[i]>pos) {
                 break;
             }
@@ -425,19 +423,18 @@ class cable_segment : public segment
         return {num_compartments(), radii_.front(), radii_.back(), length()};
     }
 
-    private :
-
+private:
     void update_lengths()
     {
-        if(locations_.size()) {
+        if (locations_.size()) {
             lengths_.resize(num_sub_segments());
-            for(auto i=0; i<num_sub_segments(); ++i) {
+            for (size_type i=0; i<num_sub_segments(); ++i) {
                 lengths_[i] = norm(locations_[i] - locations_[i+1]);
             }
         }
     }
 
-    int num_compartments_ = 1;
+    size_type num_compartments_ = 1;
     std::vector<value_type> lengths_;
     std::vector<value_type> radii_;
     std::vector<point_type> locations_;

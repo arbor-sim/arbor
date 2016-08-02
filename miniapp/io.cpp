@@ -2,6 +2,7 @@
 #include <exception>
 
 #include <tclap/CmdLine.h>
+#include <json/src/json.hpp>
 
 #include "io.hpp"
 
@@ -16,7 +17,7 @@ namespace io {
 cl_options read_options(int argc, char** argv) {
 
     // set default options
-    const cl_options default_options{"", 1000, 500, "expsyn", 100, 100., 0.025, false};
+    const cl_options defopts{"", 1000, 500, "expsyn", 100, 100., 0.025, false};
 
     cl_options options;
     // parse command line arguments
@@ -25,35 +26,27 @@ cl_options read_options(int argc, char** argv) {
 
         TCLAP::ValueArg<uint32_t> ncells_arg(
             "n", "ncells", "total number of cells in the model",
-            false, 1000, "non negative integer");
+            false, defopts.cells, "non negative integer", cmd);
         TCLAP::ValueArg<uint32_t> nsynapses_arg(
             "s", "nsynapses", "number of synapses per cell",
-            false, 500, "non negative integer");
+            false, defopts.synapses_per_cell, "non negative integer", cmd);
         TCLAP::ValueArg<std::string> syntype_arg(
             "S", "syntype", "type of synapse (expsyn or exp2syn)",
-            false, "expsyn", "synapse type");
+            false, defopts.syn_type, "synapse type", cmd);
         TCLAP::ValueArg<uint32_t> ncompartments_arg(
             "c", "ncompartments", "number of compartments per segment",
-            false, 100, "non negative integer");
+            false, defopts.compartments_per_segment, "non negative integer", cmd);
         TCLAP::ValueArg<std::string> ifile_arg(
             "i", "ifile", "json file with model parameters",
-            false, "","file name string");
+            false, "","file name string", cmd);
         TCLAP::ValueArg<double> tfinal_arg(
             "t", "tfinal", "time to simulate in ms",
-            false, 100., "positive real number");
+            false, defopts.tfinal, "positive real number", cmd);
         TCLAP::ValueArg<double> dt_arg(
             "d", "dt", "time step size in ms",
-            false, 0.025, "positive real number");
+            false, defopts.dt, "positive real number", cmd);
         TCLAP::SwitchArg all_to_all_arg(
-            "a","alltoall","all to all network", cmd, false);
-
-        cmd.add(ncells_arg);
-        cmd.add(nsynapses_arg);
-        cmd.add(syntype_arg);
-        cmd.add(ncompartments_arg);
-        cmd.add(ifile_arg);
-        cmd.add(dt_arg);
-        cmd.add(tfinal_arg);
+            "m","alltoall","all to all network", cmd, false);
 
         cmd.parse(argc, argv);
 
@@ -67,20 +60,13 @@ cl_options read_options(int argc, char** argv) {
         options.all_to_all = all_to_all_arg.getValue();
     }
     // catch any exceptions in command line handling
-    catch(TCLAP::ArgException &e) {
-        std::cerr << "error: parsing command line arguments:\n  "
-                  << e.error() << " for arg " << e.argId() << "\n";
-        exit(1);
+    catch (TCLAP::ArgException &e) {
+        throw usage_error("error parsing command line argument "+e.argId()+": "+e.error());
     }
 
-    if(options.ifname == "") {
-        options.check_and_normalize();
-        return options;
-    }
-    else {
-        std::ifstream fid(options.ifname, std::ifstream::in);
-
-        if(fid.is_open()) {
+    if (options.ifname != "") {
+        std::ifstream fid(options.ifname);
+        if (fid) {
             // read json data in input file
             nlohmann::json fopts;
             fid >> fopts;
@@ -93,22 +79,17 @@ cl_options read_options(int argc, char** argv) {
                 options.tfinal = fopts["tfinal"];
                 options.all_to_all = fopts["all_to_all"];
             }
-            catch(std::domain_error e) {
-                std::cerr << "error: unable to open parameters in "
-                          << options.ifname << " : " << e.what() << "\n";
-                exit(1);
+            catch(std::exception &e) {
+                throw model_description_error(
+                    "unable to parse parameters in "+options.ifname+": "+e.what());
             }
-            catch(std::exception e) {
-                std::cerr << "error: unable to open parameters in "
-                          << options.ifname << "\n";
-                exit(1);
-            }
-            options.check_and_normalize();
-            return options;
+        }
+        else {
+            throw usage_error("unable to open model paramter file "+options.ifname);
         }
     }
 
-    return default_options;
+    return options;
 }
 
 std::ostream& operator<<(std::ostream& o, const cl_options& options) {
