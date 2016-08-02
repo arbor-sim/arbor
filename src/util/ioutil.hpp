@@ -39,11 +39,11 @@ public:
     virtual ~basic_null_streambuf() {}
 
 protected:
-    virtual std::streamsize xsputn(const char_type *s,std::streamsize count) {
+    std::streamsize xsputn(const char_type *s,std::streamsize count) override {
         return count;
     }
 
-    virtual int_type overflow(char c) {
+    int_type overflow(int_type c) override {
         return traits_type::not_eof(c);
     }
 };

@@ -52,7 +52,7 @@ public:
     void reset() {
         remove_samplers();
         initialize_cells();
-        for (auto& spike_source: spike_sources) {
+        for (auto& spike_source: spike_sources_) {
             spike_source.source.reset(cell_, 0.f);
         }
     }

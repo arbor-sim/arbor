@@ -56,7 +56,7 @@ public:
                             - param_.min_connection_delay_ms};
     }
 
-    cell_size_type num_cells() const { return ncell_; }
+    cell_size_type num_cells() const override { return ncell_; }
 
     cell get_cell(cell_gid_type i) const override {
         auto gen = std::mt19937(i); // replace this with hashing generator...
