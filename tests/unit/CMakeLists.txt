@@ -11,6 +11,7 @@ set(HEADERS
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
+    test_double_buffer.cpp
     test_cell.cpp
     test_compartments.cpp
     test_event_queue.cpp
