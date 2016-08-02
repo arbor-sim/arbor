@@ -17,9 +17,9 @@ namespace mc {
  *     time_type when() const  return time value associated with event
  */
 
-template <typename TimeT>
+template <typename Time>
 struct postsynaptic_spike_event {
-    using time_type = TimeT;
+    using time_type = Time;
 
     cell_member_type target;
     time_type time;
@@ -28,9 +28,9 @@ struct postsynaptic_spike_event {
     time_type when() const { return time; }
 };
 
-template <typename TimeT>
+template <typename Time>
 struct sample_event {
-    using time_type = TimeT;
+    using time_type = Time;
 
     std::uint32_t sampler_index;
     time_type time;

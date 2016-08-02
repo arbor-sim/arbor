@@ -6,10 +6,10 @@
 namespace nest {
 namespace mc {
 
-template <typename I, typename TimeT>
+template <typename I, typename Time>
 struct spike {
     using id_type = I;
-    using time_type = TimeT;
+    using time_type = Time;
 
     id_type source = id_type{};
     time_type time = -1.;

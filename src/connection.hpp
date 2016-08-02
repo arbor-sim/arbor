@@ -9,11 +9,11 @@
 namespace nest {
 namespace mc {
 
-template <typename TimeT>
+template <typename Time>
 class connection {
 public:
     using id_type = cell_member_type;
-    using time_type = TimeT;
+    using time_type = Time;
 
     connection(id_type src, id_type dest, float w, time_type d) :
         source_(src),

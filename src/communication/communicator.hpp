@@ -26,11 +26,11 @@ namespace communication {
 // Once all connections have been specified, the construct() method can be used
 // to build the data structures required for efficient spike communication and
 // event generation.
-template <typename TimeT, typename CommunicationPolicy>
+template <typename Time, typename CommunicationPolicy>
 class communicator {
 public:
     using id_type = cell_gid_type;
-    using time_type = TimeT;
+    using time_type = Time;
     using communication_policy_type = CommunicationPolicy;
 
     using spike_type = spike<cell_member_type, time_type>;

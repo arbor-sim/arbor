@@ -113,8 +113,8 @@ public:
     void advance(value_type dt);
 
     /// pass an event to the appropriate synapse and call net_receive
-    template <typename TimeT>
-    void apply_event(postsynaptic_spike_event<TimeT> e) {
+    template <typename Time>
+    void apply_event(postsynaptic_spike_event<Time> e) {
         mechanisms_[synapse_index_]->net_receive(e.target.index, e.weight);
     }
 
