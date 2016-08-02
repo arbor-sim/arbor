@@ -171,7 +171,7 @@ private:
 
     /// the global id of the first target (e.g. a synapse) in this group
     index_type first_target_gid_;
- 
+
     /// the global id of the first probe in this group
     index_type first_probe_gid_;
 
