@@ -29,7 +29,9 @@ struct model {
     };
 
     model(const recipe &rec, cell_gid_type cell_from, cell_gid_type cell_to):
-        cell_from_(cell_from), cell_to_(cell_to)
+        cell_from_(cell_from),
+        cell_to_(cell_to),
+        communicator_(cell_from, cell_to)
     {
         cell_groups_ = std::vector<cell_group_type>{cell_to_-cell_from_};
 
@@ -51,7 +53,6 @@ struct model {
 
         probes_.assign(probes.begin(), probes.end());
 
-        communicator_ = communicator_type(cell_from_, cell_to_);
         for (cell_gid_type i=cell_from_; i<cell_to_; ++i) {
             for (const auto& cc: rec.connections_on(i)) {
                 // currently cell_connection and connection are basically the same data;
@@ -74,6 +75,10 @@ struct model {
         time_type min_delay = communicator_.min_delay();
         while (t_<tfinal) {
             auto tuntil = std::min(t_+min_delay, tfinal);
+
+            // ensure that spikes are available for exchange
+            communicator_.swap_buffers();
+
             threading::parallel_for::apply(
                 0u, cell_groups_.size(),
                 [&](unsigned i) {
