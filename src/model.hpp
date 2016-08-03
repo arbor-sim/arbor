@@ -29,7 +29,7 @@ public:
         probe_spec probe;
     };
 
-    model(const recipe &rec, cell_gid_type cell_from, cell_gid_type cell_to):
+    model(const recipe& rec, cell_gid_type cell_from, cell_gid_type cell_to):
         cell_from_(cell_from),
         cell_to_(cell_to),
         communicator_(cell_from, cell_to)
@@ -78,7 +78,7 @@ public:
             threading::parallel_for::apply(
                 0u, cell_groups_.size(),
                 [&](unsigned i) {
-                    auto &group = cell_groups_[i];
+                    auto& group = cell_groups_[i];
 
                     PE("stepping","events");
                     group.enqueue_events(communicator_.queue(i));
