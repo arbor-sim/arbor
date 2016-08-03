@@ -76,8 +76,8 @@ public:
         while (t_<tfinal) {
             auto tuntil = std::min(t_+min_delay, tfinal);
 
-            // this is crude: the flow of spikes and events should be modelled explicitly
-            communicator_.swap_buffers();
+            event_queues_.exchange();
+            local_spikes_.exchange();
 
             tbb::task_group g;
 
@@ -90,13 +90,13 @@ public:
                         auto &group = cell_groups_[i];
 
                         PE("stepping","events");
-                        group.enqueue_events(communicator_.queue(i));
+                        group.enqueue_events(current_events()[i]);
                         PL();
 
                         group.advance(tuntil, dt);
 
                         PE("events");
-                        communicator_.add_spikes(group.spikes());
+                        buffer_spikes(group.spikes());
                         group.clear_spikes();
                         PL(2);
                     });
@@ -104,7 +104,7 @@ public:
 
             auto exchange = [&] () {
                 PE("stepping", "exchange");
-                communicator_.exchange();
+                future_events() = communicator_.exchange(current_spikes());
                 PL(2);
             };
 
@@ -117,12 +117,14 @@ public:
         return t_;
     }
 
+    // TODO : these two calls are only thread safe if called outside the main time
+    // stepping loop.
     void add_artificial_spike(cell_member_type source) {
         add_artificial_spike(source, t_);
     }
 
     void add_artificial_spike(cell_member_type source, time_type tspike) {
-        communicator_.add_spike({source, tspike});
+        previous_spikes().local().push_back({source, tspike});
     }
 
     void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
@@ -144,6 +146,23 @@ private:
     std::vector<cell_group_type> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
+    using spike_type = typename communicator_type::spike_type;
+
+    using event_queue_type = typename communicator_type::event_queue;
+    util::double_buffer< std::vector<event_queue_type> > event_queues_;
+
+    using local_spike_store_type = typename communicator_type::local_spike_store_type;
+    util::double_buffer< local_spike_store_type > local_spikes_;
+
+    local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
+    local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
+    std::vector<event_queue_type>& current_events()  { return event_queues_.get(); }
+    std::vector<event_queue_type>& future_events()   { return event_queues_.other(); }
+
+    void buffer_spikes(const std::vector<spike_type>& s) {
+        auto& buff = current_spikes().local();
+        buff.insert(buff.end(), s.begin(), s.end());
+    }
 };
 
 } // namespace mc
