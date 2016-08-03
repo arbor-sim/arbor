@@ -108,11 +108,11 @@ TEST(compartments, compartment_range)
     {
         nest::mc::compartment_range rng(10, 1.0, 2.0, 10.);
 
-        EXPECT_EQ((*rng.begin()).index, 0);
-        EXPECT_EQ((*rng.end()).index, 10);
+        EXPECT_EQ((*rng.begin()).index, 0u);
+        EXPECT_EQ((*rng.end()).index, 10u);
         EXPECT_NE(rng.begin(), rng.end());
 
-        int count = 0;
+        unsigned count = 0;
         for(auto c : rng) {
             EXPECT_EQ(c.index, count);
             auto er = 1.0 + double(count)/10.;
@@ -121,7 +121,7 @@ TEST(compartments, compartment_range)
             EXPECT_EQ(c.length, 1.0);
             ++count;
         }
-        EXPECT_EQ(count, 10);
+        EXPECT_EQ(count, 10u);
     }
 
     // test case of zero length range
