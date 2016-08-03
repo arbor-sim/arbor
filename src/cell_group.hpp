@@ -42,10 +42,10 @@ public:
 
         source_id_type source_id={gid_base_,0};
         for (auto& d : c.detectors()) {
-            ++source_id.index;
             spike_sources_.push_back({
                 source_id, spike_detector_type(cell_, d.location, d.threshold, 0.f)
             });
+            ++source_id.index;
         }
     }
 
