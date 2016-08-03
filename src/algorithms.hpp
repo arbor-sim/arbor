@@ -141,7 +141,7 @@ bool has_contiguous_segments(const C& parent_index)
             return false;
         }
 
-        if(p != i-1) {
+        if(p != decltype(p)(i-1)) {
             // we have a branch and i-1 is a leaf node
             is_leaf[i-1] = true;
         }
@@ -174,7 +174,7 @@ std::vector<typename C::value_type> branches(const C& parent_index)
         "integral type required"
     );
 
-    EXPECTS(has_contiguous_segments(parent_index));
+    //EXPECTS(has_contiguous_segments(parent_index));
 
     std::vector<typename C::value_type> branch_index;
     if (parent_index.empty()) {
@@ -250,7 +250,7 @@ std::vector<typename C::value_type> make_parent_index(
     }
 
     EXPECTS(parent_index.size() == unsigned(branch_index.back()));
-    EXPECTS(has_contiguous_segments(parent_index));
+    //EXPECTS(has_contiguous_segments(parent_index));
     EXPECTS(is_strictly_monotonic_increasing(branch_index));
 
     // expand the branch index
