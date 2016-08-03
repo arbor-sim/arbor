@@ -41,7 +41,7 @@ TEST(fvm, cable)
     cell.segment(1)->set_compartments(4);
     cell.segment(2)->set_compartments(4);
 
-    using fvm_cell = fvm::fvm_cell<double, cell_local_index_type>;
+    using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
     fvm_cell fvcell(cell);
     auto& J = fvcell.jacobian();
 
@@ -91,7 +91,7 @@ TEST(fvm, init)
 
     cell.segment(1)->set_compartments(10);
 
-    using fvm_cell = fvm::fvm_cell<double, cell_local_index_type>;
+    using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
     fvm_cell fvcell(cell);
     auto& J = fvcell.jacobian();
     EXPECT_EQ(J.size(), 11u);

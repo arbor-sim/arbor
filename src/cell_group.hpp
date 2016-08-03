@@ -119,7 +119,7 @@ public:
         }
     }
 
-    const std::vector<spike<source_id_type>>&
+    const std::vector<spike<source_id_type, time_type>>&
     spikes() const { return spikes_; }
 
     cell_type&       cell()       { return cell_; }
@@ -161,13 +161,13 @@ private:
     std::vector<spike_source_type> spike_sources_;
 
     //. spikes that are generated
-    std::vector<spike<source_id_type>> spikes_;
+    std::vector<spike<source_id_type, time_type>> spikes_;
 
     /// pending events to be delivered
-    event_queue<postsynaptic_spike_event> events_;
+    event_queue<postsynaptic_spike_event<time_type>> events_;
 
     /// pending samples to be taken
-    event_queue<sample_event> sample_events_;
+    event_queue<sample_event<time_type>> sample_events_;
 
     /// the global id of the first target (e.g. a synapse) in this group
     index_type first_target_gid_;

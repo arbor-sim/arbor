@@ -16,11 +16,12 @@ namespace nest {
 namespace mc {
 
 template <typename Cell>
-struct model {
+class model {
+public:
     using cell_group_type = cell_group<Cell>;
     using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
-    using communicator_type = communication::communicator<communication::global_policy>;
+    using communicator_type = communication::communicator<time_type, communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
 
     struct probe_record {
@@ -43,7 +44,7 @@ struct model {
                 auto idx = i-cell_from_;
                 cell_groups_[idx] = cell_group_type(i, cell);
 
-                cell_local_index_type j = 0;
+                cell_lid_type j = 0;
                 for (const auto& probe: cell.probes()) {
                     cell_member_type probe_id{i,j++};
                     probes.push_back({probe_id, probe});
@@ -55,20 +56,19 @@ struct model {
 
         for (cell_gid_type i=cell_from_; i<cell_to_; ++i) {
             for (const auto& cc: rec.connections_on(i)) {
-                // currently cell_connection and connection are basically the same data;
-                // merge?
-                communicator_.add_connection(connection{cc.source, cc.dest, cc.weight, cc.delay});
+                connection<time_type> conn{cc.source, cc.dest, cc.weight, cc.delay};
+                communicator_.add_connection(conn);
             }
         }
         communicator_.construct();
     }
-
 
     void reset() {
         t_ = 0.;
         for (auto& group: cell_groups_) {
             group.reset();
         }
+        communicator_.reset();
     }
 
     time_type run(time_type tfinal, time_type dt) {
@@ -76,29 +76,41 @@ struct model {
         while (t_<tfinal) {
             auto tuntil = std::min(t_+min_delay, tfinal);
 
-            // ensure that spikes are available for exchange
+            // this is crude: the flow of spikes and events should be modelled explicitly
             communicator_.swap_buffers();
 
-            threading::parallel_for::apply(
-                0u, cell_groups_.size(),
-                [&](unsigned i) {
-                    auto &group = cell_groups_[i];
+            tbb::task_group g;
 
-                    PE("stepping","events");
-                    group.enqueue_events(communicator_.queue(i));
-                    PL();
+            // should this take a reference to the input event queue
+            // and return a reference to the spikes?
+            auto update_cells = [&] () {
+                threading::parallel_for::apply(
+                    0u, cell_groups_.size(),
+                    [&](unsigned i) {
+                        auto &group = cell_groups_[i];
 
-                    group.advance(tuntil, dt);
+                        PE("stepping","events");
+                        group.enqueue_events(communicator_.queue(i));
+                        PL();
 
-                    PE("events");
-                    communicator_.add_spikes(group.spikes());
-                    group.clear_spikes();
-                    PL(2);
-                });
+                        group.advance(tuntil, dt);
 
-            PE("stepping", "exchange");
-            communicator_.exchange();
-            PL(2);
+                        PE("events");
+                        communicator_.add_spikes(group.spikes());
+                        group.clear_spikes();
+                        PL(2);
+                    });
+            };
+
+            auto exchange = [&] () {
+                PE("stepping", "exchange");
+                communicator_.exchange();
+                PL(2);
+            };
+
+            g.run(exchange);
+            g.run(update_cells);
+            g.wait();
 
             t_ = tuntil;
         }

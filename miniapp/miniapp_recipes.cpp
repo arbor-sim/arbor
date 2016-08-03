@@ -15,7 +15,12 @@ namespace mc {
 // description for greater data reuse.
 
 template <typename RNG>
-mc::cell make_basic_cell(unsigned compartments_per_segment, unsigned num_synapses, const std::string& syn_type, RNG& rng) {
+cell make_basic_cell(
+    unsigned compartments_per_segment,
+    unsigned num_synapses,
+    const std::string& syn_type,
+    RNG& rng)
+{
     nest::mc::cell cell;
 
     // Soma with diameter 12.6157 um and HH channel
