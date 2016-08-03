@@ -77,7 +77,7 @@ cable_segment* cell::add_cable(cell::index_type parent, segment_ptr&& cable)
 
 segment* cell::segment(index_type index)
 {
-    if(index<0 || index>=num_segments()) {
+    if (index>=num_segments()) {
         throw std::out_of_range(
             "attempt to access a segment with invalid index"
         );
@@ -87,7 +87,7 @@ segment* cell::segment(index_type index)
 
 segment const* cell::segment(index_type index) const
 {
-    if(index<0 || index>=num_segments()) {
+    if (index>=num_segments()) {
         throw std::out_of_range(
             "attempt to access a segment with invalid index"
         );

@@ -23,7 +23,7 @@ struct compartment_model {
 };
 
 struct segment_location {
-    segment_location(cell_local_index_type s, double l)
+    segment_location(cell_lid_type s, double l)
     : segment(s), position(l)
     {
         EXPECTS(position>=0. && position<=1.);
@@ -31,7 +31,7 @@ struct segment_location {
     friend bool operator==(segment_location l, segment_location r) {
         return l.segment==r.segment && l.position==r.position;
     }
-    cell_local_index_type segment;
+    cell_lid_type segment;
     double position;
 };
 
@@ -53,9 +53,7 @@ struct probe_spec {
 /// high-level abstract representation of a cell and its segments
 class cell {
 public:
-
-    // types
-    using index_type = cell_local_index_type;
+    using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
     using point_type = point<value_type>;

@@ -13,10 +13,10 @@ namespace nest {
 namespace mc {
 
 // move sampler code to another source file...
-template <typename TimeT=float, typename ValueT=double>
+template <typename Time=float, typename Value=double>
 struct sample_trace {
-    using time_type = TimeT;
-    using value_type = ValueT;
+    using time_type = Time;
+    using value_type = Value;
 
     struct sample_type {
         time_type time;
@@ -34,10 +34,10 @@ struct sample_trace {
     {}
 };
 
-template <typename TimeT=float, typename ValueT=double>
+template <typename Time=float, typename Value=double>
 struct trace_sampler {
-    using time_type = TimeT;
-    using value_type = ValueT;
+    using time_type = Time;
+    using value_type = Value;
 
     float next_sample_t() const { return t_next_sample_; }
 
@@ -62,9 +62,9 @@ private:
 };
 
 // with type deduction ...
-template <typename TimeT, typename ValueT>
-trace_sampler<TimeT, ValueT> make_trace_sampler(sample_trace<TimeT, ValueT> *trace, TimeT sample_dt, TimeT tfrom=0) {
-    return trace_sampler<TimeT, ValueT>(trace, sample_dt, tfrom);
+template <typename Time, typename Value>
+trace_sampler<Time, Value> make_trace_sampler(sample_trace<Time, Value> *trace, Time sample_dt, Time tfrom=0) {
+    return trace_sampler<Time, Value>(trace, sample_dt, tfrom);
 }
 
 } // namespace mc

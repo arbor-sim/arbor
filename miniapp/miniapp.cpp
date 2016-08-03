@@ -26,7 +26,6 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using communicator_type = communication::communicator<global_policy>;
 
 using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using model_type = model<lowered_cell>;

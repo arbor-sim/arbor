@@ -18,10 +18,9 @@ namespace mc {
 namespace communication {
 
 struct mpi_global_policy {
-    using id_type = cell_member_type;
-
-    std::vector<spike<id_type>> 
-    static gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
+    template <typename I, typename T>
+    static std::vector<spike<I, T>>
+    gather_spikes(const std::vector<spike<I,T>>& local_spikes) {
         return mpi::gather_all(local_spikes);
     }
 

@@ -16,11 +16,12 @@ namespace nest {
 namespace mc {
 
 template <typename Cell>
-struct model {
+class model {
+public:
     using cell_group_type = cell_group<Cell>;
     using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
-    using communicator_type = communication::communicator<communication::global_policy>;
+    using communicator_type = communication::communicator<time_type, communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
 
     struct probe_record {
@@ -29,7 +30,9 @@ struct model {
     };
 
     model(const recipe &rec, cell_gid_type cell_from, cell_gid_type cell_to):
-        cell_from_(cell_from), cell_to_(cell_to)
+        cell_from_(cell_from),
+        cell_to_(cell_to),
+        communicator_(cell_from, cell_to)
     {
         cell_groups_ = std::vector<cell_group_type>{cell_to_-cell_from_};
 
@@ -41,7 +44,7 @@ struct model {
                 auto idx = i-cell_from_;
                 cell_groups_[idx] = cell_group_type(i, cell);
 
-                cell_local_index_type j = 0;
+                cell_lid_type j = 0;
                 for (const auto& probe: cell.probes()) {
                     cell_member_type probe_id{i,j++};
                     probes.push_back({probe_id, probe});
@@ -51,23 +54,21 @@ struct model {
 
         probes_.assign(probes.begin(), probes.end());
 
-        communicator_ = communicator_type(cell_from_, cell_to_);
         for (cell_gid_type i=cell_from_; i<cell_to_; ++i) {
             for (const auto& cc: rec.connections_on(i)) {
-                // currently cell_connection and connection are basically the same data;
-                // merge?
-                communicator_.add_connection(connection{cc.source, cc.dest, cc.weight, cc.delay});
+                connection<time_type> conn{cc.source, cc.dest, cc.weight, cc.delay};
+                communicator_.add_connection(conn);
             }
         }
         communicator_.construct();
     }
-
 
     void reset() {
         t_ = 0.;
         for (auto& group: cell_groups_) {
             group.reset();
         }
+        communicator_.reset();
     }
 
     time_type run(time_type tfinal, time_type dt) {
