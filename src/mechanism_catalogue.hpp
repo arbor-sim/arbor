@@ -19,7 +19,12 @@ struct catalogue {
     using view_type = typename mechanism<T, I>::view_type;
     using index_view = typename mechanism<T, I>::index_view;
 
-    static mechanism_ptr<T, I> make(const std::string &name, view_type vec_v, view_type vec_i, index_view node_indices)  {
+    static mechanism_ptr<T, I> make(
+        const std::string& name,
+        view_type vec_v,
+        view_type vec_i,
+        index_view node_indices)
+    {
         auto entry = mech_map.find(name);
         if (entry==mech_map.end()) {
             throw std::out_of_range("no such mechanism");
@@ -28,7 +33,7 @@ struct catalogue {
         return entry->second(vec_v, vec_i, node_indices);
     }
 
-    static bool has(const std::string &name) {
+    static bool has(const std::string& name) {
         return mech_map.count(name)>0;
     }
 

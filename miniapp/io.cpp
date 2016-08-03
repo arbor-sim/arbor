@@ -60,7 +60,7 @@ cl_options read_options(int argc, char** argv) {
         options.all_to_all = all_to_all_arg.getValue();
     }
     // catch any exceptions in command line handling
-    catch (TCLAP::ArgException &e) {
+    catch (TCLAP::ArgException& e) {
         throw usage_error("error parsing command line argument "+e.argId()+": "+e.error());
     }
 
@@ -79,7 +79,7 @@ cl_options read_options(int argc, char** argv) {
                 options.tfinal = fopts["tfinal"];
                 options.all_to_all = fopts["all_to_all"];
             }
-            catch(std::exception &e) {
+            catch (std::exception& e) {
                 throw model_description_error(
                     "unable to parse parameters in "+options.ifname+": "+e.what());
             }

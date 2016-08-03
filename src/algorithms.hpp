@@ -121,7 +121,7 @@ bool is_positive(C const& c)
 }
 
 template<typename C>
-bool has_contiguous_segments(const C &parent_index)
+bool has_contiguous_segments(const C& parent_index)
 {
     static_assert(
         std::is_integral<typename C::value_type>::value,
@@ -151,7 +151,7 @@ bool has_contiguous_segments(const C &parent_index)
 }
 
 template<typename C>
-std::vector<typename C::value_type> child_count(const C &parent_index)
+std::vector<typename C::value_type> child_count(const C& parent_index)
 {
     static_assert(
         std::is_integral<typename C::value_type>::value,
@@ -229,7 +229,7 @@ typename C::value_type find_branch(const C& branch_index,
 
     auto it =  std::find_if(
         branch_index.begin(), branch_index.end(),
-        [nid](const value_type &v) { return v > nid; }
+        [nid](const value_type& v) { return v > nid; }
     );
 
     return it - branch_index.begin() - 1;

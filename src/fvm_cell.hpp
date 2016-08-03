@@ -349,7 +349,7 @@ fvm_cell<T, I>::fvm_cell(nest::mc::cell const& cell)
         syn_map[syn.mechanism.name()].push_back(find_compartment_index(syn.location, graph));
     }
 
-    for (const auto &syni : syn_map) {
+    for (const auto& syni : syn_map) {
         const auto& mech_name = syni.first;
        // auto& helper = nest::mc::mechanisms::get_mechanism_helper(mech_name);
 
