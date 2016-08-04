@@ -61,14 +61,6 @@ TEST(spike_store, clear)
     EXPECT_EQ(store.get().size(), 0u);
 }
 
-template <typename I, typename T>
-bool test_spike_equality(
-    nest::mc::spike<I,T> lhs,
-    nest::mc::spike<I,T> rhs)
-{
-    return lhs.time==rhs.time;
-}
-
 TEST(spike_store, gather)
 {
     using store_type = nest::mc::thread_private_spike_store<float>;

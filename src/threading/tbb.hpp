@@ -49,6 +49,8 @@ constexpr bool multithreaded() { return true; }
 template <typename T>
 using parallel_vector = tbb::concurrent_vector<T>;
 
+using task_group = tbb::task_group;
+
 } // threading
 } // mc
 } // nest

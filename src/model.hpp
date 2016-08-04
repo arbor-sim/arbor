@@ -95,9 +95,7 @@ public:
             // these buffers will store the new spikes generated in update_cells.
             current_spikes().clear();
 
-            // TODO this needs a threading wrapper
-            tbb::task_group g;
-
+            // task that updates cell state in parallel.
             auto update_cells = [&] () {
                 threading::parallel_for::apply(
                     0u, cell_groups_.size(),
@@ -117,6 +115,10 @@ public:
                     });
             };
 
+            // task that performs spike exchange with the spikes generated in
+            // the previous integration period, generating the postsynaptic
+            // events that must be delivered at the start of the next
+            // integration period at the latest.
             auto exchange = [&] () {
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
@@ -124,6 +126,9 @@ public:
                 PL(2);
             };
 
+            // run the tasks, overlapping if the threading model and number of
+            // available threads permits it.
+            threading::task_group g;
             g.run(exchange);
             g.run(update_cells);
             g.wait();
@@ -133,12 +138,12 @@ public:
         return t_;
     }
 
-    // TODO : these two calls are only thread safe if called outside the main time
-    // stepping loop.
+    // only thread safe if called outside the run() method
     void add_artificial_spike(cell_member_type source) {
         add_artificial_spike(source, t_);
     }
 
+    // only thread safe if called outside the run() method
     void add_artificial_spike(cell_member_type source, time_type tspike) {
         current_spikes().get().push_back({source, tspike});
     }
@@ -171,8 +176,25 @@ private:
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 
+    // Convenience functions that map the spike buffers and event queues onto
+    // the appropriate integration interval.
+    //
+    // To overlap communication and computation, integration intervals of
+    // size Delta/2 are used, where Delta is the minimum delay in the global
+    // system.
+    // From the frame of reference of the current integration period we
+    // define three intervals: previous, current and future
+    // Then we define the following :
+    //      current_spikes : spikes generated in the current interval
+    //      previous_spikes: spikes generated in the preceding interval
+    //      current_events : events to be delivered at the start of
+    //                       the current interval
+    //      future_events  : events to be delivered at the start of
+    //                       the next interval
+
     local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
+
     std::vector<event_queue_type>& current_events()  { return event_queues_.get(); }
     std::vector<event_queue_type>& future_events()   { return event_queues_.other(); }
 };

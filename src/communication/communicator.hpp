@@ -27,20 +27,6 @@ namespace communication {
 // Once all connections have been specified, the construct() method can be used
 // to build the data structures required for efficient spike communication and
 // event generation.
-//
-// To overlap communication and computation, i.e. to perform spike
-// exchange at the same time as cell state update, thread safe access to the
-// spike and event lists must be provided. We use double buffering, whereby
-// for each of the spikes and events one buffer is exposed publicly, while
-// the other is used internally by the communicator 
-//  - the spike lists are not directly exposed via the communicator
-//    interface. Instead they are updated when the add_spike() methods
-//    are called.
-//  - the event queues for each cell group are exposed via the queue()
-//    method.
-// For each double buffer, the current buffer (accessed via buffer.get())
-// is exposed to the user, and the other buffer is used inside exchange().
-
 template <typename Time, typename CommunicationPolicy>
 class communicator {
 public:
@@ -56,6 +42,7 @@ public:
 
     communicator() = default;
 
+    // TODO
     // for now, still assuming one-to-one association cells <-> groups,
     // so that 'group' gids as represented by their first cell gid are
     // contiguous.
@@ -73,17 +60,20 @@ public:
         connections_.push_back(con);
     }
 
+    /// returns true if the cell with gid is on the domain of the caller
     bool is_local_cell(id_type gid) const {
         return gid>=cell_gid_from_ && gid<cell_gid_to_;
     }
 
-    // builds the optimized data structure
+    /// builds the optimized data structure
+    /// must be called after all connections have been added
     void construct() {
         if (!std::is_sorted(connections_.begin(), connections_.end())) {
             std::sort(connections_.begin(), connections_.end());
         }
     }
 
+    /// the minimum delay of all connections in the global network.
     time_type min_delay() {
         auto local_min = std::numeric_limits<time_type>::max();
         for (auto& con : connections_) {
@@ -93,6 +83,13 @@ public:
         return communication_policy_.min(local_min);
     }
 
+    /// Perform exchange of spikes.
+    ///
+    /// Takes as input the list of local_spikes that were generated on the calling domain.
+    ///
+    /// Returns a vector of event queues, with one queue for each local cell group. The
+    /// events in each queue are all events that must be delivered to targets in that cell
+    /// group as a result of the global spike exchange.
     std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes) {
         // global all-to-all to gather a local copy of the global spike list on each node.
         auto global_spikes = communication_policy_.gather_spikes( local_spikes );
@@ -118,6 +115,8 @@ public:
         return queues;
     }
 
+    /// Returns the total number of global spikes over the duration
+    /// of the simulation
     uint64_t num_spikes() const { return num_spikes_; }
 
     const std::vector<connection_type>& connections() const {
