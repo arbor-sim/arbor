@@ -43,7 +43,7 @@ cell make_basic_cell(
 
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
     // distribute the synapses at random locations the terminal dendrites in a
-    // round robin manner
+    // round robin manner; the terminal dendrites in this cell have indices 2 and 3.
     nest::mc::parameter_list syn_default(syn_type);
     for (unsigned i=0; i<num_synapses; ++i) {
         cell.add_synapse({2+(i%2), distribution(rng)}, syn_default);
@@ -64,7 +64,7 @@ public:
     cell_size_type num_cells() const override { return ncell_; }
 
     cell get_cell(cell_gid_type i) const override {
-        auto gen = std::mt19937(i); // replace this with hashing generator...
+        auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
         auto cell = make_basic_cell(param_.num_compartments, cc.num_targets,
@@ -132,7 +132,7 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        auto gen = std::mt19937(i); // replace this with hashing generator...
+        auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         cell_gid_type prev = i==0? ncell_-1: i-1;
         for (unsigned t=0; t<param_.num_synapses; ++t) {
@@ -164,7 +164,7 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        auto conn_param_gen = std::mt19937(i); // replace this with hashing generator...
+        auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
         auto source_gen = std::mt19937(i*123+457); // ditto
 
         std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-2);
@@ -206,7 +206,7 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        auto conn_param_gen = std::mt19937(i); // replace this with hashing generator...
+        auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;

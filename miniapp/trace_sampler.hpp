@@ -12,7 +12,6 @@
 namespace nest {
 namespace mc {
 
-// move sampler code to another source file...
 template <typename Time=float, typename Value=double>
 struct sample_trace {
     using time_type = Time;

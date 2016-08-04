@@ -85,7 +85,7 @@ cl_options read_options(int argc, char** argv) {
             }
         }
         else {
-            throw usage_error("unable to open model paramter file "+options.ifname);
+            throw usage_error("unable to open model parameter file "+options.ifname);
         }
     }
 

@@ -91,19 +91,14 @@ public:
     void exchange() {
         // global all-to-all to gather a local copy of the global spike list
         // on each node
-        //profiler_.enter("global exchange");
         auto global_spikes = communication_policy_.gather_spikes(local_spikes());
         num_spikes_ += global_spikes.size();
         clear_thread_spike_buffers();
-        //profiler_.leave();
 
         for (auto& q : events_) {
             q.clear();
         }
 
-        //profiler_.enter("events");
-
-        //profiler_.enter("make events");
         // check all global spikes to see if they will generate local events
         for (auto spike : global_spikes) {
             // search for targets
@@ -118,11 +113,6 @@ public:
                 events_[gidx].push_back(it->make_event(spike));
             }
         }
-
-
-        //profiler_.leave(); // make events
-
-        //profiler_.leave(); // event generation
     }
 
     uint64_t num_spikes() const { return num_spikes_; }

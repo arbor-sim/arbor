@@ -1,4 +1,4 @@
- #pragma once
+#pragma once
 
 #include <algorithm>
 #include <cassert>
@@ -12,13 +12,13 @@
 namespace nest {
 namespace mc {
 
-template <typename IntT, typename SizeT = std::size_t>
+template <typename Int, typename Size = std::size_t>
 class tree {
     using range = memory::Range;
 
 public:
-    using int_type = IntT;
-    using size_type = SizeT;
+    using int_type = Int;
+    using size_type = Size;
 
     using index_type = memory::HostVector<int_type>;
     using view_type  = typename index_type::view_type;

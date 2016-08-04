@@ -98,7 +98,10 @@ int main(int argc, char** argv) {
 }
 
 std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type num_cells) {
-    // crude load balancing:
+    // Crude load balancing:
+    // divide [0, num_cells) into num_domains non-overlapping, contiguous blocks
+    // of size as close to equal as possible.
+
     auto num_domains = communication::global_policy::size();
     auto domain_id = communication::global_policy::id();
 
