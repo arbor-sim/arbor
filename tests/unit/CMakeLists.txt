@@ -27,6 +27,7 @@ set(TEST_SOURCES
     test_probe.cpp
     test_segment.cpp
     test_spikes.cpp
+    test_spike_store.cpp
     test_stimulus.cpp
     test_swcio.cpp
     test_synapses.cpp
@@ -46,12 +47,12 @@ foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
 
     if(WITH_TBB)
-	target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
+    target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
     endif()
 
     if(WITH_MPI)
-	target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
-	set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+    target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
+    set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()
 
     set_target_properties(${target}

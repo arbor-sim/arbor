@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <communication/mpi.hpp>
 #include <spike.hpp>
 

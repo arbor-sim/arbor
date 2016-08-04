@@ -1,68 +1,22 @@
+# pragma once
+
 #include <cstdlib>
 #include <vector>
 
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
-#include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
 #include <fvm_cell.hpp>
 #include <recipe.hpp>
+#include <thread_private_spike_store.hpp>
+#include <communication/communicator.hpp>
+#include <communication/global_policy.hpp>
 #include <profiling/profiler.hpp>
 
 #include "trace_sampler.hpp"
 
 namespace nest {
 namespace mc {
-
-template <typename Time>
-class thread_private_spike_store {
-public :
-    using id_type = cell_gid_type;
-    using time_type = Time;
-    using spike_type = spike<cell_member_type, time_type>;
-
-    std::vector<spike_type> gather() const {
-        std::vector<spike_type> spikes;
-        unsigned num_spikes = 0u;
-        for (auto& b : buffers_) {
-            num_spikes += b.size();
-        }
-        spikes.reserve(num_spikes);
-
-        for (auto& b : buffers_) {
-            spikes.insert(spikes.begin(), b.begin(), b.end());
-        }
-
-        return spikes;
-    }
-
-    std::vector<spike_type>& get() {
-        return buffers_.local();
-    }
-
-    const std::vector<spike_type>& get() const {
-        return buffers_.local();
-    }
-
-    void clear() {
-        for (auto& b : buffers_) {
-            b.clear();
-        }
-    }
-
-    void insert(const std::vector<spike_type>& spikes) {
-        auto& buff = get();
-        buff.insert(buff.begin(), spikes.begin(), spikes.end());
-    }
-
-private :
-    /// thread private storage for accumulating spikes
-    using local_spike_store_type =
-        threading::enumerable_thread_specific<std::vector<spike_type>>;
-
-    local_spike_store_type buffers_;
-};
 
 template <typename Cell>
 class model {

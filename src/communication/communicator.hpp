@@ -6,12 +6,12 @@
 #include <random>
 
 #include <spike.hpp>
-#include <threading/threading.hpp>
 #include <util/double_buffer.hpp>
 #include <algorithms.hpp>
+#include <connection.hpp>
 #include <event_queue.hpp>
-
-#include "connection.hpp"
+#include <spike.hpp>
+#include <util/debug.hpp>
 
 namespace nest {
 namespace mc {
@@ -49,10 +49,6 @@ public:
     using time_type = Time;
     using spike_type = spike<cell_member_type, time_type>;
     using connection_type = connection<time_type>;
-
-    /// thread private storage for accumulating spikes
-    using local_spike_store_type =
-        threading::enumerable_thread_specific<std::vector<spike_type>>;
 
     /// per-cell group lists of events to be delivered
     using event_queue =

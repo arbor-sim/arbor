@@ -2,7 +2,7 @@
 
 #include "gtest.h"
 
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
 

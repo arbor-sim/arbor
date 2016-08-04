@@ -13,17 +13,34 @@
 namespace nest {
 namespace mc {
 
-// for identifying cells globally
+// For identifying cells globally.
+
 using cell_gid_type = std::uint32_t;
 
-// for sizes of collections of cells
+// For sizes of collections of cells.
+
 using cell_size_type = typename std::make_unsigned<cell_gid_type>::type;
 
-// for indexes into cell-local data
+// For indexes into cell-local data.
+// 
+// Local indices for items within a particular cell-local collection should be
+// zero-based and numbered contiguously.
+
 using cell_lid_type = std::uint32_t;
 
-// for counts of cell-local data
+// For counts of cell-local data.
+
 using cell_local_size_type = typename std::make_unsigned<cell_lid_type>::type;
+
+// For global identification of an item of cell local data.
+//
+// Items of cell_member_type must:
+//
+//  * be associated with a unique cell, identified by the member `gid`
+//    (see: cell_gid_type);
+//
+//  * identify an item within a cell-local collection by the member `index`
+//    (see: cell_lid_type).
 
 struct cell_member_type {
     cell_gid_type gid;

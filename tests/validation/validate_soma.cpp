@@ -1,7 +1,7 @@
 #include <fstream>
 #include <json/src/json.hpp>
 
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
 
