@@ -3,7 +3,7 @@
 
 #include <json/src/json.hpp>
 
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <fvm_cell.hpp>

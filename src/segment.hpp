@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "algorithms.hpp"
-#include "catypes.hpp"
+#include "common_types.hpp"
 #include "compartment.hpp"
 #include "math.hpp"
 #include "parameter_list.hpp"

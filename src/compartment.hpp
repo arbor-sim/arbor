@@ -3,7 +3,7 @@
 #include <iterator>
 #include <utility>
 
-#include "catypes.hpp"
+#include "common_types.hpp"
 
 namespace nest {
 namespace mc {

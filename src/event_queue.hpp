@@ -4,7 +4,7 @@
 #include <ostream>
 #include <queue>
 
-#include "catypes.hpp"
+#include "common_types.hpp"
 #include "util/optional.hpp"
 
 namespace nest {

@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <vector>
 
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <communication/communicator.hpp>

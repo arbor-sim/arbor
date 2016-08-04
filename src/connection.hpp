@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
 

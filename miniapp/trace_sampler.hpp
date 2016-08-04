@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <vector>
 
-#include <catypes.hpp>
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <util/optional.hpp>
 

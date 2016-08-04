@@ -5,7 +5,7 @@
 #include <thread>
 #include <vector>
 
-#include "catypes.hpp"
+#include "common_types.hpp"
 #include "cell_tree.hpp"
 #include "segment.hpp"
 #include "stimulus.hpp"

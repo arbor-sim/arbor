@@ -5,12 +5,12 @@
 #include <vector>
 #include <random>
 
+#include <algorithms.hpp>
+#include <connection.hpp>
+#include <event_queue.hpp>
 #include <spike.hpp>
 #include <threading/threading.hpp>
-#include <algorithms.hpp>
-#include <event_queue.hpp>
-
-#include "connection.hpp"
+#include <util/debug.hpp>
 
 namespace nest {
 namespace mc {

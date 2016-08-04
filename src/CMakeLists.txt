@@ -2,7 +2,7 @@ set(HEADERS
     swcio.hpp
 )
 set(BASE_SOURCES
-    catypes_io.cpp
+    common_types_io.cpp
     cell.cpp
     parameter_list.cpp
     profiling/profiler.cpp
