@@ -208,7 +208,7 @@ public:
         mechanisms_.push_back(membrane_parameters());
     }
 
-    soma_segment(value_type r, point_type const &c)
+    soma_segment(value_type r, point_type const& c)
     :   soma_segment(r)
     {
         center_ = c;

@@ -15,6 +15,55 @@
 namespace nest {
 namespace mc {
 
+template <typename Time>
+class thread_private_spike_store {
+public :
+    using id_type = cell_gid_type;
+    using time_type = Time;
+    using spike_type = spike<cell_member_type, time_type>;
+
+    std::vector<spike_type> gather() const {
+        std::vector<spike_type> spikes;
+        unsigned num_spikes = 0u;
+        for (auto& b : buffers_) {
+            num_spikes += b.size();
+        }
+        spikes.reserve(num_spikes);
+
+        for (auto& b : buffers_) {
+            spikes.insert(spikes.begin(), b.begin(), b.end());
+        }
+
+        return spikes;
+    }
+
+    std::vector<spike_type>& get() {
+        return buffers_.local();
+    }
+
+    const std::vector<spike_type>& get() const {
+        return buffers_.local();
+    }
+
+    void clear() {
+        for (auto& b : buffers_) {
+            b.clear();
+        }
+    }
+
+    void insert(const std::vector<spike_type>& spikes) {
+        auto& buff = get();
+        buff.insert(buff.begin(), spikes.begin(), spikes.end());
+    }
+
+private :
+    /// thread private storage for accumulating spikes
+    using local_spike_store_type =
+        threading::enumerable_thread_specific<std::vector<spike_type>>;
+
+    local_spike_store_type buffers_;
+};
+
 template <typename Cell>
 class model {
 public:
@@ -29,14 +78,15 @@ public:
         probe_spec probe;
     };
 
-    model(const recipe &rec, cell_gid_type cell_from, cell_gid_type cell_to):
+    model(const recipe& rec, cell_gid_type cell_from, cell_gid_type cell_to):
         cell_from_(cell_from),
         cell_to_(cell_to),
         communicator_(cell_from, cell_to)
     {
+        // generate the cell groups in parallel, with one task per cell group
         cell_groups_ = std::vector<cell_group_type>{cell_to_-cell_from_};
-
         threading::parallel_vector<probe_record> probes;
+
         threading::parallel_for::apply(cell_from_, cell_to_,
             [&](cell_gid_type i) {
                 PE("setup", "cells");
@@ -52,8 +102,10 @@ public:
                 PL(2);
             });
 
+        // insert probes
         probes_.assign(probes.begin(), probes.end());
 
+        // generate the network connections
         for (cell_gid_type i=cell_from_; i<cell_to_; ++i) {
             for (const auto& cc: rec.connections_on(i)) {
                 connection<time_type> conn{cc.source, cc.dest, cc.weight, cc.delay};
@@ -61,6 +113,12 @@ public:
             }
         }
         communicator_.construct();
+
+        // Allocate an empty queue buffer for each cell group
+        // These must be set initially to ensure that a queue is available for each
+        // cell group for the first time step.
+        current_events().resize(num_groups());
+        future_events().resize(num_groups());
     }
 
     void reset() {
@@ -72,17 +130,20 @@ public:
     }
 
     time_type run(time_type tfinal, time_type dt) {
-        time_type min_delay = communicator_.min_delay();
+        time_type min_delay = communicator_.min_delay()/2;
         while (t_<tfinal) {
             auto tuntil = std::min(t_+min_delay, tfinal);
 
             event_queues_.exchange();
             local_spikes_.exchange();
 
+            // empty the spike buffers for the current integration period.
+            // these buffers will store the new spikes generated in update_cells.
+            current_spikes().clear();
+
+            // TODO this needs a threading wrapper
             tbb::task_group g;
 
-            // should this take a reference to the input event queue
-            // and return a reference to the spikes?
             auto update_cells = [&] () {
                 threading::parallel_for::apply(
                     0u, cell_groups_.size(),
@@ -96,7 +157,7 @@ public:
                         group.advance(tuntil, dt);
 
                         PE("events");
-                        buffer_spikes(group.spikes());
+                        current_spikes().insert(group.spikes());
                         group.clear_spikes();
                         PL(2);
                     });
@@ -104,7 +165,8 @@ public:
 
             auto exchange = [&] () {
                 PE("stepping", "exchange");
-                future_events() = communicator_.exchange(current_spikes());
+                auto local_spikes = previous_spikes().gather();
+                future_events() = communicator_.exchange(local_spikes);
                 PL(2);
             };
 
@@ -124,7 +186,7 @@ public:
     }
 
     void add_artificial_spike(cell_member_type source, time_type tspike) {
-        previous_spikes().local().push_back({source, tspike});
+        current_spikes().get().push_back({source, tspike});
     }
 
     void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
@@ -138,6 +200,7 @@ public:
     const std::vector<probe_record>& probes() const { return probes_; }
 
     std::size_t num_spikes() const { return communicator_.num_spikes(); }
+    std::size_t num_groups() const { return cell_groups_.size(); }
 
 private:
     cell_gid_type cell_from_;
@@ -151,18 +214,13 @@ private:
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer< std::vector<event_queue_type> > event_queues_;
 
-    using local_spike_store_type = typename communicator_type::local_spike_store_type;
+    using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 
     local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
     std::vector<event_queue_type>& current_events()  { return event_queues_.get(); }
     std::vector<event_queue_type>& future_events()   { return event_queues_.other(); }
-
-    void buffer_spikes(const std::vector<spike_type>& s) {
-        auto& buff = current_spikes().local();
-        buff.insert(buff.end(), s.begin(), s.end());
-    }
 };
 
 } // namespace mc

@@ -97,17 +97,13 @@ public:
         return communication_policy_.min(local_min);
     }
 
-    std::vector<event_queue> exchange(const local_spike_store_type& spikes) {
-        // global all-to-all to gather a local copy of the global spike list
-        // on each node
-        auto global_spikes =
-            communication_policy_.gather_spikes(
-                merge_spike_store(spikes)
-            );
+    std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes) {
+        // global all-to-all to gather a local copy of the global spike list on each node.
+        auto global_spikes = communication_policy_.gather_spikes( local_spikes );
         num_spikes_ += global_spikes.size();
 
-        // Check each global spike in turn to see it generates local events.
-        // If so, make the events and insert them into the appropriate event list
+        // check each global spike in turn to see it generates local events.
+        // if so, make the events and insert them into the appropriate event list.
         auto queues = std::vector<event_queue>(num_groups_local());
         for (auto spike : global_spikes) {
             // search for targets
@@ -137,14 +133,6 @@ public:
     }
 
 private:
-    std::vector<spike_type> merge_spike_store(const local_spike_store_type& buffers) {
-        std::vector<spike_type> spikes;
-        for (auto& v : buffers) {
-            spikes.insert(spikes.end(), v.begin(), v.end());
-        }
-        return spikes;
-    }
-
     std::size_t cell_group_index(cell_gid_type cell_gid) const {
         // this will be more elaborate when there is more than one cell per cell group
         EXPECTS(cell_gid>=cell_gid_from_ && cell_gid<cell_gid_to_);

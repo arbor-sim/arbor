@@ -29,7 +29,7 @@ struct sample_trace {
     std::vector<sample_type> samples;
 
     sample_trace() =default;
-    sample_trace(cell_member_type probe_id, const std::string &name, const std::string &units):
+    sample_trace(cell_member_type probe_id, const std::string& name, const std::string& units):
         name(name), units(units), probe_id(probe_id)
     {}
 };

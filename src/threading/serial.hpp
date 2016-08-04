@@ -7,6 +7,7 @@
 #include <array>
 #include <chrono>
 #include <string>
+#include <vector>
 
 namespace nest {
 namespace mc {

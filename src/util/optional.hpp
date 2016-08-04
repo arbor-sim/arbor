@@ -29,7 +29,7 @@ namespace util {
 template <typename X> struct optional;
 
 struct optional_unset_error: std::runtime_error {
-    explicit optional_unset_error(const std::string &what_str)
+    explicit optional_unset_error(const std::string& what_str)
         : std::runtime_error(what_str)
     {}
 
@@ -39,7 +39,7 @@ struct optional_unset_error: std::runtime_error {
 };
 
 struct optional_invalid_dereference: std::runtime_error {
-    explicit optional_invalid_dereference(const std::string &what_str)
+    explicit optional_invalid_dereference(const std::string& what_str)
         : std::runtime_error(what_str)
     {}
 

@@ -159,7 +159,7 @@ std::vector<cell::size_type> cell::compartment_counts() const
 cell::size_type cell::num_compartments() const
 {
     auto n = 0u;
-    for(auto &s : segments_) {
+    for(auto& s : segments_) {
         n += s->num_compartments();
     }
     return n;

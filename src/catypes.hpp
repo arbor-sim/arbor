@@ -35,4 +35,4 @@ DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 } // namespace mc
 } // namespace nest
 
-std::ostream &operator<<(std::ostream& O, nest::mc::cell_member_type m);
+std::ostream& operator<<(std::ostream& O, nest::mc::cell_member_type m);
