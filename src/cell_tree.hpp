@@ -11,7 +11,7 @@
 
 #include <vector/include/Vector.hpp>
 
-#include "catypes.hpp"
+#include "common_types.hpp"
 #include "tree.hpp"
 #include "util.hpp"
 

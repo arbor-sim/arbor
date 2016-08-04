@@ -4,8 +4,8 @@
 #include <functional>
 #include <vector>
 
-#include <catypes.hpp>
 #include <cell.hpp>
+#include <common_types.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
 #include <spike_source.hpp>
@@ -40,12 +40,18 @@ public:
     {
         initialize_cells();
 
-        source_id_type source_id={gid_base_,0};
+        // Create spike detectors and associate them with globally unique source ids,
+        // as specified by cell gid and cell-local zero-based index.
+
+        cell_gid_type source_gid = gid_base_;
+        cell_lid_type source_lid = 0u;
+
         for (auto& d : c.detectors()) {
+            cell_member_type source_id{source_gid, source_lid++};
+
             spike_sources_.push_back({
                 source_id, spike_detector_type(cell_, d.location, d.threshold, 0.f)
             });
-            ++source_id.index;
         }
     }
 
