@@ -27,6 +27,12 @@ public:
 
 using cell_connection_endpoint = cell_member_type;
 
+// Note: `cell_connection` and `connection` have essentially the same data
+// and represent the same thing conceptually. `cell_connection` objects
+// are notionally described in terms of external cell identifiers instead
+// of internal gids, but we are not making the distinction between the
+// two in the current code. These two types could well be merged.
+
 struct cell_connection {
     cell_connection_endpoint source;
     cell_connection_endpoint dest;
@@ -39,7 +45,7 @@ class recipe {
 public:
     virtual cell_size_type num_cells() const =0;
 
-    virtual cell get_cell(cell_gid_type) const =0; 
+    virtual cell get_cell(cell_gid_type) const =0;
     virtual cell_count_info get_cell_count_info(cell_gid_type) const =0;
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const =0;
 };
