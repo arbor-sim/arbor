@@ -8,7 +8,7 @@ foreach(mech ${mechanisms})
     add_custom_command(OUTPUT "${hpp}"
                        DEPENDS modparser "${mod}"
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-                       COMMAND "${modcc}" -t cpu -o "${hpp}" "${mod}")
+                       COMMAND "${modcc}" -t cpu -O -o "${hpp}" "${mod}")
     set_source_files_properties("${hpp}" PROPERTIES GENERATED TRUE)
     list(APPEND all_mod_hpps "${hpp}")
 endforeach()
