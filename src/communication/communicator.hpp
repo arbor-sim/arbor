@@ -98,6 +98,7 @@ public:
         // check each global spike in turn to see it generates local events.
         // if so, make the events and insert them into the appropriate event list.
         auto queues = std::vector<event_queue>(num_groups_local());
+
         for (auto spike : global_spikes) {
             // search for targets
             auto targets =
