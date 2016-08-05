@@ -29,7 +29,7 @@ namespace util {
 template <typename X> struct optional;
 
 struct optional_unset_error: std::runtime_error {
-    explicit optional_unset_error(const std::string &what_str)
+    explicit optional_unset_error(const std::string& what_str)
         : std::runtime_error(what_str)
     {}
 
@@ -39,7 +39,7 @@ struct optional_unset_error: std::runtime_error {
 };
 
 struct optional_invalid_dereference: std::runtime_error {
-    explicit optional_invalid_dereference(const std::string &what_str)
+    explicit optional_invalid_dereference(const std::string& what_str)
         : std::runtime_error(what_str)
     {}
 
@@ -226,6 +226,13 @@ namespace detail {
     template <typename T>
     using enable_unless_optional_t = enable_if_t<!is_optional<T>::value>;
 
+    // avoid nonnull address warnings when using operator| with e.g. char array constants
+    template <typename T>
+    bool decay_bool(const T* x) { return static_cast<bool>(x); }
+
+    template <typename T>
+    bool decay_bool(const T& x) { return static_cast<bool>(x); }
+
 } // namespace detail
 
 template <typename X>
@@ -332,17 +339,19 @@ struct optional<X&>: detail::optional_base<X&> {
     template <typename T>
     optional(optional<T&>& ot): base(ot.set,ot.ref()) {}
 
-    template <typename Y,typename = typename std::enable_if<!detail::is_optional<Y>()>::type>
+    template <typename Y>
     optional& operator=(Y& y) {
         set = true;
-        ref() = y;
+        data.construct(y);
         return *this;
     }
 
     template <typename Y>
     optional& operator=(optional<Y&>& o) {
         set = o.set;
-        data.construct(o);
+        if (o.set) {
+           data.construct(o.get());
+        }
         return *this;
     }
 };
@@ -363,7 +372,7 @@ struct optional<void>: detail::optional_base<void> {
 
     template <typename T>
     optional(const optional<T>& o): base(o.set,true) {}
-    
+
     template <typename T>
     optional& operator=(T) {
         set = true;
@@ -396,7 +405,7 @@ typename std::enable_if<
     >
 >::type
 operator|(A&& a,B&& b) {
-    return a ? a : b;
+    return detail::decay_bool(a) ? a : b;
 }
 
 template <typename A,typename B>

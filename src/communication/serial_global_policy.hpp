@@ -1,21 +1,19 @@
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
-#include <cstdint>
-
-#include <communication/spike.hpp>
+#include <spike.hpp>
 
 namespace nest {
 namespace mc {
 namespace communication {
 
 struct serial_global_policy {
-    using id_type = uint32_t;
-
-    std::vector<spike<id_type>> const
-    static gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
+    template <typename I, typename T>
+    static const std::vector<spike<I, T>>&
+    gather_spikes(const std::vector<spike<I, T>>& local_spikes) {
         return local_spikes;
     }
 

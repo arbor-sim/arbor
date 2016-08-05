@@ -164,7 +164,7 @@ class matrix {
         auto const ncells = num_cells();
 
         // loop over submatrices
-        for(auto m=0; m<ncells; ++m) {
+        for (size_type m=0; m<ncells; ++m) {
             auto first = cell_index_[m];
             auto last = cell_index_[m+1];
 

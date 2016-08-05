@@ -1,4 +1,4 @@
-set(mechanisms pas hh expsyn)
+set(mechanisms pas hh expsyn exp2syn)
 
 set(modcc "${CMAKE_BINARY_DIR}/external/bin/modcc")
 

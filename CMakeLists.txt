@@ -25,6 +25,12 @@ if(WITH_ASSERTIONS)
     add_definitions("-DWITH_ASSERTIONS")
 endif()
 
+# enable traces?
+set(WITH_TRACE OFF CACHE BOOL "enable TRACE() macros in code")
+if(WITH_TRACE)
+    add_definitions("-DWITH_TRACE")
+endif()
+
 # TBB support
 set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
 if(WITH_TBB)
@@ -56,6 +62,12 @@ if(SYSTEM_CRAY)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
 
+# Cray systems
+set(TARGET_KNL OFF CACHE BOOL "target Intel KNL architecture")
+if(TARGET_KNL)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
+endif()
+
 # targets for extermal dependencies
 include(ExternalProject)
 externalproject_add(modparser
@@ -71,6 +83,7 @@ externalproject_add(modparser
 
 
 include_directories(${CMAKE_SOURCE_DIR}/external)
+include_directories(${CMAKE_SOURCE_DIR}/external/tclap/include)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/miniapp)

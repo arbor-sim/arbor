@@ -7,3 +7,6 @@
 [submodule "modparser"]
 	path = external/modparser
 	url = git@github.com:eth-cscs/modparser.git
+[submodule "external/tclap"]
+	path = external/tclap
+	url = https://github.com/eile/tclap.git
