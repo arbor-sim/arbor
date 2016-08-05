@@ -18,7 +18,7 @@ using memory::util::cyan;
 
 template <typename T>
 std::ostream&
-operator << (std::ostream &o, std::vector<T>const& v)
+operator << (std::ostream& o, std::vector<T>const& v)
 {
     o << "[";
     for(auto const& i: v) {
@@ -29,7 +29,7 @@ operator << (std::ostream &o, std::vector<T>const& v)
 }
 
 template <typename T>
-std::ostream& print(std::ostream &o, std::vector<T>const& v)
+std::ostream& print(std::ostream& o, std::vector<T>const& v)
 {
     o << "[";
     for(auto const& i: v) {

@@ -20,7 +20,7 @@
 #include <tuple>
 
 #define DEFINE_LEXICOGRAPHIC_ORDERING_IMPL_(proxy,op,type,a_fields,b_fields) \
-inline bool operator op(const type &a,const type &b) { return proxy a_fields op proxy b_fields; }
+inline bool operator op(const type& a,const type& b) { return proxy a_fields op proxy b_fields; }
 
 #define DEFINE_LEXICOGRAPHIC_ORDERING(type,a_fields,b_fields) \
 DEFINE_LEXICOGRAPHIC_ORDERING_IMPL_(std::tie,<,type,a_fields,b_fields) \

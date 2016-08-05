@@ -4,24 +4,23 @@
 #error "mpi_global_policy.hpp should only be compiled in a WITH_MPI build"
 #endif
 
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
-#include <cstdint>
-
-#include <communication/spike.hpp>
-#include <communication/mpi.hpp>
 #include <algorithms.hpp>
+#include <common_types.hpp>
+#include <communication/mpi.hpp>
+#include <spike.hpp>
 
 namespace nest {
 namespace mc {
 namespace communication {
 
 struct mpi_global_policy {
-    using id_type = uint32_t;
-
-    std::vector<spike<id_type>> 
-    static gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
+    template <typename I, typename T>
+    static std::vector<spike<I, T>>
+    gather_spikes(const std::vector<spike<I,T>>& local_spikes) {
         return mpi::gather_all(local_spikes);
     }
 

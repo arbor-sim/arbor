@@ -17,20 +17,24 @@ using json = nlohmann::json;
 using range = memory::Range;
 
 using namespace nest::mc;
+using int_type = cell_tree::int_type;
+
 
 TEST(cell_tree, from_parent_index) {
+    auto no_parent = cell_tree::no_parent;
+
     // tree with single branch corresponding to the root node
     // this is equivalent to a single compartment model
     //      CASE 1 : single root node in parent_index
     {
-        std::vector<int> parent_index = {0};
+        std::vector<int_type> parent_index = {0};
         cell_tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 1u);
         EXPECT_EQ(tree.num_children(0), 0u);
     }
     //      CASE 2 : empty parent_index
     {
-        std::vector<int> parent_index;
+        std::vector<int_type> parent_index;
         cell_tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 1u);
         EXPECT_EQ(tree.num_children(0), 0u);
@@ -46,7 +50,7 @@ TEST(cell_tree, from_parent_index) {
         //   /
         //  3
         //
-        std::vector<int> parent_index =
+        std::vector<int_type> parent_index =
             {0, 0, 1, 2, 0, 4};
         cell_tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 3u);
@@ -66,7 +70,7 @@ TEST(cell_tree, from_parent_index) {
         //   /         \.
         //  3           8
         //
-        std::vector<int> parent_index =
+        std::vector<int_type> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8};
 
         cell_tree tree(parent_index);
@@ -79,10 +83,10 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(3), 0u);
 
         // Check new structure
-        EXPECT_EQ(-1, tree.parent(0));
-        EXPECT_EQ(0, tree.parent(1));
-        EXPECT_EQ(0, tree.parent(2));
-        EXPECT_EQ(0, tree.parent(3));
+        EXPECT_EQ(no_parent, tree.parent(0));
+        EXPECT_EQ(0u, tree.parent(1));
+        EXPECT_EQ(0u, tree.parent(2));
+        EXPECT_EQ(0u, tree.parent(3));
     }
     {
         //
@@ -100,7 +104,7 @@ TEST(cell_tree, from_parent_index) {
         //                   \.
         //                   13
         //
-        std::vector<int> parent_index =
+        std::vector<int_type> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12};
         cell_tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 6u);
@@ -115,12 +119,12 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(5), 0u);
 
         // Check new structure
-        EXPECT_EQ(-1, tree.parent(0));
-        EXPECT_EQ(0, tree.parent(1));
-        EXPECT_EQ(0, tree.parent(2));
-        EXPECT_EQ(0, tree.parent(3));
-        EXPECT_EQ(3, tree.parent(4));
-        EXPECT_EQ(3, tree.parent(5));
+        EXPECT_EQ(no_parent, tree.parent(0));
+        EXPECT_EQ(0u, tree.parent(1));
+        EXPECT_EQ(0u, tree.parent(2));
+        EXPECT_EQ(0u, tree.parent(3));
+        EXPECT_EQ(3u, tree.parent(4));
+        EXPECT_EQ(3u, tree.parent(5));
     }
     {
         //
@@ -129,7 +133,7 @@ TEST(cell_tree, from_parent_index) {
         //            1
         //           / \.
         //          2   3
-        std::vector<int> parent_index = {0,0,1,1};
+        std::vector<int_type> parent_index = {0,0,1,1};
         cell_tree tree(parent_index);
 
         EXPECT_EQ(tree.num_segments(), 4u);
@@ -146,7 +150,7 @@ TEST(cell_tree, from_parent_index) {
         //            1 4 5
         //           / \.
         //          2   3
-        std::vector<int> parent_index = {0,0,1,1,0,0};
+        std::vector<int_type> parent_index = {0,0,1,1,0,0};
         cell_tree tree(parent_index);
 
         EXPECT_EQ(tree.num_segments(), 6u);
@@ -158,11 +162,11 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(4), 0u);
 
         // Check children
-        EXPECT_EQ(1, tree.children(0)[0]);
-        EXPECT_EQ(4, tree.children(0)[1]);
-        EXPECT_EQ(5, tree.children(0)[2]);
-        EXPECT_EQ(2, tree.children(1)[0]);
-        EXPECT_EQ(3, tree.children(1)[1]);
+        EXPECT_EQ(1u, tree.children(0)[0]);
+        EXPECT_EQ(4u, tree.children(0)[1]);
+        EXPECT_EQ(5u, tree.children(0)[2]);
+        EXPECT_EQ(2u, tree.children(1)[0]);
+        EXPECT_EQ(3u, tree.children(1)[1]);
     }
     /* FIXME
     {
@@ -198,8 +202,8 @@ TEST(tree, change_root) {
         //            1   2 ->  1
         //                      |
         //                      2
-        std::vector<int> parent_index = {0,0,0};
-        tree t(parent_index);
+        std::vector<int_type> parent_index = {0,0,0};
+        tree<int_type> t(parent_index);
         t.change_root(1);
 
         EXPECT_EQ(t.num_nodes(), 3u);
@@ -216,8 +220,8 @@ TEST(tree, change_root) {
         //            1   2  ->  1 2 3
         //           / \             |
         //          3   4            4
-        std::vector<int> parent_index = {0,0,0,1,1};
-        tree t(parent_index);
+        std::vector<int_type> parent_index = {0,0,0,1,1};
+        tree<int_type> t(parent_index);
         t.change_root(1u);
 
         EXPECT_EQ(t.num_nodes(), 5u);
@@ -240,8 +244,8 @@ TEST(tree, change_root) {
         //          3   4       3   4 6
         //             / \.
         //            5   6
-        std::vector<int> parent_index = {0,0,0,1,1,4,4};
-        tree t(parent_index);
+        std::vector<int_type> parent_index = {0,0,0,1,1,4,4};
+        tree<int_type> t(parent_index);
 
         t.change_root(1);
 
@@ -258,6 +262,8 @@ TEST(tree, change_root) {
 }
 
 TEST(cell_tree, balance) {
+    auto no_parent = cell_tree::no_parent;
+
     {
         // a cell with the following structure
         // will balance around 1
@@ -268,13 +274,13 @@ TEST(cell_tree, balance) {
         //          3   4       3   4 6
         //             / \.
         //            5   6
-        std::vector<int> parent_index = {0,0,0,1,1,4,4};
+        std::vector<int_type> parent_index = {0,0,0,1,1,4,4};
         cell_tree t(parent_index);
 
         t.balance();
 
         // the soma (original root) has moved to 5 in the new tree
-        EXPECT_EQ(t.soma(), 5);
+        EXPECT_EQ(t.soma(), 5u);
 
         EXPECT_EQ(t.num_segments(), 7u);
         EXPECT_EQ(t.num_children(0),3u);
@@ -284,13 +290,13 @@ TEST(cell_tree, balance) {
         EXPECT_EQ(t.num_children(4),0u);
         EXPECT_EQ(t.num_children(5),1u);
         EXPECT_EQ(t.num_children(6),0u);
-        EXPECT_EQ(t.parent(0),-1);
-        EXPECT_EQ(t.parent(1), 0);
-        EXPECT_EQ(t.parent(2), 0);
-        EXPECT_EQ(t.parent(3), 0);
-        EXPECT_EQ(t.parent(4), 2);
-        EXPECT_EQ(t.parent(5), 2);
-        EXPECT_EQ(t.parent(6), 5);
+        EXPECT_EQ(t.parent(0), no_parent);
+        EXPECT_EQ(t.parent(1), 0u);
+        EXPECT_EQ(t.parent(2), 0u);
+        EXPECT_EQ(t.parent(3), 0u);
+        EXPECT_EQ(t.parent(4), 2u);
+        EXPECT_EQ(t.parent(5), 2u);
+        EXPECT_EQ(t.parent(6), 5u);
 
         //t.to_graphviz("cell.dot");
     }
@@ -307,7 +313,7 @@ TEST(cell_tree, json_load)
     std::ifstream(path) >> cell_data;
 
     for(auto c : range(0,cell_data.size())) {
-        std::vector<int> parent_index = cell_data[c]["parent_index"];
+        std::vector<int_type> parent_index = cell_data[c]["parent_index"];
         cell_tree tree(parent_index);
         //tree.to_graphviz("cell" + std::to_string(c) + ".dot");
     }

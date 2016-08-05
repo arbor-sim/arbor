@@ -7,6 +7,7 @@
 #include <array>
 #include <chrono>
 #include <string>
+#include <vector>
 
 namespace nest {
 namespace mc {
@@ -55,6 +56,10 @@ struct parallel_for {
         }
     }
 };
+
+template <typename T>
+using parallel_vector = std::vector<T>;
+
 
 inline std::string description() {
     return "serial";

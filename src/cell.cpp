@@ -26,7 +26,7 @@ cell::cell()
     parents_.push_back(0);
 }
 
-int cell::num_segments() const
+cell::size_type cell::num_segments() const
 {
     return segments_.size();
 }
@@ -75,9 +75,9 @@ cable_segment* cell::add_cable(cell::index_type parent, segment_ptr&& cable)
     return segments_.back()->as_cable();
 }
 
-segment* cell::segment(int index)
+segment* cell::segment(index_type index)
 {
-    if(index<0 || index>=num_segments()) {
+    if (index>=num_segments()) {
         throw std::out_of_range(
             "attempt to access a segment with invalid index"
         );
@@ -85,9 +85,9 @@ segment* cell::segment(int index)
     return segments_[index].get();
 }
 
-segment const* cell::segment(int index) const
+segment const* cell::segment(index_type index) const
 {
-    if(index<0 || index>=num_segments()) {
+    if (index>=num_segments()) {
         throw std::out_of_range(
             "attempt to access a segment with invalid index"
         );
@@ -109,7 +109,7 @@ soma_segment* cell::soma()
     return nullptr;
 }
 
-cable_segment* cell::cable(int index)
+cable_segment* cell::cable(index_type index)
 {
     if(index>0 && index<num_segments()) {
         return segment(index)->as_cable();
@@ -146,9 +146,9 @@ std::vector<segment_ptr> const& cell::segments() const
     return segments_;
 }
 
-std::vector<int> cell::compartment_counts() const
+std::vector<cell::size_type> cell::compartment_counts() const
 {
-    std::vector<int> comp_count;
+    std::vector<size_type> comp_count;
     comp_count.reserve(num_segments());
     for(auto const& s : segments()) {
         comp_count.push_back(s->num_compartments());
@@ -156,10 +156,10 @@ std::vector<int> cell::compartment_counts() const
     return comp_count;
 }
 
-size_t cell::num_compartments() const
+cell::size_type cell::num_compartments() const
 {
     auto n = 0u;
-    for(auto &s : segments_) {
+    for(auto& s : segments_) {
         n += s->num_compartments();
     }
     return n;
@@ -196,7 +196,7 @@ void cell::add_detector(segment_location loc, double threshold)
     spike_detectors_.push_back({loc, threshold});
 }
 
-std::vector<int> const& cell::segment_parents() const
+std::vector<cell::index_type> const& cell::segment_parents() const
 {
     return parents_;
 }
@@ -212,24 +212,22 @@ std::vector<int> const& cell::segment_parents() const
 //  - number of compartments in each segment
 bool cell_basic_equality(cell const& lhs, cell const& rhs)
 {
-    if(lhs.num_segments() != rhs.num_segments()) {
+    if (lhs.num_segments() != rhs.num_segments()) {
         return false;
     }
-    if(lhs.segment_parents() != rhs.segment_parents()) {
+    if (lhs.segment_parents() != rhs.segment_parents()) {
         return false;
     }
-    for(auto i=0; i<lhs.num_segments(); ++i) {
+    for (cell::index_type i=0; i<lhs.num_segments(); ++i) {
         // a quick and dirty test
         auto& l = *lhs.segment(i);
         auto& r = *rhs.segment(i);
 
-        if(l.kind() != r.kind()) return false;
-        if(l.area() != r.area()) return false;
-        if(l.volume() != r.volume()) return false;
-        if(l.as_cable()) {
-            if(   l.as_cable()->num_compartments()
-               != r.as_cable()->num_compartments())
-            {
+        if (l.kind() != r.kind()) return false;
+        if (l.area() != r.area()) return false;
+        if (l.volume() != r.volume()) return false;
+        if (l.as_cable()) {
+            if (l.as_cable()->num_compartments() != r.as_cable()->num_compartments()) {
                 return false;
             }
         }

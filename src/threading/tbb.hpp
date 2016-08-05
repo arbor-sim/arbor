@@ -46,6 +46,9 @@ struct timer {
 
 constexpr bool multithreaded() { return true; }
 
+template <typename T>
+using parallel_vector = tbb::concurrent_vector<T>;
+
 } // threading
 } // mc
 } // nest
