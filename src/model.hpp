@@ -84,9 +84,15 @@ public:
     }
 
     time_type run(time_type tfinal, time_type dt) {
-        time_type min_delay = communicator_.min_delay()/2;
+        // Calculate the size of the largest possible time integration interval
+        // before communication of spikes is required.
+        // If spike exchange and cell update are serialized, this is the
+        // minimum delay of the network, however we use half this period
+        // to overlap communication and computation.
+        time_type t_interval = communicator_.min_delay()/2;
+
         while (t_<tfinal) {
-            auto tuntil = std::min(t_+min_delay, tfinal);
+            auto tuntil = std::min(t_+t_interval, tfinal);
 
             event_queues_.exchange();
             local_spikes_.exchange();
