@@ -11,7 +11,7 @@ namespace mc {
 namespace util {
 
 bool failed_assertion(const char* assertion, const char* file, int line, const char* func);
-std::ostream &debug_emit_trace_leader(std::ostream& out, const char* file, int line, const char* varlist);
+std::ostream& debug_emit_trace_leader(std::ostream& out, const char* file, int line, const char* varlist);
 
 inline void debug_emit(std::ostream& out) {
     out << "\n";

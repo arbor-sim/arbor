@@ -5,12 +5,12 @@
 #include <vector>
 #include <random>
 
-#include <communication/spike.hpp>
-#include <threading/threading.hpp>
 #include <algorithms.hpp>
+#include <connection.hpp>
 #include <event_queue.hpp>
-
-#include "connection.hpp"
+#include <spike.hpp>
+#include <threading/threading.hpp>
+#include <util/debug.hpp>
 
 namespace nest {
 namespace mc {
@@ -26,79 +26,37 @@ namespace communication {
 // Once all connections have been specified, the construct() method can be used
 // to build the data structures required for efficient spike communication and
 // event generation.
-template <typename CommunicationPolicy>
+template <typename Time, typename CommunicationPolicy>
 class communicator {
 public:
-    using id_type = uint32_t;
+    using id_type = cell_gid_type;
+    using time_type = Time;
     using communication_policy_type = CommunicationPolicy;
 
-    using spike_type = spike<id_type>;
+    using spike_type = spike<cell_member_type, time_type>;
 
     communicator() = default;
 
-    communicator(id_type n_groups, std::vector<id_type> target_counts) :
-        num_groups_local_(n_groups),
-        num_targets_local_(target_counts.size())
+    // for now, still assuming one-to-one association cells <-> groups,
+    // so that 'group' gids as represented by their first cell gid are
+    // contiguous.
+    communicator(id_type cell_from, id_type cell_to):
+        cell_gid_from_(cell_from), cell_gid_to_(cell_to)
     {
-        target_map_ = nest::mc::algorithms::make_index(target_counts);
-        num_targets_local_ = target_map_.back();
+        auto num_groups_local_ = cell_gid_to_-cell_gid_from_;
 
         // create an event queue for each target group
         events_.resize(num_groups_local_);
-
-        // make maps for converting lid to gid
-        target_gid_map_ = communication_policy_.make_map(num_targets_local_);
-        group_gid_map_  = communication_policy_.make_map(num_groups_local_);
-
-        // transform the target ids from lid to gid
-        auto first_target = target_gid_map_[domain_id()];
-        for (auto &id : target_map_) {
-            id += first_target;
-        }
     }
 
-    id_type target_gid_from_group_lid(id_type lid) const {
-        EXPECTS(lid<num_groups_local_);
-        return target_map_[lid];
-    }
 
-    id_type group_gid_from_group_lid(id_type lid) const {
-        EXPECTS(lid<num_groups_local_);
-        return group_gid_map_[domain_id()] + lid;
-    }
-
-    void add_connection(connection con) {
-        EXPECTS(is_local_target(con.destination()));
+    void add_connection(connection<time_type> con) {
+        EXPECTS(is_local_cell(con.destination().gid));
         connections_.push_back(con);
     }
 
-    bool is_local_target(id_type gid) {
-        return gid>=target_gid_map_[domain_id()]
-            && gid<target_gid_map_[domain_id()+1];
-    }
-
-    bool is_local_group(id_type gid) {
-        return gid>=group_gid_map_[domain_id()]
-            && gid<group_gid_map_[domain_id()+1];
-    }
-
-    /// return the global id of the first group in domain d
-    /// the groups in domain d are in the contiguous half open range
-    ///     [domain_first_group(d), domain_first_group(d+1))
-    id_type group_gid_first(int d) const {
-        return group_gid_map_[d];
-    }
-
-    id_type target_lid(id_type gid) {
-        EXPECTS(is_local_group(gid)); 
-
-        return gid - target_gid_map_[domain_id()];
-    }
-
-    id_type group_lid(id_type gid) {
-        EXPECTS(is_local_group(gid));
-
-        return gid - group_gid_map_[domain_id()];
+    bool is_local_cell(id_type gid) const {
+        return gid>=cell_gid_from_ && gid<cell_gid_to_;
     }
 
     // builds the optimized data structure
@@ -108,26 +66,13 @@ public:
         }
     }
 
-    float min_delay() {
-        auto local_min = std::numeric_limits<float>::max();
+    time_type min_delay() {
+        auto local_min = std::numeric_limits<time_type>::max();
         for (auto& con : connections_) {
             local_min = std::min(local_min, con.delay());
         }
 
         return communication_policy_.min(local_min);
-    }
-
-    // return the local group index of the group which hosts the target with
-    // global id gid
-    id_type local_group_from_global_target(id_type gid) {
-        // assert that gid is in range
-        EXPECTS(is_local_target(gid));
-
-        return
-            std::distance(
-                target_map_.begin(),
-                std::upper_bound(target_map_.begin(), target_map_.end(), gid)
-            ) - 1;
     }
 
     void add_spike(spike_type s) {
@@ -144,22 +89,16 @@ public:
     }
 
     void exchange() {
-
         // global all-to-all to gather a local copy of the global spike list
         // on each node
-        //profiler_.enter("global exchange");
         auto global_spikes = communication_policy_.gather_spikes(local_spikes());
         num_spikes_ += global_spikes.size();
         clear_thread_spike_buffers();
-        //profiler_.leave();
 
         for (auto& q : events_) {
             q.clear();
         }
 
-        //profiler_.enter("events");
-
-        //profiler_.enter("make events");
         // check all global spikes to see if they will generate local events
         for (auto spike : global_spikes) {
             // search for targets
@@ -170,44 +109,24 @@ public:
 
             // generate an event for each target
             for (auto it=targets.first; it!=targets.second; ++it) {
-                auto gidx = local_group_from_global_target(it->destination());
-
+                auto gidx = cell_group_index(it->destination().gid);
                 events_[gidx].push_back(it->make_event(spike));
             }
         }
-
-        //profiler_.leave(); // make events
-
-        //profiler_.leave(); // event generation
     }
 
-    uint64_t num_spikes() const
-    {
-        return num_spikes_;
-    }
+    uint64_t num_spikes() const { return num_spikes_; }
 
-    int domain_id() const {
-        return communication_policy_.id();
-    }
-
-    int num_domains() const {
-        return communication_policy_.size();
-    }
-
-    const std::vector<postsynaptic_spike_event>& queue(int i) const {
+    const std::vector<postsynaptic_spike_event<time_type>>& queue(int i) const {
         return events_[i];
     }
 
-    const std::vector<connection>& connections() const {
+    const std::vector<connection<time_type>>& connections() const {
         return connections_;
     }
 
     communication_policy_type communication_policy() const {
         return communication_policy_;
-    }
-
-    const std::vector<id_type>& local_target_map() const {
-        return target_map_;
     }
 
     std::vector<spike_type> local_spikes() {
@@ -224,7 +143,20 @@ public:
         }
     }
 
+    void reset() {
+        // remove all in-flight spikes/events
+        clear_thread_spike_buffers();
+        for (auto& evbuf: events_) {
+            evbuf.clear();
+        }
+    }
+
 private:
+    std::size_t cell_group_index(cell_gid_type cell_gid) const {
+        // this will be more elaborate when there is more than one cell per cell group
+        EXPECTS(cell_gid>=cell_gid_from_ && cell_gid<cell_gid_to_);
+        return cell_gid-cell_gid_from_;
+    }
 
     //
     //  both of these can be fixed with double buffering
@@ -239,33 +171,17 @@ private:
         nest::mc::threading::enumerable_thread_specific<std::vector<spike_type>>;
     local_spike_store_type thread_spikes_;
 
-    std::vector<connection> connections_;
-    std::vector<std::vector<postsynaptic_spike_event>> events_;
-
-    // local target group i has targets in the half open range
-    //      [target_map_[i], target_map_[i+1])
-    std::vector<id_type> target_map_;
+    std::vector<connection<time_type>> connections_;
+    std::vector<std::vector<postsynaptic_spike_event<time_type>>> events_;
 
     // for keeping track of how time is spent where
     //util::Profiler profiler_;
 
-    // the number of groups and targets handled by this communicator
-    id_type num_groups_local_;
-    id_type num_targets_local_;
-
-    // index maps for the global distribution of groups and targets
-
-    // communicator i has the groups in the half open range :
-    //      [group_gid_map_[i], group_gid_map_[i+1])
-    std::vector<id_type> group_gid_map_;
-
-    // communicator i has the targets in the half open range :
-    //      [target_gid_map_[i], target_gid_map_[i+1])
-    std::vector<id_type> target_gid_map_;
-
     communication_policy_type communication_policy_;
 
     uint64_t num_spikes_ = 0u;
+    id_type cell_gid_from_;
+    id_type cell_gid_to_;
 };
 
 } // namespace communication

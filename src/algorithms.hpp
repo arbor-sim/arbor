@@ -90,12 +90,12 @@ bool is_minimal_degree(C const& c)
         "is_minimal_degree only applies to integral types"
     );
 
-    if(c.size()==0u) {
+    if (c.size()==0u) {
         return true;
     }
 
     using value_type = typename C::value_type;
-    if(c[0] != value_type(0)) {
+    if (c[0] != value_type(0)) {
         return false;
     }
     auto i = value_type(1);
@@ -121,7 +121,7 @@ bool is_positive(C const& c)
 }
 
 template<typename C>
-bool has_contiguous_segments(const C &parent_index)
+bool has_contiguous_segments(const C& parent_index)
 {
     static_assert(
         std::is_integral<typename C::value_type>::value,
@@ -141,7 +141,7 @@ bool has_contiguous_segments(const C &parent_index)
             return false;
         }
 
-        if(p != i-1) {
+        if(p != decltype(p)(i-1)) {
             // we have a branch and i-1 is a leaf node
             is_leaf[i-1] = true;
         }
@@ -151,7 +151,7 @@ bool has_contiguous_segments(const C &parent_index)
 }
 
 template<typename C>
-std::vector<typename C::value_type> child_count(const C &parent_index)
+std::vector<typename C::value_type> child_count(const C& parent_index)
 {
     static_assert(
         std::is_integral<typename C::value_type>::value,
@@ -174,7 +174,7 @@ std::vector<typename C::value_type> branches(const C& parent_index)
         "integral type required"
     );
 
-    EXPECTS(has_contiguous_segments(parent_index));
+    //EXPECTS(has_contiguous_segments(parent_index));
 
     std::vector<typename C::value_type> branch_index;
     if (parent_index.empty()) {
@@ -229,7 +229,7 @@ typename C::value_type find_branch(const C& branch_index,
 
     auto it =  std::find_if(
         branch_index.begin(), branch_index.end(),
-        [nid](const value_type &v) { return v > nid; }
+        [nid](const value_type& v) { return v > nid; }
     );
 
     return it - branch_index.begin() - 1;
@@ -250,7 +250,7 @@ std::vector<typename C::value_type> make_parent_index(
     }
 
     EXPECTS(parent_index.size() == unsigned(branch_index.back()));
-    EXPECTS(has_contiguous_segments(parent_index));
+    //EXPECTS(has_contiguous_segments(parent_index));
     EXPECTS(is_strictly_monotonic_increasing(branch_index));
 
     // expand the branch index

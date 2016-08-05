@@ -62,8 +62,8 @@ class lexcmp_test_refmemfn {
 public:
     explicit lexcmp_test_refmemfn(int foo): foo_(foo) {}
 
-    const int &foo() const { return foo_; }
-    int &foo() { return foo_; }
+    const int& foo() const { return foo_; }
+    int& foo() { return foo_; }
 
 private:
     int foo_;

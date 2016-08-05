@@ -502,7 +502,7 @@ TEST(swc_io, cell_construction)
 
         cell cell = io::swc_read_cell(is);
         EXPECT_TRUE(cell.has_soma());
-        EXPECT_EQ(4, cell.num_segments());
+        EXPECT_EQ(4u, cell.num_segments());
 
         EXPECT_EQ(norm(points[1]-points[2]), cell.cable(1)->length());
         EXPECT_EQ(norm(points[2]-points[3]), cell.cable(2)->length());
@@ -515,13 +515,13 @@ TEST(swc_io, cell_construction)
         EXPECT_EQ(2.1, cell.soma()->radius());
         EXPECT_EQ(point_type(0, 0, 0), cell.soma()->center());
 
-        for (auto i = 1; i < cell.num_segments(); ++i) {
+        for (auto i = 1u; i < cell.num_segments(); ++i) {
             EXPECT_TRUE(cell.segment(i)->is_dendrite());
         }
 
-        EXPECT_EQ(1, cell.cable(1)->num_sub_segments());
-        EXPECT_EQ(1, cell.cable(2)->num_sub_segments());
-        EXPECT_EQ(2, cell.cable(3)->num_sub_segments());
+        EXPECT_EQ(1u, cell.cable(1)->num_sub_segments());
+        EXPECT_EQ(1u, cell.cable(2)->num_sub_segments());
+        EXPECT_EQ(2u, cell.cable(3)->num_sub_segments());
 
 
         // Check the radii
@@ -563,7 +563,7 @@ TEST(swc_parser, from_file_ball_and_stick)
     auto cell = nest::mc::io::swc_read_cell(fid);
 
     // verify that the correct number of nodes was read
-    EXPECT_EQ(cell.num_segments(), 2);
+    EXPECT_EQ(cell.num_segments(), 2u);
     EXPECT_EQ(cell.num_compartments(), 2u);
 
     // make an equivalent cell via C++ interface

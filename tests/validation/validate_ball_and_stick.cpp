@@ -1,6 +1,7 @@
 #include <fstream>
 #include <json/src/json.hpp>
 
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
 
@@ -15,9 +16,6 @@ TEST(ball_and_stick, neuron_baseline)
     using namespace nlohmann;
 
     nest::mc::cell cell;
-
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);
@@ -92,7 +90,7 @@ TEST(ball_and_stick, neuron_baseline)
         std::vector<std::vector<double>> v(3);
 
         // make the lowered finite volume cell
-        fvm::fvm_cell<double, int> model(cell);
+        fvm::fvm_cell<double, cell_local_size_type> model(cell);
         auto graph = cell.model();
 
         // set initial conditions
@@ -164,9 +162,6 @@ TEST(ball_and_3stick, neuron_baseline)
     using namespace nlohmann;
 
     nest::mc::cell cell;
-
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);
@@ -250,7 +245,7 @@ TEST(ball_and_3stick, neuron_baseline)
         std::vector<std::vector<double>> v(3);
 
         // make the lowered finite volume cell
-        fvm::fvm_cell<double, int> model(cell);
+        fvm::fvm_cell<double, cell_local_size_type> model(cell);
         auto graph = cell.model();
 
         // set initial conditions

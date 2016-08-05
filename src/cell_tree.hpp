@@ -10,6 +10,8 @@
 #include <vector>
 
 #include <vector/include/Vector.hpp>
+
+#include "common_types.hpp"
 #include "tree.hpp"
 #include "util.hpp"
 
@@ -29,38 +31,42 @@ namespace mc {
 /// flexibility in choosing the root.
 class cell_tree {
     using range = memory::Range;
-public :
-    // use a signed 16-bit integer for storage of indexes, which is reasonable given
-    // that typical cells have at most 1000-2000 segments
-    using int_type        = int;
+
+public:
+    using int_type        = cell_lid_type;
+    using size_type       = cell_local_size_type;
+
     using index_type      = memory::HostVector<int_type>;
     using view_type       = index_type::view_type;
     using const_view_type = index_type::const_view_type;
+
+    using tree = nest::mc::tree<int_type, size_type>;
+    static constexpr int_type no_parent = tree::no_parent;
 
     /// default empty constructor
     cell_tree() = default;
 
     /// construct from a parent index
-    cell_tree(std::vector<int> const& parent_index)
+    cell_tree(std::vector<int_type> const& parent_index)
     {
         // handle the case of an empty parent list, which implies a single-compartment model
         if(parent_index.size()>0) {
             tree_ = tree(parent_index);
         }
         else {
-            tree_ = tree(std::vector<int>({0}));
+            tree_ = tree(std::vector<int_type>({0}));
         }
     }
 
     /// construct from a tree
     // copy constructor
-    cell_tree(tree const& t, int s)
+    cell_tree(tree const& t, int_type s)
     : tree_(t),
       soma_(s)
     { }
 
     // move constructor
-    cell_tree(tree&& t, int s)
+    cell_tree(tree&& t, int_type s)
     : tree_(std::move(t)),
       soma_(s)
     { }
@@ -129,12 +135,12 @@ public :
     }
 
     /// returns the number of child segments of segment b
-    size_t num_children(size_t b) const {
+    size_type num_children(int_type b) const {
         return tree_.num_children(b);
     }
 
     /// returns a list of the children of segment b
-    const_view_type children(size_t b) const {
+    const_view_type children(int_type b) const {
         return tree_.children(b);
     }
 
@@ -162,7 +168,7 @@ public :
     index_type depth_from_leaf()
     {
         tree::index_type depth(num_segments());
-        depth_from_leaf(depth, 0);
+        depth_from_leaf(depth, int_type{0});
         return depth;
     }
 
@@ -170,7 +176,7 @@ public :
     {
         tree::index_type depth(num_segments());
         depth[0] = 0;
-        depth_from_root(depth, 1);
+        depth_from_root(depth, int_type{1});
         return depth;
     }
 
@@ -179,12 +185,11 @@ private :
     /// helper type for sub-tree computation
     /// use in balance()
     struct sub_tree {
-        sub_tree(int r, int diam, int dpth)
-        : root(r), diameter(diam), depth(dpth)
+        sub_tree(int_type r, int_type diam, int_type dpth):
+            root(r), diameter(diam), depth(dpth)
         {}
 
-        void set(int r, int diam, int dpth)
-        {
+        void set(int r, int diam, int dpth) {
             root = r;
             diameter = diam;
             depth = dpth;
@@ -198,15 +203,15 @@ private :
                "]";
         }
 
-        int root;
-        int diameter;
-        int depth;
+        int_type root;
+        int_type diameter;
+        int_type depth;
     };
 
     /// returns the index of the segment that would minimise the depth of the
     /// tree if used as the root segment
     int_type find_minimum_root() {
-        if(num_segments()==1) {
+        if (num_segments()==1) {
             return 0;
         }
 
@@ -229,14 +234,14 @@ private :
         // walk has been completed to the root node, the node that has been
         // selected will be the root of the sub-tree with the largest diameter.
         sub_tree max_sub_tree(0, 0, 0);
-        auto distance_from_max_leaf = 1;
+        int_type distance_from_max_leaf = 1;
         auto pnt = max_leaf;
         auto pos = parent(max_leaf);
-        while(pos != -1) {
+        while(pos != no_parent) {
             for(auto c : children(pos)) {
                 if(c!=pnt) {
                     auto diameter = depth[c] + 1 + distance_from_max_leaf;
-                    if(diameter>max_sub_tree.diameter) {
+                    if (diameter>max_sub_tree.diameter) {
                         max_sub_tree.set(pos, diameter, distance_from_max_leaf);
                     }
                 }
@@ -266,7 +271,7 @@ private :
         return new_root;
     }
 
-    int_type depth_from_leaf(index_type& depth, int segment)
+    int_type depth_from_leaf(index_type& depth, int_type segment)
     {
         int_type max_depth = 0;
         for(auto c : children(segment)) {
@@ -276,7 +281,7 @@ private :
         return max_depth+1;
     }
 
-    void depth_from_root(index_type& depth, int segment)
+    void depth_from_root(index_type& depth, int_type segment)
     {
         auto d = depth[parent(segment)] + 1;
         depth[segment] = d;

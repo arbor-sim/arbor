@@ -66,7 +66,7 @@ void profiler_node::print_sub(
 
     if (print_children) {
         auto other = 0.;
-        for (auto &n : children) {
+        for (auto& n : children) {
             if (n.value<threshold || n.name=="other") {
                 other += n.value;
             }
@@ -162,7 +162,7 @@ double region_type::subregion_contributions() const {
 profiler_node region_type::populate_performance_tree() const {
     profiler_node tree(total(), name());
 
-    for (auto &it : subregions_) {
+    for (auto& it : subregions_) {
         tree.children.push_back(it.second->populate_performance_tree());
     }
 
