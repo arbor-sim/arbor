@@ -121,7 +121,23 @@ bool is_positive(C const& c)
 }
 
 template<typename C>
-bool has_contiguous_segments(const C& parent_index)
+std::vector<typename C::value_type> child_count(const C& parent_index)
+{
+    static_assert(
+        std::is_integral<typename C::value_type>::value,
+        "integral type required"
+    );
+
+    std::vector<typename C::value_type> count(parent_index.size(), 0);
+    for (auto i = 1u; i < parent_index.size(); ++i) {
+        ++count[parent_index[i]];
+    }
+
+    return count;
+}
+
+template<typename C>
+bool has_contiguous_compartments(const C& parent_index)
 {
     static_assert(
         std::is_integral<typename C::value_type>::value,
@@ -132,38 +148,15 @@ bool has_contiguous_segments(const C& parent_index)
         return false;
     }
 
-    int n = parent_index.size();
-    std::vector<bool> is_leaf(n, false);
-
-    for(auto i=1; i<n; ++i) {
+    auto num_child = child_count(parent_index);
+    for (auto i = 1u; i < parent_index.size(); ++i) {
         auto p = parent_index[i];
-        if(is_leaf[p]) {
+        if (num_child[p] == 1 && p != i-1) {
             return false;
-        }
-
-        if(p != decltype(p)(i-1)) {
-            // we have a branch and i-1 is a leaf node
-            is_leaf[i-1] = true;
         }
     }
 
     return true;
-}
-
-template<typename C>
-std::vector<typename C::value_type> child_count(const C& parent_index)
-{
-    static_assert(
-        std::is_integral<typename C::value_type>::value,
-        "integral type required"
-    );
-
-    std::vector<typename C::value_type> count(parent_index.size(), 0);
-    for (std::size_t i = 1; i < parent_index.size(); ++i) {
-        ++count[parent_index[i]];
-    }
-
-    return count;
 }
 
 template<typename C>
@@ -174,7 +167,7 @@ std::vector<typename C::value_type> branches(const C& parent_index)
         "integral type required"
     );
 
-    //EXPECTS(has_contiguous_segments(parent_index));
+    EXPECTS(has_contiguous_compartments(parent_index));
 
     std::vector<typename C::value_type> branch_index;
     if (parent_index.empty()) {
@@ -249,8 +242,8 @@ std::vector<typename C::value_type> make_parent_index(
         return {};
     }
 
-    EXPECTS(parent_index.size() == unsigned(branch_index.back()));
-    //EXPECTS(has_contiguous_segments(parent_index));
+    EXPECTS(parent_index.size() == branch_index.back());
+    EXPECTS(has_contiguous_compartments(parent_index));
     EXPECTS(is_strictly_monotonic_increasing(branch_index));
 
     // expand the branch index
