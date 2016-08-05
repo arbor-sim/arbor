@@ -5,11 +5,12 @@
 #include <vector>
 #include <random>
 
+#include <spike.hpp>
+#include <util/double_buffer.hpp>
 #include <algorithms.hpp>
 #include <connection.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
-#include <threading/threading.hpp>
 #include <util/debug.hpp>
 
 namespace nest {
@@ -29,43 +30,50 @@ namespace communication {
 template <typename Time, typename CommunicationPolicy>
 class communicator {
 public:
+    using communication_policy_type = CommunicationPolicy;
     using id_type = cell_gid_type;
     using time_type = Time;
-    using communication_policy_type = CommunicationPolicy;
-
     using spike_type = spike<cell_member_type, time_type>;
+    using connection_type = connection<time_type>;
+
+    /// per-cell group lists of events to be delivered
+    using event_queue =
+        std::vector<postsynaptic_spike_event<time_type>>;
 
     communicator() = default;
 
+    // TODO
     // for now, still assuming one-to-one association cells <-> groups,
     // so that 'group' gids as represented by their first cell gid are
     // contiguous.
     communicator(id_type cell_from, id_type cell_to):
         cell_gid_from_(cell_from), cell_gid_to_(cell_to)
-    {
-        auto num_groups_local_ = cell_gid_to_-cell_gid_from_;
+    {}
 
-        // create an event queue for each target group
-        events_.resize(num_groups_local_);
+    cell_local_size_type num_groups_local() const
+    {
+        return cell_gid_to_-cell_gid_from_;
     }
 
-
-    void add_connection(connection<time_type> con) {
+    void add_connection(connection_type con) {
         EXPECTS(is_local_cell(con.destination().gid));
         connections_.push_back(con);
     }
 
+    /// returns true if the cell with gid is on the domain of the caller
     bool is_local_cell(id_type gid) const {
         return gid>=cell_gid_from_ && gid<cell_gid_to_;
     }
 
-    // builds the optimized data structure
+    /// builds the optimized data structure
+    /// must be called after all connections have been added
     void construct() {
         if (!std::is_sorted(connections_.begin(), connections_.end())) {
             std::sort(connections_.begin(), connections_.end());
         }
     }
 
+    /// the minimum delay of all connections in the global network.
     time_type min_delay() {
         auto local_min = std::numeric_limits<time_type>::max();
         for (auto& con : connections_) {
@@ -75,31 +83,22 @@ public:
         return communication_policy_.min(local_min);
     }
 
-    void add_spike(spike_type s) {
-        thread_spikes().push_back(s);
-    }
-
-    void add_spikes(const std::vector<spike_type>& s) {
-        auto& v = thread_spikes();
-        v.insert(v.end(), s.begin(), s.end());
-    }
-
-    std::vector<spike_type>& thread_spikes() {
-        return thread_spikes_.local();
-    }
-
-    void exchange() {
-        // global all-to-all to gather a local copy of the global spike list
-        // on each node
-        auto global_spikes = communication_policy_.gather_spikes(local_spikes());
+    /// Perform exchange of spikes.
+    ///
+    /// Takes as input the list of local_spikes that were generated on the calling domain.
+    ///
+    /// Returns a vector of event queues, with one queue for each local cell group. The
+    /// events in each queue are all events that must be delivered to targets in that cell
+    /// group as a result of the global spike exchange.
+    std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes) {
+        // global all-to-all to gather a local copy of the global spike list on each node.
+        auto global_spikes = communication_policy_.gather_spikes( local_spikes );
         num_spikes_ += global_spikes.size();
-        clear_thread_spike_buffers();
 
-        for (auto& q : events_) {
-            q.clear();
-        }
+        // check each global spike in turn to see it generates local events.
+        // if so, make the events and insert them into the appropriate event list.
+        auto queues = std::vector<event_queue>(num_groups_local());
 
-        // check all global spikes to see if they will generate local events
         for (auto spike : global_spikes) {
             // search for targets
             auto targets =
@@ -110,45 +109,23 @@ public:
             // generate an event for each target
             for (auto it=targets.first; it!=targets.second; ++it) {
                 auto gidx = cell_group_index(it->destination().gid);
-                events_[gidx].push_back(it->make_event(spike));
+                queues[gidx].push_back(it->make_event(spike));
             }
         }
+
+        return queues;
     }
 
+    /// Returns the total number of global spikes over the duration
+    /// of the simulation
     uint64_t num_spikes() const { return num_spikes_; }
 
-    const std::vector<postsynaptic_spike_event<time_type>>& queue(int i) const {
-        return events_[i];
-    }
-
-    const std::vector<connection<time_type>>& connections() const {
+    const std::vector<connection_type>& connections() const {
         return connections_;
     }
 
     communication_policy_type communication_policy() const {
         return communication_policy_;
-    }
-
-    std::vector<spike_type> local_spikes() {
-        std::vector<spike_type> spikes;
-        for (auto& v : thread_spikes_) {
-            spikes.insert(spikes.end(), v.begin(), v.end());
-        }
-        return spikes;
-    }
-
-    void clear_thread_spike_buffers() {
-        for (auto& v : thread_spikes_) {
-            v.clear();
-        }
-    }
-
-    void reset() {
-        // remove all in-flight spikes/events
-        clear_thread_spike_buffers();
-        for (auto& evbuf: events_) {
-            evbuf.clear();
-        }
     }
 
 private:
@@ -158,24 +135,7 @@ private:
         return cell_gid-cell_gid_from_;
     }
 
-    //
-    //  both of these can be fixed with double buffering
-    //
-    // FIXME : race condition on the thread_spikes_ buffers when exchange() modifies/access them
-    //         ... other threads will be pushing to them simultaneously
-    // FIXME : race condition on the group-specific event queues when exchange pushes to them
-    //         ... other threads will be accessing them to update their event queues
-
-    // thread private storage for accumulating spikes
-    using local_spike_store_type =
-        nest::mc::threading::enumerable_thread_specific<std::vector<spike_type>>;
-    local_spike_store_type thread_spikes_;
-
-    std::vector<connection<time_type>> connections_;
-    std::vector<std::vector<postsynaptic_spike_event<time_type>>> events_;
-
-    // for keeping track of how time is spent where
-    //util::Profiler profiler_;
+    std::vector<connection_type> connections_;
 
     communication_policy_type communication_policy_;
 
