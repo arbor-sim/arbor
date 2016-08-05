@@ -6,6 +6,8 @@
 #include <stdexcept>
 #include <utility>
 
+#include <util/optional.hpp>
+
 namespace nest {
 namespace mc {
 namespace io {
@@ -20,6 +22,10 @@ struct cl_options {
     double tfinal;
     double dt;
     bool all_to_all;
+    bool probe_soma_only;
+    double probe_ratio;
+    std::string trace_prefix;
+    util::optional<unsigned> trace_max_gid;
 };
 
 class usage_error: public std::runtime_error {

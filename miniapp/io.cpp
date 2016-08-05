@@ -1,13 +1,37 @@
-#include <fstream>
 #include <exception>
+#include <fstream>
+#include <istream>
 
 #include <tclap/CmdLine.h>
 #include <json/src/json.hpp>
 
+#include <util/optional.hpp>
+
 #include "io.hpp"
+
+// Let TCLAP understand value arguments that are of an optional type.
+
+template <typename V>
+struct TCLAP::ArgTraits<nest::mc::util::optional<V>> {
+    using ValueCategory = ValueLike;
+};
 
 namespace nest {
 namespace mc {
+
+// Using static here because we do not want external linkage for this operator
+
+namespace util {
+    template <typename V>
+    static std::istream& operator>>(std::istream& I, optional<V>& v) {
+        V u;
+        if (I >> u) {
+            v = u;
+        }
+        return I;
+    }
+}
+
 namespace io {
 
 /// read simulation options from json file with name fname
@@ -17,7 +41,8 @@ namespace io {
 cl_options read_options(int argc, char** argv) {
 
     // set default options
-    const cl_options defopts{"", 1000, 500, "expsyn", 100, 100., 0.025, false};
+    const cl_options defopts{"", 1000, 500, "expsyn", 100, 100., 0.025, false,
+                             false, 1.0, "trace_", util::nothing};
 
     cl_options options;
     // parse command line arguments
@@ -47,6 +72,17 @@ cl_options read_options(int argc, char** argv) {
             false, defopts.dt, "positive real number", cmd);
         TCLAP::SwitchArg all_to_all_arg(
             "m","alltoall","all to all network", cmd, false);
+        TCLAP::ValueArg<double> probe_ratio_arg(
+            "p", "probe-ratio", "proportion of cells to probe",
+            false, defopts.probe_ratio, "real number in [0,1]", cmd);
+        TCLAP::SwitchArg probe_soma_only_arg(
+            "X", "probe-soma-only", "only probe cell somas, not dendrites", cmd, false);
+        TCLAP::ValueArg<std::string> trace_prefix_arg(
+            "P", "trace-prefix", "write traces to files with this prefix",
+            false, defopts.trace_prefix, "stringr", cmd);
+        TCLAP::ValueArg<util::optional<unsigned>> trace_max_gid_arg(
+            "T", "trace-max-gid", "only trace probes on cells up to this gid",
+            false, defopts.trace_max_gid, "unisgned integer", cmd);
 
         cmd.parse(argc, argv);
 
@@ -58,6 +94,10 @@ cl_options read_options(int argc, char** argv) {
         options.tfinal = tfinal_arg.getValue();
         options.dt = dt_arg.getValue();
         options.all_to_all = all_to_all_arg.getValue();
+        options.probe_ratio = probe_ratio_arg.getValue();
+        options.probe_soma_only = probe_soma_only_arg.getValue();
+        options.trace_prefix = trace_prefix_arg.getValue();
+        options.trace_max_gid = trace_max_gid_arg.getValue();
     }
     // catch any exceptions in command line handling
     catch (TCLAP::ArgException& e) {
@@ -100,6 +140,14 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  simulation time      : " << options.tfinal << "\n";
     o << "  dt                   : " << options.dt << "\n";
     o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
+    o << "  probe ratio          : " << options.probe_ratio << "\n";
+    o << "  probe soma only      : " << (options.probe_soma_only ? "yes" : "no") << "\n";
+    o << "  trace prefix         : " << options.trace_prefix << "\n";
+    o << "  trace max gid        : ";
+    if (options.trace_max_gid) {
+       o << *options.trace_max_gid;
+    }
+    o << "\n";
     o << "  input file name      : " << options.ifname << "\n";
 
     return o;

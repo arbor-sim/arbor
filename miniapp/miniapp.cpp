@@ -32,7 +32,7 @@ using model_type = model<lowered_cell>;
 using sample_trace_type = sample_trace<model_type::time_type, model_type::value_type>;
 
 void banner();
-std::unique_ptr<recipe> make_recipe(const io::cl_options&);
+std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
 std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
 
@@ -53,7 +53,12 @@ int main(int argc, char** argv) {
                   << std::ceil(options.tfinal / options.dt) << " steps of "
                   << options.dt << " ms" << std::endl;
 
-        auto recipe = make_recipe(options);
+        // determine what to attach probes to
+        probe_distribution pdist;
+        pdist.proportion = options.probe_ratio;
+        pdist.all_segments = !options.probe_soma_only;
+
+        auto recipe = make_recipe(options, pdist);
         auto cell_range = distribute_cells(recipe->num_cells());
 
         // build model from recipe
@@ -69,6 +74,10 @@ int main(int argc, char** argv) {
         std::vector<std::unique_ptr<sample_trace_type>> traces;
         const model_type::time_type sample_dt = 0.1;
         for (auto probe: m.probes()) {
+            if (options.trace_max_gid && probe.id.gid>*options.trace_max_gid) {
+                continue;
+            }
+
             traces.push_back(make_trace(probe.id, probe.probe));
             m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(),sample_dt));
         }
@@ -81,7 +90,7 @@ int main(int argc, char** argv) {
 
         // save traces
         for (const auto& trace: traces) {
-            write_trace_json(*trace.get());
+            write_trace_json(*trace.get(), options.trace_prefix);
         }
     }
     catch (io::usage_error& e) {
@@ -119,7 +128,7 @@ void banner() {
     std::cout << "====================\n";
 }
 
-std::unique_ptr<recipe> make_recipe(const io::cl_options& options) {
+std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {
     basic_recipe_param p;
 
     p.num_compartments = options.compartments_per_segment;
@@ -127,17 +136,17 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options) {
     p.synapse_type = options.syn_type;
 
     if (options.all_to_all) {
-        return make_basic_kgraph_recipe(options.cells, p);
+        return make_basic_kgraph_recipe(options.cells, p, pdist);
     }
     else {
-        return make_basic_rgraph_recipe(options.cells, p);
+        return make_basic_rgraph_recipe(options.cells, p, pdist);
     }
 }
 
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe) {
     std::string name = "";
     std::string units = "";
-    
+
     switch (probe.kind) {
     case probeKind::membrane_voltage:
         name = "v";

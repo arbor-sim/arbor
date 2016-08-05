@@ -76,13 +76,15 @@ public:
         EXPECTS(cell.detectors().size()==cc.num_sources);
 
         // add probes
-        unsigned n_probe_segs = pdist_.all_segments? basic_cell_segments: 1u;
-        for (unsigned i = 0; i<n_probe_segs; ++i) {
-            if (pdist_.membrane_voltage) {
-                cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
-            }
-            if (pdist_.membrane_current) {
-                cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_current});
+        if (cc.num_probes) {
+            unsigned n_probe_segs = pdist_.all_segments? basic_cell_segments: 1u;
+            for (unsigned i = 0; i<n_probe_segs; ++i) {
+                if (pdist_.membrane_voltage) {
+                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
+                }
+                if (pdist_.membrane_current) {
+                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_current});
+                }
             }
         }
         EXPECTS(cell.probes().size()==cc.num_probes);
