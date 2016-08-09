@@ -7,10 +7,12 @@
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <fvm_cell.hpp>
+#include <memory>
 #include <recipe.hpp>
 #include <thread_private_spike_store.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <communication/exporter_interface.hpp>
 #include <profiling/profiler.hpp>
 
 #include "trace_sampler.hpp"
@@ -182,6 +184,8 @@ private:
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 
+    using exporter_interface_type = nest::mc::communication::exporter_interface<time_type, communicator_type>;
+    std::unique_ptr<exporter_interface_type> exporter_;
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.
     //
