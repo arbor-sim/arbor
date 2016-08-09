@@ -138,7 +138,8 @@ public:
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
                 future_events() = communicator_.exchange(local_spikes,
-                    [&] { exporter_->add_and_export(); });
+//                    [&] { exporter_->add_and_export(std::vector<spike_type> spikes); });
+                [&] { exporter_->add_and_export(std::vector<spike_type> spikes); });
                 PL(2);
             };
 
