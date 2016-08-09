@@ -47,6 +47,8 @@ public:
 
     void do_export_rank(const std::vector<spike_type>& spikes)
     {
+        // TODO: do the buffering of the spikes here and not in the 
+        //      exporters itself!!!
         for (auto &exporter : rank_exporters_)
         {
             exporter->add_and_export(spikes);

@@ -14,6 +14,9 @@ add_subdirectory(validation)
 # Test for the internode communication (eg. mpi)
 add_subdirectory(global_communication)
 
+# Tests for performance: This could include stand alone tests. These do not necessarily be run automatically
+add_subdirectory(performance)
+
 
 # Proposed additional test types:
 
@@ -21,7 +24,6 @@ add_subdirectory(global_communication)
 
 # Test to check integration between components 
 
-# Tests for performance: This could include stand alone tests. These do not necessarily be run automatically
 
 # Numbered tests based on bugs in the tracker
 

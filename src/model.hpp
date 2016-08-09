@@ -137,7 +137,7 @@ public:
                 auto local_spikes = previous_spikes().gather();
                 future_events() = communicator_.exchange(local_spikes,
                     [&](const std::vector<spike_type>& spikes) { exporter_->do_export_rank(spikes); },
-                [&] (const std::vector<spike_type>& spikes){ exporter_->do_export_single(spikes); });
+                    [&] (const std::vector<spike_type>& spikes){ exporter_->do_export_single(spikes); });
                 PL(2);
             };
 
