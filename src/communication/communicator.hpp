@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <random>
+#include <functional>
 
 #include <spike.hpp>
 #include <util/double_buffer.hpp>
@@ -90,8 +91,17 @@ public:
     /// Returns a vector of event queues, with one queue for each local cell group. The
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
-    std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes) {
+    std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes,
+        std::function<void ()> export_function) //const std::vector<spike_type>&
+    {
         // global all-to-all to gather a local copy of the global spike list on each node.
+        
+        bool file_per_rank = true;
+        if (file_per_rank) {
+            export_function(); //local_spikes
+        }
+
+
         auto global_spikes = communication_policy_.gather_spikes( local_spikes );
         num_spikes_ += global_spikes.size();
 

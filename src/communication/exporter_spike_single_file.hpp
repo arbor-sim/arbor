@@ -98,6 +98,18 @@ public:
                        std::begin(spikes), std::end(spikes));       
     }
 
+    // Add and export data to file in a single function
+    void add_and_export() override
+    {
+        std::vector<spike_type>spikes;
+        if (!communication_policy_.id() == 0) {
+            return;
+        }
+
+        add_data(spikes);
+        do_export();
+    }
+
     // Internal state is ok
     // We are working with fstreams possibly on a seperate thread
     // We need a way to assertain the status of the stream
