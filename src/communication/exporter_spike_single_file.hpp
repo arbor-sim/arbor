@@ -72,10 +72,6 @@ public:
     // Does not throw
     void do_export() override
     {        
-        if (!communication_policy_.id() == 0) {
-            return;
-        }
-
         for (auto spike : spikes_) {
             *file_handle_ << spike.source.gid << " " << spike.time << std::endl;
         }
@@ -90,9 +86,6 @@ public:
     // Does not do the actual export  
     void add_data(std::vector<spike_type>spikes) override
     {
-        if (!communication_policy_.id() == 0) {
-            return;
-        }
 
         spikes_.insert(std::end(spikes_), 
                        std::begin(spikes), std::end(spikes));       
@@ -101,10 +94,6 @@ public:
     // Add and export data to file in a single function
     void add_and_export(const std::vector<spike_type>& spikes) override
     {
-        if (!communication_policy_.id() == 0) {
-            return;
-        }
-
         add_data(spikes);
         do_export();
     }
@@ -114,9 +103,6 @@ public:
     // We need a way to assertain the status of the stream
     bool ok() const override
     {
-        if (!communication_policy_.id() == 0) {
-            return true;
-        }
 
         return ok_ && file_handle_->good();
     }

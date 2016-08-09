@@ -12,9 +12,7 @@
 #include <thread_private_spike_store.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <communication/exporter_interface.hpp>
-#include <communication/exporter_spike_single_file.hpp>
-#include <communication/exporter_spike_file.hpp>
+#include <communication/export_manager.hpp>
 #include <profiling/profiler.hpp>
 
 #include "trace_sampler.hpp"
@@ -74,8 +72,7 @@ public:
 
         bool single_file = true;
         if (single_file == true) {
-            exporter_ = nest::mc::util::make_unique<exporter_spike_single_file_type>(
-                "file_name", "./","gdf");
+            exporter_ = nest::mc::util::make_unique<exporter_manager_type>();
         }
 
         // Allocate an empty queue buffer for each cell group
@@ -139,7 +136,8 @@ public:
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
                 future_events() = communicator_.exchange(local_spikes,
-                [&] (const std::vector<spike_type>& spikes){ exporter_->add_and_export(spikes); });
+                    [&](const std::vector<spike_type>& spikes) { exporter_->do_export_rank(spikes); },
+                [&] (const std::vector<spike_type>& spikes){ exporter_->do_export_single(spikes); });
                 PL(2);
             };
 
@@ -194,10 +192,9 @@ private:
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 
-    using exporter_interface_type = nest::mc::communication::exporter_interface<time_type, communication::global_policy>;
-    using exporter_spike_single_file_type = nest::mc::communication::exporter_spike_file<time_type, communication::global_policy>;
+    using exporter_manager_type = nest::mc::communication::export_manager<time_type, communication::global_policy>;
 
-    std::unique_ptr<exporter_interface_type> exporter_;
+    std::unique_ptr<exporter_manager_type> exporter_;
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.
     //
