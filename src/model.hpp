@@ -14,6 +14,7 @@
 #include <communication/global_policy.hpp>
 #include <communication/exporter_interface.hpp>
 #include <communication/exporter_spike_single_file.hpp>
+#include <communication/exporter_spike_file.hpp>
 #include <profiling/profiler.hpp>
 
 #include "trace_sampler.hpp"
@@ -138,10 +139,10 @@ public:
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
                 future_events() = communicator_.exchange(local_spikes,
-//                    [&] { exporter_->add_and_export(std::vector<spike_type> spikes); });
-                [&] { exporter_->add_and_export(std::vector<spike_type> spikes); });
+                [&] (const std::vector<spike_type>& spikes){ exporter_->add_and_export(spikes); });
                 PL(2);
             };
+
 
             // run the tasks, overlapping if the threading model and number of
             // available threads permits it.
@@ -194,7 +195,7 @@ private:
     util::double_buffer< local_spike_store_type > local_spikes_;
 
     using exporter_interface_type = nest::mc::communication::exporter_interface<time_type, communication::global_policy>;
-    using exporter_spike_single_file_type = nest::mc::communication::exporter_spike_single_file<time_type, communication::global_policy>;
+    using exporter_spike_single_file_type = nest::mc::communication::exporter_spike_file<time_type, communication::global_policy>;
 
     std::unique_ptr<exporter_interface_type> exporter_;
     // Convenience functions that map the spike buffers and event queues onto

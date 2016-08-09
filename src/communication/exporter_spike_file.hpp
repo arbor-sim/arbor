@@ -86,9 +86,9 @@ public:
     }
 
     // Add and export data to file in a single function
-    void add_and_export() override //std::vector<spike_type>spikes
+    void add_and_export(const std::vector<spike_type>& spikes) override //std::vector<spike_type>spikes
     {
-        std::vector<spike_type>spikes;
+
         add_data(spikes);
         do_export();
     }

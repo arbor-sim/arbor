@@ -92,14 +92,14 @@ public:
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
     std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes,
-        std::function<void (std::vector<spike_type>)> export_function) //const std::vector<spike_type>&
+        std::function<void (const std::vector<spike_type>&)> export_function) //const std::vector<spike_type>&
     {
         // global all-to-all to gather a local copy of the global spike list on each node.
         
 
         bool file_per_rank = true;
         if (file_per_rank) {
-            export_function(); //local_spikes
+            export_function(local_spikes); //local_spikes
         }
 
 

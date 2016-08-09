@@ -25,7 +25,7 @@ public:
     virtual void add_data(std::vector<spike_type>) = 0;
 
 
-    virtual void add_and_export() = 0;
+    virtual void add_and_export(const std::vector<spike_type>&) = 0;
 
 
     // Internal state is ok

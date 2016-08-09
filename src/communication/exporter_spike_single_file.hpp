@@ -99,9 +99,8 @@ public:
     }
 
     // Add and export data to file in a single function
-    void add_and_export() override
+    void add_and_export(const std::vector<spike_type>& spikes) override
     {
-        std::vector<spike_type>spikes;
         if (!communication_policy_.id() == 0) {
             return;
         }
