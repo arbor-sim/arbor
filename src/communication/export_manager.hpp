@@ -23,21 +23,19 @@ class export_manager {
 public:
     using time_type = Time;
     using spike_type = spike<cell_member_type, time_type>;
-    export_manager() 
+    export_manager(bool file_per_rank) 
     {
 
-        if (true) { // single file per rank
+        if (file_per_rank) { // single file per rank
 
             rank_exporters_.push_back(
                 nest::mc::util::make_unique<
                     nest::mc::communication::exporter_spike_file<Time, CommunicationPolicy> >(
                         "rank", "./", "gdf"));
-
-
         }
 
 
-        if (true) { // single file per simulation
+        if (!file_per_rank) { // single file per simulation
             single_exporters_.push_back(
                 nest::mc::util::make_unique<
                     nest::mc::communication::exporter_spike_single_file<Time, CommunicationPolicy> >(

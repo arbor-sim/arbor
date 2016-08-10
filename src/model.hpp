@@ -72,7 +72,7 @@ public:
 
         bool single_file = true;
         if (single_file == true) {
-            exporter_ = nest::mc::util::make_unique<exporter_manager_type>();
+            exporter_ = nest::mc::util::make_unique<exporter_manager_type>(false);
         }
 
         // Allocate an empty queue buffer for each cell group
