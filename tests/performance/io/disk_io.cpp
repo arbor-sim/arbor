@@ -32,8 +32,8 @@ int main(int argc, char** argv) {
     // very simple command line parsing
     if (argc < 3)
     {
-        std::cout << "disk_io <int nrspikes> <int nr_repeats> <file_per_rank (true|false)> [simple_output (false|true)]" << std::endl;
-        << "   Simple performance test runner for the exporter manager"
+        std::cout << "disk_io <int nrspikes> <int nr_repeats> <file_per_rank (true|false)> [simple_output (false|true)]" 
+            << "   Simple performance test runner for the exporter manager"
             << "   It exports nrspikes nr_repeats using the export_manager and will produce"
             << "   the total, mean and std of the time needed to perform the output to disk"
             << "   <file_per_rank> true will produce a single file per mpi rank"
@@ -88,9 +88,17 @@ int main(int argc, char** argv) {
 
     // Create a set of spikes
     std::vector<spike_type> spikes;
+
+    // *********************************************************************
+    // To have a realworld data set we get the average spikes per number
+    // and use that to get the nr of 'simulated' neurons, and create idxs
+    // using this value.
+    // Also assume that we have only a single second of simulated time
+    // All spike times should be between 0.0 and 1.0:
+    unsigned simulated_neurons = spikes_per_rank / 20;
     for (unsigned idx = 0; idx < spikes_per_rank; ++idx) 
     {
-        spikes.push_back({ { idx, 0 }, 0.0f + idx });
+        spikes.push_back({ { idx % simulated_neurons, 0 }, 0.0f + 1 / ( 0.05 +idx % 20)});
     }
 
     std::vector<int> timings;
@@ -117,7 +125,6 @@ int main(int argc, char** argv) {
     file << *timings.begin() / double(CLOCKS_PER_SEC) * 1000;
     for (auto time_entry = timings.begin()++; time_entry < timings.end(); ++time_entry) 
     {
-
         file << "," << *time_entry / double(CLOCKS_PER_SEC) * 1000 ;
     }
     file << std::endl;

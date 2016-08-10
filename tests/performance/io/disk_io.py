@@ -37,6 +37,4 @@ print ( mean )
 print ( std )
 
 plt.errorbar(range_nr_rank, mean, yerr=std, fmt='-o')
-plt.xscale('log')
-plt.yscale('log')
 plt.show()
