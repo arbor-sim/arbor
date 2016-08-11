@@ -27,7 +27,7 @@ protected:
 
     exporter_spike_single_file_fixture()
         :
-        file_name("spikes"),
+        file_name("spikes_exporter_spike_single_file_fixture"),
         path("./"),
         extention("gdf"),
         index(0)
@@ -56,7 +56,7 @@ protected:
 TEST_F(exporter_spike_single_file_fixture, constructor)
 {
     exporter_type exporter(file_name,
-        path, extention, index);
+        path, extention);
 
     // after construction the state of the exporter should be valid
     EXPECT_TRUE(exporter.ok());
@@ -86,7 +86,7 @@ TEST_F(exporter_spike_single_file_fixture, do_export)
     
 
     exporter_type exporter(file_name,
-        path, extention, index);
+        path, extention);
 
     // Create some spikes
     std::vector<spike_type> spikes;

@@ -1,3 +1,5 @@
+#!/etc/bash
+
 #flags="-t cpu -O"
 flags="-t cpu"
 

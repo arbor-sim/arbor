@@ -43,8 +43,19 @@ namespace io {
 cl_options read_options(int argc, char** argv) {
 
     // set default options
+    // TODO: the declaration of this defopts is realistic if we have allot
+    //       more options. We should use a name scheme.
     const cl_options defopts{"", 1000, 500, "expsyn", 100, 100., 0.025, false,
-                             false, 1.0, "trace_", util::nothing};
+                             false, 1.0, "trace_", util::nothing, 
+
+        // spike_output_parameters:
+        false,      // no spike output
+        false,      // single_file_per_simulation
+        true,       // Overwrite outputfile if exists
+        "./",       // output path
+        "spikes",   // file name
+        "gdf"       // file extention                            
+    };
 
     cl_options options;
     // parse command line arguments
@@ -120,6 +131,17 @@ cl_options read_options(int argc, char** argv) {
                 options.dt = fopts["dt"];
                 options.tfinal = fopts["tfinal"];
                 options.all_to_all = fopts["all_to_all"];
+
+
+                // Parameters for spike output
+                options.spike_file_output = fopts["spike_file_output"];
+                if (options.spike_file_output) {
+                    options.single_file_per_rank = fopts["single_file_per_rank"];
+                    options.over_write = fopts["over_write"];
+                    options.output_path = fopts["output_path"].get<std::string>();;
+                    options.file_name = fopts["file_name"].get<std::string>();;
+                    options.file_extention = fopts["file_extention"].get<std::string>();;
+                }
             }
             catch (std::exception& e) {
                 throw model_description_error(
@@ -135,7 +157,7 @@ cl_options read_options(int argc, char** argv) {
 }
 
 std::ostream& operator<<(std::ostream& o, const cl_options& options) {
-    o << "simultion options:\n";
+    o << "simulation options:\n";
     o << "  cells                : " << options.cells << "\n";
     o << "  compartments/segment : " << options.compartments_per_segment << "\n";
     o << "  synapses/cell        : " << options.synapses_per_cell << "\n";

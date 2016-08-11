@@ -62,7 +62,16 @@ int main(int argc, char** argv) {
         auto cell_range = distribute_cells(recipe->num_cells());
 
         // build model from recipe
-        model_type m(*recipe, cell_range.first, cell_range.second);
+
+        model_type::file_output_parameters model_params(
+            options.spike_file_output,
+            options.single_file_per_rank,
+            options.over_write,
+            options.output_path,
+            options.file_name,
+            options.file_extention
+        );
+        model_type m(*recipe, cell_range.first, cell_range.second, model_params);
 
         // inject some artificial spikes, 1 per 20 neurons.
         cell_gid_type spike_cell = 20*((cell_range.first+19)/20);

@@ -3,7 +3,8 @@
 #include <ctime>
 #include <fstream>
 #include <numeric>
-
+#include <stdio.h>
+#include <cstring>
 
 #include <common_types.hpp>
 #include <fvm_cell.hpp>
@@ -26,7 +27,8 @@ using spike_type = communication::exporter_spike_file<time_type,
     global_policy>::spike_type;
 
 int main(int argc, char** argv) {
-    // Setup the possible mpi environment
+
+    //Setup the possible mpi environment
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
     // very simple command line parsing
@@ -78,7 +80,8 @@ int main(int argc, char** argv) {
     }
 
     // Create the sut  
-    nest::mc::communication::export_manager<time_type, global_policy> manager(file_per_rank);
+    nest::mc::communication::export_manager<time_type, global_policy> manager(
+    true, file_per_rank, true, "./", "spikes", "gdf");
 
     // We need the nr of ranks to calculate the nr of spikes to produce per
     // rank
@@ -98,7 +101,7 @@ int main(int argc, char** argv) {
     unsigned simulated_neurons = spikes_per_rank / 20;
     for (unsigned idx = 0; idx < spikes_per_rank; ++idx) 
     {
-        spikes.push_back({ { idx % simulated_neurons, 0 }, 0.0f + 1 / ( 0.05 +idx % 20)});
+        spikes.push_back({ { idx % simulated_neurons, 0 }, 0.0f + 1 / ( 0.05f +idx % 20)});
     }
 
     std::vector<int> timings;
@@ -160,3 +163,45 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+
+
+/*
+
+float time = 1234.56789123455f;
+int id = 123456;
+
+char float_as_char[20];  // absurdly big!!
+char int_as_char[20];
+const char * space = " ";
+const char * endline = "\n";
+
+unsigned nr_chars_float = std::snprintf(float_as_char, 20, "%.4f", time);
+unsigned nr_chars_int = std::snprintf(int_as_char, 20, "%u", id);
+
+
+std::cout << nr_chars_float << "," << float_as_char << std::endl;
+std::cout << nr_chars_int << "," << int_as_char << std::endl;
+
+
+const unsigned int length = 4096;
+char  buffer[length];
+unsigned current_loc_in_buffer = 0;
+std::ofstream file("test.txt", std::fstream::app);
+
+std::memcpy(buffer+ current_loc_in_buffer, int_as_char, nr_chars_int);
+current_loc_in_buffer += nr_chars_int;
+
+std::memcpy(buffer + current_loc_in_buffer, space, 1);
+current_loc_in_buffer += 1;
+
+std::memcpy(buffer + current_loc_in_buffer, float_as_char, nr_chars_float);
+current_loc_in_buffer += nr_chars_float;
+
+std::memcpy(buffer + current_loc_in_buffer, endline, 2);
+current_loc_in_buffer += 1;  // Only a single char in the actual file!!
+
+
+
+file.write(buffer, current_loc_in_buffer);
+file.close();
+*/

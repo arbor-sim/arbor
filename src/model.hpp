@@ -23,6 +23,35 @@ namespace mc {
 template <typename Cell>
 class model {
 public:
+
+    // TODO:We need to think how to transport parameters accros the different classes
+    // Move the io to src directory would make it allot easier!!
+    struct file_output_parameters
+    {
+        bool spike_file_output;
+        bool single_file_per_rank;
+        bool over_write;
+        std::string output_path;
+        std::string file_name;
+        std::string file_extention;
+
+        file_output_parameters(bool spike_file_output_i,
+            bool single_file_per_rank_i,
+            bool over_write_i,
+            std::string output_path_i,
+            std::string file_name_i,
+            std::string file_extention_i)
+            :
+            spike_file_output(spike_file_output_i),
+            single_file_per_rank(single_file_per_rank_i),
+            over_write(over_write_i),
+            output_path(output_path_i),
+            file_name(file_name_i),
+            file_extention(file_extention_i)
+        {}
+    };
+
+
     using cell_group_type = cell_group<Cell>;
     using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
@@ -34,7 +63,8 @@ public:
         probe_spec probe;
     };
 
-    model(const recipe& rec, cell_gid_type cell_from, cell_gid_type cell_to):
+    model(const recipe& rec, cell_gid_type cell_from, cell_gid_type cell_to,
+        file_output_parameters file_output_parameters_i):
         cell_from_(cell_from),
         cell_to_(cell_to),
         communicator_(cell_from, cell_to)
@@ -72,7 +102,13 @@ public:
 
         bool single_file = true;
         if (single_file == true) {
-            exporter_ = nest::mc::util::make_unique<exporter_manager_type>(false);
+            exporter_ = nest::mc::util::make_unique<exporter_manager_type>(
+                file_output_parameters_i.spike_file_output,
+            file_output_parameters_i.single_file_per_rank,
+            file_output_parameters_i.over_write,
+            file_output_parameters_i.output_path,
+            file_output_parameters_i.file_name,
+            file_output_parameters_i.file_extention);
         }
 
         // Allocate an empty queue buffer for each cell group

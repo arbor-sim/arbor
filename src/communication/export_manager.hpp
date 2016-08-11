@@ -6,6 +6,7 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <string>
 
 #include <spike.hpp>
 #include <util.hpp>
@@ -23,23 +24,27 @@ class export_manager {
 public:
     using time_type = Time;
     using spike_type = spike<cell_member_type, time_type>;
-    export_manager(bool file_per_rank) 
+    export_manager(bool spike_file_output, bool single_file_per_rank, bool over_write,
+        std::string output_path, std::string file_name, std::string file_extention)
     {
-
-        if (file_per_rank) { // single file per rank
+        if (!spike_file_output)
+        {
+            return;
+        }
+        if (single_file_per_rank) { // single file per rank
 
             rank_exporters_.push_back(
                 nest::mc::util::make_unique<
                     nest::mc::communication::exporter_spike_file<Time, CommunicationPolicy> >(
-                        "rank", "./", "gdf"));
+                        file_name, output_path, file_extention, over_write));
         }
 
 
-        if (!file_per_rank) { // single file per simulation
+        if (!single_file_per_rank) { // single file per simulation
             single_exporters_.push_back(
                 nest::mc::util::make_unique<
                     nest::mc::communication::exporter_spike_single_file<Time, CommunicationPolicy> >(
-                    "single", "./", "gdf"));
+                        file_name, output_path, file_extention, over_write));
         }
     }
 
