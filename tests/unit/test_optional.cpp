@@ -92,6 +92,18 @@ TEST(optionalm,assign_returns) {
 
     auto bp=&(a=4);
     EXPECT_EQ(&a,bp);
+
+    auto b2=(a=optional<int>(10));
+    EXPECT_EQ(typeid(optional<int>),typeid(b2));
+
+    auto bp2=&(a=4);
+    EXPECT_EQ(&a,bp2);
+
+    auto b3=(a=nothing);
+    EXPECT_EQ(typeid(optional<int>),typeid(b3));
+
+    auto bp3=&(a=4);
+    EXPECT_EQ(&a,bp3);
 }
 
 TEST(optionalm,assign_reference) {
@@ -104,11 +116,16 @@ TEST(optionalm,assign_reference) {
     *ar = 5.0;
     EXPECT_EQ(5.0, a);
 
-    br = ar;
+    auto& check_rval=(br=ar);
     EXPECT_TRUE(br);
+    EXPECT_EQ(&br, &check_rval);
 
     *br = 7.0;
     EXPECT_EQ(7.0, a);
+
+    auto& check_rval2=(br=nothing);
+    EXPECT_FALSE(br);
+    EXPECT_EQ(&br, &check_rval2);
 }
 
 struct nomove {
@@ -212,6 +229,10 @@ TEST(optionalm,void) {
     x=b >> []() { return 1; };
     EXPECT_TRUE((bool)x);
     EXPECT_EQ(1,x.get());
+
+    auto& check_rval=(b=nothing);
+    EXPECT_FALSE((bool)b);
+    EXPECT_EQ(&b,&check_rval);
 }
 
 TEST(optionalm,bind_to_void) {
