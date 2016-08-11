@@ -51,9 +51,7 @@ protected:
     }
 
     ~exporter_spike_file_fixture() 
-    {
-
-    }
+    {}
 };
 
 TEST_F(exporter_spike_file_fixture, constructor)

@@ -1,21 +1,19 @@
-#include <iostream>
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <iostream>
 #include <numeric>
 #include <stdio.h>
 #include <cstring>
 
-#include <common_types.hpp>
-#include <fvm_cell.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
+#include <common_types.hpp>
+#include <fvm_cell.hpp>
 
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <communication/export_manager.hpp>
-
-
 
 using namespace nest::mc;
 
@@ -26,15 +24,14 @@ using time_type = typename cell_group_type::time_type;
 using spike_type = communication::exporter_spike_file<time_type,
     global_policy>::spike_type;
 
-int main(int argc, char** argv) {
-
+int main(int argc, char** argv)
+{
     //Setup the possible mpi environment
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
     // very simple command line parsing
-    if (argc < 3)
-    {
-        std::cout << "disk_io <int nrspikes> <int nr_repeats> <file_per_rank (true|false)> [simple_output (false|true)]" 
+    if (argc < 3) {
+        std::cout << "disk_io <int nrspikes> <int nr_repeats> <file_per_rank (true|false)> [simple_output (false|true)]"
             << "   Simple performance test runner for the exporter manager"
             << "   It exports nrspikes nr_repeats using the export_manager and will produce"
             << "   the total, mean and std of the time needed to perform the output to disk"
@@ -47,33 +44,29 @@ int main(int argc, char** argv) {
     }
     int nr_spikes = atoi(argv[1]);
 
-    if (nr_spikes == 0)
-    {
+    if (nr_spikes == 0) {
         std::cout << "disk_io <nrspikes>" << std::endl;
         std::cout << "  nrspikes should be a valid integer higher then zero" << std::endl;
         exit(1);
     }
     int nr_repeats = atoi(argv[2]);
 
-    if (nr_repeats == 0)
-    {
+    if (nr_repeats == 0) {
         std::cout << "disk_io <nrspikes>" << std::endl;
         std::cout << "  nr_repeats should be a valid integer higher then zero" << std::endl;
         exit(1);
     }
-    
+
     bool file_per_rank = false;
     std::string single(argv[3]);
-    if (single == std::string("true"))
-    {
+    if (single == std::string("true")) {
         file_per_rank = true;
     }
 
     bool simple_stats = false;
-    if (argc == 5)
-    {
+    if (argc == 5) {
         std::string simple(argv[4]);
-        if (simple == std::string("true")) 
+        if (simple == std::string("true"))
         {
             simple_stats = true;
         }
@@ -81,27 +74,28 @@ int main(int argc, char** argv) {
 
     // Create the sut  
     nest::mc::communication::export_manager<time_type, global_policy> manager(
-    true, file_per_rank, true, "./", "spikes", "gdf");
+        true, file_per_rank, true, "./", "spikes", "gdf");
 
     // We need the nr of ranks to calculate the nr of spikes to produce per
     // rank
     global_policy communication_policy;
     unsigned nr_ranks = communication_policy.size();
-    unsigned spikes_per_rank = nr_spikes / nr_ranks;   
+    unsigned spikes_per_rank = nr_spikes / nr_ranks;
 
     // Create a set of spikes
     std::vector<spike_type> spikes;
 
     // *********************************************************************
-    // To have a realworld data set we get the average spikes per number
-    // and use that to get the nr of 'simulated' neurons, and create idxs
-    // using this value.
-    // Also assume that we have only a single second of simulated time
-    // All spike times should be between 0.0 and 1.0:
+    // To have a  somewhat realworld data set we calculate from the nr of spikes
+    // (assuming 20 hz average) the number of nr of 'simulated' neurons, 
+    // and create idxs using this value. The number of chars in the number
+    // influences the size of the output and thus the speed
+    // Also taken that we have only a single second of simulated time
+    // all spike times should be between 0.0 and 1.0:
     unsigned simulated_neurons = spikes_per_rank / 20;
-    for (unsigned idx = 0; idx < spikes_per_rank; ++idx) 
-    {
-        spikes.push_back({ { idx % simulated_neurons, 0 }, 0.0f + 1 / ( 0.05f +idx % 20)});
+    for (unsigned idx = 0; idx < spikes_per_rank; ++idx) {
+        spikes.push_back({ { idx % simulated_neurons, 0 },   // correct idx
+            0.0f + 1 / (0.05f + idx % 20) });  // semi random float
     }
 
     std::vector<int> timings;
@@ -109,28 +103,16 @@ int main(int argc, char** argv) {
     int time_total = 0;
 
     // now output to disk nr_repeats times, while keeping track of the times
-    for (int idx = 0; idx < nr_repeats; ++idx) 
-    {
+    for (int idx = 0; idx < nr_repeats; ++idx) {
         int time_start = clock();
 
         manager.do_export_local(spikes);
-
 
         int time_stop = clock();
         int run_time = (time_stop - time_start);
         time_total += run_time;
         timings.push_back(run_time);
     }
-    
-
-    // Autoput the individual timings to a comma seperated file
-    std::ofstream file("file_io_results.csv");
-    file << *timings.begin() / double(CLOCKS_PER_SEC) * 1000;
-    for (auto time_entry = timings.begin()++; time_entry < timings.end(); ++time_entry) 
-    {
-        file << "," << *time_entry / double(CLOCKS_PER_SEC) * 1000 ;
-    }
-    file << std::endl;
 
     // Calculate some statistics
     double sum = std::accumulate(timings.begin(), timings.end(), 0.0);
@@ -142,20 +124,17 @@ int main(int argc, char** argv) {
     double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
     double stdev = std::sqrt(sq_sum / timings.size());
 
-    if (communication_policy.id() != 0)
-    {
+    if (communication_policy.id() != 0) {
         return 0;
     }
 
     // and output
-    if (simple_stats)
-    {
-        std::cout << time_total / double(CLOCKS_PER_SEC) * 1000 << "," << 
-                     mean / double(CLOCKS_PER_SEC) * 1000 << "," << 
-                     stdev / double(CLOCKS_PER_SEC) * 1000;
+    if (simple_stats) {
+        std::cout << time_total / double(CLOCKS_PER_SEC) * 1000 << "," <<
+            mean / double(CLOCKS_PER_SEC) * 1000 << "," <<
+            stdev / double(CLOCKS_PER_SEC) * 1000;
     }
-    else
-    {
+    else {
         std::cout << "total time (ms): " << time_total / double(CLOCKS_PER_SEC) * 1000 << std::endl;
         std::cout << "mean  time (ms): " << mean / double(CLOCKS_PER_SEC) * 1000 << std::endl;
         std::cout << "stdev  time (ms): " << stdev / double(CLOCKS_PER_SEC) * 1000 << std::endl;
@@ -163,45 +142,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-
-
-/*
-
-float time = 1234.56789123455f;
-int id = 123456;
-
-char float_as_char[20];  // absurdly big!!
-char int_as_char[20];
-const char * space = " ";
-const char * endline = "\n";
-
-unsigned nr_chars_float = std::snprintf(float_as_char, 20, "%.4f", time);
-unsigned nr_chars_int = std::snprintf(int_as_char, 20, "%u", id);
-
-
-std::cout << nr_chars_float << "," << float_as_char << std::endl;
-std::cout << nr_chars_int << "," << int_as_char << std::endl;
-
-
-const unsigned int length = 4096;
-char  buffer[length];
-unsigned current_loc_in_buffer = 0;
-std::ofstream file("test.txt", std::fstream::app);
-
-std::memcpy(buffer+ current_loc_in_buffer, int_as_char, nr_chars_int);
-current_loc_in_buffer += nr_chars_int;
-
-std::memcpy(buffer + current_loc_in_buffer, space, 1);
-current_loc_in_buffer += 1;
-
-std::memcpy(buffer + current_loc_in_buffer, float_as_char, nr_chars_float);
-current_loc_in_buffer += nr_chars_float;
-
-std::memcpy(buffer + current_loc_in_buffer, endline, 2);
-current_loc_in_buffer += 1;  // Only a single char in the actual file!!
-
-
-
-file.write(buffer, current_loc_in_buffer);
-file.close();
-*/

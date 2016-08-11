@@ -51,7 +51,6 @@ public:
         {}
     };
 
-
     using cell_group_type = cell_group<Cell>;
     using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
@@ -100,16 +99,13 @@ public:
         }
         communicator_.construct();
 
-        bool single_file = true;
-        if (single_file == true) {
-            exporter_ = nest::mc::util::make_unique<exporter_manager_type>(
-                file_output_parameters_i.spike_file_output,
+        exporter_ = nest::mc::util::make_unique<exporter_manager_type>(
+            file_output_parameters_i.spike_file_output,
             file_output_parameters_i.single_file_per_rank,
             file_output_parameters_i.over_write,
             file_output_parameters_i.output_path,
             file_output_parameters_i.file_name,
             file_output_parameters_i.file_extention);
-        }
 
         // Allocate an empty queue buffer for each cell group
         // These must be set initially to ensure that a queue is available for each
@@ -172,11 +168,11 @@ public:
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
                 future_events() = communicator_.exchange(local_spikes,
+                    // send the exporter function as pointers to export
                     [&](const std::vector<spike_type>& spikes) { exporter_->do_export_local(spikes); },
                     [&] (const std::vector<spike_type>& spikes){ exporter_->do_export_global(spikes); });
                 PL(2);
             };
-
 
             // run the tasks, overlapping if the threading model and number of
             // available threads permits it.
@@ -229,7 +225,6 @@ private:
     util::double_buffer< local_spike_store_type > local_spikes_;
 
     using exporter_manager_type = nest::mc::communication::export_manager<time_type, communication::global_policy>;
-
     std::unique_ptr<exporter_manager_type> exporter_;
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.

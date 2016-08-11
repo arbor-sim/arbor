@@ -149,7 +149,7 @@ private:
 
     // Buffer (and size) for raw output of spikes
     char *buffer;
-    const unsigned int length = 4096;
+    const unsigned int length = 32768;
 };
 
 } //communication

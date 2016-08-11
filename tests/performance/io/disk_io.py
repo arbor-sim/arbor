@@ -1,8 +1,6 @@
+import matplotlib.pyplot as plt
 import subprocess
 import os
-
-import matplotlib.pyplot as plt
-
 
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -29,8 +27,6 @@ for n_rank in range_nr_rank:
     std.append(float(stats[2]))
 
     print ( "performed test for n_rank= " + str(n_rank))
-
-
 
 print ( range_nr_rank )
 print ( mean )
