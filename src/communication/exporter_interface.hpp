@@ -18,15 +18,7 @@ public:
     using spike_type = spike<cell_member_type, time_type>;
 
     // Performs the export of the data, thread safe buffered
-    virtual void do_export() = 0;
-
-    // Add data to the internal storage to be exported
-    // Does not do the actual export
-    virtual void add_data(std::vector<spike_type>) = 0;
-
-
-    virtual void add_and_export(const std::vector<spike_type>&) = 0;
-
+    virtual void do_export(const std::vector<spike_type>&) = 0;
 
     // Internal state is ok
     // Export might encounter problems in a separate thread.

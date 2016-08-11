@@ -113,7 +113,7 @@ int main(int argc, char** argv) {
     {
         int time_start = clock();
 
-        manager.do_export_rank(spikes);
+        manager.do_export_local(spikes);
 
 
         int time_stop = clock();

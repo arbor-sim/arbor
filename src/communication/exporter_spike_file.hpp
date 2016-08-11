@@ -31,7 +31,8 @@ public:
 
     // 
     exporter_spike_file(std::string file_name, std::string path, 
-        std::string file_extention, bool over_write=true)
+        std::string file_extention, bool over_write=true, 
+        bool single_file_per_rank=true)
         :
         ok_(false)
     {
@@ -52,33 +53,18 @@ public:
         }
         
         buffer = new char[length];
-        /*
-        // Manually setting buffer did not help (version 1)
-        //http://stackoverflow.com/questions/12997131/stdfstream-buffering-vs-manual-buffering-why-10x-gain-with-manual-buffering
-
-
-        file_handle_ = nest::mc::util::make_unique<std::ofstream>();
-        file_handle_->rdbuf()->pubsetbuf(buffer, length);
-        file_handle_ ->open(file_path, std::fstream::app);
-        */
-
         file_handle_ = nest::mc::util::make_unique<std::ofstream>(file_path,
                                                        std::fstream::app);
 
         if (file_handle_->good()) {
             ok_ = true;
         }
-
-        // Force output of the spike times with precision
-        // TODO: We need to make this selectable
-        file_handle_->precision(4);
-        file_handle_->setf(std::ios::fixed, std::ios::floatfield);
     }
 
        
     // Performs the export of the data, 
     // Does not throw
-    void do_export() override
+    void do_export(const std::vector<spike_type>& spikes) override
     {
         unsigned current_loc_in_buffer = 0;
         unsigned nr_chars_written = 0;
@@ -88,7 +74,7 @@ public:
         const char * space = " ";
         const char * endline = "\n";
 
-        for (auto spike : spikes_) 
+        for (auto spike : spikes)
         {
             // First the id as output
             nr_chars_written = std::snprintf(single_value_buffer, 20, "%u", 
@@ -119,12 +105,14 @@ public:
                 current_loc_in_buffer = 0;
             }
         }
+        
         // also write to buffer at end of the spikes processing
         if (current_loc_in_buffer != 0)
         {
             file_handle_->write(buffer, current_loc_in_buffer);
             current_loc_in_buffer = 0; // not needed
         }
+
 
         file_handle_->flush();
 
@@ -133,23 +121,6 @@ public:
             ok_ = false;
         }
 
-        spikes_.clear();
-    }
-
-    // Add data to the internal storage to be exported
-    // Does not do the actual export  
-    void add_data(std::vector<spike_type>spikes) override
-    {
-        spikes_.insert(std::end(spikes_), 
-                       std::begin(spikes), std::end(spikes));       
-    }
-
-    // Add and export data to file in a single function
-    void add_and_export(const std::vector<spike_type>& spikes) override //std::vector<spike_type>spikes
-    {
-
-        add_data(spikes);
-        do_export();
     }
 
     // Internal state is ok
@@ -179,13 +150,10 @@ private:
     // Handle to our owned opened file handle
     std::unique_ptr<std::ofstream>  file_handle_;
     
-    // local storage for sending spikes
-    std::vector<spike_type> spikes_;
-
     communication_policy_type communication_policy_;
 
+    // Buffer (and size) for raw output of spikes
     char *buffer;
-
     const unsigned int length = 4096;
 };
 

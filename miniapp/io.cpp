@@ -43,8 +43,9 @@ namespace io {
 cl_options read_options(int argc, char** argv) {
 
     // set default options
-    // TODO: the declaration of this defopts is realistic if we have allot
-    //       more options. We should use a name scheme.
+    // TODO: the declaration of this defopts is not realistic if we have allot
+    //       more options. We should use a named scheme or import the defopts from
+    //       a valid json file
     const cl_options defopts{"", 1000, 500, "expsyn", 100, 100., 0.025, false,
                              false, 1.0, "trace_", util::nothing, 
 

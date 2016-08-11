@@ -31,43 +31,54 @@ public:
         {
             return;
         }
-        if (single_file_per_rank) { // single file per rank
 
+        // single file per rank
+        if (single_file_per_rank) { 
             rank_exporters_.push_back(
                 nest::mc::util::make_unique<
                     nest::mc::communication::exporter_spike_file<Time, CommunicationPolicy> >(
                         file_name, output_path, file_extention, over_write));
         }
 
-
-        if (!single_file_per_rank) { // single file per simulation
+        // single file per simulation
+        if (!single_file_per_rank) { 
             single_exporters_.push_back(
                 nest::mc::util::make_unique<
-                    nest::mc::communication::exporter_spike_single_file<Time, CommunicationPolicy> >(
+                    nest::mc::communication::exporter_spike_file<Time, CommunicationPolicy> >(
                         file_name, output_path, file_extention, over_write));
         }
     }
 
-    void do_export_rank(const std::vector<spike_type>& spikes)
+    void do_export_local(const std::vector<spike_type>& spikes)
     {
-        // TODO: do the buffering of the spikes here and not in the 
-        //      exporters itself!!!
+        local_spikes_.insert(std::end(local_spikes_),
+            std::begin(spikes), std::end(spikes));
+
         for (auto &exporter : rank_exporters_)
         {
-            exporter->add_and_export(spikes);
+            exporter->do_export(spikes);
         }
+
+        local_spikes_.clear();
     }
 
-    void do_export_single(const std::vector<spike_type>& spikes)
+    void do_export_global(const std::vector<spike_type>& spikes)
     {
+        // We only output on a single rank
         if (!communication_policy_.id() == 0) {
             return;
         }
 
+        global_spikes_.insert(std::end(global_spikes_),
+            std::begin(spikes), std::end(spikes));
+
+
         for (auto &exporter : single_exporters_)
         {
-            exporter->add_and_export(spikes);
+            exporter->do_export(spikes);
         }
+
+        global_spikes_.clear();
     }
 
 private:
@@ -76,8 +87,11 @@ private:
 
     std::vector<std::unique_ptr<exporter_interface<Time, CommunicationPolicy> > > single_exporters_;
 
-
     CommunicationPolicy communication_policy_;
+
+    // local storage for sending spikes
+    std::vector<spike_type> local_spikes_;
+    std::vector<spike_type> global_spikes_;
 };
 
 

@@ -97,11 +97,9 @@ TEST_F(exporter_spike_file_fixture, do_export)
     spikes.push_back({ { 1, 0 }, 1.0 });
     spikes.push_back({ { 1, 0 }, 1.1 });
 
-    // add to the exporter
-    exporter.add_data(spikes);
 
     // now do the export
-    exporter.do_export();
+    exporter.do_export(spikes);
     
     // Test if we have spikes in the file
     std::ifstream f(get_standard_file_name());

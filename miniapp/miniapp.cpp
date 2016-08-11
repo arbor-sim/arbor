@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
         auto cell_range = distribute_cells(recipe->num_cells());
 
         // build model from recipe
-
+        // TODO: I would rather just forward the options object. 
         model_type::file_output_parameters model_params(
             options.spike_file_output,
             options.single_file_per_rank,
