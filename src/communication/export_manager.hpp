@@ -68,11 +68,15 @@ public:
         }
 
         // single file per simulation exporters
-        if (!single_file_per_rank) { 
-            single_exporters_.push_back(
-                nest::mc::util::make_unique<
-                    nest::mc::communication::exporter_spike_file<Time, CommunicationPolicy> >(
-                        file_name, output_path, file_extention, over_write));
+        if (!single_file_per_rank) {  // TODO: When we add more exporters and 
+            //agreed on the parameter input this should be cleanup up.
+            if (communication_policy_.id() == 0) {
+                single_exporters_.push_back(
+                    nest::mc::util::make_unique<
+                        nest::mc::communication::exporter_spike_file<Time, CommunicationPolicy> >(
+                            file_name, output_path, file_extention, over_write));
+
+            }
         }
     }
 
