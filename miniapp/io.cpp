@@ -133,7 +133,6 @@ cl_options read_options(int argc, char** argv) {
                 options.tfinal = fopts["tfinal"];
                 options.all_to_all = fopts["all_to_all"];
 
-
                 // Parameters for spike output
                 options.spike_file_output = fopts["spike_file_output"];
                 if (options.spike_file_output) {

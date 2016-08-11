@@ -92,18 +92,16 @@ public:
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
     std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes,
-        std::function<void (const std::vector<spike_type>&)> do_export_rank,
-        std::function<void(const std::vector<spike_type>&)> do_export_single)
+        std::function<void (const std::vector<spike_type>&)> do_export_local,
+        std::function<void(const std::vector<spike_type>&)> do_export_global)
     {       
-        // Export of (rank) local spikes
-        do_export_rank(local_spikes); 
+        do_export_local(local_spikes); 
 
         // global all-to-all to gather a local copy of the global spike list on each node.
         auto global_spikes = communication_policy_.gather_spikes( local_spikes );
         num_spikes_ += global_spikes.size();
 
-        // Export of global spikes
-        do_export_single(global_spikes);
+        do_export_global(global_spikes);
 
         // check each global spike in turn to see it generates local events.
         // if so, make the events and insert them into the appropriate event list.
