@@ -33,31 +33,20 @@ public:
     // file_extention  a seperator will be added automatically
     exporter_spike_file(std::string file_name, std::string path, 
         std::string file_extention, bool over_write=true)
-        :
-        file_path_(create_output_file_path(
-            file_name, path, file_extention, communication_policy_.id()))
     {
+        auto file_path =
+            create_output_file_path(file_name, path, file_extention, communication_policy_.id());
+
         //test if the file exist and depending on over_write throw or delete
-        std::ifstream f(file_path_);
-        if (f.good()) {
-            if (!over_write) {
-                std::string error_string("Tried opening file for writing but it exists and over_write is false: " +
-                    file_path_);
-
-                throw std::runtime_error(error_string);
-            }
-
-            std::remove(file_path_.c_str());
-        }
-        
-        buffer = new char[length];
-
-        file_handle_ = nest::mc::util::make_unique<std::ofstream>(file_path_, std::fstream::app);
-
-        if (!file_handle_->good()) {
-            std::string error_string("Could not open file for writing: " + file_path_);
+        if (!over_write && file_exists(file_path)) 
+        {
+            std::string error_string("Tried opening file for writing but it exists and over_write is false: " + file_path);
             throw std::runtime_error(error_string);
         }
+       
+        buffer = new char[length];
+
+        file_handle_.open(file_path);
     }
        
     // Performs the a export of the spikes to file
@@ -105,30 +94,29 @@ public:
             // So if there are less then 45 chars left in the buffer, write to
             // file. and reset the buffer index to zero
             if (current_loc_in_buffer > length - 45) {
-                file_handle_->write(buffer, current_loc_in_buffer);
+                file_handle_.write(buffer, current_loc_in_buffer);
                 current_loc_in_buffer = 0;
             }
         }
         
         // write to buffer at end of the spikes processing
         if (current_loc_in_buffer != 0) {
-            file_handle_->write(buffer, current_loc_in_buffer);
+            file_handle_.write(buffer, current_loc_in_buffer);
             current_loc_in_buffer = 0; // not needed
         }
 
-        file_handle_->flush();
+        file_handle_.flush();
 
-        if (!file_handle_->good()){
-            std::string error_string("Error writing data file: " +
-                file_path_);
+        if (!file_handle_.good()){
+            std::string error_string("Error writing data file. ");
 
             throw std::runtime_error(error_string);
         }
     }
 
     // Creates an indexed filename
-    static std::string create_output_file_path(std::string file_name, std::string path,
-        std::string file_extention, unsigned index)
+    static std::string create_output_file_path(const std::string& file_name, const std::string& path,
+        const std::string& file_extention, unsigned index)
     {
         std::string file_path = path + file_name + "_" + std::to_string(index) +
                                 "." + file_extention;
@@ -140,10 +128,14 @@ public:
     }
 
 private:   
-    std::string file_path_;
+
+    bool file_exists(const std::string& file_path) {
+        std::ifstream fid(file_path);
+        return fid.good();
+    }
 
     // Handle to opened file handle
-    std::unique_ptr<std::ofstream>  file_handle_;
+    std::ofstream file_handle_;
     
     communication_policy_type communication_policy_;
 
