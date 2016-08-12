@@ -9,6 +9,8 @@ spikes_to_save = 100000
 range_nr_rank = [1, 2, 4, 8, 16, 24, 32, 48, 64]
 mean = []
 std = []
+min = []
+max = []
 for n_rank in range_nr_rank:
     # open the disk_io executable
     p1 = subprocess.Popen(["mpirun", "-n",str(n_rank),
@@ -24,6 +26,8 @@ for n_rank in range_nr_rank:
 
     mean.append(float(stats[1]))
     std.append(float(stats[2]))
+    min.append(float(stats[3]))
+    max.append(float(stats[4]))
 
     print ("performed test for n_rank= " + str(n_rank))
 
@@ -31,5 +35,8 @@ print (range_nr_rank)
 print (mean)
 print (std)
 
-plt.errorbar(range_nr_rank, mean, yerr=std, fmt='-o')
+plt.errorbar(range_nr_rank, mean, yerr=std, fmt='-o', label="mean (std)")
+plt.errorbar(range_nr_rank, min, fmt='-', label="min")
+plt.errorbar(range_nr_rank, max, fmt='-', label="max")
+plt.legend()
 plt.show()

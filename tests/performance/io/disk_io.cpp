@@ -31,32 +31,29 @@ int main(int argc, char** argv)
 
     // very simple command line parsing
     if (argc < 3) {
-        std::cout << "disk_io <int nrspikes> <int nr_repeats> <file_per_rank (true|false)> [simple_output (false|true)]"
-            << "   Simple performance test runner for the exporter manager"
-            << "   It exports nrspikes nr_repeats using the export_manager and will produce"
-            << "   the total, mean and std of the time needed to perform the output to disk"
-            << "   <file_per_rank> true will produce a single file per mpi rank"
-            << "   <simple_output> true will produce a simplyfied comma seperated output for automatic parsing"
-            << "    The application can be started with mpi support and will produce output on a single rank";
-
-        std::cout << "    if nrspikes is not a multiple of the nr of mpi rank, floor is take" << std::endl;
-        exit(1);
+        std::cout << "disk_io <int nrspikes> <int nr_repeats> <file_per_rank (true|false)> [simple_output (false|true)]\n"
+            << "   Simple performance test runner for the exporter manager\n"
+            << "   It exports nrspikes nr_repeats using the export_manager and will produce\n"
+            << "   the total, mean and std of the time needed to perform the output to disk\n"
+            << "   <file_per_rank> true will produce a single file per mpi rank\n"
+            << "   <simple_output> true will produce a simplyfied comma seperated output for automatic parsing\n"
+            << "    The application can be started with mpi support and will produce output on a single rank\n"
+            << "    if nrspikes is not a multiple of the nr of mpi rank, floor is take\n" ;
+        return 1;
     }
     int nr_spikes = atoi(argv[1]);
 
     if (nr_spikes == 0) {
-        std::cout << "disk_io <nrspikes>" << std::endl;
-        std::cout << "  nrspikes should be a valid integer higher then zero" 
-                  << std::endl;
-        exit(1);
+        std::cout << "disk_io <nrspikes>\n";
+        std::cout << "  nrspikes should be a valid integer higher then zero\n";
+        return 1;
     }
     int nr_repeats = atoi(argv[2]);
 
     if (nr_repeats == 0) {
-        std::cout << "disk_io <nrspikes>" << std::endl;
-        std::cout << "  nr_repeats should be a valid integer higher then zero" 
-                  << std::endl;
-        exit(1);
+        std::cout << "disk_io <nrspikes>\n";
+        std::cout << "  nr_repeats should be a valid integer higher then zero\n";                 
+        return 1;
     }
 
     bool file_per_rank = false;
@@ -100,8 +97,7 @@ int main(int argc, char** argv)
             0.0f + 1 / (0.05f + idx % 20) });  // semi random float
     }
 
-    std::vector<int> timings;
-
+    int timings_arr[nr_repeats];
     int time_total = 0;
 
     // now output to disk nr_repeats times, while keeping track of the times
@@ -113,8 +109,16 @@ int main(int argc, char** argv)
         int time_stop = clock();
         int run_time = (time_stop - time_start);
         time_total += run_time;
-        timings.push_back(run_time);
+        timings_arr[idx] = run_time;
     }
+
+    std::vector<int> timings;
+    for (int idx = 0; idx < nr_repeats; ++idx)
+    {
+        timings.push_back(timings_arr[idx]);
+
+    }
+    
 
     // Calculate some statistics
     double sum = std::accumulate(timings.begin(), timings.end(), 0.0);
@@ -127,15 +131,21 @@ int main(int argc, char** argv)
         0.0);
     double stdev = std::sqrt(sq_sum / timings.size());
 
+    int min = *std::min_element(timings.begin(), timings.end());
+    int max = *std::max_element(timings.begin(), timings.end());
+
+
     if (communication_policy.id() != 0) {
         return 0;
     }
 
     // and output
     if (simple_stats) {
-        std::cout << time_total / double(CLOCKS_PER_SEC) * 1000 << "," <<
-            mean / double(CLOCKS_PER_SEC) * 1000 << "," <<
-            stdev / double(CLOCKS_PER_SEC) * 1000;
+        std::cout << time_total / double(CLOCKS_PER_SEC) * 1000 << ","
+            << mean / double(CLOCKS_PER_SEC) * 1000 << ","
+            << stdev / double(CLOCKS_PER_SEC) * 1000 << ","
+            << min / double(CLOCKS_PER_SEC) * 1000 << ","
+            << max / double(CLOCKS_PER_SEC) * 1000 << std::endl;
     }
     else {
         std::cout << "total time (ms): " 
@@ -144,6 +154,10 @@ int main(int argc, char** argv)
                   << mean / double(CLOCKS_PER_SEC) * 1000 << std::endl;
         std::cout << "stdev  time (ms): " 
                   << stdev / double(CLOCKS_PER_SEC) * 1000 << std::endl;
+        std::cout << "min  time (ms): "
+            << min / double(CLOCKS_PER_SEC) * 1000 << std::endl;
+        std::cout << "max  time (ms): "
+            << max / double(CLOCKS_PER_SEC) * 1000 << std::endl;
     }
 
     return 0;
