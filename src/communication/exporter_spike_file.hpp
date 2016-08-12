@@ -18,7 +18,7 @@ namespace nest {
 namespace mc {
 namespace communication {
 
-template <typename Time, typename CommunicationPolicy> // TODO: Templating on data type, for now only spike_type
+template <typename Time, typename CommunicationPolicy>
 class exporter_spike_file : public exporter_interface<Time, CommunicationPolicy> 
 {
 public:
@@ -35,12 +35,14 @@ public:
         const std::string& file_extention, bool over_write=true)
     {
         auto file_path =
-            create_output_file_path(file_name, path, file_extention, communication_policy_.id());
+            create_output_file_path(file_name, path, file_extention, 
+                communication_policy_.id());
 
         //test if the file exist and depending on over_write throw or delete
         if (!over_write && file_exists(file_path)) 
         {
-            std::string error_string("Tried opening file for writing but it exists and over_write is false: " + file_path);
+            std::string error_string("Tried opening file for writing but it exists and over_write is false: "
+                + file_path);
             throw std::runtime_error(error_string);
         }
 
@@ -48,27 +50,30 @@ public:
     }
        
     // Performs the a export of the spikes to file
-    // one id and spike time with 4 decimals after the comma on a line space separated
+    // one id and spike time with 4 decimals after the comma on a
+    // line space separated
     void do_export(const std::vector<spike_type>& spikes) override
     {       
         for (auto spike : spikes) {
             char linebuf[45];  
-            auto n = std::snprintf(linebuf, sizeof(linebuf), "%u %.4f\n", spike.source.gid, spike.time);
+            auto n = std::snprintf(linebuf, sizeof(linebuf), "%u %.4f\n",
+                spike.source.gid, spike.time);
             file_handle_.write(linebuf, n);
         }
     }
 
-    bool good() const
+    bool good() const override
     {
         return file_handle_.good();
     }
 
     // Creates an indexed filename
-    static std::string create_output_file_path(const std::string& file_name, const std::string& path,
-        const std::string& file_extention, unsigned index)
+    static std::string create_output_file_path(const std::string& file_name, 
+        const std::string& path, const std::string& file_extention,
+        unsigned index)
     {
-        std::string file_path = path + file_name + "_" + std::to_string(index) +
-                                "." + file_extention;
+        std::string file_path = path + file_name + "_" + 
+            std::to_string(index) + "." + file_extention;
         // Nest does not produce the indexing for nrank == 0
         // I have the feeling this disrupts consistent output. Id rather
         // always put the zero in. it allows a simpler regex when opening

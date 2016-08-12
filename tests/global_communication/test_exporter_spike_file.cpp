@@ -16,17 +16,19 @@ protected:
     using time_type = float;
     using communicator_type = nest::mc::communication::global_policy;
 
-    using spike_type = nest::mc::communication::exporter_spike_file<time_type, 
+    using spike_type = 
+        nest::mc::communication::exporter_spike_file<time_type,
         communicator_type>::spike_type;
 
-    using exporter_type = nest::mc::communication::exporter_spike_file<time_type, communicator_type>;
+    using exporter_type = 
+        nest::mc::communication::exporter_spike_file<time_type, 
+        communicator_type>;
     std::string file_name;
     std::string path;
     std::string extention;
     unsigned index;
 
-    exporter_spike_file_fixture()
-        :
+    exporter_spike_file_fixture() :
         file_name("spikes_exporter_spike_file_fixture"),
         path("./"),
         extention("gdf"),

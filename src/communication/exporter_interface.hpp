@@ -13,7 +13,8 @@ namespace communication {
 // interface for exporters.
 // Exposes one virtual functions: 
 //    do_export(vector<type>) receiving a vector of parameters to export
-template <typename Time, typename CommunicationPolicy>  // TODO: Templating on data type
+
+template <typename Time, typename CommunicationPolicy>  
 class exporter_interface {
 
 public:
@@ -24,7 +25,7 @@ public:
     virtual void do_export(const std::vector<spike_type>&) = 0;
 
     // Returns the status of the exporter
-    bool good() const;
+    virtual bool good() const = 0;
 };
 
 } //communication

@@ -46,14 +46,16 @@ int main(int argc, char** argv)
 
     if (nr_spikes == 0) {
         std::cout << "disk_io <nrspikes>" << std::endl;
-        std::cout << "  nrspikes should be a valid integer higher then zero" << std::endl;
+        std::cout << "  nrspikes should be a valid integer higher then zero" 
+                  << std::endl;
         exit(1);
     }
     int nr_repeats = atoi(argv[2]);
 
     if (nr_repeats == 0) {
         std::cout << "disk_io <nrspikes>" << std::endl;
-        std::cout << "  nr_repeats should be a valid integer higher then zero" << std::endl;
+        std::cout << "  nr_repeats should be a valid integer higher then zero" 
+                  << std::endl;
         exit(1);
     }
 
@@ -121,7 +123,8 @@ int main(int argc, char** argv)
     std::vector<double> diff(timings.size());
     std::transform(timings.begin(), timings.end(), diff.begin(),
         std::bind2nd(std::minus<double>(), mean));
-    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(),
+        0.0);
     double stdev = std::sqrt(sq_sum / timings.size());
 
     if (communication_policy.id() != 0) {
@@ -135,9 +138,12 @@ int main(int argc, char** argv)
             stdev / double(CLOCKS_PER_SEC) * 1000;
     }
     else {
-        std::cout << "total time (ms): " << time_total / double(CLOCKS_PER_SEC) * 1000 << std::endl;
-        std::cout << "mean  time (ms): " << mean / double(CLOCKS_PER_SEC) * 1000 << std::endl;
-        std::cout << "stdev  time (ms): " << stdev / double(CLOCKS_PER_SEC) * 1000 << std::endl;
+        std::cout << "total time (ms): " 
+                  << time_total / double(CLOCKS_PER_SEC) * 1000 << std::endl;
+        std::cout << "mean  time (ms): " 
+                  << mean / double(CLOCKS_PER_SEC) * 1000 << std::endl;
+        std::cout << "stdev  time (ms): " 
+                  << stdev / double(CLOCKS_PER_SEC) * 1000 << std::endl;
     }
 
     return 0;
