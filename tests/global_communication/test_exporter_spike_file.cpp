@@ -95,18 +95,19 @@ TEST_F(exporter_spike_file_fixture, create_output_file_path)
 
 TEST_F(exporter_spike_file_fixture, do_export)
 {
-    exporter_type exporter(file_name, path, extention);
+    {
+        exporter_type exporter(file_name, path, extention);
 
-    // Create some spikes
-    std::vector<spike_type> spikes;
-    spikes.push_back({ { 0, 0 }, 0.0});
-    spikes.push_back({ { 0, 0 }, 0.1 });
-    spikes.push_back({ { 1, 0 }, 1.0 });
-    spikes.push_back({ { 1, 0 }, 1.1 });
+        // Create some spikes
+        std::vector<spike_type> spikes;
+        spikes.push_back({ { 0, 0 }, 0.0 });
+        spikes.push_back({ { 0, 0 }, 0.1 });
+        spikes.push_back({ { 1, 0 }, 1.0 });
+        spikes.push_back({ { 1, 0 }, 1.1 });
 
-    // now do the export
-    exporter.do_export(spikes);
-    
+        // now do the export
+        exporter.do_export(spikes);
+    }  // Force destruction of exporter and explicit flush of the stream
     // Test if we have spikes in the file?
     std::ifstream f(get_standard_file_name());
     EXPECT_TRUE(f.good());

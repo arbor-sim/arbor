@@ -31,8 +31,8 @@ public:
     // output_path  relative or absolute path
     // file_name    will be appended with "_x" with x the rank number
     // file_extention  a seperator will be added automatically
-    exporter_spike_file(std::string file_name, std::string path, 
-        std::string file_extention, bool over_write=true)
+    exporter_spike_file(const std::string& file_name, const std::string& path, 
+        const std::string& file_extention, bool over_write=true)
     {
         auto file_path =
             create_output_file_path(file_name, path, file_extention, communication_policy_.id());
@@ -43,8 +43,6 @@ public:
             std::string error_string("Tried opening file for writing but it exists and over_write is false: " + file_path);
             throw std::runtime_error(error_string);
         }
-       
-        buffer = new char[length];
 
         file_handle_.open(file_path);
     }
@@ -52,65 +50,11 @@ public:
     // Performs the a export of the spikes to file
     // one id and spike time with 4 decimals after the comma on a line space separated
     void do_export(const std::vector<spike_type>& spikes) override
-    {
-        unsigned current_loc_in_buffer = 0;
-        unsigned nr_chars_written = 0;
-        char single_value_buffer[20]; // Much to big 
-
-        // Some constants needed for printing
-        const char * space = " ";
-        const char * endline = "\n";
-
+    {       
         for (auto spike : spikes) {
-            // Manually convert the id and spike time to chars and use mem copy
-            // to insert these in the buffer.
-
-            // First the id as output
-            nr_chars_written = std::snprintf(single_value_buffer, 20, "%u", 
-                                             spike.source.gid);
-            std::memcpy(buffer + current_loc_in_buffer, single_value_buffer,
-                        nr_chars_written);
-            current_loc_in_buffer += nr_chars_written;
-
-            // Then a space
-            std::memcpy(buffer + current_loc_in_buffer, space, 1);
-            current_loc_in_buffer += 1;
-
-            // Then the float
-            nr_chars_written = std::snprintf(single_value_buffer, 20, "%.4f",
-                spike.time);
-            std::memcpy(buffer + current_loc_in_buffer, single_value_buffer,
-                nr_chars_written);
-            current_loc_in_buffer += nr_chars_written;
-
-            // Then the endline
-            std::memcpy(buffer + current_loc_in_buffer, endline, 2);
-            // endl is only a single char in the actual file!!
-            // TODO: WINDOWS? or should we asume newline seperated as the interface
-            current_loc_in_buffer += 1;  
-
-            // Check if we are nearing the end of our buffer
-            // maximum size of the inserted character in the loop is 2 * 20 + 3
-            // So if there are less then 45 chars left in the buffer, write to
-            // file. and reset the buffer index to zero
-            if (current_loc_in_buffer > length - 45) {
-                file_handle_.write(buffer, current_loc_in_buffer);
-                current_loc_in_buffer = 0;
-            }
-        }
-        
-        // write to buffer at end of the spikes processing
-        if (current_loc_in_buffer != 0) {
-            file_handle_.write(buffer, current_loc_in_buffer);
-            current_loc_in_buffer = 0; // not needed
-        }
-
-        file_handle_.flush();
-
-        if (!file_handle_.good()){
-            std::string error_string("Error writing data file. ");
-
-            throw std::runtime_error(error_string);
+            char linebuf[45];  
+            auto n = std::snprintf(linebuf, sizeof(linebuf), "%u %.4f\n", spike.source.gid, spike.time);
+            file_handle_.write(linebuf, n);
         }
     }
 
@@ -129,7 +73,8 @@ public:
 
 private:   
 
-    bool file_exists(const std::string& file_path) {
+    bool file_exists(const std::string& file_path) 
+    {
         std::ifstream fid(file_path);
         return fid.good();
     }
@@ -139,9 +84,6 @@ private:
     
     communication_policy_type communication_policy_;
 
-    // Buffer (and size) for raw output of spikes
-    char *buffer;
-    const unsigned int length = 32768;
 };
 
 } //communication
