@@ -14,20 +14,22 @@
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <communication/export_manager.hpp>
+#include <profiling/profiler.hpp>
 
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using lowered_cell = nest::mc::fvm::fvm_cell<double, cell_local_size_type>;
+using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using cell_group_type = cell_group<lowered_cell>;
 using time_type = typename cell_group_type::time_type;
 using spike_type = communication::exporter_spike_file<time_type,
     global_policy>::spike_type;
+using timer = util::timer_type;
 
 int main(int argc, char** argv)
 {
     //Setup the possible mpi environment
-    nest::mc::communication::global_policy_guard global_guard(argc, argv);
+    communication::global_policy_guard global_guard(argc, argv);
 
     // very simple command line parsing
     if (argc < 3) {
@@ -72,7 +74,7 @@ int main(int argc, char** argv)
     }
 
     // Create the sut  
-    nest::mc::communication::export_manager<time_type, global_policy> manager(
+   communication::export_manager<time_type, global_policy> manager(
         true, file_per_rank, true, "./", "spikes", "gdf");
 
     // We need the nr of ranks to calculate the nr of spikes to produce per
@@ -97,42 +99,40 @@ int main(int argc, char** argv)
             0.0f + 1 / (0.05f + idx % 20) });  // semi random float
     }
 
-    int timings_arr[nr_repeats];
-    int time_total = 0;
+    double timings_arr[nr_repeats];
+    double time_total = 0;
 
     // now output to disk nr_repeats times, while keeping track of the times
-    for (int idx = 0; idx < nr_repeats; ++idx) {
-        int time_start = clock();
+    for (auto idx = 0; idx < nr_repeats; ++idx) {
+        auto time_start = timer::tic();
 
         manager.local_export_callback(spikes);
-
-        int time_stop = clock();
-        int run_time = (time_stop - time_start);
+        auto run_time = timer::toc(time_start);
         time_total += run_time;
         timings_arr[idx] = run_time;
     }
 
-    std::vector<int> timings;
-    for (int idx = 0; idx < nr_repeats; ++idx)
-    {
+    // create the vector here to prevent changes on the heap influencing the
+    // timeing
+    std::vector<double> timings;
+    for (auto idx = 0; idx < nr_repeats; ++idx) {
         timings.push_back(timings_arr[idx]);
-
     }
     
 
     // Calculate some statistics
-    double sum = std::accumulate(timings.begin(), timings.end(), 0.0);
-    double mean = sum / timings.size();
+    auto sum = std::accumulate(timings.begin(), timings.end(), 0.0);
+    auto mean = sum / timings.size();
 
     std::vector<double> diff(timings.size());
     std::transform(timings.begin(), timings.end(), diff.begin(),
         std::bind2nd(std::minus<double>(), mean));
-    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(),
+    auto sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(),
         0.0);
-    double stdev = std::sqrt(sq_sum / timings.size());
+    auto stdev = std::sqrt(sq_sum / timings.size());
 
-    int min = *std::min_element(timings.begin(), timings.end());
-    int max = *std::max_element(timings.begin(), timings.end());
+    auto min = *std::min_element(timings.begin(), timings.end());
+    auto max = *std::max_element(timings.begin(), timings.end());
 
 
     if (communication_policy.id() != 0) {
@@ -141,23 +141,18 @@ int main(int argc, char** argv)
 
     // and output
     if (simple_stats) {
-        std::cout << time_total / double(CLOCKS_PER_SEC) * 1000 << ","
-            << mean / double(CLOCKS_PER_SEC) * 1000 << ","
-            << stdev / double(CLOCKS_PER_SEC) * 1000 << ","
-            << min / double(CLOCKS_PER_SEC) * 1000 << ","
-            << max / double(CLOCKS_PER_SEC) * 1000 << std::endl;
+        std::cout << time_total<< "," 
+                  << mean  << ","
+                  << stdev << ","
+                  << min << ","
+                  << max << std::endl;
     }
     else {
-        std::cout << "total time (ms): " 
-                  << time_total / double(CLOCKS_PER_SEC) * 1000 << std::endl;
-        std::cout << "mean  time (ms): " 
-                  << mean / double(CLOCKS_PER_SEC) * 1000 << std::endl;
-        std::cout << "stdev  time (ms): " 
-                  << stdev / double(CLOCKS_PER_SEC) * 1000 << std::endl;
-        std::cout << "min  time (ms): "
-            << min / double(CLOCKS_PER_SEC) * 1000 << std::endl;
-        std::cout << "max  time (ms): "
-            << max / double(CLOCKS_PER_SEC) * 1000 << std::endl;
+        std::cout << "total time (ms): " << time_total  <<  std::endl;
+        std::cout << "mean  time (ms): " << mean <<  std::endl;
+        std::cout << "stdev  time (ms): " <<  std::endl;
+        std::cout << "min  time (ms): " << min << std::endl;
+        std::cout << "max  time (ms): " << max << std::endl;
     }
 
     return 0;

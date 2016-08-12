@@ -4,7 +4,7 @@ import os
 
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
-spikes_to_save = 100000
+spikes_to_save = 1000000
 
 range_nr_rank = [1, 2, 4, 8, 16, 24, 32, 48, 64]
 mean = []
