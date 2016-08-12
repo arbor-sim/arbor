@@ -22,6 +22,9 @@ public:
 
     // Performs the export of the data
     virtual void do_export(const std::vector<spike_type>&) = 0;
+
+    // Returns the status of the exporter
+    bool good() const;
 };
 
 } //communication

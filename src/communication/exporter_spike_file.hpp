@@ -58,6 +58,11 @@ public:
         }
     }
 
+    bool good() const
+    {
+        return file_handle_.good();
+    }
+
     // Creates an indexed filename
     static std::string create_output_file_path(const std::string& file_name, const std::string& path,
         const std::string& file_extention, unsigned index)
