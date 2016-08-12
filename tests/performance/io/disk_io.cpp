@@ -106,7 +106,7 @@ int main(int argc, char** argv)
     for (int idx = 0; idx < nr_repeats; ++idx) {
         int time_start = clock();
 
-        manager.do_export_local(spikes);
+        manager.local_export_callback(spikes);
 
         int time_stop = clock();
         int run_time = (time_stop - time_start);

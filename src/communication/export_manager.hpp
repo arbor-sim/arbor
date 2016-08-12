@@ -83,7 +83,7 @@ public:
     // Perform a export of local spikes, typically used for exporting to multi-
     // ple files from each rank individually.
     // spikes are buffer before export
-    void do_export_local(const std::vector<spike_type>& spikes)
+    void local_export_callback(const std::vector<spike_type>& spikes)
     {
         // TODO: No export needed, so exit
         if (!spike_file_output_) {
@@ -104,7 +104,7 @@ public:
     // Perform a export of global spikes, typically used for exporting spikes
     // from a single rank in a simulation
     // spikes are buffer before export
-    void do_export_global(const std::vector<spike_type>& spikes)
+    void global_export_callback(const std::vector<spike_type>& spikes)
     {
         if (!spike_file_output_) {
             return;

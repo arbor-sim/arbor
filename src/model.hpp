@@ -169,8 +169,8 @@ public:
                 auto local_spikes = previous_spikes().gather();
                 future_events() = communicator_.exchange(local_spikes,
                     // send the exporter function as pointers to export
-                    [&](const std::vector<spike_type>& spikes) { exporter_->do_export_local(spikes); },
-                    [&] (const std::vector<spike_type>& spikes){ exporter_->do_export_global(spikes); });
+                    [&](const std::vector<spike_type>& spikes) { exporter_->local_export_callback(spikes); },
+                    [&] (const std::vector<spike_type>& spikes){ exporter_->global_export_callback(spikes); });
                 PL(2);
             };
 

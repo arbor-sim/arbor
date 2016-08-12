@@ -1,4 +1,4 @@
-#!/etc/bash
+#!/usr/bin/env bash
 
 #flags="-t cpu -O"
 flags="-t cpu"
