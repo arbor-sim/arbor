@@ -167,9 +167,9 @@ public:
             auto exchange = [&] () {
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
+                exporter_->local_export_callback(local_spikes);
                 future_events() = communicator_.exchange(local_spikes,
                     // send the exporter function as pointers to export
-                    [&](const std::vector<spike_type>& spikes) { exporter_->local_export_callback(spikes); },
                     [&] (const std::vector<spike_type>& spikes){ exporter_->global_export_callback(spikes); });
                 PL(2);
             };
