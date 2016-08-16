@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
         model_type m(*recipe, cell_range.first, cell_range.second);
 
         // File output is depending on the input arguments
-        std::unique_ptr<file_export_type> file_exporter;      
+        std::unique_ptr<file_export_type> file_exporter;
         if (!options.spike_file_output) {
             // TODO: use the no_function if PR:77
             m.set_global_spike_callback(file_export_type::do_nothing);
@@ -79,22 +79,24 @@ int main(int argc, char** argv) {
         else {
             // The exporter is the same for both global and local output
             // just registered as a different callback
-            file_exporter = 
+            file_exporter =
                 util::make_unique<file_export_type>(
-                    options.file_name, options.output_path, 
+                    options.file_name, options.output_path,
                     options.file_extention, options.over_write);
 
             if (options.single_file_per_rank) {
                     m.set_global_spike_callback(file_export_type::do_nothing);
                     m.set_local_spike_callback(
-                        [&](const std::vector<spike_type>& spikes) { 
-                            file_exporter->do_export(spikes); });
+                        [&](const std::vector<spike_type>& spikes) {
+                            file_exporter->do_export(spikes);
+                        });
              }
              else {
                  m.set_global_spike_callback(
                      [&](const std::vector<spike_type>& spikes) {
-                     file_exporter->do_export(spikes); });
-                   m.set_local_spike_callback(file_export_type::do_nothing);
+                        file_exporter->do_export(spikes);
+                     });
+                 m.set_local_spike_callback(file_export_type::do_nothing);
              }
         }
 
@@ -189,7 +191,7 @@ std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_s
     case probeKind::membrane_current:
         name = "i";
         units = "mA/cm²";
-        break; 
+        break;
     default: ;
     }
     name += probe.location.segment? "dend" : "soma";

@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
     // very simple command line parsing
     if (argc < 3) {
-        std::cout << "disk_io <int nrspikes> <int nr_repeats> <file_per_rank (true|false)> [simple_output (false|true)]\n"
+        std::cout << "disk_io <int nrspikes> <int nr_repeats>  [simple_output (false|true)]\n"
             << "   Simple performance test runner for the exporter manager\n"
             << "   It exports nrspikes nr_repeats using the export_manager and will produce\n"
             << "   the total, mean and std of the time needed to perform the output to disk\n"
@@ -58,15 +58,9 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    bool file_per_rank = false;
-    std::string single(argv[3]);
-    if (single == std::string("true")) {
-        file_per_rank = true;
-    }
-
     bool simple_stats = false;
     if (argc == 5) {
-        std::string simple(argv[4]);
+        std::string simple(argv[3]);
         if (simple == std::string("true"))
         {
             simple_stats = true;

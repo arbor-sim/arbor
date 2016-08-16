@@ -14,7 +14,6 @@ namespace io {
 
 // holds the options for a simulation run
 struct cl_options {
-    std::string ifname;
     uint32_t cells;
     uint32_t synapses_per_cell;
     std::string syn_type;

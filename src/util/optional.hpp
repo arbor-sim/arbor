@@ -268,6 +268,11 @@ struct optional: detail::optional_base<X> {
     template <typename T>
     optional(optional<T>&& ot): base(ot.set, std::move(ot.ref())) {}
 
+    optional& operator=(nothing_t) {
+        reset();
+        return *this;
+    }
+
     template <
         typename Y,
         typename = detail::enable_unless_optional_t<Y>
@@ -331,6 +336,7 @@ struct optional<X&>: detail::optional_base<X&> {
     using base::set;
     using base::ref;
     using base::data;
+    using base::reset;
 
     optional(): base() {}
     optional(nothing_t): base() {}
@@ -338,6 +344,11 @@ struct optional<X&>: detail::optional_base<X&> {
 
     template <typename T>
     optional(optional<T&>& ot): base(ot.set,ot.ref()) {}
+
+    optional& operator=(nothing_t) {
+        reset();
+        return *this;
+    }
 
     template <typename Y>
     optional& operator=(Y& y) {
@@ -364,6 +375,7 @@ template <>
 struct optional<void>: detail::optional_base<void> {
     using base = detail::optional_base<void>;
     using base::set;
+    using base::reset;
 
     optional(): base() {}
 
@@ -372,6 +384,11 @@ struct optional<void>: detail::optional_base<void> {
 
     template <typename T>
     optional(const optional<T>& o): base(o.set,true) {}
+
+    optional& operator=(nothing_t) {
+        reset();
+        return *this;
+    }
 
     template <typename T>
     optional& operator=(T) {
@@ -394,7 +411,7 @@ struct optional<void>: detail::optional_base<void> {
 };
 
 
-template <typename A,typename B>
+template <typename A, typename B>
 typename std::enable_if<
     detail::is_optional<A>::value || detail::is_optional<B>::value,
     optional<
@@ -408,7 +425,7 @@ operator|(A&& a,B&& b) {
     return detail::decay_bool(a) ? a : b;
 }
 
-template <typename A,typename B>
+template <typename A, typename B>
 typename std::enable_if<
     detail::is_optional<A>::value || detail::is_optional<B>::value,
     optional<detail::wrapped_type_t<B>>
