@@ -62,11 +62,14 @@ if(SYSTEM_CRAY)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
 
-# Cray systems
+# KNL target
 set(TARGET_KNL OFF CACHE BOOL "target Intel KNL architecture")
 if(TARGET_KNL)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
 endif()
+
+# vectorization
+set(TARGET_VECTORIZE OFF CACHE BOOL "generate optimized code that vectorizes with the Intel compiler")
 
 # targets for extermal dependencies
 include(ExternalProject)
