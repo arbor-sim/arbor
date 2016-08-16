@@ -13,7 +13,6 @@
 #include "io.hpp"
 
 // Let TCLAP understand value arguments that are of an optional type.
-
 template <typename V>
 struct TCLAP::ArgTraits<nest::mc::util::optional<V>> {
     using ValueCategory = ValueLike;
@@ -22,9 +21,8 @@ struct TCLAP::ArgTraits<nest::mc::util::optional<V>> {
 namespace nest {
 namespace mc {
 
-// Using static here because we do not want external linkage for this operator
-
 namespace util {
+    // Using static here because we do not want external linkage for this operator.
     template <typename V>
     static std::istream& operator>>(std::istream& I, optional<V>& v) {
         V u;
@@ -37,8 +35,14 @@ namespace util {
 
 namespace io {
 
-// override annoying parameters listed back-to-front behaviour
-
+// Override annoying parameters listed back-to-front behaviour.
+//
+// TCLAP argument creation _prepends_ its arguments to the internal
+// list (_argList), where standard options --help etc. are already
+// pre-inserted.
+//
+// reorder_arguments() reverses the arguments to restore ordering,
+// and moves the standard options to the end.
 class CustomCmdLine: public TCLAP::CmdLine {
 public:
     CustomCmdLine(const std::string &message, const std::string &version = "none"):
@@ -46,12 +50,11 @@ public:
     {}
 
     void reorder_arguments() {
-        std::list<TCLAP::Arg*> args;
-
         _argList.reverse();
         for (auto opt: {"help", "version", "ignore_rest"}) {
-            auto i = std::find_if(_argList.begin(), _argList.end(),
-                        [&opt](TCLAP::Arg* a) { return a->getName()==opt; });
+            auto i = std::find_if(
+                _argList.begin(), _argList.end(),
+                [&opt](TCLAP::Arg* a) { return a->getName()==opt; });
 
             if (i!=_argList.end()) {
                 auto a = *i;
@@ -62,18 +65,19 @@ public:
     }
 };
 
-// update an option value from command line argument if set
-
-template <typename T, typename Arg,
-          typename = util::enable_if_t<std::is_base_of<TCLAP::Arg, Arg>::value>>
+// Update an option value from command line argument if set.
+template <
+    typename T,
+    typename Arg,
+    typename = util::enable_if_t<std::is_base_of<TCLAP::Arg, Arg>::value>
+>
 static void update_option(T& opt, Arg& arg) {
     if (arg.isSet()) {
         opt = arg.getValue();
     }
 }
 
-// update an option value from json object if key present
-
+// Update an option value from json object if key present.
 template <typename T>
 static void update_option(T& opt, const nlohmann::json& j, const std::string& key) {
     if (j.count(key)) {
@@ -81,13 +85,14 @@ static void update_option(T& opt, const nlohmann::json& j, const std::string& ke
     }
 }
 
+// --- special case for string due to ambiguous overloading in json library.
 static void update_option(std::string& opt, const nlohmann::json& j, const std::string& key) {
-    // special case for string due to ambiguous overloading
     if (j.count(key)) {
         opt = j[key].get<std::string>();
     }
 }
 
+// --- special case for optional values.
 template <typename T>
 static void update_option(util::optional<T>& opt, const nlohmann::json& j, const std::string& key) {
     if (j.count(key)) {
@@ -101,20 +106,17 @@ static void update_option(util::optional<T>& opt, const nlohmann::json& j, const
     }
 }
 
-/// read simulation options from json file with name fname
-/// if file name is empty or if file is not a valid json file a default
-/// set of parameters is returned :
-///      1000 cells, 500 synapses per cell, 100 compartments per segment
+// Read options from (optional) json file and command line arguments.
 cl_options read_options(int argc, char** argv) {
 
-    // set default options
+    // Default options:
     const cl_options defopts{1000, 500, "expsyn", 100, 100., 0.025, false,
                              false, 1.0, "trace_", util::nothing};
 
     cl_options options;
     std::string save_file = "";
 
-    // parse command line arguments
+    // Parse command line arguments.
     try {
         CustomCmdLine cmd("nest mc miniapp harness", "0.1");
 
@@ -165,9 +167,8 @@ cl_options read_options(int argc, char** argv) {
 
         std::string ifile_name = ifile_arg.getValue();
         if (ifile_name != "") {
-            // read parameters from specified JSON file first, to allow
-            // overriding arguments on the command line
-
+            // Read parameters from specified JSON file first, to allow
+            // overriding arguments on the command line.
             std::ifstream fid(ifile_name);
             if (fid) {
                 try {
@@ -210,17 +211,14 @@ cl_options read_options(int argc, char** argv) {
 
         save_file = ofile_arg.getValue();
     }
-    // catch any exceptions in command line handling
     catch (TCLAP::ArgException& e) {
         throw usage_error("error parsing command line argument "+e.argId()+": "+e.error());
     }
 
-    // save option values if requested
-
+    // Save option values if requested.
     if (save_file != "") {
         std::ofstream fid(save_file);
         if (fid) {
-            // write option values to json output file
             try {
                 nlohmann::json fopts;
 
