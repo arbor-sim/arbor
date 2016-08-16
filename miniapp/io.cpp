@@ -1,10 +1,13 @@
+#include <algorithm>
 #include <exception>
 #include <fstream>
 #include <istream>
+#include <type_traits>
 
 #include <tclap/CmdLine.h>
 #include <json/src/json.hpp>
 
+#include <util/meta.hpp>
 #include <util/optional.hpp>
 
 #include "io.hpp"
@@ -21,9 +24,8 @@ namespace TCLAP {
 namespace nest {
 namespace mc {
 
-// Using static here because we do not want external linkage for this operator
-
 namespace util {
+    // Using static here because we do not want external linkage for this operator.
     template <typename V>
     static std::istream& operator>>(std::istream& I, optional<V>& v) {
         V u;
@@ -36,101 +38,221 @@ namespace util {
 
 namespace io {
 
-/// read simulation options from json file with name fname
-/// if file name is empty or if file is not a valid json file a default
-/// set of parameters is returned :
-///      1000 cells, 500 synapses per cell, 100 compartments per segment
+// Override annoying parameters listed back-to-front behaviour.
+//
+// TCLAP argument creation _prepends_ its arguments to the internal
+// list (_argList), where standard options --help etc. are already
+// pre-inserted.
+//
+// reorder_arguments() reverses the arguments to restore ordering,
+// and moves the standard options to the end.
+class CustomCmdLine: public TCLAP::CmdLine {
+public:
+    CustomCmdLine(const std::string &message, const std::string &version = "none"):
+        TCLAP::CmdLine(message, ' ', version, true)
+    {}
+
+    void reorder_arguments() {
+        _argList.reverse();
+        for (auto opt: {"help", "version", "ignore_rest"}) {
+            auto i = std::find_if(
+                _argList.begin(), _argList.end(),
+                [&opt](TCLAP::Arg* a) { return a->getName()==opt; });
+
+            if (i!=_argList.end()) {
+                auto a = *i;
+                _argList.erase(i);
+                _argList.push_back(a);
+            }
+        }
+    }
+};
+
+// Update an option value from command line argument if set.
+template <
+    typename T,
+    typename Arg,
+    typename = util::enable_if_t<std::is_base_of<TCLAP::Arg, Arg>::value>
+>
+static void update_option(T& opt, Arg& arg) {
+    if (arg.isSet()) {
+        opt = arg.getValue();
+    }
+}
+
+// Update an option value from json object if key present.
+template <typename T>
+static void update_option(T& opt, const nlohmann::json& j, const std::string& key) {
+    if (j.count(key)) {
+        opt = j[key];
+    }
+}
+
+// --- special case for string due to ambiguous overloading in json library.
+static void update_option(std::string& opt, const nlohmann::json& j, const std::string& key) {
+    if (j.count(key)) {
+        opt = j[key].get<std::string>();
+    }
+}
+
+// --- special case for optional values.
+template <typename T>
+static void update_option(util::optional<T>& opt, const nlohmann::json& j, const std::string& key) {
+    if (j.count(key)) {
+        auto value = j[key];
+        if (value.is_null()) {
+            opt = util::nothing;
+        }
+        else {
+            opt = value;
+        }
+    }
+}
+
+// Read options from (optional) json file and command line arguments.
 cl_options read_options(int argc, char** argv) {
 
-    // set default options
-    const cl_options defopts{"", 1000, 500, "expsyn", 100, 100., 0.025, false,
+    // Default options:
+    const cl_options defopts{1000, 500, "expsyn", 100, 100., 0.025, false,
                              false, 1.0, "trace_", util::nothing};
 
     cl_options options;
-    // parse command line arguments
-    try {
-        TCLAP::CmdLine cmd("mod2c performance benchmark harness", ' ', "0.1");
+    std::string save_file = "";
 
+    // Parse command line arguments.
+    try {
+        CustomCmdLine cmd("nest mc miniapp harness", "0.1");
+
+        TCLAP::ValueArg<std::string> ifile_arg(
+            "i", "ifile",
+            "read parameters from json-formatted file <file name>",
+            false, "","file name", cmd);
+        TCLAP::ValueArg<std::string> ofile_arg(
+            "o", "ofile",
+            "save parameters to json-formatted file <file name>",
+            false, "","file name", cmd);
         TCLAP::ValueArg<uint32_t> ncells_arg(
             "n", "ncells", "total number of cells in the model",
-            false, defopts.cells, "non negative integer", cmd);
+            false, defopts.cells, "integer", cmd);
         TCLAP::ValueArg<uint32_t> nsynapses_arg(
             "s", "nsynapses", "number of synapses per cell",
-            false, defopts.synapses_per_cell, "non negative integer", cmd);
+            false, defopts.synapses_per_cell, "integer", cmd);
         TCLAP::ValueArg<std::string> syntype_arg(
-            "S", "syntype", "type of synapse (expsyn or exp2syn)",
-            false, defopts.syn_type, "synapse type", cmd);
+            "S", "syntype", "specify synapse type: expsyn or exp2syn",
+            false, defopts.syn_type, "string", cmd);
         TCLAP::ValueArg<uint32_t> ncompartments_arg(
             "c", "ncompartments", "number of compartments per segment",
-            false, defopts.compartments_per_segment, "non negative integer", cmd);
-        TCLAP::ValueArg<std::string> ifile_arg(
-            "i", "ifile", "json file with model parameters",
-            false, "","file name string", cmd);
+            false, defopts.compartments_per_segment, "integer", cmd);
         TCLAP::ValueArg<double> tfinal_arg(
-            "t", "tfinal", "time to simulate in ms",
-            false, defopts.tfinal, "positive real number", cmd);
+            "t", "tfinal", "run simulation to <time> ms",
+            false, defopts.tfinal, "time", cmd);
         TCLAP::ValueArg<double> dt_arg(
-            "d", "dt", "time step size in ms",
-            false, defopts.dt, "positive real number", cmd);
+            "d", "dt", "set simulation time step to <time> ms",
+            false, defopts.dt, "time", cmd);
         TCLAP::SwitchArg all_to_all_arg(
             "m","alltoall","all to all network", cmd, false);
         TCLAP::ValueArg<double> probe_ratio_arg(
-            "p", "probe-ratio", "proportion of cells to probe",
-            false, defopts.probe_ratio, "real number in [0,1]", cmd);
+            "p", "probe-ratio", "proportion between 0 and 1 of cells to probe",
+            false, defopts.probe_ratio, "proportion", cmd);
         TCLAP::SwitchArg probe_soma_only_arg(
             "X", "probe-soma-only", "only probe cell somas, not dendrites", cmd, false);
         TCLAP::ValueArg<std::string> trace_prefix_arg(
-            "P", "trace-prefix", "write traces to files with this prefix",
+            "P", "prefix", "write traces to files with prefix <prefix>",
             false, defopts.trace_prefix, "stringr", cmd);
         TCLAP::ValueArg<util::optional<unsigned>> trace_max_gid_arg(
-            "T", "trace-max-gid", "only trace probes on cells up to this gid",
-            false, defopts.trace_max_gid, "unisgned integer", cmd);
+            "T", "trace-max-gid", "only trace probes on cells up to and including <gid>",
+            false, defopts.trace_max_gid, "gid", cmd);
 
+        cmd.reorder_arguments();
         cmd.parse(argc, argv);
 
-        options.cells = ncells_arg.getValue();
-        options.synapses_per_cell = nsynapses_arg.getValue();
-        options.syn_type = syntype_arg.getValue();
-        options.compartments_per_segment = ncompartments_arg.getValue();
-        options.ifname = ifile_arg.getValue();
-        options.tfinal = tfinal_arg.getValue();
-        options.dt = dt_arg.getValue();
-        options.all_to_all = all_to_all_arg.getValue();
-        options.probe_ratio = probe_ratio_arg.getValue();
-        options.probe_soma_only = probe_soma_only_arg.getValue();
-        options.trace_prefix = trace_prefix_arg.getValue();
-        options.trace_max_gid = trace_max_gid_arg.getValue();
+        options = defopts;
+
+        std::string ifile_name = ifile_arg.getValue();
+        if (ifile_name != "") {
+            // Read parameters from specified JSON file first, to allow
+            // overriding arguments on the command line.
+            std::ifstream fid(ifile_name);
+            if (fid) {
+                try {
+                    nlohmann::json fopts;
+                    fid >> fopts;
+
+                    update_option(options.cells, fopts, "cells");
+                    update_option(options.synapses_per_cell, fopts, "synapses");
+                    update_option(options.syn_type, fopts, "syn_type");
+                    update_option(options.compartments_per_segment, fopts, "compartments");
+                    update_option(options.dt, fopts, "dt");
+                    update_option(options.tfinal, fopts, "tfinal");
+                    update_option(options.all_to_all, fopts, "all_to_all");
+                    update_option(options.probe_ratio, fopts, "probe_ratio");
+                    update_option(options.probe_soma_only, fopts, "probe_soma_only");
+                    update_option(options.trace_prefix, fopts, "trace_prefix");
+                    update_option(options.trace_max_gid, fopts, "trace_max_gid");
+                }
+                catch (std::exception& e) {
+                    throw model_description_error(
+                        "unable to parse parameters in "+ifile_name+": "+e.what());
+                }
+            }
+            else {
+                throw usage_error("unable to open model parameter file "+ifile_name);
+            }
+        }
+
+        update_option(options.cells, ncells_arg);
+        update_option(options.synapses_per_cell, nsynapses_arg);
+        update_option(options.syn_type, syntype_arg);
+        update_option(options.compartments_per_segment, ncompartments_arg);
+        update_option(options.tfinal, tfinal_arg);
+        update_option(options.dt, dt_arg);
+        update_option(options.all_to_all, all_to_all_arg);
+        update_option(options.probe_ratio, probe_ratio_arg);
+        update_option(options.probe_soma_only, probe_soma_only_arg);
+        update_option(options.trace_prefix, trace_prefix_arg);
+        update_option(options.trace_max_gid, trace_max_gid_arg);
+
+        save_file = ofile_arg.getValue();
     }
-    // catch any exceptions in command line handling
     catch (TCLAP::ArgException& e) {
         throw usage_error("error parsing command line argument "+e.argId()+": "+e.error());
     }
 
-    if (options.ifname != "") {
-        std::ifstream fid(options.ifname);
+    // Save option values if requested.
+    if (save_file != "") {
+        std::ofstream fid(save_file);
         if (fid) {
-            // read json data in input file
-            nlohmann::json fopts;
-            fid >> fopts;
-
             try {
-                options.cells = fopts["cells"];
-                options.synapses_per_cell = fopts["synapses"];
-                options.compartments_per_segment = fopts["compartments"];
-                options.dt = fopts["dt"];
-                options.tfinal = fopts["tfinal"];
-                options.all_to_all = fopts["all_to_all"];
+                nlohmann::json fopts;
+
+                fopts["cells"] = options.cells;
+                fopts["synapses"] = options.synapses_per_cell;
+                fopts["syn_type"] = options.syn_type;
+                fopts["compartments"] = options.compartments_per_segment;
+                fopts["dt"] = options.dt;
+                fopts["tfinal"] = options.tfinal;
+                fopts["all_to_all"] = options.all_to_all;
+                fopts["probe_ratio"] = options.probe_ratio;
+                fopts["probe_soma_only"] = options.probe_soma_only;
+                fopts["trace_prefix"] = options.trace_prefix;
+                if (options.trace_max_gid) {
+                    fopts["trace_max_gid"] = options.trace_max_gid.get();
+                }
+                else {
+                    fopts["trace_max_gid"] = nullptr;
+                }
+
+                fid << std::setw(3) << fopts << "\n";
             }
             catch (std::exception& e) {
                 throw model_description_error(
-                    "unable to parse parameters in "+options.ifname+": "+e.what());
+                    "unable to save parameters in "+save_file+": "+e.what());
             }
         }
         else {
-            throw usage_error("unable to open model parameter file "+options.ifname);
+            throw usage_error("unable to write to model parameter file "+save_file);
         }
     }
-
     return options;
 }
 
@@ -150,7 +272,6 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
        o << *options.trace_max_gid;
     }
     o << "\n";
-    o << "  input file name      : " << options.ifname << "\n";
 
     return o;
 }
