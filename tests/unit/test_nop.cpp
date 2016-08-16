@@ -3,7 +3,7 @@
 
 using namespace nest::mc::util;
 
-TEST(nop,void_fn) {
+TEST(nop, void_fn) {
     std::function<void ()> f{nop_function};
 
     EXPECT_TRUE(f);
@@ -42,7 +42,7 @@ struct check_default {
     explicit check_default(int n): value(n) {}
 };
 
-TEST(nop,default_return_fn) {
+TEST(nop, default_return_fn) {
     std::function<check_default ()> f{nop_function};
 
     EXPECT_TRUE(f);
