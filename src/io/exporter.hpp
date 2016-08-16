@@ -22,7 +22,7 @@ public:
     using spike_type = spike<cell_member_type, time_type>;
 
     // Performs the export of the data
-    virtual void do_export(const std::vector<spike_type>&) = 0;
+    virtual void output(const std::vector<spike_type>&) = 0;
 
     // Returns the status of the exporter
     virtual bool good() const = 0;

@@ -88,13 +88,13 @@ int main(int argc, char** argv) {
                     m.set_global_spike_callback(file_export_type::do_nothing);
                     m.set_local_spike_callback(
                         [&](const std::vector<spike_type>& spikes) {
-                            file_exporter->do_export(spikes);
+                            file_exporter->output(spikes);
                         });
              }
              else {
                  m.set_global_spike_callback(
                      [&](const std::vector<spike_type>& spikes) {
-                        file_exporter->do_export(spikes);
+                        file_exporter->output(spikes);
                      });
                  m.set_local_spike_callback(file_export_type::do_nothing);
              }

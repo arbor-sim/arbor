@@ -100,7 +100,7 @@ int main(int argc, char** argv)
     for (auto idx = 0; idx < nr_repeats; ++idx) {
         auto time_start = timer::tic();
 
-        exporter.do_export(spikes);
+        exporter.output(spikes);
         auto run_time = timer::toc(time_start);
         time_total += run_time;
         timings_arr[idx] = run_time;

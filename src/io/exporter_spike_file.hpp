@@ -51,7 +51,7 @@ public:
     // Performs the a export of the spikes to file
     // one id and spike time with 4 decimals after the comma on a
     // line space separated
-    void do_export(const std::vector<spike_type>& spikes) override
+    void output(const std::vector<spike_type>& spikes) override
     {
         for (auto spike : spikes) {
             char linebuf[45];
