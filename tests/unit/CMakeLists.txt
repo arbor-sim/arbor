@@ -21,6 +21,7 @@ set(TEST_SOURCES
     test_mask_stream.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_nop.cpp
     test_optional.cpp
     test_parameters.cpp
     test_point.cpp

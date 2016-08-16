@@ -13,10 +13,13 @@
 #include "io.hpp"
 
 // Let TCLAP understand value arguments that are of an optional type.
-template <typename V>
-struct TCLAP::ArgTraits<nest::mc::util::optional<V>> {
-    using ValueCategory = ValueLike;
-};
+
+namespace TCLAP {
+    template <typename V>
+    struct ArgTraits<nest::mc::util::optional<V>> {
+        using ValueCategory = ValueLike;
+    };
+}
 
 namespace nest {
 namespace mc {
