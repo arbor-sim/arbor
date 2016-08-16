@@ -178,11 +178,16 @@ public:
     std::size_t num_spikes() const { return communicator_.num_spikes(); }
     std::size_t num_groups() const { return cell_groups_.size(); }
 
+    // register a callback that will perform a export of the global
+    // spike vector 
     void set_global_spike_callback(std::function<void(
         const std::vector<spike_type>&)> global_export_callback)
     {
         global_export_callback_ = global_export_callback;
     }
+
+    // register a callback that will perform a export of the rank local
+    // spike vector
     void set_local_spike_callback(std::function<void(
         const std::vector<spike_type>&)> local_export_callback)
     {
