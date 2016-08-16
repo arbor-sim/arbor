@@ -291,20 +291,18 @@ void profiler_leave(int nlevels) {
     get_profiler().leave(nlevels);
 }
 
-// iterate over all profilers and ensure that they have the same start stop times
+/// iterate over all profilers and ensure that they have the same start stop times
 void profilers_stop() {
     for (auto& p : data::profilers_) {
         p.stop();
     }
 }
 
+/// iterate over all profilers and reset
 void profilers_restart() {
-    auto i = 0;
     for (auto& p : data::profilers_) {
         p.restart();
-        ++i;
     }
-    std::cout << "just stopped " << i << " profilers" << std::endl;
 }
 
 void profiler_output(double threshold, cell_size_type num_local_cells, int num_steps) {
