@@ -84,21 +84,15 @@ int main(int argc, char** argv) {
             m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
         }
 
-        m.print_spikes();
-
         // dummy run of the model for one step to ensure that profiling is consistent
         m.run(options.dt, options.dt);
 
         // reset the model
         m.reset();
-        std::cout << "\n";
-        m.print_spikes();
-        // which requires resetting the sources
+        // rest the source spikes
         for (auto source : local_sources) {
             m.add_artificial_spike({source, 0});
         }
-        std::cout << "\n";
-        m.print_spikes();
 
         // run model
         m.run(options.tfinal, options.dt);

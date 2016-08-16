@@ -83,8 +83,12 @@ public:
 
         communicator_.reset();
 
-        current_events().clear();
-        future_events().clear();
+        for(auto& q : current_events()) {
+            q.clear();
+        }
+        for(auto& q : future_events()) {
+            q.clear();
+        }
 
         current_spikes().clear();
         previous_spikes().clear();
