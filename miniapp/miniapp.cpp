@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <vector>
 
 #include <json/src/json.hpp>
 
@@ -16,6 +17,7 @@
 #include <profiling/profiler.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <communication/exporter_spike_file.hpp>
 #include <util/ioutil.hpp>
 #include <util/optional.hpp>
 
@@ -29,12 +31,15 @@ using global_policy = communication::global_policy;
 
 using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using model_type = model<lowered_cell>;
-using sample_trace_type = sample_trace<model_type::time_type, model_type::value_type>;
-
+using time_type = model_type::time_type;
+using sample_trace_type = sample_trace<time_type, model_type::value_type>;
+using file_export_type = communication::exporter_spike_file<time_type, global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
 std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
+using communicator_type = communication::communicator<time_type, communication::global_policy>;
+using spike_type = typename communicator_type::spike_type;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 
@@ -63,15 +68,35 @@ int main(int argc, char** argv) {
 
         // build model from recipe
         // TODO: I would rather just forward the options object. 
-        model_type::file_output_parameters model_params(
-            options.spike_file_output,
-            options.single_file_per_rank,
-            options.over_write,
-            options.output_path,
-            options.file_name,
-            options.file_extention
-        );
-        model_type m(*recipe, cell_range.first, cell_range.second, model_params);
+
+        model_type m(*recipe, cell_range.first, cell_range.second);
+        std::unique_ptr<file_export_type> file_exporter;
+        if (!options.spike_file_output) {
+            m.set_global_spike_callback(
+                file_export_type::do_nothing);
+            m.set_local_spike_callback(
+                file_export_type::do_nothing);
+        }
+        else {
+            file_exporter = nest::mc::util::make_unique<file_export_type>(
+                options.file_name, options.output_path, 
+                options.file_extention, true);
+
+            if (options.single_file_per_rank) {
+                    m.set_global_spike_callback(
+                        file_export_type::do_nothing);
+                    m.set_local_spike_callback(
+                        [&](const std::vector<spike_type>& spikes) { file_exporter->do_export(spikes); });
+
+             }
+             else {
+                 m.set_global_spike_callback(
+                     [&](const std::vector<spike_type>& spikes) { file_exporter->do_export(spikes); });
+                   m.set_local_spike_callback(
+                       file_export_type::do_nothing);
+             }
+        }
+       
 
         // inject some artificial spikes, 1 per 20 neurons.
         cell_gid_type spike_cell = 20*((cell_range.first+19)/20);

@@ -13,7 +13,7 @@
 
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <communication/export_manager.hpp>
+#include <communication/exporter_spike_file.hpp>
 #include <profiling/profiler.hpp>
 
 using namespace nest::mc;
@@ -74,8 +74,8 @@ int main(int argc, char** argv)
     }
 
     // Create the sut  
-   communication::export_manager<time_type, global_policy> manager(
-        true, file_per_rank, true, "./", "spikes", "gdf");
+   communication::exporter_spike_file<time_type, global_policy> exporter(
+         "spikes", "./", "gdf", true);
 
     // We need the nr of ranks to calculate the nr of spikes to produce per
     // rank
@@ -106,7 +106,7 @@ int main(int argc, char** argv)
     for (auto idx = 0; idx < nr_repeats; ++idx) {
         auto time_start = timer::tic();
 
-        manager.local_export_callback(spikes);
+        exporter.do_export(spikes);
         auto run_time = timer::toc(time_start);
         time_total += run_time;
         timings_arr[idx] = run_time;

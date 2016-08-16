@@ -12,7 +12,6 @@
 #include <thread_private_spike_store.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <communication/export_manager.hpp>
 #include <profiling/profiler.hpp>
 
 #include "trace_sampler.hpp"
@@ -23,47 +22,19 @@ namespace mc {
 template <typename Cell>
 class model {
 public:
-
-    // TODO:We need to think how to transport parameters accros the different classes
-    // Move the io to src directory would make it allot easier!!
-    struct file_output_parameters
-    {
-        bool spike_file_output;
-        bool single_file_per_rank;
-        bool over_write;
-        std::string output_path;
-        std::string file_name;
-        std::string file_extention;
-
-        file_output_parameters(bool spike_file_output_i,
-            bool single_file_per_rank_i,
-            bool over_write_i,
-            std::string output_path_i,
-            std::string file_name_i,
-            std::string file_extention_i)
-            :
-            spike_file_output(spike_file_output_i),
-            single_file_per_rank(single_file_per_rank_i),
-            over_write(over_write_i),
-            output_path(output_path_i),
-            file_name(file_name_i),
-            file_extention(file_extention_i)
-        {}
-    };
-
     using cell_group_type = cell_group<Cell>;
-    using time_type = typename cell_group_type::time_type;
+    using time_type = typename cell_group_type::time_type;   
     using value_type = typename cell_group_type::value_type;
     using communicator_type = communication::communicator<time_type, communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
+    using spike_type = typename communicator_type::spike_type;
 
     struct probe_record {
         cell_member_type id;
         probe_spec probe;
     };
 
-    model(const recipe& rec, cell_gid_type cell_from, cell_gid_type cell_to,
-        file_output_parameters file_output_parameters_i):
+    model(const recipe& rec, cell_gid_type cell_from, cell_gid_type cell_to):
         cell_from_(cell_from),
         cell_to_(cell_to),
         communicator_(cell_from, cell_to)
@@ -98,14 +69,6 @@ public:
             }
         }
         communicator_.construct();
-
-        exporter_ = nest::mc::util::make_unique<exporter_manager_type>(
-            file_output_parameters_i.spike_file_output,
-            file_output_parameters_i.single_file_per_rank,
-            file_output_parameters_i.over_write,
-            file_output_parameters_i.output_path,
-            file_output_parameters_i.file_name,
-            file_output_parameters_i.file_extention);
 
         // Allocate an empty queue buffer for each cell group
         // These must be set initially to ensure that a queue is available for each
@@ -144,7 +107,7 @@ public:
             auto update_cells = [&] () {
                 threading::parallel_for::apply(
                     0u, cell_groups_.size(),
-                    [&](unsigned i) {
+                     [&](unsigned i) {
                         auto &group = cell_groups_[i];
 
                         PE("stepping","events");
@@ -173,10 +136,10 @@ public:
             auto exchange = [&] () {
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
-                exporter_->local_export_callback(local_spikes);
+                local_export_callback_(local_spikes);
                 future_events() = communicator_.exchange(local_spikes,
-                    // send the exporter function as pointers to export
-                    [&] (const std::vector<spike_type>& spikes){ exporter_->global_export_callback(spikes); });
+                    // send the exporter function as pointer
+                    [&] (const std::vector<spike_type>& spikes){ global_export_callback_(spikes); });
                 PL(2);
             };
 
@@ -215,6 +178,19 @@ public:
     std::size_t num_spikes() const { return communicator_.num_spikes(); }
     std::size_t num_groups() const { return cell_groups_.size(); }
 
+    void set_global_spike_callback(std::function<void(
+        const std::vector<spike_type>&)> global_export_callback)
+    {
+        global_export_callback_ = global_export_callback;
+    }
+    void set_local_spike_callback(std::function<void(
+        const std::vector<spike_type>&)> local_export_callback)
+    {
+        local_export_callback_ = local_export_callback;
+    }
+
+
+
 private:
     cell_gid_type cell_from_;
     cell_gid_type cell_to_;
@@ -222,7 +198,7 @@ private:
     std::vector<cell_group_type> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
-    using spike_type = typename communicator_type::spike_type;
+    
 
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer< std::vector<event_queue_type> > event_queues_;
@@ -230,8 +206,8 @@ private:
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 
-    using exporter_manager_type = nest::mc::communication::export_manager<time_type, communication::global_policy>;
-    std::unique_ptr<exporter_manager_type> exporter_;
+    std::function<void(const std::vector<spike_type>&)> global_export_callback_;
+    std::function<void(const std::vector<spike_type>&)> local_export_callback_;
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.
     //
