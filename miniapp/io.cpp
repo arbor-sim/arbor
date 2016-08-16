@@ -127,7 +127,7 @@ cl_options read_options(int argc, char** argv) {
         util::nothing,  // trace_max_gid
 
         // spike_output_parameters:
-        false,      // no spike output
+        false,      // spike output
         false,      // single_file_per_simulation
         true,       // Overwrite outputfile if exists
         "./",       // output path
@@ -208,6 +208,17 @@ cl_options read_options(int argc, char** argv) {
                     update_option(options.probe_soma_only, fopts, "probe_soma_only");
                     update_option(options.trace_prefix, fopts, "trace_prefix");
                     update_option(options.trace_max_gid, fopts, "trace_max_gid");
+
+                    // Parameters for spike output
+                    update_option(options.spike_file_output, fopts, "spike_file_output");
+                    if (options.spike_file_output) {
+                        update_option(options.single_file_per_rank, fopts, "single_file_per_rank");
+                        update_option(options.over_write, fopts, "over_write");
+                        update_option(options.output_path, fopts, "output_path");
+                        update_option(options.file_name, fopts, "file_name");
+                        update_option(options.file_extention, fopts, "file_extention");
+                    }
+
                 }
                 catch (std::exception& e) {
                     throw model_description_error(
@@ -260,18 +271,8 @@ cl_options read_options(int argc, char** argv) {
                 else {
                     fopts["trace_max_gid"] = nullptr;
                 }
-
                 fid << std::setw(3) << fopts << "\n";
 
-                // Parameters for spike output
-                options.spike_file_output = fopts["spike_file_output"];
-                if (options.spike_file_output) {
-                    options.single_file_per_rank = fopts["single_file_per_rank"];
-                    options.over_write = fopts["over_write"];
-                    options.output_path = fopts["output_path"].get<std::string>();;
-                    options.file_name = fopts["file_name"].get<std::string>();;
-                    options.file_extention = fopts["file_extention"].get<std::string>();;
-                }
             }
             catch (std::exception& e) {
                 throw model_description_error(

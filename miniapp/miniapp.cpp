@@ -33,7 +33,7 @@ using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using model_type = model<lowered_cell>;
 using time_type = model_type::time_type;
 using sample_trace_type = sample_trace<time_type, model_type::value_type>;
-using file_export_type = communication::exporter_spike_file<time_type, global_policy>;
+using file_export_type = io::exporter_spike_file<time_type, global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);

@@ -22,7 +22,7 @@ using global_policy = communication::global_policy;
 using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using cell_group_type = cell_group<lowered_cell>;
 using time_type = typename cell_group_type::time_type;
-using spike_type = communication::exporter_spike_file<time_type,
+using spike_type = io::exporter_spike_file<time_type,
     global_policy>::spike_type;
 using timer = util::timer_type;
 
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     }
 
     // Create the sut
-   communication::exporter_spike_file<time_type, global_policy> exporter(
+   io::exporter_spike_file<time_type, global_policy> exporter(
          "spikes", "./", "gdf", true);
 
     // We need the nr of ranks to calculate the nr of spikes to produce per
