@@ -28,6 +28,7 @@ public:
     using communicator_type = communication::communicator<time_type, communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
     using spike_type = typename communicator_type::spike_type;
+    using spike_export_function = std::function<void(const std::vector<spike_type>&)>;
 
     struct probe_record {
         cell_member_type id;
@@ -180,21 +181,17 @@ public:
 
     // register a callback that will perform a export of the global
     // spike vector
-    void set_global_spike_callback(std::function<void(
-        const std::vector<spike_type>&)> global_export_callback)
+    void set_global_spike_callback(spike_export_function export_callback)
     {
-        global_export_callback_ = global_export_callback;
+        global_export_callback_ = export_callback;
     }
 
     // register a callback that will perform a export of the rank local
     // spike vector
-    void set_local_spike_callback(std::function<void(
-        const std::vector<spike_type>&)> local_export_callback)
+    void set_local_spike_callback(spike_export_function export_callback)
     {
-        local_export_callback_ = local_export_callback;
+        local_export_callback_ = export_callback;
     }
-
-
 
 private:
     cell_gid_type cell_from_;
@@ -211,8 +208,8 @@ private:
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 
-    std::function<void(const std::vector<spike_type>&)> global_export_callback_;
-    std::function<void(const std::vector<spike_type>&)> local_export_callback_;
+    spike_export_function global_export_callback_;
+    spike_export_function local_export_callback_;
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.
     //

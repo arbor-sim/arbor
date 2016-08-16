@@ -56,7 +56,7 @@ public:
         for (auto spike : spikes) {
             char linebuf[45];
             auto n = std::snprintf(linebuf, sizeof(linebuf), "%u %.4f\n",
-                unsigned{spike.source.gid}, float{spike.time});
+                unsigned{spike.source.gid}, float(spike.time));
             file_handle_.write(linebuf, n);
         }
     }
