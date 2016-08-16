@@ -38,6 +38,11 @@ struct mpi_global_policy {
         return nest::mc::mpi::reduce(value, MPI_MAX);
     }
 
+    template <typename T>
+    static T sum(T value) {
+        return nest::mc::mpi::reduce(value, MPI_SUM);
+    }
+
     template <
         typename T,
         typename = typename std::enable_if<std::is_integral<T>::value>

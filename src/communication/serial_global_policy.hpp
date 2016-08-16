@@ -35,6 +35,11 @@ struct serial_global_policy {
         return value;
     }
 
+    template <typename T>
+    static T sum(T value) {
+        return value;
+    }
+
     template <
         typename T,
         typename = typename std::enable_if<std::is_integral<T>::value>
