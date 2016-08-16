@@ -1,9 +1,9 @@
 #include <numeric>
 
-#include "profiler.hpp"
-#include "util/debug.hpp"
-
+#include <common_types.hpp>
 #include <communication/global_policy.hpp>
+#include <profiling/profiler.hpp>
+#include <util/debug.hpp>
 
 namespace nest {
 namespace mc {
@@ -241,6 +241,17 @@ void profiler::stop() {
     deactivate();
 }
 
+void profiler::restart() {
+    if (!is_activated()) {
+        start();
+        return;
+    }
+    deactivate();
+    root_region_.clear();
+    start();
+}
+
+
 profiler_node profiler::performance_tree() {
     if (is_activated()) {
         stop();
@@ -281,14 +292,23 @@ void profiler_leave(int nlevels) {
 }
 
 // iterate over all profilers and ensure that they have the same start stop times
-void stop_profilers() {
+void profilers_stop() {
     for (auto& p : data::profilers_) {
         p.stop();
     }
 }
 
-void profiler_output(double threshold) {
-    stop_profilers();
+void profilers_restart() {
+    auto i = 0;
+    for (auto& p : data::profilers_) {
+        p.restart();
+        ++i;
+    }
+    std::cout << "just stopped " << i << " profilers" << std::endl;
+}
+
+void profiler_output(double threshold, cell_size_type num_local_cells, int num_steps) {
+    profilers_stop();
 
     // Find the earliest start time and latest stop time over all profilers
     // This can be used to calculate the wall time for this communicator.
@@ -323,6 +343,11 @@ void profiler_output(double threshold) {
     auto ncomms = communication::global_policy::size();
     auto comm_rank = communication::global_policy::id();
     bool print = comm_rank==0 ? true : false;
+
+    // calculate the throughput in terms of cell steps per second
+    auto local_throughput = num_local_cells*num_steps / wall_time;
+    auto global_throughput = communication::global_policy::sum(local_throughput);
+
     if(print) {
         std::cout << " ---------------------------------------------------- \n";
         std::cout << "|                      profiler                      |\n";
@@ -335,7 +360,6 @@ void profiler_output(double threshold) {
         std::snprintf(
             line, sizeof(line), "%-18s%10d\n",
             "communicators", int(ncomms));
-        std::cout << line;
         std::snprintf(
             line, sizeof(line), "%-18s%10d\n",
             "threads", int(nthreads));
@@ -345,6 +369,15 @@ void profiler_output(double threshold) {
             "thread efficiency", float(efficiency));
         std::cout << line << "\n";
         p.print(std::cout, threshold);
+        std::cout << "\n";
+        std::snprintf(
+            line, sizeof(line), "%-18s%10s%10s\n",
+            "", "local", "global");
+        std::cout << line;
+        std::snprintf(
+            line, sizeof(line), "%-18s%10d%10d\n",
+            "throughput", int(local_throughput), int(global_throughput));
+        std::cout << line;
 
         std::cout << "\n\n";
     }
@@ -354,6 +387,7 @@ void profiler_output(double threshold) {
     as_json["threads"] = nthreads;
     as_json["efficiency"] = efficiency;
     as_json["communicators"] = ncomms;
+    as_json["throughput"] = unsigned(local_throughput);
     as_json["rank"] = comm_rank;
     as_json["regions"] = p.as_json();
 
@@ -368,8 +402,9 @@ void profiler_stop() {}
 void profiler_enter(const char*) {}
 void profiler_leave() {}
 void profiler_leave(int) {}
-void stop_profilers() {}
-void profiler_output(double threshold) {}
+void profilers_stop() {}
+void profiler_output(double threshold, cell_size_type num_local_cells, int num_steps) {}
+void profilers_restart() {};
 #endif
 
 } // namespace util

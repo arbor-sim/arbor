@@ -80,7 +80,28 @@ public:
         for (auto& group: cell_groups_) {
             group.reset();
         }
+
         communicator_.reset();
+
+        current_events().clear();
+        future_events().clear();
+
+        current_spikes().clear();
+        previous_spikes().clear();
+
+        util::profilers_restart();
+    }
+
+    void print_spikes() {
+        std::cout << "CURRENT : ";
+        for(auto s : current_spikes().gather()) {
+            std::cout << s << " ";
+        }
+        std::cout << "\nPREVIOUS : ";
+        for(auto s : previous_spikes().gather()) {
+            std::cout << s << " ";
+        }
+        std::cout << "\n";
     }
 
     time_type run(time_type tfinal, time_type dt) {
@@ -141,6 +162,7 @@ public:
 
             t_ = tuntil;
         }
+
         return t_;
     }
 
@@ -164,8 +186,16 @@ public:
 
     const std::vector<probe_record>& probes() const { return probes_; }
 
-    std::size_t num_spikes() const { return communicator_.num_spikes(); }
-    std::size_t num_groups() const { return cell_groups_.size(); }
+    std::size_t num_spikes() const {
+        return communicator_.num_spikes();
+    }
+    std::size_t num_groups() const {
+        return cell_groups_.size();
+    }
+    std::size_t num_cells() const {
+        // TODO: fix when the assumption that there is one cell per cell group is no longer valid
+        return num_groups();
+    }
 
 private:
     cell_gid_type cell_from_;
@@ -174,11 +204,11 @@ private:
     std::vector<cell_group_type> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
-    using spike_type = typename communicator_type::spike_type;
 
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer< std::vector<event_queue_type> > event_queues_;
 
+    using spike_type = typename communicator_type::spike_type;
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 

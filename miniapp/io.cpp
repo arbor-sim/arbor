@@ -11,10 +11,14 @@
 
 // Let TCLAP understand value arguments that are of an optional type.
 
+namespace TCLAP {
+
 template <typename V>
-struct TCLAP::ArgTraits<nest::mc::util::optional<V>> {
+struct ArgTraits<nest::mc::util::optional<V>> {
     using ValueCategory = ValueLike;
 };
+
+} // namespace TCLAP
 
 namespace nest {
 namespace mc {

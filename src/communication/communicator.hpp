@@ -128,6 +128,10 @@ public:
         return communication_policy_;
     }
 
+    void reset() {
+        num_spikes_ = 0;
+    }
+
 private:
     std::size_t cell_group_index(cell_gid_type cell_gid) const {
         // this will be more elaborate when there is more than one cell per cell group

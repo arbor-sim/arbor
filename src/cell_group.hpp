@@ -56,7 +56,10 @@ public:
     }
 
     void reset() {
-        remove_samplers();
+        clear_spikes();
+        clear_events();
+        //remove_samplers();
+        reset_samplers();
         initialize_cells();
         for (auto& spike_source: spike_sources_) {
             spike_source.source.reset(cell_, 0.f);
@@ -140,6 +143,10 @@ public:
         spikes_.clear();
     }
 
+    void clear_events() {
+        events_.clear();
+    }
+
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
         auto sampler_index = uint32_t(samplers_.size());
         samplers_.push_back({probe_id, s});
@@ -149,6 +156,14 @@ public:
     void remove_samplers() {
         sample_events_.clear();
         samplers_.clear();
+    }
+
+    void reset_samplers() {
+        // clear all pending sample events and reset to start at time 0
+        sample_events_.clear();
+        for(uint32_t i=0u; i<samplers_.size(); ++i) {
+            sample_events_.push({i, time_type(0)});
+        }
     }
 
 private:
@@ -166,7 +181,7 @@ private:
     /// spike detectors attached to the cell
     std::vector<spike_source_type> spike_sources_;
 
-    //. spikes that are generated
+    /// spikes that are generated
     std::vector<spike<source_id_type, time_type>> spikes_;
 
     /// pending events to be delivered
