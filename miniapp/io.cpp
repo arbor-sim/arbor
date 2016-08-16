@@ -113,9 +113,18 @@ static void update_option(util::optional<T>& opt, const nlohmann::json& j, const
 cl_options read_options(int argc, char** argv) {
 
     // Default options:
-    const cl_options defopts{1000, 500, "expsyn", 100, 100., 0.025, false,
-
-                             false, 1.0, "trace_", util::nothing,
+    const cl_options defopts{
+        1000,       // number of cells
+        500,        // synapses_per_cell
+        "expsyn",   // synapse type
+        100,        // compartments_per_segment
+        100.,       // tfinal
+        0.025,      // dt
+        false,      // all_to_all
+        false,      // probe_soma_only
+        1.0,        // probe_ratio
+        "trace_",   // trace_prefix
+        util::nothing,  // trace_max_gid
 
         // spike_output_parameters:
         false,      // no spike output

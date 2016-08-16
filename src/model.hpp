@@ -23,7 +23,7 @@ template <typename Cell>
 class model {
 public:
     using cell_group_type = cell_group<Cell>;
-    using time_type = typename cell_group_type::time_type;   
+    using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
     using communicator_type = communication::communicator<time_type, communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
@@ -179,7 +179,7 @@ public:
     std::size_t num_groups() const { return cell_groups_.size(); }
 
     // register a callback that will perform a export of the global
-    // spike vector 
+    // spike vector
     void set_global_spike_callback(std::function<void(
         const std::vector<spike_type>&)> global_export_callback)
     {
@@ -203,7 +203,7 @@ private:
     std::vector<cell_group_type> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
-    
+
 
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer< std::vector<event_queue_type> > event_queues_;

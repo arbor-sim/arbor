@@ -13,7 +13,7 @@
 
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <communication/exporter_spike_file.hpp>
+#include <io/exporter_spike_file.hpp>
 #include <profiling/profiler.hpp>
 
 using namespace nest::mc;
@@ -54,7 +54,7 @@ int main(int argc, char** argv)
 
     if (nr_repeats == 0) {
         std::cout << "disk_io <nrspikes>\n";
-        std::cout << "  nr_repeats should be a valid integer higher then zero\n";                 
+        std::cout << "  nr_repeats should be a valid integer higher then zero\n";
         return 1;
     }
 
@@ -67,7 +67,7 @@ int main(int argc, char** argv)
         }
     }
 
-    // Create the sut  
+    // Create the sut
    communication::exporter_spike_file<time_type, global_policy> exporter(
          "spikes", "./", "gdf", true);
 
@@ -82,7 +82,7 @@ int main(int argc, char** argv)
 
     // *********************************************************************
     // To have a  somewhat realworld data set we calculate from the nr of spikes
-    // (assuming 20 hz average) the number of nr of 'simulated' neurons, 
+    // (assuming 20 hz average) the number of nr of 'simulated' neurons,
     // and create idxs using this value. The number of chars in the number
     // influences the size of the output and thus the speed
     // Also taken that we have only a single second of simulated time
@@ -112,7 +112,7 @@ int main(int argc, char** argv)
     for (auto idx = 0; idx < nr_repeats; ++idx) {
         timings.push_back(timings_arr[idx]);
     }
-    
+
 
     // Calculate some statistics
     auto sum = std::accumulate(timings.begin(), timings.end(), 0.0);
@@ -135,7 +135,7 @@ int main(int argc, char** argv)
 
     // and output
     if (simple_stats) {
-        std::cout << time_total<< "," 
+        std::cout << time_total<< ","
                   << mean  << ","
                   << stdev << ","
                   << min << ","

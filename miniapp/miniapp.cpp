@@ -17,7 +17,7 @@
 #include <profiling/profiler.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <communication/exporter_spike_file.hpp>
+#include <io/exporter_spike_file.hpp>
 #include <util/ioutil.hpp>
 #include <util/optional.hpp>
 
