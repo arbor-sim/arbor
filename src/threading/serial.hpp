@@ -19,10 +19,10 @@ namespace threading {
 template <typename T>
 class enumerable_thread_specific {
     std::array<T, 1> data;
-    using iterator_type = typename std::array<T, 1>::iterator;
-    using const_iterator_type = typename std::array<T, 1>::const_iterator;
 
-    public :
+public :
+    using iterator = typename std::array<T, 1>::iterator;
+    using const_iterator = typename std::array<T, 1>::const_iterator;
 
     enumerable_thread_specific() = default;
 
@@ -39,14 +39,14 @@ class enumerable_thread_specific {
 
     auto size() -> decltype(data.size()) const { return data.size(); }
 
-    iterator_type begin() { return data.begin(); }
-    iterator_type end()   { return data.end(); }
+    iterator begin() { return data.begin(); }
+    iterator end()   { return data.end(); }
 
-    const_iterator_type begin() const { return data.begin(); }
-    const_iterator_type end()   const { return data.end(); }
+    const_iterator begin() const { return data.begin(); }
+    const_iterator end()   const { return data.end(); }
 
-    const_iterator_type cbegin() const { return data.cbegin(); }
-    const_iterator_type cend()   const { return data.cend(); }
+    const_iterator cbegin() const { return data.cbegin(); }
+    const_iterator cend()   const { return data.cend(); }
 };
 
 
