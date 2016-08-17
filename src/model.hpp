@@ -1,17 +1,19 @@
 #pragma once
 
-#include <cstdlib>
+#include <memory>
 #include <vector>
+
+#include <cstdlib>
 
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
-#include <fvm_cell.hpp>
-#include <recipe.hpp>
-#include <thread_private_spike_store.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <fvm_cell.hpp>
 #include <profiling/profiler.hpp>
+#include <recipe.hpp>
+#include <thread_private_spike_store.hpp>
 
 #include "trace_sampler.hpp"
 
@@ -26,6 +28,8 @@ public:
     using value_type = typename cell_group_type::value_type;
     using communicator_type = communication::communicator<time_type, communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
+    using spike_type = typename communicator_type::spike_type;
+    using spike_export_function = std::function<void(const std::vector<spike_type>&)>;
 
     struct probe_record {
         cell_member_type id;
@@ -105,7 +109,7 @@ public:
             auto update_cells = [&] () {
                 threading::parallel_for::apply(
                     0u, cell_groups_.size(),
-                    [&](unsigned i) {
+                     [&](unsigned i) {
                         auto &group = cell_groups_[i];
 
                         PE("stepping","events");
@@ -125,10 +129,18 @@ public:
             // the previous integration period, generating the postsynaptic
             // events that must be delivered at the start of the next
             // integration period at the latest.
+
+            //TODO:
+            //An improvement might be :
+            //the exchange method simply exchanges spikes, and does not generate the event queues.It returns a struct that has both 1) the global spike list 2) an integer vector that describes the distribution of spikes across the ranks
+            //another method called something like build_queues that takes this spike info and returns the local spikes
+            //    and the callbacks can then be called on the spike information directly in the model.
             auto exchange = [&] () {
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
-                future_events() = communicator_.exchange(local_spikes);
+                local_export_callback_(local_spikes);
+                future_events() = communicator_.exchange(
+                    local_spikes, global_export_callback_);
                 PL(2);
             };
 
@@ -167,6 +179,20 @@ public:
     std::size_t num_spikes() const { return communicator_.num_spikes(); }
     std::size_t num_groups() const { return cell_groups_.size(); }
 
+    // register a callback that will perform a export of the global
+    // spike vector
+    void set_global_spike_callback(spike_export_function export_callback) {
+
+        global_export_callback_ = export_callback;
+    }
+
+    // register a callback that will perform a export of the rank local
+    // spike vector
+    void set_local_spike_callback(spike_export_function export_callback) {
+
+        local_export_callback_ = export_callback;
+    }
+
 private:
     cell_gid_type cell_from_;
     cell_gid_type cell_to_;
@@ -174,13 +200,15 @@ private:
     std::vector<cell_group_type> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
-    using spike_type = typename communicator_type::spike_type;
 
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer< std::vector<event_queue_type> > event_queues_;
 
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
+
+    spike_export_function global_export_callback_;
+    spike_export_function local_export_callback_;
 
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.

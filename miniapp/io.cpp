@@ -113,8 +113,27 @@ static void update_option(util::optional<T>& opt, const nlohmann::json& j, const
 cl_options read_options(int argc, char** argv) {
 
     // Default options:
-    const cl_options defopts{1000, 500, "expsyn", 100, 100., 0.025, false,
-                             false, 1.0, "trace_", util::nothing};
+    const cl_options defopts{
+        1000,       // number of cells
+        500,        // synapses_per_cell
+        "expsyn",   // synapse type
+        100,        // compartments_per_segment
+        100.,       // tfinal
+        0.025,      // dt
+        false,      // all_to_all
+        false,      // probe_soma_only
+        1.0,        // probe_ratio
+        "trace_",   // trace_prefix
+        util::nothing,  // trace_max_gid
+
+        // spike_output_parameters:
+        false,      // spike output
+        false,      // single_file_per_simulation
+        true,       // Overwrite outputfile if exists
+        "./",       // output path
+        "spikes",   // file name
+        "gdf"       // file extention
+    };
 
     cl_options options;
     std::string save_file = "";
@@ -189,6 +208,17 @@ cl_options read_options(int argc, char** argv) {
                     update_option(options.probe_soma_only, fopts, "probe_soma_only");
                     update_option(options.trace_prefix, fopts, "trace_prefix");
                     update_option(options.trace_max_gid, fopts, "trace_max_gid");
+
+                    // Parameters for spike output
+                    update_option(options.spike_file_output, fopts, "spike_file_output");
+                    if (options.spike_file_output) {
+                        update_option(options.single_file_per_rank, fopts, "single_file_per_rank");
+                        update_option(options.over_write, fopts, "over_write");
+                        update_option(options.output_path, fopts, "output_path");
+                        update_option(options.file_name, fopts, "file_name");
+                        update_option(options.file_extention, fopts, "file_extention");
+                    }
+
                 }
                 catch (std::exception& e) {
                     throw model_description_error(
@@ -241,8 +271,8 @@ cl_options read_options(int argc, char** argv) {
                 else {
                     fopts["trace_max_gid"] = nullptr;
                 }
-
                 fid << std::setw(3) << fopts << "\n";
+
             }
             catch (std::exception& e) {
                 throw model_description_error(
@@ -257,7 +287,7 @@ cl_options read_options(int argc, char** argv) {
 }
 
 std::ostream& operator<<(std::ostream& o, const cl_options& options) {
-    o << "simultion options:\n";
+    o << "simulation options:\n";
     o << "  cells                : " << options.cells << "\n";
     o << "  compartments/segment : " << options.compartments_per_segment << "\n";
     o << "  synapses/cell        : " << options.synapses_per_cell << "\n";

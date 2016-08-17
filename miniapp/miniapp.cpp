@@ -3,20 +3,23 @@
 #include <iostream>
 #include <fstream>
 #include <memory>
+#include <vector>
 
 #include <json/src/json.hpp>
 
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
-#include <fvm_cell.hpp>
-#include <mechanism_catalogue.hpp>
-#include <model.hpp>
-#include <threading/threading.hpp>
-#include <profiling/profiler.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <fvm_cell.hpp>
+#include <io/exporter_spike_file.hpp>
+#include <mechanism_catalogue.hpp>
+#include <model.hpp>
+#include <profiling/profiler.hpp>
+#include <threading/threading.hpp>
 #include <util/ioutil.hpp>
+#include <util/nop.hpp>
 #include <util/optional.hpp>
 
 #include "io.hpp"
@@ -26,15 +29,17 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-
 using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using model_type = model<lowered_cell>;
-using sample_trace_type = sample_trace<model_type::time_type, model_type::value_type>;
-
+using time_type = model_type::time_type;
+using sample_trace_type = sample_trace<time_type, model_type::value_type>;
+using file_export_type = io::exporter_spike_file<time_type, global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
 std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
+using communicator_type = communication::communicator<time_type, communication::global_policy>;
+using spike_type = typename communicator_type::spike_type;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 
@@ -61,8 +66,40 @@ int main(int argc, char** argv) {
         auto recipe = make_recipe(options, pdist);
         auto cell_range = distribute_cells(recipe->num_cells());
 
-        // build model from recipe
+
         model_type m(*recipe, cell_range.first, cell_range.second);
+
+        // File output is depending on the input arguments
+        std::unique_ptr<file_export_type> file_exporter;
+        std::function<void(const std::vector<spike_type>&)> do_nothing{
+            util::nop_function };
+        if (!options.spike_file_output) {
+            m.set_global_spike_callback(do_nothing);
+            m.set_local_spike_callback(do_nothing);
+        }
+        else {
+            // The exporter is the same for both global and local output
+            // just registered as a different callback
+            file_exporter =
+                util::make_unique<file_export_type>(
+                    options.file_name, options.output_path,
+                    options.file_extention, options.over_write);
+
+            if (options.single_file_per_rank) {
+                    m.set_global_spike_callback(do_nothing);
+                    m.set_local_spike_callback(
+                        [&](const std::vector<spike_type>& spikes) {
+                            file_exporter->output(spikes);
+                        });
+             }
+             else {
+                 m.set_global_spike_callback(
+                     [&](const std::vector<spike_type>& spikes) {
+                        file_exporter->output(spikes);
+                     });
+                 m.set_local_spike_callback(do_nothing);
+             }
+        }
 
         // inject some artificial spikes, 1 per 20 neurons.
         cell_gid_type spike_cell = 20*((cell_range.first+19)/20);
@@ -155,7 +192,7 @@ std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_s
     case probeKind::membrane_current:
         name = "i";
         units = "mA/cm²";
-        break; 
+        break;
     default: ;
     }
     name += probe.location.segment? "dend" : "soma";
@@ -183,5 +220,3 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix)
     std::ofstream file(path);
     file << std::setw(1) << jrep << std::endl;
 }
-
-
