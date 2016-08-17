@@ -1,18 +1,19 @@
 #pragma once
 
-#include <cstdlib>
+#include <memory>
 #include <vector>
+
+#include <cstdlib>
 
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
-#include <fvm_cell.hpp>
-#include <memory>
-#include <recipe.hpp>
-#include <thread_private_spike_store.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <fvm_cell.hpp>
 #include <profiling/profiler.hpp>
+#include <recipe.hpp>
+#include <thread_private_spike_store.hpp>
 
 #include "trace_sampler.hpp"
 
@@ -138,8 +139,8 @@ public:
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
                 local_export_callback_(local_spikes);
-                future_events() = communicator_.exchange(local_spikes,
-                     global_export_callback_);
+                future_events() = communicator_.exchange(
+                    local_spikes, global_export_callback_);
                 PL(2);
             };
 
@@ -180,15 +181,15 @@ public:
 
     // register a callback that will perform a export of the global
     // spike vector
-    void set_global_spike_callback(spike_export_function export_callback)
-    {
+    void set_global_spike_callback(spike_export_function export_callback) {
+
         global_export_callback_ = export_callback;
     }
 
     // register a callback that will perform a export of the rank local
     // spike vector
-    void set_local_spike_callback(spike_export_function export_callback)
-    {
+    void set_local_spike_callback(spike_export_function export_callback) {
+
         local_export_callback_ = export_callback;
     }
 
@@ -200,7 +201,6 @@ private:
     communicator_type communicator_;
     std::vector<probe_record> probes_;
 
-
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer< std::vector<event_queue_type> > event_queues_;
 
@@ -209,6 +209,7 @@ private:
 
     spike_export_function global_export_callback_;
     spike_export_function local_export_callback_;
+
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.
     //

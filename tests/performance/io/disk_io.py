@@ -2,9 +2,16 @@ import matplotlib.pyplot as plt
 import subprocess
 import os
 
+
+
 current_script_dir = os.path.dirname(os.path.abspath(__file__))
 
 spikes_to_save = 1000000
+
+print ( "Simple performance runner for spike output to file. \n" +
+        str(spikes_to_save) + " spikes will be written to a file and the duration of this \n" +
+        "operation measured for different number of ranks\n" )
+
 
 range_nr_rank = [1, 2, 4, 8, 16, 24, 32, 48, 64]
 mean = []
@@ -15,7 +22,7 @@ for n_rank in range_nr_rank:
     # open the disk_io executable
     p1 = subprocess.Popen(["mpirun", "-n",str(n_rank),
                            os.path.join(current_script_dir, "disk_io.exe"),
-                           str(spikes_to_save), str(10), "true" ,"true"],
+                           str(spikes_to_save), str(10), "true"],
                           stdout=subprocess.PIPE)
     
     #and grab the raw stats
