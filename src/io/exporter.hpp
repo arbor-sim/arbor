@@ -26,10 +26,6 @@ public:
 
     // Returns the status of the exporter
     virtual bool good() const = 0;
-
-    // Static version of the do_export function for NOP callbacks
-    static void do_nothing(const std::vector<spike_type>&)
-    {}
 };
 
 } //communication

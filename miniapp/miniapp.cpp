@@ -19,6 +19,7 @@
 #include <profiling/profiler.hpp>
 #include <threading/threading.hpp>
 #include <util/ioutil.hpp>
+#include <util/nop.hpp>
 #include <util/optional.hpp>
 
 #include "io.hpp"
@@ -70,10 +71,11 @@ int main(int argc, char** argv) {
 
         // File output is depending on the input arguments
         std::unique_ptr<file_export_type> file_exporter;
+        std::function<void(const std::vector<spike_type>&)> do_nothing{
+            util::nop_function };
         if (!options.spike_file_output) {
-            // TODO: use the no_function if PR:77
-            m.set_global_spike_callback(file_export_type::do_nothing);
-            m.set_local_spike_callback(file_export_type::do_nothing);
+            m.set_global_spike_callback(do_nothing);
+            m.set_local_spike_callback(do_nothing);
         }
         else {
             // The exporter is the same for both global and local output
@@ -84,7 +86,7 @@ int main(int argc, char** argv) {
                     options.file_extention, options.over_write);
 
             if (options.single_file_per_rank) {
-                    m.set_global_spike_callback(file_export_type::do_nothing);
+                    m.set_global_spike_callback(do_nothing);
                     m.set_local_spike_callback(
                         [&](const std::vector<spike_type>& spikes) {
                             file_exporter->output(spikes);
@@ -95,7 +97,7 @@ int main(int argc, char** argv) {
                      [&](const std::vector<spike_type>& spikes) {
                         file_exporter->output(spikes);
                      });
-                 m.set_local_spike_callback(file_export_type::do_nothing);
+                 m.set_local_spike_callback(do_nothing);
              }
         }
 
