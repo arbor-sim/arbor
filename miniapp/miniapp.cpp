@@ -79,7 +79,6 @@ int main(int argc, char** argv) {
         // File output is depending on the input arguments
         std::unique_ptr<file_export_type> file_exporter;
         if (options.spike_file_output) {
-            auto id = communication::global_policy::id();
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
                 m.set_local_spike_callback(
