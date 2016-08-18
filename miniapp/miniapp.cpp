@@ -69,36 +69,30 @@ int main(int argc, char** argv) {
 
         model_type m(*recipe, cell_range.first, cell_range.second);
 
-        // File output is depending on the input arguments
-        std::unique_ptr<file_export_type> file_exporter;
-        std::function<void(const std::vector<spike_type>&)> do_nothing{
-            util::nop_function };
-        if (!options.spike_file_output) {
-            m.set_global_spike_callback(do_nothing);
-            m.set_local_spike_callback(do_nothing);
-        }
-        else {
-            // The exporter is the same for both global and local output
-            // just registered as a different callback
-            file_exporter =
+        auto register_exporter = [] (const io::cl_options& options) {
+            return
                 util::make_unique<file_export_type>(
                     options.file_name, options.output_path,
-                    options.file_extention, options.over_write);
+                    options.file_extension, options.over_write);
+        };
 
+        // File output is depending on the input arguments
+        std::unique_ptr<file_export_type> file_exporter;
+        if (options.spike_file_output) {
             if (options.single_file_per_rank) {
-                    m.set_global_spike_callback(do_nothing);
-                    m.set_local_spike_callback(
-                        [&](const std::vector<spike_type>& spikes) {
-                            file_exporter->output(spikes);
-                        });
-             }
-             else {
-                 m.set_global_spike_callback(
-                     [&](const std::vector<spike_type>& spikes) {
+                file_exporter = register_exporter(options);
+                m.set_local_spike_callback(
+                    [&](const std::vector<spike_type>& spikes) {
                         file_exporter->output(spikes);
-                     });
-                 m.set_local_spike_callback(do_nothing);
-             }
+                    });
+            }
+            else if(communication::global_policy::id()==0) {
+                file_exporter = register_exporter(options);
+                m.set_global_spike_callback(
+                    [&](const std::vector<spike_type>& spikes) {
+                       file_exporter->output(spikes);
+                    });
+            }
         }
 
         // inject some artificial spikes, 1 per 20 neurons.
