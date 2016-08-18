@@ -65,6 +65,7 @@ external/tmp
 mechanisms/*.hpp
 
 # build path
-build
+build*
 
 commit.msg
+
