@@ -139,8 +139,9 @@ std::vector<typename C::value_type> child_count(const C& parent_index)
 template<typename C>
 bool has_contiguous_compartments(const C& parent_index)
 {
+    using value_type = typename C::value_type;
     static_assert(
-        std::is_integral<typename C::value_type>::value,
+        std::is_integral<value_type>::value,
         "integral type required"
     );
 
@@ -149,9 +150,9 @@ bool has_contiguous_compartments(const C& parent_index)
     }
 
     auto num_child = child_count(parent_index);
-    for (auto i = 1u; i < parent_index.size(); ++i) {
+    for (auto i=1u; i < parent_index.size(); ++i) {
         auto p = parent_index[i];
-        if (num_child[p] == 1 && p != i-1) {
+        if (num_child[p]==1 && p!=value_type(i-1)) {
             return false;
         }
     }

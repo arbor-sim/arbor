@@ -244,9 +244,9 @@ TEST(algorithms, has_contiguous_compartments)
 
     //
     //     0
-    //    / \
+    //    / \.
     //   1   2
-    //  / \
+    //  / \.
     // 3   4
     //
     EXPECT_TRUE(
