@@ -132,7 +132,7 @@ cl_options read_options(int argc, char** argv) {
         true,       // Overwrite outputfile if exists
         "./",       // output path
         "spikes",   // file name
-        "gdf"       // file extention
+        "gdf"       // file extension
     };
 
     cl_options options;
@@ -218,7 +218,7 @@ cl_options read_options(int argc, char** argv) {
                         update_option(options.over_write, fopts, "over_write");
                         update_option(options.output_path, fopts, "output_path");
                         update_option(options.file_name, fopts, "file_name");
-                        update_option(options.file_extention, fopts, "file_extention");
+                        update_option(options.file_extension, fopts, "file_extension");
                     }
 
                 }

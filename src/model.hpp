@@ -14,6 +14,7 @@
 #include <profiling/profiler.hpp>
 #include <recipe.hpp>
 #include <thread_private_spike_store.hpp>
+#include <util/nop.hpp>
 
 #include "trace_sampler.hpp"
 
@@ -139,8 +140,8 @@ public:
                 PE("stepping", "exchange");
                 auto local_spikes = previous_spikes().gather();
                 local_export_callback_(local_spikes);
-                future_events() = communicator_.exchange(
-                    local_spikes, global_export_callback_);
+                future_events() =
+                    communicator_.exchange(local_spikes, global_export_callback_);
                 PL(2);
             };
 
@@ -182,14 +183,12 @@ public:
     // register a callback that will perform a export of the global
     // spike vector
     void set_global_spike_callback(spike_export_function export_callback) {
-
         global_export_callback_ = export_callback;
     }
 
     // register a callback that will perform a export of the rank local
     // spike vector
     void set_local_spike_callback(spike_export_function export_callback) {
-
         local_export_callback_ = export_callback;
     }
 
@@ -207,8 +206,8 @@ private:
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 
-    spike_export_function global_export_callback_;
-    spike_export_function local_export_callback_;
+    spike_export_function global_export_callback_ = util::nop_function;
+    spike_export_function local_export_callback_ = util::nop_function;
 
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.

@@ -32,7 +32,7 @@ struct cl_options {
     bool over_write;
     std::string output_path;
     std::string file_name;
-    std::string file_extention;
+    std::string file_extension;
 };
 
 class usage_error: public std::runtime_error {
