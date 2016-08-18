@@ -2,6 +2,7 @@
 
 /* Type utilities and convenience expressions.  */
 
+#include <cstddef>
 #include <type_traits>
 
 namespace nest {
@@ -15,6 +16,12 @@ using result_of_t = typename std::result_of<T>::type;
 
 template <bool V>
 using enable_if_t = typename std::enable_if<V>::type;
+
+template <typename X>
+std::size_t size(const X& x) { return x.size(); }
+
+template <typename X, std::size_t N>
+constexpr std::size_t size(X (&)[N]) { return N; }
 
 // Convenience short cuts
 

@@ -71,8 +71,11 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
     cell.add_synapse({1, 0.5}, syn_default);
 
     // add probes
-    auto probe_soma = cell.add_probe({{0,0}, probeKind::membrane_voltage});
-    auto probe_dend = cell.add_probe({{1,0.5}, probeKind::membrane_voltage});
+    auto probe_soma_idx = cell.add_probe({{0,0}, probeKind::membrane_voltage});
+    auto probe_dend_idx = cell.add_probe({{1,0.5}, probeKind::membrane_voltage});
+
+    cell_member_type probe_soma{0u, probe_soma_idx};
+    cell_member_type probe_dend{0u, probe_dend_idx};
 
     // injected spike events
     postsynaptic_spike_event<float> synthetic_events[] = {
@@ -111,15 +114,15 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
         group.enqueue_events(synthetic_events);
 
         // run the simulation
-        v[0].push_back(group.cell().probe(probe_soma));
-        v[1].push_back(group.cell().probe(probe_dend));
+        v[0].push_back(group.probe(probe_soma));
+        v[1].push_back(group.probe(probe_dend));
         double t  = 0.;
         while(t < tfinal) {
             t += dt;
             group.advance(t, dt);
             // save voltage at soma and dendrite
-            v[0].push_back(group.cell().probe(probe_soma));
-            v[1].push_back(group.cell().probe(probe_dend));
+            v[0].push_back(group.probe(probe_soma));
+            v[1].push_back(group.probe(probe_dend));
         }
 
         results.push_back({num_compartments, dt, v, measurements});

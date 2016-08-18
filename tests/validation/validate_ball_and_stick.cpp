@@ -4,6 +4,7 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
+#include <util/singleton.hpp>
 
 #include "gtest.h"
 #include "../test_util.hpp"
@@ -82,6 +83,11 @@ TEST(ball_and_stick, neuron_baseline)
         }
     };
 
+    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
+    std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
+    std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
+    std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
+
     std::vector<result> results;
     for(auto run_index=0u; run_index<cell_data.size(); ++run_index) {
         auto& run = cell_data[run_index];
@@ -90,13 +96,10 @@ TEST(ball_and_stick, neuron_baseline)
         std::vector<std::vector<double>> v(3);
 
         // make the lowered finite volume cell
-        fvm::fvm_cell<double, cell_local_size_type> model(cell);
-        auto graph = cell.model();
 
-        // set initial conditions
-        using memory::all;
-        model.voltage()(all) = -65.;
-        model.initialize(); // have to do this _after_ initial conditions are set
+        fvm_cell model;
+        model.initialize(util::singleton_view(cell), detectors, targets, probes);
+        auto graph = cell.model();
 
         // run the simulation
         auto soma_comp = nest::mc::find_compartment_index({0,0}, graph);
@@ -234,6 +237,11 @@ TEST(ball_and_3stick, neuron_baseline)
         }
     };
 
+    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
+    std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
+    std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
+    std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
+
     std::vector<result> results;
     auto start = testing::tic();
     for(auto run_index=0u; run_index<cell_data.size(); ++run_index) {
@@ -245,13 +253,11 @@ TEST(ball_and_3stick, neuron_baseline)
         std::vector<std::vector<double>> v(3);
 
         // make the lowered finite volume cell
-        fvm::fvm_cell<double, cell_local_size_type> model(cell);
+        fvm_cell model;
+        model.initialize(util::singleton_view(cell), detectors, targets, probes);
         auto graph = cell.model();
 
         // set initial conditions
-        using memory::all;
-        model.voltage()(all) = -65.;
-        model.initialize(); // have to do this _after_ initial conditions are set
 
         // run the simulation
         auto soma_comp  = nest::mc::find_compartment_index({0,0.}, graph);
