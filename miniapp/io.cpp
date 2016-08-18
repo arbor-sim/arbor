@@ -181,6 +181,8 @@ cl_options read_options(int argc, char** argv) {
         TCLAP::ValueArg<util::optional<unsigned>> trace_max_gid_arg(
             "T", "trace-max-gid", "only trace probes on cells up to and including <gid>",
             false, defopts.trace_max_gid, "gid", cmd);
+        TCLAP::SwitchArg spike_output_arg(
+            "f","spike_file_output","save spikes to file", cmd, false);
 
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
@@ -241,6 +243,7 @@ cl_options read_options(int argc, char** argv) {
         update_option(options.probe_soma_only, probe_soma_only_arg);
         update_option(options.trace_prefix, trace_prefix_arg);
         update_option(options.trace_max_gid, trace_max_gid_arg);
+        update_option(options.spike_file_output, spike_output_arg);
 
         save_file = ofile_arg.getValue();
     }

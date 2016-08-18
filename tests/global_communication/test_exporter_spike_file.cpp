@@ -19,21 +19,20 @@ protected:
         nest::mc::io::exporter_spike_file<time_type, communicator_type>;
     using spike_type = exporter_type::spike_type;
 
-    std::string file_name;
-    std::string path;
-    std::string extention;
-    unsigned index;
+    std::string file_name_;
+    std::string path_;
+    std::string extension_;
+    unsigned index_;
 
     exporter_spike_file_fixture() :
-        file_name("spikes_exporter_spike_file_fixture"),
-        path("./"),
-        extention("gdf"),
-        index(0)
+        file_name_("spikes_exporter_spike_file_fixture"),
+        path_("./"),
+        extension_("gdf"),
+        index_(communicator_type::id())
     {}
 
     std::string get_standard_file_name() {
-        return exporter_type::create_output_file_path(
-            file_name, path, extention, 0);
+        return exporter_type::create_output_file_path(file_name_, path_, extension_, index_);
     }
 
     void SetUp() {
@@ -50,7 +49,7 @@ protected:
 };
 
 TEST_F(exporter_spike_file_fixture, constructor) {
-    exporter_type exporter(file_name, path, extention, true);
+    exporter_type exporter(file_name_, path_, extension_, true);
 
     //test if the file exist and depending on over_write throw or delete
     std::ifstream f(get_standard_file_name());
@@ -58,14 +57,14 @@ TEST_F(exporter_spike_file_fixture, constructor) {
 
     // We now know the file exists, so create a new exporter with overwrite false
     try {
-        exporter_type exporter1(file_name, path, extention, false);
+        exporter_type exporter1(file_name_, path_, extension_, false);
         FAIL() << "expected a file already exists error";
     }
-    catch (std::runtime_error const & err) {
+    catch (const std::runtime_error& err) {
         EXPECT_EQ(
             err.what(),
-            std::string("Tried opening file for writing but it exists and over_write is false: " +
-            get_standard_file_name())
+            "Tried opening file for writing but it exists and over_write is false: " +
+            get_standard_file_name()
         );
     }
     catch (...) {
@@ -86,7 +85,7 @@ TEST_F(exporter_spike_file_fixture, create_output_file_path) {
 
 TEST_F(exporter_spike_file_fixture, do_export) {
     {
-        exporter_type exporter(file_name, path, extention);
+        exporter_type exporter(file_name_, path_, extension_);
 
         // Create some spikes
         std::vector<spike_type> spikes;
