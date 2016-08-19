@@ -10,6 +10,7 @@
 
 #include <algorithms.hpp>
 #include <common_types.hpp>
+#include <communication/gathered_vector.hpp>
 #include <communication/mpi.hpp>
 #include <spike.hpp>
 
@@ -18,10 +19,10 @@ namespace mc {
 namespace communication {
 
 struct mpi_global_policy {
-    template <typename I, typename T>
-    static std::vector<spike<I, T>>
-    gather_spikes(const std::vector<spike<I,T>>& local_spikes) {
-        return mpi::gather_all(local_spikes);
+    template <typename Spike>
+    static gathered_vector<Spike>
+    gather_spikes(const std::vector<Spike>& local_spikes) {
+        return mpi::gather_all_meta(local_spikes);
     }
 
     static int id() { return mpi::rank(); }
