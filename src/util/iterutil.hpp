@@ -40,7 +40,7 @@ upto(I iter, E end) {
 template <typename I, typename E>
 enable_if_t<is_bidirectional_iterator<E>::value && std::is_constructible<I, E>::value, I>
 upto(I iter, E end) {
-    return I{std::prev(end)};
+    return iter==I{end}? iter: I{std::prev(end)};
 }
 
 /*

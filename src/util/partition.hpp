@@ -75,7 +75,7 @@ public:
 private:
     either<bool, std::string> is_valid() const {
         if (!std::is_sorted(left.get(), right.get())) {
-            return "offsets are not monotonically increasing";
+            return std::string("offsets are not monotonically increasing");
         }
         else {
             return true;

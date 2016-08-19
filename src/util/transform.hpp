@@ -29,7 +29,7 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     const I& inner() const { return inner_; }
     I& inner() { return inner_; }
 
-    using inner_value_type = decay_t<decltype(*inner_)>;
+    using inner_value_type = util::decay_t<decltype(*inner_)>;
 
 public:
     using typename base::difference_type;
@@ -70,12 +70,12 @@ public:
     bool operator==(const Sentinel& s) const { return inner_==s; }
 
     template <typename Sentinel>
-    bool operator!=(const Sentinel& s) const { return inner_!=s; }
+    bool operator!=(const Sentinel& s) const { return !(inner_==s); }
 };
 
 template <typename I, typename F>
-transform_iterator<I, decay_t<F>> make_transform_iterator(const I& i, const F& f) {
-    return transform_iterator<I, decay_t<F>>(i, f);
+transform_iterator<I, util::decay_t<F>> make_transform_iterator(const I& i, const F& f) {
+    return transform_iterator<I, util::decay_t<F>>(i, f);
 }
 
 template <
@@ -85,7 +85,7 @@ template <
     typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
     typename = enable_if_t<std::is_same<seq_citer, seq_csent>::value>
 >
-range<transform_iterator<seq_citer, decay_t<F>>>
+range<transform_iterator<seq_citer, util::decay_t<F>>>
 transform_view(const Seq& s, const F& f) {
     return {make_transform_iterator(cbegin(s), f), make_transform_iterator(cend(s), f)};
 }
@@ -98,7 +98,7 @@ template <
     typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
     typename = enable_if_t<!std::is_same<seq_citer, seq_csent>::value>
 >
-range<transform_iterator<seq_citer, decay_t<F>>, seq_csent>
+range<transform_iterator<seq_citer, util::decay_t<F>>, seq_csent>
 transform_view(const Seq& s, const F& f) {
     return {make_transform_iterator(cbegin(s), f), cend(s)};
 }
