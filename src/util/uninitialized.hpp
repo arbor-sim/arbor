@@ -18,25 +18,26 @@ namespace nest {
 namespace mc {
 namespace util {
 
-/* Maintains storage for a value of type X, with explicit
+/*
+ * Maintains storage for a value of type X, with explicit
  * construction and destruction.
  */
 template <typename X>
-struct uninitialized {
+class uninitialized {
 private:
     typename std::aligned_storage<sizeof(X), alignof(X)>::type data;
 
 public:
-    using pointer_type = X*;
-    using const_pointer_type = const X*;
-    using reference_type = X&;
-    using const_reference_type = const X&;
+    using pointer = X*;
+    using const_pointer = const X*;
+    using reference = X&;
+    using const_reference= const X&;
 
-    pointer_type ptr() { return reinterpret_cast<X*>(&data); }
-    const_pointer_type cptr() const { return reinterpret_cast<const X*>(&data); }
+    pointer ptr() { return reinterpret_cast<X*>(&data); }
+    const_pointer cptr() const { return reinterpret_cast<const X*>(&data); }
 
-    reference_type ref() { return *reinterpret_cast<X*>(&data); }
-    const_reference_type cref() const { return *reinterpret_cast<const X*>(&data); }
+    reference ref() { return *reinterpret_cast<X*>(&data); }
+    const_reference cref() const { return *reinterpret_cast<const X*>(&data); }
 
     // Copy construct the value.
     template <
@@ -60,45 +61,46 @@ public:
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    result_of_t<F(reference_type)> apply(F&& f) { return f(ref()); }
+    result_of_t<F(reference)> apply(F&& f) { return f(ref()); }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    result_of_t<F(const_reference_type)> apply(F&& f) const { return f(cref()); }
+    result_of_t<F(const_reference)> apply(F&& f) const { return f(cref()); }
 };
 
-/* Maintains storage for a pointer of type X, representing
+/*
+ * Maintains storage for a pointer of type X, representing
  * a possibly uninitialized reference.
  */
 template <typename X>
-struct uninitialized<X&> {
+class uninitialized<X&> {
 private:
     X *data;
 
 public:
-    using pointer_type = X*;
-    using const_pointer_type = const X*;
-    using reference_type = X&;
-    using const_reference_type = const X&;
+    using pointer = X*;
+    using const_pointer = const X*;
+    using reference = X&;
+    using const_reference = const X&;
 
-    pointer_type ptr() { return data; }
-    const_pointer_type cptr() const { return data; }
+    pointer ptr() { return data; }
+    const_pointer cptr() const { return data; }
 
-    reference_type ref() { return *data; }
-    const_reference_type cref() const { return *data; }
+    reference ref() { return *data; }
+    const_reference cref() const { return *data; }
 
     void construct(X& x) { data = &x; }
     void destruct() {}
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    result_of_t<F(reference_type)> apply(F&& f) {
+    result_of_t<F(reference)> apply(F&& f) {
         return f(ref());
     }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    result_of_t<F(const_reference_type)> apply(F&& f) const {
+    result_of_t<F(const_reference)> apply(F&& f) const {
         return f(cref());
     }
 };
@@ -108,17 +110,18 @@ public:
  * Allows the use of uninitialized<X> for void X, for generic applications.
  */
 template <>
-struct uninitialized<void> {
-    using pointer_type = void*;
-    using const_pointer_type = const void*;
-    using reference_type = void;
-    using const_reference_type = void;
+class uninitialized<void> {
+public:
+    using pointer = void*;
+    using const_pointer = const void*;
+    using reference = void;
+    using const_reference = void;
 
-    pointer_type ptr() { return nullptr; }
-    const_pointer_type cptr() const { return nullptr; }
+    pointer ptr() { return nullptr; }
+    const_pointer cptr() const { return nullptr; }
 
-    reference_type ref() {}
-    const_reference_type cref() const {}
+    reference ref() {}
+    const_reference cref() const {}
 
     // No operation.
     void construct(...) {}
