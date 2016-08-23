@@ -14,9 +14,12 @@ TEST(algorithms, sum)
     EXPECT_EQ(10*2, nest::mc::algorithms::sum(v1));
 
     // make an array 1:20 and sum it up using formula for arithmetic sequence
-    std::vector<int> v2(20);
-    std::iota(v2.begin(), v2.end(), 1);
     auto n = 20;
+    std::vector<int> v2(n);
+    // can't use iota because the Intel compiler optimizes it out, despite
+    // the result being required in EXPECT_EQ
+    // std::iota(v2.begin(), v2.end(), 1);
+    for(auto i=0; i<n; ++i) { v2[i] = i+1; }
     EXPECT_EQ((n+1)*n/2, nest::mc::algorithms::sum(v2));
 }
 
