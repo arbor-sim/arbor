@@ -6,6 +6,28 @@
 #include "../test_util.hpp"
 #include "util/debug.hpp"
 
+/// tests the sort implementation in threading
+/// is only parallel if TBB is being used
+TEST(algorithms, parallel_sort)
+{
+    auto n = 10000;
+    std::vector<int> v(n);
+    std::iota(v.begin(), v.end(), 1);
+
+    std::random_device rd;
+    std::shuffle(v.begin(), v.end(), std::mt19937(rd()));
+
+    // assert that the original vector has in fact been permuted
+    EXPECT_FALSE(std::is_sorted(v.begin(), v.end()));
+
+    nest::mc::threading::sort(v);
+
+    EXPECT_TRUE(std::is_sorted(v.begin(), v.end()));
+    for(auto i=0; i<n; ++i) {
+       EXPECT_EQ(i+1, v[i]);
+   }
+}
+
 
 TEST(algorithms, sum)
 {

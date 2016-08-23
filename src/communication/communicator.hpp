@@ -69,7 +69,7 @@ public:
     /// must be called after all connections have been added
     void construct() {
         if (!std::is_sorted(connections_.begin(), connections_.end())) {
-            std::sort(connections_.begin(), connections_.end());
+            threading::sort(connections_);
         }
     }
 
