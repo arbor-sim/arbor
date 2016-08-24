@@ -127,7 +127,6 @@ cd build_knl
 
 ## build miniapp
 
-```bash
 # clone the repo and set up the submodules
 git clone https://github.com/bcumming/cell_algorithms.git
 cd cell_algorithms
