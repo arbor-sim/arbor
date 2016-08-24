@@ -51,7 +51,7 @@ if(WITH_MPI)
 endif()
 
 # Profiler support
-set(WITH_PROFILING OFF CACHE BOOL "use built in profiling of miniapp" )
+set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
 if(WITH_PROFILING)
     add_definitions(-DWITH_PROFILING)
 endif()
@@ -62,28 +62,19 @@ if(SYSTEM_CRAY)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
 
-# KNL target
-set(TARGET_KNL OFF CACHE BOOL "target Intel KNL architecture")
-if(TARGET_KNL)
+# vectorization target
+set(VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2}")
+
+if(VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
+elseif(VECTORIZE_TARGET STREQUAL "AVX")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX}")
+elseif(VECTORIZE_TARGET STREQUAL "AVX2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
 endif()
 
-# vectorization
-set(TARGET_VECTORIZE OFF CACHE BOOL "generate optimized code that vectorizes with the Intel compiler")
-
-# targets for extermal dependencies
-include(ExternalProject)
-externalproject_add(modparser
-    PREFIX ${CMAKE_BINARY_DIR}/external
-    CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
-               "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
-               "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-    BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
-    STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
-    TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
-    )
-
+# whether to generate optimized kernels from NMODL
+set(USE_OPTIMIZED_KERNELS OFF CACHE BOOL "generate optimized code that vectorizes with the Intel compiler")
 
 include_directories(${CMAKE_SOURCE_DIR}/external)
 include_directories(${CMAKE_SOURCE_DIR}/external/tclap/include)
@@ -91,7 +82,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/miniapp)
 include_directories(${CMAKE_SOURCE_DIR})
-
 if( "${WITH_TBB}" STREQUAL "ON" )
     include_directories(${TBB_INCLUDE_DIRS})
 endif()
