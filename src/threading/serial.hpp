@@ -4,6 +4,7 @@
     #error "this header can only be loaded if WITH_SERIAL is set"
 #endif
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <string>
