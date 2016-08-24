@@ -155,18 +155,23 @@ public:
             // the previous integration period, generating the postsynaptic
             // events that must be delivered at the start of the next
             // integration period at the latest.
-
-            //TODO:
-            //An improvement might be :
-            //the exchange method simply exchanges spikes, and does not generate the event queues.It returns a struct that has both 1) the global spike list 2) an integer vector that describes the distribution of spikes across the ranks
-            //another method called something like build_queues that takes this spike info and returns the local spikes
-            //    and the callbacks can then be called on the spike information directly in the model.
             auto exchange = [&] () {
-                PE("stepping", "exchange");
+                PE("stepping", "communciation");
+
+                PE("exchange");
                 auto local_spikes = previous_spikes().gather();
+                auto global_spikes = communicator_.exchange(local_spikes);
+                PL();
+
+                PE("spike output");
                 local_export_callback_(local_spikes);
-                future_events() =
-                    communicator_.exchange(local_spikes, global_export_callback_);
+                global_export_callback_(global_spikes.values());
+                PL();
+
+                PE("events");
+                future_events() = communicator_.make_event_queues(global_spikes);
+                PL();
+
                 PL(2);
             };
 

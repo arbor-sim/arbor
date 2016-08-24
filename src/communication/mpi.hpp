@@ -10,6 +10,7 @@
 #include <mpi.h>
 
 #include <algorithms.hpp>
+#include <communication/gathered_vector.hpp>
 
 namespace nest {
 namespace mc {
@@ -119,6 +120,38 @@ namespace mpi {
         );
 
         return buffer;
+    }
+
+    /// Gather all of a distributed vector
+    /// Retains the meta data (i.e. vector partition)
+    template <typename T>
+    gathered_vector<T> gather_all_meta(const std::vector<T>& values) {
+        using gathered_type = gathered_vector<T>;
+        using count_type = typename gathered_vector<T>::count_type;
+        using traits = mpi_traits<T>;
+
+        // We have to use int for the count and displs vectors instead
+        // of count_type because these are used as arguments to MPI_Allgatherv
+        // which expects int arguments.
+        auto counts = gather_all(int(values.size()));
+        for (auto& c : counts) {
+            c *= traits::count();
+        }
+        auto displs = algorithms::make_index(counts);
+
+        std::vector<T> buffer(displs.back()/traits::count());
+
+        MPI_Allgatherv(
+            // send buffer
+            values.data(), counts[rank()], traits::mpi_type(),
+            // receive buffer
+            buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
+            MPI_COMM_WORLD
+        );
+
+        std::vector<count_type> part(displs.size());
+        std::copy(displs.begin(), displs.end(), part.begin());
+        return gathered_type(std::move(buffer), std::move(part));
     }
 
     template <typename T>
