@@ -129,8 +129,13 @@ cd build_knl
 
 ```bash
 # clone the repo and set up the submodules
-git clone TODO
+git clone https://github.com/bcumming/cell_algorithms.git
 cd cell_algorithms
+
+# checkout the knl branch
+git checkout knl
+
+# setup submodules
 git submodule init
 git submodule update
 
