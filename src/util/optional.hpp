@@ -38,16 +38,6 @@ struct optional_unset_error: std::runtime_error {
     {}
 };
 
-struct optional_invalid_dereference: std::runtime_error {
-    explicit optional_invalid_dereference(const std::string& what_str)
-        : std::runtime_error(what_str)
-    {}
-
-    optional_invalid_dereference()
-        : std::runtime_error("derefernce of optional<void> value")
-    {}
-};
-
 struct nothing_t {};
 constexpr nothing_t nothing{};
 
@@ -68,21 +58,21 @@ namespace detail {
     struct optional_tag {};
 
     template <typename X>
-    using is_optional = std::is_base_of<optional_tag, typename std::decay<X>::type>;
+    using is_optional = std::is_base_of<optional_tag, decay_t<X>>;
 
-    template <typename D,typename X>
+    template <typename D, typename X>
     struct wrapped_type_impl {
         using type = X;
     };
 
-    template <typename D,typename X>
-    struct wrapped_type_impl<optional<D>,X> {
+    template <typename D, typename X>
+    struct wrapped_type_impl<optional<D>, X> {
         using type = D;
     };
 
     template <typename X>
     struct wrapped_type {
-       using type = typename wrapped_type_impl<typename std::decay<X>::type,X>::type;
+       using type = typename wrapped_type_impl<decay_t<X>, X>::type;
     };
 
     template <typename X>
@@ -96,10 +86,10 @@ namespace detail {
         using data_type = util::uninitialized<X>;
 
     public:
-        using reference_type = typename data_type::reference_type;
-        using const_reference_type = typename data_type::const_reference_type;
-        using pointer_type = typename data_type::pointer_type;
-        using const_pointer_type = typename data_type::const_pointer_type;
+        using reference = typename data_type::reference;
+        using const_reference = typename data_type::const_reference;
+        using pointer = typename data_type::pointer;
+        using const_pointer = typename data_type::const_pointer;
 
     protected:
         bool set;
@@ -114,8 +104,8 @@ namespace detail {
             }
         }
 
-        reference_type       ref()       { return data.ref(); }
-        const_reference_type ref() const { return data.cref(); }
+        reference       ref()       { return data.ref(); }
+        const_reference ref() const { return data.cref(); }
 
     public:
         ~optional_base() {
@@ -124,28 +114,24 @@ namespace detail {
             }
         }
 
-        const_pointer_type operator->() const { return data.ptr(); }
-        pointer_type       operator->()       { return data.ptr(); }
+        pointer operator->() { return data.ptr(); }
+        const_pointer operator->() const { return data.ptr(); }
 
-        const_reference_type operator*() const { return ref(); }
-        reference_type       operator*()       { return ref(); }
+        reference operator*() { return ref(); }
+        const_reference operator*() const { return ref(); }
 
-        reference_type get() {
-            if (set) {
-                return ref();
-            }
-            else {
+        reference get() {
+            if (!set) {
                 throw optional_unset_error();
             }
+            return ref();
         }
 
-        const_reference_type get() const {
-            if (set) {
-                return ref();
-            }
-            else {
+        const_reference get() const {
+            if (!set) {
                 throw optional_unset_error();
             }
+            return ref();
         }
 
         explicit operator bool() const { return set; }
@@ -206,16 +192,16 @@ namespace detail {
     private:
         template <typename R, bool F_void_return>
         struct bind_impl {
-            template <typename DT,typename F>
-            static R bind(DT& d,F&& f) {
+            template <typename DT, typename F>
+            static R bind(DT& d, F&& f) {
                 return R(d.apply(std::forward<F>(f)));
             }
         };
 
         template <typename R>
-        struct bind_impl<R,true> {
-            template <typename DT,typename F>
-            static R bind(DT& d,F&& f) {
+        struct bind_impl<R, true> {
+            template <typename DT, typename F>
+            static R bind(DT& d, F&& f) {
                 d.apply(std::forward<F>(f));
                 return R(true);
             }
@@ -243,30 +229,32 @@ struct optional: detail::optional_base<X> {
     using base::reset;
     using base::data;
 
-    optional(): base() {}
-    optional(nothing_t): base() {}
+    optional() noexcept: base() {}
+    optional(nothing_t) noexcept: base() {}
 
-    template <
-        typename Y = X,
-        typename = enable_if_copy_constructible_t<Y>
-    >
-    optional(const X& x): base(true, x) {}
+    optional(const X& x)
+        noexcept(std::is_nothrow_copy_constructible<X>::value): base(true, x) {}
 
-    template <
-        typename Y = X,
-        typename = enable_if_move_constructible_t<Y>
-    >
-    optional(X&& x): base(true, std::move(x)) {}
+    optional(X&& x)
+        noexcept(std::is_nothrow_move_constructible<X>::value): base(true, std::move(x)) {}
 
     optional(const optional& ot): base(ot.set, ot.ref()) {}
 
     template <typename T>
-    optional(const optional<T>& ot): base(ot.set, ot.ref()) {}
+    optional(const optional<T>& ot)
+        noexcept(std::is_nothrow_constructible<X, T>::value): base(ot.set, ot.ref()) {}
 
-    optional(optional&& ot): base(ot.set, std::move(ot.ref())) {}
+    optional(optional&& ot)
+        noexcept(std::is_nothrow_move_constructible<X>::value): base(ot.set, std::move(ot.ref())) {}
 
     template <typename T>
-    optional(optional<T>&& ot): base(ot.set, std::move(ot.ref())) {}
+    optional(optional<T>&& ot)
+        noexcept(std::is_nothrow_constructible<X, T&&>::value): base(ot.set, std::move(ot.ref())) {}
+
+    optional& operator=(nothing_t) {
+        reset();
+        return *this;
+    }
 
     template <
         typename Y,
@@ -331,13 +319,19 @@ struct optional<X&>: detail::optional_base<X&> {
     using base::set;
     using base::ref;
     using base::data;
+    using base::reset;
 
-    optional(): base() {}
-    optional(nothing_t): base() {}
-    optional(X&x): base(true,x) {}
+    optional() noexcept: base() {}
+    optional(nothing_t) noexcept: base() {}
+    optional(X& x) noexcept: base(true, x) {}
 
     template <typename T>
-    optional(optional<T&>& ot): base(ot.set,ot.ref()) {}
+    optional(optional<T&>& ot) noexcept: base(ot.set, ot.ref()) {}
+
+    optional& operator=(nothing_t) {
+        reset();
+        return *this;
+    }
 
     template <typename Y>
     optional& operator=(Y& y) {
@@ -364,14 +358,20 @@ template <>
 struct optional<void>: detail::optional_base<void> {
     using base = detail::optional_base<void>;
     using base::set;
+    using base::reset;
 
     optional(): base() {}
 
     template <typename T>
-    optional(T): base(true,true) {}
+    optional(T): base(true, true) {}
 
     template <typename T>
-    optional(const optional<T>& o): base(o.set,true) {}
+    optional(const optional<T>& o): base(o.set, true) {}
+
+    optional& operator=(nothing_t) {
+        reset();
+        return *this;
+    }
 
     template <typename T>
     optional& operator=(T) {
@@ -394,7 +394,7 @@ struct optional<void>: detail::optional_base<void> {
 };
 
 
-template <typename A,typename B>
+template <typename A, typename B>
 typename std::enable_if<
     detail::is_optional<A>::value || detail::is_optional<B>::value,
     optional<
@@ -404,16 +404,16 @@ typename std::enable_if<
         >::type
     >
 >::type
-operator|(A&& a,B&& b) {
+operator|(A&& a, B&& b) {
     return detail::decay_bool(a) ? a : b;
 }
 
-template <typename A,typename B>
+template <typename A, typename B>
 typename std::enable_if<
     detail::is_optional<A>::value || detail::is_optional<B>::value,
     optional<detail::wrapped_type_t<B>>
 >::type
-operator&(A&& a,B&& b) {
+operator&(A&& a, B&& b) {
     using result_type = optional<detail::wrapped_type_t<B>>;
     return a ? b: result_type();
 }

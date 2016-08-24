@@ -14,7 +14,6 @@ namespace io {
 
 // holds the options for a simulation run
 struct cl_options {
-    std::string ifname;
     uint32_t cells;
     uint32_t synapses_per_cell;
     std::string syn_type;
@@ -26,6 +25,14 @@ struct cl_options {
     double probe_ratio;
     std::string trace_prefix;
     util::optional<unsigned> trace_max_gid;
+
+    // Parameters for spike output
+    bool spike_file_output;
+    bool single_file_per_rank;
+    bool over_write;
+    std::string output_path;
+    std::string file_name;
+    std::string file_extension;
 };
 
 class usage_error: public std::runtime_error {
