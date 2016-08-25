@@ -96,9 +96,11 @@ int main(int argc, char** argv) {
         }
 
         // inject some artificial spikes, 1 per 20 neurons.
-        cell_gid_type spike_cell = 20*((cell_range.first+19)/20);
-        for (; spike_cell<cell_range.second; spike_cell+=20) {
-            m.add_artificial_spike({spike_cell,0u});
+        std::vector<cell_gid_type> local_sources;
+        cell_gid_type first_spike_cell = 20*((cell_range.first+19)/20);
+        for (auto c=first_spike_cell; c<cell_range.second; c+=20) {
+            local_sources.push_back(c);
+            m.add_artificial_spike({c, 0});
         }
 
         // attach samplers to all probes
@@ -110,13 +112,25 @@ int main(int argc, char** argv) {
             }
 
             traces.push_back(make_trace(probe.id, probe.probe));
-            m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(),sample_dt));
+            m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
+        }
+
+        // dummy run of the model for one step to ensure that profiling is consistent
+        m.run(options.dt, options.dt);
+
+        // reset the model
+        m.reset();
+        // rest the source spikes
+        for (auto source : local_sources) {
+            m.add_artificial_spike({source, 0});
         }
 
         // run model
         m.run(options.tfinal, options.dt);
-        util::profiler_output(0.001);
 
+        // output profile and diagnostic feedback
+        auto const num_steps = options.tfinal / options.dt;
+        util::profiler_output(0.001, m.num_cells()*num_steps);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces

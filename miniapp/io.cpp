@@ -19,7 +19,7 @@ namespace TCLAP {
     struct ArgTraits<nest::mc::util::optional<V>> {
         using ValueCategory = ValueLike;
     };
-}
+} // namespace TCLAP
 
 namespace nest {
 namespace mc {
@@ -122,7 +122,7 @@ cl_options read_options(int argc, char** argv) {
         0.025,      // dt
         false,      // all_to_all
         false,      // probe_soma_only
-        1.0,        // probe_ratio
+        0.0,        // probe_ratio
         "trace_",   // trace_prefix
         util::nothing,  // trace_max_gid
 
