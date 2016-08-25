@@ -82,7 +82,7 @@
  *
  *       Resets state to initial conditiions and sets
  *       internal simulation time to 0.
- *       
+ *
  *  `lowered.advance(value_type dt)`
  *
  *       Advanece simulation state by `dt` (value in
@@ -325,7 +325,7 @@ void fvm_cell<T, I>::initialize(
     face_alpha_ = vector_type{ncomp, T{0}};
     cv_capacitance_ = vector_type{ncomp, T{0}};
     current_    = vector_type{ncomp, T{0}};
-    voltage_    = vector_type{ncomp, T{0}};
+    voltage_    = vector_type{ncomp, T{resting_potential_}};
 
     using util::left;
     using util::right;
