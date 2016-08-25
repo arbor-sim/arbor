@@ -6,13 +6,13 @@
 #include <random>
 #include <functional>
 
-#include <spike.hpp>
-#include <util/double_buffer.hpp>
 #include <algorithms.hpp>
 #include <connection.hpp>
+#include <communication/gathered_vector.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
+#include <util/double_buffer.hpp>
 
 namespace nest {
 namespace mc {
@@ -70,7 +70,7 @@ public:
     /// must be called after all connections have been added
     void construct() {
         if (!std::is_sorted(connections_.begin(), connections_.end())) {
-            std::sort(connections_.begin(), connections_.end());
+            threading::sort(connections_);
         }
     }
 
@@ -87,29 +87,26 @@ public:
     /// Perform exchange of spikes.
     ///
     /// Takes as input the list of local_spikes that were generated on the calling domain.
+    /// Returns the full global set of vectors, along with meta data about their partition
+    gathered_vector<spike_type> exchange(const std::vector<spike_type>& local_spikes) {
+        // global all-to-all to gather a local copy of the global spike list on each node.
+        auto global_spikes = communication_policy_.gather_spikes( local_spikes );
+        num_spikes_ += global_spikes.size();
+        return global_spikes;
+    }
+
+    /// Check each global spike in turn to see it generates local events.
+    /// If so, make the events and insert them into the appropriate event list.
+    /// Return a vector that contains the event queues for each local cell group.
     ///
     /// Returns a vector of event queues, with one queue for each local cell group. The
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
-    std::vector<event_queue> exchange(const std::vector<spike_type>& local_spikes,
-        std::function<void(const std::vector<spike_type>&)> global_export_callback)
-    {
-        // global all-to-all to gather a local copy of the global spike list on each node.
-        auto global_spikes = communication_policy_.gather_spikes( local_spikes );
-        num_spikes_ += global_spikes.size();
-
-        global_export_callback(global_spikes);
-
-        // check each global spike in turn to see it generates local events.
-        // if so, make the events and insert them into the appropriate event list.
+    std::vector<event_queue> make_event_queues(const gathered_vector<spike_type>& global_spikes) {
         auto queues = std::vector<event_queue>(num_groups_local());
-
-        for (auto spike : global_spikes) {
+        for (auto spike : global_spikes.values()) {
             // search for targets
-            auto targets =
-                std::equal_range(
-                    connections_.begin(), connections_.end(), spike.source
-                );
+            auto targets = std::equal_range(connections_.begin(), connections_.end(), spike.source);
 
             // generate an event for each target
             for (auto it=targets.first; it!=targets.second; ++it) {
@@ -121,8 +118,7 @@ public:
         return queues;
     }
 
-    /// Returns the total number of global spikes over the duration
-    /// of the simulation
+    /// Returns the total number of global spikes over the duration of the simulation
     uint64_t num_spikes() const { return num_spikes_; }
 
     const std::vector<connection_type>& connections() const {
@@ -131,6 +127,10 @@ public:
 
     communication_policy_type communication_policy() const {
         return communication_policy_;
+    }
+
+    void reset() {
+        num_spikes_ = 0;
     }
 
 private:

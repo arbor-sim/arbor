@@ -69,6 +69,18 @@ private :
         threading::enumerable_thread_specific<std::vector<spike_type>>;
 
     local_spike_store_type buffers_;
+
+public :
+    using iterator = typename local_spike_store_type::iterator;
+    using const_iterator = typename local_spike_store_type::const_iterator;
+
+    // make the container iterable
+    // we iterate of threads, not individual containers
+
+    iterator begin() { return buffers_.begin(); }
+    iterator end() { return buffers_.begin(); }
+    const_iterator begin() const { return buffers_.begin(); }
+    const_iterator end() const { return buffers_.begin(); }
 };
 
 } // namespace mc
