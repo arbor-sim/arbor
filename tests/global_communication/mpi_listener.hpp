@@ -89,15 +89,17 @@ public:
     }
     virtual void OnTestCaseEnd(const TestCase& test_case) override {
         pprintf(
-            "TESTCASE %s : %2d:%-2d pass:fail of %2d tests\n\n",
-            test_case.name(),
-            test_case_failures_, test_case_tests_-test_case_failures_, test_case_tests_
+            "[PASSED %3d; FAILED %3d] of %3d tests in %s\n\n",
+            test_case_tests_-test_case_failures_,
+            test_case_failures_,
+            test_case_tests_,
+            test_case.name()
         );
     }
 
     // Called before a test starts.
     virtual void OnTestStart(const TestInfo& test_info) override {
-        pprintf( "  TEST %s::%s\n", test_info.test_case_name(), test_info.name());
+        pprintf( "  TEST  %s::%s\n", test_info.test_case_name(), test_info.name());
         test_failures_ = 0;
     }
 

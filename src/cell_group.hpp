@@ -65,7 +65,7 @@ public:
         clear_spikes();
         clear_events();
         reset_samplers();
-        initialize_cells();
+        //initialize_cells();
         for (auto& spike_source: spike_sources_) {
             spike_source.source.reset(cell_, 0.f);
         }
@@ -175,11 +175,6 @@ public:
     }
 
 private:
-    void initialize_cells() {
-        cell_.voltage()(memory::all) = -65.;
-        cell_.initialize();
-    }
-
     /// gid of first cell in group
     cell_gid_type gid_base_;
 

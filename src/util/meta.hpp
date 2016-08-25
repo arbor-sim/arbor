@@ -55,12 +55,6 @@ struct sequence_traits {
     using const_sentinel = decltype(cend(std::declval<Seq&>()));
 };
 
-template <typename X>
-std::size_t size(const X& x) { return x.size(); }
-
-template <typename X, std::size_t N>
-constexpr std::size_t size(X (&)[N]) { return N; }
-
 // Convenience short cuts
 
 template <typename T>
