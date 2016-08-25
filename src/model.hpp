@@ -242,7 +242,6 @@ private:
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer< std::vector<event_queue_type> > event_queues_;
 
-    using spike_type = typename communicator_type::spike_type;
     using local_spike_store_type = thread_private_spike_store<time_type>;
     util::double_buffer< local_spike_store_type > local_spikes_;
 

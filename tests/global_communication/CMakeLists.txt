@@ -3,6 +3,8 @@ set(HEADERS
 )
 set(COMMUNICATION_SOURCES
     test_exporter_spike_file.cpp
+    test_communicator.cpp
+
     # unit test driver
     test.cpp
 )
