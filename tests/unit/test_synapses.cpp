@@ -58,30 +58,33 @@ TEST(synapses, expsyn_basic_state)
 
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
+    auto n = ptr->size();
+    using view = synapse_type::view_type;
+
     // parameters initialized to default values
-    for(auto e : ptr->e) {
+    for(auto e : view(ptr->e, n)) {
         EXPECT_EQ(e, 0.);
     }
-    for(auto tau : ptr->tau) {
+    for(auto tau : view(ptr->tau, n)) {
         EXPECT_EQ(tau, 2.0);
     }
 
     // current and voltage vectors correctly hooked up
-    for(auto v : ptr->vec_v_) {
+    for(auto v : view(ptr->vec_v_, n)) {
         EXPECT_EQ(v, -65.);
     }
-    for(auto i : ptr->vec_i_) {
+    for(auto i : view(ptr->vec_i_, n)) {
         EXPECT_EQ(i, 1.0);
     }
 
     // should be initialized to NaN
-    for(auto g : ptr->g) {
+    for(auto g : view(ptr->g, n)) {
         EXPECT_NE(g, g);
     }
 
     // initialize state then check g has been set to zero
     ptr->nrn_init();
-    for(auto g : ptr->g) {
+    for(auto g : view(ptr->g, n)) {
         EXPECT_EQ(g, 0.);
     }
 
@@ -106,32 +109,35 @@ TEST(synapses, exp2syn_basic_state)
 
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
+    auto n = ptr->size();
+    using view = synapse_type::view_type;
+
     // parameters initialized to default values
-    for(auto e : ptr->e) {
+    for(auto e : view(ptr->e, n)) {
         EXPECT_EQ(e, 0.);
     }
-    for(auto tau1: ptr->tau1) {
+    for(auto tau1: view(ptr->tau1, n)) {
         EXPECT_EQ(tau1, 0.5);
     }
-    for(auto tau2: ptr->tau2) {
+    for(auto tau2: view(ptr->tau2, n)) {
         EXPECT_EQ(tau2, 2.0);
     }
 
     // should be initialized to NaN
-    for(auto factor: ptr->factor) {
+    for(auto factor: view(ptr->factor, n)) {
         EXPECT_NE(factor, factor);
     }
 
     // initialize state then check factor has sane (positive) value
     // and A and B are zero
     ptr->nrn_init();
-    for(auto factor: ptr->factor) {
+    for(auto factor: view(ptr->factor, n)) {
         EXPECT_GT(factor, 0.);
     }
-    for(auto A: ptr->A) {
+    for(auto A: view(ptr->A, n)) {
         EXPECT_EQ(A, 0.);
     }
-    for(auto B: ptr->B) {
+    for(auto B: view(ptr->B, n)) {
         EXPECT_EQ(B, 0.);
     }
 
@@ -142,3 +148,4 @@ TEST(synapses, exp2syn_basic_state)
     EXPECT_NEAR(ptr->A[1], ptr->factor[1]*3.14, 1e-6);
     EXPECT_NEAR(ptr->B[3], ptr->factor[3]*1.04, 1e-6);
 }
+

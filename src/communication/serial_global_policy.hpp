@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <communication/gathered_vector.hpp>
 #include <spike.hpp>
 
 namespace nest {
@@ -11,10 +12,10 @@ namespace mc {
 namespace communication {
 
 struct serial_global_policy {
-    template <typename I, typename T>
-    static const std::vector<spike<I, T>>&
-    gather_spikes(const std::vector<spike<I, T>>& local_spikes) {
-        return local_spikes;
+    template <typename Spike>
+    static gathered_vector<Spike>
+    gather_spikes(const std::vector<Spike>& local_spikes) {
+        return gathered_vector<Spike>(std::vector<Spike>(local_spikes), {0u, 1u});
     }
 
     static int id() {
@@ -32,6 +33,11 @@ struct serial_global_policy {
 
     template <typename T>
     static T max(T value) {
+        return value;
+    }
+
+    template <typename T>
+    static T sum(T value) {
         return value;
     }
 

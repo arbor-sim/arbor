@@ -18,6 +18,8 @@
 *.swo
 *.swn
 *.swq
+*.swm
+*.swl
 
 # tar files
 *.tar
