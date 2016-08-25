@@ -32,8 +32,8 @@ private:
     int size_;
     std::ofstream fid_;
     char buffer_[1024];
-    bool test_case_failures_;
-    bool test_case_tests_;
+    int test_case_failures_;
+    int test_case_tests_;
     int test_failures_;
 
     bool does_print() const {
