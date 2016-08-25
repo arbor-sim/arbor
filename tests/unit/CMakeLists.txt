@@ -14,6 +14,8 @@ set(TEST_SOURCES
     test_double_buffer.cpp
     test_cell.cpp
     test_compartments.cpp
+    test_counter.cpp
+    test_either.cpp
     test_event_queue.cpp
     test_fvm.cpp
     test_cell_group.cpp
@@ -24,15 +26,19 @@ set(TEST_SOURCES
     test_nop.cpp
     test_optional.cpp
     test_parameters.cpp
+    test_partition.cpp
     test_point.cpp
     test_probe.cpp
     test_segment.cpp
+    test_range.cpp
+    test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp
     test_stimulus.cpp
     test_swcio.cpp
     test_synapses.cpp
     test_tree.cpp
+    test_transform.cpp
     test_uninitialized.cpp
 
     # unit test driver

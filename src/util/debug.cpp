@@ -14,8 +14,11 @@ namespace util {
 
 std::mutex global_debug_cerr_mutex;
 
-bool failed_assertion(const char* assertion, const char* file,
-                      int line, const char* func)
+bool abort_on_failed_assertion(
+    const char* assertion,
+    const char* file,
+    int line,
+    const char* func)
 {
     // Explicit flush, as we can't assume default buffering semantics on stderr/cerr,
     // and abort() might not flush streams.
@@ -26,8 +29,13 @@ bool failed_assertion(const char* assertion, const char* file,
     return false;
 }
 
-std::ostream& debug_emit_trace_leader(std::ostream& out, const char* file,
-                                      int line, const char* varlist)
+failed_assertion_handler_t global_failed_assertion_handler = abort_on_failed_assertion;
+
+std::ostream& debug_emit_trace_leader(
+    std::ostream& out,
+    const char* file,
+    int line,
+    const char* varlist)
 {
     iosfmt_guard guard(out);
 
