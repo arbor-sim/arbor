@@ -87,9 +87,9 @@ struct range {
         std::swap(right, other.right);
     }
 
-    decltype(*left) front() const { return *left; }
+    auto front() const -> decltype(*left) { return *left; }
 
-    decltype(*left) back() const { return *upto(left, right); }
+    auto back() const -> decltype(*left) { return *upto(left, right); }
 
     template <typename V = iterator>
     enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
@@ -200,7 +200,7 @@ public:
 
     // forward and input iterator requirements
 
-    auto operator*() const -> decltype(*iter()) { return *iter(); }
+    auto operator*() const -> decltype(*(this->iter())) { return *iter(); }
 
     I operator->() const { return e_.template ptr<0>(); }
 
@@ -271,7 +271,7 @@ public:
         return iter()-x.iter();
     }
 
-    auto operator[](difference_type n) const -> decltype(*iter()){
+    auto operator[](difference_type n) const -> decltype(*(this->iter())) {
         return *(iter()+n);
     }
 
