@@ -1,8 +1,12 @@
 #include "gtest.h"
 
+#include <array>
 #include <forward_list>
+#include <string>
 #include <vector>
 
+#include <util/debug.hpp>
+#include <util/nop.hpp>
 #include <util/partition.hpp>
 
 using namespace nest::mc;
@@ -30,6 +34,28 @@ TEST(partition, partition_view) {
     EXPECT_EQ(ends_expected, ends);
 }
 
+TEST(partition, short_partition_view) {
+    int two_divs[] = {10, 15};
+    EXPECT_EQ(1u, util::partition_view(two_divs).size());
+
+    int one_div[] = {10};
+    EXPECT_EQ(0u, util::partition_view(one_div).size());
+
+    std::array<int, 0> zero_divs;
+    EXPECT_EQ(0u, util::partition_view(zero_divs).size());
+}
+
+TEST(partition, check_monotonicity) {
+    // override any EXPECTS checks in partition
+    util::global_failed_assertion_handler = util::ignore_failed_assertion;
+
+    int divs_ok[] = {1, 2, 2, 3, 3};
+    EXPECT_NO_THROW(util::partition_view(divs_ok).validate());
+
+    int divs_bad[] = {3, 2, 1};
+    EXPECT_THROW(util::partition_view(divs_bad).validate(), util::invalid_partition);
+}
+
 TEST(partition, partition_view_find) {
     std::vector<double> divs = { 1, 2.5, 3, 5.5 };
     double eps = 0.1;
@@ -46,6 +72,13 @@ TEST(partition, partition_view_find) {
 
     EXPECT_EQ(divs[1], p.find(divs[1]+eps)->first);
     EXPECT_EQ(divs[2], p.find(divs[1]+eps)->second);
+}
+
+TEST(partition, partition_view_non_numeric) {
+    std::string divs[] = { "a", "dictionary", "of", "sorted", "words" };
+    auto p = util::partition_view(divs);
+
+    EXPECT_EQ("dictionary", p.find("elephant")->first);
 }
 
 TEST(partition, make_partition_in_place) {
@@ -67,9 +100,39 @@ TEST(partition, make_partition_in_place) {
     EXPECT_EQ(std::make_pair(1u, 3u), p[1]);
     EXPECT_EQ(std::make_pair(3u, 3u), p[2]);
     EXPECT_EQ(std::make_pair(3u, 3u), p[3]);
+
+    // with longer sizes sequence
+    unsigned long_sizes[] = {1, 2, 3, 4, 5, 6};
+    p = util::make_partition(util::partition_in_place, part_store, long_sizes, 0u);
+    ASSERT_EQ(4u, p.size());
+    EXPECT_EQ(std::make_pair(0u, 1u), p[0]);
+    EXPECT_EQ(std::make_pair(1u, 3u), p[1]);
+    EXPECT_EQ(std::make_pair(3u, 6u), p[2]);
+    EXPECT_EQ(std::make_pair(6u, 10u), p[3]);
+
+    // with empty sizes sequence
+    std::array<unsigned, 0> no_sizes;
+    p = util::make_partition(util::partition_in_place, part_store, no_sizes, 17u);
+    ASSERT_EQ(4u, p.size());
+    EXPECT_EQ(std::make_pair(17u, 17u), p[0]);
+    EXPECT_EQ(std::make_pair(17u, 17u), p[1]);
+    EXPECT_EQ(std::make_pair(17u, 17u), p[2]);
+    EXPECT_EQ(std::make_pair(17u, 17u), p[3]);
+
+    // with short partition containers
+    unsigned part_store_one[1];
+    p = util::make_partition(util::partition_in_place, part_store_one, sizes, 10u);
+    ASSERT_EQ(0u, p.size());
+    ASSERT_TRUE(p.empty());
+
+    std::array<unsigned,0> part_store_zero;
+    p = util::make_partition(util::partition_in_place, part_store_zero, sizes, 10u);
+    ASSERT_EQ(0u, p.size());
+    ASSERT_TRUE(p.empty());
 }
 
 TEST(partition, make_partition) {
+    // (also tests differing types for sizes and divisiosn)
     unsigned sizes[] = { 7, 3, 0, 2 };
     std::forward_list<double> part_store = { 100.3 };
 

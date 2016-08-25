@@ -9,7 +9,7 @@
 #include <event_queue.hpp>
 #include <spike.hpp>
 #include <spike_source.hpp>
-//#include <util/singleton.hpp>
+#include <util/singleton.hpp>
 
 #include <profiling/profiler.hpp>
 

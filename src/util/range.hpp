@@ -48,18 +48,20 @@ struct range {
     using difference_type = typename std::iterator_traits<iterator>::difference_type;
     using size_type = typename std::make_unsigned<difference_type>::type;
     using value_type = typename std::iterator_traits<iterator>::value_type;
+    using reference = typename std::iterator_traits<iterator>::reference;
     using const_reference = const value_type&;
-    using reference = const_reference;
 
-    U left;
-    S right;
+    iterator left;
+    sentinel right;
 
     range() = default;
     range(const range&) = default;
     range(range&&) = default;
 
     template <typename U1, typename U2>
-    range(U1&& l, U2&& r): left(std::forward<U1>(l)), right(std::forward<U2>(r)) {}
+    range(U1&& l, U2&& r):
+        left(std::forward<U1>(l)), right(std::forward<U2>(r))
+    {}
 
     range& operator=(const range&) = default;
     range& operator=(range&&) = default;
@@ -78,11 +80,11 @@ struct range {
         return std::distance(begin(), end());
     }
 
-    size_type max_size() const { return std::numeric_limits<size_type>::max(); }
+    constexpr size_type max_size() const { return std::numeric_limits<size_type>::max(); }
 
-    void swap(range<U>& b) {
-        std::swap(left, b.left);
-        std::swap(right, b.right);
+    void swap(range& other) {
+        std::swap(left, other.left);
+        std::swap(right, other.right);
     }
 
     decltype(*left) front() const { return *left; }
@@ -90,13 +92,13 @@ struct range {
     decltype(*left) back() const { return *upto(left, right); }
 
     template <typename V = iterator>
-    enable_if_t<is_random_access_iterator<V>::value, value_type>
+    enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
     operator[](difference_type n) const {
         return *std::next(begin(), n);
     }
 
     template <typename V = iterator>
-    enable_if_t<is_random_access_iterator<V>::value, value_type>
+    enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
     at(difference_type n) const {
         if (size_type(n) >= size()) {
             throw std::out_of_range("out of range in range");
@@ -105,16 +107,24 @@ struct range {
     }
 
 #ifdef WITH_TBB
-    template <typename V = iterator,
-              typename = enable_if_t<is_forward_iterator<V>::value>>
-    range(range& r, tbb::split): left(r.left), right(r.right) {
+    template <
+        typename V = iterator,
+        typename = enable_if_t<is_forward_iterator<V>::value>
+    >
+    range(range& r, tbb::split):
+        left(r.left), right(r.right)
+    {
         std::advance(left, r.size()/2u);
         r.right = left;
     }
 
-    template <typename V = iterator,
-              typename = enable_if_t<is_forward_iterator<V>::value>>
-    range(range& r, tbb::proportional_split p): left(r.left), right(r.right) {
+    template <
+        typename V = iterator,
+        typename = enable_if_t<is_forward_iterator<V>::value>
+    >
+    range(range& r, tbb::proportional_split p):
+        left(r.left), right(r.right)
+    {
         size_type i = (r.size()*p.left())/(p.left()+p.right());
         if (i<1) {
             i = 1;
@@ -145,28 +155,28 @@ range<U, V> make_range(const U& left, const V& right) {
  */
 template <typename I, typename S>
 class sentinel_iterator {
-    nest::mc::util::either<I, S> e;
+    nest::mc::util::either<I, S> e_;
 
-    bool is_sentinel() const { return e.index()!=0; }
+    bool is_sentinel() const { return e_.index()!=0; }
 
     I& iter() {
         EXPECTS(!is_sentinel());
-        return e.template unsafe_get<0>();
+        return e_.template unsafe_get<0>();
     }
 
     const I& iter() const {
         EXPECTS(!is_sentinel());
-        return e.template unsafe_get<0>();
+        return e_.template unsafe_get<0>();
     }
 
     S& sentinel() {
         EXPECTS(is_sentinel());
-        return e.template unsafe_get<1>();
+        return e_.template unsafe_get<1>();
     }
 
     const S& sentinel() const {
         EXPECTS(is_sentinel());
-        return e.template unsafe_get<1>();
+        return e_.template unsafe_get<1>();
     }
 
 public:
@@ -176,10 +186,10 @@ public:
     using reference = typename std::iterator_traits<I>::reference;
     using iterator_category = typename std::iterator_traits<I>::iterator_category;
 
-    sentinel_iterator(I i): e(i) {}
+    sentinel_iterator(I i): e_(i) {}
 
     template <typename V = S, typename = enable_if_t<!std::is_same<I, V>::value>>
-    sentinel_iterator(S i): e(i) {}
+    sentinel_iterator(S i): e_(i) {}
 
     sentinel_iterator() = default;
     sentinel_iterator(const sentinel_iterator&) = default;
@@ -192,7 +202,7 @@ public:
 
     auto operator*() const -> decltype(*iter()) { return *iter(); }
 
-    I operator->() const { return e.template ptr<0>(); }
+    I operator->() const { return e_.template ptr<0>(); }
 
     sentinel_iterator& operator++() {
         ++iter();
@@ -298,9 +308,9 @@ sentinel_iterator_t<I, S> make_sentinel_end(const I& i, const S& s) {
 
 template <typename Seq>
 auto canonical_view(const Seq& s) ->
-    range<sentinel_iterator_t<decltype(s.begin()), decltype(s.end())>>
+    range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
 {
-    return {make_sentinel_iterator(s.begin(), s.end()), make_sentinel_end(s.begin(), s.end())};
+    return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
 }
 
 /*

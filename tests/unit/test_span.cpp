@@ -5,6 +5,7 @@
 #include <list>
 #include <numeric>
 #include <type_traits>
+#include <utility>
 
 #include <util/span.hpp>
 
@@ -57,5 +58,36 @@ TEST(span, int_iterators) {
         sum += i;
     }
     EXPECT_EQ(sum, (a+b-1)*(b-a)/2);
+}
+
+TEST(span, make_span) {
+    auto s_empty = util::make_span(3, 3);
+    EXPECT_TRUE(s_empty.empty());
+
+    {
+        auto s = util::make_span((short)3, (unsigned long long)10);
+        auto first = s.front();
+        auto last = s.back();
+
+        EXPECT_EQ(3u, first);
+        EXPECT_EQ(9u, last);
+
+        EXPECT_TRUE((std::is_same<decltype(first), decltype(last)>::value));
+        EXPECT_TRUE((std::is_same<unsigned long long, decltype(first)>::value));
+    }
+
+    {
+        // type abuse! should promote bool to long in span.
+        std::pair<long, bool> bounds(-3, false);
+        auto s = util::make_span(bounds);
+        auto first = s.front();
+        auto last = s.back();
+
+        EXPECT_EQ(-3, first);
+        EXPECT_EQ(-1, last);
+
+        EXPECT_TRUE((std::is_same<decltype(first), decltype(last)>::value));
+        EXPECT_TRUE((std::is_same<long, decltype(first)>::value));
+    }
 }
 

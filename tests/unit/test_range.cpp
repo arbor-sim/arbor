@@ -37,6 +37,9 @@ TEST(range, list_iterator) {
     }
 
     EXPECT_EQ(check, sum);
+
+    auto sum2 = std::accumulate(s.begin(), s.end(), 0);
+    EXPECT_EQ(check, sum2);
 }
 
 TEST(range, pointer) {
@@ -45,6 +48,11 @@ TEST(range, pointer) {
     int r = 5;
 
     util::range<int *> s(&xs[l], &xs[r]);
+    auto s_deduced = util::make_range(xs+l, xs+r);
+
+    EXPECT_TRUE((std::is_same<decltype(s), decltype(s_deduced)>::value));
+    EXPECT_EQ(s.left, s_deduced.left);
+    EXPECT_EQ(s.right, s_deduced.right);
 
     EXPECT_EQ(3u, s.size());
 
@@ -68,6 +76,16 @@ TEST(range, input_iterator) {
     auto s = util::make_range(std::istream_iterator<int>(sin), std::istream_iterator<int>());
 
     EXPECT_TRUE(std::equal(s.begin(), s.end(), &nums[0]));
+}
+
+TEST(range, const_iterator) {
+    std::vector<int> xs = { 1, 2, 3, 4, 5 };
+    auto r = util::make_range(xs.begin(), xs.end());
+    EXPECT_TRUE((std::is_same<int&, decltype(r.front())>::value));
+
+    const auto& xs_const = xs;
+    auto r_const = util::make_range(xs_const.begin(), xs_const.end());
+    EXPECT_TRUE((std::is_same<const int&, decltype(r_const.front())>::value));
 }
 
 struct null_terminated_t {

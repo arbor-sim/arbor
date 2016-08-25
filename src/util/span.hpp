@@ -24,7 +24,7 @@ span<typename std::common_type<I, J>::type> make_span(I left, J right) {
 
 template <typename I, typename J>
 span<typename std::common_type<I, J>::type> make_span(std::pair<I, J> interval) {
-    return span<typename std::common_type<I, J>::type>(interval.left, interval.right);
+    return span<typename std::common_type<I, J>::type>(interval.first, interval.second);
 }
 
 
