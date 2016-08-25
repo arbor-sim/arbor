@@ -154,19 +154,21 @@ public:
         EXPECTS(probe_id.gid==gid_base_);
         auto sampler_index = uint32_t(samplers_.size());
         samplers_.push_back({probe_handles_[probe_id.index], s});
+        sampler_start_times_.push_back(start_time);
         sample_events_.push({sampler_index, start_time});
     }
 
     void remove_samplers() {
         sample_events_.clear();
         samplers_.clear();
+        sampler_start_times_.clear();
     }
 
     void reset_samplers() {
         // clear all pending sample events and reset to start at time 0
         sample_events_.clear();
         for(uint32_t i=0u; i<samplers_.size(); ++i) {
-            sample_events_.push({i, time_type(0)});
+            sample_events_.push({i, sampler_start_times_[i]});
         }
     }
 
@@ -192,6 +194,7 @@ private:
 
     /// pending samples to be taken
     event_queue<sample_event<time_type>> sample_events_;
+    std::vector<time_type> sampler_start_times_;
 
     /// the global id of the first target (e.g. a synapse) in this group
     index_type first_target_gid_;

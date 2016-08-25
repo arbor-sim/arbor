@@ -101,18 +101,6 @@ public:
         util::profilers_restart();
     }
 
-    void print_spikes() {
-        std::cout << "CURRENT : ";
-        for(auto s : current_spikes().gather()) {
-            std::cout << s << " ";
-        }
-        std::cout << "\nPREVIOUS : ";
-        for(auto s : previous_spikes().gather()) {
-            std::cout << s << " ";
-        }
-        std::cout << "\n";
-    }
-
     time_type run(time_type tfinal, time_type dt) {
         // Calculate the size of the largest possible time integration interval
         // before communication of spikes is required.

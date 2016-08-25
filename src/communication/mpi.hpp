@@ -125,7 +125,7 @@ namespace mpi {
     /// Gather all of a distributed vector
     /// Retains the meta data (i.e. vector partition)
     template <typename T>
-    gathered_vector<T> gather_all_meta(const std::vector<T>& values) {
+    gathered_vector<T> gather_all_with_partition(const std::vector<T>& values) {
         using gathered_type = gathered_vector<T>;
         using count_type = typename gathered_vector<T>::count_type;
         using traits = mpi_traits<T>;
@@ -149,9 +149,10 @@ namespace mpi {
             MPI_COMM_WORLD
         );
 
-        std::vector<count_type> part(displs.size());
-        std::copy(displs.begin(), displs.end(), part.begin());
-        return gathered_type(std::move(buffer), std::move(part));
+        return gathered_type(
+            std::move(buffer),
+            std::vector<count_type>(displs.begin(), displs.end())
+        );
     }
 
     template <typename T>

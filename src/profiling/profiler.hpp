@@ -246,8 +246,7 @@ void profilers_stop();
 void profilers_restart();
 
 /// print the collated profiler to std::cout
-//void profiler_output(double threshold);
-void profiler_output(double threshold, cell_size_type num_local_cells, int num_steps);
+void profiler_output(double threshold, std::size_t num_local_work_items);
 
 } // namespace util
 } // namespace mc

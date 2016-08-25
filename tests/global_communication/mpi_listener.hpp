@@ -41,7 +41,9 @@ private:
     }
 
     void print(const char* s) {
-        fid_ << s;
+        if (fid_) {
+            fid_ << s;
+        }
         if (does_print()) {
             std::cout << s;
         }
@@ -51,21 +53,27 @@ private:
         print(s.c_str());
     }
 
+    /// convenience function that handles the logic of using snprintf
+    /// and forwarding the results to file and/or stdout.
+    ///
+    /// TODO : it might be an idea to use a resizeable buffer
     template <typename... Args>
-    void pprintf(const char* s, Args&&... args) {
+    void printf_helper(const char* s, Args&&... args) {
         snprintf(buffer_, sizeof(buffer_), s, std::forward<Args>(args)...);
         print(buffer_);
     }
 
 public:
-
-    mpi_listener(std::string f_base) {
+    mpi_listener(std::string f_base="") {
         rank_ = nest::mc::communication::global_policy::id();
         size_ = nest::mc::communication::global_policy::size();
 
+        if (f_base.empty()) {
+            return;
+        }
         std::string fname = f_base + "_" + std::to_string(rank_) + ".txt";
         fid_.open(fname);
-        if (!fid_.good()) {
+        if (!fid_) {
             throw std::runtime_error("could not open file " + fname + " for test output");
         }
     }
@@ -73,10 +81,10 @@ public:
     /// Messages that are printed at the start and end of the test program.
     /// i.e. once only.
     virtual void OnTestProgramStart(const UnitTest&) override {
-        pprintf("*** test output for rank %d of %d\n\n", rank_, size_);
+        printf_helper("*** test output for rank %d of %d\n\n", rank_, size_);
     }
     virtual void OnTestProgramEnd(const UnitTest&) override {
-        pprintf("*** end test output for rank %d of %d\n", rank_, size_);
+        printf_helper("*** end test output for rank %d of %d\n", rank_, size_);
     }
 
     /// Messages that are printed at the start and end of each test case.
@@ -88,7 +96,7 @@ public:
         test_case_tests_ = 0;
     }
     virtual void OnTestCaseEnd(const TestCase& test_case) override {
-        pprintf(
+        printf_helper(
             "[PASSED %3d; FAILED %3d] of %3d tests in %s\n\n",
             test_case_tests_-test_case_failures_,
             test_case_failures_,
@@ -99,7 +107,7 @@ public:
 
     // Called before a test starts.
     virtual void OnTestStart(const TestInfo& test_info) override {
-        pprintf( "  TEST  %s::%s\n", test_info.test_case_name(), test_info.name());
+        printf_helper( "  TEST  %s::%s\n", test_info.test_case_name(), test_info.name());
         test_failures_ = 0;
     }
 
@@ -115,7 +123,7 @@ public:
             pos = summary.find("\n", pos+1);
         }
 
-        pprintf(
+        printf_helper(
             "  LOCAL_%s\n    %s\n    %s:%d\n%s\n    %s\n",
             test_part_result.failed() ? "FAIL" : "SUCCESS",
             banner,
@@ -140,7 +148,7 @@ public:
             nest::mc::communication::global_policy::sum(test_failures_>0 ? 1 : 0);
         if (global_errors>0) {
             test_case_failures_++;
-            pprintf("  GLOBAL_FAIL on %d ranks\n", global_errors);
+            printf_helper("  GLOBAL_FAIL on %d ranks\n", global_errors);
         }
     }
 };

@@ -22,7 +22,7 @@ struct mpi_global_policy {
     template <typename Spike>
     static gathered_vector<Spike>
     gather_spikes(const std::vector<Spike>& local_spikes) {
-        return mpi::gather_all_meta(local_spikes);
+        return mpi::gather_all_with_partition(local_spikes);
     }
 
     static int id() { return mpi::rank(); }

@@ -11,22 +11,22 @@
 #include <communication/global_policy.hpp>
 #include <util/ioutil.hpp>
 
-using namespace nest;
+using namespace nest::mc;
 
 int main(int argc, char **argv) {
     // We need to set the communicator policy at the top level
     // this allows us to build multiple communicators in the tests
-    mc::communication::global_policy_guard global_guard(argc, argv);
+    communication::global_policy_guard global_guard(argc, argv);
 
     // initialize google test environment
-    ::testing::InitGoogleTest(&argc, argv);
+    testing::InitGoogleTest(&argc, argv);
 
     // set up a custom listener that prints messages in an MPI-friendly way
     auto& listeners = testing::UnitTest::GetInstance()->listeners();
     // first delete the original printer
     delete listeners.Release(listeners.default_result_printer());
     // now add our custom printer
-    listeners.Append(new mpi_listener("global_comms"));
+    listeners.Append(new mpi_listener("results_global_communication"));
 
     // record the local return value for tests run on this mpi rank
     //      0 : success
@@ -35,5 +35,5 @@ int main(int argc, char **argv) {
 
     // perform global collective, to ensure that all ranks return
     // the same exit code
-    return mc::communication::global_policy::max(result);
+    return communication::global_policy::max(result);
 }

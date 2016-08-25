@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
 
         // output profile and diagnostic feedback
         auto const num_steps = options.tfinal / options.dt;
-        util::profiler_output(0.001, m.num_cells(), int(num_steps));
+        util::profiler_output(0.001, m.num_cells()*num_steps);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces

@@ -14,8 +14,8 @@ TEST(algorithms, parallel_sort)
     std::vector<int> v(n);
     std::iota(v.begin(), v.end(), 1);
 
-    std::random_device rd;
-    std::shuffle(v.begin(), v.end(), std::mt19937(rd()));
+    // intialize with the default random seed
+    std::shuffle(v.begin(), v.end(), std::mt19937());
 
     // assert that the original vector has in fact been permuted
     EXPECT_FALSE(std::is_sorted(v.begin(), v.end()));

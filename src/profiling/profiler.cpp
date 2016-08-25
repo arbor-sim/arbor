@@ -305,7 +305,7 @@ void profilers_restart() {
     }
 }
 
-void profiler_output(double threshold, cell_size_type num_local_cells, int num_steps) {
+void profiler_output(double threshold, std::size_t num_local_work_items) {
     profilers_stop();
 
     // Find the earliest start time and latest stop time over all profilers
@@ -342,8 +342,8 @@ void profiler_output(double threshold, cell_size_type num_local_cells, int num_s
     auto comm_rank = communication::global_policy::id();
     bool print = comm_rank==0 ? true : false;
 
-    // calculate the throughput in terms of cell steps per second
-    auto local_throughput = num_local_cells*num_steps / wall_time;
+    // calculate the throughput in terms of work items per second
+    auto local_throughput = num_local_work_items / wall_time;
     auto global_throughput = communication::global_policy::sum(local_throughput);
 
     if(print) {
@@ -401,7 +401,7 @@ void profiler_enter(const char*) {}
 void profiler_leave() {}
 void profiler_leave(int) {}
 void profilers_stop() {}
-void profiler_output(double threshold, cell_size_type num_local_cells, int num_steps) {}
+void profiler_output(double threshold, std::size_t num_local_work_items) {}
 void profilers_restart() {};
 #endif
 
