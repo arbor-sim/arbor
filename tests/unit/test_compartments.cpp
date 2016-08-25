@@ -131,3 +131,28 @@ TEST(compartments, compartment_range)
         EXPECT_EQ(rng.begin(), rng.end());
     }
 }
+
+TEST(compartments, make_compartment_range)
+{
+    using namespace nest::mc;
+    auto rng = make_compartment_range(10, 1.0, 2.0, 10.);
+
+    EXPECT_EQ((*rng.begin()).index, 0u);
+    EXPECT_EQ((*rng.end()).index, 10u);
+    EXPECT_NE(rng.begin(), rng.end());
+
+    unsigned count = 0;
+    for (auto c : rng) {
+        EXPECT_EQ(c.index, count);
+        auto er = 1.0 + double(count)/10.;
+        EXPECT_DOUBLE_EQ(left(c.radius), er);
+        EXPECT_DOUBLE_EQ(right(c.radius), er+0.1);
+        EXPECT_EQ(c.length, 1.0);
+        ++count;
+    }
+    EXPECT_EQ(count, 10u);
+
+    // test case of zero length range
+    auto rng_empty = make_compartment_range(0, 1.0, 1.0, 0.);
+    EXPECT_EQ(rng_empty.begin(), rng_empty.end());
+}

@@ -1,8 +1,9 @@
 #include "gtest.h"
 
-#include "common_types.hpp"
-#include "cell.hpp"
-#include "fvm_cell.hpp"
+#include <common_types.hpp>
+#include <cell.hpp>
+#include <fvm_cell.hpp>
+#include <util/range.hpp>
 
 TEST(probe, instantiation)
 {
@@ -49,31 +50,35 @@ TEST(probe, fvm_cell)
     segment_location loc1{1, 1};
     segment_location loc2{1, 0.5};
 
-    auto pv0 = bs.add_probe({loc0, probeKind::membrane_voltage});
-    auto pv1 = bs.add_probe({loc1, probeKind::membrane_voltage});
-    auto pi2 = bs.add_probe({loc2, probeKind::membrane_current});
+    bs.add_probe({loc0, probeKind::membrane_voltage});
+    bs.add_probe({loc1, probeKind::membrane_voltage});
+    bs.add_probe({loc2, probeKind::membrane_current});
 
     i_clamp stim(0, 100, 0.3);
     bs.add_stimulus({1, 1}, stim);
 
-    fvm::fvm_cell<double, cell_local_size_type> lcell(bs);
-    lcell.setup_matrix(0.01);
-    lcell.initialize();
+    using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
+    std::vector<fvm_cell::target_handle> targets;
+    std::vector<fvm_cell::detector_handle> detectors;
+    std::vector<fvm_cell::probe_handle> probes{3};
 
-    EXPECT_EQ(3u, lcell.num_probes());
+    fvm_cell lcell;
+    lcell.initialize(util::singleton_view(bs), detectors, targets, probes);
 
-    // expect probe values and direct queries of voltage and current
+    // Know from implementation that probe_handle.second
+    // is a compartment index: expect probe values and
+    // direct queries of voltage and current
     // to be equal in fvm cell
 
-    EXPECT_EQ(lcell.voltage(loc0), lcell.probe(pv0));
-    EXPECT_EQ(lcell.voltage(loc1), lcell.probe(pv1));
-    EXPECT_EQ(lcell.current(loc2), lcell.probe(pi2));
+    EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
+    EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
+    EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
 
     lcell.advance(0.05);
 
-    EXPECT_EQ(lcell.voltage(loc0), lcell.probe(pv0));
-    EXPECT_EQ(lcell.voltage(loc1), lcell.probe(pv1));
-    EXPECT_EQ(lcell.current(loc2), lcell.probe(pi2));
+    EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
+    EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
+    EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
 }
 
 

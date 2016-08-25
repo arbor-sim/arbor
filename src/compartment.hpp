@@ -3,7 +3,10 @@
 #include <iterator>
 #include <utility>
 
-#include "common_types.hpp"
+#include <common_types.hpp>
+#include <util/counter.hpp>
+#include <util/span.hpp>
+#include <util/transform.hpp>
 
 namespace nest {
 namespace mc {
@@ -33,6 +36,7 @@ struct compartment {
     std::pair<value_type, value_type> radius;
     value_type length;
 };
+
 
 /// The simplest type of compartment iterator :
 ///     - divide a segment into n compartments of equal length
@@ -160,6 +164,43 @@ public:
     real_type radius_R_;
     real_type length_;
 };
+
+// (NB: auto type deduction and lambda in C++14 will simplify the following)
+
+template <typename size_type, typename real_type>
+class compartment_maker {
+public:
+    compartment_maker(size_type n, real_type length, real_type rL, real_type rR):
+        r0_{rL},
+        dr_{(rR-rL)/n},
+        dx_{length/n}
+    {}
+
+    compartment operator()(size_type i) const {
+        return compartment(i, dx_, r0_+i*dr_, r0_+(i+1)*dr_);
+    }
+
+private:
+    real_type r0_;
+    real_type dr_;
+    real_type dx_;
+};
+
+template <typename size_type, typename real_type>
+using compartment_iterator_bis =
+    util::transform_iterator<util::counter<size_type>, compartment_maker<size_type, real_type>>;
+
+template <typename size_type, typename real_type>
+util::range<compartment_iterator_bis<size_type, real_type>> make_compartment_range(
+    size_type num_compartments,
+    real_type radius_L,
+    real_type radius_R,
+    real_type length)
+{
+    return util::transform_view(
+        util::span<size_type>(0, num_compartments),
+        compartment_maker<size_type, real_type>(num_compartments, length, radius_L, radius_R));
+}
 
 } // namespace mc
 } // namespace nest

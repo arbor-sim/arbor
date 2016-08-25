@@ -23,92 +23,6 @@
 
 #include <vector/include/Vector.hpp>
 
-/*
- * Lowered cell implementation based on finite volume method.
- *
- * TODO: Move following description of internal API
- * to a better location or document.
- *
- * Lowered cells are managed by the `cell_group` class.
- * A `cell_group` manages one lowered cell instance, which
- * may in turn simulate one or more cells.
- *
- * The outward facing interface for `cell_group` is defined
- * in terms of cell gids and member indices; the interface
- * between `cell_group` and a lowered cell is described below.
- *
- * The motivation for the following interface is to
- *   1. Provide more flexibility in lowered cell implementation
- *   2. Save memory and duplicated index maps by associating
- *      externally visible objects with opaque handles.
- *
- * In the following, `lowered_cell` represents the lowered
- * cell class, and `lowered` an instance thereof.
- *
- * `lowered_cell::detector_handle`
- *       Type of handles used by spike detectors to query
- *       membrane voltage.
- *
- * `lowered_cell::probe_handle`
- *       Type of handle used to query the value of a probe.
- *
- * `lowered_cell::target_handle`
- *       Type of handle used to identify the target of a
- *       postsynaptic spike event.
- *
- * `lowered_cell::value_type`
- *       Floating point type used for internal states
- *       and simulation time.
- *
- * `lowered_cell()`
- *       Default constructor; performs no cell-specific
- *       initialization.
- *
- * `lowered.initialize(const Cells& cells, ...)`
- *       Allocate and initalize data structures to simulate
- *       the cells described in the collection `cells`,
- *       where each item is of type `nest::mc::cell`.
- *
- *       Remaining arguments consist of references to
- *       collections for storing:
- *         1. Detector handles
- *         2. Target handles
- *         3. Probe handles
- *
- *       Handles are written in the same order as they
- *       appear in the provided cell descriptions.
- *
- *  `lowered.reset()`
- *
- *       Resets state to initial conditiions and sets
- *       internal simulation time to 0.
- *       
- *  `lowered.advance(value_type dt)`
- *
- *       Advanece simulation state by `dt` (value in
- *       milliseconds). For `fvm_cell` at least,
- *       this corresponds to one integration step.
- *
- *  `lowered.deliver_event(target_handle target, value_type weight)`
- *
- *       Update target-specifc state based on the arrival
- *       of a postsynaptic spike event with given weight.
- *
- *  `lowered.detect_voltage(detector_handle)`
- *
- *       Return membrane voltage at detector site as specified
- *       by handle.
- *
- *  `lowered.probe(probe_handle)`
- *
- *       Return value of corresponding probe.
- *
- *  `lowered.resting_potential(value_type potential)`
- *
- *       Set the steady-state membrane voltage used for the
- *       cell initial condition. (Defaults to -65 mV currently.)
- */
-
 namespace nest {
 namespace mc {
 namespace fvm {
@@ -294,11 +208,81 @@ private:
 
     // mechanism factory
     using mechanism_catalogue = nest::mc::mechanisms::catalogue<value_type, size_type>;
+
+    // perform area and capacitance calculation on initialization
+    void compute_cv_area_capacitance(
+        std::pair<size_type, size_type> comps, const segment& seg, index_vector &parent);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// Implementation ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
+template <typename T, typename I>
+void fvm_cell<T, I>::compute_cv_area_capacitance(
+    std::pair<size_type, size_type> comps,
+    const segment& seg,
+    index_vector &parent)
+{
+    // precondition: group_parent_index[j] holds the correct value for
+    // j in [base_comp, base_comp+segment.num_compartments()].
+
+    if (auto soma = seg->as_soma()) {
+        // confirm assumption that there is one compartment in soma
+        if (comps.size()!=1)
+            throw std::logic_error("soma allocated more than one compartment");
+        }
+        auto i = comps.first;
+        auto area = math::area_sphere(soma->radius());
+
+        cv_areas_[i] += area;
+        cv_capacitance_[i] += area * soma->mechanism("membrane").get("c_m").value;
+    }
+    else if (auto cable = s->as_cable()) {
+        // loop over each compartment in the cable
+        // each compartment has the face between two CVs at its centre
+        // the centers of the CVs are the end points of the compartment
+        //
+        //  __________________________________
+        //  | ........ | .cvleft. |    cv    |
+        //  | ........ L ........ C          R
+        //  |__________|__________|__________|
+        //
+        //  The compartment has end points marked L and R (left and right).
+        //  The left compartment is assumed to be closer to the soma
+        //  (i.e. it follows the minimal degree ordering)
+        //  The face is at the center, marked C.
+        //  The full control volume to the left (marked with .)
+
+        auto c_m = cable->mechanism("membrane").get("c_m").value;
+        auto r_L = cable->mechanism("membrane").get("r_L").value;
+        const auto& compartments = cable->compartments();
+
+        EXPECTS(util::size(compartments)==comps.second-comps.first);
+
+        for (auto i: util::make_span(comps)) {
+            const auto c& = compartments[i-comps.first];
+            auto j = parent[i];
+
+            auto radius_center = math::mean(c.radius);
+            auto area_face = math::area_circle(radius_center);
+            face_alpha_[i] = area_face / (c_m * r_L * c.length);
+
+            auto halflen = c.length/2;
+            auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
+            auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
+
+            cv_areas_[j] += al;
+            cv_areas_[i] += ar;
+            cv_capacitance_[j] += al * c_m;
+            cv_capacitance_[i] += ar * c_m;
+        }
+    }
+    else {
+        throw std::domain_error("FVM lowering encountered unsuported segment type");
+    }
+}
+
 
 template <typename T, typename I>
 template <typename Cells, typename Detectors, typename Targets, typename Probes>
@@ -308,9 +292,45 @@ void fvm_cell<T, I>::initialize(
     Targets& target_handles,
     Probes& probe_handles)
 {
-    if (util::size(cells)!=1u) {
-        throw std::invalid_argument("fvm_cell accepts only one cell");
+    using util::transform_view;
+    using util::make_partition;
+    using util::make_span;
+    using util::size;
+
+    auto cell_num_compartments =
+        transform_view(cells, [](const cell& c) { return c.num_compartments(); });
+
+    std::vector<cell_lid_type> cell_comp_bounds;
+    auto cell_comp_part = make_partition(cell_comp_bounds, cell_num_compartments);
+    auto ncomp = cell_comp_part.bounds().second;
+
+    index_vector group_parent_index{cell_comp_part.bounds().second, 0};
+
+    auto comps = cell_comp_part.begin();
+    for (const auto& c: cells) {
+        auto parent_index = c.model().parent_index;
+
+        for (auto j: make_span(*comps)) {
+            group_parent_index[j] = parent_index[j-comps->first]+comps->first;
+        }
+
+        auto seg_num_compartments =
+            transform_view(c.segments(), [](const segment& s) { return s.num_compartments(); });
+
+        std::vector<cell_lid_type> seg_comp_bounds;
+        auto seg_comp_part = make_partition(seg_comp_bounds, seg_num_compartments, comps->first);
+
+        auto seg_comps = seg_comp_part.begin();
+        for (auto j=0; j<size(seg_comp_part); ++j) {
+            calculate_cv_area_capacitance(
+        }
+
+        ++comps;
     }
+
+
+
+
 
     const nest::mc::cell& cell = *(std::begin(cells));
     size_type ncomp = cell.num_compartments();
