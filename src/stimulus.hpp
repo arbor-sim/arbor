@@ -45,9 +45,9 @@ class i_clamp {
 
     private:
 
-    value_type delay_     = 0;
-    value_type duration_  = 0;
-    value_type amplitude_ = 0;
+    value_type delay_     = 0; // [ms]
+    value_type duration_  = 0; // [ms]
+    value_type amplitude_ = 0; // [nA]
 };
 
 } // namespace mc
