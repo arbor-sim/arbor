@@ -12,6 +12,7 @@
 #endif
 
 #include <util/range.hpp>
+#include <util/sentinel.hpp>
 
 using namespace nest::mc;
 
@@ -70,6 +71,17 @@ TEST(range, pointer) {
     EXPECT_TRUE(std::equal(s.begin(), s.end(), &xs[l]));
 }
 
+TEST(range, empty) {
+    int xs[] = { 10, 11, 12, 13, 14, 15, 16 };
+    auto l = 2;
+    auto r = 5;
+
+    EXPECT_TRUE(util::make_range(&xs[l], &xs[l]).empty());
+    EXPECT_TRUE(util::make_range(&xs[r], &xs[r]).empty());
+    EXPECT_TRUE(util::make_range(&xs[r], &xs[l]).empty());
+    EXPECT_EQ(0u, util::make_range(&xs[r], &xs[l]).size());
+}
+
 TEST(range, input_iterator) {
     int nums[] = { 10, 9, 8, 7, 6 };
     std::istringstream sin("10 9 8 7 6");
@@ -122,6 +134,10 @@ TEST(range, sentinel) {
     }
 
     EXPECT_EQ(s, std::string(cstr));
+
+    const char *empty_cstr = "";
+    auto empty_cstr_range = util::make_range(empty_cstr, null_terminated);
+    EXPECT_TRUE(empty_cstr_range.empty());
 }
 
 #ifdef WITH_TBB
