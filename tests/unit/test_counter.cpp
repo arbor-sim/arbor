@@ -128,4 +128,3 @@ REGISTER_TYPED_TEST_CASE_P(counter_test, value, compare, arithmetic, iterator_tr
 
 using int_types = ::testing::Types<signed char, unsigned char, short, unsigned short, int, unsigned, std::size_t, std::ptrdiff_t>;
 INSTANTIATE_TYPED_TEST_CASE_P(int_types, counter_test, int_types);
-

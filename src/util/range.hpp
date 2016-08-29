@@ -67,7 +67,7 @@ struct range {
     range& operator=(const range&) = default;
     range& operator=(range&&) = default;
 
-    bool empty() const { return size() == 0; }
+    bool empty() const { return left == right; }
 
     iterator begin() const { return left; }
     const_iterator cbegin() const { return left; }
@@ -80,8 +80,7 @@ struct range {
     size() const {
         auto b = make_sentinel_iterator(begin(), end());
         auto e = make_sentinel_end(begin(), end());
-        auto dist = std::distance(b, e);
-        return (dist < 0) ? 0 : dist;
+        return std::distance(b, e);
     }
 
     constexpr size_type max_size() const { return std::numeric_limits<size_type>::max(); }

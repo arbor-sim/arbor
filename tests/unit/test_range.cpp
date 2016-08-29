@@ -11,6 +11,7 @@
 #include <tbb/tbb_stddef.h>
 #endif
 
+#include <util/counter.hpp>
 #include <util/range.hpp>
 #include <util/sentinel.hpp>
 
@@ -76,6 +77,11 @@ TEST(range, empty) {
     auto l = 2;
     auto r = 5;
 
+    auto empty_range = util::make_range(&xs[l], &xs[l]);
+    EXPECT_TRUE(empty_range.empty());
+    EXPECT_TRUE(empty_range.size() == 0);
+
+
     EXPECT_TRUE(util::make_range(&xs[l], &xs[l]).empty());
     EXPECT_TRUE(util::make_range(&xs[r], &xs[r]).empty());
     EXPECT_TRUE(util::make_range(&xs[r], &xs[l]).empty());
@@ -139,6 +145,94 @@ TEST(range, sentinel) {
     auto empty_cstr_range = util::make_range(empty_cstr, null_terminated);
     EXPECT_TRUE(empty_cstr_range.empty());
 }
+
+template <typename V>
+class counter_range: public ::testing::Test {};
+
+TYPED_TEST_CASE_P(counter_range);
+
+TYPED_TEST_P(counter_range, max_size) {
+    using int_type = TypeParam;
+    using unsigned_int_type = typename std::make_unsigned<int_type>::type;
+    using counter = util::counter<int_type>;
+
+    auto l = counter{int_type{1}};
+    auto r = counter{int_type{10}};
+    auto range = util::make_range(l, r);
+    EXPECT_EQ(std::numeric_limits<unsigned_int_type>::max(),
+              range.max_size());
+
+}
+
+TYPED_TEST_P(counter_range, extreme_size) {
+    using int_type = TypeParam;
+    using signed_int_type = typename std::make_signed<int_type>::type;
+    using unsigned_int_type = typename std::make_unsigned<int_type>::type;
+    using counter = util::counter<signed_int_type>;
+
+    auto l = counter{std::numeric_limits<signed_int_type>::min()};
+    auto r = counter{std::numeric_limits<signed_int_type>::max()};
+    auto range = util::make_range(l, r);
+    EXPECT_FALSE(range.empty());
+    EXPECT_EQ(std::numeric_limits<unsigned_int_type>::max(), range.size());
+
+}
+
+
+TYPED_TEST_P(counter_range, size) {
+    using int_type = TypeParam;
+    using signed_int_type = typename std::make_signed<int_type>::type;
+    using counter = util::counter<signed_int_type>;
+
+    auto l = counter{signed_int_type{-3}};
+    auto r = counter{signed_int_type{3}};
+    auto range = util::make_range(l, r);
+    EXPECT_FALSE(range.empty());
+    EXPECT_EQ(6, range.size());
+
+}
+
+TYPED_TEST_P(counter_range, at) {
+    using int_type = TypeParam;
+    using signed_int_type = typename std::make_signed<int_type>::type;
+    using counter = util::counter<signed_int_type>;
+
+    auto l = counter{signed_int_type{-3}};
+    auto r = counter{signed_int_type{3}};
+    auto range = util::make_range(l, r);
+    EXPECT_EQ(range.front(), range.at(0));
+    EXPECT_EQ(0, range.at(3));
+    EXPECT_EQ(range.back(), range.at(range.size()-1));
+    EXPECT_THROW(range.at(range.size()), std::out_of_range);
+    EXPECT_THROW(range.at(30), std::out_of_range);
+}
+
+TYPED_TEST_P(counter_range, iteration) {
+    using int_type = TypeParam;
+    using signed_int_type = typename std::make_signed<int_type>::type;
+    using counter = util::counter<signed_int_type>;
+
+    auto j = signed_int_type{-3};
+    auto l = counter{signed_int_type{j}};
+    auto r = counter{signed_int_type{3}};
+
+    for (auto i : util::make_range(l, r)) {
+        EXPECT_EQ(j++, i);
+    }
+}
+
+
+REGISTER_TYPED_TEST_CASE_P(counter_range, max_size, extreme_size, size, at,
+                           iteration);
+
+using int_types = ::testing::Types<signed char, unsigned char, short,
+                                   unsigned short, int, unsigned, long,
+                                   std::size_t, std::ptrdiff_t>;
+
+using signed_int_types = ::testing::Types<signed char, short,
+                                          int, long, std::ptrdiff_t>;
+
+INSTANTIATE_TYPED_TEST_CASE_P(int_types, counter_range, int_types);
 
 #ifdef WITH_TBB
 
