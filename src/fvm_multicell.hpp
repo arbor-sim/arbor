@@ -28,9 +28,9 @@ namespace mc {
 namespace fvm {
 
 template <typename Value, typename Index>
-class fvm_cell {
+class fvm_multicell {
 public:
-    fvm_cell() = default;
+    fvm_multicell() = default;
 
     /// the real number type
     using value_type = Value;
@@ -210,7 +210,7 @@ private:
     using mechanism_catalogue = nest::mc::mechanisms::catalogue<value_type, size_type>;
 
     // perform area and capacitance calculation on initialization
-    void compute_cv_area_capacitance(
+    void compute_cv_area_unnormalized_capacitance(
         std::pair<size_type, size_type> comps, const segment& seg, index_vector &parent);
 };
 
@@ -219,7 +219,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename I>
-void fvm_cell<T, I>::compute_cv_area_capacitance(
+void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comps,
     const segment& seg,
     index_vector &parent)
@@ -283,10 +283,9 @@ void fvm_cell<T, I>::compute_cv_area_capacitance(
     }
 }
 
-
 template <typename T, typename I>
 template <typename Cells, typename Detectors, typename Targets, typename Probes>
-void fvm_cell<T, I>::initialize(
+void fvm_multicell<T, I>::initialize(
     const Cells& cells,
     Detectors& detector_handles,
     Targets& target_handles,
@@ -297,6 +296,12 @@ void fvm_cell<T, I>::initialize(
     using util::make_span;
     using util::size;
 
+    // count total detectors, targets and probes for validation of handle container sizes
+    size_type detectors_total = 0u;
+    size_type targets_total = 0u;
+    size_type probess_total = 0u;
+
+    auto ncell = util::size(cells);
     auto cell_num_compartments =
         transform_view(cells, [](const cell& c) { return c.num_compartments(); });
 
@@ -304,122 +309,62 @@ void fvm_cell<T, I>::initialize(
     auto cell_comp_part = make_partition(cell_comp_bounds, cell_num_compartments);
     auto ncomp = cell_comp_part.bounds().second;
 
-    index_vector group_parent_index{cell_comp_part.bounds().second, 0};
-
-    auto comps = cell_comp_part.begin();
-    for (const auto& c: cells) {
-        auto parent_index = c.model().parent_index;
-
-        for (auto j: make_span(*comps)) {
-            group_parent_index[j] = parent_index[j-comps->first]+comps->first;
-        }
-
-        auto seg_num_compartments =
-            transform_view(c.segments(), [](const segment& s) { return s.num_compartments(); });
-
-        std::vector<cell_lid_type> seg_comp_bounds;
-        auto seg_comp_part = make_partition(seg_comp_bounds, seg_num_compartments, comps->first);
-
-        auto seg_comps = seg_comp_part.begin();
-        for (auto j=0; j<size(seg_comp_part); ++j) {
-            calculate_cv_area_capacitance(
-        }
-
-        ++comps;
-    }
-
-
-
-
-
-    const nest::mc::cell& cell = *(std::begin(cells));
-    size_type ncomp = cell.num_compartments();
-
-    // confirm write-parameters have enough room to store handles
-    EXPECTS(util::size(detector_handles)==cell.detectors().size());
-    EXPECTS(util::size(target_handles)==cell.synapses().size());
-    EXPECTS(util::size(probe_handles)==cell.probes().size());
-
-    // initialize storage
+    // initialize storage from total compartment count
     cv_areas_   = vector_type{ncomp, T{0}};
     face_alpha_ = vector_type{ncomp, T{0}};
     cv_capacitance_ = vector_type{ncomp, T{0}};
     current_    = vector_type{ncomp, T{0}};
     voltage_    = vector_type{ncomp, T{0}};
 
+    index_vector group_parent_index{ncomp, 0};
+
+    for (size_type i = 0; i<ncell; ++i) {
+        const auto& c = cells[i];
+        auto comps = cell_comp_part[i];
+
+        auto parent_index = c.model().parent_index;
+
+        for (auto k: make_span(comps)) {
+            group_parent_index[k] = parent_index[k-comps.first]+comps.first;
+        }
+
+        auto seg_num_compartments =
+            transform_view(c.segments(), [](const segment& s) { return s.num_compartments(); });
+        auto nseg = seg_num_compartments.size();
+
+        std::vector<cell_lid_type> seg_comp_bounds;
+        auto seg_comp_part = make_partition(seg_comp_bounds, seg_num_compartments, comps.first);
+
+        for (size_type j = 0; j<nseg; ++j) {
+            compute_cv_area_unnormalized_capacitance(seg_comp_part[j], c.segment(j), group_parent_index);
+        }
+
+        // normalize capacitance across cell
+        for (auto k: make_span(comps)) {
+            cv_capacitance_[k] /= cv_areas_[k];
+        }
+
+        // add mechanisms to look up table for instantiation below
+
+        // TODO: move mech_map, syn_map insertions here etc.
+
+        detectors_total += c.detectors().size();
+        targets_total += c.synapses().size();
+        probess_total += c.probes.size();
+    }
+
+    // confirm write-parameters were appropriately sized
+    EXPECTS(util::size(detector_handles)==detectors_total);
+    EXPECTS(util::size(target_handles)==targets_total);
+    EXPECTS(util::size(probe_handles)==probes_total);
+
+    // initalize matrix
+    matrix_ = matrix_type(group_parent_index);
+
     using util::left;
     using util::right;
 
-    const auto graph = cell.model();
-    matrix_ = matrix_type(graph.parent_index);
-
-    auto parent_index = matrix_.p();
-    segment_index_ = graph.segment_index;
-
-    auto seg_idx = 0;
-    for(auto const& s : cell.segments()) {
-        if(auto soma = s->as_soma()) {
-            // assert the assumption that the soma is at 0
-            if(seg_idx!=0) {
-                throw std::domain_error(
-                        "FVM lowering encountered soma with non-zero index"
-                );
-            }
-            auto area = math::area_sphere(soma->radius());
-            cv_areas_[0] += area;
-            cv_capacitance_[0] += area * soma->mechanism("membrane").get("c_m").value;
-        }
-        else if(auto cable = s->as_cable()) {
-            // loop over each compartment in the cable
-            // each compartment has the face between two CVs at its centre
-            // the centers of the CVs are the end points of the compartment
-            //
-            //  __________________________________
-            //  | ........ | .cvleft. |    cv    |
-            //  | ........ L ........ C          R
-            //  |__________|__________|__________|
-            //
-            //  The compartment has end points marked L and R (left and right).
-            //  The left compartment is assumed to be closer to the soma
-            //  (i.e. it follows the minimal degree ordering)
-            //  The face is at the center, marked C.
-            //  The full control volume to the left (marked with .)
-            auto c_m = cable->mechanism("membrane").get("c_m").value;
-            auto r_L = cable->mechanism("membrane").get("r_L").value;
-            for(auto c : cable->compartments()) {
-                auto i = segment_index_[seg_idx] + c.index;
-                auto j = parent_index[i];
-
-                auto radius_center = math::mean(c.radius);
-                auto area_face = math::area_circle( radius_center );
-                face_alpha_[i] = area_face  / (c_m * r_L * c.length);
-
-                auto halflen = c.length/2;
-
-                auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
-                auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
-                cv_areas_[j] += al;
-                cv_areas_[i] += ar;
-                cv_capacitance_[j] += al * c_m;
-                cv_capacitance_[i] += ar * c_m;
-            }
-        }
-        else {
-            throw std::domain_error("FVM lowering encountered unsuported segment type");
-        }
-        ++seg_idx;
-    }
-
-    // normalize the capacitance by cv_area
-    for(auto i=0u; i<size(); ++i) {
-        cv_capacitance_[i] /= cv_areas_[i];
-    }
-
-    /////////////////////////////////////////////
-    //  create mechanisms
-    /////////////////////////////////////////////
-
-    // FIXME : candidate for a private member function
+    // create mechanisms
 
     // for each mechanism in the cell record the indexes of the segments that
     // contain the mechanism
