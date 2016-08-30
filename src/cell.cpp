@@ -188,7 +188,7 @@ void cell::add_stimulus(segment_location loc, i_clamp stim)
             )
         );
     }
-    stimulii_.push_back({loc, std::move(stim)});
+    stimuli_.push_back({loc, std::move(stim)});
 }
 
 void cell::add_detector(segment_location loc, double threshold)

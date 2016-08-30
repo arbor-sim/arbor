@@ -300,9 +300,12 @@ void fvm_multicell<T, I>::initialize(
     using util::size;
 
     // count total detectors, targets and probes for validation of handle container sizes
-    size_type detectors_total = 0u;
-    size_type targets_total = 0u;
-    size_type probess_total = 0u;
+    size_type detectors_count = 0u;
+    size_type targets_count = 0u;
+    size_type probess_count = 0u;
+    size_type detectors_size = util::size(detector_handles);
+    size_type targets_size = util::size(targets_handles);
+    size_type probes_size = util::size(probes_handles);
 
     auto ncell = util::size(cells);
     auto cell_num_compartments =
@@ -327,7 +330,11 @@ void fvm_multicell<T, I>::initialize(
     // initialize vector used for matrix creation.
     index_vector group_parent_index{ncomp, 0};
 
+    // create each cell:
     auto target_hi = target_handles.begin();
+    auto detector_hi = detector_handles.begin();
+    auto probe_hi = probe_handles.begin();
+
     for (size_type i = 0; i<ncell; ++i) {
         const auto& c = cells[i];
         auto comps = cell_comp_part[i];
@@ -359,6 +366,8 @@ void fvm_multicell<T, I>::initialize(
         }
 
         for (const auto& syn: c.synapses()) {
+            EXPECTS(targets_count < targets_size);
+
             const auto& name = syn.mechanism.name();
             std::size_t index = 0;
             if (syn_mech_indices.count(name)==0) {
@@ -371,12 +380,10 @@ void fvm_multicell<T, I>::initialize(
             }
 
             size_type syn_comp = comps.first+find_compartment_index(syn.location, graph);
-
-            EXPECTS(targets_total < c.targets.size());
-            *target_hi++ = target_handle{index, syn_mech_map[index].size()};
-            ++targets_total;
-
             syn_mech_map[index].push_back(syn_comp);
+
+            *target_hi++ = target_handle{index, syn_mech_map[index].size()};
+            ++targets_count;
         }
 
         // normalize capacitance across cell
@@ -384,14 +391,44 @@ void fvm_multicell<T, I>::initialize(
             cv_capacitance_[k] /= cv_areas_[k];
         }
 
-        detectors_total += c.detectors().size();
-        probess_total += c.probes.size();
+        // add the stimulii
+        for (const auto& stim: c.stimuli()) {
+            auto idx = comps.first+find_compartment_index(stim.location, graph);
+            stimuli_.push_back({idx, stim.clamp});
+        }
+
+        // detector handles are just their corresponding compartment indices
+        for (const auto& detector: c.detectors()) {
+            EXPECTS(detectors_count < detectors_size);
+
+            auto comp = comps.first+find_compartment_index(detector.location, graph);
+            *detector_hi++ = comp;
+            ++detectors_count;
+        }
+
+        // record probe locations by index into corresponding state vector
+        for (const auto& probe: c.probes()) {
+            EXPECTS(probes_count < probes_size);
+
+            auto comp = comps.first+find_compartment_index(probe.location, graph);
+            switch (probe.kind) {
+            case probeKind::membrane_voltage:
+                *probe_hi++ = {&fvm_multicell::voltage_, comp};
+                break;
+            case probeKind::membrane_current:
+                *probe_hi++ = {&fvm_multicell::current_, comp};
+                break;
+            default:
+                throw std::logic_error("unrecognized probeKind");
+            }
+            ++probes_count;
+        }
     }
 
     // confirm write-parameters were appropriately sized
-    EXPECTS(util::size(detector_handles)==detectors_total);
-    EXPECTS(util::size(target_handles)==targets_total);
-    EXPECTS(util::size(probe_handles)==probes_total);
+    EXPECTS(detectors_size==detectors_count);
+    EXPECTS(targets_size==targets_count);
+    EXPECTS(probes_size==probes_count);
 
     // initalize matrix
     matrix_ = matrix_type(group_parent_index);
@@ -473,42 +510,12 @@ void fvm_multicell<T, I>::initialize(
     ion_ca().internal_concentration()(all) = 5e-5;          // mM
     ion_ca().external_concentration()(all) = 2.0;           // mM
 
-    // add the stimulii
-    for(const auto& stim : cell.stimulii()) {
-        auto idx = find_compartment_index(stim.location, graph);
-        stimulii_.push_back( {idx, stim.clamp} );
-    }
-
-    // record probe locations by index into corresponding state vector
-    auto probe_hi = probe_handles.begin();
-    for (auto probe : cell.probes()) {
-        auto comp = find_compartment_index(probe.location, graph);
-        switch (probe.kind) {
-        case probeKind::membrane_voltage:
-            *probe_hi = {&fvm_cell::voltage_, comp};
-            break;
-        case probeKind::membrane_current:
-            *probe_hi = {&fvm_cell::current_, comp};
-            break;
-        default:
-            throw std::logic_error("unrecognized probeKind");
-        }
-        ++probe_hi;
-    }
-
-    // detector handles are just their corresponding compartment indices
-    auto detector_hi = detector_handles.begin();
-    for (auto detector : cell.detectors()) {
-        auto comp = find_compartment_index(detector.location, graph);
-        *detector_hi++ = comp;
-    }
-
     // initialise mechanism and voltage state
     reset();
 }
 
 template <typename T, typename I>
-void fvm_cell<T, I>::setup_matrix(T dt) {
+void fvm_multicell<T, I>::setup_matrix(T dt) {
     using memory::all;
 
     // convenience accesors to matrix storage
@@ -552,7 +559,7 @@ void fvm_cell<T, I>::setup_matrix(T dt) {
 }
 
 template <typename T, typename I>
-void fvm_cell<T, I>::reset() {
+void fvm_multicell<T, I>::reset() {
     voltage_(memory::all) = resting_potential_;
     t_ = 0.;
     for (auto& m : mechanisms_) {
@@ -561,7 +568,7 @@ void fvm_cell<T, I>::reset() {
 }
 
 template <typename T, typename I>
-void fvm_cell<T, I>::advance(T dt) {
+void fvm_multicell<T, I>::advance(T dt) {
     using memory::all;
 
     PE("current");

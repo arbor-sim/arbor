@@ -288,7 +288,7 @@ private:
     /// the ion species
     std::map<mechanisms::ionKind, ion_type> ions_;
 
-    std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
+    std::vector<std::pair<uint32_t, i_clamp>> stimuli_;
 
     std::vector<std::pair<const vector_type fvm_cell::*, uint32_t>> probes_;
 
@@ -531,10 +531,10 @@ void fvm_cell<T, I>::initialize(
     ion_ca().internal_concentration()(all) = 5e-5;          // mM
     ion_ca().external_concentration()(all) = 2.0;           // mM
 
-    // add the stimulii
-    for(const auto& stim : cell.stimulii()) {
+    // add the stimuli
+    for(const auto& stim : cell.stimuli()) {
         auto idx = find_compartment_index(stim.location, graph);
-        stimulii_.push_back( {idx, stim.clamp} );
+        stimuli_.push_back( {idx, stim.clamp} );
     }
 
     // record probe locations by index into corresponding state vector
@@ -633,8 +633,8 @@ void fvm_cell<T, I>::advance(T dt) {
         PL();
     }
 
-    // add current contributions from stimulii
-    for (auto& stim : stimulii_) {
+    // add current contributions from stimuli
+    for (auto& stim : stimuli_) {
         auto ie = stim.second.amplitude(t_); // [nA]
         auto loc = stim.first;
 

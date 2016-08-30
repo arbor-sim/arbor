@@ -129,18 +129,18 @@ public:
     compartment_model model() const;
 
     //////////////////
-    // stimulii
+    // stimuli
     //////////////////
     void add_stimulus(segment_location loc, i_clamp stim);
 
     std::vector<stimulus_instance>&
-    stimulii() {
-        return stimulii_;
+    stimuli() {
+        return stimuli_;
     }
 
     const std::vector<stimulus_instance>&
-    stimulii() const {
-        return stimulii_;
+    stimuli() const {
+        return stimuli_;
     }
 
     //////////////////
@@ -188,8 +188,8 @@ private:
     // the segments
     std::vector<segment_ptr> segments_;
 
-    // the stimulii
-    std::vector<stimulus_instance> stimulii_;
+    // the stimuli
+    std::vector<stimulus_instance> stimuli_;
 
     // the synapses
     std::vector<synapse_instance> synapses_;
