@@ -327,6 +327,15 @@ range<const T*> singleton_view(const T& item) {
     return {&item, &item+1};
 }
 
+/*
+ * Range/container utility functions
+ */
+
+template <typename Container, typename Seq>
+void append(Container &c, const Seq& seq) {
+    c.insert(c.end(), seq.begin(), seq.end());
+}
+
 } // namespace util
 } // namespace mc
 } // namespace nest

@@ -224,6 +224,9 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     const segment& seg,
     index_vector &parent)
 {
+    using util::left;
+    using util::right;
+
     // precondition: group_parent_index[j] holds the correct value for
     // j in [base_comp, base_comp+segment.num_compartments()].
 
@@ -316,16 +319,23 @@ void fvm_multicell<T, I>::initialize(
     current_    = vector_type{ncomp, T{0}};
     voltage_    = vector_type{ncomp, T{0}};
 
+    // create maps for mechanism initialization.
+    std::map<std::string, std::pair<size_type, size_type>> mech_map;
+    std::vector<std::vector<cell_lid_type>> syn_mech_map;
+    std::map<std::string, std::size_t> syn_mech_indices;
+
+    // initialize vector used for matrix creation.
     index_vector group_parent_index{ncomp, 0};
 
+    auto target_hi = target_handles.begin();
     for (size_type i = 0; i<ncell; ++i) {
         const auto& c = cells[i];
         auto comps = cell_comp_part[i];
 
-        auto parent_index = c.model().parent_index;
+        auto graph = c.model();
 
         for (auto k: make_span(comps)) {
-            group_parent_index[k] = parent_index[k-comps.first]+comps.first;
+            group_parent_index[k] = graph.parent_index[k-comps.first]+comps.first;
         }
 
         auto seg_num_compartments =
@@ -336,7 +346,37 @@ void fvm_multicell<T, I>::initialize(
         auto seg_comp_part = make_partition(seg_comp_bounds, seg_num_compartments, comps.first);
 
         for (size_type j = 0; j<nseg; ++j) {
-            compute_cv_area_unnormalized_capacitance(seg_comp_part[j], c.segment(j), group_parent_index);
+            const auto& seg = c.segment(j);
+            const auto& seg_comps = seg_comp_part[j];
+
+            compute_cv_area_unnormalized_capacitance(seg_comps, seg, group_parent_index);
+
+            for (const auto& mech: seg->mechanisms()) {
+                if (mech.name()!="membrane") {
+                    mech_map[mech_name().push_back(seg_comps)];
+                }
+            }
+        }
+
+        for (const auto& syn: c.synapses()) {
+            const auto& name = syn.mechanism.name();
+            std::size_t index = 0;
+            if (syn_mech_indices.count(name)==0) {
+                index = syn_mech_map.size();
+                syn_mech_indices[name] = index;
+                syn_mech_map.push_back(std::vector<size_type>{});
+            }
+            else {
+                index = syn_mech_indices[name];
+            }
+
+            size_type syn_comp = comps.first+find_compartment_index(syn.location, graph);
+
+            EXPECTS(targets_total < c.targets.size());
+            *target_hi++ = target_handle{index, syn_mech_map[index].size()};
+            ++targets_total;
+
+            syn_mech_map[index].push_back(syn_comp);
         }
 
         // normalize capacitance across cell
@@ -344,12 +384,7 @@ void fvm_multicell<T, I>::initialize(
             cv_capacitance_[k] /= cv_areas_[k];
         }
 
-        // add mechanisms to look up table for instantiation below
-
-        // TODO: move mech_map, syn_map insertions here etc.
-
         detectors_total += c.detectors().size();
-        targets_total += c.synapses().size();
         probess_total += c.probes.size();
     }
 
@@ -361,90 +396,32 @@ void fvm_multicell<T, I>::initialize(
     // initalize matrix
     matrix_ = matrix_type(group_parent_index);
 
-    using util::left;
-    using util::right;
+    // create density mechanisms
+    std::vector<size_type> mech_comp_indices;
+    mech_comp_indices.reserve(ncomp);
 
-    // create mechanisms
-
-    // for each mechanism in the cell record the indexes of the segments that
-    // contain the mechanism
-    std::map<std::string, std::vector<unsigned>> mech_map;
-
-    for (unsigned i=0; i<cell.num_segments(); ++i) {
-        for (const auto& mech : cell.segment(i)->mechanisms()) {
-            // FIXME : Membrane has to be a proper mechanism,
-            //         because it is exposed via the public interface.
-            //         This if statement is bad
-            if(mech.name() != "membrane") {
-                mech_map[mech.name()].push_back(i);
-            }
-        }
-    }
-
-    // Create the mechanism implementations with the state for each mechanism
-    // instance.
-    // TODO : this works well for density mechanisms (e.g. ion channels), but
-    // does it work for point processes (e.g. synapses)?
-    for (auto& mech : mech_map) {
-        // calculate the number of compartments that contain the mechanism
-        auto num_comp = 0u;
-        for (auto seg : mech.second) {
-            num_comp += segment_index_[seg+1] - segment_index_[seg];
+    for (auto& mech: mech_map) {
+        mech_comp_indices.clear();
+        for (auto comp_ival: mech.second) {
+            util::append(mech_comp_indices, make_span(comp_ival));
         }
 
-        // build a vector of the indexes of the compartments that contain
-        // the mechanism
-        index_type compartment_index(num_comp);
-        auto pos = 0u;
-        for (auto seg : mech.second) {
-            auto seg_size = segment_index_[seg+1] - segment_index_[seg];
-            std::iota(
-                compartment_index.data() + pos,
-                compartment_index.data() + pos + seg_size,
-                segment_index_[seg]
-            );
-            pos += seg_size;
-        }
-
-        // instantiate the mechanism
         mechanisms_.push_back(
-            mechanism_catalogue::make(mech.first, voltage_, current_, compartment_index)
+            mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
         );
     }
 
+    // create point (synapse) mechanisms
     synapse_base_ = mechanisms_.size();
-
-    // Create the synapse mechanism implementations together with the target handles
-    std::vector<std::vector<cell_lid_type>> syn_mech_map;
-    std::map<std::string, std::size_t> syn_mech_indices;
-    auto target_hi = target_handles.begin();
-
-    for (const auto& syn : cell.synapses()) {
-        const auto& name = syn.mechanism.name();
-        std::size_t index = 0;
-        if (syn_mech_indices.count(name)==0) {
-            index = syn_mech_map.size();
-            syn_mech_indices[name] = index;
-            syn_mech_map.push_back(std::vector<cell_lid_type>{});
-        }
-        else {
-            index = syn_mech_indices[name];
-        }
-
-        size_type comp = find_compartment_index(syn.location, graph);
-        *target_hi++ = target_handle{index, syn_mech_map[index].size()};
-        syn_mech_map[index].push_back(comp);
-    }
-
-    for (const auto& syni : syn_mech_indices) {
+    for (const auto& syni: syn_mech_indices) {
         const auto& mech_name = syni.first;
 
-        index_type compartment_index(syn_mech_map[syni.second]);
-        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, compartment_index);
+        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, syn_mech_map[syni.second]);
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
     }
 
+    // TODO: FROM HERE...
 
     /////////////////////////////////////////////
     // build the ion species
