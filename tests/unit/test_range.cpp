@@ -77,15 +77,18 @@ TEST(range, empty) {
     auto l = 2;
     auto r = 5;
 
-    auto empty_range = util::make_range(&xs[l], &xs[l]);
-    EXPECT_TRUE(empty_range.empty());
-    EXPECT_TRUE(empty_range.size() == 0);
+    auto empty_range_ll = util::make_range(&xs[l], &xs[l]);
+    EXPECT_TRUE(empty_range_ll.empty());
+    EXPECT_EQ(empty_range_ll.begin() == empty_range_ll.end(),
+              empty_range_ll.empty());
+    EXPECT_EQ(0u, empty_range_ll.size());
 
 
-    EXPECT_TRUE(util::make_range(&xs[l], &xs[l]).empty());
-    EXPECT_TRUE(util::make_range(&xs[r], &xs[r]).empty());
-    EXPECT_TRUE(util::make_range(&xs[r], &xs[l]).empty());
-    EXPECT_EQ(0u, util::make_range(&xs[r], &xs[l]).size());
+    auto empty_range_rr = util::make_range(&xs[r], &xs[r]);
+    EXPECT_TRUE(empty_range_rr.empty());
+    EXPECT_EQ(empty_range_rr.begin() == empty_range_rr.end(),
+              empty_range_rr.empty());
+    EXPECT_EQ(0u, empty_range_rr.size());
 }
 
 TEST(range, input_iterator) {
@@ -133,6 +136,7 @@ TEST(range, sentinel) {
     }
 
     EXPECT_EQ(s, std::string(cstr));
+    EXPECT_EQ(s.size(), cstr_range.size());
 
     s.clear();
     for (auto c: canonical_view(cstr_range)) {
@@ -144,6 +148,7 @@ TEST(range, sentinel) {
     const char *empty_cstr = "";
     auto empty_cstr_range = util::make_range(empty_cstr, null_terminated);
     EXPECT_TRUE(empty_cstr_range.empty());
+    EXPECT_EQ(0u, empty_cstr_range.size());
 }
 
 template <typename V>
@@ -220,7 +225,6 @@ TYPED_TEST_P(counter_range, iteration) {
         EXPECT_EQ(j++, i);
     }
 }
-
 
 REGISTER_TYPED_TEST_CASE_P(counter_range, max_size, extreme_size, size, at,
                            iteration);

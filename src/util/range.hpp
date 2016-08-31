@@ -78,12 +78,12 @@ struct range {
     template <typename V = iterator>
     enable_if_t<is_forward_iterator<V>::value, size_type>
     size() const {
-        auto b = make_sentinel_iterator(begin(), end());
-        auto e = make_sentinel_end(begin(), end());
-        return std::distance(b, e);
+        return util::distance(begin(), end());
     }
 
-    constexpr size_type max_size() const { return std::numeric_limits<size_type>::max(); }
+    constexpr size_type max_size() const {
+        return std::numeric_limits<size_type>::max();
+    }
 
     void swap(range& other) {
         std::swap(left, other.left);

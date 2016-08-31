@@ -43,6 +43,27 @@ upto(I iter, E end) {
     return iter==I{end}? iter: I{std::prev(end)};
 }
 
+
+template <typename I, typename E>
+enable_if_t<std::is_same<I, E>::value && is_forward_iterator<I>::value,
+            typename std::iterator_traits<I>::difference_type>
+distance(I first, E last) {
+    return std::distance(first, last);
+}
+
+template <typename I, typename E>
+enable_if_t<!std::is_same<I, E>::value && is_forward_iterator<I>::value,
+            typename std::iterator_traits<I>::difference_type>
+distance(I first, E last) {
+    typename std::iterator_traits<I>::difference_type ret = 0;
+    while (first != last) {
+        ++first;
+        ++ret;
+    }
+
+    return ret;
+}
+
 /*
  * Provide a proxy object for operator->() for iterator adaptors that
  * present rvalues on dereference.
