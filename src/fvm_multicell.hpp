@@ -48,7 +48,7 @@ public:
 
     using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
-    using probe_handle = std::pair<const vector_type fvm_cell::*, size_type>;
+    using probe_handle = std::pair<const vector_type fvm_multicell::*, size_type>;
 
     void resting_potential(value_type potential_mV) {
         resting_potential_ = potential_mV;
@@ -204,14 +204,14 @@ private:
 
     std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
 
-    std::vector<std::pair<const vector_type fvm_cell::*, uint32_t>> probes_;
+    std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
 
     // mechanism factory
     using mechanism_catalogue = nest::mc::mechanisms::catalogue<value_type, size_type>;
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
-        std::pair<size_type, size_type> comps, const segment& seg, index_vector &parent);
+        std::pair<size_type, size_type> comps, const segment& seg, index_type &parent);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -222,7 +222,7 @@ template <typename T, typename I>
 void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comps,
     const segment& seg,
-    index_vector &parent)
+    index_type &parent)
 {
     using util::left;
     using util::right;
@@ -230,7 +230,7 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     // precondition: group_parent_index[j] holds the correct value for
     // j in [base_comp, base_comp+segment.num_compartments()].
 
-    if (auto soma = seg->as_soma()) {
+    if (auto soma = seg.as_soma()) {
         // confirm assumption that there is one compartment in soma
         if (comps.size()!=1)
             throw std::logic_error("soma allocated more than one compartment");
@@ -241,7 +241,7 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
         cv_areas_[i] += area;
         cv_capacitance_[i] += area * soma->mechanism("membrane").get("c_m").value;
     }
-    else if (auto cable = s->as_cable()) {
+    else if (auto cable = s.as_cable()) {
         // loop over each compartment in the cable
         // each compartment has the face between two CVs at its centre
         // the centers of the CVs are the end points of the compartment
@@ -458,11 +458,7 @@ void fvm_multicell<T, I>::initialize(
         mechanisms_.push_back(std::move(mech));
     }
 
-    // TODO: FROM HERE...
-
-    /////////////////////////////////////////////
     // build the ion species
-    /////////////////////////////////////////////
     for(auto ion : mechanisms::ion_kinds()) {
         // find the compartment indexes of all compartments that have a
         // mechanism that depends on/influences ion

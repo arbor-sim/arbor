@@ -9,10 +9,9 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <cell_group.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <mechanism_catalogue.hpp>
 #include <model.hpp>
@@ -29,7 +28,7 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
+using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
 using model_type = model<lowered_cell>;
 using time_type = model_type::time_type;
 using sample_trace_type = sample_trace<time_type, model_type::value_type>;

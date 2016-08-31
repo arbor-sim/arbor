@@ -4,7 +4,7 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
-#include <util/singleton.hpp>
+#include <util/range.hpp>
 
 #include "gtest.h"
 #include "../test_util.hpp"
