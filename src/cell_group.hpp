@@ -62,8 +62,10 @@ public:
     }
 
     void reset() {
-        remove_samplers();
-        cell_.reset();
+        clear_spikes();
+        clear_events();
+        reset_samplers();
+        //initialize_cells();
         for (auto& spike_source: spike_sources_) {
             spike_source.source.reset(cell_, 0.f);
         }
@@ -144,16 +146,30 @@ public:
         spikes_.clear();
     }
 
+    void clear_events() {
+        events_.clear();
+    }
+
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
         EXPECTS(probe_id.gid==gid_base_);
         auto sampler_index = uint32_t(samplers_.size());
         samplers_.push_back({probe_handles_[probe_id.index], s});
+        sampler_start_times_.push_back(start_time);
         sample_events_.push({sampler_index, start_time});
     }
 
     void remove_samplers() {
         sample_events_.clear();
         samplers_.clear();
+        sampler_start_times_.clear();
+    }
+
+    void reset_samplers() {
+        // clear all pending sample events and reset to start at time 0
+        sample_events_.clear();
+        for(uint32_t i=0u; i<samplers_.size(); ++i) {
+            sample_events_.push({i, sampler_start_times_[i]});
+        }
     }
 
     value_type probe(cell_member_type probe_id) const {
@@ -178,6 +194,7 @@ private:
 
     /// pending samples to be taken
     event_queue<sample_event<time_type>> sample_events_;
+    std::vector<time_type> sampler_start_times_;
 
     /// the global id of the first target (e.g. a synapse) in this group
     index_type first_target_gid_;

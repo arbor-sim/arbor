@@ -1,3 +1,4 @@
+#include <random>
 #include <vector>
 
 #include "gtest.h"
@@ -5,6 +6,28 @@
 #include "algorithms.hpp"
 #include "../test_util.hpp"
 #include "util/debug.hpp"
+
+/// tests the sort implementation in threading
+/// is only parallel if TBB is being used
+TEST(algorithms, parallel_sort)
+{
+    auto n = 10000;
+    std::vector<int> v(n);
+    std::iota(v.begin(), v.end(), 1);
+
+    // intialize with the default random seed
+    std::shuffle(v.begin(), v.end(), std::mt19937());
+
+    // assert that the original vector has in fact been permuted
+    EXPECT_FALSE(std::is_sorted(v.begin(), v.end()));
+
+    nest::mc::threading::sort(v);
+
+    EXPECT_TRUE(std::is_sorted(v.begin(), v.end()));
+    for(auto i=0; i<n; ++i) {
+       EXPECT_EQ(i+1, v[i]);
+   }
+}
 
 
 TEST(algorithms, sum)
@@ -14,9 +37,12 @@ TEST(algorithms, sum)
     EXPECT_EQ(10*2, nest::mc::algorithms::sum(v1));
 
     // make an array 1:20 and sum it up using formula for arithmetic sequence
-    std::vector<int> v2(20);
-    std::iota(v2.begin(), v2.end(), 1);
     auto n = 20;
+    std::vector<int> v2(n);
+    // can't use iota because the Intel compiler optimizes it out, despite
+    // the result being required in EXPECT_EQ
+    // std::iota(v2.begin(), v2.end(), 1);
+    for(auto i=0; i<n; ++i) { v2[i] = i+1; }
     EXPECT_EQ((n+1)*n/2, nest::mc::algorithms::sum(v2));
 }
 
