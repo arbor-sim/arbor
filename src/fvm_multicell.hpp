@@ -20,6 +20,8 @@
 #include <stimulus.hpp>
 #include <util.hpp>
 #include <util/meta.hpp>
+#include <util/partition.hpp>
+#include <util/span.hpp>
 
 #include <vector/include/Vector.hpp>
 
@@ -202,7 +204,7 @@ private:
     /// the ion species
     std::map<mechanisms::ionKind, ion_type> ions_;
 
-    std::vector<std::pair<uint32_t, i_clamp>> stimulii_;
+    std::vector<std::pair<uint32_t, i_clamp>> stimuli_;
 
     std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
 
@@ -211,7 +213,7 @@ private:
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
-        std::pair<size_type, size_type> comps, const segment& seg, index_type &parent);
+        std::pair<size_type, size_type> comps, const segment* seg, index_type &parent);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -221,7 +223,7 @@ private:
 template <typename T, typename I>
 void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comps,
-    const segment& seg,
+    const segment* seg,
     index_type &parent)
 {
     using util::left;
@@ -230,9 +232,11 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     // precondition: group_parent_index[j] holds the correct value for
     // j in [base_comp, base_comp+segment.num_compartments()].
 
-    if (auto soma = seg.as_soma()) {
+    auto ncomp = comps.second-comps.first;
+
+    if (auto soma = seg->as_soma()) {
         // confirm assumption that there is one compartment in soma
-        if (comps.size()!=1)
+        if (ncomp!=1) {
             throw std::logic_error("soma allocated more than one compartment");
         }
         auto i = comps.first;
@@ -241,7 +245,7 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
         cv_areas_[i] += area;
         cv_capacitance_[i] += area * soma->mechanism("membrane").get("c_m").value;
     }
-    else if (auto cable = s.as_cable()) {
+    else if (auto cable = seg->as_cable()) {
         // loop over each compartment in the cable
         // each compartment has the face between two CVs at its centre
         // the centers of the CVs are the end points of the compartment
@@ -261,10 +265,10 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
         auto r_L = cable->mechanism("membrane").get("r_L").value;
         const auto& compartments = cable->compartments();
 
-        EXPECTS(util::size(compartments)==comps.second-comps.first);
+        EXPECTS(util::size(compartments)==ncomp);
 
         for (auto i: util::make_span(comps)) {
-            const auto c& = compartments[i-comps.first];
+            const auto& c = compartments[i-comps.first];
             auto j = parent[i];
 
             auto radius_center = math::mean(c.radius);
@@ -302,10 +306,10 @@ void fvm_multicell<T, I>::initialize(
     // count total detectors, targets and probes for validation of handle container sizes
     size_type detectors_count = 0u;
     size_type targets_count = 0u;
-    size_type probess_count = 0u;
+    size_type probes_count = 0u;
     size_type detectors_size = util::size(detector_handles);
-    size_type targets_size = util::size(targets_handles);
-    size_type probes_size = util::size(probes_handles);
+    size_type targets_size = util::size(target_handles);
+    size_type probes_size = util::size(probe_handles);
 
     auto ncell = util::size(cells);
     auto cell_num_compartments =
@@ -323,12 +327,12 @@ void fvm_multicell<T, I>::initialize(
     voltage_    = vector_type{ncomp, T{0}};
 
     // create maps for mechanism initialization.
-    std::map<std::string, std::pair<size_type, size_type>> mech_map;
+    std::map<std::string, std::vector<std::pair<size_type, size_type>>> mech_map;
     std::vector<std::vector<cell_lid_type>> syn_mech_map;
     std::map<std::string, std::size_t> syn_mech_indices;
 
     // initialize vector used for matrix creation.
-    index_vector group_parent_index{ncomp, 0};
+    index_type group_parent_index{ncomp, 0};
 
     // create each cell:
     auto target_hi = target_handles.begin();
@@ -346,7 +350,7 @@ void fvm_multicell<T, I>::initialize(
         }
 
         auto seg_num_compartments =
-            transform_view(c.segments(), [](const segment& s) { return s.num_compartments(); });
+            transform_view(c.segments(), [](const segment_ptr& s) { return s->num_compartments(); });
         auto nseg = seg_num_compartments.size();
 
         std::vector<cell_lid_type> seg_comp_bounds;
@@ -360,7 +364,7 @@ void fvm_multicell<T, I>::initialize(
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
-                    mech_map[mech_name().push_back(seg_comps)];
+                    mech_map[mech.name()].push_back(seg_comps);
                 }
             }
         }
@@ -391,7 +395,7 @@ void fvm_multicell<T, I>::initialize(
             cv_capacitance_[k] /= cv_areas_[k];
         }
 
-        // add the stimulii
+        // add the stimuli
         for (const auto& stim: c.stimuli()) {
             auto idx = comps.first+find_compartment_index(stim.location, graph);
             stimuli_.push_back({idx, stim.clamp});
@@ -578,8 +582,8 @@ void fvm_multicell<T, I>::advance(T dt) {
         PL();
     }
 
-    // add current contributions from stimulii
-    for (auto& stim : stimulii_) {
+    // add current contributions from stimuli
+    for (auto& stim : stimuli_) {
         auto ie = stim.second.amplitude(t_); // [nA]
         auto loc = stim.first;
 

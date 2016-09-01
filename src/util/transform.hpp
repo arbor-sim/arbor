@@ -33,12 +33,12 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
 
 public:
     using typename base::difference_type;
-    using value_type = decltype(f_(*inner_));
+    using value_type = typename std::result_of<F (inner_value_type)>::type;
     using pointer = const value_type*;
     using reference = const value_type&;
 
     template <typename J, typename G>
-    transform_iterator(J&& c, G&& g): inner_{std::forward<J>(c)}, f_{std::forward<G>(g)} {}
+    transform_iterator(J&& c, G&& g): inner_(std::forward<J>(c)), f_(std::forward<G>(g)) {}
 
     transform_iterator(const transform_iterator&) = default;
     transform_iterator(transform_iterator&&) = default;
