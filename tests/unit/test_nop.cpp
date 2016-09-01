@@ -4,7 +4,7 @@
 using namespace nest::mc::util;
 
 TEST(nop, void_fn) {
-    std::function<void ()> f{nop_function};
+    std::function<void ()> f(nop_function);
 
     EXPECT_TRUE(f);
     f(); // should do nothing
@@ -20,7 +20,7 @@ TEST(nop, void_fn) {
     EXPECT_FALSE(flag);
 
     // with some arguments
-    std::function<void (int, int)> g{nop_function};
+    std::function<void (int, int)> g(nop_function);
     EXPECT_TRUE(g);
     g(2, 3); // should do nothing
 
@@ -43,7 +43,7 @@ struct check_default {
 };
 
 TEST(nop, default_return_fn) {
-    std::function<check_default ()> f{nop_function};
+    std::function<check_default ()> f(nop_function);
 
     EXPECT_TRUE(f);
     auto result = f();
@@ -57,7 +57,7 @@ TEST(nop, default_return_fn) {
     result = f();
     EXPECT_EQ(result.value, 100);
 
-    std::function<check_default (double, double)> g{nop_function};
+    std::function<check_default (double, double)> g(nop_function);
 
     EXPECT_TRUE(g);
     result = g(1.4, 1.5);

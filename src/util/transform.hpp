@@ -38,7 +38,7 @@ public:
     using reference = const value_type&;
 
     template <typename J, typename G>
-    transform_iterator(J&& c, G&& g): inner_{std::forward<J>(c)}, f_{std::forward<G>(g)} {}
+    transform_iterator(J&& c, G&& g): inner_(std::forward<J>(c)), f_(std::forward<G>(g)) {}
 
     transform_iterator(const transform_iterator&) = default;
     transform_iterator(transform_iterator&&) = default;
