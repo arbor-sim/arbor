@@ -121,6 +121,8 @@ cl_options read_options(int argc, char** argv) {
         100.,       // tfinal
         0.025,      // dt
         false,      // all_to_all
+        false,      // ring
+        1,          // group_size
         false,      // probe_soma_only
         0.0,        // probe_ratio
         "trace_",   // trace_prefix
@@ -170,6 +172,11 @@ cl_options read_options(int argc, char** argv) {
             false, defopts.dt, "time", cmd);
         TCLAP::SwitchArg all_to_all_arg(
             "m","alltoall","all to all network", cmd, false);
+        TCLAP::SwitchArg ring_arg(
+            "r","ring","ring network", cmd, false);
+        TCLAP::ValueArg<uint32_t> group_size_arg(
+            "g", "group-size", "number of cells per cell group",
+            false, defopts.compartments_per_segment, "integer", cmd);
         TCLAP::ValueArg<double> probe_ratio_arg(
             "p", "probe-ratio", "proportion between 0 and 1 of cells to probe",
             false, defopts.probe_ratio, "proportion", cmd);
@@ -206,6 +213,8 @@ cl_options read_options(int argc, char** argv) {
                     update_option(options.dt, fopts, "dt");
                     update_option(options.tfinal, fopts, "tfinal");
                     update_option(options.all_to_all, fopts, "all_to_all");
+                    update_option(options.ring, fopts, "ring");
+                    update_option(options.group_size, fopts, "group_size");
                     update_option(options.probe_ratio, fopts, "probe_ratio");
                     update_option(options.probe_soma_only, fopts, "probe_soma_only");
                     update_option(options.trace_prefix, fopts, "trace_prefix");
@@ -239,11 +248,21 @@ cl_options read_options(int argc, char** argv) {
         update_option(options.tfinal, tfinal_arg);
         update_option(options.dt, dt_arg);
         update_option(options.all_to_all, all_to_all_arg);
+        update_option(options.ring, ring_arg);
+        update_option(options.group_size, group_size_arg);
         update_option(options.probe_ratio, probe_ratio_arg);
         update_option(options.probe_soma_only, probe_soma_only_arg);
         update_option(options.trace_prefix, trace_prefix_arg);
         update_option(options.trace_max_gid, trace_max_gid_arg);
         update_option(options.spike_file_output, spike_output_arg);
+
+        if (options.all_to_all && options.ring) {
+            throw usage_error("can specify at most one of --ring and --all-to-all");
+        }
+
+        if (options.group_size<1) {
+            throw usage_error("minimum of one cell per group");
+        }
 
         save_file = ofile_arg.getValue();
     }

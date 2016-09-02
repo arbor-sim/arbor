@@ -3,7 +3,8 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <fvm_cell.hpp>
+//#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <util/range.hpp>
 
 #include "gtest.h"
@@ -72,7 +73,7 @@ TEST(ball_and_stick, neuron_baseline)
         }
     };
 
-    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
+    using fvm_cell = fvm::fvm_multicell<double, cell_local_size_type>;
     std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
     std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
     std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
@@ -207,7 +208,7 @@ TEST(ball_and_3stick, neuron_baseline)
         }
     };
 
-    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
+    using fvm_cell = fvm::fvm_multicell<double, cell_local_size_type>;
     std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
     std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
     std::vector<fvm_cell::probe_handle> probes(cell.probes().size());

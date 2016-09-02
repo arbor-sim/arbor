@@ -37,6 +37,8 @@ public:
     using pointer = const value_type*;
     using reference = const value_type&;
 
+    transform_iterator() = default;
+
     template <typename J, typename G>
     transform_iterator(J&& c, G&& g): inner_(std::forward<J>(c)), f_(std::forward<G>(g)) {}
 

@@ -2,13 +2,16 @@
 
 #include <cstdint>
 #include <functional>
+#include <iterator>
 #include <vector>
 
+#include <algorithms.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
 #include <spike_source.hpp>
+#include <util/partition.hpp>
 #include <util/range.hpp>
 
 #include <profiling/profiler.hpp>
@@ -36,28 +39,37 @@ public:
 
     cell_group() = default;
 
-    cell_group(cell_gid_type gid, const cell& c) :
-        gid_base_{gid}
+    template <typename Cells>
+    cell_group(cell_gid_type first_gid, const Cells& cells):
+        gid_base_{first_gid}
     {
-        detector_handles_.resize(c.detectors().size());
-        target_handles_.resize(c.synapses().size());
-        probe_handles_.resize(c.probes().size());
+        // Create lookup structure for probe and target ids.
+        build_handle_partitions(cells);
+        std::size_t n_probes = probe_handle_divisions_.back();
+        std::size_t n_targets = target_handle_divisions_.back();
+        std::size_t n_detectors =
+            algorithms::sum(util::transform_view(cells, [](const cell& c) { return c.detectors().size(); }));
 
-        cell_.initialize(util::singleton_view(c), detector_handles_, target_handles_, probe_handles_);
+        // Allocate space to store handles.
+        detector_handles_.resize(n_detectors);
+        target_handles_.resize(n_targets);
+        probe_handles_.resize(n_probes);
 
-        // Create spike detectors and associate them with globally unique source ids,
-        // as specified by cell gid and cell-local zero-based index.
+        cell_.initialize(cells, detector_handles_, target_handles_, probe_handles_);
 
+        // Create spike detectors and associate them with globally unique source ids.
         cell_gid_type source_gid = gid_base_;
-        cell_lid_type source_lid = 0u;
-
         unsigned i = 0;
-        for (auto& d : c.detectors()) {
-            cell_member_type source_id{source_gid, source_lid++};
+        for (const auto& cell: cells) {
+            cell_lid_type source_lid = 0u;
+            for (auto& d: cell.detectors()) {
+                cell_member_type source_id{source_gid, source_lid++};
 
-            spike_sources_.push_back({
-                source_id, spike_detector_type(cell_, detector_handles_[i],  d.threshold, 0.f)
-            });
+                spike_sources_.push_back({
+                    source_id, spike_detector_type(cell_, detector_handles_[i++],  d.threshold, 0.f)
+                });
+            }
+            ++source_gid;
         }
     }
 
@@ -65,7 +77,7 @@ public:
         clear_spikes();
         clear_events();
         reset_samplers();
-        //initialize_cells();
+        cell_.reset();
         for (auto& spike_source: spike_sources_) {
             spike_source.source.reset(cell_, 0.f);
         }
@@ -112,13 +124,13 @@ public:
 
             // apply events
             if (next) {
-                auto handle = target_handles_[next->target.index];
+                auto handle = get_target_handle(next->target);
                 cell_.deliver_event(handle, next->weight);
                 // apply events that are due within some epsilon of the current
                 // time step. This should be a parameter. e.g. with for variable
                 // order time stepping, use the minimum possible time step size.
                 while(auto e = events_.pop_if_before(cell_.time()+dt/10.)) {
-                    auto handle = target_handles_[e->target.index];
+                    auto handle = get_target_handle(next->target);
                     cell_.deliver_event(handle, e->weight);
                 }
             }
@@ -151,9 +163,10 @@ public:
     }
 
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
-        EXPECTS(probe_id.gid==gid_base_);
+        auto handle = get_probe_handle(probe_id);
+
         auto sampler_index = uint32_t(samplers_.size());
-        samplers_.push_back({probe_handles_[probe_id.index], s});
+        samplers_.push_back({handle, s});
         sampler_start_times_.push_back(start_time);
         sample_events_.push({sampler_index, start_time});
     }
@@ -173,7 +186,7 @@ public:
     }
 
     value_type probe(cell_member_type probe_id) const {
-        return cell_.probe(probe_handles_[probe_id.index]);
+        return cell_.probe(get_probe_handle(probe_id));
     }
 
 private:
@@ -216,6 +229,50 @@ private:
 
     /// collection of samplers to be run against probes in this group
     std::vector<sampler_entry> samplers_;
+
+    /// lookup table for probe ids -> local probe handle indices
+    std::vector<std::size_t> probe_handle_divisions_;
+
+    /// lookup table for target ids -> local target handle indices
+    std::vector<std::size_t> target_handle_divisions_;
+
+    /// build handle index lookup tables
+    template <typename Cells>
+    void build_handle_partitions(const Cells& cells) {
+        auto probe_counts = util::transform_view(cells, [](const cell& c) { return c.probes().size(); });
+        auto target_counts = util::transform_view(cells, [](const cell& c) { return c.synapses().size(); });
+
+        make_partition(probe_handle_divisions_, probe_counts);
+        make_partition(target_handle_divisions_, target_counts);
+    }
+
+    /// use handle partition to get index from id
+    template <typename Divisions>
+    std::size_t handle_partition_lookup(const Divisions& divisions_, cell_member_type id) const {
+        // NB: without any assertion checking, this would just be:
+        // return divisions_[id.gid-gid_base_]+id.index;
+
+        EXPECTS(id.gid>=gid_base_);
+
+        auto handle_partition = util::partition_view(divisions_);
+        EXPECTS(id.gid-gid_base_<handle_partition.size());
+
+        auto ival = handle_partition[id.gid-gid_base_];
+        std::size_t i = ival.first + id.index;
+        EXPECTS(i<ival.second);
+
+        return i;
+    }
+
+    /// get probe handle from probe id
+    probe_handle get_probe_handle(cell_member_type probe_id) const {
+        return probe_handles_[handle_partition_lookup(probe_handle_divisions_, probe_id)];
+    }
+
+    /// get target handle from target id
+    target_handle get_target_handle(cell_member_type target_id) const {
+        return target_handles_[handle_partition_lookup(target_handle_divisions_, target_id)];
+    }
 };
 
 } // namespace mc

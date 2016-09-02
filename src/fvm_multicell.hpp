@@ -373,20 +373,23 @@ void fvm_multicell<T, I>::initialize(
             EXPECTS(targets_count < targets_size);
 
             const auto& name = syn.mechanism.name();
-            std::size_t index = 0;
+            std::size_t syn_mech_index = 0;
             if (syn_mech_indices.count(name)==0) {
-                index = syn_mech_map.size();
-                syn_mech_indices[name] = index;
+                syn_mech_index = syn_mech_map.size();
+                syn_mech_indices[name] = syn_mech_index;
                 syn_mech_map.push_back(std::vector<size_type>{});
             }
             else {
-                index = syn_mech_indices[name];
+                syn_mech_index = syn_mech_indices[name];
             }
 
-            size_type syn_comp = comps.first+find_compartment_index(syn.location, graph);
-            syn_mech_map[index].push_back(syn_comp);
+            auto& map_entry = syn_mech_map[syn_mech_index];
 
-            *target_hi++ = target_handle{index, syn_mech_map[index].size()};
+            size_type syn_comp = comps.first+find_compartment_index(syn.location, graph);
+            size_type syn_index = map_entry.size();
+            map_entry.push_back(syn_comp);
+
+            *target_hi++ = target_handle{syn_mech_index, syn_index};
             ++targets_count;
         }
 

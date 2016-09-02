@@ -21,6 +21,8 @@ struct cl_options {
     double tfinal;
     double dt;
     bool all_to_all;
+    bool ring;
+    uint32_t group_size;
     bool probe_soma_only;
     double probe_ratio;
     std::string trace_prefix;

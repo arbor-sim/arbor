@@ -1,8 +1,9 @@
 #include "gtest.h"
 
+#include <cell_group.hpp>
 #include <common_types.hpp>
 #include <fvm_cell.hpp>
-#include <cell_group.hpp>
+#include <util/range.hpp>
 
 #include "../test_common_cells.hpp"
 
@@ -22,7 +23,7 @@ TEST(cell_group, test)
     using namespace nest::mc;
 
     using cell_group_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
-    auto group = cell_group_type{0, make_cell()};
+    auto group = cell_group_type{0, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);
 
@@ -44,7 +45,7 @@ TEST(cell_group, sources)
     cell.add_detector({1, 0.3}, 2.3);
 
     cell_gid_type first_gid = 37u;
-    auto group = cell_group_type{first_gid, cell};
+    auto group = cell_group_type{first_gid, util::singleton_view(cell)};
 
     // expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero
