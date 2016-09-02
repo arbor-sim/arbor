@@ -20,7 +20,7 @@ public:
         partition_(std::move(p))
     {
         EXPECTS(std::is_sorted(partition_.begin(), partition_.end()));
-        EXPECTS(std::size_t(partition_.back()) == v.size());
+        EXPECTS(std::size_t(partition_.back()) == values_.size());
     }
 
     /// the partition of distribution
