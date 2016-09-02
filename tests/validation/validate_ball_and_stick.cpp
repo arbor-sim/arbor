@@ -7,6 +7,8 @@
 #include <util/range.hpp>
 
 #include "gtest.h"
+
+#include "../test_common_cells.hpp"
 #include "../test_util.hpp"
 #include "validation_data.hpp"
 
@@ -16,20 +18,7 @@ TEST(ball_and_stick, neuron_baseline)
     using namespace nest::mc;
     using namespace nlohmann;
 
-    nest::mc::cell cell;
-
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism(hh_parameters());
-
-    // add dendrite of length 200 um and diameter 1 um with passive channel
-    auto dendrite = cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
-    dendrite->add_mechanism(pas_parameters());
-
-    dendrite->mechanism("membrane").set("r_L", 100);
-
-    // add stimulus
-    cell.add_stimulus({1,1}, {5., 80., 0.3});
+    nest::mc::cell cell = make_cell_ball_and_stick();
 
     // load data from file
     auto cell_data = testing::g_validation_data.load("ball_and_stick.json");
@@ -89,10 +78,10 @@ TEST(ball_and_stick, neuron_baseline)
     std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
 
     std::vector<result> results;
-    for(auto run_index=0u; run_index<cell_data.size(); ++run_index) {
+    for (auto run_index=0u; run_index<cell_data.size(); ++run_index) {
         auto& run = cell_data[run_index];
         int num_compartments = run["nseg"];
-        dendrite->set_compartments(num_compartments);
+        cell.segment(1)->set_compartments(num_compartments);
         std::vector<std::vector<double>> v(3);
 
         // make the lowered finite volume cell
@@ -164,26 +153,7 @@ TEST(ball_and_3stick, neuron_baseline)
     using namespace nest::mc;
     using namespace nlohmann;
 
-    nest::mc::cell cell;
-
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism(hh_parameters());
-
-    // add dendrite of length 200 um and diameter 1 um with passive channel
-    std::vector<cable_segment*> dendrites;
-    dendrites.push_back(cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100));
-    dendrites.push_back(cell.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100));
-    dendrites.push_back(cell.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100));
-
-    for(auto dend : dendrites) {
-        dend->add_mechanism(pas_parameters());
-        dend->mechanism("membrane").set("r_L", 100);
-    }
-
-    // add stimulus
-    cell.add_stimulus({2,1}, {5.,  80., 0.45});
-    cell.add_stimulus({3,1}, {40., 10.,-0.2});
+    nest::mc::cell cell = make_cell_ball_and_3sticks();
 
     // load data from file
     auto cell_data = testing::g_validation_data.load("ball_and_3stick.json");
@@ -247,8 +217,10 @@ TEST(ball_and_3stick, neuron_baseline)
     for(auto run_index=0u; run_index<cell_data.size(); ++run_index) {
         auto& run = cell_data[run_index];
         int num_compartments = run["nseg"];
-        for(auto dend : dendrites) {
-            dend->set_compartments(num_compartments);
+        for (auto& seg: cell.segments()) {
+            if (seg->is_dendrite()) {
+                seg->set_compartments(num_compartments);
+            }
         }
         std::vector<std::vector<double>> v(3);
 

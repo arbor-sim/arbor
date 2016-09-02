@@ -4,24 +4,15 @@
 #include <fvm_cell.hpp>
 #include <cell_group.hpp>
 
+#include "../test_common_cells.hpp"
+
 nest::mc::cell make_cell() {
     using namespace nest::mc;
 
-    nest::mc::cell cell;
-
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism(hh_parameters());
-
-    // add dendrite of length 200 um and diameter 1 um with passive channel
-    auto dendrite = cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
-    dendrite->add_mechanism(pas_parameters());
-    dendrite->set_compartments(101);
-
-    dendrite->mechanism("membrane").set("r_L", 100);
+    nest::mc::cell cell = make_cell_ball_and_stick();
 
     cell.add_detector({0, 0}, 0);
-    cell.add_stimulus({1, 1}, {5., 80., 0.3});
+    cell.segment(1)->set_compartments(101);
 
     return cell;
 }
