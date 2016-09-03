@@ -12,6 +12,7 @@
 #endif
 
 #include <util/counter.hpp>
+#include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/sentinel.hpp>
 
@@ -20,7 +21,7 @@ using namespace nest::mc;
 TEST(range, list_iterator) {
     std::list<int> l = { 2, 4, 6, 8, 10 };
 
-    auto s = util::make_range(l.begin(), l.end());
+    auto s  = util::make_range(l.begin(), l.end());
 
     EXPECT_EQ(s.left, l.begin());
     EXPECT_EQ(s.right, l.end());
@@ -42,6 +43,10 @@ TEST(range, list_iterator) {
 
     auto sum2 = std::accumulate(s.begin(), s.end(), 0);
     EXPECT_EQ(check, sum2);
+
+    // Check that different begin/end iterators are treated correctly
+    auto sc = util::make_range(l.begin(), l.cend());
+    EXPECT_EQ(l.size(), sc.size());
 }
 
 TEST(range, pointer) {
@@ -77,24 +82,54 @@ TEST(range, empty) {
     auto l = 2;
     auto r = 5;
 
-    auto empty_range_ll = util::make_range(&xs[l], &xs[l]);
+    auto empty_range_ll = util::make_range((const int *) &xs[l], &xs[l]);
     EXPECT_TRUE(empty_range_ll.empty());
     EXPECT_EQ(empty_range_ll.begin() == empty_range_ll.end(),
               empty_range_ll.empty());
     EXPECT_EQ(0u, empty_range_ll.size());
 
 
-    auto empty_range_rr = util::make_range(&xs[r], &xs[r]);
+    auto empty_range_rr = util::make_range(&xs[r], (const int *) &xs[r]);
     EXPECT_TRUE(empty_range_rr.empty());
     EXPECT_EQ(empty_range_rr.begin() == empty_range_rr.end(),
               empty_range_rr.empty());
     EXPECT_EQ(0u, empty_range_rr.size());
 }
 
+template<typename I, typename E, typename = void>
+struct util_distance_enabled : public std::false_type {};
+
+// This is the same test for enabling util::distance
+template<typename I, typename E>
+struct util_distance_enabled<
+    I, E, util::void_t<
+              util::enable_if_t<
+                  !util::has_common_random_access_iterator<I, E>::value &&
+                  util::is_forward_iterator<I>::value
+    >>> : public std::true_type {};
+
+TEST(range, size) {
+    static_assert(util_distance_enabled<
+                  typename std::list<int>::iterator,
+                  typename std::list<int>::const_iterator>::value,
+                  "util::distance not enabled");
+    static_assert(!util_distance_enabled<
+                  typename std::vector<int>::const_iterator,
+                  typename std::vector<int>::iterator>::value,
+                  "util::distance erroneously enabled");
+    static_assert(!util_distance_enabled<int*, int*>::value,
+                  "util::distance erroneously enabled");
+    static_assert(!util_distance_enabled<int*, const int*>::value,
+                  "util::distance erroneously enabled");
+    static_assert(!util_distance_enabled<const int*, int*>::value,
+                  "util::distance erroneously enabled");
+}
+
 TEST(range, input_iterator) {
     int nums[] = { 10, 9, 8, 7, 6 };
     std::istringstream sin("10 9 8 7 6");
-    auto s = util::make_range(std::istream_iterator<int>(sin), std::istream_iterator<int>());
+    auto s = util::make_range(std::istream_iterator<int>(sin),
+                              std::istream_iterator<int>());
 
     EXPECT_TRUE(std::equal(s.begin(), s.end(), &nums[0]));
 }

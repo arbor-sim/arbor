@@ -43,16 +43,19 @@ upto(I iter, E end) {
     return iter==I{end}? iter: I{std::prev(end)};
 }
 
-
-template <typename I, typename E>
-enable_if_t<std::is_same<I, E>::value && is_forward_iterator<I>::value,
-            typename std::iterator_traits<I>::difference_type>
+template <typename I, typename E,
+          typename C = typename common_random_access_iterator<I,E>::type>
+enable_if_t<std::is_same<I, E>::value ||
+            (has_common_random_access_iterator<I,E>::value &&
+             is_forward_iterator<I>::value),
+            typename std::iterator_traits<C>::difference_type>
 distance(I first, E last) {
-    return std::distance(first, last);
+    return std::distance(static_cast<C>(first), static_cast<C>(last));
 }
 
 template <typename I, typename E>
-enable_if_t<!std::is_same<I, E>::value && is_forward_iterator<I>::value,
+enable_if_t<!has_common_random_access_iterator<I, E>::value &&
+            is_forward_iterator<I>::value,
             typename std::iterator_traits<I>::difference_type>
 distance(I first, E last) {
     typename std::iterator_traits<I>::difference_type ret = 0;
