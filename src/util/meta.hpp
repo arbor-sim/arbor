@@ -151,6 +151,36 @@ struct is_forward_iterator<T, enable_if_t<
 template <typename T>
 using is_forward_iterator_t = typename is_forward_iterator<T>::type;
 
+
+template <typename I, typename E, typename = void, typename = void>
+struct common_random_access_iterator {};
+
+template <typename I, typename E>
+struct common_random_access_iterator<
+    I,
+    E,
+    void_t<decltype(false ? std::declval<I>() : std::declval<E>())>,
+    enable_if_t<
+        is_random_access_iterator<
+            decay_t<decltype(false ? std::declval<I>() : std::declval<E>())>
+        >::value
+    >
+> {
+    using type = decay_t<
+        decltype(false ? std::declval<I>() : std::declval<E>())
+    >;
+};
+
+template <typename I, typename E, typename = void>
+struct has_common_random_access_iterator: public std::false_type {};
+
+template <typename I, typename E>
+struct has_common_random_access_iterator<
+    I, E, void_t<typename common_random_access_iterator<I, E>::type>
+> : public std::true_type {};
+
+
+
 } // namespace util
 } // namespace mc
 } // namespace nest
