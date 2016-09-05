@@ -23,6 +23,8 @@
 
 
 \newcommand{\hilight}[1]{\textit{\textcolor{Red}{#1}}}
+\newcommand{\julich}[0]{J\"ulich\xspace}
+\newcommand{\nestmc}[0]{Nest$\mathcal{MC}$\xspace}
 
 % redefine emph for more... emphasis
 \DeclareTextFontCommand{\emph}{\bfseries}
@@ -30,7 +32,7 @@
 \begin{document}
 
 % title and cover page
-\title{HBP WP 7.5.4 Project Initiation Document (PID)}
+\title{HBP WP 7.5.4 Project Initiation Document}
 \date{\today}
 \maketitle
 
@@ -43,40 +45,59 @@ Application Services Support.
 \section{Project Background}
 %-------------------------------------------------------------
 
-%-------------------------------------------------------------
-\section{Project Benefits}
-%-------------------------------------------------------------
+Current multi-compartment (MC) simulators don't target or effectively utilize key contemporary HPC architectures.
+HPC resources that are a key part of the HBP platform will be hetergoneous, and some key systems will be very different to the systems currently supported by simulation software
+\begin{itemize}
+    \item The main HBP system to be installed at \julich will be either Power8+GPU or KNL based system
+    \item The other HPC resources available include GPU clusters, BG/Q and Intel x86 multicore systems.
+\end{itemize}
+
+There is an effort to develop a HPC-specific version of the widely-used NEURON simulator that supports GPU and Intel Xeon Phi processors, however:
+\begin{itemize}
+    \item NEURON is large, complicated and poorly engineered. There is a strong argument that it is not possible to refactor the code effectively to provide both support for new hardware and a good platform for developing new algorithms.
+    \item The developers are unwilling to share their work or progress, which makes it impossible to understand the risk of relying on their efforts.
+\end{itemize}
 
 
 %-------------------------------------------------------------
 \section{Project Objectives}
 %-------------------------------------------------------------
 
+\begin{itemize}
+    \item Facilitate multicompartment simulation ``at scale'' on all HPC systems available to researchers in the HBP.
+    \item Performance portability: high performance of the delivered software on all target systems, and a forward-looking design that will be adaptable to future architectures.
+    \item Promote solutions for large scale detailed models on HBP compute resources.
+    \item Promote open source solution with close collaboration inside and outside the HBP (i.e. the broader community).
+\end{itemize}
+
 %-------------------------------------------------------------
 \section{Project Deliverables}
 %-------------------------------------------------------------
-\subsection{Open source software product \emph{NestMC}}
+The project will be considered a success if all of the following are delivered in full and on time.
+
+\subsection{Open source software product \nestmc}
 
 \begin{itemize}
-    \item   runs on all potential HBP systems and main systems at CSCS and J\"ulich
+    \item   Performance portable on all potential HBP systems and main systems at CSCS and \julich
     \begin{itemize}
-        \item   multi-core Intel clusters
-        \item   NVIDIA GPU
-        \item   KNL
-        \item   Power
+        \item   multi-core Intel x86
+        \item   Hybrid NVIDIA GPU based nodes (both Intel x86 and IBM Power host processors)
+        \item   Intel KNL
     \end{itemize}
-    \item   source available openly on github (or similar platform).
-    \item   high quality documentation.
+    \item   Source available openly on github (or similar platform).
+    \item   High quality documentation.
+    \item   Comprehensive validation and unit testing framework.
+    \item   Automated testing.
 \end{itemize}
 
-\subsection{One Scientific Use Case}
+\subsection{Scientific Use Case}
 
 \begin{itemize}
-    \item   Developed by a scientific collaborator
-    \item   With our assistance
+    \item   Developed by a scientific collaborator.
+    \item   Running at scale on HPC resources.
 \end{itemize}
 
-\subsection{Supercomputing Publication}
+\subsection{Publication}
 
 \begin{itemize}
     \item   Paper for the SC18 conference
@@ -85,40 +106,57 @@ Application Services Support.
 %-------------------------------------------------------------
 \section{Project Scope}
 %-------------------------------------------------------------
-\subsection{This Project Will Include}
+\subsection{This Project \underline{Will} Include}
 
 \begin{itemize}
-    \item development of the main software product NestMC
-    \item development of new mth
-    \item promotion of product at conferences, workshops, hackathons etc.
-    \item assistance of scientific collaborator to develop a scientific use case
-    \item writing one paper
+    \item Development of the main software product \nestmc.
+    \item Work on adapting and improving existing algorithms and mathematical techniques in multicompartmental modelling.
+    \item Low-overhead promotion of product at conferences, workshops and hackathons.
+    \item Assistance of scientific collaborator to develop a scientific use case.
+    \item Writing one paper.
 \end{itemize}
 
-\subsection{This Project Will Not Include}
+\subsection{This Project \underline{Will Not} Include}
 
 \begin{itemize}
-    \item developing the scientific use case
-    \item science!
-\end{itemize}
-
-%-------------------------------------------------------------
-\section{Success Criteria}
-%-------------------------------------------------------------
-
-\begin{itemize}
-    \item development of the main software product NestMC
-    \item assistance of scientific collaborator to develop a scientific use case
-    \item writing one paper
+    \item Development of the scientific use case.
+    \begin{itemize}
+        \item we provide support for an external scientific collaborator to develop the use case.
+    \end{itemize}
+    \item Development of new methods (mathematical and algorithmic).
+    \begin{itemize}
+        \item we provide a flexible software framework that can be used in follow on projects to test new methods.
+    \end{itemize}
 \end{itemize}
 
 %-------------------------------------------------------------
 \section{Constraints}
 %-------------------------------------------------------------
 
+The key constraint for this project is \emph{scope}.
+The project is well resourced in terms of hardware and software, however manpower is very limited and the two year time frame does not give us license to experiment with radical new solutions.
+Given this, we aim to build a high-quality product with a modest feature set as the basis for future work.
+
 %-------------------------------------------------------------
 \section{Key Assumptions}
 %-------------------------------------------------------------
+
+\begin{itemize}
+    \item \emph{A scientific collaborator will be found}.
+    A collaborator is essential to the project:
+    \begin{itemize}
+        \item To gain credibility of the product.
+        \item To provide motivation for continuing the development of the software after the initial 2 year project completion.
+        \item To give direct user input into the development and selection of features, so as to deliver a useful product.
+    \end{itemize}
+    However the project was started without one. Finding a collaborator inside HBP might be challenging politically, so we are also looking outside the HBP in the context of the Brain initiative.
+    \item \emph{The NEST Initiative will endorse NestMC}. This is not a given, particularly because the NEST Initiative was not consulted widely before starting the project. A key step will be communicating our intentions, and gaining the support of the NEST Initiative.
+    \item \emph{A user community capable of taking over development will be in place}.
+    Of the assumptions this is the weakest link.
+    It is possible to develop the software and a scientific use case with the given time and resources, however building a community that is capable and willing to carry on development is quite unlikely.
+    Plans should be made for evaluating the viability of the product toward the end of SGA1 to decide whether to continue funded development in subsequent phases of the HBP.
+
+\end{itemize}
 
 %-------------------------------------------------------------
 \section{Project Manager}
@@ -128,10 +166,18 @@ Ben Cumming at CSCS.
 %-------------------------------------------------------------
 \section{Project Team}
 %-------------------------------------------------------------
+
+The project team is small.
+There will potentially be contributions from a large group of \emph{student contributors} (Masters/PhD, postdoctoral and internship).
+However, to effectively plan for concrete deliverables we only consider staff that are guarenteed to be devoted to the project.
+At best we can rely on two full time developers contributing code that passes code review to the software product.
+
 \begin{itemize}
-    \item Alex Peyser (J\"ulich) XX\%: community liason
-    \item Sam Yates (CSCS) 100\%: lead developer
-    \item Wouter Klijn (J\"ulich) XX\%: developer
+    \item \emph{Alex Peyser} (\julich) XX\%: community liason
+    \item \emph{Ben Cumming} (CSCS) 80\%: project management and developer
+    \item \emph{Sam Yates} (CSCS) 100\%: lead developer
+    \item \emph{Wouter Klijn} (\julich) XX\%: developer
+    \item Student contributions.
 \end{itemize}
 
 %-------------------------------------------------------------
@@ -139,4 +185,11 @@ Ben Cumming at CSCS.
 %-------------------------------------------------------------
 Project duration is the two year period from April 1 2016 until April 1 2018.
 
+%-------------------------------------------------------------
+\section{Approval From Sponsor}
+%-------------------------------------------------------------
+\vspace{20pt}
+Date :\hspace{5cm} Signature :
+
 \end{document}
+
