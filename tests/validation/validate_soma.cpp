@@ -1,8 +1,10 @@
 #include <fstream>
 #include <json/src/json.hpp>
 
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
+#include <util/singleton.hpp>
 
 #include "gtest.h"
 #include "../test_util.hpp"
@@ -17,9 +19,6 @@ TEST(soma, neuron_baseline)
 
     nest::mc::cell cell;
 
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
-
     // Soma with diameter 18.8um and HH channel
     auto soma = cell.add_soma(18.8/2.0);
     soma->mechanism("membrane").set("r_L", 123); // no effect for single compartment cell
@@ -29,7 +28,13 @@ TEST(soma, neuron_baseline)
     cell.add_stimulus({0,0.5}, {10., 100., 0.1});
 
     // make the lowered finite volume cell
-    fvm::fvm_cell<double, int> model(cell);
+    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
+    std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
+    std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
+    std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
+
+    fvm_cell model;
+    model.initialize(util::singleton_view(cell), detectors, targets, probes);
 
     // load data from file
     auto cell_data = testing::g_validation_data.load("soma.json");
@@ -51,9 +56,7 @@ TEST(soma, neuron_baseline)
         double dt = run["dt"];
 
         // set initial conditions
-        using memory::all;
-        model.voltage()(all) = -65.;
-        model.initialize(); // have to do this _after_ initial conditions are set
+        model.reset();
 
         // run the simulation
         auto tfinal =   120.; // ms
@@ -85,9 +88,6 @@ TEST(soma, convergence)
 
     nest::mc::cell cell;
 
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
-
     // Soma with diameter 18.8um and HH channel
     auto soma = cell.add_soma(18.8/2.0);
     soma->mechanism("membrane").set("r_L", 123); // no effect for single compartment cell
@@ -97,7 +97,13 @@ TEST(soma, convergence)
     cell.add_stimulus({0,0.5}, {10., 100., 0.1});
 
     // make the lowered finite volume cell
-    fvm::fvm_cell<double, int> model(cell);
+    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
+    std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
+    std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
+    std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
+
+    fvm_cell model;
+    model.initialize(util::singleton_view(cell), detectors, targets, probes);
 
     // generate baseline solution with small dt=0.0001
     std::vector<double> baseline_spike_times;
@@ -106,9 +112,7 @@ TEST(soma, convergence)
         std::vector<double> v;
 
         // set initial conditions
-        using memory::all;
-        model.voltage()(all) = -65.;
-        model.initialize(); // have to do this _after_ initial conditions are set
+        model.reset();
 
         // run the simulation
         auto tfinal =   120.; // ms
@@ -128,9 +132,7 @@ TEST(soma, convergence)
         std::vector<double> v;
 
         // set initial conditions
-        using memory::all;
-        model.voltage()(all) = -65.;
-        model.initialize(); // have to do this _after_ initial conditions are set
+        model.reset();
 
         // run the simulation
         auto tfinal =   120.; // ms

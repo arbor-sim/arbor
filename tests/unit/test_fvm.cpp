@@ -1,19 +1,19 @@
 #include <fstream>
 
 #include "gtest.h"
-#include "../test_util.hpp"
 
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
+#include <util/singleton.hpp>
+
+#include "../test_util.hpp"
 
 TEST(fvm, cable)
 {
     using namespace nest::mc;
 
     nest::mc::cell cell;
-
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
 
     cell.add_soma(6e-4); // 6um in cm
 
@@ -42,8 +42,15 @@ TEST(fvm, cable)
     cell.segment(1)->set_compartments(4);
     cell.segment(2)->set_compartments(4);
 
-    using fvm_cell = fvm::fvm_cell<double, int>;
-    fvm_cell fvcell(cell);
+    using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
+
+    std::vector<fvm_cell::target_handle> targets;
+    std::vector<fvm_cell::detector_handle> detectors;
+    std::vector<fvm_cell::probe_handle> probes;
+
+    fvm_cell fvcell;
+    fvcell.initialize(util::singleton_view(cell), detectors, targets, probes);
+
     auto& J = fvcell.jacobian();
 
     EXPECT_EQ(cell.num_compartments(), 9u);
@@ -63,9 +70,6 @@ TEST(fvm, init)
     using namespace nest::mc;
 
     nest::mc::cell cell;
-
-    // setup global state for the mechanisms
-    nest::mc::mechanisms::setup_mechanism_helpers();
 
     cell.add_soma(12.6157/2.0);
     //auto& props = cell.soma()->properties;
@@ -95,8 +99,14 @@ TEST(fvm, init)
 
     cell.segment(1)->set_compartments(10);
 
-    using fvm_cell = fvm::fvm_cell<double, int>;
-    fvm_cell fvcell(cell);
+    using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
+    std::vector<fvm_cell::target_handle> targets;
+    std::vector<fvm_cell::detector_handle> detectors;
+    std::vector<fvm_cell::probe_handle> probes;
+
+    fvm_cell fvcell;
+    fvcell.initialize(util::singleton_view(cell), detectors, targets, probes);
+
     auto& J = fvcell.jacobian();
     EXPECT_EQ(J.size(), 11u);
 

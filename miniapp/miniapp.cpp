@@ -1,449 +1,230 @@
+#include <cmath>
+#include <exception>
 #include <iostream>
 #include <fstream>
-#include <sstream>
+#include <memory>
+#include <vector>
 
+#include <json/src/json.hpp>
+
+#include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
+#include <communication/communicator.hpp>
+#include <communication/global_policy.hpp>
 #include <fvm_cell.hpp>
-#include <mechanism_interface.hpp>
+#include <io/exporter_spike_file.hpp>
+#include <mechanism_catalogue.hpp>
+#include <model.hpp>
+#include <profiling/profiler.hpp>
+#include <threading/threading.hpp>
+#include <util/ioutil.hpp>
+#include <util/nop.hpp>
+#include <util/optional.hpp>
 
 #include "io.hpp"
-#include "threading/threading.hpp"
-#include "profiling/profiler.hpp"
-#include "communication/communicator.hpp"
-#include "communication/global_policy.hpp"
-#include "util/optional.hpp"
+#include "miniapp_recipes.hpp"
+#include "trace_sampler.hpp"
 
-using namespace nest;
+using namespace nest::mc;
 
-using real_type = double;
-using index_type = int;
-using id_type = uint32_t;
-using numeric_cell = mc::fvm::fvm_cell<real_type, index_type>;
-using cell_group   = mc::cell_group<numeric_cell>;
+using global_policy = communication::global_policy;
+using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
+using model_type = model<lowered_cell>;
+using time_type = model_type::time_type;
+using sample_trace_type = sample_trace<time_type, model_type::value_type>;
+using file_export_type = io::exporter_spike_file<time_type, global_policy>;
+void banner();
+std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
+std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
+std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
+using communicator_type = communication::communicator<time_type, communication::global_policy>;
+using spike_type = typename communicator_type::spike_type;
 
-using global_policy = nest::mc::communication::global_policy;
-using communicator_type =
-    mc::communication::communicator<global_policy>;
+void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 
-using nest::mc::util::optional;
-
-struct model {
-    communicator_type communicator;
-    std::vector<cell_group> cell_groups;
-
-    unsigned num_groups() const {
-        return cell_groups.size();
-    }
-
-    void run(double tfinal, double dt) {
-        auto t = 0.;
-        auto delta = std::min(double(communicator.min_delay()), tfinal);
-        while (t<tfinal) {
-            mc::threading::parallel_for::apply(
-                0, num_groups(),
-                [&](int i) {
-                        mc::util::profiler_enter("stepping","events");
-                    cell_groups[i].enqueue_events(communicator.queue(i));
-                        mc::util::profiler_leave();
-
-                    cell_groups[i].advance(std::min(t+delta, tfinal), dt);
-
-                        mc::util::profiler_enter("events");
-                    communicator.add_spikes(cell_groups[i].spikes());
-                    cell_groups[i].clear_spikes();
-                        mc::util::profiler_leave(2);
-                }
-            );
-
-                mc::util::profiler_enter("stepping", "exchange");
-            communicator.exchange();
-                mc::util::profiler_leave(2);
-
-            t += delta;
-        }
-    }
-
-    void init_communicator() {
-            mc::util::profiler_enter("setup", "communicator");
-
-        // calculate the source and synapse distribution serially
-        std::vector<id_type> target_counts(num_groups());
-        std::vector<id_type> source_counts(num_groups());
-        for (auto i=0u; i<num_groups(); ++i) {
-            target_counts[i] = cell_groups[i].cell().synapses()->size();
-            source_counts[i] = cell_groups[i].spike_sources().size();
-        }
-
-        target_map = mc::algorithms::make_index(target_counts);
-        source_map = mc::algorithms::make_index(source_counts);
-
-        //  create connections
-        communicator = communicator_type(num_groups(), target_counts);
-
-            mc::util::profiler_leave(2);
-    }
-
-    void update_gids() {
-            mc::util::profiler_enter("setup", "globalize");
-        auto com_policy = communicator.communication_policy();
-        auto global_source_map = com_policy.make_map(source_map.back());
-        auto domain_idx = communicator.domain_id();
-        for (auto i=0u; i<num_groups(); ++i) {
-            cell_groups[i].set_source_gids(
-                source_map[i]+global_source_map[domain_idx]
-            );
-            cell_groups[i].set_target_gids(
-                target_map[i]+communicator.target_gid_from_group_lid(0)
-            );
-        }
-            mc::util::profiler_leave(2);
-    }
-
-    // TODO : only stored here because init_communicator() and update_gids() are split
-    std::vector<id_type> source_map;
-    std::vector<id_type> target_map;
-
-    // traces from probes
-    struct trace_data {
-        struct sample_type {
-            float time;
-            double value;
-        };
-        std::string name;
-        std::string units;
-        index_type id;
-        std::vector<sample_type> samples;
-    };
-
-    // different traces may be written to by different threads;
-    // during simulation, each trace_sampler will be responsible for its
-    // corresponding element in the traces vector.
-
-    std::vector<trace_data> traces;
-
-    // make a sampler that records to traces
-    struct simple_sampler_functor {
-        std::vector<trace_data> &traces_;
-        size_t trace_index_ = 0;
-        float requested_sample_time_ = 0;
-        float dt_ = 0;
-
-        simple_sampler_functor(std::vector<trace_data> &traces, size_t index, float dt) :
-            traces_(traces), trace_index_(index), dt_(dt)
-        {}
-
-        optional<float> operator()(float t, double v) {
-            traces_[trace_index_].samples.push_back({t,v});
-            return requested_sample_time_ += dt_;
-        }
-    };
-
-    mc::sampler make_simple_sampler(
-        index_type probe_gid, const std::string& name, const std::string& units, index_type id, float dt)
-    {
-        traces.push_back(trace_data{name, units, id});
-        return {probe_gid, simple_sampler_functor(traces, traces.size()-1, dt)};
-    }
-
-    void reset_traces() {
-        // do not call during simulation: thread-unsafe access to traces.
-        traces.clear();
-    }
-
-    void dump_traces() {
-        // do not call during simulation: thread-unsafe access to traces.
-        for (const auto& trace: traces) {
-            auto path = "trace_" + std::to_string(trace.id)
-                      + "_" + trace.name + ".json";
-
-            nlohmann::json jrep;
-            jrep["name"] = trace.name;
-            jrep["units"] = trace.units;
-            jrep["id"] = trace.id;
- 
-            auto& jt = jrep["data"]["time"];
-            auto& jy = jrep["data"][trace.name];
-                 
-            for (const auto& sample: trace.samples) {
-                jt.push_back(sample.time);
-                jy.push_back(sample.value);
-            }
-            std::ofstream file(path);
-            file << std::setw(1) << jrep << std::endl;
-        }
-    }
-};
-
-// define some global model parameters
-namespace parameters {
-namespace synapses {
-    // synapse delay
-    constexpr float delay  = 20.0;  // ms
-
-    // connection weight
-    constexpr double weight_per_cell = 0.3;  // uS
-}
-}
-
-///////////////////////////////////////
-// prototypes
-///////////////////////////////////////
-
-/// make a single abstract cell
-mc::cell make_cell(int compartments_per_segment, int num_synapses, const std::string& syn_type);
-
-/// do basic setup (initialize global state, print banner, etc)
-void setup();
-
-/// helper function for initializing cells
-cell_group make_lowered_cell(int cell_index, const mc::cell& c);
-
-/// models
-void all_to_all_model(nest::mc::io::cl_options& opt, model& m);
-
-///////////////////////////////////////
-// main
-///////////////////////////////////////
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
-    setup();
-
-    // read parameters
-    mc::io::cl_options options;
     try {
-        options = mc::io::read_options(argc, argv);
-        if (global_policy::id()==0) {
-            std::cout << options << "\n";
+        std::cout << util::mask_stream(global_policy::id()==0);
+        banner();
+
+        // read parameters
+        io::cl_options options = io::read_options(argc, argv);
+        std::cout << options << "\n";
+        std::cout << "\n";
+        std::cout << ":: simulation to " << options.tfinal << " ms in "
+                  << std::ceil(options.tfinal / options.dt) << " steps of "
+                  << options.dt << " ms" << std::endl;
+
+        // determine what to attach probes to
+        probe_distribution pdist;
+        pdist.proportion = options.probe_ratio;
+        pdist.all_segments = !options.probe_soma_only;
+
+        auto recipe = make_recipe(options, pdist);
+        auto cell_range = distribute_cells(recipe->num_cells());
+
+
+        model_type m(*recipe, cell_range.first, cell_range.second);
+
+        auto register_exporter = [] (const io::cl_options& options) {
+            return
+                util::make_unique<file_export_type>(
+                    options.file_name, options.output_path,
+                    options.file_extension, options.over_write);
+        };
+
+        // File output is depending on the input arguments
+        std::unique_ptr<file_export_type> file_exporter;
+        if (options.spike_file_output) {
+            if (options.single_file_per_rank) {
+                file_exporter = register_exporter(options);
+                m.set_local_spike_callback(
+                    [&](const std::vector<spike_type>& spikes) {
+                        file_exporter->output(spikes);
+                    });
+            }
+            else if(communication::global_policy::id()==0) {
+                file_exporter = register_exporter(options);
+                m.set_global_spike_callback(
+                    [&](const std::vector<spike_type>& spikes) {
+                       file_exporter->output(spikes);
+                    });
+            }
         }
+
+        // inject some artificial spikes, 1 per 20 neurons.
+        std::vector<cell_gid_type> local_sources;
+        cell_gid_type first_spike_cell = 20*((cell_range.first+19)/20);
+        for (auto c=first_spike_cell; c<cell_range.second; c+=20) {
+            local_sources.push_back(c);
+            m.add_artificial_spike({c, 0});
+        }
+
+        // attach samplers to all probes
+        std::vector<std::unique_ptr<sample_trace_type>> traces;
+        const model_type::time_type sample_dt = 0.1;
+        for (auto probe: m.probes()) {
+            if (options.trace_max_gid && probe.id.gid>*options.trace_max_gid) {
+                continue;
+            }
+
+            traces.push_back(make_trace(probe.id, probe.probe));
+            m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
+        }
+
+        // dummy run of the model for one step to ensure that profiling is consistent
+        m.run(options.dt, options.dt);
+
+        // reset the model
+        m.reset();
+        // rest the source spikes
+        for (auto source : local_sources) {
+            m.add_artificial_spike({source, 0});
+        }
+
+        // run model
+        m.run(options.tfinal, options.dt);
+
+        // output profile and diagnostic feedback
+        auto const num_steps = options.tfinal / options.dt;
+        util::profiler_output(0.001, m.num_cells()*num_steps);
+        std::cout << "there were " << m.num_spikes() << " spikes\n";
+
+        // save traces
+        for (const auto& trace: traces) {
+            write_trace_json(*trace.get(), options.trace_prefix);
+        }
+    }
+    catch (io::usage_error& e) {
+        // only print usage/startup errors on master
+        std::cerr << util::mask_stream(global_policy::id()==0);
+        std::cerr << e.what() << "\n";
+        return 1;
     }
     catch (std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        exit(1);
+        std::cerr << e.what() << "\n";
+        return 2;
     }
-
-    model m;
-    all_to_all_model(options, m);
-
-    //
-    //  time stepping
-    //
-    auto tfinal = options.tfinal;
-    auto dt     = options.dt;
-
-    auto id = m.communicator.domain_id();
-
-    if (id==0) {
-        // use std::endl to force flush of output on cluster jobs
-        std::cout << "\n";
-        std::cout << ":: simulation to " << tfinal << " ms in "
-                  << std::ceil(tfinal / dt) << " steps of "
-                  << dt << " ms" << std::endl;
-    }
-
-    // add some spikes to the system to start it
-    auto first = m.communicator.group_gid_first(id);
-    if(first%20) {
-        first += 20 - (first%20); // round up to multiple of 20
-    }
-    auto last  = m.communicator.group_gid_first(id+1);
-    for (auto i=first; i<last; i+=20) {
-        m.communicator.add_spike({i, 0});
-    }
-
-    m.run(tfinal, dt);
-
-    mc::util::profiler_output(0.001);
-
-    if (id==0) {
-        std::cout << "there were " << m.communicator.num_spikes() << " spikes\n";
-    }
-
-    m.dump_traces();
+    return 0;
 }
 
-///////////////////////////////////////
-// models
-///////////////////////////////////////
+std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type num_cells) {
+    // Crude load balancing:
+    // divide [0, num_cells) into num_domains non-overlapping, contiguous blocks
+    // of size as close to equal as possible.
 
-void all_to_all_model(nest::mc::io::cl_options& options, model& m) {
-    //
-    //  make cells
-    //
+    auto num_domains = communication::global_policy::size();
+    auto domain_id = communication::global_policy::id();
 
-    auto synapses_per_cell = options.synapses_per_cell;
-    auto is_all_to_all = options.all_to_all;
+    cell_gid_type cell_from = (cell_gid_type)(num_cells*(domain_id/(double)num_domains));
+    cell_gid_type cell_to = (cell_gid_type)(num_cells*((domain_id+1)/(double)num_domains));
 
-    // make a basic cell
-    auto basic_cell =
-        make_cell(options.compartments_per_segment, synapses_per_cell, options.syn_type);
-
-    auto num_domains = global_policy::size();
-    auto domain_id = global_policy::id();
-
-    // make a vector for storing all of the cells
-    id_type ncell_global = options.cells;
-    id_type ncell_local  = ncell_global / num_domains;
-    int remainder = ncell_global - (ncell_local*num_domains);
-    if (domain_id<remainder) {
-        ncell_local++;
-    }
-
-    m.cell_groups = std::vector<cell_group>(ncell_local);
-
-    // initialize the cells in parallel
-    mc::threading::parallel_for::apply(
-        0, ncell_local,
-        [&](int i) {
-                mc::util::profiler_enter("setup", "cells");
-            m.cell_groups[i] = make_lowered_cell(i, basic_cell);
-                mc::util::profiler_leave(2);
-        }
-    );
-
-    //
-    //  network creation
-    //
-    m.init_communicator();
-
-        mc::util::profiler_enter("setup", "connections");
-
-    // RNG distributions for connection delays and source cell ids
-    auto weight_distribution = std::exponential_distribution<float>(0.75);
-    auto source_distribution =
-        std::uniform_int_distribution<uint32_t>(0u, options.cells-1);
-
-    // calculate the weight of synaptic connections, which is chosen so that
-    // the sum of all synaptic weights on a cell is
-    // parameters::synapses::weight_per_cell
-    float weight = parameters::synapses::weight_per_cell / synapses_per_cell;
-
-    // loop over each local cell and build the list of synapse connections
-    // that terminate on the cell
-    for (auto lid=0u; lid<ncell_local; ++lid) {
-        auto target = m.communicator.target_gid_from_group_lid(lid);
-        auto gid = m.communicator.group_gid_from_group_lid(lid);
-        auto gen = std::mt19937(gid);  // seed with cell gid for reproducability
-        // add synapses to cell
-        auto i = 0u;
-        auto cells_added = 0u;
-        while (cells_added < synapses_per_cell) {
-            auto source = is_all_to_all ?  i : source_distribution(gen);
-            if (gid!=source) {
-                m.communicator.add_connection({
-                    source, target++, weight,
-                    parameters::synapses::delay + weight_distribution(gen)
-                });
-                cells_added++;
-            }
-            ++i;
-        }
-    }
-
-    m.communicator.construct();
-
-    //for (auto con : m.communicator.connections()) std::cout << con << "\n";
-
-    m.update_gids();
-
-    //
-    //  setup probes
-    //
-
-    mc::util::profiler_leave();
-    mc::util::profiler_enter("probes");
-
-    // monitor soma and dendrite on a few cells
-    float sample_dt = 0.1;
-    index_type monitor_group_gids[] = { 0, 1, 2 };
-    for (auto gid : monitor_group_gids) {
-        if (!m.communicator.is_local_group(gid)) {
-            continue;
-        }
-
-        auto lid = m.communicator.group_lid(gid);
-        auto probe_soma = m.cell_groups[lid].probe_gid_range().first;
-        auto probe_dend = probe_soma+1;
-        auto probe_dend_current = probe_soma+2;
-
-        m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_soma, "vsoma", "mV", gid, sample_dt)
-        );
-        m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_dend, "vdend", "mV", gid, sample_dt)
-        );
-        m.cell_groups[lid].add_sampler(
-            m.make_simple_sampler(probe_dend_current, "idend", "mA/cm²", gid, sample_dt)
-        );
-    }
-
-        mc::util::profiler_leave(2);
+    return {cell_from, cell_to};
 }
 
-///////////////////////////////////////
-// function definitions
-///////////////////////////////////////
-
-void setup() {
-    // print banner
-    if (global_policy::id()==0) {
-        std::cout << "====================\n";
-        std::cout << "  starting miniapp\n";
-        std::cout << "  - " << mc::threading::description() << " threading support\n";
-        std::cout << "  - communication policy: " << global_policy::name() << "\n";
-        std::cout << "====================\n";
-    }
-
-    // setup global state for the mechanisms
-    mc::mechanisms::setup_mechanism_helpers();
+void banner() {
+    std::cout << "====================\n";
+    std::cout << "  starting miniapp\n";
+    std::cout << "  - " << threading::description() << " threading support\n";
+    std::cout << "  - communication policy: " << global_policy::name() << "\n";
+    std::cout << "====================\n";
 }
 
-// make a high level cell description for use in simulation
-mc::cell make_cell(int compartments_per_segment, int num_synapses, const std::string& syn_type) {
-    nest::mc::cell cell;
+std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {
+    basic_recipe_param p;
 
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism(mc::hh_parameters());
+    p.num_compartments = options.compartments_per_segment;
+    p.num_synapses = options.all_to_all? options.cells-1: options.synapses_per_cell;
+    p.synapse_type = options.syn_type;
 
-    // add dendrite of length 200 um and diameter 1 um with passive channel
-    std::vector<mc::cable_segment*> dendrites;
-    dendrites.push_back(cell.add_cable(0, mc::segmentKind::dendrite, 0.5, 0.5, 200));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25,100));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25,100));
-
-    for (auto d : dendrites) {
-        d->add_mechanism(mc::pas_parameters());
-        d->set_compartments(compartments_per_segment);
-        d->mechanism("membrane").set("r_L", 100);
+    if (options.all_to_all) {
+        return make_basic_kgraph_recipe(options.cells, p, pdist);
     }
-
-    cell.add_detector({0,0}, 20);
-
-    auto gen = std::mt19937();
-    auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
-    // distribute the synapses at random locations the terminal dendrites in a
-    // round robin manner
-    nest::mc::parameter_list syn_default(syn_type);
-    for (auto i=0; i<num_synapses; ++i) {
-        cell.add_synapse({2+(i%2), distribution(gen)}, syn_default);
+    else {
+        return make_basic_rgraph_recipe(options.cells, p, pdist);
     }
-
-    // add probes: 
-    auto probe_soma = cell.add_probe({0, 0}, mc::probeKind::membrane_voltage);
-    auto probe_dendrite = cell.add_probe({1, 0.5}, mc::probeKind::membrane_voltage);
-    auto probe_dendrite_current = cell.add_probe({1, 0.5}, mc::probeKind::membrane_current);
-
-    EXPECTS(probe_soma==0);
-    EXPECTS(probe_dendrite==1);
-    EXPECTS(probe_dendrite_current==2);
-    (void)probe_soma, (void)probe_dendrite, (void)probe_dendrite_current;
-
-    return cell;
 }
 
-cell_group make_lowered_cell(int cell_index, const mc::cell& c) {
-    return cell_group(c);
+std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe) {
+    std::string name = "";
+    std::string units = "";
+
+    switch (probe.kind) {
+    case probeKind::membrane_voltage:
+        name = "v";
+        units = "mV";
+        break;
+    case probeKind::membrane_current:
+        name = "i";
+        units = "mA/cm²";
+        break;
+    default: ;
+    }
+    name += probe.location.segment? "dend" : "soma";
+
+    return util::make_unique<sample_trace_type>(probe_id, name, units);
 }
 
+void write_trace_json(const sample_trace_type& trace, const std::string& prefix) {
+    auto path = prefix + std::to_string(trace.probe_id.gid) +
+                "." + std::to_string(trace.probe_id.index) + "_" + trace.name + ".json";
+
+    nlohmann::json jrep;
+    jrep["name"] = trace.name;
+    jrep["units"] = trace.units;
+    jrep["cell"] = trace.probe_id.gid;
+    jrep["probe"] = trace.probe_id.index;
+
+    auto& jt = jrep["data"]["time"];
+    auto& jy = jrep["data"][trace.name];
+
+    for (const auto& sample: trace.samples) {
+        jt.push_back(sample.time);
+        jy.push_back(sample.value);
+    }
+    std::ofstream file(path);
+    file << std::setw(1) << jrep << std::endl;
+}

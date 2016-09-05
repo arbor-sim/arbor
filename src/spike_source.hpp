@@ -8,23 +8,20 @@ namespace mc {
 
 // spike detector for a lowered cell
 template <typename Cell>
-class spike_detector
-{
+class spike_detector {
 public:
     using cell_type = Cell;
 
-    spike_detector( const cell_type& cell, segment_location loc, double thresh, float t_init) :
-        location_(loc),
-        threshold_(thresh),
-        previous_t_(t_init)
+    spike_detector(const cell_type& cell, typename Cell::detector_handle h, double thresh, float t_init) :
+        handle_(h),
+        threshold_(thresh)
     {
-        previous_v_ = cell.voltage(location_);
-        is_spiking_ = previous_v_ >= thresh ? true : false;
+        reset(cell, t_init);
     }
 
     util::optional<float> test(const cell_type& cell, float t) {
         util::optional<float> result = util::nothing;
-        auto v = cell.voltage(location_);
+        auto v = cell.detector_voltage(handle_);
 
         // these if statements could be simplified, but I keep them like
         // this to clearly reflect the finite state machine
@@ -52,16 +49,19 @@ public:
 
     bool is_spiking() const { return is_spiking_; }
 
-    segment_location location() const { return location_; }
-
     float t() const { return previous_t_; }
 
     float v() const { return previous_v_; }
 
-private:
+    void reset(const cell_type& cell, float t_init) {
+        previous_t_ = t_init;
+        previous_v_ = cell.detector_voltage(handle_);
+        is_spiking_ = previous_v_ >= threshold_;
+    }
 
+private:
     // parameters/data
-    segment_location location_;
+    typename cell_type::detector_handle handle_;
     double threshold_;
 
     // state

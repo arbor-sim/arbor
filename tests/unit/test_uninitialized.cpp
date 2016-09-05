@@ -7,16 +7,16 @@ using namespace nest::mc::util;
 namespace {
     struct count_ops {
         count_ops() {}
-        count_ops(const count_ops &n) { ++copy_ctor_count; }
-        count_ops(count_ops &&n) { ++move_ctor_count; }
+        count_ops(const count_ops& n) { ++copy_ctor_count; }
+        count_ops(count_ops&& n) { ++move_ctor_count; }
 
-        count_ops &operator=(const count_ops &n) { ++copy_assign_count; return *this; }
-        count_ops &operator=(count_ops &&n) { ++move_assign_count; return *this; }
+        count_ops& operator=(const count_ops& n) { ++copy_assign_count; return *this; }
+        count_ops& operator=(count_ops&& n) { ++move_assign_count; return *this; }
 
         static int copy_ctor_count,copy_assign_count;
         static int move_ctor_count,move_assign_count;
         static void reset_counts() {
-            copy_ctor_count=copy_assign_count=0; 
+            copy_ctor_count=copy_assign_count=0;
             move_ctor_count=move_assign_count=0;
         }
     };
@@ -53,11 +53,11 @@ TEST(uninitialized,ctor) {
 namespace {
     struct nocopy {
         nocopy() {}
-        nocopy(const nocopy &n) = delete;
-        nocopy(nocopy &&n) { ++move_ctor_count; }
+        nocopy(const nocopy& n) = delete;
+        nocopy(nocopy&& n) { ++move_ctor_count; }
 
-        nocopy &operator=(const nocopy &n) = delete;
-        nocopy &operator=(nocopy &&n) { ++move_assign_count; return *this; }
+        nocopy& operator=(const nocopy& n) = delete;
+        nocopy& operator=(nocopy&& n) { ++move_assign_count; return *this; }
 
         static int move_ctor_count,move_assign_count;
         static void reset_counts() { move_ctor_count=move_assign_count=0; }
@@ -85,11 +85,11 @@ TEST(uninitialized,ctor_nocopy) {
 namespace {
     struct nomove {
         nomove() {}
-        nomove(const nomove &n) { ++copy_ctor_count; }
-        nomove(nomove &&n) = delete;
+        nomove(const nomove& n) { ++copy_ctor_count; }
+        nomove(nomove&& n) = delete;
 
-        nomove &operator=(const nomove &n) { ++copy_assign_count; return *this; }
-        nomove &operator=(nomove &&n) = delete;
+        nomove& operator=(const nomove& n) { ++copy_assign_count; return *this; }
+        nomove& operator=(nomove&& n) = delete;
 
         static int copy_ctor_count,copy_assign_count;
         static void reset_counts() { copy_ctor_count=copy_assign_count=0; }
@@ -129,7 +129,7 @@ TEST(uninitialized,void) {
 }
 
 TEST(uninitialized,ref) {
-    uninitialized<int &> x,y;
+    uninitialized<int&> x,y;
     int a;
 
     x.construct(a);
@@ -151,8 +151,8 @@ namespace {
         mutable int op_count=0;
         mutable int const_op_count=0;
 
-        int operator()(const int &a) const { ++const_op_count; return a+1; }
-        int operator()(int &a) const { ++op_count; return ++a; }
+        int operator()(const int& a) const { ++const_op_count; return a+1; }
+        int operator()(int& a) const { ++op_count; return ++a; }
     };
 }
 
@@ -165,14 +165,14 @@ TEST(uninitialized,apply) {
     EXPECT_EQ(11,ua.cref());
     EXPECT_EQ(11,r);
 
-    uninitialized<int &> ub;
+    uninitialized<int&> ub;
     ub.construct(ua.ref());
 
     r=ub.apply(A);
     EXPECT_EQ(12,ua.cref());
     EXPECT_EQ(12,r);
 
-    uninitialized<const int &> uc;
+    uninitialized<const int&> uc;
     uc.construct(ua.ref());
 
     r=uc.apply(A);

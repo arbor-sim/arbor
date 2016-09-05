@@ -46,6 +46,26 @@ struct timer {
 
 constexpr bool multithreaded() { return true; }
 
+template <typename T>
+using parallel_vector = tbb::concurrent_vector<T>;
+
+using task_group = tbb::task_group;
+
+template <typename RandomIt>
+void sort(RandomIt begin, RandomIt end) {
+    tbb::parallel_sort(begin, end);
+}
+
+template <typename RandomIt, typename Compare>
+void sort(RandomIt begin, RandomIt end, Compare comp) {
+    tbb::parallel_sort(begin, end, comp);
+}
+
+template <typename Container>
+void sort(Container& c) {
+    tbb::parallel_sort(c.begin(), c.end());
+}
+
 } // threading
 } // mc
 } // nest

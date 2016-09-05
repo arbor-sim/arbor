@@ -10,8 +10,18 @@ namespace nest {
 namespace mc {
 namespace util {
 
-bool failed_assertion(const char* assertion, const char* file, int line, const char* func);
-std::ostream &debug_emit_trace_leader(std::ostream& out, const char* file, int line, const char* varlist);
+using failed_assertion_handler_t =
+    bool (*)(const char* assertion, const char* file, int line, const char* func);
+
+bool abort_on_failed_assertion(const char* assertion, const char* file, int line, const char* func);
+inline bool ignore_failed_assertion(const char*, const char*, int, const char*) {
+    return false;
+}
+
+// defaults to abort_on_failed_assertion;
+extern failed_assertion_handler_t global_failed_assertion_handler;
+
+std::ostream& debug_emit_trace_leader(std::ostream& out, const char* file, int line, const char* varlist);
 
 inline void debug_emit(std::ostream& out) {
     out << "\n";
@@ -66,7 +76,7 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
 
     #define EXPECTS(condition) \
        (void)((condition) || \
-       nest::mc::util::failed_assertion(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
+       nest::mc::util::global_failed_assertion_handler(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
 #else
     #define EXPECTS(condition)
 #endif // def WITH_ASSERTIONS

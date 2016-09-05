@@ -5,8 +5,9 @@
 #include <thread>
 #include <vector>
 
-#include "segment.hpp"
+#include "common_types.hpp"
 #include "cell_tree.hpp"
+#include "segment.hpp"
 #include "stimulus.hpp"
 #include "util/debug.hpp"
 
@@ -17,12 +18,12 @@ namespace mc {
 /// description
 struct compartment_model {
     cell_tree tree;
-    std::vector<int> parent_index;
-    std::vector<int> segment_index;
+    std::vector<cell_tree::int_type> parent_index;
+    std::vector<cell_tree::int_type> segment_index;
 };
 
 struct segment_location {
-    segment_location(int s, double l)
+    segment_location(cell_lid_type s, double l)
     : segment(s), position(l)
     {
         EXPECTS(position>=0. && position<=1.);
@@ -30,7 +31,7 @@ struct segment_location {
     friend bool operator==(segment_location l, segment_location r) {
         return l.segment==r.segment && l.position==r.position;
     }
-    int segment;
+    cell_lid_type segment;
     double position;
 };
 
@@ -44,27 +45,29 @@ enum class probeKind {
     membrane_current
 };
 
+struct probe_spec {
+    segment_location location;
+    probeKind kind;
+};
+
 /// high-level abstract representation of a cell and its segments
 class cell {
 public:
-
-    // types
-    using index_type = int;
+    using index_type = cell_lid_type;
+    using size_type = cell_local_size_type;
     using value_type = double;
     using point_type = point<value_type>;
-    
+
     struct synapse_instance {
         segment_location location;
         parameter_list mechanism;
     };
-    struct probe_instance {
-        segment_location location;
-        probeKind kind;
-    };
+
     struct stimulus_instance {
         segment_location location;
         i_clamp clamp;
     };
+
     struct detector_instance {
         segment_location location;
         double threshold;
@@ -89,12 +92,12 @@ public:
     cable_segment* add_cable(index_type parent, Args ...args);
 
     /// the number of segments in the cell
-    int num_segments() const;
+    size_type num_segments() const;
 
     bool has_soma() const;
 
-    class segment* segment(int index);
-    class segment const* segment(int index) const;
+    class segment* segment(index_type index);
+    class segment const* segment(index_type index) const;
 
     /// access pointer to the soma
     /// returns nullptr if the cell has no soma
@@ -103,7 +106,7 @@ public:
     /// access pointer to a cable segment
     /// will throw an std::out_of_range exception if
     /// the cable index is not valid
-    cable_segment* cable(int index);
+    cable_segment* cable(index_type index);
 
     /// the volume of the cell
     value_type volume() const;
@@ -112,16 +115,16 @@ public:
     value_type area() const;
 
     /// the total number of compartments over all segments
-    size_t num_compartments() const;
+    size_type num_compartments() const;
 
     std::vector<segment_ptr> const& segments() const;
 
     /// return reference to array that enumerates the index of the parent of
     /// each segment
-    std::vector<int> const& segment_parents() const;
+    std::vector<index_type> const& segment_parents() const;
 
     /// return a vector with the compartment count for each segment in the cell
-    std::vector<int> compartment_counts() const;
+    std::vector<size_type> compartment_counts() const;
 
     compartment_model model() const;
 
@@ -169,12 +172,12 @@ public:
     //////////////////
     // probes
     //////////////////
-    index_type add_probe(segment_location loc, probeKind kind) {
-        probes_.push_back({loc, kind});
+    index_type add_probe(probe_spec p) {
+        probes_.push_back(p);
         return probes_.size()-1;
     }
 
-    const std::vector<probe_instance>&
+    const std::vector<probe_spec>&
     probes() const { return probes_; }
 
 private:
@@ -195,7 +198,7 @@ private:
     std::vector<detector_instance> spike_detectors_;
 
     // the probes
-    std::vector<probe_instance> probes_;
+    std::vector<probe_spec> probes_;
 };
 
 // Checks that two cells have the same

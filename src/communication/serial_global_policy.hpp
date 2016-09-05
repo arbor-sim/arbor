@@ -1,22 +1,25 @@
 #pragma once
 
+#include <cstdint>
 #include <type_traits>
 #include <vector>
 
-#include <cstdint>
-
-#include <communication/spike.hpp>
+#include <communication/gathered_vector.hpp>
+#include <spike.hpp>
 
 namespace nest {
 namespace mc {
 namespace communication {
 
 struct serial_global_policy {
-    using id_type = uint32_t;
-
-    std::vector<spike<id_type>> const
-    static gather_spikes(const std::vector<spike<id_type>>& local_spikes) {
-        return local_spikes;
+    template <typename Spike>
+    static gathered_vector<Spike>
+    gather_spikes(const std::vector<Spike>& local_spikes) {
+        using count_type = typename gathered_vector<Spike>::count_type;
+        return gathered_vector<Spike>(
+            std::vector<Spike>(local_spikes),
+            {0u, static_cast<count_type>(local_spikes.size())}
+        );
     }
 
     static int id() {
@@ -34,6 +37,11 @@ struct serial_global_policy {
 
     template <typename T>
     static T max(T value) {
+        return value;
+    }
+
+    template <typename T>
+    static T sum(T value) {
         return value;
     }
 

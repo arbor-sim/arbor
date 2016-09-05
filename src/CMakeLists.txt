@@ -2,8 +2,8 @@ set(HEADERS
     swcio.hpp
 )
 set(BASE_SOURCES
+    common_types_io.cpp
     cell.cpp
-    mechanism_interface.cpp
     parameter_list.cpp
     profiling/profiler.cpp
     swcio.cpp

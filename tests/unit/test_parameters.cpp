@@ -28,7 +28,7 @@ TEST(parameters, setting)
     EXPECT_FALSE(list.add_parameter({"b", -3.0}));
     EXPECT_EQ(list.num_parameters(), 2);
 
-    auto &parms = list.parameters();
+    auto& parms = list.parameters();
     EXPECT_EQ(parms[0].name, "a");
     EXPECT_EQ(parms[0].value, 0.12);
     EXPECT_EQ(parms[0].range.min, 0);

@@ -261,7 +261,7 @@ swc_record_range_clean::swc_record_range_clean(std::istream& is)
         parent_list.push_back(records_[i].parent());
     }
 
-    if (!nest::mc::algorithms::has_contiguous_segments(parent_list)) {
+    if (!nest::mc::algorithms::has_contiguous_compartments(parent_list)) {
         throw swc_parse_error("branches are not contiguously numbered", 0);
     }
 }

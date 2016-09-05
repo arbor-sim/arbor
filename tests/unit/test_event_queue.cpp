@@ -7,14 +7,14 @@
 TEST(event_queue, push)
 {
     using namespace nest::mc;
-    using ps_event_queue = event_queue<postsynaptic_spike_event>;
+    using ps_event_queue = event_queue<postsynaptic_spike_event<float>>;
 
     ps_event_queue q;
 
-    q.push({1u, 2.f, 2.f});
-    q.push({4u, 1.f, 2.f});
-    q.push({8u, 20.f, 2.f});
-    q.push({2u, 8.f, 2.f});
+    q.push({{1u, 0u}, 2.f, 2.f});
+    q.push({{4u, 1u}, 1.f, 2.f});
+    q.push({{8u, 2u}, 20.f, 2.f});
+    q.push({{2u, 3u}, 8.f, 2.f});
 
     std::vector<float> times;
     while(q.size()) {
@@ -31,13 +31,13 @@ TEST(event_queue, push)
 TEST(event_queue, push_range)
 {
     using namespace nest::mc;
-    using ps_event_queue = event_queue<postsynaptic_spike_event>;
+    using ps_event_queue = event_queue<postsynaptic_spike_event<float>>;
 
-    postsynaptic_spike_event events[] = {
-        {1u, 2.f, 2.f},
-        {4u, 1.f, 2.f},
-        {8u, 20.f, 2.f},
-        {2u, 8.f, 2.f}
+    postsynaptic_spike_event<float> events[] = {
+        {{1u, 0u}, 2.f, 2.f},
+        {{4u, 1u}, 1.f, 2.f},
+        {{8u, 2u}, 20.f, 2.f},
+        {{2u, 3u}, 8.f, 2.f}
     };
 
     ps_event_queue q;
@@ -56,13 +56,20 @@ TEST(event_queue, push_range)
 TEST(event_queue, pop_if_before)
 {
     using namespace nest::mc;
-    using ps_event_queue = event_queue<postsynaptic_spike_event>;
+    using ps_event_queue = event_queue<postsynaptic_spike_event<float>>;
 
-    postsynaptic_spike_event events[] = {
-        {1u, 1.f, 2.f},
-        {2u, 2.f, 2.f},
-        {3u, 3.f, 2.f},
-        {4u, 4.f, 2.f}
+    cell_member_type target[4] = {
+        {1u, 0u},
+        {4u, 1u},
+        {8u, 2u},
+        {2u, 3u}
+    };
+
+    postsynaptic_spike_event<float> events[] = {
+        {target[0], 1.f, 2.f},
+        {target[1], 2.f, 2.f},
+        {target[2], 3.f, 2.f},
+        {target[3], 4.f, 2.f}
     };
 
     ps_event_queue q;
@@ -76,12 +83,12 @@ TEST(event_queue, pop_if_before)
 
     auto e2 = q.pop_if_before(5.);
     EXPECT_TRUE(e2);
-    EXPECT_EQ(e2->target, 1u);
+    EXPECT_EQ(e2->target, target[0]);
     EXPECT_EQ(q.size(), 3u);
 
     auto e3 = q.pop_if_before(5.);
     EXPECT_TRUE(e3);
-    EXPECT_EQ(e3->target, 2u);
+    EXPECT_EQ(e3->target, target[1]);
     EXPECT_EQ(q.size(), 2u);
 
     auto e4 = q.pop_if_before(2.5);
@@ -90,7 +97,7 @@ TEST(event_queue, pop_if_before)
 
     auto e5 = q.pop_if_before(5.);
     EXPECT_TRUE(e5);
-    EXPECT_EQ(e5->target, 3u);
+    EXPECT_EQ(e5->target, target[2]);
     EXPECT_EQ(q.size(), 1u);
 
     q.pop_if_before(5.);

@@ -90,12 +90,12 @@ bool is_minimal_degree(C const& c)
         "is_minimal_degree only applies to integral types"
     );
 
-    if(c.size()==0u) {
+    if (c.size()==0u) {
         return true;
     }
 
     using value_type = typename C::value_type;
-    if(c[0] != value_type(0)) {
+    if (c[0] != value_type(0)) {
         return false;
     }
     auto i = value_type(1);
@@ -121,37 +121,7 @@ bool is_positive(C const& c)
 }
 
 template<typename C>
-bool has_contiguous_segments(const C &parent_index)
-{
-    static_assert(
-        std::is_integral<typename C::value_type>::value,
-        "integral type required"
-    );
-
-    if (!is_minimal_degree(parent_index)) {
-        return false;
-    }
-
-    int n = parent_index.size();
-    std::vector<bool> is_leaf(n, false);
-
-    for(auto i=1; i<n; ++i) {
-        auto p = parent_index[i];
-        if(is_leaf[p]) {
-            return false;
-        }
-
-        if(p != i-1) {
-            // we have a branch and i-1 is a leaf node
-            is_leaf[i-1] = true;
-        }
-    }
-
-    return true;
-}
-
-template<typename C>
-std::vector<typename C::value_type> child_count(const C &parent_index)
+std::vector<typename C::value_type> child_count(const C& parent_index)
 {
     static_assert(
         std::is_integral<typename C::value_type>::value,
@@ -159,11 +129,35 @@ std::vector<typename C::value_type> child_count(const C &parent_index)
     );
 
     std::vector<typename C::value_type> count(parent_index.size(), 0);
-    for (std::size_t i = 1; i < parent_index.size(); ++i) {
+    for (auto i = 1u; i < parent_index.size(); ++i) {
         ++count[parent_index[i]];
     }
 
     return count;
+}
+
+template<typename C>
+bool has_contiguous_compartments(const C& parent_index)
+{
+    using value_type = typename C::value_type;
+    static_assert(
+        std::is_integral<value_type>::value,
+        "integral type required"
+    );
+
+    if (!is_minimal_degree(parent_index)) {
+        return false;
+    }
+
+    auto num_child = child_count(parent_index);
+    for (auto i=1u; i < parent_index.size(); ++i) {
+        auto p = parent_index[i];
+        if (num_child[p]==1 && p!=value_type(i-1)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 template<typename C>
@@ -174,7 +168,7 @@ std::vector<typename C::value_type> branches(const C& parent_index)
         "integral type required"
     );
 
-    EXPECTS(has_contiguous_segments(parent_index));
+    EXPECTS(has_contiguous_compartments(parent_index));
 
     std::vector<typename C::value_type> branch_index;
     if (parent_index.empty()) {
@@ -229,7 +223,7 @@ typename C::value_type find_branch(const C& branch_index,
 
     auto it =  std::find_if(
         branch_index.begin(), branch_index.end(),
-        [nid](const value_type &v) { return v > nid; }
+        [nid](const value_type& v) { return v > nid; }
     );
 
     return it - branch_index.begin() - 1;
@@ -249,8 +243,8 @@ std::vector<typename C::value_type> make_parent_index(
         return {};
     }
 
-    EXPECTS(parent_index.size() == unsigned(branch_index.back()));
-    EXPECTS(has_contiguous_segments(parent_index));
+    EXPECTS(parent_index.size() == branch_index.back());
+    EXPECTS(has_contiguous_compartments(parent_index));
     EXPECTS(is_strictly_monotonic_increasing(branch_index));
 
     // expand the branch index

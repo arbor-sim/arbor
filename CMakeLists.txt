@@ -51,7 +51,7 @@ if(WITH_MPI)
 endif()
 
 # Profiler support
-set(WITH_PROFILING OFF CACHE BOOL "use built in profiling of miniapp" )
+set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
 if(WITH_PROFILING)
     add_definitions(-DWITH_PROFILING)
 endif()
@@ -62,18 +62,45 @@ if(SYSTEM_CRAY)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
 
-# targets for extermal dependencies
-include(ExternalProject)
-externalproject_add(modparser
-    PREFIX ${CMAKE_BINARY_DIR}/external
-    CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
-               "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
-               "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-    BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
-    STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
-    TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
+# vectorization target
+set(VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2}")
+
+if(VECTORIZE_TARGET STREQUAL "KNL")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
+elseif(VECTORIZE_TARGET STREQUAL "AVX")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX}")
+elseif(VECTORIZE_TARGET STREQUAL "AVX2")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
+endif()
+
+# whether to generate optimized kernels from NMODL
+set(USE_OPTIMIZED_KERNELS OFF CACHE BOOL "generate optimized code that vectorizes with the Intel compiler")
+
+# Only build modcc if it has not already been installed.
+# This is useful if cross compiling for KNL, when it is not desirable to compile
+# modcc with the same flags that are used for the KNL target.
+find_program(MODCC_BIN modcc)
+set(modcc "${MODCC_BIN}")
+set(use_external_modcc OFF BOOL)
+
+# the modcc executable was not found, so build our own copy
+if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
+    include(ExternalProject)
+    externalproject_add(modparser
+        PREFIX ${CMAKE_BINARY_DIR}/external
+        CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
+                   "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
+                   "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
+        STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
+        TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
     )
+    # Set up environment to use the version of modcc that is compiled
+    # as the ExternalProject above.
+    set(use_external_modcc ON)
+    set(modcc "${CMAKE_BINARY_DIR}/external/bin/modcc")
+endif()
 
 
 include_directories(${CMAKE_SOURCE_DIR}/external)
@@ -82,7 +109,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/miniapp)
 include_directories(${CMAKE_SOURCE_DIR})
-
 if( "${WITH_TBB}" STREQUAL "ON" )
     include_directories(${TBB_INCLUDE_DIRS})
 endif()

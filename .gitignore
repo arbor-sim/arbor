@@ -18,6 +18,8 @@
 *.swo
 *.swn
 *.swq
+*.swm
+*.swl
 
 # tar files
 *.tar
@@ -65,6 +67,7 @@ external/tmp
 mechanisms/*.hpp
 
 # build path
-build
+build*
 
 commit.msg
+

@@ -1,25 +1,17 @@
 #include "gtest.h"
 
-#include "../src/mechanism_interface.hpp"
-#include "../src/matrix.hpp"
+//#include "../src/mechanism_interface.hpp"
+#include "mechanism_catalogue.hpp"
+#include "matrix.hpp"
 
 TEST(mechanisms, helpers) {
-    nest::mc::mechanisms::setup_mechanism_helpers();
-
-    EXPECT_EQ(nest::mc::mechanisms::mechanism_helpers.size(), 4u);
+    using namespace nest::mc;
+    using catalogue = mechanisms::catalogue<double, int>;
 
     // verify that the hh and pas channels are available
-    EXPECT_EQ(nest::mc::mechanisms::get_mechanism_helper("hh")->name(), "hh");
-    EXPECT_EQ(nest::mc::mechanisms::get_mechanism_helper("pas")->name(), "pas");
+    EXPECT_TRUE(catalogue::has("hh"));
+    EXPECT_TRUE(catalogue::has("pas"));
 
-    // check that an out_of_range exception is thrown if an invalid mechanism is
-    // requested
-    ASSERT_THROW(
-        nest::mc::mechanisms::get_mechanism_helper("dachshund"),
-        std::out_of_range
-    );
-
-                                   //0 1 2 3 4 5 6 7 8 9
     std::vector<int> parent_index = {0,0,1,2,3,4,0,6,7,8};
     memory::HostVector<int> node_indices = std::vector<int>{0,6,7,8,9};
     auto n = node_indices.size();
@@ -28,10 +20,17 @@ TEST(mechanisms, helpers) {
     memory::HostVector<double> vec_i(n, 0.);
     memory::HostVector<double> vec_v(n, 0.);
 
-    auto& helper = nest::mc::mechanisms::get_mechanism_helper("hh");
-    auto mech = helper->new_mechanism(vec_v, vec_i, node_indices);
+    auto mech = catalogue::make("hh", vec_v, vec_i, node_indices);
 
     EXPECT_EQ(mech->name(), "hh");
     EXPECT_EQ(mech->size(), 5u);
     //EXPECT_EQ(mech->matrix_, &matrix);
+
+    // check that an out_of_range exception is thrown if an invalid mechanism is
+    // requested
+    ASSERT_THROW(
+        catalogue::make("dachshund", vec_v, vec_i, node_indices),
+        std::out_of_range
+    );
+                                   //0 1 2 3 4 5 6 7 8 9
 }

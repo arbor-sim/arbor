@@ -24,24 +24,30 @@ TEST(optionalm,unset_throw) {
     optional<int> a;
     int check=10;
 
-    try { a.get(); }
-    catch(optional_unset_error &e) {
+    try {
+        a.get();
+    }
+    catch (optional_unset_error& e) {
         ++check;
     }
     EXPECT_EQ(11,check);
 
     check=20;
     a=2;
-    try { a.get(); }
-    catch(optional_unset_error &e) {
+    try {
+        a.get();
+    }
+    catch (optional_unset_error& e) {
         ++check;
     }
     EXPECT_EQ(20,check);
 
     check=30;
     a.reset();
-    try { a.get(); }
-    catch(optional_unset_error &e) {
+    try {
+        a.get();
+    }
+    catch (optional_unset_error& e) {
         ++check;
     }
     EXPECT_EQ(31,check);
@@ -66,13 +72,13 @@ TEST(optionalm,ctor_conv) {
 
 TEST(optionalm,ctor_ref) {
     int v=10;
-    optional<int &> a(v);
+    optional<int&> a(v);
 
     EXPECT_EQ(10,a.get());
     v=20;
     EXPECT_EQ(20,a.get());
 
-    optional<int &> b(a),c=b,d=v;
+    optional<int&> b(a),c=b,d=v;
     EXPECT_EQ(&(a.get()),&(b.get()));
     EXPECT_EQ(&(a.get()),&(c.get()));
     EXPECT_EQ(&(a.get()),&(d.get()));
@@ -86,6 +92,18 @@ TEST(optionalm,assign_returns) {
 
     auto bp=&(a=4);
     EXPECT_EQ(&a,bp);
+
+    auto b2=(a=optional<int>(10));
+    EXPECT_EQ(typeid(optional<int>),typeid(b2));
+
+    auto bp2=&(a=4);
+    EXPECT_EQ(&a,bp2);
+
+    auto b3=(a=nothing);
+    EXPECT_EQ(typeid(optional<int>),typeid(b3));
+
+    auto bp3=&(a=4);
+    EXPECT_EQ(&a,bp3);
 }
 
 TEST(optionalm,assign_reference) {
@@ -98,11 +116,16 @@ TEST(optionalm,assign_reference) {
     *ar = 5.0;
     EXPECT_EQ(5.0, a);
 
-    br = ar;
+    auto& check_rval=(br=ar);
     EXPECT_TRUE(br);
+    EXPECT_EQ(&br, &check_rval);
 
     *br = 7.0;
     EXPECT_EQ(7.0, a);
+
+    auto& check_rval2=(br=nothing);
+    EXPECT_FALSE(br);
+    EXPECT_EQ(&br, &check_rval2);
 }
 
 struct nomove {
@@ -110,13 +133,13 @@ struct nomove {
 
     nomove(): value(0) {}
     nomove(int i): value(i) {}
-    nomove(const nomove &n): value(n.value) {}
-    nomove(nomove &&n) = delete;
+    nomove(const nomove& n): value(n.value) {}
+    nomove(nomove&& n) = delete;
 
-    nomove &operator=(const nomove &n) { value=n.value; return *this; }
+    nomove& operator=(const nomove& n) { value=n.value; return *this; }
 
-    bool operator==(const nomove &them) const { return them.value==value; }
-    bool operator!=(const nomove &them) const { return !(*this==them); }
+    bool operator==(const nomove& them) const { return them.value==value; }
+    bool operator!=(const nomove& them) const { return !(*this==them); }
 };
 
 TEST(optionalm,ctor_nomove) {
@@ -136,21 +159,21 @@ struct nocopy {
 
     nocopy(): value(0) {}
     nocopy(int i): value(i) {}
-    nocopy(const nocopy &n) = delete;
-    nocopy(nocopy &&n) {
+    nocopy(const nocopy& n) = delete;
+    nocopy(nocopy&& n) {
         value=n.value;
         n.value=0;
     }
 
-    nocopy &operator=(const nocopy &n) = delete;
-    nocopy &operator=(nocopy &&n) {
+    nocopy& operator=(const nocopy& n) = delete;
+    nocopy& operator=(nocopy&& n) {
         value=n.value;
         n.value=-1;
         return *this;
     }
 
-    bool operator==(const nocopy &them) const { return them.value==value; }
-    bool operator!=(const nocopy &them) const { return !(*this==them); }
+    bool operator==(const nocopy& them) const { return them.value==value; }
+    bool operator!=(const nocopy& them) const { return !(*this==them); }
 };
 
 TEST(optionalm,ctor_nocopy) {
@@ -206,6 +229,10 @@ TEST(optionalm,void) {
     x=b >> []() { return 1; };
     EXPECT_TRUE((bool)x);
     EXPECT_EQ(1,x.get());
+
+    auto& check_rval=(b=nothing);
+    EXPECT_FALSE((bool)b);
+    EXPECT_EQ(&b,&check_rval);
 }
 
 TEST(optionalm,bind_to_void) {
@@ -251,13 +278,13 @@ TEST(optionalm,bind_to_optional_void) {
 
 TEST(optionalm,bind_with_ref) {
     optional<int> a=10;
-    a >> [](int &v) {++v; };
+    a >> [](int& v) { ++v; };
     EXPECT_EQ(11,*a);
 }
 
 struct check_cref {
-    int operator()(const int &) { return 10; }
-    int operator()(int &) { return 11; }
+    int operator()(const int&) { return 10; }
+    int operator()(int&) { return 11; }
 };
 
 TEST(optionalm,bind_constness) {

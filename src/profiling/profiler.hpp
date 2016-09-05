@@ -121,6 +121,11 @@ public:
 
     bool has_subregions() const { return subregions_.size() > 0; }
 
+    void clear() {
+        subregions_.clear();
+        start_time();
+    }
+
     size_t hash() const { return hash_; }
 
     region_type* subregion(const char* n);
@@ -169,6 +174,10 @@ public:
 
     /// stop (deactivate) the profiler
     void stop();
+
+    /// restart the profiler
+    /// remove all trace information and restart timer for the root region
+    void restart();
 
     /// the time stamp at which the profiler was started (avtivated)
     timer_type::time_point start_time() const { return start_time_; }
@@ -226,15 +235,24 @@ void profiler_enter(const char* n, Args... args) {
 
 /// move up one level in the profiler
 void profiler_leave();
+
 /// move up multiple profiler levels in one call
 void profiler_leave(int nlevels);
 
 /// iterate and stop them
-void stop_profilers();
+void profilers_stop();
+
+/// reset profilers
+void profilers_restart();
 
 /// print the collated profiler to std::cout
-void profiler_output(double threshold);
+void profiler_output(double threshold, std::size_t num_local_work_items);
 
 } // namespace util
 } // namespace mc
 } // namespace nest
+
+// define some helper macros to make instrumentation of the source code with calls
+// to the profiler a little less visually distracting
+#define PE nest::mc::util::profiler_enter
+#define PL nest::mc::util::profiler_leave

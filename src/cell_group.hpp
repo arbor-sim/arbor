@@ -1,104 +1,100 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <vector>
 
 #include <cell.hpp>
+#include <common_types.hpp>
 #include <event_queue.hpp>
-#include <communication/spike.hpp>
-#include <communication/spike_source.hpp>
+#include <spike.hpp>
+#include <spike_source.hpp>
+#include <util/singleton.hpp>
 
 #include <profiling/profiler.hpp>
 
 namespace nest {
 namespace mc {
 
-// samplers take a time and sample value, and return an optional time
-// for the next desired sample.
-
-struct sampler {
-    using index_type = int;
-    using time_type = float;
-    using value_type = double;
-
-    index_type probe_gid;   // samplers are attached to probes
-    std::function<util::optional<time_type>(time_type, value_type)> sample;
-};
-
-template <typename Cell>
+template <typename LoweredCell>
 class cell_group {
 public:
-    using index_type = uint32_t;
-    using cell_type = Cell;
-    using value_type = typename cell_type::value_type;
-    using size_type  = typename cell_type::value_type;
-    using spike_detector_type = spike_detector<Cell>;
+    using index_type = cell_gid_type;
+    using lowered_cell_type = LoweredCell;
+    using value_type = typename lowered_cell_type::value_type;
+    using size_type  = typename lowered_cell_type::value_type;
+    using spike_detector_type = spike_detector<lowered_cell_type>;
+    using source_id_type = cell_member_type;
+
+    using time_type = float;
+    using sampler_function = std::function<util::optional<time_type>(time_type, double)>;
 
     struct spike_source_type {
-        index_type index;
+        source_id_type source_id;
         spike_detector_type source;
     };
 
     cell_group() = default;
 
-    cell_group(const cell& c) :
-        cell_{c}
+    cell_group(cell_gid_type gid, const cell& c) :
+        gid_base_{gid}
     {
-        cell_.voltage()(memory::all) = -65.;
-        cell_.initialize();
+        detector_handles_.resize(c.detectors().size());
+        target_handles_.resize(c.synapses().size());
+        probe_handles_.resize(c.probes().size());
 
+        cell_.initialize(util::singleton_view(c), detector_handles_, target_handles_, probe_handles_);
+
+        // Create spike detectors and associate them with globally unique source ids,
+        // as specified by cell gid and cell-local zero-based index.
+
+        cell_gid_type source_gid = gid_base_;
+        cell_lid_type source_lid = 0u;
+
+        unsigned i = 0;
         for (auto& d : c.detectors()) {
-            spike_sources_.push_back( {
-                0u, spike_detector_type(cell_, d.location, d.threshold, 0.f)
+            cell_member_type source_id{source_gid, source_lid++};
+
+            spike_sources_.push_back({
+                source_id, spike_detector_type(cell_, detector_handles_[i],  d.threshold, 0.f)
             });
         }
     }
 
-    void set_source_gids(index_type gid) {
-        for (auto& s : spike_sources_) {
-            s.index = gid++;
+    void reset() {
+        clear_spikes();
+        clear_events();
+        reset_samplers();
+        //initialize_cells();
+        for (auto& spike_source: spike_sources_) {
+            spike_source.source.reset(cell_, 0.f);
         }
     }
 
-    void set_target_gids(index_type lid) {
-        first_target_gid_ = lid;
-    }
-
-    index_type num_probes() const {
-        return cell_.num_probes();
-    }
-
-    void set_probe_gids(index_type gid) {
-        first_probe_gid_ = gid;
-    }
-
-    std::pair<index_type, index_type> probe_gid_range() const {
-        return { first_probe_gid_, first_probe_gid_+cell_.num_probes() };
-    }
-
-    void advance(double tfinal, double dt) {
+    void advance(time_type tfinal, time_type dt) {
         while (cell_.time()<tfinal) {
             // take any pending samples
-            float cell_time = cell_.time();
+            time_type cell_time = cell_.time();
 
-                nest::mc::util::profiler_enter("sampling");
+            PE("sampling");
             while (auto m = sample_events_.pop_if_before(cell_time)) {
-                auto& sampler = samplers_[m->sampler_index];
-                EXPECTS((bool)sampler.sample);
+                auto& s = samplers_[m->sampler_index];
+                EXPECTS((bool)s.sampler);
+                auto next = s.sampler(cell_.time(), cell_.probe(s.handle));
 
-                index_type probe_index = sampler.probe_gid-first_probe_gid_;
-                auto next = sampler.sample(cell_.time(), cell_.probe(probe_index));
                 if (next) {
                     m->time = std::max(*next, cell_time);
                     sample_events_.push(*m);
                 }
             }
-                nest::mc::util::profiler_leave();
+            PL();
 
             // look for events in the next time step
-            auto tstep = std::min(tfinal, cell_.time()+dt);
+            time_type tstep = cell_.time()+dt;
+            tstep = std::min(tstep, tfinal);
+
             auto next = events_.pop_if_before(tstep);
-            auto tnext = next ? next->time: tstep;
+            time_type tnext = next ? next->time: tstep;
 
             // integrate cell state
             cell_.advance(tnext - cell_.time());
@@ -106,25 +102,27 @@ public:
                 std::cerr << "warning: solution out of bounds\n";
             }
 
-                nest::mc::util::profiler_enter("events");
+            PE("events");
             // check for new spikes
             for (auto& s : spike_sources_) {
                 if (auto spike = s.source.test(cell_, cell_.time())) {
-                    spikes_.push_back({s.index, spike.get()});
+                    spikes_.push_back({s.source_id, spike.get()});
                 }
             }
 
             // apply events
             if (next) {
-                cell_.apply_event(next.get());
+                auto handle = target_handles_[next->target.index];
+                cell_.deliver_event(handle, next->weight);
                 // apply events that are due within some epsilon of the current
                 // time step. This should be a parameter. e.g. with for variable
                 // order time stepping, use the minimum possible time step size.
                 while(auto e = events_.pop_if_before(cell_.time()+dt/10.)) {
-                    cell_.apply_event(e.get());
+                    auto handle = target_handles_[e->target.index];
+                    cell_.deliver_event(handle, e->weight);
                 }
             }
-                nest::mc::util::profiler_leave();
+            PL();
         }
 
     }
@@ -132,18 +130,12 @@ public:
     template <typename R>
     void enqueue_events(const R& events) {
         for (auto e : events) {
-            e.target -= first_target_gid_;
             events_.push(e);
         }
     }
 
-    const std::vector<communication::spike<index_type>>&
-    spikes() const {
-        return spikes_;
-    }
-
-    cell_type&       cell()       { return cell_; }
-    const cell_type& cell() const { return cell_; }
+    const std::vector<spike<source_id_type, time_type>>&
+    spikes() const { return spikes_; }
 
     const std::vector<spike_source_type>&
     spike_sources() const {
@@ -154,38 +146,76 @@ public:
         spikes_.clear();
     }
 
-    void add_sampler(const sampler& s, float start_time = 0) {
+    void clear_events() {
+        events_.clear();
+    }
+
+    void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
+        EXPECTS(probe_id.gid==gid_base_);
         auto sampler_index = uint32_t(samplers_.size());
-        samplers_.push_back(s);
+        samplers_.push_back({probe_handles_[probe_id.index], s});
+        sampler_start_times_.push_back(start_time);
         sample_events_.push({sampler_index, start_time});
     }
 
-private:
+    void remove_samplers() {
+        sample_events_.clear();
+        samplers_.clear();
+        sampler_start_times_.clear();
+    }
 
+    void reset_samplers() {
+        // clear all pending sample events and reset to start at time 0
+        sample_events_.clear();
+        for(uint32_t i=0u; i<samplers_.size(); ++i) {
+            sample_events_.push({i, sampler_start_times_[i]});
+        }
+    }
+
+    value_type probe(cell_member_type probe_id) const {
+        return cell_.probe(probe_handles_[probe_id.index]);
+    }
+
+private:
+    /// gid of first cell in group
+    cell_gid_type gid_base_;
 
     /// the lowered cell state (e.g. FVM) of the cell
-    cell_type cell_;
+    lowered_cell_type cell_;
 
     /// spike detectors attached to the cell
     std::vector<spike_source_type> spike_sources_;
 
-    //. spikes that are generated
-    std::vector<communication::spike<index_type>> spikes_;
+    /// spikes that are generated
+    std::vector<spike<source_id_type, time_type>> spikes_;
 
     /// pending events to be delivered
-    event_queue<postsynaptic_spike_event> events_;
+    event_queue<postsynaptic_spike_event<time_type>> events_;
 
     /// pending samples to be taken
-    event_queue<sample_event> sample_events_;
+    event_queue<sample_event<time_type>> sample_events_;
+    std::vector<time_type> sampler_start_times_;
 
     /// the global id of the first target (e.g. a synapse) in this group
     index_type first_target_gid_;
- 
-    /// the global id of the first probe in this group
-    index_type first_probe_gid_;
+
+    /// handles for accessing lowered cell
+    using detector_handle = typename lowered_cell_type::detector_handle;
+    std::vector<detector_handle> detector_handles_;
+
+    using target_handle = typename lowered_cell_type::target_handle;
+    std::vector<target_handle> target_handles_;
+
+    using probe_handle = typename lowered_cell_type::probe_handle;
+    std::vector<probe_handle> probe_handles_;
+
+    struct sampler_entry {
+        typename lowered_cell_type::probe_handle handle;
+        sampler_function sampler;
+    };
 
     /// collection of samplers to be run against probes in this group
-    std::vector<sampler> samplers_;
+    std::vector<sampler_entry> samplers_;
 };
 
 } // namespace mc

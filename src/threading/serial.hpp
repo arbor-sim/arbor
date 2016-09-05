@@ -4,9 +4,11 @@
     #error "this header can only be loaded if WITH_SERIAL is set"
 #endif
 
+#include <algorithm>
 #include <array>
 #include <chrono>
 #include <string>
+#include <vector>
 
 namespace nest {
 namespace mc {
@@ -19,7 +21,9 @@ template <typename T>
 class enumerable_thread_specific {
     std::array<T, 1> data;
 
-    public :
+public :
+    using iterator = typename std::array<T, 1>::iterator;
+    using const_iterator = typename std::array<T, 1>::const_iterator;
 
     enumerable_thread_specific() = default;
 
@@ -36,11 +40,14 @@ class enumerable_thread_specific {
 
     auto size() -> decltype(data.size()) const { return data.size(); }
 
-    auto begin() -> decltype(data.begin()) { return data.begin(); }
-    auto end()   -> decltype(data.end())   { return data.end(); }
+    iterator begin() { return data.begin(); }
+    iterator end()   { return data.end(); }
 
-    auto cbegin() -> decltype(data.cbegin()) const { return data.cbegin(); }
-    auto cend()   -> decltype(data.cend())   const { return data.cend(); }
+    const_iterator begin() const { return data.begin(); }
+    const_iterator end()   const { return data.end(); }
+
+    const_iterator cbegin() const { return data.cbegin(); }
+    const_iterator cend()   const { return data.cend(); }
 };
 
 
@@ -55,6 +62,24 @@ struct parallel_for {
         }
     }
 };
+
+template <typename RandomIt>
+void sort(RandomIt begin, RandomIt end) {
+    std::sort(begin, end);
+}
+
+template <typename RandomIt, typename Compare>
+void sort(RandomIt begin, RandomIt end, Compare comp) {
+    std::sort(begin, end, comp);
+}
+
+template <typename Container>
+void sort(Container& c) {
+    std::sort(c.begin(), c.end());
+}
+
+template <typename T>
+using parallel_vector = std::vector<T>;
 
 inline std::string description() {
     return "serial";
@@ -78,6 +103,34 @@ struct timer {
 
 constexpr bool multithreaded() { return false; }
 
+/// Proxy for tbb task group.
+/// The tbb version launches tasks asynchronously, returning control to the
+/// caller. The serial version implemented here simply runs the task, before
+/// returning control, effectively serializing all asynchronous calls.
+class task_group {
+public:
+    task_group() = default;
+
+    template<typename Func>
+    void run(const Func& f) {
+        f();
+    }
+
+    template<typename Func>
+    void run_and_wait(const Func& f) {
+        f();
+    }
+
+    void wait()
+    {}
+
+    bool is_canceling() {
+        return false;
+    }
+
+    void cancel()
+    {}
+};
 
 } // threading
 } // mc

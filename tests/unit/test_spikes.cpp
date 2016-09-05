@@ -1,10 +1,11 @@
 #include "gtest.h"
 
-#include <communication/spike.hpp>
-#include <communication/spike_source.hpp>
+#include <spike.hpp>
+#include <spike_source.hpp>
 
 struct cell_proxy {
-    double voltage(nest::mc::segment_location loc) const {
+    using detector_handle = int;
+    double detector_voltage(detector_handle) const {
         return v;
     }
 
@@ -15,16 +16,17 @@ TEST(spikes, spike_detector)
 {
     using namespace nest::mc;
     using detector_type = spike_detector<cell_proxy>;
+    using detector_handle = cell_proxy::detector_handle;
+
     cell_proxy proxy;
     float threshold = 10.f;
     float t  = 0.f;
     float dt = 1.f;
-    auto loc = segment_location(1, 0.1);
+    detector_handle handle{};
 
-    auto detector = detector_type(proxy, loc, threshold, t);
+    auto detector = detector_type(proxy, handle, threshold, t);
 
     EXPECT_FALSE(detector.is_spiking());
-    EXPECT_EQ(loc, detector.location());
     EXPECT_EQ(proxy.v, detector.v());
     EXPECT_EQ(t, detector.t());
 
@@ -35,7 +37,6 @@ TEST(spikes, spike_detector)
         EXPECT_FALSE(spike);
 
         EXPECT_FALSE(detector.is_spiking());
-        EXPECT_EQ(loc, detector.location());
         EXPECT_EQ(proxy.v, detector.v());
         EXPECT_EQ(t, detector.t());
     }
@@ -49,7 +50,6 @@ TEST(spikes, spike_detector)
         EXPECT_EQ(spike.get(), 1.5);
 
         EXPECT_TRUE(detector.is_spiking());
-        EXPECT_EQ(loc, detector.location());
         EXPECT_EQ(proxy.v, detector.v());
         EXPECT_EQ(t, detector.t());
     }
@@ -62,7 +62,6 @@ TEST(spikes, spike_detector)
         EXPECT_FALSE(spike);
 
         EXPECT_FALSE(detector.is_spiking());
-        EXPECT_EQ(loc, detector.location());
         EXPECT_EQ(proxy.v, detector.v());
         EXPECT_EQ(t, detector.t());
     }
