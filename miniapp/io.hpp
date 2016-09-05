@@ -51,7 +51,7 @@ public:
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
-cl_options read_options(int argc, char** argv);
+cl_options read_options(int argc, char** argv, bool allow_write = true);
 
 
 } // namespace io

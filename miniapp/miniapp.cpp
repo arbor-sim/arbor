@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
         banner();
 
         // read parameters
-        io::cl_options options = io::read_options(argc, argv);
+        io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
         std::cout << options << "\n";
         std::cout << "\n";
         std::cout << ":: simulation to " << options.tfinal << " ms in "

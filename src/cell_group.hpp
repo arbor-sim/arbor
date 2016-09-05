@@ -11,6 +11,7 @@
 #include <event_queue.hpp>
 #include <spike.hpp>
 #include <spike_source.hpp>
+#include <util/debug.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
 
@@ -130,7 +131,7 @@ public:
                 // time step. This should be a parameter. e.g. with for variable
                 // order time stepping, use the minimum possible time step size.
                 while(auto e = events_.pop_if_before(cell_.time()+dt/10.)) {
-                    auto handle = get_target_handle(next->target);
+                    auto handle = get_target_handle(e->target);
                     cell_.deliver_event(handle, e->weight);
                 }
             }

@@ -332,13 +332,16 @@ range<const T*> singleton_view(const T& item) {
  */
 
 template <typename Container, typename Seq>
-void append(Container &c, const Seq& seq) {
-    c.insert(c.end(), seq.begin(), seq.end());
+Container& append(Container &c, const Seq& seq) {
+    auto canon = canonical_view(seq);
+    c.insert(c.end(), std::begin(canon), std::end(canon));
+    return c;
 }
 
 template <typename AssignableContainer, typename Seq>
 AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
-    c.assign(seq.begin(), seq.end());
+    auto canon = canonical_view(seq);
+    c.assign(std::begin(canon), std::end(canon));
     return c;
 }
 

@@ -110,7 +110,7 @@ static void update_option(util::optional<T>& opt, const nlohmann::json& j, const
 }
 
 // Read options from (optional) json file and command line arguments.
-cl_options read_options(int argc, char** argv) {
+cl_options read_options(int argc, char** argv, bool allow_write) {
 
     // Default options:
     const cl_options defopts{
@@ -271,7 +271,7 @@ cl_options read_options(int argc, char** argv) {
     }
 
     // Save option values if requested.
-    if (save_file != "") {
+    if (save_file != "" && allow_write) {
         std::ofstream fid(save_file);
         if (fid) {
             try {
@@ -284,6 +284,8 @@ cl_options read_options(int argc, char** argv) {
                 fopts["dt"] = options.dt;
                 fopts["tfinal"] = options.tfinal;
                 fopts["all_to_all"] = options.all_to_all;
+                fopts["ring"] = options.ring;
+                fopts["group_size"] = options.group_size;
                 fopts["probe_ratio"] = options.probe_ratio;
                 fopts["probe_soma_only"] = options.probe_soma_only;
                 fopts["trace_prefix"] = options.trace_prefix;
@@ -316,6 +318,8 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  simulation time      : " << options.tfinal << "\n";
     o << "  dt                   : " << options.dt << "\n";
     o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
+    o << "  ring network         : " << (options.ring ? "yes" : "no") << "\n";
+    o << "  group size           : " << options.group_size << "\n";
     o << "  probe ratio          : " << options.probe_ratio << "\n";
     o << "  probe soma only      : " << (options.probe_soma_only ? "yes" : "no") << "\n";
     o << "  trace prefix         : " << options.trace_prefix << "\n";

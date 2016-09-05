@@ -19,6 +19,7 @@
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util.hpp>
+#include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/partition.hpp>
 #include <util/span.hpp>
