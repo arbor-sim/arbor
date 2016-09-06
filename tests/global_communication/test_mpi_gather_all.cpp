@@ -17,7 +17,7 @@ struct big_thing {
     big_thing(int i): value_(i) {}
 
     bool operator==(const big_thing& other) const {
-        return value_==other.value_ && !memcmp(salt_, other.salt_, sizeof(salt_));
+        return value_==other.value_ && !std::memcmp(salt_, other.salt_, sizeof(salt_));
     }
 
     bool operator!=(const big_thing& other) const {

@@ -24,14 +24,15 @@ struct catalogue {
         const std::string& name,
         view_type vec_v,
         view_type vec_i,
-        Indices node_indices)
+        Indices& node_indices)
     {
         auto entry = mech_map.find(name);
         if (entry==mech_map.end()) {
             throw std::out_of_range("no such mechanism");
         }
 
-        return entry->second(vec_v, vec_i, index_view{node_indices});
+        auto node_view = index_view{node_indices};
+        return entry->second(vec_v, vec_i, node_view);
     }
 
     static bool has(const std::string& name) {

@@ -136,7 +136,7 @@ public:
 private:
     std::size_t cell_group_index(cell_gid_type cell_gid) const {
         EXPECTS(is_local_cell(cell_gid));
-        return cell_gid_partition_.find(cell_gid)-cell_gid_partition_.begin();
+        return cell_gid_partition_.index(cell_gid);
     }
 
     std::vector<connection_type> connections_;

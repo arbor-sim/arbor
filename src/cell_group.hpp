@@ -249,13 +249,13 @@ private:
 
     /// use handle partition to get index from id
     template <typename Divisions>
-    std::size_t handle_partition_lookup(const Divisions& divisions_, cell_member_type id) const {
+    std::size_t handle_partition_lookup(const Divisions& divisions, cell_member_type id) const {
         // NB: without any assertion checking, this would just be:
-        // return divisions_[id.gid-gid_base_]+id.index;
+        // return divisions[id.gid-gid_base_]+id.index;
 
         EXPECTS(id.gid>=gid_base_);
 
-        auto handle_partition = util::partition_view(divisions_);
+        auto handle_partition = util::partition_view(divisions);
         EXPECTS(id.gid-gid_base_<handle_partition.size());
 
         auto ival = handle_partition[id.gid-gid_base_];

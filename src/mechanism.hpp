@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
+#include <util/meta.hpp>
 
 #include "indexed_view.hpp"
 #include "ion.hpp"
@@ -16,9 +18,7 @@ enum class mechanismKind {point, density};
 
 template <typename T, typename I>
 class mechanism {
-
 public:
-
     using value_type  = T;
     using size_type   = I;
 
@@ -31,11 +31,8 @@ public:
 
     using ion_type    = ion<value_type, size_type>;
 
-    mechanism(view_type vec_v, view_type vec_i, index_view node_index)
-    :   vec_v_(vec_v)
-    ,   vec_i_(vec_i)
-    ,   node_index_(node_index)
-    ,   vec_area_(nullptr, 0)
+    mechanism(view_type vec_v, view_type vec_i, index_view node_index):
+        vec_v_(vec_v), vec_i_(vec_i), node_index_(node_index), vec_area_(nullptr, 0)
     {}
 
     std::size_t size() const

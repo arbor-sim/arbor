@@ -36,6 +36,8 @@ public:
     using base::back;
     using base::empty;
 
+    // `npos` is returned by the `index()` method if the search fails;
+    // analogous to `std::string::npos`.
     static constexpr size_type npos = static_cast<size_type>(-1);
 
     partition_range() = default;
