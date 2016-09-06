@@ -44,7 +44,7 @@ upto(I iter, E end) {
 }
 
 template <typename I, typename E,
-          typename C = typename common_random_access_iterator<I,E>::type>
+          typename C = common_random_access_iterator_t<I,E>>
 enable_if_t<std::is_same<I, E>::value ||
             (has_common_random_access_iterator<I,E>::value &&
              is_forward_iterator<I>::value),
