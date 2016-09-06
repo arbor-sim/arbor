@@ -29,11 +29,18 @@ class partition_range: public range<partition_iterator<I>> {
 public:
     using typename base::iterator;
     using typename base::value_type;
+    using typename base::size_type;
     using base::left;
     using base::right;
     using base::front;
     using base::back;
     using base::empty;
+
+    // `npos` is returned by the `index()` method if the search fails;
+    // analogous to `std::string::npos`.
+    static constexpr size_type npos = static_cast<size_type>(-1);
+
+    partition_range() = default;
 
     template <typename Seq>
     partition_range(const Seq& s): base{std::begin(s), upto(std::begin(s), std::end(s))} {
@@ -60,6 +67,11 @@ public:
             return right;
         }
         return iterator{std::prev(i)};
+    }
+
+    size_type index(const inner_value_type& x) const {
+        iterator i = find(x);
+        return i==right? npos: i-left;
     }
 
     // access to underlying divisions

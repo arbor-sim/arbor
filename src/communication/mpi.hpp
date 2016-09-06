@@ -11,6 +11,7 @@
 
 #include <algorithms.hpp>
 #include <communication/gathered_vector.hpp>
+#include <util/debug.hpp>
 
 namespace nest {
 namespace mc {
@@ -97,7 +98,7 @@ namespace mpi {
     }
 
     template <typename T>
-    std::vector<T> gather_all(const std::vector<T> &values) {
+    std::vector<T> gather_all(const std::vector<T>& values) {
         static_assert(
             true,//std::is_trivially_copyable<T>::value,
             "gather_all can only be performed on trivally copyable types");
@@ -148,6 +149,10 @@ namespace mpi {
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
         );
+
+        for (auto& d : displs) {
+            d /= traits::count();
+        }
 
         return gathered_type(
             std::move(buffer),

@@ -172,6 +172,42 @@ range<const T*> singleton_view(const T& item) {
     return {&item, &item+1};
 }
 
+/*
+ * Range/container utility functions
+ */
+
+template <typename Container, typename Seq>
+Container& append(Container &c, const Seq& seq) {
+    auto canon = canonical_view(seq);
+    c.insert(c.end(), std::begin(canon), std::end(canon));
+    return c;
+}
+
+template <typename AssignableContainer, typename Seq>
+AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
+    auto canon = canonical_view(seq);
+    c.assign(std::begin(canon), std::end(canon));
+    return c;
+}
+
+template <typename Seq>
+range<typename sequence_traits<Seq>::iterator_type, typename sequence_traits<Seq>::sentinel_type>
+range_view(Seq& seq) {
+    return make_range(std::begin(seq), std::end(seq));
+}
+
+template <
+    typename Seq,
+    typename Iter = typename sequence_traits<Seq>::iterator_type,
+    typename Size = typename sequence_traits<Seq>::size_type
+>
+enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
+subrange_view(Seq& seq, Size bi, Size ei) {
+    Iter b = std::next(std::begin(seq), bi);
+    Iter e = std::next(b, ei-bi);
+    return make_range(b, e);
+}
+
 } // namespace util
 } // namespace mc
 } // namespace nest

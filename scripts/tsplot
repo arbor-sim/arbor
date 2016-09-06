@@ -33,13 +33,19 @@ def parse_clargs():
     P.add_argument('inputs', metavar='FILE', nargs='+',
                    help='time series data in JSON format')
     P.add_argument('-t', '--trange', metavar='RANGE', dest='trange',
-                   type=parse_range_spec, 
+                   type=parse_range_spec,
                    help='restrict time axis to RANGE (see below)')
     P.add_argument('-g', '--group', metavar='KEY,...', dest='groupby',
-                   type=lambda s: s.split(','), 
+                   type=lambda s: s.split(','),
                    help='plot series with same KEYs on the same axes')
     P.add_argument('-o', '--output', metavar='FILE', dest='outfile',
                    help='save plot to file FILE')
+    P.add_argument('--dpi', metavar='NUM', dest='dpi',
+                   type=int,
+                   help='set dpi for output image')
+    P.add_argument('--scale', metavar='NUM', dest='scale',
+                   type=float,
+                   help='scale size of output image by NUM')
     P.add_argument('-x', '--exclude', metavar='NUM', dest='exclude',
                    type=float,
                    help='remove extreme points outside NUM times the 0.9-interquantile range of the median')
@@ -82,7 +88,7 @@ class TimeSeries:
         l_, lq, median, uq, u_ = np.percentile(yfinite, [0, 5.0, 50.0, 95.0, 100])
         lb = median - iqr_factor*(uq-lq)
         ub = median + iqr_factor*(uq-lq)
-        
+
         np_err_save = np.seterr(all='ignore')
         yex = np.ma.masked_where(np.isfinite(self.y)&(self.y<=ub)&(self.y>=lb), self.y)
         np.seterr(**np_err_save)
@@ -104,7 +110,7 @@ class TimeSeries:
 
     def units(self):
         return self.meta.get('units',"")
-        
+
     def trange(self):
         return (min(self.t), max(self.t))
 
@@ -155,7 +161,7 @@ def read_json_timeseries(source):
         ts_list.append(TimeSeries(times, jdata[key], **meta))
 
     return ts_list
-        
+
 def range_join(r, s):
     return (min(r[0], s[0]), max(r[1], s[1]))
 
@@ -236,7 +242,7 @@ def make_palette(cm_name, n, cmin=0, cmax=1):
                                M.cm.get_cmap(cm_name))
     return [smap.to_rgba((2*i+1)/float(2*n)) for i in xrange(n)]
 
-def plot_plots(plot_groups, save=None):
+def plot_plots(plot_groups, save=None, dpi=None, scale=None):
     nplots = len(plot_groups)
     plot_groups = sorted(plot_groups, key=lambda g: g.group_label())
 
@@ -268,7 +274,7 @@ def plot_plots(plot_groups, save=None):
                 lab = unit
 
             return lab
-            
+
         uniq_units = list(set([s.units() for s in group.series]))
         uniq_units.sort()
         if len(uniq_units)>2:
@@ -297,7 +303,7 @@ def plot_plots(plot_groups, save=None):
                 cm, n in zip(['hot', 'winter'],  [len(x) for x in series_by_unit])]
 
         lines = cycle(["-",(0,(3,1))])
-        
+
         first_plot = True
         for ui in xrange(len(uniq_units)):
             if not first_plot:
@@ -310,7 +316,7 @@ def plot_plots(plot_groups, save=None):
 
             plot.get_yaxis().get_major_formatter().set_useOffset(False)
             plot.get_yaxis().set_major_locator(M.ticker.MaxNLocator(nbins=6))
-            
+
             plot.set_xlim(trange)
 
             colours = cycle(palette[ui])
@@ -336,10 +342,14 @@ def plot_plots(plot_groups, save=None):
     axis_ymin = min([ax.get_position().ymin for ax in figure.axes])
     figure.text(0.5, axis_ymin - float(3)/figure.dpi, 'time', ha='center', va='center')
     if save:
-        figure.savefig(save)
+        if scale:
+            base = figure.get_size_inches()
+            figure.set_size_inches((base[0]*scale, base[1]*scale))
+
+        figure.savefig(save, dpi=dpi)
     else:
         P.show()
-        
+
 args = parse_clargs()
 tss = []
 for filename in args.inputs:
@@ -360,4 +370,4 @@ plots = gather_ts_plots(tss, groupby)
 if not args.outfile:
     M.interactive(False)
 
-plot_plots(plots, save=args.outfile)
+plot_plots(plots, save=args.outfile, dpi=args.dpi, scale=args.scale)

@@ -21,6 +21,8 @@ struct cl_options {
     double tfinal;
     double dt;
     bool all_to_all;
+    bool ring;
+    uint32_t group_size;
     bool probe_soma_only;
     double probe_ratio;
     std::string trace_prefix;
@@ -49,7 +51,7 @@ public:
 
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
-cl_options read_options(int argc, char** argv);
+cl_options read_options(int argc, char** argv, bool allow_write = true);
 
 
 } // namespace io

@@ -78,5 +78,6 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
        (void)((condition) || \
        nest::mc::util::global_failed_assertion_handler(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
 #else
-    #define EXPECTS(condition)
+    #define EXPECTS(condition) \
+       (void)(false && (condition))
 #endif // def WITH_ASSERTIONS

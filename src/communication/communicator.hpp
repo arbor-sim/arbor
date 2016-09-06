@@ -13,6 +13,7 @@
 #include <spike.hpp>
 #include <util/debug.hpp>
 #include <util/double_buffer.hpp>
+#include <util/partition.hpp>
 
 namespace nest {
 namespace mc {
@@ -41,19 +42,18 @@ public:
     using event_queue =
         std::vector<postsynaptic_spike_event<time_type>>;
 
-    communicator() = default;
+    using gid_partition_type =
+        util::partition_range<std::vector<cell_gid_type>::const_iterator>;
 
-    // TODO
-    // for now, still assuming one-to-one association cells <-> groups,
-    // so that 'group' gids as represented by their first cell gid are
-    // contiguous.
-    communicator(id_type cell_from, id_type cell_to):
-        cell_gid_from_(cell_from), cell_gid_to_(cell_to)
+    communicator() {}
+
+    explicit communicator(gid_partition_type cell_gid_partition):
+        cell_gid_partition_(cell_gid_partition)
     {}
 
     cell_local_size_type num_groups_local() const
     {
-        return cell_gid_to_-cell_gid_from_;
+        return cell_gid_partition_.size();
     }
 
     void add_connection(connection_type con) {
@@ -63,7 +63,7 @@ public:
 
     /// returns true if the cell with gid is on the domain of the caller
     bool is_local_cell(id_type gid) const {
-        return gid>=cell_gid_from_ && gid<cell_gid_to_;
+        return algorithms::in_interval(gid, cell_gid_partition_.bounds());
     }
 
     /// builds the optimized data structure
@@ -135,9 +135,8 @@ public:
 
 private:
     std::size_t cell_group_index(cell_gid_type cell_gid) const {
-        // this will be more elaborate when there is more than one cell per cell group
-        EXPECTS(cell_gid>=cell_gid_from_ && cell_gid<cell_gid_to_);
-        return cell_gid-cell_gid_from_;
+        EXPECTS(is_local_cell(cell_gid));
+        return cell_gid_partition_.index(cell_gid);
     }
 
     std::vector<connection_type> connections_;
@@ -145,8 +144,8 @@ private:
     communication_policy_type communication_policy_;
 
     uint64_t num_spikes_ = 0u;
-    id_type cell_gid_from_;
-    id_type cell_gid_to_;
+
+    gid_partition_type cell_gid_partition_;
 };
 
 } // namespace communication
