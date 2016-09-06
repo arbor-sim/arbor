@@ -54,7 +54,7 @@ HPC resources that are a key part of the HBP platform will be hetergoneous, and 
 
 There is an effort to develop a HPC-specific version of the widely-used NEURON simulator that supports GPU and Intel Xeon Phi processors, however:
 \begin{itemize}
-    \item NEURON is large, complicated and poorly engineered. There is a strong argument that it is not possible to refactor the code effectively to provide both support for new hardware and a good platform for developing new algorithms.
+    \item NEURON is large, complicated and \hilight{poorly engineered}. There is a strong argument that it is not possible to refactor the code effectively to provide both support for new hardware and a good platform for developing new algorithms.
     \item The developers are unwilling to share their work or progress, which makes it impossible to understand the risk of relying on their efforts.
 \end{itemize}
 
@@ -66,14 +66,15 @@ There is an effort to develop a HPC-specific version of the widely-used NEURON s
 \begin{itemize}
     \item Facilitate multicompartment simulation ``at scale'' on all HPC systems available to researchers in the HBP.
     \item Performance portability: high performance of the delivered software on all target systems, and a forward-looking design that will be adaptable to future architectures.
-    \item Promote solutions for large scale detailed models on HBP compute resources.
     \item Promote open source solution with close collaboration inside and outside the HBP (i.e. the broader community).
+    \item Improve software engineering practice in HBP.
 \end{itemize}
 
 %-------------------------------------------------------------
 \section{Project Deliverables}
 %-------------------------------------------------------------
 The project will be considered a success if all of the following are delivered in full and on time.
+\hilight{might be a bit restrictive}.
 
 \subsection{Open source software product \nestmc}
 
@@ -84,7 +85,7 @@ The project will be considered a success if all of the following are delivered i
         \item   Hybrid NVIDIA GPU based nodes (both Intel x86 and IBM Power host processors)
         \item   Intel KNL
     \end{itemize}
-    \item   Source available openly on github (or similar platform).
+    \item   Source available openly on github (or similar platform). \hilight{not like CoreNeuron}
     \item   High quality documentation.
     \item   Comprehensive validation and unit testing framework.
     \item   Automated testing.
@@ -150,12 +151,12 @@ Given this, we aim to build a high-quality product with a modest feature set as 
         \item To give direct user input into the development and selection of features, so as to deliver a useful product.
     \end{itemize}
     However the project was started without one. Finding a collaborator inside HBP might be challenging politically, so we are also looking outside the HBP in the context of the Brain initiative.
-    \item \emph{The NEST Initiative will endorse NestMC}. This is not a given, particularly because the NEST Initiative was not consulted widely before starting the project. A key step will be communicating our intentions, and gaining the support of the NEST Initiative.
+    \item \emph{The NEST Initiative will endorse NestMC}. This is not a given, particularly because the NEST Initiative was not consulted widely before starting the project. A key step will be communicating our intentions, and gaining the support of the NEST Initiative. \hilight{motivate}
     \item \emph{A user community capable of taking over development will be in place}.
     Of the assumptions this is the weakest link.
     It is possible to develop the software and a scientific use case with the given time and resources, however building a community that is capable and willing to carry on development is quite unlikely.
     Plans should be made for evaluating the viability of the product toward the end of SGA1 to decide whether to continue funded development in subsequent phases of the HBP.
-
+    \hilight{motivate}
 \end{itemize}
 
 %-------------------------------------------------------------
