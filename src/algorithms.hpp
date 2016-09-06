@@ -254,7 +254,7 @@ std::vector<typename C::value_type> make_parent_index(
         return {};
     }
 
-    EXPECTS(parent_index.size() == branch_index.back());
+    EXPECTS(parent_index.size()-branch_index.back() == 0);
     EXPECTS(has_contiguous_compartments(parent_index));
     EXPECTS(is_strictly_monotonic_increasing(branch_index));
 
