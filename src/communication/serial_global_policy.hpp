@@ -15,7 +15,11 @@ struct serial_global_policy {
     template <typename Spike>
     static gathered_vector<Spike>
     gather_spikes(const std::vector<Spike>& local_spikes) {
-        return gathered_vector<Spike>(std::vector<Spike>(local_spikes), {0u, 1u});
+        using count_type = typename gathered_vector<Spike>::count_type;
+        return gathered_vector<Spike>(
+            std::vector<Spike>(local_spikes),
+            {0u, static_cast<count_type>(local_spikes.size())}
+        );
     }
 
     static int id() {

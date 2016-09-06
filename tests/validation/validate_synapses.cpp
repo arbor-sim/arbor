@@ -8,6 +8,7 @@
 #include <cell_group.hpp>
 #include <fvm_cell.hpp>
 #include <mechanism_interface.hpp>
+#include <util/range.hpp>
 
 #include "gtest.h"
 #include "../test_util.hpp"
@@ -108,7 +109,7 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
         std::vector<std::vector<double>> v(2);
 
         // make the lowered finite volume cell
-        cell_group<lowered_cell> group(0, cell);
+        cell_group<lowered_cell> group(0, util::singleton_view(cell));
 
         // add the 3 spike events to the queue
         group.enqueue_events(synthetic_events);

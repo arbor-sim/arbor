@@ -51,6 +51,17 @@ C make_index(C const& c)
     return out;
 }
 
+/// test for membership within half-open interval
+template <typename X, typename I, typename J>
+bool in_interval(const X& x, const I& lower, const J& upper) {
+    return x>=lower && x<upper;
+}
+
+template <typename X, typename I, typename J>
+bool in_interval(const X& x, const std::pair<I, J>& bounds) {
+    return x>=bounds.first && x<bounds.second;
+}
+
 /// works like std::is_sorted(), but with stronger condition that succesive
 /// elements must be greater than those before them
 template <typename C>
@@ -243,7 +254,7 @@ std::vector<typename C::value_type> make_parent_index(
         return {};
     }
 
-    EXPECTS(parent_index.size() == branch_index.back());
+    EXPECTS(parent_index.size()-branch_index.back() == 0);
     EXPECTS(has_contiguous_compartments(parent_index));
     EXPECTS(is_strictly_monotonic_increasing(branch_index));
 

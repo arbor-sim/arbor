@@ -4,6 +4,7 @@ set(HEADERS
 set(COMMUNICATION_SOURCES
     test_exporter_spike_file.cpp
     test_communicator.cpp
+    test_mpi_gather_all.cpp
 
     # unit test driver
     test.cpp

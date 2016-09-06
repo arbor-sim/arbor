@@ -9,10 +9,9 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <cell_group.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <mechanism_catalogue.hpp>
 #include <model.hpp>
@@ -29,7 +28,8 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
+using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+//using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using model_type = model<lowered_cell>;
 using time_type = model_type::time_type;
 using sample_trace_type = sample_trace<time_type, model_type::value_type>;
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
         banner();
 
         // read parameters
-        io::cl_options options = io::read_options(argc, argv);
+        io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
         std::cout << options << "\n";
         std::cout << "\n";
         std::cout << ":: simulation to " << options.tfinal << " ms in "
@@ -66,8 +66,16 @@ int main(int argc, char** argv) {
         auto recipe = make_recipe(options, pdist);
         auto cell_range = distribute_cells(recipe->num_cells());
 
+        std::vector<cell_gid_type> group_divisions;
+        for (auto i = cell_range.first; i<cell_range.second; i+=options.group_size) {
+            group_divisions.push_back(i);
+        }
+        group_divisions.push_back(cell_range.second);
 
-        model_type m(*recipe, cell_range.first, cell_range.second);
+        EXPECTS(group_divisions.front() == cell_range.first);
+        EXPECTS(group_divisions.back() == cell_range.second);
+
+        model_type m(*recipe, util::partition_view(group_divisions));
 
         auto register_exporter = [] (const io::cl_options& options) {
             return
@@ -182,6 +190,9 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
 
     if (options.all_to_all) {
         return make_basic_kgraph_recipe(options.cells, p, pdist);
+    }
+    else if (options.ring) {
+        return make_basic_ring_recipe(options.cells, p, pdist);
     }
     else {
         return make_basic_rgraph_recipe(options.cells, p, pdist);

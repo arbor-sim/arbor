@@ -1,27 +1,19 @@
 #include "gtest.h"
 
+#include <cell_group.hpp>
 #include <common_types.hpp>
 #include <fvm_cell.hpp>
-#include <cell_group.hpp>
+#include <util/range.hpp>
+
+#include "../test_common_cells.hpp"
 
 nest::mc::cell make_cell() {
     using namespace nest::mc;
 
-    nest::mc::cell cell;
-
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism(hh_parameters());
-
-    // add dendrite of length 200 um and diameter 1 um with passive channel
-    auto dendrite = cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
-    dendrite->add_mechanism(pas_parameters());
-    dendrite->set_compartments(101);
-
-    dendrite->mechanism("membrane").set("r_L", 100);
+    nest::mc::cell cell = make_cell_ball_and_stick();
 
     cell.add_detector({0, 0}, 0);
-    cell.add_stimulus({1, 1}, {5., 80., 0.3});
+    cell.segment(1)->set_compartments(101);
 
     return cell;
 }
@@ -31,7 +23,7 @@ TEST(cell_group, test)
     using namespace nest::mc;
 
     using cell_group_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
-    auto group = cell_group_type{0, make_cell()};
+    auto group = cell_group_type{0, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);
 
@@ -53,7 +45,7 @@ TEST(cell_group, sources)
     cell.add_detector({1, 0.3}, 2.3);
 
     cell_gid_type first_gid = 37u;
-    auto group = cell_group_type{first_gid, cell};
+    auto group = cell_group_type{first_gid, util::singleton_view(cell)};
 
     // expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero

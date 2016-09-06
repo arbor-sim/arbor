@@ -15,6 +15,8 @@
 #include <recipe.hpp>
 #include <thread_private_spike_store.hpp>
 #include <util/nop.hpp>
+#include <util/partition.hpp>
+#include <util/range.hpp>
 
 #include "trace_sampler.hpp"
 
@@ -37,27 +39,36 @@ public:
         probe_spec probe;
     };
 
-    model(const recipe& rec, cell_gid_type cell_from, cell_gid_type cell_to):
-        cell_from_(cell_from),
-        cell_to_(cell_to),
-        communicator_(cell_from, cell_to)
+    template <typename Iter>
+    model(const recipe& rec, const util::partition_range<Iter>& groups):
+        cell_group_divisions_(groups.divisions().begin(), groups.divisions().end())
     {
+        // set up communicator based on partition
+        communicator_ = communicator_type{gid_partition()};
+
         // generate the cell groups in parallel, with one task per cell group
-        cell_groups_ = std::vector<cell_group_type>{cell_to_-cell_from_};
+        cell_groups_ = std::vector<cell_group_type>{gid_partition().size()};
         threading::parallel_vector<probe_record> probes;
 
-        threading::parallel_for::apply(cell_from_, cell_to_,
+        threading::parallel_for::apply(0, cell_groups_.size(),
             [&](cell_gid_type i) {
                 PE("setup", "cells");
-                auto cell = rec.get_cell(i);
-                auto idx = i-cell_from_;
-                cell_groups_[idx] = cell_group_type(i, cell);
 
-                cell_lid_type j = 0;
-                for (const auto& probe: cell.probes()) {
-                    cell_member_type probe_id{i,j++};
-                    probes.push_back({probe_id, probe});
+                auto gids = gid_partition()[i];
+                std::vector<cell> cells{gids.second-gids.first};
+
+                for (auto gid: util::make_span(gids)) {
+                    auto i = gid-gids.first;
+                    cells[i] = rec.get_cell(gid);
+
+                    cell_lid_type j = 0;
+                    for (const auto& probe: cells[i].probes()) {
+                        cell_member_type probe_id{gid, j++};
+                        probes.push_back({probe_id, probe});
+                    }
                 }
+
+                cell_groups_[i] = cell_group_type(gids.first, cells);
                 PL(2);
             });
 
@@ -65,7 +76,7 @@ public:
         probes_.assign(probes.begin(), probes.end());
 
         // generate the network connections
-        for (cell_gid_type i=cell_from_; i<cell_to_; ++i) {
+        for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
             for (const auto& cc: rec.connections_on(i)) {
                 connection<time_type> conn{cc.source, cc.dest, cc.weight, cc.delay};
                 communicator_.add_connection(conn);
@@ -187,11 +198,11 @@ public:
     }
 
     void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
-        // TODO: translate probe_id.gid to appropriate group, but for now 1-1.
-        if (probe_id.gid<cell_from_ || probe_id.gid>=cell_to_) {
+        if (!algorithms::in_interval(probe_id.gid, gid_partition().bounds())) {
             return;
         }
-        cell_groups_[probe_id.gid-cell_from_].add_sampler(probe_id, f, tfrom);
+
+        cell_groups_[gid_partition().index(probe_id.gid)].add_sampler(probe_id, f, tfrom);
     }
 
     const std::vector<probe_record>& probes() const { return probes_; }
@@ -199,12 +210,14 @@ public:
     std::size_t num_spikes() const {
         return communicator_.num_spikes();
     }
+
     std::size_t num_groups() const {
         return cell_groups_.size();
     }
+
     std::size_t num_cells() const {
-        // TODO: fix when the assumption that there is one cell per cell group is no longer valid
-        return num_groups();
+        auto bounds = gid_partition().bounds();
+        return bounds.second-bounds.first;
     }
 
     // register a callback that will perform a export of the global
@@ -220,18 +233,22 @@ public:
     }
 
 private:
-    cell_gid_type cell_from_;
-    cell_gid_type cell_to_;
+    std::vector<cell_gid_type> cell_group_divisions_;
+
+    auto gid_partition() const -> decltype(util::partition_view(cell_group_divisions_)) {
+        return util::partition_view(cell_group_divisions_);
+    }
+
     time_type t_ = 0.;
     std::vector<cell_group_type> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
 
     using event_queue_type = typename communicator_type::event_queue;
-    util::double_buffer< std::vector<event_queue_type> > event_queues_;
+    util::double_buffer<std::vector<event_queue_type>> event_queues_;
 
     using local_spike_store_type = thread_private_spike_store<time_type>;
-    util::double_buffer< local_spike_store_type > local_spikes_;
+    util::double_buffer<local_spike_store_type> local_spikes_;
 
     spike_export_function global_export_callback_ = util::nop_function;
     spike_export_function local_export_callback_ = util::nop_function;

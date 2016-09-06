@@ -102,6 +102,7 @@ namespace mc {
         //  - value is not in the valid range
         bool set(std::string const& n, value_type v);
         parameter& get(std::string const& n);
+        const parameter& get(std::string const& n) const;
 
         std::string const& name() const;
 

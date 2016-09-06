@@ -5,42 +5,16 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
-#include <util/singleton.hpp>
+#include <util/range.hpp>
 
+#include "../test_common_cells.hpp"
 #include "../test_util.hpp"
 
 TEST(fvm, cable)
 {
     using namespace nest::mc;
 
-    nest::mc::cell cell;
-
-    cell.add_soma(6e-4); // 6um in cm
-
-    // 1um radius and 4mm long, all in cm
-    cell.add_cable(0, segmentKind::dendrite, 1e-4, 1e-4, 4e-1);
-    cell.add_cable(0, segmentKind::dendrite, 1e-4, 1e-4, 4e-1);
-
-    //std::cout << cell.segment(1)->area() << " is the area\n";
-    EXPECT_EQ(cell.model().tree.num_segments(), 3u);
-
-    // add passive to all 3 segments in the cell
-    for(auto& seg :cell.segments()) {
-        seg->add_mechanism(pas_parameters());
-    }
-
-    cell.soma()->add_mechanism(hh_parameters());
-    cell.segment(2)->add_mechanism(hh_parameters());
-
-    auto& soma_hh = cell.soma()->mechanism("hh");
-
-    soma_hh.set("gnabar", 0.12);
-    soma_hh.set("gkbar", 0.036);
-    soma_hh.set("gl", 0.0003);
-    soma_hh.set("el", -54.387);
-
-    cell.segment(1)->set_compartments(4);
-    cell.segment(2)->set_compartments(4);
+    nest::mc::cell cell = make_cell_ball_and_3sticks();
 
     using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
 
@@ -53,7 +27,8 @@ TEST(fvm, cable)
 
     auto& J = fvcell.jacobian();
 
-    EXPECT_EQ(cell.num_compartments(), 9u);
+    // 1 (soma) + 3 (dendritic segments) × 4 compartments
+    EXPECT_EQ(cell.num_compartments(), 13u);
 
     // assert that the matrix has one row for each compartment
     EXPECT_EQ(J.size(), cell.num_compartments());
@@ -69,20 +44,10 @@ TEST(fvm, init)
 {
     using namespace nest::mc;
 
-    nest::mc::cell cell;
-
-    cell.add_soma(12.6157/2.0);
-    //auto& props = cell.soma()->properties;
-
-    cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
+    nest::mc::cell cell = make_cell_ball_and_stick();
 
     const auto m = cell.model();
     EXPECT_EQ(m.tree.num_segments(), 2u);
-
-    // in this context (i.e. attached to a segment on a high-level cell)
-    // a mechanism is essentially a set of parameters
-    // - the only "state" is that used to define parameters
-    cell.soma()->add_mechanism(hh_parameters());
 
     auto& soma_hh = cell.soma()->mechanism("hh");
 
@@ -112,4 +77,3 @@ TEST(fvm, init)
 
     fvcell.setup_matrix(0.01);
 }
-

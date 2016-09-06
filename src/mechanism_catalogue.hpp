@@ -18,19 +18,22 @@ template <typename T, typename I>
 struct catalogue {
     using view_type = typename mechanism<T, I>::view_type;
     using index_view = typename mechanism<T, I>::index_view;
+    using const_index_view = typename mechanism<T, I>::const_index_view;
 
+    template <typename Indices>
     static mechanism_ptr<T, I> make(
         const std::string& name,
         view_type vec_v,
         view_type vec_i,
-        index_view node_indices)
+        Indices const& node_indices)
     {
         auto entry = mech_map.find(name);
         if (entry==mech_map.end()) {
             throw std::out_of_range("no such mechanism");
         }
 
-        return entry->second(vec_v, vec_i, node_indices);
+        const_index_view node_view(node_indices);
+        return entry->second(vec_v, vec_i, node_view);
     }
 
     static bool has(const std::string& name) {
@@ -38,11 +41,15 @@ struct catalogue {
     }
 
 private:
-    using maker_type = mechanism_ptr<T, I> (*)(view_type, view_type, index_view);
+    using maker_type = mechanism_ptr<T, I> (*)(view_type, view_type, const_index_view);
     static const std::map<std::string, maker_type> mech_map;
 
     template <template <typename, typename> class mech>
-    static mechanism_ptr<T, I> maker(view_type vec_v, view_type vec_i, index_view node_indices) {
+    static mechanism_ptr<T, I> maker(
+        view_type vec_v,
+        view_type vec_i,
+        const_index_view node_indices)
+    {
         return make_mechanism<mech<T, I>>(vec_v, vec_i, node_indices);
     }
 };
