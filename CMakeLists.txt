@@ -39,6 +39,13 @@ if(WITH_TBB)
     add_definitions(-DWITH_TBB)
 endif()
 
+# CUDA support
+set(WITH_CUDA OFF CACHE BOOL "use CUDA for GPU offload" )
+if(WITH_CUDA)
+    find_package(CUDA REQUIRED)
+    add_definitions(-DWITH_CUDA)
+endif()
+
 # MPI support
 set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
 if(WITH_MPI)

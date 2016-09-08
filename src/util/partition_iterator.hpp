@@ -21,8 +21,11 @@ namespace util {
 
 template <typename I>
 class partition_iterator: public iterator_adaptor<partition_iterator<I>, I> {
+    // TODO : dirty workaround to make inner_ public by making everything public
+public:
     using base = iterator_adaptor<partition_iterator<I>, I>;
     friend class iterator_adaptor<partition_iterator<I>, I>;
+
     I inner_;
 
     // provides access to inner iterator for adaptor.
@@ -31,7 +34,6 @@ class partition_iterator: public iterator_adaptor<partition_iterator<I>, I> {
 
     using inner_value_type = decay_t<decltype(*inner_)>;
 
-public:
     using typename base::difference_type;
     using value_type = std::pair<inner_value_type, inner_value_type>;
     using pointer = const value_type*;

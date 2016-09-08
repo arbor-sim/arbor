@@ -97,7 +97,7 @@ namespace detail {
     };
 } // namespace detail
 
-constexpr std::size_t variant_npos = -1; // emulating C++17 variant type 
+constexpr std::size_t variant_npos = static_cast<std::size_t>(-1); // emulating C++17 variant type 
 
 template <typename A, typename B>
 class either: public detail::either_data<A, B> {

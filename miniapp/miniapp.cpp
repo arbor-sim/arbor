@@ -46,6 +46,10 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix 
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
+#ifdef WITH_CUDA
+    
+#endif
+
     try {
         std::cout << util::mask_stream(global_policy::id()==0);
         banner();

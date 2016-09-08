@@ -1,15 +1,26 @@
 set(HEADERS
 )
 set(MINIAPP_SOURCES
-    io.cpp
     miniapp.cpp
+    io.cpp
+    miniapp_recipes.cpp
+)
+set(MINIAPP_SOURCES_CUDA
+    miniapp.cu
+    io.cpp
     miniapp_recipes.cpp
 )
 
-add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
+if(WITH_CUDA)
+    cuda_add_executable(miniapp.exe ${MINIAPP_SOURCES_CUDA} ${HEADERS})
+else()
+    add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
+endif()
 
-target_link_libraries(miniapp.exe LINK_PUBLIC cellalgo)
-target_link_libraries(miniapp.exe LINK_PUBLIC ${TBB_LIBRARIES})
+#target_link_libraries(miniapp.exe LINK_PUBLIC cellalgo)
+#target_link_libraries(miniapp.exe LINK_PUBLIC ${TBB_LIBRARIES})
+
+target_link_libraries(miniapp.exe cellalgo)
 
 if(WITH_MPI)
     target_link_libraries(miniapp.exe LINK_PUBLIC ${MPI_C_LIBRARIES})

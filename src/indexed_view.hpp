@@ -10,7 +10,7 @@ struct indexed_view {
     using value_type      = T;
     using size_type       = I;
     using view_type       = typename memory::HostVector<T>::view_type;
-    using index_view_type = typename memory::HostVector<I>::view_type;;
+    using index_view_type = typename memory::HostVector<I>::view_type;
 
     view_type       view;
     index_view_type index; // TODO make this a const view

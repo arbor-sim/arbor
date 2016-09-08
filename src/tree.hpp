@@ -143,7 +143,7 @@ public:
         new_tree.init(num_nodes());
 
         // add the root node
-        new_tree.parents_[0] = -1;
+        new_tree.parents_[0] = no_parent;
         new_tree.child_index_[0] = 0;
 
         // allocate space for the permutation vector that
