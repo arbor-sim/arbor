@@ -96,33 +96,30 @@ TEST(range, empty) {
     EXPECT_EQ(0u, empty_range_rr.size());
 }
 
-template<typename I, typename E, typename = void>
-struct util_distance_enabled : public std::false_type {};
+// This is the same test for enabling the incrementing util::distance
+// implementation.
+template <typename I, typename E>
+constexpr bool uses_incrementing_distance() {
+    return !util::has_common_random_access_iterator<I, E>::value &&
+        util::is_forward_iterator<I>::value;
+}
 
-// This is the same test for enabling util::distance
-template<typename I, typename E>
-struct util_distance_enabled<
-    I, E, util::void_t<
-              util::enable_if_t<
-                  !util::has_common_random_access_iterator<I, E>::value &&
-                  util::is_forward_iterator<I>::value
-    >>> : public std::true_type {};
+TEST(range, size_implementation) {
+    ASSERT_TRUE((uses_incrementing_distance<
+                     std::list<int>::iterator,
+                      std::list<int>::const_iterator
+                >()));
 
-TEST(range, size) {
-    static_assert(util_distance_enabled<
-                  typename std::list<int>::iterator,
-                  typename std::list<int>::const_iterator>::value,
-                  "util::distance not enabled");
-    static_assert(!util_distance_enabled<
-                  typename std::vector<int>::const_iterator,
-                  typename std::vector<int>::iterator>::value,
-                  "util::distance erroneously enabled");
-    static_assert(!util_distance_enabled<int*, int*>::value,
-                  "util::distance erroneously enabled");
-    static_assert(!util_distance_enabled<int*, const int*>::value,
-                  "util::distance erroneously enabled");
-    static_assert(!util_distance_enabled<const int*, int*>::value,
-                  "util::distance erroneously enabled");
+    ASSERT_FALSE((uses_incrementing_distance<
+                      std::vector<int>::iterator,
+                      std::vector<int>::const_iterator
+                >()));
+
+    ASSERT_FALSE((uses_incrementing_distance<int*, int*>()));
+
+    ASSERT_FALSE((uses_incrementing_distance<const int*, int*>()));
+
+    ASSERT_FALSE((uses_incrementing_distance<int*, const int*>()));
 }
 
 TEST(range, input_iterator) {
@@ -228,7 +225,7 @@ TYPED_TEST_P(counter_range, size) {
     auto r = counter{signed_int_type{3}};
     auto range = util::make_range(l, r);
     EXPECT_FALSE(range.empty());
-    EXPECT_EQ(6, range.size());
+    EXPECT_EQ(6u, range.size());
 
 }
 

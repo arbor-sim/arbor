@@ -171,13 +171,22 @@ struct common_random_access_iterator<
     >;
 };
 
-template <typename I, typename E, typename = void>
-struct has_common_random_access_iterator: public std::false_type {};
-
 template <typename I, typename E>
-struct has_common_random_access_iterator<
-    I, E, void_t<typename common_random_access_iterator<I, E>::type>
-> : public std::true_type {};
+using common_random_access_iterator_t = typename common_random_access_iterator<I, E>::type;
+
+// NB: using this version of SFINAE instead of a void default template
+// parameter because of a bug in gcc 4.9.3.
+template <typename I, typename E>
+struct has_common_random_access_iterator {
+private:
+    constexpr static bool test(...) { return false; }
+
+    template <typename U = I>
+    constexpr static bool test(typename common_random_access_iterator<U, E>::type*) { return true; }
+
+public:
+    constexpr static bool value = test(nullptr);
+};
 
 
 
