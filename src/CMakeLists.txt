@@ -17,3 +17,5 @@ endif()
 add_library(cellalgo ${BASE_SOURCES} ${HEADERS})
 add_dependencies(cellalgo build_all_mods)
 
+add_subdirectory(vector)
+

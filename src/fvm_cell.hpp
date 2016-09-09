@@ -21,7 +21,7 @@
 #include <util.hpp>
 #include <util/meta.hpp>
 
-#include <vector/include/Vector.hpp>
+#include <vector/Vector.hpp>
 
 /*
  * Lowered cell implementation based on finite volume method.

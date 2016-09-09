@@ -1,7 +1,7 @@
 #pragma once
 
 #include <type_traits>
-#include <vector/include/Vector.hpp>
+#include <vector/Vector.hpp>
 
 #include "util.hpp"
 #include "util/debug.hpp"

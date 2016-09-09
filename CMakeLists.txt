@@ -44,6 +44,18 @@ set(WITH_CUDA OFF CACHE BOOL "use CUDA for GPU offload" )
 if(WITH_CUDA)
     find_package(CUDA REQUIRED)
     add_definitions(-DWITH_CUDA)
+    # the vector library has a compiled component when using the CUDA backend
+    include(ExternalProject)
+    externalproject_add(vector
+        PREFIX ${CMAKE_BINARY_DIR}/external
+        CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
+                   "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
+                   "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
+        STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
+        TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
+    )
 endif()
 
 # MPI support
@@ -108,7 +120,6 @@ if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
     set(use_external_modcc ON)
     set(modcc "${CMAKE_BINARY_DIR}/external/bin/modcc")
 endif()
-
 
 include_directories(${CMAKE_SOURCE_DIR}/external)
 include_directories(${CMAKE_SOURCE_DIR}/external/tclap/include)

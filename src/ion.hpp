@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector/include/Vector.hpp>
+#include <vector/Vector.hpp>
 
 #include "indexed_view.hpp"
 

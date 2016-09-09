@@ -13,6 +13,7 @@ set(MINIAPP_SOURCES_CUDA
 
 if(WITH_CUDA)
     cuda_add_executable(miniapp.exe ${MINIAPP_SOURCES_CUDA} ${HEADERS})
+    target_link_libraries(miniapp.exe gpu)
 else()
     add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 endif()
