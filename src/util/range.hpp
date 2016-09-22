@@ -140,7 +140,7 @@ struct range {
         return is_forward_iterator<U>::value && left != right && std::next(left) != right;
     }
 
-    static const bool is_splittable_in_proportion() {
+    static constexpr bool is_splittable_in_proportion() {
         return is_forward_iterator<U>::value;
     }
 #endif
