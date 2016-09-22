@@ -35,6 +35,7 @@
 #include <util/either.hpp>
 #include <util/iterutil.hpp>
 #include <util/meta.hpp>
+#include <util/sentinel.hpp>
 
 namespace nest {
 namespace mc {
@@ -66,7 +67,7 @@ struct range {
     range& operator=(const range&) = default;
     range& operator=(range&&) = default;
 
-    bool empty() const { return left==right; }
+    bool empty() const { return left == right; }
 
     iterator begin() const { return left; }
     const_iterator cbegin() const { return left; }
@@ -77,10 +78,12 @@ struct range {
     template <typename V = iterator>
     enable_if_t<is_forward_iterator<V>::value, size_type>
     size() const {
-        return std::distance(begin(), end());
+        return util::distance(begin(), end());
     }
 
-    constexpr size_type max_size() const { return std::numeric_limits<size_type>::max(); }
+    constexpr size_type max_size() const {
+        return std::numeric_limits<size_type>::max();
+    }
 
     void swap(range& other) {
         std::swap(left, other.left);
@@ -148,164 +151,6 @@ range<U, V> make_range(const U& left, const V& right) {
     return range<U, V>(left, right);
 }
 
-/*
- * Use a proxy iterator to present a range as having the same begin and
- * end types, for use with e.g. pre-C++17 ranged-for loops or STL
- * algorithms.
- */
-template <typename I, typename S>
-class sentinel_iterator {
-    nest::mc::util::either<I, S> e_;
-
-    bool is_sentinel() const { return e_.index()!=0; }
-
-    I& iter() {
-        EXPECTS(!is_sentinel());
-        return e_.template unsafe_get<0>();
-    }
-
-    const I& iter() const {
-        EXPECTS(!is_sentinel());
-        return e_.template unsafe_get<0>();
-    }
-
-    S& sentinel() {
-        EXPECTS(is_sentinel());
-        return e_.template unsafe_get<1>();
-    }
-
-    const S& sentinel() const {
-        EXPECTS(is_sentinel());
-        return e_.template unsafe_get<1>();
-    }
-
-public:
-    using difference_type = typename std::iterator_traits<I>::difference_type;
-    using value_type = typename std::iterator_traits<I>::value_type;
-    using pointer = typename std::iterator_traits<I>::pointer;
-    using reference = typename std::iterator_traits<I>::reference;
-    using iterator_category = typename std::iterator_traits<I>::iterator_category;
-
-    sentinel_iterator(I i): e_(i) {}
-
-    template <typename V = S, typename = enable_if_t<!std::is_same<I, V>::value>>
-    sentinel_iterator(S i): e_(i) {}
-
-    sentinel_iterator() = default;
-    sentinel_iterator(const sentinel_iterator&) = default;
-    sentinel_iterator(sentinel_iterator&&) = default;
-
-    sentinel_iterator& operator=(const sentinel_iterator&) = default;
-    sentinel_iterator& operator=(sentinel_iterator&&) = default;
-
-    // forward and input iterator requirements
-
-    auto operator*() const -> decltype(*(this->iter())) { return *iter(); }
-
-    I operator->() const { return e_.template ptr<0>(); }
-
-    sentinel_iterator& operator++() {
-        ++iter();
-        return *this;
-    }
-
-    sentinel_iterator operator++(int) {
-        sentinel_iterator c(*this);
-        ++*this;
-        return c;
-    }
-
-    bool operator==(const sentinel_iterator& x) const {
-        if (is_sentinel()) {
-            return x.is_sentinel() || x.iter()==sentinel();
-        }
-        else {
-            return x.is_sentinel()? iter()==x.sentinel(): iter()==x.iter();
-        }
-    }
-
-    bool operator!=(const sentinel_iterator& x) const {
-        return !(*this==x);
-    }
-
-    // bidirectional iterator requirements
-
-    sentinel_iterator& operator--() {
-        --iter();
-        return *this;
-    }
-
-    sentinel_iterator operator--(int) {
-        sentinel_iterator c(*this);
-        --*this;
-        return c;
-    }
-
-    // random access iterator requirements
-
-    sentinel_iterator &operator+=(difference_type n) {
-        iter() += n;
-        return *this;
-    }
-
-    sentinel_iterator operator+(difference_type n) const {
-        sentinel_iterator c(*this);
-        return c += n;
-    }
-
-    friend sentinel_iterator operator+(difference_type n, sentinel_iterator x) {
-        return x+n;
-    }
-
-    sentinel_iterator& operator-=(difference_type n) {
-        iter() -= n;
-        return *this;
-    }
-
-    sentinel_iterator operator-(difference_type n) const {
-        sentinel_iterator c(*this);
-        return c -= n;
-    }
-
-    difference_type operator-(sentinel_iterator x) const {
-        return iter()-x.iter();
-    }
-
-    auto operator[](difference_type n) const -> decltype(*(this->iter())) {
-        return *(iter()+n);
-    }
-
-    bool operator<=(const sentinel_iterator& x) const {
-        return x.is_sentinel() || (!is_sentinel() && iter()<=x.iter());
-    }
-
-    bool operator<(const sentinel_iterator& x) const {
-        return !is_sentinel() && (x.is_sentinel() || iter()<=x.iter());
-    }
-
-    bool operator>=(const sentinel_iterator& x) const {
-        return !(x<*this);
-    }
-
-    bool operator>(const sentinel_iterator& x) const {
-        return !(x<=*this);
-    }
-};
-
-template <typename I, typename S>
-using sentinel_iterator_t =
-    typename std::conditional<std::is_same<I, S>::value, I, sentinel_iterator<I, S>>::type;
-
-template <typename I, typename S>
-sentinel_iterator_t<I, S> make_sentinel_iterator(const I& i, const S& s) {
-    return sentinel_iterator_t<I, S>(i);
-}
-
-template <typename I, typename S>
-sentinel_iterator_t<I, S> make_sentinel_end(const I& i, const S& s) {
-    return sentinel_iterator_t<I, S>(s);
-}
-
 template <typename Seq>
 auto canonical_view(const Seq& s) ->
     range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
@@ -325,6 +170,42 @@ range<T*> singleton_view(T& item) {
 template <typename T>
 range<const T*> singleton_view(const T& item) {
     return {&item, &item+1};
+}
+
+/*
+ * Range/container utility functions
+ */
+
+template <typename Container, typename Seq>
+Container& append(Container &c, const Seq& seq) {
+    auto canon = canonical_view(seq);
+    c.insert(c.end(), std::begin(canon), std::end(canon));
+    return c;
+}
+
+template <typename AssignableContainer, typename Seq>
+AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
+    auto canon = canonical_view(seq);
+    c.assign(std::begin(canon), std::end(canon));
+    return c;
+}
+
+template <typename Seq>
+range<typename sequence_traits<Seq>::iterator_type, typename sequence_traits<Seq>::sentinel_type>
+range_view(Seq& seq) {
+    return make_range(std::begin(seq), std::end(seq));
+}
+
+template <
+    typename Seq,
+    typename Iter = typename sequence_traits<Seq>::iterator_type,
+    typename Size = typename sequence_traits<Seq>::size_type
+>
+enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
+subrange_view(Seq& seq, Size bi, Size ei) {
+    Iter b = std::next(std::begin(seq), bi);
+    Iter e = std::next(b, ei-bi);
+    return make_range(b, e);
 }
 
 } // namespace util

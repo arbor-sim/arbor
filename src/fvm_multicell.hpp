@@ -19,104 +19,21 @@
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util.hpp>
+#include <util/debug.hpp>
 #include <util/meta.hpp>
+#include <util/partition.hpp>
+#include <util/span.hpp>
 
 #include <vector/include/Vector.hpp>
-
-/*
- * Lowered cell implementation based on finite volume method.
- *
- * TODO: Move following description of internal API
- * to a better location or document.
- *
- * Lowered cells are managed by the `cell_group` class.
- * A `cell_group` manages one lowered cell instance, which
- * may in turn simulate one or more cells.
- *
- * The outward facing interface for `cell_group` is defined
- * in terms of cell gids and member indices; the interface
- * between `cell_group` and a lowered cell is described below.
- *
- * The motivation for the following interface is to
- *   1. Provide more flexibility in lowered cell implementation
- *   2. Save memory and duplicated index maps by associating
- *      externally visible objects with opaque handles.
- *
- * In the following, `lowered_cell` represents the lowered
- * cell class, and `lowered` an instance thereof.
- *
- * `lowered_cell::detector_handle`
- *       Type of handles used by spike detectors to query
- *       membrane voltage.
- *
- * `lowered_cell::probe_handle`
- *       Type of handle used to query the value of a probe.
- *
- * `lowered_cell::target_handle`
- *       Type of handle used to identify the target of a
- *       postsynaptic spike event.
- *
- * `lowered_cell::value_type`
- *       Floating point type used for internal states
- *       and simulation time.
- *
- * `lowered_cell()`
- *       Default constructor; performs no cell-specific
- *       initialization.
- *
- * `lowered.initialize(const Cells& cells, ...)`
- *       Allocate and initalize data structures to simulate
- *       the cells described in the collection `cells`,
- *       where each item is of type `nest::mc::cell`.
- *
- *       Remaining arguments consist of references to
- *       collections for storing:
- *         1. Detector handles
- *         2. Target handles
- *         3. Probe handles
- *
- *       Handles are written in the same order as they
- *       appear in the provided cell descriptions.
- *
- *  `lowered.reset()`
- *
- *       Resets state to initial conditiions and sets
- *       internal simulation time to 0.
- *
- *  `lowered.advance(value_type dt)`
- *
- *       Advanece simulation state by `dt` (value in
- *       milliseconds). For `fvm_cell` at least,
- *       this corresponds to one integration step.
- *
- *  `lowered.deliver_event(target_handle target, value_type weight)`
- *
- *       Update target-specifc state based on the arrival
- *       of a postsynaptic spike event with given weight.
- *
- *  `lowered.detect_voltage(detector_handle)`
- *
- *       Return membrane voltage at detector site as specified
- *       by handle.
- *
- *  `lowered.probe(probe_handle)`
- *
- *       Return value of corresponding probe.
- *
- *  `lowered.resting_potential(value_type potential)`
- *
- *       Set the steady-state membrane voltage used for the
- *       cell initial condition. (Defaults to -65 mV currently.)
- */
 
 namespace nest {
 namespace mc {
 namespace fvm {
 
 template <typename Value, typename Index>
-class fvm_cell {
+class fvm_multicell {
 public:
-    fvm_cell() = default;
+    fvm_multicell() = default;
 
     /// the real number type
     using value_type = Value;
@@ -134,7 +51,7 @@ public:
 
     using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
-    using probe_handle = std::pair<const vector_type fvm_cell::*, size_type>;
+    using probe_handle = std::pair<const vector_type fvm_multicell::*, size_type>;
 
     void resting_potential(value_type potential_mV) {
         resting_potential_ = potential_mV;
@@ -290,10 +207,14 @@ private:
 
     std::vector<std::pair<uint32_t, i_clamp>> stimuli_;
 
-    std::vector<std::pair<const vector_type fvm_cell::*, uint32_t>> probes_;
+    std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
 
     // mechanism factory
     using mechanism_catalogue = nest::mc::mechanisms::catalogue<value_type, size_type>;
+
+    // perform area and capacitance calculation on initialization
+    void compute_cv_area_unnormalized_capacitance(
+        std::pair<size_type, size_type> comp_ival, const segment* seg, index_type &parent);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -301,189 +222,252 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename I>
+void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
+    std::pair<size_type, size_type> comp_ival,
+    const segment* seg,
+    index_type &parent)
+{
+    using util::left;
+    using util::right;
+    using util::size;
+
+    // precondition: group_parent_index[j] holds the correct value for
+    // j in [base_comp, base_comp+segment.num_compartments()].
+
+    auto ncomp = comp_ival.second-comp_ival.first;
+
+    if (auto soma = seg->as_soma()) {
+        // confirm assumption that there is one compartment in soma
+        if (ncomp!=1) {
+            throw std::logic_error("soma allocated more than one compartment");
+        }
+        auto i = comp_ival.first;
+        auto area = math::area_sphere(soma->radius());
+
+        cv_areas_[i] += area;
+        cv_capacitance_[i] += area * soma->mechanism("membrane").get("c_m").value;
+    }
+    else if (auto cable = seg->as_cable()) {
+        // loop over each compartment in the cable
+        // each compartment has the face between two CVs at its centre
+        // the centers of the CVs are the end points of the compartment
+        //
+        //  __________________________________
+        //  | ........ | .cvleft. |    cv    |
+        //  | ........ L ........ C          R
+        //  |__________|__________|__________|
+        //
+        //  The compartment has end points marked L and R (left and right).
+        //  The left compartment is assumed to be closer to the soma
+        //  (i.e. it follows the minimal degree ordering)
+        //  The face is at the center, marked C.
+        //  The full control volume to the left (marked with .)
+
+        auto c_m = cable->mechanism("membrane").get("c_m").value;
+        auto r_L = cable->mechanism("membrane").get("r_L").value;
+        const auto& compartments = cable->compartments();
+
+        EXPECTS(size(compartments)==ncomp);
+
+        for (auto i: util::make_span(comp_ival)) {
+            const auto& c = compartments[i-comp_ival.first];
+            auto j = parent[i];
+
+            auto radius_center = math::mean(c.radius);
+            auto area_face = math::area_circle(radius_center);
+            face_alpha_[i] = area_face / (c_m * r_L * c.length);
+
+            auto halflen = c.length/2;
+            auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
+            auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
+
+            cv_areas_[j] += al;
+            cv_areas_[i] += ar;
+            cv_capacitance_[j] += al * c_m;
+            cv_capacitance_[i] += ar * c_m;
+        }
+    }
+    else {
+        throw std::domain_error("FVM lowering encountered unsuported segment type");
+    }
+}
+
+template <typename T, typename I>
 template <typename Cells, typename Detectors, typename Targets, typename Probes>
-void fvm_cell<T, I>::initialize(
+void fvm_multicell<T, I>::initialize(
     const Cells& cells,
     Detectors& detector_handles,
     Targets& target_handles,
     Probes& probe_handles)
 {
-    if (util::size(cells)!=1u) {
-        throw std::invalid_argument("fvm_cell accepts only one cell");
-    }
+    using util::transform_view;
+    using util::make_partition;
+    using util::make_span;
+    using util::size;
 
-    const nest::mc::cell& cell = *(std::begin(cells));
-    size_type ncomp = cell.num_compartments();
+    // count total detectors, targets and probes for validation of handle container sizes
+    size_type detectors_count = 0u;
+    size_type targets_count = 0u;
+    size_type probes_count = 0u;
+    size_type detectors_size = size(detector_handles);
+    size_type targets_size = size(target_handles);
+    size_type probes_size = size(probe_handles);
 
-    // confirm write-parameters have enough room to store handles
-    EXPECTS(util::size(detector_handles)==cell.detectors().size());
-    EXPECTS(util::size(target_handles)==cell.synapses().size());
-    EXPECTS(util::size(probe_handles)==cell.probes().size());
+    auto ncell = size(cells);
+    auto cell_num_compartments =
+        transform_view(cells, [](const cell& c) { return c.num_compartments(); });
 
-    // initialize storage
+    std::vector<cell_lid_type> cell_comp_bounds;
+    auto cell_comp_part = make_partition(cell_comp_bounds, cell_num_compartments);
+    auto ncomp = cell_comp_part.bounds().second;
+
+    // initialize storage from total compartment count
     cv_areas_   = vector_type{ncomp, T{0}};
     face_alpha_ = vector_type{ncomp, T{0}};
     cv_capacitance_ = vector_type{ncomp, T{0}};
     current_    = vector_type{ncomp, T{0}};
     voltage_    = vector_type{ncomp, T{resting_potential_}};
 
-    using util::left;
-    using util::right;
+    // create maps for mechanism initialization.
+    std::map<std::string, std::vector<std::pair<size_type, size_type>>> mech_map;
+    std::vector<std::vector<cell_lid_type>> syn_mech_map;
+    std::map<std::string, std::size_t> syn_mech_indices;
 
-    const auto graph = cell.model();
-    matrix_ = matrix_type(graph.parent_index);
+    // initialize vector used for matrix creation.
+    index_type group_parent_index{ncomp, 0};
 
-    auto parent_index = matrix_.p();
-    segment_index_ = graph.segment_index;
+    // create each cell:
+    auto target_hi = target_handles.begin();
+    auto detector_hi = detector_handles.begin();
+    auto probe_hi = probe_handles.begin();
 
-    auto seg_idx = 0;
-    for(auto const& s : cell.segments()) {
-        if(auto soma = s->as_soma()) {
-            // assert the assumption that the soma is at 0
-            if(seg_idx!=0) {
-                throw std::domain_error(
-                        "FVM lowering encountered soma with non-zero index"
-                );
-            }
-            auto area = math::area_sphere(soma->radius());
-            cv_areas_[0] += area;
-            cv_capacitance_[0] += area * soma->mechanism("membrane").get("c_m").value;
+    for (size_type i = 0; i<ncell; ++i) {
+        const auto& c = cells[i];
+        auto comp_ival = cell_comp_part[i];
+
+        auto graph = c.model();
+
+        for (auto k: make_span(comp_ival)) {
+            group_parent_index[k] = graph.parent_index[k-comp_ival.first]+comp_ival.first;
         }
-        else if(auto cable = s->as_cable()) {
-            // loop over each compartment in the cable
-            // each compartment has the face between two CVs at its centre
-            // the centers of the CVs are the end points of the compartment
-            //
-            //  __________________________________
-            //  | ........ | .cvleft. |    cv    |
-            //  | ........ L ........ C          R
-            //  |__________|__________|__________|
-            //
-            //  The compartment has end points marked L and R (left and right).
-            //  The left compartment is assumed to be closer to the soma
-            //  (i.e. it follows the minimal degree ordering)
-            //  The face is at the center, marked C.
-            //  The full control volume to the left (marked with .)
-            auto c_m = cable->mechanism("membrane").get("c_m").value;
-            auto r_L = cable->mechanism("membrane").get("r_L").value;
-            for(auto c : cable->compartments()) {
-                auto i = segment_index_[seg_idx] + c.index;
-                auto j = parent_index[i];
 
-                auto radius_center = math::mean(c.radius);
-                auto area_face = math::area_circle( radius_center );
-                face_alpha_[i] = area_face  / (c_m * r_L * c.length);
+        auto seg_num_compartments =
+            transform_view(c.segments(), [](const segment_ptr& s) { return s->num_compartments(); });
+        auto nseg = seg_num_compartments.size();
 
-                auto halflen = c.length/2;
+        std::vector<cell_lid_type> seg_comp_bounds;
+        auto seg_comp_part = make_partition(seg_comp_bounds, seg_num_compartments, comp_ival.first);
 
-                auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
-                auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
-                cv_areas_[j] += al;
-                cv_areas_[i] += ar;
-                cv_capacitance_[j] += al * c_m;
-                cv_capacitance_[i] += ar * c_m;
+        for (size_type j = 0; j<nseg; ++j) {
+            const auto& seg = c.segment(j);
+            const auto& seg_comp_ival = seg_comp_part[j];
+
+            compute_cv_area_unnormalized_capacitance(seg_comp_ival, seg, group_parent_index);
+
+            for (const auto& mech: seg->mechanisms()) {
+                if (mech.name()!="membrane") {
+                    mech_map[mech.name()].push_back(seg_comp_ival);
+                }
             }
         }
-        else {
-            throw std::domain_error("FVM lowering encountered unsuported segment type");
-        }
-        ++seg_idx;
-    }
 
-    // normalize the capacitance by cv_area
-    for(auto i=0u; i<size(); ++i) {
-        cv_capacitance_[i] /= cv_areas_[i];
-    }
+        for (const auto& syn: c.synapses()) {
+            EXPECTS(targets_count < targets_size);
 
-    /////////////////////////////////////////////
-    //  create mechanisms
-    /////////////////////////////////////////////
-
-    // FIXME : candidate for a private member function
-
-    // for each mechanism in the cell record the indexes of the segments that
-    // contain the mechanism
-    std::map<std::string, std::vector<unsigned>> mech_map;
-
-    for (unsigned i=0; i<cell.num_segments(); ++i) {
-        for (const auto& mech : cell.segment(i)->mechanisms()) {
-            // FIXME : Membrane has to be a proper mechanism,
-            //         because it is exposed via the public interface.
-            //         This if statement is bad
-            if(mech.name() != "membrane") {
-                mech_map[mech.name()].push_back(i);
+            const auto& name = syn.mechanism.name();
+            std::size_t syn_mech_index = 0;
+            if (syn_mech_indices.count(name)==0) {
+                syn_mech_index = syn_mech_map.size();
+                syn_mech_indices[name] = syn_mech_index;
+                syn_mech_map.push_back(std::vector<size_type>{});
             }
+            else {
+                syn_mech_index = syn_mech_indices[name];
+            }
+
+            auto& map_entry = syn_mech_map[syn_mech_index];
+
+            size_type syn_comp = comp_ival.first+find_compartment_index(syn.location, graph);
+            size_type syn_index = map_entry.size();
+            map_entry.push_back(syn_comp);
+
+            *target_hi++ = target_handle{syn_mech_index, syn_index};
+            ++targets_count;
+        }
+
+        // normalize capacitance across cell
+        for (auto k: make_span(comp_ival)) {
+            cv_capacitance_[k] /= cv_areas_[k];
+        }
+
+        // add the stimuli
+        for (const auto& stim: c.stimuli()) {
+            auto idx = comp_ival.first+find_compartment_index(stim.location, graph);
+            stimuli_.push_back({idx, stim.clamp});
+        }
+
+        // detector handles are just their corresponding compartment indices
+        for (const auto& detector: c.detectors()) {
+            EXPECTS(detectors_count < detectors_size);
+
+            auto comp = comp_ival.first+find_compartment_index(detector.location, graph);
+            *detector_hi++ = comp;
+            ++detectors_count;
+        }
+
+        // record probe locations by index into corresponding state vector
+        for (const auto& probe: c.probes()) {
+            EXPECTS(probes_count < probes_size);
+
+            auto comp = comp_ival.first+find_compartment_index(probe.location, graph);
+            switch (probe.kind) {
+            case probeKind::membrane_voltage:
+                *probe_hi++ = {&fvm_multicell::voltage_, comp};
+                break;
+            case probeKind::membrane_current:
+                *probe_hi++ = {&fvm_multicell::current_, comp};
+                break;
+            default:
+                throw std::logic_error("unrecognized probeKind");
+            }
+            ++probes_count;
         }
     }
 
-    // Create the mechanism implementations with the state for each mechanism
-    // instance.
-    // TODO : this works well for density mechanisms (e.g. ion channels), but
-    // does it work for point processes (e.g. synapses)?
-    for (auto& mech : mech_map) {
-        // calculate the number of compartments that contain the mechanism
-        auto num_comp = 0u;
-        for (auto seg : mech.second) {
-            num_comp += segment_index_[seg+1] - segment_index_[seg];
+    // confirm write-parameters were appropriately sized
+    EXPECTS(detectors_size==detectors_count);
+    EXPECTS(targets_size==targets_count);
+    EXPECTS(probes_size==probes_count);
+
+    // initalize matrix
+    matrix_ = matrix_type(group_parent_index);
+
+    // create density mechanisms
+    std::vector<size_type> mech_comp_indices;
+    mech_comp_indices.reserve(ncomp);
+
+    for (auto& mech: mech_map) {
+        mech_comp_indices.clear();
+        for (auto comp_ival: mech.second) {
+            util::append(mech_comp_indices, make_span(comp_ival));
         }
 
-        // build a vector of the indexes of the compartments that contain
-        // the mechanism
-        index_type compartment_index(num_comp);
-        auto pos = 0u;
-        for (auto seg : mech.second) {
-            auto seg_size = segment_index_[seg+1] - segment_index_[seg];
-            std::iota(
-                compartment_index.data() + pos,
-                compartment_index.data() + pos + seg_size,
-                segment_index_[seg]
-            );
-            pos += seg_size;
-        }
-
-        // instantiate the mechanism
         mechanisms_.push_back(
-            mechanism_catalogue::make(mech.first, voltage_, current_, compartment_index)
+            mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
         );
     }
 
+    // create point (synapse) mechanisms
     synapse_base_ = mechanisms_.size();
-
-    // Create the synapse mechanism implementations together with the target handles
-    std::vector<std::vector<cell_lid_type>> syn_mech_map;
-    std::map<std::string, std::size_t> syn_mech_indices;
-    auto target_hi = target_handles.begin();
-
-    for (const auto& syn : cell.synapses()) {
-        const auto& name = syn.mechanism.name();
-        std::size_t index = 0;
-        if (syn_mech_indices.count(name)==0) {
-            index = syn_mech_map.size();
-            syn_mech_indices[name] = index;
-            syn_mech_map.push_back(std::vector<cell_lid_type>{});
-        }
-        else {
-            index = syn_mech_indices[name];
-        }
-
-        size_type comp = find_compartment_index(syn.location, graph);
-        *target_hi++ = target_handle{index, syn_mech_map[index].size()};
-        syn_mech_map[index].push_back(comp);
-    }
-
-    for (const auto& syni : syn_mech_indices) {
+    for (const auto& syni: syn_mech_indices) {
         const auto& mech_name = syni.first;
 
-        index_type compartment_index(syn_mech_map[syni.second]);
-        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, compartment_index);
+        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, syn_mech_map[syni.second]);
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
     }
 
-
-    /////////////////////////////////////////////
     // build the ion species
-    /////////////////////////////////////////////
     for(auto ion : mechanisms::ion_kinds()) {
         // find the compartment indexes of all compartments that have a
         // mechanism that depends on/influences ion
@@ -531,42 +515,12 @@ void fvm_cell<T, I>::initialize(
     ion_ca().internal_concentration()(all) = 5e-5;          // mM
     ion_ca().external_concentration()(all) = 2.0;           // mM
 
-    // add the stimuli
-    for(const auto& stim : cell.stimuli()) {
-        auto idx = find_compartment_index(stim.location, graph);
-        stimuli_.push_back( {idx, stim.clamp} );
-    }
-
-    // record probe locations by index into corresponding state vector
-    auto probe_hi = probe_handles.begin();
-    for (auto probe : cell.probes()) {
-        auto comp = find_compartment_index(probe.location, graph);
-        switch (probe.kind) {
-        case probeKind::membrane_voltage:
-            *probe_hi = {&fvm_cell::voltage_, comp};
-            break;
-        case probeKind::membrane_current:
-            *probe_hi = {&fvm_cell::current_, comp};
-            break;
-        default:
-            throw std::logic_error("unrecognized probeKind");
-        }
-        ++probe_hi;
-    }
-
-    // detector handles are just their corresponding compartment indices
-    auto detector_hi = detector_handles.begin();
-    for (auto detector : cell.detectors()) {
-        auto comp = find_compartment_index(detector.location, graph);
-        *detector_hi++ = comp;
-    }
-
     // initialise mechanism and voltage state
     reset();
 }
 
 template <typename T, typename I>
-void fvm_cell<T, I>::setup_matrix(T dt) {
+void fvm_multicell<T, I>::setup_matrix(T dt) {
     using memory::all;
 
     // convenience accesors to matrix storage
@@ -610,7 +564,7 @@ void fvm_cell<T, I>::setup_matrix(T dt) {
 }
 
 template <typename T, typename I>
-void fvm_cell<T, I>::reset() {
+void fvm_multicell<T, I>::reset() {
     voltage_(memory::all) = resting_potential_;
     t_ = 0.;
     for (auto& m : mechanisms_) {
@@ -619,7 +573,7 @@ void fvm_cell<T, I>::reset() {
 }
 
 template <typename T, typename I>
-void fvm_cell<T, I>::advance(T dt) {
+void fvm_multicell<T, I>::advance(T dt) {
     using memory::all;
 
     PE("current");

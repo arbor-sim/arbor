@@ -1,7 +1,9 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <string>
+#include <util/meta.hpp>
 
 #include "indexed_view.hpp"
 #include "ion.hpp"
@@ -16,9 +18,7 @@ enum class mechanismKind {point, density};
 
 template <typename T, typename I>
 class mechanism {
-
 public:
-
     using value_type  = T;
     using size_type   = I;
 
@@ -27,15 +27,13 @@ public:
     using view_type   = typename vector_type::view_type;
     using index_type  = memory::HostVector<size_type>;
     using index_view  = typename index_type::view_type;
+    using const_index_view  = typename index_type::const_view_type;
     using indexed_view_type = indexed_view<value_type, size_type>;
 
     using ion_type    = ion<value_type, size_type>;
 
-    mechanism(view_type vec_v, view_type vec_i, index_view node_index)
-    :   vec_v_(vec_v)
-    ,   vec_i_(vec_i)
-    ,   node_index_(node_index)
-    ,   vec_area_(nullptr, 0)
+    mechanism(view_type vec_v, view_type vec_i, const_index_view node_index):
+        vec_v_(vec_v), vec_i_(vec_i), node_index_(node_index), vec_area_(nullptr, 0)
     {}
 
     std::size_t size() const
@@ -88,7 +86,7 @@ mechanism_ptr<typename M::value_type, typename M::size_type>
 make_mechanism(
     typename M::view_type  vec_v,
     typename M::view_type  vec_i,
-    typename M::index_view node_indices
+    typename M::const_index_view node_indices
 ) {
     return util::make_unique<M>(vec_v, vec_i, node_indices);
 }

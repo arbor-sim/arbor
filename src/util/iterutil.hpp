@@ -43,6 +43,30 @@ upto(I iter, E end) {
     return iter==I{end}? iter: I{std::prev(end)};
 }
 
+template <typename I, typename E,
+          typename C = common_random_access_iterator_t<I,E>>
+enable_if_t<std::is_same<I, E>::value ||
+            (has_common_random_access_iterator<I,E>::value &&
+             is_forward_iterator<I>::value),
+            typename std::iterator_traits<C>::difference_type>
+distance(I first, E last) {
+    return std::distance(static_cast<C>(first), static_cast<C>(last));
+}
+
+template <typename I, typename E>
+enable_if_t<!has_common_random_access_iterator<I, E>::value &&
+            is_forward_iterator<I>::value,
+            typename std::iterator_traits<I>::difference_type>
+distance(I first, E last) {
+    typename std::iterator_traits<I>::difference_type ret = 0;
+    while (first != last) {
+        ++first;
+        ++ret;
+    }
+
+    return ret;
+}
+
 /*
  * Provide a proxy object for operator->() for iterator adaptors that
  * present rvalues on dereference.

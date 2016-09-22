@@ -37,6 +37,8 @@ public:
     using pointer = const value_type*;
     using reference = const value_type&;
 
+    partition_iterator() = default;
+
     template <
         typename J,
         typename = enable_if_t<!std::is_same<decay_t<J>, partition_iterator>::value>

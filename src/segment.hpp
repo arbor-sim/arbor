@@ -418,9 +418,9 @@ public:
     }
 
     /// iterable range type for simple compartment representation
-    compartment_range compartments() const
+    compartment_range<size_type, value_type> compartments() const
     {
-        return {num_compartments(), radii_.front(), radii_.back(), length()};
+        return make_compartment_range(num_compartments(), radii_.front(), radii_.back(), length());
     }
 
 private:
