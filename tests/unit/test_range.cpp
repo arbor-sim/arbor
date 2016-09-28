@@ -14,6 +14,7 @@
 #include <util/counter.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
+#include <util/rangeutil.hpp>
 #include <util/sentinel.hpp>
 
 using namespace nest::mc;
@@ -212,7 +213,6 @@ TYPED_TEST_P(counter_range, extreme_size) {
     auto range = util::make_range(l, r);
     EXPECT_FALSE(range.empty());
     EXPECT_EQ(std::numeric_limits<unsigned_int_type>::max(), range.size());
-
 }
 
 
@@ -226,7 +226,6 @@ TYPED_TEST_P(counter_range, size) {
     auto range = util::make_range(l, r);
     EXPECT_FALSE(range.empty());
     EXPECT_EQ(6u, range.size());
-
 }
 
 TYPED_TEST_P(counter_range, at) {
@@ -269,6 +268,36 @@ using signed_int_types = ::testing::Types<signed char, short,
                                           int, long, std::ptrdiff_t>;
 
 INSTANTIATE_TYPED_TEST_CASE_P(int_types, counter_range, int_types);
+
+TEST(range, assign) {
+    const char *cstr = "howdy";
+    std::string text = "pardner";
+
+    util::assign(text, util::make_range(cstr, null_terminated));
+    EXPECT_EQ("howdy", text);
+
+    const std::vector<char> vstr = {'x', 'y', 'z', 'z', 'y'};
+    util::assign(text, vstr);
+    EXPECT_EQ("xyzzy", text);
+
+    util::assign_by(text, vstr,
+        [](char c) { return c=='z'? '1': '0'; });
+    EXPECT_EQ("00110", text);
+}
+
+TEST(range, sort) {
+    char cstr[] = "howdy";
+
+    auto cstr_range = util::make_range(std::begin(cstr), null_terminated);
+
+    // simple sort
+    util::sort(cstr_range);
+    EXPECT_EQ(std::string("dhowy"), cstr);
+
+    // reverse sort by transform c to -c
+    util::sort_by(cstr_range, [](char c) { return -c; });
+    EXPECT_EQ(std::string("ywohd"), cstr);
+}
 
 #ifdef WITH_TBB
 
