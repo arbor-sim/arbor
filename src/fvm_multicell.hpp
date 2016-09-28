@@ -391,13 +391,7 @@ void fvm_multicell<T, I>::initialize(
             auto& map_entry = syn_mech_map[syn_mech_index];
 
             size_type syn_comp = comp_ival.first+find_compartment_index(syn.location, graph);
-//            size_type syn_index = map_entry.size();
             map_entry.push_back(syn_comp);
-
-/*
-            *target_hi++ = target_handle{syn_mech_index, syn_index};
-            ++targets_count;
-*/
         }
 
         // normalize capacitance across cell
