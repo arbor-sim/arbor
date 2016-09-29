@@ -10,6 +10,7 @@
 #include "Event.hpp"
 #include "CudaEvent.hpp"
 #include "gpu.hpp"
+#include "util.hpp"
 
 namespace memory {
 
@@ -21,6 +22,7 @@ template <typename T, class Allocator>
 class HostCoordinator;
 
 namespace util {
+
     template <typename T, typename Allocator>
     struct type_printer<DeviceCoordinator<T,Allocator>>{
         static std::string print() {
@@ -100,10 +102,8 @@ public:
         auto success
             = cudaMemcpy(&tmp, pointer_, sizeof(T), cudaMemcpyDeviceToHost);
         if(success != cudaSuccess) {
-            std::cerr << util::red("error")
-                      << " bad CUDA memcopy, unable to copy " << sizeof(T)
-                      << " bytes from host to device";
-            exit(-1);
+            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)) + ") " + cudaGetErrorString(success));
+            abort();
         }
         return T(tmp);
     }
@@ -127,10 +127,8 @@ public:
         auto success =
             cudaMemcpy(pointer_, &value, sizeof(T), cudaMemcpyHostToDevice);
         if(success != cudaSuccess) {
-            std::cerr << util::red("error")
-                      << " bad CUDA memcopy, unable to copy " << sizeof(T)
-                      << " bytes from host to device";
-            exit(-1);
+            LOG_ERROR("cudaMemcpy(h2d, " + std::to_string(sizeof(T)) + ") " + cudaGetErrorString(success));
+            abort();
         }
         return *this;
     }
@@ -140,10 +138,8 @@ public:
         auto success =
             cudaMemcpy(&tmp, pointer_, sizeof(T), cudaMemcpyDeviceToHost);
         if(success != cudaSuccess) {
-            std::cerr << util::red("error")
-                      << " bad CUDA memcopy, unable to copy " << sizeof(T)
-                      << " bytes from device to host";
-            exit(-1);
+            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)) + ") " + cudaGetErrorString(success));
+            abort();
         }
         return T(tmp);
     }
@@ -151,7 +147,6 @@ public:
 private:
     pointer pointer_;
 };
-
 
 template <typename T, class Allocator_=CudaAllocator<T> >
 class DeviceCoordinator {
@@ -165,6 +160,7 @@ public:
     using const_reference = ConstDeviceReference<value_type>;
 
     using view_type = ArrayView<value_type, DeviceCoordinator>;
+    using const_view_type = ConstArrayView<value_type, DeviceCoordinator>;
 
     using size_type       = types::size_type;
     using difference_type = types::difference_type;
@@ -179,9 +175,8 @@ public:
 
         #ifdef VERBOSE
         std::cerr << util::type_printer<DeviceCoordinator>::print()
-                  << util::blue("::allocate") << "(" << n << ")"
-                  << (ptr==nullptr && n>0 ? " failure" : " success")
-                  << std::endl;
+                  << util::blue("::allocate") << "(" << n << ") -> " << util::print_pointer(ptr)
+                  << "\n";
         #endif
 
         return view_type(ptr, n);
@@ -190,19 +185,33 @@ public:
     void free(view_type& rng) {
         Allocator allocator;
 
-        if(rng.data())
-            allocator.deallocate(rng.data(), rng.size());
-
         #ifdef VERBOSE
         std::cerr << util::type_printer<DeviceCoordinator>::print()
-                  << "::free()" << std::endl;
+                  << util::blue("::free") << "(size=" << rng.size() << ", pointer=" << util::print_pointer(rng.data()) << ")\n";
         #endif
+
+        if(rng.data()) {
+            allocator.deallocate(rng.data(), rng.size());
+        }
 
         impl::reset(rng);
     }
 
     // copy memory from one gpu range to another
-    void copy(const view_type &from, view_type &to) {
+    template <
+        typename LHS, typename RHS,
+        typename = typename
+            std::enable_if<
+                is_array_by_reference<LHS>::value && is_array_by_reference<RHS>::value
+            >::type
+    >
+    void copy(LHS from, RHS to) {
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<DeviceCoordinator>::print()
+                  << util::blue("::copy") << "(size=" << from.size() << ") "
+                  << util::print_pointer(from.data()) << " -> "
+                  << util::print_pointer(to.data()) << "\n";
+        #endif
         assert(from.size()==to.size());
         assert(!from.overlaps(to));
 
@@ -213,33 +222,44 @@ public:
                 cudaMemcpyDeviceToDevice
         );
         if(status != cudaSuccess) {
-            std::cerr << util::red("error") << " bad CUDA memcopy, unable to copy " << sizeof(T)*from.size() << " bytes from device to device";
-            exit(-1);
+            LOG_ERROR("cudaMemcpy(d2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
+            abort();
         }
     }
 
-    // generates compile time error if there is an attempt to copy from memory
-    // that is managed by a coordinator for which there is no specialization
-    template <class CoordOther>
-    void copy( const ArrayView<value_type, CoordOther> &from,
-               view_type &to) {
-        static_assert(true, "DeviceCoordinator: unable to copy from other Coordinator");
+    // copy memory from one gpu range to another
+    void copy(const_view_type& from, view_type &to) {
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<DeviceCoordinator>::print()
+                  << util::blue("::copy") << "(size=" << from.size() << ") "
+                  << util::print_pointer(from.data()) << " -> "
+                  << util::print_pointer(to.data()) << "\n";
+        #endif
+        assert(from.size()==to.size());
+        assert(!from.overlaps(to));
+
+        auto status = cudaMemcpy(
+                reinterpret_cast<void*>(to.data()),
+                reinterpret_cast<const void*>(from.data()),
+                from.size()*sizeof(value_type),
+                cudaMemcpyDeviceToDevice
+        );
+        if(status != cudaSuccess) {
+            LOG_ERROR("cudaMemcpy(d2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
+            abort();
+        }
     }
 
+    // copy from pinned memory to device
     template <class Alloc>
-    std::pair<SynchEvent, view_type>
-    copy(const ArrayView<value_type, HostCoordinator<value_type, Alloc>> &from,
-         view_type &to) {
-        assert(from.size()==to.size());
-
+    void copy(ConstArrayView<value_type, HostCoordinator<value_type, Alloc>> from, view_type to) {
         #ifdef VERBOSE
-        using oType = ArrayView<value_type, HostCoordinator<value_type, Alloc>>;
-        std::cout << util::pretty_printer<DeviceCoordinator>::print(*this)
-                  << "::" << util::blue("copy") << "(asynchronous, " << from.size() << ")"
-                  << "\n  " << util::type_printer<oType>::print() << " @ " << from.data()
-                  << util::yellow(" -> ")
-                  << util::type_printer<view_type>::print() << " @ " << to.data() << std::endl;
+        std::cerr << util::type_printer<DeviceCoordinator>::print()
+                  << util::blue("::copy") << "(size=" << from.size() << ") "
+                  << util::print_pointer(from.data()) << " -> "
+                  << util::print_pointer(to.data()) << "\n";
         #endif
+        assert(from.size()==to.size());
 
         auto status = cudaMemcpy(
                 reinterpret_cast<void*>(to.begin()),
@@ -248,32 +268,31 @@ public:
                 cudaMemcpyHostToDevice
         );
         if(status != cudaSuccess) {
-            std::cerr << util::red("error") << " bad CUDA memcopy, unable to copy " << sizeof(T)*from.size() << " bytes from host to device";
-            exit(-1);
+            LOG_ERROR("cudaMemcpy(h2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
+            abort();
         }
-
-        return std::make_pair(SynchEvent(), to);
     }
 
+    // copy from pinned memory to device
+    // TODO : asynchornous version
     template <size_t alignment>
-    std::pair<CudaEvent, view_type>
-    copy(const ArrayView<
-                value_type,
-                HostCoordinator<
-                    value_type,
-                    PinnedAllocator<
-                        value_type,
-                        alignment>>> &from,
-         view_type &to) {
+    void copy(
+        ConstArrayView<value_type, HostCoordinator<value_type, PinnedAllocator<value_type, alignment>>> from,
+        view_type to)
+    {
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<DeviceCoordinator>::print()
+                  << util::blue("::copy") << "(size=" << from.size() << ") " << from.data() << " -> " << to.data() << "\n";
+        #endif
         assert(from.size()==to.size());
 
         #ifdef VERBOSE
         using oType = ArrayView< value_type, HostCoordinator< value_type, PinnedAllocator< value_type, alignment>>>;
         std::cout << util::pretty_printer<DeviceCoordinator>::print(*this)
                   << "::" << util::blue("copy") << "(asynchronous, " << from.size() << ")"
-                  << "\n  " << util::type_printer<oType>::print() << " @ " << from.data()
-                  << util::yellow(" -> ")
-                  << util::type_printer<view_type>::print() << " @ " << to.data() << std::endl;
+                  << "\n  " << util::type_printer<oType>::print() << " "
+                  << util::print_pointer(from.data()) << " -> "
+                  << util::print_pointer(to.data()) << "\n";
         #endif
 
         auto status = cudaMemcpy(
@@ -283,12 +302,16 @@ public:
                 cudaMemcpyHostToDevice
         );
         if(status != cudaSuccess) {
-            std::cerr << util::red("error") << " bad CUDA memcopy, unable to copy " << sizeof(T)*from.size() << " bytes from host to device";
-            exit(-1);
+            LOG_ERROR("cudaMemcpy(h2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
+            abort();
         }
+    }
 
-        CudaEvent event;
-        return std::make_pair(event, to);
+    // generates compile time error if there is an attempt to copy from memory
+    // that is managed by a coordinator for which there is no specialization
+    template <class CoordOther>
+    void copy(const ArrayView<value_type, CoordOther>& from, view_type& to) {
+        static_assert(true, "DeviceCoordinator: unable to copy from other Coordinator");
     }
 
     // fill memory

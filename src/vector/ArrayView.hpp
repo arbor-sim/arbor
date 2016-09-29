@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "definitions.hpp"
+#include "util.hpp"
 #include "Range.hpp"
 #include "RangeLimits.hpp"
 
@@ -27,12 +28,6 @@ class ConstArrayViewImpl;
 
 template <typename T, typename Coord>
 class ConstArrayReference;
-
-template <typename T, typename Coord>
-using ArrayView = ArrayViewImpl<ArrayReference<T, Coord>, T, Coord>;
-
-template <typename T, typename Coord>
-using ConstArrayView = ConstArrayViewImpl<ConstArrayReference<T, Coord>, T, Coord>;
 
 namespace util {
     template <typename T, typename Coord>
@@ -61,7 +56,7 @@ namespace util {
             std::stringstream str;
             str << type_printer<ArrayReference<T,Coord>>::print()
                 << "(size="     << val.size()
-                << ", pointer=" << val.data() << ")";
+                << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
         }
     };
@@ -72,7 +67,7 @@ namespace util {
             std::stringstream str;
             str << type_printer<ConstArrayReference<T,Coord>>::print()
                 << "(size="     << val.size()
-                << ", pointer=" << val.data() << ")";
+                << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
         }
     };
@@ -103,7 +98,7 @@ namespace util {
             std::stringstream str;
             str << type_printer<ArrayViewImpl<R, T,Coord>>::print()
                 << "(size="     << val.size()
-                << ", pointer=" << val.data() << ")";
+                << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
         }
     };
@@ -114,16 +109,13 @@ namespace util {
             std::stringstream str;
             str << type_printer<ConstArrayViewImpl<R, T,Coord>>::print()
                 << "(size="     << val.size()
-                << ", pointer=" << val.data() << ")";
+                << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
         }
     };
 }
 
 namespace impl {
-
-    template <typename T>
-    struct is_array;
 
     // metafunction for indicating whether a type is an ArrayView
     template <typename T>
@@ -155,8 +147,19 @@ namespace impl {
     template <typename T, typename Coord>
     struct is_array_reference<ConstArrayReference<T, Coord> > : std::true_type {};
 
-    template <typename A>
-    struct has_array_view_base : std::false_type {};
+    // metafunction for indicating whether a type is non owning
+    // i.e. either a view or a reference
+    template <typename T>
+    struct is_array_by_reference :
+        std::conditional<
+            impl::is_array_reference <typename std::decay<T>::type>::value ||
+            impl::is_array_view      <typename std::decay<T>::type>::value,
+            std::true_type, std::false_type
+        >::type
+    {};
+
+    template <typename T>
+    struct is_array;
 
     // Helper functions that access the reset() methods in ArrayView.
     // Required to work around a bug in nvcc that makes it awkward to give
@@ -166,25 +169,27 @@ namespace impl {
     // because users should not directly modify pointer or size information in an
     // ArrayView.
     template <typename R, typename T, typename Coord>
-    void reset(ArrayViewImpl<R, T, Coord> &v, T* ptr, std::size_t s) {
+    void reset(ArrayViewImpl<R, T, Coord>& v, T* ptr, std::size_t s) {
         v.reset(ptr, s);
     }
 
     template <typename R, typename T, typename Coord>
-    void reset(ArrayViewImpl<R, T, Coord> &v) {
+    void reset(ArrayViewImpl<R, T, Coord>& v) {
         v.reset();
     }
 
     template <typename R, typename T, typename Coord>
-    void reset(ConstArrayViewImpl<R, T, Coord> &v, T* ptr, std::size_t s) {
+    void reset(ConstArrayViewImpl<R, T, Coord>& v, T* ptr, std::size_t s) {
         v.reset(ptr, s);
     }
 
     template <typename R, typename T, typename Coord>
-    void reset(ConstArrayViewImpl<R, T, Coord> &v) {
+    void reset(ConstArrayViewImpl<R, T, Coord>& v) {
         v.reset();
     }
 }
+
+using impl::is_array_by_reference;
 
 // An ArrayView type refers to a sub-range of an Array. It does not own the
 // memory, i.e. it is not responsible for allocation and freeing.
@@ -197,7 +202,7 @@ public:
     using array_reference_type       = ArrayReference<T, Coord>;
     using const_array_reference_type = ConstArrayReference<T, Coord>;
 
-    using const_impl = ConstArrayViewImpl<R, T, Coord>;
+    using const_view_type = ConstArrayViewImpl<ConstArrayReference<T, Coord>, T, Coord>;
 
     using value_type = T;
     using coordinator_type = typename Coord::template rebind<value_type>;
@@ -217,54 +222,44 @@ public:
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
-    explicit ArrayViewImpl(Other&& other)
-        : pointer_ (other.data()) , size_(other.size())
+    explicit ArrayViewImpl(Other&& other) :
+        pointer_(other.data()), size_(other.size())
     {
-#if VERBOSE>1
-        std::cout << util::green("ArrayView(&&Other)")
+        #if VERBOSE>1
+        std::cout << util::green("ArrayView(&&Other) ")
                   << util::pretty_printer<typename std::decay<Other>::type>::print(*this)
-                  << std::endl;
-#endif
+                  << "\n";
+        #endif
     }
 
-    explicit ArrayViewImpl(pointer ptr, size_type n)
-    :   pointer_(ptr)
-    ,   size_(n)
+    explicit ArrayViewImpl(pointer ptr, size_type n) :
+        pointer_(ptr), size_(n)
     {
-#if VERBOSE>1
-        std::cout << util::green("ArrayView(pointer, size_type)")
-                  << util::pretty_printer<ArrayViewImpl>::print(*this)
-                  << std::endl;
-#endif
+        #if VERBOSE>1
+        std::cout << util::green("ArrayView(pointer, size_type)") << util::pretty_printer<ArrayViewImpl>::print(*this) << std::endl;
+        #endif
     }
 
-    explicit ArrayViewImpl(ArrayViewImpl& other, size_type n)
-    :   pointer_(other.data())
-    ,   size_(n)
+    explicit ArrayViewImpl(ArrayViewImpl& other, size_type n) :
+        pointer_(other.data()), size_(n)
     {
         assert(n<=other.size());
-#if VERBOSE>1
-        std::cout << util::green("ArrayView(ArrayViewImpl, size_type)")
-                  << util::pretty_printer<ArrayViewImpl>::print(*this)
-                  << std::endl;
-#endif
+        #if VERBOSE>1
+        std::cout << util::green("ArrayView(ArrayViewImpl, size_type)") << util::pretty_printer<ArrayViewImpl>::print(*this) << std::endl;
+        #endif
     }
 
     // only works with non const vector until we have a const_view type available
     template <
         typename Allocator,
-        typename = typename
-            std::enable_if<coordinator_type::is_malloc_compatible()>::type
+        typename = typename std::enable_if<coordinator_type::is_malloc_compatible()>::type
      >
-    explicit ArrayViewImpl(std::vector<value_type, Allocator>& vec)
-    :   pointer_(vec.data())
-    ,   size_(vec.size())
+    explicit ArrayViewImpl(std::vector<value_type, Allocator>& vec) :
+        pointer_(vec.data()), size_(vec.size())
     {
-#if VERBOSE>1
-        std::cout << util::green("ArrayView(std::vector)")
-                  << util::pretty_printer<ArrayViewImpl>::print(*this)
-                  << std::endl;
-#endif
+        #if VERBOSE>1
+        std::cout << util::green("ArrayView(std::vector)") << util::pretty_printer<ArrayViewImpl>::print(*this) << std::endl;
+        #endif
     }
 
     explicit ArrayViewImpl() {
@@ -277,32 +272,32 @@ public:
     ////////////////////////////////////////////////////////////////////////////
 
     /// access half open sub-range using two indexes [left, right)
-    array_reference_type operator()(size_type const& left, size_type const& right) {
-#ifndef NDEBUG
+    array_reference_type operator()(size_type left, size_type right) {
+        #ifndef NDEBUG
         assert(right<=size_ && left<=right);
-#endif
+        #endif
         return array_reference_type(pointer_+left, right-left);
     }
 
-    const_array_reference_type operator()(size_type const& left, size_type const& right) const {
-#ifndef NDEBUG
+    const_array_reference_type operator()(size_type left, size_type right) const {
+        #ifndef NDEBUG
         assert(right<=size_ && left<=right);
-#endif
+        #endif
         return array_reference_type(pointer_+left, right-left);
     }
 
     /// access half open sub-range using one index and one-past-the-end [left, end)
-    array_reference_type operator()(size_type const& left, end_type) {
-#ifndef NDEBUG
+    array_reference_type operator()(size_type left, end_type) {
+        #ifndef NDEBUG
         assert(left<=size_);
-#endif
+        #endif
         return array_reference_type(pointer_+left, size_-left);
     }
 
-    const_array_reference_type operator()(size_type const& left, end_type) const {
-#ifndef NDEBUG
+    const_array_reference_type operator()(size_type left, end_type) const {
+        #ifndef NDEBUG
         assert(left<=size_);
-#endif
+        #endif
         return array_reference_type(pointer_+left, size_-left);
     }
 
@@ -316,21 +311,21 @@ public:
     }
 
     // access using a Range
-    array_reference_type operator()(Range const& range) {
+    array_reference_type operator()(Range range) {
         size_type left = range.left();
         size_type right = range.right();
-#ifndef NDEBUG
+        #ifndef NDEBUG
         assert(right<=size_ && left<=right);
-#endif
+        #endif
         return array_reference_type(pointer_+left, right-left);
     }
 
-    const_array_reference_type operator()(Range const& range) const {
+    const_array_reference_type operator()(Range range) const {
         size_type left = range.left();
         size_type right = range.right();
-#ifndef NDEBUG
+        #ifndef NDEBUG
         assert(right<=size_ && left<=right);
-#endif
+        #endif
         return array_reference_type(pointer_+left, right-left);
     }
 
@@ -339,12 +334,12 @@ public:
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
     ArrayViewImpl operator=(Other&& other) {
-#if VERBOSE
+        #if VERBOSE
         std::cerr << util::pretty_printer<ArrayViewImpl>::print(*this)
                   << "::" << util::blue("operator=") << "("
                   << util::pretty_printer<ArrayViewImpl>::print(other)
                   << ")" << std::endl;
-#endif
+        #endif
         reset(other.data(), other.size());
         return *this;
     }
@@ -445,7 +440,7 @@ protected :
     }
 
     // disallow constructors that imply allocation of memory
-    ArrayViewImpl(const std::size_t &n) = delete;
+    ArrayViewImpl(std::size_t n) = delete;
 
     coordinator_type coordinator_;
     pointer          pointer_;
@@ -455,8 +450,10 @@ protected :
 template <typename R, typename T, typename Coord>
 class ConstArrayViewImpl {
 public:
-    using const_array_reference_type = ConstArrayView<T, Coord>;
-    using array_view_impl_type = ArrayViewImpl<R, T, Coord>;
+    using const_array_reference_type = R;
+
+    using view_type = ArrayViewImpl<R, T, Coord>;
+    using const_view_type = ConstArrayViewImpl;
 
     using value_type = T;
     using coordinator_type = typename Coord::template rebind<value_type>;
@@ -474,40 +471,35 @@ public:
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
-    ConstArrayViewImpl(Other&& other)
-        : pointer_ (other.data()) , size_(other.size())
+    ConstArrayViewImpl(Other&& other) :
+        pointer_(other.data()), size_(other.size())
     {
 #if VERBOSE
         std::cout << util::green("ConstArrayView(&&Other)")
-                  << " this = "
-                  << util::pretty_printer<ConstArrayViewImpl>::print(*this)
-                  << " other = "
+                  << "\n  other "
                   << util::pretty_printer<typename std::decay<Other>::type>::print(other)
                   << std::endl;
 #endif
     }
 
-    explicit ConstArrayViewImpl(const_pointer ptr, size_type n)
-    :   pointer_(ptr)
-    ,   size_(n)
+    explicit ConstArrayViewImpl(const_pointer ptr, size_type n) :
+        pointer_(ptr), size_(n)
     {
 #if VERBOSE
         std::cout << util::green("ConstArrayView(pointer, size_type)")
-                  << util::pretty_printer<ConstArrayViewImpl>::print(*this)
+                  << "\n  other " << util::pretty_printer<ConstArrayViewImpl>::print(*this)
                   << std::endl;
 #endif
     }
 
-    explicit ConstArrayViewImpl(array_view_impl_type& other, size_type n)
-    :   pointer_(other.data())
-    ,   size_(n)
+    explicit ConstArrayViewImpl(view_type& other, size_type n) :
+        pointer_(other.data()), size_(n)
     {
         assert(n<=other.size());
     }
 
-    explicit ConstArrayViewImpl(ConstArrayViewImpl& other, size_type n)
-    :   pointer_(other.data())
-    ,   size_(n)
+    explicit ConstArrayViewImpl(ConstArrayViewImpl& other, size_type n) :
+        pointer_(other.data()), size_(n)
     {
         assert(n<=other.size());
     }
@@ -515,12 +507,9 @@ public:
     // only works with non const vector until we have a const_view type available
     template <
         typename Allocator,
-        typename = typename
-            std::enable_if<coordinator_type::is_malloc_compatible()>::type
-     >
+        typename = typename std::enable_if<coordinator_type::is_malloc_compatible()>::type >
     explicit ConstArrayViewImpl(const std::vector<value_type, Allocator>& vec) :
-        pointer_(vec.data()),
-        size_(vec.size())
+        pointer_(vec.data()), size_(vec.size())
     {}
 
 
@@ -534,7 +523,7 @@ public:
     ////////////////////////////////////////////////////////////////////////////
 
     /// access half open sub-range using two indexes [left, right)
-    const_array_reference_type operator()(size_type const& left, size_type const& right) const {
+    const_array_reference_type operator()(size_type left, size_type right) const {
 #ifndef NDEBUG
         assert(right<=size_ && left<=right);
 #endif
@@ -542,7 +531,7 @@ public:
     }
 
     /// access half open sub-range using one index and one-past-the-end [left, end)
-    const_array_reference_type operator()(size_type const& left, end_type) const {
+    const_array_reference_type operator()(size_type left, end_type) const {
 #ifndef NDEBUG
         assert(left<=size_);
 #endif
@@ -555,7 +544,7 @@ public:
     }
 
     // access using a Range
-    const_array_reference_type operator()(Range const& range) const {
+    const_array_reference_type operator()(Range range) const {
         size_type left = range.left();
         size_type right = range.right();
 #ifndef NDEBUG
@@ -666,11 +655,10 @@ protected :
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 template <typename T, typename Coord>
-class ArrayReference
-    : public ArrayViewImpl<ArrayReference<T, Coord>, T, Coord> {
+class ArrayReference : public ArrayViewImpl<ArrayReference<T, Coord>, T, Coord> {
 public:
     using base = ArrayViewImpl<ArrayReference<T, Coord>, T, Coord>;
-    using const_base = typename base::const_impl;
+    using const_view_type = typename base::const_view_type;
     using value_type = typename base::value_type;
     using size_type  = typename base::size_type;
 
@@ -714,7 +702,8 @@ public:
                   << util::type_printer<typename std::decay<Other>::type>::print()
                   << ")" << std::endl;
 #endif
-        base::coordinator_.copy(other, *this);
+        using cvt = typename std::decay<Other>::type::const_view_type;
+        base::coordinator_.copy(cvt(other), *this);
 
         return *this;
     }
@@ -732,7 +721,6 @@ public:
         return *this;
     }
 
-    // only works with non const vector until we have a const_view type available
     template <
         typename Allocator,
         typename = typename
@@ -748,7 +736,6 @@ public:
 #endif
         // there is a kink in the coordinator, so use std::copy directly, because we know
         // that coordinator_type is_malloc_compatible
-        //base::coordinator_.copy(base(other.data(), other.size(), this);
         std::copy(other.begin(), other.end(), base::data());
         return *this;
     }
@@ -762,10 +749,12 @@ public:
 };
 
 template <typename T, typename Coord>
-class ConstArrayReference
-    : public ConstArrayViewImpl<ConstArrayReference<T, Coord>, T, Coord> {
+class ConstArrayReference : public ConstArrayViewImpl<ConstArrayReference<T, Coord>, T, Coord> {
 public:
     using base = ConstArrayViewImpl<ConstArrayReference<T, Coord>, T, Coord>;
+
+    using const_view_type = typename base::const_view_type;
+
     using value_type = typename base::value_type;
     using size_type  = typename base::size_type;
 
@@ -808,6 +797,13 @@ public:
 
 // export is_array_view helper
 using impl::is_array_view;
+
+// export wrappers that define Views in a without the Impl noise
+template <typename T, typename Coord>
+using ArrayView = ArrayViewImpl<ArrayReference<T, Coord>, T, Coord>;
+
+template <typename T, typename Coord>
+using ConstArrayView = ConstArrayViewImpl<ConstArrayReference<T, Coord>, T, Coord>;
 
 } // namespace memory
 ////////////////////////////////////////////////////////////////////////////////

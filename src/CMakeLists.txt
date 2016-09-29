@@ -17,5 +17,9 @@ endif()
 add_library(cellalgo ${BASE_SOURCES} ${HEADERS})
 add_dependencies(cellalgo build_all_mods)
 
+if(WITH_CUDA)
+    add_dependencies(cellalgo build_all_gpu_mods)
+endif()
+
 add_subdirectory(vector)
 

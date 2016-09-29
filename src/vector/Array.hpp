@@ -1,5 +1,4 @@
 /*
- * File:   range_wrapper.h
  * Author: bcumming
  *
  * Created on May 3, 2014, 5:14 PM
@@ -21,6 +20,15 @@ namespace memory{
 template<typename T, typename Coord>
 class Array;
 
+template <types::size_type Alignment>
+class AlignedPolicy;
+
+template<typename T, typename Policy>
+class Allocator;
+
+template <typename T, class Allocator>
+class HostCoordinator;
+
 namespace util {
     template <typename T, typename Coord>
     struct type_printer<Array<T,Coord>>{
@@ -37,13 +45,34 @@ namespace util {
         }
     };
 
+    template <typename T, typename Alloc>
+    struct type_printer<std::vector<T,Alloc>>{
+        static std::string print() {
+            std::stringstream str;
+            str << util::white("std::vector") << "<"
+                << type_printer<T>::print() << ">";
+            return str.str();
+        }
+    };
+
     template <typename T, typename Coord>
     struct pretty_printer<Array<T,Coord>>{
         static std::string print(const Array<T,Coord>& val) {
             std::stringstream str;
             str << type_printer<Array<T,Coord>>::print()
                 << "(size="     << val.size()
-                << ", pointer=" << val.data() << ")";
+                << ", pointer=" << util::print_pointer(val.data()) << ")";
+            return str.str();
+        }
+    };
+
+    template <typename T, typename Alloc>
+    struct pretty_printer<std::vector<T,Alloc>>{
+        static std::string print(const std::vector<T,Alloc>& val) {
+            std::stringstream str;
+            str << type_printer<std::vector<T,Alloc>>::print()
+                << "(size="     << val.size()
+                << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
         }
     };
@@ -61,11 +90,13 @@ namespace impl {
     struct is_array :
         std::conditional<
             impl::is_array_by_value  <typename std::decay<T>::type> ::value ||
-            impl::is_array_view      <typename std::decay<T>::type> ::value ||
-            impl::is_array_reference <typename std::decay<T>::type> ::value,
+            impl::is_array_by_reference<typename std::decay<T>::type> ::value,
             std::true_type, std::false_type
         >::type
     {};
+
+    // template <typename T, typename Coord>
+    // struct is_array<Array<T, Coord> > : std::true_type {};
 
     template <typename T>
     using is_array_t = typename is_array<T>::type;
@@ -77,8 +108,8 @@ using impl::is_array;
 // this wrapper owns the memory in the array
 // and is responsible for allocating and freeing memory
 template <typename T, typename Coord>
-class Array
-    : public ArrayView<T, Coord> {
+class Array :
+    public ArrayView<T, Coord> {
 public:
     using value_type = T;
     using base       = ArrayView<value_type, Coord>;
@@ -92,112 +123,119 @@ public:
 
     using pointer       = value_type*;
     using const_pointer = const pointer;
+
     // TODO what about specialized references for things like GPU memory?
     using reference       = value_type&;
     using const_reference = value_type const&;
 
     // default constructor
-    // we have to call constructor in ArrayView: pass base
-    Array() : base(nullptr, 0) {}
+    // create empty storage
+    Array() :
+        base(nullptr, 0)
+    {}
 
     // constructor by size
-    template < typename I,
-               typename = typename std::enable_if<std::is_integral<I>::value>::type>
-    Array(I n)
-        : base(coordinator_type().allocate(n))
+    template <
+        typename I,
+        typename = typename std::enable_if<std::is_integral<I>::value>::type>
+    Array(I n) :
+        base(coordinator_type().allocate(n))
     {
         #ifdef VERBOSE
-        std::cerr << util::green("Array(integral_type) ")
-                  << util::pretty_printer<Array>::print(*this) << std::endl;
+        std::cerr << util::green("Array(" + std::to_string(n) + ")")
+                  << "\n  this  " << util::pretty_printer<Array>::print(*this) << std::endl;
         #endif
     }
 
     // constructor by size with default value
-    template < typename II,
-               typename TT,
-               typename = typename std::enable_if<std::is_integral<II>::value>::type,
-               typename = typename std::enable_if<std::is_convertible<TT,value_type>::value>::type >
-    Array(II n, TT value)
-        : base(coordinator_type().allocate(n))
+    template <
+        typename II, typename TT,
+        typename = typename std::enable_if<std::is_integral<II>::value>::type,
+        typename = typename std::enable_if<std::is_convertible<TT,value_type>::value>::type >
+    Array(II n, TT value) :
+        base(coordinator_type().allocate(n))
     {
         #ifdef VERBOSE
-        std::cerr << util::green("Array(integral_type, value=" + std::to_string(value) + ") ")
-                  << util::pretty_printer<Array>::print(*this) << std::endl;
+        std::cerr << util::green("Array(" + std::to_string(n) + ", " + std::to_string(value) + ")")
+                  << "\n  this  " << util::pretty_printer<Array>::print(*this) << "\n";
         #endif
         coordinator_type().set(*this, value_type(value));
     }
 
-    template <typename Other,
-              typename = typename
-                  std::enable_if<
-                                 impl::is_array_t<Other>::value
-                                >::type
-             >
-    Array(Other&& other)
-        : base(coordinator_type().allocate(other.size()))
+    // copy constructor
+    Array(const Array& other) :
+        base(coordinator_type().allocate(other.size()))
     {
-        coordinator_.copy(other, *this);
-    }
-
-    // construct as a copy of another range
-    Array(view_type const& other)
-        : base(coordinator_type().allocate(other.size()))
-    {
+        static_assert(impl::is_array_t<Array>::value, "oooooooooooo.............");
 #ifdef VERBOSE
-        std::cerr << util::green("Array(other&)") + " other = "
-                  << util::pretty_printer<view_type>::print(other) << std::endl;
+        std::cerr << util::green("Array(Array&)")
+                  << "\n  this  " << util::pretty_printer<Array>::print(*this)
+                  << "\n  other " << util::pretty_printer<Array>::print(other) << "\n";
 #endif
-        coordinator_.copy(static_cast<base const&>(other), *this);
+        coordinator_.copy(const_view_type(other), view_type(*this));
     }
 
-    Array(const Array& other)
-        : base(coordinator_type().allocate(other.size()))
-    {
-#ifdef VERBOSE
-        std::cerr << util::green("Array(other&)") + " other = "
-                  << util::pretty_printer<Array>::print(other) << std::endl;
-#endif
-        coordinator_.copy(static_cast<base const&>(other), *this);
-    }
-
+    // move constructor
     Array(Array&& other) {
 #ifdef VERBOSE
-        std::cerr << util::green("Array(Array&&) ")
-                  << util::pretty_printer<Array>::print(other) << std::endl;
+        std::cerr << util::green("Array(Array&&)")
+                  << "\n  this  " << util::pretty_printer<Array>::print(*this)
+                  << "\n  other " << util::pretty_printer<Array>::print(other) << "\n";
 #endif
         base::swap(other);
+    }
+
+    // copy constructor where other is an array, array_view or array_reference
+    template <
+        typename Other,
+        typename = typename std::enable_if<impl::is_array_t<Other>::value>::type
+    >
+    Array(const Other& other) :
+        base(coordinator_type().allocate(other.size()))
+    {
+#ifdef VERBOSE
+        std::cerr << util::green("Array(other&&)")
+                  << "\n  this  " << util::pretty_printer<Array>::print(*this)
+                  << "\n  other " << util::pretty_printer<Other>::print(other) << std::endl;
+#endif
+        coordinator_.copy(typename Other::const_view_type(other), view_type(*this));
     }
 
     /// copy from a std::vector
     /// the value_type of the vector must be the same, because the coordinator
     /// used to copy from the vector into the Array does not convert between types
-    template < typename Allocator >
-    Array(std::vector<value_type, Allocator> const& other)
-    : base(coordinator_type().allocate(other.size()))
+    template <typename Allocator>
+    Array(const std::vector<value_type, Allocator>& other) :
+        base(coordinator_type().allocate(other.size()))
     {
-        coordinator_.copy(
-            const_view_type(other.data(), other.size()),
-            *this
-        );
+#ifdef VERBOSE
+        using other_type = std::vector<value_type, Allocator>;
+        std::cerr << util::green("Array operator=(std::vector&)")
+                  << "\n  other " << util::pretty_printer<other_type>::print(other) << "\n";
+#endif
+        //using cvt = ArrayView<T, HostCoordinator<T, Allocator<T, AlignedPolicy<8>>>>;
+        using cvt = const_view_type; //ArrayView<T, HostCoordinator<T, Allocator<T, AlignedPolicy<8>>>>;
+        coordinator_.copy(cvt(other.data(), other.size()), view_type(*this));
     }
 
-    Array& operator = (Array const& other) {
+    Array& operator=(const Array& other) {
 #ifdef VERBOSE
-        std::cerr << util::green("Array operator=(other&)") + " other = "
-                  << util::pretty_printer<Array>::print(other) << std::endl;
+        std::cerr << util::green("Array operator=(Array&)")
+                  << "\n  this  "  << util::pretty_printer<Array>::print(*this)
+                  << "\n  other " << util::pretty_printer<Array>::print(other) << "\n";
 #endif
         coordinator_.free(*this);
         auto ptr = coordinator_type().allocate(other.size());
         base::reset(ptr.data(), other.size());
-        coordinator_.copy(static_cast<base const&>(other), *this);
+        coordinator_.copy(const_view_type(other), view_type(*this));
         return *this;
     }
 
     Array& operator = (Array&& other) {
 #ifdef VERBOSE
-        std::cerr << util::pretty_printer<Array>::print(*this)
-                  << "::" << util::blue("operator=") << "(Array&&) other = "
-                  << util::pretty_printer<Array>::print(other) << std::endl;
+        std::cerr << util::green("Array operator=(Array&&)")
+                  << "\n  this  "  << util::pretty_printer<Array>::print(*this)
+                  << "\n  other " << util::pretty_printer<Array>::print(other) << "\n";
 #endif
         base::swap(other);
         return *this;
@@ -206,8 +244,8 @@ public:
     // have to free the memory in a "by value" range
     ~Array() {
 #ifdef VERBOSE
-        std::cerr << util::red("~") + util::green("Array()") + " "
-                  << util::pretty_printer<Array>::print(*this) << std::endl;
+        std::cerr << util::red("~") + util::green("Array()")
+                  << "\n  this " << util::pretty_printer<Array>::print(*this) << "\n";
 #endif
         coordinator_.free(*this);
     }
@@ -226,6 +264,7 @@ public:
     using base::alignment;
 
 private:
+
     coordinator_type coordinator_;
 };
 

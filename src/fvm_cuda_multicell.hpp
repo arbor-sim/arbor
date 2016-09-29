@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef WITH_CUDA
+
 #include <algorithm>
 #include <iterator>
 #include <map>
@@ -50,6 +52,7 @@ public:
 private:
     using host_vector_type = memory::HostVector<value_type>;
     using host_index_type = memory::HostVector<size_type>;
+    using host_index_view_type = typename host_index_type::view_type;
 
 public:
     /// API for cell_group (see above):
@@ -92,10 +95,10 @@ public:
 
     /// mechanism type
     using mechanism_type =
-        nest::mc::mechanisms::mechanism_ptr<value_type, size_type>;
+        nest::mc::mechanisms::gpu::mechanism_ptr<value_type, size_type>;
 
     /// ion species storage
-    using ion_type = mechanisms::ion<value_type, size_type>;
+    using ion_type = mechanisms::gpu::ion<value_type, size_type>;
 
     /// view into index container
     using index_view = typename index_type::view_type;
@@ -215,7 +218,7 @@ private:
     std::vector<std::pair<const vector_type fvm_cuda_multicell::*, uint32_t>> probes_;
 
     // mechanism factory
-    using mechanism_catalogue = nest::mc::mechanisms::catalogue<value_type, size_type>;
+    using mechanism_catalogue = nest::mc::mechanisms::gpu::catalogue<value_type, size_type>;
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
@@ -472,12 +475,10 @@ void fvm_cuda_multicell<T, I>::initialize(
             util::append(mech_comp_indices, make_span(comp_ival));
         }
 
-        // TODO : gpu catalogue
-        /*
         mechanisms_.push_back(
-            mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
+            mechanism_catalogue::make(
+                mech.first, voltage_, current_, mech_comp_indices)
         );
-        */
     }
 
     // create point (synapse) mechanisms
@@ -486,29 +487,30 @@ void fvm_cuda_multicell<T, I>::initialize(
         const auto& mech_name = syni.first;
 
         // TODO : gpu catalogue
-        //auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, syn_mech_map[syni.second]);
-        //mech->set_areas(cv_areas_);
-        //mechanisms_.push_back(std::move(mech));
+        for(auto i : syn_mech_map[syni.second]) std::cout << " " << i; std::cout << "\n";
+        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, syn_mech_map[syni.second]);
+        mech->set_areas(cv_areas_);
+        mechanisms_.push_back(std::move(mech));
     }
 
     // build the ion species
-    /*
-    for(auto ion : mechanisms::ion_kinds()) {
+    for (auto ion : mechanisms::ion_kinds()) {
         // find the compartment indexes of all compartments that have a
         // mechanism that depends on/influences ion
-        std::set<int> index_set;
+        std::set<size_type> index_set;
         for(auto& mech : mechanisms_) {
             if(mech->uses_ion(ion)) {
-                for(auto idx : mech->node_index()) {
+                // copy indexes back to CPU for ease of use
+                for(auto idx : memory::on_host(mech->node_index())) {
                     index_set.insert(idx);
                 }
             }
         }
-        std::vector<cell_lid_type> indexes(index_set.begin(), index_set.end());
+        std::vector<size_type> indexes(index_set.begin(), index_set.end());
 
         // create the ion state
-        if(indexes.size()) {
-            ions_.emplace(ion, index_type(indexes));
+        if (indexes.size()) {
+            ions_[ion] = ion_type(memory::make_view(indexes));
         }
 
         // join the ion reference in each mechanism into the cell-wide ion state
@@ -518,7 +520,6 @@ void fvm_cuda_multicell<T, I>::initialize(
             }
         }
     }
-    */
 
     // FIXME: Hard code parameters for now.
     //        Take defaults for reversal potential of sodium and potassium from
@@ -651,3 +652,4 @@ void fvm_cuda_multicell<T, I>::advance(T dt) {
 } // namespace mc
 } // namespace nest
 
+#endif

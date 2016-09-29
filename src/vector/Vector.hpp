@@ -53,3 +53,7 @@ using HBWView = ArrayView<T, HostCoordinator<T, HBWAllocator<T>>>;
 #endif
 
 } // namespace memory
+
+// now import the helpers
+// these require that HostVector etc have been defined
+#include "helpers.hpp"

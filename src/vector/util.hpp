@@ -3,8 +3,11 @@
 #include <sstream>
 #include <vector>
 
+#define LOG_ERROR(msg) util::log_error(__FILE__, __LINE__, msg)
+
 namespace memory {
 namespace util {
+
 static inline std::string pprintf(const char *s) {
     std::string errstring;
     while(*s) {
@@ -57,6 +60,7 @@ std::string to_string(T val) {
 //'\e[1;37m' # White
 enum stringColor {kWhite, kRed, kGreen, kBlue, kYellow, kPurple, kCyan};
 
+#define COLOR_PRINTING
 #ifdef COLOR_PRINTING
 __attribute__((unused))
 static std::string colorize(std::string const& s, stringColor c) {
@@ -115,5 +119,19 @@ __attribute__((unused))
 static std::string white(std::string const& s) {
     return colorize(s, kWhite);
 }
+
+template <typename T>
+std::string print_pointer(const T* ptr) {
+    std::stringstream s;
+    s << ptr;
+    return yellow(s.str());
+}
+
+static inline void log_error(const char* file, int line, std::string msg) {
+    std::cerr
+        << red("runtime error") << " @ "
+        << white(file) << ":" << line << "\n    " << msg << std::endl;
+}
+
 } // namespace util
 } // namespace memory

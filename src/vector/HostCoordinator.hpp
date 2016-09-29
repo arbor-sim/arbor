@@ -7,6 +7,7 @@
 #include "definitions.hpp"
 #include "Array.hpp"
 #include "Allocator.hpp"
+#include "util.hpp"
 
 namespace memory {
 
@@ -93,10 +94,11 @@ public:
 
     // copy memory between host memory ranges
     template <typename Allocator1, typename Allocator2>
-    // requires Allocator1 = Allocator
-    // requires Allocator2 = Allocator
-    void copy(const ArrayView<value_type, HostCoordinator<value_type, Allocator1>>& from,
-                    ArrayView<value_type, HostCoordinator<value_type, Allocator2>>& to)
+    // requires Allocator1 is Allocator
+    // requires Allocator2 is Allocator
+    void copy(
+        ConstArrayView<value_type, HostCoordinator<value_type, Allocator1>> from,
+        ArrayView<value_type, HostCoordinator<value_type, Allocator2>> to)
     {
         assert(from.size()==to.size());
         assert(!from.overlaps(to));
@@ -106,29 +108,7 @@ public:
         std::cerr << util::type_printer<c1>::print()
                   << "::" + util::blue("copy") << "(" << from.size()
                   << " [" << from.size()*sizeof(value_type) << " bytes])"
-                  << " " << from.data() << util::yellow(" -> ") << to.data()
-                  << std::endl;
-        #endif
-
-        std::copy(from.begin(), from.end(), to.begin());
-    }
-
-    // copy memory between host memory ranges
-    template <typename Allocator1, typename Allocator2>
-    // requires Allocator1 = Allocator
-    // requires Allocator2 = Allocator
-    void copy(const ConstArrayView<value_type, HostCoordinator<value_type, Allocator1>>& from,
-                    ArrayView<value_type, HostCoordinator<value_type, Allocator2>>& to)
-    {
-        assert(from.size()==to.size());
-        assert(!from.overlaps(to));
-
-        #ifdef VERBOSE
-        using c1 = HostCoordinator<value_type, Allocator1>;
-        std::cerr << util::type_printer<c1>::print()
-                  << "::" + util::blue("copy") << "(" << from.size()
-                  << " [" << from.size()*sizeof(value_type) << " bytes])"
-                  << " " << from.data() << util::yellow(" -> ") << to.data()
+                  << " " << util::print_pointer(from.data()) << util::yellow(" -> ") << util::print_pointer(to.data())
                   << std::endl;
         #endif
 
@@ -138,16 +118,18 @@ public:
 #ifdef WITH_CUDA
     // copy memory from device to host
     template <class Alloc>
-    void copy(const ArrayView<value_type, DeviceCoordinator<value_type, Alloc>> &from,
-              view_type &to) {
+    void copy(
+        ConstArrayView<value_type, DeviceCoordinator<value_type, Alloc>> from,
+        view_type to)
+    {
         assert(from.size()==to.size());
 
         #ifdef VERBOSE
         std::cerr << util::type_printer<HostCoordinator>::print()
                   << "::" + util::blue("copy") << "(device2host, " << from.size()
                   << " [" << from.size()*sizeof(value_type) << " bytes])"
-                  << " " << from.data() << util::yellow(" -> ") << to.data()
-                  << std::endl;
+                  << " " << util::print_pointer(from.data()) << util::yellow(" -> ")
+                  << util::print_pointer(to.data()) << std::endl;
         #endif
 
         auto status = cudaMemcpy(
@@ -157,10 +139,41 @@ public:
                 cudaMemcpyDeviceToHost
         );
         if(status != cudaSuccess) {
-            std::cerr << util::red("error") << " bad CUDA memcopy, unable to copy " << sizeof(T)*from.size() << " bytes from host to device";
-            exit(-1);
+            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
+            abort();
         }
     }
+
+    /*
+    // copy memory from device to host
+    // more generic than the version above... needed?
+    template <class AllocDevice, class AllocHost>
+    void copy(
+        ConstArrayView<value_type, DeviceCoordinator<value_type, AllocDevice>> from,
+        ArrayView<value_type, HostCoordinator<value_type, AllocHost>> to)
+    {
+        assert(from.size()==to.size());
+
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<HostCoordinator>::print()
+                  << "::" + util::blue("copy") << "(device2host, " << from.size()
+                  << " [" << from.size()*sizeof(value_type) << " bytes])"
+                  << " " << util::print_pointer(from.data()) << util::yellow(" -> ")
+                  << util::print_pointer(to.data()) << std::endl;
+        #endif
+
+        auto status = cudaMemcpy(
+                reinterpret_cast<void*>(to.begin()),
+                reinterpret_cast<const void*>(from.begin()),
+                from.size()*sizeof(value_type),
+                cudaMemcpyDeviceToHost
+        );
+        if(status != cudaSuccess) {
+            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
+            abort();
+        }
+    }
+    */
 #endif
 
     // set all values in a range to val
