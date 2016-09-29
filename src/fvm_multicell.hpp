@@ -593,6 +593,9 @@ void fvm_multicell<T, I>::reset() {
     voltage_(memory::all) = resting_potential_;
     t_ = 0.;
     for (auto& m : mechanisms_) {
+        // TODO : the parameters have to be set before the nrn_init
+        // for now use a dummy value of dt.
+        m->set_params(t_, 0.025);
         m->nrn_init();
     }
 }

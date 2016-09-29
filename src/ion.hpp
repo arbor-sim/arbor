@@ -136,10 +136,7 @@ namespace gpu {
             eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
             Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
             Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
-        {
-            std::cout << "ION INDEXES ON GPU :";
-            for(size_t i=0; i<node_index_.size(); ++i) std::cout << " " << size_type(node_index_[i]); std::cout << "\n";
-        }
+        {}
 
         std::size_t memory() const {
             return 4u*size() * sizeof(value_type)

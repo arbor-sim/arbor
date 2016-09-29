@@ -111,7 +111,6 @@ namespace gpu {
 
         template <typename IVT>
         mechanism(view_type vec_v, view_type vec_i, IVT node_index):
-      //mechanism(view_type vec_v, view_type vec_i, const_index_view node_index):
             vec_v_(vec_v), vec_i_(vec_i), node_index_(node_index), vec_area_(nullptr, 0)
         {}
 
