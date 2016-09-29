@@ -22,6 +22,7 @@
 #include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/partition.hpp>
+#include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
 #include <vector/Vector.hpp>
@@ -67,7 +68,7 @@ public:
     void reset();
 
     void deliver_event(target_handle h, value_type weight) {
-        mechanisms_[synapse_base_+h.first]->net_receive(h.second, weight);
+        mechanisms_[h.first]->net_receive(h.second, weight);
     }
 
     value_type detector_voltage(detector_handle h) const {
@@ -300,6 +301,8 @@ void fvm_multicell<T, I>::initialize(
     Targets& target_handles,
     Probes& probe_handles)
 {
+    using util::assign_by;
+    using util::sort_by;
     using util::transform_view;
     using util::make_partition;
     using util::make_span;
@@ -388,11 +391,7 @@ void fvm_multicell<T, I>::initialize(
             auto& map_entry = syn_mech_map[syn_mech_index];
 
             size_type syn_comp = comp_ival.first+find_compartment_index(syn.location, graph);
-            size_type syn_index = map_entry.size();
             map_entry.push_back(syn_comp);
-
-            *target_hi++ = target_handle{syn_mech_index, syn_index};
-            ++targets_count;
         }
 
         // normalize capacitance across cell
@@ -434,11 +433,6 @@ void fvm_multicell<T, I>::initialize(
         }
     }
 
-    // confirm write-parameters were appropriately sized
-    EXPECTS(detectors_size==detectors_count);
-    EXPECTS(targets_size==targets_count);
-    EXPECTS(probes_size==probes_count);
-
     // initalize matrix
     matrix_ = matrix_type(group_parent_index);
 
@@ -461,11 +455,42 @@ void fvm_multicell<T, I>::initialize(
     synapse_base_ = mechanisms_.size();
     for (const auto& syni: syn_mech_indices) {
         const auto& mech_name = syni.first;
+        size_type mech_index = mechanisms_.size();
 
-        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, syn_mech_map[syni.second]);
+        auto comp_indices = syn_mech_map[syni.second];
+        size_type n_indices = size(comp_indices);
+
+        // sort indices but keep track of their original order for assigning
+        // target handles
+
+        using index_pair = std::pair<cell_lid_type, size_type>;
+        auto compartment_index = [](index_pair x) { return x.first; };
+        auto target_index = [](index_pair x) { return x.second; };
+
+        std::vector<index_pair> permute;
+        assign_by(permute, make_span(0u, n_indices),
+            [&](size_type i) { return index_pair(comp_indices[i], i); });
+
+        sort_by(permute, compartment_index);
+        assign_by(comp_indices, permute, compartment_index);
+
+        // make target handles
+        std::vector<target_handle> handles(n_indices);
+        for (auto i: make_span(0u, n_indices)) {
+            handles[target_index(permute[i])] = {mech_index, i};
+        }
+        target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
+        targets_count += n_indices;
+
+        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, comp_indices);
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
     }
+
+    // confirm write-parameters were appropriately sized
+    EXPECTS(detectors_size==detectors_count);
+    EXPECTS(targets_size==targets_count);
+    EXPECTS(probes_size==probes_count);
 
     // build the ion species
     for(auto ion : mechanisms::ion_kinds()) {

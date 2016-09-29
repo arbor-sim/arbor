@@ -140,7 +140,7 @@ struct range {
         return is_forward_iterator<U>::value && left != right && std::next(left) != right;
     }
 
-    static const bool is_splittable_in_proportion() {
+    static constexpr bool is_splittable_in_proportion() {
         return is_forward_iterator<U>::value;
     }
 #endif
@@ -152,60 +152,17 @@ range<U, V> make_range(const U& left, const V& right) {
 }
 
 template <typename Seq>
-auto canonical_view(const Seq& s) ->
+auto canonical_view(Seq& s) ->
     range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
 {
     return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
 }
 
-/*
- * Present a single item as a range
- */
-
-template <typename T>
-range<T*> singleton_view(T& item) {
-    return {&item, &item+1};
-}
-
-template <typename T>
-range<const T*> singleton_view(const T& item) {
-    return {&item, &item+1};
-}
-
-/*
- * Range/container utility functions
- */
-
-template <typename Container, typename Seq>
-Container& append(Container &c, const Seq& seq) {
-    auto canon = canonical_view(seq);
-    c.insert(c.end(), std::begin(canon), std::end(canon));
-    return c;
-}
-
-template <typename AssignableContainer, typename Seq>
-AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
-    auto canon = canonical_view(seq);
-    c.assign(std::begin(canon), std::end(canon));
-    return c;
-}
-
 template <typename Seq>
-range<typename sequence_traits<Seq>::iterator_type, typename sequence_traits<Seq>::sentinel_type>
-range_view(Seq& seq) {
-    return make_range(std::begin(seq), std::end(seq));
-}
-
-template <
-    typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator_type,
-    typename Size = typename sequence_traits<Seq>::size_type
->
-enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
-subrange_view(Seq& seq, Size bi, Size ei) {
-    Iter b = std::next(std::begin(seq), bi);
-    Iter e = std::next(b, ei-bi);
-    return make_range(b, e);
+auto canonical_view(const Seq& s) ->
+    range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
+{
+    return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
 }
 
 } // namespace util

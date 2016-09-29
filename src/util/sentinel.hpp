@@ -179,6 +179,6 @@ sentinel_iterator_t<I, S> make_sentinel_end(const I& i, const S& s) {
     return sentinel_iterator_t<I, S>(s);
 }
 
-}
-}
-}
+} // namespace util
+} // namespace mc
+} // namespace nest

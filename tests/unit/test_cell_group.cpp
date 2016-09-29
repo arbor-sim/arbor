@@ -3,7 +3,7 @@
 #include <cell_group.hpp>
 #include <common_types.hpp>
 #include <fvm_cell.hpp>
-#include <util/range.hpp>
+#include <util/rangeutil.hpp>
 
 #include "../test_common_cells.hpp"
 
