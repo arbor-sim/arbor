@@ -8,7 +8,7 @@
 #include <cell_group.hpp>
 #include <fvm_cell.hpp>
 #include <mechanism_interface.hpp>
-#include <util/range.hpp>
+#include <util/rangeutil.hpp>
 
 #include "gtest.h"
 #include "../test_util.hpp"

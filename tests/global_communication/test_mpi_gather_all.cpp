@@ -7,7 +7,7 @@
 
 #include <communication/mpi_global_policy.hpp>
 #include <communication/mpi.hpp>
-#include <util/range.hpp>
+#include <util/rangeutil.hpp>
 
 using namespace nest::mc;
 using namespace nest::mc::communication;
