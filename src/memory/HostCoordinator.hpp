@@ -9,6 +9,10 @@
 #include "Allocator.hpp"
 #include "util.hpp"
 
+#ifdef WITH_CUDA
+#include "gpu.hpp"
+#endif
+
 namespace memory {
 
 // forward declare for type printers
@@ -51,6 +55,7 @@ public:
     using reference       = value_type&;
     using const_reference = value_type const&;
     using view_type       = ArrayView<value_type, HostCoordinator>;
+    using const_view_type = ConstArrayView<value_type, HostCoordinator>;
     using size_type       = types::size_type;
     using difference_type = types::difference_type;
 
@@ -132,52 +137,31 @@ public:
                   << util::print_pointer(to.data()) << std::endl;
         #endif
 
-        auto status = cudaMemcpy(
-                reinterpret_cast<void*>(to.begin()),
-                reinterpret_cast<const void*>(from.begin()),
-                from.size()*sizeof(value_type),
-                cudaMemcpyDeviceToHost
-        );
-        if(status != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
-            abort();
-        }
+        gpu::memcpy_d2h(from.data(), to.data(), from.size());
     }
 
-    /*
-    // copy memory from device to host
-    // more generic than the version above... needed?
-    template <class AllocDevice, class AllocHost>
+    // copy memory from host to device
+    template <class Alloc>
     void copy(
-        ConstArrayView<value_type, DeviceCoordinator<value_type, AllocDevice>> from,
-        ArrayView<value_type, HostCoordinator<value_type, AllocHost>> to)
+        const_view_type from,
+        ArrayView<value_type, DeviceCoordinator<value_type, Alloc>> to)
     {
         assert(from.size()==to.size());
 
         #ifdef VERBOSE
         std::cerr << util::type_printer<HostCoordinator>::print()
-                  << "::" + util::blue("copy") << "(device2host, " << from.size()
+                  << "::" + util::blue("copy") << "(host2device, " << from.size()
                   << " [" << from.size()*sizeof(value_type) << " bytes])"
                   << " " << util::print_pointer(from.data()) << util::yellow(" -> ")
                   << util::print_pointer(to.data()) << std::endl;
         #endif
 
-        auto status = cudaMemcpy(
-                reinterpret_cast<void*>(to.begin()),
-                reinterpret_cast<const void*>(from.begin()),
-                from.size()*sizeof(value_type),
-                cudaMemcpyDeviceToHost
-        );
-        if(status != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
-            abort();
-        }
+        gpu::memcpy_h2d(from.data(), to.data(), from.size());
     }
-    */
 #endif
 
     // set all values in a range to val
-    void set(view_type &rng, value_type val) {
+    void set(view_type rng, value_type val) {
         #ifdef VERBOSE
         std::cerr << util::type_printer<HostCoordinator>::print()
                   << "::" + util::blue("fill")

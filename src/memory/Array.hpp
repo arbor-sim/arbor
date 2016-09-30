@@ -90,7 +90,7 @@ namespace impl {
     struct is_array :
         std::conditional<
             impl::is_array_by_value  <typename std::decay<T>::type> ::value ||
-            impl::is_array_by_reference<typename std::decay<T>::type> ::value,
+            impl::is_array_view<typename std::decay<T>::type> ::value,
             std::true_type, std::false_type
         >::type
     {};

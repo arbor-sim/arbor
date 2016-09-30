@@ -26,7 +26,7 @@
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
-#include <vector/Vector.hpp>
+#include <memory/memory.hpp>
 
 namespace nest {
 namespace mc {

@@ -56,4 +56,5 @@ using HBWView = ArrayView<T, HostCoordinator<T, HBWAllocator<T>>>;
 
 // now import the helpers
 // these require that HostVector etc have been defined
-#include "helpers.hpp"
+#include "wrappers.hpp"
+#include "copy.hpp"

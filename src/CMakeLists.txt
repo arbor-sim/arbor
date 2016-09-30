@@ -21,5 +21,5 @@ if(WITH_CUDA)
     add_dependencies(cellalgo build_all_gpu_mods)
 endif()
 
-add_subdirectory(vector)
+add_subdirectory(memory)
 

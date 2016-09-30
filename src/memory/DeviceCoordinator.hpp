@@ -198,36 +198,6 @@ public:
     }
 
     // copy memory from one gpu range to another
-    template <
-        typename LHS, typename RHS,
-        typename = typename
-            std::enable_if<
-                is_array_by_reference<LHS>::value && is_array_by_reference<RHS>::value
-            >::type
-    >
-    void copy(LHS from, RHS to) {
-        #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
-                  << util::blue("::copy") << "(size=" << from.size() << ") "
-                  << util::print_pointer(from.data()) << " -> "
-                  << util::print_pointer(to.data()) << "\n";
-        #endif
-        assert(from.size()==to.size());
-        assert(!from.overlaps(to));
-
-        auto status = cudaMemcpy(
-                reinterpret_cast<void*>(to.begin()),
-                reinterpret_cast<const void*>(from.begin()),
-                from.size()*sizeof(value_type),
-                cudaMemcpyDeviceToDevice
-        );
-        if(status != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(d2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
-            abort();
-        }
-    }
-
-    // copy memory from one gpu range to another
     void copy(const_view_type& from, view_type &to) {
         #ifdef VERBOSE
         std::cerr << util::type_printer<DeviceCoordinator>::print()
@@ -238,16 +208,43 @@ public:
         assert(from.size()==to.size());
         assert(!from.overlaps(to));
 
-        auto status = cudaMemcpy(
-                reinterpret_cast<void*>(to.data()),
-                reinterpret_cast<const void*>(from.data()),
-                from.size()*sizeof(value_type),
-                cudaMemcpyDeviceToDevice
-        );
-        if(status != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(d2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
-            abort();
-        }
+        gpu::memcpy_d2d(from.data(), to.data(), from.size());
+    }
+
+    // copy memory from gpu to host
+    template <typename Allocator>
+    void copy(
+        const_view_type& from,
+        ArrayView<value_type, HostCoordinator<value_type, Allocator>>& to)
+    {
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<DeviceCoordinator>::print()
+                  << util::blue("::copy") << "(d2h, size=" << from.size() << ") "
+                  << util::print_pointer(from.data()) << " -> "
+                  << util::print_pointer(to.data()) << "\n";
+        #endif
+        assert(from.size()==to.size());
+        assert(!from.overlaps(to));
+
+        gpu::memcpy_d2h(from.data(), to.data(), from.size());
+    }
+
+    // copy memory from host to gpu
+    template <typename Allocator>
+    void copy(
+        ConstArrayView<value_type, HostCoordinator<value_type, Allocator>>& from,
+        view_type& to)
+    {
+        #ifdef VERBOSE
+        std::cerr << util::type_printer<DeviceCoordinator>::print()
+                  << util::blue("::copy") << "(h2d, size=" << from.size() << ") "
+                  << util::print_pointer(from.data()) << " -> "
+                  << util::print_pointer(to.data()) << "\n";
+        #endif
+        assert(from.size()==to.size());
+        assert(!from.overlaps(to));
+
+        gpu::memcpy_h2d(from.data(), to.data(), from.size());
     }
 
     // copy from pinned memory to device

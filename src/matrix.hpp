@@ -1,7 +1,7 @@
 #pragma once
 
 #include <type_traits>
-#include <vector/Vector.hpp>
+#include <memory/memory.hpp>
 
 #include "util.hpp"
 #include "util/debug.hpp"
@@ -38,9 +38,9 @@ class matrix {
                 util::is_container<RHS>::value
             >
     >
-    matrix(LHS&& pi, RHS&& ci)
-    :   parent_index_(std::forward<LHS>(pi))
-    ,   cell_index_(std::forward<RHS>(ci))
+    matrix(LHS&& pi, RHS&& ci) :
+        parent_index_(std::forward<LHS>(pi)),
+        cell_index_(std::forward<RHS>(ci))
     {
         setup();
     }
@@ -51,9 +51,9 @@ class matrix {
         typename = typename
             std::enable_if< util::is_container<IDX>::value >
     >
-    matrix(IDX&& pi)
-    :   parent_index_(std::forward<IDX>(pi))
-    ,   cell_index_(2)
+    matrix(IDX&& pi) :
+        parent_index_(std::forward<IDX>(pi)),
+        cell_index_(2)
     {
         cell_index_[0] = 0;
         cell_index_[1] = size();
@@ -61,14 +61,12 @@ class matrix {
     }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)
-    std::size_t size() const
-    {
+    std::size_t size() const {
         return parent_index_.size();
     }
 
     /// the total memory used to store the matrix
-    std::size_t memory() const
-    {
+    std::size_t memory() const {
         auto s = 6 * (sizeof(value_type) * size() + sizeof(vector_type));
         s     += sizeof(size_type) * (parent_index_.size() + cell_index_.size())
                 + 2*sizeof(index_type);
@@ -77,8 +75,7 @@ class matrix {
     }
 
     /// the number of cell matrices that have been packed together
-    size_type num_cells() const
-    {
+    size_type num_cells() const {
         return cell_index_.size() - 1;
     }
 

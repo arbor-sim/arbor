@@ -44,7 +44,7 @@ make_view(ArrayView<T, Coordinator> v) {
 template <typename T, typename Coordinator>
 ConstArrayView<T, Coordinator>
 make_const_view(ArrayView<T, Coordinator> v) {
-    return v;
+    return ConstArrayView<T, Coordinator>(v.data(), v.size());
 }
 
 //
@@ -156,9 +156,10 @@ namespace util {
     bool is_host_pointer(const T* ptr) {
         cudaPointerAttributes attributes;
         // cast away constness for external C API call
-        cudaPointerGetAttributes(
+        auto status = cudaPointerGetAttributes(
             &attributes,
             const_cast<void*>(static_cast<const void*>(ptr)));
+        // TODO : check the value of status to detect a host pointer for memory allocated with malloc/new/posix_memalign etc.
         return attributes.memoryType == cudaMemoryTypeHost;
     }
 
