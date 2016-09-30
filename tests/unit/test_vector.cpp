@@ -1,13 +1,16 @@
 #include "gtest.h"
 
+#include <limits>
 #include <type_traits>
 
-#include <vector/Vector.hpp>
-#include <vector/helpers.hpp>
+#include <memory/memory.hpp>
+#include <util/span.hpp>
 
 //
-//  helpers
+//  wrappers
 //
+
+using namespace nest::mc;
 
 // test that memory::make_view and make_const_view work on std::vector
 TEST(vector, make_view_stdvector) {
@@ -103,3 +106,161 @@ TEST(vector, make_gpu_devicevector) {
     EXPECT_TRUE((std::is_same<int, target_type::value_type>::value));
 }
 #endif
+
+//
+//  fill
+//
+
+// test filling of memory with values on the host
+TEST(vector, fill_host) {
+    constexpr auto N = 10u;
+
+    using util::make_span;
+    // fill a std::vector
+    for (auto n : make_span(0u, N)) {
+        std::vector<int> v(n, 0);
+        memory::fill(v, 42);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(v[i], 42);
+        }
+    }
+
+    // fill an array
+    for (auto n : make_span(0u, N)) {
+        double value = (n+1)/2.;
+        memory::HostVector<double> v(n);
+        memory::fill(v, value);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(v[i], value);
+        }
+    }
+
+    // fill an array view
+    std::vector<float> ubervec(N);
+    for (auto n : make_span(0u, N)) {
+        float value = float((n+1)/2.f);
+        using view_type = memory::HostVector<float>::view_type;
+        // make a view of a sub-range of the std::vector ubervec
+        auto v = view_type(ubervec.data(), n);
+        memory::fill(v, value);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(v[i], value);
+        }
+    }
+}
+
+#ifdef WITH_CUDA
+// test filling of memory with values on the gpu
+TEST(vector, fill_gpu) {
+    constexpr auto N = 10u;
+
+    using util::make_span;
+    // fill an array
+    for (auto n : make_span(0u, N)) {
+        double value = (n+1)/2.;
+        memory::DeviceVector<double> v(n);
+        memory::fill(v, value);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(double(v[i]), value);
+        }
+    }
+
+    // fill an array view
+    memory::DeviceVector<float> ubervec(N);
+    for (auto n : make_span(0u, N)) {
+        float value = float((n+1)/2.f);
+        // make a view of a sub-range of the std::vector ubervec
+        auto v = ubervec(0, n);
+        memory::fill(v, value);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(float(v[i]), value);
+        }
+    }
+}
+#endif
+
+//
+//  copy
+//
+
+TEST(vector, copy_h2h) {
+    constexpr auto N = 10u;
+
+    using util::make_span;
+
+    for (auto n : make_span(0u, N)) {
+        double value = (n+1)/2.;
+        std::vector<double> src(n, value);
+        std::vector<double> tgt(n, std::numeric_limits<double>::quiet_NaN());
+
+        memory::copy(src, tgt);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(tgt[i], value);
+        }
+    }
+}
+
+TEST(vector, copy_h2d) {
+    constexpr auto N = 10u;
+
+    using util::make_span;
+
+    for (auto n : make_span(0u, N)) {
+        double value = (n+1)/2.;
+        std::vector<double> src(n, value);
+        memory::DeviceVector<double> tgt(n);
+        memory::fill(tgt, std::numeric_limits<double>::quiet_NaN());
+
+        memory::copy(src, tgt);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(double(tgt[i]), value);
+        }
+    }
+}
+
+TEST(vector, copy_d2h) {
+    constexpr auto N = 10u;
+
+    using util::make_span;
+
+    for (auto n : make_span(0u, N)) {
+        double value = (n+1)/2.;
+        memory::DeviceVector<double> src(n);
+        std::vector<double> tgt(n, std::numeric_limits<double>::quiet_NaN());
+        memory::fill(src, value);
+
+        memory::copy(src, tgt);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(double(tgt[i]), value);
+        }
+    }
+}
+
+TEST(vector, copy_d2d) {
+    constexpr auto N = 10u;
+
+    using util::make_span;
+
+    for (auto n : make_span(0u, N)) {
+        double value = (n+1)/2.;
+        memory::DeviceVector<double> src(n);
+        memory::DeviceVector<double> tgt(n);
+        memory::fill(src, value);
+        memory::fill(tgt, std::numeric_limits<double>::quiet_NaN());
+
+        memory::copy(src, tgt);
+
+        for (auto i: make_span(0u, n)) {
+            EXPECT_EQ(double(tgt[i]), value);
+        }
+    }
+}
+

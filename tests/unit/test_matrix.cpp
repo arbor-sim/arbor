@@ -80,10 +80,10 @@ TEST(matrix, solve)
     {
         matrix_type m{std::vector<int>{0}};
 
-        m.d()(memory::all) =  2;
-        m.l()(memory::all) = -1;
-        m.u()(memory::all) = -1;
-        m.rhs()(memory::all) = 1;
+        memory::fill(m.d(),  2);
+        memory::fill(m.l(), -1);
+        memory::fill(m.u(), -1);
+        memory::fill(m.rhs(),1);
 
         m.solve();
 
@@ -100,10 +100,10 @@ TEST(matrix, solve)
             EXPECT_EQ(m.size(), n);
             EXPECT_EQ(m.num_cells(), 1);
 
-            m.d()(memory::all) =  2;
-            m.l()(memory::all) = -1;
-            m.u()(memory::all) = -1;
-            m.rhs()(memory::all) = 1;
+            memory::fill(m.d(),  2);
+            memory::fill(m.l(), -1);
+            memory::fill(m.u(), -1);
+            memory::fill(m.rhs(),1);
 
             m.solve();
 
