@@ -157,9 +157,8 @@ namespace gpu {
             return Xo_;
         }
 
-        // TODO : should this be a view?
-        index_type node_index() {
-            return node_index_;
+        index_view_type node_index() {
+            return memory::make_view(node_index_);
         }
 
         size_t size() const {

@@ -198,7 +198,12 @@ public:
     }
 
     // copy memory from one gpu range to another
-    void copy(const_view_type& from, view_type &to) {
+    void copy(const_view_type from, view_type to) {
+    //template<typename Alloc1, typename Alloc2>
+    //void copy(
+        //ConstArrayView<value_type, DeviceCoordinator<value_type, Alloc1>> from,
+        //ArrayView<value_type, DeviceCoordinator<value_type, Alloc2>> to)
+    //{
         #ifdef VERBOSE
         std::cerr << util::type_printer<DeviceCoordinator>::print()
                   << util::blue("::copy") << "(size=" << from.size() << ") "

@@ -51,7 +51,7 @@ add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
 
 if(WITH_CUDA)
     cuda_add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
-    target_link_libraries(test.exe gpu)
+    target_link_libraries(test.exe LINK_PUBLIC gpu)
 else()
     add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
 endif()

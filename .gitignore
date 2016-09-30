@@ -65,6 +65,7 @@ external/modparser-patch
 external/modparser-update
 external/tmp
 mechanisms/*.hpp
+mechanisms/gpu/*.hpp
 
 # build path
 build*

@@ -552,21 +552,19 @@ void fvm_cuda_multicell<T, I>::initialize(
     //        the default values in Neuron.
     //        Neuron's defaults are defined in the file
     //          nrn/src/nrnoc/membdef.h
-    auto all = memory::all;
-
     constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
 
-    ion_na().reversal_potential()(all)     = 115+DEF_vrest; // mV
-    ion_na().internal_concentration()(all) =  10.0;         // mM
-    ion_na().external_concentration()(all) = 140.0;         // mM
+    memory::fill(ion_na().reversal_potential(),     115+DEF_vrest); // mV
+    memory::fill(ion_na().internal_concentration(),  10.0);         // mM
+    memory::fill(ion_na().external_concentration(), 140.0);         // mM
 
-    ion_k().reversal_potential()(all)     = -12.0+DEF_vrest;// mV
-    ion_k().internal_concentration()(all) =  54.4;          // mM
-    ion_k().external_concentration()(all) =  2.5;           // mM
+    memory::fill(ion_k().reversal_potential(),     -12.0+DEF_vrest);// mV
+    memory::fill(ion_k().internal_concentration(),  54.4);          // mM
+    memory::fill(ion_k().external_concentration(),  2.5);           // mM
 
-    ion_ca().reversal_potential()(all)     = 12.5 * std::log(2.0/5e-5);// mV
-    ion_ca().internal_concentration()(all) = 5e-5;          // mM
-    ion_ca().external_concentration()(all) = 2.0;           // mM
+    memory::fill(ion_ca().reversal_potential(),     12.5*std::log(2.0/5e-5));// mV
+    memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
+    memory::fill(ion_ca().external_concentration(), 2.0);           // mM
 
     // initialise mechanism and voltage state
     reset();
@@ -574,7 +572,8 @@ void fvm_cuda_multicell<T, I>::initialize(
 
 template <typename T, typename I>
 void fvm_cuda_multicell<T, I>::setup_matrix(T dt) {
-    using memory::all;
+    // TODO KERNEL : this whole thing has to be packed into a kernel
+    // NOTE : take care with atomics in the matrix update on diagonals
 
     // convenience accesors to matrix storage
     auto l = matrix_.l();
@@ -596,7 +595,7 @@ void fvm_cuda_multicell<T, I>::setup_matrix(T dt) {
     //       l[i] . . d[i]
     //
 
-    d(all) = cv_areas_; // [µm^2]
+    memory::copy(cv_areas_, d); // [µm^2]
     for (auto i=1u; i<d.size(); ++i) {
         auto a = 1e5*dt * face_alpha_[i];
 
@@ -618,24 +617,21 @@ void fvm_cuda_multicell<T, I>::setup_matrix(T dt) {
 
 template <typename T, typename I>
 void fvm_cuda_multicell<T, I>::reset() {
-    voltage_(memory::all) = resting_potential_;
+    memory::fill(voltage_, resting_potential_);
     t_ = 0.;
     for (auto& m : mechanisms_) {
-        std::cout << "----- " << m->name() << "->nrn_init()\n";
         // TODO : the parameters have to be set before the nrn_init
         // for now use a dummy value of dt.
+        // ... the right spot for this might be the constructor for each mechanism
         m->set_params(t_, 0.025);
         m->nrn_init();
     }
-    std::cout << "+++++ INITIALIZED\n";
 }
 
 template <typename T, typename I>
 void fvm_cuda_multicell<T, I>::advance(T dt) {
-    using memory::all;
-
     PE("current");
-    current_(all) = 0.;
+    memory::fill(current_, 0.);
 
     // update currents from ion channels
     for(auto& m : mechanisms_) {
@@ -646,13 +642,13 @@ void fvm_cuda_multicell<T, I>::advance(T dt) {
     }
 
     // add current contributions from stimuli
+    // TODO KERNEL : for now probably not a killer bottlneck
     for (auto& stim : stimuli_) {
         auto ie = stim.second.amplitude(t_); // [nA]
         auto loc = stim.first;
 
         // note: current_ in [mA/cm^2], ie in [nA], cv_areas_ in [µm^2].
         // unit scale factor: [nA/µm^2]/[mA/cm^2] = 100
-        // TODO GPU!
         value_type curr = current_[loc] - 100*ie/cv_areas_[loc];
         current_[loc] = curr;
     }
@@ -664,7 +660,7 @@ void fvm_cuda_multicell<T, I>::advance(T dt) {
     PL(); PE("solve");
     matrix_.solve();
     PL();
-    voltage_(all) = matrix_.rhs();
+    memory::copy(matrix_.rhs(), voltage_);
     PL();
 
     // integrate state of gating variables etc.
