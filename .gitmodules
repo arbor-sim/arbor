@@ -1,6 +1,3 @@
-[submodule "vector"]
-	path = external/vector
-	url = git@github.com:bcumming/vector.git
 [submodule "modparser"]
 	path = external/modparser
 	url = git@github.com:eth-cscs/modparser.git
