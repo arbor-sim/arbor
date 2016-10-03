@@ -1,0 +1,44 @@
+language: cpp
+
+sudo: false
+
+# from http://stackoverflow.com/a/32127147/266378
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-4.9', 'valgrind', 'python-pip', 'python-yaml']
+      before_script:
+        - pip install --user git+git://github.com/eddyxu/cpp-coveralls.git
+      env: COMPILER=g++-4.9
+
+    - os: linux
+      compiler: gcc
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-5', 'valgrind']
+      env: COMPILER=g++-5
+
+    - os: linux
+      compiler: clang
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.6']
+          packages: ['clang-3.6', 'valgrind']
+      env: COMPILER=clang++-3.6
+
+script:
+  - make CXX=$COMPILER CXXFLAGS="-lstdc++"
+  - ./json_unit "*"
+  - valgrind --error-exitcode=1 --leak-check=full ./json_unit
+
+after_success:
+  - if [ "$COMPILER" = "g++-4.9" ]; then make clean ; fi
+  - if [ "$COMPILER" = "g++-4.9" ]; then touch src/json.hpp ; fi
+  - if [ "$COMPILER" = "g++-4.9" ]; then make json_unit CXXFLAGS="-fprofile-arcs -ftest-coverage -std=c++11 -lstdc++" CXX=$COMPILER ; fi
+  - if [ "$COMPILER" = "g++-4.9" ]; then ./json_unit "*" ; fi
+  - if [ "$COMPILER" = "g++-4.9" ]; then coveralls --exclude test/catch.hpp --exclude test/unit.cpp --include src/json.hpp --gcov-options '\-lp' --gcov 'gcov-4.9' ; fi

@@ -5,7 +5,7 @@
 #include <type_traits>
 
 #include <tclap/CmdLine.h>
-#include <json/src/json.hpp>
+#include <json/json.hpp>
 
 #include <util/meta.hpp>
 #include <util/optional.hpp>
