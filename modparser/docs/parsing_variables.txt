@@ -1,0 +1,50 @@
+- special PARAMETER variables, like v and celcius, have
+local ghost storage that is to be loaded
+    - this might be a vector that has to be gathered for v
+    - might be a scalar, like celcius, which would have to
+      be copied to the device memory on GPU
+
+
+add STATE variables
+    - range
+    - readwrite
+    - local linkage
+
+add PARAMETER variables
+    // deal with 'special' variables that are imported from Neuron
+    if(v)
+        - range
+        - read
+        - global linkage // actually local linkage, loaded from global storage 
+    else if(celcius)
+        - scalar
+        - read
+        - global linkage
+    // ...
+    // local parameters, which are set to scalar by default
+    // but can be changed to range when the RANGE statement
+    // is parsed in the NEURON block
+    else
+        - scalar
+        - read
+        - local linkage
+
+add ASSIGNED variables
+    // the local linkage can be modified later if the
+    // variable is in the GLOBAL statement in the NEURON block
+    - range
+    - readwrite
+    - local linkage
+
+  USEION k WRITE ik
+  RANGE  gkbar, ik, ek
+  GLOBAL minf, mtau, hinf, htau
+
+parse NEURON block
+    for ion in USEION
+        update or create ion variable in lookup
+    for var in RANGE
+        update var in loopup
+    for var in GLOBAL
+        update var in lookup
+

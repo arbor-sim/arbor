@@ -1,0 +1,21 @@
+Support for papi is provided via the papi-wrap library.
+
+You first have to build papi-wrap, which is in external/papi-wrap
+
+set PAPI_ROOT
+
+export PAPI_ROOT=/opt/cray/papi/5.3.2/
+cd external/papi-wrap
+ccmake .
+# use g++
+
+
+# you have to build papi, because the version on cray is polluted with CUDA shit
+# note: this probably isn't the case on Dora
+wget http://icl.cs.utk.edu/projects/papi/downloads/papi-5.4.0.tar.gz
+
+export CC=`which gcc`
+export CXX=`which g++`
+./configure --prefix=/scratch/daint/bcumming/libs/papi
+
+oh well, for some reason my build of papi fails spectacularly
