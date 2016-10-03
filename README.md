@@ -1,17 +1,22 @@
-# cell_algorithms
+# NestMC Prototype
+
+This is the repository for the NestMC prototype code. Unfortunately we do not have thorough documentation of how-to guides.
+Below are some guides for how to build the project and run the miniapp.
+Contact us or submit a ticket if you have any questions or want help.
 
 ```bash
 # clone repo
-git clone git@github.com:eth-cscs/cell_algorithms.git
-cd cell_algorithms/
+git clone git@github.com:eth-cscs/nestmc-proto.git
+cd nestmc-proto/
 
 # setup sub modules
 git submodule init
 git submodule update
 
 # setup environment
-# on a desktop system this might not be required
-# on a cluster this could be required
+# on a desktop system this is probably not required
+# on a cluster this is usually required to make sure that an appropriate
+# compiler is chosen.
 module load gcc
 module load cmake
 export CC=`which gcc`
@@ -31,8 +36,7 @@ cd tests
 ## MPI
 
 Set the `WITH_MPI` option either via the ccmake interface, or via the command line as shown below.
-For the time being our CMake configuration does not try to detect MPI.
-Instead, it relies on the user specifying an MPI wrapper for the compiler by setting the `CXX` and `CC` environment variables.
+To ensure that CMake detects MPI correctly, you should specify the MPI wrapper for the compiler by setting the `CXX` and `CC` environment variables.
 
 ```
 export CXX=mpicxx
@@ -47,7 +51,6 @@ Support for multi-threading requires Intel Threading Building Blocks (TBB).
 When TBB is installed, it comes with some scripts that can be run to set up the user environment.
 The scripts set the `TBB_ROOT` environment variable, which is used by the CMake configuration to find TBB.
 
-
 ```
 source <path to TBB installation>/tbbvars.sh
 cmake <path to CMakeLists.txt> -DWITH_TBB=ON
@@ -56,6 +59,9 @@ cmake <path to CMakeLists.txt> -DWITH_TBB=ON
 ### TBB on Cray systems
 
 To compile with TBB on Cray systems, load the intel module, which will automatically configure the environment.
+The guide below shows how to use the version of TBB that is installed as part of the Intel compiler toolchain.
+It is recommended that you install the most recent version of TBB yourself, and link against this, because older versions
+of TBB don't work with recent versions of GCC.
 
 ```
 # load the gnu environment for compiling the application
@@ -80,7 +86,7 @@ cmake <path to CMakeLists.txt> -DWITH_TBB=ON -DWITH_MPI=ON -DSYSTEM_CRAY=ON
 
 # targetting KNL
 
-## build modparser                                                                                       
+## build modparser
 
 The source to source compiler "modparser" that generates the C++/CUDA kernels for the ion channels and synapses is in a separate repository.
 It is included in our project as a git submodule, and by default it will be built with the same compiler and flags that are used to build the miniapp and tests.
@@ -116,8 +122,8 @@ which modcc
 
 ```bash
 # clone the repo and set up the submodules
-git clone TODO
-cd cell_algorithms
+git clone https://github.com/eth-cscs/nestmc-proto.git
+cd nestmc-proto
 git submodule init
 git submodule update
 
@@ -126,13 +132,6 @@ mkdir build_knl
 cd build_knl
 
 ## build miniapp
-
-# clone the repo and set up the submodules
-git clone https://github.com/bcumming/cell_algorithms.git
-cd cell_algorithms
-
-# checkout the knl branch
-git checkout knl
 
 # setup submodules
 git submodule init
