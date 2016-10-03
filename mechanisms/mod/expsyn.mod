@@ -5,22 +5,18 @@ NEURON {
 }
 
 UNITS {
-    (nA) = (nanoamp)
     (mV) = (millivolt)
-    (uS) = (microsiemens)
 }
 
 PARAMETER {
-    : the default for Neuron is 0.1
-    :tau = 0.1 (ms) : <1e-9,1e9>
-    tau = 2.0 (ms) : <1e-9,1e9>
+    tau = 2.0 (ms) : the default for Neuron is 0.1
     e = 0   (mV)
 }
 
 ASSIGNED {}
 
 STATE {
-    g : (uS)
+    g
 }
 
 INITIAL {
@@ -39,3 +35,4 @@ DERIVATIVE state {
 NET_RECEIVE(weight) {
     g = g + weight
 }
+

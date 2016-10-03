@@ -1,24 +1,3 @@
-TITLE hh.mod   squid sodium, potassium, and leak channels
-
-: COMMENT
-:  This is the original Hodgkin-Huxley treatment for the set of sodium, 
-:   potassium, and leakage channels found in the squid giant axon membrane.
-:   ("A quantitative description of membrane current and its application 
-:   conduction and excitation in nerve" J.Physiol. (Lond.) 117:500-544 (1952).)
-:  Membrane voltage is in absolute mV and has been reversed in polarity
-:   from the original HH convention and shifted to reflect a resting potential
-:   of -65 mV.
-:  Remember to set celsius=6.3 (or whatever) in your HOC file.
-:  See squid.hoc for an example of a simulation using this model.
-:  SW Jaslove  6 March, 1992
-: ENDCOMMENT
-
-UNITS {
-    (mA) = (milliamp)
-    (mV) = (millivolt)
-    (S) = (siemens)
-}
-
 NEURON {
     SUFFIX hh
     USEION na READ ena WRITE ina
@@ -28,13 +7,17 @@ NEURON {
     GLOBAL minf, hinf, ninf, mtau, htau, ntau
 }
 
+UNITS {
+    (mV) = (millivolt)
+    (S) = (siemens)
+}
+
 PARAMETER {
-    gnabar = .12 (S/cm2)  : <0,1e9>
-    gkbar = .036 (S/cm2)  : <0,1e9>
-    gl = .0003 (S/cm2)    : <0,1e9>
+    gnabar = .12 (S/cm2)
+    gkbar = .036 (S/cm2)
+    gl = .0003 (S/cm2)
     el = -54.3 (mV)
     celsius = 6.3 (degC)
-    :celsius = 37 (degC)
 }
 
 STATE {
@@ -77,7 +60,7 @@ DERIVATIVE states {
     n' = (ninf-n)/ntau
 }
 
-PROCEDURE rates(v) :(mV))
+PROCEDURE rates(v)
 {
     LOCAL  alpha, beta, sum, q10
 
@@ -105,21 +88,13 @@ PROCEDURE rates(v) :(mV))
     ninf = alpha/sum
 }
 
+: We don't trap for zero in the denominator like Neuron, because function
+: inlining in modparser won't support it. There is a good argument that
+: vtrap should be provided as a built in of the language, because
+:   - it is a common pattern in many mechanisms.
+:   - it can be implemented efficiently on different back ends if the
+:     compiler has enough information.
 FUNCTION vtrap(x,y) {
-    : Traps for 0 in denominator of rate eqns.
-
-    : Disabled for function inlining...
-    : there is a very good case for making vtrap a builtin function for the language
-    : - it is ubiquitous: used in so many models of ion channels
-    : - platform specific optimizations written in assembly/intrinsics
-    :   required to facilitate vectorization/minimize branch misses
-
-    :if (fabs(x/y) < 1e-6) {
-    :    vtrap = y*(1 - x/y/2)
-    :}else{
-    :    vtrap = x/(exp(x/y) - 1)
-    :}
-
     vtrap = x/(exp(x/y) - 1)
 }
 
