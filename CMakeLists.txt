@@ -102,9 +102,8 @@ if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
     set(modcc "${CMAKE_BINARY_DIR}/external/bin/modcc")
 endif()
 
-
 include_directories(${CMAKE_SOURCE_DIR}/external)
-include_directories(${CMAKE_SOURCE_DIR}/external/tclap/include)
+include_directories(${CMAKE_SOURCE_DIR}/tclap/include)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/miniapp)
