@@ -12,7 +12,7 @@
 #include <cassert>
 #include <cstdlib>
 
-#include <json/src/json.hpp>
+#include <json/json.hpp>
 
 #include <threading/threading.hpp>
 #include <util.hpp>

@@ -1,7 +1,7 @@
 #include <fstream>
 #include <iterator>
 
-#include <json/src/json.hpp>
+#include <json/json.hpp>
 
 #include <common_types.hpp>
 #include <cell.hpp>

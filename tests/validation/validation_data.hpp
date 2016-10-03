@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <json/src/json.hpp>
+#include <json/json.hpp>
 
 #ifndef DATADIR
 #define DATADIR "../data"
