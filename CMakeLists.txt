@@ -91,10 +91,10 @@ if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
         CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
                    "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
                    "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/modparser"
         STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
         TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
-        SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/modparser"
     )
     # Set up environment to use the version of modcc that is compiled
     # as the ExternalProject above.

@@ -1,0 +1,16 @@
+I added the external dependency with:
+
+> git submodule add git@github.com:bcumming/vector.git lib/vector
+
+When a new checkout of this repository is performed, the user has to manually
+set up the external dependency
+
+> git submodule init
+> git submodule update
+
+If there are updates in the external dependency that you want to pull in, you
+have to change path:
+
+> cd lib/vector
+> git pull
+

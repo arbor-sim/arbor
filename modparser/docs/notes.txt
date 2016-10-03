@@ -1,0 +1,154 @@
+class Module {
+    // every module is composed of blocks that mimic the higher level
+    NeuronAST neuron_block_;
+    UnitsAST units_block_;
+    ParameterAST parameter_block_;
+    AssignedAST assigned_block_;
+    StateAST state_block_;
+    BreakpointAST break_block_;
+    DerivativeAST derivative_block_;
+    InitialAST    initial_block_;
+    std::vector<ProcedureAST*> procedures_;
+};
+
+struct IonDep {
+    std::string name_;
+    std::vector<string> read_;
+    std::vector<string> write_;
+};
+
+struct NeuronAST {
+    std::string suffix_;
+    std::vector<IonDep> ions_;
+    std::vector<Range> ranges_;
+};
+
+struct UnitDefinition {
+    std::unordered_map<std::string, std::string> units;
+};
+
+struct UnitsAST {
+    std::vector<UnitDefinition> units_;
+};
+
+NEURON  {
+    SUFFIX Ca
+    USEION ca READ eca WRITE ica
+    RANGE gCabar, gCa, ica 
+}
+
+UNITS   {
+    (S) = (siemens)
+    (mV) = (millivolt)
+    (mA) = (milliamp)
+}
+
+PARAMETER   {
+    gCabar = 0.00001 (S/cm2) 
+}
+
+ASSIGNED    {
+    v   (mV)
+    eca (mV)
+    ica (mA/cm2)
+    gCa (S/cm2)
+    mInf
+    ...
+}
+
+STATE   {
+    m
+    h
+}
+
+BREAKPOINT  {
+    SOLVE states METHOD cnexp
+    gCa = gCabar*m*m*h
+    ica = gCa*(v-eca)
+}
+
+DERIVATIVE states   {
+    rates()
+    m' = (mInf-m)/mTau
+    h' = (hInf-h)/hTau
+}
+
+INITIAL{
+    rates()
+    m = mInf
+    h = hInf
+}
+
+PROCEDURE rates(){
+    UNITSOFF
+        if((v == -27) ){
+            v = v+0.0001
+        }
+        mAlpha =  (0.055*(-27-v))/(exp((-27-v)/3.8) - 1)
+        ...
+    UNITSON
+}
+
+--------------------
+PLAN
+--------------------
+
+- develop first draft of taxonomy of types in C++
+- implement AST parser with this taxonomy
+- floating point complexity report for a mod file
+- document taxonomy
+- take to Michael for his feedback
+
+--------------------
+
+variable types
+    RANGE
+        - values that are a function of position
+        - are made available to the neuron interpreter
+    GLOBAL
+    PARAMETER (value[may be set externally])
+        - these values are used by model but not set by it
+        - special variables (v, area, celcius, etc.) should be declared as parameter (and you shouldn't assign values to them in the model)
+        - ionic concentrations, currents, and potentials that are used but not set in this particular model should be declared as parameters.
+    STATE
+        - These are variables which are the unknowns in differential and algebraic equations
+        - they are always RANGE variables
+        - Ionic concentration is a state only if the concentration is being calculated within that specific model (mechanism)
+    ION (read/write, ion name)
+        - If an ion, called for example (ca,k,na), is declared then a separate mechanism is internally created within NEURON, denoted by (ca,k,na)
+        - the (ca,k,na) mechanism is automatically inserted whenever the USEION includes that mechanism
+        - The variables of the mechanism (ca,k,na) are
+            - outward total current carried (ica, ik, ina)
+            - internal concentration (cai, ki, nai)
+            - external concentration (cao, ko, nao)
+            - reversal potential     (eca, ek, ena)
+    ASSIGNED
+        - these are variables which can be computed directly by assignment statements and are important enough that you may wish to know their value during a simulation.
+        - in a Neuron context you will wish to divide them between range variables and global variables.
+        - can be modified by Neuron
+
+The tricky bit is coming up with a good taxonomy of Types... how do we categorize them?
+
+class Type {
+    std::string name;
+    Type *type;
+    virtual bool is_global()    {return false;}
+    virtual bool is_parameter() {return false;;
+    virtual bool is_assigned()  {return false;}
+    virtual bool is_state()     {return false;}
+    virtual bool is_range()     {return false;}
+    virtual Ion* ion()          {return nullptr;}
+};
+
+class Assigned : public Type {
+    // do we categorize Types as assigned, then tag them further with bools indicating if they are range, state, etc
+    bool is_range_;
+    bool is_state_;
+    virtual bool is_assigned() {return true;}
+};
+
+enum ionType {kIonCa, kIonNa, kIonK, kIonOther};
+class Ion {
+    ionType type;
+    std::string name;
+}
