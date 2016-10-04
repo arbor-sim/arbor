@@ -4,7 +4,7 @@
 #include <string>
 
 #include "lexer.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 
 // helpers for identifying character types
 inline bool in_range(char c, char first, char last) {
@@ -370,4 +370,3 @@ tok Lexer::get_identifier_type(std::string const& identifier) {
     auto pos = keyword_map.find(identifier);
     return pos==keyword_map.end() ? tok::identifier : pos->second;
 }
-

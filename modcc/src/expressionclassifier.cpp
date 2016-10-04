@@ -3,7 +3,7 @@
 
 #include "error.hpp"
 #include "expressionclassifier.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 
 // this turns out to be quite easy, however quite fiddly to do right.
 
@@ -320,4 +320,3 @@ void ExpressionClassifierVisitor::visit(CallExpression *e) {
         }
     }
 }
-

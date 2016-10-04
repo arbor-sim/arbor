@@ -6,7 +6,7 @@
 #include "parser.hpp"
 #include "perfvisitor.hpp"
 #include "token.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 
 // specialize on const char* for lazy evaluation of compile time strings
 bool Parser::expect(tok tok, const char* str) {
@@ -1306,4 +1306,3 @@ expression_ptr Parser::parse_initial() {
 
     return make_expression<InitialBlock>(block_location, std::move(body));
 }
-

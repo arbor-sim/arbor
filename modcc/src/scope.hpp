@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util.hpp"
+#include "modccutil.hpp"
 
 #include <memory>
 #include <string>
@@ -124,4 +124,3 @@ typename Scope<Symbol>::symbol_map*
 Scope<Symbol>::globals() {
     return global_symbols_;
 }
-

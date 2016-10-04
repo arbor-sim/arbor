@@ -891,4 +891,3 @@ void CPrinter::visit(BinaryExpression *e) {
     // reset parent precedence
     parent_op_ = pop;
 }
-

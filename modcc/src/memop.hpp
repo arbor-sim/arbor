@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util.hpp"
+#include "modccutil.hpp"
 #include "lexer.hpp"
 
 /// Defines a memory operation that is to performed by an APIMethod.
@@ -35,4 +35,3 @@ struct MemOp {
         }
     }
 };
-
