@@ -21,7 +21,7 @@ foreach(mech ${mechanisms})
     else()
         add_custom_command(
             OUTPUT "${hpp}"
-            DEPENDS "${mod}"
+            DEPENDS modcc "${mod}"
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
             COMMAND ${modcc} ${modcc_flags} ${mod} -o ${hpp}
         )
