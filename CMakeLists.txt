@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 2.8)
 project(cell_algorithms)
 enable_language(CXX)
 
-# save incoming CXX flags for forwarding to modparser external project
+# save incoming CXX flags for forwarding to modcc external project
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # compilation flags
@@ -79,28 +79,15 @@ set(USE_OPTIMIZED_KERNELS OFF CACHE BOOL "generate optimized code that vectorize
 # Only build modcc if it has not already been installed.
 # This is useful if cross compiling for KNL, when it is not desirable to compile
 # modcc with the same flags that are used for the KNL target.
-find_program(MODCC_BIN modcc)
-set(modcc "${MODCC_BIN}")
 set(use_external_modcc OFF BOOL)
-
-# the modcc executable was not found, so build our own copy
+find_program(MODCC_BIN modcc)
 if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
-    include(ExternalProject)
-    externalproject_add(modparser
-        PREFIX ${CMAKE_BINARY_DIR}/external
-        CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
-                   "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
-                   "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
-        STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
-        TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
-        SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
-    )
-    # Set up environment to use the version of modcc that is compiled
-    # as the ExternalProject above.
-    set(use_external_modcc ON)
-    set(modcc "${CMAKE_BINARY_DIR}/external/bin/modcc")
+    set(modcc "${CMAKE_BINARY_DIR}/modcc/modcc")
+else()
+    set(modcc "${MODCC_BIN}")
+    set(use_external_modcc ON BOOL)
 endif()
+message("==== modcc: " ${modcc})
 
 include_directories(${CMAKE_SOURCE_DIR}/tclap/include)
 include_directories(${CMAKE_SOURCE_DIR}/vector)
@@ -112,6 +99,8 @@ if( "${WITH_TBB}" STREQUAL "ON" )
     include_directories(${TBB_INCLUDE_DIRS})
 endif()
 
+# TODO : only compile modcc if it is not provided externally
+add_subdirectory(modcc)
 add_subdirectory(mechanisms)
 add_subdirectory(src)
 add_subdirectory(tests)
