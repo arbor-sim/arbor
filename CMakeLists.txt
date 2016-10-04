@@ -87,7 +87,6 @@ else()
     set(modcc "${MODCC_BIN}")
     set(use_external_modcc ON BOOL)
 endif()
-message("==== modcc: " ${modcc})
 
 include_directories(${CMAKE_SOURCE_DIR}/tclap/include)
 include_directories(${CMAKE_SOURCE_DIR}/vector)
@@ -99,8 +98,10 @@ if( "${WITH_TBB}" STREQUAL "ON" )
     include_directories(${TBB_INCLUDE_DIRS})
 endif()
 
-# TODO : only compile modcc if it is not provided externally
-add_subdirectory(modcc)
+# only compile modcc if it is not provided externally
+if(use_external_modcc)
+    add_subdirectory(modcc)
+endif()
 add_subdirectory(mechanisms)
 add_subdirectory(src)
 add_subdirectory(tests)

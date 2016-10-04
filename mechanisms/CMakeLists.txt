@@ -21,7 +21,7 @@ foreach(mech ${mechanisms})
     else()
         add_custom_command(
             OUTPUT "${hpp}"
-            DEPENDS modparser "${mod}"
+            DEPENDS "${mod}"
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
             COMMAND ${modcc} ${modcc_flags} ${mod} -o ${hpp}
         )
@@ -31,5 +31,5 @@ foreach(mech ${mechanisms})
 endforeach()
 
 # Fake target to always trigger .mod -> .hpp dependencies because wtf CMake
-add_custom_target(build_all_mods DEPENDS ${all_mod_hpps})
+add_custom_target(build_all_mods DEPENDS ${all_mod_hpps} modcc)
 
