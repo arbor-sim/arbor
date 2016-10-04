@@ -229,32 +229,16 @@ public:
                   << util::print_pointer(to.data()) << "\n";
         #endif
         assert(from.size()==to.size());
-        assert(!from.overlaps(to));
 
         gpu::memcpy_d2h(from.data(), to.data(), from.size());
     }
 
     // copy memory from host to gpu
-    template <typename Allocator>
-    void copy(
-        ConstArrayView<value_type, HostCoordinator<value_type, Allocator>>& from,
-        view_type& to)
-    {
-        #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
-                  << util::blue("::copy") << "(h2d, size=" << from.size() << ") "
-                  << util::print_pointer(from.data()) << " -> "
-                  << util::print_pointer(to.data()) << "\n";
-        #endif
-        assert(from.size()==to.size());
-        assert(!from.overlaps(to));
-
-        gpu::memcpy_h2d(from.data(), to.data(), from.size());
-    }
-
-    // copy from pinned memory to device
     template <class Alloc>
-    void copy(ConstArrayView<value_type, HostCoordinator<value_type, Alloc>> from, view_type to) {
+    void copy(
+        ConstArrayView<value_type, HostCoordinator<value_type, Alloc>> from,
+        view_type to)
+    {
         #ifdef VERBOSE
         std::cerr << util::type_printer<DeviceCoordinator>::print()
                   << util::blue("::copy") << "(size=" << from.size() << ") "
@@ -263,20 +247,11 @@ public:
         #endif
         assert(from.size()==to.size());
 
-        auto status = cudaMemcpy(
-                reinterpret_cast<void*>(to.begin()),
-                reinterpret_cast<const void*>(from.begin()),
-                from.size()*sizeof(value_type),
-                cudaMemcpyHostToDevice
-        );
-        if(status != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(h2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
-            abort();
-        }
+        gpu::memcpy_h2d(from.data(), to.data(), from.size());
     }
 
     // copy from pinned memory to device
-    // TODO : asynchornous version
+    // TODO : asynchronous version
     template <size_t alignment>
     void copy(
         ConstArrayView<value_type, HostCoordinator<value_type, PinnedAllocator<value_type, alignment>>> from,

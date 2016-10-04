@@ -170,22 +170,6 @@ public:
         #endif
     }
 
-    // only works with non const vector until we have a const_view type available
-    template <
-        typename Allocator,
-        typename = typename std::enable_if<coordinator_type::is_malloc_compatible()>::type
-     >
-    explicit ArrayView(std::vector<value_type, Allocator>& vec) :
-        pointer_(vec.data()), size_(vec.size())
-    {
-        #ifdef VERBOSE
-        std::cout << util::green("ArrayView(std::vector)")
-                  << "\n  this  " << util::pretty_printer<ArrayView>::print(*this)
-                  << "\n  other " << util::pretty_printer<std::vector<value_type>>::print(vec)
-                  << "\n";
-        #endif
-    }
-
     explicit ArrayView() {
         reset();
     };
@@ -425,15 +409,6 @@ public:
     {
         assert(n<=other.size());
     }
-
-    // only works with non const vector until we have a const_view type available
-    template <
-        typename Allocator,
-        typename = typename std::enable_if<coordinator_type::is_malloc_compatible()>::type >
-    explicit ConstArrayView(const std::vector<value_type, Allocator>& vec) :
-        pointer_(vec.data()), size_(vec.size())
-    {}
-
 
     explicit ConstArrayView() {
         reset();

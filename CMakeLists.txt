@@ -43,12 +43,12 @@ endif()
 set(WITH_CUDA OFF CACHE BOOL "use CUDA for GPU offload" )
 if(WITH_CUDA)
     find_package(CUDA REQUIRED)
-    add_definitions(-DWITH_CUDA)
     # the vector library has a compiled component when using the CUDA backend
     include(ExternalProject)
     # Turn off annoying and incorrect warnings generated in the JSON file.
     # We also work around the same issue with the intel compiler.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
     externalproject_add(vector
         PREFIX ${CMAKE_BINARY_DIR}/external
         CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"

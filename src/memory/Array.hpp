@@ -45,32 +45,11 @@ namespace util {
         }
     };
 
-    template <typename T, typename Alloc>
-    struct type_printer<std::vector<T,Alloc>>{
-        static std::string print() {
-            std::stringstream str;
-            str << util::white("std::vector") << "<"
-                << type_printer<T>::print() << ">";
-            return str.str();
-        }
-    };
-
     template <typename T, typename Coord>
     struct pretty_printer<Array<T,Coord>>{
         static std::string print(const Array<T,Coord>& val) {
             std::stringstream str;
             str << type_printer<Array<T,Coord>>::print()
-                << "(size="     << val.size()
-                << ", pointer=" << util::print_pointer(val.data()) << ")";
-            return str.str();
-        }
-    };
-
-    template <typename T, typename Alloc>
-    struct pretty_printer<std::vector<T,Alloc>>{
-        static std::string print(const std::vector<T,Alloc>& val) {
-            std::stringstream str;
-            str << type_printer<std::vector<T,Alloc>>::print()
                 << "(size="     << val.size()
                 << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
@@ -141,10 +120,10 @@ public:
     Array(I n) :
         base(coordinator_type().allocate(n))
     {
-        #ifdef VERBOSE
+#ifdef VERBOSE
         std::cerr << util::green("Array(" + std::to_string(n) + ")")
                   << "\n  this  " << util::pretty_printer<Array>::print(*this) << std::endl;
-        #endif
+#endif
     }
 
     // constructor by size with default value
@@ -169,6 +148,7 @@ public:
         static_assert(impl::is_array_t<Array>::value, "oooooooooooo.............");
 #ifdef VERBOSE
         std::cerr << util::green("Array(Array&)")
+                  << " " << util::type_printer<Array>::print()
                   << "\n  this  " << util::pretty_printer<Array>::print(*this)
                   << "\n  other " << util::pretty_printer<Array>::print(other) << "\n";
 #endif
@@ -179,7 +159,7 @@ public:
     Array(Array&& other) {
 #ifdef VERBOSE
         std::cerr << util::green("Array(Array&&)")
-                  << "\n  this  " << util::pretty_printer<Array>::print(*this)
+                  << " " << util::type_printer<Array>::print()
                   << "\n  other " << util::pretty_printer<Array>::print(other) << "\n";
 #endif
         base::swap(other);
@@ -194,28 +174,12 @@ public:
         base(coordinator_type().allocate(other.size()))
     {
 #ifdef VERBOSE
-        std::cerr << util::green("Array(other&&)")
+        std::cerr << util::green("Array(Other&)")
+                  << " " << util::type_printer<Array>::print()
                   << "\n  this  " << util::pretty_printer<Array>::print(*this)
                   << "\n  other " << util::pretty_printer<Other>::print(other) << std::endl;
 #endif
         coordinator_.copy(typename Other::const_view_type(other), view_type(*this));
-    }
-
-    /// copy from a std::vector
-    /// the value_type of the vector must be the same, because the coordinator
-    /// used to copy from the vector into the Array does not convert between types
-    template <typename Allocator>
-    Array(const std::vector<value_type, Allocator>& other) :
-        base(coordinator_type().allocate(other.size()))
-    {
-#ifdef VERBOSE
-        using other_type = std::vector<value_type, Allocator>;
-        std::cerr << util::green("Array operator=(std::vector&)")
-                  << "\n  other " << util::pretty_printer<other_type>::print(other) << "\n";
-#endif
-        //using cvt = ArrayView<T, HostCoordinator<T, Allocator<T, AlignedPolicy<8>>>>;
-        using cvt = const_view_type; //ArrayView<T, HostCoordinator<T, Allocator<T, AlignedPolicy<8>>>>;
-        coordinator_.copy(cvt(other.data(), other.size()), view_type(*this));
     }
 
     Array& operator=(const Array& other) {

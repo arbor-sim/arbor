@@ -8,39 +8,47 @@ set(HEADERS
     ${PROJECT_SOURCE_DIR}/src/tree.hpp
 )
 
+set(TEST_CUDA_SOURCES
+    test_matrix.cu
+    test_vector.cu
+
+    # unit test driver
+    test.cpp
+)
+
 set(TEST_SOURCES
     # unit tests
-   test_algorithms.cpp
-   test_double_buffer.cpp
-   test_cell.cpp
-   test_compartments.cpp
-   test_counter.cpp
-   test_either.cpp
-   test_event_queue.cpp
-   #CUDA#test_fvm.cpp
-   #CUDA#test_fvm_multi.cpp
-   #CUDA#test_cell_group.cpp
-   test_lexcmp.cpp
-   test_mask_stream.cpp
-   test_matrix.cpp
-   #CUDA#test_mechanisms.cpp
-   test_nop.cpp
-   test_optional.cpp
-   test_parameters.cpp
-   test_partition.cpp
-   test_point.cpp
-   #CUDA#test_probe.cpp
-   test_segment.cpp
-   test_range.cpp
-   test_span.cpp
-   test_spikes.cpp
-   test_spike_store.cpp
-   test_stimulus.cpp
-   test_swcio.cpp
-   #CUDA#test_synapses.cpp
-   test_tree.cpp
-   test_transform.cpp
-   test_uninitialized.cpp
+    test_algorithms.cpp
+    test_double_buffer.cpp
+    test_cell.cpp
+    test_compartments.cpp
+    test_counter.cpp
+    test_either.cpp
+    test_event_queue.cpp
+    #CUDA#test_fvm.cpp
+    #CUDA#test_fvm_multi.cpp
+    #CUDA#test_cell_group.cpp
+    test_lexcmp.cpp
+    test_mask_stream.cpp
+    test_matrix.cpp
+    #CUDA#test_mechanisms.cpp
+    test_nop.cpp
+    test_optional.cpp
+    test_parameters.cpp
+    test_partition.cpp
+    test_point.cpp
+    #CUDA#test_probe.cpp
+    test_segment.cpp
+    test_range.cpp
+    test_span.cpp
+    test_spikes.cpp
+    test_spike_store.cpp
+    test_stimulus.cpp
+    test_swcio.cpp
+    #CUDA#test_synapses.cpp
+    test_tree.cpp
+    test_transform.cpp
+    test_uninitialized.cpp
     test_vector.cpp
 
     # unit test driver
@@ -49,25 +57,27 @@ set(TEST_SOURCES
 
 add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
 
+set(TARGETS test.exe)
+
+add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+
 if(WITH_CUDA)
-    cuda_add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
-    target_link_libraries(test.exe LINK_PUBLIC gpu)
-else()
-    add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+    set(TARGETS ${TARGETS} test_cuda.exe)
+    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
+    target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
 endif()
 
-set(TARGETS test.exe)
 
 foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
 
     if(WITH_TBB)
-    target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
+        target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
     endif()
 
     if(WITH_MPI)
-    target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
-    set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+        target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
+        set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()
 
     set_target_properties(${target}

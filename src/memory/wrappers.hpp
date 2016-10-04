@@ -122,6 +122,7 @@ auto on_host(const C& c) -> decltype(make_const_view(c)) {
     return make_const_view(c);
 }
 
+#ifdef WITH_CUDA
 template <
     typename C,
     typename = typename std::enable_if<util::is_on_gpu_v<C>()>::type
@@ -148,6 +149,7 @@ auto on_gpu(const C& c) -> DeviceVector<typename C::value_type> {
     using T = typename C::value_type;
     return DeviceVector<T>(make_const_view(c));
 }
+#endif
 
 /*
 #ifdef WITH_CUDA
