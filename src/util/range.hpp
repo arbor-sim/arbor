@@ -151,6 +151,9 @@ range<U, V> make_range(const U& left, const V& right) {
     return range<U, V>(left, right);
 }
 
+// Present a possibly sentinel-terminated range as an STL-compatible sequence
+// using the sentinel_iterator adaptor.
+
 template <typename Seq>
 auto canonical_view(Seq& s) ->
     range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
@@ -163,6 +166,21 @@ auto canonical_view(const Seq& s) ->
     range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
 {
     return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
+}
+
+// Strictly evaluate end point in sentinel-terminated range and present as a range over
+// iterators. Note: O(N) behaviour with forward iterator ranges or sentinel-terminated ranges.
+
+template <typename Seq>
+auto strict_view(Seq& s) -> range<decltype(std::begin(s))>
+{
+    return make_range(std::begin(s), std::next(util::upto(std::begin(s), std::end(s))));
+}
+
+template <typename Seq>
+auto strict_view(const Seq& s) -> range<decltype(std::begin(s))>
+{
+    return make_range(std::begin(s), std::next(util::upto(std::begin(s), std::end(s))));
 }
 
 } // namespace util

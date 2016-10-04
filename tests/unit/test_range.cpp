@@ -184,6 +184,16 @@ TEST(range, sentinel) {
     EXPECT_EQ(0u, empty_cstr_range.size());
 }
 
+TEST(range, strictify) {
+    const char *cstr = "hello world";
+    auto cstr_range = util::make_range(cstr, null_terminated);
+
+    auto ptr_range = util::strict_view(cstr_range);
+    EXPECT_TRUE((std::is_same<decltype(ptr_range), util::range<const char *>>::value));
+    EXPECT_EQ(cstr, ptr_range.left);
+    EXPECT_EQ(cstr+11, ptr_range.right);
+}
+
 template <typename V>
 class counter_range: public ::testing::Test {};
 
@@ -290,12 +300,15 @@ TEST(range, sort) {
 
     auto cstr_range = util::make_range(std::begin(cstr), null_terminated);
 
+    // Alas, no forward_iterator sort yet, so make a strict (non-sentinel)
+    // range to sort on below
+
     // simple sort
-    util::sort(cstr_range);
+    util::sort(util::strict_view(cstr_range));
     EXPECT_EQ(std::string("dhowy"), cstr);
 
     // reverse sort by transform c to -c
-    util::sort_by(cstr_range, [](char c) { return -c; });
+    util::sort_by(util::strict_view(cstr_range), [](char c) { return -c; });
     EXPECT_EQ(std::string("ywohd"), cstr);
 }
 

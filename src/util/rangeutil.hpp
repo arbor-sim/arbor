@@ -75,9 +75,18 @@ AssignableContainer& assign_by(AssignableContainer& c, const Seq& seq, const Pro
 }
 
 // Sort in-place
+// Note that a const range reference may wrap non-const iterators.
 
 template <typename Seq>
-void sort(Seq& seq) {
+enable_if_t<!std::is_const<typename util::sequence_traits<Seq>::reference>::value>
+sort(Seq& seq) {
+    auto canon = canonical_view(seq);
+    std::sort(std::begin(canon), std::end(canon));
+}
+
+template <typename Seq>
+enable_if_t<!std::is_const<typename util::sequence_traits<Seq>::reference>::value>
+sort(const Seq& seq) {
     auto canon = canonical_view(seq);
     std::sort(std::begin(canon), std::end(canon));
 }
@@ -85,7 +94,20 @@ void sort(Seq& seq) {
 // Sort in-place by projection `proj`
 
 template <typename Seq, typename Proj>
-void sort_by(Seq& seq, const Proj& proj) {
+enable_if_t<!std::is_const<typename util::sequence_traits<Seq>::reference>::value>
+sort_by(Seq& seq, const Proj& proj) {
+    using value_type = typename sequence_traits<Seq>::value_type;
+    auto canon = canonical_view(seq);
+
+    std::sort(std::begin(canon), std::end(canon),
+        [&proj](const value_type& a, const value_type& b) {
+            return proj(a) < proj(b);
+        });
+}
+
+template <typename Seq, typename Proj>
+enable_if_t<!std::is_const<typename util::sequence_traits<Seq>::reference>::value>
+sort_by(const Seq& seq, const Proj& proj) {
     using value_type = typename sequence_traits<Seq>::value_type;
     auto canon = canonical_view(seq);
 
