@@ -2,7 +2,7 @@
 
 #include "error.hpp"
 #include "functionexpander.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 //  function call site lowering
@@ -162,4 +162,3 @@ lower_function_arguments(std::vector<expression_ptr>& args)
 
     return new_statements;
 }
-

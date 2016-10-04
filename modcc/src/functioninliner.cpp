@@ -2,7 +2,7 @@
 
 #include "error.hpp"
 #include "functioninliner.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 #include "errorvisitor.hpp"
 
 expression_ptr inline_function_call(Expression* e)

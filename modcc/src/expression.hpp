@@ -11,7 +11,7 @@
 #include "identifier.hpp"
 #include "memop.hpp"
 #include "scope.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 
 class Visitor;
 
@@ -1155,4 +1155,3 @@ public:
 
     void accept(Visitor *v) override;
 };
-

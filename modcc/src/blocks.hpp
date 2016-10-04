@@ -6,7 +6,7 @@
 #include "identifier.hpp"
 #include "location.hpp"
 #include "token.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 
 // describes a relationship with an ion channel
 struct IonDep {
@@ -164,4 +164,3 @@ inline std::ostream& operator<< (std::ostream& os, AssignedBlock const& A) {
 
     return os;
 }
-

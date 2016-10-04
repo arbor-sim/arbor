@@ -10,7 +10,7 @@
 #include "module.hpp"
 #include "parser.hpp"
 #include "perfvisitor.hpp"
-#include "util.hpp"
+#include "modccutil.hpp"
 
 //#define VERBOSE
 
