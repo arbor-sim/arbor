@@ -1,3 +1,0 @@
-[submodule "modparser"]
-	path = external/modparser
-	url = git@github.com:eth-cscs/modparser.git
