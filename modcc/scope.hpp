@@ -124,3 +124,4 @@ typename Scope<Symbol>::symbol_map*
 Scope<Symbol>::globals() {
     return global_symbols_;
 }
+

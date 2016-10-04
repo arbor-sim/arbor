@@ -22,9 +22,9 @@ inline std::string to_string(symbolKind k) {
 
 inline std::string to_string(procedureKind k) {
     switch(k) {
-        case procedureKind::normal             :
+        case procedureKind::normal      :
             return "procedure";
-        case procedureKind::api             :
+        case procedureKind::api         :
             return "APIprocedure";
         case procedureKind::initial     :
             return "initial";
@@ -702,12 +702,14 @@ expression_ptr IfExpression::clone() const {
 }
 
 #include "visitor.hpp"
+
 /*
    Visitor hooks
 */
 void Expression::accept(Visitor *v) {
     v->visit(this);
 }
+
 void Symbol::accept(Visitor *v) {
     v->visit(this);
 }

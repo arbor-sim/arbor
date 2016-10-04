@@ -67,6 +67,10 @@ public:
     // leave UnaryExpression to throw, to catch
     // any missed specializations
     ////////////////////////////////////////////////////
+    void visit(UnaryExpression *e) override {
+        // do nothing
+    }
+
     void visit(NegUnaryExpression *e) override {
         // this is a simplification
         // we would have to perform analysis of parent nodes to ensure that
@@ -259,4 +263,3 @@ private:
     std::set<Symbol*> indexed_writes_;
     std::set<Symbol*> vector_writes_;
 };
-
