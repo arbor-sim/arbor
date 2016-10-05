@@ -123,12 +123,15 @@ int main(int argc, char **argv) {
         ////////////////////////////////////////////////////////////
         // semantic analysis
         ////////////////////////////////////////////////////////////
-        if(options.verbose) std::cout << green("[") + "semantic analysis" + green("]") << std::endl;
+        if(options.verbose)
+            std::cout << green("[") + "semantic analysis" + green("]") << "\n";
+
         m.semantic();
 
         if( m.has_error() || m.has_warning() ) {
             std::cout << m.error_string() << std::endl;
         }
+
         if(m.status() == lexerStatus::error) {
             return 1;
         }

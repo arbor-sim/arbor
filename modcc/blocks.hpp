@@ -164,3 +164,4 @@ inline std::ostream& operator<< (std::ostream& os, AssignedBlock const& A) {
 
     return os;
 }
+

@@ -82,6 +82,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
 
     //////////////////////////////////////////////
+    // constructor
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
     text_.add_line(class_name + "(view_type vec_v, view_type vec_i, const_index_view node_index)");
@@ -141,7 +142,6 @@ CPrinter::CPrinter(Module &m, bool o)
     }
 
     text_.add_line();
-    //text_.add_line("INIT_PROFILE");
     text_.decrease_indentation();
     text_.add_line("}");
 
@@ -891,3 +891,4 @@ void CPrinter::visit(BinaryExpression *e) {
     // reset parent precedence
     parent_op_ = pop;
 }
+

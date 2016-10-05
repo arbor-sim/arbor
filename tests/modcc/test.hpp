@@ -12,18 +12,18 @@
 #define VERBOSE_PRINT(x)
 #endif
 
-static expression_ptr parse_line_expression(std::string const& s) {
+inline expression_ptr parse_line_expression(std::string const& s) {
     return Parser(s).parse_line_expression();
 }
 
-static expression_ptr parse_expression(std::string const& s) {
+inline expression_ptr parse_expression(std::string const& s) {
     return Parser(s).parse_expression();
 }
 
-static expression_ptr parse_function(std::string const& s) {
+inline expression_ptr parse_function(std::string const& s) {
     return Parser(s).parse_function();
 }
 
-static expression_ptr parse_procedure(std::string const& s) {
+inline expression_ptr parse_procedure(std::string const& s) {
     return Parser(s).parse_procedure();
 }

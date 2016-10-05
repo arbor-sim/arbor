@@ -22,6 +22,5 @@ public:
 
     // store intermediate results as long double, i.e. 80-bit precision
     long double value = 0.;
-    bool  is_number = false;
+    bool is_number = false;
 };
-
