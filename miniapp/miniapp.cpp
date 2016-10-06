@@ -12,6 +12,7 @@
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <fvm_multicell.hpp>
+#include <fvm_cuda_multicell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <mechanism_catalogue.hpp>
 #include <model.hpp>
@@ -28,7 +29,11 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
+#ifdef WITH_CUDA
+using lowered_cell = fvm::fvm_cuda_multicell<double, cell_local_size_type>;
+#else
 using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+#endif
 //using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
 using model_type = model<lowered_cell>;
 using time_type = model_type::time_type;
@@ -43,8 +48,24 @@ using spike_type = typename communicator_type::spike_type;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 
+#ifdef WITH_CUDA
+static void cuda_check_status(cudaError_t status) {
+    if(status != cudaSuccess) {
+        std::cerr << "error: CUDA API call : "
+                  << cudaGetErrorString(status) << std::endl;
+        exit(1);
+    }
+}
+#endif
+
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
+
+#ifdef WITH_CUDA
+    double* ptr;
+    auto status = cudaMalloc(&ptr, 100);
+    cuda_check_status(status);
+#endif
 
     try {
         std::cout << util::mask_stream(global_policy::id()==0);

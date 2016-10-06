@@ -21,7 +21,7 @@
 #include <util.hpp>
 #include <util/meta.hpp>
 
-#include <vector/include/Vector.hpp>
+#include <memory/memory.hpp>
 
 /*
  * Lowered cell implementation based on finite volume method.
@@ -166,7 +166,8 @@ public:
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
-    using matrix_type = matrix<value_type, size_type>;
+    using matrix_type =
+        matrix<value_type, size_type, backends::host_matrix_policy>;
 
     /// mechanism type
     using mechanism_type =

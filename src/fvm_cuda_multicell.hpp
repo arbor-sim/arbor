@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef WITH_CUDA
+
 #include <algorithm>
 #include <iterator>
 #include <map>
@@ -22,7 +24,6 @@
 #include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/partition.hpp>
-#include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
 #include <memory/memory.hpp>
@@ -32,9 +33,9 @@ namespace mc {
 namespace fvm {
 
 template <typename Value, typename Index>
-class fvm_multicell {
+class fvm_cuda_multicell {
 public:
-    fvm_multicell() = default;
+    fvm_cuda_multicell() = default;
 
     /// the real number type
     using value_type = Value;
@@ -43,16 +44,22 @@ public:
     using size_type = Index;
 
     /// the container used for indexes
-    using index_type = memory::HostVector<size_type>;
+    using index_type = memory::DeviceVector<size_type>;
 
     /// the container used for values
-    using vector_type = memory::HostVector<value_type>;
+    using vector_type = memory::DeviceVector<value_type>;
 
+private:
+    using host_vector_type = memory::HostVector<value_type>;
+    using host_index_type = memory::HostVector<size_type>;
+    using host_index_view_type = typename host_index_type::view_type;
+
+public:
     /// API for cell_group (see above):
 
     using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
-    using probe_handle = std::pair<const vector_type fvm_multicell::*, size_type>;
+    using probe_handle = std::pair<const vector_type fvm_cuda_multicell::*, size_type>;
 
     void resting_potential(value_type potential_mV) {
         resting_potential_ = potential_mV;
@@ -68,10 +75,11 @@ public:
     void reset();
 
     void deliver_event(target_handle h, value_type weight) {
-        mechanisms_[h.first]->net_receive(h.second, weight);
+        mechanisms_[synapse_base_+h.first]->net_receive(h.second, weight);
     }
 
     value_type detector_voltage(detector_handle h) const {
+        // TODO : this might be inefficient
         return voltage_[h]; // detector_handle is just the compartment index
     }
 
@@ -84,15 +92,14 @@ public:
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
-    using matrix_type =
-        matrix<value_type, size_type, backends::host_matrix_policy>;
+    using matrix_type = matrix<value_type, size_type>;
 
     /// mechanism type
     using mechanism_type =
-        nest::mc::mechanisms::mechanism_ptr<value_type, size_type>;
+        nest::mc::mechanisms::gpu::mechanism_ptr<value_type, size_type>;
 
     /// ion species storage
-    using ion_type = mechanisms::ion<value_type, size_type>;
+    using ion_type = mechanisms::gpu::ion<value_type, size_type>;
 
     /// view into index container
     using index_view = typename index_type::view_type;
@@ -209,14 +216,18 @@ private:
 
     std::vector<std::pair<uint32_t, i_clamp>> stimuli_;
 
-    std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
+    std::vector<std::pair<const vector_type fvm_cuda_multicell::*, uint32_t>> probes_;
 
     // mechanism factory
-    using mechanism_catalogue = nest::mc::mechanisms::catalogue<value_type, size_type>;
+    using mechanism_catalogue = nest::mc::mechanisms::gpu::catalogue<value_type, size_type>;
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
-        std::pair<size_type, size_type> comp_ival, const segment* seg, index_type &parent);
+        std::pair<size_type, size_type> comp_ival, const segment* seg,
+        host_index_type &parent,
+        host_vector_type& tmp_face_alpha,
+        host_vector_type& tmp_cv_areas,
+        host_vector_type& tmp_cv_capacitance);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -224,10 +235,13 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename T, typename I>
-void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
+void fvm_cuda_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
-    index_type &parent)
+    host_index_type &parent,
+    host_vector_type& tmp_face_alpha,
+    host_vector_type& tmp_cv_areas,
+    host_vector_type& tmp_cv_capacitance)
 {
     using util::left;
     using util::right;
@@ -246,8 +260,8 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
         auto i = comp_ival.first;
         auto area = math::area_sphere(soma->radius());
 
-        cv_areas_[i] += area;
-        cv_capacitance_[i] += area * soma->mechanism("membrane").get("c_m").value;
+        tmp_cv_areas[i] += area;
+        tmp_cv_capacitance[i] += area * soma->mechanism("membrane").get("c_m").value;
     }
     else if (auto cable = seg->as_cable()) {
         // loop over each compartment in the cable
@@ -277,16 +291,16 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
 
             auto radius_center = math::mean(c.radius);
             auto area_face = math::area_circle(radius_center);
-            face_alpha_[i] = area_face / (c_m * r_L * c.length);
+            tmp_face_alpha[i] = area_face / (c_m * r_L * c.length);
 
             auto halflen = c.length/2;
             auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
             auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
 
-            cv_areas_[j] += al;
-            cv_areas_[i] += ar;
-            cv_capacitance_[j] += al * c_m;
-            cv_capacitance_[i] += ar * c_m;
+            tmp_cv_areas[j] += al;
+            tmp_cv_areas[i] += ar;
+            tmp_cv_capacitance[j] += al * c_m;
+            tmp_cv_capacitance[i] += ar * c_m;
         }
     }
     else {
@@ -296,18 +310,20 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
 
 template <typename T, typename I>
 template <typename Cells, typename Detectors, typename Targets, typename Probes>
-void fvm_multicell<T, I>::initialize(
+void fvm_cuda_multicell<T, I>::initialize(
     const Cells& cells,
     Detectors& detector_handles,
     Targets& target_handles,
     Probes& probe_handles)
 {
+    using memory::make_const_view;
+    using memory::on_host;
     using util::assign_by;
-    using util::sort_by;
-    using util::transform_view;
     using util::make_partition;
     using util::make_span;
     using util::size;
+    using util::sort_by;
+    using util::transform_view;
 
     // count total detectors, targets and probes for validation of handle container sizes
     size_type detectors_count = 0u;
@@ -326,11 +342,12 @@ void fvm_multicell<T, I>::initialize(
     auto ncomp = cell_comp_part.bounds().second;
 
     // initialize storage from total compartment count
-    cv_areas_   = vector_type{ncomp, T{0}};
-    face_alpha_ = vector_type{ncomp, T{0}};
-    cv_capacitance_ = vector_type{ncomp, T{0}};
     current_    = vector_type{ncomp, T{0}};
     voltage_    = vector_type{ncomp, T{resting_potential_}};
+
+    host_vector_type tmp_cv_areas{ncomp, T{0}};
+    host_vector_type tmp_cv_capacitance{ncomp, T{0}};
+    host_vector_type tmp_face_alpha{ncomp, T{0}};
 
     // create maps for mechanism initialization.
     std::map<std::string, std::vector<std::pair<size_type, size_type>>> mech_map;
@@ -338,7 +355,7 @@ void fvm_multicell<T, I>::initialize(
     std::map<std::string, std::size_t> syn_mech_indices;
 
     // initialize vector used for matrix creation.
-    index_type group_parent_index{ncomp, 0};
+    host_index_type group_parent_index{ncomp, 0};
 
     // create each cell:
     auto target_hi = target_handles.begin();
@@ -366,7 +383,9 @@ void fvm_multicell<T, I>::initialize(
             const auto& seg = c.segment(j);
             const auto& seg_comp_ival = seg_comp_part[j];
 
-            compute_cv_area_unnormalized_capacitance(seg_comp_ival, seg, group_parent_index);
+            compute_cv_area_unnormalized_capacitance(
+                seg_comp_ival, seg, group_parent_index,
+                tmp_face_alpha, tmp_cv_areas, tmp_cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
@@ -397,8 +416,13 @@ void fvm_multicell<T, I>::initialize(
 
         // normalize capacitance across cell
         for (auto k: make_span(comp_ival)) {
-            cv_capacitance_[k] /= cv_areas_[k];
+            tmp_cv_capacitance[k] /= tmp_cv_areas[k];
         }
+
+        // copy capacitance, areas, face to device
+        cv_areas_ = tmp_cv_areas;
+        cv_capacitance_ = tmp_cv_capacitance;
+        face_alpha_ = tmp_face_alpha;
 
         // add the stimuli
         for (const auto& stim: c.stimuli()) {
@@ -422,10 +446,10 @@ void fvm_multicell<T, I>::initialize(
             auto comp = comp_ival.first+find_compartment_index(probe.location, graph);
             switch (probe.kind) {
             case probeKind::membrane_voltage:
-                *probe_hi++ = {&fvm_multicell::voltage_, comp};
+                *probe_hi++ = {&fvm_cuda_multicell::voltage_, comp};
                 break;
             case probeKind::membrane_current:
-                *probe_hi++ = {&fvm_multicell::current_, comp};
+                *probe_hi++ = {&fvm_cuda_multicell::current_, comp};
                 break;
             default:
                 throw std::logic_error("unrecognized probeKind");
@@ -448,8 +472,7 @@ void fvm_multicell<T, I>::initialize(
         }
 
         mechanisms_.push_back(
-            mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
-        );
+            mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices));
     }
 
     // create point (synapse) mechanisms
@@ -483,7 +506,10 @@ void fvm_multicell<T, I>::initialize(
         target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
         targets_count += n_indices;
 
-        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, comp_indices);
+        auto aaa = memory::on_gpu(comp_indices);
+
+        auto mech =
+            mechanism_catalogue::make(mech_name, voltage_, current_, make_const_view(comp_indices));
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
     }
@@ -494,22 +520,23 @@ void fvm_multicell<T, I>::initialize(
     EXPECTS(probes_size==probes_count);
 
     // build the ion species
-    for(auto ion : mechanisms::ion_kinds()) {
+    for (auto ion : mechanisms::ion_kinds()) {
         // find the compartment indexes of all compartments that have a
         // mechanism that depends on/influences ion
-        std::set<int> index_set;
+        std::set<size_type> index_set;
         for(auto& mech : mechanisms_) {
             if(mech->uses_ion(ion)) {
-                for(auto idx : mech->node_index()) {
+                // copy indexes back to CPU for ease of use
+                for(auto idx : on_host(mech->node_index())) {
                     index_set.insert(idx);
                 }
             }
         }
-        std::vector<cell_lid_type> indexes(index_set.begin(), index_set.end());
+        std::vector<size_type> indexes(index_set.begin(), index_set.end());
 
         // create the ion state
-        if(indexes.size()) {
-            ions_.emplace(ion, index_type(indexes));
+        if (indexes.size()) {
+            ions_[ion] = ion_type(make_const_view(indexes));
         }
 
         // join the ion reference in each mechanism into the cell-wide ion state
@@ -525,29 +552,28 @@ void fvm_multicell<T, I>::initialize(
     //        the default values in Neuron.
     //        Neuron's defaults are defined in the file
     //          nrn/src/nrnoc/membdef.h
-    auto all = memory::all;
-
     constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
 
-    ion_na().reversal_potential()(all)     = 115+DEF_vrest; // mV
-    ion_na().internal_concentration()(all) =  10.0;         // mM
-    ion_na().external_concentration()(all) = 140.0;         // mM
+    memory::fill(ion_na().reversal_potential(),     115+DEF_vrest); // mV
+    memory::fill(ion_na().internal_concentration(),  10.0);         // mM
+    memory::fill(ion_na().external_concentration(), 140.0);         // mM
 
-    ion_k().reversal_potential()(all)     = -12.0+DEF_vrest;// mV
-    ion_k().internal_concentration()(all) =  54.4;          // mM
-    ion_k().external_concentration()(all) =  2.5;           // mM
+    memory::fill(ion_k().reversal_potential(),     -12.0+DEF_vrest);// mV
+    memory::fill(ion_k().internal_concentration(),  54.4);          // mM
+    memory::fill(ion_k().external_concentration(),  2.5);           // mM
 
-    ion_ca().reversal_potential()(all)     = 12.5 * std::log(2.0/5e-5);// mV
-    ion_ca().internal_concentration()(all) = 5e-5;          // mM
-    ion_ca().external_concentration()(all) = 2.0;           // mM
+    memory::fill(ion_ca().reversal_potential(),     12.5*std::log(2.0/5e-5));// mV
+    memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
+    memory::fill(ion_ca().external_concentration(), 2.0);           // mM
 
     // initialise mechanism and voltage state
     reset();
 }
 
 template <typename T, typename I>
-void fvm_multicell<T, I>::setup_matrix(T dt) {
-    using memory::all;
+void fvm_cuda_multicell<T, I>::setup_matrix(T dt) {
+    // TODO KERNEL : this whole thing has to be packed into a kernel
+    // NOTE : take care with atomics in the matrix update on diagonals
 
     // convenience accesors to matrix storage
     auto l = matrix_.l();
@@ -569,7 +595,7 @@ void fvm_multicell<T, I>::setup_matrix(T dt) {
     //       l[i] . . d[i]
     //
 
-    d(all) = cv_areas_; // [µm^2]
+    memory::copy(cv_areas_, d); // [µm^2]
     for (auto i=1u; i<d.size(); ++i) {
         auto a = 1e5*dt * face_alpha_[i];
 
@@ -590,23 +616,22 @@ void fvm_multicell<T, I>::setup_matrix(T dt) {
 }
 
 template <typename T, typename I>
-void fvm_multicell<T, I>::reset() {
-    voltage_(memory::all) = resting_potential_;
+void fvm_cuda_multicell<T, I>::reset() {
+    memory::fill(voltage_, resting_potential_);
     t_ = 0.;
     for (auto& m : mechanisms_) {
         // TODO : the parameters have to be set before the nrn_init
         // for now use a dummy value of dt.
+        // ... the right spot for this might be the constructor for each mechanism
         m->set_params(t_, 0.025);
         m->nrn_init();
     }
 }
 
 template <typename T, typename I>
-void fvm_multicell<T, I>::advance(T dt) {
-    using memory::all;
-
+void fvm_cuda_multicell<T, I>::advance(T dt) {
     PE("current");
-    current_(all) = 0.;
+    memory::fill(current_, 0.);
 
     // update currents from ion channels
     for(auto& m : mechanisms_) {
@@ -617,13 +642,15 @@ void fvm_multicell<T, I>::advance(T dt) {
     }
 
     // add current contributions from stimuli
+    // TODO KERNEL : for now probably not a killer bottlneck
     for (auto& stim : stimuli_) {
         auto ie = stim.second.amplitude(t_); // [nA]
         auto loc = stim.first;
 
         // note: current_ in [mA/cm^2], ie in [nA], cv_areas_ in [µm^2].
         // unit scale factor: [nA/µm^2]/[mA/cm^2] = 100
-        current_[loc] -= 100*ie/cv_areas_[loc];
+        value_type curr = current_[loc] - 100*ie/cv_areas_[loc];
+        current_[loc] = curr;
     }
     PL();
 
@@ -633,7 +660,7 @@ void fvm_multicell<T, I>::advance(T dt) {
     PL(); PE("solve");
     matrix_.solve();
     PL();
-    voltage_(all) = matrix_.rhs();
+    memory::copy(matrix_.rhs(), voltage_);
     PL();
 
     // integrate state of gating variables etc.
@@ -652,3 +679,4 @@ void fvm_multicell<T, I>::advance(T dt) {
 } // namespace mc
 } // namespace nest
 
+#endif

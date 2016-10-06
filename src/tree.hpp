@@ -4,7 +4,7 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
-#include <vector/include/Vector.hpp>
+#include <memory/memory.hpp>
 
 #include "algorithms.hpp"
 #include "util.hpp"
@@ -68,11 +68,12 @@ public:
             parent_index, algorithms::branches(parent_index));
 
         init(new_parent_index.size());
-        parents_(memory::all) = new_parent_index;
+        //parents_(memory::all) = new_parent_index;
+        memory::copy(new_parent_index, parents_);
         parents_[0] = no_parent;
 
-        child_index_(memory::all) =
-            algorithms::make_index(algorithms::child_count(parents_));
+        //child_index_(memory::all) = algorithms::make_index(algorithms::child_count(parents_));
+        memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
 
         std::vector<int_type> pos(parents_.size(), 0);
         for (auto i = 1u; i < parents_.size(); ++i) {
@@ -143,7 +144,7 @@ public:
         new_tree.init(num_nodes());
 
         // add the root node
-        new_tree.parents_[0] = -1;
+        new_tree.parents_[0] = no_parent;
         new_tree.child_index_[0] = 0;
 
         // allocate space for the permutation vector that

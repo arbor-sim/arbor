@@ -39,6 +39,28 @@ if(WITH_TBB)
     add_definitions(-DWITH_TBB)
 endif()
 
+# CUDA support
+set(WITH_CUDA OFF CACHE BOOL "use CUDA for GPU offload" )
+if(WITH_CUDA)
+    find_package(CUDA REQUIRED)
+    # the vector library has a compiled component when using the CUDA backend
+    include(ExternalProject)
+    # Turn off annoying and incorrect warnings generated in the JSON file.
+    # We also work around the same issue with the intel compiler.
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
+    externalproject_add(vector
+        PREFIX ${CMAKE_BINARY_DIR}/external
+        CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
+                   "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
+                   "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
+        STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
+        TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
+        SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
+    )
+endif()
+
 # MPI support
 set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
 if(WITH_MPI)
@@ -88,8 +110,7 @@ else()
     set(use_external_modcc ON BOOL)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/tclap/include)
-include_directories(${CMAKE_SOURCE_DIR}/vector)
+include_directories(${CMAKE_SOURCE_DIR}/tclap)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/miniapp)
