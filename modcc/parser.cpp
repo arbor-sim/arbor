@@ -449,6 +449,7 @@ void Parser::parse_parameter_block() {
         return;
     }
 
+    int success = 1;
     // there are no use cases for curly brace in a UNITS block, so we don't have to count them
     get_token();
     while(token_.type!=tok::rbrace && token_.type!=tok::eof) {
@@ -457,7 +458,8 @@ void Parser::parse_parameter_block() {
 
         // read the parameter name
         if(token_.type != tok::identifier) {
-            goto parm_error;
+            success = 0;
+            goto parm_exit;
         }
         parm.token = token_; // save full token
 
@@ -471,7 +473,8 @@ void Parser::parse_parameter_block() {
                 get_token();
             }
             if(token_.type != tok::number) {
-                goto parm_error;
+                success = 0;
+                goto parm_exit;
             }
             parm.value += token_.spelling; // store value as a string
             get_token();
@@ -481,27 +484,27 @@ void Parser::parse_parameter_block() {
         if(line==location_.line && token_.type == tok::lparen) {
             parm.units = unit_description();
             if(status_ == lexerStatus::error) {
-                goto parm_error;
+                success = 0;
+                goto parm_exit;
             }
         }
 
         block.parameters.push_back(parm);
     }
 
-    // errer if EOF before closeing curly brace
+    // error if EOF before closing curly brace
     if(token_.type==tok::eof) {
         error("PARAMETER block must have closing '}'");
-        goto parm_error;
+        goto parm_exit;
     }
 
     get_token(); // consume closing brace
 
     module_->parameter_block(block);
 
-    return;
-parm_error:
+parm_exit:
     // only write error message if one hasn't already been logged by the lexer
-    if(status_==lexerStatus::happy) {
+    if(!success && status_==lexerStatus::happy) {
         error(pprintf("PARAMETER block unexpected symbol '%'", token_.spelling));
     }
     return;
@@ -518,6 +521,8 @@ void Parser::parse_assigned_block() {
         return;
     }
 
+    int success = 1;
+
     // there are no use cases for curly brace in an ASSIGNED block, so we don't have to count them
     get_token();
     while(token_.type!=tok::rbrace && token_.type!=tok::eof) {
@@ -526,7 +531,8 @@ void Parser::parse_assigned_block() {
 
         // the first token must be ...
         if(token_.type != tok::identifier) {
-            goto ass_error;
+            success = 0;
+            goto ass_exit;
         }
         // read all of the identifiers until we run out of identifiers or reach a new line
         while(token_.type == tok::identifier && line == location_.line) {
@@ -538,7 +544,8 @@ void Parser::parse_assigned_block() {
         if(line==location_.line && token_.type == tok::lparen) {
             auto u = unit_description();
             if(status_ == lexerStatus::error) {
-                goto ass_error;
+                success = 0;
+                goto ass_exit;
             }
             for(auto const& t : variables) {
                 block.parameters.push_back(Id(t, "", u));
@@ -551,20 +558,19 @@ void Parser::parse_assigned_block() {
         }
     }
 
-    // errer if EOF before closeing curly brace
+    // error if EOF before closing curly brace
     if(token_.type==tok::eof) {
         error("ASSIGNED block must have closing '}'");
-        goto ass_error;
+        goto ass_exit;
     }
 
     get_token(); // consume closing brace
 
     module_->assigned_block(block);
 
-    return;
-ass_error:
+ass_exit:
     // only write error message if one hasn't already been logged by the lexer
-    if(status_==lexerStatus::happy) {
+    if(!success && status_==lexerStatus::happy) {
         error(pprintf("ASSIGNED block unexpected symbol '%'", token_.spelling));
     }
     return;
@@ -575,15 +581,20 @@ std::vector<Token> Parser::unit_description() {
     int startline = location_.line;
     std::vector<Token> tokens;
 
-    // chec that we start with a left parenthesis
-    if(token_.type != tok::lparen)
-        goto unit_error;
+    // check that we start with a left parenthesis
+    if(token_.type != tok::lparen) {
+        error(pprintf("unit description must start with a parenthesis '%'", tokens));
+        goto unit_exit;
+    }
+
     get_token();
 
     while(token_.type != tok::rparen) {
         // check for illegal tokens or a new line
-        if( !is_in(token_.type,legal_tokens) || startline < location_.line )
-            goto unit_error;
+        if( !is_in(token_.type,legal_tokens) || startline < location_.line ) {
+            error(pprintf("incorrect unit description '%'", tokens));
+            goto unit_exit;
+        }
 
         // add this token to the set
         tokens.push_back(token_);
@@ -592,10 +603,7 @@ std::vector<Token> Parser::unit_description() {
     // remove trailing right parenthesis ')'
     get_token();
 
-    return tokens;
-
-unit_error:
-    error(pprintf("incorrect unit description '%'", tokens));
+unit_exit:
     return tokens;
 }
 

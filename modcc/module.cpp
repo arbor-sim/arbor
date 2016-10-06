@@ -106,7 +106,7 @@ bool Module::semantic() {
 
     // Helper which iterates over a vector of Symbols, moving them into the
     // symbol table.
-    // Returns false if a symbol name clases with the name of a symbol that
+    // Returns false if a symbol name clashes with the name of a symbol that
     // is already in the symbol table.
     auto move_symbols = [this] (std::vector<symbol_ptr>& symbol_list) {
         for(auto& symbol: symbol_list) {
@@ -149,8 +149,9 @@ bool Module::semantic() {
             || s->kind() == symbolKind::procedure)
         {
 #ifdef LOGGING
-            std::cout << "\nfunction inlining for " << s->location() << "\n" << s->to_string() << "\n";
-            std::cout << green("\n-call site lowering-\n\n");
+            std::cout << "\nfunction inlining for " << s->location() << "\n"
+                      << s->to_string() << "\n"
+                      << green("\n-call site lowering-\n\n");
 #endif
             // first perform semantic analysis
             s->semantic(symbols_);
@@ -338,6 +339,7 @@ bool Module::semantic() {
                 }
             }
         }
+
         a = b = nullptr;
         return std::make_pair(a, b);
     };
@@ -347,7 +349,7 @@ bool Module::semantic() {
     // There are two APIMethods generated from BREAKPOINT.
     // The first is nrn_state, which is the first case handled below.
     // The second is nrn_current, which is handled after this block
-    auto state_api = make_empty_api_method("nrn_state", "breakpoint");
+    auto state_api  = make_empty_api_method("nrn_state", "breakpoint");
     auto api_state  = state_api.first;
     auto breakpoint = state_api.second;
 
@@ -774,7 +776,7 @@ bool Module::optimize() {
         auto kind = symbol.second->kind();
         BlockExpression* body;
         if(kind == symbolKind::procedure) {
-            // we are only interested in true procedurs and APIMethods
+            // we are only interested in true procedures and APIMethods
             auto proc = symbol.second->is_procedure();
             auto pkind = proc->kind();
             if(pkind == procedureKind::normal || pkind == procedureKind::api )
@@ -811,4 +813,3 @@ bool Module::optimize() {
 
     return true;
 }
-

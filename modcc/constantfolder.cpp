@@ -31,7 +31,8 @@ void ConstantFolderVisitor::visit(UnaryExpression *e) {
     e->expression()->accept(this);
     if(is_number) {
         if(!e->is_number()) {
-            e->replace_expression(make_expression<NumberExpression>(e->location(), value));
+            e->replace_expression(
+                make_expression<NumberExpression>(e->location(), value));
         }
         switch(e->op()) {
             case tok::minus :
@@ -173,4 +174,3 @@ void ConstantFolderVisitor::visit(IfExpression *e) {
         e->false_branch()->accept(this);
     }
 }
-

@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
 
@@ -31,10 +33,15 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("#include <cmath>");
     text_.add_line("#include <limits>");
     text_.add_line();
-    text_.add_line("#include <indexedview.hpp>");
     text_.add_line("#include <mechanism.hpp>");
-    text_.add_line("#include <target.hpp>");
+    text_.add_line("#include <mechanism_interface.hpp>");
+    //text_.add_line("#include <gpu/util.hpp>");
     text_.add_line();
+
+
+    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace gpu{ namespace " + m.name() + "{");
+    text_.add_line();
+    increase_indentation();
 
     ////////////////////////////////////////////////////////////
     // generate the parameter pack
@@ -69,32 +76,62 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         param_pack.push_back(tname + ".index.data()");
     }
 
-    text_.add_line("// matrix");
-    text_.add_line("T* vec_rhs;");
-    text_.add_line("T* vec_d;");
+    text_.add_line("// voltage and current state within the cell");
     text_.add_line("T* vec_v;");
-    param_pack.push_back("matrix_.vec_rhs().data()");
-    param_pack.push_back("matrix_.vec_d().data()");
-    param_pack.push_back("matrix_.vec_v().data()");
+    text_.add_line("T* vec_i;");
+    param_pack.push_back("vec_v_.data()");
+    param_pack.push_back("vec_i_.data()");
+
+    text_.add_line("T* vec_area;");
+    param_pack.push_back("vec_area_.data()");
 
     text_.add_line("// node index information");
     text_.add_line("I* ni;");
-    text_.add_line("unsigned long n;");
+    text_.add_line("unsigned long n_;");
     text_.decrease_indentation();
     text_.add_line("};");
     text_.add_line();
-    param_pack.push_back("node_indices_.data()");
-    param_pack.push_back("node_indices_.size()");
-
+    param_pack.push_back("node_index_.data()");
+    param_pack.push_back("node_index_.size()");
 
     ////////////////////////////////////////////////////////
     // write the CUDA kernels
     ////////////////////////////////////////////////////////
-    text_.add_line("namespace impl {");
-    text_.add_line("namespace " + m.name() + " {");
-    text_.add_line();
+    text_.add_line("namespace kernels {");
     {
         increase_indentation();
+
+        text_.add_line("__device__");
+        text_.add_line("inline double atomicAdd(double* address, double val) {");
+        text_.increase_indentation();
+        text_.add_line("using I = unsigned long long int;");
+        text_.add_line("I* address_as_ull = (I*)address;");
+        text_.add_line("I old = *address_as_ull, assumed;");
+        text_.add_line("do {");
+        text_.add_line("assumed = old;");
+        text_.add_line("old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val+__longlong_as_double(assumed)));");
+        text_.add_line("} while (assumed != old);");
+        text_.add_line("return __longlong_as_double(old);");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+        /*
+        text_.add_line("__device__");
+        text_.add_line("inline double atomicSub(double* address, double val) {");
+        text_.increase_indentation();
+        text_.add_line("return atomicAdd(address, -val);");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+        text_.add_line("__device__");
+        text_.add_line("inline float atomicSub(float* address, float val) {");
+        text_.increase_indentation();
+        text_.add_line("return atomicAdd(address, -val);");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+        */
+
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
             if(   var.second->kind()==symbolKind::procedure
@@ -107,122 +144,287 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
 
         // print stubs that call API method kernels that are defined in the
-        // imp::name namespace
+        // kernels::name namespace
         auto proctest = [] (procedureKind k) {return k == procedureKind::normal
                                                   || k == procedureKind::api;   };
         for(auto const &var : m.symbols()) {
-            if(   var.second->kind()==symbolKind::procedure
-            && proctest(var.second->is_procedure()->kind()))
+            if (var.second->kind()==symbolKind::procedure &&
+                proctest(var.second->is_procedure()->kind()))
             {
                 var.second->accept(this);
             }
         }
         decrease_indentation();
     }
-    text_.add_line("} // namespace " + m.name());
-    text_.add_line("} // namespace impl");
+    text_.add_line("} // namespace kernels");
     text_.add_line();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    std::string class_name = "Mechanism_" + m.name();
+    std::string class_name = "mechanism_" + m.name();
 
-    text_ << "template<typename T, typename I>\n";
-    text_ << "class " + class_name + " : public Mechanism<T, I, targetKind::gpu> {\n";
-    text_ << "public:\n\n";
-    text_ << "    using base = Mechanism<T, I, targetKind::gpu>;\n";
-    text_ << "    using value_type  = typename base::value_type;\n";
-    text_ << "    using size_type   = typename base::size_type;\n";
-    text_ << "    using vector_type = typename base::vector_type;\n";
-    text_ << "    using view_type   = typename base::view_type;\n";
-    text_ << "    using index_type  = typename base::index_type;\n";
-    text_ << "    using index_view  = typename index_type::view_type;\n";
-    text_ << "    using indexed_view= typename base::indexed_view;\n\n";
-    text_ << "    using matrix_type = typename base::matrix_type;\n\n";
-    text_ << "    using param_pack_type = " << m.name() << "_ParamPack<T,I>;\n\n";
+    text_.add_line("template<typename T, typename I>");
+    text_.add_line("class " + class_name + " : public ::nest::mc::mechanisms::gpu::mechanism<T, I> {");
+    text_.add_line("public:");
+    text_.increase_indentation();
+    text_.add_line("using base = ::nest::mc::mechanisms::gpu::mechanism<T, I>;");
+    text_.add_line("using value_type  = typename base::value_type;");
+    text_.add_line("using size_type   = typename base::size_type;");
+    text_.add_line("using vector_type = typename base::vector_type;");
+    text_.add_line("using view_type   = typename base::view_type;");
+    text_.add_line("using index_type  = typename base::index_type;");
+    text_.add_line("using index_view  = typename base::index_view;");
+    text_.add_line("using const_index_view  = typename base::const_index_view;");
+    text_.add_line("using indexed_view_type= typename base::indexed_view_type;");
+    text_.add_line("using ion_type = typename base::ion_type;");
+    text_.add_line("using param_pack_type = " + m.name() + "_ParamPack<T,I>;");
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
     for(auto& ion: m.neuron_block().ions) {
         auto tname = "Ion" + ion.name;
-        text_ << "    struct " + tname + " {\n";
+        text_.add_line("struct " + tname + " {");
+        text_.increase_indentation();
         for(auto& field : ion.read) {
-            text_ << "        view_type " + field.spelling + ";\n";
+            text_.add_line("view_type " + field.spelling + ";");
         }
         for(auto& field : ion.write) {
-            text_ << "        view_type " + field.spelling + ";\n";
+            text_.add_line("view_type " + field.spelling + ";");
         }
-        text_ << "        index_type index;\n";
-        text_ << "        std::size_t memory() const { return sizeof(size_type)*index.size(); }\n";
-        text_ << "        std::size_t size() const { return index.size(); }\n";
-        text_ << "    };\n";
-        text_ << "    " + tname + " ion_" + ion.name + ";\n\n";
+        text_.add_line("index_type index;");
+        text_.add_line("std::size_t memory() const { return sizeof(size_type)*index.size(); }");
+        text_.add_line("std::size_t size() const { return index.size(); }");
+        text_.decrease_indentation();
+        text_.add_line("};");
+        text_.add_line(tname + " ion_" + ion.name + ";");
+        text_.add_line();
     }
 
     //////////////////////////////////////////////
+    // constructor
     //////////////////////////////////////////////
+
     int num_vars = array_variables.size();
-    text_ << "    " + class_name + "(\n";
-    text_ << "        matrix_type* matrix,\n";
-    text_ << "        index_view node_indices)\n";
-    text_ << "    :   base(matrix, node_indices)\n";
-    text_ << "    {\n";
-    text_ << "        size_type num_fields = " << num_vars << ";\n";
-    text_ << "        size_type n = size();\n";
-    text_ << "        data_ = vector_type(n * num_fields);\n";
-    text_ << "        data_(memory::all) = std::numeric_limits<value_type>::quiet_NaN();\n";
+    text_.add_line();
+    text_.add_line("template <typename IVT>");
+    text_.add_line(class_name + "(view_type vec_v, view_type vec_i, IVT node_index) :");
+    text_.add_line("   base(vec_v, vec_i, node_index)");
+    text_.add_line("{");
+    text_.increase_indentation();
+    text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
+    text_.end_line();
+
+    text_.add_line();
+    text_.add_line("// calculate the padding required to maintain proper alignment of sub arrays");
+    text_.add_line("auto alignment  = data_.alignment();");
+    text_.add_line("auto field_size_in_bytes = sizeof(value_type)*size();");
+    text_.add_line("auto remainder  = field_size_in_bytes % alignment;");
+    text_.add_line("auto padding    = remainder ? (alignment - remainder)/sizeof(value_type) : 0;");
+    text_.add_line("auto field_size = size()+padding;");
+
+    text_.add_line();
+    text_.add_line("// allocate memory");
+    text_.add_line("data_ = vector_type(field_size * num_fields);");
+    text_.add_line("data_(memory::all) = std::numeric_limits<value_type>::quiet_NaN();");
+
+    // assign the sub-arrays
+    // replace this : data_(1*n, 2*n);
+    //    with this : data_(1*field_size, 1*field_size+n);
+
+    text_.add_line();
+    text_.add_line("// asign the sub-arrays");
     for(int i=0; i<num_vars; ++i) {
         char namestr[128];
         sprintf(namestr, "%-15s", array_variables[i]->name().c_str());
-        text_ << "        " << namestr << " = data_(" << i << "*n, " << i+1 << "*n);\n";
+        text_.add_line(
+            array_variables[i]->name() + " = data_("
+            + std::to_string(i) + "*field_size, " + std::to_string(i+1) + "*field_size);");
     }
+
     for(auto const& var : array_variables) {
         double val = var->value();
         // only non-NaN fields need to be initialized, because data_
         // is NaN by default
         if(val == val) {
-            text_ << "        " << var->name() << "(memory::all) = " << val << ";\n";
+            text_.add_line(var->name() + "(memory::all) = " + std::to_string(val) + ";");
         }
     }
 
-    text_ << "        INIT_PROFILE\n";
-    text_ << "    }\n\n";
+    text_.add_line();
+    text_.decrease_indentation();
+    text_.add_line("}");
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
-    text_ << "    using base::size;\n\n";
+    text_.add_line("using base::size;");
+    text_.add_line();
 
-    text_ << "    std::size_t memory() const override {\n";
-    text_ << "        auto s = std::size_t{0};\n";
-    text_ << "        s += data_.size()*sizeof(value_type);\n";
+    text_.add_line("std::size_t memory() const override {");
+    text_.increase_indentation();
+    text_.add_line("auto s = std::size_t{0};");
+    text_.add_line("s += data_.size()*sizeof(value_type);");
     for(auto& ion: m.neuron_block().ions) {
-        text_ << "        s += ion_" + ion.name + ".memory();\n";
+        text_.add_line("s += ion_" + ion.name + ".memory();");
     }
-    text_ << "        return s;\n";
-    text_ << "    }\n\n";
+    text_.add_line("return s;");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
 
-    text_ << "    void set_params(value_type t_, value_type dt_) override {\n";
-    text_ << "        t = t_;\n";
-    text_ << "        dt = dt_;\n";
-    text_ << "        param_pack_ = param_pack_type{\n";
-    //for(auto i=0; i<param_pack.size(); ++i)
-    for(auto &str: param_pack) {
-        text_ << "          " << str << ",\n";
+    // print the member funtion that
+    //   *  sets time step parameters
+    //   *  packs up the parameters for use on the GPU
+    text_.add_line("void set_params(value_type t_, value_type dt_) override {");
+    text_.increase_indentation();
+    text_.add_line("t = t_;");
+    text_.add_line("dt = dt_;");
+    text_.add_line("param_pack_ =");
+    text_.increase_indentation();
+    text_.add_line("param_pack_type {");
+    text_.increase_indentation();
+    for(auto& str: param_pack) {
+        text_.add_line(str + ",");
     }
-    text_ << "        };\n";
-    text_ << "    }\n\n";
+    text_.decrease_indentation();
+    text_.add_line("};");
+    text_.decrease_indentation();
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
 
-    text_ << "    std::string name() const override {\n";
-    text_ << "        return \"" << m.name() << "\";\n";
-    text_ << "    }\n\n";
+    // name member function
+    text_.add_line("std::string name() const override {");
+    text_.increase_indentation();
+    text_.add_line("return \"" + m.name() + "\";");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
 
     std::string kind_str = m.kind() == moduleKind::density
                             ? "mechanismKind::density"
-                            : "mechanismKind::point_process";
-    text_ << "    mechanismKind kind() const override {\n";
-    text_ << "        return " << kind_str << ";\n";
-    text_ << "    }\n\n";
+                            : "mechanismKind::point";
+    text_.add_line("mechanismKind kind() const override {");
+    text_.increase_indentation();
+    text_.add_line("return " + kind_str + ";");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
+    //////////////////////////////////////////////
+    //  print ion channel interface
+    //////////////////////////////////////////////
+    // return true/false indicating if cell has dependency on k
+    auto const& ions = m.neuron_block().ions;
+    auto find_ion = [&ions] (ionKind k) {
+        return std::find_if(
+            ions.begin(), ions.end(),
+            [k](IonDep const& d) {return d.kind()==k;}
+        );
+    };
+    auto has_ion = [&ions, find_ion] (ionKind k) {
+        return find_ion(k) != ions.end();
+    };
+
+    // bool uses_ion(ionKind k) const override
+    text_.add_line("bool uses_ion(ionKind k) const override {");
+    text_.increase_indentation();
+    text_.add_line("switch(k) {");
+    text_.increase_indentation();
+    text_.add_gutter()
+        << "case ionKind::na : return "
+        << (has_ion(ionKind::Na) ? "true" : "false") << ";";
+    text_.end_line();
+    text_.add_gutter()
+        << "case ionKind::ca : return "
+        << (has_ion(ionKind::Ca) ? "true" : "false") << ";";
+    text_.end_line();
+    text_.add_gutter()
+        << "case ionKind::k  : return "
+        << (has_ion(ionKind::K) ? "true" : "false") << ";";
+    text_.end_line();
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line("return false;");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
+    /***************************************************************************
+     *
+     *   ion channels have the following fields :
+     *
+     *       ---------------------------------------------------
+     *       label   Ca      Na      K   name
+     *       ---------------------------------------------------
+     *       iX      ica     ina     ik  current
+     *       eX      eca     ena     ek  reversal_potential
+     *       Xi      cai     nai     ki  internal_concentration
+     *       Xo      cao     nao     ko  external_concentration
+     *       gX      gca     gna     gk  conductance
+     *       ---------------------------------------------------
+     *
+     **************************************************************************/
+
+    // void set_ion(ionKind k, ion_type& i) override
+    //      TODO: this is done manually, which isn't going to scale
+    auto has_variable = [] (IonDep const& ion, std::string const& name) {
+        if( std::find_if(ion.read.begin(), ion.read.end(),
+                      [&name] (Token const& t) {return t.spelling==name;}
+            ) != ion.read.end()
+        ) return true;
+        if( std::find_if(ion.write.begin(), ion.write.end(),
+                      [&name] (Token const& t) {return t.spelling==name;}
+            ) != ion.write.end()
+        ) return true;
+        return false;
+    };
+    text_.add_line("void set_ion(ionKind k, ion_type& i) override {");
+    text_.increase_indentation();
+    text_.add_line("using nest::mc::algorithms::index_into;");
+    if(has_ion(ionKind::Na)) {
+        auto ion = find_ion(ionKind::Na);
+        text_.add_line("if(k==ionKind::na) {");
+        text_.increase_indentation();
+        text_.add_line("ion_na.index = index_into(i.node_index(), node_index_);");
+        if(has_variable(*ion, "ina")) text_.add_line("ion_na.ina = i.current();");
+        if(has_variable(*ion, "ena")) text_.add_line("ion_na.ena = i.reversal_potential();");
+        if(has_variable(*ion, "nai")) text_.add_line("ion_na.nai = i.internal_concentration();");
+        if(has_variable(*ion, "nao")) text_.add_line("ion_na.nao = i.external_concentration();");
+        text_.add_line("return;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+    }
+    if(has_ion(ionKind::Ca)) {
+        auto ion = find_ion(ionKind::Ca);
+        text_.add_line("if(k==ionKind::ca) {");
+        text_.increase_indentation();
+        text_.add_line("ion_ca.index = index_into(i.node_index(), node_index_);");
+        if(has_variable(*ion, "ica")) text_.add_line("ion_ca.ica = i.current();");
+        if(has_variable(*ion, "eca")) text_.add_line("ion_ca.eca = i.reversal_potential();");
+        if(has_variable(*ion, "cai")) text_.add_line("ion_ca.cai = i.internal_concentration();");
+        if(has_variable(*ion, "cao")) text_.add_line("ion_ca.cao = i.external_concentration();");
+        text_.add_line("return;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+    }
+    if(has_ion(ionKind::K)) {
+        auto ion = find_ion(ionKind::K);
+        text_.add_line("if(k==ionKind::k) {");
+        text_.increase_indentation();
+        text_.add_line("ion_k.index = index_into(i.node_index(), node_index_);");
+        if(has_variable(*ion, "ik")) text_.add_line("ion_k.ik = i.current();");
+        if(has_variable(*ion, "ek")) text_.add_line("ion_k.ek = i.reversal_potential();");
+        if(has_variable(*ion, "ki")) text_.add_line("ion_k.ki = i.internal_concentration();");
+        if(has_variable(*ion, "ko")) text_.add_line("ion_k.ko = i.external_concentration();");
+        text_.add_line("return;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+    }
+    text_.add_line("throw std::domain_error(nest::mc::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
 
 
     //////////////////////////////////////////////
@@ -235,47 +437,53 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         {
             auto proc = var.second->is_api_method();
             auto name = proc->name();
-            text_ << "  void " << name << "() {\n";
-            text_ << "    auto n = size();\n";
-            text_ << "    auto thread_dim = 192;\n";
-            text_ << "    dim3 dim_block(thread_dim);\n";
-            text_ << "    dim3 dim_grid(n/dim_block.x + (n%dim_block.x ? 1 : 0) );\n\n";
-            text_ << "    START_PROFILE\n";
-            text_ << "    impl::" << m.name() << "::" << name << "<T,I>"
-                    << "<<<dim_grid, dim_block>>>(param_pack_);\n";
-            text_ << "    STOP_PROFILE\n";
-            text_ << "  }\n";
+            text_.add_line("void " + name + "() {");
+            text_.increase_indentation();
+            text_.add_line("auto n = size();");
+            text_.add_line("auto thread_dim = 192;");
+            text_.add_line("dim3 dim_block(thread_dim);");
+            text_.add_line("dim3 dim_grid(n/dim_block.x + (n%dim_block.x ? 1 : 0) );");
+            text_.add_line();
+            text_.add_line(
+                "kernels::" + name + "<T,I>"
+                + "<<<dim_grid, dim_block>>>(param_pack_);");
+            text_.decrease_indentation();
+            text_.add_line("}");
+            text_.add_line();
         }
     }
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
-    //text_ << "private:\n\n";
-    text_ << "    vector_type data_;\n\n";
+    text_.add_line("vector_type data_;");
     for(auto var: array_variables) {
-        text_ << "    view_type " << var->name() << ";\n";
+        text_.add_line("view_type " + var->name() + ";");
     }
     for(auto var: scalar_variables) {
         double val = var->value();
         // test the default value for NaN
         // useful for error propogation from bad initial conditions
         if(val==val) {
-            text_ << "    value_type " << var->name() << " = " << val << ";\n";
+            text_.add_line("value_type " + var->name() + " = " + std::to_string(val) + ";");
         }
         else {
             // the cuda compiler has a bug that doesn't allow initialization of
             // class members with std::numer_limites<>. So simply set to zero.
-            text_ << "    value_type " << var->name()
-              << " = value_type{0};\n";
+            text_.add_line("value_type " + var->name() + " = value_type{0};");
         }
     }
 
-    text_ << "    using base::matrix_;\n";
-    text_ << "    using base::node_indices_;\n\n";
-    text_ << "    param_pack_type param_pack_;\n\n";
-    text_ << "    DATA_PROFILE\n";
-    text_ << "};\n";
+    text_.add_line("using base::vec_v_;");
+    text_.add_line("using base::vec_i_;");
+    text_.add_line("using base::vec_area_;");
+    text_.add_line("using base::node_index_;");
+    text_.add_line();
+    text_.add_line("param_pack_type param_pack_;");
+    decrease_indentation();
+    text_.add_line("};");
+    decrease_indentation();
+    text_.add_line("}}}}} // namespaces");
 }
 
 void CUDAPrinter::visit(Expression *e) {
@@ -482,7 +690,7 @@ void CUDAPrinter::visit(APIMethod *e) {
     text_.add_line();
 
     text_.add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");
-    text_.add_line("auto const n_ = params_.n;");
+    text_.add_line("auto const n_ = params_.n_;");
     text_.add_line();
     text_.add_line("if(tid_<n_) {");
     increase_indentation();

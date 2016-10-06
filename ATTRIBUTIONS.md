@@ -1,8 +1,8 @@
-Open source software doesn't happen in a vaccum. NestMC prototype includes code from the open source community. Thank you!
+NestMC prototype includes code from the open source community. Thank you!
 
 ## JSON for Modern C++
 
-A header only C++11 json library, written by Niels Lohmann (github user nlohmann).
+A header only C++11 json library, written by Niels Lohmann (GitHub user nlohmann).
 MIT license.
 
 https://github.com/nlohmann/json
@@ -14,3 +14,9 @@ MIT license
 
 https://sourceforge.net/projects/tclap
 
+## TBB module for CMake
+
+A CMake file for Intel Threading Building Blocks (TBB) written by Justus Calvin (GitHub handle justusc).
+MIT license.
+
+https://github.com/justusc/FindTBB
