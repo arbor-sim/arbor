@@ -78,8 +78,9 @@ Token Lexer::parse() {
                 location_.line++;
                 continue;   // skip to next line
 
-            // comment (everything after : on a line is a comment)
-            case ':'    :
+            // comment (everything after : or ? on a line is a comment)
+            case ':' :
+            case '?' :
                 // strip characters until either end of file or end of line
                 while( !is_eof(*current_) && *current_ != '\n') {
                     ++current_;

@@ -1,4 +1,5 @@
 : sample file
+? another style of comments
 
 NEURON  {
     THREADSAFE
@@ -26,7 +27,7 @@ PARAMETER {
     gkbar   = 0.1  (mho/cm2)
     celsius
     ek      = -100 (mV)    : must be explicitly def. in hoc
-    v       (mV)
+    v       (mV)           ? another style of comment
     vhalfm  =-43   (mV)
     km      =8
     vhalfh  =-67   (mV)
