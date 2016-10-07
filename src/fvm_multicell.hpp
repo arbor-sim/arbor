@@ -54,6 +54,8 @@ public:
     using target_handle = std::pair<size_type, size_type>;
     using probe_handle = std::pair<const vector_type fvm_multicell::*, size_type>;
 
+    using stimulus_store_type = std::vector<std::pair<std::uint32_t, i_clamp>>;
+
     void resting_potential(value_type potential_mV) {
         resting_potential_ = potential_mV;
     }
@@ -162,6 +164,15 @@ public:
         return (v>-1000.) && (v<1000.);
     }
 
+    /// return reference to the stimuli
+    stimulus_store_type& stimuli() {
+        return stimuli_;
+    }
+
+    stimulus_store_type const& stimuli() const {
+        return stimuli_;
+    }
+
     value_type time() const { return t_; }
 
     std::size_t num_probes() const { return probes_.size(); }
@@ -206,7 +217,7 @@ private:
     /// the ion species
     std::map<mechanisms::ionKind, ion_type> ions_;
 
-    std::vector<std::pair<uint32_t, i_clamp>> stimuli_;
+    stimulus_store_type stimuli_;
 
     std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
 
