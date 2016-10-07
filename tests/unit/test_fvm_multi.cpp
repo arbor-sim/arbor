@@ -239,20 +239,13 @@ TEST(fvm_multi, mechanism_indexes)
     // iterate over mechanisms and test whether they were assigned to the correct CVs
     // TODO : this fails because we do not handle CVs at branching points (including soma) correctly
     for(auto& mech : fvcell.mechanisms()) {
-        auto const& ni = mech->node_index();
+        auto const& n = mech->node_index();
+        std::vector<unsigned> ni(n.begin(), n.end());
         if(mech->name()=="hh") {
-            EXPECT_EQ(ni.size(), hh_index.size());
-            // only check index by index if size of index arrays match
-            if(ni.size()==hh_index.size()) {
-                for(auto i : util::make_span(0u, ni.size())) EXPECT_EQ(ni[i], hh_index[i]);
-            }
+            EXPECT_EQ(ni, hh_index);
         }
         else if(mech->name()=="pas") {
-            EXPECT_EQ(ni.size(), pas_index.size());
-            // only check index by index if size of index arrays match
-            if(ni.size()==pas_index.size()) {
-                for(auto i : util::make_span(0u, ni.size())) EXPECT_EQ(ni[i], pas_index[i]);
-            }
+            EXPECT_EQ(ni, pas_index);
         }
     }
 }
