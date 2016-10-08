@@ -205,7 +205,9 @@ TEST(Lexer, braces) {
 
 // test comments
 TEST(Lexer, comments) {
-    char string[] = "foo:this is one line\nbar : another comment\n";
+    char string[] = "foo:this is one line\n"
+                    "bar : another comment\n"
+                    "foobar ? another comment\n";
     PRINT_LEX_STRING
     Lexer lexer(string, string+sizeof(string));
 
@@ -218,7 +220,12 @@ TEST(Lexer, comments) {
     EXPECT_EQ(t2.location.line, 2);
 
     auto t3 = lexer.parse();
-    EXPECT_EQ(t3.type, tok::eof);
+    EXPECT_EQ(t3.type, tok::identifier);
+    EXPECT_EQ(t3.spelling, "foobar");
+    EXPECT_EQ(t3.location.line, 3);
+
+    auto t4 = lexer.parse();
+    EXPECT_EQ(t4.type, tok::eof);
 }
 
 // test numbers
