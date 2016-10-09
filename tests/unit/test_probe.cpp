@@ -2,7 +2,7 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <util/rangeutil.hpp>
 
 TEST(probe, instantiation)
@@ -34,7 +34,7 @@ TEST(probe, instantiation)
     EXPECT_EQ(probeKind::membrane_current, probes[1].kind);
 }
 
-TEST(probe, fvm_cell)
+TEST(probe, fvm_multicell)
 {
     using namespace nest::mc;
 
@@ -57,12 +57,12 @@ TEST(probe, fvm_cell)
     i_clamp stim(0, 100, 0.3);
     bs.add_stimulus({1, 1}, stim);
 
-    using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
-    std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::detector_handle> detectors;
-    std::vector<fvm_cell::probe_handle> probes{3};
+    using fvm_multicell = fvm::fvm_multicell<double, cell_lid_type>;
+    std::vector<fvm_multicell::target_handle> targets;
+    std::vector<fvm_multicell::detector_handle> detectors;
+    std::vector<fvm_multicell::probe_handle> probes{3};
 
-    fvm_cell lcell;
+    fvm_multicell lcell;
     lcell.initialize(util::singleton_view(bs), detectors, targets, probes);
 
     // Know from implementation that probe_handle.second
@@ -74,11 +74,19 @@ TEST(probe, fvm_cell)
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
     EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
 
+    std::cout << lcell.voltage()[probes[0].second] << "\n";
+    std::cout << lcell.voltage()[probes[1].second] << "\n";
+    std::cout << lcell.current()[probes[2].second] << "\n";
+
     lcell.advance(0.05);
 
     EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
     EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
+
+    std::cout << lcell.voltage()[probes[0].second] << "\n";
+    std::cout << lcell.voltage()[probes[1].second] << "\n";
+    std::cout << lcell.current()[probes[2].second] << "\n";
 }
 
 

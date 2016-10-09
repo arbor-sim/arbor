@@ -10,7 +10,7 @@
 TEST(matrix, construct_from_parent_only)
 {
     using nest::mc::util::make_span;
-    using matrix_type = nest::mc::matrix<double, int, nest::mc::backends::multicore::matrix_policy>;
+    using matrix_type = nest::mc::matrix<double, int, nest::mc::multicore::matrix_policy>;
 
     // pass parent index as a std::vector cast to host data
     {
@@ -30,7 +30,7 @@ TEST(matrix, construct_from_parent_only)
 TEST(matrix, solve_host)
 {
     using nest::mc::util::make_span;
-    using matrix_type = nest::mc::matrix<double, int, nest::mc::backends::multicore::matrix_policy>;
+    using matrix_type = nest::mc::matrix<double, int, nest::mc::multicore::matrix_policy>;
 
     // trivial case : 1x1 matrix
     {

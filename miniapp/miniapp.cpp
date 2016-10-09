@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
 
         // reset the model
         m.reset();
-        // rest the source spikes
+        // reset the source spikes
         for (auto source : local_sources) {
             m.add_artificial_spike({source, 0});
         }

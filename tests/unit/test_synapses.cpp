@@ -2,7 +2,6 @@
 #include "../test_util.hpp"
 
 #include <cell.hpp>
-#include <fvm_cell.hpp>
 #include <mechanisms/expsyn.hpp>
 #include <mechanisms/exp2syn.hpp>
 

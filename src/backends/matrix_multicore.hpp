@@ -4,7 +4,6 @@
 
 namespace nest {
 namespace mc {
-namespace backend {
 namespace multicore {
 
 template <typename T, typename I>
@@ -51,7 +50,6 @@ struct matrix_policy {
 };
 
 } // namespace multicore
-} // namespace backend
 } // namespace mc
 } // namespace nest
 

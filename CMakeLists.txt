@@ -49,16 +49,6 @@ if(WITH_CUDA)
     # We also work around the same issue with the intel compiler.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
-    externalproject_add(vector
-        PREFIX ${CMAKE_BINARY_DIR}/external
-        CMAKE_ARGS "-DCMAKE_INSTALL_PREFIX=${CMAKE_BINARY_DIR}/external"
-                   "-DCMAKE_CXX_FLAGS=${SAVED_CXX_FLAGS}"
-                   "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-        BINARY_DIR "${CMAKE_BINARY_DIR}/external/modparser"
-        STAMP_DIR  "${CMAKE_BINARY_DIR}/external/"
-        TMP_DIR    "${CMAKE_BINARY_DIR}/external/tmp"
-        SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/modparser"
-    )
 endif()
 
 # MPI support

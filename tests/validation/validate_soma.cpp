@@ -3,7 +3,7 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <util/rangeutil.hpp>
 
 #include "gtest.h"
@@ -22,12 +22,12 @@ TEST(soma, neuron_baseline)
     nest::mc::cell cell = make_cell_soma_only();
 
     // make the lowered finite volume cell
-    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
-    std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
-    std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
-    std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
+    using fvm_multicell = fvm::fvm_multicell<double, cell_local_size_type>;
+    std::vector<fvm_multicell::detector_handle> detectors(cell.detectors().size());
+    std::vector<fvm_multicell::target_handle> targets(cell.synapses().size());
+    std::vector<fvm_multicell::probe_handle> probes(cell.probes().size());
 
-    fvm_cell model;
+    fvm_multicell model;
     model.initialize(util::singleton_view(cell), detectors, targets, probes);
 
     // load data from file
@@ -83,12 +83,12 @@ TEST(soma, convergence)
     nest::mc::cell cell = make_cell_soma_only();
 
     // make the lowered finite volume cell
-    using fvm_cell = fvm::fvm_cell<double, cell_local_size_type>;
-    std::vector<fvm_cell::detector_handle> detectors(cell.detectors().size());
-    std::vector<fvm_cell::target_handle> targets(cell.synapses().size());
-    std::vector<fvm_cell::probe_handle> probes(cell.probes().size());
+    using fvm_multicell = fvm::fvm_multicell<double, cell_local_size_type>;
+    std::vector<fvm_multicell::detector_handle> detectors(cell.detectors().size());
+    std::vector<fvm_multicell::target_handle> targets(cell.synapses().size());
+    std::vector<fvm_multicell::probe_handle> probes(cell.probes().size());
 
-    fvm_cell model;
+    fvm_multicell model;
     model.initialize(util::singleton_view(cell), detectors, targets, probes);
 
     // generate baseline solution with small dt=0.0001

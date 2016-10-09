@@ -1,6 +1,6 @@
 #include "gtest.h"
 
-#include "../src/stimulus.hpp"
+#include <stimulus.hpp>
 
 TEST(stimulus, i_clamp)
 {

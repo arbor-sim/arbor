@@ -103,7 +103,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("// allocate memory");
     text_.add_line("data_ = vector_type(field_size * num_fields);");
-    text_.add_line("data_(memory::all) = std::numeric_limits<value_type>::quiet_NaN();");
+    text_.add_line("memory::fill(data_, std::numeric_limits<value_type>::quiet_NaN());");
 
     // assign the sub-arrays
     // replace this : data_(1*n, 2*n);

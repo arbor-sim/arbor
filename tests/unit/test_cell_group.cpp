@@ -2,7 +2,7 @@
 
 #include <cell_group.hpp>
 #include <common_types.hpp>
-#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <util/rangeutil.hpp>
 
 #include "../test_common_cells.hpp"
@@ -22,7 +22,7 @@ TEST(cell_group, test)
 {
     using namespace nest::mc;
 
-    using cell_group_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
+    using cell_group_type = cell_group<fvm::fvm_multicell<double, cell_local_size_type>>;
     auto group = cell_group_type{0, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);
@@ -35,9 +35,7 @@ TEST(cell_group, sources)
 {
     using namespace nest::mc;
 
-    // TODO: extend to multi-cell cell groups when the time comes
-
-    using cell_group_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
+    using cell_group_type = cell_group<fvm::fvm_multicell<double, cell_local_size_type>>;
 
     auto cell = make_cell();
     EXPECT_EQ(cell.detectors().size(), 1u);

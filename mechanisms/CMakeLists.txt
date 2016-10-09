@@ -34,7 +34,9 @@ endforeach()
 # Fake target to always trigger .mod -> .hpp dependencies because wtf CMake
 add_custom_target(build_all_mods DEPENDS ${all_mod_hpps} modcc)
 
-# oh sweet jesus, TODO again
+# oh sweet jesus, CMake is a dog's breakfast.
+# that said, let'g go through the same dance to generate CUDA kernels if
+# we are targetting the GPU.
 if(WITH_CUDA)
     set(modcc_flags "-t gpu")
 
@@ -65,5 +67,5 @@ if(WITH_CUDA)
     endforeach()
 
     # Fake target to always trigger .mod -> .hpp dependencies because wtf CMake
-    add_custom_target(build_all_gpu_mods DEPENDS ${all_gpu_mod_hpps})
+    add_custom_target(build_all_gpu_mods DEPENDS ${all_gpu_mod_hpps} modcc)
 endif()

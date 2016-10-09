@@ -54,6 +54,8 @@ public:
     using target_handle = std::pair<size_type, size_type>;
     using probe_handle = std::pair<const vector_type fvm_multicell::*, size_type>;
 
+    using stimulus_store_type = std::vector<std::pair<std::uint32_t, i_clamp>>;
+
     void resting_potential(value_type potential_mV) {
         resting_potential_ = potential_mV;
     }
@@ -85,7 +87,7 @@ public:
 
     /// the type used to store matrix information
     using matrix_type =
-        matrix<value_type, size_type, backends::host_matrix_policy>;
+        matrix<value_type, size_type, multicore::matrix_policy>;
 
     /// mechanism type
     using mechanism_type =
@@ -163,6 +165,15 @@ public:
         return (v>-1000.) && (v<1000.);
     }
 
+    /// return reference to the stimuli
+    stimulus_store_type& stimuli() {
+        return stimuli_;
+    }
+
+    stimulus_store_type const& stimuli() const {
+        return stimuli_;
+    }
+
     value_type time() const { return t_; }
 
     std::size_t num_probes() const { return probes_.size(); }
@@ -207,7 +218,7 @@ private:
     /// the ion species
     std::map<mechanisms::ionKind, ion_type> ions_;
 
-    std::vector<std::pair<uint32_t, i_clamp>> stimuli_;
+    stimulus_store_type stimuli_;
 
     std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
 
@@ -509,7 +520,7 @@ void fvm_multicell<T, I>::initialize(
 
         // create the ion state
         if(indexes.size()) {
-            ions_.emplace(ion, index_type(indexes));
+            ions_.emplace(ion, memory::make_view(indexes));
         }
 
         // join the ion reference in each mechanism into the cell-wide ion state
@@ -525,21 +536,19 @@ void fvm_multicell<T, I>::initialize(
     //        the default values in Neuron.
     //        Neuron's defaults are defined in the file
     //          nrn/src/nrnoc/membdef.h
-    auto all = memory::all;
-
     constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
 
-    ion_na().reversal_potential()(all)     = 115+DEF_vrest; // mV
-    ion_na().internal_concentration()(all) =  10.0;         // mM
-    ion_na().external_concentration()(all) = 140.0;         // mM
+    memory::fill(ion_na().reversal_potential(),     115+DEF_vrest); // mV
+    memory::fill(ion_na().internal_concentration(),  10.0);         // mM
+    memory::fill(ion_na().external_concentration(), 140.0);         // mM
 
-    ion_k().reversal_potential()(all)     = -12.0+DEF_vrest;// mV
-    ion_k().internal_concentration()(all) =  54.4;          // mM
-    ion_k().external_concentration()(all) =  2.5;           // mM
+    memory::fill(ion_k().reversal_potential(),     -12.0+DEF_vrest);// mV
+    memory::fill(ion_k().internal_concentration(),  54.4);          // mM
+    memory::fill(ion_k().external_concentration(),  2.5);           // mM
 
-    ion_ca().reversal_potential()(all)     = 12.5 * std::log(2.0/5e-5);// mV
-    ion_ca().internal_concentration()(all) = 5e-5;          // mM
-    ion_ca().external_concentration()(all) = 2.0;           // mM
+    memory::fill(ion_ca().reversal_potential(),     12.5*std::log(2.0/5e-5));// mV
+    memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
+    memory::fill(ion_ca().external_concentration(), 2.0);           // mM
 
     // initialise mechanism and voltage state
     reset();
@@ -569,7 +578,7 @@ void fvm_multicell<T, I>::setup_matrix(T dt) {
     //       l[i] . . d[i]
     //
 
-    d(all) = cv_areas_; // [µm^2]
+    memory::copy(cv_areas_, d); // [µm^2]
     for (auto i=1u; i<d.size(); ++i) {
         auto a = 1e5*dt * face_alpha_[i];
 
@@ -591,7 +600,7 @@ void fvm_multicell<T, I>::setup_matrix(T dt) {
 
 template <typename T, typename I>
 void fvm_multicell<T, I>::reset() {
-    voltage_(memory::all) = resting_potential_;
+    memory::fill(voltage_, resting_potential_);
     t_ = 0.;
     for (auto& m : mechanisms_) {
         // TODO : the parameters have to be set before the nrn_init
@@ -606,7 +615,7 @@ void fvm_multicell<T, I>::advance(T dt) {
     using memory::all;
 
     PE("current");
-    current_(all) = 0.;
+    memory::fill(current_, 0.);
 
     // update currents from ion channels
     for(auto& m : mechanisms_) {

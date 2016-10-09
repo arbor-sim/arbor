@@ -41,8 +41,7 @@ struct catalogue {
             throw std::out_of_range("no such mechanism");
         }
 
-        const_index_view node_view(node_indices);
-        return entry->second(vec_v, vec_i, node_view);
+        return entry->second(vec_v, vec_i,  memory::make_const_view(node_indices));
     }
 
     static bool has(const std::string& name) {
@@ -92,8 +91,7 @@ namespace gpu {
                 throw std::out_of_range("no such mechanism");
             }
 
-            const_index_view node_view(node_indices);
-            return entry->second(vec_v, vec_i, node_view);
+            return entry->second(vec_v, vec_i, memory::make_const_view(node_indices));
         }
 
         static bool has(const std::string& name) {

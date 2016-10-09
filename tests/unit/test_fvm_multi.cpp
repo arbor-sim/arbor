@@ -75,7 +75,30 @@ TEST(fvm_multi, init)
     auto& J = fvcell.jacobian();
     EXPECT_EQ(J.size(), 11u);
 
+    // test that the matrix is initialized with sensible values
     fvcell.setup_matrix(0.01);
+    auto test_nan = [](decltype(J.l()) v) {
+        for(auto val : v) if(val != val) return false;
+        return true;
+    };
+    EXPECT_TRUE(test_nan(J.l()(1, J.size())));
+    EXPECT_TRUE(test_nan(J.u()(1, J.size())));
+    EXPECT_TRUE(test_nan(J.d()));
+    EXPECT_TRUE(test_nan(J.rhs()));
+
+    // test matrix diagonals for sign
+    auto is_pos = [](decltype(J.l()) v) {
+        for(auto val : v) if(val<=0.) return false;
+        return true;
+    };
+    auto is_neg = [](decltype(J.l()) v) {
+        for(auto val : v) if(val>=0.) return false;
+        return true;
+    };
+    EXPECT_TRUE(is_neg(J.l()(1, J.size())));
+    EXPECT_TRUE(is_neg(J.u()(1, J.size())));
+    EXPECT_TRUE(is_pos(J.d()));
+
 }
 
 TEST(fvm_multi, multi_init)
@@ -139,4 +162,120 @@ TEST(fvm_multi, multi_init)
     }
 
     fvcell.setup_matrix(0.01);
+}
+
+// test that stimuli are added correctly
+TEST(fvm_multi, stimulus)
+{
+    using namespace nest::mc;
+    using util::singleton_view;
+
+    // the default ball and stick has one stimulus at the terminal end of the dendrite
+    auto cell = make_cell_ball_and_stick();
+
+    // ... so add a second at the soma to make things more interesting
+    cell.add_stimulus({0,0.5}, {1., 2., 0.1});
+
+    // now we have two stims :
+    //
+    //           |stim0 |stim1
+    // -----------------------
+    // delay     |   5  |    1
+    // duration  |  80  |    2
+    // amplitude | 0.3  |  0.1
+    // compmnt   |   4  |    0
+
+
+    using fvm_cell = fvm::fvm_multicell<double, cell_lid_type>;
+    std::vector<fvm_cell::target_handle> targets;
+    std::vector<fvm_cell::detector_handle> detectors;
+    std::vector<fvm_cell::probe_handle> probes;
+
+    fvm_cell fvcell;
+    fvcell.initialize(singleton_view(cell), detectors, targets, probes);
+
+    auto& stim = fvcell.stimuli();
+    EXPECT_EQ(stim.size(), 2u);
+
+    EXPECT_EQ(stim[0].first, 4u);
+    EXPECT_EQ(stim[1].first, 0u);
+
+    EXPECT_EQ(stim[0].second.delay(), 5.);
+    EXPECT_EQ(stim[1].second.delay(), 1.);
+    EXPECT_EQ(stim[0].second.duration(), 80.);
+    EXPECT_EQ(stim[1].second.duration(),  2.);
+    EXPECT_EQ(stim[0].second.amplitude(), 0.3);
+    EXPECT_EQ(stim[1].second.amplitude(), 0.1);
+}
+
+// test that mechanism indexes are computed correctly
+TEST(fvm_multi, mechanism_indexes)
+{
+    using namespace nest::mc;
+
+    // create a cell with 4 sements:
+    // a soma with a branching dendrite
+    // - hh on soma and first branch of dendrite (segs 0 and 2)
+    // - pas on main dendrite and second branch (segs 1 and 3)
+    //
+    //              /
+    //             pas
+    //            /
+    // hh---pas--.
+    //            \.
+    //             hh
+    //              \.
+
+    cell c;
+    auto soma = c.add_soma(12.6157/2.0);
+    soma->add_mechanism(hh_parameters());
+
+    // add dendrite of length 200 um and diameter 1 um with passive channel
+    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
+
+    auto& segs = c.segments();
+    segs[1]->add_mechanism(pas_parameters());
+    segs[2]->add_mechanism(hh_parameters());
+    segs[3]->add_mechanism(pas_parameters());
+
+    for (auto& seg: segs) {
+        if (seg->is_dendrite()) {
+            seg->mechanism("membrane").set("r_L", 100);
+            seg->set_compartments(4);
+        }
+    }
+
+    // generate the lowered fvm cell
+    using fvm_cell = fvm::fvm_multicell<double, cell_lid_type>;
+    std::vector<fvm_cell::target_handle> targets;
+    std::vector<fvm_cell::detector_handle> detectors;
+    std::vector<fvm_cell::probe_handle> probes;
+
+    fvm_cell fvcell;
+    fvcell.initialize(util::singleton_view(c), detectors, targets, probes);
+
+    // make vectors with the expected CV indexes for each mechanism
+    std::vector<unsigned> hh_index  = {0u, 4u, 5u, 6u, 7u, 8u};
+    std::vector<unsigned> pas_index = {0u, 1u, 2u, 3u, 4u, 9u, 10u, 11u, 12u};
+    // iterate over mechanisms and test whether they were assigned to the correct CVs
+    // TODO : this fails because we do not handle CVs at branching points (including soma) correctly
+    for(auto& mech : fvcell.mechanisms()) {
+        auto const& ni = mech->node_index();
+        if(mech->name()=="hh") {
+            EXPECT_EQ(ni.size(), hh_index.size());
+            // only check index by index if size of index arrays match
+            if(ni.size()==hh_index.size()) {
+                for(auto i : util::make_span(0u, ni.size())) EXPECT_EQ(ni[i], hh_index[i]);
+            }
+        }
+        else if(mech->name()=="pas") {
+            EXPECT_EQ(ni.size(), pas_index.size());
+            // only check index by index if size of index arrays match
+            if(ni.size()==pas_index.size()) {
+                for(auto i : util::make_span(0u, ni.size())) EXPECT_EQ(ni[i], pas_index[i]);
+            }
+        }
+    }
 }

@@ -10,7 +10,7 @@
 TEST(matrix, solve_gpu)
 {
     using nest::mc::util::make_span;
-    using matrix_type = nest::mc::matrix<double, int, nest::mc::backends::gpu::matrix_policy>;
+    using matrix_type = nest::mc::matrix<double, int, nest::mc::gpu::matrix_policy>;
 
     // trivial case : 1x1 matrix
     {

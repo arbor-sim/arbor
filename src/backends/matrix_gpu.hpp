@@ -4,7 +4,6 @@
 
 namespace nest {
 namespace mc {
-namespace backend {
 namespace gpu {
 
 template <typename T, typename I>
@@ -90,7 +89,6 @@ struct matrix_policy {
     }
 };
 
-} // namespace cuda
-} // namespace backend
+} // namespace gpu
 } // namespace mc
 } // namespace nest

@@ -107,6 +107,7 @@ private :
     vector_type Xo_;
 };
 
+#ifdef WITH_CUDA
 namespace gpu {
     /// storage for ion channel information in a cell group
     template<typename T, typename I>
@@ -174,6 +175,7 @@ namespace gpu {
         vector_type Xo_;
     };
 } // namespace gpu
+#endif
 
 } // namespace mechanisms
 } // namespace mc

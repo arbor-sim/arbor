@@ -9,14 +9,14 @@
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <profiling/profiler.hpp>
 
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using lowered_cell = fvm::fvm_cell<double, cell_local_size_type>;
+using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
 using cell_group_type = cell_group<lowered_cell>;
 using time_type = typename cell_group_type::time_type;
 using spike_type = io::exporter_spike_file<time_type, global_policy>::spike_type;

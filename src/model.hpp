@@ -10,7 +10,6 @@
 #include <cell_group.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <fvm_cell.hpp>
 #include <profiling/profiler.hpp>
 #include <recipe.hpp>
 #include <thread_private_spike_store.hpp>
