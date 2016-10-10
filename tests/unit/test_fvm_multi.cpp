@@ -209,6 +209,7 @@ TEST(fvm_multi, stimulus)
 }
 
 // test that mechanism indexes are computed correctly
+// also test ion channel indexes while we are at it
 TEST(fvm_multi, mechanism_indexes)
 {
     using namespace nest::mc;
@@ -262,20 +263,34 @@ TEST(fvm_multi, mechanism_indexes)
     // iterate over mechanisms and test whether they were assigned to the correct CVs
     // TODO : this fails because we do not handle CVs at branching points (including soma) correctly
     for(auto& mech : fvcell.mechanisms()) {
-        auto const& ni = mech->node_index();
+        auto const& n = mech->node_index();
+        std::vector<unsigned> ni(n.begin(), n.end());
+        std::cout << mech->name() << " [" << n << "]\n";
         if(mech->name()=="hh") {
-            EXPECT_EQ(ni.size(), hh_index.size());
-            // only check index by index if size of index arrays match
-            if(ni.size()==hh_index.size()) {
-                for(auto i : util::make_span(0u, ni.size())) EXPECT_EQ(ni[i], hh_index[i]);
-            }
+            EXPECT_EQ(ni, hh_index);
         }
         else if(mech->name()=="pas") {
-            EXPECT_EQ(ni.size(), pas_index.size());
-            // only check index by index if size of index arrays match
-            if(ni.size()==pas_index.size()) {
-                for(auto i : util::make_span(0u, ni.size())) EXPECT_EQ(ni[i], pas_index[i]);
-            }
+            EXPECT_EQ(ni, pas_index);
         }
+    }
+
+    // similarly, test that the different ion channels were assigned to the correct
+    // compartments. In this case, the passive channel has no ion species
+    // associated with it, while the hh channel has both pottassium and sodium
+    // channels. Hence, we expect sodium and potassium to be present in the same
+    // compartments as the hh mechanism.
+    {
+        auto const& ni = fvcell.ion_na().node_index();
+        std::vector<unsigned> na(ni.begin(), ni.end());
+        EXPECT_EQ(na, hh_index);
+    }
+    {
+        auto const& ni = fvcell.ion_k().node_index();
+        std::vector<unsigned> k(ni.begin(), ni.end());
+        EXPECT_EQ(k, hh_index);
+    }
+    {
+        // calcium channel should be empty
+        EXPECT_EQ(0u, fvcell.ion_k().node_index().size());
     }
 }

@@ -520,7 +520,7 @@ void fvm_multicell<T, I>::initialize(
 
         // create the ion state
         if(indexes.size()) {
-            ions_.emplace(ion, memory::make_view(indexes));
+            ions_.emplace(ion, memory::make_const_view(indexes));
         }
 
         // join the ion reference in each mechanism into the cell-wide ion state
@@ -556,8 +556,6 @@ void fvm_multicell<T, I>::initialize(
 
 template <typename T, typename I>
 void fvm_multicell<T, I>::setup_matrix(T dt) {
-    using memory::all;
-
     // convenience accesors to matrix storage
     auto l = matrix_.l();
     auto d = matrix_.d();
@@ -612,7 +610,6 @@ void fvm_multicell<T, I>::reset() {
 
 template <typename T, typename I>
 void fvm_multicell<T, I>::advance(T dt) {
-    using memory::all;
 
     PE("current");
     memory::fill(current_, 0.);
@@ -642,7 +639,7 @@ void fvm_multicell<T, I>::advance(T dt) {
     PL(); PE("solve");
     matrix_.solve();
     PL();
-    voltage_(all) = matrix_.rhs();
+    memory::copy(matrix_.rhs(), voltage_);
     PL();
 
     // integrate state of gating variables etc.

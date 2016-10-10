@@ -92,7 +92,8 @@ public:
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
-    using matrix_type = matrix<value_type, size_type>;
+    using matrix_type =
+        matrix<value_type, size_type, gpu::matrix_policy>;
 
     /// mechanism type
     using mechanism_type =
@@ -506,10 +507,7 @@ void fvm_cuda_multicell<T, I>::initialize(
         target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
         targets_count += n_indices;
 
-        auto aaa = memory::on_gpu(comp_indices);
-
-        auto mech =
-            mechanism_catalogue::make(mech_name, voltage_, current_, make_const_view(comp_indices));
+        auto mech = mechanism_catalogue::make(mech_name, voltage_, current_, make_const_view(comp_indices));
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
     }
@@ -574,6 +572,7 @@ template <typename T, typename I>
 void fvm_cuda_multicell<T, I>::setup_matrix(T dt) {
     // TODO KERNEL : this whole thing has to be packed into a kernel
     // NOTE : take care with atomics in the matrix update on diagonals
+    // NOTE : this is an opportunity to pre-calculate the linear system
 
     // convenience accesors to matrix storage
     auto l = matrix_.l();

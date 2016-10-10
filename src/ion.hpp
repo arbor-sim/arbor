@@ -26,9 +26,8 @@ namespace mechanisms {
 /// let's enumerate the ion channel types
 enum class ionKind {ca, na, k};
 
-[[gnu::unused]] static
-std::string to_string(ionKind k)
-{
+inline static
+std::string to_string(ionKind k) {
     switch(k) {
         case ionKind::na : return "sodium";
         case ionKind::ca : return "calcium";
@@ -38,9 +37,8 @@ std::string to_string(ionKind k)
 }
 
 /// and a little helper to iterate over them
-[[gnu::unused]] static
-std::vector<ionKind> ion_kinds()
-{
+inline static
+std::vector<ionKind> ion_kinds() {
     return {ionKind::ca, ionKind::na, ionKind::k};
 }
 
@@ -56,7 +54,7 @@ public :
     using vector_type      = memory::HostVector<value_type>;
     using index_type       = memory::HostVector<size_type>;
     using vector_view_type = typename vector_type::view_type;
-    using index_view_type  = typename index_type::view_type;
+    using index_view_type  = typename index_type::const_view_type;
 
     using indexed_view_type = indexed_view<value_type, size_type>;
 
@@ -121,7 +119,7 @@ namespace gpu {
         using vector_type      = memory::DeviceVector<value_type>;
         using index_type       = memory::DeviceVector<size_type>;
         using vector_view_type = typename vector_type::view_type;
-        using index_view_type  = typename index_type::view_type;
+        using index_view_type  = typename index_type::const_view_type;
 
         using indexed_view_type = indexed_view<value_type, size_type>;
 

@@ -246,13 +246,13 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         // only non-NaN fields need to be initialized, because data_
         // is NaN by default
         if(val == val) {
-            text_.add_line(var->name() + "(memory::all) = " + std::to_string(val) + ";");
+            text_.add_line("memory::fill(" + var->name() + ", " + std::to_string(val) + ");");
         }
     }
 
-    text_.add_line();
     text_.decrease_indentation();
     text_.add_line("}");
+    text_.add_line();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////

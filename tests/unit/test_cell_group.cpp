@@ -27,8 +27,9 @@ TEST(cell_group, test)
 
     group.advance(50, 0.01);
 
-    // a bit lame...
-    EXPECT_EQ(group.spikes().size(), 4u);
+    // the model is expected to generate 4 spikes as a result of the
+    // fixed stimulus over 50 ms
+    EXPECT_EQ(4u, group.spikes().size());
 }
 
 TEST(cell_group, sources)
