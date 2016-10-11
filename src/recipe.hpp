@@ -50,5 +50,41 @@ public:
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const =0;
 };
 
+
+/*
+ * Recipe consisting of a single, unconnected cell
+ * is particularly simple. Note keeps a reference to
+ * the provided cell, so be aware of life time issues.
+ */
+
+class singleton_recipe: public recipe {
+public:
+    singleton_recipe(const cell& the_cell): cell_(the_cell) {}
+
+    cell_size_type num_cells() const override {
+        return 1;
+    }
+
+    cell get_cell(cell_gid_type) const override {
+        return cell(clone_cell, cell_);
+    }
+
+    cell_count_info get_cell_count_info(cell_gid_type) const override {
+        cell_count_info k;
+        k.num_sources = cell_.detectors().size();
+        k.num_targets = cell_.synapses().size();
+        k.num_probes = cell_.probes().size();
+
+        return k;
+    }
+
+    std::vector<cell_connection> connections_on(cell_gid_type) const override {
+        return std::vector<cell_connection>{};
+    }
+
+private:
+    const cell& cell_;
+};
+
 } // namespace mc
 } // namespace nest

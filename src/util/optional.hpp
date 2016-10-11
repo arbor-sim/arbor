@@ -115,7 +115,7 @@ namespace detail {
         }
 
         pointer operator->() { return data.ptr(); }
-        const_pointer operator->() const { return data.ptr(); }
+        const_pointer operator->() const { return data.cptr(); }
 
         reference operator*() { return ref(); }
         const_reference operator*() const { return ref(); }
@@ -361,6 +361,7 @@ struct optional<void>: detail::optional_base<void> {
     using base::reset;
 
     optional(): base() {}
+    optional(nothing_t): base() {}
 
     template <typename T>
     optional(T): base(true, true) {}

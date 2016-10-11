@@ -91,6 +91,11 @@ public:
         future_events().resize(num_groups());
     }
 
+    // one cell per group:
+    model(const recipe& rec):
+        model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)))
+    {}
+
     void reset() {
         t_ = 0.;
         for (auto& group: cell_groups_) {
@@ -218,6 +223,11 @@ public:
     std::size_t num_cells() const {
         auto bounds = gid_partition().bounds();
         return bounds.second-bounds.first;
+    }
+
+    // access cell_group directly
+    cell_group_type& group(int i) {
+        return cell_groups_[i];
     }
 
     // register a callback that will perform a export of the global

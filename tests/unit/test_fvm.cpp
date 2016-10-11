@@ -14,7 +14,7 @@ TEST(fvm, cable)
 {
     using namespace nest::mc;
 
-    nest::mc::cell cell = make_cell_ball_and_3sticks();
+    nest::mc::cell cell = make_cell_ball_and_3stick();
 
     using fvm_cell = fvm::fvm_cell<double, cell_lid_type>;
 
