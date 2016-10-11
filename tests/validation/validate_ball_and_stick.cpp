@@ -26,16 +26,20 @@ void run_ncomp_convergence_test(
     const util::path& ref_data_path,
     const cell& c,
     SamplerInfoSeq& samplers,
-    float t_end=100.f,
-    float dt=0.001)
+    float t_end=100.f)
 {
     auto max_ncomp = g_trace_io.max_ncomp();
+    auto dt = g_trace_io.min_dt();
+
     nlohmann::json meta = {
         {"name", "membrane voltage"},
         {"model", model_name},
+        {"dt", dt},
         {"sim", "nestmc"},
         {"units", "mV"}
     };
+
+    auto exclude = stimulus_ends(c);
 
     convergence_test_runner<int> R("ncomp", samplers, meta);
     R.load_reference_data(ref_data_path);
@@ -48,13 +52,13 @@ void run_ncomp_convergence_test(
         }
         model<lowered_cell> m(singleton_recipe{c});
 
-        R.run(m, ncomp, t_end, dt);
+        R.run(m, ncomp, t_end, dt, exclude);
     }
     R.report();
     R.assert_all_convergence();
 }
 
-TEST(ball_and_stick, neuron_ref) {
+TEST(ball_and_taper, neuron_ref) {
     using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
 
     cell c = make_cell_ball_and_stick();
@@ -123,23 +127,29 @@ TEST(rallpack1, numeric_ref) {
         250.f);
 }
 
-TEST(ball_and_taper, neuron_ref) {
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+template <typename Policy>
+using lowered_cell_div = fvm::fvm_multicell<double, cell_local_size_type, Policy>;
 
-    cell c = make_cell_ball_and_taper();
+TEST(ball_and_squiggle, neuron_ref) {
+    cell c = make_cell_ball_and_squiggle();
     add_common_voltage_probes(c);
 
     float sample_dt = 0.025f;
     sampler_info samplers[] = {
         {"soma.mid", {0u, 0u}, simple_sampler(sample_dt)},
-        {"taper.mid", {0u, 1u}, simple_sampler(sample_dt)},
-        {"taper.end", {0u, 2u}, simple_sampler(sample_dt)}
+        {"dend.mid", {0u, 1u}, simple_sampler(sample_dt)},
+        {"dend.end", {0u, 2u}, simple_sampler(sample_dt)}
     };
 
-    run_ncomp_convergence_test<lowered_cell>(
-        "ball_and_taper",
-        "neuron_ball_and_taper.json",
+    run_ncomp_convergence_test<lowered_cell_div<div_compartment_sampler>>(
+        "ball_and_squiggle_sampler",
+        "neuron_ball_and_squiggle.json",
+        c,
+        samplers);
+
+    run_ncomp_convergence_test<lowered_cell_div<div_compartment_integrator>>(
+        "ball_and_squiggle_integrator",
+        "neuron_ball_and_squiggle.json",
         c,
         samplers);
 }
-

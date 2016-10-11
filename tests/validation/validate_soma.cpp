@@ -41,10 +41,21 @@ TEST(soma, numeric_ref) {
     R.load_reference_data("numeric_soma.json");
 
     float t_end = 100.f;
-    for (auto dt: {0.05f, 0.02f, 0.01f, 0.005f, 0.001f}) {
-        m.reset();
-        R.run(m, dt, t_end, dt);
+
+    // use dt = 0.05, 0.025, 0.01, 0.005, 0.0025,  ...
+    double max_oo_dt = std::round(1.0/g_trace_io.min_dt());
+    for (double base = 100; ; base *= 10) {
+        for (double multiple: {5., 2.5, 1.}) {
+            double oo_dt = base/multiple;
+            if (oo_dt>max_oo_dt) goto end;
+
+            m.reset();
+            float dt = float(1./oo_dt);
+            R.run(m, dt, t_end, dt);
+        }
     }
+end:
+
     R.report();
     R.assert_all_convergence();
 }

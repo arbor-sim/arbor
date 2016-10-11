@@ -101,12 +101,12 @@ bool cell::has_soma() const
     return !segment(0)->is_placeholder();
 }
 
-soma_segment* cell::soma()
-{
-    if(has_soma()) {
-        return segment(0)->as_soma();
-    }
-    return nullptr;
+soma_segment* cell::soma() {
+    return has_soma()? segment(0)->as_soma(): nullptr;
+}
+
+const soma_segment* cell::soma() const {
+    return has_soma()? segment(0)->as_soma(): nullptr;
 }
 
 cable_segment* cell::cable(index_type index)

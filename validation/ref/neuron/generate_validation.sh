@@ -24,7 +24,7 @@ if [ ! -d "$destdir" ]; then
     usage
 fi
 
-for v in soma ball_and_stick ball_and_taper ball_and_3stick simple_exp_synapse simple_exp2_synapse; do
+for v in soma ball_and_stick ball_and_squiggle ball_and_taper ball_and_3stick simple_exp_synapse simple_exp2_synapse; do
     (cd "$scriptdir"; nrniv -nobanner -python ./$v.py) > "$destdir/neuron_$v.json" &
 done
 wait

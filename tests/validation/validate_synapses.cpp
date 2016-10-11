@@ -44,6 +44,9 @@ void run_synapse_test(
         {{0u, 0u}, 40.0, 0.04}
     };
 
+    // exclude points of discontinuity from linf analysis
+    std::vector<float> exclude = {10.f, 20.f, 40.f};
+
     float sample_dt = 0.025f;
     sampler_info samplers[] = {
         {"soma.mid", {0u, 0u}, simple_sampler(sample_dt)},
@@ -59,7 +62,7 @@ void run_synapse_test(
         model<lowered_cell> m(singleton_recipe{c});
         m.group(0).enqueue_events(synthetic_events);
 
-        R.run(m, ncomp, t_end, dt);
+        R.run(m, ncomp, t_end, dt, exclude);
     }
     R.report();
     R.assert_all_convergence();

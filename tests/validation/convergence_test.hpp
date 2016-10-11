@@ -70,7 +70,7 @@ public:
     }
 
     template <typename Model>
-    void run(Model& m, Param p, float t_end, float dt) {
+    void run(Model& m, Param p, float t_end, float dt, const std::vector<float>& excl={}) {
         // reset samplers and attach to probe locations
         for (auto& se: cell_samplers_) {
             se.sampler.reset();
@@ -91,7 +91,7 @@ public:
 
             // compute metrics
             if (run_validation_) {
-                double linf = linf_distance(trace, ref_data_[label]);
+                double linf = linf_distance(trace, ref_data_[label], excl);
                 auto pd = peak_delta(trace, ref_data_[label]);
 
                 conv_tbl_.push_back({label, p, linf, pd});
@@ -115,6 +115,24 @@ public:
         }
     }
 };
+
+/*
+ * Extract time points to exclude from current stimulus end-points.
+ */
+
+inline std::vector<float> stimulus_ends(const cell& c) {
+    std::vector<float> ts;
+
+    for (const auto& stimulus: c.stimuli()) {
+        float t0 = stimulus.clamp.delay();
+        float t1 = t0+stimulus.clamp.duration();
+        ts.push_back(t0);
+        ts.push_back(t1);
+    }
+
+    util::sort(ts);
+    return ts;
+}
 
 } // namespace mc
 } // namespace nest

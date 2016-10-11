@@ -1,6 +1,7 @@
 set(VALIDATION_SOURCES
     # unit tests
     validate_ball_and_stick.cpp
+    validate_compartment_policy.cpp
     validate_soma.cpp
     validate_synapses.cpp
 
