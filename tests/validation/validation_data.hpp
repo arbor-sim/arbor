@@ -34,9 +34,9 @@ public:
     }
 
     void write_traces() {
-        if (f_) {
-            f_ << jtraces_;
-            f_.close();
+        if (out_) {
+            out_ << jtraces_;
+            out_.close();
         }
     }
 
@@ -55,8 +55,8 @@ public:
     void set_datadir(const util::path& dir) { datadir_ = dir; }
 
     void set_output(const util::path& file) {
-        f_.open(file);
-        if (!f_) {
+        out_.open(file);
+        if (!out_) {
             throw std::runtime_error("unable to open file for writing");
         }
     }
@@ -64,14 +64,14 @@ public:
     // write traces on exit
 
     ~trace_io() {
-        if (f_) {
+        if (out_) {
             write_traces();
         }
     }
 
 private:
     util::path datadir_ = DATADIR "/validation";
-    std::ofstream f_;
+    std::ofstream out_;
     nlohmann::json jtraces_ = nlohmann::json::array();
     bool verbose_flag_ = false;
     int max_ncomp_ = 1000;

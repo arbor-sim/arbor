@@ -205,6 +205,14 @@ TEST(range, max_element_by) {
     EXPECT_TRUE((std::is_same<const char *, decltype(i)>::value));
     EXPECT_EQ('d', *i);
     EXPECT_EQ(cstr+9, i);
+
+    // with mutable container
+    std::vector<int> v = { 1, 3, -5, 2 };
+    auto j  = util::max_element_by(v, [](int x) { return x*x; });
+    EXPECT_EQ(-5, *j);
+    *j = 1;
+    j  = util::max_element_by(v, [](int x) { return x*x; });
+    EXPECT_EQ(3, *j);
 }
 
 TEST(range, max_value) {
