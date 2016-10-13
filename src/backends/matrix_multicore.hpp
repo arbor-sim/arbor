@@ -12,14 +12,16 @@ struct matrix_policy {
     using value_type = T;
     using size_type  = I;
 
-    // define storage types
-    using vector_type  = memory::HostVector<value_type>;
-    using index_type   = memory::HostVector<size_type>;
+    using base = memory_policy<value_type, size_type>;
 
-    using view = typename vector_type::view_type;
-    using const_view = typename vector_type::const_view_type;
-    using iview = typename index_type::view_type;
-    using const_iview = typename index_type::const_view_type;
+    // define storage types
+    using base::vector_type;
+    using base::index_type;
+
+    using base::view;
+    using base::const_view;
+    using base::iview;
+    using base::const_iview;
 
     void solve(
         view l, view d, view u, view rhs,

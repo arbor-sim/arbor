@@ -3,6 +3,6 @@
 #include "matrix_multicore.hpp"
 
 #ifdef WITH_CUDA
-#include "matrix_gpu.hpp"
+    #include "matrix_gpu.hpp"
 #endif
 

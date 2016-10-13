@@ -24,7 +24,8 @@ namespace mechanisms {
 enum class targetKind {host, gpu};
 
 template <typename T, typename I>
-struct catalogue {
+class catalogue {
+public:
     using view_type = typename mechanism<T, I>::view_type;
     using index_view = typename mechanism<T, I>::index_view;
     using const_index_view = typename mechanism<T, I>::const_index_view;
@@ -36,8 +37,8 @@ struct catalogue {
         view_type vec_i,
         Indices const& node_indices)
     {
-        auto entry = mech_map.find(name);
-        if (entry==mech_map.end()) {
+        auto entry = mech_map_.find(name);
+        if (entry==mech_map_.end()) {
             throw std::out_of_range("no such mechanism");
         }
 
@@ -45,12 +46,12 @@ struct catalogue {
     }
 
     static bool has(const std::string& name) {
-        return mech_map.count(name)>0;
+        return mech_map_.count(name)>0;
     }
 
 private:
     using maker_type = mechanism_ptr<T, I> (*)(view_type, view_type, const_index_view);
-    static const std::map<std::string, maker_type> mech_map;
+    static const std::map<std::string, maker_type> mech_map_;
 
     template <template <typename, typename> class mech>
     static mechanism_ptr<T, I> maker(
@@ -63,7 +64,7 @@ private:
 };
 
 template <typename T, typename I>
-const std::map<std::string, typename catalogue<T, I>::maker_type> catalogue<T, I>::mech_map = {
+const std::map<std::string, typename catalogue<T, I>::maker_type> catalogue<T, I>::mech_map_ = {
     { "pas",     maker<pas::mechanism_pas> },
     { "hh",      maker<hh::mechanism_hh> },
     { "expsyn",  maker<expsyn::mechanism_expsyn> },
