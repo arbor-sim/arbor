@@ -1,4 +1,5 @@
 #include <cmath>
+#include <iterator>
 
 #include "test.hpp"
 #include "lexer.hpp"
@@ -230,40 +231,36 @@ TEST(Lexer, comments) {
 
 // test numbers
 TEST(Lexer, numbers) {
-    char string[] = "1 .3 23 87.99 12. -3";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    std::istringstream floats_stream("1 23 .3 87.99 12. 1.e3 1.2e+2 23e-3 -3");
 
-    auto t1 = lexer.parse();
-    EXPECT_EQ(t1.type, tok::number);
-    EXPECT_EQ(std::stod(t1.spelling), 1.0);
+    std::vector<double> floats;
+    std::copy(std::istream_iterator<double>(floats_stream),
+              std::istream_iterator<double>(),
+              std::back_inserter(floats));
 
-    auto t2 = lexer.parse();
-    EXPECT_EQ(t2.type, tok::number);
-    EXPECT_EQ(std::stod(t2.spelling), 0.3);
+    Lexer lexer(floats_stream.str());
+    auto t = lexer.parse();
+    auto iter = floats.cbegin();
+    while (t.type != tok::eof && iter != floats.cend()) {
+        EXPECT_EQ(lexerStatus::happy, lexer.status());
+        if (*iter < 0) {
+            // the lexer does not decide where the - sign goes
+            // the parser uses additional contextual information to
+            // decide if the minus is a binary or unary expression
+            EXPECT_EQ(tok::minus, t.type);
+            t = lexer.parse();
+            EXPECT_EQ(tok::number, t.type);
+            EXPECT_EQ(-(*iter), std::stod(t.spelling));
+        }
+        else {
+            EXPECT_EQ(t.type, tok::number);
+            EXPECT_EQ(*iter, std::stod(t.spelling));
+        }
 
-    auto t3 = lexer.parse();
-    EXPECT_EQ(t3.type, tok::number);
-    EXPECT_EQ(std::stod(t3.spelling), 23.0);
+        ++iter;
+        t = lexer.parse();
+    }
 
-    auto t4 = lexer.parse();
-    EXPECT_EQ(t4.type, tok::number);
-    EXPECT_EQ(std::stod(t4.spelling), 87.99);
-
-    auto t5 = lexer.parse();
-    EXPECT_EQ(t5.type, tok::number);
-    EXPECT_EQ(std::stod(t5.spelling), 12.0);
-
-    // the lexer does not decide where the - sign goes
-    // the parser uses additional contextual information to
-    // decide if the minus is a binary or unary expression
-    auto t6 = lexer.parse();
-    EXPECT_EQ(t6.type, tok::minus);
-
-    auto t7 = lexer.parse();
-    EXPECT_EQ(t7.type, tok::number);
-    EXPECT_EQ(std::stod(t7.spelling), 3.0);
-
-    auto t8 = lexer.parse();
-    EXPECT_EQ(t8.type, tok::eof);
+    EXPECT_EQ(floats.cend(), iter);
+    EXPECT_EQ(tok::eof, t.type);
 }

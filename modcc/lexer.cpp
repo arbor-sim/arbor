@@ -257,6 +257,10 @@ std::string Lexer::number() {
             uses_scientific_notation++;
             str += c;
             current_++;
+            // Consume the next char if +/-
+            if (*current_ == '+' || *current_ == '-') {
+                str += *current_++;
+            }
         }
         else {
             break;
