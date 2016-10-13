@@ -31,7 +31,7 @@ bool is_keyword(Token const& t);
 // takes a range of characters as input parameters
 class Lexer {
 public:
-    Lexer(const char * begin, const char* end)
+    Lexer(const char* begin, const char* end)
     :   begin_(begin),
         end_(end),
         current_(begin),
@@ -114,4 +114,3 @@ protected:
 
     Token token_;
 };
-
