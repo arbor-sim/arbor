@@ -1,31 +1,69 @@
 #include <cstring>
 #include <iostream>
-#include <fstream>
-#include <numeric>
-#include <vector>
+#include <sstream>
+#include <string>
+#include <exception>
 
 #include "gtest.h"
+
+#include <communication/global_policy.hpp>
+
+#include "tinyopt.hpp"
 #include "validation_data.hpp"
 
-int usage(const char* argv0) {
-    std::cerr << "usage: " << argv0 << " [-p|--path validation_data_directory]\n";
-    return 1;
-}
+using namespace nest::mc;
+
+const char* usage_str =
+"[OPTION]...\n"
+"\n"
+"  -v, --verbose       Print results to stdout\n"
+"  -o, --output=FILE   Save traces from simulations to FILE\n"
+"  -p, --path=DIR      Look for validation reference data in DIR\n"
+"  -m, --max-comp=N    Run convergence tests to a maximum of N\n"
+"                      compartments per segment\n"
+"  -h, --help          Display usage information and exit\n";
 
 int main(int argc, char **argv) {
+    using to::parse_opt;
+
+    communication::global_policy_guard global_guard(argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
 
-    if (argv[1] && (!std::strcmp(argv[1], "-p") || !std::strcmp(argv[1], "--path"))) {
-        if (argv[2]) {
-            testing::g_validation_data.set_path(argv[2]);
+    int rv = 0;
+    try {
+        auto arg = argv+1;
+        while (*arg) {
+            if (auto o = parse_opt<std::string>(arg, 'p', "path")) {
+                g_trace_io.set_datadir(*o);
+            }
+            else if (auto o = parse_opt<std::string>(arg, 'o', "output")) {
+                g_trace_io.set_output(*o);
+            }
+            else if (auto o = parse_opt<int>(arg, 'm', "max-comp")) {
+                g_trace_io.set_max_ncomp(*o);
+            }
+            else if (auto o = parse_opt<void>(arg, 'v', "verbose")) {
+                g_trace_io.set_verbose(true);
+            }
+            else if (auto o = parse_opt<void>(arg, 'h', "help")) {
+                to::usage(argv[0], usage_str);
+                return 0;
+            }
+            else {
+                throw to::parse_opt_error(*arg, "unrecognized option");
+            }
         }
-        else {
-            return usage(argv[0]);
-        }
+
+        rv = RUN_ALL_TESTS();
     }
-    else if (argv[1]) {
-        return usage(argv[0]);
+    catch (to::parse_opt_error& e) {
+        to::usage(argv[0], usage_str, e.what());
+        return 1;
+    }
+    catch (std::exception& e) {
+        std::cerr << "caught exception: " << e.what() << "\n";
+        return 2;
     }
 
-    return RUN_ALL_TESTS();
+    return 0;
 }

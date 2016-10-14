@@ -215,13 +215,14 @@ TEST(optionalm,bind) {
 }
 
 TEST(optionalm,void) {
-    optional<void> a,b(true),c(a),d=b,e(false);
+    optional<void> a,b(true),c(a),d=b,e(false),f(nothing);
 
     EXPECT_FALSE((bool)a);
     EXPECT_TRUE((bool)b);
     EXPECT_FALSE((bool)c);
     EXPECT_TRUE((bool)d);
     EXPECT_TRUE((bool)e);
+    EXPECT_FALSE((bool)f);
 
     auto x=a >> []() { return 1; };
     EXPECT_FALSE((bool)x);

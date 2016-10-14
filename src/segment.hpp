@@ -34,11 +34,13 @@ class cable_segment;
 
 // abstract base class for a cell segment
 class segment {
-    public:
-
+public:
     using value_type = double;
     using size_type = cell_local_size_type;
     using point_type = point<value_type>;
+
+    // (Yet more motivation for a separate morphology description class!)
+    virtual std::unique_ptr<segment> clone() const = 0;
 
     segmentKind kind() const {
         return kind_;
@@ -149,8 +151,7 @@ class segment {
         return mechanisms_;
     }
 
-    protected:
-
+protected:
     segmentKind kind_;
     std::vector<parameter_list> mechanisms_;
 };
@@ -165,6 +166,11 @@ public:
     placeholder_segment()
     {
         kind_ = segmentKind::none;
+    }
+
+    std::unique_ptr<segment> clone() const override {
+        // use default copy constructor
+        return util::make_unique<placeholder_segment>(*this);
     }
 
     value_type volume() const override
@@ -187,8 +193,7 @@ public:
         return 0;
     }
 
-    virtual void set_compartments(size_type) override
-    { }
+    virtual void set_compartments(size_type) override {}
 };
 
 class soma_segment : public segment {
@@ -201,17 +206,22 @@ public:
 
     soma_segment() = delete;
 
-    soma_segment(value_type r)
-    :   radius_{r}
+    soma_segment(value_type r):
+        radius_{r}
     {
         kind_ = segmentKind::soma;
         mechanisms_.push_back(membrane_parameters());
     }
 
-    soma_segment(value_type r, point_type const& c)
-    :   soma_segment(r)
+    soma_segment(value_type r, point_type const& c):
+        soma_segment(r)
     {
         center_ = c;
+    }
+
+    std::unique_ptr<segment> clone() const override {
+        // use default copy constructor
+        return util::make_unique<soma_segment>(*this);
     }
 
     value_type volume() const override
@@ -250,11 +260,9 @@ public:
         return 1;
     }
 
-    void set_compartments(size_type n) override
-    { }
+    void set_compartments(size_type n) override {}
 
-    private :
-
+private :
     // store the center and radius of the soma
     // note that the center may be undefined
     value_type radius_;
@@ -326,6 +334,11 @@ public:
     )
     :   cable_segment(k, {r1, r2}, {p1, p2})
     { }
+
+    std::unique_ptr<segment> clone() const override {
+        // use default copy constructor
+        return util::make_unique<cable_segment>(*this);
+    }
 
     value_type volume() const override
     {

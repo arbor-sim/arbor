@@ -17,6 +17,9 @@ namespace nest {
 namespace mc {
 namespace util {
 
+/* Note, this is actually only an input iterator if F is non-assignable, such
+ * as when it is a lambda! */
+
 template <typename I, typename F>
 class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     using base = iterator_adaptor<transform_iterator<I, F>, I>;
@@ -33,7 +36,7 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
 
 public:
     using typename base::difference_type;
-    using value_type = typename std::result_of<F (inner_value_type)>::type;
+    using value_type = util::decay_t<typename std::result_of<F (inner_value_type)>::type>;
     using pointer = const value_type*;
     using reference = const value_type&;
 
@@ -92,7 +95,6 @@ transform_view(const Seq& s, const F& f) {
     return {make_transform_iterator(cbegin(s), f), make_transform_iterator(cend(s), f)};
 }
 
-
 template <
     typename Seq,
     typename F,
@@ -104,7 +106,6 @@ range<transform_iterator<seq_citer, util::decay_t<F>>, seq_csent>
 transform_view(const Seq& s, const F& f) {
     return {make_transform_iterator(cbegin(s), f), cend(s)};
 }
-
 
 } // namespace util
 } // namespace mc

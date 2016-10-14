@@ -29,8 +29,6 @@ template <typename I, typename S>
 class sentinel_iterator {
     nest::mc::util::either<I, S> e_;
 
-    bool is_sentinel() const { return e_.index()!=0; }
-
     I& iter() {
         EXPECTS(!is_sentinel());
         return e_.template unsafe_get<0>();
@@ -163,6 +161,16 @@ public:
     bool operator>(const sentinel_iterator& x) const {
         return !(x<=*this);
     }
+
+    // access to underlying iterator/sentinel
+
+    bool is_sentinel() const { return e_.index()!=0; }
+    bool is_iterator() const { return e_.index()==0; }
+
+    // default conversion to iterator, defined only if `is_iterator()` is true
+    // (this really simplifies e.g. `maximum_element_by`, but it might not be
+    // a super good idea.)
+    operator I() const { return iter(); }
 };
 
 template <typename I, typename S>
@@ -178,6 +186,7 @@ template <typename I, typename S>
 sentinel_iterator_t<I, S> make_sentinel_end(const I& i, const S& s) {
     return sentinel_iterator_t<I, S>(s);
 }
+
 
 } // namespace util
 } // namespace mc
