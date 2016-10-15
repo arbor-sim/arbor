@@ -12,19 +12,19 @@ struct fvm_policy {
     using value_type = T;
     using size_type  = I;
 
-    using base = memory_policy<value_type, size_type>;
+    using mem_policy = memory_policy<value_type, size_type>;
 
     // define storage types
     using vector_type  = memory::HostVector<value_type>;
     using index_type   = memory::HostVector<size_type>;
 
-    using base::view;
-    using base::const_view;
-    using base::iview;
-    using base::const_iview;
+    using mem_policy::view;
+    using mem_policy::const_view;
+    using mem_policy::iview;
+    using mem_policy::const_iview;
 
-    using base::host_vector_type;
-    using base::host_index_type;
+    using mem_policy::host_vector_type;
+    using mem_policy::host_index_type;
 
     /// define matrix type
     template <typename T, typename I>

@@ -25,3 +25,4 @@ struct memory_policy {
 } // namespace multicore
 } // namespace mc
 } // namespace nest
+
