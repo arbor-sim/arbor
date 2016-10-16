@@ -242,4 +242,3 @@ cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
 
 } // namespace mc
 } // namespace nest
-

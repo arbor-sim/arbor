@@ -7,10 +7,12 @@
 
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/transform.hpp>
+#include <util/meta.hpp>
 
 namespace nest {
 namespace mc {
@@ -60,18 +62,42 @@ Container& append(Container &c, const Seq& seq) {
 // Assign sequence to a container
 
 template <typename AssignableContainer, typename Seq>
-AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
+enable_if_t<
+    std::is_copy_constructible<typename AssignableContainer::value_type>::value,
+    AssignableContainer&
+>
+assign(AssignableContainer& c, const Seq& seq) {
     auto canon = canonical_view(seq);
     c.assign(std::begin(canon), std::end(canon));
     return c;
 }
 
+
+// This version of assing is needed for assigning segment_ptr's (i.e.,
+// unique_ptr's) with Clang
+
+template<typename AssignableContainer, typename Seq>
+enable_if_t<
+    !std::is_copy_constructible<typename AssignableContainer::value_type>::value &&
+     std::is_move_constructible<typename AssignableContainer::value_type>::value,
+    AssignableContainer&
+>
+assign(AssignableContainer& c, const Seq& seq)
+{
+    auto citer = c.begin();
+    for (auto s : canonical_view(seq)) {
+        *citer = std::move(s);
+    }
+
+    return c;
+}
+
+
 // Assign sequence to a container with transform `proj`
 
 template <typename AssignableContainer, typename Seq, typename Proj>
 AssignableContainer& assign_by(AssignableContainer& c, const Seq& seq, const Proj& proj) {
-    auto canon = canonical_view(transform_view(seq, proj));
-    c.assign(std::begin(canon), std::end(canon));
+    assign(c, transform_view(seq, proj));
     return c;
 }
 
