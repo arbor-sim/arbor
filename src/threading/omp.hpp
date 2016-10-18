@@ -5,6 +5,7 @@
 #endif
 
 #include <omp.h>
+#include "parallel_stable_sort.h"
 
 #include <algorithm>
 #include <array>
@@ -65,16 +66,19 @@ struct parallel_for {
 
 template <typename RandomIt>
 void sort(RandomIt begin, RandomIt end) {
-    std::sort(begin, end);
+    pss::parallel_stable_sort(begin, end);
+    //std::sort(begin, end);
 }
 
 template <typename RandomIt, typename Compare>
 void sort(RandomIt begin, RandomIt end, Compare comp) {
-    std::sort(begin, end, comp);
+    pss::parallel_stable_sort(begin, end ,comp);
+    //std::sort(begin, end, comp);
 }
 
 template <typename Container>
 void sort(Container& c) {
+    //pss::parallel_stable_sort(c.begin(), c.end());
     std::sort(c.begin(), c.end());
 }
 
