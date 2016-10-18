@@ -39,6 +39,14 @@ if(WITH_TBB)
     add_definitions(-DWITH_TBB)
 endif()
 
+# OpenMP support
+set(WITH_OMP OFF CACHE BOOL "use OpenMP for on-node threading" )
+if(WITH_OMP)
+    find_package(OpenMP REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    add_definitions(-DWITH_OMP)
+endif()
+
 # MPI support
 set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
 if(WITH_MPI)
