@@ -1,0 +1,173 @@
+\documentclass[parskip=half]{scrartcl}
+
+\usepackage{amsmath}
+\usepackage[citestyle=authoryear-icomp,bibstyle=authoryear]{biblatex}
+\usepackage{booktabs}
+\usepackage[style=british]{csquotes}
+\usepackage{fontspec}
+\usepackage{siunitx}
+
+\setmainfont[Numbers=Lowercase]{TeX Gyre Pagella}
+\newfontfamily\dispfamily{TeX Gyre Pagella}
+\addtokomafont{disposition}{\dispfamily}
+
+\MakeAutoQuote{«}{»}
+\DeclareMathOperator{\Res}{Res}
+
+\addbibresource{cable.bib}
+
+\title{Analytic solution to passive cable model}
+
+\begin{document}
+
+\maketitle
+
+\section{Background}
+
+The Rallpack suite \cite{bhalla1992} is a set of three tests for cable-based neuronal
+simulators, for validation and benchmarking. Validation data is provided with the
+distribution of the suite, which at the time of writing can now be found within the
+\textsc{Genesis} simulator simulator distribution.\footnote{see \url{http://genesis-sim.org}.}
+
+The first two of the tests are based on passive cable models which admit analytic
+solutions, and the Rallpack suite includes code that can generate the reference curves
+for these models. The reference code, however, requires hand-tuning of the iterations;
+the authors state in the internal documentation that
+«the use of 10 terms gives at least six figure accuracy», but this is for the
+fixed time increments used in their dataset and is not validated within the code
+or by the supplied material.
+
+For flexibility of testing and cross-checking of the Rallpack reference data,
+it would be useful to have at hand a robust calculator of the passive cable
+potential solution.
+
+\section{The Rallpack 1 model}
+
+The model comprises a cylindrical cable segment with the physical and electrical
+properties as described in Table~\ref{tbl:rallpack1}. A current of \SI{0.1}{\nA}
+is injected at the left end of the cable from $t=0$, and the initial potential
+is the reversal potential.
+
+\begin{table}[ht]
+    \label{tbl:rallpack1}
+    \centering
+    \begin{tabular}{lSl}
+	\toprule
+	Term & {Value} & Property\\
+	\midrule
+	$d$    & \SI{1.0}{\um}                 & cable diameter \\
+	$L$    & \SI{1.0}{\mm}                 & cable length \\
+	$R_A$  & \SI{1.0}{\ohm\m}              & bulk axial resistivity \\
+	$R_M$  & \SI{4.0}{\ohm\m\squared}      & areal membrane resistivity \\
+	$C_M$  & \SI{0.01}{\F\per\m\squared}   & areal membrane capacitance \\
+	$E_M$  & \SI{-65.0}{\mV}               & membrane reversal potential \\
+	\bottomrule
+    \end{tabular}
+    \caption{Cable properties for the Rallpack 1 model.}
+\end{table}
+
+The potential on a constant-radius passive cable is governed by the PDE
+\begin{equation}
+    \lambda^2 \frac{\partial^2 v}{\partial x^2} =
+    \tau\frac{\partial v}{\partial t} + v - E,
+\end{equation}
+where $E$ is the membrane reversal potential, and $\lambda$ and $\tau$ are the
+electrotonic length and time constants for the cable. It is convenient
+to consider the electrical properties of the cable per unit-length, in terms
+of the linear axial resistivity $r$, the linear membrane capacitance $r$,
+and the linear membrane capacitance $c$. These determine $\lambda$ and $\tau$ by
+\begin{gather*}
+    \lambda = \frac{1}{r\cdot g},\\
+    \tau = r\cdot c.
+\end{gather*}
+
+With the model boundary conditions,
+\begin{subequations}
+    \begin{align}
+	v(x, 0) &= E, \\
+	\left.\frac{\partial v}{\partial x}\right\vert_{x=0} & = -Ir, \\
+	\left.\frac{\partial v}{\partial x}\right\vert_{x=L} & = 0,
+    \end{align}
+\end{subequations}
+where $I$ is the injected current and $L$ is the cable length.
+
+The solution $v(x, t)$ can be expressed in terms of the solution $g(x, t; L)$
+to a normalized version of the cable equation,
+\begin{subequations}
+    \begin{align}
+	\label{eq:normcable}
+	\frac{\partial^2 g}{\partial x^2} & =
+	\frac{\partial g}{\partial t} + g,
+        \\
+	\label{eq:normcableinitial}
+	g(x, 0) &= 0,
+	\\
+	\label{eq:normcableleft}
+	\left.\frac{\partial g}{\partial x}\right\vert_{x=0} & = 1,
+	\\
+	\label{eq:normcableright}
+	\left.\frac{\partial g}{\partial x}\right\vert_{x=L} & = 0
+    \end{align}
+\end{subequations}
+by
+\begin{equation}
+    v(x, t)= E - Ir \cdot g(\frac{x}{\lambda}, \frac{t}{\tau};  \frac{L}{\lambda}).
+\end{equation}
+
+\section{Solution to the normalized cable equation}
+
+Let $G(x, s)$ be the Laplace transform of $g(x, t)$ with respect to $t$. From
+\eqref{eq:normcable} and \eqref{eq:normcableinitial},
+\begin{equation}
+    \label{eq:lap}
+    \frac{\partial^2 G}{\partial x^2} = sG + G.
+\end{equation}
+The boundary conditions \eqref{eq:normcableleft} and \eqref{eq:normcableright} give
+\begin{align}
+    \label{eq:lapleft}
+    \frac{\partial G}{\partial x}(0, s) & = \frac{1}{s},
+    \\
+    \label{eq:lapright}
+    \frac{\partial G}{\partial x}(L, s) & = 0.
+\end{align}
+
+Solutions to \eqref{eq:lap} must be of the form
+\begin{equation}
+    G(x, s) = A(s) e^{mx} +B(s) e^{-mx}
+\end{equation}
+where $m=\sqrt{1+s}$. From \eqref{eq:lapleft} and \eqref{eq:lapright},
+\begin{align*}
+    mA(s) - mB(s) & = \frac{1}{s},
+    \\
+    mA(s)e^{mL} -mB(s)e^{-mL} & = 0.
+\end{align*} and thus
+\begin{align*}
+    A(s) & = \frac{1}{sm (1-e^{2mL})},
+    \\
+    B(s) & = \frac{e^{2mL}}{sm (1-e^{2mL})}.
+\end{align*}
+
+Consequently,
+\begin{equation}
+    \begin{aligned}
+	G(x, s) &= \frac{1}{ms}\cdot\frac{e^{mx}+e^{2mL-mx}}{1-e^{2mL}}\\
+                &= - \frac{1}{ms}\cdot\frac{\cosh m(L-x)}{\sinh mL}.
+    \end{aligned}
+\end{equation}
+
+$G(x, s)$ has poles when $s=0$, $m=0$, or when $mL = k\pi i$ for some non-zero
+integer $k$.
+
+\textbf{Pole at $s=0$}. Recalling $m=\sqrt{1+s}$, $m$ and $\sinh mL$ are non-zero in
+a neighbourhood of $s=0$, and so
+\begin{equation}
+    \begin{aligned}
+	\Res(G, 0) & = - \frac{1}{m}\cdot\left.\frac{\cosh m(L-x)}{\sinh mL}\right|_{s=0}\\
+		   & = - \frac{\cosh (L-x)}{\sinh L}.
+    \end{aligned}
+\end{equation}
+
+%
+
+\printbibliography
+\end{document}
