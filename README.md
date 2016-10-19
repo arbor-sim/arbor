@@ -3,15 +3,24 @@
 This is the repository for the NestMC prototype code. Unfortunately we do not have thorough documentation of how-to guides.
 Below are some guides for how to build the project and run the miniapp.
 Contact us or submit a ticket if you have any questions or want help.
+https://github.com/eth-cscs/nestmc-proto
+
+1. Basic installation
+2. MPI
+3. TBB
+4. TBB on Cray systems
+5. Targeting KNL
+6. Building and running on HBP pcp machines
+ a. Julia
+
+
+
+
 
 ```bash
-# clone repo
+# clone repository
 git clone git@github.com:eth-cscs/nestmc-proto.git
 cd nestmc-proto/
-
-# setup sub modules
-git submodule init
-git submodule update
 
 # setup environment
 # on a desktop system this is probably not required
@@ -59,7 +68,7 @@ cmake <path to CMakeLists.txt> -DWITH_TBB=ON
 ### TBB on Cray systems
 
 To compile with TBB on Cray systems, load the intel module, which will automatically configure the environment.
-The guide below shows how to use the version of TBB that is installed as part of the Intel compiler toolchain.
+The guide below shows how to use the version of TBB that is installed as part of the Intel compiler tool-chain.
 It is recommended that you install the most recent version of TBB yourself, and link against this, because older versions
 of TBB don't work with recent versions of GCC.
 
@@ -84,29 +93,26 @@ cmake <path to CMakeLists.txt> -DWITH_TBB=ON -DWITH_MPI=ON -DSYSTEM_CRAY=ON
 
 ```
 
-# targetting KNL
+#### targeting KNL
 
-## build modparser
+## build modparser without KNL environment
 
 The source to source compiler "modparser" that generates the C++/CUDA kernels for the ion channels and synapses is in a separate repository.
-It is included in our project as a git submodule, and by default it will be built with the same compiler and flags that are used to build the miniapp and tests.
+By default it will be built with the same compiler and flags that are used to build the miniapp and tests.
 
 This can cause problems if we are cross compiling, e.g. for KNL, because the modparser compiler might not be runnable on the compilation node.
-CMake will look for the source to source compiler executable, `modcc`, in the `PATH` environment variable, and will use the version if finds instead of building its own.
+You are probably best of building the software twice: Once without KNL support to create the modcc parser and next the KNL version using
+the now compiled executable
 
 Modparser requires a C++11 compiler, and has been tested on GCC, Intel, and Clang compilers
   - if the default compiler on your is some ancient version of gcc you might need to load a module/set the CC and CXX environment variables.
 
+
+CMake will look for the source to source compiler executable, `modcc`, in the `PATH` environment variable, and will use the version if finds instead of building its own.
+So add the g++ compiled modcc to your path
+e.g:
+
 ```bash
-git clone git@github.com:eth-cscs/modparser.git
-cd modparser
-
-# example of setting a C++11 compiler
-export CXX=`which gcc-4.8`
-
-cmake .
-make -j
-
 # set path and test that you can see modcc
 export PATH=`pwd`/bin:$PATH
 which modcc
@@ -116,26 +122,14 @@ which modcc
 
 - source the intel compilers
 - source the TBB vars
-- I have only tested with the latest stable version from online, not the version that comes installed sometimes with the Intel compilers.
+- I have only tested with the latest stable version from on-line, not the version that comes installed sometimes with the Intel compilers.
 
 ## build miniapp
 
 ```bash
-# clone the repo and set up the submodules
+# clone the repository and set up the submodules
 git clone https://github.com/eth-cscs/nestmc-proto.git
 cd nestmc-proto
-git submodule init
-git submodule update
-
-# make a path for out of source build
-mkdir build_knl
-cd build_knl
-
-## build miniapp
-
-# setup submodules
-git submodule init
-git submodule update
 
 # make a path for out of source build
 mkdir build_knl
@@ -150,7 +144,7 @@ make -j
 
 The flags passed into cmake are described:
   - `-DCMAKE_BUILD_TYPE=release` : build in release mode with `-O3`.
-  - `-WITH_TBB=ON` : use TBB for threading on multicore
+  - `-WITH_TBB=ON` : use TBB for threading on multi-core
   - `-DWITH_PROFILING=ON` : use internal profilers that print profiling report at end
   - `-DVECTORIZE_TARGET=KNL` : generate AVX512 instructions, alternatively you can use:
     - `AVX2` for Haswell & Broadwell
@@ -187,7 +181,7 @@ cd miniapp
 # a small run to check that everything works
 ./miniapp.exe -n 1000 -s 200 -t 20 -p 0
 
-# a larger run for generating meaninful benchmarks
+# a larger run for generating meaningful benchmarks
 ./miniapp.exe -n 2000 -s 2000 -t 100 -p 0
 ```
 
@@ -220,3 +214,39 @@ total        |  0.791     100.0  | 38.593     100.0  |
 -----------------------------------------------------
 ```
 
+### Building and running on HBP pcp machines
+
+## Julia
+# load the needed modules
+module load cmake
+module load intel-ics
+module load openmpi_ics/2.0.0
+module load gcc/6.1.0
+
+# set the correct gcc version
+export CC=`which gcc`
+export CXX=`which g++`
+
+# First build a 'normal' non KNL version of the software
+# Make directory , do the configuration and build
+mkdir build
+cd build
+ccmake ../
+make -j8
+# now make sure that the modparser can be found
+export PATH=`pwd`/modcc:$PATH
+
+
+# Next build the knl version
+# Make directory , do the cmake configuration and build
+cd ../
+mkdir build_knl
+cd build_knl
+cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_TBB=ON -DWITH_PROFILING=ON -DVECTORIZE_TARGET=KNL
+make -j8
+
+# Example usage on the JULIA system:
+salloc --time=04:30:00 --nodes=1   # Get time allocation on the compute nodes
+srun --cpu_bind=none --nodes=1 --ntasks-per-node=1 mpirun -n 1 /gpfs/homeb/pcp0/pcp0016/code/nestmc/trunk/nestmc-proto/knl_build/miniapp/miniapp.exe
+# For interactive session on a knl node
+srun --cpu_bind=none --nodes=1 --pty /bin/bash -I
