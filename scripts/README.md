@@ -78,4 +78,60 @@ of the timeseries data.
 Use the `-o` or `--output` option to save the plot as an image, instead of
 displaying it interactively.
 
+profstats
+---------
 
+`profstats` collects the profiling data output from multiple MPI ranks and performs
+a simple statistical summary.
+
+Input files are in the JSON format emitted by the profiling code.
+
+By default, `profstats` reports the quartiles of the times reported for each
+profiling region and subregion. With the `-r` option, the collated raw times
+are reported instead.
+
+Output is in CSV format.
+
+PassiveCable.jl
+---------------
+
+Compute analytic solutions to the simple passive cylindrical dendrite cable
+model with step current injection at one end from t=0.
+
+This is used to generate validation data for the first Rallpack test.
+
+Module exports the following functions:
+
+ * `cable_normalized(x, t, L; tol)`
+
+   Compute potential _V_ at position _x_ in [0, _L_] at time _t_ ≥ 0 according
+   to the normalized cable equation with unit length constant and time constant.
+
+   Neumann boundary conditions: _V'_(0) = 1; _V'_(L) = 0.
+   Initial conditions: _V_( _x_, 0) = 0.
+
+   Absolute tolerance `tol` defaults to 1e-8.
+
+ * `cable(x, t, L, lambda, tau, r, V, I; tol)`
+
+   Compute the potential given:
+      *  length constant `lambda`
+      *  time constant `tau`,
+      *  axial linear resistivity `r`
+      *  injected current of `I` at the origin
+      *  reversal potential `V`
+
+   Implied units must be compatible, e.g. SI units.
+
+   Absolute tolerance `tol` defaults to 1e-8.
+
+ * `rallpack1(x, t; tol)`
+
+   Compute the value of the potential in the Rallpack 1 test model at position
+   `x` and time `t`.
+
+   Parameters for the underlying cable equation calculation are taken from the
+   Rallpack model description in SI units; as the cable length is 1 mm in this
+   model, `x` can take values in [0, 0.001].
+
+   Absolute tolerance `tol` defaults to 1e-8.
