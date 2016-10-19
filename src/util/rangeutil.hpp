@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 
 #include <util/meta.hpp>
 #include <util/range.hpp>

@@ -29,7 +29,6 @@ int main(int argc, char **argv) {
     communication::global_policy_guard global_guard(argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
 
-    int rv = 0;
     try {
         auto arg = argv+1;
         while (*arg) {
@@ -54,8 +53,9 @@ int main(int argc, char **argv) {
             }
         }
 
-        rv = RUN_ALL_TESTS();
+        return RUN_ALL_TESTS();
     }
+
     catch (to::parse_opt_error& e) {
         to::usage(argv[0], usage_str, e.what());
         return 1;
