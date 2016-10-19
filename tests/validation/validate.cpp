@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        if (RUN_ALL_TESTS());   // Wrap with empty if to silence output not used warning
+        return RUN_ALL_TESTS();
     }
 
     catch (to::parse_opt_error& e) {

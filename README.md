@@ -68,7 +68,7 @@ cmake <path to CMakeLists.txt> -DWITH_TBB=ON
 ### TBB on Cray systems
 
 To compile with TBB on Cray systems, load the intel module, which will automatically configure the environment.
-The guide below shows how to use the version of TBB that is installed as part of the Intel compiler tool-chain.
+The guide below shows how to use the version of TBB that is installed as part of the Intel compiler toolchain.
 It is recommended that you install the most recent version of TBB yourself, and link against this, because older versions
 of TBB don't work with recent versions of GCC.
 
