@@ -10,13 +10,10 @@ https://github.com/eth-cscs/nestmc-proto
 3. TBB
 4. TBB on Cray systems
 5. Targeting KNL
-6. Building and running on HBP pcp machines
- a. Julia
-
-
-
-
-
+6. Examples of environment configuration
+    - Julia
+    
+## Basic installation
 ```bash
 # clone repository
 git clone git@github.com:eth-cscs/nestmc-proto.git
@@ -34,7 +31,7 @@ export CXX=`which g++`
 # build main project (out-of-tree)
 mkdir build
 cd build
-cmake ..
+cmake <path to CMakeLists.txt>
 make -j
 
 # test
@@ -51,7 +48,6 @@ To ensure that CMake detects MPI correctly, you should specify the MPI wrapper f
 export CXX=mpicxx
 export CC=mpicc
 cmake <path to CMakeLists.txt> -DWITH_MPI=ON
-
 ```
 
 ## TBB
@@ -90,12 +86,11 @@ cmake <path to CMakeLists.txt> -DWITH_TBB=ON -DSYSTEM_CRAY=ON
 
 # multithreading and MPI
 cmake <path to CMakeLists.txt> -DWITH_TBB=ON -DWITH_MPI=ON -DSYSTEM_CRAY=ON
-
 ```
 
-#### targeting KNL
+## targeting KNL
 
-## build modparser without KNL environment
+### build modparser without KNL environment
 
 The source to source compiler "modparser" that generates the C++/CUDA kernels for the ion channels and synapses is in a separate repository.
 By default it will be built with the same compiler and flags that are used to build the miniapp and tests.
@@ -107,24 +102,34 @@ the now compiled executable
 Modparser requires a C++11 compiler, and has been tested on GCC, Intel, and Clang compilers
   - if the default compiler on your is some ancient version of gcc you might need to load a module/set the CC and CXX environment variables.
 
-
 CMake will look for the source to source compiler executable, `modcc`, in the `PATH` environment variable, and will use the version if finds instead of building its own.
 So add the g++ compiled modcc to your path
 e.g:
 
 ```bash
+# First build a 'normal' non KNL version of the software
+
+# Load your environment (see section 6 for detailed example)
+export CC=`which gcc`; export CXX=`which g++`
+
+# Make directory , do the configuration and build
+mkdir build
+cd build
+cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release
+make -j8
+
 # set path and test that you can see modcc
 export PATH=`pwd`/bin:$PATH
 which modcc
 ```
 
-## set up environment
+#### set up environment
 
 - source the intel compilers
 - source the TBB vars
 - I have only tested with the latest stable version from on-line, not the version that comes installed sometimes with the Intel compilers.
 
-## build miniapp
+#### build miniapp
 
 ```bash
 # clone the repository and set up the submodules
@@ -138,7 +143,7 @@ cd build_knl
 # run cmake with all the magic flags
 export CC=`which icc`
 export CXX=`which icpc`
-cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_TBB=ON -DWITH_PROFILING=ON -DVECTORIZE_TARGET=KNL -DUSE_OPTIMIZED_KERNELS=ON
+cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release -DWITH_TBB=ON -DWITH_PROFILING=ON -DVECTORIZE_TARGET=KNL -DUSE_OPTIMIZED_KERNELS=ON
 make -j
 ```
 
@@ -152,7 +157,7 @@ The flags passed into cmake are described:
   - `-DUSE_OPTIMIZED_KERNELS=ON` : tell the source to source compiler to generate optimized kernels that use Intel extensions
     - without these vectorized code will not be generated.
 
-## run tests
+#### run tests
 
 Run some unit tests
 ```bash
@@ -214,39 +219,12 @@ total        |  0.791     100.0  | 38.593     100.0  |
 -----------------------------------------------------
 ```
 
-### Building and running on HBP pcp machines
-
-## Julia
-# load the needed modules
+## Examples of environment configuration
+### Julia (HBP PCP system)
+``` bash
 module load cmake
 module load intel-ics
 module load openmpi_ics/2.0.0
 module load gcc/6.1.0
+```
 
-# set the correct gcc version
-export CC=`which gcc`
-export CXX=`which g++`
-
-# First build a 'normal' non KNL version of the software
-# Make directory , do the configuration and build
-mkdir build
-cd build
-ccmake ../
-make -j8
-# now make sure that the modparser can be found
-export PATH=`pwd`/modcc:$PATH
-
-
-# Next build the knl version
-# Make directory , do the cmake configuration and build
-cd ../
-mkdir build_knl
-cd build_knl
-cmake .. -DCMAKE_BUILD_TYPE=release -DWITH_TBB=ON -DWITH_PROFILING=ON -DVECTORIZE_TARGET=KNL
-make -j8
-
-# Example usage on the JULIA system:
-salloc --time=04:30:00 --nodes=1   # Get time allocation on the compute nodes
-srun --cpu_bind=none --nodes=1 --ntasks-per-node=1 mpirun -n 1 /gpfs/homeb/pcp0/pcp0016/code/nestmc/trunk/nestmc-proto/knl_build/miniapp/miniapp.exe
-# For interactive session on a knl node
-srun --cpu_bind=none --nodes=1 --pty /bin/bash -I
