@@ -102,12 +102,6 @@ public:
 
 } // namespace internal
 
-//! Wrapper for sorting with default comparator.
-template<class RandomAccessIterator>
-void parallel_stable_sort( RandomAccessIterator xs, RandomAccessIterator xe ) {
-    typedef typename std::iterator_traits<RandomAccessIterator>::value_type T;
-    parallel_stable_sort( xs, xe, std::less<T>() );
-}
 
 /*template<typename T>
 void parallel_stable_sort(typename std::iterator<T> i,typename std::iterator<T> j){

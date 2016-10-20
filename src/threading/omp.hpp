@@ -78,8 +78,8 @@ void sort(RandomIt begin, RandomIt end, Compare comp) {
 
 template <typename Container>
 void sort(Container& c) {
-    //pss::parallel_stable_sort(c.begin(), c.end());
-    std::sort(c.begin(), c.end());
+    pss::parallel_stable_sort(c.begin(), c.end());
+    //std::sort(c.begin(), c.end());
 }
 
 // FIXME
@@ -146,6 +146,7 @@ public:
 
     template<typename Func>
     void run(const Func& f) {
+
         f();
     }
 

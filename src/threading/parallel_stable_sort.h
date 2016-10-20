@@ -50,7 +50,7 @@ void parallel_move_merge( RandomAccessIterator1 xs_, RandomAccessIterator1 xe, R
 #else
 void parallel_move_merge( RandomAccessIterator1 xs, RandomAccessIterator1 xe, RandomAccessIterator2 ys, RandomAccessIterator2 ye, RandomAccessIterator3 zs, bool destroy, Compare comp ) {
 #endif
-    const size_t MERGE_CUT_OFF = 2000;
+    const int MERGE_CUT_OFF = 2000;
     while( (xe-xs) + (ye-ys) > MERGE_CUT_OFF ) {
         RandomAccessIterator1 xm;
         RandomAccessIterator2 ym;
@@ -80,7 +80,7 @@ void parallel_move_merge( RandomAccessIterator1 xs, RandomAccessIterator1 xe, Ra
 template<typename RandomAccessIterator1, typename RandomAccessIterator2, typename Compare>
 void parallel_stable_sort_aux( RandomAccessIterator1 xs, RandomAccessIterator1 xe, RandomAccessIterator2 zs, int inplace, Compare comp ) {
     //typedef typename std::iterator_traits<RandomAccessIterator2>::value_type T;
-    const size_t SORT_CUT_OFF = 500;
+    const int SORT_CUT_OFF = 500;
     if( xe-xs<=SORT_CUT_OFF ) {
         stable_sort_base_case(xs, xe, zs, inplace, comp); 
     } else {
@@ -100,6 +100,8 @@ void parallel_stable_sort_aux( RandomAccessIterator1 xs, RandomAccessIterator1 x
 
 } // namespace internal
 
+
+
 template<typename RandomAccessIterator, typename Compare>
 void parallel_stable_sort( RandomAccessIterator xs, RandomAccessIterator xe, Compare comp ) {
     typedef typename std::iterator_traits<RandomAccessIterator>::value_type T;
@@ -114,5 +116,12 @@ void parallel_stable_sort( RandomAccessIterator xs, RandomAccessIterator xe, Com
         // Not enough memory available - fall back on serial sort
         std::stable_sort( xs, xe, comp );
 }
+
+template<class RandomAccessIterator>
+void parallel_stable_sort( RandomAccessIterator xs, RandomAccessIterator xe ) {
+    typedef typename std::iterator_traits<RandomAccessIterator>::value_type T;
+    parallel_stable_sort( xs, xe, std::less<T>() );
+}
+
 
 } // namespace pss
