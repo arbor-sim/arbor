@@ -52,7 +52,6 @@ is injected at the left end of the cable from $t=0$, and the initial potential
 is the reversal potential.
 
 \begin{table}[ht]
-    \label{tbl:rallpack1}
     \centering
     \begin{tabular}{lSl}
 	\toprule
@@ -67,6 +66,7 @@ is the reversal potential.
 	\bottomrule
     \end{tabular}
     \caption{Cable properties for the Rallpack 1 model.}
+    \label{tbl:rallpack1}
 \end{table}
 
 The potential on a constant-radius passive cable is governed by the PDE
@@ -132,7 +132,7 @@ From
 The boundary conditions \eqref{eq:normcableleft} and \eqref{eq:normcableright} give
 \begin{align}
     \label{eq:lapleft}
-    \frac{\partial G}{\partial x}(0, s) & = \frac{1}{s},
+    \frac{\partial G}{\partial x}(0, s) & = \frac{1}{s}
     \\
     \label{eq:lapright}
     \frac{\partial G}{\partial x}(L, s) & = 0.
@@ -144,12 +144,13 @@ Solutions to \eqref{eq:lap} must be of the form
 \end{equation}
 where $m=\sqrt{1+s}$. From \eqref{eq:lapleft} and \eqref{eq:lapright},
 \begin{align*}
-    mA(s) - mB(s) & = \frac{1}{s},
+    mA(s) - mB(s) & = \frac{1}{s}
     \\
-    mA(s)e^{mL} -mB(s)e^{-mL} & = 0.
-\end{align*} and thus
+    mA(s)e^{mL} -mB(s)e^{-mL} & = 0
+\end{align*}
+and thus
 \begin{align*}
-    A(s) & = \frac{1}{sm (1-e^{2mL})},
+    A(s) & = \frac{1}{sm (1-e^{2mL})}
     \\
     B(s) & = \frac{e^{2mL}}{sm (1-e^{2mL})}.
 \end{align*}
@@ -166,7 +167,7 @@ Consequently,
 
 Sufficient conditions for the inverse transform of $G(x,s)$ to exist
 and be representable in series form are as follows
-\parencite[][Theorem 4]{churchill1937}):
+\parencite[][Theorem 4]{churchill1937}:
 \begin{enumerate}
 \item
     $G(x, s)$ is analytic in some right half-plane $H$,
@@ -213,7 +214,7 @@ $2k\pi\delta/L+\delta^2$ about $s_k$ for $k\geq 1$, which then are separated by
 circles $|s|=\rho_k$ about the origin for some $\rho_k$ in $(|s_k|, |s_k+1|)$.
 
 \textbf{Pole at $s=0$}.\\
-Recalling $m=\sqrt{1+s}$, $m$ and $\sinh mL$ are non-zero in\\
+Recalling $m=\sqrt{1+s}$, $m$ and $\sinh mL$ are non-zero in
 a neighbourhood of $s=0$, and so the pole is simple and
 \begin{equation}
     \begin{aligned}
@@ -257,7 +258,7 @@ Consequently the pole is simple and
 	\Res(G; s_k)
 	    & = f(x, s_k)/h'(s_k)\\
 	    & =  -\frac{2}{s_k L}\frac{\cosh m_k(L-x)}{\cosh m_kL} \\
-	    & =  -\frac{2}{s_k L}\frac{\cosh m_kL\cosh m_kx-\sinh m_kL\sinh m_kL)}{\cosh m_kL} \\
+	    & =  -\frac{2}{s_k L}\frac{\cosh m_kL\cosh m_kx-\sinh m_kL\sinh m_kL}{\cosh m_kL} \\
 	    & =  -\frac{2}{s_k L}\cosh m_k x,
     \end{aligned}
 \end{equation}
@@ -297,10 +298,10 @@ residual. The $a_k$ form an increasing sequence, so
     \end{aligned}
     \label{eq:gbar}
 \end{equation}
-Substituting $u=v/\sqrt{t}$ gives the identity
+Substituting $u=\sqrt{v/t}$ gives the identity
 \begin{equation}
     \int_{a}^\infty \frac{e^{-tu^2}}{u^2}\,du
-    = \frac{1}{2}\sqrt{t}\int_{a^2t}^\infty e^{-v} v^{\frac{-3}{2}}\,dv
+    = \frac{1}{2}\sqrt{t}\int_{a^2t}^\infty e^{-tv} v^{\frac{-3}{2}}\,dv
     = \frac{1}{2}\sqrt{t}\,\Gamma(-\frac{1}{2},a^2 t),
 \end{equation}
 where $\Gamma(\alpha, z)$ is the upper incomplete gamma function.
