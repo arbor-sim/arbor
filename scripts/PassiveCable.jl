@@ -12,7 +12,12 @@ export cable_normalize, cable, rallpack1
 #     ∂g/∂x (0, t) = 1
 #     ∂g/∂x (L, t) = 0
 #
-# (This implementation converges slowly for small t)
+# Parameters:
+#     x, t, L:  as described above
+#   tol:  absolute error tolerance in result
+#
+# Return:
+#     g(x, t)
 
 function cable_normalized(x, t, L; tol=1e-8)
     if t<=0
@@ -32,7 +37,7 @@ function cable_normalized(x, t, L; tol=1e-8)
                 break
             end
         end
-	return ginf+sum
+        return ginf+sum
      end
 end
 
@@ -56,18 +61,37 @@ end
 #
 #     L:  length of cable
 #     r:  linear axial resistivity
-#     g:  linear membrane conductance
-#     c:  linear membrane capacitance.
+#     g:  linear membrane conductivity
+#     c:  linear membrane capacitance
 #     V:  membrane reversal potential
-#     I:  injected current on the left end (x = 0) of the cable.
+#     I:  injected axial current on the left end (x = 0) of the cable.
+#
+# Note that r, g and c are specific 1-d quantities that differ from
+# the cable resistivity r_L, specific membrane conductivity ḡ and
+# specific membrane capacitance c_m as used elsewhere. If the
+# cross-sectional area is A and cable circumference is f, then
+# these quantities are related by:
+#
+#     r = r_L/A
+#     g = ḡ·f
+#     c = c_m·f
+#
+# Parameters:
+#     x:  displacement along cable
+#     t:  time
+#     L, lambda, tau, r, V, I:  as described above
+#   tol:  absolute error tolerance in result
+#
+# Return:
+#     computed potential at (x,t) on cable.
 
 function cable(x, t, L, lambda, tau, r, V, I; tol=1e-8)
     scale = I*r*lambda;
     if scale == 0
-	return V
+        return V
     else
         tol_n = abs(tol/scale)
-	return scale*cable_normalized(x/lambda, t/tau, L/lambda, tol=tol_n) + V
+        return scale*cable_normalized(x/lambda, t/tau, L/lambda, tol=tol_n) + V
     end
 end
 
@@ -82,8 +106,21 @@ end
 #     d  = 1 µm     cable diameter
 #     EM = -65 mV   reversal potential
 #     I  = 0.1 nA   injected current
-#     L  = 1 mm     cable length 
+#     L  = 1 mm     cable length.
 #
+# (This notation aligns with that used in the Rallpacks paper.)
+#
+# Note that the injected current as described in the Rallpack model
+# is trans-membrane, not axial. Consequently we need to swap the
+# sign on I when passing to the cable function.
+#
+# Parameters:
+#     x:  displacement along cable [m]
+#     t:  time [s]
+#   tol:  absolute tolerance for reported potential.
+#
+# Return:
+#     computed potential at (x,t) on cable.
 
 function rallpack1(x, t; tol=1e-8)
     RA = 1
@@ -101,4 +138,4 @@ function rallpack1(x, t; tol=1e-8)
     return cable(x, t, L, lambda, tau, r, EM, -I, tol=tol)
 end
 
-end #module
+end # module PassiveCable

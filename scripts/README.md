@@ -1,5 +1,4 @@
-tsplot
-======
+#tsplot
 
 The `tsplot` script is a wrapper around matplotlib for displaying a collection of
 time series plots.
@@ -78,8 +77,7 @@ of the timeseries data.
 Use the `-o` or `--output` option to save the plot as an image, instead of
 displaying it interactively.
 
-profstats
-=========
+#profstats
 
 `profstats` collects the profiling data output from multiple MPI ranks and performs
 a simple statistical summary.
@@ -92,8 +90,7 @@ are reported instead.
 
 Output is in CSV format.
 
-PassiveCable.jl
-===============
+#PassiveCable.jl
 
 Compute analytic solutions to the simple passive cylindrical dendrite cable
 model with step current injection at one end from t=0.
