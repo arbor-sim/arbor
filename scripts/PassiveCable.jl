@@ -86,7 +86,7 @@ end
 #     computed potential at (x,t) on cable.
 
 function cable(x, t, L, lambda, tau, r, V, I; tol=1e-8)
-    scale = -I*r*lambda;
+    scale = I*r*lambda;
     if scale == 0
         return V
     else
@@ -135,7 +135,7 @@ function rallpack1(x, t; tol=1e-8)
     lambda = sqrt(d/4 * RM/RA)
     tau = CM*RM
 
-    return cable(x, t, L, lambda, tau, r, EM, I, tol=tol)
+    return cable(x, t, L, lambda, tau, r, EM, -I, tol=tol)
 end
 
 end # module PassiveCable
