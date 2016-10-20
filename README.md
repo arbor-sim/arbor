@@ -90,7 +90,7 @@ cmake <path to CMakeLists.txt> -DWITH_TBB=ON -DWITH_MPI=ON -DSYSTEM_CRAY=ON
 
 ## targeting KNL
 
-### build modparser without KNL environment
+#### build modparser without KNL environment
 
 The source to source compiler "modparser" that generates the C++/CUDA kernels for the ion channels and synapses is in a separate repository.
 By default it will be built with the same compiler and flags that are used to build the miniapp and tests.
