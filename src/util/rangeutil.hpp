@@ -62,33 +62,9 @@ Container& append(Container &c, const Seq& seq) {
 // Assign sequence to a container
 
 template <typename AssignableContainer, typename Seq>
-enable_if_t<
-    std::is_copy_constructible<typename AssignableContainer::value_type>::value,
-    AssignableContainer&
->
-assign(AssignableContainer& c, const Seq& seq) {
+AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
     auto canon = canonical_view(seq);
     c.assign(std::begin(canon), std::end(canon));
-    return c;
-}
-
-
-// This version of assing is needed for assigning segment_ptr's (i.e.,
-// unique_ptr's) with Clang
-
-template<typename AssignableContainer, typename Seq>
-enable_if_t<
-    !std::is_copy_constructible<typename AssignableContainer::value_type>::value &&
-     std::is_move_constructible<typename AssignableContainer::value_type>::value,
-    AssignableContainer&
->
-assign(AssignableContainer& c, const Seq& seq)
-{
-    auto citer = c.begin();
-    for (auto s : canonical_view(seq)) {
-        *citer = std::move(s);
-    }
-
     return c;
 }
 

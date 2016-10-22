@@ -90,8 +90,11 @@ public:
         spike_detectors_(other.spike_detectors_),
         probes_(other.probes_)
      {
-        util::assign_by(segments_, other.segments_,
-            [](const segment_ptr& p) { return p->clone(); });
+         // unique_ptr's cannot be copy constructed, do a manual assignment
+         auto siter = segments_.begin();
+         for (const auto& s : other.segments_) {
+             *siter = std::move(s->clone());
+         }
      }
 
     /// add a soma to the cell
