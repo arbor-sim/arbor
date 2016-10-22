@@ -550,10 +550,11 @@ TEST(Parser, parse_binop) {
         EXPECT_NE(e, nullptr);
         EXPECT_EQ(p.status(), lexerStatus::happy);
 
-        // A loose tolerance of 1d-10 is required here because the eval() function uses long double
-        // for intermediate results (like constant folding in modparser).
-        // For expressions with transcendental operations this can see relatively large divergence between
-        // the double and long double results.
+        // A loose tolerance of 1d-10 is required here because the eval()
+        // function uses long double for intermediate results (like constant
+        // folding in modparser).  For expressions with transcendental
+        // operations this can see relatively large divergence between the
+        // double and long double results.
         EXPECT_NEAR(eval(e.get()), test_case.second, 1e-10);
 
         // always print the compiler errors, because they are unexpected

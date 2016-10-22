@@ -10,8 +10,8 @@ NEURON  {
 }
 
 STATE {
-    h
-    m r
+    h (mA)
+    m (mV) r (S)
 }
 
 UNITS   {

@@ -612,7 +612,7 @@ void Module::add_variables_to_symbols() {
 
     // add state variables
     for(auto const &var : state_block()) {
-        VariableExpression *id = new VariableExpression(Location(), var);
+        VariableExpression *id = new VariableExpression(Location(), var.name());
 
         id->state(true);    // set state to true
         // state variables are private
@@ -623,7 +623,7 @@ void Module::add_variables_to_symbols() {
         id->range(rangeKind::range);       // always a range
         id->access(accessKind::readwrite);
 
-        symbols_[var] = symbol_ptr{id};
+        symbols_[var.name()] = symbol_ptr{id};
     }
 
     // add the parameters
