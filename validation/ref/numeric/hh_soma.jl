@@ -62,10 +62,15 @@ function n_lims(v)
     return ntau, ninf
 end
 
-# v = y[1]
+# v = y[1] V
 # m = y[2]
 # h = y[3]
 # n = y[4]
+
+# dv/dt = ydot[1] V/s
+# dm/dt = ydot[2] /s
+# dh/dt = ydot[3] /s
+# dn/dt = ydot[4] /s
 
 # choose initial conditions for the system such that the gating variables
 # are at steady state for the user-specified voltage v
@@ -74,13 +79,13 @@ function initial_conditions(v)
     htau, hinf = h_lims(v)
     ntau, ninf = n_lims(v)
 
-    return [Float64(v), minf, hinf, ninf]
+    return [v/V, minf, hinf, ninf]
 end
 
 # calculate the lhs of the ODE system
 function f(t, y, ydot)
     # copy variables into helper variable
-    v = y[1]mV
+    v = y[1]V
     m, h, n = y[2], y[3], y[4]
 
     # calculate current due to ion channels
@@ -94,7 +99,8 @@ function f(t, y, ydot)
     # calculate current due to stimulus
     #c.add_stimulus({0,0.5}, {10., 100., 0.1});
     ielectrode = 0.0nA / surface_area
-    if t>=Float64(10ms) && t<Float64(100ms)
+    time = t*ms
+    if time>=10ms && time<100ms
         ielectrode = 0.1nA / surface_area
     end
 
@@ -107,11 +113,11 @@ function f(t, y, ydot)
     htau, hinf = h_lims(v)
 
     # set the derivatives
-    # note tha these are in SI units, which are indicated in comments
-    ydot[1] = Float64(i/c_m)            # V*s^-1
-    ydot[2] = Float64((minf-m)/mtau)    # s^-1
-    ydot[3] = Float64((hinf-h)/htau)    # s^-1
-    ydot[4] = Float64((ninf-n)/ntau)    # s^-1
+    # note values are in SI units, as determined by the scaling factors:
+    ydot[1] = i/c_m         / (V/s)
+    ydot[2] = (minf-m)/mtau / (1/s)
+    ydot[3] = (hinf-h)/htau / (1/s)
+    ydot[4] = (ninf-n)/ntau / (1/s)
 
     return Sundials.CV_SUCCESS
 end

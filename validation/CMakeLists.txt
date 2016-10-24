@@ -5,12 +5,14 @@ add_custom_target(validation_data)
 # Helper function because ffs CMake.
 
 function(make_unique_target_name name path)
-    # try and make a broadly human readable target name if possible.
+    # Try and make a broadly human readable target name if possible.
     string(REGEX REPLACE ".*/" "" leaf "${path}")
     string(REGEX REPLACE "[^a-zA-Z0-9_.+-]" "_" canon "${leaf}")
 
-    # check against reserved names, of which of course there is no documented list
-    if(canon MATCHES "^(all|test|clean|help)$")
+    # Check against reserved names, of which of course there is no documented list
+    # except in the sodding CMake source code. Seriously. Look at the CMP0037 policy
+    # text for a laugh.
+    if(canon MATCHES "^(all|ALL_BUILD|help|install|INSTALL|preinstall|clean|edit_cache|rebuild_cache|test|RUN_TESTS|package|PACKAGE|package_source|ZERO_CHECK)$")
         set(canon "${canon}_")
     endif()
     while((TARGET "${canon}"))
