@@ -1,28 +1,12 @@
 #pragma once
 
-#include <memory/memory.hpp>
+#include "memory_traits.hpp"
 
 namespace nest {
 namespace mc {
 namespace multicore {
 
-template <typename T, typename I>
-struct matrix_policy {
-    // define basic types
-    using value_type = T;
-    using size_type  = I;
-
-    using base = memory_policy<value_type, size_type>;
-
-    // define storage types
-    using base::vector_type;
-    using base::index_type;
-
-    using base::view;
-    using base::const_view;
-    using base::iview;
-    using base::const_iview;
-
+struct matrix_policy : public memory_traits {
     void solve(
         view l, view d, view u, view rhs,
         const_iview p, const_iview cell_index)

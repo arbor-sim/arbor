@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <numeric>
 #include <type_traits>
 #include <vector>
 
-#include "util.hpp"
-#include "util/debug.hpp"
+#include <util.hpp>
+#include <util/debug.hpp>
+#include <util/range.hpp>
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
@@ -283,43 +285,101 @@ bool is_unique(const C& c)
     return std::adjacent_find(c.begin(), c.end()) == c.end();
 }
 
+template <typename R1, typename R2>
+class index_into_iterator:
+    public std::iterator<std::forward_iterator_tag, typename R1::value_type>
+{
+public:
+    using value_type = typename R1::value_type;
+
+private:
+    using super_iterator = typename R1::const_iterator;
+    using sub_iterator = typename R2::const_iterator;
+
+    mutable super_iterator super_it_;
+    const super_iterator super_end_;
+
+    sub_iterator sub_it_;
+
+    mutable value_type super_idx_;
+
+public:
+    index_into_iterator(super_iterator sup, super_iterator sup_end, sub_iterator sub) :
+        super_it_(sup), super_end_(sup_end),
+        sub_it_(sub), super_idx_(0)
+    {}
+
+    index_into_iterator(const R1& super, const R2& sub):
+        super_it_  (std::begin(super)),
+        super_end_ (std::end(super)),
+        sub_it_    (std::begin(sub)),
+        super_idx_ (0)
+    {}
+
+    value_type operator* () {
+        advance_super();
+        return super_idx_;
+    }
+
+    value_type operator* () const {
+        advance_super();
+        return super_idx_;
+    }
+
+    bool operator== (const index_into_iterator& other) {
+        return sub_it_ == other.sub_it_;
+    }
+
+    bool operator!= (const index_into_iterator& other) {
+        return !(*this == other);
+    }
+
+    index_into_iterator operator++ () {
+        ++sub_it_;
+        return (*this);
+    }
+
+    index_into_iterator operator++(int) {
+        auto previous = *this;
+        ++(*this);
+        return previous;
+    }
+
+private:
+
+    bool is_aligned() const {
+        return *sub_it_ == *super_it_;
+    }
+
+    void advance_super() {
+        while(super_it_!=super_end_ && !is_aligned()) {
+            ++super_it_;
+            ++super_idx_;
+        }
+
+        // this indicates that no match was found in super for a value
+        // in sub, which violates the precondition that sub is a subset of super
+        EXPECTS(!(super_it_==super_end_));
+    }
+};
+
 /// Return and index that maps entries in sub to their corresponding
 /// values in super, where sub is a subset of super.
 ///
 /// Both sets are sorted and have unique entries.
 /// Complexity is O(n), where n is size of super
-template<typename C>
-// C::iterator models forward_iterator
-// C::value_type is_integral
-C index_into(const C& super, const C& sub)
+template<typename R1, typename R2>
+util::range<index_into_iterator<R1, R2>>
+index_into(const R1& super, const R2& sub)
 {
-    //EXPECTS {s \in super : \forall s \in sub};
     EXPECTS(is_unique(super) && is_unique(sub));
     EXPECTS(is_sorted(super) && is_sorted(sub));
     EXPECTS(sub.size() <= super.size());
 
-    static_assert(
-        std::is_integral<typename C::value_type>::value,
-        "index_into only applies to integral types"
-    );
-
-    C out(sub.size()); // out will have one entry for each index in sub
-
-    auto sub_it=sub.begin();
-    auto super_it=super.begin();
-    auto sub_idx=0u, super_idx = 0u;
-
-    while(sub_it!=sub.end() && super_it!=super.end()) {
-        if(*sub_it==*super_it) {
-            out[sub_idx] = super_idx;
-            ++sub_it; ++sub_idx;
-        }
-        ++super_it; ++super_idx;
-    }
-
-    EXPECTS(sub_idx==sub.size());
-
-    return out;
+    using iterator = index_into_iterator<R1, R2>;
+    auto begin = iterator(super, sub);
+    auto end   = iterator(super.end(), super.end(), sub.end());
+    return util::make_range(begin, end);
 }
 
 } // namespace algorithms

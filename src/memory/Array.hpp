@@ -93,15 +93,18 @@ public:
     using value_type = T;
     using base       = ArrayView<value_type, Coord>;
     using view_type  = ArrayView<value_type, Coord>;
-    using const_view_type  = ConstArrayView<value_type, Coord>;
+    using const_view_type = ConstArrayView<value_type, Coord>;
 
     using coordinator_type = typename Coord::template rebind<value_type>;
 
-    using size_type       = typename base::size_type;
-    using difference_type = typename base::difference_type;
+    using typename base::size_type;
+    using typename base::difference_type;
 
-    using pointer       = value_type*;
-    using const_pointer = const pointer;
+    using typename base::pointer;
+    using typename base::const_pointer;
+
+    using typename base::iterator;
+    using typename base::const_iterator;
 
     // TODO what about specialized references for things like GPU memory?
     using reference       = value_type&;

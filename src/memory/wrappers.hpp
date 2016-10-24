@@ -47,6 +47,12 @@ make_const_view(ArrayView<T, Coordinator> v) {
     return ConstArrayView<T, Coordinator>(v.data(), v.size());
 }
 
+template <typename T, typename Coordinator>
+ConstArrayView<T, Coordinator>
+make_const_view(ConstArrayView<T, Coordinator> v) {
+    return ConstArrayView<T, Coordinator>(v.data(), v.size());
+}
+
 //
 // std::vector
 //

@@ -524,6 +524,23 @@ TEST(algorithms, branches)
     }
 }
 
+struct test_index_into {
+    template <typename R1, typename R2, typename R3>
+    bool operator() (const R1& super, const R2& sub, const R3& index) {
+        using value_type = typename R1::value_type;
+        //std::cout << "index has size " << index.size() << "\n";
+        //std::cout << "{"; for(auto i : index) std::cout << i << " ";std::cout << "}\n";
+        if(sub.size()!=index.size()) return false;
+        auto index_it = index.begin();
+        for(auto i=0u; i<sub.size(); ++i, ++index_it) {
+            auto idx = *index_it;
+            if(idx>=value_type(super.size())) return false;
+            if(super[idx]!=sub[i]) return false;
+        }
+        return true;
+    }
+};
+
 TEST(algorithms, index_into)
 {
     using C = std::vector<int>;
@@ -545,21 +562,10 @@ TEST(algorithms, index_into)
         std::make_pair(C{0,1,3,4,6,7,10,11}, C{0,1,3,4,6,7,10,11})
     };
 
-    auto test_result = [] (const C& super, const C& sub, const C& index) {
-        if(sub.size()!=index.size()) return false;
-        for(auto i=0u; i<sub.size(); ++i) {
-            if(index[i]>=C::value_type(super.size())) return false;
-            if(super[index[i]]!=sub[i]) return false;
-        }
-        return true;
-    };
-
+    test_index_into tester;
     for(auto& t : tests) {
         EXPECT_TRUE(
-            test_result(
-                t.first, t.second,
-                nest::mc::algorithms::index_into(t.first, t.second)
-            )
+            tester(t.first, t.second, nest::mc::algorithms::index_into(t.first, t.second))
         );
     }
 }

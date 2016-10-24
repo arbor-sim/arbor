@@ -2,7 +2,7 @@
 
 #include <memory/memory.hpp>
 
-#include "indexed_view.hpp"
+#include <indexed_view.hpp>
 
 namespace nest {
 namespace mc {
@@ -43,24 +43,26 @@ std::vector<ionKind> ion_kinds() {
 }
 
 /// storage for ion channel information in a cell group
-template<typename T, typename I>
-class ion {
+template<typename MemoryTraits>
+class ion : MemoryTraits{
 public :
+    using memory_traits = MemoryTraits;
+
     // expose tempalte parameters
-    using value_type  = T;
-    using size_type   = I;
+    using typename memory_traits::value_type;
+    using typename memory_traits::size_type;
 
     // define storage types
-    using vector_type      = memory::HostVector<value_type>;
-    using index_type       = memory::HostVector<size_type>;
-    using vector_view_type = typename vector_type::view_type;
-    using index_view_type  = typename index_type::const_view_type;
+    using typename memory_traits::vector_type;
+    using typename memory_traits::index_type;
+    using typename memory_traits::view;
+    using typename memory_traits::const_iview;
 
-    using indexed_view_type = indexed_view<value_type, size_type>;
+    using indexed_view_type = indexed_view<memory_traits>;
 
     ion() = default;
 
-    ion(index_view_type idx) :
+    ion(const_iview idx) :
         node_index_{idx},
         iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
@@ -74,25 +76,24 @@ public :
                +  sizeof(ion);
     }
 
-    vector_view_type current() {
+    view current() {
         return iX_;
     }
-    vector_view_type reversal_potential() {
+    view reversal_potential() {
         return eX_;
     }
-    vector_view_type internal_concentration() {
+    view internal_concentration() {
         return Xi_;
     }
-    vector_view_type external_concentration() {
+    view external_concentration() {
         return Xo_;
     }
 
-    // TODO : should this be a view?
-    index_type node_index() {
+    const_iview node_index() const {
         return node_index_;
     }
 
-    size_t size() const {
+    std::size_t size() const {
         return node_index_.size();
     }
 
@@ -104,76 +105,6 @@ private :
     vector_type Xi_;
     vector_type Xo_;
 };
-
-#ifdef WITH_CUDA
-namespace gpu {
-    /// storage for ion channel information in a cell group
-    template<typename T, typename I>
-    class ion {
-    public :
-        // expose tempalte parameters
-        using value_type  = T;
-        using size_type   = I;
-
-        // define storage types
-        using vector_type      = memory::DeviceVector<value_type>;
-        using index_type       = memory::DeviceVector<size_type>;
-        using vector_view_type = typename vector_type::view_type;
-        using index_view_type  = typename index_type::const_view_type;
-
-        using indexed_view_type = indexed_view<value_type, size_type>;
-
-        ion() = default;
-
-        template <
-            typename IDX,
-            typename = typename std::enable_if<std::is_same<typename IDX::value_type, size_type>::value>::type
-        >
-        ion(const IDX& idx) :
-            node_index_{idx},
-            iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-            eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-            Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-            Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
-        {}
-
-        std::size_t memory() const {
-            return 4u*size() * sizeof(value_type)
-                   +  size() * sizeof(index_type)
-                   +  sizeof(ion);
-        }
-
-        vector_view_type current() {
-            return iX_;
-        }
-        vector_view_type reversal_potential() {
-            return eX_;
-        }
-        vector_view_type internal_concentration() {
-            return Xi_;
-        }
-        vector_view_type external_concentration() {
-            return Xo_;
-        }
-
-        index_view_type node_index() {
-            return memory::make_view(node_index_);
-        }
-
-        size_t size() const {
-            return node_index_.size();
-        }
-
-    private :
-
-        index_type node_index_;
-        vector_type iX_;
-        vector_type eX_;
-        vector_type Xi_;
-        vector_type Xo_;
-    };
-} // namespace gpu
-#endif
 
 } // namespace mechanisms
 } // namespace mc

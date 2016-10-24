@@ -34,7 +34,6 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line("#include <limits>");
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
-    text_.add_line("#include <mechanism_interface.hpp>");
     text_.add_line("#include <algorithms.hpp>");
     text_.add_line();
 
@@ -44,18 +43,19 @@ CPrinter::CPrinter(Module &m, bool o)
 
     text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + m.name() + "{");
     text_.add_line();
-    text_.add_line("template<typename T, typename I>");
-    text_.add_line("class " + class_name + " : public mechanism<T, I> {");
+    text_.add_line("template<class MemoryPolicy>");
+    text_.add_line("class " + class_name + " : public mechanism<MemoryPolicy> {");
     text_.add_line("public:");
     text_.increase_indentation();
-    text_.add_line("using base = mechanism<T, I>;");
+    text_.add_line("using base = mechanism<MemoryPolicy>;");
     text_.add_line("using value_type  = typename base::value_type;");
     text_.add_line("using size_type   = typename base::size_type;");
+    text_.add_line();
     text_.add_line("using vector_type = typename base::vector_type;");
-    text_.add_line("using view_type   = typename base::view_type;");
     text_.add_line("using index_type  = typename base::index_type;");
-    text_.add_line("using index_view  = typename base::index_view;");
-    text_.add_line("using const_index_view  = typename base::const_index_view;");
+    text_.add_line("using view   = typename base::view;");
+    text_.add_line("using iview  = typename base::iview;");
+    text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using indexed_view_type= typename base::indexed_view_type;");
     text_.add_line("using ion_type = typename base::ion_type;");
     text_.add_line();
@@ -67,10 +67,10 @@ CPrinter::CPrinter(Module &m, bool o)
         text_.add_line("struct " + tname + " {");
         text_.increase_indentation();
         for(auto& field : ion.read) {
-            text_.add_line("view_type " + field.spelling + ";");
+            text_.add_line("view " + field.spelling + ";");
         }
         for(auto& field : ion.write) {
-            text_.add_line("view_type " + field.spelling + ";");
+            text_.add_line("view " + field.spelling + ";");
         }
         text_.add_line("index_type index;");
         text_.add_line("std::size_t memory() const { return sizeof(size_type)*index.size(); }");
@@ -85,7 +85,7 @@ CPrinter::CPrinter(Module &m, bool o)
     // constructor
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
-    text_.add_line(class_name + "(view_type vec_v, view_type vec_i, const_index_view node_index)");
+    text_.add_line(class_name + "(view vec_v, view vec_i, const_iview node_index)");
     text_.add_line(":   base(vec_v, vec_i, node_index)");
     text_.add_line("{");
     text_.increase_indentation();
@@ -261,7 +261,11 @@ CPrinter::CPrinter(Module &m, bool o)
         auto ion = find_ion(ionKind::Na);
         text_.add_line("if(k==ionKind::na) {");
         text_.increase_indentation();
-        text_.add_line("ion_na.index = index_into(i.node_index(), node_index_);");
+        text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
+        text_.add_line("auto index = index_into(i.node_index(), node_index_);");
+        text_.add_line("ion_na.index = index_type(size());");
+        text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_na.index.begin());");
+        text_.add_line("EXPECTS((unsigned)std::distance(ion_na.index.begin(), last) == size());");
         if(has_variable(*ion, "ina")) text_.add_line("ion_na.ina = i.current();");
         if(has_variable(*ion, "ena")) text_.add_line("ion_na.ena = i.reversal_potential();");
         if(has_variable(*ion, "nai")) text_.add_line("ion_na.nai = i.internal_concentration();");
@@ -274,7 +278,11 @@ CPrinter::CPrinter(Module &m, bool o)
         auto ion = find_ion(ionKind::Ca);
         text_.add_line("if(k==ionKind::ca) {");
         text_.increase_indentation();
-        text_.add_line("ion_ca.index = index_into(i.node_index(), node_index_);");
+        text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
+        text_.add_line("auto index = index_into(i.node_index(), node_index_);");
+        text_.add_line("ion_ca.index = index_type(size());");
+        text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_ca.index.begin());");
+        text_.add_line("EXPECTS((unsigned)std::distance(ion_ca.index.begin(), last) == size());");
         if(has_variable(*ion, "ica")) text_.add_line("ion_ca.ica = i.current();");
         if(has_variable(*ion, "eca")) text_.add_line("ion_ca.eca = i.reversal_potential();");
         if(has_variable(*ion, "cai")) text_.add_line("ion_ca.cai = i.internal_concentration();");
@@ -287,7 +295,11 @@ CPrinter::CPrinter(Module &m, bool o)
         auto ion = find_ion(ionKind::K);
         text_.add_line("if(k==ionKind::k) {");
         text_.increase_indentation();
-        text_.add_line("ion_k.index = index_into(i.node_index(), node_index_);");
+        text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
+        text_.add_line("auto index = index_into(i.node_index(), node_index_);");
+        text_.add_line("ion_k.index = index_type(size());");
+        text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_k.index.begin());");
+        text_.add_line("EXPECTS((unsigned)std::distance(ion_k.index.begin(), last) == size());");
         if(has_variable(*ion, "ik")) text_.add_line("ion_k.ik = i.current();");
         if(has_variable(*ion, "ek")) text_.add_line("ion_k.ek = i.reversal_potential();");
         if(has_variable(*ion, "ki")) text_.add_line("ion_k.ki = i.internal_concentration();");
@@ -332,7 +344,7 @@ CPrinter::CPrinter(Module &m, bool o)
                 + var->name() + ";");
         }
         else {
-            text_.add_line("view_type " + var->name() + ";");
+            text_.add_line("view " + var->name() + ";");
         }
     }
 
@@ -356,52 +368,6 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line("using base::node_index_;");
 
     text_.add_line();
-    //text_.add_line("DATA_PROFILE");
-    text_.decrease_indentation();
-    text_.add_line("};");
-    text_.add_line();
-
-    // print the helper type that provides the bridge from the mechanism to
-    // the calling code
-    text_.add_line("template<typename T, typename I>");
-    text_.add_line("struct helper : public mechanism_helper<T, I> {");
-    text_.increase_indentation();
-    text_.add_line("using base = mechanism_helper<T, I>;");
-    text_.add_line("using index_view  = typename base::index_view;");
-    text_.add_line("using view_type  = typename base::view_type;");
-    text_.add_line("using mechanism_ptr_type  = typename base::mechanism_ptr_type;");
-    text_.add_gutter() << "using mechanism_type = " << class_name << "<T, I>;";
-    text_.add_line();
-    text_.add_line();
-
-    text_.add_line("std::string");
-    text_.add_line("name() const override");
-    text_.add_line("{");
-    text_.increase_indentation();
-    text_.add_gutter() << "return \"" << m.name() << "\";";
-    text_.add_line();
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line();
-
-    text_.add_line("mechanism_ptr<T,I>");
-    text_.add_line("new_mechanism(view_type vec_v, view_type vec_i, index_view node_index) const override");
-    text_.add_line("{");
-    text_.increase_indentation();
-    text_.add_line("return nest::mc::mechanisms::make_mechanism<mechanism_type>(vec_v, vec_i, node_index);");
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line();
-
-    text_.add_line("void");
-    text_.add_line("set_parameters(mechanism_ptr_type&, parameter_list const&) const override");
-    text_.add_line("{");
-    text_.increase_indentation();
-    // TODO : interface that writes parameter_list paramaters into the mechanism's storage
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line();
-
     text_.decrease_indentation();
     text_.add_line("};");
     text_.add_line();

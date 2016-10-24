@@ -19,30 +19,29 @@ enum class mechanismKind {point, density};
 /// The mechanism type is templated on a memory policy type.
 /// The only difference between the abstract definition of a mechanism on host
 /// or gpu is the information is stored, and how it is accessed.
-template <typename T, typename I, class <template, template> MemoryPolicy>
-class mechanism : public MemoryPolicy<T, I> {
+template <typename MemoryTraits>
+class mechanism : MemoryTraits {
 public:
-    using value_type  = T;
-    using size_type   = I;
+    using memory_traits = MemoryTraits;
 
-    template <typename T, typename I>
-    using memory_policy = MemoryPolicy;
-
-    using base = memory_policy<value_type, size_type>;
+    using typename memory_traits::value_type;
+    using typename memory_traits::size_type;
 
     // define storage types
-    using base::view_type;
-    using base::index_type;
+    using typename memory_traits::vector_type;
+    using typename memory_traits::index_type;
 
-    using base::view;
-    using base::iview;
+    using typename memory_traits::view;
+    using typename memory_traits::iview;
 
-    using base::const_view;
-    using base::const_iview;
+    using typename memory_traits::const_view;
+    using typename memory_traits::const_iview;
 
-    using ion_type    = ion<value_type, size_type>;
+    using indexed_view_type = indexed_view<memory_traits>;
 
-    mechanism(view_type vec_v, view_type vec_i, const_index_view node_index):
+    using ion_type = ion<memory_traits>;
+
+    mechanism(view vec_v, view vec_i, const_iview node_index):
         vec_v_(vec_v), vec_i_(vec_i), node_index_(node_index)
     {}
 
@@ -50,7 +49,7 @@ public:
         return node_index_.size();
     }
 
-    const_ivew node_index() const {
+    const_iview node_index() const {
         return node_index_;
     }
 
@@ -72,7 +71,7 @@ public:
     virtual bool uses_ion(ionKind) const = 0;
     virtual void set_ion(ionKind k, ion_type& i) = 0;
 
-    void set_areas(view_type area) {
+    void set_areas(view area) {
         vec_area_ = area;
     }
 
@@ -84,96 +83,18 @@ public:
     view vec_area_;
 };
 
-template <typename T, typename I, class <template, template> P>
-using mechanism_ptr = std::unique_ptr<mechanism<T, I, P<T, I>>>;
+template <class MemoryTraits>
+using mechanism_ptr = std::unique_ptr<mechanism<MemoryTraits>>;
 
 template <typename M>
-//mechanism_ptr<typename M::value_type, typename M::size_type, M::template memory_policy>
 auto make_mechanism(
-    typename M::view_type  vec_v,
-    typename M::view_type  vec_i,
+    typename M::view  vec_v,
+    typename M::view  vec_i,
     typename M::const_iview node_indices)
--> util::Make_unique<M>(vec_v, vec_i, node_indices);
+-> decltype(util::make_unique<M>(vec_v, vec_i, node_indices))
 {
     return util::make_unique<M>(vec_v, vec_i, node_indices);
 }
-
-#ifdef WITH_CUDA
-namespace gpu {
-    template <typename T, typename I>
-    class mechanism {
-    public:
-        using value_type  = T;
-        using size_type   = I;
-
-        // define storage types
-        using vector_type = memory::DeviceVector<value_type>;
-        using view_type   = typename vector_type::view_type;
-        using index_type  = memory::DeviceVector<size_type>;
-        using index_view  = typename index_type::view_type;
-        using const_index_view  = typename index_type::const_view_type;
-        using indexed_view_type = indexed_view<value_type, size_type>;
-
-        using ion_type    = ion<value_type, size_type>;
-
-        template <typename IVT>
-        mechanism(view_type vec_v, view_type vec_i, IVT node_index):
-            vec_v_(vec_v), vec_i_(vec_i), node_index_(node_index), vec_area_(nullptr, 0)
-        {}
-
-        std::size_t size() const {
-            return node_index_.size();
-        }
-
-        index_view node_index() const {
-            return node_index_;
-        }
-
-        value_type voltage(size_type i) const {
-            return vec_v_[node_index_[i]];
-        }
-
-        value_type current(size_type i) const {
-            return vec_i_[node_index_[i]];
-        }
-
-        virtual void set_params(value_type t_, value_type dt_) = 0;
-        virtual std::string name() const = 0;
-        virtual std::size_t memory() const = 0;
-        virtual void nrn_init()     = 0;
-        virtual void nrn_state()    = 0;
-        virtual void nrn_current()  = 0;
-        virtual void net_receive(int, value_type) {};
-        virtual bool uses_ion(ionKind) const = 0;
-        virtual void set_ion(ionKind k, ion_type& i) = 0;
-
-        void set_areas(view_type area) {
-            vec_area_ = area;
-        }
-
-        virtual mechanismKind kind() const = 0;
-
-        view_type vec_v_;
-        view_type vec_i_;
-        index_type node_index_;
-        view_type vec_area_;
-    };
-
-    template <typename T, typename I>
-    using mechanism_ptr = std::unique_ptr<mechanism<T,I>>;
-
-    template <typename M, typename IVT>
-    mechanism_ptr<typename M::value_type, typename M::size_type>
-    make_mechanism(
-        typename M::view_type  vec_v,
-        typename M::view_type  vec_i,
-        IVT node_indices
-        //typename M::const_index_view node_indices
-    ) {
-        return util::make_unique<M>(vec_v, vec_i, node_indices);
-    }
-} // namespace gpu
-#endif
 
 } // namespace mechanisms
 } // namespace mc

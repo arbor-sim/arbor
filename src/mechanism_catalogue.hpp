@@ -23,23 +23,24 @@ namespace mechanisms {
 
 enum class targetKind {host, gpu};
 
-template <typename T, typename I>
+template <typename MemoryTraits>
 class catalogue {
 public:
-    using view_type = typename mechanism<T, I>::view_type;
-    using index_view = typename mechanism<T, I>::index_view;
-    using const_index_view = typename mechanism<T, I>::const_index_view;
+
+    using memory_traits = MemoryTraits;
+    using view        = typename memory_traits::view;
+    using const_iview = typename memory_traits::const_iview;
+    using mechanism_type = mechanism<memory_traits>;
+    using mechanism_ptr_type = mechanism_ptr<memory_traits>;
 
     template <typename Indices>
-    static mechanism_ptr<T, I> make(
-        const std::string& name,
-        view_type vec_v,
-        view_type vec_i,
-        Indices const& node_indices)
+    static mechanism_ptr_type make(
+        const std::string& name, view vec_v, view vec_i,
+        const Indices& node_indices)
     {
         auto entry = mech_map_.find(name);
         if (entry==mech_map_.end()) {
-            throw std::out_of_range("no such mechanism");
+            throw std::out_of_range("no mechanism in database : " + name);
         }
 
         return entry->second(vec_v, vec_i,  memory::make_const_view(node_indices));
@@ -50,21 +51,17 @@ public:
     }
 
 private:
-    using maker_type = mechanism_ptr<T, I> (*)(view_type, view_type, const_index_view);
+    using maker_type = mechanism_ptr_type (*)(view, view, const_iview);
     static const std::map<std::string, maker_type> mech_map_;
 
-    template <template <typename, typename> class mech>
-    static mechanism_ptr<T, I> maker(
-        view_type vec_v,
-        view_type vec_i,
-        const_index_view node_indices)
-    {
-        return make_mechanism<mech<T, I>>(vec_v, vec_i, node_indices);
+    template <template <typename> class Mech>
+    static mechanism_ptr_type maker(view vec_v, view vec_i, const_iview node_indices) {
+        return make_mechanism<Mech<memory_traits>>(vec_v, vec_i, node_indices);
     }
 };
 
-template <typename T, typename I>
-const std::map<std::string, typename catalogue<T, I>::maker_type> catalogue<T, I>::mech_map_ = {
+template <typename MemoryTraits>
+const std::map<std::string, typename catalogue<MemoryTraits>::maker_type> catalogue<MemoryTraits>::mech_map_ = {
     { "pas",     maker<pas::mechanism_pas> },
     { "hh",      maker<hh::mechanism_hh> },
     { "expsyn",  maker<expsyn::mechanism_expsyn> },

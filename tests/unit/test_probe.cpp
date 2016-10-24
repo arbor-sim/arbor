@@ -57,7 +57,7 @@ TEST(probe, fvm_multicell)
     i_clamp stim(0, 100, 0.3);
     bs.add_stimulus({1, 1}, stim);
 
-    using fvm_multicell = fvm::fvm_multicell<double, cell_lid_type>;
+    using fvm_multicell = fvm::fvm_multicell<nest::mc::multicore::fvm_policy>;
     std::vector<fvm_multicell::target_handle> targets;
     std::vector<fvm_multicell::detector_handle> detectors;
     std::vector<fvm_multicell::probe_handle> probes{3};

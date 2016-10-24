@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/fvm.hpp>
 #include <cell.hpp>
 #include <event_queue.hpp>
 #include <ion.hpp>
@@ -31,22 +32,23 @@ namespace nest {
 namespace mc {
 namespace fvm {
 
-template<
-    typename Value, typename Index,
-    template <typename, typename> class TargetPolicy>
-class fvm_multicell : public TargetPolicy<Value, Index> {
+template<class TargetPolicy>
+class fvm_multicell : public TargetPolicy {
 public:
-    using target_policy_type = TargetPolicy<Value, Index>;
+    using target_policy_type = TargetPolicy;
     using base = target_policy_type;
 
+    using memory_traits = typename base::memory_traits;
+
     /// the real number type
-    using value_type = Value;
+    using value_type = typename base::value_type;
 
     /// the integral index type
-    using size_type = Index;
+    using size_type = typename base::size_type;
 
     /// the container used for values
     using vector_type = typename base::vector_type;
+    using host_vector_type = typename base::host_vector_type;
 
     /// the container used for indexes
     using index_type = typename base::index_type;
@@ -85,19 +87,19 @@ public:
         return (this->*h.first)[h.second];
     }
 
-    void advance(value_type dt);
+    void advance(double dt);
 
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
-    using matrix_type = matrix<value_type, size_type, base::template matrix_policy>;
+    using matrix_type = matrix<typename base::matrix_policy>;
 
     /// mechanism type
     using mechanism_type = typename base::mechanism_type;
 
     /// ion species storage
     /// TODO : make this generic multicore vs. gpu
-    using ion_type = typename mechanisms::ion<value_type, size_type>;
+    using ion_type = typename mechanisms::ion<memory_traits>;
 
     /// view into index container
     using index_view       = typename base::iview;
@@ -108,7 +110,7 @@ public:
     using const_vector_view = typename base::const_view;
 
     /// build the matrix for a given time step
-    void setup_matrix(value_type dt);
+    void setup_matrix(double dt);
 
     /// which requires const_view in the vector library
     const matrix_type& jacobian() { return matrix_; }
@@ -220,7 +222,7 @@ private:
     std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
 
     // mechanism factory
-    using mechanism_catalogue = base::mechanism_catalogue;
+    using mechanism_catalogue = typename base::mechanism_catalogue;
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
@@ -230,8 +232,8 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// Implementation ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-template <typename T, typename I, template<typename, typename> class P>
-void fvm_multicell<T, I, P<T, I>>::compute_cv_area_unnormalized_capacitance(
+template <typename TargetPolicy>
+void fvm_multicell<TargetPolicy>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
     const_index_view parent)
@@ -288,7 +290,7 @@ void fvm_multicell<T, I, P<T, I>>::compute_cv_area_unnormalized_capacitance(
 
             auto radius_center = math::mean(c.radius);
             auto area_face = math::area_circle(radius_center);
-            face_alpha_[i] = area_face / (c_m * r_L * c.length);
+            tmp_face_alpha[i] = area_face / (c_m * r_L * c.length);
 
             auto halflen = c.length/2;
             auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
@@ -314,9 +316,9 @@ void fvm_multicell<T, I, P<T, I>>::compute_cv_area_unnormalized_capacitance(
     cv_capacitance_ = std::move(tmp_cv_capacitance);
 }
 
-template <typename T, typename I, template<typename, typename> class P>
+template <typename TargetPolicy>
 template <typename Cells, typename Detectors, typename Targets, typename Probes>
-void fvm_multicell<T, I, P<T,I>>::initialize(
+void fvm_multicell<TargetPolicy>::initialize(
     const Cells& cells,
     Detectors& detector_handles,
     Targets& target_handles,
@@ -347,11 +349,11 @@ void fvm_multicell<T, I, P<T,I>>::initialize(
     auto ncomp = cell_comp_part.bounds().second;
 
     // initialize storage from total compartment count
-    cv_areas_   = vector_type{ncomp, T{0}};
-    face_alpha_ = vector_type{ncomp, T{0}};
-    cv_capacitance_ = vector_type{ncomp, T{0}};
-    current_    = vector_type{ncomp, T{0}};
-    voltage_    = vector_type{ncomp, T{resting_potential_}};
+    cv_areas_   = vector_type{ncomp, value_type{0}};
+    face_alpha_ = vector_type{ncomp, value_type{0}};
+    cv_capacitance_ = vector_type{ncomp, value_type{0}};
+    current_    = vector_type{ncomp, value_type{0}};
+    voltage_    = vector_type{ncomp, value_type{resting_potential_}};
 
     // create maps for mechanism initialization.
     std::map<std::string, std::vector<std::pair<size_type, size_type>>> mech_map;
@@ -359,7 +361,7 @@ void fvm_multicell<T, I, P<T,I>>::initialize(
     std::map<std::string, std::size_t> syn_mech_indices;
 
     // initialize vector used for matrix creation.
-    host_index_type group_parent_index{ncomp, 0};
+    std::vector<size_type> group_parent_index{ncomp, 0};
 
     // create each cell:
     auto target_hi = target_handles.begin();
@@ -387,7 +389,8 @@ void fvm_multicell<T, I, P<T,I>>::initialize(
             const auto& seg = c.segment(j);
             const auto& seg_comp_ival = seg_comp_part[j];
 
-            compute_cv_area_unnormalized_capacitance(seg_comp_ival, seg, group_parent_index);
+            compute_cv_area_unnormalized_capacitance(
+                seg_comp_ival, seg, memory::make_const_view(group_parent_index));
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
@@ -562,8 +565,8 @@ void fvm_multicell<T, I, P<T,I>>::initialize(
     reset();
 }
 
-template <typename T, typename I>
-void fvm_multicell<T, I>::setup_matrix(T dt) {
+template <typename TargetPolicy>
+void fvm_multicell<TargetPolicy>::setup_matrix(double dt) {
     // TODO KERNEL
     //
     //
@@ -607,8 +610,8 @@ void fvm_multicell<T, I>::setup_matrix(T dt) {
     }
 }
 
-template <typename T, typename I>
-void fvm_multicell<T, I>::reset() {
+template <typename TargetPolicy>
+void fvm_multicell<TargetPolicy>::reset() {
     memory::fill(voltage_, resting_potential_);
     t_ = 0.;
     for (auto& m : mechanisms_) {
@@ -619,9 +622,8 @@ void fvm_multicell<T, I>::reset() {
     }
 }
 
-template <typename T, typename I>
-void fvm_multicell<T, I>::advance(T dt) {
-
+template <typename TargetPolicy>
+void fvm_multicell<TargetPolicy>::advance(double dt) {
     PE("current");
     memory::fill(current_, 0.);
 

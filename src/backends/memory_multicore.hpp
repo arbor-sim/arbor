@@ -1,11 +1,14 @@
 #pragma once
 
+#include <common_types.hpp>
+#include <memory/memory.hpp>
+
 namespace nest {
 namespace mc {
 namespace multicore {
 
 template <typename T, typename I>
-struct memory_policy {
+struct memory_traits_generic {
     // define basic types
     using value_type = T;
     using size_type  = I;
@@ -22,6 +25,10 @@ struct memory_policy {
 
     using host_vector_type = vector_type;
     using host_index_type  = index_type;
+};
+
+using memory_traits = memory_traits_generic<double, nest::mc::cell_lid_type>;
+
 } // namespace multicore
 } // namespace mc
 } // namespace nest

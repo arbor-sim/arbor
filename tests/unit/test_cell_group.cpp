@@ -7,6 +7,9 @@
 
 #include "../test_common_cells.hpp"
 
+using fvm_cell =
+    nest::mc::fvm::fvm_multicell<nest::mc::multicore::fvm_policy>;
+
 nest::mc::cell make_cell() {
     using namespace nest::mc;
 
@@ -22,7 +25,7 @@ TEST(cell_group, test)
 {
     using namespace nest::mc;
 
-    using cell_group_type = cell_group<fvm::fvm_multicell<double, cell_local_size_type>>;
+    using cell_group_type = cell_group<fvm_cell>;
     auto group = cell_group_type{0, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);
@@ -36,7 +39,7 @@ TEST(cell_group, sources)
 {
     using namespace nest::mc;
 
-    using cell_group_type = cell_group<fvm::fvm_multicell<double, cell_local_size_type>>;
+    using cell_group_type = cell_group<fvm_cell>;
 
     auto cell = make_cell();
     EXPECT_EQ(cell.detectors().size(), 1u);

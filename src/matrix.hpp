@@ -13,26 +13,23 @@ namespace mc {
 
 /// Hines matrix
 /// the TargetPolicy defines the backend specific data types and solver
-template<
-    typename T, typename I,
-    template <typename, typename> class TargetPolicy>
-class matrix: public TargetPolicy<T, I> {
+template<class TargetPolicy>
+class matrix: public TargetPolicy {
 public:
-    using target_policy_type = TargetPolicy<T, I>;
-    using base = target_policy_type;
+    using base = TargetPolicy;
 
     // define basic types
-    using value_type = T;
-    using size_type  = I;
+    using typename base::value_type;
+    using typename base::size_type;
 
     // define storage types
-    using vector_type     = typename base::vector_type;
-    using index_type      = typename base::index_type;
+    using typename base::vector_type;
+    using typename base::index_type;
 
-    using view  = typename base::view;
-    using iview = typename base::iview;
-    using const_view  = typename base::const_view;
-    using const_iview = typename base::const_iview;
+    using typename base::view;
+    using typename base::iview;
+    using typename base::const_view;
+    using typename base::const_iview;
 
     matrix() = default;
 
@@ -55,7 +52,7 @@ public:
         typename = typename std::enable_if< memory::is_array<IDX>::value >
     >
     matrix(IDX&& pi) :
-        parent_index_(std::forward<IDX>(pi)),
+        parent_index_(memory::make_const_view(pi)),
         cell_index_(2)
     {
         cell_index_[0] = 0;
@@ -113,17 +110,15 @@ public:
     /// upon completion the solution is stored in the RHS storage
     /// and can be accessed via rhs()
     void solve() {
-        target_policy_type::solve(l_, d_, u_, rhs_, parent_index_, cell_index_);
+        base::solve(l_, d_, u_, rhs_, parent_index_, cell_index_);
     }
 
     private:
 
     /// allocate memory for storing matrix and right hand side vector
-    void setup()
-    {
+    void setup() {
         const auto n = size();
-        constexpr auto default_value
-            = std::numeric_limits<value_type>::quiet_NaN();
+        constexpr auto default_value = std::numeric_limits<value_type>::quiet_NaN();
 
         l_   = vector_type(n, default_value);
         d_   = vector_type(n, default_value);

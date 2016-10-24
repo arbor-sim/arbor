@@ -131,6 +131,9 @@ public:
     using reference       = typename coordinator_type::reference;
     using const_reference = typename coordinator_type::const_reference;
 
+    using iterator = pointer;
+    using const_iterator = const_pointer;
+
     ////////////////////////////////////////////////////////////////////////////
     // constructors
     ////////////////////////////////////////////////////////////////////////////
@@ -369,6 +372,8 @@ public:
 
     using const_pointer   = typename coordinator_type::const_pointer;
     using const_reference = typename coordinator_type::const_reference;
+
+    using const_iterator = const_pointer;
 
     ////////////////////////////////////////////////////////////////////////////
     // CONSTRUCTORS
