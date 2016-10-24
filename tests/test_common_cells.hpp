@@ -12,7 +12,7 @@ namespace mc {
  * Soma:
  *    diameter: 18.8 µm
  *    mechanisms: HH (default params)
- *    bulk resistivitiy: 123 Ω·cm
+ *    bulk resistivitiy: 100 Ω·cm
  *
  * Stimuli:
  *    soma centre, t=[10 ms, 110 ms), 0.1 nA
@@ -22,7 +22,7 @@ inline cell make_cell_soma_only(bool with_stim = true) {
     cell c;
 
     auto soma = c.add_soma(18.8/2.0);
-    soma->mechanism("membrane").set("r_L", 123);
+    soma->mechanism("membrane").set("r_L", 100);
     soma->add_mechanism(hh_parameters());
 
     if (with_stim) {
