@@ -9,8 +9,7 @@
 # @ cpus_per_task = 12
 # @ node_usage = not_shared
 # @ wall_clock_limit = 00:15:00
-PROGRAM=miniapp.exe
 
-export OMP_NUM_THREADS = 1$
-./$PROGRAM 
+export OMP_NUM_THREADS=16
+./run_instrumented.sh 
 

@@ -47,6 +47,8 @@ if(WITH_OMP)
     add_definitions(-DWITH_OMP)
 endif()
 
+
+
 # MPI support
 set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
 if(WITH_MPI)
@@ -62,6 +64,20 @@ endif()
 set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
 if(WITH_PROFILING)
     add_definitions(-DWITH_PROFILING)
+endif()
+
+# Extrae support
+set(WITH_EXTRAE OFF CACHE BOOL "use Extrae for profiling" )
+if(WITH_EXTRAE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BSCOPT_EXTRAE}")
+    add_definitions(-DWITH_EXTRAE)
+    if(WITH_OMP)
+        #Link extrae libs for omp
+        set(CMAKE_EXE_LINKER_FLAGS "${BSCLINK_EXTRAE} -lomptrace")
+    else()
+        #Link extrae libs for seq
+        set(CMAKE_EXE_LINKER_FLAGS "${BSCLINK_EXTRAE} -lseqtrace")
+    endif()
 endif()
 
 # Cray systems
