@@ -88,15 +88,24 @@ else()
     set(use_external_modcc ON BOOL)
 endif()
 
-# whether to attempt to use nrniv to build validation data
+# Validation data generation
+
+# destination directory for generated data
+set(VALIDATION_DATA_DIR "${CMAKE_SOURCE_DIR}/validation/data" CACHE PATH "location of generated validation data")
+
+# Whether to build validation data at all
+set(BUILD_VALIDATION_DATA ON CACHE BOOL "generate validation data")
+
+# Whether to attempt to use nrniv to build validation data
 # (if we find nrniv, do)
 find_program(NRNIV_BIN nrniv)
 if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
-    message(STATUS "nrniv not found; will not automatically build validation data sets")
-    set(BUILD_VALIDATION_DATA FALSE)
+    message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
+    set(BUILD_NRN_VALIDATION_DATA FALSE)
 else()
-    set(BUILD_VALIDATION_DATA TRUE)
+    set(BUILD_NRN_VALIDATION_DATA TRUE)
 endif()
+
 
 include_directories(${CMAKE_SOURCE_DIR}/tclap/include)
 include_directories(${CMAKE_SOURCE_DIR}/vector)
@@ -109,12 +118,17 @@ if( "${WITH_TBB}" STREQUAL "ON" )
     include_directories(${TBB_INCLUDE_DIRS})
 endif()
 
+# only include validation data if flag is set
+if(BUILD_VALIDATION_DATA)
+    add_subdirectory(validation)
+endif()
+
 # only compile modcc if it is not provided externally
 if(use_external_modcc)
     add_subdirectory(modcc)
 endif()
+
 add_subdirectory(mechanisms)
-add_subdirectory(nrn)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(miniapp)

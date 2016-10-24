@@ -12,8 +12,9 @@ set(VALIDATION_SOURCES
     validate.cpp
 )
 
-add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
-
+if(VALIDATION_DATA_DIR)
+    add_definitions("-DDATADIR=\"${VALIDATION_DATA_DIR}\"")
+endif()
 add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 
 set(TARGETS validate.exe)
@@ -36,7 +37,7 @@ foreach(target ${TARGETS})
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
     )
 
-    if (BUILD_VALIDATION_DATA)
+    if(BUILD_VALIDATION_DATA)
 	add_dependencies(${target} validation_data)
     endif()
 endforeach()
