@@ -146,7 +146,6 @@ public:
 
     template<typename Func>
     void run(const Func& f) {
-
         f();
     }
 
