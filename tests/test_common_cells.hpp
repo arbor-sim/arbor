@@ -196,6 +196,10 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
     for (auto& seg: c.segments()) {
         seg->add_mechanism(pas_parameters());
         seg->mechanism("membrane").set("r_L", 100);
+
+        // parameter support not there yet, so leave
+        // as default and modify reference data for now.
+        // seg->mechanism("pas").set("g", 0.000025);
         if (seg->is_dendrite()) {
             seg->set_compartments(4);
         }

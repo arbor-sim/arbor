@@ -20,7 +20,7 @@
 
 using namespace nest::mc;
 
-TEST(soma, neuron_ref) {
+TEST(soma, numeric_ref) {
     // compare voltages against reference data produced from
     // nrn/ball_and_taper.py
 
@@ -32,7 +32,8 @@ TEST(soma, neuron_ref) {
     bool verbose = V.verbose();
 
     // load validation data
-    auto ref_data = V.load_traces("neuron_soma.json");
+    //auto ref_data = V.load_traces("neuron_soma.json");
+    auto ref_data = V.load_traces("numeric_soma.json");
     const char* key = "soma.mid";
     bool run_validation = ref_data.count(key);
     EXPECT_TRUE(run_validation);

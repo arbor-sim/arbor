@@ -70,7 +70,7 @@ public:
     }
 
 private:
-    util::path datadir_ = DATADIR "/validation";
+    util::path datadir_ = DATADIR;
     std::ofstream out_;
     nlohmann::json jtraces_ = nlohmann::json::array();
     bool verbose_flag_ = false;
