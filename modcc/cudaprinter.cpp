@@ -170,9 +170,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using base = ::nest::mc::mechanisms::gpu::mechanism<T, I>;");
     text_.add_line("using value_type  = typename base::value_type;");
     text_.add_line("using size_type   = typename base::size_type;");
-    text_.add_line("using vector_type = typename base::vector_type;");
+    text_.add_line("using array = typename base::array;");
     text_.add_line("using view_type   = typename base::view_type;");
-    text_.add_line("using index_type  = typename base::index_type;");
+    text_.add_line("using iarray  = typename base::iarray;");
     text_.add_line("using index_view  = typename base::index_view;");
     text_.add_line("using const_index_view  = typename base::const_index_view;");
     text_.add_line("using indexed_view_type= typename base::indexed_view_type;");
@@ -191,7 +191,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         for(auto& field : ion.write) {
             text_.add_line("view_type " + field.spelling + ";");
         }
-        text_.add_line("index_type index;");
+        text_.add_line("iarray index;");
         text_.add_line("std::size_t memory() const { return sizeof(size_type)*index.size(); }");
         text_.add_line("std::size_t size() const { return index.size(); }");
         text_.decrease_indentation();
@@ -224,7 +224,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     text_.add_line();
     text_.add_line("// allocate memory");
-    text_.add_line("data_ = vector_type(field_size * num_fields);");
+    text_.add_line("data_ = array(field_size * num_fields);");
     text_.add_line("memory::fill(data_, std::numeric_limits<value_type>::quiet_NaN());");
 
     // assign the sub-arrays
@@ -456,7 +456,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
-    text_.add_line("vector_type data_;");
+    text_.add_line("array data_;");
     for(auto var: array_variables) {
         text_.add_line("view_type " + var->name() + ";");
     }
@@ -657,7 +657,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
     increase_indentation();
 
     text_.add_line("using value_type = T;");
-    text_.add_line("using index_type = I;");
+    text_.add_line("using iarray = I;");
     text_.add_line();
 
     e->body()->accept(this);
@@ -686,7 +686,7 @@ void CUDAPrinter::visit(APIMethod *e) {
     increase_indentation();
 
     text_.add_line("using value_type = T;");
-    text_.add_line("using index_type = I;");
+    text_.add_line("using iarray = I;");
     text_.add_line();
 
     text_.add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");

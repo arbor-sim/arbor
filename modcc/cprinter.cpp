@@ -51,8 +51,8 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line("using value_type  = typename base::value_type;");
     text_.add_line("using size_type   = typename base::size_type;");
     text_.add_line();
-    text_.add_line("using vector_type = typename base::vector_type;");
-    text_.add_line("using index_type  = typename base::index_type;");
+    text_.add_line("using array = typename base::array;");
+    text_.add_line("using iarray  = typename base::iarray;");
     text_.add_line("using view   = typename base::view;");
     text_.add_line("using iview  = typename base::iview;");
     text_.add_line("using const_iview = typename base::const_iview;");
@@ -72,7 +72,7 @@ CPrinter::CPrinter(Module &m, bool o)
         for(auto& field : ion.write) {
             text_.add_line("view " + field.spelling + ";");
         }
-        text_.add_line("index_type index;");
+        text_.add_line("iarray index;");
         text_.add_line("std::size_t memory() const { return sizeof(size_type)*index.size(); }");
         text_.add_line("std::size_t size() const { return index.size(); }");
         text_.decrease_indentation();
@@ -102,7 +102,7 @@ CPrinter::CPrinter(Module &m, bool o)
 
     text_.add_line();
     text_.add_line("// allocate memory");
-    text_.add_line("data_ = vector_type(field_size * num_fields);");
+    text_.add_line("data_ = array(field_size * num_fields);");
     text_.add_line("memory::fill(data_, std::numeric_limits<value_type>::quiet_NaN());");
 
     // assign the sub-arrays
@@ -263,7 +263,7 @@ CPrinter::CPrinter(Module &m, bool o)
         text_.increase_indentation();
         text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
         text_.add_line("auto index = index_into(i.node_index(), node_index_);");
-        text_.add_line("ion_na.index = index_type(size());");
+        text_.add_line("ion_na.index = iarray(size());");
         text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_na.index.begin());");
         text_.add_line("EXPECTS((unsigned)std::distance(ion_na.index.begin(), last) == size());");
         if(has_variable(*ion, "ina")) text_.add_line("ion_na.ina = i.current();");
@@ -280,7 +280,7 @@ CPrinter::CPrinter(Module &m, bool o)
         text_.increase_indentation();
         text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
         text_.add_line("auto index = index_into(i.node_index(), node_index_);");
-        text_.add_line("ion_ca.index = index_type(size());");
+        text_.add_line("ion_ca.index = iarray(size());");
         text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_ca.index.begin());");
         text_.add_line("EXPECTS((unsigned)std::distance(ion_ca.index.begin(), last) == size());");
         if(has_variable(*ion, "ica")) text_.add_line("ion_ca.ica = i.current();");
@@ -297,7 +297,7 @@ CPrinter::CPrinter(Module &m, bool o)
         text_.increase_indentation();
         text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
         text_.add_line("auto index = index_into(i.node_index(), node_index_);");
-        text_.add_line("ion_k.index = index_type(size());");
+        text_.add_line("ion_k.index = iarray(size());");
         text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_k.index.begin());");
         text_.add_line("EXPECTS((unsigned)std::distance(ion_k.index.begin(), last) == size());");
         if(has_variable(*ion, "ik")) text_.add_line("ion_k.ik = i.current();");
@@ -336,11 +336,11 @@ CPrinter::CPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
-    text_.add_line("vector_type data_;");
+    text_.add_line("array data_;");
     for(auto var: array_variables) {
         if(optimize_) {
             text_.add_line(
-                "__declspec(align(vector_type::alignment())) value_type *"
+                "__declspec(align(array::alignment())) value_type *"
                 + var->name() + ";");
         }
         else {
@@ -679,7 +679,7 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     text_.add_line("int NB = n_/BSIZE;");
     for(auto out: aliased_variables) {
         text_.add_line(
-            "__declspec(align(vector_type::alignment())) value_type "
+            "__declspec(align(array::alignment())) value_type "
             + out->name() +  "[BSIZE];");
     }
     //text_.add_line("START_PROFILE");

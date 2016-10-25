@@ -14,17 +14,17 @@ struct memory_traits_generic {
     using size_type  = I;
 
     // define storage types
-    using vector_type  = memory::host_vector<value_type>;
-    using index_type   = memory::host_vector<size_type>;
+    using array  = memory::host_vector<value_type>;
+    using iarray   = memory::host_vector<size_type>;
 
-    using view       = typename vector_type::view_type;
-    using const_view = typename vector_type::const_view_type;
+    using view       = typename array::view_type;
+    using const_view = typename array::const_view_type;
 
-    using iview       = typename index_type::view_type;
-    using const_iview = typename index_type::const_view_type;
+    using iview       = typename iarray::view_type;
+    using const_iview = typename iarray::const_view_type;
 
-    using host_vector_type = vector_type;
-    using host_index_type  = index_type;
+    using host_array = array;
+    using host_iarray  = iarray;
 };
 
 using memory_traits = memory_traits_generic<double, nest::mc::cell_lid_type>;

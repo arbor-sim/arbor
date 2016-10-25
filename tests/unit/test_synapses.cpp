@@ -51,9 +51,9 @@ TEST(synapses, expsyn_basic_state)
     using synapse_type = mechanisms::expsyn::mechanism_expsyn<multicore::memory_traits>;
     auto num_syn = 4;
 
-    synapse_type::index_type indexes(num_syn);
-    synapse_type::vector_type voltage(num_syn, -65.0);
-    synapse_type::vector_type current(num_syn,   1.0);
+    synapse_type::iarray indexes(num_syn);
+    synapse_type::array voltage(num_syn, -65.0);
+    synapse_type::array current(num_syn,   1.0);
     auto mech = mechanisms::make_mechanism<synapse_type>( voltage, current, indexes );
 
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
@@ -102,9 +102,9 @@ TEST(synapses, exp2syn_basic_state)
     using synapse_type = mechanisms::exp2syn::mechanism_exp2syn<multicore::memory_traits>;
     auto num_syn = 4;
 
-    synapse_type::index_type indexes(num_syn);
-    synapse_type::vector_type voltage(num_syn, -65.0);
-    synapse_type::vector_type current(num_syn,   1.0);
+    synapse_type::iarray indexes(num_syn);
+    synapse_type::array voltage(num_syn, -65.0);
+    synapse_type::array current(num_syn,   1.0);
     auto mech = mechanisms::make_mechanism<synapse_type>( voltage, current, indexes );
 
     auto ptr = dynamic_cast<synapse_type*>(mech.get());

@@ -23,8 +23,8 @@ public:
     using typename base::size_type;
 
     // define storage types
-    using typename base::vector_type;
-    using typename base::index_type;
+    using typename base::array;
+    using typename base::iarray;
 
     using typename base::view;
     using typename base::iview;
@@ -67,9 +67,9 @@ public:
 
     /// the total memory used to store the matrix
     std::size_t memory() const {
-        auto s = 6 * (sizeof(value_type) * size() + sizeof(vector_type));
+        auto s = 6 * (sizeof(value_type) * size() + sizeof(array));
         s     += sizeof(size_type) * (parent_index_.size() + cell_index_.size())
-                + 2*sizeof(index_type);
+                + 2*sizeof(iarray);
         s     += sizeof(matrix);
         return s;
     }
@@ -120,25 +120,25 @@ public:
         const auto n = size();
         constexpr auto default_value = std::numeric_limits<value_type>::quiet_NaN();
 
-        l_   = vector_type(n, default_value);
-        d_   = vector_type(n, default_value);
-        u_   = vector_type(n, default_value);
-        rhs_ = vector_type(n, default_value);
+        l_   = array(n, default_value);
+        d_   = array(n, default_value);
+        u_   = array(n, default_value);
+        rhs_ = array(n, default_value);
     }
 
     /// the parent indice that describe matrix structure
-    index_type parent_index_;
+    iarray parent_index_;
 
     /// indexes that point to the start of each cell in the index
-    index_type cell_index_;
+    iarray cell_index_;
 
     /// storage for lower, diagonal, upper and rhs
-    vector_type l_;
-    vector_type d_;
-    vector_type u_;
+    array l_;
+    array d_;
+    array u_;
 
     /// after calling solve, the solution is stored in rhs_
-    vector_type rhs_;
+    array rhs_;
 };
 
 } // namespace nest

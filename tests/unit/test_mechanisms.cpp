@@ -18,8 +18,8 @@ TEST(mechanisms, helpers) {
     auto node_indices = std::vector<size_type>{0,6,7,8,9};
     auto n = node_indices.size();
 
-    memory_traits::vector_type vec_i(n, 0.);
-    memory_traits::vector_type vec_v(n, 0.);
+    memory_traits::array vec_i(n, 0.);
+    memory_traits::array vec_v(n, 0.);
 
     auto mech = catalogue::make(
             "hh", memory::make_view(vec_v), memory::make_view(vec_i),

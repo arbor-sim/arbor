@@ -53,8 +53,8 @@ public :
     using typename memory_traits::size_type;
 
     // define storage types
-    using typename memory_traits::vector_type;
-    using typename memory_traits::index_type;
+    using typename memory_traits::array;
+    using typename memory_traits::iarray;
     using typename memory_traits::view;
     using typename memory_traits::const_iview;
 
@@ -72,7 +72,7 @@ public :
 
     std::size_t memory() const {
         return 4u*size() * sizeof(value_type)
-               +  size() * sizeof(index_type)
+               +  size() * sizeof(iarray)
                +  sizeof(ion);
     }
 
@@ -99,11 +99,11 @@ public :
 
 private :
 
-    index_type node_index_;
-    vector_type iX_;
-    vector_type eX_;
-    vector_type Xi_;
-    vector_type Xo_;
+    iarray node_index_;
+    array iX_;
+    array eX_;
+    array Xi_;
+    array Xo_;
 };
 
 } // namespace mechanisms

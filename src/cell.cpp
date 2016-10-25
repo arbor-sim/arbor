@@ -54,7 +54,7 @@ soma_segment* cell::add_soma(value_type radius, point_type center)
     return segments_[0]->as_soma();
 }
 
-cable_segment* cell::add_cable(cell::index_type parent, segment_ptr&& cable)
+cable_segment* cell::add_cable(cell::iarray parent, segment_ptr&& cable)
 {
     // check for a valid parent id
     if(cable->is_soma()) {
@@ -75,7 +75,7 @@ cable_segment* cell::add_cable(cell::index_type parent, segment_ptr&& cable)
     return segments_.back()->as_cable();
 }
 
-segment* cell::segment(index_type index)
+segment* cell::segment(iarray index)
 {
     if (index>=num_segments()) {
         throw std::out_of_range(
@@ -85,7 +85,7 @@ segment* cell::segment(index_type index)
     return segments_[index].get();
 }
 
-segment const* cell::segment(index_type index) const
+segment const* cell::segment(iarray index) const
 {
     if (index>=num_segments()) {
         throw std::out_of_range(
@@ -109,7 +109,7 @@ soma_segment* cell::soma()
     return nullptr;
 }
 
-cable_segment* cell::cable(index_type index)
+cable_segment* cell::cable(iarray index)
 {
     if(index>0 && index<num_segments()) {
         return segment(index)->as_cable();
@@ -196,7 +196,7 @@ void cell::add_detector(segment_location loc, double threshold)
     spike_detectors_.push_back({loc, threshold});
 }
 
-std::vector<cell::index_type> const& cell::segment_parents() const
+std::vector<cell::iarray> const& cell::segment_parents() const
 {
     return parents_;
 }
@@ -218,7 +218,7 @@ bool cell_basic_equality(cell const& lhs, cell const& rhs)
     if (lhs.segment_parents() != rhs.segment_parents()) {
         return false;
     }
-    for (cell::index_type i=0; i<lhs.num_segments(); ++i) {
+    for (cell::iarray i=0; i<lhs.num_segments(); ++i) {
         // a quick and dirty test
         auto& l = *lhs.segment(i);
         auto& r = *rhs.segment(i);

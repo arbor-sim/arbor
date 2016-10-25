@@ -38,27 +38,29 @@ public:
     using target_policy_type = TargetPolicy;
     using base = target_policy_type;
 
-    using memory_traits = typename base::memory_traits;
+    using typename base::memory_traits;
 
     /// the real number type
-    using value_type = typename base::value_type;
+    using typename base::value_type;
 
     /// the integral index type
-    using size_type = typename base::size_type;
+    using typename base::size_type;
 
     /// the container used for values
-    using vector_type = typename base::vector_type;
-    using host_vector_type = typename base::host_vector_type;
+    using typename base::array;
+    using typename base::host_array;
 
     /// the container used for indexes
-    using index_type = typename base::index_type;
+    using typename base::iarray;
+
+    using typename base::matrix_policy;
 
     /// API for cell_group (see above):
     using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
-    using probe_handle = std::pair<const vector_type fvm_multicell::*, size_type>;
+    using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
 
-    using stimulus_store_type = std::vector<std::pair<std::uint32_t, i_clamp>>;
+    using stimulus_store_type = std::vector<std::pair<size_type, i_clamp>>;
 
     fvm_multicell() = default;
 
@@ -92,7 +94,7 @@ public:
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
-    using matrix_type = matrix<typename base::matrix_policy>;
+    using matrix_type = matrix<matrix_policy>;
 
     /// mechanism type
     using typename base::mechanism_type;
@@ -188,25 +190,25 @@ private:
     matrix_type matrix_;
 
     /// index for fast lookup of compartment index ranges of segments
-    index_type segment_index_;
+    iarray segment_index_;
 
     /// cv_areas_[i] is the surface area of CV i [µm^2]
-    vector_type cv_areas_;
+    array cv_areas_;
 
     /// alpha_[i] is the following value at the CV face between
     /// CV i and its parent, required when constructing linear system
     ///     face_alpha_[i] = area_face  / (c_m * r_L * delta_x);
-    vector_type face_alpha_; // [µm·m^2/cm/s ≡ 10^5 µm^2/ms]
+    array face_alpha_; // [µm·m^2/cm/s ≡ 10^5 µm^2/ms]
 
     /// cv_capacitance_[i] is the capacitance of CV i per unit area (i.e. c_m) [F/m^2]
-    vector_type cv_capacitance_;
+    array cv_capacitance_;
 
     /// the average current density over the surface of each CV [mA/cm^2]
     /// current_ = i_m - i_e
-    vector_type current_;
+    array current_;
 
     /// the potential in each CV [mV]
-    vector_type voltage_;
+    array voltage_;
 
     /// Where point mechanisms start in the mechanisms_ list.
     std::size_t synapse_base_;
@@ -219,7 +221,7 @@ private:
 
     stimulus_store_type stimuli_;
 
-    std::vector<std::pair<const vector_type fvm_multicell::*, uint32_t>> probes_;
+    std::vector<std::pair<const array fvm_multicell::*, uint32_t>> probes_;
 
     // mechanism factory
     using mechanism_catalogue = typename base::mechanism_catalogue;
@@ -343,8 +345,8 @@ void fvm_multicell<TargetPolicy>::initialize(
     auto ncomp = cell_comp_part.bounds().second;
 
     // initialize storage from total compartment count
-    current_    = vector_type{ncomp, value_type{0}};
-    voltage_    = vector_type{ncomp, value_type{resting_potential_}};
+    current_    = array{ncomp, value_type{0}};
+    voltage_    = array{ncomp, value_type{resting_potential_}};
 
     // create maps for mechanism initialization.
     std::map<std::string, std::vector<std::pair<size_type, size_type>>> mech_map;

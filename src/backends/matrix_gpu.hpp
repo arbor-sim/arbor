@@ -58,13 +58,13 @@ struct matrix_policy {
     using size_type  = I;
 
     // define storage types
-    using vector_type  = memory::DeviceVector<value_type>;
-    using index_type   = memory::DeviceVector<size_type>;
+    using array  = memory::DeviceVector<value_type>;
+    using iarray   = memory::DeviceVector<size_type>;
 
-    using view = typename vector_type::view_type;
-    using const_view = typename vector_type::const_view_type;
-    using iview = typename index_type::view_type;
-    using const_iview = typename index_type::const_view_type;
+    using view = typename array::view_type;
+    using const_view = typename array::const_view_type;
+    using iview = typename iarray::view_type;
+    using const_iview = typename iarray::const_view_type;
 
     using param_pack_type = matrix_param_pack<value_type, size_type>;
 

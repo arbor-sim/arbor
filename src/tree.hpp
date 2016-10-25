@@ -20,9 +20,9 @@ public:
     using int_type = Int;
     using size_type = Size;
 
-    using index_type = memory::host_vector<int_type>;
-    using view_type  = typename index_type::view_type;
-    using const_view_type = typename index_type::const_view_type;
+    using iarray = memory::host_vector<int_type>;
+    using view_type  = typename iarray::view_type;
+    using const_view_type = typename iarray::const_view_type;
     static constexpr int_type no_parent = (int_type)-1;
 
     tree() = default;
@@ -131,12 +131,12 @@ public:
         return sizeof(int_type)*data_.size() + sizeof(tree);
     }
 
-    index_type change_root(size_t b) {
+    iarray change_root(size_t b) {
         assert(b<num_nodes());
 
         // no need to rebalance if the root node has been requested
         if(b==0) {
-            return index_type();
+            return iarray();
         }
 
         // create new tree with memory allocated
@@ -150,7 +150,7 @@ public:
         // allocate space for the permutation vector that
         // will represent the permutation performed on the branches
         // during the rebalancing
-        index_type p(num_nodes(), -1);
+        iarray p(num_nodes(), -1);
 
         // recersively rebalance the tree
         new_tree.add_children(0, b, 0, p, *this);
@@ -173,7 +173,7 @@ private:
     void init(size_type nnode) {
         auto nchild = nnode - 1;
 
-        data_ = index_type(nchild + (nnode + 1) + nnode);
+        data_ = iarray(nchild + (nnode + 1) + nnode);
         set_ranges(nnode);
     }
 
@@ -281,7 +281,7 @@ private:
     //////////////////////////////////////////////////
     // state
     //////////////////////////////////////////////////
-    index_type data_;
+    iarray data_;
 
     // provide default parameters so that tree type can
     // be default constructed

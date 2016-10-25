@@ -36,9 +36,9 @@ public:
     using int_type        = cell_lid_type;
     using size_type       = cell_local_size_type;
 
-    using index_type      = memory::host_vector<int_type>;
-    using view_type       = index_type::view_type;
-    using const_view_type = index_type::const_view_type;
+    using iarray      = memory::host_vector<int_type>;
+    using view_type       = iarray::view_type;
+    using const_view_type = iarray::const_view_type;
 
     using tree = nest::mc::tree<int_type, size_type>;
     static constexpr int_type no_parent = tree::no_parent;
@@ -165,16 +165,16 @@ public:
         fid << "}" << std::endl; // flush at end of output?
     }
 
-    index_type depth_from_leaf()
+    iarray depth_from_leaf()
     {
-        tree::index_type depth(num_segments());
+        tree::iarray depth(num_segments());
         depth_from_leaf(depth, int_type{0});
         return depth;
     }
 
-    index_type depth_from_root()
+    iarray depth_from_root()
     {
-        tree::index_type depth(num_segments());
+        tree::iarray depth(num_segments());
         depth[0] = 0;
         depth_from_root(depth, int_type{1});
         return depth;
@@ -271,7 +271,7 @@ private :
         return new_root;
     }
 
-    int_type depth_from_leaf(index_type& depth, int_type segment)
+    int_type depth_from_leaf(iarray& depth, int_type segment)
     {
         int_type max_depth = 0;
         for(auto c : children(segment)) {
@@ -281,7 +281,7 @@ private :
         return max_depth+1;
     }
 
-    void depth_from_root(index_type& depth, int_type segment)
+    void depth_from_root(iarray& depth, int_type segment)
     {
         auto d = depth[parent(segment)] + 1;
         depth[segment] = d;

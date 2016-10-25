@@ -28,8 +28,8 @@ public:
     using typename memory_traits::size_type;
 
     // define storage types
-    using typename memory_traits::vector_type;
-    using typename memory_traits::index_type;
+    using typename memory_traits::array;
+    using typename memory_traits::iarray;
 
     using typename memory_traits::view;
     using typename memory_traits::iview;
@@ -79,7 +79,7 @@ public:
 
     view vec_v_;
     view vec_i_;
-    index_type node_index_;
+    iarray node_index_;
     view vec_area_;
 };
 
