@@ -14,7 +14,7 @@
 #endif
 
 using json = nlohmann::json;
-using range = memory::Range;
+using range = nest::mc::memory::Range;
 
 using namespace nest::mc;
 using int_type = cell_tree::int_type;

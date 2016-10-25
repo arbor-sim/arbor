@@ -12,62 +12,61 @@ namespace mc {
 namespace memory {
 
 //
-// helpers that allow us to easily generate a view or const_view for
-// an arbitrary type
+// helpers that allow us to easily generate a view or const_view for an arbitrary type
 //
 
 //
-// Array
+// array
 //
 
-// pass by non-const reference because it is not possible to make a view from a const Array
+// note we have to pass by non-const reference because
 template <typename T, typename Coordinator>
-ArrayView<T, Coordinator>
-make_view(Array<T, Coordinator>& a) {
-    return ArrayView<T, Coordinator>(a.data(), a.size());
+array_view<T, Coordinator>
+make_view(array<T, Coordinator>& a) {
+    return array_view<T, Coordinator>(a.data(), a.size());
 }
 
-// pass by const reference because both const and non-const can be cast to const
+// pass by const reference
 template <typename T, typename Coordinator>
-ConstArrayView<T, Coordinator>
-make_const_view(const Array<T, Coordinator>& a) {
-    return ConstArrayView<T, Coordinator>(a.data(), a.size());
+const_array_view<T, Coordinator>
+make_const_view(const array<T, Coordinator>& a) {
+    return const_array_view<T, Coordinator>(a.data(), a.size());
 }
 
 //
-// ArrayView
+// array_view
 //
 template <typename T, typename Coordinator>
-ArrayView<T, Coordinator>
-make_view(ArrayView<T, Coordinator> v) {
+array_view<T, Coordinator>
+make_view(array_view<T, Coordinator> v) {
     return v;
 }
 
 template <typename T, typename Coordinator>
-ConstArrayView<T, Coordinator>
-make_const_view(ArrayView<T, Coordinator> v) {
-    return ConstArrayView<T, Coordinator>(v.data(), v.size());
+const_array_view<T, Coordinator>
+make_const_view(array_view<T, Coordinator> v) {
+    return const_array_view<T, Coordinator>(v.data(), v.size());
 }
 
 template <typename T, typename Coordinator>
-ConstArrayView<T, Coordinator>
-make_const_view(ConstArrayView<T, Coordinator> v) {
-    return ConstArrayView<T, Coordinator>(v.data(), v.size());
+const_array_view<T, Coordinator>
+make_const_view(const_array_view<T, Coordinator> v) {
+    return const_array_view<T, Coordinator>(v.data(), v.size());
 }
 
 //
 // std::vector
 //
 template <typename T, typename Allocator>
-ArrayView<T, HostCoordinator<T>>
+array_view<T, host_coordinator<T>>
 make_view(std::vector<T, Allocator>& vec) {
-    return ArrayView<T, HostCoordinator<T>>(vec.data(), vec.size());
+    return array_view<T, host_coordinator<T>>(vec.data(), vec.size());
 }
 
 template <typename T, typename Allocator>
-ConstArrayView<T, HostCoordinator<T>>
+const_array_view<T, host_coordinator<T>>
 make_const_view(const std::vector<T, Allocator>& vec) {
-    return ConstArrayView<T, HostCoordinator<T>>(vec.data(), vec.size());
+    return const_array_view<T, host_coordinator<T>>(vec.data(), vec.size());
 }
 
 //
@@ -81,13 +80,13 @@ namespace util {
     struct is_on_host<std::vector<T, Allocator>> : std::true_type {};
 
     template <typename T, typename Allocator>
-    struct is_on_host<Array<T, HostCoordinator<T, Allocator>>> : std::true_type {};
+    struct is_on_host<array<T, host_coordinator<T, Allocator>>> : std::true_type {};
 
     template <typename T, typename Allocator>
-    struct is_on_host<ArrayView<T, HostCoordinator<T, Allocator>>> : std::true_type {};
+    struct is_on_host<array_view<T, host_coordinator<T, Allocator>>> : std::true_type {};
 
     template <typename T, typename Allocator>
-    struct is_on_host<ConstArrayView<T, HostCoordinator<T, Allocator>>> : std::true_type {};
+    struct is_on_host<const_array_view<T, host_coordinator<T, Allocator>>> : std::true_type {};
 
     template <typename T>
     constexpr bool is_on_host_v() {
@@ -99,13 +98,13 @@ namespace util {
     struct is_on_gpu : std::false_type {};
 
     template <typename T, typename Allocator>
-    struct is_on_gpu<Array<T, DeviceCoordinator<T, Allocator>>> : std::true_type {};
+    struct is_on_gpu<array<T, device_coordinator<T, Allocator>>> : std::true_type {};
 
     template <typename T, typename Allocator>
-    struct is_on_gpu<ArrayView<T, DeviceCoordinator<T, Allocator>>> : std::true_type {};
+    struct is_on_gpu<array_view<T, device_coordinator<T, Allocator>>> : std::true_type {};
 
     template <typename T, typename Allocator>
-    struct is_on_gpu<ConstArrayView<T, DeviceCoordinator<T, Allocator>>> : std::true_type {};
+    struct is_on_gpu<const_array_view<T, device_coordinator<T, Allocator>>> : std::true_type {};
 
     template <typename T>
     constexpr bool is_on_gpu_v() {
@@ -135,9 +134,9 @@ template <
     typename C,
     typename = typename std::enable_if<util::is_on_gpu_v<C>()>::type
 >
-auto on_host(const C& c) -> HostVector<typename C::value_type> {
+auto on_host(const C& c) -> host_vector<typename C::value_type> {
     using T = typename C::value_type;
-    return HostVector<T>(make_const_view(c));
+    return host_vector<T>(make_const_view(c));
 }
 
 // gpu
@@ -153,9 +152,9 @@ template <
     typename C,
     typename = typename std::enable_if<util::is_on_host_v<C>()>::type
 >
-auto on_gpu(const C& c) -> DeviceVector<typename C::value_type> {
+auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
     using T = typename C::value_type;
-    return DeviceVector<T>(make_const_view(c));
+    return device_vector<T>(make_const_view(c));
 }
 #endif
 

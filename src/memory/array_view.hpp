@@ -16,40 +16,40 @@ namespace memory{
 
 // forward declarations
 template<typename T, typename Coord>
-class Array;
+class array;
 
 template <typename T, typename Coord>
-class ArrayView;
+class array_view;
 
 template <typename T, typename Coord>
-class ConstArrayView;
+class const_array_view;
 
 namespace util {
     template <typename T, typename Coord>
-    struct type_printer<ArrayView<T,Coord>> {
+    struct type_printer<array_view<T,Coord>> {
         static std::string print() {
             std::stringstream str;
-            str << util::white("ArrayView") << "<" << type_printer<T>::print()
+            str << util::white("array_view") << "<" << type_printer<T>::print()
                 << ", " << type_printer<Coord>::print() << ">";
             return str.str();
         }
     };
 
     template <typename T, typename Coord>
-    struct type_printer<ConstArrayView<T,Coord>> {
+    struct type_printer<const_array_view<T,Coord>> {
         static std::string print() {
             std::stringstream str;
-            str << util::white("ConstArrayView") << "<" << type_printer<T>::print()
+            str << util::white("const_array_view") << "<" << type_printer<T>::print()
                 << ", " << type_printer<Coord>::print() << ">";
             return str.str();
         }
     };
 
     template <typename T, typename Coord>
-    struct pretty_printer<ArrayView<T,Coord>> {
-        static std::string print(const ArrayView<T,Coord>& val) {
+    struct pretty_printer<array_view<T,Coord>> {
+        static std::string print(const array_view<T,Coord>& val) {
             std::stringstream str;
-            str << type_printer<ArrayView<T,Coord>>::print()
+            str << type_printer<array_view<T,Coord>>::print()
                 << "(size="     << val.size()
                 << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
@@ -57,10 +57,10 @@ namespace util {
     };
 
     template <typename T, typename Coord>
-    struct pretty_printer<ConstArrayView<T,Coord>> {
-        static std::string print(const ConstArrayView<T,Coord>& val) {
+    struct pretty_printer<const_array_view<T,Coord>> {
+        static std::string print(const const_array_view<T,Coord>& val) {
             std::stringstream str;
-            str << type_printer<ConstArrayView<T,Coord>>::print()
+            str << type_printer<const_array_view<T,Coord>>::print()
                 << "(size="     << val.size()
                 << ", pointer=" << util::print_pointer(val.data()) << ")";
             return str.str();
@@ -70,56 +70,56 @@ namespace util {
 
 namespace impl {
 
-    // metafunction for indicating whether a type is an ArrayView
+    // metafunction for indicating whether a type is an array_view
     template <typename T>
     struct is_array_view : std::false_type {};
 
     template <typename T, typename Coord>
-    struct is_array_view<ArrayView<T, Coord> > : std::true_type {};
+    struct is_array_view<array_view<T, Coord> > : std::true_type {};
 
     template <typename T, typename Coord>
-    struct is_array_view<ConstArrayView<T, Coord> > : std::true_type {};
+    struct is_array_view<const_array_view<T, Coord> > : std::true_type {};
 
     template <typename T>
     struct is_array;
 
-    // Helper functions that access the reset() methods in ArrayView.
+    // Helper functions that access the reset() methods in array_view.
     // Required to work around a bug in nvcc that makes it awkward to give
-    // Coordinator classes friend access to ArrayView types, so that the
+    // Coordinator classes friend access to array_view types, so that the
     // Coordinator can free and allocate memory. The reset() functions
-    // below are friend functions of ArrayView, and are placed in memory::impl::
+    // below are friend functions of array_view, and are placed in memory::impl::
     // because users should not directly modify pointer or size information in an
-    // ArrayView.
+    // array_view.
     template <typename T, typename Coord>
-    void reset(ArrayView<T, Coord>& v, T* ptr, std::size_t s) {
+    void reset(array_view<T, Coord>& v, T* ptr, std::size_t s) {
         v.reset(ptr, s);
     }
 
     template <typename T, typename Coord>
-    void reset(ArrayView<T, Coord>& v) {
+    void reset(array_view<T, Coord>& v) {
         v.reset();
     }
 
     template <typename T, typename Coord>
-    void reset(ConstArrayView<T, Coord>& v, T* ptr, std::size_t s) {
+    void reset(const_array_view<T, Coord>& v, T* ptr, std::size_t s) {
         v.reset(ptr, s);
     }
 
     template <typename T, typename Coord>
-    void reset(ConstArrayView<T, Coord>& v) {
+    void reset(const_array_view<T, Coord>& v) {
         v.reset();
     }
 }
 
 using impl::is_array_view;
 
-// An ArrayView type refers to a sub-range of an Array. It does not own the
+// An array_view type refers to a sub-range of an array. It does not own the
 // memory, i.e. it is not responsible for allocation and freeing.
 template <typename T, typename Coord>
-class ArrayView {
+class array_view {
 public:
-    using view_type       = ArrayView<T, Coord>;
-    using const_view_type = ConstArrayView<T, Coord>;
+    using view_type       = array_view<T, Coord>;
+    using const_view_type = const_array_view<T, Coord>;
 
     using value_type = T;
     using coordinator_type = typename Coord::template rebind<value_type>;
@@ -142,39 +142,39 @@ public:
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
-    explicit ArrayView(Other&& other) :
+    explicit array_view(Other&& other) :
         pointer_(other.data()), size_(other.size())
     {
         #ifdef VERBOSE
-        std::cout << util::green("ArrayView(&&Other) ")
-                  << "\n  this  " << util::pretty_printer<ArrayView>::print(*this)
+        std::cout << util::green("array_view(&&Other) ")
+                  << "\n  this  " << util::pretty_printer<array_view>::print(*this)
                   << "\n  other " << util::pretty_printer<typename std::decay<Other>::type>::print(other)
                   << "\n";
         #endif
     }
 
-    explicit ArrayView(pointer ptr, size_type n) :
+    explicit array_view(pointer ptr, size_type n) :
         pointer_(ptr), size_(n)
     {
         #ifdef VERBOSE
-        std::cout << util::green("ArrayView(pointer, size_type)")
-                  << "\n  this  " << util::pretty_printer<ArrayView>::print(*this)
+        std::cout << util::green("array_view(pointer, size_type)")
+                  << "\n  this  " << util::pretty_printer<array_view>::print(*this)
                   << "\n";
         #endif
     }
 
-    explicit ArrayView(ArrayView& other, size_type n) :
+    explicit array_view(array_view& other, size_type n) :
         pointer_(other.data()), size_(n)
     {
         assert(n<=other.size());
         #ifdef VERBOSE
-        std::cout << util::green("ArrayView(ArrayView, size_type)")
-                  << "\n  this  " << util::pretty_printer<ArrayView>::print(*this)
-                  << "\n  other " << util::pretty_printer<ArrayView>::print(other) << "\n";
+        std::cout << util::green("array_view(array_view, size_type)")
+                  << "\n  this  " << util::pretty_printer<array_view>::print(*this)
+                  << "\n  other " << util::pretty_printer<array_view>::print(other) << "\n";
         #endif
     }
 
-    explicit ArrayView() {
+    explicit array_view() {
         reset();
     };
 
@@ -236,11 +236,11 @@ public:
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
-    ArrayView operator=(Other&& other) {
+    array_view operator=(Other&& other) {
         #if VERBOSE
-        std::cerr << util::pretty_printer<ArrayView>::print(*this)
+        std::cerr << util::pretty_printer<array_view>::print(*this)
                   << "::" << util::blue("operator=") << "("
-                  << util::pretty_printer<ArrayView>::print(other)
+                  << util::pretty_printer<array_view>::print(other)
                   << ")" << std::endl;
         #endif
         reset(other.data(), other.size());
@@ -298,7 +298,7 @@ public:
     }
 
     // do nothing for destructor: we don't own the memory in range
-    ~ArrayView() {}
+    ~array_view() {}
 
     // test whether memory overlaps that referenced by other
     template <
@@ -320,11 +320,11 @@ public:
 
 protected :
     template < typename U, typename C>
-    friend void impl::reset(ArrayView<U, C>&, U*, std::size_t);
+    friend void impl::reset(array_view<U, C>&, U*, std::size_t);
     template <typename U, typename C>
-    friend void impl::reset(ArrayView<U, C>&);
+    friend void impl::reset(array_view<U, C>&);
 
-    void swap(ArrayView& other) {
+    void swap(array_view& other) {
         auto ptr = other.data();
         auto sz  = other.size();
         other.reset(pointer_, size_);
@@ -343,7 +343,7 @@ protected :
     }
 
     // disallow constructors that imply allocation of memory
-    ArrayView(std::size_t n) = delete;
+    array_view(std::size_t n) = delete;
 
     coordinator_type coordinator_;
     pointer          pointer_;
@@ -351,10 +351,10 @@ protected :
 };
 
 template <typename T, typename Coord>
-class ConstArrayView {
+class const_array_view {
 public:
-    using view_type       = ArrayView<T, Coord>;
-    using const_view_type = ConstArrayView;
+    using view_type       = array_view<T, Coord>;
+    using const_view_type = const_array_view;
 
     using value_type = T;
     using coordinator_type = typename Coord::template rebind<value_type>;
@@ -374,40 +374,40 @@ public:
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
-    ConstArrayView(Other&& other) :
+    const_array_view(Other&& other) :
         pointer_(other.data()), size_(other.size())
     {
 #if VERBOSE
-        std::cout << util::green("ConstArrayView(&&Other)")
-                  << "\n  this  " << util::pretty_printer<ConstArrayView>::print(*this)
+        std::cout << util::green("const_array_view(&&Other)")
+                  << "\n  this  " << util::pretty_printer<const_array_view>::print(*this)
                   << "\n  other " << util::pretty_printer<typename std::decay<Other>::type>::print(other)
                   << std::endl;
 #endif
     }
 
-    explicit ConstArrayView(const_pointer ptr, size_type n) :
+    explicit const_array_view(const_pointer ptr, size_type n) :
         pointer_(ptr), size_(n)
     {
 #if VERBOSE
-        std::cout << util::green("ConstArrayView(pointer, size_type)")
-                  << "\n  this " << util::pretty_printer<ConstArrayView>::print(*this)
+        std::cout << util::green("const_array_view(pointer, size_type)")
+                  << "\n  this " << util::pretty_printer<const_array_view>::print(*this)
                   << std::endl;
 #endif
     }
 
-    explicit ConstArrayView(view_type& other, size_type n) :
+    explicit const_array_view(view_type& other, size_type n) :
         pointer_(other.data()), size_(n)
     {
         assert(n<=other.size());
     }
 
-    explicit ConstArrayView(ConstArrayView& other, size_type n) :
+    explicit const_array_view(const_array_view& other, size_type n) :
         pointer_(other.data()), size_(n)
     {
         assert(n<=other.size());
     }
 
-    explicit ConstArrayView() {
+    explicit const_array_view() {
         reset();
     };
 
@@ -446,11 +446,11 @@ public:
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
-    ConstArrayView operator=(Other&& other) {
+    const_array_view operator=(Other&& other) {
 #if VERBOSE
-        std::cerr << util::pretty_printer<ConstArrayView>::print(*this)
+        std::cerr << util::pretty_printer<const_array_view>::print(*this)
                   << "::" << util::blue("operator=") << "("
-                  << util::pretty_printer<ConstArrayView>::print(other)
+                  << util::pretty_printer<const_array_view>::print(other)
                   << ")" << std::endl;
 #endif
         reset(other.data(), other.size());
@@ -489,7 +489,7 @@ public:
     }
 
     // do nothing for destructor: we don't own the memory in range
-    ~ConstArrayView() {}
+    ~const_array_view() {}
 
     // test whether memory overlaps that referenced by other
     template <
@@ -510,15 +510,15 @@ public:
     }
 
     // disallow constructors that imply allocation of memory
-    ConstArrayView(const std::size_t &n) = delete;
+    const_array_view(const std::size_t &n) = delete;
 
 protected :
     template <typename U, typename C>
-    friend void impl::reset(ConstArrayView<U, C>&, U*, std::size_t);
+    friend void impl::reset(const_array_view<U, C>&, U*, std::size_t);
     template <typename U, typename C>
-    friend void impl::reset(ConstArrayView<U, C>&);
+    friend void impl::reset(const_array_view<U, C>&);
 
-    void swap(ConstArrayView& other) {
+    void swap(const_array_view& other) {
         auto ptr = other.data();
         auto sz  = other.size();
         other.reset(pointer_, size_);

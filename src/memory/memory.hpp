@@ -16,12 +16,12 @@ namespace memory {
 
 // specialization for host vectors
 template <typename T>
-using HostVector = Array<T, HostCoordinator<T>>;
+using host_vector = array<T, host_coordinator<T>>;
 template <typename T>
-using HostView = ArrayView<T, HostCoordinator<T>>;
+using host_view = array_view<T, host_coordinator<T>>;
 
 template <typename T>
-std::ostream& operator<< (std::ostream& o, HostView<T> const& v) {
+std::ostream& operator<< (std::ostream& o, host_view<T> const& v) {
     o << "[";
     for(auto const& value: v) o << value << ",";
     o << "]";
@@ -34,23 +34,23 @@ std::ostream& operator<< (std::ostream& o, HostView<T> const& v) {
 // in the host memory space, and all of the helpers (copy, set, etc) are the
 // same with and without page locked memory
 template <typename T>
-using PinnedVector = Array<T, HostCoordinator<T, PinnedAllocator<T>>>;
+using pinned_vector = array<T, host_coordinator<T, pinned_allocator<T>>>;
 template <typename T>
-using PinnedView = ArrayView<T, HostCoordinator<T, PinnedAllocator<T>>>;
+using pinned_view = array_view<T, host_coordinator<T, pinned_allocator<T>>>;
 
 // specialization for device memory
 template <typename T>
-using DeviceVector = Array<T, DeviceCoordinator<T, CudaAllocator<T>>>;
+using device_vector = array<T, device_coordinator<T, cuda_allocator<T>>>;
 template <typename T>
-using DeviceView = ArrayView<T, DeviceCoordinator<T, CudaAllocator<T>>>;
+using device_view = array_view<T, device_coordinator<T, cuda_allocator<T>>>;
 #endif
 
 #ifdef WITH_KNL
 // specialization for HBW memory on KNL
 template <typename T>
-using HBWVector = Array<T, HostCoordinator<T, HBWAllocator<T>>>;
+using hwb_vector = array<T, host_coordinator<T, hwb_allocator<T>>>;
 template <typename T>
-using HBWView = ArrayView<T, HostCoordinator<T, HBWAllocator<T>>>;
+using hwb_view = array_view<T, host_coordinator<T, hwb_allocator<T>>>;
 #endif
 
 } // namespace memory
@@ -58,6 +58,6 @@ using HBWView = ArrayView<T, HostCoordinator<T, HBWAllocator<T>>>;
 } // namespace nest
 
 // now import the helpers
-// these require that HostVector etc have been defined
+// these require that host_vector etc have been defined
 #include "wrappers.hpp"
 #include "copy.hpp"

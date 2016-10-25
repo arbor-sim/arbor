@@ -8,7 +8,6 @@ TEST(mechanisms, helpers) {
     using namespace nest::mc;
     using memory_traits = multicore::memory_traits;
     using size_type = memory_traits::size_type;
-    using value_type = memory_traits::value_type;
     using catalogue = mechanisms::catalogue<memory_traits>;
 
     // verify that the hh and pas channels are available
@@ -19,8 +18,8 @@ TEST(mechanisms, helpers) {
     auto node_indices = std::vector<size_type>{0,6,7,8,9};
     auto n = node_indices.size();
 
-    memory::HostVector<value_type> vec_i(n, 0.);
-    memory::HostVector<value_type> vec_v(n, 0.);
+    memory_traits::vector_type vec_i(n, 0.);
+    memory_traits::vector_type vec_v(n, 0.);
 
     auto mech = catalogue::make(
             "hh", memory::make_view(vec_v), memory::make_view(vec_i),

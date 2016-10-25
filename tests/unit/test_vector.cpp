@@ -39,10 +39,10 @@ TEST(vector, make_host_stdvector) {
     EXPECT_TRUE((std::is_same<int, target_type::value_type>::value));
 }
 
-// test that memory::on_host makes a view of HostVector and host view
+// test that memory::on_host makes a view of host_vector and host view
 TEST(vector, make_host_hostvector) {
-    memory::HostVector<int> vec(10);
-    {   // test from HostVector
+    memory::host_vector<int> vec(10);
+    {   // test from host_vector
         auto host_view = memory::on_host(vec);
         using target_type = std::decay<decltype(host_view)>::type;
         EXPECT_EQ(host_view.size(), vec.size());
@@ -85,7 +85,7 @@ TEST(vector, fill_host) {
     // fill an array
     for (auto n : make_span(0u, N)) {
         double value = (n+1)/2.;
-        memory::HostVector<double> v(n);
+        memory::host_vector<double> v(n);
         memory::fill(v, value);
 
         for (auto i: make_span(0u, n)) {
@@ -97,7 +97,7 @@ TEST(vector, fill_host) {
     std::vector<float> ubervec(N);
     for (auto n : make_span(0u, N)) {
         float value = float((n+1)/2.f);
-        using view_type = memory::HostVector<float>::view_type;
+        using view_type = memory::host_vector<float>::view_type;
         // make a view of a sub-range of the std::vector ubervec
         auto v = view_type(ubervec.data(), n);
         memory::fill(v, value);

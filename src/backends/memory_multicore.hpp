@@ -14,8 +14,8 @@ struct memory_traits_generic {
     using size_type  = I;
 
     // define storage types
-    using vector_type  = memory::HostVector<value_type>;
-    using index_type   = memory::HostVector<size_type>;
+    using vector_type  = memory::host_vector<value_type>;
+    using index_type   = memory::host_vector<size_type>;
 
     using view       = typename vector_type::view_type;
     using const_view = typename vector_type::const_view_type;

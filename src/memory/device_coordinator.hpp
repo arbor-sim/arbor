@@ -16,31 +16,31 @@ namespace memory {
 
 // forward declare
 template <typename T, class Allocator>
-class DeviceCoordinator;
+class device_coordinator;
 
 template <typename T, class Allocator>
-class HostCoordinator;
+class host_coordinator;
 
 namespace util {
 
     template <typename T, typename Allocator>
-    struct type_printer<DeviceCoordinator<T,Allocator>>{
+    struct type_printer<device_coordinator<T,Allocator>>{
         static std::string print() {
             #if VERBOSE > 1
-            return util::white("DeviceCoordinator") + "<"
+            return util::white("device_coordinator") + "<"
                 + type_printer<T>::print()
                 + ", " + type_printer<Allocator>::print() + ">";
             #else
-            return util::white("DeviceCoordinator")
+            return util::white("device_coordinator")
                 + "<" + type_printer<T>::print() + ">";
             #endif
         }
     };
 
     template <typename T, typename Allocator>
-    struct pretty_printer<DeviceCoordinator<T,Allocator>>{
-        static std::string print(const DeviceCoordinator<T,Allocator>& val) {
-            return type_printer<DeviceCoordinator<T,Allocator>>::print();
+    struct pretty_printer<device_coordinator<T,Allocator>>{
+        static std::string print(const device_coordinator<T,Allocator>& val) {
+            return type_printer<device_coordinator<T,Allocator>>::print();
         }
     };
 } // namespace util
@@ -89,13 +89,13 @@ namespace gpu {
 }
 
 template <typename T>
-class ConstDeviceReference {
+class const_device_reference {
 public:
     using value_type = T;
     using pointer = value_type*;
     using const_pointer = const value_type*;
 
-    ConstDeviceReference(const_pointer p) : pointer_(p) {}
+    const_device_reference(const_pointer p) : pointer_(p) {}
 
     operator T() const {
         T tmp;
@@ -116,14 +116,14 @@ protected:
 };
 
 template <typename T>
-class DeviceReference {
+class device_reference {
 public:
     using value_type = T;
     using pointer = value_type*;
 
-    DeviceReference(pointer p) : pointer_(p) {}
+    device_reference(pointer p) : pointer_(p) {}
 
-    DeviceReference& operator = (const T& value) {
+    device_reference& operator = (const T& value) {
         auto success =
             cudaMemcpy(pointer_, &value, sizeof(T), cudaMemcpyHostToDevice);
         if(success != cudaSuccess) {
@@ -149,24 +149,24 @@ private:
 };
 
 template <typename T, class Allocator_=CudaAllocator<T> >
-class DeviceCoordinator {
+class device_coordinator {
 public:
     using value_type = T;
     using Allocator = typename Allocator_::template rebind<value_type>;
 
     using pointer       = value_type*;
     using const_pointer = const value_type*;
-    using reference       = DeviceReference<value_type>;
-    using const_reference = ConstDeviceReference<value_type>;
+    using reference       = device_reference<value_type>;
+    using const_reference = const_device_reference<value_type>;
 
-    using view_type = ArrayView<value_type, DeviceCoordinator>;
-    using const_view_type = ConstArrayView<value_type, DeviceCoordinator>;
+    using view_type = array_view<value_type, device_coordinator>;
+    using const_view_type = const_array_view<value_type, device_coordinator>;
 
     using size_type       = types::size_type;
     using difference_type = types::difference_type;
 
     template <typename Tother>
-    using rebind = DeviceCoordinator<Tother, Allocator>;
+    using rebind = device_coordinator<Tother, Allocator>;
 
     view_type allocate(size_type n) {
         Allocator allocator;
@@ -174,7 +174,7 @@ public:
         pointer ptr = n>0 ? allocator.allocate(n) : nullptr;
 
         #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
+        std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::allocate") << "(" << n << ") -> " << util::print_pointer(ptr)
                   << "\n";
         #endif
@@ -186,7 +186,7 @@ public:
         Allocator allocator;
 
         #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
+        std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::free") << "(size=" << rng.size() << ", pointer=" << util::print_pointer(rng.data()) << ")\n";
         #endif
 
@@ -201,11 +201,11 @@ public:
     void copy(const_view_type from, view_type to) {
     //template<typename Alloc1, typename Alloc2>
     //void copy(
-        //ConstArrayView<value_type, DeviceCoordinator<value_type, Alloc1>> from,
-        //ArrayView<value_type, DeviceCoordinator<value_type, Alloc2>> to)
+        //const_array_view<value_type, device_coordinator<value_type, Alloc1>> from,
+        //array_view<value_type, device_coordinator<value_type, Alloc2>> to)
     //{
         #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
+        std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::copy") << "(size=" << from.size() << ") "
                   << util::print_pointer(from.data()) << " -> "
                   << util::print_pointer(to.data()) << "\n";
@@ -220,10 +220,10 @@ public:
     template <typename Allocator>
     void copy(
         const_view_type& from,
-        ArrayView<value_type, HostCoordinator<value_type, Allocator>>& to)
+        array_view<value_type, host_coordinator<value_type, Allocator>>& to)
     {
         #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
+        std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::copy") << "(d2h, size=" << from.size() << ") "
                   << util::print_pointer(from.data()) << " -> "
                   << util::print_pointer(to.data()) << "\n";
@@ -236,11 +236,11 @@ public:
     // copy memory from host to gpu
     template <class Alloc>
     void copy(
-        ConstArrayView<value_type, HostCoordinator<value_type, Alloc>> from,
+        const_array_view<value_type, host_coordinator<value_type, Alloc>> from,
         view_type to)
     {
         #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
+        std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::copy") << "(size=" << from.size() << ") "
                   << util::print_pointer(from.data()) << " -> "
                   << util::print_pointer(to.data()) << "\n";
@@ -254,18 +254,18 @@ public:
     // TODO : asynchronous version
     template <size_t alignment>
     void copy(
-        ConstArrayView<value_type, HostCoordinator<value_type, PinnedAllocator<value_type, alignment>>> from,
+        const_array_view<value_type, host_coordinator<value_type, PinnedAllocator<value_type, alignment>>> from,
         view_type to)
     {
         #ifdef VERBOSE
-        std::cerr << util::type_printer<DeviceCoordinator>::print()
+        std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::copy") << "(size=" << from.size() << ") " << from.data() << " -> " << to.data() << "\n";
         #endif
         assert(from.size()==to.size());
 
         #ifdef VERBOSE
-        using oType = ArrayView< value_type, HostCoordinator< value_type, PinnedAllocator< value_type, alignment>>>;
-        std::cout << util::pretty_printer<DeviceCoordinator>::print(*this)
+        using oType = array_view< value_type, host_coordinator< value_type, PinnedAllocator< value_type, alignment>>>;
+        std::cout << util::pretty_printer<device_coordinator>::print(*this)
                   << "::" << util::blue("copy") << "(asynchronous, " << from.size() << ")"
                   << "\n  " << util::type_printer<oType>::print() << " "
                   << util::print_pointer(from.data()) << " -> "
@@ -287,8 +287,8 @@ public:
     // generates compile time error if there is an attempt to copy from memory
     // that is managed by a coordinator for which there is no specialization
     template <class CoordOther>
-    void copy(const ArrayView<value_type, CoordOther>& from, view_type& to) {
-        static_assert(true, "DeviceCoordinator: unable to copy from other Coordinator");
+    void copy(const array_view<value_type, CoordOther>& from, view_type& to) {
+        static_assert(true, "device_coordinator: unable to copy from other Coordinator");
     }
 
     // fill memory

@@ -20,7 +20,7 @@ public:
     using int_type = Int;
     using size_type = Size;
 
-    using index_type = memory::HostVector<int_type>;
+    using index_type = memory::host_vector<int_type>;
     using view_type  = typename index_type::view_type;
     using const_view_type = typename index_type::const_view_type;
     static constexpr int_type no_parent = (int_type)-1;

@@ -36,7 +36,7 @@ public:
     using int_type        = cell_lid_type;
     using size_type       = cell_local_size_type;
 
-    using index_type      = memory::HostVector<int_type>;
+    using index_type      = memory::host_vector<int_type>;
     using view_type       = index_type::view_type;
     using const_view_type = index_type::const_view_type;
 

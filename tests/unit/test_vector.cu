@@ -27,7 +27,7 @@ TEST(vector, make_gpu_stdvector) {
 
 // test that memory::on_host copies a device vector into a host vector
 TEST(vector, make_host_devicevector) {
-    memory::DeviceVector<int> dvec(10);
+    memory::device_vector<int> dvec(10);
     auto host_vec = memory::on_host(dvec);
     using target_type = std::decay<decltype(host_vec)>::type;
     EXPECT_EQ(host_vec.size(), dvec.size());
@@ -41,7 +41,7 @@ TEST(vector, make_host_devicevector) {
 // test that memory::on_gpu correctly makes a view of a device vector
 /*
 TEST(vector, make_gpu_devicevector) {
-    memory::DeviceVector<int> dvec(10);
+    memory::device_vector<int> dvec(10);
     auto view = memory::on_gpu(dvec);
     using target_type = std::decay<decltype(view)>::type;
     EXPECT_EQ(view.size(), dvec.size());
@@ -65,7 +65,7 @@ TEST(vector, fill_gpu) {
     // fill an array
     for (auto n : make_span(0u, N)) {
         double value = (n+1)/2.;
-        memory::DeviceVector<double> v(n);
+        memory::device_vector<double> v(n);
         memory::fill(v, value);
 
         for (auto i: make_span(0u, n)) {
@@ -74,7 +74,7 @@ TEST(vector, fill_gpu) {
     }
 
     // fill an array view
-    memory::DeviceVector<float> ubervec(N);
+    memory::device_vector<float> ubervec(N);
     for (auto n : make_span(0u, N)) {
         float value = float((n+1)/2.f);
         // make a view of a sub-range of the std::vector ubervec
@@ -99,7 +99,7 @@ TEST(vector, copy_h2d) {
     for (auto n : make_span(0u, N)) {
         double value = (n+1)/2.;
         std::vector<double> src(n, value);
-        memory::DeviceVector<double> tgt(n);
+        memory::device_vector<double> tgt(n);
         memory::fill(tgt, std::numeric_limits<double>::quiet_NaN());
 
         memory::copy(src, tgt);
@@ -117,7 +117,7 @@ TEST(vector, copy_d2h) {
 
     for (auto n : make_span(0u, N)) {
         double value = (n+1)/2.;
-        memory::DeviceVector<double> src(n);
+        memory::device_vector<double> src(n);
         std::vector<double> tgt(n, std::numeric_limits<double>::quiet_NaN());
         memory::fill(src, value);
 
@@ -136,8 +136,8 @@ TEST(vector, copy_d2d) {
 
     for (auto n : make_span(0u, N)) {
         double value = (n+1)/2.;
-        memory::DeviceVector<double> src(n);
-        memory::DeviceVector<double> tgt(n);
+        memory::device_vector<double> src(n);
+        memory::device_vector<double> tgt(n);
         memory::fill(src, value);
         memory::fill(tgt, std::numeric_limits<double>::quiet_NaN());
 
