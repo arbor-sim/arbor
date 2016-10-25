@@ -17,13 +17,16 @@ namespace nest {
 namespace mc {
 namespace util {
 
+/* Note, this is actually only an input iterator if F is non-assignable, such
+ * as when it is a lambda! */
+
 template <typename I, typename F>
 class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     using base = iterator_adaptor<transform_iterator<I, F>, I>;
     friend class iterator_adaptor<transform_iterator<I, F>, I>;
 
     I inner_;
-    F f_;
+    uninitialized<F> f_; // always in initialized state post-construction
 
     // provides access to inner iterator for adaptor.
     const I& inner() const { return inner_; }
@@ -33,24 +36,46 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
 
 public:
     using typename base::difference_type;
-    using value_type = typename std::result_of<F (inner_value_type)>::type;
+    using value_type = util::decay_t<typename std::result_of<F (inner_value_type)>::type>;
     using pointer = const value_type*;
     using reference = const value_type&;
 
     transform_iterator() = default;
 
     template <typename J, typename G>
-    transform_iterator(J&& c, G&& g): inner_(std::forward<J>(c)), f_(std::forward<G>(g)) {}
+    transform_iterator(J&& c, G&& g): inner_(std::forward<J>(c)) {
+        f_.construct(std::forward<G>(g));
+    }
 
-    transform_iterator(const transform_iterator&) = default;
-    transform_iterator(transform_iterator&&) = default;
-    transform_iterator& operator=(const transform_iterator&) = default;
-    transform_iterator& operator=(transform_iterator&&) = default;
+    transform_iterator(const transform_iterator& other): inner_(other.inner_) {
+        f_.construct(other.f_.cref());
+    }
+
+    transform_iterator(transform_iterator&& other): inner_(std::move(other.inner_)) {
+        f_.construct(std::move(other.f_.ref()));
+    }
+
+    transform_iterator& operator=(transform_iterator&& other) {
+        if (this!=&other) {
+            inner_ = std::move(other.inner_);
+            f_.construct(std::move(other.f_.ref()));
+        }
+        return *this;
+    }
+
+    transform_iterator& operator=(const transform_iterator& other) {
+        if (this!=&other) {
+            inner_ = other.inner_;
+            f_.destruct();
+            f_.construct(other.f_.cref());
+        }
+        return *this;
+    }
 
     // forward and input iterator requirements
 
     value_type operator*() const {
-        return f_(*inner_);
+        return f_.cref()(*inner_);
     }
 
     util::pointer_proxy<value_type> operator->() const {
@@ -92,7 +117,6 @@ transform_view(const Seq& s, const F& f) {
     return {make_transform_iterator(cbegin(s), f), make_transform_iterator(cend(s), f)};
 }
 
-
 template <
     typename Seq,
     typename F,
@@ -104,7 +128,6 @@ range<transform_iterator<seq_citer, util::decay_t<F>>, seq_csent>
 transform_view(const Seq& s, const F& f) {
     return {make_transform_iterator(cbegin(s), f), cend(s)};
 }
-
 
 } // namespace util
 } // namespace mc

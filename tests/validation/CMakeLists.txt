@@ -6,6 +6,7 @@ set(VALIDATION_SOURCES
 
     # support code
     validation_data.cpp
+    trace_analysis.cpp
 
     # unit test driver
     validate.cpp
@@ -34,5 +35,9 @@ foreach(target ${TARGETS})
         PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
     )
+
+    if (BUILD_VALIDATION_DATA)
+	add_dependencies(${target} validation_data)
+    endif()
 endforeach()
 

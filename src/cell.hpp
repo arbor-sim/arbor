@@ -10,6 +10,7 @@
 #include "segment.hpp"
 #include "stimulus.hpp"
 #include "util/debug.hpp"
+#include "util/rangeutil.hpp"
 
 namespace nest {
 namespace mc {
@@ -50,6 +51,10 @@ struct probe_spec {
     probeKind kind;
 };
 
+// used in constructor below
+struct clone_cell_t {};
+constexpr clone_cell_t clone_cell{};
+
 /// high-level abstract representation of a cell and its segments
 class cell {
 public:
@@ -75,6 +80,22 @@ public:
 
     // constructor
     cell();
+
+    // sometimes we really do want a copy (pending big morphology
+    // refactor)
+    cell(clone_cell_t, const cell& other):
+        parents_(other.parents_),
+        stimuli_(other.stimuli_),
+        synapses_(other.synapses_),
+        spike_detectors_(other.spike_detectors_),
+        probes_(other.probes_)
+     {
+         // unique_ptr's cannot be copy constructed, do a manual assignment
+         auto siter = segments_.begin();
+         for (const auto& s : other.segments_) {
+             *siter = std::move(s->clone());
+         }
+     }
 
     /// add a soma to the cell
     /// radius must be specified
@@ -181,7 +202,6 @@ public:
     probes() const { return probes_; }
 
 private:
-
     // storage for connections
     std::vector<index_type> parents_;
 
@@ -225,4 +245,3 @@ cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
 
 } // namespace mc
 } // namespace nest
-

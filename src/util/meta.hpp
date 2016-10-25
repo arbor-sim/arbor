@@ -40,6 +40,16 @@ constexpr auto cend(const T& c) -> decltype(std::end(c)) {
     return std::end(c);
 }
 
+template <typename T>
+constexpr bool empty(const T& c) {
+    return c.empty();
+}
+
+template <typename T, std::size_t N>
+constexpr bool empty(const T (& c)[N]) noexcept {
+    return false; // N cannot be zero
+}
+
 // Types associated with a container or sequence
 
 template <typename Seq>
@@ -55,7 +65,7 @@ struct sequence_traits {
     using const_sentinel = decltype(cend(std::declval<Seq&>()));
 };
 
-// Convenience short cuts
+// Convenience short cuts for `enable_if`
 
 template <typename T>
 using enable_if_copy_constructible_t =
@@ -187,6 +197,51 @@ private:
 public:
     constexpr static bool value = test(nullptr);
 };
+
+template <typename S>
+struct is_sequence {
+private:
+    constexpr static bool test(...) { return false; }
+
+    template <typename U = S>
+    constexpr static bool test(decltype(std::begin(std::declval<U>()))*) { return true; }
+
+public:
+    constexpr static bool value = test(nullptr);
+};
+
+template <typename T>
+using enable_if_sequence_t =
+    enable_if_t<is_sequence<T>::value>;
+
+// No generic lambdas in C++11, so some convenience accessors for pairs that
+// are type-generic
+
+struct first_t {
+    template <typename U, typename V>
+    U& operator()(std::pair<U, V>& p) {
+        return p.first;
+    }
+
+    template <typename U, typename V>
+    const U& operator()(const std::pair<U, V>& p) const {
+        return p.first;
+    }
+};
+constexpr first_t first{};
+
+struct second_t {
+    template <typename U, typename V>
+    V& operator()(std::pair<U, V>& p) {
+        return p.second;
+    }
+
+    template <typename U, typename V>
+    const V& operator()(const std::pair<U, V>& p) const {
+        return p.second;
+    }
+};
+constexpr second_t second{};
 
 
 
