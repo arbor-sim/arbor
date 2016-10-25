@@ -15,7 +15,7 @@ struct memory_traits_generic {
 
     // define storage types
     using array  = memory::host_vector<value_type>;
-    using iarray   = memory::host_vector<size_type>;
+    using iarray = memory::host_vector<size_type>;
 
     using view       = typename array::view_type;
     using const_view = typename array::const_view_type;
@@ -23,8 +23,11 @@ struct memory_traits_generic {
     using iview       = typename iarray::view_type;
     using const_iview = typename iarray::const_view_type;
 
-    using host_array = array;
-    using host_iarray  = iarray;
+    using host_array  = array;
+    using host_iarray = iarray;
+
+    using host_view   = view;
+    using host_iview  = iview;
 };
 
 using memory_traits = memory_traits_generic<double, nest::mc::cell_lid_type>;

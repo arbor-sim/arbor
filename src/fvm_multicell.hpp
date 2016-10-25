@@ -189,9 +189,6 @@ private:
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
 
-    /// index for fast lookup of compartment index ranges of segments
-    iarray segment_index_;
-
     /// cv_areas_[i] is the surface area of CV i [µm^2]
     array cv_areas_;
 
@@ -210,9 +207,6 @@ private:
     /// the potential in each CV [mV]
     array voltage_;
 
-    /// Where point mechanisms start in the mechanisms_ list.
-    std::size_t synapse_base_;
-
     /// the set of mechanisms present in the cell
     std::vector<mechanism_type> mechanisms_;
 
@@ -221,14 +215,16 @@ private:
 
     stimulus_store_type stimuli_;
 
-    std::vector<std::pair<const array fvm_multicell::*, uint32_t>> probes_;
+    std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
 
     // mechanism factory
     using mechanism_catalogue = typename base::mechanism_catalogue;
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
-        std::pair<size_type, size_type> comp_ival, const segment* seg, const_iview parent,
+        std::pair<size_type, size_type> comp_ival,
+        const segment* seg,
+        const std::vector<size_type>& parent,
         std::vector<value_type>& tmp_face_alpha,
         std::vector<value_type>& tmp_cv_areas,
         std::vector<value_type>& tmp_cv_capacitance
@@ -242,7 +238,7 @@ template <typename TargetPolicy>
 void fvm_multicell<TargetPolicy>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
-    const_iview parent, // TODO : this should be refering to host memory?
+    const std::vector<size_type>& parent,
     std::vector<value_type>& tmp_face_alpha,
     std::vector<value_type>& tmp_cv_areas,
     std::vector<value_type>& tmp_cv_capacitance)
@@ -329,12 +325,12 @@ void fvm_multicell<TargetPolicy>::initialize(
     using util::transform_view;
 
     // count total detectors, targets and probes for validation of handle container sizes
-    size_type detectors_count = 0u;
-    size_type targets_count = 0u;
-    size_type probes_count = 0u;
-    size_type detectors_size = size(detector_handles);
-    size_type targets_size = size(target_handles);
-    size_type probes_size = size(probe_handles);
+    auto detectors_count = 0u;
+    auto targets_count = 0u;
+    auto probes_count = 0u;
+    auto detectors_size = size(detector_handles);
+    auto targets_size = size(target_handles);
+    auto probes_size = size(probe_handles);
 
     auto ncell = size(cells);
     auto cell_num_compartments =
@@ -345,8 +341,8 @@ void fvm_multicell<TargetPolicy>::initialize(
     auto ncomp = cell_comp_part.bounds().second;
 
     // initialize storage from total compartment count
-    current_    = array{ncomp, value_type{0}};
-    voltage_    = array{ncomp, value_type{resting_potential_}};
+    current_ = array(ncomp, 0);
+    voltage_ = array(ncomp, resting_potential_);
 
     // create maps for mechanism initialization.
     std::map<std::string, std::vector<std::pair<size_type, size_type>>> mech_map;
@@ -354,7 +350,7 @@ void fvm_multicell<TargetPolicy>::initialize(
     std::map<std::string, std::size_t> syn_mech_indices;
 
     // initialize vector used for matrix creation.
-    std::vector<size_type> group_parent_index(ncomp, 0);
+    std::vector<size_type> group_parent_index(ncomp);
 
     // create each cell:
     auto target_hi = target_handles.begin();
@@ -389,7 +385,7 @@ void fvm_multicell<TargetPolicy>::initialize(
             const auto& seg_comp_ival = seg_comp_part[j];
 
             compute_cv_area_unnormalized_capacitance(
-                seg_comp_ival, seg, memory::make_const_view(group_parent_index),
+                seg_comp_ival, seg, group_parent_index,
                 tmp_face_alpha, tmp_cv_areas, tmp_cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
@@ -407,7 +403,7 @@ void fvm_multicell<TargetPolicy>::initialize(
             if (syn_mech_indices.count(name)==0) {
                 syn_mech_index = syn_mech_map.size();
                 syn_mech_indices[name] = syn_mech_index;
-                syn_mech_map.push_back(std::vector<size_type>{});
+                syn_mech_map.push_back({});
             }
             else {
                 syn_mech_index = syn_mech_indices[name];
@@ -482,7 +478,6 @@ void fvm_multicell<TargetPolicy>::initialize(
     }
 
     // create point (synapse) mechanisms
-    synapse_base_ = mechanisms_.size();
     for (const auto& syni: syn_mech_indices) {
         const auto& mech_name = syni.first;
         size_type mech_index = mechanisms_.size();
