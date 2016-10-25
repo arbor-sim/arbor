@@ -5,6 +5,8 @@
 
 #define LOG_ERROR(msg) util::log_error(__FILE__, __LINE__, msg)
 
+namespace nest {
+namespace mc {
 namespace memory {
 namespace util {
 
@@ -135,3 +137,5 @@ static inline void log_error(const char* file, int line, std::string msg) {
 
 } // namespace util
 } // namespace memory
+} // namespace mc
+} // namespace nest

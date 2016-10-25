@@ -5,14 +5,16 @@
 #include <string>
 
 #include "definitions.hpp"
-#include "Array.hpp"
-#include "Allocator.hpp"
+#include "array.hpp"
+#include "allocator.hpp"
 #include "util.hpp"
 
 #ifdef WITH_CUDA
 #include "gpu.hpp"
 #endif
 
+namespace nest {
+namespace mc {
 namespace memory {
 
 // forward declare for type printers
@@ -191,4 +193,6 @@ public:
     }
 };
 
-} //namespace memory
+} // namespace memory
+} // namespace mc
+} // namespace nest

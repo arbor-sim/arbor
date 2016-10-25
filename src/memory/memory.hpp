@@ -2,15 +2,16 @@
 
 #include <iostream>
 
-#include "Array.hpp"
+#include "array.hpp"
 #include "definitions.hpp"
-#include "HostCoordinator.hpp"
+#include "host_coordinator.hpp"
 
 #ifdef WITH_CUDA
-#include "DeviceCoordinator.hpp"
+#include "device_coordinator.hpp"
 #endif
 
-
+namespace nest {
+namespace mc {
 namespace memory {
 
 // specialization for host vectors
@@ -53,6 +54,8 @@ using HBWView = ArrayView<T, HostCoordinator<T, HBWAllocator<T>>>;
 #endif
 
 } // namespace memory
+} // namespace mc
+} // namespace nest
 
 // now import the helpers
 // these require that HostVector etc have been defined

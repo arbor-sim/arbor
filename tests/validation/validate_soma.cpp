@@ -22,7 +22,7 @@ TEST(soma, neuron_baseline)
     nest::mc::cell cell = make_cell_soma_only();
 
     // make the lowered finite volume cell
-    using fvm_multicell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using fvm_multicell = fvm::fvm_multicell<multicore::fvm_policy>;
     std::vector<fvm_multicell::detector_handle> detectors(cell.detectors().size());
     std::vector<fvm_multicell::target_handle> targets(cell.synapses().size());
     std::vector<fvm_multicell::probe_handle> probes(cell.probes().size());
@@ -83,7 +83,7 @@ TEST(soma, convergence)
     nest::mc::cell cell = make_cell_soma_only();
 
     // make the lowered finite volume cell
-    using fvm_multicell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using fvm_multicell = fvm::fvm_multicell<multicore::fvm_policy>;
     std::vector<fvm_multicell::detector_handle> detectors(cell.detectors().size());
     std::vector<fvm_multicell::target_handle> targets(cell.synapses().size());
     std::vector<fvm_multicell::probe_handle> probes(cell.probes().size());

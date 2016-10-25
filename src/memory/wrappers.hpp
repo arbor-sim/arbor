@@ -7,6 +7,8 @@
 #include <cuda_runtime.h>
 #endif
 
+namespace nest {
+namespace mc {
 namespace memory {
 
 //
@@ -157,26 +159,6 @@ auto on_gpu(const C& c) -> DeviceVector<typename C::value_type> {
 }
 #endif
 
-/*
-#ifdef WITH_CUDA
-namespace util {
-    template <typename T>
-    bool is_host_pointer(const T* ptr) {
-        cudaPointerAttributes attributes;
-        // cast away constness for external C API call
-        auto status = cudaPointerGetAttributes(
-            &attributes,
-            const_cast<void*>(static_cast<const void*>(ptr)));
-        // TODO : check the value of status to detect a host pointer for memory allocated with malloc/new/posix_memalign etc.
-        return attributes.memoryType == cudaMemoryTypeHost;
-    }
-
-    template <typename T>
-    bool is_device_pointer(const T* ptr) {
-        return !is_host_pointer(ptr);
-    }
-}
-#endif
-*/
-
 } // namespace memory
+} // namespace mc
+} // namespace nest

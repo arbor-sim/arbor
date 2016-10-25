@@ -23,31 +23,22 @@ TEST(fvm_multi, cable)
     std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
 
-    std::cout << "aaa 1\n";
     fvm_cell fvcell;
     fvcell.initialize(util::singleton_view(cell), detectors, targets, probes);
 
-    std::cout << "aaa 2\n";
-
     auto& J = fvcell.jacobian();
-
-    std::cout << "aaa 3\n";
 
     // 1 (soma) + 3 (dendritic segments) × 4 compartments
     EXPECT_EQ(cell.num_compartments(), 13u);
 
-    std::cout << "aaa 4\n";
     // assert that the matrix has one row for each compartment
     EXPECT_EQ(J.size(), cell.num_compartments());
 
-    std::cout << "aaa 5\n";
     fvcell.setup_matrix(0.02);
 
-    std::cout << "aaa 6\n";
     // assert that the number of cv areas is the same as the matrix size
     // i.e. both should equal the number of compartments
     EXPECT_EQ(fvcell.cv_areas().size(), J.size());
-    std::cout << "aaa 7\n";
 }
 
 TEST(fvm_multi, init)
@@ -271,7 +262,6 @@ TEST(fvm_multi, mechanism_indexes)
     for(auto& mech : fvcell.mechanisms()) {
         auto const& n = mech->node_index();
         std::vector<unsigned> ni(n.begin(), n.end());
-        //std::cout << mech->name() << " [" << n << "]\n";
         if(mech->name()=="hh") {
             EXPECT_EQ(ni, hh_index);
         }
@@ -297,6 +287,6 @@ TEST(fvm_multi, mechanism_indexes)
     }
     {
         // calcium channel should be empty
-        EXPECT_EQ(0u, fvcell.ion_k().node_index().size());
+        EXPECT_EQ(0u, fvcell.ion_ca().node_index().size());
     }
 }

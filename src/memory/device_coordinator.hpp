@@ -4,14 +4,14 @@
 #include <cstdint>
 #include <exception>
 
-#include "Allocator.hpp"
-#include "Array.hpp"
+#include "allocator.hpp"
+#include "array.hpp"
 #include "definitions.hpp"
-#include "Event.hpp"
-#include "CudaEvent.hpp"
 #include "gpu.hpp"
 #include "util.hpp"
 
+namespace nest {
+namespace mc {
 namespace memory {
 
 // forward declare
@@ -317,4 +317,5 @@ public:
 };
 
 } // namespace memory
-
+} // namespace mc
+} // namespace nest

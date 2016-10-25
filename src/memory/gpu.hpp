@@ -5,6 +5,8 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+namespace nest {
+namespace mc {
 namespace memory {
 namespace gpu {
 
@@ -63,5 +65,7 @@ void memcpy_d2d(const T* from, T* to, std::size_t size) {
 
 } // namespace gpu
 } // namespace memory
+} // namespace mc
+} // namespace nest
 
 #endif

@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <sstream>
 
+namespace nest {
+namespace mc {
 namespace memory {
 
 namespace types {
@@ -110,4 +112,6 @@ namespace util {
 } // namespace util
 
 } // namespace memory
+} // namespace mc
+} // namespace nest
 

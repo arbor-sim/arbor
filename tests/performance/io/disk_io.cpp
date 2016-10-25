@@ -16,7 +16,7 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
 using cell_group_type = cell_group<lowered_cell>;
 using time_type = typename cell_group_type::time_type;
 using spike_type = io::exporter_spike_file<time_type, global_policy>::spike_type;

@@ -4,12 +4,14 @@
 
 #include <cassert>
 
-#include "RangeLimits.hpp"
+#include "range_limits.hpp"
 
 #ifdef USING_TBB
-#include <tbb/tbb.h>
+    #include <tbb/tbb.h>
 #endif
 
+namespace nest {
+namespace mc {
 namespace memory {
 
 class Range {
@@ -189,3 +191,5 @@ static inline std::ostream& operator << (std::ostream& os, const Range& rng) {
 }
 
 } // namespace memory
+} // namespace mc
+} // namespace nest

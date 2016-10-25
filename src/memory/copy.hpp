@@ -4,6 +4,8 @@
 
 #include "wrappers.hpp"
 
+namespace nest {
+namespace mc {
 namespace memory {
 
 template <typename LHS, typename RHS>
@@ -52,4 +54,6 @@ void fill(LHS&& target, T value) {
     coord.set(lhs, T{value});
 }
 
-}
+} // namespace memory
+} // namespace mc
+} // namespace nest

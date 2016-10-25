@@ -7,7 +7,6 @@
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <fvm_multicell.hpp>
-#include <mechanism_interface.hpp>
 #include <util/rangeutil.hpp>
 
 #include "gtest.h"
@@ -52,7 +51,7 @@ void run_neuron_baseline(const char* syn_type, const char* data_file)
 {
     using namespace nest::mc;
     using namespace nlohmann;
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
 
     nest::mc::cell cell;
 

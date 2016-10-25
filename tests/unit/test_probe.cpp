@@ -74,19 +74,10 @@ TEST(probe, fvm_multicell)
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
     EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
 
-    std::cout << lcell.voltage()[probes[0].second] << "\n";
-    std::cout << lcell.voltage()[probes[1].second] << "\n";
-    std::cout << lcell.current()[probes[2].second] << "\n";
-
     lcell.advance(0.05);
 
     EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
     EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
-
-    std::cout << lcell.voltage()[probes[0].second] << "\n";
-    std::cout << lcell.voltage()[probes[1].second] << "\n";
-    std::cout << lcell.current()[probes[2].second] << "\n";
 }
-
 

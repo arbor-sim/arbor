@@ -95,19 +95,19 @@ public:
     using matrix_type = matrix<typename base::matrix_policy>;
 
     /// mechanism type
-    using mechanism_type = typename base::mechanism_type;
+    using typename base::mechanism_type;
 
     /// ion species storage
     /// TODO : make this generic multicore vs. gpu
     using ion_type = typename mechanisms::ion<memory_traits>;
 
     /// view into index container
-    using index_view       = typename base::iview;
-    using const_index_view = typename base::const_iview;
+    using typename base::iview;
+    using typename base::const_iview;
 
     /// view into value container
-    using vector_view       = typename base::view;
-    using const_vector_view = typename base::const_view;
+    using typename base::view;
+    using typename base::const_view;
 
     /// build the matrix for a given time step
     void setup_matrix(double dt);
@@ -119,20 +119,20 @@ public:
     ///          um^2
     ///     1e-6.mm^2
     ///     1e-8.cm^2
-    const_vector_view cv_areas() const { return cv_areas_; }
+    const_view cv_areas() const { return cv_areas_; }
 
     /// return the capacitance of each CV surface
     /// this is the total capacitance, not per unit area,
     /// i.e. equivalent to sigma_i * c_m
-    const_vector_view cv_capacitance() const { return cv_capacitance_; }
+    const_view cv_capacitance() const { return cv_capacitance_; }
 
     /// return the voltage in each CV
-    vector_view       voltage()       { return voltage_; }
-    const_vector_view voltage() const { return voltage_; }
+    view       voltage()       { return voltage_; }
+    const_view voltage() const { return voltage_; }
 
     /// return the current in each CV
-    vector_view       current()       { return current_; }
-    const_vector_view current() const { return current_; }
+    view       current()       { return current_; }
+    const_view current() const { return current_; }
 
     std::size_t size() const { return matrix_.size(); }
 
@@ -226,7 +226,11 @@ private:
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
-        std::pair<size_type, size_type> comp_ival, const segment* seg, const_index_view parent);
+        std::pair<size_type, size_type> comp_ival, const segment* seg, const_iview parent,
+        std::vector<value_type>& tmp_face_alpha,
+        std::vector<value_type>& tmp_cv_areas,
+        std::vector<value_type>& tmp_cv_capacitance
+    );
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -236,7 +240,10 @@ template <typename TargetPolicy>
 void fvm_multicell<TargetPolicy>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
-    const_index_view parent)
+    const_iview parent, // TODO : this should be refering to host memory?
+    std::vector<value_type>& tmp_face_alpha,
+    std::vector<value_type>& tmp_cv_areas,
+    std::vector<value_type>& tmp_cv_capacitance)
 {
     using util::left;
     using util::right;
@@ -246,10 +253,6 @@ void fvm_multicell<TargetPolicy>::compute_cv_area_unnormalized_capacitance(
     // j in [base_comp, base_comp+segment.num_compartments()].
 
     auto ncomp = comp_ival.second-comp_ival.first;
-
-    host_vector_type tmp_face_alpha(ncomp, value_type{0});
-    host_vector_type tmp_cv_areas(ncomp, value_type{0});
-    host_vector_type tmp_cv_capacitance(ncomp, value_type{0});
 
     if (auto soma = seg->as_soma()) {
         // confirm assumption that there is one compartment in soma
@@ -305,15 +308,6 @@ void fvm_multicell<TargetPolicy>::compute_cv_area_unnormalized_capacitance(
     else {
         throw std::domain_error("FVM lowering encountered unsuported segment type");
     }
-    // normalize capacitance across cell
-    for (auto i : util::make_span(comp_ival)) {
-        tmp_cv_capacitance[i] /= tmp_cv_areas[i];
-    }
-
-    // this will move or copy, depending whether the target is host or device
-    face_alpha_     = std::move(tmp_face_alpha);
-    cv_areas_       = std::move(tmp_cv_areas);
-    cv_capacitance_ = std::move(tmp_cv_capacitance);
 }
 
 template <typename TargetPolicy>
@@ -349,9 +343,6 @@ void fvm_multicell<TargetPolicy>::initialize(
     auto ncomp = cell_comp_part.bounds().second;
 
     // initialize storage from total compartment count
-    cv_areas_   = vector_type{ncomp, value_type{0}};
-    face_alpha_ = vector_type{ncomp, value_type{0}};
-    cv_capacitance_ = vector_type{ncomp, value_type{0}};
     current_    = vector_type{ncomp, value_type{0}};
     voltage_    = vector_type{ncomp, value_type{resting_potential_}};
 
@@ -361,14 +352,19 @@ void fvm_multicell<TargetPolicy>::initialize(
     std::map<std::string, std::size_t> syn_mech_indices;
 
     // initialize vector used for matrix creation.
-    std::vector<size_type> group_parent_index{ncomp, 0};
+    std::vector<size_type> group_parent_index(ncomp, 0);
 
     // create each cell:
     auto target_hi = target_handles.begin();
     auto detector_hi = detector_handles.begin();
     auto probe_hi = probe_handles.begin();
 
-    for (size_type i = 0; i<ncell; ++i) {
+    // allocate scratch vectors
+    std::vector<value_type> tmp_face_alpha(ncomp);
+    std::vector<value_type> tmp_cv_areas(ncomp);
+    std::vector<value_type> tmp_cv_capacitance(ncomp);
+
+    for (auto i: make_span(0, ncell)) {
         const auto& c = cells[i];
         auto comp_ival = cell_comp_part[i];
 
@@ -383,14 +379,16 @@ void fvm_multicell<TargetPolicy>::initialize(
         auto nseg = seg_num_compartments.size();
 
         std::vector<cell_lid_type> seg_comp_bounds;
-        auto seg_comp_part = make_partition(seg_comp_bounds, seg_num_compartments, comp_ival.first);
+        auto seg_comp_part =
+            make_partition(seg_comp_bounds, seg_num_compartments, comp_ival.first);
 
         for (size_type j = 0; j<nseg; ++j) {
             const auto& seg = c.segment(j);
             const auto& seg_comp_ival = seg_comp_part[j];
 
             compute_cv_area_unnormalized_capacitance(
-                seg_comp_ival, seg, memory::make_const_view(group_parent_index));
+                seg_comp_ival, seg, memory::make_const_view(group_parent_index),
+                tmp_face_alpha, tmp_cv_areas, tmp_cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
@@ -452,6 +450,14 @@ void fvm_multicell<TargetPolicy>::initialize(
             ++probes_count;
         }
     }
+
+    // normalize capacitance across cell
+    for (auto i: util::make_span(0, ncomp)) {
+        tmp_cv_capacitance[i] /= tmp_cv_areas[i];
+    }
+    face_alpha_     = make_const_view(tmp_face_alpha);
+    cv_areas_       = make_const_view(tmp_cv_areas);
+    cv_capacitance_ = make_const_view(tmp_cv_capacitance);
 
     // initalize matrix
     matrix_ = matrix_type(group_parent_index);

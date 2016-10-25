@@ -11,9 +11,10 @@
 
 #include "definitions.hpp"
 #include "util.hpp"
-#include "ArrayView.hpp"
+#include "array_view.hpp"
 
-////////////////////////////////////////////////////////////////////////////////
+namespace nest {
+namespace mc {
 namespace memory{
 
 // forward declarations
@@ -236,5 +237,6 @@ private:
 };
 
 } // namespace memory
-////////////////////////////////////////////////////////////////////////////////
+} // namespace mc
+} // namespace nest
 

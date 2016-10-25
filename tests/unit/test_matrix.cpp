@@ -13,11 +13,12 @@ using size_type = matrix_type::size_type;
 TEST(matrix, construct_from_parent_only)
 {
     using nest::mc::util::make_span;
+    using nest::mc::memory::on_host;
 
     // pass parent index as a std::vector cast to host data
     {
         std::vector<size_type> p = {0,0,1};
-        matrix_type m(memory::on_host(p));
+        matrix_type m(on_host(p));
         EXPECT_EQ(m.num_cells(), 1u);
         EXPECT_EQ(m.size(), 3u);
         EXPECT_EQ(p.size(), 3u);
@@ -32,15 +33,16 @@ TEST(matrix, construct_from_parent_only)
 TEST(matrix, solve_host)
 {
     using nest::mc::util::make_span;
+    using nest::mc::memory::on_host;
+    using nest::mc::memory::fill;
 
     // trivial case : 1x1 matrix
     {
-        matrix_type m(memory::on_host(std::vector<size_type>{0}));
-
-        memory::fill(m.d(),  2);
-        memory::fill(m.l(), -1);
-        memory::fill(m.u(), -1);
-        memory::fill(m.rhs(),1);
+        matrix_type m(on_host(std::vector<size_type>{0}));
+        fill(m.d(),  2);
+        fill(m.l(), -1);
+        fill(m.u(), -1);
+        fill(m.rhs(),1);
 
         m.solve();
 
@@ -52,15 +54,15 @@ TEST(matrix, solve_host)
         for(auto n : make_span(2u,1001u)) {
             auto p = std::vector<size_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
-            matrix_type m(memory::on_host(p));
+            matrix_type m(on_host(p));
 
             EXPECT_EQ(m.size(), n);
             EXPECT_EQ(m.num_cells(), 1u);
 
-            memory::fill(m.d(),  2);
-            memory::fill(m.l(), -1);
-            memory::fill(m.u(), -1);
-            memory::fill(m.rhs(),1);
+            fill(m.d(),  2);
+            fill(m.l(), -1);
+            fill(m.u(), -1);
+            fill(m.rhs(),1);
 
             m.solve();
 

@@ -6,6 +6,7 @@
  */
 
 #include <iterator>
+#include <ostream>
 
 #include <util/meta.hpp>
 #include <util/range.hpp>
@@ -120,3 +121,15 @@ sort_by(const Seq& seq, const Proj& proj) {
 } // namespace util
 } // namespace mc
 } // namespace nest
+
+// convenience helper for printing a range
+
+template <typename T>
+std::ostream& operator<<(std::ostream& o, const nest::mc::util::range<T>& rng) {
+    o << "{";
+    for (auto const& value: rng) {
+        o << value << " ";
+    }
+    return o << "}";
+}
+

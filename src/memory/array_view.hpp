@@ -7,10 +7,11 @@
 
 #include "definitions.hpp"
 #include "util.hpp"
-#include "Range.hpp"
-#include "RangeLimits.hpp"
+#include "range.hpp"
+#include "range_limits.hpp"
 
-////////////////////////////////////////////////////////////////////////////////
+namespace nest {
+namespace mc {
 namespace memory{
 
 // forward declarations
@@ -210,15 +211,6 @@ public:
         assert(left<=size_);
         #endif
         return view_type(pointer_+left, size_-left);
-    }
-
-    /// access entire range using all
-    view_type operator() (all_type) {
-        return view_type(pointer_, size_);
-    }
-
-    const_view_type operator() (all_type) const {
-        return view_type(pointer_, size_);
     }
 
     // access using a Range
@@ -440,11 +432,6 @@ public:
         return const_view_type(pointer_+left, size_-left);
     }
 
-    /// access entire range using all
-    const_view_type operator() (all_type) const {
-        return const_view_type(pointer_, size_);
-    }
-
     // access using a Range
     const_view_type operator()(Range range) const {
         size_type left = range.left();
@@ -558,5 +545,6 @@ protected :
 using impl::is_array_view;
 
 } // namespace memory
-////////////////////////////////////////////////////////////////////////////////
+} // namespace mc
+} // namespace nest
 
