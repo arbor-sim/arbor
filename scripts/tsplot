@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python2
 #coding: utf-8
 
 import argparse
@@ -9,6 +9,7 @@ import re
 import logging
 import matplotlib as M
 import matplotlib.pyplot as P
+import numbers
 from distutils.version import LooseVersion
 from itertools import chain, islice, cycle
 
@@ -17,7 +18,7 @@ if LooseVersion(M.__version__)<LooseVersion("1.5.0"):
     logging.critical("require matplotlib version ≥ 1.5.0")
     sys.exit(1)
 
-# Read timeseries data from multiple files, plot each in one planel, with common
+# Read timeseries data from multiple files, plot each in one panel, with common
 # time axis, and optionally sharing a vertical axis as governed by the configuration.
 
 def parse_clargs():
@@ -32,12 +33,18 @@ def parse_clargs():
     P = argparse.ArgumentParser(description='Plot time series data on one or more graphs.')
     P.add_argument('inputs', metavar='FILE', nargs='+',
                    help='time series data in JSON format')
+    P.add_argument('-A', '--abscissa', metavar='AXIS', dest='axis',
+                   type=unicode,
+                   help='use values from AXIS instead of \'time\' as abscissa')
     P.add_argument('-t', '--trange', metavar='RANGE', dest='trange',
                    type=parse_range_spec,
                    help='restrict time axis to RANGE (see below)')
     P.add_argument('-g', '--group', metavar='KEY,...', dest='groupby',
                    type=lambda s: s.split(','),
                    help='plot series with same KEYs on the same axes')
+    P.add_argument('-s', '--select', metavar='EXPR,...', dest='select',
+                   type=lambda s: s.split(','),
+                   help='select only series matching EXPR')
     P.add_argument('-o', '--output', metavar='FILE', dest='outfile',
                    help='save plot to file FILE')
     P.add_argument('--dpi', metavar='NUM', dest='dpi',
@@ -53,6 +60,8 @@ def parse_clargs():
     P.epilog =  'A range is specifed by a pair of floating point numbers min,max where '
     P.epilog += 'either may be omitted to indicate the minimum or maximum of the corresponding '
     P.epilog += 'values in the data.'
+    P.epilog += '\n'
+    P.epilog += 'Filter expressions are of the form KEY=VALUE. (Might add other ops later.)'
 
     # modify args to avoid argparse having a fit when it encounters an option
     # argument of the form '<negative number>,...'
@@ -112,15 +121,49 @@ class TimeSeries:
         return self.meta.get('units',"")
 
     def trange(self):
-        return (min(self.t), max(self.t))
+        return self.t.min(), self.t.max()
 
     def yrange(self):
-        return (min(self.y), max(self.y))
+        return self.y.min(), self.y.max()
+
+def run_select(expr, v):
+    m = re.match(r'([^=>!<~]+)(>=|<=|>|<|!=|=|!~|~)(.*)', expr)
+    if not m:
+        return True
+
+    key, op, test = m.groups()
+    if not key in v:
+        return False
+
+    val = v[key]
+    if op=='~':
+        return test in str(val)
+    elif op=='!~':
+        return test not in str(val)
+    else:
+        if isinstance(val, numbers.Number):
+            try:
+                test=int(test)
+            except ValueError:
+                test=float(test)
+
+        if op=='=':
+            return val==test
+        elif op=='!=':
+            return val!=test
+        elif op=='<':
+            return val<test
+        elif op=='>':
+            return val>test
+        elif op=='<=':
+            return val<=test
+        elif op=='>=':
+            return val>=test
+        else:
+            return False
 
 
-def read_json_timeseries(source):
-    j = json.load(source)
-
+def read_json_timeseries(j, axis='time', select=[]):
     # Convention:
     #
     # Time series data is represented by an object with a subobject 'data' and optionally
@@ -134,12 +177,23 @@ def read_json_timeseries(source):
     # (units are common for all data series in the object) or by a map that
     # takes a label to a unit string.
 
-    ts_list = []
-    jdata = j['data']
-    ncol = len(jdata)
+    # If given a list instead of a hash, collect time series from each entry.
 
-    times = jdata['time']
-    nsample = len(times)
+    ts_list = []
+    if isinstance(j, list):
+        for o in j:
+            ts_list.extend(read_json_timeseries(o, axis, select))
+        return ts_list
+
+    try:
+        jdata = j['data']
+        ncol = len(jdata)
+
+        times = jdata[axis]
+        nsample = len(times)
+    except KeyError:
+        # This wasn't a time series after all.
+        return ts_list
 
     def units(label):
         try:
@@ -153,20 +207,29 @@ def read_json_timeseries(source):
 
     i = 1
     for key in jdata.keys():
-        if key=="time": continue
+        if key==axis: continue
 
         meta = dict(j.items() + {'label': key, 'data': None, 'units': units(key)}.items())
         del meta['data']
 
-        ts_list.append(TimeSeries(times, jdata[key], **meta))
+        if all([run_select(sel, meta) for sel in select]):
+            ts_list.append(TimeSeries(times, jdata[key], **meta))
 
     return ts_list
 
+def min_(a,b):
+    if a is None:
+        return b
+    elif b is None:
+        return a
+    else:
+        return min(a,b)
+
 def range_join(r, s):
-    return (min(r[0], s[0]), max(r[1], s[1]))
+    return (min_(r[0], s[0]), max(r[1], s[1]))
 
 def range_meet(r, s):
-    return (max(r[0], s[0]), min(r[1], s[1]))
+    return (max(r[0], s[0]), min_(r[1], s[1]))
 
 
 class PlotData:
@@ -186,7 +249,7 @@ class PlotData:
     def group_label(self):
         return self.group_key_label
 
-    def unique_labels(self):
+    def unique_labels(self, formatter=lambda x: x):
         # attempt to create unique labels for plots in the group based on
         # meta data
         labels = [s.label() for s in self.series]
@@ -209,7 +272,7 @@ class PlotData:
                 for i in xrange(n):
                     prefix = '' if k=='name' else k+'='
                     if vs[i] is not None:
-                        labels[i] += u', '+k+u'='+unicode(vs[i])
+                        labels[i] += u', '+k+u'='+unicode(formatter(vs[i]))
 
         except StopIteration:
             pass
@@ -242,7 +305,12 @@ def make_palette(cm_name, n, cmin=0, cmax=1):
                                M.cm.get_cmap(cm_name))
     return [smap.to_rgba((2*i+1)/float(2*n)) for i in xrange(n)]
 
-def plot_plots(plot_groups, save=None, dpi=None, scale=None):
+def round_numeric_(x):
+    # Helper to round numbers in labels
+    if not isinstance(x,float): return x
+    return "{:6g}".format(x)
+
+def plot_plots(plot_groups, axis='time', save=None, dpi=None, scale=None):
     nplots = len(plot_groups)
     plot_groups = sorted(plot_groups, key=lambda g: g.group_label())
 
@@ -285,7 +353,7 @@ def plot_plots(plot_groups, save=None, dpi=None, scale=None):
         # together with a best-effort label
 
         series_by_unit = [[] for i in xrange(len(uniq_units))]
-        unique_labels = group.unique_labels()
+        unique_labels = group.unique_labels(formatter=round_numeric_)
 
         for si in xrange(len(group.series)):
             s = group.series[si]
@@ -340,7 +408,7 @@ def plot_plots(plot_groups, save=None, dpi=None, scale=None):
 
     # adapted from http://stackoverflow.com/questions/6963035
     axis_ymin = min([ax.get_position().ymin for ax in figure.axes])
-    figure.text(0.5, axis_ymin - float(3)/figure.dpi, 'time', ha='center', va='center')
+    figure.text(0.5, axis_ymin - float(3)/figure.dpi, axis, ha='center', va='center')
     if save:
         if scale:
             base = figure.get_size_inches()
@@ -352,9 +420,12 @@ def plot_plots(plot_groups, save=None, dpi=None, scale=None):
 
 args = parse_clargs()
 tss = []
+axis = args.axis if args.axis else 'time'
 for filename in args.inputs:
+    select = args.select if args.select else []
     with open(filename) as f:
-        tss.extend(read_json_timeseries(f))
+        j = json.load(f)
+        tss.extend(read_json_timeseries(j, axis, select))
 
 if args.trange:
     for ts in tss:
@@ -370,4 +441,4 @@ plots = gather_ts_plots(tss, groupby)
 if not args.outfile:
     M.interactive(False)
 
-plot_plots(plots, save=args.outfile, dpi=args.dpi, scale=args.scale)
+plot_plots(plots, axis=axis, save=args.outfile, dpi=args.dpi, scale=args.scale)

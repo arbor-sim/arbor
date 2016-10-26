@@ -16,6 +16,7 @@
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>
 #include <util/sentinel.hpp>
+#include <util/transform.hpp>
 
 using namespace nest::mc;
 
@@ -194,6 +195,40 @@ TEST(range, strictify) {
     EXPECT_EQ(cstr+11, ptr_range.right);
 }
 
+TEST(range, max_element_by) {
+    const char *cstr = "helloworld";
+    auto cstr_range = util::make_range(cstr, null_terminated);
+
+    auto i = util::max_element_by(cstr_range,
+        [](char c) -> int { return -c; });
+
+    EXPECT_TRUE((std::is_same<const char *, decltype(i)>::value));
+    EXPECT_EQ('d', *i);
+    EXPECT_EQ(cstr+9, i);
+
+    // with mutable container
+    std::vector<int> v = { 1, 3, -5, 2 };
+    auto j  = util::max_element_by(v, [](int x) { return x*x; });
+    EXPECT_EQ(-5, *j);
+    *j = 1;
+    j  = util::max_element_by(v, [](int x) { return x*x; });
+    EXPECT_EQ(3, *j);
+}
+
+TEST(range, max_value) {
+    const char *cstr = "hello world";
+    auto cstr_range = util::make_range(cstr, null_terminated);
+
+    // use a lambda to get a range over non-assignable iterators
+    // (at least until we specialize `transform_iterator` for
+    // non-copyable functors passed by const reference).
+    auto i = util::max_value(
+        util::transform_view(cstr_range, [](char c) { return c+1; }));
+
+    EXPECT_EQ('x', i);
+}
+
+
 template <typename V>
 class counter_range: public ::testing::Test {};
 
@@ -310,6 +345,20 @@ TEST(range, sort) {
     // reverse sort by transform c to -c
     util::sort_by(util::strict_view(cstr_range), [](char c) { return -c; });
     EXPECT_EQ(std::string("ywohd"), cstr);
+}
+
+TEST(range, sum_by) {
+    std::string words[] = { "fish", "cakes", "!" };
+    auto prepend_ = [](const std::string& x) { return "_"+x; };
+
+    auto result = util::sum_by(words, prepend_);
+    EXPECT_EQ("_fish_cakes_!", result);
+
+    result = util::sum_by(words, prepend_, std::string("tasty"));
+    EXPECT_EQ("tasty_fish_cakes_!", result);
+
+    auto count = util::sum_by(words, [](const std::string &x) { return x.size(); });
+    EXPECT_EQ(10u, count);
 }
 
 #ifdef WITH_TBB

@@ -1,5 +1,10 @@
 #pragma once
 
+/*
+ * Simple(st?) implementation of a recorder of scalar
+ * trace data from a cell probe, with some metadata.
+ */
+
 #include <cstdlib>
 #include <vector>
 
@@ -38,7 +43,7 @@ struct trace_sampler {
     using time_type = Time;
     using value_type = Value;
 
-    float next_sample_t() const { return t_next_sample_; }
+    time_type next_sample_t() const { return t_next_sample_; }
 
     util::optional<time_type> operator()(time_type t, value_type v) {
         if (t<t_next_sample_) {

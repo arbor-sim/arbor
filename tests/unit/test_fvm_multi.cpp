@@ -17,7 +17,7 @@ TEST(fvm_multi, cable)
 {
     using namespace nest::mc;
 
-    nest::mc::cell cell=make_cell_ball_and_3sticks();
+    nest::mc::cell cell=make_cell_ball_and_3stick();
 
     std::vector<fvm_cell::target_handle> targets;
     std::vector<fvm_cell::detector_handle> detectors;
@@ -107,7 +107,7 @@ TEST(fvm_multi, multi_init)
 
     nest::mc::cell cells[] = {
         make_cell_ball_and_stick(),
-        make_cell_ball_and_3sticks()
+        make_cell_ball_and_3stick()
     };
 
     EXPECT_EQ(cells[0].num_segments(), 2u);
@@ -207,7 +207,6 @@ TEST(fvm_multi, stimulus)
 }
 
 // test that mechanism indexes are computed correctly
-// also test ion channel indexes while we are at it
 TEST(fvm_multi, mechanism_indexes)
 {
     using namespace nest::mc;
