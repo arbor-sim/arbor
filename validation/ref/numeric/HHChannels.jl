@@ -35,10 +35,10 @@ end
 immutable Stim
     t0        # start time of stimulus
     t1        # stop time of stimulus
-    j         # stimulus current density
+    i_e       # stimulus current density
 
     Stim() = new(0s, 0s, 0A/m^2)
-    Stim(t0, t1, j) = new(t0, t1, j)
+    Stim(t0, t1, i_e) = new(t0, t1, i_e)
 end
 
 vtrap(x,y) = x/(exp(x/y) - 1.0)
@@ -101,7 +101,7 @@ function f(t, state; p=HHParam(), stim=Stim())
 
     # calculate current density due to stimulus
     if t>=stim.t0 && t<stim.t1
-        itot -= stim.j
+        itot -= stim.i_e
     end
         
     # calculate the voltage dependent rates for the gating variables
