@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include <cell.hpp>
+#include <math.hpp>
 #include <parameter_list.hpp>
 
 namespace nest {
@@ -226,7 +227,7 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
         seg->mechanism("membrane").set("r_L", r_L);
         seg->mechanism("membrane").set("c_m", c_m);
         // seg->mechanism("pas").set("g", gbar);
- 
+
         if (seg->is_dendrite()) {
             seg->set_compartments(4);
         }
@@ -235,7 +236,7 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
     if (with_stim) {
         // stimulus in the middle of our zero-volume 'soma'
         // corresponds to proximal end of cable.
-        c.add_stimulus({0,0.5}, {0.,  HUGE_VAL, I});
+        c.add_stimulus({0,0.5}, {0., math::infinity<>(), I});
     }
     return c;
 }
