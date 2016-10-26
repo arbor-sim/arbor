@@ -40,6 +40,15 @@ Module::Module(std::vector<char> const& buffer)
         buffer_.push_back(0);
 }
 
+Module::Module(const char* buffer, size_t count)
+{
+    for (auto i = 0; i < count-1 && *buffer != '\0'; ++buffer) {
+        buffer_.push_back(*buffer);
+    }
+
+    buffer_.push_back(0);
+}
+
 std::vector<Module::symbol_ptr>&
 Module::procedures() {
     return procedures_;

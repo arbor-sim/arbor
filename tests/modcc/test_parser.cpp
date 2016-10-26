@@ -15,7 +15,7 @@ TEST(Parser, full_file) {
 }
 
 TEST(Parser, procedure) {
-    std::vector< const char*> calls =
+    std::vector<const char*> calls =
 {
 "PROCEDURE foo(x, y) {"
 "  LOCAL a\n"
@@ -560,5 +560,41 @@ TEST(Parser, parse_binop) {
         // always print the compiler errors, because they are unexpected
         if(p.status()==lexerStatus::error)
             std::cout << red("error") << p.error_message() << std::endl;
+    }
+}
+
+TEST(Parser, parse_state_block) {
+    std::vector<const char*> state_blocks = {
+        "STATE {\n"
+        "    h\n"
+        "    m r\n"
+        "}",
+        "STATE {\n"
+        "    h (nA)\n"
+        "    m r\n"
+        "}",
+        "STATE {\n"
+        "    h (nA)\n"
+        "    m (nA) r\n"
+        "}",
+        "STATE {\n"
+        "    h (nA)\n"
+        "    m r (uA)\n"
+        "}",
+        "STATE {\n"
+        "    h (nA)\n"
+        "    m (nA) r (uA)\n"
+        "}"
+    };
+
+    for (auto const& str: state_blocks) {
+        Module m(str, sizeof(str));
+        Parser p(m, false);
+        p.parse_state_block();
+        EXPECT_EQ(lexerStatus::happy, p.status());
+        if (p.status() == lexerStatus::error) {
+            std::cout << str << "\n"
+                      << red("error") << p.error_message() << "\n";
+        }
     }
 }
