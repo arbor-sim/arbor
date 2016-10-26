@@ -32,11 +32,21 @@ TEST(soma, numeric_ref) {
     bool verbose = V.verbose();
 
     // load validation data
-    //auto ref_data = V.load_traces("neuron_soma.json");
-    auto ref_data = V.load_traces("numeric_soma.json");
+
+    bool run_validation = false;
+    std::map<std::string, trace_data> ref_data;
     const char* key = "soma.mid";
-    bool run_validation = ref_data.count(key);
-    EXPECT_TRUE(run_validation);
+
+    const char* ref_data_path = "numeric_soma.json";
+    try {
+        ref_data = V.load_traces(ref_data_path);
+        run_validation = ref_data.count(key);
+
+        EXPECT_TRUE(run_validation);
+    }
+    catch (std::runtime_error&) {
+        ADD_FAILURE() << "failure loading reference data: " << ref_data_path;
+    }
 
     // generate test data
     cell c = make_cell_soma_only();

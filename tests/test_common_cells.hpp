@@ -13,6 +13,7 @@ namespace mc {
  *    diameter: 18.8 µm
  *    mechanisms: HH (default params)
  *    bulk resistivitiy: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
  *
  * Stimuli:
  *    soma centre, t=[10 ms, 110 ms), 0.1 nA
@@ -37,6 +38,7 @@ inline cell make_cell_soma_only(bool with_stim = true) {
  *
  * Common properties:
  *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
  *
  * Soma:
  *    mechanisms: HH (default params)
@@ -80,6 +82,7 @@ inline cell make_cell_ball_and_stick(bool with_stim = true) {
  *
  * Common properties:
  *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
  *
  * Soma:
  *    mechanisms: HH (default params)
@@ -126,6 +129,7 @@ inline cell make_cell_ball_and_taper(bool with_stim = true) {
  *
  * Common properties:
  *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
  *
  * Soma:
  *    mechanisms: HH (default params)
@@ -173,11 +177,12 @@ inline cell make_cell_ball_and_3stick(bool with_stim = true) {
  *
  * Common properties:
  *    mechanisms: passive
- *        membrane conductance: 0.000025 S·cm¯² ( =  1/(4Ω·m²) )
+ *        membrane conductance: 0.000025 S/cm² ( =  1/(4Ω·m²) )
  *        membrane reversal potential: -65 mV (default)
  *    diameter: 1 µm
  *    length: 1000 µm
  *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
  *    compartments: 4
  *
  * Stimulus:
@@ -185,21 +190,43 @@ inline cell make_cell_ball_and_3stick(bool with_stim = true) {
  *
  * Note: zero-volume soma added with same mechanisms, as
  * work-around for some existing fvm modelling issues.
+ *
+ * TODO: Set the correct values when parameters are generally
+ * settable! 
+ *
+ * We can't currently change leak parameters
+ * from defaults, so we scale other electrical parameters
+ * proportionally.
  */
 
 inline cell make_cell_simple_cable(bool with_stim = true) {
     cell c;
 
     c.add_soma(0);
-    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 1000);
+
+    double r_L  = 100;
+    double c_m  = 0.01;
+    double gbar = 0.000025;
+    double I = 0.1;
+
+    // fudge factor! can't change passive membrane
+    // conductance from gbar0 = 0.001
+
+    double gbar0 = 0.001;
+    double f = gbar/gbar0;
+
+    // scale everything else
+    r_L *= f;
+    c_m /= f;
+    I /= f;
 
     for (auto& seg: c.segments()) {
         seg->add_mechanism(pas_parameters());
-        seg->mechanism("membrane").set("r_L", 100);
-
-        // parameter support not there yet, so leave
-        // as default and modify reference data for now.
-        // seg->mechanism("pas").set("g", 0.000025);
+        seg->mechanism("membrane").set("r_L", r_L);
+        seg->mechanism("membrane").set("c_m", c_m);
+        // seg->mechanism("pas").set("g", gbar);
+ 
         if (seg->is_dendrite()) {
             seg->set_compartments(4);
         }
@@ -208,7 +235,7 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
     if (with_stim) {
         // stimulus in the middle of our zero-volume 'soma'
         // corresponds to proximal end of cable.
-        c.add_stimulus({0,0.5}, {0.,  HUGE_VAL, 0.1});
+        c.add_stimulus({0,0.5}, {0.,  HUGE_VAL, I});
     }
     return c;
 }
