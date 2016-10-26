@@ -7,10 +7,12 @@
 
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/transform.hpp>
+#include <util/meta.hpp>
 
 namespace nest {
 namespace mc {
@@ -66,12 +68,12 @@ AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
     return c;
 }
 
+
 // Assign sequence to a container with transform `proj`
 
 template <typename AssignableContainer, typename Seq, typename Proj>
 AssignableContainer& assign_by(AssignableContainer& c, const Seq& seq, const Proj& proj) {
-    auto canon = canonical_view(transform_view(seq, proj));
-    c.assign(std::begin(canon), std::end(canon));
+    assign(c, transform_view(seq, proj));
     return c;
 }
 

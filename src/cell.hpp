@@ -90,8 +90,11 @@ public:
         spike_detectors_(other.spike_detectors_),
         probes_(other.probes_)
      {
-        util::assign_by(segments_, other.segments_,
-            [](const segment_ptr& p) { return p->clone(); });
+         // unique_ptr's cannot be copy constructed, do a manual assignment
+         segments_.reserve(other.segments_.size());
+         for (const auto& s: other.segments_) {
+             segments_.push_back(s->clone());
+         }
      }
 
     /// add a soma to the cell
@@ -242,4 +245,3 @@ cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
 
 } // namespace mc
 } // namespace nest
-
