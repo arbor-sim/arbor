@@ -33,7 +33,7 @@ default_model_parameters = {
     'g_pas':      0.001,  # Passive conductance in S/cm^2
     'e_pas':    -65.0,    # Leak reversal potential in mV
     'Ra':       100.0,    # Intracellular resistivity in Ω·cm
-    'cm':         1.0,    # Membrane areal capacitance in µF/cm2
+    'cm':         1.0,    # Membrane areal capacitance in µF/cm^2
     'tau':        2.0,    # Exponential synapse time constant
     'tau1':       0.5,    # Exp2 synapse tau1
     'tau2':       2.0,    # Exp2 synapse tau2

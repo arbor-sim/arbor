@@ -12,6 +12,7 @@ set(TEST_SOURCES
     test_cell_group.cpp
     test_lexcmp.cpp
     test_mask_stream.cpp
+    test_math.cpp
     test_matrix.cpp
     test_mechanisms.cpp
     test_nop.cpp

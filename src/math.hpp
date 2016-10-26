@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cmath>
+#include <limits>
 #include <utility>
-
 
 namespace nest {
 namespace mc {
@@ -12,6 +12,12 @@ template <typename T>
 T constexpr pi()
 {
     return T(3.1415926535897932384626433832795);
+}
+
+template <typename T = float>
+T constexpr infinity()
+{
+    return std::numeric_limits<T>::infinity();
 }
 
 template <typename T>
