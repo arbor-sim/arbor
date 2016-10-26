@@ -31,10 +31,10 @@ function(add_validation_data)
     set(out "${VALIDATION_DATA_DIR}/${ADD_VALIDATION_DATA_OUTPUT}")
     string(REGEX REPLACE "([^;]+)" "${CMAKE_CURRENT_SOURCE_DIR}/\\1" deps "${ADD_VALIDATION_DATA_DEPENDS}")
     add_custom_command(
-	OUTPUT "${out}"
+        OUTPUT "${out}"
         DEPENDS ${deps}
-	WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-	COMMAND ${ADD_VALIDATION_DATA_COMMAND} > "${out}")
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        COMMAND ${ADD_VALIDATION_DATA_COMMAND} > "${out}")
 
     # Cmake, why can't we just write add_dependencies(validation_data "${out}")?!
     make_unique_target_name(ffs_cmake "${out}")

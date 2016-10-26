@@ -38,7 +38,7 @@ foreach(target ${TARGETS})
     )
 
     if(BUILD_VALIDATION_DATA)
-	add_dependencies(${target} validation_data)
+        add_dependencies(${target} validation_data)
     endif()
 endforeach()
 
