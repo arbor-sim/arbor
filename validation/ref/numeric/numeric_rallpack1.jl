@@ -6,8 +6,12 @@ using JSON
 using SIUnits.ShortUnits
 using PassiveCable
 
+# This should run the same effective model
+# as rallpack1, but with differing
+# electrical parameters (see below).
+
 function run_cable(x_prop, ts)
-    # physical properties
+    # Physical properties:
 
     # f is a fudge factor. rM needs to be the same
     # the same as in nestmc, where we cannot yet set
@@ -40,6 +44,7 @@ end
 function run_rallpack1(x_prop, ts)
     return [rallpack1(0.001*x_prop, t/s)*V for t in ts]
 end
+
 # Generate traces at x=0, x=0.3L, x=L
 
 ts = collect(0s: 0.025ms: 250ms)
@@ -51,7 +56,7 @@ trace = Dict(
     :data => Dict(
         :time => map(t->t/ms, ts),
         symbol("cable.x0.0") => map(v->v/mV, run_cable(0, ts)),
-        symbol("cable.x0.3") => map(v->v/mV, run_rallpack1(0.3, ts)),
+        symbol("cable.x0.3") => map(v->v/mV, run_cable(0.3, ts)),
         symbol("cable.x1.0") => map(v->v/mV, run_cable(1.0, ts))
     )
 )
