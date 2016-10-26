@@ -96,6 +96,15 @@ set(VALIDATION_DATA_DIR "${CMAKE_SOURCE_DIR}/validation/data" CACHE PATH "locati
 # Whether to build validation data at all
 set(BUILD_VALIDATION_DATA ON CACHE BOOL "generate validation data")
 
+# Whether to attempt to use julia to build validation data
+find_program(JULIA_BIN julia)
+if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
+    message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
+    set(BUILD_JULIA_VALIDATION_DATA FALSE)
+else()
+    set(BUILD_JULIA_VALIDATION_DATA TRUE)
+endif()
+
 # Whether to attempt to use nrniv to build validation data
 # (if we find nrniv, do)
 find_program(NRNIV_BIN nrniv)
