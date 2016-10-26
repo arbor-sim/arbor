@@ -182,7 +182,7 @@ public:
             // run the tasks, overlapping if the threading model and number of
             // available threads permits it.
             threading::task_group g;
-            g.run(exchange);            
+            g.run(exchange);
             g.run(update_cells);
             g.wait();
 

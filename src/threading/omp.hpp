@@ -1,7 +1,7 @@
 #pragma once
 
 #if !defined(WITH_OMP)
-    #error "this header can only be loaded if WITH_SERIAL is set"
+    #error "this header can only be loaded if WITH_OMP is set"
 #endif
 
 #include <omp.h>
@@ -67,24 +67,19 @@ struct parallel_for {
 template <typename RandomIt>
 void sort(RandomIt begin, RandomIt end) {
     pss::parallel_stable_sort(begin, end);
-    //std::sort(begin, end);
 }
 
 template <typename RandomIt, typename Compare>
 void sort(RandomIt begin, RandomIt end, Compare comp) {
     pss::parallel_stable_sort(begin, end ,comp);
-    //std::sort(begin, end, comp);
 }
 
 template <typename Container>
 void sort(Container& c) {
     pss::parallel_stable_sort(c.begin(), c.end());
-    //std::sort(c.begin(), c.end());
 }
 
-// FIXME
-//template <typename T>
-//using parallel_vector = std::vector<T>;
+
 template <typename T>
 class parallel_vector {
     using value_type = T;
@@ -136,10 +131,7 @@ struct timer {
 
 constexpr bool multithreaded() { return true; }
 
-/// Proxy for tbb task group.
-/// The tbb version launches tasks asynchronously, returning control to the
-/// caller. The serial version implemented here simply runs the task, before
-/// returning control, effectively serializing all asynchronous calls.
+
 class task_group {
 public:
     task_group() = default;
