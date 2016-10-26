@@ -21,9 +21,6 @@ namespace memory{
 template<typename T, typename Coord>
 class array;
 
-//template <typename T, class Allocator>
-//class host_coordinator;
-
 namespace util {
     template <typename T, typename Coord>
     struct type_printer<array<T,Coord>>{

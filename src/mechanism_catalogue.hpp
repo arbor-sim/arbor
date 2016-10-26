@@ -10,13 +10,6 @@
 #include <mechanisms/expsyn.hpp>
 #include <mechanisms/exp2syn.hpp>
 
-#ifdef WITH_CUDA
-    #include <mechanisms/gpu/hh.hpp>
-    #include <mechanisms/gpu/pas.hpp>
-    #include <mechanisms/gpu/expsyn.hpp>
-    #include <mechanisms/gpu/exp2syn.hpp>
-#endif
-
 namespace nest {
 namespace mc {
 namespace mechanisms {

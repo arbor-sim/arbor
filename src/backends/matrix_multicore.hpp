@@ -38,4 +38,3 @@ struct matrix_policy : public memory_traits {
 } // namespace multicore
 } // namespace mc
 } // namespace nest
-

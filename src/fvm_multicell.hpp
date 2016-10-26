@@ -38,8 +38,6 @@ public:
     using target_policy_type = TargetPolicy;
     using base = target_policy_type;
 
-    using typename base::memory_traits;
-
     /// the real number type
     using typename base::value_type;
 
@@ -100,8 +98,7 @@ public:
     using typename base::mechanism_type;
 
     /// ion species storage
-    /// TODO : make this generic multicore vs. gpu
-    using ion_type = typename mechanisms::ion<memory_traits>;
+    using typename base::ion_type;
 
     /// view into index container
     using typename base::iview;

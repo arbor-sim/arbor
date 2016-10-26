@@ -2,7 +2,6 @@
 
 #include "memory_multicore.hpp"
 
-#ifdef WITH_CUDA
-    #include "memory_gpu.hpp"
-#endif
-
+//#ifdef WITH_CUDA
+//    #include "memory_gpu.hpp"
+//#endif

@@ -35,4 +35,3 @@ using memory_traits = memory_traits_generic<double, nest::mc::cell_lid_type>;
 } // namespace multicore
 } // namespace mc
 } // namespace nest
-

@@ -135,9 +135,7 @@ public:
     using iterator = pointer;
     using const_iterator = const_pointer;
 
-    ////////////////////////////////////////////////////////////////////////////
-    // constructors
-    ////////////////////////////////////////////////////////////////////////////
+    // Constructors
     template <
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
@@ -178,10 +176,7 @@ public:
         reset();
     };
 
-    ////////////////////////////////////////////////////////////////////////////
-    // accessors
-    // overload operator() to provide range based access
-    ////////////////////////////////////////////////////////////////////////////
+    // Accessors: overload operator() to provide range based access
 
     /// access half open sub-range using two indexes [left, right)
     view_type operator()(size_type left, size_type right) {
@@ -367,9 +362,7 @@ public:
 
     using const_iterator = const_pointer;
 
-    ////////////////////////////////////////////////////////////////////////////
-    // CONSTRUCTORS
-    ////////////////////////////////////////////////////////////////////////////
+    // Constructors
     template <
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
@@ -411,10 +404,7 @@ public:
         reset();
     };
 
-    ////////////////////////////////////////////////////////////////////////////
-    // ACCESSORS
-    // overload operator() to provide range based access
-    ////////////////////////////////////////////////////////////////////////////
+    // Accessors: overload operator() to provide range based access
 
     /// access half open sub-range using two indexes [left, right)
     const_view_type operator()(size_type left, size_type right) const {

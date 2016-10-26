@@ -35,56 +35,27 @@ public:
 
     /// construct matrix for one or more cells, with combined parent index
     /// and a cell index
-    template <
-        typename LHS, typename RHS,
-        typename = typename std::enable_if< memory::is_array<LHS>::value && memory::is_array<RHS>::value >
-    >
-    matrix(LHS&& pi, RHS&& ci) :
-        parent_index_(std::forward<LHS>(pi)),
-        cell_index_(std::forward<RHS>(ci))
+    matrix(const std::vector<size_type>& pi, const std::vector<size_type>& ci):
+        parent_index_(memory::make_const_view(pi)),
+        cell_index_(memory::make_const_view(pi))
     {
         setup();
     }
 
     /// construct matrix for a single cell described by a parent index
-    template <
-        typename IDX,
-        typename = typename std::enable_if< memory::is_array<IDX>::value >
-    >
-    matrix(IDX&& pi) :
-        parent_index_(memory::make_const_view(pi)),
-        cell_index_(2)
-    {
-        cell_index_[0] = 0;
-        cell_index_[1] = size();
-        setup();
-    }
+    matrix(const std::vector<size_type>& pi) :
+        matrix(pi, {size_type(0), size_type(pi.size())})
+    {}
 
     /// the dimension of the matrix (i.e. the number of rows or colums)
     std::size_t size() const {
         return parent_index_.size();
     }
 
-    /// the total memory used to store the matrix
-    std::size_t memory() const {
-        auto s = 6 * (sizeof(value_type) * size() + sizeof(array));
-        s     += sizeof(size_type) * (parent_index_.size() + cell_index_.size())
-                + 2*sizeof(iarray);
-        s     += sizeof(matrix);
-        return s;
-    }
-
     /// the number of cell matrices that have been packed together
     size_type num_cells() const {
         return cell_index_.size() - 1;
     }
-
-    /// FIXME : make modparser use the correct accessors (l,d,u,rhs) instead of these
-    view vec_d() { return d(); }
-    const_view vec_d() const { return d(); }
-
-    view vec_rhs() { return rhs(); }
-    const_view vec_rhs() const { return rhs(); }
 
     /// the vector holding the lower part of the matrix
     view l() { return l_; }
@@ -103,7 +74,6 @@ public:
     const_view rhs() const { return rhs_; }
 
     /// the vector holding the parent index
-    iview p() { return parent_index_; }
     const_iview p() const { return parent_index_; }
 
     /// solve the linear system
