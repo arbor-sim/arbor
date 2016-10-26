@@ -91,9 +91,9 @@ public:
         probes_(other.probes_)
      {
          // unique_ptr's cannot be copy constructed, do a manual assignment
-         auto siter = segments_.begin();
-         for (const auto& s : other.segments_) {
-             *siter = std::move(s->clone());
+         segments_.reserve(other.segments_.size());
+         for (const auto& s: other.segments_) {
+             segments_.push_back(s->clone());
          }
      }
 
