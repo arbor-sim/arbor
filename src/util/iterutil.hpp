@@ -68,6 +68,20 @@ distance(I first, E last) {
 }
 
 /*
+ * generic front() and back() methods for containers or ranges
+ */
+
+template <typename Seq>
+auto front(Seq& seq) -> decltype(*std::begin(seq)) {
+    return *std::begin(seq);
+}
+
+template <typename Seq>
+auto back(Seq& seq) -> decltype(*std::begin(seq)) {
+    return *upto(std::begin(seq), std::end(seq));
+}
+
+/*
  * Provide a proxy object for operator->() for iterator adaptors that
  * present rvalues on dereference.
  */

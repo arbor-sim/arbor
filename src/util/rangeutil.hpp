@@ -120,6 +120,47 @@ sort_by(const Seq& seq, const Proj& proj) {
         });
 }
 
+// Stable sort in-place by projection `proj`
+
+template <typename Seq, typename Proj>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+stable_sort_by(Seq& seq, const Proj& proj) {
+    using value_type = typename sequence_traits<Seq>::value_type;
+    auto canon = canonical_view(seq);
+
+    std::stable_sort(std::begin(canon), std::end(canon),
+        [&proj](const value_type& a, const value_type& b) {
+            return proj(a) < proj(b);
+        });
+}
+
+template <typename Seq, typename Proj>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+stable_sort_by(const Seq& seq, const Proj& proj) {
+    using value_type = typename sequence_traits<Seq>::value_type;
+    auto canon = canonical_view(seq);
+
+    std::stable_sort(std::begin(canon), std::end(canon),
+        [&proj](const value_type& a, const value_type& b) {
+            return proj(a) < proj(b);
+        });
+}
+
+// Range-interface for `all_of`, `any_of`
+
+template <typename Seq, typename Predicate>
+bool all_of(const Seq& seq, const Predicate& pred) {
+    auto canon = canonical_view(seq);
+    return std::all_of(std::begin(canon), std::end(canon), pred);
+}
+
+template <typename Seq, typename Predicate>
+bool any_of(const Seq& seq, const Predicate& pred) {
+    auto canon = canonical_view(seq);
+    return std::any_of(std::begin(canon), std::end(canon), pred);
+}
+
+
 // Accumulate by projection `proj`
 
 template <
