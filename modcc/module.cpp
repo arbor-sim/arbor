@@ -31,21 +31,18 @@ Module::Module(std::string const& fname)
     buffer_[size] = 0; // append \0 to terminate string
 }
 
-Module::Module(std::vector<char> const& buffer)
-{
+Module::Module(std::vector<char> const& buffer) {
     buffer_ = buffer;
 
     // add \0 to end of buffer if not already present
-    if(buffer_[buffer_.size()-1] != 0)
+    if (buffer_[buffer_.size()-1] != 0)
         buffer_.push_back(0);
 }
 
-Module::Module(const char* buffer, size_t count)
-{
-    for (auto i = 0; i < count-1 && *buffer != '\0'; ++buffer) {
-        buffer_.push_back(*buffer);
-    }
-
+Module::Module(const char* buffer, size_t count) {
+    auto size = std::distance(buffer, std::find(buffer, buffer+count, '\0'));
+    buffer_.reserve(size+1);
+    buffer_.insert(buffer_.end(), buffer, buffer+size);
     buffer_.push_back(0);
 }
 
