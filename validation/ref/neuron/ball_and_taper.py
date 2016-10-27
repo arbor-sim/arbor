@@ -6,8 +6,8 @@ import nrn_validation as V
 
 V.override_defaults_from_args()
 
-# dendrite geometry: 100 µm long, diameter 1 µm to 0.1 µm.
-geom = [(0,1), (100, 0.1)]
+# dendrite geometry: 200 µm long, diameter 1 µm to 0.4 µm.
+geom = [(0,1.0), (200, 0.4)]
 
 model = V.VModel()
 model.add_soma(12.6157)
