@@ -1,6 +1,7 @@
 #include "gtest.h"
 #include "../test_util.hpp"
 
+#include <algorithm>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
 #include <mechanisms/expsyn.hpp>
@@ -49,16 +50,20 @@ TEST(synapses, expsyn_basic_state)
     using namespace nest::mc;
 
     using synapse_type = mechanisms::expsyn::mechanism_expsyn<double, int>;
-    auto num_syn = 4;
+    auto num_syn = 8;
 
-    synapse_type::index_type indexes(num_syn);
+    synapse_type::index_type indexes(num_syn, 1);
     synapse_type::vector_type voltage(num_syn, -65.0);
     synapse_type::vector_type current(num_syn,   1.0);
+    synapse_type::vector_type areas(num_syn, 2);
+
     auto mech = mechanisms::make_mechanism<synapse_type>( voltage, current, indexes );
 
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();
+    EXPECT_EQ(num_syn, n);
+
     using view = synapse_type::view_type;
 
     // parameters initialized to default values
@@ -93,6 +98,32 @@ TEST(synapses, expsyn_basic_state)
     ptr->net_receive(3, 1.04);
     EXPECT_EQ(ptr->g[1], 3.14);
     EXPECT_EQ(ptr->g[3], 1.04);
+
+    // test nrn_current
+    ptr->nrn_init();
+    for (auto i = 0; i < n; ++i) {
+        ptr->net_receive(i, 1);
+    }
+
+    ptr->set_areas(areas);
+    // Copy current
+    auto current_save = current;
+    auto current_fn = [&indexes, &voltage,
+                       &current_save, &areas](synapse_type::view_type g,
+                                              synapse_type::view_type e) {
+        for(int i_ = 0; i_ < indexes.size(); ++i_) {
+            synapse_type::value_type area_ = areas[indexes[i_]];
+            synapse_type::value_type v = voltage[indexes[i_]];
+            synapse_type::value_type current_ = g[i_]*(v-e[i_]);
+            current_ = (100*current_)/area_;
+            current_save[indexes[i_]] += current_;
+        }
+    };
+
+    current_fn(ptr->g, ptr->e);
+    ptr->nrn_current();
+    EXPECT_TRUE(std::equal(current_save.begin(), current_save.end(),
+                           current.begin()));
 }
 
 TEST(synapses, exp2syn_basic_state)
@@ -148,4 +179,3 @@ TEST(synapses, exp2syn_basic_state)
     EXPECT_NEAR(ptr->A[1], ptr->factor[1]*3.14, 1e-6);
     EXPECT_NEAR(ptr->B[3], ptr->factor[3]*1.04, 1e-6);
 }
-
