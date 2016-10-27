@@ -8,17 +8,18 @@ set(BASE_SOURCES
     profiling/profiler.cpp
     swcio.cpp
     util/debug.cpp
+    backends/catalogue_multicore.cpp
 )
 
 if(${WITH_MPI})
     set(BASE_SOURCES ${BASE_SOURCES} communication/mpi.cpp)
 endif()
 
-add_library(cellalgo ${BASE_SOURCES} ${HEADERS})
-add_dependencies(cellalgo build_all_mods)
+add_library(nestmc ${BASE_SOURCES} ${HEADERS})
+add_dependencies(nestmc build_all_mods)
 
 if(WITH_CUDA)
-    add_dependencies(cellalgo build_all_gpu_mods)
+    add_dependencies(nestmc build_all_gpu_mods)
 endif()
 
 add_subdirectory(memory)

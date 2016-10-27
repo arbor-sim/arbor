@@ -7,13 +7,13 @@
 
 #include <json/json.hpp>
 
+#include <backends/fvm.hpp>
 #include <common_types.hpp>
-#include <cell.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <cell.hpp>
 #include <fvm_multicell.hpp>
 #include <io/exporter_spike_file.hpp>
-#include <mechanism_catalogue.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
 #include <threading/threading.hpp>

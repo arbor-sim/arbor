@@ -40,12 +40,18 @@ public:
         cell_index_(memory::make_const_view(pi))
     {
         setup();
+        std::cout << "\n\nAAAA\n\n";
     }
 
     /// construct matrix for a single cell described by a parent index
     matrix(const std::vector<size_type>& pi) :
-        matrix(pi, {size_type(0), size_type(pi.size())})
-    {}
+        parent_index_(memory::make_const_view(pi)),
+        cell_index_(2)
+    {
+        cell_index_[0] = 0;
+        cell_index_[1] = parent_index_.size();
+        setup();
+    }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)
     std::size_t size() const {

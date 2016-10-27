@@ -18,10 +18,11 @@ else()
     add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 endif()
 
-#target_link_libraries(miniapp.exe LINK_PUBLIC cellalgo)
-#target_link_libraries(miniapp.exe LINK_PUBLIC ${TBB_LIBRARIES})
+target_link_libraries(miniapp.exe nestmc)
 
-target_link_libraries(miniapp.exe cellalgo)
+if(WITH_TBB)
+    target_link_libraries(miniapp.exe ${TBB_LIBRARIES})
+endif()
 
 if(WITH_MPI)
     target_link_libraries(miniapp.exe LINK_PUBLIC ${MPI_C_LIBRARIES})

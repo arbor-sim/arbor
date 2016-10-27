@@ -1,14 +1,13 @@
-#include "gtest.h"
+#include "../gtest.h"
 
-#include <mechanism_catalogue.hpp>
 #include <matrix.hpp>
-#include <backends/memory_traits.hpp>
+#include <backends/catalogue_multicore.hpp>
 
 TEST(mechanisms, helpers) {
     using namespace nest::mc;
     using memory_traits = multicore::memory_traits;
     using size_type = memory_traits::size_type;
-    using catalogue = mechanisms::catalogue<memory_traits>;
+    using catalogue = multicore::catalogue;
 
     // verify that the hh and pas channels are available
     EXPECT_TRUE(catalogue::has("hh"));

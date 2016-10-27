@@ -1,7 +1,6 @@
 #pragma once
 
-#include <ion.hpp>
-#include <mechanism_catalogue.hpp>
+#include "catalogue_multicore.hpp"
 #include "matrix_multicore.hpp"
 
 namespace nest {
@@ -12,27 +11,14 @@ struct fvm_policy : public memory_traits {
     /// define matrix type
     using matrix_policy = nest::mc::multicore::matrix_policy;
 
-    // FIXME
-    // the back end specific part of the catalogue shoud be in... the back end!
-    // i.e. we shouldn't include the ion and mechanism_catalogue headers above
-    //
-
     /// mechanism factory
-    using mechanism_catalogue =
-        nest::mc::mechanisms::catalogue<memory_traits>;
+    using mechanism_catalogue = nest::mc::multicore::catalogue;
 
-    // FIXME
-    // the ion_type and mechanism_type should be provided by the catalogue
-    //
+    /// back end specific storage for mechanisms
+    using mechanism_type = mechanism_catalogue::mechanism_ptr_type;
 
-    /// back end specific storage for ion channel information
-    using ion_type =
-        nest::mc::mechanisms::ion<memory_traits>;
-
-    /// mechanism pointer type
-    using mechanism_type =
-        nest::mc::mechanisms::mechanism_ptr<memory_traits>;
-
+    /// back end specific storage for shared ion specie state
+    using ion_type = mechanism_catalogue::ion_type;
 };
 
 } // namespace multicore

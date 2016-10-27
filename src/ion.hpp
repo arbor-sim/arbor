@@ -8,9 +8,9 @@ namespace nest {
 namespace mc {
 namespace mechanisms {
 
-/*******************************************************************************
-
-  ion channels have the following fields :
+/*
+  Ion channels have the following fields, whose label corresponds to that
+  in NEURON. We give them more easily understood accessors.
 
     ---------------------------------------------------
     label   Ca      Na      K   name
@@ -21,9 +21,9 @@ namespace mechanisms {
     Xo      cao     nao     ko  external_concentration
     gX      gca     gna     gk  conductance
     ---------------------------------------------------
-*******************************************************************************/
+*/
 
-/// let's enumerate the ion channel types
+/// enumerate the ion channel types
 enum class ionKind {ca, na, k};
 
 inline static
@@ -36,15 +36,14 @@ std::string to_string(ionKind k) {
     return "unkown";
 }
 
-/// and a little helper to iterate over them
-inline static
-std::vector<ionKind> ion_kinds() {
+/// a helper for iterting over the ion species
+constexpr std::array<ionKind, 3> ion_kinds() {
     return {ionKind::ca, ionKind::na, ionKind::k};
 }
 
 /// storage for ion channel information in a cell group
 template<typename MemoryTraits>
-class ion : MemoryTraits{
+class ion : public MemoryTraits {
 public :
     using memory_traits = MemoryTraits;
 

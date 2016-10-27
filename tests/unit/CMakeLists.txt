@@ -59,7 +59,7 @@ endif()
 
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
+    target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
 
     if(WITH_TBB)
         target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})

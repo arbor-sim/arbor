@@ -14,8 +14,6 @@
 #include <ion.hpp>
 #include <math.hpp>
 #include <matrix.hpp>
-#include <mechanism.hpp>
-#include <mechanism_catalogue.hpp>
 #include <profiling/profiler.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
