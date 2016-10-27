@@ -11,7 +11,7 @@ namespace math {
 template <typename T>
 T constexpr pi()
 {
-    return T(3.1415926535897932384626433832795);
+    return T(3.1415926535897932384626433832795l);
 }
 
 template <typename T = float>
