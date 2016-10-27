@@ -18,26 +18,29 @@ export cable_normalize, cable, rallpack1
 #
 # Return:
 #     g(x, t)
+#
+# TODO: verify correctness when L≠1
 
-function cable_normalized(x, t, L; tol=1e-8)
+function cable_normalized(x::Float64, t::Float64, L::Float64; tol=1e-8)
     if t<=0
         return 0.0
     else
         ginf = -cosh(L-x)/sinh(L)
         sum = exp(-t/L)
+        Ltol = L*tol
 
         for k = countfrom(1)
             a = k*pi/L
-            e = exp(-t*(1+a^2))
+            b = exp(-t*(1+a^2))
 
-            sum += 2/L*e*cos(a*x)/(1+a^2)
-            resid_ub = e/(L*a^3*t)
+            sum += 2*b*cos(a*x)/(1+a^2)
+            resid_ub = b/(a^3*t)
 
-            if resid_ub<tol
+            if resid_ub<Ltol
                 break
             end
         end
-        return ginf+sum
+        return ginf+sum/L;
      end
 end
 

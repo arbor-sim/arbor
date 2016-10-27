@@ -155,7 +155,7 @@ namespace mc {
             // r_L is called Ra in Neuron
             //base::add_parameter({"c_m",  10e-6, {0., 1e9}}); // typically 10 nF/mm^2 == 0.01 F/m^2 == 10^-6 F/cm^2
             base::add_parameter({"c_m",   0.01, {0., 1e9}}); // typically 10 nF/mm^2 == 0.01 F/m^2 == 10^-6 F/cm^2
-            base::add_parameter({"r_L", 180.00, {0., 1e9}}); // equivalent to Ra in Neuron : Ohm.cm
+            base::add_parameter({"r_L", 100.00, {0., 1e9}}); // equivalent to Ra in Neuron : Ohm.cm
         }
     };
 

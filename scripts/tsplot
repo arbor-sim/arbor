@@ -44,6 +44,7 @@ def parse_clargs():
                    help='plot series with same KEYs on the same axes')
     P.add_argument('-s', '--select', metavar='EXPR,...', dest='select',
                    type=lambda s: s.split(','),
+                   action='append',
                    help='select only series matching EXPR')
     P.add_argument('-o', '--output', metavar='FILE', dest='outfile',
                    help='save plot to file FILE')
@@ -212,7 +213,7 @@ def read_json_timeseries(j, axis='time', select=[]):
         meta = dict(j.items() + {'label': key, 'data': None, 'units': units(key)}.items())
         del meta['data']
 
-        if all([run_select(sel, meta) for sel in select]):
+        if not select or any([all([run_select(s, meta) for s in term]) for term in select]):
             ts_list.append(TimeSeries(times, jdata[key], **meta))
 
     return ts_list
@@ -422,7 +423,7 @@ args = parse_clargs()
 tss = []
 axis = args.axis if args.axis else 'time'
 for filename in args.inputs:
-    select = args.select if args.select else []
+    select = args.select
     with open(filename) as f:
         j = json.load(f)
         tss.extend(read_json_timeseries(j, axis, select))
