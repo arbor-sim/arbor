@@ -15,6 +15,7 @@ public :
 
     Module(std::string const& fname);
     Module(std::vector<char> const& buffer);
+    Module(const char* buffer, size_t count);
 
     std::vector<char> const& buffer() const {
         return buffer_;
