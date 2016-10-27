@@ -19,7 +19,7 @@ trace = Dict(
     :units => "mV",
     :data => Dict(
         :time => map(t->t/ms, ts),
-        symbol("soma.mid") => map(v->v/mV, vs)
+        Symbol("soma.mid") => map(v->v/mV, vs)
     )
 )
 
