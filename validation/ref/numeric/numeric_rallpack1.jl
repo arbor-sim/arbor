@@ -55,9 +55,9 @@ trace = Dict(
     :units => "mV",
     :data => Dict(
         :time => map(t->t/ms, ts),
-        symbol("cable.x0.0") => map(v->v/mV, run_cable(0, ts)),
-        symbol("cable.x0.3") => map(v->v/mV, run_cable(0.3, ts)),
-        symbol("cable.x1.0") => map(v->v/mV, run_cable(1.0, ts))
+        Symbol("cable.x0.0") => map(v->v/mV, run_cable(0, ts)),
+        Symbol("cable.x0.3") => map(v->v/mV, run_cable(0.3, ts)),
+        Symbol("cable.x1.0") => map(v->v/mV, run_cable(1.0, ts))
     )
 )
 
