@@ -10,7 +10,7 @@ NEURON  {
 }
 
 STATE {
-    h
+    h (nA)
     m r
 }
 

@@ -26,6 +26,28 @@ enum class moduleKind {
     density
 };
 
+typedef std::vector<Token> unit_tokens;
+struct Id {
+    Token token;
+    std::string value; // store the value as a string, not a number : empty
+                       // string == no value
+    unit_tokens units;
+
+    Id(Token const& t, std::string const& v, unit_tokens const& u)
+        : token(t), value(v), units(u)
+    {}
+
+    Id() {}
+
+    bool has_value() const {
+        return value.size()>0;
+    }
+
+    std::string const& name() const {
+        return token.spelling;
+    }
+};
+
 // information stored in a NEURON {} block in mod file.
 struct NeuronBlock {
     bool threadsafe = false;
@@ -42,7 +64,7 @@ struct NeuronBlock {
 
 // information stored in a NEURON {} block in mod file
 struct StateBlock {
-    std::vector<std::string> state_variables;
+    std::vector<Id> state_variables;
     auto begin() -> decltype(state_variables.begin()) {
         return state_variables.begin();
     }
@@ -52,30 +74,9 @@ struct StateBlock {
 };
 
 // information stored in a NEURON {} block in mod file
-typedef std::vector<Token> unit_tokens;
 struct UnitsBlock {
     typedef std::pair<unit_tokens, unit_tokens> units_pair;
     std::vector<units_pair> unit_aliases;
-};
-
-struct Id {
-    Token token;
-    std::string value; // store the value as a string, not a number : empty string == no value
-    unit_tokens units;
-
-    Id(Token const& t, std::string const& v, unit_tokens const& u)
-        : token(t), value(v), units(u)
-    {}
-
-    Id() {}
-
-    bool has_value() const {
-        return value.size()>0;
-    }
-
-    std::string const& name() const {
-        return token.spelling;
-    }
 };
 
 // information stored in a NEURON {} block in mod file
@@ -164,4 +165,3 @@ inline std::ostream& operator<< (std::ostream& os, AssignedBlock const& A) {
 
     return os;
 }
-
