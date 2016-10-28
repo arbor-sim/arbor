@@ -18,7 +18,10 @@
 #include <util/sentinel.hpp>
 #include <util/transform.hpp>
 
+#include "common.hpp"
+
 using namespace nest::mc;
+using testing::null_terminated;
 
 TEST(range, list_iterator) {
     std::list<int> l = { 2, 4, 6, 8, 10 };
@@ -142,23 +145,6 @@ TEST(range, const_iterator) {
     auto r_const = util::make_range(xs_const.begin(), xs_const.end());
     EXPECT_TRUE((std::is_same<const int&, decltype(r_const.front())>::value));
 }
-
-struct null_terminated_t {
-    bool operator==(const char *p) const { return !*p; }
-    bool operator!=(const char *p) const { return !!*p; }
-
-    friend bool operator==(const char *p, null_terminated_t x) {
-        return x==p;
-    }
-
-    friend bool operator!=(const char *p, null_terminated_t x) {
-        return x!=p;
-    }
-
-    constexpr null_terminated_t() {}
-};
-
-constexpr null_terminated_t null_terminated;
 
 TEST(range, sentinel) {
     const char *cstr = "hello world";
@@ -345,6 +331,17 @@ TEST(range, sort) {
     // reverse sort by transform c to -c
     util::sort_by(util::strict_view(cstr_range), [](char c) { return -c; });
     EXPECT_EQ(std::string("ywohd"), cstr);
+
+    // stable sort: move capitals to front, numbers to back
+    auto rank = [](char c) {
+        return std::isupper(c)? 0: std::isdigit(c)? 2: 1;
+    };
+
+    char mixed[] = "t5hH4E3erLL2e1O";
+    auto mixed_range = util::make_range(std::begin(mixed), null_terminated);
+
+    util::stable_sort_by(util::strict_view(mixed_range), rank);
+    EXPECT_EQ(std::string("HELLOthere54321"), mixed);
 }
 
 TEST(range, sum_by) {
@@ -359,6 +356,37 @@ TEST(range, sum_by) {
 
     auto count = util::sum_by(words, [](const std::string &x) { return x.size(); });
     EXPECT_EQ(10u, count);
+}
+
+TEST(range, all_of_any_of) {
+    // make a C string into a sentinel-terminated range
+    auto cstr = [](const char* s) { return util::make_range(s, null_terminated); };
+
+    // predicate throws on finding 'x' in order to check
+    // early stop criterion.
+    auto pred = [](char c) { return c=='x'? throw c:c<'5'; };
+
+    // all
+    EXPECT_TRUE(util::all_of(std::string(), pred));
+    EXPECT_TRUE(util::all_of(std::string("1234"), pred));
+    EXPECT_FALSE(util::all_of(std::string("12345"), pred));
+    EXPECT_FALSE(util::all_of(std::string("12345x"), pred));
+
+    EXPECT_TRUE(util::all_of(cstr(""), pred));
+    EXPECT_TRUE(util::all_of(cstr("1234"), pred));
+    EXPECT_FALSE(util::all_of(cstr("12345"), pred));
+    EXPECT_FALSE(util::all_of(cstr("12345x"), pred));
+
+    // any
+    EXPECT_FALSE(util::any_of(std::string(), pred));
+    EXPECT_FALSE(util::any_of(std::string("8765"), pred));
+    EXPECT_TRUE(util::any_of(std::string("87654"), pred));
+    EXPECT_TRUE(util::any_of(std::string("87654x"), pred));
+
+    EXPECT_FALSE(util::any_of(cstr(""), pred));
+    EXPECT_FALSE(util::any_of(cstr("8765"), pred));
+    EXPECT_TRUE(util::any_of(cstr("87654"), pred));
+    EXPECT_TRUE(util::any_of(cstr("87654x"), pred));
 }
 
 #ifdef WITH_TBB
