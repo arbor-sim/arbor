@@ -32,12 +32,29 @@ namespace impl {
     };
 }
 
+/*
+ * Iterate through a sequence such that dereference only
+ * gives items from the range that satisfy a given predicate.
+ *
+ * Type parameters:
+ *     I      Iterator type
+ *     S      Sentinel type compatible with I
+ *     F      Functional object
+ *
+ * The underlying sequence is described by an iterator of type
+ * I and a sentinel of type S. The predicate has type F.
+ */
+
 template <typename I, typename S, typename F>
 class filter_iterator {
     mutable I inner_;
     S end_;
     mutable bool ok_;
-    mutable uninitialized<F> f_; // always in initialized state post-construction
+
+    // F may be a lambda type, and thus non-copy assignable. The
+    // use of `uninitalized` allows us to work around this limitation;
+    // f_ will always be in an initalized state post-construction.
+    mutable uninitialized<F> f_;
 
     void advance() const {
         if (ok_) return;
