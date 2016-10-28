@@ -3,13 +3,13 @@
 #include <cmath>
 #include <vector>
 
-#include "algorithms.hpp"
-#include "common_types.hpp"
-#include "compartment.hpp"
-#include "math.hpp"
-#include "parameter_list.hpp"
-#include "point.hpp"
-#include "util.hpp"
+#include <algorithms.hpp>
+#include <common_types.hpp>
+#include <compartment.hpp>
+#include <math.hpp>
+#include <parameter_list.hpp>
+#include <point.hpp>
+#include <util.hpp>
 
 namespace nest {
 namespace mc {
@@ -379,6 +379,11 @@ public:
         return lengths_;
     }
 
+    std::vector<value_type> const& radii() const
+    {
+        return radii_;
+    }
+
     cable_segment* as_cable() override
     {
         return this;
@@ -463,6 +468,18 @@ template <typename SegmentType, typename... Args>
 segment_ptr make_segment(Args&&... args)
 {
     return segment_ptr(new SegmentType(std::forward<Args>(args)...));
+}
+
+/// Divided compartment adaptors for cable segments
+
+template <typename DivCompClass>
+DivCompClass div_compartments(const cable_segment* cable, unsigned ncomp) {
+    return DivCompClass(ncomp, cable->radii(), cable->lengths());
+}
+
+template <typename DivCompClass>
+DivCompClass div_compartments(const cable_segment* cable) {
+    return DivCompClass(cable->num_compartments(), cable->radii(), cable->lengths());
 }
 
 } // namespace mc
