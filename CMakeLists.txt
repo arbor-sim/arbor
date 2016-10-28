@@ -31,23 +31,27 @@ if(WITH_TRACE)
     add_definitions("-DWITH_TRACE")
 endif()
 
-# TBB support
-set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
-if(WITH_TBB)
+#threading model selection
+if(THREADING_MODEL MATCHES "tbb")
+    # TBB support
+    set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DWITH_TBB)
-endif()
 
-# OpenMP support
-set(WITH_OMP OFF CACHE BOOL "use OpenMP for on-node threading" )
-if(WITH_OMP)
+elseif(THREADING_MODEL MATCHES "omp")
+    # OpenMP support
+    set(WITH_OMP OFF CACHE BOOL "use OpenMP for on-node threading" )
     find_package(OpenMP REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     add_definitions(-DWITH_OMP)
+else()
+    if(NOT THREADING_MODEL)
+        message("-- Threading model not specified, using serial as default")
+    else()
+        message("-- Threading model '${THREADING_MODEL}' not supported, using serial as default")
+    endif()
 endif()
-
-
 
 # MPI support
 set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
@@ -60,25 +64,14 @@ if(WITH_MPI)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
 endif()
 
-# Profiler support
+
+# Internal profiler support
 set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
 if(WITH_PROFILING)
     add_definitions(-DWITH_PROFILING)
 endif()
 
-# Extrae support
-set(WITH_EXTRAE OFF CACHE BOOL "use Extrae for profiling" )
-if(WITH_EXTRAE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${BSCOPT_EXTRAE}")
-    add_definitions(-DWITH_EXTRAE)
-    if(WITH_OMP)
-        #Link extrae libs for omp
-        set(CMAKE_EXE_LINKER_FLAGS "${BSCLINK_EXTRAE} -lomptrace")
-    else()
-        #Link extrae libs for seq
-        set(CMAKE_EXE_LINKER_FLAGS "${BSCLINK_EXTRAE} -lseqtrace")
-    endif()
-endif()
+
 
 # Cray systems
 set(SYSTEM_CRAY OFF CACHE BOOL "add flags for compilation on Cray systems")

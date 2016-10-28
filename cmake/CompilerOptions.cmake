@@ -4,8 +4,6 @@ set(CXXOPT_DEBUG "-g")
 set(CXXOPT_PTHREAD "-pthread")
 set(CXXOPT_CXX11 "-std=c++11")
 set(CXXOPT_WALL "-Wall")
-set(BSCOPT_EXTRAE "-O -g -I $(EXTRAE_HOME)/include")
-set(BSCLINK_EXTRAE "-Wl,-rpath -Wl,/apps/CEPBATOOLS/extrae/latest/impi5_mt+libgomp4.9/64/lib -L/apps/CEPBATOOLS/extrae/latest/impi5_mt+libgomp4.9/64/lib")
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     # Disable 'missing-braces' warning: this will inappropriately

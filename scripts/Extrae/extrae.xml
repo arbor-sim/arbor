@@ -1,0 +1,81 @@
+<?xml version='1.0'?>
+
+<trace enabled="yes"
+ home="/apps/CEPBATOOLS/extrae/3.3.0/openmpi+libgomp4.2/64"
+ initial-mode="detail"
+ type="paraver"
+ xml-parser-id="Id: xml-parse.c 3918 2016-03-11 14:59:01Z harald $"
+>
+
+  <openmp enabled="yes">
+    <locks enabled="no" />
+    <counters enabled="yes" />
+  </openmp>
+
+  <pthread enabled="no">
+    <locks enabled="no" />
+    <counters enabled="yes" />
+  </pthread>
+
+  <counters enabled="yes">
+    <cpu enabled="yes" starting-set-distribution="1">
+      <set enabled="yes" domain="all" changeat-time="0">
+        PAPI_TOT_INS,PAPI_TOT_CYC,PAPI_L1_DCM,PAPI_L2_DCM,PAPI_L3_TCM,PAPI_FP_INS,PAPI_BR_MSP
+      </set>
+      <set enabled="yes" domain="all" changeat-time="0">
+        PAPI_TOT_INS,PAPI_TOT_CYC,PAPI_LD_INS,PAPI_SR_INS,PAPI_BR_UCN,PAPI_BR_CN,PAPI_VEC_SP,RESOURCE_STALLS
+        <sampling enabled="no" period="1000000000">PAPI_TOT_CYC</sampling>
+      </set>
+    </cpu>
+
+    <network enabled="no" />
+
+    <resource-usage enabled="no" />
+
+    <memory-usage enabled="no" />
+  </counters>
+
+  <storage enabled="no">
+    <trace-prefix enabled="yes">TRACE</trace-prefix>
+    <size enabled="no">5</size>
+    <temporal-directory enabled="yes">/scratch</temporal-directory>
+    <final-directory enabled="yes">/gpfs/scratch/bsc41/bsc41273</final-directory>
+  </storage>
+
+  <buffer enabled="yes">
+    <size enabled="yes">500000</size>
+    <circular enabled="no" />
+  </buffer>
+
+  <trace-control enabled="yes">
+    <file enabled="no" frequency="5M">/gpfs/scratch/bsc41/bsc41273/control</file>
+    <global-ops enabled="no"></global-ops>
+  </trace-control>
+
+  <others enabled="yes">
+    <minimum-time enabled="no">10M</minimum-time>
+    <finalize-on-signal enabled="yes" 
+      SIGUSR1="no" SIGUSR2="no" SIGINT="yes"
+      SIGQUIT="yes" SIGTERM="yes" SIGXCPU="yes"
+      SIGFPE="yes" SIGSEGV="yes" SIGABRT="yes"
+    />
+    <flush-sampling-buffer-at-instrumentation-point enabled="yes" />
+  </others>
+
+  <sampling enabled="no" type="virtual" period="50m" variability="10m" />
+
+  <dynamic-memory enabled="no" />
+
+  <input-output enabled="no" />
+
+  <merge enabled="yes" 
+    synchronization="default"
+    tree-fan-out="16"
+    max-memory="512"
+    joint-states="yes"
+    keep-mpits="yes"
+    sort-addresses="yes"
+    overwrite="yes"
+  />
+
+</trace>

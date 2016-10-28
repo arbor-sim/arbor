@@ -1,0 +1,120 @@
+{
+ "communicators": 1,
+ "efficiency": 82.385157107807,
+ "rank": 0,
+ "regions": {
+  "name": "total",
+  "regions": [
+   {
+    "name": "stepping",
+    "regions": [
+     {
+      "name": "matrix",
+      "regions": [
+       {
+        "name": "solve",
+        "time": 0.0946188567500036
+       },
+       {
+        "name": "setup",
+        "time": 0.0483503322500003
+       },
+       {
+        "name": "other",
+        "time": 0.00483970474999358
+       }
+      ],
+      "time": 0.147808893749998
+     },
+     {
+      "name": "state",
+      "regions": [
+       {
+        "name": "expsyn",
+        "time": 0.100622148
+       },
+       {
+        "name": "hh",
+        "time": 0.00480561875000001
+       },
+       {
+        "name": "pas",
+        "time": 0.00156232224999997
+       },
+       {
+        "name": "other",
+        "time": 0.00846572874999986
+       }
+      ],
+      "time": 0.11545581775
+     },
+     {
+      "name": "current",
+      "regions": [
+       {
+        "name": "expsyn",
+        "time": 0.0433450602500004
+       },
+       {
+        "name": "pas",
+        "time": 0.0204613180000001
+       },
+       {
+        "name": "hh",
+        "time": 0.00258796224999999
+       },
+       {
+        "name": "other",
+        "time": 0.0102778397499991
+       }
+      ],
+      "time": 0.0766721802499996
+     },
+     {
+      "name": "events",
+      "time": 0.00165520799999999
+     },
+     {
+      "name": "sampling",
+      "time": 0.00117754024999996
+     },
+     {
+      "name": "communciation",
+      "regions": [
+       {
+        "name": "events",
+        "time": 0.00015941975
+       },
+       {
+        "name": "exchange",
+        "time": 2.957e-06
+       },
+       {
+        "name": "spike output",
+        "time": 4.83e-07
+       },
+       {
+        "name": "other",
+        "time": 1.98800000000002e-06
+       }
+      ],
+      "time": 0.00016484775
+     },
+     {
+      "name": "other",
+      "time": 0.00818385550000297
+     }
+    ],
+    "time": 0.35111834325
+   },
+   {
+    "name": "other",
+    "time": 0.075065469
+   }
+  ],
+  "time": 0.42618381225
+ },
+ "threads": 4,
+ "throughput": 93854,
+ "wall time": 0.426191265
+}
