@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include <cell.hpp>
+#include <segment.hpp>
 #include <math.hpp>
 #include <parameter_list.hpp>
 
@@ -92,7 +93,7 @@ inline cell make_cell_ball_and_stick(bool with_stim = true) {
  * Dendrite:
  *    mechanisms: passive (default params)
  *    diameter proximal: 1 µm
- *    diameter distal: 0.2 µm
+ *    diameter distal: 0.4 µm
  *    length: 200 µm
  *    bulk resistivity: 100 Ω·cm
  *    compartments: 4
@@ -107,7 +108,62 @@ inline cell make_cell_ball_and_taper(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    c.add_cable(0, segmentKind::dendrite, 1.0/2, 0.2/2, 200.0);
+    c.add_cable(0, segmentKind::dendrite, 1.0/2, 0.4/2, 200.0);
+
+    for (auto& seg: c.segments()) {
+        seg->mechanism("membrane").set("r_L", 100);
+        if (seg->is_dendrite()) {
+            seg->add_mechanism(pas_parameters());
+            seg->set_compartments(4);
+        }
+    }
+
+    if (with_stim) {
+        c.add_stimulus({1,1}, {5., 80., 0.3});
+    }
+    return c;
+}
+
+/*
+ * Create cell with a soma and unbranched dendrite with varying diameter:
+ *
+ * Soma:
+ *    mechanisms: HH
+ *    diameter: 12.6157 µm
+ *
+ * Dendrite:
+ *    mechanisms: none
+ *    length: 100 µm
+ *    membrane resistance: 100 Ω·cm
+ *    compartments: 4
+ *
+ * Stimulus:
+ *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
+ */
+
+inline cell make_cell_ball_and_squiggle(bool with_stim = true) {
+    cell c;
+
+    auto soma = c.add_soma(12.6157/2.0);
+    soma->add_mechanism(hh_parameters());
+
+    std::vector<cell::value_type> radii;
+    std::vector<cell::point_type> points;
+
+    double length = 100.0;
+    int npoints = 200;
+
+    for (int i=0; i<npoints; ++i) {
+        double x = i*(1.0/(npoints-1));
+        double r = std::exp(-x)*(std::sin(40*x)*0.05+0.1)+0.1;
+
+        radii.push_back(r);
+        points.push_back({x*length, 0., 0.});
+    };
+
+    auto dendrite =
+        make_segment<cable_segment>(segmentKind::dendrite, radii, points);
+    c.add_cable(0, std::move(dendrite));
 
     for (auto& seg: c.segments()) {
         seg->mechanism("membrane").set("r_L", 100);
