@@ -48,12 +48,10 @@ double linf_distance(const trace_data& u, const trace_data& ref) {
                 [&](trace_entry x) { return std::abs(x.v-f(x.t)); }));
 }
 
-/*
- * Compute linf distance as above, but excluding sample points that lie
- * near points in `excl`.
- *
- * `excl` contains the times to exclude, in ascending order.
- */
+// Compute linf distance as above, but excluding sample points that lie
+// near points in `excl`.
+//
+// `excl` contains the times to exclude, in ascending order.
 
 double linf_distance(const trace_data& u, const trace_data& ref, const std::vector<float>& excl) {
     trace_interpolant f{ref};

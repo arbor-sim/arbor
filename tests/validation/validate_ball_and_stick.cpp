@@ -127,10 +127,9 @@ TEST(rallpack1, numeric_ref) {
         250.f);
 }
 
-template <typename Policy>
-using lowered_cell_div = fvm::fvm_multicell<double, cell_local_size_type, Policy>;
-
 TEST(ball_and_squiggle, neuron_ref) {
+    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+
     cell c = make_cell_ball_and_squiggle();
     add_common_voltage_probes(c);
 
@@ -141,13 +140,18 @@ TEST(ball_and_squiggle, neuron_ref) {
         {"dend.end", {0u, 2u}, simple_sampler(sample_dt)}
     };
 
+#if 0
+    // *temporarily* disabled: compartment division policy will
+    // be moved into backend policy classes.
+
     run_ncomp_convergence_test<lowered_cell_div<div_compartment_sampler>>(
         "ball_and_squiggle_sampler",
         "neuron_ball_and_squiggle.json",
         c,
         samplers);
+#endif
 
-    run_ncomp_convergence_test<lowered_cell_div<div_compartment_integrator>>(
+    run_ncomp_convergence_test<lowered_cell>(
         "ball_and_squiggle_integrator",
         "neuron_ball_and_squiggle.json",
         c,

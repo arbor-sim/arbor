@@ -45,7 +45,7 @@ inline int find_cv_index(const segment_location& loc, const compartment_model& g
     return index;
 };
 
-template <typename Value, typename Index, typename DivPolicy=div_compartment_integrator>
+template <typename Value, typename Index>
 class fvm_multicell {
 public:
     fvm_multicell() = default;
@@ -247,16 +247,12 @@ private:
 //////////////////////////////// Implementation ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename T, typename I, typename DivPolicy>
-void fvm_multicell<T, I, DivPolicy>::compute_cv_area_unnormalized_capacitance(
+template <typename T, typename I>
+void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
     index_type &parent)
 {
-    using util::left;
-    using util::right;
-    using util::size;
-
     // precondition: group_parent_index[j] holds the correct value for
     // j in [base_comp, base_comp+segment.num_compartments()].
 
@@ -307,7 +303,7 @@ void fvm_multicell<T, I, DivPolicy>::compute_cv_area_unnormalized_capacitance(
         auto c_m = cable->mechanism("membrane").get("c_m").value;
         auto r_L = cable->mechanism("membrane").get("r_L").value;
 
-        auto divs = div_compartments<DivPolicy>(cable, ncomp);
+        auto divs = div_compartments<div_compartment_integrator>(cable, ncomp);
 
         for (auto i: util::make_span(comp_ival)) {
             const auto& div = divs(i-comp_ival.first);
@@ -343,9 +339,6 @@ void fvm_multicell<T, I, DivPolicy>::compute_cv_area_unnormalized_capacitance(
             auto conductance = 1/r_L*h*V1*V2/(h2*h2*V1+h1*h1*V2);
             face_alpha_[i] = conductance / (c_m * h);
 
-            // auto halflen = c.length/2;
-            // auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
-            // auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
             auto al = div.left.area;
             auto ar = div.right.area;
 
@@ -360,9 +353,9 @@ void fvm_multicell<T, I, DivPolicy>::compute_cv_area_unnormalized_capacitance(
     }
 }
 
-template <typename T, typename I, typename DivPolicy>
+template <typename T, typename I>
 template <typename Cells, typename Detectors, typename Targets, typename Probes>
-void fvm_multicell<T, I, DivPolicy>::initialize(
+void fvm_multicell<T, I>::initialize(
     const Cells& cells,
     Detectors& detector_handles,
     Targets& target_handles,
@@ -611,8 +604,8 @@ void fvm_multicell<T, I, DivPolicy>::initialize(
     reset();
 }
 
-template <typename T, typename I, typename DivPolicy>
-void fvm_multicell<T, I, DivPolicy>::setup_matrix(T dt) {
+template <typename T, typename I>
+void fvm_multicell<T, I>::setup_matrix(T dt) {
     using memory::all;
 
     // convenience accesors to matrix storage
@@ -655,8 +648,8 @@ void fvm_multicell<T, I, DivPolicy>::setup_matrix(T dt) {
     }
 }
 
-template <typename T, typename I, typename DivPolicy>
-void fvm_multicell<T, I, DivPolicy>::reset() {
+template <typename T, typename I>
+void fvm_multicell<T, I>::reset() {
     voltage_(memory::all) = resting_potential_;
     t_ = 0.;
     for (auto& m : mechanisms_) {
@@ -664,8 +657,8 @@ void fvm_multicell<T, I, DivPolicy>::reset() {
     }
 }
 
-template <typename T, typename I, typename DivPolicy>
-void fvm_multicell<T, I, DivPolicy>::advance(T dt) {
+template <typename T, typename I>
+void fvm_multicell<T, I>::advance(T dt) {
     using memory::all;
 
     PE("current");
