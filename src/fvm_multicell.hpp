@@ -9,6 +9,7 @@
 
 #include <algorithms.hpp>
 #include <cell.hpp>
+#include <compartment.hpp>
 #include <event_queue.hpp>
 #include <ion.hpp>
 #include <math.hpp>
@@ -30,6 +31,19 @@
 namespace nest {
 namespace mc {
 namespace fvm {
+
+inline int find_cv_index(const segment_location& loc, const compartment_model& graph) {
+    const auto& si = graph.segment_index;
+    const auto seg = loc.segment;
+
+    auto first = si[seg];
+    auto n = si[seg+1] - first;
+
+    int index = static_cast<int>(n*loc.position+0.5);
+    index = index==0? graph.parent_index[first]: first+(index-1);
+
+    return index;
+};
 
 template <typename Value, typename Index>
 class fvm_multicell {
@@ -239,10 +253,6 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
     const segment* seg,
     index_type &parent)
 {
-    using util::left;
-    using util::right;
-    using util::size;
-
     // precondition: group_parent_index[j] holds the correct value for
     // j in [base_comp, base_comp+segment.num_compartments()].
 
@@ -260,38 +270,77 @@ void fvm_multicell<T, I>::compute_cv_area_unnormalized_capacitance(
         cv_capacitance_[i] += area * soma->mechanism("membrane").get("c_m").value;
     }
     else if (auto cable = seg->as_cable()) {
-        // loop over each compartment in the cable
-        // each compartment has the face between two CVs at its centre
-        // the centers of the CVs are the end points of the compartment
+        // Loop over each compartment in the cable
         //
-        //  __________________________________
-        //  | ........ | .cvleft. |    cv    |
-        //  | ........ L ........ C          R
-        //  |__________|__________|__________|
+        // Each compartment i straddles the ith control volume on the right
+        // and the jth control volume on the left, where j is the parent index
+        // of i.
         //
-        //  The compartment has end points marked L and R (left and right).
-        //  The left compartment is assumed to be closer to the soma
-        //  (i.e. it follows the minimal degree ordering)
-        //  The face is at the center, marked C.
-        //  The full control volume to the left (marked with .)
+        // Dividing the comparment into two halves, the centre face C
+        // corresponds to the shared face between the two control volumes,
+        // the surface areas in each half contribute to the surface area of
+        // the respective control volumes, and the volumes and lengths of
+        // each half are used to calculate the flux coefficients that
+        // for the connection between the two control volumes and which
+        // (after scaling by inverse capacitance) is stored in
+        // `face_alpha[i]`.
+        // 
+        //
+        //  +------- cv j --------+------- cv i -------+
+        //  |                     |                    |
+        //  v                     v                    v
+        //  ____________________________________________
+        //  | ........ | ........ |          |         |
+        //  | ........ L ........ C          R         |
+        //  |__________|__________|__________|_________|
+        //             ^                     ^
+        //             |                     |
+        //             +--- compartment i ---+
+        //
+        // The first control volume of any cell corresponds to the soma
+        // and the first half of the first cable compartment of that cell.
 
         auto c_m = cable->mechanism("membrane").get("c_m").value;
         auto r_L = cable->mechanism("membrane").get("r_L").value;
-        const auto& compartments = cable->compartments();
 
-        EXPECTS(size(compartments)==ncomp);
+        auto divs = div_compartments<div_compartment_integrator>(cable, ncomp);
 
         for (auto i: util::make_span(comp_ival)) {
-            const auto& c = compartments[i-comp_ival.first];
+            const auto& div = divs(i-comp_ival.first);
             auto j = parent[i];
 
-            auto radius_center = math::mean(c.radius);
-            auto area_face = math::area_circle(radius_center);
-            face_alpha_[i] = area_face / (c_m * r_L * c.length);
+            // Conductance approximated by weighted harmonic mean of mean
+            // conductances in each half.
+            // 
+            // Mean conductances:
+            // c₁ = 1/h₁ ∫₁ A(x)/R dx
+            // c₂ = 1/h₂ ∫₂ A(x)/R dx
+            //
+            // where A(x) is the cross-sectional area, R is the bulk
+            // resistivity, h is the length of the interval and the
+            // integrals are taken over the intervals respectively.
+            // Equivalently, in terms of the semi-compartment volumes
+            // V₁ and V₂:
+            //
+            // c₁ = 1/R·V₁/h₁
+            // c₂ = 1/R·V₂/h₂
+            //
+            // Weighted harmonic mean, with h = h₁+h₂:
+            //
+            // c = (h₁/h·c₁¯¹+h₂/h·c₂¯¹)¯¹
+            //   = 1/R · hV₁V₂/(h₂²V₁+h₁²V₂)
 
-            auto halflen = c.length/2;
-            auto al = math::area_frustrum(halflen, left(c.radius), radius_center);
-            auto ar = math::area_frustrum(halflen, right(c.radius), radius_center);
+            auto h1 = div.left.length;
+            auto V1 = div.left.volume;
+            auto h2 = div.right.length;
+            auto V2 = div.right.volume;
+            auto h = h1+h2;
+
+            auto conductance = 1/r_L*h*V1*V2/(h2*h2*V1+h1*h1*V2);
+            face_alpha_[i] = conductance / (c_m * h);
+
+            auto al = div.left.area;
+            auto ar = div.right.area;
 
             cv_areas_[j] += al;
             cv_areas_[i] += ar;
@@ -401,7 +450,7 @@ void fvm_multicell<T, I>::initialize(
 
             auto& map_entry = syn_mech_map[syn_mech_index];
 
-            size_type syn_comp = comp_ival.first+find_compartment_index(syn.location, graph);
+            size_type syn_comp = comp_ival.first+find_cv_index(syn.location, graph);
             map_entry.push_back(syn_comp);
         }
 
@@ -412,7 +461,7 @@ void fvm_multicell<T, I>::initialize(
 
         // add the stimuli
         for (const auto& stim: c.stimuli()) {
-            auto idx = comp_ival.first+find_compartment_index(stim.location, graph);
+            auto idx = comp_ival.first+find_cv_index(stim.location, graph);
             stimuli_.push_back({idx, stim.clamp});
         }
 
@@ -420,7 +469,7 @@ void fvm_multicell<T, I>::initialize(
         for (const auto& detector: c.detectors()) {
             EXPECTS(detectors_count < detectors_size);
 
-            auto comp = comp_ival.first+find_compartment_index(detector.location, graph);
+            auto comp = comp_ival.first+find_cv_index(detector.location, graph);
             *detector_hi++ = comp;
             ++detectors_count;
         }
@@ -429,7 +478,7 @@ void fvm_multicell<T, I>::initialize(
         for (const auto& probe: c.probes()) {
             EXPECTS(probes_count < probes_size);
 
-            auto comp = comp_ival.first+find_compartment_index(probe.location, graph);
+            auto comp = comp_ival.first+find_cv_index(probe.location, graph);
             switch (probe.kind) {
             case probeKind::membrane_voltage:
                 *probe_hi++ = {&fvm_multicell::voltage_, comp};

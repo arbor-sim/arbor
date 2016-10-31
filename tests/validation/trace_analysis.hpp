@@ -21,6 +21,11 @@ namespace mc {
 
 double linf_distance(const trace_data& u, const trace_data& ref);
 
+// Compute linf distance as above, excluding samples near
+// times given in `excl`, monotonically increasing.
+
+double linf_distance(const trace_data& u, const trace_data& ref, const std::vector<float>& excl);
+
 // Find local maxima (peaks) in a trace, excluding end points.
 
 struct trace_peak {

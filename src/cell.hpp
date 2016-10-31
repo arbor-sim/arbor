@@ -110,7 +110,7 @@ public:
     /// parent is the index of the parent segment for the cable section
     /// args are the arguments to be used to consruct the new cable
     template <typename... Args>
-    cable_segment* add_cable(index_type parent, Args ...args);
+    cable_segment* add_cable(index_type parent, Args&&... args);
 
     /// the number of segments in the cell
     size_type num_segments() const;
@@ -118,11 +118,12 @@ public:
     bool has_soma() const;
 
     class segment* segment(index_type index);
-    class segment const* segment(index_type index) const;
+    const class segment* segment(index_type index) const;
 
     /// access pointer to the soma
     /// returns nullptr if the cell has no soma
     soma_segment* soma();
+    const soma_segment* soma() const;
 
     /// access pointer to a cable segment
     /// will throw an std::out_of_range exception if
@@ -229,7 +230,7 @@ bool cell_basic_equality(cell const& lhs, cell const& rhs);
 
 // create a cable by forwarding cable construction parameters provided by the user
 template <typename... Args>
-cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
+cable_segment* cell::add_cable(cell::index_type parent, Args&&... args)
 {
     // check for a valid parent id
     if(parent>=num_segments()) {

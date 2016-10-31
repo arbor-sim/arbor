@@ -21,7 +21,6 @@ model.add_dendrite('dend', geom)
 model.add_iclamp(5, 80, 0.3, to='dend')
 
 simdur = 100.0
-dt = 0.001
 
 data = V.run_nrn_sim(simdur, report_dt=10, model='ball_and_squiggle')
 print json.dumps(data)

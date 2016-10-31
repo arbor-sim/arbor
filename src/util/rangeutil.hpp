@@ -33,14 +33,14 @@ range<const T*> singleton_view(const T& item) {
 // Non-owning views and subviews
 
 template <typename Seq>
-range<typename sequence_traits<Seq>::iterator_type, typename sequence_traits<Seq>::sentinel_type>
+range<typename sequence_traits<Seq>::iterator, typename sequence_traits<Seq>::sentinel>
 range_view(Seq& seq) {
     return make_range(std::begin(seq), std::end(seq));
 }
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator_type,
+    typename Iter = typename sequence_traits<Seq>::iterator,
     typename Size = typename sequence_traits<Seq>::size_type
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>

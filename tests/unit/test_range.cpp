@@ -146,6 +146,15 @@ TEST(range, const_iterator) {
     EXPECT_TRUE((std::is_same<const int&, decltype(r_const.front())>::value));
 }
 
+TEST(range, view) {
+    std::vector<int> xs = { 1, 2, 3, 4, 5 };
+    auto r = util::range_view(xs);
+
+    r[3] = 7;
+    std::vector<int> check = { 1, 2, 3, 7, 5 };
+    EXPECT_EQ(check, xs);
+}
+
 TEST(range, sentinel) {
     const char *cstr = "hello world";
     std::string s;
