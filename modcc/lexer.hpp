@@ -73,7 +73,7 @@ public:
     Token peek();
 
     // scan a number from the stream
-    std::string number();
+    Token number();
 
     // scan an identifier string from the stream
     std::string identifier();

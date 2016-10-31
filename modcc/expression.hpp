@@ -23,6 +23,7 @@ class IfExpression;
 class VariableExpression;
 class IndexedVariable;
 class NumberExpression;
+class IntegerExpression;
 class LocalDeclaration;
 class ArgumentExpression;
 class DerivativeExpression;
@@ -40,6 +41,9 @@ class CosUnaryExpression;
 class SinUnaryExpression;
 class BinaryExpression;
 class AssignmentExpression;
+class ReactionExpression;
+class StoichExpression;
+class StoichTermExpression;
 class AddBinaryExpression;
 class SubBinaryExpression;
 class MulBinaryExpression;
@@ -77,6 +81,7 @@ enum class procedureKind {
     initial,     ///< INITIAL
     net_receive, ///< NET_RECEIVE
     breakpoint,  ///< BREAKPOINT
+    kinetic,     ///< KINETIC
     derivative   ///< DERIVATIVE
 };
 std::string to_string(procedureKind k);
@@ -157,16 +162,19 @@ public:
     virtual PrototypeExpression*   is_prototype()         {return nullptr;}
     virtual IdentifierExpression*  is_identifier()        {return nullptr;}
     virtual NumberExpression*      is_number()            {return nullptr;}
+    virtual IntegerExpression*     is_integer()           {return nullptr;}
     virtual BinaryExpression*      is_binary()            {return nullptr;}
     virtual UnaryExpression*       is_unary()             {return nullptr;}
     virtual AssignmentExpression*  is_assignment()        {return nullptr;}
+    virtual ReactionExpression*    is_reaction()          {return nullptr;}
     virtual ConditionalExpression* is_conditional()       {return nullptr;}
     virtual InitialBlock*          is_initial_block()     {return nullptr;}
     virtual SolveExpression*       is_solve_statement()   {return nullptr;}
     virtual Symbol*                is_symbol()            {return nullptr;}
     virtual ConductanceExpression* is_conductance_statement() {return nullptr;}
 
-    virtual bool is_lvalue() {return false;}
+    virtual bool is_lvalue() const {return false;}
+    virtual bool is_global_lvalue() const {return false;}
 
     // force all derived classes to implement visitor
     // this might be a bad idea
@@ -259,7 +267,8 @@ public:
 
     IdentifierExpression* is_identifier() override {return this;}
 
-    bool is_lvalue() override;
+    bool is_lvalue() const override;
+    bool is_global_lvalue() const override;
 
     ~IdentifierExpression() {}
 
@@ -298,14 +307,14 @@ public:
 class NumberExpression : public Expression {
 public:
     NumberExpression(Location loc, std::string const& value)
-        : Expression(loc), value_(std::stod(value))
+        : Expression(loc), value_(std::stold(value))
     {}
 
     NumberExpression(Location loc, long double value)
         : Expression(loc), value_(value)
     {}
 
-    long double value() const {return value_;};
+    virtual long double value() const {return value_;};
 
     std::string to_string() const override {
         return purple(pprintf("%", value_));
@@ -323,6 +332,38 @@ public:
 private:
     long double value_;
 };
+
+// an integral number
+class IntegerExpression : public NumberExpression {
+public:
+    IntegerExpression(Location loc, std::string const& value)
+        : NumberExpression(loc, value), integer_(std::stoll(value))
+    {}
+
+    IntegerExpression(Location loc, long long integer)
+        : NumberExpression(loc, static_cast<long double>(integer)), integer_(integer)
+    {}
+
+    long long integer_value() const {return integer_;}
+
+    std::string to_string() const override {
+        return purple(pprintf("%", integer_));
+    }
+
+    // do nothing for number semantic analysis
+    void semantic(std::shared_ptr<scope_type> scp) override {};
+    expression_ptr clone() const override;
+
+    IntegerExpression* is_integer() override {return this;}
+
+    ~IntegerExpression() {}
+
+    void accept(Visitor *v) override;
+private:
+    long long integer_;
+};
+
+
 
 // declaration of a LOCAL variable
 class LocalDeclaration : public Expression {
@@ -786,6 +827,93 @@ public:
 private:
     std::string name_;
     std::vector<expression_ptr> args_;
+};
+
+class ReactionExpression : public Expression {
+public:
+    ReactionExpression(Location loc,
+                       expression_ptr&& lhs_terms,
+                       expression_ptr&& rhs_terms,
+                       expression_ptr&& fwd_rate_expr,
+                       expression_ptr&& rev_rate_expr)
+    : Expression(loc),
+      lhs_(std::move(lhs_terms)), rhs_(std::move(rhs_terms)),
+      fwd_rate_(std::move(fwd_rate_expr)), rev_rate_(std::move(rev_rate_expr))
+    {}
+
+    ReactionExpression* is_reaction() override {return this;}
+
+    std::string to_string() const override;
+    void semantic(std::shared_ptr<scope_type> scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    expression_ptr& lhs() { return lhs_; }
+    const expression_ptr& lhs() const { return lhs_; }
+
+    expression_ptr& rhs() { return rhs_; }
+    const expression_ptr& rhs() const { return rhs_; }
+
+    expression_ptr& fwd_rate() { return fwd_rate_; }
+    const expression_ptr& fwd_rate() const { return fwd_rate_; }
+
+    expression_ptr& rev_rate() { return rev_rate_; }
+    const expression_ptr& rev_rate() const { return rev_rate_; }
+
+private:
+    expression_ptr lhs_;
+    expression_ptr rhs_;
+    expression_ptr fwd_rate_;
+    expression_ptr rev_rate_;
+};
+
+class StoichTermExpression : public Expression {
+public:
+    StoichTermExpression(Location loc,
+                         expression_ptr&& coeff,
+                         expression_ptr&& ident)
+    : Expression(loc),
+      coeff_(std::move(coeff)), ident_(std::move(ident))
+    {}
+
+    std::string to_string() const override {
+        return pprintf("%%", coeff()->to_string(), ident()->to_string());
+    }
+    void semantic(std::shared_ptr<scope_type> scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    expression_ptr& coeff() { return coeff_; }
+    const expression_ptr& coeff() const { return coeff_; }
+
+    expression_ptr& ident() { return ident_; }
+    const expression_ptr& ident() const { return ident_; }
+
+private:
+    expression_ptr coeff_;
+    expression_ptr ident_;
+};
+
+class StoichExpression : public Expression {
+public:
+    StoichExpression(Location loc, std::vector<expression_ptr>&& terms)
+    : Expression(loc), terms_(std::move(terms))
+    {}
+
+    StoichExpression(Location loc)
+    : Expression(loc)
+    {}
+
+    std::string to_string() const override;
+    void semantic(std::shared_ptr<scope_type> scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    std::vector<expression_ptr>& terms() { return terms_; }
+    const std::vector<expression_ptr>& terms() const { return terms_; }
+
+private:
+    std::vector<expression_ptr> terms_;
 };
 
 // marks a call site in the AST

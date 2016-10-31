@@ -231,12 +231,17 @@ TEST(Lexer, comments) {
 
 // test numbers
 TEST(Lexer, numbers) {
+    auto numeric = [](tok t) { return t==tok::real || t==tok::integer; };
     std::istringstream floats_stream("1 23 .3 87.99 12. 1.e3 1.2e+2 23e-3 -3");
 
     std::vector<double> floats;
     std::copy(std::istream_iterator<double>(floats_stream),
               std::istream_iterator<double>(),
               std::back_inserter(floats));
+
+    // hand-parse these ...
+    std::vector<long long> check_ints = {1, 23, 3};
+    std::vector<long long> ints;
 
     Lexer lexer(floats_stream.str());
     auto t = lexer.parse();
@@ -249,11 +254,13 @@ TEST(Lexer, numbers) {
             // decide if the minus is a binary or unary expression
             EXPECT_EQ(tok::minus, t.type);
             t = lexer.parse();
-            EXPECT_EQ(tok::number, t.type);
+            EXPECT_TRUE(numeric(t.type));
+            if (t.type==tok::integer) ints.push_back(std::stoll(t.spelling));
             EXPECT_EQ(-(*iter), std::stod(t.spelling));
         }
         else {
-            EXPECT_EQ(t.type, tok::number);
+            EXPECT_TRUE(numeric(t.type));
+            if (t.type==tok::integer) ints.push_back(std::stoll(t.spelling));
             EXPECT_EQ(*iter, std::stod(t.spelling));
         }
 
@@ -263,4 +270,5 @@ TEST(Lexer, numbers) {
 
     EXPECT_EQ(floats.cend(), iter);
     EXPECT_EQ(tok::eof, t.type);
+    EXPECT_EQ(check_ints, ints);
 }

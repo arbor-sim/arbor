@@ -90,11 +90,7 @@ Token Lexer::parse() {
             // number
             case '0' ... '9':
             case '.':
-                t.spelling = number();
-
-                // test for error when reading number
-                t.type = (status_==lexerStatus::error) ? tok::reserved : tok::number;
-                return t;
+                return number();
 
             // identifier or keyword
             case 'a' ... 'z':
@@ -172,6 +168,11 @@ Token Lexer::parse() {
                     t.spelling += character();
                     t.type = tok::lte;
                 }
+                else if(*current_=='-' && current_[1]=='>') {
+                    t.spelling += character();
+                    t.spelling += character();
+                    t.type = tok::arrow;
+                }
                 else {
                     t.type = tok::lt;
                 }
@@ -228,7 +229,7 @@ Token Lexer::peek() {
 }
 
 // scan floating point number from stream
-std::string Lexer::number() {
+Token Lexer::number() {
     std::string str;
     char c = *current_;
 
@@ -284,7 +285,18 @@ std::string Lexer::number() {
         status_ = lexerStatus::error;
     }
 
-    return str;
+    tok type;
+    if(status_==lexerStatus::error) {
+        type = tok::reserved;
+    }
+    else if(num_point<1 && !uses_scientific_notation) {
+        type = tok::integer;
+    }
+    else {
+        type = tok::real;
+    }
+
+    return Token(type, str, location_);
 }
 
 // scan identifier from stream
