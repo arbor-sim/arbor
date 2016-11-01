@@ -173,10 +173,11 @@ TEST(synapses, exp2syn_basic_state)
     EXPECT_NEAR(ptr->B[3], ptr->factor[3]*1.04, 1e-6);
 }
 
-template<typename S, typename T>
+template<typename S, typename T, bool alias=true>
 struct synapse_pair {
     using synapse_type = S;
     using proto_synapse_type = T;
+    static constexpr bool alias = alias;
 };
 
 template<typename T>
@@ -201,10 +202,15 @@ TYPED_TEST_P(synapses, mechanism) {
     auto num_syn = 8;
 
     // Indexes are aliased
-    typename synapse_type::index_type indexes(num_syn, 1);
+    typename synapse_type::index_type indexes(num_syn);
     typename synapse_type::vector_type voltage(num_syn, -65.0);
     typename synapse_type::vector_type current(num_syn,   1.0);
     typename synapse_type::vector_type areas(num_syn, 2);
+
+    // Initialise indexes
+    for (auto i = 0; i < num_syn; ++i) {
+        indexes[i] = TypeParam::alias ? 1 : i;
+    }
 
     auto mech = mechanisms::make_mechanism<synapse_type>(
         voltage, current, indexes
