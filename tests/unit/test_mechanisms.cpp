@@ -40,8 +40,11 @@ TEST(mechanisms, helpers) {
                                    //0 1 2 3 4 5 6 7 8 9
 }
 
+// Setup and update mechanism
 template<typename T>
-void mech_update(T* mech, int num_iters) {
+void mech_update(T* mech, const typename T::vector_type& areas, int num_iters) {
+    mech->set_areas(areas);
+    mech->set_params(2., 0.1);
     mech->nrn_init();
     for (auto i = 0; i < mech->node_index_.size(); ++i) {
         mech->net_receive(i, 1.);
@@ -102,12 +105,8 @@ TYPED_TEST_P(mechanisms, update) {
         voltage_copy, current_copy, indexes_copy
     );
 
-    mech->set_areas(areas);
-    mech_proto->set_areas(areas);
-    mech->set_params(2., 0.1);
-    mech_proto->set_params(2., 0.1);
-    mech_update(dynamic_cast<mechanism_type*>(mech.get()), 2);
-    mech_update(dynamic_cast<proto_mechanism_type*>(mech_proto.get()), 2);
+    mech_update(dynamic_cast<mechanism_type*>(mech.get()), areas, 2);
+    mech_update(dynamic_cast<proto_mechanism_type*>(mech_proto.get()), areas, 2);
 
     auto citer = current_copy.begin();
     for (auto const& c: current) {
