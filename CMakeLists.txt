@@ -32,25 +32,24 @@ if(WITH_TRACE)
 endif()
 
 #threading model selection
+set(THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp")
 if(THREADING_MODEL MATCHES "tbb")
     # TBB support
-    set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DWITH_TBB)
 
 elseif(THREADING_MODEL MATCHES "omp")
     # OpenMP support
-    set(WITH_OMP OFF CACHE BOOL "use OpenMP for on-node threading" )
     find_package(OpenMP REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     add_definitions(-DWITH_OMP)
+
+elseif(THREADING_MODEL MATCHES "serial")
+    #setup previously done
+   
 else()
-    if(NOT THREADING_MODEL)
-        message("-- Threading model not specified, using serial as default")
-    else()
-        message("-- Threading model '${THREADING_MODEL}' not supported, using serial as default")
-    endif()
+    message( FATAL_ERROR "-- Threading model '${THREADING_MODEL}' not supported, use one of serial/tbb/omp")
 endif()
 
 # MPI support
