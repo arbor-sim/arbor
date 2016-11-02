@@ -31,12 +31,25 @@ if(WITH_TRACE)
     add_definitions("-DWITH_TRACE")
 endif()
 
-# TBB support
-set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
-if(WITH_TBB)
+#threading model selection
+set(THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp")
+if(THREADING_MODEL MATCHES "tbb")
+    # TBB support
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DWITH_TBB)
+
+elseif(THREADING_MODEL MATCHES "omp")
+    # OpenMP support
+    find_package(OpenMP REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    add_definitions(-DWITH_OMP)
+
+elseif(THREADING_MODEL MATCHES "serial")
+    #setup previously done
+   
+else()
+    message( FATAL_ERROR "-- Threading model '${THREADING_MODEL}' not supported, use one of serial/tbb/omp")
 endif()
 
 # MPI support
@@ -50,11 +63,14 @@ if(WITH_MPI)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
 endif()
 
-# Profiler support
+
+# Internal profiler support
 set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
 if(WITH_PROFILING)
     add_definitions(-DWITH_PROFILING)
 endif()
+
+
 
 # Cray systems
 set(SYSTEM_CRAY OFF CACHE BOOL "add flags for compilation on Cray systems")
