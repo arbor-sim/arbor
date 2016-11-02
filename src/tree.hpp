@@ -6,8 +6,7 @@
 #include <vector>
 #include <memory/memory.hpp>
 
-#include "algorithms.hpp"
-#include "util.hpp"
+#include <algorithms.hpp>
 
 namespace nest {
 namespace mc {

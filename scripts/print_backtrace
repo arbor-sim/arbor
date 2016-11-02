@@ -1,0 +1,49 @@
+#!/usr/bin/env python2
+#coding: utf-8
+
+import argparse
+import os
+import subprocess
+
+def parse_clargs():
+    P = argparse.ArgumentParser(description='pretty print stack traces')
+    P.add_argument('input', metavar='FILE',
+                   help='name of file with stack trace')
+    P.add_argument('-b', '--brief', action='store_false',
+                   help='print only the file locations')
+
+    return P.parse_args()
+
+def parse_backtrace(source):
+    trace = []
+    if os.path.isfile(source):
+        f = open(source, 'r')
+        lines = f.readlines()
+        for line in lines:
+            tokens = line.split()
+            trace.append({'location':tokens[0], 'function':tokens[1]})
+    else:
+        print "error: unable to open file ", source
+
+    return trace
+
+def get_function_name(location):
+    result = os.popen('addr2line ' + location + ' -e miniapp.exe').read()
+    descriptor = result.split()[0].split(':')
+    return {'filename': descriptor[0], 'line': descriptor[1]}
+
+def unmangle(mangled):
+    unmangled = os.popen('c++filt ' + mangled).read().strip()
+    # remove the nest::mc:: namespace from all types
+    return unmangled.replace('nest::mc::', '')
+
+args = parse_clargs()
+trace = parse_backtrace(args.input)
+
+for frame in trace:
+    location = get_function_name(frame['location'])
+    name = unmangle(frame['function'])
+    if args.brief:
+        print location['filename'] + ':' + location['line'], name
+    else:
+        print location['filename'] + ':' + location['line']

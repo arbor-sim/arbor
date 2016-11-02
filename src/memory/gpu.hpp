@@ -2,6 +2,11 @@
 
 #ifdef WITH_CUDA
 
+#include <string>
+#include <cstdint>
+
+#include "util.hpp"
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 

@@ -17,7 +17,6 @@
 #include <profiling/profiler.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
-#include <util.hpp>
 #include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/partition.hpp>
@@ -28,6 +27,23 @@
 
 namespace nest {
 namespace mc {
+
+// FIXME : these will go when we merge the complex compartment stuff
+namespace util {
+    /// helper for taking the first value in a std::pair
+    template <typename L, typename R>
+    L const& left(std::pair<L, R> const& p) {
+        return p.first;
+    }
+
+    /// helper for taking the second value in a std::pair
+    template <typename L, typename R>
+    R const& right(std::pair<L, R> const& p) {
+        return p.second;
+    }
+}
+
+
 namespace fvm {
 
 template<class TargetPolicy>
@@ -49,7 +65,8 @@ public:
     /// the container used for indexes
     using typename base::iarray;
 
-    using typename base::matrix_policy;
+    using typename base::matrix_builder;
+    using typename base::matrix_solver;
 
     /// API for cell_group (see above):
     using detector_handle = size_type;
@@ -90,7 +107,7 @@ public:
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
-    using matrix_type = matrix<matrix_policy>;
+    using matrix_type = matrix<matrix_solver>;
 
     /// mechanism type
     using typename base::mechanism_type;
@@ -105,9 +122,6 @@ public:
     /// view into value container
     using typename base::view;
     using typename base::const_view;
-
-    /// build the matrix for a given time step
-    void setup_matrix(double dt);
 
     /// which requires const_view in the vector library
     const matrix_type& jacobian() { return matrix_; }
@@ -183,6 +197,9 @@ private:
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
+
+    /// the helper used to construct the matrix
+    matrix_builder matrix_builder_;
 
     /// cv_areas_[i] is the surface area of CV i [µm^2]
     array cv_areas_;
@@ -448,6 +465,8 @@ void fvm_multicell<TargetPolicy>::initialize(
     for (auto i: util::make_span(0, ncomp)) {
         tmp_cv_capacitance[i] /= tmp_cv_areas[i];
     }
+
+    // store the geometric information in target-specific containers
     face_alpha_     = make_const_view(tmp_face_alpha);
     cv_areas_       = make_const_view(tmp_cv_areas);
     cv_capacitance_ = make_const_view(tmp_cv_capacitance);
@@ -455,10 +474,15 @@ void fvm_multicell<TargetPolicy>::initialize(
     // initalize matrix
     matrix_ = matrix_type(group_parent_index);
 
+    matrix_builder_ = matrix_builder(
+        matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),
+        cv_areas_, face_alpha_, voltage_, current_, cv_capacitance_);
+
     // create density mechanisms
     std::vector<size_type> mech_comp_indices;
     mech_comp_indices.reserve(ncomp);
 
+    std::map<std::string, std::vector<size_type>> mech_index_map;
     for (auto& mech: mech_map) {
         mech_comp_indices.clear();
         for (auto comp_ival: mech.second) {
@@ -466,10 +490,10 @@ void fvm_multicell<TargetPolicy>::initialize(
         }
 
         mechanisms_.push_back(
-            mechanism_catalogue::make(mech.first, voltage_, current_,
-            make_const_view(mech_comp_indices))
-            //base::on_target(mech_comp_indices))
+            mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
         );
+        // save the indices for easy lookup later in initialization
+        mech_index_map[mech.first] = mech_comp_indices;
     }
 
     // create point (synapse) mechanisms
@@ -503,7 +527,7 @@ void fvm_multicell<TargetPolicy>::initialize(
         targets_count += n_indices;
 
         auto mech = mechanism_catalogue::make(
-            mech_name, voltage_, current_, make_const_view(comp_indices));
+            mech_name, voltage_, current_, comp_indices);
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
     }
@@ -520,22 +544,23 @@ void fvm_multicell<TargetPolicy>::initialize(
         std::set<size_type> index_set;
         for (auto const& mech : mechanisms_) {
             if(mech->uses_ion(ion)) {
-                for (auto idx : memory::on_host(mech->node_index())) {
-                    index_set.insert(idx);
-                }
+                auto const& ni = mech_index_map[mech->name()];
+                index_set.insert(ni.begin(), ni.end());
             }
         }
         std::vector<size_type> indexes(index_set.begin(), index_set.end());
 
         // create the ion state
         if(indexes.size()) {
-            ions_[ion] = make_const_view(indexes);
+            ions_[ion] = indexes;
         }
 
         // join the ion reference in each mechanism into the cell-wide ion state
-        for(auto& mech : mechanisms_) {
-            if(mech->uses_ion(ion)) {
-                mech->set_ion(ion, ions_[ion]);
+        for (auto& mech : mechanisms_) {
+            if (mech->uses_ion(ion)) {
+                auto const& ni = mech_index_map[mech->name()];
+                mech->set_ion(ion, ions_[ion],
+                    util::make_copy<std::vector<size_type>> (algorithms::index_into(ni, indexes)));
             }
         }
     }
@@ -561,51 +586,6 @@ void fvm_multicell<TargetPolicy>::initialize(
 
     // initialise mechanism and voltage state
     reset();
-}
-
-template <typename TargetPolicy>
-void fvm_multicell<TargetPolicy>::setup_matrix(double dt) {
-    // TODO KERNEL
-    //
-    //
-    // convenience accesors to matrix storage
-    auto l = matrix_.l();
-    auto d = matrix_.d();
-    auto u = matrix_.u();
-    auto p = matrix_.p();
-    auto rhs = matrix_.rhs();
-
-    //  The matrix has the following layout in memory
-    //  where j is the parent index of i, i.e. i<j
-    //
-    //      d[i] is the diagonal entry at a_ii
-    //      u[i] is the upper triangle entry at a_ji
-    //      l[i] is the lower triangle entry at a_ij
-    //
-    //       d[j] . . u[i]
-    //        .  .     .
-    //        .     .  .
-    //       l[i] . . d[i]
-    //
-
-    memory::copy(cv_areas_, d); // [µm^2]
-    for (auto i=1u; i<d.size(); ++i) {
-        auto a = 1e5*dt * face_alpha_[i];
-
-        d[i] +=  a;
-        l[i]  = -a;
-        u[i]  = -a;
-
-        // add contribution to the diagonal of parent
-        d[p[i]] += a;
-    }
-
-    // the RHS of the linear system is
-    //      V[i] - dt/cm*(im - ie)
-    auto factor = 10.*dt; //  units: 10·ms/(F/m^2)·(mA/cm^2) ≡ mV
-    for(auto i=0u; i<d.size(); ++i) {
-        rhs[i] = cv_areas_[i]*(voltage_[i] - factor/cv_capacitance_[i]*current_[i]);
-    }
 }
 
 template <typename TargetPolicy>
@@ -654,7 +634,7 @@ void fvm_multicell<TargetPolicy>::advance(double dt) {
 
     // solve the linear system
     PE("matrix", "setup");
-    setup_matrix(dt);
+    matrix_builder_.build(dt);
     PL(); PE("solve");
     matrix_.solve();
     PL();

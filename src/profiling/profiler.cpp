@@ -3,6 +3,7 @@
 #include <common_types.hpp>
 #include <communication/global_policy.hpp>
 #include <profiling/profiler.hpp>
+#include <util/make_unique.hpp>
 #include <util/debug.hpp>
 
 namespace nest {

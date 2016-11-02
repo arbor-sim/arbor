@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <common_types.hpp>
 #include <cell.hpp>
@@ -33,8 +33,6 @@ TEST(fvm_multi, cable)
 
     // assert that the matrix has one row for each compartment
     EXPECT_EQ(J.size(), cell.num_compartments());
-
-    fvcell.setup_matrix(0.02);
 
     // assert that the number of cv areas is the same as the matrix size
     // i.e. both should equal the number of compartments
@@ -72,30 +70,33 @@ TEST(fvm_multi, init)
     fvm_cell fvcell;
     fvcell.initialize(util::singleton_view(cell), detectors, targets, probes);
 
+    // This is naughty: removing const from the matrix reference, but is needed
+    // to test the build_matrix() method below (which is only accessable
+    // through non-const interface).
+    //auto& J = const_cast<fvm_cell::matrix_type&>(fvcell.jacobian());
     auto& J = fvcell.jacobian();
     EXPECT_EQ(J.size(), 11u);
 
     // test that the matrix is initialized with sensible values
-    fvcell.setup_matrix(0.01);
-    auto test_nan = [](decltype(J.l()) v) {
+    //J.build_matrix(0.01);
+    fvcell.advance(0.01);
+    auto test_nan = [](decltype(J.u()) v) {
         for(auto val : v) if(val != val) return false;
         return true;
     };
-    EXPECT_TRUE(test_nan(J.l()(1, J.size())));
     EXPECT_TRUE(test_nan(J.u()(1, J.size())));
     EXPECT_TRUE(test_nan(J.d()));
     EXPECT_TRUE(test_nan(J.rhs()));
 
     // test matrix diagonals for sign
-    auto is_pos = [](decltype(J.l()) v) {
+    auto is_pos = [](decltype(J.u()) v) {
         for(auto val : v) if(val<=0.) return false;
         return true;
     };
-    auto is_neg = [](decltype(J.l()) v) {
+    auto is_neg = [](decltype(J.u()) v) {
         for(auto val : v) if(val>=0.) return false;
         return true;
     };
-    EXPECT_TRUE(is_neg(J.l()(1, J.size())));
     EXPECT_TRUE(is_neg(J.u()(1, J.size())));
     EXPECT_TRUE(is_pos(J.d()));
 
@@ -159,8 +160,6 @@ TEST(fvm_multi, multi_init)
             EXPECT_EQ(mech->node_index()[0], 11u);
         }
     }
-
-    fvcell.setup_matrix(0.01);
 }
 
 // test that stimuli are added correctly

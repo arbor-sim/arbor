@@ -66,6 +66,10 @@ foreach(target ${TARGETS})
         target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
     endif()
 
+    if(WITH_UNWIND)
+        target_link_libraries(${target} LINK_PUBLIC ${UNWIND_LIBRARIES})
+    endif()
+
     if(WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")

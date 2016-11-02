@@ -12,7 +12,7 @@ endif()
 # generate source for each mechanism
 foreach(mech ${mechanisms})
     set(mod "${CMAKE_CURRENT_SOURCE_DIR}/mod/${mech}.mod")
-    set(hpp "${CMAKE_CURRENT_SOURCE_DIR}/${mech}.hpp")
+    set(hpp "${CMAKE_CURRENT_SOURCE_DIR}/multicore/${mech}.hpp")
     if(use_external_modcc)
         add_custom_command(
            OUTPUT "${hpp}"

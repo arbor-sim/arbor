@@ -1,12 +1,20 @@
 #include <cmath>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <compartment.hpp>
-#include <util.hpp>
 
-using nest::mc::util::left;
-using nest::mc::util::right;
+/// helper for taking the first value in a std::pair
+template <typename L, typename R>
+L const& left(std::pair<L, R> const& p) {
+    return p.first;
+}
+
+/// helper for taking the second value in a std::pair
+template <typename L, typename R>
+R const& right(std::pair<L, R> const& p) {
+    return p.second;
+}
 
 // not much to test here: just test that values passed into the constructor
 // are correctly stored in members

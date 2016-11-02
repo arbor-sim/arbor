@@ -69,11 +69,12 @@ TEST(vector, fill_gpu) {
         memory::fill(v, value);
 
         for (auto i: make_span(0u, n)) {
-            EXPECT_EQ(double(v[i]), value);
+            EXPECT_EQ(value, double(v[i]));
         }
     }
 
     // fill an array view
+    /*
     memory::device_vector<float> ubervec(N);
     for (auto n : make_span(0u, N)) {
         float value = float((n+1)/2.f);
@@ -85,6 +86,7 @@ TEST(vector, fill_gpu) {
             EXPECT_EQ(float(v[i]), value);
         }
     }
+    */
 }
 
 //
@@ -111,7 +113,7 @@ TEST(vector, copy_h2d) {
 }
 
 TEST(vector, copy_d2h) {
-    constexpr auto N = 10u;
+    constexpr auto N = 20u;
 
     using util::make_span;
 
@@ -130,7 +132,7 @@ TEST(vector, copy_d2h) {
 }
 
 TEST(vector, copy_d2d) {
-    constexpr auto N = 10u;
+    constexpr auto N = 20u;
 
     using util::make_span;
 

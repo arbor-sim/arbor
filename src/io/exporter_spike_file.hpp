@@ -12,8 +12,8 @@
 
 #include <common_types.hpp>
 #include <io/exporter.hpp>
+#include <util/file.hpp>
 #include <spike.hpp>
-#include <util.hpp>
 
 namespace nest {
 namespace mc {
@@ -42,7 +42,7 @@ public:
                 file_name, path, file_extension, communication_policy_.id());
 
         //test if the file exist and depending on over_write throw or delete
-        if (!over_write && file_exists(file_path_)) {
+        if (!over_write && util::file_exists(file_path_)) {
             throw std::runtime_error(
                 "Tried opening file for writing but it exists and over_write is false: " + file_path_);
         }
@@ -85,10 +85,6 @@ public:
     }
 
 private:
-    bool file_exists(const std::string& file_path) {
-        std::ifstream fid(file_path);
-        return fid.good();
-    }
 
     // Handle to opened file handle
     std::ofstream file_handle_;

@@ -5,13 +5,12 @@
 
 #include <ion.hpp>
 #include <mechanism.hpp>
-#include <util/make_unique.hpp>
 
-#include "memory_multicore.hpp"
+#include "memory_gpu.hpp"
 
 namespace nest {
 namespace mc {
-namespace multicore {
+namespace gpu {
 
 class catalogue : public memory_traits {
 public:
@@ -30,7 +29,9 @@ public:
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return entry->second(vec_v, vec_i, iarray(node_indices));
+        //return entry->second(vec_v, vec_i, memory::on_gpu(node_indices));
+        iarray tmp(memory::make_const_view(node_indices));
+        return entry->second(vec_v, vec_i, std::move(tmp));
     }
 
     static bool has(const std::string& name) {
@@ -47,6 +48,7 @@ private:
     }
 };
 
-} // namespace multicore
+} // namespace gpu
 } // namespace mc
 } // namespace nest
+

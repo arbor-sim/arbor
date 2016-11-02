@@ -59,9 +59,9 @@ namespace gpu {
     // the double into a 64-bit unsigned integer (with the same bits, not the
     // same value), then call the 64-bit fill kernel precompiled using nvcc in
     // the gpu library. This technique of converting from one type to another
-    // is called type-punning. There are plenty of subtle problems with this, due
-    // to C++'s strict aliasing rules, that require memcpy of single bytes if
-    // alignment of the two types does not match.
+    // is called type-punning. There are some subtle challenges, due to C++'s
+    // strict aliasing rules, that require memcpy of single bytes if alignment
+    // of the two types does not match.
 
     #define FILL(N) \
     template <typename T> \
@@ -148,7 +148,7 @@ private:
     pointer pointer_;
 };
 
-template <typename T, class Allocator_=CudaAllocator<T> >
+template <typename T, class Allocator_= cuda_allocator<T> >
 class device_coordinator {
 public:
     using value_type = T;
@@ -254,7 +254,7 @@ public:
     // TODO : asynchronous version
     template <size_t alignment>
     void copy(
-        const_array_view<value_type, host_coordinator<value_type, PinnedAllocator<value_type, alignment>>> from,
+        const_array_view<value_type, host_coordinator<value_type, pinned_allocator<value_type, alignment>>> from,
         view_type to)
     {
         #ifdef VERBOSE
@@ -264,7 +264,7 @@ public:
         assert(from.size()==to.size());
 
         #ifdef VERBOSE
-        using oType = array_view< value_type, host_coordinator< value_type, PinnedAllocator< value_type, alignment>>>;
+        using oType = array_view< value_type, host_coordinator< value_type, pinned_allocator< value_type, alignment>>>;
         std::cout << util::pretty_printer<device_coordinator>::print(*this)
                   << "::" << util::blue("copy") << "(asynchronous, " << from.size() << ")"
                   << "\n  " << util::type_printer<oType>::print() << " "

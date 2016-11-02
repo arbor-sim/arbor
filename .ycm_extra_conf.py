@@ -52,6 +52,9 @@ flags = [
     'miniapp',
     '-I',
     'modcc',
+    '-I',
+    '/cm/shared/apps/cuda/8.0.44/include',
+    '-DWITH_CUDA'
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

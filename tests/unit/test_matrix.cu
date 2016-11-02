@@ -5,19 +5,23 @@
 
 #include <math.hpp>
 #include <matrix.hpp>
+#include <memory/memory.hpp>
 #include <util/span.hpp>
+
+using matrix_type = nest::mc::matrix<nest::mc::gpu::matrix_solver>;
+using index_type = matrix_type::size_type;
 
 TEST(matrix, solve_gpu)
 {
+    using namespace nest::mc;
+
     using nest::mc::util::make_span;
-    using matrix_type = nest::mc::matrix<double, int, nest::mc::gpu::matrix_policy>;
 
     // trivial case : 1x1 matrix
     {
-        matrix_type m(memory::on_host(std::vector<int>{0}));
+        matrix_type m({0});
 
         memory::fill(m.d(),  2);
-        memory::fill(m.l(), -1);
         memory::fill(m.u(), -1);
         memory::fill(m.rhs(),1);
 
@@ -32,15 +36,14 @@ TEST(matrix, solve_gpu)
     {
         using namespace nest::mc;
         for(auto n : make_span(2u,101u)) {
-            auto p = std::vector<int>(n);
+            auto p = std::vector<index_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
-            matrix_type m{memory::on_host(p)};
+            matrix_type m{p};
 
             EXPECT_EQ(m.size(), n);
-            EXPECT_EQ(m.num_cells(), 1);
+            EXPECT_EQ(m.num_cells(), 1u);
 
             memory::fill(m.d(),  2);
-            memory::fill(m.l(), -1);
             memory::fill(m.u(), -1);
             memory::fill(m.rhs(),1);
 

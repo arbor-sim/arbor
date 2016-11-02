@@ -13,7 +13,6 @@
 
 #include "common_types.hpp"
 #include "tree.hpp"
-#include "util.hpp"
 
 namespace nest {
 namespace mc {

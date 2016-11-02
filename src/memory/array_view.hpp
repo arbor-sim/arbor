@@ -367,11 +367,11 @@ public:
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
     >
-    const_array_view(Other&& other) :
+    const_array_view(const Other& other) :
         pointer_(other.data()), size_(other.size())
     {
 #if VERBOSE
-        std::cout << util::green("const_array_view(&&Other)")
+        std::cout << util::green("const_array_view(const Other&)")
                   << "\n  this  " << util::pretty_printer<const_array_view>::print(*this)
                   << "\n  other " << util::pretty_printer<typename std::decay<Other>::type>::print(other)
                   << std::endl;

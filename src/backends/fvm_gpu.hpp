@@ -1,21 +1,21 @@
 #pragma once
 
-#include "catalogue_multicore.hpp"
-#include "matrix_multicore.hpp"
+#include "catalogue_gpu.hpp"
+#include "matrix_gpu.hpp"
 
 namespace nest {
 namespace mc {
-namespace multicore {
+namespace gpu {
 
 struct fvm_policy : public memory_traits {
     /// define matrix solver
-    using matrix_solver = nest::mc::multicore::matrix_solver;
+    using matrix_solver = nest::mc::gpu::matrix_solver;
 
     /// define matrix builder
-    using matrix_builder = nest::mc::multicore::fvm_matrix_builder;
+    using matrix_builder = nest::mc::gpu::fvm_matrix_builder;
 
     /// mechanism factory
-    using mechanism_catalogue = nest::mc::multicore::catalogue;
+    using mechanism_catalogue = nest::mc::gpu::catalogue;
 
     /// back end specific storage for mechanisms
     using mechanism_type = mechanism_catalogue::mechanism_ptr_type;
@@ -24,7 +24,7 @@ struct fvm_policy : public memory_traits {
     using ion_type = mechanism_catalogue::ion_type;
 
     static std::string name() {
-        return "multicore";
+        return "gpu";
     }
 };
 

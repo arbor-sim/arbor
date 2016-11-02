@@ -8,7 +8,12 @@ set(BASE_SOURCES
     profiling/profiler.cpp
     swcio.cpp
     util/debug.cpp
+    util/unwind.cpp
     backends/catalogue_multicore.cpp
+)
+set(CUDA_SOURCES
+    backends/catalogue_gpu.cu
+    memory/fill.cu
 )
 
 if(${WITH_MPI})
@@ -16,11 +21,10 @@ if(${WITH_MPI})
 endif()
 
 add_library(nestmc ${BASE_SOURCES} ${HEADERS})
+
 add_dependencies(nestmc build_all_mods)
-
 if(WITH_CUDA)
-    add_dependencies(nestmc build_all_gpu_mods)
+    cuda_add_library(gpu ${CUDA_SOURCES})
+    add_dependencies(gpu build_all_gpu_mods)
 endif()
-
-add_subdirectory(memory)
 

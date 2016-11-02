@@ -1,14 +1,17 @@
 #pragma once
 
-#include <memory/memory.hpp>
+#include "memory_traits.hpp"
+
+#include <util/span.hpp>
 
 namespace nest {
 namespace mc {
 namespace gpu {
 
+/// Parameter pack for passing matrix fields and dimensions to the
+/// Hines matrix solver implemented on the GPU backend.
 template <typename T, typename I>
-struct matrix_param_pack {
-    T* l;
+struct matrix_solve_param_pack {
     T* d;
     T* u;
     T* rhs;
@@ -18,11 +21,12 @@ struct matrix_param_pack {
     I ncells;
 };
 
+/// GPU implementation of Hines Matrix solver.
+/// Naiive implementation with one CUDA thread per matrix.
 template <typename T, typename I>
 __global__
-void matrix_solve(matrix_param_pack<T, I> params) {
+void matrix_solve(matrix_solve_param_pack<T, I> params) {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
-    auto l   = params.l;
     auto d   = params.d;
     auto u   = params.u;
     auto rhs = params.rhs;
@@ -35,7 +39,7 @@ void matrix_solve(matrix_param_pack<T, I> params) {
 
         // backward sweep
         for(auto i=last-1; i>first; --i) {
-            auto factor = l[i] / d[i];
+            auto factor = u[i] / d[i];
             d[p[i]]   -= factor * u[i];
             rhs[p[i]] -= factor * rhs[i];
         }
@@ -51,18 +55,16 @@ void matrix_solve(matrix_param_pack<T, I> params) {
     }
 }
 
-struct matrix_policy : public memory_traits {
-    using param_pack_type = matrix_param_pack<value_type, size_type>;
+/// Policy class that calls the GPU implementation of the Hines matrix solver
+struct matrix_solver : public memory_traits {
+    using solve_param_pack = matrix_solve_param_pack<value_type, size_type>;
 
-    void solve(
-        view l, view d, view u, view rhs,
-        const_iview p, const_iview cell_index)
-    {
+    void solve(view d, view u, view rhs, const_iview p, const_iview cell_index) {
         // pack the parameters into a single struct for kernel launch
-        auto params = param_pack_type{
-             l.data(), d.data(), u.data(), rhs.data(),
+        auto params = solve_param_pack{
+             d.data(), u.data(), rhs.data(),
              p.data(), cell_index.data(),
-             size_type(d.size()), size_type(cell_index.size())
+             size_type(d.size()), size_type(cell_index.size()-1)
         };
 
         // determine the grid dimensions for the kernel
@@ -71,8 +73,77 @@ struct matrix_policy : public memory_traits {
         auto const grid_dim = (n+block_dim-1)/block_dim;
 
         // perform solve on gpu
-        matrix_solve<T,I><<<grid_dim, block_dim>>>(params);
+        matrix_solve<value_type, size_type><<<grid_dim, block_dim>>>(params);
     }
+};
+
+/// Parameter pack for passing matrix and fvm fields and dimensions to the
+/// FVM matrix generator implemented on the GPU
+template <typename T, typename I>
+struct matrix_update_param_pack {
+    T* d;
+    T* u;
+    T* rhs;
+    const T* sigma;
+    const T* alpha_d;
+    const T* alpha;
+    const T* voltage;
+    const T* current;
+    const T* cv_capacitance;
+    I n;
+};
+
+template <typename T, typename I>
+__global__
+void matrix_update(matrix_update_param_pack<T, I> params, T dt) {
+    auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+
+    T factor_lhs = 1e5*dt;
+    T factor_rhs = 10.*dt;
+    if(tid < params.n) {
+        params.d[tid] = params.sigma[tid] + factor_lhs*params.alpha_d[tid];
+        params.u[tid] = -factor_lhs*params.alpha[tid];
+        params.rhs[tid] = params.sigma[tid] *
+            (params.voltage[tid] - factor_rhs/params.cv_capacitance[tid]*params.current[tid]);
+    }
+}
+
+struct fvm_matrix_builder : public memory_traits {
+    matrix_update_param_pack<value_type, size_type> params;
+    array alpha_d;
+
+    fvm_matrix_builder() = default;
+
+    fvm_matrix_builder(
+        view d, view u, view rhs, const_iview p,
+        const_view sigma, const_view alpha,
+        const_view voltage, const_view current, const_view cv_capacitance)
+    {
+        auto n = d.size();
+        host_array alpha_d_tmp(n, 0);
+        for(auto i: util::make_span(1u, n)) {
+            alpha_d_tmp[i] += alpha[i];
+
+            // add contribution to the diagonal of parent
+            alpha_d_tmp[p[i]] += alpha[i];
+        }
+        alpha_d = alpha_d_tmp;
+
+        params = {
+            d.data(), u.data(), rhs.data(),
+            sigma.data(), alpha_d.data(), alpha.data(),
+            voltage.data(), current.data(), cv_capacitance.data(), size_type(n)};
+    }
+
+    void build(value_type dt) {
+        // determine the grid dimensions for the kernel
+        auto const n = params.n;
+        auto const block_dim = 96;
+        auto const grid_dim = (n+block_dim-1)/block_dim;
+
+        matrix_update<value_type, size_type><<<grid_dim, block_dim>>>(params, dt);
+    }
+
 };
 
 } // namespace gpu

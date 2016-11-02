@@ -21,8 +21,7 @@ TEST(mechanisms, helpers) {
     memory_traits::array vec_v(n, 0.);
 
     auto mech = catalogue::make(
-            "hh", memory::make_view(vec_v), memory::make_view(vec_i),
-            memory::make_const_view(node_indices));
+            "hh", memory::make_view(vec_v), memory::make_view(vec_i), node_indices);
 
     EXPECT_EQ(mech->name(), "hh");
     EXPECT_EQ(mech->size(), 5u);

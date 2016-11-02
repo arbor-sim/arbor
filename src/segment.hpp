@@ -3,13 +3,13 @@
 #include <cmath>
 #include <vector>
 
-#include "algorithms.hpp"
-#include "common_types.hpp"
-#include "compartment.hpp"
-#include "math.hpp"
-#include "parameter_list.hpp"
-#include "point.hpp"
-#include "util.hpp"
+#include <algorithms.hpp>
+#include <common_types.hpp>
+#include <compartment.hpp>
+#include <math.hpp>
+#include <parameter_list.hpp>
+#include <point.hpp>
+#include <util/make_unique.hpp>
 
 namespace nest {
 namespace mc {

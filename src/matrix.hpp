@@ -5,31 +5,33 @@
 #include <memory/memory.hpp>
 #include <backends/matrix.hpp>
 
-#include <util.hpp>
 #include <util/debug.hpp>
+#include <util/span.hpp>
 
 namespace nest {
 namespace mc {
 
 /// Hines matrix
 /// the TargetPolicy defines the backend specific data types and solver
-template<class TargetPolicy>
-class matrix: public TargetPolicy {
+template<class SolverPolicy>
+class matrix: public SolverPolicy {
 public:
-    using base = TargetPolicy;
+    using solver_policy = SolverPolicy;
 
     // define basic types
-    using typename base::value_type;
-    using typename base::size_type;
+    using typename solver_policy::value_type;
+    using typename solver_policy::size_type;
 
     // define storage types
-    using typename base::array;
-    using typename base::iarray;
+    using typename solver_policy::array;
+    using typename solver_policy::iarray;
 
-    using typename base::view;
-    using typename base::iview;
-    using typename base::const_view;
-    using typename base::const_iview;
+    using typename solver_policy::view;
+    using typename solver_policy::iview;
+    using typename solver_policy::const_view;
+    using typename solver_policy::const_iview;
+
+    using typename solver_policy::host_array;
 
     matrix() = default;
 
@@ -40,11 +42,10 @@ public:
         cell_index_(memory::make_const_view(pi))
     {
         setup();
-        std::cout << "\n\nAAAA\n\n";
     }
 
     /// construct matrix for a single cell described by a parent index
-    matrix(const std::vector<size_type>& pi) :
+    matrix(const std::vector<size_type>& pi):
         parent_index_(memory::make_const_view(pi)),
         cell_index_(2)
     {
@@ -63,10 +64,6 @@ public:
         return cell_index_.size() - 1;
     }
 
-    /// the vector holding the lower part of the matrix
-    view l() { return l_; }
-    const_view l() const { return l_; }
-
     /// the vector holding the diagonal of the matrix
     view d() { return d_; }
     const_view d() const { return d_; }
@@ -82,24 +79,50 @@ public:
     /// the vector holding the parent index
     const_iview p() const { return parent_index_; }
 
-    /// solve the linear system
-    /// upon completion the solution is stored in the RHS storage
-    /// and can be accessed via rhs()
+    /// the patrition of the parent index over the cells
+    const_iview cell_index() const { return cell_index_; }
+
+    /// Solve the linear system.
+    /// Upon completion the solution is stored in the RHS storage, which can
+    /// be accessed via rhs().
     void solve() {
-        base::solve(l_, d_, u_, rhs_, parent_index_, cell_index_);
+        solver_policy::solve(d_, u_, rhs_, parent_index_, cell_index_);
     }
+
+    /// Build the matrix and its right hand side
+    /// This is forwarded to the back end
+    /*
+    void build_matrix(value_type dt) {
+        base::build_matrix(
+            d_, u_, rhs_,
+            sigma_, alpha_d_, alpha_, voltage_, current_, cv_capacitance_, dt);
+    }
+    */
 
     private:
 
-    /// allocate memory for storing matrix and right hand side vector
+    /// Allocate memory for storing matrix and right hand side vector
+    /// and build the face area contribution to the diagonal
     void setup() {
         const auto n = size();
         constexpr auto default_value = std::numeric_limits<value_type>::quiet_NaN();
 
-        l_   = array(n, default_value);
         d_   = array(n, default_value);
         u_   = array(n, default_value);
         rhs_ = array(n, default_value);
+
+        /*
+        // construct the precomputed alpha_d array in host memory
+        host_array alpha_d_tmp(n, 0);
+        for(auto i: util::make_span(1u, n)) {
+            alpha_d_tmp[i] += alpha_[i];
+
+            // add contribution to the diagonal of parent
+            alpha_d_tmp[parent_index_[i]] += alpha_[i];
+        }
+        // move or copy into final location (gpu->copy, host->move)
+        alpha_d_ = std::move(alpha_d_tmp);
+        */
     }
 
     /// the parent indice that describe matrix structure
@@ -109,12 +132,20 @@ public:
     iarray cell_index_;
 
     /// storage for lower, diagonal, upper and rhs
-    array l_;
     array d_;
     array u_;
-
-    /// after calling solve, the solution is stored in rhs_
     array rhs_;
+
+    /// storage for components used to build the diagonals
+    /*
+    const_view alpha_;
+    array alpha_d_;
+    const_view sigma_;
+
+    const_view cv_capacitance_;
+    const_view current_;
+    const_view voltage_;
+    */
 };
 
 } // namespace nest

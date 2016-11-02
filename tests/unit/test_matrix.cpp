@@ -1,13 +1,13 @@
 #include <numeric>
 #include <vector>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <math.hpp>
 #include <matrix.hpp>
 #include <util/span.hpp>
 
-using matrix_type = nest::mc::matrix<nest::mc::multicore::matrix_policy>;
+using matrix_type = nest::mc::matrix<nest::mc::multicore::matrix_solver>;
 using size_type = matrix_type::size_type;
 
 TEST(matrix, construct_from_parent_only)
@@ -38,7 +38,6 @@ TEST(matrix, solve_host)
     {
         matrix_type m(std::vector<size_type>{0});
         fill(m.d(),  2);
-        fill(m.l(), -1);
         fill(m.u(), -1);
         fill(m.rhs(),1);
 
@@ -58,7 +57,6 @@ TEST(matrix, solve_host)
             EXPECT_EQ(m.num_cells(), 1u);
 
             fill(m.d(),  2);
-            fill(m.l(), -1);
             fill(m.u(), -1);
             fill(m.rhs(),1);
 

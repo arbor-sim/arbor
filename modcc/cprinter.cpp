@@ -35,6 +35,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 
     //////////////////////////////////////////////
@@ -254,18 +255,14 @@ CPrinter::CPrinter(Module &m, bool o)
         ) return true;
         return false;
     };
-    text_.add_line("void set_ion(ionKind k, ion_type& i) override {");
+    text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
     text_.add_line("using nest::mc::algorithms::index_into;");
     if(has_ion(ionKind::Na)) {
         auto ion = find_ion(ionKind::Na);
         text_.add_line("if(k==ionKind::na) {");
         text_.increase_indentation();
-        text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
-        text_.add_line("auto index = index_into(i.node_index(), node_index_);");
-        text_.add_line("ion_na.index = iarray(size());");
-        text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_na.index.begin());");
-        text_.add_line("EXPECTS((unsigned)std::distance(ion_na.index.begin(), last) == size());");
+        text_.add_line("ion_na.index = iarray(memory::make_const_view(index));");
         if(has_variable(*ion, "ina")) text_.add_line("ion_na.ina = i.current();");
         if(has_variable(*ion, "ena")) text_.add_line("ion_na.ena = i.reversal_potential();");
         if(has_variable(*ion, "nai")) text_.add_line("ion_na.nai = i.internal_concentration();");
@@ -278,11 +275,7 @@ CPrinter::CPrinter(Module &m, bool o)
         auto ion = find_ion(ionKind::Ca);
         text_.add_line("if(k==ionKind::ca) {");
         text_.increase_indentation();
-        text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
-        text_.add_line("auto index = index_into(i.node_index(), node_index_);");
-        text_.add_line("ion_ca.index = iarray(size());");
-        text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_ca.index.begin());");
-        text_.add_line("EXPECTS((unsigned)std::distance(ion_ca.index.begin(), last) == size());");
+        text_.add_line("ion_ca.index = iarray(memory::make_const_view(index));");
         if(has_variable(*ion, "ica")) text_.add_line("ion_ca.ica = i.current();");
         if(has_variable(*ion, "eca")) text_.add_line("ion_ca.eca = i.reversal_potential();");
         if(has_variable(*ion, "cai")) text_.add_line("ion_ca.cai = i.internal_concentration();");
@@ -295,11 +288,7 @@ CPrinter::CPrinter(Module &m, bool o)
         auto ion = find_ion(ionKind::K);
         text_.add_line("if(k==ionKind::k) {");
         text_.increase_indentation();
-        text_.add_line("// TODO a more elegant way of initializing host storage from ranges");
-        text_.add_line("auto index = index_into(i.node_index(), node_index_);");
-        text_.add_line("ion_k.index = iarray(size());");
-        text_.add_line("auto last = std::copy(index.begin(), index.end(), ion_k.index.begin());");
-        text_.add_line("EXPECTS((unsigned)std::distance(ion_k.index.begin(), last) == size());");
+        text_.add_line("ion_k.index = iarray(memory::make_const_view(index));");
         if(has_variable(*ion, "ik")) text_.add_line("ion_k.ik = i.current();");
         if(has_variable(*ion, "ek")) text_.add_line("ion_k.ek = i.reversal_potential();");
         if(has_variable(*ion, "ki")) text_.add_line("ion_k.ki = i.internal_concentration();");

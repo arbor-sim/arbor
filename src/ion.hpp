@@ -61,8 +61,8 @@ public :
 
     ion() = default;
 
-    ion(const_iview idx) :
-        node_index_{idx},
+    ion(const std::vector<size_type>& idx) :
+        node_index_{memory::make_const_view(idx)},
         iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},

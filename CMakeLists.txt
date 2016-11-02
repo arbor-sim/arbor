@@ -39,6 +39,14 @@ if(WITH_TBB)
     add_definitions(-DWITH_TBB)
 endif()
 
+# libunwind for pretty printing stack traces
+set(WITH_UNWIND OFF CACHE BOOL "use libunwind for debug messages" )
+if(WITH_UNWIND)
+    find_package(Unwind REQUIRED)
+    add_definitions(-DWITH_UNWIND)
+    include_directories(${UNWIND_INCLUDE_DIR})
+endif()
+
 # CUDA support
 set(WITH_CUDA OFF CACHE BOOL "use CUDA for GPU offload" )
 if(WITH_CUDA)
@@ -48,7 +56,9 @@ if(WITH_CUDA)
     # Turn off annoying and incorrect warnings generated in the JSON file.
     # We also work around the same issue with the intel compiler.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
+    # set the CUDA target specfic flags
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
 endif()
 
 # MPI support

@@ -7,7 +7,6 @@
 #include <type_traits>
 #include <vector>
 
-#include <util.hpp>
 #include <util/debug.hpp>
 #include <util/range.hpp>
 

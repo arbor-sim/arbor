@@ -5,10 +5,10 @@
 #include <string>
 #include <util/meta.hpp>
 
-#include "indexed_view.hpp"
-#include "ion.hpp"
-#include "parameter_list.hpp"
-#include "util.hpp"
+#include <indexed_view.hpp>
+#include <ion.hpp>
+#include <parameter_list.hpp>
+#include <util/make_unique.hpp>
 
 namespace nest {
 namespace mc {
@@ -41,8 +41,8 @@ public:
 
     using ion_type = ion<memory_traits>;
 
-    mechanism(view vec_v, view vec_i, const_iview node_index):
-        vec_v_(vec_v), vec_i_(vec_i), node_index_(node_index)
+    mechanism(view vec_v, view vec_i, iarray&& node_index):
+        vec_v_(vec_v), vec_i_(vec_i), node_index_(std::move(node_index))
     {}
 
     std::size_t size() const {
@@ -69,7 +69,7 @@ public:
     virtual void nrn_current()  = 0;
     virtual void net_receive(int, value_type) {};
     virtual bool uses_ion(ionKind) const = 0;
-    virtual void set_ion(ionKind k, ion_type& i) = 0;
+    virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
 
     void set_areas(view area) {
         vec_area_ = area;
@@ -90,10 +90,10 @@ template <typename M>
 auto make_mechanism(
     typename M::view  vec_v,
     typename M::view  vec_i,
-    typename M::const_iview node_indices)
--> decltype(util::make_unique<M>(vec_v, vec_i, node_indices))
+    typename M::iarray&& node_indices)
+-> decltype(util::make_unique<M>(vec_v, vec_i, std::move(node_indices)))
 {
-    return util::make_unique<M>(vec_v, vec_i, node_indices);
+    return util::make_unique<M>(vec_v, vec_i, std::move(node_indices));
 }
 
 } // namespace mechanisms
