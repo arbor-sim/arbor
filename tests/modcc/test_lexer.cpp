@@ -1,11 +1,37 @@
 #include <cmath>
 #include <iterator>
+#include <utility>
 
 #include "test.hpp"
 #include "lexer.hpp"
 
-//#define PRINT_LEX_STRING std::cout << "________________\n" << string << "\n________________\n";
-#define PRINT_LEX_STRING
+void verbose_print(const char* string) {
+    if (!g_verbose_flag) return;
+    std::cout << "________________\n" << string << "\n________________\n";
+}
+
+void verbose_print(const Token& token) {
+    if (!g_verbose_flag) return;
+    std::cout << "tok: " << token << "\n";
+}
+
+class VerboseLexer: public Lexer {
+public:
+    template <typename... Args>
+    VerboseLexer(Args&&... args): Lexer(std::forward<Args>(args)...) {
+        if (g_verbose_flag) {
+            std::cout << "________________\n" << std::string(begin_, end_) << "\n________________\n";
+        }
+    }
+
+    Token parse() {
+        auto tok = Lexer::parse();
+        if (g_verbose_flag) {
+            std::cout << "token: " << tok << "\n";
+        }
+        return tok;
+    }
+};
 
 /**************************************************************
  * lexer tests
@@ -13,8 +39,7 @@
 // test identifiers
 TEST(Lexer, identifiers) {
     char string[] = "_foo:\nbar, buzz f_zz";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    VerboseLexer lexer(string, string+sizeof(string));
 
     auto t1 = lexer.parse();
     EXPECT_EQ(t1.type, tok::identifier);
@@ -43,9 +68,8 @@ TEST(Lexer, identifiers) {
 
 // test keywords
 TEST(Lexer, keywords) {
-    char string[] = "NEURON UNITS SOLVE else TITLE CONDUCTANCE";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    char string[] = "NEURON UNITS SOLVE else TITLE CONDUCTANCE KINETIC";
+    VerboseLexer lexer(string, string+sizeof(string));
 
     // should skip all white space and go straight to eof
     auto t1 = lexer.parse();
@@ -69,19 +93,22 @@ TEST(Lexer, keywords) {
     EXPECT_NE(t5.type, tok::identifier);
     EXPECT_EQ(t5.spelling, "TITLE");
 
-    auto t7 = lexer.parse();
-    EXPECT_EQ(t7.type, tok::conductance);
-    EXPECT_EQ(t7.spelling, "CONDUCTANCE");
-
     auto t6 = lexer.parse();
-    EXPECT_EQ(t6.type, tok::eof);
+    EXPECT_EQ(t6.type, tok::conductance);
+    EXPECT_EQ(t6.spelling, "CONDUCTANCE");
+
+    auto t7 = lexer.parse();
+    EXPECT_EQ(t7.type, tok::kinetic);
+    EXPECT_EQ(t7.spelling, "KINETIC");
+
+    auto tlast = lexer.parse();
+    EXPECT_EQ(tlast.type, tok::eof);
 }
 
 // test white space
 TEST(Lexer, whitespace) {
     char string[] = " \t\v\f";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    VerboseLexer lexer(string, string+sizeof(string));
 
     // should skip all white space and go straight to eof
     auto t1 = lexer.parse();
@@ -91,8 +118,7 @@ TEST(Lexer, whitespace) {
 // test new line
 TEST(Lexer, newline) {
     char string[] = "foo \n    bar \n +\r\n-";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    VerboseLexer lexer(string, string+sizeof(string));
 
     // get foo
     auto t1 = lexer.parse();
@@ -123,9 +149,8 @@ TEST(Lexer, newline) {
 
 // test operators
 TEST(Lexer, symbols) {
-    char string[] = "+-/*, t= ^ h'";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    char string[] = "+-/*, t= ^ h'<->~";
+    VerboseLexer lexer(string, string+sizeof(string));
 
     auto t1 = lexer.parse();
     EXPECT_EQ(t1.type, tok::plus);
@@ -161,13 +186,18 @@ TEST(Lexer, symbols) {
     EXPECT_EQ(t10.type, tok::prime);
 
     auto t11 = lexer.parse();
-    EXPECT_EQ(t11.type, tok::eof);
+    EXPECT_EQ(t11.type, tok::arrow);
+
+    auto t12 = lexer.parse();
+    EXPECT_EQ(t12.type, tok::tilde);
+
+    auto tlast = lexer.parse();
+    EXPECT_EQ(tlast.type, tok::eof);
 }
 
 TEST(Lexer, comparison_operators) {
     char string[] = "< <= > >= == != !";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    VerboseLexer lexer(string, string+sizeof(string));
 
     auto t1 = lexer.parse();
     EXPECT_EQ(t1.type, tok::lt);
@@ -191,8 +221,7 @@ TEST(Lexer, comparison_operators) {
 // test braces
 TEST(Lexer, braces) {
     char string[] = "foo}";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    VerboseLexer lexer(string, string+sizeof(string));
 
     auto t1 = lexer.parse();
     EXPECT_EQ(t1.type, tok::identifier);
@@ -209,8 +238,7 @@ TEST(Lexer, comments) {
     char string[] = "foo:this is one line\n"
                     "bar : another comment\n"
                     "foobar ? another comment\n";
-    PRINT_LEX_STRING
-    Lexer lexer(string, string+sizeof(string));
+    VerboseLexer lexer(string, string+sizeof(string));
 
     auto t1 = lexer.parse();
     EXPECT_EQ(t1.type, tok::identifier);
@@ -243,7 +271,7 @@ TEST(Lexer, numbers) {
     std::vector<long long> check_ints = {1, 23, 3};
     std::vector<long long> ints;
 
-    Lexer lexer(floats_stream.str());
+    VerboseLexer lexer(floats_stream.str());
     auto t = lexer.parse();
     auto iter = floats.cbegin();
     while (t.type != tok::eof && iter != floats.cend()) {

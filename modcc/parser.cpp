@@ -967,11 +967,18 @@ expression_ptr Parser::parse_stoich_expression() {
     auto here = location_;
 
     if(token_.type==tok::integer || token_.type==tok::identifier) {
-        terms.push_back(parse_stoich_term());
+        auto term = parse_stoich_term();
+        if (!term) return nullptr;
+
+        terms.push_back(std::move(term));
 
         while(token_.type==tok::plus) {
             get_token(); // consume plus
-            terms.push_back(parse_stoich_term());
+
+            auto term = parse_stoich_term();
+            if (!term) return nullptr;
+
+            terms.push_back(std::move(term));
         }
     }
 
@@ -981,37 +988,48 @@ expression_ptr Parser::parse_stoich_expression() {
 expression_ptr Parser::parse_reaction_expression() {
     auto here = location_;
 
-    // consume tilde
-    get_token();
+    if(token_.type!=tok::tilde) {
+        error(pprintf("expected '%', found '%'", yellow("~"), yellow(token_.spelling)));
+        return nullptr;
+    }
 
+    get_token(); // consume tilde
     expression_ptr lhs = parse_stoich_expression();
+    if (!lhs) return nullptr;
 
     if(token_.type != tok::arrow) {
         error(pprintf("expected '%', found '%'", yellow("<->"), yellow(token_.spelling)));
         return nullptr;
     }
 
+    get_token(); // consume arrow
     expression_ptr rhs = parse_stoich_expression();
+    if (!rhs) return nullptr;
 
     if(token_.type != tok::lparen) {
         error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
         return nullptr;
     }
 
+    get_token(); // consume lparen
     expression_ptr fwd = parse_expression();
+    if (!fwd) return nullptr;
 
     if(token_.type != tok::comma) {
         error(pprintf("expected '%', found '%'", yellow(","), yellow(token_.spelling)));
         return nullptr;
     }
 
+    get_token(); // consume comma
     expression_ptr rev = parse_expression();
+    if (!rev) return nullptr;
 
     if(token_.type != tok::rparen) {
         error(pprintf("expected '%', found '%'", yellow(")"), yellow(token_.spelling)));
         return nullptr;
     }
 
+    get_token(); // consume rparen
     return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
         std::move(fwd), std::move(rev));
 }

@@ -5,12 +5,9 @@
 #include "parser.hpp"
 #include "modccutil.hpp"
 
-//#define VERBOSE_TEST
-#ifdef VERBOSE_TEST
-#define VERBOSE_PRINT(x) std::cout << (x) << std::endl;
-#else
-#define VERBOSE_PRINT(x)
-#endif
+extern bool g_verbose_flag;
+
+#define VERBOSE_PRINT(x) (g_verbose_flag && std::cout << (x) << "\n")
 
 inline expression_ptr parse_line_expression(std::string const& s) {
     return Parser(s).parse_line_expression();

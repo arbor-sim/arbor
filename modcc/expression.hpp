@@ -877,7 +877,7 @@ public:
     {}
 
     std::string to_string() const override {
-        return pprintf("%%", coeff()->to_string(), ident()->to_string());
+        return pprintf("% %", coeff()->to_string(), ident()->to_string());
     }
     void semantic(std::shared_ptr<scope_type> scp) override;
     expression_ptr clone() const override;

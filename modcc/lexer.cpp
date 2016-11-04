@@ -119,6 +119,10 @@ Token Lexer::parse() {
                 t.type = tok::rbrace;
                 t.spelling += character();
                 return t;
+            case '~':
+                t.type = tok::tilde;
+                t.spelling += character();
+                return t;
             case '=': {
                 t.spelling += character();
                 if(*current_=='=') {
