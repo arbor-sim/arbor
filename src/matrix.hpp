@@ -39,7 +39,7 @@ public:
     /// and a cell index
     matrix(const std::vector<size_type>& pi, const std::vector<size_type>& ci):
         parent_index_(memory::make_const_view(pi)),
-        cell_index_(memory::make_const_view(pi))
+        cell_index_(memory::make_const_view(ci))
     {
         setup();
     }

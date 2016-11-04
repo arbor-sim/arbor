@@ -472,7 +472,7 @@ void fvm_multicell<TargetPolicy>::initialize(
     cv_capacitance_ = make_const_view(tmp_cv_capacitance);
 
     // initalize matrix
-    matrix_ = matrix_type(group_parent_index);
+    matrix_ = matrix_type(group_parent_index, cell_comp_bounds);
 
     matrix_builder_ = matrix_builder(
         matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),

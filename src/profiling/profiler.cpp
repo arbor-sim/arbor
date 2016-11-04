@@ -1,5 +1,7 @@
 #include <numeric>
 
+#include <cuda_profiler_api.h>
+
 #include <common_types.hpp>
 #include <communication/global_policy.hpp>
 #include <profiling/profiler.hpp>
@@ -9,6 +11,36 @@
 namespace nest {
 namespace mc {
 namespace util {
+
+#ifdef WITH_CUDA
+namespace gpu {
+    bool is_running_nvprof = false;
+    std::mutex gpu_profiler_mutex;
+
+    void start_nvprof() {
+        std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
+        if (!is_running_nvprof) {
+            std::cout << "starting profiler\n";
+            cudaProfilerStart();
+        }
+        is_running_nvprof = true;
+    }
+
+    void stop_nvprof() {
+        std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
+        if (is_running_nvprof) {
+            std::cout << "stoping profiler\n";
+            cudaProfilerStop();
+        }
+        is_running_nvprof = false;
+    }
+}
+#else
+namespace gpu {
+    void start_nvprof() {}
+    void stop_nvprof()  {}
+}
+#endif
 
 /////////////////////////////////////////////////////////
 // profiler_node
@@ -220,6 +252,7 @@ void profiler::leave(int n) {
 }
 
 void profiler::start() {
+    gpu::start_nvprof();
     if (is_activated()) {
         throw std::out_of_range(
                 "attempt to start an already running profiler"
@@ -294,6 +327,7 @@ void profiler_leave(int nlevels) {
 
 /// iterate over all profilers and ensure that they have the same start stop times
 void profilers_stop() {
+    gpu::stop_nvprof();
     for (auto& p : data::profilers_) {
         p.stop();
     }

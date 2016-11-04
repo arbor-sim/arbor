@@ -78,7 +78,9 @@ void backtrace::print(bool stop_at_main) const {
             break;
         }
     }
-    std::cerr << yellow("BACKTRACE") << " " << fname << std::endl;
+    std::cerr << "BACKTRACE: A backtrace was generated and stored in the file " << fname << ".\n";
+    std::cerr << "           View a brief summary of the backtrace by running \"scripts/print_backtrace " << fname << " -b\".\n";
+    std::cerr << "           Run \"scripts/print_backtrace -h\" for more options.\n";
 }
 
 } // namespace util

@@ -59,6 +59,7 @@ if(WITH_CUDA)
     # set the CUDA target specfic flags
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
+    add_definitions(-DWITH_CUDA)
 endif()
 
 # MPI support
