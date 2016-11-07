@@ -44,6 +44,7 @@ class AssignmentExpression;
 class ReactionExpression;
 class StoichExpression;
 class StoichTermExpression;
+class ConserveExpression;
 class AddBinaryExpression;
 class SubBinaryExpression;
 class MulBinaryExpression;
@@ -166,7 +167,10 @@ public:
     virtual BinaryExpression*      is_binary()            {return nullptr;}
     virtual UnaryExpression*       is_unary()             {return nullptr;}
     virtual AssignmentExpression*  is_assignment()        {return nullptr;}
+    virtual ConserveExpression*    is_conserve()          {return nullptr;}
     virtual ReactionExpression*    is_reaction()          {return nullptr;}
+    virtual StoichExpression*      is_stoich()            {return nullptr;}
+    virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}
     virtual ConditionalExpression* is_conditional()       {return nullptr;}
     virtual InitialBlock*          is_initial_block()     {return nullptr;}
     virtual SolveExpression*       is_solve_statement()   {return nullptr;}
@@ -876,6 +880,8 @@ public:
       coeff_(std::move(coeff)), ident_(std::move(ident))
     {}
 
+    StoichTermExpression* is_stoich_term() override {return this;}
+
     std::string to_string() const override {
         return pprintf("% %", coeff()->to_string(), ident()->to_string());
     }
@@ -888,6 +894,11 @@ public:
 
     expression_ptr& ident() { return ident_; }
     const expression_ptr& ident() const { return ident_; }
+
+    bool negative() const {
+        auto iexpr = coeff_->is_integer();
+        return iexpr && iexpr->integer_value()<0;
+    }
 
 private:
     expression_ptr coeff_;
@@ -903,6 +914,8 @@ public:
     StoichExpression(Location loc)
     : Expression(loc)
     {}
+
+    StoichExpression* is_stoich() override {return this;}
 
     std::string to_string() const override;
     void semantic(std::shared_ptr<scope_type> scp) override;
@@ -1222,6 +1235,20 @@ public:
     {}
 
     AssignmentExpression* is_assignment() override {return this;}
+
+    void semantic(std::shared_ptr<scope_type> scp) override;
+
+    void accept(Visitor *v) override;
+};
+
+class ConserveExpression : public BinaryExpression {
+public:
+    ConserveExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+    :   BinaryExpression(loc, tok::eq, std::move(lhs), std::move(rhs))
+    {}
+
+    ConserveExpression* is_conserve() override {return this;}
+    expression_ptr clone() const override;
 
     void semantic(std::shared_ptr<scope_type> scp) override;
 

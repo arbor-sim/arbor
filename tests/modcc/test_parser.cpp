@@ -318,17 +318,27 @@ TEST(Parser, parse_line_expression) {
 }
 
 TEST(Parser, parse_stoich_term) {
-    const char* good_expr[] = {
+    const char* good_pos_expr[] = {
         "B", "B3", "3B3", "0A", "12A"
     };
 
-    for (auto& text: good_expr) {
+    for (auto& text: good_pos_expr) {
         std::unique_ptr<StoichTermExpression> s;
         EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_term, text));
+        EXPECT_TRUE((s && !s->negative()));
     }
 
+    const char* good_neg_expr[] = {
+        "-3B3", "-A", "-12A"
+    };
+
+    for (auto& text: good_neg_expr) {
+        std::unique_ptr<StoichTermExpression> s;
+        EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_term, text));
+        EXPECT_TRUE((s && s->negative()));
+    }
     const char* bad_expr[] = {
-        "-A", "-3A", "0.2A", "5"
+        "0.2A", "5"
     };
 
     for (auto& text: bad_expr) {
@@ -358,12 +368,24 @@ TEST(Parser, parse_stoich_expression) {
     }
 
     const char* other_good_expr[] = {
-        "", "a+b+c", "1a+2b+3c+4d"
+        "", "a+b+c", "1a-2b+3c+4d"
     };
 
     for (auto& text: other_good_expr) {
         std::unique_ptr<StoichExpression> s;
         EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_expression, text));
+    }
+
+    const char* check_coeff = "-3a+2b-c+d";
+    {
+        std::unique_ptr<StoichExpression> s;
+        EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_expression, check_coeff));
+        EXPECT_EQ(4, s->terms().size());
+        std::vector<int> confirm = {-3,2,-1,1};
+        for (unsigned i = 0; i<4; ++i) {
+            auto term = s->terms()[i]->is_stoich_term();
+            EXPECT_EQ(confirm[i], term->coeff()->is_integer()->integer_value());
+        }
     }
 
     const char* bad_expr[] = {
@@ -404,6 +426,58 @@ TEST(Parser, parse_reaction_expression) {
 
     for (auto& text: bad_expr) {
         EXPECT_TRUE(check_parse_fail(&Parser::parse_reaction_expression, text));
+    }
+}
+
+TEST(Parser, parse_conserve) {
+    std::unique_ptr<ConserveExpression> s;
+    const char* text;
+
+    text = "CONSERVE a + b = 1";
+    ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
+    EXPECT_TRUE(s->rhs()->is_number());
+    ASSERT_TRUE(s->lhs()->is_stoich());
+    EXPECT_EQ(2, s->lhs()->is_stoich()->terms().size());
+
+    text = "CONSERVE a = 1.23e-2";
+    ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
+    EXPECT_TRUE(s->rhs()->is_number());
+    ASSERT_TRUE(s->lhs()->is_stoich());
+    EXPECT_EQ(1, s->lhs()->is_stoich()->terms().size());
+
+    text = "CONSERVE = 0";
+    ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
+    EXPECT_TRUE(s->rhs()->is_number());
+    ASSERT_TRUE(s->lhs()->is_stoich());
+    EXPECT_EQ(0, s->lhs()->is_stoich()->terms().size());
+
+    text = "CONSERVE -2a + b -c = foo*2.3-bar";
+    ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
+    EXPECT_TRUE(s->rhs()->is_binary());
+    ASSERT_TRUE(s->lhs()->is_stoich());
+    {
+        auto& terms = s->lhs()->is_stoich()->terms();
+        ASSERT_EQ(3, terms.size());
+        auto coeff = terms[0]->is_stoich_term()->coeff()->is_integer();
+        ASSERT_TRUE(coeff);
+        EXPECT_EQ(-2, coeff->integer_value());
+        coeff = terms[1]->is_stoich_term()->coeff()->is_integer();
+        ASSERT_TRUE(coeff);
+        EXPECT_EQ(1, coeff->integer_value());
+        coeff = terms[2]->is_stoich_term()->coeff()->is_integer();
+        ASSERT_TRUE(coeff);
+        EXPECT_EQ(-1, coeff->integer_value());
+    }
+
+    const char* bad_expr[] = {
+        "CONSERVE a + 3*b -c = 1",
+        "CONSERVE a + 3b -c = ",
+        "a+b+c = 2",
+        "CONSERVE a + 3b +c"
+    };
+
+    for (auto& text: bad_expr) {
+        EXPECT_TRUE(check_parse_fail(&Parser::parse_conserve_expression, text));
     }
 }
 
@@ -506,4 +580,18 @@ TEST(Parser, parse_state_block) {
         EXPECT_EQ(lexerStatus::happy, p.status());
         verbose_print(null, p, text);
     }
+}
+
+TEST(Parser, parse_kinetic) {
+    char str[] =
+        "KINETIC kin {\n"
+        "    rates(v)             \n"
+        "    ~ s1 <-> s2 (f1, r1) \n"
+        "    ~ s2 <-> s3 (f2, r2) \n"
+        "    ~ s2 <-> s4 (f3, r3) \n"
+        "    CONSERVE s1 + s3 + s4 - s2 = 2.3\n"
+        "}";
+
+    std::unique_ptr<Symbol> sym;
+    EXPECT_TRUE(check_parse(sym, &Parser::parse_procedure, str));
 }

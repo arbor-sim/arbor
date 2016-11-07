@@ -274,8 +274,12 @@ void ReactionExpression::semantic(std::shared_ptr<scope_type> scp) {
     scope_ = scp;
     lhs()->semantic(scp);
     rhs()->semantic(scp);
+
     fwd_rate()->semantic(scp);
     rev_rate()->semantic(scp);
+    if(fwd_rate_->is_procedure_call() || rev_rate_->is_procedure_call()) {
+        error("procedure calls can't be made in an expression");
+    }
 }
 
 /*******************************************************************************
@@ -320,6 +324,25 @@ void StoichExpression::semantic(std::shared_ptr<scope_type> scp) {
     scope_ = scp;
     for(auto& e: terms()) {
         e->semantic(scp);
+    }
+}
+
+/*******************************************************************************
+  ConserveExpression
+*******************************************************************************/
+
+expression_ptr ConserveExpression::clone() const {
+    return make_expression<ConserveExpression>(
+        location_, lhs()->clone(), rhs()->clone());
+}
+
+void ConserveExpression::semantic(std::shared_ptr<scope_type> scp) {
+    scope_ = scp;
+    lhs_->semantic(scp);
+    rhs_->semantic(scp);
+
+    if(rhs_->is_procedure_call()) {
+        error("procedure calls can't be made in an expression");
     }
 }
 
@@ -867,6 +890,9 @@ void BinaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void AssignmentExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void ConserveExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void ReactionExpression::accept(Visitor *v) {

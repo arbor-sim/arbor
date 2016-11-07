@@ -27,6 +27,7 @@ public:
     expression_ptr parse_stoich_expression();
     expression_ptr parse_stoich_term();
     expression_ptr parse_reaction_expression();
+    expression_ptr parse_conserve_expression();
     expression_ptr parse_binop(expression_ptr&&, Token);
     expression_ptr parse_unaryop();
     expression_ptr parse_local();

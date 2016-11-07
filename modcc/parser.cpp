@@ -817,6 +817,8 @@ expression_ptr Parser::parse_statement() {
             return parse_local();
         case tok::identifier :
             return parse_line_expression();
+        case tok::conserve :
+            return parse_conserve_expression();
         case tok::tilde :
             return parse_reaction_expression();
         case tok::initial :
@@ -950,6 +952,12 @@ expression_ptr Parser::parse_line_expression() {
 expression_ptr Parser::parse_stoich_term() {
     expression_ptr coeff = make_expression<IntegerExpression>(location_, 1);
     auto here = location_;
+    bool negative = false;
+
+    while(token_.type==tok::minus) {
+        negative = !negative;
+        get_token(); // consume '-'
+    }
 
     if(token_.type==tok::integer) {
         coeff = parse_integer();
@@ -959,6 +967,10 @@ expression_ptr Parser::parse_stoich_term() {
         error(pprintf("expected an identifier, found '%'", yellow(token_.spelling)));
         return nullptr;
     }
+
+    if(negative) {
+        coeff = make_expression<IntegerExpression>(here, -coeff->is_integer()->integer_value());
+    }
     return make_expression<StoichTermExpression>(here, std::move(coeff), parse_identifier());
 }
 
@@ -966,14 +978,16 @@ expression_ptr Parser::parse_stoich_expression() {
     std::vector<expression_ptr> terms;
     auto here = location_;
 
-    if(token_.type==tok::integer || token_.type==tok::identifier) {
+    if(token_.type==tok::integer || token_.type==tok::identifier || token_.type==tok::minus) {
         auto term = parse_stoich_term();
         if (!term) return nullptr;
 
         terms.push_back(std::move(term));
 
-        while(token_.type==tok::plus) {
-            get_token(); // consume plus
+        while(token_.type==tok::plus || token_.type==tok::minus) {
+            if (token_.type==tok::plus) {
+                get_token(); // consume plus
+            }
 
             auto term = parse_stoich_term();
             if (!term) return nullptr;
@@ -997,6 +1011,18 @@ expression_ptr Parser::parse_reaction_expression() {
     expression_ptr lhs = parse_stoich_expression();
     if (!lhs) return nullptr;
 
+    // reaction halves must comprise non-negative terms
+    for (const auto& term: lhs->is_stoich()->terms()) {
+        // should always be true
+        if (auto sterm = term->is_stoich_term()) {
+            if (sterm->negative()) {
+                error(pprintf("expected only non-negative terms in reaction lhs, found '%'",
+                    yellow(term->to_string())));
+                return nullptr;
+            }
+        }
+    }
+
     if(token_.type != tok::arrow) {
         error(pprintf("expected '%', found '%'", yellow("<->"), yellow(token_.spelling)));
         return nullptr;
@@ -1005,6 +1031,17 @@ expression_ptr Parser::parse_reaction_expression() {
     get_token(); // consume arrow
     expression_ptr rhs = parse_stoich_expression();
     if (!rhs) return nullptr;
+
+    for (const auto& term: rhs->is_stoich()->terms()) {
+        // should always be true
+        if (auto sterm = term->is_stoich_term()) {
+            if (sterm->negative()) {
+                error(pprintf("expected only non-negative terms in reaction rhs, found '%'",
+                    yellow(term->to_string())));
+                return nullptr;
+            }
+        }
+    }
 
     if(token_.type != tok::lparen) {
         error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
@@ -1032,6 +1069,30 @@ expression_ptr Parser::parse_reaction_expression() {
     get_token(); // consume rparen
     return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
         std::move(fwd), std::move(rev));
+}
+
+expression_ptr Parser::parse_conserve_expression() {
+    auto here = location_;
+
+    if(token_.type!=tok::conserve) {
+        error(pprintf("expected '%', found '%'", yellow("CONSERVE"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume 'CONSERVE'
+    auto lhs = parse_stoich_expression();
+    if (!lhs) return nullptr;
+
+    if(token_.type != tok::eq) {
+        error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume '='
+    auto rhs = parse_expression();
+    if (!rhs) return nullptr;
+
+    return make_expression<ConserveExpression>(here, std::move(lhs), std::move(rhs));
 }
 
 expression_ptr Parser::parse_expression() {

@@ -68,7 +68,7 @@ TEST(Lexer, identifiers) {
 
 // test keywords
 TEST(Lexer, keywords) {
-    char string[] = "NEURON UNITS SOLVE else TITLE CONDUCTANCE KINETIC";
+    char string[] = "NEURON UNITS SOLVE else TITLE CONDUCTANCE KINETIC CONSERVE LOCAL";
     VerboseLexer lexer(string, string+sizeof(string));
 
     // should skip all white space and go straight to eof
@@ -100,6 +100,14 @@ TEST(Lexer, keywords) {
     auto t7 = lexer.parse();
     EXPECT_EQ(t7.type, tok::kinetic);
     EXPECT_EQ(t7.spelling, "KINETIC");
+
+    auto t8 = lexer.parse();
+    EXPECT_EQ(t8.type, tok::conserve);
+    EXPECT_EQ(t8.spelling, "CONSERVE");
+
+    auto t9 = lexer.parse();
+    EXPECT_EQ(t9.type, tok::local);
+    EXPECT_EQ(t9.spelling, "LOCAL");
 
     auto tlast = lexer.parse();
     EXPECT_EQ(tlast.type, tok::eof);

@@ -57,7 +57,7 @@ enum class tok {
     unitsoff, unitson,
     suffix, nonspecific_current, useion,
     read, write,
-    range, local,
+    range, local, conserve,
     solve, method,
     threadsafe, global,
     point_process,

@@ -43,6 +43,7 @@ static Keyword keywords[] = {
     {"WRITE",       tok::write},
     {"RANGE",       tok::range},
     {"LOCAL",       tok::local},
+    {"CONSERVE",    tok::conserve},
     {"SOLVE",       tok::solve},
     {"THREADSAFE",  tok::threadsafe},
     {"GLOBAL",      tok::global},
