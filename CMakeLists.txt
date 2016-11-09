@@ -51,15 +51,21 @@ endif()
 set(WITH_CUDA OFF CACHE BOOL "use CUDA for GPU offload" )
 if(WITH_CUDA)
     find_package(CUDA REQUIRED)
-    # the vector library has a compiled component when using the CUDA backend
-    include(ExternalProject)
+
     # Turn off annoying and incorrect warnings generated in the JSON file.
     # We also work around the same issue with the intel compiler.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
+
     # set the CUDA target specfic flags
+    # code regions protected by WITH_CUDA should only be available to the CUDA
+    # compiler, which regions protected by WITH_GPU are visible to both host
+    # and device compiler when targetting GPU.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_GPU)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
-    add_definitions(-DWITH_CUDA)
+
+    add_definitions(-DWITH_GPU)
+    include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
 endif()
 
 # MPI support

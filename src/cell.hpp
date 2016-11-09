@@ -59,7 +59,7 @@ constexpr clone_cell_t clone_cell{};
 /// high-level abstract representation of a cell and its segments
 class cell {
 public:
-    using iarray = cell_lid_type;
+    using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
     using value_type = double;
     using point_type = point<value_type>;
@@ -105,21 +105,21 @@ public:
     /// add a cable
     /// parent is the index of the parent segment for the cable section
     /// cable is the segment that will be moved into the cell
-    cable_segment* add_cable(iarray parent, segment_ptr&& cable);
+    cable_segment* add_cable(index_type parent, segment_ptr&& cable);
 
     /// add a cable by constructing it in place
     /// parent is the index of the parent segment for the cable section
     /// args are the arguments to be used to consruct the new cable
     template <typename... Args>
-    cable_segment* add_cable(iarray parent, Args ...args);
+    cable_segment* add_cable(index_type parent, Args ...args);
 
     /// the number of segments in the cell
     size_type num_segments() const;
 
     bool has_soma() const;
 
-    class segment* segment(iarray index);
-    class segment const* segment(iarray index) const;
+    class segment* segment(index_type index);
+    class segment const* segment(index_type index) const;
 
     /// access pointer to the soma
     /// returns nullptr if the cell has no soma
@@ -128,7 +128,7 @@ public:
     /// access pointer to a cable segment
     /// will throw an std::out_of_range exception if
     /// the cable index is not valid
-    cable_segment* cable(iarray index);
+    cable_segment* cable(index_type index);
 
     /// the volume of the cell
     value_type volume() const;
@@ -143,7 +143,7 @@ public:
 
     /// return reference to array that enumerates the index of the parent of
     /// each segment
-    std::vector<iarray> const& segment_parents() const;
+    std::vector<index_type> const& segment_parents() const;
 
     /// return a vector with the compartment count for each segment in the cell
     std::vector<size_type> compartment_counts() const;
@@ -194,7 +194,7 @@ public:
     //////////////////
     // probes
     //////////////////
-    iarray add_probe(probe_spec p) {
+    index_type add_probe(probe_spec p) {
         probes_.push_back(p);
         return probes_.size()-1;
     }
@@ -204,7 +204,7 @@ public:
 
 private:
     // storage for connections
-    std::vector<iarray> parents_;
+    std::vector<index_type> parents_;
 
     // the segments
     std::vector<segment_ptr> segments_;
@@ -230,7 +230,7 @@ bool cell_basic_equality(cell const& lhs, cell const& rhs);
 
 // create a cable by forwarding cable construction parameters provided by the user
 template <typename... Args>
-cable_segment* cell::add_cable(cell::iarray parent, Args ...args)
+cable_segment* cell::add_cable(cell::index_type parent, Args ...args)
 {
     // check for a valid parent id
     if(parent>=num_segments()) {

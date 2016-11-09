@@ -1,11 +1,12 @@
 #include <random>
 #include <vector>
 
-#include "gtest.h"
+#include "../gtest.h"
 
-#include "algorithms.hpp"
+#include <algorithms.hpp>
 #include "../test_util.hpp"
-#include "util/debug.hpp"
+#include <util/debug.hpp>
+#include <util/meta.hpp>
 
 /// tests the sort implementation in threading
 /// is only parallel if TBB is being used
@@ -526,10 +527,9 @@ TEST(algorithms, branches)
 
 struct test_index_into {
     template <typename R1, typename R2, typename R3>
-    bool operator() (const R1& super, const R2& sub, const R3& index) {
+    bool operator() (const R1& sub, const R2& super, const R3& index) {
         using value_type = typename R1::value_type;
-        //std::cout << "index has size " << index.size() << "\n";
-        //std::cout << "{"; for(auto i : index) std::cout << i << " ";std::cout << "}\n";
+
         if(sub.size()!=index.size()) return false;
         auto index_it = index.begin();
         for(auto i=0u; i<sub.size(); ++i, ++index_it) {
@@ -537,6 +537,7 @@ struct test_index_into {
             if(idx>=value_type(super.size())) return false;
             if(super[idx]!=sub[i]) return false;
         }
+
         return true;
     }
 };
@@ -544,12 +545,10 @@ struct test_index_into {
 TEST(algorithms, index_into)
 {
     using C = std::vector<int>;
+    using nest::mc::util::size;
 
     // by default index_into assumes that the inputs satisfy
     // quite a strong set of prerequisites
-    //
-    // TODO: test that the EXPECTS() catch bad inputs when DEBUG mode is enabled
-    //       put this in a seperate unit test
     auto tests = {
         std::make_pair(C{}, C{}),
         std::make_pair(C{100}, C{}),
@@ -565,7 +564,17 @@ TEST(algorithms, index_into)
     test_index_into tester;
     for(auto& t : tests) {
         EXPECT_TRUE(
-            tester(t.first, t.second, nest::mc::algorithms::index_into(t.first, t.second))
+            tester(t.second, t.first, nest::mc::algorithms::index_into(t.second, t.first))
         );
+    }
+
+    // test for arrays
+    int sub[] = {2, 3, 5, 9};
+    int sup[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+    auto idx = nest::mc::algorithms::index_into(sub, sup);
+    EXPECT_EQ(size(sub), size(idx));
+    auto it = idx.begin();
+    for (auto i: sub) {
+        EXPECT_EQ(i, *it++);
     }
 }

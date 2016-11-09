@@ -69,16 +69,11 @@ namespace gpu {
     fill(T* ptr, T value, size_t n) { \
         using I = uint ## N ## _t; \
         I v; \
-        if(alignof(T)==alignof(I)) { \
-            *reinterpret_cast<T*>(&v) = value; \
-        } \
-        else { \
-            std::copy_n( \
-                reinterpret_cast<char*>(&value), \
-                sizeof(T), \
-                reinterpret_cast<char*>(&v) \
-            ); \
-        } \
+        std::copy_n( \
+            reinterpret_cast<char*>(&value), \
+            sizeof(T), \
+            reinterpret_cast<char*>(&v) \
+        ); \
         fill ## N(reinterpret_cast<I*>(ptr), v, n); \
     }
 

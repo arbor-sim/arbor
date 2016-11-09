@@ -66,6 +66,10 @@ foreach(target ${TARGETS})
         target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
     endif()
 
+    if(WITH_CUDA)
+        target_link_libraries(${target} LINK_PUBLIC ${CUDA_LIBRARIES})
+    endif()
+
     if(WITH_UNWIND)
         target_link_libraries(${target} LINK_PUBLIC ${UNWIND_LIBRARIES})
     endif()

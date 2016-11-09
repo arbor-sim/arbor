@@ -12,7 +12,16 @@ namespace nest {
 namespace mc {
 namespace util {
 
-#ifdef WITH_CUDA
+// Here we provide functionality that the profiler can use to control the CUDA
+// profiler nvprof. The cudaStartProfiler and cudaStopProfiler API calls are
+// provided to let a program control which parts of the program are to be
+// profiled.
+// Here are some wrappers that the NestMC profiler restrict nvprof to recording
+// only the time intervals that the user requests when they start and stop the
+// profiler.
+// It is a simple wrapper around the API calls with a mutex to ensure correct
+// behaviour when multiple threads attempt to start or stop the profiler.
+#ifdef WITH_GPU
 namespace gpu {
     bool is_running_nvprof = false;
     std::mutex gpu_profiler_mutex;
@@ -20,7 +29,6 @@ namespace gpu {
     void start_nvprof() {
         std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
         if (!is_running_nvprof) {
-            std::cout << "starting profiler\n";
             cudaProfilerStart();
         }
         is_running_nvprof = true;
@@ -29,7 +37,6 @@ namespace gpu {
     void stop_nvprof() {
         std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
         if (is_running_nvprof) {
-            std::cout << "stoping profiler\n";
             cudaProfilerStop();
         }
         is_running_nvprof = false;

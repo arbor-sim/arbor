@@ -337,9 +337,9 @@ void fvm_multicell<TargetPolicy>::initialize(
     using util::transform_view;
 
     // count total detectors, targets and probes for validation of handle container sizes
-    auto detectors_count = 0u;
-    auto targets_count = 0u;
-    auto probes_count = 0u;
+    std::size_t detectors_count = 0u;
+    std::size_t targets_count = 0u;
+    std::size_t probes_count = 0u;
     auto detectors_size = size(detector_handles);
     auto targets_size = size(target_handles);
     auto probes_size = size(probe_handles);

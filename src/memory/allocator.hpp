@@ -242,42 +242,42 @@ public:
     using rebind = allocator<U, Policy>;
 
 public:
-    inline explicit allocator() {}
-    inline ~allocator() {}
-    inline explicit allocator(allocator const&) {}
+    allocator() {}
+    ~allocator() {}
+    allocator(allocator const&) {}
 
-    inline pointer address(reference r) {
+    pointer address(reference r) {
         return &r;
     }
-    inline const_pointer address(const_reference r) {
+    const_pointer address(const_reference r) {
         return &r;
     }
 
-    inline pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
+    pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
         return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
     }
 
-    inline void deallocate(pointer p, size_type) {
+    void deallocate(pointer p, size_type) {
         if( p!=nullptr )
             free_policy(p);
     }
 
-    inline size_type max_size() const {
+    size_type max_size() const {
         return std::numeric_limits<size_type>::max() / sizeof(T);
     }
 
-    inline void construct(pointer p, const T& t) {
+    void construct(pointer p, const T& t) {
         new(p) T(t);
     }
 
-    inline void destroy(pointer p) {
+    void destroy(pointer p) {
         p->~T();
     }
 
-    inline bool operator==(allocator const&) {
+    bool operator==(allocator const&) {
         return true;
     }
-    inline bool operator!=(allocator const& a) {
+    bool operator!=(allocator const& a) {
         return !operator==(a);
     }
 };

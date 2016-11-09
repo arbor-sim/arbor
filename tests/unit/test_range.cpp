@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <algorithm>
 #include <iterator>
@@ -361,6 +361,11 @@ TEST(range, sum_by) {
     EXPECT_EQ(10u, count);
 }
 
+TEST(range, is_sequence) {
+    EXPECT_TRUE(nest::mc::util::is_sequence<std::vector<int>>::value);
+    EXPECT_TRUE(nest::mc::util::is_sequence<std::string>::value);
+    EXPECT_TRUE(nest::mc::util::is_sequence<int[8]>::value);
+}
 #ifdef WITH_TBB
 
 TEST(range, tbb_split) {
