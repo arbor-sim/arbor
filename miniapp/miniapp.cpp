@@ -30,9 +30,9 @@ using namespace nest::mc;
 
 using global_policy = communication::global_policy;
 #ifdef WITH_CUDA
-using lowered_cell = fvm::fvm_multicell<gpu::fvm_policy>;
+using lowered_cell = fvm::fvm_multicell<gpu::backend>;
 #else
-using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
+using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 #endif
 using model_type = model<lowered_cell>;
 using sample_trace_type = sample_trace<model_type::time_type, model_type::value_type>;

@@ -44,11 +44,11 @@ CPrinter::CPrinter(Module &m, bool o)
 
     text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + m.name() + "{");
     text_.add_line();
-    text_.add_line("template<class MemoryPolicy>");
-    text_.add_line("class " + class_name + " : public mechanism<MemoryPolicy> {");
+    text_.add_line("template<class Backend>");
+    text_.add_line("class " + class_name + " : public mechanism<Backend> {");
     text_.add_line("public:");
     text_.increase_indentation();
-    text_.add_line("using base = mechanism<MemoryPolicy>;");
+    text_.add_line("using base = mechanism<Backend>;");
     text_.add_line("using value_type  = typename base::value_type;");
     text_.add_line("using size_type   = typename base::size_type;");
     text_.add_line();

@@ -42,22 +42,22 @@ constexpr std::array<ionKind, 3> ion_kinds() {
 }
 
 /// storage for ion channel information in a cell group
-template<typename MemoryTraits>
-class ion : public MemoryTraits {
+template<typename Backend>
+class ion {
 public :
-    using memory_traits = MemoryTraits;
+    using backend = Backend;
 
     // expose tempalte parameters
-    using typename memory_traits::value_type;
-    using typename memory_traits::size_type;
+    using value_type = typename backend::value_type;
+    using size_type = typename backend::size_type;
 
     // define storage types
-    using typename memory_traits::array;
-    using typename memory_traits::iarray;
-    using typename memory_traits::view;
-    using typename memory_traits::const_iview;
+    using array = typename backend::array;
+    using iarray = typename backend::iarray;
+    using view = typename backend::view;
+    using const_iview = typename backend::const_iview;
 
-    using indexed_view_type = indexed_view<memory_traits>;
+    using indexed_view_type = indexed_view<backend>;
 
     ion() = default;
 

@@ -1,14 +1,15 @@
 #include <numeric>
 #include <vector>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <math.hpp>
 #include <matrix.hpp>
+#include <backends/fvm_gpu.hpp>
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
-using matrix_type = nest::mc::matrix<nest::mc::gpu::matrix_solver>;
+using matrix_type = nest::mc::matrix<nest::mc::gpu::backend>;
 using index_type = matrix_type::size_type;
 
 TEST(matrix, solve_gpu)

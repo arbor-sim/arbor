@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <cell_group.hpp>
 #include <common_types.hpp>
@@ -8,7 +8,7 @@
 #include "../test_common_cells.hpp"
 
 using fvm_cell =
-    nest::mc::fvm::fvm_multicell<nest::mc::multicore::fvm_policy>;
+    nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
 
 nest::mc::cell make_cell() {
     using namespace nest::mc;

@@ -162,17 +162,17 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + m.name();
 
-    text_.add_line("template<typename MemoryPolicy>");
-    text_.add_line("class " + class_name + " : public mechanism<MemoryPolicy> {");
+    text_.add_line("template<typename Backend>");
+    text_.add_line("class " + class_name + " : public mechanism<Backend> {");
     text_.add_line("public: ");
     text_.increase_indentation();
-    text_.add_line("using base = mechanism<MemoryPolicy>;");
+    text_.add_line("using base = mechanism<Backend>;");
     text_.add_line("using typename base::value_type;");
     text_.add_line("using typename base::size_type;");
     text_.add_line("using typename base::array;");
     text_.add_line("using typename base::view;");
     text_.add_line("using typename base::iarray;");
-    text_.add_line("using host_iarray = typename MemoryPolicy::host_iarray;");
+    text_.add_line("using host_iarray = typename Backend::host_iarray;");
     text_.add_line("using typename base::iview;");
     text_.add_line("using typename base::const_iview;");
     text_.add_line("using typename base::const_view;");

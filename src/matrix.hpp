@@ -3,7 +3,6 @@
 #include <type_traits>
 
 #include <memory/memory.hpp>
-#include <backends/matrix.hpp>
 
 #include <util/debug.hpp>
 #include <util/span.hpp>
@@ -13,25 +12,25 @@ namespace mc {
 
 /// Hines matrix
 /// the TargetPolicy defines the backend specific data types and solver
-template<class SolverPolicy>
-class matrix: public SolverPolicy {
+template<class Backend>
+class matrix {
 public:
-    using solver_policy = SolverPolicy;
+    using backend = Backend;
 
     // define basic types
-    using typename solver_policy::value_type;
-    using typename solver_policy::size_type;
+    using value_type = typename backend::value_type;
+    using size_type = typename backend::size_type;
 
     // define storage types
-    using typename solver_policy::array;
-    using typename solver_policy::iarray;
+    using array = typename backend::array;
+    using iarray = typename backend::iarray;
 
-    using typename solver_policy::view;
-    using typename solver_policy::iview;
-    using typename solver_policy::const_view;
-    using typename solver_policy::const_iview;
+    using view = typename backend::view;
+    using iview = typename backend::iview;
+    using const_view = typename backend::const_view;
+    using const_iview = typename backend::const_iview;
 
-    using typename solver_policy::host_array;
+    using host_array = typename backend::host_array;
 
     matrix() = default;
 
@@ -86,18 +85,8 @@ public:
     /// Upon completion the solution is stored in the RHS storage, which can
     /// be accessed via rhs().
     void solve() {
-        solver_policy::solve(d_, u_, rhs_, parent_index_, cell_index_);
+        backend::hines_solve(d_, u_, rhs_, parent_index_, cell_index_);
     }
-
-    /// Build the matrix and its right hand side
-    /// This is forwarded to the back end
-    /*
-    void build_matrix(value_type dt) {
-        base::build_matrix(
-            d_, u_, rhs_,
-            sigma_, alpha_d_, alpha_, voltage_, current_, cv_capacitance_, dt);
-    }
-    */
 
     private:
 
@@ -110,19 +99,6 @@ public:
         d_   = array(n, default_value);
         u_   = array(n, default_value);
         rhs_ = array(n, default_value);
-
-        /*
-        // construct the precomputed alpha_d array in host memory
-        host_array alpha_d_tmp(n, 0);
-        for(auto i: util::make_span(1u, n)) {
-            alpha_d_tmp[i] += alpha_[i];
-
-            // add contribution to the diagonal of parent
-            alpha_d_tmp[parent_index_[i]] += alpha_[i];
-        }
-        // move or copy into final location (gpu->copy, host->move)
-        alpha_d_ = std::move(alpha_d_tmp);
-        */
     }
 
     /// the parent indice that describe matrix structure
@@ -135,17 +111,6 @@ public:
     array d_;
     array u_;
     array rhs_;
-
-    /// storage for components used to build the diagonals
-    /*
-    const_view alpha_;
-    array alpha_d_;
-    const_view sigma_;
-
-    const_view cv_capacitance_;
-    const_view current_;
-    const_view voltage_;
-    */
 };
 
 } // namespace nest

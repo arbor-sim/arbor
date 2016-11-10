@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "../gtest.h"
 #include "util/nop.hpp"
 
 using namespace nest::mc::util;

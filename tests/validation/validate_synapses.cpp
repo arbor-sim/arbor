@@ -24,7 +24,7 @@ using namespace nest::mc;
 
 void run_synapse_test(const char* syn_type, const char* ref_file) {
     using namespace nlohmann;
-    using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     auto& V = g_trace_io;
 

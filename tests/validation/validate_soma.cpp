@@ -26,7 +26,7 @@ TEST(soma, numeric_ref) {
 
     using namespace nlohmann;
 
-    using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
     auto& V = g_trace_io;
 
     bool verbose = V.verbose();

@@ -11,7 +11,7 @@
 #include "../test_common_cells.hpp"
 
 using fvm_cell =
-    nest::mc::fvm::fvm_multicell<nest::mc::multicore::fvm_policy>;
+    nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
 
 TEST(fvm_multi, cable)
 {

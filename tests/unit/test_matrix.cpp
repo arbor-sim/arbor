@@ -5,9 +5,10 @@
 
 #include <math.hpp>
 #include <matrix.hpp>
+#include <backends/fvm_multicore.hpp>
 #include <util/span.hpp>
 
-using matrix_type = nest::mc::matrix<nest::mc::multicore::matrix_solver>;
+using matrix_type = nest::mc::matrix<nest::mc::multicore::backend>;
 using size_type = matrix_type::size_type;
 
 TEST(matrix, construct_from_parent_only)
@@ -73,4 +74,3 @@ TEST(matrix, solve_host)
         }
     }
 }
-

@@ -119,7 +119,7 @@ void run_ncomp_convergence_test(
 }
 
 TEST(ball_and_stick, neuron_ref) {
-    using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_ball_and_stick();
     add_common_voltage_probes(c);
@@ -139,7 +139,7 @@ TEST(ball_and_stick, neuron_ref) {
 }
 
 TEST(ball_and_taper, neuron_ref) {
-    using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_ball_and_taper();
     add_common_voltage_probes(c);
@@ -159,7 +159,7 @@ TEST(ball_and_taper, neuron_ref) {
 }
 
 TEST(ball_and_3stick, neuron_ref) {
-    using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_ball_and_3stick();
     add_common_voltage_probes(c);
@@ -183,7 +183,7 @@ TEST(ball_and_3stick, neuron_ref) {
 }
 
 TEST(rallpack1, numeric_ref) {
-    using lowered_cell = fvm::fvm_multicell<multicore::fvm_policy>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_simple_cable();
 

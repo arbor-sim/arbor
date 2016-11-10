@@ -19,27 +19,27 @@ enum class mechanismKind {point, density};
 /// The mechanism type is templated on a memory policy type.
 /// The only difference between the abstract definition of a mechanism on host
 /// or gpu is the information is stored, and how it is accessed.
-template <typename MemoryTraits>
-class mechanism : MemoryTraits {
+template <typename Backend>
+class mechanism {
 public:
-    using memory_traits = MemoryTraits;
+    using backend = Backend;
 
-    using typename memory_traits::value_type;
-    using typename memory_traits::size_type;
+    using value_type = typename backend::value_type;
+    using size_type = typename backend::size_type;
 
     // define storage types
-    using typename memory_traits::array;
-    using typename memory_traits::iarray;
+    using array = typename backend::array;
+    using iarray = typename backend::iarray;
 
-    using typename memory_traits::view;
-    using typename memory_traits::iview;
+    using view = typename backend::view;
+    using iview = typename backend::iview;
 
-    using typename memory_traits::const_view;
-    using typename memory_traits::const_iview;
+    using const_view = typename backend::const_view;
+    using const_iview = typename backend::const_iview;
 
-    using indexed_view_type = indexed_view<memory_traits>;
+    using indexed_view_type = indexed_view<backend>;
 
-    using ion_type = ion<memory_traits>;
+    using ion_type = ion<backend>;
 
     mechanism(view vec_v, view vec_i, iarray&& node_index):
         vec_v_(vec_v), vec_i_(vec_i), node_index_(std::move(node_index))
@@ -51,14 +51,6 @@ public:
 
     const_iview node_index() const {
         return node_index_;
-    }
-
-    value_type voltage(size_type i) const {
-        return vec_v_[node_index_[i]];
-    }
-
-    value_type current(size_type i) const {
-        return vec_i_[node_index_[i]];
     }
 
     virtual void set_params(value_type t_, value_type dt_) = 0;
@@ -83,8 +75,8 @@ public:
     view vec_area_;
 };
 
-template <class MemoryTraits>
-using mechanism_ptr = std::unique_ptr<mechanism<MemoryTraits>>;
+template <class Backend>
+using mechanism_ptr = std::unique_ptr<mechanism<Backend>>;
 
 template <typename M>
 auto make_mechanism(

@@ -9,10 +9,10 @@ set(BASE_SOURCES
     swcio.cpp
     util/debug.cpp
     util/unwind.cpp
-    backends/catalogue_multicore.cpp
+    backends/fvm_multicore.cpp
 )
 set(CUDA_SOURCES
-    backends/catalogue_gpu.cu
+    backends/fvm_gpu.cu
     memory/fill.cu
 )
 

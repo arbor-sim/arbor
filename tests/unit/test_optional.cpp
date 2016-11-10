@@ -2,7 +2,7 @@
 #include <array>
 #include <algorithm>
 
-#include "gtest.h"
+#include "../gtest.h"
 #include "util/optional.hpp"
 
 using namespace nest::mc::util;

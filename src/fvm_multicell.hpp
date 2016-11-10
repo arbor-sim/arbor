@@ -46,27 +46,25 @@ namespace util {
 
 namespace fvm {
 
-template<class TargetPolicy>
-class fvm_multicell : public TargetPolicy {
+template<class Backend>
+class fvm_multicell : public Backend {
 public:
-    using target_policy_type = TargetPolicy;
-    using base = target_policy_type;
+    using backend = Backend;
 
     /// the real number type
-    using typename base::value_type;
+    using typename backend::value_type;
 
     /// the integral index type
-    using typename base::size_type;
+    using typename backend::size_type;
 
     /// the container used for values
-    using typename base::array;
-    using typename base::host_array;
+    using typename backend::array;
+    using typename backend::host_array;
 
     /// the container used for indexes
-    using typename base::iarray;
+    using typename backend::iarray;
 
-    using typename base::matrix_builder;
-    using typename base::matrix_solver;
+    using typename backend::matrix_assembler;
 
     /// API for cell_group (see above):
     using detector_handle = size_type;
@@ -107,21 +105,21 @@ public:
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
-    using matrix_type = matrix<matrix_solver>;
+    using matrix_type = matrix<backend>;
 
     /// mechanism type
-    using typename base::mechanism_type;
+    using typename backend::mechanism;
 
     /// ion species storage
-    using typename base::ion_type;
+    using typename backend::ion;
 
     /// view into index container
-    using typename base::iview;
-    using typename base::const_iview;
+    using typename backend::iview;
+    using typename backend::const_iview;
 
     /// view into value container
-    using typename base::view;
-    using typename base::const_view;
+    using typename backend::view;
+    using typename backend::const_view;
 
     /// which requires const_view in the vector library
     const matrix_type& jacobian() { return matrix_; }
@@ -148,23 +146,23 @@ public:
     std::size_t size() const { return matrix_.size(); }
 
     /// return reference to in iterable container of the mechanisms
-    std::vector<mechanism_type>& mechanisms() { return mechanisms_; }
+    std::vector<mechanism>& mechanisms() { return mechanisms_; }
 
     /// return reference to list of ions
-    std::map<mechanisms::ionKind, ion_type>&       ions()       { return ions_; }
-    std::map<mechanisms::ionKind, ion_type> const& ions() const { return ions_; }
+    std::map<mechanisms::ionKind, ion>&       ions()       { return ions_; }
+    std::map<mechanisms::ionKind, ion> const& ions() const { return ions_; }
 
     /// return reference to sodium ion
-    ion_type&       ion_na()       { return ions_[mechanisms::ionKind::na]; }
-    ion_type const& ion_na() const { return ions_[mechanisms::ionKind::na]; }
+    ion&       ion_na()       { return ions_[mechanisms::ionKind::na]; }
+    ion const& ion_na() const { return ions_[mechanisms::ionKind::na]; }
 
     /// return reference to calcium ion
-    ion_type&       ion_ca()       { return ions_[mechanisms::ionKind::ca]; }
-    ion_type const& ion_ca() const { return ions_[mechanisms::ionKind::ca]; }
+    ion&       ion_ca()       { return ions_[mechanisms::ionKind::ca]; }
+    ion const& ion_ca() const { return ions_[mechanisms::ionKind::ca]; }
 
     /// return reference to pottasium ion
-    ion_type&       ion_k()       { return ions_[mechanisms::ionKind::k]; }
-    ion_type const& ion_k() const { return ions_[mechanisms::ionKind::k]; }
+    ion&       ion_k()       { return ions_[mechanisms::ionKind::k]; }
+    ion const& ion_k() const { return ions_[mechanisms::ionKind::k]; }
 
     /// flags if solution is physically realistic.
     /// here we define physically realistic as the voltage being within reasonable bounds.
@@ -199,7 +197,7 @@ private:
     matrix_type matrix_;
 
     /// the helper used to construct the matrix
-    matrix_builder matrix_builder_;
+    matrix_assembler matrix_assembler_;
 
     /// cv_areas_[i] is the surface area of CV i [µm^2]
     array cv_areas_;
@@ -220,17 +218,17 @@ private:
     array voltage_;
 
     /// the set of mechanisms present in the cell
-    std::vector<mechanism_type> mechanisms_;
+    std::vector<mechanism> mechanisms_;
 
     /// the ion species
-    std::map<mechanisms::ionKind, ion_type> ions_;
+    std::map<mechanisms::ionKind, ion> ions_;
 
     stimulus_store_type stimuli_;
 
     std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
 
     // mechanism factory
-    using mechanism_catalogue = typename base::mechanism_catalogue;
+    //using mechanism_catalogue = typename backend::mechanism_catalogue;
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
@@ -246,8 +244,8 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////// Implementation ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-template <typename TargetPolicy>
-void fvm_multicell<TargetPolicy>::compute_cv_area_unnormalized_capacitance(
+template <typename Backend>
+void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
     const std::vector<size_type>& parent,
@@ -320,9 +318,9 @@ void fvm_multicell<TargetPolicy>::compute_cv_area_unnormalized_capacitance(
     }
 }
 
-template <typename TargetPolicy>
+template <typename Backend>
 template <typename Cells, typename Detectors, typename Targets, typename Probes>
-void fvm_multicell<TargetPolicy>::initialize(
+void fvm_multicell<Backend>::initialize(
     const Cells& cells,
     Detectors& detector_handles,
     Targets& target_handles,
@@ -474,7 +472,7 @@ void fvm_multicell<TargetPolicy>::initialize(
     // initalize matrix
     matrix_ = matrix_type(group_parent_index, cell_comp_bounds);
 
-    matrix_builder_ = matrix_builder(
+    matrix_assembler_ = matrix_assembler(
         matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),
         cv_areas_, face_alpha_, voltage_, current_, cv_capacitance_);
 
@@ -490,7 +488,8 @@ void fvm_multicell<TargetPolicy>::initialize(
         }
 
         mechanisms_.push_back(
-            mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
+            //mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
+            backend::make_mechanism(mech.first, voltage_, current_, mech_comp_indices)
         );
         // save the indices for easy lookup later in initialization
         mech_index_map[mech.first] = mech_comp_indices;
@@ -526,7 +525,8 @@ void fvm_multicell<TargetPolicy>::initialize(
         target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
         targets_count += n_indices;
 
-        auto mech = mechanism_catalogue::make(
+        //auto mech = mechanism_catalogue::make(
+        auto mech = backend::make_mechanism(
             mech_name, voltage_, current_, comp_indices);
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
@@ -588,8 +588,8 @@ void fvm_multicell<TargetPolicy>::initialize(
     reset();
 }
 
-template <typename TargetPolicy>
-void fvm_multicell<TargetPolicy>::reset() {
+template <typename Backend>
+void fvm_multicell<Backend>::reset() {
     memory::fill(voltage_, resting_potential_);
     t_ = 0.;
     for (auto& m : mechanisms_) {
@@ -600,8 +600,8 @@ void fvm_multicell<TargetPolicy>::reset() {
     }
 }
 
-template <typename TargetPolicy>
-void fvm_multicell<TargetPolicy>::advance(double dt) {
+template <typename Backend>
+void fvm_multicell<Backend>::advance(double dt) {
     PE("current");
     memory::fill(current_, 0.);
 
@@ -634,7 +634,7 @@ void fvm_multicell<TargetPolicy>::advance(double dt) {
 
     // solve the linear system
     PE("matrix", "setup");
-    matrix_builder_.build(dt);
+    matrix_assembler_.build(dt);
     PL(); PE("solve");
     matrix_.solve();
     PL();
@@ -656,4 +656,3 @@ void fvm_multicell<TargetPolicy>::advance(double dt) {
 } // namespace fvm
 } // namespace mc
 } // namespace nest
-

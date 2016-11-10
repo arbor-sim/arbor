@@ -1,6 +1,6 @@
 #include <limits>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "../src/segment.hpp"
 

@@ -1,4 +1,4 @@
-#include "catalogue_gpu.hpp"
+#include "fvm_gpu.hpp"
 
 #include <mechanisms/gpu/hh.hpp>
 #include <mechanisms/gpu/pas.hpp>
@@ -9,8 +9,8 @@ namespace nest {
 namespace mc {
 namespace gpu {
 
-const std::map<std::string, catalogue::maker_type>
-catalogue::mech_map_ = {
+std::map<std::string, backend::maker_type>
+backend::mech_map_ = {
     { "pas",     maker<mechanisms::gpu::pas::mechanism_pas> },
     { "hh",      maker<mechanisms::gpu::hh::mechanism_hh> },
     { "expsyn",  maker<mechanisms::gpu::expsyn::mechanism_expsyn> },
@@ -20,4 +20,3 @@ catalogue::mech_map_ = {
 } // namespace multicore
 } // namespace mc
 } // namespace nest
-

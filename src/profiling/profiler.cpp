@@ -1,6 +1,8 @@
 #include <numeric>
 
-#include <cuda_profiler_api.h>
+#ifdef WITH_GPU
+    #include <cuda_profiler_api.h>
+#endif
 
 #include <common_types.hpp>
 #include <communication/global_policy.hpp>

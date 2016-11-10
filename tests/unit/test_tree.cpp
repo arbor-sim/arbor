@@ -4,7 +4,7 @@
 #include <numeric>
 #include <vector>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "../src/cell_tree.hpp"
 

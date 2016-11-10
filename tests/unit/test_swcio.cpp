@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "../src/cell.hpp"
 #include "../src/swcio.hpp"
