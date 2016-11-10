@@ -105,12 +105,12 @@ TYPED_TEST_P(mechanisms, update) {
         voltage_copy, current_copy, indexes_copy
     );
 
-    mech_update(dynamic_cast<mechanism_type*>(mech.get()), areas, 2);
-    mech_update(dynamic_cast<proto_mechanism_type*>(mech_proto.get()), areas, 2);
+    mech_update(dynamic_cast<mechanism_type*>(mech.get()), areas, 10);
+    mech_update(dynamic_cast<proto_mechanism_type*>(mech_proto.get()), areas, 10);
 
     auto citer = current_copy.begin();
     for (auto const& c: current) {
-        EXPECT_EQ(*citer++, c);
+        EXPECT_NEAR(*citer++, c, 1e-6);
     }
 }
 
