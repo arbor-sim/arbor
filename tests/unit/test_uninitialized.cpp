@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include "util/uninitialized.hpp"
+#include "common.hpp"
 
 using namespace nest::mc::util;
 
@@ -50,24 +51,8 @@ TEST(uninitialized,ctor) {
     EXPECT_EQ(1,count_ops::move_assign_count);
 }
 
-namespace {
-    struct nocopy {
-        nocopy() {}
-        nocopy(const nocopy& n) = delete;
-        nocopy(nocopy&& n) { ++move_ctor_count; }
-
-        nocopy& operator=(const nocopy& n) = delete;
-        nocopy& operator=(nocopy&& n) { ++move_assign_count; return *this; }
-
-        static int move_ctor_count,move_assign_count;
-        static void reset_counts() { move_ctor_count=move_assign_count=0; }
-    };
-
-    int nocopy::move_ctor_count=0;
-    int nocopy::move_assign_count=0;
-}
-
 TEST(uninitialized,ctor_nocopy) {
+    using nocopy = testing::nocopy<int>;
     nocopy::reset_counts();
 
     uninitialized<nocopy> ua;
@@ -82,24 +67,8 @@ TEST(uninitialized,ctor_nocopy) {
     EXPECT_EQ(1,nocopy::move_assign_count);
 }
 
-namespace {
-    struct nomove {
-        nomove() {}
-        nomove(const nomove& n) { ++copy_ctor_count; }
-        nomove(nomove&& n) = delete;
-
-        nomove& operator=(const nomove& n) { ++copy_assign_count; return *this; }
-        nomove& operator=(nomove&& n) = delete;
-
-        static int copy_ctor_count,copy_assign_count;
-        static void reset_counts() { copy_ctor_count=copy_assign_count=0; }
-    };
-
-    int nomove::copy_ctor_count=0;
-    int nomove::copy_assign_count=0;
-}
-
 TEST(uninitialized,ctor_nomove) {
+    using nomove = testing::nomove<int>;
     nomove::reset_counts();
 
     uninitialized<nomove> ua;

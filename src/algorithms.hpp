@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <util/debug.hpp>
+#include <util/meta.hpp>
 #include <util/range.hpp>
 
 /*
@@ -24,18 +25,18 @@ namespace mc {
 namespace algorithms {
 
 template <typename C>
-typename C::value_type
+typename util::sequence_traits<C>::value_type
 sum(C const& c)
 {
-    using value_type = typename C::value_type;
-    return std::accumulate(c.begin(), c.end(), value_type{0});
+    using value_type = typename util::sequence_traits<C>::value_type;
+    return std::accumulate(std::begin(c), std::end(c), value_type{0});
 }
 
 template <typename C>
-typename C::value_type
+typename util::sequence_traits<C>::value_type
 mean(C const& c)
 {
-    return sum(c)/c.size();
+    return sum(c)/util::size(c);
 }
 
 template <typename C>

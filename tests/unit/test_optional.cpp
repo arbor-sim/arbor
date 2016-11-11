@@ -4,6 +4,7 @@
 
 #include "../gtest.h"
 #include "util/optional.hpp"
+#include "common.hpp"
 
 using namespace nest::mc::util;
 
@@ -128,21 +129,9 @@ TEST(optionalm,assign_reference) {
     EXPECT_EQ(&br, &check_rval2);
 }
 
-struct nomove {
-    int value;
-
-    nomove(): value(0) {}
-    nomove(int i): value(i) {}
-    nomove(const nomove& n): value(n.value) {}
-    nomove(nomove&& n) = delete;
-
-    nomove& operator=(const nomove& n) { value=n.value; return *this; }
-
-    bool operator==(const nomove& them) const { return them.value==value; }
-    bool operator!=(const nomove& them) const { return !(*this==them); }
-};
-
 TEST(optionalm,ctor_nomove) {
+    using nomove = testing::nomove<int>;
+
     optional<nomove> a(nomove(3));
     EXPECT_EQ(nomove(3),a.get());
 
@@ -154,38 +143,25 @@ TEST(optionalm,ctor_nomove) {
     EXPECT_EQ(nomove(4),b.get());
 }
 
-struct nocopy {
-    int value;
-
-    nocopy(): value(0) {}
-    nocopy(int i): value(i) {}
-    nocopy(const nocopy& n) = delete;
-    nocopy(nocopy&& n) {
-        value=n.value;
-        n.value=0;
-    }
-
-    nocopy& operator=(const nocopy& n) = delete;
-    nocopy& operator=(nocopy&& n) {
-        value=n.value;
-        n.value=-1;
-        return *this;
-    }
-
-    bool operator==(const nocopy& them) const { return them.value==value; }
-    bool operator!=(const nocopy& them) const { return !(*this==them); }
-};
-
 TEST(optionalm,ctor_nocopy) {
+    using nocopy = testing::nocopy<int>;
+
     optional<nocopy> a(nocopy(5));
     EXPECT_EQ(nocopy(5),a.get());
 
+    nocopy::reset_counts();
     optional<nocopy> b(std::move(a));
     EXPECT_EQ(nocopy(5),b.get());
     EXPECT_EQ(0,a.get().value);
+    EXPECT_EQ(1, nocopy::move_ctor_count);
+    EXPECT_EQ(0, nocopy::move_assign_count);
 
+    nocopy::reset_counts();
     b=optional<nocopy>(nocopy(6));
     EXPECT_EQ(nocopy(6),b.get());
+    EXPECT_EQ(1, nocopy::move_ctor_count);
+    EXPECT_EQ(1, nocopy::move_assign_count);
+
 }
 
 static optional<double> odd_half(int n) {

@@ -34,14 +34,14 @@ range<const T*> singleton_view(const T& item) {
 // Non-owning views and subviews
 
 template <typename Seq>
-range<typename sequence_traits<Seq>::iterator_type, typename sequence_traits<Seq>::sentinel_type>
+range<typename sequence_traits<Seq>::iterator, typename sequence_traits<Seq>::sentinel>
 range_view(Seq& seq) {
     return make_range(std::begin(seq), std::end(seq));
 }
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator_type,
+    typename Iter = typename sequence_traits<Seq>::iterator,
     typename Size = typename sequence_traits<Seq>::size_type
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
@@ -120,6 +120,47 @@ sort_by(const Seq& seq, const Proj& proj) {
             return proj(a) < proj(b);
         });
 }
+
+// Stable sort in-place by projection `proj`
+
+template <typename Seq, typename Proj>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+stable_sort_by(Seq& seq, const Proj& proj) {
+    using value_type = typename sequence_traits<Seq>::value_type;
+    auto canon = canonical_view(seq);
+
+    std::stable_sort(std::begin(canon), std::end(canon),
+        [&proj](const value_type& a, const value_type& b) {
+            return proj(a) < proj(b);
+        });
+}
+
+template <typename Seq, typename Proj>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+stable_sort_by(const Seq& seq, const Proj& proj) {
+    using value_type = typename sequence_traits<Seq>::value_type;
+    auto canon = canonical_view(seq);
+
+    std::stable_sort(std::begin(canon), std::end(canon),
+        [&proj](const value_type& a, const value_type& b) {
+            return proj(a) < proj(b);
+        });
+}
+
+// Range-interface for `all_of`, `any_of`
+
+template <typename Seq, typename Predicate>
+bool all_of(const Seq& seq, const Predicate& pred) {
+    auto canon = canonical_view(seq);
+    return std::all_of(std::begin(canon), std::end(canon), pred);
+}
+
+template <typename Seq, typename Predicate>
+bool any_of(const Seq& seq, const Predicate& pred) {
+    auto canon = canonical_view(seq);
+    return std::any_of(std::begin(canon), std::end(canon), pred);
+}
+
 
 // Accumulate by projection `proj`
 

@@ -26,7 +26,10 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     friend class iterator_adaptor<transform_iterator<I, F>, I>;
 
     I inner_;
-    uninitialized<F> f_; // always in initialized state post-construction
+
+    // F may be a lambda type, and thus non-copy assignable. The
+    // use of `uninitalized` allows us to work around this limitation;
+    uninitialized<F> f_;
 
     // provides access to inner iterator for adaptor.
     const I& inner() const { return inner_; }

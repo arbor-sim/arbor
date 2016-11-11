@@ -368,17 +368,35 @@ void Parser::parse_state_block() {
         return;
     }
 
-    // there are no use cases for curly brace in a STATE block, so we don't have to count them
-    // we have to get the next token before entering the loop to handle the case of
-    // an empty block {}
+    // there are no use cases for curly brace in a STATE block, so we don't have
+    // to count them we have to get the next token before entering the loop to
+    // handle the case of an empty block {}
     get_token();
-    while(token_.type!=tok::rbrace) {
+    while(token_.type!=tok::rbrace && token_.type != tok::eof) {
+        int line = location_.line;
+        Id parm;
+
         if(token_.type != tok::identifier) {
-            error(pprintf("'%' is not a valid name for a state variable", token_.spelling));
+            error(pprintf("'%' is not a valid name for a state variable",
+                          token_.spelling));
             return;
         }
-        state_block.state_variables.push_back(token_.spelling);
+
+        parm.token = token_;
+        //state_block.state_variables.push_back(token_.spelling);
         get_token();
+
+        // get unit parameters
+        if (line == location_.line && token_.type == tok::lparen) {
+            parm.units = unit_description();
+            if (status_ == lexerStatus::error) {
+                error(pprintf("STATUS block unexpected symbol '%s'",
+                              token_.spelling));
+                return;
+            }
+        }
+
+        state_block.state_variables.push_back(parm);
     }
 
     // add this state block information to the module
@@ -505,7 +523,7 @@ void Parser::parse_parameter_block() {
 parm_exit:
     // only write error message if one hasn't already been logged by the lexer
     if(!success && status_==lexerStatus::happy) {
-        error(pprintf("PARAMETER block unexpected symbol '%'", token_.spelling));
+        error(pprintf("PARAMETER block unexpected symbol '%s'", token_.spelling));
     }
     return;
 }

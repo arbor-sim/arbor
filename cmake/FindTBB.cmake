@@ -158,6 +158,7 @@ if(NOT TBB_FOUND)
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^i.86$")
       set(TBB_LIB_PATH_SUFFIX "lib/ia32/gcc4.4")
     endif()
+    list(APPEND TBB_LIB_PATH_SUFFIX "lib")
   endif()
 
   ##################################
@@ -179,12 +180,12 @@ if(NOT TBB_FOUND)
     find_library(TBB_${_comp}_LIBRARY_RELEASE ${_comp}
         HINTS ${TBB_LIBRARY} ${TBB_SEARCH_DIR}
         PATHS ${TBB_DEFAULT_SEARCH_DIR} ENV LIBRARY_PATH
-        PATH_SUFFIXES "${TBB_LIB_PATH_SUFFIX}")
+        PATH_SUFFIXES ${TBB_LIB_PATH_SUFFIX})
 
     find_library(TBB_${_comp}_LIBRARY_DEBUG ${_comp}_debug
         HINTS ${TBB_LIBRARY} ${TBB_SEARCH_DIR}
         PATHS ${TBB_DEFAULT_SEARCH_DIR} ENV LIBRARY_PATH
-        PATH_SUFFIXES "${TBB_LIB_PATH_SUFFIX}")
+        PATH_SUFFIXES ${TBB_LIB_PATH_SUFFIX})
 
 
     # Set the library to be used for the component

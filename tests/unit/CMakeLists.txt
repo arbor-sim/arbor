@@ -15,6 +15,7 @@ set(TEST_SOURCES
     test_counter.cpp
     test_either.cpp
     test_event_queue.cpp
+    test_filter.cpp
     test_fvm_multi.cpp
     test_cell_group.cpp
     test_lexcmp.cpp
