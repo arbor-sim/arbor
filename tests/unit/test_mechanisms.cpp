@@ -56,11 +56,11 @@ void mech_update(T* mech, const typename T::vector_type& areas, int num_iters) {
     }
 }
 
-template<typename S, typename T, bool alias=true>
+template<typename S, typename T, int freq=1>
 struct mechanism_info {
     using mechanism_type = S;
     using proto_mechanism_type = T;
-    static constexpr bool alias = alias;
+    static constexpr int index_freq = freq;
 };
 
 template<typename T>
@@ -80,7 +80,7 @@ TYPED_TEST_P(mechanisms, update) {
     EXPECT_TRUE((std::is_same<typename proto_mechanism_type::vector_type,
                               typename mechanism_type::vector_type>::value));
 
-    auto num_syn = 8;
+    auto num_syn = 32;
 
     // Indexes are aliased
     typename mechanism_type::index_type indexes(num_syn);
@@ -90,7 +90,7 @@ TYPED_TEST_P(mechanisms, update) {
 
     // Initialise indexes
     for (auto i = 0; i < num_syn; ++i) {
-        indexes[i] = TypeParam::alias ? 1 : i;
+        indexes[i] = i / TypeParam::index_freq;
     }
 
     auto mech = nest::mc::mechanisms::make_mechanism<mechanism_type>(
@@ -119,16 +119,17 @@ REGISTER_TYPED_TEST_CASE_P(mechanisms, update);
 using mechanism_types = ::testing::Types<
     mechanism_info<
         nest::mc::mechanisms::pas::mechanism_pas<double, int>,
-        nest::mc::mechanisms::pas_test::mechanism_pas<double, int>,
-        false
+        nest::mc::mechanisms::pas_test::mechanism_pas<double, int>
     >,
     mechanism_info<
         nest::mc::mechanisms::expsyn::mechanism_expsyn<double, int>,
-        nest::mc::mechanisms::expsyn_test::mechanism_expsyn<double, int>
+        nest::mc::mechanisms::expsyn_test::mechanism_expsyn<double, int>,
+        2
     >,
     mechanism_info<
         nest::mc::mechanisms::exp2syn::mechanism_exp2syn<double, int>,
-        nest::mc::mechanisms::exp2syn_test::mechanism_exp2syn<double, int>
+        nest::mc::mechanisms::exp2syn_test::mechanism_exp2syn<double, int>,
+        2
     >
 >;
 
