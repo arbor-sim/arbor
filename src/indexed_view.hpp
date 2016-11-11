@@ -5,13 +5,13 @@
 namespace nest {
 namespace mc {
 
-template <typename MemoryTraits>
+template <typename Backend>
 struct indexed_view {
-    using memory_traits = MemoryTraits;
-    using value_type  = typename memory_traits::value_type;
-    using size_type   = typename memory_traits::size_type;
-    using view        = typename memory_traits::view;
-    using const_iview = typename memory_traits::const_iview;
+    using backend = Backend;
+    using value_type  = typename backend::value_type;
+    using size_type   = typename backend::size_type;
+    using view        = typename backend::view;
+    using const_iview = typename backend::const_iview;
     using reference   = typename view::reference;
     using const_reference = typename view::const_reference;
 
