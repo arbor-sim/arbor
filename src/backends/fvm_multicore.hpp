@@ -96,7 +96,7 @@ struct backend {
             }
         }
 
-        void build(value_type dt) {
+        void assemble(value_type dt) {
             auto n = d.size();
             value_type factor_lhs = 1e5*dt;
             value_type factor_rhs = 1e1*dt; //  units: 10·ms/(F/m^2)·(mA/cm^2) ≡ mV

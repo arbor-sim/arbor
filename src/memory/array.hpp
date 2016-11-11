@@ -62,14 +62,11 @@ namespace impl {
     template <typename T>
     struct is_array :
         std::conditional<
-            impl::is_array_by_value  <typename std::decay<T>::type> ::value ||
-            impl::is_array_view<typename std::decay<T>::type> ::value,
+            impl::is_array_by_value<typename std::decay<T>::type>::value ||
+            impl::is_array_view    <typename std::decay<T>::type>::value,
             std::true_type, std::false_type
         >::type
     {};
-
-    // template <typename T, typename Coord>
-    // struct is_array<array<T, Coord> > : std::true_type {};
 
     template <typename T>
     using is_array_t = typename is_array<T>::type;
@@ -142,7 +139,7 @@ public:
     array(const array& other) :
         base(coordinator_type().allocate(other.size()))
     {
-        static_assert(impl::is_array_t<array>::value, "oooooooooooo.............");
+        static_assert(impl::is_array_t<array>::value, "");
 #ifdef VERBOSE
         std::cerr << util::green("array(array&)")
                   << " " << util::type_printer<array>::print()

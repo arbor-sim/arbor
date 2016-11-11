@@ -63,6 +63,7 @@ if(WITH_CUDA)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_GPU)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
+    #set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
 
     add_definitions(-DWITH_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})

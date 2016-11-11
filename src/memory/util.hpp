@@ -4,6 +4,8 @@
 #include <sstream>
 #include <vector>
 
+#include <util/debug.hpp>
+
 #define LOG_ERROR(msg) nest::mc::util::backtrace().print(); util::log_error(__FILE__, __LINE__, msg)
 
 namespace nest {

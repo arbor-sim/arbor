@@ -7,7 +7,6 @@
 
 #include "definitions.hpp"
 #include "util.hpp"
-#include "range.hpp"
 #include "range_limits.hpp"
 #include <util/debug.hpp>
 
@@ -209,25 +208,6 @@ public:
         return view_type(pointer_+left, size_-left);
     }
 
-    // access using a Range
-    view_type operator()(Range range) {
-        size_type left = range.left();
-        size_type right = range.right();
-        #ifndef NDEBUG
-        EXPECTS(right<=size_ && left<=right);
-        #endif
-        return view_type(pointer_+left, right-left);
-    }
-
-    const_view_type operator()(Range range) const {
-        size_type left = range.left();
-        size_type right = range.right();
-        #ifndef NDEBUG
-        EXPECTS(right<=size_ && left<=right);
-        #endif
-        return view_type(pointer_+left, right-left);
-    }
-
     template <
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
@@ -303,10 +283,6 @@ public:
     >
     bool overlaps(Other&& other) const {
         return( !((this->begin()>=other.end()) || (other.begin()>=this->end())) );
-    }
-
-    memory::Range range() const {
-        return memory::Range(0, size());
     }
 
     static constexpr auto
@@ -423,16 +399,6 @@ public:
         return const_view_type(pointer_+left, size_-left);
     }
 
-    // access using a Range
-    const_view_type operator()(Range range) const {
-        size_type left = range.left();
-        size_type right = range.right();
-#ifndef NDEBUG
-        EXPECTS(right<=size_ && left<=right);
-#endif
-        return const_view_type(pointer_+left, right-left);
-    }
-
     template <
         typename Other,
         typename = typename std::enable_if< impl::is_array<Other>::value >::type
@@ -489,10 +455,6 @@ public:
     >
     bool overlaps(Other&& other) const {
         return( !((this->begin()>=other.end()) || (other.begin()>=this->end())) );
-    }
-
-    memory::Range range() const {
-        return memory::Range(0, size());
     }
 
     static constexpr auto

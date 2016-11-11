@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <exception>
 
+#include <util/debug.hpp>
+
 #include "allocator.hpp"
 #include "array.hpp"
 #include "definitions.hpp"
@@ -205,8 +207,8 @@ public:
                   << util::print_pointer(from.data()) << " -> "
                   << util::print_pointer(to.data()) << "\n";
         #endif
-        assert(from.size()==to.size());
-        assert(!from.overlaps(to));
+        EXPECTS(from.size()==to.size());
+        EXPECTS(!from.overlaps(to));
 
         gpu::memcpy_d2d(from.data(), to.data(), from.size());
     }
@@ -223,7 +225,7 @@ public:
                   << util::print_pointer(from.data()) << " -> "
                   << util::print_pointer(to.data()) << "\n";
         #endif
-        assert(from.size()==to.size());
+        EXPECTS(from.size()==to.size());
 
         gpu::memcpy_d2h(from.data(), to.data(), from.size());
     }
@@ -240,7 +242,7 @@ public:
                   << util::print_pointer(from.data()) << " -> "
                   << util::print_pointer(to.data()) << "\n";
         #endif
-        assert(from.size()==to.size());
+        EXPECTS(from.size()==to.size());
 
         gpu::memcpy_h2d(from.data(), to.data(), from.size());
     }
@@ -256,7 +258,7 @@ public:
         std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::copy") << "(size=" << from.size() << ") " << from.data() << " -> " << to.data() << "\n";
         #endif
-        assert(from.size()==to.size());
+        EXPECTS(from.size()==to.size());
 
         #ifdef VERBOSE
         using oType = array_view< value_type, host_coordinator< value_type, pinned_allocator< value_type, alignment>>>;

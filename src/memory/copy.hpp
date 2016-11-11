@@ -2,6 +2,8 @@
 
 #include <type_traits>
 
+#include <util/debug.hpp>
+
 #include "wrappers.hpp"
 
 namespace nest {
@@ -11,7 +13,7 @@ namespace memory {
 template <typename LHS, typename RHS>
 void copy(LHS&& from, RHS&& to) {
 #ifndef NDEBUG
-    assert(from.size() == to.size());
+    EXPECTS(from.size() == to.size());
 #endif
 #ifdef VERBOSE
     std::cerr

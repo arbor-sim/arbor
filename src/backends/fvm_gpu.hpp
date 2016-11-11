@@ -68,7 +68,7 @@ struct backend {
     using host_array  = typename memory::host_vector<value_type>;
     using host_iarray = typename memory::host_vector<size_type>;
 
-    using host_view   = typename host_iarray::view_type;
+    using host_view   = typename host_array::view_type;
     using host_iview  = typename host_iarray::const_view_type;
 
     static std::string name() {
@@ -107,7 +107,7 @@ struct backend {
                 voltage.data(), current.data(), cv_capacitance.data(), size_type(n)};
         }
 
-        void build(value_type dt) {
+        void assemble(value_type dt) {
             // determine the grid dimensions for the kernel
             auto const n = params.n;
             auto const block_dim = 96;
@@ -157,7 +157,8 @@ struct backend {
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return mech_map_.find(name)->second(vec_v, vec_i, iarray(node_indices));
+        return mech_map_.find(name)->
+            second(vec_v, vec_i, memory::make_const_view(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) { return mech_map_.count(name)>0; }

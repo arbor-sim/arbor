@@ -6,7 +6,8 @@
 
 #include "../gtest.h"
 
-#include "../src/cell_tree.hpp"
+#include <cell_tree.hpp>
+#include <util/debug.hpp>
 
 // Path to data directory can be overriden at compile time.
 #if !defined(DATADIR)
@@ -14,7 +15,6 @@
 #endif
 
 using json = nlohmann::json;
-using range = nest::mc::memory::Range;
 
 using namespace nest::mc;
 using int_type = cell_tree::int_type;
@@ -312,7 +312,7 @@ TEST(cell_tree, json_load)
     path += "/cells_small.json";
     std::ifstream(path) >> cell_data;
 
-    for(auto c : range(0,cell_data.size())) {
+    for(auto c : util::make_span(0,cell_data.size())) {
         std::vector<int_type> parent_index = cell_data[c]["parent_index"];
         cell_tree tree(parent_index);
         //tree.to_graphviz("cell" + std::to_string(c) + ".dot");

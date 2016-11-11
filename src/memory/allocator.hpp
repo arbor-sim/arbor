@@ -157,9 +157,7 @@ namespace impl {
                     = cudaHostRegister(ptr, size, cudaHostRegisterPortable);
 
                 if(status != cudaSuccess) {
-                    std::cerr << util::red("error") << " memory:: unable to "
-                              << "register host memory with with cudaHostRegister"
-                              << std::endl;
+                    LOG_ERROR("memory:: unable to register host memory with with cudaHostRegister");
                     free(ptr);
                     return nullptr;
                 }
@@ -189,10 +187,8 @@ namespace impl {
                 void* ptr = nullptr;
                 auto status = cudaMalloc(&ptr, size);
                 if(status != cudaSuccess) {
-                    std::cerr << util::red("error")
-                              << " CUDA: unable to allocate "
-                              << size << " bytes" << std::endl;;
-                    exit(-1);
+                    LOG_ERROR("CUDA: unable to allocate "+std::to_string(size)+" bytes");
+                    ptr = nullptr;
                 }
 
                 return ptr;
@@ -202,10 +198,7 @@ namespace impl {
                 if(ptr) {
                     auto status = cudaFree(ptr);
                     if(status != cudaSuccess) {
-                        std::cerr << util::red("error")
-                                  << " unable to free CUDA pointer "
-                                  << ptr << std::endl;;
-                        exit(-1);
+                        LOG_ERROR("CUDA: unable to free memory");
                     }
                 }
             }
@@ -293,7 +286,7 @@ namespace util {
         }
     };
 
-    #ifdef WITH_CUDA
+#ifdef WITH_CUDA
     template <size_t Alignment>
     struct type_printer<impl::cuda::pinned_policy<Alignment>>{
         static std::string print() {

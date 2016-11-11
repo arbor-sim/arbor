@@ -47,24 +47,24 @@ namespace util {
 namespace fvm {
 
 template<class Backend>
-class fvm_multicell : public Backend {
+class fvm_multicell {
 public:
     using backend = Backend;
 
     /// the real number type
-    using typename backend::value_type;
+    using value_type = typename backend::value_type;
 
     /// the integral index type
-    using typename backend::size_type;
+    using size_type = typename backend::size_type;
 
     /// the container used for values
-    using typename backend::array;
-    using typename backend::host_array;
+    using array = typename backend::array;
+    using host_array = typename backend::host_array;
 
     /// the container used for indexes
-    using typename backend::iarray;
+    using iarray = typename backend::iarray;
 
-    using typename backend::matrix_assembler;
+    using matrix_assembler = typename backend::matrix_assembler;
 
     /// API for cell_group (see above):
     using detector_handle = size_type;
@@ -108,18 +108,18 @@ public:
     using matrix_type = matrix<backend>;
 
     /// mechanism type
-    using typename backend::mechanism;
+    using mechanism = typename backend::mechanism;
 
     /// ion species storage
-    using typename backend::ion;
+    using ion = typename backend::ion;
 
     /// view into index container
-    using typename backend::iview;
-    using typename backend::const_iview;
+    using iview = typename backend::iview;
+    using const_iview = typename backend::const_iview;
 
     /// view into value container
-    using typename backend::view;
-    using typename backend::const_view;
+    using view = typename backend::view;
+    using const_view = typename backend::const_view;
 
     /// which requires const_view in the vector library
     const matrix_type& jacobian() { return matrix_; }
@@ -226,9 +226,6 @@ private:
     stimulus_store_type stimuli_;
 
     std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
-
-    // mechanism factory
-    //using mechanism_catalogue = typename backend::mechanism_catalogue;
 
     // perform area and capacitance calculation on initialization
     void compute_cv_area_unnormalized_capacitance(
@@ -477,8 +474,7 @@ void fvm_multicell<Backend>::initialize(
         cv_areas_, face_alpha_, voltage_, current_, cv_capacitance_);
 
     // create density mechanisms
-    std::vector<size_type> mech_comp_indices;
-    mech_comp_indices.reserve(ncomp);
+    std::vector<size_type> mech_comp_indices(ncomp);
 
     std::map<std::string, std::vector<size_type>> mech_index_map;
     for (auto& mech: mech_map) {
@@ -488,9 +484,9 @@ void fvm_multicell<Backend>::initialize(
         }
 
         mechanisms_.push_back(
-            //mechanism_catalogue::make(mech.first, voltage_, current_, mech_comp_indices)
             backend::make_mechanism(mech.first, voltage_, current_, mech_comp_indices)
         );
+
         // save the indices for easy lookup later in initialization
         mech_index_map[mech.first] = mech_comp_indices;
     }
@@ -634,7 +630,7 @@ void fvm_multicell<Backend>::advance(double dt) {
 
     // solve the linear system
     PE("matrix", "setup");
-    matrix_assembler_.build(dt);
+    matrix_assembler_.assemble(dt);
     PL(); PE("solve");
     matrix_.solve();
     PL();

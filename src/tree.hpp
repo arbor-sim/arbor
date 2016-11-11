@@ -5,6 +5,7 @@
 #include <numeric>
 #include <vector>
 #include <memory/memory.hpp>
+#include <util/span.hpp>
 
 #include <algorithms.hpp>
 
@@ -13,8 +14,6 @@ namespace mc {
 
 template <typename Int, typename Size = std::size_t>
 class tree {
-    using range = memory::Range;
-
 public:
     using int_type = Int;
     using size_type = Size;
@@ -292,7 +291,7 @@ private:
 template <typename IntT, typename SizeT, typename C>
 std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
 {
-    using range = memory::Range;
+    using util::make_span;
     using int_type = typename tree<IntT, SizeT>::int_type;
     constexpr auto no_parent = tree<IntT, SizeT>::no_parent;
 
@@ -305,7 +304,7 @@ std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
     auto num_compartments = index.back();
     std::vector<int_type> parent_index(num_compartments);
     int_type pos = 0;
-    for (int_type i : range(0, t.num_nodes())) {
+    for (int_type i : make_span(0, t.num_nodes())) {
         // get the parent of this segment
         // taking care for the case where the root node has -1 as its parent
         auto parent = t.parent(i);

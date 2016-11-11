@@ -10,9 +10,9 @@
 #include <vector>
 
 #include <memory/memory.hpp>
-
-#include "common_types.hpp"
-#include "tree.hpp"
+#include <util/span.hpp>
+#include <common_types.hpp>
+#include <tree.hpp>
 
 namespace nest {
 namespace mc {
@@ -29,8 +29,6 @@ namespace mc {
 /// sets it appears that the soma was always index 0, however we need more
 /// flexibility in choosing the root.
 class cell_tree {
-    using range = memory::Range;
-
 public:
     using int_type        = cell_lid_type;
     using size_type       = cell_local_size_type;
@@ -154,7 +152,7 @@ public:
         std::ofstream fid(fname);
 
         fid << "graph cell {" << '\n';
-        for(auto b : range(0,num_segments())) {
+        for(auto b : util::make_span(0,num_segments())) {
             if(children(b).size()) {
                 for(auto c : children(b)) {
                     fid << "  " << b << " -- " << c << ";" << '\n';

@@ -4,6 +4,8 @@
 #include <memory>
 #include <string>
 
+#include <util/debug.hpp>
+
 #include "definitions.hpp"
 #include "array.hpp"
 #include "allocator.hpp"
@@ -107,8 +109,8 @@ public:
         const_array_view<value_type, host_coordinator<value_type, Allocator1>> from,
         array_view<value_type, host_coordinator<value_type, Allocator2>> to)
     {
-        assert(from.size()==to.size());
-        assert(!from.overlaps(to));
+        EXPECTS(from.size()==to.size());
+        EXPECTS(!from.overlaps(to));
 
         #ifdef VERBOSE
         using c1 = host_coordinator<value_type, Allocator1>;
@@ -129,7 +131,7 @@ public:
         const_array_view<value_type, device_coordinator<value_type, Alloc>> from,
         view_type to)
     {
-        assert(from.size()==to.size());
+        EXPECTS(from.size()==to.size());
 
         #ifdef VERBOSE
         std::cerr << util::type_printer<host_coordinator>::print()
@@ -148,7 +150,7 @@ public:
         const_view_type from,
         array_view<value_type, device_coordinator<value_type, Alloc>> to)
     {
-        assert(from.size()==to.size());
+        EXPECTS(from.size()==to.size());
 
         #ifdef VERBOSE
         std::cerr << util::type_printer<host_coordinator>::print()
