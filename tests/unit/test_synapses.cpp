@@ -1,8 +1,12 @@
 #include "gtest.h"
 #include "../test_util.hpp"
 
+#include <algorithm>
+#include <type_traits>
 #include <cell.hpp>
 #include <fvm_cell.hpp>
+
+// modcc generated mechanisms
 #include <mechanisms/expsyn.hpp>
 #include <mechanisms/exp2syn.hpp>
 
@@ -59,6 +63,8 @@ TEST(synapses, expsyn_basic_state)
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();
+    EXPECT_EQ(num_syn, n);
+
     using view = synapse_type::view_type;
 
     // parameters initialized to default values
@@ -93,6 +99,7 @@ TEST(synapses, expsyn_basic_state)
     ptr->net_receive(3, 1.04);
     EXPECT_EQ(ptr->g[1], 3.14);
     EXPECT_EQ(ptr->g[3], 1.04);
+
 }
 
 TEST(synapses, exp2syn_basic_state)
@@ -148,4 +155,3 @@ TEST(synapses, exp2syn_basic_state)
     EXPECT_NEAR(ptr->A[1], ptr->factor[1]*3.14, 1e-6);
     EXPECT_NEAR(ptr->B[3], ptr->factor[3]*1.04, 1e-6);
 }
-
