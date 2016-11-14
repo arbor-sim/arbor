@@ -18,19 +18,14 @@ else()
     add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 endif()
 
-target_link_libraries(miniapp.exe LINK_PUBLIC nestmc)
+set(aaa nestmc)
 
-if(WITH_TBB)
-    target_link_libraries(miniapp.exe LINK_PUBLIC ${TBB_LIBRARIES})
-endif()
+target_link_libraries(miniapp.exe LINK_PUBLIC nestmc)
+target_link_libraries(miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
 if(WITH_MPI)
     target_link_libraries(miniapp.exe LINK_PUBLIC ${MPI_C_LIBRARIES})
     set_property(TARGET miniapp.exe APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-endif()
-
-if(WITH_UNWIND)
-    target_link_libraries(miniapp.exe LINK_PUBLIC ${UNWIND_LIBRARIES})
 endif()
 
 set_target_properties(miniapp.exe

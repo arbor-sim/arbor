@@ -1,11 +1,6 @@
 #pragma once
 
-#ifdef WITH_UNWIND
-#define UNW_LOCAL_ONLY
-#include <libunwind.h>
-#endif
-
-#include <cxxabi.h>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -14,28 +9,31 @@ namespace mc {
 namespace util {
 
 #ifdef WITH_UNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
 
-// helper function that demangles a function name
-// if s is not a valid mangled C++ name
-//   return s
-// else
-//   return demangled name
+/// Helper function that demangles a function name.
+///   if s is not a valid mangled C++ name : return s
+///   else: return demangled name
 std::string demangle(std::string s);
 
-///  Represents a source code location as a function name and address
+/// Represents a source code location as a function name and address
 struct source_location {
     std::string name;
     unw_word_t position;
 };
 
-///  Builds a stack trace when constructed.
-///  The trace can then be printed, or accessed via the stack() member function.
+/// Builds a stack trace when constructed.
+/// The trace can then be printed, or accessed via the stack() member function.
 class backtrace {
 public:
     /// the default constructor will build and storethe strack trace.
     backtrace();
 
-    //
+    /// Creates a new file named backtrace_# where # is a number chosen
+    /// The back trace is printed to the file, and a message printed to
+    /// std::cerr with the backtrace file name and instructions for how
+    /// to post-process it.
     void print(bool stop_at_main=true) const;
     const std::vector<source_location>& frames() const { return frames_; }
 
@@ -44,8 +42,9 @@ private:
 };
 
 #else
+
 //
-//  provide empty stack trace proxy in case libunwind is not supported
+//  provide empty stack trace proxy when libunwind is not used
 //
 struct source_location {
     std::string name;
@@ -54,7 +53,9 @@ struct source_location {
 
 class backtrace {
 public:
+    // does nothing
     void print(bool stop_at_main=true) const { }
+
     std::vector<source_location> frames() const {
         return {};
     }

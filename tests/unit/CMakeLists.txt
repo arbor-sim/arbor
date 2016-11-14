@@ -59,21 +59,9 @@ if(WITH_CUDA)
     target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
 endif()
 
-
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
-
-    if(WITH_TBB)
-        target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
-    endif()
-
-    if(WITH_CUDA)
-        target_link_libraries(${target} LINK_PUBLIC ${CUDA_LIBRARIES})
-    endif()
-
-    if(WITH_UNWIND)
-        target_link_libraries(${target} LINK_PUBLIC ${UNWIND_LIBRARIES})
-    endif()
+    target_link_libraries(${target} LINK_PUBLIC gtest nestmc)
+    target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})

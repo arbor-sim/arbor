@@ -1,6 +1,9 @@
 #pragma once
 
+#include <type_traits>
 #include <vector>
+
+#include <memory/memory.hpp>
 
 #ifdef WITH_CUDA
 #include <cuda.h>
@@ -116,8 +119,8 @@ namespace util {
 
 //
 // Helpers for getting a target-specific view of data.
-// these return either const_view or an rvalue (i.e. the original memory range
-// can't be modified via a type generated in this way)
+// these return either const_view or an rvalue, so that the original memory
+// range can't be modified via the returned type.
 //
 
 // host

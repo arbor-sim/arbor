@@ -1,7 +1,9 @@
 // only compile the contents of this file if linking against libunwind
 #ifdef WITH_UNWIND
 
+#define UNW_LOCAL_ONLY
 #include <libunwind.h>
+#include <cxxabi.h>
 
 #include <memory/util.hpp>
 #include <util/file.hpp>
@@ -42,7 +44,7 @@ backtrace::backtrace() {
         if (unw_get_proc_name(&cursor, sym, sizeof(sym), &offset) == 0) {
             frames_.push_back({std::string(sym), pc});
         } else {
-            frames_.push_back({std::string("unkown symbol"), pc});
+            frames_.push_back({std::string("???"), pc});
         }
     }
 }
@@ -51,8 +53,8 @@ std::string demangle(std::string s) {
     int status;
     char* demangled = abi::__cxa_demangle(s.c_str(), nullptr, nullptr, &status);
 
-    // __cxa_demangle only returns a valid string if the identifier in s was
-    // a mangled c++ symbol (i.e. returns an empty string for normal c symbols)
+    // the string returned by __cxa_demangle is on valid if it was passed a valid
+    // mangled c++ symbol (i.e. returns an empty string for normal c symbols)
     if (status==0) {
         s = demangled;
     }

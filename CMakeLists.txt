@@ -31,6 +31,9 @@ if(WITH_TRACE)
     add_definitions("-DWITH_TRACE")
 endif()
 
+# list of libraries to be linked against targets
+set(EXTERNAL_LIBRARIES "")
+
 #threading model selection
 set(THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp")
 if(THREADING_MODEL MATCHES "tbb")
@@ -38,6 +41,7 @@ if(THREADING_MODEL MATCHES "tbb")
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DWITH_TBB)
+    set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${TBB_LIBRARIES})
 
 elseif(THREADING_MODEL MATCHES "omp")
     # OpenMP support
@@ -47,17 +51,18 @@ elseif(THREADING_MODEL MATCHES "omp")
 
 elseif(THREADING_MODEL MATCHES "serial")
     #setup previously done
-   
+
 else()
     message( FATAL_ERROR "-- Threading model '${THREADING_MODEL}' not supported, use one of serial/tbb/omp")
+
 endif()
 
 # libunwind for pretty printing stack traces
-set(WITH_UNWIND OFF CACHE BOOL "use libunwind for debug messages" )
-if(WITH_UNWIND)
-    find_package(Unwind REQUIRED)
+find_package(Unwind)
+if(UNWIND_FOUND)
     add_definitions(-DWITH_UNWIND)
     include_directories(${UNWIND_INCLUDE_DIR})
+    set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${UNWIND_LIBRARIES})
 endif()
 
 # CUDA support
@@ -80,6 +85,7 @@ if(WITH_CUDA)
 
     add_definitions(-DWITH_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
+    set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${CUDA_LIBRARIES})
 endif()
 
 # MPI support
@@ -93,14 +99,11 @@ if(WITH_MPI)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
 endif()
 
-
 # Internal profiler support
 set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
 if(WITH_PROFILING)
     add_definitions(-DWITH_PROFILING)
 endif()
-
-
 
 # Cray systems
 set(SYSTEM_CRAY OFF CACHE BOOL "add flags for compilation on Cray systems")

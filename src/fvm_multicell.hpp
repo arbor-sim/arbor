@@ -15,6 +15,7 @@
 #include <ion.hpp>
 #include <math.hpp>
 #include <matrix.hpp>
+#include <memory/memory.hpp>
 #include <profiling/profiler.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
@@ -23,8 +24,6 @@
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
-
-#include <memory/memory.hpp>
 
 namespace nest {
 namespace mc {
@@ -63,7 +62,6 @@ public:
 
     using matrix_assembler = typename backend::matrix_assembler;
 
-    /// API for cell_group (see above):
     using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
     using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
@@ -97,6 +95,7 @@ public:
         return (this->*h.first)[h.second];
     }
 
+    /// integrate all cell state forward in time
     void advance(double dt);
 
     /// Following types and methods are public only for testing:
@@ -401,6 +400,15 @@ void fvm_multicell<Backend>::initialize(
     std::vector<value_type> tmp_cv_areas(ncomp);
     std::vector<value_type> tmp_cv_capacitance(ncomp);
 
+    // Iterate over the input cells and build the indexes etc that descrbe the
+    // fused cell group. On completion:
+    //  - group_paranet_index contains the full parent index for the fused cells.
+    //  - mech_map and syn_mech_map provide a map from mechanism names to an
+    //    iterable container of compartment ranges, which are used later to
+    //    generate the node index for each mechanism kind.
+    //  - the tmp_* vectors contain compartment-specific information for each
+    //    compartment in the fused cell group (areas, capacitance, etc).
+    //  - each probe, stimulus and detector is attached to its compartment.
     for (auto i: make_span(0, ncell)) {
         const auto& c = cells[i];
         auto comp_ival = cell_comp_part[i];
@@ -488,6 +496,11 @@ void fvm_multicell<Backend>::initialize(
         }
     }
 
+    // confirm user-supplied containers for detectors and probes were
+    // appropriately sized.
+    EXPECTS(detectors_size==detectors_count);
+    EXPECTS(probes_size==probes_count);
+
     // normalize capacitance across cell
     for (auto i: util::make_span(0, ncomp)) {
         tmp_cv_capacitance[i] /= tmp_cv_areas[i];
@@ -505,9 +518,9 @@ void fvm_multicell<Backend>::initialize(
         matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),
         cv_areas_, face_alpha_, voltage_, current_, cv_capacitance_);
 
-    // create density mechanisms
+    // For each density mechanism build the full node index, i.e the list of
+    // compartments with that mechanism, then build the mechanism instance.
     std::vector<size_type> mech_comp_indices(ncomp);
-
     std::map<std::string, std::vector<size_type>> mech_index_map;
     for (auto& mech: mech_map) {
         mech_comp_indices.clear();
@@ -523,7 +536,7 @@ void fvm_multicell<Backend>::initialize(
         mech_index_map[mech.first] = mech_comp_indices;
     }
 
-    // create point (synapse) mechanisms
+    // Create point (synapse) mechanisms
     for (const auto& syni: syn_mech_indices) {
         const auto& mech_name = syni.first;
         size_type mech_index = mechanisms_.size();
@@ -553,17 +566,16 @@ void fvm_multicell<Backend>::initialize(
         target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
         targets_count += n_indices;
 
-        //auto mech = mechanism_catalogue::make(
-        auto mech = backend::make_mechanism(
-            mech_name, voltage_, current_, comp_indices);
+        auto mech = backend::make_mechanism(mech_name, voltage_, current_, comp_indices);
         mech->set_areas(cv_areas_);
         mechanisms_.push_back(std::move(mech));
+
+        // save the compartment indexes for this synapse type
+        mech_index_map[mech_name] = comp_indices;
     }
 
-    // confirm write-parameters were appropriately sized
-    EXPECTS(detectors_size==detectors_count);
+    // confirm user-supplied containers for targets are appropriately sized
     EXPECTS(targets_size==targets_count);
-    EXPECTS(probes_size==probes_count);
 
     // build the ion species
     for (auto ion : mechanisms::ion_kinds()) {
@@ -641,19 +653,16 @@ void fvm_multicell<Backend>::advance(double dt) {
         PL();
     }
 
+    // TODO KERNEL: the stimulus might have to become a "proper" mechanism
+    // so that the update kernel is fully implemented on GPU.
+
     // add current contributions from stimuli
     for (auto& stim : stimuli_) {
         auto ie = stim.second.amplitude(t_); // [nA]
         auto loc = stim.first;
 
-        // TODO KERNEL
-        // is a kernel actually needed?
-        // for now I only make the update if the injected current in nonzero to
-        // avoid a redundant host->device copy on the gpu
-        //
         // note: current_ in [mA/cm^2], ie in [nA], cv_areas_ in [µm^2].
         // unit scale factor: [nA/µm^2]/[mA/cm^2] = 100
-        //current_[loc] -= 100*ie/cv_areas_[loc];
         if (ie!=0.) {
             current_[loc] = current_[loc] - 100*ie/cv_areas_[loc];
         }

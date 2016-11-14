@@ -5,12 +5,43 @@ import argparse
 import os
 import subprocess
 
+class color:
+       purple = '\033[95m'
+       white  = '\033[37m'
+       cyan = '\033[96m'
+       darkcyan = '\033[36m'
+       blue = '\033[94m'
+       green = '\033[92m'
+       yellow = '\033[93m'
+       red = '\033[91m'
+       bold = '\033[1m'
+       underline = '\033[4m'
+       end = '\033[0m'
+
+class nocolor:
+       purple = ''
+       white = ''
+       cyan = ''
+       darkcyan = ''
+       blue = ''
+       green = ''
+       yellow = ''
+       red = ''
+       bold = ''
+       underline = ''
+       end = ''
+
+
 def parse_clargs():
     P = argparse.ArgumentParser(description='pretty print stack traces')
     P.add_argument('input', metavar='FILE',
                    help='name of file with stack trace')
-    P.add_argument('-b', '--brief', action='store_false',
+    P.add_argument('-b', '--brief', action='store_true',
                    help='print only the file locations')
+    P.add_argument('-e', '--executable', metavar='FILE',
+                   help='name of the executable or object file to look up symbols')
+    P.add_argument('-c', '--color', action='store_true',
+                   help='use color output in terminal')
 
     return P.parse_args()
 
@@ -23,27 +54,36 @@ def parse_backtrace(source):
             tokens = line.split()
             trace.append({'location':tokens[0], 'function':tokens[1]})
     else:
-        print "error: unable to open file ", source
+        print "error: unable to back trace file ", source
 
     return trace
 
-def get_function_name(location):
-    result = os.popen('addr2line ' + location + ' -e miniapp.exe').read()
+def get_function_name(location, executable):
+    result = os.popen('addr2line ' + location + ' -e ' + executable).read()
     descriptor = result.split()[0].split(':')
     return {'filename': descriptor[0], 'line': descriptor[1]}
 
 def unmangle(mangled):
     unmangled = os.popen('c++filt ' + mangled).read().strip()
-    # remove the nest::mc:: namespace from all types
     return unmangled.replace('nest::mc::', '')
 
+#
+# main
+#
 args = parse_clargs()
-trace = parse_backtrace(args.input)
 
-for frame in trace:
-    location = get_function_name(frame['location'])
-    name = unmangle(frame['function'])
-    if args.brief:
-        print location['filename'] + ':' + location['line'], name
-    else:
-        print location['filename'] + ':' + location['line']
+# check that a valid executable was provided
+executable = args.executable
+if not os.path.isfile(executable):
+    print "error:", executable, "is not a valid executable"
+else:
+    for frame in parse_backtrace(args.input):
+        location = get_function_name(frame['location'], executable)
+        name = unmangle(frame['function'])
+        c = color if args.color else nocolor
+        fname = c.yellow + location['filename'] + c.end
+        line = c.cyan + location['line'] + c.end
+        if args.brief:
+            print  fname + ':' + line
+        else:
+            print  fname + ':' + line, '\n ', name
