@@ -17,12 +17,17 @@ public:
     expression_ptr parse_prototype(std::string);
     expression_ptr parse_statement();
     expression_ptr parse_identifier();
-    expression_ptr parse_number();
+    expression_ptr parse_integer();
+    expression_ptr parse_real();
     expression_ptr parse_call();
     expression_ptr parse_expression();
     expression_ptr parse_primary();
     expression_ptr parse_parenthesis_expression();
     expression_ptr parse_line_expression();
+    expression_ptr parse_stoich_expression();
+    expression_ptr parse_stoich_term();
+    expression_ptr parse_reaction_expression();
+    expression_ptr parse_conserve_expression();
     expression_ptr parse_binop(expression_ptr&&, Token);
     expression_ptr parse_unaryop();
     expression_ptr parse_local();

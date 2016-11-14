@@ -20,6 +20,7 @@ public:
     virtual void visit(LocalVariable *e)        { visit((Expression*) e); }
     virtual void visit(IdentifierExpression *e) { visit((Expression*) e); }
     virtual void visit(NumberExpression *e)     { visit((Expression*) e); }
+    virtual void visit(IntegerExpression *e)    { visit((NumberExpression*) e); }
     virtual void visit(LocalDeclaration *e)     { visit((Expression*) e); }
     virtual void visit(ArgumentExpression *e)   { visit((Expression*) e); }
     virtual void visit(PrototypeExpression *e)  { visit((Expression*) e); }
