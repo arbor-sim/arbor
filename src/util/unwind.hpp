@@ -4,13 +4,12 @@
 #include <string>
 #include <vector>
 
+
 namespace nest {
 namespace mc {
 namespace util {
 
 #ifdef WITH_UNWIND
-#define UNW_LOCAL_ONLY
-#include <libunwind.h>
 
 /// Helper function that demangles a function name.
 ///   if s is not a valid mangled C++ name : return s
@@ -20,7 +19,7 @@ std::string demangle(std::string s);
 /// Represents a source code location as a function name and address
 struct source_location {
     std::string name;
-    unw_word_t position;
+    std::uint64_t; // assume that unw_word_t is a unit64_t
 };
 
 /// Builds a stack trace when constructed.

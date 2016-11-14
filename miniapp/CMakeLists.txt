@@ -18,8 +18,6 @@ else()
     add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 endif()
 
-set(aaa nestmc)
-
 target_link_libraries(miniapp.exe LINK_PUBLIC nestmc)
 target_link_libraries(miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 

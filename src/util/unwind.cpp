@@ -19,6 +19,9 @@ namespace nest {
 namespace mc {
 namespace util {
 
+static_assert(std::is_same<std::uint32_t, unw_word_t>::value,
+        "assumption that libunwind unw_word_t is unit64_t is not valid");
+
 std::string demangle(std::string s);
 
 ///  Builds a stack trace when constructed.
@@ -53,8 +56,8 @@ std::string demangle(std::string s) {
     int status;
     char* demangled = abi::__cxa_demangle(s.c_str(), nullptr, nullptr, &status);
 
-    // the string returned by __cxa_demangle is on valid if it was passed a valid
-    // mangled c++ symbol (i.e. returns an empty string for normal c symbols)
+    // __cxa_demangle only returns a non-empty string if it is passed a valid C++
+    // mangled c++ symbol (i.e. it returns an empty string for normal c symbols)
     if (status==0) {
         s = demangled;
     }

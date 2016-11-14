@@ -54,7 +54,7 @@ def parse_backtrace(source):
             tokens = line.split()
             trace.append({'location':tokens[0], 'function':tokens[1]})
     else:
-        print "error: unable to back trace file ", source
+        print "error: unable to open back trace file ", source
 
     return trace
 

@@ -41,7 +41,7 @@ if(THREADING_MODEL MATCHES "tbb")
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DWITH_TBB)
-    set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${TBB_LIBRARIES})
+    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
 
 elseif(THREADING_MODEL MATCHES "omp")
     # OpenMP support
@@ -62,7 +62,7 @@ find_package(Unwind)
 if(UNWIND_FOUND)
     add_definitions(-DWITH_UNWIND)
     include_directories(${UNWIND_INCLUDE_DIR})
-    set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${UNWIND_LIBRARIES})
+    list(APPEND EXTERNAL_LIBRARIES ${UNWIND_LIBRARIES})
 endif()
 
 # CUDA support
@@ -85,7 +85,7 @@ if(WITH_CUDA)
 
     add_definitions(-DWITH_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
-    set(EXTERNAL_LIBRARIES ${EXTERNAL_LIBRARIES} ${CUDA_LIBRARIES})
+    list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
 endif()
 
 # MPI support
