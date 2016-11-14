@@ -1,4 +1,5 @@
-// only compile the contents of this file if linking against libunwind
+#include <util/unwind.hpp>
+
 #ifdef WITH_UNWIND
 
 #define UNW_LOCAL_ONLY
@@ -7,9 +8,9 @@
 
 #include <memory/util.hpp>
 #include <util/file.hpp>
-#include <util/unwind.hpp>
 
 #include <cxxabi.h>
+#include <cstdint>
 #include <cstdio>
 #include <string>
 #include <iostream>
@@ -19,10 +20,8 @@ namespace nest {
 namespace mc {
 namespace util {
 
-static_assert(std::is_same<std::uint32_t, unw_word_t>::value,
-        "assumption that libunwind unw_word_t is unit64_t is not valid");
-
-std::string demangle(std::string s);
+static_assert(sizeof(std::uintptr_t)>=sizeof(unw_word_t),
+        "assumption that libunwind unw_word_t can be stored in std::unitptr_t is not valid");
 
 ///  Builds a stack trace when constructed.
 ///  The trace can then be printed, or accessed via the stack() member function.
@@ -92,4 +91,8 @@ void backtrace::print(bool stop_at_main) const {
 } // namespace mc
 } // namespace nest
 
+#else
+nest::mc::util::backtrace::backtrace() {}
+void nest::mc::util::backtrace::print(bool) const {}
 #endif
+

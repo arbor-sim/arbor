@@ -4,29 +4,22 @@
 #include <string>
 #include <vector>
 
-
 namespace nest {
 namespace mc {
 namespace util {
 
-#ifdef WITH_UNWIND
-
-/// Helper function that demangles a function name.
-///   if s is not a valid mangled C++ name : return s
-///   else: return demangled name
-std::string demangle(std::string s);
-
 /// Represents a source code location as a function name and address
 struct source_location {
     std::string name;
-    std::uint64_t; // assume that unw_word_t is a unit64_t
+    std::uintptr_t position; // assume that unw_word_t is a unit64_t
 };
 
 /// Builds a stack trace when constructed.
 /// The trace can then be printed, or accessed via the stack() member function.
+/// NOTE: if WITH_UNWIND is not defined, the methods are empty
 class backtrace {
 public:
-    /// the default constructor will build and storethe strack trace.
+    /// the default constructor will build and store the strack trace.
     backtrace();
 
     /// Creates a new file named backtrace_# where # is a number chosen
@@ -39,28 +32,6 @@ public:
 private:
     std::vector<source_location> frames_;
 };
-
-#else
-
-//
-//  provide empty stack trace proxy when libunwind is not used
-//
-struct source_location {
-    std::string name;
-    std::size_t position;
-};
-
-class backtrace {
-public:
-    // does nothing
-    void print(bool stop_at_main=true) const { }
-
-    std::vector<source_location> frames() const {
-        return {};
-    }
-};
-
-#endif
 
 } // namespace util
 } // namespace mc
