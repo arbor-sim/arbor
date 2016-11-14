@@ -21,10 +21,18 @@ add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 set(TARGETS validate.exe)
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
+    target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
 
     if(WITH_TBB)
         target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
+    endif()
+
+    if(WITH_CUDA)
+        target_link_libraries(${target} LINK_PUBLIC ${CUDA_LIBRARIES})
+    endif()
+
+    if(WITH_UNWIND)
+        target_link_libraries(${target} LINK_PUBLIC ${UNWIND_LIBRARIES})
     endif()
 
     if(WITH_MPI)

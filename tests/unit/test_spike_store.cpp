@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <threading/threading.hpp>
 #include <thread_private_spike_store.hpp>

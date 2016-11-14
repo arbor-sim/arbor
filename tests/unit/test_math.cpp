@@ -1,7 +1,7 @@
 #include <cmath>
 #include <limits>
 
-#include "gtest.h"
+#include "../gtest.h"
 #include <math.hpp>
 
 using namespace nest::mc::math;

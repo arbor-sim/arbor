@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <ostream>
 #include <numeric>
 
 #include <util/meta.hpp>
@@ -232,6 +233,19 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
     return m;
 }
 
+template <typename T, typename Seq>
+std::vector<T> make_std_vector(const Seq& seq) {
+    auto i = std::begin(seq);
+    auto e = std::end(seq);
+    return std::vector<T>(i, e);
+}
+
+template <typename C, typename Seq>
+C make_copy(Seq const& seq) {
+    return C{std::begin(seq), std::end(seq)};
+}
+
 } // namespace util
 } // namespace mc
 } // namespace nest
+

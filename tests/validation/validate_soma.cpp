@@ -11,7 +11,7 @@
 #include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "../test_common_cells.hpp"
 #include "convergence_test.hpp"
@@ -21,7 +21,7 @@
 using namespace nest::mc;
 
 TEST(soma, numeric_ref) {
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);

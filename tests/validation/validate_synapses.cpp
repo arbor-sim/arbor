@@ -1,13 +1,14 @@
 #include <json/json.hpp>
 
 #include <cell.hpp>
+#include <cell_group.hpp>
 #include <fvm_multicell.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
 #include <util/path.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "../test_common_cells.hpp"
 #include "convergence_test.hpp"
@@ -22,7 +23,7 @@ void run_synapse_test(
     float t_end=70.f,
     float dt=0.001)
 {
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     auto max_ncomp = g_trace_io.max_ncomp();
     nlohmann::json meta = {

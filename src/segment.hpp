@@ -9,7 +9,7 @@
 #include <math.hpp>
 #include <parameter_list.hpp>
 #include <point.hpp>
-#include <util.hpp>
+#include <util/make_unique.hpp>
 
 namespace nest {
 namespace mc {
@@ -465,8 +465,7 @@ using segment_ptr = std::unique_ptr<segment>;
 /// Forwards the supplied arguments to construct a segment of type SegmentType.
 /// e.g. auto my_cable = make_segment<cable>(segmentKind::dendrite, ... );
 template <typename SegmentType, typename... Args>
-segment_ptr make_segment(Args&&... args)
-{
+segment_ptr make_segment(Args&&... args) {
     return segment_ptr(new SegmentType(std::forward<Args>(args)...));
 }
 

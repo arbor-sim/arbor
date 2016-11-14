@@ -34,10 +34,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("#include <limits>");
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
-    text_.add_line("#include <mechanism_interface.hpp>");
-    //text_.add_line("#include <gpu/util.hpp>");
+    text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
-
 
     text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace gpu{ namespace " + m.name() + "{");
     text_.add_line();
@@ -163,21 +162,23 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + m.name();
 
-    text_.add_line("template<typename T, typename I>");
-    text_.add_line("class " + class_name + " : public ::nest::mc::mechanisms::gpu::mechanism<T, I> {");
-    text_.add_line("public:");
+    text_.add_line("template<typename Backend>");
+    text_.add_line("class " + class_name + " : public mechanism<Backend> {");
+    text_.add_line("public: ");
     text_.increase_indentation();
-    text_.add_line("using base = ::nest::mc::mechanisms::gpu::mechanism<T, I>;");
-    text_.add_line("using value_type  = typename base::value_type;");
-    text_.add_line("using size_type   = typename base::size_type;");
-    text_.add_line("using vector_type = typename base::vector_type;");
-    text_.add_line("using view_type   = typename base::view_type;");
-    text_.add_line("using index_type  = typename base::index_type;");
-    text_.add_line("using index_view  = typename base::index_view;");
-    text_.add_line("using const_index_view  = typename base::const_index_view;");
-    text_.add_line("using indexed_view_type= typename base::indexed_view_type;");
-    text_.add_line("using ion_type = typename base::ion_type;");
-    text_.add_line("using param_pack_type = " + m.name() + "_ParamPack<T,I>;");
+    text_.add_line("using base = mechanism<Backend>;");
+    text_.add_line("using typename base::value_type;");
+    text_.add_line("using typename base::size_type;");
+    text_.add_line("using typename base::array;");
+    text_.add_line("using typename base::view;");
+    text_.add_line("using typename base::iarray;");
+    text_.add_line("using host_iarray = typename Backend::host_iarray;");
+    text_.add_line("using typename base::iview;");
+    text_.add_line("using typename base::const_iview;");
+    text_.add_line("using typename base::const_view;");
+    text_.add_line("using typename base::indexed_view_type;");
+    text_.add_line("using typename base::ion_type;");
+    text_.add_line("using param_pack_type = " + m.name() + "_ParamPack<value_type, size_type>;");
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -186,12 +187,12 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         text_.add_line("struct " + tname + " {");
         text_.increase_indentation();
         for(auto& field : ion.read) {
-            text_.add_line("view_type " + field.spelling + ";");
+            text_.add_line("view " + field.spelling + ";");
         }
         for(auto& field : ion.write) {
-            text_.add_line("view_type " + field.spelling + ";");
+            text_.add_line("view " + field.spelling + ";");
         }
-        text_.add_line("index_type index;");
+        text_.add_line("iarray index;");
         text_.add_line("std::size_t memory() const { return sizeof(size_type)*index.size(); }");
         text_.add_line("std::size_t size() const { return index.size(); }");
         text_.decrease_indentation();
@@ -206,9 +207,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line("template <typename IVT>");
-    text_.add_line(class_name + "(view_type vec_v, view_type vec_i, IVT node_index) :");
-    text_.add_line("   base(vec_v, vec_i, node_index)");
+    text_.add_line(class_name + "(view vec_v, view vec_i, iarray&& node_index) :");
+    text_.add_line("   base(vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -224,8 +224,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     text_.add_line();
     text_.add_line("// allocate memory");
-    text_.add_line("data_ = vector_type(field_size * num_fields);");
-    text_.add_line("data_(memory::all) = std::numeric_limits<value_type>::quiet_NaN();");
+    text_.add_line("data_ = array(field_size*num_fields, std::numeric_limits<value_type>::quiet_NaN());");
 
     // assign the sub-arrays
     // replace this : data_(1*n, 2*n);
@@ -246,13 +245,13 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         // only non-NaN fields need to be initialized, because data_
         // is NaN by default
         if(val == val) {
-            text_.add_line(var->name() + "(memory::all) = " + std::to_string(val) + ";");
+            text_.add_line("memory::fill(" + var->name() + ", " + std::to_string(val) + ");");
         }
     }
 
-    text_.add_line();
     text_.decrease_indentation();
     text_.add_line("}");
+    text_.add_line();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -366,7 +365,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
      *
      **************************************************************************/
 
-    // void set_ion(ionKind k, ion_type& i) override
+    // void set_ion(ionKind k, ion_type& i, const std::vector<size_type>&) override
     //      TODO: this is done manually, which isn't going to scale
     auto has_variable = [] (IonDep const& ion, std::string const& name) {
         if( std::find_if(ion.read.begin(), ion.read.end(),
@@ -379,14 +378,14 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         ) return true;
         return false;
     };
-    text_.add_line("void set_ion(ionKind k, ion_type& i) override {");
+    text_.add_line("void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) override {");
     text_.increase_indentation();
     text_.add_line("using nest::mc::algorithms::index_into;");
     if(has_ion(ionKind::Na)) {
         auto ion = find_ion(ionKind::Na);
         text_.add_line("if(k==ionKind::na) {");
         text_.increase_indentation();
-        text_.add_line("ion_na.index = index_into(i.node_index(), node_index_);");
+        text_.add_line("ion_na.index = iarray(memory::make_const_view(index));");
         if(has_variable(*ion, "ina")) text_.add_line("ion_na.ina = i.current();");
         if(has_variable(*ion, "ena")) text_.add_line("ion_na.ena = i.reversal_potential();");
         if(has_variable(*ion, "nai")) text_.add_line("ion_na.nai = i.internal_concentration();");
@@ -399,7 +398,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         auto ion = find_ion(ionKind::Ca);
         text_.add_line("if(k==ionKind::ca) {");
         text_.increase_indentation();
-        text_.add_line("ion_ca.index = index_into(i.node_index(), node_index_);");
+        text_.add_line("ion_ca.index = iarray(memory::make_const_view(index));");
         if(has_variable(*ion, "ica")) text_.add_line("ion_ca.ica = i.current();");
         if(has_variable(*ion, "eca")) text_.add_line("ion_ca.eca = i.reversal_potential();");
         if(has_variable(*ion, "cai")) text_.add_line("ion_ca.cai = i.internal_concentration();");
@@ -412,7 +411,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         auto ion = find_ion(ionKind::K);
         text_.add_line("if(k==ionKind::k) {");
         text_.increase_indentation();
-        text_.add_line("ion_k.index = index_into(i.node_index(), node_index_);");
+        text_.add_line("ion_k.index = iarray(memory::make_const_view(index));");
         if(has_variable(*ion, "ik")) text_.add_line("ion_k.ik = i.current();");
         if(has_variable(*ion, "ek")) text_.add_line("ion_k.ek = i.reversal_potential();");
         if(has_variable(*ion, "ki")) text_.add_line("ion_k.ki = i.internal_concentration();");
@@ -445,7 +444,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             text_.add_line("dim3 dim_grid(n/dim_block.x + (n%dim_block.x ? 1 : 0) );");
             text_.add_line();
             text_.add_line(
-                "kernels::" + name + "<T,I>"
+                "kernels::" + name + "<value_type, size_type>"
                 + "<<<dim_grid, dim_block>>>(param_pack_);");
             text_.decrease_indentation();
             text_.add_line("}");
@@ -456,9 +455,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
-    text_.add_line("vector_type data_;");
+    text_.add_line("array data_;");
     for(auto var: array_variables) {
-        text_.add_line("view_type " + var->name() + ";");
+        text_.add_line("view " + var->name() + ";");
     }
     for(auto var: scalar_variables) {
         double val = var->value();
@@ -632,7 +631,7 @@ void CUDAPrinter::print_procedure_prototype(ProcedureExpression *e) {
     text_.add_gutter() << "template <typename T, typename I>\n";
     text_.add_line("__device__");
     text_.add_gutter() << "void " << e->name()
-                       << "(" << module_->name() << "_ParamPack<T,I> const& params_,"
+                       << "(" << module_->name() << "_ParamPack<T, I> const& params_,"
                        << "const int tid_";
     for(auto& arg : e->args()) {
         text_ << ", T " << arg->is_argument()->name();
@@ -657,7 +656,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
     increase_indentation();
 
     text_.add_line("using value_type = T;");
-    text_.add_line("using index_type = I;");
+    text_.add_line("using iarray = I;");
     text_.add_line();
 
     e->body()->accept(this);
@@ -686,7 +685,7 @@ void CUDAPrinter::visit(APIMethod *e) {
     increase_indentation();
 
     text_.add_line("using value_type = T;");
-    text_.add_line("using index_type = I;");
+    text_.add_line("using iarray = I;");
     text_.add_line();
 
     text_.add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");

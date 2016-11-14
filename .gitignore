@@ -53,18 +53,9 @@ Makefile
 # mechanism implementations generated my modparser
 include/mechanisms
 
-# external build stuff
-external/bin
-external/modparser-build
-external/modparser-configure
-external/modparser-done
-external/modparser-download
-external/modparser-install
-external/modparser-mkdir
-external/modparser-patch
-external/modparser-update
-external/tmp
-mechanisms/*.hpp
+# mechanisms generated from .mod files
+mechanisms/multicore/*.hpp
+mechanisms/gpu/*.hpp
 
 # build path
 build*

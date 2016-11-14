@@ -1,11 +1,14 @@
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <cell_group.hpp>
 #include <common_types.hpp>
-#include <fvm_cell.hpp>
+#include <fvm_multicell.hpp>
 #include <util/rangeutil.hpp>
 
 #include "../test_common_cells.hpp"
+
+using fvm_cell =
+    nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
 
 nest::mc::cell make_cell() {
     using namespace nest::mc;
@@ -22,22 +25,21 @@ TEST(cell_group, test)
 {
     using namespace nest::mc;
 
-    using cell_group_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
+    using cell_group_type = cell_group<fvm_cell>;
     auto group = cell_group_type{0, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);
 
-    // a bit lame...
-    EXPECT_EQ(group.spikes().size(), 4u);
+    // the model is expected to generate 4 spikes as a result of the
+    // fixed stimulus over 50 ms
+    EXPECT_EQ(4u, group.spikes().size());
 }
 
 TEST(cell_group, sources)
 {
     using namespace nest::mc;
 
-    // TODO: extend to multi-cell cell groups when the time comes
-
-    using cell_group_type = cell_group<fvm::fvm_cell<double, cell_local_size_type>>;
+    using cell_group_type = cell_group<fvm_cell>;
 
     auto cell = make_cell();
     EXPECT_EQ(cell.detectors().size(), 1u);

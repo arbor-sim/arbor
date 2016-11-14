@@ -23,7 +23,7 @@ namespace mc {
 template <typename LoweredCell>
 class cell_group {
 public:
-    using index_type = cell_gid_type;
+    using iarray = cell_gid_type;
     using lowered_cell_type = LoweredCell;
     using value_type = typename lowered_cell_type::value_type;
     using size_type  = typename lowered_cell_type::value_type;
@@ -211,7 +211,7 @@ private:
     std::vector<time_type> sampler_start_times_;
 
     /// the global id of the first target (e.g. a synapse) in this group
-    index_type first_target_gid_;
+    iarray first_target_gid_;
 
     /// handles for accessing lowered cell
     using detector_handle = typename lowered_cell_type::detector_handle;

@@ -184,31 +184,31 @@ struct common_random_access_iterator<
 template <typename I, typename E>
 using common_random_access_iterator_t = typename common_random_access_iterator<I, E>::type;
 
-// NB: using this version of SFINAE instead of a void default template
-// parameter because of a bug in gcc 4.9.3.
+//
+// TODO : now that we are using gcc 5+, replace these old skool SFINAE thingys
+//
+
+namespace impl {
+    /// Helper for SFINAE tests that can "sink" any type
+    template<typename T>
+    using sink = void;
+}
+
+template <typename I, typename E, typename V=void>
+struct has_common_random_access_iterator:
+    std::false_type {};
+
 template <typename I, typename E>
-struct has_common_random_access_iterator {
-private:
-    constexpr static bool test(...) { return false; }
+struct has_common_random_access_iterator<I, E, impl::sink<typename common_random_access_iterator<I, E>::type>>:
+    std::true_type {};
 
-    template <typename U = I>
-    constexpr static bool test(typename common_random_access_iterator<U, E>::type*) { return true; }
+template<typename T, typename V=void>
+struct is_sequence:
+    std::false_type {};
 
-public:
-    constexpr static bool value = test(nullptr);
-};
-
-template <typename S>
-struct is_sequence {
-private:
-    constexpr static bool test(...) { return false; }
-
-    template <typename U = S>
-    constexpr static bool test(decltype(std::begin(std::declval<U>()))*) { return true; }
-
-public:
-    constexpr static bool value = test(nullptr);
-};
+template<typename T>
+struct is_sequence<T, impl::sink<decltype(std::declval<T>())>>:
+    std::true_type {};
 
 template <typename T>
 using enable_if_sequence_t =

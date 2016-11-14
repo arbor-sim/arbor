@@ -8,7 +8,7 @@
 #include <simple_sampler.hpp>
 #include <util/path.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "../test_common_cells.hpp"
 #include "convergence_test.hpp"
@@ -59,7 +59,7 @@ void run_ncomp_convergence_test(
 }
 
 TEST(ball_and_taper, neuron_ref) {
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_ball_and_stick();
     add_common_voltage_probes(c);
@@ -79,7 +79,7 @@ TEST(ball_and_taper, neuron_ref) {
 }
 
 TEST(ball_and_3stick, neuron_ref) {
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_ball_and_3stick();
     add_common_voltage_probes(c);
@@ -103,7 +103,7 @@ TEST(ball_and_3stick, neuron_ref) {
 }
 
 TEST(rallpack1, numeric_ref) {
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_simple_cable();
 
@@ -128,7 +128,7 @@ TEST(rallpack1, numeric_ref) {
 }
 
 TEST(ball_and_squiggle, neuron_ref) {
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
     cell c = make_cell_ball_and_squiggle();
     add_common_voltage_probes(c);

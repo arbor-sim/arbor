@@ -7,7 +7,7 @@ set(DISK_IO_SOURCES
 
 add_executable(disk_io.exe ${DISK_IO_SOURCES} ${HEADERS})
 
-target_link_libraries(disk_io.exe LINK_PUBLIC cellalgo)
+target_link_libraries(disk_io.exe LINK_PUBLIC nestmc)
 
 if(WITH_TBB)
     target_link_libraries(disk_io.exe LINK_PUBLIC ${TBB_LIBRARIES})

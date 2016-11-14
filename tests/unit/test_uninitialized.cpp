@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "util/uninitialized.hpp"
 #include "common.hpp"

@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <common_types.hpp>
 #include <cell.hpp>
@@ -10,13 +10,14 @@
 #include "../test_util.hpp"
 #include "../test_common_cells.hpp"
 
+using fvm_cell =
+    nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
+
 TEST(fvm_multi, cable)
 {
     using namespace nest::mc;
 
     nest::mc::cell cell=make_cell_ball_and_3stick();
-
-    using fvm_cell = fvm::fvm_multicell<double, cell_lid_type>;
 
     std::vector<fvm_cell::target_handle> targets;
     std::vector<fvm_cell::detector_handle> detectors;
@@ -32,8 +33,6 @@ TEST(fvm_multi, cable)
 
     // assert that the matrix has one row for each compartment
     EXPECT_EQ(J.size(), cell.num_compartments());
-
-    fvcell.setup_matrix(0.02);
 
     // assert that the number of cv areas is the same as the matrix size
     // i.e. both should equal the number of compartments
@@ -64,7 +63,6 @@ TEST(fvm_multi, init)
 
     cell.segment(1)->set_compartments(10);
 
-    using fvm_cell = fvm::fvm_multicell<double, cell_lid_type>;
     std::vector<fvm_cell::target_handle> targets;
     std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
@@ -72,10 +70,36 @@ TEST(fvm_multi, init)
     fvm_cell fvcell;
     fvcell.initialize(util::singleton_view(cell), detectors, targets, probes);
 
+    // This is naughty: removing const from the matrix reference, but is needed
+    // to test the build_matrix() method below (which is only accessable
+    // through non-const interface).
+    //auto& J = const_cast<fvm_cell::matrix_type&>(fvcell.jacobian());
     auto& J = fvcell.jacobian();
     EXPECT_EQ(J.size(), 11u);
 
-    fvcell.setup_matrix(0.01);
+    // test that the matrix is initialized with sensible values
+    //J.build_matrix(0.01);
+    fvcell.advance(0.01);
+    auto test_nan = [](decltype(J.u()) v) {
+        for(auto val : v) if(val != val) return false;
+        return true;
+    };
+    EXPECT_TRUE(test_nan(J.u()(1, J.size())));
+    EXPECT_TRUE(test_nan(J.d()));
+    EXPECT_TRUE(test_nan(J.rhs()));
+
+    // test matrix diagonals for sign
+    auto is_pos = [](decltype(J.u()) v) {
+        for(auto val : v) if(val<=0.) return false;
+        return true;
+    };
+    auto is_neg = [](decltype(J.u()) v) {
+        for(auto val : v) if(val>=0.) return false;
+        return true;
+    };
+    EXPECT_TRUE(is_neg(J.u()(1, J.size())));
+    EXPECT_TRUE(is_pos(J.d()));
+
 }
 
 TEST(fvm_multi, multi_init)
@@ -101,7 +125,6 @@ TEST(fvm_multi, multi_init)
 
     cells[1].add_detector({0, 0}, 3.3);
 
-    using fvm_cell = fvm::fvm_multicell<double, cell_lid_type>;
     std::vector<fvm_cell::target_handle> targets(4);
     std::vector<fvm_cell::detector_handle> detectors(1);
     std::vector<fvm_cell::probe_handle> probes;
@@ -137,8 +160,6 @@ TEST(fvm_multi, multi_init)
             EXPECT_EQ(mech->node_index()[0], 11u);
         }
     }
-
-    fvcell.setup_matrix(0.01);
 }
 
 // test that stimuli are added correctly
@@ -163,7 +184,6 @@ TEST(fvm_multi, stimulus)
     // compmnt   |   4  |    0
 
 
-    using fvm_cell = fvm::fvm_multicell<double, cell_lid_type>;
     std::vector<fvm_cell::target_handle> targets;
     std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
@@ -225,7 +245,6 @@ TEST(fvm_multi, mechanism_indexes)
     }
 
     // generate the lowered fvm cell
-    using fvm_cell = fvm::fvm_multicell<double, cell_lid_type>;
     std::vector<fvm_cell::target_handle> targets;
     std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
@@ -247,5 +266,25 @@ TEST(fvm_multi, mechanism_indexes)
         else if(mech->name()=="pas") {
             EXPECT_EQ(ni, pas_index);
         }
+    }
+
+    // similarly, test that the different ion channels were assigned to the correct
+    // compartments. In this case, the passive channel has no ion species
+    // associated with it, while the hh channel has both pottassium and sodium
+    // channels. Hence, we expect sodium and potassium to be present in the same
+    // compartments as the hh mechanism.
+    {
+        auto ni = fvcell.ion_na().node_index();
+        std::vector<unsigned> na(ni.begin(), ni.end());
+        EXPECT_EQ(na, hh_index);
+    }
+    {
+        auto ni = fvcell.ion_k().node_index();
+        std::vector<unsigned> k(ni.begin(), ni.end());
+        EXPECT_EQ(k, hh_index);
+    }
+    {
+        // calcium channel should be empty
+        EXPECT_EQ(0u, fvcell.ion_ca().node_index().size());
     }
 }
