@@ -21,7 +21,7 @@ namespace mc {
 namespace util {
 
 static_assert(sizeof(std::uintptr_t)>=sizeof(unw_word_t),
-        "assumption that libunwind unw_word_t can be stored in std::unitptr_t is not valid");
+        "assumption that libunwind unw_word_t can be stored in std::uintptr_t is not valid");
 
 ///  Builds a stack trace when constructed.
 ///  The trace can then be printed, or accessed via the stack() member function.
