@@ -31,12 +31,61 @@ if(WITH_TRACE)
     add_definitions("-DWITH_TRACE")
 endif()
 
-# TBB support
-set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
-if(WITH_TBB)
+# list of libraries to be linked against targets
+set(EXTERNAL_LIBRARIES "")
+
+#threading model selection
+set(THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp")
+if(THREADING_MODEL MATCHES "tbb")
+    # TBB support
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DWITH_TBB)
+    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
+
+elseif(THREADING_MODEL MATCHES "omp")
+    # OpenMP support
+    find_package(OpenMP REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    add_definitions(-DWITH_OMP)
+
+elseif(THREADING_MODEL MATCHES "serial")
+    #setup previously done
+
+else()
+    message( FATAL_ERROR "-- Threading model '${THREADING_MODEL}' not supported, use one of serial/tbb/omp")
+
+endif()
+
+# libunwind for pretty printing stack traces
+find_package(Unwind)
+if(UNWIND_FOUND)
+    add_definitions(-DWITH_UNWIND)
+    include_directories(${UNWIND_INCLUDE_DIR})
+    list(APPEND EXTERNAL_LIBRARIES ${UNWIND_LIBRARIES})
+endif()
+
+# CUDA support
+set(WITH_CUDA OFF CACHE BOOL "use CUDA for GPU offload" )
+if(WITH_CUDA)
+    find_package(CUDA REQUIRED)
+
+    # Turn off annoying and incorrect warnings generated in the JSON file.
+    # We also work around the same issue with the intel compiler.
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
+
+    # set the CUDA target specfic flags
+    # code regions protected by WITH_CUDA should only be available to the CUDA
+    # compiler, which regions protected by WITH_GPU are visible to both host
+    # and device compiler when targetting GPU.
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_CUDA)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DWITH_GPU)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
+    #set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
+
+    add_definitions(-DWITH_GPU)
+    include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
+    list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
 endif()
 
 # MPI support
@@ -50,7 +99,7 @@ if(WITH_MPI)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
 endif()
 
-# Profiler support
+# Internal profiler support
 set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
 if(WITH_PROFILING)
     add_definitions(-DWITH_PROFILING)
@@ -115,9 +164,7 @@ else()
     set(BUILD_NRN_VALIDATION_DATA TRUE)
 endif()
 
-
-include_directories(${CMAKE_SOURCE_DIR}/tclap/include)
-include_directories(${CMAKE_SOURCE_DIR}/vector)
+include_directories(${CMAKE_SOURCE_DIR}/tclap)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/miniapp)

@@ -48,6 +48,43 @@ double linf_distance(const trace_data& u, const trace_data& ref) {
                 [&](trace_entry x) { return std::abs(x.v-f(x.t)); }));
 }
 
+// Compute linf distance as above, but excluding sample points that lie
+// near points in `excl`.
+//
+// `excl` contains the times to exclude, in ascending order.
+
+double linf_distance(const trace_data& u, const trace_data& ref, const std::vector<float>& excl) {
+    trace_interpolant f{ref};
+
+    trace_data reduced;
+    unsigned nexcl = excl.size();
+    unsigned ei = 0;
+
+    unsigned nu = u.size();
+    unsigned ui = 0;
+
+    while (ei<nexcl && ui<nu) {
+        float t = excl[ei++];
+
+        unsigned uj = ui;
+        while (uj<nu && u[uj].t<t) ++uj;
+
+        // include points up to and including uj-2, and then proceed from point uj+1,
+        // excluding the two points closest to the discontinuity.
+
+        if (uj>1+ui) {
+            util::append(reduced, util::subrange_view(u, ui, uj-1));
+        }
+        ui = uj+1;
+    }
+
+    if (ui<nu) {
+        util::append(reduced, util::subrange_view(u, ui, nu));
+    }
+
+    return linf_distance(reduced, ref);
+}
+
 std::vector<trace_peak> local_maxima(const trace_data& u) {
     std::vector<trace_peak> peaks;
     if (u.size()<2) return peaks;

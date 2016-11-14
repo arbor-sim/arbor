@@ -52,6 +52,9 @@ public:
     void set_max_ncomp(int ncomp) { max_ncomp_ = ncomp; }
     int max_ncomp() const { return max_ncomp_; }
 
+    void set_min_dt(float dt) { min_dt_ = dt; }
+    float min_dt() const { return min_dt_; }
+
     void set_datadir(const util::path& dir) { datadir_ = dir; }
 
     void set_output(const util::path& file) {
@@ -74,7 +77,8 @@ private:
     std::ofstream out_;
     nlohmann::json jtraces_ = nlohmann::json::array();
     bool verbose_flag_ = false;
-    int max_ncomp_ = 1000;
+    int max_ncomp_ = 100;
+    float min_dt_ = 0.001f;
 };
 
 extern trace_io g_trace_io;

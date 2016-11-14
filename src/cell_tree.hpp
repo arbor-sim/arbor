@@ -9,11 +9,10 @@
 #include <ostream>
 #include <vector>
 
-#include <vector/include/Vector.hpp>
-
-#include "common_types.hpp"
-#include "tree.hpp"
-#include "util.hpp"
+#include <memory/memory.hpp>
+#include <util/span.hpp>
+#include <common_types.hpp>
+#include <tree.hpp>
 
 namespace nest {
 namespace mc {
@@ -30,15 +29,13 @@ namespace mc {
 /// sets it appears that the soma was always index 0, however we need more
 /// flexibility in choosing the root.
 class cell_tree {
-    using range = memory::Range;
-
 public:
     using int_type        = cell_lid_type;
     using size_type       = cell_local_size_type;
 
-    using index_type      = memory::HostVector<int_type>;
-    using view_type       = index_type::view_type;
-    using const_view_type = index_type::const_view_type;
+    using iarray      = memory::host_vector<int_type>;
+    using view_type       = iarray::view_type;
+    using const_view_type = iarray::const_view_type;
 
     using tree = nest::mc::tree<int_type, size_type>;
     static constexpr int_type no_parent = tree::no_parent;
@@ -155,7 +152,7 @@ public:
         std::ofstream fid(fname);
 
         fid << "graph cell {" << '\n';
-        for(auto b : range(0,num_segments())) {
+        for(auto b : util::make_span(0,num_segments())) {
             if(children(b).size()) {
                 for(auto c : children(b)) {
                     fid << "  " << b << " -- " << c << ";" << '\n';
@@ -165,16 +162,16 @@ public:
         fid << "}" << std::endl; // flush at end of output?
     }
 
-    index_type depth_from_leaf()
+    iarray depth_from_leaf()
     {
-        tree::index_type depth(num_segments());
+        tree::iarray depth(num_segments());
         depth_from_leaf(depth, int_type{0});
         return depth;
     }
 
-    index_type depth_from_root()
+    iarray depth_from_root()
     {
-        tree::index_type depth(num_segments());
+        tree::iarray depth(num_segments());
         depth[0] = 0;
         depth_from_root(depth, int_type{1});
         return depth;
@@ -271,7 +268,7 @@ private :
         return new_root;
     }
 
-    int_type depth_from_leaf(index_type& depth, int_type segment)
+    int_type depth_from_leaf(iarray& depth, int_type segment)
     {
         int_type max_depth = 0;
         for(auto c : children(segment)) {
@@ -281,7 +278,7 @@ private :
         return max_depth+1;
     }
 
-    void depth_from_root(index_type& depth, int_type segment)
+    void depth_from_root(iarray& depth, int_type segment)
     {
         auto d = depth[parent(segment)] + 1;
         depth[segment] = d;

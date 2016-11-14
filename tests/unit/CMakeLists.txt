@@ -1,3 +1,11 @@
+set(TEST_CUDA_SOURCES
+    test_matrix.cu
+    test_vector.cu
+
+    # unit test driver
+    test.cpp
+)
+
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
@@ -7,7 +15,7 @@ set(TEST_SOURCES
     test_counter.cpp
     test_either.cpp
     test_event_queue.cpp
-    test_fvm.cpp
+    test_filter.cpp
     test_fvm_multi.cpp
     test_cell_group.cpp
     test_lexcmp.cpp
@@ -33,26 +41,31 @@ set(TEST_SOURCES
     test_tree.cpp
     test_transform.cpp
     test_uninitialized.cpp
+    test_vector.cpp
 
     # unit test driver
     test.cpp
 )
 
 add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
-add_executable(test.exe ${TEST_SOURCES})
 
 set(TARGETS test.exe)
 
-foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
+add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
 
-    if(WITH_TBB)
-    target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
-    endif()
+if(WITH_CUDA)
+    set(TARGETS ${TARGETS} test_cuda.exe)
+    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
+    target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
+endif()
+
+foreach(target ${TARGETS})
+    target_link_libraries(${target} LINK_PUBLIC gtest nestmc)
+    target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(WITH_MPI)
-    target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
-    set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+        target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
+        set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()
 
     set_target_properties(${target}

@@ -39,9 +39,6 @@ public:
         return error_string_;
     }
 
-private:
-    Module *module_;
-
     // functions for parsing descriptive blocks
     // these are called in the first pass, and do not
     // construct any AST information
@@ -51,6 +48,9 @@ private:
     void parse_parameter_block();
     void parse_assigned_block();
     void parse_title();
+
+private:
+    Module *module_;
 
     std::vector<Token> comma_separated_identifiers();
     std::vector<Token> unit_description();
@@ -69,4 +69,3 @@ private:
     bool expect(tok, const char *str="");
     bool expect(tok, std::string const& str);
 };
-

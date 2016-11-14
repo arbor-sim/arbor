@@ -5,11 +5,10 @@
 #include <sstream>
 #include <unordered_set>
 
-#include "algorithms.hpp"
-#include "point.hpp"
-#include "swcio.hpp"
-#include "util.hpp"
-#include "util/debug.hpp"
+#include <algorithms.hpp>
+#include <point.hpp>
+#include <swcio.hpp>
+#include <util/debug.hpp>
 
 namespace nest {
 namespace mc {

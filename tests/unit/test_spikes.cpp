@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <spike.hpp>
 #include <spike_source.hpp>

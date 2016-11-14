@@ -37,7 +37,9 @@ default_model_parameters = {
     'tau':        2.0,    # Exponential synapse time constant
     'tau1':       0.5,    # Exp2 synapse tau1
     'tau2':       2.0,    # Exp2 synapse tau2
-    'ncomp':   1001       # Number of compartments (nseg) in dendrites
+    'ncomp':   1001,      # Number of compartments (nseg) in dendrites
+    'dt':         0.0,    # (Simulation parameter) default dt, 0 => use cvode adaptive
+    'abstol':     1e-6    # (Simulation parameter) abstol for cvode if used
 }
 
 def override_defaults_from_args(args=sys.argv):
@@ -160,7 +162,10 @@ class VModel:
 # Samples at cable mid- and end-points taken every `sample_dt`;
 # Voltage on all compartments per section reported every `report_dt`.
 
-def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=0.001, **meta):
+def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, **meta):
+    if dt is None:
+        dt = default_model_parameters['dt']
+
     # Instrument mid-point and ends of each section for traces.
     vtraces = []
     vtrace_t_hoc = h.Vector()
@@ -204,7 +209,18 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=0.001, 
             vreports.append((s.name(), s.L, s.nseg, ps, vs))
 
     # Run sim
-    h.dt = dt
+    if dt==0:
+        # Use CVODE instead
+        h.cvode.active(1)
+        abstol = default_model_parameters['abstol']
+        h.cvode.atol(abstol)
+        common_meta = { 'dt': 0, 'cvode': True, 'abstol': abstol }
+    else:
+        h.dt = dt
+        h.steps_per_ms = 1/dt # or else NEURON might noisily fudge dt
+        common_meta = { 'dt': dt, 'cvode': False }
+
+    h.secondorder = 2
     h.tstop = tend
     h.run()
 
@@ -212,7 +228,7 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=0.001, 
     traces = []
 
     vtrace_t = list(vtrace_t_hoc)
-    traces.append(combine(meta, common_ncomp, {
+    traces.append(combine(common_meta, meta, common_ncomp, {
         'name':  'membrane voltage',
         'sim':   'neuron',
         'units': 'mV',
@@ -225,7 +241,10 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=0.001, 
         obs = np.column_stack([np.array(v) for v in vs])
         xs = [length*p for p in ps]
         for i, t in enumerate(report_t):
-            traces.append(combine(meta, {
+            if i>=obs.shape[0]:
+                break
+
+            traces.append(combine(common_meta, meta, {
                 'name': 'membrane voltage',
                 'sim':  'neuron',
                 'units': {'x': 'µm', name: 'mV'},

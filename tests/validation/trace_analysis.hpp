@@ -5,6 +5,7 @@
 #include "gtest.h"
 
 #include <simple_sampler.hpp>
+#include <math.hpp>
 #include <util/optional.hpp>
 #include <util/path.hpp>
 #include <util/rangeutil.hpp>
@@ -19,6 +20,11 @@ namespace mc {
 // of the second trace `ref`.
 
 double linf_distance(const trace_data& u, const trace_data& ref);
+
+// Compute linf distance as above, excluding samples near
+// times given in `excl`, monotonically increasing.
+
+double linf_distance(const trace_data& u, const trace_data& ref, const std::vector<float>& excl);
 
 // Find local maxima (peaks) in a trace, excluding end points.
 
@@ -42,13 +48,15 @@ std::vector<trace_peak> local_maxima(const trace_data& u);
 util::optional<trace_peak> peak_delta(const trace_data& a, const trace_data& b);
 
 // Record for error data for convergence testing.
+// Only linf and peak_delta are used for convergence testing below;
+// if and param are for record keeping in the validation test itself.
 
 template <typename Param>
 struct conv_entry {
     std::string id;
     Param param;
     double linf;
-    util::optional<trace_peak> pd;
+    util::optional<trace_peak> peak_delta;
 };
 
 template <typename Param>
@@ -56,48 +64,45 @@ using conv_data = std::vector<conv_entry<Param>>;
 
 // Assert error convergence (gtest).
 
-template <typename Param>
-void assert_convergence(const conv_data<Param>& cs) {
-    if (cs.size()<2) return;
+template <typename ConvEntrySeq>
+void assert_convergence(const ConvEntrySeq& cs) {
+    if (util::empty(cs)) return;
 
     auto tbound = [](trace_peak p) { return std::abs(p.t)+p.t_err; };
-    auto smallest_pd = cs[0].pd;
+    float peak_dt_bound = math::infinity<>();
 
-    for (unsigned i = 1; i<cs.size(); ++i) {
-        const auto& p = cs[i-1];
-        const auto& c = cs[i];
+    for (auto pi = std::begin(cs); std::next(pi)!=std::end(cs); ++pi) {
+        const auto& p = *pi;
+        const auto& c = *std::next(pi);
 
         EXPECT_LE(c.linf, p.linf) << "L∞ error increase";
-        EXPECT_TRUE(c.pd || (!c.pd && !p.pd)) << "divergence in peak count";
 
-        if (c.pd && smallest_pd) {
-            double t = std::abs(c.pd->t);
-            EXPECT_LE(t, c.pd->t_err+tbound(*smallest_pd)) << "divergence in max peak displacement";
+        if (!c.peak_delta) {
+            EXPECT_FALSE(p.peak_delta) << "divergence in peak count";
         }
+        else {
+            double t = std::abs(c.peak_delta->t);
+            double t_limit = c.peak_delta->t_err+peak_dt_bound;
 
-        if (c.pd && (!smallest_pd || tbound(*c.pd)<tbound(*smallest_pd))) {
-            smallest_pd = c.pd;
+            EXPECT_LE(t, t_limit) << "divergence in max peak displacement";
+
+            peak_dt_bound = std::min(peak_dt_bound, tbound(*c.peak_delta));
         }
     }
 }
 
 // Report table of convergence results.
-// (Takes collection with pair<string, conv_data>
-// entries.)
 
-template <typename Map>
-void report_conv_table(std::ostream& out, const Map& tbl, const std::string& param_name) {
-    out << "location," << param_name << ",linf,peak_dt,peak_dt_err\n";
-    for (const auto& p: tbl) {
-        const auto& location = p.first;
-        for (const auto& c: p.second) {
-            out << location << "," << c.param << "," << c.linf << ",";
-            if (c.pd) {
-                out << c.pd->t << "," << c.pd->t_err << "\n";
-            }
-            else {
-                out << "NA,NA\n";
-            }
+template <typename ConvEntrySeq>
+void report_conv_table(std::ostream& out, const ConvEntrySeq& tbl, const std::string& param_name) {
+    out << "id," << param_name << ",linf,peak_dt,peak_dt_err\n";
+    for (const auto& c: tbl) {
+        out << c.id << "," << c.param << "," << c.linf << ",";
+        if (c.peak_delta) {
+            out << c.peak_delta->t << "," << c.peak_delta->t_err << "\n";
+        }
+        else {
+            out << "NA,NA\n";
         }
     }
 }

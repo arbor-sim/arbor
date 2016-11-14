@@ -4,25 +4,23 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
-#include <vector/include/Vector.hpp>
+#include <memory/memory.hpp>
+#include <util/span.hpp>
 
-#include "algorithms.hpp"
-#include "util.hpp"
+#include <algorithms.hpp>
 
 namespace nest {
 namespace mc {
 
 template <typename Int, typename Size = std::size_t>
 class tree {
-    using range = memory::Range;
-
 public:
     using int_type = Int;
     using size_type = Size;
 
-    using index_type = memory::HostVector<int_type>;
-    using view_type  = typename index_type::view_type;
-    using const_view_type = typename index_type::const_view_type;
+    using iarray = memory::host_vector<int_type>;
+    using view_type  = typename iarray::view_type;
+    using const_view_type = typename iarray::const_view_type;
     static constexpr int_type no_parent = (int_type)-1;
 
     tree() = default;
@@ -68,11 +66,12 @@ public:
             parent_index, algorithms::branches(parent_index));
 
         init(new_parent_index.size());
-        parents_(memory::all) = new_parent_index;
+        //parents_(memory::all) = new_parent_index;
+        memory::copy(new_parent_index, parents_);
         parents_[0] = no_parent;
 
-        child_index_(memory::all) =
-            algorithms::make_index(algorithms::child_count(parents_));
+        //child_index_(memory::all) = algorithms::make_index(algorithms::child_count(parents_));
+        memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
 
         std::vector<int_type> pos(parents_.size(), 0);
         for (auto i = 1u; i < parents_.size(); ++i) {
@@ -130,12 +129,12 @@ public:
         return sizeof(int_type)*data_.size() + sizeof(tree);
     }
 
-    index_type change_root(size_t b) {
+    iarray change_root(size_t b) {
         assert(b<num_nodes());
 
         // no need to rebalance if the root node has been requested
         if(b==0) {
-            return index_type();
+            return iarray();
         }
 
         // create new tree with memory allocated
@@ -143,13 +142,13 @@ public:
         new_tree.init(num_nodes());
 
         // add the root node
-        new_tree.parents_[0] = -1;
+        new_tree.parents_[0] = no_parent;
         new_tree.child_index_[0] = 0;
 
         // allocate space for the permutation vector that
         // will represent the permutation performed on the branches
         // during the rebalancing
-        index_type p(num_nodes(), -1);
+        iarray p(num_nodes(), -1);
 
         // recersively rebalance the tree
         new_tree.add_children(0, b, 0, p, *this);
@@ -172,7 +171,7 @@ private:
     void init(size_type nnode) {
         auto nchild = nnode - 1;
 
-        data_ = index_type(nchild + (nnode + 1) + nnode);
+        data_ = iarray(nchild + (nnode + 1) + nnode);
         set_ranges(nnode);
     }
 
@@ -280,7 +279,7 @@ private:
     //////////////////////////////////////////////////
     // state
     //////////////////////////////////////////////////
-    index_type data_;
+    iarray data_;
 
     // provide default parameters so that tree type can
     // be default constructed
@@ -292,7 +291,7 @@ private:
 template <typename IntT, typename SizeT, typename C>
 std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
 {
-    using range = memory::Range;
+    using util::make_span;
     using int_type = typename tree<IntT, SizeT>::int_type;
     constexpr auto no_parent = tree<IntT, SizeT>::no_parent;
 
@@ -305,7 +304,7 @@ std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
     auto num_compartments = index.back();
     std::vector<int_type> parent_index(num_compartments);
     int_type pos = 0;
-    for (int_type i : range(0, t.num_nodes())) {
+    for (int_type i : make_span(0, t.num_nodes())) {
         // get the parent of this segment
         // taking care for the case where the root node has -1 as its parent
         auto parent = t.parent(i);
