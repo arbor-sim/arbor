@@ -1,4 +1,6 @@
+#include <cctype>
 #include <cmath>
+#include <cstdio>
 #include <iterator>
 #include <utility>
 
@@ -30,6 +32,22 @@ public:
             std::cout << "token: " << tok << "\n";
         }
         return tok;
+    }
+
+    char character() {
+        char c = Lexer::character();
+        if (g_verbose_flag) {
+            std::cout << "character: ";
+            if (!std::isprint(c)) {
+                char buf[5] = "XXXX";
+                snprintf(buf, sizeof buf, "0x%02x", (unsigned)c);
+                std::cout << buf << '\n';
+            }
+            else {
+                std::cout << c << '\n';
+            }
+        }
+        return c;
     }
 };
 
@@ -307,4 +325,29 @@ TEST(Lexer, numbers) {
     EXPECT_EQ(floats.cend(), iter);
     EXPECT_EQ(tok::eof, t.type);
     EXPECT_EQ(check_ints, ints);
+
+    // check case where 'E' is not followed by +, -, or a digit explicitly
+    lexer = VerboseLexer("7.2E");
+    t = lexer.parse();
+    EXPECT_EQ(lexerStatus::happy, lexer.status());
+    EXPECT_EQ(tok::real, t.type);
+    EXPECT_EQ(t.spelling, "7.2");
+    EXPECT_EQ(lexer.character(), 'E');
+
+    lexer = VerboseLexer("3E+E2");
+    t = lexer.parse();
+    EXPECT_EQ(lexerStatus::happy, lexer.status());
+    EXPECT_EQ(tok::integer, t.type);
+    EXPECT_EQ(t.spelling, "3");
+    EXPECT_EQ(lexer.character(), 'E');
+    EXPECT_EQ(lexer.character(), '+');
+
+    // 'bad' numbers should give errors
+    lexer = VerboseLexer("1.2.3");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
+
+    lexer = VerboseLexer("1.2E4.3");
+    lexer.parse();
+    EXPECT_EQ(lexerStatus::error, lexer.status());
 }

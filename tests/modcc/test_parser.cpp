@@ -282,7 +282,7 @@ TEST(Parser, parse_parenthesis_expression) {
 // test parsing of line expressions
 TEST(Parser, parse_line_expression) {
     const char* good_expr[] = {
-        "qt=q10^((celsius-22)/10)"
+        "qt=q10^((celsius-22)/10)",
         "x=2        ",
         "x=2        ",
         "x = -y\n   "
@@ -319,7 +319,7 @@ TEST(Parser, parse_line_expression) {
 
 TEST(Parser, parse_stoich_term) {
     const char* good_pos_expr[] = {
-        "B", "B3", "3B3", "0A", "12A"
+        "B", "B3", "3B3", "0A", "12A", "4E"
     };
 
     for (auto& text: good_pos_expr) {
@@ -338,7 +338,7 @@ TEST(Parser, parse_stoich_term) {
         EXPECT_TRUE((s && s->negative()));
     }
     const char* bad_expr[] = {
-        "0.2A", "5"
+        "0.2A", "5", "3e2" // "3e2" should lex as real number 300.0
     };
 
     for (auto& text: bad_expr) {
@@ -403,6 +403,7 @@ TEST(Parser, parse_reaction_expression) {
         "~ A + B <-> C + D (k1, k2)",
         "~ 2B <-> C + D + E (k1(3,v), k2)",
         "~ <-> C + D + 7 E (k1, f(a,b)-2)",
+        "~ <-> C + D + 7E+F (k1, f(a,b)-2)",
         "~ <-> (f,g)",
         "~ A + 3B + C<-> (f,g)"
     };
@@ -417,6 +418,7 @@ TEST(Parser, parse_reaction_expression) {
         "~ A + B <-> C + (k1, k2)",
         "~ 2.3B <-> C + D + E (k1(3,v), k2)",
         "~ <-> C + D + 7E",
+        "~ <-> C + D + 7E+2F (k1, f(a,b)-2)", // "7E+2" will lex as real number
         "~ <-> (,g)",
         "~ A - 3B + C<-> (f,g)",
         "  A <-> B (k1, k2)",

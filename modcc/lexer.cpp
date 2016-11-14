@@ -28,6 +28,9 @@ inline bool is_eof(char c) {
 inline bool is_operator(char c) {
     return (c=='+' || c=='-' || c=='*' || c=='/' || c=='^' || c=='\'');
 }
+inline bool is_plusminus(char c) {
+    return (c=='+' || c=='-');
+}
 
 //*********************
 // Lexer
@@ -258,13 +261,21 @@ Token Lexer::number() {
                 incorrectly_formed_mantisa = true;
             }
         }
-        else if(c=='e' || c=='E') {
-            uses_scientific_notation++;
-            str += c;
-            current_++;
-            // Consume the next char if +/-
-            if (*current_ == '+' || *current_ == '-') {
-                str += *current_++;
+        else if(!uses_scientific_notation && (c=='e' || c=='E')) {
+            if(is_numeric(current_[1]) ||
+               is_plusminus(current_[1]) && is_numeric(current_[2]))
+            {
+                uses_scientific_notation++;
+                str += c;
+                current_++;
+                // Consume the next char if +/-
+                if (is_plusminus(*current_)) {
+                    str += *current_++;
+                }
+            }
+            else {
+                // the 'e' or 'E' is the beginning of a new token
+                break;
             }
         }
         else {
@@ -281,11 +292,6 @@ Token Lexer::number() {
     // i.e. disallow values like 2.2324.323
     if(num_point>1) {
         error_string_ = pprintf("too many .'s when reading the number '%'", yellow(str));
-        status_ = lexerStatus::error;
-    }
-    // check that e or E is not used more than once in the number
-    if(uses_scientific_notation>1) {
-        error_string_ = pprintf("can't parse the number '%'", yellow(str));
         status_ = lexerStatus::error;
     }
 
