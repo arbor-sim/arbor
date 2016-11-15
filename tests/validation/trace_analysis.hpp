@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <simple_sampler.hpp>
 #include <math.hpp>
