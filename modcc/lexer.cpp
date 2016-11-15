@@ -263,7 +263,7 @@ Token Lexer::number() {
         }
         else if(!uses_scientific_notation && (c=='e' || c=='E')) {
             if(is_numeric(current_[1]) ||
-               is_plusminus(current_[1]) && is_numeric(current_[2]))
+               (is_plusminus(current_[1]) && is_numeric(current_[2])))
             {
                 uses_scientific_notation++;
                 str += c;
