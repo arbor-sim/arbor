@@ -42,7 +42,7 @@ public:
     convergence_test_runner(
         const std::string& param_name,
         const SamplerInfoSeq& samplers,
-        const nlohmann::json meta
+        const nlohmann::json& meta
     ):
         param_name_(param_name),
         run_validation_(false),
@@ -84,7 +84,7 @@ public:
             const auto& trace = se.sampler.trace;
 
             // save trace
-            nlohmann::json trace_meta{meta_};
+            nlohmann::json trace_meta(meta_);
             trace_meta[param_name_] = p;
 
             g_trace_io.save_trace(label, trace, trace_meta);
