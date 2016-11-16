@@ -354,7 +354,7 @@ TEST(Parser, parse_stoich_expression) {
     for (auto& text: single_expr) {
         std::unique_ptr<StoichExpression> s;
         EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_expression, text));
-        EXPECT_EQ(1, s->terms().size());
+        EXPECT_EQ(1u, s->terms().size());
     }
 
     const char* double_expr[] = {
@@ -364,7 +364,7 @@ TEST(Parser, parse_stoich_expression) {
     for (auto& text: double_expr) {
         std::unique_ptr<StoichExpression> s;
         EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_expression, text));
-        EXPECT_EQ(2, s->terms().size());
+        EXPECT_EQ(2u, s->terms().size());
     }
 
     const char* other_good_expr[] = {
@@ -380,7 +380,7 @@ TEST(Parser, parse_stoich_expression) {
     {
         std::unique_ptr<StoichExpression> s;
         EXPECT_TRUE(check_parse(s, &Parser::parse_stoich_expression, check_coeff));
-        EXPECT_EQ(4, s->terms().size());
+        EXPECT_EQ(4u, s->terms().size());
         std::vector<int> confirm = {-3,2,-1,1};
         for (unsigned i = 0; i<4; ++i) {
             auto term = s->terms()[i]->is_stoich_term();
@@ -439,19 +439,19 @@ TEST(Parser, parse_conserve) {
     ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
     EXPECT_TRUE(s->rhs()->is_number());
     ASSERT_TRUE(s->lhs()->is_stoich());
-    EXPECT_EQ(2, s->lhs()->is_stoich()->terms().size());
+    EXPECT_EQ(2u, s->lhs()->is_stoich()->terms().size());
 
     text = "CONSERVE a = 1.23e-2";
     ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
     EXPECT_TRUE(s->rhs()->is_number());
     ASSERT_TRUE(s->lhs()->is_stoich());
-    EXPECT_EQ(1, s->lhs()->is_stoich()->terms().size());
+    EXPECT_EQ(1u, s->lhs()->is_stoich()->terms().size());
 
     text = "CONSERVE = 0";
     ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
     EXPECT_TRUE(s->rhs()->is_number());
     ASSERT_TRUE(s->lhs()->is_stoich());
-    EXPECT_EQ(0, s->lhs()->is_stoich()->terms().size());
+    EXPECT_EQ(0u, s->lhs()->is_stoich()->terms().size());
 
     text = "CONSERVE -2a + b -c = foo*2.3-bar";
     ASSERT_TRUE(check_parse(s, &Parser::parse_conserve_expression, text));
@@ -459,7 +459,7 @@ TEST(Parser, parse_conserve) {
     ASSERT_TRUE(s->lhs()->is_stoich());
     {
         auto& terms = s->lhs()->is_stoich()->terms();
-        ASSERT_EQ(3, terms.size());
+        ASSERT_EQ(3u, terms.size());
         auto coeff = terms[0]->is_stoich_term()->coeff()->is_integer();
         ASSERT_TRUE(coeff);
         EXPECT_EQ(-2, coeff->integer_value());
