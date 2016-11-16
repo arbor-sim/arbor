@@ -110,16 +110,12 @@ expression_ptr IdentifierExpression::clone() const {
     return make_expression<IdentifierExpression>(location_, spelling_);
 }
 
-bool IdentifierExpression::is_lvalue() {
-    // check for global variable that is writeable
-    auto var = symbol_->is_variable();
-    if(var) return var->is_writeable();
+bool IdentifierExpression::is_lvalue() const {
+    return is_global_lvalue() || symbol_->kind() == symbolKind::local_variable;
+}
 
-    // else look for local symbol
-    if( symbol_->kind() == symbolKind::local_variable ) {
-        return true;
-    }
-
+bool IdentifierExpression::is_global_lvalue() const {
+    if(auto var = symbol_->is_variable()) return var->is_writeable();
     return false;
 }
 
@@ -129,6 +125,14 @@ bool IdentifierExpression::is_lvalue() {
 
 expression_ptr NumberExpression::clone() const {
     return make_expression<NumberExpression>(location_, value_);
+}
+
+/*******************************************************************************
+  IntegerExpression
+********************************************************************************/
+
+expression_ptr IntegerExpression::clone() const {
+    return make_expression<IntegerExpression>(location_, integer_);
 }
 
 /*******************************************************************************
@@ -248,6 +252,98 @@ std::string IndexedVariable::to_string() const {
         blue("indexed") + " " + yellow(name()) + "->" + yellow(index_name()) + "("
         + (is_write() ? " write-only" : " read-only")
         + ", ion" + (ion_channel()==ionKind::none ? red(ch) : green(ch)) + ") ";
+}
+
+/*******************************************************************************
+  ReactionExpression
+*******************************************************************************/
+
+std::string ReactionExpression::to_string() const {
+    return blue("reaction") +
+           pprintf(" % <-> % (%, %)",
+               lhs()->to_string(), rhs()->to_string(),
+                fwd_rate()->to_string(), rev_rate()->to_string());
+}
+
+expression_ptr ReactionExpression::clone() const {
+    return make_expression<ReactionExpression>(
+        location_, lhs()->clone(), rhs()->clone(), fwd_rate()->clone(), rev_rate()->clone());
+}
+
+void ReactionExpression::semantic(std::shared_ptr<scope_type> scp) {
+    scope_ = scp;
+    lhs()->semantic(scp);
+    rhs()->semantic(scp);
+
+    fwd_rate()->semantic(scp);
+    rev_rate()->semantic(scp);
+    if(fwd_rate_->is_procedure_call() || rev_rate_->is_procedure_call()) {
+        error("procedure calls can't be made in an expression");
+    }
+}
+
+/*******************************************************************************
+  StoichTermExpression
+*******************************************************************************/
+
+expression_ptr StoichTermExpression::clone() const {
+    return make_expression<StoichTermExpression>(
+        location_, coeff()->clone(), ident()->clone());
+}
+
+void StoichTermExpression::semantic(std::shared_ptr<scope_type> scp) {
+    scope_ = scp;
+    ident()->semantic(scp);
+}
+
+/*******************************************************************************
+  StoichExpression
+*******************************************************************************/
+
+expression_ptr StoichExpression::clone() const {
+    std::vector<expression_ptr> cloned_terms;
+    for(auto& e: terms()) {
+        cloned_terms.emplace_back(e->clone());
+    }
+
+    return make_expression<StoichExpression>(location_, std::move(cloned_terms));
+}
+
+std::string StoichExpression::to_string() const {
+    std::string s;
+    bool first = true;
+    for(auto& e: terms()) {
+        if (!first) s += "+";
+        s += e->to_string();
+        first = false;
+    }
+    return s;
+}
+
+void StoichExpression::semantic(std::shared_ptr<scope_type> scp) {
+    scope_ = scp;
+    for(auto& e: terms()) {
+        e->semantic(scp);
+    }
+}
+
+/*******************************************************************************
+  ConserveExpression
+*******************************************************************************/
+
+expression_ptr ConserveExpression::clone() const {
+    return make_expression<ConserveExpression>(
+        location_, lhs()->clone(), rhs()->clone());
+}
+
+void ConserveExpression::semantic(std::shared_ptr<scope_type> scp) {
+    scope_ = scp;
+    lhs_->semantic(scp);
+    rhs_->semantic(scp);
+
+    if(rhs_->is_procedure_call()) {
+        error("procedure calls can't be made in an expression");
+    }
 }
 
 /*******************************************************************************
@@ -709,7 +805,6 @@ expression_ptr IfExpression::clone() const {
 void Expression::accept(Visitor *v) {
     v->visit(this);
 }
-
 void Symbol::accept(Visitor *v) {
     v->visit(this);
 }
@@ -744,6 +839,9 @@ void IndexedVariable::accept(Visitor *v) {
     v->visit(this);
 }
 void NumberExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void IntegerExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void LocalDeclaration::accept(Visitor *v) {
@@ -792,6 +890,18 @@ void BinaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void AssignmentExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void ConserveExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void ReactionExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StoichExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void StoichTermExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void AddBinaryExpression::accept(Visitor *v) {

@@ -15,7 +15,6 @@
 #include <json/json.hpp>
 
 #include <threading/threading.hpp>
-#include <util.hpp>
 
 namespace nest {
 namespace mc {

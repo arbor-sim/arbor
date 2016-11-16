@@ -1,13 +1,55 @@
 #include <numeric>
 
+#ifdef WITH_GPU
+    #include <cuda_profiler_api.h>
+#endif
+
 #include <common_types.hpp>
 #include <communication/global_policy.hpp>
 #include <profiling/profiler.hpp>
+#include <util/make_unique.hpp>
 #include <util/debug.hpp>
 
 namespace nest {
 namespace mc {
 namespace util {
+
+// Here we provide functionality that the profiler can use to control the CUDA
+// profiler nvprof. The cudaStartProfiler and cudaStopProfiler API calls are
+// provided to let a program control which parts of the program are to be
+// profiled.
+// Here are some wrappers that the NestMC profiler restrict nvprof to recording
+// only the time intervals that the user requests when they start and stop the
+// profiler.
+// It is a simple wrapper around the API calls with a mutex to ensure correct
+// behaviour when multiple threads attempt to start or stop the profiler.
+#ifdef WITH_GPU
+namespace gpu {
+    bool is_running_nvprof = false;
+    std::mutex gpu_profiler_mutex;
+
+    void start_nvprof() {
+        std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
+        if (!is_running_nvprof) {
+            cudaProfilerStart();
+        }
+        is_running_nvprof = true;
+    }
+
+    void stop_nvprof() {
+        std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
+        if (is_running_nvprof) {
+            cudaProfilerStop();
+        }
+        is_running_nvprof = false;
+    }
+}
+#else
+namespace gpu {
+    void start_nvprof() {}
+    void stop_nvprof()  {}
+}
+#endif
 
 /////////////////////////////////////////////////////////
 // profiler_node
@@ -219,6 +261,7 @@ void profiler::leave(int n) {
 }
 
 void profiler::start() {
+    gpu::start_nvprof();
     if (is_activated()) {
         throw std::out_of_range(
                 "attempt to start an already running profiler"
@@ -293,6 +336,7 @@ void profiler_leave(int nlevels) {
 
 /// iterate over all profilers and ensure that they have the same start stop times
 void profilers_stop() {
+    gpu::stop_nvprof();
     for (auto& p : data::profilers_) {
         p.stop();
     }

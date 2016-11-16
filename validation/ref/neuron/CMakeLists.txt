@@ -3,6 +3,7 @@
 set(models
      ball_and_stick
      ball_and_3stick
+     ball_and_squiggle
      ball_and_taper
      simple_exp_synapse
      simple_exp2_synapse

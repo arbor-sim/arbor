@@ -23,6 +23,12 @@ enum class tok {
     equality,// ==
     ne,      // !=
 
+    // <->
+    arrow,
+
+    // ~
+    tilde,
+
     // , '
     comma, prime,
 
@@ -35,7 +41,7 @@ enum class tok {
     identifier,
 
     // numbers
-    number,
+    real, integer,
 
     /////////////////////////////
     // keywords
@@ -44,14 +50,14 @@ enum class tok {
     title,
     neuron, units, parameter,
     assigned, state, breakpoint,
-    derivative, procedure, initial, function,
+    derivative, kinetic, procedure, initial, function,
     net_receive,
 
     // keywoards inside blocks
     unitsoff, unitson,
     suffix, nonspecific_current, useion,
     read, write,
-    range, local,
+    range, local, conserve,
     solve, method,
     threadsafe, global,
     point_process,
@@ -76,7 +82,7 @@ enum class tok {
 struct Token {
     // the spelling string contains the text of the token as it was written
     // in the input file
-    //   type = tok::number     : spelling = "3.1415"  (e.g.)
+    //   type = tok::real       : spelling = "3.1415"  (e.g.)
     //   type = tok::identifier : spelling = "foo_bar" (e.g.)
     //   type = tok::plus       : spelling = "+"       (always)
     //   type = tok::if         : spelling = "if"      (always)

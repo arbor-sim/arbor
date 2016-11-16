@@ -11,83 +11,51 @@
 #include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
-#include "../test_util.hpp"
 #include "../test_common_cells.hpp"
+#include "convergence_test.hpp"
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
 using namespace nest::mc;
 
 TEST(soma, numeric_ref) {
-    // compare voltages against reference data produced from
-    // nrn/ball_and_taper.py
+    using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 
-    using namespace nlohmann;
-
-    using lowered_cell = fvm::fvm_multicell<double, cell_local_size_type>;
-    auto& V = g_trace_io;
-
-    bool verbose = V.verbose();
-
-    // load validation data
-
-    bool run_validation = false;
-    std::map<std::string, trace_data> ref_data;
-    const char* key = "soma.mid";
-
-    const char* ref_data_path = "numeric_soma.json";
-    try {
-        ref_data = V.load_traces(ref_data_path);
-        run_validation = ref_data.count(key);
-
-        EXPECT_TRUE(run_validation);
-    }
-    catch (std::runtime_error&) {
-        ADD_FAILURE() << "failure loading reference data: " << ref_data_path;
-    }
-
-    // generate test data
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
+    model<lowered_cell> m(singleton_recipe{c});
 
-    float sample_dt = .025;
-    simple_sampler sampler(sample_dt);
-    conv_data<float> convs;
+    float sample_dt = .025f;
+    sampler_info samplers[] = {{"soma.mid", {0u, 0u}, simple_sampler(sample_dt)}};
 
-    for (auto dt: {0.05f, 0.02f, 0.01f, 0.005f, 0.001f}) {
-        sampler.reset();
-        model<lowered_cell> m(singleton_recipe{c});
+    nlohmann::json meta = {
+        {"name", "membrane voltage"},
+        {"model", "soma"},
+        {"sim", "nestmc"},
+        {"units", "mV"}
+    };
 
-        m.attach_sampler({0u, 0u}, sampler.sampler<>());
-        m.run(100, dt);
+    convergence_test_runner<float> R("dt", samplers, meta);
+    R.load_reference_data("numeric_soma.json");
 
-        // save trace
-        auto& trace = sampler.trace;
-        json meta = {
-            {"name", "membrane voltage"},
-            {"model", "soma"},
-            {"sim", "nestmc"},
-            {"dt", dt},
-            {"units", "mV"}};
+    float t_end = 100.f;
 
-        V.save_trace(key, trace, meta);
+    // use dt = 0.05, 0.025, 0.01, 0.005, 0.0025,  ...
+    double max_oo_dt = std::round(1.0/g_trace_io.min_dt());
+    for (double base = 100; ; base *= 10) {
+        for (double multiple: {5., 2.5, 1.}) {
+            double oo_dt = base/multiple;
+            if (oo_dt>max_oo_dt) goto end;
 
-        // compute metrics
-        if (run_validation) {
-            double linf = linf_distance(trace, ref_data[key]);
-            auto pd = peak_delta(trace, ref_data[key]);
-
-            convs.push_back({key, dt, linf, pd});
+            m.reset();
+            float dt = float(1./oo_dt);
+            R.run(m, dt, t_end, dt);
         }
     }
+end:
 
-    if (verbose && run_validation) {
-        std::map<std::string, std::vector<conv_entry<float>>> conv_results = {{key, convs}};
-        report_conv_table(std::cout, conv_results, "dt");
-    }
-
-    SCOPED_TRACE("soma.mid");
-    assert_convergence(convs);
+    R.report();
+    R.assert_all_convergence();
 }

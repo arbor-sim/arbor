@@ -28,6 +28,9 @@ inline bool is_eof(char c) {
 inline bool is_operator(char c) {
     return (c=='+' || c=='-' || c=='*' || c=='/' || c=='^' || c=='\'');
 }
+inline bool is_plusminus(char c) {
+    return (c=='+' || c=='-');
+}
 
 //*********************
 // Lexer
@@ -90,11 +93,7 @@ Token Lexer::parse() {
             // number
             case '0' ... '9':
             case '.':
-                t.spelling = number();
-
-                // test for error when reading number
-                t.type = (status_==lexerStatus::error) ? tok::reserved : tok::number;
-                return t;
+                return number();
 
             // identifier or keyword
             case 'a' ... 'z':
@@ -121,6 +120,10 @@ Token Lexer::parse() {
                 return t;
             case '}':
                 t.type = tok::rbrace;
+                t.spelling += character();
+                return t;
+            case '~':
+                t.type = tok::tilde;
                 t.spelling += character();
                 return t;
             case '=': {
@@ -171,6 +174,11 @@ Token Lexer::parse() {
                 if(*current_=='=') {
                     t.spelling += character();
                     t.type = tok::lte;
+                }
+                else if(*current_=='-' && current_[1]=='>') {
+                    t.spelling += character();
+                    t.spelling += character();
+                    t.type = tok::arrow;
                 }
                 else {
                     t.type = tok::lt;
@@ -228,7 +236,7 @@ Token Lexer::peek() {
 }
 
 // scan floating point number from stream
-std::string Lexer::number() {
+Token Lexer::number() {
     std::string str;
     char c = *current_;
 
@@ -253,13 +261,21 @@ std::string Lexer::number() {
                 incorrectly_formed_mantisa = true;
             }
         }
-        else if(c=='e' || c=='E') {
-            uses_scientific_notation++;
-            str += c;
-            current_++;
-            // Consume the next char if +/-
-            if (*current_ == '+' || *current_ == '-') {
-                str += *current_++;
+        else if(!uses_scientific_notation && (c=='e' || c=='E')) {
+            if(is_numeric(current_[1]) ||
+               is_plusminus(current_[1]) && is_numeric(current_[2]))
+            {
+                uses_scientific_notation++;
+                str += c;
+                current_++;
+                // Consume the next char if +/-
+                if (is_plusminus(*current_)) {
+                    str += *current_++;
+                }
+            }
+            else {
+                // the 'e' or 'E' is the beginning of a new token
+                break;
             }
         }
         else {
@@ -278,13 +294,19 @@ std::string Lexer::number() {
         error_string_ = pprintf("too many .'s when reading the number '%'", yellow(str));
         status_ = lexerStatus::error;
     }
-    // check that e or E is not used more than once in the number
-    if(uses_scientific_notation>1) {
-        error_string_ = pprintf("can't parse the number '%'", yellow(str));
-        status_ = lexerStatus::error;
+
+    tok type;
+    if(status_==lexerStatus::error) {
+        type = tok::reserved;
+    }
+    else if(num_point<1 && !uses_scientific_notation) {
+        type = tok::integer;
+    }
+    else {
+        type = tok::real;
     }
 
-    return str;
+    return Token(type, str, location_);
 }
 
 // scan identifier from stream

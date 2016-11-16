@@ -5,8 +5,9 @@
 #include <iostream>
 #include <mutex>
 
-#include "util/debug.hpp"
-#include "util/ioutil.hpp"
+#include <util/debug.hpp>
+#include <util/ioutil.hpp>
+#include <util/unwind.hpp>
 
 namespace nest {
 namespace mc {
@@ -20,9 +21,12 @@ bool abort_on_failed_assertion(
     int line,
     const char* func)
 {
+    // If libunwind is being used, make a file with a backtrace and print information
+    // to stdcerr.
+    backtrace().print();
+
     // Explicit flush, as we can't assume default buffering semantics on stderr/cerr,
     // and abort() might not flush streams.
-
     std::cerr << file << ':' << line << " " << func
               << ": Assertion `" << assertion << "' failed." << std::endl;
     std::abort();

@@ -1,6 +1,6 @@
 #include <fstream>
 
-#include "gtest.h"
+#include "../gtest.h"
 #include "../test_util.hpp"
 
 #include "../src/parameter_list.hpp"
