@@ -129,12 +129,10 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
         // print stubs that call API method kernels that are defined in the
         // kernels::name namespace
-        auto proctest = [] (procedureKind k) {
-            return is_in(k, {procedureKind::normal, procedureKind::api});
-        };
         for(auto const &var : m.symbols()) {
             if (var.second->kind()==symbolKind::procedure &&
-                proctest(var.second->is_procedure()->kind()))
+                is_in(var.second->is_procedure()->kind(),
+                      {procedureKind::normal, procedureKind::api}))
             {
                 var.second->accept(this);
             }

@@ -7,24 +7,24 @@
 
 #include "../test_common_cells.hpp"
 
+using namespace nest::mc;
+
 using fvm_cell =
-    nest::mc::fvm::fvm_multicell<nest::mc::gpu::backend>;
+    fvm::fvm_multicell<nest::mc::gpu::backend>;
 
 nest::mc::cell make_cell() {
     using namespace nest::mc;
 
-    nest::mc::cell cell = make_cell_ball_and_stick();
+    cell c = make_cell_ball_and_stick();
 
-    cell.add_detector({0, 0}, 0);
-    cell.segment(1)->set_compartments(101);
+    c.add_detector({0, 0}, 0);
+    c.segment(1)->set_compartments(101);
 
-    return cell;
+    return c;
 }
 
 TEST(cell_group, test)
 {
-    using namespace nest::mc;
-
     using cell_group_type = cell_group<fvm_cell>;
     auto group = cell_group_type{0, util::singleton_view(make_cell())};
 

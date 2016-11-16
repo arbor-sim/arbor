@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstdio>
-#include <ostream>
+#include <fstream>
 #include <stdexcept>
 
 #include <communication/global_policy.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 /// A specialized listener desinged for printing test results with MPI.
 ///

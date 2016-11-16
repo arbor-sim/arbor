@@ -1,5 +1,3 @@
-#include "gtest.h"
-
 #include <cstring>
 #include <list>
 
@@ -7,6 +5,8 @@
 #include <util/rangeutil.hpp>
 #include <util/filter.hpp>
 #include <util/transform.hpp>
+
+#include "../gtest.h"
 
 #include "common.hpp"
 

@@ -15,19 +15,19 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-using namespace nest::mc;
-
 template <
     typename LoweredCell,
     typename SamplerInfoSeq
 >
 void run_ncomp_convergence_test(
     const char* model_name,
-    const util::path& ref_data_path,
-    const cell& c,
+    const nest::mc::util::path& ref_data_path,
+    const nest::mc::cell& c,
     SamplerInfoSeq& samplers,
     float t_end=100.f)
 {
+    using namespace nest::mc;
+
     auto max_ncomp = g_trace_io.max_ncomp();
     auto dt = g_trace_io.min_dt();
 
@@ -62,6 +62,8 @@ void run_ncomp_convergence_test(
 
 template <typename LoweredCell>
 void validate_ball_and_stick() {
+    using namespace nest::mc;
+
     cell c = make_cell_ball_and_stick();
     add_common_voltage_probes(c);
 
@@ -81,6 +83,8 @@ void validate_ball_and_stick() {
 
 template <typename LoweredCell>
 void validate_ball_and_3stick() {
+    using namespace nest::mc;
+
     cell c = make_cell_ball_and_3stick();
     add_common_voltage_probes(c);
 
@@ -104,6 +108,8 @@ void validate_ball_and_3stick() {
 
 template <typename LoweredCell>
 void validate_rallpack1() {
+    using namespace nest::mc;
+
     cell c = make_cell_simple_cable();
 
     // three probes: left end, 30% along, right end.
@@ -128,6 +134,8 @@ void validate_rallpack1() {
 
 template <typename LoweredCell>
 void validate_ball_and_squiggle() {
+    using namespace nest::mc;
+
     cell c = make_cell_ball_and_squiggle();
     add_common_voltage_probes(c);
 

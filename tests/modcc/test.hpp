@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gtest.h>
+#include "../gtest.h"
 
 #include "parser.hpp"
 #include "modccutil.hpp"

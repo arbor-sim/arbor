@@ -13,10 +13,10 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-using namespace nest::mc;
-
 template <typename LoweredCell>
 void validate_soma() {
+    using namespace nest::mc;
+
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
     model<LoweredCell> model(singleton_recipe{c});
