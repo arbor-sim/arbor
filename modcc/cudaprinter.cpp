@@ -412,11 +412,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-
-    auto proctest = [] (procedureKind k) {return k == procedureKind::api;};
     for(auto const &var : m.symbols()) {
         if( var.second->kind()==symbolKind::procedure && 
-            proctest(var.second->is_procedure()->kind()))
+            var.second->is_procedure()->kind()==procedureKind::api)
         {
             auto proc = var.second->is_api_method();
             auto name = proc->name();
