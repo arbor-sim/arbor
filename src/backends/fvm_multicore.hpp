@@ -132,7 +132,7 @@ struct backend {
     static bool has_mechanism(const std::string& name) { return mech_map_.count(name)>0; }
 
     static std::string name() {
-        return "multicore";
+        return "cpu";
     }
 
 private:

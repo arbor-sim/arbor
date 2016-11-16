@@ -4,7 +4,7 @@
 
 #include <json/json.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <math.hpp>
 #include <simple_sampler.hpp>

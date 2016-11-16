@@ -1,8 +1,5 @@
 # google test framework
 add_library(gtest gtest-all.cpp)
-# tests look for gtest.h here
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
-
 
 # Unit tests
 add_subdirectory(unit)
