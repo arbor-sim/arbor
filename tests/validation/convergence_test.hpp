@@ -2,10 +2,11 @@
 
 #include <util/filter.hpp>
 #include <util/rangeutil.hpp>
+#include <cell.hpp>
 
 #include <json/json.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"

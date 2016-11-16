@@ -3,7 +3,7 @@
 #include "../gtest.h"
 #include "validate_synapses.hpp"
 
-using lowered_cell = nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
+using lowered_cell = nest::mc::fvm::fvm_multicell<nest::mc::gpu::backend>;
 
 TEST(simple_synapse, expsyn_neuron_ref) {
     SCOPED_TRACE("expsyn");

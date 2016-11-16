@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include <communication/global_policy.hpp>
 

@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include "cprinter.hpp" // needed for printing net_receive method
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
 
@@ -114,27 +115,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         text_.decrease_indentation();
         text_.add_line("}");
         text_.add_line();
-        /*
-        text_.add_line("__device__");
-        text_.add_line("inline double atomicSub(double* address, double val) {");
-        text_.increase_indentation();
-        text_.add_line("return atomicAdd(address, -val);");
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line();
-        text_.add_line("__device__");
-        text_.add_line("inline float atomicSub(float* address, float val) {");
-        text_.increase_indentation();
-        text_.add_line("return atomicAdd(address, -val);");
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line();
-        */
 
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
-            if(   var.second->kind()==symbolKind::procedure
-            && var.second->is_procedure()->kind() == procedureKind::normal)
+            if( var.second->kind()==symbolKind::procedure &&
+                var.second->is_procedure()->kind() == procedureKind::normal)
             {
                 print_procedure_prototype(var.second->is_procedure());
                 text_.end_line(";");
@@ -144,11 +129,10 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
         // print stubs that call API method kernels that are defined in the
         // kernels::name namespace
-        auto proctest = [] (procedureKind k) {return k == procedureKind::normal
-                                                  || k == procedureKind::api;   };
         for(auto const &var : m.symbols()) {
             if (var.second->kind()==symbolKind::procedure &&
-                proctest(var.second->is_procedure()->kind()))
+                is_in(var.second->is_procedure()->kind(),
+                      {procedureKind::normal, procedureKind::api}))
             {
                 var.second->accept(this);
             }
@@ -428,11 +412,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-
-    auto proctest = [] (procedureKind k) {return k == procedureKind::api;};
     for(auto const &var : m.symbols()) {
-        if(   var.second->kind()==symbolKind::procedure
-        && proctest(var.second->is_procedure()->kind()))
+        if( var.second->kind()==symbolKind::procedure && 
+            var.second->is_procedure()->kind()==procedureKind::api)
         {
             auto proc = var.second->is_api_method();
             auto name = proc->name();
@@ -446,6 +428,29 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             text_.add_line(
                 "kernels::" + name + "<value_type, size_type>"
                 + "<<<dim_grid, dim_block>>>(param_pack_);");
+            text_.decrease_indentation();
+            text_.add_line("}");
+            text_.add_line();
+        }
+        else if( var.second->kind()==symbolKind::procedure &&
+                 var.second->is_procedure()->kind()==procedureKind::net_receive)
+        {
+            auto proc = var.second->is_procedure();
+            auto name = proc->name();
+            text_.add_line("void " + name + "(int i_, value_type weight) {");
+            text_.increase_indentation();
+
+            // Print the body of the net_receive block.
+            // Use the same body as would be generated with the cprinter.
+            // This is not omptimal, because each read and write will require
+            // a copy between host and device memory, so we will need a
+            // GPU-specific implementation
+            auto cprinter = CPrinter(*module_);
+            cprinter.clear_text();
+            cprinter.set_gutter(text_.get_gutter());
+            proc->body()->accept(&cprinter);
+            text_ << cprinter.text();
+
             text_.decrease_indentation();
             text_.add_line("}");
             text_.add_line();
@@ -648,28 +653,26 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
             e->location());
     }
 
-    // ------------- print prototype ------------- //
+    // print prototype
     print_procedure_prototype(e);
     text_.end_line(" {");
 
-    // ------------- print body ------------- //
+    // print body
     increase_indentation();
 
     text_.add_line("using value_type = T;");
-    text_.add_line("using iarray = I;");
     text_.add_line();
 
     e->body()->accept(this);
 
-    // ------------- close up ------------- //
+    // close up
     decrease_indentation();
     text_.add_line("}");
     text_.add_line();
-    return;
 }
 
 void CUDAPrinter::visit(APIMethod *e) {
-    // ------------- print prototype ------------- //
+    // print prototype
     text_.add_gutter() << "template <typename T, typename I>\n";
     text_.add_line(       "__global__");
     text_.add_gutter() << "void " << e->name()
@@ -702,7 +705,8 @@ void CUDAPrinter::visit(APIMethod *e) {
     text_.add_line("}");
 
     decrease_indentation();
-    text_.add_line("}\n");
+    text_.add_line("}");
+    text_.add_line();
 }
 
 void CUDAPrinter::print_APIMethod_body(APIMethod* e) {

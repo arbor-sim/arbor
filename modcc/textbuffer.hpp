@@ -18,10 +18,13 @@ public:
     std::string str() const;
 
     void set_gutter(int width);
+    int get_gutter();
 
     void increase_indentation();
     void decrease_indentation();
     std::stringstream &text();
+
+    void clear();
 
 private:
 
