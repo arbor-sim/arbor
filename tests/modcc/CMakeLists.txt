@@ -1,6 +1,7 @@
 set(MODCC_TEST_SOURCES
     # unit tests
     test_lexer.cpp
+    test_kinetic_rewriter.cpp
     test_module.cpp
     test_optimization.cpp
     test_parser.cpp
