@@ -338,7 +338,12 @@ alg::prodsum expand_expression(Expression* e, const id_prodsum_map& exmap) {
     else if (const auto& i = e->is_identifier()) {
         std::string k = i->spelling();
         auto x = exmap.find(k);
-        return x!=exmap.end()? x->second: prodterm(k);
+        //return x!=exmap.end()? x->second: prodterm(k);
+        auto y =  x!=exmap.end()? x->second: prodterm(k);
+        if (k=="v") {
+            std::cout << "debug: y=" << y << "\n";
+        }
+        return y;
     }
     else if (const auto& b = e->is_binary()) {
         prodsum lhs = expand_expression(b->lhs(), exmap);
@@ -438,6 +443,7 @@ static const char* kinetic_abc =
     "    u = 3                 \n"
     "    ~ a <-> b (u, v)      \n"
     "    u = 4                 \n"
+    "    v = sin(u)            \n"
     "    ~ b <-> 3b + c (u, v) \n"
     "}                         \n";
 
@@ -445,8 +451,8 @@ static const char* derivative_abc =
     "DERIVATIVE deriv {        \n"
     "    a' = -3*a + b*v       \n"
     "    LOCAL rev2            \n"
-    "    rev2 = c*b^3*v        \n"
-    "    b' = 3*a - v*b + 8*b - 2*rev2\n"
+    "    rev2 = c*b^3*sin(4)   \n"
+    "    b' = 3*a - (v*b) + 8*b - 2*rev2\n"
     "    c' = 4*b - rev2       \n"
     "}                         \n";
 
