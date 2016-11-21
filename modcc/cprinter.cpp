@@ -473,7 +473,9 @@ void CPrinter::visit(BlockExpression *e) {
         // these all must be handled
         text_.add_gutter();
         stmt->accept(this);
-        text_.end_line(";");
+        if (not stmt->is_if()) {
+            text_.end_line(";");
+        }
     }
 }
 
@@ -487,8 +489,24 @@ void CPrinter::visit(IfExpression *e) {
     increase_indentation();
     e->true_branch()->accept(this);
     decrease_indentation();
-    text_.add_gutter();
-    text_ << "}";
+    text_.add_line("}");
+    // check if there is a false-branch, i.e. if
+    // there is an "else" branch to print
+    if (auto fb = e->false_branch()) {
+        text_.add_gutter() << "else ";
+        // use recursion for "else if"
+        if (fb->is_if()) {
+            fb->accept(this);
+        }
+        // otherwise print the "else" block
+        else {
+            text_ << "{\n";
+            increase_indentation();
+            fb->accept(this);
+            decrease_indentation();
+            text_.add_line("}");
+        }
+    }
 }
 
 // NOTE: net_receive() is classified as a ProcedureExpression
