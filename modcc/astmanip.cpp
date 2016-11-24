@@ -23,7 +23,7 @@ local_assignment make_unique_local_assign(scope_ptr scope, Expression* e, std::s
     id->semantic(scope);
 
     auto ass = binary_expression(e->location(), tok::eq, id->clone(), e->clone());
-    ass->scope(scope);
+    ass->semantic(scope);
 
     return { std::move(local), std::move(ass), std::move(id), scope };
 }

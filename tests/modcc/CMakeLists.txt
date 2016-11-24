@@ -10,6 +10,9 @@ set(MODCC_TEST_SOURCES
 
     # unit test driver
     driver.cpp
+
+    # utility
+    expr_expand.cpp
 )
 
 add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")

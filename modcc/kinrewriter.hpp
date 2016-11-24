@@ -138,7 +138,7 @@ inline void KineticRewriter::visit(ReactionExpression* e) {
         auto term = make_expression<MulBinaryExpression>(
             loc,
             make_expression<IntegerExpression>(loc, p.second),
-            net_rate->clone());
+            net_rate_sym->clone());
         term->semantic(scope);
 
         auto local_term = make_unique_local_assign(scope, term, p.first+"_rate");
