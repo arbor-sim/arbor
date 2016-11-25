@@ -1,6 +1,7 @@
 set(MODCC_TEST_SOURCES
     # unit tests
     test_lexer.cpp
+    test_kinetic_rewriter.cpp
     test_module.cpp
     test_optimization.cpp
     test_parser.cpp
@@ -9,6 +10,9 @@ set(MODCC_TEST_SOURCES
 
     # unit test driver
     driver.cpp
+
+    # utility
+    expr_expand.cpp
 )
 
 add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
