@@ -1,4 +1,5 @@
 set(TEST_CUDA_SOURCES
+    test_cell_group.cu
     test_matrix.cu
     test_vector.cu
 

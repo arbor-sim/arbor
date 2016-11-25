@@ -13,27 +13,38 @@ set(VALIDATION_SOURCES
     validate.cpp
 )
 
+set(VALIDATION_CUDA_SOURCES
+    # unit tests
+    validate_soma.cu
+    validate_ball_and_stick.cu
+    validate_synapses.cu
+
+    # support code
+    validation_data.cpp
+    trace_analysis.cpp
+
+    # unit test driver
+    validate.cpp
+)
+
 if(VALIDATION_DATA_DIR)
     add_definitions("-DDATADIR=\"${VALIDATION_DATA_DIR}\"")
 endif()
-add_executable(validate.exe ${VALIDATION_SOURCES} ${HEADERS})
 
+add_executable(validate.exe ${VALIDATION_SOURCES})
 set(TARGETS validate.exe)
+
+if(WITH_CUDA)
+    cuda_add_executable(validate_cuda.exe ${VALIDATION_CUDA_SOURCES})
+    list(APPEND TARGETS validate_cuda.exe)
+    target_link_libraries(validate_cuda.exe LINK_PUBLIC gpu)
+endif()
+
 
 foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
 
-    if(WITH_TBB)
-        target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
-    endif()
-
-    if(WITH_CUDA)
-        target_link_libraries(${target} LINK_PUBLIC ${CUDA_LIBRARIES})
-    endif()
-
-    if(WITH_UNWIND)
-        target_link_libraries(${target} LINK_PUBLIC ${UNWIND_LIBRARIES})
-    endif()
+    target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})

@@ -305,12 +305,9 @@ CPrinter::CPrinter(Module &m, bool o)
     //////////////////////////////////////////////
 
     auto proctest = [] (procedureKind k) {
-        return
-            k == procedureKind::normal
-                 || k == procedureKind::api
-                 || k == procedureKind::net_receive;
+        return is_in(k, {procedureKind::normal, procedureKind::api, procedureKind::net_receive});
     };
-    for(auto &var : m.symbols()) {
+    for(auto const& var: m.symbols()) {
         auto isproc = var.second->kind()==symbolKind::procedure;
         if(isproc )
         {
@@ -461,10 +458,6 @@ void CPrinter::visit(BlockExpression *e) {
             }
         }
         if(names.size()>0) {
-            //for(auto it=names.begin(); it!=names.end(); ++it) {
-            //    text_.add_gutter() << "value_type " << *it;
-            //    text_.end_line("{0};");
-            //}
             text_.add_gutter() << "value_type " << *(names.begin());
             for(auto it=names.begin()+1; it!=names.end(); ++it) {
                 text_ << ", " << *it;
@@ -480,7 +473,9 @@ void CPrinter::visit(BlockExpression *e) {
         // these all must be handled
         text_.add_gutter();
         stmt->accept(this);
-        text_.end_line(";");
+        if (not stmt->is_if()) {
+            text_.end_line(";");
+        }
     }
 }
 
@@ -494,12 +489,29 @@ void CPrinter::visit(IfExpression *e) {
     increase_indentation();
     e->true_branch()->accept(this);
     decrease_indentation();
-    text_.add_gutter();
-    text_ << "}";
+    text_.add_line("}");
+    // check if there is a false-branch, i.e. if
+    // there is an "else" branch to print
+    if (auto fb = e->false_branch()) {
+        text_.add_gutter() << "else ";
+        // use recursion for "else if"
+        if (fb->is_if()) {
+            fb->accept(this);
+        }
+        // otherwise print the "else" block
+        else {
+            text_ << "{\n";
+            increase_indentation();
+            fb->accept(this);
+            decrease_indentation();
+            text_.add_line("}");
+        }
+    }
 }
 
+// NOTE: net_receive() is classified as a ProcedureExpression
 void CPrinter::visit(ProcedureExpression *e) {
-    // ------------- print prototype ------------- //
+    // print prototype
     text_.add_gutter() << "void " << e->name() << "(int i_";
     for(auto& arg : e->args()) {
         text_ << ", value_type " << arg->is_argument()->name();
@@ -518,19 +530,18 @@ void CPrinter::visit(ProcedureExpression *e) {
             e->location());
     }
 
+    // print body
     increase_indentation();
-
     e->body()->accept(this);
 
-    // ------------- close up ------------- //
+    // close the function body
     decrease_indentation();
     text_.add_line("}");
     text_.add_line();
-    return;
 }
 
 void CPrinter::visit(APIMethod *e) {
-    // ------------- print prototype ------------- //
+    // print prototype
     text_.add_gutter() << "void " << e->name() << "() override {";
     text_.end_line();
 
@@ -566,7 +577,7 @@ void CPrinter::visit(APIMethod *e) {
             }
         }
 
-        // ------------- get loop dimensions ------------- //
+        // get loop dimensions
         text_.add_line("int n_ = node_index_.size();");
 
         // hand off printing of loops to optimized or unoptimized backend
@@ -578,14 +589,12 @@ void CPrinter::visit(APIMethod *e) {
         }
     }
 
-    // ------------- close up ------------- //
+    // close up the loop body
     text_.add_line("}");
     text_.add_line();
 }
 
 void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
-    //text_.add_line("START_PROFILE");
-
     // there can not be more than 1 instance of a density channel per grid point,
     // so we can assert that aliasing will not occur.
     if(optimize_) text_.add_line("#pragma ivdep");

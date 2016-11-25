@@ -3,7 +3,7 @@
 
 #include <fvm_multicell.hpp>
 
-using lowered_cell = nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
+using lowered_cell = nest::mc::fvm::fvm_multicell<nest::mc::gpu::backend>;
 
 TEST(ball_and_stick, neuron_ref) {
     validate_ball_and_stick<lowered_cell>();

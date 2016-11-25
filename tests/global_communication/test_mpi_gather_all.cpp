@@ -1,6 +1,6 @@
-#include "gtest.h"
-
 #ifdef WITH_MPI
+
+#include "../gtest.h"
 
 #include <cstring>
 #include <vector>
