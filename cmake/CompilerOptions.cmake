@@ -5,6 +5,17 @@ set(CXXOPT_PTHREAD "-pthread")
 set(CXXOPT_CXX11 "-std=c++11")
 set(CXXOPT_WALL "-Wall")
 
+if(${CMAKE_CXX_COMPILER_ID} MATCHES "XL")
+    # Disable 'missing-braces' warning: this will inappropriately
+    # flag initializations such as
+    #     std::array<int,3> a={1,2,3};
+
+    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
+
+    # CMake, bless its soul, likes to insert this unsupported flag. Hilarity ensues.
+    string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+endif()
+
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     # Disable 'missing-braces' warning: this will inappropriately
     # flag initializations such as
