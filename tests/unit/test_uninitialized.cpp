@@ -150,9 +150,11 @@ TEST(uninitialized,apply) {
 
     const uninitialized<int> ud(ua);
 
-    r=ud.apply(A);
+    //asm volatile("" ::: "memory");
+
     EXPECT_EQ(12,ua.cref());
     EXPECT_EQ(12,ud.cref());
+    r=ud.apply(A);
     EXPECT_EQ(13,r);
 
     EXPECT_EQ(2,A.op_count);
