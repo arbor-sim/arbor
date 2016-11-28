@@ -71,7 +71,7 @@ public:
     }
 
     template <typename Model>
-    void run(Model& m, Param p, float t_end, float dt, const std::vector<float>& excl={}) {
+    void run(Model& m, Param p, float t_end, float dt, const std::vector<float>& excl) {
         // reset samplers and attach to probe locations
         for (auto& se: cell_samplers_) {
             se.sampler.reset();

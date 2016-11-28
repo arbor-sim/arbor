@@ -33,11 +33,11 @@ public:
     using reference = X&;
     using const_reference= const X&;
 
-    pointer ptr() { return reinterpret_cast<X*>(&data); }
-    const_pointer cptr() const { return reinterpret_cast<const X*>(&data); }
+    pointer ptr() { return static_cast<X*>(static_cast<void*>(&data)); }
+    const_pointer cptr() const { return static_cast<const X*>(static_cast<void*>(&data)); }
 
-    reference ref() { return *reinterpret_cast<X*>(&data); }
-    const_reference cref() const { return *reinterpret_cast<const X*>(&data); }
+    reference ref() { return *ptr(); }
+    const_reference cref() const { return *cptr(); }
 
     // Copy construct the value.
     template <

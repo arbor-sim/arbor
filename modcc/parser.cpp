@@ -753,9 +753,9 @@ symbol_ptr Parser::parse_procedure() {
             break;
         default:
             // it is a compiler error if trying to parse_procedure() without
-            // having DERIVATIVE, PROCEDURE, INITIAL or BREAKPOINT keyword
+            // having DERIVATIVE, KINETIC, PROCEDURE, INITIAL or BREAKPOINT keyword
             throw compiler_exception(
-                "attempt to parser_procedure() without {DERIVATIVE,PROCEDURE,INITIAL,BREAKPOINT}",
+                "attempt to parse_procedure() without {DERIVATIVE,KINETIC,PROCEDURE,INITIAL,BREAKPOINT}",
                 location_);
     }
     if(p==nullptr) return nullptr;
