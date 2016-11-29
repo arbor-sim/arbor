@@ -4,7 +4,7 @@
  *
  * The uninitialized<X> structure holds space for an item of
  * type X, leaving its construction or destruction to the user.
- * 
+ *
  * Specialisations for reference types X& and for the void type
  * allow for the handling of non-value types in a uniform manner.
  */
@@ -34,7 +34,7 @@ public:
     using const_reference= const X&;
 
     pointer ptr() { return static_cast<X*>(static_cast<void*>(&data)); }
-    const_pointer cptr() const { return static_cast<const X*>(static_cast<void*>(&data)); }
+    const_pointer cptr() const { return static_cast<const X*>(static_cast<const void*>(&data)); }
 
     reference ref() { return *ptr(); }
     const_reference cref() const { return *cptr(); }
@@ -106,7 +106,7 @@ public:
 };
 
 /* Wrap a void type in an uninitialized template.
- * 
+ *
  * Allows the use of uninitialized<X> for void X, for generic applications.
  */
 template <>
