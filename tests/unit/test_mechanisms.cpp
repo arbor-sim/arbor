@@ -150,8 +150,7 @@ REGISTER_TYPED_TEST_CASE_P(mechanisms, update);
 using mechanism_types = ::testing::Types<
     mechanism_info<
         nest::mc::mechanisms::hh::mechanism_hh<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::hh_proto::mechanism_hh<nest::mc::multicore::backend>,
-        2
+        nest::mc::mechanisms::hh_proto::mechanism_hh<nest::mc::multicore::backend>
    >,
     mechanism_info<
         nest::mc::mechanisms::pas::mechanism_pas<nest::mc::multicore::backend>,
