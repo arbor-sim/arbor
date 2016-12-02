@@ -194,14 +194,18 @@ public:
         if (!t) return 0;
         auto a = evaluate(t.a);
         auto b = evaluate(t.b);
-        return a && b? just((*a)*(*b)): nothing;
+        return a && b? ++mul_count, just((*a)*(*b)): nothing;
     }
 
     optional<double> evaluate(const symbol_term_diff& d) {
         auto l = evaluate(d.left);
         auto r = evaluate(d.right);
-        return l && r? just((*l)-(*r)): nothing;
+        return l && r? ++sub_count, just((*l)-(*r)): nothing;
     }
+
+    // stat collection...
+    unsigned mul_count = 0;
+    unsigned sub_count = 0;
 };
 
 } // namespace sym

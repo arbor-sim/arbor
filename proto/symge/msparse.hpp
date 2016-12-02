@@ -91,6 +91,13 @@ public:
         return (i==data.end() || i->first!=c)? npos: std::distance(data.begin(), i);
     }
 
+    // remove all entries from column c onwards
+    void truncate(unsigned c) {
+        auto i = std::lower_bound(data.begin(), data.end(), c,
+            [](const entry& a, unsigned b) { return a.first<b; });
+        data.erase(i, data.end());
+    }
+
     X operator[](unsigned c) const {
         auto i = index(c);
         return i==npos? X{}: data[i].second;
@@ -140,9 +147,14 @@ public:
 };
 
 template <typename X>
-struct matrix {
+class matrix {
+private:
     std::vector<mrow<X>> rows;
     unsigned cols = 0;
+    unsigned aug = mrow_npos;
+
+public:
+    static constexpr unsigned npos = mrow_npos;
 
     matrix() = default;
     matrix(unsigned n, unsigned c): rows(n), cols(c) {}
@@ -153,8 +165,28 @@ struct matrix {
     unsigned size() const { return rows.size(); }
     unsigned nrow() const { return size(); }
     unsigned ncol() const { return cols; }
+    unsigned augcol() const { return aug; }
 
     bool empty() const { return size()==0; }
+    bool augmented() const { return aug!=npos; }
+
+    template <typename Seq>
+    void augment(const Seq& col_dense) {
+        unsigned r = 0;
+        for (const auto& v: col_dense) {
+            if (r>=rows.size()) throw msparse_error("augmented column size mismatch");
+            rows[r++].push_back({cols, v});
+        }
+        if (aug==npos) aug=cols;
+        ++cols;
+    }
+
+    void diminish() {
+        if (aug==npos) return;
+        for (auto& row: rows) row.truncate(aug);
+        cols = aug;
+        aug = npos;
+    }
 };
 
 // sparse * dense vector muliply:
@@ -162,9 +194,10 @@ struct matrix {
 template <typename AT, typename RASeqX, typename SeqB>
 void mul_dense(const matrix<AT>& A, const RASeqX& x, SeqB& b) {
     auto bi = std::begin(b);
-    for (const auto& row: A.rows) {
+    unsigned n = A.nrow();
+    for (unsigned i = 0; i<n; ++i) {
         if (bi==compat::end(b)) throw msparse_error("output sequence b too short");
-        *bi++ = row.dot(x);
+        *bi++ = A[i].dot(x);
     }
 }
 
