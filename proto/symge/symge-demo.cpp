@@ -95,6 +95,7 @@ std::ostream& operator<<(std::ostream& o, const msparse::matrix<X>& m) {
     for (unsigned r = 0; r<m.nrow(); ++r) {
         o << '|';
         for (unsigned c = 0; c<m.ncol(); ++c) {
+            if (c==m.augcol()) o << " | ";
             o << std::setw(12) << m[r][c];
         }
         o << " |\n";
@@ -162,7 +163,7 @@ symmrow row_reduce(unsigned c, const symmrow& p, const symmrow& q, DefineSym def
             pj = piter==p.end()? p.npos: piter->first;
         }
         if (j==qj) {
-            t1 = y*qiter->second;
+            t2 = y*qiter->second;
             ++qiter;
             qj = qiter==q.end()? q.npos: qiter->first;
         }
@@ -286,7 +287,7 @@ void demo_sym_ge() {
     symmatrix S(n, n);
 
     for (unsigned i = 0; i<M.nrow(); ++i) {
-        const auto& row = M.rows[i];
+        const auto& row = M[i];
         symmrow r;
         for (const auto& el: row) {
             unsigned j = el.first;
@@ -294,16 +295,53 @@ void demo_sym_ge() {
             vals[a] = el.second;
             r.push_back({j, a});
         }
-        S.rows[i] = r;
+        S[i] = r;
     }
 
-    std::cout << "M:\n" << M;
-    std::cout << "S:\n" << S;
+    // augment with rhs
+    std::uniform_real_distribution<double> U;
+    std::vector<double> x(n);
+    for (auto& elem: x) {
+        elem = 10*U(R);
+    }
+
+    std::vector<double> b(n);
+    mul_dense(M, x, b);
+    M.augment(b);
+
+    std::vector<symbol> rhs;
+    for (unsigned i = 0; i<n; ++i) {
+        symbol r = syms.define(make_id("b", i));
+        rhs.push_back(r);
+        vals[r] = b[i];
+    }
+    S.augment(rhs);
+
+    std::cout << "A|b (b=Ax):\n" << M;
+    std::cout << "S|r:\n" << S;
 
     gj_reduce(S, n, [&](const symbol_def& def) { return syms.define(make_id(), def); });
-    std::cout << "S:\n" << S;
-
+    std::cout << "reduced S|r:\n" << S;
     std::cout << "symbols:\n" << syms;
+
+    std::cout << "solving...\n";
+    std::cout << "original x: " << sepval(", ", x) << "\n";
+
+    std::vector<double> y(n);
+    for (unsigned i = 0; i<n; ++i) {
+        const symmrow& row = S[i];
+        if (row.size()!=2 || row.maxcol()!=n)
+            throw std::runtime_error("unexpected matrix layout!");
+
+        unsigned idx = row.get(0).first;
+        symbol coeff = row.get(0).second;
+        symbol rhs = row.get(1).second;
+
+        y[idx] = vals.evaluate(rhs).get()/vals.evaluate(coeff).get();
+    }
+    std::cout << "solved x: " << sepval(", ", y) << "\n";
+    std::cout << "multiplication count: " << vals.mul_count << "\n";
+    std::cout << "subtraction count: " << vals.sub_count << "\n";
 }
 
 
