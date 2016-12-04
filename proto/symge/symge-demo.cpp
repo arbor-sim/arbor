@@ -1,3 +1,10 @@
+// bloody CMake
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
+#include <cassert>
+#include <cstring>
 #include <iomanip>
 #include <iostream>
 #include <queue>
@@ -14,7 +21,7 @@
 
 using namespace sym;
 
-// identifier name picking helper routines
+// Identifier name picking helper routines
 
 void join_impl(std::ostream& ss, const std::string& sep) {}
 
@@ -83,7 +90,7 @@ public:
     }
 };
 
-// ostream output functions
+// Output helper functions
 
 template <typename X>
 std::ostream& operator<<(std::ostream& o, const optional<X>& x) {
@@ -127,19 +134,17 @@ sepval_t<Sep,V> sepval(const Sep& sep, const V& v) { return sepval_t<Sep,V>(sep,
 std::ostream& operator<<(std::ostream& o, const symbol_table& syms) {
     for (unsigned i = 0; i<syms.size(); ++i) {
         symbol s = syms[i];
-        o << s;
-        if (s.def()) o << ": " << s.def();
-        o << "\n";
+        if (s.def()) o << s << ": " << s.def() << "\n";
     }
     return o;
 }
 
-// symbolic GE
+// Symbolic GE
 
 using symmrow = msparse::mrow<symbol>;
 using symmatrix = msparse::matrix<symbol>;
 
-// return q[c]*p - p[c]*q
+// Returns q[c]*p - p[c]*q
 template <typename DefineSym>
 symmrow row_reduce(unsigned c, const symmrow& p, const symmrow& q, DefineSym define_sym) {
     if (p.index(c)==p.npos || q.index(c)==q.npos) throw std::runtime_error("improper row GE");
@@ -174,18 +179,24 @@ symmrow row_reduce(unsigned c, const symmrow& p, const symmrow& q, DefineSym def
     return u;
 }
 
-// ncol: number of columns before augmentation
+// Actual GE reduction.
+// Note: ncol: number of columns before augmentation.
+// Another note: if we're going to preference diagonal pivots
+// (owing to application), then priority queue is overkill.
 template <typename DefineSym>
 void gj_reduce(symmatrix& A, unsigned ncol, DefineSym define_sym) {
     struct pq_entry {
-        unsigned key;
+        unsigned key; // first non-zero column after pivot column
         unsigned mincol;
         unsigned row;
     };
 
     struct pq_order_t {
         bool operator()(const pq_entry& a, const pq_entry& b) const {
-            return a.key>b.key || (a.key==b.key && a.mincol<b.mincol);
+            // The last condition preferences pivots on diagonal elements.
+            return a.key>b.key ||
+                  (a.key==b.key && a.mincol<b.mincol) ||
+                  (a.key==b.key && a.mincol==b.mincol && a.row!=a.key);
         }
     };
 
@@ -219,7 +230,7 @@ void gj_reduce(symmatrix& A, unsigned ncol, DefineSym define_sym) {
     }
 }
 
-// functionality demo/tests
+// Validation
 
 template <typename Rng>
 msparse::matrix<double> make_random_matrix(unsigned n, double density, Rng& R) {
@@ -236,98 +247,75 @@ msparse::matrix<double> make_random_matrix(unsigned n, double density, Rng& R) {
     return M;
 }
 
-void demo_msparse_random() {
-    std::minstd_rand R;
-    msparse::matrix<double> M = make_random_matrix(5, 0.3, R);
+struct symge_stats {
+    unsigned n;
+    unsigned nnz;
+    unsigned nmul;
+    unsigned nsub;
+    unsigned nsym;
+    double relerr;
+};
 
-    std::cout << "M:\n" << M;
+template <typename Rng>
+symge_stats run_symge_validation(Rng& R, unsigned n, bool debug = false) {
+    std::uniform_real_distribution<double> U;
+    symge_stats stats = { n, 0, 0, 0, 0, 0. };
 
-    int x[] = { 1, 2, 3, 4, 5 };
-    std::cout << "x: " << sepval(',', x) << "\n";
-
-    std::vector<double> b(5);
-    mul_dense(M, x, b);
-    std::cout << "Mx: " << sepval(',', b) << "\n";
-}
-
-void demo_store_eval() {
-    symbol_table syms;
-    store vals(syms);
-
-    auto a1 = syms.define("a1");
-    auto a2 = syms.define("a2");
-    auto a3 = syms.define("a3");
-    auto b  = syms.define("b", a1*a2-a2*a3);
-    auto c  = syms.define("c", a1*a2-a1*b);
-    auto d  = syms.define("d", -(a3*c));
-
-    std::cout << syms;
-
-    vals[a1] = 2;
-    vals[a2] = 3;
-    vals[a3] = 5;
-
-    std::cout << d << "=" << vals.evaluate(d) << "\n";
-
-    std::cout << "value store\n";
-    for (unsigned i = 0; i<syms.size(); ++i) {
-        symbol s = syms[i];
-        std::cout << s << "=" << vals[s] << "\n";
-    }
-}
-
-void demo_sym_ge() {
-    std::minstd_rand R;
-    unsigned n = 5;
-    msparse::matrix<double> M = make_random_matrix(n, 0.3, R);
-
-    symbol_table syms;
-    store vals(syms);
-    id_maker make_id;
+    msparse::matrix<double> A = make_random_matrix(n, 2.0/(n+1), R);
     symmatrix S(n, n);
 
-    for (unsigned i = 0; i<M.nrow(); ++i) {
-        const auto& row = M[i];
-        symmrow r;
-        for (const auto& el: row) {
-            unsigned j = el.first;
-            auto a = syms.define(make_id("a", i, j));
-            vals[a] = el.second;
-            r.push_back({j, a});
+    symbol_table syms;
+    store values(syms);
+    id_maker make_id;
+
+    // make symbolic matrix with same sparsity pattern as M
+    for (unsigned i = 0; i<A.nrow(); ++i) {
+        symmrow srow;
+        for (const auto& a: A[i]) {
+            unsigned j = a.first;
+            auto s = syms.define(make_id("a", i, j));
+            values[s] = a.second;
+            srow.push_back({j, s});
+            ++stats.nnz;
         }
-        S[i] = r;
+        S[i] = srow;
     }
 
-    // augment with rhs
-    std::uniform_real_distribution<double> U;
+    // pick x and compute b = Ax
     std::vector<double> x(n);
-    for (auto& elem: x) {
-        elem = 10*U(R);
-    }
+    for (auto& elem: x) elem = 10*U(R);
 
     std::vector<double> b(n);
-    mul_dense(M, x, b);
-    M.augment(b);
+    mul_dense(A, x, b);
 
+    // augment M and S with rhs
+    A.augment(b);
     std::vector<symbol> rhs;
     for (unsigned i = 0; i<n; ++i) {
-        symbol r = syms.define(make_id("b", i));
-        rhs.push_back(r);
-        vals[r] = b[i];
+        auto s = syms.define(make_id("b", i));
+        rhs.push_back(s);
+        values[s] = b[i];
     }
     S.augment(rhs);
 
-    std::cout << "A|b (b=Ax):\n" << M;
-    std::cout << "S|r:\n" << S;
+    if (debug) {
+        std::cerr << "A|b:\n" << A << "\n";
+        std::cerr << "S:\n" << S << "\n";
+    }
 
-    gj_reduce(S, n, [&](const symbol_def& def) { return syms.define(make_id(), def); });
-    std::cout << "reduced S|r:\n" << S;
-    std::cout << "symbols:\n" << syms;
+    // perform GE
+    auto nprim_sym = syms.size();
+    gj_reduce(S, n, [&](const symbol_def& def) { return syms.define(make_id("t00"), def); });
+    stats.nsym = syms.size()-nprim_sym;
+    if (debug) {
+        std::cerr << "reduced S:\n" << S << "\n";
+        std::cerr << "definitions:\n" << syms << "\n";
+    }
 
-    std::cout << "solving...\n";
-    std::cout << "original x: " << sepval(", ", x) << "\n";
-
+    // validate: compute solution y from reduced S and symbol defs
     std::vector<double> y(n);
+    double maxerr = 0;
+    double maxx = 0;
     for (unsigned i = 0; i<n; ++i) {
         const symmrow& row = S[i];
         if (row.size()!=2 || row.maxcol()!=n)
@@ -337,16 +325,63 @@ void demo_sym_ge() {
         symbol coeff = row.get(0).second;
         symbol rhs = row.get(1).second;
 
-        y[idx] = vals.evaluate(rhs).get()/vals.evaluate(coeff).get();
+        if (debug) {
+            std::cerr << "y" << idx << " = " << rhs << "/" << coeff << "\n";
+            std::cerr << "   = " << values.evaluate(rhs).get() << "/" << values.evaluate(coeff).get() << "\n";
+        }
+        y[idx] = values.evaluate(rhs).get()/values.evaluate(coeff).get();
+        maxerr = std::max(maxerr, std::abs(y[idx]-x[idx]));
+        maxx = std::max(maxx, std::abs(x[idx]));
     }
-    std::cout << "solved x: " << sepval(", ", y) << "\n";
-    std::cout << "multiplication count: " << vals.mul_count << "\n";
-    std::cout << "subtraction count: " << vals.sub_count << "\n";
+    stats.relerr = maxerr/maxx;
+    stats.nsub = values.sub_count;
+    stats.nmul = values.mul_count;
+    if (debug) {
+        std::cerr << "x:\n" << sepval(", ", x) << "\n";
+        std::cerr << "computed solution:\n" << sepval(", ", y) << "\n";
+        std::cerr << "operation count: " << values.mul_count << " mul; " << values.sub_count << " sub\n";
+    }
+    return stats;
 }
 
+int main(int argc, const char** argv) {
+    bool debug = false;
+    bool verbose = false;
 
-int main() {
-    // demo_store_eval();
-    // demo_msparse_random();
-    demo_sym_ge();
+    for (const char** arg=argv+1; arg!=argv+argc; ++arg) {
+        if (!std::strcmp("-v", *arg)) {
+            verbose = true;
+        }
+        if (!std::strcmp("-d", *arg)) {
+            debug = true;
+        }
+        if (!std::strcmp("-h", *arg)) {
+            std::cerr << "usage: symge-demo [-v] [-d]\n";
+            return 0;
+        }
+    }
+
+    if (verbose) {
+        char line[80];
+        std::snprintf(line, sizeof(line), "%10s%10s%10s%10s%10s%10s\n",
+            "n", "nnz", "nmul", "nsub", "nsym", "relerr");
+        std::cout << line;
+    }
+
+    std::minstd_rand R;
+    for (unsigned n = 1; n<=10; ++n) {
+        for (unsigned k =1; k<=100; ++k) {
+            auto stats = run_symge_validation(R, n, debug);
+            if (verbose) {
+                char line[80];
+                std::snprintf(line, sizeof(line), "%10d%10d%10d%10d%10d%10lf\n",
+                    stats.n, stats.nnz, stats.nmul, stats.nsub, stats.nsym, stats.relerr);
+
+                std::cout << line;
+            }
+            assert(stats.relerr<1e-6);
+        }
+    }
+
+    return 0;
 }
