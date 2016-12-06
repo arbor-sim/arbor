@@ -198,17 +198,17 @@ private:
     /// cv_areas_[i] is the surface area of CV i [µm^2]
     array cv_areas_;
 
-    /// alpha_[i] is the following value at the CV face between
-    /// CV i and its parent, required when constructing linear system
-    ///     face_alpha_[i] = area_face  / (c_m * r_L * delta_x);
-    array face_alpha_; // [µm·m^2/cm/s ≡ 10^5 µm^2/ms]
+    /// CV i and its parent, required when constructing linear system [µS]
+    ///     face_conductance_[i] = area_face  / (r_L * delta_x);
+    array face_conductance_;
 
-    /// cv_capacitance_[i] is the capacitance of CV i per unit area (i.e. c_m) [F/m^2]
-    array cv_capacitance_;
+    /// cv_capacitance_[i] is the capacitance of CV membrane [10^-12 F]
+    ///     C_m = area*c_m
+    array cv_capacitance_; // units [µm^2*F*m^-2 = 10^-12 F]
 
-    /// the average current density over the surface of each CV [mA/cm^2]
-    /// current_ = i_m - i_e
-    array current_;
+    /// the average current density over the surface of each CV [nA]
+    ///     I = area*i_m - I_e
+    array current_;  // units 
 
     /// the potential in each CV [mV]
     array voltage_;
@@ -223,12 +223,30 @@ private:
 
     std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
 
+    struct segment_cv_range {
+        std::pair<value_type, value_type> areas;
+        std::pair<size_type, size_type> segment_cvs;
+        size_type parent_cv;
+
+        static constexpr size_type npos() {
+            return std::numeric_limits<size_type>::max();
+        }
+
+        std::size_t size() const {
+            return segment_cvs.second-segment_cvs.first + (parent_cv==npos() ? 0 : 1);
+        }
+
+        bool has_parent() const {
+            return parent_cv != npos();
+        }
+    };
+
     // perform area and capacitance calculation on initialization
-    void compute_cv_area_unnormalized_capacitance(
+    segment_cv_range compute_cv_area_unnormalized_capacitance(
         std::pair<size_type, size_type> comp_ival,
         const segment* seg,
         const std::vector<size_type>& parent,
-        std::vector<value_type>& tmp_face_alpha,
+        std::vector<value_type>& tmp_face_conductance,
         std::vector<value_type>& tmp_cv_areas,
         std::vector<value_type>& tmp_cv_capacitance
     );
@@ -238,11 +256,12 @@ private:
 //////////////////////////////// Implementation ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 template <typename Backend>
-void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
+typename fvm_multicell<Backend>::segment_cv_range
+fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
     const std::vector<size_type>& parent,
-    std::vector<value_type>& tmp_face_alpha,
+    std::vector<value_type>& tmp_face_conductance,
     std::vector<value_type>& tmp_cv_areas,
     std::vector<value_type>& tmp_cv_capacitance)
 {
@@ -251,6 +270,8 @@ void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
 
     auto ncomp = comp_ival.second-comp_ival.first;
 
+    segment_cv_range cv_range;
+
     if (auto soma = seg->as_soma()) {
         // confirm assumption that there is one compartment in soma
         if (ncomp!=1) {
@@ -258,9 +279,14 @@ void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
         }
         auto i = comp_ival.first;
         auto area = math::area_sphere(soma->radius());
+        auto c_m = soma->mechanism("membrane").get("c_m").value;
 
         tmp_cv_areas[i] += area;
-        tmp_cv_capacitance[i] += area * soma->mechanism("membrane").get("c_m").value;
+        tmp_cv_capacitance[i] += area*c_m;
+
+        cv_range.segment_cvs = {comp_ival.first, comp_ival.first+1};
+        cv_range.areas = {0.0, area};
+        cv_range.parent_cv = segment_cv_range::npos();
     }
     else if (auto cable = seg->as_cable()) {
         // Loop over each compartment in the cable
@@ -276,8 +302,8 @@ void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
         // each half are used to calculate the flux coefficients that
         // for the connection between the two control volumes and which
         // (after scaling by inverse capacitance) is stored in
-        // `face_alpha[i]`.
-        // 
+        // `face_conductance[i]`.
+        //
         //
         //  +------- cv j --------+------- cv i -------+
         //  |                     |                    |
@@ -298,16 +324,22 @@ void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
 
         auto divs = div_compartments<div_compartment_integrator>(cable, ncomp);
 
+        // assume that this segment has a parent, which is the case so long
+        // as the soma is the root of all cell trees.
+        cv_range.parent_cv = parent[comp_ival.first];
+        cv_range.segment_cvs = comp_ival;
+        cv_range.areas = {divs(0).left.area, divs(ncomp-1).right.area};
+
         for (auto i: util::make_span(comp_ival)) {
             const auto& div = divs(i-comp_ival.first);
             auto j = parent[i];
 
             // Conductance approximated by weighted harmonic mean of mean
             // conductances in each half.
-            // 
+            //
             // Mean conductances:
-            // c₁ = 1/h₁ ∫₁ A(x)/R dx
-            // c₂ = 1/h₂ ∫₂ A(x)/R dx
+            // g₁ = 1/h₁ ∫₁ A(x)/R dx
+            // g₂ = 1/h₂ ∫₂ A(x)/R dx
             //
             // where A(x) is the cross-sectional area, R is the bulk
             // resistivity, h is the length of the interval and the
@@ -315,13 +347,18 @@ void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
             // Equivalently, in terms of the semi-compartment volumes
             // V₁ and V₂:
             //
-            // c₁ = 1/R·V₁/h₁
-            // c₂ = 1/R·V₂/h₂
+            // g₁ = 1/R·V₁/h₁
+            // g₂ = 1/R·V₂/h₂
             //
             // Weighted harmonic mean, with h = h₁+h₂:
             //
-            // c = (h₁/h·c₁¯¹+h₂/h·c₂¯¹)¯¹
+            // g = (h₁/h·g₁¯¹+h₂/h·g₂¯¹)¯¹
             //   = 1/R · hV₁V₂/(h₂²V₁+h₁²V₂)
+            //
+            // the following units are used
+            //  lengths : μm
+            //  areas   : μm^2
+            //  volumes : μm^3
 
             auto h1 = div.left.length;
             auto V1 = div.left.volume;
@@ -330,7 +367,9 @@ void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
             auto h = h1+h2;
 
             auto conductance = 1/r_L*h*V1*V2/(h2*h2*V1+h1*h1*V2);
-            tmp_face_alpha[i] = conductance / (c_m * h);
+            // the scaling factor of 10^2 is to convert the quantity
+            // to micro Siemens [μS]
+            tmp_face_conductance[i] =  1e2 * conductance / h;
 
             auto al = div.left.area;
             auto ar = div.right.area;
@@ -344,6 +383,8 @@ void fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
     else {
         throw std::domain_error("FVM lowering encountered unsuported segment type");
     }
+
+    return cv_range;
 }
 
 template <typename Backend>
@@ -361,6 +402,7 @@ void fvm_multicell<Backend>::initialize(
     using util::size;
     using util::sort_by;
     using util::transform_view;
+    using util::subrange_view;
 
     // count total detectors, targets and probes for validation of handle container sizes
     std::size_t detectors_count = 0u;
@@ -383,8 +425,8 @@ void fvm_multicell<Backend>::initialize(
     voltage_ = array(ncomp, resting_potential_);
 
     // create maps for mechanism initialization.
-    std::map<std::string, std::vector<std::pair<size_type, size_type>>> mech_map;
-    std::vector<std::vector<cell_lid_type>> syn_mech_map;
+    std::map<std::string, std::vector<segment_cv_range>> mech_map;
+    std::vector<std::vector<std::pair<cell_lid_type, double>>> syn_mech_map;
     std::map<std::string, std::size_t> syn_mech_indices;
 
     // initialize vector used for matrix creation.
@@ -396,7 +438,7 @@ void fvm_multicell<Backend>::initialize(
     auto probe_hi = probe_handles.begin();
 
     // allocate scratch vectors
-    std::vector<value_type> tmp_face_alpha(ncomp);
+    std::vector<value_type> tmp_face_conductance(ncomp);
     std::vector<value_type> tmp_cv_areas(ncomp);
     std::vector<value_type> tmp_cv_capacitance(ncomp);
 
@@ -421,7 +463,7 @@ void fvm_multicell<Backend>::initialize(
 
         auto seg_num_compartments =
             transform_view(c.segments(), [](const segment_ptr& s) { return s->num_compartments(); });
-        auto nseg = seg_num_compartments.size();
+        const auto nseg = seg_num_compartments.size();
 
         std::vector<cell_lid_type> seg_comp_bounds;
         auto seg_comp_part =
@@ -431,13 +473,13 @@ void fvm_multicell<Backend>::initialize(
             const auto& seg = c.segment(j);
             const auto& seg_comp_ival = seg_comp_part[j];
 
-            compute_cv_area_unnormalized_capacitance(
+            auto cv_range = compute_cv_area_unnormalized_capacitance(
                 seg_comp_ival, seg, group_parent_index,
-                tmp_face_alpha, tmp_cv_areas, tmp_cv_capacitance);
+                tmp_face_conductance, tmp_cv_areas, tmp_cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
-                    mech_map[mech.name()].push_back(seg_comp_ival);
+                    mech_map[mech.name()].push_back(cv_range);
                 }
             }
         }
@@ -458,8 +500,10 @@ void fvm_multicell<Backend>::initialize(
 
             auto& map_entry = syn_mech_map[syn_mech_index];
 
-            size_type syn_comp = comp_ival.first+find_cv_index(syn.location, graph);
-            map_entry.push_back(syn_comp);
+            auto syn_cap =
+                c.segment(syn.location.segment)->mechanism("membrane").get("c_m").value;
+            auto syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
+            map_entry.push_back({syn_cv, syn_cap});
         }
 
         // add the stimuli
@@ -501,39 +545,64 @@ void fvm_multicell<Backend>::initialize(
     EXPECTS(detectors_size==detectors_count);
     EXPECTS(probes_size==probes_count);
 
-    // normalize capacitance across cell
-    for (auto i: util::make_span(0, ncomp)) {
-        tmp_cv_capacitance[i] /= tmp_cv_areas[i];
-    }
-
     // store the geometric information in target-specific containers
-    face_alpha_     = make_const_view(tmp_face_alpha);
-    cv_areas_       = make_const_view(tmp_cv_areas);
-    cv_capacitance_ = make_const_view(tmp_cv_capacitance);
+    face_conductance_ = make_const_view(tmp_face_conductance);
+    cv_areas_         = make_const_view(tmp_cv_areas);
+    cv_capacitance_   = make_const_view(tmp_cv_capacitance);
 
     // initalize matrix
     matrix_ = matrix_type(group_parent_index, cell_comp_bounds);
 
     matrix_assembler_ = matrix_assembler(
         matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),
-        cv_areas_, face_alpha_, voltage_, current_, cv_capacitance_);
+        cv_capacitance_, face_conductance_, voltage_, current_); // TODO these are not the right values
 
     // For each density mechanism build the full node index, i.e the list of
     // compartments with that mechanism, then build the mechanism instance.
-    std::vector<size_type> mech_comp_indices(ncomp);
+    std::vector<size_type> mech_cv_index(ncomp);
+    std::vector<value_type> mech_cv_weight(ncomp);
     std::map<std::string, std::vector<size_type>> mech_index_map;
-    for (auto& mech: mech_map) {
-        mech_comp_indices.clear();
-        for (auto comp_ival: mech.second) {
-            util::append(mech_comp_indices, make_span(comp_ival));
+    for (auto const& mech: mech_map) {
+        // Clear the pre-allocated storage for mechanism indexes and weights.
+        // Reuse the same vectors each time to have only one malloc and free
+        // outside of the loop for each
+        mech_cv_index.clear();
+        mech_cv_weight.clear();
+
+        auto& seg_cv_ranges = mech.second;
+        for (auto& rng: seg_cv_ranges) {
+            if (rng.has_parent()) {
+                // locate the parent cv in the partially constructed list of cv indexes
+                auto it = algorithms::binary_find(mech_cv_index, rng.parent_cv);
+                if (it == mech_cv_index.end()) {
+                    mech_cv_index.push_back(rng.parent_cv);
+                    mech_cv_weight.push_back(0);
+                }
+                auto pos = std::distance(std::begin(mech_cv_index), it);
+
+                // add area and conductance contribution to the parent cv for the segment
+                mech_cv_weight[pos] += rng.areas.first;
+            }
+            util::append(mech_cv_index, make_span(rng.segment_cvs));
+            util::append(mech_cv_weight, subrange_view(tmp_cv_areas, rng.segment_cvs));
+
+            // adjust the last CV
+            mech_cv_weight.back() = rng.areas.second;
+        }
+
+        // Scale the weights to get correct units (see w_i^d in formulation docs)
+        // The units for the density channel weights are [10^2 μm^2 = 10^-10 m^2],
+        // which requires that we scale the areas [μm^2] by 10^-2
+        for (auto& w: mech_cv_weight) {
+            w *= 1e-2;
         }
 
         mechanisms_.push_back(
-            backend::make_mechanism(mech.first, voltage_, current_, mech_comp_indices)
+            backend::make_mechanism(mech.first, voltage_, current_, mech_cv_weight, mech_cv_index)
         );
 
         // save the indices for easy lookup later in initialization
-        mech_index_map[mech.first] = mech_comp_indices;
+        mech_index_map[mech.first] = mech_cv_index;
     }
 
     // Create point (synapse) mechanisms
@@ -541,22 +610,40 @@ void fvm_multicell<Backend>::initialize(
         const auto& mech_name = syni.first;
         size_type mech_index = mechanisms_.size();
 
-        auto comp_indices = syn_mech_map[syni.second];
-        size_type n_indices = size(comp_indices);
+        auto cv_map = syn_mech_map[syni.second];
+        size_type n_indices = size(cv_map);
 
-        // sort indices but keep track of their original order for assigning
-        // target handles
+        // sort indices but keep track of their original:
+        //   - order for assigning target handles
+        //   - capacitance for calculating current weights
 
-        using index_pair = std::pair<cell_lid_type, size_type>;
-        auto compartment_index = [](index_pair x) { return x.first; };
-        auto target_index = [](index_pair x) { return x.second; };
+        struct index_pair  {
+            index_pair(cell_lid_type cel, size_type tgt):
+                cv_index(cel), target_index(tgt) {}
+            cell_lid_type cv_index; // the cv to which the synapse is attached
+            size_type target_index; // the unique identifier for the event target
+        };
+        auto cv_index = [](index_pair x) { return x.cv_index; };
+        auto target_index = [](index_pair x) { return x.target_index; };
 
         std::vector<index_pair> permute;
         assign_by(permute, make_span(0u, n_indices),
-            [&](size_type i) { return index_pair(comp_indices[i], i); });
+            [&](size_type i) { return index_pair(cv_map[i].first, i); });
 
-        sort_by(permute, compartment_index);
-        assign_by(comp_indices, permute, compartment_index);
+        // sort the cv information in order of cv index
+        sort_by(permute, cv_index);
+
+        std::vector<cell_lid_type> cv_indices =
+            assign_from(transform_view(permute, cv_index));
+
+        // Create the mechanism
+        // An empty weight vector is supplied, because there are no weights applied to point
+        // processes, because their currents are calculated with the target units of [nA]
+        mechanisms_.push_back(
+            backend::make_mechanism(mech_name, voltage_, current_, {}, cv_indices));
+
+        // save the compartment indexes for this synapse type
+        mech_index_map[mech_name] = cv_indices;
 
         // make target handles
         std::vector<target_handle> handles(n_indices);
@@ -565,13 +652,6 @@ void fvm_multicell<Backend>::initialize(
         }
         target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
         targets_count += n_indices;
-
-        auto mech = backend::make_mechanism(mech_name, voltage_, current_, comp_indices);
-        mech->set_areas(cv_areas_);
-        mechanisms_.push_back(std::move(mech));
-
-        // save the compartment indexes for this synapse type
-        mech_index_map[mech_name] = comp_indices;
     }
 
     // confirm user-supplied containers for targets are appropriately sized
@@ -653,18 +733,14 @@ void fvm_multicell<Backend>::advance(double dt) {
         PL();
     }
 
-    // TODO KERNEL: the stimulus might have to become a "proper" mechanism
-    // so that the update kernel is fully implemented on GPU.
-
     // add current contributions from stimuli
     for (auto& stim : stimuli_) {
         auto ie = stim.second.amplitude(t_); // [nA]
         auto loc = stim.first;
 
-        // note: current_ in [mA/cm^2], ie in [nA], cv_areas_ in [µm^2].
-        // unit scale factor: [nA/µm^2]/[mA/cm^2] = 100
+        // note: current_ and ie have the same units [nA]
         if (ie!=0.) {
-            current_[loc] = current_[loc] - 100*ie/cv_areas_[loc];
+            current_[loc] = current_[loc] - ie;
         }
     }
     PL();

@@ -551,8 +551,8 @@ bool Module::semantic() {
                 has_current_update = true;
             }
         }
-        if(has_current_update && kind()==moduleKind::point) {
-            block.emplace_back(Parser("current_ = 100. * current_ / area_").parse_line_expression());
+        if(has_current_update && kind()==moduleKind::density) {
+            block.emplace_back(Parser("current_ = weight_ * current_").parse_line_expression());
         }
 
         auto v = make_unique<ConstantFolderVisitor>();
@@ -613,7 +613,7 @@ void Module::add_variables_to_symbols() {
                             accessKind::write, ionKind::none, Location());
     create_indexed_variable("v", "vec_v", tok::eq,
                             accessKind::read,  ionKind::none, Location());
-    create_indexed_variable("area_", "vec_area", tok::eq,
+    create_indexed_variable("weight_", "weights", tok::eq,
                             accessKind::read,  ionKind::none, Location());
 
     // add state variables

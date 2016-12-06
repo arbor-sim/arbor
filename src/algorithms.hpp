@@ -393,6 +393,28 @@ auto index_into(const Sub& sub, const Super& super)
     return util::make_range(begin, end);
 }
 
+/// Binary search, because std::binary_search doesn't return information
+/// about where a match was found.
+template <typename It, typename T>
+It binary_find(It b, It e, T value) {
+    auto it = std::lower_bound(b, e, value);
+    return it==e ? e : (*it==value ? it : e);
+}
+
+template <typename Seq>
+auto binary_find(const Seq& seq, typename util::sequence_traits<Seq>::value_type value)
+    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
+{
+    return binary_find(std::begin(seq), std::end(seq), value);
+}
+
+template <typename Seq>
+auto binary_find(Seq& seq, typename util::sequence_traits<Seq>::value_type value)
+    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
+{
+    return binary_find(std::begin(seq), std::end(seq), value);
+}
+
 } // namespace algorithms
 } // namespace mc
 } // namespace nest

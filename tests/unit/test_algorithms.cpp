@@ -1,3 +1,4 @@
+#include <iterator>
 #include <random>
 #include <vector>
 
@@ -576,5 +577,107 @@ TEST(algorithms, index_into)
     auto it = idx.begin();
     for (auto i: sub) {
         EXPECT_EQ(i, *it++);
+    }
+}
+
+TEST(algorithms, binary_find)
+{
+    using nest::mc::algorithms::binary_find;
+
+    // empty containers
+    {
+        std::vector<int> v;
+        EXPECT_TRUE(binary_find(v, 100) == std::end(v));
+    }
+
+    // value not present and greater than all entries
+    {
+        int a[] = {1, 10, 15};
+        EXPECT_TRUE(binary_find(a, 100) == std::end(a));
+
+        std::vector<int> v{1, 10, 15};
+        EXPECT_TRUE(binary_find(v, 100) == std::end(v));
+    }
+
+    // value not present and less than all entries
+    {
+        int a[] = {1, 10, 15};
+        EXPECT_TRUE(binary_find(a, -1) == std::end(a));
+
+        std::vector<int> v{1, 10, 15};
+        EXPECT_TRUE(binary_find(v, -1) == std::end(v));
+    }
+
+    // value not present and inside lower-upper bounds
+    {
+        int a[] = {1, 10, 15};
+        EXPECT_TRUE(binary_find(a, 4) == std::end(a));
+
+        std::vector<int> v{1, 10, 15};
+        EXPECT_TRUE(binary_find(v, 4) == std::end(v));
+    }
+
+    // value is first in range
+    {
+        int a[] = {1, 10, 15};
+        auto ita = binary_find(a, 1);
+        auto found = ita!=std::end(a);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 0u);
+        if (found) EXPECT_EQ(*ita, 1);
+
+        std::vector<int> v{1, 10, 15};
+        auto itv = binary_find(v, 1);
+        found = itv!=std::end(v);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 0u);
+        if (found) EXPECT_EQ(*itv, 1);
+    }
+
+    // value is last in range
+    {
+        int a[] = {1, 10, 15};
+        auto ita = binary_find(a, 15);
+        auto found = ita!=std::end(a);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 2u);
+        if (found) EXPECT_EQ(*ita, 15);
+
+        std::vector<int> v{1, 10, 15};
+        auto itv = binary_find(v, 15);
+        found = itv!=std::end(v);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 2u);
+        if (found) EXPECT_EQ(*itv, 15);
+    }
+
+    // value is last present and neither first nor last in range
+    {
+        int a[] = {1, 10, 15};
+        auto ita = binary_find(a, 10);
+        auto found = ita!=std::end(a);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 1u);
+        if (found) EXPECT_EQ(*ita, 10);
+
+        std::vector<int> v{1, 10, 15};
+        auto itv = binary_find(v, 10);
+        found = itv!=std::end(v);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 1u);
+        if (found) EXPECT_EQ(*itv, 10);
+    }
+
+    // test for const types
+    // i.e. iterators returned from passing in a const reference to a container
+    // can be compared to a const iterator from the container
+    {
+        std::vector<int> v{1, 10, 15};
+        auto const& vr = v;
+        auto itv = binary_find(vr, 10);
+        auto found = itv!=std::end(vr);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(nest::mc::util::cbegin(v), itv), 1u);
+        if (found) EXPECT_EQ(*itv, 10);
     }
 }
