@@ -301,8 +301,7 @@ fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
         // the respective control volumes, and the volumes and lengths of
         // each half are used to calculate the flux coefficients that
         // for the connection between the two control volumes and which
-        // (after scaling by inverse capacitance) is stored in
-        // `face_conductance[i]`.
+        // is stored in `face_conductance[i]`.
         //
         //
         //  +------- cv j --------+------- cv i -------+
@@ -426,7 +425,7 @@ void fvm_multicell<Backend>::initialize(
 
     // create maps for mechanism initialization.
     std::map<std::string, std::vector<segment_cv_range>> mech_map;
-    std::vector<std::vector<std::pair<cell_lid_type, double>>> syn_mech_map;
+    std::vector<std::vector<cell_lid_type>> syn_mech_map;
     std::map<std::string, std::size_t> syn_mech_indices;
 
     // initialize vector used for matrix creation.
@@ -437,10 +436,13 @@ void fvm_multicell<Backend>::initialize(
     auto detector_hi = detector_handles.begin();
     auto probe_hi = probe_handles.begin();
 
-    // allocate scratch vectors
-    std::vector<value_type> tmp_face_conductance(ncomp);
-    std::vector<value_type> tmp_cv_areas(ncomp);
-    std::vector<value_type> tmp_cv_capacitance(ncomp);
+    // Allocate scratch storage for calculating quantities used to build the
+    // linear system: these will later be copied into target-specific storage
+    // as need be.
+    // Initialize to zero, because the results therin are calculated via accumulation.
+    std::vector<value_type> tmp_face_conductance(ncomp, 0.);
+    std::vector<value_type> tmp_cv_areas(ncomp, 0.);
+    std::vector<value_type> tmp_cv_capacitance(ncomp, 0.);
 
     // Iterate over the input cells and build the indexes etc that descrbe the
     // fused cell group. On completion:
@@ -500,10 +502,8 @@ void fvm_multicell<Backend>::initialize(
 
             auto& map_entry = syn_mech_map[syn_mech_index];
 
-            auto syn_cap =
-                c.segment(syn.location.segment)->mechanism("membrane").get("c_m").value;
             auto syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
-            map_entry.push_back({syn_cv, syn_cap});
+            map_entry.push_back(syn_cv);
         }
 
         // add the stimuli
@@ -555,7 +555,7 @@ void fvm_multicell<Backend>::initialize(
 
     matrix_assembler_ = matrix_assembler(
         matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),
-        cv_capacitance_, face_conductance_, voltage_, current_); // TODO these are not the right values
+        cv_capacitance_, face_conductance_, voltage_, current_);
 
     // For each density mechanism build the full node index, i.e the list of
     // compartments with that mechanism, then build the mechanism instance.
@@ -569,7 +569,7 @@ void fvm_multicell<Backend>::initialize(
         mech_cv_index.clear();
         mech_cv_weight.clear();
 
-        auto& seg_cv_ranges = mech.second;
+        const auto& seg_cv_ranges = mech.second;
         for (auto& rng: seg_cv_ranges) {
             if (rng.has_parent()) {
                 // locate the parent cv in the partially constructed list of cv indexes
@@ -580,7 +580,7 @@ void fvm_multicell<Backend>::initialize(
                 }
                 auto pos = std::distance(std::begin(mech_cv_index), it);
 
-                // add area and conductance contribution to the parent cv for the segment
+                // add area contribution to the parent cv for the segment
                 mech_cv_weight[pos] += rng.areas.first;
             }
             util::append(mech_cv_index, make_span(rng.segment_cvs));
@@ -588,6 +588,8 @@ void fvm_multicell<Backend>::initialize(
 
             // adjust the last CV
             mech_cv_weight.back() = rng.areas.second;
+
+            EXPECTS(mech_cv_weight.size()==mech_cv_index.size());
         }
 
         // Scale the weights to get correct units (see w_i^d in formulation docs)
@@ -628,7 +630,7 @@ void fvm_multicell<Backend>::initialize(
 
         std::vector<index_pair> permute;
         assign_by(permute, make_span(0u, n_indices),
-            [&](size_type i) { return index_pair(cv_map[i].first, i); });
+            [&](size_type i) { return index_pair(cv_map[i], i); });
 
         // sort the cv information in order of cv index
         sort_by(permute, cv_index);
@@ -748,6 +750,17 @@ void fvm_multicell<Backend>::advance(double dt) {
     // solve the linear system
     PE("matrix", "setup");
     matrix_assembler_.assemble(dt);
+
+    /*
+    for (auto i: current_) std::cout << i << " "; std::cout << "\n";
+    for (auto i: cv_capacitance_) std::cout << 1e-3/dt*i << " "; std::cout << "\n";
+    for (auto i: voltage_) std::cout << i << " "; std::cout << "\n";
+    for (auto i: face_conductance_) std::cout << 1e2*i << " "; std::cout << "\n";
+    matrix_.print();
+    std::cout << std::endl;
+    //exit(0);
+    */
+
     PL(); PE("solve");
     matrix_.solve();
     PL();
