@@ -41,10 +41,9 @@ public:
 
     using ion_type = ion<backend>;
 
-    mechanism(view vec_v, view vec_i, array&& weights, iarray&& node_index):
+    mechanism(view vec_v, view vec_i, iarray&& node_index):
         vec_v_(vec_v),
         vec_i_(vec_i),
-        weights_(std::move(weights)),
         node_index_(std::move(node_index))
     {}
 
@@ -70,7 +69,6 @@ public:
 
     view vec_v_;
     view vec_i_;
-    array weights_;
     iarray node_index_;
 };
 

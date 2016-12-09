@@ -89,27 +89,6 @@ public:
         backend::hines_solve(d_, u_, rhs_, parent_index_, cell_index_);
     }
 
-    void print() const {
-        auto n = size();
-        std::vector<std::map<int, double>> U(n);
-
-        for (auto i=0u; i<n; ++i) {
-            U[i][i] = d_[i];
-        }
-        for (auto i=1u; i<n; ++i) {
-            auto p = parent_index_[i];
-            U[p][i] = u_[i];
-        }
-
-        for (auto i=0u; i<n; ++i) {
-            printf (" [[%16.14f]]", rhs_[i]);
-            for (auto uu: U[i]) {
-                printf (" (%-4d %16.14f)", uu.first, uu.second);
-            }
-            printf("\n");
-        }
-    }
-
     private:
 
     /// Allocate memory for storing matrix and right hand side vector

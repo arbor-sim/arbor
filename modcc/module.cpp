@@ -552,7 +552,7 @@ bool Module::semantic() {
             }
         }
         if(has_current_update && kind()==moduleKind::density) {
-            block.emplace_back(Parser("current_ = weight_ * current_").parse_line_expression());
+            block.emplace_back(Parser("current_ = weights_ * current_").parse_line_expression());
         }
 
         auto v = make_unique<ConstantFolderVisitor>();
@@ -594,6 +594,11 @@ void Module::add_variables_to_symbols() {
 
     create_variable("t",  rangeKind::scalar, accessKind::read);
     create_variable("dt", rangeKind::scalar, accessKind::read);
+    // density mechanisms use a vector of weights from current densities to
+    // units of nA
+    if (kind()==moduleKind::density) {
+        create_variable("weights_", rangeKind::range, accessKind::read);
+    }
 
     // add indexed variables to the table
     auto create_indexed_variable = [this]
@@ -612,8 +617,6 @@ void Module::add_variables_to_symbols() {
     create_indexed_variable("current_", "vec_i", tok::plus,
                             accessKind::write, ionKind::none, Location());
     create_indexed_variable("v", "vec_v", tok::eq,
-                            accessKind::read,  ionKind::none, Location());
-    create_indexed_variable("weight_", "weights", tok::eq,
                             accessKind::read,  ionKind::none, Location());
 
     // add state variables

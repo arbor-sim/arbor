@@ -615,9 +615,8 @@ void fvm_multicell<Backend>::initialize(
         auto cv_map = syn_mech_map[syni.second];
         size_type n_indices = size(cv_map);
 
-        // sort indices but keep track of their original:
-        //   - order for assigning target handles
-        //   - capacitance for calculating current weights
+        // sort indices but keep track of their original order for assigning
+        // target handles
 
         struct index_pair  {
             index_pair(cell_lid_type cel, size_type tgt):
@@ -750,16 +749,6 @@ void fvm_multicell<Backend>::advance(double dt) {
     // solve the linear system
     PE("matrix", "setup");
     matrix_assembler_.assemble(dt);
-
-    /*
-    for (auto i: current_) std::cout << i << " "; std::cout << "\n";
-    for (auto i: cv_capacitance_) std::cout << 1e-3/dt*i << " "; std::cout << "\n";
-    for (auto i: voltage_) std::cout << i << " "; std::cout << "\n";
-    for (auto i: face_conductance_) std::cout << 1e2*i << " "; std::cout << "\n";
-    matrix_.print();
-    std::cout << std::endl;
-    //exit(0);
-    */
 
     PL(); PE("solve");
     matrix_.solve();

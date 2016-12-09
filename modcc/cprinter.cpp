@@ -87,7 +87,7 @@ CPrinter::CPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
     text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index)");
-    text_.add_line(":   base(vec_v, vec_i, std::move(weights), std::move(node_index))");
+    text_.add_line(":   base(vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -124,8 +124,16 @@ CPrinter::CPrinter(Module &m, bool o)
         }
         text_.end_line();
     }
-
     text_.add_line();
+
+    // copy in the weights if this is a density mechanism
+    if (m.kind() == moduleKind::density) {
+        text_.add_line("// add the user-supplied weights for converting from current density");
+        text_.add_line("// to per-compartment current in nA");
+        text_.add_line("memory::copy(weights, weights_);");
+        text_.add_line();
+    }
+
     text_.add_line("// set initial values for variables and parameters");
     for(auto const& var : array_variables) {
         double val = var->value();
@@ -349,7 +357,6 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
-    text_.add_line("using base::weights_;");
     text_.add_line("using base::node_index_;");
 
     text_.add_line();
