@@ -4,10 +4,21 @@
 #include <memory>
 #include <sstream>
 #include <vector>
+#include <initializer_list>
 
 // is thing in list?
 template <typename T, int N>
 bool is_in(T thing, const T (&list)[N]) {
+    for(auto const& item : list) {
+        if(thing==item) {
+            return true;
+        }
+    }
+    return false;
+}
+
+template <typename T>
+bool is_in(T thing, const std::initializer_list<T> list) {
     for(auto const& item : list) {
         if(thing==item) {
             return true;
