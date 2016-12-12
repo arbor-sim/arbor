@@ -19,91 +19,102 @@ struct symbol_error: public std::runtime_error {
     symbol_error(const std::string& what): std::runtime_error(what) {}
 };
 
-// Symbols are either primitive or represent the difference
-// between two product terms.
+// Note impl definitions below over template argument S are used to resolve
+// class declaration dependencies.
 
-template <typename S>
-struct symbol_term_ {
-    S a, b;
+namespace impl {
+    // Represents product of two symbols, or zero if either symbol is null.
+    template <typename S>
+    struct symbol_term_ {
+        S a, b;
 
-    symbol_term_() = default;
+        symbol_term_() = default;
 
-    // true iff representing non-zero
-    operator bool() const {
-        return a && b;
-    }
-};
-
-template <typename S>
-struct symbol_term_diff_ {
-    symbol_term_<S> left, right;
-
-    symbol_term_diff_() = default;
-    symbol_term_diff_(const symbol_term_<S>& left): left(left), right{} {}
-    symbol_term_diff_(const symbol_term_<S>& left, const symbol_term_<S>& right):
-       left(left), right(right) {}
-};
-
-template <typename S>
-using symbol_def_ = optional<symbol_term_diff_<S>>;
-
-template <typename S>
-class symbol_table_ {
-public:
-    struct table_entry {
-        std::string name;
-        symbol_def_<S> def;
+        // true iff representing non-zero
+        operator bool() const {
+            return a && b;
+        }
     };
 
-    S define(const std::string& name, const symbol_def_<S>& definition = nothing) {
-        unsigned idx = size();
-        entries.push_back({name, definition});
-        return S{idx, this};
-    }
+    // Represents the difference between two product terms.
+    template <typename S>
+    struct symbol_term_diff_ {
+        symbol_term_<S> left, right;
 
-    S operator[](unsigned i) const {
-        if (i>=size()) throw symbol_error("no such symbol");
-        return S{i, this};
-    }
+        symbol_term_diff_() = default;
+        symbol_term_diff_(const symbol_term_<S>& left): left(left), right{} {}
+        symbol_term_diff_(const symbol_term_<S>& left, const symbol_term_<S>& right):
+           left(left), right(right) {}
+    };
 
-    std::size_t size() const {
-        return entries.size();
-    }
+    // A symbol can be primitive (has no expansion) or is defined as a product term difference.
+    template <typename S>
+    using symbol_def_ = optional<symbol_term_diff_<S>>;
 
-    const symbol_def_<S>& def(S s) const {
-        if (!valid(s)) throw symbol_error("symbol not present in this table");
-        return entries[s.idx].def;
-    }
+    // A symbol table represents a set of symbol names and definitions, referenced
+    // by symbol index.
+    template <typename S>
+    class symbol_table_ {
+    public:
+        struct table_entry {
+            std::string name;
+            symbol_def_<S> def;
+        };
 
-    const std::string& name(S s) const {
-        if (!valid(s)) throw symbol_error("symbol not present in this table");
-        return entries[s.idx].name;
-    }
+        S define(const std::string& name, const symbol_def_<S>& definition = nothing) {
+            unsigned idx = size();
+            entries.push_back({name, definition});
+            return S{idx, this};
+        }
 
-private:
-    std::vector<table_entry> entries;
-    bool valid(S s) const {
-        return s.tbl==this && s.idx<entries.size();
-    }
-};
+        S operator[](unsigned i) const {
+            if (i>=size()) throw symbol_error("no such symbol");
+            return S{i, this};
+        }
+
+        std::size_t size() const {
+            return entries.size();
+        }
+
+        const symbol_def_<S>& def(S s) const {
+            if (!valid(s)) throw symbol_error("symbol not present in this table");
+            return entries[s.idx].def;
+        }
+
+        const std::string& name(S s) const {
+            if (!valid(s)) throw symbol_error("symbol not present in this table");
+            return entries[s.idx].name;
+        }
+
+    private:
+        std::vector<table_entry> entries;
+        bool valid(S s) const {
+            return s.tbl==this && s.idx<entries.size();
+        }
+    };
+} // namespace impl
 
 class symbol {
-private:
-    friend class symbol_table_<symbol>;
-    unsigned idx = 0;
-    const symbol_table_<symbol>* tbl = nullptr;
+public:
+    using symbol_table = impl::symbol_table_<symbol>;
+    using symbol_def = impl::symbol_def_<symbol>;
 
-    symbol(unsigned idx, const symbol_table_<symbol>* tbl):
+private:
+    friend class impl::symbol_table_<symbol>;
+    unsigned idx = 0;
+    const symbol_table* tbl = nullptr;
+
+    // Symbols are created through a symbol table, or are
+    // default-constructed 'null' symbols.
+    symbol(unsigned idx, const symbol_table* tbl):
         idx(idx), tbl(tbl) {}
 
 public:
-    using symbol_table = symbol_table_<symbol>;
-    using symbol_def = symbol_def_<symbol>;
-
     symbol() = default;
     symbol(const symbol&) = default;
     symbol& operator=(const symbol&) = default;
 
+    // A symbol is 'null' if it has no corresponding symbol table.
     operator bool() const { return (bool)tbl; }
 
     std::string str() const {
@@ -121,10 +132,10 @@ public:
     }
 };
 
-using symbol_term = symbol_term_<symbol>;
-using symbol_term_diff = symbol_term_diff_<symbol>;
-using symbol_def = symbol_def_<symbol>;
-using symbol_table = symbol_table_<symbol>;
+using symbol_term = impl::symbol_term_<symbol>;
+using symbol_term_diff = impl::symbol_term_diff_<symbol>;
+using symbol_def = impl::symbol_def_<symbol>;
+using symbol_table = impl::symbol_table_<symbol>;
 
 inline symbol_term_diff operator-(const symbol_term& left, const symbol_term& right) {
     return symbol_term_diff{left, right};
@@ -156,8 +167,7 @@ inline std::ostream& operator<<(std::ostream& o, const symbol_term_diff& diff) {
     }
 }
 
-// A store represents map from symbols (from one table) to values.
-
+// A store represents a map from symbols (all from one table) to values.
 class store {
 private:
     const symbol_table& table;
