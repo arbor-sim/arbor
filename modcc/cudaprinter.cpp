@@ -82,9 +82,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     param_pack.push_back("vec_v_.data()");
     param_pack.push_back("vec_i_.data()");
 
-    text_.add_line("T* vec_area;");
-    param_pack.push_back("vec_area_.data()");
-
     text_.add_line("// node index information");
     text_.add_line("I* ni;");
     text_.add_line("unsigned long n_;");
@@ -191,7 +188,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(view vec_v, view vec_i, iarray&& node_index) :");
+    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index):");
     text_.add_line("   base(vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
@@ -223,6 +220,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             array_variables[i]->name() + " = data_("
             + std::to_string(i) + "*field_size, " + std::to_string(i+1) + "*field_size);");
     }
+    text_.add_line();
 
     for(auto const& var : array_variables) {
         double val = var->value();
@@ -231,6 +229,15 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         if(val == val) {
             text_.add_line("memory::fill(" + var->name() + ", " + std::to_string(val) + ");");
         }
+    }
+    text_.add_line();
+
+    // copy in the weights if this is a density mechanism
+    if (m.kind() == moduleKind::density) {
+        text_.add_line("// add the user-supplied weights for converting from current density");
+        text_.add_line("// to per-compartment current in nA");
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+        text_.add_line();
     }
 
     text_.decrease_indentation();
@@ -480,7 +487,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
-    text_.add_line("using base::vec_area_;");
     text_.add_line("using base::node_index_;");
     text_.add_line();
     text_.add_line("param_pack_type param_pack_;");

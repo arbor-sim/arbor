@@ -328,18 +328,20 @@ TEST(range, assign) {
 TEST(range, assign_from) {
     int in[] = {0,1,2};
 
-    std::vector<int> copy = util::assign_from(in);
-    /*
-    for (auto i: util::make_span(util::size(in))) {
-        EXPECT_EQ(in[i], copy[i]);
+    {
+        std::vector<int> copy = util::assign_from(in);
+        for (auto i=0u; i<util::size(in); ++i) {
+            EXPECT_EQ(in[i], copy[i]);
+        }
     }
 
-    copy = util::assign_from(
-        util::transform_view(in, [](int i) {return 2*i;}));
-    for (auto i: util::make_span(util::size(in))) {
-        EXPECT_EQ(2*in[i], copy[i]);
+    {
+        std::vector<int> copy = util::assign_from(
+            util::transform_view(in, [](int i) {return 2*i;}));
+        for (auto i=0u; i<util::size(in); ++i) {
+            EXPECT_EQ(2*in[i], copy[i]);
+        }
     }
-    */
 }
 
 TEST(range, sort) {

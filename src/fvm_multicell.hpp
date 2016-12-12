@@ -202,13 +202,13 @@ private:
     ///     face_conductance_[i] = area_face  / (r_L * delta_x);
     array face_conductance_;
 
-    /// cv_capacitance_[i] is the capacitance of CV membrane [10^-12 F]
+    /// cv_capacitance_[i] is the capacitance of CV membrane [pF]
     ///     C_m = area*c_m
-    array cv_capacitance_; // units [µm^2*F*m^-2 = 10^-12 F]
+    array cv_capacitance_; // units [µm^2*F*m^-2 = pF]
 
     /// the average current density over the surface of each CV [nA]
     ///     I = area*i_m - I_e
-    array current_;  // units 
+    array current_;
 
     /// the potential in each CV [mV]
     array voltage_;

@@ -80,12 +80,12 @@ CPrinter::CPrinter(Module &m, bool o)
         text_.add_line("};");
         text_.add_line(tname + " ion_" + ion.name + ";");
     }
-    text_.add_line();
 
     //////////////////////////////////////////////
     // constructor
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
+    text_.add_line();
     text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index)");
     text_.add_line(":   base(vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
@@ -130,7 +130,7 @@ CPrinter::CPrinter(Module &m, bool o)
     if (m.kind() == moduleKind::density) {
         text_.add_line("// add the user-supplied weights for converting from current density");
         text_.add_line("// to per-compartment current in nA");
-        text_.add_line("memory::copy(weights, weights_);");
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
         text_.add_line();
     }
 
