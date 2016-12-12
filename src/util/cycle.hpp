@@ -152,6 +152,19 @@ public:
         return !(*this == other);
     }
 
+    cyclic_iterator operator-(difference_type n) const {
+        cyclic_iterator c(*this);
+        return c -= n;
+    }
+
+    difference_type operator-(const cyclic_iterator& other) const {
+        return off_ - other.off_;
+    }
+
+    bool operator<(const cyclic_iterator& other) const {
+        return off_ < other.off_;
+    }
+
     // expose inner iterator for testing against a sentinel
     template <typename Sentinel>
     bool operator==(const Sentinel& s) const {
