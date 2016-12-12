@@ -1,5 +1,7 @@
 #include "../gtest.h"
 
+#include <algorithm>
+#include <iterator>
 #include <string>
 
 #include "common.hpp"
@@ -60,6 +62,12 @@ TEST(cycle_iterator, increment) {
             EXPECT_EQ(values[i], cycle_iter[values.size() + i]);
         }
     }
+
+    {
+        auto cycle_iter = util::make_cyclic_iterator(values.cbegin(),
+                                                     values.cend());
+        EXPECT_NE(cycle_iter + 1, cycle_iter + 10);
+    }
 }
 
 TEST(cycle_iterator, decrement) {
@@ -92,22 +100,22 @@ TEST(cycle_iterator, decrement) {
             EXPECT_EQ(values[pos], cycle_iter[-i]);
         }
     }
+
+    {
+        auto cycle_iter = util::make_cyclic_iterator(values.cbegin(),
+                                                     values.cend());
+        EXPECT_NE(cycle_iter - 2, cycle_iter - 5);
+        EXPECT_NE(cycle_iter + 1, cycle_iter - 5);
+    }
 }
 
 TEST(cycle_iterator, carray) {
     int values[] = { 4, 2, 3 };
-    {
-        // test operator++
-        auto cycle_iter = util::make_cyclic_iterator(util::cbegin(values),
-                                                     util::cend(values));
-        auto cycle_iter_copy = cycle_iter;
-
-        auto values_size = util::size(values);
-        for (auto i = 0u; i < 2*values_size; ++i) {
-            EXPECT_EQ(values[i % values_size], *cycle_iter);
-            EXPECT_EQ(values[i % values_size], *cycle_iter_copy++);
-            ++cycle_iter;
-        }
+    auto cycle_iter = util::make_cyclic_iterator(util::cbegin(values),
+                                                 util::cend(values));
+    auto values_size = util::size(values);
+    for (auto i = 0u; i < 2*values_size; ++i) {
+        EXPECT_EQ(values[i % values_size], *cycle_iter++);
     }
 }
 
@@ -125,41 +133,16 @@ TEST(cycle_iterator, sentinel) {
 
 TEST(cycle, cyclic_view) {
     std::vector<int> values = { 4, 2, 3 };
+    std::vector<int> values_new;
 
-    {
-        std::vector<int> values_new(10, -1);
+    std::copy_n(util::cyclic_view(values).cbegin(), 10,
+                std::back_inserter(values_new));
 
-        auto cycle = util::cyclic_view(values);
-        auto values_new_iter = values_new.begin();
-        for (auto const& v : cycle) {
-            if (values_new_iter == values_new.end()) {
-                break;
-            }
+    EXPECT_EQ(10, values_new.size());
 
-            *values_new_iter = v;
-            ++values_new_iter;
-        }
-
-        auto i = 0;
-        for (auto const& v : values_new) {
-            EXPECT_EQ(values[i % values.size()], v);
-            ++i;
-        }
-    }
-
-    {
-        std::vector<int> values_new(10, -1);
-
-        auto cycle_iter = util::cyclic_view(values).cbegin();
-        for (auto &v : values_new) {
-            v = *cycle_iter++;
-        }
-
-        auto i = 0;
-        for (auto const& v : values_new) {
-            EXPECT_EQ(values[i % values.size()], v);
-            ++i;
-        }
+    auto i = 0;
+    for (auto const& v : values_new) {
+        EXPECT_EQ(values[i++ % values.size()], v);
     }
 }
 

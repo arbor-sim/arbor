@@ -16,7 +16,7 @@ class cyclic_iterator : public iterator_adaptor<cyclic_iterator<I,S>, I> {
     I begin_;
     I inner_;
     S end_;
-    typename base::difference_type size_;  // wrap distance
+    typename base::difference_type off_;   // offset from begin
 
     const I& inner() const {
         return inner_;
@@ -37,28 +37,30 @@ public:
         : begin_(std::forward<Iter>(iter)),
           inner_(std::forward<Iter>(iter)),
           end_(std::forward<Sentinel>(sentinel)),
-          size_(util::distance(iter, sentinel))
+          off_(0)
     { }
 
     cyclic_iterator(const cyclic_iterator& other)
         : begin_(other.begin_),
           inner_(other.inner_),
           end_(other.end_),
-          size_(other.size_) { }
+          off_(other.off_)
+    { }
 
     cyclic_iterator(cyclic_iterator&& other)
         : begin_(std::move(other.begin_)),
           inner_(std::move(other.inner_)),
           end_(std::move(other.end_)),
-          size_(other.size_) { }
+          off_(other.off_)
+    { }
 
 
     cyclic_iterator& operator=(const cyclic_iterator& other) {
         if (this != &other) {
             inner_ = other.inner_;
             begin_ = other.begin_;
-            end_ = other.end_;
-            size_ = other.size_;
+            end_   = other.end_;
+            off_   = other.off_;
         }
 
         return *this;
@@ -68,8 +70,8 @@ public:
         if (this != &other) {
             inner_ = std::move(other.inner_);
             begin_ = std::move(other.begin_);
-            end_ = std::move(other.end_);
-            size_ = other.size_;
+            end_   = std::move(other.end_);
+            off_   = other.off_;
         }
 
         return *this;
@@ -90,6 +92,7 @@ public:
             inner_ = begin_;
         }
 
+        ++off_;
         return *this;
     }
 
@@ -101,13 +104,15 @@ public:
 
     cyclic_iterator& operator--() {
         if (inner_ == begin_) {
-            // wrap around
-            inner_ = std::next(begin_, size_-1);
+            // wrap around; use upto() to handle efficiently the move to the end
+            // in case inner_ is a bidirectional iterator
+            inner_ = upto(inner_, end_);
         }
         else {
             --inner_;
         }
 
+        --off_;
         return *this;
     }
 
@@ -118,14 +123,17 @@ public:
     }
 
     cyclic_iterator& operator+=(difference_type n) {
+        // wrap distance
+        auto size = util::distance(begin_, end_);
+
         // calculate distance from begin
-        auto pos = util::distance(begin_, inner_) + n;
+        auto pos = (off_ += n);
         if (pos < 0) {
-            auto mod = -pos % size_;
-            pos = mod ? size_ - mod : 0;
+            auto mod = -pos % size;
+            pos = mod ? size - mod : 0;
         }
         else {
-            pos = pos % size_;
+            pos = pos % size;
         }
 
         inner_ = std::next(begin_, pos);
@@ -137,7 +145,7 @@ public:
     }
 
     bool operator==(const cyclic_iterator& other) const {
-        return inner_ == other.inner_;
+        return begin_ == other.begin_ && off_ == other.off_;
     }
 
     bool operator!=(const cyclic_iterator& other) const {
@@ -146,10 +154,14 @@ public:
 
     // expose inner iterator for testing against a sentinel
     template <typename Sentinel>
-    bool operator==(const Sentinel& s) const { return inner_ == s; }
+    bool operator==(const Sentinel& s) const {
+        return inner_ == s;
+    }
 
     template <typename Sentinel>
-    bool operator!=(const Sentinel& s) const { return !(inner_ == s); }
+    bool operator!=(const Sentinel& s) const {
+        return !(inner_ == s);
+    }
 };
 
 template <typename I, typename S>
@@ -177,8 +189,6 @@ template <
 >
 range<cyclic_iterator<SeqIter, SeqSentinel>, SeqSentinel>
 cyclic_view(const Seq& s) {
-    // iterating over a cyclic view is endless; the following two iterators can
-    // never be equal
     return { make_cyclic_iterator(cbegin(s), cend(s)), cend(s) };
 }
 
