@@ -4,7 +4,7 @@
  *
  * The uninitialized<X> structure holds space for an item of
  * type X, leaving its construction or destruction to the user.
- * 
+ *
  * Specialisations for reference types X& and for the void type
  * allow for the handling of non-value types in a uniform manner.
  */
@@ -12,6 +12,7 @@
 #include <type_traits>
 #include <utility>
 
+#include "util/compat.hpp"
 #include "util/meta.hpp"
 
 namespace nest {
@@ -33,11 +34,21 @@ public:
     using reference = X&;
     using const_reference= const X&;
 
-    pointer ptr() { return reinterpret_cast<X*>(&data); }
-    const_pointer cptr() const { return reinterpret_cast<const X*>(&data); }
+    pointer ptr() {
+        // COMPAT: xlC 13.1.4 workaround:
+        // should be equivalent to `return reinterpret_cast<X*>(&data)`.
+        compat::compiler_barrier_if_xlc_leq(0x0d01);
+        return static_cast<X*>(static_cast<void*>(&data));
+    }
+    const_pointer cptr() const {
+        // COMPAT: xlC 13.1.4 workaround:
+        // should be equivalent to `return reinterpret_cast<const X*>(&data)`
+        compat::compiler_barrier_if_xlc_leq(0x0d01);
+        return static_cast<const X*>(static_cast<const void*>(&data));
+    }
 
-    reference ref() { return *reinterpret_cast<X*>(&data); }
-    const_reference cref() const { return *reinterpret_cast<const X*>(&data); }
+    reference ref() { return *ptr(); }
+    const_reference cref() const { return *cptr(); }
 
     // Copy construct the value.
     template <
@@ -106,7 +117,7 @@ public:
 };
 
 /* Wrap a void type in an uninitialized template.
- * 
+ *
  * Allows the use of uninitialized<X> for void X, for generic applications.
  */
 template <>

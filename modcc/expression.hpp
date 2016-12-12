@@ -58,6 +58,8 @@ class LocalVariable;
 
 using expression_ptr = std::unique_ptr<Expression>;
 using symbol_ptr = std::unique_ptr<Symbol>;
+using scope_type = Scope<Symbol>;
+using scope_ptr = std::shared_ptr<scope_type>;
 
 template <typename T, typename... Args>
 expression_ptr make_expression(Args&&... args) {
@@ -113,8 +115,6 @@ static std::string to_string(solverMethod m) {
 
 class Expression {
 public:
-    using scope_type = Scope<Symbol>;
-
     explicit Expression(Location location)
     :   location_(location)
     {}
@@ -125,9 +125,12 @@ public:
     // expressions must provide a method for stringification
     virtual std::string to_string() const = 0;
 
-    Location const& location() const {return location_;};
+    Location const& location() const { return location_; }
 
-    std::shared_ptr<scope_type> scope() {return scope_;};
+    scope_ptr scope() { return scope_; }
+
+    // set scope explicitly
+    void scope(scope_ptr s) { scope_ = s; }
 
     void error(std::string const& str) {
         error_        = true;
@@ -143,7 +146,7 @@ public:
     std::string const& warning_message() const { return warning_string_; }
 
     // perform semantic analysis
-    virtual void semantic(std::shared_ptr<scope_type>);
+    virtual void semantic(scope_ptr);
     virtual void semantic(scope_type::symbol_map&) {
         throw compiler_exception("unable to perform semantic analysis for " + this->to_string(), location_);
     };
@@ -194,8 +197,7 @@ protected:
     std::string warning_string_;
 
     Location location_;
-
-    std::shared_ptr<scope_type> scope_;
+    scope_ptr scope_;
 };
 
 class Symbol : public Expression {
@@ -263,7 +265,7 @@ public:
 
     expression_ptr clone() const override;
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
 
     Symbol* symbol() { return symbol_; };
 
@@ -300,6 +302,9 @@ public:
     std::string to_string() const override {
         return blue("diff") + "(" + yellow(spelling()) + ")";
     }
+
+    expression_ptr clone() const override;
+
     DerivativeExpression* is_derivative() override { return this; }
 
     ~DerivativeExpression() {}
@@ -325,7 +330,7 @@ public:
     }
 
     // do nothing for number semantic analysis
-    void semantic(std::shared_ptr<scope_type> scp) override {};
+    void semantic(scope_ptr scp) override {};
     expression_ptr clone() const override;
 
     NumberExpression* is_number() override {return this;}
@@ -355,7 +360,7 @@ public:
     }
 
     // do nothing for number semantic analysis
-    void semantic(std::shared_ptr<scope_type> scp) override {};
+    void semantic(scope_ptr scp) override {};
     expression_ptr clone() const override;
 
     IntegerExpression* is_integer() override {return this;}
@@ -386,7 +391,7 @@ public:
 
     bool add_variable(Token name);
     LocalDeclaration* is_local_declaration() override {return this;}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     std::vector<Symbol*>& symbols() {return symbols_;}
     std::map<std::string, Token>& variables() {return vars_;}
     expression_ptr clone() const override;
@@ -411,7 +416,7 @@ public:
 
     bool add_variable(Token name);
     ArgumentExpression* is_argument() override {return this;}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     Token   token()  {return token_;}
     std::string const& name()  {return name_;}
     void set_name(std::string const& n) {
@@ -668,7 +673,7 @@ public:
 
     expression_ptr clone() const override;
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
 
     ~SolveExpression() {}
@@ -709,7 +714,7 @@ public:
 
     expression_ptr clone() const override;
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
 
     ~ConductanceExpression() {}
@@ -767,7 +772,7 @@ public:
         return is_nested_;
     }
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor* v) override;
 
     std::string to_string() const override;
@@ -795,7 +800,7 @@ public:
     expression_ptr clone() const override;
 
     std::string to_string() const override;
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
 
     void accept(Visitor* v) override;
 private:
@@ -848,7 +853,7 @@ public:
     ReactionExpression* is_reaction() override {return this;}
 
     std::string to_string() const override;
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
 
@@ -885,7 +890,7 @@ public:
     std::string to_string() const override {
         return pprintf("% %", coeff()->to_string(), ident()->to_string());
     }
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
 
@@ -918,7 +923,7 @@ public:
     StoichExpression* is_stoich() override {return this;}
 
     std::string to_string() const override;
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void accept(Visitor *v) override;
 
@@ -943,7 +948,7 @@ public:
     std::string& name() { return spelling_; }
     std::string const& name() const { return spelling_; }
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
 
     std::string to_string() const override;
@@ -1138,7 +1143,7 @@ public:
     UnaryExpression* is_unary() override {return this;};
     Expression* expression() {return expression_.get();}
     const Expression* expression() const {return expression_.get();}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
     void replace_expression(expression_ptr&& other);
 };
@@ -1220,7 +1225,7 @@ public:
     const Expression* lhs() const {return lhs_.get();}
     const Expression* rhs() const {return rhs_.get();}
     BinaryExpression* is_binary() override {return this;}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void replace_rhs(expression_ptr&& other);
     void replace_lhs(expression_ptr&& other);
@@ -1236,7 +1241,7 @@ public:
 
     AssignmentExpression* is_assignment() override {return this;}
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
 
     void accept(Visitor *v) override;
 };
@@ -1250,7 +1255,7 @@ public:
     ConserveExpression* is_conserve() override {return this;}
     expression_ptr clone() const override;
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
 
     void accept(Visitor *v) override;
 };

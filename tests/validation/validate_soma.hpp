@@ -46,7 +46,7 @@ void validate_soma() {
 
             model.reset();
             float dt = float(1./oo_dt);
-            runner.run(model, dt, t_end, dt);
+            runner.run(model, dt, t_end, dt, {});
         }
     }
 end:

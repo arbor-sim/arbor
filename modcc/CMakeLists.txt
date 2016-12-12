@@ -1,17 +1,18 @@
 set(MODCC_SOURCES
-    token.cpp
-    lexer.cpp
-    expression.cpp
-    parser.cpp
-    textbuffer.cpp
+    astmanip.cpp
+    constantfolder.cpp
     cprinter.cpp
+    cudaprinter.cpp
+    errorvisitor.cpp
+    expression.cpp
+    expressionclassifier.cpp
     functionexpander.cpp
     functioninliner.cpp
-    cudaprinter.cpp
-    expressionclassifier.cpp
-    constantfolder.cpp
-    errorvisitor.cpp
+    lexer.cpp
     module.cpp
+    parser.cpp
+    textbuffer.cpp
+    token.cpp
 )
 
 add_library(compiler ${MODCC_SOURCES})

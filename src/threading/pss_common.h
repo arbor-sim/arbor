@@ -51,8 +51,8 @@ void serial_destroy( RandomAccessIterator zs, RandomAccessIterator ze ) {
 template<class RandomAccessIterator1, class RandomAccessIterator2, class RandomAccessIterator3, class Compare>
 void serial_move_merge( RandomAccessIterator1 xs, RandomAccessIterator1 xe, RandomAccessIterator2 ys, RandomAccessIterator2 ye, RandomAccessIterator3 zs, Compare comp ) {
     if( xs!=xe ) {
-        if( ys!=ye )
-            for(;;)
+        if( ys!=ye ) {
+            for(;;) {
                 if( comp(*ys,*xs) ) {
                     *zs = std::move(*ys);
                     ++zs;
@@ -62,6 +62,8 @@ void serial_move_merge( RandomAccessIterator1 xs, RandomAccessIterator1 xe, Rand
                     ++zs;
                     if( ++xs==xe ) goto movey;
                 }
+            }
+        }
         ys = xs;
         ye = xe;
     }
