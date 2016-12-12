@@ -93,8 +93,8 @@ TEST(cycle_iterator, decrement) {
         // test operator[]
         auto cycle_iter = util::make_cyclic_iterator(values.cbegin(),
                                                      values.cend());
-        auto values_size = values.size();
-        for (auto i = 0; i < 2*values_size; ++i) {
+        int values_size = values.size();
+        for (int i = 0; i < 2*values_size; ++i) {
             auto pos = i % values_size;
             pos = pos ? values_size - pos : 0;
             EXPECT_EQ(values[pos], cycle_iter[-i]);
@@ -131,6 +131,7 @@ TEST(cycle_iterator, sentinel) {
     }
 }
 
+
 TEST(cycle, cyclic_view) {
     std::vector<int> values = { 4, 2, 3 };
     std::vector<int> values_new;
@@ -138,12 +139,60 @@ TEST(cycle, cyclic_view) {
     std::copy_n(util::cyclic_view(values).cbegin(), 10,
                 std::back_inserter(values_new));
 
-    EXPECT_EQ(10, values_new.size());
+    EXPECT_EQ(10u, values_new.size());
 
     auto i = 0;
     for (auto const& v : values_new) {
         EXPECT_EQ(values[i++ % values.size()], v);
     }
+}
+
+TEST(cycle_iterator, difference) {
+    int values[] = { 4, 2, 3 };
+
+    auto cycle = util::cyclic_view(values);
+    auto c1 = cycle.begin();
+
+    auto c2 = c1;
+    EXPECT_EQ(0, c2-c1);
+
+    ++c2;
+    EXPECT_EQ(1, c2-c1);
+
+    ++c1;
+    EXPECT_EQ(0, c2-c1);
+
+    c2 += 6;
+    EXPECT_EQ(6, c2-c1);
+
+    c1 += 2;
+    EXPECT_EQ(4, c2-c1);
+
+    --c2;
+    EXPECT_EQ(3, c2-c1);
+
+    c1 -= 3;
+    EXPECT_EQ(6, c2-c1);
+}
+
+TEST(cycle_iterator, order) {
+    int values[] = { 4, 2, 3 };
+
+    auto cycle = util::cyclic_view(values);
+    auto c1 = cycle.begin();
+    auto c2 = c1;
+
+    EXPECT_FALSE(c1 < c2);
+    EXPECT_FALSE(c2 < c1);
+    EXPECT_TRUE(c1 <= c2);
+    EXPECT_TRUE(c1 >= c2);
+
+    c2 += util::size(values);
+
+    EXPECT_TRUE(c1 < c2);
+    EXPECT_FALSE(c2 < c1);
+    EXPECT_TRUE(c1 <= c2);
+    EXPECT_FALSE(c1 >= c2);
 }
 
 TEST(cycle, cyclic_view_sentinel) {
