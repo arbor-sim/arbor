@@ -7,12 +7,15 @@
 #include <algorithms.hpp>
 #include <util/pprintf.hpp>
 
-namespace nest{ namespace mc{ namespace mechanisms{
+namespace nest{
+namespace mc{
+namespace mechanisms{
+namespace multicore{
 
 template<class Backend>
-class stimulus : public mechanism<Backend> {
+class stimulus : public mechanisms::mechanism<Backend> {
 public:
-    using base = mechanism<Backend>;
+    using base = mechanisms::mechanism<Backend>;
     using value_type  = typename base::value_type;
     using size_type   = typename base::size_type;
 
@@ -43,15 +46,15 @@ public:
         return "stimulus";
     }
 
-    mechanismKind kind() const override {
-        return mechanismKind::point;
+    mechanisms::mechanismKind kind() const override {
+        return mechanisms::mechanismKind::point;
     }
 
-    bool uses_ion(ionKind k) const override {
+    bool uses_ion(mechanisms::ionKind k) const override {
         return false;
     }
 
-    void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {
+    void set_ion(mechanisms::ionKind k, ion_type& i, std::vector<size_type>const& index) override {
         throw std::domain_error(
                 nest::mc::util::pprintf("mechanism % does not support ion type\n", name()));
     }
@@ -100,7 +103,8 @@ public:
     using base::node_index_;
 };
 
-}
-}
-} // namespaces
+} // namespace multicore
+} // namespace mechanisms
+} // namespace mc
+} // namespace nest
 

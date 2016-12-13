@@ -104,6 +104,9 @@ public:
     /// mechanism type
     using mechanism = typename backend::mechanism;
 
+    /// stimulus type
+    using stimulus = typename backend::stimulus;
+
     /// ion species storage
     using ion = typename backend::ion;
 
@@ -551,7 +554,7 @@ void fvm_multicell<Backend>::initialize(
         //       optimizations that rely on this assumption (they are not
         //       performance critical).
         if (stim_index.size()) {
-            auto stim = new mechanisms::stimulus<Backend>(
+            auto stim = new stimulus(
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
             mechanisms_.push_back(mechanism(stim));
