@@ -668,6 +668,23 @@ TEST(algorithms, binary_find)
         if (found) EXPECT_EQ(*itv, 10);
     }
 
+    // value is last present and neither first nor last in range and range has even size
+    {
+        int a[] = {1, 10, 15, 27};
+        auto ita = binary_find(a, 10);
+        auto found = ita!=std::end(a);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(a), ita), 1u);
+        if (found) EXPECT_EQ(*ita, 10);
+
+        std::vector<int> v{1, 10, 15, 27};
+        auto itv = binary_find(v, 10);
+        found = itv!=std::end(v);
+        EXPECT_TRUE(found);
+        EXPECT_EQ(std::distance(std::begin(v), itv), 1u);
+        if (found) EXPECT_EQ(*itv, 10);
+    }
+
     // test for const types
     // i.e. iterators returned from passing in a const reference to a container
     // can be compared to a const iterator from the container
@@ -680,4 +697,32 @@ TEST(algorithms, binary_find)
         EXPECT_EQ(std::distance(nest::mc::util::cbegin(v), itv), 1u);
         if (found) EXPECT_EQ(*itv, 10);
     }
+}
+
+struct int_string {
+    int value;
+
+    friend bool operator<(const int_string& lhs, const std::string& rhs) {
+        return lhs.value<std::stoi(rhs);
+    }
+    friend bool operator<(const std::string& lhs, const int_string& rhs) {
+        return std::stoi(lhs)<rhs.value;
+    }
+    friend bool operator==(const int_string& lhs, const std::string& rhs) {
+        return lhs.value==std::stoi(rhs);
+    }
+    friend bool operator==(const std::string& lhs, const int_string& rhs) {
+        return std::stoi(lhs)==rhs.value;
+    }
+};
+
+TEST(algorithms, binary_find_convert)
+{
+    using nest::mc::algorithms::binary_find;
+
+    std::vector<std::string> values = {"0", "10", "20", "30"};
+    auto it = nest::mc::algorithms::binary_find(values, int_string{20});
+
+    EXPECT_TRUE(it!=values.end());
+    EXPECT_TRUE(std::distance(values.begin(), it)==2u);
 }
