@@ -51,6 +51,18 @@ subrange_view(Seq& seq, Size bi, Size ei) {
     return make_range(b, e);
 }
 
+template <
+    typename Seq,
+    typename Iter = typename sequence_traits<Seq>::iterator,
+    typename Size = typename sequence_traits<Seq>::size_type
+>
+enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
+subrange_view(Seq& seq, std::pair<Size, Size> index) {
+    Iter b = std::next(std::begin(seq), index.first);
+    Iter e = std::next(b, index.second-index.first);
+    return make_range(b, e);
+}
+
 // Append sequence to a container
 
 template <typename Container, typename Seq>
@@ -69,6 +81,30 @@ AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
     return c;
 }
 
+namespace impl {
+    template <typename Seq>
+    struct assign_proxy {
+        assign_proxy(const Seq& seq):
+            ref{seq}
+        {}
+
+        // Convert the sequence to a container of type C.
+        // This requires that C supports construction from a pair of iterators
+        template <typename C>
+        operator C() const {
+            return C(std::begin(ref), std::end(ref));
+        }
+
+        const Seq& ref;
+    };
+}
+
+// Copy-assign sequence to a container
+
+template <typename Seq>
+impl::assign_proxy<Seq> assign_from(const Seq& seq) {
+    return impl::assign_proxy<Seq>(seq);
+}
 
 // Assign sequence to a container with transform `proj`
 
@@ -231,13 +267,6 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
         }
     }
     return m;
-}
-
-template <typename T, typename Seq>
-std::vector<T> make_std_vector(const Seq& seq) {
-    auto i = std::begin(seq);
-    auto e = std::end(seq);
-    return std::vector<T>(i, e);
 }
 
 template <typename C, typename Seq>
