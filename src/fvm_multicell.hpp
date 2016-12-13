@@ -234,8 +234,9 @@ private:
         // the range of CVs in the segment, excluding the parent CV
         std::pair<size_type, size_type> segment_cvs;
 
-        // the last CV in the parent segment
-        // set to npos() if there is no parent (i.e. if soma)
+        // The last CV in the parent segment, which corresponds to the
+        // first CV in this segment.
+        // Set to npos() if there is no parent (i.e. if soma)
         size_type parent_cv;
 
         static constexpr size_type npos() {
