@@ -216,7 +216,7 @@ private:
     ///     C_m = area*c_m
     array cv_capacitance_; // units [µm^2*F*m^-2 = pF]
 
-    /// the average current density over the surface of each CV [nA]
+    /// the transmembrane current over the surface of each CV [nA]
     ///     I = area*i_m - I_e
     array current_;
 
@@ -231,15 +231,26 @@ private:
 
     std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
 
+    /// Compact representation of the control volumes into which a segment is
+    /// decomposed. Used to reconstruct the weights used to convert current
+    /// densities to currents for density channels.
     struct segment_cv_range {
+        // the contribution to the surface area of the CVs that
+        // are at the beginning and end of the segment
         std::pair<value_type, value_type> areas;
+
+        // the range of CVs in the segment, excluding the parent CV
         std::pair<size_type, size_type> segment_cvs;
+
+        // the last CV in the parent segment
+        // set to npos() if there is no parent (i.e. if soma)
         size_type parent_cv;
 
         static constexpr size_type npos() {
             return std::numeric_limits<size_type>::max();
         }
 
+        // the number of CVs (including the parent)
         std::size_t size() const {
             return segment_cvs.second-segment_cvs.first + (parent_cv==npos() ? 0 : 1);
         }
@@ -250,7 +261,7 @@ private:
     };
 
     // perform area and capacitance calculation on initialization
-    segment_cv_range compute_cv_area_unnormalized_capacitance(
+    segment_cv_range compute_cv_area_capacitance(
         std::pair<size_type, size_type> comp_ival,
         const segment* seg,
         const std::vector<size_type>& parent,
@@ -265,7 +276,7 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 template <typename Backend>
 typename fvm_multicell<Backend>::segment_cv_range
-fvm_multicell<Backend>::compute_cv_area_unnormalized_capacitance(
+fvm_multicell<Backend>::compute_cv_area_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
     const std::vector<size_type>& parent,
@@ -483,7 +494,7 @@ void fvm_multicell<Backend>::initialize(
             const auto& seg = c.segment(j);
             const auto& seg_comp_ival = seg_comp_part[j];
 
-            auto cv_range = compute_cv_area_unnormalized_capacitance(
+            auto cv_range = compute_cv_area_capacitance(
                 seg_comp_ival, seg, group_parent_index,
                 tmp_face_conductance, tmp_cv_areas, tmp_cv_capacitance);
 
@@ -652,15 +663,9 @@ void fvm_multicell<Backend>::initialize(
 
         // sort indices but keep track of their original order for assigning
         // target handles
-
-        struct index_pair  {
-            index_pair(cell_lid_type cel, size_type tgt):
-                cv_index(cel), target_index(tgt) {}
-            cell_lid_type cv_index; // the cv to which the synapse is attached
-            size_type target_index; // the unique identifier for the event target
-        };
-        auto cv_index = [](index_pair x) { return x.cv_index; };
-        auto target_index = [](index_pair x) { return x.target_index; };
+        using index_pair = std::pair<cell_lid_type, size_type>;
+        auto cv_index = [](index_pair x) { return x.first; };
+        auto target_index = [](index_pair x) { return x.second; };
 
         std::vector<index_pair> permute;
         assign_by(permute, make_span(0u, n_indices),
@@ -672,7 +677,7 @@ void fvm_multicell<Backend>::initialize(
         std::vector<cell_lid_type> cv_indices =
             assign_from(transform_view(permute, cv_index));
 
-        // Create the mechanism
+        // Create the mechanism.
         // An empty weight vector is supplied, because there are no weights applied to point
         // processes, because their currents are calculated with the target units of [nA]
         mechanisms_.push_back(
