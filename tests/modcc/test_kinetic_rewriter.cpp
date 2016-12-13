@@ -43,7 +43,7 @@ static const char* derivative_abc =
     "    a' = -3*a + b*v       \n"
     "    LOCAL rev2            \n"
     "    rev2 = c*b^3*sin(4)   \n"
-    "    b' = 3*a - (v*b) + 8*b - 2*rev2\n"
+    "    b' = 3*a - v*b + 8*b - 2*rev2\n"
     "    c' = 4*b - rev2       \n"
     "}                         \n";
 
