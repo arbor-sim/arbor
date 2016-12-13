@@ -66,8 +66,6 @@ public:
     using target_handle = std::pair<size_type, size_type>;
     using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
 
-    using stimulus_store_type = std::vector<std::pair<size_type, i_clamp>>;
-
     fvm_multicell() = default;
 
     void resting_potential(value_type potential_mV) {
@@ -170,12 +168,24 @@ public:
     }
 
     /// return reference to the stimuli
-    stimulus_store_type& stimuli() {
-        return stimuli_;
+    util::optional<mechanism&> find_mechanism(const std::string& name) {
+        auto it = std::find_if(
+            std::begin(mechanisms_), std::end(mechanisms_),
+            [&name](mechanism& m) {return m->name()==name;});
+        if (it!=mechanisms_.end()) {
+            return util::optional<mechanism&>(*it);
+        }
+        return {};
     }
 
-    stimulus_store_type const& stimuli() const {
-        return stimuli_;
+    util::optional<const mechanism&> find_mechanism(const std::string& name) const {
+        auto it = std::find_if(
+            std::begin(mechanisms_), std::end(mechanisms_),
+            [&name](const mechanism& m) {return m->name()==name;});
+        if (it!=mechanisms_.end()) {
+            return util::optional<const mechanism&>(*it);
+        }
+        return {};
     }
 
     value_type time() const { return t_; }
@@ -218,8 +228,6 @@ private:
 
     /// the ion species
     std::map<mechanisms::ionKind, ion> ions_;
-
-    stimulus_store_type stimuli_;
 
     std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
 
@@ -506,11 +514,38 @@ void fvm_multicell<Backend>::initialize(
             map_entry.push_back(syn_cv);
         }
 
+        //
         // add the stimuli
+        //
+
+        // step 1: pack the index and parameter information into flat vectors
+        std::vector<size_type> stim_index;
+        std::vector<value_type> stim_durations;
+        std::vector<value_type> stim_delays;
+        std::vector<value_type> stim_amplitudes;
         for (const auto& stim: c.stimuli()) {
             auto idx = comp_ival.first+find_cv_index(stim.location, graph);
-            stimuli_.push_back({idx, stim.clamp});
+            stim_index.push_back(idx);
+            stim_durations.push_back(stim.clamp.duration());
+            stim_delays.push_back(stim.clamp.delay());
+            stim_amplitudes.push_back(stim.clamp.amplitude());
         }
+
+        // step 2: create the stimulus mechanism and initialize the stimulus
+        //         parameters
+        // NOTE: the indexes and associated metadata (durations, delays,
+        //       amplitudes) have not been permuted to ascending cv index order,
+        //       as is the case with other point processes.
+        //       This is because the hard-coded stimulus mechanism makes no
+        //       optimizations that rely on this assumption (they are not
+        //       performance critical).
+        if (stim_index.size()) {
+            auto stim = new mechanisms::stimulus<Backend>(
+                voltage_, current_, memory::make_const_view(stim_index));
+            stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
+            mechanisms_.push_back(mechanism(stim));
+        }
+
 
         // detector handles are just their corresponding compartment indices
         for (const auto& detector: c.detectors()) {
@@ -732,17 +767,6 @@ void fvm_multicell<Backend>::advance(double dt) {
         m->set_params(t_, dt);
         m->nrn_current();
         PL();
-    }
-
-    // add current contributions from stimuli
-    for (auto& stim : stimuli_) {
-        auto ie = stim.second.amplitude(t_); // [nA]
-        auto loc = stim.first;
-
-        // note: current_ and ie have the same units [nA]
-        if (ie!=0.) {
-            current_[loc] = current_[loc] - ie;
-        }
     }
     PL();
 

@@ -153,3 +153,6 @@ private:
 } // namespace multicore
 } // namespace mc
 } // namespace nest
+
+#include "stimulus_multicore.hpp"
+
