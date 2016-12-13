@@ -206,7 +206,7 @@ private:
     ///     C_m = area*c_m
     array cv_capacitance_; // units [µm^2*F*m^-2 = pF]
 
-    /// the transmembrane current density over the surface of each CV [nA]
+    /// the transmembrane current over the surface of each CV [nA]
     ///     I = area*i_m - I_e
     array current_;
 
