@@ -25,10 +25,10 @@ public:
     using ion_type = typename base::ion_type;
 
 
-    mechanism_pas(view vec_v, view vec_i, const_iview node_index)
-    :   base(vec_v, vec_i, node_index)
+    mechanism_pas(view vec_v, view vec_i, array&& weights, iarray&& node_index)
+    :   base(vec_v, vec_i, std::move(node_index))
     {
-        size_type num_fields = 2;
+        size_type num_fields = 3;
 
         // calculate the padding required to maintain proper alignment of sub arrays
         auto alignment  = data_.alignment();
@@ -42,7 +42,12 @@ public:
 
         // asign the sub-arrays
         e               = data_(0*field_size, 1*size());
-        g               = data_(1*field_size, 2*size());
+        weights_        = data_(1*field_size, 2*size());
+        g               = data_(2*field_size, 3*size());
+
+        // add the user-supplied weights for converting from current density
+        // to per-compartment current in nA
+        memory::copy(weights, weights_(0, size()));
 
         // set initial values for variables and parameters
         std::fill(e.data(), e.data()+size(), -65);
@@ -86,14 +91,15 @@ public:
     }
 
     void nrn_current() override {
-        indexed_view_type vec_i(vec_i_, node_index_);
         const indexed_view_type vec_v(vec_v_, node_index_);
+        indexed_view_type vec_i(vec_i_, node_index_);
         int n_ = node_index_.size();
         for(int i_=0; i_<n_; ++i_) {
             value_type v = vec_v[i_];
             value_type current_, i;
             i = g[i_]*(v-e[i_]);
             current_ = i;
+            current_ = weights_[i_]*current_;
             vec_i[i_] += current_;
         }
     }
@@ -106,13 +112,13 @@ public:
 
     array data_;
     view e;
+    view weights_;
     view g;
-    value_type t = 0;
     value_type dt = 0;
+    value_type t = 0;
 
     using base::vec_v_;
     using base::vec_i_;
-    using base::vec_area_;
     using base::node_index_;
 
 };

@@ -41,10 +41,10 @@ public:
     };
     Ionk ion_k;
 
-    mechanism_hh(view vec_v, view vec_i, const_iview node_index)
-    :   base(vec_v, vec_i, node_index)
+    mechanism_hh(view vec_v, view vec_i, array&& weights, iarray&& node_index)
+    :   base(vec_v, vec_i, std::move(node_index))
     {
-        size_type num_fields = 15;
+        size_type num_fields = 16;
 
         // calculate the padding required to maintain proper alignment of sub arrays
         auto alignment  = data_.alignment();
@@ -68,17 +68,21 @@ public:
         el              = data_(8*field_size, 9*size());
         n               = data_(9*field_size, 10*size());
         h               = data_(10*field_size, 11*size());
-        gkbar           = data_(11*field_size, 12*size());
-        m               = data_(12*field_size, 13*size());
-        gl              = data_(13*field_size, 14*size());
-        gnabar          = data_(14*field_size, 15*size());
+        weights_        = data_(11*field_size, 12*size());
+        gkbar           = data_(12*field_size, 13*size());
+        m               = data_(13*field_size, 14*size());
+        gl              = data_(14*field_size, 15*size());
+        gnabar          = data_(15*field_size, 16*size());
+
+        // add the user-supplied weights for converting from current density
+        // to per-compartment current in nA
+        memory::copy(weights, weights_(0, size()));
 
         // set initial values for variables and parameters
         std::fill(el.data(), el.data()+size(), -54.299999999999997);
         std::fill(gkbar.data(), gkbar.data()+size(), 0.035999999999999997);
         std::fill(gl.data(), gl.data()+size(), 0.00029999999999999997);
         std::fill(gnabar.data(), gnabar.data()+size(), 0.12);
-
     }
 
     using base::size;
@@ -151,6 +155,7 @@ public:
             current_ = current_+ik;
             il = gl[i_]*(v-el[i_]);
             current_ = current_+il;
+            current_ = weights_[i_]*current_;
             vec_i[i_] += current_;
             ion_ina[i_] += ina;
             ion_ik[i_] += ik;
@@ -217,6 +222,7 @@ public:
     view el;
     view n;
     view h;
+    view weights_;
     view gkbar;
     view m;
     view gl;
@@ -227,7 +233,6 @@ public:
 
     using base::vec_v_;
     using base::vec_i_;
-    using base::vec_area_;
     using base::node_index_;
 
 };

@@ -25,8 +25,8 @@ public:
     using ion_type = typename base::ion_type;
 
 
-    mechanism_exp2syn(view vec_v, view vec_i, const_iview node_index)
-    :   base(vec_v, vec_i, node_index)
+    mechanism_exp2syn(view vec_v, view vec_i, array&& weights, iarray&& node_index)
+    :   base(vec_v, vec_i, std::move(node_index))
     {
         size_type num_fields = 6;
 
@@ -41,17 +41,17 @@ public:
         data_ = array(field_size*num_fields, std::numeric_limits<value_type>::quiet_NaN());
 
         // asign the sub-arrays
-        factor          = data_(0*field_size, 1*size());
-        tau2            = data_(1*field_size, 2*size());
+        tau1            = data_(0*field_size, 1*size());
+        A               = data_(1*field_size, 2*size());
         e               = data_(2*field_size, 3*size());
-        A               = data_(3*field_size, 4*size());
-        B               = data_(4*field_size, 5*size());
-        tau1            = data_(5*field_size, 6*size());
+        tau2            = data_(3*field_size, 4*size());
+        factor          = data_(4*field_size, 5*size());
+        B               = data_(5*field_size, 6*size());
 
         // set initial values for variables and parameters
-        std::fill(tau2.data(), tau2.data()+size(), 2);
-        std::fill(e.data(), e.data()+size(), 0);
         std::fill(tau1.data(), tau1.data()+size(), 0.5);
+        std::fill(e.data(), e.data()+size(), 0);
+        std::fill(tau2.data(), tau2.data()+size(), 2);
 
     }
 
@@ -90,25 +90,33 @@ public:
         throw std::domain_error(nest::mc::util::pprintf("mechanism % does not support ion type\n", name()));
     }
 
-    void net_receive(int i_, value_type weight) override {
-        A[i_] = A[i_]+weight*factor[i_];
-        B[i_] = B[i_]+weight*factor[i_];
-    }
-
     void nrn_current() override {
-        const indexed_view_type vec_area(vec_area_, node_index_);
-        indexed_view_type vec_i(vec_i_, node_index_);
         const indexed_view_type vec_v(vec_v_, node_index_);
+        indexed_view_type vec_i(vec_i_, node_index_);
         int n_ = node_index_.size();
         for(int i_=0; i_<n_; ++i_) {
-            value_type area_ = vec_area[i_];
             value_type v = vec_v[i_];
             value_type current_, i;
             i = (B[i_]-A[i_])*(v-e[i_]);
             current_ = i;
-            current_ = ( 100*current_)/area_;
             vec_i[i_] += current_;
         }
+    }
+
+    void nrn_init() override {
+        int n_ = node_index_.size();
+        for(int i_=0; i_<n_; ++i_) {
+            value_type tp;
+            A[i_] =  0;
+            B[i_] =  0;
+            tp = (tau1[i_]*tau2[i_])/(tau2[i_]-tau1[i_])*log(tau2[i_]/tau1[i_]);
+            factor[i_] =  1/( -exp( -tp/tau1[i_])+exp( -tp/tau2[i_]));
+        }
+    }
+
+    void net_receive(int i_, value_type weight) override {
+        A[i_] = A[i_]+weight*factor[i_];
+        B[i_] = B[i_]+weight*factor[i_];
     }
 
     void nrn_state() override {
@@ -124,30 +132,18 @@ public:
         }
     }
 
-    void nrn_init() override {
-        int n_ = node_index_.size();
-        for(int i_=0; i_<n_; ++i_) {
-            value_type tp;
-            A[i_] =  0;
-            B[i_] =  0;
-            tp = (tau1[i_]*tau2[i_])/(tau2[i_]-tau1[i_])*log(tau2[i_]/tau1[i_]);
-            factor[i_] =  1/( -exp( -tp/tau1[i_])+exp( -tp/tau2[i_]));
-        }
-    }
-
     array data_;
-    view factor;
-    view tau2;
-    view e;
-    view A;
-    view B;
     view tau1;
-    value_type t = 0;
+    view A;
+    view e;
+    view tau2;
+    view factor;
+    view B;
     value_type dt = 0;
+    value_type t = 0;
 
     using base::vec_v_;
     using base::vec_i_;
-    using base::vec_area_;
     using base::node_index_;
 
 };

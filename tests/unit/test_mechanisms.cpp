@@ -12,11 +12,13 @@
 #include "mechanisms/multicore/hh.hpp"
 #include "mechanisms/multicore/pas.hpp"
 
+#include <initializer_list>
 #include <backends/fvm_multicore.hpp>
 #include <ion.hpp>
 #include <matrix.hpp>
 #include <memory/wrappers.hpp>
 #include <util/rangeutil.hpp>
+#include <util/cycle.hpp>
 
 TEST(mechanisms, helpers) {
     using namespace nest::mc;
@@ -50,12 +52,11 @@ TEST(mechanisms, helpers) {
 
 // Setup and update mechanism
 template<typename T>
-void mech_update(T* mech, const typename T::array& areas, int num_iters) {
+void mech_update(T* mech, int num_iters) {
 
     using namespace nest::mc;
     std::map<mechanisms::ionKind, mechanisms::ion<typename T::backend>> ions;
 
-    mech->set_areas(areas);
     mech->set_params(2., 0.1);
     mech->nrn_init();
     for (auto ion_kind : mechanisms::ion_kinds()) {
@@ -87,11 +88,19 @@ void mech_update(T* mech, const typename T::array& areas, int num_iters) {
     }
 }
 
-template<typename S, typename T, int freq = 1>
+template<typename T, typename Seq>
+void array_init(T& array, const Seq& seq) {
+    auto seq_iter = seq.cbegin();
+    for (auto& e : array) {
+        e = *seq_iter++;
+    }
+}
+
+template<typename S, typename T, bool alias = false>
 struct mechanism_info {
     using mechanism_type = S;
     using proto_mechanism_type = T;
-    static constexpr int index_freq = freq;
+    static constexpr bool index_aliasing = alias;
 };
 
 template<typename T>
@@ -116,29 +125,50 @@ TYPED_TEST_P(mechanisms, update) {
     typename mechanism_type::iarray indexes(num_syn);
     typename mechanism_type::array  voltage(num_syn, -65.0);
     typename mechanism_type::array  current(num_syn,   1.0);
-    typename mechanism_type::array  areas(num_syn, 2);
+    typename mechanism_type::array  weights(num_syn,   1.0);
+
+    array_init(voltage, nest::mc::util::cyclic_view({ -65.0, -61.0, -63.0 }));
+    array_init(current, nest::mc::util::cyclic_view({   1.0,   0.9,   1.1 }));
+    array_init(weights, nest::mc::util::cyclic_view({ 1.0 }));
 
     // Initialise indexes
-    for (auto i = 0; i < num_syn; ++i) {
-        indexes[i] = i / TypeParam::index_freq;
+    std::vector<int> index_freq;
+    if (TypeParam::index_aliasing) {
+        index_freq.assign({ 4, 2, 3 });
     }
+    else {
+        index_freq.assign({ 1 });
+    }
+
+    auto freq_begin = nest::mc::util::cyclic_view(index_freq).cbegin();
+    auto freq = freq_begin;
+    auto index = indexes.begin();
+    while (index != indexes.end()) {
+        for (auto i = 0; i < *freq && index != indexes.end(); ++i) {
+            *index++ = freq - freq_begin;
+        }
+        ++freq;
+    }
+
 
     // Copy indexes, voltage and current to use for the prototype mechanism
     typename mechanism_type::iarray indexes_copy(indexes);
     typename mechanism_type::array  voltage_copy(voltage);
     typename mechanism_type::array  current_copy(current);
+    typename mechanism_type::array  weights_copy(weights);
 
     // Create mechanisms
     auto mech = nest::mc::mechanisms::make_mechanism<mechanism_type>(
-        voltage, current, std::move(indexes)
+        voltage, current, std::move(weights), std::move(indexes)
     );
 
     auto mech_proto = nest::mc::mechanisms::make_mechanism<proto_mechanism_type>(
-        voltage_copy, current_copy, std::move(indexes_copy)
+        voltage_copy, current_copy,
+        std::move(weights_copy), std::move(indexes_copy)
     );
 
-    mech_update(dynamic_cast<mechanism_type*>(mech.get()), areas, 10);
-    mech_update(dynamic_cast<proto_mechanism_type*>(mech_proto.get()), areas, 10);
+    mech_update(dynamic_cast<mechanism_type*>(mech.get()), 10);
+    mech_update(dynamic_cast<proto_mechanism_type*>(mech_proto.get()), 10);
 
     auto citer = current_copy.begin();
     for (auto const& c: current) {
@@ -152,7 +182,7 @@ using mechanism_types = ::testing::Types<
     mechanism_info<
         nest::mc::mechanisms::hh::mechanism_hh<nest::mc::multicore::backend>,
         nest::mc::mechanisms::hh_proto::mechanism_hh<nest::mc::multicore::backend>,
-        2
+        true
    >,
     mechanism_info<
         nest::mc::mechanisms::pas::mechanism_pas<nest::mc::multicore::backend>,
@@ -161,12 +191,12 @@ using mechanism_types = ::testing::Types<
     mechanism_info<
         nest::mc::mechanisms::expsyn::mechanism_expsyn<nest::mc::multicore::backend>,
         nest::mc::mechanisms::expsyn_proto::mechanism_expsyn<nest::mc::multicore::backend>,
-        2
+        true
     >,
     mechanism_info<
         nest::mc::mechanisms::exp2syn::mechanism_exp2syn<nest::mc::multicore::backend>,
         nest::mc::mechanisms::exp2syn_proto::mechanism_exp2syn<nest::mc::multicore::backend>,
-        2
+        true
     >
 >;
 

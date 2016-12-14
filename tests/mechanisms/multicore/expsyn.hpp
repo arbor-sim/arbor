@@ -25,8 +25,8 @@ public:
     using ion_type = typename base::ion_type;
 
 
-    mechanism_expsyn(view vec_v, view vec_i, const_iview node_index)
-    :   base(vec_v, vec_i, node_index)
+    mechanism_expsyn(view vec_v, view vec_i, array&& weights, iarray&& node_index)
+    :   base(vec_v, vec_i, std::move(node_index))
     {
         size_type num_fields = 3;
 
@@ -86,6 +86,19 @@ public:
         throw std::domain_error(nest::mc::util::pprintf("mechanism % does not support ion type\n", name()));
     }
 
+    void nrn_current() override {
+        const indexed_view_type vec_v(vec_v_, node_index_);
+        indexed_view_type vec_i(vec_i_, node_index_);
+        int n_ = node_index_.size();
+        for(int i_=0; i_<n_; ++i_) {
+            value_type v = vec_v[i_];
+            value_type current_, i;
+            i = g[i_]*(v-e[i_]);
+            current_ = i;
+            vec_i[i_] += current_;
+        }
+    }
+
     void nrn_init() override {
         int n_ = node_index_.size();
         for(int i_=0; i_<n_; ++i_) {
@@ -95,22 +108,6 @@ public:
 
     void net_receive(int i_, value_type weight) override {
         g[i_] = g[i_]+weight;
-    }
-
-    void nrn_current() override {
-        const indexed_view_type vec_area(vec_area_, node_index_);
-        indexed_view_type vec_i(vec_i_, node_index_);
-        const indexed_view_type vec_v(vec_v_, node_index_);
-        int n_ = node_index_.size();
-        for(int i_=0; i_<n_; ++i_) {
-            value_type area_ = vec_area[i_];
-            value_type v = vec_v[i_];
-            value_type current_, i;
-            i = g[i_]*(v-e[i_]);
-            current_ = i;
-            current_ = ( 100*current_)/area_;
-            vec_i[i_] += current_;
-        }
     }
 
     void nrn_state() override {
@@ -132,7 +129,6 @@ public:
 
     using base::vec_v_;
     using base::vec_i_;
-    using base::vec_area_;
     using base::node_index_;
 
 };
