@@ -1095,25 +1095,32 @@ expression_ptr Parser::parse_conserve_expression() {
     return make_expression<ConserveExpression>(here, std::move(lhs), std::move(rhs));
 }
 
-expression_ptr Parser::parse_expression() {
+expression_ptr Parser::parse_expression(int prec) {
     auto lhs = parse_unaryop();
+    if(lhs==nullptr) return nullptr;
 
-    if(lhs==nullptr) { // error
-        return nullptr;
-    }
-
-    // we parse a binary expression if followed by an operator
-    if( binop_precedence(token_.type)>0 ) {
+    // Combine all sub-expressions with precedence greater than prec.
+    for (;;) {
         if(token_.type==tok::eq) {
             error("assignment '"+yellow("=")+"' not allowed in sub-expression");
             return nullptr;
         }
-        Token op = token_;  // save the operator
-        get_token();        // consume the operator
-        return parse_binop(std::move(lhs), op);
+
+        auto op = token_;
+        auto p_op = binop_precedence(op.type);
+
+        if(p_op<=prec) return lhs;
+        get_token();
+
+        lhs = parse_binop(std::move(lhs), op);
+        if(!lhs) return nullptr;
     }
 
     return lhs;
+}
+
+expression_ptr Parser::parse_expression() {
+    return parse_expression(0);
 }
 
 /// Parse a unary expression.
@@ -1215,44 +1222,35 @@ expression_ptr Parser::parse_integer() {
 }
 
 expression_ptr Parser::parse_binop(expression_ptr&& lhs, Token op_left) {
-    // only way out of the loop below is by return:
-    //      :: return with nullptr on error
-    //      :: return when loop runs out of operators
-    //          i.e. if(pp<0)
-    //      :: return when recursion applied to remainder of expression
-    //          i.e. if(p_op>p_left)
-    while(1) {
-        // get precedence of the left operator
-        auto p_left = binop_precedence(op_left.type);
+    auto p_op_left = binop_precedence(op_left.type);
+    auto rhs = parse_expression(p_op_left);
+    if(!rhs) return nullptr;
 
-        auto e = parse_unaryop();
-        if(!e) return nullptr;
+    auto op_right = token_;
+    auto p_op_right = binop_precedence(op_right.type);
+    bool right_assoc = operator_associativity(op_right.type)==associativityKind::right;
 
-        auto op = token_;
-        auto p_op = binop_precedence(op.type);
-        if(operator_associativity(op.type)==associativityKind::right) {
-            p_op += 1;
-        }
-
-        //  if no binop, parsing of expression is finished with (op_left lhs e)
-        if(p_op < 0) {
-            return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(e));
-        }
-
-        get_token(); // consume op
-        if(p_op > p_left) {
-            auto rhs = parse_binop(std::move(e), op);
-            if(!rhs) return nullptr;
-            return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
-        }
-
-        lhs = binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(e));
-        op_left = op;
+    if(p_op_right>p_op_left) {
+        throw compiler_exception(
+            "parse_binop() : encountered operator of higher precedence",
+            location_);
     }
-    throw compiler_exception(
-        "parse_binop() : fell out of recursive parse descent",
-        location_);
-    return nullptr;
+
+    if(p_op_right<p_op_left) {
+        return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
+    }
+
+    get_token(); // consume op_right
+    if(right_assoc) {
+        rhs = parse_binop(std::move(rhs), op_right);
+        if(!rhs) return nullptr;
+
+        return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
+    }
+    else {
+        lhs = binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
+        return parse_binop(std::move(lhs), op_right);
+    }
 }
 
 /// parse a local variable definition

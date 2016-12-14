@@ -17,7 +17,7 @@ namespace gpu {
 template <typename T, typename I>
 struct matrix_solve_param_pack {
     T* d;
-    T* u;
+    const T* u;
     T* rhs;
     const I* p;
     const I* cell_index;
@@ -30,14 +30,13 @@ struct matrix_solve_param_pack {
 template <typename T, typename I>
 struct matrix_update_param_pack {
     T* d;
-    T* u;
+    const T* u;
     T* rhs;
-    const T* sigma;
-    const T* alpha_d;
-    const T* alpha;
+    const T* invariant_d;
+    const T* cv_capacitance;
+    const T* face_conductance;
     const T* voltage;
     const T* current;
-    const T* cv_capacitance;
     I n;
 };
 
@@ -82,29 +81,36 @@ struct backend {
     /// Hines matrix assembly interface
     struct matrix_assembler {
         matrix_update_param_pack<value_type, size_type> params;
-        array alpha_d;
+
+        // the invariant part of the matrix diagonal
+        array invariant_d;  // [μS]
 
         matrix_assembler() = default;
 
         matrix_assembler(
             view d, view u, view rhs, const_iview p,
-            const_view sigma, const_view alpha,
-            const_view voltage, const_view current, const_view cv_capacitance)
+            const_view cv_capacitance,
+            const_view face_conductance,
+            const_view voltage,
+            const_view current)
         {
             auto n = d.size();
-            host_array alpha_d_tmp(n, 0);
+            host_array invariant_d_tmp(n, 0);
+            // make a copy of the conductance on the host
+            host_array face_conductance_tmp = face_conductance;
             for(auto i: util::make_span(1u, n)) {
-                alpha_d_tmp[i] += alpha[i];
+                auto gij = face_conductance_tmp[i];
 
-                // add contribution to the diagonal of parent
-                alpha_d_tmp[p[i]] += alpha[i];
+                u[i] = -gij;
+                invariant_d_tmp[i] += gij;
+                invariant_d_tmp[p[i]] += gij;
             }
-            alpha_d = alpha_d_tmp;
+            invariant_d = invariant_d_tmp;
 
             params = {
                 d.data(), u.data(), rhs.data(),
-                sigma.data(), alpha_d.data(), alpha.data(),
-                voltage.data(), current.data(), cv_capacitance.data(), size_type(n)};
+                invariant_d.data(), cv_capacitance.data(), face_conductance.data(),
+                voltage.data(), current.data(), size_type(n)};
         }
 
         void assemble(value_type dt) {
@@ -151,6 +157,7 @@ struct backend {
     static mechanism make_mechanism(
         const std::string& name,
         view vec_v, view vec_i,
+        const std::vector<value_type>& weights,
         const std::vector<size_type>& node_indices)
     {
         if (!has_mechanism(name)) {
@@ -158,20 +165,20 @@ struct backend {
         }
 
         return mech_map_.find(name)->
-            second(vec_v, vec_i, memory::make_const_view(node_indices));
+            second(vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) { return mech_map_.count(name)>0; }
 
 private:
 
-    using maker_type = mechanism (*)(view, view, iarray&&);
+    using maker_type = mechanism (*)(view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(view vec_v, view vec_i, iarray&& node_indices) {
+    static mechanism maker(view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return mechanisms::make_mechanism<Mech<backend>>
-            (vec_v, vec_i, std::move(node_indices));
+            (vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 
@@ -219,13 +226,13 @@ __global__
 void assemble_matrix(matrix_update_param_pack<T, I> params, T dt) {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 
-    T factor_lhs = 1e5*dt;
-    T factor_rhs = 10.*dt;
+    T factor = 1e-3/dt;
     if(tid < params.n) {
-        params.d[tid] = params.sigma[tid] + factor_lhs*params.alpha_d[tid];
-        params.u[tid] = -factor_lhs*params.alpha[tid];
-        params.rhs[tid] = params.sigma[tid] *
-            (params.voltage[tid] - factor_rhs/params.cv_capacitance[tid]*params.current[tid]);
+        auto gi = factor * params.cv_capacitance[tid];
+
+        params.d[tid] = gi + params.invariant_d[tid];
+
+        params.rhs[tid] = gi*params.voltage[tid] - params.current[tid];
     }
 }
 
