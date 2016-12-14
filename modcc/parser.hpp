@@ -20,6 +20,7 @@ public:
     expression_ptr parse_integer();
     expression_ptr parse_real();
     expression_ptr parse_call();
+    expression_ptr parse_expression(int prec);
     expression_ptr parse_expression();
     expression_ptr parse_primary();
     expression_ptr parse_parenthesis_expression();

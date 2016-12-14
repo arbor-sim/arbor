@@ -39,6 +39,9 @@ if(NOT UNWIND_FOUND)
 
     set(UNWIND_LIBRARIES ${unwind_library_generic} ${unwind_library_target})
 
+    include(FindPackageHandleStandardArgs)
+    find_package_handle_standard_args(UNWIND DEFAULT_MSG UNWIND_INCLUDE_DIR UNWIND_LIBRARIES)
+
     mark_as_advanced(UNWIND_LIBRARIES UNWIND_INCLUDE_DIR)
 
     unset(unwind_search_dir)
