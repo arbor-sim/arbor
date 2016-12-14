@@ -7,6 +7,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <util/compat.hpp>
 #include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
@@ -29,7 +30,7 @@ typename util::sequence_traits<C>::value_type
 sum(C const& c)
 {
     using value_type = typename util::sequence_traits<C>::value_type;
-    return std::accumulate(std::begin(c), std::end(c), value_type{0});
+    return std::accumulate(util::cbegin(c), util::cend(c), value_type{0});
 }
 
 template <typename C>
@@ -391,6 +392,28 @@ auto index_into(const Sub& sub, const Super& super)
     auto begin = iterator(std::begin(sub), std::begin(super), std::end(super));
     auto end   = iterator(std::end(sub), std::end(super), std::end(super));
     return util::make_range(begin, end);
+}
+
+/// Binary search, because std::binary_search doesn't return information
+/// about where a match was found.
+template <typename It, typename T>
+It binary_find(It b, It e, const T& value) {
+    auto it = std::lower_bound(b, e, value);
+    return it==e ? e : (*it==value ? it : e);
+}
+
+template <typename Seq, typename T>
+auto binary_find(const Seq& seq, const T& value)
+    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
+{
+    return binary_find(std::begin(seq), compat::end(seq), value);
+}
+
+template <typename Seq, typename T>
+auto binary_find(Seq& seq, const T& value)
+    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
+{
+    return binary_find(std::begin(seq), compat::end(seq), value);
 }
 
 } // namespace algorithms

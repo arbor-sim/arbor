@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include "cprinter.hpp" // needed for printing net_receive method
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
 
@@ -81,9 +82,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     param_pack.push_back("vec_v_.data()");
     param_pack.push_back("vec_i_.data()");
 
-    text_.add_line("T* vec_area;");
-    param_pack.push_back("vec_area_.data()");
-
     text_.add_line("// node index information");
     text_.add_line("I* ni;");
     text_.add_line("unsigned long n_;");
@@ -114,27 +112,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         text_.decrease_indentation();
         text_.add_line("}");
         text_.add_line();
-        /*
-        text_.add_line("__device__");
-        text_.add_line("inline double atomicSub(double* address, double val) {");
-        text_.increase_indentation();
-        text_.add_line("return atomicAdd(address, -val);");
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line();
-        text_.add_line("__device__");
-        text_.add_line("inline float atomicSub(float* address, float val) {");
-        text_.increase_indentation();
-        text_.add_line("return atomicAdd(address, -val);");
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line();
-        */
 
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
-            if(   var.second->kind()==symbolKind::procedure
-            && var.second->is_procedure()->kind() == procedureKind::normal)
+            if( var.second->kind()==symbolKind::procedure &&
+                var.second->is_procedure()->kind() == procedureKind::normal)
             {
                 print_procedure_prototype(var.second->is_procedure());
                 text_.end_line(";");
@@ -144,11 +126,10 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
         // print stubs that call API method kernels that are defined in the
         // kernels::name namespace
-        auto proctest = [] (procedureKind k) {return k == procedureKind::normal
-                                                  || k == procedureKind::api;   };
         for(auto const &var : m.symbols()) {
             if (var.second->kind()==symbolKind::procedure &&
-                proctest(var.second->is_procedure()->kind()))
+                is_in(var.second->is_procedure()->kind(),
+                      {procedureKind::normal, procedureKind::api}))
             {
                 var.second->accept(this);
             }
@@ -207,7 +188,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(view vec_v, view vec_i, iarray&& node_index) :");
+    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index):");
     text_.add_line("   base(vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
@@ -239,6 +220,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             array_variables[i]->name() + " = data_("
             + std::to_string(i) + "*field_size, " + std::to_string(i+1) + "*field_size);");
     }
+    text_.add_line();
 
     for(auto const& var : array_variables) {
         double val = var->value();
@@ -247,6 +229,15 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         if(val == val) {
             text_.add_line("memory::fill(" + var->name() + ", " + std::to_string(val) + ");");
         }
+    }
+    text_.add_line();
+
+    // copy in the weights if this is a density mechanism
+    if (m.kind() == moduleKind::density) {
+        text_.add_line("// add the user-supplied weights for converting from current density");
+        text_.add_line("// to per-compartment current in nA");
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+        text_.add_line();
     }
 
     text_.decrease_indentation();
@@ -428,11 +419,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-
-    auto proctest = [] (procedureKind k) {return k == procedureKind::api;};
     for(auto const &var : m.symbols()) {
-        if(   var.second->kind()==symbolKind::procedure
-        && proctest(var.second->is_procedure()->kind()))
+        if( var.second->kind()==symbolKind::procedure && 
+            var.second->is_procedure()->kind()==procedureKind::api)
         {
             auto proc = var.second->is_api_method();
             auto name = proc->name();
@@ -446,6 +435,29 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             text_.add_line(
                 "kernels::" + name + "<value_type, size_type>"
                 + "<<<dim_grid, dim_block>>>(param_pack_);");
+            text_.decrease_indentation();
+            text_.add_line("}");
+            text_.add_line();
+        }
+        else if( var.second->kind()==symbolKind::procedure &&
+                 var.second->is_procedure()->kind()==procedureKind::net_receive)
+        {
+            auto proc = var.second->is_procedure();
+            auto name = proc->name();
+            text_.add_line("void " + name + "(int i_, value_type weight) {");
+            text_.increase_indentation();
+
+            // Print the body of the net_receive block.
+            // Use the same body as would be generated with the cprinter.
+            // This is not omptimal, because each read and write will require
+            // a copy between host and device memory, so we will need a
+            // GPU-specific implementation
+            auto cprinter = CPrinter(*module_);
+            cprinter.clear_text();
+            cprinter.set_gutter(text_.get_gutter());
+            proc->body()->accept(&cprinter);
+            text_ << cprinter.text();
+
             text_.decrease_indentation();
             text_.add_line("}");
             text_.add_line();
@@ -475,7 +487,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
-    text_.add_line("using base::vec_area_;");
     text_.add_line("using base::node_index_;");
     text_.add_line();
     text_.add_line("param_pack_type param_pack_;");
@@ -609,7 +620,9 @@ void CUDAPrinter::visit(BlockExpression *e) {
         // these all must be handled
         text_.add_gutter();
         stmt->accept(this);
-        text_.end_line(";");
+        if (not stmt->is_if()) {
+            text_.end_line(";");
+        }
     }
 }
 
@@ -623,8 +636,24 @@ void CUDAPrinter::visit(IfExpression *e) {
     increase_indentation();
     e->true_branch()->accept(this);
     decrease_indentation();
-    text_.add_gutter();
-    text_ << "}";
+    text_.add_line("}");
+    // check if there is a false-branch, i.e. if
+    // there is an "else" branch to print
+    if (auto fb = e->false_branch()) {
+        text_.add_gutter() << "else ";
+        // use recursion for "else if"
+        if (fb->is_if()) {
+            fb->accept(this);
+        }
+        // otherwise print the "else" block
+        else {
+            text_ << "{\n";
+            increase_indentation();
+            fb->accept(this);
+            decrease_indentation();
+            text_.add_line("}");
+        }
+    }
 }
 
 void CUDAPrinter::print_procedure_prototype(ProcedureExpression *e) {
@@ -648,28 +677,26 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
             e->location());
     }
 
-    // ------------- print prototype ------------- //
+    // print prototype
     print_procedure_prototype(e);
     text_.end_line(" {");
 
-    // ------------- print body ------------- //
+    // print body
     increase_indentation();
 
     text_.add_line("using value_type = T;");
-    text_.add_line("using iarray = I;");
     text_.add_line();
 
     e->body()->accept(this);
 
-    // ------------- close up ------------- //
+    // close up
     decrease_indentation();
     text_.add_line("}");
     text_.add_line();
-    return;
 }
 
 void CUDAPrinter::visit(APIMethod *e) {
-    // ------------- print prototype ------------- //
+    // print prototype
     text_.add_gutter() << "template <typename T, typename I>\n";
     text_.add_line(       "__global__");
     text_.add_gutter() << "void " << e->name()
@@ -702,7 +729,8 @@ void CUDAPrinter::visit(APIMethod *e) {
     text_.add_line("}");
 
     decrease_indentation();
-    text_.add_line("}\n");
+    text_.add_line("}");
+    text_.add_line();
 }
 
 void CUDAPrinter::print_APIMethod_body(APIMethod* e) {

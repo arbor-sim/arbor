@@ -48,14 +48,16 @@ TEST(synapses, expsyn_basic_state)
 {
     using namespace nest::mc;
     using size_type = multicore::backend::size_type;
+    using value_type = multicore::backend::value_type;
 
     using synapse_type = mechanisms::expsyn::mechanism_expsyn<multicore::backend>;
     auto num_syn = 4;
 
     std::vector<size_type> indexes(num_syn);
+    std::vector<value_type> weights(indexes.size(), 1.0);
     synapse_type::array voltage(num_syn, -65.0);
     synapse_type::array current(num_syn,   1.0);
-    auto mech = mechanisms::make_mechanism<synapse_type>( voltage, current, indexes );
+    auto mech = mechanisms::make_mechanism<synapse_type>(voltage, current, weights, indexes);
 
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
@@ -105,11 +107,13 @@ TEST(synapses, exp2syn_basic_state)
     auto num_syn = 4;
 
     using size_type = multicore::backend::size_type;
+    using value_type = multicore::backend::value_type;
 
     std::vector<size_type> indexes(num_syn);
+    std::vector<value_type> weights(indexes.size(), 1.0);
     synapse_type::array voltage(num_syn, -65.0);
     synapse_type::array current(num_syn,   1.0);
-    auto mech = mechanisms::make_mechanism<synapse_type>( voltage, current, indexes );
+    auto mech = mechanisms::make_mechanism<synapse_type>(voltage, current, weights, indexes);
 
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 

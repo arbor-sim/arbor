@@ -44,6 +44,9 @@ public:
     void decrease_indentation(){
         text_.decrease_indentation();
     }
+    void clear_text() {
+        text_.clear();
+    }
 private:
 
     void print_APIMethod_optimized(APIMethod* e);

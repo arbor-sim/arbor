@@ -11,7 +11,7 @@
 #include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "../test_common_cells.hpp"
 #include "../test_util.hpp"

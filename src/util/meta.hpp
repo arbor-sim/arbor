@@ -6,6 +6,8 @@
 #include <iterator>
 #include <type_traits>
 
+#include <util/compat.hpp>
+
 namespace nest {
 namespace mc {
 namespace util {
@@ -36,8 +38,9 @@ constexpr auto cbegin(const T& c) -> decltype(std::begin(c)) {
 }
 
 template <typename T>
-constexpr auto cend(const T& c) -> decltype(std::end(c)) {
-    return std::end(c);
+constexpr auto cend(const T& c) -> decltype(compat::end(c)) {
+    // COMPAT: use own `end` implementation to work around xlC 13.1 bug.
+    return compat::end(c);
 }
 
 template <typename T>

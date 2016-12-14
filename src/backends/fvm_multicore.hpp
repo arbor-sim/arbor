@@ -59,53 +59,53 @@ struct backend {
         }
     }
 
-    // it might be acceptable to have the entire builder defined here
-    // because the storage might need to be back end specific
     struct matrix_assembler {
-        view d;
-        view u;
-        view rhs;
+        view d;     // [μS]
+        view u;     // [μS]
+        view rhs;   // [nA]
         const_iview p;
 
-        const_view sigma;
-        const_view alpha;
-        const_view voltage;
-        const_view current;
-        const_view cv_capacitance;
+        const_view cv_capacitance;      // [pF]
+        const_view face_conductance;    // [μS]
+        const_view voltage;             // [mV]
+        const_view current;             // [nA]
 
-        array alpha_d;
+        // the invariant part of the matrix diagonal
+        array invariant_d;              // [μS]
 
         matrix_assembler() = default;
 
         matrix_assembler(
             view d, view u, view rhs, const_iview p,
-            const_view sigma, const_view alpha,
-            const_view voltage, const_view current, const_view cv_capacitance)
+            const_view cv_capacitance,
+            const_view face_conductance,
+            const_view voltage,
+            const_view current)
         :
             d{d}, u{u}, rhs{rhs}, p{p},
-            sigma{sigma}, alpha{alpha},
-            voltage{voltage}, current{current}, cv_capacitance{cv_capacitance}
+            cv_capacitance{cv_capacitance}, face_conductance{face_conductance},
+            voltage{voltage}, current{current}
         {
             auto n = d.size();
-            alpha_d = array(n, 0);
-            for(auto i: util::make_span(1u, n)) {
-                alpha_d[i] += alpha[i];
+            invariant_d = array(n, 0);
+            for (auto i: util::make_span(1u, n)) {
+                auto gij = face_conductance[i];
 
-                // add contribution to the diagonal of parent
-                alpha_d[p[i]] += alpha[i];
+                u[i] = -gij;
+                invariant_d[i] += gij;
+                invariant_d[p[i]] += gij;
             }
         }
 
         void assemble(value_type dt) {
             auto n = d.size();
-            value_type factor_lhs = 1e5*dt;
-            value_type factor_rhs = 1e1*dt; //  units: 10·ms/(F/m^2)·(mA/cm^2) ≡ mV
+            value_type factor = 1e-3/dt;
             for (auto i: util::make_span(0u, n)) {
-                d[i] = sigma[i] + factor_lhs*alpha_d[i];
-                u[i] = -factor_lhs*alpha[i];
-                // the RHS of the linear system is
-                //      cv_area * (V - dt/cm*(im - ie))
-                rhs[i] = sigma[i]*(voltage[i] - factor_rhs/cv_capacitance[i]*current[i]);
+                auto gi = factor*cv_capacitance[i];
+
+                d[i] = gi + invariant_d[i];
+
+                rhs[i] = gi*voltage[i] - current[i];
             }
         }
     };
@@ -120,30 +120,33 @@ struct backend {
     static mechanism make_mechanism(
         const std::string& name,
         view vec_v, view vec_i,
+        const std::vector<value_type>& weights,
         const std::vector<size_type>& node_indices)
     {
         if (!has_mechanism(name)) {
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return mech_map_.find(name)->second(vec_v, vec_i, iarray(node_indices));
+        return mech_map_.find(name)->second(vec_v, vec_i, array(weights), iarray(node_indices));
     }
 
-    static bool has_mechanism(const std::string& name) { return mech_map_.count(name)>0; }
+    static bool has_mechanism(const std::string& name) {
+        return mech_map_.count(name)>0;
+    }
 
     static std::string name() {
-        return "multicore";
+        return "cpu";
     }
 
 private:
 
-    using maker_type = mechanism (*)(view, view, iarray&&);
+    using maker_type = mechanism (*)(view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(view vec_v, view vec_i, iarray&& node_indices) {
+    static mechanism maker(view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return mechanisms::make_mechanism<Mech<backend>>
-            (vec_v, vec_i, std::move(node_indices));
+            (vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 

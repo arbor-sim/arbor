@@ -1,4 +1,5 @@
 set(TEST_CUDA_SOURCES
+    test_cell_group.cu
     test_matrix.cu
     test_vector.cu
 
@@ -13,6 +14,7 @@ set(TEST_SOURCES
     test_cell.cpp
     test_compartments.cpp
     test_counter.cpp
+    test_cycle.cpp
     test_either.cpp
     test_event_queue.cpp
     test_filter.cpp

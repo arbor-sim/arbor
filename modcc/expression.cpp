@@ -43,7 +43,7 @@ inline std::string to_string(procedureKind k) {
   Expression
 *******************************************************************************/
 
-void Expression::semantic(std::shared_ptr<scope_type>) {
+void Expression::semantic(scope_ptr) {
     error("semantic() has not been implemented for this expression");
 }
 
@@ -77,7 +77,7 @@ std::string LocalVariable::to_string() const {
   IdentifierExpression
 *******************************************************************************/
 
-void IdentifierExpression::semantic(std::shared_ptr<scope_type> scp) {
+void IdentifierExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     auto s = scope_->find(spelling_);
@@ -117,6 +117,14 @@ bool IdentifierExpression::is_lvalue() const {
 bool IdentifierExpression::is_global_lvalue() const {
     if(auto var = symbol_->is_variable()) return var->is_writeable();
     return false;
+}
+
+/*******************************************************************************
+  DerivativeExpression
+********************************************************************************/
+
+expression_ptr DerivativeExpression::clone() const {
+    return make_expression<DerivativeExpression>(location_, spelling_);
 }
 
 /*******************************************************************************
@@ -165,7 +173,7 @@ bool LocalDeclaration::add_variable(Token tok) {
     return true;
 }
 
-void LocalDeclaration::semantic(std::shared_ptr<scope_type> scp) {
+void LocalDeclaration::semantic(scope_ptr scp) {
     scope_ = scp;
 
     // loop over the variables declared in this LOCAL statement
@@ -206,7 +214,7 @@ std::string ArgumentExpression::to_string() const {
     return blue("arg") + " " + yellow(name_);
 }
 
-void ArgumentExpression::semantic(std::shared_ptr<scope_type> scp) {
+void ArgumentExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     auto s = scope_->find(name_);
@@ -270,7 +278,7 @@ expression_ptr ReactionExpression::clone() const {
         location_, lhs()->clone(), rhs()->clone(), fwd_rate()->clone(), rev_rate()->clone());
 }
 
-void ReactionExpression::semantic(std::shared_ptr<scope_type> scp) {
+void ReactionExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     lhs()->semantic(scp);
     rhs()->semantic(scp);
@@ -291,7 +299,7 @@ expression_ptr StoichTermExpression::clone() const {
         location_, coeff()->clone(), ident()->clone());
 }
 
-void StoichTermExpression::semantic(std::shared_ptr<scope_type> scp) {
+void StoichTermExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     ident()->semantic(scp);
 }
@@ -320,7 +328,7 @@ std::string StoichExpression::to_string() const {
     return s;
 }
 
-void StoichExpression::semantic(std::shared_ptr<scope_type> scp) {
+void StoichExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     for(auto& e: terms()) {
         e->semantic(scp);
@@ -336,7 +344,7 @@ expression_ptr ConserveExpression::clone() const {
         location_, lhs()->clone(), rhs()->clone());
 }
 
-void ConserveExpression::semantic(std::shared_ptr<scope_type> scp) {
+void ConserveExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     lhs_->semantic(scp);
     rhs_->semantic(scp);
@@ -359,7 +367,7 @@ std::string CallExpression::to_string() const {
     return str;
 }
 
-void CallExpression::semantic(std::shared_ptr<scope_type> scp) {
+void CallExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     // look up to see if symbol is defined
@@ -608,7 +616,7 @@ void FunctionExpression::semantic(scope_type::symbol_map &global_symbols) {
 /*******************************************************************************
   UnaryExpression
 *******************************************************************************/
-void UnaryExpression::semantic(std::shared_ptr<scope_type> scp) {
+void UnaryExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     expression_->semantic(scp);
@@ -629,7 +637,7 @@ expression_ptr UnaryExpression::clone() const {
 /*******************************************************************************
   BinaryExpression
 *******************************************************************************/
-void BinaryExpression::semantic(std::shared_ptr<scope_type> scp) {
+void BinaryExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     lhs_->semantic(scp);
     rhs_->semantic(scp);
@@ -660,7 +668,7 @@ std::string BinaryExpression::to_string() const {
   AssignmentExpression
 *******************************************************************************/
 
-void AssignmentExpression::semantic(std::shared_ptr<scope_type> scp) {
+void AssignmentExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     lhs_->semantic(scp);
     rhs_->semantic(scp);
@@ -680,7 +688,7 @@ void AssignmentExpression::semantic(std::shared_ptr<scope_type> scp) {
   SolveExpression
 *******************************************************************************/
 
-void SolveExpression::semantic(std::shared_ptr<scope_type> scp) {
+void SolveExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     auto e = scp->find(name());
@@ -708,7 +716,7 @@ expression_ptr SolveExpression::clone() const {
   ConductanceExpression
 *******************************************************************************/
 
-void ConductanceExpression::semantic(std::shared_ptr<scope_type> scp) {
+void ConductanceExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     // For now do nothing with the CONDUCTANCE statement, because it is not needed
     // to optimize conductance calculation.
@@ -740,7 +748,7 @@ std::string BlockExpression::to_string() const {
     return str;
 }
 
-void BlockExpression::semantic(std::shared_ptr<scope_type> scp) {
+void BlockExpression::semantic(scope_ptr scp) {
     scope_ = scp;
     for(auto& e : statements_) {
         e->semantic(scope_);
@@ -771,7 +779,7 @@ std::string IfExpression::to_string() const {
     return s;
 }
 
-void IfExpression::semantic(std::shared_ptr<scope_type> scp) {
+void IfExpression::semantic(scope_ptr scp) {
     scope_ = scp;
 
     condition_->semantic(scp);

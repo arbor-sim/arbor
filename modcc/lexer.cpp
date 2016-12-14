@@ -23,7 +23,7 @@ inline bool is_whitespace(char c) {
     return (c==' ' || c=='\t' || c=='\v' || c=='\f');
 }
 inline bool is_eof(char c) {
-    return (c==0 || c==EOF);
+    return (c==0);
 }
 inline bool is_operator(char c) {
     return (c=='+' || c=='-' || c=='*' || c=='/' || c=='^' || c=='\'');
@@ -47,7 +47,6 @@ Token Lexer::parse() {
         switch(*current_) {
             // end of file
             case 0      :       // end of string
-            case EOF    :       // end of file
                 t.spelling = "eof";
                 t.type = tok::eof;
                 return t;
@@ -263,7 +262,7 @@ Token Lexer::number() {
         }
         else if(!uses_scientific_notation && (c=='e' || c=='E')) {
             if(is_numeric(current_[1]) ||
-               is_plusminus(current_[1]) && is_numeric(current_[2]))
+               (is_plusminus(current_[1]) && is_numeric(current_[2])))
             {
                 uses_scientific_notation++;
                 str += c;

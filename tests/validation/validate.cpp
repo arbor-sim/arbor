@@ -4,9 +4,9 @@
 #include <string>
 #include <exception>
 
-#include "gtest.h"
-
 #include <communication/global_policy.hpp>
+
+#include "../gtest.h"
 
 #include "tinyopt.hpp"
 #include "validation_data.hpp"

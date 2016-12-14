@@ -9,7 +9,6 @@
 // wrapper around a .mod file
 class Module {
 public :
-    using scope_type = Expression::scope_type;
     using symbol_map = scope_type::symbol_map;
     using symbol_ptr = scope_type::symbol_ptr;
 
