@@ -1,8 +1,6 @@
 #include "../gtest.h"
 #include "../test_util.hpp"
 
-#include <algorithm>
-#include <type_traits>
 #include <cell.hpp>
 #include <backends/fvm_multicore.hpp>
 
@@ -96,7 +94,6 @@ TEST(synapses, expsyn_basic_state)
     ptr->net_receive(3, 1.04);
     EXPECT_EQ(ptr->g[1], 3.14);
     EXPECT_EQ(ptr->g[3], 1.04);
-
 }
 
 TEST(synapses, exp2syn_basic_state)
