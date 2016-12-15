@@ -62,7 +62,6 @@ public:
 
     using matrix_assembler = typename backend::matrix_assembler;
 
-    using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
     using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
 
@@ -74,10 +73,9 @@ public:
         resting_potential_ = potential_mV;
     }
 
-    template <typename Cells, typename Detectors, typename Targets, typename Probes>
+    template <typename Cells, typename Targets, typename Probes>
     void initialize(
         const Cells& cells,           // collection of nest::mc::cell descriptions
-        Detectors& detector_handles,  // (write) where to store detector handles
         Targets& target_handles,      // (write) where to store target handles
         Probes& probe_handles);       // (write) where to store probe handles
 
@@ -85,10 +83,6 @@ public:
 
     void deliver_event(target_handle h, value_type weight) {
         mechanisms_[h.first]->net_receive(h.second, weight);
-    }
-
-    value_type detector_voltage(detector_handle h) const {
-        return voltage_[h]; // detector_handle is just the compartment index
     }
 
     value_type probe(probe_handle h) const {
@@ -182,7 +176,32 @@ public:
 
     std::size_t num_probes() const { return probes_.size(); }
 
+    //
+    // Threshold crossing interface.
+    // Used by calling code to perform spike detection
+    //
+
+    /// types defined by the back end for threshold detection
+    using threshold_watcher = typename backend::threshold_watcher;
+    using crossing_list     = typename backend::threshold_watcher::crossing_list;
+
+    /// Forward the list of threshold crossings from the back end.
+    /// The list is passed by value, because we don't want the calling code
+    /// to depend on references to internal state of the solver, and because
+    /// for some backends the results might have to be collated before returning.
+    crossing_list get_spikes() const {
+       return threshold_watcher_.crossings();
+    }
+
+    /// clear all spikes: aka threshold crossings.
+    void clear_spikes() {
+       threshold_watcher_.clear_crossings();
+    }
+
 private:
+
+    threshold_watcher threshold_watcher_;
+
     /// current time [ms]
     value_type t_ = value_type{0};
 
@@ -399,10 +418,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 }
 
 template <typename Backend>
-template <typename Cells, typename Detectors, typename Targets, typename Probes>
+template <typename Cells, typename Targets, typename Probes>
 void fvm_multicell<Backend>::initialize(
     const Cells& cells,
-    Detectors& detector_handles,
     Targets& target_handles,
     Probes& probe_handles)
 {
@@ -415,11 +433,9 @@ void fvm_multicell<Backend>::initialize(
     using util::transform_view;
     using util::subrange_view;
 
-    // count total detectors, targets and probes for validation of handle container sizes
-    std::size_t detectors_count = 0u;
+    // count total targets and probes for validation of handle container sizes
     std::size_t targets_count = 0u;
     std::size_t probes_count = 0u;
-    auto detectors_size = size(detector_handles);
     auto targets_size = size(target_handles);
     auto probes_size = size(probe_handles);
 
@@ -445,7 +461,6 @@ void fvm_multicell<Backend>::initialize(
 
     // create each cell:
     auto target_hi = target_handles.begin();
-    auto detector_hi = detector_handles.begin();
     auto probe_hi = probe_handles.begin();
 
     // Allocate scratch storage for calculating quantities used to build the
@@ -524,14 +539,18 @@ void fvm_multicell<Backend>::initialize(
             stimuli_.push_back({idx, stim.clamp});
         }
 
-        // detector handles are just their corresponding compartment indices
+        // spike detector handles are their corresponding compartment indices
+        std::vector<size_type> spike_detector_index;
+        std::vector<value_type> thresholds;
         for (const auto& detector: c.detectors()) {
-            EXPECTS(detectors_count < detectors_size);
-
             auto comp = comp_ival.first+find_cv_index(detector.location, graph);
-            *detector_hi++ = comp;
-            ++detectors_count;
+            spike_detector_index.push_back(comp);
+            thresholds.push_back(detector.threshold);
         }
+
+        // set a back-end supplied watcher on the voltage vector
+        threshold_watcher_ =
+            threshold_watcher(voltage_, spike_detector_index, thresholds, 0);
 
         // record probe locations by index into corresponding state vector
         for (const auto& probe: c.probes()) {
@@ -552,9 +571,7 @@ void fvm_multicell<Backend>::initialize(
         }
     }
 
-    // confirm user-supplied containers for detectors and probes were
-    // appropriately sized.
-    EXPECTS(detectors_size==detectors_count);
+    // confirm user-supplied container probes were appropriately sized.
     EXPECTS(probes_size==probes_count);
 
     // store the geometric information in target-specific containers
@@ -725,6 +742,11 @@ void fvm_multicell<Backend>::reset() {
         m->set_params(t_, 0.025);
         m->nrn_init();
     }
+
+    // Reset state of the threshold watcher.
+    // NOTE: this has to come after the voltage_ values have been reinitialized,
+    // because these values are used by the watchers to set their initial state.
+    threshold_watcher_.reset(t_);
 }
 
 template <typename Backend>
@@ -772,6 +794,9 @@ void fvm_multicell<Backend>::advance(double dt) {
     PL();
 
     t_ += dt;
+
+    // update spike detector thresholds
+    threshold_watcher_.test(t_);
 }
 
 } // namespace fvm
