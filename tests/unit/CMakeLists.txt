@@ -75,4 +75,3 @@ foreach(target ${TARGETS})
        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
     )
 endforeach()
-

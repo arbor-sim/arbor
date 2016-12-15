@@ -181,21 +181,21 @@ REGISTER_TYPED_TEST_CASE_P(mechanisms, update);
 using mechanism_types = ::testing::Types<
     mechanism_info<
         nest::mc::mechanisms::hh::mechanism_hh<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::hh_proto::mechanism_hh<nest::mc::multicore::backend>,
+        nest::mc::mechanisms::hh_proto::mechanism_hh_proto<nest::mc::multicore::backend>,
         true
    >,
     mechanism_info<
         nest::mc::mechanisms::pas::mechanism_pas<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::pas_proto::mechanism_pas<nest::mc::multicore::backend>
+        nest::mc::mechanisms::pas_proto::mechanism_pas_proto<nest::mc::multicore::backend>
     >,
     mechanism_info<
         nest::mc::mechanisms::expsyn::mechanism_expsyn<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::expsyn_proto::mechanism_expsyn<nest::mc::multicore::backend>,
+        nest::mc::mechanisms::expsyn_proto::mechanism_expsyn_proto<nest::mc::multicore::backend>,
         true
     >,
     mechanism_info<
         nest::mc::mechanisms::exp2syn::mechanism_exp2syn<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::exp2syn_proto::mechanism_exp2syn<nest::mc::multicore::backend>,
+        nest::mc::mechanisms::exp2syn_proto::mechanism_exp2syn_proto<nest::mc::multicore::backend>,
         true
     >
 >;
