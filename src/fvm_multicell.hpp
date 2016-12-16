@@ -170,25 +170,14 @@ public:
         return (v>-1000.) && (v<1000.);
     }
 
-    /// return reference to the stimuli
-    util::optional<mechanism&> find_mechanism(const std::string& name) {
-        auto it = std::find_if(
-            std::begin(mechanisms_), std::end(mechanisms_),
-            [&name](mechanism& m) {return m->name()==name;});
-        if (it!=mechanisms_.end()) {
-            return util::optional<mechanism&>(*it);
-        }
-        return {};
-    }
-
+    /// Return reference to the mechanism that matches name.
+    /// The reference is const, because it this information should not be
+    /// modified by the caller, however it is needed for unit testing.
     util::optional<const mechanism&> find_mechanism(const std::string& name) const {
         auto it = std::find_if(
             std::begin(mechanisms_), std::end(mechanisms_),
             [&name](const mechanism& m) {return m->name()==name;});
-        if (it!=mechanisms_.end()) {
-            return util::optional<const mechanism&>(*it);
-        }
-        return {};
+        return it==mechanisms_.end() ? util::nothing: util::just(*it);
     }
 
     value_type time() const { return t_; }
@@ -552,15 +541,13 @@ void fvm_multicell<Backend>::initialize(
         //       amplitudes) have not been permuted to ascending cv index order,
         //       as is the case with other point processes.
         //       This is because the hard-coded stimulus mechanism makes no
-        //       optimizations that rely on this assumption (they are not
-        //       performance critical).
+        //       optimizations that rely on this assumption.
         if (stim_index.size()) {
             auto stim = new stimulus(
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
             mechanisms_.push_back(mechanism(stim));
         }
-
 
         // detector handles are just their corresponding compartment indices
         for (const auto& detector: c.detectors()) {
