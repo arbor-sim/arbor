@@ -8,6 +8,8 @@
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
+#include "stimulus_gpu.hpp"
+
 namespace nest {
 namespace mc {
 namespace gpu {
@@ -183,6 +185,8 @@ struct backend {
     using ion = mechanisms::ion<backend>;
 
     using mechanism = mechanisms::mechanism_ptr<backend>;
+
+    using stimulus = mechanisms::gpu::stimulus<backend>;
 
     static mechanism make_mechanism(
         const std::string& name,
@@ -382,7 +386,6 @@ void assemble_matrix(matrix_update_param_pack<T, I> params, T dt) {
         params.rhs[tid] = gi*params.voltage[tid] - params.current[tid];
     }
 }
-
 
 } // namespace multicore
 } // namespace mc

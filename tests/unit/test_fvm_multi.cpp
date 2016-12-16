@@ -178,8 +178,11 @@ TEST(fvm_multi, stimulus)
     // delay     |   5  |    1
     // duration  |  80  |    2
     // amplitude | 0.3  |  0.1
-    // compmnt   |   4  |    0
-
+    // CV        |   4  |    0
+    //
+    // The implementation of the stimulus is tested by creating a lowered cell, then
+    // testing that the correct currents are injected at the correct control volumes
+    // as during the stimulus windows.
 
     std::vector<fvm_cell::target_handle> targets;
     std::vector<fvm_cell::probe_handle> probes;
@@ -187,18 +190,44 @@ TEST(fvm_multi, stimulus)
     fvm_cell fvcell;
     fvcell.initialize(singleton_view(cell), targets, probes);
 
-    auto& stim = fvcell.stimuli();
-    EXPECT_EQ(stim.size(), 2u);
+    auto ref = fvcell.find_mechanism("stimulus");
+    ASSERT_TRUE(ref) << "no stimuli retrieved from lowered fvm cell: expected 2";
 
-    EXPECT_EQ(stim[0].first, 4u);
-    EXPECT_EQ(stim[1].first, 0u);
+    auto& stims = ref.get();
+    EXPECT_EQ(stims->size(), 2u);
 
-    EXPECT_EQ(stim[0].second.delay(), 5.);
-    EXPECT_EQ(stim[1].second.delay(), 1.);
-    EXPECT_EQ(stim[0].second.duration(), 80.);
-    EXPECT_EQ(stim[1].second.duration(),  2.);
-    EXPECT_EQ(stim[0].second.amplitude(), 0.3);
-    EXPECT_EQ(stim[1].second.amplitude(), 0.1);
+    auto I = fvcell.current();
+
+    auto soma_idx = 0u;
+    auto dend_idx = 4u;
+
+    // test 1: Test that no current is injected at t=0
+    memory::fill(I, 0.);
+    stims->set_params(0, 0.1);
+    stims->nrn_current();
+    for (auto i: I) {
+        EXPECT_EQ(i, 0.);
+    }
+
+    // test 2: Test that current is injected at soma at t=1
+    stims->set_params(1, 0.1);
+    stims->nrn_current();
+    EXPECT_EQ(I[soma_idx], -0.1);
+
+    // test 3: Test that current is still injected at soma at t=1.5.
+    //         Note that we test for injection of -0.2, because the
+    //         current contributions are accumulative, and the current
+    //         values have not been cleared since the last update.
+    stims->set_params(1.5, 0.1);
+    stims->nrn_current();
+    EXPECT_EQ(I[soma_idx], -0.2);
+
+    // test 4: test at t=10ms, when the the soma stim is not active, and
+    //         dendrite stimulus is injecting a current of 0.3 nA
+    stims->set_params(10, 0.1);
+    stims->nrn_current();
+    EXPECT_EQ(I[soma_idx], -0.2);
+    EXPECT_EQ(I[dend_idx], -0.3);
 }
 
 // test that mechanism indexes are computed correctly

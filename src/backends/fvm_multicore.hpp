@@ -8,6 +8,8 @@
 #include <memory/wrappers.hpp>
 #include <util/span.hpp>
 
+#include "stimulus_multicore.hpp"
+
 namespace nest {
 namespace mc {
 namespace multicore {
@@ -118,6 +120,8 @@ struct backend {
     using ion = mechanisms::ion<backend>;
 
     using mechanism = mechanisms::mechanism_ptr<backend>;
+
+    using stimulus = mechanisms::multicore::stimulus<backend>;
 
     static mechanism make_mechanism(
         const std::string& name,
@@ -267,3 +271,4 @@ private:
 } // namespace multicore
 } // namespace mc
 } // namespace nest
+
