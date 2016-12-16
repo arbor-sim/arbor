@@ -40,6 +40,33 @@ struct matrix_update_param_pack {
     I n;
 };
 
+template <typename T, typename I>
+struct gpu_threshold_watch {
+    const T* values;
+    const I* index;
+    const T* threshold;
+    I* is_spiking;
+    T t_prev;
+    I n_watches;
+
+    I allocated_size_;
+    I size_;
+
+    __device__
+    void test(T t) {
+        auto tid = 100;
+
+
+    }
+};
+
+template <typename T, typename I>
+__global__ void gpu_threshold_test(gpu_threshold_watch<T, I>* watch, T t) {
+    auto i = threadIdx.x + blockIdx.x*blockDim.x;
+
+
+}
+
 // forward declarations of the matrix solver implementation
 // see the bottom of the file for implementation
 
@@ -48,6 +75,9 @@ __global__ void matrix_solve(matrix_solve_param_pack<T, I> params);
 
 template <typename T, typename I>
 __global__ void assemble_matrix(matrix_update_param_pack<T, I> params, T dt);
+
+template <typename T, typename I>
+__global__ void test_thresholds(T t_prev, T t_now, T* );
 
 struct backend {
     /// define the real and index types
@@ -169,6 +199,123 @@ struct backend {
     }
 
     static bool has_mechanism(const std::string& name) { return mech_map_.count(name)>0; }
+
+    /// threshold crossing logic
+    /// used as part of spike detection back end
+    class threshold_watcher {
+    public:
+        /// stores a single crossing event
+        struct threshold_crossing {
+            size_type index;    // index of variable
+            value_type time;    // time of crossing
+            friend bool operator==
+                (const threshold_crossing& lhs, const threshold_crossing& rhs)
+            {
+                return lhs.index==rhs.index && lhs.time==rhs.time;
+            }
+        };
+
+        threshold_watcher() = default;
+
+        threshold_watcher(
+                const_view vals,
+                const std::vector<size_type>& indxs,
+                const std::vector<value_type>& thresh,
+                value_type t=0):
+            values_(vals),
+            index_(memory::make_const_view(indxs)),
+            thresholds_(memory::make_const_view(thresh)),
+            v_prev_(vals)
+        {
+            is_spiking_ = iarray(size());
+            reset(t);
+        }
+
+        /// Remove all stored crossings that were detected in previous calls
+        /// to the test() member function.
+        void clear_crossings() {
+            // TODO: KERNEL clear gpu buffer
+            crossings_.clear();
+        }
+
+        /// Reset state machine for each detector.
+        /// Assume that the values in values_ have been set correctly before
+        /// calling, because the values are used to determine the initial state
+        void reset(value_type t=0) {
+            // TODO: KERNEL
+            clear_crossings();
+            for (auto i=0u; i<size(); ++i) {
+                is_spiking_[i] = values_[index_[i]]>=thresholds_[i];
+            }
+            t_prev_ = t;
+        }
+
+        const std::vector<threshold_crossing>& crossings() const {
+            // TODO: get crossings from GPU first
+            return crossings_;
+        }
+
+        /// The time at which the last test was performed
+        value_type last_test_time() const {
+            return t_prev_;
+        }
+
+        /// Tests each target for changed threshold state
+        /// Crossing events are recorded for each threshold that
+        /// is crossed since the last call to test
+        void test(value_type t) {
+            // TODO: KERNEL
+            for (auto i=0u; i<size(); ++i) {
+                auto v = values_[index_[i]];
+                auto thresh = thresholds_[i];
+                auto v_prev = v_prev_[i];
+                if (!is_spiking_[i]) {
+                    if (v>=thresh) {
+                        // the threshold has been passed, so estimate the time using
+                        // linear interpolation
+                        auto pos = (thresh - v_prev)/(v - v_prev);
+                        auto crossing_time = t_prev_ + pos*(t - t_prev_);
+                        crossings_.push_back({i, crossing_time});
+
+                        is_spiking_[i] = true;
+                    }
+                }
+                else {
+                    if (v<thresh) {
+                        is_spiking_[i] = false;
+                    }
+                }
+
+                v_prev_[i] = v;
+            }
+
+            // this is stored on host
+            t_prev_ = t;
+        }
+
+        bool is_spiking(size_type i) const {
+            return is_spiking_[i];
+        }
+
+        /// the number of threashold values that are being monitored
+        std::size_t size() const {
+            return index_.size();
+        }
+
+        /// Data type used to store the crossings.
+        /// Provided to make type-generic calling code.
+        using crossing_list =  std::vector<threshold_crossing>;
+
+    private:
+        const_view values_;         // values to watch: on gpu
+        iarray index_;              // indexes of values to watch: on gpu
+
+        array thresholds_;          // threshold for each watch: on gpu
+        value_type t_prev_;         // time of previous sample: on host
+        array v_prev_;              // values at previous sample time: on host
+        crossing_list crossings_;   // buffer of crossings: on host
+        iarray is_spiking_;         // bool flag for state of each watch: on gpu
+    };
 
 private:
 
