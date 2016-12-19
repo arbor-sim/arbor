@@ -9,8 +9,12 @@ set(MODCC_SOURCES
     functionexpander.cpp
     functioninliner.cpp
     lexer.cpp
+    kinrewriter.cpp
     module.cpp
     parser.cpp
+    solvers.cpp
+    symdiff.cpp
+    symge.cpp
     textbuffer.cpp
     token.cpp
 )

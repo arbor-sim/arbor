@@ -756,7 +756,7 @@ void BlockExpression::semantic(scope_ptr scp) {
 }
 
 expression_ptr BlockExpression::clone() const {
-    std::list<expression_ptr> statements;
+    expr_list_type statements;
     for(auto& e: statements_) {
         statements.emplace_back(e->clone());
     }
@@ -803,6 +803,29 @@ expression_ptr IfExpression::clone() const {
             true_branch_->clone(),
             false_branch_? false_branch_->clone() : nullptr
     );
+}
+
+/*******************************************************************************
+  PDiffExpression
+*******************************************************************************/
+
+std::string PDiffExpression::to_string() const {
+    return  blue("pdiff") + " ( " + var_->to_string() + "; " + arg_->to_string() + ")";
+}
+
+void PDiffExpression::semantic(scope_ptr scp) {
+    scope_ = scp;
+
+    if (!var_->is_identifier()) {
+        error(pprintf("the variable in the partial differential expression is not "
+                      "an identifier, but instead ", yellow(var_->to_string())));
+    }
+    var_->semantic(scp);
+    arg_->semantic(scp);
+}
+
+expression_ptr PDiffExpression::clone() const {
+    return make_expression<PDiffExpression>(location_, var_->clone(), arg_->clone());
 }
 
 #include "visitor.hpp"
@@ -928,6 +951,9 @@ void PowBinaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void ConditionalExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void PDiffExpression::accept(Visitor *v) {
     v->visit(this);
 }
 

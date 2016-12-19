@@ -34,6 +34,7 @@ public:
     virtual void visit(IfExpression *e)         { visit((Expression*) e); }
     virtual void visit(SolveExpression *e)      { visit((Expression*) e); }
     virtual void visit(DerivativeExpression *e) { visit((Expression*) e); }
+    virtual void visit(PDiffExpression *e)      { visit((Expression*) e); }
     virtual void visit(ProcedureExpression *e)  { visit((Expression*) e); }
     virtual void visit(NetReceiveExpression *e) { visit((ProcedureExpression*) e); }
     virtual void visit(APIMethod *e)            { visit((Expression*) e); }
@@ -48,6 +49,7 @@ public:
     virtual void visit(SinUnaryExpression *e)   { visit((UnaryExpression*) e); }
 
     virtual void visit(BinaryExpression *e) = 0;
+    virtual void visit(ConditionalExpression *e) {visit((BinaryExpression*) e); }
     virtual void visit(AssignmentExpression *e) { visit((BinaryExpression*) e); }
     virtual void visit(ConserveExpression *e)   { visit((BinaryExpression*) e); }
     virtual void visit(AddBinaryExpression *e)  { visit((BinaryExpression*) e); }
@@ -59,3 +61,119 @@ public:
 
     virtual ~Visitor() {};
 };
+
+// Visitor specialization intended for use as a base class for visitors that
+// operate as function or procedure body rewriters after semantic analysis.
+//
+// Errors are recorded through the `error_stack` mixin, rather than by
+// throwing an exception.
+
+class BlockRewriterBase : public Visitor, public error_stack {
+public:
+    BlockRewriterBase() {}
+    BlockRewriterBase(scope_ptr block_scope):
+        block_scope_(block_scope) {}
+
+    virtual void visit(Expression *e) override {
+        statements_.push_back(e->clone());
+    }
+
+    virtual void visit(UnaryExpression *e) override { visit((Expression*)e); }
+    virtual void visit(BinaryExpression *e) override { visit((Expression*)e); }
+
+    virtual void visit(BlockExpression *e) override {
+        bool top = !started_;
+        if (top) {
+            loc_ = e->location();
+            started_ = true;
+
+            if (!block_scope_) {
+                block_scope_ = e->scope();
+            }
+        }
+
+        for (auto& s: e->statements()) {
+            s->accept(this);
+        }
+
+        if (top) {
+            finalise();
+        }
+    }
+
+    virtual void visit(IfExpression* e) override {
+        expr_list_type outer;
+        std::swap(outer, statements_);
+
+        e->true_branch()->accept(this);
+        auto true_branch = make_expression<BlockExpression>(
+            e->true_branch()->location(),
+            std::move(statements_),
+            true);
+
+        statements_.clear();
+        e->false_branch()->accept(this);
+        auto false_branch = make_expression<BlockExpression>(
+            e->false_branch()->location(),
+            std::move(statements_),
+            true);
+
+        statements_ = std::move(outer);
+        statements_.push_back(make_expression<IfExpression>(
+            e->location(),
+            e->condition()->clone(),
+            std::move(true_branch),
+            std::move(false_branch)));
+    }
+
+    virtual void visit(ProcedureExpression* e) override {
+        e->body()->accept(this);
+    }
+
+    virtual void visit(FunctionExpression* e) override {
+        e->body()->accept(this);
+    }
+
+    virtual expression_ptr as_block(bool is_nested=false) {
+        if (has_error()) return nullptr;
+
+        expr_list_type body_stmts;
+        for (const auto& s: statements_) body_stmts.push_back(s->clone());
+
+        auto body = make_expression<BlockExpression>(
+            loc_,
+            std::move(body_stmts),
+            is_nested);
+
+        if (block_scope_) {
+            body->semantic(block_scope_);
+        }
+        return body;
+    }
+
+    // Reset state.
+    virtual void reset() {
+        statements_.clear();
+        started_ = false;
+        loc_ = Location{};
+        clear_errors();
+        clear_warnings();
+    }
+
+protected:
+    // False until processing of top block starts.
+    bool started_ = false;
+
+    // Location of original block.
+    Location loc_;
+
+    // Scope for semantic pass.
+    scope_ptr block_scope_;
+
+    // Statements in replacement procedure body.
+    expr_list_type statements_;
+
+    // Finalise statements list at end of top block visit.
+    virtual void finalise() {}
+};
+

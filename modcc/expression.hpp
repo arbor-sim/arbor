@@ -55,11 +55,13 @@ class SolveExpression;
 class ConductanceExpression;
 class Symbol;
 class LocalVariable;
+class PDiffExpression; // not parsed; possible result of symbolic differentiation
 
 using expression_ptr = std::unique_ptr<Expression>;
 using symbol_ptr = std::unique_ptr<Symbol>;
 using scope_type = Scope<Symbol>;
 using scope_ptr = std::shared_ptr<scope_type>;
+using expr_list_type = std::list<expression_ptr>;
 
 template <typename T, typename... Args>
 expression_ptr make_expression(Args&&... args) {
@@ -101,14 +103,16 @@ std::string to_string(symbolKind k);
 
 /// methods for time stepping state
 enum class solverMethod {
-    cnexp, // the only method we have at the moment
+    cnexp, // for diagonal linear ODE systems.
+    sparse, // for non-diagonal linear ODE systems.
     none
 };
 
 static std::string to_string(solverMethod m) {
     switch(m) {
-        case solverMethod::cnexp : return std::string("cnexp");
-        case solverMethod::none  : return std::string("none");
+        case solverMethod::cnexp:  return std::string("cnexp");
+        case solverMethod::sparse: return std::string("sparse");
+        case solverMethod::none:   return std::string("none");
     }
     return std::string("<error : undefined solverMethod>");
 }
@@ -155,6 +159,7 @@ public:
     virtual expression_ptr clone() const;
 
     // easy lookup of properties
+    virtual CallExpression*        is_call()              {return nullptr;}
     virtual CallExpression*        is_function_call()     {return nullptr;}
     virtual CallExpression*        is_procedure_call()    {return nullptr;}
     virtual BlockExpression*       is_block()             {return nullptr;}
@@ -179,6 +184,7 @@ public:
     virtual SolveExpression*       is_solve_statement()   {return nullptr;}
     virtual Symbol*                is_symbol()            {return nullptr;}
     virtual ConductanceExpression* is_conductance_statement() {return nullptr;}
+    virtual PDiffExpression*       is_pdiff()             {return nullptr;}
 
     virtual bool is_lvalue() const {return false;}
     virtual bool is_global_lvalue() const {return false;}
@@ -732,13 +738,13 @@ private:
 
 class BlockExpression : public Expression {
 protected:
-    std::list<expression_ptr> statements_;
+    expr_list_type statements_;
     bool is_nested_ = false;
 
 public:
     BlockExpression(
         Location loc,
-        std::list<expression_ptr>&& statements,
+        expr_list_type&& statements,
         bool is_nested)
     :   Expression(loc),
         statements_(std::move(statements)),
@@ -749,7 +755,7 @@ public:
         return this;
     }
 
-    std::list<expression_ptr>& statements() {
+    expr_list_type& statements() {
         return statements_;
     }
 
@@ -955,6 +961,9 @@ public:
 
     void accept(Visitor *v) override;
 
+    CallExpression* is_call() override {
+        return this;
+    }
     CallExpression* is_function_call()  override {
         return symbol_->kind() == symbolKind::function ? this : nullptr;
     }
@@ -1003,6 +1012,16 @@ public:
     BlockExpression* body() {
         return body_.get()->is_block();
     }
+    void body(expression_ptr&& new_body) {
+        if(!new_body->is_block()) {
+            Location loc = new_body? new_body->location(): Location{};
+            throw compiler_exception(
+                " attempt to set ProcedureExpression body with non-block expression, i.e.\n"
+                + new_body->to_string(),
+                loc);
+        }
+        body_ = std::move(new_body);
+    }
 
     void semantic(scope_type::symbol_map &scp) override;
     ProcedureExpression* is_procedure() override {return this;}
@@ -1044,7 +1063,7 @@ class InitialBlock : public BlockExpression {
 public:
     InitialBlock(
         Location loc,
-        std::list<expression_ptr>&& statements)
+        expr_list_type&& statements)
     :   BlockExpression(loc, std::move(statements), true)
     {}
 
@@ -1315,3 +1334,25 @@ public:
 
     void accept(Visitor *v) override;
 };
+
+class PDiffExpression : public Expression {
+public:
+    PDiffExpression(Location loc, expression_ptr&& var, expression_ptr&& arg)
+    :  Expression(loc), var_(std::move(var)), arg_(std::move(arg))
+    {}
+
+    std::string to_string() const override;
+    void accept(Visitor *v) override;
+    void semantic(scope_ptr scp) override;
+    expression_ptr clone() const override;
+
+    PDiffExpression* is_pdiff()  override { return this; }
+
+    Expression* var() { return var_.get(); }
+    Expression* arg() { return arg_.get(); }
+
+private:
+    expression_ptr var_;
+    expression_ptr arg_;
+};
+
