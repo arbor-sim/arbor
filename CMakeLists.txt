@@ -8,7 +8,7 @@ enable_language(CXX)
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # compilation flags
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include("CompilerOptions")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
 
@@ -147,7 +147,7 @@ endif()
 # Validation data generation
 
 # destination directory for generated data
-set(VALIDATION_DATA_DIR "${CMAKE_SOURCE_DIR}/validation/data" CACHE PATH "location of generated validation data")
+set(VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH "location of generated validation data")
 
 # Whether to build validation data at all
 set(BUILD_VALIDATION_DATA ON CACHE BOOL "generate validation data")
@@ -171,12 +171,12 @@ else()
     set(BUILD_NRN_VALIDATION_DATA TRUE)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/tclap)
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/src)
-include_directories(${CMAKE_SOURCE_DIR}/miniapp)
-include_directories(${CMAKE_SOURCE_DIR}/modcc)
-include_directories(${CMAKE_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR}/tclap)
+include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/src)
+include_directories(${PROJECT_SOURCE_DIR}/miniapp)
+include_directories(${PROJECT_SOURCE_DIR}/modcc)
+include_directories(${PROJECT_SOURCE_DIR})
 if( "${WITH_TBB}" STREQUAL "ON" )
     include_directories(${TBB_INCLUDE_DIRS})
 endif()

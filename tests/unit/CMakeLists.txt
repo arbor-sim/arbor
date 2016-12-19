@@ -1,4 +1,4 @@
-include(${CMAKE_SOURCE_DIR}/mechanisms/BuildModules.cmake)
+include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
 # Build prototype mechanisms for testing in test_mechanisms.
 set(proto_mechanisms pas hh expsyn exp2syn)
@@ -7,7 +7,7 @@ file(MAKE_DIRECTORY "${mech_proto_dir}")
 
 build_modules(
     ${proto_mechanisms}
-    SOURCE_DIR "${CMAKE_SOURCE_DIR}/mechanisms/mod"
+    SOURCE_DIR "${PROJECT_SOURCE_DIR}/mechanisms/mod"
     DEST_DIR "${mech_proto_dir}"
     MECH_SUFFIX _proto
     MODCC_FLAGS -t cpu
@@ -67,7 +67,7 @@ set(TEST_SOURCES
     test.cpp
 )
 
-add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
+add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
 set(TARGETS test.exe)
 
