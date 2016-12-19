@@ -1,3 +1,21 @@
+include(${CMAKE_SOURCE_DIR}/mechanisms/BuildModules.cmake)
+
+# Build prototype mechanisms for testing in test_mechanisms.
+set(proto_mechanisms pas hh expsyn exp2syn)
+set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
+file(MAKE_DIRECTORY "${mech_proto_dir}")
+
+build_modules(
+    ${proto_mechanisms}
+    SOURCE_DIR "${CMAKE_SOURCE_DIR}/mechanisms/mod"
+    DEST_DIR "${mech_proto_dir}"
+    MECH_SUFFIX _proto
+    MODCC_FLAGS -t cpu
+    TARGET build_test_mods
+)
+
+# Unit test sources
+
 set(TEST_CUDA_SOURCES
     test_cell_group.cu
     test_matrix.cu
@@ -54,6 +72,8 @@ add_definitions("-DDATADIR=\"${CMAKE_SOURCE_DIR}/data\"")
 set(TARGETS test.exe)
 
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+add_dependencies(test.exe build_test_mods)
+target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
 if(WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
