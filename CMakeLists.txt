@@ -88,6 +88,9 @@ if(WITH_CUDA)
     list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
 endif()
 
+# BGQ systems
+set(SYSTEM_BGQ OFF CACHE BOOL "Flags for BlueGene Q")
+
 # MPI support
 set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
 if(WITH_MPI)
@@ -97,6 +100,10 @@ if(WITH_MPI)
     # unfortunate workaround for C++ detection in system mpi.h
     add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
+
+   if(SYSTEM_BGQ)
+     add_definitions(-DMPICH2_CONST=const)
+   endif()
 endif()
 
 # Internal profiler support
