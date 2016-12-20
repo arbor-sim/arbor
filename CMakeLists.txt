@@ -128,13 +128,13 @@ set(USE_OPTIMIZED_KERNELS OFF CACHE BOOL "generate optimized code that vectorize
 # Only build modcc if it has not already been installed.
 # This is useful if cross compiling for KNL, when it is not desirable to compile
 # modcc with the same flags that are used for the KNL target.
-set(use_external_modcc OFF BOOL)
+set(use_external_modcc OFF)
 find_program(MODCC_BIN modcc)
 if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
     set(modcc "${CMAKE_BINARY_DIR}/modcc/modcc")
 else()
+    set(use_external_modcc ON)
     set(modcc "${MODCC_BIN}")
-    set(use_external_modcc ON BOOL)
 endif()
 
 # Validation data generation
@@ -180,7 +180,7 @@ if(BUILD_VALIDATION_DATA)
 endif()
 
 # only compile modcc if it is not provided externally
-if(use_external_modcc)
+if(NOT use_external_modcc)
     add_subdirectory(modcc)
 endif()
 

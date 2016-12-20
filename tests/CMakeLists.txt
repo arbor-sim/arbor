@@ -1,9 +1,6 @@
 # google test framework
 add_library(gtest gtest-all.cpp)
 
-# Generate mechanisms for unit tests
-add_subdirectory(mechanisms)
-
 # Unit tests
 add_subdirectory(unit)
 

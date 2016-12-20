@@ -1,10 +1,10 @@
 #include "../gtest.h"
 
 // Prototype mechanisms in tests
-#include "../mechanisms/multicore/expsyn.hpp"
-#include "../mechanisms/multicore/exp2syn.hpp"
-#include "../mechanisms/multicore/hh.hpp"
-#include "../mechanisms/multicore/pas.hpp"
+#include "mech_proto/expsyn.hpp"
+#include "mech_proto/exp2syn.hpp"
+#include "mech_proto/hh.hpp"
+#include "mech_proto/pas.hpp"
 
 // modcc generated mechanisms
 #include "mechanisms/multicore/expsyn.hpp"
