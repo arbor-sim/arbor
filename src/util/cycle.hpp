@@ -1,5 +1,6 @@
 #pragma once
 
+#include <initializer_list>
 #include <utility>
 #include <util/iterutil.hpp>
 #include <util/range.hpp>
@@ -203,6 +204,15 @@ template <
 range<cyclic_iterator<SeqIter, SeqSentinel>, SeqSentinel>
 cyclic_view(const Seq& s) {
     return { make_cyclic_iterator(cbegin(s), cend(s)), cend(s) };
+}
+
+// Handle initializer lists
+template <typename T>
+range<cyclic_iterator<typename std::initializer_list<T>::const_iterator,
+                      typename std::initializer_list<T>::const_iterator> >
+cyclic_view(const std::initializer_list<T> &list) {
+    return { make_cyclic_iterator(cbegin(list), cend(list)),
+             make_cyclic_iterator(cend(list), cend(list)) };
 }
 
 } // namespace util

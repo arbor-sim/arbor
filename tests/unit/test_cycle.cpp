@@ -147,6 +147,20 @@ TEST(cycle, cyclic_view) {
     }
 }
 
+TEST(cycle, cyclic_view_initlist) {
+    std::vector<int> values;
+
+    std::copy_n(util::cyclic_view({2., 3., 4.}).cbegin(), 10,
+                std::back_inserter(values));
+
+    EXPECT_EQ(10u, values.size());
+
+    auto i = 0;
+    for (auto const& v : values) {
+        EXPECT_EQ(2 + i++ % 3, v);
+    }
+}
+
 TEST(cycle_iterator, difference) {
     int values[] = { 4, 2, 3 };
 

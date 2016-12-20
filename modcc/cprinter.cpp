@@ -2,6 +2,7 @@
 
 #include "cprinter.hpp"
 #include "lexer.hpp"
+#include "options.hpp"
 
 /******************************************************************************
                               CPrinter driver
@@ -26,6 +27,11 @@ CPrinter::CPrinter(Module &m, bool o)
         }
     }
 
+    std::string module_name = Options::instance().modulename;
+    if (module_name == "") {
+        module_name = m.name();
+    }
+
     //////////////////////////////////////////////
     //////////////////////////////////////////////
     text_.add_line("#pragma once");
@@ -40,9 +46,9 @@ CPrinter::CPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    std::string class_name = "mechanism_" + m.name();
+    std::string class_name = "mechanism_" + module_name;
 
-    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + m.name() + "{");
+    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + module_name + "{");
     text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
@@ -182,7 +188,7 @@ CPrinter::CPrinter(Module &m, bool o)
 
     text_.add_line("std::string name() const override {");
     text_.increase_indentation();
-    text_.add_line("return \"" + m.name() + "\";");
+    text_.add_line("return \"" + module_name + "\";");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -861,4 +867,3 @@ void CPrinter::visit(BinaryExpression *e) {
     // reset parent precedence
     parent_op_ = pop;
 }
-
