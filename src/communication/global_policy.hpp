@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef WITH_MPI
+#ifdef NMC_HAVE_MPI
     #include "communication/mpi_global_policy.hpp"
 #else
     #include "communication/serial_global_policy.hpp"
@@ -10,7 +10,7 @@ namespace nest {
 namespace mc {
 namespace communication {
 
-#ifdef WITH_MPI
+#ifdef NMC_HAVE_MPI
 using global_policy = nest::mc::communication::mpi_global_policy;
 #else
 using global_policy = nest::mc::communication::serial_global_policy;

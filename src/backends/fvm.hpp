@@ -2,6 +2,6 @@
 
 #include "fvm_multicore.hpp"
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
     #include "fvm_gpu.hpp"
 #endif

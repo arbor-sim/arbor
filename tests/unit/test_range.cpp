@@ -7,7 +7,7 @@
 #include <numeric>
 #include <type_traits>
 
-#ifdef WITH_TBB
+#ifdef NMC_HAVE_TBB
 #include <tbb/tbb_stddef.h>
 #endif
 
@@ -423,7 +423,7 @@ TEST(range, all_of_any_of) {
     EXPECT_TRUE(util::any_of(cstr("87654x"), pred));
 }
 
-#ifdef WITH_TBB
+#ifdef NMC_HAVE_TBB
 
 TEST(range, tbb_split) {
     constexpr std::size_t N = 20;

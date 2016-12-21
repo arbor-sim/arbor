@@ -79,7 +79,7 @@ endif()
 
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
-if(WITH_CUDA)
+if(NMC_WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
     target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
@@ -89,7 +89,7 @@ foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC gtest nestmc)
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-    if(WITH_MPI)
+    if(NMC_WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()

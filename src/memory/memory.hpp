@@ -6,7 +6,7 @@
 #include "definitions.hpp"
 #include "host_coordinator.hpp"
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 #include "device_coordinator.hpp"
 #endif
 
@@ -29,7 +29,7 @@ std::ostream& operator<< (std::ostream& o, host_view<T> const& v) {
     return o;
 }
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 // specialization for pinned vectors. Use a host_coordinator, because memory is
 // in the host memory space, and all of the helpers (copy, set, etc) are the
 // same with and without page locked memory
