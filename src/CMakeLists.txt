@@ -22,7 +22,10 @@ endif()
 
 add_library(nestmc ${BASE_SOURCES} ${HEADERS})
 
-add_dependencies(nestmc build_all_mods)
+if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
+  add_dependencies(nestmc build_all_mods)
+endif()
+
 if(WITH_CUDA)
     cuda_add_library(gpu ${CUDA_SOURCES})
     set(NESTMC_LIBRARIES ${NESTMC_LIBRARIES} gpu)

@@ -31,6 +31,12 @@ if(WITH_TRACE)
     add_definitions("-DWITH_TRACE")
 endif()
 
+#----------------------------------------------------------
+# Option to disable auto running of modcc compiler
+#----------------------------------------------------------
+option(NMC_AUTO_RUN_MODCC_ON_CHANGES 
+  "Rerun modcc compiler whenever *.mod file or modcc compiler change" ON)
+
 # list of libraries to be linked against targets
 set(EXTERNAL_LIBRARIES "")
 

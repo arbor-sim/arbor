@@ -72,7 +72,11 @@ add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 set(TARGETS test.exe)
 
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
-add_dependencies(test.exe build_test_mods)
+
+if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
+  add_dependencies(test.exe build_test_mods)
+endif()
+
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
 if(WITH_CUDA)
