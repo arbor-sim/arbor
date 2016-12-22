@@ -52,7 +52,7 @@ TEST(mechanisms, helpers) {
 
 // Setup and update mechanism
 template<typename T>
-void mech_update(T* mech, int num_iters) {
+void mech_update(T* mech, unsigned num_iters) {
 
     using namespace nest::mc;
     std::map<mechanisms::ionKind, mechanisms::ion<typename T::backend>> ions;
@@ -78,11 +78,11 @@ void mech_update(T* mech, int num_iters) {
         }
     }
 
-    for (auto i = 0; i < mech->node_index_.size(); ++i) {
+    for (auto i=0u; i<mech->node_index_.size(); ++i) {
         mech->net_receive(i, 1.);
     }
 
-    for (auto i = 0; i < num_iters; ++i) {
+    for (auto i=0u; i<num_iters; ++i) {
         mech->nrn_current();
         mech->nrn_state();
     }

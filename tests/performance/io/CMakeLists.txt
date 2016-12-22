@@ -8,10 +8,7 @@ set(DISK_IO_SOURCES
 add_executable(disk_io.exe ${DISK_IO_SOURCES} ${HEADERS})
 
 target_link_libraries(disk_io.exe LINK_PUBLIC nestmc)
-
-if(WITH_TBB)
-    target_link_libraries(disk_io.exe LINK_PUBLIC ${TBB_LIBRARIES})
-endif()
+target_link_libraries(disk_io.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
 if(WITH_MPI)
     target_link_libraries(disk_io.exe LINK_PUBLIC ${MPI_C_LIBRARIES})
