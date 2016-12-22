@@ -48,7 +48,7 @@ static const char* derivative_abc =
     "}                         \n";
 
 TEST(KineticRewriter, equiv) {
-    auto visitor = make_unique<KineticRewriter>();
+    auto visitor = util::make_unique<KineticRewriter>();
     auto kin = Parser(kinetic_abc).parse_procedure();
     auto deriv = Parser(derivative_abc).parse_procedure();
 

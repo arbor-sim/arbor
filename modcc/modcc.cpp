@@ -13,6 +13,8 @@
 #include "modccutil.hpp"
 #include "options.hpp"
 
+using namespace nest::mc;
+
 //#define VERBOSE
 
 int main(int argc, char **argv) {
@@ -173,13 +175,13 @@ int main(int argc, char **argv) {
                     std::cout << yellow("method " + method->name()) << "\n";
                     std::cout << white("-------------------------\n");
 
-                    auto flops = make_unique<FlopVisitor>();
+                    auto flops = util::make_unique<FlopVisitor>();
                     method->accept(flops.get());
                     std::cout << white("FLOPS") << std::endl;
                     std::cout << flops->print() << std::endl;
 
                     std::cout << white("MEMOPS") << std::endl;
-                    auto memops = make_unique<MemOpVisitor>();
+                    auto memops = util::make_unique<MemOpVisitor>();
                     method->accept(memops.get());
                     std::cout << memops->print() << std::endl;;
                 }
