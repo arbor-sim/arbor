@@ -178,11 +178,11 @@ option(NMC_USE_OPTIMIZED_KERNELS
 #----------------------------------------------------------
 set(use_external_modcc OFF)
 find_program(MODCC_BIN modcc)
-if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
-    set(modcc "${CMAKE_BINARY_DIR}/modcc/modcc")
-else()
+if(MODCC_BIN)
     set(use_external_modcc ON)
     set(modcc "${MODCC_BIN}")
+else()
+    set(modcc $<TARGET_FILE:modcc>)
 endif()
 
 #----------------------------------------------------------
