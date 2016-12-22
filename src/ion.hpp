@@ -1,7 +1,7 @@
 #pragma once
 
+#include <array>
 #include <memory/memory.hpp>
-
 #include <indexed_view.hpp>
 
 namespace nest {
