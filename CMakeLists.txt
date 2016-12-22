@@ -164,6 +164,7 @@ else()
     set(BUILD_NRN_VALIDATION_DATA TRUE)
 endif()
 
+include_directories(${CMAKE_SOURCE_DIR}/cub)
 include_directories(${CMAKE_SOURCE_DIR}/tclap)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/src)
@@ -188,4 +189,5 @@ add_subdirectory(mechanisms)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(miniapp)
+add_subdirectory(cub_test)
 

@@ -42,33 +42,6 @@ struct matrix_update_param_pack {
     I n;
 };
 
-template <typename T, typename I>
-struct gpu_threshold_watch {
-    const T* values;
-    const I* index;
-    const T* threshold;
-    I* is_spiking;
-    T t_prev;
-    I n_watches;
-
-    I allocated_size_;
-    I size_;
-
-    __device__
-    void test(T t) {
-        auto tid = 100;
-
-
-    }
-};
-
-template <typename T, typename I>
-__global__ void gpu_threshold_test(gpu_threshold_watch<T, I>* watch, T t) {
-    auto i = threadIdx.x + blockIdx.x*blockDim.x;
-
-
-}
-
 // forward declarations of the matrix solver implementation
 // see the bottom of the file for implementation
 
