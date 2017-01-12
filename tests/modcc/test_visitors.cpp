@@ -10,6 +10,8 @@
  * visitors
  **************************************************************/
 
+using namespace nest::mc;
+
 TEST(FlopVisitor, basic) {
     {
     auto visitor = util::make_unique<FlopVisitor>();
