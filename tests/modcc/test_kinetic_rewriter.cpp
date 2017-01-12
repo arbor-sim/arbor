@@ -9,6 +9,7 @@
 #include "expr_expand.hpp"
 #include "test.hpp"
 
+using namespace nest::mc;
 
 stmt_list_type& proc_statements(Expression *e) {
     if (!e || !e->is_symbol() || ! e->is_symbol()->is_procedure()) {
@@ -95,4 +96,3 @@ TEST(KineticRewriter, equiv) {
     EXPECT_EQ(deriv_map["b'"], kin_map["b'"]);
     EXPECT_EQ(deriv_map["c'"], kin_map["c'"]);
 }
-
