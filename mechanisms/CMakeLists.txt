@@ -4,7 +4,7 @@ include(BuildModules.cmake)
 set(mechanisms pas hh expsyn exp2syn)
 
 set(modcc_opt)
-if(USE_OPTIMIZED_KERNELS) # generate optimized kernels
+if(NMC_USE_OPTIMIZED_KERNELS) # generate optimized kernels
     set(modcc_opt "-O")
 endif()
 
@@ -20,7 +20,7 @@ build_modules(
     TARGET build_all_mods
 )
 
-if(WITH_CUDA)
+if(NMC_WITH_CUDA)
     set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/gpu")
     file(MAKE_DIRECTORY "${mech_dir}")
     build_modules(

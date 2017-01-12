@@ -203,7 +203,7 @@ private:
     region_type* current_region_ = &root_region_;
 };
 
-#ifdef WITH_PROFILING
+#ifdef NMC_HAVE_PROFILING
 namespace data {
     using profiler_wrapper = nest::mc::threading::enumerable_thread_specific<profiler>;
     extern profiler_wrapper profilers_;
@@ -226,7 +226,7 @@ void profiler_enter(const char* n);
 /// enter nested profiler regions in a single call
 template <class...Args>
 void profiler_enter(const char* n, Args... args) {
-#ifdef WITH_PROFILING
+#ifdef NMC_HAVE_PROFILING
     get_profiler().enter(n);
     profiler_enter(args...);
 #endif

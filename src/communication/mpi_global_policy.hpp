@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef WITH_MPI
-#error "mpi_global_policy.hpp should only be compiled in a WITH_MPI build"
+#ifndef NMC_HAVE_MPI
+#error "mpi_global_policy.hpp should only be compiled in a NMC_HAVE_MPI build"
 #endif
 
 #include <cstdint>

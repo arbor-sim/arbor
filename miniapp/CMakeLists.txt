@@ -11,7 +11,7 @@ set(MINIAPP_SOURCES_CUDA
     miniapp_recipes.cpp
 )
 
-if(WITH_CUDA)
+if(NMC_WITH_CUDA)
     cuda_add_executable(miniapp.exe ${MINIAPP_SOURCES_CUDA} ${HEADERS})
     target_link_libraries(miniapp.exe LINK_PUBLIC gpu)
 else()
@@ -21,7 +21,7 @@ endif()
 target_link_libraries(miniapp.exe LINK_PUBLIC nestmc)
 target_link_libraries(miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-if(WITH_MPI)
+if(NMC_WITH_MPI)
     target_link_libraries(miniapp.exe LINK_PUBLIC ${MPI_C_LIBRARIES})
     set_property(TARGET miniapp.exe APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 endif()
