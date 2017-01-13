@@ -8,7 +8,7 @@ enable_language(CXX)
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # compilation flags
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include("CompilerOptions")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
 
@@ -19,102 +19,231 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# enable assertions?
-set(WITH_ASSERTIONS OFF CACHE BOOL "enable EXPECTS() assertions in code")
-if(WITH_ASSERTIONS)
-    add_definitions("-DWITH_ASSERTIONS")
+#----------------------------------------------------------
+# Option to enable assertions
+#----------------------------------------------------------
+option(NMC_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
+if(NMC_WITH_ASSERTIONS)
+    add_definitions("-DNMC_HAVE_ASSERTIONS")
 endif()
 
-# enable traces?
-set(WITH_TRACE OFF CACHE BOOL "enable TRACE() macros in code")
-if(WITH_TRACE)
-    add_definitions("-DWITH_TRACE")
+#----------------------------------------------------------
+# Option to enable traces
+#----------------------------------------------------------
+option(NMC_WITH_TRACE "enable TRACE() macros in code" OFF)
+if(NMC_WITH_TRACE)
+    add_definitions("-DNMC_HAVE_TRACE")
 endif()
 
-# TBB support
-set(WITH_TBB OFF CACHE BOOL "use TBB for on-node threading" )
-if(WITH_TBB)
+#----------------------------------------------------------
+# Option to disable auto running of modcc compiler
+#----------------------------------------------------------
+option(NMC_AUTO_RUN_MODCC_ON_CHANGES
+  "Rerun modcc compiler whenever *.mod file or modcc compiler change" ON)
+
+#----------------------------------------------------------
+# prepare list of libraries/includes needed by external libs
+#----------------------------------------------------------
+set(EXTERNAL_LIBRARIES "")
+set(EXTERNAL_INCLUDES "")
+
+#----------------------------------------------------------
+# Threading model selection
+#----------------------------------------------------------
+set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp")
+set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb omp)
+
+if(NMC_THREADING_MODEL MATCHES "tbb")
+    # TBB support
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
-    add_definitions(-DWITH_TBB)
+    add_definitions(-DNMC_HAVE_TBB)
+    set(NMC_HAVE_TBB TRUE)
+    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
+    list(APPEND EXTERNAL_INCLUDES ${TBB_INCLUDE_DIRS})
+
+elseif(NMC_THREADING_MODEL MATCHES "omp")
+    # OpenMP support
+    find_package(OpenMP REQUIRED)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    add_definitions(-DNMC_HAVE_OMP)
+    set(NMC_HAVE_OMP TRUE)
+
+elseif(NMC_THREADING_MODEL MATCHES "serial")
+    #setup previously done
+
+else()
+    message( FATAL_ERROR "-- Threading model '${NMC_THREADING_MODEL}' not supported, use one of serial/tbb/omp")
+
 endif()
 
-# MPI support
-set(WITH_MPI OFF CACHE BOOL "use MPI for distrubuted parallelism")
-if(WITH_MPI)
-    find_package(MPI REQUIRED)
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
-    add_definitions(-DWITH_MPI)
-    # unfortunate workaround for C++ detection in system mpi.h
-    add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
-    set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
+#----------------------------------------------------------
+# libunwind for pretty printing stack traces
+#----------------------------------------------------------
+find_package(Unwind)
+if(UNWIND_FOUND)
+    add_definitions(-DWITH_UNWIND)
+    include_directories(${UNWIND_INCLUDE_DIR})
+    list(APPEND EXTERNAL_LIBRARIES ${UNWIND_LIBRARIES})
 endif()
 
-# Profiler support
-set(WITH_PROFILING OFF CACHE BOOL "use built-in profiling of miniapp" )
-if(WITH_PROFILING)
-    add_definitions(-DWITH_PROFILING)
+#----------------------------------------------------------
+# CUDA support
+#----------------------------------------------------------
+option(NMC_WITH_CUDA "use CUDA for GPU offload" OFF)
+if(NMC_WITH_CUDA)
+    find_package(CUDA REQUIRED)
+
+    # Turn off annoying and incorrect warnings generated in the JSON file.
+    # We also work around the same issue with the intel compiler.
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
+
+    # set the CUDA target specfic flags
+    # code regions protected by NMC_HAVE_CUDA should only be available to the CUDA
+    # compiler, which regions protected by NMC_HAVE_GPU are visible to both host
+    # and device compiler when targetting GPU.
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DNMC_HAVE_CUDA)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DNMC_HAVE_GPU)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
+    #set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
+
+    add_definitions(-DNMC_HAVE_GPU)
+    include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
+    list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
 endif()
 
-# Cray systems
-set(SYSTEM_CRAY OFF CACHE BOOL "add flags for compilation on Cray systems")
-if(SYSTEM_CRAY)
+#----------------------------------------------------------
+# Cray/BGQ/Generic Linux/other flag?
+#----------------------------------------------------------
+set(NMC_SYSTEM_TYPE "Generic" CACHE STRING 
+    "Choose a system type to customize flags")
+set_property(CACHE NMC_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
+
+# Cray specific flags
+if(${NMC_SYSTEM_TYPE} MATCHES "Cray")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
 endif()
 
-# vectorization target
-set(VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2}")
+#----------------------------------------------------------
+# MPI support
+#----------------------------------------------------------
+option(NMC_WITH_MPI "use MPI for distrubuted parallelism" OFF)
 
-if(VECTORIZE_TARGET STREQUAL "KNL")
+if(NMC_WITH_MPI)
+    find_package(MPI REQUIRED)
+    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
+    add_definitions(-DNMC_HAVE_MPI)
+    # unfortunate workaround for C++ detection in system mpi.h
+    add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
+    set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
+
+    # BGQ specific flags
+   if(${NMC_SYSTEM_TYPE} MATCHES "BGQ" )
+     add_definitions(-DMPICH2_CONST=const)
+   endif()
+endif()
+
+#----------------------------------------------------------
+# Internal profiler support
+#----------------------------------------------------------
+option(NMC_WITH_PROFILING "use built-in profiling of miniapp" OFF)
+if(NMC_WITH_PROFILING)
+    add_definitions(-DNMC_HAVE_PROFILING)
+endif()
+
+#----------------------------------------------------------
+# vectorization target
+#----------------------------------------------------------
+set(NMC_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2}")
+set_property(CACHE NMC_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX AVX2)
+
+if(NMC_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
-elseif(VECTORIZE_TARGET STREQUAL "AVX")
+elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX}")
-elseif(VECTORIZE_TARGET STREQUAL "AVX2")
+elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
 endif()
 
+#----------------------------------------------------------
 # whether to generate optimized kernels from NMODL
-set(USE_OPTIMIZED_KERNELS OFF CACHE BOOL "generate optimized code that vectorizes with the Intel compiler")
+#----------------------------------------------------------
+option(NMC_USE_OPTIMIZED_KERNELS
+    "generate optimized code that vectorizes with the Intel compiler" OFF)
 
+#----------------------------------------------------------
 # Only build modcc if it has not already been installed.
 # This is useful if cross compiling for KNL, when it is not desirable to compile
 # modcc with the same flags that are used for the KNL target.
-set(use_external_modcc OFF BOOL)
+#----------------------------------------------------------
+set(use_external_modcc OFF)
 find_program(MODCC_BIN modcc)
-if(MODCC_BIN STREQUAL "MODCC_BIN-NOTFOUND")
-    set(modcc "${CMAKE_BINARY_DIR}/modcc/modcc")
-else()
+if(MODCC_BIN)
+    set(use_external_modcc ON)
     set(modcc "${MODCC_BIN}")
-    set(use_external_modcc ON BOOL)
+else()
+    set(modcc $<TARGET_FILE:modcc>)
 endif()
 
-# whether to attempt to use nrniv to build validation data
+#----------------------------------------------------------
+# Validation data generation
+#----------------------------------------------------------
+# destination directory for generated data
+set(NMC_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
+  "location of generated validation data")
+
+#----------------------------------------------------------
+# Whether to build validation data at all
+#----------------------------------------------------------
+option(NMC_BUILD_VALIDATION_DATA "generate validation data" ON)
+
+# Whether to attempt to use julia to build validation data
+find_program(JULIA_BIN julia)
+if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
+    message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
+    set(NMC_BUILD_JULIA_VALIDATION_DATA FALSE)
+else()
+    set(NMC_BUILD_JULIA_VALIDATION_DATA TRUE)
+endif()
+
+# Whether to attempt to use nrniv to build validation data
 # (if we find nrniv, do)
 find_program(NRNIV_BIN nrniv)
 if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
-    message(STATUS "nrniv not found; will not automatically build validation data sets")
-    set(BUILD_VALIDATION_DATA FALSE)
+    message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
+    set(NMC_BUILD_NRN_VALIDATION_DATA FALSE)
 else()
-    set(BUILD_VALIDATION_DATA TRUE)
+    set(NMC_BUILD_NRN_VALIDATION_DATA TRUE)
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/tclap/include)
-include_directories(${CMAKE_SOURCE_DIR}/vector)
-include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/src)
-include_directories(${CMAKE_SOURCE_DIR}/miniapp)
-include_directories(${CMAKE_SOURCE_DIR}/modcc)
-include_directories(${CMAKE_SOURCE_DIR})
-if( "${WITH_TBB}" STREQUAL "ON" )
-    include_directories(${TBB_INCLUDE_DIRS})
+#----------------------------------------------------------
+# Setup include dirs
+#----------------------------------------------------------
+include_directories(
+    "${PROJECT_SOURCE_DIR}/tclap"
+    "${PROJECT_SOURCE_DIR}/include"
+    "${PROJECT_SOURCE_DIR}/src"
+    "${PROJECT_SOURCE_DIR}/miniapp"
+    "${PROJECT_SOURCE_DIR}/modcc"
+    "${PROJECT_SOURCE_DIR}")
+if(EXTERNAL_INCLUDES)
+  include_directories("${EXTERNAL_INCLUDES}")
+endif()
+
+#----------------------------------------------------------
+# Setup subdirs
+#----------------------------------------------------------
+# only include validation data if flag is set
+if(NMC_BUILD_VALIDATION_DATA)
+    add_subdirectory(validation)
 endif()
 
 # only compile modcc if it is not provided externally
-if(use_external_modcc)
+if(NOT use_external_modcc)
     add_subdirectory(modcc)
 endif()
+
 add_subdirectory(mechanisms)
-add_subdirectory(nrn)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(miniapp)

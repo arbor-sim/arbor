@@ -1,4 +1,4 @@
-#!env python
+#!/usr/bin/env python2
 #coding: utf-8
 
 import argparse
@@ -30,6 +30,11 @@ def parse_clargs():
         l, r = (float_or_none(x) for x in s.split(','))
         return (l,r)
 
+    def parse_colour_spec(s):
+        colour, tests = s.split(':',1)
+        tests = tests.split(',')
+        return colour, tests
+
     P = argparse.ArgumentParser(description='Plot time series data on one or more graphs.')
     P.add_argument('inputs', metavar='FILE', nargs='+',
                    help='time series data in JSON format')
@@ -44,7 +49,12 @@ def parse_clargs():
                    help='plot series with same KEYs on the same axes')
     P.add_argument('-s', '--select', metavar='EXPR,...', dest='select',
                    type=lambda s: s.split(','),
+                   action='append',
                    help='select only series matching EXPR')
+    P.add_argument('-c', '--colour', metavar='COLOUR:EXPR,...', dest='colours',
+                   type=parse_colour_spec,
+                   action='append',
+                   help='use colour COLOUR a base for series matching EXPR')
     P.add_argument('-o', '--output', metavar='FILE', dest='outfile',
                    help='save plot to file FILE')
     P.add_argument('--dpi', metavar='NUM', dest='dpi',
@@ -142,10 +152,15 @@ def run_select(expr, v):
         return test not in str(val)
     else:
         if isinstance(val, numbers.Number):
-            try:
-                test=int(test)
-            except ValueError:
-                test=float(test)
+            if re.match(r'true$', test, re.I):
+                test=True
+            elif re.match(r'false$', test, re.I):
+                test=False
+            else:
+                try:
+                    test=int(test)
+                except ValueError:
+                    test=float(test)
 
         if op=='=':
             return val==test
@@ -212,7 +227,7 @@ def read_json_timeseries(j, axis='time', select=[]):
         meta = dict(j.items() + {'label': key, 'data': None, 'units': units(key)}.items())
         del meta['data']
 
-        if all([run_select(sel, meta) for sel in select]):
+        if not select or any([all([run_select(s, meta) for s in term]) for term in select]):
             ts_list.append(TimeSeries(times, jdata[key], **meta))
 
     return ts_list
@@ -310,7 +325,7 @@ def round_numeric_(x):
     if not isinstance(x,float): return x
     return "{:6g}".format(x)
 
-def plot_plots(plot_groups, axis='time', save=None, dpi=None, scale=None):
+def plot_plots(plot_groups, axis='time', colour_overrides=[], save=None, dpi=None, scale=None):
     nplots = len(plot_groups)
     plot_groups = sorted(plot_groups, key=lambda g: g.group_label())
 
@@ -391,6 +406,10 @@ def plot_plots(plot_groups, axis='time', save=None, dpi=None, scale=None):
             line = next(lines)
             for s, l in series_by_unit[ui]:
                 c = next(colours)
+                for colour, tests in colour_overrides:
+                    if all([run_select(t, s.meta) for t in tests]):
+                        c = colour
+
                 plot.plot(s.t, s.y, color=c, ls=line, label=l)
                 # treat exluded points especially
                 ex = s.excluded()
@@ -422,7 +441,7 @@ args = parse_clargs()
 tss = []
 axis = args.axis if args.axis else 'time'
 for filename in args.inputs:
-    select = args.select if args.select else []
+    select = args.select
     with open(filename) as f:
         j = json.load(f)
         tss.extend(read_json_timeseries(j, axis, select))
@@ -441,4 +460,5 @@ plots = gather_ts_plots(tss, groupby)
 if not args.outfile:
     M.interactive(False)
 
-plot_plots(plots, axis=axis, save=args.outfile, dpi=args.dpi, scale=args.scale)
+colours = args.colours if args.colours else []
+plot_plots(plots, axis=axis, colour_overrides=colours, save=args.outfile, dpi=args.dpi, scale=args.scale)

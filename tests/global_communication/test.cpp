@@ -3,7 +3,7 @@
 #include <numeric>
 #include <vector>
 
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "mpi_listener.hpp"
 

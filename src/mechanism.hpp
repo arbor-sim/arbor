@@ -5,10 +5,10 @@
 #include <string>
 #include <util/meta.hpp>
 
-#include "indexed_view.hpp"
-#include "ion.hpp"
-#include "parameter_list.hpp"
-#include "util.hpp"
+#include <indexed_view.hpp>
+#include <ion.hpp>
+#include <parameter_list.hpp>
+#include <util/make_unique.hpp>
 
 namespace nest {
 namespace mc {
@@ -16,44 +16,43 @@ namespace mechanisms {
 
 enum class mechanismKind {point, density};
 
-template <typename T, typename I>
+/// The mechanism type is templated on a memory policy type.
+/// The only difference between the abstract definition of a mechanism on host
+/// or gpu is the information is stored, and how it is accessed.
+template <typename Backend>
 class mechanism {
 public:
-    using value_type  = T;
-    using size_type   = I;
+    using backend = Backend;
+
+    using value_type = typename backend::value_type;
+    using size_type = typename backend::size_type;
 
     // define storage types
-    using vector_type = memory::HostVector<value_type>;
-    using view_type   = typename vector_type::view_type;
-    using index_type  = memory::HostVector<size_type>;
-    using index_view  = typename index_type::view_type;
-    using const_index_view  = typename index_type::const_view_type;
-    using indexed_view_type = indexed_view<value_type, size_type>;
+    using array = typename backend::array;
+    using iarray = typename backend::iarray;
 
-    using ion_type    = ion<value_type, size_type>;
+    using view = typename backend::view;
+    using iview = typename backend::iview;
 
-    mechanism(view_type vec_v, view_type vec_i, const_index_view node_index):
-        vec_v_(vec_v), vec_i_(vec_i), node_index_(node_index), vec_area_(nullptr, 0)
+    using const_view = typename backend::const_view;
+    using const_iview = typename backend::const_iview;
+
+    using indexed_view_type = indexed_view<backend>;
+
+    using ion_type = ion<backend>;
+
+    mechanism(view vec_v, view vec_i, iarray&& node_index):
+        vec_v_(vec_v),
+        vec_i_(vec_i),
+        node_index_(std::move(node_index))
     {}
 
-    std::size_t size() const
-    {
+    std::size_t size() const {
         return node_index_.size();
     }
 
-    index_view node_index() const
-    {
+    const_iview node_index() const {
         return node_index_;
-    }
-
-    value_type voltage(size_type i) const
-    {
-        return vec_v_[node_index_[i]];
-    }
-
-    value_type current(size_type i) const
-    {
-        return vec_i_[node_index_[i]];
     }
 
     virtual void set_params(value_type t_, value_type dt_) = 0;
@@ -64,31 +63,27 @@ public:
     virtual void nrn_current()  = 0;
     virtual void net_receive(int, value_type) {};
     virtual bool uses_ion(ionKind) const = 0;
-    virtual void set_ion(ionKind k, ion_type& i) = 0;
-
-    void set_areas(view_type area) {
-        vec_area_ = area;
-    }
+    virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
 
     virtual mechanismKind kind() const = 0;
 
-    view_type vec_v_;
-    view_type vec_i_;
-    index_type node_index_;
-    view_type vec_area_;
+    view vec_v_;
+    view vec_i_;
+    iarray node_index_;
 };
 
-template <typename T, typename I>
-using mechanism_ptr = std::unique_ptr<mechanism<T,I>>;
+template <class Backend>
+using mechanism_ptr = std::unique_ptr<mechanism<Backend>>;
 
 template <typename M>
-mechanism_ptr<typename M::value_type, typename M::size_type>
-make_mechanism(
-    typename M::view_type  vec_v,
-    typename M::view_type  vec_i,
-    typename M::const_index_view node_indices
-) {
-    return util::make_unique<M>(vec_v, vec_i, node_indices);
+auto make_mechanism(
+    typename M::view  vec_v,
+    typename M::view  vec_i,
+    typename M::array&&  weights,
+    typename M::iarray&& node_indices)
+-> decltype(util::make_unique<M>(vec_v, vec_i, std::move(weights), std::move(node_indices)))
+{
+    return util::make_unique<M>(vec_v, vec_i, std::move(weights), std::move(node_indices));
 }
 
 } // namespace mechanisms

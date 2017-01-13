@@ -12,7 +12,12 @@ class spike_detector {
 public:
     using cell_type = Cell;
 
-    spike_detector(const cell_type& cell, typename Cell::detector_handle h, double thresh, float t_init) :
+    spike_detector(
+        const cell_type& cell,
+        typename Cell::detector_handle h,
+        double thresh,
+        float t_init
+    ):
         handle_(h),
         threshold_(thresh)
     {

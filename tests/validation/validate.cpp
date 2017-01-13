@@ -4,9 +4,9 @@
 #include <string>
 #include <exception>
 
-#include "gtest.h"
-
 #include <communication/global_policy.hpp>
+
+#include "../gtest.h"
 
 #include "tinyopt.hpp"
 #include "validation_data.hpp"
@@ -21,6 +21,8 @@ const char* usage_str =
 "  -p, --path=DIR      Look for validation reference data in DIR\n"
 "  -m, --max-comp=N    Run convergence tests to a maximum of N\n"
 "                      compartments per segment\n"
+"  -d, --min-dt=DT     Run convergence tests with or with a minimumf\n"
+"                      timestep DT\n"
 "  -h, --help          Display usage information and exit\n";
 
 int main(int argc, char **argv) {
@@ -40,6 +42,9 @@ int main(int argc, char **argv) {
             }
             else if (auto o = parse_opt<int>(arg, 'm', "max-comp")) {
                 g_trace_io.set_max_ncomp(*o);
+            }
+            else if (auto o = parse_opt<float>(arg, 'd', "min-dt")) {
+                g_trace_io.set_min_dt(*o);
             }
             else if (auto o = parse_opt<void>(arg, 'v', "verbose")) {
                 g_trace_io.set_verbose(true);

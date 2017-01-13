@@ -22,7 +22,7 @@ using cell_gid_type = std::uint32_t;
 using cell_size_type = typename std::make_unsigned<cell_gid_type>::type;
 
 // For indexes into cell-local data.
-// 
+//
 // Local indices for items within a particular cell-local collection should be
 // zero-based and numbered contiguously.
 

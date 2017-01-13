@@ -104,11 +104,12 @@ bool Parser::parse() {
             case tok::assigned :
                 parse_assigned_block();
                 break;
-            // INITIAL, DERIVATIVE, PROCEDURE, NET_RECEIVE and BREAKPOINT blocks
+            // INITIAL, KINETIC, DERIVATIVE, PROCEDURE, NET_RECEIVE and BREAKPOINT blocks
             // are all lowered to ProcedureExpression
             case tok::net_receive:
             case tok::breakpoint :
             case tok::initial    :
+            case tok::kinetic    :
             case tok::derivative :
             case tok::procedure  :
                 {
@@ -169,7 +170,7 @@ std::vector<Token> Parser::comma_separated_identifiers() {
             error(pprintf("found keyword '%', expected a variable name", token_.spelling));
             return tokens;
         }
-        else if(token_.type == tok::number) {
+        else if(token_.type == tok::real || token_.type == tok::integer) {
             error(pprintf("found number '%', expected a variable name", token_.spelling));
             return tokens;
         }
@@ -368,17 +369,35 @@ void Parser::parse_state_block() {
         return;
     }
 
-    // there are no use cases for curly brace in a STATE block, so we don't have to count them
-    // we have to get the next token before entering the loop to handle the case of
-    // an empty block {}
+    // there are no use cases for curly brace in a STATE block, so we don't have
+    // to count them we have to get the next token before entering the loop to
+    // handle the case of an empty block {}
     get_token();
-    while(token_.type!=tok::rbrace) {
+    while(token_.type!=tok::rbrace && token_.type != tok::eof) {
+        int line = location_.line;
+        Id parm;
+
         if(token_.type != tok::identifier) {
-            error(pprintf("'%' is not a valid name for a state variable", token_.spelling));
+            error(pprintf("'%' is not a valid name for a state variable",
+                          token_.spelling));
             return;
         }
-        state_block.state_variables.push_back(token_.spelling);
+
+        parm.token = token_;
+        //state_block.state_variables.push_back(token_.spelling);
         get_token();
+
+        // get unit parameters
+        if (line == location_.line && token_.type == tok::lparen) {
+            parm.units = unit_description();
+            if (status_ == lexerStatus::error) {
+                error(pprintf("STATUS block unexpected symbol '%s'",
+                              token_.spelling));
+                return;
+            }
+        }
+
+        state_block.state_variables.push_back(parm);
     }
 
     // add this state block information to the module
@@ -472,7 +491,7 @@ void Parser::parse_parameter_block() {
                 parm.value = "-";
                 get_token();
             }
-            if(token_.type != tok::number) {
+            if(token_.type != tok::integer && token_.type != tok::real) {
                 success = 0;
                 goto parm_exit;
             }
@@ -505,7 +524,7 @@ void Parser::parse_parameter_block() {
 parm_exit:
     // only write error message if one hasn't already been logged by the lexer
     if(!success && status_==lexerStatus::happy) {
-        error(pprintf("PARAMETER block unexpected symbol '%'", token_.spelling));
+        error(pprintf("PARAMETER block unexpected symbol '%s'", token_.spelling));
     }
     return;
 }
@@ -577,7 +596,7 @@ ass_exit:
 }
 
 std::vector<Token> Parser::unit_description() {
-    static const tok legal_tokens[] = {tok::identifier, tok::divide, tok::number};
+    static const tok legal_tokens[] = {tok::identifier, tok::divide, tok::real, tok::integer};
     int startline = location_.line;
     std::vector<Token> tokens;
 
@@ -708,6 +727,12 @@ symbol_ptr Parser::parse_procedure() {
             if( !expect( tok::identifier ) ) return nullptr;
             p = parse_prototype();
             break;
+        case tok::kinetic:
+            kind = procedureKind::kinetic;
+            get_token(); // consume keyword token
+            if( !expect( tok::identifier ) ) return nullptr;
+            p = parse_prototype();
+            break;
         case tok::procedure:
             kind = procedureKind::normal;
             get_token(); // consume keyword token
@@ -728,9 +753,9 @@ symbol_ptr Parser::parse_procedure() {
             break;
         default:
             // it is a compiler error if trying to parse_procedure() without
-            // having DERIVATIVE, PROCEDURE, INITIAL or BREAKPOINT keyword
+            // having DERIVATIVE, KINETIC, PROCEDURE, INITIAL or BREAKPOINT keyword
             throw compiler_exception(
-                "attempt to parser_procedure() without {DERIVATIVE,PROCEDURE,INITIAL,BREAKPOINT}",
+                "attempt to parse_procedure() without {DERIVATIVE,KINETIC,PROCEDURE,INITIAL,BREAKPOINT}",
                 location_);
     }
     if(p==nullptr) return nullptr;
@@ -792,6 +817,10 @@ expression_ptr Parser::parse_statement() {
             return parse_local();
         case tok::identifier :
             return parse_line_expression();
+        case tok::conserve :
+            return parse_conserve_expression();
+        case tok::tilde :
+            return parse_reaction_expression();
         case tok::initial :
             // only used for INITIAL block in NET_RECEIVE
             return parse_initial();
@@ -920,25 +949,178 @@ expression_ptr Parser::parse_line_expression() {
     return lhs;
 }
 
-expression_ptr Parser::parse_expression() {
-    auto lhs = parse_unaryop();
+expression_ptr Parser::parse_stoich_term() {
+    expression_ptr coeff = make_expression<IntegerExpression>(location_, 1);
+    auto here = location_;
+    bool negative = false;
 
-    if(lhs==nullptr) { // error
+    while(token_.type==tok::minus) {
+        negative = !negative;
+        get_token(); // consume '-'
+    }
+
+    if(token_.type==tok::integer) {
+        coeff = parse_integer();
+    }
+
+    if(token_.type!=tok::identifier) {
+        error(pprintf("expected an identifier, found '%'", yellow(token_.spelling)));
         return nullptr;
     }
 
-    // we parse a binary expression if followed by an operator
-    if( binop_precedence(token_.type)>0 ) {
+    if(negative) {
+        coeff = make_expression<IntegerExpression>(here, -coeff->is_integer()->integer_value());
+    }
+    return make_expression<StoichTermExpression>(here, std::move(coeff), parse_identifier());
+}
+
+expression_ptr Parser::parse_stoich_expression() {
+    std::vector<expression_ptr> terms;
+    auto here = location_;
+
+    if(token_.type==tok::integer || token_.type==tok::identifier || token_.type==tok::minus) {
+        auto term = parse_stoich_term();
+        if (!term) return nullptr;
+
+        terms.push_back(std::move(term));
+
+        while(token_.type==tok::plus || token_.type==tok::minus) {
+            if (token_.type==tok::plus) {
+                get_token(); // consume plus
+            }
+
+            auto term = parse_stoich_term();
+            if (!term) return nullptr;
+
+            terms.push_back(std::move(term));
+        }
+    }
+
+    return make_expression<StoichExpression>(here, std::move(terms));
+}
+
+expression_ptr Parser::parse_reaction_expression() {
+    auto here = location_;
+
+    if(token_.type!=tok::tilde) {
+        error(pprintf("expected '%', found '%'", yellow("~"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume tilde
+    expression_ptr lhs = parse_stoich_expression();
+    if (!lhs) return nullptr;
+
+    // reaction halves must comprise non-negative terms
+    for (const auto& term: lhs->is_stoich()->terms()) {
+        // should always be true
+        if (auto sterm = term->is_stoich_term()) {
+            if (sterm->negative()) {
+                error(pprintf("expected only non-negative terms in reaction lhs, found '%'",
+                    yellow(term->to_string())));
+                return nullptr;
+            }
+        }
+    }
+
+    if(token_.type != tok::arrow) {
+        error(pprintf("expected '%', found '%'", yellow("<->"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume arrow
+    expression_ptr rhs = parse_stoich_expression();
+    if (!rhs) return nullptr;
+
+    for (const auto& term: rhs->is_stoich()->terms()) {
+        // should always be true
+        if (auto sterm = term->is_stoich_term()) {
+            if (sterm->negative()) {
+                error(pprintf("expected only non-negative terms in reaction rhs, found '%'",
+                    yellow(term->to_string())));
+                return nullptr;
+            }
+        }
+    }
+
+    if(token_.type != tok::lparen) {
+        error(pprintf("expected '%', found '%'", yellow("("), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume lparen
+    expression_ptr fwd = parse_expression();
+    if (!fwd) return nullptr;
+
+    if(token_.type != tok::comma) {
+        error(pprintf("expected '%', found '%'", yellow(","), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume comma
+    expression_ptr rev = parse_expression();
+    if (!rev) return nullptr;
+
+    if(token_.type != tok::rparen) {
+        error(pprintf("expected '%', found '%'", yellow(")"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume rparen
+    return make_expression<ReactionExpression>(here, std::move(lhs), std::move(rhs),
+        std::move(fwd), std::move(rev));
+}
+
+expression_ptr Parser::parse_conserve_expression() {
+    auto here = location_;
+
+    if(token_.type!=tok::conserve) {
+        error(pprintf("expected '%', found '%'", yellow("CONSERVE"), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume 'CONSERVE'
+    auto lhs = parse_stoich_expression();
+    if (!lhs) return nullptr;
+
+    if(token_.type != tok::eq) {
+        error(pprintf("expected '%', found '%'", yellow("="), yellow(token_.spelling)));
+        return nullptr;
+    }
+
+    get_token(); // consume '='
+    auto rhs = parse_expression();
+    if (!rhs) return nullptr;
+
+    return make_expression<ConserveExpression>(here, std::move(lhs), std::move(rhs));
+}
+
+expression_ptr Parser::parse_expression(int prec) {
+    auto lhs = parse_unaryop();
+    if(lhs==nullptr) return nullptr;
+
+    // Combine all sub-expressions with precedence greater than prec.
+    for (;;) {
         if(token_.type==tok::eq) {
             error("assignment '"+yellow("=")+"' not allowed in sub-expression");
             return nullptr;
         }
-        Token op = token_;  // save the operator
-        get_token();        // consume the operator
-        return parse_binop(std::move(lhs), op);
+
+        auto op = token_;
+        auto p_op = binop_precedence(op.type);
+
+        if(p_op<=prec) return lhs;
+        get_token();
+
+        lhs = parse_binop(std::move(lhs), op);
+        if(!lhs) return nullptr;
     }
 
     return lhs;
+}
+
+expression_ptr Parser::parse_expression() {
+    return parse_expression(0);
 }
 
 /// Parse a unary expression.
@@ -987,8 +1169,10 @@ expression_ptr Parser::parse_unaryop() {
 ///  ::  parenthesis expression (parsed recursively)
 expression_ptr Parser::parse_primary() {
     switch(token_.type) {
-        case tok::number:
-            return parse_number();
+        case tok::real:
+            return parse_real();
+        case tok::integer:
+            return parse_integer();
         case tok::identifier:
             if( peek().type == tok::lparen ) {
                 return parse_call();
@@ -1025,53 +1209,48 @@ expression_ptr Parser::parse_parenthesis_expression() {
     return e;
 }
 
-expression_ptr Parser::parse_number() {
+expression_ptr Parser::parse_real() {
     auto e = make_expression<NumberExpression>(token_.location, token_.spelling);
-
     get_token(); // consume the number
+    return e;
+}
 
+expression_ptr Parser::parse_integer() {
+    auto e = make_expression<IntegerExpression>(token_.location, token_.spelling);
+    get_token(); // consume the number
     return e;
 }
 
 expression_ptr Parser::parse_binop(expression_ptr&& lhs, Token op_left) {
-    // only way out of the loop below is by return:
-    //      :: return with nullptr on error
-    //      :: return when loop runs out of operators
-    //          i.e. if(pp<0)
-    //      :: return when recursion applied to remainder of expression
-    //          i.e. if(p_op>p_left)
-    while(1) {
-        // get precedence of the left operator
-        auto p_left = binop_precedence(op_left.type);
+    auto p_op_left = binop_precedence(op_left.type);
+    auto rhs = parse_expression(p_op_left);
+    if(!rhs) return nullptr;
 
-        auto e = parse_unaryop();
-        if(!e) return nullptr;
+    auto op_right = token_;
+    auto p_op_right = binop_precedence(op_right.type);
+    bool right_assoc = operator_associativity(op_right.type)==associativityKind::right;
 
-        auto op = token_;
-        auto p_op = binop_precedence(op.type);
-        if(operator_associativity(op.type)==associativityKind::right) {
-            p_op += 1;
-        }
-
-        //  if no binop, parsing of expression is finished with (op_left lhs e)
-        if(p_op < 0) {
-            return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(e));
-        }
-
-        get_token(); // consume op
-        if(p_op > p_left) {
-            auto rhs = parse_binop(std::move(e), op);
-            if(!rhs) return nullptr;
-            return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
-        }
-
-        lhs = binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(e));
-        op_left = op;
+    if(p_op_right>p_op_left) {
+        throw compiler_exception(
+            "parse_binop() : encountered operator of higher precedence",
+            location_);
     }
-    throw compiler_exception(
-        "parse_binop() : fell out of recursive parse descent",
-        location_);
-    return nullptr;
+
+    if(p_op_right<p_op_left) {
+        return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
+    }
+
+    get_token(); // consume op_right
+    if(right_assoc) {
+        rhs = parse_binop(std::move(rhs), op_right);
+        if(!rhs) return nullptr;
+
+        return binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
+    }
+    else {
+        lhs = binary_expression(op_left.location, op_left.type, std::move(lhs), std::move(rhs));
+        return parse_binop(std::move(lhs), op_right);
+    }
 }
 
 /// parse a local variable definition
@@ -1260,6 +1439,10 @@ expression_ptr Parser::parse_block(bool is_nested) {
         if(is_nested) {
             if(e->is_local_declaration()) {
                 error("LOCAL variable declarations are not allowed inside a nested scope");
+                return nullptr;
+            }
+            if(e->is_reaction()) {
+                error("reaction expressions are not allowed inside a nested scope");
                 return nullptr;
             }
         }

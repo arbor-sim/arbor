@@ -36,7 +36,7 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
     '-DNDEBUG',
-    '-DWITH_TBB',
+    '-DNMC_HAVE_TBB',
     '-std=c++11',
     '-x',
     'c++',
@@ -50,17 +50,13 @@ flags = [
     'external',
     '-I',
     'miniapp',
-#    '-isystem',
-#    '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/c++/4.2.1',
-#    '-I',
-#    '/usr/include/c++/4.9.2',
-#    '-isystem',
-#    '/usr/lib/gcc/x86_64-unknown-linux-gnu/4.9.2/include'
-#    '-isystem',
-#    '/usr/local/include',
+    '-I',
+    'modcc',
+    '-I',
+    '/cm/shared/apps/cuda/8.0.44/include',
+    '-DNMC_HAVE_CUDA'
 ]
- 
- 
+
 # Set this to the absolute path to the folder (NOT the file!) containing the
 # compile_commands.json file to use that instead of 'flags'. See here for
 # more details: http://clang.llvm.org/docs/JSONCompilationDatabase.html

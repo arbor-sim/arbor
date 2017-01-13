@@ -6,6 +6,8 @@
 #include <iterator>
 #include <type_traits>
 
+#include <util/compat.hpp>
+
 namespace nest {
 namespace mc {
 namespace util {
@@ -36,8 +38,9 @@ constexpr auto cbegin(const T& c) -> decltype(std::begin(c)) {
 }
 
 template <typename T>
-constexpr auto cend(const T& c) -> decltype(std::end(c)) {
-    return std::end(c);
+constexpr auto cend(const T& c) -> decltype(compat::end(c)) {
+    // COMPAT: use own `end` implementation to work around xlC 13.1 bug.
+    return compat::end(c);
 }
 
 template <typename T>
@@ -55,14 +58,14 @@ constexpr bool empty(const T (& c)[N]) noexcept {
 template <typename Seq>
 struct sequence_traits {
     using iterator = decltype(std::begin(std::declval<Seq&>()));
-    using const_iterator = decltype(cbegin(std::declval<Seq&>()));
+    using const_iterator = decltype(util::cbegin(std::declval<Seq&>()));
     using value_type = typename std::iterator_traits<iterator>::value_type;
     using reference = typename std::iterator_traits<iterator>::reference;
     using difference_type = typename std::iterator_traits<iterator>::difference_type;
     using size_type = decltype(size(std::declval<Seq&>()));
     // for use with heterogeneous ranges
     using sentinel = decltype(std::end(std::declval<Seq&>()));
-    using const_sentinel = decltype(cend(std::declval<Seq&>()));
+    using const_sentinel = decltype(util::cend(std::declval<Seq&>()));
 };
 
 // Convenience short cuts for `enable_if`
@@ -184,31 +187,31 @@ struct common_random_access_iterator<
 template <typename I, typename E>
 using common_random_access_iterator_t = typename common_random_access_iterator<I, E>::type;
 
-// NB: using this version of SFINAE instead of a void default template
-// parameter because of a bug in gcc 4.9.3.
+//
+// TODO : now that we are using gcc 5+, replace these old skool SFINAE thingys
+//
+
+namespace impl {
+    /// Helper for SFINAE tests that can "sink" any type
+    template<typename T>
+    using sink = void;
+}
+
+template <typename I, typename E, typename V=void>
+struct has_common_random_access_iterator:
+    std::false_type {};
+
 template <typename I, typename E>
-struct has_common_random_access_iterator {
-private:
-    constexpr static bool test(...) { return false; }
+struct has_common_random_access_iterator<I, E, impl::sink<typename common_random_access_iterator<I, E>::type>>:
+    std::true_type {};
 
-    template <typename U = I>
-    constexpr static bool test(typename common_random_access_iterator<U, E>::type*) { return true; }
+template<typename T, typename V=void>
+struct is_sequence:
+    std::false_type {};
 
-public:
-    constexpr static bool value = test(nullptr);
-};
-
-template <typename S>
-struct is_sequence {
-private:
-    constexpr static bool test(...) { return false; }
-
-    template <typename U = S>
-    constexpr static bool test(decltype(std::begin(std::declval<U>()))*) { return true; }
-
-public:
-    constexpr static bool value = test(nullptr);
-};
+template<typename T>
+struct is_sequence<T, impl::sink<decltype(std::declval<T>())>>:
+    std::true_type {};
 
 template <typename T>
 using enable_if_sequence_t =

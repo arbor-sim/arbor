@@ -7,13 +7,10 @@ set(DISK_IO_SOURCES
 
 add_executable(disk_io.exe ${DISK_IO_SOURCES} ${HEADERS})
 
-target_link_libraries(disk_io.exe LINK_PUBLIC cellalgo)
+target_link_libraries(disk_io.exe LINK_PUBLIC nestmc)
+target_link_libraries(disk_io.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-if(WITH_TBB)
-    target_link_libraries(disk_io.exe LINK_PUBLIC ${TBB_LIBRARIES})
-endif()
-
-if(WITH_MPI)
+if(NMC_WITH_MPI)
     target_link_libraries(disk_io.exe LINK_PUBLIC ${MPI_C_LIBRARIES})
     set_property(TARGET disk_io.exe APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 endif()

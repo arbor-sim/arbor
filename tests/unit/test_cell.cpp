@@ -1,4 +1,4 @@
-#include "gtest.h"
+#include "../gtest.h"
 
 #include "cell.hpp"
 
@@ -165,3 +165,58 @@ TEST(cell_type, multiple_cables)
     }
 }
 
+TEST(cell_type, clone)
+{
+    using namespace nest::mc;
+
+    // make simple cell with multiple segments
+
+    cell c;
+    c.add_soma(2.1);
+    c.add_cable(0, segmentKind::dendrite, 0.3, 0.2, 10);
+    c.segment(1)->set_compartments(3);
+    c.add_cable(1, segmentKind::dendrite, 0.2, 0.15, 20);
+    c.segment(2)->set_compartments(5);
+
+    parameter_list exp_default("expsyn");
+    c.add_synapse({1, 0.3}, exp_default);
+
+    c.add_detector({0, 0.5}, 10.0);
+
+    // make clone
+
+    cell d(clone_cell, c);
+
+    // check equality
+
+    ASSERT_EQ(c.num_segments(), d.num_segments());
+    EXPECT_EQ(c.soma()->radius(), d.soma()->radius());
+    EXPECT_EQ(c.segment(1)->as_cable()->length(), d.segment(1)->as_cable()->length());
+    {
+        const auto& csyns = c.synapses();
+        const auto& dsyns = d.synapses();
+
+        ASSERT_EQ(csyns.size(), dsyns.size());
+        for (unsigned i=0; i<csyns.size(); ++i) {
+            ASSERT_EQ(csyns[i].location, dsyns[i].location);
+        }
+    }
+
+    ASSERT_EQ(1u, c.detectors().size());
+    ASSERT_EQ(1u, d.detectors().size());
+    EXPECT_EQ(c.detectors()[0].threshold, d.detectors()[0].threshold);
+
+    // check clone is independent
+
+    c.add_cable(2, segmentKind::dendrite, 0.15, 0.1, 20);
+    EXPECT_NE(c.num_segments(), d.num_segments());
+
+    d.detectors()[0].threshold = 13.0;
+    ASSERT_EQ(1u, c.detectors().size());
+    ASSERT_EQ(1u, d.detectors().size());
+    EXPECT_NE(c.detectors()[0].threshold, d.detectors()[0].threshold);
+
+    c.segment(1)->set_compartments(7);
+    EXPECT_NE(c.segment(1)->num_compartments(), d.segment(1)->num_compartments());
+    EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
+}

@@ -4,7 +4,8 @@
 #include <sstream>
 #include <mutex>
 
-#include "threading/threading.hpp"
+#include <threading/threading.hpp>
+#include "unwind.hpp"
 
 namespace nest {
 namespace mc {
@@ -61,13 +62,13 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
 } // namespace mc
 } // namespace nest
 
-#ifdef WITH_TRACE
+#ifdef NMC_HAVE_TRACE
     #define TRACE(vars...) nest::mc::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
 #else
     #define TRACE(...)
 #endif
 
-#ifdef WITH_ASSERTIONS
+#ifdef NMC_HAVE_ASSERTIONS
     #ifdef __GNUC__
         #define DEBUG_FUNCTION_NAME __PRETTY_FUNCTION__
     #else
@@ -80,4 +81,4 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
 #else
     #define EXPECTS(condition) \
        (void)(false && (condition))
-#endif // def WITH_ASSERTIONS
+#endif // def NMC_HAVE_ASSERTIONS

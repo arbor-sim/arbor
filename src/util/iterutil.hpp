@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <util/compat.hpp>
 #include <util/meta.hpp>
 
 namespace nest {
@@ -65,6 +66,21 @@ distance(I first, E last) {
     }
 
     return ret;
+}
+
+/*
+ * generic front() and back() methods for containers or ranges
+ */
+
+template <typename Seq>
+auto front(Seq& seq) -> decltype(*std::begin(seq)) {
+    return *std::begin(seq);
+}
+
+template <typename Seq>
+auto back(Seq& seq) -> decltype(*std::begin(seq)) {
+    // COMPAT: use own `end` implementation to work around xlC 13.1 bug.
+    return *upto(std::begin(seq), compat::end(seq));
 }
 
 /*

@@ -21,7 +21,7 @@ class Mechanism {
 public:
     // typedefs for storage
     using value_type = double;
-    using vector_type = memory::HostVector<value_type>;
+    using array = memory::HostVector<value_type>;
     using view_type   = memory::HostView<value_type>;
 
     Mechanism(std::string const& name)

@@ -119,10 +119,29 @@ The finite volume method is a natural choice for the solution of the conservatio
 %-------------------------------------------------------------------------------
 The integral on the lhs of~\eq{eq:cable_balance} can be approximated by assuming that the average transmembrane potential $V$ in $\Omega_i$ is equal to the potential $V_i$ defined at the centre of the segment:
 \begin{equation}
-    \int_{\Gamma_i}{c_m \pder{V}{t} } \deriv{v} \approx \sigma_i c_m \pder{V_i}{t},
+    \int_{\Gamma_i}{c_m \pder{V}{t} } \deriv{v} \approx \sigma_i \cmi \pder{V_i}{t},
     \label{eq:dvdt}
 \end{equation}
-where $\sigma_i$ is the surface area of the membrane potential.
+where $\sigma_i$ is the surface area, and $\cmi$ is the average specific membrane capacitance, respectively of the surface $\Gamma_i$.
+
+Each control volume is composed of \emph{sub control volumes}, which are illustrated as the coloured sub-regions in \fig{fig:segment}.
+\begin{equation*}
+    \Omega_i = \bigcup_{j\in\mathcal{N}_i}{\Omega_i^j}.
+\end{equation*}
+Likewise, the surface $\Gamma_i$ is composed of subsufaces as follows
+\begin{equation*}
+    \Gamma_i = \bigcup_{j\in\mathcal{N}_i}{\Gamma_i^j},
+\end{equation*}
+where $\Gamma_i^j$ is the surface of each of the sub-control volumes in $\Omega_i$.
+Thus, the surface area of the CV as
+\begin{equation*}
+    \sigma_i = \sum_{i\in\mathcal{N}_i}{\sigma_i^j},
+\end{equation*}
+where $\sigma_i^j$ is the area of $\Gamma_i^j$, and the average specific membrane capacitance $\cmi$ is
+\begin{equation*}
+    \cmi = \frac{1}{\sigma_i}\sum_{i\in\mathcal{N}_i}{\sigma_i^j c_m^{i,j}}.
+\end{equation*}
+\todo{This  is included as a placeholder, we really need more illustrations to show how CV averages are computed for quantities that vary between sub-control volumes of the same CV.}
 
 %-------------------------------------------------------------------------------
 \subsubsection{Intra-cellular flux}
@@ -195,7 +214,7 @@ where $a_{i,\ell}$ and $a_{i,r}$ are the radii of at the left and right end of t
 %-------------------------------------------------------------------------------
 By substituting the volume averaging of the temporal derivative in~\eq{eq:dvdt} approximations for the flux over the surfaces in~\eq{eq:J_ij} and~\eq{eq:cv_volume} respectively into the conservation equation~\eq{eq:cable_balance} we get the following ODE defined for each node in the cell
 \begin{equation}
-    \sigma_i c_m \dder{V_i}{t}
+    \sigma_i \cmi \dder{V_i}{t}
        = -\sum_{j\in\mathcal{N}_i} {\frac{\sigma_{i,j}}{r_L \Delta x_{i,j}} (V_i-V_j)} - \sigma_i\cdot(i_m(V_i) - i_e(x_i)),
     \label{eq:ode}
 \end{equation}
@@ -228,56 +247,29 @@ The current $i_m$ is often a nonlinear function of voltage, so if it was formula
 
 The equations can be rearranged to have all unknown voltage values on the lhs, and values that can be calculated directly on the rhs:
 \begin{align}
-      & \sigma_i V_i^{k+1} + \sum_{j\in\mathcal{N}_i} {\Delta t \alpha_{ij} (V_i^{k+1}-V_j^{k+1})}
+    & \frac{\sigma_i \cmi}{\Delta t} V_i^{k+1} + \sum_{j\in\mathcal{N}_i} {\alpha_{ij} (V_i^{k+1}-V_j^{k+1})}
             \nonumber \\
-    = & \sigma_i \left( V_i^k - \frac{\Delta t}{c_m}(i_m^{k} - i_e) \right),
+    = & \frac{\sigma_i \cmi}{\Delta t} V_i^k -  \sigma_i(i_m^{k} - i_e),
     \label{eq:ode_linsys}
 \end{align}
 where the value
 \begin{equation}
-    \alpha_{ij} = \alpha_{ji} = \frac{\sigma_{ij}}{ c_m r_L \Delta x_{ij}}
+    \alpha_{ij} = \alpha_{ji} = \frac{\sigma_{ij}}{ r_L \Delta x_{ij}}
     \label{eq:alpha_linsys}
 \end{equation}
 is a constant that can be computed for each interface between adjacent compartments during set up.
 
 The left hand side of \eq{eq:ode_linsys} can be rearranged
 \begin{equation}
-    \left[ \sigma_i + \sum_{j\in\mathcal{N}_i} {\Delta t \alpha_{ij}} \right] V_i^{k+1}
-    - \sum_{j\in\mathcal{N}_i} { \Delta t \alpha_{ij} V_j^{k+1}},
+    \left[ \frac{\sigma_i \cmi}{\Delta t} + \sum_{j\in\mathcal{N}_i} {\alpha_{ij}} \right] V_i^{k+1}
+    - \sum_{j\in\mathcal{N}_i} { \alpha_{ij} V_j^{k+1}},
+    \label{eq:rhs_linsys}
 \end{equation}
 which gives the coefficients for the linear system.
 
-%-------------------------------------------------------------------------------
-\subsubsection{Example: unbranched uniform cable}
-%-------------------------------------------------------------------------------
-For an unrbanched uniform cable of constant radius $a$, with length $L$ and $n$ compartments, the linear system for internal compartments (i.e. not at the end points of the cable) is simplified by the following observations
-\begin{align}
-    \Delta x_{ij} &= \Delta x = \frac{L}{n-1}, \nonumber \\
-    \sigma_{ij}   &= \pi a^2, \nonumber \\
-    \sigma_{i}    &= \sigma_s = 2 \pi a \Delta x, \nonumber \\
-    \alpha_{ij}   &= \alpha = \frac{\pi a^2}{c_m r_L\Delta x}, \nonumber
-\end{align}
-With these simplifications, the LHS of the linear system is
-\begin{align}
-    \left[\sigma_s + 2\Delta t\alpha\right] & V_{i}^{k+1}
-    - \Delta t \alpha V_{i+1}^{k+1}
-    - \Delta t \alpha V_{i-1}^{k+1}
-        \nonumber \\
-    \left[\sigma_s/2 + \Delta t\alpha\right] & V_{1}^{k+1}
-    - \Delta t \alpha V_{2}^{k+1}
-        \nonumber \\
-    \left[\sigma_s/2 + \Delta t\alpha\right] & V_{n}^{k+1}
-    - \Delta t \alpha V_{n-1}^{k+1}
-        \nonumber
-\end{align}
-
-The end points of the cable, i.e. the compartments for $x_1$ and $x_n$, have to be handled differently.
-If we assume that a no-flux boundary condition, i.e. $\vv{J}\cdot\vv{n}=0$, is imposed at the end of the cable, the lhs of the linear system are
-\begin{align}
-    (1+2\beta)V_1^{k+1} - 2\beta V_{2}^{k+1}, \quad\quad & \text{left} \nonumber \\
-    (1+2\beta)V_n^{k+1} - 2\beta V_{n-1}^{k+1}, \quad\quad & \text{right} \nonumber
-\end{align}
-where we note that the ratio $\alpha_{ij}/\sigma_{i}=2\beta$ because the surface area of the control volumes at the boundary are half those on the interior.
+The capacitance of the cell membrane, $\sigma_i \cmi$, varies between control volumes, while the $\alpha_{i,j}$ term in symmetric (i.e. $\alpha_{i,j}=\alpha_{j,i}$.)
+With this in mind, we can see that when the linear system is written in the form~\eq{eq:ode_linsys}, the matrix is symmetric.
+Furthermore, because $\alpha_{i,j} > 0$, the linear system is diagonally dominant for sufficiently small $\Delta t$.
 
 %-------------------------------------------------------------------------------
 \subsubsection{The Soma}

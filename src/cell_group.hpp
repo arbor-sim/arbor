@@ -23,7 +23,7 @@ namespace mc {
 template <typename LoweredCell>
 class cell_group {
 public:
-    using index_type = cell_gid_type;
+    using iarray = cell_gid_type;
     using lowered_cell_type = LoweredCell;
     using value_type = typename lowered_cell_type::value_type;
     using size_type  = typename lowered_cell_type::value_type;
@@ -84,6 +84,10 @@ public:
         }
     }
 
+    time_type min_step(time_type dt) {
+        return 0.1*dt;
+    }
+
     void advance(time_type tfinal, time_type dt) {
         while (cell_.time()<tfinal) {
             // take any pending samples
@@ -105,14 +109,22 @@ public:
             // look for events in the next time step
             time_type tstep = cell_.time()+dt;
             tstep = std::min(tstep, tfinal);
-
             auto next = events_.pop_if_before(tstep);
-            time_type tnext = next ? next->time: tstep;
+
+            // apply events that are due within the smallest allowed time step.
+            while (next && (next->time-cell_.time()) < min_step(dt)) {
+                auto handle = get_target_handle(next->target);
+                cell_.deliver_event(handle, next->weight);
+                next = events_.pop_if_before(tstep);
+            }
 
             // integrate cell state
+            time_type tnext = next ? next->time: tstep;
             cell_.advance(tnext - cell_.time());
+
             if (!cell_.is_physical_solution()) {
-                std::cerr << "warning: solution out of bounds\n";
+                std::cerr << "warning: solution out of bounds for cell "
+                          << gid_base_ << " at t " << cell_.time() << " ms\n";
             }
 
             PE("events");
@@ -127,13 +139,6 @@ public:
             if (next) {
                 auto handle = get_target_handle(next->target);
                 cell_.deliver_event(handle, next->weight);
-                // apply events that are due within some epsilon of the current
-                // time step. This should be a parameter. e.g. with for variable
-                // order time stepping, use the minimum possible time step size.
-                while(auto e = events_.pop_if_before(cell_.time()+dt/10.)) {
-                    auto handle = get_target_handle(e->target);
-                    cell_.deliver_event(handle, e->weight);
-                }
             }
             PL();
         }
@@ -211,7 +216,7 @@ private:
     std::vector<time_type> sampler_start_times_;
 
     /// the global id of the first target (e.g. a synapse) in this group
-    index_type first_target_gid_;
+    iarray first_target_gid_;
 
     /// handles for accessing lowered cell
     using detector_handle = typename lowered_cell_type::detector_handle;

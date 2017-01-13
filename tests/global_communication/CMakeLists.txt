@@ -15,13 +15,10 @@ add_executable(global_communication.exe ${COMMUNICATION_SOURCES} ${HEADERS})
 set(TARGETS global_communication.exe)
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC cellalgo gtest)
+    target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
+    target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-    if(WITH_TBB)
-        target_link_libraries(${target} LINK_PUBLIC ${TBB_LIBRARIES})
-    endif()
-
-    if(WITH_MPI)
+    if(NMC_WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()

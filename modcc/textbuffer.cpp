@@ -28,6 +28,9 @@ void TextBuffer::set_gutter(int width) {
     indent_ = width;
     gutter_ = std::string(indent_, ' ');
 }
+int TextBuffer::get_gutter() {
+    return indent_;
+}
 
 void TextBuffer::increase_indentation() {
     indent_ += indentation_width_;
@@ -46,4 +49,8 @@ void TextBuffer::decrease_indentation() {
 
 std::stringstream& TextBuffer::text() {
     return text_;
+}
+
+void TextBuffer::clear() {
+    text_.str("");
 }

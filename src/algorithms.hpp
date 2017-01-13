@@ -2,12 +2,15 @@
 
 #include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <numeric>
 #include <type_traits>
 #include <vector>
 
-#include "util.hpp"
-#include "util/debug.hpp"
+#include <util/compat.hpp>
+#include <util/debug.hpp>
+#include <util/meta.hpp>
+#include <util/range.hpp>
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
@@ -23,18 +26,18 @@ namespace mc {
 namespace algorithms {
 
 template <typename C>
-typename C::value_type
+typename util::sequence_traits<C>::value_type
 sum(C const& c)
 {
-    using value_type = typename C::value_type;
-    return std::accumulate(c.begin(), c.end(), value_type{0});
+    using value_type = typename util::sequence_traits<C>::value_type;
+    return std::accumulate(util::cbegin(c), util::cend(c), value_type{0});
 }
 
 template <typename C>
-typename C::value_type
+typename util::sequence_traits<C>::value_type
 mean(C const& c)
 {
-    return sum(c)/c.size();
+    return sum(c)/util::size(c);
 }
 
 template <typename C>
@@ -271,55 +274,146 @@ std::vector<typename C::value_type> make_parent_index(
 }
 
 
-template<typename C>
-bool is_sorted(const C& c)
-{
-    return std::is_sorted(c.begin(), c.end());
+template<typename Seq, typename = util::enable_if_sequence_t<Seq>>
+bool is_sorted(const Seq& seq) {
+    return std::is_sorted(std::begin(seq), std::end(seq));
 }
 
-template<typename C>
-bool is_unique(const C& c)
-{
-    return std::adjacent_find(c.begin(), c.end()) == c.end();
+template< typename Seq, typename = util::enable_if_sequence_t<Seq>>
+bool is_unique(const Seq& seq) {
+    return std::adjacent_find(std::begin(seq), std::end(seq)) == std::end(seq);
 }
 
-/// Return and index that maps entries in sub to their corresponding
-/// values in super, where sub is a subset of super.
-///
-/// Both sets are sorted and have unique entries.
-/// Complexity is O(n), where n is size of super
-template<typename C>
-// C::iterator models forward_iterator
-// C::value_type is_integral
-C index_into(const C& super, const C& sub)
-{
-    //EXPECTS {s \in super : \forall s \in sub};
-    EXPECTS(is_unique(super) && is_unique(sub));
-    EXPECTS(is_sorted(super) && is_sorted(sub));
-    EXPECTS(sub.size() <= super.size());
+template <typename SubIt, typename SupIt, typename SupEnd>
+class index_into_iterator {
+public:
+    using value_type = typename std::iterator_traits<SupIt>::difference_type;
+    using difference_type = value_type;
+    using pointer = const value_type*;
+    using reference = const value_type&;
+    using iterator_category = std::forward_iterator_tag;
 
-    static_assert(
-        std::is_integral<typename C::value_type>::value,
-        "index_into only applies to integral types"
-    );
+private:
+    using super_iterator = SupIt;
+    using super_senitel  = SupEnd;
+    using sub_iterator   = SubIt;
 
-    C out(sub.size()); // out will have one entry for each index in sub
+    sub_iterator sub_it_;
 
-    auto sub_it=sub.begin();
-    auto super_it=super.begin();
-    auto sub_idx=0u, super_idx = 0u;
+    mutable super_iterator super_it_;
+    const super_senitel super_end_;
 
-    while(sub_it!=sub.end() && super_it!=super.end()) {
-        if(*sub_it==*super_it) {
-            out[sub_idx] = super_idx;
-            ++sub_it; ++sub_idx;
-        }
-        ++super_it; ++super_idx;
+    mutable value_type super_idx_;
+
+public:
+    index_into_iterator(sub_iterator sub, super_iterator sup, super_senitel sup_end) :
+        sub_it_(sub),
+        super_it_(sup),
+        super_end_(sup_end),
+        super_idx_(0)
+    {}
+
+    value_type operator*() {
+        advance_super();
+        return super_idx_;
     }
 
-    EXPECTS(sub_idx==sub.size());
+    value_type operator*() const {
+        advance_super();
+        return super_idx_;
+    }
 
-    return out;
+    bool operator==(const index_into_iterator& other) {
+        return sub_it_ == other.sub_it_;
+    }
+
+    bool operator!=(const index_into_iterator& other) {
+        return !(*this == other);
+    }
+
+    index_into_iterator operator++() {
+        ++sub_it_;
+        return (*this);
+    }
+
+    index_into_iterator operator++(int) {
+        auto previous = *this;
+        ++(*this);
+        return previous;
+    }
+
+    static constexpr value_type npos = value_type(-1);
+
+private:
+
+    bool is_aligned() const {
+        return *sub_it_ == *super_it_;
+    }
+
+    void advance_super() {
+        while(super_it_!=super_end_ && !is_aligned()) {
+            ++super_it_;
+            ++super_idx_;
+        }
+
+        // this indicates that no match was found in super for a value
+        // in sub, which violates the precondition that sub is a subset of super
+        EXPECTS(!(super_it_==super_end_));
+
+        // set guard for users to test for validity if assertions are disabled
+        if (super_it_==super_end_) {
+            super_idx_ = npos;
+        }
+    }
+};
+
+/// Return an index that maps entries in sub to their corresponding values in
+/// super, where sub is a subset of super.  /
+/// Both sets are sorted and have unique entries. Complexity is O(n), where n is
+/// size of super
+template<typename Sub, typename Super>
+auto index_into(const Sub& sub, const Super& super)
+    -> util::range<
+        index_into_iterator<
+            typename util::sequence_traits<Sub>::const_iterator,
+            typename util::sequence_traits<Super>::const_iterator,
+            typename util::sequence_traits<Super>::const_sentinel
+        >>
+{
+
+    EXPECTS(is_unique(super) && is_unique(sub));
+    EXPECTS(is_sorted(super) && is_sorted(sub));
+    EXPECTS(util::size(sub) <= util::size(super));
+
+    using iterator = index_into_iterator<
+            typename util::sequence_traits<Sub>::const_iterator,
+            typename util::sequence_traits<Super>::const_iterator,
+            typename util::sequence_traits<Super>::const_sentinel >;
+    auto begin = iterator(std::begin(sub), std::begin(super), std::end(super));
+    auto end   = iterator(std::end(sub), std::end(super), std::end(super));
+    return util::make_range(begin, end);
+}
+
+/// Binary search, because std::binary_search doesn't return information
+/// about where a match was found.
+template <typename It, typename T>
+It binary_find(It b, It e, const T& value) {
+    auto it = std::lower_bound(b, e, value);
+    return it==e ? e : (*it==value ? it : e);
+}
+
+template <typename Seq, typename T>
+auto binary_find(const Seq& seq, const T& value)
+    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
+{
+    return binary_find(std::begin(seq), compat::end(seq), value);
+}
+
+template <typename Seq, typename T>
+auto binary_find(Seq& seq, const T& value)
+    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
+{
+    return binary_find(std::begin(seq), compat::end(seq), value);
 }
 
 } // namespace algorithms

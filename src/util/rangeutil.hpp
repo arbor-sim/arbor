@@ -7,11 +7,13 @@
 
 #include <algorithm>
 #include <iterator>
+#include <ostream>
 #include <numeric>
 
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/transform.hpp>
+#include <util/meta.hpp>
 
 namespace nest {
 namespace mc {
@@ -32,20 +34,32 @@ range<const T*> singleton_view(const T& item) {
 // Non-owning views and subviews
 
 template <typename Seq>
-range<typename sequence_traits<Seq>::iterator_type, typename sequence_traits<Seq>::sentinel_type>
+range<typename sequence_traits<Seq>::iterator, typename sequence_traits<Seq>::sentinel>
 range_view(Seq& seq) {
     return make_range(std::begin(seq), std::end(seq));
 }
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator_type,
+    typename Iter = typename sequence_traits<Seq>::iterator,
     typename Size = typename sequence_traits<Seq>::size_type
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
 subrange_view(Seq& seq, Size bi, Size ei) {
     Iter b = std::next(std::begin(seq), bi);
     Iter e = std::next(b, ei-bi);
+    return make_range(b, e);
+}
+
+template <
+    typename Seq,
+    typename Iter = typename sequence_traits<Seq>::iterator,
+    typename Size = typename sequence_traits<Seq>::size_type
+>
+enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
+subrange_view(Seq& seq, std::pair<Size, Size> index) {
+    Iter b = std::next(std::begin(seq), index.first);
+    Iter e = std::next(b, index.second-index.first);
     return make_range(b, e);
 }
 
@@ -67,12 +81,36 @@ AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
     return c;
 }
 
+namespace impl {
+    template <typename Seq>
+    struct assign_proxy {
+        assign_proxy(const Seq& seq):
+            ref{seq}
+        {}
+
+        // Convert the sequence to a container of type C.
+        // This requires that C supports construction from a pair of iterators
+        template <typename C>
+        operator C() const {
+            return C(std::begin(ref), std::end(ref));
+        }
+
+        const Seq& ref;
+    };
+}
+
+// Copy-assign sequence to a container
+
+template <typename Seq>
+impl::assign_proxy<Seq> assign_from(const Seq& seq) {
+    return impl::assign_proxy<Seq>(seq);
+}
+
 // Assign sequence to a container with transform `proj`
 
 template <typename AssignableContainer, typename Seq, typename Proj>
 AssignableContainer& assign_by(AssignableContainer& c, const Seq& seq, const Proj& proj) {
-    auto canon = canonical_view(transform_view(seq, proj));
-    c.assign(std::begin(canon), std::end(canon));
+    assign(c, transform_view(seq, proj));
     return c;
 }
 
@@ -118,6 +156,47 @@ sort_by(const Seq& seq, const Proj& proj) {
             return proj(a) < proj(b);
         });
 }
+
+// Stable sort in-place by projection `proj`
+
+template <typename Seq, typename Proj>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+stable_sort_by(Seq& seq, const Proj& proj) {
+    using value_type = typename sequence_traits<Seq>::value_type;
+    auto canon = canonical_view(seq);
+
+    std::stable_sort(std::begin(canon), std::end(canon),
+        [&proj](const value_type& a, const value_type& b) {
+            return proj(a) < proj(b);
+        });
+}
+
+template <typename Seq, typename Proj>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+stable_sort_by(const Seq& seq, const Proj& proj) {
+    using value_type = typename sequence_traits<Seq>::value_type;
+    auto canon = canonical_view(seq);
+
+    std::stable_sort(std::begin(canon), std::end(canon),
+        [&proj](const value_type& a, const value_type& b) {
+            return proj(a) < proj(b);
+        });
+}
+
+// Range-interface for `all_of`, `any_of`
+
+template <typename Seq, typename Predicate>
+bool all_of(const Seq& seq, const Predicate& pred) {
+    auto canon = canonical_view(seq);
+    return std::all_of(std::begin(canon), std::end(canon), pred);
+}
+
+template <typename Seq, typename Predicate>
+bool any_of(const Seq& seq, const Predicate& pred) {
+    auto canon = canonical_view(seq);
+    return std::any_of(std::begin(canon), std::end(canon), pred);
+}
+
 
 // Accumulate by projection `proj`
 
@@ -190,6 +269,12 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
     return m;
 }
 
+template <typename C, typename Seq>
+C make_copy(Seq const& seq) {
+    return C{std::begin(seq), std::end(seq)};
+}
+
 } // namespace util
 } // namespace mc
 } // namespace nest
+

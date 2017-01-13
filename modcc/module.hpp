@@ -9,12 +9,12 @@
 // wrapper around a .mod file
 class Module {
 public :
-    using scope_type = Expression::scope_type;
     using symbol_map = scope_type::symbol_map;
     using symbol_ptr = scope_type::symbol_ptr;
 
     Module(std::string const& fname);
     Module(std::vector<char> const& buffer);
+    Module(const char* buffer, size_t count);
 
     std::vector<char> const& buffer() const {
         return buffer_;

@@ -8,6 +8,11 @@
 // storage for a list of expressions
 using call_list_type = std::list<expression_ptr>;
 
+// Make a local declaration and assignment for the given expression,
+// and insert at the front and back respectively of the statement list.
+// Return the new unique local identifier.
+expression_ptr insert_unique_local_assignment(call_list_type& stmts, Expression* e);
+
 // prototype for lowering function calls
 call_list_type lower_function_calls(Expression* e);
 
@@ -31,11 +36,8 @@ call_list_type lower_function_calls(Expression* e);
 // the function call will have been fully lowered
 ///////////////////////////////////////////////////////////////////////////////
 class FunctionCallLowerer : public Visitor {
-
 public:
-    using scope_type = Scope<Symbol>;
-
-    FunctionCallLowerer(std::shared_ptr<scope_type> s)
+    FunctionCallLowerer(scope_ptr s)
     :   scope_(s)
     {}
 
@@ -57,53 +59,16 @@ public:
     ~FunctionCallLowerer() {}
 
 private:
-    Symbol* make_unique_local() {
-        std::string name;
-        auto i = 0;
-        do {
-            name = pprintf("ll%_", i);
-            ++i;
-        } while(scope_->find(name));
-
-        auto sym =
-            scope_->add_local_symbol(
-                name,
-                make_symbol<LocalVariable>(
-                    Location(), name, localVariableKind::local
-                )
-            );
-
-        return sym;
-    }
-
     template< typename F>
     void expand_call(CallExpression* func, F replacer) {
-        // use the source location of the original statement
-        auto loc = func->location();
-
-        // make an identifier for the new symbol which will store the result of
-        // the function call
-        auto id = make_expression<IdentifierExpression>
-            (loc, make_unique_local()->name());
-        id->semantic(scope_);
-        // generate a LOCAL declaration for the variable
-        calls_.push_front(
-            make_expression<LocalDeclaration>(loc, id->is_identifier()->spelling())
-        );
-        calls_.front()->semantic(scope_);
-
-        // make a binary expression which assigns the function to the variable
-        auto ass = binary_expression(loc, tok::eq, id->clone(), func->clone());
-        ass->semantic(scope_);
-        calls_.push_back(std::move(ass));
-
+        auto id = insert_unique_local_assignment(calls_, func);
         // replace the function call in the original expression with the local
         // variable which holds the pre-computed value
         replacer(std::move(id));
     }
 
     call_list_type calls_;
-    std::shared_ptr<scope_type> scope_;
+    scope_ptr scope_;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

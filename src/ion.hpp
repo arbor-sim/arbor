@@ -1,16 +1,16 @@
 #pragma once
 
-#include <vector/include/Vector.hpp>
-
-#include "indexed_view.hpp"
+#include <array>
+#include <memory/memory.hpp>
+#include <indexed_view.hpp>
 
 namespace nest {
 namespace mc {
 namespace mechanisms {
 
-/*******************************************************************************
-
-  ion channels have the following fields :
+/*
+  Ion channels have the following fields, whose label corresponds to that
+  in NEURON. We give them more easily understood accessors.
 
     ---------------------------------------------------
     label   Ca      Na      K   name
@@ -21,14 +21,13 @@ namespace mechanisms {
     Xo      cao     nao     ko  external_concentration
     gX      gca     gna     gk  conductance
     ---------------------------------------------------
-*******************************************************************************/
+*/
 
-/// let's enumerate the ion channel types
+/// enumerate the ion channel types
 enum class ionKind {ca, na, k};
 
-[[gnu::unused]] static
-std::string to_string(ionKind k)
-{
+inline static
+std::string to_string(ionKind k) {
     switch(k) {
         case ionKind::na : return "sodium";
         case ionKind::ca : return "calcium";
@@ -37,73 +36,73 @@ std::string to_string(ionKind k)
     return "unkown";
 }
 
-/// and a little helper to iterate over them
-[[gnu::unused]] static
-std::vector<ionKind> ion_kinds()
-{
+/// a helper for iterting over the ion species
+constexpr std::array<ionKind, 3> ion_kinds() {
     return {ionKind::ca, ionKind::na, ionKind::k};
 }
 
 /// storage for ion channel information in a cell group
-template<typename T, typename I>
+template<typename Backend>
 class ion {
 public :
+    using backend = Backend;
+
     // expose tempalte parameters
-    using value_type  = T;
-    using size_type   = I;
+    using value_type = typename backend::value_type;
+    using size_type = typename backend::size_type;
 
     // define storage types
-    using vector_type      = memory::HostVector<value_type>;
-    using index_type       = memory::HostVector<size_type>;
-    using vector_view_type = typename vector_type::view_type;
-    using index_view_type  = typename index_type::view_type;
+    using array = typename backend::array;
+    using iarray = typename backend::iarray;
+    using view = typename backend::view;
+    using const_iview = typename backend::const_iview;
 
-    using indexed_view_type = indexed_view<value_type, size_type>;
+    using indexed_view_type = indexed_view<backend>;
 
     ion() = default;
 
-    ion(index_view_type idx)
-    :   node_index_{idx}
-    ,   iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
-    ,   eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
-    ,   Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
-    ,   Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
-    { }
+    ion(const std::vector<size_type>& idx) :
+        node_index_{memory::make_const_view(idx)},
+        iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
+        eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
+        Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
+        Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
+    {}
 
     std::size_t memory() const {
         return 4u*size() * sizeof(value_type)
-               +  size() * sizeof(index_type)
+               +  size() * sizeof(iarray)
                +  sizeof(ion);
     }
 
-    vector_view_type current() {
+    view current() {
         return iX_;
     }
-    vector_view_type reversal_potential() {
+    view reversal_potential() {
         return eX_;
     }
-    vector_view_type internal_concentration() {
+    view internal_concentration() {
         return Xi_;
     }
-    vector_view_type external_concentration() {
+    view external_concentration() {
         return Xo_;
     }
 
-    index_type node_index() {
+    const_iview node_index() const {
         return node_index_;
     }
 
-    size_t size() const {
+    std::size_t size() const {
         return node_index_.size();
     }
 
 private :
 
-    index_type node_index_;
-    vector_type iX_;
-    vector_type eX_;
-    vector_type Xi_;
-    vector_type Xo_;
+    iarray node_index_;
+    array iX_;
+    array eX_;
+    array Xi_;
+    array Xo_;
 };
 
 } // namespace mechanisms

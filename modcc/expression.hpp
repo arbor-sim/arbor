@@ -23,6 +23,7 @@ class IfExpression;
 class VariableExpression;
 class IndexedVariable;
 class NumberExpression;
+class IntegerExpression;
 class LocalDeclaration;
 class ArgumentExpression;
 class DerivativeExpression;
@@ -40,6 +41,10 @@ class CosUnaryExpression;
 class SinUnaryExpression;
 class BinaryExpression;
 class AssignmentExpression;
+class ReactionExpression;
+class StoichExpression;
+class StoichTermExpression;
+class ConserveExpression;
 class AddBinaryExpression;
 class SubBinaryExpression;
 class MulBinaryExpression;
@@ -53,6 +58,8 @@ class LocalVariable;
 
 using expression_ptr = std::unique_ptr<Expression>;
 using symbol_ptr = std::unique_ptr<Symbol>;
+using scope_type = Scope<Symbol>;
+using scope_ptr = std::shared_ptr<scope_type>;
 
 template <typename T, typename... Args>
 expression_ptr make_expression(Args&&... args) {
@@ -77,6 +84,7 @@ enum class procedureKind {
     initial,     ///< INITIAL
     net_receive, ///< NET_RECEIVE
     breakpoint,  ///< BREAKPOINT
+    kinetic,     ///< KINETIC
     derivative   ///< DERIVATIVE
 };
 std::string to_string(procedureKind k);
@@ -107,8 +115,6 @@ static std::string to_string(solverMethod m) {
 
 class Expression {
 public:
-    using scope_type = Scope<Symbol>;
-
     explicit Expression(Location location)
     :   location_(location)
     {}
@@ -119,9 +125,12 @@ public:
     // expressions must provide a method for stringification
     virtual std::string to_string() const = 0;
 
-    Location const& location() const {return location_;};
+    Location const& location() const { return location_; }
 
-    std::shared_ptr<scope_type> scope() {return scope_;};
+    scope_ptr scope() { return scope_; }
+
+    // set scope explicitly
+    void scope(scope_ptr s) { scope_ = s; }
 
     void error(std::string const& str) {
         error_        = true;
@@ -137,7 +146,7 @@ public:
     std::string const& warning_message() const { return warning_string_; }
 
     // perform semantic analysis
-    virtual void semantic(std::shared_ptr<scope_type>);
+    virtual void semantic(scope_ptr);
     virtual void semantic(scope_type::symbol_map&) {
         throw compiler_exception("unable to perform semantic analysis for " + this->to_string(), location_);
     };
@@ -157,16 +166,22 @@ public:
     virtual PrototypeExpression*   is_prototype()         {return nullptr;}
     virtual IdentifierExpression*  is_identifier()        {return nullptr;}
     virtual NumberExpression*      is_number()            {return nullptr;}
+    virtual IntegerExpression*     is_integer()           {return nullptr;}
     virtual BinaryExpression*      is_binary()            {return nullptr;}
     virtual UnaryExpression*       is_unary()             {return nullptr;}
     virtual AssignmentExpression*  is_assignment()        {return nullptr;}
+    virtual ConserveExpression*    is_conserve()          {return nullptr;}
+    virtual ReactionExpression*    is_reaction()          {return nullptr;}
+    virtual StoichExpression*      is_stoich()            {return nullptr;}
+    virtual StoichTermExpression*  is_stoich_term()       {return nullptr;}
     virtual ConditionalExpression* is_conditional()       {return nullptr;}
     virtual InitialBlock*          is_initial_block()     {return nullptr;}
     virtual SolveExpression*       is_solve_statement()   {return nullptr;}
     virtual Symbol*                is_symbol()            {return nullptr;}
     virtual ConductanceExpression* is_conductance_statement() {return nullptr;}
 
-    virtual bool is_lvalue() {return false;}
+    virtual bool is_lvalue() const {return false;}
+    virtual bool is_global_lvalue() const {return false;}
 
     // force all derived classes to implement visitor
     // this might be a bad idea
@@ -182,8 +197,7 @@ protected:
     std::string warning_string_;
 
     Location location_;
-
-    std::shared_ptr<scope_type> scope_;
+    scope_ptr scope_;
 };
 
 class Symbol : public Expression {
@@ -251,7 +265,7 @@ public:
 
     expression_ptr clone() const override;
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
 
     Symbol* symbol() { return symbol_; };
 
@@ -259,7 +273,8 @@ public:
 
     IdentifierExpression* is_identifier() override {return this;}
 
-    bool is_lvalue() override;
+    bool is_lvalue() const override;
+    bool is_global_lvalue() const override;
 
     ~IdentifierExpression() {}
 
@@ -287,6 +302,9 @@ public:
     std::string to_string() const override {
         return blue("diff") + "(" + yellow(spelling()) + ")";
     }
+
+    expression_ptr clone() const override;
+
     DerivativeExpression* is_derivative() override { return this; }
 
     ~DerivativeExpression() {}
@@ -298,21 +316,21 @@ public:
 class NumberExpression : public Expression {
 public:
     NumberExpression(Location loc, std::string const& value)
-        : Expression(loc), value_(std::stod(value))
+        : Expression(loc), value_(std::stold(value))
     {}
 
     NumberExpression(Location loc, long double value)
         : Expression(loc), value_(value)
     {}
 
-    long double value() const {return value_;};
+    virtual long double value() const {return value_;};
 
     std::string to_string() const override {
         return purple(pprintf("%", value_));
     }
 
     // do nothing for number semantic analysis
-    void semantic(std::shared_ptr<scope_type> scp) override {};
+    void semantic(scope_ptr scp) override {};
     expression_ptr clone() const override;
 
     NumberExpression* is_number() override {return this;}
@@ -323,6 +341,38 @@ public:
 private:
     long double value_;
 };
+
+// an integral number
+class IntegerExpression : public NumberExpression {
+public:
+    IntegerExpression(Location loc, std::string const& value)
+        : NumberExpression(loc, value), integer_(std::stoll(value))
+    {}
+
+    IntegerExpression(Location loc, long long integer)
+        : NumberExpression(loc, static_cast<long double>(integer)), integer_(integer)
+    {}
+
+    long long integer_value() const {return integer_;}
+
+    std::string to_string() const override {
+        return purple(pprintf("%", integer_));
+    }
+
+    // do nothing for number semantic analysis
+    void semantic(scope_ptr scp) override {};
+    expression_ptr clone() const override;
+
+    IntegerExpression* is_integer() override {return this;}
+
+    ~IntegerExpression() {}
+
+    void accept(Visitor *v) override;
+private:
+    long long integer_;
+};
+
+
 
 // declaration of a LOCAL variable
 class LocalDeclaration : public Expression {
@@ -341,7 +391,7 @@ public:
 
     bool add_variable(Token name);
     LocalDeclaration* is_local_declaration() override {return this;}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     std::vector<Symbol*>& symbols() {return symbols_;}
     std::map<std::string, Token>& variables() {return vars_;}
     expression_ptr clone() const override;
@@ -366,7 +416,7 @@ public:
 
     bool add_variable(Token name);
     ArgumentExpression* is_argument() override {return this;}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     Token   token()  {return token_;}
     std::string const& name()  {return name_;}
     void set_name(std::string const& n) {
@@ -623,7 +673,7 @@ public:
 
     expression_ptr clone() const override;
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
 
     ~SolveExpression() {}
@@ -664,7 +714,7 @@ public:
 
     expression_ptr clone() const override;
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
 
     ~ConductanceExpression() {}
@@ -722,7 +772,7 @@ public:
         return is_nested_;
     }
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor* v) override;
 
     std::string to_string() const override;
@@ -750,7 +800,7 @@ public:
     expression_ptr clone() const override;
 
     std::string to_string() const override;
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
 
     void accept(Visitor* v) override;
 private:
@@ -788,6 +838,102 @@ private:
     std::vector<expression_ptr> args_;
 };
 
+class ReactionExpression : public Expression {
+public:
+    ReactionExpression(Location loc,
+                       expression_ptr&& lhs_terms,
+                       expression_ptr&& rhs_terms,
+                       expression_ptr&& fwd_rate_expr,
+                       expression_ptr&& rev_rate_expr)
+    : Expression(loc),
+      lhs_(std::move(lhs_terms)), rhs_(std::move(rhs_terms)),
+      fwd_rate_(std::move(fwd_rate_expr)), rev_rate_(std::move(rev_rate_expr))
+    {}
+
+    ReactionExpression* is_reaction() override {return this;}
+
+    std::string to_string() const override;
+    void semantic(scope_ptr scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    expression_ptr& lhs() { return lhs_; }
+    const expression_ptr& lhs() const { return lhs_; }
+
+    expression_ptr& rhs() { return rhs_; }
+    const expression_ptr& rhs() const { return rhs_; }
+
+    expression_ptr& fwd_rate() { return fwd_rate_; }
+    const expression_ptr& fwd_rate() const { return fwd_rate_; }
+
+    expression_ptr& rev_rate() { return rev_rate_; }
+    const expression_ptr& rev_rate() const { return rev_rate_; }
+
+private:
+    expression_ptr lhs_;
+    expression_ptr rhs_;
+    expression_ptr fwd_rate_;
+    expression_ptr rev_rate_;
+};
+
+class StoichTermExpression : public Expression {
+public:
+    StoichTermExpression(Location loc,
+                         expression_ptr&& coeff,
+                         expression_ptr&& ident)
+    : Expression(loc),
+      coeff_(std::move(coeff)), ident_(std::move(ident))
+    {}
+
+    StoichTermExpression* is_stoich_term() override {return this;}
+
+    std::string to_string() const override {
+        return pprintf("% %", coeff()->to_string(), ident()->to_string());
+    }
+    void semantic(scope_ptr scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    expression_ptr& coeff() { return coeff_; }
+    const expression_ptr& coeff() const { return coeff_; }
+
+    expression_ptr& ident() { return ident_; }
+    const expression_ptr& ident() const { return ident_; }
+
+    bool negative() const {
+        auto iexpr = coeff_->is_integer();
+        return iexpr && iexpr->integer_value()<0;
+    }
+
+private:
+    expression_ptr coeff_;
+    expression_ptr ident_;
+};
+
+class StoichExpression : public Expression {
+public:
+    StoichExpression(Location loc, std::vector<expression_ptr>&& terms)
+    : Expression(loc), terms_(std::move(terms))
+    {}
+
+    StoichExpression(Location loc)
+    : Expression(loc)
+    {}
+
+    StoichExpression* is_stoich() override {return this;}
+
+    std::string to_string() const override;
+    void semantic(scope_ptr scp) override;
+    expression_ptr clone() const override;
+    void accept(Visitor *v) override;
+
+    std::vector<expression_ptr>& terms() { return terms_; }
+    const std::vector<expression_ptr>& terms() const { return terms_; }
+
+private:
+    std::vector<expression_ptr> terms_;
+};
+
 // marks a call site in the AST
 // is used to mark both function and procedure calls
 class CallExpression : public Expression {
@@ -802,7 +948,7 @@ public:
     std::string& name() { return spelling_; }
     std::string const& name() const { return spelling_; }
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
 
     std::string to_string() const override;
@@ -997,7 +1143,7 @@ public:
     UnaryExpression* is_unary() override {return this;};
     Expression* expression() {return expression_.get();}
     const Expression* expression() const {return expression_.get();}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     void accept(Visitor *v) override;
     void replace_expression(expression_ptr&& other);
 };
@@ -1079,7 +1225,7 @@ public:
     const Expression* lhs() const {return lhs_.get();}
     const Expression* rhs() const {return rhs_.get();}
     BinaryExpression* is_binary() override {return this;}
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
     expression_ptr clone() const override;
     void replace_rhs(expression_ptr&& other);
     void replace_lhs(expression_ptr&& other);
@@ -1095,7 +1241,21 @@ public:
 
     AssignmentExpression* is_assignment() override {return this;}
 
-    void semantic(std::shared_ptr<scope_type> scp) override;
+    void semantic(scope_ptr scp) override;
+
+    void accept(Visitor *v) override;
+};
+
+class ConserveExpression : public BinaryExpression {
+public:
+    ConserveExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+    :   BinaryExpression(loc, tok::eq, std::move(lhs), std::move(rhs))
+    {}
+
+    ConserveExpression* is_conserve() override {return this;}
+    expression_ptr clone() const override;
+
+    void semantic(scope_ptr scp) override;
 
     void accept(Visitor *v) override;
 };

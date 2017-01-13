@@ -11,6 +11,8 @@
 #include "module.hpp"
 #include "parser.hpp"
 
+using namespace nest::mc;
+
 Module::Module(std::string const& fname)
 : fname_(fname)
 {
@@ -31,13 +33,19 @@ Module::Module(std::string const& fname)
     buffer_[size] = 0; // append \0 to terminate string
 }
 
-Module::Module(std::vector<char> const& buffer)
-{
+Module::Module(std::vector<char> const& buffer) {
     buffer_ = buffer;
 
     // add \0 to end of buffer if not already present
-    if(buffer_[buffer_.size()-1] != 0)
+    if (buffer_[buffer_.size()-1] != 0)
         buffer_.push_back(0);
+}
+
+Module::Module(const char* buffer, size_t count) {
+    auto size = std::distance(buffer, std::find(buffer, buffer+count, '\0'));
+    buffer_.reserve(size+1);
+    buffer_.insert(buffer_.end(), buffer, buffer+size);
+    buffer_.push_back(0);
 }
 
 std::vector<Module::symbol_ptr>&
@@ -157,7 +165,7 @@ bool Module::semantic() {
             s->semantic(symbols_);
 
             // then use an error visitor to print out all the semantic errors
-            auto v = make_unique<ErrorVisitor>(file_name());
+            auto v = util::make_unique<ErrorVisitor>(file_name());
             s->accept(v.get());
             errors += v->num_errors();
 
@@ -421,7 +429,7 @@ bool Module::semantic() {
                         }
                         else {
                             // create visitor for linear analysis
-                            auto v = make_unique<ExpressionClassifierVisitor>(sym);
+                            auto v = util::make_unique<ExpressionClassifierVisitor>(sym);
                             rhs->accept(v.get());
 
                             // quit if ODE is not linear
@@ -523,9 +531,9 @@ bool Module::semantic() {
                 auto rhs = e->is_assignment()->rhs();
 
                 // analyze the expression for linear terms
-                //auto v = make_unique<ExpressionClassifierVisitor>(symbols_["v"].get());
+                //auto v = util::make_unique<ExpressionClassifierVisitor>(symbols_["v"].get());
                 auto v_symbol = breakpoint->scope()->find("v");
-                auto v = make_unique<ExpressionClassifierVisitor>(v_symbol);
+                auto v = util::make_unique<ExpressionClassifierVisitor>(v_symbol);
                 rhs->accept(v.get());
 
                 if(v->classify()==expressionClassification::linear) {
@@ -545,11 +553,11 @@ bool Module::semantic() {
                 has_current_update = true;
             }
         }
-        if(has_current_update && kind()==moduleKind::point) {
-            block.emplace_back(Parser("current_ = 100. * current_ / area_").parse_line_expression());
+        if(has_current_update && kind()==moduleKind::density) {
+            block.emplace_back(Parser("current_ = weights_ * current_").parse_line_expression());
         }
 
-        auto v = make_unique<ConstantFolderVisitor>();
+        auto v = util::make_unique<ConstantFolderVisitor>();
         for(auto& e : block) {
             e->accept(v.get());
         }
@@ -588,6 +596,11 @@ void Module::add_variables_to_symbols() {
 
     create_variable("t",  rangeKind::scalar, accessKind::read);
     create_variable("dt", rangeKind::scalar, accessKind::read);
+    // density mechanisms use a vector of weights from current densities to
+    // units of nA
+    if (kind()==moduleKind::density) {
+        create_variable("weights_", rangeKind::range, accessKind::read);
+    }
 
     // add indexed variables to the table
     auto create_indexed_variable = [this]
@@ -607,12 +620,10 @@ void Module::add_variables_to_symbols() {
                             accessKind::write, ionKind::none, Location());
     create_indexed_variable("v", "vec_v", tok::eq,
                             accessKind::read,  ionKind::none, Location());
-    create_indexed_variable("area_", "vec_area", tok::eq,
-                            accessKind::read,  ionKind::none, Location());
 
     // add state variables
     for(auto const &var : state_block()) {
-        VariableExpression *id = new VariableExpression(Location(), var);
+        VariableExpression *id = new VariableExpression(Location(), var.name());
 
         id->state(true);    // set state to true
         // state variables are private
@@ -623,7 +634,7 @@ void Module::add_variables_to_symbols() {
         id->range(rangeKind::range);       // always a range
         id->access(accessKind::readwrite);
 
-        symbols_[var] = symbol_ptr{id};
+        symbols_[var.name()] = symbol_ptr{id};
     }
 
     // add the parameters
@@ -771,7 +782,7 @@ bool Module::optimize() {
     // how to structure the optimizer
     // loop over APIMethods
     //      - apply optimization to each in turn
-    auto folder = make_unique<ConstantFolderVisitor>();
+    auto folder = util::make_unique<ConstantFolderVisitor>();
     for(auto &symbol : symbols_) {
         auto kind = symbol.second->kind();
         BlockExpression* body;

@@ -4,10 +4,21 @@
 #include <memory>
 #include <sstream>
 #include <vector>
+#include <initializer_list>
 
 // is thing in list?
 template <typename T, int N>
 bool is_in(T thing, const T (&list)[N]) {
+    for(auto const& item : list) {
+        if(thing==item) {
+            return true;
+        }
+    }
+    return false;
+}
+
+template <typename T>
+bool is_in(T thing, const std::initializer_list<T> list) {
     for(auto const& item : list) {
         if(thing==item) {
             return true;
@@ -127,9 +138,16 @@ std::ostream& operator<< (std::ostream& os, std::vector<T> const& V) {
     return os << "]";
 }
 
+namespace nest {
+namespace mc {
+namespace util {
+
 // just because we aren't using C++14, doesn't mean we shouldn't go
 // without make_unique
 template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
     return std::unique_ptr<T>(new T(std::forward<Args>(args) ...));
 }
+
+}}}
+

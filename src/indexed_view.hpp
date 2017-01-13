@@ -1,48 +1,37 @@
 #pragma once
 
-#include <vector/include/Vector.hpp>
+#include <memory/memory.hpp>
 
 namespace nest {
 namespace mc {
 
-template <typename T, typename I>
+template <typename Backend>
 struct indexed_view {
-    using value_type      = T;
-    using size_type       = I;
-    using view_type       = typename memory::HostVector<T>::view_type;
-    using index_view_type = typename memory::HostVector<I>::view_type;;
+    using backend = Backend;
+    using value_type  = typename backend::value_type;
+    using size_type   = typename backend::size_type;
+    using view        = typename backend::view;
+    using const_iview = typename backend::const_iview;
+    using reference   = typename view::reference;
+    using const_reference = typename view::const_reference;
 
-    view_type       view;
-    index_view_type index; // TODO make this a const view
+    view data;
+    const_iview index;
 
-    indexed_view(view_type v, index_view_type i)
-    :   view(v),
-        index(i)
+    indexed_view(view v, const_iview i):
+        data(v), index(i)
     {}
 
-    size_type size() const
-    {
+    std::size_t size() const {
         return index.size();
     }
 
-    // TODO
-    //
-    //  these should either
-    //      - return the internal reference type implementations from the containers
-    //          e.g. the GPU reference that does a copy-on-read from GPU memory
-    //      - or ensure that the result of dereferencing these is properly handled
-    //          i.e. by just returning a value for the const version
-
-    value_type&
-    operator[] (const size_type i)
-    {
-        return view[index[i]];
+    reference operator[] (std::size_t i) {
+        return data[index[i]];
     }
 
-    value_type const&
-    operator[] (const size_type i) const
-    {
-        return view[index[i]];
+    const_reference operator[] (std::size_t i) const {
+        return data[index[i]];
     }
 };
 

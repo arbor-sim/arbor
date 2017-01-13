@@ -1,4 +1,8 @@
+#include <cmath>
+
 #include <cell.hpp>
+#include <segment.hpp>
+#include <math.hpp>
 #include <parameter_list.hpp>
 
 namespace nest {
@@ -9,8 +13,9 @@ namespace mc {
  *
  * Soma:
  *    diameter: 18.8 µm
- *    mechanisms: membrane, HH
- *    memrane resistance: 123 Ω·cm
+ *    mechanisms: HH (default params)
+ *    bulk resistivitiy: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
  *
  * Stimuli:
  *    soma centre, t=[10 ms, 110 ms), 0.1 nA
@@ -20,7 +25,7 @@ inline cell make_cell_soma_only(bool with_stim = true) {
     cell c;
 
     auto soma = c.add_soma(18.8/2.0);
-    soma->mechanism("membrane").set("r_L", 123);
+    soma->mechanism("membrane").set("r_L", 100);
     soma->add_mechanism(hh_parameters());
 
     if (with_stim) {
@@ -33,15 +38,19 @@ inline cell make_cell_soma_only(bool with_stim = true) {
 /*
  * Create cell with a soma and unbranched dendrite:
  *
+ * Common properties:
+ *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
+ *
  * Soma:
- *    mechanisms: HH
+ *    mechanisms: HH (default params)
  *    diameter: 12.6157 µm
  *
  * Dendrite:
- *    mechanisms: none
+ *    mechanisms: passive (default params)
  *    diameter: 1 µm
  *    length: 200 µm
- *    membrane resistance: 100 Ω·cm
+ *    bulk resistivity: 100 Ω·cm
  *    compartments: 4
  *
  * Stimulus:
@@ -54,10 +63,15 @@ inline cell make_cell_ball_and_stick(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    auto dendrite = c.add_cable(0, segmentKind::dendrite, 1.0/2, 1.0/2, 200.0);
-    dendrite->add_mechanism(pas_parameters());
-    dendrite->mechanism("membrane").set("r_L", 100);
-    dendrite->set_compartments(4);
+    c.add_cable(0, segmentKind::dendrite, 1.0/2, 1.0/2, 200.0);
+
+    for (auto& seg: c.segments()) {
+        seg->mechanism("membrane").set("r_L", 100);
+        if (seg->is_dendrite()) {
+            seg->add_mechanism(pas_parameters());
+            seg->set_compartments(4);
+        }
+    }
 
     if (with_stim) {
         c.add_stimulus({1,1}, {5., 80., 0.3});
@@ -68,16 +82,20 @@ inline cell make_cell_ball_and_stick(bool with_stim = true) {
 /*
  * Create cell with a soma and unbranched tapered dendrite:
  *
+ * Common properties:
+ *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
+ *
  * Soma:
- *    mechanisms: HH
+ *    mechanisms: HH (default params)
  *    diameter: 12.6157 µm
  *
  * Dendrite:
- *    mechanisms: none
+ *    mechanisms: passive (default params)
  *    diameter proximal: 1 µm
- *    diameter distal: 0.2 µm
+ *    diameter distal: 0.4 µm
  *    length: 200 µm
- *    membrane resistance: 100 Ω·cm
+ *    bulk resistivity: 100 Ω·cm
  *    compartments: 4
  *
  * Stimulus:
@@ -90,10 +108,70 @@ inline cell make_cell_ball_and_taper(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    auto dendrite = c.add_cable(0, segmentKind::dendrite, 1.0/2, 0.2/2, 200.0);
-    dendrite->add_mechanism(pas_parameters());
-    dendrite->mechanism("membrane").set("r_L", 100);
-    dendrite->set_compartments(4);
+    c.add_cable(0, segmentKind::dendrite, 1.0/2, 0.4/2, 200.0);
+
+    for (auto& seg: c.segments()) {
+        seg->mechanism("membrane").set("r_L", 100);
+        if (seg->is_dendrite()) {
+            seg->add_mechanism(pas_parameters());
+            seg->set_compartments(4);
+        }
+    }
+
+    if (with_stim) {
+        c.add_stimulus({1,1}, {5., 80., 0.3});
+    }
+    return c;
+}
+
+/*
+ * Create cell with a soma and unbranched dendrite with varying diameter:
+ *
+ * Soma:
+ *    mechanisms: HH
+ *    diameter: 12.6157 µm
+ *
+ * Dendrite:
+ *    mechanisms: none
+ *    length: 100 µm
+ *    membrane resistance: 100 Ω·cm
+ *    compartments: 4
+ *
+ * Stimulus:
+ *    end of dendrite, t=[5 ms, 85 ms), 0.3 nA
+ */
+
+inline cell make_cell_ball_and_squiggle(bool with_stim = true) {
+    cell c;
+
+    auto soma = c.add_soma(12.6157/2.0);
+    soma->add_mechanism(hh_parameters());
+
+    std::vector<cell::value_type> radii;
+    std::vector<cell::point_type> points;
+
+    double length = 100.0;
+    int npoints = 200;
+
+    for (int i=0; i<npoints; ++i) {
+        double x = i*(1.0/(npoints-1));
+        double r = std::exp(-x)*(std::sin(40*x)*0.05+0.1)+0.1;
+
+        radii.push_back(r);
+        points.push_back({x*length, 0., 0.});
+    };
+
+    auto dendrite =
+        make_segment<cable_segment>(segmentKind::dendrite, radii, points);
+    c.add_cable(0, std::move(dendrite));
+
+    for (auto& seg: c.segments()) {
+        seg->mechanism("membrane").set("r_L", 100);
+        if (seg->is_dendrite()) {
+            seg->add_mechanism(pas_parameters());
+            seg->set_compartments(4);
+        }
+    }
 
     if (with_stim) {
         c.add_stimulus({1,1}, {5., 80., 0.3});
@@ -106,15 +184,18 @@ inline cell make_cell_ball_and_taper(bool with_stim = true) {
  *
  * O----======
  *
+ * Common properties:
+ *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
+ *
  * Soma:
- *    mechanisms: HH
+ *    mechanisms: HH (default params)
  *    diameter: 12.6157 µm
  *
  * Dendrites:
- *    mechanisms: membrane
+ *    mechanisms: passive (default params)
  *    diameter: 1 µm
  *    length: 100 µm
- *    membrane resistance: 100 Ω·cm
  *    compartments: 4
  *
  * Stimulus:
@@ -128,15 +209,14 @@ inline cell make_cell_ball_and_3stick(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    // add dendrite of length 200 um and diameter 1 um with passive channel
     c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100);
     c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
     c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
 
     for (auto& seg: c.segments()) {
+        seg->mechanism("membrane").set("r_L", 100);
         if (seg->is_dendrite()) {
             seg->add_mechanism(pas_parameters());
-            seg->mechanism("membrane").set("r_L", 100);
             seg->set_compartments(4);
         }
     }
@@ -147,6 +227,76 @@ inline cell make_cell_ball_and_3stick(bool with_stim = true) {
     }
     return c;
 }
+
+/*
+ * Create 'soma-less' cell with single cable, with physical
+ * parameters from Rallpack 1 model.
+ *
+ * Common properties:
+ *    mechanisms: passive
+ *        membrane conductance: 0.000025 S/cm² ( =  1/(4Ω·m²) )
+ *        membrane reversal potential: -65 mV (default)
+ *    diameter: 1 µm
+ *    length: 1000 µm
+ *    bulk resistivity: 100 Ω·cm
+ *    capacitance: 0.01 F/m² [default]
+ *    compartments: 4
+ *
+ * Stimulus:
+ *    end of dendrite, t=[0 ms, inf), 0.1 nA
+ *
+ * Note: zero-volume soma added with same mechanisms, as
+ * work-around for some existing fvm modelling issues.
+ *
+ * TODO: Set the correct values when parameters are generally
+ * settable! 
+ *
+ * We can't currently change leak parameters
+ * from defaults, so we scale other electrical parameters
+ * proportionally.
+ */
+
+inline cell make_cell_simple_cable(bool with_stim = true) {
+    cell c;
+
+    c.add_soma(0);
+    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 1000);
+
+    double r_L  = 100;
+    double c_m  = 0.01;
+    double gbar = 0.000025;
+    double I = 0.1;
+
+    // fudge factor! can't change passive membrane
+    // conductance from gbar0 = 0.001
+
+    double gbar0 = 0.001;
+    double f = gbar/gbar0;
+
+    // scale everything else
+    r_L *= f;
+    c_m /= f;
+    I /= f;
+
+    for (auto& seg: c.segments()) {
+        seg->add_mechanism(pas_parameters());
+        seg->mechanism("membrane").set("r_L", r_L);
+        seg->mechanism("membrane").set("c_m", c_m);
+        // seg->mechanism("pas").set("g", gbar);
+
+        if (seg->is_dendrite()) {
+            seg->set_compartments(4);
+        }
+    }
+
+    if (with_stim) {
+        // stimulus in the middle of our zero-volume 'soma'
+        // corresponds to proximal end of cable.
+        c.add_stimulus({0,0.5}, {0., math::infinity<>(), I});
+    }
+    return c;
+}
+
 
 /*
  * Attach voltage probes at each cable mid-point and end-point,
