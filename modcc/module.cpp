@@ -281,7 +281,7 @@ bool Module::semantic() {
                           loc, name,
                           std::vector<expression_ptr>(), // no arguments
                           make_expression<BlockExpression>
-                            (loc, std::list<expression_ptr>(), false)
+                          (loc, std::list<expression_ptr>(), false)
                          );
 
         auto proc = symbols_[name]->is_api_method();

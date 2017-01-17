@@ -12,11 +12,16 @@ set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 
 set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/multicore")
 file(MAKE_DIRECTORY "${mech_dir}")
+if(VECTORIZE_TARGET STREQUAL "KNL" AND USE_OPTIMIZED_KERNELS)
+    set(modcc_target "avx512")
+else()
+    set(modcc_target "cpu")
+endif()
 build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
     DEST_DIR "${mech_dir}"
-    MODCC_FLAGS -t cpu ${modcc_opt}
+    MODCC_FLAGS -t ${modcc_target} ${modcc_opt}
     TARGET build_all_mods
 )
 

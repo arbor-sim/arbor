@@ -13,6 +13,8 @@ set(MODCC_TEST_SOURCES
 
     # utility
     expr_expand.cpp
+
+    test_simd_backend.cpp
 )
 
 add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")

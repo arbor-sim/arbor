@@ -9,14 +9,16 @@
 ******************************************************************************/
 
 CPrinter::CPrinter(Module &m, bool o)
-:   module_(&m),
-    optimize_(o)
-{
+    : module_(&m),
+      optimize_(o)
+{ }
+
+std::string CPrinter::emit_source() {
     // make a list of vector types, both parameters and assigned
     // and a list of all scalar types
     std::vector<VariableExpression*> scalar_variables;
     std::vector<VariableExpression*> array_variables;
-    for(auto& sym: m.symbols()) {
+    for(auto& sym: module_->symbols()) {
         if(auto var = sym.second->is_variable()) {
             if(var->is_range()) {
                 array_variables.push_back(var);
@@ -29,20 +31,12 @@ CPrinter::CPrinter(Module &m, bool o)
 
     std::string module_name = Options::instance().modulename;
     if (module_name == "") {
-        module_name = m.name();
+        module_name = module_->name();
     }
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    text_.add_line("#pragma once");
-    text_.add_line();
-    text_.add_line("#include <cmath>");
-    text_.add_line("#include <limits>");
-    text_.add_line();
-    text_.add_line("#include <mechanism.hpp>");
-    text_.add_line("#include <algorithms.hpp>");
-    text_.add_line("#include <util/pprintf.hpp>");
-    text_.add_line();
+    emit_headers();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -69,7 +63,7 @@ CPrinter::CPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    for(auto& ion: m.neuron_block().ions) {
+    for(auto& ion: module_->neuron_block().ions) {
         auto tname = "Ion" + ion.name;
         text_.add_line("struct " + tname + " {");
         text_.increase_indentation();
@@ -133,7 +127,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
 
     // copy in the weights if this is a density mechanism
-    if (m.kind() == moduleKind::density) {
+    if (module_->kind() == moduleKind::density) {
         text_.add_line("// add the user-supplied weights for converting from current density");
         text_.add_line("// to per-compartment current in nA");
         text_.add_line("memory::copy(weights, weights_(0, size()));");
@@ -170,7 +164,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.increase_indentation();
     text_.add_line("auto s = std::size_t{0};");
     text_.add_line("s += data_.size()*sizeof(value_type);");
-    for(auto& ion: m.neuron_block().ions) {
+    for(auto& ion: module_->neuron_block().ions) {
         text_.add_line("s += ion_" + ion.name + ".memory();");
     }
     text_.add_line("return s;");
@@ -193,7 +187,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line("}");
     text_.add_line();
 
-    std::string kind_str = m.kind() == moduleKind::density
+    std::string kind_str = module_->kind() == moduleKind::density
                             ? "mechanismKind::density"
                             : "mechanismKind::point";
     text_.add_line("mechanismKind kind() const override {");
@@ -204,7 +198,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
 
     // return true/false indicating if cell has dependency on k
-    auto const& ions = m.neuron_block().ions;
+    auto const& ions = module_->neuron_block().ions;
     auto find_ion = [&ions] (ionKind k) {
         return std::find_if(
             ions.begin(), ions.end(),
@@ -321,7 +315,7 @@ CPrinter::CPrinter(Module &m, bool o)
     auto proctest = [] (procedureKind k) {
         return is_in(k, {procedureKind::normal, procedureKind::api, procedureKind::net_receive});
     };
-    for(auto const& var: m.symbols()) {
+    for(auto const& var: module_->symbols()) {
         auto isproc = var.second->kind()==symbolKind::procedure;
         if(isproc )
         {
@@ -371,8 +365,22 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
 
     text_.add_line("}}}} // namespaces");
+    return text_.str();
 }
 
+
+
+void CPrinter::emit_headers() {
+    text_.add_line("#pragma once");
+    text_.add_line();
+    text_.add_line("#include <cmath>");
+    text_.add_line("#include <limits>");
+    text_.add_line();
+    text_.add_line("#include <mechanism.hpp>");
+    text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <util/pprintf.hpp>");
+    text_.add_line();
+}
 
 /******************************************************************************
                               CPrinter
@@ -607,12 +615,13 @@ void CPrinter::visit(APIMethod *e) {
     text_.add_line();
 }
 
-void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
-    // there can not be more than 1 instance of a density channel per grid point,
-    // so we can assert that aliasing will not occur.
-    if(optimize_) text_.add_line("#pragma ivdep");
-
-    text_.add_line("for(int i_=0; i_<n_; ++i_) {");
+void CPrinter::emit_api_loop(APIMethod* e,
+                             const std::string& start,
+                             const std::string& end,
+                             const std::string& inc) {
+    text_.add_gutter();
+    text_ << "for (" << start << "; " << end << "; " << inc << ") {";
+    text_.end_line();
     text_.increase_indentation();
 
     // loads from external indexed arrays
@@ -646,6 +655,14 @@ void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
 
     text_.decrease_indentation();
     text_.add_line("}");
+}
+
+void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
+    // there can not be more than 1 instance of a density channel per grid point,
+    // so we can assert that aliasing will not occur.
+    if(optimize_) text_.add_line("#pragma ivdep");
+
+    emit_api_loop(e, "int i_ = 0", "i_ < n_", "++i_");
 
     //text_.add_line("STOP_PROFILE");
     decrease_indentation();
@@ -673,6 +690,7 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
             }
         }
     }
+
     aliased_output_ = aliased_variables.size()>0;
 
     // only proceed with optimized output if the ouputs are aliased

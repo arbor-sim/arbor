@@ -549,6 +549,7 @@ compiler_error:
     accessKind access() const {
         return access_;
     }
+
     ionKind ion_channel() const {
         return ion_channel_;
     }
@@ -1029,7 +1030,7 @@ public:
                std::string name,
                std::vector<expression_ptr>&& args,
                expression_ptr&& body)
-    :   ProcedureExpression(loc, std::move(name), std::move(args), std::move(body), procedureKind::api)
+        :   ProcedureExpression(loc, std::move(name), std::move(args), std::move(body), procedureKind::api)
     {}
 
     APIMethod* is_api_method() override {return this;}

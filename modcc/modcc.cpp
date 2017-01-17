@@ -13,6 +13,8 @@
 #include "modccutil.hpp"
 #include "options.hpp"
 
+#include "simd_printer.hpp"
+
 using namespace nest::mc;
 
 //#define VERBOSE
@@ -62,6 +64,9 @@ int main(int argc, char **argv) {
         }
         else if(targstr == "gpu") {
             Options::instance().target = targetKind::gpu;
+        }
+        else if(targstr == "avx512") {
+            Options::instance().target = targetKind::avx512;
         }
         else {
             std::cerr << red("error") << " target must be one in {cpu, gpu}\n";
@@ -139,10 +144,14 @@ int main(int argc, char **argv) {
         std::string text;
         switch(Options::instance().target) {
             case targetKind::cpu  :
-                text = CPrinter(m, Options::instance().optimize).text();
+                text = CPrinter(m, Options::instance().optimize).emit_source();
                 break;
             case targetKind::gpu  :
                 text = CUDAPrinter(m, Options::instance().optimize).text();
+                break;
+            case targetKind::avx512:
+                text = SimdPrinter<targetKind::avx512>(
+                    m, Options::instance().optimize).emit_source();
                 break;
             default :
                 std::cerr << red("error") << ": unknown printer" << std::endl;
