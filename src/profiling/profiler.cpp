@@ -349,7 +349,7 @@ void profilers_restart() {
     }
 }
 
-void profiler_output(double threshold, std::size_t num_local_work_items) {
+void profiler_output(double threshold, std::size_t num_local_work_items, bool profile_only_zero) {
     profilers_stop();
 
     // Find the earliest start time and latest stop time over all profilers
@@ -385,6 +385,7 @@ void profiler_output(double threshold, std::size_t num_local_work_items) {
     auto ncomms = communication::global_policy::size();
     auto comm_rank = communication::global_policy::id();
     bool print = comm_rank==0 ? true : false;
+    bool output_this_rank = (comm_rank == 0) || ! profile_only_zero;
 
     // calculate the throughput in terms of work items per second
     auto local_throughput = num_local_work_items / wall_time;
@@ -433,9 +434,11 @@ void profiler_output(double threshold, std::size_t num_local_work_items) {
     as_json["rank"] = comm_rank;
     as_json["regions"] = p.as_json();
 
-    auto fname = std::string("profile_" + std::to_string(comm_rank));
-    std::ofstream fid(fname);
-    fid << std::setw(1) << as_json;
+    if (output_this_rank) {
+        auto fname = std::string("profile_" + std::to_string(comm_rank));
+        std::ofstream fid(fname);
+        fid << std::setw(1) << as_json;
+    }
 }
 
 #else
@@ -445,7 +448,7 @@ void profiler_enter(const char*) {}
 void profiler_leave() {}
 void profiler_leave(int) {}
 void profilers_stop() {}
-void profiler_output(double threshold, std::size_t num_local_work_items) {}
+void profiler_output(double threshold, std::size_t num_local_work_items, bool profile_only_zero) {}
 void profilers_restart() {};
 #endif
 
