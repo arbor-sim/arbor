@@ -28,7 +28,7 @@ endfunction()
 include(CMakeParseArguments)
 function(add_validation_data)
     cmake_parse_arguments(ADD_VALIDATION_DATA "" "OUTPUT" "DEPENDS;COMMAND" ${ARGN})
-    set(out "${VALIDATION_DATA_DIR}/${ADD_VALIDATION_DATA_OUTPUT}")
+    set(out "${NMC_VALIDATION_DATA_DIR}/${ADD_VALIDATION_DATA_OUTPUT}")
     string(REGEX REPLACE "([^;]+)" "${CMAKE_CURRENT_SOURCE_DIR}/\\1" deps "${ADD_VALIDATION_DATA_DEPENDS}")
     add_custom_command(
         OUTPUT "${out}"
@@ -43,7 +43,7 @@ function(add_validation_data)
 endfunction()
 
 
-if(BUILD_NRN_VALIDATION_DATA)
+if(NMC_BUILD_NRN_VALIDATION_DATA)
     add_subdirectory(ref/neuron)
 endif()
 

@@ -5,6 +5,8 @@
 #include "constantfolder.hpp"
 #include "modccutil.hpp"
 
+using namespace nest::mc;
+
 TEST(Optimizer, constant_folding) {
     auto v = util::make_unique<ConstantFolderVisitor>();
     {

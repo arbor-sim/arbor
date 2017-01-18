@@ -18,7 +18,7 @@ foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-    if(WITH_MPI)
+    if(NMC_WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()
