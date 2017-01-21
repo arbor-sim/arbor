@@ -127,20 +127,23 @@ endif()
 #----------------------------------------------------------
 # MPI support
 #----------------------------------------------------------
-option(NMC_WITH_MPI "use MPI for distrubuted parallelism" OFF)
-
+option(NMC_WITH_MPI "use MPI for distributed parallelism" OFF)
 if(NMC_WITH_MPI)
-    find_package(MPI REQUIRED)
+   # BGQ specific flags
+   if(${NMC_SYSTEM_TYPE} MATCHES "BGQ" )
+      # On BGQ, set CXX to the mpi wrapper, and pass it a static
+      add_definitions(-DMPICH2_CONST=const)
+      set(MPI_FOUND TRUE)
+    endif()
+    
+    if (NOT MPI_FOUND)
+      find_package(MPI REQUIRED)
+    endif()
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
     add_definitions(-DNMC_HAVE_MPI)
     # unfortunate workaround for C++ detection in system mpi.h
     add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
-
-    # BGQ specific flags
-   if(${NMC_SYSTEM_TYPE} MATCHES "BGQ" )
-     add_definitions(-DMPICH2_CONST=const)
-   endif()
 endif()
 
 #----------------------------------------------------------
