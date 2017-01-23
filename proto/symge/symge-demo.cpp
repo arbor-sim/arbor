@@ -239,7 +239,7 @@ void gj_reduce(sym_matrix& A, unsigned ncol, const DefineSym define_sym) {
 
     while (!pivots.empty()) {
         for (unsigned i = 0; i<pivots.size(); ++i) {
-            cost[i] = estimate_cost(A, pivots[i]);
+            cost[pivots[i]] = estimate_cost(A, pivots[i]);
         }
 
         std::sort(pivots.begin(), pivots.end(),
