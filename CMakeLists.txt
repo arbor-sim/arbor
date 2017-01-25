@@ -69,6 +69,15 @@ elseif(NMC_THREADING_MODEL MATCHES "omp")
     add_definitions(-DNMC_HAVE_OMP)
     set(NMC_HAVE_OMP TRUE)
 
+elseif(NMC_THREADING_MODEL MATCHES "cthread")
+    find_package(Threads REQUIRED)
+    add_definitions(-DNMC_HAVE_CTHREAD)
+    set(NMC_HAVE_CTHREAD TRUE)
+    
+    if(CMAKE_USE_PTHREADS_INIT)
+      set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-pthread")
+    endif()
+
 elseif(NMC_THREADING_MODEL MATCHES "serial")
     #setup previously done
 

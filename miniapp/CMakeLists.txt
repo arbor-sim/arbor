@@ -18,6 +18,7 @@ else()
     add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 endif()
 
+target_link_libraries(miniapp.exe LINK_PUBLIC ${CMAKE_THREAD_LIBS_INIT} )
 target_link_libraries(miniapp.exe LINK_PUBLIC nestmc)
 target_link_libraries(miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
