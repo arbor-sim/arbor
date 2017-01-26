@@ -19,7 +19,7 @@ void init(int *argc, char ***argv) {
     PE("MPI", "Init");
     MPI_Init_thread(argc, argv, MPI_THREAD_SERIALIZED, &provided);
     assert(provided>=MPI_THREAD_SERIALIZED);
-    PL();
+    PL(2);
 
     PE("rank-size");
     MPI_Comm_rank(MPI_COMM_WORLD, &state::rank);
