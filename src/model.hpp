@@ -50,26 +50,36 @@ public:
         threading::parallel_vector<probe_record> probes;
 
         threading::parallel_for::apply(0, cell_groups_.size(),
-            [&](cell_gid_type i) {
-                PE("setup", "cells");
+            //apply operation on all groups
+            [&](cell_gid_type group_idx) {
+            PE("setup", "cells");
 
-                auto gids = gid_partition()[i];
-                std::vector<cell> cells{gids.second-gids.first};
+            // Get the neuron ids in this cell_group
+            auto neuron_range = gid_partition()[group_idx];
 
-                for (auto gid: util::make_span(gids)) {
-                    auto i = gid-gids.first;
-                    cells[i] = rec.get_cell(gid);
+            std::vector<cell> cells{ neuron_range.second - neuron_range.first };
 
-                    cell_lid_type j = 0;
-                    for (const auto& probe: cells[i].probes()) {
-                        cell_member_type probe_id{gid, j++};
-                        probes.push_back({probe_id, probe});
-                    }
+            // Loop over the ids in the group
+            for (auto global_neuron_id : util::make_span(neuron_range)) {
+                // Convert group idx to xero indexed index in the group
+                // to allow indexing in the vector (Feels cludgy)
+                auto local_cell_idx = global_neuron_id - neuron_range.first;
+
+                // Get the cell properties based on the neuron idx
+                cells[local_cell_idx] = rec.get_cell(global_neuron_id);
+
+                // TODO: Is this the correct type for this variable? Its NOT a cell
+                cell_lid_type probe_idx = 0;
+                for (const auto& probe : cells[local_cell_idx].probes()) {
+                    cell_member_type probe_id{ global_neuron_id, probe_idx};
+                    probes.push_back({ probe_id, probe });
+                    probe_idx++;
                 }
+            }
 
-                cell_groups_[i] = cell_group_type(gids.first, cells);
-                PL(2);
-            });
+            cell_groups_[group_idx] = cell_group_type(neuron_range.first, cells);
+            PL(2);
+        });
 
         // insert probes
         probes_.assign(probes.begin(), probes.end());
