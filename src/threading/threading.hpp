@@ -1,11 +1,11 @@
 #pragma once
 
-#if defined(WITH_TBB)
+#if defined(NMC_HAVE_TBB)
     #include "tbb.hpp"
-#elif defined(WITH_OMP)
+#elif defined(NMC_HAVE_OMP)
     #include "omp.hpp"
 #else
-    #define WITH_SERIAL
+    #define NMC_HAVE_SERIAL
     #include "serial.hpp"
 #endif
 

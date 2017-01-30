@@ -1,7 +1,7 @@
 #pragma once
 
-#if !defined(WITH_OMP)
-    #error "this header can only be loaded if WITH_OMP is set"
+#if !defined(NMC_HAVE_OMP)
+    #error "this header can only be loaded if NMC_HAVE_OMP is set"
 #endif
 
 #include <omp.h>

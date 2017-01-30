@@ -134,7 +134,10 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         true,       // Overwrite outputfile if exists
         "./",       // output path
         "spikes",   // file name
-        "gdf"       // file extension
+        "gdf",      // file extension
+        
+        // Turn on/off profiling output for all ranks
+        false
     };
 
     cl_options options;
@@ -191,6 +194,9 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         TCLAP::SwitchArg spike_output_arg(
             "f","spike_file_output","save spikes to file", cmd, false);
 
+        TCLAP::SwitchArg profile_only_zero_arg(
+             "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
+
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
 
@@ -230,6 +236,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                         update_option(options.file_extension, fopts, "file_extension");
                     }
 
+                    update_option(options.profile_only_zero, fopts, "profile_only_zero");
+
                 }
                 catch (std::exception& e) {
                     throw model_description_error(
@@ -255,6 +263,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.trace_prefix, trace_prefix_arg);
         update_option(options.trace_max_gid, trace_max_gid_arg);
         update_option(options.spike_file_output, spike_output_arg);
+        update_option(options.profile_only_zero, profile_only_zero_arg);
 
         if (options.all_to_all && options.ring) {
             throw usage_error("can specify at most one of --ring and --all-to-all");

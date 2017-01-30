@@ -5,6 +5,8 @@
 #include "modccutil.hpp"
 #include "errorvisitor.hpp"
 
+using namespace nest::mc;
+
 expression_ptr inline_function_call(Expression* e)
 {
     if(auto f=e->is_function_call()) {
@@ -34,7 +36,7 @@ expression_ptr inline_function_call(Expression* e)
                           << " in the expression " << new_e->to_string() << "\n";
 #endif
                 auto v =
-                    make_unique<VariableReplacer>(
+                    util::make_unique<VariableReplacer>(
                         fargs[i]->is_argument()->spelling(),
                         id->spelling()
                     );
@@ -47,7 +49,7 @@ expression_ptr inline_function_call(Expression* e)
                           << " in the expression " << new_e->to_string() << "\n";
 #endif
                 auto v =
-                    make_unique<ValueInliner>(
+                    util::make_unique<ValueInliner>(
                         fargs[i]->is_argument()->spelling(),
                         value->value()
                     );
@@ -62,7 +64,7 @@ expression_ptr inline_function_call(Expression* e)
         }
         new_e->semantic(e->scope());
 
-        auto v = make_unique<ErrorVisitor>("");
+        auto v = util::make_unique<ErrorVisitor>("");
         new_e->accept(v.get());
 #ifdef LOGGING
         std::cout << "inline_function_call result " << new_e->to_string() << "\n\n";

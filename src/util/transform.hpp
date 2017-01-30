@@ -117,7 +117,7 @@ template <
 >
 range<transform_iterator<seq_citer, util::decay_t<F>>>
 transform_view(const Seq& s, const F& f) {
-    return {make_transform_iterator(cbegin(s), f), make_transform_iterator(cend(s), f)};
+    return {make_transform_iterator(util::cbegin(s), f), make_transform_iterator(util::cend(s), f)};
 }
 
 template <
@@ -129,7 +129,7 @@ template <
 >
 range<transform_iterator<seq_citer, util::decay_t<F>>, seq_csent>
 transform_view(const Seq& s, const F& f) {
-    return {make_transform_iterator(cbegin(s), f), cend(s)};
+    return {make_transform_iterator(util::cbegin(s), f), util::cend(s)};
 }
 
 } // namespace util

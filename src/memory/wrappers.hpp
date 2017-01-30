@@ -5,7 +5,7 @@
 
 #include <memory/memory.hpp>
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
@@ -96,7 +96,7 @@ namespace util {
         return is_on_host<typename std::decay<T>::type>::value;
     }
 
-    #ifdef WITH_CUDA
+    #ifdef NMC_HAVE_CUDA
     template <typename T>
     struct is_on_gpu : std::false_type {};
 
@@ -132,7 +132,7 @@ auto on_host(const C& c) -> decltype(make_const_view(c)) {
     return make_const_view(c);
 }
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 template <
     typename C,
     typename = typename std::enable_if<util::is_on_gpu_v<C>()>::type
