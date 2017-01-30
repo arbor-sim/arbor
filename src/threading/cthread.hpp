@@ -80,20 +80,13 @@ private:
 
     // set quit and wait for secondary threads to end
     ~task_pool();
-
-    // reference task_group specifics (in_flight)
-    friend task_group;
   
 public:
     // Like tbb calls: run queues a task,
-    // wait waits for all tasks to be done
-    // cancel dumps queued tasks
-    // and is_canceling return true iff
-    //   cancel() has been called
-    //   but a task is still in flight
+    // wait waits for all tasks in the group to be done
     void run(const task&);
     void run(task&&);
-    void wait(class task_group*);
+    void wait(task_group*);
   
     // includes master thread
     int get_num_threads() {
@@ -105,7 +98,9 @@ public:
     std::size_t get_current_thread() {
         return _thread_ids[std::this_thread::get_id()];
     }
-    
+
+    // singleton constructor - needed to order construction
+    // with other singletons (profiler)
     static task_pool& get_global_task_pool();
 };
 } //impl
