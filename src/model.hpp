@@ -42,7 +42,7 @@ public:
     model(const recipe& rec, const util::partition_range<Iter>& groups):
         cell_group_divisions_(groups.divisions().begin(), groups.divisions().end())
     {
-        // set up communicator based on partition
+        // set up communicator based on the partition of cells across tasks
         communicator_ = communicator_type{gid_partition()};
 
         // generate the cell groups in parallel, with one task per cell group
@@ -50,36 +50,30 @@ public:
         threading::parallel_vector<probe_record> probes;
 
         threading::parallel_for::apply(0, cell_groups_.size(),
-            //apply operation on all groups
             [&](cell_gid_type group_idx) {
-            PE("setup", "cells");
+                PE("setup", "cells");
 
-            // Get the neuron ids in this cell_group
-            auto neuron_range = gid_partition()[group_idx];
+                // Distribute cells across threads, get the local cells
+                auto cell_gids = gid_partition()[group_idx];
 
-            std::vector<cell> cells{ neuron_range.second - neuron_range.first };
+                std::vector<cell> cells{cell_gids.second - cell_gids.first};
+                for (auto gid : util::make_span(cell_gids)) {
+                    auto lid = gid - cell_gids.first;
 
-            // Loop over the ids in the group
-            for (auto global_neuron_id : util::make_span(neuron_range)) {
-                // Convert group idx to xero indexed index in the group
-                // to allow indexing in the vector (Feels cludgy)
-                auto local_cell_idx = global_neuron_id - neuron_range.first;
+                    // Get an instantiated cell
+                    cells[lid] = rec.get_cell(gid);
 
-                // Get the cell properties based on the neuron idx
-                cells[local_cell_idx] = rec.get_cell(global_neuron_id);
-
-                // TODO: Is this the correct type for this variable? Its NOT a cell
-                cell_lid_type probe_idx = 0;
-                for (const auto& probe : cells[local_cell_idx].probes()) {
-                    cell_member_type probe_id{ global_neuron_id, probe_idx};
-                    probes.push_back({ probe_id, probe });
-                    probe_idx++;
+                    cell_lid_type probe_idx = 0;
+                    for (const auto& probe : cells[lid].probes()) {
+                        cell_member_type probe_id{ gid, probe_idx};
+                        probes.push_back({ probe_id, probe });
+                        probe_idx++;
+                    }
                 }
-            }
 
-            cell_groups_[group_idx] = cell_group_type(neuron_range.first, cells);
-            PL(2);
-        });
+                cell_groups_[group_idx] = cell_group_type(cell_gids.first, cells);
+                PL(2);
+            });
 
         // insert probes
         probes_.assign(probes.begin(), probes.end());
