@@ -20,12 +20,15 @@
 
 #include <cstdlib>
 
+#include "timer.hpp"
+
 namespace nest {
 namespace mc {
 namespace threading {
 
 // Forward declare task_group at bottom of this header
 class task_group;
+using nest::mc::threading::impl::timer;
 
 namespace impl {
 
@@ -44,18 +47,18 @@ class task_pool {
 private:
     // lock and signal on task availability change
     // this is the crucial bit
-    mutex _tasks_mutex;
-    condition_variable _tasks_available; 
+    mutex tasks_mutex_;
+    condition_variable tasks_available_;
 
     // fifo of pending tasks
-    task_queue _tasks;
+    task_queue tasks_;
 
     // thread resource
-    thread_list _threads;
+    thread_list threads_;
     // threads -> index
-    thread_map _thread_ids;
+    thread_map thread_ids_;
     // flag to handle exit from all threads
-    bool _quit = false;
+    bool quit_ = false;
     
     // internals for taking tasks as a resource
     // and running them (updating above)
@@ -67,7 +70,14 @@ private:
     void run_tasks_while(task_group*);
     // loop forever for secondary threads
     // until quit is set
-    void run_tasks_loop();
+    void run_tasks_forever();
+
+    // common code for the previous
+    // finished is a function/lambda
+    //   that returns true when the infinite loop
+    //   needs to be broken
+    template<typename B>
+    void run_tasks_loop(B finished );
 
     // Create nthreads-1 new c std threads
     // must be > 0
@@ -90,13 +100,13 @@ public:
   
     // includes master thread
     int get_num_threads() {
-        return _threads.size() + 1;
+        return threads_.size() + 1;
     }
 
     // get a stable integer for the current thread that
     // is 0..nthreads
     std::size_t get_current_thread() {
-        return _thread_ids[std::this_thread::get_id()];
+        return thread_ids_[std::this_thread::get_id()];
     }
 
     // singleton constructor - needed to order construction
@@ -178,6 +188,8 @@ public:
     const_iterator cbegin() const { return data_.cbegin(); }
     const_iterator cend()   const { return data_.cend(); }
 
+    // only guarantees the state of the vector, but not the iterators
+    // unlike tbb push_back
     void push_back (value_type&& val) {
         critical([&] {
             data_.push_back(std::move(val));
@@ -188,22 +200,6 @@ public:
 inline std::string description() {
     return "CThread Pool";
 }
-
-struct timer {
-    using time_point = std::chrono::time_point<std::chrono::system_clock>;
-
-    static inline time_point tic() {
-        return std::chrono::system_clock::now();
-    }
-
-    static inline double toc(time_point t) {
-        return std::chrono::duration<double>{tic() - t}.count();
-    }
-
-    static inline double difference(time_point b, time_point e) {
-        return std::chrono::duration<double>{e-b}.count();
-    }
-};
 
 constexpr bool multithreaded() { return true; }
 

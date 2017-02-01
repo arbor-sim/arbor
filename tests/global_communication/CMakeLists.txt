@@ -11,12 +11,10 @@ set(COMMUNICATION_SOURCES
 )
 
 add_executable(global_communication.exe ${COMMUNICATION_SOURCES} ${HEADERS})
-target_link_libraries(global_communication.exe LINK_PUBLIC ${CMAKE_THREAD_LIBS_INIT} )
 
 set(TARGETS global_communication.exe)
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC ${CMAKE_THREAD_LIBS_INIT} )
     target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 

@@ -73,9 +73,10 @@ elseif(NMC_THREADING_MODEL MATCHES "cthread")
     find_package(Threads REQUIRED)
     add_definitions(-DNMC_HAVE_CTHREAD)
     set(NMC_HAVE_CTHREAD TRUE)
+    list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
     
     if(CMAKE_USE_PTHREADS_INIT)
-      set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} "-pthread")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
 
 elseif(NMC_THREADING_MODEL MATCHES "serial")

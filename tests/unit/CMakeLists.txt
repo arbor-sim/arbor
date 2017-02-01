@@ -72,7 +72,6 @@ add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 set(TARGETS test.exe)
 
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
-target_link_libraries( test.exe LINK_PUBLIC ${CMAKE_THREAD_LIBS_INIT} )
 
 if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
   add_dependencies(test.exe build_test_mods)
@@ -84,11 +83,9 @@ if(NMC_WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
     target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
-    target_link_libraries( test_cuda.exe LINK_PUBLIC ${CMAKE_THREAD_LIBS_INIT} )
 endif()
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC ${CMAKE_THREAD_LIBS_INIT} )
     target_link_libraries(${target} LINK_PUBLIC gtest nestmc)
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
