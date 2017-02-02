@@ -20,6 +20,10 @@ if(NMC_WITH_MPI)
     set(BASE_SOURCES ${BASE_SOURCES} communication/mpi.cpp)
 endif()
 
+if(NMC_HAVE_CTHREAD)
+    set(BASE_SOURCES ${BASE_SOURCES} threading/cthread.cpp)
+endif()
+
 add_library(nestmc ${BASE_SOURCES} ${HEADERS})
 
 if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
