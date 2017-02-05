@@ -18,7 +18,7 @@ int main() {
     return 0;
 }
 
-/// custom deleter for memory allocated on the device via cudaMalloc or cudaManagedMalloc
+/// custom deleter for POD types that have been allocated on the device from the host.
 template<typename T>
 struct device_deleter {
     void operator()(T* p) const {
@@ -28,27 +28,17 @@ struct device_deleter {
     }
 };
 
-/// custom deleter for memory allocated on the device via cudaMalloc or cudaManagedMalloc
-template<typename T>
-struct device_deleter {
-    void operator()(T* p) const {
-        cudaFree(p);
-    }
-};
-
 /// unique pointer with custom deleter for device memory
 template<typename T>
-using managed_pointer = std::unique_ptr<T, device_deleter<T>>;
+using device_pointer = std::unique_ptr<T, device_deleter<T>>;
 
 /// returns a uniqe_ptr to a copy of POD type T in device memory
-template <typename T, typename... Args>
-managed_pointer<T> allocate_managed(Args&&... args) {
-    //  return std::unique_ptr<T>(new T(std::forward<Args>(args) ...));
+template<typename T>
+device_pointer<T> copy_pod_to_device(const T& data) {
     T* data_on_device = nullptr;
-    cudaMallocManaged(&data_on_device, sizeof(T));
-    cudaDeviceSynchronize();
-    data = new (std::forward<Args>(args)...) T;
-    return managed_pointer<T>(data);
+    cudaMalloc(&data_on_device, sizeof(T));
+    cudaMemcpy(data_on_device, &data, sizeof(T), cudaMemcpyHostToDevice);
+    return device_pointer<T>{data_on_device};
 }
 
 /// returns a value of POD type stored on device

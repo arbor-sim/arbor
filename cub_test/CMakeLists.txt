@@ -5,8 +5,8 @@ if(WITH_CUDA)
     target_link_libraries(cub_test LINK_PUBLIC gpu)
     target_link_libraries(cub_test LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-    set_target_properties(cub_test
-       PROPERTIES
-       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-    )
+    #set_target_properties(cub_test
+    #PROPERTIES
+    #RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+    #)
 endif()
