@@ -12,6 +12,8 @@
 #include <algorithms.hpp>
 #include <communication/gathered_vector.hpp>
 #include <util/debug.hpp>
+#include <profiling/profiler.hpp>
+
 
 namespace nest {
 namespace mc {
@@ -71,9 +73,11 @@ namespace mpi {
         auto buffer_size = (rank()==root) ? size() : 0;
         std::vector<T> buffer(buffer_size);
 
+        PE("MPI", "Gather");
         MPI_Gather( &value,        traits::count(), traits::mpi_type(), // send buffer
                     buffer.data(), traits::count(), traits::mpi_type(), // receive buffer
                     root, MPI_COMM_WORLD);
+        PL(2);
 
         return buffer;
     }
@@ -90,9 +94,11 @@ namespace mpi {
         using traits = mpi_traits<T>;
         std::vector<T> buffer(size());
 
+        PE("MPI", "Allgather");
         MPI_Allgather( &value,        traits::count(), traits::mpi_type(), // send buffer
                        buffer.data(), traits::count(), traits::mpi_type(), // receive buffer
                        MPI_COMM_WORLD);
+        PL(2);
 
         return buffer;
     }
@@ -112,6 +118,7 @@ namespace mpi {
 
         std::vector<T> buffer(displs.back()/traits::count());
 
+        PE("MPI", "Allgatherv");
         MPI_Allgatherv(
             // send buffer
             values.data(), counts[rank()], traits::mpi_type(),
@@ -119,6 +126,7 @@ namespace mpi {
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
         );
+        PL(2);
 
         return buffer;
     }
@@ -142,6 +150,7 @@ namespace mpi {
 
         std::vector<T> buffer(displs.back()/traits::count());
 
+        PE("MPI", "Allgatherv-partition");
         MPI_Allgatherv(
             // send buffer
             values.data(), counts[rank()], traits::mpi_type(),
@@ -149,6 +158,7 @@ namespace mpi {
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
         );
+        PL(2);
 
         for (auto& d : displs) {
             d /= traits::count();
@@ -169,7 +179,9 @@ namespace mpi {
 
         T result;
 
+        PE("MPI", "Reduce");
         MPI_Reduce(&value, &result, 1, traits::mpi_type(), op, root, MPI_COMM_WORLD);
+        PL(2);
 
         return result;
     }
@@ -183,7 +195,9 @@ namespace mpi {
 
         T result;
 
+        PE("MPI", "Allreduce");
         MPI_Allreduce(&value, &result, 1, traits::mpi_type(), op, MPI_COMM_WORLD);
+        PL(2);
 
         return result;
     }
@@ -206,7 +220,9 @@ namespace mpi {
 
         using traits = mpi_traits<T>;
 
+        PE("MPI", "Bcast");
         MPI_Bcast(&value, traits::count(), traits::mpi_type(), root, MPI_COMM_WORLD);
+        PL(2);
 
         return value;
     }
@@ -220,7 +236,9 @@ namespace mpi {
         using traits = mpi_traits<T>;
         T value;
 
+        PE("MPI", "Bcast-void");
         MPI_Bcast(&value, traits::count(), traits::mpi_type(), root, MPI_COMM_WORLD);
+        PL(2);
 
         return value;
     }
