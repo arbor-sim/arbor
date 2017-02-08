@@ -1,7 +1,7 @@
 #pragma once
 
-#if !defined(WITH_TBB)
-    #error this header can only be loaded if WITH_TBB is set
+#if !defined(NMC_HAVE_TBB)
+    #error this header can only be loaded if NMC_HAVE_TBB is set
 #endif
 
 #include <string>

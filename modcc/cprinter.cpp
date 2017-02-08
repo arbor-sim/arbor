@@ -2,6 +2,7 @@
 
 #include "cprinter.hpp"
 #include "lexer.hpp"
+#include "options.hpp"
 
 /******************************************************************************
                               CPrinter driver
@@ -26,6 +27,11 @@ CPrinter::CPrinter(Module &m, bool o)
         }
     }
 
+    std::string module_name = Options::instance().modulename;
+    if (module_name == "") {
+        module_name = m.name();
+    }
+
     //////////////////////////////////////////////
     //////////////////////////////////////////////
     text_.add_line("#pragma once");
@@ -40,9 +46,9 @@ CPrinter::CPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    std::string class_name = "mechanism_" + m.name();
+    std::string class_name = "mechanism_" + module_name;
 
-    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + m.name() + "{");
+    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + module_name + "{");
     text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
@@ -80,14 +86,14 @@ CPrinter::CPrinter(Module &m, bool o)
         text_.add_line("};");
         text_.add_line(tname + " ion_" + ion.name + ";");
     }
-    text_.add_line();
 
     //////////////////////////////////////////////
     // constructor
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
-    text_.add_line(class_name + "(view vec_v, view vec_i, const_iview node_index)");
-    text_.add_line(":   base(vec_v, vec_i, node_index)");
+    text_.add_line();
+    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index)");
+    text_.add_line(":   base(vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -124,8 +130,16 @@ CPrinter::CPrinter(Module &m, bool o)
         }
         text_.end_line();
     }
-
     text_.add_line();
+
+    // copy in the weights if this is a density mechanism
+    if (m.kind() == moduleKind::density) {
+        text_.add_line("// add the user-supplied weights for converting from current density");
+        text_.add_line("// to per-compartment current in nA");
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+        text_.add_line();
+    }
+
     text_.add_line("// set initial values for variables and parameters");
     for(auto const& var : array_variables) {
         double val = var->value();
@@ -174,7 +188,7 @@ CPrinter::CPrinter(Module &m, bool o)
 
     text_.add_line("std::string name() const override {");
     text_.increase_indentation();
-    text_.add_line("return \"" + m.name() + "\";");
+    text_.add_line("return \"" + module_name + "\";");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -349,7 +363,6 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
-    text_.add_line("using base::vec_area_;");
     text_.add_line("using base::node_index_;");
 
     text_.add_line();
@@ -473,7 +486,9 @@ void CPrinter::visit(BlockExpression *e) {
         // these all must be handled
         text_.add_gutter();
         stmt->accept(this);
-        text_.end_line(";");
+        if (not stmt->is_if()) {
+            text_.end_line(";");
+        }
     }
 }
 
@@ -487,8 +502,24 @@ void CPrinter::visit(IfExpression *e) {
     increase_indentation();
     e->true_branch()->accept(this);
     decrease_indentation();
-    text_.add_gutter();
-    text_ << "}";
+    text_.add_line("}");
+    // check if there is a false-branch, i.e. if
+    // there is an "else" branch to print
+    if (auto fb = e->false_branch()) {
+        text_.add_gutter() << "else ";
+        // use recursion for "else if"
+        if (fb->is_if()) {
+            fb->accept(this);
+        }
+        // otherwise print the "else" block
+        else {
+            text_ << "{\n";
+            increase_indentation();
+            fb->accept(this);
+            decrease_indentation();
+            text_.add_line("}");
+        }
+    }
 }
 
 // NOTE: net_receive() is classified as a ProcedureExpression
@@ -836,4 +867,3 @@ void CPrinter::visit(BinaryExpression *e) {
     // reset parent precedence
     parent_op_ = pop;
 }
-

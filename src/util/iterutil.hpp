@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <util/compat.hpp>
 #include <util/meta.hpp>
 
 namespace nest {
@@ -78,7 +79,8 @@ auto front(Seq& seq) -> decltype(*std::begin(seq)) {
 
 template <typename Seq>
 auto back(Seq& seq) -> decltype(*std::begin(seq)) {
-    return *upto(std::begin(seq), std::end(seq));
+    // COMPAT: use own `end` implementation to work around xlC 13.1 bug.
+    return *upto(std::begin(seq), compat::end(seq));
 }
 
 /*

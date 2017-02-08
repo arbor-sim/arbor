@@ -5,8 +5,10 @@
 #include "constantfolder.hpp"
 #include "modccutil.hpp"
 
+using namespace nest::mc;
+
 TEST(Optimizer, constant_folding) {
-    auto v = make_unique<ConstantFolderVisitor>();
+    auto v = util::make_unique<ConstantFolderVisitor>();
     {
         auto e = parse_line_expression("x = 2*3");
         VERBOSE_PRINT( e->to_string() );

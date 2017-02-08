@@ -29,7 +29,7 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 using lowered_cell = fvm::fvm_multicell<gpu::backend>;
 #else
 using lowered_cell = fvm::fvm_multicell<multicore::backend>;
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
 
         // output profile and diagnostic feedback
         auto const num_steps = options.tfinal / options.dt;
-        util::profiler_output(0.001, m.num_cells()*num_steps);
+        util::profiler_output(0.001, m.num_cells()*num_steps, options.profile_only_zero);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces
@@ -181,7 +181,7 @@ void banner() {
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
     std::cout << "  - communication policy: " << global_policy::name() << "\n";
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
     std::cout << "  - gpu support: on\n";
 #else
     std::cout << "  - gpu support: off\n";

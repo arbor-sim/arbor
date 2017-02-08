@@ -6,6 +6,8 @@
 #include <iterator>
 #include <type_traits>
 
+#include <util/compat.hpp>
+
 namespace nest {
 namespace mc {
 namespace util {
@@ -36,8 +38,9 @@ constexpr auto cbegin(const T& c) -> decltype(std::begin(c)) {
 }
 
 template <typename T>
-constexpr auto cend(const T& c) -> decltype(std::end(c)) {
-    return std::end(c);
+constexpr auto cend(const T& c) -> decltype(compat::end(c)) {
+    // COMPAT: use own `end` implementation to work around xlC 13.1 bug.
+    return compat::end(c);
 }
 
 template <typename T>
@@ -55,14 +58,14 @@ constexpr bool empty(const T (& c)[N]) noexcept {
 template <typename Seq>
 struct sequence_traits {
     using iterator = decltype(std::begin(std::declval<Seq&>()));
-    using const_iterator = decltype(cbegin(std::declval<Seq&>()));
+    using const_iterator = decltype(util::cbegin(std::declval<Seq&>()));
     using value_type = typename std::iterator_traits<iterator>::value_type;
     using reference = typename std::iterator_traits<iterator>::reference;
     using difference_type = typename std::iterator_traits<iterator>::difference_type;
     using size_type = decltype(size(std::declval<Seq&>()));
     // for use with heterogeneous ranges
     using sentinel = decltype(std::end(std::declval<Seq&>()));
-    using const_sentinel = decltype(cend(std::declval<Seq&>()));
+    using const_sentinel = decltype(util::cend(std::declval<Seq&>()));
 };
 
 // Convenience short cuts for `enable_if`

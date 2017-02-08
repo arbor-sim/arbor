@@ -1,4 +1,4 @@
-#ifdef WITH_MPI
+#ifdef NMC_HAVE_MPI
 
 #include "../gtest.h"
 
@@ -97,4 +97,4 @@ TEST(mpi, gather_all_with_partition) {
     EXPECT_EQ(expected_divisions, gathered.partition());
 }
 
-#endif // WITH_MPI
+#endif // NMC_HAVE_MPI

@@ -1,8 +1,18 @@
 #include <iostream>
 
+#include "astmanip.hpp"
 #include "error.hpp"
 #include "functionexpander.hpp"
 #include "modccutil.hpp"
+
+using namespace nest::mc;
+
+expression_ptr insert_unique_local_assignment(call_list_type& stmts, Expression* e) {
+    auto exprs = make_unique_local_assign(e->scope(), e);
+    stmts.push_front(std::move(exprs.local_decl));
+    stmts.push_back(std::move(exprs.assignment));
+    return std::move(exprs.id);
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 //  function call site lowering
@@ -10,7 +20,7 @@
 
 call_list_type lower_function_calls(Expression* e)
 {
-    auto v = make_unique<FunctionCallLowerer>(e->scope());
+    auto v = util::make_unique<FunctionCallLowerer>(e->scope());
 
     if(auto a=e->is_assignment()) {
 #ifdef LOGGING
@@ -96,22 +106,6 @@ void FunctionCallLowerer::visit(BinaryExpression *e) {
 ///////////////////////////////////////////////////////////////////////////////
 //  function argument lowering
 ///////////////////////////////////////////////////////////////////////////////
-Symbol* make_unique_local(std::shared_ptr<Scope<Symbol>> scope) {
-    std::string name;
-    auto i = 0;
-    do {
-        name = pprintf("ll%_", i);
-        ++i;
-    } while(scope->find(name));
-
-    return
-        scope->add_local_symbol(
-            name,
-            make_symbol<LocalVariable>(
-                Location(), name, localVariableKind::local
-            )
-        );
-}
 
 call_list_type
 lower_function_arguments(std::vector<expression_ptr>& args)
@@ -130,28 +124,10 @@ lower_function_arguments(std::vector<expression_ptr>& args)
             continue;
         }
 
-        // use the source location of the original statement
-        auto loc = e->location();
-
-        // make an identifier for the new symbol which will store the result of
-        // the function call
-        auto id = make_expression<IdentifierExpression>
-            (loc, make_unique_local(e->scope())->name());
-        id->semantic(e->scope());
-
-        // generate a LOCAL declaration for the variable
-        new_statements.push_front(
-            make_expression<LocalDeclaration>(loc, id->is_identifier()->spelling())
-        );
-
-        // make a binary expression which assigns the argument to the variable
-        auto ass = binary_expression(loc, tok::eq, id->clone(), e->clone());
-        ass->semantic(e->scope());
+        auto id = insert_unique_local_assignment(new_statements, e.get());
 #ifdef LOGGING
-        std::cout << "  lowering to " << ass->to_string() << "\n";
+        std::cout << "  lowering to " << new_statements.back()->to_string() << "\n";
 #endif
-        new_statements.push_back(std::move(ass));
-
         // replace the function call in the original expression with the local
         // variable which holds the pre-computed value
         std::swap(e, id);

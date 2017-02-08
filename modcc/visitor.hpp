@@ -25,6 +25,9 @@ public:
     virtual void visit(ArgumentExpression *e)   { visit((Expression*) e); }
     virtual void visit(PrototypeExpression *e)  { visit((Expression*) e); }
     virtual void visit(CallExpression *e)       { visit((Expression*) e); }
+    virtual void visit(ReactionExpression *e)   { visit((Expression*) e); }
+    virtual void visit(StoichTermExpression *e) { visit((Expression*) e); }
+    virtual void visit(StoichExpression *e)     { visit((Expression*) e); }
     virtual void visit(VariableExpression *e)   { visit((Expression*) e); }
     virtual void visit(IndexedVariable *e)      { visit((Expression*) e); }
     virtual void visit(FunctionExpression *e)   { visit((Expression*) e); }
@@ -46,11 +49,13 @@ public:
 
     virtual void visit(BinaryExpression *e) = 0;
     virtual void visit(AssignmentExpression *e) { visit((BinaryExpression*) e); }
+    virtual void visit(ConserveExpression *e)   { visit((BinaryExpression*) e); }
     virtual void visit(AddBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(SubBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(MulBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(DivBinaryExpression *e)  { visit((BinaryExpression*) e); }
     virtual void visit(PowBinaryExpression *e)  { visit((BinaryExpression*) e); }
+
 
     virtual ~Visitor() {};
 };

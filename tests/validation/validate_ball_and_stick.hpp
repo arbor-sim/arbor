@@ -59,7 +59,6 @@ void run_ncomp_convergence_test(
     runner.assert_all_convergence();
 }
 
-
 template <typename LoweredCell>
 void validate_ball_and_stick() {
     using namespace nest::mc;
@@ -77,6 +76,27 @@ void validate_ball_and_stick() {
     run_ncomp_convergence_test<LoweredCell>(
         "ball_and_stick",
         "neuron_ball_and_stick.json",
+        c,
+        samplers);
+}
+
+template <typename LoweredCell>
+void validate_ball_and_taper() {
+    using namespace nest::mc;
+
+    cell c = make_cell_ball_and_taper();
+    add_common_voltage_probes(c);
+
+    float sample_dt = 0.025f;
+    sampler_info samplers[] = {
+        {"soma.mid", {0u, 0u}, simple_sampler(sample_dt)},
+        {"taper.mid", {0u, 1u}, simple_sampler(sample_dt)},
+        {"taper.end", {0u, 2u}, simple_sampler(sample_dt)}
+    };
+
+    run_ncomp_convergence_test<LoweredCell>(
+        "ball_and_taper",
+        "neuron_ball_and_taper.json",
         c,
         samplers);
 }

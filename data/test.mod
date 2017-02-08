@@ -59,9 +59,27 @@ PROCEDURE trates(v) {
     minf=1-1/(1+exp((v-vhalfm)/km))
     hinf=1/(1+exp((v-vhalfh)/kh))
 
+    if(minf<0) {
+        foo1()
+    }
+    else if (hinf<0) {
+        foo2()
+    }
+    else {
+        foo3()
+    }
+
+    if(minf>=m) {
+        foo3()
+    }
+
     mtau = 0.6
     htau = 1500
 }
+
+PROCEDURE foo1() {}
+PROCEDURE foo2() {}
+PROCEDURE foo3() {}
 
 : the 'states' in the definition is giving the derivative a name
 : this name is then used in the SOLVE statement above
