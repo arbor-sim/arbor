@@ -1,11 +1,31 @@
 #pragma once
 
+#include <string>
+
+namespace nest { namespace mc { namespace communication {
+    enum class global_policy_kind {serial, mpi, dryrun};
+}}}
+
+namespace std {
+    inline
+    std::string to_string(nest::mc::communication::global_policy_kind k) {
+        using namespace nest::mc::communication;
+        if (k == global_policy_kind::mpi) {
+            return "MPI";
+        }
+        if (k == global_policy_kind::dryrun) {
+            return "dryrun";
+        }
+        return "serial";
+    }
+}
+
 #if defined(NMC_HAVE_MPI)
-    #include "communication/mpi_global_policy.hpp"
+    #include "mpi_global_policy.hpp"
 #elif defined(NMC_HAVE_DRYRUN)
-    #include "communication/dryrun_global_policy.hpp"
+    #include "dryrun_global_policy.hpp"
 #else
-    #include "communication/serial_global_policy.hpp"
+    #include "serial_global_policy.hpp"
 #endif
 
 namespace nest {

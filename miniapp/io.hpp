@@ -36,6 +36,9 @@ struct cl_options {
     std::string file_name;
     std::string file_extension;
 
+    // dry run parameters
+    int dry_run_ranks;
+
     // Turn on/off profiling output for all ranks
     bool profile_only_zero;
 };

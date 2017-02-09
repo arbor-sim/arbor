@@ -54,7 +54,8 @@ struct serial_global_policy {
 
     static void setup(int& argc, char**& argv) {}
     static void teardown() {}
-    static const char* name() { return "serial"; }
+
+    static global_policy_kind kind() { return global_policy_kind::serial; };
 };
 
 using global_policy = serial_global_policy;

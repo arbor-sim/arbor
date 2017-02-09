@@ -59,7 +59,7 @@ struct mpi_global_policy {
         nest::mc::mpi::finalize();
     }
 
-    static const char* name() { return "MPI"; }
+    static global_policy_kind kind() { return global_policy_kind::mpi; };
 };
 
 using global_policy = mpi_global_policy;

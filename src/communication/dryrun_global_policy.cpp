@@ -1,4 +1,4 @@
-#include "dryrun_global_policy.hpp"
+#include "global_policy.hpp"
 
 namespace nest {
 namespace mc {

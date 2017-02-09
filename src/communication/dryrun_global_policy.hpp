@@ -36,7 +36,9 @@ struct dryrun_global_policy {
                 auto& s = local_spikes[i];
                 // the new global spike is the same as the local spike, with
                 // its source index shifted to the dummy domain
-                global_spikes[first_spike+i] = {s.source+first_cell, s.time};
+                auto source = s.source;
+                source.gid += first_cell;
+                global_spikes[first_spike+i] = {source, s.time};
             }
         }
 
@@ -73,7 +75,8 @@ struct dryrun_global_policy {
 
     static void setup(int& argc, char**& argv) {}
     static void teardown() {}
-    static const char* name() { return "dry run"; }
+
+    static global_policy_kind kind() { return global_policy_kind::dryrun; };
 };
 
 using global_policy = dryrun_global_policy;
