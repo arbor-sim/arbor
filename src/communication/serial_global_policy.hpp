@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
@@ -30,6 +31,12 @@ struct serial_global_policy {
         return 1;
     }
 
+    static void set_sizes(int comm_size, int num_local_cells) {
+        throw std::runtime_error(
+            "Attempt to set comm size for serial global communication "
+            "policy, this is only permitted for dry run mode");
+    }
+
     template <typename T>
     static T min(T value) {
         return value;
@@ -45,18 +52,12 @@ struct serial_global_policy {
         return value;
     }
 
-    template <
-        typename T,
-        typename = typename std::enable_if<std::is_integral<T>::value>
-    >
-    static std::vector<T> make_map(T local) {
-        return {T(0), local};
-    }
-
     static void setup(int& argc, char**& argv) {}
     static void teardown() {}
     static const char* name() { return "serial"; }
 };
+
+using global_policy = serial_global_policy;
 
 } // namespace communication
 } // namespace mc

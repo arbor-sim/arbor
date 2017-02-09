@@ -1,7 +1,9 @@
 #pragma once
 
-#ifdef NMC_HAVE_MPI
+#if defined(NMC_HAVE_MPI)
     #include "communication/mpi_global_policy.hpp"
+#elif defined(NMC_HAVE_DRYRUN)
+    #include "communication/dryrun_global_policy.hpp"
 #else
     #include "communication/serial_global_policy.hpp"
 #endif
@@ -9,12 +11,6 @@
 namespace nest {
 namespace mc {
 namespace communication {
-
-#ifdef NMC_HAVE_MPI
-using global_policy = nest::mc::communication::mpi_global_policy;
-#else
-using global_policy = nest::mc::communication::serial_global_policy;
-#endif
 
 template <typename Policy>
 struct policy_guard {
