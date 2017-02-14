@@ -34,7 +34,7 @@ public:
 class CnexpSolverVisitor : public BlockRewriterBase {
 protected:
     // list of identifier names appearing in derivatives on lhs
-    std::vector<std::string> dvars;
+    std::vector<std::string> dvars_;
 
 public:
     using BlockRewriterBase::visit;
@@ -46,7 +46,7 @@ public:
     virtual void visit(AssignmentExpression *e) override;
 
     virtual void reset() override {
-        dvars.clear();
+        dvars_.clear();
         BlockRewriterBase::reset();
     }
 };
@@ -54,21 +54,21 @@ public:
 class SparseSolverVisitor : public BlockRewriterBase {
 protected:
     // List of identifier names appearing in derivatives on lhs.
-    std::vector<std::string> dvars;
+    std::vector<std::string> dvars_;
 
     // 'Current' differential equation is for variable with this
     // index in `dvars`.
-    unsigned deq_index = 0;
+    unsigned deq_index_ = 0;
 
     // Expanded local assignments that need to be substituted in for derivative
     // calculations.
-    substitute_map local_expr;
+    substitute_map local_expr_;
 
     // Symbolic matrix for backwards Euler step.
-    symge::sym_matrix A;
+    symge::sym_matrix A_;
 
     // 'Symbol table' for symbolic manipulation.
-    symge::symbol_table symtbl;
+    symge::symbol_table symtbl_;
 
 public:
     using BlockRewriterBase::visit;
@@ -79,6 +79,6 @@ public:
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
-    virtual void finalise() override;
+    virtual void finalize() override;
     virtual void reset() override;
 };

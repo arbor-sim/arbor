@@ -150,8 +150,9 @@ inline bool primitive(symbol s) {
 using sym_row = msparse::row<symbol>;
 using sym_matrix = msparse::matrix<symbol>;
 
-// Perform Gauss-Jordan reduction on a (possibly augmented) symbolic matrix;
-// new symbol definitions will be added via provided symbol table.
+// Perform Gauss-Jordan reduction on a (possibly augmented) symbolic matrix, with
+// pivots taken from the diagonal elements. New symbol definitions due to fill-in
+// will be added via the provided symbol table.
 void gj_reduce(sym_matrix& A, symbol_table& table);
 
 } // namespace symge

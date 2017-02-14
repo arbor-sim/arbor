@@ -8,7 +8,7 @@
 #include "expressionclassifier.hpp"
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
-#include "kinrewriter.hpp"
+#include "kineticrewriter.hpp"
 #include "module.hpp"
 #include "parser.hpp"
 #include "solvers.hpp"

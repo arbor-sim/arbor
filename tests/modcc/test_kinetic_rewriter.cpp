@@ -2,7 +2,7 @@
 #include <string>
 
 #include "expression.hpp"
-#include "kinrewriter.hpp"
+#include "kineticrewriter.hpp"
 #include "parser.hpp"
 
 #include "alg_collect.hpp"

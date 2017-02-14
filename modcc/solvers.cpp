@@ -20,7 +20,7 @@ void CnexpSolverVisitor::visit(BlockExpression* e) {
     for (auto& stmt: e->statements()) {
         if (stmt && stmt->is_assignment() && stmt->is_assignment()->lhs()->is_derivative()) {
             auto id = stmt->is_assignment()->lhs()->is_derivative();
-            dvars.push_back(id->name());
+            dvars_.push_back(id->name());
         }
     }
 
@@ -41,7 +41,7 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
     }
 
     auto s = deriv->name();
-    linear_test_result r = linear_test(rhs, dvars);
+    linear_test_result r = linear_test(rhs, dvars_);
 
     if (!r.monolinear(s)) {
         error({"System not diagonal linear for cnexp", loc});
@@ -177,7 +177,7 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
     for (auto& stmt: e->statements()) {
         if (stmt && stmt->is_assignment() && stmt->is_assignment()->lhs()->is_derivative()) {
             auto id = stmt->is_assignment()->lhs()->is_derivative();
-            dvars.push_back(id->name());
+            dvars_.push_back(id->name());
         }
     }
 
@@ -185,9 +185,9 @@ void SparseSolverVisitor::visit(BlockExpression* e) {
 }
 
 void SparseSolverVisitor::visit(AssignmentExpression *e) {
-    if (A.empty()) {
-        unsigned n = dvars.size();
-        A = symge::sym_matrix(n, n);
+    if (A_.empty()) {
+        unsigned n = dvars_.size();
+        A_ = symge::sym_matrix(n, n);
     }
 
     auto loc = e->location();
@@ -202,43 +202,43 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
 
         auto id = lhs->is_identifier();
         if (id) {
-            auto expand = substitute(rhs, local_expr);
-            if (involves_identifier(expand, dvars)) {
-                local_expr[id->spelling()] = std::move(expand);
+            auto expand = substitute(rhs, local_expr_);
+            if (involves_identifier(expand, dvars_)) {
+                local_expr_[id->spelling()] = std::move(expand);
             }
         }
         return;
     }
 
     auto s = deriv->name();
-    auto expanded_rhs = substitute(rhs, local_expr);
-    linear_test_result r = linear_test(expanded_rhs, dvars);
+    auto expanded_rhs = substitute(rhs, local_expr_);
+    linear_test_result r = linear_test(expanded_rhs, dvars_);
     if (!r.is_homogeneous) {
         error({"System not homogeneous linear for sparse", loc});
         return;
     }
 
     // Populate sparse symbolic matrix for GE.
-    if (s!=dvars[deq_index]) {
+    if (s!=dvars_[deq_index_]) {
         error({"ICE: inconsistent ordering of derivative assignments", loc});
     }
 
     auto dt_expr = make_expression<IdentifierExpression>(loc, "dt");
     auto one_expr = make_expression<NumberExpression>(loc, 1.0);
-    for (unsigned j = 0; j<dvars.size(); ++j) {
+    for (unsigned j = 0; j<dvars_.size(); ++j) {
         expression_ptr expr;
 
         // For zero coefficient and diagonal element, the matrix entry is 1.
         // For non-zero coefficient c and diagonal element, the entry is 1-c*dt.
         // Otherwise, for non-zero coefficient c, the entry is -c*dt.
 
-        if (r.coef.count(dvars[j])) {
+        if (r.coef.count(dvars_[j])) {
             expr = make_expression<MulBinaryExpression>(loc,
-                       r.coef[dvars[j]]->clone(),
+                       r.coef[dvars_[j]]->clone(),
                        dt_expr->clone());
         }
 
-        if (j==deq_index) {
+        if (j==deq_index_) {
             if (expr) {
                 expr = make_expression<SubBinaryExpression>(loc,
                            one_expr->clone(),
@@ -260,30 +260,30 @@ void SparseSolverVisitor::visit(AssignmentExpression *e) {
         statements_.push_back(std::move(local_a_term.local_decl));
         statements_.push_back(std::move(local_a_term.assignment));
 
-        A[deq_index].push_back({j, symtbl.define(a_)});
+        A_[deq_index_].push_back({j, symtbl_.define(a_)});
     }
-    ++deq_index;
+    ++deq_index_;
 }
 
-void SparseSolverVisitor::finalise() {
+void SparseSolverVisitor::finalize() {
     std::vector<symge::symbol> rhs;
-    for (const auto& var: dvars) {
-        rhs.push_back(symtbl.define(var));
+    for (const auto& var: dvars_) {
+        rhs.push_back(symtbl_.define(var));
     }
-    A.augment(rhs);
+    A_.augment(rhs);
 
-    symge::gj_reduce(A, symtbl);
+    symge::gj_reduce(A_, symtbl_);
 
     // Create and assign intermediate variables.
-    for (unsigned i = 0; i<symtbl.size(); ++i) {
-        symge::symbol s = symtbl[i];
+    for (unsigned i = 0; i<symtbl_.size(); ++i) {
+        symge::symbol s = symtbl_[i];
 
         if (primitive(s)) continue;
 
         auto expr = as_expression(definition(s));
         auto local_t_term = make_unique_local_assign(block_scope_, expr.get(), "t_");
         auto t_ = local_t_term.id->is_identifier()->spelling();
-        symtbl.name(s, t_);
+        symtbl_.name(s, t_);
 
         statements_.push_back(std::move(local_t_term.local_decl));
         statements_.push_back(std::move(local_t_term.assignment));
@@ -291,26 +291,26 @@ void SparseSolverVisitor::finalise() {
 
     // State variable updates given by rhs/diagonal for reduced matrix.
     Location loc;
-    for (unsigned i = 0; i<A.nrow(); ++i) {
-        unsigned rhs = A.augcol();
+    for (unsigned i = 0; i<A_.nrow(); ++i) {
+        unsigned rhs = A_.augcol();
 
         auto expr =
             make_expression<AssignmentExpression>(loc,
-                make_expression<IdentifierExpression>(loc, dvars[i]),
+                make_expression<IdentifierExpression>(loc, dvars_[i]),
                 make_expression<DivBinaryExpression>(loc,
-                    make_expression<IdentifierExpression>(loc, symge::name(A[i][rhs])),
-                    make_expression<IdentifierExpression>(loc, symge::name(A[i][i]))));
+                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][rhs])),
+                    make_expression<IdentifierExpression>(loc, symge::name(A_[i][i]))));
 
         statements_.push_back(std::move(expr));
     }
 
-    BlockRewriterBase::finalise();
+    BlockRewriterBase::finalize();
 }
 
 void SparseSolverVisitor::reset() {
-    symtbl.clear();
-    dvars.clear();
-    deq_index = 0;
+    symtbl_.clear();
+    dvars_.clear();
+    deq_index_ = 0;
     BlockRewriterBase::reset();
 }
 

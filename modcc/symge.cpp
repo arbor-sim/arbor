@@ -6,10 +6,12 @@
 
 namespace symge {
 
-// Returns q[c]*p - p[c]*q
+// Returns q[c]*p - p[c]*q; new symbols required due to fill-in are provided by the
+// `define_sym` functor, which takes a `symbol_term_diff` and returns a `symbol`.
+
 template <typename DefineSym>
 sym_row row_reduce(unsigned c, const sym_row& p, const sym_row& q, DefineSym define_sym) {
-    if (p.index(c)==p.npos || q.index(c)==q.npos) throw std::runtime_error("improper row GE");
+    if (p.index(c)==p.npos || q.index(c)==q.npos) throw std::runtime_error("improper row reduction");
 
     sym_row u;
     symbol x = q[c];
@@ -41,7 +43,8 @@ sym_row row_reduce(unsigned c, const sym_row& p, const sym_row& q, DefineSym def
     return u;
 }
 
-// simple greedy estimate based on immediate fill cost
+// Estimate cost of a choice of pivot for G–J reduction below. Uses a simple greedy
+// estimate based on immediate fill cost.
 double estimate_cost(const sym_matrix& A, unsigned p) {
     unsigned nfill = 0;
 
@@ -60,9 +63,17 @@ double estimate_cost(const sym_matrix& A, unsigned p) {
     return nfill;
 }
 
+// Perform Gauss-Jordan elimination on given symbolic matrix. New symbols
+// required due to fill-in are added to the supplied symbol table.
+//
+// The matrix A is regarded as being diagonally dominant, and so pivots
+// are selected from the diagonal. The choice of pivot at each stage of
+// the reduction is goverened by a cost estimation (see above).
+//
+// The reduction is division-free: the result will have non-zero terms
+// that are symbols that are either primitive, or defined (in the symbol
+// table) as products or differences of products of other symbols.
 void gj_reduce(sym_matrix& A, symbol_table& table) {
-    // Expect A to be a (possibly column-augmented) diagonally dominant
-    // matrix; take diagonal elements as pivots.
     if (A.nrow()>A.ncol()) throw std::runtime_error("improper matrix for reduction");
 
     auto define_sym = [&table](symbol_term_diff t) { return table.define(t); };

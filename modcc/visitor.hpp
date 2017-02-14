@@ -65,7 +65,24 @@ public:
 // Visitor specialization intended for use as a base class for visitors that
 // operate as function or procedure body rewriters after semantic analysis.
 //
-// Errors are recorded through the `error_stack` mixin, rather than by
+// Block rewriter visitors construct a new block body from a supplied
+// `BlockExpression`, `ProcedureExpression` or `FunctionExpression`. By default,
+// expressions are simply copied to the list of statements corresponding to the
+// rewritten block; nested blocks as provided by `IfExpression` objects are
+// handled recursively.
+//
+// The `finalize()` method is called after visiting all the statements in the
+// top-level block, and is intended to be overrided by derived classes as required.
+//
+// The `as_block()` method is intended to be called by users of the derived block
+// rewriter objects. It constructs a new `BlockExpression` from the accumulated
+// replacement statements and applies a semantic pass if the `BlockRewriterBase`
+// was given a corresponding scope
+//
+// The visitor maintains significant internal state: the `reset` method should
+// be called between visits of top-level blocks.
+//
+// Errors are recorded through the `error_stack` mixin rather than by
 // throwing an exception.
 
 class BlockRewriterBase : public Visitor, public error_stack {
@@ -97,7 +114,7 @@ public:
         }
 
         if (top) {
-            finalise();
+            finalize();
         }
     }
 
@@ -174,6 +191,6 @@ protected:
     expr_list_type statements_;
 
     // Finalise statements list at end of top block visit.
-    virtual void finalise() {}
+    virtual void finalize() {}
 };
 

@@ -9,7 +9,7 @@ set(MODCC_SOURCES
     functionexpander.cpp
     functioninliner.cpp
     lexer.cpp
-    kinrewriter.cpp
+    kineticrewriter.cpp
     module.cpp
     parser.cpp
     solvers.cpp

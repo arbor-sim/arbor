@@ -23,7 +23,7 @@ protected:
         dterms.clear();
     }
 
-    virtual void finalise() override;
+    virtual void finalize() override;
 
 private:
     // Acccumulated terms for derivative expressions, keyed by id name.
@@ -83,7 +83,7 @@ void KineticRewriter::visit(ReactionExpression* e) {
     statements_.push_back(std::move(local_net_rate.assignment));
     scope = local_net_rate.scope; // nop for now...
 
-    auto net_rate_sym = std::move(local_net_rate.id);
+    const auto& net_rate_sym = local_net_rate.id;
 
     // Net change in quantity after forward reaction:
     // e.g.  A + ... <-> 3A + ...
@@ -137,7 +137,7 @@ void KineticRewriter::visit(ReactionExpression* e) {
     }
 }
 
-void KineticRewriter::finalise() {
+void KineticRewriter::finalize() {
     // append new derivative assignments from saved terms
     for (auto& p: dterms) {
         auto loc = p.second->location();

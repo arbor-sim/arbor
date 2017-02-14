@@ -818,7 +818,7 @@ void PDiffExpression::semantic(scope_ptr scp) {
 
     if (!var_->is_identifier()) {
         error(pprintf("the variable in the partial differential expression is not "
-                      "an identifier, but instead ", yellow(var_->to_string())));
+                      "an identifier, but instead %", yellow(var_->to_string())));
     }
     var_->semantic(scp);
     arg_->semantic(scp);
