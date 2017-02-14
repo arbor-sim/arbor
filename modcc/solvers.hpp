@@ -14,12 +14,33 @@
 
 expression_ptr remove_unused_locals(BlockExpression* block);
 
-class DirectSolverVisitor : public BlockRewriterBase {
+class SolverVisitorBase: public BlockRewriterBase {
+protected:
+    // list of identifier names appearing in derivatives on lhs
+    std::vector<std::string> dvars_;
+
 public:
     using BlockRewriterBase::visit;
 
+    SolverVisitorBase() {}
+    SolverVisitorBase(scope_ptr enclosing): BlockRewriterBase(enclosing) {}
+
+    virtual std::vector<std::string> solved_identifiers() const {
+        return dvars_;
+    }
+
+    virtual void reset() override {
+        dvars_.clear();
+        BlockRewriterBase::reset();
+    }
+};
+
+class DirectSolverVisitor : public SolverVisitorBase {
+public:
+    using SolverVisitorBase::visit;
+
     DirectSolverVisitor() {}
-    DirectSolverVisitor(scope_ptr enclosing): BlockRewriterBase(enclosing) {}
+    DirectSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
 
     virtual void visit(AssignmentExpression *e) override {
         // No solver method, so declare an error if lhs is a derivative.
@@ -31,31 +52,19 @@ public:
     }
 };
 
-class CnexpSolverVisitor : public BlockRewriterBase {
-protected:
-    // list of identifier names appearing in derivatives on lhs
-    std::vector<std::string> dvars_;
-
+class CnexpSolverVisitor : public SolverVisitorBase {
 public:
-    using BlockRewriterBase::visit;
+    using SolverVisitorBase::visit;
 
     CnexpSolverVisitor() {}
-    CnexpSolverVisitor(scope_ptr enclosing): BlockRewriterBase(enclosing) {}
+    CnexpSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
-
-    virtual void reset() override {
-        dvars_.clear();
-        BlockRewriterBase::reset();
-    }
 };
 
-class SparseSolverVisitor : public BlockRewriterBase {
+class SparseSolverVisitor : public SolverVisitorBase {
 protected:
-    // List of identifier names appearing in derivatives on lhs.
-    std::vector<std::string> dvars_;
-
     // 'Current' differential equation is for variable with this
     // index in `dvars`.
     unsigned deq_index_ = 0;
@@ -71,14 +80,18 @@ protected:
     symge::symbol_table symtbl_;
 
 public:
-    using BlockRewriterBase::visit;
+    using SolverVisitorBase::visit;
 
     SparseSolverVisitor() {}
-
-    SparseSolverVisitor(scope_ptr enclosing): BlockRewriterBase(enclosing) {}
+    SparseSolverVisitor(scope_ptr enclosing): SolverVisitorBase(enclosing) {}
 
     virtual void visit(BlockExpression* e) override;
     virtual void visit(AssignmentExpression *e) override;
     virtual void finalize() override;
-    virtual void reset() override;
+    virtual void reset() override {
+        deq_index_ = 0;
+        local_expr_.clear();
+        symtbl_.clear();
+        SolverVisitorBase::reset();
+    }
 };

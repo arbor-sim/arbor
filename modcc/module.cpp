@@ -12,6 +12,78 @@
 #include "module.hpp"
 #include "parser.hpp"
 #include "solvers.hpp"
+#include "symdiff.hpp"
+#include "visitor.hpp"
+
+class NrnCurrentRewriter: public BlockRewriterBase {
+    expression_ptr id(const std::string& name, Location loc) {
+        return make_expression<IdentifierExpression>(loc, name);
+    }
+
+    expression_ptr id(const std::string& name) {
+        return id(name, loc_);
+    }
+
+    static ionKind is_ion_update(Expression* e) {
+        if(auto a = e->is_assignment()) {
+            if(auto sym = a->lhs()->is_identifier()->symbol()) {
+                if(auto var = sym->is_local_variable()) {
+                    return var->ion_channel();
+                }
+            }
+        }
+        return ionKind::none;
+    }
+
+    moduleKind kind_;
+    bool has_current_update_ = false;
+
+public:
+    using BlockRewriterBase::visit;
+
+    explicit NrnCurrentRewriter(moduleKind kind): kind_(kind) {}
+
+    virtual void finalize() override {
+        if (has_current_update_) {
+            // Initialize current_ as first statement.
+            statements_.push_front(make_expression<AssignmentExpression>(loc_,
+                    id("current_"),
+                    make_expression<NumberExpression>(loc_, 0.0)));
+
+            if (kind_==moduleKind::density) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                    id("current_"),
+                    make_expression<MulBinaryExpression>(loc_,
+                        id("weights_"),
+                        id("current_"))));
+            }
+        }
+    }
+
+    virtual void visit(SolveExpression *e) override {}
+    virtual void visit(ConductanceExpression *e) override {}
+    virtual void visit(AssignmentExpression *e) override {
+        statements_.push_back(e->clone());
+        auto loc = e->location();
+
+        if (is_ion_update(e)!=ionKind::none) {
+            has_current_update_ = true;
+
+            if (!linear_test(e->rhs(), {"v"}).is_linear) {
+                error({"current update expressions must be linear in v: "+e->rhs()->to_string(),
+                       e->location()});
+                return;
+            }
+            else {
+                statements_.push_back(make_expression<AssignmentExpression>(loc,
+                    id("current_", loc),
+                    make_expression<AddBinaryExpression>(loc,
+                        id("current_", loc),
+                        e->lhs()->clone())));
+            }
+        }
+    }
+};
 
 Module::Module(std::string const& fname)
 : fname_(fname)
@@ -250,9 +322,7 @@ bool Module::semantic() {
     }
 
     if(errors) {
-        std::cout << "\nthere were " << errors
-                  << " errors in the semantic analysis" << std::endl;
-        status_ = lexerStatus::error;
+        error("There were "+std::to_string(errors)+" errors in the semantic analysis");
         return false;
     }
 
@@ -335,15 +405,23 @@ bool Module::semantic() {
 
         // grab SOLVE statements, put them in `nrn_state` after translation.
         bool found_solve = false;
+        bool found_non_solve = false;
+        std::set<std::string> solved_ids;
+
         for(auto& e: (breakpoint->body()->statements())) {
             SolveExpression* solve_expression = e->is_solve_statement();
-            if(!solve_expression) continue;
-
-            // Note: no checks for same state variables being solved
-            // in multiple SOLVE expressions, so Don't Do That.
+            if(!solve_expression) {
+                found_non_solve = true;
+                continue;
+            }
+            if(found_non_solve) {
+                error("SOLVE statements must come first in BREAKPOINT block",
+                    e->location());
+                return false;
+            }
 
             found_solve = true;
-            std::unique_ptr<BlockRewriterBase> solver;
+            std::unique_ptr<SolverVisitorBase> solver;
 
             switch(solve_expression->method()) {
             case solverMethod::cnexp:
@@ -370,6 +448,15 @@ bool Module::semantic() {
             }
 
             if (auto solve_block = solver->as_block(false)) {
+                // Check that we didn't solve an already solved variable.
+                for (const auto& id: solver->solved_identifiers()) {
+                    if (solved_ids.count(id)>0) {
+                        error("Variable "+id+" solved twice!", e->location());
+                        return false;
+                    }
+                    solved_ids.insert(id);
+                }
+
                 // May have now redundant local variables; remove these first.
                 solve_block = remove_unused_locals(solve_block->is_block());
 
@@ -380,9 +467,7 @@ bool Module::semantic() {
             }
             else {
                 // Something went wrong: copy errors across.
-                for (const auto& entry: solver->errors()) {
-                    error(entry);
-                }
+                append_errors(solver->errors());
                 return false;
             }
         }
@@ -401,89 +486,27 @@ bool Module::semantic() {
         //..........................................................
         // nrn_current : update contributions to currents
         //..........................................................
-        expr_list_type block;
-
-        // helper which tests a statement to see if it updates an ion
-        // channel variable.
-        auto is_ion_update = [] (Expression* e) {
-            if(auto a = e->is_assignment()) {
-                // semantic analysis has been performed on the original expression
-                // which ensures that the lhs is an identifier and a variable
-                if(auto sym = a->lhs()->is_identifier()->symbol()) {
-                    // assume that a scalar stack variable is being used for
-                    // the indexed value: i.e. the value is not cached
-                    if(auto var = sym->is_local_variable()) {
-                        return var->ion_channel();
-                    }
-                }
-            }
-            return ionKind::none;
-        };
-
-        // add statements that initialize the reduction variables
-        bool has_current_update = false;
-        for(auto& e: *(breakpoint->body())) {
-            // ignore solve and conductance statements
-            if(e->is_solve_statement())       continue;
-            if(e->is_conductance_statement()) continue;
-
-            // add the expression
-            block.emplace_back(e->clone());
-
-            // we are updating an ionic current
-            // so keep track of current and conductance accumulation
-            auto channel = is_ion_update(e.get());
-            if(channel != ionKind::none) {
-                auto lhs = e->is_assignment()->lhs()->is_identifier();
-                auto rhs = e->is_assignment()->rhs();
-
-                // analyze the expression for linear terms
-                //auto v = util::make_unique<ExpressionClassifierVisitor>(symbols_["v"].get());
-                auto v_symbol = breakpoint->scope()->find("v");
-                ExpressionClassifierVisitor v(v_symbol);
-                rhs->accept(&v);
-
-                if(v.classify()==expressionClassification::linear) {
-                    // add current update
-                    if(has_current_update) {
-                        block.emplace_back(Parser("current_ = current_ + " + lhs->name()).parse_line_expression());
-                    }
-                    else {
-                        block.emplace_back(Parser("current_ = " + lhs->name()).parse_line_expression());
-                    }
-                }
-                else {
-                    error("current update functions must be a linear"
-                          " function of v : " + rhs->to_string(), e->location());
-                    return false;
-                }
-                has_current_update = true;
-            }
-        }
-        if(has_current_update && kind()==moduleKind::density) {
-            block.emplace_back(Parser("current_ = weights_ * current_").parse_line_expression());
-        }
-
-        ConstantFolderVisitor v;
-        for(auto& e : block) {
-            e->accept(&v);
+        NrnCurrentRewriter nrn_current_rewriter(kind());
+        breakpoint->accept(&nrn_current_rewriter);
+        auto nrn_current_block = nrn_current_rewriter.as_block();
+        if (!nrn_current_block) {
+            append_errors(nrn_current_rewriter.errors());
+            return false;
         }
 
         symbols_["nrn_current"] =
             make_symbol<APIMethod>(
                     breakpoint->location(), "nrn_current",
                     std::vector<expression_ptr>(),
-                    make_expression<BlockExpression>(breakpoint->location(),
-                                                     std::move(block), false)
-            );
+                    constant_simplify(nrn_current_block));
         symbols_["nrn_current"]->semantic(symbols_);
     }
     else {
-        error("a BREAKPOINT block is required", Location());
+        error("a BREAKPOINT block is required");
         return false;
     }
 
-    return status() == lexerStatus::happy;
+    return !has_error();
 }
 
 /// populate the symbol table with class scope variables

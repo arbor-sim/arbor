@@ -60,18 +60,15 @@ public:
 
     // error handling
     using error_stack::error;
-    void error(std::string const& msg, Location loc) {
+    void error(std::string const& msg, Location loc = Location{}) {
         error({msg, loc});
-        status_ = lexerStatus::error;
     }
 
     std::string error_string() const;
 
-    lexerStatus status() const { return status_; }
-
     // warnings
     using error_stack::warning;
-    void warning(std::string const& msg, Location loc) {
+    void warning(std::string const& msg, Location loc = Location{}) {
         warning({msg, loc});
     }
 
@@ -94,9 +91,6 @@ private:
     bool generate_initial_api();
     bool generate_current_api();
     bool generate_state_api();
-
-    // error handling
-    lexerStatus status_ = lexerStatus::happy;
 
     // AST storage
     std::vector<symbol_ptr> procedures_;

@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
             std::cout << m.error_string() << std::endl;
         }
 
-        if(m.status() == lexerStatus::error) {
+        if(m.has_error()) {
             return 1;
         }
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
         if(Options::instance().optimize) {
             if(Options::instance().verbose) std::cout << green("[") + "optimize" + green("]") << std::endl;
             m.optimize();
-            if(m.status() == lexerStatus::error) {
+            if(m.has_error()) {
                 return 1;
             }
         }

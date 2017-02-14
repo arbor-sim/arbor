@@ -1,6 +1,7 @@
 #pragma once
 
 #include <deque>
+#include <iterator>
 #include <stdexcept>
 #include <string>
 
@@ -26,15 +27,25 @@ public:
     void error(error_entry info) { errors_.push_back(std::move(info)); }
     void clear_errors() { errors_.clear(); }
 
+    std::deque<error_entry>& errors() { return errors_; }
+    const std::deque<error_entry>& errors() const { return errors_; }
+
+    template <typename Seq>
+    void append_errors(const Seq& seq) {
+        errors_.insert(errors_.end(), std::begin(seq), std::end(seq));
+    }
+
     bool has_warning() const { return !warnings_.empty(); }
     void warning(error_entry info) { warnings_.push_back(std::move(info)); }
     void clear_warnings() { warnings_.clear(); }
 
-    std::deque<error_entry>& errors() { return errors_; }
-    const std::deque<error_entry>& errors() const { return errors_; }
-
     std::deque<error_entry>& warnings() { return warnings_; }
     const std::deque<error_entry>& warnings() const { return warnings_; }
+
+    template <typename Seq>
+    void append_warnings(const Seq& seq) {
+        warnings_.insert(warnings_.end(), std::begin(seq), std::end(seq));
+    }
 };
 
 // Wrap error entry in exception.

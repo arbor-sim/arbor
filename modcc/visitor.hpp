@@ -38,6 +38,7 @@ public:
     virtual void visit(ProcedureExpression *e)  { visit((Expression*) e); }
     virtual void visit(NetReceiveExpression *e) { visit((ProcedureExpression*) e); }
     virtual void visit(APIMethod *e)            { visit((Expression*) e); }
+    virtual void visit(ConductanceExpression *e) { visit((Expression*) e); }
     virtual void visit(BlockExpression *e)      { visit((Expression*) e); }
     virtual void visit(InitialBlock *e)         { visit((BlockExpression*) e); }
 

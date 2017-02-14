@@ -307,13 +307,6 @@ void SparseSolverVisitor::finalize() {
     BlockRewriterBase::finalize();
 }
 
-void SparseSolverVisitor::reset() {
-    symtbl_.clear();
-    dvars_.clear();
-    deq_index_ = 0;
-    BlockRewriterBase::reset();
-}
-
 // Implementation for `remove_unused_locals`: uses two visitors,
 // `UnusedVisitor` and `RemoveVariableVisitor` below.
 
