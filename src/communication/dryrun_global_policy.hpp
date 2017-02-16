@@ -24,24 +24,25 @@ struct dryrun_global_policy {
 
         // Build the global spike list by replicating the local spikes for each
         // "dummy" domain.
-        auto num_spikes_local  = local_spikes.size();
-        auto num_spikes_global = size()*num_spikes_local;
+        const auto num_spikes_local  = local_spikes.size();
+        const auto num_spikes_global = size()*num_spikes_local;
         std::vector<Spike> global_spikes(num_spikes_global);
         std::vector<count_type> partition(size()+1);
 
         for (auto rank: make_span(0u, size())) {
-            auto first_cell = rank*dryrun_num_local_cells;
-            auto first_spike = rank*num_spikes_local;
+            const auto first_cell = rank*dryrun_num_local_cells;
+            const auto first_spike = rank*num_spikes_local;
             for (auto i: make_span(0, num_spikes_local)) {
-                auto& s = local_spikes[i];
                 // the new global spike is the same as the local spike, with
                 // its source index shifted to the dummy domain
-                auto source = s.source;
-                source.gid += first_cell;
-                global_spikes[first_spike+i] = {source, s.time};
+                auto s = local_spikes[i];
+                s.source.gid += first_cell;
+                global_spikes[first_spike+i] = s;
             }
+            partition[rank+1] = partition[rank]+num_spikes_local;
         }
 
+        EXPECTS(partition.back()==num_spikes_global);
         return {std::move(global_spikes), std::move(partition)};
     }
 
