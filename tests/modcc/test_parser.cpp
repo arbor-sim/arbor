@@ -513,13 +513,15 @@ long double eval(Expression *e) {
 // test parsing of expressions for correctness
 // by parsing rvalue expressions with numeric atoms, which can be evalutated using eval
 TEST(Parser, parse_binop) {
+    using std::pow;
+
     std::pair<const char*, double> tests[] = {
         // simple
         {"2+3", 2.+3.},
         {"2-3", 2.-3.},
         {"2*3", 2.*3.},
         {"2/3", 2./3.},
-        {"2^3", std::pow(2., 3.)},
+        {"2^3", pow(2., 3.)},
 
         // more complicated
         {"2+3*2", 2.+(3*2)},
@@ -530,12 +532,16 @@ TEST(Parser, parse_binop) {
         {"2 * 7 - 3 * 11 + 4 * 13", 2.*7.-3.*11.+4.*13.},
 
         // right associative
-        {"2^3^1.5", std::pow(2.,std::pow(3.,1.5))},
-        {"2^3^1.5^2", std::pow(2.,std::pow(3.,std::pow(1.5,2.)))},
-        {"2^2^3", std::pow(2.,std::pow(2.,3.))},
-        {"(2^2)^3", std::pow(std::pow(2.,2.),3.)},
-        {"3./2^7.", 3./std::pow(2.,7.)},
-        {"3^2*5.", std::pow(3.,2.)*5.},
+        {"2^3^1.5", pow(2.,pow(3.,1.5))},
+        {"2^3^1.5^2", pow(2.,pow(3.,pow(1.5,2.)))},
+        {"2^2^3", pow(2.,pow(2.,3.))},
+        {"(2^2)^3", pow(pow(2.,2.),3.)},
+        {"3./2^7.", 3./pow(2.,7.)},
+        {"3^2*5.", pow(3.,2.)*5.},
+
+        // multilevel
+        {"1-2*3^4*5^2^3-3^2^3/4/8-5",
+            1.-2*pow(3.,4.)*pow(5.,pow(2.,3.))-pow(3,pow(2.,3.))/4./8.-5}
     };
 
     for (const auto& test_case: tests) {

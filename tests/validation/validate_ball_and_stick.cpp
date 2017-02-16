@@ -9,6 +9,10 @@ TEST(ball_and_stick, neuron_ref) {
     validate_ball_and_stick<lowered_cell>();
 }
 
+TEST(ball_and_taper, neuron_ref) {
+    validate_ball_and_taper<lowered_cell>();
+}
+
 TEST(ball_and_3stick, neuron_ref) {
     validate_ball_and_3stick<lowered_cell>();
 }

@@ -9,6 +9,7 @@
 #include "expr_expand.hpp"
 #include "test.hpp"
 
+using namespace nest::mc;
 
 stmt_list_type& proc_statements(Expression *e) {
     if (!e || !e->is_symbol() || ! e->is_symbol()->is_procedure()) {
@@ -43,12 +44,12 @@ static const char* derivative_abc =
     "    a' = -3*a + b*v       \n"
     "    LOCAL rev2            \n"
     "    rev2 = c*b^3*sin(4)   \n"
-    "    b' = 3*a - (v*b) + 8*b - 2*rev2\n"
+    "    b' = 3*a - v*b + 8*b - 2*rev2\n"
     "    c' = 4*b - rev2       \n"
     "}                         \n";
 
 TEST(KineticRewriter, equiv) {
-    auto visitor = make_unique<KineticRewriter>();
+    auto visitor = util::make_unique<KineticRewriter>();
     auto kin = Parser(kinetic_abc).parse_procedure();
     auto deriv = Parser(derivative_abc).parse_procedure();
 
@@ -95,4 +96,3 @@ TEST(KineticRewriter, equiv) {
     EXPECT_EQ(deriv_map["b'"], kin_map["b'"]);
     EXPECT_EQ(deriv_map["c'"], kin_map["c'"]);
 }
-
