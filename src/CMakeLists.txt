@@ -16,11 +16,16 @@ set(CUDA_SOURCES
     memory/fill.cu
 )
 
+
 if(NMC_WITH_MPI)
     set(BASE_SOURCES ${BASE_SOURCES} communication/mpi.cpp)
+
+elseif(NMC_WITH_DRYRUN)
+    set(BASE_SOURCES ${BASE_SOURCES} communication/dryrun_global_policy.cpp)
+
 endif()
 
-if(NMC_HAVE_CTHREAD)
+if(NMC_WITH_CTHREAD)
     set(BASE_SOURCES ${BASE_SOURCES} threading/cthread.cpp)
 endif()
 
