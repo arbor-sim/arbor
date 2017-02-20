@@ -67,6 +67,8 @@ public:
 
     virtual mechanismKind kind() const = 0;
 
+    virtual ~mechanism() = default;
+
     view vec_v_;
     view vec_i_;
     iarray node_index_;
