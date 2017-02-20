@@ -198,7 +198,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             "f","spike-file-output","save spikes to file", cmd, false);
 
         TCLAP::ValueArg<unsigned> dry_run_ranks_arg(
-            "D","dry-run-size","number of ranks in dry run mode",
+            "D","dry-run-ranks","number of ranks in dry run mode",
             false, defopts.dry_run_ranks, "positive integer", cmd);
 
         TCLAP::SwitchArg profile_only_zero_arg(
