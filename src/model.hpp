@@ -149,11 +149,18 @@ public:
         // the previous integration period, generating the postsynaptic
         // events that must be delivered at the start of the next
         // integration period at the latest.
+        struct spike_comp {
+            bool operator() (const spike& lhs,
+                             const spike& rhs)
+            {return lhs.source < rhs.source;}
+        };
+
         auto exchange = [&] () {
             PE("stepping", "communication");
 
             PE("exchange");
-            auto local_spikes = previous_spikes().gather();
+            auto local_spikes = previous_spikes().gather();            
+            std::sort(local_spikes.begin(), local_spikes.end(), spike_comp());
             auto global_spikes = communicator_.exchange(local_spikes);
             PL();
 
