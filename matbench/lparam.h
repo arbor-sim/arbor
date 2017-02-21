@@ -42,6 +42,8 @@ struct mixture: distribution {
 // random distribution constructed from representation
 
 struct lparam_distribution {
+    explicit lparam_distribution(const lparam::distribution& ldist);
+
     template <typename RNG>
     double operator()(RNG& rng) {
         switch (components.size()) {
