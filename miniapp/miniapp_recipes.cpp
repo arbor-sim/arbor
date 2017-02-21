@@ -134,7 +134,8 @@ protected:
         std::exponential_distribution<float> delay_dist(delay_distribution_param_);
         float delay = param_.min_connection_delay_ms + delay_dist(rng);
         float weight = param_.syn_weight_per_cell/param_.num_synapses;
-        return cell_connection{{0, 0}, {0, 0}, weight, delay};
+        // not a full cell connection: domain must be filled by caller
+        return cell_connection{{0, 0}, {0, 0}, (unsigned) -1, weight, delay};
     }
 
     cell_gid_type ncell_;
@@ -166,7 +167,7 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist)) {}
 
-    std::vector<cell_connection> connections_on(cell_gid_type i) const override {
+    std::vector<cell_connection> connections_on(cell_gid_type i, domain_gid_type d) const override {
         std::vector<cell_connection> conns;
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
@@ -175,6 +176,7 @@ public:
             cell_connection cc = draw_connection_params(gen);
             cc.source = {prev, 0};
             cc.dest = {i, t};
+            cc.domain = d;
             conns.push_back(cc);
         }
 
@@ -198,7 +200,7 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist)) {}
 
-    std::vector<cell_connection> connections_on(cell_gid_type i) const override {
+    std::vector<cell_connection> connections_on(cell_gid_type i, domain_gid_type d) const override {
         std::vector<cell_connection> conns;
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
         auto source_gen = std::mt19937(i*123+457); // ditto
@@ -212,6 +214,7 @@ public:
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
+            cc.domain = d;
             conns.push_back(cc);
         }
 
@@ -240,7 +243,7 @@ public:
         }
     }
 
-    std::vector<cell_connection> connections_on(cell_gid_type i) const override {
+    std::vector<cell_connection> connections_on(cell_gid_type i, domain_gid_type d) const override {
         std::vector<cell_connection> conns;
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
@@ -251,6 +254,7 @@ public:
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
+            cc.domain = d;
             conns.push_back(cc);
         }
 

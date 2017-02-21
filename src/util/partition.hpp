@@ -171,6 +171,32 @@ make_partition(Part& divisions, const Sizes& sizes, T from=T{}) {
     return partition_view(divisions);
 }
 
+struct partition_functional_t {
+    constexpr partition_functional_t() {}
+};
+constexpr partition_functional_t partition_functional;
+
+template <
+    typename Part,
+    typename Range,
+    typename Func,
+    typename T = typename sequence_traits<Part>::value_type
+>
+partition_range<typename sequence_traits<Part>::const_iterator>
+make_partition(partition_functional_t,
+               Part& divisions, const Range& r, Func f, T from=T{}) {
+    divisions.resize(size(r)+1);
+
+    auto pi = std::begin(divisions);
+    for (const auto& i: r) {
+        *pi++ = from;
+        from += f(i);
+    }
+    *pi = from;
+
+    return partition_view(divisions);
+}
+
 
 } // namespace util
 } // namespace mc

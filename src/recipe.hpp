@@ -36,6 +36,7 @@ using cell_connection_endpoint = cell_member_type;
 struct cell_connection {
     cell_connection_endpoint source;
     cell_connection_endpoint dest;
+    domain_gid_type domain;
 
     float weight;
     float delay;
@@ -47,7 +48,7 @@ public:
 
     virtual cell get_cell(cell_gid_type) const =0;
     virtual cell_count_info get_cell_count_info(cell_gid_type) const =0;
-    virtual std::vector<cell_connection> connections_on(cell_gid_type) const =0;
+    virtual std::vector<cell_connection> connections_on(cell_gid_type, domain_gid_type) const =0;
 };
 
 
@@ -78,7 +79,7 @@ public:
         return k;
     }
 
-    std::vector<cell_connection> connections_on(cell_gid_type) const override {
+    std::vector<cell_connection> connections_on(cell_gid_type, domain_gid_type) const override {
         return std::vector<cell_connection>{};
     }
 

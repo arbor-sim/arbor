@@ -37,8 +37,8 @@ public:
         probe_spec probe;
     };
 
-    template <typename Iter>
-    model(const recipe& rec, const util::partition_range<Iter>& groups):
+    template <typename Iter1, typename Iter2>
+    model(const recipe& rec, const util::partition_range<Iter1>& groups, const util::partition_range<Iter2>& domains):
         cell_group_divisions_(groups.divisions().begin(), groups.divisions().end())
     {
         // set up communicator based on partition
@@ -73,14 +73,17 @@ public:
         // insert probes
         probes_.assign(probes.begin(), probes.end());
 
+        PE("setup", "connections");
         // generate the network connections
         for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
-            for (const auto& cc: rec.connections_on(i)) {
-                connection conn{cc.source, cc.dest, cc.weight, cc.delay};
+            const auto d = get_domain(i, domains);
+            for (const auto& cc: rec.connections_on(i, d)) {
+                connection conn{cc.source, cc.dest, cc.weight, cc.delay, cc.domain};
                 communicator_.add_connection(conn);
             }
         }
         communicator_.construct();
+        PL(2);
 
         // Allocate an empty queue buffer for each cell group
         // These must be set initially to ensure that a queue is available for each
@@ -90,8 +93,14 @@ public:
     }
 
     // one cell per group:
+    template<typename Iter>
+    model(const recipe& rec, const util::partition_range<Iter>& domains):
+        model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)), domains)
+    {}
+
     model(const recipe& rec):
-        model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)))
+        model(rec,
+              util::partition_view(util::make_span(0, rec.num_cells()+1)))
     {}
 
     void reset() {
@@ -113,6 +122,17 @@ public:
         previous_spikes().clear();
 
         util::profilers_restart();
+    }
+
+    template<typename Iter>
+    static domain_gid_type get_domain(cell_gid_type cell,
+                                      const util::partition_range<Iter>& domains) {
+        auto domain = domains.index(cell);
+
+        using pr = util::partition_range<Iter>;
+        EXPECTS(domain != pr::npos);
+        
+        return domain;
     }
 
     time_type run(time_type tfinal, time_type dt) {
