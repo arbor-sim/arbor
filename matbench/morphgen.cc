@@ -15,16 +15,16 @@ struct segment_point {
 struct quaternion {
     double w, x, y, z;
 
-    quaternion(): w(0), x(0), y(0), z(0) {}
+    constexpr quaternion(): w(0), x(0), y(0), z(0) {}
 
     // scalar
-    quaternion(double w): w(w), x(0), y(0), z(0) {}
+    constexpr quaternion(double w): w(w), x(0), y(0), z(0) {}
 
     // vector (pure imaginary)
-    quaternion(double x, double y, double z): w(0), x(x), y(y), z(z) {}
+    constexpr quaternion(double x, double y, double z): w(0), x(x), y(y), z(z) {}
 
     // all 4-components
-    quaternion(double w, double x, double y, double z): w(w), x(x), y(y), z(z) {}
+    constexpr quaternion(double w, double x, double y, double z): w(w), x(x), y(y), z(z) {}
 
     quaternion conjugate() const {
         return {w, -x, -y, -z};
@@ -35,6 +35,27 @@ struct quaternion {
                 w*q.x+x*q.w+y*q.z-z*q.y,
                 w*q.y-x*q.z+y*q.w+z*q.x,
                 w*q.z+x*q.y-y*q.x+z*q.w};
+    }
+
+    quaternion& operator*=(quaternion q) {
+        return (*this=*this*q);
+    }
+
+    quaternion& operator*=(double d) {
+        w *= d;
+        x *= d;
+        y *= d;
+        z *= d;
+        return *this;
+    }
+
+    quaternion operator*(double d) const {
+        quaternion q=*this;
+        return q*=d;
+    }
+
+    friend quaternion operator*(double d, quaternion q) {
+        return q*d;
     }
 
     quaternion operator+(quaternion q) const {
@@ -56,17 +77,26 @@ struct quaternion {
     // add more as required...
 };
 
+inline quaternion operator^(quaternion a, quaternion b) {
+    return b*a*b.conjugate();
+}
+
 // rotations about internal axes as quaternions
 
-quaternion rotate_x(double phi) {
+constexpr double deg_to_rad = 3.1415926535897932384626433832795l/180.0;
+
+quaternion rotate_x_deg(double phi) {
+    phi *= deg_to_rad;
     return {std::cos(phi/2), std::sin(phi/2), 0, 0};
 }
 
-quaternion rotate_y(double theta) {
+quaternion rotate_y_deg(double theta) {
+    theta *= deg_to_rad;
     return {std::cos(theta/2), 0, std::sin(theta/2), 0};
 }
 
-quaternion rotate_z(double psi) {
+quaternion rotate_z_deg(double psi) {
+    psi *= deg_to_rad;
     return {std::cos(psi/2), 0, 0, std::sin(psi/2)};
 }
 
@@ -221,7 +251,7 @@ struct lsystem_param {
     lparam_distribution pitch_segment = { -15.0, 15.0, 0.0, 5.0 };
 
     // Taper rate. (TPRB)
-    lparam_distribution taper = { -0.125 };
+    lparam_distribution taper = { -1.25e-3 };
 
     // Branching torsion: roll at branch point [degrees]. (Btor)
     lparam_distribution roll_at_branch = { 0.0, 180.0 };
@@ -273,12 +303,13 @@ struct grow_result {
 
 template <typename Gen>
 grow_result grow(segment_tip tip, const lsystem_param& P, Gen &g) {
+    constexpr quaternion xaxis = {0, 1, 0, 0};
     static std::uniform_real_distribution<double> U;
     std::vector<segment_point> points;
 
     points.push_back(tip.p);
     for (;;) {
-        quaternion step = tip.rotation*quaternion{0, 1, 0, 0}*tip.rotation.conjugate();
+        quaternion step = xaxis^tip.rotation;
         double dl = P.length_step(g);
         tip.p.x += dl*step.x;
         tip.p.y += dl*step.y;
@@ -286,13 +317,16 @@ grow_result grow(segment_tip tip, const lsystem_param& P, Gen &g) {
         tip.p.r += dl*0.5*P.taper(g);
         tip.somatic_distance += dl;
 
+        if (tip.p.r<0) tip.p.r = 0;
+
         double phi = P.roll_segment(g);
         double theta = P.pitch_segment(g);
-        tip.rotation = rotate_y(theta)*rotate_x(phi)*tip.rotation;
+        tip.rotation *= rotate_x_deg(theta);
+        tip.rotation *= rotate_y_deg(phi);
 
         points.push_back(tip.p);
 
-        double pbranch = std::min(
+        double pbranch = dl*std::min(
             P.pbranch_ov_k1*exp(P.pbranch_ov_k2*2.*tip.p.r),
             P.pbranch_nov_k1*exp(P.pbranch_nov_k2*2.*tip.p.r));
 
@@ -305,21 +339,21 @@ grow_result grow(segment_tip tip, const lsystem_param& P, Gen &g) {
             double r2 = P.diam_child_r(g);
             double a = P.diam_child_a;
 
-            tip.rotation = rotate_x(branch_phi)*tip.rotation;
+            tip.rotation *= rotate_x_deg(branch_phi);
 
             segment_tip t1 = tip;
             t1.p.r = t1.p.r * (r1 + a*r2);
-            t1.rotation = rotate_y(branch_theta1)*t1.rotation;
+            t1.rotation *= rotate_y_deg(branch_theta1);
 
             segment_tip t2 = tip;
             t2.p.r = t2.p.r * (r2 + a*r1);
-            t2.rotation = rotate_y(branch_theta2)*t2.rotation;
+            t2.rotation *= rotate_y_deg(branch_theta2);
 
             return {points, {t1, t2}};
         }
 
-        double pterm = P.pterm_k1*exp(P.pterm_k2*2.0*tip.p.r);
-        if (U(g)<pterm || tip.somatic_distance>=P.max_extent) {
+        double pterm = dl*P.pterm_k1*exp(P.pterm_k2*2.0*tip.p.r);
+        if (tip.p.r==0 || U(g)<pterm || tip.somatic_distance>=P.max_extent) {
             return {points, {}};
         }
     }
@@ -338,6 +372,7 @@ struct morphology {
 
 template <typename Gen>
 morphology generate_morphology(const lsystem_param& P, Gen &g) {
+    constexpr quaternion xaxis = {0, 1, 0, 0};
     morphology morph;
 
     double soma_radius = 0.5*P.diam_soma(g);
@@ -357,13 +392,14 @@ morphology generate_morphology(const lsystem_param& P, Gen &g) {
         double radius = 0.5*P.diam_initial(g);
 
         segment_tip tip;
-        tip.rotation = rotate_y(theta)*rotate_x(phi);
+        tip.rotation = rotate_x_deg(phi)*rotate_y_deg(theta);
         tip.somatic_distance = 0.0;
 
-        auto p = tip.rotation*quaternion{0., soma_radius, 0., 0.}*tip.rotation.conjugate();
+        auto p = (soma_radius*xaxis)^tip.rotation;
         tip.p = {p.x, p.y, p.z, radius};
 
         starts.push({tip, 0u});
+        std::cerr << "initial tip: " << p.x << "," << p.y << "," << p.z << "; r=" << radius << "\n";
     }
 
     while (!starts.empty()) {
@@ -391,6 +427,17 @@ std::ostream& operator<<(std::ostream& O, const morphology& m) {
     return O;
 }
 
+struct xyz {
+    double x, y, z;
+    xyz() {}
+    template <typename S>
+    explicit xyz(const S& s): x(s.x), y(s.y), z(s.z) {}
+
+    friend std::ostream& operator<<(std::ostream& o, const xyz& p) {
+        return o << p.x << ',' << p.y << ',' << p.z;
+    }
+};
+
 int main() {
     lsystem_param P; // default
     std::minstd_rand g;
@@ -400,5 +447,4 @@ int main() {
         std::cout << "#" << i << ":\n" << morph << "\n";
     }
 }
-
 
