@@ -27,7 +27,7 @@ public:
     cell_member_type source() const { return source_; }
     cell_member_type destination() const { return destination_; }
 
-    postsynaptic_spike_event<time_type> make_event(const spike& s) {
+    postsynaptic_spike_event<time_type> make_event(const spike& s) const {
         return {destination_, s.time + delay_, weight_};
     }
 
