@@ -74,7 +74,7 @@ elseif(NMC_THREADING_MODEL MATCHES "cthread")
     add_definitions(-DNMC_HAVE_CTHREAD)
     set(NMC_HAVE_CTHREAD TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-    
+
     if(CMAKE_USE_PTHREADS_INIT)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
@@ -145,7 +145,7 @@ if(NMC_WITH_MPI)
       add_definitions(-DMPICH2_CONST=const)
       set(MPI_FOUND TRUE)
     endif()
-    
+
     if (NOT MPI_FOUND)
       find_package(MPI REQUIRED)
     endif()
@@ -260,4 +260,5 @@ add_subdirectory(mechanisms)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(miniapp)
+add_subdirectory(lmorpho)
 
