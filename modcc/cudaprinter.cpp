@@ -3,6 +3,7 @@
 #include "cprinter.hpp" // needed for printing net_receive method
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
+#include "options.hpp"
 
 /******************************************************************************
 ******************************************************************************/
@@ -26,6 +27,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
     }
 
+    std::string module_name = Options::instance().modulename;
+    if (module_name == "") {
+        module_name = m.name();
+    }
+
     //////////////////////////////////////////////
     // header files
     //////////////////////////////////////////////
@@ -39,7 +45,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 
-    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace gpu{ namespace " + m.name() + "{");
+    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace gpu{ namespace " + module_name + "{");
     text_.add_line();
     increase_indentation();
 
@@ -48,7 +54,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     ////////////////////////////////////////////////////////////
     std::vector<std::string> param_pack;
     text_.add_line("template <typename T, typename I>");
-    text_.add_gutter() << "struct " << m.name() << "_ParamPack {";
+    text_.add_gutter() << "struct " << module_name << "_ParamPack {";
     text_.end_line();
     text_.increase_indentation();
     text_.add_line("// array parameters");
@@ -81,9 +87,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("T* vec_i;");
     param_pack.push_back("vec_v_.data()");
     param_pack.push_back("vec_i_.data()");
-
-    text_.add_line("T* vec_area;");
-    param_pack.push_back("vec_area_.data()");
 
     text_.add_line("// node index information");
     text_.add_line("I* ni;");
@@ -144,7 +147,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    std::string class_name = "mechanism_" + m.name();
+    std::string class_name = "mechanism_" + module_name;
 
     text_.add_line("template<typename Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
@@ -162,7 +165,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using typename base::const_view;");
     text_.add_line("using typename base::indexed_view_type;");
     text_.add_line("using typename base::ion_type;");
-    text_.add_line("using param_pack_type = " + m.name() + "_ParamPack<value_type, size_type>;");
+    text_.add_line("using param_pack_type = " + module_name + "_ParamPack<value_type, size_type>;");
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -191,7 +194,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(view vec_v, view vec_i, iarray&& node_index) :");
+    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index):");
     text_.add_line("   base(vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
@@ -223,6 +226,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             array_variables[i]->name() + " = data_("
             + std::to_string(i) + "*field_size, " + std::to_string(i+1) + "*field_size);");
     }
+    text_.add_line();
 
     for(auto const& var : array_variables) {
         double val = var->value();
@@ -231,6 +235,15 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         if(val == val) {
             text_.add_line("memory::fill(" + var->name() + ", " + std::to_string(val) + ");");
         }
+    }
+    text_.add_line();
+
+    // copy in the weights if this is a density mechanism
+    if (m.kind() == moduleKind::density) {
+        text_.add_line("// add the user-supplied weights for converting from current density");
+        text_.add_line("// to per-compartment current in nA");
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+        text_.add_line();
     }
 
     text_.decrease_indentation();
@@ -279,7 +292,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     // name member function
     text_.add_line("std::string name() const override {");
     text_.increase_indentation();
-    text_.add_line("return \"" + m.name() + "\";");
+    text_.add_line("return \"" + module_name + "\";");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -413,7 +426,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     //////////////////////////////////////////////
     for(auto const &var : m.symbols()) {
-        if( var.second->kind()==symbolKind::procedure && 
+        if( var.second->kind()==symbolKind::procedure &&
             var.second->is_procedure()->kind()==procedureKind::api)
         {
             auto proc = var.second->is_api_method();
@@ -480,7 +493,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
-    text_.add_line("using base::vec_area_;");
     text_.add_line("using base::node_index_;");
     text_.add_line();
     text_.add_line("param_pack_type param_pack_;");
@@ -878,4 +890,3 @@ void CUDAPrinter::visit(BinaryExpression *e) {
     // reset parent precedence
     parent_op_ = pop;
 }
-

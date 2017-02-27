@@ -29,7 +29,7 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 using lowered_cell = fvm::fvm_multicell<gpu::backend>;
 #else
 using lowered_cell = fvm::fvm_multicell<multicore::backend>;
@@ -51,15 +51,26 @@ int main(int argc, char** argv) {
 
     try {
         std::cout << util::mask_stream(global_policy::id()==0);
-        banner();
-
         // read parameters
         io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
-        std::cout << options << "\n";
-        std::cout << "\n";
-        std::cout << ":: simulation to " << options.tfinal << " ms in "
-                  << std::ceil(options.tfinal / options.dt) << " steps of "
-                  << options.dt << " ms" << std::endl;
+
+        // If compiled in dry run mode we have to set up the dry run
+        // communicator to simulate the number of ranks that may have been set
+        // as a command line parameter (if not, it is 1 rank by default)
+        if (global_policy::kind() == communication::global_policy_kind::dryrun) {
+            // Dry run mode requires that each rank has the same number of cells.
+            // Here we increase the total number of cells if required to ensure
+            // that this condition is satisfied.
+            auto cells_per_rank = options.cells/options.dry_run_ranks;
+            if (options.cells % options.dry_run_ranks) {
+                ++cells_per_rank;
+                options.cells = cells_per_rank*options.dry_run_ranks;
+            }
+
+            global_policy::set_sizes(options.dry_run_ranks, cells_per_rank);
+        }
+
+        banner();
 
         // determine what to attach probes to
         probe_distribution pdist;
@@ -141,7 +152,7 @@ int main(int argc, char** argv) {
 
         // output profile and diagnostic feedback
         auto const num_steps = options.tfinal / options.dt;
-        util::profiler_output(0.001, m.num_cells()*num_steps);
+        util::profiler_output(0.001, m.num_cells()*num_steps, options.profile_only_zero);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces
@@ -180,8 +191,8 @@ void banner() {
     std::cout << "====================\n";
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
-    std::cout << "  - communication policy: " << global_policy::name() << "\n";
-#ifdef WITH_CUDA
+    std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
+#ifdef NMC_HAVE_CUDA
     std::cout << "  - gpu support: on\n";
 #else
     std::cout << "  - gpu support: off\n";

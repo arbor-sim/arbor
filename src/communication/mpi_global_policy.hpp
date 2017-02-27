@@ -1,10 +1,11 @@
 #pragma once
 
-#ifndef WITH_MPI
-#error "mpi_global_policy.hpp should only be compiled in a WITH_MPI build"
+#ifndef NMC_HAVE_MPI
+#error "mpi_global_policy.hpp should only be compiled in a NMC_HAVE_MPI build"
 #endif
 
 #include <cstdint>
+#include <stdexcept>
 #include <type_traits>
 #include <vector>
 
@@ -29,6 +30,12 @@ struct mpi_global_policy {
 
     static int size() { return mpi::size(); }
 
+    static void set_sizes(int comm_size, int num_local_cells) {
+        throw std::runtime_error(
+            "Attempt to set comm size for MPI global communication "
+            "policy, this is only permitted for dry run mode");
+    }
+
     template <typename T>
     static T min(T value) {
         return nest::mc::mpi::reduce(value, MPI_MIN);
@@ -44,14 +51,6 @@ struct mpi_global_policy {
         return nest::mc::mpi::reduce(value, MPI_SUM);
     }
 
-    template <
-        typename T,
-        typename = typename std::enable_if<std::is_integral<T>::value>
-    >
-    static std::vector<T> make_map(T local) {
-        return algorithms::make_index(mpi::gather_all(local));
-    }
-
     static void setup(int& argc, char**& argv) {
         nest::mc::mpi::init(&argc, &argv);
     }
@@ -60,10 +59,10 @@ struct mpi_global_policy {
         nest::mc::mpi::finalize();
     }
 
-    static const char* name() { return "MPI"; }
-
-private:
+    static global_policy_kind kind() { return global_policy_kind::mpi; };
 };
+
+using global_policy = mpi_global_policy;
 
 } // namespace communication
 } // namespace mc

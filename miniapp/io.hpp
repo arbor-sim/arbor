@@ -35,6 +35,12 @@ struct cl_options {
     std::string output_path;
     std::string file_name;
     std::string file_extension;
+
+    // dry run parameters
+    int dry_run_ranks;
+
+    // Turn on/off profiling output for all ranks
+    bool profile_only_zero;
 };
 
 class usage_error: public std::runtime_error {

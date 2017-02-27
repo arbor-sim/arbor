@@ -209,8 +209,8 @@ template <
 >
 range<filter_iterator<seq_citer, seq_citer, util::decay_t<F>>>
 filter(const Seq& s, const F& f) {
-    return {make_filter_iterator(cbegin(s), cend(s), f),
-            make_filter_iterator(cend(s), cend(s), f)};
+    return {make_filter_iterator(util::cbegin(s), util::cend(s), f),
+            make_filter_iterator(util::cend(s), util::cend(s), f)};
 }
 
 // filter over const and non-const sentinel-terminated sequences:
@@ -236,7 +236,7 @@ template <
 >
 range<filter_iterator<seq_citer, seq_csent, util::decay_t<F>>, seq_csent>
 filter(const Seq& s, const F& f) {
-    return {make_filter_iterator(cbegin(s), cend(s), f), cend(s)};
+    return {make_filter_iterator(util::cbegin(s), util::cend(s), f), util::cend(s)};
 }
 
 } // namespace util

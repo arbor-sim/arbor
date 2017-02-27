@@ -5,6 +5,8 @@
 #include "functionexpander.hpp"
 #include "modccutil.hpp"
 
+using namespace nest::mc;
+
 expression_ptr insert_unique_local_assignment(call_list_type& stmts, Expression* e) {
     auto exprs = make_unique_local_assign(e->scope(), e);
     stmts.push_front(std::move(exprs.local_decl));
@@ -18,7 +20,7 @@ expression_ptr insert_unique_local_assignment(call_list_type& stmts, Expression*
 
 call_list_type lower_function_calls(Expression* e)
 {
-    auto v = make_unique<FunctionCallLowerer>(e->scope());
+    auto v = util::make_unique<FunctionCallLowerer>(e->scope());
 
     if(auto a=e->is_assignment()) {
 #ifdef LOGGING

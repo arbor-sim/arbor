@@ -1,6 +1,6 @@
 # note: function add_validation_data defined in validation/CMakeLists.txt
 
-if(BUILD_JULIA_VALIDATION_DATA)
+if(NMC_BUILD_JULIA_VALIDATION_DATA)
     add_validation_data(
         OUTPUT numeric_soma.json
         DEPENDS numeric_soma.jl HHChannels.jl

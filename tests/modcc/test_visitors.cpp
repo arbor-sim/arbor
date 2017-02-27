@@ -10,58 +10,60 @@
  * visitors
  **************************************************************/
 
+using namespace nest::mc;
+
 TEST(FlopVisitor, basic) {
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("x+y");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 1);
     }
 
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("x-y");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 1);
     }
 
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("x*y");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.mul, 1);
     }
 
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("x/y");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.div, 1);
     }
 
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("exp(x)");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.exp, 1);
     }
 
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("log(x)");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.log, 1);
     }
 
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("cos(x)");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.cos, 1);
     }
 
     {
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("sin(x)");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.sin, 1);
@@ -70,7 +72,7 @@ TEST(FlopVisitor, basic) {
 
 TEST(FlopVisitor, compound) {
     {
-        auto visitor = make_unique<FlopVisitor>();
+        auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("x+y*z/a-b");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 2);
@@ -79,7 +81,7 @@ TEST(FlopVisitor, compound) {
     }
 
     {
-        auto visitor = make_unique<FlopVisitor>();
+        auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("exp(x+y+z)");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 2);
@@ -87,7 +89,7 @@ TEST(FlopVisitor, compound) {
     }
 
     {
-        auto visitor = make_unique<FlopVisitor>();
+        auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_expression("exp(x+y) + 3/(12 + z)");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 3);
@@ -97,7 +99,7 @@ TEST(FlopVisitor, compound) {
 
     // test asssignment expression
     {
-        auto visitor = make_unique<FlopVisitor>();
+        auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_line_expression("x = exp(x+y) + 3/(12 + z)");
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 3);
@@ -117,7 +119,7 @@ TEST(FlopVisitor, procedure) {
 "    mtau = 0.6\n"
 "    htau = 1500\n"
 "}";
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_procedure(expression);
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 6);
@@ -139,7 +141,7 @@ TEST(FlopVisitor, function) {
 "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
 "    foo = minf + hinf\n"
 "}";
-    auto visitor = make_unique<FlopVisitor>();
+    auto visitor = util::make_unique<FlopVisitor>();
     auto e = parse_function(expression);
     e->accept(visitor.get());
     EXPECT_EQ(visitor->flops.add, 7);
