@@ -12,6 +12,7 @@ struct segment_point {
 struct segment_geometry {
     unsigned id;
     unsigned parent_id;
+    bool terminal;
     std::vector<segment_point> points;
 };
 

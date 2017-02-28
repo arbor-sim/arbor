@@ -6,11 +6,8 @@
 #include <stdexcept>
 #include <string>
 
-#include "../gtest.h"
-
 #include <communication/global_policy.hpp>
-
-#include "util/optional.hpp"
+#include <util/optional.hpp>
 
 namespace nest {
 namespace mc {

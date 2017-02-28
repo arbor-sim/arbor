@@ -109,7 +109,6 @@ morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         tip.p = {p.x, p.y, p.z, radius};
 
         starts.push({tip, 0u});
-        std::cerr << "initial tip: " << p.x << "," << p.y << "," << p.z << "; r=" << radius << "\n";
     }
 
     while (!starts.empty()) {
@@ -117,10 +116,10 @@ morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         starts.pop();
 
         auto branch = grow(start.tip, P, g);
-        segment_geometry segment = {next_id++, start.parent_id, std::move(branch.points)};
+        segment_geometry segment = {next_id++, start.parent_id, branch.children.empty(), std::move(branch.points)};
 
         for (auto child: branch.children) {
-            starts.push({child, segment.parent_id});
+            starts.push({child, segment.id});
         }
         morph.segments.push_back(std::move(segment));
     }

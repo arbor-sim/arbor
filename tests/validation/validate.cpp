@@ -5,10 +5,10 @@
 #include <exception>
 
 #include <communication/global_policy.hpp>
+#include <tinyopt.hpp>
 
 #include "../gtest.h"
 
-#include "tinyopt.hpp"
 #include "validation_data.hpp"
 
 using namespace nest::mc;
