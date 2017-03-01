@@ -130,7 +130,12 @@ std::string CPrinter::emit_source() {
     if (module_->kind() == moduleKind::density) {
         text_.add_line("// add the user-supplied weights for converting from current density");
         text_.add_line("// to per-compartment current in nA");
-        text_.add_line("memory::copy(weights, weights_(0, size()));");
+        if(optimize_) {
+            text_.add_line("memory::copy(weights, view(weights_, size()));");
+        }
+        else {
+            text_.add_line("memory::copy(weights, weights_(0, size()));");
+        }
         text_.add_line();
     }
 
