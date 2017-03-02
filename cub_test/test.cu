@@ -9,299 +9,141 @@
 
 #include <cub/cub.cuh>
 
+#include "managed_ptr.hpp"
+
+
+////////////////////////////////////////////////////
+////////////////////////////////////////////////////
 using namespace nest::mc;
-
 void test_tricky();
-
 int main() {
     test_tricky();
     return 0;
 }
+////////////////////////////////////////////////////
+////////////////////////////////////////////////////
 
-/// custom deleter for memory allocated on the device via cudaMalloc or cudaManagedMalloc
-template<typename T>
-struct device_deleter {
-    void operator()(T* p) const {
-        std::cout << "Call delete for CUDA POD type object of size "
-                << sizeof(T) << std::endl;
-        cudaFree(p);
-    }
-};
-
-/// custom deleter for memory allocated on the device via cudaMalloc or cudaManagedMalloc
-template<typename T>
-struct device_deleter {
-    void operator()(T* p) const {
-        cudaFree(p);
-    }
-};
-
-/// unique pointer with custom deleter for device memory
-template<typename T>
-using managed_pointer = std::unique_ptr<T, device_deleter<T>>;
-
-/// returns a uniqe_ptr to a copy of POD type T in device memory
-template <typename T, typename... Args>
-managed_pointer<T> allocate_managed(Args&&... args) {
-    //  return std::unique_ptr<T>(new T(std::forward<Args>(args) ...));
-    T* data_on_device = nullptr;
-    cudaMallocManaged(&data_on_device, sizeof(T));
-    cudaDeviceSynchronize();
-    data = new (std::forward<Args>(args)...) T;
-    return managed_pointer<T>(data);
-}
-
-/// returns a value of POD type stored on device
-template<typename T>
-T copy_pod_from_device(const T* data) {
-    T data_on_host;
-    cudaMemcpy(&data_on_host, data, sizeof(T), cudaMemcpyDeviceToHost);
-    return data_on_host;
-}
-
-namespace kernels {
-
-// functor used to keep track of the prefix used in calculating the offset using
-// cub::BlockScan::ExclusiveSum
-struct prefix_accumulator {
-    int running_total;
-
-    __device__
-    prefix_accumulator(int i): running_total(i) {}
-
-    __device__
-    int operator()(int offset) {
-        int old_total = running_total;
-        running_total += offset;
-        return old_total;
-    }
-};
-
-
-template <typename T, int THREADS>
-struct gpu_stack {
-    using BlockScan = cub::BlockScan<int, THREADS>;
-    using temp_storage = typename BlockScan::TempStorage;
-
+template <typename T>
+class gpu_stack {
+    using allocator = managed_allocator<T>;
     int capacity_;
     int size_;
     T* data_;
-    prefix_accumulator prefix_;
-    temp_storage& shared_;
 
-    __device__
-    gpu_stack(int capacity, int size, T* data, temp_storage& shared):
-        capacity_(capacity),
-        size_(size),
-        data_(data),
-        prefix_(size),
-        shared_(shared)
+public:
+
+    gpu_stack(int capacity):
+        capacity_(capacity), size_(0u)
     {
-        printf("*** gpu_proxy %d %d %p\n", capacity_, size_, data_);
+        data_ = allocator().allocate(capacity_);
+    }
+
+    ~gpu_stack() {
+        allocator().deallocate(data_, capacity_);
     }
 
     __device__
     void push_back(const T& value, bool do_push) {
-        int position;
-        int contribution = do_push ? 1: 0;
-        BlockScan(shared_).ExclusiveSum(contribution, position, prefix_);
-        __syncthreads();
+        if (do_push) {
+            int position = atomicAdd(&size_, 1);
 
-        // only push back if the capacity of the stack would not
-        // be exceeded by doing so.
-        if (do_push && position<capacity_) {
-            printf("%d : %d -- writing at %d\n", int(threadIdx.x), contribution, position);
-            data_[position] = value;
+            // It is possible that size_>capacity_. In this case, only capacity_
+            // entries are stored, and additional values are lost. The size_
+            // will contain the total number of attempts to push,
+            if (position<capacity_) {
+                printf("thread %4d -- writing at %4d\n", int(threadIdx.x), position);
+                data_[position] = value;
+            }
         }
-
-        // It is possible that size_>capacity_.
-        // In this case, only capacity_ entries are stored, and additional
-        // values are lost. The size_ will contain the total number of attempts
-        // to push, so that the caller can determine how far the capacity was
-        // exceeded.  It is the responsbility of the caller to check whether
-        // capacity has been exceeded and act accordingly.
-        size_ = prefix_.running_total;
     }
 
-    __device__
+    __host__ __device__
     int size() const {
         return size_;
     }
 
-    __device__
+    __host__ __device__
     int capacity() const {
         return capacity_;
     }
+
+    T* begin() {
+        return data_;
+    }
+    const T* begin() const {
+        return data_;
+    }
+
+    T* end() {
+        return data_ + size_;
+    }
+    const T* end() const {
+        return data_ + size_;
+    }
 };
 
-template <typename T, typename I, typename Stack, int THREADS>
+template <typename T, typename I, typename Stack>
 __global__
-void test(
+void kernel(
     float t, float t_prev, int size,
-    typename Stack::gpu_proxy* stack_proxy,
+    Stack& stack,
     uint8_t* is_spiking,
     const T* values,
     T* prev_values,
     const T* thresholds)
 {
-    int tid = threadIdx.x;
+    int i = threadIdx.x + blockIdx.x*blockDim.x;
 
-    int num_blocks = (size+THREADS-1) / THREADS;
+    bool crossed = false;
+    float crossing_time;
 
-    // TODO : the Buffer type and using its value_type is ugly as sin
-    //        i.e. the buffer->stack abstraction still isn't quite right
-    //using stack_type = gpu_stack<typename Buffer::value_type, THREADS>;
-    using stack_type = typename Stack::gpu_stack;
-    __shared__ typename stack_type::temp_storage shared_store;
+    if (i<size) {
+        // Test for threshold crossing
+        const auto v_prev = prev_values[i];
+        const auto v = values[i];
+        const auto thresh = thresholds[i];
 
-    printf("@@@ %d creating stack %p\n", tid, (void*)stack_proxy);
-    stack_type stack = stack_proxy->stack(shared_store);
-    printf("@@@ %d done\n", tid);
+        if (!is_spiking[i]) {
+            if (v>=thresh) {
+                // The threshold has been passed, so estimate the time using
+                // linear interpolation
+                auto pos = (thresh - v_prev)/(v - v_prev);
+                crossing_time = t_prev + pos*(t - t_prev);
 
-    /*
-    for (int i=tid; i<num_blocks*THREADS; i+=THREADS) {
-        bool crossed = false;
-        float crossing_time;
-        if (i<size) {
-            // Test for threshold crossing
-            const auto v_prev = prev_values[i];
-            const auto v = values[i];
-            const auto thresh = thresholds[i];
-
-            if (!is_spiking[i]) {
-                if (v>=thresh) {
-                    // The threshold has been passed, so estimate the time using
-                    // linear interpolation
-                    auto pos = (thresh - v_prev)/(v - v_prev);
-                    crossing_time = t_prev + pos*(t - t_prev);
-
-                    is_spiking[i] = 1;
-                    crossed = true;
-                }
+                is_spiking[i] = 1;
+                crossed = true;
             }
-            else if (v<thresh) {
-                is_spiking[i]=0;
-            }
-
-            prev_values[i] = values[i];
+        }
+        else if (v<thresh) {
+            is_spiking[i]=0;
         }
 
-        stack.push_back({i, crossing_time}, crossed);
+        prev_values[i] = values[i];
     }
-    */
+
+    stack.push_back({i, crossing_time}, crossed);
 
     // the first thread updates the buffer size
-    if (tid==0) {
+    if (i==0) {
         printf("%d is stack size\n", stack.size());
-        //stack_proxy->size = stack.size();
     }
 }
-
-}// namespace kernels
-
-template <typename T, int THREADS, template <typename, int> class GPUStack>
-struct stack {
-    using value_type = T;
-    using gpu_stack = GPUStack<value_type, THREADS>;
-
-    // The gpu_proxy provides an interface to a stack that can be used inside kernels on the GPU.
-    // A stack is modelled using
-    //      data: pointer to a pre-allocated contiguous buffer on the host
-    //      capacity: the number of value_type that can be stored in the pre-allocated buffer
-    //      size: number of items currently in stack
-    // The gpu_proxy is not responsible for freeing or allocating memory.
-    // The implementation of the stack operations on the GPU is provided by the
-    // GPUStack template parameter.
-    struct gpu_proxy {
-        using value_type = value_type;
-        value_type* data;
-        int capacity;
-        int size;
-
-        // the proxy is initialized on the host, where it is given a pointer to the stack data
-        // along with information about the capacity and current size of the stack
-        __host__
-        gpu_proxy(value_type* ptr, int capacity, int size):
-            data(ptr),
-            capacity(capacity),
-            size(size)
-        {
-            printf("+++ create gpu proxy %d : %d : %d\n", capacity, size, THREADS);
-        }
-
-        __device__
-        gpu_stack stack(typename gpu_stack::temp_storage& shared) {
-            printf("### create gpu proxy %d : %d : %d\n", capacity, size, THREADS);
-            return {capacity, size, data, shared};
-        }
-    };
-
-    int size_;
-    memory::device_vector<value_type> data_;
-    memory::host_vector<value_type> data_host_;
-    mutable device_pointer<gpu_proxy> proxy_;
-
-    stack():
-        stack(0)
-    {}
-
-    stack(int cap):
-        data_(cap),
-        data_host_(cap),
-        size_(0),
-        proxy_(new gpu_proxy(data_.data(), capacity(), size()))
-    {
-        std::cout << "--- new stack with capacity "
-                  << cap << " : " << capacity() << "\n";
-    }
-
-    int capacity() const {
-        return data_.size();
-    }
-
-    int size() const {
-        update_host();
-        return size_;
-    }
-
-    bool is_overflow() const {
-        update_host();
-        return size()>capacity();
-    }
-
-    gpu_proxy* on_gpu() {
-        return proxy_.get();
-    }
-
-    std::vector<T> get_stack() const {
-        update_host();
-        // TODO : return the values copied out from gpu
-        return {};
-    }
-
-private:
-
-    void update_host() const {
-        // TODO :
-        //  * copy proxy_ data back to host
-        //memory::copy(data_(0, size()), data_host_(0, size()));
-
-        //  * update size_ on device
-    }
-};
-
 
 //
 // type that manages threshold crossing checker on the GPU
 //
-template <typename T, typename I>
+template <typename T, typename I, Time>
 struct threshold_watcher {
+    using value_type = T;
+    using index_type = I;
+    using time_type = Time;
+
     struct crossing_type {
-        I index;
-        T time;
+        index_type index;
+        time_type time;
     };
 
-    using stack_type = stack<crossing_type, 128, kernels::gpu_stack>;
+    using stack_type = gpu_stack<crossing_type>;
 
     template <typename U>
     using array = memory::device_vector<U>;
@@ -315,27 +157,28 @@ struct threshold_watcher {
         thresholds_(memory::make_const_view(thresholds)),
         is_spiking_(size(), 0),
         t_prev_(t),
-        stack_(values.size()*10)  // initialize stack with buffer 10 crossings on each value
+        stack_(make_managed_ptr<stack_type>(10*values.size()))  // initialize stack with buffer 10 crossings on each value
     {
-        // Initialize initial state in the is_spiking array.
-        // This is performed on the host for convenience, because it is just
-        // done once during setup.
+        // calculate the initial spiking state on the host
         auto v = memory::on_host(values);
         auto spiking = std::vector<uint8_t>(values.size());
         for (auto i: util::make_span(0u, values.size())) {
             spiking[i] = v[i] < thresholds[i] ? 0 : 1;
         }
 
-        // copy the buffer information to device memory
+        // copy the initial spiking state to device memory
         is_spiking_ = memory::on_gpu(spiking);
     }
 
-    void test(T t) {
+    void test_for_crossings(T t) {
         EXPECTS(t_prev_<t);
 
-        kernels::test<T, I, stack_type, 64><<<1, 64>>>(
+        constexpr int block_dim = 128;
+        const int n = size();
+        const int grid_dim = (n+block_dim-1)/block_dim;
+        kernel<T, I, stack_type><<<grid_dim, block_dim>>>(
             t, t_prev_, size(),
-            stack_.on_gpu(),
+            *stack_,
             is_spiking_.data(),
             values_.data(),
             prev_values_.data(),
@@ -344,20 +187,29 @@ struct threshold_watcher {
         t_prev_ = t;
     }
 
+    /// returns a vector that contains the current set of crossings
     std::vector<crossing_type> get_crossings() const {
-        return stack_.get_stack();
+        return std::vector<crossing_type>(stack_->begin(), stack_->end());
     }
 
+    /// Empties the spike buffer
+    /// All recorded spike information will be lost.
+    void reset() {
+        return stack_->empty();
+    }
+
+    /// returns the number of threshold values that are being watched
     std::size_t size() const {
         return thresholds_.size();
     }
 
     array_view<T> values_;
+
     array<T> prev_values_;
     array<T> thresholds_;
     array<uint8_t> is_spiking_;
     T t_prev_;
-    stack_type stack_;
+    managed_ptr<stack_type> stack_;
 };
 
 void test_tricky() {
@@ -373,11 +225,12 @@ void test_tricky() {
     auto w = watcher(values, thresholds, 0);
 
     memory::fill(values, 1); w.test(1);
-    //memory::fill(values, 0); w.test(2);
-    //memory::fill(values, 2); w.test(3);
+    memory::fill(values, 0); w.test(2);
+    memory::fill(values, 2); w.test(3);
+    cudaDeviceSynchronize();
 
-    //auto crossings = w.get_crossings();
-    //std::cout << "CROSSINGS (" << crossings.size() << ")\n";
-    //for(auto c: crossings) std::cout << "  " << c.index << " -- " << c.time << "\n";
+    auto crossings = w.get_crossings();
+    std::cout << "CROSSINGS (" << crossings.size() << ")\n";
+    for(auto c: crossings) std::cout << "  " << c.index << " -- " << c.time << "\n";
 }
 
