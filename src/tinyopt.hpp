@@ -2,11 +2,14 @@
 
 #include <cstring>
 #include <iostream>
+#include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
-#include <communication/global_policy.hpp>
+#include <util/meta.hpp>
 #include <util/optional.hpp>
 
 namespace nest {
@@ -34,26 +37,58 @@ void usage(const char* argv0, const std::string& usage_str, const std::string& p
     std::cerr << "Usage: " << basename << " " << usage_str << "\n";
 }
 
-template <typename V = std::string>
-util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nullptr) {
+template <typename V>
+struct default_parser {
+    util::optional<V> operator()(const std::string& text) const {
+        V v;
+        std::istringstream stream(text);
+        stream >> v;
+        return stream? util::just(v): util::nothing;
+    }
+};
+
+template <typename V>
+class keyword_parser {
+    std::vector<std::pair<std::string, V>> map_;
+
+public:
+    template <typename KeywordPairs>
+    keyword_parser(const KeywordPairs& pairs): map_(std::begin(pairs), std::end(pairs)) {}
+
+    util::optional<V> operator()(const std::string& text) const {
+        for (const auto& p: map_) {
+            if (text==p.first) return p.second;
+        }
+        return util::nothing;
+    }
+};
+
+template <typename KeywordPairs>
+auto keywords(const KeywordPairs& pairs) -> keyword_parser<decltype(std::begin(pairs)->second)> {
+    return keyword_parser<decltype(std::begin(pairs)->second)>(pairs);
+}
+
+template <typename V = std::string, typename P = default_parser<V>, typename = util::enable_if_t<!std::is_same<V, void>::value>>
+util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nullptr, const P& parse = P{}) {
     const char* arg = argp[0];
 
     if (!arg || arg[0]!='-') {
         return util::nothing;
     }
 
-    std::stringstream buf;
+    std::string text;
 
     if (arg[1]=='-' && longopt) {
         const char* rest = arg+2;
         const char* eq = std::strchr(rest, '=');
 
         if (!std::strcmp(rest, longopt)) {
-            buf.str(argp[1]? argp[1]: throw parse_opt_error(arg, "missing argument"));
+            if (!argp[1]) throw parse_opt_error(arg, "missing argument");
+            text = argp[1];
             argp += 2;
         }
         else if (eq && !std::strncmp(rest, longopt,  eq-rest)) {
-            buf.str(eq+1);
+            text = eq+1;
             argp += 1;
         }
         else {
@@ -61,21 +96,20 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
         }
     }
     else if (shortopt && arg[1]==shortopt && arg[2]==0) {
-        buf.str(argp[1]? argp[1]: throw parse_opt_error(arg, "missing argument"));
+        if (!argp[1]) throw parse_opt_error(arg, "missing argument");
+        text = argp[1];
         argp += 2;
     }
     else {
         return util::nothing;
     }
 
-    V v;
-    if (!(buf >> v)) {
-        throw parse_opt_error(arg, "failed to parse option argument");
-    }
+    auto v = parse(text);
+
+    if (!v) throw parse_opt_error(arg, "failed to parse option argument");
     return v;
 }
 
-template <>
 util::optional<void> parse_opt(char **& argp, char shortopt, const char* longopt) {
     if (!*argp || *argp[0]!='-') {
         return util::nothing;

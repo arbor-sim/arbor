@@ -1,7 +1,7 @@
 #include <math.hpp>
 
-#include "lsystem.h"
-#include "lsys_models.h"
+#include "lsystem.hpp"
+#include "lsys_models.hpp"
 
 static constexpr double inf = nest::mc::math::infinity<double>();
 
@@ -47,11 +47,11 @@ lsys_param make_alpha_motoneuron_lsys() {
     // Initial pitch (intrinsic rotation about y-axis) [degrees].
     L.pitch_initial = { 0.0, 180.0 };
 
-    // Tortuousness: roll within segment over ΔL [degrees].
-    L.roll_segment = { -180.0, 180.0 };
+    // Tortuousness: roll within section over ΔL [degrees].
+    L.roll_section = { -180.0, 180.0 };
 
-    // Tortuousness: pitch within segment over ΔL [degrees].
-    L.pitch_segment = { -15.0, 15.0, 0.0, 5.0 };
+    // Tortuousness: pitch within section over ΔL [degrees].
+    L.pitch_section = { -15.0, 15.0, 0.0, 5.0 };
 
     // Taper rate.
     L.taper = { -1.25e-3 };
@@ -100,11 +100,11 @@ lsys_param make_purkinje_lsys() {
     // Dendrite step length [µm]. (ΔL)
     L.length_step = { 25 };
 
-    // Tortuousness: roll within segment over ΔL [degrees].
-    L.roll_segment = { 0 };
+    // Tortuousness: roll within section over ΔL [degrees].
+    L.roll_section = { 0 };
 
-    // Tortuousness: pitch within segment over ΔL [degrees].
-    L.pitch_segment = { -inf, inf, 0, 10 };
+    // Tortuousness: pitch within section over ΔL [degrees].
+    L.pitch_section = { -inf, inf, 0, 10 };
 
     // Taper rate.
     L.taper = { -inf, inf, -0.010e-3, 0.022e-3 };
@@ -116,6 +116,7 @@ lsys_param make_purkinje_lsys() {
     L.branch_angle = { 1.0, 179.0, 71.0, 40.0 };
 
     // Correlated child branch radius distribution parameters.
+    // THESE NUMBERS CANNOT BE CORRECT. WTF, ASCOLI?
     L.diam_child_a = -0.2087;
     L.diam_child_r = { 0.01, 0.28, 0.112, 0.035 };
 

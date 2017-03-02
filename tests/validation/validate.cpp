@@ -46,10 +46,10 @@ int main(int argc, char **argv) {
             else if (auto o = parse_opt<float>(arg, 'd', "min-dt")) {
                 g_trace_io.set_min_dt(*o);
             }
-            else if (auto o = parse_opt<void>(arg, 'v', "verbose")) {
+            else if (auto o = parse_opt(arg, 'v', "verbose")) {
                 g_trace_io.set_verbose(true);
             }
-            else if (auto o = parse_opt<void>(arg, 'h', "help")) {
+            else if (auto o = parse_opt(arg, 'h', "help")) {
                 to::usage(argv[0], usage_str);
                 return 0;
             }

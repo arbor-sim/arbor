@@ -2,7 +2,7 @@
 
 #include <random>
 
-#include "morphology.h"
+#include "morphology.hpp"
 
 struct lsys_param;
 
@@ -85,11 +85,11 @@ struct lsys_param {
     // Initial pitch (intrinsic rotation about y-axis) [degrees]. (Tel)
     lsys_distribution_param pitch_initial = { 0 };
 
-    // Tortuousness: roll within segment over ΔL [degrees]. (Eaz)
-    lsys_distribution_param roll_segment = { 0 };
+    // Tortuousness: roll within section over ΔL [degrees]. (Eaz)
+    lsys_distribution_param roll_section = { 0 };
 
-    // Tortuousness: pitch within segment over ΔL [degrees]. (Eel)
-    lsys_distribution_param pitch_segment = { 0 };
+    // Tortuousness: pitch within section over ΔL [degrees]. (Eel)
+    lsys_distribution_param pitch_section = { 0 };
 
     // Taper rate. (TPRB)
     lsys_distribution_param taper = { 0 };
@@ -112,21 +112,21 @@ struct lsys_param {
     // P = k1 * exp(k2*diameter), described by the paremeters k1 and k2 [1/µm].
 
     // Termination probability parameters [1/µm]. (k1trm, k2trm)
-    double pterm_k1 = 0.01;
-    double pterm_k2 = 0;
+    double pterm_k1 = 0.05;
+    double pterm_k2 = -2;
 
     // Bifurcation probability is given by minimum of two probabilities, `pbranch_ov' and
     // `pbranch_nov' below.
-    double pbranch_ov_k1 = 1; //0.01;
+    double pbranch_ov_k1 = 0.01;
     double pbranch_ov_k2 = 0;
-    double pbranch_nov_k1 = 1; //0.01;
+    double pbranch_nov_k1 = 0.01;
     double pbranch_nov_k2 = 0;
 
     // Absolute maximum dendritic extent [µm]. (Forces termination of algorithm)
     double max_extent = 2000;
 
-    // Absolute maximum number of unbranched segments. (Forces termination of algorithm)
-    unsigned max_segments = 10000;
+    // Absolute maximum number of unbranched sections. (Forces termination of algorithm)
+    unsigned max_sections = 10000;
 
 };
 

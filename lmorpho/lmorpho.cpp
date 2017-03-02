@@ -5,16 +5,18 @@
 #include <sstream>
 #include <vector>
 
-#include <swcio.hpp>
 #include <tinyopt.hpp>
+#include <util/optional.hpp>
 
-#include "morphology.h"
-#include "lsystem.h"
-#include "lsys_models.h"
-#include "quaternion.h"
+#include "morphology.hpp"
+#include "morphio.hpp"
+#include "lsystem.hpp"
+#include "lsys_models.hpp"
 
-using nest::mc::io::swc_record;
 namespace to = nest::mc::to;
+using nest::mc::util::optional;
+using nest::mc::util::nothing;
+using nest::mc::util::just;
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -40,132 +42,19 @@ const char* usage_str =
 "    purkinje      Guinea pig Purkinje cellsm, basd on models and data\n"
 "                  from Rapp 1994 and Ascoli 2001.\n";
 
-
-template <typename... Args>
-std::string strprintf(const char* fmt, Args&&... args) {
-    thread_local static std::vector<char> buffer(1024);
-
-    for (;;) {
-        int n = std::snprintf(buffer.data(), buffer.size(), fmt, std::forward<Args>(args)...);
-        if (n<0) return ""; // error
-        if (n<buffer.size()) return std::string(buffer.data());
-        buffer.resize(2*n);
-    }
-}
-
-template <typename... Args>
-std::string strprintf(std::string fmt, Args&&... args) {
-    return strprintf(fmt.c_str(), std::forward<Args>(args)...);
-}
-
-struct multi_file_writer {
-    std::ofstream file_;
-    bool concat_ = false;
-    bool use_stdout_ = false;
-    std::string fmt_;       // use if not concat_
-    std::string filename_;  // use if concat_
-    int current_n_ = 0;
-
-    explicit multi_file_writer(const std::string& pattern, int digits=0) {
-        auto npos = std::string::npos;
-
-        file_.exceptions(std::ofstream::failbit);
-        concat_ = (pattern.find("%")==npos);
-        use_stdout_ = pattern.empty() || pattern=="-";
-
-        if (!concat_) {
-            std::string nfmt = digits? "%0"+std::to_string(digits)+"d": "%d";
-            std::string::size_type i = 0;
-            for (;;) {
-                auto p = pattern.find("%", i);
-
-                if (p==npos) {
-                    fmt_ += pattern.substr(i);
-                    break;
-                }
-                else {
-                    fmt_ += pattern.substr(i, p-i);
-                    fmt_ += i==0? nfmt: "%%";
-                    i = p+1;
-                }
-            }
-        }
-        else {
-            filename_ = pattern;
-        }
-    }
-
-    void open(int n) {
-        if (use_stdout_ || (file_.is_open() && (concat_ || n==current_n_))) {
-            return;
-        }
-
-        if (file_.is_open()) file_.close();
-
-        std::string fname = concat_? filename_: strprintf(fmt_, n);
-        file_.open(fname);
-
-        current_n_ = n;
-    }
-
-    void close() { file_.close(); }
-
-    bool single_file() const { return concat_; }
-
-    std::ostream& stream() { return use_stdout_? std::cout: file_; }
-};
-
-std::vector<swc_record> as_swc(const morphology& morph) {
-    using kind = swc_record::kind;
-    std::map<int, int> parent_end_id;
-    std::vector<swc_record> swc;
-
-    // soma
-    const auto &p = morph.soma;
-    int id = 0;
-    parent_end_id[0] = 0;
-    swc.emplace_back(kind::soma, id, p.x, p.y, p.z, p.r, -1);
-
-    // dendrites:
-    for (auto& seg: morph.segments) {
-        int parent = parent_end_id[seg.parent_id];
-
-        const auto& points = seg.points;
-        auto n = points.size();
-        if (n<2) {
-            throw std::runtime_error(strprintf("surprisingly short cable: id=%d, size=%ul", seg.id, n));
-        }
-
-        // include first point only for dendrites segments attached to soma.
-        if (seg.parent_id==0) {
-            const auto& p = points[0];
-            swc.emplace_back(kind::fork_point /*dendrite*/, ++id, p.x, p.y, p.z, p.r, parent);
-            parent = id;
-        }
-
-        for (unsigned i = 1; i<n-1; ++i) {
-            const auto& p = points[i];
-            swc.emplace_back(kind::dendrite, ++id, p.x, p.y, p.z, p.r, parent);
-            parent = id;
-        }
-        const auto& p = points.back();
-        swc.emplace_back(seg.terminal? kind::end_point: kind::fork_point, ++id, p.x, p.y, p.z, p.r, parent);
-        parent_end_id[seg.id] = id;
-    }
-
-    return swc;
-}
-
 int main(int argc, char** argv) {
     // options
     int n_morph = 1;
-    int rng_seed = 0;
-    bool set_rng_seed = false;
-    bool emit_swc = false;
-    bool emit_pvec = false;
+    optional<unsigned> rng_seed;
+    optional<std::string> swc_file;
+    optional<std::string> pvector_file;
     double segment_dx = 0;
-    std::string swc_file = "";
-    std::string pvec_file = "";
+
+    std::pair<const char*, const lsys_param*> models[] = {
+        {"motoneuron", &alpha_motoneuron_lsys},
+        {"purkinje", &purkinje_lsys}
+    };
+    lsys_param P;
 
     try {
         auto arg = argv+1;
@@ -173,25 +62,22 @@ int main(int argc, char** argv) {
             if (auto o = to::parse_opt<int>(arg, 'n', "count")) {
                 n_morph = *o;
             }
+            if (auto o = to::parse_opt<int>(arg, 's', "seed")) {
+                rng_seed = *o;
+            }
             else if (auto o = to::parse_opt<std::string>(arg, 0, "swc")) {
-                emit_swc = true;
                 swc_file = *o;
             }
             else if (auto o = to::parse_opt<double>(arg, 'g', "segment")) {
                 segment_dx = *o;
-                throw to::parse_opt_error("--segment not yet implemented");
             }
             else if (auto o = to::parse_opt<std::string>(arg, 'p', "pvec")) {
-                emit_pvec = true;
-                pvec_file = *o;
-                throw to::parse_opt_error("--pvec not yet implemented");
+                pvector_file = *o;
             }
-            else if (auto o = to::parse_opt<std::string>(arg, 'm', "model")) {
-               ... 
-                pvec_file = *o;
-                throw to::parse_opt_error("--pvec not yet implemented");
+            else if (auto o = to::parse_opt<const lsys_param*>(arg, 'm', "model", to::keywords(models))) {
+                P = **o;
             }
-            else if (to::parse_opt<void>(arg, 'h', "help")) {
+            else if (to::parse_opt(arg, 'h', "help")) {
                 std::cout << "Usage: " << argv[0] << " " << usage_str;
                 return 0;
             }
@@ -200,25 +86,18 @@ int main(int argc, char** argv) {
             }
         }
 
-        //lsys_param P = alpha_motoneuron_lsys;
-        lsys_param P;
         std::minstd_rand g;
-        if (set_rng_seed) {
-            g.seed(rng_seed);
-        }
+        if (rng_seed) g.seed(rng_seed.get());
 
-        multi_file_writer swc_writer(swc_file,4);
+        auto emit_swc = swc_file? just(swc_emitter(*swc_file, n_morph)): nothing;
+        auto emit_pvec = pvector_file? just(pvector_emitter(*pvector_file, n_morph)): nothing;
+
         for (int i=0; i<n_morph; ++i) {
-            auto morph = make_dummy_morph? dummy_morph(): generate_morphology(P, g);
-            if (emit_swc) {
-                swc_writer.open(i);
-                auto& stream = swc_writer.stream();
+            auto morph = generate_morphology(P, g);
+            morph.segment(segment_dx);
 
-                std::vector<swc_record> swc = as_swc(morph);
-                stream << "# lmorpho generated morphology\n# index: " << i << "\n";
-                std::copy(swc.begin(), swc.end(), std::ostream_iterator<swc_record>(stream, "\n"));
-            }
-
+            if (emit_swc) (*emit_swc)(i, morph);
+            if (emit_pvec) (*emit_pvec)(i, morph);
         }
     }
     catch (to::parse_opt_error& e) {

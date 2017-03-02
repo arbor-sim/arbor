@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lsystem.h"
+#include "lsystem.hpp"
 
 // Predefined parameters for two classes of neurons.
 // See lsys_models.cc for details.

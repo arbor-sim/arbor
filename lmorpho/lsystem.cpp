@@ -4,9 +4,9 @@
 #include <stack>
 #include <vector>
 
-#include "quaternion.h"
-#include "lsystem.h"
-#include "morphology.h"
+#include "quaternion.hpp"
+#include "lsystem.hpp"
+#include "morphology.hpp"
 
 // L-system implementation.
 
@@ -123,6 +123,28 @@ public:
     }
 };
 
+class burke_exp2_test {
+    double ak1_;
+    double ak2_;
+    double bk1_;
+    double bk2_;
+
+public:
+    using result_type = int;
+
+    burke_exp2_test(double ak1, double ak2, double bk1, double bk2):
+        ak1_(ak1), ak2_(ak2), bk1_(bk1), bk2_(bk2) {}
+
+    template <typename Gen>
+    result_type operator()(double delta_l, double radius, Gen& g) const {
+        double diam = 2.*radius;
+        std::bernoulli_distribution B(
+            delta_l*std::min(ak1_*std::exp(ak2_*diam), bk1_*std::exp(bk2_*diam)));
+
+        return B(g);
+    }
+};
+
 // L-system parameter set with instantiated distributions.
 struct lsys_sampler {
     // Create distributions once from supplied parameter set.
@@ -133,15 +155,15 @@ struct lsys_sampler {
         length_step(P.length_step),
         roll_initial(P.roll_initial),
         pitch_initial(P.pitch_initial),
-        roll_segment(P.roll_segment),
-        pitch_segment(P.pitch_segment),
+        roll_section(P.roll_section),
+        pitch_section(P.pitch_section),
         taper(P.taper),
         roll_at_branch(P.roll_at_branch),
         branch_angle(P.branch_angle),
         diam_child(P.diam_child_a, P.diam_child_r),
-        branch1_test(P.pbranch_ov_k1, P.pbranch_ov_k2),
-        branch2_test(P.pbranch_nov_k1, P.pbranch_nov_k2),
         term_test(P.pterm_k1, P.pterm_k2),
+        branch_test(P.pbranch_ov_k1, P.pbranch_ov_k2,
+            P.pbranch_nov_k1, P.pbranch_nov_k2),
         max_extent(P.max_extent)
     {}
 
@@ -151,36 +173,38 @@ struct lsys_sampler {
     lsys_distribution length_step;
     lsys_distribution roll_initial;
     lsys_distribution pitch_initial;
-    lsys_distribution roll_segment;
-    lsys_distribution pitch_segment;
+    lsys_distribution roll_section;
+    lsys_distribution pitch_section;
     lsys_distribution taper;
     lsys_distribution roll_at_branch;
     lsys_distribution branch_angle;
     burke_correlated_r diam_child;
-    burke_exp_test branch1_test;
-    burke_exp_test branch2_test;
     burke_exp_test term_test;
+    burke_exp2_test branch_test;
     double max_extent;
 };
 
-struct segment_tip {
-    segment_point p = {0., 0., 0., 0.};
+struct section_tip {
+    section_point p = {0., 0., 0., 0.};
     quaternion rotation = {1., 0., 0., 0.};
     double somatic_distance = 0.;
 };
 
 struct grow_result {
-    std::vector<segment_point> points;
-    std::vector<segment_tip> children;
+    std::vector<section_point> points;
+    std::vector<section_tip> children;
+    double length = 0.;
 };
 
 constexpr double deg_to_rad = 3.1415926535897932384626433832795l/180.0;
 
 template <typename Gen>
-grow_result grow(segment_tip tip, const lsys_sampler& S, Gen &g) {
+grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {
     constexpr quaternion xaxis = {0, 1, 0, 0};
     static std::uniform_real_distribution<double> U;
-    std::vector<segment_point> points;
+
+    grow_result result;
+    std::vector<section_point>& points = result.points;
 
     points.push_back(tip.p);
     for (;;) {
@@ -191,22 +215,22 @@ grow_result grow(segment_tip tip, const lsys_sampler& S, Gen &g) {
         tip.p.z += dl*step.z;
         tip.p.r += dl*0.5*S.taper(g);
         tip.somatic_distance += dl;
+        result.length += dl;
 
         if (tip.p.r<0) tip.p.r = 0;
 
-        double phi = S.roll_segment(g);
-        double theta = S.pitch_segment(g);
+        double phi = S.roll_section(g);
+        double theta = S.pitch_section(g);
         tip.rotation *= rotation_x(deg_to_rad*phi);
         tip.rotation *= rotation_y(deg_to_rad*theta);
 
         points.push_back(tip.p);
 
         if (tip.p.r==0 || tip.somatic_distance>=S.max_extent) {
-            return {points, {}};
+            return result;
         }
 
-        bool branch = S.branch1_test(dl, tip.p.r, g) && S.branch2_test(dl, tip.p.r, g);
-        if (branch) {
+        if (S.branch_test(dl, tip.p.r, g)) {
             double branch_phi = S.roll_at_branch(g);
             double branch_angle = S.branch_angle(g);
             double branch_theta1 = U(g)*branch_angle;
@@ -215,19 +239,20 @@ grow_result grow(segment_tip tip, const lsys_sampler& S, Gen &g) {
 
             tip.rotation *= rotation_x(deg_to_rad*branch_phi);
 
-            segment_tip t1 = tip;
+            section_tip t1 = tip;
             t1.p.r = t1.p.r * r.rho1;
             t1.rotation *= rotation_y(deg_to_rad*branch_theta1);
 
-            segment_tip t2 = tip;
+            section_tip t2 = tip;
             t2.p.r = t2.p.r * r.rho2;
             t2.rotation *= rotation_y(deg_to_rad*branch_theta2);
 
-            return {points, {t1, t2}};
+            result.children = {t1, t2};
+            return result;
         }
 
         if (S.term_test(dl, tip.p.r, g)) {
-            return {points, {}};
+            return result;
         }
     }
 }
@@ -240,11 +265,11 @@ morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
     double soma_radius = 0.5*S.diam_soma(g);
     morph.soma = {0, 0, 0, soma_radius};
 
-    struct segment_start {
-        segment_tip tip;
+    struct section_start {
+        section_tip tip;
         unsigned parent_id;
     };
-    std::stack<segment_start> starts;
+    std::stack<section_start> starts;
     unsigned next_id = 1u;
 
     int n = (int)std::round(S.n_tree(g));
@@ -253,7 +278,7 @@ morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         double theta = S.pitch_initial(g);
         double radius = 0.5*S.diam_initial(g);
 
-        segment_tip tip;
+        section_tip tip;
         tip.rotation = rotation_x(deg_to_rad*phi)*rotation_y(deg_to_rad*theta);
         tip.somatic_distance = 0.0;
 
@@ -263,17 +288,17 @@ morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         starts.push({tip, 0u});
     }
 
-    while (!starts.empty() && morph.segments.size()<P.max_segments) {
+    while (!starts.empty() && morph.sections.size()<P.max_sections) {
         auto start = starts.top();
         starts.pop();
 
         auto branch = grow(start.tip, S, g);
-        segment_geometry segment = {next_id++, start.parent_id, branch.children.empty(), std::move(branch.points)};
+        section_geometry section = {next_id++, start.parent_id, branch.children.empty(), std::move(branch.points), branch.length};
 
         for (auto child: branch.children) {
-            starts.push({child, segment.id});
+            starts.push({child, section.id});
         }
-        morph.segments.push_back(std::move(segment));
+        morph.sections.push_back(std::move(section));
     }
 
     return morph;
