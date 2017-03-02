@@ -10,6 +10,8 @@
 
 #include "morphology.h"
 #include "lsystem.h"
+#include "lsys_models.h"
+#include "quaternion.h"
 
 using nest::mc::io::swc_record;
 namespace to = nest::mc::to;
@@ -17,9 +19,27 @@ namespace to = nest::mc::to;
 const char* usage_str =
 "[OPTION]...\n"
 "\n"
-"  -n, --count=N   Number of morphologies to generate\n"
-"  --swc=FILE      Output morphologies as SWC to FILE; '%' in the\n"
-"                  file name is replaced with the number of the morphology.\n";
+"  -n, --count=N      Number of morphologies to generate.\n"
+"  -m, --model=MODEL  Use L-system MODEL for generation (see below).\n"
+"  -g, --segment=DX   Segment model into compartments of max size DX µm.\n"
+"  --swc=FILE         Output morphologies as SWC to FILE (see below).\n"
+"  --pvec=FILE        Output 'parent vector' structural representation\n"
+"                     to FILE.\n"
+"  -h, --help         Emit this message and exit.\n"
+"\n"
+"If a FILE arrgument contains a '%', then one file will be written for\n"
+"each generated morphology, with the '%' replaced by the index of the\n"
+"morphology, starting from zero. Output for each morphology will otherwise\n"
+"be concatenated: SWC files will be headed by a comment line with the\n"
+"index of the morphology; parent vectors will be merged into one long\n"
+"vector.  A FILE argument of '-' corresponds to standard output.\n"
+"\n"
+"Currently supported MODELs:\n"
+"    motoneuron    Adult cat spinal alpha-motoneurons, based on models\n"
+"                  and data in Burke 1992 and Ascoli 2001.\n"
+"    purkinje      Guinea pig Purkinje cellsm, basd on models and data\n"
+"                  from Rapp 1994 and Ascoli 2001.\n";
+
 
 template <typename... Args>
 std::string strprintf(const char* fmt, Args&&... args) {
@@ -88,9 +108,9 @@ struct multi_file_writer {
         current_n_ = n;
     }
 
-    void close() {
-        file_.close();
-    }
+    void close() { file_.close(); }
+
+    bool single_file() const { return concat_; }
 
     std::ostream& stream() { return use_stdout_? std::cout: file_; }
 };
@@ -119,7 +139,7 @@ std::vector<swc_record> as_swc(const morphology& morph) {
         // include first point only for dendrites segments attached to soma.
         if (seg.parent_id==0) {
             const auto& p = points[0];
-            swc.emplace_back(kind::dendrite, ++id, p.x, p.y, p.z, p.r, parent);
+            swc.emplace_back(kind::fork_point /*dendrite*/, ++id, p.x, p.y, p.z, p.r, parent);
             parent = id;
         }
 
@@ -142,7 +162,10 @@ int main(int argc, char** argv) {
     int rng_seed = 0;
     bool set_rng_seed = false;
     bool emit_swc = false;
+    bool emit_pvec = false;
+    double segment_dx = 0;
     std::string swc_file = "";
+    std::string pvec_file = "";
 
     try {
         auto arg = argv+1;
@@ -154,6 +177,20 @@ int main(int argc, char** argv) {
                 emit_swc = true;
                 swc_file = *o;
             }
+            else if (auto o = to::parse_opt<double>(arg, 'g', "segment")) {
+                segment_dx = *o;
+                throw to::parse_opt_error("--segment not yet implemented");
+            }
+            else if (auto o = to::parse_opt<std::string>(arg, 'p', "pvec")) {
+                emit_pvec = true;
+                pvec_file = *o;
+                throw to::parse_opt_error("--pvec not yet implemented");
+            }
+            else if (auto o = to::parse_opt<std::string>(arg, 'm', "model")) {
+               ... 
+                pvec_file = *o;
+                throw to::parse_opt_error("--pvec not yet implemented");
+            }
             else if (to::parse_opt<void>(arg, 'h', "help")) {
                 std::cout << "Usage: " << argv[0] << " " << usage_str;
                 return 0;
@@ -163,6 +200,7 @@ int main(int argc, char** argv) {
             }
         }
 
+        //lsys_param P = alpha_motoneuron_lsys;
         lsys_param P;
         std::minstd_rand g;
         if (set_rng_seed) {
@@ -171,7 +209,7 @@ int main(int argc, char** argv) {
 
         multi_file_writer swc_writer(swc_file,4);
         for (int i=0; i<n_morph; ++i) {
-            auto morph = generate_morphology(P, g);
+            auto morph = make_dummy_morph? dummy_morph(): generate_morphology(P, g);
             if (emit_swc) {
                 swc_writer.open(i);
                 auto& stream = swc_writer.stream();
