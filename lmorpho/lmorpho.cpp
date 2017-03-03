@@ -29,6 +29,8 @@ const char* usage_str =
 "                     to FILE.\n"
 "  -h, --help         Emit this message and exit.\n"
 "\n"
+"Generate artificial neuron morphologies based on L-system descriptions.\n"
+"\n"
 "If a FILE arrgument contains a '%', then one file will be written for\n"
 "each generated morphology, with the '%' replaced by the index of the\n"
 "morphology, starting from zero. Output for each morphology will otherwise\n"
@@ -39,7 +41,7 @@ const char* usage_str =
 "Currently supported MODELs:\n"
 "    motoneuron    Adult cat spinal alpha-motoneurons, based on models\n"
 "                  and data in Burke 1992 and Ascoli 2001.\n"
-"    purkinje      Guinea pig Purkinje cellsm, basd on models and data\n"
+"    purkinje      Guinea pig Purkinje cells, basd on models and data\n"
 "                  from Rapp 1994 and Ascoli 2001.\n";
 
 int main(int argc, char** argv) {

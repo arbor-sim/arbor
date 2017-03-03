@@ -12,19 +12,7 @@ static constexpr double inf = nest::mc::math::infinity<double>();
 // Without mixture distribution support, these aren't entirely faithful to
 // the original sources.
 //
-// References:
-//
-// Ascoli, G et al. (2001),
-//     "Computer generation and quantitative morphometric analysis of virtual neurons."
-//      Anatomy and Embryology 204 (4) 283-301.
-//
-// Cullheim, S et al. (1987),
-//     "Membrane area and dendritic structure in type‐identified triceps surae alpha motoneurons."
-//     Journal of comparative neurology 255 (1) 68-81.
-//
-// Rapp, M et al. (1994).
-//     "Physiology, morphology and detailed passive models of guinea-pig cerebellar Purkinje cells."
-//     The Journal of Physiology, 474(1), 101-118.
+// Refer to `README.md` for references and more information.
 
 lsys_param make_alpha_motoneuron_lsys() {
     lsys_param L;
