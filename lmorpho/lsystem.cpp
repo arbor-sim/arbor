@@ -4,9 +4,12 @@
 #include <stack>
 #include <vector>
 
-#include "quaternion.hpp"
+#include <math.hpp>
+
 #include "lsystem.hpp"
 #include "morphology.hpp"
+
+using namespace nest::mc::math;
 
 // L-system implementation.
 
