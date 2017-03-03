@@ -63,17 +63,20 @@ The 'purkinke' model corresponds to the guinea pig Purkinje cell model from
 (1994)][rapp1994]. Somatic diameters are a simple fit to the three measurements
 in the original source.
 
-The 'R' parameter described in Figure 3C of [Ascoli (2001)][ascoli2001] cannot
-be correct, and so the current implementation of this model does not produce
-representative or useful morphologies. This will be updated with numbers
-derived directly from the digitized morphologies as found in the [L-Neuron
-database][l-neuron-database] or taken from the database parameter description.
+Some required parameters are not recorded in [Ascoli (2001)][ascoli2001];
+the correlation component `diam_child_a` and the `length_step` ΔL are
+taken from the corresponding L-Neuron parameter description in the
+[L-Neuron database](l-neuron-database). These should be verified by
+fitting against the digitized morphologies as found in the database.
+
+Produced neurons from this model do not look especially realistic.
 
 ### Other models
 
 There is not yet support for loading in arbitrary parameter sets, or for
 translating or approximating the parameters that can be found in the
-[L-Neuron database][l-neuron-database].
+[L-Neuron database][l-neuron-database]. Support for parameter estimation
+from a population of discretized morphologies would be useful.
 
 ## References
 
