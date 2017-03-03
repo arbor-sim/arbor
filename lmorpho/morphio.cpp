@@ -99,20 +99,26 @@ std::vector<swc_record> as_swc(const morphology& morph) {
             throw std::runtime_error(strprintf("surprisingly short cable: id=%d, size=%ul", sec.id, n));
         }
 
-        // include first point only for dendrites segments attached to soma.
+        // Include first point only for dendrites segments attached to soma.
         if (sec.parent_id==0) {
             const auto& p = points[0];
-            swc.emplace_back(kind::fork_point /*dendrite*/, ++id, p.x, p.y, p.z, p.r, parent);
+            ++id;
+            swc.emplace_back(kind::fork_point, id, p.x, p.y, p.z, p.r, parent);
             parent = id;
         }
 
+        // Interior points.
         for (unsigned i = 1; i<n-1; ++i) {
             const auto& p = points[i];
-            swc.emplace_back(kind::dendrite, ++id, p.x, p.y, p.z, p.r, parent);
+            ++id;
+            swc.emplace_back(kind::dendrite, id, p.x, p.y, p.z, p.r, parent);
             parent = id;
         }
+
+        // Final point (fork or terminal).
         const auto& p = points.back();
-        swc.emplace_back(sec.terminal? kind::end_point: kind::fork_point, ++id, p.x, p.y, p.z, p.r, parent);
+        ++id;
+        swc.emplace_back(sec.terminal? kind::end_point: kind::fork_point, id, p.x, p.y, p.z, p.r, parent);
         parent_end_id[sec.id] = id;
     }
 

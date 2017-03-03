@@ -41,7 +41,7 @@ lsys_param make_alpha_motoneuron_lsys() {
     // Tortuousness: pitch within section over ΔL [degrees].
     L.pitch_section = { -15.0, 15.0, 0.0, 5.0 };
 
-    // Taper rate.
+    // Taper rate: diameter decrease per unit length.
     L.taper = { -1.25e-3 };
 
     // Branching torsion: roll at branch point [degrees].
@@ -94,7 +94,7 @@ lsys_param make_purkinje_lsys() {
     // Tortuousness: pitch within section over ΔL [degrees].
     L.pitch_section = { -inf, inf, 0, 10 };
 
-    // Taper rate.
+    // Taper rate: diameter decrease per unit length.
     L.taper = { -inf, inf, -0.010e-3, 0.022e-3 };
 
     // Branching torsion: roll at branch point [degrees].

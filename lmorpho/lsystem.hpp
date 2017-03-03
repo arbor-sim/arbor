@@ -91,7 +91,7 @@ struct lsys_param {
     // Tortuousness: pitch within section over ΔL [degrees]. (Eel)
     lsys_distribution_param pitch_section = { 0 };
 
-    // Taper rate. (TPRB)
+    // Taper rate: diameter decrease per unit length. (TPRB)
     lsys_distribution_param taper = { 0 };
 
     // Branching torsion: roll at branch point [degrees]. (Btor)

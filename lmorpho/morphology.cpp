@@ -23,16 +23,22 @@ void section_geometry::segment(double dx) {
     unsigned npoint = points.size();
     if (dx<=0 || npoint<2) return;
 
+    // Re-discretize into nseg segments (nseg+1 points).
     unsigned nseg = static_cast<unsigned>(std::ceil(length/dx));
 
     std::vector<section_point> sampled;
     sampled.push_back(points.front());
     double sampled_length = 0;
 
+    // [left, right) is the path-length interval for successive
+    // linear segments in the section.
     double left = 0;
     double right = left+distance(points[1], points[0]);
+
+    // x is the next sample point (in path-length).
     double x = length/nseg;
 
+    // Scan segments for sample points.
     for (unsigned i = 1; i<npoint;) {
         if (right>x) {
             double u = (x-left)/(right-left);

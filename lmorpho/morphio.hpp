@@ -50,11 +50,15 @@ class swc_emitter {
     multi_file file_;
 
 public:
+    // `pattern` is as for `multi_file`; number `n` optionally
+    // specifies the total number of morphologies, for better
+    // numeric formatting.
     explicit swc_emitter(std::string pattern, unsigned n=0):
         file_(pattern, digits(n)) {}
 
     swc_emitter(swc_emitter&&) = default;
 
+    // write `index`th morphology as SWC. 
     void operator()(unsigned index, const morphology& m);
 
     void close() { file_.close(); }
@@ -71,12 +75,16 @@ class pvector_emitter {
     unsigned offset_ = 0;
 
 public:
+    // `pattern` is as for `multi_file`; number `n` optionally
+    // specifies the total number of morphologies, for better
+    // numeric formatting.
     explicit pvector_emitter(std::string pattern, unsigned n=0):
         file_(pattern, digits(n)),
         coalesce_(file_.single_file()) {}
 
     pvector_emitter(pvector_emitter&&) = default;
 
+    // write pvector for `index`th morphology. 
     void operator()(unsigned index, const morphology& m);
 
     void close() { file_.close(); }
