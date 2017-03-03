@@ -15,6 +15,7 @@
 #include <util/double_buffer.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
+#include <util/compare.hpp>
 
 namespace nest {
 namespace mc {
@@ -103,16 +104,15 @@ public:
     /// group as a result of the global spike exchange.    
     std::vector<event_queue> make_event_queues(const gathered_vector<spike>& global_spikes)
     {
-        // Comparator operator between a spike and a spike source for equal_range
-        struct spike_comp {
-            using id_type = typename spike::id_type;
-            bool operator() (const spike& lhs, const id_type& rhs) const
-                {return lhs.source < rhs;}
-            bool operator() (const id_type& lhs, const spike& rhs) const
-                {return lhs < rhs.source;}
-        };
         // turn pair<it1, it2> into a class with begin()/end()
         using nest::mc::util::make_range;
+        using nest::mc::util::lessthan;
+        // Comparator operator between a spike and a spike source for equal_range
+        struct spike_extractor {
+            using id_type = typename spike::id_type;
+            id_type operator()(const id_type& s) {return s;}
+            id_type operator()(const spike& s) {return s.source;}
+        };
 
         // queues to return
         auto queues = std::vector<event_queue>(num_groups_local());
@@ -134,7 +134,8 @@ public:
             const auto src = con_it->source();
             const auto targets = std::equal_range(con_it, con_end, src);
             // and the associated block of spikes
-            const auto sources = std::equal_range(spikes_it, spikes_end, src, spike_comp());
+            const auto sources = std::equal_range(spikes_it, spikes_end,
+                                                  src, lessthan<spike_extractor>());
             // for the next iteration, blocks for both must start after the current block
             spikes_it = sources.second;
             con_it = targets.second;
