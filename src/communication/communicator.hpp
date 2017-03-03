@@ -107,15 +107,15 @@ public:
         struct spike_comp {
             using id_type = typename spike::id_type;
             bool operator() (const spike& lhs, const id_type& rhs) const
-            {return lhs.source < rhs;}
+                {return lhs.source < rhs;}
             bool operator() (const id_type& lhs, const spike& rhs) const
-            {return lhs < rhs.source;}
+                {return lhs < rhs.source;}
         };
         // turn pair<it1, it2> into a class with begin()/end()
         using nest::mc::util::make_range;
 
         // queues to return
-        auto&& queues = std::vector<event_queue>(num_groups_local());
+        auto queues = std::vector<event_queue>(num_groups_local());
 
         // Do a binary search on the globally sorted spike array
         // and the sorted-by-source connection list.

@@ -31,7 +31,7 @@ public :
             spikes.insert(spikes.begin(), b.begin(), b.end());
         }
 
-        return std::move(spikes);
+        return spikes;
     }
 
     /// Return a reference to the thread private buffer of the calling thread
