@@ -185,6 +185,7 @@ struct backend {
         struct threshold_crossing {
             size_type index;    // index of variable
             value_type time;    // time of crossing
+            __host__ __device__
             friend bool operator==
                 (const threshold_crossing& lhs, const threshold_crossing& rhs)
             {

@@ -52,8 +52,10 @@ public:
 
         // Create a list of the global identifiers for the spike sources
         auto source_gid = cell_gid_type{gid_base_};
+        std::vector<cell_lid_type> locs;
         for (const auto& cell: cells) {
             for (cell_lid_type lid=0u; lid<cell.detectors().size(); ++lid) {
+                locs.push_back(source_gid);
                 spike_sources_.push_back(source_id_type{source_gid, lid});
             }
             ++source_gid;

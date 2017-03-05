@@ -471,6 +471,10 @@ void fvm_multicell<Backend>::initialize(
     std::vector<value_type> tmp_cv_areas(ncomp, 0.);
     std::vector<value_type> tmp_cv_capacitance(ncomp, 0.);
 
+    // used to build the information required to construct spike detectors
+    std::vector<size_type> spike_detector_index;
+    std::vector<value_type> thresholds;
+
     // Iterate over the input cells and build the indexes etc that descrbe the
     // fused cell group. On completion:
     //  - group_paranet_index contains the full parent index for the fused cells.
@@ -564,18 +568,12 @@ void fvm_multicell<Backend>::initialize(
             mechanisms_.push_back(mechanism(stim));
         }
 
-        // spike detector handles are their corresponding compartment indices
-        std::vector<size_type> spike_detector_index;
-        std::vector<value_type> thresholds;
+        // calculate spike detector handles are their corresponding compartment indices
         for (const auto& detector: c.detectors()) {
             auto comp = comp_ival.first+find_cv_index(detector.location, graph);
             spike_detector_index.push_back(comp);
             thresholds.push_back(detector.threshold);
         }
-
-        // set a back-end supplied watcher on the voltage vector
-        threshold_watcher_ =
-            threshold_watcher(voltage_, spike_detector_index, thresholds, 0);
 
         // record probe locations by index into corresponding state vector
         for (const auto& probe: c.probes()) {
@@ -595,6 +593,11 @@ void fvm_multicell<Backend>::initialize(
             ++probes_count;
         }
     }
+
+    // set a back-end supplied watcher on the voltage vector
+    threshold_watcher_ =
+        threshold_watcher(voltage_, spike_detector_index, thresholds, 0);
+
 
     // confirm user-supplied container probes were appropriately sized.
     EXPECTS(probes_size==probes_count);
