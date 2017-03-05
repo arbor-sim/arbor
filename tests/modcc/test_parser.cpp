@@ -6,13 +6,13 @@
 #include "modccutil.hpp"
 #include "parser.hpp"
 
+// overload for parser errors
 template <typename EPtr>
 void verbose_print(const EPtr& e, Parser& p, const char* text) {
-    if (!g_verbose_flag) return;
-
-    if (e) std::cout << e->to_string() << "\n";
-    if (p.status()==lexerStatus::error)
-        std::cout << "in " << red(text) << "\t" << p.error_message() << "\n";
+    verbose_print(e);
+    if (p.status()==lexerStatus::error) {
+        verbose_print("in ", red(text), "\t", p.error_message());
+    }
 }
 
 template <typename Derived, typename RetUniqPtr>

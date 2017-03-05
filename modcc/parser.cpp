@@ -1312,8 +1312,16 @@ expression_ptr Parser::parse_solve() {
     }
     else {
         get_token(); // consume the METHOD keyword
-        if(token_.type != tok::cnexp) goto solve_statement_error;
-        method = solverMethod::cnexp;
+        switch(token_.type) {
+        case tok::cnexp:
+            method = solverMethod::cnexp;
+            break;
+        case tok::sparse:
+            method = solverMethod::sparse;
+            break;
+        default:
+            goto solve_statement_error;
+        }
 
         get_token(); // consume the method description
     }
@@ -1326,10 +1334,11 @@ expression_ptr Parser::parse_solve() {
 
 solve_statement_error:
     error( "SOLVE statements must have the form\n"
-           "  SOLVE x METHOD cnexp\n"
+           "  SOLVE x METHOD method\n"
            "    or\n"
            "  SOLVE x\n"
-           "where 'x' is the name of a DERIVATIVE block", loc);
+           "where 'x' is the name of a DERIVATIVE block and "
+           "'method' is 'cnexp' or 'sparse'", loc);
     return nullptr;
 }
 
@@ -1431,7 +1440,7 @@ expression_ptr Parser::parse_block(bool is_nested) {
     // save the location of the first statement as the starting point for the block
     Location block_location = token_.location;
 
-    std::list<expression_ptr> body;
+    expr_list_type body;
     while(token_.type != tok::rbrace) {
         auto e = parse_statement();
         if(!e) return e;
@@ -1473,7 +1482,7 @@ expression_ptr Parser::parse_initial() {
     if(!expect(tok::lbrace)) return nullptr;
     get_token(); // consume '{'
 
-    std::list<expression_ptr> body;
+    expr_list_type body;
     while(token_.type != tok::rbrace) {
         auto e = parse_statement();
         if(!e) return e;

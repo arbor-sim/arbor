@@ -10,7 +10,22 @@
 
 // Create new local variable symbol and local declaration expression in current scope.
 // Returns the local declaration expression.
-expression_ptr make_unique_local_decl(scope_ptr scope, Location loc, std::string const& prefix="ll");
+
+struct local_declaration {
+    expression_ptr local_decl;
+    expression_ptr id;
+    scope_ptr scope;
+};
+
+local_declaration make_unique_local_decl(
+    scope_ptr scope,
+    Location loc,
+    std::string const& prefix="ll");
+
+// Create a local declaration as for `make_unique_local_decl`, together with an
+// assignment to it from the given expression, using the location of that expression.
+// Returns local declaration expression, assignment expression, new identifier id and
+// consequent scope.
 
 struct local_assignment {
     expression_ptr local_decl;
@@ -19,10 +34,6 @@ struct local_assignment {
     scope_ptr scope;
 };
 
-// Create a local declaration as for `make_unique_local_decl`, together with an
-// assignment to it from the given expression, using the location of that expression.
-// Returns local declaration expression, assignment expression, new identifier id and
-// consequent scope.
 local_assignment make_unique_local_assign(
     scope_ptr scope,
     Expression* e,

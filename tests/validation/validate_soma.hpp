@@ -37,10 +37,10 @@ void validate_soma() {
 
     float t_end = 100.f;
 
-    // use dt = 0.05, 0.025, 0.01, 0.005, 0.0025,  ...
+    // use dt = 0.05, 0.02, 0.01, 0.005, 0.002,  ...
     double max_oo_dt = std::round(1.0/g_trace_io.min_dt());
     for (double base = 100; ; base *= 10) {
-        for (double multiple: {5., 2.5, 1.}) {
+        for (double multiple: {5., 2., 1.}) {
             double oo_dt = base/multiple;
             if (oo_dt>max_oo_dt) goto end;
 
