@@ -1,7 +1,7 @@
 include(BuildModules.cmake)
 
 # the list of built-in mechanisms to be provided by default
-set(mechanisms pas hh expsyn exp2syn)
+set(mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva)
 
 set(modcc_opt)
 if(NMC_USE_OPTIMIZED_KERNELS) # generate optimized kernels

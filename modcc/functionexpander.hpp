@@ -2,19 +2,17 @@
 
 #include <sstream>
 
+#include "expression.hpp"
 #include "scope.hpp"
 #include "visitor.hpp"
-
-// storage for a list of expressions
-using call_list_type = std::list<expression_ptr>;
 
 // Make a local declaration and assignment for the given expression,
 // and insert at the front and back respectively of the statement list.
 // Return the new unique local identifier.
-expression_ptr insert_unique_local_assignment(call_list_type& stmts, Expression* e);
+expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e);
 
 // prototype for lowering function calls
-call_list_type lower_function_calls(Expression* e);
+expr_list_type lower_function_calls(Expression* e);
 
 ///////////////////////////////////////////////////////////////////////////////
 // visitor that takes function call sites and lowers them to inline assignments
@@ -48,11 +46,11 @@ public:
     void visit(NumberExpression *e)     override {};
     void visit(IdentifierExpression *e) override {};
 
-    call_list_type& calls() {
+    expr_list_type& calls() {
         return calls_;
     }
 
-    call_list_type move_calls() {
+    expr_list_type move_calls() {
         return std::move(calls_);
     }
 
@@ -67,7 +65,7 @@ private:
         replacer(std::move(id));
     }
 
-    call_list_type calls_;
+    expr_list_type calls_;
     scope_ptr scope_;
 };
 
@@ -91,5 +89,5 @@ private:
 // If the calls_ data is spliced directly before the original statement
 // the function arguments will have been fully lowered
 ///////////////////////////////////////////////////////////////////////////////
-call_list_type lower_function_arguments(std::vector<expression_ptr>& args);
+expr_list_type lower_function_arguments(std::vector<expression_ptr>& args);
 
