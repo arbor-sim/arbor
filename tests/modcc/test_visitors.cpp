@@ -6,110 +6,116 @@
 #include "parser.hpp"
 #include "modccutil.hpp"
 
+// overload for parser errors
+template <typename EPtr>
+void verbose_print(const EPtr& e, Parser& p, const char* text) {
+    verbose_print(e);
+    if (p.status()==lexerStatus::error) {
+        verbose_print("in ", cyan(text), "\t", p.error_message());
+    }
+}
+
 /**************************************************************
  * visitors
  **************************************************************/
 
-using namespace nest::mc;
-
 TEST(FlopVisitor, basic) {
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("x+y");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("x+y");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 1);
     }
 
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("x-y");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("x-y");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 1);
     }
 
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("x*y");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.mul, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("x*y");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.mul, 1);
     }
 
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("x/y");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.div, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("x/y");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.div, 1);
     }
 
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("exp(x)");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.exp, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("exp(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.exp, 1);
     }
 
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("log(x)");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.log, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("log(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.log, 1);
     }
 
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("cos(x)");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.cos, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("cos(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.cos, 1);
     }
 
     {
-    auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("sin(x)");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.sin, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("sin(x)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.sin, 1);
     }
 }
 
 TEST(FlopVisitor, compound) {
     {
-        auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("x+y*z/a-b");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 2);
-    EXPECT_EQ(visitor->flops.mul, 1);
-    EXPECT_EQ(visitor->flops.div, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("x+y*z/a-b");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 2);
+        EXPECT_EQ(visitor.flops.mul, 1);
+        EXPECT_EQ(visitor.flops.div, 1);
     }
 
     {
-        auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("exp(x+y+z)");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 2);
-    EXPECT_EQ(visitor->flops.exp, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("exp(x+y+z)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 2);
+        EXPECT_EQ(visitor.flops.exp, 1);
     }
 
     {
-        auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_expression("exp(x+y) + 3/(12 + z)");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 3);
-    EXPECT_EQ(visitor->flops.div, 1);
-    EXPECT_EQ(visitor->flops.exp, 1);
+        FlopVisitor visitor;
+        auto e = parse_expression("exp(x+y) + 3/(12 + z)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 3);
+        EXPECT_EQ(visitor.flops.div, 1);
+        EXPECT_EQ(visitor.flops.exp, 1);
     }
 
     // test asssignment expression
     {
-        auto visitor = util::make_unique<FlopVisitor>();
-    auto e = parse_line_expression("x = exp(x+y) + 3/(12 + z)");
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 3);
-    EXPECT_EQ(visitor->flops.div, 1);
-    EXPECT_EQ(visitor->flops.exp, 1);
+        FlopVisitor visitor;
+        auto e = parse_line_expression("x = exp(x+y) + 3/(12 + z)");
+        e->accept(&visitor);
+        EXPECT_EQ(visitor.flops.add, 3);
+        EXPECT_EQ(visitor.flops.div, 1);
+        EXPECT_EQ(visitor.flops.exp, 1);
     }
 }
 
 TEST(FlopVisitor, procedure) {
-    {
     const char *expression =
 "PROCEDURE trates(v) {\n"
 "    LOCAL qt\n"
@@ -119,20 +125,18 @@ TEST(FlopVisitor, procedure) {
 "    mtau = 0.6\n"
 "    htau = 1500\n"
 "}";
-    auto visitor = util::make_unique<FlopVisitor>();
+    FlopVisitor visitor;
     auto e = parse_procedure(expression);
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 6);
-    EXPECT_EQ(visitor->flops.neg, 0);
-    EXPECT_EQ(visitor->flops.mul, 0);
-    EXPECT_EQ(visitor->flops.div, 5);
-    EXPECT_EQ(visitor->flops.exp, 2);
-    EXPECT_EQ(visitor->flops.pow, 1);
-    }
+    e->accept(&visitor);
+    EXPECT_EQ(visitor.flops.add, 6);
+    EXPECT_EQ(visitor.flops.neg, 0);
+    EXPECT_EQ(visitor.flops.mul, 0);
+    EXPECT_EQ(visitor.flops.div, 5);
+    EXPECT_EQ(visitor.flops.exp, 2);
+    EXPECT_EQ(visitor.flops.pow, 1);
 }
 
 TEST(FlopVisitor, function) {
-    {
     const char *expression =
 "FUNCTION foo(v) {\n"
 "    LOCAL qt\n"
@@ -141,16 +145,15 @@ TEST(FlopVisitor, function) {
 "    hinf=1/(1+exp((v-vhalfh)/kh))\n"
 "    foo = minf + hinf\n"
 "}";
-    auto visitor = util::make_unique<FlopVisitor>();
+    FlopVisitor visitor;
     auto e = parse_function(expression);
-    e->accept(visitor.get());
-    EXPECT_EQ(visitor->flops.add, 7);
-    EXPECT_EQ(visitor->flops.neg, 1);
-    EXPECT_EQ(visitor->flops.mul, 0);
-    EXPECT_EQ(visitor->flops.div, 5);
-    EXPECT_EQ(visitor->flops.exp, 2);
-    EXPECT_EQ(visitor->flops.pow, 1);
-    }
+    e->accept(&visitor);
+    EXPECT_EQ(visitor.flops.add, 7);
+    EXPECT_EQ(visitor.flops.neg, 1);
+    EXPECT_EQ(visitor.flops.mul, 0);
+    EXPECT_EQ(visitor.flops.div, 5);
+    EXPECT_EQ(visitor.flops.exp, 2);
+    EXPECT_EQ(visitor.flops.pow, 1);
 }
 
 TEST(ClassificationVisitor, linear) {
@@ -199,20 +202,14 @@ TEST(ClassificationVisitor, linear) {
         if( e==nullptr ) continue;
 
         e->semantic(scope);
-        auto v = new ExpressionClassifierVisitor(x);
-        e->accept(v);
-        //std::cout << "expression " << e->to_string() << std::endl;
-        //std::cout << "linear     " << v->linear_coefficient()->to_string() << std::endl;
-        //std::cout << "constant   " << v->constant_term()->to_string() << std::endl;
-        EXPECT_EQ(v->classify(), expressionClassification::linear);
+        ExpressionClassifierVisitor v(x);
+        e->accept(&v);
+        EXPECT_EQ(v.classify(), expressionClassification::linear);
 
-#ifdef VERBOSE_TEST
-        std::cout << "eq    "   << e->to_string()
-                  << "\ncoeff " << v->linear_coefficient()->to_string()
-                  << "\nconst " << v-> constant_term()->to_string()
-                  << "\n----"   << std::endl;
-#endif
-        delete v;
+        verbose_print("eq    ", e);
+        verbose_print("coeff ", v.linear_coefficient());
+        verbose_print("const ", v.constant_term());
+        verbose_print("----");
     }
 }
 
@@ -235,23 +232,19 @@ TEST(ClassificationVisitor, constant) {
     auto x = globals["x"].get();
 
     for(auto const& expression : expressions) {
-        auto e = parse_expression(expression);
+        Parser p{expression};
+        auto e = p.parse_expression();
 
         // sanity check the compiler
         EXPECT_NE(e, nullptr);
         if( e==nullptr ) continue;
 
         e->semantic(scope);
-        auto v = new ExpressionClassifierVisitor(x);
-        e->accept(v);
-        EXPECT_EQ(v->classify(), expressionClassification::constant);
+        ExpressionClassifierVisitor v(x);
+        e->accept(&v);
+        EXPECT_EQ(v.classify(), expressionClassification::constant);
 
-#ifdef VERBOSE_TEST
-        if(e) std::cout << e->to_string() << std::endl;
-        if(p.status()==lexerStatus::error)
-            std::cout << "in " << colorize(expression, kCyan) << "\t" << p.error_message() << std::endl;
-#endif
-        delete v;
+        verbose_print(e, p, expression);
     }
 }
 
@@ -281,24 +274,20 @@ TEST(ClassificationVisitor, nonlinear) {
     auto scope = std::make_shared<Scope<Symbol>>(globals);
     auto x = globals["x"].get();
 
-    auto v = new ExpressionClassifierVisitor(x);
+    ExpressionClassifierVisitor v(x);
     for(auto const& expression : expressions) {
-        auto e = parse_expression(expression);
+        Parser p{expression};
+        auto e = p.parse_expression();
 
         // sanity check the compiler
         EXPECT_NE(e, nullptr);
         if( e==nullptr ) continue;
 
         e->semantic(scope);
-        v->reset();
-        e->accept(v);
-        EXPECT_EQ(v->classify(), expressionClassification::nonlinear);
+        v.reset();
+        e->accept(&v);
+        EXPECT_EQ(v.classify(), expressionClassification::nonlinear);
 
-#ifdef VERBOSE_TEST
-        if(e) std::cout << e->to_string() << std::endl;
-        if(p.status()==lexerStatus::error)
-            std::cout << "in " << colorize(expression, kCyan) << "\t" << p.error_message() << std::endl;
-#endif
+        verbose_print(e, p, expression);
     }
-    delete v;
 }

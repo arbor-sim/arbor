@@ -8,10 +8,82 @@
 #include "expressionclassifier.hpp"
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
+#include "kineticrewriter.hpp"
 #include "module.hpp"
 #include "parser.hpp"
+#include "solvers.hpp"
+#include "symdiff.hpp"
+#include "visitor.hpp"
 
-using namespace nest::mc;
+class NrnCurrentRewriter: public BlockRewriterBase {
+    expression_ptr id(const std::string& name, Location loc) {
+        return make_expression<IdentifierExpression>(loc, name);
+    }
+
+    expression_ptr id(const std::string& name) {
+        return id(name, loc_);
+    }
+
+    static ionKind is_ion_update(Expression* e) {
+        if(auto a = e->is_assignment()) {
+            if(auto sym = a->lhs()->is_identifier()->symbol()) {
+                if(auto var = sym->is_local_variable()) {
+                    return var->ion_channel();
+                }
+            }
+        }
+        return ionKind::none;
+    }
+
+    moduleKind kind_;
+    bool has_current_update_ = false;
+
+public:
+    using BlockRewriterBase::visit;
+
+    explicit NrnCurrentRewriter(moduleKind kind): kind_(kind) {}
+
+    virtual void finalize() override {
+        if (has_current_update_) {
+            // Initialize current_ as first statement.
+            statements_.push_front(make_expression<AssignmentExpression>(loc_,
+                    id("current_"),
+                    make_expression<NumberExpression>(loc_, 0.0)));
+
+            if (kind_==moduleKind::density) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                    id("current_"),
+                    make_expression<MulBinaryExpression>(loc_,
+                        id("weights_"),
+                        id("current_"))));
+            }
+        }
+    }
+
+    virtual void visit(SolveExpression *e) override {}
+    virtual void visit(ConductanceExpression *e) override {}
+    virtual void visit(AssignmentExpression *e) override {
+        statements_.push_back(e->clone());
+        auto loc = e->location();
+
+        if (is_ion_update(e)!=ionKind::none) {
+            has_current_update_ = true;
+
+            if (!linear_test(e->rhs(), {"v"}).is_linear) {
+                error({"current update expressions must be linear in v: "+e->rhs()->to_string(),
+                       e->location()});
+                return;
+            }
+            else {
+                statements_.push_back(make_expression<AssignmentExpression>(loc,
+                    id("current_", loc),
+                    make_expression<AddBinaryExpression>(loc,
+                        id("current_", loc),
+                        e->lhs()->clone())));
+            }
+        }
+    }
+};
 
 Module::Module(std::string const& fname)
 : fname_(fname)
@@ -78,22 +150,26 @@ Module::symbols() const {
     return symbols_;
 }
 
-void Module::error(std::string const& msg, Location loc) {
-    std::string location_info = pprintf("%:% ", file_name(), loc);
-    if(error_string_.size()) {// append to current string
-        error_string_ += "\n";
+std::string Module::error_string() const {
+    std::string str;
+    for (const error_entry& entry: errors()) {
+        if (!str.empty()) str += '\n';
+        str += red("error   ");
+        str += white(pprintf("%:% ", file_name(), entry.location));
+        str += entry.message;
     }
-    error_string_ += red("error   ") + white(location_info) + msg;
-    status_ = lexerStatus::error;
+    return str;
 }
 
-void Module::warning(std::string const& msg, Location loc) {
-    std::string location_info = pprintf("%:% ", file_name(), loc);
-    if(error_string_.size()) {// append to current string
-        error_string_ += "\n";
+std::string Module::warning_string() const {
+    std::string str;
+    for (const error_entry& entry: errors()) {
+        if (!str.empty()) str += '\n';
+        str += purple("error   ");
+        str += white(pprintf("%:% ", file_name(), entry.location));
+        str += entry.message;
     }
-    error_string_ += purple("warning ") + white(location_info) + msg;
-    has_warning_ = true;
+    return str;
 }
 
 bool Module::semantic() {
@@ -165,13 +241,13 @@ bool Module::semantic() {
             s->semantic(symbols_);
 
             // then use an error visitor to print out all the semantic errors
-            auto v = util::make_unique<ErrorVisitor>(file_name());
-            s->accept(v.get());
-            errors += v->num_errors();
+            ErrorVisitor v(file_name());
+            s->accept(&v);
+            errors += v.num_errors();
 
             // inline function calls
             // this requires that the symbol table has already been built
-            if(v->num_errors()==0) {
+            if(v.num_errors()==0) {
                 auto &b = s->kind()==symbolKind::function ?
                     s->is_function()->body()->statements() :
                     s->is_procedure()->body()->statements();
@@ -246,9 +322,7 @@ bool Module::semantic() {
     }
 
     if(errors) {
-        std::cout << "\nthere were " << errors
-                  << " errors in the semantic analysis" << std::endl;
-        status_ = lexerStatus::error;
+        error("There were "+std::to_string(errors)+" errors in the semantic analysis");
         return false;
     }
 
@@ -281,7 +355,7 @@ bool Module::semantic() {
                           loc, name,
                           std::vector<expression_ptr>(), // no arguments
                           make_expression<BlockExpression>
-                          (loc, std::list<expression_ptr>(), false)
+                            (loc, expr_list_type(), false)
                          );
 
         auto proc = symbols_[name]->is_api_method();
@@ -312,46 +386,6 @@ bool Module::semantic() {
         return false;
     }
 
-
-    // evaluate whether an expression has the form
-    // (b - x)/a
-    // where x is a state variable with name state_variable
-    // this test is used to detect ODEs with the signature
-    // dx/dt = (xinf - x)/xtau
-    // so that we can integrate them efficiently using the cnexp integrator
-    //
-    // this is messy, but ok for a once off. If this pattern is
-    // repeated, it will be worth finding a more sophisticated solution
-    auto is_gating = [] (Expression* e, std::string const& state_variable) {
-        IdentifierExpression* a = nullptr;
-        IdentifierExpression* b = nullptr;
-        BinaryExpression* other = nullptr;
-        if(auto binop = e->is_binary()) {
-            if(binop->op()==tok::divide) {
-                if((a = binop->rhs()->is_identifier())) {
-                    other = binop->lhs()->is_binary();
-                }
-            }
-        }
-        if(other) {
-            if(other->op()==tok::minus) {
-                if(auto rhs = other->rhs()->is_identifier()) {
-                    if(rhs->name() == state_variable) {
-                        if(auto lhs = other->lhs()->is_identifier()) {
-                            if(lhs->name() != state_variable) {
-                                b = lhs;
-                                return std::make_pair(a, b);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        a = b = nullptr;
-        return std::make_pair(a, b);
-    };
-
     // Look in the symbol table for a procedure with the name "breakpoint".
     // This symbol corresponds to the BREAKPOINT block in the .mod file
     // There are two APIMethods generated from BREAKPOINT.
@@ -361,222 +395,118 @@ bool Module::semantic() {
     auto api_state  = state_api.first;
     auto breakpoint = state_api.second;
 
-    if( breakpoint ) {
-        // helper for making identifiers on the fly
-        auto id = [] (std::string const& name, Location loc=Location()) {
-            return make_expression<IdentifierExpression>(loc, name);
-        };
+    api_state->semantic(symbols_);
+    scope_ptr nrn_state_scope = api_state->scope();
+
+    if(breakpoint) {
         //..........................................................
         // nrn_state : The temporal integration of state variables
         //..........................................................
 
-        // find the SOLVE statement
-        SolveExpression* solve_expression = nullptr;
-        for(auto& e: *(breakpoint->body())) {
-            solve_expression = e->is_solve_statement();
-            if(solve_expression) break;
-        }
+        // grab SOLVE statements, put them in `nrn_state` after translation.
+        bool found_solve = false;
+        bool found_non_solve = false;
+        std::set<std::string> solved_ids;
 
-        // handle the case where there is no SOLVE in BREAKPOINT
-        if( solve_expression==nullptr ) {
-            warning( " there is no SOLVE statement, required to update the"
-                     " state variables, in the BREAKPOINT block",
-                     breakpoint->location());
-        }
-        else {
-            // get the DERIVATIVE block
-            auto dblock = solve_expression->procedure();
+        for(auto& e: (breakpoint->body()->statements())) {
+            SolveExpression* solve_expression = e->is_solve_statement();
+            if(!solve_expression) {
+                found_non_solve = true;
+                continue;
+            }
+            if(found_non_solve) {
+                error("SOLVE statements must come first in BREAKPOINT block",
+                    e->location());
+                return false;
+            }
 
-            // body refers to the currently empty body of the APIMethod that
-            // will hold the AST for the nrn_state function.
-            auto& body = api_state->body()->statements();
+            found_solve = true;
+            std::unique_ptr<SolverVisitorBase> solver;
 
-            auto has_provided_integration_method =
-                solve_expression->method() == solverMethod::cnexp;
+            switch(solve_expression->method()) {
+            case solverMethod::cnexp:
+                solver = make_unique<CnexpSolverVisitor>();
+                break;
+            case solverMethod::sparse:
+                solver = make_unique<SparseSolverVisitor>();
+                break;
+            case solverMethod::none:
+                solver = make_unique<DirectSolverVisitor>();
+                break;
+            }
 
-            // loop over the statements in the SOLVE block from the mod file
-            // put each statement into the new APIMethod, performing
-            // transformations if necessary.
-            for(auto& e : *(dblock->body())) {
-                if(auto ass = e->is_assignment()) {
-                    auto lhs = ass->lhs();
-                    auto rhs = ass->rhs();
-                    if(auto deriv = lhs->is_derivative()) {
-                        // Check that a METHOD was provided in the original SOLVE
-                        // statment. We have to do this because it is possible
-                        // to call SOLVE without a METHOD, in which case there should
-                        // be no derivative expressions in the DERIVATIVE block.
-                        if(!has_provided_integration_method) {
-                            error("The DERIVATIVE block has a derivative expression"
-                                  " but no METHOD was specified in the SOLVE statement",
-                                  deriv->location());
-                            return false;
-                        }
+            // If the derivative block is a kinetic block, perform kinetic
+            // rewrite first.
 
-                        auto sym  = deriv->symbol();
-                        auto name = deriv->name();
+            auto deriv = solve_expression->procedure();
 
-                        auto gating_vars = is_gating(rhs, name);
-                        if(gating_vars.first && gating_vars.second) {
-                            auto const& inf = gating_vars.second->spelling();
-                            auto const& rate = gating_vars.first->spelling();
-                            auto e_string = name + "=" + inf
-                                            + "+(" + name + "-" + inf + ")*exp(-dt/"
-                                            + rate + ")";
-                            auto stmt_update = Parser(e_string).parse_line_expression();
-                            body.emplace_back(std::move(stmt_update));
-                            continue;
-                        }
-                        else {
-                            // create visitor for linear analysis
-                            auto v = util::make_unique<ExpressionClassifierVisitor>(sym);
-                            rhs->accept(v.get());
+            if (deriv->kind()==procedureKind::kinetic) {
+                kinetic_rewrite(deriv->body())->accept(solver.get());
+            }
+            else {
+                deriv->body()->accept(solver.get());
+            }
 
-                            // quit if ODE is not linear
-                            if( v->classify() != expressionClassification::linear ) {
-                                error("unable to integrate nonlinear state ODEs",
-                                      rhs->location());
-                                return false;
-                            }
-
-                            // the linear differential equation is of the form
-                            //      s' = a*s + b
-                            // integration by separation of variables gives the following
-                            // update function to integrate s for one time step dt
-                            //      s = -b/a + (s+b/a)*exp(a*dt)
-                            // we are going to build this update function by
-                            //  1. generating statements that define a_=a and ba_=b/a
-                            //  2. generating statements that update the solution
-
-                            // statement : a_ = a
-                            auto stmt_a  =
-                                binary_expression(Location(),
-                                                  tok::eq,
-                                                  id("a_"),
-                                                  v->linear_coefficient()->clone());
-
-                            // expression : b/a
-                            auto expr_ba =
-                                binary_expression(Location(),
-                                                  tok::divide,
-                                                  v->constant_term()->clone(),
-                                                  id("a_"));
-                            // statement  : ba_ = b/a
-                            auto stmt_ba = binary_expression(Location(), tok::eq, id("ba_"), std::move(expr_ba));
-
-                            // the update function
-                            auto e_string = name + "  = -ba_ + "
-                                            "(" + name + " + ba_)*exp(a_*dt)";
-                            auto stmt_update = Parser(e_string).parse_line_expression();
-
-                            // add declaration of local variables
-                            body.emplace_back(Parser("LOCAL a_").parse_local());
-                            body.emplace_back(Parser("LOCAL ba_").parse_local());
-                            // add integration statements
-                            body.emplace_back(std::move(stmt_a));
-                            body.emplace_back(std::move(stmt_ba));
-                            body.emplace_back(std::move(stmt_update));
-                            continue;
-                        }
+            if (auto solve_block = solver->as_block(false)) {
+                // Check that we didn't solve an already solved variable.
+                for (const auto& id: solver->solved_identifiers()) {
+                    if (solved_ids.count(id)>0) {
+                        error("Variable "+id+" solved twice!", e->location());
+                        return false;
                     }
-                    else {
-                        body.push_back(e->clone());
-                        continue;
-                    }
+                    solved_ids.insert(id);
                 }
-                body.push_back(e->clone());
+
+                // May have now redundant local variables; remove these first.
+                solve_block = remove_unused_locals(solve_block->is_block());
+
+                // Copy body into nrn_state.
+                for (auto& stmt: solve_block->is_block()->statements()) {
+                    api_state->body()->statements().push_back(std::move(stmt));
+                }
+            }
+            else {
+                // Something went wrong: copy errors across.
+                append_errors(solver->errors());
+                return false;
             }
         }
 
-        // perform semantic analysis
-        api_state->semantic(symbols_);
+        // handle the case where there is no SOLVE in BREAKPOINT
+        if(!found_solve) {
+            warning(" there is no SOLVE statement, required to update the"
+                    " state variables, in the BREAKPOINT block",
+                    breakpoint->location());
+        }
+        else {
+            // redo semantic pass in order to elimate any removed local symbols.
+            api_state->semantic(symbols_);
+        }
 
         //..........................................................
         // nrn_current : update contributions to currents
         //..........................................................
-        std::list<expression_ptr> block;
-
-        // helper which tests a statement to see if it updates an ion
-        // channel variable.
-        auto is_ion_update = [] (Expression* e) {
-            if(auto a = e->is_assignment()) {
-                // semantic analysis has been performed on the original expression
-                // which ensures that the lhs is an identifier and a variable
-                if(auto sym = a->lhs()->is_identifier()->symbol()) {
-                    // assume that a scalar stack variable is being used for
-                    // the indexed value: i.e. the value is not cached
-                    if(auto var = sym->is_local_variable()) {
-                        return var->ion_channel();
-                    }
-                }
-            }
-            return ionKind::none;
-        };
-
-        // add statements that initialize the reduction variables
-        bool has_current_update = false;
-        for(auto& e: *(breakpoint->body())) {
-            // ignore solve and conductance statements
-            if(e->is_solve_statement())       continue;
-            if(e->is_conductance_statement()) continue;
-
-            // add the expression
-            block.emplace_back(e->clone());
-
-            // we are updating an ionic current
-            // so keep track of current and conductance accumulation
-            auto channel = is_ion_update(e.get());
-            if(channel != ionKind::none) {
-                auto lhs = e->is_assignment()->lhs()->is_identifier();
-                auto rhs = e->is_assignment()->rhs();
-
-                // analyze the expression for linear terms
-                //auto v = util::make_unique<ExpressionClassifierVisitor>(symbols_["v"].get());
-                auto v_symbol = breakpoint->scope()->find("v");
-                auto v = util::make_unique<ExpressionClassifierVisitor>(v_symbol);
-                rhs->accept(v.get());
-
-                if(v->classify()==expressionClassification::linear) {
-                    // add current update
-                    if(has_current_update) {
-                        block.emplace_back(Parser("current_ = current_ + " + lhs->name()).parse_line_expression());
-                    }
-                    else {
-                        block.emplace_back(Parser("current_ = " + lhs->name()).parse_line_expression());
-                    }
-                }
-                else {
-                    error("current update functions must be a linear"
-                          " function of v : " + rhs->to_string(), e->location());
-                    return false;
-                }
-                has_current_update = true;
-            }
-        }
-        if(has_current_update && kind()==moduleKind::density) {
-            block.emplace_back(Parser("current_ = weights_ * current_").parse_line_expression());
-        }
-
-        auto v = util::make_unique<ConstantFolderVisitor>();
-        for(auto& e : block) {
-            e->accept(v.get());
+        NrnCurrentRewriter nrn_current_rewriter(kind());
+        breakpoint->accept(&nrn_current_rewriter);
+        auto nrn_current_block = nrn_current_rewriter.as_block();
+        if (!nrn_current_block) {
+            append_errors(nrn_current_rewriter.errors());
+            return false;
         }
 
         symbols_["nrn_current"] =
             make_symbol<APIMethod>(
                     breakpoint->location(), "nrn_current",
                     std::vector<expression_ptr>(),
-                    make_expression<BlockExpression>(breakpoint->location(),
-                                                     std::move(block), false)
-            );
+                    constant_simplify(nrn_current_block));
         symbols_["nrn_current"]->semantic(symbols_);
     }
     else {
-        error("a BREAKPOINT block is required", Location());
+        error("a BREAKPOINT block is required");
         return false;
     }
 
-    return status() == lexerStatus::happy;
+    return !has_error();
 }
 
 /// populate the symbol table with class scope variables
@@ -782,7 +712,7 @@ bool Module::optimize() {
     // how to structure the optimizer
     // loop over APIMethods
     //      - apply optimization to each in turn
-    auto folder = util::make_unique<ConstantFolderVisitor>();
+    ConstantFolderVisitor folder;
     for(auto &symbol : symbols_) {
         auto kind = symbol.second->kind();
         BlockExpression* body;
@@ -809,7 +739,7 @@ bool Module::optimize() {
 
         // perform constant folding
         for(auto& line : *body) {
-            line->accept(folder.get());
+            line->accept(&folder);
         }
 
         // preform expression simplification
