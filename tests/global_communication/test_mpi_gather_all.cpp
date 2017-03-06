@@ -5,7 +5,7 @@
 #include <cstring>
 #include <vector>
 
-#include <communication/mpi_global_policy.hpp>
+#include <communication/global_policy.hpp>
 #include <communication/mpi.hpp>
 #include <util/rangeutil.hpp>
 

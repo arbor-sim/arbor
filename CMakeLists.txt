@@ -50,15 +50,15 @@ set(EXTERNAL_INCLUDES "")
 #----------------------------------------------------------
 # Threading model selection
 #----------------------------------------------------------
-set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp")
-set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb omp)
+set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp/cthread")
+set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb omp cthread)
 
 if(NMC_THREADING_MODEL MATCHES "tbb")
     # TBB support
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DNMC_HAVE_TBB)
-    set(NMC_HAVE_TBB TRUE)
+    set(NMC_WITH_TBB TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
     list(APPEND EXTERNAL_INCLUDES ${TBB_INCLUDE_DIRS})
 
@@ -67,14 +67,14 @@ elseif(NMC_THREADING_MODEL MATCHES "omp")
     find_package(OpenMP REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     add_definitions(-DNMC_HAVE_OMP)
-    set(NMC_HAVE_OMP TRUE)
+    set(NMC_WITH_OMP TRUE)
 
 elseif(NMC_THREADING_MODEL MATCHES "cthread")
     find_package(Threads REQUIRED)
     add_definitions(-DNMC_HAVE_CTHREAD)
-    set(NMC_HAVE_CTHREAD TRUE)
+    set(NMC_WITH_CTHREAD TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-    
+
     if(CMAKE_USE_PTHREADS_INIT)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
@@ -137,23 +137,38 @@ endif()
 #----------------------------------------------------------
 # MPI support
 #----------------------------------------------------------
-option(NMC_WITH_MPI "use MPI for distributed parallelism" OFF)
-if(NMC_WITH_MPI)
+set(NMC_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
+set_property(CACHE NMC_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
+
+if(NMC_DISTRIBUTED_MODEL MATCHES "mpi")
    # BGQ specific flags
    if(${NMC_SYSTEM_TYPE} MATCHES "BGQ" )
       # On BGQ, set CXX to the mpi wrapper, and pass it a static
       add_definitions(-DMPICH2_CONST=const)
       set(MPI_FOUND TRUE)
     endif()
-    
+
     if (NOT MPI_FOUND)
       find_package(MPI REQUIRED)
     endif()
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
     add_definitions(-DNMC_HAVE_MPI)
+
     # unfortunate workaround for C++ detection in system mpi.h
     add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
+
+    set(NMC_WITH_MPI TRUE)
+
+elseif(NMC_DISTRIBUTED_MODEL MATCHES "dryrun")
+    add_definitions(-DNMC_HAVE_DRYRUN)
+    set(NMC_WITH_DRYRUN TRUE)
+
+elseif(NMC_DISTRIBUTED_MODEL MATCHES "serial")
+    # no additional set up needed
+
+else()
+    message( FATAL_ERROR "-- Distributed communication model '${NMC_DISTRIBUTED_MODEL}' not supported, use one of serial/mpi/dryrun")
 endif()
 
 #----------------------------------------------------------
