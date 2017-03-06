@@ -111,3 +111,148 @@ TEST(math, infinity) {
     EXPECT_EQ(std::numeric_limits<double>::infinity(), check.d);
     EXPECT_EQ(std::numeric_limits<long double>::infinity(), check.ld);
 }
+
+TEST(quaternion, ctor) {
+    // scalar
+    quaternion q1(3.5);
+
+    EXPECT_EQ(3.5, q1.w);
+    EXPECT_EQ(0., q1.x);
+    EXPECT_EQ(0., q1.y);
+    EXPECT_EQ(0., q1.z);
+
+    // pure imaginery
+    quaternion q2(1.5, 2.5, 3.5);
+
+    EXPECT_EQ(0, q2.w);
+    EXPECT_EQ(1.5, q2.x);
+    EXPECT_EQ(2.5, q2.y);
+    EXPECT_EQ(3.5, q2.z);
+
+    // all components
+    quaternion q3(0.5, 1.5, 2.5, 3.5);
+
+    EXPECT_EQ(0.5, q3.w);
+    EXPECT_EQ(1.5, q3.x);
+    EXPECT_EQ(2.5, q3.y);
+    EXPECT_EQ(3.5, q3.z);
+
+    // copy ctor
+    quaternion q4(q3);
+
+    EXPECT_EQ(0.5, q4.w);
+    EXPECT_EQ(1.5, q4.x);
+    EXPECT_EQ(2.5, q4.y);
+    EXPECT_EQ(3.5, q4.z);
+}
+
+TEST(quaternion, assign) {
+    quaternion q1(0.5, 1.5, 2.5, 3.5);
+    quaternion q2(7.3, -2.4, 11.1, -9);
+
+    q2 = q1;
+
+    EXPECT_EQ(0.5, q2.w);
+    EXPECT_EQ(1.5, q2.x);
+    EXPECT_EQ(2.5, q2.y);
+    EXPECT_EQ(3.5, q2.z);
+
+    q2 = -11.5;
+
+    EXPECT_EQ(-11.5, q2.w);
+    EXPECT_EQ(0, q2.x);
+    EXPECT_EQ(0, q2.y);
+    EXPECT_EQ(0, q2.z);
+}
+
+TEST(quaternion, equality) {
+    quaternion q1(1., 2., 3., 5.5);
+
+    quaternion q2(q1);
+    EXPECT_EQ(q1, q2);
+
+    q2 = q1;
+    q2.w += 0.5;
+    EXPECT_NE(q1, q2);
+
+    q2 = q1;
+    q2.x += 0.5;
+    EXPECT_NE(q1, q2);
+
+    q2 = q1;
+    q2.y += 0.5;
+    EXPECT_NE(q1, q2);
+
+    q2 = q1;
+    q2.z += 0.5;
+    EXPECT_NE(q1, q2);
+}
+
+TEST(quaternion, unaryop) {
+    quaternion q(2, -3, 4.5, -5);
+
+    EXPECT_EQ(quaternion(-2, 3, -4.5, 5), -q);
+    EXPECT_EQ(quaternion(2, 3, -4.5, 5), q.conj());
+
+    quaternion r(10, 6, 4, 37);
+    EXPECT_EQ(1521., r.sqnorm());
+    EXPECT_DOUBLE_EQ(39., r.norm());
+}
+
+TEST(quaternion, binop) {
+    quaternion q1(2, -3, 4.5, -5);
+    quaternion q2(0.5, 1.5, -2.5, 3.5);
+
+    EXPECT_EQ(quaternion(2.5, -1.5, 2, -1.5), q1+q2);
+    EXPECT_EQ(quaternion(1.5, -4.5, 7, -8.5), q1-q2);
+    EXPECT_EQ(quaternion(34.25, 4.75, 0.25, 5.25), q1*q2);
+    EXPECT_EQ(quaternion(42, -41.5, 71, -131), q1^q2);
+}
+
+TEST(quaternion, assignop) {
+    quaternion q1(2, -3, 4.5, -5);
+    quaternion q2(0.5, 1.5, -2.5, 3.5);
+
+    quaternion q;
+    q = q1;
+    q += q2;
+    EXPECT_EQ(q1+q2, q);
+
+    q = q1;
+    q -= q2;
+    EXPECT_EQ(q1-q2, q);
+
+    q = q1;
+    q *= q2;
+    EXPECT_EQ(q1*q2, q);
+
+    q = q1;
+    q ^= q2;
+    EXPECT_EQ(q1^q2, q);
+}
+
+TEST(quaternion, rotate) {
+    double deg_to_rad = pi<double>()/180.;
+    double sqrt3o2 = std::sqrt(3.)/2.;
+    double eps = 1e-15;
+
+    quaternion q(0, 1, 2, 3);
+
+    auto r = q^rotation_x(deg_to_rad*30);
+    EXPECT_NEAR(0., r.w, eps);
+    EXPECT_NEAR(q.x, r.x, eps);
+    EXPECT_NEAR(q.y*sqrt3o2-q.z/2., r.y, eps);
+    EXPECT_NEAR(q.y/2.+q.z*sqrt3o2, r.z, eps);
+
+    r = q^rotation_y(deg_to_rad*30);
+    EXPECT_NEAR(0., r.w, eps);
+    EXPECT_NEAR(q.x*sqrt3o2+q.z/2., r.x, eps);
+    EXPECT_NEAR(q.y, r.y, eps);
+    EXPECT_NEAR(-q.x/2.+q.z*sqrt3o2, r.z, eps);
+
+    r = q^rotation_z(deg_to_rad*30);
+    EXPECT_NEAR(0., r.w, eps);
+    EXPECT_NEAR(q.x*sqrt3o2-q.y/2., r.x, eps);
+    EXPECT_NEAR(q.x/2.+q.y*sqrt3o2, r.y, eps);
+    EXPECT_NEAR(q.z, r.z, eps);
+}
