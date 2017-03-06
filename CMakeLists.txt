@@ -4,6 +4,11 @@ cmake_minimum_required(VERSION 2.8)
 project(cell_algorithms)
 enable_language(CXX)
 
+# Hide warnings about mixing old and new signatures for target_link_libraries.
+# These can't be avoided, because the FindCUDA packed provided by CMake uses
+# the old signature, while other packages use the new signature.
+cmake_policy(SET CMP0023 OLD)
+
 # save incoming CXX flags for forwarding to modcc external project
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
