@@ -153,4 +153,3 @@ TEST(synapses, exp2syn_basic_state)
     EXPECT_NEAR(ptr->A[1], ptr->factor[1]*3.14, 1e-6);
     EXPECT_NEAR(ptr->B[3], ptr->factor[3]*1.04, 1e-6);
 }
-

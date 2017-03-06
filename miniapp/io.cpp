@@ -134,7 +134,13 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         true,       // Overwrite outputfile if exists
         "./",       // output path
         "spikes",   // file name
-        "gdf"       // file extension
+        "gdf",      // file extension
+
+        // dry run parameters:
+        1,          // default dry run size
+
+        // Turn on/off profiling output for all ranks
+        false
     };
 
     cl_options options;
@@ -189,7 +195,14 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             "T", "trace-max-gid", "only trace probes on cells up to and including <gid>",
             false, defopts.trace_max_gid, "gid", cmd);
         TCLAP::SwitchArg spike_output_arg(
-            "f","spike_file_output","save spikes to file", cmd, false);
+            "f","spike-file-output","save spikes to file", cmd, false);
+
+        TCLAP::ValueArg<unsigned> dry_run_ranks_arg(
+            "D","dry-run-ranks","number of ranks in dry run mode",
+            false, defopts.dry_run_ranks, "positive integer", cmd);
+
+        TCLAP::SwitchArg profile_only_zero_arg(
+             "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
 
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
@@ -230,6 +243,10 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                         update_option(options.file_extension, fopts, "file_extension");
                     }
 
+                    update_option(options.dry_run_ranks, fopts, "dry_run_ranks");
+
+                    update_option(options.profile_only_zero, fopts, "profile_only_zero");
+
                 }
                 catch (std::exception& e) {
                     throw model_description_error(
@@ -255,6 +272,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.trace_prefix, trace_prefix_arg);
         update_option(options.trace_max_gid, trace_max_gid_arg);
         update_option(options.spike_file_output, spike_output_arg);
+        update_option(options.profile_only_zero, profile_only_zero_arg);
+        update_option(options.dry_run_ranks, dry_run_ranks_arg);
 
         if (options.all_to_all && options.ring) {
             throw usage_error("can specify at most one of --ring and --all-to-all");

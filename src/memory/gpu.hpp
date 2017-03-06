@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 
 #include <string>
 #include <cstdint>

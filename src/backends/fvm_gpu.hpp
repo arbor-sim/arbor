@@ -414,7 +414,6 @@ void test_thresholds(
     stack.push_back({I(i), crossing_time}, crossed);
 }
 
-
 } // namespace multicore
 } // namespace mc
 } // namespace nest

@@ -11,7 +11,7 @@
 #include "allocator.hpp"
 #include "util.hpp"
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 #include "gpu.hpp"
 #endif
 
@@ -23,7 +23,7 @@ namespace memory {
 template <typename T, class Allocator>
 class host_coordinator;
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
 template <typename T, class Allocator>
 class device_coordinator;
 #endif
@@ -124,7 +124,7 @@ public:
         std::copy(from.begin(), from.end(), to.begin());
     }
 
-#ifdef WITH_CUDA
+#ifdef NMC_HAVE_CUDA
     // copy memory from device to host
     template <class Alloc>
     void copy(

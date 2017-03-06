@@ -33,12 +33,11 @@ expression_ptr inline_function_call(Expression* e)
                           << id->to_string() << " -> " << fargs[i]->to_string()
                           << " in the expression " << new_e->to_string() << "\n";
 #endif
-                auto v =
-                    make_unique<VariableReplacer>(
-                        fargs[i]->is_argument()->spelling(),
-                        id->spelling()
-                    );
-                new_e->accept(v.get());
+                VariableReplacer v(
+                    fargs[i]->is_argument()->spelling(),
+                    id->spelling()
+                );
+                new_e->accept(&v);
             }
             else if(auto value = cargs[i]->is_number()) {
 #ifdef LOGGING
@@ -46,12 +45,11 @@ expression_ptr inline_function_call(Expression* e)
                           << value->to_string() << " -> " << fargs[i]->to_string()
                           << " in the expression " << new_e->to_string() << "\n";
 #endif
-                auto v =
-                    make_unique<ValueInliner>(
-                        fargs[i]->is_argument()->spelling(),
-                        value->value()
-                    );
-                new_e->accept(v.get());
+                ValueInliner v(
+                    fargs[i]->is_argument()->spelling(),
+                    value->value()
+                );
+                new_e->accept(&v);
             }
             else {
                 throw compiler_exception(
@@ -62,12 +60,12 @@ expression_ptr inline_function_call(Expression* e)
         }
         new_e->semantic(e->scope());
 
-        auto v = make_unique<ErrorVisitor>("");
-        new_e->accept(v.get());
+        ErrorVisitor v("");
+        new_e->accept(&v);
 #ifdef LOGGING
         std::cout << "inline_function_call result " << new_e->to_string() << "\n\n";
 #endif
-        if(v->num_errors()) {
+        if(v.num_errors()) {
             throw compiler_exception("something went wrong with inlined function call ",
                                      e->location());
         }

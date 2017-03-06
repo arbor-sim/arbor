@@ -1,5 +1,8 @@
-report.pdf : *.tex
+report.pdf : *.tex images.dir bib
 	pdflatex report.tex
+
+images.dir:
+	make -C images
 
 force : report.pdf
 	pdflatex report.tex

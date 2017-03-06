@@ -1,11 +1,11 @@
-#ifdef WITH_MPI
+#ifdef NMC_HAVE_MPI
 
 #include "../gtest.h"
 
 #include <cstring>
 #include <vector>
 
-#include <communication/mpi_global_policy.hpp>
+#include <communication/global_policy.hpp>
 #include <communication/mpi.hpp>
 #include <util/rangeutil.hpp>
 
@@ -97,4 +97,4 @@ TEST(mpi, gather_all_with_partition) {
     EXPECT_EQ(expected_divisions, gathered.partition());
 }
 
-#endif // WITH_MPI
+#endif // NMC_HAVE_MPI

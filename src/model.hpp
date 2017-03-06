@@ -159,7 +159,7 @@ public:
             // events that must be delivered at the start of the next
             // integration period at the latest.
             auto exchange = [&] () {
-                PE("stepping", "communciation");
+                PE("stepping", "communication");
 
                 PE("exchange");
                 auto local_spikes = previous_spikes().gather();

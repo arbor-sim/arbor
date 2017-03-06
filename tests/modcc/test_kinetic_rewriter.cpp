@@ -2,20 +2,31 @@
 #include <string>
 
 #include "expression.hpp"
-#include "kinrewriter.hpp"
+#include "kineticrewriter.hpp"
 #include "parser.hpp"
 
 #include "alg_collect.hpp"
 #include "expr_expand.hpp"
 #include "test.hpp"
 
+expr_list_type& statements(Expression *e) {
+    if (e) {
+        if (auto block = e->is_block()) {
+            return block->statements();
+        }
 
-stmt_list_type& proc_statements(Expression *e) {
-    if (!e || !e->is_symbol() || ! e->is_symbol()->is_procedure()) {
-        throw std::runtime_error("not a procedure");
+        if (auto sym = e->is_symbol()) {
+            if (auto proc = sym->is_procedure()) {
+                return proc->body()->statements();
+            }
+
+            if (auto proc = sym->is_procedure()) {
+                return proc->body()->statements();
+            }
+        }
     }
 
-    return e->is_symbol()->is_procedure()->body()->statements();
+    throw std::runtime_error("not a block, function or procedure");
 }
 
 
@@ -48,37 +59,40 @@ static const char* derivative_abc =
     "}                         \n";
 
 TEST(KineticRewriter, equiv) {
-    auto visitor = make_unique<KineticRewriter>();
     auto kin = Parser(kinetic_abc).parse_procedure();
     auto deriv = Parser(derivative_abc).parse_procedure();
+
+    auto kin_ptr = kin.get();
+    auto deriv_ptr = deriv.get();
 
     ASSERT_NE(nullptr, kin);
     ASSERT_NE(nullptr, deriv);
     ASSERT_TRUE(kin->is_symbol() && kin->is_symbol()->is_procedure());
     ASSERT_TRUE(deriv->is_symbol() && deriv->is_symbol()->is_procedure());
 
-    auto kin_weak = kin->is_symbol()->is_procedure();
     scope_type::symbol_map globals;
     globals["kin"] = std::move(kin);
+    globals["deriv"] = std::move(deriv);
     globals["a"] = state_var("a");
     globals["b"] = state_var("b");
     globals["c"] = state_var("c");
     globals["u"] = assigned_var("u");
     globals["v"] = assigned_var("v");
 
-    kin_weak->semantic(globals);
-    kin_weak->accept(visitor.get());
+    deriv_ptr->semantic(globals);
 
-    auto kin_deriv = visitor->as_procedure();
+    auto kin_body = kin_ptr->is_procedure()->body();
+    scope_ptr scope = std::make_shared<scope_type>(globals);
+    kin_body->semantic(scope);
 
-    if (g_verbose_flag) {
-        std::cout << "derivative procedure:\n" << deriv->to_string() << "\n";
-        std::cout << "kin procedure:\n" << kin_weak->to_string() << "\n";
-        std::cout << "rewritten kin procedure:\n" << kin_deriv->to_string() << "\n";
-    }
+    auto kin_deriv = kinetic_rewrite(kin_body);
 
-    auto deriv_map = expand_assignments(proc_statements(deriv.get()));
-    auto kin_map = expand_assignments(proc_statements(kin_deriv.get()));
+    verbose_print("derivative procedure:\n", deriv_ptr);
+    verbose_print("kin procedure:\n", kin_ptr);
+    verbose_print("rewritten kin body:\n", kin_deriv);
+
+    auto deriv_map = expand_assignments(statements(deriv_ptr));
+    auto kin_map = expand_assignments(statements(kin_deriv.get()));
 
     if (g_verbose_flag) {
         std::cout << "derivative assignments (canonical):\n";
@@ -95,4 +109,3 @@ TEST(KineticRewriter, equiv) {
     EXPECT_EQ(deriv_map["b'"], kin_map["b'"]);
     EXPECT_EQ(deriv_map["c'"], kin_map["c'"]);
 }
-

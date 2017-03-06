@@ -1,5 +1,6 @@
 #pragma once
 
+#include <initializer_list>
 #include <utility>
 #include <util/iterutil.hpp>
 #include <util/range.hpp>
@@ -190,8 +191,8 @@ template <
     typename = enable_if_t<std::is_same<SeqIter, SeqSentinel>::value>
 >
 range<cyclic_iterator<SeqIter, SeqSentinel> > cyclic_view(const Seq& s) {
-    return { make_cyclic_iterator(cbegin(s), cend(s)),
-             make_cyclic_iterator(cend(s), cend(s)) };
+    return { make_cyclic_iterator(util::cbegin(s), util::cend(s)),
+             make_cyclic_iterator(util::cend(s), util::cend(s)) };
 }
 
 template <
@@ -202,7 +203,16 @@ template <
 >
 range<cyclic_iterator<SeqIter, SeqSentinel>, SeqSentinel>
 cyclic_view(const Seq& s) {
-    return { make_cyclic_iterator(cbegin(s), cend(s)), cend(s) };
+    return { make_cyclic_iterator(util::cbegin(s), util::cend(s)), util::cend(s) };
+}
+
+// Handle initializer lists
+template <typename T>
+range<cyclic_iterator<typename std::initializer_list<T>::const_iterator,
+                      typename std::initializer_list<T>::const_iterator> >
+cyclic_view(const std::initializer_list<T> &list) {
+    return { make_cyclic_iterator(util::cbegin(list), util::cend(list)),
+             make_cyclic_iterator(util::cend(list), util::cend(list)) };
 }
 
 } // namespace util
