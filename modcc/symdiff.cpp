@@ -29,9 +29,9 @@ public:
     }
 
     void visit(CallExpression* e) override {
-        for (auto& e: e->args()) {
+        for (auto& expr: e->args()) {
             if (found()) return;
-            e->accept(this);
+            expr->accept(this);
         }
     }
 
@@ -62,16 +62,16 @@ public:
     }
 
     void visit(StoichExpression* e) override {
-        for (auto& e: e->terms()) {
+        for (auto& expr: e->terms()) {
             if (found()) return;
-            e->accept(this);
+            expr->accept(this);
         }
     }
 
     void visit(BlockExpression* e) override {
-        for (auto& e: e->statements()) {
+        for (auto& expr: e->statements()) {
             if (found()) return;
-            e->accept(this);
+            expr->accept(this);
         }
     }
 
