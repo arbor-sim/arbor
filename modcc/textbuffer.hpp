@@ -9,6 +9,13 @@ public:
     TextBuffer() {
         text_.precision(std::numeric_limits<double>::max_digits10);
     }
+    TextBuffer(const TextBuffer& other):
+        indent_(other.indent_),
+        indentation_width_(other.indentation_width_),
+        gutter_(other.gutter_),
+        text_(other.text_.str())
+    {}
+
     TextBuffer& add_gutter();
     void add_line(std::string const& line);
     void add_line();
