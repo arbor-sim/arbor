@@ -221,27 +221,29 @@ set(NMC_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
   "location of generated validation data")
 
 #----------------------------------------------------------
-# Whether to build validation data at all
+# Whether to build validation data
 #----------------------------------------------------------
-option(NMC_BUILD_VALIDATION_DATA "generate validation data" ON)
+# turn off by default
+option(NMC_BUILD_VALIDATION_DATA "generate validation data" OFF)
+if (NMC_BUILD_VALIDATION_DATA)
+    # Whether to attempt to use julia to build validation data
+    find_program(JULIA_BIN julia)
+    if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
+        message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
+        set(NMC_BUILD_JULIA_VALIDATION_DATA FALSE)
+    else()
+        set(NMC_BUILD_JULIA_VALIDATION_DATA TRUE)
+    endif()
 
-# Whether to attempt to use julia to build validation data
-find_program(JULIA_BIN julia)
-if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
-    message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
-    set(NMC_BUILD_JULIA_VALIDATION_DATA FALSE)
-else()
-    set(NMC_BUILD_JULIA_VALIDATION_DATA TRUE)
-endif()
-
-# Whether to attempt to use nrniv to build validation data
-# (if we find nrniv, do)
-find_program(NRNIV_BIN nrniv)
-if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
-    message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
-    set(NMC_BUILD_NRN_VALIDATION_DATA FALSE)
-else()
-    set(NMC_BUILD_NRN_VALIDATION_DATA TRUE)
+    # Whether to attempt to use nrniv to build validation data
+    # (if we find nrniv, do)
+    find_program(NRNIV_BIN nrniv)
+    if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
+        message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
+        set(NMC_BUILD_NRN_VALIDATION_DATA FALSE)
+    else()
+        set(NMC_BUILD_NRN_VALIDATION_DATA TRUE)
+    endif()
 endif()
 
 #----------------------------------------------------------
