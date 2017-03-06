@@ -25,10 +25,10 @@ class gpu_stack {
     using allocator = memory::managed_allocator<value_type>;
 
     // The number of items of type value_type that can be stored in the stack
-    int capacity_;
+    unsigned capacity_;
 
     // The number of items that have been stored
-    int size_;
+    unsigned size_;
 
     // Memory containing the value buffer
     // Stored in managed memory to facilitate host-side access of values
@@ -37,7 +37,7 @@ class gpu_stack {
 
 public:
 
-    gpu_stack(int capacity):
+    gpu_stack(unsigned capacity):
         capacity_(capacity), size_(0u)
     {
         data_ = allocator().allocate(capacity_);
@@ -58,7 +58,7 @@ public:
             // Atomically increment the size_ counter. The atomicAdd returns
             // the value of size_ before the increment, which is the location
             // at which this thread can store value.
-            int position = atomicAdd(&size_, 1);
+            unsigned position = atomicAdd(&size_, 1u);
 
             // It is possible that size_>capacity_. In this case, only capacity_
             // entries are stored, and additional values are lost. The size_
@@ -78,14 +78,24 @@ public:
     // size may exceed capacity, which indicates that the caller attempted
     // to push back more values than there was space to store.
     __host__ __device__
-    int size() const {
+    unsigned size() const {
         return size_;
     }
 
     // The maximum number of items that can be stored in the stack.
     __host__ __device__
-    int capacity() const {
+    unsigned capacity() const {
         return capacity_;
+    }
+
+    value_type& operator[](unsigned i) {
+        EXPECTS(i<size_ && i<capacity_);
+        return data_[i];
+    }
+
+    value_type& operator[](unsigned i) const {
+        EXPECTS(i<size_ && i<capacity_);
+        return data_[i];
     }
 
     value_type* begin() {

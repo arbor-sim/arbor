@@ -598,7 +598,6 @@ void fvm_multicell<Backend>::initialize(
     threshold_watcher_ =
         threshold_watcher(voltage_, spike_detector_index, thresholds, 0);
 
-
     // confirm user-supplied container probes were appropriately sized.
     EXPECTS(probes_size==probes_count);
 

@@ -18,9 +18,10 @@ build_modules(
 
 set(TEST_CUDA_SOURCES
     test_cell_group.cu
+    test_gpu_stack.cu
     test_matrix.cu
-    test_vector.cu
     test_spikes.cu
+    test_vector.cu
 
     # unit test driver
     test.cpp
