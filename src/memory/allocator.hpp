@@ -182,13 +182,13 @@ namespace impl {
         };
 
         // bare bones implementation of standard compliant allocator for managed memory
-        template <size_type Alignment=256>
+        template <size_type Alignment=1024>
         struct managed_policy {
-            // Managed memory is aligned on 256 byte boundaries.
-            // So the Alignment parameter must be a factor of 256
-            static_assert(256%Alignment == 0, "CUDA managed memory is always aligned on 256 byte");
+            // Managed memory is aligned on 1024 byte boundaries.
+            // So the Alignment parameter must be a factor of 1024
+            static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 256 byte");
 
-            void* allocate(std::size_t n) {
+            void* allocate_policy(std::size_t n) {
                 void* ptr;
                 auto status = cudaMallocManaged(&ptr, n);
                 if(status != cudaSuccess) {
@@ -207,7 +207,7 @@ namespace impl {
                 return true;
             }
 
-            void free_policy(void* p, std::size_t n) {
+            void free_policy(void* p) {
                 cudaFree(p);
             }
         };
@@ -282,8 +282,9 @@ public:
     }
 
     void deallocate(pointer p, size_type) {
-        if( p!=nullptr )
+        if( p!=nullptr ) {
             free_policy(p);
+        }
     }
 
     size_type max_size() const {

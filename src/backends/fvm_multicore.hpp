@@ -206,9 +206,9 @@ struct backend {
         /// is crossed since the last call to test
         void test(value_type t) {
             for (auto i=0u; i<size(); ++i) {
-                auto v = values_[index_[i]];
-                auto thresh = thresholds_[i];
                 auto v_prev = v_prev_[i];
+                auto v      = values_[index_[i]];
+                auto thresh = thresholds_[i];
                 if (!is_spiking_[i]) {
                     if (v>=thresh) {
                         // the threshold has been passed, so estimate the time using

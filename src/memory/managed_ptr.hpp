@@ -1,61 +1,27 @@
-# pragma once
-
-#include <memory>
-#include <new>
-#include <cstddef>
-#include <cstdlib>
+#pragma once
 
 #include <cuda.h>
-#include <cuda_runtime.h>
 
+#include <memory/allocator.hpp>
 
-//
-// TODO
-//  - check cuda errors from cudaMalloc etc.
-//  - support for arbitrary cuda streams
-//  - assertions or execeptions for erroneous actions like dereferencing nullptr
-//
-
-
-// bare bones implementation of standard compliant allocator for managed memory
-template <class T>
-struct managed_allocator {
-    typedef T value_type;
-
-    managed_allocator() = default;
-
-    template <class U>
-    managed_allocator(const managed_allocator<U>& other) {}
-
-    T* allocate(std::size_t n) {
-        T* ptr;
-        auto success = cudaMallocManaged(&ptr, n*sizeof(T));
-        return ptr;
-    }
-
-    void deallocate(T* p, std::size_t n) {
-        cudaFree(p);
-    }
-};
-
-template <class T, class U>
-bool operator==(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs) {
-    return true;
-}
-
-template <class T, class U>
-bool operator!=(const managed_allocator<T>& lhs, const managed_allocator<U>& rhs) {
-    return !(lhs==rhs);
-}
+namespace nest {
+namespace mc {
+namespace memory {
 
 // used to indicate that the type pointed to by the managed_ptr is to be
 // constructed in the managed_ptr constructor
 struct construct_in_place_tag {};
 
+// Like std::unique_ptr, but for CUDA managed memory.
+// Handles memory allocation and freeing, and the construction and destruction
+// of the type being stored in the allocated memory.
+// Implemented as a stand alone type instead of as a std::unique_ptr with
+// custom desctructor so that __device__ annotation can be added to members
+// like ::get, ::operator*, etc., which enables the use of the smart pointer
+// in device side code.
 //
-// manged_ptr
-//
-// Like  std::unique_ptr, but for CUDA managed memory.
+// It is very strongly recommended that the helper make_managed_ptr be used
+// instead of directly constructing the managed_ptr.
 template <typename T>
 class managed_ptr {
     public:
@@ -68,6 +34,10 @@ class managed_ptr {
 
     managed_ptr(const managed_ptr& other) = delete;
 
+    // Allocate memory and construct in place using args.
+    // This is an extension over the std::unique_ptr interface, because the
+    // point of the wrapper is to hide the complexity of allocating managed
+    // memory and constructing a type in place.
     template <typename... Args>
     managed_ptr(construct_in_place_tag, Args&&... args) {
         managed_allocator<element_type> allocator;
@@ -80,16 +50,19 @@ class managed_ptr {
         std::swap(other.data_, data_);
     }
 
+    // pointer to the managed object
     __host__ __device__
     pointer get() const {
         return data_;
     }
 
+    // return a reference to the managed object
     __host__ __device__
     reference operator *() const {
         return *data_;
     }
 
+    // return a reference to the managed object
     __host__ __device__
     pointer operator->() const {
         return get();
@@ -138,3 +111,8 @@ template <typename T, typename... Args>
 managed_ptr<T> make_managed_ptr(Args&&... args) {
     return managed_ptr<T>(construct_in_place_tag(), std::forward<Args>(args)...);
 }
+
+} // namespace memory
+} // namespace mc
+} // namespace nest
+

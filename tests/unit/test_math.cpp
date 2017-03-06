@@ -53,6 +53,22 @@ TEST(math, lerp) {
     EXPECT_EQ(0.25f, lerp(0.f, 1.f, 0.25));
 }
 
+TEST(math, signum) {
+    EXPECT_EQ(0, signum(int(0)));
+    EXPECT_EQ(0, signum(float(0)));
+    EXPECT_EQ(0, signum(unsigned(0)));
+
+    EXPECT_EQ(-1, signum(int(-10)));
+    EXPECT_EQ(-1, signum(float(-10)));
+
+    EXPECT_EQ(1, signum(int(10)));
+    EXPECT_EQ(1, signum(float(10)));
+    EXPECT_EQ(1, signum(unsigned(10)));
+
+    EXPECT_EQ(1, signum(std::numeric_limits<float>::infinity()));
+    EXPECT_EQ(-1, signum(-std::numeric_limits<float>::infinity()));
+}
+
 TEST(math, frustrum) {
     // cross check against cone calculation
     auto cone_area = [](double l, double r) {
