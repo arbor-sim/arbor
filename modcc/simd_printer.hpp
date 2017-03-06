@@ -16,14 +16,14 @@ template<targetKind Arch>
 class SimdPrinter : public CPrinter {
 public:
     SimdPrinter()
-        : cprinter_(util::make_unique<CPrinter>())
+        : cprinter_(make_unique<CPrinter>())
     {}
 
     // Initialize our base CPrinter in default unoptimized mode; we handle the
     // vectorization ourselves
     SimdPrinter(Module& m, bool optimize = false)
         : CPrinter(m),
-          cprinter_(util::make_unique<CPrinter>(m))
+          cprinter_(make_unique<CPrinter>(m))
     { }
 
     void visit(NumberExpression *e) override {
