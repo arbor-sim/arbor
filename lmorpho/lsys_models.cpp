@@ -110,7 +110,7 @@ lsys_param make_purkinje_lsys() {
 
     // Correlated child branch radius distribution parameters.
     L.diam_child_a = 5.47078; // from `purkburk.prm`
-    L.diam_child_r = { -inf, inf, 0.112, 0.035 };
+    L.diam_child_r = { 0, inf, 0.112, 0.035 };
 
     // Termination probability parameters [1/µm].
     L.pterm_k1 = 0.1973; // from `purkburj.prm`; 0.4539 in Ascoli.
