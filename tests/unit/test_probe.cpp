@@ -59,11 +59,10 @@ TEST(probe, fvm_multicell)
 
     using fvm_multicell = fvm::fvm_multicell<nest::mc::multicore::backend>;
     std::vector<fvm_multicell::target_handle> targets;
-    std::vector<fvm_multicell::detector_handle> detectors;
     std::vector<fvm_multicell::probe_handle> probes{3};
 
     fvm_multicell lcell;
-    lcell.initialize(util::singleton_view(bs), detectors, targets, probes);
+    lcell.initialize(util::singleton_view(bs), targets, probes);
 
     // Know from implementation that probe_handle.second
     // is a compartment index: expect probe values and

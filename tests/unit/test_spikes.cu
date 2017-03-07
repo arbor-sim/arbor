@@ -1,12 +1,12 @@
 #include "../gtest.h"
 
 #include <spike.hpp>
-#include <backends/fvm_multicore.hpp>
+#include <backends/fvm_gpu.hpp>
 
 using namespace nest::mc;
 
 TEST(spikes, threshold_watcher) {
-    using backend = multicore::backend;
+    using backend = gpu::backend;
     using size_type = backend::size_type;
     using value_type = backend::value_type;
     using array = backend::array;
