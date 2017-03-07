@@ -49,23 +49,18 @@ public:
 
     // Append a new value to the stack.
     // The value will only be appended if do_push is true.
-    // The do_push parameter is required because all threads in a CUDA thread
-    // block call the push_back method, regardless of whether they have a value
-    // to append.
     __device__
-    void push_back(const value_type& value, bool do_push) {
-        if (do_push) {
-            // Atomically increment the size_ counter. The atomicAdd returns
-            // the value of size_ before the increment, which is the location
-            // at which this thread can store value.
-            unsigned position = atomicAdd(&size_, 1u);
+    void push_back(const value_type& value) {
+        // Atomically increment the size_ counter. The atomicAdd returns
+        // the value of size_ before the increment, which is the location
+        // at which this thread can store value.
+        unsigned position = atomicAdd(&size_, 1u);
 
-            // It is possible that size_>capacity_. In this case, only capacity_
-            // entries are stored, and additional values are lost. The size_
-            // will contain the total number of attempts to push,
-            if (position<capacity_) {
-                data_[position] = value;
-            }
+        // It is possible that size_>capacity_. In this case, only capacity_
+        // entries are stored, and additional values are lost. The size_
+        // will contain the total number of attempts to push,
+        if (position<capacity_) {
+            data_[position] = value;
         }
     }
 

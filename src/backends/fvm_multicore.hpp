@@ -171,7 +171,7 @@ struct backend {
             thresholds_(memory::make_const_view(thresh)),
             v_prev_(vals)
         {
-            is_spiking_ = iarray(size());
+            is_crossed_ = iarray(size());
             reset(t);
         }
 
@@ -187,7 +187,7 @@ struct backend {
         void reset(value_type t=0) {
             clear_crossings();
             for (auto i=0u; i<size(); ++i) {
-                is_spiking_[i] = values_[index_[i]]>=thresholds_[i];
+                is_crossed_[i] = values_[index_[i]]>=thresholds_[i];
             }
             t_prev_ = t;
         }
@@ -209,7 +209,7 @@ struct backend {
                 auto v_prev = v_prev_[i];
                 auto v      = values_[index_[i]];
                 auto thresh = thresholds_[i];
-                if (!is_spiking_[i]) {
+                if (!is_crossed_[i]) {
                     if (v>=thresh) {
                         // the threshold has been passed, so estimate the time using
                         // linear interpolation
@@ -217,12 +217,12 @@ struct backend {
                         auto crossing_time = t_prev_ + pos*(t - t_prev_);
                         crossings_.push_back({i, crossing_time});
 
-                        is_spiking_[i] = true;
+                        is_crossed_[i] = true;
                     }
                 }
                 else {
                     if (v<thresh) {
-                        is_spiking_[i] = false;
+                        is_crossed_[i] = false;
                     }
                 }
 
@@ -231,8 +231,8 @@ struct backend {
             t_prev_ = t;
         }
 
-        bool is_spiking(size_type i) const {
-            return is_spiking_[i];
+        bool is_crossed(size_type i) const {
+            return is_crossed_[i];
         }
 
         /// the number of threashold values that are being monitored
@@ -252,7 +252,7 @@ struct backend {
         value_type t_prev_;
         array v_prev_;
         crossing_list crossings_;
-        iarray is_spiking_;
+        iarray is_crossed_;
     };
 
 

@@ -186,7 +186,7 @@ namespace impl {
         struct managed_policy {
             // Managed memory is aligned on 1024 byte boundaries.
             // So the Alignment parameter must be a factor of 1024
-            static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 256 byte");
+            static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 1024 byte boundaries");
 
             void* allocate_policy(std::size_t n) {
                 void* ptr;

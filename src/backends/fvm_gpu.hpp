@@ -53,12 +53,22 @@ __global__ void matrix_solve(matrix_solve_param_pack<T, I> params);
 template <typename T, typename I>
 __global__ void assemble_matrix(matrix_update_param_pack<T, I> params, T dt);
 
+/// kernel used to test for threshold crossing test code.
+/// params:
+///     t       : current time (ms)
+///     t_prev  : time of last test (ms)
+///     size    : number of values to test
+///     is_crossed  : crossing state at time t_prev (true or false)
+///     prev_values : values at sample points (see index) sampled at t_prev
+///     index      : index with locations in values to test for crossing
+///     values     : values at t_prev
+///     thresholds : threshold values to watch for crossings
 template <typename T, typename I, typename Stack>
 __global__
 void test_thresholds(
     float t, float t_prev, int size,
     Stack& stack,
-    I* is_spiking, T* prev_values,
+    I* is_crossed, T* prev_values,
     const I* index, const T* values, const T* thresholds);
 
 struct backend {
@@ -214,7 +224,7 @@ struct backend {
             index_(memory::make_const_view(index)),
             thresholds_(memory::make_const_view(thresh)),
             prev_values_(values),
-            is_spiking_(size()),
+            is_crossed_(size()),
             stack_(memory::make_managed_ptr<stack_type>(10*size()))
         {
             reset(t);
@@ -233,26 +243,26 @@ struct backend {
             clear_crossings();
 
             // Make host-side copies of the information needed to calculate
-            // the initial spiking state
+            // the initial crossed state
             auto values = memory::on_host(values_);
             auto thresholds = memory::on_host(thresholds_);
             auto index = memory::on_host(index_);
 
-            // calculate the initial spiking state in host memory
-            auto spiking = std::vector<size_type>(size());
+            // calculate the initial crossed state in host memory
+            auto crossed = std::vector<size_type>(size());
             for (auto i: util::make_span(0u, size())) {
-                spiking[i] = values[index[i]] < thresholds[i] ? 0 : 1;
+                crossed[i] = values[index[i]] < thresholds[i] ? 0 : 1;
             }
 
-            // copy the initial spiking state to device memory
-            is_spiking_ = memory::on_gpu(spiking);
+            // copy the initial crossed state to device memory
+            is_crossed_ = memory::on_gpu(crossed);
 
             // reset time of last test
             t_prev_ = t;
         }
 
-        bool is_spiking(size_type i) const {
-            return is_spiking_[i];
+        bool is_crossed(size_type i) const {
+            return is_crossed_[i];
         }
 
         const std::vector<threshold_crossing> crossings() const {
@@ -264,9 +274,10 @@ struct backend {
             return t_prev_;
         }
 
-        /// Tests each target for changed threshold state
-        /// Crossing events are recorded for each threshold that
-        /// is crossed since the last call to test
+        /// Tests each target for changed threshold state.
+        /// Crossing events are recorded for each threshold that has been
+        /// crossed since current time t, and the last time the test was
+        /// performed.
         void test(value_type t) {
             EXPECTS(t_prev_<t);
 
@@ -275,7 +286,7 @@ struct backend {
             test_thresholds<<<grid_dim, block_dim>>>(
                 t, t_prev_, size(),
                 *stack_,
-                is_spiking_.data(), prev_values_.data(),
+                is_crossed_.data(), prev_values_.data(),
                 index_.data(), values_.data(), thresholds_.data());
 
             // Check that the number of spikes has not exceeded
@@ -302,8 +313,7 @@ struct backend {
         array thresholds_;          // threshold for each watch: on gpu
         value_type t_prev_;         // time of previous sample: on host
         array prev_values_;         // values at previous sample time: on host
-        crossing_list crossings_;   // buffer of crossings: on host
-        iarray is_spiking_;         // bool flag for state of each watch: on gpu
+        iarray is_crossed_;         // bool flag for state of each watch: on gpu
 
         memory::managed_ptr<stack_type> stack_;
     };
@@ -379,7 +389,7 @@ __global__
 void test_thresholds(
     float t, float t_prev, int size,
     Stack& stack,
-    I* is_spiking, T* prev_values,
+    I* is_crossed, T* prev_values,
     const I* index, const T* values, const T* thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
@@ -393,25 +403,27 @@ void test_thresholds(
         const auto v      = values[index[i]];
         const auto thresh = thresholds[i];
 
-        if (!is_spiking[i]) {
+        if (!is_crossed[i]) {
             if (v>=thresh) {
                 // The threshold has been passed, so estimate the time using
                 // linear interpolation
                 auto pos = (thresh - v_prev)/(v - v_prev);
                 crossing_time = t_prev + pos*(t - t_prev);
 
-                is_spiking[i] = 1;
+                is_crossed[i] = 1;
                 crossed = true;
             }
         }
         else if (v<thresh) {
-            is_spiking[i]=0;
+            is_crossed[i]=0;
         }
 
         prev_values[i] = v;
     }
 
-    stack.push_back({I(i), crossing_time}, crossed);
+    if (crossed) {
+        stack.push_back({I(i), crossing_time});
+    }
 }
 
 } // namespace multicore

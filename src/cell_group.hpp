@@ -120,12 +120,16 @@ public:
             PL();
         }
 
-        // copy out voltage threshold crossings from the back end, then generate
-        // spikes with global spike source ids.
+        // Copy out spike voltage threshold crossings from the back end, then
+        // generate spikes with global spike source ids. The threshold crossings
+        // record the local spike source index, which must be converted to a
+        // global index for spike communication.
         PE("events");
         for (auto c: cell_.get_spikes()) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }
+        // Now that the spikes have been generated, clear the old crossings
+        // to get ready to record spikes from the next integration period.
         cell_.clear_spikes();
         PL();
     }

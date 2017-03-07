@@ -32,34 +32,34 @@ TEST(spikes, threshold_watcher) {
 
     // initially the first and third watch should not be spiking
     //           the second is spiking
-    EXPECT_FALSE(watch.is_spiking(0));
-    EXPECT_TRUE(watch.is_spiking(1));
-    EXPECT_FALSE(watch.is_spiking(2));
+    EXPECT_FALSE(watch.is_crossed(0));
+    EXPECT_TRUE(watch.is_crossed(1));
+    EXPECT_FALSE(watch.is_crossed(2));
 
     // test again at t=1, with unchanged values
     //  - nothing should change
     watch.test(1.);
-    EXPECT_FALSE(watch.is_spiking(0));
-    EXPECT_TRUE(watch.is_spiking(1));
-    EXPECT_FALSE(watch.is_spiking(2));
+    EXPECT_FALSE(watch.is_crossed(0));
+    EXPECT_TRUE(watch.is_crossed(1));
+    EXPECT_FALSE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 0u);
 
     // test at t=2, with all values set to zero
     //  - 2nd watch should now stop spiking
     memory::fill(values, 0.);
     watch.test(2.);
-    EXPECT_FALSE(watch.is_spiking(0));
-    EXPECT_FALSE(watch.is_spiking(1));
-    EXPECT_FALSE(watch.is_spiking(2));
+    EXPECT_FALSE(watch.is_crossed(0));
+    EXPECT_FALSE(watch.is_crossed(1));
+    EXPECT_FALSE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 0u);
 
     // test at t=3, with all values set to 4.
     //  - all watches should now be spiking
     memory::fill(values, 4.);
     watch.test(3.);
-    EXPECT_TRUE(watch.is_spiking(0));
-    EXPECT_TRUE(watch.is_spiking(1));
-    EXPECT_TRUE(watch.is_spiking(2));
+    EXPECT_TRUE(watch.is_crossed(0));
+    EXPECT_TRUE(watch.is_crossed(1));
+    EXPECT_TRUE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 3u);
 
     // record the expected spikes
@@ -71,18 +71,18 @@ TEST(spikes, threshold_watcher) {
     //  - all watches should stop spiking
     memory::fill(values, 0.);
     watch.test(4.);
-    EXPECT_FALSE(watch.is_spiking(0));
-    EXPECT_FALSE(watch.is_spiking(1));
-    EXPECT_FALSE(watch.is_spiking(2));
+    EXPECT_FALSE(watch.is_crossed(0));
+    EXPECT_FALSE(watch.is_crossed(1));
+    EXPECT_FALSE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 3u);
 
     // test at t=5, with value on 3rd watch set to 6
     //  - watch 3 should be spiking
     values[index[2]] = 6.;
     watch.test(5.);
-    EXPECT_FALSE(watch.is_spiking(0));
-    EXPECT_FALSE(watch.is_spiking(1));
-    EXPECT_TRUE(watch.is_spiking(2));
+    EXPECT_FALSE(watch.is_crossed(0));
+    EXPECT_FALSE(watch.is_crossed(1));
+    EXPECT_TRUE(watch.is_crossed(2));
     EXPECT_EQ(watch.crossings().size(), 4u);
     expected.push_back({2u, 4.5f});
 
@@ -102,9 +102,9 @@ TEST(spikes, threshold_watcher) {
     //
     watch.clear_crossings();
     EXPECT_EQ(watch.crossings().size(), 0u);
-    EXPECT_FALSE(watch.is_spiking(0));
-    EXPECT_FALSE(watch.is_spiking(1));
-    EXPECT_TRUE(watch.is_spiking(2));
+    EXPECT_FALSE(watch.is_crossed(0));
+    EXPECT_FALSE(watch.is_crossed(1));
+    EXPECT_TRUE(watch.is_crossed(2));
 
     //
     // test that resetting works
@@ -115,8 +115,8 @@ TEST(spikes, threshold_watcher) {
     watch.reset(0);
     EXPECT_EQ(watch.last_test_time(), 0);
     EXPECT_EQ(watch.crossings().size(), 0u);
-    EXPECT_TRUE(watch.is_spiking(0));
-    EXPECT_FALSE(watch.is_spiking(1));
-    EXPECT_FALSE(watch.is_spiking(2));
+    EXPECT_TRUE(watch.is_crossed(0));
+    EXPECT_FALSE(watch.is_crossed(1));
+    EXPECT_FALSE(watch.is_crossed(2));
 }
 

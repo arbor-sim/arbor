@@ -128,8 +128,9 @@ int main(int argc, char** argv) {
         }
 #endif
 
-        // file output depends on the input arguments set the output file after
-        // the dummy run to ensure that the initial "seed spikes" are recorded once
+        // Initialize the spike exporting interface after the profiler dummy
+        // steps, to avoid having the initial seed spikes that are artificially
+        // injected at t=0 from being recorded and output twice.
         std::unique_ptr<file_export_type> file_exporter;
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {

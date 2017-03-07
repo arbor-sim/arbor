@@ -19,7 +19,9 @@ namespace kernels {
     template <typename F>
     __global__
     void push_back(gpu::gpu_stack<int>& s, F f) {
-        s.push_back(threadIdx.x, f(threadIdx.x));
+        if (f(threadIdx.x)) {
+            s.push_back(threadIdx.x);
+        }
     }
 
     struct all_ftor {
