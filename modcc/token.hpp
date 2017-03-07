@@ -70,6 +70,7 @@ enum class tok {
 
     // solver methods
     cnexp,
+    sparse,
 
     conductance,
 

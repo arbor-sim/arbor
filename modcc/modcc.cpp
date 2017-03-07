@@ -13,8 +13,6 @@
 #include "modccutil.hpp"
 #include "options.hpp"
 
-using namespace nest::mc;
-
 //#define VERBOSE
 
 int main(int argc, char **argv) {
@@ -113,7 +111,7 @@ int main(int argc, char **argv) {
             std::cout << m.error_string() << std::endl;
         }
 
-        if(m.status() == lexerStatus::error) {
+        if(m.has_error()) {
             return 1;
         }
 
@@ -123,7 +121,7 @@ int main(int argc, char **argv) {
         if(Options::instance().optimize) {
             if(Options::instance().verbose) std::cout << green("[") + "optimize" + green("]") << std::endl;
             m.optimize();
-            if(m.status() == lexerStatus::error) {
+            if(m.has_error()) {
                 return 1;
             }
         }
@@ -175,15 +173,15 @@ int main(int argc, char **argv) {
                     std::cout << yellow("method " + method->name()) << "\n";
                     std::cout << white("-------------------------\n");
 
-                    auto flops = util::make_unique<FlopVisitor>();
-                    method->accept(flops.get());
+                    FlopVisitor flops;
+                    method->accept(&flops);
                     std::cout << white("FLOPS") << std::endl;
-                    std::cout << flops->print() << std::endl;
+                    std::cout << flops.print() << std::endl;
 
                     std::cout << white("MEMOPS") << std::endl;
-                    auto memops = util::make_unique<MemOpVisitor>();
-                    method->accept(memops.get());
-                    std::cout << memops->print() << std::endl;;
+                    MemOpVisitor memops;
+                    method->accept(&memops);
+                    std::cout << memops.print() << std::endl;;
                 }
             }
         }

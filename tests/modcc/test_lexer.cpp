@@ -7,47 +7,37 @@
 #include "test.hpp"
 #include "lexer.hpp"
 
-void verbose_print(const char* string) {
-    if (!g_verbose_flag) return;
-    std::cout << "________________\n" << string << "\n________________\n";
-}
-
-void verbose_print(const Token& token) {
-    if (!g_verbose_flag) return;
-    std::cout << "tok: " << token << "\n";
-}
-
 class VerboseLexer: public Lexer {
 public:
     template <typename... Args>
     VerboseLexer(Args&&... args): Lexer(std::forward<Args>(args)...) {
-        if (g_verbose_flag) {
-            std::cout << "________________\n" << std::string(begin_, end_) << "\n________________\n";
-        }
+        verbose_print("________________");
+        verbose_print(std::string(begin_, end_));
+        verbose_print("________________");
     }
 
     Token parse() {
         auto tok = Lexer::parse();
-        if (g_verbose_flag) {
-            std::cout << "token: " << tok << "\n";
-        }
+        verbose_print("token: ",tok);
         return tok;
     }
 
     char character() {
         char c = Lexer::character();
-        if (g_verbose_flag) {
-            std::cout << "character: ";
-            if (!std::isprint(c)) {
-                char buf[5] = "XXXX";
-                snprintf(buf, sizeof buf, "0x%02x", (unsigned)c);
-                std::cout << buf << '\n';
-            }
-            else {
-                std::cout << c << '\n';
-            }
-        }
+        verbose_print("character: ", pretty(c));
         return c;
+    }
+
+    static const char* pretty(char c) {
+        static char buf[5] = "XXXX";
+        if (!std::isprint(c)) {
+            snprintf(buf, sizeof buf, "0x%02x", (unsigned)c);
+        }
+        else {
+            buf[0] = c;
+            buf[1] = 0;
+        }
+        return buf;
     }
 };
 

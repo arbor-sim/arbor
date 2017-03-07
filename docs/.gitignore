@@ -1,0 +1,14 @@
+model/appendix.fdb_latexmk
+model/appendix.fls
+model/formulation.fdb_latexmk
+model/formulation.fls
+model/report.fdb_latexmk
+model/report.fls
+model/symbols.fdb_latexmk
+model/symbols.fls
+passive_cable/cable_computation.bbl
+passive_cable/cable_computation.bcf
+passive_cable/cable_computation.fdb_latexmk
+passive_cable/cable_computation.fls
+passive_cable/cable_computation.run.xml
+passive_cable/cable_computation.xdv

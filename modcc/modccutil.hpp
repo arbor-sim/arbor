@@ -6,25 +6,39 @@
 #include <vector>
 #include <initializer_list>
 
-// is thing in list?
-template <typename T, int N>
-bool is_in(T thing, const T (&list)[N]) {
-    for(auto const& item : list) {
-        if(thing==item) {
-            return true;
+namespace impl {
+    template <typename C, typename V>
+    struct has_count_method {
+        template <typename T, typename U>
+        static decltype(std::declval<T>().count(std::declval<U>()), std::true_type{}) test(int);
+        template <typename T, typename U>
+        static std::false_type test(...);
+
+        using type = decltype(test<C, V>(0));
+    };
+
+    template <typename X, typename C>
+    bool is_in(const X& x, const C& c, std::false_type) {
+        for (const auto& y: c) {
+            if (y==x) return true;
         }
+        return false;
     }
-    return false;
+
+    template <typename X, typename C>
+    bool is_in(const X& x, const C& c, std::true_type) {
+        return !!c.count(x);
+    }
 }
 
-template <typename T>
-bool is_in(T thing, const std::initializer_list<T> list) {
-    for(auto const& item : list) {
-        if(thing==item) {
-            return true;
-        }
-    }
-    return false;
+template <typename X, typename C>
+bool is_in(const X& x, const C& c) {
+    return impl::is_in(x, c, typename impl::has_count_method<C,X>::type{});
+}
+
+template <typename X>
+bool is_in(const X& x, const std::initializer_list<X>& c) {
+    return impl::is_in(x, c, std::false_type{});
 }
 
 inline std::string pprintf(const char *s) {
@@ -138,16 +152,8 @@ std::ostream& operator<< (std::ostream& os, std::vector<T> const& V) {
     return os << "]";
 }
 
-namespace nest {
-namespace mc {
-namespace util {
-
-// just because we aren't using C++14, doesn't mean we shouldn't go
-// without make_unique
 template <typename T, typename... Args>
 std::unique_ptr<T> make_unique(Args&&... args) {
     return std::unique_ptr<T>(new T(std::forward<Args>(args) ...));
 }
-
-}}}
 
