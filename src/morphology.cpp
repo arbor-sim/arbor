@@ -67,25 +67,44 @@ void section_geometry::segment(double dx) {
     length = sampled_length;
 }
 
-void section_geometry::compute_length() {
-    length = 0;
+static double compute_length(const std::vector<section_point>& points) {
+    double length = 0;
     std::size_t npoint = points.size();
 
     for (std::size_t i =1; i<npoint; ++i) {
         length += distance(points[i], points[i-1]);
     }
+
+    return length;
 }
 
-bool morphology::check_invariants() const {
-    std::size_t nsection = sections.size();
+section_geometry& morphology::add_section(std::vector<section_point> points, unsigned parent_id, section_kind kind) {
+    section_geometry section;
+    section.id = sections.size()+1;
+    section.parent_id = parent_id;
+    section.terminal = true;
+    section.points = std::move(points);
+    section.kind = kind;
+    section.length = compute_length(section.points);
+
+    if (section.parent_id >= section.id) {
+        throw morphology_error("improper parent id for section");
+    }
+    sections[section.parent_id].terminal = false;
+    sections.push_back(std::move(section));
+    return sections.back();
+}
+
+static const char* morphology_invariant_violation(const morphology& m) {
+    std::size_t nsection = m.sections.size();
     std::vector<int> terminal(true, nsection);
 
     for (std::size_t i=0; i<nsection; ++i) {
-        auto id = sections[i].id;
-        auto parent_id = sections[i].parent_id;
+        auto id = m.sections[i].id;
+        auto parent_id = m.sections[i].parent_id;
 
-        if (id!=i+1) return false;
-        if (parent_id>=id) return false;
+        if (id!=i+1) return "section id does not correspond to index";
+        if (parent_id>=id) return "section parent id not less than section id";
         if (parent_id>0) {
             auto parent_index = parent_id-1;
             terminal[parent_index] = false;
@@ -93,11 +112,23 @@ bool morphology::check_invariants() const {
     }
 
     for (std::size_t i=0; i<nsection; ++i) {
-        if (terminal[i] != sections[i].terminal) return false;
+        if (terminal[i] && !m.sections[i].terminal) return "non-terminal section is marked terminal";
+        if (!terminal[i] && m.sections[i].terminal) return "terminal section is marked non-terminal";
     }
 
-    return true;
+    return nullptr;
 }
+
+bool morphology::check_valid() const {
+    return morphology_invariant_violation(*this)==nullptr;
+}
+
+void morphology::assert_valid() const {
+    auto error = morphology_invariant_violation(*this);
+    if (error) throw morphology_error(error);
+}
+
+
 
 
 } // namespace mc
