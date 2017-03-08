@@ -4,6 +4,7 @@ set(HEADERS
 set(BASE_SOURCES
     common_types_io.cpp
     cell.cpp
+    morphology.cpp
     parameter_list.cpp
     profiling/profiler.cpp
     swcio.cpp
