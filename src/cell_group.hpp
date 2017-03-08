@@ -106,7 +106,7 @@ public:
             time_type tnext = next ? next->time: tstep;
             cell_.advance(tnext - cell_.time());
 
-            if (!cell_.is_physical_solution()) {
+            if (util::is_debug_mode() && !cell_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds for cell "
                           << gid_base_ << " at t " << cell_.time() << " ms\n";
             }
