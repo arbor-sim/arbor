@@ -118,17 +118,19 @@ struct backend {
         {
             auto n = d.size();
             host_array invariant_d_tmp(n, 0);
+            host_array u_tmp(n, 0);
 
             // make a copy of the conductance on the host
             host_array face_conductance_tmp = face_conductance;
             for(auto i: util::make_span(1u, n)) {
                 auto gij = face_conductance_tmp[i];
 
-                u[i] = -gij;
+                u_tmp[i] = -gij;
                 invariant_d_tmp[i] += gij;
                 invariant_d_tmp[p[i]] += gij;
             }
             invariant_d = invariant_d_tmp;
+            memory::copy(u_tmp, u);
 
             params = {
                 d.data(), u.data(), rhs.data(),
