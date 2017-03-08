@@ -20,8 +20,6 @@ namespace modcc {
 using nest::mc::util::enable_if_t;
 using operand_fn_t = std::function<void(TextBuffer&)>;
 
-static void emit_operands(TextBuffer& tb) { }
-
 static void emit_operands(TextBuffer& tb, operand_fn_t emitter) {
     emitter(tb);
 }

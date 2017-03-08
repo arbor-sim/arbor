@@ -273,7 +273,6 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
         auto var = symbol.second->is_local_variable();
         if (is_input(var)) {
             auto ext = var->external_variable();
-            auto channel = ext->ion_channel();
             text_.add_gutter() << simd_backend::emit_value_type() << " ";
             var->accept(this);
             text_ << " = ";
