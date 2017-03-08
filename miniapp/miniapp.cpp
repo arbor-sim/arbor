@@ -89,8 +89,6 @@ int main(int argc, char** argv) {
         EXPECTS(group_divisions.front() == cell_range.first);
         EXPECTS(group_divisions.back() == cell_range.second);
 
-        model_type m(*recipe, util::partition_view(group_divisions));
-
         auto register_exporter = [] (const io::cl_options& options) {
             return
                 util::make_unique<file_export_type>(
@@ -98,24 +96,7 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        // File output depends on the input arguments
-        std::unique_ptr<file_export_type> file_exporter;
-        if (options.spike_file_output) {
-            if (options.single_file_per_rank) {
-                file_exporter = register_exporter(options);
-                m.set_local_spike_callback(
-                    [&](const std::vector<spike_type>& spikes) {
-                        file_exporter->output(spikes);
-                    });
-            }
-            else if(communication::global_policy::id()==0) {
-                file_exporter = register_exporter(options);
-                m.set_global_spike_callback(
-                    [&](const std::vector<spike_type>& spikes) {
-                       file_exporter->output(spikes);
-                    });
-            }
-        }
+        model_type m(*recipe, util::partition_view(group_divisions));
 
         // inject some artificial spikes, 1 per 20 neurons.
         std::vector<cell_gid_type> local_sources;
@@ -137,14 +118,35 @@ int main(int argc, char** argv) {
             m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
         }
 
+#ifdef WITH_PROFILING
         // dummy run of the model for one step to ensure that profiling is consistent
         m.run(options.dt, options.dt);
-
-        // reset the model
+        // reset and add the source spikes once again
         m.reset();
-        // reset the source spikes
         for (auto source : local_sources) {
             m.add_artificial_spike({source, 0});
+        }
+#endif
+
+        // Initialize the spike exporting interface after the profiler dummy
+        // steps, to avoid having the initial seed spikes that are artificially
+        // injected at t=0 from being recorded and output twice.
+        std::unique_ptr<file_export_type> file_exporter;
+        if (options.spike_file_output) {
+            if (options.single_file_per_rank) {
+                file_exporter = register_exporter(options);
+                m.set_local_spike_callback(
+                    [&](const std::vector<spike_type>& spikes) {
+                        file_exporter->output(spikes);
+                    });
+            }
+            else if(communication::global_policy::id()==0) {
+                file_exporter = register_exporter(options);
+                m.set_global_spike_callback(
+                    [&](const std::vector<spike_type>& spikes) {
+                       file_exporter->output(spikes);
+                    });
+            }
         }
 
         // run model

@@ -39,16 +39,19 @@ void section_geometry::segment(double dx) {
     double x = length/nseg;
 
     // Scan segments for sample points.
-    for (unsigned i = 1; i<npoint;) {
+    unsigned i = 1;
+    for (;;) {
         if (right>x) {
             double u = (x-left)/(right-left);
             sampled.push_back(lerp(points[i-1], points[i], u));
             unsigned k = sampled.size();
-            sampled_length += distance(sampled[k-2], sampled[k]);
+            sampled_length += distance(sampled[k-2], sampled[k-1]);
             x = k*length/nseg;
         }
         else {
             ++i;
+            if (i>=npoint) break;
+
             left = right;
             right = left+distance(points[i-1], points[i]);
         }

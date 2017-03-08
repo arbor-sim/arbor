@@ -54,13 +54,13 @@ TEST(cell_group, sources)
 
     const auto& sources = group.spike_sources();
     for (unsigned i = 0; i<sources.size(); ++i) {
-        auto id = sources[i].source_id;
+        auto id = sources[i];
         if (i==0) {
             EXPECT_EQ(id.gid, first_gid);
             EXPECT_EQ(id.index, 0u);
         }
         else {
-            auto prev = sources[i-1].source_id;
+            auto prev = sources[i-1];
             EXPECT_GT(id, prev);
             EXPECT_EQ(id.index, id.gid==prev.gid? prev.index+1: 0u);
         }

@@ -10,7 +10,6 @@
 #include <common_types.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
-#include <spike_source.hpp>
 #include <util/debug.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
@@ -27,16 +26,10 @@ public:
     using lowered_cell_type = LoweredCell;
     using value_type = typename lowered_cell_type::value_type;
     using size_type  = typename lowered_cell_type::value_type;
-    using spike_detector_type = spike_detector<lowered_cell_type>;
     using source_id_type = cell_member_type;
 
     using time_type = float;
     using sampler_function = std::function<util::optional<time_type>(time_type, double)>;
-
-    struct spike_source_type {
-        source_id_type source_id;
-        spike_detector_type source;
-    };
 
     cell_group() = default;
 
@@ -48,40 +41,31 @@ public:
         build_handle_partitions(cells);
         std::size_t n_probes = probe_handle_divisions_.back();
         std::size_t n_targets = target_handle_divisions_.back();
-        std::size_t n_detectors =
-            algorithms::sum(util::transform_view(cells, [](const cell& c) { return c.detectors().size(); }));
+        std::size_t n_detectors = algorithms::sum(util::transform_view(
+            cells, [](const cell& c) { return c.detectors().size(); }));
 
         // Allocate space to store handles.
-        detector_handles_.resize(n_detectors);
         target_handles_.resize(n_targets);
         probe_handles_.resize(n_probes);
 
-        cell_.initialize(cells, detector_handles_, target_handles_, probe_handles_);
+        cell_.initialize(cells, target_handles_, probe_handles_);
 
-        // Create spike detectors and associate them with globally unique source ids.
-        cell_gid_type source_gid = gid_base_;
-        unsigned i = 0;
+        // Create a list of the global identifiers for the spike sources
+        auto source_gid = cell_gid_type{gid_base_};
         for (const auto& cell: cells) {
-            cell_lid_type source_lid = 0u;
-            for (auto& d: cell.detectors()) {
-                cell_member_type source_id{source_gid, source_lid++};
-
-                spike_sources_.push_back({
-                    source_id, spike_detector_type(cell_, detector_handles_[i++],  d.threshold, 0.f)
-                });
+            for (cell_lid_type lid=0u; lid<cell.detectors().size(); ++lid) {
+                spike_sources_.push_back(source_id_type{source_gid, lid});
             }
             ++source_gid;
         }
+        EXPECTS(spike_sources_.size()==n_detectors);
     }
 
     void reset() {
-        clear_spikes();
+        spikes_.clear();
         clear_events();
         reset_samplers();
         cell_.reset();
-        for (auto& spike_source: spike_sources_) {
-            spike_source.source.reset(cell_, 0.f);
-        }
     }
 
     time_type min_step(time_type dt) {
@@ -122,20 +106,13 @@ public:
             time_type tnext = next ? next->time: tstep;
             cell_.advance(tnext - cell_.time());
 
-            if (!cell_.is_physical_solution()) {
+            if (util::is_debug_mode() && !cell_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds for cell "
                           << gid_base_ << " at t " << cell_.time() << " ms\n";
             }
 
-            PE("events");
-            // check for new spikes
-            for (auto& s : spike_sources_) {
-                if (auto spike = s.source.test(cell_, cell_.time())) {
-                    spikes_.push_back({s.source_id, spike.get()});
-                }
-            }
-
             // apply events
+            PE("events");
             if (next) {
                 auto handle = get_target_handle(next->target);
                 cell_.deliver_event(handle, next->weight);
@@ -143,6 +120,18 @@ public:
             PL();
         }
 
+        // Copy out spike voltage threshold crossings from the back end, then
+        // generate spikes with global spike source ids. The threshold crossings
+        // record the local spike source index, which must be converted to a
+        // global index for spike communication.
+        PE("events");
+        for (auto c: cell_.get_spikes()) {
+            spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
+        }
+        // Now that the spikes have been generated, clear the old crossings
+        // to get ready to record spikes from the next integration period.
+        cell_.clear_spikes();
+        PL();
     }
 
     template <typename R>
@@ -153,15 +142,17 @@ public:
     }
 
     const std::vector<spike<source_id_type, time_type>>&
-    spikes() const { return spikes_; }
-
-    const std::vector<spike_source_type>&
-    spike_sources() const {
-        return spike_sources_;
+    spikes() const {
+        return spikes_;
     }
 
     void clear_spikes() {
         spikes_.clear();
+    }
+
+    const std::vector<source_id_type>&
+    spike_sources() const {
+        return spike_sources_;
     }
 
     void clear_events() {
@@ -203,7 +194,7 @@ private:
     lowered_cell_type cell_;
 
     /// spike detectors attached to the cell
-    std::vector<spike_source_type> spike_sources_;
+    std::vector<source_id_type> spike_sources_;
 
     /// spikes that are generated
     std::vector<spike<source_id_type, time_type>> spikes_;
@@ -219,9 +210,6 @@ private:
     iarray first_target_gid_;
 
     /// handles for accessing lowered cell
-    using detector_handle = typename lowered_cell_type::detector_handle;
-    std::vector<detector_handle> detector_handles_;
-
     using target_handle = typename lowered_cell_type::target_handle;
     std::vector<target_handle> target_handles_;
 

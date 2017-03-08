@@ -181,6 +181,37 @@ namespace impl {
             }
         };
 
+        // bare bones implementation of standard compliant allocator for managed memory
+        template <size_type Alignment=1024>
+        struct managed_policy {
+            // Managed memory is aligned on 1024 byte boundaries.
+            // So the Alignment parameter must be a factor of 1024
+            static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 1024 byte boundaries");
+
+            void* allocate_policy(std::size_t n) {
+                void* ptr;
+                auto status = cudaMallocManaged(&ptr, n);
+                if(status != cudaSuccess) {
+                    LOG_ERROR("memory:: unable to allocate managed memory");
+                    ptr = nullptr;
+                }
+                return ptr;
+            }
+
+            static constexpr size_type alignment() {
+                return Alignment;
+            }
+
+            // managed memory can be used with standard memcpy
+            static constexpr bool is_malloc_compatible() {
+                return true;
+            }
+
+            void free_policy(void* p) {
+                cudaFree(p);
+            }
+        };
+
         class device_policy {
         public:
             void *allocate_policy(size_type size) {
@@ -251,8 +282,9 @@ public:
     }
 
     void deallocate(pointer p, size_type) {
-        if( p!=nullptr )
+        if( p!=nullptr ) {
             free_policy(p);
+        }
     }
 
     size_type max_size() const {
@@ -326,15 +358,20 @@ using hbw_allocator = allocator<T, impl::knl::hbw_policy<alignment>>;
 #endif
 
 #ifdef NMC_HAVE_CUDA
-// for pinned allocation set the default alignment to correspond to the
-// alignment of a page (4096 bytes), because pinned memory is allocated at page
-// boundaries.
-template <class T, size_t alignment=4096>
+// For pinned and allocation set the default alignment to correspond to
+// the alignment of 1024 bytes, because pinned memory is allocated at
+// page boundaries. It is allocated at page boundaries (typically 4k),
+// however in practice it will return pointers that are 1k aligned.
+template <class T, size_t alignment=1024>
 using pinned_allocator = allocator<T, impl::cuda::pinned_policy<alignment>>;
 
-// use 256 as default allignment, because that is the default for cudaMalloc
+template <class T, size_t alignment=1024>
+using managed_allocator = allocator<T, impl::cuda::managed_policy<alignment>>;
+
+// use 256 as default alignment, because that is the default for cudaMalloc
 template <class T, size_t alignment=256>
 using cuda_allocator = allocator<T, impl::cuda::device_policy>;
+
 #endif
 
 } // namespace memory
