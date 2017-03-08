@@ -3,6 +3,7 @@
 // Representation of 3-d embedded cable morphology, independent of other
 // cell information.
 
+#include <stdexcept>
 #include <vector>
 
 namespace nest {
@@ -29,9 +30,11 @@ struct section_geometry {
 
     // Re-discretize the section into ceil(length/dx) segments.
     void segment(double dx);
+};
 
-    // (Re-)compute length.
-    void compute_length();
+struct morphology_error: public std::runtime_error {
+    morphology_error(const char* what): std::runtime_error(what) {}
+    morphology_error(const std::string& what): std::runtime_error(what) {}
 };
 
 struct morphology {
@@ -54,14 +57,18 @@ struct morphology {
     // 1. sections[i].id = i+1  (id 0 corresponds to soma)
     // 2. sections[i].parent_id < sections[i].id
     // 3. sections[i].terminal iff !exists j s.t. sections[j].parent_id = sections[i].id
+    bool check_valid() const;
 
-    bool check_invariants() const;
+    // Throw morphology_error if invariants violated.
+    void assert_valid() const;
 
     // Re-discretize all sections.
     void segment(double dx) {
         for (auto& s: sections) s.segment(dx);
     }
 
+    // Add new section from sequence of section points. Return reference to new section.
+    section_geometry& add_section(std::vector<section_point> points, unsigned parent_id = 0, section_kind kind = section_kind::none);
 };
 
 } // namespace mc

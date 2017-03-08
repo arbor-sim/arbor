@@ -469,7 +469,7 @@ TEST(swc_io, cell_construction) {
     // swc -> morphology
     auto morph = io::swc_as_morphology(io::parse_swc_file(is));
 
-    cell cell = make_cell(morph);
+    cell cell = make_cell(morph, true);
     EXPECT_TRUE(cell.has_soma());
     EXPECT_EQ(4u, cell.num_segments());
 
@@ -492,6 +492,10 @@ TEST(swc_io, cell_construction) {
     EXPECT_EQ(1u, cell.cable(2)->num_sub_segments());
     EXPECT_EQ(2u, cell.cable(3)->num_sub_segments());
 
+    // We asked to use the same discretization as in the SWC, so check number of compartments too.
+    EXPECT_EQ(1u, cell.cable(1)->num_compartments());
+    EXPECT_EQ(1u, cell.cable(2)->num_compartments());
+    EXPECT_EQ(2u, cell.cable(3)->num_compartments());
 
     // Check the radii
     EXPECT_EQ(1.3, cell.cable(1)->radius(0));
@@ -537,7 +541,7 @@ TEST(swc_parser, from_file_ball_and_stick)
     // make an equivalent cell via C++ interface
     cell local_cell;
     local_cell.add_soma(6.30785);
-    local_cell.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
+    local_cell.add_cable(0, section_kind::dendrite, 0.5, 0.5, 200);
 
     EXPECT_TRUE(cell_basic_equality(local_cell, bas_cell));
 }

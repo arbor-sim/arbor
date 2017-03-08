@@ -43,7 +43,7 @@ TEST(probe, fvm_multicell)
     // ball-and-stick model morphology
 
     bs.add_soma(12.6157/2.0);
-    bs.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
+    bs.add_cable(0, section_kind::dendrite, 0.5, 0.5, 200);
     bs.soma()->set_compartments(5);
 
     segment_location loc0{0, 0};

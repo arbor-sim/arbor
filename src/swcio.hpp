@@ -171,7 +171,7 @@ morphology swc_as_morphology(const RandomAccessSequence& swc_records) {
         morph.sections.push_back(section);
     }
 
-    EXPECTS(morph.check_invariants());
+    EXPECTS(morph.check_valid());
     return morph;
 }
 

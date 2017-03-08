@@ -247,7 +247,10 @@ cable_segment* cell::add_cable(cell::index_type parent, Args&&... args)
 }
 
 // Create a cell from a morphology specification.
-cell make_cell(const morphology&);
+// If compartments_from_discretization is true, set number of compartments in
+// each segment to be the number of piecewise linear sections in the corresponding
+// section of the morphologu.
+cell make_cell(const morphology&, bool compartments_from_discretization=false);
 
 } // namespace mc
 } // namespace nest
