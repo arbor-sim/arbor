@@ -128,6 +128,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         "trace_",   // trace_prefix
         util::nothing,  // trace_max_gid
         util::nothing,  // morphologies
+        false,      // morph_rr;
+        false,      // report_compartments;
 
         // spike_output_parameters:
         false,      // spike output
@@ -198,6 +200,10 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         TCLAP::ValueArg<util::optional<std::string>> morphologies_arg(
             "M", "morphologies", "load morphologies from SWC files matching <glob>",
             false, defopts.morphologies, "glob", cmd);
+        TCLAP::SwitchArg morph_rr_arg(
+             "", "morph-rr", "Serial rather than random morphology selection from pool", cmd, false);
+        TCLAP::SwitchArg report_compartments_arg(
+             "", "report-compartments", "Count compartments in cells before simulation", cmd, false);
         TCLAP::SwitchArg spike_output_arg(
             "f","spike-file-output","save spikes to file", cmd, false);
         TCLAP::ValueArg<unsigned> dry_run_ranks_arg(
@@ -235,6 +241,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                     update_option(options.trace_prefix, fopts, "trace_prefix");
                     update_option(options.trace_max_gid, fopts, "trace_max_gid");
                     update_option(options.morphologies, fopts, "morphologies");
+                    update_option(options.morph_rr, fopts, "morph_rr");
+                    update_option(options.report_compartments, fopts, "report_compartments");
 
                     // Parameters for spike output
                     update_option(options.spike_file_output, fopts, "spike_file_output");
@@ -275,6 +283,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.trace_prefix, trace_prefix_arg);
         update_option(options.trace_max_gid, trace_max_gid_arg);
         update_option(options.morphologies, morphologies_arg);
+        update_option(options.morph_rr, morph_rr_arg);
+        update_option(options.report_compartments, report_compartments_arg);
         update_option(options.spike_file_output, spike_output_arg);
         update_option(options.profile_only_zero, profile_only_zero_arg);
         update_option(options.dry_run_ranks, dry_run_ranks_arg);
@@ -324,6 +334,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 else {
                     fopts["morphologies"] = nullptr;
                 }
+                fopts["morph_rr"] = options.morph_rr;
+                fopts["report_compartments"] = options.report_compartments;
                 fid << std::setw(3) << fopts << "\n";
 
             }
@@ -357,6 +369,13 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
        o << *options.trace_max_gid;
     }
     o << "\n";
+    o << "  morphologies         : ";
+    if (options.morphologies) {
+       o << *options.morphologies;
+    }
+    o << "\n";
+    o << "  morphology r-r       : " << (options.morph_rr ? "yes" : "no") << "\n";
+    o << "  report compartments  : " << (options.report_compartments ? "yes" : "no") << "\n";
 
     return o;
 }

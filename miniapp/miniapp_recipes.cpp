@@ -145,7 +145,12 @@ protected:
     exp_param delay_distribution_param_;
 
     const morphology& get_morphology(cell_gid_type gid) const {
-        // Morphologies are selected deterministically pseudo-randomly from pool.
+        // Allocate to gids sequentially?
+        if (param_.morphology_round_robin) {
+            return param_.morphologies[gid%param_.morphologies.size()];
+        }
+
+        // Morphologies are otherwise selected deterministically pseudo-randomly from pool.
         std::uniform_int_distribution<unsigned> morph_select_dist_(0, param_.morphologies.size()-1);
 
         // TODO: definitely replace this with a random hash!

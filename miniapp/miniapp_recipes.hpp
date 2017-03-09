@@ -36,6 +36,9 @@ struct basic_recipe_param {
     float syn_weight_per_cell = 0.3;
 
     morphology_pool morphologies = default_morphology_pool;
+
+    // If true, iterate through morphologies rather than select randomly.
+    bool morphology_round_robin = false;
 };
 
 std::unique_ptr<recipe> make_basic_ring_recipe(

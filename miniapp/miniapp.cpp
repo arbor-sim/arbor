@@ -98,7 +98,9 @@ int main(int argc, char** argv) {
         };
 
         model_type m(*recipe, util::partition_view(group_divisions));
-        report_compartment_stats(*recipe);
+        if (options.report_compartments) {
+            report_compartment_stats(*recipe);
+        }
 
         // inject some artificial spikes, 1 per 20 neurons.
         std::vector<cell_gid_type> local_sources;
@@ -213,6 +215,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
         load_swc_morphology_glob(p.morphologies, options.morphologies.get());
         std::cout << "loading morphologies: " << p.morphologies.size() << " loaded.\n";
     }
+    p.morphology_round_robin = options.morph_rr;
 
     p.num_compartments = options.compartments_per_segment;
     p.num_synapses = options.all_to_all? options.cells-1: options.synapses_per_cell;
