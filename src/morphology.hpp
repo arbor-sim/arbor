@@ -53,6 +53,11 @@ struct morphology {
 
     operator bool() const { return !empty(); }
 
+    // Return number of sections plus soma
+    std::size_t components() const {
+        return has_soma()+sections.size();
+    }
+
     // Check invariants:
     // 1. sections[i].id = i+1  (id 0 corresponds to soma)
     // 2. sections[i].parent_id < sections[i].id

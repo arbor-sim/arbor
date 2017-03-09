@@ -4,6 +4,7 @@ set(MINIAPP_SOURCES
     miniapp.cpp
     io.cpp
     miniapp_recipes.cpp
+    morphology_pool.cpp
 )
 set(MINIAPP_SOURCES_CUDA
     miniapp.cu
