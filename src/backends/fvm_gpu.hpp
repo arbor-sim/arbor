@@ -100,53 +100,35 @@ struct backend {
     // matrix infrastructure
     //
 
-    /*
-    struct matrix_backend {
-        matrix_backend(const_iview p, const_iview cell_index) {
-            const auto num_mats = cell_index.size()-1;
+    /// matrix state
+    struct matrix_state {
+        const_iview p;
+        const_iview cell_index;
 
-            // calculate size of each matrix
-            std::vector<size_type> sizes(num_mats);
-            std::adjacent_difference(cell_index.begin(), cell_index.end(), sizes.begin());
+        array d;     // [μS]
+        array u;     // [μS]
+        array rhs;   // [nA]
 
-            // find the permutation of matrices required to sort them in descending order of size
-            std::vector<int> perm(num_mats);
-            std::iota(perm.begin(), perm.end(), 0);
-            std::stable_sort(perm.begin(), perm.end(),
-                [&sizes](int l, int r){return sizes[l]>=sizes[r];});
-
-            // perform blocking of matrices into chuncks of block_size
-            constexpr auto block_size = 32;
-            const auto num_blocks = (num_mats+block_size-1) / block_size;
-            std::vector<int> block_lengths(num_blocks);
-            for (auto i=0; i<num_blocks; ++i) {
-                block_lengths[i] = sizes[perm[block_size*i]];
-            }
-
-            constexpr auto load_size = 16;
-            for (auto& l: block_lengths) {
-                auto overflow = l%load_size;
-                l += overflow ? load_size - overflow: 0;
-            }
-        }
-    };
-    */
-
-    /// Hines matrix assembly interface
-    struct matrix_assembler {
-        matrix_update_param_pack<value_type, size_type> params;
+        array cv_capacitance;      // [pF]
+        array face_conductance;    // [μS]
 
         // the invariant part of the matrix diagonal
-        array invariant_d;  // [μS]
+        array invariant_d;         // [μS]
 
-        matrix_assembler() = default;
+        std::size_t size() const { return p.size(); }
 
-        matrix_assembler(
-            view d, view u, view rhs, const_iview p,
-            const_view cv_capacitance,
-            const_view face_conductance,
-            const_view voltage,
-            const_view current)
+        matrix_state() = default;
+
+        matrix_state(const_iview p, const_iview cell_index):
+            p(p), cell_index(cell_index),
+            d(size()), u(size()), rhs(size())
+        {}
+
+        matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
+            p(p), cell_index(cell_index),
+            d(size()), u(size()), rhs(size()),
+            cv_capacitance(std::move(cap)),
+            face_conductance(std::move(cond))
         {
             auto n = d.size();
             host_array invariant_d_tmp(n, 0);
@@ -164,46 +146,56 @@ struct backend {
             }
             invariant_d = invariant_d_tmp;
             memory::copy(u_tmp, u);
+        }
 
-            params = {
+        // Assemble the matrix
+        // Afterwards the diagonal and RHS will have been set given dt, voltage and current
+        //   dt      [ms]
+        //   voltage [mV]
+        //   current [nA]
+        void assemble(value_type dt, const_view voltage, const_view current) {
+            EXPECTS(has_fvm_state());
+
+            // determine the grid dimensions for the kernel
+            auto const n = voltage.size();
+            auto const block_dim = 128;
+            auto const grid_dim = (n+block_dim-1)/block_dim;
+
+            auto params = matrix_update_param_pack<value_type, size_type> {
                 d.data(), u.data(), rhs.data(),
                 invariant_d.data(), cv_capacitance.data(), face_conductance.data(),
                 voltage.data(), current.data(), size_type(n)};
+
+            assemble_matrix<value_type, size_type><<<grid_dim, block_dim>>>
+                (params, dt);
+
         }
 
-        void assemble(value_type dt) {
+        void solve() {
+            using solve_param_pack = matrix_solve_param_pack<value_type, size_type>;
+
+            // pack the parameters into a single struct for kernel launch
+            auto params = solve_param_pack{
+                 d.data(), u.data(), rhs.data(),
+                 p.data(), cell_index.data(),
+                 size_type(d.size()), size_type(cell_index.size()-1)
+            };
+
             // determine the grid dimensions for the kernel
-            auto const n = params.n;
+            auto const n = params.ncells;
             auto const block_dim = 96;
             auto const grid_dim = (n+block_dim-1)/block_dim;
 
-            assemble_matrix<value_type, size_type><<<grid_dim, block_dim>>>(params, dt);
+            // perform solve on gpu
+            matrix_solve<value_type, size_type><<<grid_dim, block_dim>>>(params);
         }
 
+        // Test if the matrix has the full state required to assemble the
+        // matrix in the fvm scheme.
+        bool has_fvm_state() const {
+            return cv_capacitance.size()>0;
+        }
     };
-
-    /// Hines solver interface
-    static void hines_solve(
-        view d, view u, view rhs,
-        const_iview p, const_iview cell_index)
-    {
-        using solve_param_pack = matrix_solve_param_pack<value_type, size_type>;
-
-        // pack the parameters into a single struct for kernel launch
-        auto params = solve_param_pack{
-             d.data(), u.data(), rhs.data(),
-             p.data(), cell_index.data(),
-             size_type(d.size()), size_type(cell_index.size()-1)
-        };
-
-        // determine the grid dimensions for the kernel
-        auto const n = params.ncells;
-        auto const block_dim = 96;
-        auto const grid_dim = (n+block_dim-1)/block_dim;
-
-        // perform solve on gpu
-        matrix_solve<value_type, size_type><<<grid_dim, block_dim>>>(params);
-    }
 
     //
     // mechanism infrastructure

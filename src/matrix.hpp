@@ -37,8 +37,8 @@ public:
 
     matrix() = default;
 
-    /// construct matrix for one or more cells, with combined parent index
-    /// and a cell index
+    /// construct matrix for one or more cells, described by a parent index and
+    /// a cell index.
     matrix(const std::vector<size_type>& pi, const std::vector<size_type>& ci):
         parent_index_(memory::make_const_view(pi)),
         cell_index_(memory::make_const_view(ci)),
@@ -47,12 +47,15 @@ public:
         EXPECTS(cell_index_[num_cells()] == parent_index_.size());
     }
 
-    matrix( const std::vector<size_type>& pi, const std::vector<size_type>& ci,
-            const_view cv_capacitance, const_view face_conductance,
-            const_view voltage, const_view current):
+    matrix( const std::vector<size_type>& pi,
+            const std::vector<size_type>& ci,
+            const std::vector<value_type>& cv_capacitance,
+            const std::vector<value_type>& face_conductance):
         parent_index_(memory::make_const_view(pi)),
         cell_index_(memory::make_const_view(ci)),
-        state_(parent_index_, cell_index_, cv_capacitance, face_conductance, voltage, current)
+        state_( parent_index_, cell_index_,
+                memory::make_const_view(cv_capacitance),
+                memory::make_const_view(face_conductance))
     {
         EXPECTS(cell_index_[num_cells()] == parent_index_.size());
     }
@@ -79,8 +82,8 @@ public:
     }
 
     /// Assemble the matrix for given dt
-    void assemble(double dt) {
-        state_.assemble(dt);
+    void assemble(double dt, const_view voltage, const_view current) {
+        state_.assemble(dt, voltage, current);
     }
 
     /// Get a view of the solution

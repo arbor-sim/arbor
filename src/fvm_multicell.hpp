@@ -119,11 +119,6 @@ public:
     ///     1e-8.cm^2
     const_view cv_areas() const { return cv_areas_; }
 
-    /// return the capacitance of each CV surface
-    /// this is the total capacitance, not per unit area,
-    /// i.e. equivalent to sigma_i * c_m
-    const_view cv_capacitance() const { return cv_capacitance_; }
-
     /// return the voltage in each CV
     view       voltage()       { return voltage_; }
     const_view voltage() const { return voltage_; }
@@ -214,14 +209,6 @@ private:
     /// cv_areas_[i] is the surface area of CV i [µm^2]
     array cv_areas_;
 
-    /// CV i and its parent, required when constructing linear system [µS]
-    ///     face_conductance_[i] = area_face  / (r_L * delta_x);
-    array face_conductance_;
-
-    /// cv_capacitance_[i] is the capacitance of CV membrane [pF]
-    ///     C_m = area*c_m
-    array cv_capacitance_; // units [µm^2*F*m^-2 = pF]
-
     /// the transmembrane current over the surface of each CV [nA]
     ///     I = area*i_m - I_e
     array current_;
@@ -272,9 +259,9 @@ private:
         std::pair<size_type, size_type> comp_ival,
         const segment* seg,
         const std::vector<size_type>& parent,
-        std::vector<value_type>& tmp_face_conductance,
+        std::vector<value_type>& face_conductance,
         std::vector<value_type>& tmp_cv_areas,
-        std::vector<value_type>& tmp_cv_capacitance
+        std::vector<value_type>& cv_capacitance
     );
 };
 
@@ -287,9 +274,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
     const std::vector<size_type>& parent,
-    std::vector<value_type>& tmp_face_conductance,
+    std::vector<value_type>& face_conductance,
     std::vector<value_type>& tmp_cv_areas,
-    std::vector<value_type>& tmp_cv_capacitance)
+    std::vector<value_type>& cv_capacitance)
 {
     // precondition: group_parent_index[j] holds the correct value for
     // j in [base_comp, base_comp+segment.num_compartments()].
@@ -308,7 +295,7 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
         auto c_m = soma->mechanism("membrane").get("c_m").value;
 
         tmp_cv_areas[i] += area;
-        tmp_cv_capacitance[i] += area*c_m;
+        cv_capacitance[i] += area*c_m;
 
         cv_range.segment_cvs = {comp_ival.first, comp_ival.first+1};
         cv_range.areas = {0.0, area};
@@ -394,15 +381,15 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
             auto conductance = 1/r_L*h*V1*V2/(h2*h2*V1+h1*h1*V2);
             // the scaling factor of 10^2 is to convert the quantity
             // to micro Siemens [μS]
-            tmp_face_conductance[i] =  1e2 * conductance / h;
+            face_conductance[i] =  1e2 * conductance / h;
 
             auto al = div.left.area;
             auto ar = div.right.area;
 
             tmp_cv_areas[j] += al;
             tmp_cv_areas[i] += ar;
-            tmp_cv_capacitance[j] += al * c_m;
-            tmp_cv_capacitance[i] += ar * c_m;
+            cv_capacitance[j] += al * c_m;
+            cv_capacitance[i] += ar * c_m;
         }
     }
     else {
@@ -460,11 +447,13 @@ void fvm_multicell<Backend>::initialize(
 
     // Allocate scratch storage for calculating quantities used to build the
     // linear system: these will later be copied into target-specific storage
-    // as need be.
-    // Initialize to zero, because the results therin are calculated via accumulation.
-    std::vector<value_type> tmp_face_conductance(ncomp, 0.);
-    std::vector<value_type> tmp_cv_areas(ncomp, 0.);
-    std::vector<value_type> tmp_cv_capacitance(ncomp, 0.);
+
+    // face_conductance_[i] = area_face  / (r_L * delta_x);
+    std::vector<value_type> face_conductance(ncomp); // [µS]
+    /// cv_capacitance_[i] is the capacitance of CV membrane
+    std::vector<value_type> cv_capacitance(ncomp);   // [µm^2*F*m^-2 = pF]
+    /// membrane area of each cv
+    std::vector<value_type> tmp_cv_areas(ncomp);         // [µm^2]
 
     // used to build the information required to construct spike detectors
     std::vector<size_type> spike_detector_index;
@@ -503,7 +492,7 @@ void fvm_multicell<Backend>::initialize(
 
             auto cv_range = compute_cv_area_capacitance(
                 seg_comp_ival, seg, group_parent_index,
-                tmp_face_conductance, tmp_cv_areas, tmp_cv_capacitance);
+                face_conductance, tmp_cv_areas, cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
@@ -597,13 +586,11 @@ void fvm_multicell<Backend>::initialize(
     EXPECTS(probes_size==probes_count);
 
     // store the geometric information in target-specific containers
-    face_conductance_ = make_const_view(tmp_face_conductance);
-    cv_areas_         = make_const_view(tmp_cv_areas);
-    cv_capacitance_   = make_const_view(tmp_cv_capacitance);
+    cv_areas_ = make_const_view(tmp_cv_areas);
 
     // initalize matrix
-    matrix_ = matrix_type( group_parent_index, cell_comp_bounds,
-        cv_capacitance_, face_conductance_, voltage_, current_);
+    matrix_ = matrix_type(
+        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance);
 
     // For each density mechanism build the full node index, i.e the list of
     // compartments with that mechanism, then build the mechanism instance.
@@ -784,12 +771,12 @@ void fvm_multicell<Backend>::advance(double dt) {
 
     // solve the linear system
     PE("matrix", "setup");
-    matrix_.assemble(dt);
+    matrix_.assemble(dt, voltage_, current_);
 
     PL(); PE("solve");
     matrix_.solve();
     PL();
-    memory::copy(matrix_.state_.rhs, voltage_);
+    memory::copy(matrix_.solution(), voltage_);
     PL();
 
     // integrate state of gating variables etc.

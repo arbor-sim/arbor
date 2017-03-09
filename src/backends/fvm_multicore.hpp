@@ -44,13 +44,11 @@ struct backend {
         array u;     // [μS]
         array rhs;   // [nA]
 
-        const_view cv_capacitance;      // [pF]
-        const_view face_conductance;    // [μS]
-        const_view voltage;             // [mV]
-        const_view current;             // [nA]
+        array cv_capacitance;      // [pF]
+        array face_conductance;    // [μS]
 
         // the invariant part of the matrix diagonal
-        array invariant_d;              // [μS]
+        array invariant_d;         // [μS]
 
         std::size_t size() const { return p.size(); }
 
@@ -61,14 +59,11 @@ struct backend {
             d(size()), u(size()), rhs(size())
         {}
 
-        matrix_state(const_iview p, const_iview cell_index,
-            const_view cv_capacitance, const_view face_conductance,
-            const_view voltage, const_view current
-        ):
+        matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
             p(p), cell_index(cell_index),
             d(size()), u(size()), rhs(size()),
-            cv_capacitance(cv_capacitance), face_conductance(face_conductance),
-            voltage(voltage), current(current)
+            cv_capacitance(std::move(cap)),
+            face_conductance(std::move(cond))
         {
             auto n = d.size();
             invariant_d = array(n, 0);
@@ -81,7 +76,12 @@ struct backend {
             }
         }
 
-        void assemble(value_type dt) {
+        // Assemble the matrix
+        // Afterwards the diagonal and RHS will have been set given dt, voltage and current
+        //   dt      [ms]
+        //   voltage [mV]
+        //   current [nA]
+        void assemble(value_type dt, const_view voltage, const_view current) {
             EXPECTS(has_fvm_state());
 
             auto n = d.size();
@@ -122,7 +122,7 @@ struct backend {
         // Test if the matrix has the full state required to assemble the
         // matrix in the fvm scheme.
         bool has_fvm_state() const {
-            return voltage.size()>0;
+            return cv_capacitance.size()>0;
         }
     };
 
