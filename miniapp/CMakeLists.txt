@@ -10,6 +10,7 @@ set(MINIAPP_SOURCES_CUDA
     miniapp.cu
     io.cpp
     miniapp_recipes.cpp
+    morphology_pool.cpp
 )
 
 if(NMC_WITH_CUDA)
