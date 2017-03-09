@@ -46,8 +46,7 @@ void load_swc_morphology_glob(morphology_pool& pool, const std::string& swc_patt
     for (const auto& p: swc_paths) {
         fi.open(p.c_str());
         pool.insert(io::swc_as_morphology(io::parse_swc_file(fi)));
-        // debug
-        std::cerr << "debug: loaded morphology from " << p << " with " << (pool[pool.size()-1].sections.size()) << " non-soma sections\n";
+        fi.close();
     }
 }
 
