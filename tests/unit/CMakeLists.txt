@@ -17,6 +17,7 @@ build_modules(
 # Unit test sources
 
 set(TEST_CUDA_SOURCES
+    test_atomics.cu
     test_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu

@@ -4,13 +4,14 @@
 #include <string>
 #include <vector>
 
+#include <morphology.hpp>
 #include <swcio.hpp>
 
 #include "morphio.hpp"
 
 using nest::mc::io::swc_record;
 
-std::vector<swc_record> as_swc(const morphology& morph);
+std::vector<swc_record> as_swc(const nest::mc::morphology& morph);
 
 // printf wrappers.
 
@@ -78,7 +79,8 @@ void multi_file::open(unsigned n) {
 
 using nest::mc::io::swc_record;
 
-std::vector<swc_record> as_swc(const morphology& morph) {
+// TODO: Move this functionality to nestmc library.
+std::vector<swc_record> as_swc(const nest::mc::morphology& morph) {
     using kind = swc_record::kind;
     std::map<int, int> parent_end_id;
     std::vector<swc_record> swc;
@@ -127,7 +129,7 @@ std::vector<swc_record> as_swc(const morphology& morph) {
 
 // SWC emitter implementation.
 
-void swc_emitter::operator()(unsigned index, const morphology& m) {
+void swc_emitter::operator()(unsigned index, const nest::mc::morphology& m) {
     file_.open(index);
     auto& stream = file_.stream();
 
@@ -138,7 +140,7 @@ void swc_emitter::operator()(unsigned index, const morphology& m) {
 
 // pvector emitter implementation.
 
-std::vector<int> as_pvector(const morphology& morph, unsigned offset) {
+std::vector<int> as_pvector(const nest::mc::morphology& morph, unsigned offset) {
     std::map<int, unsigned> parent_index; // section id to segment index
     std::vector<int> pvec;
     unsigned index = offset; // starting segment index
@@ -168,7 +170,7 @@ std::vector<int> as_pvector(const morphology& morph, unsigned offset) {
     return pvec;
 }
 
-void pvector_emitter::operator()(unsigned index, const morphology& m) {
+void pvector_emitter::operator()(unsigned index, const nest::mc::morphology& m) {
     auto pvec = as_pvector(m, offset_);
     if (coalesce_) offset_ += pvec.size();
 
