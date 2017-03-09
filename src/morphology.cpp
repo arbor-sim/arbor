@@ -90,14 +90,17 @@ section_geometry& morphology::add_section(std::vector<section_point> points, uns
     if (section.parent_id >= section.id) {
         throw morphology_error("improper parent id for section");
     }
-    sections[section.parent_id].terminal = false;
+
+    if (section.parent_id>0) {
+        sections[section.parent_id-1].terminal = false;
+    }
     sections.push_back(std::move(section));
     return sections.back();
 }
 
 static const char* morphology_invariant_violation(const morphology& m) {
     std::size_t nsection = m.sections.size();
-    std::vector<int> terminal(true, nsection);
+    std::vector<int> terminal(nsection, true);
 
     for (std::size_t i=0; i<nsection; ++i) {
         auto id = m.sections[i].id;
@@ -106,9 +109,9 @@ static const char* morphology_invariant_violation(const morphology& m) {
         if (id!=i+1) return "section id does not correspond to index";
         if (parent_id>=id) return "section parent id not less than section id";
         if (parent_id>0) {
-            auto parent_index = parent_id-1;
-            terminal[parent_index] = false;
+            terminal[parent_id-1] = false;
         }
+        if (parent_id==0 && !m.has_soma()) return "section has parent 0 but morphology has no (spherical) soma";
     }
 
     for (std::size_t i=0; i<nsection; ++i) {
