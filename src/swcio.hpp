@@ -137,41 +137,39 @@ morphology swc_as_morphology(const RandomAccessSequence& swc_records) {
         auto b_start = std::next(swc_records.begin(), branch_index[i]);
         auto b_end   = std::next(swc_records.begin(), branch_index[i+1]);
 
-        section_geometry section;
-        section.id = i;
-        section.parent_id = parent_branch_index[i];
+        unsigned parent_id = parent_branch_index[i];
+        std::vector<section_point> points;
+        section_kind kind = section_kind::none;
 
-        if (section.parent_id != 0) {
+        if (parent_id != 0) {
             // include the parent of current record if not branching from soma
             auto parent_record = swc_records[swc_parent_index[branch_index[i]]];
 
-            section_point point{parent_record.x, parent_record.y, parent_record.z, parent_record.r};
-            section.points.push_back(point);
+            points.push_back(section_point{parent_record.x, parent_record.y, parent_record.z, parent_record.r});
         }
 
         for (auto b = b_start; b!=b_end; ++b) {
-            section_point point{b->x, b->y, b->z, b->r};
-            section.points.push_back(point);
+            points.push_back(section_point{b->x, b->y, b->z, b->r});
 
             switch (b->type) {
             case swc_record::kind::axon:
-                section.kind = section_kind::axon;
+                kind = section_kind::axon;
                 break;
             case swc_record::kind::dendrite:
             case swc_record::kind::apical_dendrite:
-                section.kind = section_kind::dendrite;
+                kind = section_kind::dendrite;
                 break;
             case swc_record::kind::soma:
-                section.kind = section_kind::soma;
+                kind = section_kind::soma;
                 break;
             default: ; // stick with what we have
             }
         }
 
-        morph.sections.push_back(section);
+        morph.add_section(std::move(points), parent_id, kind);
     }
 
-    EXPECTS(morph.check_valid());
+    morph.assert_valid();
     return morph;
 }
 

@@ -210,7 +210,7 @@ struct is_sequence:
     std::false_type {};
 
 template<typename T>
-struct is_sequence<T, impl::sink<decltype(std::declval<T>())>>:
+struct is_sequence<T, impl::sink<decltype(cbegin(std::declval<T>()))>>:
     std::true_type {};
 
 template <typename T>
