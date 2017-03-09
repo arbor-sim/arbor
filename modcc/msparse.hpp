@@ -7,6 +7,7 @@
 #include <initializer_list>
 #include <iterator>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace msparse {

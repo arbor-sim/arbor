@@ -5,11 +5,15 @@
 #include <vector>
 
 #include <math.hpp>
+#include <morphology.hpp>
 
 #include "lsystem.hpp"
-#include "morphology.hpp"
 
 using namespace nest::mc::math;
+
+using nest::mc::section_geometry;
+using nest::mc::section_point;
+using nest::mc::morphology;
 
 // L-system implementation.
 
@@ -188,7 +192,7 @@ struct lsys_sampler {
 };
 
 struct section_tip {
-    section_point p = {0., 0., 0., 0.};
+    section_point point = {0., 0., 0., 0.};
     quaternion rotation = {1., 0., 0., 0.};
     double somatic_distance = 0.;
 };
@@ -209,60 +213,63 @@ grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {
     grow_result result;
     std::vector<section_point>& points = result.points;
 
-    points.push_back(tip.p);
+    points.push_back(tip.point);
     for (;;) {
         quaternion step = xaxis^tip.rotation;
         double dl = S.length_step(g);
-        tip.p.x += dl*step.x;
-        tip.p.y += dl*step.y;
-        tip.p.z += dl*step.z;
-        tip.p.r += dl*0.5*S.taper(g);
+        tip.point.x += dl*step.x;
+        tip.point.y += dl*step.y;
+        tip.point.z += dl*step.z;
+        tip.point.r += dl*0.5*S.taper(g);
         tip.somatic_distance += dl;
         result.length += dl;
 
-        if (tip.p.r<0) tip.p.r = 0;
+        if (tip.point.r<0) tip.point.r = 0;
 
         double phi = S.roll_section(g);
         double theta = S.pitch_section(g);
         tip.rotation *= rotation_x(deg_to_rad*phi);
         tip.rotation *= rotation_y(deg_to_rad*theta);
 
-        points.push_back(tip.p);
+        points.push_back(tip.point);
 
-        if (tip.p.r==0 || tip.somatic_distance>=S.max_extent) {
+        if (tip.point.r==0 || tip.somatic_distance>=S.max_extent) {
             return result;
         }
 
-        if (S.branch_test(dl, tip.p.r, g)) {
-            double branch_phi = S.roll_at_branch(g);
-            double branch_angle = S.branch_angle(g);
-            double branch_theta1 = U(g)*branch_angle;
-            double branch_theta2 = branch_theta1-branch_angle;
+        if (S.branch_test(dl, tip.point.r, g)) {
             auto r = S.diam_child(g);
+            // ignore branch if we get non-positive radii
+            if (r.rho1>0 && r.rho2>0) {
+                double branch_phi = S.roll_at_branch(g);
+                double branch_angle = S.branch_angle(g);
+                double branch_theta1 = U(g)*branch_angle;
+                double branch_theta2 = branch_theta1-branch_angle;
 
-            tip.rotation *= rotation_x(deg_to_rad*branch_phi);
+                tip.rotation *= rotation_x(deg_to_rad*branch_phi);
 
-            section_tip t1 = tip;
-            t1.p.r = t1.p.r * r.rho1;
-            t1.rotation *= rotation_y(deg_to_rad*branch_theta1);
+                section_tip t1 = tip;
+                t1.point.r = t1.point.r * r.rho1;
+                t1.rotation *= rotation_y(deg_to_rad*branch_theta1);
 
-            section_tip t2 = tip;
-            t2.p.r = t2.p.r * r.rho2;
-            t2.rotation *= rotation_y(deg_to_rad*branch_theta2);
+                section_tip t2 = tip;
+                t2.point.r = t2.point.r * r.rho2;
+                t2.rotation *= rotation_y(deg_to_rad*branch_theta2);
 
-            result.children = {t1, t2};
-            return result;
+                result.children = {t1, t2};
+                return result;
+            }
         }
 
-        if (S.term_test(dl, tip.p.r, g)) {
+        if (S.term_test(dl, tip.point.r, g)) {
             return result;
         }
     }
 }
 
-morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
+nest::mc::morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
     constexpr quaternion xaxis = {0, 1, 0, 0};
-    morphology morph;
+    nest::mc::morphology morph;
 
     lsys_sampler S(P);
     double soma_radius = 0.5*S.diam_soma(g);
@@ -286,7 +293,7 @@ morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         tip.somatic_distance = 0.0;
 
         auto p = (soma_radius*xaxis)^tip.rotation;
-        tip.p = {p.x, p.y, p.z, radius};
+        tip.point = {p.x, p.y, p.z, radius};
 
         starts.push({tip, 0u});
     }

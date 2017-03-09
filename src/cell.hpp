@@ -7,6 +7,7 @@
 
 #include <common_types.hpp>
 #include <cell_tree.hpp>
+#include <morphology.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util/debug.hpp>
@@ -244,6 +245,12 @@ cable_segment* cell::add_cable(cell::index_type parent, Args&&... args)
 
     return segments_.back()->as_cable();
 }
+
+// Create a cell from a morphology specification.
+// If compartments_from_discretization is true, set number of compartments in
+// each segment to be the number of piecewise linear sections in the corresponding
+// section of the morphologu.
+cell make_cell(const morphology&, bool compartments_from_discretization=false);
 
 } // namespace mc
 } // namespace nest

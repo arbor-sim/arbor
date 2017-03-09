@@ -42,6 +42,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <backends/gpu_intrinsics.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 
@@ -103,21 +104,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("namespace kernels {");
     {
         increase_indentation();
-
-        text_.add_line("__device__");
-        text_.add_line("inline double atomicAdd(double* address, double val) {");
-        text_.increase_indentation();
-        text_.add_line("using I = unsigned long long int;");
-        text_.add_line("I* address_as_ull = (I*)address;");
-        text_.add_line("I old = *address_as_ull, assumed;");
-        text_.add_line("do {");
-        text_.add_line("assumed = old;");
-        text_.add_line("old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val+__longlong_as_double(assumed)));");
-        text_.add_line("} while (assumed != old);");
-        text_.add_line("return __longlong_as_double(old);");
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line();
 
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
@@ -799,7 +785,7 @@ void CUDAPrinter::print_APIMethod_body(APIMethod* e) {
             in->accept(this);
         }
         else {
-            text_ << (out->op()==tok::plus ? "atomicAdd" : "atomicSub") << "(&";
+            text_ << (out->op()==tok::plus ? "cuda_atomic_add" : "cuda_atomic_sub") << "(&";
             out->accept(this);
             text_ << ", ";
             in->accept(this);

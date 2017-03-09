@@ -11,6 +11,13 @@ namespace nest {
 namespace mc {
 namespace util {
 
+constexpr inline bool is_debug_mode() {
+#ifndef NDEBUG
+    return true;
+#else
+    return false;
+#endif
+}
 using failed_assertion_handler_t =
     bool (*)(const char* assertion, const char* file, int line, const char* func);
 
