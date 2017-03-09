@@ -118,12 +118,13 @@ std::ostream& operator<<(std::ostream& os, const swc_record& record) {
 }
 
 std::vector<swc_record> parse_swc_file(std::istream& is) {
+    constexpr auto eof = std::char_traits<char>::eof();
     std::vector<swc_record> records;
     std::size_t line_number = 1;
     std::string line;
 
     try {
-        while (is) {
+        while (is && is.peek()!=eof) {
             std::getline(is, line);
             if (is_comment(line)) {
                 continue;
