@@ -45,6 +45,7 @@ using communicator_type = communication::communicator<model_type::time_type, com
 using spike_type = typename communicator_type::spike_type;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
+void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
@@ -97,6 +98,7 @@ int main(int argc, char** argv) {
         };
 
         model_type m(*recipe, util::partition_view(group_divisions));
+        report_compartment_stats(*recipe);
 
         // inject some artificial spikes, 1 per 20 neurons.
         std::vector<cell_gid_type> local_sources;
@@ -266,4 +268,20 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix)
     }
     std::ofstream file(path);
     file << std::setw(1) << jrep << std::endl;
+}
+
+void report_compartment_stats(const recipe& rec) {
+std::size_t ncell = rec.num_cells();
+    std::size_t ncomp_total = 0;
+    std::size_t ncomp_min = -1;
+    std::size_t ncomp_max = 0;
+
+    for (std::size_t i = 0; i<ncell; ++i) {
+        std::size_t ncomp = rec.get_cell(i).num_compartments();
+        ncomp_total += ncomp;
+        ncomp_min = std::min(ncomp_min, ncomp);
+        ncomp_max = std::max(ncomp_max, ncomp);
+    }
+
+    std::cout << "compartments/cell: min=" << ncomp_min <<"; max=" << ncomp_max << "; mean=" << (double)ncomp_total/ncell << "\n";
 }
