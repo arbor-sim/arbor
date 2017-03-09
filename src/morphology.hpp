@@ -28,6 +28,11 @@ struct section_geometry {
     double length = 0; // µm
     section_kind kind = section_kind::none;
 
+    section_geometry() = default;
+    section_geometry(unsigned id, unsigned parent_id, bool terminal, std::vector<section_point> points, double length, section_kind kind = section_kind::none):
+        id(id), parent_id(parent_id), terminal(terminal), points(std::move(points)), length(length), kind(kind)
+    {}
+
     // Re-discretize the section into ceil(length/dx) segments.
     void segment(double dx);
 };

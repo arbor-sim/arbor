@@ -303,7 +303,7 @@ nest::mc::morphology generate_morphology(const lsys_param& P, lsys_generator &g)
         starts.pop();
 
         auto branch = grow(start.tip, S, g);
-        section_geometry section = {next_id++, start.parent_id, branch.children.empty(), std::move(branch.points), branch.length};
+        section_geometry section{next_id++, start.parent_id, branch.children.empty(), std::move(branch.points), branch.length};
 
         for (auto child: branch.children) {
             starts.push({child, section.id});

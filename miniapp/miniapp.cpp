@@ -206,8 +206,10 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     basic_recipe_param p;
 
     if (options.morphologies) {
-        morphology_pool pool;
-        load_swc_morphology_glob(pool, options.morphologies.get());
+        std::cout << "loading morphologies...\n";
+        p.morphologies.clear();
+        load_swc_morphology_glob(p.morphologies, options.morphologies.get());
+        std::cout << "loading morphologies: " << p.morphologies.size() << " loaded.\n";
     }
 
     p.num_compartments = options.compartments_per_segment;

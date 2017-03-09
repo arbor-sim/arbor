@@ -47,6 +47,7 @@ cell make_basic_cell(
     // Distribute the synapses at random locations the terminal dendrites in a
     // round robin manner.
 
+    morph.assert_valid();
     std::vector<unsigned> terminals;
     for (const auto& section: morph.sections) {
         // Note that morphology section ids should match up exactly with cell

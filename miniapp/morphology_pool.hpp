@@ -30,6 +30,7 @@ public:
     const morphology& operator[](std::ptrdiff_t i) const { return (*pool)[i]; }
 
     void insert(morphology m) { (*pool).push_back(std::move(m)); }
+    void clear() { (*pool).clear(); }
 };
 
 extern morphology_pool default_morphology_pool;
