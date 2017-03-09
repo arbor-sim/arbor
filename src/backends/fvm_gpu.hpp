@@ -100,6 +100,38 @@ struct backend {
     // matrix infrastructure
     //
 
+    /*
+    struct matrix_backend {
+        matrix_backend(const_iview p, const_iview cell_index) {
+            const auto num_mats = cell_index.size()-1;
+
+            // calculate size of each matrix
+            std::vector<size_type> sizes(num_mats);
+            std::adjacent_difference(cell_index.begin(), cell_index.end(), sizes.begin());
+
+            // find the permutation of matrices required to sort them in descending order of size
+            std::vector<int> perm(num_mats);
+            std::iota(perm.begin(), perm.end(), 0);
+            std::stable_sort(perm.begin(), perm.end(),
+                [&sizes](int l, int r){return sizes[l]>=sizes[r];});
+
+            // perform blocking of matrices into chuncks of block_size
+            constexpr auto block_size = 32;
+            const auto num_blocks = (num_mats+block_size-1) / block_size;
+            std::vector<int> block_lengths(num_blocks);
+            for (auto i=0; i<num_blocks; ++i) {
+                block_lengths[i] = sizes[perm[block_size*i]];
+            }
+
+            constexpr auto load_size = 16;
+            for (auto& l: block_lengths) {
+                auto overflow = l%load_size;
+                l += overflow ? load_size - overflow: 0;
+            }
+        }
+    };
+    */
+
     /// Hines matrix assembly interface
     struct matrix_assembler {
         matrix_update_param_pack<value_type, size_type> params;

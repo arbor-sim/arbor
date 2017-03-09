@@ -60,8 +60,6 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
-    using matrix_assembler = typename backend::matrix_assembler;
-
     using target_handle = std::pair<size_type, size_type>;
     using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
 
@@ -212,9 +210,6 @@ private:
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
-
-    /// the helper used to construct the matrix
-    matrix_assembler matrix_assembler_;
 
     /// cv_areas_[i] is the surface area of CV i [µm^2]
     array cv_areas_;
@@ -607,10 +602,7 @@ void fvm_multicell<Backend>::initialize(
     cv_capacitance_   = make_const_view(tmp_cv_capacitance);
 
     // initalize matrix
-    matrix_ = matrix_type(group_parent_index, cell_comp_bounds);
-
-    matrix_assembler_ = matrix_assembler(
-        matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),
+    matrix_ = matrix_type( group_parent_index, cell_comp_bounds,
         cv_capacitance_, face_conductance_, voltage_, current_);
 
     // For each density mechanism build the full node index, i.e the list of
@@ -792,12 +784,12 @@ void fvm_multicell<Backend>::advance(double dt) {
 
     // solve the linear system
     PE("matrix", "setup");
-    matrix_assembler_.assemble(dt);
+    matrix_.assemble(dt);
 
     PL(); PE("solve");
     matrix_.solve();
     PL();
-    memory::copy(matrix_.rhs(), voltage_);
+    memory::copy(matrix_.state_.rhs, voltage_);
     PL();
 
     // integrate state of gating variables etc.
