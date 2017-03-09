@@ -4,6 +4,7 @@
 #include <utility>
 
 #include <cell.hpp>
+#include <morphology.hpp>
 #include <util/debug.hpp>
 
 #include "miniapp_recipes.hpp"
@@ -29,9 +30,9 @@ cell make_basic_cell(
 
     // add dendrite of length 200 um and diameter 1 um with passive channel
     std::vector<mc::cable_segment*> dendrites;
-    dendrites.push_back(cell.add_cable(0, mc::segmentKind::dendrite, 0.5, 0.5, 200));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25,100));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25,100));
+    dendrites.push_back(cell.add_cable(0, section_kind::dendrite, 0.5, 0.5, 200));
+    dendrites.push_back(cell.add_cable(1, section_kind::dendrite, 0.5, 0.25,100));
+    dendrites.push_back(cell.add_cable(1, section_kind::dendrite, 0.5, 0.25,100));
 
     for (auto d : dendrites) {
         d->add_mechanism(mc::pas_parameters());

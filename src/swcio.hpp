@@ -3,11 +3,15 @@
 #include <exception>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
-#include "cell.hpp"
-#include "point.hpp"
+#include <algorithms.hpp>
+#include <morphology.hpp>
+#include <point.hpp>
+#include <util/debug.hpp>
 
 namespace nest {
 namespace mc {
@@ -30,383 +34,212 @@ public:
         custom
     };
 
+    kind type = kind::undefined; // record type
+    id_type id = 0;              // record id
+    coord_type x = 0;            // record coordinates
+    coord_type y = 0;
+    coord_type z = 0;
+    coord_type r = 0;            // record radius
+    id_type parent_id= -1;      // record parent's id
+
     // swc records assume zero-based indexing; root's parent remains -1
     swc_record(swc_record::kind type, int id,
                coord_type x, coord_type y, coord_type z, coord_type r,
-               int parent_id)
-        : type_(type)
-        , id_(id)
-        , x_(x)
-        , y_(y)
-        , z_(z)
-        , r_(r)
-        , parent_id_(parent_id)
-    {
-        check_consistency();
-    }
+               int parent_id):
+        type(type), id(id), x(x), y(y), z(z), r(r), parent_id(parent_id)
+    {}
 
-    swc_record()
-        : type_(swc_record::kind::undefined)
-        , id_(0)
-        , x_(0)
-        , y_(0)
-        , z_(0)
-        , r_(0)
-        , parent_id_(-1)
-    { }
-
+    swc_record() = default;
     swc_record(const swc_record& other) = default;
     swc_record& operator=(const swc_record& other) = default;
 
-    bool strict_equals(const swc_record& other) const
-    {
-        return id_ == other.id_ &&
-            x_ == other.x_ &&
-            y_ == other.y_ &&
-            z_ == other.z_ &&
-            r_ == other.r_ &&
-            parent_id_ == other.parent_id_;
+    bool operator==(const swc_record& other) const {
+        return id == other.id &&
+            x == other.x &&
+            y == other.y &&
+            z == other.z &&
+            r == other.r &&
+            parent_id == other.parent_id;
     }
 
-    // Equality and comparison operators
-    friend bool operator==(const swc_record& lhs,
-                           const swc_record& rhs)
-    {
-        return lhs.id_ == rhs.id_;
-    }
-
-    friend bool operator<(const swc_record& lhs,
-                          const swc_record& rhs)
-    {
-        return lhs.id_ < rhs.id_;
-    }
-
-    friend bool operator<=(const swc_record& lhs,
-                           const swc_record& rhs)
-    {
-        return (lhs < rhs) || (lhs == rhs);
-    }
-
-    friend bool operator!=(const swc_record& lhs,
-                           const swc_record& rhs)
-    {
+    friend bool operator!=(const swc_record& lhs, const swc_record& rhs) {
         return !(lhs == rhs);
-    }
-
-    friend bool operator>(const swc_record& lhs,
-                          const swc_record& rhs)
-    {
-        return !(lhs < rhs) && (lhs != rhs);
-    }
-
-    friend bool operator>=(const swc_record& lhs,
-                           const swc_record& rhs)
-    {
-        return !(lhs < rhs);
     }
 
     friend std::ostream& operator<<(std::ostream& os, const swc_record& record);
 
-    kind type() const
-    {
-        return type_;
+    coord_type diameter() const {
+        return 2*r;
     }
 
-    id_type id() const
-    {
-        return id_;
+    nest::mc::point<coord_type> coord() const {
+        return nest::mc::point<coord_type>(x, y, z);
     }
 
-    id_type parent() const
-    {
-        return parent_id_;
+    nest::mc::section_point as_section_point() const {
+        return nest::mc::section_point{x, y, z, r};
     }
 
-    coord_type x() const
-    {
-        return x_;
-    }
-
-    coord_type y() const
-    {
-        return y_;
-    }
-
-    coord_type z() const
-    {
-        return z_;
-    }
-
-    coord_type radius() const
-    {
-        return r_;
-    }
-
-    coord_type diameter() const
-    {
-        return 2*r_;
-    }
-
-    nest::mc::point<coord_type> coord() const
-    {
-        return nest::mc::point<coord_type>(x_, y_, z_);
-    }
-
-    void renumber(id_type new_id, std::map<id_type, id_type>& idmap);
-
-private:
-    void check_consistency() const;
-
-    kind type_;             // record type
-    id_type id_;            // record id
-    coord_type x_, y_, z_;  // record coordinates
-    coord_type r_;          // record radius
-    id_type parent_id_;     // record parent's id
+    // validity checks
+    bool is_consistent() const;
+    void assert_consistent() const; // throw swc_error if inconsistent.
 };
 
 
-class swc_parse_error : public std::runtime_error
-{
+class swc_error: public std::runtime_error {
 public:
-    explicit swc_parse_error(const char* msg, std::size_t lineno)
-        : std::runtime_error(msg)
-        , lineno_(lineno)
-    { }
+    explicit swc_error(const char* msg, std::size_t lineno = 0):
+        std::runtime_error(msg), line_number(lineno)
+    {}
 
-    explicit swc_parse_error(const std::string& msg, std::size_t lineno)
-        : std::runtime_error(msg)
-        , lineno_(lineno)
-    { }
+    explicit swc_error(const std::string& msg, std::size_t lineno = 0):
+        std::runtime_error(msg), line_number(lineno)
+    {}
 
-    std::size_t lineno() const
-    {
-        return lineno_;
-    }
-
-private:
-    std::size_t lineno_;
+    std::size_t line_number;
 };
 
-class swc_parser {
-public:
-    swc_parser(const std::string& delim, std::string comment_prefix)
-        : delim_(delim)
-        , comment_prefix_(comment_prefix)
-        , lineno_(0)
-    { }
-
-    swc_parser()
-        : delim_(" ")
-        , comment_prefix_("#")
-        , lineno_(0)
-    { }
-
-    std::size_t lineno() const
-    {
-        return lineno_;
-    }
-
-    std::istream& parse_record(std::istream& is, swc_record& record);
-
-private:
-    // Read the record from a string stream; will be treated like a single line
-    swc_record parse_record(std::istringstream& is);
-
-    std::string delim_;
-    std::string comment_prefix_;
-    std::string linebuff_;
-    std::size_t lineno_;
-};
-
-
+// Parse one record, skipping comments and blank lines.
 std::istream& operator>>(std::istream& is, swc_record& record);
 
-class swc_record_stream_iterator :
-        public std::iterator<std::forward_iterator_tag, swc_record> {
-public:
-    struct eof_tag { };
+// Parse and canonicalize an EOF-terminated sequence of records.
+// Throw on parsing failure.
+std::vector<swc_record> parse_swc_file(std::istream& is);
 
-    swc_record_stream_iterator(std::istream& is)
-        : is_(is)
-        , eof_(false)
-    {
-        is_.clear();
-        is_.seekg(std::ios_base::beg);
-        read_next_record();
+// Convert a canonical (see below) sequence of SWC records to a morphology object.
+template <typename RandomAccessSequence>
+morphology swc_as_morphology(const RandomAccessSequence& swc_records) {
+    morphology morph;
+
+    std::vector<swc_record::id_type> swc_parent_index;
+    for (const auto& r: swc_records) {
+        swc_parent_index.push_back(r.parent_id);
     }
 
-    swc_record_stream_iterator(std::istream& is, eof_tag)
-        : is_(is)
-        , eof_(true)
-    { }
+    if (swc_parent_index.empty()) {
+        return morph;
+    }
 
-    swc_record_stream_iterator(const swc_record_stream_iterator& other)
-        : is_(other.is_)
-        , parser_(other.parser_)
-        , curr_record_(other.curr_record_)
-        , eof_(other.eof_)
-    { }
+    // The parent of soma must be 0, while in SWC files is -1
+    swc_parent_index[0] = 0;
+    auto branch_index = algorithms::branches(swc_parent_index); // partitions [0, #records] by branch.
+    auto parent_branch_index = algorithms::make_parent_index(swc_parent_index, branch_index);
 
-    swc_record_stream_iterator& operator++()
-    {
-        if (eof_) {
-            throw std::out_of_range("attempt to read past eof");
+    // sanity check
+    EXPECTS(parent_branch_index.size() == branch_index.size() - 1);
+
+    // Add the soma first; then the segments
+    const auto& soma = swc_records[0];
+    morph.soma = { soma.x, soma.y, soma.z, soma.r };
+
+    auto n_branches = parent_branch_index.size();
+    for (std::size_t i = 1; i < n_branches; ++i) {
+        auto b_start = std::next(swc_records.begin(), branch_index[i]);
+        auto b_end   = std::next(swc_records.begin(), branch_index[i+1]);
+
+        section_geometry section;
+        section.id = i;
+        section.parent_id = parent_branch_index[i];
+
+        if (section.parent_id != 0) {
+            // include the parent of current record if not branching from soma
+            auto parent_record = swc_records[swc_parent_index[branch_index[i]]];
+
+            section_point point{parent_record.x, parent_record.y, parent_record.z, parent_record.r};
+            section.points.push_back(point);
         }
 
-        read_next_record();
-        return *this;
-    }
+        for (auto b = b_start; b!=b_end; ++b) {
+            section_point point{b->x, b->y, b->z, b->r};
+            section.points.push_back(point);
 
-    swc_record_stream_iterator operator++(int)
-    {
-        swc_record_stream_iterator ret(*this);
-        operator++();
-        return ret;
-    }
-
-    value_type operator*() const
-    {
-        if (eof_) {
-            throw std::out_of_range("attempt to read past eof");
+            switch (b->type) {
+            case swc_record::kind::axon:
+                section.kind = section_kind::axon;
+                break;
+            case swc_record::kind::dendrite:
+            case swc_record::kind::apical_dendrite:
+                section.kind = section_kind::dendrite;
+                break;
+            case swc_record::kind::soma:
+                section.kind = section_kind::soma;
+                break;
+            default: ; // stick with what we have
+            }
         }
 
-        return curr_record_;
+        morph.sections.push_back(section);
     }
 
-    bool operator==(const swc_record_stream_iterator& other) const
-    {
-        if (eof_ && other.eof_) {
-            return true;
-        } else {
-            return curr_record_.strict_equals(other.curr_record_);
-        }
-    }
-
-    bool operator!=(const swc_record_stream_iterator& other) const
-    {
-        return !(*this == other);
-    }
-
-    friend std::ostream& operator<<(std::ostream& os,
-                                    const swc_record_stream_iterator& iter)
-    {
-        os << "{ is_.tellg(): " << iter.is_.tellg()  << ", "
-           << "curr_record_: "  << iter.curr_record_ << ", "
-           << "eof_: "          << iter.eof_         << "}";
-
-        return os;
-    }
-
-private:
-    void read_next_record()
-    {
-        parser_.parse_record(is_, curr_record_);
-        if (is_.eof()) {
-            eof_ = true;
-        }
-    }
-
-    std::istream& is_;
-    swc_parser parser_;
-    swc_record curr_record_;
-
-    // indicator of eof; we need a way to define an end() iterator without
-    // seeking to the end of file
-    bool eof_;
-};
-
-
-class swc_record_range_raw {
-public:
-    using value_type      = swc_record;
-    using reference       = value_type&;
-    using const_reference = const value_type&;
-    using iterator        = swc_record_stream_iterator;
-    using const_iterator  = const swc_record_stream_iterator;
-
-    swc_record_range_raw(std::istream& is)
-        : is_(is)
-    { }
-
-    iterator begin() const
-    {
-        return swc_record_stream_iterator(is_);
-    }
-
-    iterator end() const
-    {
-        iterator::eof_tag eof;
-        return swc_record_stream_iterator(is_, eof);
-    }
-
-    bool empty() const
-    {
-        return begin() == end();
-    }
-
-private:
-    std::istream& is_;
-};
-
-//
-// Reads records from an input stream until an eof is encountered and returns a
-// cleaned sequence of swc records.
-//
-// For more information check here:
-//   https://github.com/eth-cscs/cell_algorithms/wiki/SWC-file-parsing
-//
-
-class swc_record_range_clean {
-public:
-    using value_type     = swc_record;
-    using reference      = value_type&;
-    using const_referene = const value_type&;
-    using iterator       = std::vector<swc_record>::iterator;
-    using const_iterator = std::vector<swc_record>::const_iterator;
-
-    swc_record_range_clean(std::istream& is);
-
-    iterator begin()
-    {
-        return records_.begin();
-    }
-
-    iterator end()
-    {
-        return records_.end();
-    }
-
-    std::size_t size()
-    {
-        return records_.size();
-    }
-
-    bool empty() const
-    {
-        return records_.empty();
-    }
-
-private:
-    std::vector<swc_record> records_;
-};
-
-struct swc_io_raw
-{
-    using record_range_type = swc_record_range_raw;
-};
-
-struct swc_io_clean
-{
-    using record_range_type = swc_record_range_clean;
-};
-
-template<typename T = swc_io_clean>
-typename T::record_range_type swc_get_records(std::istream& is)
-{
-    return typename T::record_range_type(is);
+    EXPECTS(morph.check_valid());
+    return morph;
 }
 
-cell swc_read_cell(std::istream& is);
+// Given a random-access mutable sequence of `swc_record` describing
+// a single morphology, check for consistency and renumber records
+// so that ids are contiguous within branches, have no gaps, and
+// are ordered with repect to parent indices.
+template <typename RandomAccessSequence>
+void swc_canonicalize_sequence(RandomAccessSequence& swc_records) {
+    std::unordered_set<swc_record::id_type> ids;
+
+    std::size_t         num_trees = 0;
+    swc_record::id_type last_id   = -1;
+    bool                needsort  = false;
+
+    for (const auto& r: swc_records) {
+        r.assert_consistent();
+
+        if (r.parent_id == -1 && ++num_trees > 1) {
+            // only a single tree is allowed
+            throw swc_error("multiple trees found in SWC record sequence");
+        }
+        if (ids.count(r.id)) {
+            throw swc_error("records with duplicated ids in SWC record sequence");
+        }
+
+        if (!needsort && r.id < last_id) {
+            needsort = true;
+        }
+
+        last_id = r.id;
+        ids.insert(r.id);
+    }
+
+    if (needsort) {
+        std::sort(std::begin(swc_records), std::end(swc_records),
+            [](const swc_record& a, const swc_record& b) { return a.id<b.id; });
+    }
+
+    // Renumber records if necessary
+    std::map<swc_record::id_type, swc_record::id_type> idmap;
+    swc_record::id_type next_id = 0;
+    for (auto& r: swc_records) {
+        if (r.id != next_id) {
+            auto old_id = r.id;
+            r.id = next_id;
+
+            auto new_parent_id = idmap.find(r.parent_id);
+            if (new_parent_id != idmap.end()) {
+                r.parent_id = new_parent_id->second;
+            }
+
+            r.assert_consistent();
+            idmap.insert(std::make_pair(old_id, next_id));
+        }
+        ++next_id;
+    }
+
+    // Reject if branches are not contiguously numbered
+    std::vector<swc_record::id_type> parent_list = { 0 };
+    for (std::size_t i = 1; i < swc_records.size(); ++i) {
+        parent_list.push_back(swc_records[i].parent_id);
+    }
+
+    if (!nest::mc::algorithms::has_contiguous_compartments(parent_list)) {
+        throw swc_error("branches are not contiguously numbered", 0);
+    }
+}
 
 } // namespace io
 } // namespace mc

@@ -253,9 +253,9 @@ TEST(fvm_multi, mechanism_indexes)
     soma->add_mechanism(hh_parameters());
 
     // add dendrite of length 200 um and diameter 1 um with passive channel
-    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
 
     auto& segs = c.segments();
     segs[1]->add_mechanism(pas_parameters());
