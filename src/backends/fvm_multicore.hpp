@@ -35,60 +35,35 @@ struct backend {
     using host_view   = view;
     using host_iview  = iview;
 
-    /// hines matrix solver
-    static void hines_solve(
-        view d, view u, view rhs,
-        const_iview p, const_iview cell_index)
-    {
-        const size_type ncells = cell_index.size()-1;
-
-        // loop over submatrices
-        for (auto m: util::make_span(0, ncells)) {
-            auto first = cell_index[m];
-            auto last = cell_index[m+1];
-
-            // backward sweep
-            for(auto i=last-1; i>first; --i) {
-                auto factor = u[i] / d[i];
-                d[p[i]]   -= factor * u[i];
-                rhs[p[i]] -= factor * rhs[i];
-            }
-            rhs[first] /= d[first];
-
-            // forward sweep
-            for(auto i=first+1; i<last; ++i) {
-                rhs[i] -= u[i] * rhs[p[i]];
-                rhs[i] /= d[i];
-            }
-        }
-    }
-
-    struct matrix_assembler {
-        view d;     // [μS]
-        view u;     // [μS]
-        view rhs;   // [nA]
+    /// matrix state
+    struct matrix_state {
         const_iview p;
+        const_iview cell_index;
 
-        const_view cv_capacitance;      // [pF]
-        const_view face_conductance;    // [μS]
-        const_view voltage;             // [mV]
-        const_view current;             // [nA]
+        array d;     // [μS]
+        array u;     // [μS]
+        array rhs;   // [nA]
+
+        array cv_capacitance;      // [pF]
+        array face_conductance;    // [μS]
 
         // the invariant part of the matrix diagonal
-        array invariant_d;              // [μS]
+        array invariant_d;         // [μS]
 
-        matrix_assembler() = default;
+        std::size_t size() const { return p.size(); }
 
-        matrix_assembler(
-            view d, view u, view rhs, const_iview p,
-            const_view cv_capacitance,
-            const_view face_conductance,
-            const_view voltage,
-            const_view current)
-        :
-            d{d}, u{u}, rhs{rhs}, p{p},
-            cv_capacitance{cv_capacitance}, face_conductance{face_conductance},
-            voltage{voltage}, current{current}
+        matrix_state() = default;
+
+        matrix_state(const_iview p, const_iview cell_index):
+            p(p), cell_index(cell_index),
+            d(size()), u(size()), rhs(size())
+        {}
+
+        matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
+            p(p), cell_index(cell_index),
+            d(size()), u(size()), rhs(size()),
+            cv_capacitance(std::move(cap)),
+            face_conductance(std::move(cond))
         {
             auto n = d.size();
             invariant_d = array(n, 0);
@@ -101,7 +76,14 @@ struct backend {
             }
         }
 
-        void assemble(value_type dt) {
+        // Assemble the matrix
+        // Afterwards the diagonal and RHS will have been set given dt, voltage and current
+        //   dt      [ms]
+        //   voltage [mV]
+        //   current [nA]
+        void assemble(value_type dt, const_view voltage, const_view current) {
+            EXPECTS(has_fvm_state());
+
             auto n = d.size();
             value_type factor = 1e-3/dt;
             for (auto i: util::make_span(0u, n)) {
@@ -111,6 +93,36 @@ struct backend {
 
                 rhs[i] = gi*voltage[i] - current[i];
             }
+        }
+
+        void solve() {
+            const size_type ncells = cell_index.size()-1;
+
+            // loop over submatrices
+            for (auto m: util::make_span(0, ncells)) {
+                auto first = cell_index[m];
+                auto last = cell_index[m+1];
+
+                // backward sweep
+                for(auto i=last-1; i>first; --i) {
+                    auto factor = u[i] / d[i];
+                    d[p[i]]   -= factor * u[i];
+                    rhs[p[i]] -= factor * rhs[i];
+                }
+                rhs[first] /= d[first];
+
+                // forward sweep
+                for(auto i=first+1; i<last; ++i) {
+                    rhs[i] -= u[i] * rhs[p[i]];
+                    rhs[i] /= d[i];
+                }
+            }
+        }
+
+        // Test if the matrix has the full state required to assemble the
+        // matrix in the fvm scheme.
+        bool has_fvm_state() const {
+            return cv_capacitance.size()>0;
         }
     };
 
