@@ -112,6 +112,35 @@ TEST(math, infinity) {
     EXPECT_EQ(std::numeric_limits<long double>::infinity(), check.ld);
 }
 
+TEST(math, signum) {
+    EXPECT_EQ(1, signum(1));
+    EXPECT_EQ(1, signum(2));
+    EXPECT_EQ(1, signum(3.f));
+    EXPECT_EQ(1, signum(4.));
+
+    EXPECT_EQ(0, signum(0));
+    EXPECT_EQ(0, signum(0.f));
+    EXPECT_EQ(0, signum(0.));
+
+    EXPECT_EQ(-1, signum(-1));
+    EXPECT_EQ(-1, signum(-2));
+    EXPECT_EQ(-1, signum(-3.f));
+    EXPECT_EQ(-1, signum(-4.));
+
+    double denorm = 1e-308;
+    EXPECT_EQ(1, signum(denorm));
+    EXPECT_EQ(-1, signum(-denorm));
+
+    double negzero = std::copysign(0., -1.);
+    EXPECT_EQ(0, signum(negzero));
+
+    EXPECT_EQ(1, signum(infinity<double>()));
+    EXPECT_EQ(1, signum(infinity<float>()));
+    EXPECT_EQ(-1, signum(-infinity<double>()));
+    EXPECT_EQ(-1, signum(-infinity<float>()));
+}
+
+
 TEST(quaternion, ctor) {
     // scalar
     quaternion q1(3.5);
