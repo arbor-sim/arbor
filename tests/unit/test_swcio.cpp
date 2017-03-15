@@ -1,6 +1,7 @@
 #include <array>
 #include <exception>
 #include <iostream>
+#include <iterator>
 #include <fstream>
 #include <numeric>
 #include <type_traits>
@@ -16,17 +17,19 @@
 #   define DATADIR "../data"
 #endif
 
+using namespace nest::mc;
+
 // SWC tests
-void expect_record_equals(const nest::mc::io::swc_record& expected,
-                          const nest::mc::io::swc_record& actual)
+void expect_record_equals(const io::swc_record& expected,
+                          const io::swc_record& actual)
 {
-    EXPECT_EQ(expected.id(), actual.id());
-    EXPECT_EQ(expected.type(), actual.type());
-    EXPECT_FLOAT_EQ(expected.x(), actual.x());
-    EXPECT_FLOAT_EQ(expected.y(), actual.y());
-    EXPECT_FLOAT_EQ(expected.z(), actual.z());
-    EXPECT_FLOAT_EQ(expected.radius(), actual.radius());
-    EXPECT_EQ(expected.parent(), actual.parent());
+    EXPECT_EQ(expected.id, actual.id);
+    EXPECT_EQ(expected.type, actual.type);
+    EXPECT_FLOAT_EQ(expected.x, actual.x);
+    EXPECT_FLOAT_EQ(expected.y, actual.y);
+    EXPECT_FLOAT_EQ(expected.z, actual.z);
+    EXPECT_FLOAT_EQ(expected.r, actual.r);
+    EXPECT_EQ(expected.parent_id, actual.parent_id);
 }
 
 TEST(swc_record, construction)
@@ -36,56 +39,57 @@ TEST(swc_record, construction)
     {
         // force an invalid type
         swc_record::kind invalid_type = static_cast<swc_record::kind>(100);
-        EXPECT_THROW(swc_record record(invalid_type, 7, 1., 1., 1., 1., 5),
-                     std::invalid_argument);
+        EXPECT_THROW(swc_record(invalid_type, 7, 1., 1., 1., 1., 5).assert_consistent(),
+                     swc_error);
     }
 
     {
         // invalid id
-        EXPECT_THROW(swc_record record(
-                         swc_record::kind::custom, -3, 1., 1., 1., 1., 5),
-                     std::invalid_argument);
+        EXPECT_THROW(swc_record(
+                         swc_record::kind::custom, -3, 1., 1., 1., 1., 5).assert_consistent(),
+                     swc_error);
     }
 
     {
         // invalid parent id
-        EXPECT_THROW(swc_record record(
-                         swc_record::kind::custom, 0, 1., 1., 1., 1., -5),
-                     std::invalid_argument);
+        EXPECT_THROW(swc_record(
+                         swc_record::kind::custom, 0, 1., 1., 1., 1., -5).assert_consistent(),
+                     swc_error);
     }
 
     {
         // invalid radius
-        EXPECT_THROW(swc_record record(
-                         swc_record::kind::custom, 0, 1., 1., 1., -1., -1),
-                     std::invalid_argument);
+        EXPECT_THROW(swc_record(
+                         swc_record::kind::custom, 0, 1., 1., 1., -1., -1).assert_consistent(),
+                     swc_error);
     }
 
     {
         // parent_id > id
-        EXPECT_THROW(swc_record record(
-                         swc_record::kind::custom, 0, 1., 1., 1., 1., 2),
-                     std::invalid_argument);
+        EXPECT_THROW(swc_record(
+                         swc_record::kind::custom, 0, 1., 1., 1., 1., 2).assert_consistent(),
+                     swc_error);
     }
 
     {
         // parent_id == id
-        EXPECT_THROW(swc_record record(
-                         swc_record::kind::custom, 0, 1., 1., 1., 1., 0),
-                     std::invalid_argument);
+        EXPECT_THROW(swc_record(
+                         swc_record::kind::custom, 0, 1., 1., 1., 1., 0).assert_consistent(),
+                     swc_error);
     }
 
     {
         // check standard construction by value
         swc_record record(swc_record::kind::custom, 0, 1., 1., 1., 1., -1);
-        EXPECT_EQ(record.id(), 0);
-        EXPECT_EQ(record.type(), swc_record::kind::custom);
-        EXPECT_EQ(record.x(), 1.);
-        EXPECT_EQ(record.y(), 1.);
-        EXPECT_EQ(record.z(), 1.);
-        EXPECT_EQ(record.radius(), 1.);
+        EXPECT_TRUE(record.is_consistent());
+        EXPECT_EQ(record.id, 0);
+        EXPECT_EQ(record.type, swc_record::kind::custom);
+        EXPECT_EQ(record.x, 1.);
+        EXPECT_EQ(record.y, 1.);
+        EXPECT_EQ(record.z, 1.);
+        EXPECT_EQ(record.r, 1.);
         EXPECT_EQ(record.diameter(), 2*1.);
-        EXPECT_EQ(record.parent(), -1);
+        EXPECT_EQ(record.parent_id, -1);
     }
 
     {
@@ -96,23 +100,8 @@ TEST(swc_record, construction)
     }
 }
 
-TEST(swc_record, comparison)
-{
-    using namespace nest::mc::io;
 
-    {
-        // check comparison operators
-        swc_record record0(swc_record::kind::custom, 0, 1., 1., 1., 1., -1);
-        swc_record record1(swc_record::kind::custom, 0, 2., 3., 4., 5., -1);
-        swc_record record2(swc_record::kind::custom, 1, 2., 3., 4., 5., -1);
-        EXPECT_EQ(record0, record1);
-        EXPECT_LT(record0, record2);
-        EXPECT_GT(record2, record1);
-    }
-
-}
-
-TEST(swc_parser, invalid_input)
+TEST(swc_parser, invalid_input_istream)
 {
     using namespace nest::mc::io;
 
@@ -120,7 +109,8 @@ TEST(swc_parser, invalid_input)
         // check incomplete lines; missing parent
         std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
         swc_record record;
-        EXPECT_THROW(is >> record, swc_parse_error);
+        is >> record;
+        EXPECT_TRUE(is.fail());
     }
 
     {
@@ -128,15 +118,33 @@ TEST(swc_parser, invalid_input)
         std::istringstream is(
             "1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
         swc_record record;
-        EXPECT_THROW(is >> record, swc_parse_error);
+        is >> record;
+        EXPECT_TRUE(is.fail());
+    }
+}
+
+TEST(swc_parser, invalid_input_parse)
+{
+    using namespace nest::mc::io;
+
+    {
+        // check incomplete lines; missing parent
+        std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
+        EXPECT_THROW(parse_swc_file(is), swc_error);
+    }
+
+    {
+        // Check non-parsable values
+        std::istringstream is(
+            "1a 1 14.566132 34.873772 7.857000 0.717830 -1\n");
+        EXPECT_THROW(parse_swc_file(is), swc_error);
     }
 
     {
         // Check invalid record type
         std::istringstream is(
             "1 10 14.566132 34.873772 7.857000 0.717830 -1\n");
-        swc_record record;
-        EXPECT_THROW(is >> record, swc_parse_error);
+        EXPECT_THROW(parse_swc_file(is), swc_error);
     }
 
     {
@@ -152,19 +160,9 @@ TEST(swc_parser, invalid_input)
         is << "3 1 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "4 1 14.566132 34.873772 7.857000 0.717830 2\n";
 
-        std::vector<swc_record> records;
-        try {
-            for (auto c : swc_get_records<swc_io_clean>(is)) {
-                records.push_back(std::move(c));
-            }
-
-            FAIL() << "expected swc_parse_error, none was thrown\n";
-        } catch (const swc_parse_error& e) {
-            SUCCEED();
-        }
+        EXPECT_THROW(parse_swc_file(is), swc_error);
     }
 }
-
 
 TEST(swc_parser, valid_input)
 {
@@ -174,7 +172,11 @@ TEST(swc_parser, valid_input)
         // check empty file; no record may be parsed
         swc_record record, record_orig;
         std::istringstream is("");
-        EXPECT_NO_THROW(is >> record);
+        is >> record;
+
+        EXPECT_TRUE(is.eof());
+        EXPECT_TRUE(is.fail());
+        EXPECT_FALSE(is.bad());
         expect_record_equals(record_orig, record);
     }
 
@@ -183,15 +185,23 @@ TEST(swc_parser, valid_input)
         // no record may be parsed
         swc_record record, record_orig;
         std::istringstream is("#comment\n#comment");
-        EXPECT_NO_THROW(is >> record);
+        is >> record;
+
+        EXPECT_TRUE(is.eof());
+        EXPECT_TRUE(is.fail());
+        EXPECT_FALSE(is.bad());
         expect_record_equals(record_orig, record);
     }
 
     {
         // check comment not starting at first character
         swc_record record, record_orig;
-        std::istringstream is("   #comment");
-        EXPECT_NO_THROW(is >> record);
+        std::istringstream is("   #comment\n");
+        is >> record;
+
+        EXPECT_TRUE(is.eof());
+        EXPECT_TRUE(is.fail());
+        EXPECT_FALSE(is.bad());
         expect_record_equals(record_orig, record);
     }
 
@@ -203,11 +213,12 @@ TEST(swc_parser, valid_input)
         is << "      \t\n";
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
 
-        EXPECT_NO_THROW(is >> record);
+        is >> record;
+        EXPECT_TRUE(is);
+
         swc_record record_expected(
             swc_record::kind::soma,
             0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
-
         expect_record_equals(record_expected, record);
     }
 
@@ -219,39 +230,44 @@ TEST(swc_parser, valid_input)
         is << "\r\n";
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\r\n";
 
-        EXPECT_NO_THROW(is >> record);
+        is >> record;
+        EXPECT_TRUE(is);
+
         swc_record record_expected(
             swc_record::kind::soma,
             0, 14.566132, 34.873772, 7.857000, 0.717830, -1);
-
         expect_record_equals(record_expected, record);
     }
 
     {
         // check old-style mac eol; these eol are treated as simple whitespace
-        // characters, so in the following case no parse error shall be thrown
-        // and no record shall be read
-        swc_record record, record_expected;
+        // characters, so should look line a long comment.
+        swc_record record;
         std::stringstream is;
         is << "#comment\r";
         is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\r";
 
-        EXPECT_NO_THROW(is >> record);
-        expect_record_equals(record_expected, record);
+        is >> record;
+        EXPECT_TRUE(is.eof());
+        EXPECT_TRUE(is.fail());
+        EXPECT_FALSE(is.bad());
     }
 
     {
         // check last line case (no newline at the end)
         std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830 -1");
         swc_record record;
-        EXPECT_NO_THROW(is >> record);
-        EXPECT_EQ(0, record.id());    // zero-based indexing
-        EXPECT_EQ(swc_record::kind::soma, record.type());
-        EXPECT_FLOAT_EQ(14.566132, record.x());
-        EXPECT_FLOAT_EQ(34.873772, record.y());
-        EXPECT_FLOAT_EQ( 7.857000, record.z());
-        EXPECT_FLOAT_EQ( 0.717830, record.radius());
-        EXPECT_FLOAT_EQ( -1, record.parent());
+        is >> record;
+        EXPECT_TRUE(is.eof());
+        EXPECT_FALSE(is.fail());
+        EXPECT_FALSE(is.bad());
+        EXPECT_EQ(0, record.id);    // zero-based indexing
+        EXPECT_EQ(swc_record::kind::soma, record.type);
+        EXPECT_FLOAT_EQ(14.566132, record.x);
+        EXPECT_FLOAT_EQ(34.873772, record.y);
+        EXPECT_FLOAT_EQ( 7.857000, record.z);
+        EXPECT_FLOAT_EQ( 0.717830, record.r);
+        EXPECT_FLOAT_EQ( -1, record.parent_id);
     }
 
     {
@@ -271,18 +287,22 @@ TEST(swc_parser, valid_input)
 
         swc_input << "# this is a final comment\n";
 
+        using swc_iter = std::istream_iterator<swc_record>;
+        swc_iter end;
+
         std::size_t nr_records = 0;
-        for (auto record : swc_get_records<swc_io_raw>(swc_input)) {
+        for (swc_iter i = swc_iter(swc_input); i!=end; ++i) {
             ASSERT_LT(nr_records, records_orig.size());
-            expect_record_equals(records_orig[nr_records], record);
+            expect_record_equals(records_orig[nr_records], *i);
             ++nr_records;
         }
+        EXPECT_EQ(2u, nr_records);
     }
 }
 
 TEST(swc_parser, from_allen_db)
 {
-    using namespace nest::mc;
+    using namespace nest::mc::io;
 
     std::string datadir{DATADIR};
     auto fname = datadir + "/example.swc";
@@ -293,13 +313,10 @@ TEST(swc_parser, from_allen_db)
     }
 
     // load the record records into a std::vector
-    std::vector<io::swc_record> nodes;
-    for (auto node : io::swc_get_records<io::swc_io_raw>(fid)) {
-        nodes.push_back(std::move(node));
-    }
+    std::vector<swc_record> nodes = parse_swc_file(fid);
 
     // verify that the correct number of nodes was read
-    EXPECT_EQ(nodes.size(), 1058u);
+    EXPECT_EQ(1058u, nodes.size());
 }
 
 TEST(swc_parser, input_cleaning)
@@ -314,7 +331,7 @@ TEST(swc_parser, input_cleaning)
         is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "2 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        EXPECT_EQ(2u, swc_get_records<swc_io_clean>(is).size());
+        EXPECT_THROW(parse_swc_file(is), swc_error);
     }
 
     {
@@ -325,8 +342,7 @@ TEST(swc_parser, input_cleaning)
         is << "3 1 14.566132 34.873772 7.857000 0.717830 -1\n";
         is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        auto records = swc_get_records<swc_io_clean>(is);
-        EXPECT_EQ(2u, records.size());
+        EXPECT_THROW(parse_swc_file(is), swc_error);
     }
 
     {
@@ -339,14 +355,12 @@ TEST(swc_parser, input_cleaning)
 
         std::array<swc_record::id_type, 4> expected_id_list = {{ 0, 1, 2, 3 }};
 
-        auto expected_id = expected_id_list.cbegin();
-        for (auto c : swc_get_records<swc_io_clean>(is)) {
-            EXPECT_EQ(*expected_id, c.id());
-            ++expected_id;
-        }
+        auto records = parse_swc_file(is);
+        ASSERT_EQ(expected_id_list.size(), records.size());
 
-        // Check that we have read through the whole input
-        EXPECT_EQ(expected_id_list.end(), expected_id);
+        for (unsigned i = 0; i< expected_id_list.size(); ++i) {
+            EXPECT_EQ(expected_id_list[i], records[i].id);
+        }
     }
 
     {
@@ -364,22 +378,16 @@ TEST(swc_parser, input_cleaning)
         std::array<swc_record::id_type, 6> expected_parent_list =
             {{ -1, 0, 1, 1, 0, 4 }};
 
-        auto expected_id = expected_id_list.cbegin();
-        auto expected_parent = expected_parent_list.cbegin();
-        for (auto c : swc_get_records<swc_io_clean>(is)) {
-            EXPECT_EQ(*expected_id, c.id());
-            EXPECT_EQ(*expected_parent, c.parent());
-            ++expected_id;
-            ++expected_parent;
+        auto records = parse_swc_file(is);
+        ASSERT_EQ(expected_id_list.size(), records.size());
+        for (unsigned i = 0; i< expected_id_list.size(); ++i) {
+            EXPECT_EQ(expected_id_list[i], records[i].id);
+            EXPECT_EQ(expected_parent_list[i], records[i].parent_id);
         }
-
-        // Check that we have read through the whole input
-        EXPECT_EQ(expected_id_list.end(), expected_id);
-        EXPECT_EQ(expected_parent_list.end(), expected_parent);
     }
 }
 
-TEST(swc_record_ranges, raw)
+TEST(swc_parser, raw)
 {
     using namespace nest::mc::io;
 
@@ -391,50 +399,11 @@ TEST(swc_record_ranges, raw)
         is << "3 2 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        std::vector<swc_record> records;
-        for (auto c : swc_get_records<swc_io_raw>(is)) {
-            records.push_back(c);
-        }
+        using swc_iter = std::istream_iterator<swc_record>;
+        std::vector<swc_record> records{swc_iter(is), swc_iter()};
 
         EXPECT_EQ(4u, records.size());
-
-        bool entered = false;
-        auto citer = records.begin();
-        for (auto c : swc_get_records<swc_io_raw>(is)) {
-            expect_record_equals(c, *citer++);
-            entered = true;
-        }
-
-        EXPECT_TRUE(entered);
-    }
-
-    {
-        // Check out of bounds reads
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-
-        auto ibegin = swc_get_records<swc_io_raw>(is).begin();
-
-        EXPECT_NO_THROW(++ibegin);
-        EXPECT_THROW(*ibegin, std::out_of_range);
-
-    }
-
-    {
-        // Check iterator increments
-        std::stringstream is;
-        is << "1 1 14.566132 34.873772 7.857000 0.717830 -1\n";
-
-        auto iter = swc_get_records<swc_io_raw>(is).begin();
-        auto iend = swc_get_records<swc_io_raw>(is).end();
-
-        swc_record c;
-        EXPECT_NO_THROW(c = *iter++);
-        EXPECT_EQ(-1, c.parent());
-        EXPECT_EQ(iend, iter);
-
-        // Try to read past eof
-        EXPECT_THROW(*iter, std::out_of_range);
+        EXPECT_EQ(3, records.back().id);
     }
 
     {
@@ -445,105 +414,108 @@ TEST(swc_record_ranges, raw)
         is << "3 10 14.566132 34.873772 7.857000 0.717830 1\n";
         is << "4 2 14.566132 34.873772 7.857000 0.717830 1\n";
 
-        std::vector<swc_record> records;
         try {
-            for (auto c : swc_get_records<swc_io_raw>(is)) {
-                records.push_back(c);
-            }
-
+            parse_swc_file(is);
             ADD_FAILURE() << "expected an exception\n";
-        } catch (const swc_parse_error& e) {
-            EXPECT_EQ(3u, e.lineno());
+        }
+        catch (const swc_error& e) {
+            EXPECT_EQ(3u, e.line_number);
         }
     }
 
     {
         // Test empty range
         std::stringstream is("");
-        EXPECT_TRUE(swc_get_records<swc_io_raw>(is).empty());
-        EXPECT_TRUE(swc_get_records<swc_io_clean>(is).empty());
+        using swc_iter = std::istream_iterator<swc_record>;
+        std::vector<swc_record> records{swc_iter(is), swc_iter()};
+
+        EXPECT_TRUE(records.empty());
     }
 }
 
-TEST(swc_io, cell_construction)
-{
+TEST(swc_io, cell_construction) {
     using namespace nest::mc;
 
-    {
-        //
-        //    0
-        //    |
-        //    1
-        //    |
-        //    2
-        //   / \.
-        //  3   4
-        //       \.
-        //        5
-        //
+    //
+    //    0
+    //    |
+    //    1
+    //    |
+    //    2
+    //   / \.
+    //  3   4
+    //       \.
+    //        5
+    //
 
-        std::stringstream is;
-        is << "1 1 0 0 0 2.1 -1\n";
-        is << "2 3 0.1 1.2 1.2 1.3 1\n";
-        is << "3 3 1.0 2.0 2.2 1.1 2\n";
-        is << "4 3 1.5 3.3 1.3 2.2 3\n";
-        is << "5 3 2.5 5.3 2.5 0.7 3\n";
-        is << "6 3 3.5 2.3 3.7 3.4 5\n";
+    std::stringstream is;
+    is << "1 1 0 0 0 2.1 -1\n";
+    is << "2 3 0.1 1.2 1.2 1.3 1\n";
+    is << "3 3 1.0 2.0 2.2 1.1 2\n";
+    is << "4 3 1.5 3.3 1.3 2.2 3\n";
+    is << "5 3 2.5 5.3 2.5 0.7 3\n";
+    is << "6 3 3.5 2.3 3.7 3.4 5\n";
 
-        using point_type = point<double>;
-        std::vector<point_type> points = {
-            { 0.0, 0.0, 0.0 },
-            { 0.1, 1.2, 1.2 },
-            { 1.0, 2.0, 2.2 },
-            { 1.5, 3.3, 1.3 },
-            { 2.5, 5.3, 2.5 },
-            { 3.5, 2.3, 3.7 },
-        };
+    using point_type = point<double>;
+    std::vector<point_type> points = {
+        { 0.0, 0.0, 0.0 },
+        { 0.1, 1.2, 1.2 },
+        { 1.0, 2.0, 2.2 },
+        { 1.5, 3.3, 1.3 },
+        { 2.5, 5.3, 2.5 },
+        { 3.5, 2.3, 3.7 },
+    };
 
-        cell cell = io::swc_read_cell(is);
-        EXPECT_TRUE(cell.has_soma());
-        EXPECT_EQ(4u, cell.num_segments());
+    // swc -> morphology
+    auto morph = io::swc_as_morphology(io::parse_swc_file(is));
 
-        EXPECT_EQ(norm(points[1]-points[2]), cell.cable(1)->length());
-        EXPECT_EQ(norm(points[2]-points[3]), cell.cable(2)->length());
-        EXPECT_EQ(norm(points[2]-points[4]) + norm(points[4]-points[5]),
-                  cell.cable(3)->length());
+    cell cell = make_cell(morph, true);
+    EXPECT_TRUE(cell.has_soma());
+    EXPECT_EQ(4u, cell.num_segments());
 
-
-        // Check each segment separately
-        EXPECT_TRUE(cell.segment(0)->is_soma());
-        EXPECT_EQ(2.1, cell.soma()->radius());
-        EXPECT_EQ(point_type(0, 0, 0), cell.soma()->center());
-
-        for (auto i = 1u; i < cell.num_segments(); ++i) {
-            EXPECT_TRUE(cell.segment(i)->is_dendrite());
-        }
-
-        EXPECT_EQ(1u, cell.cable(1)->num_sub_segments());
-        EXPECT_EQ(1u, cell.cable(2)->num_sub_segments());
-        EXPECT_EQ(2u, cell.cable(3)->num_sub_segments());
+    EXPECT_EQ(norm(points[1]-points[2]), cell.cable(1)->length());
+    EXPECT_EQ(norm(points[2]-points[3]), cell.cable(2)->length());
+    EXPECT_EQ(norm(points[2]-points[4]) + norm(points[4]-points[5]),
+              cell.cable(3)->length());
 
 
-        // Check the radii
-        EXPECT_EQ(1.3, cell.cable(1)->radius(0));
-        EXPECT_EQ(1.1, cell.cable(1)->radius(1));
+    // Check each segment separately
+    EXPECT_TRUE(cell.segment(0)->is_soma());
+    EXPECT_EQ(2.1, cell.soma()->radius());
+    EXPECT_EQ(point_type(0, 0, 0), cell.soma()->center());
 
-        EXPECT_EQ(1.1, cell.cable(2)->radius(0));
-        EXPECT_EQ(2.2, cell.cable(2)->radius(1));
-
-        EXPECT_EQ(1.1, cell.cable(3)->radius(0));
-        EXPECT_EQ(3.4, cell.cable(3)->radius(1));
-
-        auto len_ratio = norm(points[2]-points[4]) / cell.cable(3)->length();
-        EXPECT_NEAR(.7, cell.cable(3)->radius(len_ratio), 1e-15);
-
-        // Double-check radii at joins are equal
-        EXPECT_EQ(cell.cable(1)->radius(1),
-                  cell.cable(2)->radius(0));
-
-        EXPECT_EQ(cell.cable(1)->radius(1),
-                  cell.cable(3)->radius(0));
+    for (auto i = 1u; i < cell.num_segments(); ++i) {
+        EXPECT_TRUE(cell.segment(i)->is_dendrite());
     }
+
+    EXPECT_EQ(1u, cell.cable(1)->num_sub_segments());
+    EXPECT_EQ(1u, cell.cable(2)->num_sub_segments());
+    EXPECT_EQ(2u, cell.cable(3)->num_sub_segments());
+
+    // We asked to use the same discretization as in the SWC, so check number of compartments too.
+    EXPECT_EQ(1u, cell.cable(1)->num_compartments());
+    EXPECT_EQ(1u, cell.cable(2)->num_compartments());
+    EXPECT_EQ(2u, cell.cable(3)->num_compartments());
+
+    // Check the radii
+    EXPECT_EQ(1.3, cell.cable(1)->radius(0));
+    EXPECT_EQ(1.1, cell.cable(1)->radius(1));
+
+    EXPECT_EQ(1.1, cell.cable(2)->radius(0));
+    EXPECT_EQ(2.2, cell.cable(2)->radius(1));
+
+    EXPECT_EQ(1.1, cell.cable(3)->radius(0));
+    EXPECT_EQ(3.4, cell.cable(3)->radius(1));
+
+    auto len_ratio = norm(points[2]-points[4]) / cell.cable(3)->length();
+    EXPECT_NEAR(.7, cell.cable(3)->radius(len_ratio), 1e-15);
+
+    // Double-check radii at joins are equal
+    EXPECT_EQ(cell.cable(1)->radius(1),
+              cell.cable(2)->radius(0));
+
+    EXPECT_EQ(cell.cable(1)->radius(1),
+              cell.cable(3)->radius(0));
 }
 
 // check that simple ball and stick model with one dendrite attached to a soma
@@ -560,16 +532,16 @@ TEST(swc_parser, from_file_ball_and_stick)
     }
 
     // read the file into a cell object
-    auto cell = nest::mc::io::swc_read_cell(fid);
+    auto bas_cell = make_cell(io::swc_as_morphology(io::parse_swc_file(fid)));
 
     // verify that the correct number of nodes was read
-    EXPECT_EQ(cell.num_segments(), 2u);
-    EXPECT_EQ(cell.num_compartments(), 2u);
+    EXPECT_EQ(2u, bas_cell.num_segments());
+    EXPECT_EQ(2u, bas_cell.num_compartments());
 
     // make an equivalent cell via C++ interface
-    nest::mc::cell local_cell;
+    cell local_cell;
     local_cell.add_soma(6.30785);
-    local_cell.add_cable(0, nest::mc::segmentKind::dendrite, 0.5, 0.5, 200);
+    local_cell.add_cable(0, section_kind::dendrite, 0.5, 0.5, 200);
 
-    EXPECT_TRUE(nest::mc::cell_basic_equality(local_cell, cell));
+    EXPECT_TRUE(cell_basic_equality(local_cell, bas_cell));
 }

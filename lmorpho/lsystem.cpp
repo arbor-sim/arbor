@@ -5,11 +5,15 @@
 #include <vector>
 
 #include <math.hpp>
+#include <morphology.hpp>
 
 #include "lsystem.hpp"
-#include "morphology.hpp"
 
 using namespace nest::mc::math;
+
+using nest::mc::section_geometry;
+using nest::mc::section_point;
+using nest::mc::morphology;
 
 // L-system implementation.
 
@@ -263,9 +267,9 @@ grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {
     }
 }
 
-morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
+nest::mc::morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
     constexpr quaternion xaxis = {0, 1, 0, 0};
-    morphology morph;
+    nest::mc::morphology morph;
 
     lsys_sampler S(P);
     double soma_radius = 0.5*S.diam_soma(g);
@@ -299,7 +303,7 @@ morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
         starts.pop();
 
         auto branch = grow(start.tip, S, g);
-        section_geometry section = {next_id++, start.parent_id, branch.children.empty(), std::move(branch.points), branch.length};
+        section_geometry section{next_id++, start.parent_id, branch.children.empty(), std::move(branch.points), branch.length};
 
         for (auto child: branch.children) {
             starts.push({child, section.id});

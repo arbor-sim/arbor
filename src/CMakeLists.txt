@@ -1,13 +1,12 @@
-set(HEADERS
-    swcio.hpp
-)
 set(BASE_SOURCES
     common_types_io.cpp
     cell.cpp
+    morphology.cpp
     parameter_list.cpp
     profiling/profiler.cpp
     swcio.cpp
     util/debug.cpp
+    util/path.cpp
     util/unwind.cpp
     backends/fvm_multicore.cpp
 )

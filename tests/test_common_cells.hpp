@@ -63,7 +63,7 @@ inline cell make_cell_ball_and_stick(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    c.add_cable(0, segmentKind::dendrite, 1.0/2, 1.0/2, 200.0);
+    c.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200.0);
 
     for (auto& seg: c.segments()) {
         seg->mechanism("membrane").set("r_L", 100);
@@ -108,7 +108,7 @@ inline cell make_cell_ball_and_taper(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    c.add_cable(0, segmentKind::dendrite, 1.0/2, 0.4/2, 200.0);
+    c.add_cable(0, section_kind::dendrite, 1.0/2, 0.4/2, 200.0);
 
     for (auto& seg: c.segments()) {
         seg->mechanism("membrane").set("r_L", 100);
@@ -162,7 +162,7 @@ inline cell make_cell_ball_and_squiggle(bool with_stim = true) {
     };
 
     auto dendrite =
-        make_segment<cable_segment>(segmentKind::dendrite, radii, points);
+        make_segment<cable_segment>(section_kind::dendrite, radii, points);
     c.add_cable(0, std::move(dendrite));
 
     for (auto& seg: c.segments()) {
@@ -209,9 +209,9 @@ inline cell make_cell_ball_and_3stick(bool with_stim = true) {
     auto soma = c.add_soma(12.6157/2.0);
     soma->add_mechanism(hh_parameters());
 
-    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
 
     for (auto& seg: c.segments()) {
         seg->mechanism("membrane").set("r_L", 100);
@@ -260,7 +260,7 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
     cell c;
 
     c.add_soma(0);
-    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 1000);
+    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 1000);
 
     double r_L  = 100;
     double c_m  = 0.01;

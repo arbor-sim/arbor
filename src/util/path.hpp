@@ -19,6 +19,7 @@
 
 #include <string>
 #include <iostream>
+#include <utility>
 
 #include <util/meta.hpp>
 #include <util/rangeutil.hpp>
@@ -50,7 +51,7 @@ namespace posix {
         // Construct or assign from value_type string or sequence.
 
         template <typename Source>
-        path(const Source& source) { assign(source); }
+        path(Source&& source) { assign(std::forward<Source>(source)); }
 
         template <typename Iter>
         path(Iter b, Iter e) { assign(b, e); }
@@ -269,6 +270,9 @@ namespace posix {
 } // namespace posix
 
 using path = posix::path;
+
+// POSIX glob (3) wrapper.
+std::vector<path> glob(const std::string& pattern);
 
 } // namespace util
 } // namespace mc

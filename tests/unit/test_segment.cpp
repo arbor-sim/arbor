@@ -14,7 +14,7 @@ TEST(segments, soma)
 
         EXPECT_EQ(s->volume(), pi<double>()*4./3.);
         EXPECT_EQ(s->area(),   pi<double>()*4.);
-        EXPECT_EQ(s->kind(),   segmentKind::soma);
+        EXPECT_EQ(s->kind(),   section_kind::soma);
     }
 
     {
@@ -22,7 +22,7 @@ TEST(segments, soma)
 
         EXPECT_EQ(s->volume(), pi<double>()*4./3.);
         EXPECT_EQ(s->area(),   pi<double>()*4.);
-        EXPECT_EQ(s->kind(),   segmentKind::soma);
+        EXPECT_EQ(s->kind(),   section_kind::soma);
     }
 }
 
@@ -38,25 +38,25 @@ TEST(segments, cable)
 
     // single cylindrical frustrum
     {
-        auto s = make_segment<cable_segment>(segmentKind::dendrite, radius, radius, length);
+        auto s = make_segment<cable_segment>(section_kind::dendrite, radius, radius, length);
 
         EXPECT_EQ(s->volume(), 1.0);
         EXPECT_EQ(s->area(),   2.0);
-        EXPECT_EQ(s->kind(),   segmentKind::dendrite);
+        EXPECT_EQ(s->kind(),   section_kind::dendrite);
     }
 
     // cable made up of three identical cylindrical frustrums
     {
         auto s =
             make_segment<cable_segment>(
-                segmentKind::axon,
+                section_kind::axon,
                 std::vector<double>{radius, radius, radius, radius},
                 std::vector<double>{length, length, length}
             );
 
         EXPECT_EQ(s->volume(), 3.0);
         EXPECT_EQ(s->area(),   6.0);
-        EXPECT_EQ(s->kind(),   segmentKind::axon);
+        EXPECT_EQ(s->kind(),   section_kind::axon);
     }
 }
 
@@ -70,14 +70,14 @@ TEST(segments, cable_positions)
     {
         auto s =
             make_segment<cable_segment>(
-                segmentKind::dendrite,
+                section_kind::dendrite,
                 1, 2,
                 point<double>(0,0,0), point<double>(0,1,0)
             );
 
         EXPECT_EQ(s->volume(), math::volume_frustrum(1., 1., 2.));
         EXPECT_EQ(s->area(),   math::area_frustrum  (1., 1., 2.));
-        EXPECT_EQ(s->kind(),   segmentKind::dendrite);
+        EXPECT_EQ(s->kind(),   section_kind::dendrite);
     }
 
     // cable made up of three frustrums
@@ -85,13 +85,13 @@ TEST(segments, cable_positions)
     {
         auto s =
             make_segment<cable_segment>(
-                segmentKind::axon,
+                section_kind::axon,
                 std::vector<double>{1, 1.5, 2},
                 std::vector<point<double>>{ {0,0,0}, {0,0.5,0}, {0,1,0} }
             );
 
         EXPECT_EQ(s->volume(), math::volume_frustrum(1., 1., 2.));
         EXPECT_EQ(s->area(),   math::area_frustrum(1., 1., 2.));
-        EXPECT_EQ(s->kind(),   segmentKind::axon);
+        EXPECT_EQ(s->kind(),   section_kind::axon);
     }
 }

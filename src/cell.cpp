@@ -1,4 +1,5 @@
 #include <cell.hpp>
+#include <morphology.hpp>
 #include <tree.hpp>
 #include <util/debug.hpp>
 
@@ -233,6 +234,50 @@ bool cell_basic_equality(cell const& lhs, cell const& rhs)
         }
     }
     return true;
+}
+
+// Construct cell from flat morphology specification.
+
+cell make_cell(const morphology& morph, bool compartments_from_discretization) {
+    using point3d = cell::point_type;
+    cell newcell;
+
+    if (!morph) {
+        return newcell;
+    }
+
+    EXPECTS(morph.check_valid());
+
+    // (not supporting soma-less cells yet)
+    newcell.add_soma(morph.soma.r, point3d(morph.soma.x, morph.soma.y, morph.soma.z));
+
+    for (const section_geometry& section: morph.sections) {
+        auto kind = section.kind;
+        switch (kind) {
+        case section_kind::none: // default to dendrite
+            kind = section_kind::dendrite;
+            break;
+        case section_kind::soma:
+            throw std::invalid_argument("no support for complex somata");
+            break;
+        default: ;
+        }
+
+        std::vector<cell::value_type> radii;
+        std::vector<point3d> points;
+
+        for (const section_point& p: section.points) {
+            radii.push_back(p.r);
+            points.push_back(point3d(p.x, p.y, p.z));
+        }
+
+        auto cable = newcell.add_cable(section.parent_id, kind, radii, points);
+        if (compartments_from_discretization) {
+            cable->as_cable()->set_compartments(radii.size()-1);
+        }
+    }
+
+    return newcell;
 }
 
 } // namespace mc

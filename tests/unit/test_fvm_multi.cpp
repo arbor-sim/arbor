@@ -78,25 +78,26 @@ TEST(fvm_multi, init)
     // test that the matrix is initialized with sensible values
     //J.build_matrix(0.01);
     fvcell.advance(0.01);
-    auto test_nan = [](decltype(J.u()) v) {
+    auto& mat = J.state_;
+    auto test_nan = [](decltype(mat.u) v) {
         for(auto val : v) if(val != val) return false;
         return true;
     };
-    EXPECT_TRUE(test_nan(J.u()(1, J.size())));
-    EXPECT_TRUE(test_nan(J.d()));
-    EXPECT_TRUE(test_nan(J.rhs()));
+    EXPECT_TRUE(test_nan(mat.u(1, J.size())));
+    EXPECT_TRUE(test_nan(mat.d));
+    EXPECT_TRUE(test_nan(J.solution()));
 
     // test matrix diagonals for sign
-    auto is_pos = [](decltype(J.u()) v) {
+    auto is_pos = [](decltype(mat.u) v) {
         for(auto val : v) if(val<=0.) return false;
         return true;
     };
-    auto is_neg = [](decltype(J.u()) v) {
+    auto is_neg = [](decltype(mat.u) v) {
         for(auto val : v) if(val>=0.) return false;
         return true;
     };
-    EXPECT_TRUE(is_neg(J.u()(1, J.size())));
-    EXPECT_TRUE(is_pos(J.d()));
+    EXPECT_TRUE(is_neg(mat.u(1, J.size())));
+    EXPECT_TRUE(is_pos(mat.d));
 
 }
 
@@ -253,9 +254,9 @@ TEST(fvm_multi, mechanism_indexes)
     soma->add_mechanism(hh_parameters());
 
     // add dendrite of length 200 um and diameter 1 um with passive channel
-    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
 
     auto& segs = c.segments();
     segs[1]->add_mechanism(pas_parameters());

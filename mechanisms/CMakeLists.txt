@@ -25,15 +25,13 @@ build_modules(
     TARGET build_all_mods
 )
 
-if(NMC_WITH_CUDA)
-    set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/gpu")
-    file(MAKE_DIRECTORY "${mech_dir}")
-    build_modules(
-        ${mechanisms}
-        SOURCE_DIR "${mod_srcdir}"
-        DEST_DIR "${mech_dir}"
-        MODCC_FLAGS -t gpu ${modcc_opt}
-        TARGET build_all_gpu_mods
-    )
-endif()
+set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/gpu")
+file(MAKE_DIRECTORY "${mech_dir}")
+build_modules(
+    ${mechanisms}
+    SOURCE_DIR "${mod_srcdir}"
+    DEST_DIR "${mech_dir}"
+    MODCC_FLAGS -t gpu ${modcc_opt}
+    TARGET build_all_gpu_mods
+)
 

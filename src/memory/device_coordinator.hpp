@@ -290,7 +290,9 @@ public:
 
     // fill memory
     void set(view_type &rng, value_type value) {
-        gpu::fill<value_type>(rng.data(), value, rng.size());
+        if (rng.size()) {
+            gpu::fill<value_type>(rng.data(), value, rng.size());
+        }
     }
 
     // generate reference objects for a raw pointer.
