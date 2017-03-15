@@ -276,7 +276,7 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix)
 void report_compartment_stats(const recipe& rec) {
 std::size_t ncell = rec.num_cells();
     std::size_t ncomp_total = 0;
-    std::size_t ncomp_min = -1;
+    std::size_t ncomp_min = std::numeric_limits<std::size_t>::max();
     std::size_t ncomp_max = 0;
 
     for (std::size_t i = 0; i<ncell; ++i) {
