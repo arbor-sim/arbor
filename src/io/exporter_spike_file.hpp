@@ -50,9 +50,9 @@ public:
         file_handle_.open(file_path_);
     }
 
-    // Performs the a export of the spikes to file
-    // one id and spike time with 4 decimals after the comma on a
-    // line space separated
+    // Performs export of the spikes to file.
+    // One id and spike time with 4 decimals after the comma on a
+    // line space separated.
     void output(const std::vector<spike_type>& spikes) override {
         for (auto spike : spikes) {
             char linebuf[45];
