@@ -1,7 +1,14 @@
-all : cable.pdf soma.pdf
+.PHONY: all
 
-cable.pdf : cable.tex
-	pdflatex cable.tex
+sources := cable.tex soma.tex
 
-soma.pdf : soma.tex
-	pdflatex soma.tex
+all: $(patsubst %.tex,%.pdf,$(sources))
+
+LATEXMK := latexmk -pdf -halt-on-error
+
+%.pdf: %.tex
+	$(LATEXMK) $<
+
+clean:
+	for s in $(sources); do $(LATEXMK) -C "$$s"; done
+

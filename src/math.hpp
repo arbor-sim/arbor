@@ -78,7 +78,7 @@ T constexpr lerp(T a, T b, U u) {
 // Return -1, 0 or 1 according to sign of parameter.
 template <typename T>
 int signum(T x) {
-    return (x<T(0)) - (x>T(0));
+    return (x>T(0)) - (x<T(0));
 }
 
 // Quaternion implementation.
