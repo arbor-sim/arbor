@@ -59,11 +59,16 @@ struct backend {
             d(size()), u(size()), rhs(size())
         {}
 
-        matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
-            p(p), cell_index(cell_index),
+        //matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
+        matrix_state( const std::vector<size_type>& p,
+                      const std::vector<size_type>& cell_index,
+                      const std::vector<value_type>& cap,
+                      const std::vector<value_type>& cond):
+            p(memory::make_const_view(p)),
+            cell_index(memory::make_const_view(cell_index)),
             d(size()), u(size()), rhs(size()),
-            cv_capacitance(std::move(cap)),
-            face_conductance(std::move(cond))
+            cv_capacitance(memory::make_const_view(cap)),
+            face_conductance(memory::make_const_view(cond))
         {
             auto n = d.size();
             invariant_d = array(n, 0);

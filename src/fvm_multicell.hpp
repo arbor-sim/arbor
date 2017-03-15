@@ -153,8 +153,9 @@ public:
     /// use a simple test of the voltage at the soma is reasonable, i.e. in the range
     ///     v_soma \in (-1000mv, 1000mv)
     bool is_physical_solution() const {
-        auto v = voltage_[0];
-        return (v>-1000.) && (v<1000.);
+        return true;
+        //auto v = voltage_[0];
+        //return (v>-1000.) && (v<1000.);
     }
 
     /// Return reference to the mechanism that matches name.
@@ -773,10 +774,32 @@ void fvm_multicell<Backend>::advance(double dt) {
     PE("matrix", "setup");
     matrix_.assemble(dt, voltage_, current_);
 
+    /*
+#ifdef NMC_HAVE_CUDA
+    auto& s = matrix_.state_;
+    array vec(voltage_.size());
+    gpu::reverse_interleave<value_type, size_type, gpu::impl::block_dim(), gpu::impl::load_width()>
+        (s.d.data(),
+         vec.data(),
+         s.matrix_sizes.data(),
+         s.matrix_index.data(),
+         s.matrix_sizes[0], s.matrix_sizes.size());
+    auto d = memory::on_host(vec);
+#else
+    auto d = matrix_.state_.d;
+#endif
+    for (auto i=0u; i<d.size(); i++) {
+        std::cout << i << " " << d[i] << "\n";
+    }
+    std::cout << "\n";
+    std::cout << "=== exiting!" << std::endl;
+    std::exit(0);
+    */
+
     PL(); PE("solve");
     matrix_.solve();
     PL();
-    memory::copy(matrix_.solution(), voltage_);
+    //memory::copy(matrix_.solution(), voltage_);
     PL();
 
     // integrate state of gating variables etc.

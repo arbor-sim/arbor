@@ -8,50 +8,80 @@
 #include <memory/memory.hpp>
 #include <memory/managed_ptr.hpp>
 #include <util/span.hpp>
+#include <util/rangeutil.hpp>
 
 #include "stimulus_gpu.hpp"
 #include "gpu_stack.hpp"
+
+template <typename T>
+void print_vec(const char* name, std::vector<T>& v) {
+    std::cout << name << ": ";
+    for(auto vv: v) {
+        if (vv==std::numeric_limits<T>::max())
+            std::cout <<  "* ";
+        else
+            std::cout <<  vv  << " ";
+    }
+    std::cout << "\n";
+};
+
+template <typename T>
+void print_vec(const char* name, const T& v) {
+    std::cout << name << ": ";
+    for(auto vv: v) {
+        std::cout <<  vv  << " ";
+    }
+    std::cout << "\n";
+};
 
 namespace nest {
 namespace mc {
 namespace gpu {
 
-/// Parameter pack for passing matrix fields and dimensions to the
-/// Hines matrix solver implemented on the GPU backend.
-template <typename T, typename I>
-struct matrix_solve_param_pack {
-    T* d;
-    const T* u;
-    T* rhs;
-    const I* p;
-    const I* cell_index;
-    I n;
-    I ncells;
-};
+namespace impl {
+    __host__ __device__
+    constexpr inline int block_dim() {
+        return 8;
+    }
 
-/// Parameter pack for passing matrix and fvm fields and dimensions to the
-/// FVM matrix generator implemented on the GPU
-template <typename T, typename I>
-struct matrix_update_param_pack {
-    T* d;
-    const T* u;
-    T* rhs;
-    const T* invariant_d;
-    const T* cv_capacitance;
-    const T* face_conductance;
-    const T* voltage;
-    const T* current;
-    I n;
-};
+    __host__ __device__
+    constexpr inline int load_width() {
+        return 4;
+    }
+
+    __host__ __device__
+    constexpr inline int matrix_padding() {
+        return load_width();
+    }
+
+    __host__ __device__
+    constexpr inline int block_count(int n, int block_size) {
+        return (n+block_size-1)/block_size;
+    }
+
+    inline int padded_size (int n, int block_dim) {
+        const int over = n%block_dim;
+        return over ? n+block_dim-over: n;
+    }
+}
+
+template <typename T, typename I, int BlockWidth, int LoadWidth, int Threads>
+__global__
+void assemble_matrix(
+    T* d, T* rhs, const T* invariant_d,
+    const T* voltage, const T* current, const T* cv_capacitance,
+    const I* lengths, const I* starts, T dt, int n);
 
 // forward declarations of the matrix solver implementation
 // see the bottom of the file for implementation
 
-template <typename T, typename I>
-__global__ void matrix_solve(matrix_solve_param_pack<T, I> params);
+template <typename T, typename I, int BlockWidth>
+__global__
+void matrix_solve(
+    T* rhs, T* d, const T* u, const I* p, const I* lengths, int num_mtx, int padded_mtx_length);
 
-template <typename T, typename I>
-__global__ void assemble_matrix(matrix_update_param_pack<T, I> params, T dt);
+template <typename T, typename I, int BlockWidth, int LoadWidth>
+void reverse_interleave(const T* in, T* out, const I* lengths, const I* starts, int max_length, int n);
 
 /// kernel used to test for threshold crossing test code.
 /// params:
@@ -102,50 +132,206 @@ struct backend {
 
     /// matrix state
     struct matrix_state {
-        const_iview p;
-        const_iview cell_index;
+        //
+        // Permutation and index information required for forward and backward
+        // interleave-permutation of vectors.
+        //
 
-        array d;     // [μS]
-        array u;     // [μS]
-        array rhs;   // [nA]
+        // size of each matrix (after permutation in ascending size)
+        iarray matrix_sizes;
+        // start values corresponding to matrix i in the external storage
+        iarray matrix_index;
 
-        array cv_capacitance;      // [pF]
-        array face_conductance;    // [μS]
+        //
+        // Storage for the matrix and parent index in interleaved format.
+        // Includes the cv_capacitance, which is required for matrix assembly.
+        //
+        iarray parent_index;
+        array d;   // [μS]
+        array u;   // [μS]
+        array rhs; // [nA]
+
+        // required for matrix assembly
+        array cv_capacitance; // [pF]
 
         // the invariant part of the matrix diagonal
-        array invariant_d;         // [μS]
+        array invariant_d;    // [μS]
 
-        std::size_t size() const { return p.size(); }
+        int num_matrices() const {
+            return matrix_sizes.size();
+        }
 
+        int padded_matrix_size() const {
+            return parent_index.size()/num_matrices();
+        }
+
+        //
+        //  Storage for solution in uninterleaved format.
+        //  Used to hold the storage for passing to caller, and must be updated
+        //  after each call to the ::solve() method.
+        //
+
+        array solution;
+
+        unsigned matrix_dim;
+
+        // default constructor
         matrix_state() = default;
 
-        matrix_state(const_iview p, const_iview cell_index):
-            p(p), cell_index(cell_index),
-            d(size()), u(size()), rhs(size())
-        {}
-
-        matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
-            p(p), cell_index(cell_index),
-            d(size()), u(size()), rhs(size()),
-            cv_capacitance(std::move(cap)),
-            face_conductance(std::move(cond))
+        // Construct matrix state for a set of matrices defined by parent_index p
+        // The matrix solver stores the matrix in an "interleaved" structure for
+        // optimal solution, which requires a significant amount of precomputing
+        // of indexes and data structures in the constructor.
+        //  cv_cap      // [pF]
+        //  face_cond   // [μS]
+        matrix_state(const std::vector<size_type>& p,
+                     const std::vector<size_type>& cell_index,
+                     const std::vector<value_type>& cv_cap,
+                     const std::vector<value_type>& face_cond)
         {
-            auto n = d.size();
-            host_array invariant_d_tmp(n, 0);
-            host_array u_tmp(n, 0);
+            using util::make_span;
 
-            // make a copy of the conductance on the host
-            host_array face_conductance_tmp = face_conductance;
-            auto p_tmp = memory::on_host(p);
-            for(auto i: util::make_span(1u, n)) {
+            // convenience for commonly used type in this routine
+            using svec = std::vector<size_type>;
+
+            //
+            // sort matrices in descending order of size
+            //
+
+            // find the size of each matrix
+            const auto num_mtx = cell_index.size()-1;
+            svec sizes;
+            for (auto it=cell_index.begin()+1; it!=cell_index.end(); ++it) {
+                sizes.push_back(*it - *(it-1));
+            }
+
+            // find permutations and sort indexes/sizes
+            svec perm(num_mtx);
+            std::iota(perm.begin(), perm.end(), 0);
+            // calculate the permutation of matrices to put the in ascending size
+            util::stable_sort_by(perm, [&sizes](size_type i){ return sizes[i]; });
+            std::reverse(perm.begin(), perm.end());
+
+            // TODO: refactor to be less verbose with permutation_view
+            svec sizes_p;
+            for (auto i: make_span(0, num_mtx)) {
+                sizes_p.push_back(sizes[perm[i]]);
+            }
+            svec cell_index_p;
+            for (auto i: make_span(0, num_mtx)) {
+                cell_index_p.push_back(cell_index[perm[i]]);
+            }
+
+            print_vec("perm   ", perm);
+            print_vec("sizes  ", sizes);
+            print_vec("sizes_p", sizes_p);
+            print_vec("index_p", cell_index_p);
+
+            //
+            // Calculate dimensions required to store matrices.
+            //
+            using impl::block_dim;
+            using impl::matrix_padding;
+
+            // To start, take simplest approach of assuming all matrices stored
+            // in blocks of the same dimension: matrix_dim
+            matrix_dim = impl::padded_size(sizes_p[0], matrix_padding());
+            const auto num_blocks = impl::block_count(num_mtx, block_dim());
+
+            const auto total_storage = num_blocks*block_dim()*matrix_dim;
+
+            std::cout << "matrix dimension: " << matrix_dim
+                << " (padding " << matrix_padding() << ") requires total storage "
+                << total_storage << "\n";
+
+            // calculate the interleaved and permuted p vector
+            constexpr auto npos = std::numeric_limits<size_type>::max();
+            host_iarray p_tmp(total_storage, npos);
+            for (auto mtx: make_span(0, num_mtx)) {
+                auto block = mtx/block_dim();
+                auto lane  = mtx%block_dim();
+
+                auto len = sizes_p[mtx];
+                auto src = cell_index_p[mtx];
+                auto dst = block*(block_dim()*matrix_dim) + lane;
+                for (auto i: make_span(0, len)) {
+                    // the p indexes are always relative to the start of the p vector.
+                    // the addition and subtraction of dst and src respectively is to convert from
+                    // the original offset to the new padded and permuted offset.
+                    p_tmp[dst+block_dim()*i] = dst + block_dim()*(p[src+i]-src);
+                }
+            }
+
+            d   = array(total_storage);
+            u   = array(total_storage);
+            rhs = array(total_storage);
+            parent_index = p_tmp;
+
+            //
+            //  Calculate the invariant part of the matrix diagonal and the
+            //  upper diagonal on the host, then copy to the device.
+            //
+
+            std::vector<value_type> invariant_d_tmp(p.size(), 0);
+            std::vector<value_type> u_tmp(p.size(), 0);
+            auto face_conductance_tmp = memory::on_host(face_cond);
+            for(auto i: util::make_span(1u, p.size())) {
                 auto gij = face_conductance_tmp[i];
 
                 u_tmp[i] = -gij;
                 invariant_d_tmp[i] += gij;
-                invariant_d_tmp[p_tmp[i]] += gij;
+                invariant_d_tmp[p[i]] += gij;
             }
-            invariant_d = invariant_d_tmp;
-            memory::copy(u_tmp, u);
+
+            // This lambda is a helper that performs the interleave operation
+            // on host memory.
+            auto interleave = [&](const std::vector<value_type>& v) {
+                host_array out(total_storage);
+                for (auto mtx: make_span(0, num_mtx)) {
+                    auto block = mtx/block_dim();
+                    auto lane  = mtx%block_dim();
+
+                    auto len = sizes_p[mtx];
+                    auto src = cell_index_p[mtx];
+                    auto dst = block*(block_dim()*matrix_dim) + lane;
+                    for (auto i: make_span(0, len)) {
+                        out[dst] = v[src+i];
+                        dst += block_dim();
+                    }
+                }
+                return out;
+            };
+
+            u              = interleave(u_tmp);
+            invariant_d    = interleave(invariant_d_tmp);
+            cv_capacitance = interleave(cv_cap);
+            matrix_sizes = memory::make_const_view(sizes_p);
+            matrix_index = memory::make_const_view(cell_index_p);
+
+            EXPECTS(num_mtx == num_matrices());
+
+            /*
+            {
+                std::vector<value_type> base(p.size());
+                std::iota(base.begin(), base.end(), 0);
+                array forward = interleave(base);
+                array backward(p.size());
+
+                reverse_interleave<value_type, size_type, impl::block_dim(), impl::load_width()>
+                    (forward.data(),
+                     backward.data(),
+                     matrix_sizes.data(),
+                     matrix_index.data(),
+                     matrix_dim, num_mtx);
+
+                print_vec("base", base);
+                std::cout << "\n";
+                print_vec("fwd ", memory::on_host(forward));
+                std::cout << "\n";
+                print_vec("bck ", memory::on_host(backward));
+                exit(0);
+            }
+            */
         }
 
         // Assemble the matrix
@@ -156,38 +342,31 @@ struct backend {
         void assemble(value_type dt, const_view voltage, const_view current) {
             EXPECTS(has_fvm_state());
 
-            // determine the grid dimensions for the kernel
-            auto const n = voltage.size();
-            auto const block_dim = 128;
-            auto const grid_dim = (n+block_dim-1)/block_dim;
+            constexpr auto bd = impl::block_dim();
+            constexpr auto lw = impl::load_width();
+            constexpr auto block_dim = bd*lw;
 
-            auto params = matrix_update_param_pack<value_type, size_type> {
-                d.data(), u.data(), rhs.data(),
-                invariant_d.data(), cv_capacitance.data(), face_conductance.data(),
-                voltage.data(), current.data(), size_type(n)};
+            // the number of threads is threads_per_matrix*num_mtx
+            const auto num_blocks = impl::block_count(num_matrices()*lw, block_dim);
 
-            assemble_matrix<value_type, size_type><<<grid_dim, block_dim>>>
-                (params, dt);
+            assemble_matrix <value_type, size_type, bd, lw, block_dim>
+                <<<num_blocks, block_dim>>>
+                ( d.data(), rhs.data(), invariant_d.data(),
+                  voltage.data(), current.data(), cv_capacitance.data(),
+                  matrix_sizes.data(), matrix_index.data(), dt, num_matrices());
 
         }
 
         void solve() {
-            using solve_param_pack = matrix_solve_param_pack<value_type, size_type>;
+            // perform the Hines solve
+            auto const grid_dim = impl::block_count(num_matrices(), impl::block_dim());
 
-            // pack the parameters into a single struct for kernel launch
-            auto params = solve_param_pack{
-                 d.data(), u.data(), rhs.data(),
-                 p.data(), cell_index.data(),
-                 size_type(d.size()), size_type(cell_index.size()-1)
-            };
+            matrix_solve<value_type, size_type, impl::block_dim()>
+                <<<grid_dim, impl::block_dim()>>>
+                ( rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
+                  num_matrices(), padded_matrix_size());
 
-            // determine the grid dimensions for the kernel
-            auto const n = params.ncells;
-            auto const block_dim = 96;
-            auto const grid_dim = (n+block_dim-1)/block_dim;
-
-            // perform solve on gpu
-            matrix_solve<value_type, size_type><<<grid_dim, block_dim>>>(params);
+            // copy the solution out
         }
 
         // Test if the matrix has the full state required to assemble the
@@ -359,19 +538,21 @@ private:
 
 /// GPU implementation of Hines Matrix solver.
 /// Naive implementation with one CUDA thread per matrix.
-template <typename T, typename I>
+template <typename T, typename I, int BlockWidth>
 __global__
-void matrix_solve(matrix_solve_param_pack<T, I> params) {
+void matrix_solve(
+    T* rhs, T* d, const T* u, const I* p, const I* lengths, int num_mtx, int padded_mtx_length)
+{
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
-    auto d   = params.d;
-    auto u   = params.u;
-    auto rhs = params.rhs;
-    auto p   = params.p;
 
-    if(tid < params.ncells) {
+    if(tid < num_mtx) {
+        auto block       = tid/BlockWidth;
+        auto block_start = block*BlockWidth;
+        auto block_index = tid - block_start;
+
         // get range of this thread's cell matrix
-        auto first = params.cell_index[tid];
-        auto last  = params.cell_index[tid+1];
+        auto first = block_start*padded_mtx_length + block_index;
+        auto last  = first + BlockWidth*(lengths[tid]-1);
 
         // backward sweep
         for(auto i=last-1; i>first; --i) {
@@ -388,26 +569,6 @@ void matrix_solve(matrix_solve_param_pack<T, I> params) {
             rhs[i] -= u[i] * rhs[p[i]];
             rhs[i] /= d[i];
         }
-    }
-}
-
-/// GPU implementatin of Hines matrix assembly
-/// For a given time step size dt
-///     - use the precomputed alpha and alpha_d values to construct the diagonal
-///       and off diagonal of the symmetric Hines matrix.
-///     - compute the RHS of the linear system to solve
-template <typename T, typename I>
-__global__
-void assemble_matrix(matrix_update_param_pack<T, I> params, T dt) {
-    auto tid = threadIdx.x + blockDim.x*blockIdx.x;
-
-    T factor = 1e-3/dt;
-    if(tid < params.n) {
-        auto gi = factor * params.cv_capacitance[tid];
-
-        params.d[tid] = gi + params.invariant_d[tid];
-
-        params.rhs[tid] = gi*params.voltage[tid] - params.current[tid];
     }
 }
 
@@ -453,6 +614,121 @@ void test_thresholds(
     }
 }
 
-} // namespace multicore
+template <typename T, typename I, int BlockWidth, int LoadWidth, int THREADS>
+__global__
+void reverse_interleave(
+    const T* in, T* out, const I* lengths, const I* starts, int max_length, int n)
+{
+    static_assert(BlockWidth*LoadWidth==THREADS, "");
+
+    __shared__ T buffer[THREADS];
+
+    auto tid = threadIdx.x + blockIdx.x*blockDim.x;
+    auto lid = threadIdx.x;
+
+    auto mtx_id   = tid/LoadWidth;
+    auto mtx_lane = tid - mtx_id*LoadWidth;
+
+    auto blk_id   = tid/BlockWidth;
+    auto blk_start= blk_id*BlockWidth;
+    auto blk_lane = tid - blk_start;
+
+    auto blk_lid  = lid/BlockWidth;
+    auto blk_pos  = blk_lane*LoadWidth + blk_lid;
+
+    auto store_pos = starts[mtx_id] + mtx_lane;
+    auto end       = starts[mtx_id] + lengths[mtx_id];
+    auto load_pos  = blk_start + blk_lane;
+
+    if (mtx_id<n) {
+        for (auto i=0; i<max_length; i+=LoadWidth) {
+            buffer[blk_pos] = in[load_pos];
+            __syncthreads();
+            if (store_pos<end) {
+                out[store_pos] = buffer[lid];
+            }
+            load_pos  += LoadWidth*BlockWidth;
+            store_pos += LoadWidth;
+        }
+    }
+}
+
+template <typename T, typename I, int BlockWidth, int LoadWidth>
+void reverse_interleave(const T* in, T* out, const I* lengths, const I* starts, int max_length, int n)
+{
+    constexpr int Threads = BlockWidth*LoadWidth;
+    reverse_interleave<T, I, BlockWidth, LoadWidth, Threads>
+        <<<impl::block_count(n, Threads), Threads>>>
+        (in, out, lengths, starts, max_length, n);
+}
+
+/// GPU implementatin of Hines matrix assembly
+/// For a given time step size dt
+///     - use the precomputed alpha and alpha_d values to construct the diagonal
+///       and off diagonal of the symmetric Hines matrix.
+///     - compute the RHS of the linear system to solve
+template <typename T, typename I, int BlockWidth, int LoadWidth, int Threads>
+__global__
+void assemble_matrix(
+        T* d,
+        T* rhs,
+        const T* invariant_d,
+        const T* voltage,
+        const T* current,
+        const T* cv_capacitance,
+        const I* lengths,
+        const I* starts,
+        T dt, int n)
+{
+    static_assert(BlockWidth*LoadWidth==Threads,
+        "number of threads must equal number of values to process per block");
+    __shared__ T buffer_v[Threads];
+    __shared__ T buffer_i[Threads];
+
+    const auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+    const auto lid = threadIdx.x;
+
+    const auto max_length = lengths[0];
+
+    const auto mtx_id   = tid/LoadWidth;
+    const auto mtx_lane = tid - mtx_id*LoadWidth;
+
+    const auto blk_id   = tid/BlockWidth;
+    const auto blk_start= blk_id*BlockWidth;
+    const auto blk_lane = tid - blk_start;
+
+    const auto blk_lid  = lid/BlockWidth;
+    const auto blk_pos  = blk_lane*LoadWidth + blk_lid;
+
+    const auto end = starts[mtx_id] + lengths[mtx_id];
+    auto load_pos  = starts[mtx_id] + mtx_lane;
+    auto store_pos = blk_start + blk_lane;
+
+    T factor = 1e-3/dt;
+    if (mtx_id<n) {
+        for (auto j=0; j<max_length; j+=LoadWidth) {
+            if (load_pos<end) {
+                buffer_v[lid] = voltage[load_pos];
+                buffer_i[lid] = current[load_pos];
+            }
+            __syncthreads();
+
+            // TODO: Potential bank conflicts on these buffers.
+            // Test with nvprof, and add pad-to-prime-number
+            // if needed.
+            const T v = buffer_v[blk_pos];
+            const T i = buffer_i[blk_pos];
+
+            const auto gi = factor * cv_capacitance[store_pos];
+            d[store_pos]   = gi + invariant_d[store_pos];
+            rhs[store_pos] = gi*v - i;
+
+            store_pos += LoadWidth*BlockWidth;
+            load_pos  += LoadWidth;
+        }
+    }
+}
+
+} // namespace gpu
 } // namespace mc
 } // namespace nest

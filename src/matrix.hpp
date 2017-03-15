@@ -53,9 +53,7 @@ public:
             const std::vector<value_type>& face_conductance):
         parent_index_(memory::make_const_view(pi)),
         cell_index_(memory::make_const_view(ci)),
-        state_( parent_index_, cell_index_,
-                memory::make_const_view(cv_capacitance),
-                memory::make_const_view(face_conductance))
+        state_(pi, ci, cv_capacitance, face_conductance)
     {
         EXPECTS(cell_index_[num_cells()] == parent_index_.size());
     }
