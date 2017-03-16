@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "cthread.hpp"
-
+#include "affinity.hpp"
 
 using namespace nest::mc::threading::impl;
 
@@ -153,14 +153,13 @@ static size_t global_get_num_threads() {
         str = std::getenv("OMP_NUM_THREADS");
     }
 
-    // If the selected var is unset,
-    //   or no var is set,
-    //   error
+    // If the selected var is unset set the number of threads to
+    // the hint given by the standard library
     if (!str) {
-        std::cerr << "WARNING: Environment variable describing number of threads not set: using 1 thread.\n";
-        std::cerr << "Set one of NMC_NUM_THREADS_VAR, NMC_NUM_THREADS or OMP_NUM_THREADS to set the\n";
-        std::cerr << "number of threads.\n";
-        return 1;
+        auto nthreads = nest::mc::threading::count_available_cores();
+        std::cerr << "WARNING: Environment variable for number of threads not set. Using "
+                  << nthreads << (nthreads>1 ? " threads": " thread") << ".\n";
+        return nthreads;
     }
 
     try {
@@ -169,16 +168,18 @@ static size_t global_get_num_threads() {
         // * the parsed number is followed by any non-whitespace characters.
         auto end = std::size_t();
         auto nthreads = std::stoul(str, &end);
-        while (end<std::strlen(str)) {
+        while (end<std::strlen(str)) { // check for non-whitespace after number
             if (!std::isspace(str[end])) {
-                throw int();
+                throw std::invalid_argument(
+                    "trailing non-numeric values on thread count parameter");
             }
             ++end;
         }
         return nthreads;
     }
-    catch(...) {
-        terminate("The requested number of threads \""+std::string(str)+"\" is not a positive integer");
+    catch(std::exception& e) {
+        terminate("The requested number of threads \""+std::string(str)
+            +"\" is not a positive integer");
     }
 }
 
