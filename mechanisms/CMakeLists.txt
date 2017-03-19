@@ -4,16 +4,17 @@ include(BuildModules.cmake)
 set(mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva)
 
 set(modcc_opt)
-if(NMC_USE_OPTIMIZED_KERNELS) # generate optimized kernels
-    set(modcc_opt "-O")
-endif()
 
 set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 
 set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/multicore")
 file(MAKE_DIRECTORY "${mech_dir}")
-if(NMC_VECTORIZE_TARGET STREQUAL "KNL" AND NMC_USE_OPTIMIZED_KERNELS)
-    set(modcc_target "cpu")
+if(NMC_VECTORIZE_TARGET STREQUAL "KNL")
+    set(modcc_target "avx512")
+elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX")
+    set(modcc_opt "-O")
+elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
+    set(modcc_opt "-O")
 else()
     set(modcc_target "cpu")
 endif()
