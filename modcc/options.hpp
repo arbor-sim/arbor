@@ -1,8 +1,14 @@
 #pragma once
 
 #include <iostream>
+#include "modccutil.hpp"
 
-enum class targetKind { cpu, gpu };
+enum class targetKind {
+    cpu,
+    gpu,
+    // Vectorisation targets
+    avx512,
+ };
 
 struct Options {
     std::string filename;
