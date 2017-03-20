@@ -173,7 +173,7 @@ static size_t global_get_num_threads() {
         terminate("The requested number of threads \""+std::string(str)
             +"\" is not a positive integer");
     }
-    auto num_threads = std::stoi(str);
+
     return std::stoi(str);
 }
 
