@@ -52,10 +52,7 @@ std::vector<int> get_affinity() {
 #endif
 
 unsigned count_available_cores() {
-    auto n = get_affinity().size();
-
-    // Assume that there must be at least 1 core if an error was encountered.
-    return n? n: 1;
+    return get_affinity().size();
 }
 
 } // namespace threading

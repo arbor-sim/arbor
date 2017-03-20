@@ -20,6 +20,8 @@ std::vector<int> get_affinity();
 // Attempts to find the number of cores available to the application
 // This is likely to give inaccurate results if the caller has already
 // been playing with thread affinity.
+//
+// Returns 0 if unable to determine the number of cores.
 unsigned count_available_cores();
 
 } // namespace threading

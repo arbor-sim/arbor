@@ -2,6 +2,7 @@
 #include <cstring>
 #include <exception>
 #include <iostream>
+#include <regex>
 
 #include "cthread.hpp"
 #include "affinity.hpp"
@@ -156,31 +157,24 @@ static size_t global_get_num_threads() {
     // If the selected var is unset set the number of threads to
     // the hint given by the standard library
     if (!str) {
-        auto nthreads = nest::mc::threading::count_available_cores();
-        std::cerr << "WARNING: Environment variable for number of threads not set. Using "
-                  << nthreads << (nthreads>1 ? " threads": " thread") << ".\n";
-        return nthreads;
-    }
-
-    try {
-        // The following with throw if:
-        // * the call to stoul() can't perform string->unsigned conversion;
-        // * the parsed number is followed by any non-whitespace characters.
-        auto end = std::size_t();
-        auto nthreads = std::stoul(str, &end);
-        while (end<std::strlen(str)) { // check for non-whitespace after number
-            if (!std::isspace(str[end])) {
-                throw std::invalid_argument(
-                    "trailing non-numeric values on thread count parameter");
-            }
-            ++end;
+        unsigned nthreads = nest::mc::threading::count_available_cores();
+        if (nthreads==0u) {
+            terminate(
+                "The number of threads was not set by the user, and I am unable "
+                "to determine a sane default number of threads on this system. "
+                "Use the NMC_NUM_THREADS environment variable to explicitly "
+                "set the number of threads.");
         }
         return nthreads;
     }
-    catch(std::exception& e) {
+
+    // check that the environment variable string describes a non-negative integer
+    if (!std::regex_match(str, std::regex("\\s*\\d*[1-9]\\d*\\s*"))) {
         terminate("The requested number of threads \""+std::string(str)
             +"\" is not a positive integer");
     }
+    auto num_threads = std::stoi(str);
+    return std::stoi(str);
 }
 
 task_pool& task_pool::get_global_task_pool() {
