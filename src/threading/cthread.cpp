@@ -168,13 +168,17 @@ static size_t global_get_num_threads() {
         return nthreads;
     }
 
+    auto nthreads = std::strtoul(str, nullptr, 10);
+
     // check that the environment variable string describes a non-negative integer
-    if (!std::regex_match(str, std::regex("\\s*\\d*[1-9]\\d*\\s*"))) {
+    if (nthreads==0 || errno==ERANGE ||
+        !std::regex_match(str, std::regex("\\s*\\d*[1-9]\\d*\\s*")))
+    {
         terminate("The requested number of threads \""+std::string(str)
-            +"\" is not a positive integer");
+            +"\" is not a reasonable positive integer");
     }
 
-    return std::stoi(str);
+    return nthreads;
 }
 
 task_pool& task_pool::get_global_task_pool() {
