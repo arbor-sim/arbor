@@ -36,31 +36,18 @@ struct sample_event {
     time_type time;
 };
 
-namespace impl {
-    template <typename X>
-    struct has_time_field {
-        template <typename T>
-        static std::false_type test(...) {}
-        template <typename T>
-        static decltype(std::declval<T>().time, std::true_type{}) test(int) {}
-
-        using type = decltype(test<X>(0));
-        static constexpr bool value = type::value;
-    };
-}
-
 // Configuration point: define `event_time(ev)` for event objects `ev`
 // that do not have the corresponding `time` member field.
 
-template <typename Event, typename = util::enable_if_t<impl::has_time_field<Event>::value>>
+template <typename Event>
 auto event_time(const Event& ev) -> decltype(ev.time) {
     return ev.time;
 }
 
 namespace impl {
-    // use `impl::` version to obtain correct ADL for return type.
     using ::nest::mc::event_time;
 
+    // wrap in `impl::` namespace to obtain correct ADL for return type.
     template <typename Event>
     using event_time_type = decltype(event_time(std::declval<Event>()));
 }
