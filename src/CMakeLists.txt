@@ -5,6 +5,7 @@ set(BASE_SOURCES
     parameter_list.cpp
     profiling/profiler.cpp
     swcio.cpp
+    threading/affinity.cpp
     util/debug.cpp
     util/path.cpp
     util/unwind.cpp
