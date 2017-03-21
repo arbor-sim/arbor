@@ -28,7 +28,7 @@ public:
     using size_type  = typename lowered_cell_type::value_type;
     using source_id_type = cell_member_type;
 
-    using time_type = float;
+    using time_type = spike::time_type;
     using sampler_function = std::function<util::optional<time_type>(time_type, double)>;
 
     cell_group() = default;
@@ -141,8 +141,7 @@ public:
         }
     }
 
-    const std::vector<spike<source_id_type, time_type>>&
-    spikes() const {
+    const std::vector<spike>& spikes() const {
         return spikes_;
     }
 
@@ -150,8 +149,7 @@ public:
         spikes_.clear();
     }
 
-    const std::vector<source_id_type>&
-    spike_sources() const {
+    const std::vector<source_id_type>& spike_sources() const {
         return spike_sources_;
     }
 
@@ -197,7 +195,7 @@ private:
     std::vector<source_id_type> spike_sources_;
 
     /// spikes that are generated
-    std::vector<spike<source_id_type, time_type>> spikes_;
+    std::vector<spike> spikes_;
 
     /// pending events to be delivered
     event_queue<postsynaptic_spike_event<time_type>> events_;

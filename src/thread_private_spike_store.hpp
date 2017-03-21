@@ -20,7 +20,7 @@ class thread_private_spike_store {
 public :
     using id_type = cell_gid_type;
     using time_type = Time;
-    using spike_type = spike<cell_member_type, time_type>;
+    using spike_type = basic_spike<cell_member_type, time_type>;
 
     /// Collate all of the individual buffers into a single vector of spikes.
     /// Does not modify the buffer contents.

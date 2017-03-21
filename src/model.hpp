@@ -28,10 +28,9 @@ public:
     using cell_group_type = cell_group<Cell>;
     using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
-    using communicator_type = communication::communicator<time_type, communication::global_policy>;
+    using communicator_type = communication::communicator<communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
-    using spike_type = typename communicator_type::spike_type;
-    using spike_export_function = std::function<void(const std::vector<spike_type>&)>;
+    using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
     struct probe_record {
         cell_member_type id;
@@ -77,7 +76,7 @@ public:
         // generate the network connections
         for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
             for (const auto& cc: rec.connections_on(i)) {
-                connection<time_type> conn{cc.source, cc.dest, cc.weight, cc.delay};
+                connection conn{cc.source, cc.dest, cc.weight, cc.delay};
                 communicator_.add_connection(conn);
             }
         }
