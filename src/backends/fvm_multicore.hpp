@@ -37,8 +37,8 @@ struct backend {
 
     /// matrix state
     struct matrix_state {
-        const_iview p;
-        const_iview cell_index;
+        iarray p;
+        iarray cell_index;
 
         array d;     // [μS]
         array u;     // [μS]
@@ -49,6 +49,8 @@ struct backend {
 
         // the invariant part of the matrix diagonal
         array invariant_d;         // [μS]
+
+        view solution;
 
         std::size_t size() const { return p.size(); }
 
@@ -61,11 +63,11 @@ struct backend {
 
         //matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
         matrix_state( const std::vector<size_type>& p,
-                      const std::vector<size_type>& cell_index,
+                      const std::vector<size_type>& cell_idx,
                       const std::vector<value_type>& cap,
                       const std::vector<value_type>& cond):
             p(memory::make_const_view(p)),
-            cell_index(memory::make_const_view(cell_index)),
+            cell_index(memory::make_const_view(cell_idx)),
             d(size()), u(size()), rhs(size()),
             cv_capacitance(memory::make_const_view(cap)),
             face_conductance(memory::make_const_view(cond))
@@ -79,6 +81,10 @@ struct backend {
                 invariant_d[i] += gij;
                 invariant_d[p[i]] += gij;
             }
+
+            // In this back end the solution is a simple view of the rhs, which
+            // contains the solution after the matrix_solve is performed.
+            solution = rhs;
         }
 
         // Assemble the matrix

@@ -86,7 +86,7 @@ public:
 
     /// Get a view of the solution
     const_view solution() const {
-        return state_.rhs;
+        return state_.solution;
     }
 
     private:

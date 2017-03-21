@@ -10,96 +10,13 @@
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
 
-#include "stimulus_gpu.hpp"
+#include "gpu_kernels.hpp"
 #include "gpu_stack.hpp"
-
-template <typename T>
-void print_vec(const char* name, std::vector<T>& v) {
-    std::cout << name << ": ";
-    for(auto vv: v) {
-        if (vv==std::numeric_limits<T>::max())
-            std::cout <<  "* ";
-        else
-            std::cout <<  vv  << " ";
-    }
-    std::cout << "\n";
-};
-
-template <typename T>
-void print_vec(const char* name, const T& v) {
-    std::cout << name << ": ";
-    for(auto vv: v) {
-        std::cout <<  vv  << " ";
-    }
-    std::cout << "\n";
-};
+#include "stimulus_gpu.hpp"
 
 namespace nest {
 namespace mc {
 namespace gpu {
-
-namespace impl {
-    __host__ __device__
-    constexpr inline int block_dim() {
-        return 8;
-    }
-
-    __host__ __device__
-    constexpr inline int load_width() {
-        return 4;
-    }
-
-    __host__ __device__
-    constexpr inline int matrix_padding() {
-        return load_width();
-    }
-
-    __host__ __device__
-    constexpr inline int block_count(int n, int block_size) {
-        return (n+block_size-1)/block_size;
-    }
-
-    inline int padded_size (int n, int block_dim) {
-        const int over = n%block_dim;
-        return over ? n+block_dim-over: n;
-    }
-}
-
-template <typename T, typename I, int BlockWidth, int LoadWidth, int Threads>
-__global__
-void assemble_matrix(
-    T* d, T* rhs, const T* invariant_d,
-    const T* voltage, const T* current, const T* cv_capacitance,
-    const I* lengths, const I* starts, T dt, int n);
-
-// forward declarations of the matrix solver implementation
-// see the bottom of the file for implementation
-
-template <typename T, typename I, int BlockWidth>
-__global__
-void matrix_solve(
-    T* rhs, T* d, const T* u, const I* p, const I* lengths, int num_mtx, int padded_mtx_length);
-
-template <typename T, typename I, int BlockWidth, int LoadWidth>
-void reverse_interleave(const T* in, T* out, const I* lengths, const I* starts, int max_length, int n);
-
-/// kernel used to test for threshold crossing test code.
-/// params:
-///     t       : current time (ms)
-///     t_prev  : time of last test (ms)
-///     size    : number of values to test
-///     is_crossed  : crossing state at time t_prev (true or false)
-///     prev_values : values at sample points (see index) sampled at t_prev
-///     index      : index with locations in values to test for crossing
-///     values     : values at t_prev
-///     thresholds : threshold values to watch for crossings
-template <typename T, typename I, typename Stack>
-__global__
-void test_thresholds(
-    float t, float t_prev, int size,
-    Stack& stack,
-    I* is_crossed, T* prev_values,
-    const I* index, const T* values, const T* thresholds);
 
 struct backend {
     /// define the real and index types
@@ -157,14 +74,6 @@ struct backend {
         // the invariant part of the matrix diagonal
         array invariant_d;    // [μS]
 
-        int num_matrices() const {
-            return matrix_sizes.size();
-        }
-
-        int padded_matrix_size() const {
-            return parent_index.size()/num_matrices();
-        }
-
         //
         //  Storage for solution in uninterleaved format.
         //  Used to hold the storage for passing to caller, and must be updated
@@ -172,8 +81,6 @@ struct backend {
         //
 
         array solution;
-
-        unsigned matrix_dim;
 
         // default constructor
         matrix_state() = default;
@@ -189,6 +96,13 @@ struct backend {
                      const std::vector<value_type>& cv_cap,
                      const std::vector<value_type>& face_cond)
         {
+            // Assert that capacitance and conductance satisfie one of two conditions
+            // * both are defined, with one value for each compartment
+            // * both are empty
+            // Note that the number of compartments is equal to p.size()
+            EXPECTS(   cv_cap.size()==face_cond.size()
+                    && (cv_cap.size()==p.size() || !cv_cap.size()));
+
             using util::make_span;
 
             // convenience for commonly used type in this routine
@@ -222,10 +136,10 @@ struct backend {
                 cell_index_p.push_back(cell_index[perm[i]]);
             }
 
-            print_vec("perm   ", perm);
-            print_vec("sizes  ", sizes);
-            print_vec("sizes_p", sizes_p);
-            print_vec("index_p", cell_index_p);
+            //impl::print_vec("perm   ", perm);
+            //impl::print_vec("sizes  ", sizes);
+            //impl::print_vec("sizes_p", sizes_p);
+            //impl::print_vec("index_p", cell_index_p);
 
             //
             // Calculate dimensions required to store matrices.
@@ -235,14 +149,14 @@ struct backend {
 
             // To start, take simplest approach of assuming all matrices stored
             // in blocks of the same dimension: matrix_dim
-            matrix_dim = impl::padded_size(sizes_p[0], matrix_padding());
+            auto matrix_dim = impl::padded_size(sizes_p[0], matrix_padding());
             const auto num_blocks = impl::block_count(num_mtx, block_dim());
 
             const auto total_storage = num_blocks*block_dim()*matrix_dim;
 
-            std::cout << "matrix dimension: " << matrix_dim
-                << " (padding " << matrix_padding() << ") requires total storage "
-                << total_storage << "\n";
+            //std::cout << "matrix dimension: " << matrix_dim
+                //<< " (padding " << matrix_padding() << ") requires total storage "
+                //<< total_storage << "\n";
 
             // calculate the interleaved and permuted p vector
             constexpr auto npos = std::numeric_limits<size_type>::max();
@@ -267,22 +181,6 @@ struct backend {
             rhs = array(total_storage);
             parent_index = p_tmp;
 
-            //
-            //  Calculate the invariant part of the matrix diagonal and the
-            //  upper diagonal on the host, then copy to the device.
-            //
-
-            std::vector<value_type> invariant_d_tmp(p.size(), 0);
-            std::vector<value_type> u_tmp(p.size(), 0);
-            auto face_conductance_tmp = memory::on_host(face_cond);
-            for(auto i: util::make_span(1u, p.size())) {
-                auto gij = face_conductance_tmp[i];
-
-                u_tmp[i] = -gij;
-                invariant_d_tmp[i] += gij;
-                invariant_d_tmp[p[i]] += gij;
-            }
-
             // This lambda is a helper that performs the interleave operation
             // on host memory.
             auto interleave = [&](const std::vector<value_type>& v) {
@@ -302,13 +200,39 @@ struct backend {
                 return out;
             };
 
-            u              = interleave(u_tmp);
-            invariant_d    = interleave(invariant_d_tmp);
-            cv_capacitance = interleave(cv_cap);
+            //
+            //  Calculate the invariant part of the matrix diagonal and the
+            //  upper diagonal on the host, then copy to the device.
+            //
+
+            // only if capacitance and conductance values provided
+            if (cv_cap.size()) {
+
+                std::vector<value_type> invariant_d_tmp(p.size(), 0);
+                std::vector<value_type> u_tmp(p.size(), 0);
+                auto face_conductance_tmp = memory::on_host(face_cond);
+                for(auto i: util::make_span(1u, p.size())) {
+                    auto gij = face_conductance_tmp[i];
+
+                    u_tmp[i] = -gij;
+                    invariant_d_tmp[i] += gij;
+                    invariant_d_tmp[p[i]] += gij;
+                }
+
+                u              = interleave(u_tmp);
+                invariant_d    = interleave(invariant_d_tmp);
+                cv_capacitance = interleave(cv_cap);
+            }
+            else {
+                u = array(p.size());
+            }
             matrix_sizes = memory::make_const_view(sizes_p);
             matrix_index = memory::make_const_view(cell_index_p);
 
-            EXPECTS(num_mtx == num_matrices());
+            // allocate space for storing the un-interleaved solution
+            solution = array(p.size());
+
+            EXPECTS(num_mtx == unsigned(num_matrices()));
 
             /*
             {
@@ -324,15 +248,26 @@ struct backend {
                      matrix_index.data(),
                      matrix_dim, num_mtx);
 
-                print_vec("base", base);
+                impl::print_vec("base", base);
                 std::cout << "\n";
-                print_vec("fwd ", memory::on_host(forward));
+                impl::print_vec("fwd ", memory::on_host(forward));
                 std::cout << "\n";
-                print_vec("bck ", memory::on_host(backward));
+                impl::print_vec("bck ", memory::on_host(backward));
                 exit(0);
             }
             */
         }
+
+        // the number of matrices stored in the matrix state
+        int num_matrices() const {
+            return matrix_sizes.size();
+        }
+
+        // the full padded matrix size
+        int padded_matrix_size() const {
+            return parent_index.size()/num_matrices();
+        }
+
 
         // Assemble the matrix
         // Afterwards the diagonal and RHS will have been set given dt, voltage and current
@@ -353,7 +288,8 @@ struct backend {
                 <<<num_blocks, block_dim>>>
                 ( d.data(), rhs.data(), invariant_d.data(),
                   voltage.data(), current.data(), cv_capacitance.data(),
-                  matrix_sizes.data(), matrix_index.data(), dt, num_matrices());
+                  matrix_sizes.data(), matrix_index.data(),
+                  dt, padded_matrix_size(), num_matrices());
 
         }
 
@@ -361,12 +297,17 @@ struct backend {
             // perform the Hines solve
             auto const grid_dim = impl::block_count(num_matrices(), impl::block_dim());
 
+            //std::cout << "calling with " <<  num_matrices() << " mat, padded at " << padded_matrix_size() << " in block dim [" << grid_dim << ", " << impl::block_dim() << "]" << "\n";
+
             matrix_solve<value_type, size_type, impl::block_dim()>
                 <<<grid_dim, impl::block_dim()>>>
                 ( rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
                   num_matrices(), padded_matrix_size());
 
-            // copy the solution out
+            // copy the solution from interleaved to front end storage
+            reverse_interleave<value_type, size_type, impl::block_dim(), impl::load_width()>
+                (rhs.data(), solution.data(), matrix_sizes.data(), matrix_index.data(),
+                 padded_matrix_size(), num_matrices());
         }
 
         // Test if the matrix has the full state required to assemble the
@@ -535,199 +476,6 @@ private:
             (vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
-
-/// GPU implementation of Hines Matrix solver.
-/// Naive implementation with one CUDA thread per matrix.
-template <typename T, typename I, int BlockWidth>
-__global__
-void matrix_solve(
-    T* rhs, T* d, const T* u, const I* p, const I* lengths, int num_mtx, int padded_mtx_length)
-{
-    auto tid = threadIdx.x + blockDim.x*blockIdx.x;
-
-    if(tid < num_mtx) {
-        auto block       = tid/BlockWidth;
-        auto block_start = block*BlockWidth;
-        auto block_index = tid - block_start;
-
-        // get range of this thread's cell matrix
-        auto first = block_start*padded_mtx_length + block_index;
-        auto last  = first + BlockWidth*(lengths[tid]-1);
-
-        // backward sweep
-        for(auto i=last-1; i>first; --i) {
-            auto factor = u[i] / d[i];
-            d[p[i]]   -= factor * u[i];
-            rhs[p[i]] -= factor * rhs[i];
-        }
-
-        __syncthreads();
-        rhs[first] /= d[first];
-
-        // forward sweep
-        for(auto i=first+1; i<last; ++i) {
-            rhs[i] -= u[i] * rhs[p[i]];
-            rhs[i] /= d[i];
-        }
-    }
-}
-
-template <typename T, typename I, typename Stack>
-__global__
-void test_thresholds(
-    float t, float t_prev, int size,
-    Stack& stack,
-    I* is_crossed, T* prev_values,
-    const I* index, const T* values, const T* thresholds)
-{
-    int i = threadIdx.x + blockIdx.x*blockDim.x;
-
-    bool crossed = false;
-    float crossing_time;
-
-    if (i<size) {
-        // Test for threshold crossing
-        const auto v_prev = prev_values[i];
-        const auto v      = values[index[i]];
-        const auto thresh = thresholds[i];
-
-        if (!is_crossed[i]) {
-            if (v>=thresh) {
-                // The threshold has been passed, so estimate the time using
-                // linear interpolation
-                auto pos = (thresh - v_prev)/(v - v_prev);
-                crossing_time = t_prev + pos*(t - t_prev);
-
-                is_crossed[i] = 1;
-                crossed = true;
-            }
-        }
-        else if (v<thresh) {
-            is_crossed[i]=0;
-        }
-
-        prev_values[i] = v;
-    }
-
-    if (crossed) {
-        stack.push_back({I(i), crossing_time});
-    }
-}
-
-template <typename T, typename I, int BlockWidth, int LoadWidth, int THREADS>
-__global__
-void reverse_interleave(
-    const T* in, T* out, const I* lengths, const I* starts, int max_length, int n)
-{
-    static_assert(BlockWidth*LoadWidth==THREADS, "");
-
-    __shared__ T buffer[THREADS];
-
-    auto tid = threadIdx.x + blockIdx.x*blockDim.x;
-    auto lid = threadIdx.x;
-
-    auto mtx_id   = tid/LoadWidth;
-    auto mtx_lane = tid - mtx_id*LoadWidth;
-
-    auto blk_id   = tid/BlockWidth;
-    auto blk_start= blk_id*BlockWidth;
-    auto blk_lane = tid - blk_start;
-
-    auto blk_lid  = lid/BlockWidth;
-    auto blk_pos  = blk_lane*LoadWidth + blk_lid;
-
-    auto store_pos = starts[mtx_id] + mtx_lane;
-    auto end       = starts[mtx_id] + lengths[mtx_id];
-    auto load_pos  = blk_start + blk_lane;
-
-    if (mtx_id<n) {
-        for (auto i=0; i<max_length; i+=LoadWidth) {
-            buffer[blk_pos] = in[load_pos];
-            __syncthreads();
-            if (store_pos<end) {
-                out[store_pos] = buffer[lid];
-            }
-            load_pos  += LoadWidth*BlockWidth;
-            store_pos += LoadWidth;
-        }
-    }
-}
-
-template <typename T, typename I, int BlockWidth, int LoadWidth>
-void reverse_interleave(const T* in, T* out, const I* lengths, const I* starts, int max_length, int n)
-{
-    constexpr int Threads = BlockWidth*LoadWidth;
-    reverse_interleave<T, I, BlockWidth, LoadWidth, Threads>
-        <<<impl::block_count(n, Threads), Threads>>>
-        (in, out, lengths, starts, max_length, n);
-}
-
-/// GPU implementatin of Hines matrix assembly
-/// For a given time step size dt
-///     - use the precomputed alpha and alpha_d values to construct the diagonal
-///       and off diagonal of the symmetric Hines matrix.
-///     - compute the RHS of the linear system to solve
-template <typename T, typename I, int BlockWidth, int LoadWidth, int Threads>
-__global__
-void assemble_matrix(
-        T* d,
-        T* rhs,
-        const T* invariant_d,
-        const T* voltage,
-        const T* current,
-        const T* cv_capacitance,
-        const I* lengths,
-        const I* starts,
-        T dt, int n)
-{
-    static_assert(BlockWidth*LoadWidth==Threads,
-        "number of threads must equal number of values to process per block");
-    __shared__ T buffer_v[Threads];
-    __shared__ T buffer_i[Threads];
-
-    const auto tid = threadIdx.x + blockDim.x*blockIdx.x;
-    const auto lid = threadIdx.x;
-
-    const auto max_length = lengths[0];
-
-    const auto mtx_id   = tid/LoadWidth;
-    const auto mtx_lane = tid - mtx_id*LoadWidth;
-
-    const auto blk_id   = tid/BlockWidth;
-    const auto blk_start= blk_id*BlockWidth;
-    const auto blk_lane = tid - blk_start;
-
-    const auto blk_lid  = lid/BlockWidth;
-    const auto blk_pos  = blk_lane*LoadWidth + blk_lid;
-
-    const auto end = starts[mtx_id] + lengths[mtx_id];
-    auto load_pos  = starts[mtx_id] + mtx_lane;
-    auto store_pos = blk_start + blk_lane;
-
-    T factor = 1e-3/dt;
-    if (mtx_id<n) {
-        for (auto j=0; j<max_length; j+=LoadWidth) {
-            if (load_pos<end) {
-                buffer_v[lid] = voltage[load_pos];
-                buffer_i[lid] = current[load_pos];
-            }
-            __syncthreads();
-
-            // TODO: Potential bank conflicts on these buffers.
-            // Test with nvprof, and add pad-to-prime-number
-            // if needed.
-            const T v = buffer_v[blk_pos];
-            const T i = buffer_i[blk_pos];
-
-            const auto gi = factor * cv_capacitance[store_pos];
-            d[store_pos]   = gi + invariant_d[store_pos];
-            rhs[store_pos] = gi*v - i;
-
-            store_pos += LoadWidth*BlockWidth;
-            load_pos  += LoadWidth;
-        }
-    }
-}
 
 } // namespace gpu
 } // namespace mc

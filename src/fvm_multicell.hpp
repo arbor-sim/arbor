@@ -774,20 +774,14 @@ void fvm_multicell<Backend>::advance(double dt) {
     PE("matrix", "setup");
     matrix_.assemble(dt, voltage_, current_);
 
+    PL(); PE("solve");
+    matrix_.solve();
+    PL();
+    memory::copy(matrix_.solution(), voltage_);
+    PL();
+
     /*
-#ifdef NMC_HAVE_CUDA
-    auto& s = matrix_.state_;
-    array vec(voltage_.size());
-    gpu::reverse_interleave<value_type, size_type, gpu::impl::block_dim(), gpu::impl::load_width()>
-        (s.d.data(),
-         vec.data(),
-         s.matrix_sizes.data(),
-         s.matrix_index.data(),
-         s.matrix_sizes[0], s.matrix_sizes.size());
-    auto d = memory::on_host(vec);
-#else
-    auto d = matrix_.state_.d;
-#endif
+    auto d = memory::on_host(matrix_.state_.solution);
     for (auto i=0u; i<d.size(); i++) {
         std::cout << i << " " << d[i] << "\n";
     }
@@ -795,12 +789,6 @@ void fvm_multicell<Backend>::advance(double dt) {
     std::cout << "=== exiting!" << std::endl;
     std::exit(0);
     */
-
-    PL(); PE("solve");
-    matrix_.solve();
-    PL();
-    //memory::copy(matrix_.solution(), voltage_);
-    PL();
 
     // integrate state of gating variables etc.
     PE("state");
