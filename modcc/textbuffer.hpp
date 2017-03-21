@@ -9,6 +9,7 @@ public:
     TextBuffer() {
         text_.precision(std::numeric_limits<double>::max_digits10);
     }
+
     TextBuffer(const TextBuffer& other):
         indent_(other.indent_),
         indentation_width_(other.indentation_width_),
@@ -29,12 +30,11 @@ public:
 
     void increase_indentation();
     void decrease_indentation();
-    std::stringstream &text();
+    std::stringstream& text();
 
     void clear();
 
 private:
-
     int indent_ = 0;
     const int indentation_width_=4;
     std::string gutter_ = "";
@@ -42,9 +42,7 @@ private:
 };
 
 template <typename T>
-TextBuffer& operator<< (TextBuffer& buffer, T const& v) {
+TextBuffer& operator<<(TextBuffer& buffer, T const& v) {
     buffer.text() << v;
-
     return buffer;
 }
-

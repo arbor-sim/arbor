@@ -198,12 +198,6 @@ elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
 endif()
 
 #----------------------------------------------------------
-# whether to generate optimized kernels from NMODL
-#----------------------------------------------------------
-option(NMC_USE_OPTIMIZED_KERNELS
-    "generate optimized code that vectorizes with the Intel compiler" OFF)
-
-#----------------------------------------------------------
 # Only build modcc if it has not already been installed.
 # This is useful if cross compiling for KNL, when it is not desirable to compile
 # modcc with the same flags that are used for the KNL target.
