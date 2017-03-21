@@ -28,7 +28,7 @@ public:
         return partition_;
     }
 
-    /// the number of entries in the gathered vector in partiion i
+    /// the number of entries in the gathered vector in partition i
     count_type count(std::size_t i) const {
         return partition_[i+1] - partition_[i];
     }
