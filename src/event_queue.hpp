@@ -3,18 +3,20 @@
 #include <cstdint>
 #include <ostream>
 #include <queue>
+#include <type_traits>
 
 #include "common_types.hpp"
+#include "util/meta.hpp"
 #include "util/optional.hpp"
 
 namespace nest {
 namespace mc {
 
-/* An event class Event must comply with the following conventions:
- * Typedefs:
- *     time_type               floating point type used to represent event times
- * Member functions:
- *     time_type when() const  return time value associated with event
+/* Event classes `Event` used with `event_queue` must be move and copy constructible,
+ * and either have a public field `time` that returns the time value, or provide an
+ * overload of `event_time(const Event&)` which returns this value.
+ *
+ * Time values must be well ordered with respect to `operator>`.
  */
 
 template <typename Time>
@@ -24,8 +26,6 @@ struct postsynaptic_spike_event {
     cell_member_type target;
     time_type time;
     float weight;
-
-    time_type when() const { return time; }
 };
 
 template <typename Time>
@@ -34,53 +34,58 @@ struct sample_event {
 
     std::uint32_t sampler_index;
     time_type time;
-
-    time_type when() const { return time; }
 };
 
-/* Event objects must have a method event_time() which returns a value
- * from a type with a total ordering with respect to <, >, etc.
- */
+// Configuration point: define `event_time(ev)` for event objects `ev`
+// that do not have the corresponding `time` member field.
+
+template <typename Event>
+auto event_time(const Event& ev) -> decltype(ev.time) {
+    return ev.time;
+}
+
+namespace impl {
+    using ::nest::mc::event_time;
+
+    // wrap in `impl::` namespace to obtain correct ADL for return type.
+    template <typename Event>
+    using event_time_type = decltype(event_time(std::declval<Event>()));
+}
 
 template <typename Event>
 class event_queue {
 public :
     using value_type = Event;
-    using time_type = typename Event::time_type;
+    using time_type = impl::event_time_type<Event>;
 
-    // create
     event_queue() {}
 
-    // push stuff
-    template <typename Iter>
-    void push(Iter b, Iter e) {
-         for (; b!=e; ++b) {
-             queue_.push(*b);
-         }
-    }
-
-    // push thing
     void push(const value_type& e) {
          queue_.push(e);
+    }
+
+    bool empty() const {
+        return size()==0;
     }
 
     std::size_t size() const {
         return queue_.size();
     }
 
-    // pop until
-    util::optional<value_type> pop_if_before(time_type t_until) {
-         if (!queue_.empty() && queue_.top().when() < t_until) {
-             auto ev = queue_.top();
-             queue_.pop();
-             return ev;
-         }
-         else {
-             return util::nothing;
-         }
+    // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
+    util::optional<value_type> pop_if_before(const time_type& t_until) {
+        using ::nest::mc::event_time;
+        if (!queue_.empty() && t_until > event_time(queue_.top())) {
+            auto ev = queue_.top();
+            queue_.pop();
+            return ev;
+        }
+        else {
+            return util::nothing;
+        }
     }
 
-    // clear everything
+    // Clear queue and free storage.
     void clear() {
         queue_ = decltype(queue_){};
     }
@@ -88,7 +93,8 @@ public :
 private:
     struct event_greater {
         bool operator()(const Event& a, const Event& b) {
-            return a.when() > b.when();
+            using ::nest::mc::event_time;
+            return event_time(a) > event_time(b);
         }
     };
 
