@@ -4,6 +4,7 @@
 #include <ostream>
 #include <queue>
 #include <type_traits>
+#include <utility>
 
 #include "common_types.hpp"
 #include "util/meta.hpp"
@@ -64,6 +65,10 @@ public :
          queue_.push(e);
     }
 
+    void push(value_type&& e) {
+         queue_.push(std::move(e));
+    }
+
     bool empty() const {
         return size()==0;
     }
@@ -72,10 +77,23 @@ public :
         return queue_.size();
     }
 
-    // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
-    util::optional<value_type> pop_if_before(const time_type& t_until) {
+    // Return time t of head of queue if `t_until` > `t`.
+    util::optional<time_type> time_if_before(const time_type& t_until) {
+        if (queue_.empty()) {
+            return util::nothing;
+        }
+
         using ::nest::mc::event_time;
-        if (!queue_.empty() && t_until > event_time(queue_.top())) {
+        auto t = event_time(queue_.top());
+        return t_until > t? util::just(t): util::nothing;
+    }
+
+    // Generic conditional pop: pop and return head of queue if
+    // queue non-empty and the head satisfies predicate.
+    template <typename Pred>
+    util::optional<value_type> pop_if(Pred&& pred) {
+        using ::nest::mc::event_time;
+        if (!queue_.empty() && pred(queue_.top())) {
             auto ev = queue_.top();
             queue_.pop();
             return ev;
@@ -83,6 +101,22 @@ public :
         else {
             return util::nothing;
         }
+    }
+
+    // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
+    util::optional<value_type> pop_if_before(const time_type& t_until) {
+        using ::nest::mc::event_time;
+        return pop_if(
+            [&t_until](const value_type& ev) { return t_until > event_time(ev); }
+        );
+    }
+
+    // Pop and return top event `ev` of queue unless `event_time(ev)` > `t_until`
+    util::optional<value_type> pop_if_not_after(const time_type& t_until) {
+        using ::nest::mc::event_time;
+        return pop_if(
+            [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
+        );
     }
 
     // Clear queue and free storage.

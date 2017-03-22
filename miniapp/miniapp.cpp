@@ -101,7 +101,15 @@ int main(int argc, char** argv) {
             report_compartment_stats(*recipe);
         }
 
-        // inject some artificial spikes, 1 per 20 neurons.
+        // Specify event binning/coalescing.
+        auto binning_policy =
+            options.bin_dt==0? binning_kind::none:
+            options.bin_regular? binning_kind::regular:
+            binning_kind::following;
+
+        m.set_binning_policy(binning_policy, options.bin_dt);
+
+        // Inject some artificial spikes, 1 per 20 neurons.
         std::vector<cell_gid_type> local_sources;
         cell_gid_type first_spike_cell = 20*((cell_range.first+19)/20);
         for (auto c=first_spike_cell; c<cell_range.second; c+=20) {
@@ -109,7 +117,7 @@ int main(int argc, char** argv) {
             m.add_artificial_spike({c, 0});
         }
 
-        // attach samplers to all probes
+        // Attach samplers to all probes
         std::vector<std::unique_ptr<sample_trace_type>> traces;
         const model_type::time_type sample_dt = 0.1;
         for (auto probe: m.probes()) {

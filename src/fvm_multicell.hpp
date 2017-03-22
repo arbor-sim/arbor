@@ -85,8 +85,56 @@ public:
         return (this->*h.first)[h.second];
     }
 
-    /// integrate all cell state forward in time
-    void advance(double dt);
+    /// Initialize state prior to a sequence of integration steps.
+    void start_integration(value_type tfinal, value_type dt_max) {
+        EXPECTS(tfinal>t_);
+        EXPECTS(dt_max>0);
+
+        tfinal_ = tfinal;
+        dt_max_ = dt_max;
+        integration_running_ = true;
+
+        // TODO: Placeholder; construct backend event delivery
+        // data structure from events added.
+        EXPECTS(events_.empty());
+        for (auto& ev: staged_events_) {
+            EXPECTS(ev.time<tfinal);
+            events_.push(std::move(ev));
+        }
+
+        staged_events_.clear();
+    }
+
+    /// Advance one integration step.
+    void step_integration();
+
+    /// Query integration completion state.
+    bool integration_complete() const {
+        return !integration_running_;
+    }
+
+    /// Query per-cell time state. (Placeholders)
+    value_type time(size_type cell_index) const {
+        return t_;
+    }
+
+    value_type max_time() const {
+        return t_;
+    }
+
+    bool state_synchronized() const {
+        return true;
+    }
+
+    /// Add an event for processing in next integration stage.
+    void add_event(value_type ev_time, target_handle h, value_type weight) {
+        EXPECTS(!integration_running_);
+
+        // TODO: Placeholder; either add to backend event list structure
+        // incrementally here, or store by cell gid offset for construction
+        // all at once in `start_integration()`.
+        staged_events_.push_back({ev_time, h, weight});
+    }
 
     /// Following types and methods are public only for testing:
 
@@ -167,8 +215,6 @@ public:
         return it==mechanisms_.end() ? util::nothing: util::just(*it);
     }
 
-    value_type time() const { return t_; }
-
     std::size_t num_probes() const { return probes_.size(); }
 
     //
@@ -194,14 +240,37 @@ public:
     }
 
 private:
-
     threshold_watcher threshold_watcher_;
 
     /// current time [ms]
-    value_type t_ = value_type{0};
+    value_type t_ = 0;
 
     /// resting potential (initial voltage condition)
     value_type resting_potential_ = -65;
+
+    /// final time in integration round [ms]
+    value_type tfinal_ = 0;
+
+    /// max time step for integration [ms]
+    value_type dt_max_ = 0;
+
+    /// flag: true after a call to `setup_integration()`; reset
+    /// once integration to `tfinal_` is complete.
+    bool integration_running_ = false;
+
+    struct deliverable_event {
+        double time;
+        target_handle handle;
+        double weight;
+    };
+
+    /// events staged for upcoming integration stage
+    std::vector<deliverable_event> staged_events_;
+
+    /// event queue for integration period
+    /// TODO: Placeholder; this will change when event lists are moved to
+    /// a backend structure.
+    event_queue<deliverable_event> events_;
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
@@ -753,10 +822,33 @@ void fvm_multicell<Backend>::reset() {
     // NOTE: this has to come after the voltage_ values have been reinitialized,
     // because these values are used by the watchers to set their initial state.
     threshold_watcher_.reset(t_);
+
+    // Reset integration state.
+    tfinal_ = 0;
+    dt_max_ = 0;
+    integration_running_ = false;
+    staged_events_.clear();
+    events_.clear();
 }
 
+
 template <typename Backend>
-void fvm_multicell<Backend>::advance(double dt) {
+void fvm_multicell<Backend>::step_integration() {
+    EXPECTS(integration_running_);
+
+    while (auto ev = events_.pop_if_not_after(t_)) {
+        deliver_event(ev->handle, ev->weight);
+    }
+
+    value_type t_to = std::min(t_+dt_max_, tfinal_);
+
+    if (auto t = events_.time_if_before(t_to)) {
+        t_to = *t;
+    }
+
+    value_type dt = t_to-t_;
+    EXPECTS(dt>0);
+
     PE("current");
     memory::fill(current_, 0.);
 
@@ -788,10 +880,15 @@ void fvm_multicell<Backend>::advance(double dt) {
     }
     PL();
 
-    t_ += dt;
+    t_ = t_to;
 
     // update spike detector thresholds
     threshold_watcher_.test(t_);
+
+    // are we there yet?
+    integration_running_ = t_<tfinal_;
+
+    EXPECTS(integration_running_ || events_.empty());
 }
 
 } // namespace fvm
