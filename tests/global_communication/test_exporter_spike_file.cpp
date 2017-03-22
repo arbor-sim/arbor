@@ -9,15 +9,14 @@
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <io/exporter_spike_file.hpp>
+#include <spike.hpp>
 
 class exporter_spike_file_fixture : public ::testing::Test {
 protected:
-    using time_type = float;
     using communicator_type = nest::mc::communication::global_policy;
 
     using exporter_type =
-        nest::mc::io::exporter_spike_file<time_type, communicator_type>;
-    using spike_type = exporter_type::spike_type;
+        nest::mc::io::exporter_spike_file<communicator_type>;
 
     std::string file_name_;
     std::string path_;
@@ -88,7 +87,7 @@ TEST_F(exporter_spike_file_fixture, do_export) {
         exporter_type exporter(file_name_, path_, extension_);
 
         // Create some spikes
-        std::vector<spike_type> spikes;
+        std::vector<nest::mc::spike> spikes;
         spikes.push_back({ { 0, 0 }, 0.0 });
         spikes.push_back({ { 0, 0 }, 0.1 });
         spikes.push_back({ { 1, 0 }, 1.0 });

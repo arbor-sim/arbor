@@ -36,13 +36,12 @@ using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 #endif
 using model_type = model<lowered_cell>;
 using sample_trace_type = sample_trace<model_type::time_type, model_type::value_type>;
-using file_export_type = io::exporter_spike_file<model_type::time_type, global_policy>;
+using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
 std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
-using communicator_type = communication::communicator<model_type::time_type, communication::global_policy>;
-using spike_type = typename communicator_type::spike_type;
+using communicator_type = communication::communicator<communication::global_policy>;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 void report_compartment_stats(const recipe&);
@@ -140,14 +139,14 @@ int main(int argc, char** argv) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
                 m.set_local_spike_callback(
-                    [&](const std::vector<spike_type>& spikes) {
+                    [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
                     });
             }
             else if(communication::global_policy::id()==0) {
                 file_exporter = register_exporter(options);
                 m.set_global_spike_callback(
-                    [&](const std::vector<spike_type>& spikes) {
+                    [&](const std::vector<spike>& spikes) {
                        file_exporter->output(spikes);
                     });
             }

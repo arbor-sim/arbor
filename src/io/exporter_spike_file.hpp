@@ -19,11 +19,9 @@ namespace nest {
 namespace mc {
 namespace io {
 
-template <typename Time, typename CommunicationPolicy>
-class exporter_spike_file : public exporter<Time, CommunicationPolicy> {
+template <typename CommunicationPolicy>
+class exporter_spike_file : public exporter<CommunicationPolicy> {
 public:
-    using time_type = Time;
-    using spike_type = spike<cell_member_type, time_type>;
     using communication_policy_type = CommunicationPolicy;
 
     // Constructor
@@ -53,7 +51,7 @@ public:
     // Performs export of the spikes to file.
     // One id and spike time with 4 decimals after the comma on a
     // line space separated.
-    void output(const std::vector<spike_type>& spikes) override {
+    void output(const std::vector<spike>& spikes) override {
         for (auto spike : spikes) {
             char linebuf[45];
             auto n =

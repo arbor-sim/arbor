@@ -11,8 +11,7 @@
 
 using namespace nest::mc;
 
-using time_type = float;
-using communicator_type = communication::communicator<time_type, communication::global_policy>;
+using communicator_type = communication::communicator<communication::global_policy>;
 
 TEST(communicator, setup) {
     /*

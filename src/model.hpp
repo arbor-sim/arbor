@@ -28,10 +28,9 @@ public:
     using cell_group_type = cell_group<Cell>;
     using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
-    using communicator_type = communication::communicator<time_type, communication::global_policy>;
+    using communicator_type = communication::communicator<communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
-    using spike_type = typename communicator_type::spike_type;
-    using spike_export_function = std::function<void(const std::vector<spike_type>&)>;
+    using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
     struct probe_record {
         cell_member_type id;
@@ -77,7 +76,7 @@ public:
         // generate the network connections
         for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
             for (const auto& cc: rec.connections_on(i)) {
-                connection<time_type> conn{cc.source, cc.dest, cc.weight, cc.delay};
+                connection conn{cc.source, cc.dest, cc.weight, cc.delay};
                 communicator_.add_connection(conn);
             }
         }
@@ -264,7 +263,7 @@ private:
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer<std::vector<event_queue_type>> event_queues_;
 
-    using local_spike_store_type = thread_private_spike_store<time_type>;
+    using local_spike_store_type = thread_private_spike_store;
     util::double_buffer<local_spike_store_type> local_spikes_;
 
     spike_export_function global_export_callback_ = util::nop_function;
