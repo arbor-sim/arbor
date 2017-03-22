@@ -15,17 +15,12 @@ namespace mc {
 /// The thread private buffer of the calling thread.
 /// The insert() and gather() methods add a vector of spikes to the buffer,
 /// and collate all of the buffers into a single vector respectively.
-template <typename Time>
 class thread_private_spike_store {
 public :
-    using id_type = cell_gid_type;
-    using time_type = Time;
-    using spike_type = basic_spike<cell_member_type, time_type>;
-
     /// Collate all of the individual buffers into a single vector of spikes.
     /// Does not modify the buffer contents.
-    std::vector<spike_type> gather() const {
-        std::vector<spike_type> spikes;
+    std::vector<spike> gather() const {
+        std::vector<spike> spikes;
         unsigned num_spikes = 0u;
         for (auto& b : buffers_) {
             num_spikes += b.size();
@@ -40,12 +35,7 @@ public :
     }
 
     /// Return a reference to the thread private buffer of the calling thread
-    std::vector<spike_type>& get() {
-        return buffers_.local();
-    }
-
-    /// Return a reference to the thread private buffer of the calling thread
-    const std::vector<spike_type>& get() const {
+    std::vector<spike>& get() {
         return buffers_.local();
     }
 
@@ -58,7 +48,7 @@ public :
 
     /// Append the passed spikes to the end of the thread private buffer of the
     /// calling thread
-    void insert(const std::vector<spike_type>& spikes) {
+    void insert(const std::vector<spike>& spikes) {
         auto& buff = get();
         buff.insert(buff.end(), spikes.begin(), spikes.end());
     }
@@ -66,7 +56,7 @@ public :
 private :
     /// thread private storage for accumulating spikes
     using local_spike_store_type =
-        threading::enumerable_thread_specific<std::vector<spike_type>>;
+        threading::enumerable_thread_specific<std::vector<spike>>;
 
     local_spike_store_type buffers_;
 

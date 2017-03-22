@@ -57,7 +57,6 @@ static inline bool operator<(cell_member_type lhs, const connection& rhs) {
 } // namespace mc
 } // namespace nest
 
-template <typename T>
 static inline std::ostream& operator<<(std::ostream& o, nest::mc::connection const& con) {
     return o << "con [" << con.source() << " -> " << con.destination()
              << " : weight " << con.weight()
