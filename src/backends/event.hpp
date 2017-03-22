@@ -11,7 +11,7 @@ namespace mc {
 struct target_handle {
     cell_local_size_type mech_id;    // mechanism type identifier (per cell group).
     cell_local_size_type index;      // instance of the mechanism
-    cell_size_type cell_index; // which cell (acts as index into e.g. vec_t)
+    cell_size_type cell_index;       // which cell (acts as index into e.g. vec_t)
 
     target_handle() {}
     target_handle(cell_local_size_type mech_id, cell_local_size_type index, cell_size_type cell_index):

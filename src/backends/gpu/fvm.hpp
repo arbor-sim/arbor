@@ -3,13 +3,16 @@
 #include <map>
 #include <string>
 
+#include <backends/event.hpp>
 #include <common_types.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
 
+#include "kernels/time_ops.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "matrix_state_flat.hpp"
+#include "multi_event_stream.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 
@@ -44,6 +47,11 @@ struct backend {
 
     // matrix back end implementation
     using matrix_state = matrix_state_interleaved<value_type, size_type>;
+    using multi_event_stream = nest::mc::gpu::multi_event_stream;
+
+    // re-expose common backend event types
+    using deliverable_event = nest::mc::deliverable_event;
+    using target_handle = nest::mc::target_handle;
 
     // mechanism infrastructure
     using ion = mechanisms::ion<backend>;
@@ -54,6 +62,7 @@ struct backend {
 
     static mechanism make_mechanism(
         const std::string& name,
+        value_type mech_id,
         const_iview vec_ci,
         const_view vec_t, const_view vec_t_to,
         view vec_v, view vec_i,
@@ -65,7 +74,7 @@ struct backend {
         }
 
         return mech_map_.find(name)->
-            second(vec_ci, vec_t, vec_t_to, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
+            second(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -76,20 +85,41 @@ struct backend {
         nest::mc::gpu::threshold_watcher<value_type, size_type>;
 
     // perform min/max reductions on 'array' type
-    static std::pair<value_type, value_type> minmax_value(const array& v) {
-        // TODO: replace with CUDA kernel
+    template <typename V>
+    static std::pair<V, V> minmax_value(const memory::device_vector<V>& v) {
+        // TODO: consider/test replacement with CUDA kernel (or generic reduction kernel).
         auto v_copy = memory::on_host(v);
         return util::minmax_value(v_copy);
     }
 
+    // perform element-wise comparison on 'array' type against `t_test`.
+    template <typename V>
+    static bool any_time_before(const memory::device_vector<V>& t, V t_test) {
+        // Note: benchmarking (on a P100) indicates that using the gpu::any_time_before
+        // function is slower than the copy, unless we're running over ten thousands of
+        // cells per cell group.
+        //
+        // Commenting out for now, but consider a size-dependent test or adaptive choice.
+
+        // return gpu::any_time_before(t.size(), t.data(), t_test);
+
+        cudaDeviceSynchronize();
+        auto v_copy = memory::on_host(t);
+        return util::minmax_value(v_copy).first<t_test;
+    }
+
+    static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {
+        nest::mc::gpu::update_time_to<value_type, size_type>(time_to.size(), time_to.data(), time.data(), dt, tmax);
+    }
+
 private:
-    using maker_type = mechanism (*)(const_iview, const_view, const_view, view, view, array&&, iarray&&);
+    using maker_type = mechanism (*)(value_type, const_iview, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
+    static mechanism maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return mechanisms::make_mechanism<Mech<backend>>
-            (vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices));
+            (mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory/memory.hpp>
+#include <memory/wrappers.hpp>
 #include <util/span.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
@@ -38,9 +39,6 @@ struct matrix_state_flat {
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
-    // interface for exposing the solution to the outside world
-    view solution;
-
     matrix_state_flat() = default;
 
     matrix_state_flat(const std::vector<size_type>& p,
@@ -58,7 +56,7 @@ struct matrix_state_flat {
         EXPECTS(cv_cap.size() == size());
         EXPECTS(face_cond.size() == size());
         EXPECTS(cell_cv_divs.back() == size());
-        EXPECTS(cell_cv_divs.size() > 2u);
+        EXPECTS(cell_cv_divs.size() > 1u);
 
         using memory::make_const_view;
 
@@ -84,8 +82,11 @@ struct matrix_state_flat {
         cv_to_cell = make_const_view(cv_to_cell_tmp);
         invariant_d = make_const_view(invariant_d_tmp);
         u = make_const_view(u_tmp);
+    }
 
-        solution = rhs;
+    // interface for exposing the solution to the outside world
+    view solution() const {
+        return memory::make_view(rhs);
     }
 
     // Assemble the matrix

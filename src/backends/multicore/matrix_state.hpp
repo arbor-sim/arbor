@@ -30,8 +30,6 @@ public:
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
-    const_view solution;
-
     matrix_state() = default;
 
     matrix_state(const std::vector<size_type>& p,
@@ -57,11 +55,14 @@ public:
             invariant_d[i] += gij;
             invariant_d[p[i]] += gij;
         }
+    }
 
+    const_view solution() const {
         // In this back end the solution is a simple view of the rhs, which
         // contains the solution after the matrix_solve is performed.
-        solution = rhs;
+        return const_view(rhs);
     }
+
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current
@@ -101,7 +102,7 @@ public:
             auto first = cv_span.first;
             auto last = cv_span.second; // one past the end
 
-            if (d[first]>0) {
+            if (d[first]!=0) {
                 // backward sweep
                 for(auto i=last-1; i>first; --i) {
                     auto factor = u[i] / d[i];

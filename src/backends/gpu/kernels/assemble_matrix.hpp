@@ -32,14 +32,24 @@ void assemble_matrix_flat(
         auto cid = cv_to_cell[tid];
         auto dt = t_to[cid] - t[cid];
 
-        // The 1e-3 is a constant of proportionality required to ensure that the
-        // conductance (gi) values have units μS (micro-Siemens).
-        // See the model documentation in docs/model for more information.
-        T factor = 1e-3/dt;
+        // Note: dt==0 case is expected only at the end of a mindelay/2
+        // integration period, and consequently divergence is unlikely
+        // to be a peformance problem.
 
-        auto gi = factor * cv_capacitance[tid];
-        d[tid] = gi + invariant_d[tid];
-        rhs[tid] = gi*voltage[tid] - current[tid];
+        if (dt>0) {
+            // The 1e-3 is a constant of proportionality required to ensure that the
+            // conductance (gi) values have units μS (micro-Siemens).
+            // See the model documentation in docs/model for more information.
+            T factor = 1e-3/dt;
+
+            auto gi = factor * cv_capacitance[tid];
+            d[tid] = gi + invariant_d[tid];
+            rhs[tid] = gi*voltage[tid] - current[tid];
+        }
+        else {
+            d[tid] = 0;
+            rhs[tid] = voltage[tid];
+        }
     }
 }
 
@@ -91,17 +101,18 @@ void assemble_matrix_interleaved(
     const unsigned max_size = sizes[0];
 
     T factor = 0;
+    T dt = 0;
     const unsigned permuted_cid = blk_id*BlockWidth + blk_lane;
 
     if (permuted_cid<num_mtx) {
         auto cid = matrix_to_cell[permuted_cid];
-        T dt = time_to[cid]-time[cid];
+        dt = time_to[cid]-time[cid];
 
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).
         // See the model documentation in docs/model for more information.
 
-        factor = 1e-3/dt;
+        factor = dt>0? 1e-3/dt: 0;
     }
 
     for (unsigned j=0u; j<max_size; j+=LoadWidth) {
@@ -114,9 +125,18 @@ void assemble_matrix_interleaved(
 
         if (j+blk_row<padded_size) {
             const auto gi = factor * cv_capacitance[store_pos];
-            d[store_pos]   = gi + invariant_d[store_pos];
-            rhs[store_pos] = gi*buffer_v[blk_pos] - buffer_i[blk_pos];
+
+            if (dt>0) {
+                d[store_pos]   = (gi + invariant_d[store_pos]);
+                rhs[store_pos] = (gi*buffer_v[blk_pos] - buffer_i[blk_pos]);
+            }
+            else {
+                d[store_pos]   = 0;
+                rhs[store_pos] = buffer_v[blk_pos];
+            }
         }
+
+        __syncthreads();
 
         store_pos += LoadWidth*BlockWidth;
         load_pos  += LoadWidth;

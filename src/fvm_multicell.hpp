@@ -87,7 +87,7 @@ public:
         return (this->*h.first)[h.second];
     }
 
-    /// Initialize state prior to a sequence of integration steps.
+    // Initialize state prior to a sequence of integration steps.
     void setup_integration(value_type tfinal, value_type dt_max) {
         EXPECTS(dt_max>0);
 
@@ -101,17 +101,20 @@ public:
         staged_events_.clear();
     }
 
-    /// Advance one integration step.
+    // Advance one integration step.
     void step_integration();
 
-    /// Query integration completion state.
+    // Query integration completion state.
     bool integration_complete() const {
         return !integration_running_;
     }
 
-    /// Query per-cell time state. (Placeholders: replace with backend implementations)
+    // Query per-cell time state.
+    // Placeholder: external time queries will no longer be required when
+    // complete integration loop is in lowered cell.
     value_type time(size_type cell_idx) const {
-        return time_[cell_idx];
+        refresh_time_cache();
+        return cached_time_[cell_idx];
     }
 
     value_type min_time() const {
@@ -130,10 +133,12 @@ public:
     /// Set times for all cells (public for testing purposes only).
     void set_time_global(value_type t) {
         memory::fill(time_, t);
+        invalidate_time_cache();
     }
 
     void set_time_to_global(value_type t) {
         memory::fill(time_to_, t);
+        invalidate_time_cache();
     }
 
     /// Add an event for processing in next integration stage.
@@ -289,6 +294,20 @@ private:
 
     /// the per-cell integration period end point
     array time_to_;
+
+    // Maintain cached copy of time vector for querying by
+    // cell_group. This will no longer be necessary when full
+    // integration loop is in lowered cell.
+    mutable std::vector<time_type> cached_time_;
+    mutable bool cached_time_valid_ = false;
+
+    void invalidate_time_cache() { cached_time_valid_ = false; }
+    void refresh_time_cache() const {
+        if (!cached_time_valid_) {
+            util::assign(cached_time_, memory::on_host(time_));
+        }
+        cached_time_valid_ = true;
+    }
 
     /// the transmembrane current over the surface of each CV [nA]
     ///     I = area*i_m - I_e
@@ -527,9 +546,12 @@ void fvm_multicell<Backend>::initialize(
     // look up table: mechanism name -> list of cv_range objects
     std::map<std::string, std::vector<segment_cv_range>> mech_to_cv_range;
 
-    // look up table: point mechanism (synapse) name -> unpermuted cv indices
-    std::map<std::string, std::size_t> syn_to_syn_id;
-    std::vector<std::vector<cell_lid_type>> syn_id_to_raw_cv_index;
+    // look up table: point mechanism (synapse) name -> CV indices and target numbers.
+    struct syn_cv_and_target {
+        cell_lid_type cv;
+        cell_lid_type target;
+    };
+    std::map<std::string, std::vector<syn_cv_and_target>> syn_mech_map;
 
     // initialize vector used for matrix creation.
     std::vector<size_type> group_parent_index(ncomp);
@@ -538,7 +560,6 @@ void fvm_multicell<Backend>::initialize(
     events_ = util::make_unique<multi_event_stream>(ncell_);
 
     // create each cell:
-    auto target_hi = target_handles.begin();
     auto probe_hi = probe_handles.begin();
 
     // Allocate scratch storage for calculating quantities used to build the
@@ -601,20 +622,12 @@ void fvm_multicell<Backend>::initialize(
             EXPECTS(targets_count < targets_size);
 
             const auto& name = syn.mechanism.name();
-            std::size_t syn_id = 0;
-            if (syn_to_syn_id.count(name)==0) {
-                syn_id = syn_to_syn_id.size();
-                syn_to_syn_id[name] = syn_id;
-                syn_id_to_raw_cv_index.push_back({});
-            }
-            else {
-                syn_id = syn_to_syn_id[name];
-            }
+            auto& map_entry = syn_mech_map[name];
 
-            auto& map_entry = syn_id_to_raw_cv_index[syn_id];
+            cell_lid_type syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
+            cell_lid_type target_index = targets_count++;
 
-            auto syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
-            map_entry.push_back(syn_cv);
+            map_entry.push_back(syn_cv_and_target{syn_cv, target_index});
         }
 
         //
@@ -735,54 +748,38 @@ void fvm_multicell<Backend>::initialize(
 
         size_type mech_id = mechanisms_.size();
         mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, mech_cv_weight, mech_cv_index)
-        );
+            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, mech_cv_weight, mech_cv_index));
 
-        // save the indices for easy lookup later in initialization
+        // Save the indices for ion set up below.
         mech_to_cv_index[mech_name] = mech_cv_index;
     }
 
-    // Create point (synapse) mechanisms
-    for (const auto& entry: syn_to_syn_id) {
-        const auto& mech_name = entry.first;
-        const auto& cv_map = syn_id_to_raw_cv_index[entry.second];
+    // Create point (synapse) mechanisms.
+    for (auto& syni: syn_mech_map) {
+        size_type mech_id = mechanisms_.size();
 
-        size_type n_indices = size(cv_map);
+        const auto& mech_name = syni.first;
+        auto& cv_assoc = syni.second;
 
-        // sort indices but keep track of their original order for assigning
-        // target handles
-        using index_pair = std::pair<cell_lid_type, size_type>;
-        auto cv_index = [](index_pair x) { return x.first; };
-        auto target_index = [](index_pair x) { return x.second; };
-
-        std::vector<index_pair> permute;
-        assign_by(permute, make_span(0u, n_indices),
-            [&](size_type i) { return index_pair(cv_map[i], i); });
-
-        // sort the cv information in order of cv index
-        sort_by(permute, cv_index);
-
-        std::vector<cell_lid_type> permuted_cv_index =
-            assign_from(transform_view(permute, cv_index));
+        // Sort CV indices but keep track of their corresponding targets.
+        auto cv_index = [](syn_cv_and_target x) { return x.cv; };
+        util::stable_sort_by(cv_assoc, cv_index);
+        std::vector<cell_lid_type> cv_indices = assign_from(transform_view(cv_assoc, cv_index));
 
         // Create the mechanism.
         // An empty weight vector is supplied, because there are no weights applied to point
         // processes, because their currents are calculated with the target units of [nA]
-        size_type mech_id = mechanisms_.size();
         mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, {}, permuted_cv_index));
+            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, {}, cv_indices));
 
-        // save the compartment indexes for this synapse type
-        mech_to_cv_index[mech_name] = permuted_cv_index;
+        // Save the indices for ion set up below.
+        mech_to_cv_index[mech_name] = cv_indices;
 
-        // make target handles
-        std::vector<target_handle> handles(n_indices);
-        for (auto i: make_span(0u, n_indices)) {
-            handles[target_index(permute[i])] =
-                target_handle(mech_id, i, cv_to_cell_[permuted_cv_index[i]]);
+        // Make the target handles.
+        cell_lid_type instance = 0;
+        for (auto entry: cv_assoc) {
+            target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_[entry.cv]);
         }
-        target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
-        targets_count += n_indices;
     }
 
     // confirm user-supplied containers for targets are appropriately sized
@@ -889,6 +886,7 @@ void fvm_multicell<Backend>::step_integration() {
     events_->drop_marked_events();
 
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
+    invalidate_time_cache();
     events_->event_time_if_before(time_to_);
     PL();
 
@@ -912,12 +910,13 @@ void fvm_multicell<Backend>::step_integration() {
     PL();
 
     memory::copy(time_to_, time_);
+    invalidate_time_cache();
 
     // update spike detector thresholds
     threshold_watcher_.test();
 
     // are we there yet?
-    integration_running_ = min_time()<tfinal_;
+    integration_running_ = backend::any_time_before(time_, tfinal_);
 
     EXPECTS(integration_running_ || !has_pending_events());
 }

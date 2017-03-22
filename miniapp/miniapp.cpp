@@ -44,6 +44,7 @@ std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
 using communicator_type = communication::communicator<communication::global_policy>;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
+void write_trace_csv(const sample_trace_type& trace, const std::string& prefix = "trace_");
 void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
@@ -122,7 +123,8 @@ int main(int argc, char** argv) {
 
         // Attach samplers to all probes
         std::vector<std::unique_ptr<sample_trace_type>> traces;
-        const time_type sample_dt = 0.1;
+        //const time_type sample_dt = 0.1;
+        const time_type sample_dt = options.dt;
         for (auto probe: m.probes()) {
             if (options.trace_max_gid && probe.id.gid>*options.trace_max_gid) {
                 continue;
@@ -164,8 +166,9 @@ int main(int argc, char** argv) {
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces
+        auto write_trace = options.trace_format=="json"? write_trace_json: write_trace_csv;
         for (const auto& trace: traces) {
-            write_trace_json(*trace.get(), options.trace_prefix);
+            write_trace(*trace.get(), options.trace_prefix);
         }
 
         util::save_to_file(meters, "meters.json");
@@ -254,6 +257,20 @@ std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_s
     name += probe.location.segment? "dend" : "soma";
 
     return util::make_unique<sample_trace_type>(probe_id, name, units);
+}
+
+void write_trace_csv(const sample_trace_type& trace, const std::string& prefix) {
+    auto path = prefix + std::to_string(trace.probe_id.gid) +
+                "." + std::to_string(trace.probe_id.index) + "_" + trace.name + ".csv";
+
+    std::ofstream file(path);
+    file << "# cell: " << trace.probe_id.gid << "\n";
+    file << "# probe: " << trace.probe_id.index << "\n";
+    file << "time_ms, " << trace.name << "_" << trace.units << "\n";
+
+    for (const auto& sample: trace.samples) {
+        file << util::strprintf("% 20.15f, % 20.15f\n", sample.time, sample.value);
+    }
 }
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix) {

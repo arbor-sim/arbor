@@ -90,7 +90,8 @@ struct backend {
 
 
     // perform min/max reductions on 'array' type
-    static std::pair<value_type, value_type> minmax_value(const array& v) {
+    template <typename V>
+    static std::pair<V, V> minmax_value(const memory::host_vector<V>& v) {
         return util::minmax_value(v);
     }
 

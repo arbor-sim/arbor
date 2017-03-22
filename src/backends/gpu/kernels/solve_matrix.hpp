@@ -20,8 +20,12 @@ void solve_matrix_flat(
         const auto first = cell_cv_divs[tid];
         const auto last  = cell_cv_divs[tid+1];
 
+        // Zero diagonal term implies dt==0; just leave rhs (for whole matrix)
+        // alone in that case.
+        if (d[last-1]==0) return;
+
         // backward sweep
-        for(auto i=last-1; i>first; --i) {
+        for (auto i=last-1; i>first; --i) {
             auto factor = u[i] / d[i];
             d[p[i]]   -= factor * u[i];
             rhs[p[i]] -= factor * rhs[i];
@@ -54,6 +58,10 @@ void solve_matrix_interleaved(
         const auto first    = block_start*padded_size + block_lane;
         const auto last     = first + BlockWidth*(sizes[tid]-1);
         const auto last_max = first + BlockWidth*(sizes[block_start]-1);
+
+        // Zero diagonal term implies dt==0; just leave rhs (for whole matrix)
+        // alone in that case.
+        if (d[last]==0) return;
 
         // backward sweep
         for(auto i=last_max; i>first; i-=BlockWidth) {

@@ -55,6 +55,7 @@ void flat_to_interleaved(
         if (i+blk_row<padded_size) {
             out[store_pos] = buffer[blk_pos];
         }
+        __syncthreads();
         load_pos  += LoadWidth;
         store_pos += LoadWidth*BlockWidth;
     }
@@ -100,6 +101,7 @@ void interleaved_to_flat(
         if (do_store && store_pos<end) {
             out[store_pos] = buffer[lid];
         }
+        __syncthreads();
         load_pos  += LoadWidth*BlockWidth;
         store_pos += LoadWidth;
     }
