@@ -37,16 +37,6 @@ public:
 
     matrix() = default;
 
-    /// construct matrix for one or more cells, described by a parent index and
-    /// a cell index.
-    matrix(const std::vector<size_type>& pi, const std::vector<size_type>& ci):
-        parent_index_(memory::make_const_view(pi)),
-        cell_index_(memory::make_const_view(ci)),
-        state_(parent_index_, cell_index_)
-    {
-        EXPECTS(cell_index_[num_cells()] == parent_index_.size());
-    }
-
     matrix( const std::vector<size_type>& pi,
             const std::vector<size_type>& ci,
             const std::vector<value_type>& cv_capacitance,

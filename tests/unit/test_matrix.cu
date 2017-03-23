@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "../gtest.h"
+#include "common.hpp"
 
 #include <math.hpp>
 #include <matrix.hpp>
@@ -24,6 +25,8 @@ using gpu::impl::print_vec;
 using gpu::impl::npos;
 
 using util::make_span;
+
+using testing::seq_almost_eq;
 
 template <typename T>
 bool operator ==(const std::vector<T>& l, const std::vector<T>& r) {
@@ -80,10 +83,10 @@ void test_interleave(
     std::vector<T> expected = gpu::interleave_host(values, sizes, starts, BlockWidth, num_mtx, padded_size);
     const auto forward_success = (result_f==expected);
 
-    if (!forward_success) {
-        print_vec("result_f", result_f);
-        print_vec("expected", expected);
-    }
+    //if (!forward_success) {
+    //    print_vec("result_f", result_f);
+    //    print_vec("expected", expected);
+    //}
     EXPECT_TRUE(forward_success);
 
     // backward will hold the result of reverse interleave on the GPU
@@ -94,10 +97,10 @@ void test_interleave(
 
     // we expect that the result of the reverse permutation is the original input vector
     const auto backward_success = (result_b==values);
-    if (!backward_success) {
-        print_vec("result_b", result_b);
-        print_vec("expected", values);
-    }
+    //if (!backward_success) {
+    //    print_vec("result_b", result_b);
+    //    print_vec("expected", values);
+    //}
     EXPECT_TRUE(backward_success);
 }
 
@@ -257,8 +260,6 @@ TEST(matrix, assemble)
 
     const int group_size = p.size();
 
-    print_vec("p", p);
-
     std::vector<I> cell_index;
     for (auto i=0; i<num_mtx+1; ++i) {
         cell_index.push_back(i*mtx_size);
@@ -286,9 +287,9 @@ TEST(matrix, assemble)
     m_gpu.assemble(0.2, gpu_array(group_size, -64),  gpu_array(group_size, 10));
     m_gpu.solve();
 
-    // inspect the results
-    std::vector<T> x = util::assign_from(m_mc.solution);
-    std::vector<T> y = util::assign_from(memory::on_host(m_gpu.solution));
-    EXPECT_EQ(x, y);
+    // Inspect the results.
+    // Cast result to float, because we are happy to ignore small differencs
+    // in the results. TODO: implement an EXPECT_NEAR for sequences
+    EXPECT_TRUE(seq_almost_eq<float>(m_mc.solution, memory::on_host(m_gpu.solution)));
 }
 

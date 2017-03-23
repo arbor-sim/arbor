@@ -50,16 +50,11 @@ struct backend {
         // the invariant part of the matrix diagonal
         array invariant_d;         // [μS]
 
-        view solution;
+        const_view solution;
 
         std::size_t size() const { return p.size(); }
 
         matrix_state() = default;
-
-        matrix_state(const_iview p, const_iview cell_index):
-            p(p), cell_index(cell_index),
-            d(size()), u(size()), rhs(size())
-        {}
 
         //matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
         matrix_state( const std::vector<size_type>& p,
@@ -68,18 +63,20 @@ struct backend {
                       const std::vector<value_type>& cond):
             p(memory::make_const_view(p)),
             cell_index(memory::make_const_view(cell_idx)),
-            d(size()), u(size()), rhs(size()),
+            d(size(), 0), u(size(), 0), rhs(size()),
             cv_capacitance(memory::make_const_view(cap)),
             face_conductance(memory::make_const_view(cond))
         {
-            auto n = d.size();
-            invariant_d = array(n, 0);
-            for (auto i: util::make_span(1u, n)) {
-                auto gij = face_conductance[i];
+            if (has_fvm_state()) {
+                auto n = d.size();
+                invariant_d = array(n, 0);
+                for (auto i: util::make_span(1u, n)) {
+                    auto gij = face_conductance[i];
 
-                u[i] = -gij;
-                invariant_d[i] += gij;
-                invariant_d[p[i]] += gij;
+                    u[i] = -gij;
+                    invariant_d[i] += gij;
+                    invariant_d[p[i]] += gij;
+                }
             }
 
             // In this back end the solution is a simple view of the rhs, which

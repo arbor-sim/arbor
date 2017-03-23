@@ -70,12 +70,43 @@ namespace impl {
 }
 
 /// GPU implementation of Hines Matrix solver.
+/// Flat format
+template <typename T, typename I>
+__global__
+void solve_matrix_flat(
+    T* rhs, T* d, const T* u, const I* p, const I* cell_index, int num_mtx)
+{
+    auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+
+    if (tid<num_mtx) {
+        // get range of this thread's cell matrix
+        auto first = cell_index[tid];
+        auto last  = cell_index[tid+1];
+
+        // backward sweep
+        for(auto i=last-1; i>first; --i) {
+            auto factor = u[i] / d[i];
+            d[p[i]]   -= factor * u[i];
+            rhs[p[i]] -= factor * rhs[i];
+        }
+
+        rhs[first] /= d[first];
+
+        // forward sweep
+        for(auto i=first+1; i<last; ++i) {
+            rhs[i] -= u[i] * rhs[p[i]];
+            rhs[i] /= d[i];
+        }
+    }
+}
+
+/// GPU implementation of Hines Matrix solver.
 /// Block-interleaved format
 template <typename T, typename I, int BlockWidth>
 __global__
-void matrix_solve(
+void solve_matrix_interleaved(
     T* rhs, T* d, const T* u, const I* p, const I* sizes,
-    int paddex_size, int num_mtx)
+    int padded_size, int num_mtx)
 {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 
@@ -85,7 +116,7 @@ void matrix_solve(
         auto block_lane  = tid - block_start;
 
         // get range of this thread's cell matrix
-        auto first = block_start*paddex_size + block_lane;
+        auto first = block_start*padded_size + block_lane;
         auto last  = first + BlockWidth*(sizes[tid]-1);
 
         // backward sweep
@@ -245,13 +276,39 @@ void reverse_interleave(const T* in, T* out, const I* sizes, const I* starts, in
 }
 
 /// GPU implementatin of Hines matrix assembly
+/// Flat layout
+/// For a given time step size dt
+///     - use the precomputed alpha and alpha_d values to construct the diagonal
+///       and off diagonal of the symmetric Hines matrix.
+///     - compute the RHS of the linear system to solve
+template <typename T, typename I>
+__global__
+void assemble_matrix_flat(
+        T* d, T* rhs, const T* invariant_d,
+        const T* voltage, const T* current, const T* cv_capacitance,
+        T dt, int n)
+{
+    auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+
+    T factor = 1e-3/dt;
+    if (tid<n) {
+        auto gi = factor * cv_capacitance[tid];
+
+        d[tid] = gi + invariant_d[tid];
+
+        rhs[tid] = gi*voltage[tid] - current[tid];
+    }
+}
+
+/// GPU implementatin of Hines matrix assembly
+/// Interleaved layout
 /// For a given time step size dt
 ///     - use the precomputed alpha and alpha_d values to construct the diagonal
 ///       and off diagonal of the symmetric Hines matrix.
 ///     - compute the RHS of the linear system to solve
 template <typename T, typename I, int BlockWidth, int LoadWidth, int Threads>
 __global__
-void assemble_matrix(
+void assemble_matrix_interleaved(
         T* d,
         T* rhs,
         const T* invariant_d,
