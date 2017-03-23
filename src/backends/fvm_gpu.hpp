@@ -74,6 +74,10 @@ struct backend {
         // the invariant part of the matrix diagonal
         array invariant_d;    // [μS]
 
+        // the length of a vector required to store values for one
+        // matrix with padding
+        int padded_size;
+
         //
         //  Storage for solution in uninterleaved format.
         //  Used to hold the storage for passing to caller, and must be updated
@@ -136,11 +140,6 @@ struct backend {
                 cell_index_p.push_back(cell_index[perm[i]]);
             }
 
-            //impl::print_vec("perm   ", perm);
-            //impl::print_vec("sizes  ", sizes);
-            //impl::print_vec("sizes_p", sizes_p);
-            //impl::print_vec("index_p", cell_index_p);
-
             //
             // Calculate dimensions required to store matrices.
             //
@@ -148,15 +147,11 @@ struct backend {
             using impl::matrix_padding;
 
             // To start, take simplest approach of assuming all matrices stored
-            // in blocks of the same dimension: matrix_dim
-            auto matrix_dim = impl::padded_size(sizes_p[0], matrix_padding());
+            // in blocks of the same dimension: padded_size
+            padded_size = impl::padded_size(sizes_p[0], matrix_padding());
             const auto num_blocks = impl::block_count(num_mtx, block_dim());
 
-            const auto total_storage = num_blocks*block_dim()*matrix_dim;
-
-            //std::cout << "matrix dimension: " << matrix_dim
-                //<< " (padding " << matrix_padding() << ") requires total storage "
-                //<< total_storage << "\n";
+            const auto total_storage = num_blocks*block_dim()*padded_size;
 
             // calculate the interleaved and permuted p vector
             constexpr auto npos = std::numeric_limits<size_type>::max();
@@ -167,7 +162,7 @@ struct backend {
 
                 auto len = sizes_p[mtx];
                 auto src = cell_index_p[mtx];
-                auto dst = block*(block_dim()*matrix_dim) + lane;
+                auto dst = block*(block_dim()*padded_size) + lane;
                 for (auto i: make_span(0, len)) {
                     // the p indexes are always relative to the start of the p vector.
                     // the addition and subtraction of dst and src respectively is to convert from
@@ -191,7 +186,7 @@ struct backend {
 
                     auto len = sizes_p[mtx];
                     auto src = cell_index_p[mtx];
-                    auto dst = block*(block_dim()*matrix_dim) + lane;
+                    auto dst = block*(block_dim()*padded_size) + lane;
                     for (auto i: make_span(0, len)) {
                         out[dst] = v[src+i];
                         dst += block_dim();
@@ -233,29 +228,6 @@ struct backend {
             solution = array(p.size());
 
             EXPECTS(num_mtx == unsigned(num_matrices()));
-
-            /*
-            {
-                std::vector<value_type> base(p.size());
-                std::iota(base.begin(), base.end(), 0);
-                array forward = interleave(base);
-                array backward(p.size());
-
-                reverse_interleave<value_type, size_type, impl::block_dim(), impl::load_width()>
-                    (forward.data(),
-                     backward.data(),
-                     matrix_sizes.data(),
-                     matrix_index.data(),
-                     matrix_dim, num_mtx);
-
-                impl::print_vec("base", base);
-                std::cout << "\n";
-                impl::print_vec("fwd ", memory::on_host(forward));
-                std::cout << "\n";
-                impl::print_vec("bck ", memory::on_host(backward));
-                exit(0);
-            }
-            */
         }
 
         // the number of matrices stored in the matrix state
@@ -265,9 +237,8 @@ struct backend {
 
         // the full padded matrix size
         int padded_matrix_size() const {
-            return parent_index.size()/num_matrices();
+            return padded_size;
         }
-
 
         // Assemble the matrix
         // Afterwards the diagonal and RHS will have been set given dt, voltage and current
@@ -297,17 +268,15 @@ struct backend {
             // perform the Hines solve
             auto const grid_dim = impl::block_count(num_matrices(), impl::block_dim());
 
-            //std::cout << "calling with " <<  num_matrices() << " mat, padded at " << padded_matrix_size() << " in block dim [" << grid_dim << ", " << impl::block_dim() << "]" << "\n";
-
             matrix_solve<value_type, size_type, impl::block_dim()>
                 <<<grid_dim, impl::block_dim()>>>
                 ( rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
-                  num_matrices(), padded_matrix_size());
+                  padded_matrix_size(), num_matrices());
 
             // copy the solution from interleaved to front end storage
             reverse_interleave<value_type, size_type, impl::block_dim(), impl::load_width()>
-                (rhs.data(), solution.data(), matrix_sizes.data(), matrix_index.data(),
-                 padded_matrix_size(), num_matrices());
+                ( rhs.data(), solution.data(), matrix_sizes.data(), matrix_index.data(),
+                  padded_matrix_size(), num_matrices());
         }
 
         // Test if the matrix has the full state required to assemble the

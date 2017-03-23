@@ -15,12 +15,12 @@ namespace gpu {
 namespace impl {
     __host__ __device__
     constexpr inline int block_dim() {
-        return 8;
+        return 32;
     }
 
     __host__ __device__
     constexpr inline int load_width() {
-        return 4;
+        return 32;
     }
 
     __host__ __device__
@@ -74,7 +74,8 @@ namespace impl {
 template <typename T, typename I, int BlockWidth>
 __global__
 void matrix_solve(
-    T* rhs, T* d, const T* u, const I* p, const I* sizes, int num_mtx, int padded_mtx_length)
+    T* rhs, T* d, const T* u, const I* p, const I* sizes,
+    int paddex_size, int num_mtx)
 {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 
@@ -84,13 +85,11 @@ void matrix_solve(
         auto block_lane  = tid - block_start;
 
         // get range of this thread's cell matrix
-        auto first = block_start*padded_mtx_length + block_lane;
+        auto first = block_start*paddex_size + block_lane;
         auto last  = first + BlockWidth*(sizes[tid]-1);
 
-        //printf(" tid %3d: %3d-%3d\n", tid, first, last);
         // backward sweep
         for(auto i=last; i>first; i-=BlockWidth) {
-            //printf("~~ %3d ~~ %3d (%3d-%3d)\n", tid, i, first, last);
             auto factor = u[i] / d[i];
             d[p[i]]   -= factor * u[i];
             rhs[p[i]] -= factor * rhs[i];
@@ -133,14 +132,12 @@ void interleave(
 
     const auto blk_pos  = LoadWidth*blk_lane + blk_row;
 
-    auto load_pos  = starts[mtx_id] + mtx_lane;
-    const auto end = starts[mtx_id] + sizes[mtx_id];
-    auto store_pos = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
-
     const bool do_load  = mtx_id<num_mtx;
 
-    //printf("tid %2d [mtx %2d load %2d] [block %2d store %2d lane %2d] : %2d %2d %2d : %s\n",
-    //tid, mtx_id, load_pos, blk_id, store_pos, blk_lane, lid, blk_lane, blk_row, (do_load? "yes": "no"));
+    // only threads that participate in loading access starts and sizes arrays
+    auto load_pos  = do_load? starts[mtx_id] + mtx_lane     : 0;
+    const auto end = do_load? starts[mtx_id] + sizes[mtx_id]: 0;
+    auto store_pos = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
 
     for (auto i=0; i<padded_size; i+=LoadWidth) {
         auto loaded = impl::npos<T>();
@@ -151,8 +148,6 @@ void interleave(
         __syncthreads();
         if (i+blk_row<padded_size) {
             out[store_pos] = buffer[blk_pos];
-            //printf("** tid [%2d @ %2d] %2d -> %2d | %2d <- %2d ... local %2d ... %s\n",
-            //tid, i, load_pos, loaded, store_pos, buffer[blk_pos], blk_pos, (load_pos<end? "load": "skip"));
         }
         load_pos  += LoadWidth;
         store_pos += LoadWidth*BlockWidth;
@@ -166,8 +161,6 @@ void interleave(const T* in, T* out, const I* sizes, const I* starts, int padded
     constexpr int Threads = BlockWidth*LoadWidth;
     const int blocks = impl::block_count(num_mtx, BlockWidth);
 
-    //std::cout << "*** " << num_mtx << " matrix: block_width " << BlockWidth << ", LoadWidth "
-    //<< LoadWidth << ", launch <<<" << blocks << " blocks, " << Threads << " threads>>>\n";
     interleave<T, I, BlockWidth, LoadWidth, Threads>
         <<<blocks, Threads>>> (in, out, sizes, starts, padded_size, num_mtx);
 }
@@ -219,15 +212,12 @@ void reverse_interleave(
 
     const auto blk_pos  = LoadWidth*blk_lane + blk_row;
 
-    auto store_pos = starts[mtx_id] + mtx_lane;
-    const auto end = starts[mtx_id] + sizes[mtx_id];
-    auto load_pos  = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
-
     const bool do_store = mtx_id<num_mtx;
 
-    //printf("tid %2d [mtx %2d load %2d] [block %2d store %2d lane %2d] : %2d %2d %2d : %s\n",
-        //tid, mtx_id, load_pos, blk_id, store_pos, blk_lane, lid, blk_lane, blk_row,
-        //(do_store? "yes": "no"));
+    // only threads that participate in storing access starts and sizes arrays
+    auto store_pos = do_store? starts[mtx_id] + mtx_lane     : 0;
+    const auto end = do_store? starts[mtx_id] + sizes[mtx_id]: 0;
+    auto load_pos  = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
 
     for (auto i=0; i<padded_size; i+=LoadWidth) {
         auto loaded = impl::npos<T>();
@@ -239,8 +229,6 @@ void reverse_interleave(
         if (do_store && store_pos<end) {
             out[store_pos] = buffer[lid];
         }
-            //printf("** tid [%2d @ %2d] %2d -> %2d | %2d <- %2d ... local %2d ... %s\n",
-                //tid, i, load_pos, loaded, store_pos, buffer[lid], blk_pos, (load_pos<end? "load": "skip"));
         load_pos  += LoadWidth*BlockWidth;
         store_pos += LoadWidth;
     }
@@ -291,11 +279,11 @@ void assemble_matrix(
 
     const auto blk_pos  = LoadWidth*blk_lane + blk_row;
 
-    auto load_pos  = starts[mtx_id] + mtx_lane;
-    const auto end = starts[mtx_id] + sizes[mtx_id];
-    auto store_pos = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
-
     const bool do_load  = mtx_id<num_mtx;
+
+    auto load_pos  = do_load? starts[mtx_id] + mtx_lane     : 0;
+    const auto end = do_load? starts[mtx_id] + sizes[mtx_id]: 0;
+    auto store_pos = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
 
     const auto max_size = sizes[0];
 
@@ -307,9 +295,6 @@ void assemble_matrix(
         }
         __syncthreads();
 
-        // TODO: Potential bank conflicts on these buffers.
-        // Test with nvprof, and add pad-to-prime-number
-        // if needed.
         const T v = buffer_v[blk_pos];
         const T i = buffer_i[blk_pos];
 

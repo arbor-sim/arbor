@@ -6,6 +6,7 @@
 #include <math.hpp>
 #include <matrix.hpp>
 #include <backends/fvm_gpu.hpp>
+#include <backends/fvm_multicore.hpp>
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
@@ -43,8 +44,22 @@ bool operator !=(const std::vector<T>& l, const std::vector<T>& r) {
     return !(l==r);
 }
 
+// will test the interleaving and reverse_interleaving operations for the
+// set of matrices defined by sizes and starts.
+// Applies the interleave to the vector in values, and checks this against
+// a reference result generated using a host side reference implementation.
+// Then the interleave result is reverse_interleaved, and the result is
+// compared to the original input.
+//
+// This is implemented in a separate function to facilitate testing on a
+// broad range of BlockWidth and LoadWidth compile time parameters.
 template <typename T, typename I, int BlockWidth, int LoadWidth>
-void test_interleave(std::vector<I> sizes, std::vector<I> starts, std::vector<T> values, int padded_size) {
+void test_interleave(
+        std::vector<I> sizes,
+        std::vector<I> starts,
+        std::vector<T> values,
+        int padded_size)
+{
     auto num_mtx = sizes.size();
 
     auto in  = memory::on_gpu(memory::make_const_view(values));
@@ -66,8 +81,8 @@ void test_interleave(std::vector<I> sizes, std::vector<I> starts, std::vector<T>
     const auto forward_success = (result_f==expected);
 
     if (!forward_success) {
-        //print_vec("result_f", result_f);
-        //print_vec("expected", expected);
+        print_vec("result_f", result_f);
+        print_vec("expected", expected);
     }
     EXPECT_TRUE(forward_success);
 
@@ -83,7 +98,6 @@ void test_interleave(std::vector<I> sizes, std::vector<I> starts, std::vector<T>
         print_vec("result_b", result_b);
         print_vec("expected", values);
     }
-    //std::cout << BlockWidth << " " << LoadWidth << " : " << (backward_success?"good":"bad") << "\n";
     EXPECT_TRUE(backward_success);
 }
 
@@ -202,56 +216,79 @@ TEST(matrix, interleave)
     }
 }
 
-TEST(matrix, solve_gpu)
+// Test that matrix assembly works.
+// The test proceeds by assembling a reference matrix on the host and
+// device backends, then performs solve, and compares solution.
+//
+// limitations of test
+//  * matrices all have same size and structure
+TEST(matrix, assemble)
 {
-    using namespace nest::mc;
+    using gpu_state = gpu::backend::matrix_state;
+    using mc_state  = multicore::backend::matrix_state;
 
-    using nest::mc::util::make_span;
+    using T = typename gpu::backend::value_type;
+    using I = typename gpu::backend::size_type;
 
-    // trivial case : 1x1 matrix
-    {
-        matrix_type m({0}, {0,1}, {}, {});
+    using gpu_array  = typename gpu::backend::array;
+    using host_array = typename multicore::backend::array;
 
-        auto& state = m.state_;
-        memory::fill(state.d,  2);
-        memory::fill(state.u, -1);
-        memory::fill(state.rhs,1);
+    // single cell has the following structure
+    //           3
+    //          /.
+    // 0 - 1 - 2
+    //          \.
+    //           4
+    //            \.
+    //             5
+    // which is has the following parent index
+    std::vector<I> p_base = {0, 0, 1, 2, 2, 4};
 
-        m.solve();
+    // make a set of matrices based on repeating this pattern
+    const int num_mtx = 8;
+    const int mtx_size = p_base.size();
 
-        auto rhs = memory::on_host(m.solution());
-
-        EXPECT_EQ(rhs[0], 0.5);
-    }
-
-    // matrices in the range of 2x2 to 100x100
-    /*
-    {
-        using namespace nest::mc;
-        for(auto n : make_span(2u,101u)) {
-            auto p = std::vector<index_type>(n);
-            std::iota(p.begin()+1, p.end(), 0);
-            matrix_type m{p, {0, n}, {}, {}};
-
-            EXPECT_EQ(m.size(), n);
-            EXPECT_EQ(m.num_cells(), 1u);
-
-            auto& state = m.state_;
-            memory::fill(state.d,  2);
-            memory::fill(state.u, -1);
-            memory::fill(state.rhs,1);
-
-            m.solve();
-
-            auto x = memory::on_host(m.solution());
-            auto err = math::square(std::fabs(2.*x[0] - x[1] - 1.));
-            for(auto i : make_span(1,n-1)) {
-                err += math::square(std::fabs(2.*x[i] - x[i-1] - x[i+1] - 1.));
-            }
-            err += math::square(std::fabs(2.*x[n-1] - x[n-2] - 1.));
-
-            EXPECT_NEAR(0., std::sqrt(err), 1e-8);
+    std::vector<I> p;
+    for (auto m=0; m<num_mtx; ++m) {
+        for (auto i: p_base) {
+            p.push_back(i + m*mtx_size);
         }
     }
-    */
+
+    const int group_size = p.size();
+
+    print_vec("p", p);
+
+    std::vector<I> cell_index;
+    for (auto i=0; i<num_mtx+1; ++i) {
+        cell_index.push_back(i*mtx_size);
+    }
+
+    // build the capacitance and conductance vectors and
+    // populate with nonzero random values
+
+    auto gen  = std::mt19937();
+    auto dist = std::uniform_real_distribution<T>(1, 2);
+
+    std::vector<T> Cm(group_size);
+    std::generate(Cm.begin(), Cm.end(), [&](){return dist(gen);});
+
+    std::vector<T> g(group_size);
+    std::generate(g.begin(), g.end(), [&](){return dist(gen);});
+
+    // make the referenace matrix and the gpu matrix
+    auto m_mc  = mc_state( p, cell_index, Cm, g); // on host
+    auto m_gpu = gpu_state(p, cell_index, Cm, g); // on gpu
+
+    // voltage and current values
+    m_mc.assemble( 0.2, host_array(group_size, -64), host_array(group_size, 10));
+    m_mc.solve();
+    m_gpu.assemble(0.2, gpu_array(group_size, -64),  gpu_array(group_size, 10));
+    m_gpu.solve();
+
+    // inspect the results
+    std::vector<T> x = util::assign_from(m_mc.solution);
+    std::vector<T> y = util::assign_from(memory::on_host(m_gpu.solution));
+    EXPECT_EQ(x, y);
 }
+
