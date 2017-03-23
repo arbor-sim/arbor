@@ -28,7 +28,7 @@ std::vector<int> get_affinity() {
         return {};
     }
 
-    auto cpu_count = CPU_COUNT(&cpu_set_mask);
+    unsigned cpu_count = CPU_COUNT(&cpu_set_mask);
 
     std::vector<int> cores;
     for(auto i=0; i<CPU_SETSIZE && cores.size()<cpu_count; ++i) {
