@@ -29,14 +29,12 @@ namespace communication {
 // Once all connections have been specified, the construct() method can be used
 // to build the data structures required for efficient spike communication and
 // event generation.
-template <typename Time, typename CommunicationPolicy>
+
+template <typename CommunicationPolicy>
 class communicator {
 public:
     using communication_policy_type = CommunicationPolicy;
-    using id_type = cell_gid_type;
-    using time_type = Time;
-    using spike_type = spike<cell_member_type, time_type>;
-    using connection_type = connection<time_type>;
+    using time_type = spike::time_type;
 
     /// per-cell group lists of events to be delivered
     using event_queue =
@@ -56,13 +54,13 @@ public:
         return cell_gid_partition_.size();
     }
 
-    void add_connection(connection_type con) {
+    void add_connection(connection con) {
         EXPECTS(is_local_cell(con.destination().gid));
         connections_.push_back(con);
     }
 
     /// returns true if the cell with gid is on the domain of the caller
-    bool is_local_cell(id_type gid) const {
+    bool is_local_cell(cell_gid_type gid) const {
         return algorithms::in_interval(gid, cell_gid_partition_.bounds());
     }
 
@@ -88,7 +86,7 @@ public:
     ///
     /// Takes as input the list of local_spikes that were generated on the calling domain.
     /// Returns the full global set of vectors, along with meta data about their partition
-    gathered_vector<spike_type> exchange(const std::vector<spike_type>& local_spikes) {
+    gathered_vector<spike> exchange(const std::vector<spike>& local_spikes) {
         // global all-to-all to gather a local copy of the global spike list on each node.
         auto global_spikes = communication_policy_.gather_spikes( local_spikes );
         num_spikes_ += global_spikes.size();
@@ -102,7 +100,7 @@ public:
     /// Returns a vector of event queues, with one queue for each local cell group. The
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
-    std::vector<event_queue> make_event_queues(const gathered_vector<spike_type>& global_spikes) {
+    std::vector<event_queue> make_event_queues(const gathered_vector<spike>& global_spikes) {
         auto queues = std::vector<event_queue>(num_groups_local());
         for (auto spike : global_spikes.values()) {
             // search for targets
@@ -121,7 +119,7 @@ public:
     /// Returns the total number of global spikes over the duration of the simulation
     uint64_t num_spikes() const { return num_spikes_; }
 
-    const std::vector<connection_type>& connections() const {
+    const std::vector<connection>& connections() const {
         return connections_;
     }
 
@@ -139,7 +137,7 @@ private:
         return cell_gid_partition_.index(cell_gid);
     }
 
-    std::vector<connection_type> connections_;
+    std::vector<connection> connections_;
 
     communication_policy_type communication_policy_;
 

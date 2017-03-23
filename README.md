@@ -119,7 +119,7 @@ cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release
 make -j8
 
 # set path and test that you can see modcc
-export PATH=`pwd`/bin:$PATH
+export PATH=`pwd`/modcc:$PATH
 which modcc
 ```
 

@@ -14,7 +14,10 @@ add_subdirectory(global_communication)
 add_subdirectory(performance)
 
 # modcc tests
-add_subdirectory(modcc)
+if(NOT use_external_modcc)
+    add_subdirectory(modcc)
+endif()
+
 
 # Proposed additional test types:
 
