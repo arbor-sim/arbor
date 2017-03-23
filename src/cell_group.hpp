@@ -39,6 +39,11 @@ public:
         policy_(policy), bin_interval_(bin_interval)
     {}
 
+    // Determine binned time for an event based on policy.
+    // If `t_min` is specified, the binned time will be no lower than `t_min`.
+    // Otherwise the returned binned time will be less than or equal to the parameter `t`,
+    // and within `bin_interval_`.
+
     time_type bin(cell_gid_type id, time_type t, time_type t_min = std::numeric_limits<time_type>::lowest()) {
         time_type t_binned = t;
 
