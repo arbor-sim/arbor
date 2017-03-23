@@ -55,26 +55,19 @@ set(EXTERNAL_INCLUDES "")
 #----------------------------------------------------------
 # Threading model selection
 #----------------------------------------------------------
-set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp/cthread")
-set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb omp cthread)
+set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/cthread")
+set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb cthread)
 
 if(NMC_THREADING_MODEL MATCHES "tbb")
-    # TBB support
+
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DNMC_HAVE_TBB)
     set(NMC_WITH_TBB TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
     list(APPEND EXTERNAL_INCLUDES ${TBB_INCLUDE_DIRS})
-
-elseif(NMC_THREADING_MODEL MATCHES "omp")
-    # OpenMP support
-    find_package(OpenMP REQUIRED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    add_definitions(-DNMC_HAVE_OMP)
-    set(NMC_WITH_OMP TRUE)
-
 elseif(NMC_THREADING_MODEL MATCHES "cthread")
+
     find_package(Threads REQUIRED)
     add_definitions(-DNMC_HAVE_CTHREAD)
     set(NMC_WITH_CTHREAD TRUE)
@@ -83,13 +76,6 @@ elseif(NMC_THREADING_MODEL MATCHES "cthread")
     if(CMAKE_USE_PTHREADS_INIT)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
-
-elseif(NMC_THREADING_MODEL MATCHES "serial")
-    #setup previously done
-
-else()
-    message( FATAL_ERROR "-- Threading model '${NMC_THREADING_MODEL}' not supported, use one of serial/tbb/omp")
-
 endif()
 
 #----------------------------------------------------------
@@ -176,7 +162,7 @@ else()
 endif()
 
 #----------------------------------------------------------
-# Internal profiler support
+# Built-in profiler
 #----------------------------------------------------------
 option(NMC_WITH_PROFILING "use built-in profiling of miniapp" OFF)
 if(NMC_WITH_PROFILING)

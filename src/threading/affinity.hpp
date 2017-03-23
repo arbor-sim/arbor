@@ -10,7 +10,7 @@ namespace threading {
 // If calling from the main thread at application start up, before
 // attempting to change thread affinity, may produce unreliable
 // results.
-//  - beware OpenMP thread pinning or custom job scheduler affinity
+//  - beware thread pinning or custom job scheduler affinity
 //    flags that assign threads to specific cores.
 //
 // Returns an empty vector if unable to determine the number of
