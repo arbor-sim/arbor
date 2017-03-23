@@ -87,7 +87,7 @@ public:
         const auto& morph = get_morphology(i);
         unsigned cell_segments = morph.components();
 
-        auto cell = make_basic_cell(morph, param_.num_compartments+(i%3), cc.num_targets,
+        auto cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
                         param_.synapse_type, gen);
 
         EXPECTS(cell.num_segments()==cell_segments);

@@ -74,20 +74,22 @@ void test_interleave(
     // forward will hold the result of the interleave operation on the GPU
     auto forward = memory::device_vector<T>(packed_size, npos<T>());
 
+    // find the reference interleaved values using host side implementation
     auto baseline = gpu::interleave_host(values, sizes, starts, BlockWidth, num_mtx, padded_size);
 
-    // template parameters: T I BlockWidth load_width
+    // find the interleaved values on gpu
     gpu::interleave<T, I, BlockWidth, LoadWidth>(in.data(), forward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
 
     std::vector<T> result_f = util::assign_from(memory::on_host(forward));
     std::vector<T> expected = gpu::interleave_host(values, sizes, starts, BlockWidth, num_mtx, padded_size);
     const auto forward_success = (result_f==expected);
+    EXPECT_TRUE(forward_success);
 
+    // keep these in case we ever need to debug this the hard way again.
     //if (!forward_success) {
     //    print_vec("result_f", result_f);
     //    print_vec("expected", expected);
     //}
-    EXPECT_TRUE(forward_success);
 
     // backward will hold the result of reverse interleave on the GPU
     auto backward = memory::device_vector<T>(values.size(), npos<T>());
@@ -97,11 +99,11 @@ void test_interleave(
 
     // we expect that the result of the reverse permutation is the original input vector
     const auto backward_success = (result_b==values);
+    EXPECT_TRUE(backward_success);
     //if (!backward_success) {
     //    print_vec("result_b", result_b);
     //    print_vec("expected", values);
     //}
-    EXPECT_TRUE(backward_success);
 }
 
 // test conversion to and from interleaved back end storage format

@@ -196,8 +196,7 @@ void interleave(const T* in, T* out, const I* sizes, const I* starts, int padded
         <<<blocks, Threads>>> (in, out, sizes, starts, padded_size, num_mtx);
 }
 
-// This lambda is a helper that performs the interleave operation
-// on host memory.
+// A helper that performs the interleave operation on host memory.
 template <typename T, typename I>
 std::vector<T> interleave_host(
         const std::vector<T>& in,

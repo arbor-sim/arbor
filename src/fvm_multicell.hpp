@@ -153,9 +153,8 @@ public:
     /// use a simple test of the voltage at the soma is reasonable, i.e. in the range
     ///     v_soma \in (-1000mv, 1000mv)
     bool is_physical_solution() const {
-        return true;
-        //auto v = voltage_[0];
-        //return (v>-1000.) && (v<1000.);
+        auto v = voltage_[0];
+        return (v>-1000.) && (v<1000.);
     }
 
     /// Return reference to the mechanism that matches name.
@@ -779,16 +778,6 @@ void fvm_multicell<Backend>::advance(double dt) {
     PL();
     memory::copy(matrix_.solution(), voltage_);
     PL();
-
-    /*
-    auto d = memory::on_host(matrix_.state_.solution);
-    for (auto i=0u; i<d.size(); i++) {
-        std::cout << i << " " << d[i] << "\n";
-    }
-    std::cout << "\n";
-    std::cout << "=== exiting!" << std::endl;
-    std::exit(0);
-    */
 
     // integrate state of gating variables etc.
     PE("state");
