@@ -2,8 +2,6 @@
 
 #if defined(NMC_HAVE_TBB)
     #include "tbb.hpp"
-#elif defined(NMC_HAVE_OMP)
-    #include "omp.hpp"
 #elif defined(NMC_HAVE_CTHREAD)
     #include "cthread.hpp"
 #else
