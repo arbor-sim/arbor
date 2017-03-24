@@ -19,6 +19,7 @@ struct matrix_state_flat {
     using array  = memory::device_vector<value_type>;
     using iarray = memory::device_vector<size_type>;
 
+    using view = typename array::view_type;
     using const_view = typename array::const_view_type;
 
     iarray parent_index;
@@ -35,7 +36,7 @@ struct matrix_state_flat {
     array invariant_d;         // [μS]
 
     // interface for exposing the solution to the outside world
-    const_view solution;
+    view solution;
 
     matrix_state_flat() = default;
 
@@ -45,9 +46,9 @@ struct matrix_state_flat {
                  const std::vector<value_type>& face_cond):
         parent_index(memory::make_const_view(p)),
         cell_index(memory::make_const_view(cell_index)),
-        d(p.size()),
+        d(p.size(), impl::npos<T>()),
         u(p.size()),
-        rhs(p.size()),
+        rhs(p.size(), impl::npos<T>()),
         cv_capacitance(memory::make_const_view(cv_cap))
     {
         using memory::make_const_view;

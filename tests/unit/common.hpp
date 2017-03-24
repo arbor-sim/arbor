@@ -126,8 +126,10 @@ template <typename FPType, typename Seq1, typename Seq2>
     for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
         using FP = testing::internal::FloatingPoint<FPType>;
 
-        auto v1 = *i1;
-        auto v2 = *i2;
+        // cast to FPType to avoid warnings about lowering conversion
+        // if FPType has lower precision than Seq{12}::value_type
+        auto v1 = FPType(*i1);
+        auto v2 = FPType(*i2);
 
         if (!FP{v1}.AlmostEquals(FP{v2})) {
             return ::testing::AssertionFailure() << "floating point numbers " << v1 << " and " << v2 << " differ at index " << j;

@@ -11,8 +11,9 @@ namespace nest {
 namespace mc {
 
 /// Hines matrix
-/// the TargetPolicy defines the backend specific data types and solver
-template<class Backend>
+/// Make the back end state implementation optional to allow for
+/// testing different implementations in the same code.
+template<class Backend, class State=typename Backend::matrix_state>
 class matrix {
 public:
     using backend = Backend;
@@ -25,15 +26,13 @@ public:
     using array = typename backend::array;
     using iarray = typename backend::iarray;
 
-    using view = typename backend::view;
-    using iview = typename backend::iview;
     using const_view = typename backend::const_view;
     using const_iview = typename backend::const_iview;
 
     using host_array = typename backend::host_array;
 
     // back end specific storage for matrix state
-    using state = typename backend::matrix_state;
+    using state = State;
 
     matrix() = default;
 

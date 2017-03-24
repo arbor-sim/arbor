@@ -50,12 +50,9 @@ struct matrix_state_interleaved {
     // matrix with padding
     int padded_size;
 
-    //
     //  Storage for solution in uninterleaved format.
     //  Used to hold the storage for passing to caller, and must be updated
     //  after each call to the ::solve() method.
-    //
-
     array solution;
 
     // default constructor

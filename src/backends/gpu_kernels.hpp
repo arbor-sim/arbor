@@ -13,31 +13,53 @@ namespace mc {
 namespace gpu {
 
 namespace impl {
+    //
+    // Compile time constants for block-interleave matrix storage
+    //
+
+    // Number of matrices per block in block-interleaved storage
     __host__ __device__
     constexpr inline int block_dim() {
         return 32;
     }
 
+    // The number of threads per matrix in the interleave and reverse-interleave
+    // operations.
     __host__ __device__
     constexpr inline int load_width() {
         return 32;
     }
 
+    // The alignment of matrices inside the block-interleaved storage.
     __host__ __device__
     constexpr inline int matrix_padding() {
         return load_width();
     }
 
+    // Number of threads per warp
+    // This has always been 32, however it may change in future NVIDIA gpus
+    __host__ __device__
+    constexpr inline int threads_per_warp() {
+        return 32;
+    }
+
+    // The minimum number of bins required to store n values where the bins have
+    // dimension of block_size.
     __host__ __device__
     constexpr inline int block_count(int n, int block_size) {
         return (n+block_size-1)/block_size;
     }
 
+    // The smallest size of a buffer required to store n items in such that the
+    // buffer has size that is a multiple of block_dim.
     inline int padded_size (int n, int block_dim) {
         const int over = n%block_dim;
         return over ? n+block_dim-over: n;
     }
 
+    // Placeholders to use for mark padded locations in data structures that use
+    // padding. Using such markers makes it easier to test that padding is
+    // performed correctly.
     template <typename T> __host__ __device__ constexpr T npos() { return T(); }
     template <> __host__ __device__ constexpr char npos<char>() { return CHAR_MAX; }
     template <> __host__ __device__ constexpr unsigned char npos<unsigned char>() { return UCHAR_MAX; }
@@ -45,28 +67,18 @@ namespace impl {
     template <> __host__ __device__ constexpr int npos<int>() { return INT_MAX; }
     template <> __host__ __device__ constexpr long npos<long>() { return LONG_MAX; }
     template <> __host__ __device__ constexpr float npos<float>() { return FLT_MAX; }
-    template <> __host__ __device__ constexpr double npos<double>() { return DBL_MAX; }
+    template <> __host__ __device__ constexpr double npos<double>() { return -1.; }
     template <> __host__ __device__ constexpr unsigned short npos<unsigned short>() { return USHRT_MAX; }
     template <> __host__ __device__ constexpr unsigned int npos<unsigned int>() { return UINT_MAX; }
     template <> __host__ __device__ constexpr unsigned long npos<unsigned long>() { return ULONG_MAX; }
     template <> __host__ __device__ constexpr long long npos<long long>() { return LLONG_MAX; }
 
+    // test if value v is npos
     template <typename T>
     __host__ __device__
-    bool is_npos(T v) {
+    constexpr bool is_npos(T v) {
         return v == npos<T>();
     }
-
-    template <typename Seq>
-    void print_vec(std::string name, const Seq& vec) {
-        std::cout << name << ": ";
-        for (auto v: vec) {
-            if (is_npos(v)) std::cout << " *";
-            else            std::cout << " " << v;
-        }
-        std::cout << "\n";
-    }
-
 }
 
 /// GPU implementation of Hines Matrix solver.
@@ -80,8 +92,8 @@ void solve_matrix_flat(
 
     if (tid<num_mtx) {
         // get range of this thread's cell matrix
-        auto first = cell_index[tid];
-        auto last  = cell_index[tid+1];
+        const auto first = cell_index[tid];
+        const auto last  = cell_index[tid+1];
 
         // backward sweep
         for(auto i=last-1; i>first; --i) {
@@ -111,19 +123,22 @@ void solve_matrix_interleaved(
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 
     if(tid < num_mtx) {
-        auto block       = tid/BlockWidth;
-        auto block_start = block*BlockWidth;
-        auto block_lane  = tid - block_start;
+        const auto block       = tid/BlockWidth;
+        const auto block_start = block*BlockWidth;
+        const auto block_lane  = tid - block_start;
 
         // get range of this thread's cell matrix
-        auto first = block_start*padded_size + block_lane;
-        auto last  = first + BlockWidth*(sizes[tid]-1);
+        const auto first    = block_start*padded_size + block_lane;
+        const auto last     = first + BlockWidth*(sizes[tid]-1);
+        const auto last_max = first + BlockWidth*(sizes[block_start]-1);
 
         // backward sweep
-        for(auto i=last; i>first; i-=BlockWidth) {
-            auto factor = u[i] / d[i];
-            d[p[i]]   -= factor * u[i];
-            rhs[p[i]] -= factor * rhs[i];
+        for(auto i=last_max; i>first; i-=BlockWidth) {
+            if (i<=last) {
+                auto factor = u[i] / d[i];
+                d[p[i]]   -= factor * u[i];
+                rhs[p[i]] -= factor * rhs[i];
+            }
         }
 
         __syncthreads();
@@ -292,9 +307,7 @@ void assemble_matrix_flat(
     T factor = 1e-3/dt;
     if (tid<n) {
         auto gi = factor * cv_capacitance[tid];
-
         d[tid] = gi + invariant_d[tid];
-
         rhs[tid] = gi*voltage[tid] - current[tid];
     }
 }
@@ -349,15 +362,13 @@ void assemble_matrix_interleaved(
             buffer_v[lid] = voltage[load_pos];
             buffer_i[lid] = current[load_pos];
         }
+
         __syncthreads();
 
-        const T v = buffer_v[blk_pos];
-        const T i = buffer_i[blk_pos];
-
-        if (i+blk_row<padded_size) {
+        if (j+blk_row<padded_size) {
             const auto gi = factor * cv_capacitance[store_pos];
             d[store_pos]   = gi + invariant_d[store_pos];
-            rhs[store_pos] = gi*v - i;
+            rhs[store_pos] = gi*buffer_v[blk_pos] - buffer_i[blk_pos];
         }
 
         store_pos += LoadWidth*BlockWidth;

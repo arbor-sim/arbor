@@ -15,18 +15,16 @@
 
 using namespace nest::mc;
 
-using matrix_type = nest::mc::matrix<nest::mc::gpu::backend>;
-using index_type = matrix_type::size_type;
+using gpu::impl::npos;
+using util::make_span;
+using util::assign_from;
+using memory::on_gpu;
+using memory::on_host;
+
+using testing::seq_almost_eq;
 
 using std::begin;
 using std::end;
-
-using gpu::impl::print_vec;
-using gpu::impl::npos;
-
-using util::make_span;
-
-using testing::seq_almost_eq;
 
 template <typename T>
 bool operator ==(const std::vector<T>& l, const std::vector<T>& r) {
@@ -42,6 +40,7 @@ bool operator ==(const std::vector<T>& l, const std::vector<T>& r) {
 
     return true;
 }
+
 template <typename T>
 bool operator !=(const std::vector<T>& l, const std::vector<T>& r) {
     return !(l==r);
@@ -65,9 +64,9 @@ void test_interleave(
 {
     auto num_mtx = sizes.size();
 
-    auto in  = memory::on_gpu(memory::make_const_view(values));
-    auto sizes_d = memory::on_gpu(memory::make_const_view(sizes));
-    auto starts_d = memory::on_gpu(memory::make_const_view(starts));
+    auto in  = on_gpu(memory::make_const_view(values));
+    auto sizes_d = on_gpu(memory::make_const_view(sizes));
+    auto starts_d = on_gpu(memory::make_const_view(starts));
 
     int packed_size = padded_size * BlockWidth * gpu::impl::block_count(num_mtx, BlockWidth);
 
@@ -80,30 +79,20 @@ void test_interleave(
     // find the interleaved values on gpu
     gpu::interleave<T, I, BlockWidth, LoadWidth>(in.data(), forward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
 
-    std::vector<T> result_f = util::assign_from(memory::on_host(forward));
+    std::vector<T> result_f = assign_from(on_host(forward));
     std::vector<T> expected = gpu::interleave_host(values, sizes, starts, BlockWidth, num_mtx, padded_size);
     const auto forward_success = (result_f==expected);
     EXPECT_TRUE(forward_success);
-
-    // keep these in case we ever need to debug this the hard way again.
-    //if (!forward_success) {
-    //    print_vec("result_f", result_f);
-    //    print_vec("expected", expected);
-    //}
 
     // backward will hold the result of reverse interleave on the GPU
     auto backward = memory::device_vector<T>(values.size(), npos<T>());
     gpu::reverse_interleave<T, I, BlockWidth, LoadWidth>(forward.data(), backward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
 
-    std::vector<T> result_b = util::assign_from(memory::on_host(backward));
+    std::vector<T> result_b = assign_from(on_host(backward));
 
     // we expect that the result of the reverse permutation is the original input vector
     const auto backward_success = (result_b==values);
     EXPECT_TRUE(backward_success);
-    //if (!backward_success) {
-    //    print_vec("result_b", result_b);
-    //    print_vec("expected", values);
-    //}
 }
 
 // test conversion to and from interleaved back end storage format
@@ -238,7 +227,10 @@ TEST(matrix, assemble)
     using gpu_array  = typename gpu::backend::array;
     using host_array = typename multicore::backend::array;
 
-    // single cell has the following structure
+    // There are two matrix structures:
+    //
+    // p_1: 3 branches, 6 compartments
+    //
     //           3
     //          /.
     // 0 - 1 - 2
@@ -246,29 +238,46 @@ TEST(matrix, assemble)
     //           4
     //            \.
     //             5
-    // which is has the following parent index
-    std::vector<I> p_base = {0, 0, 1, 2, 2, 4};
+    //
+    // p_2: 5 branches, 8 compartments
+    //
+    //             4
+    //            /.
+    //           3
+    //          / \.
+    // 0 - 1 - 2   5
+    //          \.
+    //           6
+    //            \.
+    //             7
 
-    // make a set of matrices based on repeating this pattern
+    // The parent indexes that define the two matrix structures
+    std::vector<std::vector<I>>
+        p_base = { {0,0,1,2,2,4}, {0,0,1,2,3,3,2,6} };
+
+    // Make a set of matrices based on repeating this pattern.
+    // We assign the patterns round-robin, i.e. so that the input
+    // matrices will have alternating sizes of 6 and 8, which will
+    // test the solver with variable matrix size, and exercise
+    // solvers that reorder matrices according to size.
     const int num_mtx = 8;
-    const int mtx_size = p_base.size();
 
     std::vector<I> p;
-    for (auto m=0; m<num_mtx; ++m) {
-        for (auto i: p_base) {
-            p.push_back(i + m*mtx_size);
-        }
-    }
-
-    const int group_size = p.size();
-
     std::vector<I> cell_index;
-    for (auto i=0; i<num_mtx+1; ++i) {
-        cell_index.push_back(i*mtx_size);
+    for (auto m=0; m<num_mtx; ++m) {
+        auto &p_ref = p_base[m%2];
+        auto first = p.size();
+        for (auto i: p_ref) {
+            p.push_back(i + first);
+        }
+        cell_index.push_back(first);
     }
+    cell_index.push_back(p.size());
 
-    // build the capacitance and conductance vectors and
-    // populate with nonzero random values
+    auto group_size = cell_index.back();
+
+    // Build the capacitance and conductance vectors and
+    // populate with nonzero random values.
 
     auto gen  = std::mt19937();
     auto dist = std::uniform_real_distribution<T>(1, 2);
@@ -279,19 +288,113 @@ TEST(matrix, assemble)
     std::vector<T> g(group_size);
     std::generate(g.begin(), g.end(), [&](){return dist(gen);});
 
-    // make the referenace matrix and the gpu matrix
+    // Make the referenace matrix and the gpu matrix
     auto m_mc  = mc_state( p, cell_index, Cm, g); // on host
     auto m_gpu = gpu_state(p, cell_index, Cm, g); // on gpu
 
-    // voltage and current values
+    // Voltage and current values
     m_mc.assemble( 0.2, host_array(group_size, -64), host_array(group_size, 10));
     m_mc.solve();
     m_gpu.assemble(0.2, gpu_array(group_size, -64),  gpu_array(group_size, 10));
     m_gpu.solve();
 
-    // Inspect the results.
+    // Compare the GPU and CPU results.
     // Cast result to float, because we are happy to ignore small differencs
-    // in the results. TODO: implement an EXPECT_NEAR for sequences
-    EXPECT_TRUE(seq_almost_eq<float>(m_mc.solution, memory::on_host(m_gpu.solution)));
+    EXPECT_TRUE(seq_almost_eq<float>(m_mc.solution, on_host(m_gpu.solution)));
 }
 
+// test that the flat and interleaved storage back ends produce identical results
+TEST(matrix, backends)
+{
+    using T = typename gpu::backend::value_type;
+    using I = typename gpu::backend::size_type;
+
+    using state_flat = gpu::matrix_state_flat<T, I>;
+    using state_intl = gpu::matrix_state_interleaved<T, I>;
+
+    using gpu_array  = typename gpu::backend::array;
+
+    // There are two matrix structures:
+    //
+    // p_1: 3 branches, 6 compartments
+    //
+    //           3
+    //          /.
+    // 0 - 1 - 2
+    //          \.
+    //           4
+    //            \.
+    //             5
+    //
+    // p_2: 5 branches, 8 compartments
+    //
+    //             4
+    //            /.
+    //           3
+    //          / \.
+    // 0 - 1 - 2   5
+    //          \.
+    //           6
+    //            \.
+    //             7
+
+    // The parent indexes that define the two matrix structures
+    std::vector<std::vector<I>>
+        p_base = { {0,0,1,2,2,4}, {0,0,1,2,3,3,2,6} };
+
+    // Make a set of matrices based on repeating this pattern.
+    // We assign the patterns round-robin, i.e. so that the input
+    // matrices will have alternating sizes of 6 and 8, which will
+    // test the solver with variable matrix size, and exercise
+    // solvers that reorder matrices according to size.
+    const int num_mtx = 200;
+
+    std::vector<I> p;
+    std::vector<I> cell_index;
+    for (auto m=0; m<num_mtx; ++m) {
+        auto &p_ref = p_base[m%2];
+        auto first = p.size();
+        for (auto i: p_ref) {
+            p.push_back(i + first);
+        }
+        cell_index.push_back(first);
+    }
+    cell_index.push_back(p.size());
+
+    auto group_size = cell_index.back();
+
+    // Build the capacitance and conductance vectors and
+    // populate with nonzero random values
+
+    auto gen  = std::mt19937();
+    gen.seed(100);
+    auto dist = std::uniform_real_distribution<T>(1, 200);
+
+    std::vector<T> Cm(group_size);
+    std::vector<T> g(group_size);
+    std::vector<T> v(group_size);
+    std::vector<T> i(group_size);
+
+    std::generate(Cm.begin(), Cm.end(), [&](){return dist(gen);});
+    std::generate(g.begin(), g.end(), [&](){return dist(gen);});
+    std::generate(v.begin(), v.end(), [&](){return dist(gen);});
+    std::generate(i.begin(), i.end(), [&](){return dist(gen);});
+
+    // Make the referenace matrix and the gpu matrix
+    auto flat = state_flat(p, cell_index, Cm, g); // flat
+    auto intl = state_intl(p, cell_index, Cm, g); // interleaved
+
+    // voltage and current values
+    flat.assemble(0.02, on_gpu(v), on_gpu(i));
+    intl.assemble(0.02, on_gpu(v), on_gpu(i));
+
+    flat.solve();
+    intl.solve();
+
+    // Compare the results.
+    // We expect exact equality for the two gpu matrix implementations because both
+    // perform the same operations in the same order on the same inputs.
+    std::vector<double> x_flat = assign_from(on_host(flat.solution));
+    std::vector<double> x_intl = assign_from(on_host(intl.solution));
+    EXPECT_EQ(x_flat, x_intl);
+}

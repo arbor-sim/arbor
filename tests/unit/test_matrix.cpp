@@ -15,21 +15,16 @@ using size_type = matrix_type::size_type;
 
 TEST(matrix, construct_from_parent_only)
 {
-    using util::make_span;
+    std::vector<size_type> p = {0,0,1};
+    matrix_type m(p, {0, 3}, {}, {});
+    EXPECT_EQ(m.num_cells(), 1u);
+    EXPECT_EQ(m.size(), 3u);
+    EXPECT_EQ(p.size(), 3u);
 
-    // pass parent index as a std::vector cast to host data
-    {
-        std::vector<size_type> p = {0,0,1};
-        matrix_type m(p, {0, 3}, {}, {});
-        EXPECT_EQ(m.num_cells(), 1u);
-        EXPECT_EQ(m.size(), 3u);
-        EXPECT_EQ(p.size(), 3u);
-
-        auto mp = m.p();
-        EXPECT_EQ(mp[0], 0u);
-        EXPECT_EQ(mp[1], 0u);
-        EXPECT_EQ(mp[2], 1u);
-    }
+    auto mp = m.p();
+    EXPECT_EQ(mp[0], 0u);
+    EXPECT_EQ(mp[1], 0u);
+    EXPECT_EQ(mp[2], 1u);
 }
 
 TEST(matrix, solve_host)
