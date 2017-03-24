@@ -4,11 +4,12 @@
 #include <vector>
 
 #include "blocks.hpp"
+#include "error.hpp"
 #include "expression.hpp"
 
 // wrapper around a .mod file
-class Module {
-public :
+class Module: public error_stack {
+public:
     using symbol_map = scope_type::symbol_map;
     using symbol_ptr = scope_type::symbol_ptr;
 
@@ -58,36 +59,30 @@ public :
     symbol_map const& symbols() const;
 
     // error handling
-    void error(std::string const& msg, Location loc);
-    std::string const& error_string() {
-        return error_string_;
+    using error_stack::error;
+    void error(std::string const& msg, Location loc = Location{}) {
+        error({msg, loc});
     }
 
-    lexerStatus status() const {
-        return status_;
-    }
+    std::string error_string() const;
 
     // warnings
-    void warning(std::string const& msg, Location loc);
-    bool has_warning() const {
-        return has_warning_;
-    }
-    bool has_error() const {
-        return status()==lexerStatus::error;
+    using error_stack::warning;
+    void warning(std::string const& msg, Location loc = Location{}) {
+        warning({msg, loc});
     }
 
-    moduleKind kind() const {
-        return kind_;
-    }
-    void kind(moduleKind k) {
-        kind_ = k;
-    }
+    std::string warning_string() const;
+
+    moduleKind kind() const { return kind_; }
+    void kind(moduleKind k) { kind_ = k; }
 
     // perform semantic analysis
     void add_variables_to_symbols();
     bool semantic();
     bool optimize();
-private :
+
+private:
     moduleKind kind_;
     std::string title_;
     std::string fname_;
@@ -96,11 +91,6 @@ private :
     bool generate_initial_api();
     bool generate_current_api();
     bool generate_state_api();
-
-    // error handling
-    std::string error_string_;
-    lexerStatus status_ = lexerStatus::happy;
-    bool has_warning_ = false;
 
     // AST storage
     std::vector<symbol_ptr> procedures_;

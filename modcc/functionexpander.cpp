@@ -5,9 +5,7 @@
 #include "functionexpander.hpp"
 #include "modccutil.hpp"
 
-using namespace nest::mc;
-
-expression_ptr insert_unique_local_assignment(call_list_type& stmts, Expression* e) {
+expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e) {
     auto exprs = make_unique_local_assign(e->scope(), e);
     stmts.push_front(std::move(exprs.local_decl));
     stmts.push_back(std::move(exprs.assignment));
@@ -18,9 +16,9 @@ expression_ptr insert_unique_local_assignment(call_list_type& stmts, Expression*
 //  function call site lowering
 ///////////////////////////////////////////////////////////////////////////////
 
-call_list_type lower_function_calls(Expression* e)
+expr_list_type lower_function_calls(Expression* e)
 {
-    auto v = util::make_unique<FunctionCallLowerer>(e->scope());
+    auto v = make_unique<FunctionCallLowerer>(e->scope());
 
     if(auto a=e->is_assignment()) {
 #ifdef LOGGING
@@ -107,10 +105,10 @@ void FunctionCallLowerer::visit(BinaryExpression *e) {
 //  function argument lowering
 ///////////////////////////////////////////////////////////////////////////////
 
-call_list_type
+expr_list_type
 lower_function_arguments(std::vector<expression_ptr>& args)
 {
-    call_list_type new_statements;
+    expr_list_type new_statements;
     for(auto it=args.begin(); it!=args.end(); ++it) {
         // get reference to the unique_ptr with the expression
         auto& e = *it;

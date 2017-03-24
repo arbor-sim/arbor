@@ -1,7 +1,7 @@
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
 # Build prototype mechanisms for testing in test_mechanisms.
-set(proto_mechanisms pas hh expsyn exp2syn)
+set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva)
 set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
 file(MAKE_DIRECTORY "${mech_proto_dir}")
 
@@ -17,8 +17,11 @@ build_modules(
 # Unit test sources
 
 set(TEST_CUDA_SOURCES
+    test_atomics.cu
     test_cell_group.cu
+    test_gpu_stack.cu
     test_matrix.cu
+    test_spikes.cu
     test_vector.cu
 
     # unit test driver

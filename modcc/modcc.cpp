@@ -13,6 +13,8 @@
 #include "modccutil.hpp"
 #include "options.hpp"
 
+#include "simd_printer.hpp"
+
 using namespace nest::mc;
 
 //#define VERBOSE
@@ -62,6 +64,9 @@ int main(int argc, char **argv) {
         }
         else if(targstr == "gpu") {
             Options::instance().target = targetKind::gpu;
+        }
+        else if(targstr == "avx512") {
+            Options::instance().target = targetKind::avx512;
         }
         else {
             std::cerr << red("error") << " target must be one in {cpu, gpu}\n";
@@ -113,7 +118,7 @@ int main(int argc, char **argv) {
             std::cout << m.error_string() << std::endl;
         }
 
-        if(m.status() == lexerStatus::error) {
+        if(m.has_error()) {
             return 1;
         }
 
@@ -123,7 +128,7 @@ int main(int argc, char **argv) {
         if(Options::instance().optimize) {
             if(Options::instance().verbose) std::cout << green("[") + "optimize" + green("]") << std::endl;
             m.optimize();
-            if(m.status() == lexerStatus::error) {
+            if(m.has_error()) {
                 return 1;
             }
         }
@@ -139,10 +144,14 @@ int main(int argc, char **argv) {
         std::string text;
         switch(Options::instance().target) {
             case targetKind::cpu  :
-                text = CPrinter(m, Options::instance().optimize).text();
+                text = CPrinter(m, Options::instance().optimize).emit_source();
                 break;
             case targetKind::gpu  :
                 text = CUDAPrinter(m, Options::instance().optimize).text();
+                break;
+            case targetKind::avx512:
+                text = SimdPrinter<targetKind::avx512>(
+                    m, Options::instance().optimize).emit_source();
                 break;
             default :
                 std::cerr << red("error") << ": unknown printer" << std::endl;
@@ -175,15 +184,15 @@ int main(int argc, char **argv) {
                     std::cout << yellow("method " + method->name()) << "\n";
                     std::cout << white("-------------------------\n");
 
-                    auto flops = util::make_unique<FlopVisitor>();
-                    method->accept(flops.get());
+                    FlopVisitor flops;
+                    method->accept(&flops);
                     std::cout << white("FLOPS") << std::endl;
-                    std::cout << flops->print() << std::endl;
+                    std::cout << flops.print() << std::endl;
 
                     std::cout << white("MEMOPS") << std::endl;
-                    auto memops = util::make_unique<MemOpVisitor>();
-                    method->accept(memops.get());
-                    std::cout << memops->print() << std::endl;;
+                    MemOpVisitor memops;
+                    method->accept(&memops);
+                    std::cout << memops.print() << std::endl;;
                 }
             }
         }

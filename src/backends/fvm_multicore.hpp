@@ -5,6 +5,7 @@
 #include <common_types.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
+#include <memory/wrappers.hpp>
 #include <util/span.hpp>
 
 #include "stimulus_multicore.hpp"
@@ -34,59 +35,35 @@ struct backend {
     using host_view   = view;
     using host_iview  = iview;
 
-    static void hines_solve(
-        view d, view u, view rhs,
-        const_iview p, const_iview cell_index)
-    {
-        const size_type ncells = cell_index.size()-1;
-
-        // loop over submatrices
-        for (auto m: util::make_span(0, ncells)) {
-            auto first = cell_index[m];
-            auto last = cell_index[m+1];
-
-            // backward sweep
-            for(auto i=last-1; i>first; --i) {
-                auto factor = u[i] / d[i];
-                d[p[i]]   -= factor * u[i];
-                rhs[p[i]] -= factor * rhs[i];
-            }
-            rhs[first] /= d[first];
-
-            // forward sweep
-            for(auto i=first+1; i<last; ++i) {
-                rhs[i] -= u[i] * rhs[p[i]];
-                rhs[i] /= d[i];
-            }
-        }
-    }
-
-    struct matrix_assembler {
-        view d;     // [μS]
-        view u;     // [μS]
-        view rhs;   // [nA]
+    /// matrix state
+    struct matrix_state {
         const_iview p;
+        const_iview cell_index;
 
-        const_view cv_capacitance;      // [pF]
-        const_view face_conductance;    // [μS]
-        const_view voltage;             // [mV]
-        const_view current;             // [nA]
+        array d;     // [μS]
+        array u;     // [μS]
+        array rhs;   // [nA]
+
+        array cv_capacitance;      // [pF]
+        array face_conductance;    // [μS]
 
         // the invariant part of the matrix diagonal
-        array invariant_d;              // [μS]
+        array invariant_d;         // [μS]
 
-        matrix_assembler() = default;
+        std::size_t size() const { return p.size(); }
 
-        matrix_assembler(
-            view d, view u, view rhs, const_iview p,
-            const_view cv_capacitance,
-            const_view face_conductance,
-            const_view voltage,
-            const_view current)
-        :
-            d{d}, u{u}, rhs{rhs}, p{p},
-            cv_capacitance{cv_capacitance}, face_conductance{face_conductance},
-            voltage{voltage}, current{current}
+        matrix_state() = default;
+
+        matrix_state(const_iview p, const_iview cell_index):
+            p(p), cell_index(cell_index),
+            d(size()), u(size()), rhs(size())
+        {}
+
+        matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
+            p(p), cell_index(cell_index),
+            d(size()), u(size()), rhs(size()),
+            cv_capacitance(std::move(cap)),
+            face_conductance(std::move(cond))
         {
             auto n = d.size();
             invariant_d = array(n, 0);
@@ -99,7 +76,14 @@ struct backend {
             }
         }
 
-        void assemble(value_type dt) {
+        // Assemble the matrix
+        // Afterwards the diagonal and RHS will have been set given dt, voltage and current
+        //   dt      [ms]
+        //   voltage [mV]
+        //   current [nA]
+        void assemble(value_type dt, const_view voltage, const_view current) {
+            EXPECTS(has_fvm_state());
+
             auto n = d.size();
             value_type factor = 1e-3/dt;
             for (auto i: util::make_span(0u, n)) {
@@ -109,6 +93,36 @@ struct backend {
 
                 rhs[i] = gi*voltage[i] - current[i];
             }
+        }
+
+        void solve() {
+            const size_type ncells = cell_index.size()-1;
+
+            // loop over submatrices
+            for (auto m: util::make_span(0, ncells)) {
+                auto first = cell_index[m];
+                auto last = cell_index[m+1];
+
+                // backward sweep
+                for(auto i=last-1; i>first; --i) {
+                    auto factor = u[i] / d[i];
+                    d[p[i]]   -= factor * u[i];
+                    rhs[p[i]] -= factor * rhs[i];
+                }
+                rhs[first] /= d[first];
+
+                // forward sweep
+                for(auto i=first+1; i<last; ++i) {
+                    rhs[i] -= u[i] * rhs[p[i]];
+                    rhs[i] /= d[i];
+                }
+            }
+        }
+
+        // Test if the matrix has the full state required to assemble the
+        // matrix in the fvm scheme.
+        bool has_fvm_state() const {
+            return cv_capacitance.size()>0;
         }
     };
 
@@ -141,6 +155,118 @@ struct backend {
     static std::string name() {
         return "cpu";
     }
+
+    /// threshold crossing logic
+    /// used as part of spike detection back end
+    class threshold_watcher {
+    public:
+        /// stores a single crossing event
+        struct threshold_crossing {
+            size_type index;    // index of variable
+            value_type time;    // time of crossing
+            friend bool operator== (
+                const threshold_crossing& lhs, const threshold_crossing& rhs)
+            {
+                return lhs.index==rhs.index && lhs.time==rhs.time;
+            }
+        };
+
+        threshold_watcher() = default;
+
+        threshold_watcher(
+                const_view vals,
+                const std::vector<size_type>& indxs,
+                const std::vector<value_type>& thresh,
+                value_type t=0):
+            values_(vals),
+            index_(memory::make_const_view(indxs)),
+            thresholds_(memory::make_const_view(thresh)),
+            v_prev_(vals)
+        {
+            is_crossed_ = iarray(size());
+            reset(t);
+        }
+
+        /// Remove all stored crossings that were detected in previous calls
+        /// to the test() member function.
+        void clear_crossings() {
+            crossings_.clear();
+        }
+
+        /// Reset state machine for each detector.
+        /// Assume that the values in values_ have been set correctly before
+        /// calling, because the values are used to determine the initial state
+        void reset(value_type t=0) {
+            clear_crossings();
+            for (auto i=0u; i<size(); ++i) {
+                is_crossed_[i] = values_[index_[i]]>=thresholds_[i];
+            }
+            t_prev_ = t;
+        }
+
+        const std::vector<threshold_crossing>& crossings() const {
+            return crossings_;
+        }
+
+        /// The time at which the last test was performed
+        value_type last_test_time() const {
+            return t_prev_;
+        }
+
+        /// Tests each target for changed threshold state
+        /// Crossing events are recorded for each threshold that
+        /// is crossed since the last call to test
+        void test(value_type t) {
+            for (auto i=0u; i<size(); ++i) {
+                auto v_prev = v_prev_[i];
+                auto v      = values_[index_[i]];
+                auto thresh = thresholds_[i];
+                if (!is_crossed_[i]) {
+                    if (v>=thresh) {
+                        // the threshold has been passed, so estimate the time using
+                        // linear interpolation
+                        auto pos = (thresh - v_prev)/(v - v_prev);
+                        auto crossing_time = t_prev_ + pos*(t - t_prev_);
+                        crossings_.push_back({i, crossing_time});
+
+                        is_crossed_[i] = true;
+                    }
+                }
+                else {
+                    if (v<thresh) {
+                        is_crossed_[i] = false;
+                    }
+                }
+
+                v_prev_[i] = v;
+            }
+            t_prev_ = t;
+        }
+
+        bool is_crossed(size_type i) const {
+            return is_crossed_[i];
+        }
+
+        /// the number of threashold values that are being monitored
+        std::size_t size() const {
+            return index_.size();
+        }
+
+        /// Data type used to store the crossings.
+        /// Provided to make type-generic calling code.
+        using crossing_list =  std::vector<threshold_crossing>;
+
+    private:
+        const_view values_;
+        iarray index_;
+
+        array thresholds_;
+        value_type t_prev_;
+        array v_prev_;
+        crossing_list crossings_;
+        iarray is_crossed_;
+    };
+
 
 private:
 

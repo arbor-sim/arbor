@@ -36,15 +36,15 @@ using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 #endif
 using model_type = model<lowered_cell>;
 using sample_trace_type = sample_trace<model_type::time_type, model_type::value_type>;
-using file_export_type = io::exporter_spike_file<model_type::time_type, global_policy>;
+using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
 std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
-using communicator_type = communication::communicator<model_type::time_type, communication::global_policy>;
-using spike_type = typename communicator_type::spike_type;
+using communicator_type = communication::communicator<communication::global_policy>;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
+void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
@@ -89,8 +89,6 @@ int main(int argc, char** argv) {
         EXPECTS(group_divisions.front() == cell_range.first);
         EXPECTS(group_divisions.back() == cell_range.second);
 
-        model_type m(*recipe, util::partition_view(group_divisions));
-
         auto register_exporter = [] (const io::cl_options& options) {
             return
                 util::make_unique<file_export_type>(
@@ -98,23 +96,9 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        // File output depends on the input arguments
-        std::unique_ptr<file_export_type> file_exporter;
-        if (options.spike_file_output) {
-            if (options.single_file_per_rank) {
-                file_exporter = register_exporter(options);
-                m.set_local_spike_callback(
-                    [&](const std::vector<spike_type>& spikes) {
-                        file_exporter->output(spikes);
-                    });
-            }
-            else if(communication::global_policy::id()==0) {
-                file_exporter = register_exporter(options);
-                m.set_global_spike_callback(
-                    [&](const std::vector<spike_type>& spikes) {
-                       file_exporter->output(spikes);
-                    });
-            }
+        model_type m(*recipe, util::partition_view(group_divisions));
+        if (options.report_compartments) {
+            report_compartment_stats(*recipe);
         }
 
         // inject some artificial spikes, 1 per 20 neurons.
@@ -137,14 +121,35 @@ int main(int argc, char** argv) {
             m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
         }
 
+#ifdef WITH_PROFILING
         // dummy run of the model for one step to ensure that profiling is consistent
         m.run(options.dt, options.dt);
-
-        // reset the model
+        // reset and add the source spikes once again
         m.reset();
-        // reset the source spikes
         for (auto source : local_sources) {
             m.add_artificial_spike({source, 0});
+        }
+#endif
+
+        // Initialize the spike exporting interface after the profiler dummy
+        // steps, to avoid having the initial seed spikes that are artificially
+        // injected at t=0 from being recorded and output twice.
+        std::unique_ptr<file_export_type> file_exporter;
+        if (options.spike_file_output) {
+            if (options.single_file_per_rank) {
+                file_exporter = register_exporter(options);
+                m.set_local_spike_callback(
+                    [&](const std::vector<spike>& spikes) {
+                        file_exporter->output(spikes);
+                    });
+            }
+            else if(communication::global_policy::id()==0) {
+                file_exporter = register_exporter(options);
+                m.set_global_spike_callback(
+                    [&](const std::vector<spike>& spikes) {
+                       file_exporter->output(spikes);
+                    });
+            }
         }
 
         // run model
@@ -203,6 +208,14 @@ void banner() {
 std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {
     basic_recipe_param p;
 
+    if (options.morphologies) {
+        std::cout << "loading morphologies...\n";
+        p.morphologies.clear();
+        load_swc_morphology_glob(p.morphologies, options.morphologies.get());
+        std::cout << "loading morphologies: " << p.morphologies.size() << " loaded.\n";
+    }
+    p.morphology_round_robin = options.morph_rr;
+
     p.num_compartments = options.compartments_per_segment;
     p.num_synapses = options.all_to_all? options.cells-1: options.synapses_per_cell;
     p.synapse_type = options.syn_type;
@@ -257,4 +270,20 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix)
     }
     std::ofstream file(path);
     file << std::setw(1) << jrep << std::endl;
+}
+
+void report_compartment_stats(const recipe& rec) {
+std::size_t ncell = rec.num_cells();
+    std::size_t ncomp_total = 0;
+    std::size_t ncomp_min = std::numeric_limits<std::size_t>::max();
+    std::size_t ncomp_max = 0;
+
+    for (std::size_t i = 0; i<ncell; ++i) {
+        std::size_t ncomp = rec.get_cell(i).num_compartments();
+        ncomp_total += ncomp;
+        ncomp_min = std::min(ncomp_min, ncomp);
+        ncomp_max = std::max(ncomp_max, ncomp);
+    }
+
+    std::cout << "compartments/cell: min=" << ncomp_min <<"; max=" << ncomp_max << "; mean=" << (double)ncomp_total/ncell << "\n";
 }

@@ -6,8 +6,6 @@
 
 #include "test.hpp"
 
-bool g_verbose_flag = false;
-
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     if (argc>1 && (!std::strcmp(argv[1],"-v") || !std::strcmp(argv[1],"--verbose"))) {

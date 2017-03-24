@@ -43,7 +43,7 @@ TEST(probe, fvm_multicell)
     // ball-and-stick model morphology
 
     bs.add_soma(12.6157/2.0);
-    bs.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
+    bs.add_cable(0, section_kind::dendrite, 0.5, 0.5, 200);
     bs.soma()->set_compartments(5);
 
     segment_location loc0{0, 0};
@@ -59,11 +59,10 @@ TEST(probe, fvm_multicell)
 
     using fvm_multicell = fvm::fvm_multicell<nest::mc::multicore::backend>;
     std::vector<fvm_multicell::target_handle> targets;
-    std::vector<fvm_multicell::detector_handle> detectors;
     std::vector<fvm_multicell::probe_handle> probes{3};
 
     fvm_multicell lcell;
-    lcell.initialize(util::singleton_view(bs), detectors, targets, probes);
+    lcell.initialize(util::singleton_view(bs), targets, probes);
 
     // Know from implementation that probe_handle.second
     // is a compartment index: expect probe values and

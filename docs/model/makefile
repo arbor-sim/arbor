@@ -1,18 +1,13 @@
-report.pdf : *.tex
-	pdflatex report.tex
+images := images/cable.pdf images/soma.pdf
 
-force : report.pdf
-	pdflatex report.tex
+LATEXMK := latexmk -e '$$clean_ext=q/bbl run.xml/' -pdf -use-make -halt-on-error
 
-bib : *.tex bibliography.bib
-	pdflatex report.tex
-	bibtex report
-	pdflatex report.tex
-	pdflatex report.tex
+report.pdf : report.tex appendix.tex formulation.tex symbols.tex SelfArx.cls bibliography.bib ${images}
+	$(LATEXMK) $<
 
-clean :
-	rm -f *.pdf
-	rm -f *.log
-	rm -f *.out
-	rm -f *.aux
-	rm -f *.toc
+images/%.pdf: images/%.tex
+	make -C images $(patsubst images/%,%,$@)
+
+clean:
+	$(LATEXMK) -C report.tex
+	make -C images clean    

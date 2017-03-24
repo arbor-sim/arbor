@@ -27,6 +27,9 @@ struct cl_options {
     double probe_ratio;
     std::string trace_prefix;
     util::optional<unsigned> trace_max_gid;
+    util::optional<std::string> morphologies;
+    bool morph_rr;
+    bool report_compartments;
 
     // Parameters for spike output
     bool spike_file_output;

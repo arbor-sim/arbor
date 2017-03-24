@@ -4,6 +4,11 @@ cmake_minimum_required(VERSION 2.8)
 project(cell_algorithms)
 enable_language(CXX)
 
+# Hide warnings about mixing old and new signatures for target_link_libraries.
+# These can't be avoided, because the FindCUDA packed provided by CMake uses
+# the old signature, while other packages use the new signature.
+cmake_policy(SET CMP0023 OLD)
+
 # save incoming CXX flags for forwarding to modcc external project
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
@@ -50,26 +55,19 @@ set(EXTERNAL_INCLUDES "")
 #----------------------------------------------------------
 # Threading model selection
 #----------------------------------------------------------
-set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/omp/cthread")
-set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb omp cthread)
+set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/cthread")
+set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb cthread)
 
 if(NMC_THREADING_MODEL MATCHES "tbb")
-    # TBB support
+
     find_package(TBB REQUIRED)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DNMC_HAVE_TBB)
     set(NMC_WITH_TBB TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
     list(APPEND EXTERNAL_INCLUDES ${TBB_INCLUDE_DIRS})
-
-elseif(NMC_THREADING_MODEL MATCHES "omp")
-    # OpenMP support
-    find_package(OpenMP REQUIRED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    add_definitions(-DNMC_HAVE_OMP)
-    set(NMC_WITH_OMP TRUE)
-
 elseif(NMC_THREADING_MODEL MATCHES "cthread")
+
     find_package(Threads REQUIRED)
     add_definitions(-DNMC_HAVE_CTHREAD)
     set(NMC_WITH_CTHREAD TRUE)
@@ -78,13 +76,6 @@ elseif(NMC_THREADING_MODEL MATCHES "cthread")
     if(CMAKE_USE_PTHREADS_INIT)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
-
-elseif(NMC_THREADING_MODEL MATCHES "serial")
-    #setup previously done
-
-else()
-    message( FATAL_ERROR "-- Threading model '${NMC_THREADING_MODEL}' not supported, use one of serial/tbb/omp")
-
 endif()
 
 #----------------------------------------------------------
@@ -114,8 +105,7 @@ if(NMC_WITH_CUDA)
     # and device compiler when targetting GPU.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DNMC_HAVE_CUDA)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DNMC_HAVE_GPU)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
-    #set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
 
     add_definitions(-DNMC_HAVE_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
@@ -172,7 +162,7 @@ else()
 endif()
 
 #----------------------------------------------------------
-# Internal profiler support
+# Built-in profiler
 #----------------------------------------------------------
 option(NMC_WITH_PROFILING "use built-in profiling of miniapp" OFF)
 if(NMC_WITH_PROFILING)
@@ -192,12 +182,6 @@ elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX")
 elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
 endif()
-
-#----------------------------------------------------------
-# whether to generate optimized kernels from NMODL
-#----------------------------------------------------------
-option(NMC_USE_OPTIMIZED_KERNELS
-    "generate optimized code that vectorizes with the Intel compiler" OFF)
 
 #----------------------------------------------------------
 # Only build modcc if it has not already been installed.
@@ -221,27 +205,29 @@ set(NMC_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
   "location of generated validation data")
 
 #----------------------------------------------------------
-# Whether to build validation data at all
+# Whether to build validation data
 #----------------------------------------------------------
-option(NMC_BUILD_VALIDATION_DATA "generate validation data" ON)
+# turn off by default
+option(NMC_BUILD_VALIDATION_DATA "generate validation data" OFF)
+if (NMC_BUILD_VALIDATION_DATA)
+    # Whether to attempt to use julia to build validation data
+    find_program(JULIA_BIN julia)
+    if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
+        message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
+        set(NMC_BUILD_JULIA_VALIDATION_DATA FALSE)
+    else()
+        set(NMC_BUILD_JULIA_VALIDATION_DATA TRUE)
+    endif()
 
-# Whether to attempt to use julia to build validation data
-find_program(JULIA_BIN julia)
-if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
-    message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
-    set(NMC_BUILD_JULIA_VALIDATION_DATA FALSE)
-else()
-    set(NMC_BUILD_JULIA_VALIDATION_DATA TRUE)
-endif()
-
-# Whether to attempt to use nrniv to build validation data
-# (if we find nrniv, do)
-find_program(NRNIV_BIN nrniv)
-if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
-    message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
-    set(NMC_BUILD_NRN_VALIDATION_DATA FALSE)
-else()
-    set(NMC_BUILD_NRN_VALIDATION_DATA TRUE)
+    # Whether to attempt to use nrniv to build validation data
+    # (if we find nrniv, do)
+    find_program(NRNIV_BIN nrniv)
+    if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
+        message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
+        set(NMC_BUILD_NRN_VALIDATION_DATA FALSE)
+    else()
+        set(NMC_BUILD_NRN_VALIDATION_DATA TRUE)
+    endif()
 endif()
 
 #----------------------------------------------------------
@@ -275,4 +261,4 @@ add_subdirectory(mechanisms)
 add_subdirectory(src)
 add_subdirectory(tests)
 add_subdirectory(miniapp)
-
+add_subdirectory(lmorpho)

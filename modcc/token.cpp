@@ -52,6 +52,7 @@ static Keyword keywords[] = {
     {"if",          tok::if_stmt},
     {"else",        tok::else_stmt},
     {"cnexp",       tok::cnexp},
+    {"sparse",      tok::sparse},
     {"exp",         tok::exp},
     {"sin",         tok::sin},
     {"cos",         tok::cos},

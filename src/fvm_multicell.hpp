@@ -60,9 +60,6 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
-    using matrix_assembler = typename backend::matrix_assembler;
-
-    using detector_handle = size_type;
     using target_handle = std::pair<size_type, size_type>;
     using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
 
@@ -72,10 +69,9 @@ public:
         resting_potential_ = potential_mV;
     }
 
-    template <typename Cells, typename Detectors, typename Targets, typename Probes>
+    template <typename Cells, typename Targets, typename Probes>
     void initialize(
         const Cells& cells,           // collection of nest::mc::cell descriptions
-        Detectors& detector_handles,  // (write) where to store detector handles
         Targets& target_handles,      // (write) where to store target handles
         Probes& probe_handles);       // (write) where to store probe handles
 
@@ -83,10 +79,6 @@ public:
 
     void deliver_event(target_handle h, value_type weight) {
         mechanisms_[h.first]->net_receive(h.second, weight);
-    }
-
-    value_type detector_voltage(detector_handle h) const {
-        return voltage_[h]; // detector_handle is just the compartment index
     }
 
     value_type probe(probe_handle h) const {
@@ -126,11 +118,6 @@ public:
     ///     1e-6.mm^2
     ///     1e-8.cm^2
     const_view cv_areas() const { return cv_areas_; }
-
-    /// return the capacitance of each CV surface
-    /// this is the total capacitance, not per unit area,
-    /// i.e. equivalent to sigma_i * c_m
-    const_view cv_capacitance() const { return cv_capacitance_; }
 
     /// return the voltage in each CV
     view       voltage()       { return voltage_; }
@@ -184,7 +171,32 @@ public:
 
     std::size_t num_probes() const { return probes_.size(); }
 
+    //
+    // Threshold crossing interface.
+    // Used by calling code to perform spike detection
+    //
+
+    /// types defined by the back end for threshold detection
+    using threshold_watcher = typename backend::threshold_watcher;
+    using crossing_list     = typename backend::threshold_watcher::crossing_list;
+
+    /// Forward the list of threshold crossings from the back end.
+    /// The list is passed by value, because we don't want the calling code
+    /// to depend on references to internal state of the solver, and because
+    /// for some backends the results might have to be collated before returning.
+    crossing_list get_spikes() const {
+       return threshold_watcher_.crossings();
+    }
+
+    /// clear all spikes: aka threshold crossings.
+    void clear_spikes() {
+       threshold_watcher_.clear_crossings();
+    }
+
 private:
+
+    threshold_watcher threshold_watcher_;
+
     /// current time [ms]
     value_type t_ = value_type{0};
 
@@ -194,19 +206,8 @@ private:
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
 
-    /// the helper used to construct the matrix
-    matrix_assembler matrix_assembler_;
-
     /// cv_areas_[i] is the surface area of CV i [µm^2]
     array cv_areas_;
-
-    /// CV i and its parent, required when constructing linear system [µS]
-    ///     face_conductance_[i] = area_face  / (r_L * delta_x);
-    array face_conductance_;
-
-    /// cv_capacitance_[i] is the capacitance of CV membrane [pF]
-    ///     C_m = area*c_m
-    array cv_capacitance_; // units [µm^2*F*m^-2 = pF]
 
     /// the transmembrane current over the surface of each CV [nA]
     ///     I = area*i_m - I_e
@@ -258,9 +259,9 @@ private:
         std::pair<size_type, size_type> comp_ival,
         const segment* seg,
         const std::vector<size_type>& parent,
-        std::vector<value_type>& tmp_face_conductance,
+        std::vector<value_type>& face_conductance,
         std::vector<value_type>& tmp_cv_areas,
-        std::vector<value_type>& tmp_cv_capacitance
+        std::vector<value_type>& cv_capacitance
     );
 };
 
@@ -273,9 +274,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
     std::pair<size_type, size_type> comp_ival,
     const segment* seg,
     const std::vector<size_type>& parent,
-    std::vector<value_type>& tmp_face_conductance,
+    std::vector<value_type>& face_conductance,
     std::vector<value_type>& tmp_cv_areas,
-    std::vector<value_type>& tmp_cv_capacitance)
+    std::vector<value_type>& cv_capacitance)
 {
     // precondition: group_parent_index[j] holds the correct value for
     // j in [base_comp, base_comp+segment.num_compartments()].
@@ -294,7 +295,7 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
         auto c_m = soma->mechanism("membrane").get("c_m").value;
 
         tmp_cv_areas[i] += area;
-        tmp_cv_capacitance[i] += area*c_m;
+        cv_capacitance[i] += area*c_m;
 
         cv_range.segment_cvs = {comp_ival.first, comp_ival.first+1};
         cv_range.areas = {0.0, area};
@@ -380,15 +381,15 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
             auto conductance = 1/r_L*h*V1*V2/(h2*h2*V1+h1*h1*V2);
             // the scaling factor of 10^2 is to convert the quantity
             // to micro Siemens [μS]
-            tmp_face_conductance[i] =  1e2 * conductance / h;
+            face_conductance[i] =  1e2 * conductance / h;
 
             auto al = div.left.area;
             auto ar = div.right.area;
 
             tmp_cv_areas[j] += al;
             tmp_cv_areas[i] += ar;
-            tmp_cv_capacitance[j] += al * c_m;
-            tmp_cv_capacitance[i] += ar * c_m;
+            cv_capacitance[j] += al * c_m;
+            cv_capacitance[i] += ar * c_m;
         }
     }
     else {
@@ -399,10 +400,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 }
 
 template <typename Backend>
-template <typename Cells, typename Detectors, typename Targets, typename Probes>
+template <typename Cells, typename Targets, typename Probes>
 void fvm_multicell<Backend>::initialize(
     const Cells& cells,
-    Detectors& detector_handles,
     Targets& target_handles,
     Probes& probe_handles)
 {
@@ -415,11 +415,9 @@ void fvm_multicell<Backend>::initialize(
     using util::transform_view;
     using util::subrange_view;
 
-    // count total detectors, targets and probes for validation of handle container sizes
-    std::size_t detectors_count = 0u;
+    // count total targets and probes for validation of handle container sizes
     std::size_t targets_count = 0u;
     std::size_t probes_count = 0u;
-    auto detectors_size = size(detector_handles);
     auto targets_size = size(target_handles);
     auto probes_size = size(probe_handles);
 
@@ -445,16 +443,21 @@ void fvm_multicell<Backend>::initialize(
 
     // create each cell:
     auto target_hi = target_handles.begin();
-    auto detector_hi = detector_handles.begin();
     auto probe_hi = probe_handles.begin();
 
     // Allocate scratch storage for calculating quantities used to build the
     // linear system: these will later be copied into target-specific storage
-    // as need be.
-    // Initialize to zero, because the results therin are calculated via accumulation.
-    std::vector<value_type> tmp_face_conductance(ncomp, 0.);
-    std::vector<value_type> tmp_cv_areas(ncomp, 0.);
-    std::vector<value_type> tmp_cv_capacitance(ncomp, 0.);
+
+    // face_conductance_[i] = area_face  / (r_L * delta_x);
+    std::vector<value_type> face_conductance(ncomp); // [µS]
+    /// cv_capacitance_[i] is the capacitance of CV membrane
+    std::vector<value_type> cv_capacitance(ncomp);   // [µm^2*F*m^-2 = pF]
+    /// membrane area of each cv
+    std::vector<value_type> tmp_cv_areas(ncomp);         // [µm^2]
+
+    // used to build the information required to construct spike detectors
+    std::vector<size_type> spike_detector_index;
+    std::vector<value_type> thresholds;
 
     // Iterate over the input cells and build the indexes etc that descrbe the
     // fused cell group. On completion:
@@ -489,7 +492,7 @@ void fvm_multicell<Backend>::initialize(
 
             auto cv_range = compute_cv_area_capacitance(
                 seg_comp_ival, seg, group_parent_index,
-                tmp_face_conductance, tmp_cv_areas, tmp_cv_capacitance);
+                face_conductance, tmp_cv_areas, cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
@@ -549,13 +552,11 @@ void fvm_multicell<Backend>::initialize(
             mechanisms_.push_back(mechanism(stim));
         }
 
-        // detector handles are just their corresponding compartment indices
+        // calculate spike detector handles are their corresponding compartment indices
         for (const auto& detector: c.detectors()) {
-            EXPECTS(detectors_count < detectors_size);
-
             auto comp = comp_ival.first+find_cv_index(detector.location, graph);
-            *detector_hi++ = comp;
-            ++detectors_count;
+            spike_detector_index.push_back(comp);
+            thresholds.push_back(detector.threshold);
         }
 
         // record probe locations by index into corresponding state vector
@@ -577,22 +578,19 @@ void fvm_multicell<Backend>::initialize(
         }
     }
 
-    // confirm user-supplied containers for detectors and probes were
-    // appropriately sized.
-    EXPECTS(detectors_size==detectors_count);
+    // set a back-end supplied watcher on the voltage vector
+    threshold_watcher_ =
+        threshold_watcher(voltage_, spike_detector_index, thresholds, 0);
+
+    // confirm user-supplied container probes were appropriately sized.
     EXPECTS(probes_size==probes_count);
 
     // store the geometric information in target-specific containers
-    face_conductance_ = make_const_view(tmp_face_conductance);
-    cv_areas_         = make_const_view(tmp_cv_areas);
-    cv_capacitance_   = make_const_view(tmp_cv_capacitance);
+    cv_areas_ = make_const_view(tmp_cv_areas);
 
     // initalize matrix
-    matrix_ = matrix_type(group_parent_index, cell_comp_bounds);
-
-    matrix_assembler_ = matrix_assembler(
-        matrix_.d(), matrix_.u(), matrix_.rhs(), matrix_.p(),
-        cv_capacitance_, face_conductance_, voltage_, current_);
+    matrix_ = matrix_type(
+        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance);
 
     // For each density mechanism build the full node index, i.e the list of
     // compartments with that mechanism, then build the mechanism instance.
@@ -750,6 +748,11 @@ void fvm_multicell<Backend>::reset() {
         m->set_params(t_, 0.025);
         m->nrn_init();
     }
+
+    // Reset state of the threshold watcher.
+    // NOTE: this has to come after the voltage_ values have been reinitialized,
+    // because these values are used by the watchers to set their initial state.
+    threshold_watcher_.reset(t_);
 }
 
 template <typename Backend>
@@ -768,12 +771,12 @@ void fvm_multicell<Backend>::advance(double dt) {
 
     // solve the linear system
     PE("matrix", "setup");
-    matrix_assembler_.assemble(dt);
+    matrix_.assemble(dt, voltage_, current_);
 
     PL(); PE("solve");
     matrix_.solve();
     PL();
-    memory::copy(matrix_.rhs(), voltage_);
+    memory::copy(matrix_.solution(), voltage_);
     PL();
 
     // integrate state of gating variables etc.
@@ -786,6 +789,9 @@ void fvm_multicell<Backend>::advance(double dt) {
     PL();
 
     t_ += dt;
+
+    // update spike detector thresholds
+    threshold_watcher_.test(t_);
 }
 
 } // namespace fvm

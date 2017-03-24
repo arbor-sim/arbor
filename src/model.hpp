@@ -28,10 +28,9 @@ public:
     using cell_group_type = cell_group<Cell>;
     using time_type = typename cell_group_type::time_type;
     using value_type = typename cell_group_type::value_type;
-    using communicator_type = communication::communicator<time_type, communication::global_policy>;
+    using communicator_type = communication::communicator<communication::global_policy>;
     using sampler_function = typename cell_group_type::sampler_function;
-    using spike_type = typename communicator_type::spike_type;
-    using spike_export_function = std::function<void(const std::vector<spike_type>&)>;
+    using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
     struct probe_record {
         cell_member_type id;
@@ -77,7 +76,7 @@ public:
         // generate the network connections
         for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
             for (const auto& cc: rec.connections_on(i)) {
-                connection<time_type> conn{cc.source, cc.dest, cc.weight, cc.delay};
+                connection conn{cc.source, cc.dest, cc.weight, cc.delay};
                 communicator_.add_connection(conn);
             }
         }
@@ -124,8 +123,54 @@ public:
         // to overlap communication and computation.
         time_type t_interval = communicator_.min_delay()/2;
 
+        time_type tuntil;
+
+        // task that updates cell state in parallel.
+        auto update_cells = [&] () {
+            threading::parallel_for::apply(
+                0u, cell_groups_.size(),
+                 [&](unsigned i) {
+                    auto &group = cell_groups_[i];
+
+                    PE("stepping","events");
+                    group.enqueue_events(current_events()[i]);
+                    PL();
+
+                    group.advance(tuntil, dt);
+
+                    PE("events");
+                    current_spikes().insert(group.spikes());
+                    group.clear_spikes();
+                    PL(2);
+                });
+        };
+
+        // task that performs spike exchange with the spikes generated in
+        // the previous integration period, generating the postsynaptic
+        // events that must be delivered at the start of the next
+        // integration period at the latest.
+        auto exchange = [&] () {
+            PE("stepping", "communication");
+
+            PE("exchange");
+            auto local_spikes = previous_spikes().gather();
+            auto global_spikes = communicator_.exchange(local_spikes);
+            PL();
+
+            PE("spike output");
+            local_export_callback_(local_spikes);
+            global_export_callback_(global_spikes.values());
+            PL();
+
+            PE("events");
+            future_events() = communicator_.make_event_queues(global_spikes);
+            PL();
+
+            PL(2);
+        };
+
         while (t_<tfinal) {
-            auto tuntil = std::min(t_+t_interval, tfinal);
+            tuntil = std::min(t_+t_interval, tfinal);
 
             event_queues_.exchange();
             local_spikes_.exchange();
@@ -133,50 +178,6 @@ public:
             // empty the spike buffers for the current integration period.
             // these buffers will store the new spikes generated in update_cells.
             current_spikes().clear();
-
-            // task that updates cell state in parallel.
-            auto update_cells = [&] () {
-                threading::parallel_for::apply(
-                    0u, cell_groups_.size(),
-                     [&](unsigned i) {
-                        auto &group = cell_groups_[i];
-
-                        PE("stepping","events");
-                        group.enqueue_events(current_events()[i]);
-                        PL();
-
-                        group.advance(tuntil, dt);
-
-                        PE("events");
-                        current_spikes().insert(group.spikes());
-                        group.clear_spikes();
-                        PL(2);
-                    });
-            };
-
-            // task that performs spike exchange with the spikes generated in
-            // the previous integration period, generating the postsynaptic
-            // events that must be delivered at the start of the next
-            // integration period at the latest.
-            auto exchange = [&] () {
-                PE("stepping", "communication");
-
-                PE("exchange");
-                auto local_spikes = previous_spikes().gather();
-                auto global_spikes = communicator_.exchange(local_spikes);
-                PL();
-
-                PE("spike output");
-                local_export_callback_(local_spikes);
-                global_export_callback_(global_spikes.values());
-                PL();
-
-                PE("events");
-                future_events() = communicator_.make_event_queues(global_spikes);
-                PL();
-
-                PL(2);
-            };
 
             // run the tasks, overlapping if the threading model and number of
             // available threads permits it.
@@ -187,6 +188,12 @@ public:
 
             t_ = tuntil;
         }
+
+        // Run the exchange one last time to ensure that all spikes are output
+        // to file.
+        event_queues_.exchange();
+        local_spikes_.exchange();
+        exchange();
 
         return t_;
     }
@@ -256,7 +263,7 @@ private:
     using event_queue_type = typename communicator_type::event_queue;
     util::double_buffer<std::vector<event_queue_type>> event_queues_;
 
-    using local_spike_store_type = thread_private_spike_store<time_type>;
+    using local_spike_store_type = thread_private_spike_store;
     util::double_buffer<local_spike_store_type> local_spikes_;
 
     spike_export_function global_export_callback_ = util::nop_function;

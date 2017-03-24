@@ -4,9 +4,11 @@
 #include <utility>
 
 #include <cell.hpp>
+#include <morphology.hpp>
 #include <util/debug.hpp>
 
 #include "miniapp_recipes.hpp"
+#include "morphology_pool.hpp"
 
 namespace nest {
 namespace mc {
@@ -16,37 +18,51 @@ namespace mc {
 
 template <typename RNG>
 cell make_basic_cell(
+    const morphology& morph,
     unsigned compartments_per_segment,
     unsigned num_synapses,
     const std::string& syn_type,
     RNG& rng)
 {
-    nest::mc::cell cell;
+    nest::mc::cell cell = make_cell(morph, true);
 
-    // Soma with diameter 12.6157 um and HH channel
-    auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism(mc::hh_parameters());
+    for (auto& segment: cell.segments()) {
+        if (compartments_per_segment!=0) {
+            if (cable_segment* cable = segment->as_cable()) {
+                cable->set_compartments(compartments_per_segment);
+            }
+        }
 
-    // add dendrite of length 200 um and diameter 1 um with passive channel
-    std::vector<mc::cable_segment*> dendrites;
-    dendrites.push_back(cell.add_cable(0, mc::segmentKind::dendrite, 0.5, 0.5, 200));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25,100));
-    dendrites.push_back(cell.add_cable(1, mc::segmentKind::dendrite, 0.5, 0.25,100));
-
-    for (auto d : dendrites) {
-        d->add_mechanism(mc::pas_parameters());
-        d->set_compartments(compartments_per_segment);
-        d->mechanism("membrane").set("r_L", 100);
+        if (segment->is_dendrite()) {
+            segment->add_mechanism(mc::pas_parameters());
+            segment->mechanism("membrane").set("r_L", 100);
+        }
     }
 
+    cell.soma()->add_mechanism(mc::hh_parameters());
     cell.add_detector({0,0}, 20);
 
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
-    // distribute the synapses at random locations the terminal dendrites in a
-    // round robin manner; the terminal dendrites in this cell have indices 2 and 3.
+
+    // Distribute the synapses at random locations the terminal dendrites in a
+    // round robin manner.
+
+    morph.assert_valid();
+    std::vector<unsigned> terminals;
+    for (const auto& section: morph.sections) {
+        // Note that morphology section ids should match up exactly with cell
+        // segment ids!
+        if (section.terminal) {
+            terminals.push_back(section.id);
+        }
+    }
+
+    EXPECTS(!terminals.empty());
+
     nest::mc::parameter_list syn_default(syn_type);
     for (unsigned i=0; i<num_synapses; ++i) {
-        cell.add_synapse({2+(i%2), distribution(rng)}, syn_default);
+        unsigned id = terminals[i%terminals.size()];
+        cell.add_synapse({id, distribution(rng)}, syn_default);
     }
 
     return cell;
@@ -57,7 +73,8 @@ public:
     basic_cell_recipe(cell_gid_type ncell, basic_recipe_param param, probe_distribution pdist):
         ncell_(ncell), param_(std::move(param)), pdist_(std::move(pdist))
     {
-        delay_distribution_param = exp_param{param_.mean_connection_delay_ms
+        EXPECTS(param_.morphologies.size()>0);
+        delay_distribution_param_ = exp_param{param_.mean_connection_delay_ms
                             - param_.min_connection_delay_ms};
     }
 
@@ -67,17 +84,20 @@ public:
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
-        auto cell = make_basic_cell(param_.num_compartments, cc.num_targets,
+        const auto& morph = get_morphology(i);
+        unsigned cell_segments = morph.components();
+
+        auto cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
                         param_.synapse_type, gen);
 
-        EXPECTS(cell.num_segments()==basic_cell_segments);
+        EXPECTS(cell.num_segments()==cell_segments);
         EXPECTS(cell.probes().size()==0);
         EXPECTS(cell.synapses().size()==cc.num_targets);
         EXPECTS(cell.detectors().size()==cc.num_sources);
 
         // add probes
         if (cc.num_probes) {
-            unsigned n_probe_segs = pdist_.all_segments? basic_cell_segments: 1u;
+            unsigned n_probe_segs = pdist_.all_segments? cell_segments: 1u;
             for (unsigned i = 0; i<n_probe_segs; ++i) {
                 if (pdist_.membrane_voltage) {
                     cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
@@ -93,12 +113,13 @@ public:
 
     cell_count_info get_cell_count_info(cell_gid_type i) const override {
         cell_count_info cc = {1, param_.num_synapses, 0 };
+        unsigned cell_segments = get_morphology(i).components();
 
         // probe this cell?
         if (std::floor(i*pdist_.proportion)!=std::floor((i-1.0)*pdist_.proportion)) {
             std::size_t np = pdist_.membrane_voltage + pdist_.membrane_current;
             if (pdist_.all_segments) {
-                np *= basic_cell_segments;
+                np *= cell_segments;
             }
 
             cc.num_probes = np;
@@ -110,7 +131,7 @@ public:
 protected:
     template <typename RNG>
     cell_connection draw_connection_params(RNG& rng) const {
-        std::exponential_distribution<float> delay_dist(delay_distribution_param);
+        std::exponential_distribution<float> delay_dist(delay_distribution_param_);
         float delay = param_.min_connection_delay_ms + delay_dist(rng);
         float weight = param_.syn_weight_per_cell/param_.num_synapses;
         return cell_connection{{0, 0}, {0, 0}, weight, delay};
@@ -119,10 +140,23 @@ protected:
     cell_gid_type ncell_;
     basic_recipe_param param_;
     probe_distribution pdist_;
-    static constexpr int basic_cell_segments = 4;
 
     using exp_param = std::exponential_distribution<float>::param_type;
-    exp_param delay_distribution_param;
+    exp_param delay_distribution_param_;
+
+    const morphology& get_morphology(cell_gid_type gid) const {
+        // Allocate to gids sequentially?
+        if (param_.morphology_round_robin) {
+            return param_.morphologies[gid%param_.morphologies.size()];
+        }
+
+        // Morphologies are otherwise selected deterministically pseudo-randomly from pool.
+        std::uniform_int_distribution<unsigned> morph_select_dist_(0, param_.morphologies.size()-1);
+
+        // TODO: definitely replace this with a random hash!
+        auto gen = std::mt19937(gid+0xbad0cafe);
+        return param_.morphologies[morph_select_dist_(gen)];
+    }
 };
 
 class basic_ring_recipe: public basic_cell_recipe {
