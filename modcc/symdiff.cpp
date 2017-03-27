@@ -1,4 +1,5 @@
 #include <cmath>
+#include <limits>
 #include <map>
 #include <set>
 #include <stdexcept>
@@ -266,7 +267,13 @@ private:
 // from the given one with constant simplifications.
 
 long double expr_value(Expression* e) {
-    return e && e->is_number()? e->is_number()->value(): NAN;
+#ifdef __FAST_MATH__
+    const long double dummy = std::numeric_limits<long double>::lowest();
+    #warning "building modcc with -ffast-math means we need to make compromises in the source!"
+#else
+    const long double dummy = NAN;
+#endif
+    return e && e->is_number()? e->is_number()->value(): dummy;
 }
 
 class ConstantSimplifyVisitor: public Visitor {
