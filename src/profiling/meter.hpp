@@ -9,6 +9,8 @@ namespace util {
 
 class meter {
 public:
+    meter() = default;
+
     // Every meter type should provide a human readable name
     virtual std::string name() = 0;
 
@@ -17,7 +19,7 @@ public:
     // This call may perform expensive operations to process and analyse the readings
     virtual nlohmann::json as_json() = 0;
 
-    virtual ~meter();
+    virtual ~meter() = default;
 };
 
 } // namespace util

@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include <util/make_unique.hpp>
 #include <communication/global_policy.hpp>
 #include <json/json.hpp>
 
@@ -18,36 +19,13 @@ class meter_manager {
     std::vector<meter_ptr> meters_;
     std::vector<std::string> checkpoint_names_;
 
+    nlohmann::json as_json();
+
 public:
 
-    void checkpoint(std::string name) {
-        checkpoint_names_.push_back(std::move(name));
-
-        for (auto& m: meters_) {
-            m->take_reading();
-        }
-    }
-
-    nlohmann::json as_json() {
-        using gcom = communication::global_policy;
-
-        nlohmann::json meter_out = {};
-        for (const auto& m: meters_) {
-            meter_out.push_back(m->as_json());
-        }
-
-        nlohmann::json result = {
-            {"checkpoints", checkpoint_names_},
-            {"num_domains", gcom::size()},
-            {"meters", meter_out},
-            // number of mpi ranks
-            // list of checkpoints by name
-            // global mode: serial, dryrun or mpi
-            // mapping of domains to nodes
-        };
-
-        return result;
-    }
+    meter_manager();
+    void checkpoint(std::string name);
+    void save_to_file(const std::string& name);
 };
 
 } // namespace util

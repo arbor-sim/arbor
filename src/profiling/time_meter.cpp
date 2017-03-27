@@ -1,5 +1,3 @@
-#pragma once
-
 #include <string>
 #include <vector>
 #include <json/json.hpp>
@@ -17,10 +15,12 @@ std::string time_meter::name() {
 
 void time_meter::take_reading() {
     readings_.push_back(timer_type::tic());
+    communication::global_policy::barrier();
 }
 
 // This call may perform expensive operations to process and analyse the readings
 nlohmann::json time_meter::as_json() {
+    using nlohmann::json;
     using gcom = communication::global_policy;
     const bool is_root = gcom::id()==0;
 
@@ -34,8 +34,8 @@ nlohmann::json time_meter::as_json() {
 
     auto num_readings = times.size();
 
-    auto num_domains = gcom::size();
-    if (gcom::min(times.size())!=gcom::max(times.size())) {
+    //auto num_domains = gcom::size();
+    if (gcom::min(num_readings)!=gcom::max(num_readings)) {
         throw std::out_of_range(
             "the number of checkpoints in the \"time\" meter do not match across domains");
     }
@@ -56,7 +56,7 @@ nlohmann::json time_meter::as_json() {
     if (is_root) {
         return {
             {"name", "time"},
-            {"values", {"min", min}, {"max", max}, {"mean", mean}}
+            {"values", {{"min", min}, {"max", max}, {"mean", mean}}}
         };
     }
 

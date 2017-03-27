@@ -4,6 +4,8 @@ set(BASE_SOURCES
     morphology.cpp
     parameter_list.cpp
     profiling/profiler.cpp
+    profiling/time_meter.cpp
+    profiling/meter_manager.cpp
     swcio.cpp
     threading/affinity.cpp
     util/debug.cpp

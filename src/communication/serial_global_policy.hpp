@@ -57,6 +57,8 @@ struct serial_global_policy {
         return {value};
     }
 
+    static void barrier() {}
+
     static void setup(int& argc, char**& argv) {}
     static void teardown() {}
 
