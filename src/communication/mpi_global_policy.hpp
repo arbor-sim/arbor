@@ -51,6 +51,11 @@ struct mpi_global_policy {
         return nest::mc::mpi::reduce(value, MPI_SUM);
     }
 
+    template <typename T>
+    static std::vector<T> gather(T value, int root) {
+        return mpi::gather(value, root);
+    }
+
     static void setup(int& argc, char**& argv) {
         nest::mc::mpi::init(&argc, &argv);
     }
