@@ -40,23 +40,17 @@ nlohmann::json time_meter::as_json() {
             "the number of checkpoints in the \"time\" meter do not match across domains");
     }
 
-    std::vector<double> min;
-    std::vector<double> max;
-    std::vector<double> mean;
+    json results;
+    //std::vector<std::vector<double>> results;
     for (auto t: times) {
-        auto values = gcom::gather(t, 0);
-        if (is_root) {
-            auto minmax = std::minmax_element(values.begin(), values.end());
-            min.push_back(*(minmax.first));
-            max.push_back(*(minmax.second));
-            mean.push_back( algorithms::sum(values)/values.size() );
-        }
+        results.push_back(gcom::gather(t, 0));
     }
 
     if (is_root) {
         return {
-            {"name", "time"},
-            {"values", {{"min", min}, {"max", max}, {"mean", mean}}}
+            {"name", "walltime"},
+            {"units", "s"},
+            {"measurements", results}
         };
     }
 
