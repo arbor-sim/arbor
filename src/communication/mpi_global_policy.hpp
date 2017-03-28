@@ -56,6 +56,10 @@ struct mpi_global_policy {
         return mpi::gather(value, root);
     }
 
+    static void barrier() {
+        mpi::barrier();
+    }
+
     static void setup(int& argc, char**& argv) {
         nest::mc::mpi::init(&argc, &argv);
     }

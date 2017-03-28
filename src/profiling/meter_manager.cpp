@@ -49,11 +49,12 @@ json meter_manager::as_json() {
 }
 
 void meter_manager::save_to_file(const std::string& name) {
+    auto measurements = as_json();
     if (!communication::global_policy::id()) {
         std::ofstream fid;
         fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
         fid.open(name);
-        fid << std::setw(2) << as_json() << "\n";
+        fid << std::setw(2) << measurements << "\n";
     }
 }
 
