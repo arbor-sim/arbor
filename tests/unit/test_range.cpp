@@ -223,6 +223,25 @@ TEST(range, max_value) {
     EXPECT_EQ('x', i);
 }
 
+TEST(range, minmax_value) {
+    auto cstr_empty_range = util::make_range((const char*)"", null_terminated);
+    auto p1 = util::minmax_value(cstr_empty_range);
+    EXPECT_EQ('\0', p1.first);
+    EXPECT_EQ('\0', p1.second);
+
+    const char *cstr = "hello world";
+    auto cstr_range = util::make_range(cstr, null_terminated);
+    auto p2 = util::minmax_value(cstr_range);
+    EXPECT_EQ(' ', p2.first);
+    EXPECT_EQ('w', p2.second);
+
+    auto p3 = util::minmax_value(
+        util::transform_view(cstr_range, [](char c) { return -(int)c; }));
+
+    EXPECT_EQ('w', -p3.first);
+    EXPECT_EQ(' ', -p3.second);
+}
+
 
 template <typename V>
 class counter_range: public ::testing::Test {};

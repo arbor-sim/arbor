@@ -238,7 +238,7 @@ max_element_by(const Seq& seq, const Proj& proj) {
         });
 }
 
-// Maximum value
+// Maximum value.
 //
 // Value semantics instead of iterator semantics means it will operate
 // with input iterators.  Will return default-constructed value if sequence
@@ -267,6 +267,34 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
         }
     }
     return m;
+}
+
+// Minimum and maximum value.
+
+template <
+    typename Seq,
+    typename Value = typename sequence_traits<Seq>::value_type,
+    typename Compare = std::less<Value>
+>
+std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
+    if (util::empty(seq)) {
+        return {Value{}, Value{}};
+    }
+
+    auto i = std::begin(seq);
+    auto e = std::end(seq);
+    auto lower = *i;
+    auto upper = *i;
+    while (++i!=e) {
+        Value x = *i;
+        if (cmp(upper, x)) {
+            upper = std::move(x);
+        }
+        else if (cmp(x, lower)) {
+            lower = std::move(x);
+        }
+    }
+    return {lower, upper};
 }
 
 template <typename C, typename Seq>
