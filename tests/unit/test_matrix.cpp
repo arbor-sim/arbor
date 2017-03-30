@@ -11,12 +11,15 @@
 using namespace nest::mc;
 
 using matrix_type = matrix<nest::mc::multicore::backend>;
-using size_type = matrix_type::size_type;
+using size_type  = matrix_type::size_type;
+using value_type = matrix_type::value_type;
+
+using vvec = std::vector<value_type>;
 
 TEST(matrix, construct_from_parent_only)
 {
     std::vector<size_type> p = {0,0,1};
-    matrix_type m(p, {0, 3}, {}, {});
+    matrix_type m(p, {0, 3}, vvec(3), vvec(3));
     EXPECT_EQ(m.num_cells(), 1u);
     EXPECT_EQ(m.size(), 3u);
     EXPECT_EQ(p.size(), 3u);
@@ -34,7 +37,7 @@ TEST(matrix, solve_host)
 
     // trivial case : 1x1 matrix
     {
-        matrix_type m({0}, {0,1}, {}, {});
+        matrix_type m({0}, {0,1}, vvec(1), vvec(1));
         auto& state = m.state_;
         fill(state.d,  2);
         fill(state.u, -1);
@@ -50,7 +53,7 @@ TEST(matrix, solve_host)
         for(auto n : make_span(2u,1001u)) {
             auto p = std::vector<size_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
-            matrix_type m(p, {0, n}, {}, {});
+            matrix_type m(p, {0, n}, vvec(n), vvec(n));
 
             EXPECT_EQ(m.size(), n);
             EXPECT_EQ(m.num_cells(), 1u);

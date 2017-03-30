@@ -37,7 +37,7 @@ struct backend {
 
     /// matrix state
     struct matrix_state {
-        iarray p;
+        iarray parent_index;
         iarray cell_index;
 
         array d;     // [μS]
@@ -52,36 +52,39 @@ struct backend {
 
         const_view solution;
 
-        std::size_t size() const { return p.size(); }
-
         matrix_state() = default;
 
-        //matrix_state(const_iview p, const_iview cell_index, array cap, array cond):
         matrix_state( const std::vector<size_type>& p,
                       const std::vector<size_type>& cell_idx,
                       const std::vector<value_type>& cap,
                       const std::vector<value_type>& cond):
-            p(memory::make_const_view(p)),
+            parent_index(memory::make_const_view(p)),
             cell_index(memory::make_const_view(cell_idx)),
             d(size(), 0), u(size(), 0), rhs(size()),
             cv_capacitance(memory::make_const_view(cap)),
             face_conductance(memory::make_const_view(cond))
         {
-            if (has_fvm_state()) {
-                auto n = d.size();
-                invariant_d = array(n, 0);
-                for (auto i: util::make_span(1u, n)) {
-                    auto gij = face_conductance[i];
+            EXPECTS(cap.size() == size());
+            EXPECTS(cond.size() == size());
+            EXPECTS(cell_idx.back() == size());
 
-                    u[i] = -gij;
-                    invariant_d[i] += gij;
-                    invariant_d[p[i]] += gij;
-                }
+            auto n = d.size();
+            invariant_d = array(n, 0);
+            for (auto i: util::make_span(1u, n)) {
+                auto gij = face_conductance[i];
+
+                u[i] = -gij;
+                invariant_d[i] += gij;
+                invariant_d[p[i]] += gij;
             }
 
             // In this back end the solution is a simple view of the rhs, which
             // contains the solution after the matrix_solve is performed.
             solution = rhs;
+        }
+
+        std::size_t size() const {
+            return parent_index.size();
         }
 
         // Assemble the matrix
@@ -90,8 +93,6 @@ struct backend {
         //   voltage [mV]
         //   current [nA]
         void assemble(value_type dt, const_view voltage, const_view current) {
-            EXPECTS(has_fvm_state());
-
             auto n = d.size();
             value_type factor = 1e-3/dt;
             for (auto i: util::make_span(0u, n)) {
@@ -114,23 +115,17 @@ struct backend {
                 // backward sweep
                 for(auto i=last-1; i>first; --i) {
                     auto factor = u[i] / d[i];
-                    d[p[i]]   -= factor * u[i];
-                    rhs[p[i]] -= factor * rhs[i];
+                    d[parent_index[i]]   -= factor * u[i];
+                    rhs[parent_index[i]] -= factor * rhs[i];
                 }
                 rhs[first] /= d[first];
 
                 // forward sweep
                 for(auto i=first+1; i<last; ++i) {
-                    rhs[i] -= u[i] * rhs[p[i]];
+                    rhs[i] -= u[i] * rhs[parent_index[i]];
                     rhs[i] /= d[i];
                 }
             }
-        }
-
-        // Test if the matrix has the full state required to assemble the
-        // matrix in the fvm scheme.
-        bool has_fvm_state() const {
-            return cv_capacitance.size()>0;
         }
     };
 

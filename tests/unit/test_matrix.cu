@@ -11,8 +11,6 @@
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
-#include <backends/gpu_kernels.hpp>
-
 using namespace nest::mc;
 
 using gpu::impl::npos;

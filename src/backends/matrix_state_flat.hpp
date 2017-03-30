@@ -4,7 +4,8 @@
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gpu_kernels.hpp"
+#include "gpu_kernels/solve_matrix.hpp"
+#include "gpu_kernels/assemble_matrix.hpp"
 
 namespace nest {
 namespace mc {
@@ -41,33 +42,35 @@ struct matrix_state_flat {
     matrix_state_flat() = default;
 
     matrix_state_flat(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_index,
+                 const std::vector<size_type>& cell_idx,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond):
         parent_index(memory::make_const_view(p)),
-        cell_index(memory::make_const_view(cell_index)),
-        d(p.size(), impl::npos<T>()),
+        cell_index(memory::make_const_view(cell_idx)),
+        d(p.size()),
         u(p.size()),
-        rhs(p.size(), impl::npos<T>()),
+        rhs(p.size()),
         cv_capacitance(memory::make_const_view(cv_cap))
     {
+        EXPECTS(cv_cap.size() == size());
+        EXPECTS(face_cond.size() == size());
+        EXPECTS(cell_idx.back() == size());
+
         using memory::make_const_view;
 
-        if (has_fvm_state()) {
-            auto n = d.size();
-            std::vector<value_type> invariant_d_tmp(n, 0);
-            std::vector<value_type> u_tmp(n, 0);
+        auto n = d.size();
+        std::vector<value_type> invariant_d_tmp(n, 0);
+        std::vector<value_type> u_tmp(n, 0);
 
-            for(auto i: util::make_span(1u, n)) {
-                auto gij = face_cond[i];
+        for(auto i: util::make_span(1u, n)) {
+            auto gij = face_cond[i];
 
-                u_tmp[i] = -gij;
-                invariant_d_tmp[i] += gij;
-                invariant_d_tmp[p[i]] += gij;
-            }
-            invariant_d = make_const_view(invariant_d_tmp);
-            u = make_const_view(u_tmp);
+            u_tmp[i] = -gij;
+            invariant_d_tmp[i] += gij;
+            invariant_d_tmp[p[i]] += gij;
         }
+        invariant_d = make_const_view(invariant_d_tmp);
+        u = make_const_view(u_tmp);
 
         solution = rhs;
     }
@@ -82,8 +85,6 @@ struct matrix_state_flat {
     //   voltage [mV]
     //   current [nA]
     void assemble(value_type dt, const_view voltage, const_view current) {
-        EXPECTS(has_fvm_state());
-
         // determine the grid dimensions for the kernel
         auto const n = voltage.size();
         auto const block_dim = 128;
@@ -106,13 +107,7 @@ struct matrix_state_flat {
     }
 
     std::size_t size() const {
-        return d.size();
-    }
-
-    // Test if the matrix has the full state required to assemble the
-    // matrix in the fvm scheme.
-    bool has_fvm_state() const {
-        return cv_capacitance.size()>0;
+        return parent_index.size();
     }
 };
 

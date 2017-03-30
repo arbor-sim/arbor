@@ -10,8 +10,8 @@
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gpu_kernels.hpp"
 #include "gpu_stack.hpp"
+#include "gpu_kernels/test_thresholds.hpp"
 #include "stimulus_gpu.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "matrix_state_flat.hpp"
@@ -47,7 +47,6 @@ struct backend {
 
     // matrix back end implementation
     using matrix_state = matrix_state_interleaved<value_type, size_type>;
-    //using matrix_state = matrix_state_flat<value_type, size_type>;
 
     //
     // mechanism infrastructure

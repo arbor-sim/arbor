@@ -4,11 +4,38 @@
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gpu_kernels.hpp"
+#include "gpu_kernels/solve_matrix.hpp"
+#include "gpu_kernels/assemble_matrix.hpp"
+#include "gpu_kernels/interleave.hpp"
 
 namespace nest {
 namespace mc {
 namespace gpu {
+
+// A helper that performs the interleave operation on host memory.
+template <typename T, typename I>
+std::vector<T> interleave_host(
+        const std::vector<T>& in,
+        const std::vector<I>& sizes,
+        const std::vector<I>& starts,
+        int block_width, int num_mtx, int padded_length)
+{
+    auto num_blocks = impl::block_count(num_mtx, block_width);
+    std::vector<T> out(num_blocks*block_width*padded_length, impl::npos<T>());
+    for (auto mtx: util::make_span(0, num_mtx)) {
+        auto block = mtx/block_width;
+        auto lane  = mtx%block_width;
+
+        auto len = sizes[mtx];
+        auto src = starts[mtx];
+        auto dst = block*(block_width*padded_length) + lane;
+        for (auto i: util::make_span(0, len)) {
+            out[dst] = in[src+i];
+            dst += block_width;
+        }
+    }
+    return out;
+};
 
 /// matrix state
 template <typename T, typename I>
@@ -65,16 +92,13 @@ struct matrix_state_interleaved {
     //  cv_cap      // [pF]
     //  face_cond   // [μS]
     matrix_state_interleaved(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_index,
+                 const std::vector<size_type>& cell_idx,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond)
     {
-        // Assert that capacitance and conductance satisfie one of two conditions
-        // * both are defined, with one value for each compartment
-        // * both are empty
-        // Note that the number of compartments is equal to p.size()
-        EXPECTS(   cv_cap.size()==face_cond.size()
-                && (cv_cap.size()==p.size() || !cv_cap.size()));
+        EXPECTS(cv_cap.size()    == p.size());
+        EXPECTS(face_cond.size() == p.size());
+        EXPECTS(cell_idx.back()  == p.size());
 
         using util::make_span;
 
@@ -86,9 +110,9 @@ struct matrix_state_interleaved {
         //
 
         // find the size of each matrix
-        const auto num_mtx = cell_index.size()-1;
+        const auto num_mtx = cell_idx.size()-1;
         svec sizes;
-        for (auto it=cell_index.begin()+1; it!=cell_index.end(); ++it) {
+        for (auto it=cell_idx.begin()+1; it!=cell_idx.end(); ++it) {
             sizes.push_back(*it - *(it-1));
         }
 
@@ -106,7 +130,7 @@ struct matrix_state_interleaved {
         }
         svec cell_index_p;
         for (auto i: make_span(0, num_mtx)) {
-            cell_index_p.push_back(cell_index[perm[i]]);
+            cell_index_p.push_back(cell_idx[perm[i]]);
         }
 
         //
@@ -150,41 +174,32 @@ struct matrix_state_interleaved {
         //  upper diagonal on the host, then copy to the device.
         //
 
-        // only if capacitance and conductance values provided
-        if (cv_cap.size()) {
-            std::vector<value_type> invariant_d_tmp(p.size(), 0);
-            std::vector<value_type> u_tmp(p.size(), 0);
-            auto face_conductance_tmp = memory::on_host(face_cond);
-            for(auto i: util::make_span(1u, p.size())) {
-                auto gij = face_conductance_tmp[i];
+        std::vector<value_type> invariant_d_tmp(p.size(), 0);
+        std::vector<value_type> u_tmp(p.size(), 0);
+        auto face_conductance_tmp = memory::on_host(face_cond);
+        for(auto i: util::make_span(1u, p.size())) {
+            auto gij = face_conductance_tmp[i];
 
-                u_tmp[i] = -gij;
-                invariant_d_tmp[i] += gij;
-                invariant_d_tmp[p[i]] += gij;
-            }
+            u_tmp[i] = -gij;
+            invariant_d_tmp[i] += gij;
+            invariant_d_tmp[p[i]] += gij;
+        }
 
-            // helper that converts to interleaved format on the host, then copies to device
-            // memory, for use as an rvalue in an assignemt to a device vector.
-            auto interleave = [&] (std::vector<T>const& x) {
-                return memory::on_gpu(
-                    interleave_host(x, sizes_p, cell_index_p, block_dim(), num_mtx, padded_size));
-            };
-            u = interleave(u_tmp);
-            invariant_d = interleave(invariant_d_tmp);
-            cv_capacitance = interleave(cv_cap);
-        }
-        else {
-            // If not assembling matrix from user-provide capacitance and conductance,
-            // initialize the u array to zero.
-            u = array(p.size(), 0);
-        }
+        // helper that converts to interleaved format on the host, then copies to device
+        // memory, for use as an rvalue in an assignemt to a device vector.
+        auto interleave = [&] (std::vector<T>const& x) {
+            return memory::on_gpu(
+                interleave_host(x, sizes_p, cell_index_p, block_dim(), num_mtx, padded_size));
+        };
+        u = interleave(u_tmp);
+        invariant_d = interleave(invariant_d_tmp);
+        cv_capacitance = interleave(cv_cap);
+
         matrix_sizes = memory::make_const_view(sizes_p);
         matrix_index = memory::make_const_view(cell_index_p);
 
         // allocate space for storing the un-interleaved solution
         solution = array(p.size());
-
-        EXPECTS(num_mtx == unsigned(num_matrices()));
     }
 
     // the number of matrices stored in the matrix state
@@ -203,8 +218,6 @@ struct matrix_state_interleaved {
     //   voltage [mV]
     //   current [nA]
     void assemble(value_type dt, const_view voltage, const_view current) {
-        EXPECTS(has_fvm_state());
-
         constexpr auto bd = impl::block_dim();
         constexpr auto lw = impl::load_width();
         constexpr auto block_dim = bd*lw;
@@ -234,12 +247,6 @@ struct matrix_state_interleaved {
         reverse_interleave<value_type, size_type, impl::block_dim(), impl::load_width()>
             ( rhs.data(), solution.data(), matrix_sizes.data(), matrix_index.data(),
               padded_matrix_size(), num_matrices());
-    }
-
-    // Test if the matrix has the full state required to assemble the
-    // matrix in the fvm scheme.
-    bool has_fvm_state() const {
-        return cv_capacitance.size()>0;
     }
 };
 
