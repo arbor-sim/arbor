@@ -46,8 +46,7 @@ struct backend {
     }
 
     // matrix back end implementation
-    //using matrix_state = matrix_state_interleaved<value_type, size_type>;
-    using matrix_state = matrix_state_flat<value_type, size_type>;
+    using matrix_state = matrix_state_interleaved<value_type, size_type>;
 
     //
     // mechanism infrastructure
