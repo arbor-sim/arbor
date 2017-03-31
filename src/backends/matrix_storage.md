@@ -13,9 +13,9 @@ In NestMC multicompartment a single cell has a matrix structure associated with 
 The matrix packing applies the same packing operation to each vector associated with a matrix, i.e. the `u`, `d`, `p` and solution, voltage vectors.
 
 In this discussion we use a simple example group of matrices to illustrate the storage methods, because an example is more illustrative than a formal description:
-    * 7 vectors labeled {a, b, c, d, e, f, g}
-    * the vectors have respective lenghts {8, 7, 6, 6, 5, 5, 3}
-    * the ith value in vector a is labelled ai
+  * 7 vectors labeled `{a, b, c, d, e, f, g}`
+  * the vectors have respective lenghts `{8, 7, 6, 6, 5, 5, 3}`
+  * the `i`th value in vector `a` is labelled `ai`
 
 ## Flat storage
 
