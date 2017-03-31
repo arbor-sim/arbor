@@ -36,12 +36,16 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     I& inner() { return inner_; }
 
     using inner_value_type = util::decay_t<decltype(*inner_)>;
+    using raw_value_type = typename std::result_of<F (inner_value_type)>::type;
+
+    static constexpr bool present_lvalue = std::is_reference<raw_value_type>::value;
+
 
 public:
     using typename base::difference_type;
-    using value_type = util::decay_t<typename std::result_of<F (inner_value_type)>::type>;
-    using pointer = const value_type*;
-    using reference = const value_type&;
+    using value_type = util::decay_t<raw_value_type>;
+    using pointer = typename std::conditional<present_lvalue, value_type*, const value_type*>::type;
+    using reference = typename std::conditional<present_lvalue, raw_value_type, const value_type&>::type;
 
     transform_iterator() = default;
 
@@ -77,15 +81,18 @@ public:
 
     // forward and input iterator requirements
 
-    value_type operator*() const {
+    typename std::conditional<present_lvalue, reference, value_type>::type
+    operator*() const {
         return f_.cref()(*inner_);
     }
 
-    util::pointer_proxy<value_type> operator->() const {
-        return **this;
+    typename std::conditional<present_lvalue, pointer, util::pointer_proxy<value_type>>::type
+    operator->() const {
+        return pointer_impl(std::integral_constant<bool, present_lvalue>{});
     }
 
-    value_type operator[](difference_type n) const {
+    typename std::conditional<present_lvalue, reference, value_type>::type
+    operator[](difference_type n) const {
         return *(*this+n);
     }
 
@@ -101,6 +108,17 @@ public:
 
     template <typename Sentinel>
     bool operator!=(const Sentinel& s) const { return !(inner_==s); }
+
+private:
+    // helper routines for operator->(): need different implementations for
+    // lvalue and non-lvalue access.
+    util::pointer_proxy<value_type> pointer_impl(std::false_type) const {
+        return **this;
+    }
+
+    pointer pointer_impl(std::true_type) const {
+        return &(**this);
+    }
 };
 
 template <typename I, typename F>

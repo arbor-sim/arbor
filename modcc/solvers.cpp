@@ -49,19 +49,7 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
     }
 
     Expression* coef = r.coef[s].get();
-    if (r.is_homogeneous) {
-        // s' = a*s becomes s = s*exp(a*dt); use a_ as a local variable
-        // for the coefficient.
-        auto local_a_term = make_unique_local_assign(scope, coef, "a_");
-        statements_.push_back(std::move(local_a_term.local_decl));
-        statements_.push_back(std::move(local_a_term.assignment));
-        auto a_ = local_a_term.id->is_identifier()->spelling();
-
-        std::string s_update = pprintf("% = %*exp(%*dt)", s, s, a_);
-        statements_.push_back(Parser{s_update}.parse_line_expression());
-        return;
-    }
-    else if (is_zero(coef)) {
+    if (!coef || is_zero(coef)) {
         // s' = b becomes s = s + b*dt; use b_ as a local variable for
         // the constant term b.
 
@@ -71,6 +59,18 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
         auto b_ = local_b_term.id->is_identifier()->spelling();
 
         std::string s_update = pprintf("% = %+%*dt", s, s, b_);
+        statements_.push_back(Parser{s_update}.parse_line_expression());
+        return;
+    }
+    else if (r.is_homogeneous) {
+        // s' = a*s becomes s = s*exp(a*dt); use a_ as a local variable
+        // for the coefficient.
+        auto local_a_term = make_unique_local_assign(scope, coef, "a_");
+        statements_.push_back(std::move(local_a_term.local_decl));
+        statements_.push_back(std::move(local_a_term.assignment));
+        auto a_ = local_a_term.id->is_identifier()->spelling();
+
+        std::string s_update = pprintf("% = %*exp(%*dt)", s, s, a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }

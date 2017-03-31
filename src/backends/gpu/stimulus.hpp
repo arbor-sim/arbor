@@ -48,7 +48,6 @@ public:
     using view   = typename base::view;
     using iview  = typename base::iview;
     using const_iview = typename base::const_iview;
-    using indexed_view_type= typename base::indexed_view_type;
     using ion_type = typename base::ion_type;
 
     stimulus(view vec_v, view vec_i, iarray&& node_index):
