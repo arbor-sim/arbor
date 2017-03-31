@@ -5,6 +5,7 @@
 
 #include <mechanism.hpp>
 #include <algorithms.hpp>
+#include <util/indirect.hpp>
 #include <util/pprintf.hpp>
 
 namespace nest{
@@ -24,7 +25,6 @@ public:
     using view   = typename base::view;
     using iview  = typename base::iview;
     using const_iview = typename base::const_iview;
-    using indexed_view_type= typename base::indexed_view_type;
     using ion_type = typename base::ion_type;
 
     stimulus(view vec_v, view vec_i, iarray&& node_index):
@@ -80,7 +80,7 @@ public:
         if (amplitude.size() != size()) {
             throw std::domain_error("stimulus called with mismatched parameter size\n");
         }
-        indexed_view_type vec_i(vec_i_, node_index_);
+        auto vec_i = util::indirect_view(vec_i_, node_index_);
         int n = size();
         for(int i=0; i<n; ++i) {
             if (t>=delay[i] && t<(delay[i]+duration[i])) {
