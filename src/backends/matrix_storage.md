@@ -20,16 +20,19 @@ In this discussion we use a simple example group of matrices to illustrate the s
 ## Flat storage
 
 Take a vector vals containing the values:
+
 ```
 vals = [a0 a1 a2 a3 a4 a5 a6 a7 | b0 b1 b2 b3 b4 b5 b6 | c0 c1 c2 c3 c4 c5 | d0 d1 d2 d3 d4 d5 | e0 e1 e2 e3 e4 | f0 f1 f2 f3 f4 | g0 g1 g2 ]
 ```
 
 To fully describe the set of matrices we need an index vector of lenth `#matrices+1`:
+
 ```
 indx = [0, 8, 15, 21, 27, 32, 37, 40]
 ```
 
 To look up the value of the `i`th entry in the vector `m`, we use the following formula to calculate the index
+
 ```
 lookup_flt(i,m): indx[m] + i
 ```
@@ -37,25 +40,31 @@ lookup_flt(i,m): indx[m] + i
 ## Interleaved storage
 
 To store the matrices with block width 4 and padded matrix size of 8 two arrays are also required:
+
 ```
 vals =
 [ a0 b0 c0 d0 | a1 b1 c1 d1 | a2 b2 c2 d2 | a3 b3 c3 d3 | a4 b4 c4 d4 | a5 b5 c5 d5 | a6 b6  *  * | a7  *  *  * |
   e0 f0 g0  * | e1 f1 g1  * | e2 f2 g2  * | e3 f3  *  * | e4 f4  *  * |  *  *  *  * |  *  *  *  * |  *  *  *  * ]
 sizes = [8, 7, 6, 6, 5, 5, 3]
 ```
+
 where `*` indicates padding, or a location in `vals` that does not hold a value that is part of one of the packed vectors.
 
 To look up the value of the `i`th entry in the vector `m`, we use the following formula to calculate the index into `vals`
+
 ```
 lookup_int(i,m) = floor(m/BW)*BW*N + m-floor(m/BW)*BW + i*BW
 ``
 
 The `block` and `lane` (i.e. the block-local index) of a matrix can be computed
+
 ```
 block = floor(m/BW)
 lane = m-block*BW
 ```
+
 so that the index calcuation can be expressed more succinctly and clearly:
+
 ```
 lookup_int(i,m): block*BW*N + lane + i*BW
 ```
