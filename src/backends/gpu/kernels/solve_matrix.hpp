@@ -45,7 +45,7 @@ void solve_matrix_interleaved(
 {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 
-    if(tid < num_mtx) {
+    if (tid<num_mtx) {
         const auto block       = tid/BlockWidth;
         const auto block_start = block*BlockWidth;
         const auto block_lane  = tid - block_start;

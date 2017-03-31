@@ -73,7 +73,6 @@ template <typename T, typename I, int BlockWidth, int LoadWidth>
 
     // we expect that the result of the reverse permutation is the original input vector
     const auto backward_success = (result_b==values);
-    EXPECT_TRUE(backward_success);
     if (!backward_success) {
         return ::testing::AssertionFailure() << "flat to interleave failed: BlockWidth "
             << BlockWidth << ", LoadWidth " << LoadWidth << "\n";
@@ -104,32 +103,32 @@ TEST(matrix, interleave)
         tvec values(padded_size*num_mtx);
         std::iota(values.begin(), values.end(), 0);
 
-        test_interleave<T, I, 1, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 2, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 3, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 4, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 5, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 6, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 7, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 8, 1>(sizes, starts, values, padded_size);
+        EXPECT_TRUE((test_interleave<T, I, 1, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 2, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 3, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 4, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 5, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 6, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 7, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 8, 1>(sizes, starts, values, padded_size)));
 
-        test_interleave<T, I, 1, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 2, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 3, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 4, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 5, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 6, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 7, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 8, 2>(sizes, starts, values, padded_size);
+        EXPECT_TRUE((test_interleave<T, I, 1, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 2, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 3, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 4, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 5, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 6, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 7, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 8, 2>(sizes, starts, values, padded_size)));
 
-        test_interleave<T, I, 1, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 2, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 3, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 4, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 5, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 6, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 7, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 8, 3>(sizes, starts, values, padded_size);
+        EXPECT_TRUE((test_interleave<T, I, 1, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 2, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 3, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 4, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 5, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 6, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 7, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 8, 3>(sizes, starts, values, padded_size)));
     }
 
     // another small example with matrices of differing lengths
@@ -146,32 +145,32 @@ TEST(matrix, interleave)
         tvec values(algorithms::sum(sizes));
         std::iota(values.begin(), values.end(), 0);
 
-        test_interleave<T, I, 1, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 2, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 3, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 4, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 5, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 6, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 7, 1>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 8, 1>(sizes, starts, values, padded_size);
+        EXPECT_TRUE((test_interleave<T, I, 1, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 2, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 3, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 4, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 5, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 6, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 7, 1>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 8, 1>(sizes, starts, values, padded_size)));
 
-        test_interleave<T, I, 1, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 2, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 3, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 4, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 5, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 6, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 7, 2>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 8, 2>(sizes, starts, values, padded_size);
+        EXPECT_TRUE((test_interleave<T, I, 1, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 2, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 3, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 4, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 5, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 6, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 7, 2>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 8, 2>(sizes, starts, values, padded_size)));
 
-        test_interleave<T, I, 1, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 2, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 3, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 4, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 5, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 6, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 7, 3>(sizes, starts, values, padded_size);
-        test_interleave<T, I, 8, 3>(sizes, starts, values, padded_size);
+        EXPECT_TRUE((test_interleave<T, I, 1, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 2, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 3, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 4, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 5, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 6, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 7, 3>(sizes, starts, values, padded_size)));
+        EXPECT_TRUE((test_interleave<T, I, 8, 3>(sizes, starts, values, padded_size)));
     }
 
     // more interesting case...
@@ -193,7 +192,7 @@ TEST(matrix, interleave)
         std::iota(values.begin(), values.end(), 0);
 
         // test in "full" 1024 thread configuration with 32 threads per matrix
-        test_interleave<T, I, 32, 32>(sizes, starts, values, padded_size);
+        EXPECT_TRUE((test_interleave<T, I, 32, 32>(sizes, starts, values, padded_size)));
     }
 }
 
@@ -287,7 +286,9 @@ TEST(matrix, assemble)
 
     // Compare the GPU and CPU results.
     // Cast result to float, because we are happy to ignore small differencs
-    EXPECT_TRUE(seq_almost_eq<float>(m_mc.solution, on_host(m_gpu.solution)));
+    std::vector<float> result_h = util::assign_from(m_mc.solution);
+    std::vector<float> result_g = util::assign_from(on_host(m_gpu.solution));
+    EXPECT_TRUE(seq_almost_eq<float>(result_h, result_g));
 }
 
 // test that the flat and interleaved storage back ends produce identical results

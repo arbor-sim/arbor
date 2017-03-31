@@ -55,6 +55,7 @@ struct matrix_state_flat {
         EXPECTS(cv_cap.size() == size());
         EXPECTS(face_cond.size() == size());
         EXPECTS(cell_idx.back() == size());
+        EXPECTS(cell_idx.size() > 2u);
 
         using memory::make_const_view;
 
@@ -62,7 +63,7 @@ struct matrix_state_flat {
         std::vector<value_type> invariant_d_tmp(n, 0);
         std::vector<value_type> u_tmp(n, 0);
 
-        for(auto i: util::make_span(1u, n)) {
+        for (auto i: util::make_span(1u, n)) {
             auto gij = face_cond[i];
 
             u_tmp[i] = -gij;
@@ -73,10 +74,6 @@ struct matrix_state_flat {
         u = make_const_view(u_tmp);
 
         solution = rhs;
-    }
-
-    int num_matrices() const {
-        return cell_index.size()-1;
     }
 
     // Assemble the matrix
@@ -108,6 +105,11 @@ struct matrix_state_flat {
 
     std::size_t size() const {
         return parent_index.size();
+    }
+
+private:
+    unsigned num_matrices() const {
+        return cell_index.size()-1;
     }
 };
 

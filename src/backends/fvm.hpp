@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./multicore/fvm.hpp"
+#include <backends/multicore/fvm.hpp>
 
 #ifdef NMC_HAVE_CUDA
-    #include "./gpu/fvm.hpp"
+    #include <backends/gpu/fvm.hpp>
 #endif

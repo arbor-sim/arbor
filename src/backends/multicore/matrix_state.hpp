@@ -33,10 +33,10 @@ public:
 
     matrix_state() = default;
 
-    matrix_state( const std::vector<size_type>& p,
-                  const std::vector<size_type>& cell_idx,
-                  const std::vector<value_type>& cap,
-                  const std::vector<value_type>& cond):
+    matrix_state(const std::vector<size_type>& p,
+                 const std::vector<size_type>& cell_idx,
+                 const std::vector<value_type>& cap,
+                 const std::vector<value_type>& cond):
         parent_index(memory::make_const_view(p)),
         cell_index(memory::make_const_view(cell_idx)),
         d(size(), 0), u(size(), 0), rhs(size()),
@@ -47,7 +47,7 @@ public:
         EXPECTS(cond.size() == size());
         EXPECTS(cell_idx.back() == size());
 
-        auto n = d.size();
+        auto n = size();
         invariant_d = array(n, 0);
         for (auto i: util::make_span(1u, n)) {
             auto gij = face_conductance[i];
@@ -62,17 +62,13 @@ public:
         solution = rhs;
     }
 
-    std::size_t size() const {
-        return parent_index.size();
-    }
-
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current
     //   dt      [ms]
     //   voltage [mV]
     //   current [nA]
     void assemble(value_type dt, const_view voltage, const_view current) {
-        auto n = d.size();
+        auto n = size();
         value_type factor = 1e-3/dt;
         for (auto i: util::make_span(0u, n)) {
             auto gi = factor*cv_capacitance[i];
@@ -105,6 +101,12 @@ public:
                 rhs[i] /= d[i];
             }
         }
+    }
+
+private:
+
+    std::size_t size() const {
+        return parent_index.size();
     }
 };
 
