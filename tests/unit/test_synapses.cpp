@@ -2,7 +2,7 @@
 #include "../test_util.hpp"
 
 #include <cell.hpp>
-#include <backends/fvm_multicore.hpp>
+#include <backends/multicore/fvm.hpp>
 
 #include <mechanisms/multicore/expsyn.hpp>
 #include <mechanisms/multicore/exp2syn.hpp>

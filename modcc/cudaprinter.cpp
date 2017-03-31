@@ -41,7 +41,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
-    text_.add_line("#include <backends/gpu_intrinsics.hpp>");
+    text_.add_line("#include <backends/gpu/intrinsics.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 

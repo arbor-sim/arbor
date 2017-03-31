@@ -1,4 +1,4 @@
-#include "fvm_multicore.hpp"
+#include "fvm.hpp"
 
 #include <mechanisms/multicore/hh.hpp>
 #include <mechanisms/multicore/pas.hpp>
