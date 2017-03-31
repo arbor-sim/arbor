@@ -4,8 +4,8 @@
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gpu_kernels/solve_matrix.hpp"
-#include "gpu_kernels/assemble_matrix.hpp"
+#include "kernels/solve_matrix.hpp"
+#include "kernels/assemble_matrix.hpp"
 
 namespace nest {
 namespace mc {

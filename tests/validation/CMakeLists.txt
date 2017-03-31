@@ -18,6 +18,7 @@ set(VALIDATION_CUDA_SOURCES
     # unit tests
     validate_soma.cu
     validate_ball_and_stick.cu
+    validate_kinetic.cu
     validate_synapses.cu
 
     # support code

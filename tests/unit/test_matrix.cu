@@ -6,8 +6,8 @@
 
 #include <math.hpp>
 #include <matrix.hpp>
-#include <backends/fvm_gpu.hpp>
-#include <backends/fvm_multicore.hpp>
+#include <backends/gpu/fvm.hpp>
+#include <backends/multicore/fvm.hpp>
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
@@ -24,27 +24,7 @@ using testing::seq_almost_eq;
 using std::begin;
 using std::end;
 
-template <typename T>
-bool operator ==(const std::vector<T>& l, const std::vector<T>& r) {
-    if (l.size()!=r.size()) {
-        return false;
-    }
-
-    for (auto i=0u; i<l.size(); ++i) {
-        if (l[i]!=r[i]) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-template <typename T>
-bool operator !=(const std::vector<T>& l, const std::vector<T>& r) {
-    return !(l==r);
-}
-
-// will test the interleaving and reverse_interleaving operations for the
+// will test the flat_to_interleaved and interleaved_to_flat operations for the
 // set of matrices defined by sizes and starts.
 // Applies the interleave to the vector in values, and checks this against
 // a reference result generated using a host side reference implementation.
@@ -54,7 +34,7 @@ bool operator !=(const std::vector<T>& l, const std::vector<T>& r) {
 // This is implemented in a separate function to facilitate testing on a
 // broad range of BlockWidth and LoadWidth compile time parameters.
 template <typename T, typename I, int BlockWidth, int LoadWidth>
-void test_interleave(
+::testing::AssertionResult test_interleave(
         std::vector<I> sizes,
         std::vector<I> starts,
         std::vector<T> values,
@@ -72,25 +52,34 @@ void test_interleave(
     auto forward = memory::device_vector<T>(packed_size, npos<T>());
 
     // find the reference interleaved values using host side implementation
-    auto baseline = gpu::interleave_host(values, sizes, starts, BlockWidth, num_mtx, padded_size);
+    auto baseline = gpu::flat_to_interleaved(values, sizes, starts, BlockWidth, num_mtx, padded_size);
 
     // find the interleaved values on gpu
-    gpu::interleave<T, I, BlockWidth, LoadWidth>(in.data(), forward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
+    gpu::flat_to_interleaved<T, I, BlockWidth, LoadWidth>(in.data(), forward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
 
     std::vector<T> result_f = assign_from(on_host(forward));
-    std::vector<T> expected = gpu::interleave_host(values, sizes, starts, BlockWidth, num_mtx, padded_size);
+    std::vector<T> expected = gpu::flat_to_interleaved(values, sizes, starts, BlockWidth, num_mtx, padded_size);
     const auto forward_success = (result_f==expected);
-    EXPECT_TRUE(forward_success);
+    if (!forward_success) {
+        return ::testing::AssertionFailure() << "interleave to flat failed: BlockWidth "
+            << BlockWidth << ", LoadWidth " << LoadWidth << "\n";
+    }
 
     // backward will hold the result of reverse interleave on the GPU
     auto backward = memory::device_vector<T>(values.size(), npos<T>());
-    gpu::reverse_interleave<T, I, BlockWidth, LoadWidth>(forward.data(), backward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
+    gpu::interleaved_to_flat<T, I, BlockWidth, LoadWidth>(forward.data(), backward.data(), sizes_d.data(), starts_d.data(), padded_size, num_mtx);
 
     std::vector<T> result_b = assign_from(on_host(backward));
 
     // we expect that the result of the reverse permutation is the original input vector
     const auto backward_success = (result_b==values);
     EXPECT_TRUE(backward_success);
+    if (!backward_success) {
+        return ::testing::AssertionFailure() << "flat to interleave failed: BlockWidth "
+            << BlockWidth << ", LoadWidth " << LoadWidth << "\n";
+    }
+
+    return ::testing::AssertionSuccess();
 }
 
 // test conversion to and from interleaved back end storage format

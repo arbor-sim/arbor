@@ -4,9 +4,9 @@
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
 
-#include "gpu_kernels/solve_matrix.hpp"
-#include "gpu_kernels/assemble_matrix.hpp"
-#include "gpu_kernels/interleave.hpp"
+#include "kernels/solve_matrix.hpp"
+#include "kernels/assemble_matrix.hpp"
+#include "kernels/interleave.hpp"
 
 namespace nest {
 namespace mc {
@@ -14,15 +14,15 @@ namespace gpu {
 
 // A helper that performs the interleave operation on host memory.
 template <typename T, typename I>
-std::vector<T> interleave_host(
+std::vector<T> flat_to_interleaved(
         const std::vector<T>& in,
         const std::vector<I>& sizes,
         const std::vector<I>& starts,
-        int block_width, int num_mtx, int padded_length)
+        unsigned block_width, unsigned num_vec, unsigned padded_length)
 {
-    auto num_blocks = impl::block_count(num_mtx, block_width);
+    auto num_blocks = impl::block_count(num_vec, block_width);
     std::vector<T> out(num_blocks*block_width*padded_length, impl::npos<T>());
-    for (auto mtx: util::make_span(0, num_mtx)) {
+    for (auto mtx: util::make_span(0u, num_vec)) {
         auto block = mtx/block_width;
         auto lane  = mtx%block_width;
 
@@ -189,9 +189,9 @@ struct matrix_state_interleaved {
         // memory, for use as an rvalue in an assignemt to a device vector.
         auto interleave = [&] (std::vector<T>const& x) {
             return memory::on_gpu(
-                interleave_host(x, sizes_p, cell_index_p, block_dim(), num_mtx, padded_size));
+                flat_to_interleaved(x, sizes_p, cell_index_p, block_dim(), num_mtx, padded_size));
         };
-        u = interleave(u_tmp);
+        u           = interleave(u_tmp);
         invariant_d = interleave(invariant_d_tmp);
         cv_capacitance = interleave(cv_cap);
 
@@ -244,7 +244,7 @@ struct matrix_state_interleaved {
               padded_matrix_size(), num_matrices());
 
         // copy the solution from interleaved to front end storage
-        reverse_interleave<value_type, size_type, impl::block_dim(), impl::load_width()>
+        interleaved_to_flat<value_type, size_type, impl::block_dim(), impl::load_width()>
             ( rhs.data(), solution.data(), matrix_sizes.data(), matrix_index.data(),
               padded_matrix_size(), num_matrices());
     }

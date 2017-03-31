@@ -41,8 +41,7 @@ void solve_matrix_flat(
 template <typename T, typename I, int BlockWidth>
 __global__
 void solve_matrix_interleaved(
-    T* rhs, T* d, const T* u, const I* p, const I* sizes,
-    int padded_size, int num_mtx)
+    T* rhs, T* d, const T* u, const I* p, const I* sizes, int padded_size, int num_mtx)
 {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 

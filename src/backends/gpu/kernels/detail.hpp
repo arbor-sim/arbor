@@ -15,40 +15,40 @@ namespace gpu {
 namespace impl {
 // Number of matrices per block in block-interleaved storage
 __host__ __device__
-constexpr inline int block_dim() {
-    return 32;
+constexpr inline unsigned block_dim() {
+    return 32u;
 }
 
 // The number of threads per matrix in the interleave and reverse-interleave
 // operations.
 __host__ __device__
-constexpr inline int load_width() {
-    return 32;
+constexpr inline unsigned load_width() {
+    return 32u;
 }
 
 // The alignment of matrices inside the block-interleaved storage.
 __host__ __device__
-constexpr inline int matrix_padding() {
+constexpr inline unsigned matrix_padding() {
     return load_width();
 }
 
 // Number of threads per warp
 // This has always been 32, however it may change in future NVIDIA gpus
 __host__ __device__
-constexpr inline int threads_per_warp() {
-    return 32;
+constexpr inline unsigned threads_per_warp() {
+    return 32u;
 }
 
 // The minimum number of bins required to store n values where the bins have
 // dimension of block_size.
 __host__ __device__
-constexpr inline int block_count(int n, int block_size) {
+constexpr inline unsigned block_count(unsigned n, unsigned block_size) {
     return (n+block_size-1)/block_size;
 }
 
 // The smallest size of a buffer required to store n items in such that the
 // buffer has size that is a multiple of block_dim.
-constexpr inline int padded_size (int n, int block_dim) {
+constexpr inline unsigned padded_size (unsigned n, unsigned block_dim) {
     return n%block_dim ? n+block_dim-(n%block_dim): n;
 }
 

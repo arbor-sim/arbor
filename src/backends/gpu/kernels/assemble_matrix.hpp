@@ -17,10 +17,13 @@ __global__
 void assemble_matrix_flat(
         T* d, T* rhs, const T* invariant_d,
         const T* voltage, const T* current, const T* cv_capacitance,
-        T dt, int n)
+        T dt, unsigned n)
 {
-    auto tid = threadIdx.x + blockDim.x*blockIdx.x;
+    const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
 
+    // The 1e-3 is a constant of proportionality required to ensure that the
+    // conductance (gi) values have units μS (micro-Siemens).
+    // See the model documentation in docs/model for more information.
     T factor = 1e-3/dt;
     if (tid<n) {
         auto gi = factor * cv_capacitance[tid];
@@ -35,7 +38,7 @@ void assemble_matrix_flat(
 ///     - use the precomputed alpha and alpha_d values to construct the diagonal
 ///       and off diagonal of the symmetric Hines matrix.
 ///     - compute the RHS of the linear system to solve
-template <typename T, typename I, int BlockWidth, int LoadWidth, int Threads>
+template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned Threads>
 __global__
 void assemble_matrix_interleaved(
         T* d,
@@ -46,35 +49,38 @@ void assemble_matrix_interleaved(
         const T* cv_capacitance,
         const I* sizes,
         const I* starts,
-        T dt, int padded_size, int num_mtx)
+        T dt, unsigned padded_size, unsigned num_mtx)
 {
     static_assert(BlockWidth*LoadWidth==Threads,
         "number of threads must equal number of values to process per block");
     __shared__ T buffer_v[Threads];
     __shared__ T buffer_i[Threads];
 
-    const auto tid = threadIdx.x + blockIdx.x*blockDim.x;
-    const auto lid = threadIdx.x;
+    const unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
+    const unsigned lid = threadIdx.x;
 
-    const auto mtx_id   = tid/LoadWidth;
-    const auto mtx_lane = tid - mtx_id*LoadWidth;
+    const unsigned mtx_id   = tid/LoadWidth;
+    const unsigned mtx_lane = tid - mtx_id*LoadWidth;
 
-    const auto blk_id   = tid/(BlockWidth*LoadWidth);
-    const auto blk_row  = lid/BlockWidth;
-    const auto blk_lane = lid - blk_row*BlockWidth;
+    const unsigned blk_id   = tid/(BlockWidth*LoadWidth);
+    const unsigned blk_row  = lid/BlockWidth;
+    const unsigned blk_lane = lid - blk_row*BlockWidth;
 
-    const auto blk_pos  = LoadWidth*blk_lane + blk_row;
+    const unsigned blk_pos  = LoadWidth*blk_lane + blk_row;
 
     const bool do_load  = mtx_id<num_mtx;
 
-    auto load_pos  = do_load? starts[mtx_id] + mtx_lane     : 0;
-    const auto end = do_load? starts[mtx_id] + sizes[mtx_id]: 0;
-    auto store_pos = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
+    unsigned load_pos  = do_load? starts[mtx_id] + mtx_lane     : 0;
+    const unsigned end = do_load? starts[mtx_id] + sizes[mtx_id]: 0;
+    unsigned store_pos = blk_id*BlockWidth*padded_size + (blk_row*BlockWidth + blk_lane);
 
-    const auto max_size = sizes[0];
+    const unsigned max_size = sizes[0];
 
+    // The 1e-3 is a constant of proportionality required to ensure that the
+    // conductance (gi) values have units μS (micro-Siemens).
+    // See the model documentation in docs/model for more information.
     T factor = 1e-3/dt;
-    for (auto j=0; j<max_size; j+=LoadWidth) {
+    for (unsigned j=0u; j<max_size; j+=LoadWidth) {
         if (do_load && load_pos<end) {
             buffer_v[lid] = voltage[load_pos];
             buffer_i[lid] = current[load_pos];
