@@ -3,9 +3,9 @@
 This document describes the layout of different storage schemes for matrices use in the GPU back end.
 
 An NxN Hines matrix can be stored compactly with 3 vectors of length N:
-    * `d`: the diagonal of the matrix
-    * `u`: the upper/lower part of the matrix (referred to somewhat casually as the super diagonal)
-    * `p`: the parent index
+  * `d`: the diagonal of the matrix
+  * `u`: the upper/lower part of the matrix (referred to somewhat casually as the super diagonal)
+  * `p`: the parent index
 Additionally, we often store N*1 vectors that have one value per compartment, e.g. voltage, solution or rhs vectors.
 
 In NestMC multicompartment a single cell has a matrix structure associated with in, that is derived directly from the connections between its constituent compartments. NestMC groups these cells into groups of cells, called `cell_groups`. The matrices for all the cells in a group are packed together 
@@ -54,7 +54,7 @@ To look up the value of the `i`th entry in the vector `m`, we use the following 
 
 ```
 lookup_int(i,m) = floor(m/BW)*BW*N + m-floor(m/BW)*BW + i*BW
-``
+```
 
 The `block` and `lane` (i.e. the block-local index) of a matrix can be computed
 
