@@ -6,6 +6,7 @@
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
 #include <memory/wrappers.hpp>
+#include <util/math.hpp>
 #include <util/span.hpp>
 
 #include "stimulus_multicore.hpp"
@@ -81,17 +82,22 @@ struct backend {
         //   dt      [ms]
         //   voltage [mV]
         //   current [nA]
-        void assemble(value_type dt, const_view voltage, const_view current) {
+        void assemble(const_view t, const_view t_to, const_view voltage, const_view current) {
             EXPECTS(has_fvm_state());
 
-            auto n = d.size();
-            value_type factor = 1e-3/dt;
-            for (auto i: util::make_span(0u, n)) {
-                auto gi = factor*cv_capacitance[i];
+            // loop over submatrices
+            for (auto m: util::make_span(0, ncells)) {
+                auto first = cell_index[m];
+                auto last = cell_index[m+1];
+                auto dt = t_to[m]-t[m];
 
-                d[i] = gi + invariant_d[i];
+                value_type factor = 1e-3/dt;
+                for (auto i: util::make_span(first, last)) {
+                    auto gi = factor*cv_capacitance[i];
 
-                rhs[i] = gi*voltage[i] - current[i];
+                    d[i] = gi + invariant_d[i];
+                    rhs[i] = gi*voltage[i] - current[i];
+                }
             }
         }
 
@@ -137,6 +143,8 @@ struct backend {
 
     static mechanism make_mechanism(
         const std::string& name,
+        const_iview vec_ci,
+        const_view vec_t, const_view vec_t_to,
         view vec_v, view vec_i,
         const std::vector<value_type>& weights,
         const std::vector<size_type>& node_indices)
@@ -145,7 +153,7 @@ struct backend {
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return mech_map_.find(name)->second(vec_v, vec_i, array(weights), iarray(node_indices));
+        return mech_map_.find(name)->second(vec_ci, vec_t, vec_t_to, vec_v, vec_i, array(weights), iarray(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -174,17 +182,23 @@ struct backend {
         threshold_watcher() = default;
 
         threshold_watcher(
+                const_iview vec_ci,
+                const_view vec_t_before,
+                const_view vec_t_after,
                 const_view vals,
-                const std::vector<size_type>& indxs,
+                const std::vector<size_type>& cv_indices,
                 const std::vector<value_type>& thresh,
                 value_type t=0):
+            cv_to_cell_(vec_ci),
+            t_before_(vec_t_before),
+            t_after_(vec_t_after),
             values_(vals),
-            index_(memory::make_const_view(indxs)),
+            cv_index_(memory::make_const_view(cv_indices)),
             thresholds_(memory::make_const_view(thresh)),
             v_prev_(vals)
         {
             is_crossed_ = iarray(size());
-            reset(t);
+            reset();
         }
 
         /// Remove all stored crossings that were detected in previous calls
@@ -196,37 +210,34 @@ struct backend {
         /// Reset state machine for each detector.
         /// Assume that the values in values_ have been set correctly before
         /// calling, because the values are used to determine the initial state
-        void reset(value_type t=0) {
+        void reset() {
             clear_crossings();
             for (auto i=0u; i<size(); ++i) {
-                is_crossed_[i] = values_[index_[i]]>=thresholds_[i];
+                is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
             }
-            t_prev_ = t;
         }
 
         const std::vector<threshold_crossing>& crossings() const {
             return crossings_;
         }
 
-        /// The time at which the last test was performed
-        value_type last_test_time() const {
-            return t_prev_;
-        }
-
         /// Tests each target for changed threshold state
         /// Crossing events are recorded for each threshold that
         /// is crossed since the last call to test
-        void test(value_type t) {
+        void test() {
             for (auto i=0u; i<size(); ++i) {
+                auto cv     = cv_index_[i];
+                auto cell   = cv_to_cell_[cv];
                 auto v_prev = v_prev_[i];
-                auto v      = values_[index_[i]];
                 auto thresh = thresholds_[i];
+                auto v      = values_[cv];
+
                 if (!is_crossed_[i]) {
                     if (v>=thresh) {
-                        // the threshold has been passed, so estimate the time using
-                        // linear interpolation
+                        // The threshold has been passed, so estimate the time using
+                        // linear interpolation.
                         auto pos = (thresh - v_prev)/(v - v_prev);
-                        auto crossing_time = t_prev_ + pos*(t - t_prev_);
+                        auto crossing_time = math::lerp(t_before_[cell], t_after_[cell], pos);
                         crossings_.push_back({i, crossing_time});
 
                         is_crossed_[i] = true;
@@ -240,7 +251,6 @@ struct backend {
 
                 v_prev_[i] = v;
             }
-            t_prev_ = t;
         }
 
         bool is_crossed(size_type i) const {
@@ -257,11 +267,12 @@ struct backend {
         using crossing_list =  std::vector<threshold_crossing>;
 
     private:
+        const_iview cv_to_cell_;
+        const_view t_before_;
+        const_view t_after_;
         const_view values_;
-        iarray index_;
-
+        iarray cv_index_;
         array thresholds_;
-        value_type t_prev_;
         array v_prev_;
         crossing_list crossings_;
         iarray is_crossed_;

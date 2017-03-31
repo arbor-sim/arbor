@@ -69,6 +69,9 @@ public:
 
     virtual ~mechanism() = default;
 
+    const_iview vec_ci_;
+    const_view vec_t_;
+    const_view vec_t_to_;
     view vec_v_;
     view vec_i_;
     iarray node_index_;
@@ -79,14 +82,15 @@ using mechanism_ptr = std::unique_ptr<mechanism<Backend>>;
 
 template <typename M>
 auto make_mechanism(
-    typename M::view  vec_v,
-    typename M::view  vec_i,
-    typename M::array&&  weights,
-    typename M::iarray&& node_indices)
--> decltype(util::make_unique<M>(vec_v, vec_i, std::move(weights), std::move(node_indices)))
-{
-    return util::make_unique<M>(vec_v, vec_i, std::move(weights), std::move(node_indices));
-}
+    typename M::const_iview vec_ci,
+    typename M::const_view vec_t,
+    typename M::const_view vec_t_to,
+    typename M::view vec_v,
+    typename M::view vec_i,
+    typename M::array&& weights,
+    typename M::iarray&& node_indices
+)
+DEDUCED_RETURN_TYPE(util::make_unique<M>(vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices)))
 
 } // namespace mechanisms
 } // namespace mc

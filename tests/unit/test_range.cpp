@@ -344,6 +344,16 @@ TEST(range, assign) {
     EXPECT_EQ("00110", text);
 }
 
+TEST(range, fill) {
+    std::vector<char> aaaa(4);
+    util::fill(aaaa, 'a');
+    EXPECT_EQ("aaaa", std::string(aaaa.begin(), aaaa.end()));
+
+    char cstr[] = "howdy";
+    util::fill(util::make_range(cstr, null_terminated), 'q');
+    EXPECT_EQ("qqqqq", std::string(cstr);
+}
+
 TEST(range, assign_from) {
     int in[] = {0,1,2};
 

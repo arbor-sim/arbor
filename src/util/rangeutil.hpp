@@ -63,6 +63,14 @@ subrange_view(Seq& seq, std::pair<Size, Size> index) {
     return make_range(b, e);
 }
 
+// Fill container or range.
+
+template <typename Seq, typename V>
+void fill(Seq& seq, const V& value) {
+    auto canon = canonical_view(seq);
+    std::fill(canon.begin(), canon.end(), value);
+}
+
 // Append sequence to a container
 
 template <typename Container, typename Seq>
