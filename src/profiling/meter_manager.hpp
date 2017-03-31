@@ -15,17 +15,15 @@ namespace mc {
 namespace util {
 
 class meter_manager {
-    using meter_ptr = std::unique_ptr<meter>;
-    std::vector<meter_ptr> meters_;
+    std::vector<std::unique_ptr<meter>> meters_;
     std::vector<std::string> checkpoint_names_;
-
-    nlohmann::json as_json();
 
 public:
 
     meter_manager();
     void checkpoint(std::string name);
     void save_to_file(const std::string& name);
+    nlohmann::json as_json();
 };
 
 } // namespace util

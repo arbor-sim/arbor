@@ -8,7 +8,6 @@ using nlohmann::json;
 
 meter_manager::meter_manager() {
     // add time-measurement meter
-    //meters_.push_back(make_unique<meter>());
     meters_.emplace_back(new time_meter());
 
     // add memory consumption meter
@@ -20,6 +19,13 @@ meter_manager::meter_manager() {
 
 void meter_manager::checkpoint(std::string name) {
     checkpoint_names_.push_back(std::move(name));
+
+    // Enforce a global synchronization point the first time that the meters
+    // are used, to ensure that times measured across all domains are
+    // synchronised.
+    if (meters_.size()==0) {
+        communication::global_policy::barrier();
+    }
 
     for (auto& m: meters_) {
         m->take_reading();
@@ -34,14 +40,16 @@ json meter_manager::as_json() {
         meter_out.push_back(m->as_json());
     }
 
-    // only the "root" process returns meter information
-    if (!gcom::id()) {
+    // Only the "root" process returns meter information
+    if (gcom::id()==0) {
         return {
             {"checkpoints", checkpoint_names_},
             {"num_domains", gcom::size()},
-            {"meters", meter_out},
             {"global_model", std::to_string(gcom::kind())},
-            // TODO mapping of domains to nodes
+            {"meters", meter_out},
+            // TODO mapping of domains to nodes, which will be required to
+            // calculate the total memory and energy consumption of a
+            // distributed simulation.
         };
     }
 
