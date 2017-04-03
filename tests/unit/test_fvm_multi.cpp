@@ -77,7 +77,9 @@ TEST(fvm_multi, init)
 
     // test that the matrix is initialized with sensible values
     //J.build_matrix(0.01);
-    fvcell.advance(0.01);
+    fvcell.setup_integration(0.01, 0.01);
+    fvcell.step_integration();
+
     auto& mat = J.state_;
     auto test_nan = [](decltype(mat.u) v) {
         for(auto val : v) if(val != val) return false;
