@@ -8,6 +8,8 @@
  * Implemented as a transform view of the index map.
  */
 
+#include <utility>
+
 #include <util/deduce_return.hpp>
 #include <util/transform.hpp>
 #include <util/meta.hpp>
@@ -23,8 +25,9 @@ namespace impl {
     struct indirect_accessor {
         using reference = typename util::sequence_traits<Data>::reference;
 
-        Data& data;
-        indirect_accessor(Data& data): data(data) {}
+        Data data;
+        template <typename X>
+        indirect_accessor(X&& data): data(std::forward<X>(data)) {}
 
         template <typename I>
         reference operator()(const I& i) const { return data[i]; }
@@ -33,11 +36,15 @@ namespace impl {
 
 template <typename RASeq, typename Seq>
 auto indirect_view(RASeq& data, const Seq& index_map)
-DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq>(data)));
+DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq&>(data)));
 
 template <typename RASeq, typename Seq>
 auto indirect_view(const RASeq& data, const Seq& index_map)
-DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<const RASeq>(data)));
+DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<const RASeq&>(data)));
+
+template <typename RASeq, typename Seq>
+auto indirect_view(RASeq&& data, const Seq& index_map)
+DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq>(std::move(data))));
 
 } // namespace util
 } // namespace mc
