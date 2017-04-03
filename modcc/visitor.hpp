@@ -30,6 +30,7 @@ public:
     virtual void visit(StoichExpression *e)     { visit((Expression*) e); }
     virtual void visit(VariableExpression *e)   { visit((Expression*) e); }
     virtual void visit(IndexedVariable *e)      { visit((Expression*) e); }
+    virtual void visit(CellIndexedVariable *e)  { visit((Expression*) e); }
     virtual void visit(FunctionExpression *e)   { visit((Expression*) e); }
     virtual void visit(IfExpression *e)         { visit((Expression*) e); }
     virtual void visit(SolveExpression *e)      { visit((Expression*) e); }

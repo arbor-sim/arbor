@@ -234,6 +234,7 @@ public :
     virtual NetReceiveExpression* is_net_receive()       {return nullptr;}
     virtual APIMethod*            is_api_method()        {return nullptr;}
     virtual IndexedVariable*      is_indexed_variable()  {return nullptr;}
+    virtual CellIndexedVariable*  is_cell_indexed_variable()  {return nullptr;}
     virtual LocalVariable*        is_local_variable()    {return nullptr;}
 
 private :
@@ -581,6 +582,43 @@ protected:
     std::string index_name_;
     tok op_;
 };
+
+class CellIndexedVariable : public Symbol {
+public:
+    CellIndexedVariable(Location loc,
+                    std::string lookup_name,
+                    std::string index_name)
+    :   Symbol(loc, std::move(lookup_name), symbolKind::indexed_variable),
+        index_name_(std::move(index_name))
+    {}
+
+    std::string to_string() const override;
+
+    accessKind access() const {
+        return accessKind::read;
+    }
+
+    ionKind ion_channel() const {
+        return ionKind::none;
+    }
+
+    std::string const& index_name() const {
+        return index_name_;
+    }
+
+    bool is_ion()   const {return false; }
+    bool is_read()  const {return true; }
+    bool is_write() const {return false; }
+
+    void accept(Visitor *v) override;
+    CellIndexedVariable* is_cell_indexed_variable() override {return this;}
+
+    ~CellIndexedVariable() {}
+
+protected:
+    std::string index_name_;
+};
+
 
 class LocalVariable : public Symbol {
 public :

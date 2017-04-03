@@ -263,6 +263,15 @@ std::string IndexedVariable::to_string() const {
 }
 
 /*******************************************************************************
+  CellIndexedVariable
+*******************************************************************************/
+
+std::string CellIndexedVariable::to_string() const {
+    auto ch = ::to_string(ion_channel());
+    return blue("cellindexed") + " " + yellow(name()) + "->" + yellow(index_name());
+}
+
+/*******************************************************************************
   ReactionExpression
 *******************************************************************************/
 
@@ -867,6 +876,9 @@ void VariableExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void IndexedVariable::accept(Visitor *v) {
+    v->visit(this);
+}
+void CellIndexedVariable::accept(Visitor *v) {
     v->visit(this);
 }
 void NumberExpression::accept(Visitor *v) {

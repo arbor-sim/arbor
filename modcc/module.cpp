@@ -403,7 +403,18 @@ bool Module::semantic() {
         // nrn_state : The temporal integration of state variables
         //..........................................................
 
-        // grab SOLVE statements, put them in `nrn_state` after translation.
+        // Insert dt assignment first; dt = t_to_ - t_.
+        apt_state->body()->statements().push_back(
+            make_expression<LocalDeclaration>(loc, "dt"));
+
+        apt_state->body()->statements().push_back(
+            binary_expression(loc, tok::eq,
+                make_expression<IdentifierExpression>(loc, "dt"),
+                binary_expression(loc, tok::minus,
+                    make_expression<IdentifierExpression>(loc, "t_to_"),
+                    make_expression<IdentifierExpression>(loc, "t_"))));
+
+        // Grab SOLVE statements, put them in `nrn_state` after translation.
         bool found_solve = false;
         bool found_non_solve = false;
         std::set<std::string> solved_ids;
@@ -524,8 +535,6 @@ void Module::add_variables_to_symbols() {
         symbols_[name] = symbol_ptr{t};
     };
 
-    create_variable("t",  rangeKind::scalar, accessKind::read);
-    create_variable("dt", rangeKind::scalar, accessKind::read);
     // density mechanisms use a vector of weights from current densities to
     // units of nA
     if (kind()==moduleKind::density) {
@@ -550,6 +559,21 @@ void Module::add_variables_to_symbols() {
                             accessKind::write, ionKind::none, Location());
     create_indexed_variable("v", "vec_v", tok::eq,
                             accessKind::read,  ionKind::none, Location());
+
+    // add cell-indexed variables to the table
+    auto create_cell_indexed_variable = [this]
+        (std::string const& name, std::string const& indexed_name, Location loc = Location())
+    {
+        if(symbols_.count(name)) {
+            throw compiler_exception(
+                "trying to insert a symbol that already exists",
+                loc);
+        }
+        symbols_[name] = make_symbol<CellIndexedVariable>(loc, name, indexed_name)
+    };
+
+    create_cell_indexed_variable("t_", "vec_t");
+    create_cell_indexed_variable("t_to_", "vec_t");
 
     // add state variables
     for(auto const &var : state_block()) {

@@ -86,8 +86,8 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index)");
-    text_.add_line(":   base(vec_v, vec_i, std::move(node_index))");
+    text_.add_line(class_name + "(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index)");
+    text_.add_line(":   base(vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -177,11 +177,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    text_.add_line("void set_params(value_type t_, value_type dt_) override {");
-    text_.increase_indentation();
-    text_.add_line("t = t_;");
-    text_.add_line("dt = dt_;");
-    text_.decrease_indentation();
+    text_.add_line("void set_params() override {");
     text_.add_line("}");
     text_.add_line();
 
@@ -360,6 +356,9 @@ std::string CPrinter::emit_source() {
     }
 
     text_.add_line();
+    text_.add_line("using base::vec_ci_;");
+    text_.add_line("using base::vec_t_;");
+    text_.add_line("using base::vec_t_to_;");
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
     text_.add_line("using base::node_index_;");

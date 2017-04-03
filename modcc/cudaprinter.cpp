@@ -253,13 +253,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("}");
     text_.add_line();
 
-    // print the member funtion that
-    //   *  sets time step parameters
-    //   *  packs up the parameters for use on the GPU
-    text_.add_line("void set_params(value_type t_, value_type dt_) override {");
-    text_.increase_indentation();
-    text_.add_line("t = t_;");
-    text_.add_line("dt = dt_;");
+    // print the member funtion that packs up the parameters for use on the GPU
+    text_.add_line("void set_params() override {");
     text_.add_line("param_pack_ =");
     text_.increase_indentation();
     text_.add_line("param_pack_type {");

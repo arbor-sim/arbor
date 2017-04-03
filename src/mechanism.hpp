@@ -55,7 +55,7 @@ public:
         return node_index_;
     }
 
-    virtual void set_params(value_type t_, value_type dt_) = 0;
+    virtual void set_params() = 0;
     virtual std::string name() const = 0;
     virtual std::size_t memory() const = 0;
     virtual void nrn_init()     = 0;
