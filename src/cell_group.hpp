@@ -143,51 +143,61 @@ public:
     }
 
     void advance(time_type tfinal, time_type dt) {
-        while (lowered_.time()<tfinal) {
-            // take any pending samples
-            time_type cell_time = lowered_.time();
+        EXPECTS(lowered_.state_synchronized());
+
+        // Bin pending events and enqueue on lowered state.
+        time_type ev_min_time = lowered_.max_time(); // (but we're synchronized here)
+        while (auto ev = events_.pop_if_before(tfinal)) {
+            auto handle = get_target_handle(ev->target);
+            auto binned_ev_time = binner_.bin(ev->target.gid, ev->time, ev_min_time);
+            lowered_.add_event(binned_ev_time, handle, ev->weight);
+        }
+
+        lowered_.setup_integration(tfinal, dt);
+
+        std::vector<sample_event<time_type>> requeue_sample_events;
+        while (!lowered_.integration_complete()) {
+            // Take any pending samples.
+            // TODO: Placeholder: this will be replaced by a backend polling implementation.
 
             PE("sampling");
-            while (auto m = sample_events_.pop_if_before(cell_time)) {
+            time_type cell_max_time = lowered_.max_time();
+
+            requeue_sample_events.clear();
+            while (auto m = sample_events_.pop_if_before(cell_max_time)) {
                 auto& s = samplers_[m->sampler_index];
                 EXPECTS((bool)s.sampler);
-                auto next = s.sampler(lowered_.time(), lowered_.probe(s.handle));
 
-                if (next) {
-                    m->time = std::max(*next, cell_time);
-                    sample_events_.push(*m);
+                time_type cell_time = lowered_.time(s.cell_gid-gid_base_);
+                if (cell_time<m->time) {
+                    // This cell hasn't reached this sample time yet.
+                    requeue_sample_events.push_back(*m);
                 }
+                else {
+                    auto next = s.sampler(cell_time, lowered_.probe(s.handle));
+                    if (next) {
+                        m->time = std::max(*next, cell_time);
+                        requeue_sample_events.push_back(*m);
+                    }
+                }
+            }
+            for (auto& ev: requeue_sample_events) {
+                sample_events_.push(std::move(ev));
             }
             PL();
 
-            // look for events in the next time step
-            time_type tstep = lowered_.time()+dt;
-            tstep = std::min(tstep, tfinal);
-            auto next = events_.pop_if_before(tstep);
+            // Ask lowered_ cell to integrate 'one step', delivering any
+            // events accordingly.
+            // TODO: Placeholder: with backend polling for samplers, we will
+            // request that the lowered cell perform the integration all the
+            // way to tfinal.
 
-            // apply events that are due within the smallest allowed time step.
-            while (next && (next->time-lowered_.time()) < 0.1*(dt)) {
-                auto handle = get_target_handle(next->target);
-                lowered_.deliver_event(handle, next->weight);
-                next = events_.pop_if_before(tstep);
-            }
-
-            // integrate cell state
-            time_type tnext = next ? next->time: tstep;
-            lowered_.advance(tnext - lowered_.time());
+            lowered_.step_integration();
 
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds for cell "
-                          << gid_base_ << " at t " << lowered_.time() << " ms\n";
+                          << gid_base_ << " at (max) t " << lowered_.max_time() << " ms\n";
             }
-
-            // apply events
-            PE("events");
-            if (next) {
-                auto handle = get_target_handle(next->target);
-                lowered_.deliver_event(handle, next->weight);
-            }
-            PL();
         }
 
         // Copy out spike voltage threshold crossings from the back end, then
@@ -206,7 +216,7 @@ public:
 
     template <typename R>
     void enqueue_events(const R& events) {
-        for (auto e : events) {
+        for (auto& e: events) {
             events_.push(e);
         }
     }
@@ -231,7 +241,7 @@ public:
         auto handle = get_probe_handle(probe_id);
 
         auto sampler_index = uint32_t(samplers_.size());
-        samplers_.push_back({handle, s});
+        samplers_.push_back({handle, probe_id.gid, s});
         sampler_start_times_.push_back(start_time);
         sample_events_.push({sampler_index, start_time});
     }
@@ -286,6 +296,7 @@ private:
 
     struct sampler_entry {
         typename lowered_cell_type::probe_handle handle;
+        cell_gid_type cell_gid;
         sampler_function sampler;
     };
 
