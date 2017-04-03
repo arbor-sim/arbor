@@ -23,6 +23,7 @@ public:
     using array = memory::device_vector<T>;
     using iarray = memory::device_vector<I>;
     using const_view = typename array::const_view_type;
+    using const_iview = typename iarray::const_view_type;
 
     /// stores a single crossing event
     struct threshold_crossing {

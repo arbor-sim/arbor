@@ -53,6 +53,8 @@ struct backend {
 
     static mechanism make_mechanism(
         const std::string& name,
+        const_iview vec_ci,
+        const_view vec_t, const_view vec_t_to,
         view vec_v, view vec_i,
         const std::vector<value_type>& weights,
         const std::vector<size_type>& node_indices)
@@ -62,7 +64,7 @@ struct backend {
         }
 
         return mech_map_.find(name)->
-            second(vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
+            second(vec_ci, vec_t, vec_t_to, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -74,7 +76,7 @@ struct backend {
 
 private:
 
-    using maker_type = mechanism (*)(view, view, array&&, iarray&&);
+    using maker_type = mechanism (*)(const_iview, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>

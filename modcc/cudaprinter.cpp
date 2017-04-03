@@ -83,9 +83,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     }
 
     text_.add_line("// cv index to cell mapping and cell time states");
-    text_.add_line("I* ci;");
-    text_.add_line("T* vec_t;");
-    text_.add_line("T* vec_t_to;");
+    text_.add_line("const I* ci;");
+    text_.add_line("const T* vec_t;");
+    text_.add_line("const T* vec_t_to;");
     param_pack.push_back("vec_ci_.data()");
     param_pack.push_back("vec_t_.data()");
     param_pack.push_back("vec_t_to_.data()");

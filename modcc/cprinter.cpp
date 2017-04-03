@@ -57,6 +57,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("using iarray  = typename base::iarray;");
     text_.add_line("using view   = typename base::view;");
     text_.add_line("using iview  = typename base::iview;");
+    text_.add_line("using const_view = typename base::const_view;");
     text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using ion_type = typename base::ion_type;");
     text_.add_line();

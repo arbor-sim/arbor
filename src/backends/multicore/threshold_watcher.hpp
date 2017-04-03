@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.hpp>
 #include <memory/memory.hpp>
 
 namespace nest {
@@ -15,6 +16,7 @@ public:
     using array = memory::host_vector<value_type>;
     using const_view = typename array::const_view_type;
     using iarray = memory::host_vector<size_type>;
+    using const_iview = typename iarray::const_view_type;
 
     /// stores a single crossing event
     struct threshold_crossing {
@@ -60,7 +62,7 @@ public:
     void reset() {
         clear_crossings();
         for (auto i=0u; i<size(); ++i) {
-            is_crossed_[i] = values_[index_[i]]>=thresholds_[i];
+            is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
         }
     }
 
@@ -105,7 +107,7 @@ public:
 
     /// the number of threashold values that are being monitored
     std::size_t size() const {
-        return index_.size();
+        return cv_index_.size();
     }
 
     /// Data type used to store the crossings.

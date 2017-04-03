@@ -100,10 +100,10 @@ public:
         // TODO: Placeholder; construct backend event delivery
         // data structure from events added.
         EXPECTS(no_pending_events());
-        for (size_type ci = 0; ci<ncell_; ++ci) {
-            // per-cell event lists are expected to already be sorted.
-            events_[ci] = std::move(staged_events_[ci]);
-            staged_events_[ci].clear();
+        events_.init(staged_events_);
+
+        for (auto& staged: staged_events_) {
+            staged.clear();
         }
     }
 
@@ -132,7 +132,7 @@ public:
     /// Add an event for processing in next integration stage.
     void add_event(value_type ev_time, target_handle h, value_type weight) {
         EXPECTS(!integration_running_);
-        EXPECTS(staged_events_[h.cell_offset].empty() || staged_events_[h.cell_offset].back() <= ev_time);
+        EXPECTS(staged_events_[h.cell_offset].empty() || staged_events_[h.cell_offset].back().time <= ev_time);
 
         staged_events_[h.cell_offset].push_back({ev_time, h, weight});
     }
@@ -538,6 +538,7 @@ void fvm_multicell<Backend>::initialize(
 
     // setup per-cell event stores.
     staged_events_.resize(ncell_);
+    events_ = cell_event_queue{ncell_};
 
     // create each cell:
     auto target_hi = target_handles.begin();
@@ -645,6 +646,7 @@ void fvm_multicell<Backend>::initialize(
         //       optimizations that rely on this assumption.
         if (stim_index.size()) {
             auto stim = new stimulus(
+                cv_to_cell_, time_, time_to_,
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
             mechanisms_.push_back(mechanism(stim));
@@ -678,7 +680,7 @@ void fvm_multicell<Backend>::initialize(
 
     // set a back-end supplied watcher on the voltage vector
     threshold_watcher_ =
-        threshold_watcher(cv_to_cell_, time_, time_to_, voltage_, spike_detector_index, thresholds, 0);
+        threshold_watcher(cv_to_cell_, time_, time_to_, voltage_, spike_detector_index, thresholds);
 
     // confirm user-supplied container probes were appropriately sized.
     EXPECTS(probes_size==probes_count);
@@ -842,18 +844,19 @@ void fvm_multicell<Backend>::initialize(
 template <typename Backend>
 void fvm_multicell<Backend>::reset() {
     memory::fill(voltage_, resting_potential_);
-    t_ = 0.;
+    memory::fill(time_, 0);
+    memory::fill(time_to_, 0);
     for (auto& m : mechanisms_) {
         // TODO : the parameters have to be set before the nrn_init
         // for now use a dummy value of dt.
-        m->set_params(t_, 0.025);
+        m->set_params();
         m->nrn_init();
     }
 
     // Reset state of the threshold watcher.
     // NOTE: this has to come after the voltage_ values have been reinitialized,
     // because these values are used by the watchers to set their initial state.
-    threshold_watcher_.reset(t_);
+    threshold_watcher_.reset();
 
     // Reset integration state.
     tfinal_ = 0;
@@ -872,10 +875,10 @@ void fvm_multicell<Backend>::step_integration() {
 
     for (size_type ci = 0; ci<ncell_; ++ci) {
         auto t = time(ci);
-        while (auto ev = events_.pop_if_not_after(ci, t_)) {
+        while (auto ev = events_.pop_if_not_after(ci, t)) {
             deliver_event(ev->handle, ev->weight);
         }
-        time_to_[ci] = events_.time_if_before(ci, std::min(t+dt_max_, tfinal_));
+        time_to_[ci] = events_.event_time_if_before(ci, std::min(t+dt_max_, tfinal_));
     }
 
     PE("current");

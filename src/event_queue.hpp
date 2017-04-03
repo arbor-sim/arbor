@@ -155,6 +155,7 @@ public :
        span_(n_stream, {0u, 0u}) {}
 
     size_type n_streams() const { return span_.size(); }
+    size_type size() const { return n_streams(); }
 
     size_type n_events(size_type i) const {
         auto span = span_[i];
@@ -168,7 +169,7 @@ public :
     void clear() {
         ev_.clear();
         remaining_ = 0;
-        span_.assign(size(), {0u, 0u});
+        span_.assign(n_streams(), {0u, 0u});
     }
 
     // Load events from a sequence (of length at least `size()`) of
@@ -195,13 +196,13 @@ public :
                 span_[i] = {0u, 0u};
             }
         }
-        remaining_ = ev.size();
+        remaining_ = ev_.size();
     }
 
     // Pop and return top event `ev` of `i`th event stream unless `event_time(ev)` > `t_until`
     util::optional<value_type> pop_if_not_after(size_type i, time_type t_until) {
         using ::nest::mc::event_time;
-        return pop_if(stream,
+        return pop_if(i,
             [&t_until](const value_type& ev) { return t_until > event_time(ev); }
         );
     }
@@ -213,7 +214,7 @@ public :
         }
 
         using ::nest::mc::event_time;
-        auto t = event_time(queue_.top());
+        auto t = event_time(top_unsafe(i));
         return t_until > t? t: t_until;
     }
 
@@ -235,13 +236,13 @@ private:
         return ev_[span_[i].first];
     }
 
-    value_type pop_unsafe(size_type i) const {
+    value_type pop_unsafe(size_type i) {
         --remaining_;
         return std::move(ev_[span_[i].first++]);
     }
 
     std::vector<value_type> ev_;
-    std::vector<std::pair<size_type>> span_;
+    std::vector<std::pair<size_type, size_type>> span_;
     size_type remaining_ = 0;
 };
 
