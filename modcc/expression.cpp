@@ -96,7 +96,7 @@ void IdentifierExpression::semantic(scope_ptr scp) {
     // indexed variable is used in this procedure. In which case, we create
     // a local variable which refers to the indexed variable, which will be
     // found for any subsequent variable lookup inside the procedure
-    if(auto sym = s->is_indexed_variable()) {
+    if(auto sym = s->is_abstract_indexed_variable()) {
         auto var = new LocalVariable(location_, spelling_);
         var->external_variable(sym);
         s = scope_->add_local_symbol(spelling_, scope_type::symbol_ptr{var});

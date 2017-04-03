@@ -21,6 +21,7 @@ public:
     virtual void visit(Symbol *e)               override;
     virtual void visit(LocalVariable *e)        override;
     virtual void visit(IndexedVariable *e)      override;
+    virtual void visit(CellIndexedVariable *e)  override;
     virtual void visit(IdentifierExpression *e) override;
     virtual void visit(CallExpression *e)       override;
     virtual void visit(ProcedureExpression *e)  override;

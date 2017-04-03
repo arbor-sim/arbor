@@ -82,6 +82,14 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         param_pack.push_back(tname + ".index.data()");
     }
 
+    text_.add_line("// cv index to cell mapping and cell time states");
+    text_.add_line("I* ci;");
+    text_.add_line("T* vec_t;");
+    text_.add_line("T* vec_t_to;");
+    param_pack.push_back("vec_ci_.data()");
+    param_pack.push_back("vec_t_.data()");
+    param_pack.push_back("vec_t_to_.data()");
+
     text_.add_line("// voltage and current state within the cell");
     text_.add_line("T* vec_v;");
     text_.add_line("T* vec_i;");
@@ -526,12 +534,20 @@ std::string CUDAPrinter::index_string(Symbol *s) {
                     s->location());
         }
     }
+    else if(s->is_cell_indexed_variable()) {
+        return "cid_";
+    }
     return "";
 }
 
 void CUDAPrinter::visit(IndexedVariable *e) {
     text_ << "params_." << e->index_name() << "[" << index_string(e) << "]";
 }
+
+void CUDAPrinter::visit(CellIndexedVariable *e) {
+    text_ << "params_." << e->index_name() << "[" << index_string(e) << "]";
+}
+
 
 void CUDAPrinter::visit(LocalVariable *e) {
     std::string const& name = e->name();
@@ -690,6 +706,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line("if (threadIdx.x || blockIdx.x) return;");
         text_.add_line("auto tid_ = i_;");
         text_.add_line("auto gid_ __attribute__((unused)) = params_.ni[tid_];");
+        text_.add_line("auto cid_ __attribute__((unused)) = params_.ci[gid_];");
 
         print_APIMethod_body(e);
 

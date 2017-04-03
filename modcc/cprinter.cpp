@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <string>
 
 #include "cprinter.hpp"
 #include "lexer.hpp"
@@ -430,6 +431,10 @@ void CPrinter::visit(IndexedVariable *e) {
     text_ << e->index_name() << "[i_]";
 }
 
+void CPrinter::visit(CellIndexedVariable *e) {
+    text_ << e->index_name() << "[i_]";
+}
+
 void CPrinter::visit(UnaryExpression *e) {
     auto b = (e->expression()->is_binary()!=nullptr);
     switch(e->op()) {
@@ -583,20 +588,25 @@ void CPrinter::visit(APIMethod *e) {
         // create local indexed views
         for(auto &symbol : e->scope()->locals()) {
             auto var = symbol.second->is_local_variable();
-            if(var->is_indexed()) {
-                auto const& name = var->name();
-                auto const& index_name = var->external_variable()->index_name();
-                text_.add_gutter();
-                text_ << "auto " + index_name + " = util::indirect_view";
-                auto channel = var->external_variable()->ion_channel();
-                if(channel==ionKind::none) {
-                    text_ << "(" + index_name + "_, node_index_);\n";
-                }
-                else {
-                    auto iname = ion_store(channel);
-                    text_ << "(" << iname << "." << name << ", "
-                          << ion_store(channel) << ".index);\n";
-                }
+            if (!var->is_indexed()) continue;
+
+            auto external = var->external_variable();
+            auto const& name = var->name();
+            auto const& index_name = external->index_name();
+
+            text_.add_gutter();
+            text_ << "auto " + index_name + " = ";
+
+            if(external->is_cell_indexed_variable()) {
+                text_ << "util::indirect_view(util::indirect_view(" + index_name + "_, vec_ci_), node_index_);\n";
+            }
+            else if(external->is_ion()) {
+                auto channel = external->ion_channel();
+                auto iname = ion_store(channel);
+                text_ << "util::indirect_view(" << iname << "." << name << ", " << ion_store(channel) << ".index);\n";
+            }
+            else {
+                text_ << "util::indirect_view(" + index_name + "_, node_index_);\n";
             }
         }
 

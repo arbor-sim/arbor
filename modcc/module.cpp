@@ -393,27 +393,28 @@ bool Module::semantic() {
     // The second is nrn_current, which is handled after this block
     auto state_api  = make_empty_api_method("nrn_state", "breakpoint");
     auto api_state  = state_api.first;
-    auto breakpoint = state_api.second;
+    auto breakpoint = state_api.second; // implies we are building the `nrn_state()` method.
+
+    if(breakpoint) {
+        // Before running semantic pass, insert dt definition and assignment.
+        // Integration dt is determined by the (cell-indexed) variables `t` and `t_to`.
+        auto loc = breakpoint->body()->location();
+        api_state->body()->statements().push_back(
+            make_expression<LocalDeclaration>(loc, "dt"));
+
+        api_state->body()->statements().push_back(
+            binary_expression(loc, tok::eq,
+                make_expression<IdentifierExpression>(loc, "dt"),
+                binary_expression(loc, tok::minus,
+                    make_expression<IdentifierExpression>(loc, "t_to"),
+                    make_expression<IdentifierExpression>(loc, "t"))));
+    }
 
     api_state->semantic(symbols_);
     scope_ptr nrn_state_scope = api_state->scope();
 
+
     if(breakpoint) {
-        //..........................................................
-        // nrn_state : The temporal integration of state variables
-        //..........................................................
-
-        // Insert dt assignment first; dt = t_to_ - t_.
-        apt_state->body()->statements().push_back(
-            make_expression<LocalDeclaration>(loc, "dt"));
-
-        apt_state->body()->statements().push_back(
-            binary_expression(loc, tok::eq,
-                make_expression<IdentifierExpression>(loc, "dt"),
-                binary_expression(loc, tok::minus,
-                    make_expression<IdentifierExpression>(loc, "t_to_"),
-                    make_expression<IdentifierExpression>(loc, "t_"))));
-
         // Grab SOLVE statements, put them in `nrn_state` after translation.
         bool found_solve = false;
         bool found_non_solve = false;
@@ -469,6 +470,7 @@ bool Module::semantic() {
                 }
 
                 // May have now redundant local variables; remove these first.
+                solve_block->semantic(nrn_state_scope);
                 solve_block = remove_unused_locals(solve_block->is_block());
 
                 // Copy body into nrn_state.
@@ -490,9 +492,13 @@ bool Module::semantic() {
                     breakpoint->location());
         }
         else {
-            // redo semantic pass in order to elimate any removed local symbols.
+            // Redo semantic pass in order to elimate any removed local symbols.
             api_state->semantic(symbols_);
         }
+
+        // Run remove locals pass again on the whole body in case `dt` was never used.
+        api_state->body(remove_unused_locals(api_state->body()));
+        api_state->semantic(symbols_);
 
         //..........................................................
         // nrn_current : update contributions to currents
@@ -569,11 +575,11 @@ void Module::add_variables_to_symbols() {
                 "trying to insert a symbol that already exists",
                 loc);
         }
-        symbols_[name] = make_symbol<CellIndexedVariable>(loc, name, indexed_name)
+        symbols_[name] = make_symbol<CellIndexedVariable>(loc, name, indexed_name);
     };
 
-    create_cell_indexed_variable("t_", "vec_t");
-    create_cell_indexed_variable("t_to_", "vec_t");
+    create_cell_indexed_variable("t", "vec_t");
+    create_cell_indexed_variable("t_to", "vec_t_to");
 
     // add state variables
     for(auto const &var : state_block()) {
