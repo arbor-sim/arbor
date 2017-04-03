@@ -7,37 +7,37 @@ namespace nest {
 namespace mc {
 namespace util {
 
+// A measurement from a meter has the following:
+//  * name
+//    * e.g. walltime or allocated-memory
+//  * units
+//    * use SI units
+//    * e.g. s or MiB
+//  * measurements
+//    * a vector with one entry for each checkpoint
+//    * each entry is a std::vector<double> of measurements gathered across
+//      domains at one checkpoint.
+//
+struct measurement {
+    std::string name;
+    std::string units;
+    std::vector<std::vector<double>> measurements;
+};
+
+// Converts a measurement to a json type for serialization to file.
+// See src/profiling/meters.md for more information about the json formating.
+nlohmann::json to_json(const measurement& m);
+
 // A meter can be used to take a measurement of resource consumption, for
 // example wall time, memory or energy consumption.
 // Each specialization must:
 //  1) Record the resource consumption on calling meter::take_reading.
-//      * how and which information is recorded is implementation dependent
-//  2) Return a json record that lists the measured information from a
-//     call to meter::as_json.
-//      * the format of the output is a json Array of json Objects
-//      * each Object corresponds to a derived measurement:
-//        * "name": a string describing the measurement
-//        * "units": a string with SI units for measurements
-//        * "measurements": a json Array of measurements, with one
-//          entry per checkpoint (corresponding to a call to
-//          meter::take_reading)
-//          * each measurement is itself a numeric array, with one
-//            recording for each domain in the global communicator
-//
-//  For example, the output of a meter for measuring wall time where 5 readings
-//  were taken on 4 MPI ranks could be represented as follows:
-//
-//   [{
-//     "name": "walltime",
-//     "units": "s",
-//     "measurements": [
-//       [ 0, 0, 0, 0, ],
-//       [ 0.001265837, 0.001344004, 0.001299362, 0.001195762, ],
-//       [ 0.014114013, 0.015045662, 0.015071675, 0.014209514, ],
-//       [ 1.491986631, 1.491121134, 1.490957219, 1.492064233, ],
-//       [ 0.00565307, 0.004375347, 0.002228206, 0.002483978, ]
-//     ]
-//   }]
+//      * How and which information is recorded is implementation dependent.
+//  2) Return a std::vector containing the measurements that are derived
+//     from the information recorded on calls to meter::take_reading.
+//      * The return value is a vector of measurements, because a meter
+//        may derive multiple measurements from the recorded checkpoint
+//        information.
 class meter {
 public:
     meter() = default;
@@ -48,11 +48,11 @@ public:
     // Take a reading/measurement of the resource
     virtual void take_reading() = 0;
 
-    // Return a summary of the recordings in json format (see documentation above).
+    // Return a summary of the recordings.
     // May perform expensive operations to process and analyse the readings.
     // Full output is expected only on the root domain, i.e. when
     // global_policy::id()==0
-    virtual nlohmann::json as_json() = 0;
+    virtual std::vector<measurement> measurements() = 0;
 
     virtual ~meter() = default;
 };

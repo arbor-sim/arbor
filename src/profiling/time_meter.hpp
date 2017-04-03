@@ -17,7 +17,7 @@ class time_meter : public meter {
 public:
     std::string name() override;
     void take_reading() override;
-    virtual nlohmann::json as_json() override;
+    virtual std::vector<measurement> measurements() override;
 };
 
 } // namespace util

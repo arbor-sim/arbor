@@ -7,7 +7,6 @@
 
 #include "time_meter.hpp"
 #include <communication/global_policy.hpp>
-#include <json/json.hpp>
 
 namespace nest {
 namespace mc {
@@ -32,10 +31,8 @@ void time_meter::take_reading() {
     communication::global_policy::barrier();
 }
 
-nlohmann::json time_meter::as_json() {
-    using nlohmann::json;
+std::vector<measurement> time_meter::measurements() {
     using gcom = communication::global_policy;
-    const bool is_root = gcom::id()==0;
 
     // Calculate the elapsed time on the local domain for each interval,
     // and store them in the times vector.
@@ -53,24 +50,16 @@ nlohmann::json time_meter::as_json() {
             "the number of checkpoints in the \"time\" meter do not match across domains");
     }
 
-    // Gather the timers from accross all of the domains onto the root
-    // domain (i.e. domain 0). The result is a json array of arrays:
-    // one array of times on each domain for each interval.
-    // Note: the values in results are only valid on the root domain.
-    json results;
+    // Gather the timers from accross all of the domains onto the root domain.
+    // Note: results are only valid on the root domain on completion.
+    measurement results;
+    results.name = "walltime";
+    results.units = "s";
     for (auto t: times) {
-        results.push_back(gcom::gather(t, 0));
+        results.measurements.push_back(gcom::gather(t, 0));
     }
 
-    if (is_root) {
-        return {
-            {"name", "walltime"},
-            {"units", "s"},
-            {"measurements", results}
-        };
-    }
-
-    return {};
+    return {results};
 }
 
 } // namespace util

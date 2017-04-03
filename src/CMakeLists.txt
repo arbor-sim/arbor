@@ -3,9 +3,10 @@ set(BASE_SOURCES
     cell.cpp
     morphology.cpp
     parameter_list.cpp
+    profiling/meter.cpp
+    profiling/meter_manager.cpp
     profiling/profiler.cpp
     profiling/time_meter.cpp
-    profiling/meter_manager.cpp
     swcio.cpp
     threading/affinity.cpp
     util/debug.cpp

@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("output");
 
-        meters.save_to_file("meters.json");
+        util::save_to_file(meters, "meters.json");
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
