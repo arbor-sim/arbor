@@ -86,7 +86,7 @@ public:
     }
 
     /// Initialize state prior to a sequence of integration steps.
-    void start_integration(value_type tfinal, value_type dt_max) {
+    void setup_integration(value_type tfinal, value_type dt_max) {
         EXPECTS(tfinal>t_);
         EXPECTS(dt_max>0);
 
@@ -105,7 +105,7 @@ public:
         staged_events_.clear();
     }
 
-    /// Advance one integration step.
+    /// Advance one integration step, up to `dt_max_` in each cell.
     void step_integration();
 
     /// Query integration completion state.
@@ -834,6 +834,8 @@ void fvm_multicell<Backend>::reset() {
 
 template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
+    // Integrate cell states from `t_` by `dt_max_` if permissible,
+    // or otherwise until the next event time or `t_final`.
     EXPECTS(integration_running_);
 
     while (auto ev = events_.pop_if_not_after(t_)) {

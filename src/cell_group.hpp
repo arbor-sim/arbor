@@ -153,7 +153,7 @@ public:
             lowered_.add_event(binned_ev_time, handle, ev->weight);
         }
 
-        lowered_.start_integration(tfinal, dt);
+        lowered_.setup_integration(tfinal, dt);
 
         std::vector<sample_event<time_type>> requeue_sample_events;
         while (!lowered_.integration_complete()) {
