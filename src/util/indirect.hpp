@@ -39,10 +39,6 @@ auto indirect_view(RASeq& data, const Seq& index_map)
 DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq&>(data)));
 
 template <typename RASeq, typename Seq>
-auto indirect_view(const RASeq& data, const Seq& index_map)
-DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<const RASeq&>(data)));
-
-template <typename RASeq, typename Seq>
 auto indirect_view(RASeq&& data, const Seq& index_map)
 DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq>(std::move(data))));
 
