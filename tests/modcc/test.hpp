@@ -33,11 +33,20 @@ inline expression_ptr parse_procedure(std::string const& s) {
 // Strip ANSI control sequences from `to_string` output.
 std::string plain_text(Expression* expr);
 
+// Generic get expression pointer from raw pointer or unique_ptr wrapper.
+inline Expression* raw_expression(Expression* p) { return p; }
+inline Expression* raw_expression(const expression_ptr &p) { return p.get(); }
+
 // Compare two expressions via their representation.
 // Use with EXPECT_PRED_FORMAT2.
 ::testing::AssertionResult assert_expr_eq(const char *arg1, const char *arg2, Expression* expected, Expression* value);
 
-#define EXPECT_EXPR_EQ(a,b) EXPECT_PRED_FORMAT2(assert_expr_eq, a, b)
+template <typename E1, typename E2>
+::testing::AssertionResult assert_expr_eq_wrap(const char *arg1, const char *arg2, E1&& expected, E2&& value) {
+    return assert_expr_eq(arg1, arg2, raw_expression(std::forward<E1>(expected)), raw_expression(std::forward<E2>(value)));
+}
+
+#define EXPECT_EXPR_EQ(a,b) EXPECT_PRED_FORMAT2(assert_expr_eq_wrap, a, b)
 
 // Print arguments, but only if verbose flag set.
 // Use `to_string()` to print (smart) pointers to Expression or Scope objects.

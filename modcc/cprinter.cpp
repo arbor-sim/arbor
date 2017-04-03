@@ -57,7 +57,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("using view   = typename base::view;");
     text_.add_line("using iview  = typename base::iview;");
     text_.add_line("using const_iview = typename base::const_iview;");
-    text_.add_line("using indexed_view_type= typename base::indexed_view_type;");
     text_.add_line("using ion_type = typename base::ion_type;");
     text_.add_line();
 
@@ -589,8 +588,7 @@ void CPrinter::visit(APIMethod *e) {
                 auto const& name = var->name();
                 auto const& index_name = var->external_variable()->index_name();
                 text_.add_gutter();
-                if(var->is_read()) text_ << "const ";
-                text_ << "indexed_view_type " + index_name;
+                text_ << "auto " + index_name + " = util::indirect_view";
                 auto channel = var->external_variable()->ion_channel();
                 if(channel==ionKind::none) {
                     text_ << "(" + index_name + "_, node_index_);\n";

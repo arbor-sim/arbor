@@ -55,8 +55,8 @@ set(EXTERNAL_INCLUDES "")
 #----------------------------------------------------------
 # Threading model selection
 #----------------------------------------------------------
-set(NMC_THREADING_MODEL "serial" CACHE STRING "set the threading model, one of serial/tbb/cthread")
-set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS serial tbb cthread)
+set(NMC_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
+set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 if(NMC_THREADING_MODEL MATCHES "tbb")
 

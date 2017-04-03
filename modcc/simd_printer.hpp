@@ -155,15 +155,13 @@ void SimdPrinter<Arch>::emit_indexed_view(LocalVariable* var,
     auto const& index_name = var->external_variable()->index_name();
     text_.add_gutter();
 
-    if (var->is_read())
-        text_ << "const ";
-
     if (decls.find(index_name) == decls.cend()) {
-        text_ << "indexed_view_type ";
+        text_ << "auto ";
         decls.insert(index_name);
     }
 
     text_ << index_name;
+    text_ << " = util::indirect_view";
     auto channel = var->external_variable()->ion_channel();
     if (channel == ionKind::none) {
         text_ << "(" + emit_member_name(index_name) + ", node_index_);\n";

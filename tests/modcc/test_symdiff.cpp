@@ -122,7 +122,7 @@ TEST(constant_simplify, simplified_expr) {
         ASSERT_TRUE(before);
         ASSERT_TRUE(after);
 
-        EXPECT_EQ(after->to_string(), constant_simplify(before)->to_string());
+        EXPECT_EXPR_EQ(after, constant_simplify(before));
     }
 }
 
@@ -156,7 +156,7 @@ TEST(constant_simplify, block_with_if) {
     ASSERT_TRUE(before);
     ASSERT_TRUE(after);
 
-    EXPECT_EQ(after->to_string(), constant_simplify(before)->to_string());
+    EXPECT_EXPR_EQ(after, constant_simplify(before));
 }
 
 TEST(symbolic_pdiff, expressions) {
@@ -177,7 +177,7 @@ TEST(symbolic_pdiff, expressions) {
         ASSERT_TRUE(before);
         ASSERT_TRUE(after);
 
-        EXPECT_EQ(after->to_string(), symbolic_pdiff(before, "x")->to_string());
+        EXPECT_EXPR_EQ(after, symbolic_pdiff(before, "x"));
     }
 }
 
@@ -195,7 +195,7 @@ TEST(symbolic_pdiff, linear) {
         ASSERT_TRUE(before);
         ASSERT_TRUE(after);
 
-        EXPECT_EQ(after->to_string(), symbolic_pdiff(before, "x")->to_string());
+        EXPECT_EXPR_EQ(after, symbolic_pdiff(before, "x"));
     }
 }
 
@@ -214,7 +214,7 @@ TEST(symbolic_pdiff, nonlinear) {
         ASSERT_TRUE(before);
         ASSERT_TRUE(after);
 
-        EXPECT_EQ(after->to_string(), symbolic_pdiff(before, "x")->to_string());
+        EXPECT_EXPR_EQ(after, symbolic_pdiff(before, "x"));
     }
 }
 
@@ -242,7 +242,7 @@ TEST(substitute, expressions) {
         ASSERT_TRUE(after);
 
         auto result = substitute(before.get(), "x", yplusz.get());
-        EXPECT_EQ(after->to_string(), result->to_string());
+        EXPECT_EXPR_EQ(after, result);
     }
 }
 
@@ -259,7 +259,7 @@ TEST(substitute, exprmap) {
     ASSERT_TRUE(after);
 
     auto result = substitute(before.get(), subs);
-    EXPECT_EQ(after->to_string(), result->to_string());
+    EXPECT_EXPR_EQ(after, result);
 }
 
 TEST(linear_test, homogeneous) {
@@ -269,14 +269,14 @@ TEST(linear_test, homogeneous) {
     EXPECT_TRUE(r.is_linear);
     EXPECT_TRUE(r.is_homogeneous);
     EXPECT_TRUE(r.monolinear());
-    EXPECT_EQ(r.coef["x"]->to_string(), "3"_expr->to_string());
+    EXPECT_EXPR_EQ(r.coef["x"], "3"_expr);
 
     r = linear_test("y-a*x+2*x"_expr, {"x", "y"});
     EXPECT_TRUE(r.is_linear);
     EXPECT_TRUE(r.is_homogeneous);
     EXPECT_FALSE(r.monolinear());
-    EXPECT_EQ(r.coef["x"]->to_string(), "-a+2"_expr->to_string());
-    EXPECT_EQ(r.coef["y"]->to_string(), "1"_expr->to_string());
+    EXPECT_EXPR_EQ(r.coef["x"], "-a+2"_expr);
+    EXPECT_EXPR_EQ(r.coef["y"], "1"_expr);
 }
 
 TEST(linear_test, inhomogeneous) {
@@ -285,23 +285,23 @@ TEST(linear_test, inhomogeneous) {
     r = linear_test("sin(y)+3*x"_expr, {"x"});
     EXPECT_TRUE(r.is_linear);
     EXPECT_FALSE(r.is_homogeneous);
-    EXPECT_EQ(r.coef["x"]->to_string(), "3"_expr->to_string());
-    EXPECT_EQ(r.constant->to_string(), "sin(y)"_expr->to_string());
+    EXPECT_EXPR_EQ(r.coef["x"], "3"_expr);
+    EXPECT_EXPR_EQ(r.constant, "sin(y)"_expr);
 
     r = linear_test("(x+y+1)*(a+b)"_expr, {"x", "y"});
     EXPECT_TRUE(r.is_linear);
     EXPECT_FALSE(r.is_homogeneous);
-    EXPECT_EQ(r.coef["x"]->to_string(), "a+b"_expr->to_string());
-    EXPECT_EQ(r.coef["y"]->to_string(), "a+b"_expr->to_string());
-    EXPECT_EQ(r.constant->to_string(), "a+b"_expr->to_string());
+    EXPECT_EXPR_EQ(r.coef["x"], "a+b"_expr);
+    EXPECT_EXPR_EQ(r.coef["y"], "a+b"_expr);
+    EXPECT_EXPR_EQ(r.constant, "a+b"_expr);
 
     // check 'gating' case still works! (Use plus instead of minus
     // though because of -1 vs (- 1) parsing makes the test harder.)
     r = linear_test("(a+x)/b"_expr, {"x"});
     EXPECT_TRUE(r.is_linear);
     EXPECT_FALSE(r.is_homogeneous);
-    EXPECT_EQ(r.coef["x"]->to_string(), "1/b"_expr->to_string());
-    EXPECT_EQ(r.constant->to_string(), "a/b"_expr->to_string());
+    EXPECT_EXPR_EQ(r.coef["x"], "1/b"_expr);
+    EXPECT_EXPR_EQ(r.constant, "a/b"_expr);
 }
 
 TEST(linear_test, nonlinear) {
