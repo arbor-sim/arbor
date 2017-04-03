@@ -15,7 +15,6 @@ class time_meter : public meter {
     std::vector<timer_type::time_point> readings_;
 
 public:
-
     std::string name() override;
     void take_reading() override;
     virtual nlohmann::json as_json() override;
