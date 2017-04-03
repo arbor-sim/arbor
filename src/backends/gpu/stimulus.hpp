@@ -7,24 +7,14 @@
 #include <algorithms.hpp>
 #include <util/pprintf.hpp>
 
+#include "intrinsics.hpp"
+
 namespace nest{
 namespace mc{
 namespace mechanisms {
 namespace gpu {
 
 namespace kernels {
-    __device__
-    inline double atomicAdd(double* address, double val) {
-        using I = unsigned long long int;
-        I* address_as_ull = (I*)address;
-        I old = *address_as_ull, assumed;
-        do {
-            assumed = old;
-            old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val+__longlong_as_double(assumed)));
-        } while (assumed != old);
-        return __longlong_as_double(old);
-    }
-
     template <typename T, typename I>
     __global__
     void stim_current(
@@ -40,7 +30,7 @@ namespace kernels {
             if (t>=delay[i] && t<(delay[i]+duration[i])) {
                 // use subtraction because the electrode currents are specified
                 // in terms of current into the compartment
-                atomicAdd(current+node_index[i], -amplitude[i]);
+                cuda_atomic_add(current+node_index[i], -amplitude[i]);
             }
         }
     }
@@ -58,7 +48,6 @@ public:
     using view   = typename base::view;
     using iview  = typename base::iview;
     using const_iview = typename base::const_iview;
-    using indexed_view_type= typename base::indexed_view_type;
     using ion_type = typename base::ion_type;
 
     stimulus(view vec_v, view vec_i, iarray&& node_index):

@@ -1,14 +1,14 @@
 #include "../gtest.h"
 
-#include <backends/gpu_stack.hpp>
+#include <backends/gpu/stack.hpp>
 #include <memory/managed_ptr.hpp>
 
 using namespace nest::mc;
 
-TEST(gpu_stack, construction) {
+TEST(stack, construction) {
     using T = int;
 
-    gpu::gpu_stack<T> s(10);
+    gpu::stack<T> s(10);
 
     EXPECT_EQ(0u, s.size());
     EXPECT_EQ(10u, s.capacity());
@@ -18,7 +18,7 @@ TEST(gpu_stack, construction) {
 namespace kernels {
     template <typename F>
     __global__
-    void push_back(gpu::gpu_stack<int>& s, F f) {
+    void push_back(gpu::stack<int>& s, F f) {
         if (f(threadIdx.x)) {
             s.push_back(threadIdx.x);
         }
@@ -46,9 +46,9 @@ namespace kernels {
     };
 }
 
-TEST(gpu_stack, push_back) {
+TEST(stack, push_back) {
     using T = int;
-    using stack = gpu::gpu_stack<T>;
+    using stack = gpu::stack<T>;
 
     const unsigned n = 10;
     EXPECT_TRUE(n%2 == 0); // require n is even for tests to work

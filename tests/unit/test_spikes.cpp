@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <spike.hpp>
-#include <backends/fvm_multicore.hpp>
+#include <backends/multicore/fvm.hpp>
 
 using namespace nest::mc;
 

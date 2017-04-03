@@ -90,7 +90,7 @@ public:
     }
 
     /// Initialize state prior to a sequence of integration steps.
-    void start_integration(value_type tfinal, value_type dt_max) {
+    void setup_integration(value_type tfinal, value_type dt_max) {
         EXPECTS(dt_max>0);
 
         tfinal_ = tfinal;

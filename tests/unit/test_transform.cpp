@@ -5,6 +5,8 @@
 #include <vector>
 
 #include <util/range.hpp>
+#include <util/indirect.hpp>
+#include <util/span.hpp>
 #include <util/transform.hpp>
 
 using namespace nest::mc;
@@ -54,3 +56,69 @@ TEST(transform, transform_view_sentinel) {
     EXPECT_EQ("HELLO", out);
 }
 
+TEST(transform, pointer_access) {
+    struct item {
+        int x;
+    };
+    item data[3];
+
+    auto r = util::transform_view(util::make_span(0u, 3u), [&](unsigned i) -> item& { return data[i]; });
+
+    int c=10;
+    for (auto i=r.begin(); i!=r.end(); ++i) {
+        i->x = c++;
+    }
+
+    EXPECT_EQ(10, data[0].x);
+    EXPECT_EQ(11, data[1].x);
+    EXPECT_EQ(12, data[2].x);
+}
+
+TEST(transform, pointer_proxy) {
+    struct item {
+        int x;
+    };
+    auto r = util::transform_view(util::make_span(0, 3), [&](int i) { return item{13+i}; });
+
+    int c=13;
+    for (auto i=r.begin(); i!=r.end(); ++i) {
+        EXPECT_EQ(c++, i->x);
+    }
+}
+
+TEST(indirect, fwd_index) {
+    std::istringstream string_indices("5 2 3 0 1 1 4");
+    const double data[6] = {10., 11., 12., 13., 14., 15.};
+
+    auto indices = util::make_range(std::istream_iterator<int>(string_indices), std::istream_iterator<int>());
+    auto permuted = util::indirect_view(data, indices);
+
+    std::vector<double> result(permuted.begin(), permuted.end());
+    std::vector<double> expected = {15., 12., 13., 10., 11., 11., 14.};
+
+    EXPECT_EQ(expected, result);
+}
+
+TEST(indirect, modifying) {
+    unsigned map1[] = {0, 2, 4, 1, 3, 0};
+    unsigned map2[] = {0, 1, 1, 1, 2};
+
+    std::vector<double> data = {-1, -1, -1};
+
+    auto permuted = util::indirect_view(util::indirect_view(data, map2), map1);
+
+    // expected mapping:
+    // permuted[0] = data[0]
+    // permuted[1] = data[1]
+    // permuted[2] = data[2]
+    // permuted[3] = data[1]
+    // permuted[4] = data[1]
+    // permuted[5] = data[0]
+
+    for (unsigned i = 0; i<util::size(permuted); ++i) {
+        permuted[i] = 10.+i;
+    }
+    std::vector<double> expected = {15., 14., 12.};
+
+    EXPECT_EQ(expected, data);
+}

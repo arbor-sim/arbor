@@ -20,7 +20,7 @@ namespace gpu {
 // It is designed to be initialized empty with a given capacity on the host,
 // updated by device kernels, and periodically read and reset from the host side.
 template <typename T>
-class gpu_stack {
+class stack {
     using value_type = T;
     using allocator = memory::managed_allocator<value_type>;
 
@@ -37,13 +37,13 @@ class gpu_stack {
 
 public:
 
-    gpu_stack(unsigned capacity):
+    stack(unsigned capacity):
         capacity_(capacity), size_(0u)
     {
         data_ = allocator().allocate(capacity_);
     }
 
-    ~gpu_stack() {
+    ~stack() {
         allocator().deallocate(data_, capacity_);
     }
 

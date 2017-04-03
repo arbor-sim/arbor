@@ -5,9 +5,9 @@
 #include <string>
 #include <util/meta.hpp>
 
-#include <indexed_view.hpp>
 #include <ion.hpp>
 #include <parameter_list.hpp>
+#include <util/indirect.hpp>
 #include <util/make_unique.hpp>
 
 namespace nest {
@@ -36,8 +36,6 @@ public:
 
     using const_view = typename backend::const_view;
     using const_iview = typename backend::const_iview;
-
-    using indexed_view_type = indexed_view<backend>;
 
     using ion_type = ion<backend>;
 

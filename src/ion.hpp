@@ -2,7 +2,7 @@
 
 #include <array>
 #include <memory/memory.hpp>
-#include <indexed_view.hpp>
+#include <util/indirect.hpp>
 
 namespace nest {
 namespace mc {
@@ -56,8 +56,6 @@ public :
     using iarray = typename backend::iarray;
     using view = typename backend::view;
     using const_iview = typename backend::const_iview;
-
-    using indexed_view_type = indexed_view<backend>;
 
     ion() = default;
 
