@@ -8,6 +8,7 @@
 #include <json/json.hpp>
 
 #include "meter.hpp"
+#include "memory_meter.hpp"
 #include "time_meter.hpp"
 
 namespace nest {

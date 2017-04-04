@@ -9,7 +9,9 @@ meter_manager::meter_manager() {
     meters.emplace_back(new time_meter());
 
     // add memory consumption meter
-    // TODO
+    if (has_memory_metering) {
+        meters.emplace_back(new memory_meter());
+    }
 
     // add energy consumption meter
     // TODO
