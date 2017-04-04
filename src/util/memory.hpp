@@ -18,10 +18,9 @@ namespace util {
 // reasonably be used.
 using memory_size_type = std::int64_t;
 
-// Returned by allocated_memory 
-constexpr std::int64_t bad_memory_reading = INT64_MIN;
-
-// Returns the amount of memory currently allocated in bytes
+// Returns the amount of memory currently allocated in bytes.
+// Returns a negative value on error, or if the operation is not supported on
+// the target architecture.
 memory_size_type allocated_memory();
 
 } // namespace util
