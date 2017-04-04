@@ -1,0 +1,370 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+use 5.014;
+
+=pod
+
+=head1 NAME
+
+cc-filter - Filter lines according to rule set
+
+=head1 SYNOPSIS
+
+cc-filter [OPTION]... [FILE]...
+
+Filter FILEs or standard input by a sequence of rules.
+Built-in rules simplify C++ function and template expressions.
+
+=head1 OPTIONS
+
+=over 20
+
+=item B<-n>, B<--no-default>
+
+Omit the built-in rules from the default list.
+
+=item B<-r>, B<--rule=RULE>
+
+Apply the rule or group of rules B<RULE>.
+
+=item B<-t>, B<--table=FILE>
+
+Add the macro, rule and table definitions in B<FILE>.
+
+=item B<-d>, B<--define=DEF>
+
+Add an explicit definition.
+
+=item B<-l>, B<--list[=CAT]>
+
+By default, list the applicable rules and definitions.
+If B<CAT> is C<expand>, expand any macros in the definitions.
+If B<CAT> is C<group>, list the group definitions.
+If B<CAT> is C<macro>, list the macro definitions.
+    
+=item B<-h>, B<--help>
+
+Print help summary and exit.
+
+=item B<--man>
+
+Print the full documentation as a man page.
+
+=back
+
+=head1 DESCRIPTION
+
+Rules are applied sequentially to each line of the input files in turn. The
+rules are taken from the built-in list, and from any rules defined in tables
+supplied by the C<--table> option. If the table file is not an absolute
+path, it is looked for first in the current directory, and then relative
+to the directory in which C<cc-filter> resides.
+
+The default list of rules comprises all the rules specified in the built-in
+list any supplied table, however no default list is used if a rules are
+specifically requested with the C<--rule> option. The built-in rules are
+omitted from the default list if the C<--no-default> option is given. Rules can
+be explicitly omitted with the C<--exclude> option.
+
+Tables can include groups of rules for ease of inclusion or omission
+with the C<--rule> or C<--exclude> options.
+
+=head2 Table format
+
+Each line of the table is either blank, a comment line prefixed with '#', or an
+entry definition. Definitions are one of three types: macros, rules, or groups.
+
+=over 4
+
+=item Macros
+
+Macros supply text that is substituted in rule definitions.
+
+A macro definition has the form:
+
+=over 4
+
+C<macro> I<name> I<text>
+
+=back
+
+The I<name> of the macro may not contain any whitespace, and the I<text> of the
+macro definition cannot begin with whitespace.
+
+Every occurance of C<%>I<name>C<%> in a rule definition will be substituted with
+I<text>. Macro substitution is recursive: after all macro substitutions are
+performed, the rule definition will again be parsed for macros.
+
+=item Rules
+
+A rule definition has the form:
+C<rule> I<name> I<code>
+Rule I<name>s may not contain any whitespace.
+
+The I<code> entry of a rule undergoes macro expansion (only macros whose
+definitions have already been read will apply) and then is compiled to a perl
+subroutine that is expected to operate on C<$_> to provide a line
+transformation.
+
+If a rule is defined multiple times in the same table, the transformations
+are concatenated.
+
+If a rule is defined in a subsequent table, the new definition will replace
+the old definition.
+
+=item Groups
+
+A group definition has the form:
+C<group> I<name> I<rule-or-group-name>...
+
+Rule (or group) names comprising the definition are separated by whitespace,
+and must have already been defined in this or a previous table.
+
+=back
+
+Definitions added explicitly with the C<--define> option are treated as
+lines in a table that is parsed after all other tables.
+
+=head2 Example table
+
+Consider a table file C<example.tbl> with the lines:
+
+    # a comment comprises a # and any following characters, plus any
+    # preceding whitespace.
+    macro non-comment (^.*?)(?=\s*(?:#|$))
+    rule rev-text s/%non-comment%/$1=~s,[[:punct:]]+,,gr/e
+    rule rev-text s/%non-comment%/reverse(lc($1))/e
+
+This defines one rule, C<rev-text> which will remove punctuation in the
+text preceding a possible comment, and then lower-case and reverse it.
+
+    $ echo 'What, you egg!  # ?!' | cc-filter -n --table example
+    gge uoy tahw  # ?!
+
+=cut
+
+BEGIN { $Pod::Usage::Formatter = 'Pod::Text::Termcap'; }
+
+use File::Spec::Functions qw/catfile file_name_is_absolute/;
+use FindBin;
+use Getopt::Long;
+use Pod::Usage;
+use Safe;
+
+my $builtins = << '_end_';
+macro cxx:template-args    (<(?:(?>[^<>]+)|(?-1))*>)
+macro cxx:paren-args       (\((?:(?>[^()]+)|(?-1))*\))
+macro cxx:qualified        (?:(::)?\b(\w+::)+)
+macro cxx:std-ns           (?:(::)?\bstd::)
+macro cxx:gnu-internal-ns  (?:(::)?\b__gnu_cxx::)
+macro cxx:identifier       (\b[_\pL][_\pL\p{Nd}]*)
+
+rule cxx:rm-allocator      s/(?:,\s*)?%cxx:qualified%?allocator%cxx:template-args%//g
+rule cxx:rm-delete         s/(?:,\s*)?%cxx:qualified%?default_delete%cxx:template-args%//g
+rule cxx:rm-std            s/%cxx:std-ns%//g
+rule cxx:rm-std            s/%cxx:gnu-internal-ns%//g
+group cxx:std-simplify cxx:rm-allocator cxx:rm-delete cxx:rm-std
+
+rule cxx:rm-template-space s/%cxx:template-args%/$1=~s| *([<>]) *|\1|rg/eg
+rule cxx:unsigned-int      s/\bunsigned\s+int\b/unsigned/g
+group cxx:tidy cxx:rm-template-space cxx:unsigned-int
+
+rule cxx:strip-qualified   s/%cxx:qualified%//g
+rule cxx:strip-args        s/(%cxx:identifier%%cxx:template-args%?)%cxx:paren-args%/$1(...)/g
+group cxx:strip-all cxx:strip-qualified cxx:strip-args
+_end_
+
+my $opt_help = 0;
+my $opt_man = 0;
+my $opt_list = undef;
+my @opt_rules = ();
+my @opt_except = ();
+my @opt_tables = ();
+my @opt_defines = ();
+my $opt_nodefault = 0;
+
+GetOptions("n|no-default" => \$opt_nodefault,
+           "l|list:s" => \$opt_list,
+           "r|rule=s" => \@opt_rules,
+           "d|define=s" => \@opt_defines,
+           "x|exclude=s" => \@opt_except,
+	   "t|table=s" => \@opt_tables,
+           "h|help" => \$opt_help,
+           "man" => \$opt_man) or die "Try 'cc-filter --help' for more information.\n";
+
+pod2usage(-verbose=>1, -exitval=>0) if $opt_help;
+pod2usage(-verbose=>2, -exitval=>0) if $opt_man;
+
+my %macrotbl = ();
+my %ruletbl = ();
+my %grouptbl = ();
+my @rulelist = ();
+
+# parse builtin rules
+parse_ruletbl(\$builtins, \@rulelist, \%ruletbl, \%macrotbl, \%grouptbl);
+@rulelist = () if $opt_nodefault;
+
+# parse supplied tables
+parse_ruletbl($_, \@rulelist, \%ruletbl, \%macrotbl, \%grouptbl) foreach @opt_tables;
+
+# parse explicit definitions
+if (@opt_defines) {
+    my $def_tbl = join "\n", @opt_defines;
+    parse_ruletbl(\$def_tbl, \@rulelist, \%ruletbl, \%macrotbl, \%grouptbl);
+}
+
+# select rules to run (by default, all)
+if (@opt_rules) {
+    @rulelist = ();
+    foreach my $r (@opt_rules) {
+	if (exists $grouptbl{$r}) {
+	    push @rulelist, expand_group($r, \%grouptbl);
+	}
+	elsif (exists $ruletbl{$r}) {
+	    push @rulelist, $r;
+	}
+	else {
+	    die "unrecognized rule or group: $r\n";
+	}
+    }
+}
+if (@opt_except) {
+    my %excl = ();
+    foreach my $r (@opt_except) {
+	if (exists $grouptbl{$r}) {
+	    $excl{$_}++ foreach expand_group($r, \%grouptbl);
+	}
+	elsif (exists $ruletbl{$r}) {
+	    $excl{$r}++;
+	}
+	else {
+	    die "unrecognized rule or group: $r\n";
+	}
+    }
+    @rulelist = grep {!exists $excl{$_}} @rulelist;
+}
+
+# if requested, list applicable rules, applicable expanded rules, groups or macros
+if (defined $opt_list) {
+    if (!$opt_list || $opt_list =~ /^rule/) {
+	foreach my $r (@rulelist) {
+	    print "$r\t$_->{definition}\n" foreach (@{$ruletbl{$r}});
+	}
+    }
+    elsif ($opt_list =~ /^expand/) {
+	foreach my $r (@rulelist) {
+	    print "$r\t$_->{expanded}\n" foreach (@{$ruletbl{$r}});
+	}
+    }
+    elsif ($opt_list =~ /^group/) {
+	while (my ($name, $rulelist) = each %grouptbl) {
+	    print "$name\t".join(' ',@$rulelist)."\n";
+	}
+    }
+    elsif ($opt_list =~ /^macro/) {
+	while (my ($name, $macrodef) = each %macrotbl) {
+	    print "$name\t$macrodef\n";
+	}
+    }
+    exit 0;
+}
+
+# apply each rule to each line of input and emit
+while (<>) {
+    chomp;
+    foreach my $r (@rulelist) {
+	foreach my $entry (@{$ruletbl{$r}}) {
+	    &{$entry->{sub}};
+	}
+    }
+    print "$_\n";
+}
+
+exit 0;
+
+sub parse_ruletbl {
+    my $safe = new Safe;
+    my ($file, $rules, $ruletbl, $macrotbl, $grouptbl) = @_;
+    my $filename = ref($file)? "<internal table>": $file;
+    my @local_rules = ();
+    my %local_ruletbl = ();
+
+    if (!ref($file) && ! -e $file && !file_name_is_absolute($file)) {
+	# look for file in script directory
+	$file = catfile($FindBin::Bin, $file);
+    }
+
+    open(my $fh, '<', $file) or die "Unable to open table file $filename: $!\n";
+    while (<$fh>) {
+	next if /^\s*#/ || /^\s+$/;
+
+	my ($type, $name, $value) = (/(rule|group|macro)\s*(\S+)\s*(.*)$/);
+	die "$filename:$.: unrecognized line type\n" unless defined($type);
+
+	if ($type eq 'macro') {
+	    $macrotbl->{$name} = $value;
+	}
+	elsif ($type eq 'group') {
+	    my @components = split(' ',$value);
+	    foreach my $c (@components) {
+		next if exists $grouptbl->{$c};
+		next if exists $ruletbl->{$c};
+		next if exists $local_ruletbl{$c};
+		die "$filename:$.: unknown rule or group '$c'\n";
+	    }
+	    $grouptbl->{$name} = \@components;
+	}
+	else {
+	    my $action = substitute_macros($value, $macrotbl);
+	    my $sub = $safe->reval("sub { $action }");
+	    die "$filename:$.: error compiling action: $@\n" if $@;
+
+	    push @local_rules, $name unless exists $local_ruletbl{$name};
+	    push @{$local_ruletbl{$name}}, {sub => $sub, definition => $value, expanded => $action};
+	}
+    }
+
+    # add or override rule table entries
+    while (my ($name, $entries) = each %local_ruletbl) {
+	$ruletbl->{$name} = $entries;
+    }
+
+    # remove overriden rules from the rule list, and append them to the end in order
+    @$rules = grep {!exists $local_ruletbl{$_}} @$rules;
+    push @$rules, @local_rules;
+}
+
+sub substitute_macros {
+    my ($text, $macros) = @_;
+
+    my $max_iter = 2*keys %$macros;
+    my $iter = 0;
+
+    my $match = '%('.join('|', map {quotemeta} keys %$macros).')%';
+    my $re = qr/$match/;
+
+    while ($text =~ s/$re/$macros->{$1}/eg) {
+	die "maximum macro recursion exceeded: $iter\n" if ++$iter>$max_iter;
+    }
+    return $text;
+}
+
+sub expand_group {
+    my ($name, $grouptbl, $seen) = @_;
+
+    return $name unless exists $grouptbl->{$name};
+
+    $seen = {} if not defined $seen;
+    my @expand = ();
+    for my $x (@{$grouptbl->{$name}}) {
+	if (exists $seen->{$x}) {
+	    push @expand, $x;
+	}
+	else {
+	    push @expand, expand_group($x, $grouptbl, {%$seen, $x=>1});
+	}
+    }
+    return @expand;
+}

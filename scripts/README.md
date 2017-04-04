@@ -90,6 +90,125 @@ are reported instead.
 
 Output is in CSV format.
 
+#cc-filter
+
+`cc-filter` is a general purpose line-by-line text processor, with some
+built-in rules for simplifying output comprising templated C++ identifiers.
+
+Full documentation for `cc-filter` can be obtained by running it with the
+`--man` option. The information below has been transcribed from this output.
+
+In the `filter` subdirectory there is a sample table `massif-strip-cxx`
+that will remove the C++ content from the valgrind massif tool output.
+This can be then be used without running the default rules with the following:
+```
+cc-filter -n -t filters/massif-strip-cxx
+```
+
+## Options
+
+**-n**, **--no-default**
+:   Omit the built-in rules from the default list.
+
+**-r**, **--rule=RULE**
+:   Apply the rule or group of rules **RULE**.
+
+**-t**, **--table=FILE**
+:   Add the macro, rule and table definitions in **FILE**.
+
+**-d**, **--define=DEF**
+:   Add an explicit definition.
+
+**-l**, **--list\[=CAT\]**
+:   By default, list the applicable rules and definitions. If **CAT** is
+    `expand`, expand any macros in the definitions. If **CAT** is
+    `group`, list the group definitions. If **CAT** is `macro`, list the
+    macro definitions.
+
+**-h**, **--help**
+:   Print help summary and exit.
+
+**--man**
+:   Print the full documentation as a man page.
+
+## Description
+
+Rules are applied sequentially to each line of the input files in turn.
+The rules are taken from the built-in list, and from any rules defined
+in tables supplied by the `--table` option. If the table file is not an
+absolute path, it is looked for first in the current directory, and then
+relative to the directory in which `cc-filter` resides.
+
+The default list of rules comprises all the rules specified in the
+built-in list any supplied table, however no default list is used if a
+rules are specifically requested with the `--rule` option. The built-in
+rules are omitted from the default list if the `--no-default` option is
+given. Rules can be explicitly omitted with the `--exclude` option.
+
+Tables can include groups of rules for ease of inclusion or omission
+with the `--rule` or `--exclude` options.
+
+## Table format
+
+Each line of the table is either blank, a comment line prefixed with
+'\#', or an entry definition. Definitions are one of three types:
+macros, rules, or groups.
+
+Macros
+:   Macros supply text that is substituted in rule definitions.
+
+    A macro definition has the form:
+
+    The *name* of the macro may not contain any whitespace, and the
+    *text* of the macro definition cannot begin with whitespace.
+
+    Every occurance of `%`*name*`%` in a rule definition will be
+    substituted with *text*. Macro substitution is recursive: after all
+    macro substitutions are performed, the rule definition will again be
+    parsed for macros.
+
+Rules
+:   A rule definition has the form: `rule` *name* *code* Rule *name*s
+    may not contain any whitespace.
+
+    The *code* entry of a rule undergoes macro expansion (only macros
+    whose definitions have already been read will apply) and then is
+    compiled to a perl subroutine that is expected to operate on `$_` to
+    provide a line transformation.
+
+    If a rule is defined multiple times in the same table, the
+    transformations are concatenated.
+
+    If a rule is defined in a subsequent table, the new definition will
+    replace the old definition.
+
+Groups
+:   A group definition has the form: `group` *name*
+    *rule-or-group-name*...
+
+    Rule (or group) names comprising the definition are separated by
+    whitespace, and must have already been defined in this or a
+    previous table.
+
+Definitions added explicitly with the `--define` option are treated as
+lines in a table that is parsed after all other tables.
+
+### Example table
+
+Consider a table file `example.tbl` with the lines:
+
+        # a comment comprises a # and any following characters, plus any
+        # preceding whitespace.
+        macro non-comment (^.*?)(?=\s*(?:#|$))
+        rule rev-text s/%non-comment%/$1=~s,[[:punct:]]+,,gr/e
+        rule rev-text s/%non-comment%/reverse(lc($1))/e
+
+This defines one rule, `rev-text` which will remove punctuation in the
+text preceding a possible comment, and then lower-case and reverse it.
+
+        $ echo 'What, you egg!  # ?!' | cc-filter -n --table example
+        gge uoy tahw  # ?!
+
 #PassiveCable.jl
 
 Compute analytic solutions to the simple passive cylindrical dendrite cable
