@@ -11,8 +11,10 @@ set(BASE_SOURCES
     swcio.cpp
     threading/affinity.cpp
     util/debug.cpp
+    util/hostname.cpp
     util/memory.cpp
     util/path.cpp
+    util/power.cpp
     util/unwind.cpp
     backends/multicore/fvm.cpp
 )
