@@ -97,4 +97,23 @@ TEST(mpi, gather_all_with_partition) {
     EXPECT_EQ(expected_divisions, gathered.partition());
 }
 
+TEST(mpi, gather_array) {
+    using policy = mpi_global_policy;
+
+    int id = policy::id();
+
+    constexpr unsigned N = 10;
+    int values[N];
+    std::iota(util::begin(values), util::end(values), id*N);
+
+    auto gathered = mpi::gather(values, 0);
+
+    if (!id) {
+        ASSERT_TRUE(N*policy::size()==gathered.size());
+        for (auto i=0u; i<gathered.size(); ++i) {
+            EXPECT_EQ(int(i), gathered[i]);
+        }
+    }
+}
+
 #endif // NMC_HAVE_MPI

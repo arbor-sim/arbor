@@ -65,10 +65,6 @@ namespace mpi {
     // T must be trivially copyable
     template<typename T>
     std::vector<T> gather(T value, int root) {
-        static_assert(
-            true,//std::is_trivially_copyable<T>::value,
-            "gather can only be performed on trivally copyable types");
-
         using traits = mpi_traits<T>;
         auto buffer_size = (rank()==root) ? size() : 0;
         std::vector<T> buffer(buffer_size);
@@ -76,6 +72,22 @@ namespace mpi {
         PE("MPI", "Gather");
         MPI_Gather( &value,        traits::count(), traits::mpi_type(), // send buffer
                     buffer.data(), traits::count(), traits::mpi_type(), // receive buffer
+                    root, MPI_COMM_WORLD);
+        PL(2);
+
+        return buffer;
+    }
+
+    // specialize for arrays
+    template<typename T, typename N>
+    std::vector<T> gather(T (&value)[N], int root) {
+        using traits = mpi_traits<T>;
+        auto buffer_size = (rank()==root) ? N*size() : 0;
+        std::vector<T> buffer(buffer_size);
+
+        PE("MPI", "Gather");
+        MPI_Gather( value,         N*traits::count(), traits::mpi_type(), // send buffer
+                    buffer.data(), N*traits::count(), traits::mpi_type(), // receive buffer
                     root, MPI_COMM_WORLD);
         PL(2);
 
