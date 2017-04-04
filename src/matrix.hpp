@@ -11,8 +11,9 @@ namespace nest {
 namespace mc {
 
 /// Hines matrix
-/// the TargetPolicy defines the backend specific data types and solver
-template<class Backend>
+/// Make the back end state implementation optional to allow for
+/// testing different implementations in the same code.
+template<class Backend, class State=typename Backend::matrix_state>
 class matrix {
 public:
     using backend = Backend;
@@ -25,27 +26,15 @@ public:
     using array = typename backend::array;
     using iarray = typename backend::iarray;
 
-    using view = typename backend::view;
-    using iview = typename backend::iview;
     using const_view = typename backend::const_view;
     using const_iview = typename backend::const_iview;
 
     using host_array = typename backend::host_array;
 
     // back end specific storage for matrix state
-    using state = typename backend::matrix_state;
+    using state = State;
 
     matrix() = default;
-
-    /// construct matrix for one or more cells, described by a parent index and
-    /// a cell index.
-    matrix(const std::vector<size_type>& pi, const std::vector<size_type>& ci):
-        parent_index_(memory::make_const_view(pi)),
-        cell_index_(memory::make_const_view(ci)),
-        state_(parent_index_, cell_index_)
-    {
-        EXPECTS(cell_index_[num_cells()] == parent_index_.size());
-    }
 
     matrix( const std::vector<size_type>& pi,
             const std::vector<size_type>& ci,
@@ -53,9 +42,7 @@ public:
             const std::vector<value_type>& face_conductance):
         parent_index_(memory::make_const_view(pi)),
         cell_index_(memory::make_const_view(ci)),
-        state_( parent_index_, cell_index_,
-                memory::make_const_view(cv_capacitance),
-                memory::make_const_view(face_conductance))
+        state_(pi, ci, cv_capacitance, face_conductance)
     {
         EXPECTS(cell_index_[num_cells()] == parent_index_.size());
     }
@@ -88,7 +75,7 @@ public:
 
     /// Get a view of the solution
     const_view solution() const {
-        return state_.rhs;
+        return state_.solution;
     }
 
     private:

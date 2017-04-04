@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <spike.hpp>
-#include <backends/fvm_gpu.hpp>
+#include <backends/gpu/fvm.hpp>
 
 using namespace nest::mc;
 

@@ -12,38 +12,51 @@ namespace nest {
 namespace mc {
 namespace io {
 
-// holds the options for a simulation run
+// Holds the options for a simulation run.
+// Default constructor gives default options.
+
 struct cl_options {
-    uint32_t cells;
-    uint32_t synapses_per_cell;
-    std::string syn_type;
-    uint32_t compartments_per_segment;
-    double tfinal;
-    double dt;
-    bool all_to_all;
-    bool ring;
-    uint32_t group_size;
-    bool probe_soma_only;
-    double probe_ratio;
-    std::string trace_prefix;
-    util::optional<unsigned> trace_max_gid;
+    // Cell parameters:
+    uint32_t cells = 1000;
+    uint32_t synapses_per_cell = 500;
+    std::string syn_type = "expsyn";
+    uint32_t compartments_per_segment = 100;
     util::optional<std::string> morphologies;
-    bool morph_rr;
-    bool report_compartments;
+    bool morph_rr = false; // False => pick morphologies randomly, true => pick morphologies round-robin.
 
-    // Parameters for spike output
-    bool spike_file_output;
-    bool single_file_per_rank;
-    bool over_write;
-    std::string output_path;
-    std::string file_name;
-    std::string file_extension;
+    // Network type (default is rgraph):
+    bool all_to_all = false;
+    bool ring = false;
 
-    // dry run parameters
-    int dry_run_ranks;
+    // Simulation running parameters:
+    double tfinal = 100.;
+    double dt = 0.025;
+    uint32_t group_size = 1;
+    bool bin_regular = false; // False => use 'following' instead of 'regular'.
+    double bin_dt = 0.0025;   // 0 => no binning.
 
-    // Turn on/off profiling output for all ranks
-    bool profile_only_zero;
+    // Probe/sampling specification.
+    bool probe_soma_only = false;
+    double probe_ratio = 0;  // Proportion of cells to probe.
+    std::string trace_prefix = "trace_";
+    util::optional<unsigned> trace_max_gid; // Only make traces up to this gid.
+
+    // Parameters for spike output.
+    bool spike_file_output = false;
+    bool single_file_per_rank = false;
+    bool over_write = true;
+    std::string output_path = "./";
+    std::string file_name = "spikes";
+    std::string file_extension = "gdf";
+
+    // Dry run parameters (pertinent only when built with 'dryrun' distrib model).
+    int dry_run_ranks = 1;
+
+    // Turn on/off profiling output for all ranks.
+    bool profile_only_zero = false;
+
+    // Report (inefficiently) on number of cell compartments in sim.
+    bool report_compartments = false;
 };
 
 class usage_error: public std::runtime_error {

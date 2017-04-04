@@ -41,7 +41,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
-    text_.add_line("#include <backends/gpu_intrinsics.hpp>");
+    text_.add_line("#include <backends/gpu/intrinsics.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 
@@ -136,7 +136,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     text_.add_line("template<typename Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
-    text_.add_line("public: ");
+    text_.add_line("public:");
     text_.increase_indentation();
     text_.add_line("using base = mechanism<Backend>;");
     text_.add_line("using typename base::value_type;");
@@ -148,7 +148,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using typename base::iview;");
     text_.add_line("using typename base::const_iview;");
     text_.add_line("using typename base::const_view;");
-    text_.add_line("using typename base::indexed_view_type;");
     text_.add_line("using typename base::ion_type;");
     text_.add_line("using param_pack_type = " + module_name + "_ParamPack<value_type, size_type>;");
 

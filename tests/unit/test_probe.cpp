@@ -73,7 +73,8 @@ TEST(probe, fvm_multicell)
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
     EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
 
-    lcell.advance(0.05);
+    lcell.setup_integration(0.05, 0.05);
+    lcell.step_integration();
 
     EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));

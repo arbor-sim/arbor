@@ -231,6 +231,13 @@ public:
         return bounds.second-bounds.first;
     }
 
+    // Set event binning policy on all our groups.
+    void set_binning_policy(binning_kind policy, time_type bin_interval) {
+        for (auto& group: cell_groups_) {
+            group.set_binning_policy(policy, bin_interval);
+        }
+    }
+
     // access cell_group directly
     cell_group_type& group(int i) {
         return cell_groups_[i];

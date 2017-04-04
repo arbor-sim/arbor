@@ -1,6 +1,6 @@
 #include "../gtest.h"
 
-#include <backends/gpu_intrinsics.hpp>
+#include <backends/gpu/intrinsics.hpp>
 #include <memory/managed_ptr.hpp>
 
 namespace kernels {

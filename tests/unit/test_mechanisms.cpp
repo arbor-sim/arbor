@@ -17,7 +17,7 @@
 #include "mechanisms/multicore/test_kinlva.hpp"
 
 #include <initializer_list>
-#include <backends/fvm_multicore.hpp>
+#include <backends/multicore/fvm.hpp>
 #include <ion.hpp>
 #include <matrix.hpp>
 #include <memory/wrappers.hpp>
