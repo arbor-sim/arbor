@@ -107,6 +107,14 @@ int main(int argc, char** argv) {
             report_compartment_stats(*recipe);
         }
 
+        // Specify event binning/coalescing.
+        auto binning_policy =
+            options.bin_dt==0? binning_kind::none:
+            options.bin_regular? binning_kind::regular:
+            binning_kind::following;
+
+        m.set_binning_policy(binning_policy, options.bin_dt);
+
         // Inject some artificial spikes, 1 per 20 neurons.
         cell_gid_type first_spike_cell = 20*((cell_range.first+19)/20);
         for (auto c=first_spike_cell; c<cell_range.second; c+=20) {

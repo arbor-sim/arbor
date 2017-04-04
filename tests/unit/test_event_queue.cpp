@@ -5,9 +5,9 @@
 
 #include <event_queue.hpp>
 
-TEST(event_queue, push)
-{
-    using namespace nest::mc;
+using namespace nest::mc;
+
+TEST(event_queue, push) {
     using ps_event_queue = event_queue<postsynaptic_spike_event<float>>;
 
     ps_event_queue q;
@@ -28,9 +28,7 @@ TEST(event_queue, push)
     EXPECT_TRUE(std::is_sorted(times.begin(), times.end()));
 }
 
-TEST(event_queue, pop_if_before)
-{
-    using namespace nest::mc;
+TEST(event_queue, pop_if_before) {
     using ps_event_queue = event_queue<postsynaptic_spike_event<float>>;
 
     cell_member_type target[4] = {
@@ -86,6 +84,34 @@ TEST(event_queue, pop_if_before)
     EXPECT_FALSE(e6);
 }
 
+TEST(event_queue, pop_if_not_after) {
+    struct event {
+        int time;
+
+        event(int t): time(t) {}
+    };
+
+    event_queue<event> queue;
+
+    queue.push(1);
+    queue.push(3);
+    queue.push(5);
+
+    auto e1 = queue.pop_if_not_after(2);
+    EXPECT_TRUE(e1);
+    EXPECT_EQ(1, e1->time);
+
+    auto e2 = queue.pop_if_before(3);
+    EXPECT_FALSE(e2);
+
+    auto e3 = queue.pop_if_not_after(3);
+    EXPECT_TRUE(e3);
+    EXPECT_EQ(3, e3->time);
+
+    auto e4 = queue.pop_if_not_after(4);
+    EXPECT_FALSE(e4);
+}
+
 // Event queues can be defined for arbitrary copy-constructible events
 // for which `event_time(ev)` returns the corresponding time. Time values just
 // need to be well-ordered on '>'.
@@ -105,10 +131,7 @@ struct minimal_event {
 
 const wrapped_float& event_time(const minimal_event& ev) { return ev.value; }
 
-TEST(event_queue, minimal_event_impl)
-{
-    using nest::mc::event_queue;
-
+TEST(event_queue, minimal_event_impl) {
     minimal_event events[] = {
         minimal_event(3.f),
         minimal_event(2.f),
