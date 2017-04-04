@@ -23,6 +23,10 @@ using memory_size_type = std::int64_t;
 // the target architecture.
 memory_size_type allocated_memory();
 
+// Returns the amount of memory currently allocated on the gpu in bytes.
+// Returns a negative value on error, or if not using the gpu
+memory_size_type gpu_allocated_memory();
+
 } // namespace util
 } // namespace mc
 } // namespace nest

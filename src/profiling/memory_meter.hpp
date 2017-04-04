@@ -14,6 +14,9 @@ namespace util {
 class memory_meter : public meter {
     std::vector<memory_size_type> readings_;
 
+    // only used if running on the GPU
+    std::vector<memory_size_type> readings_gpu_;
+
 public:
     std::string name() override;
     void take_reading() override;
