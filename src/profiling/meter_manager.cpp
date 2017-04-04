@@ -16,15 +16,14 @@ meter_manager::meter_manager() {
 };
 
 void meter_manager::checkpoint(std::string name) {
-    checkpoint_names.push_back(std::move(name));
-
     // Enforce a global synchronization point the first time that the meters
     // are used, to ensure that times measured across all domains are
     // synchronised.
-    if (meters.size()==0) {
+    if (checkpoint_names.size()==0) {
         communication::global_policy::barrier();
     }
 
+    checkpoint_names.push_back(std::move(name));
     for (auto& m: meters) {
         m->take_reading();
     }
