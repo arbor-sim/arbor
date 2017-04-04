@@ -74,6 +74,13 @@ struct dryrun_global_policy {
         return size()*value;
     }
 
+    template <typename T>
+    static std::vector<T> gather(T value, int) {
+        return std::vector<T>(size(), value);
+    }
+
+    static void barrier() {}
+
     static void setup(int& argc, char**& argv) {}
     static void teardown() {}
 

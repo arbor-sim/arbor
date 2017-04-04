@@ -15,14 +15,10 @@ namespace mc {
 namespace util {
 
 // Here we provide functionality that the profiler can use to control the CUDA
-// profiler nvprof. The cudaStartProfiler and cudaStopProfiler API calls are
-// provided to let a program control which parts of the program are to be
-// profiled.
-// Here are some wrappers that the NestMC profiler restrict nvprof to recording
-// only the time intervals that the user requests when they start and stop the
-// profiler.
-// It is a simple wrapper around the API calls with a mutex to ensure correct
-// behaviour when multiple threads attempt to start or stop the profiler.
+// profiler nvprof. The start_nvprof and stop_nvprof calls are provided to let
+// a program control which parts of the program are to be profiled. It is a
+// simple wrapper around the API calls with a mutex to ensure correct behaviour
+// when multiple threads attempt to start or stop the profiler.
 #ifdef NMC_HAVE_GPU
 namespace gpu {
     bool is_running_nvprof = false;
@@ -51,9 +47,9 @@ namespace gpu {
 }
 #endif
 
-/////////////////////////////////////////////////////////
-// profiler_node
-/////////////////////////////////////////////////////////
+//
+// profiler_node implementation
+//
 void profiler_node::print(int indent) {
     std::string s = std::string(indent, ' ') + name;
     std::cout << s
@@ -178,9 +174,9 @@ bool operator== (const profiler_node& lhs, const profiler_node& rhs) {
     return lhs.name == rhs.name;
 }
 
-/////////////////////////////////////////////////////////
-// region_type
-/////////////////////////////////////////////////////////
+//
+// region_type implementation
+//
 region_type* region_type::subregion(const char* n) {
     size_t hsh = impl::hash(n);
     auto s = subregions_.find(hsh);
@@ -234,9 +230,9 @@ profiler_node region_type::populate_performance_tree() const {
     return tree;
 }
 
-/////////////////////////////////////////////////////////
-// region_type
-/////////////////////////////////////////////////////////
+//
+// profiler implementation
+//
 void profiler::enter(const char* name) {
     if (!is_activated()) return;
     current_region_ = current_region_->subregion(name);
@@ -435,7 +431,7 @@ void profiler_output(double threshold, std::size_t num_local_work_items, bool pr
     as_json["regions"] = p.as_json();
 
     if (output_this_rank) {
-        auto fname = std::string("profile_" + std::to_string(comm_rank));
+        auto fname = std::string("profile_" + std::to_string(comm_rank) + ".json");
         std::ofstream fid(fname);
         fid << std::setw(1) << as_json;
     }
