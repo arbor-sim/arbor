@@ -3,6 +3,10 @@
 
 #include "meter_manager.hpp"
 
+#include "memory_meter.hpp"
+#include "power_meter.hpp"
+#include "time_meter.hpp"
+
 #include <json/json.hpp>
 
 namespace nest {
@@ -18,7 +22,9 @@ meter_manager::meter_manager() {
         meters.emplace_back(new memory_meter());
     }
 
-    // add energy consumption meter TODO
+    if (has_power_measurement) {
+        meters.emplace_back(new power_meter());
+    }
 };
 
 void meter_manager::checkpoint(std::string name) {
@@ -46,29 +52,12 @@ nlohmann::json to_json(const meter_manager& manager) {
         }
     }
 
-    // Build the hostname to rank map.
-    // This is a little messy, because the names must be serialized
-    // so that they might be gathered on the root rank.
-    // The method I use is to copy them into a fixed size char array,
-    // then unpack the result.
-
-    auto name = hostname();
-
-    // copy the std::string into a char array for communication
-    char name_array[128];
-    std::copy(name.begin(), name.end(), name_array);
-    name_array[name.size()] = '\0';
-
-    // perform global gather of host names
-    auto gathered = gcom::gather(name_array, 0);
+    // Gather a vector with the names of the node that each rank
+    // is running on.
+    auto hosts = gcom::gather(hostname(), 0);
 
     // Only the "root" process returns meter information
     if (gcom::id()==0) {
-        // push the host names into a vector of strings
-        std::vector<std::string> hosts;
-        for (auto s: gathered) {
-            hosts.push_back(std::string(s));
-        }
         return {
             {"checkpoints", manager.checkpoint_names},
             {"num_domains", gcom::size()},

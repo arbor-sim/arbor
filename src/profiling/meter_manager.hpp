@@ -3,13 +3,9 @@
 #include <memory>
 #include <vector>
 
-#include <util/make_unique.hpp>
-#include <communication/global_policy.hpp>
 #include <json/json.hpp>
 
 #include "meter.hpp"
-#include "memory_meter.hpp"
-#include "time_meter.hpp"
 
 namespace nest {
 namespace mc {

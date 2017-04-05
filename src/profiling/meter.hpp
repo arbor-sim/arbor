@@ -2,6 +2,7 @@
 
 #include <string>
 #include <json/json.hpp>
+#include <communication/global_policy.hpp>
 
 namespace nest {
 namespace mc {
@@ -56,6 +57,46 @@ public:
 
     virtual ~meter() = default;
 };
+
+namespace impl{
+    // Helper function for collating measurements across the global domain.
+    // The difference functor takes two successive readings and returns a
+    // double precision difference between the readings in the correct units.
+    template <typename T, typename F>
+    measurement collate(
+        const std::vector<T>& readings,
+        std::string name,
+        std::string units,
+        F&& difference)
+    {
+        using gcom = communication::global_policy;
+
+        // Calculate the local change in the given quantity.
+        std::vector<double> diffs;
+        diffs.push_back(0);
+        for (auto i=1u; i<readings.size(); ++i) {
+            diffs.push_back(difference(readings[i-1], readings[i]));
+        }
+
+        // Assert that the same number of readings were taken on every domain.
+        const auto num_readings = diffs.size();
+        if (gcom::min(num_readings)!=gcom::max(num_readings)) {
+            throw std::out_of_range(
+                "the number of checkpoints in the \""+name+"\" meter do not match across domains");
+        }
+
+        // Gather across all of the domains onto the root domain.
+        // Note: results are only valid on the root domain on completion.
+        measurement results;
+        results.name = std::move(name);
+        results.units = std::move(units);
+        for (auto m: diffs) {
+            results.measurements.push_back(gcom::gather(m, 0));
+        }
+
+        return results;
+    }
+} // namespace impl
 
 } // namespace util
 } // namespace mc

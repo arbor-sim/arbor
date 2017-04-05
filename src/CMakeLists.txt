@@ -6,6 +6,7 @@ set(BASE_SOURCES
     profiling/memory_meter.cpp
     profiling/meter.cpp
     profiling/meter_manager.cpp
+    profiling/power_meter.cpp
     profiling/profiler.cpp
     profiling/time_meter.cpp
     swcio.cpp

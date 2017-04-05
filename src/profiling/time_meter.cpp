@@ -6,7 +6,6 @@
 #endif
 
 #include "time_meter.hpp"
-#include <communication/global_policy.hpp>
 
 namespace nest {
 namespace mc {
@@ -32,34 +31,7 @@ void time_meter::take_reading() {
 }
 
 std::vector<measurement> time_meter::measurements() {
-    using gcom = communication::global_policy;
-
-    // Calculate the elapsed time on the local domain for each interval,
-    // and store them in the times vector.
-    std::vector<double> times;
-    times.push_back(0);
-    for (auto i=1u; i<readings_.size(); ++i) {
-        double t = timer_type::difference(readings_[i-1], readings_[i]);
-        times.push_back(t);
-    }
-
-    // Assert that the same number of readings were taken on every domain.
-    const auto num_readings = times.size();
-    if (gcom::min(num_readings)!=gcom::max(num_readings)) {
-        throw std::out_of_range(
-            "the number of checkpoints in the \"time\" meter do not match across domains");
-    }
-
-    // Gather the timers from accross all of the domains onto the root domain.
-    // Note: results are only valid on the root domain on completion.
-    measurement results;
-    results.name = "walltime";
-    results.units = "s";
-    for (auto t: times) {
-        results.measurements.push_back(gcom::gather(t, 0));
-    }
-
-    return {results};
+    return {impl::collate(readings_, "walltime", "s", timer_type::difference)};
 }
 
 } // namespace util
