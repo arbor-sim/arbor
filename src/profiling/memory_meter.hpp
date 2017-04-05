@@ -3,15 +3,19 @@
 #include <string>
 #include <vector>
 
+#include <util/memory.hpp>
+
 #include "meter.hpp"
-#include "profiler.hpp"
 
 namespace nest {
 namespace mc {
 namespace util {
 
-class time_meter : public meter {
-    std::vector<timer_type::time_point> readings_;
+class memory_meter : public meter {
+    std::vector<memory_size_type> readings_;
+
+    // only used if running on the GPU
+    std::vector<memory_size_type> readings_gpu_;
 
 public:
     std::string name() override;
@@ -22,4 +26,3 @@ public:
 } // namespace util
 } // namespace mc
 } // namespace nest
-
