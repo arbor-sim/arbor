@@ -2,6 +2,8 @@
 
 #include <spike.hpp>
 #include <backends/multicore/fvm.hpp>
+#include <memory/memory.hpp>
+#include <util/rangeutil.hpp>
 
 using namespace nest::mc;
 
@@ -25,16 +27,21 @@ TEST(spikes, threshold_watcher) {
     array values(n, 0);
     values[5] = 3.;
 
-    // the values are tied to two 'cells' with independent times.
-    iarray cell_index = {0, 0, 1};
-    array time_before = {0, 0};
-    array time_after = {0, 0};
+    // the values are tied to two 'cells' with independent times:
+    // compartments [0, 5] -> cell 0
+    // compartments [6, 9] -> cell 1
+    iarray cell_index(n, 0);
+    for (unsigned i = 6; i<n; ++i) {
+        cell_index[i] = 1;
+    }
+    array time_before(2, 0.);
+    array time_after(2, 0.);
 
     // list for storing expected crossings for validation at the end
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(values, index, thresh, 0.f);
+    backend::threshold_watcher watch(cell_index, time_before, time_after, values, index, thresh);
 
     // initially the first and third watch should not be spiking
     //           the second is spiking
@@ -122,7 +129,8 @@ TEST(spikes, threshold_watcher) {
     //
     memory::fill(values, 0);
     values[index[0]] = 10.; // first watch should be intialized to spiking state
-    watch.reset(0);
+    util::fill(time_before, 0.);
+    watch.reset();
     EXPECT_EQ(watch.crossings().size(), 0u);
     EXPECT_TRUE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));

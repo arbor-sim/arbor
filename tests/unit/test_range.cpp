@@ -350,8 +350,8 @@ TEST(range, fill) {
     EXPECT_EQ("aaaa", std::string(aaaa.begin(), aaaa.end()));
 
     char cstr[] = "howdy";
-    util::fill(util::make_range(cstr, null_terminated), 'q');
-    EXPECT_EQ("qqqqq", std::string(cstr);
+    util::fill(util::make_range((char *)cstr, null_terminated), 'q');
+    EXPECT_EQ("qqqqq", std::string(cstr));
 }
 
 TEST(range, assign_from) {

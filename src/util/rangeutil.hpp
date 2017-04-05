@@ -71,6 +71,12 @@ void fill(Seq& seq, const V& value) {
     std::fill(canon.begin(), canon.end(), value);
 }
 
+template <typename Range, typename V>
+void fill(const Range& seq, const V& value) {
+    auto canon = canonical_view(seq);
+    std::fill(canon.begin(), canon.end(), value);
+}
+
 // Append sequence to a container
 
 template <typename Container, typename Seq>

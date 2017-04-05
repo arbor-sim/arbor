@@ -144,7 +144,7 @@ private:
 
 template <typename Event>
 class multi_event_stream {
-public :
+public:
     using value_type = Event;
     using time_type = impl::event_time_type<Event>;
     using size_type = unsigned;
@@ -184,7 +184,7 @@ public :
         for (size_type i = 0; i<n_streams(); ++i) {
             if (evi != end(events)) {
                 span_[i].first = size_type(ev_.size());
-                ev_.insert(begin(*evi), end(*evi));
+                ev_.insert(ev_.end(), begin(*evi), end(*evi));
                 span_[i].second = size_type(ev_.size());
 
                 // check size for wrapping!

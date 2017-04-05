@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory/memory.hpp>
+#include <util/partition.hpp>
 #include <util/span.hpp>
 
 namespace nest {
@@ -64,18 +65,25 @@ public:
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current
-    //   dt      [ms]
+    //   time    [ms]
+    //   time_to [ms]
     //   voltage [mV]
     //   current [nA]
-    void assemble(value_type dt, const_view voltage, const_view current) {
-        auto n = size();
-        value_type factor = 1e-3/dt;
-        for (auto i: util::make_span(0u, n)) {
-            auto gi = factor*cv_capacitance[i];
+    void assemble(const_view time, const_view time_to, const_view voltage, const_view current) {
+        auto cell_part = util::partition_view(cell_index);
+        const size_type ncells = cell_part.size();
 
-            d[i] = gi + invariant_d[i];
+        // loop over submatrices
+        for (auto m: util::make_span(0, ncells)) {
+            auto dt = time_to[m]-time[m];
+            value_type factor = 1e-3/dt;
 
-            rhs[i] = gi*voltage[i] - current[i];
+            for (auto i: util::make_span(cell_part[m])) {
+                auto gi = factor*cv_capacitance[i];
+
+                d[i] = gi + invariant_d[i];
+                rhs[i] = gi*voltage[i] - current[i];
+            }
         }
     }
 

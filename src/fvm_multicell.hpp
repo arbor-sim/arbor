@@ -129,6 +129,15 @@ public:
         return mm.first==mm.second;
     }
 
+    /// Set times for all cells (public for testing purposes only).
+    void set_time_global(value_type t) {
+        memory::fill(time_, t);
+    }
+
+    void set_time_to_global(value_type t) {
+        memory::fill(time_to_, t);
+    }
+
     /// Add an event for processing in next integration stage.
     void add_event(value_type ev_time, target_handle h, value_type weight) {
         EXPECTS(!integration_running_);
@@ -844,8 +853,10 @@ void fvm_multicell<Backend>::initialize(
 template <typename Backend>
 void fvm_multicell<Backend>::reset() {
     memory::fill(voltage_, resting_potential_);
-    memory::fill(time_, 0);
-    memory::fill(time_to_, 0);
+
+    set_time_global(0);
+    set_time_to_global(0);
+
     for (auto& m : mechanisms_) {
         // TODO : the parameters have to be set before the nrn_init
         // for now use a dummy value of dt.
