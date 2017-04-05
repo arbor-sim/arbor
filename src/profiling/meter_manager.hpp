@@ -15,12 +15,16 @@ namespace nest {
 namespace mc {
 namespace util {
 
-struct meter_manager {
-    std::vector<std::unique_ptr<meter>> meters;
-    std::vector<std::string> checkpoint_names;
+class meter_manager {
+    std::vector<std::unique_ptr<meter>> meters_;
+    std::vector<std::string> checkpoint_names_;
 
+public:
     meter_manager();
     void checkpoint(std::string name);
+
+    const std::vector<std::unique_ptr<meter>>& meters() const;
+    const std::vector<std::string>& checkpoint_names() const;
 };
 
 nlohmann::json to_json(const meter_manager&);
