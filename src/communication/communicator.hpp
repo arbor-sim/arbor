@@ -129,7 +129,7 @@ public:
         const auto spikes_end = spikes.cend();
 
         // Search for next block of spikes and connections with the same sender
-        while (con_it != con_end && spikes_it != spikes.end()) {
+        while (con_it != con_end && spikes_it != spikes_end) {
             // we grab the next block of connections from the same sender
             const auto src = con_it->source();
             const auto targets = std::equal_range(con_it, con_end, src);
