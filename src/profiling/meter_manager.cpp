@@ -23,7 +23,7 @@ meter_manager::meter_manager() {
     }
 
     if (has_power_measurement) {
-        meters.emplace_back(new power_meter());
+        meters_.emplace_back(new power_meter());
     }
 };
 

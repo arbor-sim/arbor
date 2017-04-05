@@ -97,22 +97,51 @@ TEST(mpi, gather_all_with_partition) {
     EXPECT_EQ(expected_divisions, gathered.partition());
 }
 
-TEST(mpi, gather_array) {
+TEST(mpi, gather_string) {
     using policy = mpi_global_policy;
 
     int id = policy::id();
 
-    constexpr unsigned N = 10;
-    int values[N];
-    std::iota(util::begin(values), util::end(values), id*N);
+    // Make a string of variable length, with the character
+    // in the string distrubuted as follows
+    // rank string
+    //  0   a
+    //  1   bb
+    //  2   ccc
+    //  3   dddd
+    //   ...
+    // 25   zzzz...zzz   (26 times z)
+    // 26   aaaa...aaaa  (27 times a)
+    auto make_string = [](int id) {
+        return std::string(id+1, 'a'+char(id%26));};
 
-    auto gathered = mpi::gather(values, 0);
+    auto s = make_string(id);
+
+    auto gathered = mpi::gather(s, 0);
 
     if (!id) {
-        ASSERT_TRUE(N*policy::size()==gathered.size());
-        for (auto i=0u; i<gathered.size(); ++i) {
+        ASSERT_TRUE(policy::size()==(int)gathered.size());
+        for (std::size_t i=0; i<gathered.size(); ++i) {
+            EXPECT_EQ(make_string(i), gathered[i]);
+        }
+    }
+}
+
+TEST(mpi, gather) {
+    using policy = mpi_global_policy;
+
+    int id = policy::id();
+
+    auto gathered = mpi::gather(id, 0);
+
+    if (!id) {
+        ASSERT_TRUE(policy::size()==(int)gathered.size());
+        for (std::size_t i=0; i<gathered.size(); ++i) {
             EXPECT_EQ(int(i), gathered[i]);
         }
+    }
+    else {
+        EXPECT_EQ(0u, gathered.size());
     }
 }
 
