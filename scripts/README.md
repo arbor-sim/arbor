@@ -109,13 +109,21 @@ cc-filter -n -t filters/massif-strip-cxx
 
 ## Options
 
-#### **-n**, **--no-default**
+#### **-n**, **--no-default-rules**
 
 Omit the built-in rules from the default list.
+
+#### **-N**, **--no-built-ins**
+
+Omit all rule, group, and macro definitions from the default table.
 
 #### **-r**, **--rule=RULE**
 
 Apply the rule or group of rules **RULE**.
+
+#### **-x**, **--exclude=RULE**
+
+Skip the application of the rule or group of rules **RULE**.
 
 #### **-t**, **--table=FILE**
 
@@ -154,74 +162,145 @@ rules are specifically requested with the `--rule` option. The built-in
 rules are omitted from the default list if the `--no-default` option is
 given. Rules can be explicitly omitted with the `--exclude` option.
 
+Each line has any terminal newline stripped before processing, and then
+is subjected to each rule's action in turn via `$_`. If a rule introduces a
+newline character, the string is not split for processing by subsequent rules.
+(This is a limitation that may be addressed in the future.) If a rule
+sets `$_` to `undef`, the line is skipped and processing starts anew with
+the next input line.
+
 Tables can include groups of rules for ease of inclusion or omission
 with the `--rule` or `--exclude` options.
 
-## Table format
+For details on the table format and example tables, refer to the full
+documentation provided by `cc-filter --man`.
 
-Each line of the table is either blank, a comment line prefixed with
-'\#', or an entry definition. Definitions are one of three types:
-macros, rules, or groups.
+## Example usage
 
-### Macros
+The rules applied by default can be listed with `cc-filter --list`, e.g.
 
-Macros supply text that is substituted in rule definitions.
-A macro definition has the form:
->  `macro` *name* *definition*
+```
+$ cc-filter --list
+cxx:rm-allocator	s/(?:,\s*)?%cxx:qualified%?allocator%cxx:template-args%//g
+cxx:rm-delete	s/(?:,\s*)?%cxx:qualified%?default_delete%cxx:template-args%//g
+cxx:rm-std	s/%cxx:std-ns%//g
+cxx:rm-std	s/%cxx:gnu-internal-ns%//g
+cxx:rm-template-space	s/%cxx:template-args%/$1=~s| *([<>]) *|\1|rg/eg
+cxx:unsigned-int	s/\bunsigned\s+int\b/unsigned/g
+cxx:strip-qualified	s/%cxx:qualified%//g
+cxx:strip-args	s/(%cxx:identifier%%cxx:template-args%?)%cxx:paren-args%/$1(...)/g
+```
 
-The *name* of the macro may not contain any whitespace, and the
-*text* of the macro definition cannot begin with whitespace.
+These actions are as follows:
 
-Every occurance of `%`*name*`%` in a rule definition will be
-substituted with *text*. Macro substitution is recursive: after all
-macro substitutions are performed, the rule definition will again be
-parsed for macros.
+* Remove `allocator<...>` entries from template argument lists (`cxx:rm-allocator`).
 
-### Rules
+* Remove `default_delete<...>` entries from template argument lists (`cxx:rm-delete`).
 
-A rule definition has the form:
->  `rule` *name* *code*
+* Remove `std::` qualifiers (`cxx:rm-std`).
 
-Rule *name*s may not contain any whitespace.
+* Remove `__gnu_cxx::` qualifiers (`cxx:rm-std`).
 
-The *code* entry of a rule undergoes macro expansion (only macros
-whose definitions have already been read will apply) and then is
-compiled to a perl subroutine that is expected to operate on `$_` to
-provide a line transformation.
+* Collapse spaces between template brackets (`cxx:rm-template-space`).
 
-If a rule is defined multiple times in the same table, the
-transformations are concatenated.
+* Replace occurances of `unsigned int` with `unsigned` (`cxx:unsigned-int`).
 
-If a rule is defined in a subsequent table, the new definition will
-replace the old definition.
+* Strip all class or namespace qualifers (`cxx:strip-qualified`).
 
-### Groups
+* Replace argument lists of (regularly named) functions with `(...)` (`cxx:strip-args`).
 
-A group definition has the form:
-> `group` *name* *rule-or-group-name* … 
+The rules are grouped, however, so the more invasive transformations can be
+straightforwardly enabled or disabled. The defined groups are listed with
+`cc-filter --list=group`:
 
-Rule (or group) names comprising the definition are separated by
-whitespace, and must have already been defined in this or a
-previous table.
+```
+cxx:tidy	cxx:rm-template-space cxx:unsigned-int
+cxx:strip-all	cxx:strip-qualified cxx:strip-args
+cxx:std-simplify	cxx:rm-allocator cxx:rm-delete cxx:rm-std
+```
 
-Definitions added explicitly with the `--define` option are treated as
-lines in a table that is parsed after all other tables.
+`cc-filter --rule ccx:tidy` would perform only the space and `unsigned` transformations.
+`cc-filter --exclude ccx:strip-all` would leave arguments and non-standard namespace and class
+qualifications intact while applying the other transformations.
 
-## Example table
+One can see in the rule list the use of some in-built macros, such as `%cxx:template-args%`. These
+macro definitions can be listed with `cc-filter --list=macro`:
 
-Consider a table file `example.tbl` with the lines:
+```
+$ cc-filter --list=macro
+cxx:std-ns	(?:(::)?\bstd::)
+cxx:identifier	(\b[_\pL][_\pL\p{Nd}]*)
+cxx:gnu-internal-ns	(?:(::)?\b__gnu_cxx::)
+cxx:template-args	(<(?:(?>[^<>]+)|(?-1))*>)
+cxx:qualified	(?:(::)?\b(\w+::)+)
+cxx:paren-args	(\((?:(?>[^()]+)|(?-1))*\))
+```
 
-    # a comment comprises a # and any following characters, plus any
-    # preceding whitespace.
-    macro non-comment (^.*?)(?=\s*(?:#|$))
-    rule rev-text s/%non-comment%/$1=~s,[[:punct:]]+,,gr/e
-    rule rev-text s/%non-comment%/reverse(lc($1))/e
+Rule definitions with macros expanded can be displayed with `--list=expand`, e.g.
 
-This defines one rule, `rev-text` which will remove punctuation in the
-text preceding a possible comment, and then lower-case and reverse it.
+```
+    $ cc-filter --rule cxx:rm-std --list=expand
+    cxx:rm-std	s/(?:(::)?\bstd::)//g
+    cxx:rm-std	s/(?:(::)?\b__gnu_cxx::)//g
+```
 
-    $ echo 'What, you egg!  # ?!' | cc-filter -n --table example
-    gge uoy tahw  # ?!
+=head2 Built-in rules in action
+
+Consider the following error message generated by g++ (some of the middle lines and the full paths to gcc headers have been elided):
+
+```
+In file included from /.../g++/vector:62:0,
+		 from badvec.cc:1:
+/.../g++/bits/stl_construct.h: In instantiation of 'void std::_Construct(_T1*, _Args&& ...) [with _T1 = long_namespace::bad; _Args = {const long_namespace::bad&}]':
+/.../g++/bits/stl_uninitialized.h:75:18:   required from 'static _ForwardIterator std::__uninitialized_copy<_TrivialValueTypes>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = const long_namespace::bad*; _ForwardIterator = long_namespace::bad*; bool _TrivialValueTypes = false]'
+[...]
+/.../g++/bits/stl_vector.h:379:2:   required from 'std::vector<_Tp, _Alloc>::vector(std::initializer_list<_Tp>, const allocator_type&) [with _Tp = long_namespace::bad; _Alloc = std::allocator<long_namespace::bad>; std::vector<_Tp, _Alloc>::allocator_type = std::allocator<long_namespace::bad>]'
+badvec.cc:10:48:   required from here
+/.../g++/bits/stl_construct.h:75:7: error: use of deleted function 'long_namespace::bad::bad(const long_namespace::bad&)'
+     { ::new(static_cast<void*>(__p)) _T1(std::forward<_Args>(__args)...); }
+       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+badvec.cc:6:5: note: declared here
+     bad(const bad&) = delete;
+ ^~~
+```
+
+Running this message through `cc-filter`:
+
+
+```
+In file included from /.../g++/vector:62:0,
+		 from badvec.cc:1:
+/.../g++/bits/stl_construct.h: In instantiation of 'void _Construct(...) [with _T1 = bad; _Args = {const bad&}]':
+/.../g++/bits/stl_uninitialized.h:75:18:   required from 'static _ForwardIterator __uninitialized_copy<_TrivialValueTypes>::__uninit_copy(...) [with _InputIterator = const bad*; _ForwardIterator = bad*; bool _TrivialValueTypes = false]'
+[...]
+/.../g++/bits/stl_vector.h:379:2:   required from 'vector<_Tp, _Alloc>::vector(...) [with _Tp = bad; _Alloc = ; vector<_Tp, _Alloc>::allocator_type = ]'
+badvec.cc:10:48:   required from here
+/.../g++/bits/stl_construct.h:75:7: error: use of deleted function 'bad(...)'
+     { ::new(...) _T1(...); }
+       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+badvec.cc:6:5: note: declared here
+     bad(...) = delete;
+     ^~~
+```
+
+If we wanted to retain the function call arguments, run with `cc-filter --exclude ccx:strip-args`:
+
+
+```
+In file included from /.../g++/vector:62:0,
+		 from badvec.cc:1:
+/.../g++/bits/stl_construct.h: In instantiation of 'void _Construct(_T1*, _Args&& ...) [with _T1 = bad; _Args = {const bad&}]':
+/.../g++/bits/stl_uninitialized.h:75:18:   required from 'static _ForwardIterator __uninitialized_copy<_TrivialValueTypes>::__uninit_copy(_InputIterator, _InputIterator, _ForwardIterator) [with _InputIterator = const bad*; _ForwardIterator = bad*; bool _TrivialValueTypes = false]'
+[...]
+/.../g++/bits/stl_vector.h:379:2:   required from 'vector<_Tp, _Alloc>::vector(initializer_list<_Tp>, const allocator_type&) [with _Tp = bad; _Alloc = ; vector<_Tp, _Alloc>::allocator_type = ]'
+badvec.cc:10:48:   required from here
+/.../g++/bits/stl_construct.h:75:7: error: use of deleted function 'bad(const bad&)'
+     { ::new(static_cast<void*>(__p)) _T1(forward<_Args>(__args)...); }
+       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+badvec.cc:6:5: note: declared here
+     bad(const bad&) = delete;
+	 ^~~
+```
 
 
 # PassiveCable.jl

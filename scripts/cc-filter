@@ -21,13 +21,21 @@ Built-in rules simplify C++ function and template expressions.
 
 =over 20
 
-=item B<-n>, B<--no-default>
+=item B<-n>, B<--no-default-rules>
 
 Omit the built-in rules from the default list.
+
+=item B<-N>, B<--no-built-ins>
+
+Omit all rule, group, and macro definitions from the default table.
 
 =item B<-r>, B<--rule=RULE>
 
 Apply the rule or group of rules B<RULE>.
+
+=item B<-x>, B<--exclude=RULE>
+
+Skip the application of the rule or group of rules B<RULE>.
 
 =item B<-t>, B<--table=FILE>
 
@@ -68,6 +76,13 @@ specifically requested with the C<--rule> option. The built-in rules are
 omitted from the default list if the C<--no-default> option is given. Rules can
 be explicitly omitted with the C<--exclude> option.
 
+Each line has any terminal newline stripped before processing, and then
+is subjected to each rule's action in turn via `$_`. If a rule introduces a
+newline character, the string is not split for processing by subsequent rules.
+(This is a limitation that may be addressed in the future.) If a rule
+sets `$_` to `undef`, the line is skipped and processing starts anew with
+the next input line.
+
 Tables can include groups of rules for ease of inclusion or omission
 with the C<--rule> or C<--exclude> options.
 
@@ -100,7 +115,13 @@ performed, the rule definition will again be parsed for macros.
 =item Rules
 
 A rule definition has the form:
+
+=over 4
+
 C<rule> I<name> I<code>
+
+=back
+
 Rule I<name>s may not contain any whitespace.
 
 The I<code> entry of a rule undergoes macro expansion (only macros whose
@@ -117,17 +138,22 @@ the old definition.
 =item Groups
 
 A group definition has the form:
+
+=over 4
+
 C<group> I<name> I<rule-or-group-name>...
+
+=back
 
 Rule (or group) names comprising the definition are separated by whitespace,
 and must have already been defined in this or a previous table.
 
-=back
-
 Definitions added explicitly with the C<--define> option are treated as
 lines in a table that is parsed after all other tables.
 
-=head2 Example table
+=back
+
+=head1 EXAMPLES
 
 Consider a table file C<example.tbl> with the lines:
 
@@ -140,8 +166,36 @@ Consider a table file C<example.tbl> with the lines:
 This defines one rule, C<rev-text> which will remove punctuation in the
 text preceding a possible comment, and then lower-case and reverse it.
 
-    $ echo 'What, you egg!  # ?!' | cc-filter -n --table example
+    $ echo 'What, you egg!  # ?!' | cc-filter -N --table example.tbl
     gge uoy tahw  # ?!
+
+We use the C<-N> (C<--no-built-ins>) option to ignore all built-in
+definitions.
+
+The actions need not be just regex replacements. For example,
+a L<Fizz buzz|https://en.wikipedia.org/wiki/Fizz_buzz> implementation:
+
+    $ cat fizzbuzz.tbl
+    rule fizz $_.=' fizz' unless $_%3
+    rule buzz $_.=' buzz' unless $_%5
+    rule done s/\d+\s+// if /z/
+    $ seq 16 | ./cc-filter -N -t fizzbuzz.tbl 
+    1
+    2
+    fizz
+    4
+    buzz
+    fizz
+    7
+    8
+    fizz
+    buzz
+    11
+    fizz
+    13
+    14
+    fizz buzz
+    16
 
 =cut
 
@@ -183,9 +237,11 @@ my @opt_rules = ();
 my @opt_except = ();
 my @opt_tables = ();
 my @opt_defines = ();
-my $opt_nodefault = 0;
+my $opt_nodefaultrules = 0;
+my $opt_nobuiltins = 0;
 
-GetOptions("n|no-default" => \$opt_nodefault,
+GetOptions("n|no-default-rules" => \$opt_nodefaultrules,
+           "N|no-builtins" => \$opt_nobuiltins,
            "l|list:s" => \$opt_list,
            "r|rule=s" => \@opt_rules,
            "d|define=s" => \@opt_defines,
@@ -203,8 +259,8 @@ my %grouptbl = ();
 my @rulelist = ();
 
 # parse builtin rules
-parse_ruletbl(\$builtins, \@rulelist, \%ruletbl, \%macrotbl, \%grouptbl);
-@rulelist = () if $opt_nodefault;
+parse_ruletbl(\$builtins, \@rulelist, \%ruletbl, \%macrotbl, \%grouptbl) unless $opt_nobuiltins;
+@rulelist = () if $opt_nodefaultrules;
 
 # parse supplied tables
 parse_ruletbl($_, \@rulelist, \%ruletbl, \%macrotbl, \%grouptbl) foreach @opt_tables;
@@ -272,11 +328,13 @@ if (defined $opt_list) {
 }
 
 # apply each rule to each line of input and emit
+line:
 while (<>) {
     chomp;
     foreach my $r (@rulelist) {
 	foreach my $entry (@{$ruletbl{$r}}) {
 	    &{$entry->{sub}};
+            next line if not defined $_;
 	}
     }
     print "$_\n";
