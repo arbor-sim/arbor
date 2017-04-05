@@ -1,4 +1,4 @@
-#tsplot
+# tsplot
 
 The `tsplot` script is a wrapper around matplotlib for displaying a collection of
 time series plots.
@@ -77,7 +77,8 @@ of the timeseries data.
 Use the `-o` or `--output` option to save the plot as an image, instead of
 displaying it interactively.
 
-#profstats
+
+# profstats
 
 `profstats` collects the profiling data output from multiple MPI ranks and performs
 a simple statistical summary.
@@ -90,7 +91,8 @@ are reported instead.
 
 Output is in CSV format.
 
-#cc-filter
+
+# cc-filter
 
 `cc-filter` is a general purpose line-by-line text processor, with some
 built-in rules for simplifying output comprising templated C++ identifiers.
@@ -107,29 +109,36 @@ cc-filter -n -t filters/massif-strip-cxx
 
 ## Options
 
-**-n**, **--no-default**
-:   Omit the built-in rules from the default list.
+#### **-n**, **--no-default**
 
-**-r**, **--rule=RULE**
-:   Apply the rule or group of rules **RULE**.
+Omit the built-in rules from the default list.
 
-**-t**, **--table=FILE**
-:   Add the macro, rule and table definitions in **FILE**.
+#### **-r**, **--rule=RULE**
 
-**-d**, **--define=DEF**
-:   Add an explicit definition.
+Apply the rule or group of rules **RULE**.
 
-**-l**, **--list\[=CAT\]**
-:   By default, list the applicable rules and definitions. If **CAT** is
-    `expand`, expand any macros in the definitions. If **CAT** is
-    `group`, list the group definitions. If **CAT** is `macro`, list the
-    macro definitions.
+#### **-t**, **--table=FILE**
 
-**-h**, **--help**
-:   Print help summary and exit.
+Add the macro, rule and table definitions in **FILE**.
 
-**--man**
-:   Print the full documentation as a man page.
+#### **-d**, **--define=DEF**
+
+Add an explicit definition.
+
+#### **-l**, **--list\[=CAT\]**
+
+By default, list the applicable rules and definitions. If **CAT** is
+`expand`, expand any macros in the definitions. If **CAT** is
+`group`, list the group definitions. If **CAT** is `macro`, list the
+macro definitions.
+
+#### **-h**, **--help**
+
+Print help summary and exit.
+
+#### **--man**
+
+Print the full documentation as a man page.
 
 ## Description
 
@@ -154,65 +163,71 @@ Each line of the table is either blank, a comment line prefixed with
 '\#', or an entry definition. Definitions are one of three types:
 macros, rules, or groups.
 
-Macros
-:   Macros supply text that is substituted in rule definitions.
+### Macros
 
-    A macro definition has the form:
+Macros supply text that is substituted in rule definitions.
+A macro definition has the form:
+>  `macro` *name* *definition*
 
-    The *name* of the macro may not contain any whitespace, and the
-    *text* of the macro definition cannot begin with whitespace.
+The *name* of the macro may not contain any whitespace, and the
+*text* of the macro definition cannot begin with whitespace.
 
-    Every occurance of `%`*name*`%` in a rule definition will be
-    substituted with *text*. Macro substitution is recursive: after all
-    macro substitutions are performed, the rule definition will again be
-    parsed for macros.
+Every occurance of `%`*name*`%` in a rule definition will be
+substituted with *text*. Macro substitution is recursive: after all
+macro substitutions are performed, the rule definition will again be
+parsed for macros.
 
-Rules
-:   A rule definition has the form: `rule` *name* *code* Rule *name*s
-    may not contain any whitespace.
+### Rules
 
-    The *code* entry of a rule undergoes macro expansion (only macros
-    whose definitions have already been read will apply) and then is
-    compiled to a perl subroutine that is expected to operate on `$_` to
-    provide a line transformation.
+A rule definition has the form:
+>  `rule` *name* *code*
 
-    If a rule is defined multiple times in the same table, the
-    transformations are concatenated.
+Rule *name*s may not contain any whitespace.
 
-    If a rule is defined in a subsequent table, the new definition will
-    replace the old definition.
+The *code* entry of a rule undergoes macro expansion (only macros
+whose definitions have already been read will apply) and then is
+compiled to a perl subroutine that is expected to operate on `$_` to
+provide a line transformation.
 
-Groups
-:   A group definition has the form: `group` *name*
-    *rule-or-group-name*...
+If a rule is defined multiple times in the same table, the
+transformations are concatenated.
 
-    Rule (or group) names comprising the definition are separated by
-    whitespace, and must have already been defined in this or a
-    previous table.
+If a rule is defined in a subsequent table, the new definition will
+replace the old definition.
+
+### Groups
+
+A group definition has the form:
+> `group` *name* *rule-or-group-name* … 
+
+Rule (or group) names comprising the definition are separated by
+whitespace, and must have already been defined in this or a
+previous table.
 
 Definitions added explicitly with the `--define` option are treated as
 lines in a table that is parsed after all other tables.
 
-### Example table
+## Example table
 
 Consider a table file `example.tbl` with the lines:
 
-        # a comment comprises a # and any following characters, plus any
-        # preceding whitespace.
-        macro non-comment (^.*?)(?=\s*(?:#|$))
-        rule rev-text s/%non-comment%/$1=~s,[[:punct:]]+,,gr/e
-        rule rev-text s/%non-comment%/reverse(lc($1))/e
+    # a comment comprises a # and any following characters, plus any
+    # preceding whitespace.
+    macro non-comment (^.*?)(?=\s*(?:#|$))
+    rule rev-text s/%non-comment%/$1=~s,[[:punct:]]+,,gr/e
+    rule rev-text s/%non-comment%/reverse(lc($1))/e
 
 This defines one rule, `rev-text` which will remove punctuation in the
 text preceding a possible comment, and then lower-case and reverse it.
 
-        $ echo 'What, you egg!  # ?!' | cc-filter -n --table example
-        gge uoy tahw  # ?!
+    $ echo 'What, you egg!  # ?!' | cc-filter -n --table example
+    gge uoy tahw  # ?!
 
-#PassiveCable.jl
+
+# PassiveCable.jl
 
 Compute analytic solutions to the simple passive cylindrical dendrite cable
-model with step current injection at one end from t=0.
+model with step current injection at one end from _t_ = 0.
 
 This is used to generate validation data for the first Rallpack test.
 
