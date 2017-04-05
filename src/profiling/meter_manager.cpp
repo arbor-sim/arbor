@@ -15,11 +15,11 @@ namespace util {
 
 meter_manager::meter_manager() {
     // add time-measurement meter
-    meters.emplace_back(new time_meter());
+    meters_.emplace_back(new time_meter());
 
     // add memory consumption meter
     if (has_memory_metering) {
-        meters.emplace_back(new memory_meter());
+        meters_.emplace_back(new memory_meter());
     }
 
     if (has_power_measurement) {
@@ -31,14 +31,22 @@ void meter_manager::checkpoint(std::string name) {
     // Enforce a global synchronization point the first time that the meters
     // are used, to ensure that times measured across all domains are
     // synchronised.
-    if (checkpoint_names.size()==0) {
+    if (checkpoint_names_.size()==0) {
         communication::global_policy::barrier();
     }
 
-    checkpoint_names.push_back(std::move(name));
-    for (auto& m: meters) {
+    checkpoint_names_.push_back(std::move(name));
+    for (auto& m: meters_) {
         m->take_reading();
     }
+}
+
+const std::vector<std::unique_ptr<meter>>& meter_manager::meters() const {
+    return meters_;
+}
+
+const std::vector<std::string>& meter_manager::checkpoint_names() const {
+    return checkpoint_names_;
 }
 
 nlohmann::json to_json(const meter_manager& manager) {
@@ -46,8 +54,8 @@ nlohmann::json to_json(const meter_manager& manager) {
 
     // Gather the meter outputs into a json Array
     nlohmann::json meter_out;
-    for (const auto& m: manager.meters) {
-        for (const auto& measure: m->measurements()) {
+    for (auto& m: manager.meters()) {
+        for (auto& measure: m->measurements()) {
             meter_out.push_back(to_json(measure));
         }
     }
@@ -59,7 +67,7 @@ nlohmann::json to_json(const meter_manager& manager) {
     // Only the "root" process returns meter information
     if (gcom::id()==0) {
         return {
-            {"checkpoints", manager.checkpoint_names},
+            {"checkpoints", manager.checkpoint_names()},
             {"num_domains", gcom::size()},
             {"global_model", std::to_string(gcom::kind())},
             {"meters", meter_out},
