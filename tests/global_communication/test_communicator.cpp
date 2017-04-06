@@ -31,7 +31,15 @@ TEST(communicator, policy_basics) {
     }
 }
 
-// some proxy types for communication testing
+// Spike gathering works with a generic spike type that
+//  * has a member called source that
+//  * the source must be of a type that has a gid member
+//
+// Here we defined proxy types for testing the gather_spikes functionality.
+// These are a little bit simpler than the spike and source types used inside
+// NestMC, to simplify the testing.
+
+// Proxy for a spike source, which represents gid as an integer.
 struct source_proxy {
     source_proxy() = default;
     source_proxy(int g): gid(g) {}
@@ -42,6 +50,9 @@ struct source_proxy {
 bool operator==(int other, source_proxy s) {return s.gid==other;};
 bool operator==(source_proxy s, int other) {return s.gid==other;};
 
+// Proxy for a spike.
+// The value of domain can be used to test if the spike and its contents were
+// successfully gathered.
 struct spike_proxy {
     spike_proxy() = default;
     spike_proxy(int s, int d): source(s), domain(d) {}
@@ -49,90 +60,110 @@ struct spike_proxy {
     int domain = 0;
 };
 
-TEST(communicator, gather_spikes) {
+// Test low level spike_gather function when each domain produces the same
+// number of spikes in a pattern that works both for dry run and mpi/serial modes.
+TEST(communicator, gather_spikes_equal) {
     using policy = communication::global_policy;
 
     const auto num_domains = policy::size();
     const auto rank = policy::id();
 
-    // dry run mode is a special case
+    const auto n_local_spikes = 10;
+    const auto n_local_cells = n_local_spikes;
+
+    // Important: set up meta-data in dry run back end.
     if (is_dry_run()) {
-        const auto n_local_spikes = 10;
-        const auto n_local_cells = n_local_spikes;
-
-        // Important: set up meta-data in dry run back end.
         policy::set_sizes(policy::size(), n_local_cells);
-
-        // create local spikes for communication
-        std::vector<spike_proxy> local_spikes;
-        for (auto i=0; i<n_local_spikes; ++i) {
-            local_spikes.push_back(spike_proxy{i, rank});
-        }
-
-        // perform exchange
-        const auto global_spikes = policy::gather_spikes(local_spikes);
-
-        // test that partition information is correct
-        const auto& part = global_spikes.partition();
-        EXPECT_EQ(num_domains+1u, part.size());
-        for (auto i=0u; i<part.size(); ++i) {
-            EXPECT_EQ(part[i], n_local_spikes*i);
-        }
-
-        // test that spikes were correctly exchanged
-        //
-        // The local spikes had sources numbered 0:n_local_spikes-1
-        // The global exchange should replicate the local spikes and
-        // shift their sources to make them local to the "dummy" source
-        // domain.
-        // We set the model up with n_local_cells==n_local_spikes with
-        // one spike per local cell, so the result of the global exchange
-        // is a list of num_domains*n_local_spikes spikes that have
-        // contiguous source gid
-        const auto& spikes = global_spikes.values();
-        for (auto i=0u; i<spikes.size(); ++i) {
-            const auto s = spikes[i];
-            EXPECT_EQ(i, unsigned(s.source.gid));
-            EXPECT_EQ(0, s.domain);
-        }
     }
-    else {
-        const auto scale = 10;
-        auto sumn = [scale](int n) {return scale*n*(n+1)/2;};
-        const auto n_local_spikes = scale*rank;
 
-        // create local spikes for communication
-        // the ranks generate different numbers of spikes, with the ranks
-        // generating the following number of spikes
-        //      [ 0, scale, 2*scale, 3*scale, ..., (num_domains-1)*scale ]
-        // i.e. 0 spikes on the first rank, scale spikes on the second, and so on.
-        std::vector<spike_proxy> local_spikes;
-        const auto local_start_id = sumn(rank-1);
-        for (auto i=0; i<n_local_spikes; ++i) {
-            local_spikes.push_back(spike_proxy{local_start_id+i, rank});
-        }
+    // Create local spikes for communication
+    std::vector<spike_proxy> local_spikes;
+    for (auto i=0; i<n_local_spikes; ++i) {
+        local_spikes.push_back(spike_proxy{i, rank});
+    }
 
-        // perform exchange
-        const auto global_spikes = policy::gather_spikes(local_spikes);
+    // Perform exchange
+    const auto global_spikes = policy::gather_spikes(local_spikes);
 
-        // test that partition information is correct
-        const auto& part =global_spikes.partition();
-        EXPECT_EQ(unsigned(num_domains+1), part.size());
-        EXPECT_EQ(0, (int)part[0]);
-        for (auto i=1u; i<part.size(); ++i) {
-            EXPECT_EQ(sumn(i-1), (int)part[i]);
-        }
+    // Test that partition information is correct
+    const auto& part = global_spikes.partition();
+    EXPECT_EQ(num_domains+1u, part.size());
+    for (auto i=0u; i<part.size(); ++i) {
+        EXPECT_EQ(part[i], n_local_spikes*i);
+    }
 
-        // test that spikes were correctly exchanged
-        for (auto domain=0; domain<num_domains; ++domain) {
-            auto source = sumn(domain-1);
-            const auto first_spike = global_spikes.values().begin() + sumn(domain-1);
-            const auto last_spike  = global_spikes.values().begin() + sumn(domain);
-            const auto spikes = util::make_range(first_spike, last_spike);
-            for (auto s: spikes) {
-                EXPECT_EQ(s.domain, domain);
-                EXPECT_EQ(s.source, source++);
-            }
+    // Test that spikes were correctly exchanged
+    //
+    // The local spikes had sources numbered 0:n_local_spikes-1
+    // The global exchange should replicate the local spikes and
+    // shift their sources to make them local to the "dummy" source
+    // domain.
+    // We set the model up with n_local_cells==n_local_spikes with
+    // one spike per local cell, so the result of the global exchange
+    // is a list of num_domains*n_local_spikes spikes that have
+    // contiguous source gid
+    const auto& spikes = global_spikes.values();
+    for (auto i=0u; i<spikes.size(); ++i) {
+        const auto s = spikes[i];
+        EXPECT_EQ(i, unsigned(s.source.gid));
+        EXPECT_EQ(0, s.domain);
+    }
+}
+
+// Test low level spike_gather function when the number of spikes per domain
+// are not equal.
+TEST(communicator, gather_spikes_variant) {
+    // This test does not apply if in dry run mode.
+    // Because dry run mode requires that each domain have the same
+    // number of spikes.
+    if (is_dry_run()) return;
+
+    using policy = communication::global_policy;
+
+    const auto num_domains = policy::size();
+    const auto rank = policy::id();
+
+    // Parameter used to scale the number of spikes generated on successive
+    // ranks.
+    const auto scale = 10;
+    // Calculates the number of spikes generated by the first n ranks.
+    // Can be used to calculate the index of the range of spikes
+    // generated by a given rank, and to determine the total number of
+    // spikes generated globally.
+    auto sumn = [scale](int n) {return scale*n*(n+1)/2;};
+    const auto n_local_spikes = scale*rank;
+
+    // Create local spikes for communication.
+    // The ranks generate different numbers of spikes, with the ranks
+    // generating the following number of spikes
+    //      [ 0, scale, 2*scale, 3*scale, ..., (num_domains-1)*scale ]
+    // i.e. 0 spikes on the first rank, scale spikes on the second, and so on.
+    std::vector<spike_proxy> local_spikes;
+    const auto local_start_id = sumn(rank-1);
+    for (auto i=0; i<n_local_spikes; ++i) {
+        local_spikes.push_back(spike_proxy{local_start_id+i, rank});
+    }
+
+    // Perform exchange
+    const auto global_spikes = policy::gather_spikes(local_spikes);
+
+    // Test that partition information is correct
+    const auto& part =global_spikes.partition();
+    EXPECT_EQ(unsigned(num_domains+1), part.size());
+    EXPECT_EQ(0, (int)part[0]);
+    for (auto i=1u; i<part.size(); ++i) {
+        EXPECT_EQ(sumn(i-1), (int)part[i]);
+    }
+
+    // Test that spikes were correctly exchanged
+    for (auto domain=0; domain<num_domains; ++domain) {
+        auto source = sumn(domain-1);
+        const auto first_spike = global_spikes.values().begin() + sumn(domain-1);
+        const auto last_spike  = global_spikes.values().begin() + sumn(domain);
+        const auto spikes = util::make_range(first_spike, last_spike);
+        for (auto s: spikes) {
+            EXPECT_EQ(s.domain, domain);
+            EXPECT_EQ(s.source, source++);
         }
     }
 }
