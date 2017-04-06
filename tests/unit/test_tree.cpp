@@ -168,7 +168,6 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(2u, tree.children(1)[0]);
         EXPECT_EQ(3u, tree.children(1)[1]);
     }
-    /* FIXME
     {
         //              0
         //             / \.
@@ -177,7 +176,7 @@ TEST(cell_tree, from_parent_index) {
         //          3   4
         //             / \.
         //            5   6
-        std::vector<int> parent_index = {0,0,0,1,1,4,4};
+        std::vector<int_type> parent_index = {0,0,0,1,1,4,4};
         cell_tree tree(parent_index);
 
         EXPECT_EQ(tree.num_segments(), 7u);
@@ -190,7 +189,49 @@ TEST(cell_tree, from_parent_index) {
         EXPECT_EQ(tree.num_children(5), 0u);
         EXPECT_EQ(tree.num_children(6), 0u);
     }
-    */
+}
+
+TEST(cell_tree, depth_from_root) {
+    {
+        //              0
+        //             / \.
+        //            1   2
+        //           / \.
+        //          3   4
+        //             / \.
+        //            5   6
+        std::vector<int_type> parent_index = {0,0,0,1,1,4,4};
+        cell_tree tree(parent_index);
+        auto depth = tree.depth_from_root();
+
+        EXPECT_EQ(depth[0], 0u);
+        EXPECT_EQ(depth[1], 1u);
+        EXPECT_EQ(depth[2], 1u);
+        EXPECT_EQ(depth[3], 2u);
+        EXPECT_EQ(depth[4], 2u);
+        EXPECT_EQ(depth[5], 3u);
+        EXPECT_EQ(depth[6], 3u);
+    }
+    {
+        //              0
+        //             / \.
+        //            1   2
+        //               / \.
+        //              3   4
+        //                 / \.
+        //                5   6
+        std::vector<int_type> parent_index = {0,0,0,2,2,4,4};
+        cell_tree tree(parent_index);
+        auto depth = tree.depth_from_root();
+
+        EXPECT_EQ(depth[0], 0u);
+        EXPECT_EQ(depth[1], 1u);
+        EXPECT_EQ(depth[2], 1u);
+        EXPECT_EQ(depth[3], 2u);
+        EXPECT_EQ(depth[4], 2u);
+        EXPECT_EQ(depth[5], 3u);
+        EXPECT_EQ(depth[6], 3u);
+    }
 }
 
 TEST(tree, change_root) {
