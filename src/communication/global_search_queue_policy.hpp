@@ -1,7 +1,8 @@
 #pragma once
 
-#include <util/range.hpp>
+#include <iostream>
 
+#include <util/range.hpp>
 #include "base_communicator.hpp"
 
 namespace nest {
@@ -16,7 +17,7 @@ public:
     using base = base_communicator<CommunicationPolicy>;
     using typename base::event_queue;
     using typename base::gid_partition_type;
-    using typename base::cmp_spike;
+    using typename base::lt_spike_src;
     
     using base::num_groups_local;
     
@@ -25,30 +26,29 @@ protected:
     using base::connections_;
 
 public:
-    global_search_communicator(): base() {}
+    using base::base;
 
-    explicit global_search_communicator(gid_partition_type cell_gid_partition):
-        base(cell_gid_partition)
-    {}
-    
+    // go over each block of connections with the same source, and search for the
+    // associated block of spikes with the same source, and then push the product of events
+    // O(connections/spike * log(spikes))
     std::vector<event_queue> make_event_queues(const gathered_vector<spike>& global_spikes)
     {
         // queues to return
         auto queues = std::vector<event_queue>(num_groups_local());
 
-        // Do a binary search on the globally sorted spike array
-        // and the sorted-by-source connection list.
-        // (We could shrink these lists to eliminate impossible end points,
-        // but that buys us very little for large, randomly distributed networks.)
+        // con_next is the beginning of the current block of connections with
+        // the same source
         auto con_next = connections_.cbegin();
         const auto con_end = connections_.cend();
 
+        // spikes_next is the beginning of the current block of spikes with
+        // the same source
         const auto& spikes = global_spikes.values();
         auto spikes_next = spikes.cbegin();
         const auto spikes_end = spikes.cend();
 
         // Search for next block of spikes and connections with the same sender
-        while (con_next != con_end && spikes_next != spikes.end()) {
+        while (con_next != con_end) {
             // we grab the next block of connections from the same sender
             const auto src = con_next->source();
             const auto targets = std::equal_range(con_next, con_end, src);
@@ -56,20 +56,18 @@ public:
             
             // and the associated block of spikes
             const auto sources = std::equal_range(spikes_next, spikes_end,
-                                                  src, cmp_spike());
+                                                  src, lt_spike_src());
+            spikes_next = sources.second; //next block that is > src
             if (sources.first == sources.second) {
-                continue; // skip if no spikes
+                continue; // skip if no spikes == to source
             }
-            spikes_next = sources.second; //next block starts after this
 
             // Now we just need to walk over all combinations of matching spikes and connections
             // Do it first by connection because of shared data
             for (auto&& con: make_range(targets)) {
                 const auto gidx = cell_group_index(con.destination().gid);
-                auto& queue = queues[gidx];
-
                 for (auto&& spike: make_range(sources)) {
-                    queue.push_back(con.make_event(spike));
+                    queues[gidx].push_back(con.make_event(spike));
                 }
             }
         }

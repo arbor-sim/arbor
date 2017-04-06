@@ -167,7 +167,7 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist)) {}
 
-    std::vector<cell_connection> connections_on(cell_gid_type i, domain_gid_type d) const override {
+    std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
@@ -176,7 +176,6 @@ public:
             cell_connection cc = draw_connection_params(gen);
             cc.source = {prev, 0};
             cc.dest = {i, t};
-            cc.domain = d;
             conns.push_back(cc);
         }
 
@@ -200,7 +199,7 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist)) {}
 
-    std::vector<cell_connection> connections_on(cell_gid_type i, domain_gid_type d) const override {
+    std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
         auto source_gen = std::mt19937(i*123+457); // ditto
@@ -214,7 +213,6 @@ public:
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
-            cc.domain = d;
             conns.push_back(cc);
         }
 
@@ -243,7 +241,7 @@ public:
         }
     }
 
-    std::vector<cell_connection> connections_on(cell_gid_type i, domain_gid_type d) const override {
+    std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
@@ -254,7 +252,6 @@ public:
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
-            cc.domain = d;
             conns.push_back(cc);
         }
 

@@ -52,7 +52,7 @@ public:
 
     template<typename E>
     using lessthan = nest::mc::util::lessthan<E>;
-    using cmp_spike = lessthan<spike_extractor>;
+    using lt_spike_src = lessthan<spike_extractor>;
 
     base_communicator() {}
 

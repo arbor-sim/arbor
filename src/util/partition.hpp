@@ -63,6 +63,7 @@ public:
 
         auto divs = divisions();
         auto i = std::upper_bound(divs.left, divs.right, x);
+        
         if (i==divs.left || i==divs.right) {
             return right;
         }
@@ -71,7 +72,7 @@ public:
 
     size_type index(const inner_value_type& x) const {
         iterator i = find(x);
-        return i==right? npos: i-left;
+        return i==right ? npos: i-left;
     }
 
     // access to underlying divisions

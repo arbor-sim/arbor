@@ -41,6 +41,11 @@ public:
     model(const recipe& rec, const util::partition_range<Iter1>& groups, const util::partition_range<Iter2>& domains):
         cell_group_divisions_(groups.divisions().begin(), groups.divisions().end())
     {
+        // for (auto i: domains.divisions()) {
+        //     std::cerr << "D" << i << ", ";
+        // }
+        // std::cerr << std::endl;
+        
         // set up communicator based on partition
         communicator_ = communicator_type{gid_partition()};
 
@@ -75,10 +80,12 @@ public:
 
         PE("setup", "connections");
         // generate the network connections
-        for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
-            const auto d = get_domain(i, domains);
-            for (const auto& cc: rec.connections_on(i, d)) {
-                connection conn{cc.source, cc.dest, cc.weight, cc.delay, cc.domain};
+        for (cell_gid_type target: util::make_span(gid_partition().bounds())) {
+            for (const auto& cc: rec.connections_on(target)) {
+                const auto domain = get_domain(cc.source, domains);
+                // std::cerr << "S" << cc.source.gid << ", "
+                //           << "D" << domain << std::endl;
+                connection conn{cc.source, cc.dest, cc.weight, cc.delay, domain};
                 communicator_.add_connection(conn);
             }
         }
@@ -125,9 +132,16 @@ public:
     }
 
     template<typename Iter>
-    static domain_gid_type get_domain(cell_gid_type cell,
+    static domain_gid_type get_domain(cell_member_type cell,
                                       const util::partition_range<Iter>& domains) {
-        auto domain = domains.index(cell);
+        // for (auto i: domains.divisions()) {
+        //     std::cerr << "DD" << i << ", ";
+        // }
+        // std::cerr << std::endl;
+        
+        const auto domain = domains.index(cell.gid);
+        // std::cerr << "C" << cell << ", "
+        //           << "D" << domain << std::endl;
 
         using pr = util::partition_range<Iter>;
         EXPECTS(domain != pr::npos);
