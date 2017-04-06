@@ -9,6 +9,8 @@
 #include <util/span.hpp>
 #include <util/transform.hpp>
 
+#include "common.hpp"
+
 using namespace nest::mc;
 
 TEST(transform, transform_view) {
@@ -96,6 +98,45 @@ TEST(indirect, fwd_index) {
     std::vector<double> result(permuted.begin(), permuted.end());
     std::vector<double> expected = {15., 12., 13., 10., 11., 11., 14.};
 
+    EXPECT_EQ(expected, result);
+}
+
+TEST(indirect, nocopy) {
+    const testing::nocopy<double> data[6] = {10., 11., 12., 13., 14., 15.};
+    unsigned map_reverse[6] = {5, 4, 3, 2, 1, 0};
+    auto reversed = util::indirect_view(data, map_reverse);
+
+    std::vector<double> expected = {15., 14., 13., 12., 11., 10.};
+    std::vector<double> result;
+    for (auto& elem: reversed) { result.push_back(elem.value); }
+    EXPECT_EQ(expected, result);
+
+    unsigned map_evens[3] = {0, 2, 4};
+    auto even_reversed = util::indirect_view(reversed, map_evens);
+
+    expected = {15., 13., 11.};
+    result.clear();
+    for (auto& elem: even_reversed) { result.push_back(elem.value); }
+    EXPECT_EQ(expected, result);
+}
+
+TEST(indirect, nomove) {
+    testing::nomove<double> data[6];
+    for (unsigned i=0; i<util::size(data); ++i) data[i].value = 10.+i;
+    unsigned map_reverse[6] = {5, 4, 3, 2, 1, 0};
+    auto reversed = util::indirect_view(data, map_reverse);
+
+    std::vector<double> expected = {15., 14., 13., 12., 11., 10.};
+    std::vector<double> result;
+    for (auto& elem: reversed) { result.push_back(elem.value); }
+    EXPECT_EQ(expected, result);
+
+    unsigned map_evens[3] = {0, 2, 4};
+    auto even_reversed = util::indirect_view(reversed, map_evens);
+
+    expected = {15., 13., 11.};
+    result.clear();
+    for (auto& elem: even_reversed) { result.push_back(elem.value); }
     EXPECT_EQ(expected, result);
 }
 
