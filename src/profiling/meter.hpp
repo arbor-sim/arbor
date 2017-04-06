@@ -58,7 +58,7 @@ public:
     virtual ~meter() = default;
 };
 
-namespace impl{
+namespace impl {
     // Helper function for collating measurements across the global domain.
     // The difference functor takes two successive readings and returns a
     // double precision difference between the readings in the correct units.
