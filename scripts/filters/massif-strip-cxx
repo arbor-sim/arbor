@@ -1,0 +1,3 @@
+macro massif:hex      (0x[[:xdigit:]]+)
+macro massif:fileline ([^()]+:\d+)
+rule massif:strip-cxx s/%massif:hex%:.*?(?:\(%massif:fileline%\))?\s*$/$1: $2/

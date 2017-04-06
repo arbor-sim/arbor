@@ -16,6 +16,7 @@
 #include <io/exporter_spike_file.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
+#include <profiling/meter_manager.hpp>
 #include <threading/threading.hpp>
 #include <util/debug.hpp>
 #include <util/ioutil.hpp>
@@ -50,6 +51,9 @@ int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
     try {
+        nest::mc::util::meter_manager meters;
+        meters.checkpoint("start");
+
         std::cout << util::mask_stream(global_policy::id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
@@ -71,6 +75,8 @@ int main(int argc, char** argv) {
         }
 
         banner();
+
+        meters.checkpoint("global setup");
 
         // determine what to attach probes to
         probe_distribution pdist;
@@ -110,10 +116,8 @@ int main(int argc, char** argv) {
         m.set_binning_policy(binning_policy, options.bin_dt);
 
         // Inject some artificial spikes, 1 per 20 neurons.
-        std::vector<cell_gid_type> local_sources;
         cell_gid_type first_spike_cell = 20*((cell_range.first+19)/20);
         for (auto c=first_spike_cell; c<cell_range.second; c+=20) {
-            local_sources.push_back(c);
             m.add_artificial_spike({c, 0});
         }
 
@@ -129,19 +133,7 @@ int main(int argc, char** argv) {
             m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
         }
 
-#ifdef WITH_PROFILING
-        // dummy run of the model for one step to ensure that profiling is consistent
-        m.run(options.dt, options.dt);
-        // reset and add the source spikes once again
-        m.reset();
-        for (auto source : local_sources) {
-            m.add_artificial_spike({source, 0});
-        }
-#endif
-
-        // Initialize the spike exporting interface after the profiler dummy
-        // steps, to avoid having the initial seed spikes that are artificially
-        // injected at t=0 from being recorded and output twice.
+        // Initialize the spike exporting interface
         std::unique_ptr<file_export_type> file_exporter;
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {
@@ -160,8 +152,12 @@ int main(int argc, char** argv) {
             }
         }
 
+        meters.checkpoint("model initialization");
+
         // run model
         m.run(options.tfinal, options.dt);
+
+        meters.checkpoint("time stepping");
 
         // output profile and diagnostic feedback
         auto const num_steps = options.tfinal / options.dt;
@@ -172,6 +168,10 @@ int main(int argc, char** argv) {
         for (const auto& trace: traces) {
             write_trace_json(*trace.get(), options.trace_prefix);
         }
+
+        meters.checkpoint("output");
+
+        util::save_to_file(meters, "meters.json");
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
