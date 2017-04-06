@@ -173,7 +173,9 @@ public:
     {
         tree::iarray depth(num_segments());
         depth[0] = 0;
-        depth_from_root(depth, int_type{1});
+        for (auto c: children(0)) {
+            depth_from_root(depth, c);
+        }
         return depth;
     }
 
