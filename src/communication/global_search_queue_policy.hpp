@@ -58,15 +58,16 @@ public:
             const auto sources = std::equal_range(spikes_next, spikes_end,
                                                   src, lt_spike_src());
             spikes_next = sources.second; //next block that is > src
+
             if (sources.first == sources.second) {
                 continue; // skip if no spikes == to source
             }
 
             // Now we just need to walk over all combinations of matching spikes and connections
             // Do it first by connection because of shared data
-            for (auto&& con: make_range(targets)) {
+            for (const auto con: make_range(targets)) {
                 const auto gidx = cell_group_index(con.destination().gid);
-                for (auto&& spike: make_range(sources)) {
+                for (const auto spike: make_range(sources)) {
                     queues[gidx].push_back(con.make_event(spike));
                 }
             }

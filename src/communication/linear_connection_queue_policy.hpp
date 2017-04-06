@@ -36,12 +36,13 @@ public:
         const auto spikes_begin = spikes.cbegin();
         const auto spikes_end = spikes.cend();
 
-        for (auto&& con: connections_) {
+        for (const auto con: connections_) {
             const auto gidx = cell_group_index(con.destination().gid);
             // search for spikes for this connection
             auto con_spikes = std::equal_range(spikes_begin, spikes_end,
                                                con.source(), lt_spike_src());
-            for (auto spike: make_range(con_spikes)) {
+
+            for (const auto spike: make_range(con_spikes)) {
                 queues[gidx].push_back(con.make_event(spike));
             }
         }

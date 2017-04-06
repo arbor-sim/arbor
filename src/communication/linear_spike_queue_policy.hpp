@@ -31,12 +31,12 @@ public:
     {
         auto queues = std::vector<event_queue>(num_groups_local());
         
-        for (auto spike: global_spikes.values()) {
+        for (const auto spike: global_spikes.values()) {
             auto targets = std::equal_range(connections_.begin(),
                                             connections_.end(),
                                             spike.source);
 
-            for (auto&& con: make_range(targets)) {
+            for (const auto con: make_range(targets)) {
                 const auto gidx = cell_group_index(con.destination().gid);
                 queues[gidx].push_back(con.make_event(spike));
             }
