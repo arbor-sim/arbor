@@ -61,7 +61,7 @@ struct spike_proxy {
 };
 
 // Test low level spike_gather function when each domain produces the same
-// number of spikes in a pattern that works both for dry run and mpi/serial modes.
+// number of spikes in the pattern used by dry run mode.
 TEST(communicator, gather_spikes_equal) {
     using policy = communication::global_policy;
 
@@ -76,10 +76,10 @@ TEST(communicator, gather_spikes_equal) {
         policy::set_sizes(policy::size(), n_local_cells);
     }
 
-    // Create local spikes for communication
+    // Create local spikes for communication.
     std::vector<spike_proxy> local_spikes;
     for (auto i=0; i<n_local_spikes; ++i) {
-        local_spikes.push_back(spike_proxy{i, rank});
+        local_spikes.push_back(spike_proxy{i+rank*n_local_spikes, rank});
     }
 
     // Perform exchange
@@ -94,7 +94,7 @@ TEST(communicator, gather_spikes_equal) {
 
     // Test that spikes were correctly exchanged
     //
-    // The local spikes had sources numbered 0:n_local_spikes-1
+    // In dry run mode the local spikes had sources numbered 0:n_local_spikes-1.
     // The global exchange should replicate the local spikes and
     // shift their sources to make them local to the "dummy" source
     // domain.
@@ -103,10 +103,16 @@ TEST(communicator, gather_spikes_equal) {
     // is a list of num_domains*n_local_spikes spikes that have
     // contiguous source gid
     const auto& spikes = global_spikes.values();
+    EXPECT_EQ(n_local_spikes*policy::size(), int(spikes.size()));
     for (auto i=0u; i<spikes.size(); ++i) {
         const auto s = spikes[i];
         EXPECT_EQ(i, unsigned(s.source.gid));
-        EXPECT_EQ(0, s.domain);
+        if (is_dry_run()) {
+            EXPECT_EQ(0, s.domain);
+        }
+        else {
+            EXPECT_EQ(int(i)/n_local_spikes, s.domain);
+        }
     }
 }
 
