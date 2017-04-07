@@ -51,13 +51,13 @@ bool operator==(int other, source_proxy s) {return s.gid==other;};
 bool operator==(source_proxy s, int other) {return s.gid==other;};
 
 // Proxy for a spike.
-// The value of domain can be used to test if the spike and its contents were
+// The value member can be used to test if the spike and its contents were
 // successfully gathered.
 struct spike_proxy {
     spike_proxy() = default;
-    spike_proxy(int s, int d): source(s), domain(d) {}
+    spike_proxy(int s, int v): source(s), value(v) {}
     source_proxy source = 0;
-    int domain = 0;
+    int value = 0;
 };
 
 // Test low level spike_gather function when each domain produces the same
@@ -108,10 +108,10 @@ TEST(communicator, gather_spikes_equal) {
         const auto s = spikes[i];
         EXPECT_EQ(i, unsigned(s.source.gid));
         if (is_dry_run()) {
-            EXPECT_EQ(0, s.domain);
+            EXPECT_EQ(0, s.value);
         }
         else {
-            EXPECT_EQ(int(i)/n_local_spikes, s.domain);
+            EXPECT_EQ(int(i)/n_local_spikes, s.value);
         }
     }
 }
@@ -168,7 +168,7 @@ TEST(communicator, gather_spikes_variant) {
         const auto last_spike  = global_spikes.values().begin() + sumn(domain);
         const auto spikes = util::make_range(first_spike, last_spike);
         for (auto s: spikes) {
-            EXPECT_EQ(s.domain, domain);
+            EXPECT_EQ(s.value, domain);
             EXPECT_EQ(s.source, source++);
         }
     }
