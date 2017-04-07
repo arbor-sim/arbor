@@ -1,6 +1,8 @@
 #pragma once
 
-#include <iostream>
+#ifndef NMC_USE_LINEAR_CONNECTION_QUEUE
+#error "linear_connection_queue_policy.hpp should only be compiled in a NMC_USE_LINEAR_CONNECTION_QUEUE build"
+#endif
 
 #include <util/compare.hpp>
 #include "base_communicator.hpp"

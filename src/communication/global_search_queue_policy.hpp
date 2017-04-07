@@ -1,6 +1,8 @@
 #pragma once
 
-#include <iostream>
+#ifndef NMC_USE_GLOBAL_SEARCH_QUEUE
+#error "global_search_queue_policy.hpp should only be compiled in a NMC_USE_GLOBAL_SEARCH_QUEUE build"
+#endif
 
 #include <util/range.hpp>
 #include "base_communicator.hpp"
@@ -16,18 +18,15 @@ class global_search_communicator: public base_communicator<CommunicationPolicy> 
 public:
     using base = base_communicator<CommunicationPolicy>;
     using typename base::event_queue;
-    using typename base::gid_partition_type;
-    using typename base::lt_spike_src;
-    
+    using typename base::lt_spike_src;    
     using base::num_groups_local;
+    using base::base;
     
 protected:
     using base::cell_group_index;
     using base::connections_;
 
 public:
-    using base::base;
-
     // go over each block of connections with the same source, and search for the
     // associated block of spikes with the same source, and then push the product of events
     // O(connections/spike * log(spikes))

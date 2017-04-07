@@ -1,6 +1,8 @@
 #pragma once
 
-#include <iostream>
+#ifndef NMC_USE_DOMAIN_SEARCH_QUEUE
+#error "domain_search_queue_policy.hpp should only be compiled in a NMC_USE_DOMAIN_SEARCH_QUEUE build"
+#endif
 
 #include <util/range.hpp>
 #include "base_communicator.hpp"
@@ -10,25 +12,21 @@ namespace mc {
 namespace communication {
 
 using nest::mc::util::make_range;
-using nest::mc::util::lessthan;
 
 template <typename CommunicationPolicy>
 class domain_search_communicator: public base_communicator<CommunicationPolicy> {
 public:
     using base = base_communicator<CommunicationPolicy>;
     using typename base::event_queue;
-    using typename base::gid_partition_type;
     using typename base::lt_spike_src;
-    
     using base::num_groups_local;
-    
+    using base::base;
+
 protected:
     using base::cell_group_index;
     using base::connections_;
 
 public:
-    using base::base;
-
     // go over each block of connections with the same source, and search for the
     // associated block of spikes with the same source, and then push the product of events
     // O(connection/spike * log(spikes/node))
