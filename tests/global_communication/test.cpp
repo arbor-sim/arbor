@@ -7,13 +7,23 @@
 
 #include "mpi_listener.hpp"
 
+#include <tinyopt.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <util/ioutil.hpp>
 
+
 using namespace nest::mc;
 
+const char* usage_str =
+"[OPTION]...\n"
+"\n"
+"  -d, --dryrun        Number of dry run ranks\n"
+"  -h, --help          Display usage information and exit\n";
+
 int main(int argc, char **argv) {
+    using policy = communication::global_policy;
+
     // We need to set the communicator policy at the top level
     // this allows us to build multiple communicators in the tests
     communication::global_policy_guard global_guard(argc, argv);
@@ -28,12 +38,44 @@ int main(int argc, char **argv) {
     // now add our custom printer
     listeners.Append(new mpi_listener("results_global_communication"));
 
-    // record the local return value for tests run on this mpi rank
-    //      0 : success
-    //      1 : failure
-    auto result = RUN_ALL_TESTS();
+    int return_value = 0;
+    try {
+        auto arg = argv+1;
+        while (*arg) {
+            if (auto comm_size = to::parse_opt<unsigned>(arg, 'd', "dryrun")) {
+                if (*comm_size==0) {
+                    throw to::parse_opt_error(*arg, "must be positive integer");
+                }
+                // Note that this must be set again for each test that uses a different
+                // number of cells per domain, e.g.
+                //      policy::set_sizes(policy::size(), new_cells_per_rank)
+                policy::set_sizes(*comm_size, 0);
+            }
+            else if (auto o = to::parse_opt(arg, 'h', "help")) {
+                to::usage(argv[0], usage_str);
+                return 0;
+            }
+            else {
+                throw to::parse_opt_error(*arg, "unrecognized option");
+            }
+        }
+
+        // record the local return value for tests run on this mpi rank
+        //      0 : success
+        //      1 : failure
+        return_value = RUN_ALL_TESTS();
+    }
+
+    catch (to::parse_opt_error& e) {
+        to::usage(argv[0], usage_str, e.what());
+        return_value = 1;
+    }
+    catch (std::exception& e) {
+        std::cerr << "caught exception: " << e.what() << "\n";
+        return_value = 1;
+    }
 
     // perform global collective, to ensure that all ranks return
     // the same exit code
-    return communication::global_policy::max(result);
+    return policy::max(return_value);
 }
