@@ -36,7 +36,6 @@ using cell_connection_endpoint = cell_member_type;
 struct cell_connection {
     cell_connection_endpoint source;
     cell_connection_endpoint dest;
-    domain_gid_type domain;
 
     float weight;
     float delay;

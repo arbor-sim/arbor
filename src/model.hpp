@@ -83,8 +83,6 @@ public:
         for (cell_gid_type target: util::make_span(gid_partition().bounds())) {
             for (const auto& cc: rec.connections_on(target)) {
                 const auto domain = get_domain(cc.source, domains);
-                // std::cerr << "S" << cc.source.gid << ", "
-                //           << "D" << domain << std::endl;
                 connection conn{cc.source, cc.dest, cc.weight, cc.delay, domain};
                 communicator_.add_connection(conn);
             }
