@@ -89,8 +89,8 @@ auto back(Seq& seq) -> decltype(*std::begin(seq)) {
  */
 template <typename V>
 struct pointer_proxy: public V {
-    pointer_proxy(const V& v): V{v} {}
-    pointer_proxy(V&& v): V{std::move(v)} {}
+    pointer_proxy(const V& v): V(v) {}
+    pointer_proxy(V&& v): V(std::move(v)) {}
     const V* operator->() const { return this; }
 };
 
