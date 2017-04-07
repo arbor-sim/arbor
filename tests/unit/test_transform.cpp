@@ -79,7 +79,6 @@ TEST(transform, pointer_access) {
 TEST(transform, pointer_proxy) {
     struct item {
         int x;
-        item(int&& v) { x = v; }
     };
     auto r = util::transform_view(util::make_span(0, 3), [&](int i) { return item{13+i}; });
 
