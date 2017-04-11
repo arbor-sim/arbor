@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 
     try {
         nest::mc::util::meter_manager meters;
-        meters.checkpoint("start");
+        meters.start();
 
         std::cout << util::mask_stream(global_policy::id()==0);
         // read parameters
@@ -168,8 +168,6 @@ int main(int argc, char** argv) {
         for (const auto& trace: traces) {
             write_trace_json(*trace.get(), options.trace_prefix);
         }
-
-        meters.checkpoint("output");
 
         util::save_to_file(meters, "meters.json");
     }

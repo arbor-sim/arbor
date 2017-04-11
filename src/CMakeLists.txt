@@ -4,11 +4,9 @@ set(BASE_SOURCES
     morphology.cpp
     parameter_list.cpp
     profiling/memory_meter.cpp
-    profiling/meter.cpp
     profiling/meter_manager.cpp
     profiling/power_meter.cpp
     profiling/profiler.cpp
-    profiling/time_meter.cpp
     swcio.cpp
     threading/affinity.cpp
     util/debug.cpp
