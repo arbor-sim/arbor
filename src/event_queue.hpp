@@ -9,6 +9,7 @@
 #include "common_types.hpp"
 #include "util/meta.hpp"
 #include "util/optional.hpp"
+#include "util/strprintf.hpp"
 
 namespace nest {
 namespace mc {
@@ -186,6 +187,7 @@ public:
                 span_[i].first = size_type(ev_.size());
                 ev_.insert(ev_.end(), begin(*evi), end(*evi));
                 span_[i].second = size_type(ev_.size());
+                ++evi;
 
                 // check size for wrapping!
                 if (ev_.size()>std::numeric_limits<size_type>::max()) {
@@ -203,7 +205,7 @@ public:
     util::optional<value_type> pop_if_not_after(size_type i, time_type t_until) {
         using ::nest::mc::event_time;
         return pop_if(i,
-            [&t_until](const value_type& ev) { return t_until > event_time(ev); }
+            [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
         );
     }
 
@@ -222,13 +224,36 @@ public:
     // non-empty and the head satisfies predicate.
     template <typename Pred>
     util::optional<value_type> pop_if(size_type i, Pred&& pred) {
-        using ::nest::mc::event_time;
         if (n_events(i) && pred(top_unsafe(i))) {
             return pop_unsafe(i);
         }
         else {
             return util::nothing;
         }
+    }
+
+    // TODO: remove once we are confident implementation of lowered cell event delivery
+    // is sound.
+    friend std::ostream& operator<<(std::ostream& out, const multi_event_stream& m) {
+        using ::nest::mc::event_time;
+
+        out << "[\n";
+        for (size_type s = 0; s<m.n_streams(); ++s) {
+            out << util::strprintf("%05d: ", (int)s);
+
+            unsigned prev_end = 0;
+            for (const auto& p: m.span_) {
+                for (unsigned i = prev_end; i<p.first; ++i) {
+                    out << "      x";
+                }
+                for (unsigned i = p.first; i<p.second; ++i) {
+                    out << util::strprintf(" % 6.3f", event_time(m.ev_[i]));
+                }
+            }
+            out << "\n";
+        }
+        out << "]\n";
+        return out;
     }
 
 private:

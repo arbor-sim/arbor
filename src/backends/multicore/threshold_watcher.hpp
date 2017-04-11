@@ -80,6 +80,7 @@ public:
             auto v_prev = v_prev_[i];
             auto v      = values_[cv];
             auto thresh = thresholds_[i];
+
             if (!is_crossed_[i]) {
                 if (v>=thresh) {
                     // The threshold has been passed, so estimate the time using

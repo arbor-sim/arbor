@@ -42,6 +42,30 @@ inline int find_cv_index(const segment_location& loc, const compartment_model& g
     return index;
 };
 
+template <typename Seq>
+struct csv_wrap {
+    const Seq& seq;
+    csv_wrap(const Seq& seq): seq(seq) {}
+
+    friend std::ostream& operator<<(std::ostream& out, const csv_wrap<Seq>& csv) {
+        using std::begin;
+        using std::end;
+        auto b = begin(csv.seq);
+        auto e = end(csv.seq);
+        if (b!=e) {
+            for (;;) {
+                out << *b++;
+                if (b==e) break;
+                out << " ,";
+            }
+        }
+        return out;
+    }
+};
+
+template <typename Seq>
+csv_wrap<Seq> csv(const Seq& s) { return csv_wrap<Seq>(s); }
+
 template<class Backend>
 class fvm_multicell {
 public:
@@ -272,6 +296,10 @@ private:
         double time;
         target_handle handle;
         double weight;
+
+        friend std::ostream& operator<<(std::ostream& out, const deliverable_event& ev) {
+            return out << "ev[t=" << ev.time << ";w=" << ev.weight << ";h=...]";
+        }
     };
 
     /// events staged for upcoming integration stage
@@ -874,6 +902,7 @@ void fvm_multicell<Backend>::reset() {
     dt_max_ = 0;
     integration_running_ = false;
     staged_events_.clear();
+    staged_events_.resize(ncell_);
     events_.clear();
 }
 
@@ -883,7 +912,6 @@ void fvm_multicell<Backend>::step_integration() {
     EXPECTS(integration_running_);
 
     // deliver events and set up time_to_
-
     for (size_type ci = 0; ci<ncell_; ++ci) {
         auto t = time(ci);
         while (auto ev = events_.pop_if_not_after(ci, t)) {
