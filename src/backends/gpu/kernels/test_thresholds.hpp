@@ -37,8 +37,8 @@ void test_thresholds(
 
     if (i<size) {
         // Test for threshold crossing
-        const auto cv     = cv_index_[i];
-        const auto cell   = cv_to_cell_[cv];
+        const auto cv     = cv_index[i];
+        const auto cell   = cv_to_cell[cv];
         const auto v_prev = prev_values[i];
         const auto v      = values[cv];
         const auto thresh = thresholds[i];

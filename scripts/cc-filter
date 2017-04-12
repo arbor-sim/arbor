@@ -226,7 +226,7 @@ rule cxx:unsigned-int      s/\bunsigned\s+int\b/unsigned/g
 group cxx:tidy cxx:rm-template-space cxx:unsigned-int
 
 rule cxx:strip-qualified   s/%cxx:qualified%//g
-rule cxx:strip-args        s/(%cxx:identifier%%cxx:template-args%?)%cxx:paren-args%/$1(...)/g
+rule cxx:strip-args        s/(%cxx:identifier%%cxx:template-args%?)%cxx:paren-args%(?!:)/$1(...)/g
 group cxx:strip-all cxx:strip-qualified cxx:strip-args
 _end_
 

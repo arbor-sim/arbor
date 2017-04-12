@@ -59,7 +59,7 @@ public:
         is_crossed_(size()),
         stack_(memory::make_managed_ptr<stack_type>(10*size()))
     {
-        reset(t);
+        reset();
     }
 
     /// Remove all stored crossings that were detected in previous calls
@@ -78,16 +78,16 @@ public:
         // the initial crossed state
         auto values = memory::on_host(values_);
         auto thresholds = memory::on_host(thresholds_);
-        auto index = memory::on_host(index_);
+        auto cv_index = memory::on_host(cv_index_);
 
         // calculate the initial crossed state in host memory
-        auto crossed = std::vector<size_type>(size());
+        std::vector<size_type> crossed(size());
         for (auto i: util::make_span(0u, size())) {
-            crossed[i] = values[index[i]] < thresholds[i] ? 0 : 1;
+            crossed[i] = values[cv_index[i]] < thresholds[i] ? 0 : 1;
         }
 
         // copy the initial crossed state to device memory
-        is_crossed_ = memory::on_gpu(crossed);
+        memory::copy(crossed, is_crossed_);
     }
 
     bool is_crossed(size_type i) const {
@@ -119,7 +119,7 @@ public:
 
     /// the number of threashold values that are being monitored
     std::size_t size() const {
-        return index_.size();
+        return cv_index_.size();
     }
 
     /// Data type used to store the crossings.

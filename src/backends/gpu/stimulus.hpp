@@ -62,10 +62,7 @@ public:
         return 0;
     }
 
-    void set_params(value_type t_, value_type dt_) override {
-        t = t_;
-        dt = dt_;
-    }
+    void set_params() override {}
 
     std::string name() const override {
         return "stimulus";
