@@ -25,11 +25,9 @@ namespace mc {
 template <typename Cell>
 class model {
 public:
-    using cell_group_type = cell_group<Cell>;
-    using time_type = typename cell_group_type::time_type;
-    using value_type = typename cell_group_type::value_type;
+    using cell_group_type = cell_group<Cell>; // FIXME
+    using time_type = typename spike::time_type;
     using communicator_type = communication::communicator<communication::global_policy>;
-    using sampler_function = typename cell_group_type::sampler_function;
     using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
     struct probe_record {
@@ -208,7 +206,8 @@ public:
         current_spikes().get().push_back({source, tspike});
     }
 
-    void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
+    template <typename F>
+    void attach_sampler(cell_member_type probe_id, F&& f, time_type tfrom = 0) {
         if (!algorithms::in_interval(probe_id.gid, gid_partition().bounds())) {
             return;
         }
