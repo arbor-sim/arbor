@@ -12,7 +12,7 @@ energy_size_type energy() {
     energy_size_type result = -1;
 
     std::ifstream fid("/sys/cray/pm_counters/energy");
-    if (fid.good()) {
+    if (fid) {
         fid >> result;
     }
 
