@@ -24,7 +24,7 @@ if(NOT EXISTS "${gbench_src_dir}/.git")
         exec_program("${GIT_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}"
             ARGS submodule update --init google-benchmark)
     else()
-        message(WARNING "google-benchmark submodule apparently not updated, but cannot find git")
+        message(WARNING "Unable to update the google-benchmark submodule: git not found.")
     endif()
 endif()
 
@@ -33,12 +33,13 @@ ExternalProject_Add(gbench
     CMAKE_ARGS "${gbench_cmake_args}"
     INSTALL_DIR "${gbench_install_dir}"
 )
+set_target_properties(gbench PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 # Build benches.
 
 foreach(bench_src ${bench_sources})
     string(REGEX REPLACE "\\.[^.]*$" "" bench_exe "${bench_src}")
-    add_executable("${bench_exe}" "${bench_src}")
+    add_executable("${bench_exe}" EXCLUDE_FROM_ALL "${bench_src}")
     add_dependencies("${bench_exe}" gbench)
     target_include_directories("${bench_exe}" PRIVATE "${gbench_install_dir}/include")
     target_link_libraries("${bench_exe}" "${gbench_install_dir}/lib/libbenchmark.a")
