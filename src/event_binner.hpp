@@ -3,6 +3,7 @@
 #include <limits>
 #include <unordered_map>
 
+#include <common_types.hpp>
 #include <spike.hpp>
 #include <util/optional.hpp>
 
