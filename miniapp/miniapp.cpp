@@ -7,7 +7,6 @@
 
 #include <json/json.hpp>
 
-#include <backends/fvm.hpp>
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>

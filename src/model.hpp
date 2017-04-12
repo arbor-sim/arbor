@@ -22,9 +22,11 @@
 namespace nest {
 namespace mc {
 
+// FIXME: this is going to go
 template <typename Cell>
 class model {
 public:
+    // FIXME: this is an intermediate step to remove the template parameter from model
     using cell_group_type = cell_group<Cell>; // FIXME
     using time_type = typename spike::time_type;
     using communicator_type = communication::communicator<communication::global_policy>;
