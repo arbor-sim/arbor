@@ -1,5 +1,7 @@
 #include <string>
 
+#include <util/optional.hpp>
+
 #include "hostname.hpp"
 
 #ifdef __linux__
@@ -13,16 +15,19 @@ namespace mc {
 namespace util {
 
 #ifdef __linux__
-std::string hostname() {
+util::optional<std::string> hostname() {
     // Hostnames can be up to 256 characters in length, however on many systems
     // it is limitted to 64.
     char name[256];
     auto result = gethostname(name, sizeof(name));
-    return result? "unknown": name;
+    if (result) {
+        return util::nothing;
+    }
+    return std::string(name);
 }
 #else
-std::string hostname() {
-    return "unknown";
+util::optional<std::string> hostname() {
+    return util::nothing;
 }
 #endif
 

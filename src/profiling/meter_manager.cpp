@@ -115,7 +115,8 @@ nlohmann::json to_json(const meter_manager& manager) {
     meter_out.push_back(to_json(measurement("time", "s", manager.times())));
 
     // Gather a vector with the names of the node that each rank is running on.
-    auto hosts = gcom::gather(hostname(), 0);
+    auto host = hostname();
+    auto hosts = gcom::gather(host? *host: "unknown", 0);
 
     // Only the "root" process returns meter information
     if (gcom::id()==0) {
