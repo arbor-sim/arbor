@@ -8,6 +8,7 @@
 #include <algorithms.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
+#include <event_binner.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
@@ -18,76 +19,6 @@
 
 namespace nest {
 namespace mc {
-
-enum class binning_kind {
-    none,
-    regular,   // => round time down to multiple of binning interval.
-    following, // => round times down to previous event if within binning interval.
-};
-
-class event_binner {
-public:
-    using time_type = spike::time_type;
-
-    void reset() {
-        last_event_times_.clear();
-    }
-
-    event_binner(): policy_(binning_kind::none), bin_interval_(0) {}
-
-    event_binner(binning_kind policy, time_type bin_interval):
-        policy_(policy), bin_interval_(bin_interval)
-    {}
-
-    // Determine binned time for an event based on policy.
-    // If `t_min` is specified, the binned time will be no lower than `t_min`.
-    // Otherwise the returned binned time will be less than or equal to the parameter `t`,
-    // and within `bin_interval_`.
-
-    time_type bin(cell_gid_type id, time_type t, time_type t_min = std::numeric_limits<time_type>::lowest()) {
-        time_type t_binned = t;
-
-        switch (policy_) {
-        case binning_kind::none:
-            break;
-        case binning_kind::regular:
-            if (bin_interval_>0) {
-                t_binned = std::floor(t/bin_interval_)*bin_interval_;
-            }
-            break;
-        case binning_kind::following:
-            if (auto last_t = last_event_time(id)) {
-                if (t-*last_t<bin_interval_) {
-                    t_binned = *last_t;
-                }
-            }
-            update_last_event_time(id, t_binned);
-            break;
-        default:
-            throw std::logic_error("unrecognized binning policy");
-        }
-
-        return std::max(t_binned, t_min);
-    }
-
-private:
-    binning_kind policy_;
-
-    // Interval in which event times can be aliased.
-    time_type bin_interval_;
-
-    // (Consider replacing this with a vector-backed store.)
-    std::unordered_map<cell_gid_type, time_type> last_event_times_;
-
-    util::optional<time_type> last_event_time(cell_gid_type id) {
-        auto it = last_event_times_.find(id);
-        return it==last_event_times_.end()? util::nothing: util::just(it->second);
-    }
-
-    void update_last_event_time(cell_gid_type id, time_type t) {
-        last_event_times_[id] = t;
-    }
-};
 
 template <typename LoweredCell>
 class cell_group {
