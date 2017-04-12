@@ -13,27 +13,33 @@ namespace util {
 //  memory_meter
 //
 
-std::string memory_meter::name() {
-    return "memory-allocated";
-}
+class memory_meter: public meter {
+protected:
+    std::vector<memory_size_type> readings_;
 
-std::string memory_meter::units() {
-    return "B";
-}
-
-void memory_meter::take_reading() {
-    readings_.push_back(allocated_memory());
-}
-
-std::vector<double> memory_meter::measurements() {
-    std::vector<double> diffs;
-
-    for (auto i=1ul; i<readings_.size(); ++i) {
-        diffs.push_back(readings_[i]-readings_[i-1]);
+public:
+    std::string name() override {
+        return "memory-allocated";
     }
 
-    return diffs;
-}
+    std::string units() override {
+        return "B";
+    }
+
+    void take_reading() override {
+        readings_.push_back(allocated_memory());
+    }
+
+    std::vector<double> measurements() override {
+        std::vector<double> diffs;
+
+        for (auto i=1ul; i<readings_.size(); ++i) {
+            diffs.push_back(readings_[i]-readings_[i-1]);
+        }
+
+        return diffs;
+    }
+};
 
 meter_ptr make_memory_meter() {
     if (not config::has_memory_measurement) {
@@ -46,13 +52,18 @@ meter_ptr make_memory_meter() {
 //  gpu_memory_meter
 //
 
-std::string gpu_memory_meter::name() {
-    return "gpu-memory-allocated";
-}
+// The gpu memory meter specializes the reading and name methods of the basic
+// memory_meter.
+class gpu_memory_meter: public memory_meter {
+public:
+    std::string name() override {
+        return "gpu-memory-allocated";
+    }
 
-void gpu_memory_meter::take_reading() {
-    readings_.push_back(gpu_allocated_memory());
-}
+    void take_reading() override {
+        readings_.push_back(gpu_allocated_memory());
+    }
+};
 
 meter_ptr make_gpu_memory_meter() {
     if (not config::has_cuda) {

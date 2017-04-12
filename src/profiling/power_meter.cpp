@@ -9,27 +9,32 @@ namespace nest {
 namespace mc {
 namespace util {
 
-std::string power_meter::name() {
-    return "energy";
-}
+class power_meter: public meter {
+    std::vector<energy_size_type> readings_;
 
-std::string power_meter::units() {
-    return "J";
-}
-
-void power_meter::take_reading() {
-    readings_.push_back(energy());
-}
-
-std::vector<double> power_meter::measurements() {
-    std::vector<double> diffs;
-
-    for (auto i=1ul; i<readings_.size(); ++i) {
-        diffs.push_back(readings_[i]-readings_[i-1]);
+public:
+    std::string name() override {
+        return "energy";
     }
 
-    return diffs;
-}
+    std::string units() override {
+        return "J";
+    }
+
+    std::vector<double> measurements() override {
+        std::vector<double> diffs;
+
+        for (auto i=1ul; i<readings_.size(); ++i) {
+            diffs.push_back(readings_[i]-readings_[i-1]);
+        }
+
+        return diffs;
+    }
+
+    void take_reading() override {
+        readings_.push_back(energy());
+    }
+};
 
 meter_ptr make_power_meter() {
     if (not config::has_power_measurement) {
