@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdlib>
 #include <fstream>
 #include <stdexcept>
 #include <string>
@@ -14,6 +15,38 @@ namespace nest {
 namespace mc {
 
 trace_io g_trace_io;
+
+util::path trace_io::find_datadir() {
+    // If environment variable is set, use that in preference.
+    if (const char* env_path = std::getenv("NMC_DATADIR")) {
+        return util::path(env_path);
+    }
+
+    // Test compile-time path
+    const char* path = "";
+#ifdef NMC_DATADIR
+    path = NMC_DATADIR;
+#endif
+
+    std::error_code ec;
+    if (util::is_directory(path, ec)) {
+        return path;
+    }
+
+    // Otherwise try the hardcoded paths below:
+    path = "./validation/data";
+    if (util::is_directory(path, ec)) {
+        return path;
+    }
+
+    path = "../validation/data";
+    if (util::is_directory(path, ec)) {
+        return path;
+    }
+
+    // Set to empty path, and rely on command-line option
+    return util::path();
+}
 
 void trace_io::save_trace(const std::string& label, const trace_data& data, const nlohmann::json& meta) {
     save_trace("time", label, data, meta);
