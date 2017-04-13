@@ -38,7 +38,7 @@ public:
 
     /// per-cell group lists of events to be delivered
     using event_queue =
-        std::vector<postsynaptic_spike_event<time_type>>;
+        std::vector<postsynaptic_spike_event>;
 
     using gid_partition_type =
         util::partition_range<std::vector<cell_gid_type>::const_iterator>;

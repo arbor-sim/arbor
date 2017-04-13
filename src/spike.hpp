@@ -24,7 +24,7 @@ struct basic_spike {
 };
 
 /// Standard specialization:
-using spike = basic_spike<cell_member_type, float>;
+using spike = basic_spike<cell_member_type, default_time_type>;
 
 } // namespace mc
 } // namespace nest

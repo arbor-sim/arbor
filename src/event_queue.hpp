@@ -21,13 +21,15 @@ namespace mc {
  */
 
 template <typename Time>
-struct postsynaptic_spike_event {
+struct basic_postsynaptic_spike_event {
     using time_type = Time;
 
     cell_member_type target;
     time_type time;
     float weight;
 };
+
+using postsynaptic_spike_event = basic_postsynaptic_spike_event<default_time_type>;
 
 template <typename Time>
 struct sample_event {
@@ -144,7 +146,8 @@ private:
 } // namespace mc
 
 template <typename T>
-inline std::ostream& operator<<(std::ostream& o, const nest::mc::postsynaptic_spike_event<T>& e)
+inline std::ostream& operator<<(
+    std::ostream& o, const nest::mc::basic_postsynaptic_spike_event<T>& e)
 {
     return o << "event[" << e.target << "," << e.time << "," << e.weight << "]";
 }

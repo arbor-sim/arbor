@@ -145,8 +145,7 @@ public:
         PL();
     }
 
-    template <typename R>
-    void enqueue_events(const R& events) {
+    void enqueue_events(const std::vector<postsynaptic_spike_event>& events) {
         for (auto& e: events) {
             events_.push(e);
         }
@@ -192,7 +191,7 @@ private:
     event_binner binner_;
 
     // Pending events to be delivered.
-    event_queue<postsynaptic_spike_event<time_type>> events_;
+    event_queue<postsynaptic_spike_event> events_;
 
     // Pending samples to be taken.
     event_queue<sample_event<time_type>> sample_events_;
