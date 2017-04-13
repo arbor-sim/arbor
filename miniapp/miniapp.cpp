@@ -35,7 +35,7 @@ using lowered_cell = fvm::fvm_multicell<gpu::backend>;
 using lowered_cell = fvm::fvm_multicell<multicore::backend>;
 #endif
 using model_type = model<lowered_cell>;
-using sample_trace_type = sample_trace<model_type::time_type, double>;
+using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
 
         // Attach samplers to all probes
         std::vector<std::unique_ptr<sample_trace_type>> traces;
-        const model_type::time_type sample_dt = 0.1;
+        const time_type sample_dt = 0.1;
         for (auto probe: m.probes()) {
             if (options.trace_max_gid && probe.id.gid>*options.trace_max_gid) {
                 continue;

@@ -39,7 +39,7 @@ void run_synapse_test(
     add_common_voltage_probes(c);
 
     // injected spike events
-    postsynaptic_spike_event<float> synthetic_events[] = {
+    std::vector<postsynaptic_spike_event> synthetic_events = {
         {{0u, 0u}, 10.0, 0.04},
         {{0u, 0u}, 20.0, 0.04},
         {{0u, 0u}, 40.0, 0.04}

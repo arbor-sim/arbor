@@ -16,8 +16,7 @@ void event_binner::reset() {
     last_event_times_.clear();
 }
 
-event_binner::time_type
-event_binner::bin(cell_gid_type id, time_type t, time_type t_min) {
+time_type event_binner::bin(cell_gid_type id, time_type t, time_type t_min) {
     time_type t_binned = t;
 
     switch (policy_) {
@@ -43,7 +42,7 @@ event_binner::bin(cell_gid_type id, time_type t, time_type t_min) {
     return std::max(t_binned, t_min);
 }
 
-util::optional<event_binner::time_type>
+util::optional<time_type>
 event_binner::last_event_time(cell_gid_type id) {
     auto it = last_event_times_.find(id);
     return it==last_event_times_.end()? util::nothing: util::just(it->second);
