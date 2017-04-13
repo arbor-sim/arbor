@@ -214,7 +214,8 @@ public:
             return;
         }
 
-        cell_groups_[gid_partition().index(probe_id.gid)].add_sampler(probe_id, f, tfrom);
+        const auto idx = gid_partition().index(probe_id.gid);
+        cell_groups_[idx].add_sampler(probe_id, std::forward<F>(f), tfrom);
     }
 
     const std::vector<probe_record>& probes() const { return probes_; }

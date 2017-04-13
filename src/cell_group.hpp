@@ -167,7 +167,8 @@ public:
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
         auto handle = get_probe_handle(probe_id);
 
-        auto sampler_index = uint32_t(samplers_.size());
+        using size_type = sample_event<time_type>::size_type;
+        auto sampler_index = size_type(samplers_.size());
         samplers_.push_back({handle, probe_id.gid, s});
         sampler_start_times_.push_back(start_time);
         sample_events_.push({sampler_index, start_time});
@@ -262,7 +263,8 @@ private:
     void reset_samplers() {
         // clear all pending sample events and reset to start at time 0
         sample_events_.clear();
-        for(uint32_t i=0u; i<samplers_.size(); ++i) {
+        using size_type = sample_event<time_type>::size_type;
+        for(size_type i=0; i<samplers_.size(); ++i) {
             sample_events_.push({i, sampler_start_times_[i]});
         }
     }
