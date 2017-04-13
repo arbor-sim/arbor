@@ -60,6 +60,7 @@ set(TEST_SOURCES
     test_spikes.cpp
     test_spike_store.cpp
     test_stimulus.cpp
+    test_strprintf.cpp
     test_swcio.cpp
     test_synapses.cpp
     test_tree.cpp
