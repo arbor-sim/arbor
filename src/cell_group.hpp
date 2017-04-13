@@ -63,7 +63,7 @@ public:
 
     void reset() {
         spikes_.clear();
-        clear_events();
+        events_.clear();
         reset_samplers();
         binner_.reset();
         lowered_.reset();
@@ -164,38 +164,18 @@ public:
         return spike_sources_;
     }
 
-    void clear_events() {
-        events_.clear();
-    }
-
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
         auto handle = get_probe_handle(probe_id);
 
-        auto sampler_index = uint32_t(samplers_.size());
+        using size_type = sample_event<time_type>::size_type;
+        auto sampler_index = size_type(samplers_.size());
         samplers_.push_back({handle, probe_id.gid, s});
         sampler_start_times_.push_back(start_time);
         sample_events_.push({sampler_index, start_time});
     }
 
-    void remove_samplers() {
-        sample_events_.clear();
-        samplers_.clear();
-        sampler_start_times_.clear();
-    }
-
-    void reset_samplers() {
-        // clear all pending sample events and reset to start at time 0
-        sample_events_.clear();
-        for(uint32_t i=0u; i<samplers_.size(); ++i) {
-            sample_events_.push({i, sampler_start_times_[i]});
-        }
-    }
-
-    value_type probe(cell_member_type probe_id) const {
-        return lowered_.probe(get_probe_handle(probe_id));
-    }
-
 private:
+
     // gid of first cell in group.
     cell_gid_type gid_base_;
 
@@ -243,8 +223,10 @@ private:
     // Build handle index lookup tables.
     template <typename Cells>
     void build_handle_partitions(const Cells& cells) {
-        auto probe_counts = util::transform_view(cells, [](const cell& c) { return c.probes().size(); });
-        auto target_counts = util::transform_view(cells, [](const cell& c) { return c.synapses().size(); });
+        auto probe_counts =
+            util::transform_view(cells, [](const cell& c) { return c.probes().size(); });
+        auto target_counts =
+            util::transform_view(cells, [](const cell& c) { return c.synapses().size(); });
 
         make_partition(probe_handle_divisions_, probe_counts);
         make_partition(target_handle_divisions_, target_counts);
@@ -276,6 +258,15 @@ private:
     // Get target handle from target id.
     target_handle get_target_handle(cell_member_type target_id) const {
         return target_handles_[handle_partition_lookup(target_handle_divisions_, target_id)];
+    }
+
+    void reset_samplers() {
+        // clear all pending sample events and reset to start at time 0
+        sample_events_.clear();
+        using size_type = sample_event<time_type>::size_type;
+        for(size_type i=0; i<samplers_.size(); ++i) {
+            sample_events_.push({i, sampler_start_times_[i]});
+        }
     }
 };
 
