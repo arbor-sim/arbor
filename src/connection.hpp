@@ -11,8 +11,6 @@ namespace mc {
 
 class connection {
 public:
-    using time_type = spike::time_type;
-
     connection() = default;
     connection(cell_member_type src, cell_member_type dest, float w, time_type d) :
         source_(src),

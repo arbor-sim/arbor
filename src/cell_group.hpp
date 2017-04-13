@@ -28,7 +28,6 @@ public:
     using size_type  = typename lowered_cell_type::value_type;
     using source_id_type = cell_member_type;
 
-    using time_type = spike::time_type;
     using sampler_function = std::function<util::optional<time_type>(time_type, double)>;
 
     cell_group() = default;
@@ -86,7 +85,7 @@ public:
 
         lowered_.setup_integration(tfinal, dt);
 
-        std::vector<sample_event<time_type>> requeue_sample_events;
+        std::vector<sample_event> requeue_sample_events;
         while (!lowered_.integration_complete()) {
             // Take any pending samples.
             // TODO: Placeholder: this will be replaced by a backend polling implementation.
@@ -166,7 +165,7 @@ public:
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) {
         auto handle = get_probe_handle(probe_id);
 
-        using size_type = sample_event<time_type>::size_type;
+        using size_type = sample_event::size_type;
         auto sampler_index = size_type(samplers_.size());
         samplers_.push_back({handle, probe_id.gid, s});
         sampler_start_times_.push_back(start_time);
@@ -194,7 +193,7 @@ private:
     event_queue<postsynaptic_spike_event> events_;
 
     // Pending samples to be taken.
-    event_queue<sample_event<time_type>> sample_events_;
+    event_queue<sample_event> sample_events_;
     std::vector<time_type> sampler_start_times_;
 
     // Handles for accessing lowered cell.
@@ -262,7 +261,7 @@ private:
     void reset_samplers() {
         // clear all pending sample events and reset to start at time 0
         sample_events_.clear();
-        using size_type = sample_event<time_type>::size_type;
+        using size_type = sample_event::size_type;
         for(size_type i=0; i<samplers_.size(); ++i) {
             sample_events_.push({i, sampler_start_times_[i]});
         }

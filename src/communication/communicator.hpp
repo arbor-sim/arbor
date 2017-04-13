@@ -7,6 +7,7 @@
 #include <functional>
 
 #include <algorithms.hpp>
+#include <common_types.hpp>
 #include <connection.hpp>
 #include <communication/gathered_vector.hpp>
 #include <event_queue.hpp>
@@ -34,7 +35,6 @@ template <typename CommunicationPolicy>
 class communicator {
 public:
     using communication_policy_type = CommunicationPolicy;
-    using time_type = spike::time_type;
 
     /// per-cell group lists of events to be delivered
     using event_queue =

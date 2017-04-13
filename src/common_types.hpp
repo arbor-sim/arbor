@@ -49,9 +49,9 @@ struct cell_member_type {
 
 DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 
-// Default time type
+// For storing time values [ms]
 
-using default_time_type = float;
+using time_type = float;
 
 } // namespace mc
 } // namespace nest

@@ -18,8 +18,6 @@ enum class binning_kind {
 
 class event_binner {
 public:
-    using time_type = spike::time_type;
-
     event_binner(): policy_(binning_kind::none), bin_interval_(0) {}
 
     event_binner(binning_kind policy, time_type bin_interval):

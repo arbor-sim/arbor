@@ -20,20 +20,13 @@ namespace mc {
  * Time values must be well ordered with respect to `operator>`.
  */
 
-template <typename Time>
-struct basic_postsynaptic_spike_event {
-    using time_type = Time;
-
+struct postsynaptic_spike_event {
     cell_member_type target;
     time_type time;
     float weight;
 };
 
-using postsynaptic_spike_event = basic_postsynaptic_spike_event<default_time_type>;
-
-template <typename Time>
 struct sample_event {
-    using time_type = Time;
     using size_type = std::uint32_t;
 
     size_type sampler_index;
@@ -60,7 +53,7 @@ template <typename Event>
 class event_queue {
 public :
     using value_type = Event;
-    using time_type = impl::event_time_type<Event>;
+    using event_time_type = impl::event_time_type<Event>;
 
     event_queue() {}
 
@@ -81,7 +74,7 @@ public :
     }
 
     // Return time t of head of queue if `t_until` > `t`.
-    util::optional<time_type> time_if_before(const time_type& t_until) {
+    util::optional<event_time_type> time_if_before(const event_time_type& t_until) {
         if (queue_.empty()) {
             return util::nothing;
         }
@@ -107,7 +100,7 @@ public :
     }
 
     // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
-    util::optional<value_type> pop_if_before(const time_type& t_until) {
+    util::optional<value_type> pop_if_before(const event_time_type& t_until) {
         using ::nest::mc::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return t_until > event_time(ev); }
@@ -115,7 +108,7 @@ public :
     }
 
     // Pop and return top event `ev` of queue unless `event_time(ev)` > `t_until`
-    util::optional<value_type> pop_if_not_after(const time_type& t_until) {
+    util::optional<value_type> pop_if_not_after(const event_time_type& t_until) {
         using ::nest::mc::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
@@ -145,9 +138,8 @@ private:
 } // namespace nest
 } // namespace mc
 
-template <typename T>
 inline std::ostream& operator<<(
-    std::ostream& o, const nest::mc::basic_postsynaptic_spike_event<T>& e)
+    std::ostream& o, const nest::mc::postsynaptic_spike_event& e)
 {
     return o << "event[" << e.target << "," << e.time << "," << e.weight << "]";
 }
