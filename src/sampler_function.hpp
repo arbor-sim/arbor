@@ -8,7 +8,7 @@
 namespace nest {
 namespace mc {
 
-using sampler_function = std::function<util::optional<time_type>(time_type, float)>;
+using sampler_function = std::function<util::optional<time_type>(time_type, double)>;
 
 } // namespace mc
 } // namespace nest

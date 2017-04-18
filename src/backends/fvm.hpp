@@ -2,16 +2,38 @@
 
 #include <backends/multicore/fvm.hpp>
 
+namespace nest {
+namespace mc {
+
+// A null back end used as a placeholder for back ends that are not supported
+// on the target platform.
+struct null_backend: public multicore::backend {
+    static bool is_supported() {
+        return false;
+    }
+
+    static mechanism make_mechanism(
+        const std::string&, view, view, const std::vector<value_type>&, const std::vector<size_type>&)
+    {
+        throw std::runtime_error("attempt to use an unsupported back end");
+    }
+
+    static bool has_mechanism(const std::string& name) {
+        return false;
+    }
+
+    static std::string name() {
+        return "null";
+    }
+};
+
+} // namespace mc
+} // namespace nest
+
 #ifdef NMC_HAVE_CUDA
     #include <backends/gpu/fvm.hpp>
 #else
-// FIXME: intermediate fix as part of virtualization of cell_group.
-// This requires that a runtime choice can be made during model set up
-// about which backend is to be used group by group. We use the multicore
-// backend as a dummy GPU back end when compiled without gpu support so that
-// this decision does not require preprocessor directives in model.hpp.
 namespace nest { namespace mc { namespace gpu {
-    using backend = nest::mc::multicore::backend;
-}}} // namespace nest::nc::gpu
-
+    using backend = null_backend;
+}}} // namespace nest::mc::gpu
 #endif

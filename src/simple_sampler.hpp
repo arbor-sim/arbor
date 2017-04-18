@@ -44,7 +44,7 @@ class simple_sampler {
 public:
     trace_data trace;
 
-    simple_sampler(float dt, float t0=0):
+    simple_sampler(time_type dt, time_type t0=0):
         t0_(t0),
         sample_dt_(dt),
         t_next_sample_(t0)
@@ -55,23 +55,22 @@ public:
         t_next_sample_ = t0_;
     }
 
-    template <typename Time = float, typename Value = double>
     sampler_function sampler() {
-        return [&](Time t, Value v) -> util::optional<Time> {
-            if (t<(Time)t_next_sample_) {
-                return (Time)t_next_sample_;
+        return [&](time_type t, double v) -> util::optional<time_type> {
+            if (t<t_next_sample_) {
+                return t_next_sample_;
             }
             else {
-                trace.push_back({float(t), double(v)});
+                trace.push_back({t, v});
                 return t_next_sample_+=sample_dt_;
             }
         };
     }
 
 private:
-    float t0_ = 0;
-    float sample_dt_ = 0;
-    float t_next_sample_ = 0;
+    time_type t0_ = 0;
+    time_type sample_dt_ = 0;
+    time_type t_next_sample_ = 0;
 };
 
 } // namespace mc

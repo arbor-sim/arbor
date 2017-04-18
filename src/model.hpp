@@ -5,7 +5,7 @@
 
 #include <cstdlib>
 
-#include <backends/fvm.hpp>
+#include <backends.hpp>
 #include <fvm_multicell.hpp>
 
 #include <common_types.hpp>
@@ -15,15 +15,14 @@
 #include <communication/global_policy.hpp>
 #include <mc_cell_group.hpp>
 #include <profiling/profiler.hpp>
-#include <sampler_function.hpp>
 #include <recipe.hpp>
+#include <sampler_function.hpp>
 #include <thread_private_spike_store.hpp>
 #include <threading/threading.hpp>
+#include <trace_sampler.hpp>
 #include <util/nop.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
-
-#include "trace_sampler.hpp"
 
 namespace nest {
 namespace mc {
@@ -33,11 +32,6 @@ using gpu_lowered_cell =
 
 using multicore_lowered_cell =
     mc_cell_group<fvm::fvm_multicell<multicore::backend>>;
-
-enum class backend_policy {
-    use_multicore,      //  use multicore backend for all computation
-    prefer_gpu          //  use gpu back end when supported by cell_group type
-};
 
 class model {
 public:

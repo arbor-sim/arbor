@@ -35,7 +35,7 @@ void run_ncomp_convergence_test(
         {"dt", dt},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", backend==backend_policy::use_multicore? "cpu" : "gpu"} // FIXME: fragile
+        {"backend_policy", to_string(backend)}
     };
 
     auto exclude = stimulus_ends(c);

@@ -30,7 +30,7 @@ void run_synapse_test(
         {"model", syn_type},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", backend==backend_policy::use_multicore? "cpu" : "gpu"} // FIXME: fragile
+        {"backend_policy", to_string(backend)}
     };
 
     cell c = make_cell_ball_and_stick(false); // no stimuli
