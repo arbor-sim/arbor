@@ -54,7 +54,7 @@ struct serial_global_policy {
 
     template <typename T>
     static std::vector<T> gather(T value, int) {
-        return {value};
+        return {std::move(value)};
     }
 
     static void barrier() {}
