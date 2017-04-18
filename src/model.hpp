@@ -22,14 +22,14 @@
 namespace nest {
 namespace mc {
 
+// FIXME: this is going to go
 template <typename Cell>
 class model {
 public:
-    using cell_group_type = cell_group<Cell>;
-    using time_type = typename cell_group_type::time_type;
-    using value_type = typename cell_group_type::value_type;
+    // FIXME: this is an intermediate step to remove the template parameter from model
+    using cell_group_type = cell_group<Cell>; // FIXME
+    using time_type = typename spike::time_type;
     using communicator_type = communication::communicator<communication::global_policy>;
-    using sampler_function = typename cell_group_type::sampler_function;
     using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
     struct probe_record {
@@ -208,12 +208,14 @@ public:
         current_spikes().get().push_back({source, tspike});
     }
 
-    void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
+    template <typename F>
+    void attach_sampler(cell_member_type probe_id, F&& f, time_type tfrom = 0) {
         if (!algorithms::in_interval(probe_id.gid, gid_partition().bounds())) {
             return;
         }
 
-        cell_groups_[gid_partition().index(probe_id.gid)].add_sampler(probe_id, f, tfrom);
+        const auto idx = gid_partition().index(probe_id.gid);
+        cell_groups_[idx].add_sampler(probe_id, std::forward<F>(f), tfrom);
     }
 
     const std::vector<probe_record>& probes() const { return probes_; }

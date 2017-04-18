@@ -27,7 +27,7 @@ namespace impl {
 }
 
 template <typename... Args>
-static std::string strprintf(const char* fmt, Args&&... args) {
+std::string strprintf(const char* fmt, Args&&... args) {
     thread_local static std::vector<char> buffer(1024);
 
     for (;;) {
@@ -36,14 +36,14 @@ static std::string strprintf(const char* fmt, Args&&... args) {
             throw std::system_error(errno, std::generic_category());
         }
         else if ((unsigned)n<buffer.size()) {
-            return std::string(buffer.data());
+            return std::string(buffer.data(), n);
         }
         buffer.resize(2*n);
     }
 }
 
 template <typename... Args>
-static std::string strprintf(std::string fmt, Args&&... args) {
+std::string strprintf(const std::string& fmt, Args&&... args) {
     return strprintf(fmt.c_str(), std::forward<Args>(args)...);
 }
 

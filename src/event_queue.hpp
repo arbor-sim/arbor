@@ -33,8 +33,9 @@ struct postsynaptic_spike_event {
 template <typename Time>
 struct sample_event {
     using time_type = Time;
+    using size_type = std::uint32_t;
 
-    std::uint32_t sampler_index;
+    size_type sampler_index;
     time_type time;
 };
 

@@ -38,6 +38,7 @@ set(TEST_SOURCES
     test_cycle.cpp
     test_either.cpp
     test_event_queue.cpp
+    test_event_binner.cpp
     test_filter.cpp
     test_fvm_multi.cpp
     test_cell_group.cpp
