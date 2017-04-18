@@ -20,15 +20,30 @@ set(gbench_cmake_args
 # Attempt to update git submodule if required.
 find_package(Git)
 if(NOT EXISTS "${gbench_src_dir}/.git")
+    set(git_failed)
     if(GIT_FOUND)
-        exec_program("${GIT_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}"
-            ARGS submodule update --init google-benchmark)
+        message(STATUS "Updating the google-benchmark submodule ${gbench_src_dir}")
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" submodule update --init "${gbench_src_dir}"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            ERROR_VARIABLE git_error
+            RESULT_VARIABLE git_result)
+        if(NOT git_result EQUAL 0)
+            set(git_failed "${git_error}")
+        endif()
     else()
-        message(WARNING "Unable to update the google-benchmark submodule: git not found.")
+        set(git_failed "git not found")
+    endif()
+
+    if(git_failed)
+        message(WARNING "Unable to update the google-benchmark submodule: ${git_failed}")
     endif()
 endif()
 
 ExternalProject_Add(gbench
+    # Add dummy DOWNLOAD_COMMAND to stop ExternalProject_Add terminating CMake if the
+    # git submodule had not been udpated.
+    DOWNLOAD_COMMAND "${CMAKE_COMMAND}" -E echo "Warning: ${gbench_src_dir} empty or missing."
     SOURCE_DIR "${gbench_src_dir}"
     CMAKE_ARGS "${gbench_cmake_args}"
     INSTALL_DIR "${gbench_install_dir}"
