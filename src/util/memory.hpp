@@ -6,12 +6,6 @@ namespace nest {
 namespace mc {
 namespace util {
 
-#ifdef __linux__
-    constexpr bool has_memory_metering = true;
-#else
-    constexpr bool has_memory_metering = false;
-#endif
-
 // Use a signed type to store memory sizes because it can be used to store
 // the difference between two readings, which may be negative.
 // A 64 bit type is large enough to store any amount of memory that will

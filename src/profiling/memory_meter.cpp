@@ -1,62 +1,75 @@
 #include <string>
 #include <vector>
 
+#include <util/config.hpp>
+
 #include "memory_meter.hpp"
-#include <communication/global_policy.hpp>
 
 namespace nest {
 namespace mc {
 namespace util {
 
-namespace {
-    measurement collate(const std::vector<memory_size_type>& readings, std::string name) {
-        using gcom = communication::global_policy;
+//
+//  memory_meter
+//
 
-        // Calculate the local change in allocated memory for each interval.
-        std::vector<memory_size_type> allocated;
-        allocated.push_back(0);
-        for (auto i=1u; i<readings.size(); ++i) {
-            allocated.push_back(readings[i] - readings[i-1]);
-        }
+class memory_meter: public meter {
+protected:
+    std::vector<memory_size_type> readings_;
 
-        // Assert that the same number of readings were taken on every domain.
-        const auto num_readings = allocated.size();
-        if (gcom::min(num_readings)!=gcom::max(num_readings)) {
-            throw std::out_of_range(
-                "the number of checkpoints in the \"memory\" meter do not match across domains");
-        }
-
-        // Gather allocations from across all of the domains onto the root domain.
-        // Note: results are only valid on the root domain on completion.
-        measurement results;
-        results.name = std::move(name);
-        results.units = "kB";
-        for (auto m: allocated) {
-            results.measurements.push_back(gcom::gather(std::round(m/1e3), 0));
-        }
-
-        return results;
+public:
+    std::string name() override {
+        return "memory-allocated";
     }
-} // anonymous namespace
 
-std::string memory_meter::name() {
-    return "memory";
+    std::string units() override {
+        return "B";
+    }
+
+    void take_reading() override {
+        readings_.push_back(allocated_memory());
+    }
+
+    std::vector<double> measurements() override {
+        std::vector<double> diffs;
+
+        for (auto i=1ul; i<readings_.size(); ++i) {
+            diffs.push_back(readings_[i]-readings_[i-1]);
+        }
+
+        return diffs;
+    }
+};
+
+meter_ptr make_memory_meter() {
+    if (not config::has_memory_measurement) {
+        return nullptr;
+    }
+    return meter_ptr(new memory_meter());
 }
 
-void memory_meter::take_reading() {
-    readings_.push_back(allocated_memory());
-    #ifdef NMC_HAVE_GPU
-    readings_gpu_.push_back(gpu_allocated_memory());
-    #endif
-}
+//
+//  gpu_memory_meter
+//
 
-std::vector<measurement> memory_meter::measurements() {
-    std::vector<measurement> results;
-    results.push_back(collate(readings_, "memory-allocated"));
-    if (readings_gpu_.size()) {
-        results.push_back(collate(readings_gpu_, "memory-allocated-gpu"));
+// The gpu memory meter specializes the reading and name methods of the basic
+// memory_meter.
+class gpu_memory_meter: public memory_meter {
+public:
+    std::string name() override {
+        return "gpu-memory-allocated";
     }
-    return results;
+
+    void take_reading() override {
+        readings_.push_back(gpu_allocated_memory());
+    }
+};
+
+meter_ptr make_gpu_memory_meter() {
+    if (not config::has_cuda) {
+        return nullptr;
+    }
+    return meter_ptr(new gpu_memory_meter());
 }
 
 } // namespace util

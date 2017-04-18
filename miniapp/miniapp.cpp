@@ -17,6 +17,7 @@
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
 #include <threading/threading.hpp>
+#include <util/config.hpp>
 #include <util/debug.hpp>
 #include <util/ioutil.hpp>
 #include <util/nop.hpp>
@@ -24,13 +25,6 @@
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
 #include "trace_sampler.hpp"
-
-// FIXME: use the util/config.hpp when merged
-#ifdef NMC_HAVE_CUDA
-constexpr bool has_cuda = true;
-#else
-constexpr bool has_cuda = false;
-#endif
 
 using namespace nest::mc;
 
@@ -51,7 +45,7 @@ int main(int argc, char** argv) {
 
     try {
         nest::mc::util::meter_manager meters;
-        meters.checkpoint("start");
+        meters.start();
 
         std::cout << util::mask_stream(global_policy::id()==0);
         // read parameters
@@ -103,7 +97,7 @@ int main(int argc, char** argv) {
 
         model m(*recipe,
                 util::partition_view(group_divisions),
-                has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
+                config::has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -170,8 +164,6 @@ int main(int argc, char** argv) {
             write_trace_json(*trace.get(), options.trace_prefix);
         }
 
-        meters.checkpoint("output");
-
         util::save_to_file(meters, "meters.json");
     }
     catch (io::usage_error& e) {
@@ -206,7 +198,7 @@ void banner() {
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-    std::cout << "  - gpu support: " << (has_cuda? "on": "off") << "\n";
+    std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
 }
 
