@@ -28,7 +28,7 @@ void run_kinetic_dt(
     };
 
     meta["sim"] = "nestmc";
-    meta["backend"] = backend==backend_policy::use_multicore? "cpu" : "gpu";
+    meta["backend"] = backend==backend_policy::use_multicore? "cpu" : "gpu"; // FIXME: fragile
     convergence_test_runner<float> runner("dt", samplers, meta);
     runner.load_reference_data(ref_file);
 

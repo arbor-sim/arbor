@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
-#include <cell_group.hpp> // CHANGE
+#include <cell_group.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <event_binner.hpp>
@@ -23,7 +23,7 @@ namespace nest {
 namespace mc {
 
 template <typename LoweredCell>
-class mc_cell_group: public cell_group { // CHANGE
+class mc_cell_group: public cell_group {
 public:
     using lowered_cell_type = LoweredCell;
     using value_type = typename lowered_cell_type::value_type;

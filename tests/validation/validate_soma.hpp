@@ -28,7 +28,7 @@ void validate_soma(nest::mc::backend_policy backend) {
         {"model", "soma"},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", backend==backend_policy::use_multicore? "cpu" : "gpu"}
+        {"backend", backend==backend_policy::use_multicore? "cpu" : "gpu"} // FIXME: fragile
     };
 
     convergence_test_runner<float> runner("dt", samplers, meta);
