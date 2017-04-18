@@ -1,8 +1,8 @@
 #include "../gtest.h"
 
-#include <cell_group.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
+#include <mc_cell_group.hpp>
 #include <util/rangeutil.hpp>
 
 #include "common.hpp"
@@ -23,7 +23,7 @@ nest::mc::cell make_cell() {
 }
 
 TEST(cell_group, test) {
-    cell_group<fvm_cell> group{0, util::singleton_view(make_cell())};
+    mc_cell_group<fvm_cell> group{0, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);
 
@@ -33,7 +33,7 @@ TEST(cell_group, test) {
 }
 
 TEST(cell_group, sources) {
-    using cell_group_type = cell_group<fvm_cell>;
+    using cell_group_type = mc_cell_group<fvm_cell>;
 
     auto cell = make_cell();
     EXPECT_EQ(cell.detectors().size(), 1u);

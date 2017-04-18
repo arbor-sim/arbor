@@ -17,8 +17,6 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using lowered_cell = fvm::fvm_multicell<multicore::backend>;
-using cell_group_type = cell_group<lowered_cell>;
 using timer = util::timer_type;
 
 int main(int argc, char** argv) {

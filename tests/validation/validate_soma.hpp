@@ -13,13 +13,12 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-template <typename LoweredCell>
-void validate_soma() {
+void validate_soma(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
-    model<LoweredCell> model(singleton_recipe{c});
+    model model(singleton_recipe{c}, backend);
 
     float sample_dt = .025f;
     sampler_info samplers[] = {{"soma.mid", {0u, 0u}, simple_sampler(sample_dt)}};
@@ -29,7 +28,7 @@ void validate_soma() {
         {"model", "soma"},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", LoweredCell::backend::name()}
+        {"backend", backend==backend_policy::use_multicore? "cpu" : "gpu"}
     };
 
     convergence_test_runner<float> runner("dt", samplers, meta);

@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <common_types.hpp>
+#include <sampler_function.hpp>
 #include <util/optional.hpp>
 #include <util/deduce_return.hpp>
 #include <util/transform.hpp>
@@ -55,7 +56,7 @@ public:
     }
 
     template <typename Time = float, typename Value = double>
-    std::function<util::optional<Time> (Time, Value)> sampler() {
+    sampler_function sampler() {
         return [&](Time t, Value v) -> util::optional<Time> {
             if (t<(Time)t_next_sample_) {
                 return (Time)t_next_sample_;

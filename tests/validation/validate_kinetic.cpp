@@ -2,12 +2,12 @@
 
 #include "../gtest.h"
 
-using lowered_cell = nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
+const auto backend = nest::mc::backend_policy::use_multicore;
 
 TEST(kinetic, kin1_numeric_ref) {
-    validate_kinetic_kin1<lowered_cell>();
+    validate_kinetic_kin1(backend);
 }
 
 TEST(kinetic, kinlva_numeric_ref) {
-    validate_kinetic_kinlva<lowered_cell>();
+    validate_kinetic_kinlva(backend);
 }

@@ -20,7 +20,6 @@
 #include <util/debug.hpp>
 #include <util/ioutil.hpp>
 #include <util/nop.hpp>
-#include <util/optional.hpp>
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -29,12 +28,6 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-#ifdef NMC_HAVE_CUDA
-using lowered_cell = fvm::fvm_multicell<gpu::backend>;
-#else
-using lowered_cell = fvm::fvm_multicell<multicore::backend>;
-#endif
-using model_type = model<lowered_cell>;
 using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
@@ -101,7 +94,7 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        model_type m(*recipe, util::partition_view(group_divisions));
+        model m(*recipe, util::partition_view(group_divisions));
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
