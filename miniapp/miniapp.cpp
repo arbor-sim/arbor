@@ -25,6 +25,13 @@
 #include "miniapp_recipes.hpp"
 #include "trace_sampler.hpp"
 
+// FIXME: use the util/config.hpp when merged
+#ifdef NMC_HAVE_CUDA
+constexpr bool has_cuda = true;
+#else
+constexpr bool has_cuda = false;
+#endif
+
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
@@ -94,7 +101,9 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        model m(*recipe, util::partition_view(group_divisions));
+        model m(*recipe,
+                util::partition_view(group_divisions),
+                has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -197,11 +206,7 @@ void banner() {
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-#ifdef NMC_HAVE_CUDA
-    std::cout << "  - gpu support: on\n";
-#else
-    std::cout << "  - gpu support: off\n";
-#endif
+    std::cout << "  - gpu support: " << (has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
 }
 
