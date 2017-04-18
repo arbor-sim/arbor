@@ -46,7 +46,7 @@ public:
     template <typename Iter>
     model( const recipe& rec,
            const util::partition_range<Iter>& groups,
-           backend_policy policy = backend_policy::use_multicore):
+           backend_policy policy):
         cell_group_divisions_(groups.divisions().begin(), groups.divisions().end()),
         backend_policy_(policy)
     {
