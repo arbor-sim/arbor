@@ -1,10 +1,11 @@
-#include <cerrno>
-
 // POSIX headers
 extern "C" {
+#define _POSIX_C_SOURCE 2
 #include <glob.h>
 #include <sys/stat.h>
 }
+
+#include <cerrno>
 
 #include <util/scope_exit.hpp>
 #include <util/path.hpp>
