@@ -70,11 +70,17 @@ public:
 
     virtual ~mechanism() = default;
 
+    // Maps compartment index to cell index.
     const_iview vec_ci_;
+    // Maps cell index to integration start time.
     const_view vec_t_;
+    // Maps cell index to integration stop time.
     const_view vec_t_to_;
+    // Maps compartment index to voltage.
     view vec_v_;
+    // Maps compartment index to current.
     view vec_i_;
+    // Maps mechanism instance index to compartment index.
     iarray node_index_;
 };
 

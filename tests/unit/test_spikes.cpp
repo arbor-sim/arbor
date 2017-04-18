@@ -7,6 +7,16 @@
 
 using namespace nest::mc;
 
+// This source is included in `test_spikes.cu`, which defines
+// USE_BACKEND to override the default `multicore::backend`
+// used for CPU tests.
+
+#ifndef USE_BACKEND
+using backend = multicore::backend;
+#else
+using backend = USE_BACKEND;
+#endif
+
 template <typename C>
 void dump(const C& c) {
     std::cout << "{ ";

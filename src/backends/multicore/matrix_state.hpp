@@ -18,7 +18,7 @@ public:
     using const_view = typename array::const_view_type;
     using iarray = memory::host_vector<size_type>;
     iarray parent_index;
-    iarray cell_index;
+    iarray cell_cv_divisions;
 
     array d;     // [μS]
     array u;     // [μS]
@@ -35,18 +35,18 @@ public:
     matrix_state() = default;
 
     matrix_state(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_idx,
+                 const std::vector<size_type>& cell_cv_divisions,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond):
         parent_index(memory::make_const_view(p)),
-        cell_index(memory::make_const_view(cell_idx)),
+        cell_cv_divisions(memory::make_const_view(cell_cv_divisions)),
         d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(memory::make_const_view(cap)),
         face_conductance(memory::make_const_view(cond))
     {
         EXPECTS(cap.size() == size());
         EXPECTS(cond.size() == size());
-        EXPECTS(cell_idx.back() == size());
+        EXPECTS(cell_cv_divisions.back() == size());
 
         auto n = size();
         invariant_d = array(n, 0);
@@ -70,15 +70,15 @@ public:
     //   voltage [mV]
     //   current [nA]
     void assemble(const_view time, const_view time_to, const_view voltage, const_view current) {
-        auto cell_part = util::partition_view(cell_index);
-        const size_type ncells = cell_part.size();
+        auto cell_cv_part = util::partition_view(cell_cv_divisions);
+        const size_type ncells = cell_cv_part.size();
 
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
             auto dt = time_to[m]-time[m];
             value_type factor = 1e-3/dt;
 
-            for (auto i: util::make_span(cell_part[m])) {
+            for (auto i: util::make_span(cell_cv_part[m])) {
                 auto gi = factor*cv_capacitance[i];
 
                 d[i] = gi + invariant_d[i];
@@ -88,12 +88,10 @@ public:
     }
 
     void solve() {
-        const size_type ncells = cell_index.size()-1;
-
         // loop over submatrices
-        for (auto m: util::make_span(0, ncells)) {
-            auto first = cell_index[m];
-            auto last = cell_index[m+1];
+        for (auto cv_span: util::partition_view(cell_cv_divisions)) {
+            auto first = cv_span.first;
+            auto last = cv_span.second; // one past the end
 
             // backward sweep
             for(auto i=last-1; i>first; --i) {

@@ -11,6 +11,8 @@
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
+#include <cuda.h>
+
 using namespace nest::mc;
 
 using gpu::impl::npos;
@@ -264,7 +266,6 @@ TEST(matrix, assemble)
 
     // Build the capacitance and conductance vectors and
     // populate with nonzero random values.
-
     auto gen  = std::mt19937();
     auto dist = std::uniform_real_distribution<T>(1, 2);
 
@@ -274,14 +275,21 @@ TEST(matrix, assemble)
     std::vector<T> g(group_size);
     std::generate(g.begin(), g.end(), [&](){return dist(gen);});
 
-    // Make the referenace matrix and the gpu matrix
+    // Make the reference matrix and the gpu matrix
     auto m_mc  = mc_state( p, cell_index, Cm, g); // on host
     auto m_gpu = gpu_state(p, cell_index, Cm, g); // on gpu
 
+    // Set the integration times for the cells to be between 0.1 and 0.2 ms.
+    std::vector<T> time(num_mtx, 0);
+    std::vector<T> time_to(num_mtx);
+
+    auto dt_dist = std::uniform_real_distribution<T>(0.1, 0.2);
+    std::generate(time_to.begin(), time_to.end(), [&](){return dt_dist(gen);});
+
     // Voltage and current values
-    m_mc.assemble( 0.2, host_array(group_size, -64), host_array(group_size, 10));
+    m_mc.assemble(host_array(time), host_array(time_to), host_array(group_size, -64), host_array(group_size, 10));
     m_mc.solve();
-    m_gpu.assemble(0.2, gpu_array(group_size, -64),  gpu_array(group_size, 10));
+    m_gpu.assemble(on_gpu(time), on_gpu(time_to), gpu_array(group_size, -64), gpu_array(group_size, 10));
     m_gpu.solve();
 
     // Compare the GPU and CPU results.
@@ -338,22 +346,21 @@ TEST(matrix, backends)
     const int num_mtx = 200;
 
     std::vector<I> p;
-    std::vector<I> cell_index;
+    std::vector<I> cell_cv_divisions;
     for (auto m=0; m<num_mtx; ++m) {
         auto &p_ref = p_base[m%2];
         auto first = p.size();
         for (auto i: p_ref) {
             p.push_back(i + first);
         }
-        cell_index.push_back(first);
+        cell_cv_divisions.push_back(first);
     }
-    cell_index.push_back(p.size());
+    cell_cv_divisions.push_back(p.size());
 
-    auto group_size = cell_index.back();
+    auto group_size = cell_cv_divisions.back();
 
     // Build the capacitance and conductance vectors and
     // populate with nonzero random values
-
     auto gen  = std::mt19937();
     gen.seed(100);
     auto dist = std::uniform_real_distribution<T>(1, 200);
@@ -368,13 +375,25 @@ TEST(matrix, backends)
     std::generate(v.begin(), v.end(), [&](){return dist(gen);});
     std::generate(i.begin(), i.end(), [&](){return dist(gen);});
 
-    // Make the referenace matrix and the gpu matrix
-    auto flat = state_flat(p, cell_index, Cm, g); // flat
-    auto intl = state_intl(p, cell_index, Cm, g); // interleaved
+    // Make the reference matrix and the gpu matrix
+    auto flat = state_flat(p, cell_cv_divisions, Cm, g); // flat
+    auto intl = state_intl(p, cell_cv_divisions, Cm, g); // interleaved
 
-    // voltage and current values
-    flat.assemble(0.02, on_gpu(v), on_gpu(i));
-    intl.assemble(0.02, on_gpu(v), on_gpu(i));
+    // Set the integration times for the cells to be between 0.01 and 0.02 ms.
+    std::vector<T> time(num_mtx, 0);
+    std::vector<T> time_to(num_mtx);
+
+    auto dt_dist = std::uniform_real_distribution<T>(0.01, 0.02);
+    std::generate(time_to.begin(), time_to.end(), [&](){return dt_dist(gen);});
+
+    // Voltage and current values.
+    auto gpu_t = on_gpu(time);
+    auto gpu_t_to = on_gpu(time_to);
+    auto gpu_v = on_gpu(v);
+    auto gpu_i = on_gpu(i);
+
+    flat.assemble(gpu_t, gpu_t_to, gpu_v, gpu_i);
+    intl.assemble(gpu_t, gpu_t_to, gpu_v, gpu_i);
 
     flat.solve();
     intl.solve();

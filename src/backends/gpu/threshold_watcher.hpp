@@ -102,7 +102,7 @@ public:
     /// Crossing events are recorded for each threshold that has been
     /// crossed since current time t, and the last time the test was
     /// performed.
-    void test(value_type t) {
+    void test() {
         constexpr int block_dim = 128;
         const int grid_dim = (size()+block_dim-1)/block_dim;
         test_thresholds<<<grid_dim, block_dim>>>(
