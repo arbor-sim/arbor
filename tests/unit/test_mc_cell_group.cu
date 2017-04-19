@@ -1,5 +1,6 @@
 #include "../gtest.h"
 
+#include <backends/gpu/fvm.hpp>
 #include <mc_cell_group.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>

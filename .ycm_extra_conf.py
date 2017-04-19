@@ -54,7 +54,7 @@ flags = [
     'modcc',
     '-I',
     '/cm/shared/apps/cuda/8.0.44/include',
-    '-DNMC_HAVE_CUDA'
+    '-DNMC_HAVE_GPU'
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

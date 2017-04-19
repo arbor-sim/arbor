@@ -55,7 +55,8 @@ public:
 
         // generate the cell groups in parallel, with one task per cell group
         cell_groups_.resize(gid_partition().size());
-        threading::parallel_vector<probe_record> probe_vec;
+        // thread safe vector for constructing the list of probes in parallel
+        threading::parallel_vector<probe_record> probe_tmp;
 
         threading::parallel_for::apply(0, cell_groups_.size(),
             [&](cell_gid_type i) {
@@ -71,7 +72,7 @@ public:
                     cell_lid_type j = 0;
                     for (const auto& probe: cells[i].probes()) {
                         cell_member_type probe_id{gid, j++};
-                        probe_vec.push_back({probe_id, probe});
+                        probe_tmp.push_back({probe_id, probe});
                     }
                 }
 
@@ -84,8 +85,8 @@ public:
                 PL(2);
             });
 
-        // insert probes
-        probes_.assign(probe_vec.begin(), probe_vec.end());
+        // store probes
+        probes_.assign(probe_tmp.begin(), probe_tmp.end());
 
         // generate the network connections
         for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
