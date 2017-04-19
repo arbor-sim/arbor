@@ -6,6 +6,7 @@
 #include <common_types.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
+#include <util/rangeutil.hpp>
 
 #include "matrix_state_interleaved.hpp"
 #include "matrix_state_flat.hpp"
@@ -74,8 +75,14 @@ struct backend {
     using threshold_watcher =
         nest::mc::gpu::threshold_watcher<value_type, size_type>;
 
-private:
+    // perform min/max reductions on 'array' type
+    static std::pair<value_type, value_type> minmax_value(const array& v) {
+        // TODO: replace with CUDA kernel
+        auto v_copy = memory::on_host(v);
+        return util::minmax_value(v_copy);
+    }
 
+private:
     using maker_type = mechanism (*)(const_iview, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 

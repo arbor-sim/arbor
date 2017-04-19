@@ -145,11 +145,11 @@ public:
     }
 
     value_type max_time() const {
-        return util::max_value(time_);
+        return backend::minmax_value(time_).second;
     }
 
     bool state_synchronized() const {
-        auto mm = util::minmax_value(time_);
+        auto mm = backend::minmax_value(time_);
         return mm.first==mm.second;
     }
 

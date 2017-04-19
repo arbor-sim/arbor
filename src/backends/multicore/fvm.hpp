@@ -7,6 +7,7 @@
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
 #include <memory/wrappers.hpp>
+#include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
 #include "matrix_state.hpp"
@@ -79,6 +80,11 @@ struct backend {
     using threshold_watcher =
         nest::mc::multicore::threshold_watcher<value_type, size_type>;
 
+
+    // perform min/max reductions on 'array' type
+    static std::pair<value_type, value_type> minmax_value(const array& v) {
+        return util::minmax_value(v);
+    }
 
 private:
 

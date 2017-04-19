@@ -69,7 +69,6 @@ void assemble_matrix_interleaved(
         "number of threads must equal number of values to process per block");
     __shared__ T buffer_v[Threads];
     __shared__ T buffer_i[Threads];
-    __shared__ T buffer_factor_hack[Threads];
 
     const unsigned tid = threadIdx.x + blockIdx.x*blockDim.x;
     const unsigned lid = threadIdx.x;
@@ -92,11 +91,14 @@ void assemble_matrix_interleaved(
     const unsigned max_size = sizes[0];
 
     T factor = 0;
-    if (do_load) {
+    const unsigned permuted_cid = blk_id*BlockWidth + blk_lane;
+
+    if (permuted_cid<num_mtx) {
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).
         // See the model documentation in docs/model for more information.
-        auto cid = matrix_to_cell[mtx_id];
+
+        auto cid = matrix_to_cell[permuted_cid];
         T dt = time_to[cid]-time[cid];
         factor = 1e-3/dt;
     }
@@ -105,14 +107,12 @@ void assemble_matrix_interleaved(
         if (do_load && load_pos<end) {
             buffer_v[lid] = voltage[load_pos];
             buffer_i[lid] = current[load_pos];
-            buffer_factor_hack[lid] = factor;
         }
 
         __syncthreads();
 
         if (j+blk_row<padded_size) {
-            //const auto gi = factor * cv_capacitance[store_pos];
-            const auto gi = buffer_factor_hack[blk_pos] * cv_capacitance[store_pos];
+            const auto gi = factor * cv_capacitance[store_pos];
             d[store_pos]   = gi + invariant_d[store_pos];
             rhs[store_pos] = gi*buffer_v[blk_pos] - buffer_i[blk_pos];
         }

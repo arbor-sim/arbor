@@ -273,7 +273,7 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
 
     auto i = std::begin(seq);
     auto e = std::end(seq);
-    auto m = *i;
+    Value m = *i;
     while (++i!=e) {
         Value x = *i;
         if (cmp(m, x)) {
@@ -297,8 +297,8 @@ std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
 
     auto i = std::begin(seq);
     auto e = std::end(seq);
-    auto lower = *i;
-    auto upper = *i;
+    Value lower = *i;
+    Value upper = *i;
     while (++i!=e) {
         Value x = *i;
         if (cmp(upper, x)) {
