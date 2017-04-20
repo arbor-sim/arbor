@@ -346,18 +346,18 @@ TEST(matrix, backends)
     const int num_mtx = 200;
 
     std::vector<I> p;
-    std::vector<I> cell_cv_divisions;
+    std::vector<I> cell_cv_divs;
     for (auto m=0; m<num_mtx; ++m) {
         auto &p_ref = p_base[m%2];
         auto first = p.size();
         for (auto i: p_ref) {
             p.push_back(i + first);
         }
-        cell_cv_divisions.push_back(first);
+        cell_cv_divs.push_back(first);
     }
-    cell_cv_divisions.push_back(p.size());
+    cell_cv_divs.push_back(p.size());
 
-    auto group_size = cell_cv_divisions.back();
+    auto group_size = cell_cv_divs.back();
 
     // Build the capacitance and conductance vectors and
     // populate with nonzero random values
@@ -376,8 +376,8 @@ TEST(matrix, backends)
     std::generate(i.begin(), i.end(), [&](){return dist(gen);});
 
     // Make the reference matrix and the gpu matrix
-    auto flat = state_flat(p, cell_cv_divisions, Cm, g); // flat
-    auto intl = state_intl(p, cell_cv_divisions, Cm, g); // interleaved
+    auto flat = state_flat(p, cell_cv_divs, Cm, g); // flat
+    auto intl = state_intl(p, cell_cv_divs, Cm, g); // interleaved
 
     // Set the integration times for the cells to be between 0.01 and 0.02 ms.
     std::vector<T> time(num_mtx, 0);

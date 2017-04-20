@@ -25,7 +25,7 @@ struct matrix_state_flat {
     using const_view = typename array::const_view_type;
 
     iarray parent_index;
-    iarray cell_cv_divisions;
+    iarray cell_cv_divs;
     iarray cv_to_cell;
 
     array d;     // [μS]
@@ -48,7 +48,7 @@ struct matrix_state_flat {
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond):
         parent_index(memory::make_const_view(p)),
-        cell_cv_divisions(memory::make_const_view(cell_cv_divs)),
+        cell_cv_divs(memory::make_const_view(cell_cv_divs)),
         cv_to_cell(p.size()),
         d(p.size()),
         u(p.size()),
@@ -114,7 +114,7 @@ struct matrix_state_flat {
         // perform solve on gpu
         solve_matrix_flat<value_type, size_type><<<grid_dim, block_dim>>> (
             rhs.data(), d.data(), u.data(), parent_index.data(),
-            cell_cv_divisions.data(), num_matrices());
+            cell_cv_divs.data(), num_matrices());
     }
 
     std::size_t size() const {
@@ -123,7 +123,7 @@ struct matrix_state_flat {
 
 private:
     unsigned num_matrices() const {
-        return cell_cv_divisions.size()-1;
+        return cell_cv_divs.size()-1;
     }
 };
 

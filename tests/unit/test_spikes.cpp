@@ -17,15 +17,6 @@ using backend = multicore::backend;
 using backend = USE_BACKEND;
 #endif
 
-template <typename C>
-void dump(const C& c) {
-    std::cout << "{ ";
-    for (const auto& e: c) std::cout << e << " ";
-    std::cout << "}\n";
-}
-
-#define DUMP(x) do { std::cout << "line " << __LINE__ << ": " #x << "\n"; dump(x); } while (false)
-
 TEST(spikes, threshold_watcher) {
     using backend = multicore::backend;
     using size_type = backend::size_type;
@@ -82,8 +73,6 @@ TEST(spikes, threshold_watcher) {
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
     util::fill(time_after, 2.);
-    DUMP(time_before);
-    DUMP(time_after);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));

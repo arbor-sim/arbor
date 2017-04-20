@@ -18,7 +18,7 @@ public:
     using const_view = typename array::const_view_type;
     using iarray = memory::host_vector<size_type>;
     iarray parent_index;
-    iarray cell_cv_divisions;
+    iarray cell_cv_divs;
 
     array d;     // [μS]
     array u;     // [μS]
@@ -35,18 +35,18 @@ public:
     matrix_state() = default;
 
     matrix_state(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_cv_divisions,
+                 const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond):
         parent_index(memory::make_const_view(p)),
-        cell_cv_divisions(memory::make_const_view(cell_cv_divisions)),
+        cell_cv_divs(memory::make_const_view(cell_cv_divs)),
         d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(memory::make_const_view(cap)),
         face_conductance(memory::make_const_view(cond))
     {
         EXPECTS(cap.size() == size());
         EXPECTS(cond.size() == size());
-        EXPECTS(cell_cv_divisions.back() == size());
+        EXPECTS(cell_cv_divs.back() == size());
 
         auto n = size();
         invariant_d = array(n, 0);
@@ -70,7 +70,7 @@ public:
     //   voltage [mV]
     //   current [nA]
     void assemble(const_view time, const_view time_to, const_view voltage, const_view current) {
-        auto cell_cv_part = util::partition_view(cell_cv_divisions);
+        auto cell_cv_part = util::partition_view(cell_cv_divs);
         const size_type ncells = cell_cv_part.size();
 
         // loop over submatrices
@@ -89,7 +89,7 @@ public:
 
     void solve() {
         // loop over submatrices
-        for (auto cv_span: util::partition_view(cell_cv_divisions)) {
+        for (auto cv_span: util::partition_view(cell_cv_divs)) {
             auto first = cv_span.first;
             auto last = cv_span.second; // one past the end
 

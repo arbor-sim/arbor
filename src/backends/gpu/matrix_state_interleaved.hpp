@@ -93,16 +93,16 @@ struct matrix_state_interleaved {
     //  cv_cap      // [pF]
     //  face_cond   // [μS]
     matrix_state_interleaved(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_cv_divisions,
+                 const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond)
     {
         EXPECTS(cv_cap.size()    == p.size());
         EXPECTS(face_cond.size() == p.size());
-        EXPECTS(cell_cv_divisions.back()  == p.size());
+        EXPECTS(cell_cv_divs.back()  == p.size());
 
         // Just because you never know.
-        EXPECTS(cell_cv_divisions.size() <= UINT_MAX);
+        EXPECTS(cell_cv_divs.size() <= UINT_MAX);
 
         using util::make_span;
 
@@ -115,7 +115,7 @@ struct matrix_state_interleaved {
 
         // Find the size of each matrix.
         svec sizes;
-        for (auto cv_span: util::partition_view(cell_cv_divisions)) {
+        for (auto cv_span: util::partition_view(cell_cv_divs)) {
             sizes.push_back(cv_span.second-cv_span.first);
         }
         const auto num_mtx = sizes.size();
@@ -134,7 +134,7 @@ struct matrix_state_interleaved {
         }
         svec cell_to_cv_p;
         for (auto i: make_span(0, num_mtx)) {
-            cell_to_cv_p.push_back(cell_cv_divisions[perm[i]]);
+            cell_to_cv_p.push_back(cell_cv_divs[perm[i]]);
         }
 
         //
