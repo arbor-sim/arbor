@@ -82,6 +82,14 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         param_pack.push_back(tname + ".index.data()");
     }
 
+    text_.add_line("// cv index to cell mapping and cell time states");
+    text_.add_line("const I* ci;");
+    text_.add_line("const T* vec_t;");
+    text_.add_line("const T* vec_t_to;");
+    param_pack.push_back("vec_ci_.data()");
+    param_pack.push_back("vec_t_.data()");
+    param_pack.push_back("vec_t_to_.data()");
+
     text_.add_line("// voltage and current state within the cell");
     text_.add_line("T* vec_v;");
     text_.add_line("T* vec_i;");
@@ -178,8 +186,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index):");
-    text_.add_line("   base(vec_v, vec_i, std::move(node_index))");
+    text_.add_line(class_name + "(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index):");
+    text_.add_line("   base(vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -252,13 +260,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("}");
     text_.add_line();
 
-    // print the member funtion that
-    //   *  sets time step parameters
-    //   *  packs up the parameters for use on the GPU
-    text_.add_line("void set_params(value_type t_, value_type dt_) override {");
-    text_.increase_indentation();
-    text_.add_line("t = t_;");
-    text_.add_line("dt = dt_;");
+    // print the member funtion that packs up the parameters for use on the GPU
+    text_.add_line("void set_params() override {");
     text_.add_line("param_pack_ =");
     text_.increase_indentation();
     text_.add_line("param_pack_type {");
@@ -468,6 +471,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
     }
 
+    text_.add_line("using base::vec_ci_;");
+    text_.add_line("using base::vec_t_;");
+    text_.add_line("using base::vec_t_to_;");
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
     text_.add_line("using base::node_index_;");
@@ -531,12 +537,20 @@ std::string CUDAPrinter::index_string(Symbol *s) {
                     s->location());
         }
     }
+    else if(s->is_cell_indexed_variable()) {
+        return "cid_";
+    }
     return "";
 }
 
 void CUDAPrinter::visit(IndexedVariable *e) {
     text_ << "params_." << e->index_name() << "[" << index_string(e) << "]";
 }
+
+void CUDAPrinter::visit(CellIndexedVariable *e) {
+    text_ << "params_." << e->index_name() << "[" << index_string(e) << "]";
+}
+
 
 void CUDAPrinter::visit(LocalVariable *e) {
     std::string const& name = e->name();
@@ -695,6 +709,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line("if (threadIdx.x || blockIdx.x) return;");
         text_.add_line("auto tid_ = i_;");
         text_.add_line("auto gid_ __attribute__((unused)) = params_.ni[tid_];");
+        text_.add_line("auto cid_ __attribute__((unused)) = params_.ci[gid_];");
 
         print_APIMethod_body(e);
 
@@ -731,6 +746,7 @@ void CUDAPrinter::visit(APIMethod *e) {
     increase_indentation();
 
     text_.add_line("auto gid_ __attribute__((unused)) = params_.ni[tid_];");
+    text_.add_line("auto cid_ __attribute__((unused)) = params_.ci[gid_];");
 
     print_APIMethod_body(e);
 

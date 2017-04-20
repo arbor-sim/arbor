@@ -9,6 +9,7 @@
 #include "common_types.hpp"
 #include "util/meta.hpp"
 #include "util/optional.hpp"
+#include "util/strprintf.hpp"
 
 namespace nest {
 namespace mc {
@@ -133,6 +134,137 @@ private:
         std::vector<Event>,
         event_greater
     > queue_;
+};
+
+// Indexed collection of pop-only queues.
+// 'flat' implementation below is acting as a prototype for GPU back-end.
+
+template <typename Event>
+class multi_event_stream {
+public:
+    using value_type = Event;
+    using time_type = impl::event_time_type<Event>;
+    using size_type = unsigned;
+
+    multi_event_stream() {}
+
+    explicit multi_event_stream(size_type n_stream):
+       span_(n_stream, {0u, 0u}) {}
+
+    size_type n_streams() const { return span_.size(); }
+    size_type size() const { return n_streams(); }
+
+    size_type n_events(size_type i) const {
+        auto span = span_[i];
+        return span.second-span.first;
+    }
+
+    size_type remaining() const {
+        return remaining_;
+    }
+
+    void clear() {
+        ev_.clear();
+        remaining_ = 0;
+        span_.assign(n_streams(), {0u, 0u});
+    }
+
+    // Load events from a sequence (of length at least `size()`) of
+    // sequences of events.
+    template <typename EvSeqs>
+    void init(const EvSeqs& events) {
+        using std::begin;
+        using std::end;
+
+        remaining_ = 0;
+        auto evi = begin(events);
+        for (size_type i = 0; i<n_streams(); ++i) {
+            if (evi != end(events)) {
+                span_[i].first = size_type(ev_.size());
+                ev_.insert(ev_.end(), begin(*evi), end(*evi));
+                span_[i].second = size_type(ev_.size());
+                ++evi;
+
+                // check size for wrapping!
+                if (ev_.size()>std::numeric_limits<size_type>::max()) {
+                    throw std::range_error("too many events");
+                }
+            }
+            else {
+                span_[i] = {0u, 0u};
+            }
+        }
+        remaining_ = ev_.size();
+    }
+
+    // Pop and return top event `ev` of `i`th event stream unless `event_time(ev)` > `t_until`
+    util::optional<value_type> pop_if_not_after(size_type i, time_type t_until) {
+        using ::nest::mc::event_time;
+        return pop_if(i,
+            [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
+        );
+    }
+
+    // Return time of head of `i`th event stream if less than `t_until`, or else `t_until`.
+    time_type event_time_if_before(size_type i, const time_type& t_until) {
+        if (!n_events(i)) {
+            return t_until;
+        }
+
+        using ::nest::mc::event_time;
+        auto t = event_time(top_unsafe(i));
+        return t_until > t? t: t_until;
+    }
+
+    // Generic conditional pop: pop and return head of `i`th stream if
+    // non-empty and the head satisfies predicate.
+    template <typename Pred>
+    util::optional<value_type> pop_if(size_type i, Pred&& pred) {
+        if (n_events(i) && pred(top_unsafe(i))) {
+            return pop_unsafe(i);
+        }
+        else {
+            return util::nothing;
+        }
+    }
+
+    // TODO: remove once we are confident implementation of lowered cell event delivery
+    // is sound.
+    friend std::ostream& operator<<(std::ostream& out, const multi_event_stream& m) {
+        using ::nest::mc::event_time;
+
+        out << "[\n";
+        for (size_type s = 0; s<m.n_streams(); ++s) {
+            out << util::strprintf("%05d: ", (int)s);
+
+            unsigned prev_end = 0;
+            for (const auto& p: m.span_) {
+                for (unsigned i = prev_end; i<p.first; ++i) {
+                    out << "      x";
+                }
+                for (unsigned i = p.first; i<p.second; ++i) {
+                    out << util::strprintf(" % 6.3f", event_time(m.ev_[i]));
+                }
+            }
+            out << "\n";
+        }
+        out << "]\n";
+        return out;
+    }
+
+private:
+    const value_type& top_unsafe(size_type i) const {
+        return ev_[span_[i].first];
+    }
+
+    value_type pop_unsafe(size_type i) {
+        --remaining_;
+        return std::move(ev_[span_[i].first++]);
+    }
+
+    std::vector<value_type> ev_;
+    std::vector<std::pair<size_type, size_type>> span_;
+    size_type remaining_ = 0;
 };
 
 } // namespace nest

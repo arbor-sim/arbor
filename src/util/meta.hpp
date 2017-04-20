@@ -43,9 +43,38 @@ constexpr auto cend(const T& c) -> decltype(compat::end(c)) {
     return compat::end(c);
 }
 
-template <typename T>
-constexpr bool empty(const T& c) {
-    return c.empty();
+// Use sequence `empty() const` method if exists, otherwise
+// compare begin and end.
+
+namespace impl {
+    template <typename C>
+    struct has_const_empty_method {
+        template <typename T>
+        static decltype(std::declval<const T>().empty(), std::true_type{}) test(int);
+        template <typename T>
+        static std::false_type test(...);
+
+        using type = decltype(test<C>(0));
+    };
+
+    // For correct ADL on begin and end:
+    using std::begin;
+    using std::end;
+
+    template <typename Seq>
+    constexpr bool empty(const Seq& seq, std::false_type) {
+        return begin(seq)==end(seq);
+    }
+
+    template <typename Seq>
+    constexpr bool empty(const Seq& seq, std::true_type) {
+        return seq.empty();
+    }
+}
+
+template <typename Seq>
+constexpr bool empty(const Seq& seq) {
+    return impl::empty(seq, typename impl::has_const_empty_method<Seq>::type{});
 }
 
 template <typename T, std::size_t N>

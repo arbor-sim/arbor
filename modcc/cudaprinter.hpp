@@ -22,6 +22,7 @@ public:
     void visit(Symbol *e)               override;
     void visit(LocalVariable *e)        override;
     void visit(IndexedVariable *e)      override;
+    void visit(CellIndexedVariable *e)  override;
 
     void visit(IdentifierExpression *e) override;
     void visit(CallExpression *e)       override;

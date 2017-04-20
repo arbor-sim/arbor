@@ -11,14 +11,14 @@ namespace gpu {
 template <typename T, typename I>
 __global__
 void solve_matrix_flat(
-    T* rhs, T* d, const T* u, const I* p, const I* cell_index, int num_mtx)
+    T* rhs, T* d, const T* u, const I* p, const I* cell_cv_divs, int num_mtx)
 {
     auto tid = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (tid<num_mtx) {
         // get range of this thread's cell matrix
-        const auto first = cell_index[tid];
-        const auto last  = cell_index[tid+1];
+        const auto first = cell_cv_divs[tid];
+        const auto last  = cell_cv_divs[tid+1];
 
         // backward sweep
         for(auto i=last-1; i>first; --i) {

@@ -7,6 +7,7 @@
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
 #include <memory/wrappers.hpp>
+#include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
 #include "matrix_state.hpp"
@@ -53,6 +54,8 @@ struct backend {
 
     static mechanism make_mechanism(
         const std::string& name,
+        const_iview vec_ci,
+        const_view vec_t, const_view vec_t_to,
         view vec_v, view vec_i,
         const std::vector<value_type>& weights,
         const std::vector<size_type>& node_indices)
@@ -61,7 +64,7 @@ struct backend {
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return mech_map_.find(name)->second(vec_v, vec_i, array(weights), iarray(node_indices));
+        return mech_map_.find(name)->second(vec_ci, vec_t, vec_t_to, vec_v, vec_i, array(weights), iarray(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -78,15 +81,20 @@ struct backend {
         nest::mc::multicore::threshold_watcher<value_type, size_type>;
 
 
+    // perform min/max reductions on 'array' type
+    static std::pair<value_type, value_type> minmax_value(const array& v) {
+        return util::minmax_value(v);
+    }
+
 private:
 
-    using maker_type = mechanism (*)(view, view, array&&, iarray&&);
+    using maker_type = mechanism (*)(const_iview, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
+    static mechanism maker(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return mechanisms::make_mechanism<Mech<backend>>
-            (vec_v, vec_i, std::move(weights), std::move(node_indices));
+            (vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 

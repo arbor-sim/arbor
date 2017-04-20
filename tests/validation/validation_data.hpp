@@ -10,10 +10,6 @@
 #include <simple_sampler.hpp>
 #include <util/path.hpp>
 
-#ifndef DATADIR
-#define DATADIR "../data"
-#endif
-
 namespace nest {
 namespace mc {
 
@@ -29,6 +25,12 @@ namespace mc {
 
 class trace_io {
 public:
+    // Try to find the data directory on construction.
+
+    trace_io() {
+        datadir_ = find_datadir();
+    }
+
     void clear_traces() {
         jtraces_ = nlohmann::json::array();
     }
@@ -64,7 +66,7 @@ public:
         }
     }
 
-    // write traces on exit
+    // Write traces on exit.
 
     ~trace_io() {
         if (out_) {
@@ -73,12 +75,14 @@ public:
     }
 
 private:
-    util::path datadir_ = DATADIR;
+    util::path datadir_;
     std::ofstream out_;
     nlohmann::json jtraces_ = nlohmann::json::array();
     bool verbose_flag_ = false;
     int max_ncomp_ = 100;
     float min_dt_ = 0.001f;
+
+    static util::path find_datadir();
 };
 
 extern trace_io g_trace_io;
