@@ -28,7 +28,7 @@ void run_kinetic_dt(
     };
 
     meta["sim"] = "nestmc";
-    meta["backend"] = to_string(backend);
+    meta["backend_policy"] = to_string(backend);
     convergence_test_runner<float> runner("dt", samplers, meta);
     runner.load_reference_data(ref_file);
 
