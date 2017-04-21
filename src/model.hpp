@@ -5,29 +5,36 @@
 
 #include <cstdlib>
 
+#include <backends.hpp>
+#include <fvm_multicell.hpp>
+
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <mc_cell_group.hpp>
 #include <profiling/profiler.hpp>
 #include <recipe.hpp>
+#include <sampler_function.hpp>
 #include <thread_private_spike_store.hpp>
+#include <threading/threading.hpp>
+#include <trace_sampler.hpp>
 #include <util/nop.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
 
-#include "trace_sampler.hpp"
-
 namespace nest {
 namespace mc {
 
-// FIXME: this is going to go
-template <typename Cell>
+using gpu_lowered_cell =
+    mc_cell_group<fvm::fvm_multicell<gpu::backend>>;
+
+using multicore_lowered_cell =
+    mc_cell_group<fvm::fvm_multicell<multicore::backend>>;
+
 class model {
 public:
-    // FIXME: this is an intermediate step to remove the template parameter from model
-    using cell_group_type = cell_group<Cell>; // FIXME
     using communicator_type = communication::communicator<communication::global_policy>;
     using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
@@ -37,15 +44,19 @@ public:
     };
 
     template <typename Iter>
-    model(const recipe& rec, const util::partition_range<Iter>& groups):
-        cell_group_divisions_(groups.divisions().begin(), groups.divisions().end())
+    model( const recipe& rec,
+           const util::partition_range<Iter>& groups,
+           backend_policy policy):
+        cell_group_divisions_(groups.divisions().begin(), groups.divisions().end()),
+        backend_policy_(policy)
     {
         // set up communicator based on partition
-        communicator_ = communicator_type{gid_partition()};
+        communicator_ = communicator_type(gid_partition());
 
         // generate the cell groups in parallel, with one task per cell group
-        cell_groups_ = std::vector<cell_group_type>{gid_partition().size()};
-        threading::parallel_vector<probe_record> probes;
+        cell_groups_.resize(gid_partition().size());
+        // thread safe vector for constructing the list of probes in parallel
+        threading::parallel_vector<probe_record> probe_tmp;
 
         threading::parallel_for::apply(0, cell_groups_.size(),
             [&](cell_gid_type i) {
@@ -61,16 +72,21 @@ public:
                     cell_lid_type j = 0;
                     for (const auto& probe: cells[i].probes()) {
                         cell_member_type probe_id{gid, j++};
-                        probes.push_back({probe_id, probe});
+                        probe_tmp.push_back({probe_id, probe});
                     }
                 }
 
-                cell_groups_[i] = cell_group_type(gids.first, cells);
+                if (backend_policy_==backend_policy::use_multicore) {
+                    cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.first, cells);
+                }
+                else {
+                    cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.first, cells);
+                }
                 PL(2);
             });
 
-        // insert probes
-        probes_.assign(probes.begin(), probes.end());
+        // store probes
+        probes_.assign(probe_tmp.begin(), probe_tmp.end());
 
         // generate the network connections
         for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
@@ -89,14 +105,14 @@ public:
     }
 
     // one cell per group:
-    model(const recipe& rec):
-        model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)))
+    model(const recipe& rec, backend_policy policy):
+        model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)), policy)
     {}
 
     void reset() {
         t_ = 0.;
         for (auto& group: cell_groups_) {
-            group.reset();
+            group->reset();
         }
 
         communicator_.reset();
@@ -132,14 +148,14 @@ public:
                     auto &group = cell_groups_[i];
 
                     PE("stepping","events");
-                    group.enqueue_events(current_events()[i]);
+                    group->enqueue_events(current_events()[i]);
                     PL();
 
-                    group.advance(tuntil, dt);
+                    group->advance(tuntil, dt);
 
                     PE("events");
-                    current_spikes().insert(group.spikes());
-                    group.clear_spikes();
+                    current_spikes().insert(group->spikes());
+                    group->clear_spikes();
                     PL(2);
                 });
         };
@@ -207,14 +223,13 @@ public:
         current_spikes().get().push_back({source, tspike});
     }
 
-    template <typename F>
-    void attach_sampler(cell_member_type probe_id, F&& f, time_type tfrom = 0) {
+    void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
         if (!algorithms::in_interval(probe_id.gid, gid_partition().bounds())) {
             return;
         }
 
         const auto idx = gid_partition().index(probe_id.gid);
-        cell_groups_[idx].add_sampler(probe_id, std::forward<F>(f), tfrom);
+        cell_groups_[idx]->add_sampler(probe_id, f, tfrom);
     }
 
     const std::vector<probe_record>& probes() const { return probes_; }
@@ -235,13 +250,13 @@ public:
     // Set event binning policy on all our groups.
     void set_binning_policy(binning_kind policy, time_type bin_interval) {
         for (auto& group: cell_groups_) {
-            group.set_binning_policy(policy, bin_interval);
+            group->set_binning_policy(policy, bin_interval);
         }
     }
 
     // access cell_group directly
-    cell_group_type& group(int i) {
-        return cell_groups_[i];
+    cell_group& group(int i) {
+        return *cell_groups_[i];
     }
 
     // register a callback that will perform a export of the global
@@ -258,13 +273,14 @@ public:
 
 private:
     std::vector<cell_gid_type> cell_group_divisions_;
+    backend_policy backend_policy_;
 
     auto gid_partition() const -> decltype(util::partition_view(cell_group_divisions_)) {
         return util::partition_view(cell_group_divisions_);
     }
 
     time_type t_ = 0.;
-    std::vector<cell_group_type> cell_groups_;
+    std::vector<std::unique_ptr<cell_group>> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
 

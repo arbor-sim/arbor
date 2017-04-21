@@ -15,10 +15,10 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-template <typename LoweredCell>
 void run_synapse_test(
     const char* syn_type,
     const nest::mc::util::path& ref_data_path,
+    nest::mc::backend_policy backend,
     float t_end=70.f,
     float dt=0.001)
 {
@@ -30,7 +30,7 @@ void run_synapse_test(
         {"model", syn_type},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", LoweredCell::backend::name()}
+        {"backend_policy", to_string(backend)}
     };
 
     cell c = make_cell_ball_and_stick(false); // no stimuli
@@ -60,7 +60,7 @@ void run_synapse_test(
 
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
-        model<LoweredCell> m(singleton_recipe{c});
+        model m(singleton_recipe{c}, backend);
         m.group(0).enqueue_events(synthetic_events);
 
         runner.run(m, ncomp, t_end, dt, exclude);

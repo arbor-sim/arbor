@@ -2,8 +2,9 @@
 
 #include "../gtest.h"
 
-using lowered_cell = nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
+
+const auto backend = nest::mc::backend_policy::use_multicore;
 
 TEST(soma, numeric_ref) {
-    validate_soma<lowered_cell>();
+    validate_soma(backend);
 }

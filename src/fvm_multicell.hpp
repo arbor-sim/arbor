@@ -8,7 +8,6 @@
 #include <vector>
 
 #include <algorithms.hpp>
-#include <backends/fvm.hpp>
 #include <cell.hpp>
 #include <compartment.hpp>
 #include <event_queue.hpp>

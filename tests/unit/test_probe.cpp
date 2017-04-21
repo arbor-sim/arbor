@@ -1,5 +1,6 @@
 #include "../gtest.h"
 
+#include <backends/multicore/fvm.hpp>
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>

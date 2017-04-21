@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
-#include <cell_group.hpp>
+#include <backends/gpu/fvm.hpp>
+#include <mc_cell_group.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
 #include <util/rangeutil.hpp>
@@ -25,7 +26,7 @@ nest::mc::cell make_cell() {
 
 TEST(cell_group, test)
 {
-    using cell_group_type = cell_group<fvm_cell>;
+    using cell_group_type = mc_cell_group<fvm_cell>;
     auto group = cell_group_type{0, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);

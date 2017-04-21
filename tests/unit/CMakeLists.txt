@@ -18,7 +18,7 @@ build_modules(
 
 set(TEST_CUDA_SOURCES
     test_atomics.cu
-    test_cell_group.cu
+    test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
     test_spikes.cu
@@ -31,6 +31,7 @@ set(TEST_CUDA_SOURCES
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
+    test_backend.cpp
     test_double_buffer.cpp
     test_cell.cpp
     test_compartments.cpp
@@ -41,7 +42,7 @@ set(TEST_SOURCES
     test_event_binner.cpp
     test_filter.cpp
     test_fvm_multi.cpp
-    test_cell_group.cpp
+    test_mc_cell_group.cpp
     test_lexcmp.cpp
     test_mask_stream.cpp
     test_math.cpp

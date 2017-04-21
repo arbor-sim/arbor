@@ -17,10 +17,10 @@
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
 #include <threading/threading.hpp>
+#include <util/config.hpp>
 #include <util/debug.hpp>
 #include <util/ioutil.hpp>
 #include <util/nop.hpp>
-#include <util/optional.hpp>
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -29,12 +29,6 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-#ifdef NMC_HAVE_CUDA
-using lowered_cell = fvm::fvm_multicell<gpu::backend>;
-#else
-using lowered_cell = fvm::fvm_multicell<multicore::backend>;
-#endif
-using model_type = model<lowered_cell>;
 using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
@@ -101,7 +95,9 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        model_type m(*recipe, util::partition_view(group_divisions));
+        model m(*recipe,
+                util::partition_view(group_divisions),
+                config::has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -202,11 +198,7 @@ void banner() {
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-#ifdef NMC_HAVE_CUDA
-    std::cout << "  - gpu support: on\n";
-#else
-    std::cout << "  - gpu support: off\n";
-#endif
+    std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
 }
 
