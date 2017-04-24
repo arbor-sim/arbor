@@ -134,7 +134,6 @@ protected:
         std::exponential_distribution<float> delay_dist(delay_distribution_param_);
         float delay = param_.min_connection_delay_ms + delay_dist(rng);
         float weight = param_.syn_weight_per_cell/param_.num_synapses;
-        // not a full cell connection: domain must be filled by caller
         return cell_connection{{0, 0}, {0, 0}, weight, delay};
     }
 

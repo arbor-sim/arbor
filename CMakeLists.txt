@@ -185,27 +185,27 @@ endif()
 
 #----------------------------------------------------------
 # Which communicator algorithm to use for finding
-#  spike:connection matches: linear/global/domain
-#  communication is O(nodes)
-#  spike  is O(log(nodes))
+#  spike:connection matches: spike/connection/global/domain
+#  spike  is O(nodes)
+#  connection is O(log(nodes))
 #  global is O(log(nodes)),
 #  domain is O(log(neurons/nodes))
 # if the number of spikes goes up with number of nodes
 #----------------------------------------------------------
-set(NMC_USE_QUEUE "domain" CACHE STRING
+set(NMC_QUEUE_TYPE "domain" CACHE STRING
   "set the communication connection algorithm, one of connection/spike/global/domain")
-set_property(CACHE NMC_USE_QUEUE PROPERTY STRINGS connection spike global domain)
+set_property(CACHE NMC_QUEUE_TYPE PROPERTY STRINGS connection spike global domain)
 
-if(NMC_USE_QUEUE MATCHES "connection")
+if(NMC_QUEUE_TYPE MATCHES "connection")
   add_definitions(-DNMC_USE_LINEAR_CONNECTION_QUEUE)
-elseif(NMC_USE_QUEUE MATCHES "spike")
+elseif(NMC_QUEUE_TYPE MATCHES "spike")
   add_definitions(-DNMC_USE_LINEAR_SPIKE_QUEUE)
-elseif(NMC_USE_QUEUE MATCHES "global")
+elseif(NMC_QUEUE_TYPE MATCHES "global")
   add_definitions(-DNMC_USE_GLOBAL_SEARCH_QUEUE)
-elseif(NMC_USE_QUEUE MATCHES "domain")
+elseif(NMC_QUEUE_TYPE MATCHES "domain")
   add_definitions(-DNMC_USE_DOMAIN_SEARCH_QUEUE)
 else()
-    message(FATAL_ERROR "-- Communication connection algorithm '${NMC_USE_QUEUE}' not supported, use one of connection/spike/global/domain")
+    message(FATAL_ERROR "-- Communication connection algorithm '${NMC_QUEUE_TYPE}' not supported, use one of connection/spike/global/domain")
 endif()
 
 #----------------------------------------------------------

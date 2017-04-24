@@ -1,20 +1,19 @@
 #pragma once
 
 #include <algorithm>
-#include <iostream>
-#include <vector>
-#include <random>
 #include <functional>
+#include <random>
+#include <vector>
 
 #include <algorithms.hpp>
 #include <connection.hpp>
 #include <communication/gathered_vector.hpp>
 #include <event_queue.hpp>
 #include <spike.hpp>
+#include <util/compare.hpp>
 #include <util/debug.hpp>
 #include <util/double_buffer.hpp>
 #include <util/partition.hpp>
-#include <util/compare.hpp>
 
 namespace nest {
 namespace mc {

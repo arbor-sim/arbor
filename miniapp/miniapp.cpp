@@ -216,10 +216,6 @@ std::vector<cell_gid_type> partition_domains(cell_size_type num_cells) {
                    partition,
                    make_span(0, num_domains),
                    [=] (domain_gid_type) {return cells_per_domain;});
-    // for (auto i: partition) {
-    //     std::cerr << "P" << i << ", ";
-    // }
-    // std::cerr << std::endl;
     
     return partition;
 }

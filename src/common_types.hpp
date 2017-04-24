@@ -21,7 +21,8 @@ using cell_gid_type = std::uint32_t;
 
 using cell_size_type = typename std::make_unsigned<cell_gid_type>::type;
 
-// For cluster domain
+// For the node/mpi rank/... number identifying spike source/targets
+// outside of the current shared memory space
 
 using domain_gid_type = std::uint32_t;
 
