@@ -4,6 +4,7 @@
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
 #include <mc_cell_group.hpp>
+#include <recipe.hpp>
 #include <util/rangeutil.hpp>
 
 #include "common.hpp"
@@ -19,6 +20,14 @@ cell make_cell() {
     c.segment(1)->set_compartments(101);
 
     return c;
+}
+
+
+TEST(mc_cell_group, type) {
+    mc_cell_group<fvm_cell> group{ 0, util::singleton_view(make_cell()) };
+
+    // we are generating a mc_cell_group which should be of the correct type
+    EXPECT_EQ(cell_kind::multicompartment, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {

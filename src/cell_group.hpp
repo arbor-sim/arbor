@@ -7,6 +7,7 @@
 #include <event_binner.hpp>
 #include <event_queue.hpp>
 #include <sampler_function.hpp>
+#include <recipe.hpp>
 #include <spike.hpp>
 #include <util/optional.hpp>
 #include <util/make_unique.hpp>
@@ -17,6 +18,8 @@ namespace mc {
 class cell_group {
 public:
     virtual ~cell_group() = default;
+
+    virtual cell_kind const get_cell_kind() const = 0;
 
     virtual void reset() = 0;
     virtual void set_binning_policy(binning_kind policy, time_type bin_interval) = 0;
