@@ -1,16 +1,20 @@
 set(BASE_SOURCES
     common_types_io.cpp
     cell.cpp
+    event_binner.cpp
     morphology.cpp
     parameter_list.cpp
-    profiling/meter.cpp
+    profiling/memory_meter.cpp
     profiling/meter_manager.cpp
+    profiling/power_meter.cpp
     profiling/profiler.cpp
-    profiling/time_meter.cpp
     swcio.cpp
     threading/affinity.cpp
     util/debug.cpp
+    util/hostname.cpp
+    util/memory.cpp
     util/path.cpp
+    util/power.cpp
     util/unwind.cpp
     backends/multicore/fvm.cpp
 )

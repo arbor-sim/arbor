@@ -97,24 +97,30 @@ public:
     }
     virtual void OnTestCaseEnd(const TestCase& test_case) override {
         printf_helper(
-            "[PASSED %3d; FAILED %3d] of %3d tests in %s\n\n",
+            "    PASSED %d of %d tests in %s\n",
             test_case_tests_-test_case_failures_,
-            test_case_failures_,
             test_case_tests_,
             test_case.name()
         );
+        if (test_case_failures_>0) {
+            printf_helper(
+                "    FAILED %d of %d tests in %s\n",
+                test_case_failures_,
+                test_case_tests_,
+                test_case.name()
+            );
+        }
+        printf_helper("\n");
     }
 
     // Called before a test starts.
     virtual void OnTestStart(const TestInfo& test_info) override {
-        printf_helper( "  TEST  %s::%s\n", test_info.test_case_name(), test_info.name());
+        printf_helper( "TEST:  %s::%s\n", test_info.test_case_name(), test_info.name());
         test_failures_ = 0;
     }
 
     // Called after a failed assertion or a SUCCEED() invocation.
     virtual void OnTestPartResult(const TestPartResult& test_part_result) override {
-        const char* banner = "--------------------------------------------------------------------------------";
-
         // indent all lines in the summary by 4 spaces
         std::string summary = "    " + std::string(test_part_result.summary());
         auto pos = summary.find("\n");
@@ -124,13 +130,11 @@ public:
         }
 
         printf_helper(
-            "  LOCAL_%s\n    %s\n    %s:%d\n%s\n    %s\n",
+            "  LOCAL_%s\n    %s:%d\n%s\n",
             test_part_result.failed() ? "FAIL" : "SUCCESS",
-            banner,
             test_part_result.file_name(),
             test_part_result.line_number(),
-            summary.c_str(),
-            banner
+            summary.c_str()
         );
 
         // note that there was a failure in this test case

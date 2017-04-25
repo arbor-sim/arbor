@@ -7,7 +7,6 @@
 
 #include <json/json.hpp>
 
-#include <backends/fvm.hpp>
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
@@ -18,10 +17,10 @@
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
 #include <threading/threading.hpp>
+#include <util/config.hpp>
 #include <util/debug.hpp>
 #include <util/ioutil.hpp>
 #include <util/nop.hpp>
-#include <util/optional.hpp>
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -30,13 +29,7 @@
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-#ifdef NMC_HAVE_CUDA
-using lowered_cell = fvm::fvm_multicell<gpu::backend>;
-#else
-using lowered_cell = fvm::fvm_multicell<multicore::backend>;
-#endif
-using model_type = model<lowered_cell>;
-using sample_trace_type = sample_trace<model_type::time_type, model_type::value_type>;
+using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
@@ -52,7 +45,7 @@ int main(int argc, char** argv) {
 
     try {
         nest::mc::util::meter_manager meters;
-        meters.checkpoint("start");
+        meters.start();
 
         std::cout << util::mask_stream(global_policy::id()==0);
         // read parameters
@@ -102,7 +95,9 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        model_type m(*recipe, util::partition_view(group_divisions));
+        model m(*recipe,
+                util::partition_view(group_divisions),
+                config::has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -123,7 +118,7 @@ int main(int argc, char** argv) {
 
         // Attach samplers to all probes
         std::vector<std::unique_ptr<sample_trace_type>> traces;
-        const model_type::time_type sample_dt = 0.1;
+        const time_type sample_dt = 0.1;
         for (auto probe: m.probes()) {
             if (options.trace_max_gid && probe.id.gid>*options.trace_max_gid) {
                 continue;
@@ -169,8 +164,6 @@ int main(int argc, char** argv) {
             write_trace_json(*trace.get(), options.trace_prefix);
         }
 
-        meters.checkpoint("output");
-
         util::save_to_file(meters, "meters.json");
     }
     catch (io::usage_error& e) {
@@ -205,11 +198,7 @@ void banner() {
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-#ifdef NMC_HAVE_CUDA
-    std::cout << "  - gpu support: on\n";
-#else
-    std::cout << "  - gpu support: off\n";
-#endif
+    std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
 }
 

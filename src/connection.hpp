@@ -11,8 +11,6 @@ namespace mc {
 
 class connection {
 public:
-    using time_type = spike::time_type;
-
     connection() = default;
     connection(cell_member_type src, cell_member_type dest, float w, time_type d) :
         source_(src),
@@ -27,7 +25,7 @@ public:
     cell_member_type source() const { return source_; }
     cell_member_type destination() const { return destination_; }
 
-    postsynaptic_spike_event<time_type> make_event(const spike& s) {
+    postsynaptic_spike_event make_event(const spike& s) {
         return {destination_, s.time + delay_, weight_};
     }
 

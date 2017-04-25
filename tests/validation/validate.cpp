@@ -23,7 +23,13 @@ const char* usage_str =
 "                      compartments per segment\n"
 "  -d, --min-dt=DT     Run convergence tests with or with a minimumf\n"
 "                      timestep DT\n"
-"  -h, --help          Display usage information and exit\n";
+"  -h, --help          Display usage information and exit\n"
+"\n"
+"Validation data is searched by default in the directory specified by\n"
+"NMC_DATADIR at compile time. If NMC_DATADIR does not correspond to a\n"
+"directory, the tests will try the paths './validation/data' and\n"
+"'../validation/data'. This default path can be overridden with the\n"
+"NMC_DATADIR environment variable, or with the -p command-line option.\n";
 
 int main(int argc, char **argv) {
     using to::parse_opt;

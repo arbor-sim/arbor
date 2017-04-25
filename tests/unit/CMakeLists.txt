@@ -18,7 +18,7 @@ build_modules(
 
 set(TEST_CUDA_SOURCES
     test_atomics.cu
-    test_cell_group.cu
+    test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
     test_spikes.cu
@@ -31,6 +31,7 @@ set(TEST_CUDA_SOURCES
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
+    test_backend.cpp
     test_double_buffer.cpp
     test_cell.cpp
     test_compartments.cpp
@@ -38,9 +39,10 @@ set(TEST_SOURCES
     test_cycle.cpp
     test_either.cpp
     test_event_queue.cpp
+    test_event_binner.cpp
     test_filter.cpp
     test_fvm_multi.cpp
-    test_cell_group.cpp
+    test_mc_cell_group.cpp
     test_lexcmp.cpp
     test_mask_stream.cpp
     test_math.cpp
@@ -59,6 +61,7 @@ set(TEST_SOURCES
     test_spikes.cpp
     test_spike_store.cpp
     test_stimulus.cpp
+    test_strprintf.cpp
     test_swcio.cpp
     test_synapses.cpp
     test_tree.cpp
@@ -70,11 +73,11 @@ set(TEST_SOURCES
     test.cpp
 )
 
-add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
 set(TARGETS test.exe)
 
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
 if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
   add_dependencies(test.exe build_test_mods)
@@ -83,6 +86,8 @@ endif()
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
 if(NMC_WITH_CUDA)
+    # Omit -DDATADIR for cuda target because of CMake 3.7/3.8 FindCUDA quoting bug.
+
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
     target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
