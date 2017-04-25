@@ -220,3 +220,15 @@ TEST(cell_type, clone)
     EXPECT_NE(c.segment(1)->num_compartments(), d.segment(1)->num_compartments());
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
+
+TEST(cell_type, cell_kind)
+{
+    using namespace nest::mc;
+
+    // make simple cell with multiple segments
+
+    cell c;
+
+    EXPECT_EQ( cell_kind::multicompartment, c.get_cell_kind());
+
+}

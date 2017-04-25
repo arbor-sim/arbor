@@ -99,6 +99,11 @@ public:
          }
      }
 
+    cell_kind const get_cell_kind() const  {
+        return cell_kind_;
+    }
+
+
     /// add a soma to the cell
     /// radius must be specified
     soma_segment* add_soma(value_type radius, point_type center=point_type());
@@ -205,6 +210,9 @@ public:
     probes() const { return probes_; }
 
 private:
+    // We only have a single cell type currently
+    cell_kind cell_kind_ = cell_kind::multicompartment;
+
     // storage for connections
     std::vector<index_type> parents_;
 
