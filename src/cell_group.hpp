@@ -7,7 +7,6 @@
 #include <event_binner.hpp>
 #include <event_queue.hpp>
 #include <sampler_function.hpp>
-#include <recipe.hpp>
 #include <spike.hpp>
 #include <util/optional.hpp>
 #include <util/make_unique.hpp>

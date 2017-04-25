@@ -53,6 +53,21 @@ DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 
 using time_type = float;
 
+/* Enumeration used to indentify the cell type/kind, used by the model to
+* group equal kinds in the same cell group.
+*
+*
+*/
+enum cell_kind {
+    multicompartment,
+    poisson,
+    from_file,
+    //IAF,
+    //from_music,
+    //NestML
+};
+
+
 } // namespace mc
 } // namespace nest
 

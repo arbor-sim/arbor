@@ -13,20 +13,6 @@ struct cell_count_info {
     cell_size_type num_probes;
 };
 
-/* Enumeration used to indentify the cell type/kind, used by the model to
- * group equal kinds in the same cell group.
- *
- *
- */
-
-enum cell_kind { 
-    multicompartment,
-    poisson, 
-    from_file,         
-    //IAF,
-    //from_music,
-    //NestML
-};
 
 class invalid_recipe_error: public std::runtime_error {
 public:
