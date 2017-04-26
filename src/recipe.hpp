@@ -13,7 +13,6 @@ struct cell_count_info {
     cell_size_type num_probes;
 };
 
-
 class invalid_recipe_error: public std::runtime_error {
 public:
     invalid_recipe_error(std::string whatstr): std::runtime_error(std::move(whatstr)) {}

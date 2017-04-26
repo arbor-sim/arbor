@@ -62,7 +62,7 @@ public:
     }
 
     cell_kind const get_cell_kind() const override {
-        return cell_kind_;
+        return cell_kind::multicompartment;
     }
 
     void reset() override {
@@ -178,10 +178,6 @@ public:
     }
 
 private:
-
-    // The kind of cell 
-    cell_kind const cell_kind_ = cell_kind::multicompartment;
-
     // gid of first cell in group.
     cell_gid_type gid_base_;
 

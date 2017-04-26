@@ -99,10 +99,10 @@ public:
          }
      }
 
+    /// Return the kind of cell, used for grouping into cell_groups
     cell_kind const get_cell_kind() const  {
-        return cell_kind_;
+        return cell_kind::multicompartment;
     }
-
 
     /// add a soma to the cell
     /// radius must be specified
@@ -210,9 +210,6 @@ public:
     probes() const { return probes_; }
 
 private:
-    // We only have a single cell type currently
-    cell_kind cell_kind_ = cell_kind::multicompartment;
-
     // storage for connections
     std::vector<index_type> parents_;
 
