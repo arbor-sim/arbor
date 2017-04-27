@@ -101,7 +101,7 @@ public:
 
     /// Return the kind of cell, used for grouping into cell_groups
     cell_kind const get_cell_kind() const  {
-        return cell_kind::multicompartment;
+        return cell_kind::cable1d_neuron;
     }
 
     /// add a soma to the cell

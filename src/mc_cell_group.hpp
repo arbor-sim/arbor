@@ -62,7 +62,7 @@ public:
     }
 
     cell_kind const get_cell_kind() const override {
-        return cell_kind::multicompartment;
+        return cell_kind::cable1d_neuron;
     }
 
     void reset() override {

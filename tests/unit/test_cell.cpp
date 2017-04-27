@@ -227,5 +227,5 @@ TEST(cell_type, get_kind)
 
     // make a MC cell
     cell c;
-    EXPECT_EQ( cell_kind::multicompartment, c.get_cell_kind());
+    EXPECT_EQ( cell_kind::cable1d_neuron, c.get_cell_kind());
 }
