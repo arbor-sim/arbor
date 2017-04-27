@@ -281,7 +281,7 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
                     text_.add_gutter();
                     text_ << simd_backend::emit_index_type() << " "
                           << vci_name << " = ";
-                    simd_backend::emit_gather_index(text_, vindex_name, ci_ptr_name, "sizeof(index_type)");
+                    simd_backend::emit_gather_index(text_, "(int *)"+ci_ptr_name, vindex_name, "sizeof(size_type)");
                     text_.end_line(";");
                 }
             }
