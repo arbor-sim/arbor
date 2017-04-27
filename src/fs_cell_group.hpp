@@ -12,15 +12,8 @@ public:
     using source_id_type = cell_member_type;
 
     fs_cell_group(cell_gid_type first_gid, std::vector<fs_cell> cells):
-        // I removed the constness of the cells because we do need backend
-        // a lowered version of these cells? (i presume)
         gid_base_{ first_gid },
         cells_(cells)
-        //time_type start_time, time_type period, time_type stop_time) :
-        //start_time_(start_time),
-        //period_(period),
-        //stop_time_(stop_time) {}
-
     {
         // Create a list of the global identifiers for the spike sources
         auto source_gid = cell_gid_type{ gid_base_ };
@@ -39,7 +32,11 @@ public:
     }
 
     void reset() override
-    {} // Nothing to do
+    {
+        for (auto cell : cells_) {
+            cell.reset();
+        }
+    }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override
     {} // Nothing to do  ?
@@ -47,10 +44,8 @@ public:
     void advance(time_type tfinal, time_type dt) override
     {
         auto source_gid = cell_gid_type{ gid_base_ };
-        for (auto cell : cells_)
-        {
-            for (auto spike_time : cell.spikes_until(tfinal))
-            {
+        for (auto cell : cells_) {
+            for (auto spike_time : cell.spikes_until(tfinal)) {
                 spikes_.push_back({ spike_sources_[source_gid], spike_time});
             }
             ++source_gid;

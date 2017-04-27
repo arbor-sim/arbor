@@ -29,20 +29,18 @@ public:
         return cell_kind::regular_frequency;
     }
 
-
+    /// Collect all spikes untill tfinal.
+    /// updates the internal time state to tfinal as a side effect
     std::vector<time_type> spikes_until(time_type tfinal)
     {
         std::vector<time_type> spike_times;
 
         // If we should be spiking in this 'period'
-        if (tfinal > start_time_ &&
-            (tfinal - period_) < stop_time_)
-        {
+        if (tfinal > start_time_ && (tfinal - period_) < stop_time_) {
             // Generate all possible spikes in this time frame (typically only one!)
             for (time_type time = start_time_ > time_ ? start_time_ : time_;
                 time < tfinal;
-                time += period_)
-            {
+                time += period_) {
                 spike_times.push_back(time);
             }
         }
@@ -51,6 +49,13 @@ public:
         time_ = tfinal;
         return spike_times;
     }
+
+    /// reset internal time to 0.0
+    void reset() {
+        time_ = 0.0;
+    }
+
+
 
 private:
     // When to start spiking
