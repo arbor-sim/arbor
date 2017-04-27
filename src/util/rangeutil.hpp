@@ -41,26 +41,29 @@ range_view(Seq& seq) {
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator,
-    typename Size = typename sequence_traits<Seq>::size_type
+    typename Offset1,
+    typename Offset2,
+    typename Iter = typename sequence_traits<Seq>::iterator
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
-subrange_view(Seq& seq, Size bi, Size ei) {
-    Iter b = std::next(std::begin(seq), bi);
-    Iter e = std::next(b, ei-bi);
+subrange_view(Seq& seq, Offset1 bi, Offset2 ei) {
+    Iter b = std::begin(seq);
+    std::advance(b, bi);
+
+    Iter e = b;
+    std::advance(e, ei-bi);
     return make_range(b, e);
 }
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator,
-    typename Size = typename sequence_traits<Seq>::size_type
+    typename Offset1,
+    typename Offset2,
+    typename Iter = typename sequence_traits<Seq>::iterator
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
-subrange_view(Seq& seq, std::pair<Size, Size> index) {
-    Iter b = std::next(std::begin(seq), index.first);
-    Iter e = std::next(b, index.second-index.first);
-    return make_range(b, e);
+subrange_view(Seq& seq, std::pair<Offset1, Offset2> index) {
+    return subrange_view(seq, index.first, index.second);
 }
 
 // Fill container or range.

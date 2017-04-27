@@ -190,6 +190,31 @@ TEST(range, strictify) {
     EXPECT_EQ(cstr+11, ptr_range.right);
 }
 
+TEST(range, subrange) {
+    int values[] = {10, 11, 12, 13, 14, 15, 16};
+
+    // `subrange_view` should handle offsets of different integral types sanely.
+    auto sub1 = util::subrange_view(values, 1, 6u);
+    EXPECT_EQ(11, sub1[0]);
+    EXPECT_EQ(15, sub1.back());
+
+    // Should be able to take subranges of subranges, and modify underlying
+    // sequence.
+    auto sub2 = util::subrange_view(sub1, 3ull, (short)4);
+    EXPECT_EQ(1u, sub2.size());
+
+    sub2[0] = 23;
+    EXPECT_EQ(23, values[4]);
+
+    // Taking a subrange view of a const range over non-const iterators
+    // should still allow modification of underlying sequence.
+    const util::range<int*> const_view(values, values+4);
+    auto sub3 = util::subrange_view(const_view, std::make_pair(1, 3u));
+    sub3[1] = 42;
+    EXPECT_EQ(42, values[2]);
+}
+
+
 TEST(range, max_element_by) {
     const char *cstr = "helloworld";
     auto cstr_range = util::make_range(cstr, null_terminated);
