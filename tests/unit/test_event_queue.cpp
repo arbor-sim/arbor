@@ -8,7 +8,7 @@
 using namespace nest::mc;
 
 TEST(event_queue, push) {
-    using ps_event_queue = event_queue<postsynaptic_spike_event<float>>;
+    using ps_event_queue = event_queue<postsynaptic_spike_event>;
 
     ps_event_queue q;
 
@@ -29,7 +29,7 @@ TEST(event_queue, push) {
 }
 
 TEST(event_queue, pop_if_before) {
-    using ps_event_queue = event_queue<postsynaptic_spike_event<float>>;
+    using ps_event_queue = event_queue<postsynaptic_spike_event>;
 
     cell_member_type target[4] = {
         {1u, 0u},
@@ -38,7 +38,7 @@ TEST(event_queue, pop_if_before) {
         {2u, 3u}
     };
 
-    postsynaptic_spike_event<float> events[] = {
+    postsynaptic_spike_event events[] = {
         {target[0], 1.f, 2.f},
         {target[1], 2.f, 2.f},
         {target[2], 3.f, 2.f},

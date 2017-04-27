@@ -13,6 +13,10 @@ add_subdirectory(global_communication)
 # Tests for performance: This could include stand alone tests. These do not necessarily be run automatically
 add_subdirectory(performance)
 
+# Microbenchmarks.
+add_subdirectory(ubench)
+
+
 # modcc tests
 if(NOT use_external_modcc)
     add_subdirectory(modcc)

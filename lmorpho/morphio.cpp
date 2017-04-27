@@ -6,31 +6,14 @@
 
 #include <morphology.hpp>
 #include <swcio.hpp>
+#include <util/strprintf.hpp>
 
 #include "morphio.hpp"
 
 using nest::mc::io::swc_record;
+using nest::mc::util::strprintf;
 
 std::vector<swc_record> as_swc(const nest::mc::morphology& morph);
-
-// printf wrappers.
-
-template <typename... Args>
-static std::string strprintf(const char* fmt, Args&&... args) {
-    thread_local static std::vector<char> buffer(1024);
-
-    for (;;) {
-        int n = std::snprintf(buffer.data(), buffer.size(), fmt, std::forward<Args>(args)...);
-        if (n<0) return ""; // error
-        if ((unsigned)n<buffer.size()) return std::string(buffer.data());
-        buffer.resize(2*n);
-    }
-}
-
-template <typename... Args>
-static std::string strprintf(std::string fmt, Args&&... args) {
-    return strprintf(fmt.c_str(), std::forward<Args>(args)...);
-}
 
 // Multi-file manager implementation.
 multi_file::multi_file(const std::string& pattern, int digits) {

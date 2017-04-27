@@ -30,7 +30,11 @@ set(VALIDATION_CUDA_SOURCES
 )
 
 if(NMC_VALIDATION_DATA_DIR)
-    add_definitions("-DDATADIR=\"${NMC_VALIDATION_DATA_DIR}\"")
+    if ("${CMAKE_VERSION}" MATCHES "^3.[78].")
+        message(WARNING "CMake ${CMAKE_VERSION} has broken FindCUDA; omitting NMC_DATADIR define.")
+    else()
+        add_definitions("-DNMC_DATADIR=\"${NMC_VALIDATION_DATA_DIR}\"")
+    endif()
 endif()
 
 add_executable(validate.exe ${VALIDATION_SOURCES})

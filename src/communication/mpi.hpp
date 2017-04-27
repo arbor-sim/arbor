@@ -65,10 +65,6 @@ namespace mpi {
     // T must be trivially copyable
     template<typename T>
     std::vector<T> gather(T value, int root) {
-        static_assert(
-            true,//std::is_trivially_copyable<T>::value,
-            "gather can only be performed on trivally copyable types");
-
         using traits = mpi_traits<T>;
         auto buffer_size = (rank()==root) ? size() : 0;
         std::vector<T> buffer(buffer_size);
@@ -87,9 +83,6 @@ namespace mpi {
     // T must be trivially copyable
     template <typename T>
     std::vector<T> gather_all(T value) {
-        static_assert(
-            true,//std::is_trivially_copyable<T>::value,
-            "gather_all can only be performed on trivally copyable types");
 
         using traits = mpi_traits<T>;
         std::vector<T> buffer(size());
@@ -103,11 +96,33 @@ namespace mpi {
         return buffer;
     }
 
+    // Specialize gather for std::string.
+    inline std::vector<std::string> gather(std::string str, int root) {
+        using traits = mpi_traits<char>;
+
+        auto counts = gather_all(int(str.size()));
+        auto displs = algorithms::make_index(counts);
+
+        std::vector<char> buffer(displs.back());
+
+        PE("MPI", "Gather");
+        MPI_Gatherv(str.data(), counts[rank()], traits::mpi_type(),                  // send
+                    buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive
+                    root, MPI_COMM_WORLD);
+        PL(2);
+
+        // Unpack the raw string data into a vector of strings.
+        std::vector<std::string> result;
+        result.reserve(size());
+        for (auto i=0; i<size(); ++i) {
+            result.push_back(std::string(buffer.data()+displs[i], counts[i]));
+        }
+        return result;
+    }
+
+
     template <typename T>
     std::vector<T> gather_all(const std::vector<T>& values) {
-        static_assert(
-            true,//std::is_trivially_copyable<T>::value,
-            "gather_all can only be performed on trivally copyable types");
 
         using traits = mpi_traits<T>;
         auto counts = gather_all(int(values.size()));

@@ -122,6 +122,7 @@ set_property(CACHE NMC_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 # Cray specific flags
 if(${NMC_SYSTEM_TYPE} MATCHES "Cray")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
+    add_definitions(-DNMC_HAVE_CRAY)
 endif()
 
 #----------------------------------------------------------

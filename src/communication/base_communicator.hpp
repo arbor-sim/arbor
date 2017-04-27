@@ -33,20 +33,18 @@ template <typename CommunicationPolicy>
 class base_communicator {
 public:
     using communication_policy_type = CommunicationPolicy;
-    using time_type = spike::time_type;
-    using id_type = cell_gid_type;
 
     /// per-cell group lists of events to be delivered
     using event_queue =
-        std::vector<postsynaptic_spike_event<time_type>>;
+        std::vector<postsynaptic_spike_event>;
 
     using gid_partition_type =
-        util::partition_range<std::vector<id_type>::const_iterator>;
+        util::partition_range<std::vector<cell_gid_type>::const_iterator>;
 
     struct spike_extractor {
-        using id_type = typename spike::id_type;
-        id_type operator()(const id_type& s) const {return s;}
-        id_type operator()(const spike& s) const {return s.source;}
+        using id_type = cell_gid_type;
+        id_type operator()(const cell_member_type& s) const {return s.gid;}
+        id_type operator()(const spike& s) const {return s.source.gid;}
     };
 
     template<typename E>
@@ -70,7 +68,7 @@ public:
     }
 
     /// returns true if the cell with gid is on the domain of the caller
-    bool is_local_cell(id_type gid) const {
+    bool is_local_cell(cell_gid_type gid) const {
         return algorithms::in_interval(gid, cell_gid_partition_.bounds());
     }
 
@@ -129,7 +127,7 @@ public:
     }
 
 protected:
-    std::size_t cell_group_index(id_type cell_gid) const {
+    std::size_t cell_group_index(cell_gid_type cell_gid) const {
         EXPECTS(is_local_cell(cell_gid));
         return cell_gid_partition_.index(cell_gid);
     }

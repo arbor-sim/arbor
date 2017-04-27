@@ -11,17 +11,8 @@ namespace nest {
 namespace mc {
 namespace util {
 
-class memory_meter : public meter {
-    std::vector<memory_size_type> readings_;
-
-    // only used if running on the GPU
-    std::vector<memory_size_type> readings_gpu_;
-
-public:
-    std::string name() override;
-    void take_reading() override;
-    virtual std::vector<measurement> measurements() override;
-};
+meter_ptr make_memory_meter();
+meter_ptr make_gpu_memory_meter();
 
 } // namespace util
 } // namespace mc
