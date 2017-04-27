@@ -57,12 +57,12 @@ using time_type = float;
 // group equal kinds in the same cell group.
 
 enum cell_kind {
-    multicompartment,
-    poisson,
-    from_file,
-    //IAF,
-    //from_music,
-    //NestML
+    cable1d_neuron,           // Our own special mc neuron
+    stochastic_spike_source,  // Spikes typically not for global comm.
+    spike_replay,             // Needs access to file type objects
+    //point_neuron,           // Might need complicated computations
+    //from_music,             // Needs MPI communication and synchronization
+    //to_music,               // Needs MPI communication and synchronization
 };
 
 } // namespace mc

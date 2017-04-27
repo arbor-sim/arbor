@@ -111,6 +111,11 @@ public:
         return cell;
     }
 
+    cell_kind get_cell_kind(cell_gid_type) const override {
+        // The basic_cell_recipe only produces mc cells, so return cable1d_neuron for now
+        return cell_kind::cable1d_neuron;
+    }
+
     cell_count_info get_cell_count_info(cell_gid_type i) const override {
         cell_count_info cc = {1, param_.num_synapses, 0 };
         unsigned cell_segments = get_morphology(i).components();
