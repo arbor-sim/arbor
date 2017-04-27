@@ -105,6 +105,7 @@ struct matrix_state_interleaved {
         EXPECTS(cell_cv_divs.size() <= UINT_MAX);
 
         using util::make_span;
+        using util::indirect_view;
 
         // Convenience for commonly used type in this routine.
         using svec = std::vector<size_type>;
@@ -127,15 +128,10 @@ struct matrix_state_interleaved {
         util::stable_sort_by(perm, [&sizes](size_type i){ return sizes[i]; });
         std::reverse(perm.begin(), perm.end());
 
-        // TODO: refactor to be less verbose with permutation_view
-        svec sizes_p;
-        for (auto i: make_span(0, num_mtx)) {
-            sizes_p.push_back(sizes[perm[i]]);
-        }
-        svec cell_to_cv_p;
-        for (auto i: make_span(0, num_mtx)) {
-            cell_to_cv_p.push_back(cell_cv_divs[perm[i]]);
-        }
+        svec sizes_p = util::assign_from(indirect_view(sizes, perm));
+
+        auto cell_to_cv = util::subrange_view(cell_cv_divs, 0, num_mtx);
+        svec cell_to_cv_p = util::assign_from(indirect_view(cell_to_cv, perm));
 
         //
         // Calculate dimensions required to store matrices.

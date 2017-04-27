@@ -41,6 +41,7 @@ public:
         text_ << name;
     }
 
+    void visit(CellIndexedVariable *e) override;
     void visit(IndexedVariable *e) override;
     void visit(APIMethod *e) override;
     void visit(BlockExpression *e) override;
@@ -109,12 +110,14 @@ void SimdPrinter<Arch>::visit(APIMethod *e) {
     if (e->is_api_method()->body()->statements().size()) {
         text_.increase_indentation();
 
-        // First emit the raw pointer of node_index_
+        // First emit the raw pointer of node_index_ and vec_ci_
         text_.add_line("constexpr size_t simd_width = " +
                        simd_backend::emit_simd_width() +
                        " / (CHAR_BIT*sizeof(value_type));");
         text_.add_line("const size_type* " + emit_rawptr_name("node_index_") +
                        " = node_index_.data();");
+        text_.add_line("const size_type* " + emit_rawptr_name("vec_ci_") +
+                       " = vec_ci_.data();");
         text_.add_line();
 
         // create local indexed views
@@ -152,7 +155,8 @@ template<targetKind Arch>
 void SimdPrinter<Arch>::emit_indexed_view(LocalVariable* var,
                                           std::set<std::string>& decls) {
     auto const& name = var->name();
-    auto const& index_name = var->external_variable()->index_name();
+    auto external = var->external_variable();
+    auto const& index_name = external->index_name();
     text_.add_gutter();
 
     if (decls.find(index_name) == decls.cend()) {
@@ -160,16 +164,20 @@ void SimdPrinter<Arch>::emit_indexed_view(LocalVariable* var,
         decls.insert(index_name);
     }
 
-    text_ << index_name;
-    text_ << " = util::indirect_view";
-    auto channel = var->external_variable()->ion_channel();
-    if (channel == ionKind::none) {
-        text_ << "(" + emit_member_name(index_name) + ", node_index_);\n";
+    text_ << index_name << " = ";
+
+    if (external->is_cell_indexed_variable()) {
+        text_ << "util::indirect_view(util::indirect_view("
+              << emit_member_name(index_name) << ", vec_ci_), node_index_);\n";
+    }
+    else if (external->is_ion()) {
+        auto channel = external->ion_channel();
+        auto iname = ion_store(channel);
+        text_ << "util::indirect_view(" << iname << "." << name << ", "
+              << ion_store(channel) << ".index);\n";
     }
     else {
-        auto iname = ion_store(channel);
-        text_ << "(" << iname << "." << name << ", "
-              << ion_store(channel) << ".index);\n";
+        text_ << " util::indirect_view(" + emit_member_name(index_name) + ", node_index_);\n";
     }
 }
 
@@ -177,7 +185,8 @@ template<targetKind Arch>
 void SimdPrinter<Arch>::emit_indexed_view_simd(LocalVariable* var,
                                                std::set<std::string>& decls) {
     auto const& name = var->name();
-    auto const& index_name = var->external_variable()->index_name();
+    auto external = var->external_variable();
+    auto const& index_name = external->index_name();
 
     // We need to work with with raw pointers in the vectorized version
     auto channel = var->external_variable()->ion_channel();
@@ -236,10 +245,10 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
     for (auto& symbol : e->scope()->locals()) {
         auto var = symbol.second->is_local_variable();
         if (var->is_indexed()) {
-            auto channel = var->external_variable()->ion_channel();
+            auto external = var->external_variable();
+            auto channel = external->ion_channel();
             std::string cast_type =
                 "(const " + simd_backend::emit_index_type() + " *) ";
-
 
             std::string vindex_name, index_ptr_name;
             if (channel == ionKind::none) {
@@ -253,7 +262,6 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
 
             }
 
-
             if (declared_ion_vars.find(vindex_name) == declared_ion_vars.cend()) {
                 declared_ion_vars.insert(vindex_name);
                 text_.add_gutter();
@@ -262,6 +270,20 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
                 simd_backend::emit_load_index(
                     text_, cast_type + "&" + index_ptr_name + "[off_]");
                 text_.end_line(";");
+            }
+
+            if (external->is_cell_indexed_variable()) {
+                std::string vci_name = emit_vtmp_name("vec_ci_");
+                std::string ci_ptr_name = emit_rawptr_name("vec_ci_");
+
+                if (declared_ion_vars.find(vci_name) == declared_ion_vars.cend()) {
+                    declared_ion_vars.insert(vci_name);
+                    text_.add_gutter();
+                    text_ << simd_backend::emit_index_type() << " "
+                          << vci_name << " = ";
+                    simd_backend::emit_gather_index(text_, vindex_name, ci_ptr_name, "sizeof(index_type)");
+                    text_.end_line(";");
+                }
             }
         }
     }
@@ -376,6 +398,16 @@ void SimdPrinter<Arch>::visit(IndexedVariable *e) {
         vindex_name = emit_vtmp_name("node_index_");
         value_name = emit_rawptr_name(e->index_name());
     }
+
+    simd_backend::emit_gather(text_, vindex_name, value_name, "sizeof(value_type)");
+}
+
+template<targetKind Arch>
+void SimdPrinter<Arch>::visit(CellIndexedVariable *e) {
+    std::string vindex_name, value_name;
+
+    vindex_name = emit_vtmp_name("vec_ci_");
+    value_name = emit_rawptr_name(e->index_name());
 
     simd_backend::emit_gather(text_, vindex_name, value_name, "sizeof(value_type)");
 }

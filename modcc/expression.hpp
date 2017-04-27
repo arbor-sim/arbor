@@ -393,9 +393,6 @@ public:
     LocalDeclaration(Location loc, std::string const& name)
     :   Expression(loc)
     {
-        if (name=="v") {
-            std::cerr << "got a live one\n";
-        }
         Token tok(tok::identifier, name, loc);
         add_variable(tok);
     }

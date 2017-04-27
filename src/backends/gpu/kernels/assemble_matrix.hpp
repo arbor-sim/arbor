@@ -94,12 +94,13 @@ void assemble_matrix_interleaved(
     const unsigned permuted_cid = blk_id*BlockWidth + blk_lane;
 
     if (permuted_cid<num_mtx) {
+        auto cid = matrix_to_cell[permuted_cid];
+        T dt = time_to[cid]-time[cid];
+
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).
         // See the model documentation in docs/model for more information.
 
-        auto cid = matrix_to_cell[permuted_cid];
-        T dt = time_to[cid]-time[cid];
         factor = 1e-3/dt;
     }
 

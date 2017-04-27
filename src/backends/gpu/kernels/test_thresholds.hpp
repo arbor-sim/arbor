@@ -4,13 +4,6 @@ namespace nest {
 namespace mc {
 namespace gpu {
 
-/// Cuda lerp by u on [a,b]: (1-u)*a + u*b.
-template <typename T>
-__host__ __device__
-inline T lerp(T a, T b, T u) {
-    return std::fma(u, b, std::fma(-u, a, a));
-}
-
 /// kernel used to test for threshold crossing test code.
 /// params:
 ///     t       : current time (ms)
@@ -48,7 +41,7 @@ void test_thresholds(
                 // The threshold has been passed, so estimate the time using
                 // linear interpolation
                 auto pos = (thresh - v_prev)/(v - v_prev);
-                crossing_time = lerp(t_before[cell], t_after[cell], pos);
+                crossing_time = impl::lerp(t_before[cell], t_after[cell], pos);
 
                 is_crossed[i] = 1;
                 crossed = true;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <ostream>
 #include <queue>
 #include <type_traits>
@@ -175,6 +176,8 @@ public:
     void init(const EvSeqs& events) {
         using std::begin;
         using std::end;
+
+        EXPECTS(n_streams()==util::size(events));
 
         remaining_ = 0;
         auto evi = begin(events);

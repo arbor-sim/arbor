@@ -99,7 +99,7 @@ public:
 
         // TODO: Placeholder; construct backend event delivery
         // data structure from events added.
-        EXPECTS(no_pending_events());
+        EXPECTS(!has_pending_events());
         events_.init(staged_events_);
 
         for (auto& staged: staged_events_) {
@@ -283,8 +283,8 @@ private:
     using cell_event_queue = multi_event_stream<deliverable_event>;
     cell_event_queue events_;
 
-    bool no_pending_events() const {
-        return events_.remaining()==0;
+    bool has_pending_events() const {
+        return events_.remaining()!=0;
     }
 
     /// the linear system for implicit time stepping of cell state
@@ -532,8 +532,7 @@ void fvm_multicell<Backend>::initialize(
     // initialize cv_to_cell_ values from compartment partition
     std::vector<size_type> cv_to_cell_tmp(ncomp);
     for (size_type i = 0; i<ncell_; ++i) {
-        auto comps = cell_comp_part[i];
-        std::fill(cv_to_cell_tmp.begin()+comps.first, cv_to_cell_tmp.begin()+comps.second, i);
+        util::fill(util::subrange_view(cv_to_cell_tmp, cell_comp_part[i]), i);
     }
     memory::copy(cv_to_cell_tmp, cv_to_cell_);
 
@@ -930,7 +929,7 @@ void fvm_multicell<Backend>::step_integration() {
     // are we there yet?
     integration_running_ = max_time()<tfinal_;
 
-    EXPECTS(integration_running_ || no_pending_events());
+    EXPECTS(integration_running_ || !has_pending_events());
 }
 
 } // namespace fvm
