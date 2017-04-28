@@ -4,7 +4,7 @@
 #error "linear_spike_queue_policy.hpp should only be compiled in a NMC_USE_LINEAR_SPIKE_QUEUE build"
 #endif
 
-#include <util/compare.hpp>
+#include <util/range.hpp>
 #include "base_communicator.hpp"
 
 namespace nest {
@@ -13,43 +13,32 @@ namespace communication {
 
 using nest::mc::util::make_range;
 
-template <typename CommunicationPolicy>
-class linear_spike_communicator: public base_communicator<CommunicationPolicy> {
-public:
-    using base = base_communicator<CommunicationPolicy>;
-    using typename base::event_queue;
-    using base::num_groups_local;
-    using base::base;
-    
-protected:
-    using base::cell_group_index;
-    using base::connections_;
+class linear_spike_event_queue: public base_event_queue {
 
 public:
     // go over all spikes, search for connections with the same source as the spike
     // and then push an event to each connection
     // O(spikes * log (connections) * connections/spike)
-    std::vector<event_queue> make_event_queues(const gathered_vector<spike>& global_spikes)
+    void make_event_queues(const gathered_vector<spike>& global_spikes,
+                           std::vector<event_queue>& queues,
+                           const std::vector<connection>& connections,
+                           const gid_partition_type& cell_gid_partition)
     {
-        auto queues = std::vector<event_queue>(num_groups_local());
-        
         for (const auto spike: global_spikes.values()) {
-            auto targets = std::equal_range(connections_.begin(),
-                                            connections_.end(),
+            auto targets = std::equal_range(connections.begin(),
+                                            connections.end(),
                                             spike.source);
 
             for (const auto con: make_range(targets)) {
-                const auto gidx = cell_group_index(con.destination().gid);
+                const auto gidx = cell_group_index(cell_gid_partition, con.destination().gid);
                 queues[gidx].push_back(con.make_event(spike));
             }
         }
-
-        return queues;
     }
 };
 
 template <typename CommunicationPolicy>
-using communicator = linear_spike_communicator<CommunicationPolicy>;
+using communicator = base_communicator<CommunicationPolicy, linear_spike_event_queue>;
 
 }
 }

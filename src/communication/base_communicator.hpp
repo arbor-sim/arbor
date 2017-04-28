@@ -29,11 +29,11 @@ namespace communication {
 // Once all connections have been specified, the construct() method can be used
 // to build the data structures required for efficient spike communication and
 // event generation.
-template <typename CommunicationPolicy>
-class base_communicator {
-public:
-    using communication_policy_type = CommunicationPolicy;
 
+// base class for mix-in implementation of make_event_queues
+// contains some common types and functions needed by make_event_queues
+class base_event_queue {
+public:
     /// per-cell group lists of events to be delivered
     using event_queue =
         std::vector<postsynaptic_spike_event>;
@@ -50,8 +50,32 @@ public:
     template<typename E>
     using lessthan = nest::mc::util::lessthan<E>;
     using lt_spike_src = lessthan<spike_extractor>;
+    
+    static std::size_t cell_group_index(gid_partition_type cell_gid_partition,
+                                        cell_gid_type cell_gid)
+    {
+        EXPECTS(is_local_cell(cell_gid_partition, cell_gid));
+        return cell_gid_partition.index(cell_gid);
+    }
 
-    base_communicator() {}
+    static     /// returns true if the cell with gid is on the domain of the caller
+    bool is_local_cell(gid_partition_type cell_gid_partition,
+                       cell_gid_type gid)
+    {
+        return algorithms::in_interval(gid, cell_gid_partition.bounds());
+    }
+};
+
+template <typename CommunicationPolicy, typename EventQueueImpl>
+class base_communicator {
+public:
+    using communication_policy_type = CommunicationPolicy;
+    
+    using queue_impl = EventQueueImpl;
+    queue_impl queue_impl_;
+
+    using event_queue = base_event_queue::event_queue;
+    using gid_partition_type = base_event_queue::gid_partition_type;
 
     explicit base_communicator(gid_partition_type cell_gid_partition):
         cell_gid_partition_(cell_gid_partition)
@@ -69,7 +93,7 @@ public:
 
     /// returns true if the cell with gid is on the domain of the caller
     bool is_local_cell(cell_gid_type gid) const {
-        return algorithms::in_interval(gid, cell_gid_partition_.bounds());
+        return base_event_queue::is_local_cell(cell_gid_partition_, gid);
     }
 
     /// builds the optimized data structure
@@ -109,7 +133,12 @@ public:
     /// Returns a vector of event queues, with one queue for each local cell group. The
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
-    // std::vector<event_queue> make_event_queues(const gathered_vector<spike>& global_spikes)
+    std::vector<event_queue> make_event_queues(const gathered_vector<spike>& global_spikes) {
+        // queues to return
+        auto queues = std::vector<event_queue>(num_groups_local());
+        queue_impl_.make_event_queues(global_spikes, queues, connections_, cell_gid_partition_);
+        return queues;
+    }
 
     /// Returns the total number of global spikes over the duration of the simulation
     uint64_t num_spikes() const { return num_spikes_; }
@@ -127,11 +156,7 @@ public:
     }
 
 protected:
-    std::size_t cell_group_index(cell_gid_type cell_gid) const {
-        EXPECTS(is_local_cell(cell_gid));
-        return cell_gid_partition_.index(cell_gid);
-    }
-
+    
     std::vector<connection> connections_;
 
     communication_policy_type communication_policy_;

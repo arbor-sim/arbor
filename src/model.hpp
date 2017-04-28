@@ -44,16 +44,14 @@ public:
     };
 
     template <typename Iter1, typename Iter2>
-    model( const recipe& rec,
-           const util::partition_range<Iter1>& groups,
-           const util::partition_range<Iter2>& domains,
-           backend_policy policy):
+    model(const recipe& rec,
+          const util::partition_range<Iter1>& groups,
+          const util::partition_range<Iter2>& domains,
+          backend_policy policy):
         cell_group_divisions_(groups.divisions().begin(), groups.divisions().end()),
-        backend_policy_(policy)
+        backend_policy_(policy),
+        communicator_(gid_partition())
     {
-        // set up communicator based on partition
-        communicator_ = communicator_type(gid_partition());
-
         // generate the cell groups in parallel, with one task per cell group
         cell_groups_.resize(gid_partition().size());
         // thread safe vector for constructing the list of probes in parallel
