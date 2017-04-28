@@ -18,6 +18,8 @@ class cell_group {
 public:
     virtual ~cell_group() = default;
 
+    virtual cell_kind const get_cell_kind() const = 0;
+
     virtual void reset() = 0;
     virtual void set_binning_policy(binning_kind policy, time_type bin_interval) = 0;
     virtual void advance(time_type tfinal, time_type dt) = 0;

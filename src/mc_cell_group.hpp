@@ -11,6 +11,7 @@
 #include <common_types.hpp>
 #include <event_binner.hpp>
 #include <event_queue.hpp>
+#include <recipe.hpp>
 #include <sampler_function.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
@@ -58,6 +59,10 @@ public:
             ++source_gid;
         }
         EXPECTS(spike_sources_.size()==n_detectors);
+    }
+
+    cell_kind const get_cell_kind() const override {
+        return cell_kind::cable1d_neuron;
     }
 
     void reset() override {
@@ -173,7 +178,6 @@ public:
     }
 
 private:
-
     // gid of first cell in group.
     cell_gid_type gid_base_;
 
