@@ -34,7 +34,6 @@ using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
-std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
 using communicator_type = communication::communicator<communication::global_policy>;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
@@ -77,16 +76,6 @@ int main(int argc, char** argv) {
         pdist.all_segments = !options.probe_soma_only;
 
         auto recipe = make_recipe(options, pdist);
-        auto cell_range = distribute_cells(recipe->num_cells());
-
-        std::vector<cell_gid_type> group_divisions;
-        for (auto i = cell_range.first; i<cell_range.second; i+=options.group_size) {
-            group_divisions.push_back(i);
-        }
-        group_divisions.push_back(cell_range.second);
-
-        EXPECTS(group_divisions.front() == cell_range.first);
-        EXPECTS(group_divisions.back() == cell_range.second);
 
         auto register_exporter = [] (const io::cl_options& options) {
             return
@@ -95,9 +84,11 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        model m(*recipe,
-                util::partition_view(group_divisions),
-                config::has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
+        auto backend = config::has_cuda?
+            backend_policy::prefer_gpu: backend_policy::use_multicore;
+
+        model m(*recipe, backend);
+
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -177,20 +168,6 @@ int main(int argc, char** argv) {
         return 2;
     }
     return 0;
-}
-
-std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type num_cells) {
-    // Crude load balancing:
-    // divide [0, num_cells) into num_domains non-overlapping, contiguous blocks
-    // of size as close to equal as possible.
-
-    auto num_domains = communication::global_policy::size();
-    auto domain_id = communication::global_policy::id();
-
-    cell_gid_type cell_from = (cell_gid_type)(num_cells*(domain_id/(double)num_domains));
-    cell_gid_type cell_to = (cell_gid_type)(num_cells*((domain_id+1)/(double)num_domains));
-
-    return {cell_from, cell_to};
 }
 
 void banner() {
