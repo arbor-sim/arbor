@@ -145,14 +145,7 @@ public:
     template<typename Iter>
     static domain_gid_type get_domain(cell_member_type cell,
                                       const util::partition_range<Iter>& domains) {
-        // for (auto i: domains.divisions()) {
-        //     std::cerr << "DD" << i << ", ";
-        // }
-        // std::cerr << std::endl;
-        
         const auto domain = domains.index(cell.gid);
-        // std::cerr << "C" << cell << ", "
-        //           << "D" << domain << std::endl;
 
         using pr = util::partition_range<Iter>;
         EXPECTS(domain != pr::npos);

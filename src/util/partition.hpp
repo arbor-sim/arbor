@@ -172,6 +172,16 @@ make_partition(Part& divisions, const Sizes& sizes, T from=T{}) {
     return partition_view(divisions);
 }
 
+
+// make_partition(partition_functional, ...):
+// turns division into a partition,
+// where for every element in Range r, the partition
+// has Func f(i) elements, where i goes over r and is placed in 0..size(r)
+// partition_functional_t is simple a function distinguisher
+// Range r is a range we can iterator over as indices for f(i)
+// Func f takes an element of r and returns a length
+// partition is returned in divisions, and as a partition_view of divisions
+
 struct partition_functional_t {
     constexpr partition_functional_t() {}
 };
@@ -190,7 +200,8 @@ make_partition(partition_functional_t,
 
     auto pi = std::begin(divisions);
     for (const auto& i: r) {
-        *pi++ = from;
+        *pi = from;
+        pi++;
         from += f(i);
     }
     *pi = from;

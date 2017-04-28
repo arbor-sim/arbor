@@ -43,16 +43,18 @@ public:
             const auto src = con_next->source();
             const auto sources = search_impl.get_sources(con_next, src);
 
-            const auto targets = std::equal_range(con_next, con_end, src);
-            con_next = targets.second; // next iteration, next conn block
+            const auto con_last = con_next++; // move con_next to end of block
+            while (con_next < con_end && con_next->source().gid == src.gid)
+                con_next++;
 
+            // skip if no spikes directed to targets
             if (sources.first == sources.second) {
-                continue; // skip if no spikes == to src
+                continue;
             }
 
             // Now we just need to walk over all combinations of matching spikes and connections
             // Do it first by connection because of shared data
-            for (const auto con: make_range(targets)) {
+            for (const auto con: make_range(con_last, con_next)) {
                 const auto gidx = cell_group_index(cell_gid_partition, con.destination().gid);
                 for (const auto spike: make_range(sources)) {
                    queues[gidx].push_back(con.make_event(spike));

@@ -125,10 +125,13 @@ public:
         return global_spikes;
     }
 
-    /// Check each global spike in turn to see it generates local events.
-    /// If so, make the events and insert them into the appropriate event list.
-    /// Return a vector that contains the event queues for each local cell group.
-    /// NB: ^^ the actual algorithm is O(log(neurons/node))
+    /// make_event_queues: functions as a mixin in on EvenQueueImpl
+    /// setting up the queues to be returned, the work gets done in
+    /// EventQueueImpl.make_event_queues, and the queues are returned
+    ///
+    /// Maps spike events to local connections and inserts the events
+    /// in the event queue. Details for searches for relevant spike/connection pairs
+    /// are in EventQueueImpl
     ///
     /// Returns a vector of event queues, with one queue for each local cell group. The
     /// events in each queue are all events that must be delivered to targets in that cell
