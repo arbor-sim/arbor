@@ -49,7 +49,7 @@ void run_ncomp_convergence_test(
                 seg->set_compartments(ncomp);
             }
         }
-        model m(singleton_recipe{c}, backend);
+        model m(singleton_recipe{c}, {1u, backend});
 
         runner.run(m, ncomp, t_end, dt, exclude);
     }

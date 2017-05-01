@@ -18,7 +18,7 @@ void validate_soma(nest::mc::backend_policy backend) {
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
-    model model(singleton_recipe{c}, backend);
+    model model(singleton_recipe{c}, {1u, backend});
 
     float sample_dt = .025f;
     sampler_info samplers[] = {{"soma.mid", {0u, 0u}, simple_sampler(sample_dt)}};

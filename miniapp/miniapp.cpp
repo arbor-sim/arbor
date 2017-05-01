@@ -84,10 +84,12 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        auto backend = config::has_cuda?
+        group_rules rules;
+        rules.policy = config::has_cuda?
             backend_policy::prefer_gpu: backend_policy::use_multicore;
+        rules.target_group_size = options.group_size;
 
-        model m(*recipe, backend);
+        model m(*recipe, rules);
 
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
@@ -102,8 +104,7 @@ int main(int argc, char** argv) {
         m.set_binning_policy(binning_policy, options.bin_dt);
 
         // Inject some artificial spikes, 1 per 20 neurons.
-        cell_gid_type first_spike_cell = 20*((cell_range.first+19)/20);
-        for (auto c=first_spike_cell; c<cell_range.second; c+=20) {
+        for (cell_gid_type c=0; c<recipe->num_cells(); c+=20) {
             m.add_artificial_spike({c, 0});
         }
 

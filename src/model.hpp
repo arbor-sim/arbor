@@ -44,16 +44,12 @@ public:
         probe_spec probe;
     };
 
-    template <typename Iter>
-    model(const recipe& rec, backend_policy policy):
-        backend_policy_(policy)
+    model(const recipe& rec, group_rules rules):
+        domain_(rec, rules),
+        backend_policy_(rules.policy)
     {
-        // perform domaint decomposition
-        // TODO:
-
         // set up communicator based on partition
-        // TODO: gid_partition
-        communicator_ = communicator_type(gid_partition());
+        communicator_ = communicator_type(domain_.local_gid_partition());
 
         // generate the cell groups in parallel, with one task per cell group
         cell_groups_.resize(domain_.num_local_groups());
@@ -66,7 +62,7 @@ public:
                 PE("setup", "cells");
 
                 auto gids = domain_.get_group(i);
-                std::vector<cell> cells{gids.from-gids.to};
+                std::vector<cell> cells(gids.to-gids.from);
 
                 for (auto gid: util::make_span(gids.from, gids.to)) {
                     auto i = gid-gids.from;
@@ -106,12 +102,6 @@ public:
         current_events().resize(num_groups());
         future_events().resize(num_groups());
     }
-
-    // one cell per group:
-    model(const recipe& rec, backend_policy policy):
-        model(rec, policy) // TODO
-        //model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)), policy)
-    {}
 
     void reset() {
         t_ = 0.;
@@ -224,7 +214,9 @@ public:
 
     // only thread safe if called outside the run() method
     void add_artificial_spike(cell_member_type source, time_type tspike) {
-        current_spikes().get().push_back({source, tspike});
+        if (domain_.is_local_gid(source.gid)) {
+            current_spikes().get().push_back({source, tspike});
+        }
     }
 
     void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
