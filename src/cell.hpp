@@ -99,6 +99,11 @@ public:
          }
      }
 
+    /// Return the kind of cell, used for grouping into cell_groups
+    cell_kind get_cell_kind() const  {
+        return cell_kind::cable1d_neuron;
+    }
+
     /// add a soma to the cell
     /// radius must be specified
     soma_segment* add_soma(value_type radius, point_type center=point_type());

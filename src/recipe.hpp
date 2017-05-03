@@ -46,6 +46,8 @@ public:
     virtual cell_size_type num_cells() const =0;
 
     virtual cell get_cell(cell_gid_type) const =0;
+    virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
+
     virtual cell_count_info get_cell_count_info(cell_gid_type) const =0;
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const =0;
 };
@@ -67,6 +69,10 @@ public:
 
     cell get_cell(cell_gid_type) const override {
         return cell(clone_cell, cell_);
+    }
+
+    cell_kind get_cell_kind(cell_gid_type) const override {
+        return cell_.get_cell_kind();
     }
 
     cell_count_info get_cell_count_info(cell_gid_type) const override {
