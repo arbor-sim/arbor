@@ -34,4 +34,27 @@ inline void compiler_barrier_if_xlc_leq(unsigned ver) {
 template <typename X>
 inline constexpr bool isinf(X x) { return std::isinf(x); }
 
+// Work around a bad inlining-related optimization with icpc 16.0.3 and -xMIC-AVX512,
+// by forcing a computation.
+
+template <typename X>
+inline void sink(const X& x) {
+    char buf[sizeof x];
+    volatile char* bufptr = buf;
+    const char* xptr = reinterpret_cast<const char*>(&x);
+
+    for (std::size_t i = 0; i<sizeof buf; ++i) {
+        *bufptr++ = *xptr++;
+    }
 }
+
+template <typename X>
+inline void sink_if_icc_leq(unsigned ver, const X& x) {
+#if defined(__INTEL_COMPILER_BUILD_DATE)
+    if (__INTEL_COMPILER_BUILD_DATE<=ver) {
+        sink(x);
+    }
+#endif
+}
+
+} // namespace compat
