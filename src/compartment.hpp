@@ -185,7 +185,7 @@ public:
         using namespace util;
 
         segs_ = make_partition(offsets_, lengths);
-        compat::sink_if_icc_leq(20160415u, segs_.bounds());
+        compat::compiler_barrier_if_icc_leq(20160415u);
 
         nseg_ = size(segs_);
         scale_ = segs_.bounds().second/n;
