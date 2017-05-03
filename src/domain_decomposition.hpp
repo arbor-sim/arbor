@@ -22,11 +22,9 @@ struct group_rules {
 
 class domain_decomposition {
 public:
-    using gid_type = cell_gid_type;
-
     struct group_range_type {
-        gid_type from;
-        gid_type to;
+        cell_gid_type from;
+        cell_gid_type to;
         cell_kind kind;
     };
 
@@ -38,17 +36,17 @@ public:
 
         // partition the cells globally across the domains
         num_global_cells_ = rec.num_cells();
-        first_cell_ = (gid_type)(num_global_cells_*(domain_id/(double)num_domains));
-        last_cell_ = (gid_type)(num_global_cells_*((domain_id+1)/(double)num_domains));
+        cell_begin_ = (cell_gid_type)(num_global_cells_*(domain_id/(double)num_domains));
+        cell_end_ = (cell_gid_type)(num_global_cells_*((domain_id+1)/(double)num_domains));
 
         // partition the local cells into cell groups
         if (num_local_cells()>0) {
-            gid_type group_size = 1;
-            group_starts_.push_back(first_cell_);
-            auto group_kind = rec.get_cell_kind(first_cell_);
+            cell_gid_type group_size = 1;
+            group_starts_.push_back(cell_begin_);
+            auto group_kind = rec.get_cell_kind(cell_begin_);
             group_kinds_.push_back(group_kind);
-            gid_type gid = first_cell_+1;
-            while (gid<last_cell_) {
+            cell_gid_type gid = cell_begin_+1;
+            while (gid<cell_end_) {
                 auto kind = rec.get_cell_kind(gid);
                 if (kind!=group_kind || group_size>=rules.target_group_size) {
                     group_starts_.push_back(gid);
@@ -58,57 +56,56 @@ public:
                 ++group_size;
                 ++gid;
             }
-            group_starts_.push_back(last_cell_);
+            group_starts_.push_back(cell_end_);
         }
     }
 
-    util::optional<gid_type> local_group_from_gid(gid_type i) {
+    util::optional<cell_gid_type> local_group_from_gid(cell_gid_type i) {
         // check if gid is a local cell
         if (!is_local_gid(i)) {
             return util::nothing;
         }
-        return local_gid_partition().index(i);
+        return gid_group_partition().index(i);
     }
 
-    gid_type first_cell() const {
-        return first_cell_;
+    cell_gid_type cell_begin() const {
+        return cell_begin_;
     }
 
-    gid_type last_cell() const {
-        return last_cell_;
+    cell_gid_type cell_end() const {
+        return cell_end_;
     }
 
-    gid_type num_global_cells() const {
-        return last_cell_;
+    cell_gid_type num_global_cells() const {
+        return num_global_cells_;
     }
 
-    gid_type num_local_cells() const {
-        // valid when the invariant last_cell >= first_cell is satisfied
-        return last_cell()-first_cell();
+    cell_gid_type num_local_cells() const {
+        return cell_end()-cell_begin();
     }
 
-    gid_type num_local_groups() const {
+    cell_gid_type num_local_groups() const {
         return group_kinds_.size();
     }
 
-    group_range_type get_group(gid_type i) const {
+    group_range_type get_group(std::size_t i) const {
         return {group_starts_[i], group_starts_[i+1], group_kinds_[i]};
     }
 
-    bool is_local_gid(gid_type i) const {
-        return i>=first_cell_ && i<last_cell_;
+    bool is_local_gid(cell_gid_type i) const {
+        return i>=cell_begin_ && i<cell_end_;
     }
 
-    auto local_gid_partition() -> decltype(util::partition_view(std::vector<gid_type>())) const {
+    auto gid_group_partition() -> decltype(util::partition_view(std::vector<cell_gid_type>())) const {
         return util::partition_view(group_starts_);
     }
 
 private:
 
-    gid_type first_cell_;
-    gid_type last_cell_;
-    gid_type num_global_cells_;
-    std::vector<gid_type> group_starts_;
+    cell_gid_type cell_begin_;
+    cell_gid_type cell_end_;
+    cell_gid_type num_global_cells_;
+    std::vector<cell_gid_type> group_starts_;
     std::vector<cell_kind> group_kinds_;
 };
 

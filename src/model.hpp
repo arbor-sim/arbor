@@ -49,7 +49,7 @@ public:
         backend_policy_(rules.policy)
     {
         // set up communicator based on partition
-        communicator_ = communicator_type(domain_.local_gid_partition());
+        communicator_ = communicator_type(domain_.gid_group_partition());
 
         // generate the cell groups in parallel, with one task per cell group
         cell_groups_.resize(domain_.num_local_groups());
@@ -88,7 +88,7 @@ public:
         probes_.assign(probe_tmp.begin(), probe_tmp.end());
 
         // generate the network connections
-        for (cell_gid_type i: util::make_span(domain_.first_cell(), domain_.last_cell())) {
+        for (cell_gid_type i: util::make_span(domain_.cell_begin(), domain_.cell_end())) {
             for (const auto& cc: rec.connections_on(i)) {
                 connection conn{cc.source, cc.dest, cc.weight, cc.delay};
                 communicator_.add_connection(conn);

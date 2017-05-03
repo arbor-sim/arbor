@@ -44,8 +44,8 @@ TEST(domain_decomposition, one_cell_groups)
     unsigned num_cells = 10;
     domain_decomposition decomp(test_recipe(num_cells), rules);
 
-    EXPECT_EQ(0u, decomp.first_cell());
-    EXPECT_EQ(num_cells, decomp.last_cell());
+    EXPECT_EQ(0u, decomp.cell_begin());
+    EXPECT_EQ(num_cells, decomp.cell_end());
 
     EXPECT_EQ(num_cells, decomp.num_local_cells());
     EXPECT_EQ(num_cells, decomp.num_global_cells());
@@ -74,8 +74,8 @@ TEST(domain_decomposition, multi_cell_groups)
         group_rules rules{group_size, backend_policy::use_multicore};
         domain_decomposition decomp(test_recipe(num_cells), rules);
 
-        EXPECT_EQ(0u, decomp.first_cell());
-        EXPECT_EQ(num_cells, decomp.last_cell());
+        EXPECT_EQ(0u, decomp.cell_begin());
+        EXPECT_EQ(num_cells, decomp.cell_end());
 
         EXPECT_EQ(num_cells, decomp.num_local_cells());
         EXPECT_EQ(num_cells, decomp.num_global_cells());
