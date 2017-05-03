@@ -25,7 +25,7 @@ if(NOT EXISTS "${gbench_src_dir}/.git")
         message(STATUS "Updating the google-benchmark submodule ${gbench_src_dir}")
         execute_process(
             COMMAND "${GIT_EXECUTABLE}" submodule update --init "${gbench_src_dir}"
-            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
             ERROR_VARIABLE git_error
             RESULT_VARIABLE git_result)
         if(NOT git_result EQUAL 0)
