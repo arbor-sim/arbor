@@ -135,6 +135,10 @@ public:
         return util::partition_view(group_starts_);
     }
 
+    backend_policy backend() const {
+        return backend_policy_;
+    }
+
 private:
 
     backend_policy backend_policy_;

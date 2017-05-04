@@ -74,7 +74,7 @@ public:
                     }
                 }
 
-                if (backend_policy_==backend_policy::use_multicore) {
+                if (domain_.backend()==backend_policy::use_multicore) {
                     cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.begin, cells);
                 }
                 else {
@@ -267,7 +267,6 @@ public:
 
 private:
     const domain_decomposition &domain_;
-    backend_policy backend_policy_;
 
     time_type t_ = 0.;
     std::vector<std::unique_ptr<cell_group>> cell_groups_;
