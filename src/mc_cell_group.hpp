@@ -61,7 +61,7 @@ public:
         EXPECTS(spike_sources_.size()==n_detectors);
     }
 
-    cell_kind const get_cell_kind() const override {
+    cell_kind get_cell_kind() const override {
         return cell_kind::cable1d_neuron;
     }
 

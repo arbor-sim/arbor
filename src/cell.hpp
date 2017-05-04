@@ -100,7 +100,7 @@ public:
      }
 
     /// Return the kind of cell, used for grouping into cell_groups
-    cell_kind const get_cell_kind() const  {
+    cell_kind get_cell_kind() const  {
         return cell_kind::cable1d_neuron;
     }
 
