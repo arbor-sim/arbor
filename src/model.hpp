@@ -13,6 +13,7 @@
 #include <cell_group.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <domain_decomposition.hpp>
 #include <mc_cell_group.hpp>
 #include <profiling/profiler.hpp>
 #include <recipe.hpp>
@@ -43,18 +44,15 @@ public:
         probe_spec probe;
     };
 
-    template <typename Iter>
-    model( const recipe& rec,
-           const util::partition_range<Iter>& groups,
-           backend_policy policy):
-        cell_group_divisions_(groups.divisions().begin(), groups.divisions().end()),
-        backend_policy_(policy)
+    model(const recipe& rec, const domain_decomposition& decomp):
+        domain_(decomp)
     {
         // set up communicator based on partition
-        communicator_ = communicator_type(gid_partition());
+        communicator_ = communicator_type(domain_.gid_group_partition());
 
         // generate the cell groups in parallel, with one task per cell group
-        cell_groups_.resize(gid_partition().size());
+        cell_groups_.resize(domain_.num_local_groups());
+
         // thread safe vector for constructing the list of probes in parallel
         threading::parallel_vector<probe_record> probe_tmp;
 
@@ -62,11 +60,11 @@ public:
             [&](cell_gid_type i) {
                 PE("setup", "cells");
 
-                auto gids = gid_partition()[i];
-                std::vector<cell> cells{gids.second-gids.first};
+                auto gids = domain_.get_group(i);
+                std::vector<cell> cells(gids.end-gids.begin);
 
-                for (auto gid: util::make_span(gids)) {
-                    auto i = gid-gids.first;
+                for (auto gid: util::make_span(gids.begin, gids.end)) {
+                    auto i = gid-gids.begin;
                     cells[i] = rec.get_cell(gid);
 
                     cell_lid_type j = 0;
@@ -76,11 +74,11 @@ public:
                     }
                 }
 
-                if (backend_policy_==backend_policy::use_multicore) {
-                    cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.first, cells);
+                if (domain_.backend()==backend_policy::use_multicore) {
+                    cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.begin, cells);
                 }
                 else {
-                    cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.first, cells);
+                    cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.begin, cells);
                 }
                 PL(2);
             });
@@ -89,7 +87,7 @@ public:
         probes_.assign(probe_tmp.begin(), probe_tmp.end());
 
         // generate the network connections
-        for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
+        for (cell_gid_type i: util::make_span(domain_.cell_begin(), domain_.cell_end())) {
             for (const auto& cc: rec.connections_on(i)) {
                 connection conn{cc.source, cc.dest, cc.weight, cc.delay};
                 communicator_.add_connection(conn);
@@ -103,11 +101,6 @@ public:
         current_events().resize(num_groups());
         future_events().resize(num_groups());
     }
-
-    // one cell per group:
-    model(const recipe& rec, backend_policy policy):
-        model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)), policy)
-    {}
 
     void reset() {
         t_ = 0.;
@@ -220,16 +213,18 @@ public:
 
     // only thread safe if called outside the run() method
     void add_artificial_spike(cell_member_type source, time_type tspike) {
-        current_spikes().get().push_back({source, tspike});
+        if (domain_.is_local_gid(source.gid)) {
+            current_spikes().get().push_back({source, tspike});
+        }
     }
 
     void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0) {
-        if (!algorithms::in_interval(probe_id.gid, gid_partition().bounds())) {
-            return;
-        }
+        const auto idx = domain_.local_group_from_gid(probe_id.gid);
 
-        const auto idx = gid_partition().index(probe_id.gid);
-        cell_groups_[idx]->add_sampler(probe_id, f, tfrom);
+        // only attach samplers for local cells
+        if (idx) {
+            cell_groups_[*idx]->add_sampler(probe_id, f, tfrom);
+        }
     }
 
     const std::vector<probe_record>& probes() const { return probes_; }
@@ -243,8 +238,7 @@ public:
     }
 
     std::size_t num_cells() const {
-        auto bounds = gid_partition().bounds();
-        return bounds.second-bounds.first;
+        return domain_.num_local_cells();
     }
 
     // Set event binning policy on all our groups.
@@ -272,12 +266,7 @@ public:
     }
 
 private:
-    std::vector<cell_gid_type> cell_group_divisions_;
-    backend_policy backend_policy_;
-
-    auto gid_partition() const -> decltype(util::partition_view(cell_group_divisions_)) {
-        return util::partition_view(cell_group_divisions_);
-    }
+    const domain_decomposition &domain_;
 
     time_type t_ = 0.;
     std::vector<std::unique_ptr<cell_group>> cell_groups_;
