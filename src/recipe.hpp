@@ -4,6 +4,8 @@
 #include <memory>
 #include <stdexcept>
 
+#include <cell.hpp>
+
 namespace nest {
 namespace mc {
 

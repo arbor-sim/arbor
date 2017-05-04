@@ -58,11 +58,7 @@ using time_type = float;
 
 enum cell_kind {
     cable1d_neuron,           // Our own special mc neuron
-    stochastic_spike_source,  // Spikes typically not for global comm.
-    regular_frequency,        // Spike at a regular frequency
-    //point_neuron,           // Might need complicated computations
-    //from_music,             // Needs MPI communication and synchronization
-    //to_music,               // Needs MPI communication and synchronization
+    stochastic_spike_source   // Spikes typically not for global comm.
 };
 
 } // namespace mc
