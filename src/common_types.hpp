@@ -57,7 +57,8 @@ using time_type = float;
 // group equal kinds in the same cell group.
 
 enum cell_kind {
-    cable1d_neuron           // Our own special mc neuron
+    cable1d_neuron,           // Our own special mc neuron
+    regular_frequency,        // Spike at a regular frequency
 };
 
 } // namespace mc

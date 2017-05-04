@@ -191,7 +191,7 @@ public:
     ion&       ion_ca()       { return ions_[mechanisms::ionKind::ca]; }
     ion const& ion_ca() const { return ions_[mechanisms::ionKind::ca]; }
 
-    /// return reference to pottasium ion
+    /// return reference to potassium ion
     ion&       ion_k()       { return ions_[mechanisms::ionKind::k]; }
     ion const& ion_k() const { return ions_[mechanisms::ionKind::k]; }
 
