@@ -131,10 +131,12 @@ public:
         return i>=cell_begin_ && i<cell_end_;
     }
 
+    /// Return a partition of the cell gid over local cell groups.
     gid_partition_type gid_group_partition() const {
         return util::partition_view(group_starts_);
     }
 
+    /// Returns the backend policy.
     backend_policy backend() const {
         return backend_policy_;
     }

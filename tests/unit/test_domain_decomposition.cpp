@@ -84,6 +84,7 @@ TEST(domain_decomposition, multi_cell_groups)
 
         // check that cell group indexes are monotonically increasing
         unsigned total_cells = 0;
+        std::vector<cell_size_type> bounds{decomp.cell_begin()};
         for (auto i=0u; i<num_groups; ++i) {
             auto g = decomp.get_group(i);
             auto size = g.end-g.begin;
@@ -93,6 +94,11 @@ TEST(domain_decomposition, multi_cell_groups)
             EXPECT_LT(g.begin, g.end);
             //   is no larger than group_size
             EXPECT_TRUE(size<=group_size);
+
+            // Check that the start of this group matches the end of
+            // the preceding group.
+            EXPECT_EQ(bounds.back(), g.begin);
+            bounds.push_back(g.end);
 
             total_cells += size;
         }
