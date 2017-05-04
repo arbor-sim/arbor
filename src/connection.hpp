@@ -12,11 +12,12 @@ namespace mc {
 class connection {
 public:
     connection() = default;
-    connection(cell_member_type src, cell_member_type dest, float w, time_type d) :
+    connection(cell_member_type src, cell_member_type dest, float w, time_type d, domain_gid_type node) :
         source_(src),
         destination_(dest),
         weight_(w),
-        delay_(d)
+        delay_(d),
+        domain_(node)
     {}
 
     float weight() const { return weight_; }
@@ -25,7 +26,9 @@ public:
     cell_member_type source() const { return source_; }
     cell_member_type destination() const { return destination_; }
 
-    postsynaptic_spike_event make_event(const spike& s) {
+    domain_gid_type domain() const { return domain_; }
+
+    postsynaptic_spike_event make_event(const spike& s) const {
         return {destination_, s.time + delay_, weight_};
     }
 
@@ -34,6 +37,7 @@ private:
     cell_member_type destination_;
     float weight_;
     time_type delay_;
+    domain_gid_type domain_;
 };
 
 // connections are sorted by source id

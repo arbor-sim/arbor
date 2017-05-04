@@ -43,16 +43,15 @@ public:
         probe_spec probe;
     };
 
-    template <typename Iter>
-    model( const recipe& rec,
-           const util::partition_range<Iter>& groups,
-           backend_policy policy):
+    template <typename Iter1, typename Iter2>
+    model(const recipe& rec,
+          const util::partition_range<Iter1>& groups,
+          const util::partition_range<Iter2>& domains,
+          backend_policy policy):
         cell_group_divisions_(groups.divisions().begin(), groups.divisions().end()),
-        backend_policy_(policy)
+        backend_policy_(policy),
+        communicator_(gid_partition())
     {
-        // set up communicator based on partition
-        communicator_ = communicator_type(gid_partition());
-
         // generate the cell groups in parallel, with one task per cell group
         cell_groups_.resize(gid_partition().size());
         // thread safe vector for constructing the list of probes in parallel
@@ -88,14 +87,17 @@ public:
         // store probes
         probes_.assign(probe_tmp.begin(), probe_tmp.end());
 
+        PE("setup", "connections");
         // generate the network connections
-        for (cell_gid_type i: util::make_span(gid_partition().bounds())) {
-            for (const auto& cc: rec.connections_on(i)) {
-                connection conn{cc.source, cc.dest, cc.weight, cc.delay};
+        for (cell_gid_type target: util::make_span(gid_partition().bounds())) {
+            for (const auto& cc: rec.connections_on(target)) {
+                const auto domain = get_domain(cc.source, domains);
+                connection conn{cc.source, cc.dest, cc.weight, cc.delay, domain};
                 communicator_.add_connection(conn);
             }
         }
         communicator_.construct();
+        PL(2);
 
         // Allocate an empty queue buffer for each cell group
         // These must be set initially to ensure that a queue is available for each
@@ -105,8 +107,18 @@ public:
     }
 
     // one cell per group:
+    template<typename Iter>
+    model(const recipe& rec, const util::partition_range<Iter>& domains, backend_policy policy):
+        model(rec,
+              util::partition_view(util::make_span(0, rec.num_cells()+1)),
+              domains,
+              policy)
+    {}
+
     model(const recipe& rec, backend_policy policy):
-        model(rec, util::partition_view(util::make_span(0, rec.num_cells()+1)), policy)
+        model(rec,
+              util::partition_view(util::make_span(0, rec.num_cells()+1)),
+              policy)
     {}
 
     void reset() {
@@ -128,6 +140,17 @@ public:
         previous_spikes().clear();
 
         util::profilers_restart();
+    }
+
+    template<typename Iter>
+    static domain_gid_type get_domain(cell_member_type cell,
+                                      const util::partition_range<Iter>& domains) {
+        const auto domain = domains.index(cell.gid);
+
+        using pr = util::partition_range<Iter>;
+        EXPECTS(domain != pr::npos);
+        
+        return domain;
     }
 
     time_type run(time_type tfinal, time_type dt) {
@@ -168,7 +191,11 @@ public:
             PE("stepping", "communication");
 
             PE("exchange");
-            auto local_spikes = previous_spikes().gather();
+            auto local_spikes = previous_spikes().gather();            
+            std::sort(local_spikes.begin(), local_spikes.end(),
+                      [] (const spike& lhs, const spike& rhs) {
+                          return lhs.source < rhs.source;
+                      });
             auto global_spikes = communicator_.exchange(local_spikes);
             PL();
 

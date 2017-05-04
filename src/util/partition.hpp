@@ -63,6 +63,7 @@ public:
 
         auto divs = divisions();
         auto i = std::upper_bound(divs.left, divs.right, x);
+        
         if (i==divs.left || i==divs.right) {
             return right;
         }
@@ -71,7 +72,7 @@ public:
 
     size_type index(const inner_value_type& x) const {
         iterator i = find(x);
-        return i==right? npos: i-left;
+        return i==right ? npos: i-left;
     }
 
     // access to underlying divisions
@@ -165,6 +166,43 @@ make_partition(Part& divisions, const Sizes& sizes, T from=T{}) {
     for (const auto& s: sizes) {
         *pi++ = from;
         from += s;
+    }
+    *pi = from;
+
+    return partition_view(divisions);
+}
+
+
+// make_partition(partition_functional, ...):
+// turns division into a partition,
+// where for every element in Range r, the partition
+// has Func f(i) elements, where i goes over r and is placed in 0..size(r)
+// partition_functional_t is simple a function distinguisher
+// Range r is a range we can iterator over as indices for f(i)
+// Func f takes an element of r and returns a length
+// partition is returned in divisions, and as a partition_view of divisions
+
+struct partition_functional_t {
+    constexpr partition_functional_t() {}
+};
+constexpr partition_functional_t partition_functional;
+
+template <
+    typename Part,
+    typename Range,
+    typename Func,
+    typename T = typename sequence_traits<Part>::value_type
+>
+partition_range<typename sequence_traits<Part>::const_iterator>
+make_partition(partition_functional_t,
+               Part& divisions, const Range& r, Func f, T from=T{}) {
+    divisions.resize(size(r)+1);
+
+    auto pi = std::begin(divisions);
+    for (const auto& i: r) {
+        *pi = from;
+        pi++;
+        from += f(i);
     }
     *pi = from;
 

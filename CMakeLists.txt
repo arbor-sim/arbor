@@ -185,6 +185,31 @@ elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
 endif()
 
 #----------------------------------------------------------
+# Which communicator algorithm to use for finding
+#  spike:connection matches: spike/connection/global/domain
+#  spike  is O(nodes)
+#  connection is O(log(nodes))
+#  global is O(log(nodes)),
+#  domain is O(log(neurons/nodes))
+# if the number of spikes goes up with number of nodes
+#----------------------------------------------------------
+set(NMC_QUEUE_TYPE "domain" CACHE STRING
+  "set the communication connection algorithm, one of connection/spike/global/domain")
+set_property(CACHE NMC_QUEUE_TYPE PROPERTY STRINGS connection spike global domain)
+
+if(NMC_QUEUE_TYPE MATCHES "connection")
+  add_definitions(-DNMC_USE_LINEAR_CONNECTION_QUEUE)
+elseif(NMC_QUEUE_TYPE MATCHES "spike")
+  add_definitions(-DNMC_USE_LINEAR_SPIKE_QUEUE)
+elseif(NMC_QUEUE_TYPE MATCHES "global")
+  add_definitions(-DNMC_USE_GLOBAL_SEARCH_QUEUE)
+elseif(NMC_QUEUE_TYPE MATCHES "domain")
+  add_definitions(-DNMC_USE_DOMAIN_SEARCH_QUEUE)
+else()
+    message(FATAL_ERROR "-- Communication connection algorithm '${NMC_QUEUE_TYPE}' not supported, use one of connection/spike/global/domain")
+endif()
+
+#----------------------------------------------------------
 # Only build modcc if it has not already been installed.
 # This is useful if cross compiling for KNL, when it is not desirable to compile
 # modcc with the same flags that are used for the KNL target.

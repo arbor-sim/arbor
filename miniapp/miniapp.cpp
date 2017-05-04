@@ -21,6 +21,7 @@
 #include <util/debug.hpp>
 #include <util/ioutil.hpp>
 #include <util/nop.hpp>
+#include <util/span.hpp>
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -35,7 +36,9 @@ void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
 std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
+std::vector<cell_gid_type> partition_domains(cell_size_type ncells);
 using communicator_type = communication::communicator<communication::global_policy>;
+
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 void report_compartment_stats(const recipe&);
@@ -78,6 +81,7 @@ int main(int argc, char** argv) {
 
         auto recipe = make_recipe(options, pdist);
         auto cell_range = distribute_cells(recipe->num_cells());
+        auto domain_partition = partition_domains(recipe->num_cells());
 
         std::vector<cell_gid_type> group_divisions;
         for (auto i = cell_range.first; i<cell_range.second; i+=options.group_size) {
@@ -97,7 +101,9 @@ int main(int argc, char** argv) {
 
         model m(*recipe,
                 util::partition_view(group_divisions),
+                util::partition_view(domain_partition),
                 config::has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
+
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -191,6 +197,22 @@ std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type num_cell
     cell_gid_type cell_to = (cell_gid_type)(num_cells*((domain_id+1)/(double)num_domains));
 
     return {cell_from, cell_to};
+}
+
+std::vector<cell_gid_type> partition_domains(cell_size_type num_cells) {
+    using nest::mc::util::make_span;
+    using nest::mc::util::partition_functional;
+    
+    const auto num_domains = communication::global_policy::size();
+    const auto cells_per_domain = (cell_gid_type) (num_cells/(double)num_domains);
+
+    std::vector<cell_gid_type> partition;
+    make_partition(partition_functional,
+                   partition,
+                   make_span(0, num_domains),
+                   [=] (domain_gid_type) {return cells_per_domain;});
+    
+    return partition;
 }
 
 void banner() {
