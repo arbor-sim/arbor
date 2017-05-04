@@ -44,9 +44,8 @@ public:
         probe_spec probe;
     };
 
-    model(const recipe& rec, group_rules rules):
-        domain_(rec, rules),
-        backend_policy_(rules.policy)
+    model(const recipe& rec, const domain_decomposition& decomp):
+        domain_(decomp)
     {
         // set up communicator based on partition
         communicator_ = communicator_type(domain_.gid_group_partition());
@@ -62,10 +61,10 @@ public:
                 PE("setup", "cells");
 
                 auto gids = domain_.get_group(i);
-                std::vector<cell> cells(gids.to-gids.from);
+                std::vector<cell> cells(gids.end-gids.begin);
 
-                for (auto gid: util::make_span(gids.from, gids.to)) {
-                    auto i = gid-gids.from;
+                for (auto gid: util::make_span(gids.begin, gids.end)) {
+                    auto i = gid-gids.begin;
                     cells[i] = rec.get_cell(gid);
 
                     cell_lid_type j = 0;
@@ -76,10 +75,10 @@ public:
                 }
 
                 if (backend_policy_==backend_policy::use_multicore) {
-                    cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.from, cells);
+                    cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.begin, cells);
                 }
                 else {
-                    cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.from, cells);
+                    cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.begin, cells);
                 }
                 PL(2);
             });
@@ -267,7 +266,7 @@ public:
     }
 
 private:
-    domain_decomposition domain_;
+    const domain_decomposition &domain_;
     backend_policy backend_policy_;
 
     time_type t_ = 0.;

@@ -54,8 +54,8 @@ TEST(domain_decomposition, one_cell_groups)
     // cell group indexes are monotonically increasing
     for (unsigned i=0u; i<num_cells; ++i) {
         auto g = decomp.get_group(i);
-        EXPECT_LT(g.from, g.to);
-        EXPECT_EQ(g.to-g.from, 1u);
+        EXPECT_LT(g.begin, g.end);
+        EXPECT_EQ(g.end-g.begin, 1u);
     }
 
     // check that local gid are identified as local
@@ -86,11 +86,11 @@ TEST(domain_decomposition, multi_cell_groups)
         unsigned total_cells = 0;
         for (auto i=0u; i<num_groups; ++i) {
             auto g = decomp.get_group(i);
-            auto size = g.to-g.from;
+            auto size = g.end-g.begin;
 
             // assert that size of the group:
             //   is nonzero
-            EXPECT_LT(g.from, g.to);
+            EXPECT_LT(g.begin, g.end);
             //   is no larger than group_size
             EXPECT_TRUE(size<=group_size);
 

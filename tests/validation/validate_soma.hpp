@@ -18,7 +18,8 @@ void validate_soma(nest::mc::backend_policy backend) {
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
-    model model(singleton_recipe{c}, {1u, backend});
+    domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+    model m(singleton_recipe{c}, decomp);
 
     float sample_dt = .025f;
     sampler_info samplers[] = {{"soma.mid", {0u, 0u}, simple_sampler(sample_dt)}};
@@ -43,9 +44,9 @@ void validate_soma(nest::mc::backend_policy backend) {
             double oo_dt = base/multiple;
             if (oo_dt>max_oo_dt) goto end;
 
-            model.reset();
+            m.reset();
             float dt = float(1./oo_dt);
-            runner.run(model, dt, t_end, dt, {});
+            runner.run(m, dt, t_end, dt, {});
         }
     }
 end:

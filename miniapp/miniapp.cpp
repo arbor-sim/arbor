@@ -88,8 +88,9 @@ int main(int argc, char** argv) {
         rules.policy = config::has_cuda?
             backend_policy::prefer_gpu: backend_policy::use_multicore;
         rules.target_group_size = options.group_size;
+        auto decomp = domain_decomposition(*recipe, rules);
 
-        model m(*recipe, rules);
+        model m(*recipe, decomp);
 
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
