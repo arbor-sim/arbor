@@ -53,12 +53,12 @@ DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 
 using time_type = float;
 
-// Enumeration used to indentify the cell type/kind, used by the model to
+// Enumeration used to identify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
 enum cell_kind {
     cable1d_neuron,           // Our own special mc neuron
-    stochastic_spike_source   // Spikes typically not for global comm.
+    regular_frequency         // Spike at a regular interval
 };
 
 } // namespace mc

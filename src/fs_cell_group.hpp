@@ -26,7 +26,7 @@ public:
 
     virtual ~fs_cell_group() = default;
 
-    cell_kind const get_cell_kind() const override
+    cell_kind get_cell_kind() const override
     {
         return cell_kind::regular_frequency;
     }

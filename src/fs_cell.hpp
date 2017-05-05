@@ -1,14 +1,16 @@
 #pragma once
 #pragma once
 
+#include <vector>
+
+#include <cell_interface.hpp>
 #include <common_types.hpp>
 #include <util/debug.hpp>
-#include <vector>
 
 namespace nest {
 namespace mc {
 
-class fs_cell {
+class fs_cell : public cell_interface {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
@@ -24,13 +26,13 @@ public:
     {}
 
     /// Return the kind of cell, used for grouping into cell_groups
-    cell_kind const get_cell_kind() const {
+    cell_kind const get_cell_kind() const override {
         return cell_kind::regular_frequency;
     }
 
     /// Collect all spikes until tfinal.
     // updates the internal time state to tfinal as a side effect
-    std::vector<time_type> spikes_until(time_type tfinal)
+    std::vector<time_type> spikes_until(time_type tfinal) override
     {
         std::vector<time_type> spike_times;
 
@@ -53,7 +55,7 @@ public:
     }
 
     /// reset internal time to 0.0
-    void reset() {
+    void reset() override  {
         time_ = 0.0;
     }
 
