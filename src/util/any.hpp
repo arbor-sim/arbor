@@ -15,9 +15,9 @@
 //
 // - Does not avoid dynamic allocation of small objects.
 // - Does not implement the in_place_type<T> constructors from the standard.
-// - Does not implement the in_place_type<T> constructors from the standard.
+// - Does not implement the emplace modifier from the standard.
+// - Does not implement the make_any non-member function from the standard.
 //
-
 
 namespace nest {
 namespace mc {
@@ -50,8 +50,7 @@ public:
         typename = typename
             util::enable_if_t<!std::is_same<util::decay_t<T>, any>::value>
     >
-    any(T&& other)
-    {
+    any(T&& other) {
         using contained_type = util::decay_t<T>;
         static_assert(
             std::is_copy_constructible<contained_type>::value,
