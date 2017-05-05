@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <common_types.hpp>
+#include <cell_interface.hpp>
 #include <cell_tree.hpp>
 #include <morphology.hpp>
 #include <segment.hpp>
@@ -58,7 +59,7 @@ struct clone_cell_t {};
 constexpr clone_cell_t clone_cell{};
 
 /// high-level abstract representation of a cell and its segments
-class cell {
+class cell : public cell_interface {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
@@ -255,7 +256,7 @@ cable_segment* cell::add_cable(cell::index_type parent, Args&&... args)
 // If compartments_from_discretization is true, set number of compartments in
 // each segment to be the number of piecewise linear sections in the corresponding
 // section of the morphologu.
-cell make_cell(const morphology&, bool compartments_from_discretization=false);
+cell_description make_cell(const morphology&, bool compartments_from_discretization=false);
 
 } // namespace mc
 } // namespace nest

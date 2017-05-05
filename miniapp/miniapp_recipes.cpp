@@ -17,14 +17,17 @@ namespace mc {
 // description for greater data reuse.
 
 template <typename RNG>
-cell make_basic_cell(
+nest::mc::cell_description make_basic_cell(
     const morphology& morph,
     unsigned compartments_per_segment,
     unsigned num_synapses,
     const std::string& syn_type,
     RNG& rng)
 {
-    nest::mc::cell cell = make_cell(morph, true);
+    nest::mc::cell_description cell_descr = make_cell(morph, true);
+
+    nest::mc::cell& cell = cell_descr.as<nest::mc::cell>();
+
 
     for (auto& segment: cell.segments()) {
         if (compartments_per_segment!=0) {
@@ -80,15 +83,18 @@ public:
 
     cell_size_type num_cells() const override { return ncell_; }
 
-    cell get_cell(cell_gid_type i) const override {
+    cell_description get_cell(cell_gid_type i) const override {
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
         const auto& morph = get_morphology(i);
         unsigned cell_segments = morph.components();
 
-        auto cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
+        nest::mc::cell_description cell_descr = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
                         param_.synapse_type, gen);
+
+        nest::mc::cell& cell = cell_descr.as<nest::mc::cell>(cell_descr);
+
 
         EXPECTS(cell.num_segments()==cell_segments);
         EXPECTS(cell.probes().size()==0);
