@@ -187,10 +187,6 @@ struct common_random_access_iterator<
 template <typename I, typename E>
 using common_random_access_iterator_t = typename common_random_access_iterator<I, E>::type;
 
-//
-// TODO : now that we are using gcc 5+, replace these old skool SFINAE thingys
-//
-
 namespace impl {
     /// Helper for SFINAE tests that can "sink" any type
     template<typename T>

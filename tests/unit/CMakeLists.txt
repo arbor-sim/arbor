@@ -38,6 +38,7 @@ set(TEST_SOURCES
     test_compartments.cpp
     test_counter.cpp
     test_cycle.cpp
+    test_domain_decomposition.cpp
     test_either.cpp
     test_event_queue.cpp
     test_event_binner.cpp
