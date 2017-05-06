@@ -1,4 +1,5 @@
 #include "../gtest.h"
+#include "common.hpp"
 
 #include <iostream>
 
@@ -67,6 +68,26 @@ TEST(any, move_construction) {
     EXPECT_EQ(value.copies, 1);
 }
 
+TEST(any, type) {
+    using util::any;
+
+    any anyi(42);
+    any anys(std::string("hello"));
+    any anyv(std::vector<int>{1, 2, 3});
+    any any0;
+
+    EXPECT_EQ(typeid(int), anyi.type());
+    EXPECT_EQ(typeid(std::string), anys.type());
+    EXPECT_EQ(typeid(std::vector<int>), anyv.type());
+    EXPECT_EQ(typeid(void), any0.type());
+
+    anyi.reset();
+    EXPECT_EQ(typeid(void), anyi.type());
+
+    anyi = std::true_type();
+    EXPECT_EQ(typeid(std::true_type), anyi.type());
+}
+
 TEST(any, swap) {
     using util::any;
     using util::any_cast;
@@ -94,6 +115,21 @@ TEST(any, swap) {
     EXPECT_EQ(typeid(double), any2.type());
 }
 
+TEST(any, constness) {
+}
+
+// These should fail at compile time if the constraint that the contents of any
+// satisfy CopyConstructable. This implementation is rock solid, so they have
+// to be commented out.
+/*
+TEST(any, not_copy_constructable) {
+    util::any a(testing::nocopy<int>(3));
+
+    testing::nocopy<int> x(3);
+    util::any b(std::move(x));
+}
+*/
+
 // test any_cast(any*)
 //   - these have different behavior to any_cast on reference types
 //   - are used by the any_cast on refernce types
@@ -110,10 +146,25 @@ TEST(any, any_cast_ptr) {
     EXPECT_EQ(*ptr_s, "hello");
 
     // test that exceptions are thrown for invalid casts
-    EXPECT_THROW(util::any_cast<int>(&as), util::bad_any_cast);
-    EXPECT_THROW(util::any_cast<std::string>(&ai), util::bad_any_cast);
+    EXPECT_EQ(util::any_cast<int>(&as), nullptr);
+    EXPECT_EQ(util::any_cast<std::string>(&ai), nullptr);
     util::any empty;
     EXPECT_EQ(util::any_cast<int>(&empty), nullptr);
+    EXPECT_EQ(util::any_cast<int>((util::any*)nullptr), nullptr);
+
+    // Check that constness of the returned pointer matches that the input.
+    {
+        util::any a(42);
+        auto p = util::any_cast<int>(&a);
+        static_assert(std::is_same<int*, decltype(p)>::value,
+                "any_cast(any*) should not return const*");
+    }
+    {
+        const util::any a(42);
+        auto p = util::any_cast<int>(&a);
+        static_assert(std::is_same<const int*, decltype(p)>::value,
+                "any_cast(const any*) should return const*");
+    }
 }
 
 TEST(any, any_cast_ref) {
@@ -126,7 +177,8 @@ TEST(any, any_cast_ref) {
 // test any_cast(any&&)
 TEST(any, any_cast_rvalue) {
     auto moved = util::any_cast<moveable>(util::any(moveable()));
-    std::cout << "moves and copies: " << moved.moves << " " << moved.copies  << "\n";
+    EXPECT_EQ(moved.moves, 2);
+    EXPECT_EQ(moved.copies, 0);
 }
 
 TEST(any, std_swap) {
