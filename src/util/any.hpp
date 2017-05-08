@@ -4,8 +4,6 @@
 #include <typeinfo>
 #include <type_traits>
 
-#include <iostream> // TODO: remove
-
 #include <util/meta.hpp>
 
 // Partial implementation of std::any from C++17 standard.
@@ -16,8 +14,6 @@
 // - Does not avoid dynamic allocation of small objects.
 // - Does not implement the in_place_type<T> constructors from the standard.
 // - Does not implement the emplace modifier from the standard.
-// - Does not implement the make_any non-member function from the standard.
-//
 
 namespace nest {
 namespace mc {
@@ -220,6 +216,14 @@ T any_cast(any&& operand) {
 
 // Constructs an any object containing an object of type T, passing the
 // provided arguments to T's constructor.
+//
+// This does not exactly follow the standard, which states that
+// make_any is equivalent to
+//   return std::any(std::in_place_type<T>, std::forward<Args>(args)...);
+// i.e. that the contained object should be constructed in place, whereas
+// this implementation constructs the object, then moves it into the
+// contained object.
+// FIXME: rewrite with in_place_type when available.
 template <class T, class... Args>
 any make_any(Args&&... args) {
     return any(T(std::forward<Args>(args) ...));
