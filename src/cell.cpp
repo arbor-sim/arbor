@@ -244,7 +244,7 @@ cell_description make_cell(const morphology& morph, bool compartments_from_discr
     cell newcell;
 
     if (!morph) {
-        cell_description(std::move(newcell));
+        return cell_description(std::move(newcell));
     }
 
     EXPECTS(morph.check_valid());

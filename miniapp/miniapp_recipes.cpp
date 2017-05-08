@@ -68,7 +68,7 @@ nest::mc::cell_description make_basic_cell(
         cell.add_synapse({id, distribution(rng)}, syn_default);
     }
 
-    return cell;
+    return cell_descr;
 }
 
 class basic_cell_recipe: public recipe {
@@ -93,7 +93,7 @@ public:
         nest::mc::cell_description cell_descr = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
                         param_.synapse_type, gen);
 
-        nest::mc::cell& cell = cell_descr.as<nest::mc::cell>(cell_descr);
+        nest::mc::cell& cell = cell_descr.as<nest::mc::cell>();
 
 
         EXPECTS(cell.num_segments()==cell_segments);
@@ -114,7 +114,7 @@ public:
             }
         }
         EXPECTS(cell.probes().size()==cc.num_probes);
-        return cell;
+        return cell_descr;
     }
 
     cell_kind get_cell_kind(cell_gid_type) const override {

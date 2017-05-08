@@ -30,7 +30,10 @@ public:
 
 struct cell_description {
     template <typename T, typename = typename std::enable_if<!std::is_reference<T>::value>::type>
-    cell_description(T&& concrete_cell) : cellptr(new T(std::move(concrete_cell))) {}
+    cell_description(T&& concrete_cell) :
+        cellptr(new T(std::move(concrete_cell))) {
+            kind = concrete_cell.get_cell_kind();
+    }
 
     template <typename T>
     T& as() {
@@ -42,6 +45,8 @@ struct cell_description {
 
         return *ptr;
     }
+
+    cell_kind kind;
 
 private:
     std::unique_ptr<cell_interface> cellptr;
