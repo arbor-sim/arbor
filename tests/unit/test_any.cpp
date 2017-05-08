@@ -115,9 +115,6 @@ TEST(any, swap) {
     EXPECT_EQ(typeid(double), any2.type());
 }
 
-TEST(any, constness) {
-}
-
 // These should fail at compile time if the constraint that the contents of any
 // satisfy CopyConstructable. This implementation is rock solid, so they have
 // to be commented out.
@@ -168,10 +165,29 @@ TEST(any, any_cast_ptr) {
 }
 
 TEST(any, any_cast_ref) {
-    util::any ai(42);
-    auto i = util::any_cast<int>(ai);
-    EXPECT_EQ(typeid(i), typeid(int));
-    EXPECT_EQ(i, 42);
+    {
+        util::any a(42);
+        auto i = util::any_cast<int>(a);
+        EXPECT_EQ(typeid(i), typeid(int));
+        EXPECT_EQ(i, 42);
+
+        // check that we can take a reference to the
+        // underlying storage
+        auto& r = util::any_cast<int&>(a);
+        r = 3;
+        EXPECT_EQ(3, util::any_cast<int>(a));
+        EXPECT_TRUE((std::is_same<int&, decltype(r)>::value));
+    }
+
+    {   // check that const references can be returned to const objects
+        const util::any a(42);
+        auto& r = util::any_cast<const int&>(a);
+        EXPECT_TRUE((std::is_same<const int&, decltype(r)>::value));
+
+        // The following should fail with a static assertion if uncommented, because
+        // it requests a non-const reference to a const object.
+        //auto& instafail = util::any_cast<int&>(a);
+    }
 }
 
 // test any_cast(any&&)
