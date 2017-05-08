@@ -10,6 +10,7 @@
 #include "common_types.hpp"
 #include "util/meta.hpp"
 #include "util/optional.hpp"
+#include "util/range.hpp"
 #include "util/strprintf.hpp"
 
 namespace nest {
@@ -186,6 +187,7 @@ public:
                 span_[i].first = size_type(ev_.size());
                 ev_.insert(ev_.end(), begin(*evi), end(*evi));
                 span_[i].second = size_type(ev_.size());
+                mark_[i] = span_[i].first;
                 ++evi;
 
                 // check size for wrapping!
@@ -200,12 +202,29 @@ public:
         remaining_ = ev_.size();
     }
 
-    // Pop and return top event `ev` of `i`th event stream unless `event_time(ev)` > `t_until`
-    util::optional<value_type> pop_if_not_after(size_type i, time_type t_until) {
+    // Designate for processing events `ev` at head of `i`th event stream
+    // until `event_time(ev)` > `t_until`.
+    void mark_until_after(size_type i, time_type t_until) {
         using ::nest::mc::event_time;
-        return pop_if(i,
-            [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
-        );
+
+        auto& span = span_[i];
+        auto& mark = mark_[i];
+
+        mark = span.first;
+        while (mark!=span.second && !(event_time(ev_[mark])>t_until)) {
+            ++mark;
+        }
+    }
+
+    // Remove marked events `ev` from front of `i`th event stream.
+    void drop_marked_events(size_type i) {
+        remaining_ -= (mark_[i]-span_[i].first);
+        span_[i].first = mark_[i];
+    }
+
+    // Return range of marked events.
+    util::range<value_type*> marked_events(size_type i) {
+        return {&ev_[span_[i].first], &ev_[mark_[i]]};
     }
 
     // Return time of head of `i`th event stream if less than `t_until`, or else `t_until`.
@@ -215,20 +234,8 @@ public:
         }
 
         using ::nest::mc::event_time;
-        auto t = event_time(top_unsafe(i));
+        auto t = event_time(ev_[span_[i].first]);
         return t_until > t? t: t_until;
-    }
-
-    // Generic conditional pop: pop and return head of `i`th stream if
-    // non-empty and the head satisfies predicate.
-    template <typename Pred>
-    util::optional<value_type> pop_if(size_type i, Pred&& pred) {
-        if (n_events(i) && pred(top_unsafe(i))) {
-            return pop_unsafe(i);
-        }
-        else {
-            return util::nothing;
-        }
     }
 
     // TODO: remove once we are confident implementation of lowered cell event delivery
@@ -236,20 +243,34 @@ public:
     friend std::ostream& operator<<(std::ostream& out, const multi_event_stream& m) {
         using ::nest::mc::event_time;
 
-        out << "[\n";
-        for (size_type s = 0; s<m.n_streams(); ++s) {
-            out << util::strprintf("%05d: ", (int)s);
+        auto n = m.n_streams();
 
-            unsigned prev_end = 0;
-            for (const auto& p: m.span_) {
-                for (unsigned i = prev_end; i<p.first; ++i) {
-                    out << "      x";
-                }
-                for (unsigned i = p.first; i<p.second; ++i) {
-                    out << util::strprintf(" % 6.3f", event_time(m.ev_[i]));
-                }
+        out << "[";
+        unsigned i = 0;
+        for (unsigned ev_i = 0; ev_i<m.ev_.size(); ++ev_i) {
+            while (m.span_[i].second<=ev_i && i<n) ++i;
+            if (i<n) {
+                out << util::strprintf(" % 6d ", i);
             }
-            out << "\n";
+            else {
+                out << "      ?";
+            }
+        }
+        out << "\n[";
+
+        i = 0;
+        for (unsigned ev_i = 0; ev_i<m.ev_.size(); ++ev_i) {
+            while (m.span_[i].second<=ev_i && i<n) ++i;
+
+            bool discarded = i<n && m.span_[i].first>ev_i;
+            bool marked = i<n && m.mark_[i].first>ev_i;
+
+            if (discarded) {
+                out << "       x";
+            }
+            else {
+                out << util::strprintf(" % 6.3f%c", event_time(m.ev_[i]), marked?'*':' ');
+            }
         }
         out << "]\n";
         return out;
@@ -260,13 +281,9 @@ private:
         return ev_[span_[i].first];
     }
 
-    value_type pop_unsafe(size_type i) {
-        --remaining_;
-        return std::move(ev_[span_[i].first++]);
-    }
-
     std::vector<value_type> ev_;
     std::vector<std::pair<size_type, size_type>> span_;
+    std::vector<size_type> mark_;
     size_type remaining_ = 0;
 };
 

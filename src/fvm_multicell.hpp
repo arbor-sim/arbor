@@ -60,11 +60,8 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
-    struct target_handle {
-        size_type mech;        // index into list of mechanisms
-        size_type index;       // which instance of the mechanism is this?
-        size_type cell_offset; // which of our cells is this on?
-    };
+    using target_handle = typename backend::target_handle;
+
     using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
 
     fvm_multicell() = default;
@@ -141,9 +138,9 @@ public:
     /// Add an event for processing in next integration stage.
     void add_event(value_type ev_time, target_handle h, value_type weight) {
         EXPECTS(!integration_running_);
-        EXPECTS(staged_events_[h.cell_offset].empty() || staged_events_[h.cell_offset].back().time <= ev_time);
+        EXPECTS(staged_events_[h.cell_index].empty() || staged_events_[h.cell_index].back().time <= ev_time);
 
-        staged_events_[h.cell_offset].push_back({ev_time, h, weight});
+        staged_events_[h.cell_index].push_back({ev_time, h, weight});
     }
 
     /// Following types and methods are public only for testing:
@@ -268,11 +265,7 @@ private:
     /// once integration to `tfinal_` is complete.
     bool integration_running_ = false;
 
-    struct deliverable_event {
-        double time;
-        target_handle handle;
-        double weight;
-    };
+    using deliverable_event = typename backend::deliverable_event;
 
     /// events staged for upcoming integration stage
     std::vector<std::vector<deliverable_event>> staged_events_;
@@ -280,7 +273,7 @@ private:
     /// event queue for integration period
     /// TODO: Placeholder; this will change when event lists are moved to
     /// a backend structure.
-    using cell_event_queue = multi_event_stream<deliverable_event>;
+    using cell_event_queue = typename backend::cell_event_queue;
     cell_event_queue events_;
 
     bool has_pending_events() const {
@@ -536,10 +529,12 @@ void fvm_multicell<Backend>::initialize(
     }
     memory::copy(cv_to_cell_tmp, cv_to_cell_);
 
-    // create maps for mechanism initialization.
-    std::map<std::string, std::vector<segment_cv_range>> mech_map;
-    std::vector<std::vector<cell_lid_type>> syn_mech_map;
-    std::map<std::string, std::size_t> syn_mech_indices;
+    // look up table: mechanism name -> list of cv_range objects
+    std::map<std::string, std::vector<segment_cv_range>> mech_to_cv_range;
+
+    // look up table: point mechanism (synapse) name -> unpermuted cv indices
+    std::map<std::string, std::size_t> syn_to_syn_id;
+    std::vector<std::vector<cell_lid_type>> syn_id_to_raw_cv_index;
 
     // initialize vector used for matrix creation.
     std::vector<size_type> group_parent_index(ncomp);
@@ -569,7 +564,7 @@ void fvm_multicell<Backend>::initialize(
     // Iterate over the input cells and build the indexes etc that descrbe the
     // fused cell group. On completion:
     //  - group_paranet_index contains the full parent index for the fused cells.
-    //  - mech_map and syn_mech_map provide a map from mechanism names to an
+    //  - mech_to_cv_range and syn_mech_map provide a map from mechanism names to an
     //    iterable container of compartment ranges, which are used later to
     //    generate the node index for each mechanism kind.
     //  - the tmp_* vectors contain compartment-specific information for each
@@ -603,7 +598,7 @@ void fvm_multicell<Backend>::initialize(
 
             for (const auto& mech: seg->mechanisms()) {
                 if (mech.name()!="membrane") {
-                    mech_map[mech.name()].push_back(cv_range);
+                    mech_to_cv_range[mech.name()].push_back(cv_range);
                 }
             }
         }
@@ -612,17 +607,17 @@ void fvm_multicell<Backend>::initialize(
             EXPECTS(targets_count < targets_size);
 
             const auto& name = syn.mechanism.name();
-            std::size_t syn_mech_index = 0;
-            if (syn_mech_indices.count(name)==0) {
-                syn_mech_index = syn_mech_map.size();
-                syn_mech_indices[name] = syn_mech_index;
-                syn_mech_map.push_back({});
+            std::size_t syn_id = 0;
+            if (syn_to_syn_id.count(name)==0) {
+                syn_id = syn_to_syn_id.size();
+                syn_to_syn_id[name] = syn_id;
+                syn_id_to_raw_cv_index.push_back({});
             }
             else {
-                syn_mech_index = syn_mech_indices[name];
+                syn_id = syn_to_syn_id[name];
             }
 
-            auto& map_entry = syn_mech_map[syn_mech_index];
+            auto& map_entry = syn_id_to_raw_cv_index[syn_id];
 
             auto syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
             map_entry.push_back(syn_cv);
@@ -704,15 +699,17 @@ void fvm_multicell<Backend>::initialize(
     // compartments with that mechanism, then build the mechanism instance.
     std::vector<size_type> mech_cv_index(ncomp);
     std::vector<value_type> mech_cv_weight(ncomp);
-    std::map<std::string, std::vector<size_type>> mech_index_map;
-    for (auto const& mech: mech_map) {
+    std::map<std::string, std::vector<size_type>> mech_to_cv_index;
+    for (auto const& entry: mech_to_cv_range) {
+        const auto& mech_name = entry.first;
+        const auto& seg_cv_ranges = entry.second;
+
         // Clear the pre-allocated storage for mechanism indexes and weights.
         // Reuse the same vectors each time to have only one malloc and free
         // outside of the loop for each
         mech_cv_index.clear();
         mech_cv_weight.clear();
 
-        const auto& seg_cv_ranges = mech.second;
         for (auto& rng: seg_cv_ranges) {
             if (rng.has_parent()) {
                 // locate the parent cv in the partially constructed list of cv indexes
@@ -742,20 +739,20 @@ void fvm_multicell<Backend>::initialize(
             w *= 1e-2;
         }
 
+        size_type mech_id = mechanisms_.size();
         mechanisms_.push_back(
-            backend::make_mechanism(mech.first, cv_to_cell_, time_, time_to_, voltage_, current_, mech_cv_weight, mech_cv_index)
+            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, mech_cv_weight, mech_cv_index)
         );
 
         // save the indices for easy lookup later in initialization
-        mech_index_map[mech.first] = mech_cv_index;
+        mech_to_cv_index[mech_name] = mech_cv_index;
     }
 
     // Create point (synapse) mechanisms
-    for (const auto& syni: syn_mech_indices) {
-        const auto& mech_name = syni.first;
-        size_type mech_index = mechanisms_.size();
+    for (const auto& entry: syn_to_syn_id) {
+        const auto& mech_name = entry.first;
+        const auto& cv_map = syn_id_to_raw_cv_index[entry.second];
 
-        auto cv_map = syn_mech_map[syni.second];
         size_type n_indices = size(cv_map);
 
         // sort indices but keep track of their original order for assigning
@@ -771,25 +768,24 @@ void fvm_multicell<Backend>::initialize(
         // sort the cv information in order of cv index
         sort_by(permute, cv_index);
 
-        std::vector<cell_lid_type> cv_indices =
+        std::vector<cell_lid_type> permuted_cv_index =
             assign_from(transform_view(permute, cv_index));
 
         // Create the mechanism.
         // An empty weight vector is supplied, because there are no weights applied to point
         // processes, because their currents are calculated with the target units of [nA]
+        size_type mech_id = mechanisms_.size();
         mechanisms_.push_back(
-            backend::make_mechanism(mech_name, cv_to_cell_, time_, time_to_, voltage_, current_, {}, cv_indices));
+            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, {}, permuted_cv_index));
 
         // save the compartment indexes for this synapse type
-        mech_index_map[mech_name] = cv_indices;
+        mech_to_cv_index[mech_name] = permuted_cv_index;
 
         // make target handles
         std::vector<target_handle> handles(n_indices);
         for (auto i: make_span(0u, n_indices)) {
-            auto& handle = handles[target_index(permute[i])];
-            handle.mech = mech_index;
-            handle.index = i;
-            handle.cell_offset = cv_to_cell_[cv_indices[i]];
+            handles[target_index(permute[i])] =
+                target_handle(mech_id, i, cv_to_cell_[permuted_cv_index[i]]);
         }
         target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
         targets_count += n_indices;
@@ -805,7 +801,7 @@ void fvm_multicell<Backend>::initialize(
         std::set<size_type> index_set;
         for (auto const& mech : mechanisms_) {
             if(mech->uses_ion(ion)) {
-                auto const& ni = mech_index_map[mech->name()];
+                auto const& ni = mech_to_cv_index[mech->name()];
                 index_set.insert(ni.begin(), ni.end());
             }
         }
@@ -819,7 +815,7 @@ void fvm_multicell<Backend>::initialize(
         // join the ion reference in each mechanism into the cell-wide ion state
         for (auto& mech : mechanisms_) {
             if (mech->uses_ion(ion)) {
-                auto const& ni = mech_index_map[mech->name()];
+                auto const& ni = mech_to_cv_index[mech->name()];
                 mech->set_ion(ion, ions_[ion],
                     util::make_copy<std::vector<size_type>> (algorithms::index_into(ni, indexes)));
             }
@@ -882,24 +878,21 @@ template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(integration_running_);
 
-    // deliver events and set up time_to_
-    for (size_type ci = 0; ci<ncell_; ++ci) {
-        auto t = time(ci);
-        while (auto ev = events_.pop_if_not_after(ci, t)) {
-            deliver_event(ev->handle, ev->weight);
-        }
-        time_to_[ci] = events_.event_time_if_before(ci, std::min(t+dt_max_, tfinal_));
-    }
-
     PE("current");
     memory::fill(current_, 0.);
 
-    // update currents from ion channels
-    for(auto& m : mechanisms_) {
+    // mark pending events for delivery
+    backend::mark_events(time_, events_);
+
+    // deliver pending events and update current contributions from mechanisms
+    for(auto& m: mechanisms_) {
         PE(m->name().c_str());
+        m->deliver_events(events_);
         m->nrn_current();
         PL();
     }
+    // remove delivered events from queue and set time_to_
+    backend::retire_events(dt_max_, tfinal_, time_, time_to_, events_);
     PL();
 
     // solve the linear system
