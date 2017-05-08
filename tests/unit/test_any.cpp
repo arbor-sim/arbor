@@ -253,7 +253,57 @@ TEST(any, assignment_from_value) {
     // ensure the value was moved
     EXPECT_EQ(ptr, vec->data());
 
-    // ensure that the vector was copied correctly
+    // ensure that the contents of the vector are unchanged
     std::vector<int> ref{1, 2, 3};
     EXPECT_EQ(ref, *vec);
+}
+
+TEST(any, make_any) {
+    using util::make_any;
+    using util::any_cast;
+
+    {
+        auto a = make_any<int>(42);
+
+        EXPECT_EQ(typeid(int), a.type());
+        EXPECT_EQ(42, any_cast<int>(a));
+    }
+
+    // check casting
+    {
+        auto a = make_any<double>(42u);
+
+        EXPECT_EQ(typeid(double), a.type());
+        EXPECT_EQ(42.0, any_cast<double>(a));
+    }
+
+    // check forwarding of parameters to constructor
+    {
+        // create a string from const char*
+        auto a = make_any<std::string>("hello");
+
+        EXPECT_EQ(any_cast<std::string>(a), std::string("hello"));
+    }
+
+    // test that we make_any correctly forwards rvalue arguments to the constructor
+    // of the contained object.
+    {
+        std::vector<int> tmp{1, 2, 3};
+
+        // take a pointer to the orignal data to later verify
+        // that the value was moved, and not copied.
+        auto ptr = tmp.data();
+
+        auto a = make_any<std::vector<int>>(std::move(tmp));
+
+        auto vec = any_cast<std::vector<int>>(&a);
+
+        // ensure the value was moved
+        EXPECT_EQ(ptr, vec->data());
+
+        // ensure that the contents of the vector are unchanged
+        std::vector<int> ref{1, 2, 3};
+        EXPECT_EQ(ref, *vec);
+    }
+
 }

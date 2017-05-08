@@ -218,6 +218,13 @@ T any_cast(any&& operand) {
     return static_cast<T>(std::move(*ptr));
 }
 
+// Constructs an any object containing an object of type T, passing the
+// provided arguments to T's constructor.
+template <class T, class... Args>
+any make_any(Args&&... args) {
+    return any(T(std::forward<Args>(args) ...));
+}
+
 } // namespace util
 } // namespace mc
 } // namespace nest
