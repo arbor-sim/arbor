@@ -151,7 +151,7 @@ public:
     multi_event_stream() {}
 
     explicit multi_event_stream(size_type n_stream):
-       span_(n_stream, {0u, 0u}) {}
+       span_(n_stream, {0u, 0u}), mark_(n_stream, 0u) {}
 
     size_type n_streams() const { return span_.size(); }
     size_type size() const { return n_streams(); }
