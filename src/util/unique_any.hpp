@@ -4,73 +4,78 @@
 #include <typeinfo>
 #include <type_traits>
 
+#include <util/any.hpp>
 #include <util/meta.hpp>
 
-// Partial implementation of std::any from C++17 standard.
-//      http://en.cppreference.com/w/cpp/utility/any
+// A non copyable variant of util::any.
+// The two main use cases for such a container are
+//  1. storing types that are not copyable.
+//  2. ensuring that no copies are made of copyable types that have to be stored
+//     in a type-erased container.
 //
-// Implements a standard-compliant subset of the full interface.
+// unique_any has the same semantics as any with the execption of copy and copy
+// assignment, which are explicitly forbidden for all contained types.
+// The requirement that the contained type be copy constructable has also been
+// relaxed.
 //
-// - Does not avoid dynamic allocation of small objects.
-// - Does not implement the in_place_type<T> constructors from the standard.
-// - Does not implement the emplace modifier from the standard.
+// The any_cast non-member functions have been overridden for unique_any, with
+// the same semantics as for any.
+// This makes it possible to copy the underlying stored type if the type is
+// copyable. For example, the following code will compile and execute as
+// expected.
+//
+//  unique_any<int> a(3);
+//  int& ref = any_cast<int&>(a); // take a reference
+//  ref = 42;                     // update contained value via reference
+//  int  val = any_cast<int>(a);  // take a copy
+//  assert(val==42);
+//
+// If the underlying type is not copyable, only references may be taken
+//
+//  unique_any<nocopy_t> a();
+//  nocopy_t& ref        = any_cast<nocopy_t&>(a);       // ok
+//  const nocopy_t& cref = any_cast<const nocopy_t&>(a); // ok
+//  nocopy_t v           = any_cast<nocopy_t>(a);        // compile time error
+//
+// An lvalue can be created by moving from the contained object:
+//
+//  nocopy_t v = any_cast<nocopy_t&&>(std::move(a)); // ok
+//
+// After which a is in moved from state.
+
 
 namespace nest {
 namespace mc {
 namespace util {
 
-// Defines a type of object to be thrown by the value-returning forms of
-// util::any_cast on failure.
-//      http://en.cppreference.com/w/cpp/utility/any/bad_any_cast
-class bad_any_cast: public std::bad_cast {
+class unique_any {
 public:
-    const char* what() const noexcept override {
-        return "bad any cast";
-    }
-};
+    constexpr unique_any() = default;
 
-class any {
-public:
-    constexpr any() = default;
-
-    any(const any& other): state_(other.state_->copy()) {}
-
-    any(any&& other) noexcept {
+    unique_any(unique_any&& other) noexcept {
         std::swap(other.state_, state_);
     }
 
     template <
         typename T,
-        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, any>::value>
+        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, unique_any>::value>
     >
-    any(T&& other) {
+    unique_any(T&& other) {
         using contained_type = util::decay_t<T>;
-        static_assert(std::is_copy_constructible<contained_type>::value,
-            "Type of contained object stored in any must satisfy the CopyConstructible requirements.");
-
         state_.reset(new model<contained_type>(std::forward<T>(other)));
     }
 
-    any& operator=(const any& other) {
-        state_.reset(other.state_->copy());
-        return *this;
-    }
-
-    any& operator=(any&& other) noexcept {
+    unique_any& operator=(unique_any&& other) noexcept {
         swap(other);
         return *this;
     }
 
     template <
         typename T,
-        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, any>::value>
+        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, unique_any>::value>
     >
-    any& operator=(T&& other) {
+    unique_any& operator=(T&& other) {
         using contained_type = util::decay_t<T>;
-
-        static_assert(std::is_copy_constructible<contained_type>::value,
-            "Type of contained object stored in any must satisfy the CopyConstructible requirements.");
-
         state_.reset(new model<contained_type>(std::forward<T>(other)));
         return *this;
     }
@@ -79,7 +84,7 @@ public:
         state_.reset(nullptr);
     }
 
-    void swap(any& other) noexcept {
+    void swap(unique_any& other) noexcept {
         std::swap(other.state_, state_);
     }
 
@@ -95,7 +100,6 @@ private:
     struct interface {
         virtual ~interface() = default;
         virtual const std::type_info& type() = 0;
-        virtual interface* copy() = 0;
         virtual void* pointer() = 0;
         virtual const void* pointer() const = 0;
     };
@@ -106,7 +110,6 @@ private:
         model(const T& other): value(other) {}
         model(T&& other): value(std::move(other)) {}
 
-        interface* copy() override { return new model<T>(*this); }
         const std::type_info& type() override { return typeid(T); }
         void* pointer() override { return &value; }
         const void* pointer() const override { return &value; }
@@ -118,10 +121,10 @@ private:
 
 protected:
     template <typename T>
-    friend const T* any_cast(const any* operand);
+    friend const T* any_cast(const unique_any* operand);
 
     template <typename T>
-    friend T* any_cast(any* operand);
+    friend T* any_cast(unique_any* operand);
 
     template <typename T>
     T* unsafe_cast() {
@@ -134,19 +137,22 @@ protected:
     }
 };
 
-namespace impl {
-
-template <typename T>
-using any_cast_remove_qual = typename
-    std::remove_cv<typename std::remove_reference<T>::type>::type;
-
-} // namespace impl
+// If operand is not a null pointer, and the typeid of the requested T matches
+// that of the contents of operand, a pointer to the value contained by operand,
+// otherwise a null pointer.
+template<class T>
+const T* any_cast(const unique_any* operand) {
+    if (operand && operand->type()==typeid(T)) {
+        return operand->unsafe_cast<T>();
+    }
+    return nullptr;
+}
 
 // If operand is not a null pointer, and the typeid of the requested T matches
 // that of the contents of operand, a pointer to the value contained by operand,
 // otherwise a null pointer.
 template<class T>
-const T* any_cast(const any* operand) {
+T* any_cast(unique_any* operand) {
     if (operand && operand->type()==typeid(T)) {
         return operand->unsafe_cast<T>();
     }
@@ -154,15 +160,7 @@ const T* any_cast(const any* operand) {
 }
 
 template<class T>
-T* any_cast(any* operand) {
-    if (operand && operand->type()==typeid(T)) {
-        return operand->unsafe_cast<T>();
-    }
-    return nullptr;
-}
-
-template<class T>
-T any_cast(const any& operand) {
+T any_cast(const unique_any& operand) {
     using U = impl::any_cast_remove_qual<T>;
     static_assert(std::is_constructible<T, const U&>::value,
         "any_cast type can't construct copy of contained object");
@@ -175,7 +173,7 @@ T any_cast(const any& operand) {
 }
 
 template<class T>
-T any_cast(any& operand) {
+T any_cast(unique_any& operand) {
     using U = impl::any_cast_remove_qual<T>;
     static_assert(std::is_constructible<T, U&>::value,
         "any_cast type can't construct copy of contained object");
@@ -188,9 +186,10 @@ T any_cast(any& operand) {
 }
 
 template<class T>
-T any_cast(any&& operand) {
+T any_cast(unique_any&& operand) {
     using U = impl::any_cast_remove_qual<T>;
-    static_assert(std::is_constructible<T, U>::value,
+
+    static_assert(std::is_constructible<T, U&&>::value,
         "any_cast type can't construct copy of contained object");
 
     auto ptr = any_cast<U>(&operand);
@@ -202,17 +201,9 @@ T any_cast(any&& operand) {
 
 // Constructs an any object containing an object of type T, passing the
 // provided arguments to T's constructor.
-//
-// This does not exactly follow the standard, which states that
-// make_any is equivalent to
-//   return std::any(std::in_place_type<T>, std::forward<Args>(args)...);
-// i.e. that the contained object should be constructed in place, whereas
-// this implementation constructs the object, then moves it into the
-// contained object.
-// FIXME: rewrite with in_place_type when available.
 template <class T, class... Args>
-any make_any(Args&&... args) {
-    return any(T(std::forward<Args>(args) ...));
+unique_any make_unique_any(Args&&... args) {
+    return unique_any(T(std::forward<Args>(args) ...));
 }
 
 } // namespace util

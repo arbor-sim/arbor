@@ -69,6 +69,7 @@ set(TEST_SOURCES
     test_tree.cpp
     test_transform.cpp
     test_uninitialized.cpp
+    test_unique_any.cpp
     test_vector.cpp
 
     # unit test driver
