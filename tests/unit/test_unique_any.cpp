@@ -49,8 +49,6 @@ TEST(unique_any, move_construction) {
     util::unique_any moved(std::move(m));
 
     // Check that the expected number of copies and moves were performed.
-    // Note that any_cast(any*) is used instead of any_cast(const any&) because
-    // any_cast(const any&) returns a copy.
     const auto& cref = util::any_cast<const moveable&>(copied);
     EXPECT_EQ(cref.moves, 0);
     EXPECT_EQ(cref.copies, 1);
@@ -147,7 +145,7 @@ TEST(unique_any, not_copy_constructable) {
 
 // test any_cast(unique_any*) and any_cast(const unique_any*)
 //   - these have different behavior to any_cast on reference types
-//   - are used by the any_cast on refernce types
+//   - are used by the any_cast on reference types
 TEST(unique_any, any_cast_ptr) {
     using util::unique_any;
 
@@ -169,17 +167,20 @@ TEST(unique_any, any_cast_ptr) {
     EXPECT_EQ(util::any_cast<int>((util::unique_any*)nullptr), nullptr);
 
     // Check that constness of the returned pointer matches that the input.
+    // Check that constness of the returned pointer matches that the input.
     {
         unique_any a(42);
         auto p = util::any_cast<int>(&a);
-        static_assert(std::is_same<int*, decltype(p)>::value,
-                "any_cast(any*) should not return const*");
+
+        // any_cast(any*) should not return const*
+        EXPECT_TRUE((std::is_same<int*, decltype(p)>::value));
     }
     {
         const unique_any a(42);
         auto p = util::any_cast<int>(&a);
-        static_assert(std::is_same<const int*, decltype(p)>::value,
-                "any_cast(const any*) should return const*");
+
+        // any_cast(const any*) should return const*
+        EXPECT_TRUE((std::is_same<const int*, decltype(p)>::value));
     }
 }
 
@@ -207,7 +208,7 @@ TEST(unique_any, any_cast_const_ref) {
     EXPECT_TRUE((std::is_same<const int&, decltype(i)>::value));
 }
 
-// test any_cast(any&&)
+// test any_cast(unique_any&&)
 TEST(unique_any, any_cast_rvalue) {
     auto moved = util::any_cast<moveable>(util::unique_any(moveable()));
     EXPECT_EQ(moved.moves, 2);
@@ -232,7 +233,7 @@ TEST(unique_any, std_swap) {
     EXPECT_EQ(pd, util::any_cast<double>(&a1));
 }
 
-// test operator=(any&&)
+// test operator=(unique_any&&)
 TEST(unique_any, assignment_from_rvalue) {
     using util::unique_any;
     using std::string;
@@ -252,23 +253,49 @@ TEST(unique_any, assignment_from_rvalue) {
 // test template<typename T> operator=(T&&)
 TEST(unique_any, assignment_from_value) {
     using util::unique_any;
-    std::vector<int> tmp{1, 2, 3};
 
-    // take a pointer to the orignal data to later verify
-    // that the value was moved, and not copied.
-    auto ptr = tmp.data();
+    {
+        std::vector<int> tmp{1, 2, 3};
 
-    unique_any a;
-    a = std::move(tmp);
+        // take a pointer to the orignal data to later verify
+        // that the value was moved, and not copied.
+        auto ptr = tmp.data();
 
-    auto vec = util::any_cast<std::vector<int>>(&a);
+        unique_any a;
+        a = std::move(tmp);
 
-    // ensure the value was moved
-    EXPECT_EQ(ptr, vec->data());
+        auto vec = util::any_cast<std::vector<int>>(&a);
 
-    // ensure that the contents of the vector are unchanged
-    std::vector<int> ref{1, 2, 3};
-    EXPECT_EQ(ref, *vec);
+        // ensure the value was moved
+        EXPECT_EQ(ptr, vec->data());
+
+        // ensure that the contents of the vector are unchanged
+        std::vector<int> ref{1, 2, 3};
+        EXPECT_EQ(ref, *vec);
+    }
+    {
+        using T = testing::nocopy<int>;
+
+        T tmp(3);
+
+        T::reset_counts();
+        unique_any a;
+        a = std::move(tmp);
+
+        // the move constructor is called when constructing the
+        // contained object
+        EXPECT_EQ(T::move_ctor_count, 1);
+        EXPECT_EQ(T::move_assign_count, 0);
+
+        T::reset_counts();
+        unique_any b = std::move(a);
+
+        // no move of the underlying type because the swap between
+        // is swapping the pointers to contained objects, not the
+        // objects themselves.
+        EXPECT_EQ(T::move_ctor_count, 0);
+        EXPECT_EQ(T::move_assign_count, 0);
+    }
 }
 
 TEST(unique_any, make_unique_any) {
@@ -293,9 +320,21 @@ TEST(unique_any, make_unique_any) {
     // check forwarding of parameters to constructor
     {
         // create a string from const char*
-        auto a = make_unique_any<std::string>("hello");
+        auto as = make_unique_any<std::string>("hello");
 
-        EXPECT_EQ(any_cast<std::string>(a), std::string("hello"));
+        EXPECT_EQ(any_cast<std::string>(as), std::string("hello"));
+
+        // test forwarding of 0 size parameter list
+        struct X {
+            int value;
+            X(): value(42) {}
+        };
+        auto ai = make_unique_any<X>();
+        EXPECT_EQ(any_cast<X>(ai).value, 42);
+
+        // test forwarding of 2 size parameter list
+        auto av = make_unique_any<std::vector<int>>(3, 2);
+        EXPECT_EQ(any_cast<std::vector<int>&>(av), (std::vector<int>{2, 2, 2}));
     }
 
     // test that we make_unique_any correctly forwards rvalue arguments to the constructor

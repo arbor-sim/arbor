@@ -45,13 +45,12 @@ TEST(any, move_construction) {
     util::any moved(std::move(m));
 
     // Check that the expected number of copies and moves were performed.
-    // Note that any_cast(any*) is used instead of any_cast(const any&) because
-    // any_cast(const any&) returns a copy.
-    const auto& cref = *util::any_cast<moveable>(&copied);
+    // Use cast to reference to avoid copy or move of contained object.
+    const auto& cref = util::any_cast<moveable&>(copied);
     EXPECT_EQ(cref.moves, 0);
     EXPECT_EQ(cref.copies, 1);
 
-    const auto& mref = *util::any_cast<moveable>(&moved);
+    const auto& mref = util::any_cast<moveable&>(moved);
     EXPECT_EQ(mref.moves, 1);
     EXPECT_EQ(mref.copies, 0);
 
@@ -59,7 +58,7 @@ TEST(any, move_construction) {
     // constructed value
     util::any fin(std::move(moved));
     EXPECT_FALSE(moved.has_value()); // moved has been moved from and should be empty
-    const auto& fref = *util::any_cast<moveable>(&fin);
+    const auto& fref = util::any_cast<moveable&>(fin);
     EXPECT_EQ(fref.moves, 1);
     EXPECT_EQ(fref.copies, 0);
 
@@ -129,7 +128,7 @@ TEST(any, not_copy_constructable) {
 
 // test any_cast(any*)
 //   - these have different behavior to any_cast on reference types
-//   - are used by the any_cast on refernce types
+//   - are used by the any_cast on reference types
 TEST(any, any_cast_ptr) {
 
     // test that valid pointers are returned for int and std::string types
@@ -153,14 +152,16 @@ TEST(any, any_cast_ptr) {
     {
         util::any a(42);
         auto p = util::any_cast<int>(&a);
-        static_assert(std::is_same<int*, decltype(p)>::value,
-                "any_cast(any*) should not return const*");
+
+        // any_cast(any*) should not return const*
+        EXPECT_TRUE((std::is_same<int*, decltype(p)>::value));
     }
     {
         const util::any a(42);
         auto p = util::any_cast<int>(&a);
-        static_assert(std::is_same<const int*, decltype(p)>::value,
-                "any_cast(const any*) should return const*");
+
+        // any_cast(const any*) should return const*
+        EXPECT_TRUE((std::is_same<const int*, decltype(p)>::value));
     }
 }
 
