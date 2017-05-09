@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include <util/rangeutil.hpp>
+#include <util/span.hpp>
 #include <util/unique_any.hpp>
 
 using namespace nest::mc;
@@ -315,5 +317,78 @@ TEST(unique_any, make_unique_any) {
         // ensure that the contents of the vector are unchanged
         std::vector<int> ref{1, 2, 3};
         EXPECT_EQ(ref, *vec);
+    }
+}
+
+// test that unique_any plays nicely with STL containers
+TEST(unique_any, stdvector)
+{
+    using util::unique_any;
+
+    // push_back
+    {
+        using T = testing::nocopy<std::string>;
+        auto get = [](const unique_any& v) {return util::any_cast<const T&>(v).value;};
+
+        std::vector<unique_any> vec;
+        vec.push_back(T("h"));
+        vec.push_back(T("e"));
+        vec.push_back(T("l"));
+        vec.push_back(T("l"));
+        vec.push_back(T("o"));
+
+        std::string s;
+        for (auto& v: vec) s += get(v);
+        EXPECT_EQ(s, "hello");
+
+        s.clear();
+        vec.erase(std::begin(vec)+1);
+        vec.erase(std::begin(vec)+1);
+        vec.erase(std::begin(vec)+1);
+        for (auto& v: vec) s += get(v);
+        EXPECT_EQ(s, "ho");
+    }
+
+    // sort
+    {
+        auto get = [](const unique_any& v) {return util::any_cast<int>(v);};
+        int n = 10;
+        std::vector<unique_any> vec;
+
+        // fill the vector with values in descending order:
+        //  [n-1, n-2, ..., 1, 0]
+        for (auto i: util::make_span(0, n)) {
+            vec.emplace_back(n-i-1);
+        }
+        // sort to ascending order
+        util::sort_by(vec, get);
+
+        // verify sort
+        for (auto i: util::make_span(0, n)) {
+            EXPECT_EQ(i, get(vec[i]));
+        }
+    }
+
+    // std::reverse with non-copyable type
+    {
+        using T = testing::nocopy<int>;
+        auto get = [](const unique_any& v) {return util::any_cast<const T&>(v).value;};
+        int n = 10;
+        std::vector<unique_any> vec;
+
+        // fill the vector with values in descending order:
+        //  [n-1, n-2, ..., 1, 0]
+        for (auto i: util::make_span(0, n)) {
+            vec.emplace_back(T(n-i-1));
+        }
+
+        // sort to ascending order by reversing the vector, which is sorted in
+        // descending order.
+        std::reverse(vec.begin(), vec.end());
+
+        // verify sort
+        for (auto i: util::make_span(0, n)) {
+            EXPECT_EQ(i, get(vec[i]));
+        }
     }
 }

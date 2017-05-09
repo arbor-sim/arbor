@@ -7,11 +7,42 @@
 #include <util/any.hpp>
 #include <util/meta.hpp>
 
-// A version of util::any that is not copyable.
+// A non copyable variant of util::any.
 // The two main use cases for such a container are
-//  1. for storing types that are not copyable.
-//  2. for ensuring that no copies are made of types that are copyable.
-//     e.g. in performance critical code.
+//  1. storing types that are not copyable.
+//  2. ensuring that no copies are made of copyable types that have to be stored
+//     in a type-erased container.
+//
+// unique_any has the same semantics as any with the execption of copy and copy
+// assignment, which are explicitly forbidden for all contained types.
+// The requirement that the contained type be copy constructable has also been
+// relaxed.
+//
+// The any_cast non-member functions have been overridden for unique_any, with
+// the same semantics as for any.
+// This makes it possible to copy the underlying stored type if the type is
+// copyable. For example, the following code will compile and execute as
+// expected.
+//
+//  unique_any<int> a(3);
+//  int& ref = any_cast<int&>(a); // take a reference
+//  ref = 42;                     // update contained value via reference
+//  int  val = any_cast<int>(a);  // take a copy
+//  assert(val==42);
+//
+// If the underlying type is not copyable, only references may be taken
+//
+//  unique_any<nocopy_t> a();
+//  nocopy_t& ref        = any_cast<nocopy_t&>(a);       // ok
+//  const nocopy_t& cref = any_cast<const nocopy_t&>(a); // ok
+//  nocopy_t v           = any_cast<nocopy_t>(a);        // compile time error
+//
+// An lvalue can be created by moving from the contained object:
+//
+//  nocopy_t v = any_cast<nocopy_t&&>(std::move(a)); // ok
+//
+// After which a is in moved from state.
+
 
 namespace nest {
 namespace mc {
@@ -76,22 +107,12 @@ private:
     template <typename T>
     struct model: public interface {
         ~model() = default;
-
         model(const T& other): value(other) {}
-
         model(T&& other): value(std::move(other)) {}
 
-        const std::type_info& type() override {
-            return typeid(T);
-        }
-
-        void* pointer() override {
-            return &value;
-        }
-
-        const void* pointer() const override {
-            return &value;
-        }
+        const std::type_info& type() override { return typeid(T); }
+        void* pointer() override { return &value; }
+        const void* pointer() const override { return &value; }
 
         T value;
     };
@@ -99,7 +120,6 @@ private:
     std::unique_ptr<interface> state_;
 
 protected:
-
     template <typename T>
     friend const T* any_cast(const unique_any* operand);
 
@@ -138,12 +158,6 @@ T* any_cast(unique_any* operand) {
     }
     return nullptr;
 }
-
-// The semantics of any_cast for unique_any differ from any, because 
-// any_cast(any& / const any&/ any&&) return a copy of the contained object
-// in the argument to any_cast, while unique_any is designed to work with
-// non-copyable types.
-// Hence, references to the contained objects are returned, not copies.
 
 template<class T>
 T any_cast(const unique_any& operand) {

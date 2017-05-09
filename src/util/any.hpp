@@ -103,26 +103,13 @@ private:
     template <typename T>
     struct model: public interface {
         ~model() = default;
-
         model(const T& other): value(other) {}
-
         model(T&& other): value(std::move(other)) {}
 
-        interface* copy() override {
-            return new model<T>(*this);
-        }
-
-        const std::type_info& type() override {
-            return typeid(T);
-        }
-
-        void* pointer() override {
-            return &value;
-        }
-
-        const void* pointer() const override {
-            return &value;
-        }
+        interface* copy() override { return new model<T>(*this); }
+        const std::type_info& type() override { return typeid(T); }
+        void* pointer() override { return &value; }
+        const void* pointer() const override { return &value; }
 
         T value;
     };
@@ -130,7 +117,6 @@ private:
     std::unique_ptr<interface> state_;
 
 protected:
-
     template <typename T>
     friend const T* any_cast(const any* operand);
 
