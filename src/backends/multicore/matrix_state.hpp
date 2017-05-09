@@ -76,13 +76,21 @@ public:
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
             auto dt = time_to[m]-time[m];
-            value_type factor = 1e-3/dt;
 
-            for (auto i: util::make_span(cell_cv_part[m])) {
-                auto gi = factor*cv_capacitance[i];
+            if (dt>0) {
+                value_type factor = 1e-3/dt;
+                for (auto i: util::make_span(cell_cv_part[m])) {
+                    auto gi = factor*cv_capacitance[i];
 
-                d[i] = gi + invariant_d[i];
-                rhs[i] = gi*voltage[i] - current[i];
+                    d[i] = gi + invariant_d[i];
+                    rhs[i] = gi*voltage[i] - current[i];
+                }
+            }
+            else {
+                for (auto i: util::make_span(cell_cv_part[m])) {
+                    d[i] = 0;
+                    rhs[i] = voltage[i];
+                }
             }
         }
     }
@@ -93,18 +101,20 @@ public:
             auto first = cv_span.first;
             auto last = cv_span.second; // one past the end
 
-            // backward sweep
-            for(auto i=last-1; i>first; --i) {
-                auto factor = u[i] / d[i];
-                d[parent_index[i]]   -= factor * u[i];
-                rhs[parent_index[i]] -= factor * rhs[i];
-            }
-            rhs[first] /= d[first];
+            if (d[first]>0) {
+                // backward sweep
+                for(auto i=last-1; i>first; --i) {
+                    auto factor = u[i] / d[i];
+                    d[parent_index[i]]   -= factor * u[i];
+                    rhs[parent_index[i]] -= factor * rhs[i];
+                }
+                rhs[first] /= d[first];
 
-            // forward sweep
-            for(auto i=first+1; i<last; ++i) {
-                rhs[i] -= u[i] * rhs[parent_index[i]];
-                rhs[i] /= d[i];
+                // forward sweep
+                for(auto i=first+1; i<last; ++i) {
+                    rhs[i] -= u[i] * rhs[parent_index[i]];
+                    rhs[i] /= d[i];
+                }
             }
         }
     }

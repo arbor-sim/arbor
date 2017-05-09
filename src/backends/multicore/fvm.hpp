@@ -3,6 +3,7 @@
 #include <map>
 #include <string>
 
+#include <backends/event.hpp>
 #include <common_types.hpp>
 #include <event_queue.hpp>
 #include <mechanism.hpp>
@@ -13,6 +14,7 @@
 #include <util/span.hpp>
 
 #include "matrix_state.hpp"
+#include "multi_event_stream.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 
@@ -41,50 +43,12 @@ struct backend {
     using host_view   = view;
     using host_iview  = iview;
 
-    /// matrix state
-    using matrix_state =
-        nest::mc::multicore::matrix_state<value_type, size_type>;
+    using matrix_state = nest::mc::multicore::matrix_state<value_type, size_type>;
+    using multi_event_stream = nest::mc::multicore::multi_event_stream;
 
-    // per-cell event queue
-    // note: `cell_index` field is strictly speaking redundant: can look up via vec_ci.
-    struct target_handle {
-        size_type mech_id;    // mechanism type identifier (per cell group).
-        size_type index;      // instance of the mechanism
-        size_type cell_index; // which cell (acts as index into e.g. vec_t)
-
-        target_handle() {}
-        target_handle(size_type mech_id, size_type index, size_type cell_index):
-            mech_id(mech_id), index(index), cell_index(cell_index) {}
-    };
-
-    struct deliverable_event {
-        value_type time;
-        size_type mech_id;
-        size_type index;
-        value_type weight;
-
-        deliverable_event() {}
-        deliverable_event(value_type time, target_handle handle, value_type weight):
-            time(time), mech_id(handle.mech_id), index(handle.index), weight(weight) {}
-    };
-
-    using cell_event_queue = multi_event_stream<deliverable_event>;
-
-    static void mark_events(const_view vec_t, cell_event_queue& events) {
-        size_type ncell = util::size(vec_t);
-        for (size_type c = 0; c<ncell; ++c) {
-            events.mark_until_after(c, vec_t[c]);
-        }
-    }
-
-    static void retire_events(value_type dt_max, value_type t_max, view vec_t, view vec_t_to, cell_event_queue& events) {
-        size_type ncell = util::size(vec_t);
-        for (size_type c = 0; c<ncell; ++c) {
-            events.drop_marked_events(c);
-            value_type max_t_to = std::min(vec_t[c]+dt_max, t_max);
-            vec_t_to[c] = events.event_time_if_before(c, max_t_to);
-        }
-    }
+    // re-expose common backend event types
+    using deliverable_event = nest::mc::deliverable_event;
+    using target_handle = nest::mc::target_handle;
 
     //
     // mechanism infrastructure
@@ -128,6 +92,13 @@ struct backend {
     // perform min/max reductions on 'array' type
     static std::pair<value_type, value_type> minmax_value(const array& v) {
         return util::minmax_value(v);
+    }
+
+    static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {
+        size_type ncell = util::size(time);
+        for (size_type i = 0; i<ncell; ++i) {
+            time_to[i] = std::min(time[i]+dt, tmax);
+        }
     }
 
 private:

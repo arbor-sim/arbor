@@ -19,7 +19,6 @@
 #include <profiling/profiler.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
-#include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
@@ -60,9 +59,10 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
-    using target_handle = typename backend::target_handle;
-
     using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
+
+    using target_handle = typename backend::target_handle;
+    using deliverable_event = typename backend::deliverable_event;
 
     fvm_multicell() = default;
 
@@ -78,8 +78,9 @@ public:
 
     void reset();
 
+    // fvm_multicell::deliver_event is used only for testing
     void deliver_event(target_handle h, value_type weight) {
-        mechanisms_[h.mech]->net_receive(h.index, weight);
+        mechanisms_[h.mech_id]->net_receive(h.index, weight);
     }
 
     value_type probe(probe_handle h) const {
@@ -94,14 +95,10 @@ public:
         dt_max_ = dt_max;
         integration_running_ = true;
 
-        // TODO: Placeholder; construct backend event delivery
-        // data structure from events added.
         EXPECTS(!has_pending_events());
-        events_.init(staged_events_);
 
-        for (auto& staged: staged_events_) {
-            staged.clear();
-        }
+        events_->init(staged_events_);
+        staged_events_.clear();
     }
 
     /// Advance one integration step.
@@ -115,6 +112,10 @@ public:
     /// Query per-cell time state. (Placeholders: replace with backend implementations)
     value_type time(size_type cell_idx) const {
         return time_[cell_idx];
+    }
+
+    value_type min_time() const {
+        return backend::minmax_value(time_).first;
     }
 
     value_type max_time() const {
@@ -138,9 +139,7 @@ public:
     /// Add an event for processing in next integration stage.
     void add_event(value_type ev_time, target_handle h, value_type weight) {
         EXPECTS(!integration_running_);
-        EXPECTS(staged_events_[h.cell_index].empty() || staged_events_[h.cell_index].back().time <= ev_time);
-
-        staged_events_[h.cell_index].push_back({ev_time, h, weight});
+        staged_events_.push_back(deliverable_event(ev_time, h, weight));
     }
 
     /// Following types and methods are public only for testing:
@@ -265,19 +264,15 @@ private:
     /// once integration to `tfinal_` is complete.
     bool integration_running_ = false;
 
-    using deliverable_event = typename backend::deliverable_event;
-
     /// events staged for upcoming integration stage
-    std::vector<std::vector<deliverable_event>> staged_events_;
+    std::vector<deliverable_event> staged_events_;
 
     /// event queue for integration period
-    /// TODO: Placeholder; this will change when event lists are moved to
-    /// a backend structure.
-    using cell_event_queue = typename backend::cell_event_queue;
-    cell_event_queue events_;
+    using multi_event_stream = typename backend::multi_event_stream;
+    std::unique_ptr<multi_event_stream> events_;
 
     bool has_pending_events() const {
-        return events_.remaining()!=0;
+        return events_ && !events_->empty();
     }
 
     /// the linear system for implicit time stepping of cell state
@@ -540,8 +535,7 @@ void fvm_multicell<Backend>::initialize(
     std::vector<size_type> group_parent_index(ncomp);
 
     // setup per-cell event stores.
-    staged_events_.resize(ncell_);
-    events_ = cell_event_queue{ncell_};
+    events_ = util::make_unique<multi_event_stream>(ncell_);
 
     // create each cell:
     auto target_hi = target_handles.begin();
@@ -841,7 +835,7 @@ void fvm_multicell<Backend>::initialize(
     memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
     memory::fill(ion_ca().external_concentration(), 2.0);           // mM
 
-    // initialise mechanism and voltage state
+    // initialize mechanism and voltage state
     reset();
 }
 
@@ -869,8 +863,7 @@ void fvm_multicell<Backend>::reset() {
     dt_max_ = 0;
     integration_running_ = false;
     staged_events_.clear();
-    staged_events_.resize(ncell_);
-    events_.clear();
+    events_->clear();
 }
 
 
@@ -882,17 +875,21 @@ void fvm_multicell<Backend>::step_integration() {
     memory::fill(current_, 0.);
 
     // mark pending events for delivery
-    backend::mark_events(time_, events_);
+    events_->mark_until_after(time_);
 
     // deliver pending events and update current contributions from mechanisms
     for(auto& m: mechanisms_) {
         PE(m->name().c_str());
-        m->deliver_events(events_);
+        m->deliver_events(*events_);
         m->nrn_current();
         PL();
     }
+
     // remove delivered events from queue and set time_to_
-    backend::retire_events(dt_max_, tfinal_, time_, time_to_, events_);
+    events_->drop_marked_events();
+
+    backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
+    events_->event_time_if_before(time_to_);
     PL();
 
     // solve the linear system
@@ -907,7 +904,7 @@ void fvm_multicell<Backend>::step_integration() {
 
     // integrate state of gating variables etc.
     PE("state");
-    for(auto& m : mechanisms_) {
+    for(auto& m: mechanisms_) {
         PE(m->name().c_str());
         m->nrn_state();
         PL();
@@ -920,7 +917,7 @@ void fvm_multicell<Backend>::step_integration() {
     threshold_watcher_.test();
 
     // are we there yet?
-    integration_running_ = max_time()<tfinal_;
+    integration_running_ = min_time()<tfinal_;
 
     EXPECTS(integration_running_ || !has_pending_events());
 }

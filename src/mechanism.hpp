@@ -68,12 +68,12 @@ public:
     virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
 
     // TODO: virtualize, move to backend
-    void deliver_events(typename backend::cell_event_queue& events) {
+    void deliver_events(typename backend::multi_event_stream& events) {
         auto ncell = events.n_streams();
         for (size_type c = 0; c<ncell; ++c) {
             for (auto ev: events.marked_events(c)) {
-                if (ev.mech_id == mech_id_) {
-                    net_receive(ev.index, ev.weight);
+                if (ev.handle.mech_id == mech_id_) {
+                    net_receive(ev.handle.index, ev.weight);
                 }
             }
         }
