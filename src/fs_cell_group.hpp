@@ -11,14 +11,15 @@ class fs_cell_group : public cell_group {
 public:
     using source_id_type = cell_member_type;
 
-    fs_cell_group(cell_gid_type first_gid, std::vector<fs_cell> cells):
+    fs_cell_group(cell_gid_type first_gid, std::unique_ptr<std::vector<fs_cell> > cells):
         gid_base_{ first_gid },
-        cells_(cells)
+        cells_(std::move(cells))
     {
         // Create a list of the global identifiers for the spike sources
         auto source_gid = cell_gid_type{ gid_base_ };
 
-        for (const auto& cell : cells_) {
+        for (const auto& cell : *(cells_.get())) {
+            // TODO: Replace the loop with a counted for loop
             spike_sources_.push_back(source_id_type{ source_gid, 0u});
             ++source_gid;
         }
@@ -33,7 +34,7 @@ public:
 
     void reset() override
     {
-        for (auto cell : cells_) {
+        for (auto cell : *(cells_.get())) {
             cell.reset();
         }
     }
@@ -44,7 +45,9 @@ public:
     void advance(time_type tfinal, time_type dt) override
     {
         auto source_gid = cell_gid_type{ gid_base_ };
-        for (auto cell : cells_) {
+        for (auto cell : *(cells_.get())) {
+
+
             for (auto spike_time : cell.spikes_until(tfinal)) {
                 spikes_.push_back({ spike_sources_[source_gid], spike_time});
             }
@@ -82,7 +85,7 @@ private:
     std::vector<source_id_type> spike_sources_;
 
     // Store a reference to the cell actually implementing the spiking
-    std::vector<fs_cell> & cells_;
+    std::unique_ptr<std::vector<fs_cell> > cells_;
 };
 
 } // namespace mc

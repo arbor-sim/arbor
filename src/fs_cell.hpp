@@ -18,7 +18,7 @@ public:
 
     /// Create a frequency spiker: A cell that generated spikes with a certain
     /// period for a set time range.
-    fs_cell(time_type start_time, time_type period, time_type stop_time):
+    fs_cell(time_type start_time=0.0, time_type period=1.0, time_type stop_time=0.0):
         start_time_(start_time),
         period_(period),
         stop_time_(stop_time),

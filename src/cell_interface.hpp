@@ -6,6 +6,7 @@
 #include <common_types.hpp>
 #include <util/debug.hpp>
 #include <vector>
+#include <iostream>
 
 namespace nest {
 namespace mc {
@@ -40,7 +41,8 @@ struct cell_description {
         auto ptr = dynamic_cast<T*>(cellptr.get());
 
         if (!ptr) {
-            throw 20;
+            std::cout << "Trying to cast cell_description a the wrong type!!";
+            throw 1;
         }
 
         return *ptr;

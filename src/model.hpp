@@ -11,6 +11,8 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
+#include <fs_cell.hpp>
+#include <fs_cell_group.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <domain_decomposition.hpp>
@@ -84,6 +86,24 @@ public:
                         cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.begin, cells);
                     }
                 }
+                else if (rec.get_cell_kind(gids.begin) ==
+                         cell_kind::regular_frequency)
+                {
+                    std::unique_ptr<std::vector<fs_cell> > cells_ptr( new
+                    std::vector<fs_cell>(gids.end - gids.begin));
+
+                    std::vector<fs_cell>* cells = cells_ptr.get();
+
+                    for (auto gid : util::make_span(gids.begin, gids.end)) {
+                        auto i = gid - gids.begin;
+                        (*cells)[i] = std::move(rec.get_cell(gid).as<fs_cell>());
+                    }
+
+                    cell_groups_[i] = std::unique_ptr<cell_group>(
+                        new fs_cell_group(gids.begin, move(cells_ptr)));
+
+                }
+
                 PL(2);
             });
 
