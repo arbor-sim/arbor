@@ -190,6 +190,31 @@ TEST(range, strictify) {
     EXPECT_EQ(cstr+11, ptr_range.right);
 }
 
+TEST(range, subrange) {
+    int values[] = {10, 11, 12, 13, 14, 15, 16};
+
+    // `subrange_view` should handle offsets of different integral types sanely.
+    auto sub1 = util::subrange_view(values, 1, 6u);
+    EXPECT_EQ(11, sub1[0]);
+    EXPECT_EQ(15, sub1.back());
+
+    // Should be able to take subranges of subranges, and modify underlying
+    // sequence.
+    auto sub2 = util::subrange_view(sub1, 3ull, (short)4);
+    EXPECT_EQ(1u, sub2.size());
+
+    sub2[0] = 23;
+    EXPECT_EQ(23, values[4]);
+
+    // Taking a subrange view of a const range over non-const iterators
+    // should still allow modification of underlying sequence.
+    const util::range<int*> const_view(values, values+4);
+    auto sub3 = util::subrange_view(const_view, std::make_pair(1, 3u));
+    sub3[1] = 42;
+    EXPECT_EQ(42, values[2]);
+}
+
+
 TEST(range, max_element_by) {
     const char *cstr = "helloworld";
     auto cstr_range = util::make_range(cstr, null_terminated);
@@ -221,6 +246,25 @@ TEST(range, max_value) {
         util::transform_view(cstr_range, [](char c) { return c+1; }));
 
     EXPECT_EQ('x', i);
+}
+
+TEST(range, minmax_value) {
+    auto cstr_empty_range = util::make_range((const char*)"", null_terminated);
+    auto p1 = util::minmax_value(cstr_empty_range);
+    EXPECT_EQ('\0', p1.first);
+    EXPECT_EQ('\0', p1.second);
+
+    const char *cstr = "hello world";
+    auto cstr_range = util::make_range(cstr, null_terminated);
+    auto p2 = util::minmax_value(cstr_range);
+    EXPECT_EQ(' ', p2.first);
+    EXPECT_EQ('w', p2.second);
+
+    auto p3 = util::minmax_value(
+        util::transform_view(cstr_range, [](char c) { return -(int)c; }));
+
+    EXPECT_EQ('w', -p3.first);
+    EXPECT_EQ(' ', -p3.second);
 }
 
 
@@ -323,6 +367,16 @@ TEST(range, assign) {
     util::assign_by(text, vstr,
         [](char c) { return c=='z'? '1': '0'; });
     EXPECT_EQ("00110", text);
+}
+
+TEST(range, fill) {
+    std::vector<char> aaaa(4);
+    util::fill(aaaa, 'a');
+    EXPECT_EQ("aaaa", std::string(aaaa.begin(), aaaa.end()));
+
+    char cstr[] = "howdy";
+    util::fill(util::make_range((char *)cstr, null_terminated), 'q');
+    EXPECT_EQ("qqqqq", std::string(cstr));
 }
 
 TEST(range, assign_from) {

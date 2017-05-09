@@ -5,11 +5,12 @@
 
 #include <common_types.hpp>
 #include <math.hpp>
+#include <util/compat.hpp>
 #include <util/counter.hpp>
 #include <util/iterutil.hpp>
 #include <util/partition.hpp>
 #include <util/span.hpp>
-#include "util/rangeutil.hpp"
+#include <util/rangeutil.hpp>
 #include <util/transform.hpp>
 
 namespace nest {
@@ -184,6 +185,8 @@ public:
         using namespace util;
 
         segs_ = make_partition(offsets_, lengths);
+        compat::compiler_barrier_if_icc_leq(20160415u);
+
         nseg_ = size(segs_);
         scale_ = segs_.bounds().second/n;
         assign(radii_, radii);

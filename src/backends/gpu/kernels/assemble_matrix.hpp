@@ -15,17 +15,28 @@ namespace gpu {
 template <typename T, typename I>
 __global__
 void assemble_matrix_flat(
-        T* d, T* rhs, const T* invariant_d,
-        const T* voltage, const T* current, const T* cv_capacitance,
-        T dt, unsigned n)
+        T* d,
+        T* rhs,
+        const T* invariant_d,
+        const T* voltage,
+        const T* current,
+        const T* cv_capacitance,
+        const I* cv_to_cell,
+        const T* t,
+        const T* t_to,
+        unsigned n)
 {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
 
-    // The 1e-3 is a constant of proportionality required to ensure that the
-    // conductance (gi) values have units μS (micro-Siemens).
-    // See the model documentation in docs/model for more information.
-    T factor = 1e-3/dt;
     if (tid<n) {
+        auto cid = cv_to_cell[tid];
+        auto dt = t_to[cid] - t[cid];
+
+        // The 1e-3 is a constant of proportionality required to ensure that the
+        // conductance (gi) values have units μS (micro-Siemens).
+        // See the model documentation in docs/model for more information.
+        T factor = 1e-3/dt;
+
         auto gi = factor * cv_capacitance[tid];
         d[tid] = gi + invariant_d[tid];
         rhs[tid] = gi*voltage[tid] - current[tid];
@@ -49,7 +60,10 @@ void assemble_matrix_interleaved(
         const T* cv_capacitance,
         const I* sizes,
         const I* starts,
-        T dt, unsigned padded_size, unsigned num_mtx)
+        const I* matrix_to_cell,
+        const T* time,
+        const T* time_to,
+        unsigned padded_size, unsigned num_mtx)
 {
     static_assert(BlockWidth*LoadWidth==Threads,
         "number of threads must equal number of values to process per block");
@@ -76,10 +90,20 @@ void assemble_matrix_interleaved(
 
     const unsigned max_size = sizes[0];
 
-    // The 1e-3 is a constant of proportionality required to ensure that the
-    // conductance (gi) values have units μS (micro-Siemens).
-    // See the model documentation in docs/model for more information.
-    T factor = 1e-3/dt;
+    T factor = 0;
+    const unsigned permuted_cid = blk_id*BlockWidth + blk_lane;
+
+    if (permuted_cid<num_mtx) {
+        auto cid = matrix_to_cell[permuted_cid];
+        T dt = time_to[cid]-time[cid];
+
+        // The 1e-3 is a constant of proportionality required to ensure that the
+        // conductance (gi) values have units μS (micro-Siemens).
+        // See the model documentation in docs/model for more information.
+
+        factor = 1e-3/dt;
+    }
+
     for (unsigned j=0u; j<max_size; j+=LoadWidth) {
         if (do_load && load_pos<end) {
             buffer_v[lid] = voltage[load_pos];

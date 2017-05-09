@@ -39,7 +39,10 @@ public:
 
     using ion_type = ion<backend>;
 
-    mechanism(view vec_v, view vec_i, iarray&& node_index):
+    mechanism(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, iarray&& node_index):
+        vec_ci_(vec_ci),
+        vec_t_(vec_t),
+        vec_t_to_(vec_t_to),
         vec_v_(vec_v),
         vec_i_(vec_i),
         node_index_(std::move(node_index))
@@ -53,7 +56,7 @@ public:
         return node_index_;
     }
 
-    virtual void set_params(value_type t_, value_type dt_) = 0;
+    virtual void set_params() = 0;
     virtual std::string name() const = 0;
     virtual std::size_t memory() const = 0;
     virtual void nrn_init()     = 0;
@@ -67,8 +70,17 @@ public:
 
     virtual ~mechanism() = default;
 
+    // Maps compartment index to cell index.
+    const_iview vec_ci_;
+    // Maps cell index to integration start time.
+    const_view vec_t_;
+    // Maps cell index to integration stop time.
+    const_view vec_t_to_;
+    // Maps compartment index to voltage.
     view vec_v_;
+    // Maps compartment index to current.
     view vec_i_;
+    // Maps mechanism instance index to compartment index.
     iarray node_index_;
 };
 
@@ -77,14 +89,15 @@ using mechanism_ptr = std::unique_ptr<mechanism<Backend>>;
 
 template <typename M>
 auto make_mechanism(
-    typename M::view  vec_v,
-    typename M::view  vec_i,
-    typename M::array&&  weights,
-    typename M::iarray&& node_indices)
--> decltype(util::make_unique<M>(vec_v, vec_i, std::move(weights), std::move(node_indices)))
-{
-    return util::make_unique<M>(vec_v, vec_i, std::move(weights), std::move(node_indices));
-}
+    typename M::const_iview vec_ci,
+    typename M::const_view vec_t,
+    typename M::const_view vec_t_to,
+    typename M::view vec_v,
+    typename M::view vec_i,
+    typename M::array&& weights,
+    typename M::iarray&& node_indices
+)
+DEDUCED_RETURN_TYPE(util::make_unique<M>(vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices)))
 
 } // namespace mechanisms
 } // namespace mc
