@@ -265,7 +265,7 @@ private:
     bool integration_running_ = false;
 
     /// events staged for upcoming integration stage
-    std::vector<std::vector<deliverable_event>> staged_events_;
+    std::vector<deliverable_event> staged_events_;
 
     /// event queue for integration period
     using multi_event_stream = typename backend::multi_event_stream;
