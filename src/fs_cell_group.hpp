@@ -16,12 +16,11 @@ public:
         cells_(std::move(cells))
     {
         // Create a list of the global identifiers for the spike sources
-        auto source_gid = cell_gid_type{ gid_base_ };
-
-        for (const auto& cell : *(cells_.get())) {
+        for (cell_gid_type source_gid = gid_base_;
+            source_gid < gid_base_ + (cells_.get())->size();
+            ++source_gid) {
             // TODO: Replace the loop with a counted for loop
             spike_sources_.push_back(source_id_type{ source_gid, 0u});
-            ++source_gid;
         }
     }
 
