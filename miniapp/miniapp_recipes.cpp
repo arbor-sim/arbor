@@ -18,7 +18,7 @@ namespace mc {
 // description for greater data reuse.
 
 template <typename RNG>
-util::unique_any make_basic_cell(
+cell make_basic_cell(
     const morphology& morph,
     unsigned compartments_per_segment,
     unsigned num_synapses,
@@ -66,7 +66,7 @@ util::unique_any make_basic_cell(
         cell.add_synapse({id, distribution(rng)}, syn_default);
     }
 
-    return util::unique_any(std::move(cell));
+    return cell;
 }
 
 class basic_cell_recipe: public recipe {
@@ -88,29 +88,29 @@ public:
         const auto& morph = get_morphology(i);
         unsigned cell_segments = morph.components();
 
-        auto wrapped_cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
+        auto cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
                         param_.synapse_type, gen);
-        auto& c = util::any_cast<cell&>(wrapped_cell);
 
-        EXPECTS(c.num_segments()==cell_segments);
-        EXPECTS(c.probes().size()==0);
-        EXPECTS(c.synapses().size()==cc.num_targets);
-        EXPECTS(c.detectors().size()==cc.num_sources);
+        EXPECTS(cell.num_segments()==cell_segments);
+        EXPECTS(cell.probes().size()==0);
+        EXPECTS(cell.synapses().size()==cc.num_targets);
+        EXPECTS(cell.detectors().size()==cc.num_sources);
 
         // add probes
         if (cc.num_probes) {
             unsigned n_probe_segs = pdist_.all_segments? cell_segments: 1u;
             for (unsigned i = 0; i<n_probe_segs; ++i) {
                 if (pdist_.membrane_voltage) {
-                    c.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
+                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
                 }
                 if (pdist_.membrane_current) {
-                    c.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_current});
+                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_current});
                 }
             }
         }
-        EXPECTS(c.probes().size()==cc.num_probes);
-        return wrapped_cell;
+        EXPECTS(cell.probes().size()==cc.num_probes);
+
+        return util::unique_any(std::move(cell));
     }
 
     cell_kind get_cell_kind(cell_gid_type) const override {
