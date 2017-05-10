@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <mutex>
+#include <utility>
 
 #include <threading/threading.hpp>
 #include "unwind.hpp"
@@ -63,6 +64,31 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
         debug_emit(std::cerr, args...);
         std::cerr.flush();
     }
+}
+
+namespace impl {
+    template <typename Seq, typename Separator>
+    struct sepval {
+        const Seq& seq;
+        Separator sep;
+
+        sepval(const Seq& seq, Separator sep): seq(seq), sep(std::move(sep)) {}
+
+        friend std::ostream& operator<<(std::ostream& out, const sepval& sv) {
+            bool emitsep = false;
+            for (const auto& v: sv.seq) {
+                if (emitsep) out << sv.sep;
+                emitsep = true;
+                out << v;
+            }
+            return out;
+        }
+    };
+}
+
+template <typename Seq, typename Separator>
+impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
+    return impl::sepval<Seq, Separator>(seq, std::move(sep));
 }
 
 } // namespace util

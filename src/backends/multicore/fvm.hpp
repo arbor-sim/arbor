@@ -3,14 +3,18 @@
 #include <map>
 #include <string>
 
+#include <backends/event.hpp>
 #include <common_types.hpp>
+#include <event_queue.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
 #include <memory/wrappers.hpp>
+#include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
 #include "matrix_state.hpp"
+#include "multi_event_stream.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 
@@ -39,9 +43,12 @@ struct backend {
     using host_view   = view;
     using host_iview  = iview;
 
-    /// matrix state
-    using matrix_state =
-        nest::mc::multicore::matrix_state<value_type, size_type>;
+    using matrix_state = nest::mc::multicore::matrix_state<value_type, size_type>;
+    using multi_event_stream = nest::mc::multicore::multi_event_stream;
+
+    // re-expose common backend event types
+    using deliverable_event = nest::mc::deliverable_event;
+    using target_handle = nest::mc::target_handle;
 
     //
     // mechanism infrastructure
@@ -54,6 +61,7 @@ struct backend {
 
     static mechanism make_mechanism(
         const std::string& name,
+        size_type mech_id,
         const_iview vec_ci,
         const_view vec_t, const_view vec_t_to,
         view vec_v, view vec_i,
@@ -64,7 +72,7 @@ struct backend {
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return mech_map_.find(name)->second(vec_ci, vec_t, vec_t_to, vec_v, vec_i, array(weights), iarray(node_indices));
+        return mech_map_.find(name)->second(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, array(weights), iarray(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -86,15 +94,21 @@ struct backend {
         return util::minmax_value(v);
     }
 
-private:
+    static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {
+        size_type ncell = util::size(time);
+        for (size_type i = 0; i<ncell; ++i) {
+            time_to[i] = std::min(time[i]+dt, tmax);
+        }
+    }
 
-    using maker_type = mechanism (*)(const_iview, const_view, const_view, view, view, array&&, iarray&&);
+private:
+    using maker_type = mechanism (*)(value_type, const_iview, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
+    static mechanism maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return mechanisms::make_mechanism<Mech<backend>>
-            (vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices));
+            (mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 

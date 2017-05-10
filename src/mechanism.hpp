@@ -3,11 +3,11 @@
 #include <algorithm>
 #include <memory>
 #include <string>
-#include <util/meta.hpp>
 
 #include <ion.hpp>
 #include <parameter_list.hpp>
 #include <util/indirect.hpp>
+#include <util/meta.hpp>
 #include <util/make_unique.hpp>
 
 namespace nest {
@@ -39,7 +39,8 @@ public:
 
     using ion_type = ion<backend>;
 
-    mechanism(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, iarray&& node_index):
+    mechanism(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, iarray&& node_index):
+        mech_id_(mech_id),
         vec_ci_(vec_ci),
         vec_t_(vec_t),
         vec_t_to_(vec_t_to),
@@ -66,9 +67,24 @@ public:
     virtual bool uses_ion(ionKind) const = 0;
     virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
 
+    // TODO: virtualize, move to backend
+    void deliver_events(typename backend::multi_event_stream& events) {
+        auto ncell = events.n_streams();
+        for (size_type c = 0; c<ncell; ++c) {
+            for (auto ev: events.marked_events(c)) {
+                if (ev.handle.mech_id == mech_id_) {
+                    net_receive(ev.handle.index, ev.weight);
+                }
+            }
+        }
+    }
+
     virtual mechanismKind kind() const = 0;
 
     virtual ~mechanism() = default;
+
+    // Mechanism identifier: index into list of mechanisms on cell group.
+    size_type mech_id_;
 
     // Maps compartment index to cell index.
     const_iview vec_ci_;
@@ -89,6 +105,7 @@ using mechanism_ptr = std::unique_ptr<mechanism<Backend>>;
 
 template <typename M>
 auto make_mechanism(
+    typename M::size_type mech_id,
     typename M::const_iview vec_ci,
     typename M::const_view vec_t,
     typename M::const_view vec_t_to,
@@ -97,7 +114,7 @@ auto make_mechanism(
     typename M::array&& weights,
     typename M::iarray&& node_indices
 )
-DEDUCED_RETURN_TYPE(util::make_unique<M>(vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices)))
+DEDUCED_RETURN_TYPE(util::make_unique<M>(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices)))
 
 } // namespace mechanisms
 } // namespace mc
