@@ -206,7 +206,7 @@ public:
         sample_events_.push({sampler_index, start_time});
     }
 
-    const std::vector<probe_record>& probes() const override {
+    std::vector<probe_record> probes() const override {
         return probes_;
     }
 

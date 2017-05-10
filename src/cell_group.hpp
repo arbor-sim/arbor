@@ -29,7 +29,7 @@ public:
     virtual const std::vector<spike>& spikes() const = 0;
     virtual void clear_spikes() = 0;
     virtual void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) = 0;
-    virtual const std::vector<probe_record>& probes() const = 0;
+    virtual std::vector<probe_record> probes() const = 0;
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;
