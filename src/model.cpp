@@ -3,6 +3,14 @@
 namespace nest {
 namespace mc {
 
+// Helper function for building cell groups used by model constructor
+// See bottom of file for definition.
+cell_group_ptr make_cell_group(
+    cell_kind kind,
+    cell_gid_type first_gid,
+    const std::vector<util::unique_any>& cells,
+    backend_policy backend);
+
 model::model(const recipe& rec, const domain_decomposition& decomp):
     domain_(decomp)
 {

@@ -29,12 +29,6 @@
 namespace nest {
 namespace mc {
 
-extern cell_group_ptr make_cell_group(
-    cell_kind kind,
-    cell_gid_type first_gid,
-    const std::vector<util::unique_any>& cells,
-    backend_policy backend);
-
 class model {
 public:
     using communicator_type = communication::communicator<communication::global_policy>;
