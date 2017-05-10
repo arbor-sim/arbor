@@ -62,23 +62,21 @@ public:
         EXPECTS(spike_sources_.size()==n_detectors);
 
         // Create the enumeration of probes attached to cells in this cell group
-        auto probe_gid = gid_base_;
         probes_.reserve(n_probes);
         for (auto i: util::make_span(0, cells.size())){
-            const auto& probes_on_cell = cells[i].probes();
+            const auto probe_gid = gid_base_ + i;
+            const auto probes_on_cell = cells[i].probes();
             for (cell_lid_type lid: util::make_span(0, probes_on_cell.size())) {
                 // get the unique global identifier of this probe
                 cell_member_type id{probe_gid, lid};
 
                 // get the location and kind information of the probe
-                auto p = probes_on_cell[lid];
+                const auto p = probes_on_cell[lid];
 
                 // record the combined identifier and probe details
                 probes_.push_back(probe_record{id, p.location, p.kind});
             }
-            ++probe_gid;
         }
-
     }
 
     mc_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
