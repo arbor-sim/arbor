@@ -86,6 +86,9 @@ namespace impl {
     };
 }
 
+// Wrap a sequence or container of values so that they can be printed
+// to an `std::ostream` with the elements separated by the supplied 
+// separator.
 template <typename Seq, typename Separator>
 impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
     return impl::sepval<Seq, Separator>(seq, std::move(sep));

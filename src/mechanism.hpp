@@ -39,7 +39,7 @@ public:
 
     using ion_type = ion<backend>;
 
-    mechanism(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, iarray&& node_index):
+    mechanism(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, iarray&& node_index):
         mech_id_(mech_id),
         vec_ci_(vec_ci),
         vec_t_(vec_t),

@@ -11,7 +11,8 @@ destinations and event information.
 
 The back-end event management structure is supplied by the corresponding `backend`
 class as `backend::multi_event_stream`. It presents a limited public interface to
-the lowered cell, and is passed by reference as a parameter to 
+the lowered cell, and is passed by reference as a parameter to the mechanism
+`deliver_events` method.
 
 ### Target handles
 
@@ -35,12 +36,14 @@ a `target_handle` describing their destination, and a weight.
 `backend::multi_event_stream` represents a set (one per cell/integration domain)
 of event streams. There is one `multi_event_stream` per lowered cell.
 
-From the perspective of the lowered cell, it must support the following methods:
+From the perspective of the lowered cell, it must support the methods below.
+In the following, `time` is a `view` or `const_view` of an array with one
+element per stream.
 
 *  `void init(const std::vector<deliverable_event>& staged_events)`
 
-   Take a copy of the staged events and initialize the streams by gathering
-   the events by cell.
+   Take a copy of the staged events (which must be ordered by increasing event time)
+   and initialize the streams by gathering the events by cell.
 
 *  `bool empty() const`
 
@@ -52,11 +55,11 @@ From the perspective of the lowered cell, it must support the following methods:
 
 *  `void mark_until_after(const_view time)`
 
-   Mark events for delivery in each stream _i_ with event time ≤ _time[i]_.
+   For all streams, mark events for delivery in the _i_ th stream with event time ≤ _time[i]_.
 
 *  `void event_times_if_before(view time) const`
 
-   Set _time[i]_ to the time of the next event time in stream _i_
+   For each stream, set _time[i]_ to the time of the next event time in the _i_ th stream
    if such an event exists and has time less than _time[i]_.
 
 *  `void drop_marked_events()`
@@ -80,7 +83,7 @@ For `fvm_multicell` one integration step comprises:
     `backend::multi_event_stream` object.
 
 2.  Each mechanism is requested to deliver to itself any marked events that
-    are associated with that mechanisms, via the virtual
+    are associated with that mechanism, via the virtual
     `mechanism::deliver_events(backend::multi_event_stream&)` method.
 
     This action must precede the computation of mechanism current contributions
