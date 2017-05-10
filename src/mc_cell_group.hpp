@@ -17,6 +17,7 @@
 #include <util/debug.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
+#include <util/unique_any.hpp>
 
 #include <profiling/profiler.hpp>
 
@@ -59,7 +60,33 @@ public:
             ++source_gid;
         }
         EXPECTS(spike_sources_.size()==n_detectors);
+
+        // Create the enumeration of probes attached to cells in this cell group
+        probes_.reserve(n_probes);
+        for (auto i: util::make_span(0, cells.size())){
+            const cell_gid_type probe_gid = gid_base_ + i;
+            const auto probes_on_cell = cells[i].probes();
+            for (cell_lid_type lid: util::make_span(0, probes_on_cell.size())) {
+                // get the unique global identifier of this probe
+                cell_member_type id{probe_gid, lid};
+
+                // get the location and kind information of the probe
+                const auto p = probes_on_cell[lid];
+
+                // record the combined identifier and probe details
+                probes_.push_back(probe_record{id, p.location, p.kind});
+            }
+        }
     }
+
+    mc_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
+        mc_cell_group(
+            first_gid,
+            util::transform_view(
+                cells,
+                [](const util::unique_any& c) -> const cell& {return util::any_cast<const cell&>(c);})
+        )
+    {}
 
     cell_kind get_cell_kind() const override {
         return cell_kind::cable1d_neuron;
@@ -177,6 +204,10 @@ public:
         sample_events_.push({sampler_index, start_time});
     }
 
+    std::vector<probe_record> probes() const override {
+        return probes_;
+    }
+
 private:
     // gid of first cell in group.
     cell_gid_type gid_base_;
@@ -221,6 +252,9 @@ private:
 
     // Lookup table for target ids -> local target handle indices.
     std::vector<std::size_t> target_handle_divisions_;
+
+    // Enumeration of the probes that are attached to the cells in the cell group
+    std::vector<probe_record> probes_;
 
     // Build handle index lookup tables.
     template <typename Cells>

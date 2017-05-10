@@ -33,8 +33,7 @@ using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
-std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
-std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type ncells);
+std::unique_ptr<sample_trace_type> make_trace(probe_record probe);
 using communicator_type = communication::communicator<communication::global_policy>;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
@@ -77,16 +76,6 @@ int main(int argc, char** argv) {
         pdist.all_segments = !options.probe_soma_only;
 
         auto recipe = make_recipe(options, pdist);
-        auto cell_range = distribute_cells(recipe->num_cells());
-
-        std::vector<cell_gid_type> group_divisions;
-        for (auto i = cell_range.first; i<cell_range.second; i+=options.group_size) {
-            group_divisions.push_back(i);
-        }
-        group_divisions.push_back(cell_range.second);
-
-        EXPECTS(group_divisions.front() == cell_range.first);
-        EXPECTS(group_divisions.back() == cell_range.second);
 
         auto register_exporter = [] (const io::cl_options& options) {
             return
@@ -95,9 +84,14 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        model m(*recipe,
-                util::partition_view(group_divisions),
-                config::has_cuda? backend_policy::prefer_gpu: backend_policy::use_multicore);
+        group_rules rules;
+        rules.policy = config::has_cuda?
+            backend_policy::prefer_gpu: backend_policy::use_multicore;
+        rules.target_group_size = options.group_size;
+        auto decomp = domain_decomposition(*recipe, rules);
+
+        model m(*recipe, decomp);
+
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -111,8 +105,7 @@ int main(int argc, char** argv) {
         m.set_binning_policy(binning_policy, options.bin_dt);
 
         // Inject some artificial spikes, 1 per 20 neurons.
-        cell_gid_type first_spike_cell = 20*((cell_range.first+19)/20);
-        for (auto c=first_spike_cell; c<cell_range.second; c+=20) {
+        for (cell_gid_type c=0; c<recipe->num_cells(); c+=20) {
             m.add_artificial_spike({c, 0});
         }
 
@@ -124,7 +117,7 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            traces.push_back(make_trace(probe.id, probe.probe));
+            traces.push_back(make_trace(probe));
             m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
         }
 
@@ -179,20 +172,6 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-std::pair<cell_gid_type, cell_gid_type> distribute_cells(cell_size_type num_cells) {
-    // Crude load balancing:
-    // divide [0, num_cells) into num_domains non-overlapping, contiguous blocks
-    // of size as close to equal as possible.
-
-    auto num_domains = communication::global_policy::size();
-    auto domain_id = communication::global_policy::id();
-
-    cell_gid_type cell_from = (cell_gid_type)(num_cells*(domain_id/(double)num_domains));
-    cell_gid_type cell_to = (cell_gid_type)(num_cells*((domain_id+1)/(double)num_domains));
-
-    return {cell_from, cell_to};
-}
-
 void banner() {
     std::cout << "====================\n";
     std::cout << "  starting miniapp\n";
@@ -228,7 +207,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     }
 }
 
-std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe) {
+std::unique_ptr<sample_trace_type> make_trace(probe_record probe) {
     std::string name = "";
     std::string units = "";
 
@@ -245,7 +224,7 @@ std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_s
     }
     name += probe.location.segment? "dend" : "soma";
 
-    return util::make_unique<sample_trace_type>(probe_id, name, units);
+    return util::make_unique<sample_trace_type>(probe.id, name, units);
 }
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix) {
@@ -270,13 +249,17 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix)
 }
 
 void report_compartment_stats(const recipe& rec) {
-std::size_t ncell = rec.num_cells();
+    std::size_t ncell = rec.num_cells();
     std::size_t ncomp_total = 0;
     std::size_t ncomp_min = std::numeric_limits<std::size_t>::max();
     std::size_t ncomp_max = 0;
 
     for (std::size_t i = 0; i<ncell; ++i) {
-        std::size_t ncomp = rec.get_cell(i).num_compartments();
+        std::size_t ncomp = 0;
+        auto c = rec.get_cell(i);
+        if (auto ptr = util::any_cast<cell>(&c)) {
+            ncomp = ptr->num_compartments();
+        }
         ncomp_total += ncomp;
         ncomp_min = std::min(ncomp_min, ncomp);
         ncomp_max = std::max(ncomp_max, ncomp);
