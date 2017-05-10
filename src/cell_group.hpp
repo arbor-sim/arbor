@@ -10,8 +10,6 @@
 #include <probes.hpp>
 #include <sampler_function.hpp>
 #include <spike.hpp>
-#include <util/optional.hpp>
-#include <util/make_unique.hpp>
 
 namespace nest {
 namespace mc {

@@ -4,9 +4,8 @@
 
 #include <backends.hpp>
 #include <cell_group.hpp>
+#include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
-#include <fvm_multicell.hpp>
-#include <mc_cell_group.hpp>
 #include <recipe.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
@@ -14,14 +13,6 @@
 
 namespace nest {
 namespace mc {
-
-// Helper function for building cell groups used by model constructor
-// See bottom of file for definition.
-cell_group_ptr make_cell_group(
-    cell_kind kind,
-    cell_gid_type first_gid,
-    const std::vector<util::unique_any>& cells,
-    backend_policy backend);
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
     domain_(decomp)
@@ -47,8 +38,8 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
                 cells[i] = rec.get_cell(gid);
             }
 
-            cell_groups_[i] = make_cell_group(
-                    group.kind, group.begin, std::move(cells), domain_.backend());
+            cell_groups_[i] = cell_group_factory(
+                    group.kind, group.begin, cells, domain_.backend());
             PL(2);
         });
 
@@ -230,32 +221,6 @@ void model::set_global_spike_callback(spike_export_function export_callback) {
 
 void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
-}
-
-cell_group_ptr make_cell_group(
-    cell_kind kind,
-    cell_gid_type first_gid,
-    const std::vector<util::unique_any>& cells,
-    backend_policy backend)
-{
-    using gpu_fvm_cell = mc_cell_group<fvm::fvm_multicell<gpu::backend>>;
-    using mc_fvm_cell = mc_cell_group<fvm::fvm_multicell<multicore::backend>>;
-
-    if (backend==backend_policy::prefer_gpu) {
-        switch (kind) {
-        case cell_kind::cable1d_neuron:
-            return make_cell_group<gpu_fvm_cell>(first_gid, cells);
-        default:
-            throw std::runtime_error("unknown cell kind");
-        }
-    }
-
-    switch (kind) {
-    case cell_kind::cable1d_neuron:
-        return make_cell_group<mc_fvm_cell>(first_gid, cells);
-    default:
-        throw std::runtime_error("unknown cell kind");
-    }
 }
 
 } // namespace mc
