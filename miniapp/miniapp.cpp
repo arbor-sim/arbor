@@ -33,7 +33,7 @@ using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
 void banner();
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
-std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe);
+std::unique_ptr<sample_trace_type> make_trace(probe_record probe);
 using communicator_type = communication::communicator<communication::global_policy>;
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            traces.push_back(make_trace(probe.id, probe.probe));
+            traces.push_back(make_trace(probe));
             m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
         }
 
@@ -207,7 +207,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     }
 }
 
-std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_spec probe) {
+std::unique_ptr<sample_trace_type> make_trace(probe_record probe) {
     std::string name = "";
     std::string units = "";
 
@@ -224,7 +224,7 @@ std::unique_ptr<sample_trace_type> make_trace(cell_member_type probe_id, probe_s
     }
     name += probe.location.segment? "dend" : "soma";
 
-    return util::make_unique<sample_trace_type>(probe_id, name, units);
+    return util::make_unique<sample_trace_type>(probe.id, name, units);
 }
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix) {
@@ -249,6 +249,8 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix)
 }
 
 void report_compartment_stats(const recipe& rec) {
+}
+/*
 std::size_t ncell = rec.num_cells();
     std::size_t ncomp_total = 0;
     std::size_t ncomp_min = std::numeric_limits<std::size_t>::max();
@@ -263,3 +265,4 @@ std::size_t ncell = rec.num_cells();
 
     std::cout << "compartments/cell: min=" << ncomp_min <<"; max=" << ncomp_max << "; mean=" << (double)ncomp_total/ncell << "\n";
 }
+*/

@@ -6,6 +6,7 @@
 #include <cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
+#include <util/unique_any.hpp>
 
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
@@ -17,7 +18,7 @@ namespace mc {
 // description for greater data reuse.
 
 template <typename RNG>
-cell make_basic_cell(
+util::unique_any make_basic_cell(
     const morphology& morph,
     unsigned compartments_per_segment,
     unsigned num_synapses,
@@ -65,7 +66,7 @@ cell make_basic_cell(
         cell.add_synapse({id, distribution(rng)}, syn_default);
     }
 
-    return cell;
+    return util::unique_any(std::move(cell));
 }
 
 class basic_cell_recipe: public recipe {
@@ -80,35 +81,36 @@ public:
 
     cell_size_type num_cells() const override { return ncell_; }
 
-    cell get_cell(cell_gid_type i) const override {
+    util::unique_any get_cell(cell_gid_type i) const override {
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
         const auto& morph = get_morphology(i);
         unsigned cell_segments = morph.components();
 
-        auto cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
+        auto wrapped_cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
                         param_.synapse_type, gen);
+        auto& c = util::any_cast<cell&>(wrapped_cell);
 
-        EXPECTS(cell.num_segments()==cell_segments);
-        EXPECTS(cell.probes().size()==0);
-        EXPECTS(cell.synapses().size()==cc.num_targets);
-        EXPECTS(cell.detectors().size()==cc.num_sources);
+        EXPECTS(c.num_segments()==cell_segments);
+        EXPECTS(c.probes().size()==0);
+        EXPECTS(c.synapses().size()==cc.num_targets);
+        EXPECTS(c.detectors().size()==cc.num_sources);
 
         // add probes
         if (cc.num_probes) {
             unsigned n_probe_segs = pdist_.all_segments? cell_segments: 1u;
             for (unsigned i = 0; i<n_probe_segs; ++i) {
                 if (pdist_.membrane_voltage) {
-                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
+                    c.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
                 }
                 if (pdist_.membrane_current) {
-                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_current});
+                    c.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_current});
                 }
             }
         }
-        EXPECTS(cell.probes().size()==cc.num_probes);
-        return cell;
+        EXPECTS(c.probes().size()==cc.num_probes);
+        return wrapped_cell;
     }
 
     cell_kind get_cell_kind(cell_gid_type) const override {
