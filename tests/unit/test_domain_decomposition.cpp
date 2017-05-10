@@ -17,8 +17,8 @@ public:
         return size_;
     }
 
-    cell get_cell(cell_gid_type) const override {
-        return cell();
+    util::unique_any get_cell(cell_gid_type) const override {
+        return {};
     }
     cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable1d_neuron;

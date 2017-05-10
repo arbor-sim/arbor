@@ -1,7 +1,9 @@
 set(BASE_SOURCES
     common_types_io.cpp
     cell.cpp
+    cell_group_factory.cpp
     event_binner.cpp
+    model.cpp
     morphology.cpp
     parameter_list.cpp
     profiling/memory_meter.cpp

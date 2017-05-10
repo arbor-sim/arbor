@@ -3,13 +3,13 @@
 #include <memory>
 #include <vector>
 
+#include <cell.hpp>
 #include <common_types.hpp>
 #include <event_binner.hpp>
 #include <event_queue.hpp>
+#include <probes.hpp>
 #include <sampler_function.hpp>
 #include <spike.hpp>
-#include <util/optional.hpp>
-#include <util/make_unique.hpp>
 
 namespace nest {
 namespace mc {
@@ -27,6 +27,7 @@ public:
     virtual const std::vector<spike>& spikes() const = 0;
     virtual void clear_spikes() = 0;
     virtual void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) = 0;
+    virtual std::vector<probe_record> probes() const = 0;
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;

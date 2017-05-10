@@ -5,6 +5,7 @@
 #include <stdexcept>
 
 #include <cell.hpp>
+#include <util/unique_any.hpp>
 
 namespace nest {
 namespace mc {
@@ -47,7 +48,7 @@ class recipe {
 public:
     virtual cell_size_type num_cells() const =0;
 
-    virtual cell get_cell(cell_gid_type) const =0;
+    virtual util::unique_any get_cell(cell_gid_type) const =0;
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
 
     virtual cell_count_info get_cell_count_info(cell_gid_type) const =0;
@@ -69,8 +70,8 @@ public:
         return 1;
     }
 
-    cell get_cell(cell_gid_type) const override {
-        return cell(clone_cell, cell_);
+    util::unique_any get_cell(cell_gid_type) const override {
+        return util::unique_any(cell(clone_cell, cell_));
     }
 
     cell_kind get_cell_kind(cell_gid_type) const override {
