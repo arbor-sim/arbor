@@ -47,7 +47,7 @@ TEST(mechanisms, helpers) {
     multicore::backend::array vec_t(ncell, 0.);
     multicore::backend::array vec_t_to(ncell, 0.);
 
-    auto mech = multicore::backend::make_mechanism("hh",
+    auto mech = multicore::backend::make_mechanism("hh", 0,
             memory::make_view(cell_index), vec_t, vec_t_to,
             vec_v, vec_i, weights, node_index);
 
@@ -56,7 +56,7 @@ TEST(mechanisms, helpers) {
 
     // check that an out_of_range exception is thrown if an invalid mechanism is requested
     ASSERT_THROW(
-        multicore::backend::make_mechanism("dachshund",
+        multicore::backend::make_mechanism("dachshund", 0,
             memory::make_view(cell_index), vec_t, vec_t_to,
             vec_v, vec_i, weights, node_index),
         std::out_of_range
@@ -178,12 +178,12 @@ TYPED_TEST_P(mechanisms, update) {
 
     // Create mechanisms
     auto mech = nest::mc::mechanisms::make_mechanism<mechanism_type>(
-        cell_index, time, time_to,
+        0, cell_index, time, time_to,
         voltage, current, std::move(weights), std::move(node_index)
     );
 
     auto mech_proto = nest::mc::mechanisms::make_mechanism<proto_mechanism_type>(
-        cell_index, time, time_to,
+        0, cell_index, time, time_to,
         voltage_copy, current_copy,
         std::move(weights_copy), std::move(node_index_copy)
     );
