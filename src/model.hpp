@@ -11,6 +11,8 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
+#include <fs_cell.hpp>
+#include <fs_cell_group.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <domain_decomposition.hpp>
@@ -61,25 +63,47 @@ public:
                 PE("setup", "cells");
 
                 auto gids = domain_.get_group(i);
-                std::vector<cell> cells(gids.end-gids.begin);
+                if (rec.get_cell_kind(gids.begin) ==
+                    cell_kind::cable1d_neuron)
+                {
+                    std::vector<cell> cells(gids.end - gids.begin);
 
-                for (auto gid: util::make_span(gids.begin, gids.end)) {
-                    auto i = gid-gids.begin;
-                    cells[i] = rec.get_cell(gid);
+                    for (auto gid : util::make_span(gids.begin, gids.end)) {
+                        auto i = gid - gids.begin;
+                        cells[i] = std::move(rec.get_cell(gid).as<cell>());
 
-                    cell_lid_type j = 0;
-                    for (const auto& probe: cells[i].probes()) {
-                        cell_member_type probe_id{gid, j++};
-                        probe_tmp.push_back({probe_id, probe});
+                        cell_lid_type j = 0;
+                        for (const auto& probe : cells[i].probes()) {
+                            cell_member_type probe_id{ gid, j++ };
+                            probe_tmp.push_back({ probe_id, probe });
+                        }
+                    }
+
+                    if (domain_.backend() == backend_policy::use_multicore) {
+                        cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.begin, cells);
+                    }
+                    else {
+                        cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.begin, cells);
                     }
                 }
+                else if (rec.get_cell_kind(gids.begin) ==
+                         cell_kind::regular_frequency)
+                {
+                    std::unique_ptr<std::vector<fs_cell> > cells_ptr( new
+                    std::vector<fs_cell>(gids.end - gids.begin));
 
-                if (domain_.backend()==backend_policy::use_multicore) {
-                    cell_groups_[i] = make_cell_group<multicore_lowered_cell>(gids.begin, cells);
+                    std::vector<fs_cell>* cells = cells_ptr.get();
+
+                    for (auto gid : util::make_span(gids.begin, gids.end)) {
+                        auto i = gid - gids.begin;
+                        (*cells)[i] = std::move(rec.get_cell(gid).as<fs_cell>());
+                    }
+
+                    cell_groups_[i] = std::unique_ptr<cell_group>(
+                        new fs_cell_group(gids.begin, move(cells_ptr)));
+
                 }
-                else {
-                    cell_groups_[i] = make_cell_group<gpu_lowered_cell>(gids.begin, cells);
-                }
+
                 PL(2);
             });
 

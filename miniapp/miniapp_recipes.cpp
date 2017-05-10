@@ -4,6 +4,9 @@
 #include <utility>
 
 #include <cell.hpp>
+#include <cell_interface.hpp>
+#include <fs_cell.hpp>
+
 #include <morphology.hpp>
 #include <util/debug.hpp>
 
@@ -17,14 +20,17 @@ namespace mc {
 // description for greater data reuse.
 
 template <typename RNG>
-cell make_basic_cell(
+nest::mc::cell_description make_basic_cell(
     const morphology& morph,
     unsigned compartments_per_segment,
     unsigned num_synapses,
     const std::string& syn_type,
     RNG& rng)
 {
-    nest::mc::cell cell = make_cell(morph, true);
+    nest::mc::cell_description cell_descr = make_cell(morph, true);
+
+    nest::mc::cell& cell = cell_descr.as<nest::mc::cell>();
+
 
     for (auto& segment: cell.segments()) {
         if (compartments_per_segment!=0) {
@@ -65,7 +71,7 @@ cell make_basic_cell(
         cell.add_synapse({id, distribution(rng)}, syn_default);
     }
 
-    return cell;
+    return cell_descr;
 }
 
 class basic_cell_recipe: public recipe {
@@ -80,15 +86,25 @@ public:
 
     cell_size_type num_cells() const override { return ncell_; }
 
-    cell get_cell(cell_gid_type i) const override {
+    cell_description get_cell(cell_gid_type i) const override {
+        // The first 'cell' is always a regular spiking neuron
+        // That spikes only once at t=0
+        if (i == 0)
+        {
+            return cell_description(std::move(fs_cell(0, 0.1, 0.1)));
+        }
+
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
         const auto& morph = get_morphology(i);
         unsigned cell_segments = morph.components();
 
-        auto cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
+        nest::mc::cell_description cell_descr = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
                         param_.synapse_type, gen);
+
+        nest::mc::cell& cell = cell_descr.as<nest::mc::cell>();
+
 
         EXPECTS(cell.num_segments()==cell_segments);
         EXPECTS(cell.probes().size()==0);
@@ -108,11 +124,15 @@ public:
             }
         }
         EXPECTS(cell.probes().size()==cc.num_probes);
-        return cell;
+        return cell_descr;
     }
 
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        // The basic_cell_recipe only produces mc cells, so return cable1d_neuron for now
+    cell_kind get_cell_kind(cell_gid_type i ) const override {
+        // First cell is currently always a regular frequency neuron
+        if (i == 0)
+        {
+            return cell_kind::regular_frequency;
+        }
         return cell_kind::cable1d_neuron;
     }
 
@@ -181,6 +201,15 @@ public:
             cc.source = {prev, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // Each 20th neuron generates a artificial spike. We now generate these
+            // in a separate artificial spiking neuron. We need at add a mirror of
+            // each synapse from these neurons on gid=0 to
+            // reproduce this results
+            if (prev % 20 == 0) {
+                cc.source = { 0, 0 }; // also add connection from reg spiker!
+                conns.push_back(cc);
+            }
         }
 
         return conns;
@@ -218,6 +247,15 @@ public:
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // Each 20th neuron generates a artificial spike. We now generate these
+            // in a separate artificial spiking neuron. We need at add a mirror of
+            // each synapse from these neurons on gid=0 to
+            // reproduce this results
+            if (source % 20 == 0) {
+                cc.source = { 0, 0 }; // also add connection from reg spiker!
+                conns.push_back(cc);
+            }
         }
 
         return conns;
@@ -257,6 +295,15 @@ public:
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // Each 20th neuron generates a artificial spike. We now generate these
+            // in a separate artificial spiking neuron. We need at add a mirror of
+            // each synapse from these neurons on gid=0 to
+            // reproduce this results
+            if (source % 20 == 0) {
+                cc.source = { 0, 0 }; // also add connection from reg spiker!
+                conns.push_back(cc);
+            }
         }
 
         return conns;

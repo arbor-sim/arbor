@@ -10,6 +10,7 @@
 #include "../gtest.h"
 
 #include "../src/cell.hpp"
+#include "../src/cell_interface.hpp"
 #include "../src/swcio.hpp"
 
 // Path to data directory can be overriden at compile time.
@@ -469,7 +470,9 @@ TEST(swc_io, cell_construction) {
     // swc -> morphology
     auto morph = io::swc_as_morphology(io::parse_swc_file(is));
 
-    cell cell = make_cell(morph, true);
+    cell_description cell_descr = make_cell(morph, true);
+    cell& cell = cell_descr.as<nest::mc::cell>();
+
     EXPECT_TRUE(cell.has_soma());
     EXPECT_EQ(4u, cell.num_segments());
 
@@ -532,7 +535,10 @@ TEST(swc_parser, from_file_ball_and_stick)
     }
 
     // read the file into a cell object
-    auto bas_cell = make_cell(io::swc_as_morphology(io::parse_swc_file(fid)));
+
+    cell_description cell_descr = make_cell(io::swc_as_morphology(io::parse_swc_file(fid)));
+    cell& bas_cell = cell_descr.as<nest::mc::cell>();
+
 
     // verify that the correct number of nodes was read
     EXPECT_EQ(2u, bas_cell.num_segments());

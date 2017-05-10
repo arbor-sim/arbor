@@ -17,8 +17,8 @@ public:
         return size_;
     }
 
-    cell get_cell(cell_gid_type) const override {
-        return cell();
+    cell_description get_cell(cell_gid_type) const override {
+        return cell_description(std::move(cell()));
     }
     cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable1d_neuron;

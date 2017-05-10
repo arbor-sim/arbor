@@ -1,4 +1,5 @@
 #include <cell.hpp>
+#include <cell_interface.hpp>
 #include <morphology.hpp>
 #include <tree.hpp>
 #include <util/debug.hpp>
@@ -238,12 +239,12 @@ bool cell_basic_equality(cell const& lhs, cell const& rhs)
 
 // Construct cell from flat morphology specification.
 
-cell make_cell(const morphology& morph, bool compartments_from_discretization) {
+cell_description make_cell(const morphology& morph, bool compartments_from_discretization) {
     using point3d = cell::point_type;
     cell newcell;
 
     if (!morph) {
-        return newcell;
+        return cell_description(std::move(newcell));
     }
 
     EXPECTS(morph.check_valid());
@@ -277,7 +278,7 @@ cell make_cell(const morphology& morph, bool compartments_from_discretization) {
         }
     }
 
-    return newcell;
+    return cell_description(std::move(newcell));
 }
 
 } // namespace mc

@@ -104,10 +104,6 @@ int main(int argc, char** argv) {
 
         m.set_binning_policy(binning_policy, options.bin_dt);
 
-        // Inject some artificial spikes, 1 per 20 neurons.
-        for (cell_gid_type c=0; c<recipe->num_cells(); c+=20) {
-            m.add_artificial_spike({c, 0});
-        }
 
         // Attach samplers to all probes
         std::vector<std::unique_ptr<sample_trace_type>> traces;
@@ -255,7 +251,7 @@ std::size_t ncell = rec.num_cells();
     std::size_t ncomp_max = 0;
 
     for (std::size_t i = 0; i<ncell; ++i) {
-        std::size_t ncomp = rec.get_cell(i).num_compartments();
+        std::size_t ncomp = rec.get_cell(i).as<cell>().num_compartments();
         ncomp_total += ncomp;
         ncomp_min = std::min(ncomp_min, ncomp);
         ncomp_max = std::max(ncomp_max, ncomp);
