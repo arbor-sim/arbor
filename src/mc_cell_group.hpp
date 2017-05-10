@@ -64,7 +64,7 @@ public:
         // Create the enumeration of probes attached to cells in this cell group
         probes_.reserve(n_probes);
         for (auto i: util::make_span(0, cells.size())){
-            const auto probe_gid = gid_base_ + i;
+            const cell_gid_type probe_gid = gid_base_ + i;
             const auto probes_on_cell = cells[i].probes();
             for (cell_lid_type lid: util::make_span(0, probes_on_cell.size())) {
                 // get the unique global identifier of this probe

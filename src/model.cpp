@@ -1,5 +1,17 @@
 #include <model.hpp>
 
+#include <vector>
+
+#include <backends.hpp>
+#include <cell_group.hpp>
+#include <domain_decomposition.hpp>
+#include <fvm_multicell.hpp>
+#include <mc_cell_group.hpp>
+#include <recipe.hpp>
+#include <util/span.hpp>
+#include <util/unique_any.hpp>
+#include <profiling/profiler.hpp>
+
 namespace nest {
 namespace mc {
 

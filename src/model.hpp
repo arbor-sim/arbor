@@ -1,29 +1,17 @@
 #pragma once
 
-#include <memory>
 #include <vector>
 
-#include <cstdlib>
-
 #include <backends.hpp>
-#include <fvm_multicell.hpp>
-
-#include <common_types.hpp>
-#include <cell.hpp>
 #include <cell_group.hpp>
+#include <common_types.hpp>
+#include <domain_decomposition.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <domain_decomposition.hpp>
-#include <mc_cell_group.hpp>
-#include <profiling/profiler.hpp>
 #include <recipe.hpp>
 #include <sampler_function.hpp>
 #include <thread_private_spike_store.hpp>
-#include <threading/threading.hpp>
-#include <trace_sampler.hpp>
 #include <util/nop.hpp>
-#include <util/partition.hpp>
-#include <util/range.hpp>
 #include <util/unique_any.hpp>
 
 namespace nest {
@@ -74,7 +62,7 @@ private:
     const domain_decomposition &domain_;
 
     time_type t_ = 0.;
-    std::vector<std::unique_ptr<cell_group>> cell_groups_;
+    std::vector<cell_group_ptr> cell_groups_;
     communicator_type communicator_;
     std::vector<probe_record> probes_;
 
