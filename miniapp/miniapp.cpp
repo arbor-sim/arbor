@@ -249,15 +249,17 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix)
 }
 
 void report_compartment_stats(const recipe& rec) {
-}
-/*
-std::size_t ncell = rec.num_cells();
+    std::size_t ncell = rec.num_cells();
     std::size_t ncomp_total = 0;
     std::size_t ncomp_min = std::numeric_limits<std::size_t>::max();
     std::size_t ncomp_max = 0;
 
     for (std::size_t i = 0; i<ncell; ++i) {
-        std::size_t ncomp = rec.get_cell(i).num_compartments();
+        std::size_t ncomp = 0;
+        auto c = rec.get_cell(i);
+        if (auto ptr = util::any_cast<cell>(&c)) {
+            ncomp = ptr->num_compartments();
+        }
         ncomp_total += ncomp;
         ncomp_min = std::min(ncomp_min, ncomp);
         ncomp_max = std::max(ncomp_max, ncomp);
@@ -265,4 +267,3 @@ std::size_t ncell = rec.num_cells();
 
     std::cout << "compartments/cell: min=" << ncomp_min <<"; max=" << ncomp_max << "; mean=" << (double)ncomp_total/ncell << "\n";
 }
-*/
