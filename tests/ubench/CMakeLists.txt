@@ -5,6 +5,9 @@ include(ExternalProject)
 set(bench_sources
     accumulate_functor_values.cpp)
 
+set(bench_sources_cuda
+    cuda_compare_and_reduce.cu)
+
 # Set up google benchmark as an external project.
 
 set(gbench_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/google-benchmark")
@@ -61,6 +64,19 @@ foreach(bench_src ${bench_sources})
 
     list(APPEND bench_exe_list ${bench_exe})
 endforeach()
+
+
+if(NMC_WITH_CUDA)
+    foreach(bench_src ${bench_sources_cuda})
+        string(REGEX REPLACE "\\.[^.]*$" "" bench_exe "${bench_src}")
+        cuda_add_executable("${bench_exe}" EXCLUDE_FROM_ALL "${bench_src}")
+        add_dependencies("${bench_exe}" gbench)
+        target_include_directories("${bench_exe}" PRIVATE "${gbench_install_dir}/include")
+        target_link_libraries("${bench_exe}" "${gbench_install_dir}/lib/libbenchmark.a")
+
+        list(APPEND bench_exe_list ${bench_exe})
+    endforeach()
+endif()
 
 add_custom_target(ubenches DEPENDS ${bench_exe_list})
 
