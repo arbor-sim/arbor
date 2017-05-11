@@ -183,9 +183,15 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             false, defopts.dry_run_ranks, "positive integer", cmd);
         TCLAP::SwitchArg profile_only_zero_arg(
              "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
+        TCLAP::SwitchArg verbose_arg(
+             "v", "verbose", "Present more verbose information to stdout", cmd, false);
 
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
+
+        // Handle verbosity separately from other options: it is not considered part
+        // of the saved option state.
+        options.verbose = verbose_arg.getValue();
 
         std::string ifile_name = ifile_arg.getValue();
         if (ifile_name != "") {
@@ -324,6 +330,12 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             throw usage_error("unable to write to model parameter file "+save_file);
         }
     }
+
+    // If verbose output requested, emit option summary.
+    if (options.verbose) {
+        std::cout << options << "\n";
+    }
+
     return options;
 }
 
