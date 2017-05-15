@@ -1,0 +1,6 @@
+
+
+
+#python compare.py ${CMAKE_CURRENT_BINARY_DIR}/data/ring.gdf /mnt/c/Users/Wouter/Documents/code/nestmc/feature/241_merge/nestmc-proto/tests/regression/data/ring1.gdf 0.00001
+
+echo "Wer are here"

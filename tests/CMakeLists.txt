@@ -16,6 +16,10 @@ add_subdirectory(performance)
 # Microbenchmarks.
 add_subdirectory(ubench)
 
+# regression / delta tests
+# Large test, employing the full simulator. validated using deltas on output data
+add_subdirectory(regression)
+
 
 # modcc tests
 if(NOT use_external_modcc)
@@ -25,7 +29,7 @@ endif()
 
 # Proposed additional test types:
 
-# Large test, employing the full simulator. validated using deltas on output data
+
 
 # Test to check integration between components
 
