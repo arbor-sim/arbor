@@ -264,10 +264,7 @@ if(NOT use_external_modcc)
 endif()
 
 add_subdirectory(mechanisms)
-message("before src: ${NESTMC_LIBRARIES}")
 add_subdirectory(src)
-message("after  src: ${NESTMC_LIBRARIES}")
-
 add_subdirectory(tests)
 add_subdirectory(miniapp)
 add_subdirectory(lmorpho)
