@@ -13,12 +13,6 @@ set(MINIAPP_SOURCES_CUDA
     morphology_pool.cpp
 )
 
-#if(NMC_WITH_CUDA)
-#cuda_add_executable(miniapp.exe ${MINIAPP_SOURCES_CUDA} ${HEADERS})
-#else()
-#add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
-#endif()
-
 add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 
 target_link_libraries(miniapp.exe LINK_PUBLIC ${NESTMC_LIBRARIES})

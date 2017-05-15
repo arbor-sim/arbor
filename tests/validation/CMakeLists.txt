@@ -48,8 +48,8 @@ endif()
 
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
-
+    target_link_libraries(${target} LINK_PUBLIC gtest)
+    target_link_libraries(${target} LINK_PUBLIC ${NESTMC_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(NMC_WITH_MPI)
