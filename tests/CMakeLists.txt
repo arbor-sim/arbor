@@ -17,7 +17,7 @@ add_subdirectory(performance)
 add_subdirectory(ubench)
 
 # regression / delta tests
-# Large test, employing the full simulator. validated using deltas on output data
+# Employing the full simulator. validated using deltas on output data
 add_subdirectory(regression)
 
 
@@ -29,9 +29,6 @@ endif()
 
 # Proposed additional test types:
 
-
-
 # Test to check integration between components
-
 
 # Numbered tests based on bugs in the tracker
