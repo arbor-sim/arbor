@@ -4,9 +4,9 @@
 #include <utility>
 
 #include <cell.hpp>
+#include <fs_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
-#include <util/unique_any.hpp>
 
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
@@ -82,6 +82,12 @@ public:
     cell_size_type num_cells() const override { return ncell_; }
 
     util::unique_any get_cell(cell_gid_type i) const override {
+        // The last 'cell' is always a regular spiking neuron
+        // That spikes only once at t=0
+        if (i == ncell_-1) {
+            return util::unique_any(std::move(fs_cell(0, 0.1, 0.1)));
+        }
+
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
@@ -113,8 +119,11 @@ public:
         return util::unique_any(std::move(cell));
     }
 
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        // The basic_cell_recipe only produces mc cells, so return cable1d_neuron for now
+    cell_kind get_cell_kind(cell_gid_type i ) const override {
+        // First cell is currently always a regular frequency neuron
+        if (i == (ncell_ - 1)) {
+            return cell_kind::fs_neuron;
+        }
         return cell_kind::cable1d_neuron;
     }
 
@@ -175,6 +184,12 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
+
+        // The frequency spiking does not have inputs
+        if (i == (ncell_ - 1)) {
+            return conns;
+        }
+
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         cell_gid_type prev = i==0? ncell_-1: i-1;
@@ -183,6 +198,15 @@ public:
             cc.source = {prev, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // Each 20th neuron generates a artificial spike. We now generate these
+            // in a separate artificial spiking neuron. We need at add a mirror of
+            // each synapse from these neurons on gid=0 to
+            // reproduce this results
+            if (prev % 20 == 0) {
+                cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
+                conns.push_back(cc);
+            }
         }
 
         return conns;
@@ -207,6 +231,11 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
+
+        // The frequency spiking does not have inputs
+        if (i == (ncell_-1)) {
+            return conns;
+        }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
         auto source_gen = std::mt19937(i*123+457); // ditto
 
@@ -220,6 +249,15 @@ public:
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // Each 20th neuron generates a artificial spike. We now generate these
+            // in a separate artificial spiking neuron. We need at add a mirror of
+            // each synapse from these neurons on gid=0 to
+            // reproduce this results
+            if ((source % 20) == 0) {
+                cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
+                conns.push_back(cc);
+            }
         }
 
         return conns;
@@ -249,6 +287,11 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
+        std::cout << "kgraphn";
+        // The frequency spiking does not have inputs
+        if (i == (ncell_ - 1)) {
+            return conns;
+        }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
@@ -259,6 +302,16 @@ public:
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // Each 20th neuron generates a artificial spike. We now generate these
+            // in a separate artificial spiking neuron. We need at add a mirror of
+            // each synapse from these neurons on gid=0 to
+            // reproduce this results
+            if ((source % 20) == 0) {
+                cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
+                conns.push_back(cc);
+
+            }
         }
 
         return conns;
