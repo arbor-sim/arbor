@@ -39,8 +39,7 @@ public:
         return cell_kind::fs_neuron;
     }
 
-    void reset() override
-    {
+    void reset() override {
         for (auto cell : cells_) {
             cell.reset();
         }
@@ -49,8 +48,7 @@ public:
     void set_binning_policy(binning_kind policy, time_type bin_interval) override
     {} // Nothing to do?
 
-    void advance(time_type tfinal, time_type dt) override
-    {
+    void advance(time_type tfinal, time_type dt) override {
         auto source_lid = cell_gid_type{ 0 };
         for (auto &cell  : cells_) {
             for (auto spike_time : cell.spikes_until(tfinal)) {

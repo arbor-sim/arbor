@@ -46,8 +46,6 @@ public:
                 time < end_time;
                 time += period_) {
                 spike_times.push_back(time);
-
-                std::cout << "Generate spike at:" << time << "\n";
             }
 
         }

@@ -239,7 +239,10 @@ public:
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
         auto source_gen = std::mt19937(i*123+457); // ditto
 
-        std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-2);
+        // TODO: In the original implementation this is:
+        // std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-2);
+        // Why, how, when
+        std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-3);
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             auto source = source_distribution(source_gen);
@@ -287,7 +290,6 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        std::cout << "kgraphn";
         // The frequency spiking does not have inputs
         if (i == (ncell_ - 1)) {
             return conns;
