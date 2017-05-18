@@ -82,8 +82,7 @@ public:
     cell_size_type num_cells() const override { return ncell_; }
 
     util::unique_any get_cell(cell_gid_type i) const override {
-        // The last 'cell' is always a regular spiking neuron
-        // That spikes only once at t=0
+        // The last 'cell' is a fs_cell with one spike at t=0
         if (i == ncell_-1) {
             return util::unique_any(std::move(fs_cell(0, 0.1, 0.1)));
         }
@@ -120,7 +119,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type i ) const override {
-        // First cell is currently always a regular frequency neuron
+        // The last 'cell' is a fs_cell with one spike at t=0
         if (i == (ncell_ - 1)) {
             return cell_kind::fs_neuron;
         }
@@ -185,7 +184,7 @@ public:
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
 
-        // The frequency spiking does not have inputs
+        // The fs_cell does not have inputs
         if (i == (ncell_ - 1)) {
             return conns;
         }
@@ -199,12 +198,10 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // Each 20th neuron generates a artificial spike. We now generate these
-            // in a separate artificial spiking neuron. We need at add a mirror of
-            // each synapse from these neurons on gid=0 to
-            // reproduce this results
+            // The fs_cell spikes at t=0, with this connection it looks like
+            // (source % 20) == 0 spikes at that moment.
             if (prev % 20 == 0) {
-                cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
+                cc.source = { ncell_ - 1, 0 };
                 conns.push_back(cc);
             }
         }
@@ -232,16 +229,13 @@ public:
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
 
-        // The frequency spiking does not have inputs
+        // The fs_cell does not have inputs
         if (i == (ncell_-1)) {
             return conns;
         }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
         auto source_gen = std::mt19937(i*123+457); // ditto
 
-        // TODO: In the original implementation this is:
-        // std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-2);
-        // Why, how, when
         std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-3);
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
@@ -253,12 +247,10 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // Each 20th neuron generates a artificial spike. We now generate these
-            // in a separate artificial spiking neuron. We need at add a mirror of
-            // each synapse from these neurons on gid=0 to
-            // reproduce this results
+            // The fs_cell spikes at t=0, with this connection it looks like
+            // (source % 20) == 0 spikes at that moment.
             if ((source % 20) == 0) {
-                cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
+                cc.source = { ncell_ - 1, 0 };
                 conns.push_back(cc);
             }
         }
@@ -282,7 +274,6 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
-        std::cout << "param.num_synapses: " << param.num_synapses << "\n";
         if (std::size_t(param.num_synapses) != (ncell-2)) {
             throw invalid_recipe_error("number of synapses per cell must equal number "
                 "of cells minus one in complete graph model");
@@ -291,18 +282,14 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        // The frequency spiking does not have inputs
+        // The fs_cell does not have inputs
         if (i == (ncell_ - 1)) {
             return conns;
         }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
-
-
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;
-
-
             EXPECTS(source<(ncell_ - 1));
 
             cell_connection cc = draw_connection_params(conn_param_gen);
@@ -310,12 +297,10 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // Each 20th neuron generates a artificial spike. We now generate these
-            // in a separate artificial spiking neuron. We need at add a mirror of
-            // each synapse from these neurons on gid=0 to
-            // reproduce this results
+            // The fs_cell spikes at t=0, with this connection it looks like
+            // (source % 20) == 0 spikes at that moment.
             if ((source % 20) == 0) {
-                cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
+                cc.source = { ncell_ - 1, 0 };
                 conns.push_back(cc);
 
             }
