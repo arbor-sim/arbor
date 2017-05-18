@@ -1,6 +1,13 @@
 # Configures and installs all files needed to perform
 # a full NestMC regression that validates generated spikes.
 
+if(NMC_WITH_CUDA)
+    SET(REG_TEST_N_G "-g 1000")
+else()
+    SET(REG_TEST_N_G "-g 1")
+endif()
+
+
 # Configure the bash script so it contains the correct absolute paths
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/scripts/validate.sh.in ${CMAKE_CURRENT_SOURCE_DIR}/scripts/validate.sh )
 
