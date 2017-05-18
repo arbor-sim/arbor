@@ -70,7 +70,7 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
         statements_.push_back(std::move(local_a_term.assignment));
         auto a_ = local_a_term.id->is_identifier()->spelling();
 
-        std::string s_update = pprintf("% = %*exp(%*dt)", s, s, a_);
+        std::string s_update = pprintf("% = %*exp_pade_11(%*dt)", s, s, a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }
@@ -111,7 +111,7 @@ void CnexpSolverVisitor::visit(AssignmentExpression *e) {
             statements_.push_back(std::move(local_b_term.local_decl));
             statements_.push_back(std::move(local_b_term.assignment));
 
-            std::string s_update = pprintf("% = %+(%-%)*exp(-dt/%)", s, b_, s, b_, a_);
+            std::string s_update = pprintf("% = %+(%-%)*exp_pade_11(-dt/%)", s, b_, s, b_, a_);
             statements_.push_back(Parser{s_update}.parse_line_expression());
             return;
         }
@@ -130,7 +130,7 @@ not_gating:
         statements_.push_back(std::move(local_ba_term.local_decl));
         statements_.push_back(std::move(local_ba_term.assignment));
 
-        std::string s_update = pprintf("% = -%+(%+%)*exp(%*dt)", s, ba_, s, ba_, a_);
+        std::string s_update = pprintf("% = -%+(%+%)*exp_pade_11(%*dt)", s, ba_, s, ba_, a_);
         statements_.push_back(Parser{s_update}.parse_line_expression());
         return;
     }

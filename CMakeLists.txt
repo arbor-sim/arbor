@@ -53,6 +53,11 @@ set(EXTERNAL_LIBRARIES "")
 set(EXTERNAL_INCLUDES "")
 
 #----------------------------------------------------------
+# list of libraries built inside NestMC
+#----------------------------------------------------------
+set(NESTMC_LIBRARIES "")
+
+#----------------------------------------------------------
 # Threading model selection
 #----------------------------------------------------------
 set(NMC_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")

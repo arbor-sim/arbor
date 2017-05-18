@@ -109,6 +109,10 @@ private:
         return s == symbols_.end() ? false : s->second->kind() == kind;
     }
 
+    // Perform semantic analysis on functions and procedures.
+    // Returns the number of errors that were encountered.
+    int semantic_func_proc();
+
     // blocks
     NeuronBlock neuron_block_;
     StateBlock  state_block_;
