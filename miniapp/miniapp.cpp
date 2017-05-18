@@ -193,7 +193,9 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     p.morphology_round_robin = options.morph_rr;
 
     p.num_compartments = options.compartments_per_segment;
-    p.num_synapses = options.all_to_all? options.cells-1: options.synapses_per_cell;
+    // TODO: To place the location of these kinds of parameters as such
+    // different places makes live difficult!
+    p.num_synapses = options.all_to_all? options.cells-2: options.synapses_per_cell;
     p.synapse_type = options.syn_type;
 
     if (options.all_to_all) {

@@ -192,7 +192,7 @@ public:
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
-        cell_gid_type prev = i==0? ncell_-1: i-1;
+        cell_gid_type prev = i==0? ncell_-2: i-1;
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_connection cc = draw_connection_params(gen);
             cc.source = {prev, 0};
@@ -282,7 +282,8 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
-        if (std::size_t(param.num_synapses) != ncell-1) {
+        std::cout << "param.num_synapses: " << param.num_synapses << "\n";
+        if (std::size_t(param.num_synapses) != (ncell-2)) {
             throw invalid_recipe_error("number of synapses per cell must equal number "
                 "of cells minus one in complete graph model");
         }
@@ -296,9 +297,13 @@ public:
         }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
+
+
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;
-            EXPECTS(source<ncell_);
+
+
+            EXPECTS(source<(ncell_ - 1));
 
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
