@@ -414,9 +414,24 @@ TEST(fvm_multi, target_handles_onecell)
     run_target_handle_test(handles1);
 }
 
-TEST(fvm_multi, target_handles_twocell)
+TEST(fvm_multi, target_handles_twocell_sorted)
 {
-    SCOPED_TRACE("handles: expsyn only on cells 0 and 1");
+    SCOPED_TRACE("handles: expsyn only on cells 0 and 1, cvs sorted");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  0},
+        {0, "expsyn",  2},
+        {0, "expsyn",  4},
+        {1, "expsyn",  1},
+        {1, "expsyn",  2},
+        {1, "expsyn",  3},
+        {1, "expsyn",  4}
+    };
+    run_target_handle_test(handles);
+}
+
+TEST(fvm_multi, target_handles_twocell_unsorted)
+{
+    SCOPED_TRACE("handles: expsyn only on cells 0 and 1, cvs unsorted");
     std::vector<handle_info> handles = {
         {0, "expsyn",  4},
         {1, "expsyn",  4},
