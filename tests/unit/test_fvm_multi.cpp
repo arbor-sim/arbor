@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <fstream>
 
 #include "../gtest.h"
@@ -6,6 +7,7 @@
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
+#include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 
 #include "../test_util.hpp"
@@ -316,3 +318,159 @@ TEST(fvm_multi, mechanism_indexes)
         EXPECT_EQ(0u, fvcell.ion_ca().node_index().size());
     }
 }
+
+struct handle_info {
+    unsigned cell;
+    std::string mech;
+    unsigned cv;
+};
+
+// test handle <-> mechanism/index correspondence
+// on a two-cell ball-and-stick system.
+
+void run_target_handle_test(std::vector<handle_info> handles) {
+    using namespace nest::mc;
+
+    nest::mc::cell cells[] = {
+        make_cell_ball_and_stick(),
+        make_cell_ball_and_stick()
+    };
+
+    EXPECT_EQ(2u, cells[0].num_segments());
+    EXPECT_EQ(4u, cells[0].segment(1)->num_compartments());
+    EXPECT_EQ(5u, cells[0].num_compartments());
+
+    EXPECT_EQ(2u, cells[1].num_segments());
+    EXPECT_EQ(4u, cells[1].segment(1)->num_compartments());
+    EXPECT_EQ(5u, cells[1].num_compartments());
+
+    for (auto& x: handles) {
+        unsigned seg_id;
+        double pos;
+
+        ASSERT_TRUE(x.cell==0 || x.cell==1);
+        ASSERT_TRUE(x.cv<5);
+        ASSERT_TRUE(x.mech=="expsyn" || x.mech=="exp2syn");
+
+        if (x.cv==0) {
+            // place on soma
+            seg_id = 0;
+            pos = 0;
+        }
+        else {
+            // place on dendrite
+            seg_id = 1;
+            pos = x.cv/4.0;
+        }
+
+        if (x.cell==1) {
+            x.cv += 5; // offset for cell 1
+        }
+
+        cells[x.cell].add_synapse({seg_id, pos}, parameter_list(x.mech));
+    }
+
+    auto n = handles.size();
+    std::vector<fvm_cell::target_handle> targets(n);
+    std::vector<fvm_cell::probe_handle> probes;
+
+    fvm_cell fvcell;
+    fvcell.initialize(cells, targets, probes);
+
+    ASSERT_EQ(n, util::size(targets));
+    for (std::size_t i = 0; i<n; ++i) {
+        // targets are represented by a pair of mechanism index and instance index
+        const auto& mech = fvcell.mechanisms()[targets[i].first];
+        const auto& cvidx = mech->node_index();
+        EXPECT_EQ(handles[i].mech, mech->name());
+        EXPECT_EQ(handles[i].cv, cvidx[targets[i].second]);
+    }
+}
+
+TEST(fvm_multi, target_handles_onecell)
+{
+    SCOPED_TRACE("handles: exp2syn only on cell 0");
+    std::vector<handle_info> handles0 = {
+        {0, "exp2syn",  4},
+        {0, "exp2syn",  4},
+        {0, "exp2syn",  3},
+        {0, "exp2syn",  2},
+        {0, "exp2syn",  0},
+        {0, "exp2syn",  1},
+        {0, "exp2syn",  2}
+    };
+    run_target_handle_test(handles0);
+
+    SCOPED_TRACE("handles: expsyn only on cell 1");
+    std::vector<handle_info> handles1 = {
+        {1, "expsyn",  4},
+        {1, "expsyn",  4},
+        {1, "expsyn",  3},
+        {1, "expsyn",  2},
+        {1, "expsyn",  0},
+        {1, "expsyn",  1},
+        {1, "expsyn",  2}
+    };
+    run_target_handle_test(handles1);
+}
+
+TEST(fvm_multi, target_handles_twocell_sorted)
+{
+    SCOPED_TRACE("handles: expsyn only on cells 0 and 1, cvs sorted");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  0},
+        {0, "expsyn",  2},
+        {0, "expsyn",  4},
+        {1, "expsyn",  1},
+        {1, "expsyn",  2},
+        {1, "expsyn",  3},
+        {1, "expsyn",  4}
+    };
+    run_target_handle_test(handles);
+}
+
+TEST(fvm_multi, target_handles_twocell_unsorted)
+{
+    SCOPED_TRACE("handles: expsyn only on cells 0 and 1, cvs unsorted");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  4},
+        {1, "expsyn",  4},
+        {1, "expsyn",  3},
+        {0, "expsyn",  2},
+        {0, "expsyn",  0},
+        {1, "expsyn",  1},
+        {1, "expsyn",  2}
+    };
+    run_target_handle_test(handles);
+}
+
+TEST(fvm_multi, target_handles_mixed_synapse)
+{
+    SCOPED_TRACE("handles: expsyn and exp2syn on cells 0");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  4},
+        {0, "exp2syn", 4},
+        {0, "expsyn",  3},
+        {0, "exp2syn", 2},
+        {0, "exp2syn", 0},
+        {0, "expsyn",  1},
+        {0, "expsyn",  2}
+    };
+    run_target_handle_test(handles);
+}
+
+TEST(fvm_multi, target_handles_general)
+{
+    SCOPED_TRACE("handles: expsyn and exp2syn on cells 0 and 1");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  4},
+        {1, "exp2syn", 4},
+        {1, "expsyn",  3},
+        {0, "exp2syn", 2},
+        {0, "exp2syn", 0},
+        {1, "expsyn",  1},
+        {1, "expsyn",  2}
+    };
+    run_target_handle_test(handles);
+}
+
