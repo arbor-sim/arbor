@@ -328,7 +328,7 @@ struct handle_info {
 // test handle <-> mechanism/index correspondence
 // on a two-cell ball-and-stick system.
 
-void run_target_handle_test(std::vector<handle_info> handles) {
+void run_target_handle_test(std::vector<handle_info> all_handles) {
     using namespace nest::mc;
 
     nest::mc::cell cells[] = {
@@ -344,7 +344,9 @@ void run_target_handle_test(std::vector<handle_info> handles) {
     EXPECT_EQ(4u, cells[1].segment(1)->num_compartments());
     EXPECT_EQ(5u, cells[1].num_compartments());
 
-    for (auto& x: handles) {
+    std::vector<std::vector<handle_info>> handles(2);
+
+    for (auto x: all_handles) {
         unsigned seg_id;
         double pos;
 
@@ -368,9 +370,10 @@ void run_target_handle_test(std::vector<handle_info> handles) {
         }
 
         cells[x.cell].add_synapse({seg_id, pos}, parameter_list(x.mech));
+        handles[x.cell].push_back(x);
     }
 
-    auto n = handles.size();
+    auto n = all_handles.size();
     std::vector<fvm_cell::target_handle> targets(n);
     std::vector<fvm_cell::probe_handle> probes;
 
@@ -378,12 +381,16 @@ void run_target_handle_test(std::vector<handle_info> handles) {
     fvcell.initialize(cells, targets, probes);
 
     ASSERT_EQ(n, util::size(targets));
-    for (std::size_t i = 0; i<n; ++i) {
-        // targets are represented by a pair of mechanism index and instance index
-        const auto& mech = fvcell.mechanisms()[targets[i].first];
-        const auto& cvidx = mech->node_index();
-        EXPECT_EQ(handles[i].mech, mech->name());
-        EXPECT_EQ(handles[i].cv, cvidx[targets[i].second]);
+    unsigned i = 0;
+    for (unsigned ci = 0; ci<=1; ++ci) {
+        for (auto h: handles[ci]) {
+            // targets are represented by a pair of mechanism index and instance index
+            const auto& mech = fvcell.mechanisms()[targets[i].first];
+            const auto& cvidx = mech->node_index();
+            EXPECT_EQ(h.mech, mech->name());
+            EXPECT_EQ(h.cv, cvidx[targets[i].second]);
+            ++i;
+        }
     }
 }
 
@@ -414,32 +421,17 @@ TEST(fvm_multi, target_handles_onecell)
     run_target_handle_test(handles1);
 }
 
-TEST(fvm_multi, target_handles_twocell_sorted)
+TEST(fvm_multi, target_handles_twocell)
 {
-    SCOPED_TRACE("handles: expsyn only on cells 0 and 1, cvs sorted");
+    SCOPED_TRACE("handles: expsyn only on cells 0 and 1");
     std::vector<handle_info> handles = {
         {0, "expsyn",  0},
+        {1, "expsyn",  3},
         {0, "expsyn",  2},
-        {0, "expsyn",  4},
-        {1, "expsyn",  1},
         {1, "expsyn",  2},
-        {1, "expsyn",  3},
-        {1, "expsyn",  4}
-    };
-    run_target_handle_test(handles);
-}
-
-TEST(fvm_multi, target_handles_twocell_unsorted)
-{
-    SCOPED_TRACE("handles: expsyn only on cells 0 and 1, cvs unsorted");
-    std::vector<handle_info> handles = {
         {0, "expsyn",  4},
-        {1, "expsyn",  4},
-        {1, "expsyn",  3},
-        {0, "expsyn",  2},
-        {0, "expsyn",  0},
         {1, "expsyn",  1},
-        {1, "expsyn",  2}
+        {1, "expsyn",  4}
     };
     run_target_handle_test(handles);
 }
@@ -464,10 +456,10 @@ TEST(fvm_multi, target_handles_general)
     SCOPED_TRACE("handles: expsyn and exp2syn on cells 0 and 1");
     std::vector<handle_info> handles = {
         {0, "expsyn",  4},
-        {1, "exp2syn", 4},
-        {1, "expsyn",  3},
         {0, "exp2syn", 2},
         {0, "exp2syn", 0},
+        {1, "exp2syn", 4},
+        {1, "expsyn",  3},
         {1, "expsyn",  1},
         {1, "expsyn",  2}
     };
