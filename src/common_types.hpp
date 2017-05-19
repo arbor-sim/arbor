@@ -59,7 +59,6 @@ using time_type = float;
 enum cell_kind {
     cable1d_neuron,           // Our own special mc neuron
     fs_neuron                 // Frequency spiking neuron
-
 };
 
 } // namespace mc
