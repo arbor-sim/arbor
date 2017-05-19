@@ -396,29 +396,33 @@ void run_target_handle_test(std::vector<handle_info> all_handles) {
 
 TEST(fvm_multi, target_handles_onecell)
 {
-    SCOPED_TRACE("handles: exp2syn only on cell 0");
-    std::vector<handle_info> handles0 = {
-        {0, "exp2syn",  4},
-        {0, "exp2syn",  4},
-        {0, "exp2syn",  3},
-        {0, "exp2syn",  2},
-        {0, "exp2syn",  0},
-        {0, "exp2syn",  1},
-        {0, "exp2syn",  2}
-    };
-    run_target_handle_test(handles0);
+    {
+        SCOPED_TRACE("handles: exp2syn only on cell 0");
+        std::vector<handle_info> handles0 = {
+            {0, "exp2syn",  4},
+            {0, "exp2syn",  4},
+            {0, "exp2syn",  3},
+            {0, "exp2syn",  2},
+            {0, "exp2syn",  0},
+            {0, "exp2syn",  1},
+            {0, "exp2syn",  2}
+        };
+        run_target_handle_test(handles0);
+    }
 
-    SCOPED_TRACE("handles: expsyn only on cell 1");
-    std::vector<handle_info> handles1 = {
-        {1, "expsyn",  4},
-        {1, "expsyn",  4},
-        {1, "expsyn",  3},
-        {1, "expsyn",  2},
-        {1, "expsyn",  0},
-        {1, "expsyn",  1},
-        {1, "expsyn",  2}
-    };
-    run_target_handle_test(handles1);
+    {
+        SCOPED_TRACE("handles: expsyn only on cell 1");
+        std::vector<handle_info> handles1 = {
+            {1, "expsyn",  4},
+            {1, "expsyn",  4},
+            {1, "expsyn",  3},
+            {1, "expsyn",  2},
+            {1, "expsyn",  0},
+            {1, "expsyn",  1},
+            {1, "expsyn",  2}
+        };
+        run_target_handle_test(handles1);
+    }
 }
 
 TEST(fvm_multi, target_handles_twocell)
