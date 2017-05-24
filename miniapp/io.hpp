@@ -41,7 +41,7 @@ struct cl_options {
     double probe_ratio = 0;  // Proportion of cells to probe.
     std::string trace_prefix = "trace_";
     util::optional<unsigned> trace_max_gid; // Only make traces up to this gid.
-    std::string trace_format = "json"; // Supportint only 'json' and 'csv'.
+    std::string trace_format = "json"; // Support only 'json' and 'csv'.
 
     // Parameters for spike output.
     bool spike_file_output = false;
