@@ -36,6 +36,7 @@ struct cl_options {
     double bin_dt = 0.0025;   // 0 => no binning.
 
     // Probe/sampling specification.
+    double sample_dt = 0.1;
     bool probe_soma_only = false;
     double probe_ratio = 0;  // Proportion of cells to probe.
     std::string trace_prefix = "trace_";

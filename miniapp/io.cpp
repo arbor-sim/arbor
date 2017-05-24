@@ -158,6 +158,9 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         TCLAP::ValueArg<uint32_t> group_size_arg(
             "g", "group-size", "number of cells per cell group",
             false, defopts.compartments_per_segment, "integer", cmd);
+        TCLAP::ValueArg<double> sample_dt_arg(
+            "", "sample-dt", "set sampling interval to <time> ms",
+            false, defopts.bin_dt, "time", cmd);
         TCLAP::ValueArg<double> probe_ratio_arg(
             "p", "probe-ratio", "proportion between 0 and 1 of cells to probe",
             false, defopts.probe_ratio, "proportion", cmd);
@@ -211,6 +214,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                     update_option(options.all_to_all, fopts, "all_to_all");
                     update_option(options.ring, fopts, "ring");
                     update_option(options.group_size, fopts, "group_size");
+                    update_option(options.sample_dt, fopts, "sample_dt");
                     update_option(options.probe_ratio, fopts, "probe_ratio");
                     update_option(options.probe_soma_only, fopts, "probe_soma_only");
                     update_option(options.trace_prefix, fopts, "trace_prefix");
@@ -256,6 +260,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.all_to_all, all_to_all_arg);
         update_option(options.ring, ring_arg);
         update_option(options.group_size, group_size_arg);
+        update_option(options.sample_dt, sample_dt_arg);
         update_option(options.probe_ratio, probe_ratio_arg);
         update_option(options.probe_soma_only, probe_soma_only_arg);
         update_option(options.trace_prefix, trace_prefix_arg);
@@ -304,6 +309,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 fopts["all_to_all"] = options.all_to_all;
                 fopts["ring"] = options.ring;
                 fopts["group_size"] = options.group_size;
+                fopts["sample_dt"] = options.sample_dt;
                 fopts["probe_ratio"] = options.probe_ratio;
                 fopts["probe_soma_only"] = options.probe_soma_only;
                 fopts["trace_prefix"] = options.trace_prefix;
@@ -350,6 +356,7 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
     o << "  ring network         : " << (options.ring ? "yes" : "no") << "\n";
     o << "  group size           : " << options.group_size << "\n";
+    o << "  sample dt            : " << options.sample_dt << "\n";
     o << "  probe ratio          : " << options.probe_ratio << "\n";
     o << "  probe soma only      : " << (options.probe_soma_only ? "yes" : "no") << "\n";
     o << "  trace prefix         : " << options.trace_prefix << "\n";

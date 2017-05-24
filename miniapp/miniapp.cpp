@@ -123,8 +123,7 @@ int main(int argc, char** argv) {
 
         // Attach samplers to all probes
         std::vector<std::unique_ptr<sample_trace_type>> traces;
-        //const time_type sample_dt = 0.1;
-        const time_type sample_dt = options.dt;
+        const time_type sample_dt = options.sample_dt;
         for (auto probe: m.probes()) {
             if (options.trace_max_gid && probe.id.gid>*options.trace_max_gid) {
                 continue;
