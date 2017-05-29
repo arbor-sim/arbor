@@ -88,7 +88,7 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index)");
+    text_.add_line(class_name + "(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index)");
     text_.add_line(":   base(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();

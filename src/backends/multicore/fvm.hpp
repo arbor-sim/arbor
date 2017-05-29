@@ -95,6 +95,12 @@ struct backend {
         return util::minmax_value(v);
     }
 
+    // perform element-wise comparison on 'array' type against `t_test`.
+    template <typename V>
+    static bool any_time_before(const memory::host_vector<V>& t, V t_test) {
+        return minmax_value(t).first<t_test;
+    }
+
     static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {
         size_type ncell = util::size(time);
         for (size_type i = 0; i<ncell; ++i) {
