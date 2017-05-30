@@ -65,12 +65,14 @@ public:
     virtual void nrn_init()     = 0;
     virtual void nrn_state()    = 0;
     virtual void nrn_current()  = 0;
-    virtual void net_receive(int, value_type) {};
     virtual void deliver_events(multi_event_stream& events) {};
     virtual bool uses_ion(ionKind) const = 0;
     virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
-
     virtual mechanismKind kind() const = 0;
+
+    // net_receive() is used internally by deliver_events(), but
+    // is exposed primarily for unit testing.
+    virtual void net_receive(int, value_type) {};
 
     virtual ~mechanism() = default;
 

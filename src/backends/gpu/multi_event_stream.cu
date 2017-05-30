@@ -9,7 +9,7 @@ namespace nest {
 namespace mc {
 namespace gpu {
 
-namespace kernel {
+namespace kernels {
     template <typename T, typename I>
     __global__ void mark_until_after(
         I n,
@@ -19,13 +19,15 @@ namespace kernel {
         const T* t_until)
     {
         I i = threadIdx.x+blockIdx.x*blockDim.x;
-        if (i>=n) return;
+        if (i<n) {
+            auto t = t_until[i];
+            auto end = span_end[i];
+            auto &m = mark[i];
 
-        auto t = t_until[i];
-        auto end = span_end[i];
-        auto &m = mark[i];
-
-        while (m!=end && !(ev_time[m]>t)) { ++m; }
+            while (m!=end && !(ev_time[m]>t)) {
+                ++m;
+            }
+        }
     }
 
     template <typename T, typename I>
@@ -37,12 +39,12 @@ namespace kernel {
         const I* mark)
     {
         I i = threadIdx.x+blockIdx.x*blockDim.x;
-        if (i>=n) return;
-
-        bool emptied = (span_begin[i]<span_end[i] && mark[i]==span_end[i]);
-        span_begin[i] = mark[i];
-        if (emptied) {
-            atomicAdd(n_nonempty, (cell_size_type)-1);
+        if (i<n) {
+            bool emptied = (span_begin[i]<span_end[i] && mark[i]==span_end[i]);
+            span_begin[i] = mark[i];
+            if (emptied) {
+                atomicAdd(n_nonempty, (I)-1);
+            }
         }
     }
 
@@ -55,16 +57,16 @@ namespace kernel {
         T* t_until)
     {
         I i = threadIdx.x+blockIdx.x*blockDim.x;
-        if (i>=n) return;
-
-        if (span_begin[i]<span_end[i]) {
-            auto ev_t = ev_time[span_begin[i]];
-            if (t_until[i]>ev_t) {
-                t_until[i] = ev_t;
+        if (i<n) {
+            if (span_begin[i]<span_end[i]) {
+                auto ev_t = ev_time[span_begin[i]];
+                if (t_until[i]>ev_t) {
+                    t_until[i] = ev_t;
+                }
             }
         }
     }
-} // namespace kernel
+} // namespace kernels
 
 void multi_event_stream::clear() {
     memory::fill(span_begin_, 0u);
@@ -73,14 +75,13 @@ void multi_event_stream::clear() {
     n_nonempty_stream_[0] = 0;
 }
 
-void multi_event_stream::init(const std::vector<deliverable_event>& staged) {
+void multi_event_stream::init(std::vector<deliverable_event> staged) {
     if (staged.size()>std::numeric_limits<size_type>::max()) {
         throw std::range_error("too many events");
     }
 
     // Build vectors in host memory here and transfer to the device at end.
-    std::vector<deliverable_event> ev(staged);
-    std::size_t n_ev = ev.size();
+    std::size_t n_ev = staged.size();
 
     std::vector<size_type> divisions(n_stream_+1, 0);
     std::vector<size_type> tmp_ev_indices(n_ev);
@@ -91,26 +92,26 @@ void multi_event_stream::init(const std::vector<deliverable_event>& staged) {
     ev_mech_id_ = iarray(n_ev);
     ev_index_ = iarray(n_ev);
 
-    util::stable_sort_by(ev, [](const deliverable_event& e) { return e.handle.cell_index; });
+    util::stable_sort_by(staged, [](const deliverable_event& e) { return e.handle.cell_index; });
 
     // Split out event fields and copy to device.
-    util::assign_by(tmp_ev_values, ev, [](const deliverable_event& e) { return e.weight; });
+    util::assign_by(tmp_ev_values, staged, [](const deliverable_event& e) { return e.weight; });
     memory::copy(tmp_ev_values, ev_weight_);
 
-    util::assign_by(tmp_ev_values, ev, [](const deliverable_event& e) { return e.time; });
+    util::assign_by(tmp_ev_values, staged, [](const deliverable_event& e) { return e.time; });
     memory::copy(tmp_ev_values, ev_time_);
 
-    util::assign_by(tmp_ev_indices, ev, [](const deliverable_event& e) { return e.handle.mech_id; });
+    util::assign_by(tmp_ev_indices, staged, [](const deliverable_event& e) { return e.handle.mech_id; });
     memory::copy(tmp_ev_indices, ev_mech_id_);
 
-    util::assign_by(tmp_ev_indices, ev, [](const deliverable_event& e) { return e.handle.index; });
+    util::assign_by(tmp_ev_indices, staged, [](const deliverable_event& e) { return e.handle.index; });
     memory::copy(tmp_ev_indices, ev_index_);
 
     // Determine divisions by `cell_index` in ev list and copy to device.
     size_type ev_i = 0;
     size_type n_nonempty = 0;
     for (size_type s = 1; s<=n_stream_; ++s) {
-        while (ev_i<n_ev && ev[ev_i].handle.cell_index<s) ++ev_i;
+        while (ev_i<n_ev && staged[ev_i].handle.cell_index<s) ++ev_i;
         divisions[s] = ev_i;
         n_nonempty += (divisions[s]!=divisions[s-1]);
     }
@@ -129,7 +130,7 @@ void multi_event_stream::mark_until_after(const_view t_until) {
 
     constexpr int blockwidth = 128;
     int nblock = 1+(n_stream_-1)/blockwidth;
-    kernel::mark_until_after<value_type, size_type><<<nblock, blockwidth>>>(
+    kernels::mark_until_after<value_type, size_type><<<nblock, blockwidth>>>(
         n_stream_, mark_.data(), span_end_.data(), ev_time_.data(), t_until.data());
 }
 
@@ -137,7 +138,7 @@ void multi_event_stream::mark_until_after(const_view t_until) {
 void multi_event_stream::drop_marked_events() {
     constexpr int blockwidth = 128;
     int nblock = 1+(n_stream_-1)/blockwidth;
-    kernel::drop_marked_events<value_type, size_type><<<nblock, blockwidth>>>(
+    kernels::drop_marked_events<value_type, size_type><<<nblock, blockwidth>>>(
         n_stream_, n_nonempty_stream_.data(), span_begin_.data(), span_end_.data(), mark_.data());
 }
 
@@ -146,7 +147,7 @@ void multi_event_stream::drop_marked_events() {
 void multi_event_stream::event_time_if_before(view t_until) {
     constexpr int blockwidth = 128;
     int nblock = 1+(n_stream_-1)/blockwidth;
-    kernel::event_time_if_before<value_type, size_type><<<nblock, blockwidth>>>(
+    kernels::event_time_if_before<value_type, size_type><<<nblock, blockwidth>>>(
         n_stream_, span_begin_.data(), span_end_.data(), ev_time_.data(), t_until.data());
 }
 

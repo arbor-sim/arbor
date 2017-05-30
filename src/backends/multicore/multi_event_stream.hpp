@@ -40,12 +40,12 @@ public:
     }
 
     // Initialize event streams from a vector of `deliverable_event`.
-    void init(const std::vector<deliverable_event>& staged) {
+    void init(std::vector<deliverable_event> staged) {
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
         }
 
-        ev_ = staged;
+        ev_ = std::move(staged);
         util::stable_sort_by(ev_, [](const deliverable_event& e) { return e.handle.cell_index; });
 
         util::fill(span_, span_type(0u, 0u));

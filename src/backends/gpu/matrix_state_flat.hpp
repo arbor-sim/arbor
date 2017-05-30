@@ -85,7 +85,7 @@ struct matrix_state_flat {
     }
 
     // interface for exposing the solution to the outside world
-    view solution() const {
+    const_view solution() const {
         return memory::make_view(rhs);
     }
 

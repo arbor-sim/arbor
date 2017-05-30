@@ -62,7 +62,7 @@ struct backend {
 
     static mechanism make_mechanism(
         const std::string& name,
-        value_type mech_id,
+        size_type mech_id,
         const_iview vec_ci,
         const_view vec_t, const_view vec_t_to,
         view vec_v, view vec_i,
@@ -103,7 +103,6 @@ struct backend {
 
         // return gpu::any_time_before(t.size(), t.data(), t_test);
 
-        cudaDeviceSynchronize();
         auto v_copy = memory::on_host(t);
         return util::minmax_value(v_copy).first<t_test;
     }
@@ -117,7 +116,7 @@ private:
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
+    static mechanism maker(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return mechanisms::make_mechanism<Mech<backend>>
             (mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }

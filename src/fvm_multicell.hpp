@@ -97,7 +97,7 @@ public:
 
         EXPECTS(!has_pending_events());
 
-        events_->init(staged_events_);
+        events_->init(std::move(staged_events_));
         staged_events_.clear();
     }
 
@@ -298,13 +298,13 @@ private:
     // Maintain cached copy of time vector for querying by
     // cell_group. This will no longer be necessary when full
     // integration loop is in lowered cell.
-    mutable std::vector<time_type> cached_time_;
+    mutable std::vector<value_type> cached_time_;
     mutable bool cached_time_valid_ = false;
 
     void invalidate_time_cache() { cached_time_valid_ = false; }
     void refresh_time_cache() const {
         if (!cached_time_valid_) {
-            util::assign(cached_time_, memory::on_host(time_));
+            memory::copy(time_, memory::make_view(cached_time_));
         }
         cached_time_valid_ = true;
     }
@@ -535,6 +535,8 @@ void fvm_multicell<Backend>::initialize(
     cv_to_cell_ = iarray(ncomp, 0);
     time_ = array(ncell_, 0);
     time_to_ = array(ncell_, 0);
+    cached_time_.resize(ncell_);
+    cached_time_valid_ = false;
 
     // initialize cv_to_cell_ values from compartment partition
     std::vector<size_type> cv_to_cell_tmp(ncomp);
