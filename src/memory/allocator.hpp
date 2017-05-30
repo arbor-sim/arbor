@@ -2,7 +2,7 @@
 
 #include <limits>
 
-#ifdef NMC_HAVE_CUDA
+#ifdef NMC_HAVE_GPU
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
@@ -138,7 +138,7 @@ namespace impl {
     }
 #endif
 
-#ifdef NMC_HAVE_CUDA
+#ifdef NMC_HAVE_GPU
     namespace cuda {
         template <size_type Alignment>
         class pinned_policy {
@@ -243,7 +243,7 @@ namespace impl {
             }
         };
     } // namespace cuda
-#endif // #ifdef NMC_HAVE_CUDA
+#endif // #ifdef NMC_HAVE_GPU
 } // namespace impl
 
 template<typename T, typename Policy >
@@ -318,7 +318,7 @@ namespace util {
         }
     };
 
-#ifdef NMC_HAVE_CUDA
+#ifdef NMC_HAVE_GPU
     template <size_t Alignment>
     struct type_printer<impl::cuda::pinned_policy<Alignment>>{
         static std::string print() {
@@ -357,7 +357,7 @@ template <class T, size_t alignment=(512/8)>
 using hbw_allocator = allocator<T, impl::knl::hbw_policy<alignment>>;
 #endif
 
-#ifdef NMC_HAVE_CUDA
+#ifdef NMC_HAVE_GPU
 // For pinned and allocation set the default alignment to correspond to
 // the alignment of 1024 bytes, because pinned memory is allocated at
 // page boundaries. It is allocated at page boundaries (typically 4k),

@@ -15,13 +15,11 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-template <
-    typename LoweredCell,
-    typename SamplerInfoSeq
->
+template <typename SamplerInfoSeq>
 void run_ncomp_convergence_test(
     const char* model_name,
     const nest::mc::util::path& ref_data_path,
+    nest::mc::backend_policy backend,
     const nest::mc::cell& c,
     SamplerInfoSeq& samplers,
     float t_end=100.f)
@@ -37,7 +35,7 @@ void run_ncomp_convergence_test(
         {"dt", dt},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", LoweredCell::backend::name()}
+        {"backend_policy", to_string(backend)}
     };
 
     auto exclude = stimulus_ends(c);
@@ -51,7 +49,8 @@ void run_ncomp_convergence_test(
                 seg->set_compartments(ncomp);
             }
         }
-        model<LoweredCell> m(singleton_recipe{c});
+        domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+        model m(singleton_recipe{c}, decomp);
 
         runner.run(m, ncomp, t_end, dt, exclude);
     }
@@ -59,8 +58,7 @@ void run_ncomp_convergence_test(
     runner.assert_all_convergence();
 }
 
-template <typename LoweredCell>
-void validate_ball_and_stick() {
+void validate_ball_and_stick(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_stick();
@@ -73,15 +71,15 @@ void validate_ball_and_stick() {
         {"dend.end", {0u, 2u}, simple_sampler(sample_dt)}
     };
 
-    run_ncomp_convergence_test<LoweredCell>(
+    run_ncomp_convergence_test(
         "ball_and_stick",
         "neuron_ball_and_stick.json",
+        backend,
         c,
         samplers);
 }
 
-template <typename LoweredCell>
-void validate_ball_and_taper() {
+void validate_ball_and_taper(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_taper();
@@ -94,15 +92,15 @@ void validate_ball_and_taper() {
         {"taper.end", {0u, 2u}, simple_sampler(sample_dt)}
     };
 
-    run_ncomp_convergence_test<LoweredCell>(
+    run_ncomp_convergence_test(
         "ball_and_taper",
         "neuron_ball_and_taper.json",
+        backend,
         c,
         samplers);
 }
 
-template <typename LoweredCell>
-void validate_ball_and_3stick() {
+void validate_ball_and_3stick(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_3stick();
@@ -119,15 +117,15 @@ void validate_ball_and_3stick() {
         {"dend3.end", {0u, 6u}, simple_sampler(sample_dt)}
     };
 
-    run_ncomp_convergence_test<LoweredCell>(
+    run_ncomp_convergence_test(
         "ball_and_3stick",
         "neuron_ball_and_3stick.json",
+        backend,
         c,
         samplers);
 }
 
-template <typename LoweredCell>
-void validate_rallpack1() {
+void validate_rallpack1(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     cell c = make_cell_simple_cable();
@@ -144,16 +142,16 @@ void validate_rallpack1() {
         {"cable.x1.0", {0u, 2u}, simple_sampler(sample_dt)},
     };
 
-    run_ncomp_convergence_test<LoweredCell>(
+    run_ncomp_convergence_test(
         "rallpack1",
         "numeric_rallpack1.json",
+        backend,
         c,
         samplers,
         250.f);
 }
 
-template <typename LoweredCell>
-void validate_ball_and_squiggle() {
+void validate_ball_and_squiggle(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_squiggle();
@@ -177,9 +175,10 @@ void validate_ball_and_squiggle() {
         samplers);
 #endif
 
-    run_ncomp_convergence_test<LoweredCell>(
+    run_ncomp_convergence_test(
         "ball_and_squiggle_integrator",
         "neuron_ball_and_squiggle.json",
+        backend,
         c,
         samplers);
 }

@@ -6,6 +6,7 @@
 #include <cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
+#include <util/unique_any.hpp>
 
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
@@ -80,7 +81,7 @@ public:
 
     cell_size_type num_cells() const override { return ncell_; }
 
-    cell get_cell(cell_gid_type i) const override {
+    util::unique_any get_cell(cell_gid_type i) const override {
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
@@ -108,7 +109,13 @@ public:
             }
         }
         EXPECTS(cell.probes().size()==cc.num_probes);
-        return cell;
+
+        return util::unique_any(std::move(cell));
+    }
+
+    cell_kind get_cell_kind(cell_gid_type) const override {
+        // The basic_cell_recipe only produces mc cells, so return cable1d_neuron for now
+        return cell_kind::cable1d_neuron;
     }
 
     cell_count_info get_cell_count_info(cell_gid_type i) const override {

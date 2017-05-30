@@ -3,8 +3,9 @@
 
 #include "../gtest.h"
 
-#include <common_types.hpp>
+#include <backends/multicore/fvm.hpp>
 #include <cell.hpp>
+#include <common_types.hpp>
 #include <fvm_multicell.hpp>
 #include <util/meta.hpp>
 #include <util/rangeutil.hpp>

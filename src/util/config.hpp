@@ -30,7 +30,7 @@ constexpr bool has_power_measurement = true;
 constexpr bool has_power_measurement = false;
 #endif
 
-#ifdef NMC_HAVE_CUDA
+#ifdef NMC_HAVE_GPU
 constexpr bool has_cuda = true;
 #else
 constexpr bool has_cuda = false;

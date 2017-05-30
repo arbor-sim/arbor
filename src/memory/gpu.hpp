@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef NMC_HAVE_CUDA
+#ifdef NMC_HAVE_GPU
 
 #include <string>
 #include <cstdint>

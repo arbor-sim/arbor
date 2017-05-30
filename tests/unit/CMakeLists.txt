@@ -18,7 +18,7 @@ build_modules(
 
 set(TEST_CUDA_SOURCES
     test_atomics.cu
-    test_cell_group.cu
+    test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
     test_multi_event_stream.cu
@@ -32,17 +32,20 @@ set(TEST_CUDA_SOURCES
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
+    test_any.cpp
+    test_backend.cpp
     test_double_buffer.cpp
     test_cell.cpp
     test_compartments.cpp
     test_counter.cpp
     test_cycle.cpp
+    test_domain_decomposition.cpp
     test_either.cpp
     test_event_queue.cpp
     test_event_binner.cpp
     test_filter.cpp
     test_fvm_multi.cpp
-    test_cell_group.cpp
+    test_mc_cell_group.cpp
     test_lexcmp.cpp
     test_mask_stream.cpp
     test_math.cpp
@@ -68,6 +71,7 @@ set(TEST_SOURCES
     test_tree.cpp
     test_transform.cpp
     test_uninitialized.cpp
+    test_unique_any.cpp
     test_vector.cpp
 
     # unit test driver
@@ -91,11 +95,11 @@ if(NMC_WITH_CUDA)
 
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
-    target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
 endif()
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC gtest nestmc)
+    target_link_libraries(${target} LINK_PUBLIC gtest)
+    target_link_libraries(${target} LINK_PUBLIC ${NESTMC_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(NMC_WITH_MPI)

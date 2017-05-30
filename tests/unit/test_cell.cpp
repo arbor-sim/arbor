@@ -220,3 +220,12 @@ TEST(cell_type, clone)
     EXPECT_NE(c.segment(1)->num_compartments(), d.segment(1)->num_compartments());
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
+
+TEST(cell_type, get_kind)
+{
+    using namespace nest::mc;
+
+    // make a MC cell
+    cell c;
+    EXPECT_EQ( cell_kind::cable1d_neuron, c.get_cell_kind());
+}

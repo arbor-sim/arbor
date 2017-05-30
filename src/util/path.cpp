@@ -1,10 +1,21 @@
-#include <cerrno>
-
 // POSIX headers
 extern "C" {
+#define _POSIX_C_SOURCE 2
 #include <glob.h>
 #include <sys/stat.h>
 }
+
+// GLOB_TILDE and GLOB_BRACE are non-standard but convenient and common
+// flags for glob().
+
+#ifndef GLOB_TILDE
+#define GLOB_TILDE 0
+#endif
+#ifndef GLOB_BRACE
+#define GLOB_BRACE 0
+#endif
+
+#include <cerrno>
 
 #include <util/scope_exit.hpp>
 #include <util/path.hpp>
@@ -16,16 +27,9 @@ namespace posix {
 
 std::vector<path> glob(const std::string& pattern) {
     std::vector<path> paths;
-
-    int flags = GLOB_MARK | GLOB_NOCHECK;
-#if defined(GLOB_TILDE)
-    flags |= GLOB_TILDE;
-#endif
-#if defined(GLOB_TILDE)
-    flags |= GLOB_BRACE;;
-#endif
-
     glob_t matches;
+
+    int flags = GLOB_MARK | GLOB_NOCHECK | GLOB_TILDE | GLOB_BRACE;
     auto r = ::glob(pattern.c_str(), flags, nullptr, &matches);
     auto glob_guard = on_scope_exit([&]() { ::globfree(&matches); });
 

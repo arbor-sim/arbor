@@ -21,6 +21,10 @@ namespace mc {
 namespace gpu {
 
 struct backend {
+    static bool is_supported() {
+        return true;
+    }
+
     /// define the real and index types
     using value_type = double;
     using size_type  = nest::mc::cell_lid_type;

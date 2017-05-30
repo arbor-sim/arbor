@@ -399,7 +399,7 @@ void SimdPrinter<Arch>::visit(IndexedVariable *e) {
         value_name = emit_rawptr_name(e->index_name());
     }
 
-    simd_backend::emit_gather(text_, vindex_name, value_name, "sizeof(value_type)");
+    simd_backend::emit_gather(text_, value_name, vindex_name, "sizeof(value_type)");
 }
 
 template<targetKind Arch>

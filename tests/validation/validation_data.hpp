@@ -82,6 +82,11 @@ private:
     int max_ncomp_ = 100;
     float min_dt_ = 0.001f;
 
+    // Returns value of NMC_DATADIR environment variable if set,
+    // otherwise make a 'best-effort' search for the data directory,
+    // starting with NMC_DATADIR preprocessor define if defined and
+    // if the directory exists, or else try './validation/data'
+    // and '../validation/data'.
     static util::path find_datadir();
 };
 
