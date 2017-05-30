@@ -112,7 +112,7 @@ struct backend {
     }
 
 private:
-    using maker_type = mechanism (*)(value_type, const_iview, const_view, const_view, view, view, array&&, iarray&&);
+    using maker_type = mechanism (*)(size_type, const_iview, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>

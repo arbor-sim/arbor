@@ -39,7 +39,7 @@ public:
     void clear();
 
     // Initialize event streams from a vector of `deliverable_event`.
-    void init(const std::vector<deliverable_event>& staged);
+    void init(std::vector<deliverable_event> staged);
 
     // Designate for processing events `ev` at head of each event stream `i`
     // until `event_time(ev)` > `t_until[i]`.
