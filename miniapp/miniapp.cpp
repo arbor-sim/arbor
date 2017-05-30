@@ -104,11 +104,6 @@ int main(int argc, char** argv) {
 
         m.set_binning_policy(binning_policy, options.bin_dt);
 
-        //// Inject some artificial spikes, 1 per 20 neurons.
-        //for (cell_gid_type c = 0; c<recipe->num_cells(); c += 20) {
-        //    m.add_artificial_spike({ c, 0 });
-        //}
-
         // Attach samplers to all probes
         std::vector<std::unique_ptr<sample_trace_type>> traces;
         const time_type sample_dt = 0.1;
@@ -193,8 +188,8 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     p.morphology_round_robin = options.morph_rr;
 
     p.num_compartments = options.compartments_per_segment;
-    // TODO: To place the location of these kinds of parameters as such
-    // different places makes live difficult!
+
+    // TODO: Put all recipe parameters in the recipes file
     p.num_synapses = options.all_to_all? options.cells-2: options.synapses_per_cell;
     p.synapse_type = options.syn_type;
 

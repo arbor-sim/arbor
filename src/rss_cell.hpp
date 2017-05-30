@@ -47,8 +47,7 @@ public:
         period_(period),
         stop_time_(stop_time),
         time_(0.0)
-    {
-    }
+    {}
 
     /// Return the kind of cell, used for grouping into cell_groups
     cell_kind  get_cell_kind() const  {
@@ -61,8 +60,7 @@ public:
     {
         std::vector<time_type> spike_times;
 
-        // If we should be spiking in this 'period', this is the main
-        // optimization of this function.
+        // If we should be spiking in this 'period'
         if (tfinal > start_time_) {
             // We have to spike till tfinal or the stop_time_of the neuron
             auto end_time = stop_time_ < tfinal ? stop_time_ : tfinal;
@@ -72,11 +70,9 @@ public:
                 time += period_) {
                 spike_times.push_back(time);
             }
-
         }
-        // Save our current time we generate exclusive a possible tfinal spike
+        // Save our current time we generate exclusive a possible spike at tfinal
         time_ = tfinal;
-
 
         return spike_times;
     }
