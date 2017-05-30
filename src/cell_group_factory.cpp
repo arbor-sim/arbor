@@ -2,7 +2,7 @@
 
 #include <backends.hpp>
 #include <cell_group.hpp>
-#include <fs_cell_group.hpp>
+#include <rss_cell_group.hpp>
 #include <fvm_multicell.hpp>
 #include <mc_cell_group.hpp>
 #include <util/unique_any.hpp>
@@ -29,7 +29,7 @@ cell_group_ptr cell_group_factory(
         }
 
     case cell_kind::regular_spike_source:
-        return make_cell_group<fs_cell_group>(first_gid, cells);
+        return make_cell_group<rss_cell_group>(first_gid, cells);
 
     default:
         throw std::runtime_error("unknown cell kind");

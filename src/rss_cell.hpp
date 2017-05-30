@@ -9,7 +9,7 @@
 namespace nest {
 namespace mc {
 
-class fs_cell {
+class rss_cell {
 public:
     using index_type = cell_lid_type;
     using size_type = cell_local_size_type;
@@ -17,7 +17,7 @@ public:
 
     /// Create a frequency spiker: A cell that generated spikes with a certain
     /// period for a set time range.
-    fs_cell(time_type start_time=0.0, time_type period=1.0, time_type stop_time=0.0):
+    rss_cell(time_type start_time=0.0, time_type period=1.0, time_type stop_time=0.0):
         start_time_(start_time),
         period_(period),
         stop_time_(stop_time),

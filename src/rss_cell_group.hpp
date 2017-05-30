@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cell_group.hpp>
-#include <fs_cell.hpp>
+#include <rss_cell.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
@@ -12,19 +12,19 @@ namespace mc {
 
 /// Cell_group to collect cells that spike at a set frequency
 /// Cell are lightweight and are not executed in anybackend implementation
-class fs_cell_group : public cell_group {
+class rss_cell_group : public cell_group {
 public:
     using source_id_type = cell_member_type;
 
-    fs_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
+    rss_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
         gid_base_{ first_gid }
     {
         using util::make_span;
 
         auto source_gid = cell_gid_type{ gid_base_ };
         for (auto i : make_span(0, cells.size())) {
-            // Copy all the fs_cells
-            cells_.push_back(util::any_cast<fs_cell>(cells[i]));
+            // Copy all the rss_cells
+            cells_.push_back(util::any_cast<rss_cell>(cells[i]));
 
             // create a lid to gid map
             spike_sources_.push_back(source_id_type{ source_gid, 0 });
@@ -32,7 +32,7 @@ public:
         }
     }
 
-    virtual ~fs_cell_group() = default;
+    virtual ~rss_cell_group() = default;
 
     cell_kind get_cell_kind() const override
     {
@@ -88,7 +88,7 @@ private:
     std::vector<source_id_type> spike_sources_;
 
     // Store a reference to the cell actually implementing the spiking
-    std::vector<fs_cell> cells_;
+    std::vector<rss_cell> cells_;
 
     std::vector<probe_record> probes_;
 };

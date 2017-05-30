@@ -4,7 +4,7 @@
 #include <utility>
 
 #include <cell.hpp>
-#include <fs_cell.hpp>
+#include <rss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
 
@@ -85,7 +85,7 @@ public:
         // The last 'cell' is always a regular spiking neuron
         // That spikes only once at t=0
         if (i == ncell_-1) {
-            return util::unique_any(std::move(fs_cell(0, 0.1, 0.1)));
+            return util::unique_any(std::move(rss_cell(0, 0.1, 0.1)));
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
