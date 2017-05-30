@@ -121,7 +121,7 @@ public:
 
     cell_kind get_cell_kind(cell_gid_type i ) const override {
         // First cell is currently always a regular frequency neuron
-        if (i == (ncell_ - 1)) {
+        if (i == ncell_-1) {
             return cell_kind::fs_neuron;
         }
         return cell_kind::cable1d_neuron;
@@ -186,7 +186,7 @@ public:
         std::vector<cell_connection> conns;
 
         // The frequency spiking does not have inputs
-        if (i == (ncell_ - 1)) {
+        if (i == ncell_-1) {
             return conns;
         }
 
@@ -204,7 +204,7 @@ public:
             // each synapse from these neurons on gid=0 to
             // reproduce this results
             if (prev % 20 == 0) {
-                cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
+                cc.source = { ncell_-1, 0 }; // also add connection from reg spiker!
                 conns.push_back(cc);
             }
         }
@@ -233,7 +233,7 @@ public:
         std::vector<cell_connection> conns;
 
         // The frequency spiking does not have inputs
-        if (i == (ncell_-1)) {
+        if (i == ncell_-1) {
             return conns;
         }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
@@ -282,7 +282,6 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
-        std::cout << "param.num_synapses: " << param.num_synapses << "\n";
         if (std::size_t(param.num_synapses) != (ncell-2)) {
             throw invalid_recipe_error("number of synapses per cell must equal number "
                 "of cells minus one in complete graph model");
@@ -292,16 +291,13 @@ public:
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
         // The frequency spiking does not have inputs
-        if (i == (ncell_ - 1)) {
+        if (i == ncell_-1) {
             return conns;
         }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
-
-
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;
-
 
             EXPECTS(source<(ncell_ - 1));
 
@@ -317,7 +313,6 @@ public:
             if ((source % 20) == 0) {
                 cc.source = { ncell_ - 1, 0 }; // also add connection from reg spiker!
                 conns.push_back(cc);
-
             }
         }
 
