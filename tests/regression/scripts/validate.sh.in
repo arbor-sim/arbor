@@ -1,15 +1,15 @@
 #####################################################
 # Run nest with the standard settings, but output to file
-echo "running rgraph regression test"
-${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f ${REG_TEST_N_G}
+#echo "running rgraph regression test"
+#${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f ${REG_TEST_N_G}
 
 # Do a comparison
-python compare.py data/rgraph.gdf spikes_0.gdf 0.01
+#python compare.py data/rgraph.gdf spikes_0.gdf 0.01
 
 # set if we have a failure in the comparison
-if [ $? != 0 ]; then
-    RGRAPH=1
-fi
+#if [ $? != 0 ]; then
+#    RGRAPH=1
+#fi
 
 echo "running alltoall regression test"
 ${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f -m ${REG_TEST_N_G}
@@ -17,6 +17,7 @@ python compare.py data/alltoall.gdf spikes_0.gdf 0.01
 if [ $? != 0 ]; then
     ALLTOALL=1
 fi
+
 
 echo "running ring regression test"
 ${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f -r ${REG_TEST_N_G}

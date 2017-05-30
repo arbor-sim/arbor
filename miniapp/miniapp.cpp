@@ -258,7 +258,7 @@ void report_compartment_stats(const recipe& rec) {
 
     for (std::size_t i = 0; i<ncell; ++i) {
         std::size_t ncomp = 0;
-        auto c = rec.get_cell(i);
+        auto c = rec.get_cell_description(i);
         if (auto ptr = util::any_cast<cell>(&c)) {
             ncomp = ptr->num_compartments();
         }

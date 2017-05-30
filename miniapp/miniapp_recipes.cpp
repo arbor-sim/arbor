@@ -81,11 +81,12 @@ public:
 
     cell_size_type num_cells() const override { return ncell_; }
 
-    util::unique_any get_cell(cell_gid_type i) const override {
+    util::unique_any get_cell_description(cell_gid_type i) const override {
         // The last 'cell' is always a regular spiking neuron
         // That spikes only once at t=0
         if (i == ncell_-1) {
-            return util::unique_any(std::move(rss_cell(0, 0.1, 0.1)));
+            return util::unique_any(std::move(
+                rss_cell::rss_cell_descr(0.0, 0.1, 0.1) ));
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...

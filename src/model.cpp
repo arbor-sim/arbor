@@ -32,15 +32,15 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
             PE("setup", "cells");
 
             auto group = domain_.get_group(i);
-            std::vector<util::unique_any> cells(group.end-group.begin);
+            std::vector<util::unique_any> cell_descriptions(group.end-group.begin);
 
             for (auto gid: util::make_span(group.begin, group.end)) {
                 auto i = gid-group.begin;
-                cells[i] = rec.get_cell(gid);
+                cell_descriptions[i] = rec.get_cell_description(gid);
             }
 
             cell_groups_[i] = cell_group_factory(
-                    group.kind, group.begin, cells, domain_.backend());
+                    group.kind, group.begin, cell_descriptions, domain_.backend());
             PL(2);
         });
 

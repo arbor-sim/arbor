@@ -16,20 +16,20 @@ using mc_fvm_cell = mc_cell_group<fvm::fvm_multicell<multicore::backend>>;
 cell_group_ptr cell_group_factory(
         cell_kind kind,
         cell_gid_type first_gid,
-        const std::vector<util::unique_any>& cells,
+        const std::vector<util::unique_any>& cell_descriptions,
         backend_policy backend)
 {
     switch (kind) {
     case cell_kind::cable1d_neuron:
         if (backend == backend_policy::prefer_gpu) {
-            return make_cell_group<gpu_fvm_cell>(first_gid, cells);
+            return make_cell_group<gpu_fvm_cell>(first_gid, cell_descriptions);
         }
         else {
-            return make_cell_group<mc_fvm_cell>(first_gid, cells);
+            return make_cell_group<mc_fvm_cell>(first_gid, cell_descriptions);
         }
 
     case cell_kind::regular_spike_source:
-        return make_cell_group<rss_cell_group>(first_gid, cells);
+        return make_cell_group<rss_cell_group>(first_gid, cell_descriptions);
 
     default:
         throw std::runtime_error("unknown cell kind");

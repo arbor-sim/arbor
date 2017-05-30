@@ -16,15 +16,17 @@ class rss_cell_group : public cell_group {
 public:
     using source_id_type = cell_member_type;
 
-    rss_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
+    rss_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cell_descriptions):
         gid_base_{ first_gid }
     {
         using util::make_span;
 
         auto source_gid = cell_gid_type{ gid_base_ };
-        for (auto i : make_span(0, cells.size())) {
+        for (auto i : make_span(0, cell_descriptions.size())) {
             // Copy all the rss_cells
-            cells_.push_back(util::any_cast<rss_cell>(cells[i]));
+            cells_.push_back(rss_cell(
+                util::any_cast<rss_cell::rss_cell_descr>(cell_descriptions[i])
+            ));
 
             // create a lid to gid map
             spike_sources_.push_back(source_id_type{ source_gid, 0 });
