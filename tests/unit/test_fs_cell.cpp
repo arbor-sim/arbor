@@ -56,5 +56,5 @@ TEST(fs_cell, cell_kind_correct)
 {
     fs_cell sut(0.1, 0.01, 0.2);
 
-    EXPECT_EQ(cell_kind::regular_frequency, sut.get_cell_kind());
+    EXPECT_EQ(cell_kind::regular_spike_source, sut.get_cell_kind());
 }

@@ -36,7 +36,7 @@ public:
 
     cell_kind get_cell_kind() const override
     {
-        return cell_kind::fs_neuron;
+        return cell_kind::regular_spike_source;
     }
 
     void reset() override {

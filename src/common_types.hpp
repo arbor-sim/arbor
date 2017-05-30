@@ -58,7 +58,7 @@ using time_type = float;
 
 enum cell_kind {
     cable1d_neuron,           // Our own special mc neuron
-    fs_neuron                 // Frequency spiking neuron
+    regular_spike_source,     // Regular spiking source
 
 };
 

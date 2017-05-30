@@ -27,7 +27,7 @@ public:
 
     /// Return the kind of cell, used for grouping into cell_groups
     cell_kind  get_cell_kind() const  {
-        return cell_kind::fs_neuron;
+        return cell_kind::regular_spike_source;
     }
 
     /// Collect all spikes until tfinal.

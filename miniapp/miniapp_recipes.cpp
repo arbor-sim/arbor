@@ -122,7 +122,7 @@ public:
     cell_kind get_cell_kind(cell_gid_type i ) const override {
         // First cell is currently always a regular frequency neuron
         if (i == ncell_-1) {
-            return cell_kind::fs_neuron;
+            return cell_kind::regular_spike_source;
         }
         return cell_kind::cable1d_neuron;
     }

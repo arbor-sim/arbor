@@ -28,7 +28,7 @@ cell_group_ptr cell_group_factory(
             return make_cell_group<mc_fvm_cell>(first_gid, cells);
         }
 
-    case cell_kind::fs_neuron:
+    case cell_kind::regular_spike_source:
         return make_cell_group<fs_cell_group>(first_gid, cells);
 
     default:
