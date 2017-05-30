@@ -17,32 +17,29 @@ public:
     using source_id_type = cell_member_type;
 
     rss_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cell_descriptions):
-        gid_base_{ first_gid }
+        gid_base_(first_gid)
     {
         using util::make_span;
 
-        auto source_gid = cell_gid_type{ gid_base_ };
-        for (auto i : make_span(0, cell_descriptions.size())) {
+        for (cell_gid_type i: make_span(0, cell_descriptions.size())) {
             // Copy all the rss_cells
             cells_.push_back(rss_cell(
                 util::any_cast<rss_cell::rss_cell_descr>(cell_descriptions[i])
             ));
 
             // create a lid to gid map
-            spike_sources_.push_back(source_id_type{ source_gid, 0 });
-            ++source_gid;
+            spike_sources_.push_back({gid_base_+i, 0});
         }
     }
 
     virtual ~rss_cell_group() = default;
 
-    cell_kind get_cell_kind() const override
-    {
+    cell_kind get_cell_kind() const override {
         return cell_kind::regular_spike_source;
     }
 
     void reset() override {
-        for (auto cell : cells_) {
+        for (auto cell: cells_) {
             cell.reset();
         }
     }
@@ -51,13 +48,11 @@ public:
     {} // Nothing to do?
 
     void advance(time_type tfinal, time_type dt) override {
-        auto source_lid = cell_gid_type{ 0 };
-        for (auto &cell  : cells_) {
-            for (auto spike_time : cell.spikes_until(tfinal)) {
-                spikes_.push_back({ spike_sources_[source_lid], spike_time});
+        // TODO: Move source information to rss_cell implementation
+        for (auto i: util::make_span(0, cells_.size())) {
+            for (auto spike_time: cells_[i].spikes_until(tfinal)) {
+                spikes_.push_back({spike_sources_[i], spike_time});
             }
-
-            ++source_lid;
         }
     };
 
