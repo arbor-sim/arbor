@@ -56,8 +56,9 @@ public:
         }
     };
 
-    void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override
-    {} // TODO: Fail silently or throw?
+    void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
+        std::logic_error("The rss_cell does not support incoming events!");
+    }
 
     const std::vector<spike>& spikes() const override {
         return spikes_;
@@ -71,8 +72,9 @@ public:
         return probes_;
     }
 
-    void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override
-    {} // TODO: Fail silently or throw?
+    void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override {
+        std::logic_error("The rss_cell does not support sampling of internal state!");
+    }
 
 private:
     // gid of first cell in group.

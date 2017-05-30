@@ -36,9 +36,7 @@ public:
         period_(descr.period),
         stop_time_(descr.stop_time),
         time_(0.0)
-    {
-
-    }
+    {}
 
 
     /// Construct a rss cell from individual arguments
@@ -56,8 +54,7 @@ public:
 
     /// Collect all spikes until tfinal.
     // updates the internal time state to tfinal as a side effect
-    std::vector<time_type> spikes_until(time_type tfinal)
-    {
+    std::vector<time_type> spikes_until(time_type tfinal) {
         std::vector<time_type> spike_times;
 
         // If we should be spiking in this 'period'
@@ -78,7 +75,7 @@ public:
     }
 
     /// reset internal time to 0.0
-    void reset()  {
+    void reset() {
         time_ = 0.0;
     }
 
