@@ -20,6 +20,7 @@ set(BASE_SOURCES
 )
 set(CUDA_SOURCES
     backends/gpu/fvm.cu
+    backends/gpu/multi_event_stream.cu
     memory/fill.cu
 )
 

@@ -294,8 +294,8 @@ TEST(matrix, assemble)
 
     // Compare the GPU and CPU results.
     // Cast result to float, because we are happy to ignore small differencs
-    std::vector<float> result_h = util::assign_from(m_mc.solution);
-    std::vector<float> result_g = util::assign_from(on_host(m_gpu.solution));
+    std::vector<float> result_h = util::assign_from(m_mc.solution());
+    std::vector<float> result_g = util::assign_from(on_host(m_gpu.solution()));
     EXPECT_TRUE(seq_almost_eq<float>(result_h, result_g));
 }
 
@@ -401,7 +401,83 @@ TEST(matrix, backends)
     // Compare the results.
     // We expect exact equality for the two gpu matrix implementations because both
     // perform the same operations in the same order on the same inputs.
-    std::vector<double> x_flat = assign_from(on_host(flat.solution));
-    std::vector<double> x_intl = assign_from(on_host(intl.solution));
+    std::vector<double> x_flat = assign_from(on_host(flat.solution()));
+    std::vector<double> x_intl = assign_from(on_host(intl.solution()));
     EXPECT_EQ(x_flat, x_intl);
 }
+
+// Test for special zero diagonal behaviour. (see `test_matrix.cpp`.)
+TEST(matrix, zero_diagonal)
+{
+    using util::assign;
+
+    using value_type = gpu::backend::value_type;
+    using size_type = gpu::backend::size_type;
+    using matrix_type = gpu::backend::matrix_state;
+    //using matrix_type = gpu::matrix_state_interleaved<value_type, size_type>;
+    using vvec = std::vector<value_type>;
+
+    // Combined matrix may have zero-blocks, corresponding to a zero dt.
+    // Zero-blocks are indicated by zero value in the diagonal (the off-diagonal
+    // elements should be ignored).
+    // These submatrices should leave the rhs as-is when solved.
+
+    // Three matrices, sizes 3, 3 and 2, with no branching.
+    std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
+    std::vector<size_type> c = {0, 3, 5, 7};
+
+    // Face conductances.
+    std::vector<value_type> g = {0, 1, 1, 0, 1, 0, 2};
+
+    // dt of 1e-3.
+    std::vector<value_type> t0(3, 0.0);
+    std::vector<value_type> t1(3, 1.0e-3);
+
+    // Capacitances.
+    std::vector<value_type> Cm = {1, 1, 1, 1, 1, 2, 3};
+
+    // Intial voltage of zero; currents alone determine rhs.
+    std::vector<value_type> v(7, 0.0);
+    std::vector<value_type> i = {-3, -5, -7, -6, -9, -16, -32};
+
+    // Expected matrix and rhs:
+    // u = [ 0 -1 -1  0 -1  0 -2]
+    // d = [ 2  3  2  2  2  4  5]
+    // b = [ 3  5  7  2  4 16 32]
+    //
+    // Expected solution:
+    // x = [ 4  5  6  7  8  9 10]
+
+    matrix_type m(p, c, Cm, g);
+    auto gpu_t0 = on_gpu(t0);
+    auto gpu_t1 = on_gpu(t1);
+    auto gpu_v  = on_gpu(v);
+    auto gpu_i  = on_gpu(i);
+    m.assemble(gpu_t0, gpu_t1, gpu_v, gpu_i);
+    m.solve();
+
+    vvec x;
+    assign(x, on_host(m.solution()));
+    std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
+
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+
+    // Set dt of 2nd (middle) submatrix to zero. Solution
+    // should then return voltage values for that submatrix.
+
+    t0[1] = t1[1];
+    gpu_t0 = on_gpu(t0);
+
+    v[3] = 20;
+    v[4] = 30;
+    gpu_v  = on_gpu(v);
+
+    m.assemble(gpu_t0, gpu_t1, gpu_v, gpu_i);
+    m.solve();
+
+    assign(x, on_host(m.solution()));
+    expected = {4, 5, 6, 20, 30, 9, 10};
+
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+}
+

@@ -21,6 +21,7 @@ set(TEST_CUDA_SOURCES
     test_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
+    test_multi_event_stream.cu
     test_spikes.cu
     test_vector.cu
 
@@ -47,6 +48,7 @@ set(TEST_SOURCES
     test_math.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_multi_event_stream.cpp
     test_nop.cpp
     test_optional.cpp
     test_parameters.cpp
@@ -106,3 +108,9 @@ foreach(target ${TARGETS})
        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
     )
 endforeach()
+
+# Temporary hack (pending PR #266)
+if(NMC_WITH_CUDA)
+    target_link_libraries(test_cuda.exe LINK_PUBLIC nestmc)
+endif()
+

@@ -52,8 +52,10 @@ public:
     using const_iview = typename base::const_iview;
     using ion_type = typename base::ion_type;
 
+    static constexpr size_type no_mech_id = (size_type)-1;
+
     stimulus(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, iarray&& node_index):
-        base(vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))
+        base(no_mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))
     {}
 
     using base::size;

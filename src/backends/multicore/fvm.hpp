@@ -90,8 +90,15 @@ struct backend {
 
 
     // perform min/max reductions on 'array' type
-    static std::pair<value_type, value_type> minmax_value(const array& v) {
+    template <typename V>
+    static std::pair<V, V> minmax_value(const memory::host_vector<V>& v) {
         return util::minmax_value(v);
+    }
+
+    // perform element-wise comparison on 'array' type against `t_test`.
+    template <typename V>
+    static bool any_time_before(const memory::host_vector<V>& t, V t_test) {
+        return minmax_value(t).first<t_test;
     }
 
     static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {

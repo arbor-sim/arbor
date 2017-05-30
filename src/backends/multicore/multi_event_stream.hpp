@@ -10,6 +10,7 @@
 #include <backends/event.hpp>
 #include <util/debug.hpp>
 #include <util/range.hpp>
+#include <util/rangeutil.hpp>
 #include <util/strprintf.hpp>
 
 namespace nest {
@@ -19,6 +20,7 @@ namespace multicore {
 class multi_event_stream {
 public:
     using size_type = cell_size_type;
+    using value_type = double;
 
     multi_event_stream() {}
 
@@ -38,18 +40,16 @@ public:
     }
 
     // Initialize event streams from a vector of `deliverable_event`.
-    void init(const std::vector<deliverable_event>& staged) {
+    void init(std::vector<deliverable_event> staged) {
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
         }
 
-        ev_.resize(staged.size());
-        std::copy(staged.begin(), staged.end(), ev_.begin());
+        ev_ = std::move(staged);
+        util::stable_sort_by(ev_, [](const deliverable_event& e) { return e.handle.cell_index; });
 
         util::fill(span_, span_type(0u, 0u));
         util::fill(mark_, 0u);
-
-        util::stable_sort_by(ev_, [](const deliverable_event& e) { return e.handle.cell_index; });
 
         size_type si = 0;
         for (size_type ev_i = 0; ev_i<ev_.size(); ++ev_i) {
@@ -129,10 +129,6 @@ public:
         }
     }
 
-    // TODO: remove once we are confident implementation of lowered cell event delivery
-    // is sound.
-    friend std::ostream& operator<<(std::ostream& out, const multi_event_stream& m);
-
 private:
     using span_type = std::pair<size_type, size_type>;
 
@@ -141,40 +137,6 @@ private:
     std::vector<size_type> mark_;
     size_type remaining_ = 0;
 };
-
-inline std::ostream& operator<<(std::ostream& out, const multi_event_stream& m) {
-    auto n = m.n_streams();
-
-    out << "\n[";
-    unsigned i = 0;
-    for (unsigned ev_i = 0; ev_i<m.ev_.size(); ++ev_i) {
-        while (m.span_[i].second<=ev_i && i<n) ++i;
-        if (i<n) {
-            out << util::strprintf(" % 7d ", i);
-        }
-        else {
-            out << "      ?";
-        }
-    }
-    out << "\n[";
-
-    i = 0;
-    for (unsigned ev_i = 0; ev_i<m.ev_.size(); ++ev_i) {
-        while (m.span_[i].second<=ev_i && i<n) ++i;
-
-        bool discarded = i<n && m.span_[i].first>ev_i;
-        bool marked = i<n && m.mark_[i]>ev_i;
-
-        if (discarded) {
-            out << "        x";
-        }
-        else {
-            out << util::strprintf(" % 7.3f%c", m.ev_[ev_i].time, marked?'*':' ');
-        }
-    }
-    out << "]\n";
-    return out;
-}
 
 } // namespace multicore
 } // namespace nest

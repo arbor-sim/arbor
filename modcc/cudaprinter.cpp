@@ -42,6 +42,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
     text_.add_line("#include <backends/gpu/intrinsics.hpp>");
+    text_.add_line("#include <backends/gpu/multi_event_stream.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 
@@ -111,6 +112,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("namespace kernels {");
     {
         increase_indentation();
+        text_.add_line("using nest::mc::gpu::multi_event_stream;");
 
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
@@ -157,6 +159,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using typename base::const_iview;");
     text_.add_line("using typename base::const_view;");
     text_.add_line("using typename base::ion_type;");
+    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
     text_.add_line("using param_pack_type = " + module_name + "_ParamPack<value_type, size_type>;");
 
     //////////////////////////////////////////////
@@ -186,8 +189,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index):");
-    text_.add_line("   base(vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))");
+    text_.add_line(class_name + "(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index):");
+    text_.add_line("   base(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -435,15 +438,23 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         else if( var.second->kind()==symbolKind::procedure &&
                  var.second->is_procedure()->kind()==procedureKind::net_receive)
         {
-            // Simplest net_receive implementation forwards a single update
-            // to a GPU kernel.
-            auto proc = var.second->is_procedure();
-            auto name = proc->name();
-            text_.add_line("void " + name + "(int i_, value_type weight) {");
+            // Override `deliver_events`.
+            text_.add_line("void deliver_events(multi_event_stream& events) override {");
             text_.increase_indentation();
-            text_.add_line(
-                "kernels::" + name + "<value_type, size_type>"
-                + "<<<1, 1>>>(param_pack_, i_, weight);");
+            text_.add_line("auto ncell = events.n_streams();");
+            text_.add_line("constexpr int blockwidth = 128;");
+            text_.add_line("int nblock = 1+(ncell-1)/blockwidth;");
+            text_.add_line("kernels::deliver_events<value_type, size_type>"
+                           "<<<nblock, blockwidth>>>(param_pack_, mech_id_, events.delivery_data());");
+            text_.decrease_indentation();
+            text_.add_line("}");
+            text_.add_line();
+
+            // Provide testing interface to `net_receive`.
+            text_.add_line("void net_receive(int i_, value_type weight) override {");
+            text_.increase_indentation();
+            text_.add_line("kernels::net_receive_global<value_type, size_type>"
+                           "<<<1, 1>>>(param_pack_, i_, weight);");
             text_.decrease_indentation();
             text_.add_line("}");
             text_.add_line();
@@ -471,6 +482,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
     }
 
+    text_.add_line("using base::mech_id_;");
     text_.add_line("using base::vec_ci_;");
     text_.add_line("using base::vec_t_;");
     text_.add_line("using base::vec_t_to_;");
@@ -694,10 +706,11 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
     }
     else {
         // net_receive() kernel is a special case, not covered by APIMethod visit.
+
+        // Core `net_receive` kernel is called device-side from `kernel::deliver_events`.
         text_.add_gutter() << "template <typename T, typename I>\n";
-        text_.add_line(       "__global__");
-        text_.add_gutter() << "void " << e->name()
-                           << "(" << module_->name() << "_ParamPack<T,I> params_, "
+        text_.add_line(       "__device__");
+        text_.add_gutter() << "void net_receive(const " << module_->name() << "_ParamPack<T,I>& params_, "
                            << "I i_, T weight) {";
         text_.add_line();
         increase_indentation();
@@ -706,12 +719,56 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line("using iarray = I;");
         text_.add_line();
 
-        text_.add_line("if (threadIdx.x || blockIdx.x) return;");
         text_.add_line("auto tid_ = i_;");
         text_.add_line("auto gid_ __attribute__((unused)) = params_.ni[tid_];");
         text_.add_line("auto cid_ __attribute__((unused)) = params_.ci[gid_];");
 
         print_APIMethod_body(e);
+
+        decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+
+        // Global one-thread wrapper for `net_receive` kernel is used to implement the
+        // `mechanism::net_receive` method. This is not called in the normal course
+        // of event delivery.
+        text_.add_gutter() << "template <typename T, typename I>\n";
+        text_.add_line(       "__global__");
+        text_.add_gutter() << "void net_receive_global("
+                           << module_->name() << "_ParamPack<T,I> params_, "
+                           << "I i_, T weight) {";
+        text_.add_line();
+        increase_indentation();
+
+        text_.add_line("if (threadIdx.x || blockIdx.x) return;");
+        text_.add_line("net_receive<T, I>(params_, i_, weight);");
+
+        decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+
+        text_.add_gutter() << "template <typename T, typename I>\n";
+        text_.add_line(       "__global__");
+        text_.add_gutter() << "void deliver_events("
+                           << module_->name() << "_ParamPack<T,I> params_, "
+                           << "I mech_id, multi_event_stream::span_state state) {";
+        text_.add_line();
+        increase_indentation();
+
+        text_.add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");
+        text_.add_line("auto const ncell_ = state.n;");
+        text_.add_line();
+        text_.add_line("if(tid_<ncell_) {");
+        increase_indentation();
+
+        text_.add_line("for (auto j = state.span_begin[tid_]; j<state.mark[tid_]; ++j) {");
+        increase_indentation();
+        text_.add_line("if (state.ev_mech_id[j]==mech_id) net_receive<T, I>(params_, state.ev_index[j], state.ev_weight[j]);");
+        decrease_indentation();
+        text_.add_line("}");
+
+        decrease_indentation();
+        text_.add_line("}");
 
         decrease_indentation();
         text_.add_line("}");

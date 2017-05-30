@@ -60,6 +60,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("using const_view = typename base::const_view;");
     text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using ion_type = typename base::ion_type;");
+    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
     text_.add_line();
 
     //////////////////////////////////////////////
@@ -87,7 +88,7 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index)");
+    text_.add_line(class_name + "(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index)");
     text_.add_line(":   base(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
@@ -317,15 +318,34 @@ std::string CPrinter::emit_source() {
     auto proctest = [] (procedureKind k) {
         return is_in(k, {procedureKind::normal, procedureKind::api, procedureKind::net_receive});
     };
+    bool override_deliver_events = false;
     for(auto const& var: module_->symbols()) {
         auto isproc = var.second->kind()==symbolKind::procedure;
-        if(isproc )
-        {
+        if(isproc) {
             auto proc = var.second->is_procedure();
             if(proctest(proc->kind())) {
                 proc->accept(this);
             }
+            override_deliver_events |= proc->kind()==procedureKind::net_receive;
         }
+    }
+
+    if(override_deliver_events) {
+        text_.add_line("void deliver_events(multi_event_stream& events) override {");
+        text_.increase_indentation();
+        text_.add_line("auto ncell = events.n_streams();");
+        text_.add_line("for (size_type c = 0; c<ncell; ++c) {");
+        text_.increase_indentation();
+        text_.add_line("for (auto ev: events.marked_events(c)) {");
+        text_.increase_indentation();
+        text_.add_line("if (ev.handle.mech_id==mech_id_) net_receive(ev.handle.index, ev.weight);");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
     }
 
     //////////////////////////////////////////////
@@ -357,6 +377,7 @@ std::string CPrinter::emit_source() {
     }
 
     text_.add_line();
+    text_.add_line("using base::mech_id_;");
     text_.add_line("using base::vec_ci_;");
     text_.add_line("using base::vec_t_;");
     text_.add_line("using base::vec_t_to_;");
@@ -383,6 +404,7 @@ void CPrinter::emit_headers() {
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <backends/multicore/multi_event_stream.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 }

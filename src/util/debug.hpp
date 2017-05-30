@@ -51,6 +51,7 @@ template <typename... Args>
 void debug_emit_trace(const char* file, int line, const char* varlist, const Args&... args) {
     if (nest::mc::threading::multithreaded()) {
         std::stringstream buffer;
+        buffer.precision(17);
 
         debug_emit_trace_leader(buffer, file, line, varlist);
         debug_emit(buffer, args...);

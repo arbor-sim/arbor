@@ -81,7 +81,7 @@ struct matrix_state_interleaved {
     //  Storage for solution in uninterleaved format.
     //  Used to hold the storage for passing to caller, and must be updated
     //  after each call to the ::solve() method.
-    array solution;
+    array solution_;
 
     // default constructor
     matrix_state_interleaved() = default;
@@ -200,7 +200,11 @@ struct matrix_state_interleaved {
         matrix_to_cell_index = memory::make_const_view(perm);
 
         // Allocate space for storing the un-interleaved solution.
-        solution = array(p.size());
+        solution_ = array(p.size());
+    }
+
+    const_view solution() const {
+        return solution_;
     }
 
     // Assemble the matrix
@@ -238,7 +242,7 @@ struct matrix_state_interleaved {
 
         // Copy the solution from interleaved to front end storage.
         interleaved_to_flat<value_type, size_type, impl::block_dim(), impl::load_width()>
-            (rhs.data(), solution.data(), matrix_sizes.data(), matrix_index.data(),
+            (rhs.data(), solution_.data(), matrix_sizes.data(), matrix_index.data(),
              padded_matrix_size(), num_matrices());
     }
 
