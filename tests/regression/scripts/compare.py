@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 import os
 import sys
 import collections
@@ -33,14 +32,15 @@ def parse_file(path):
             gid = int(split_items[0].strip())
             time = float(split_items[1].strip())
         except:
-            print ("Could not parse a line in the file!!!! \n")
-            print (" line: " , line_idx, ": ", stripped_line)
-            print (path)
+            print "Could not parse a line in the file!!!! \n"
+            print " line: " , line_idx, ": ", stripped_line
+            print path
             
             exit(1) #failure
 
         line_data = (time, line_idx, stripped_line)
         parsed_data[gid].append(line_data)
+        line_idx += 1
 
     return parsed_data
 
@@ -53,51 +53,29 @@ def compare(path1, data1, path2, data2, delta):
 
     print all errors and then exit(1)
     """
-    # First check all gids are equal
-    if (data1.keys() != data2.keys()):
-        print ("The encountered gids are NOT equal!")
-        if (len(data1.keys()) == 0):
-            print ("No spikes in",  path1)
-            exit(1)
-            
-        if (len(data2.keys()) == 0):
-            print ("No spikes in",  path2)
-            exit(1)
+    combined_data = collections.defaultdict(lambda : [[],[]])
+    
+    for gid, spike_data in data1.items():
+        combined_data[gid][0].extend(spike_data)
 
-        # Check the lengths
-        if ( len(data1.keys()) > len(data2.keys())):
-            print ("Extra gid encountered in:", path1)
-            print (set(data1.keys()) - set(data2.keys()) )
-            exit(1)
-            
-        elif ( len(data2.keys()) > len(data1.keys())):
-            print ("Extra gid encountered in:", path2)
-            print (set(data2.keys()) - set(data1.keys()) )
-            exit(1)
 
-        print ("first difference in GIDs in the two files: ")
-        for key1, key2 in zip (data1.keys(), data2.keys()):
-            if key1 != key2:
-                print (key1, " != ", key2)
-                exit(1)
-
-        # should not happen but still
-        print ("encountered unknown difference in files!")
-        exit(1)
+    for gid, spike_data in data2.items():
+        combined_data[gid][1].extend(spike_data)
 
     different_spikes = []
-    for gid in data1.keys():
-        gid_list1 = data1[gid]
-        gid_list2 = data2[gid]
+    for gid, (data_1, data_2)in combined_data.items():
+        gid_list1 = data_1
+        gid_list2 = data_2
 
         if len(gid_list1) != len(gid_list2):
             print ("Difference in the number of spikes of GID #", gid)
             print ("print first difference!")
             for idx, (time1, time2) in enumerate(map(None, gid_list1, gid_list2)):
                 if time1 != time2:
-                    print ("Spike #", idx, ": ", time1, " != ", time2)
-                    # IF there are ALSO spike time differences these are NOT reported
-                    exit(1)
+                    time1 =  "No spike found" if time1 == None else time1 
+                    time2 =  "No spike found" if time2 == None else time2
+
+                    different_spikes.append((time1, time2))
 
         for  time1, time2 in zip( gid_list1, gid_list2):
             if abs(time1[0] - time2[0]) > delta:
@@ -106,14 +84,24 @@ def compare(path1, data1, path2, data2, delta):
     if len(different_spikes) != 0:
         print ("Found difference in spike times, displaying first 10:")
         for idx, (time1, time2) in enumerate(different_spikes):
-            if idx == 10:
+            if idx == 50:
                 break
 
-            print ("Spike #", idx, ": ", time1, " != ", time2)
-        exit(1)
+            print "Spike #", idx, ": ", time1, " != ", time2
 
-    # we compared the file, no errors found.
-    # exit with 0 code!
+
+        # Also output to file (could be done in previous loop, but seperation
+        # of concerns)
+        fp = open("differences.txt", "w")
+        for idx, (time1, time2) in enumerate(different_spikes):
+        
+            dif_str = "Spike #{0}: {1}!= {2}\n".format(idx, time1, time2)
+            fp.write(dif_str) 
+
+        # exit with fault code!
+        exit(1)
+               
+    # we compared the file, no errors found. Exit with 0 code!
     exit(0)
 
 if __name__ == "__main__":
@@ -122,10 +110,11 @@ if __name__ == "__main__":
     if len(sys.argv) < 4:
         usage(default_delta)
         exit(1) # failure!
+
+    # We are not doing imput validation
     path1= sys.argv[1]
     path2= sys.argv[2]
     data = parse_file(path1)
-
     data2 = parse_file(path2)
 
     if (len(sys.argv) == 4):
