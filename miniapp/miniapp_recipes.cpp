@@ -4,9 +4,9 @@
 #include <utility>
 
 #include <cell.hpp>
+#include <rss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
-#include <util/unique_any.hpp>
 
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
@@ -79,9 +79,17 @@ public:
                             - param_.min_connection_delay_ms};
     }
 
-    cell_size_type num_cells() const override { return ncell_; }
+    cell_size_type num_cells() const override {
+        return ncell_ + 1;  // We automatically add a fake cell to each recipe!
+    }
 
-    util::unique_any get_cell(cell_gid_type i) const override {
+    util::unique_any get_cell_description(cell_gid_type i) const override {
+        // The last 'cell' is a rss_cell with one spike at t=0
+        if (i == ncell_) {
+            return util::unique_any(std::move(
+                rss_cell::rss_cell_description(0.0, 0.1, 0.1) ));
+        }
+
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         auto cc = get_cell_count_info(i);
@@ -113,8 +121,11 @@ public:
         return util::unique_any(std::move(cell));
     }
 
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        // The basic_cell_recipe only produces mc cells, so return cable1d_neuron for now
+    cell_kind get_cell_kind(cell_gid_type i ) const override {
+        // The last 'cell' is a rss_cell with one spike at t=0
+        if (i == ncell_) {
+            return cell_kind::regular_spike_source;
+        }
         return cell_kind::cable1d_neuron;
     }
 
@@ -175,6 +186,12 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
+
+        // The rss_cell does not have inputs
+        if (i == ncell_) {
+            return conns;
+        }
+
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         cell_gid_type prev = i==0? ncell_-1: i-1;
@@ -183,6 +200,13 @@ public:
             cc.source = {prev, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // The rss_cell spikes at t=0, with these connections it looks like
+            // (source % 20) == 0 spikes at that moment.
+            if (prev % 20 == 0) {
+                cc.source = {ncell_, 0}; // also add connection from reg spiker!
+                conns.push_back(cc);
+            }
         }
 
         return conns;
@@ -207,6 +231,11 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
+
+        // The rss_cell does not have inputs
+        if (i == ncell_) {
+            return conns;
+        }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
         auto source_gen = std::mt19937(i*123+457); // ditto
 
@@ -220,6 +249,13 @@ public:
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // The rss_cell spikes at t=0, with these connections it looks like
+            // (source % 20) == 0 spikes at that moment.
+            if (source % 20 == 0) {
+                cc.source = {ncell_, 0};
+                conns.push_back(cc);
+            }
         }
 
         return conns;
@@ -249,6 +285,10 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
+        // The rss_cell does not have inputs
+        if (i == ncell_) {
+            return conns;
+        }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
@@ -259,6 +299,13 @@ public:
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
+
+            // The rss_cell spikes at t=0, with these connections it looks like
+            // (source % 20) == 0 spikes at that moment.
+            if (source % 20 == 0) {
+                cc.source = {ncell_, 0};
+                conns.push_back(cc);
+            }
         }
 
         return conns;
