@@ -47,7 +47,7 @@ namespace kernels {
     };
 
     // vector minus: x = y - z
-    template <typename T, typename I, typename Pred>
+    template <typename T, typename I>
     __global__ void vec_minus(I n, T* x, const T* y, const T* z) {
         int i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -56,7 +56,7 @@ namespace kernels {
     }
 
     // vector gather: x[i] = y[index[i]]
-    template <typename T, typename I, typename Pred>
+    template <typename T, typename I>
     __global__ void gather(I n, T* x, const T* y, const I* index) {
         int i = threadIdx.x+blockIdx.x*blockDim.x;
         if (i<n) {
@@ -95,14 +95,16 @@ bool any_time_before(I n, T* t0, U t1) {
 }
 
 template <typename T, typename I>
-void set_dt(I ncell, I ncomp, T* dt_cell, T& dt_comp, const T* time_to, const T* time, const I* cv_to_cell) {
+void set_dt(I ncell, I ncomp, T* dt_cell, T* dt_comp, const T* time_to, const T* time, const I* cv_to_cell) {
     if (!ncell || !ncomp) {
         return;
     }
 
     constexpr int blockwidth = 128;
-    int nblock = 1+(n-1)/blockwidth;
+    int nblock = 1+(ncell-1)/blockwidth;
     kernels::vec_minus<<<nblock, blockwidth>>>(ncell, dt_cell, time_to, time);
+
+    nblock = 1+(ncomp-1)/blockwidth;
     kernels::gather<<<nblock, blockwidth>>>(ncomp, dt_comp, dt_cell, cv_to_cell);
 }
 

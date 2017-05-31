@@ -461,7 +461,7 @@ TEST(matrix, zero_diagonal)
     // should then return voltage values for that submatrix.
 
     dt[1] = 0;
-    gpu_t0 = on_gpu(t0);
+    gpu_dt = on_gpu(dt);
 
     v[3] = 20;
     v[4] = 30;

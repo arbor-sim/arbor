@@ -226,7 +226,7 @@ struct matrix_state_interleaved {
              voltage.data(), current.data(), cv_capacitance.data(),
              matrix_sizes.data(), matrix_index.data(),
              matrix_to_cell_index.data(),
-             dt.data(), padded_matrix_size(), num_matrices());
+             dt_cell.data(), padded_matrix_size(), num_matrices());
 
     }
 

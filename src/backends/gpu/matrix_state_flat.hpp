@@ -102,7 +102,7 @@ struct matrix_state_flat {
 
         assemble_matrix_flat<value_type, size_type><<<grid_dim, block_dim>>> (
             d.data(), rhs.data(), invariant_d.data(), voltage.data(),
-            current.data(), cv_capacitance.data(), cv_to_cell.data(), dt.data(), size());
+            current.data(), cv_capacitance.data(), cv_to_cell.data(), dt_cell.data(), size());
     }
 
     void solve() {

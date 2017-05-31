@@ -116,11 +116,11 @@ struct backend {
     }
 
     // set the per-cell and per-compartment dt_ from time_to_ - time_.
-    static void set_dt(array& dt_cell, array& dt_comp, const_view time_to, const_view time, const_iview cv_to_cell, array& dt_scratch) {
+    static void set_dt(array& dt_cell, array& dt_comp, const_view time_to, const_view time, const_iview cv_to_cell) {
         size_type ncell = util::size(dt_cell);
         size_type ncomp = util::size(dt_comp);
 
-        nest::mc::gpu::set_dt<value_type, size_type>(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.size(), time_to.data(), cv_to_cell.data());
+        nest::mc::gpu::set_dt<value_type, size_type>(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
     }
 
 private:

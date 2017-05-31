@@ -87,9 +87,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("const I* ci;");
     text_.add_line("const T* vec_t;");
     text_.add_line("const T* vec_t_to;");
+    text_.add_line("const T* vec_dt;");
     param_pack.push_back("vec_ci_.data()");
     param_pack.push_back("vec_t_.data()");
     param_pack.push_back("vec_t_to_.data()");
+    param_pack.push_back("vec_dt_.data()");
 
     text_.add_line("// voltage and current state within the cell");
     text_.add_line("T* vec_v;");
