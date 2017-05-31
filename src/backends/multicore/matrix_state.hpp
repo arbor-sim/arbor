@@ -65,18 +65,17 @@ public:
 
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current
-    //   time    [ms]
-    //   time_to [ms]
+    // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
+    //   dt_cell [ms] (per cell)
     //   voltage [mV]
     //   current [nA]
-    void assemble(const_view time, const_view time_to, const_view voltage, const_view current) {
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         const size_type ncells = cell_cv_part.size();
 
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {
-            auto dt = time_to[m]-time[m];
+            auto dt = dt_cell[m];
 
             if (dt>0) {
                 value_type factor = 1e-3/dt;

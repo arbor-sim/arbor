@@ -16,7 +16,7 @@ struct null_backend: public multicore::backend {
         const std::string&,
         size_type,
         const_iview,
-        const_view, const_view,
+        const_view, const_view, const_view,
         view, view,
         const std::vector<value_type>&,
         const std::vector<size_type>&)

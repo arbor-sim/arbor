@@ -189,8 +189,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_index):");
-    text_.add_line("   base(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))");
+    text_.add_line(class_name + "(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_index):");
+    text_.add_line("   base(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -486,6 +486,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using base::vec_ci_;");
     text_.add_line("using base::vec_t_;");
     text_.add_line("using base::vec_t_to_;");
+    text_.add_line("using base::vec_dt_;");
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
     text_.add_line("using base::node_index_;");

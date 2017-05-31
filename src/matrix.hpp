@@ -69,8 +69,8 @@ public:
     }
 
     /// Assemble the matrix for given dt
-    void assemble(const_view t, const_view t_to, const_view voltage, const_view current) {
-        state_.assemble(t, t_to, voltage, current);
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+        state_.assemble(dt_cell, voltage, current);
     }
 
     /// Get a view of the solution

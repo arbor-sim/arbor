@@ -208,13 +208,11 @@ struct matrix_state_interleaved {
     }
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current,
-    // where dt is determined by the start and end integration times t and t_to.
-    //   t       [ms]
-    //   t_to    [ms]
+    // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
+    //   dt_cell [ms] (per cell)
     //   voltage [mV]
     //   current [nA]
-    void assemble(const_view t, const_view t_to, const_view voltage, const_view current) {
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
         constexpr auto bd = impl::block_dim();
         constexpr auto lw = impl::load_width();
         constexpr auto block_dim = bd*lw;
@@ -228,7 +226,7 @@ struct matrix_state_interleaved {
              voltage.data(), current.data(), cv_capacitance.data(),
              matrix_sizes.data(), matrix_index.data(),
              matrix_to_cell_index.data(),
-             t.data(), t_to.data(), padded_matrix_size(), num_matrices());
+             dt.data(), padded_matrix_size(), num_matrices());
 
     }
 

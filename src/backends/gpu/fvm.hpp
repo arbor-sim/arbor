@@ -68,7 +68,7 @@ struct backend {
         const std::string& name,
         size_type mech_id,
         const_iview vec_ci,
-        const_view vec_t, const_view vec_t_to,
+        const_view vec_t, const_view vec_t_to, const_view vec_dt,
         view vec_v, view vec_i,
         const std::vector<value_type>& weights,
         const std::vector<size_type>& node_indices)
@@ -78,7 +78,7 @@ struct backend {
         }
 
         return mech_map_.find(name)->
-            second(mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
+            second(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -115,14 +115,22 @@ struct backend {
         nest::mc::gpu::update_time_to<value_type, size_type>(time_to.size(), time_to.data(), time.data(), dt, tmax);
     }
 
+    // set the per-cell and per-compartment dt_ from time_to_ - time_.
+    static void set_dt(array& dt_cell, array& dt_comp, const_view time_to, const_view time, const_iview cv_to_cell, array& dt_scratch) {
+        size_type ncell = util::size(dt_cell);
+        size_type ncomp = util::size(dt_comp);
+
+        nest::mc::gpu::set_dt<value_type, size_type>(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.size(), time_to.data(), cv_to_cell.data());
+    }
+
 private:
-    using maker_type = mechanism (*)(size_type, const_iview, const_view, const_view, view, view, array&&, iarray&&);
+    using maker_type = mechanism (*)(size_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
+    static mechanism maker(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return mechanisms::make_mechanism<Mech<backend>>
-            (mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(weights), std::move(node_indices));
+            (mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 

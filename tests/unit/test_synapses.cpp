@@ -55,13 +55,14 @@ TEST(synapses, expsyn_basic_state)
     synapse_type::iarray cell_index(num_comp, 0);
     synapse_type::array time(num_cell, 0);
     synapse_type::array time_to(num_cell, 0.1);
+    synapse_type::array dt(num_comp, 0.1);
 
     std::vector<size_type> node_index(num_syn, 0);
     std::vector<value_type> weights(num_syn, 1.0);
     synapse_type::array voltage(num_comp, -65.0);
     synapse_type::array current(num_comp,   1.0);
 
-    auto mech = mechanisms::make_mechanism<synapse_type>(0, cell_index, time, time_to, voltage, current, weights, node_index);
+    auto mech = mechanisms::make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();
@@ -115,13 +116,14 @@ TEST(synapses, exp2syn_basic_state)
     synapse_type::iarray cell_index(num_comp, 0);
     synapse_type::array time(num_cell, 0);
     synapse_type::array time_to(num_cell, 0.1);
+    synapse_type::array dt(num_comp, 0.1);
 
     std::vector<size_type> node_index(num_syn, 0);
     std::vector<value_type> weights(num_syn, 1.0);
     synapse_type::array voltage(num_comp, -65.0);
     synapse_type::array current(num_comp,   1.0);
 
-    auto mech = mechanisms::make_mechanism<synapse_type>(0, cell_index, time, time_to, voltage, current, weights, node_index);
+    auto mech = mechanisms::make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();

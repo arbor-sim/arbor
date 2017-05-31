@@ -130,8 +130,7 @@ TEST(matrix, zero_diagonal_assembled)
     vvec g = {0, 1, 1, 0, 1, 0, 2};
 
     // dt of 1e-3.
-    vvec t0(3, 0.0);
-    vvec t1(3, 1.0e-3);
+    vvec dt(3, 1.0e-3);
 
     // Capacitances.
     vvec Cm = {1, 1, 1, 1, 1, 2, 3};
@@ -149,7 +148,7 @@ TEST(matrix, zero_diagonal_assembled)
     // x = [ 4  5  6  7  8  9 10]
 
     matrix_type m(p, c, Cm, g);
-    m.assemble(make_view(t0), make_view(t1), make_view(v), make_view(i));
+    m.assemble(make_view(dt), make_view(v), make_view(i));
     m.solve();
 
     vvec x;
@@ -161,10 +160,10 @@ TEST(matrix, zero_diagonal_assembled)
     // Set dt of 2nd (middle) submatrix to zero. Solution
     // should then return voltage values for that submatrix.
 
-    t0[1] = t1[1];
+    dt[1] = 0;
     v[3] = 20;
     v[4] = 30;
-    m.assemble(make_view(t0), make_view(t1), make_view(v), make_view(i));
+    m.assemble(make_view(dt), make_view(v), make_view(i));
     m.solve();
 
     assign(x, m.solution());
