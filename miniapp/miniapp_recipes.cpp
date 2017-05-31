@@ -201,10 +201,10 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The rss_cell spikes at t=0, with this connection it looks like
+            // The rss_cell spikes at t=0, with these connections it looks like
             // (source % 20) == 0 spikes at that moment.
             if (prev % 20 == 0) {
-                cc.source = { ncell_, 0 }; // also add connection from reg spiker!
+                cc.source = {ncell_, 0}; // also add connection from reg spiker!
                 conns.push_back(cc);
             }
         }
@@ -250,10 +250,10 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The rss_cell spikes at t=0, with this connection it looks like
+            // The rss_cell spikes at t=0, with these connections it looks like
             // (source % 20) == 0 spikes at that moment.
-            if ((source % 20) == 0) {
-                cc.source = { ncell_, 0 };
+            if (source % 20 == 0) {
+                cc.source = {ncell_, 0};
                 conns.push_back(cc);
             }
         }
@@ -277,7 +277,7 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
-        if (std::size_t(param.num_synapses) != (ncell-1)) {
+        if (std::size_t(param.num_synapses) != ncell-1) {
             throw invalid_recipe_error("number of synapses per cell must equal number "
                 "of cells minus one in complete graph model");
         }
@@ -293,17 +293,17 @@ public:
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;
-            EXPECTS(source < ncell_ );
+            EXPECTS(source<ncell_);
 
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The rss_cell spikes at t=0, with this connection it looks like
+            // The rss_cell spikes at t=0, with these connections it looks like
             // (source % 20) == 0 spikes at that moment.
-            if ((source % 20) == 0) {
-                cc.source = { ncell_, 0 };
+            if (source % 20 == 0) {
+                cc.source = {ncell_, 0};
                 conns.push_back(cc);
             }
         }

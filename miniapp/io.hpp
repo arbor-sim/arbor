@@ -18,7 +18,6 @@ namespace io {
 struct cl_options {
     // Cell parameters:
     uint32_t cells = 1000;
-
     uint32_t synapses_per_cell = 500;
     std::string syn_type = "expsyn";
     uint32_t compartments_per_segment = 100;
