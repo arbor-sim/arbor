@@ -18,8 +18,6 @@ add_subdirectory(ubench)
 
 # regression / delta tests
 # Employing the full simulator. validated using deltas on output data
-add_subdirectory(regression)
-
 
 # modcc tests
 if(NOT use_external_modcc)
