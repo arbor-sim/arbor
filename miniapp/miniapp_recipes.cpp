@@ -87,7 +87,7 @@ public:
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
             return util::unique_any(std::move(
-                rss_cell::rss_cell_descr(0.0, 0.1, 0.1) ));
+                rss_cell::rss_cell_description(0.0, 0.1, 0.1) ));
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
@@ -122,7 +122,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type i ) const override {
-        // The last 'cell' is a fs_cell with one spike at t=0
+        // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
             return cell_kind::regular_spike_source;
         }
@@ -187,7 +187,7 @@ public:
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
 
-        // The fs_cell does not have inputs
+        // The rss_cell does not have inputs
         if (i == ncell_) {
             return conns;
         }
@@ -201,7 +201,7 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The fs_cell spikes at t=0, with this connection it looks like
+            // The rss_cell spikes at t=0, with this connection it looks like
             // (source % 20) == 0 spikes at that moment.
             if (prev % 20 == 0) {
                 cc.source = { ncell_, 0 }; // also add connection from reg spiker!
@@ -232,7 +232,7 @@ public:
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
 
-        // The fs_cell does not have inputs
+        // The rss_cell does not have inputs
         if (i == ncell_) {
             return conns;
         }
@@ -250,7 +250,7 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The fs_cell spikes at t=0, with this connection it looks like
+            // The rss_cell spikes at t=0, with this connection it looks like
             // (source % 20) == 0 spikes at that moment.
             if ((source % 20) == 0) {
                 cc.source = { ncell_, 0 };
@@ -277,7 +277,7 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
-        if (std::size_t(param.num_synapses) != (ncell-2)) {
+        if (std::size_t(param.num_synapses) != (ncell-1)) {
             throw invalid_recipe_error("number of synapses per cell must equal number "
                 "of cells minus one in complete graph model");
         }
@@ -285,7 +285,7 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        // The fs_cell does not have inputs
+        // The rss_cell does not have inputs
         if (i == ncell_) {
             return conns;
         }
@@ -293,14 +293,14 @@ public:
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;
-            EXPECTS(source<(ncell_ - 1));
+            EXPECTS(source < ncell_ );
 
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The fs_cell spikes at t=0, with this connection it looks like
+            // The rss_cell spikes at t=0, with this connection it looks like
             // (source % 20) == 0 spikes at that moment.
             if ((source % 20) == 0) {
                 cc.source = { ncell_, 0 };

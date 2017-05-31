@@ -17,27 +17,25 @@ public:
     using size_type = cell_local_size_type;
     using value_type = double;
 
-    struct rss_cell_descr {
+    struct rss_cell_description {
         time_type start_time;
         time_type period;
         time_type stop_time;
 
-        rss_cell_descr(time_type st, time_type per, time_type stop):
+        rss_cell_description(time_type st, time_type per, time_type stop):
             start_time(st),
             period(per),
             stop_time(stop)
         {}
     };
 
-
     /// Construct a rss cell from its description
-    rss_cell(rss_cell_descr descr) :
+    rss_cell(rss_cell_description descr) :
         start_time_(descr.start_time),
         period_(descr.period),
         stop_time_(descr.stop_time),
         time_(0.0)
     {}
-
 
     /// Construct a rss cell from individual arguments
     rss_cell(time_type start_time=0.0, time_type period=1.0, time_type stop_time=0.0):

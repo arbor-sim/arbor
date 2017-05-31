@@ -190,7 +190,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     p.num_compartments = options.compartments_per_segment;
 
     // TODO: Put all recipe parameters in the recipes file
-    p.num_synapses = options.all_to_all? options.cells-2: options.synapses_per_cell;
+    p.num_synapses = options.all_to_all? options.cells-1: options.synapses_per_cell;
     p.synapse_type = options.syn_type;
 
     if (options.all_to_all) {

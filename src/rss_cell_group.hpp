@@ -24,7 +24,7 @@ public:
         for (cell_gid_type i: make_span(0, cell_descriptions.size())) {
             // Copy all the rss_cells
             cells_.push_back(rss_cell(
-                util::any_cast<rss_cell::rss_cell_descr>(cell_descriptions[i])
+                util::any_cast<rss_cell::rss_cell_description>(cell_descriptions[i])
             ));
 
             // create a lid to gid map
@@ -57,7 +57,7 @@ public:
     };
 
     void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
-        std::logic_error("The rss_cell does not support incoming events!");
+        std::logic_error("The rss_cells do not support incoming events!");
     }
 
     const std::vector<spike>& spikes() const override {
@@ -73,7 +73,7 @@ public:
     }
 
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override {
-        std::logic_error("The rss_cell does not support sampling of internal state!");
+        std::logic_error("The rss_cells do not support sampling of internal state!");
     }
 
 private:
