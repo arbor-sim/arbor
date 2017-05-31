@@ -18,7 +18,6 @@ if [ $? != 0 ]; then
     ALLTOALL=1
 fi
 
-
 echo "running ring regression test"
 ${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f -r ${REG_TEST_N_G}
 python compare.py data/ring.gdf spikes_0.gdf 0.01
