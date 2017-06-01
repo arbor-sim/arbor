@@ -7,8 +7,12 @@ def usage(default_delta):
     print ("""
     compare two input spike time files on equality with a delta of max_delta
     order of the spikes is not important. GID should always be equal
+    Display the first 50 differences encountered.
 
     python compare.py file1 file2 (delta={0})
+
+    Produces the file differences.txt with all the found difference in a
+    ; seperated format, a single difference per line
 
 
     """.format(default_delta))
@@ -38,7 +42,7 @@ def parse_file(path):
             
             exit(1) #failure
 
-        line_data = (time, line_idx, stripped_line)
+        line_data = (line_idx, time, stripped_line)
         parsed_data[gid].append(line_data)
         line_idx += 1
 
@@ -68,34 +72,48 @@ def compare(path1, data1, path2, data2, delta):
         gid_list2 = data_2
 
         if len(gid_list1) != len(gid_list2):
-            print ("Difference in the number of spikes of GID #", gid)
-            print ("print first difference!")
             for idx, (time1, time2) in enumerate(map(None, gid_list1, gid_list2)):
-                if time1 != time2:
-                    time1 =  "No spike found" if time1 == None else time1 
-                    time2 =  "No spike found" if time2 == None else time2
+                # We have to loop all spikes, check here if we have missing spikes 
+                # and treat those different
+                if time1 == None or time2 == None:
+                    time1 =  "Spike not in file" if time1 == None else time1 
+                    time2 =  "Spike not in file" if time2 == None else time2
+                    different_spikes.append((gid, time1, time2))
+                    continue
 
-                    different_spikes.append((time1, time2))
+                # Do an delta test if we have spikes in both lists.
+                if abs(time1[1] - time2[1]) > delta:               
+                    different_spikes.append((gid, time1, time2))
+                    
+            continue
 
         for  time1, time2 in zip( gid_list1, gid_list2):
-            if abs(time1[0] - time2[0]) > delta:
-                different_spikes.append((time1, time2))
+            if abs(time1[1] - time2[1]) > delta:
+                
+                different_spikes.append((gid, time1, time2))
 
     if len(different_spikes) != 0:
-        print ("Found difference in spike times, displaying first 10:")
-        for idx, (time1, time2) in enumerate(different_spikes):
+        print "Found difference in spike times, displaying first 50 \n"
+        print "key == (line_nr, spike_time, content line parsed)\n"
+        print "difference #, gid :  target output !=  simulation output"
+
+        for idx, (gid, time1, time2) in enumerate(different_spikes):
             if idx == 50:
                 break
 
-            print "Spike #", idx, ": ", time1, " != ", time2
+            dif_str = "difference #{0}, {3}: {1} !=  {2}".format(idx, time1, time2, gid)
+            print dif_str
+
+        print "\n\n"
 
 
         # Also output to file (could be done in previous loop, but seperation
         # of concerns)
         fp = open("differences.txt", "w")
-        for idx, (time1, time2) in enumerate(different_spikes):
+        fp.write("# difference index, gid, target output, simulation output\n")
+        for idx, (gid, time1, time2) in enumerate(different_spikes):
         
-            dif_str = "Spike #{0}: {1}!= {2}\n".format(idx, time1, time2)
+            dif_str = "{0}; {3}; {1}; {2}\n".format(idx, time1, time2, gid)
             fp.write(dif_str) 
 
         # exit with fault code!
