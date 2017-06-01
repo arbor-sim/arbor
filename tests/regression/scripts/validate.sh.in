@@ -4,7 +4,7 @@ echo "running rgraph regression test"
 ${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f ${REG_TEST_N_G}
 
 # Do a comparison
-python compare.py data/rgraph.gdf spikes_0.gdf 0.01
+python compare.py data/rgraph.gdf spikes_0.gdf 0.001
 
 # set if we have a failure in the comparison
 if [ $? != 0 ]; then
@@ -13,14 +13,14 @@ fi
 
 echo "running alltoall regression test"
 ${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f -m ${REG_TEST_N_G}
-python compare.py data/alltoall.gdf spikes_0.gdf 0.01
+python compare.py data/alltoall.gdf spikes_0.gdf 0.001
 if [ $? != 0 ]; then
     ALLTOALL=1
 fi
 
 echo "running ring regression test"
 ${CMAKE_BINARY_DIR}/miniapp/miniapp.exe -f -r ${REG_TEST_N_G}
-python compare.py data/ring.gdf spikes_0.gdf 0.01
+python compare.py data/ring.gdf spikes_0.gdf 0.001
 if [ $? != 0 ]; then
     RING=1
 fi
