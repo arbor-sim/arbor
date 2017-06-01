@@ -121,7 +121,7 @@ struct simd_intrinsics<targetKind::avx512> {
     static void emit_gather(TextBuffer& tb, const A& addr,
                             const I& index, const S& scale) {
         tb << "_mm512_i32gather_pd(";
-        emit_operands(tb, arg_emitter(addr), arg_emitter(index),
+        emit_operands(tb, arg_emitter(index), arg_emitter(addr),
                       arg_emitter(scale));
         tb << ")";
     }
