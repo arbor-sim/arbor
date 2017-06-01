@@ -18,7 +18,6 @@
 #include <profiling/profiler.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
-#include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
@@ -501,16 +500,20 @@ void fvm_multicell<Backend>::initialize(
     current_ = array(ncomp, 0);
     voltage_ = array(ncomp, resting_potential_);
 
-    // create maps for mechanism initialization.
+    // look up table: (density) mechanism name -> list of CV range objects
     std::map<std::string, std::vector<segment_cv_range>> mech_map;
-    std::vector<std::vector<cell_lid_type>> syn_mech_map;
-    std::map<std::string, std::size_t> syn_mech_indices;
+
+    // look up table: point mechanism (synapse) name -> CV indices and target numbers.
+    struct syn_cv_and_target {
+        cell_lid_type cv;
+        cell_lid_type target;
+    };
+    std::map<std::string, std::vector<syn_cv_and_target>> syn_mech_map;
 
     // initialize vector used for matrix creation.
     std::vector<size_type> group_parent_index(ncomp);
 
     // create each cell:
-    auto target_hi = target_handles.begin();
     auto probe_hi = probe_handles.begin();
 
     // Allocate scratch storage for calculating quantities used to build the
@@ -573,20 +576,12 @@ void fvm_multicell<Backend>::initialize(
             EXPECTS(targets_count < targets_size);
 
             const auto& name = syn.mechanism.name();
-            std::size_t syn_mech_index = 0;
-            if (syn_mech_indices.count(name)==0) {
-                syn_mech_index = syn_mech_map.size();
-                syn_mech_indices[name] = syn_mech_index;
-                syn_mech_map.push_back({});
-            }
-            else {
-                syn_mech_index = syn_mech_indices[name];
-            }
+            auto& map_entry = syn_mech_map[name];
 
-            auto& map_entry = syn_mech_map[syn_mech_index];
+            cell_lid_type syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
+            cell_lid_type target_index = targets_count++;
 
-            auto syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
-            map_entry.push_back(syn_cv);
+            map_entry.push_back(syn_cv_and_target{syn_cv, target_index});
         }
 
         //
@@ -703,36 +698,24 @@ void fvm_multicell<Backend>::initialize(
         }
 
         mechanisms_.push_back(
-            backend::make_mechanism(mech.first, voltage_, current_, mech_cv_weight, mech_cv_index)
-        );
+            backend::make_mechanism(mech.first, voltage_, current_, mech_cv_weight, mech_cv_index));
 
-        // save the indices for easy lookup later in initialization
+        // Save the indices for ion set up below.
         mech_index_map[mech.first] = mech_cv_index;
     }
 
-    // Create point (synapse) mechanisms
-    for (const auto& syni: syn_mech_indices) {
-        const auto& mech_name = syni.first;
+    // Create point (synapse) mechanisms.
+    for (auto& syni: syn_mech_map) {
         size_type mech_index = mechanisms_.size();
 
-        auto cv_map = syn_mech_map[syni.second];
-        size_type n_indices = size(cv_map);
+        const auto& mech_name = syni.first;
+        auto& cv_assoc = syni.second;
 
-        // sort indices but keep track of their original order for assigning
-        // target handles
-        using index_pair = std::pair<cell_lid_type, size_type>;
-        auto cv_index = [](index_pair x) { return x.first; };
-        auto target_index = [](index_pair x) { return x.second; };
 
-        std::vector<index_pair> permute;
-        assign_by(permute, make_span(0u, n_indices),
-            [&](size_type i) { return index_pair(cv_map[i], i); });
-
-        // sort the cv information in order of cv index
-        sort_by(permute, cv_index);
-
-        std::vector<cell_lid_type> cv_indices =
-            assign_from(transform_view(permute, cv_index));
+        // Sort CV indices but keep track of their corresponding targets.
+        auto cv_index = [](syn_cv_and_target x) { return x.cv; };
+        util::sort_by(cv_assoc, cv_index);
+        std::vector<cell_lid_type> cv_indices = assign_from(transform_view(cv_assoc, cv_index));
 
         // Create the mechanism.
         // An empty weight vector is supplied, because there are no weights applied to point
@@ -740,16 +723,14 @@ void fvm_multicell<Backend>::initialize(
         mechanisms_.push_back(
             backend::make_mechanism(mech_name, voltage_, current_, {}, cv_indices));
 
-        // save the compartment indexes for this synapse type
+        // Save the indices for ion set up below.
         mech_index_map[mech_name] = cv_indices;
 
-        // make target handles
-        std::vector<target_handle> handles(n_indices);
-        for (auto i: make_span(0u, n_indices)) {
-            handles[target_index(permute[i])] = {mech_index, i};
+        // Make the target handles.
+        cell_lid_type instance = 0;
+        for (auto entry: cv_assoc) {
+            target_handles[entry.target] = {mech_index, instance++};
         }
-        target_hi = std::copy_n(std::begin(handles), n_indices, target_hi);
-        targets_count += n_indices;
     }
 
     // confirm user-supplied containers for targets are appropriately sized

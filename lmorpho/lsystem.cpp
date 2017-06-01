@@ -203,7 +203,7 @@ struct grow_result {
     double length = 0.;
 };
 
-constexpr double deg_to_rad = 3.1415926535897932384626433832795l/180.0;
+constexpr double deg_to_rad = 3.1415926535897932384626433832795/180.0;
 
 template <typename Gen>
 grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {

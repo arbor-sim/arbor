@@ -94,6 +94,8 @@ void assemble_matrix_interleaved(
             rhs[store_pos] = gi*buffer_v[blk_pos] - buffer_i[blk_pos];
         }
 
+        __syncthreads();
+
         store_pos += LoadWidth*BlockWidth;
         load_pos  += LoadWidth;
     }
