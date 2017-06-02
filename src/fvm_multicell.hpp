@@ -92,7 +92,8 @@ public:
 
         tfinal_ = tfinal;
         dt_max_ = dt_max;
-        integration_running_ = true;
+
+        compute_min_remaining();
 
         EXPECTS(!has_pending_events());
 
@@ -267,6 +268,20 @@ private:
     /// flag: true after a call to `setup_integration()`; reset
     /// once integration to `tfinal_` is complete.
     bool integration_running_ = false;
+
+    /// minimum number of integration steps left in integration period.
+    unsigned min_remaining_steps_ = 0;
+
+    void compute_min_remaining() {
+        auto tmin = min_time();
+        min_remaining_steps_ = tmin>=tfinal_? 0: 1 + (unsigned)((tfinal_-tmin)/dt_max_);
+        integration_running_ = min_remaining_steps_>0;
+    }
+
+    void decrement_min_remaining() {
+        if (min_remaining_steps_>0) --min_remaining_steps_;
+        integration_running_ = min_remaining_steps_>0;
+    }
 
     /// events staged for upcoming integration stage
     std::vector<deliverable_event> staged_events_;
@@ -789,7 +804,7 @@ void fvm_multicell<Backend>::initialize(
         // Make the target handles.
         cell_lid_type instance = 0;
         for (auto entry: cv_assoc) {
-            target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_[entry.cv]);
+            target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_tmp[entry.cv]);
         }
     }
 
@@ -930,7 +945,12 @@ void fvm_multicell<Backend>::step_integration() {
     threshold_watcher_.test();
 
     // are we there yet?
-    integration_running_ = backend::any_time_before(time_, tfinal_);
+    if (!min_remaining_steps_) {
+        compute_min_remaining();
+    }
+    else {
+        decrement_min_remaining();
+    }
 
     EXPECTS(integration_running_ || !has_pending_events());
 }
