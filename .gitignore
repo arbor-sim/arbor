@@ -68,3 +68,5 @@ commit.msg
 *.fdb_latexmk
 *.fls
 *.bbl
+
+python/test.nml
