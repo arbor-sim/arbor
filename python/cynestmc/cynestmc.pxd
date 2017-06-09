@@ -15,6 +15,19 @@ cdef extern from "common_types.hpp" namespace "nest::mc":
         cell_gid_type gid
         cell_lid_type index
 
+cdef extern from "backends.hpp" namespace "nest::mc":
+    cdef enum backend_policy:
+        use_multicore,
+        prefer_gpu
+
+cdef extern from "domain_decomposition.hpp" namespace "nest::mc":
+    cdef struct group_rules:
+        cell_size_type target_group_size
+        backend_policy policy
+
+    cdef cpp class domain_decomposition:
+        domain_decomposition(const CRecipe&, const group_rules&) except+
+
 cdef extern from "pyrecipe.hpp" namespace "nest::mc":
     ctypedef cell_member_type cell_connection_endpoint
     
@@ -37,4 +50,3 @@ cdef extern from "model.hpp" namespace "nest::mc":
         void reset() except+
         time_type run(time_type tfinal, time_type dt) except+
         size_t num_spikes() except+
-        
