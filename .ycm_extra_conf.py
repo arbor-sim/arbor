@@ -54,6 +54,8 @@ flags = [
     'modcc',
     '-I',
     '/cm/shared/apps/cuda/8.0.44/include',
+    '-I',
+    '/pybind11',
     '-DNMC_HAVE_GPU'
 ]
 
