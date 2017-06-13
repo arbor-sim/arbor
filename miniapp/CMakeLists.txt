@@ -13,14 +13,9 @@ set(MINIAPP_SOURCES_CUDA
     morphology_pool.cpp
 )
 
-if(NMC_WITH_CUDA)
-    cuda_add_executable(miniapp.exe ${MINIAPP_SOURCES_CUDA} ${HEADERS})
-    target_link_libraries(miniapp.exe LINK_PUBLIC gpu)
-else()
-    add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
-endif()
+add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 
-target_link_libraries(miniapp.exe LINK_PUBLIC nestmc)
+target_link_libraries(miniapp.exe LINK_PUBLIC ${NESTMC_LIBRARIES})
 target_link_libraries(miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
 if(NMC_WITH_MPI)
@@ -32,4 +27,3 @@ set_target_properties(miniapp.exe
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/miniapp"
 )
-

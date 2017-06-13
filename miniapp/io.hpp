@@ -59,6 +59,9 @@ struct cl_options {
 
     // Report (inefficiently) on number of cell compartments in sim.
     bool report_compartments = false;
+
+    // Be more verbose with informational messages.
+    bool verbose = false;
 };
 
 class usage_error: public std::runtime_error {

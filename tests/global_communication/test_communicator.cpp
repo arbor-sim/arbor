@@ -13,7 +13,7 @@ using namespace nest::mc;
 
 using communicator_type = communication::communicator<communication::global_policy>;
 
-bool is_dry_run() {
+static bool is_dry_run() {
     return communication::global_policy::kind() ==
         communication::global_policy_kind::dryrun;
 }

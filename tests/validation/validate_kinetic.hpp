@@ -13,8 +13,13 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-template <typename LoweredCell>
-void run_kinetic_dt(nest::mc::cell& c, float t_end, nlohmann::json meta, const std::string& ref_file) {
+void run_kinetic_dt(
+    nest::mc::backend_policy backend,
+    nest::mc::cell& c,
+    float t_end,
+    nlohmann::json meta,
+    const std::string& ref_file)
+{
     using namespace nest::mc;
 
     float sample_dt = .025f;
@@ -23,11 +28,12 @@ void run_kinetic_dt(nest::mc::cell& c, float t_end, nlohmann::json meta, const s
     };
 
     meta["sim"] = "nestmc";
-    meta["backend"] = LoweredCell::backend::name();
+    meta["backend_policy"] = to_string(backend);
     convergence_test_runner<float> runner("dt", samplers, meta);
     runner.load_reference_data(ref_file);
 
-    model<LoweredCell> model(singleton_recipe{c});
+    domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+    model model(singleton_recipe{c}, decomp);
 
     auto exclude = stimulus_ends(c);
 
@@ -49,8 +55,7 @@ end:
     runner.assert_all_convergence();
 }
 
-template <typename LoweredCell>
-void validate_kinetic_kin1() {
+void validate_kinetic_kin1(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     // 20 µm diameter soma with single mechanism, current probe
@@ -65,11 +70,10 @@ void validate_kinetic_kin1() {
         {"units", "nA"}
     };
 
-    run_kinetic_dt<LoweredCell>(c, 100.f, meta, "numeric_kin1.json");
+    run_kinetic_dt(backend, c, 100.f, meta, "numeric_kin1.json");
 }
 
-template <typename LoweredCell>
-void validate_kinetic_kinlva() {
+void validate_kinetic_kinlva(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     // 20 µm diameter soma with single mechanism, current probe
@@ -85,6 +89,6 @@ void validate_kinetic_kinlva() {
         {"units", "mV"}
     };
 
-    run_kinetic_dt<LoweredCell>(c, 300.f, meta, "numeric_kinlva.json");
+    run_kinetic_dt(backend, c, 300.f, meta, "numeric_kinlva.json");
 }
 

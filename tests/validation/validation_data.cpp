@@ -16,35 +16,35 @@ namespace mc {
 
 trace_io g_trace_io;
 
+#ifndef NMC_DATADIR
+#define NMC_DATADIR ""
+#endif
+
 util::path trace_io::find_datadir() {
     // If environment variable is set, use that in preference.
+
     if (const char* env_path = std::getenv("NMC_DATADIR")) {
         return util::path(env_path);
     }
 
-    // Test compile-time path
-    const char* path = "";
-#ifdef NMC_DATADIR
-    path = NMC_DATADIR;
-#endif
+    // Otherwise try compile-time path NMC_DATADIR and hard-coded
+    // relative paths below in turn, returning the first that
+    // corresponds to an existing directory.
+
+    const char* paths[] = {
+        NMC_DATADIR,
+        "./validation/data",
+        "../validation/data"
+    };
 
     std::error_code ec;
-    if (util::is_directory(path, ec)) {
-        return path;
+    for (auto p: paths) {
+        if (util::is_directory(p, ec)) {
+            return util::path(p);
+        }
     }
 
-    // Otherwise try the hardcoded paths below:
-    path = "./validation/data";
-    if (util::is_directory(path, ec)) {
-        return path;
-    }
-
-    path = "../validation/data";
-    if (util::is_directory(path, ec)) {
-        return path;
-    }
-
-    // Set to empty path, and rely on command-line option
+    // Otherwise set to empty path, and rely on command-line option.
     return util::path();
 }
 

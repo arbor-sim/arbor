@@ -354,9 +354,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("array data_;");
     for(auto var: array_variables) {
         if(optimize_) {
-            text_.add_line(
-                "__declspec(align(array::alignment())) value_type *"
-                + var->name() + ";");
+            text_.add_line("value_type *" + var->name() + ";");
         }
         else {
             text_.add_line("view " + var->name() + ";");
@@ -693,13 +691,7 @@ void CPrinter::emit_api_loop(APIMethod* e,
 }
 
 void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
-    // there can not be more than 1 instance of a density channel per grid point,
-    // so we can assert that aliasing will not occur.
-    if(optimize_) text_.add_line("#pragma ivdep");
-
     emit_api_loop(e, "int i_ = 0", "i_ < n_", "++i_");
-
-    //text_.add_line("STOP_PROFILE");
     decrease_indentation();
 
     return;
@@ -741,11 +733,8 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     text_.add_line("constexpr int BSIZE = 4;");
     text_.add_line("int NB = n_/BSIZE;");
     for(auto out: aliased_variables) {
-        text_.add_line(
-            "__declspec(align(array::alignment())) value_type "
-            + out->name() +  "[BSIZE];");
+        text_.add_line("value_type " + out->name() +  "[BSIZE];");
     }
-    //text_.add_line("START_PROFILE");
 
     text_.add_line("for(int b_=0; b_<NB; ++b_) {");
     text_.increase_indentation();
@@ -753,10 +742,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     text_.add_line("int i_ = BSTART;");
 
 
-    // assert that memory accesses are not aliased because we will
-    // use ghost arrays to ensure that write-back of point processes does
-    // not lead to race conditions
-    text_.add_line("#pragma ivdep");
     text_.add_line("for(int j_=0; j_<BSIZE; ++j_, ++i_) {");
     text_.increase_indentation();
 
@@ -799,7 +784,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     // ------------- block tail loop ------------- //
 
     text_.add_line("int j_ = 0;");
-    text_.add_line("#pragma ivdep");
     text_.add_line("for(int i_=NB*BSIZE; i_<n_; ++j_, ++i_) {");
     text_.increase_indentation();
 
@@ -835,7 +819,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     text_.decrease_indentation();
     text_.add_line("}"); // end block tail loop
 
-    //text_.add_line("STOP_PROFILE");
     decrease_indentation();
 
     aliased_output_ = false;
