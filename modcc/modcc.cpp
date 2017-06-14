@@ -68,8 +68,12 @@ int main(int argc, char **argv) {
         else if(targstr == "avx512") {
             Options::instance().target = targetKind::avx512;
         }
+        else if(targstr == "avx2") {
+            Options::instance().target = targetKind::avx2;
+        }
         else {
-            std::cerr << red("error") << " target must be one in {cpu, gpu}\n";
+            std::cerr << red("error")
+                      << " target must be one in {cpu, gpu, avx2, avx512}\n";
             return 1;
         }
     }
@@ -151,6 +155,10 @@ int main(int argc, char **argv) {
                 break;
             case targetKind::avx512:
                 text = SimdPrinter<targetKind::avx512>(
+                    m, Options::instance().optimize).emit_source();
+                break;
+            case targetKind::avx2:
+                text = SimdPrinter<targetKind::avx2>(
                     m, Options::instance().optimize).emit_source();
                 break;
             default :
