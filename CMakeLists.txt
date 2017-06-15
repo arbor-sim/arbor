@@ -178,8 +178,8 @@ endif()
 #----------------------------------------------------------
 # vectorization target
 #----------------------------------------------------------
-set(NMC_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2}")
-set_property(CACHE NMC_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX AVX2)
+set(NMC_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2,AVX512}")
+set_property(CACHE NMC_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX AVX2 AVX512)
 
 if(NMC_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
@@ -187,6 +187,8 @@ elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX}")
 elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
+elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX512")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX512}")
 endif()
 
 #----------------------------------------------------------
