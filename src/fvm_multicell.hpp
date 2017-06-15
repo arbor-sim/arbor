@@ -92,7 +92,8 @@ public:
 
         tfinal_ = tfinal;
         dt_max_ = dt_max;
-        integration_running_ = true;
+
+        compute_min_remaining();
 
         EXPECTS(!has_pending_events());
 
@@ -268,6 +269,20 @@ private:
     /// once integration to `tfinal_` is complete.
     bool integration_running_ = false;
 
+    /// minimum number of integration steps left in integration period.
+    unsigned min_remaining_steps_ = 0;
+
+    void compute_min_remaining() {
+        auto tmin = min_time();
+        min_remaining_steps_ = tmin>=tfinal_? 0: 1 + (unsigned)((tfinal_-tmin)/dt_max_);
+        integration_running_ = min_remaining_steps_>0;
+    }
+
+    void decrement_min_remaining() {
+        if (min_remaining_steps_>0) --min_remaining_steps_;
+        integration_running_ = min_remaining_steps_>0;
+    }
+
     /// events staged for upcoming integration stage
     std::vector<deliverable_event> staged_events_;
 
@@ -293,6 +308,14 @@ private:
 
     /// the per-cell integration period end point
     array time_to_;
+
+    // the per-compartment dt
+    // (set to dt_cell_[j] for each compartment in cell j).
+    array dt_comp_;
+
+    // the per-cell dt
+    // (set to time_to_[j]-time_[j] for each cell j).
+    array dt_cell_;
 
     // Maintain cached copy of time vector for querying by
     // cell_group. This will no longer be necessary when full
@@ -536,6 +559,8 @@ void fvm_multicell<Backend>::initialize(
     time_to_ = array(ncell_, 0);
     cached_time_.resize(ncell_);
     cached_time_valid_ = false;
+    dt_cell_ = array(ncell_, 0);
+    dt_comp_ = array(ncomp, 0);
 
     // initialize cv_to_cell_ values from compartment partition
     std::vector<size_type> cv_to_cell_tmp(ncomp);
@@ -657,7 +682,7 @@ void fvm_multicell<Backend>::initialize(
         //       optimizations that rely on this assumption.
         if (stim_index.size()) {
             auto stim = new stimulus(
-                cv_to_cell_, time_, time_to_,
+                cv_to_cell_, time_, time_to_, dt_comp_,
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
             mechanisms_.push_back(mechanism(stim));
@@ -749,7 +774,7 @@ void fvm_multicell<Backend>::initialize(
 
         size_type mech_id = mechanisms_.size();
         mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, mech_cv_weight, mech_cv_index));
+            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, mech_cv_weight, mech_cv_index));
 
         // Save the indices for ion set up below.
         mech_to_cv_index[mech_name] = mech_cv_index;
@@ -771,7 +796,7 @@ void fvm_multicell<Backend>::initialize(
         // An empty weight vector is supplied, because there are no weights applied to point
         // processes, because their currents are calculated with the target units of [nA]
         mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, voltage_, current_, {}, cv_indices));
+            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, {}, cv_indices));
 
         // Save the indices for ion set up below.
         mech_to_cv_index[mech_name] = cv_indices;
@@ -779,7 +804,7 @@ void fvm_multicell<Backend>::initialize(
         // Make the target handles.
         cell_lid_type instance = 0;
         for (auto entry: cv_assoc) {
-            target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_[entry.cv]);
+            target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_tmp[entry.cv]);
         }
     }
 
@@ -891,9 +916,12 @@ void fvm_multicell<Backend>::step_integration() {
     events_->event_time_if_before(time_to_);
     PL();
 
+    // set per-cell and per-compartment dt (constant within a cell)
+    backend::set_dt(dt_cell_, dt_comp_, time_to_, time_, cv_to_cell_);
+
     // solve the linear system
     PE("matrix", "setup");
-    matrix_.assemble(time_, time_to_, voltage_, current_);
+    matrix_.assemble(dt_cell_, voltage_, current_);
 
     PL(); PE("solve");
     matrix_.solve();
@@ -917,7 +945,12 @@ void fvm_multicell<Backend>::step_integration() {
     threshold_watcher_.test();
 
     // are we there yet?
-    integration_running_ = backend::any_time_before(time_, tfinal_);
+    if (!min_remaining_steps_) {
+        compute_min_remaining();
+    }
+    else {
+        decrement_min_remaining();
+    }
 
     EXPECTS(integration_running_ || !has_pending_events());
 }

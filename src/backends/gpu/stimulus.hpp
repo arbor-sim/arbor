@@ -54,8 +54,8 @@ public:
 
     static constexpr size_type no_mech_id = (size_type)-1;
 
-    stimulus(const_iview vec_ci, const_view vec_t, const_view vec_t_to, view vec_v, view vec_i, iarray&& node_index):
-        base(no_mech_id, vec_ci, vec_t, vec_t_to, vec_v, vec_i, std::move(node_index))
+    stimulus(const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, iarray&& node_index):
+        base(no_mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(node_index))
     {}
 
     using base::size;

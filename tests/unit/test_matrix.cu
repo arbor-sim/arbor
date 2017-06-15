@@ -281,16 +281,15 @@ TEST(matrix, assemble)
     auto m_gpu = gpu_state(p, cell_index, Cm, g); // on gpu
 
     // Set the integration times for the cells to be between 0.1 and 0.2 ms.
-    std::vector<T> time(num_mtx, 0);
-    std::vector<T> time_to(num_mtx);
+    std::vector<T> dt(num_mtx);
 
     auto dt_dist = std::uniform_real_distribution<T>(0.1, 0.2);
-    std::generate(time_to.begin(), time_to.end(), [&](){return dt_dist(gen);});
+    std::generate(dt.begin(), dt.end(), [&](){return dt_dist(gen);});
 
     // Voltage and current values
-    m_mc.assemble(host_array(time), host_array(time_to), host_array(group_size, -64), host_array(group_size, 10));
+    m_mc.assemble(host_array(dt), host_array(group_size, -64), host_array(group_size, 10));
     m_mc.solve();
-    m_gpu.assemble(on_gpu(time), on_gpu(time_to), gpu_array(group_size, -64), gpu_array(group_size, 10));
+    m_gpu.assemble(on_gpu(dt), gpu_array(group_size, -64), gpu_array(group_size, 10));
     m_gpu.solve();
 
     // Compare the GPU and CPU results.
@@ -381,20 +380,18 @@ TEST(matrix, backends)
     auto intl = state_intl(p, cell_cv_divs, Cm, g); // interleaved
 
     // Set the integration times for the cells to be between 0.01 and 0.02 ms.
-    std::vector<T> time(num_mtx, 0);
-    std::vector<T> time_to(num_mtx);
+    std::vector<T> dt(num_mtx, 0);
 
     auto dt_dist = std::uniform_real_distribution<T>(0.01, 0.02);
-    std::generate(time_to.begin(), time_to.end(), [&](){return dt_dist(gen);});
+    std::generate(dt.begin(), dt.end(), [&](){return dt_dist(gen);});
 
     // Voltage and current values.
-    auto gpu_t = on_gpu(time);
-    auto gpu_t_to = on_gpu(time_to);
+    auto gpu_dt = on_gpu(dt);
     auto gpu_v = on_gpu(v);
     auto gpu_i = on_gpu(i);
 
-    flat.assemble(gpu_t, gpu_t_to, gpu_v, gpu_i);
-    intl.assemble(gpu_t, gpu_t_to, gpu_v, gpu_i);
+    flat.assemble(gpu_dt, gpu_v, gpu_i);
+    intl.assemble(gpu_dt, gpu_v, gpu_i);
 
     flat.solve();
     intl.solve();
@@ -415,7 +412,6 @@ TEST(matrix, zero_diagonal)
     using value_type = gpu::backend::value_type;
     using size_type = gpu::backend::size_type;
     using matrix_type = gpu::backend::matrix_state;
-    //using matrix_type = gpu::matrix_state_interleaved<value_type, size_type>;
     using vvec = std::vector<value_type>;
 
     // Combined matrix may have zero-blocks, corresponding to a zero dt.
@@ -431,8 +427,7 @@ TEST(matrix, zero_diagonal)
     std::vector<value_type> g = {0, 1, 1, 0, 1, 0, 2};
 
     // dt of 1e-3.
-    std::vector<value_type> t0(3, 0.0);
-    std::vector<value_type> t1(3, 1.0e-3);
+    std::vector<value_type> dt(3, 1.0e-3);
 
     // Capacitances.
     std::vector<value_type> Cm = {1, 1, 1, 1, 1, 2, 3};
@@ -450,11 +445,10 @@ TEST(matrix, zero_diagonal)
     // x = [ 4  5  6  7  8  9 10]
 
     matrix_type m(p, c, Cm, g);
-    auto gpu_t0 = on_gpu(t0);
-    auto gpu_t1 = on_gpu(t1);
+    auto gpu_dt = on_gpu(dt);
     auto gpu_v  = on_gpu(v);
     auto gpu_i  = on_gpu(i);
-    m.assemble(gpu_t0, gpu_t1, gpu_v, gpu_i);
+    m.assemble(gpu_dt, gpu_v, gpu_i);
     m.solve();
 
     vvec x;
@@ -466,14 +460,14 @@ TEST(matrix, zero_diagonal)
     // Set dt of 2nd (middle) submatrix to zero. Solution
     // should then return voltage values for that submatrix.
 
-    t0[1] = t1[1];
-    gpu_t0 = on_gpu(t0);
+    dt[1] = 0;
+    gpu_dt = on_gpu(dt);
 
     v[3] = 20;
     v[4] = 30;
     gpu_v  = on_gpu(v);
 
-    m.assemble(gpu_t0, gpu_t1, gpu_v, gpu_i);
+    m.assemble(gpu_dt, gpu_v, gpu_i);
     m.solve();
 
     assign(x, on_host(m.solution()));

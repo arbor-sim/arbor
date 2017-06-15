@@ -297,24 +297,8 @@ bool Module::semantic() {
     auto api_state  = state_api.first;
     auto breakpoint = state_api.second; // implies we are building the `nrn_state()` method.
 
-    if(breakpoint) {
-        // Before running semantic pass, insert dt definition and assignment.
-        // Integration dt is determined by the (cell-indexed) variables `t` and `t_to`.
-        auto loc = breakpoint->body()->location();
-        api_state->body()->statements().push_back(
-            make_expression<LocalDeclaration>(loc, "dt"));
-
-        api_state->body()->statements().push_back(
-            binary_expression(loc, tok::eq,
-                make_expression<IdentifierExpression>(loc, "dt"),
-                binary_expression(loc, tok::minus,
-                    make_expression<IdentifierExpression>(loc, "t_to"),
-                    make_expression<IdentifierExpression>(loc, "t"))));
-    }
-
     api_state->semantic(symbols_);
     scope_ptr nrn_state_scope = api_state->scope();
-
 
     if(breakpoint) {
         // Grab SOLVE statements, put them in `nrn_state` after translation.
@@ -470,6 +454,8 @@ void Module::add_variables_to_symbols() {
     create_indexed_variable("current_", "vec_i", tok::plus,
                             accessKind::write, ionKind::none, Location());
     create_indexed_variable("v", "vec_v", tok::eq,
+                            accessKind::read,  ionKind::none, Location());
+    create_indexed_variable("dt", "vec_dt", tok::eq,
                             accessKind::read,  ionKind::none, Location());
 
     // add cell-indexed variables to the table

@@ -22,15 +22,14 @@ void assemble_matrix_flat(
         const T* current,
         const T* cv_capacitance,
         const I* cv_to_cell,
-        const T* t,
-        const T* t_to,
+        const T* dt_cell,
         unsigned n)
 {
     const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
 
     if (tid<n) {
         auto cid = cv_to_cell[tid];
-        auto dt = t_to[cid] - t[cid];
+        auto dt = dt_cell[cid];
 
         // Note: dt==0 case is expected only at the end of a mindelay/2
         // integration period, and consequently divergence is unlikely
@@ -71,8 +70,7 @@ void assemble_matrix_interleaved(
         const I* sizes,
         const I* starts,
         const I* matrix_to_cell,
-        const T* time,
-        const T* time_to,
+        const T* dt_cell,
         unsigned padded_size, unsigned num_mtx)
 {
     static_assert(BlockWidth*LoadWidth==Threads,
@@ -106,7 +104,7 @@ void assemble_matrix_interleaved(
 
     if (permuted_cid<num_mtx) {
         auto cid = matrix_to_cell[permuted_cid];
-        dt = time_to[cid]-time[cid];
+        dt = dt_cell[cid];
 
         // The 1e-3 is a constant of proportionality required to ensure that the
         // conductance (gi) values have units μS (micro-Siemens).

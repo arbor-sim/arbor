@@ -46,9 +46,10 @@ TEST(mechanisms, helpers) {
     multicore::backend::array vec_v(n, 0.);
     multicore::backend::array vec_t(ncell, 0.);
     multicore::backend::array vec_t_to(ncell, 0.);
+    multicore::backend::array vec_dt(n, 0.);
 
     auto mech = multicore::backend::make_mechanism("hh", 0,
-            memory::make_view(cell_index), vec_t, vec_t_to,
+            memory::make_view(cell_index), vec_t, vec_t_to, vec_dt,
             vec_v, vec_i, weights, node_index);
 
     EXPECT_EQ(mech->name(), "hh");
@@ -57,7 +58,7 @@ TEST(mechanisms, helpers) {
     // check that an out_of_range exception is thrown if an invalid mechanism is requested
     ASSERT_THROW(
         multicore::backend::make_mechanism("dachshund", 0,
-            memory::make_view(cell_index), vec_t, vec_t_to,
+            memory::make_view(cell_index), vec_t, vec_t_to, vec_dt,
             vec_v, vec_i, weights, node_index),
         std::out_of_range
     );
@@ -146,6 +147,7 @@ TYPED_TEST_P(mechanisms, update) {
     typename mechanism_type::iarray cell_index(num_comp, 0);
     typename mechanism_type::array  time(num_cell, 2.);
     typename mechanism_type::array  time_to(num_cell, 2.1);
+    typename mechanism_type::array  dt(num_comp, 2.1-2.);
 
     array_init(voltage, nest::mc::util::cyclic_view({ -65.0, -61.0, -63.0 }));
     array_init(current, nest::mc::util::cyclic_view({   1.0,   0.9,   1.1 }));
@@ -178,12 +180,12 @@ TYPED_TEST_P(mechanisms, update) {
 
     // Create mechanisms
     auto mech = nest::mc::mechanisms::make_mechanism<mechanism_type>(
-        0, cell_index, time, time_to,
+        0, cell_index, time, time_to, dt,
         voltage, current, std::move(weights), std::move(node_index)
     );
 
     auto mech_proto = nest::mc::mechanisms::make_mechanism<proto_mechanism_type>(
-        0, cell_index, time, time_to,
+        0, cell_index, time, time_to, dt,
         voltage_copy, current_copy,
         std::move(weights_copy), std::move(node_index_copy)
     );

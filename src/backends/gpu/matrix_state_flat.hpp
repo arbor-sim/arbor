@@ -90,13 +90,11 @@ struct matrix_state_flat {
     }
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current,
-    // where dt is determined by the start and end integration times t and t_to.
-    //   t       [ms]
-    //   t_to    [ms]
+    // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
+    //   dt_cell [ms] (per cell)
     //   voltage [mV]
     //   current [nA]
-    void assemble(const_view t, const_view t_to, const_view voltage, const_view current) {
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
         // determine the grid dimensions for the kernel
         auto const n = voltage.size();
         auto const block_dim = 128;
@@ -104,7 +102,7 @@ struct matrix_state_flat {
 
         assemble_matrix_flat<value_type, size_type><<<grid_dim, block_dim>>> (
             d.data(), rhs.data(), invariant_d.data(), voltage.data(),
-            current.data(), cv_capacitance.data(), cv_to_cell.data(), t.data(), t_to.data(), size());
+            current.data(), cv_capacitance.data(), cv_to_cell.data(), dt_cell.data(), size());
     }
 
     void solve() {
