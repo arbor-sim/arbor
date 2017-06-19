@@ -156,6 +156,16 @@ struct simd_intrinsics<targetKind::avx2> {
         tb << ")";
     }
 
+    // In avx2 require 4-wide gather of i32 indices.
+    template<typename A, typename I, typename S>
+    static void emit_gather_index(TextBuffer& tb, const A& addr,
+                                  const I& index, const S& scale) {
+        tb << "_mm_i32gather_epi32(";
+        emit_operands(tb, arg_emitter(addr), arg_emitter(index),
+                      arg_emitter(scale));
+        tb << ")";
+    }
+
     template<typename T>
     static void emit_set_value(TextBuffer& tb, const T& arg) {
         tb << "_mm256_set1_pd(";

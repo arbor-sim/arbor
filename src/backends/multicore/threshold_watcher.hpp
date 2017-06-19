@@ -1,5 +1,6 @@
 #pragma once
 
+#include <math.hpp>
 #include <memory/memory.hpp>
 
 namespace nest {
@@ -15,6 +16,7 @@ public:
     using array = memory::host_vector<value_type>;
     using const_view = typename array::const_view_type;
     using iarray = memory::host_vector<size_type>;
+    using const_iview = typename iarray::const_view_type;
 
     /// stores a single crossing event
     struct threshold_crossing {
@@ -30,17 +32,22 @@ public:
     threshold_watcher() = default;
 
     threshold_watcher(
+            const_iview vec_ci,
+            const_view vec_t_before,
+            const_view vec_t_after,
             const_view vals,
             const std::vector<size_type>& indxs,
-            const std::vector<value_type>& thresh,
-            value_type t=0):
+            const std::vector<value_type>& thresh):
+        cv_to_cell_(vec_ci),
+        t_before_(vec_t_before),
+        t_after_(vec_t_after),
         values_(vals),
-        index_(memory::make_const_view(indxs)),
+        cv_index_(memory::make_const_view(indxs)),
         thresholds_(memory::make_const_view(thresh)),
         v_prev_(vals)
     {
         is_crossed_ = iarray(size());
-        reset(t);
+        reset();
     }
 
     /// Remove all stored crossings that were detected in previous calls
@@ -52,37 +59,34 @@ public:
     /// Reset state machine for each detector.
     /// Assume that the values in values_ have been set correctly before
     /// calling, because the values are used to determine the initial state
-    void reset(value_type t=0) {
+    void reset() {
         clear_crossings();
         for (auto i=0u; i<size(); ++i) {
-            is_crossed_[i] = values_[index_[i]]>=thresholds_[i];
+            is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
         }
-        t_prev_ = t;
     }
 
     const std::vector<threshold_crossing>& crossings() const {
         return crossings_;
     }
 
-    /// The time at which the last test was performed
-    value_type last_test_time() const {
-        return t_prev_;
-    }
-
     /// Tests each target for changed threshold state
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
-    void test(value_type t) {
+    void test() {
         for (auto i=0u; i<size(); ++i) {
+            auto cv     = cv_index_[i];
+            auto cell   = cv_to_cell_[cv];
             auto v_prev = v_prev_[i];
-            auto v      = values_[index_[i]];
+            auto v      = values_[cv];
             auto thresh = thresholds_[i];
+
             if (!is_crossed_[i]) {
                 if (v>=thresh) {
-                    // the threshold has been passed, so estimate the time using
-                    // linear interpolation
+                    // The threshold has been passed, so estimate the time using
+                    // linear interpolation.
                     auto pos = (thresh - v_prev)/(v - v_prev);
-                    auto crossing_time = t_prev_ + pos*(t - t_prev_);
+                    auto crossing_time = math::lerp(t_before_[cell], t_after_[cell], pos);
                     crossings_.push_back({i, crossing_time});
 
                     is_crossed_[i] = true;
@@ -96,7 +100,6 @@ public:
 
             v_prev_[i] = v;
         }
-        t_prev_ = t;
     }
 
     bool is_crossed(size_type i) const {
@@ -105,7 +108,7 @@ public:
 
     /// the number of threashold values that are being monitored
     std::size_t size() const {
-        return index_.size();
+        return cv_index_.size();
     }
 
     /// Data type used to store the crossings.
@@ -113,11 +116,13 @@ public:
     using crossing_list =  std::vector<threshold_crossing>;
 
 private:
+    const_iview cv_to_cell_;
+    const_view t_before_;
+    const_view t_after_;
     const_view values_;
-    iarray index_;
+    iarray cv_index_;
 
     array thresholds_;
-    value_type t_prev_;
     array v_prev_;
     crossing_list crossings_;
     iarray is_crossed_;

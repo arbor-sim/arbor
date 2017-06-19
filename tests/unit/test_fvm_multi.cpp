@@ -209,14 +209,17 @@ TEST(fvm_multi, stimulus)
 
     // test 1: Test that no current is injected at t=0
     memory::fill(I, 0.);
-    stims->set_params(0, 0.1);
+    fvcell.set_time_global(0.);
+    fvcell.set_time_to_global(0.1);
+    stims->set_params();
     stims->nrn_current();
     for (auto i: I) {
         EXPECT_EQ(i, 0.);
     }
 
     // test 2: Test that current is injected at soma at t=1
-    stims->set_params(1, 0.1);
+    fvcell.set_time_global(1.);
+    fvcell.set_time_to_global(1.1);
     stims->nrn_current();
     EXPECT_EQ(I[soma_idx], -0.1);
 
@@ -224,13 +227,16 @@ TEST(fvm_multi, stimulus)
     //         Note that we test for injection of -0.2, because the
     //         current contributions are accumulative, and the current
     //         values have not been cleared since the last update.
-    stims->set_params(1.5, 0.1);
+    fvcell.set_time_global(1.5);
+    fvcell.set_time_to_global(1.6);
+    stims->set_params();
     stims->nrn_current();
     EXPECT_EQ(I[soma_idx], -0.2);
 
     // test 4: test at t=10ms, when the the soma stim is not active, and
     //         dendrite stimulus is injecting a current of 0.3 nA
-    stims->set_params(10, 0.1);
+    fvcell.set_time_global(10.);
+    fvcell.set_time_to_global(10.1);
     stims->nrn_current();
     EXPECT_EQ(I[soma_idx], -0.2);
     EXPECT_EQ(I[dend_idx], -0.3);
@@ -385,10 +391,11 @@ void run_target_handle_test(std::vector<handle_info> all_handles) {
     for (unsigned ci = 0; ci<=1; ++ci) {
         for (auto h: handles[ci]) {
             // targets are represented by a pair of mechanism index and instance index
-            const auto& mech = fvcell.mechanisms()[targets[i].first];
+            const auto& mech = fvcell.mechanisms()[targets[i].mech_id];
             const auto& cvidx = mech->node_index();
             EXPECT_EQ(h.mech, mech->name());
-            EXPECT_EQ(h.cv, cvidx[targets[i].second]);
+            EXPECT_EQ(h.cv, cvidx[targets[i].index]);
+            EXPECT_EQ(h.cell, targets[i].cell_index);
             ++i;
         }
     }

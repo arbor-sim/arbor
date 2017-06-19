@@ -1,7 +1,9 @@
 #pragma once
 
 #include <memory/memory.hpp>
+#include <memory/wrappers.hpp>
 #include <util/span.hpp>
+#include <util/partition.hpp>
 #include <util/rangeutil.hpp>
 
 #include "kernels/solve_matrix.hpp"
@@ -24,7 +26,8 @@ struct matrix_state_flat {
     using const_view = typename array::const_view_type;
 
     iarray parent_index;
-    iarray cell_index;
+    iarray cell_cv_divs;
+    iarray cv_to_cell;
 
     array d;     // [μS]
     array u;     // [μS]
@@ -36,17 +39,15 @@ struct matrix_state_flat {
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
-    // interface for exposing the solution to the outside world
-    view solution;
-
     matrix_state_flat() = default;
 
     matrix_state_flat(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_idx,
+                 const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond):
         parent_index(memory::make_const_view(p)),
-        cell_index(memory::make_const_view(cell_idx)),
+        cell_cv_divs(memory::make_const_view(cell_cv_divs)),
+        cv_to_cell(p.size()),
         d(p.size()),
         u(p.size()),
         rhs(p.size()),
@@ -54,12 +55,13 @@ struct matrix_state_flat {
     {
         EXPECTS(cv_cap.size() == size());
         EXPECTS(face_cond.size() == size());
-        EXPECTS(cell_idx.back() == size());
-        EXPECTS(cell_idx.size() > 2u);
+        EXPECTS(cell_cv_divs.back() == size());
+        EXPECTS(cell_cv_divs.size() > 1u);
 
         using memory::make_const_view;
 
         auto n = d.size();
+        std::vector<size_type> cv_to_cell_tmp(n, 0);
         std::vector<value_type> invariant_d_tmp(n, 0);
         std::vector<value_type> u_tmp(n, 0);
 
@@ -70,18 +72,29 @@ struct matrix_state_flat {
             invariant_d_tmp[i] += gij;
             invariant_d_tmp[p[i]] += gij;
         }
+
+        size_type ci = 0;
+        for (auto cv_span: util::partition_view(cell_cv_divs)) {
+            util::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
+            ++ci;
+        }
+
+        cv_to_cell = make_const_view(cv_to_cell_tmp);
         invariant_d = make_const_view(invariant_d_tmp);
         u = make_const_view(u_tmp);
+    }
 
-        solution = rhs;
+    // interface for exposing the solution to the outside world
+    const_view solution() const {
+        return memory::make_view(rhs);
     }
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current
-    //   dt      [ms]
+    // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
+    //   dt_cell [ms] (per cell)
     //   voltage [mV]
     //   current [nA]
-    void assemble(value_type dt, const_view voltage, const_view current) {
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
         // determine the grid dimensions for the kernel
         auto const n = voltage.size();
         auto const block_dim = 128;
@@ -89,7 +102,7 @@ struct matrix_state_flat {
 
         assemble_matrix_flat<value_type, size_type><<<grid_dim, block_dim>>> (
             d.data(), rhs.data(), invariant_d.data(), voltage.data(),
-            current.data(), cv_capacitance.data(), dt, size());
+            current.data(), cv_capacitance.data(), cv_to_cell.data(), dt_cell.data(), size());
     }
 
     void solve() {
@@ -100,7 +113,7 @@ struct matrix_state_flat {
         // perform solve on gpu
         solve_matrix_flat<value_type, size_type><<<grid_dim, block_dim>>> (
             rhs.data(), d.data(), u.data(), parent_index.data(),
-            cell_index.data(), num_matrices());
+            cell_cv_divs.data(), num_matrices());
     }
 
     std::size_t size() const {
@@ -109,7 +122,7 @@ struct matrix_state_flat {
 
 private:
     unsigned num_matrices() const {
-        return cell_index.size()-1;
+        return cell_cv_divs.size()-1;
     }
 };
 
