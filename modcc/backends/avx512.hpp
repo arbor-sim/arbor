@@ -130,6 +130,7 @@ struct simd_intrinsics<targetKind::avx512> {
         tb << ")";
     }
 
+    // In avx512 require 8-wide gather of i32 indices.
     template<typename A, typename I, typename S>
     static void emit_gather_index(TextBuffer& tb, const A& addr,
                                   const I& index, const S& scale) {
