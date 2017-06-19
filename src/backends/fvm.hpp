@@ -13,7 +13,13 @@ struct null_backend: public multicore::backend {
     }
 
     static mechanism make_mechanism(
-        const std::string&, view, view, const std::vector<value_type>&, const std::vector<size_type>&)
+        const std::string&,
+        size_type,
+        const_iview,
+        const_view, const_view, const_view,
+        view, view,
+        const std::vector<value_type>&,
+        const std::vector<size_type>&)
     {
         throw std::runtime_error("attempt to use an unsupported back end");
     }

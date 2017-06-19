@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <string>
 
 #include "cprinter.hpp"
 #include "lexer.hpp"
@@ -56,8 +57,10 @@ std::string CPrinter::emit_source() {
     text_.add_line("using iarray  = typename base::iarray;");
     text_.add_line("using view   = typename base::view;");
     text_.add_line("using iview  = typename base::iview;");
+    text_.add_line("using const_view = typename base::const_view;");
     text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using ion_type = typename base::ion_type;");
+    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
     text_.add_line();
 
     //////////////////////////////////////////////
@@ -85,8 +88,8 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index)");
-    text_.add_line(":   base(vec_v, vec_i, std::move(node_index))");
+    text_.add_line(class_name + "(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_index)");
+    text_.add_line(":   base(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -176,11 +179,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    text_.add_line("void set_params(value_type t_, value_type dt_) override {");
-    text_.increase_indentation();
-    text_.add_line("t = t_;");
-    text_.add_line("dt = dt_;");
-    text_.decrease_indentation();
+    text_.add_line("void set_params() override {");
     text_.add_line("}");
     text_.add_line();
 
@@ -319,15 +318,34 @@ std::string CPrinter::emit_source() {
     auto proctest = [] (procedureKind k) {
         return is_in(k, {procedureKind::normal, procedureKind::api, procedureKind::net_receive});
     };
+    bool override_deliver_events = false;
     for(auto const& var: module_->symbols()) {
         auto isproc = var.second->kind()==symbolKind::procedure;
-        if(isproc )
-        {
+        if(isproc) {
             auto proc = var.second->is_procedure();
             if(proctest(proc->kind())) {
                 proc->accept(this);
             }
+            override_deliver_events |= proc->kind()==procedureKind::net_receive;
         }
+    }
+
+    if(override_deliver_events) {
+        text_.add_line("void deliver_events(multi_event_stream& events) override {");
+        text_.increase_indentation();
+        text_.add_line("auto ncell = events.n_streams();");
+        text_.add_line("for (size_type c = 0; c<ncell; ++c) {");
+        text_.increase_indentation();
+        text_.add_line("for (auto ev: events.marked_events(c)) {");
+        text_.increase_indentation();
+        text_.add_line("if (ev.handle.mech_id==mech_id_) net_receive(ev.handle.index, ev.weight);");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
     }
 
     //////////////////////////////////////////////
@@ -357,6 +375,11 @@ std::string CPrinter::emit_source() {
     }
 
     text_.add_line();
+    text_.add_line("using base::mech_id_;");
+    text_.add_line("using base::vec_ci_;");
+    text_.add_line("using base::vec_t_;");
+    text_.add_line("using base::vec_t_to_;");
+    text_.add_line("using base::vec_dt_;");
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
     text_.add_line("using base::node_index_;");
@@ -380,6 +403,7 @@ void CPrinter::emit_headers() {
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <backends/multicore/multi_event_stream.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 }
@@ -426,6 +450,10 @@ void CPrinter::visit(VariableExpression *e) {
 }
 
 void CPrinter::visit(IndexedVariable *e) {
+    text_ << e->index_name() << "[i_]";
+}
+
+void CPrinter::visit(CellIndexedVariable *e) {
     text_ << e->index_name() << "[i_]";
 }
 
@@ -582,20 +610,25 @@ void CPrinter::visit(APIMethod *e) {
         // create local indexed views
         for(auto &symbol : e->scope()->locals()) {
             auto var = symbol.second->is_local_variable();
-            if(var->is_indexed()) {
-                auto const& name = var->name();
-                auto const& index_name = var->external_variable()->index_name();
-                text_.add_gutter();
-                text_ << "auto " + index_name + " = util::indirect_view";
-                auto channel = var->external_variable()->ion_channel();
-                if(channel==ionKind::none) {
-                    text_ << "(" + index_name + "_, node_index_);\n";
-                }
-                else {
-                    auto iname = ion_store(channel);
-                    text_ << "(" << iname << "." << name << ", "
-                          << ion_store(channel) << ".index);\n";
-                }
+            if (!var->is_indexed()) continue;
+
+            auto external = var->external_variable();
+            auto const& name = var->name();
+            auto const& index_name = external->index_name();
+
+            text_.add_gutter();
+            text_ << "auto " + index_name + " = ";
+
+            if(external->is_cell_indexed_variable()) {
+                text_ << "util::indirect_view(util::indirect_view(" + index_name + "_, vec_ci_), node_index_);\n";
+            }
+            else if(external->is_ion()) {
+                auto channel = external->ion_channel();
+                auto iname = ion_store(channel);
+                text_ << "util::indirect_view(" << iname << "." << name << ", " << ion_store(channel) << ".index);\n";
+            }
+            else {
+                text_ << "util::indirect_view(" + index_name + "_, node_index_);\n";
             }
         }
 

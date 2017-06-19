@@ -117,36 +117,40 @@ public:
 
         lowered_.setup_integration(tfinal, dt);
 
+        util::optional<time_type> first_sample_time = sample_events_.time_if_before(tfinal);
         std::vector<sample_event> requeue_sample_events;
         while (!lowered_.integration_complete()) {
             // Take any pending samples.
             // TODO: Placeholder: this will be replaced by a backend polling implementation.
 
-            PE("sampling");
-            time_type cell_max_time = lowered_.max_time();
+            if (first_sample_time) {
+                PE("sampling");
+                time_type cell_max_time = lowered_.max_time();
 
-            requeue_sample_events.clear();
-            while (auto m = sample_events_.pop_if_before(cell_max_time)) {
-                auto& s = samplers_[m->sampler_index];
-                EXPECTS((bool)s.sampler);
+                requeue_sample_events.clear();
+                while (auto m = sample_events_.pop_if_before(cell_max_time)) {
+                    auto& s = samplers_[m->sampler_index];
+                    EXPECTS((bool)s.sampler);
 
-                time_type cell_time = lowered_.time(s.cell_gid-gid_base_);
-                if (cell_time<m->time) {
-                    // This cell hasn't reached this sample time yet.
-                    requeue_sample_events.push_back(*m);
-                }
-                else {
-                    auto next = s.sampler(cell_time, lowered_.probe(s.handle));
-                    if (next) {
-                        m->time = std::max(*next, cell_time);
+                    time_type cell_time = lowered_.time(s.cell_gid-gid_base_);
+                    if (cell_time<m->time) {
+                        // This cell hasn't reached this sample time yet.
                         requeue_sample_events.push_back(*m);
                     }
+                    else {
+                        auto next = s.sampler(cell_time, lowered_.probe(s.handle));
+                        if (next) {
+                            m->time = std::max(*next, cell_time);
+                            requeue_sample_events.push_back(*m);
+                        }
+                    }
                 }
+                for (auto& ev: requeue_sample_events) {
+                    sample_events_.push(std::move(ev));
+                }
+                first_sample_time = sample_events_.time_if_before(tfinal);
+                PL();
             }
-            for (auto& ev: requeue_sample_events) {
-                sample_events_.push(std::move(ev));
-            }
-            PL();
 
             // Ask lowered_ cell to integrate 'one step', delivering any
             // events accordingly.

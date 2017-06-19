@@ -44,5 +44,4 @@ inline void compiler_barrier_if_icc_leq(unsigned ver) {
 template <typename X>
 inline constexpr bool isinf(X x) { return std::isinf(x); }
 
-
 } // namespace compat

@@ -21,6 +21,7 @@ set(TEST_CUDA_SOURCES
     test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
+    test_multi_event_stream.cu
     test_spikes.cu
     test_vector.cu
 
@@ -50,6 +51,7 @@ set(TEST_SOURCES
     test_math.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_multi_event_stream.cpp
     test_nop.cpp
     test_optional.cpp
     test_parameters.cpp
@@ -89,6 +91,8 @@ endif()
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
 if(NMC_WITH_CUDA)
+    # Omit -DDATADIR for cuda target because of CMake 3.7/3.8 FindCUDA quoting bug.
+
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
 endif()
@@ -108,3 +112,9 @@ foreach(target ${TARGETS})
        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
     )
 endforeach()
+
+# Temporary hack (pending PR #266)
+if(NMC_WITH_CUDA)
+    target_link_libraries(test_cuda.exe LINK_PUBLIC nestmc)
+endif()
+

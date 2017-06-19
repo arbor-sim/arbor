@@ -8,6 +8,8 @@
 #include <backends/multicore/fvm.hpp>
 #include <util/span.hpp>
 
+#include "common.hpp"
+
 using namespace nest::mc;
 
 using matrix_type = matrix<nest::mc::multicore::backend>;
@@ -77,3 +79,96 @@ TEST(matrix, solve_host)
         }
     }
 }
+
+TEST(matrix, zero_diagonal)
+{
+    // Combined matrix may have zero-blocks, corresponding to a zero dt.
+    // Zero-blocks are indicated by zero value in the diagonal (the off-diagonal
+    // elements should be ignored).
+    // These submatrices should leave the rhs as-is when solved.
+
+    // Three matrices, sizes 3, 3 and 2, with no branching.
+    std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
+    std::vector<size_type> c = {0, 3, 5, 7};
+    matrix_type m(p, c, vvec(7), vvec(7));
+
+    EXPECT_EQ(7u, m.size());
+    EXPECT_EQ(3u, m.num_cells());
+
+    auto& A = m.state_;
+    A.d =   vvec({2,  3,  2, 0,  0,  4,  5});
+    A.u =   vvec({0, -1, -1, 0, -1,  0, -2});
+    A.rhs = vvec({3,  5,  7, 7,  8, 16, 32});
+
+    // Expected solution:
+    std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
+
+    m.solve();
+    auto x = m.solution();
+
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+}
+
+TEST(matrix, zero_diagonal_assembled)
+{
+    // Use assemble method to construct same zero-diagonal
+    // test case from CV data.
+
+    using util::assign;
+    using memory::make_view;
+
+    // Combined matrix may have zero-blocks, corresponding to a zero dt.
+    // Zero-blocks are indicated by zero value in the diagonal (the off-diagonal
+    // elements should be ignored).
+    // These submatrices should leave the rhs as-is when solved.
+
+    // Three matrices, sizes 3, 3 and 2, with no branching.
+    std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
+    std::vector<size_type> c = {0, 3, 5, 7};
+
+    // Face conductances.
+    vvec g = {0, 1, 1, 0, 1, 0, 2};
+
+    // dt of 1e-3.
+    vvec dt(3, 1.0e-3);
+
+    // Capacitances.
+    vvec Cm = {1, 1, 1, 1, 1, 2, 3};
+
+    // Intial voltage of zero; currents alone determine rhs.
+    vvec v(7, 0.0);
+    vvec i = {-3, -5, -7, -6, -9, -16, -32};
+
+    // Expected matrix and rhs:
+    // u = [ 0 -1 -1  0 -1  0 -2]
+    // d = [ 2  3  2  2  2  4  5]
+    // b = [ 3  5  7  2  4 16 32]
+    //
+    // Expected solution:
+    // x = [ 4  5  6  7  8  9 10]
+
+    matrix_type m(p, c, Cm, g);
+    m.assemble(make_view(dt), make_view(v), make_view(i));
+    m.solve();
+
+    vvec x;
+    assign(x, on_host(m.solution()));
+    std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
+
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+
+    // Set dt of 2nd (middle) submatrix to zero. Solution
+    // should then return voltage values for that submatrix.
+
+    dt[1] = 0;
+    v[3] = 20;
+    v[4] = 30;
+    m.assemble(make_view(dt), make_view(v), make_view(i));
+    m.solve();
+
+    assign(x, m.solution());
+    expected = {4, 5, 6, 20, 30, 9, 10};
+
+    EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
+}
+
