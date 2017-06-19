@@ -267,6 +267,7 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
                 text_.add_gutter();
                 text_ << simd_backend::emit_index_type() << " "
                       << vindex_name << " = ";
+                // FIXME: cast should better go inside `emit_load_index()`
                 simd_backend::emit_load_index(
                     text_, cast_type + "&" + index_ptr_name + "[off_]");
                 text_.end_line(";");
@@ -311,7 +312,7 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
         auto var = symbol.second->is_local_variable();
         if (is_output(var)      &&
             !is_point_process() &&
-            simd_backend::has_gather_scatter()) {
+            simd_backend::has_scatter()) {
             // We can safely use scatter, but we need to fetch the variable
             // first
             text_.add_line();

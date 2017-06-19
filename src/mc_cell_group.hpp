@@ -123,7 +123,6 @@ public:
             // Take any pending samples.
             // TODO: Placeholder: this will be replaced by a backend polling implementation.
 
-
             if (first_sample_time) {
                 PE("sampling");
                 time_type cell_max_time = lowered_.max_time();

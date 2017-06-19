@@ -84,7 +84,8 @@ struct simd_intrinsics {
     template<typename T>
     static void emit_set_value(TextBuffer& tb, const T& arg);
 
-    static bool has_gather_scatter();
+    static bool has_gather();
+    static bool has_scatter();
 };
 
 }}} // closing namespaces
