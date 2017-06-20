@@ -26,10 +26,6 @@
 #include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 
-#ifndef _POSIX_C_SOURCE
-#error "no non-POSIX implementations for filesystem classes or methods"
-#endif
-
 namespace nest {
 namespace mc {
 namespace util {
