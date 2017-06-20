@@ -3,6 +3,7 @@ set(VALIDATION_SOURCES
     validate_ball_and_stick.cpp
     validate_compartment_policy.cpp
     validate_soma.cpp
+    validate_kinetic.cpp
     validate_synapses.cpp
 
     # support code
@@ -17,6 +18,7 @@ set(VALIDATION_CUDA_SOURCES
     # unit tests
     validate_soma.cu
     validate_ball_and_stick.cu
+    validate_kinetic.cu
     validate_synapses.cu
 
     # support code
@@ -28,7 +30,11 @@ set(VALIDATION_CUDA_SOURCES
 )
 
 if(NMC_VALIDATION_DATA_DIR)
-    add_definitions("-DDATADIR=\"${NMC_VALIDATION_DATA_DIR}\"")
+    if ("${CMAKE_VERSION}" MATCHES "^3.[78].")
+        message(WARNING "CMake ${CMAKE_VERSION} has broken FindCUDA; omitting NMC_DATADIR define.")
+    else()
+        add_definitions("-DNMC_DATADIR=\"${NMC_VALIDATION_DATA_DIR}\"")
+    endif()
 endif()
 
 add_executable(validate.exe ${VALIDATION_SOURCES})
@@ -42,8 +48,8 @@ endif()
 
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC nestmc gtest)
-
+    target_link_libraries(${target} LINK_PUBLIC gtest)
+    target_link_libraries(${target} LINK_PUBLIC ${NESTMC_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(NMC_WITH_MPI)

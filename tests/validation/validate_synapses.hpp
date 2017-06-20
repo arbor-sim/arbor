@@ -15,10 +15,10 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-template <typename LoweredCell>
 void run_synapse_test(
     const char* syn_type,
     const nest::mc::util::path& ref_data_path,
+    nest::mc::backend_policy backend,
     float t_end=70.f,
     float dt=0.001)
 {
@@ -30,7 +30,7 @@ void run_synapse_test(
         {"model", syn_type},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", LoweredCell::backend::name()}
+        {"backend_policy", to_string(backend)}
     };
 
     cell c = make_cell_ball_and_stick(false); // no stimuli
@@ -39,7 +39,7 @@ void run_synapse_test(
     add_common_voltage_probes(c);
 
     // injected spike events
-    postsynaptic_spike_event<float> synthetic_events[] = {
+    std::vector<postsynaptic_spike_event> synthetic_events = {
         {{0u, 0u}, 10.0, 0.04},
         {{0u, 0u}, 20.0, 0.04},
         {{0u, 0u}, 40.0, 0.04}
@@ -60,7 +60,8 @@ void run_synapse_test(
 
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
-        model<LoweredCell> m(singleton_recipe{c});
+        domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+        model m(singleton_recipe{c}, decomp);
         m.group(0).enqueue_events(synthetic_events);
 
         runner.run(m, ncomp, t_end, dt, exclude);

@@ -9,8 +9,12 @@ set(MODCC_SOURCES
     functionexpander.cpp
     functioninliner.cpp
     lexer.cpp
+    kineticrewriter.cpp
     module.cpp
     parser.cpp
+    solvers.cpp
+    symdiff.cpp
+    symge.cpp
     textbuffer.cpp
     token.cpp
 )
@@ -25,4 +29,3 @@ set_target_properties(modcc
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/modcc"
 )
-

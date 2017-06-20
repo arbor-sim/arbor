@@ -3,9 +3,13 @@ set(MODCC_TEST_SOURCES
     test_lexer.cpp
     test_kinetic_rewriter.cpp
     test_module.cpp
+    test_msparse.cpp
     test_optimization.cpp
     test_parser.cpp
     #test_printers.cpp
+    test_removelocals.cpp
+    test_symdiff.cpp
+    test_symge.cpp
     test_visitors.cpp
 
     # unit test driver
@@ -13,6 +17,9 @@ set(MODCC_TEST_SOURCES
 
     # utility
     expr_expand.cpp
+
+    test_simd_backend.cpp
+    test.cpp
 )
 
 add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")

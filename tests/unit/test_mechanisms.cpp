@@ -5,15 +5,19 @@
 #include "mech_proto/exp2syn.hpp"
 #include "mech_proto/hh.hpp"
 #include "mech_proto/pas.hpp"
+#include "mech_proto/test_kin1.hpp"
+#include "mech_proto/test_kinlva.hpp"
 
 // modcc generated mechanisms
 #include "mechanisms/multicore/expsyn.hpp"
 #include "mechanisms/multicore/exp2syn.hpp"
 #include "mechanisms/multicore/hh.hpp"
 #include "mechanisms/multicore/pas.hpp"
+#include "mechanisms/multicore/test_kin1.hpp"
+#include "mechanisms/multicore/test_kinlva.hpp"
 
 #include <initializer_list>
-#include <backends/fvm_multicore.hpp>
+#include <backends/multicore/fvm.hpp>
 #include <ion.hpp>
 #include <matrix.hpp>
 #include <memory/wrappers.hpp>
@@ -182,7 +186,7 @@ using mechanism_types = ::testing::Types<
     mechanism_info<
         nest::mc::mechanisms::hh::mechanism_hh<nest::mc::multicore::backend>,
         nest::mc::mechanisms::hh_proto::mechanism_hh_proto<nest::mc::multicore::backend>
-   >,
+    >,
     mechanism_info<
         nest::mc::mechanisms::pas::mechanism_pas<nest::mc::multicore::backend>,
         nest::mc::mechanisms::pas_proto::mechanism_pas_proto<nest::mc::multicore::backend>
@@ -196,6 +200,14 @@ using mechanism_types = ::testing::Types<
         nest::mc::mechanisms::exp2syn::mechanism_exp2syn<nest::mc::multicore::backend>,
         nest::mc::mechanisms::exp2syn_proto::mechanism_exp2syn_proto<nest::mc::multicore::backend>,
         true
+    >,
+    mechanism_info<
+        nest::mc::mechanisms::test_kin1::mechanism_test_kin1<nest::mc::multicore::backend>,
+        nest::mc::mechanisms::test_kin1_proto::mechanism_test_kin1_proto<nest::mc::multicore::backend>
+    >,
+    mechanism_info<
+        nest::mc::mechanisms::test_kinlva::mechanism_test_kinlva<nest::mc::multicore::backend>,
+        nest::mc::mechanisms::test_kinlva_proto::mechanism_test_kinlva_proto<nest::mc::multicore::backend>
     >
 >;
 

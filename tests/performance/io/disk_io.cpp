@@ -12,14 +12,11 @@
 #include <fvm_multicell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <profiling/profiler.hpp>
+#include <spike.hpp>
 
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
-using lowered_cell = fvm::fvm_multicell<multicore::backend>;
-using cell_group_type = cell_group<lowered_cell>;
-using time_type = typename cell_group_type::time_type;
-using spike_type = io::exporter_spike_file<time_type, global_policy>::spike_type;
 using timer = util::timer_type;
 
 int main(int argc, char** argv) {
@@ -67,7 +64,7 @@ int main(int argc, char** argv) {
     }
 
     // Create the sut
-    io::exporter_spike_file<time_type, global_policy> exporter(
+    io::exporter_spike_file<global_policy> exporter(
          "spikes", "./", "gdf", true);
 
     // We need the nr of ranks to calculate the nr of spikes to produce per
@@ -78,7 +75,7 @@ int main(int argc, char** argv) {
     auto spikes_per_rank = nr_spikes / nr_ranks;
 
     // Create a set of spikes
-    std::vector<spike_type> spikes;
+    std::vector<spike> spikes;
 
     // *********************************************************************
     // To have a  somewhat realworld data set we calculate from the nr of spikes

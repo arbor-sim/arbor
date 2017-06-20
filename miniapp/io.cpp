@@ -104,50 +104,20 @@ static void update_option(util::optional<T>& opt, const nlohmann::json& j, const
             opt = util::nothing;
         }
         else {
-            opt = value;
+            opt = value.get<T>();
         }
     }
 }
 
 // Read options from (optional) json file and command line arguments.
 cl_options read_options(int argc, char** argv, bool allow_write) {
-
-    // Default options:
-    const cl_options defopts{
-        1000,       // number of cells
-        500,        // synapses_per_cell
-        "expsyn",   // synapse type
-        100,        // compartments_per_segment
-        100.,       // tfinal
-        0.025,      // dt
-        false,      // all_to_all
-        false,      // ring
-        1,          // group_size
-        false,      // probe_soma_only
-        0.0,        // probe_ratio
-        "trace_",   // trace_prefix
-        util::nothing,  // trace_max_gid
-
-        // spike_output_parameters:
-        false,      // spike output
-        false,      // single_file_per_simulation
-        true,       // Overwrite outputfile if exists
-        "./",       // output path
-        "spikes",   // file name
-        "gdf",      // file extension
-
-        // dry run parameters:
-        1,          // default dry run size
-
-        // Turn on/off profiling output for all ranks
-        false
-    };
-
     cl_options options;
     std::string save_file = "";
 
     // Parse command line arguments.
     try {
+        cl_options defopts;
+
         CustomCmdLine cmd("nest mc miniapp harness", "0.1");
 
         TCLAP::ValueArg<std::string> ifile_arg(
@@ -176,6 +146,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         TCLAP::ValueArg<double> dt_arg(
             "d", "dt", "set simulation time step to <time> ms",
             false, defopts.dt, "time", cmd);
+        TCLAP::ValueArg<double> bin_dt_arg(
+            "", "bin-dt", "set event binning interval to <time> ms",
+            false, defopts.bin_dt, "time", cmd);
+        TCLAP::SwitchArg bin_regular_arg(
+            "","bin-regular","use 'regular' binning policy instead of 'following'", cmd, false);
         TCLAP::SwitchArg all_to_all_arg(
             "m","alltoall","all to all network", cmd, false);
         TCLAP::SwitchArg ring_arg(
@@ -194,20 +169,29 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         TCLAP::ValueArg<util::optional<unsigned>> trace_max_gid_arg(
             "T", "trace-max-gid", "only trace probes on cells up to and including <gid>",
             false, defopts.trace_max_gid, "gid", cmd);
+        TCLAP::ValueArg<util::optional<std::string>> morphologies_arg(
+            "M", "morphologies", "load morphologies from SWC files matching <glob>",
+            false, defopts.morphologies, "glob", cmd);
+        TCLAP::SwitchArg morph_rr_arg(
+             "", "morph-rr", "Serial rather than random morphology selection from pool", cmd, false);
+        TCLAP::SwitchArg report_compartments_arg(
+             "", "report-compartments", "Count compartments in cells before simulation", cmd, false);
         TCLAP::SwitchArg spike_output_arg(
             "f","spike-file-output","save spikes to file", cmd, false);
-
         TCLAP::ValueArg<unsigned> dry_run_ranks_arg(
             "D","dry-run-ranks","number of ranks in dry run mode",
             false, defopts.dry_run_ranks, "positive integer", cmd);
-
         TCLAP::SwitchArg profile_only_zero_arg(
              "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
+        TCLAP::SwitchArg verbose_arg(
+             "v", "verbose", "Present more verbose information to stdout", cmd, false);
 
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
 
-        options = defopts;
+        // Handle verbosity separately from other options: it is not considered part
+        // of the saved option state.
+        options.verbose = verbose_arg.getValue();
 
         std::string ifile_name = ifile_arg.getValue();
         if (ifile_name != "") {
@@ -224,6 +208,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                     update_option(options.syn_type, fopts, "syn_type");
                     update_option(options.compartments_per_segment, fopts, "compartments");
                     update_option(options.dt, fopts, "dt");
+                    update_option(options.bin_dt, fopts, "bin_dt");
+                    update_option(options.bin_regular, fopts, "bin_regular");
                     update_option(options.tfinal, fopts, "tfinal");
                     update_option(options.all_to_all, fopts, "all_to_all");
                     update_option(options.ring, fopts, "ring");
@@ -232,6 +218,9 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                     update_option(options.probe_soma_only, fopts, "probe_soma_only");
                     update_option(options.trace_prefix, fopts, "trace_prefix");
                     update_option(options.trace_max_gid, fopts, "trace_max_gid");
+                    update_option(options.morphologies, fopts, "morphologies");
+                    update_option(options.morph_rr, fopts, "morph_rr");
+                    update_option(options.report_compartments, fopts, "report_compartments");
 
                     // Parameters for spike output
                     update_option(options.spike_file_output, fopts, "spike_file_output");
@@ -264,6 +253,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.compartments_per_segment, ncompartments_arg);
         update_option(options.tfinal, tfinal_arg);
         update_option(options.dt, dt_arg);
+        update_option(options.bin_dt, bin_dt_arg);
+        update_option(options.bin_regular, bin_regular_arg);
         update_option(options.all_to_all, all_to_all_arg);
         update_option(options.ring, ring_arg);
         update_option(options.group_size, group_size_arg);
@@ -271,6 +262,9 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.probe_soma_only, probe_soma_only_arg);
         update_option(options.trace_prefix, trace_prefix_arg);
         update_option(options.trace_max_gid, trace_max_gid_arg);
+        update_option(options.morphologies, morphologies_arg);
+        update_option(options.morph_rr, morph_rr_arg);
+        update_option(options.report_compartments, report_compartments_arg);
         update_option(options.spike_file_output, spike_output_arg);
         update_option(options.profile_only_zero, profile_only_zero_arg);
         update_option(options.dry_run_ranks, dry_run_ranks_arg);
@@ -301,6 +295,8 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 fopts["syn_type"] = options.syn_type;
                 fopts["compartments"] = options.compartments_per_segment;
                 fopts["dt"] = options.dt;
+                fopts["bin_dt"] = options.bin_dt;
+                fopts["bin_regular"] = options.bin_regular;
                 fopts["tfinal"] = options.tfinal;
                 fopts["all_to_all"] = options.all_to_all;
                 fopts["ring"] = options.ring;
@@ -314,6 +310,14 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 else {
                     fopts["trace_max_gid"] = nullptr;
                 }
+                if (options.morphologies) {
+                    fopts["morphologies"] = options.morphologies.get();
+                }
+                else {
+                    fopts["morphologies"] = nullptr;
+                }
+                fopts["morph_rr"] = options.morph_rr;
+                fopts["report_compartments"] = options.report_compartments;
                 fid << std::setw(3) << fopts << "\n";
 
             }
@@ -326,6 +330,12 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             throw usage_error("unable to write to model parameter file "+save_file);
         }
     }
+
+    // If verbose output requested, emit option summary.
+    if (options.verbose) {
+        std::cout << options << "\n";
+    }
+
     return options;
 }
 
@@ -336,6 +346,9 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  synapses/cell        : " << options.synapses_per_cell << "\n";
     o << "  simulation time      : " << options.tfinal << "\n";
     o << "  dt                   : " << options.dt << "\n";
+    o << "  binning dt           : " << options.bin_dt << "\n";
+    o << "  binning policy       : " <<
+        (options.bin_dt==0? "none": options.bin_regular? "regular": "following") << "\n";
     o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
     o << "  ring network         : " << (options.ring ? "yes" : "no") << "\n";
     o << "  group size           : " << options.group_size << "\n";
@@ -347,6 +360,13 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
        o << *options.trace_max_gid;
     }
     o << "\n";
+    o << "  morphologies         : ";
+    if (options.morphologies) {
+       o << *options.morphologies;
+    }
+    o << "\n";
+    o << "  morphology r-r       : " << (options.morph_rr ? "yes" : "no") << "\n";
+    o << "  report compartments  : " << (options.report_compartments ? "yes" : "no") << "\n";
 
     return o;
 }

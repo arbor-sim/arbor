@@ -7,6 +7,7 @@
 #include <common_types.hpp>
 #include <compartment.hpp>
 #include <math.hpp>
+#include <morphology.hpp>
 #include <parameter_list.hpp>
 #include <point.hpp>
 #include <util/make_unique.hpp>
@@ -19,13 +20,6 @@ template <typename T,
 struct segment_properties {
     T rL = 180.0;   // resistivity [Ohm.cm]
     T cm = 0.01;    // capacitance [F/m^2] : 10 nF/mm^2 = 0.01 F/m^2
-};
-
-enum class segmentKind {
-    soma,
-    dendrite,
-    axon,
-    none
 };
 
 // forward declarations of segment specializations
@@ -42,23 +36,23 @@ public:
     // (Yet more motivation for a separate morphology description class!)
     virtual std::unique_ptr<segment> clone() const = 0;
 
-    segmentKind kind() const {
+    section_kind kind() const {
         return kind_;
     }
 
     bool is_soma() const
     {
-        return kind_==segmentKind::soma;
+        return kind_==section_kind::soma;
     }
 
     bool is_dendrite() const
     {
-        return kind_==segmentKind::dendrite;
+        return kind_==section_kind::dendrite;
     }
 
     bool is_axon() const
     {
-        return kind_==segmentKind::axon;
+        return kind_==section_kind::axon;
     }
 
     virtual size_type num_compartments() const = 0;
@@ -152,7 +146,7 @@ public:
     }
 
 protected:
-    segmentKind kind_;
+    section_kind kind_;
     std::vector<parameter_list> mechanisms_;
 };
 
@@ -165,7 +159,7 @@ public:
 
     placeholder_segment()
     {
-        kind_ = segmentKind::none;
+        kind_ = section_kind::none;
     }
 
     std::unique_ptr<segment> clone() const override {
@@ -209,7 +203,7 @@ public:
     soma_segment(value_type r):
         radius_{r}
     {
-        kind_ = segmentKind::soma;
+        kind_ = section_kind::soma;
         mechanisms_.push_back(membrane_parameters());
     }
 
@@ -281,12 +275,12 @@ public:
 
     // constructors for a cable with no location information
     cable_segment(
-        segmentKind k,
+        section_kind k,
         std::vector<value_type> r,
         std::vector<value_type> lens
     ) {
         kind_ = k;
-        assert(k==segmentKind::dendrite || k==segmentKind::axon);
+        assert(k==section_kind::dendrite || k==section_kind::axon);
 
         radii_   = std::move(r);
         lengths_ = std::move(lens);
@@ -296,7 +290,7 @@ public:
     }
 
     cable_segment(
-        segmentKind k,
+        section_kind k,
         value_type r1,
         value_type r2,
         value_type len
@@ -307,12 +301,12 @@ public:
     // constructor that lets the user describe the cable as a
     // seriew of radii and locations
     cable_segment(
-        segmentKind k,
+        section_kind k,
         std::vector<value_type> r,
         std::vector<point_type> p
     ) {
         kind_ = k;
-        assert(k==segmentKind::dendrite || k==segmentKind::axon);
+        assert(k==section_kind::dendrite || k==section_kind::axon);
 
         radii_     = std::move(r);
         locations_ = std::move(p);
@@ -326,7 +320,7 @@ public:
     // of just the end points of the cable
     //  i.e.    describing the cable as a single frustrum
     cable_segment(
-        segmentKind k,
+        section_kind k,
         value_type r1,
         value_type r2,
         point_type const& p1,
@@ -463,7 +457,7 @@ using segment_ptr = std::unique_ptr<segment>;
 
 /// Helper for constructing segments in a segment_ptr unique pointer wrapper.
 /// Forwards the supplied arguments to construct a segment of type SegmentType.
-/// e.g. auto my_cable = make_segment<cable>(segmentKind::dendrite, ... );
+/// e.g. auto my_cable = make_segment<cable>(section_kind::dendrite, ... );
 template <typename SegmentType, typename... Args>
 segment_ptr make_segment(Args&&... args) {
     return segment_ptr(new SegmentType(std::forward<Args>(args)...));
@@ -481,6 +475,18 @@ DivCompClass div_compartments(const cable_segment* cable) {
     return DivCompClass(cable->num_compartments(), cable->radii(), cable->lengths());
 }
 
+struct segment_location {
+    segment_location(cell_lid_type s, double l):
+        segment(s), position(l)
+    {
+        EXPECTS(position>=0. && position<=1.);
+    }
+    friend bool operator==(segment_location l, segment_location r) {
+        return l.segment==r.segment && l.position==r.position;
+    }
+    cell_lid_type segment;
+    double position;
+};
+
 } // namespace mc
 } // namespace nest
-

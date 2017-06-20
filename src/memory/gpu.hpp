@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef NMC_HAVE_CUDA
+#ifdef NMC_HAVE_GPU
 
 #include <string>
 #include <cstdint>
@@ -24,7 +24,7 @@ void fill32(uint32_t* v, uint32_t value, std::size_t n);
 void fill64(uint64_t* v, uint64_t value, std::size_t n);
 
 //
-// helpers for memory where at least on of the target or source is on the gpu
+// helpers for memory where at least one of the target or source is on the gpu
 //
 template <typename T>
 void memcpy_d2h(const T* from, T* to, std::size_t size) {

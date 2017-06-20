@@ -97,7 +97,7 @@ private:
         return module_->kind() == moduleKind::point;
     }
 
-    void print_APIMethod_body(APIMethod* e);
+    void print_APIMethod_body(ProcedureExpression* e);
     void print_procedure_prototype(ProcedureExpression *e);
     std::string index_string(Symbol *e);
 

@@ -7,6 +7,8 @@
 
 #include <common_types.hpp>
 #include <cell_tree.hpp>
+#include <morphology.hpp>
+#include <probes.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util/debug.hpp>
@@ -24,28 +26,10 @@ struct compartment_model {
     std::vector<cell_tree::int_type> segment_index;
 };
 
-struct segment_location {
-    segment_location(cell_lid_type s, double l)
-    : segment(s), position(l)
-    {
-        EXPECTS(position>=0. && position<=1.);
-    }
-    friend bool operator==(segment_location l, segment_location r) {
-        return l.segment==r.segment && l.position==r.position;
-    }
-    cell_lid_type segment;
-    double position;
-};
-
 int find_compartment_index(
     segment_location const& location,
     compartment_model const& graph
 );
-
-enum class probeKind {
-    membrane_voltage,
-    membrane_current
-};
 
 struct probe_spec {
     segment_location location;
@@ -97,6 +81,11 @@ public:
              segments_.push_back(s->clone());
          }
      }
+
+    /// Return the kind of cell, used for grouping into cell_groups
+    cell_kind get_cell_kind() const  {
+        return cell_kind::cable1d_neuron;
+    }
 
     /// add a soma to the cell
     /// radius must be specified
@@ -201,7 +190,9 @@ public:
     }
 
     const std::vector<probe_spec>&
-    probes() const { return probes_; }
+    probes() const {
+        return probes_;
+    }
 
 private:
     // storage for connections
@@ -244,6 +235,12 @@ cable_segment* cell::add_cable(cell::index_type parent, Args&&... args)
 
     return segments_.back()->as_cable();
 }
+
+// Create a cell from a morphology specification.
+// If compartments_from_discretization is true, set number of compartments in
+// each segment to be the number of piecewise linear sections in the corresponding
+// section of the morphologu.
+cell make_cell(const morphology&, bool compartments_from_discretization=false);
 
 } // namespace mc
 } // namespace nest

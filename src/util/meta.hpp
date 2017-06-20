@@ -187,10 +187,6 @@ struct common_random_access_iterator<
 template <typename I, typename E>
 using common_random_access_iterator_t = typename common_random_access_iterator<I, E>::type;
 
-//
-// TODO : now that we are using gcc 5+, replace these old skool SFINAE thingys
-//
-
 namespace impl {
     /// Helper for SFINAE tests that can "sink" any type
     template<typename T>
@@ -210,7 +206,7 @@ struct is_sequence:
     std::false_type {};
 
 template<typename T>
-struct is_sequence<T, impl::sink<decltype(std::declval<T>())>>:
+struct is_sequence<T, impl::sink<decltype(cbegin(std::declval<T>()))>>:
     std::true_type {};
 
 template <typename T>

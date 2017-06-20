@@ -52,6 +52,13 @@ struct serial_global_policy {
         return value;
     }
 
+    template <typename T>
+    static std::vector<T> gather(T value, int) {
+        return {std::move(value)};
+    }
+
+    static void barrier() {}
+
     static void setup(int& argc, char**& argv) {}
     static void teardown() {}
 

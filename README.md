@@ -119,7 +119,7 @@ cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release
 make -j8
 
 # set path and test that you can see modcc
-export PATH=`pwd`/bin:$PATH
+export PATH=`pwd`/modcc:$PATH
 which modcc
 ```
 
@@ -143,7 +143,7 @@ cd build_knl
 # run cmake with all the magic flags
 export CC=`which icc`
 export CXX=`which icpc`
-cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release -DNMC_THREADING_MODEL=tbb -DNMC_WITH_PROFILING=ON -DNMC_VECTORIZE_TARGET=KNL -DNMC_USE_OPTIMIZED_KERNELS=ON
+cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release -DNMC_THREADING_MODEL=tbb -DNMC_WITH_PROFILING=ON -DNMC_VECTORIZE_TARGET=KNL
 make -j
 ```
 
@@ -154,8 +154,8 @@ The flags passed into cmake are described:
   - `-DNMC_VECTORIZE_TARGET=KNL` : generate AVX512 instructions, alternatively you can use:
     - `AVX2` for Haswell & Broadwell
     - `AVX` for Sandy Bridge and Ivy Bridge
-  - `-DNMC_USE_OPTIMIZED_KERNELS=ON` : tell the source to source compiler to generate optimized kernels that use Intel extensions
-    - without these vectorized code will not be generated.
+
+Currently, the Intel compiler is required when you specify a vectorize target.
 
 #### run tests
 

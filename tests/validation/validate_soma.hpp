@@ -13,13 +13,13 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-template <typename LoweredCell>
-void validate_soma() {
+void validate_soma(nest::mc::backend_policy backend) {
     using namespace nest::mc;
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
-    model<LoweredCell> model(singleton_recipe{c});
+    domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+    model m(singleton_recipe{c}, decomp);
 
     float sample_dt = .025f;
     sampler_info samplers[] = {{"soma.mid", {0u, 0u}, simple_sampler(sample_dt)}};
@@ -29,7 +29,7 @@ void validate_soma() {
         {"model", "soma"},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend", LoweredCell::backend::name()}
+        {"backend_policy", to_string(backend)}
     };
 
     convergence_test_runner<float> runner("dt", samplers, meta);
@@ -37,16 +37,16 @@ void validate_soma() {
 
     float t_end = 100.f;
 
-    // use dt = 0.05, 0.025, 0.01, 0.005, 0.0025,  ...
+    // use dt = 0.05, 0.02, 0.01, 0.005, 0.002,  ...
     double max_oo_dt = std::round(1.0/g_trace_io.min_dt());
     for (double base = 100; ; base *= 10) {
-        for (double multiple: {5., 2.5, 1.}) {
+        for (double multiple: {5., 2., 1.}) {
             double oo_dt = base/multiple;
             if (oo_dt>max_oo_dt) goto end;
 
-            model.reset();
+            m.reset();
             float dt = float(1./oo_dt);
-            runner.run(model, dt, t_end, dt, {});
+            runner.run(m, dt, t_end, dt, {});
         }
     }
 end:

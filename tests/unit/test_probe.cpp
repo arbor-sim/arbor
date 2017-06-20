@@ -1,5 +1,6 @@
 #include "../gtest.h"
 
+#include <backends/multicore/fvm.hpp>
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
@@ -43,7 +44,7 @@ TEST(probe, fvm_multicell)
     // ball-and-stick model morphology
 
     bs.add_soma(12.6157/2.0);
-    bs.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 200);
+    bs.add_cable(0, section_kind::dendrite, 0.5, 0.5, 200);
     bs.soma()->set_compartments(5);
 
     segment_location loc0{0, 0};
@@ -59,11 +60,10 @@ TEST(probe, fvm_multicell)
 
     using fvm_multicell = fvm::fvm_multicell<nest::mc::multicore::backend>;
     std::vector<fvm_multicell::target_handle> targets;
-    std::vector<fvm_multicell::detector_handle> detectors;
     std::vector<fvm_multicell::probe_handle> probes{3};
 
     fvm_multicell lcell;
-    lcell.initialize(util::singleton_view(bs), detectors, targets, probes);
+    lcell.initialize(util::singleton_view(bs), targets, probes);
 
     // Know from implementation that probe_handle.second
     // is a compartment index: expect probe values and
@@ -74,7 +74,8 @@ TEST(probe, fvm_multicell)
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));
     EXPECT_EQ(lcell.current()[probes[2].second], lcell.probe(probes[2]));
 
-    lcell.advance(0.05);
+    lcell.setup_integration(0.05, 0.05);
+    lcell.step_integration();
 
     EXPECT_EQ(lcell.voltage()[probes[0].second], lcell.probe(probes[0]));
     EXPECT_EQ(lcell.voltage()[probes[1].second], lcell.probe(probes[1]));

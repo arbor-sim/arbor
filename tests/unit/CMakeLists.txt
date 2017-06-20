@@ -1,7 +1,7 @@
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
 # Build prototype mechanisms for testing in test_mechanisms.
-set(proto_mechanisms pas hh expsyn exp2syn)
+set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva)
 set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
 file(MAKE_DIRECTORY "${mech_proto_dir}")
 
@@ -17,8 +17,11 @@ build_modules(
 # Unit test sources
 
 set(TEST_CUDA_SOURCES
-    test_cell_group.cu
+    test_atomics.cu
+    test_mc_cell_group.cu
+    test_gpu_stack.cu
     test_matrix.cu
+    test_spikes.cu
     test_vector.cu
 
     # unit test driver
@@ -28,16 +31,20 @@ set(TEST_CUDA_SOURCES
 set(TEST_SOURCES
     # unit tests
     test_algorithms.cpp
+    test_any.cpp
+    test_backend.cpp
     test_double_buffer.cpp
     test_cell.cpp
     test_compartments.cpp
     test_counter.cpp
     test_cycle.cpp
+    test_domain_decomposition.cpp
     test_either.cpp
     test_event_queue.cpp
+    test_event_binner.cpp
     test_filter.cpp
     test_fvm_multi.cpp
-    test_cell_group.cpp
+    test_mc_cell_group.cpp
     test_lexcmp.cpp
     test_mask_stream.cpp
     test_math.cpp
@@ -56,22 +63,24 @@ set(TEST_SOURCES
     test_spikes.cpp
     test_spike_store.cpp
     test_stimulus.cpp
+    test_strprintf.cpp
     test_swcio.cpp
     test_synapses.cpp
     test_tree.cpp
     test_transform.cpp
     test_uninitialized.cpp
+    test_unique_any.cpp
     test_vector.cpp
 
     # unit test driver
     test.cpp
 )
 
-add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
 set(TARGETS test.exe)
 
 add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
 if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
   add_dependencies(test.exe build_test_mods)
@@ -82,11 +91,11 @@ target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 if(NMC_WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
-    target_link_libraries(test_cuda.exe LINK_PUBLIC gpu)
 endif()
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC gtest nestmc)
+    target_link_libraries(${target} LINK_PUBLIC gtest)
+    target_link_libraries(${target} LINK_PUBLIC ${NESTMC_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(NMC_WITH_MPI)

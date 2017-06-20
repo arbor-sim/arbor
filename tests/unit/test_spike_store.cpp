@@ -1,11 +1,14 @@
 #include "../gtest.h"
 
+#include <spike.hpp>
 #include <threading/threading.hpp>
 #include <thread_private_spike_store.hpp>
 
+using nest::mc::spike;
+
 TEST(spike_store, insert)
 {
-    using store_type = nest::mc::thread_private_spike_store<float>;
+    using store_type = nest::mc::thread_private_spike_store;
 
     store_type store;
 
@@ -49,7 +52,7 @@ TEST(spike_store, insert)
 
 TEST(spike_store, clear)
 {
-    using store_type = nest::mc::thread_private_spike_store<float>;
+    using store_type = nest::mc::thread_private_spike_store;
 
     store_type store;
 
@@ -64,11 +67,11 @@ TEST(spike_store, clear)
 
 TEST(spike_store, gather)
 {
-    using store_type = nest::mc::thread_private_spike_store<float>;
+    using store_type = nest::mc::thread_private_spike_store;
 
     store_type store;
 
-    auto spikes = std::vector<store_type::spike_type>
+    std::vector<spike> spikes =
         { {{0,0}, 0.0f}, {{1,2}, 0.5f}, {{2,4}, 1.0f} };
 
     store.insert(spikes);

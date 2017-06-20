@@ -1,10 +1,13 @@
+#include <cstddef>
 #include <fstream>
 
 #include "../gtest.h"
 
-#include <common_types.hpp>
+#include <backends/multicore/fvm.hpp>
 #include <cell.hpp>
+#include <common_types.hpp>
 #include <fvm_multicell.hpp>
+#include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 
 #include "../test_util.hpp"
@@ -20,11 +23,10 @@ TEST(fvm_multi, cable)
     nest::mc::cell cell=make_cell_ball_and_3stick();
 
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
 
     fvm_cell fvcell;
-    fvcell.initialize(util::singleton_view(cell), detectors, targets, probes);
+    fvcell.initialize(util::singleton_view(cell), targets, probes);
 
     auto& J = fvcell.jacobian();
 
@@ -64,11 +66,10 @@ TEST(fvm_multi, init)
     cell.segment(1)->set_compartments(10);
 
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
 
     fvm_cell fvcell;
-    fvcell.initialize(util::singleton_view(cell), detectors, targets, probes);
+    fvcell.initialize(util::singleton_view(cell), targets, probes);
 
     // This is naughty: removing const from the matrix reference, but is needed
     // to test the build_matrix() method below (which is only accessable
@@ -79,26 +80,29 @@ TEST(fvm_multi, init)
 
     // test that the matrix is initialized with sensible values
     //J.build_matrix(0.01);
-    fvcell.advance(0.01);
-    auto test_nan = [](decltype(J.u()) v) {
+    fvcell.setup_integration(0.01, 0.01);
+    fvcell.step_integration();
+
+    auto& mat = J.state_;
+    auto test_nan = [](decltype(mat.u) v) {
         for(auto val : v) if(val != val) return false;
         return true;
     };
-    EXPECT_TRUE(test_nan(J.u()(1, J.size())));
-    EXPECT_TRUE(test_nan(J.d()));
-    EXPECT_TRUE(test_nan(J.rhs()));
+    EXPECT_TRUE(test_nan(mat.u(1, J.size())));
+    EXPECT_TRUE(test_nan(mat.d));
+    EXPECT_TRUE(test_nan(J.solution()));
 
     // test matrix diagonals for sign
-    auto is_pos = [](decltype(J.u()) v) {
+    auto is_pos = [](decltype(mat.u) v) {
         for(auto val : v) if(val<=0.) return false;
         return true;
     };
-    auto is_neg = [](decltype(J.u()) v) {
+    auto is_neg = [](decltype(mat.u) v) {
         for(auto val : v) if(val>=0.) return false;
         return true;
     };
-    EXPECT_TRUE(is_neg(J.u()(1, J.size())));
-    EXPECT_TRUE(is_pos(J.d()));
+    EXPECT_TRUE(is_neg(mat.u(1, J.size())));
+    EXPECT_TRUE(is_pos(mat.d));
 
 }
 
@@ -126,11 +130,10 @@ TEST(fvm_multi, multi_init)
     cells[1].add_detector({0, 0}, 3.3);
 
     std::vector<fvm_cell::target_handle> targets(4);
-    std::vector<fvm_cell::detector_handle> detectors(1);
     std::vector<fvm_cell::probe_handle> probes;
 
     fvm_cell fvcell;
-    fvcell.initialize(cells, detectors, targets, probes);
+    fvcell.initialize(cells, targets, probes);
 
     auto& J = fvcell.jacobian();
     EXPECT_EQ(J.size(), 5u+13u);
@@ -188,11 +191,10 @@ TEST(fvm_multi, stimulus)
     // as during the stimulus windows.
 
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
 
     fvm_cell fvcell;
-    fvcell.initialize(singleton_view(cell), detectors, targets, probes);
+    fvcell.initialize(singleton_view(cell), targets, probes);
 
     auto ref = fvcell.find_mechanism("stimulus");
     ASSERT_TRUE(ref) << "no stimuli retrieved from lowered fvm cell: expected 2";
@@ -257,9 +259,9 @@ TEST(fvm_multi, mechanism_indexes)
     soma->add_mechanism(hh_parameters());
 
     // add dendrite of length 200 um and diameter 1 um with passive channel
-    c.add_cable(0, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, segmentKind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
 
     auto& segs = c.segments();
     segs[1]->add_mechanism(pas_parameters());
@@ -275,11 +277,10 @@ TEST(fvm_multi, mechanism_indexes)
 
     // generate the lowered fvm cell
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::detector_handle> detectors;
     std::vector<fvm_cell::probe_handle> probes;
 
     fvm_cell fvcell;
-    fvcell.initialize(util::singleton_view(c), detectors, targets, probes);
+    fvcell.initialize(util::singleton_view(c), targets, probes);
 
     // make vectors with the expected CV indexes for each mechanism
     std::vector<unsigned> hh_index  = {0u, 4u, 5u, 6u, 7u, 8u};
@@ -317,3 +318,155 @@ TEST(fvm_multi, mechanism_indexes)
         EXPECT_EQ(0u, fvcell.ion_ca().node_index().size());
     }
 }
+
+struct handle_info {
+    unsigned cell;
+    std::string mech;
+    unsigned cv;
+};
+
+// test handle <-> mechanism/index correspondence
+// on a two-cell ball-and-stick system.
+
+void run_target_handle_test(std::vector<handle_info> all_handles) {
+    using namespace nest::mc;
+
+    nest::mc::cell cells[] = {
+        make_cell_ball_and_stick(),
+        make_cell_ball_and_stick()
+    };
+
+    EXPECT_EQ(2u, cells[0].num_segments());
+    EXPECT_EQ(4u, cells[0].segment(1)->num_compartments());
+    EXPECT_EQ(5u, cells[0].num_compartments());
+
+    EXPECT_EQ(2u, cells[1].num_segments());
+    EXPECT_EQ(4u, cells[1].segment(1)->num_compartments());
+    EXPECT_EQ(5u, cells[1].num_compartments());
+
+    std::vector<std::vector<handle_info>> handles(2);
+
+    for (auto x: all_handles) {
+        unsigned seg_id;
+        double pos;
+
+        ASSERT_TRUE(x.cell==0 || x.cell==1);
+        ASSERT_TRUE(x.cv<5);
+        ASSERT_TRUE(x.mech=="expsyn" || x.mech=="exp2syn");
+
+        if (x.cv==0) {
+            // place on soma
+            seg_id = 0;
+            pos = 0;
+        }
+        else {
+            // place on dendrite
+            seg_id = 1;
+            pos = x.cv/4.0;
+        }
+
+        if (x.cell==1) {
+            x.cv += 5; // offset for cell 1
+        }
+
+        cells[x.cell].add_synapse({seg_id, pos}, parameter_list(x.mech));
+        handles[x.cell].push_back(x);
+    }
+
+    auto n = all_handles.size();
+    std::vector<fvm_cell::target_handle> targets(n);
+    std::vector<fvm_cell::probe_handle> probes;
+
+    fvm_cell fvcell;
+    fvcell.initialize(cells, targets, probes);
+
+    ASSERT_EQ(n, util::size(targets));
+    unsigned i = 0;
+    for (unsigned ci = 0; ci<=1; ++ci) {
+        for (auto h: handles[ci]) {
+            // targets are represented by a pair of mechanism index and instance index
+            const auto& mech = fvcell.mechanisms()[targets[i].first];
+            const auto& cvidx = mech->node_index();
+            EXPECT_EQ(h.mech, mech->name());
+            EXPECT_EQ(h.cv, cvidx[targets[i].second]);
+            ++i;
+        }
+    }
+}
+
+TEST(fvm_multi, target_handles_onecell)
+{
+    {
+        SCOPED_TRACE("handles: exp2syn only on cell 0");
+        std::vector<handle_info> handles0 = {
+            {0, "exp2syn",  4},
+            {0, "exp2syn",  4},
+            {0, "exp2syn",  3},
+            {0, "exp2syn",  2},
+            {0, "exp2syn",  0},
+            {0, "exp2syn",  1},
+            {0, "exp2syn",  2}
+        };
+        run_target_handle_test(handles0);
+    }
+
+    {
+        SCOPED_TRACE("handles: expsyn only on cell 1");
+        std::vector<handle_info> handles1 = {
+            {1, "expsyn",  4},
+            {1, "expsyn",  4},
+            {1, "expsyn",  3},
+            {1, "expsyn",  2},
+            {1, "expsyn",  0},
+            {1, "expsyn",  1},
+            {1, "expsyn",  2}
+        };
+        run_target_handle_test(handles1);
+    }
+}
+
+TEST(fvm_multi, target_handles_twocell)
+{
+    SCOPED_TRACE("handles: expsyn only on cells 0 and 1");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  0},
+        {1, "expsyn",  3},
+        {0, "expsyn",  2},
+        {1, "expsyn",  2},
+        {0, "expsyn",  4},
+        {1, "expsyn",  1},
+        {1, "expsyn",  4}
+    };
+    run_target_handle_test(handles);
+}
+
+TEST(fvm_multi, target_handles_mixed_synapse)
+{
+    SCOPED_TRACE("handles: expsyn and exp2syn on cells 0");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  4},
+        {0, "exp2syn", 4},
+        {0, "expsyn",  3},
+        {0, "exp2syn", 2},
+        {0, "exp2syn", 0},
+        {0, "expsyn",  1},
+        {0, "expsyn",  2}
+    };
+    run_target_handle_test(handles);
+}
+
+TEST(fvm_multi, target_handles_general)
+{
+    SCOPED_TRACE("handles: expsyn and exp2syn on cells 0 and 1");
+    std::vector<handle_info> handles = {
+        {0, "expsyn",  4},
+        {0, "exp2syn", 2},
+        {0, "exp2syn", 0},
+        {1, "exp2syn", 4},
+        {1, "expsyn",  3},
+        {1, "expsyn",  1},
+        {1, "expsyn",  2}
+    };
+    run_target_handle_test(handles);
+}
+

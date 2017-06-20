@@ -9,14 +9,16 @@
 ******************************************************************************/
 
 CPrinter::CPrinter(Module &m, bool o)
-:   module_(&m),
-    optimize_(o)
-{
+    : module_(&m),
+      optimize_(o)
+{ }
+
+std::string CPrinter::emit_source() {
     // make a list of vector types, both parameters and assigned
     // and a list of all scalar types
     std::vector<VariableExpression*> scalar_variables;
     std::vector<VariableExpression*> array_variables;
-    for(auto& sym: m.symbols()) {
+    for(auto& sym: module_->symbols()) {
         if(auto var = sym.second->is_variable()) {
             if(var->is_range()) {
                 array_variables.push_back(var);
@@ -29,20 +31,12 @@ CPrinter::CPrinter(Module &m, bool o)
 
     std::string module_name = Options::instance().modulename;
     if (module_name == "") {
-        module_name = m.name();
+        module_name = module_->name();
     }
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    text_.add_line("#pragma once");
-    text_.add_line();
-    text_.add_line("#include <cmath>");
-    text_.add_line("#include <limits>");
-    text_.add_line();
-    text_.add_line("#include <mechanism.hpp>");
-    text_.add_line("#include <algorithms.hpp>");
-    text_.add_line("#include <util/pprintf.hpp>");
-    text_.add_line();
+    emit_headers();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -63,13 +57,12 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line("using view   = typename base::view;");
     text_.add_line("using iview  = typename base::iview;");
     text_.add_line("using const_iview = typename base::const_iview;");
-    text_.add_line("using indexed_view_type= typename base::indexed_view_type;");
     text_.add_line("using ion_type = typename base::ion_type;");
     text_.add_line();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    for(auto& ion: m.neuron_block().ions) {
+    for(auto& ion: module_->neuron_block().ions) {
         auto tname = "Ion" + ion.name;
         text_.add_line("struct " + tname + " {");
         text_.increase_indentation();
@@ -133,7 +126,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
 
     // copy in the weights if this is a density mechanism
-    if (m.kind() == moduleKind::density) {
+    if (module_->kind() == moduleKind::density) {
         text_.add_line("// add the user-supplied weights for converting from current density");
         text_.add_line("// to per-compartment current in nA");
         if(optimize_) {
@@ -175,7 +168,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.increase_indentation();
     text_.add_line("auto s = std::size_t{0};");
     text_.add_line("s += data_.size()*sizeof(value_type);");
-    for(auto& ion: m.neuron_block().ions) {
+    for(auto& ion: module_->neuron_block().ions) {
         text_.add_line("s += ion_" + ion.name + ".memory();");
     }
     text_.add_line("return s;");
@@ -198,7 +191,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line("}");
     text_.add_line();
 
-    std::string kind_str = m.kind() == moduleKind::density
+    std::string kind_str = module_->kind() == moduleKind::density
                             ? "mechanismKind::density"
                             : "mechanismKind::point";
     text_.add_line("mechanismKind kind() const override {");
@@ -209,7 +202,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
 
     // return true/false indicating if cell has dependency on k
-    auto const& ions = m.neuron_block().ions;
+    auto const& ions = module_->neuron_block().ions;
     auto find_ion = [&ions] (ionKind k) {
         return std::find_if(
             ions.begin(), ions.end(),
@@ -326,7 +319,7 @@ CPrinter::CPrinter(Module &m, bool o)
     auto proctest = [] (procedureKind k) {
         return is_in(k, {procedureKind::normal, procedureKind::api, procedureKind::net_receive});
     };
-    for(auto const& var: m.symbols()) {
+    for(auto const& var: module_->symbols()) {
         auto isproc = var.second->kind()==symbolKind::procedure;
         if(isproc )
         {
@@ -343,9 +336,7 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line("array data_;");
     for(auto var: array_variables) {
         if(optimize_) {
-            text_.add_line(
-                "__declspec(align(array::alignment())) value_type *"
-                + var->name() + ";");
+            text_.add_line("value_type *" + var->name() + ";");
         }
         else {
             text_.add_line("view " + var->name() + ";");
@@ -376,8 +367,22 @@ CPrinter::CPrinter(Module &m, bool o)
     text_.add_line();
 
     text_.add_line("}}}} // namespaces");
+    return text_.str();
 }
 
+
+
+void CPrinter::emit_headers() {
+    text_.add_line("#pragma once");
+    text_.add_line();
+    text_.add_line("#include <cmath>");
+    text_.add_line("#include <limits>");
+    text_.add_line();
+    text_.add_line("#include <mechanism.hpp>");
+    text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <util/pprintf.hpp>");
+    text_.add_line();
+}
 
 /******************************************************************************
                               CPrinter
@@ -581,8 +586,7 @@ void CPrinter::visit(APIMethod *e) {
                 auto const& name = var->name();
                 auto const& index_name = var->external_variable()->index_name();
                 text_.add_gutter();
-                if(var->is_read()) text_ << "const ";
-                text_ << "indexed_view_type " + index_name;
+                text_ << "auto " + index_name + " = util::indirect_view";
                 auto channel = var->external_variable()->ion_channel();
                 if(channel==ionKind::none) {
                     text_ << "(" + index_name + "_, node_index_);\n";
@@ -612,12 +616,13 @@ void CPrinter::visit(APIMethod *e) {
     text_.add_line();
 }
 
-void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
-    // there can not be more than 1 instance of a density channel per grid point,
-    // so we can assert that aliasing will not occur.
-    if(optimize_) text_.add_line("#pragma ivdep");
-
-    text_.add_line("for(int i_=0; i_<n_; ++i_) {");
+void CPrinter::emit_api_loop(APIMethod* e,
+                             const std::string& start,
+                             const std::string& end,
+                             const std::string& inc) {
+    text_.add_gutter();
+    text_ << "for (" << start << "; " << end << "; " << inc << ") {";
+    text_.end_line();
     text_.increase_indentation();
 
     // loads from external indexed arrays
@@ -651,8 +656,10 @@ void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
 
     text_.decrease_indentation();
     text_.add_line("}");
+}
 
-    //text_.add_line("STOP_PROFILE");
+void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
+    emit_api_loop(e, "int i_ = 0", "i_ < n_", "++i_");
     decrease_indentation();
 
     return;
@@ -678,6 +685,7 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
             }
         }
     }
+
     aliased_output_ = aliased_variables.size()>0;
 
     // only proceed with optimized output if the ouputs are aliased
@@ -693,11 +701,8 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     text_.add_line("constexpr int BSIZE = 4;");
     text_.add_line("int NB = n_/BSIZE;");
     for(auto out: aliased_variables) {
-        text_.add_line(
-            "__declspec(align(array::alignment())) value_type "
-            + out->name() +  "[BSIZE];");
+        text_.add_line("value_type " + out->name() +  "[BSIZE];");
     }
-    //text_.add_line("START_PROFILE");
 
     text_.add_line("for(int b_=0; b_<NB; ++b_) {");
     text_.increase_indentation();
@@ -705,10 +710,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     text_.add_line("int i_ = BSTART;");
 
 
-    // assert that memory accesses are not aliased because we will
-    // use ghost arrays to ensure that write-back of point processes does
-    // not lead to race conditions
-    text_.add_line("#pragma ivdep");
     text_.add_line("for(int j_=0; j_<BSIZE; ++j_, ++i_) {");
     text_.increase_indentation();
 
@@ -751,7 +752,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     // ------------- block tail loop ------------- //
 
     text_.add_line("int j_ = 0;");
-    text_.add_line("#pragma ivdep");
     text_.add_line("for(int i_=NB*BSIZE; i_<n_; ++j_, ++i_) {");
     text_.increase_indentation();
 
@@ -787,7 +787,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     text_.decrease_indentation();
     text_.add_line("}"); // end block tail loop
 
-    //text_.add_line("STOP_PROFILE");
     decrease_indentation();
 
     aliased_output_ = false;

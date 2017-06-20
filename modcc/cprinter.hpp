@@ -11,25 +11,23 @@ public:
     CPrinter() {}
     CPrinter(Module &m, bool o=false);
 
-    void visit(Expression *e)           override;
-    void visit(UnaryExpression *e)      override;
-    void visit(BinaryExpression *e)     override;
-    void visit(AssignmentExpression *e) override;
-    void visit(PowBinaryExpression *e)  override;
-    void visit(NumberExpression *e)     override;
-    void visit(VariableExpression *e)   override;
-
-    void visit(Symbol *e)               override;
-    void visit(LocalVariable *e)        override;
-    void visit(IndexedVariable *e)      override;
-
-    void visit(IdentifierExpression *e) override;
-    void visit(CallExpression *e)       override;
-    void visit(ProcedureExpression *e)  override;
-    void visit(APIMethod *e)            override;
-    void visit(LocalDeclaration *e)     override;
-    void visit(BlockExpression *e)      override;
-    void visit(IfExpression *e)         override;
+    virtual void visit(Expression *e)           override;
+    virtual void visit(UnaryExpression *e)      override;
+    virtual void visit(BinaryExpression *e)     override;
+    virtual void visit(AssignmentExpression *e) override;
+    virtual void visit(PowBinaryExpression *e)  override;
+    virtual void visit(NumberExpression *e)     override;
+    virtual void visit(VariableExpression *e)   override;
+    virtual void visit(Symbol *e)               override;
+    virtual void visit(LocalVariable *e)        override;
+    virtual void visit(IndexedVariable *e)      override;
+    virtual void visit(IdentifierExpression *e) override;
+    virtual void visit(CallExpression *e)       override;
+    virtual void visit(ProcedureExpression *e)  override;
+    virtual void visit(APIMethod *e)            override;
+    virtual void visit(LocalDeclaration *e)     override;
+    virtual void visit(BlockExpression *e)      override;
+    virtual void visit(IfExpression *e)         override;
 
     std::string text() const {
         return text_.str();
@@ -47,8 +45,18 @@ public:
     void clear_text() {
         text_.clear();
     }
-private:
 
+    virtual ~CPrinter() { }
+
+    virtual std::string emit_source();
+    virtual void emit_headers();
+    virtual void emit_api_loop(APIMethod* e,
+                               const std::string& start,
+                               const std::string& end,
+                               const std::string& inc);
+
+protected:
+    void print_mechanism(Visitor *backend);
     void print_APIMethod_optimized(APIMethod* e);
     void print_APIMethod_unoptimized(APIMethod* e);
 
@@ -114,5 +122,6 @@ private:
     bool is_point_process() {
         return module_->kind() == moduleKind::point;
     }
-};
 
+    std::vector<LocalVariable*> aliased_vars(APIMethod* e);
+};

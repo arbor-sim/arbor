@@ -54,7 +54,7 @@ TEST(cell_type, add_segment)
 
         auto seg =
             make_segment<cable_segment>(
-                segmentKind::dendrite,
+                section_kind::dendrite,
                 cable_radius, cable_radius, cable_length
             );
         c.add_cable(0, std::move(seg));
@@ -75,7 +75,7 @@ TEST(cell_type, add_segment)
 
         c.add_cable(
             0,
-            segmentKind::dendrite, cable_radius, cable_radius, cable_length
+            section_kind::dendrite, cable_radius, cable_radius, cable_length
         );
 
         EXPECT_EQ(c.num_segments(), 2u);
@@ -92,7 +92,7 @@ TEST(cell_type, add_segment)
 
         c.add_cable(
             0,
-            segmentKind::dendrite,
+            section_kind::dendrite,
             std::vector<double>{cable_radius, cable_radius, cable_radius, cable_radius},
             std::vector<double>{cable_length, cable_length, cable_length}
         );
@@ -108,7 +108,7 @@ TEST(cell_type, multiple_cables)
     // generate a cylindrical cable segment of length 1/pi and radius 1
     //      volume = 1
     //      area   = 2
-    auto seg = [](segmentKind k) {
+    auto seg = [](section_kind k) {
         return make_segment<cable_segment>( k, 1.0, 1.0, 1./math::pi<double>() );
     };
 
@@ -132,10 +132,10 @@ TEST(cell_type, multiple_cables)
         c.add_soma(soma_radius, {0,0,1});
 
         // hook the dendrite and axons
-        c.add_cable(0, seg(segmentKind::dendrite));
-        c.add_cable(0, seg(segmentKind::axon));
-        c.add_cable(1, seg(segmentKind::dendrite));
-        c.add_cable(1, seg(segmentKind::dendrite));
+        c.add_cable(0, seg(section_kind::dendrite));
+        c.add_cable(0, seg(section_kind::axon));
+        c.add_cable(1, seg(section_kind::dendrite));
+        c.add_cable(1, seg(section_kind::dendrite));
 
         EXPECT_EQ(c.num_segments(), 5u);
         // each of the 5 segments has volume 1 by design
@@ -173,9 +173,9 @@ TEST(cell_type, clone)
 
     cell c;
     c.add_soma(2.1);
-    c.add_cable(0, segmentKind::dendrite, 0.3, 0.2, 10);
+    c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
     c.segment(1)->set_compartments(3);
-    c.add_cable(1, segmentKind::dendrite, 0.2, 0.15, 20);
+    c.add_cable(1, section_kind::dendrite, 0.2, 0.15, 20);
     c.segment(2)->set_compartments(5);
 
     parameter_list exp_default("expsyn");
@@ -208,7 +208,7 @@ TEST(cell_type, clone)
 
     // check clone is independent
 
-    c.add_cable(2, segmentKind::dendrite, 0.15, 0.1, 20);
+    c.add_cable(2, section_kind::dendrite, 0.15, 0.1, 20);
     EXPECT_NE(c.num_segments(), d.num_segments());
 
     d.detectors()[0].threshold = 13.0;
@@ -219,4 +219,13 @@ TEST(cell_type, clone)
     c.segment(1)->set_compartments(7);
     EXPECT_NE(c.segment(1)->num_compartments(), d.segment(1)->num_compartments());
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
+}
+
+TEST(cell_type, get_kind)
+{
+    using namespace nest::mc;
+
+    // make a MC cell
+    cell c;
+    EXPECT_EQ( cell_kind::cable1d_neuron, c.get_cell_kind());
 }

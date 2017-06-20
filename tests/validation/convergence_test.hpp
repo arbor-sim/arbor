@@ -75,7 +75,7 @@ public:
         // reset samplers and attach to probe locations
         for (auto& se: cell_samplers_) {
             se.sampler.reset();
-            m.attach_sampler(se.probe, se.sampler.template sampler<>());
+            m.attach_sampler(se.probe, se.sampler.sampler());
         }
 
         m.run(t_end, dt);

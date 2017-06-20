@@ -11,8 +11,9 @@ namespace nest {
 namespace mc {
 
 /// Hines matrix
-/// the TargetPolicy defines the backend specific data types and solver
-template<class Backend>
+/// Make the back end state implementation optional to allow for
+/// testing different implementations in the same code.
+template<class Backend, class State=typename Backend::matrix_state>
 class matrix {
 public:
     using backend = Backend;
@@ -25,32 +26,25 @@ public:
     using array = typename backend::array;
     using iarray = typename backend::iarray;
 
-    using view = typename backend::view;
-    using iview = typename backend::iview;
     using const_view = typename backend::const_view;
     using const_iview = typename backend::const_iview;
 
     using host_array = typename backend::host_array;
 
+    // back end specific storage for matrix state
+    using state = State;
+
     matrix() = default;
 
-    /// construct matrix for one or more cells, with combined parent index
-    /// and a cell index
-    matrix(const std::vector<size_type>& pi, const std::vector<size_type>& ci):
+    matrix( const std::vector<size_type>& pi,
+            const std::vector<size_type>& ci,
+            const std::vector<value_type>& cv_capacitance,
+            const std::vector<value_type>& face_conductance):
         parent_index_(memory::make_const_view(pi)),
-        cell_index_(memory::make_const_view(ci))
+        cell_index_(memory::make_const_view(ci)),
+        state_(pi, ci, cv_capacitance, face_conductance)
     {
-        setup();
-    }
-
-    /// construct matrix for a single cell described by a parent index
-    matrix(const std::vector<size_type>& pi):
-        parent_index_(memory::make_const_view(pi)),
-        cell_index_(2)
-    {
-        cell_index_[0] = 0;
-        cell_index_[1] = parent_index_.size();
-        setup();
+        EXPECTS(cell_index_[num_cells()] == parent_index_.size());
     }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)
@@ -63,43 +57,28 @@ public:
         return cell_index_.size() - 1;
     }
 
-    /// the vector holding the diagonal of the matrix
-    view d() { return d_; }
-    const_view d() const { return d_; }
-
-    /// the vector holding the upper part of the matrix
-    view u() { return u_; }
-    const_view u() const { return u_; }
-
-    /// the vector holding the right hand side of the linear equation system
-    view rhs() { return rhs_; }
-    const_view rhs() const { return rhs_; }
-
     /// the vector holding the parent index
     const_iview p() const { return parent_index_; }
 
-    /// the patrition of the parent index over the cells
+    /// the partition of the parent index over the cells
     const_iview cell_index() const { return cell_index_; }
 
     /// Solve the linear system.
-    /// Upon completion the solution is stored in the RHS storage, which can
-    /// be accessed via rhs().
     void solve() {
-        backend::hines_solve(d_, u_, rhs_, parent_index_, cell_index_);
+        state_.solve();
+    }
+
+    /// Assemble the matrix for given dt
+    void assemble(double dt, const_view voltage, const_view current) {
+        state_.assemble(dt, voltage, current);
+    }
+
+    /// Get a view of the solution
+    const_view solution() const {
+        return state_.solution;
     }
 
     private:
-
-    /// Allocate memory for storing matrix and right hand side vector
-    /// and build the face area contribution to the diagonal
-    void setup() {
-        const auto n = size();
-        constexpr auto default_value = std::numeric_limits<value_type>::quiet_NaN();
-
-        d_   = array(n, default_value);
-        u_   = array(n, default_value);
-        rhs_ = array(n, default_value);
-    }
 
     /// the parent indice that describe matrix structure
     iarray parent_index_;
@@ -107,10 +86,11 @@ public:
     /// indexes that point to the start of each cell in the index
     iarray cell_index_;
 
-    /// storage for lower, diagonal, upper and rhs
-    array d_;
-    array u_;
-    array rhs_;
+public:
+    // Provide via public interface to make testing much easier.
+    // If you modify this directly without knowing what you are doing,
+    // you get what you deserve.
+    state state_;
 };
 
 } // namespace nest
