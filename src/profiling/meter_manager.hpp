@@ -55,6 +55,7 @@ public:
 
 nlohmann::json to_json(const meter_manager&);
 void save_to_file(const meter_manager& manager, const std::string& name);
+void print(const meter_manager& manager, std::ostream& o);
 
 } // namespace util
 } // namespace mc

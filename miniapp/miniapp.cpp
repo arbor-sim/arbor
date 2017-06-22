@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
         banner();
 
-        meters.checkpoint("global setup");
+        meters.checkpoint("setup");
 
         // determine what to attach probes to
         probe_distribution pdist;
@@ -141,12 +141,12 @@ int main(int argc, char** argv) {
             }
         }
 
-        meters.checkpoint("model initialization");
+        meters.checkpoint("model-init");
 
         // run model
         m.run(options.tfinal, options.dt);
 
-        meters.checkpoint("time stepping");
+        meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
         auto const num_steps = options.tfinal / options.dt;
@@ -159,6 +159,7 @@ int main(int argc, char** argv) {
             write_trace(*trace.get(), options.trace_prefix);
         }
 
+        util::print(meters, std::cout);
         util::save_to_file(meters, "meters.json");
     }
     catch (io::usage_error& e) {
