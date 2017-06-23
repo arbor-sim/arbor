@@ -35,25 +35,25 @@ public:
     mc_cell_group() = default;
 
     template <typename Cells>
-    mc_cell_group(cell_gid_type first_gid, const Cells& cells):
+    mc_cell_group(cell_gid_type first_gid, const Cells& cell_descriptions):
         gid_base_{first_gid}
     {
         // Create lookup structure for probe and target ids.
-        build_handle_partitions(cells);
+        build_handle_partitions(cell_descriptions);
         std::size_t n_probes = probe_handle_divisions_.back();
         std::size_t n_targets = target_handle_divisions_.back();
         std::size_t n_detectors = algorithms::sum(util::transform_view(
-            cells, [](const cell& c) { return c.detectors().size(); }));
+            cell_descriptions, [](const cell& c) { return c.detectors().size(); }));
 
         // Allocate space to store handles.
         target_handles_.resize(n_targets);
         probe_handles_.resize(n_probes);
 
-        lowered_.initialize(cells, target_handles_, probe_handles_);
+        lowered_.initialize(cell_descriptions, target_handles_, probe_handles_);
 
         // Create a list of the global identifiers for the spike sources
         auto source_gid = cell_gid_type{gid_base_};
-        for (const auto& cell: cells) {
+        for (const auto& cell: cell_descriptions) {
             for (cell_lid_type lid=0u; lid<cell.detectors().size(); ++lid) {
                 spike_sources_.push_back(source_id_type{source_gid, lid});
             }
@@ -63,9 +63,9 @@ public:
 
         // Create the enumeration of probes attached to cells in this cell group
         probes_.reserve(n_probes);
-        for (auto i: util::make_span(0, cells.size())){
+        for (auto i: util::make_span(0, cell_descriptions.size())){
             const cell_gid_type probe_gid = gid_base_ + i;
-            const auto probes_on_cell = cells[i].probes();
+            const auto probes_on_cell = cell_descriptions[i].probes();
             for (cell_lid_type lid: util::make_span(0, probes_on_cell.size())) {
                 // get the unique global identifier of this probe
                 cell_member_type id{probe_gid, lid};
@@ -79,11 +79,11 @@ public:
         }
     }
 
-    mc_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
+    mc_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cell_descriptions):
         mc_cell_group(
             first_gid,
             util::transform_view(
-                cells,
+                cell_descriptions,
                 [](const util::unique_any& c) -> const cell& {return util::any_cast<const cell&>(c);})
         )
     {}
