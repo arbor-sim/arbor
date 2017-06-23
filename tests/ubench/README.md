@@ -130,13 +130,13 @@ The reduction by key pattern with repeated keys is used when "point process" mec
 More than one point process, typically synapses, can be attached to a compartment,
 and when their contributions are computed and added to the per-compartment current in parallel, care must be taken to avoid race conditions.
 Early versions of NestMC used cuda atomic operations to perform the accumulation, which works quite well up to a certain point.
-However, we see performance decreases as the number of synapses per compartment increases.
+However, performance with atomics decreases as the number of synapses per compartment increases, i.e. as the number of threads performing simultatneous atomic updates on the same location increases.
 
 #### Implementations
 
 Two implementations are considered:
 
-1. Perform reductions inside each warp. This is a two step process:
+1. Perform reductions inside each warp, which is a multi-step process:
     1. threads inside each warp determine which other threads they must perform a reduction with
     2. threads perform a binary reduction tree operation using warp shuffle intrinsics
     3. one thread performs a CUDA atomic update for each key.
@@ -153,11 +153,11 @@ Platform:
 * gcc version 5.2.0
 * nvcc version 8.0.61
 
-Below the results are presented as speedup for warp intrinsics vs atomics, for both single and double precision.
-Note that the P100 GPU has hardware support for double precision atomics, so we would expect much larger speedup for double precision on Keplar GPUs that emulate double precision atomics with CAS.
-We look at updating `n` locations, each with an average density of `d` keys per location.
+Results are presented as speedup for warp intrinsics vs atomics, for both single and double precision.
+Note that the P100 GPU has hardware support for double precision atomics, and we expect much larger speedup for double precision on Keplar GPUs that emulate double precision atomics with CAS.
+The benchmark updates `n` locations, each with an average density of `d` keys per location.
 This is equivalent to `n` compartments with `d` synapses per compartment.
-We see that atomics are faster for the case where both `n` and `d` are small, however the gpu is back end is targetted at throughput mode, with large cell groups with at least 10k compartments in total.
+Atomics are faster for the case where both `n` and `d` are small, however the gpu is backend is for throughput simulations, with large cell groups with at least 10k compartments in total.
 
 *float*
 

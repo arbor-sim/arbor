@@ -1,10 +1,6 @@
 // Compare implementations of reduce by key
 //   u[key[i]] += v[i]
 // where key is sorted in ascending order and may contain repeated keys
-//
-// XXr implementations are compared:
-// 1. 
-//
 
 // Explicitly undef NDEBUG for assert below.
 #undef NDEBUG
@@ -22,12 +18,11 @@
 
 using namespace nest::mc;
 
-// Run benches
-//  * with 100:10000 cells
-//  * from 100 to 10k index values per cell
-//  * with 5 to 500 buckets per cell
-// In xmc, these correspond to 100:10000 synapses in
-// cells with 5:500 compartments.
+// Run benchmarks
+//  * with between 100:1million entries to update
+//  * with between 1:1000 threads updating each entry
+// This corresponds to a range from a single 100 compartment cell with 1 synapse
+// per compartment to 100k cells with 10 compartments and 10k synapses each.
 
 void run_custom_arguments(benchmark::internal::Benchmark* b) {
     for (auto n_comp: {100, 1000, 10000, 100000, 1000000}) {
