@@ -58,7 +58,7 @@ public:
         
     }
     
-    util::unique_any get_cell(cell_gid_type) const override {
+    util::unique_any get_cell_description(cell_gid_type) const override {
         return lif_cell_description();
     }
     
