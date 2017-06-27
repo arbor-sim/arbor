@@ -23,8 +23,12 @@ struct simd_intrinsics<targetKind::avx2> {
     }
 
     static std::string emit_headers() {
-        return "#include <immintrin.h>";
-    };
+        std::string ret = "#include <immintrin.h>";
+#ifndef __INTEL_COMPILER
+        ret += "\n#include <backends/multicore/intrin.hpp>";
+#endif
+        return ret;
+    }
 
     static std::string emit_simd_width() {
         return "256";
@@ -69,10 +73,18 @@ struct simd_intrinsics<targetKind::avx2> {
             tb << "_mm256_sub_pd(_mm256_set1_pd(0), ";
             break;
         case tok::exp:
+#ifdef __INTEL_COMPILER
             tb << "_mm256_exp_pd(";
+#else
+            tb << "nest::mc::multicore::nmc_mm256_exp_pd(";
+#endif
             break;
         case tok::log:
+#ifdef __INTEL_COMPILER
             tb << "_mm256_log_pd(";
+#else
+            tb << "nest::mc::multicore::nmc_mm256_log_pd(";
+#endif
             break;
         default:
             throw std::invalid_argument("Unknown unary operator");
@@ -84,7 +96,11 @@ struct simd_intrinsics<targetKind::avx2> {
 
     template<typename B, typename E>
     static void emit_pow(TextBuffer& tb, const B& base, const E& exp) {
+#ifdef __INTEL_COMPILER
         tb << "_mm256_pow_pd(";
+#else
+        tb << "nest::mc::multicore::nmc_mm256_pow_pd(";
+#endif
         emit_operands(tb, arg_emitter(base), arg_emitter(exp));
         tb << ")";
     }
