@@ -106,7 +106,7 @@ public:
 
     // Query integration completion state.
     bool integration_complete() const {
-        return !integration_running_;
+        return min_remaining_steps_==0;
     }
 
     // Query per-cell time state.
@@ -143,7 +143,7 @@ public:
 
     /// Add an event for processing in next integration stage.
     void add_event(value_type ev_time, target_handle h, value_type weight) {
-        EXPECTS(!integration_running_);
+        EXPECTS(integration_complete());
         staged_events_.push_back(deliverable_event(ev_time, h, weight));
     }
 
@@ -265,22 +265,20 @@ private:
     /// max time step for integration [ms]
     value_type dt_max_ = 0;
 
-    /// flag: true after a call to `setup_integration()`; reset
-    /// once integration to `tfinal_` is complete.
-    bool integration_running_ = false;
-
     /// minimum number of integration steps left in integration period.
+    // zero => integration complete.
     unsigned min_remaining_steps_ = 0;
 
     void compute_min_remaining() {
         auto tmin = min_time();
         min_remaining_steps_ = tmin>=tfinal_? 0: 1 + (unsigned)((tfinal_-tmin)/dt_max_);
-        integration_running_ = min_remaining_steps_>0;
     }
 
     void decrement_min_remaining() {
-        if (min_remaining_steps_>0) --min_remaining_steps_;
-        integration_running_ = min_remaining_steps_>0;
+        EXPECTS(min_remaining_steps_>0);
+        if (!--min_remaining_steps_) {
+            compute_min_remaining();
+        }
     }
 
     /// events staged for upcoming integration stage
@@ -884,15 +882,18 @@ void fvm_multicell<Backend>::reset() {
     // Reset integration state.
     tfinal_ = 0;
     dt_max_ = 0;
-    integration_running_ = false;
+    min_remaining_steps_ = 0;
     staged_events_.clear();
     events_->clear();
+
+    EXPECTS(integration_complete());
+    EXPECTS(!has_pending_events());
 }
 
 
 template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
-    EXPECTS(integration_running_);
+    EXPECTS(!integration_complete());
 
     PE("current");
     memory::fill(current_, 0.);
@@ -945,14 +946,9 @@ void fvm_multicell<Backend>::step_integration() {
     threshold_watcher_.test();
 
     // are we there yet?
-    if (!min_remaining_steps_) {
-        compute_min_remaining();
-    }
-    else {
-        decrement_min_remaining();
-    }
+    decrement_min_remaining();
 
-    EXPECTS(integration_running_ || !has_pending_events());
+    EXPECTS(!integration_complete() || !has_pending_events());
 }
 
 } // namespace fvm
