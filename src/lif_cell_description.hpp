@@ -14,24 +14,22 @@
 
 struct lif_cell_description {
     ////////////////////////////////////////////////
-    // MODEL PARAMETERS TAKEN FROM NEST
-    // http://www.nest-simulator.org/cc/iaf_neuron/
+    // MODEL PARAMETERS OF SIMPLE
+    // LEAKY INTEGRATE AND FIRE NEURON MODEL
     ////////////////////////////////////////////////
     
     using index_type = nest::mc::cell_lid_type;
     using value_type = double;
     
-    value_type V_m = 0;                 // membrane potential (mV)
     value_type tau_m = 20;              // membrane potential decaying constant (ms)
-    value_type V_th = -50;              // firing threshold (mV)
+    value_type V_th = 10;               // firing threshold (mV)
     value_type C_m = 20;                // membrane capacity (pF)
     value_type E_L = 0;                 // resting potential (mV)
-    value_type V_reset = -65;           // reset potential (mV)
-    value_type I_e = 0;                 // constant external input current (pA)
-    value_type tau_s = 2;               // peak time for alpha-function (ms)
+    value_type V_m = E_L;               // membrane potential (mV)
+    value_type V_reset = E_L;           // reset potential (mV)
     value_type t_ref = 2;               // refractory period (ms)
-    value_type I_syn = 0;               // input synaptic current (pA)
-    
+  
+    // incoming presynaptic synapses
     std::vector<value_type> synapse_weights;
 
 };

@@ -1,8 +1,10 @@
 #include "../gtest.h"
 
 #include <common_types.hpp>
+#include <fstream>
 #include <lif_cell_group.hpp>
 #include <util/rangeutil.hpp>
+#include <util/any.hpp>
 #include <recipe.hpp>
 #include <lif_cell_description.hpp>
 #include "common.hpp"
@@ -90,33 +92,33 @@ TEST(lif_cell_group, recipe)
 
 }
 
+
 TEST(lif_cell_group, cell_group_factory) {
     std::vector<util::unique_any> cells;
     cells.emplace_back(lif_cell_description());
     cells.emplace_back(lif_cell_description());
     
     cell_group_ptr group = cell_group_factory(
-                                      cell_kind::lif_neuron,
-                                      0,
-                                      cells,
-                                      backend_policy::use_multicore);
-    
+                                              cell_kind::lif_neuron,
+                                              0,
+                                              cells,
+                                              backend_policy::use_multicore);
     
     std::vector<postsynaptic_spike_event> events;
     
     // first event to trigger the spike (first neuron)
-    events.push_back({{0, 0}, 1, 100});
+    events.push_back({{0, 0}, 1, 1000});
     
     // this event happens inside the refractory period of the previous
     // event, thus, should be ignored (first neuron)
-    events.push_back({{0, 0}, 1.1, 100});
+    events.push_back({{0, 0}, 1.1, 1000});
     
     // this event happens long after the refractory period of the previous
     // event, should thus trigger new spike (first neuron)
-    events.push_back({{0, 0}, 50, 100});
+    events.push_back({{0, 0}, 50, 1000});
     
     // this is event to the second neuron
-    events.push_back({{1, 0}, 1, 100});
+    events.push_back({{1, 0}, 1, 1000});
 
     
     group->enqueue_events(events);
@@ -124,7 +126,70 @@ TEST(lif_cell_group, cell_group_factory) {
     std::vector<spike> spikes = group->spikes();
     
     EXPECT_EQ(3, spikes.size());
+}
+
+TEST(lif_cell_group, spikes_testing) {
+    std::vector<util::unique_any> cells;
+    cells.emplace_back(lif_cell_description());
     
+  
+    
+    std::unique_ptr<lif_cell_group> group = std::unique_ptr<lif_cell_group>(static_cast<lif_cell_group*>(cell_group_factory(
+                                                                             cell_kind::lif_neuron,
+                                                                             0,
+                                                                             cells,
+                                                                             backend_policy::use_multicore).release()));
+    
+    std::vector<postsynaptic_spike_event> events;
+    
+    std::vector<time_type> incoming_spikes;
+    
+    time_type simulation_end = 50;
+    
+    // add events at times i for the first 80% time of the simulation
+    for(int i = 1; i < (int) (0.8 * simulation_end); i++) {
+        // last parameter is the weight
+        events.push_back({{0, 0}, static_cast<time_type>(i), 100});
+        
+        incoming_spikes.push_back(i);
+    }
+    
+    group->enqueue_events(events);
+    
+    group->turn_on_sampling(0.01);
+    
+    // second parameter is dt, but is ignored
+    group->advance(simulation_end, 0.01);
+    std::vector<spike> spikes = group->spikes();
+    
+    std::vector<std::pair<time_type, lif_cell_description::value_type> > voltage = group->voltage();
+    
+    std::ofstream in_spikes_file;
+    in_spikes_file.open("../../tests/unit/lif_neuron_input_spikes.txt");
+    
+    std::ofstream out_spikes_file;
+    out_spikes_file.open("../../tests/unit/lif_neuron_output_spikes.txt");
+    
+    std::ofstream voltage_file;
+    voltage_file.open("../../tests/unit/lif_neuron_voltage.txt");
+    
+    
+    for(auto& in_spike : incoming_spikes) {
+        in_spikes_file << in_spike << std::endl;
+    }
+    
+    for(auto & out_spike : spikes) {
+        out_spikes_file << out_spike.time << std::endl;
+    }
+    
+    for(auto & v : voltage) {
+        voltage_file << v.first << " " << v.second << std::endl;
+    }
+    
+    
+    in_spikes_file.close();
+    out_spikes_file.close();
+    voltage_file.close();
     
     
 }
