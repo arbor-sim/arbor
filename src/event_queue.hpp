@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <ostream>
 #include <queue>
 #include <type_traits>
@@ -9,6 +10,8 @@
 #include "common_types.hpp"
 #include "util/meta.hpp"
 #include "util/optional.hpp"
+#include "util/range.hpp"
+#include "util/strprintf.hpp"
 
 namespace nest {
 namespace mc {

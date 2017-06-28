@@ -17,7 +17,7 @@ TEST(backends, gpu_is_null) {
 
         EXPECT_FALSE(backend::has_mechanism("hh"));
         EXPECT_THROW(
-            backend::make_mechanism("hh", backend::view(), backend::view(), {}, {}),
+            backend::make_mechanism("hh", 0, backend::const_iview(), backend::const_view(), backend::const_view(), backend::const_view(), backend::view(), backend::view(), {}, {}),
             std::runtime_error);
     }
 }

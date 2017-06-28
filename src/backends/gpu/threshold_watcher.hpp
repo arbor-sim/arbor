@@ -23,6 +23,7 @@ public:
     using array = memory::device_vector<T>;
     using iarray = memory::device_vector<I>;
     using const_view = typename array::const_view_type;
+    using const_iview = typename iarray::const_view_type;
 
     /// stores a single crossing event
     struct threshold_crossing {
@@ -41,18 +42,24 @@ public:
     threshold_watcher() = default;
 
     threshold_watcher(
+            const_iview vec_ci,
+            const_view vec_t_before,
+            const_view vec_t_after,
             const_view values,
             const std::vector<size_type>& index,
             const std::vector<value_type>& thresh,
             value_type t=0):
+        cv_to_cell_(vec_ci),
+        t_before_(vec_t_before),
+        t_after_(vec_t_after),
         values_(values),
-        index_(memory::make_const_view(index)),
+        cv_index_(memory::make_const_view(index)),
         thresholds_(memory::make_const_view(thresh)),
         prev_values_(values),
         is_crossed_(size()),
         stack_(memory::make_managed_ptr<stack_type>(10*size()))
     {
-        reset(t);
+        reset();
     }
 
     /// Remove all stored crossings that were detected in previous calls
@@ -64,26 +71,23 @@ public:
     /// Reset state machine for each detector.
     /// Assume that the values in values_ have been set correctly before
     /// calling, because the values are used to determine the initial state
-    void reset(value_type t=0) {
+    void reset() {
         clear_crossings();
 
         // Make host-side copies of the information needed to calculate
         // the initial crossed state
         auto values = memory::on_host(values_);
         auto thresholds = memory::on_host(thresholds_);
-        auto index = memory::on_host(index_);
+        auto cv_index = memory::on_host(cv_index_);
 
         // calculate the initial crossed state in host memory
-        auto crossed = std::vector<size_type>(size());
+        std::vector<size_type> crossed(size());
         for (auto i: util::make_span(0u, size())) {
-            crossed[i] = values[index[i]] < thresholds[i] ? 0 : 1;
+            crossed[i] = values[cv_index[i]] < thresholds[i] ? 0 : 1;
         }
 
         // copy the initial crossed state to device memory
-        is_crossed_ = memory::on_gpu(crossed);
-
-        // reset time of last test
-        t_prev_ = t;
+        memory::copy(crossed, is_crossed_);
     }
 
     bool is_crossed(size_type i) const {
@@ -94,36 +98,28 @@ public:
         return std::vector<threshold_crossing>(stack_->begin(), stack_->end());
     }
 
-    /// The time at which the last test was performed
-    value_type last_test_time() const {
-        return t_prev_;
-    }
-
     /// Tests each target for changed threshold state.
     /// Crossing events are recorded for each threshold that has been
     /// crossed since current time t, and the last time the test was
     /// performed.
-    void test(value_type t) {
-        EXPECTS(t_prev_<t);
-
+    void test() {
         constexpr int block_dim = 128;
         const int grid_dim = (size()+block_dim-1)/block_dim;
         test_thresholds<<<grid_dim, block_dim>>>(
-            t, t_prev_, size(),
+            cv_to_cell_.data(), t_after_.data(), t_before_.data(),
+            size(),
             *stack_,
             is_crossed_.data(), prev_values_.data(),
-            index_.data(), values_.data(), thresholds_.data());
+            cv_index_.data(), values_.data(), thresholds_.data());
 
         // Check that the number of spikes has not exceeded
         // the capacity of the stack.
         EXPECTS(stack_->size() <= stack_->capacity());
-
-        t_prev_ = t;
     }
 
     /// the number of threashold values that are being monitored
     std::size_t size() const {
-        return index_.size();
+        return cv_index_.size();
     }
 
     /// Data type used to store the crossings.
@@ -131,13 +127,14 @@ public:
     using crossing_list =  std::vector<threshold_crossing>;
 
 private:
-
+    const_iview cv_to_cell_;    // index to cell mapping: on gpu
+    const_view t_before_;       // times per cell corresponding to prev_values_: on gpu
+    const_view t_after_;        // times per cell corresponding to values_: on gpu
     const_view values_;         // values to watch: on gpu
-    iarray index_;              // indexes of values to watch: on gpu
+    iarray cv_index_;           // compartment indexes of values to watch: on gpu
 
     array thresholds_;          // threshold for each watch: on gpu
-    value_type t_prev_;         // time of previous sample: on host
-    array prev_values_;         // values at previous sample time: on host
+    array prev_values_;         // values at previous sample time: on gpu
     iarray is_crossed_;         // bool flag for state of each watch: on gpu
 
     memory::managed_ptr<stack_type> stack_;

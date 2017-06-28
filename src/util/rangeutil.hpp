@@ -41,26 +41,43 @@ range_view(Seq& seq) {
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator,
-    typename Size = typename sequence_traits<Seq>::size_type
+    typename Offset1,
+    typename Offset2,
+    typename Iter = typename sequence_traits<Seq>::iterator
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
-subrange_view(Seq& seq, Size bi, Size ei) {
-    Iter b = std::next(std::begin(seq), bi);
-    Iter e = std::next(b, ei-bi);
+subrange_view(Seq& seq, Offset1 bi, Offset2 ei) {
+    Iter b = std::begin(seq);
+    std::advance(b, bi);
+
+    Iter e = b;
+    std::advance(e, ei-bi);
     return make_range(b, e);
 }
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator,
-    typename Size = typename sequence_traits<Seq>::size_type
+    typename Offset1,
+    typename Offset2,
+    typename Iter = typename sequence_traits<Seq>::iterator
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
-subrange_view(Seq& seq, std::pair<Size, Size> index) {
-    Iter b = std::next(std::begin(seq), index.first);
-    Iter e = std::next(b, index.second-index.first);
-    return make_range(b, e);
+subrange_view(Seq& seq, std::pair<Offset1, Offset2> index) {
+    return subrange_view(seq, index.first, index.second);
+}
+
+// Fill container or range.
+
+template <typename Seq, typename V>
+void fill(Seq& seq, const V& value) {
+    auto canon = canonical_view(seq);
+    std::fill(canon.begin(), canon.end(), value);
+}
+
+template <typename Range, typename V>
+void fill(const Range& seq, const V& value) {
+    auto canon = canonical_view(seq);
+    std::fill(canon.begin(), canon.end(), value);
 }
 
 // Append sequence to a container
@@ -238,7 +255,7 @@ max_element_by(const Seq& seq, const Proj& proj) {
         });
 }
 
-// Maximum value
+// Maximum value.
 //
 // Value semantics instead of iterator semantics means it will operate
 // with input iterators.  Will return default-constructed value if sequence
@@ -259,7 +276,7 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
 
     auto i = std::begin(seq);
     auto e = std::end(seq);
-    auto m = *i;
+    Value m = *i;
     while (++i!=e) {
         Value x = *i;
         if (cmp(m, x)) {
@@ -267,6 +284,34 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
         }
     }
     return m;
+}
+
+// Minimum and maximum value.
+
+template <
+    typename Seq,
+    typename Value = typename sequence_traits<Seq>::value_type,
+    typename Compare = std::less<Value>
+>
+std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
+    if (util::empty(seq)) {
+        return {Value{}, Value{}};
+    }
+
+    auto i = std::begin(seq);
+    auto e = std::end(seq);
+    Value lower = *i;
+    Value upper = *i;
+    while (++i!=e) {
+        Value x = *i;
+        if (cmp(upper, x)) {
+            upper = std::move(x);
+        }
+        else if (cmp(x, lower)) {
+            lower = std::move(x);
+        }
+    }
+    return {lower, upper};
 }
 
 template <typename C, typename Seq>

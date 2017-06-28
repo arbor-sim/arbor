@@ -34,22 +34,32 @@ TEST(mechanisms, helpers) {
     EXPECT_TRUE(multicore::backend::has_mechanism("pas"));
 
     std::vector<size_type> parent_index = {0,0,1,2,3,4,0,6,7,8};
-    auto node_indices = std::vector<size_type>{0,6,7,8,9};
-    auto weights = std::vector<value_type>(node_indices.size(), 1.0);
-    auto n = node_indices.size();
+    auto node_index = std::vector<size_type>{0,6,7,8,9};
+    auto weights = std::vector<value_type>(node_index.size(), 1.0);
+    auto n = node_index.size();
+
+    // one cell
+    size_type ncell = 1;
+    std::vector<size_type> cell_index(n, 0u);
 
     multicore::backend::array vec_i(n, 0.);
     multicore::backend::array vec_v(n, 0.);
+    multicore::backend::array vec_t(ncell, 0.);
+    multicore::backend::array vec_t_to(ncell, 0.);
+    multicore::backend::array vec_dt(n, 0.);
 
-    auto mech = multicore::backend::make_mechanism(
-            "hh", memory::make_view(vec_v), memory::make_view(vec_i), weights, node_indices);
+    auto mech = multicore::backend::make_mechanism("hh", 0,
+            memory::make_view(cell_index), vec_t, vec_t_to, vec_dt,
+            vec_v, vec_i, weights, node_index);
 
     EXPECT_EQ(mech->name(), "hh");
     EXPECT_EQ(mech->size(), 5u);
 
     // check that an out_of_range exception is thrown if an invalid mechanism is requested
     ASSERT_THROW(
-        multicore::backend::make_mechanism("dachshund", vec_v, vec_i, weights, node_indices),
+        multicore::backend::make_mechanism("dachshund", 0,
+            memory::make_view(cell_index), vec_t, vec_t_to, vec_dt,
+            vec_v, vec_i, weights, node_index),
         std::out_of_range
     );
 }
@@ -61,7 +71,7 @@ void mech_update(T* mech, unsigned num_iters) {
     using namespace nest::mc;
     std::map<mechanisms::ionKind, mechanisms::ion<typename T::backend>> ions;
 
-    mech->set_params(2., 0.1);
+    mech->set_params();
     mech->nrn_init();
     for (auto ion_kind : mechanisms::ion_kinds()) {
         auto ion_indexes = util::make_copy<std::vector<typename T::size_type>>(
@@ -124,12 +134,20 @@ TYPED_TEST_P(mechanisms, update) {
     EXPECT_TRUE((std::is_same<typename proto_mechanism_type::array,
                               typename mechanism_type::array>::value));
 
-    auto num_syn = 32;
+    int num_cell = 1;
+    int num_syn = 32;
+    int num_comp = num_syn;
 
-    typename mechanism_type::iarray indexes(num_syn);
-    typename mechanism_type::array  voltage(num_syn, -65.0);
-    typename mechanism_type::array  current(num_syn,   1.0);
+    typename mechanism_type::iarray node_index(num_syn);
+    typename mechanism_type::array  voltage(num_comp, -65.0);
+    typename mechanism_type::array  current(num_comp,   1.0);
+
     typename mechanism_type::array  weights(num_syn,   1.0);
+
+    typename mechanism_type::iarray cell_index(num_comp, 0);
+    typename mechanism_type::array  time(num_cell, 2.);
+    typename mechanism_type::array  time_to(num_cell, 2.1);
+    typename mechanism_type::array  dt(num_comp, 2.1-2.);
 
     array_init(voltage, nest::mc::util::cyclic_view({ -65.0, -61.0, -63.0 }));
     array_init(current, nest::mc::util::cyclic_view({   1.0,   0.9,   1.1 }));
@@ -146,29 +164,30 @@ TYPED_TEST_P(mechanisms, update) {
 
     auto freq_begin = nest::mc::util::cyclic_view(index_freq).cbegin();
     auto freq = freq_begin;
-    auto index = indexes.begin();
-    while (index != indexes.end()) {
-        for (auto i = 0; i < *freq && index != indexes.end(); ++i) {
+    auto index = node_index.begin();
+    while (index != node_index.end()) {
+        for (auto i = 0; i < *freq && index != node_index.end(); ++i) {
             *index++ = freq - freq_begin;
         }
         ++freq;
     }
 
-
     // Copy indexes, voltage and current to use for the prototype mechanism
-    typename mechanism_type::iarray indexes_copy(indexes);
+    typename mechanism_type::iarray node_index_copy(node_index);
     typename mechanism_type::array  voltage_copy(voltage);
     typename mechanism_type::array  current_copy(current);
     typename mechanism_type::array  weights_copy(weights);
 
     // Create mechanisms
     auto mech = nest::mc::mechanisms::make_mechanism<mechanism_type>(
-        voltage, current, std::move(weights), std::move(indexes)
+        0, cell_index, time, time_to, dt,
+        voltage, current, std::move(weights), std::move(node_index)
     );
 
     auto mech_proto = nest::mc::mechanisms::make_mechanism<proto_mechanism_type>(
+        0, cell_index, time, time_to, dt,
         voltage_copy, current_copy,
-        std::move(weights_copy), std::move(indexes_copy)
+        std::move(weights_copy), std::move(node_index_copy)
     );
 
     mech_update(dynamic_cast<mechanism_type*>(mech.get()), 10);

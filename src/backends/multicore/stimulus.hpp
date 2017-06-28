@@ -24,11 +24,14 @@ public:
     using iarray  = typename base::iarray;
     using view   = typename base::view;
     using iview  = typename base::iview;
+    using const_view = typename base::const_view;
     using const_iview = typename base::const_iview;
     using ion_type = typename base::ion_type;
 
-    stimulus(view vec_v, view vec_i, iarray&& node_index):
-        base(vec_v, vec_i, std::move(node_index))
+    static constexpr size_type no_mech_id = (size_type)-1;
+
+    stimulus(const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, iarray&& node_index):
+        base(no_mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(node_index))
     {}
 
     using base::size;
@@ -37,9 +40,7 @@ public:
         return 0;
     }
 
-    void set_params(value_type t_, value_type dt_) override {
-        t = t_;
-        dt = dt_;
+    void set_params() override {
     }
 
     std::string name() const override {
@@ -80,10 +81,12 @@ public:
         if (amplitude.size() != size()) {
             throw std::domain_error("stimulus called with mismatched parameter size\n");
         }
+        auto vec_t = util::indirect_view(util::indirect_view(vec_t_, vec_ci_), node_index_);
         auto vec_i = util::indirect_view(vec_i_, node_index_);
-        int n = size();
-        for(int i=0; i<n; ++i) {
-            if (t>=delay[i] && t<(delay[i]+duration[i])) {
+        size_type n = size();
+        for (size_type i=0; i<n; ++i) {
+            auto t = vec_t[i];
+            if (t>=delay[i] && t<delay[i]+duration[i]) {
                 // use subtraction because the electrod currents are specified
                 // in terms of current into the compartment
                 vec_i[i] -= amplitude[i];
@@ -91,13 +94,12 @@ public:
         }
     }
 
-    value_type dt = 0;
-    value_type t = 0;
-
     std::vector<value_type> amplitude;
     std::vector<value_type> duration;
     std::vector<value_type> delay;
 
+    using base::vec_ci_;
+    using base::vec_t_;
     using base::vec_v_;
     using base::vec_i_;
     using base::node_index_;

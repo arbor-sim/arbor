@@ -75,6 +75,13 @@ constexpr bool is_npos(T v) {
     return v == npos<T>();
 }
 
+/// Cuda lerp by u on [a,b]: (1-u)*a + u*b.
+template <typename T>
+__host__ __device__
+inline T lerp(T a, T b, T u) {
+    return std::fma(u, b, std::fma(-u, a, a));
+}
+
 } // namespace impl
 
 } // namespace gpu

@@ -17,7 +17,7 @@ public:
         return size_;
     }
 
-    util::unique_any get_cell(cell_gid_type) const override {
+    util::unique_any get_cell_description(cell_gid_type) const override {
         return {};
     }
     cell_kind get_cell_kind(cell_gid_type) const override {
