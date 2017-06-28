@@ -129,6 +129,7 @@ public:
         }
     }
 
+    friend std::ostream& operator<<(std::ostream& out, const multi_event_stream& m);
 private:
     using span_type = std::pair<size_type, size_type>;
 
@@ -137,6 +138,41 @@ private:
     std::vector<size_type> mark_;
     size_type remaining_ = 0;
 };
+
+
+inline std::ostream& operator<<(std::ostream& out, const multi_event_stream& m) {
+    auto n = m.n_streams();
+
+    out << "\n[";
+    unsigned i = 0;
+    for (unsigned ev_i = 0; ev_i<m.ev_.size(); ++ev_i) {
+        while (m.span_[i].second<=ev_i && i<n) ++i;
+        if (i<n) {
+            out << util::strprintf(" % 7d ", i);
+        }
+        else {
+            out << "      ?";
+        }
+    }
+    out << "\n[";
+
+    i = 0;
+    for (unsigned ev_i = 0; ev_i<m.ev_.size(); ++ev_i) {
+        while (m.span_[i].second<=ev_i && i<n) ++i;
+
+        bool discarded = i<n && m.span_[i].first>ev_i;
+        bool marked = i<n && m.mark_[i]>ev_i;
+
+        if (discarded) {
+            out << "        x";
+        }
+        else {
+            out << util::strprintf(" % 7.3f%c", m.ev_[ev_i].time, marked?'*':' ');
+        }
+    }
+    out << "]\n";
+    return out;
+}
 
 } // namespace multicore
 } // namespace nest
