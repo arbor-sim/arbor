@@ -59,6 +59,7 @@ using time_type = float;
 enum cell_kind {
     cable1d_neuron,           // Our own special mc neuron
     regular_spike_source,     // Regular spiking source
+    data_spike_source,        // Spike source from data known at start
 };
 
 } // namespace mc

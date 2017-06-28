@@ -5,6 +5,8 @@
 #include <iosfwd>
 #include <stdexcept>
 #include <utility>
+#include <vector>
+#include <string>
 
 #include <util/optional.hpp>
 
@@ -51,6 +53,10 @@ struct cl_options {
     std::string file_name = "spikes";
     std::string file_extension = "gdf";
 
+    // Parameters for spike input.
+    bool spike_file_input;
+    std::string input_spike_path;  // Path to file with spikes
+
     // Dry run parameters (pertinent only when built with 'dryrun' distrib model).
     int dry_run_ranks = 1;
 
@@ -79,6 +85,14 @@ public:
 std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
 cl_options read_options(int argc, char** argv, bool allow_write = true);
+
+
+/// Helper function for loading a vector of spike times from file
+/// Spike times are expected to be in ms.
+/// the default separator is whitespace (including newline)
+
+std::unique_ptr<std::vector<float> > get_spikes_times(
+    const std::string& path, const std::string& separator);
 
 
 } // namespace io

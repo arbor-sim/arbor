@@ -86,6 +86,14 @@ public:
     util::unique_any get_cell_description(cell_gid_type i) const override {
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
+
+            if (param_.spike_file_input) {
+                return util::unique_any(std::move(
+
+
+                    rss_cell::rss_cell_description(0.0, 0.1, 0.1)));
+            }
+
             return util::unique_any(std::move(
                 rss_cell::rss_cell_description(0.0, 0.1, 0.1) ));
         }
@@ -124,6 +132,10 @@ public:
     cell_kind get_cell_kind(cell_gid_type i ) const override {
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
+            if (param_.spike_file_input) {
+                return cell_kind::data_spike_source;
+            }
+
             return cell_kind::regular_spike_source;
         }
         return cell_kind::cable1d_neuron;

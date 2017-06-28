@@ -2,6 +2,7 @@
 #include <exception>
 #include <fstream>
 #include <istream>
+#include <memory>
 #include <type_traits>
 
 #include <tclap/CmdLine.h>
@@ -191,6 +192,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
              "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
         TCLAP::SwitchArg verbose_arg(
              "v", "verbose", "Present more verbose information to stdout", cmd, false);
+        TCLAP::ValueArg<std::string> ispike_arg(
+            "I", "ispike_file",
+            "Input spikes from file",
+            false, "", "file name", cmd);
+
 
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
@@ -240,6 +246,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                         update_option(options.file_extension, fopts, "file_extension");
                     }
 
+                    update_option(options.spike_file_input, fopts, "spike_file_input");
+                    if (options.spike_file_input) {
+                        update_option(options.input_spike_path, fopts, "input_spike_path");
+                    }
+
                     update_option(options.dry_run_ranks, fopts, "dry_run_ranks");
 
                     update_option(options.profile_only_zero, fopts, "profile_only_zero");
@@ -278,6 +289,12 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.spike_file_output, spike_output_arg);
         update_option(options.profile_only_zero, profile_only_zero_arg);
         update_option(options.dry_run_ranks, dry_run_ranks_arg);
+
+        std::string is_file_name = ispike_arg.getValue();
+        if (is_file_name != "") {
+            options.spike_file_input = true;
+            update_option(options.input_spike_path, ispike_arg);
+        }
 
         if (options.trace_format!="csv" && options.trace_format!="json") {
             throw usage_error("trace format must be one of: csv, json");
@@ -387,6 +404,37 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  report compartments  : " << (options.report_compartments ? "yes" : "no") << "\n";
 
     return o;
+}
+
+std::unique_ptr<std::vector<float> > parse_spike_times_from_file(
+    std::ifstream fid)
+{
+    std::vector<float> * times = new std::vector<float>();
+
+    return  std::unique_ptr<std::vector<float> >(std::move(times));
+}
+
+
+std::unique_ptr<std::vector<float> > get_spikes_times(
+    const std::string& path, const char separator)
+{
+    // Read parameters from specified JSON file first, to allow
+    // overriding arguments on the command line.
+    std::ifstream fid(path);
+    if (!fid) {
+        throw usage_error("unable to open file with spike_times: " + path);
+    }
+    try {
+
+
+    }
+    catch (const std::exception& ex) {
+
+    }
+    catch (...) {
+
+    }
+
 }
 
 } // namespace io

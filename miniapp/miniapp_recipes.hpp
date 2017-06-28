@@ -39,6 +39,12 @@ struct basic_recipe_param {
 
     // If true, iterate through morphologies rather than select randomly.
     bool morphology_round_robin = false;
+
+    // If true we are importing the spikes injected in the network from file
+    // instead of a single spike at t==0
+    bool spike_file_input;
+    std::string input_spike_path;  // Path to file with spikes
+
 };
 
 std::unique_ptr<recipe> make_basic_ring_recipe(
