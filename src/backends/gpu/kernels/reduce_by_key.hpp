@@ -11,7 +11,7 @@ namespace impl{
 
 // return the power of 2 that is less than or equal to i
 __device__ __inline__
-unsigned rounddown_power_of_2(unsigned i) {
+unsigned rounddown_power_of_2(std::uint32_t i) {
     // handle power of 2 and zero
     if(__popc(i)<2) return i;
 

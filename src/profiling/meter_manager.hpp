@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include <communication/global_policy.hpp>
 #include <json/json.hpp>
 
 #include "meter.hpp"
@@ -29,10 +30,6 @@ struct measurement {
     measurement(std::string, std::string, const std::vector<double>&);
 };
 
-// Converts a measurement to a json type for serialization to file.
-// See src/profiling/meters.md for more information about the json formating.
-nlohmann::json to_json(const measurement& m);
-
 class meter_manager {
 private:
     bool started_ = false;
@@ -53,9 +50,18 @@ public:
     const std::vector<double>& times() const;
 };
 
-nlohmann::json to_json(const meter_manager&);
-void save_to_file(const meter_manager& manager, const std::string& name);
-void print(const meter_manager& manager, std::ostream& o);
+// Simple type for gathering distributed meter information
+struct meter_report {
+    std::vector<std::string> checkpoints;
+    unsigned num_domains;
+    nest::mc::communication::global_policy_kind communication_policy;
+    std::vector<measurement> meters;
+    std::vector<std::string> hosts;
+};
+
+nlohmann::json to_json(const meter_report&);
+meter_report make_meter_report(const meter_manager& manager);
+std::ostream& operator<<(std::ostream& o, const meter_report& report);
 
 } // namespace util
 } // namespace mc

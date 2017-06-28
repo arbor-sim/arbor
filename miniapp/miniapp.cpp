@@ -159,8 +159,14 @@ int main(int argc, char** argv) {
             write_trace(*trace.get(), options.trace_prefix);
         }
 
-        util::print(meters, std::cout);
-        util::save_to_file(meters, "meters.json");
+        auto report = util::make_meter_report(meters);
+        std::cout << report;
+        if (global_policy::id()==0) {
+            std::ofstream fid;
+            fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
+            fid.open("meters.json");
+            fid << std::setw(1) << util::to_json(report) << "\n";
+        }
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master

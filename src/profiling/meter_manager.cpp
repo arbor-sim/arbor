@@ -103,18 +103,9 @@ nlohmann::json to_json(const measurement& mnt) {
     };
 }
 
-// Simple type for gathering distributed meter information
-struct meter_report {
-    std::vector<std::string> checkpoints;
-    unsigned num_domains;
-    std::string global_model;
-    std::vector<measurement> meters;
-    std::vector<std::string> hosts;
-};
-
 // Build a report of meters, for use at the end of a simulation
 // for output to file or analysis.
-meter_report make_report(const meter_manager& manager) {
+meter_report make_meter_report(const meter_manager& manager) {
     meter_report report;
 
     using gcom = communication::global_policy;
@@ -134,7 +125,7 @@ meter_report make_report(const meter_manager& manager) {
 
     report.checkpoints = manager.checkpoint_names();
     report.num_domains = gcom::size();
-    report.global_model = std::to_string(gcom::kind());
+    report.communication_policy = gcom::kind();
 
     return report;
 }
@@ -143,56 +134,43 @@ nlohmann::json to_json(const meter_report& report) {
     return {
         {"checkpoints", report.checkpoints},
         {"num_domains", report.num_domains},
-        {"global_model", report.global_model},
+        {"global_model", std::to_string(report.communication_policy)},
         {"meters", util::transform_view(report.meters, [](measurement const& m){return to_json(m);})},
         {"hosts", report.hosts},
     };
 }
 
-void save_to_file(const meter_manager& manager, const std::string& name) {
-    auto measurements = to_json(make_report(manager));
-    if (!communication::global_policy::id()) {
-        std::ofstream fid;
-        fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
-        fid.open(name);
-        fid << std::setw(1) << measurements << "\n";
+// Print easy to read report of meters to a stream.
+std::ostream& operator<<(std::ostream& o, const meter_report& report) {
+    o << "\n---- meters ------------------------------------------------------------\n";
+    o << strprintf("%21s", "");
+    for (auto const& m: report.meters) {
+        if (m.name=="time") {
+            o << strprintf("%16s", "time (s)");
+        }
+        else if (m.name.find("memory")!=std::string::npos) {
+            o << strprintf("%16s", m.name+" (MB)");
+        }
     }
-}
-
-// Print easy to read report of meters so a stream.
-void print(const meter_manager& manager, std::ostream& o) {
-    auto measurements = make_report(manager);
-    if (!communication::global_policy::id()) {
-        o << "\n---- meters ------------------------------------------------------------\n";
-        o << strprintf("%21s", "");
-        for (auto const& m: measurements.meters) {
+    o << "\n------------------------------------------------------------------------\n";
+    int cp_index = 0;
+    for (auto name: report.checkpoints) {
+        name.resize(20);
+        o << strprintf("%-21s", name);
+        for (const auto& m: report.meters) {
             if (m.name=="time") {
-                o << strprintf("%16s", "time (s)");
+                std::vector<double> times = m.measurements[cp_index];
+                o << strprintf("%16.4f", algorithms::mean(times));
             }
             else if (m.name.find("memory")!=std::string::npos) {
-                o << strprintf("%16s", m.name+" (MB)");
+                std::vector<double> mem = m.measurements[cp_index];
+                o << strprintf("%16.4f", algorithms::mean(mem)*1e-6);
             }
         }
-        o << "\n------------------------------------------------------------------------\n";
-        int cp_index = 0;
-        for (auto name: measurements.checkpoints) {
-            name.resize(20);
-            o << strprintf("%-21s", name);
-            for (const auto& m: measurements.meters) {
-                if (m.name=="time") {
-                    std::vector<double> times = m.measurements[cp_index];
-                    o << strprintf("%16.4f", algorithms::mean(times));
-                }
-                else if (m.name.find("memory")!=std::string::npos) {
-                    std::vector<double> mem = m.measurements[cp_index];
-                    o << strprintf("%16.4f", algorithms::mean(mem)*1e-6);
-                }
-            }
-            o << "\n";
-            ++cp_index;
-        }
-        o << "------------------------------------------------------------------------\n";
+        o << "\n";
+        ++cp_index;
     }
+    return o;
 }
 
 } // namespace util
