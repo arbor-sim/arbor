@@ -54,7 +54,7 @@ struct cl_options {
     std::string file_extension = "gdf";
 
     // Parameters for spike input.
-    bool spike_file_input;
+    bool spike_file_input = false;
     std::string input_spike_path;  // Path to file with spikes
 
     // Dry run parameters (pertinent only when built with 'dryrun' distrib model).

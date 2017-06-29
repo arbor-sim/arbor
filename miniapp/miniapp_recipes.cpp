@@ -88,10 +88,11 @@ public:
         if (i == ncell_) {
 
             if (param_.spike_file_input) {
-                return util::unique_any(std::move(
 
+                //return util::unique_any(std::move(
 
-                    rss_cell::rss_cell_description(0.0, 0.1, 0.1)));
+                std::cout << param_.input_spike_path << std::endl;
+                //    rss_cell::rss_cell_description(0.0, 0.1, 0.1)));
             }
 
             return util::unique_any(std::move(
@@ -133,7 +134,9 @@ public:
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
             if (param_.spike_file_input) {
-                return cell_kind::data_spike_source;
+
+                std::cout << "We have a spike_file_input setting on true \n";
+                /*return cell_kind::data_spike_source;*/
             }
 
             return cell_kind::regular_spike_source;

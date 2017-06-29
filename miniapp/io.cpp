@@ -4,6 +4,7 @@
 #include <istream>
 #include <memory>
 #include <type_traits>
+#include <iostream>
 
 #include <tclap/CmdLine.h>
 #include <json/json.hpp>
