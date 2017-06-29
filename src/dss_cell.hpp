@@ -17,17 +17,17 @@ public:
     using value_type = double;
 
     struct dss_cell_description {
-        std::unique_ptr< std::vector<value_type> > spike_times;
+        std::vector<value_type> spike_times;
 
-        dss_cell_description(std::unique_ptr< std::vector<value_type> > spike_times):
-            spike_times(move(spike_times))
+        dss_cell_description(std::vector<value_type> &  spike_times):
+            spike_times(spike_times)
         {}
     };
 
     /// Construct a dss cell from its description
     dss_cell(dss_cell_description descr){
-        spike_times_.reserve(descr.spike_times->size());
-        std::copy(descr.spike_times->begin(), descr.spike_times->end(), back_inserter(spike_times_));
+        spike_times_.reserve(descr.spike_times.size());
+        std::copy(descr.spike_times.begin(), descr.spike_times.end(), back_inserter(spike_times_));
 
         // Just be save and sort the spike times, it assures that what we
         // are doing is correct and if this sort is a bottle neck we might have
@@ -51,9 +51,11 @@ public:
         // For loop will exit if we emitted all spikes in the list
         for (; spike_idx < spike_times_.size(); ++spike_idx) {
             // Exit if we are past tfinal
-            if (!spike_times_[spike_idx] < tfinal) {
+            if (spike_times_[spike_idx] >= tfinal) {
                 break;
             }
+
+            std::cout << "Emitting spike at: " << spike_times_[spike_idx] << std::endl;
 
             spikes_this_period.push_back(spike_times_[spike_idx]);
         }

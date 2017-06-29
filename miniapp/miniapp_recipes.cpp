@@ -5,6 +5,7 @@
 
 #include <cell.hpp>
 #include <rss_cell.hpp>
+#include <dss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
 
@@ -89,13 +90,8 @@ public:
         if (i == ncell_) {
 
             if (param_.spike_file_input) {
-
-                auto spikes = io::get_parsed_spike_times_from_path(param_.input_spike_path);
-
-                double value = spikes->at(0);
-
-                std::cout << "spike:" << value << std::endl;
-                //    rss_cell::rss_cell_description(0.0, 0.1, 0.1)));
+                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path);
+                return dss_cell::dss_cell_description(*spike_times.get());
             }
 
             return util::unique_any(std::move(
@@ -139,7 +135,7 @@ public:
             if (param_.spike_file_input) {
 
                 std::cout << "We have a spike_file_input setting on true \n";
-                /*return cell_kind::data_spike_source;*/
+                return cell_kind::data_spike_source;
             }
 
             return cell_kind::regular_spike_source;
