@@ -5,6 +5,9 @@
 #include <memory>
 #include <type_traits>
 #include <iostream>
+#include <sstream>
+#include <string>
+#include <algorithm>
 
 #include <tclap/CmdLine.h>
 #include <json/json.hpp>
@@ -407,41 +410,63 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     return o;
 }
 
-std::unique_ptr<std::vector<double> > parse_spike_times_from_file(
+
+/// Parse spike times from a stream
+/// A single spike per line, white space is ignored
+/// All characters after a parsed double on a line are ignored
+/// Throws a usage error when parsing fails
+///
+/// Returns a unique_ptr to a vector of doubles
+
+std::unique_ptr<std::vector<double> > parse_spike_times_from_stream(
     std::ifstream & fid)
 {
     std::vector<double> * times = new std::vector<double>();
+    std::string line;
+    for (unsigned idx=0; std::getline(fid, line); ++idx) {
+        // Remove all white space from the line
+        line.erase(remove_if(line.begin(), line.end(), isspace), line.end());
+        // Continue if we have empty line
+        if (line.size() == 0) {
+            continue;
+        }
 
-    times->push_back(1.001);
+        //make a stream for the line itself
+        std::istringstream in(line);
+        double parsed_value;
+        // Attempt to read
+        in >> parsed_value;
+
+        // When we encounter a problem
+        if (in.fail()) {
+            std::cerr << "Line #:" << idx << "\n"
+                      << "Problematic content: " << line << "\n";
+            throw usage_error("Unable to parse file with input spikes!");
+        }
+        times->push_back(parsed_value);
+    }
 
     return  std::unique_ptr<std::vector<double> >(std::move(times));
 }
 
+/// Parse spike times from a file supplied in path
+/// A single spike per line, white space is ignored
+/// All characters after a parsed double on a line are ignored
+/// Throws a usage error when opening file or parsing fails
+///
+/// Returns a unique_ptr to a vector of doubles
 
 std::unique_ptr<std::vector<double> > get_parsed_spike_times_from_path(
     const std::string& path)
 {
-
-    std::unique_ptr<std::vector<double> > spikes;
-
     // Read parameters from specified JSON file first, to allow
     // overriding arguments on the command line.
     std::ifstream fid(path);
     if (!fid) {
         throw usage_error("unable to open file with spike_times: " + path);
     }
-    try {
-        // TODO: I guess there is a better way to do this.
-        spikes = parse_spike_times_from_file(fid);
-    }
-    catch (const std::exception& ex) {
 
-    }
-    catch (...) {
-
-    }
-
-    return spikes;
+    return parse_spike_times_from_stream(fid);
 }
 
 } // namespace io
