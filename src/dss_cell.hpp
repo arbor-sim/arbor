@@ -45,17 +45,16 @@ public:
     std::vector<time_type> spikes_until(time_type tfinal) {
         std::vector<time_type> spikes_this_period;
 
-        // Collect spikes in this period, we need the last value of the
-        // spike_idx for the next function call
+        // Add a test for not_emit_idx = len spike_times for early exit
+
+        // Collect spikes in this period
         unsigned spike_idx = not_emit_idx;
-        // For loop will exit if we emitted all spikes in the list
+        // for loop will exit immediately at end of list
         for (; spike_idx < spike_times_.size(); ++spike_idx) {
             // Exit if we are past tfinal
             if (spike_times_[spike_idx] >= tfinal) {
                 break;
             }
-
-            std::cout << "Emitting spike at: " << spike_times_[spike_idx] << std::endl;
 
             spikes_this_period.push_back(spike_times_[spike_idx]);
         }

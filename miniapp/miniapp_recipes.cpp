@@ -88,10 +88,10 @@ public:
     util::unique_any get_cell_description(cell_gid_type i) const override {
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
-
             if (param_.spike_file_input) {
                 auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path);
-                return dss_cell::dss_cell_description(*spike_times.get());
+                return util::unique_any(std::move(
+                    dss_cell::dss_cell_description(*spike_times.get()) ));
             }
 
             return util::unique_any(std::move(
@@ -133,8 +133,6 @@ public:
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
             if (param_.spike_file_input) {
-
-                std::cout << "We have a spike_file_input setting on true \n";
                 return cell_kind::data_spike_source;
             }
 
