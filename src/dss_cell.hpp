@@ -19,6 +19,8 @@ public:
     struct dss_cell_description {
         std::vector<value_type> spike_times;
 
+        /// The description needs a vector of doubles for the description
+
         dss_cell_description(std::vector<value_type> &  spike_times):
             spike_times(spike_times)
         {}
@@ -40,7 +42,7 @@ public:
         return cell_kind::data_spike_source;
     }
 
-    /// Collect all spikes until tfinal.
+    /// Get  all spikes until tfinal.
     // updates the internal time state to tfinal as a side effect
     std::vector<time_type> spikes_until(time_type tfinal) {
         std::vector<time_type> spikes_this_period;
