@@ -91,8 +91,8 @@ cl_options read_options(int argc, char** argv, bool allow_write = true);
 /// Spike times are expected to be in ms.
 /// the default separator is whitespace (including newline)
 
-std::unique_ptr<std::vector<float> > get_spikes_times(
-    const std::string& path, const std::string& separator);
+std::unique_ptr<std::vector<double> > get_parsed_spike_times_from_path(
+    const std::string& path);
 
 
 } // namespace io

@@ -10,6 +10,7 @@
 
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
+#include "io.hpp"
 
 namespace nest {
 namespace mc {
@@ -89,9 +90,11 @@ public:
 
             if (param_.spike_file_input) {
 
-                //return util::unique_any(std::move(
+                auto spikes = io::get_parsed_spike_times_from_path(param_.input_spike_path);
 
-                std::cout << param_.input_spike_path << std::endl;
+                double value = spikes->at(0);
+
+                std::cout << "spike:" << value << std::endl;
                 //    rss_cell::rss_cell_description(0.0, 0.1, 0.1)));
             }
 

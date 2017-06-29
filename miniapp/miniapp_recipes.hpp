@@ -8,6 +8,7 @@
 
 #include "morphology_pool.hpp"
 
+
 // miniapp-specific recipes
 
 namespace nest {

@@ -407,18 +407,23 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     return o;
 }
 
-std::unique_ptr<std::vector<float> > parse_spike_times_from_file(
-    std::ifstream fid)
+std::unique_ptr<std::vector<double> > parse_spike_times_from_file(
+    std::ifstream & fid)
 {
-    std::vector<float> * times = new std::vector<float>();
+    std::vector<double> * times = new std::vector<double>();
 
-    return  std::unique_ptr<std::vector<float> >(std::move(times));
+    times->push_back(1.001);
+
+    return  std::unique_ptr<std::vector<double> >(std::move(times));
 }
 
 
-std::unique_ptr<std::vector<float> > get_spikes_times(
-    const std::string& path, const char separator)
+std::unique_ptr<std::vector<double> > get_parsed_spike_times_from_path(
+    const std::string& path)
 {
+
+    std::unique_ptr<std::vector<double> > spikes;
+
     // Read parameters from specified JSON file first, to allow
     // overriding arguments on the command line.
     std::ifstream fid(path);
@@ -426,8 +431,8 @@ std::unique_ptr<std::vector<float> > get_spikes_times(
         throw usage_error("unable to open file with spike_times: " + path);
     }
     try {
-
-
+        // TODO: I guess there is a better way to do this.
+        spikes = parse_spike_times_from_file(fid);
     }
     catch (const std::exception& ex) {
 
@@ -436,6 +441,7 @@ std::unique_ptr<std::vector<float> > get_spikes_times(
 
     }
 
+    return spikes;
 }
 
 } // namespace io
