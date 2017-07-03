@@ -4,11 +4,12 @@
 #include <fstream>
 #include <lif_cell_description.hpp>
 #include <lif_cell_group.hpp>
+#include <model.hpp>
 #include <recipe.hpp>
 
 using namespace nest::mc;
 
-class ring_recipe: nest::mc::recipe {
+class ring_recipe: public nest::mc::recipe {
 public:
     ring_recipe(cell_size_type n, float weight, float delay):
     ncells_(n), weight_(weight), delay_(delay)
@@ -36,7 +37,6 @@ public:
         conn.dest =   {gid, 0};
         connections.push_back(conn);
         return connections;
-
     }
 
     util::unique_any get_cell_description(cell_gid_type) const override {
@@ -102,7 +102,7 @@ TEST(lif_cell_group, spikes_testing) {
 
     auto gr = cell_group_factory(cell_kind::lif_neuron, 0, cells, backend_policy::use_multicore);
     auto group = dynamic_cast<lif_cell_group*>(gr.get());
-    
+
     std::vector<postsynaptic_spike_event> events;
     std::vector<time_type> incoming_spikes;
     time_type simulation_end = 50;
@@ -147,3 +147,62 @@ TEST(lif_cell_group, spikes_testing) {
     out_spikes_file.close();
     voltage_file.close();
 }
+
+TEST(lif_cell_group, domain_decomposition)
+{
+    // Total number of cells.
+    int num_cells = 100;
+    double weight = 1000;
+    double delay = 1;
+    
+    // Total simulation time.
+    time_type simulation_time = 100;
+    
+    // The time when initial event will be artificially
+    // injected into the neuron with index 0.
+    time_type initial_event_time = 10;
+    
+    // The number of cells in a single cell group.
+    cell_size_type group_size = 10;
+    
+    // Group rules specifies the number of cells in each cell group
+    // and the backend policy.
+    group_rules rules{group_size, backend_policy::use_multicore};
+    domain_decomposition decomp(ring_recipe(num_cells, weight, delay), rules);
+    
+    // Creates a model with a ring recipe of lif neurons
+    model mod(ring_recipe(num_cells, weight, delay), decomp);
+    
+    // Adds artificial event at time initial_event_time.
+    mod.add_artificial_spike({0, 0}, initial_event_time);
+    
+    std::vector<spike> spike_buffer;
+    
+    mod.set_global_spike_callback(
+        [&spike_buffer](const std::vector<spike>& spikes) {
+            spike_buffer.insert(spike_buffer.end(), spikes.begin(), spikes.end());
+        }
+    );
+    
+    // Runs the simulation for simulation_time with given timestep
+    mod.run(simulation_time, 0.01);
+    
+    //spike_gatherer.sort_spikes();
+ 
+    // The number of cell groups.
+    EXPECT_EQ(num_cells / group_size, mod.num_groups());
+    // The total number of cells in all the cell groups.
+    EXPECT_EQ(num_cells, mod.num_cells());
+    
+    // Since delay is 1, we expect to see in each second a single spike.
+    EXPECT_EQ(simulation_time - initial_event_time, mod.num_spikes());
+    
+    for(auto& spike : spike_buffer) {
+        // Assumes that delay = 1
+        EXPECT_EQ(spike.source.gid, spike.time - initial_event_time);
+    }
+    
+    
+    
+}
+

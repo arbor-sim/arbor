@@ -124,11 +124,14 @@ public:
     void advance(time_type tfinal, time_type dt) override {
         // Distribute incoming events to individual cells.
         // This can be done efficiently using GPU.
-        while (auto ev = events_.pop_if_before(tfinal)) {
-            int target_gid = ev->target.gid;
+        while (!events_.empty()) {
+            // Takes event from the queue and pops it.
+            auto ev = events_.front();
+            events_.pop();
+            
+            int target_gid = ev.target.gid;
             // gid -> lid
-            // get value_type from optional<value_type> with get!
-            cell_events_[target_gid - gid_base_].push(ev.get());
+            cell_events_[target_gid - gid_base_].push(ev);
         }
 
         // Can be done efficiently with CUDA
@@ -166,7 +169,11 @@ public:
 
     void reset() override {
         spikes_.clear();
-        events_.clear();
+        
+        // Standard way of clearing standard STL containers
+        // by swapping with an empty container.
+        std::queue<postsynaptic_spike_event> empty;
+        std::swap(events_, empty);
         
         // TODO: Remove after testing.
         voltage_.clear();
@@ -195,7 +202,7 @@ private:
     std::vector<spike> spikes_;
 
     // Pending events to be delivered.
-    event_queue<postsynaptic_spike_event> events_;
+    std::queue<postsynaptic_spike_event> events_;
 
     // Pending events per cell.
     std::vector<event_queue<postsynaptic_spike_event> > cell_events_;
