@@ -4,14 +4,15 @@
 #include <utility>
 
 #include <cell.hpp>
-#include <rss_cell.hpp>
 #include <dss_cell.hpp>
+#include <rss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
 
+#include "io.hpp"
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
-#include "io.hpp"
+
 
 namespace nest {
 namespace mc {
@@ -86,7 +87,8 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        // The last 'cell' is a rss_cell with one spike at t=0
+        // The last 'cell' is a spike source cell. Either a regular spiking
+        // or a spikes from file.
         if (i == ncell_) {
             if (param_.spike_file_input) {
                 auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path);

@@ -10,11 +10,10 @@ namespace nest {
 namespace mc {
 
 /// data spike source: A cell that generates spikes provided as a vector of
-/// double valued spiketimes at the start of a run
+/// floating point valued spiketimes at the start of a run
 
 class dss_cell {
 public:
-
     struct dss_cell_description {
         std::vector<time_type> spike_times;
 
@@ -26,6 +25,7 @@ public:
     };
 
     /// Construct a dss cell from its description
+
     dss_cell(dss_cell_description descr){
         spike_times_.reserve(descr.spike_times.size());
         std::copy(descr.spike_times.begin(), descr.spike_times.end(), back_inserter(spike_times_));
@@ -37,16 +37,16 @@ public:
     }
 
     /// Return the kind of cell, used for grouping into cell_groups
+
     cell_kind  get_cell_kind() const  {
         return cell_kind::data_spike_source;
     }
 
     /// Get  all spikes until tfinal.
+
     // updates the internal time state to tfinal as a side effect
     std::vector<time_type> spikes_until(time_type tfinal) {
         std::vector<time_type> spikes_this_period;
-
-        // Add a test for not_emit_idx = len spike_times for early exit
 
         // Collect spikes in this period
         unsigned spike_idx = not_emit_idx;

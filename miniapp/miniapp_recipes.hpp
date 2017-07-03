@@ -8,7 +8,6 @@
 
 #include "morphology_pool.hpp"
 
-
 // miniapp-specific recipes
 
 namespace nest {
@@ -45,7 +44,6 @@ struct basic_recipe_param {
     // instead of a single spike at t==0
     bool spike_file_input;
     std::string input_spike_path;  // Path to file with spikes
-
 };
 
 std::unique_ptr<recipe> make_basic_ring_recipe(

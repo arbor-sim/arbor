@@ -6,7 +6,6 @@ using namespace  nest::mc;
 
 TEST(dss_cell, constructor)
 {
-
     std::vector<time_type> spikes;
 
     auto descr = dss_cell::dss_cell_description(spikes);

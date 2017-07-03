@@ -1,12 +1,11 @@
 #pragma once
 
-#include <string>
 #include <cstdint>
 #include <iosfwd>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
-#include <string>
 
 #include <common_types.hpp>
 #include <util/optional.hpp>
@@ -87,14 +86,12 @@ std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
 cl_options read_options(int argc, char** argv, bool allow_write = true);
 
-
 /// Helper function for loading a vector of spike times from file
-/// Spike times are expected to be in ms.
-/// the default separator is whitespace (including newline)
+/// Spike times are expected to be in milli seconds floating points
+/// On spike-time per line
 
 std::unique_ptr<std::vector<time_type> > get_parsed_spike_times_from_path(
     const std::string& path);
-
 
 } // namespace io
 } // namespace mc

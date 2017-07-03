@@ -47,7 +47,7 @@ public:
     {} // Nothing to do?
 
     void advance(time_type tfinal, time_type dt) override {
-        // TODO: Move source information to rss_cell implementation
+        // TODO: Move source information to dss_cell implementation
         for (auto i: util::make_span(0, cells_.size())) {
             for (auto spike_time: cells_[i].spikes_until(tfinal)) {
                 spikes_.push_back({spike_sources_[i], spike_time});
