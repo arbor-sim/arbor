@@ -1,13 +1,12 @@
 #include <algorithm>
 #include <exception>
 #include <fstream>
+#include <iostream>
 #include <istream>
 #include <memory>
-#include <type_traits>
-#include <iostream>
 #include <sstream>
 #include <string>
-#include <algorithm>
+#include <type_traits>
 
 #include <tclap/CmdLine.h>
 #include <json/json.hpp>
@@ -439,9 +438,10 @@ std::unique_ptr<std::vector<double> > parse_spike_times_from_stream(
 
         // When we encounter a problem
         if (in.fail()) {
-            std::cerr << "Line #:" << idx << "\n"
-                      << "Problematic content: " << line << "\n";
-            throw usage_error("Unable to parse file with input spikes!");
+            std::string error_str = std::string("Unable to parse file with input spikes! \n")
+                + "Line #:" + std::to_string(idx) + "\n"
+                + "Problematic content: " + line + "\n";
+            throw usage_error(error_str.c_str());
         }
         times->push_back(parsed_value);
     }
