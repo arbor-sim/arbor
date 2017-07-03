@@ -42,7 +42,8 @@ fig.suptitle(r'LIF neuron', fontsize=20)
 # plot out spikes (spikes produced by LIF neuron)
 ax_out = fig.add_subplot(3, 1, 2)
 
-ax_out.set_xlabel("Output spikes time [ms]", fontsize=15)
+ax_out.set_xlabel("Time [ms]", fontsize=13)
+ax_out.set_ylabel("Output spikes", fontsize=13)
 
 for time in out_spikes:
     ax_out.axvline(time)
@@ -50,14 +51,16 @@ for time in out_spikes:
 # plot in spikes (spikes that neuron LIF has received, i.e. events)
 ax_in = fig.add_subplot(3, 1, 3, sharex = ax_out)
 
-ax_in.set_xlabel("Input spikes time [ms]", fontsize=15)
+ax_in.set_xlabel("Time [ms]", fontsize=13)
+ax_in.set_ylabel("Input spikes", fontsize=13)
 
 for time in in_spikes:
     ax_in.axvline(time)
 
 # plot voltage of LIF neuron
 ax_voltage = fig.add_subplot(3, 1, 1, sharex = ax_out)
-ax_voltage.set_xlabel("Membrane potential [mV]", fontsize=15)
+ax_voltage.set_xlabel("Time [ms]", fontsize=13)
+ax_voltage.set_ylabel("Voltage [mV]", fontsize = 13)
 
 ax_voltage.plot(times, voltages)
 
