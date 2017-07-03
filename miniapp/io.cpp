@@ -417,10 +417,10 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
 ///
 /// Returns a unique_ptr to a vector of doubles
 
-std::unique_ptr<std::vector<double> > parse_spike_times_from_stream(
+std::unique_ptr<std::vector<time_type> > parse_spike_times_from_stream(
     std::ifstream & fid)
 {
-    std::vector<double> * times = new std::vector<double>();
+    std::vector<time_type> * times = new std::vector<time_type>();
     std::string line;
     for (unsigned idx=0; std::getline(fid, line); ++idx) {
         // Remove all white space from the line
@@ -432,7 +432,7 @@ std::unique_ptr<std::vector<double> > parse_spike_times_from_stream(
 
         //make a stream for the line itself
         std::istringstream in(line);
-        double parsed_value;
+        time_type parsed_value;
         // Attempt to read
         in >> parsed_value;
 
@@ -446,7 +446,7 @@ std::unique_ptr<std::vector<double> > parse_spike_times_from_stream(
         times->push_back(parsed_value);
     }
 
-    return  std::unique_ptr<std::vector<double> >(std::move(times));
+    return  std::unique_ptr<std::vector<time_type> >(std::move(times));
 }
 
 /// Parse spike times from a file supplied in path
@@ -456,7 +456,7 @@ std::unique_ptr<std::vector<double> > parse_spike_times_from_stream(
 ///
 /// Returns a unique_ptr to a vector of doubles
 
-std::unique_ptr<std::vector<double> > get_parsed_spike_times_from_path(
+std::unique_ptr<std::vector<time_type> > get_parsed_spike_times_from_path(
     const std::string& path)
 {
     // Read parameters from specified JSON file first, to allow

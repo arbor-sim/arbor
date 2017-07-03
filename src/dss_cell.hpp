@@ -14,14 +14,13 @@ namespace mc {
 
 class dss_cell {
 public:
-    using value_type = double;
 
     struct dss_cell_description {
-        std::vector<value_type> spike_times;
+        std::vector<time_type> spike_times;
 
         /// The description needs a vector of doubles for the description
 
-        dss_cell_description(std::vector<value_type> &  spike_times):
+        dss_cell_description(std::vector<time_type> &  spike_times):
             spike_times(spike_times)
         {}
     };
@@ -73,7 +72,7 @@ public:
 
 private:
     // (sorted) Vector of spikes that to be emitted by this spike source
-    std::vector<value_type> spike_times_;
+    std::vector<time_type> spike_times_;
 
     // Index to the first spike not yet emitted
     unsigned not_emit_idx = 0;
