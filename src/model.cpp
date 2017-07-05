@@ -189,10 +189,6 @@ std::size_t model::num_groups() const {
     return cell_groups_.size();
 }
 
-std::size_t model::num_cells() const {
-    return domain_.num_local_cells();
-}
-
 void model::set_binning_policy(binning_kind policy, time_type bin_interval) {
     for (auto& group: cell_groups_) {
         group->set_binning_policy(policy, bin_interval);

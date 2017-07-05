@@ -34,14 +34,13 @@ public:
 
     std::size_t num_spikes() const;
 
-    std::size_t num_groups() const;
-
-    std::size_t num_cells() const;
-
     // Set event binning policy on all our groups.
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
     // access cell_group directly
+    // TODO: depricate. Currently used in some validation tests to inject
+    // events directly into a cell group. This should be done with a spiking
+    // neuron.
     cell_group& group(int i);
 
     // register a callback that will perform a export of the global
@@ -53,6 +52,8 @@ public:
     void set_local_spike_callback(spike_export_function export_callback);
 
 private:
+    std::size_t num_groups() const;
+
     const domain_decomposition &domain_;
 
     time_type t_ = 0.;

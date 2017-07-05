@@ -245,7 +245,7 @@ void profilers_stop();
 void profilers_restart();
 
 /// print the collated profiler to std::cout
-void profiler_output(double threshold, std::size_t num_local_work_items, bool profile_only_zero);
+void profiler_output(double threshold, bool profile_only_zero);
 
 } // namespace util
 } // namespace mc
