@@ -169,11 +169,8 @@ public:
 
     void reset() override {
         spikes_.clear();
-        
-        // Standard way of clearing standard STL containers
-        // by swapping with an empty container.
-        std::queue<postsynaptic_spike_event> empty;
-        std::swap(events_, empty);
+        // STL queue does not support clear()
+        events_ = {};
         
         // TODO: Remove after testing.
         voltage_.clear();

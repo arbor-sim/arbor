@@ -60,6 +60,7 @@ set(TEST_SOURCES
     test_path.cpp
     test_point.cpp
     test_probe.cpp
+    test_pss_cell_group.cpp
     test_segment.cpp
     test_range.cpp
     test_span.cpp
