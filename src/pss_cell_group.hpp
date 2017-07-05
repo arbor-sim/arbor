@@ -30,7 +30,7 @@ public:
 
         // Hardcoded seed!
         // TODO: Make general architecture for random seeds for the whole library.
-        generator_.seed(3521 + first_gid_);
+        generator_.seed(3521 + first_gid);
 
         // Sample times of next spike for each cell.
         // This is necessary since the method "advance" assumes
