@@ -44,25 +44,7 @@ public:
     /// Get  all spikes until tfinal.
     // updates the internal time state to tfinal as a side effect
     std::vector<time_type> spikes_until(time_type tfinal) {
-        /*
-        std::vector<time_type> spikes_this_period;
 
-        // Collect spikes in this period
-        unsigned spike_idx = not_emit_idx;
-        // for loop will exit immediately at end of list
-        for (; spike_idx < spike_times_.size(); ++spike_idx) {
-            // Exit if we are past tfinal
-            if (spike_times_[spike_idx] >= tfinal) {
-                break;
-            }
-
-            spikes_this_period.push_back(spike_times_[spike_idx]);
-        }
-        // Save spike_idx for next function call
-        not_emit_idx = spike_idx;
-
-        return spikes_this_period;
-        */
         auto first = not_emit_it;
         not_emit_it = std::find_if(
             first, spike_times_.end(),
