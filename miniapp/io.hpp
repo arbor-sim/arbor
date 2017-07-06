@@ -90,7 +90,7 @@ cl_options read_options(int argc, char** argv, bool allow_write = true);
 /// Spike times are expected to be in milli seconds floating points
 /// On spike-time per line
 
-std::unique_ptr<std::vector<time_type> > get_parsed_spike_times_from_path(
+std::vector<time_type>  get_parsed_spike_times_from_path(
     const std::string& path);
 
 } // namespace io

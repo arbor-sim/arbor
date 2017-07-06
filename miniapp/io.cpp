@@ -13,6 +13,7 @@
 
 #include <util/meta.hpp>
 #include <util/optional.hpp>
+#include <util/strprintf.hpp>
 
 #include "io.hpp"
 
@@ -417,35 +418,26 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
 ///
 /// Returns a unique_ptr to a vector of time_type
 
-std::unique_ptr<std::vector<time_type> > parse_spike_times_from_stream(
-    std::ifstream & fid) {
-    std::vector<time_type> * times = new std::vector<time_type>();
+std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
+    std::vector<time_type> times;
     std::string line;
-    for (unsigned idx=0; std::getline(fid, line); ++idx) {
-        // Remove all white space from the line
-        line.erase(remove_if(line.begin(), line.end(), isspace), line.end());
-        // Continue if we have empty line
-        if (line.size() == 0) {
-            continue;
+    while (std::getline(fid, line)) {
+        std::stringstream s(line);
+
+        time_type t;
+        s >> t >> std::ws;
+
+        if (!s || s.peek() != EOF) {
+            throw std::runtime_error(
+                util::strprintf(
+                    "Unable to parse spike file on line %d: \"%s\"\n",
+                    times.size(), line));
         }
 
-        //make a stream from the line
-        std::istringstream in(line);
-        time_type parsed_value;
-        // Attempt to read
-        in >> parsed_value;
-
-        // When we encounter a problem
-        if (in.fail()) {
-            std::string error_str = std::string("Unable to parse file with input spikes! \n")
-                + "Line #:" + std::to_string(idx) + "\n"
-                + "Problematic content: " + line + "\n";
-            throw usage_error(error_str.c_str());
-        }
-        times->push_back(parsed_value);
+        times.push_back(t);
     }
 
-    return  std::unique_ptr<std::vector<time_type> >(std::move(times));
+    return times;
 }
 
 /// Parse spike times from a file supplied in path
@@ -455,13 +447,13 @@ std::unique_ptr<std::vector<time_type> > parse_spike_times_from_stream(
 ///
 /// Returns a unique_ptr to a vector of time_type
 
-std::unique_ptr<std::vector<time_type> > get_parsed_spike_times_from_path(
+std::vector<time_type> get_parsed_spike_times_from_path(
     const std::string& path) {
     // Read parameters from specified JSON file first, to allow
     // overriding arguments on the command line.
     std::ifstream fid(path);
     if (!fid) {
-        throw usage_error("unable to open file with spike_times: " + path);
+        throw usage_error("Unable to open file with spike_times: " + path);
     }
 
     return parse_spike_times_from_stream(fid);
