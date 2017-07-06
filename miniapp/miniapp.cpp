@@ -196,8 +196,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     p.synapse_type = options.syn_type;
 
     // Parameters for spike input from file
-    p.spike_file_input = options.spike_file_input;
-    if (p.spike_file_input) {
+    if (options.spike_file_input) {
         p.input_spike_path = options.input_spike_path;
     }
 

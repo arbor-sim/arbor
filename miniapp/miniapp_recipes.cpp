@@ -90,8 +90,8 @@ public:
         // The last 'cell' is a spike source cell. Either a regular spiking
         // or a spikes from file.
         if (i == ncell_) {
-            if (param_.spike_file_input) {
-                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path);
+            if (param_.input_spike_path) {
+                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.get());
                 return util::unique_any(dss_cell::dss_cell_description(spike_times));
             }
 
@@ -132,7 +132,7 @@ public:
     cell_kind get_cell_kind(cell_gid_type i ) const override {
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
-            if (param_.spike_file_input) {
+            if (param_.input_spike_path) {
                 return cell_kind::data_spike_source;
             }
 
