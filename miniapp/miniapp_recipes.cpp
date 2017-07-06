@@ -92,12 +92,10 @@ public:
         if (i == ncell_) {
             if (param_.spike_file_input) {
                 auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path);
-                return util::unique_any(std::move(
-                    dss_cell::dss_cell_description(spike_times)));
+                return util::unique_any(dss_cell::dss_cell_description(spike_times));
             }
 
-            return util::unique_any(std::move(
-                rss_cell::rss_cell_description(0.0, 0.1, 0.1) ));
+            return util::unique_any(rss_cell::rss_cell_description(0.0, 0.1, 0.1));
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...

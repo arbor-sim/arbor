@@ -427,8 +427,7 @@ std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
         s >> t >> std::ws;
 
         if (!s || s.peek() != EOF) {
-            throw std::runtime_error(
-                util::strprintf(
+            throw std::runtime_error( util::strprintf(
                     "Unable to parse spike file on line %d: \"%s\"\n",
                     times.size(), line));
 
@@ -447,13 +446,12 @@ std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
 ///
 /// Returns a vector of time_type
 
-std::vector<time_type> get_parsed_spike_times_from_path(
-    const std::string& path) {
-    // Read parameters from specified JSON file first, to allow
-    // overriding arguments on the command line.
+std::vector<time_type> get_parsed_spike_times_from_path(nest::mc::util::path path) {
+    // Open the spike file
     std::ifstream fid(path);
     if (!fid) {
-        throw std::runtime_error("Unable to open file with spike_times: " + path);
+        throw std::runtime_error(util::strprintf(
+            "Unable to parse spike file: \"%s\"\n", path.c_str()));
     }
 
     return parse_spike_times_from_stream(fid);

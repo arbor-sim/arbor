@@ -9,6 +9,7 @@
 
 #include <common_types.hpp>
 #include <util/optional.hpp>
+#include <util/path.hpp>
 
 namespace nest {
 namespace mc {
@@ -90,8 +91,7 @@ cl_options read_options(int argc, char** argv, bool allow_write = true);
 /// Spike times are expected to be in milli seconds floating points
 /// On spike-time per line
 
-std::vector<time_type>  get_parsed_spike_times_from_path(
-    const std::string& path);
+std::vector<time_type>  get_parsed_spike_times_from_path(nest::mc::util::path path);
 
 } // namespace io
 } // namespace mc
