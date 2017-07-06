@@ -38,7 +38,7 @@ public:
     // TODO: Remove this after testing.
     // Samples voltage from time t to tfinal with resolution
     // given by class parameter sampling_dt_
-    void sample_voltage(value_type v, value_type E_L, value_type tau_m, time_type t, time_type tend, bool refractory_period) {
+    void sample_voltage(value_type v, value_type E_L, value_type tau_m, time_type tend, bool refractory_period) {
         time_type start = last_time_voltage_updated_;
 
         for(time_type time = last_time_voltage_updated_; time < tend; time += sampling_dt_) {
@@ -81,10 +81,10 @@ public:
                 continue;
             }
 
-            // TODO: remove this after testing
-            // used just for sampling voltage
-            if(sampling_dt_ > 0) {
-                sample_voltage(cell.V_m, cell.E_L, cell.tau_m, t, spike_time, false);
+            // TODO: Remove this after testing
+            // used just for sampling the voltage.
+            if(sampling_dt_ > 0 && gid_base_ == 0 && lid == 0) {
+                sample_voltage(cell.V_m, cell.E_L, cell.tau_m, spike_time, false);
             }
 
             // Let the membrane potential decay.
@@ -103,8 +103,8 @@ public:
 
                 // TODO: Remove this after testing!
                 // Used just for sampling voltage.
-                if(sampling_dt_ > 0) {
-                    sample_voltage(cell.V_m, cell.E_L, cell.tau_m, t, t + cell.t_ref, true);
+                if(sampling_dt_ > 0 && gid_base_ == 0 && lid == 0) {
+                    sample_voltage(cell.V_m, cell.E_L, cell.tau_m, t + cell.t_ref, true);
                 }
 
                 // Advance last_time_updated.
@@ -112,9 +112,6 @@ public:
 
                 // Reset the voltage to resting potential.
                 cell.V_m = cell.E_L;
-
-                // TODO: should reset the voltage to V_reset instead and let it
-                // exponentially grow to E_L inside the refractory period
             }
             // This is the last time a cell was updated.
             last_time_updated_[lid] = t;
@@ -128,13 +125,13 @@ public:
             // Takes event from the queue and pops it.
             auto ev = events_.front();
             events_.pop();
-            
+
             int target_gid = ev.target.gid;
             // gid -> lid
             cell_events_[target_gid - gid_base_].push(ev);
         }
 
-        // Can be done efficiently with CUDA
+        // Can be done efficiently on GPU
         // advance each cell independently.
         for(int i = 0; i < cells_.size(); ++i) {
             advance_cell(tfinal, dt, i);
@@ -157,7 +154,7 @@ public:
 
     // TODO: implement sampler
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override {}
-    
+
     // TODO: implement binner_
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {
     }
@@ -171,7 +168,7 @@ public:
         spikes_.clear();
         // STL queue does not support clear()
         events_ = {};
-        
+
         // TODO: Remove after testing.
         voltage_.clear();
         last_time_voltage_updated_ = 0;
@@ -213,12 +210,11 @@ private:
     time_type sampling_dt_ = 0;
 
     // Assuming we have only 1 neuron in the group that
-    // we want to track for the voltage.
+    // we want to track the voltage of.
     std::vector<std::pair<time_type, value_type> > voltage_;
 
     // Last time voltage was updated.
     time_type last_time_voltage_updated_ = 0;
-
 };
 } // namespace mc
 } // namespace nest

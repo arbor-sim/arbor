@@ -92,7 +92,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     // minimum delay of the network, however we use half this period
     // to overlap communication and computation.
     time_type t_interval = communicator_.min_delay()/2;
-
     time_type tuntil;
 
     // task that updates cell state in parallel.

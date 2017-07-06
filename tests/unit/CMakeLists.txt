@@ -34,6 +34,7 @@ set(TEST_SOURCES
     test_algorithms.cpp
     test_any.cpp
     test_backend.cpp
+    test_brunel_network.cpp
     test_double_buffer.cpp
     test_cell.cpp
     test_compartments.cpp

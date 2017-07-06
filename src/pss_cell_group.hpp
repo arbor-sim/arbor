@@ -29,16 +29,20 @@ public:
         }
 
         // Hardcoded seed!
-        // TODO: Make general architecture for random seeds for the whole library.
-        generator_.seed(3521 + first_gid);
+        // TODO: Make a general architecture for random seeds in the library.
+        generator_.reserve(cells.size());
+        // Seed generator of each cell is based on their gid.
+        for (auto i: util::make_span(0, cells_.size())) {
+            generator_[i].seed(3521 + first_gid + i);
+        }
 
         // Sample times of next spike for each cell.
         // This is necessary since the method "advance" assumes
-        // that the spike times are sampled in the previous step.
+        // that the spike times had been sampled in the previous step.
         next_spike_time_.reserve(cells.size());
         for (auto i: util::make_span(0, cells_.size())) {
-            // Since lambda=1/rate, this corresponds to Poisson(rate) distribution
-            next_spike_time_[i] = exp_dist_(generator_) * cells_[i].lambda;
+            // Since lambda=1/rate, this corresponds to Poisson(rate) distribution.
+            next_spike_time_[i] = exp_dist_(generator_[i]) * cells_[i].lambda;
         }
     }
 
@@ -49,16 +53,16 @@ public:
     // Produces Poisson-distributed spikes up to tfinal.
     // Parameter dt is ignored!
     void advance(time_type tfinal, time_type dt) override {
-        // Iterates over cells.
+        // For each cell, sample spikes up to tfinal.
         for (auto i: util::make_span(0, cells_.size())) {
             while(next_spike_time_[i] < tfinal) {
-                // Produce spike from the previously sample spike time
+                // Produce a spike from the previously sampled spike time.
                 cell_member_type spike_neuron_gid = {gid_base_ + cell_gid_type(i), 0};
                 spike s = {spike_neuron_gid, next_spike_time_[i]};
                 spikes_.push_back(s);
 
                 // Sample next spike time of this cell.
-                next_spike_time_[i] += exp_dist_(generator_) * cells_[i].lambda;
+                next_spike_time_[i] += exp_dist_(generator_[i]) * cells_[i].lambda;
             }
         }
     }
@@ -78,7 +82,7 @@ public:
     }
 
     void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override {
-        std::logic_error("The pss_cells do not support sampling of internal state!");
+        std::logic_error("Poisson neurons do not support sampling of internal state!");
     }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {
@@ -105,7 +109,7 @@ private:
     std::vector<spike> spikes_;
 
     // Random number generator.
-    std::minstd_rand generator_;
+    std::vector<std::mt19937> generator_;
 
     // Unit exponential distribution (with mean 1).
     std::exponential_distribution<time_type> exp_dist_;
