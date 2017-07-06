@@ -412,11 +412,10 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
 
 
 /// Parse spike times from a stream
-/// A single spike per line, white space is ignored
-/// All characters after a parsed floating point nr on a line are ignored
+/// A single spike per line, trailing whitespace is ignore
 /// Throws a usage error when parsing fails
 ///
-/// Returns a unique_ptr to a vector of time_type
+/// Returns a vector of time_type
 
 std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
     std::vector<time_type> times;
@@ -432,6 +431,8 @@ std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
                 util::strprintf(
                     "Unable to parse spike file on line %d: \"%s\"\n",
                     times.size(), line));
+
+            std::cout << t << std::endl;
         }
 
         times.push_back(t);
@@ -441,11 +442,10 @@ std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
 }
 
 /// Parse spike times from a file supplied in path
-/// A single spike per line, white space is ignored
-/// All characters after a parsed floating point nr. on a line are ignored
+/// A single spike per line, trailing white space is ignored
 /// Throws a usage error when opening file or parsing fails
 ///
-/// Returns a unique_ptr to a vector of time_type
+/// Returns a vector of time_type
 
 std::vector<time_type> get_parsed_spike_times_from_path(
     const std::string& path) {
@@ -453,7 +453,7 @@ std::vector<time_type> get_parsed_spike_times_from_path(
     // overriding arguments on the command line.
     std::ifstream fid(path);
     if (!fid) {
-        throw usage_error("Unable to open file with spike_times: " + path);
+        throw std::runtime_error("Unable to open file with spike_times: " + path);
     }
 
     return parse_spike_times_from_stream(fid);
