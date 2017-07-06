@@ -64,3 +64,5 @@ commit.msg
 
 # eclipse remote sync folders
 .ptp-sync-folder
+
+.DS_Store
