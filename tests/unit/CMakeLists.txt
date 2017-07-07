@@ -22,6 +22,7 @@ set(TEST_CUDA_SOURCES
     test_gpu_stack.cu
     test_matrix.cu
     test_multi_event_stream.cu
+    test_reduce_by_key.cu
     test_spikes.cu
     test_vector.cu
 

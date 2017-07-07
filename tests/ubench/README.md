@@ -120,3 +120,61 @@ Platform:
 | 32768  | 102880 ns | 296836 ns | 265169 ns | 16758 ns |
 | 262144 | 661724 ns | 305209 ns | 269095 ns | 19792 ns |
 
+---
+
+### `cuda_reduce_by_index`
+
+#### Motivation
+
+The reduction by key pattern with repeated keys is used when "point process" mechanism contributions to currents are collected.
+More than one point process, typically synapses, can be attached to a compartment,
+and when their contributions are computed and added to the per-compartment current in parallel, care must be taken to avoid race conditions.
+Early versions of NestMC used cuda atomic operations to perform the accumulation, which works quite well up to a certain point.
+However, performance with atomics decreases as the number of synapses per compartment increases, i.e. as the number of threads performing simultatneous atomic updates on the same location increases.
+
+#### Implementations
+
+Two implementations are considered:
+
+1. Perform reductions inside each warp, which is a multi-step process:
+    1. threads inside each warp determine which other threads they must perform a reduction with
+    2. threads perform a binary reduction tree operation using warp shuffle intrinsics
+    3. one thread performs a CUDA atomic update for each key.
+    4. note that this approach takes advantage of the keys being sorted in ascending order
+
+2. The naive (however simple) use of CUDA atomics.
+
+#### Results
+
+Platform:
+* Xeon(R) CPU E5-2650 v4 (Haswell 12 cores @ 2.20 GHz)
+* Tesla P100-PCIE-16GB
+* Linux 3.10.0
+* gcc version 5.2.0
+* nvcc version 8.0.61
+
+Results are presented as speedup for warp intrinsics vs atomics, for both single and double precision.
+Note that the P100 GPU has hardware support for double precision atomics, and we expect much larger speedup for double precision on Keplar GPUs that emulate double precision atomics with CAS.
+The benchmark updates `n` locations, each with an average density of `d` keys per location.
+This is equivalent to `n` compartments with `d` synapses per compartment.
+Atomics are faster for the case where both `n` and `d` are small, however the gpu is backend is for throughput simulations, with large cell groups with at least 10k compartments in total.
+
+*float*
+
+| _n_    | d=1  | d=10 | d=100| d=1000|
+|--------|------|------|------|-------|
+| 100    | 0.75 | 0.80 | 1.66 | 10.7  |
+| 1k     | 0.76 | 0.87 | 3.15 | 12.5  |
+| 10k    | 0.87 | 1.14 | 3.52 | 14.0  |
+| 100k   | 0.92 | 1.34 | 3.58 | 15.5  |
+| 1000k  | 1.18 | 1.43 | 3.53 | 15.2  |
+
+*double*
+
+| _n_    | d=1  | d=10 | d=100| d=1000|
+|--------|------|------|------|-------|
+| 100    | 0.91 | 0.94 | 1.82 |  9.0  |
+| 1k     | 0.89 | 0.99 | 2.38 | 10.0  |
+| 10k    | 0.94 | 1.09 | 2.42 | 11.1  |
+| 100k   | 0.98 | 1.59 | 2.36 | 11.4  |
+| 1000k  | 1.13 | 1.63 | 2.36 | 11.4  |

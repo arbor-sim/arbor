@@ -43,6 +43,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("#include <algorithms.hpp>");
     text_.add_line("#include <backends/gpu/intrinsics.hpp>");
     text_.add_line("#include <backends/gpu/multi_event_stream.hpp>");
+    text_.add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 
@@ -878,11 +879,13 @@ void CUDAPrinter::print_APIMethod_body(ProcedureExpression* e) {
             in->accept(this);
         }
         else {
-            text_ << (out->op()==tok::plus ? "cuda_atomic_add" : "cuda_atomic_sub") << "(&";
-            out->accept(this);
-            text_ << ", ";
+            text_ << "nest::mc::gpu::reduce_by_key(";
+            if (out->op()==tok::minus) text_ << "-";
             in->accept(this);
-            text_ << ")";
+            // reduce_by_key() takes a pointer to the start of the target
+            // array as a parameter. This requires writing the index_name of out, which
+            // we can safely assume is an indexed_variable by this point.
+            text_ << ", params_." << out->is_indexed_variable()->index_name() << ", gid_)";
         }
         text_.end_line(";");
     }

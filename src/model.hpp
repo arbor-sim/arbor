@@ -28,12 +28,6 @@ public:
 
     time_type run(time_type tfinal, time_type dt);
 
-    // only thread safe if called outside the run() method
-    void add_artificial_spike(cell_member_type source);
-
-    // only thread safe if called outside the run() method
-    void add_artificial_spike(cell_member_type source, time_type tspike);
-
     void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0);
 
     const std::vector<probe_record>& probes() const;
