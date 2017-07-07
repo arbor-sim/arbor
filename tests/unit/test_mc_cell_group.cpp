@@ -23,14 +23,14 @@ cell make_cell() {
 
 
 TEST(mc_cell_group, get_kind) {
-    mc_cell_group<fvm_cell> group{ 0, util::singleton_view(make_cell()) };
+    mc_cell_group<fvm_cell> group{ {0}, util::singleton_view(make_cell()) };
 
     // we are generating a mc_cell_group which should be of the correct type
     EXPECT_EQ(cell_kind::cable1d_neuron, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
-    mc_cell_group<fvm_cell> group{0, util::singleton_view(make_cell())};
+    mc_cell_group<fvm_cell> group{{0}, util::singleton_view(make_cell())};
 
     group.advance(50, 0.01);
 
@@ -48,7 +48,7 @@ TEST(mc_cell_group, sources) {
     cell.add_detector({1, 0.3}, 2.3);
 
     cell_gid_type first_gid = 37u;
-    auto group = cell_group_type{first_gid, util::singleton_view(cell)};
+    auto group = cell_group_type{{first_gid}, util::singleton_view(cell)};
 
     // expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero

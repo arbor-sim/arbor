@@ -3,7 +3,7 @@
 #include "../gtest.h"
 #include "validate_synapses.hpp"
 
-const auto backend = nest::mc::backend_policy::prefer_gpu;
+const auto backend = nest::mc::backend_policy::gpu;
 
 TEST(simple_synapse, expsyn_neuron_ref) {
     SCOPED_TRACE("expsyn");

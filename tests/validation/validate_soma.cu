@@ -2,7 +2,7 @@
 
 #include "../gtest.h"
 
-const auto backend = nest::mc::backend_policy::prefer_gpu;
+const auto backend = nest::mc::backend_policy::gpu;
 
 TEST(soma, numeric_ref) {
     validate_soma(backend);

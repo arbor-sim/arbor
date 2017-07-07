@@ -85,11 +85,8 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        group_rules rules;
-        rules.policy = config::has_cuda?
-            backend_policy::prefer_gpu: backend_policy::use_multicore;
-        rules.target_group_size = options.group_size;
-        auto decomp = domain_decomposition(*recipe, rules);
+        node_description nd(1, 0);
+        auto decomp = domain_decomposition(*recipe, nd);
 
         model m(*recipe, decomp);
 

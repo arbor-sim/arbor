@@ -2,7 +2,7 @@
 
 #include "../gtest.h"
 
-const auto backend = nest::mc::backend_policy::prefer_gpu;
+const auto backend = nest::mc::backend_policy::gpu;
 
 TEST(kinetic, kin1_numeric_ref) {
     validate_kinetic_kin1(backend);

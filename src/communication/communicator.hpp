@@ -10,7 +10,9 @@
 #include <common_types.hpp>
 #include <connection.hpp>
 #include <communication/gathered_vector.hpp>
+#include <domain_decomposition.hpp>
 #include <event_queue.hpp>
+#include <recipe.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
 #include <util/double_buffer.hpp>
@@ -45,31 +47,69 @@ public:
 
     communicator() {}
 
-    explicit communicator(gid_partition_type cell_gid_partition):
-        cell_gid_partition_(cell_gid_partition)
-    {}
-
-    cell_local_size_type num_groups_local() const
+    explicit communicator(
+            const recipe& rec,
+            const domain_decomposition& dom_dec,
+            const gid_prop_map& gid_props)
     {
-        return cell_gid_partition_.size();
-    }
+        using util::make_span;
+        auto num_domains_ = comms_.size();
+        auto num_local_groups_ = dom_dec.num_local_groups();
 
-    void add_connection(connection con) {
-        EXPECTS(is_local_cell(con.destination().gid));
-        connections_.push_back(con);
-    }
-
-    /// returns true if the cell with gid is on the domain of the caller
-    bool is_local_cell(cell_gid_type gid) const {
-        return algorithms::in_interval(gid, cell_gid_partition_.bounds());
-    }
-
-    /// builds the optimized data structure
-    /// must be called after all connections have been added
-    void construct() {
-        if (!std::is_sorted(connections_.begin(), connections_.end())) {
-            threading::sort(connections_);
+        // Make a list of local gid.
+        std::vector<cell_gid_type> gids;
+        gids.reserve(dom_dec.num_local_cells());
+        for (auto i: make_span(0, num_local_groups_)) {
+            const auto& group = dom_dec.get_group(i);
+            for (auto gid: group.gids()) {
+                gids.push_back(gid);
+            }
         }
+
+        // Count the number of connections
+        //  -> accumulate in n_cons
+        // Calculate and store domain id of the presynaptic cell on each connection
+        //  -> store in ps_doms
+        // Also the count of presynaptic sources from each domain
+        //  -> store in ps_cnts
+        cell_local_size_type n_cons = 0;
+        std::vector<unsigned> ps_doms;
+        std::vector<cell_size_type> ps_cnts(num_domains_);
+        for (auto gid: gids) {
+            auto conns = rec.connections_on(gid);
+            n_cons += conns.size();
+            for (auto con: conns) {
+                auto src = dom_dec.gid_domain(con.source.gid);
+                ps_doms.push_back(src);
+                ps_cnts[src]++;
+            }
+        }
+
+        // Construct the connections
+        // The loops above gave the information required to construct in place
+        // the connections as partitioned by the domain of their source gid.
+        connections_.resize(n_cons);
+        connection_part_ = algorithms::make_index(ps_cnts);
+        auto offsets = connection_part_;
+        std::size_t pos = 0;
+        for (auto gid: gids) {
+            auto lg = gid_props.get(gid)->local_group;
+            for (auto c: rec.connections_on(gid)) {
+                auto i = offsets[ps_doms[pos]]++;
+                connections_[i] = {c.source, c.dest, c.weight, c.delay, lg};
+                ++pos;
+            }
+        }
+
+        // Sort the connections for each domain.
+        // This is num_domains_ independent sorts, so it can be parallelized trivially.
+        threading::parallel_for::apply(0, num_domains_,
+            [&](cell_gid_type i) {
+                auto b = connection_part_[i];
+                auto e = connection_part_[i+1];
+                util::sort(util::subrange_view(connections_, b, e));
+            });
+
     }
 
     /// the minimum delay of all connections in the global network.
@@ -79,7 +119,7 @@ public:
             local_min = std::min(local_min, con.delay());
         }
 
-        return communication_policy_.min(local_min);
+        return comms_.min(local_min);
     }
 
     /// Perform exchange of spikes.
@@ -88,7 +128,7 @@ public:
     /// Returns the full global set of vectors, along with meta data about their partition
     gathered_vector<spike> exchange(const std::vector<spike>& local_spikes) {
         // global all-to-all to gather a local copy of the global spike list on each node.
-        auto global_spikes = communication_policy_.gather_spikes( local_spikes );
+        auto global_spikes = comms_.gather_spikes( local_spikes );
         num_spikes_ += global_spikes.size();
         return global_spikes;
     }
@@ -101,30 +141,57 @@ public:
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
     std::vector<event_queue> make_event_queues(const gathered_vector<spike>& global_spikes) {
-        auto queues = std::vector<event_queue>(num_groups_local());
-        for (auto spike : global_spikes.values()) {
-            // search for targets
-            auto targets = std::equal_range(connections_.begin(), connections_.end(), spike.source);
+        using util::subrange_view;
+        using util::make_span;
+        using util::make_range;
 
-            // generate an event for each target
-            for (auto it=targets.first; it!=targets.second; ++it) {
-                auto gidx = cell_group_index(it->destination().gid);
-                queues[gidx].push_back(it->make_event(spike));
+        auto queues = std::vector<event_queue>(num_local_groups_);
+        const auto& sp = global_spikes.partition();
+        const auto& cp = connection_part_;
+        for (auto dom: make_span(0, num_domains_)) {
+            auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
+            auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
+
+            /*
+            if (cons.size()<spks.size()) {
+                auto sp = spks.begin();
+                auto cn = cons.begin();
+                while (cn!=cons.end() && sp!=spks.end()) {
+                    auto sources = std::equal_range(sp, spks.end(), cn->source());
+
+                    for (auto s: make_range(sources.first, sources.second)) {
+                        queues[cn->group_index()].push_back(cn->make_event(s));
+                    }
+
+                    sp = sources.first;
+                    ++cn;
+                }
             }
+            else {
+            */
+                auto sp = spks.begin();
+                auto cn = cons.begin();
+                while (cn!=cons.end() && sp!=spks.end()) {
+                    auto targets = std::equal_range(cn, cons.end(), sp->source);
+
+                    for (auto c: make_range(targets.first, targets.second)) {
+                        queues[c.group_index()].push_back(c.make_event(*sp));
+                    }
+
+                    cn = targets.first;
+                    ++sp;
+                }
+            //}
         }
 
         return queues;
     }
 
     /// Returns the total number of global spikes over the duration of the simulation
-    uint64_t num_spikes() const { return num_spikes_; }
+    std::uint64_t num_spikes() const { return num_spikes_; }
 
     const std::vector<connection>& connections() const {
         return connections_;
-    }
-
-    communication_policy_type communication_policy() const {
-        return communication_policy_;
     }
 
     void reset() {
@@ -132,18 +199,12 @@ public:
     }
 
 private:
-    std::size_t cell_group_index(cell_gid_type cell_gid) const {
-        EXPECTS(is_local_cell(cell_gid));
-        return cell_gid_partition_.index(cell_gid);
-    }
-
+    cell_size_type num_local_groups_;
+    cell_size_type num_domains_;
     std::vector<connection> connections_;
-
-    communication_policy_type communication_policy_;
-
-    uint64_t num_spikes_ = 0u;
-
-    gid_partition_type cell_gid_partition_;
+    std::vector<cell_size_type> connection_part_;
+    communication_policy_type comms_;
+    std::uint64_t num_spikes_ = 0u;
 };
 
 } // namespace communication

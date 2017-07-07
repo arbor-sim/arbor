@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <unordered_map>
 
 #include <backends.hpp>
 #include <common_types.hpp>
@@ -13,97 +14,111 @@
 namespace nest {
 namespace mc {
 
+inline bool has_gpu_backend(cell_kind k) {
+    if (k==cell_kind::cable1d_neuron) {
+        return true;
+    }
+    return false;
+}
+
 // Meta data used to guide the domain_decomposition in distributing
 // and grouping cells.
-struct group_rules {
-    cell_size_type target_group_size;
-    backend_policy policy;
+struct node_description {
+    node_description(int c, int g):
+        num_cpu_cores(c), num_gpus(g)
+    {}
+    int num_cpu_cores = 0;
+    int num_gpus = 0;
+};
+
+/// Utility type for meta data for a local cell group.
+class group_description {
+    const cell_kind kind_;
+    const std::vector<cell_gid_type> gids_;
+    const backend_policy backend_;
+
+public:
+    group_description(cell_kind k, std::vector<cell_gid_type> g, backend_policy b):
+        kind_(k), gids_(std::move(g)), backend_(b)
+    {}
+
+    cell_kind kind() const {
+        return kind_;
+    }
+
+    backend_policy backend() const {
+        return backend_;
+    }
+
+    const std::vector<cell_gid_type>& gids() const {
+        return gids_;
+    }
 };
 
 class domain_decomposition {
-    using gid_partition_type =
-        util::partition_range<std::vector<cell_gid_type>::const_iterator>;
+    cell_gid_type first_cell_on_domain(int dom) const {
+        return (cell_gid_type)(num_global_cells_*(dom/(double)num_domains_));
+    }
 
 public:
-    /// Utility type for meta data for a local cell group.
-    struct group_range_type {
-        cell_gid_type begin;
-        cell_gid_type end;
-        cell_kind kind;
-    };
-
-    domain_decomposition(const recipe& rec, const group_rules& rules):
-        backend_policy_(rules.policy)
+    domain_decomposition(const recipe& rec, node_description nd):
+        node_description_(nd)
     {
-        EXPECTS(rules.target_group_size>0);
+        using util::make_span;
 
-        auto num_domains = communication::global_policy::size();
-        auto domain_id = communication::global_policy::id();
+        num_domains_ = communication::global_policy::size();
+        domain_id_ = communication::global_policy::id();
+        num_global_cells_ = rec.num_cells();
+
+        //
+        // GLOBAL LOAD BALANCE  /////////////////////////
+        //
+
+        gid_part_.reserve(num_domains_+1);
+        for (auto d: make_span(0, num_domains_+1)) {
+            gid_part_.push_back(first_cell_on_domain(d));
+        }
 
         // Partition the cells globally across the domains.
-        num_global_cells_ = rec.num_cells();
-        cell_begin_ = (cell_gid_type)(num_global_cells_*(domain_id/(double)num_domains));
-        cell_end_ = (cell_gid_type)(num_global_cells_*((domain_id+1)/(double)num_domains));
+        auto b = first_cell_on_domain(domain_id_);
+        auto e = first_cell_on_domain(domain_id_+1);
 
-        // Partition the local cells into cell groups that satisfy three
-        // criteria:
-        //  1. the cells in a group have contiguous gid
-        //  2. the size of a cell group does not exceed rules.target_group_size;
-        //  3. all cells in a cell group have the same cell_kind.
-        // This simple greedy algorithm appends contiguous cells to a cell
-        // group until either the target group size is reached, or a cell with a
-        // different kind is encountered.
-        // On completion, cell_starts_ partitions the local gid into cell
-        // groups, and group_kinds_ records the cell kind in each cell group.
-        if (num_local_cells()>0) {
-            cell_size_type group_size = 1;
+        //
+        // LOCAL LOAD BALANCE   /////////////////////////
+        //
 
-            // 1st group starts at cell_begin_
-            group_starts_.push_back(cell_begin_);
-            auto group_kind = rec.get_cell_kind(cell_begin_);
+        std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
+        for (auto gid: make_span(b, e)) {
+            kind_lists[rec.get_cell_kind(gid)].push_back(gid);
+        }
 
-            // set kind for 1st group
-            group_kinds_.push_back(group_kind);
+        // Create a flat vector of the cell kinds present on this node,
+        // partitioned such that kinds for which GPU implementation are
+        // listed before the others.
+        std::vector<cell_kind> kinds;
+        for (auto l: kind_lists) {
+            kinds.push_back(l.first);
+        }
+        std::partition(kinds.begin(), kinds.end(), has_gpu_backend);
 
-            cell_gid_type gid = cell_begin_+1;
-            while (gid<cell_end_) {
-                auto kind = rec.get_cell_kind(gid);
-
-                // Test if gid belongs to a new cell group, i.e. whether it has
-                // a new cell_kind or if the target group size has been reached.
-                if (kind!=group_kind || group_size>=rules.target_group_size) {
-                    group_starts_.push_back(gid);
-                    group_kinds_.push_back(kind);
-                    group_size = 0;
-                }
-                ++group_size;
-                ++gid;
+        for (auto k: kinds) {
+            // put all cells into a single cell group on the gpu if possible
+            if (node_description_.num_gpus && has_gpu_backend(k)) {
+                groups_.push_back({k, std::move(kind_lists[k]), backend_policy::gpu});
             }
-            group_starts_.push_back(cell_end_);
+            // otherwise place into cell groups of size 1 on the cpu cores
+            else {
+                for (auto gid: kind_lists[k]) {
+                    groups_.push_back({k, {gid}, backend_policy::multicore});
+                }
+            }
         }
     }
 
-    /// Returns the local index of the cell_group that contains a cell with
-    /// with gid.
-    /// If the cell is not on the local domain, the optional return value is
-    /// not set.
-    util::optional<cell_size_type>
-    local_group_from_gid(cell_gid_type gid) const {
-        // check if gid is a local cell
-        if (!is_local_gid(gid)) {
-            return util::nothing;
-        }
-        return gid_group_partition().index(gid);
-    }
-
-    /// Returns the gid of the first cell on the local domain.
-    cell_gid_type cell_begin() const {
-        return cell_begin_;
-    }
-
-    /// Returns one past the gid of the last cell in the local domain.
-    cell_gid_type cell_end() const {
-        return cell_end_;
+    int gid_domain(cell_gid_type gid) const {
+        EXPECTS(gid<num_global_cells_);
+        auto& x = gid_part_;
+        return std::distance(x.begin(), std::upper_bound(x.begin(), x.end(), gid))-1;
     }
 
     /// Returns the total number of cells in the global model.
@@ -113,42 +128,70 @@ public:
 
     /// Returns the number of cells on the local domain.
     cell_size_type num_local_cells() const {
-        return cell_end()-cell_begin();
+        return gid_part_[domain_id_+1] - gid_part_[domain_id_];
     }
 
     /// Returns the number of cell groups on the local domain.
     cell_size_type num_local_groups() const {
-        return group_kinds_.size();
+        return groups_.size();
     }
 
     /// Returns meta data for a local cell group.
-    group_range_type get_group(cell_size_type i) const {
-        return {group_starts_[i], group_starts_[i+1], group_kinds_[i]};
+    const group_description& get_group(cell_size_type i) const {
+        return groups_[i];
     }
 
     /// Tests whether a gid is on the local domain.
     bool is_local_gid(cell_gid_type i) const {
-        return i>=cell_begin_ && i<cell_end_;
-    }
-
-    /// Return a partition of the cell gid over local cell groups.
-    gid_partition_type gid_group_partition() const {
-        return util::partition_view(group_starts_);
-    }
-
-    /// Returns the backend policy.
-    backend_policy backend() const {
-        return backend_policy_;
+        return i>=gid_part_[domain_id_] && i<gid_part_[domain_id_+1];
     }
 
 private:
-
-    backend_policy backend_policy_;
-    cell_gid_type cell_begin_;
-    cell_gid_type cell_end_;
+    int num_domains_;
+    int domain_id_;
+    node_description node_description_;
     cell_size_type num_global_cells_;
-    std::vector<cell_size_type> group_starts_;
+    std::vector<cell_gid_type> gid_part_;
     std::vector<cell_kind> group_kinds_;
+    std::vector<group_description> groups_;
+};
+
+
+// The model needs to perform efficient lookup of properties associated
+// with cell gid. Currently the only property is the cell group of the
+// gid. The properties are stored in a gid_property struct.
+class gid_prop_map {
+public:
+    struct prop {
+        prop(cell_gid_type gid, cell_gid_type group): gid(gid), local_group(group) {}
+        cell_gid_type gid;
+        cell_gid_type local_group;
+        friend bool operator<(prop l, prop r) {return l.gid<r.gid;};
+    };
+
+    gid_prop_map(const domain_decomposition& d) {
+        props_.reserve(d.num_local_cells());
+        for (auto i: util::make_span(0, d.num_local_groups())) {
+            auto& g = d.get_group(i);
+            for (auto gid: g.gids()) {
+                props_.push_back({gid, i});
+            }
+        }
+        util::sort(props_);
+    }
+
+    // Perform O(log(num_local_cells)) lookup of properties for a gid.
+    // Use optional to indicate whether the cell with gid is local.
+    util::optional<prop> get(cell_gid_type gid) const {
+        auto it = std::lower_bound(props_.begin(), props_.end(), prop(gid, 0));
+        if (it==props_.end()) {
+            return util::nothing;
+        }
+        return  *it;
+    }
+
+private:
+    std::vector<prop> props_;
 };
 
 } // namespace mc

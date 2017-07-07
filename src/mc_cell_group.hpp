@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <unordered_map>
 #include <vector>
 
 #include <algorithms.hpp>
@@ -35,9 +36,14 @@ public:
     mc_cell_group() = default;
 
     template <typename Cells>
-    mc_cell_group(cell_gid_type first_gid, const Cells& cell_descriptions):
-        gid_base_{first_gid}
+    mc_cell_group(std::vector<cell_gid_type> gids, const Cells& cell_descriptions):
+        gids_(std::move(gids))
     {
+        // Build lookup table for gid to local index.
+        for (auto i: util::make_span(0, gids_.size())) {
+            gid2lid_[gids_[i]] = i;
+        }
+
         // Create lookup structure for probe and target ids.
         build_handle_partitions(cell_descriptions);
         std::size_t n_probes = probe_handle_divisions_.back();
@@ -51,41 +57,42 @@ public:
 
         lowered_.initialize(cell_descriptions, target_handles_, probe_handles_);
 
-        // Create a list of the global identifiers for the spike sources
-        auto source_gid = cell_gid_type{gid_base_};
+        // Create a list of the global identifiers for the spike sources.
+        auto source_gid = gids_.begin();
         for (const auto& cell: cell_descriptions) {
             for (cell_lid_type lid=0u; lid<cell.detectors().size(); ++lid) {
-                spike_sources_.push_back(source_id_type{source_gid, lid});
+                spike_sources_.push_back(source_id_type{*source_gid, lid});
             }
             ++source_gid;
         }
         EXPECTS(spike_sources_.size()==n_detectors);
 
-        // Create the enumeration of probes attached to cells in this cell group
+        // Create the enumeration of probes attached to cells in this cell group.
         probes_.reserve(n_probes);
         for (auto i: util::make_span(0, cell_descriptions.size())){
-            const cell_gid_type probe_gid = gid_base_ + i;
+            const cell_gid_type probe_gid = gids_[i];
             const auto probes_on_cell = cell_descriptions[i].probes();
             for (cell_lid_type lid: util::make_span(0, probes_on_cell.size())) {
-                // get the unique global identifier of this probe
+                // Get the unique global identifier of this probe.
                 cell_member_type id{probe_gid, lid};
 
-                // get the location and kind information of the probe
+                // Get the location and kind information of the probe.
                 const auto p = probes_on_cell[lid];
 
-                // record the combined identifier and probe details
+                // Record the combined identifier and probe details.
                 probes_.push_back(probe_record{id, p.location, p.kind});
             }
         }
     }
 
-    mc_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cell_descriptions):
+    mc_cell_group(std::vector<cell_gid_type> gids,
+                  const std::vector<util::unique_any>& cell_descriptions):
         mc_cell_group(
-            first_gid,
-            util::transform_view(
-                cell_descriptions,
-                [](const util::unique_any& c) -> const cell& {return util::any_cast<const cell&>(c);})
-        )
+            std::move(gids),
+            util::transform_view(cell_descriptions,
+                [](const util::unique_any& c) -> const cell& {
+                    return util::any_cast<const cell&>(c);
+                }))
     {}
 
     cell_kind get_cell_kind() const override {
@@ -132,7 +139,7 @@ public:
                     auto& s = samplers_[m->sampler_index];
                     EXPECTS((bool)s.sampler);
 
-                    time_type cell_time = lowered_.time(s.cell_gid-gid_base_);
+                    time_type cell_time = lowered_.time(*gid2lid(s.cell_gid));
                     if (cell_time<m->time) {
                         // This cell hasn't reached this sample time yet.
                         requeue_sample_events.push_back(*m);
@@ -161,8 +168,8 @@ public:
             lowered_.step_integration();
 
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
-                std::cerr << "warning: solution out of bounds for cell "
-                          << gid_base_ << " at (max) t " << lowered_.max_time() << " ms\n";
+                std::cerr << "warning: solution out of bounds  at (max) t "
+                          << lowered_.max_time() << " ms\n";
             }
         }
 
@@ -213,8 +220,11 @@ public:
     }
 
 private:
-    // gid of first cell in group.
-    cell_gid_type gid_base_;
+    // List of the gids of the cells in the group
+    std::vector<cell_gid_type> gids_;
+
+    // Hash table for converting gid to local index
+    std::unordered_map<cell_gid_type, cell_gid_type> gid2lid_;
 
     // The lowered cell state (e.g. FVM) of the cell.
     lowered_cell_type lowered_;
@@ -276,14 +286,13 @@ private:
     template <typename Divisions>
     std::size_t handle_partition_lookup(const Divisions& divisions, cell_member_type id) const {
         // NB: without any assertion checking, this would just be:
-        // return divisions[id.gid-gid_base_]+id.index;
+        // return divisions[*gid2lid(id.gid)]+id.index;
 
-        EXPECTS(id.gid>=gid_base_);
+        EXPECTS(gid2lid(id.gid));
 
         auto handle_partition = util::partition_view(divisions);
-        EXPECTS(id.gid-gid_base_<handle_partition.size());
 
-        auto ival = handle_partition[id.gid-gid_base_];
+        auto ival = handle_partition[*gid2lid(id.gid)];
         std::size_t i = ival.first + id.index;
         EXPECTS(i<ival.second);
 
@@ -307,6 +316,11 @@ private:
         for(size_type i=0; i<samplers_.size(); ++i) {
             sample_events_.push({i, sampler_start_times_[i]});
         }
+    }
+
+    util::optional<cell_gid_type> gid2lid(cell_gid_type gid) const {
+        auto it = gid2lid_.find(gid);
+        return it==gid2lid_.end()? util::nothing: util::optional<cell_gid_type>(it->second);
     }
 };
 

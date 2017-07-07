@@ -3,7 +3,7 @@
 #include "../gtest.h"
 #include "validate_synapses.hpp"
 
-const auto backend = nest::mc::backend_policy::use_multicore;
+const auto backend = nest::mc::backend_policy::multicore;
 
 TEST(simple_synapse, expsyn_neuron_ref) {
     SCOPED_TRACE("expsyn");

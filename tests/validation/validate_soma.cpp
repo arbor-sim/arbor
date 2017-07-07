@@ -3,7 +3,7 @@
 #include "../gtest.h"
 
 
-const auto backend = nest::mc::backend_policy::use_multicore;
+const auto backend = nest::mc::backend_policy::multicore;
 
 TEST(soma, numeric_ref) {
     validate_soma(backend);
