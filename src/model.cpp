@@ -15,47 +15,22 @@ namespace nest {
 namespace mc {
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
-    domain_(decomp)
+    gid_props_(decomp),
+    communicator_(rec, decomp, gid_props_)
 {
-    // set up communicator based on partition
-    communicator_ = communicator_type(domain_.gid_group_partition());
-
-    // generate the cell groups in parallel, with one task per cell group
-    cell_groups_.resize(domain_.num_local_groups());
-
-    // thread safe vector for constructing the list of probes in parallel
-    threading::parallel_vector<probe_record> probe_tmp;
-
+    // Generate the cell groups in parallel, with one task per cell group.
+    cell_groups_.resize(decomp.num_local_groups());
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
             PE("setup", "cells");
-
-            auto group = domain_.get_group(i);
-            std::vector<util::unique_any> cell_descriptions(group.end-group.begin);
-
-            for (auto gid: util::make_span(group.begin, group.end)) {
-                auto i = gid-group.begin;
-                cell_descriptions[i] = rec.get_cell_description(gid);
-            }
-
-            cell_groups_[i] = cell_group_factory(
-                    group.kind, group.begin, cell_descriptions, domain_.backend());
+            cell_groups_[i] = cell_group_factory(rec, decomp.get_group(i));
             PL(2);
         });
 
-    // store probes
+    // Store probes.
     for (const auto& c: cell_groups_) {
         util::append(probes_, c->probes());
     }
-
-    // generate the network connections
-    for (cell_gid_type i: util::make_span(domain_.cell_begin(), domain_.cell_end())) {
-        for (const auto& cc: rec.connections_on(i)) {
-            connection conn{cc.source, cc.dest, cc.weight, cc.delay};
-            communicator_.add_connection(conn);
-        }
-    }
-    communicator_.construct();
 
     // Allocate an empty queue buffer for each cell group
     // These must be set initially to ensure that a queue is available for each
@@ -72,10 +47,10 @@ void model::reset() {
 
     communicator_.reset();
 
-    for(auto& q : current_events()) {
+    for(auto& q: current_events()) {
         q.clear();
     }
-    for(auto& q : future_events()) {
+    for(auto& q: future_events()) {
         q.clear();
     }
 
@@ -169,11 +144,8 @@ time_type model::run(time_type tfinal, time_type dt) {
 }
 
 void model::attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom) {
-    const auto idx = domain_.local_group_from_gid(probe_id.gid);
-
-    // only attach samplers for local cells
-    if (idx) {
-        cell_groups_[*idx]->add_sampler(probe_id, f, tfrom);
+    if (auto props = gid_props_.get(probe_id.gid)) {
+        cell_groups_[(*props).local_group]->add_sampler(probe_id, f, tfrom);
     }
 }
 
