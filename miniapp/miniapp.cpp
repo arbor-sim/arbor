@@ -202,6 +202,11 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     p.num_synapses = options.all_to_all? options.cells-1: options.synapses_per_cell;
     p.synapse_type = options.syn_type;
 
+    // Parameters for spike input from file
+    if (options.spike_file_input) {
+        p.input_spike_path = options.input_spike_path;
+    }
+
     if (options.all_to_all) {
         return make_basic_kgraph_recipe(options.cells, p, pdist);
     }

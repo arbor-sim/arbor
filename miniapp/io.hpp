@@ -1,12 +1,15 @@
 #pragma once
 
-#include <string>
 #include <cstdint>
 #include <iosfwd>
 #include <stdexcept>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include <common_types.hpp>
 #include <util/optional.hpp>
+#include <util/path.hpp>
 
 namespace nest {
 namespace mc {
@@ -51,6 +54,10 @@ struct cl_options {
     std::string file_name = "spikes";
     std::string file_extension = "gdf";
 
+    // Parameters for spike input.
+    bool spike_file_input = false;
+    std::string input_spike_path;  // Path to file with spikes
+
     // Dry run parameters (pertinent only when built with 'dryrun' distrib model).
     int dry_run_ranks = 1;
 
@@ -80,6 +87,11 @@ std::ostream& operator<<(std::ostream& o, const cl_options& opt);
 
 cl_options read_options(int argc, char** argv, bool allow_write = true);
 
+/// Helper function for loading a vector of spike times from file
+/// Spike times are expected to be in milli seconds floating points
+/// On spike-time per line
+
+std::vector<time_type>  get_parsed_spike_times_from_path(nest::mc::util::path path);
 
 } // namespace io
 } // namespace mc
