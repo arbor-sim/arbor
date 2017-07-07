@@ -50,6 +50,8 @@ public:
             // Point to the first not emitted spike.
             *it = times->begin();
         }
+
+        clear_spikes();
     }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override
