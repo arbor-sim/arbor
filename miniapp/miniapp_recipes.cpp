@@ -4,7 +4,7 @@
 #include <utility>
 
 #include <cell.hpp>
-#include <dss_cell.hpp>
+#include <dss_cell_description.hpp>
 #include <rss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
@@ -92,7 +92,7 @@ public:
         if (i == ncell_) {
             if (param_.input_spike_path) {
                 auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.get());
-                return util::unique_any(dss_cell::dss_cell_description(spike_times));
+                return util::unique_any(dss_cell_description(spike_times));
             }
 
             return util::unique_any(rss_cell::rss_cell_description(0.0, 0.1, 0.1));

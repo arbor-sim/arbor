@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cell_group.hpp>
-#include <dss_cell.hpp>
+#include <dss_cell_description.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
@@ -19,12 +19,16 @@ public:
         gid_base_(first_gid)
     {
         using util::make_span;
-
         for (cell_gid_type i: make_span(0, cell_descriptions.size())) {
-            // Copy all the rss_cells
-            cells_.push_back(dss_cell(
-                util::any_cast<dss_cell::dss_cell_description>(cell_descriptions[i])
-            ));
+            // store spike times from description
+            const auto times = util::any_cast<dss_cell_description>(cell_descriptions[i]).spike_times;
+            spike_times_.push_back(std::vector<time_type>(times));
+
+            // Assure the spike times are sorted
+            std::sort(spike_times_[i].begin(), spike_times_[i].end());
+
+            // Now we can grab the first spike time
+            not_emit_it_.push_back(spike_times_[i].begin());
 
             // create a lid to gid map
             spike_sources_.push_back({gid_base_+i, 0});
@@ -38,19 +42,33 @@ public:
     }
 
     void reset() override {
-        for (auto cell: cells_) {
-            cell.reset();
+        // Declare both iterators outside of the for loop for consistency
+        auto it = not_emit_it_.begin();
+        auto times = spike_times_.begin();
+
+        for (;it != not_emit_it_.end(); ++it, times++) {
+            // Point to the first not emitted spike.
+            *it = times->begin();
         }
     }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override
-    {} // Nothing to do?
+    {}
 
     void advance(time_type tfinal, time_type dt) override {
-        // TODO: Move source information to dss_cell implementation
-        for (auto i: util::make_span(0, cells_.size())) {
-            for (auto spike_time: cells_[i].spikes_until(tfinal)) {
-                spikes_.push_back({spike_sources_[i], spike_time});
+        for (auto cell_idx: util::make_span(0, not_emit_it_.size())) {
+            // The first potential spike_time to emit for this cell
+            auto spike_time_it = not_emit_it_[cell_idx];
+
+            // Find the first to not emit and store as iterator
+            not_emit_it_[cell_idx] = std::find_if(
+                spike_time_it, spike_times_[cell_idx].end(),
+                [tfinal](time_type t) {return t >= tfinal; }
+            );
+
+            // loop over the range we now have (might be empty), and create spikes
+            for (; spike_time_it != not_emit_it_[cell_idx]; ++spike_time_it) {
+                spikes_.push_back({ spike_sources_[cell_idx], *spike_time_it });
             }
         }
     };
@@ -85,10 +103,18 @@ private:
     // Spike generators attached to the cell
     std::vector<source_id_type> spike_sources_;
 
-    // Store a reference to the cell actually implementing the spiking
-    std::vector<dss_cell> cells_;
-
     std::vector<probe_record> probes_;
+
+    // The dss_cell is simple: Put all logic in the cellgroup cause accelerator support
+    // is not expected. We need storage for the cell state
+
+    // The times the cells should spike, one for each cell, sorted in time
+    std::vector<std::vector<time_type> > spike_times_;
+
+    // Each cell needs its own itterator to the first spike not yet emitted
+    std::vector<std::vector<time_type>::iterator > not_emit_it_;
+
+
 };
 
 } // namespace mc
