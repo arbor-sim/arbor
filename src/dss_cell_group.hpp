@@ -5,8 +5,6 @@
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
-
-#include <iostream>
 namespace nest {
 namespace mc {
 
