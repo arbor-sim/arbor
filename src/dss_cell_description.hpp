@@ -11,7 +11,6 @@ namespace mc {
 
 /// Description for a data spike source: A cell that generates spikes provided as a vector of
 /// floating point valued spiketimes at the start of a run
-
 struct dss_cell_description {
     std::vector<time_type> spike_times;
 

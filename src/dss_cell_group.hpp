@@ -113,8 +113,6 @@ private:
 
     // Each cell needs its own itterator to the first spike not yet emitted
     std::vector<std::vector<time_type>::iterator > not_emit_it_;
-
-
 };
 
 } // namespace mc
