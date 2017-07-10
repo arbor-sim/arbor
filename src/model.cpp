@@ -61,6 +61,7 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
             });
     }
 
+    tasks.wait();
     cell_groups_.reserve(n_group);
     for (auto& f: cell_group_future) {
         cell_groups_.push_back(f.get());
