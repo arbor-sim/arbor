@@ -12,38 +12,21 @@
 
 using namespace nest::mc;
 
-// Samples subset_size elements from the interval [start, end) without repetitions.
-// We need this to sample neighboring neurons in randomly connected populations.
-std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start, cell_gid_type end, size_t subset_size) {
-    // Pool represents the range [start, end) without element gid
-    // (since we don't want self-loops)
-    // We need to sample subset_size elements from this pool.
-    std::vector<cell_gid_type> pool;
-    for(auto i = start; i < end; ++i) {
-        if(i == gid) {
-            continue;
+// Samples m unique values in interval [start, end) - gid.
+// We exclude gid because we don't want self-loops.
+std::vector<int> sample_subset(int gid, int start, int end, int m) {
+    std::set<int> s;
+
+    std::mt19937 gen(gid + 42);
+    std::uniform_int_distribution<int> dis(start, end - 1);
+    while (s.size() < m) {
+        auto val = dis(gen);
+        if (val != gid) {
+            s.insert(val);
         }
-        pool.push_back(i);
     }
 
-    // The resulting vector of chosen samples.
-    std::vector<cell_gid_type> samples;
-
-    // Number of elements left in the pool
-    auto left = end - start - 1;
-
-    while (subset_size--) {
-        // Take a random sample from the pool
-        auto sample = pool.begin();
-        std::advance(sample, rand() % left);
-        samples.push_back(*sample);
-
-        // Eliminate this element so that it cannot be chosen anymore.
-        std::swap(*pool.begin(), *sample);
-        ++(pool.begin());
-        --left;
-    }
-    return samples;
+    return {s.begin(), s.end()};
 }
 
 /*
@@ -62,8 +45,8 @@ public:
     ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), rate_(poiss_rate)
     {
         // Make sure that in_degree_prop in the interval (0, 1]
-        if(in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
-            std::logic_error("The proportion of incoming connections should be in the interval (0, 1].");
+        if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
+            std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
         }
 
         // Set up the parameters.
@@ -81,7 +64,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        if(gid < ncells_exc_ + ncells_inh_) {
+        if (gid < ncells_exc_ + ncells_inh_) {
             return cell_kind::lif_neuron;
         }
 
@@ -90,13 +73,10 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<cell_connection> connections;
-
-        // Sample incoming excitatory connections.
-        std::vector<cell_gid_type> in_exc_sources = sample_subset(gid, 0, ncells_exc_, in_degree_exc_);
-        // Add incoming excitatory connections.
-        for(auto& i : in_exc_sources) {
+        // Sample and add incoming excitatory connections.
+        for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
             cell_connection conn;
-            conn.source = {i, 0};
+            conn.source = {cell_gid_type(i), 0};
             conn.dest = {gid, 0};
             conn.weight = weight_exc_;
             conn.delay = delay_;
@@ -104,12 +84,10 @@ public:
             connections.push_back(conn);
         }
 
-        // Sample incoming inhibitory connections.
-        std::vector<cell_gid_type> in_inh_sources = sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_);
         // Add incoming inhibitory connections.
-        for(auto& i : in_inh_sources) {
+        for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
             cell_connection conn;
-            conn.source = {i, 0};
+            conn.source = {cell_gid_type(i), 0};
             conn.dest = {gid, 0};
             conn.weight = weight_inh_;
             conn.delay = delay_;
@@ -117,12 +95,10 @@ public:
             connections.push_back(conn);
         }
 
-        // Sample incoming external Poisson connections.
-        std::vector<cell_gid_type> in_ext_sources = sample_subset(gid, ncells_exc_ + ncells_inh_, ncells_exc_ + ncells_inh_ + ncells_ext_, in_degree_ext_);
         // Add incoming external Poisson connections.
-        for(auto& i : in_ext_sources) {
+        for (auto i: sample_subset(gid, ncells_exc_ + ncells_inh_, ncells_exc_ + ncells_inh_ + ncells_ext_, in_degree_ext_)) {
             cell_connection conn;
-            conn.source = {i, 0};
+            conn.source = {cell_gid_type(i), 0};
             conn.dest = {gid, 0};
             conn.weight = weight_ext_;
             conn.delay = delay_;
@@ -134,10 +110,17 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        if(gid < ncells_exc_ + ncells_inh_) {
-            return lif_cell_description();
+        if (gid < ncells_exc_ + ncells_inh_) {
+            auto cell = lif_cell_description();
+            cell.tau_m = 10;
+            cell.V_th = 10;
+            cell.C_m = 20;
+            cell.E_L = 0;
+            cell.V_m = 0;
+            cell.V_reset = 0;
+            cell.t_ref = 2;
+            return cell;
         }
-
         return pss_cell_description(rate_);
     }
 
@@ -182,7 +165,7 @@ private:
 
 TEST(pss_cell_group, brunels_network) {
     // The size of excitatory and poisson population.
-    cell_size_type nexc = 500;
+    cell_size_type nexc = 400;
 
     // The size of inhibitory population.
     cell_size_type ninh = 100;
@@ -224,31 +207,35 @@ TEST(pss_cell_group, brunels_network) {
     );
 
     // Runs the simulation.
-    mod.run(100, 0.1);
+    mod.run(50, 1);
 
     std::vector<std::vector<time_type> > spike_times(nexc);
 
-    for(auto& spike : spike_buffer) {
+    // Distribute the spikes of excitatory population
+    // according to its gid.
+    for (auto& spike : spike_buffer) {
         auto source = spike.source.gid;
         auto time = spike.time;
 
-        if(source < nexc) {
+        if (source < nexc) {
             spike_times[source].push_back(time);
         }
     }
 
-    // Check if the time difference between two consecutive spikes of each LIF neuron
-    // is never less than 2ms, since that is refractory period.
-    for(auto& vec : spike_times) {
+    for (auto& vec : spike_times) {
         //std::cout << vec.size() << std::endl;
         time_type avg_inter_spike_time = 0;
-        for(auto i = 1; i < vec.size(); ++i) {
+        for (auto i = 1; i < vec.size(); ++i) {
+            // Check if the time difference between two consecutive spikes of each LIF neuron
+            // is never less than 2ms, since that is refractory period.
             EXPECT_TRUE(vec[i] - vec[i-1] >= 2);
             avg_inter_spike_time += vec[i] - vec[i - 1];
         }
+        // The average inter spike time should be uniformly distributed
+        // in roughly this interval.
         avg_inter_spike_time /= vec.size() - 1;
-        EXPECT_TRUE(avg_inter_spike_time >= 5.0);
-        EXPECT_TRUE(avg_inter_spike_time <= 15.0);
+        EXPECT_TRUE(avg_inter_spike_time >= 10.0);
+        EXPECT_TRUE(avg_inter_spike_time <= 25.0);
     }
 };
 

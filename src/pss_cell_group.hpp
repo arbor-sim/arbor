@@ -20,17 +20,17 @@ public:
 
     // Constructor containing gid of first cell in a group and a container of all cells.
     pss_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
-        gid_base_{first_gid}, exp_dist_(1.0)
+        gid_base_(first_gid)
     {
         cells_.reserve(cells.size());
         // Cast each cell to pss_cell_description.
-        for(const auto& cell : cells) {
+        for (const auto& cell : cells) {
             cells_.push_back(util::any_cast<pss_cell_description>(cell));
         }
 
         // Hardcoded seed!
         // TODO: Make a general architecture for random seeds in the library.
-        generator_.reserve(cells.size());
+        generator_.resize(cells.size());
         // Seed generator of each cell is based on their gid.
         for (auto i: util::make_span(0, cells_.size())) {
             generator_[i].seed(3521 + first_gid + i);
@@ -39,7 +39,7 @@ public:
         // Sample times of next spike for each cell.
         // This is necessary since the method "advance" assumes
         // that the spike times had been sampled in the previous step.
-        next_spike_time_.reserve(cells.size());
+        next_spike_time_.resize(cells.size());
         for (auto i: util::make_span(0, cells_.size())) {
             // Since lambda=1/rate, this corresponds to Poisson(rate) distribution.
             next_spike_time_[i] = exp_dist_(generator_[i]) * cells_[i].lambda;
@@ -55,10 +55,11 @@ public:
     void advance(time_type tfinal, time_type dt) override {
         // For each cell, sample spikes up to tfinal.
         for (auto i: util::make_span(0, cells_.size())) {
-            while(next_spike_time_[i] < tfinal) {
+            cell_member_type gid = {gid_base_ + cell_gid_type(i), 0};
+
+            while (next_spike_time_[i] < tfinal) {
                 // Produce a spike from the previously sampled spike time.
-                cell_member_type spike_neuron_gid = {gid_base_ + cell_gid_type(i), 0};
-                spike s = {spike_neuron_gid, next_spike_time_[i]};
+                spike s = {gid, next_spike_time_[i]};
                 spikes_.push_back(s);
 
                 // Sample next spike time of this cell.
@@ -70,7 +71,7 @@ public:
     // Poisson cell serves only to produce spikes and should not receive any events.
     // Throw the exception, since this might indicate a bug in the recipe.
     void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
-        std::logic_error("The pss_cells do not support incoming events!");
+        std::runtime_error("Poisson neurons do not support incoming events!");
     }
 
     const std::vector<spike>& spikes() const override {
@@ -112,7 +113,7 @@ private:
     std::vector<std::mt19937> generator_;
 
     // Unit exponential distribution (with mean 1).
-    std::exponential_distribution<time_type> exp_dist_;
+    std::exponential_distribution<time_type> exp_dist_ = std::exponential_distribution<time_type>(1.0);
 
     // Sampled next spike time of each cell.
     std::vector<time_type> next_spike_time_;

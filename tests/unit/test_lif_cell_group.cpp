@@ -8,7 +8,7 @@
 #include <recipe.hpp>
 
 using namespace nest::mc;
-
+// Simple ring network of lif neurons.
 class ring_recipe: public nest::mc::recipe {
 public:
     ring_recipe(cell_size_type n, float weight, float delay):
@@ -107,7 +107,7 @@ TEST(lif_cell_group, spikes_testing) {
     std::vector<time_type> incoming_spikes;
     time_type simulation_end = 50;
     // add events at times i for the first 80% time of the simulation
-    for(int i = 1; i < (int) (0.8 * simulation_end); i++) {
+    for (int i = 1; i < (int) (0.8 * simulation_end); i++) {
         // last parameter is the weight
         events.push_back({{0, 0}, static_cast<time_type>(i), 100});
         incoming_spikes.push_back(i);
@@ -131,15 +131,15 @@ TEST(lif_cell_group, spikes_testing) {
     std::ofstream voltage_file;
     voltage_file.open("../../tests/unit/lif_neuron_voltage.txt");
 
-    for(auto& in_spike : incoming_spikes) {
+    for (auto& in_spike : incoming_spikes) {
         in_spikes_file << in_spike << std::endl;
     }
 
-    for(auto & out_spike : spikes) {
+    for (auto & out_spike : spikes) {
         out_spikes_file << out_spike.time << std::endl;
     }
 
-    for(auto & v : voltage) {
+    for (auto & v : voltage) {
         voltage_file << v.first << " " << v.second << std::endl;
     }
 
@@ -195,7 +195,7 @@ TEST(lif_cell_group, domain_decomposition)
     // Since delay is 1, we expect to see spike in each second.
     EXPECT_EQ(simulation_time - initial_event_time, mod.num_spikes());
 
-    for(auto& spike : spike_buffer) {
+    for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
         EXPECT_EQ(spike.source.gid, spike.time - initial_event_time);
     }

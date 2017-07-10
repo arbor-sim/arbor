@@ -18,12 +18,12 @@ public:
 
     // Constructor containing gid of first cell in a group and a container of all cells.
     lif_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
-    gid_base_{first_gid}
+    gid_base_(first_gid)
     {
         cells_.reserve(cells.size());
 
         // Cast each cell to lif_cell_description.
-        for(const auto& cell : cells) {
+        for (const auto& cell : cells) {
             cells_.push_back(util::any_cast<lif_cell_description>(cell));
         }
 
@@ -41,8 +41,8 @@ public:
     void sample_voltage(value_type v, value_type E_L, value_type tau_m, time_type tend, bool refractory_period) {
         time_type start = last_time_voltage_updated_;
 
-        for(time_type time = last_time_voltage_updated_; time < tend; time += sampling_dt_) {
-            if(!refractory_period) {
+        for (time_type time = last_time_voltage_updated_; time < tend; time += sampling_dt_) {
+            if (!refractory_period) {
                 v *= exp(-(time - last_time_voltage_updated_)/tau_m);
             }
             else {
@@ -60,80 +60,20 @@ public:
         }
     }
 
-    // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
-    // Parameter dt is ignored, since we make a jumps between two consecutive spikes.
-    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid) {
-        // Current time of last update.
-        auto t = last_time_updated_[lid];
-        auto& cell = cells_[lid];
-
-        // If a neuron was in the refractory period,
-        // ignore any new events that happened before t.
-        while (cell_events_[lid].pop_if_before(t));
-
-        // Integrate until tfinal using the exact solution of membrane voltage differential equation.
-        while(auto ev = cell_events_[lid].pop_if_before(tfinal)) {
-            auto weight = ev->weight;
-            auto spike_time = ev->time;
-
-            // If a neuron is in refractory period, ignore this spike.
-            if(spike_time < t) {
-                continue;
-            }
-
-            // TODO: Remove this after testing
-            // used just for sampling the voltage.
-            if(sampling_dt_ > 0 && gid_base_ == 0 && lid == 0) {
-                sample_voltage(cell.V_m, cell.E_L, cell.tau_m, spike_time, false);
-            }
-
-            // Let the membrane potential decay.
-            cell.V_m *= exp(-(spike_time - t) / cell.tau_m);
-            // Add jump due to spike.
-            cell.V_m += weight/cell.C_m;
-
-            t = spike_time;
-
-            // If crossing threshold occurred
-            if(cell.V_m >= cell.V_th) {
-                cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
-                spike s = {spike_neuron_gid, spike_time};
-
-                spikes_.push_back(s);
-
-                // TODO: Remove this after testing!
-                // Used just for sampling voltage.
-                if(sampling_dt_ > 0 && gid_base_ == 0 && lid == 0) {
-                    sample_voltage(cell.V_m, cell.E_L, cell.tau_m, t + cell.t_ref, true);
-                }
-
-                // Advance last_time_updated.
-                t += cell.t_ref;
-
-                // Reset the voltage to resting potential.
-                cell.V_m = cell.E_L;
-            }
-            // This is the last time a cell was updated.
-            last_time_updated_[lid] = t;
-        }
-    }
-
     void advance(time_type tfinal, time_type dt) override {
         // Distribute incoming events to individual cells.
-        // This can be done efficiently using GPU.
         while (!events_.empty()) {
             // Takes event from the queue and pops it.
             auto ev = events_.front();
             events_.pop();
 
             int target_gid = ev.target.gid;
-            // gid -> lid
+            // Transform gid -> lid.
             cell_events_[target_gid - gid_base_].push(ev);
         }
 
-        // Can be done efficiently on GPU
-        // advance each cell independently.
-        for(int i = 0; i < cells_.size(); ++i) {
+        // Advance each cell independently.
+        for (int i = 0; i < cells_.size(); ++i) {
             advance_cell(tfinal, dt, i);
         }
     }
@@ -161,7 +101,7 @@ public:
 
     // no probes in single-compartment cells
     std::vector<probe_record> probes() const override {
-        return std::vector<probe_record>();
+        return {};
     }
 
     void reset() override {
@@ -204,7 +144,6 @@ private:
     // Time when the cell was last updated.
     std::vector<time_type> last_time_updated_;
 
-
     //TODO: Remove after testing.
     // Sampling resolution.
     time_type sampling_dt_ = 0;
@@ -215,6 +154,64 @@ private:
 
     // Last time voltage was updated.
     time_type last_time_voltage_updated_ = 0;
+
+    // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
+    // Parameter dt is ignored, since we make a jumps between two consecutive spikes.
+    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid) {
+        // Current time of last update.
+        auto t = last_time_updated_[lid];
+        auto& cell = cells_[lid];
+
+        // If a neuron was in the refractory period,
+        // ignore any new events that happened before t.
+        while (cell_events_[lid].pop_if_before(t));
+        // Integrate until tfinal using the exact solution of membrane voltage differential equation.
+        while (auto ev = cell_events_[lid].pop_if_before(tfinal)) {
+            auto weight = ev->weight;
+            auto spike_time = ev->time;
+
+            // If a neuron is in refractory period, ignore this spike.
+            if (spike_time < t) {
+                continue;
+            }
+
+            // TODO: Remove this after testing
+            // used just for sampling the voltage.
+            if (sampling_dt_ > 0 && gid_base_ == 0 && lid == 0) {
+                sample_voltage(cell.V_m, cell.E_L, cell.tau_m, spike_time, false);
+            }
+
+            // Let the membrane potential decay.
+            cell.V_m *= exp(-(spike_time - t) / cell.tau_m);
+            // Add jump due to spike.
+            cell.V_m += weight/cell.C_m;
+
+            t = spike_time;
+
+            // If crossing threshold occurred
+            if (cell.V_m >= cell.V_th) {
+                cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
+                spike s = {spike_neuron_gid, spike_time};
+
+                spikes_.push_back(s);
+
+                // TODO: Remove this after testing!
+                // Used just for sampling voltage.
+                if (sampling_dt_ > 0 && gid_base_ == 0 && lid == 0) {
+                    sample_voltage(cell.V_m, cell.E_L, cell.tau_m, t + cell.t_ref, true);
+                }
+
+                // Advance last_time_updated.
+                t += cell.t_ref;
+
+                // Reset the voltage to resting potential.
+                cell.V_m = cell.E_L;
+            }
+            // This is the last time a cell was updated.
+            last_time_updated_[lid] = t;
+        }
+    }
+
 };
 } // namespace mc
 } // namespace nest

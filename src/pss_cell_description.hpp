@@ -7,13 +7,13 @@ struct pss_cell_description {
     // Represents the expected inter-spike time period.
     double lambda = 0.2;
 
-    pss_cell_description() {}
+    pss_cell_description() = default;
 
     // Constructor taking rate_kHz [kHz] as input and computing lambda_ms = 1 / rate_kHz [ms]
     pss_cell_description(double rate_kHz) {
-        // Check if rate_kHz is <= 0, but pay attention that its of type double
-        if (rate_kHz < 1e-7) {
-            std::logic_error("Spiking rate of Poisson neuron cannot be zero!");
+        // Make sure that rate_kHz > 0
+        if (rate_kHz <= 0.0) {
+            std::out_of_range("Spiking rate of Poisson neuron must be strictly positive!");
         } else {
             lambda = 1.0/rate_kHz;
         }
