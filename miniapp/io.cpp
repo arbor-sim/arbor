@@ -1,7 +1,11 @@
 #include <algorithm>
 #include <exception>
 #include <fstream>
+#include <iostream>
 #include <istream>
+#include <memory>
+#include <sstream>
+#include <string>
 #include <type_traits>
 
 #include <tclap/CmdLine.h>
@@ -9,6 +13,7 @@
 
 #include <util/meta.hpp>
 #include <util/optional.hpp>
+#include <util/strprintf.hpp>
 
 #include "io.hpp"
 
@@ -191,6 +196,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
              "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
         TCLAP::SwitchArg verbose_arg(
              "v", "verbose", "Present more verbose information to stdout", cmd, false);
+        TCLAP::ValueArg<std::string> ispike_arg(
+            "I", "ispike_file",
+            "Input spikes from file",
+            false, "", "file name", cmd);
+
 
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
@@ -240,6 +250,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                         update_option(options.file_extension, fopts, "file_extension");
                     }
 
+                    update_option(options.spike_file_input, fopts, "spike_file_input");
+                    if (options.spike_file_input) {
+                        update_option(options.input_spike_path, fopts, "input_spike_path");
+                    }
+
                     update_option(options.dry_run_ranks, fopts, "dry_run_ranks");
 
                     update_option(options.profile_only_zero, fopts, "profile_only_zero");
@@ -278,6 +293,12 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.spike_file_output, spike_output_arg);
         update_option(options.profile_only_zero, profile_only_zero_arg);
         update_option(options.dry_run_ranks, dry_run_ranks_arg);
+
+        std::string is_file_name = ispike_arg.getValue();
+        if (is_file_name != "") {
+            options.spike_file_input = true;
+            update_option(options.input_spike_path, ispike_arg);
+        }
 
         if (options.trace_format!="csv" && options.trace_format!="json") {
             throw usage_error("trace format must be one of: csv, json");
@@ -387,6 +408,50 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     o << "  report compartments  : " << (options.report_compartments ? "yes" : "no") << "\n";
 
     return o;
+}
+
+
+/// Parse spike times from a stream
+/// A single spike per line, trailing whitespace is ignore
+/// Throws a usage error when parsing fails
+///
+/// Returns a vector of time_type
+
+std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
+    std::vector<time_type> times;
+    std::string line;
+    while (std::getline(fid, line)) {
+        std::stringstream s(line);
+
+        time_type t;
+        s >> t >> std::ws;
+
+        if (!s || s.peek() != EOF) {
+            throw std::runtime_error( util::strprintf(
+                    "Unable to parse spike file on line %d: \"%s\"\n",
+                    times.size(), line));
+        }
+
+        times.push_back(t);
+    }
+
+    return times;
+}
+
+/// Parse spike times from a file supplied in path
+/// A single spike per line, trailing white space is ignored
+/// Throws a usage error when opening file or parsing fails
+///
+/// Returns a vector of time_type
+
+std::vector<time_type> get_parsed_spike_times_from_path(nest::mc::util::path path) {
+    std::ifstream fid(path);
+    if (!fid) {
+        throw std::runtime_error(util::strprintf(
+            "Unable to parse spike file: \"%s\"\n", path.c_str()));
+    }
+
+    return parse_spike_times_from_stream(fid);
 }
 
 } // namespace io

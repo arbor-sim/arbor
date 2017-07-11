@@ -2,6 +2,7 @@
 
 #include <backends.hpp>
 #include <cell_group.hpp>
+#include <dss_cell_group.hpp>
 #include <fvm_multicell.hpp>
 #include <lif_cell_group.hpp>
 #include <mc_cell_group.hpp>
@@ -35,6 +36,9 @@ cell_group_ptr cell_group_factory(
     case cell_kind::lif_neuron:
         return make_cell_group<lif_cell_group>(first_gid, cell_descriptions);
 
+
+    case cell_kind::data_spike_source:
+        return make_cell_group<dss_cell_group>(first_gid, cell_descriptions);
 
     default:
         throw std::runtime_error("unknown cell kind");
