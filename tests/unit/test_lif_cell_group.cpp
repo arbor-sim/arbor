@@ -6,41 +6,60 @@
 #include <lif_cell_group.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
+#include <rss_cell.hpp>
+#include <rss_cell_group.hpp>
 
 using namespace nest::mc;
 // Simple ring network of lif neurons.
 class ring_recipe: public nest::mc::recipe {
 public:
     ring_recipe(cell_size_type n, float weight, float delay):
-    ncells_(n), weight_(weight), delay_(delay)
+    ncells_(n + 1), weight_(weight), delay_(delay)
     {}
 
     cell_size_type num_cells() const override {
         return ncells_;
     }
 
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::lif_neuron;
+    // LIF neurons have gid in range [0..ncells_-2] whereas fake cell is numbered with ncells_ - 1.
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        if (gid < ncells_ - 1) {
+            return cell_kind::lif_neuron;
+        }
+        return cell_kind::regular_spike_source;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+        if (gid == ncells_ - 1) {
+            return {};
+        }
+        // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         cell_connection conn;
         conn.weight = weight_;
         conn.delay = delay_;
-        // for source - {source_idx, id of the compartment from which spike is coming}
-        // for single compartment cells, the second parameter is always 0
-        // for dest - {dest_idx, lid of synapse coming to dest}
-        // since there is only 1 synapse coming into dest
-        // this parameter is also 0
-        conn.source = {(gid + ncells_ - 1) % ncells_, 0};
+        conn.source = {(gid + cell_gid_type(ncells_) - 2) % (ncells_ - 1), 0};
         conn.dest =   {gid, 0};
         connections.push_back(conn);
+
+        // Connect fake cell (numbered ncells_-1) to the first cell (numbered 0).
+        if (gid == 0) {
+            conn.weight = weight_;
+            conn.delay = delay_;
+            conn.source = {cell_gid_type(ncells_) - 1, 0};
+            conn.dest =   {gid, 0};
+            connections.push_back(conn);
+        }
+
         return connections;
     }
 
-    util::unique_any get_cell_description(cell_gid_type) const override {
-        return lif_cell_description();
+    util::unique_any get_cell_description(cell_gid_type gid) const override {
+        if (gid < ncells_ - 1) {
+            return lif_cell_description();
+        }
+        // Produces just a single spike at time 0ms.
+        return rss_cell::rss_cell_description(0, 1, 0.5);
     }
 
     cell_count_info get_cell_count_info(cell_gid_type) const override {
@@ -56,8 +75,8 @@ private:
 TEST(lif_cell_group, recipe)
 {
     ring_recipe rr(100, 1, 0.1);
-    EXPECT_EQ(100, rr.num_cells());
-    EXPECT_EQ(1, rr.connections_on(0u).size());
+    EXPECT_EQ(101, rr.num_cells());
+    EXPECT_EQ(2, rr.connections_on(0u).size());
     EXPECT_EQ(1, rr.connections_on(55u).size());
     EXPECT_EQ(0, rr.connections_on(1u)[0].source.gid);
     EXPECT_EQ(99, rr.connections_on(0u)[0].source.gid);
@@ -107,7 +126,7 @@ TEST(lif_cell_group, spikes_testing) {
     std::vector<time_type> incoming_spikes;
     time_type simulation_end = 50;
     // add events at times i for the first 80% time of the simulation
-    for (int i = 1; i < (int) (0.8 * simulation_end); i++) {
+    for (size_t i = 1; i < (int) (0.8 * simulation_end); i++) {
         // last parameter is the weight
         events.push_back({{0, 0}, static_cast<time_type>(i), 100});
         incoming_spikes.push_back(i);
@@ -135,11 +154,11 @@ TEST(lif_cell_group, spikes_testing) {
         in_spikes_file << in_spike << std::endl;
     }
 
-    for (auto & out_spike : spikes) {
+    for (auto& out_spike : spikes) {
         out_spikes_file << out_spike.time << std::endl;
     }
 
-    for (auto & v : voltage) {
+    for (auto& v : voltage) {
         voltage_file << v.first << " " << v.second << std::endl;
     }
 
@@ -151,30 +170,24 @@ TEST(lif_cell_group, spikes_testing) {
 TEST(lif_cell_group, domain_decomposition)
 {
     // Total number of cells.
-    int num_cells = 100;
+    int num_cells = 99;
     double weight = 1000;
     double delay = 1;
 
     // Total simulation time.
     time_type simulation_time = 100;
 
-    // The time when initial event will be artificially
-    // injected into the neuron with index 0.
-    time_type initial_event_time = 10;
-
     // The number of cells in a single cell group.
     cell_size_type group_size = 10;
 
+    auto recipe = ring_recipe(num_cells, weight, delay);
     // Group rules specifies the number of cells in each cell group
     // and the backend policy.
     group_rules rules{group_size, backend_policy::use_multicore};
-    domain_decomposition decomp(ring_recipe(num_cells, weight, delay), rules);
+    domain_decomposition decomp(recipe, rules);
 
     // Creates a model with a ring recipe of lif neurons
-    model mod(ring_recipe(num_cells, weight, delay), decomp);
-
-    // Adds artificial event at time initial_event_time.
-    mod.add_artificial_spike({0, 0}, initial_event_time);
+    model mod(recipe, decomp);
 
     std::vector<spike> spike_buffer;
 
@@ -186,18 +199,23 @@ TEST(lif_cell_group, domain_decomposition)
 
     // Runs the simulation for simulation_time with given timestep
     mod.run(simulation_time, 0.01);
-
     // The number of cell groups.
-    EXPECT_EQ(num_cells / group_size, mod.num_groups());
+    EXPECT_EQ(11, mod.num_groups());
     // The total number of cells in all the cell groups.
-    EXPECT_EQ(num_cells, mod.num_cells());
+    EXPECT_EQ((num_cells + 1), mod.num_cells());
 
     // Since delay is 1, we expect to see spike in each second.
-    EXPECT_EQ(simulation_time - initial_event_time, mod.num_spikes());
+    //EXPECT_EQ(simulation_time + 1, mod.num_spikes());
 
     for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
-        EXPECT_EQ(spike.source.gid, spike.time - initial_event_time);
+        // We expect that Regular Spiking Cell spiked at time 0s.
+        if (spike.source.gid == num_cells) {
+            EXPECT_EQ(0, spike.time);
+        // Other LIF cell should spike consecutively.
+        } else {
+            EXPECT_EQ(spike.source.gid + 1, spike.time);
+        }
     }
 }
 
