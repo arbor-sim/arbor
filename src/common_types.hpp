@@ -61,6 +61,9 @@ enum cell_kind {
     regular_spike_source,     // Regular spiking source
     lif_neuron,               // Leaky-integrate and fire neuron
     poisson_spike_source      // Poisson spiking source
+    lif_neuron                // Leaky-integrate and fire neuron
+    data_spike_source,        // Spike source from values inserted via description
+>>>>>>> dbed1626360b4da14fc54283283d6ba679f2553e
 };
 
 } // namespace mc
