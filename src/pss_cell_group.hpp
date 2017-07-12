@@ -53,6 +53,7 @@ public:
     // Produces Poisson-distributed spikes up to tfinal.
     // Parameter dt is ignored!
     void advance(time_type tfinal, time_type dt) override {
+        PE("pps");
         // For each cell, sample spikes up to tfinal.
         for (auto i: util::make_span(0, cells_.size())) {
             cell_member_type gid = {gid_base_ + cell_gid_type(i), 0};
@@ -66,6 +67,7 @@ public:
                 next_spike_time_[i] += exp_dist_(generator_[i]) * cells_[i].lambda;
             }
         }
+        PL();
     }
 
     // Poisson cell serves only to produce spikes and should not receive any events.
