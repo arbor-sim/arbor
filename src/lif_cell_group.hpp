@@ -111,7 +111,7 @@ public:
     void reset() override {
         spikes_.clear();
         // STL queue does not support clear()
-        events_ = {};
+        events_ = decltype(events_)();
 
         // TODO: Remove after testing.
         voltage_.clear();

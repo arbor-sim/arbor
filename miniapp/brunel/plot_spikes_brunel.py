@@ -59,4 +59,4 @@ ax.set_xlabel("Spike Time [ms]", fontsize=15)
 ax.set_ylabel("Neuron ID", fontsize=15)
 
 
-fig.savefig("brunel_spikes.png")
+fig.savefig("brunel_spikes.pdf")
