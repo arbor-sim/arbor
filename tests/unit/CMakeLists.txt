@@ -22,6 +22,7 @@ set(TEST_CUDA_SOURCES
     test_gpu_stack.cu
     test_matrix.cu
     test_multi_event_stream.cu
+    test_reduce_by_key.cu
     test_spikes.cu
     test_vector.cu
 
@@ -41,6 +42,7 @@ set(TEST_SOURCES
     test_counter.cpp
     test_cycle.cpp
     test_domain_decomposition.cpp
+    test_dss_cell_group.cpp
     test_either.cpp
     test_event_queue.cpp
     test_event_binner.cpp
@@ -64,6 +66,7 @@ set(TEST_SOURCES
     test_pss_cell_group.cpp
     test_segment.cpp
     test_range.cpp
+    test_rss_cell.cpp
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp

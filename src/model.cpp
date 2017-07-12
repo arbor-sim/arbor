@@ -167,18 +167,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     return t_;
 }
 
-// only thread safe if called outside the run() method
-void model::add_artificial_spike(cell_member_type source) {
-    add_artificial_spike(source, t_);
-}
-
-// only thread safe if called outside the run() method
-void model::add_artificial_spike(cell_member_type source, time_type tspike) {
-    if (domain_.is_local_gid(source.gid)) {
-        current_spikes().get().push_back({source, tspike});
-    }
-}
-
 void model::attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom) {
     const auto idx = domain_.local_group_from_gid(probe_id.gid);
 

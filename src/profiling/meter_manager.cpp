@@ -1,5 +1,7 @@
 #include <communication/global_policy.hpp>
 #include <util/hostname.hpp>
+#include <util/strprintf.hpp>
+#include <util/rangeutil.hpp>
 #include <json/json.hpp>
 
 #include "meter_manager.hpp"
@@ -101,45 +103,74 @@ nlohmann::json to_json(const measurement& mnt) {
     };
 }
 
-nlohmann::json to_json(const meter_manager& manager) {
+// Build a report of meters, for use at the end of a simulation
+// for output to file or analysis.
+meter_report make_meter_report(const meter_manager& manager) {
+    meter_report report;
+
     using gcom = communication::global_policy;
 
-    // Gather the meter outputs into a json Array
-    nlohmann::json meter_out;
-    for (auto& m: manager.meters()) {
-        meter_out.push_back(
-            to_json(measurement(m->name(), m->units(), m->measurements()))
-        );
-    }
     // Add the times to the meter outputs
-    meter_out.push_back(to_json(measurement("time", "s", manager.times())));
+    report.meters.push_back(measurement("time", "s", manager.times()));
+
+    // Gather the meter outputs into a json Array
+    for (auto& m: manager.meters()) {
+        report.meters.push_back(
+            measurement(m->name(), m->units(), m->measurements()));
+    }
 
     // Gather a vector with the names of the node that each rank is running on.
     auto host = hostname();
-    auto hosts = gcom::gather(host? *host: "unknown", 0);
+    report.hosts = gcom::gather(host? *host: "unknown", 0);
 
-    // Only the "root" process returns meter information
-    if (gcom::id()==0) {
-        return {
-            {"checkpoints", manager.checkpoint_names()},
-            {"num_domains", gcom::size()},
-            {"global_model", std::to_string(gcom::kind())},
-            {"meters", meter_out},
-            {"hosts", hosts},
-        };
-    }
+    report.checkpoints = manager.checkpoint_names();
+    report.num_domains = gcom::size();
+    report.communication_policy = gcom::kind();
 
-    return {};
+    return report;
 }
 
-void save_to_file(const meter_manager& manager, const std::string& name) {
-    auto measurements = to_json(manager);
-    if (!communication::global_policy::id()) {
-        std::ofstream fid;
-        fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
-        fid.open(name);
-        fid << std::setw(1) << measurements << "\n";
+nlohmann::json to_json(const meter_report& report) {
+    return {
+        {"checkpoints", report.checkpoints},
+        {"num_domains", report.num_domains},
+        {"global_model", std::to_string(report.communication_policy)},
+        {"meters", util::transform_view(report.meters, [](measurement const& m){return to_json(m);})},
+        {"hosts", report.hosts},
+    };
+}
+
+// Print easy to read report of meters to a stream.
+std::ostream& operator<<(std::ostream& o, const meter_report& report) {
+    o << "\n---- meters ------------------------------------------------------------\n";
+    o << strprintf("%21s", "");
+    for (auto const& m: report.meters) {
+        if (m.name=="time") {
+            o << strprintf("%16s", "time (s)");
+        }
+        else if (m.name.find("memory")!=std::string::npos) {
+            o << strprintf("%16s", m.name+" (MB)");
+        }
     }
+    o << "\n------------------------------------------------------------------------\n";
+    int cp_index = 0;
+    for (auto name: report.checkpoints) {
+        name.resize(20);
+        o << strprintf("%-21s", name);
+        for (const auto& m: report.meters) {
+            if (m.name=="time") {
+                std::vector<double> times = m.measurements[cp_index];
+                o << strprintf("%16.4f", algorithms::mean(times));
+            }
+            else if (m.name.find("memory")!=std::string::npos) {
+                std::vector<double> mem = m.measurements[cp_index];
+                o << strprintf("%16.4f", algorithms::mean(mem)*1e-6);
+            }
+        }
+        o << "\n";
+        ++cp_index;
+    }
+    return o;
 }
 
 } // namespace util

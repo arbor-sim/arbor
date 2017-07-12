@@ -19,7 +19,7 @@ protected:
 
 public:
     std::string name() override {
-        return "memory-allocated";
+        return "memory";
     }
 
     std::string units() override {
@@ -57,7 +57,7 @@ meter_ptr make_memory_meter() {
 class gpu_memory_meter: public memory_meter {
 public:
     std::string name() override {
-        return "gpu-memory-allocated";
+        return "memory-gpu";
     }
 
     void take_reading() override {

@@ -65,4 +65,5 @@ commit.msg
 # eclipse remote sync folders
 .ptp-sync-folder
 
+# Mac default files
 .DS_Store
