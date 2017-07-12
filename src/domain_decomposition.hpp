@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <vector>
 #include <unordered_map>
 
@@ -64,6 +65,7 @@ public:
     domain_decomposition(const recipe& rec, node_description nd):
         node_description_(nd)
     {
+        using kind_type = std::underlying_type<cell_kind>::type;
         using util::make_span;
 
         num_domains_ = communication::global_policy::size();
@@ -87,7 +89,7 @@ public:
         // LOCAL LOAD BALANCE   /////////////////////////
         //
 
-        std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
+        std::unordered_map<kind_type, std::vector<cell_gid_type>> kind_lists;
         for (auto gid: make_span(b, e)) {
             kind_lists[rec.get_cell_kind(gid)].push_back(gid);
         }
@@ -97,7 +99,7 @@ public:
         // listed before the others.
         std::vector<cell_kind> kinds;
         for (auto l: kind_lists) {
-            kinds.push_back(l.first);
+            kinds.push_back(cell_kind(l.first));
         }
         std::partition(kinds.begin(), kinds.end(), has_gpu_backend);
 
@@ -138,6 +140,7 @@ public:
 
     /// Returns meta data for a local cell group.
     const group_description& get_group(cell_size_type i) const {
+        EXPECTS(i<num_local_groups());
         return groups_[i];
     }
 

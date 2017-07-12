@@ -26,6 +26,14 @@ struct basic_spike {
     friend bool operator<(basic_spike lhs, basic_spike rhs) {
         return lhs.time < rhs.time;
     }
+
+    friend bool operator<(cell_member_type lhs, basic_spike rhs) {
+        return lhs < rhs.source;
+    }
+
+    friend bool operator<(basic_spike lhs, cell_member_type rhs) {
+        return lhs.source < rhs;
+    }
 };
 
 /// Standard specialization:
@@ -37,5 +45,5 @@ using spike = basic_spike<cell_member_type>;
 // Custom stream operator for printing nest::mc::spike<> values.
 template <typename I>
 std::ostream& operator<<(std::ostream& o, nest::mc::basic_spike<I> s) {
-    return o << "spike[t " << s.time << ", src " << s.source << "]";
+    return o << "S[src " << s.source << ", t " << s.time << "]";
 }

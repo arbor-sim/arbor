@@ -13,18 +13,197 @@ using namespace nest::mc;
 
 using communicator_type = communication::communicator<communication::global_policy>;
 
-inline bool is_dry_run() {
-    return communication::global_policy::kind() ==
-        communication::global_policy_kind::dryrun;
+namespace {
+    // Homogenous cell population of cable cells.
+    class homo_recipe: public recipe {
+    public:
+        homo_recipe(cell_size_type s): size_(s)
+        {}
+
+        cell_size_type num_cells() const override {
+            return size_;
+        }
+
+        util::unique_any get_cell_description(cell_gid_type) const override {
+            return {};
+        }
+        cell_kind get_cell_kind(cell_gid_type) const override {
+            return cell_kind::cable1d_neuron;
+        }
+
+        cell_count_info get_cell_count_info(cell_gid_type) const override {
+            return {0, 0, 0};
+        }
+        std::vector<cell_connection> connections_on(cell_gid_type) const override {
+            return {};
+        }
+
+    private:
+        cell_size_type size_;
+    };
+
+    // Heterogenous cell population of cable and rss cells.
+    // Interleaved so that cells with even gid are cable cells, and even gid are
+    // rss cells.
+    class hetero_recipe: public recipe {
+    public:
+        hetero_recipe(cell_size_type s): size_(s)
+        {}
+
+        cell_size_type num_cells() const override {
+            return size_;
+        }
+
+        util::unique_any get_cell_description(cell_gid_type) const override {
+            return {};
+        }
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return gid%2?
+                cell_kind::regular_spike_source:
+                cell_kind::cable1d_neuron;
+        }
+
+        cell_count_info get_cell_count_info(cell_gid_type) const override {
+            return {0, 0, 0};
+        }
+        std::vector<cell_connection> connections_on(cell_gid_type) const override {
+            return {};
+        }
+
+    private:
+        cell_size_type size_;
+    };
+
+    // test whether running in dry run mode
+    inline bool is_dry_run() {
+        return communication::global_policy::kind() ==
+            communication::global_policy_kind::dryrun;
+    }
 }
 
-TEST(domain_decomp, basic) {
-/*
-    using policy = communication::global_policy;
+TEST(domain_decomp, homogeneous) {
+    const auto N = communication::global_policy::size();
+    const auto I = communication::global_policy::id();
 
-    const auto num_domains = policy::size();
-    const auto rank = policy::id();
-*/
+    {   // Test on a node with 1 cpu core and no gpus.
+        // We assume that all cells will be put into cell groups of size 1.
+        // This assumption will not hold in the future, requiring and update to
+        // the test.
+        node_description nd(1, 0);
 
+        // 10 cells per domain
+        unsigned n_local = 10;
+        unsigned n_global = n_local*N;
+        domain_decomposition D(homo_recipe(n_global), nd);
 
+        EXPECT_EQ(D.num_global_cells(), n_global);
+        EXPECT_EQ(D.num_local_cells(), n_local);
+        EXPECT_EQ(D.num_local_groups(), n_local);
+
+        auto b = I*n_local;
+        auto e = (I+1)*n_local;
+        auto gids = util::make_span(b, e);
+        for (auto gid: gids) {
+            EXPECT_EQ(I, D.gid_domain(gid));
+            EXPECT_TRUE(D.is_local_gid(gid));
+        }
+        EXPECT_FALSE(D.is_local_gid(b-1));
+        EXPECT_FALSE(D.is_local_gid(e));
+
+        // Each cell group contains 1 cell of kind cable1d_neuron
+        // Each group should also be tagged for cpu execution
+        for (auto i: gids) {
+            auto& grp = D.get_group(i-b);
+            EXPECT_EQ(grp.gids().size(), 1u);
+            EXPECT_EQ(grp.gids().front(), unsigned(i));
+            EXPECT_EQ(grp.backend(), backend_policy::multicore);
+            EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
+        }
+    }
+    {   // Test on a node with 1 gpu and 1 cpu core.
+        // Assumes that all cells will be placed on gpu in a single group.
+        node_description nd(1, 1);
+
+        // 10 cells per domain
+        unsigned n_local = 10;
+        unsigned n_global = n_local*N;
+        domain_decomposition D(homo_recipe(n_global), nd);
+
+        EXPECT_EQ(D.num_global_cells(), n_global);
+        EXPECT_EQ(D.num_local_cells(), n_local);
+        EXPECT_EQ(D.num_local_groups(), 1u);
+
+        auto b = I*n_local;
+        auto e = (I+1)*n_local;
+        auto gids = util::make_span(b, e);
+        for (auto gid: gids) {
+            EXPECT_EQ(I, D.gid_domain(gid));
+            EXPECT_TRUE(D.is_local_gid(gid));
+        }
+        EXPECT_FALSE(D.is_local_gid(b-1));
+        EXPECT_FALSE(D.is_local_gid(e));
+
+        // Each cell group contains 1 cell of kind cable1d_neuron
+        // Each group should also be tagged for cpu execution
+        auto grp = D.get_group(0u);
+
+        EXPECT_EQ(grp.gids().size(), n_local);
+        EXPECT_EQ(grp.gids().front(), b);
+        EXPECT_EQ(grp.gids().back(), e-1);
+        EXPECT_EQ(grp.backend(), backend_policy::gpu);
+        EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
+    }
 }
+
+TEST(domain_decomp, heterogeneous) {
+    const auto N = communication::global_policy::size();
+    const auto I = communication::global_policy::id();
+
+    {   // Test on a node with 1 cpu core and no gpus.
+        // We assume that all cells will be put into cell groups of size 1.
+        // This assumption will not hold in the future, requiring and update to
+        // the test.
+        node_description nd(1, 0);
+
+        // 10 cells per domain
+        unsigned n_local = 10;
+        unsigned n_global = n_local*N;
+        unsigned n_local_grps = n_local; // 1 cell per group
+        auto R = hetero_recipe(n_global);
+        domain_decomposition D(R, nd);
+
+        EXPECT_EQ(D.num_global_cells(), n_global);
+        EXPECT_EQ(D.num_local_cells(), n_local);
+        EXPECT_EQ(D.num_local_groups(), n_local);
+
+        auto b = I*n_local;
+        auto e = (I+1)*n_local;
+        auto gids = util::make_span(b, e);
+        for (auto gid: gids) {
+            EXPECT_EQ(I, D.gid_domain(gid));
+            EXPECT_TRUE(D.is_local_gid(gid));
+        }
+        EXPECT_FALSE(D.is_local_gid(b-1));
+        EXPECT_FALSE(D.is_local_gid(e));
+
+        // Each cell group contains 1 cell of kind cable1d_neuron
+        // Each group should also be tagged for cpu execution
+        auto grps = util::make_span(0, n_local_grps);
+        std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
+        for (auto i: grps) {
+            auto& grp = D.get_group(i);
+            EXPECT_EQ(grp.gids().size(), 1u);
+            kind_lists[grp.kind()].insert(grp.gids().front());
+            EXPECT_EQ(grp.backend(), backend_policy::multicore);
+        }
+
+        for (auto k: {cell_kind::cable1d_neuron, cell_kind::regular_spike_source}) {
+            const auto& gids = kind_lists[k];
+            EXPECT_EQ(gids.size(), n_local/2);
+            for (auto gid: gids) {
+                EXPECT_EQ(k, R.get_cell_kind(gid));
+            }
+        }
+    }
+}
+

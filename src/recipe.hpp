@@ -42,6 +42,10 @@ struct cell_connection {
 
     float weight;
     float delay;
+
+    cell_connection(cell_connection_endpoint src, cell_connection_endpoint dst, float w, float d):
+        source(src), dest(dst), weight(w), delay(d)
+    {}
 };
 
 class recipe {

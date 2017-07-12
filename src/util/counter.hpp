@@ -74,6 +74,8 @@ struct counter {
 
     value_type operator*() const { return v_; }
 
+    pointer operator->() const { return &v_; }
+
     value_type operator[](difference_type n) const { return v_+n; }
 
     bool operator==(counter x) const { return v_==x.v_; }

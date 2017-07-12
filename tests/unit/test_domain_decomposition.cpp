@@ -6,72 +6,69 @@
 using namespace nest::mc;
 
 namespace {
+    //
+    // Dummy recipes type for testing.
+    //
 
-//
-// Dummy recipes type for testing.
-//
+    // Homogenous cell population of cable cells.
+    class homo_recipe: public recipe {
+    public:
+        homo_recipe(cell_size_type s): size_(s)
+        {}
 
-// Homogenous cell population of cable cells.
-class homo_recipe: public recipe {
-public:
-    homo_recipe(cell_size_type s): size_(s)
-    {}
+        cell_size_type num_cells() const override {
+            return size_;
+        }
 
-    cell_size_type num_cells() const override {
-        return size_;
-    }
+        util::unique_any get_cell_description(cell_gid_type) const override {
+            return {};
+        }
+        cell_kind get_cell_kind(cell_gid_type) const override {
+            return cell_kind::cable1d_neuron;
+        }
 
-    util::unique_any get_cell_description(cell_gid_type) const override {
-        return {};
-    }
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_kind::cable1d_neuron;
-    }
+        cell_count_info get_cell_count_info(cell_gid_type) const override {
+            return {0, 0, 0};
+        }
+        std::vector<cell_connection> connections_on(cell_gid_type) const override {
+            return {};
+        }
 
-    cell_count_info get_cell_count_info(cell_gid_type) const override {
-        return {0, 0, 0};
-    }
-    std::vector<cell_connection> connections_on(cell_gid_type) const override {
-        return {};
-    }
+    private:
+        cell_size_type size_;
+    };
 
-private:
-    cell_size_type size_;
-};
+    // Heterogenous cell population of cable and rss cells.
+    // Interleaved so that cells with even gid are cable cells, and even gid are
+    // rss cells.
+    class hetero_recipe: public recipe {
+    public:
+        hetero_recipe(cell_size_type s): size_(s)
+        {}
 
-// Heterogenous cell population of cable and rss cells.
-// Interleaved so that cells with even gid are cable cells, and even gid are
-// rss cells.
-class hetero_recipe: public recipe {
-public:
-    hetero_recipe(cell_size_type s): size_(s)
-    {}
+        cell_size_type num_cells() const override {
+            return size_;
+        }
 
-    cell_size_type num_cells() const override {
-        return size_;
-    }
+        util::unique_any get_cell_description(cell_gid_type) const override {
+            return {};
+        }
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return gid%2?
+                cell_kind::regular_spike_source:
+                cell_kind::cable1d_neuron;
+        }
 
-    util::unique_any get_cell_description(cell_gid_type) const override {
-        return {};
-    }
-    cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return gid%2?
-            cell_kind::regular_spike_source:
-            cell_kind::cable1d_neuron;
-    }
+        cell_count_info get_cell_count_info(cell_gid_type) const override {
+            return {0, 0, 0};
+        }
+        std::vector<cell_connection> connections_on(cell_gid_type) const override {
+            return {};
+        }
 
-    cell_count_info get_cell_count_info(cell_gid_type) const override {
-        return {0, 0, 0};
-    }
-    std::vector<cell_connection> connections_on(cell_gid_type) const override {
-        return {};
-    }
-
-private:
-    cell_size_type size_;
-};
-
-
+    private:
+        cell_size_type size_;
+    };
 }
 
 //  domain_decomposition interface:
@@ -99,7 +96,6 @@ TEST(domain_decomposition, homogenous_population)
 
         auto gids = util::make_span(0, num_cells);
         for (auto gid: gids) {
-            // TODO: test in MPI environment
             EXPECT_EQ(0, D.gid_domain(gid));
             EXPECT_TRUE(D.is_local_gid(gid));
         }
@@ -128,7 +124,6 @@ TEST(domain_decomposition, homogenous_population)
 
         auto gids = util::make_span(0, num_cells);
         for (auto gid: gids) {
-            // TODO: test in MPI environment
             EXPECT_EQ(0, D.gid_domain(gid));
             EXPECT_TRUE(D.is_local_gid(gid));
         }
@@ -164,7 +159,6 @@ TEST(domain_decomposition, heterogenous_population)
 
         auto gids = util::make_span(0, num_cells);
         for (auto gid: gids) {
-            // TODO: test in MPI environment
             EXPECT_EQ(0, D.gid_domain(gid));
             EXPECT_TRUE(D.is_local_gid(gid));
         }

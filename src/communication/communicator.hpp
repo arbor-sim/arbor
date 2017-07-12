@@ -17,6 +17,7 @@
 #include <util/debug.hpp>
 #include <util/double_buffer.hpp>
 #include <util/partition.hpp>
+#include <util/rangeutil.hpp>
 
 namespace nest {
 namespace mc {
@@ -53,8 +54,8 @@ public:
             const gid_prop_map& gid_props)
     {
         using util::make_span;
-        auto num_domains_ = comms_.size();
-        auto num_local_groups_ = dom_dec.num_local_groups();
+        num_domains_ = comms_.size();
+        num_local_groups_ = dom_dec.num_local_groups();
 
         // Make a list of local gid.
         std::vector<cell_gid_type> gids;
@@ -66,36 +67,36 @@ public:
             }
         }
 
-        // Count the number of connections
-        //  -> accumulate in n_cons
-        // Calculate and store domain id of the presynaptic cell on each connection
-        //  -> store in ps_doms
+        // Count the number of local connections (i.e. connections terminating on this domain)
+        //  -> n_cons: scalar
+        // Calculate and store domain id of the presynaptic cell on each local connection
+        //  -> ps_doms: array with one entry for every local connection
         // Also the count of presynaptic sources from each domain
-        //  -> store in ps_cnts
+        //  -> ps_cnts: array with one entry for each domain
         cell_local_size_type n_cons = 0;
         std::vector<unsigned> ps_doms;
         std::vector<cell_size_type> ps_cnts(num_domains_);
         for (auto gid: gids) {
-            auto conns = rec.connections_on(gid);
+            const auto conns = rec.connections_on(gid);
             n_cons += conns.size();
             for (auto con: conns) {
-                auto src = dom_dec.gid_domain(con.source.gid);
+                const auto src = dom_dec.gid_domain(con.source.gid);
                 ps_doms.push_back(src);
                 ps_cnts[src]++;
             }
         }
 
-        // Construct the connections
-        // The loops above gave the information required to construct in place
+        // Construct the connections.
+        // The loop above gave the information required to construct in place
         // the connections as partitioned by the domain of their source gid.
         connections_.resize(n_cons);
         connection_part_ = algorithms::make_index(ps_cnts);
         auto offsets = connection_part_;
         std::size_t pos = 0;
         for (auto gid: gids) {
-            auto lg = gid_props.get(gid)->local_group;
+            const auto lg = gid_props.get(gid)->local_group;
             for (auto c: rec.connections_on(gid)) {
-                auto i = offsets[ps_doms[pos]]++;
+                const auto i = offsets[ps_doms[pos]]++;
                 connections_[i] = {c.source, c.dest, c.weight, c.delay, lg};
                 ++pos;
             }
@@ -105,11 +106,13 @@ public:
         // This is num_domains_ independent sorts, so it can be parallelized trivially.
         threading::parallel_for::apply(0, num_domains_,
             [&](cell_gid_type i) {
-                auto b = connection_part_[i];
-                auto e = connection_part_[i+1];
+                const auto b = connection_part_[i];
+                const auto e = connection_part_[i+1];
                 util::sort(util::subrange_view(connections_, b, e));
             });
 
+        //for (auto c: connections_) std::cout << c << "\n";
+        //std::cout << "part: "; for (auto l: connection_part_) std::cout << l << " "; std::cout << "\n";
     }
 
     /// the minimum delay of all connections in the global network.
@@ -126,9 +129,10 @@ public:
     ///
     /// Takes as input the list of local_spikes that were generated on the calling domain.
     /// Returns the full global set of vectors, along with meta data about their partition
-    gathered_vector<spike> exchange(const std::vector<spike>& local_spikes) {
+    gathered_vector<spike> exchange(std::vector<spike> local_spikes) {
         // global all-to-all to gather a local copy of the global spike list on each node.
-        auto global_spikes = comms_.gather_spikes( local_spikes );
+        util::sort(local_spikes);
+        auto global_spikes = comms_.gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
         return global_spikes;
     }
@@ -151,6 +155,8 @@ public:
         for (auto dom: make_span(0, num_domains_)) {
             auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
             auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
+            EXPECTS(algorithms::is_sorted(cons));
+            EXPECTS(algorithms::is_sorted(spks));
 
             /*
             if (cons.size()<spks.size()) {
@@ -169,8 +175,8 @@ public:
             }
             else {
             */
-                auto sp = spks.begin();
                 auto cn = cons.begin();
+                auto sp = spks.begin();
                 while (cn!=cons.end() && sp!=spks.end()) {
                     auto targets = std::equal_range(cn, cons.end(), sp->source);
 
