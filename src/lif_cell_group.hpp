@@ -5,7 +5,6 @@
 #include <lif_cell_description.hpp>
 #include <profiling/profiler.hpp>
 #include <util/unique_any.hpp>
-
 #include <vector>
 
 namespace nest {
