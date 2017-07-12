@@ -96,13 +96,13 @@ namespace nest {
                     CustomCmdLine cmd("nest brunel miniapp harness", "0.1");
                     
                     TCLAP::ValueArg<uint32_t> nexc_arg(
-                                                         "n", "n_excitatory", "total number of cells in the excitatory population",
+                                                         "n", "n-excitatory", "total number of cells in the excitatory population",
                                                          false, defopts.nexc, "integer", cmd);
                     TCLAP::ValueArg<uint32_t> ninh_arg(
-                                                            "m", "n_inhibitory", "total number of cells in the inhibitory population",
+                                                            "m", "n-inhibitory", "total number of cells in the inhibitory population",
                                                             false, defopts.ninh, "integer", cmd);
                     TCLAP::ValueArg<double> syn_prop_arg(
-                                                       "p", "in_degree_prop", "the proportion of connections from each of the 3 population (excitatory, inhibitory and Poisson) that each neuron receives",
+                                                       "p", "in-degree-prop", "the proportion of connections from each of the 3 populations (excitatory, inhibitory and Poisson) that each neuron receives",
                                                        false, defopts.syn_per_cell_prop, "double", cmd);
                     TCLAP::ValueArg<float> weight_arg(
                                                          "w", "weight", "the weight of all excitatory connections",
@@ -112,7 +112,7 @@ namespace nest {
                                                       false, defopts.delay, "float", cmd);
                     
                     TCLAP::ValueArg<float> rel_inh_strength_arg(
-                                                     "g", "rel_inh_w", "relative strength of inhibitory synapses with respect to the excitatory ones",
+                                                     "g", "rel-inh-w", "relative strength of inhibitory synapses with respect to the excitatory ones",
                                                      false, defopts.rel_inh_strength, "float", cmd);
                     
                     TCLAP::ValueArg<double> poiss_rate_arg(
@@ -120,10 +120,10 @@ namespace nest {
                                                                 false, defopts.poiss_rate, "double", cmd);
 
                     TCLAP::ValueArg<double> tfinal_arg(
-                                                       "t", "tfinal", "run simulation to <time> ms",
+                                                       "t", "tfinal", "length of the simulation period [ms]",
                                                        false, defopts.tfinal, "time", cmd);
                     TCLAP::ValueArg<double> dt_arg(
-                                                   "s", "delta_t", "set simulation time step to <time> ms",
+                                                   "s", "delta-t", "simulation time step [ms] (this parameter is ignored)",
                                                    false, defopts.dt, "time", cmd);
             
                     TCLAP::ValueArg<uint32_t> group_size_arg(
