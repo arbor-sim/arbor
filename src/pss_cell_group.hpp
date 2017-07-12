@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cell_group.hpp>
+#include <profiling/profiler.hpp>
 #include <pss_cell_description.hpp>
 #include <random>
 #include <vector>
