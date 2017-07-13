@@ -17,13 +17,20 @@ nmc_num_threads=2
 
 # Runs the simulation with given parameters on n_rank ranks and n_core cores.
 run() {
-n_rank=$1
-n_core=$2
-srun -n $n_rank -c $n_core --hint=nomultithread ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+    n_rank=$1
+    n_core=$2
+
+    # Use multithreading for 32 cores and otherwise no.
+    if [ $n_core -eq 32 ]
+    then
+        srun -n $n_rank -c $n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+    else
+        srun -n $n_rank -c $n_core --hint=nomultithread ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+    fi
 }
 
 run_locally() {
-NMC_NUM_THREADS=$nmc_num_threads ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size -f
+    NMC_NUM_THREADS=$nmc_num_threads ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size -f
 }
 
 # Preserve the newline characters by setting this empty (field splitting).
