@@ -1,3 +1,4 @@
+/*
 #include "../gtest.h"
 
 #include <spike.hpp>
@@ -85,4 +86,4 @@ TEST(spike_store, gather)
         EXPECT_EQ(spikes[i].time, gathered_spikes[i].time);
     }
 }
-
+*/
