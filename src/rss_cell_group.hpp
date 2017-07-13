@@ -23,11 +23,6 @@ public:
     {
         using util::make_span;
 
-        // Build lookup table for gid to local index
-        for (auto i: util::make_span(0, gids_.size())) {
-            gid2lid_[gids_[i]] = i;
-        }
-
         for (cell_gid_type i: make_span(0, cell_descriptions.size())) {
             cells_.push_back(rss_cell(
                 util::any_cast<rss_cell::rss_cell_description>(cell_descriptions[i])
@@ -75,22 +70,13 @@ public:
         return {};
     }
 
-    void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override {
+    void add_sampler(cell_member_type, sampler_function, time_type ts=0) override {
         std::logic_error("The rss_cells do not support sampling of internal state!");
     }
 
 private:
     // List of the gids of the cells in the group
     std::vector<cell_gid_type> gids_;
-
-    // Hash table for converting gid to local index
-    std::unordered_map<cell_gid_type, cell_gid_type> gid2lid_;
-
-    // convenience function for performing conversion
-    util::optional<cell_gid_type> gid2lid(cell_gid_type gid) const {
-        auto it = gid2lid_.find(gid);
-        return it==gid2lid_.end()? util::nothing: util::optional<cell_gid_type>(it->second);
-    }
 
     // Spikes that are generated.
     std::vector<spike> spikes_;

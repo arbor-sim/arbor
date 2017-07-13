@@ -4,12 +4,15 @@
 #include <utility>
 
 #include <cell.hpp>
+#include <dss_cell_description.hpp>
 #include <rss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
 
+#include "io.hpp"
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
+
 
 namespace nest {
 namespace mc {
@@ -84,10 +87,15 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        // The last 'cell' is a rss_cell with one spike at t=0
+        // The last 'cell' is a spike source cell. Either a regular spiking
+        // or a spikes from file.
         if (i == ncell_) {
-            return util::unique_any(std::move(
-                rss_cell::rss_cell_description(0.0, 0.1, 0.1) ));
+            if (param_.input_spike_path) {
+                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.get());
+                return util::unique_any(dss_cell_description(spike_times));
+            }
+
+            return util::unique_any(rss_cell::rss_cell_description(0.0, 0.1, 0.1));
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
@@ -124,6 +132,10 @@ public:
     cell_kind get_cell_kind(cell_gid_type i ) const override {
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
+            if (param_.input_spike_path) {
+                return cell_kind::data_spike_source;
+            }
+
             return cell_kind::regular_spike_source;
         }
         return cell_kind::cable1d_neuron;
