@@ -18,7 +18,9 @@ void validate_soma(nest::mc::backend_policy backend) {
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
-    domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+
+    node_description nd(1, backend==backend_policy::gpu? 1: 0);
+    domain_decomposition decomp(singleton_recipe{c}, nd);
     model m(singleton_recipe{c}, decomp);
 
     float sample_dt = .025f;

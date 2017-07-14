@@ -32,7 +32,8 @@ void run_kinetic_dt(
     convergence_test_runner<float> runner("dt", samplers, meta);
     runner.load_reference_data(ref_file);
 
-    domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+    node_description nd(1, backend==backend_policy::gpu? 1: 0);
+    domain_decomposition decomp(singleton_recipe{c}, nd);
     model model(singleton_recipe{c}, decomp);
 
     auto exclude = stimulus_ends(c);

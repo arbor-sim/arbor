@@ -58,9 +58,10 @@ void run_synapse_test(
     convergence_test_runner<int> runner("ncomp", samplers, meta);
     runner.load_reference_data(ref_data_path);
 
+    node_description nd(1, backend==backend_policy::gpu? 1: 0);
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
-        domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+        domain_decomposition decomp(singleton_recipe{c}, nd);
         model m(singleton_recipe{c}, decomp);
         m.group(0).enqueue_events(synthetic_events);
 

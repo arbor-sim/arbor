@@ -182,17 +182,7 @@ static size_t global_get_num_threads() {
     return nthreads;
 }
 
-std::atomic<task_pool*> gtp;
-std::mutex cthread_mutex;
-
 task_pool& task_pool::get_global_task_pool() {
-    if (gtp==nullptr) {
-        std::lock_guard<std::mutex> lock(cthread_mutex);
-        if (gtp==nullptr) {
-            gtp = new task_pool(global_get_num_threads());
-        }
-    }
-    return *gtp;
-    //static task_pool global_task_pool{global_get_num_threads()};
-    //return global_task_pool;
+    static task_pool global_task_pool(global_get_num_threads());
+    return global_task_pool;
 }

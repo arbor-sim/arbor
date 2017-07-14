@@ -49,7 +49,8 @@ void run_ncomp_convergence_test(
                 seg->set_compartments(ncomp);
             }
         }
-        domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+        node_description nd(1, backend==backend_policy::gpu? 1: 0);
+        domain_decomposition decomp(singleton_recipe{c}, nd);
         model m(singleton_recipe{c}, decomp);
 
         runner.run(m, ncomp, t_end, dt, exclude);
