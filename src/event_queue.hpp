@@ -31,6 +31,10 @@ struct postsynaptic_spike_event {
     friend bool operator==(postsynaptic_spike_event l, postsynaptic_spike_event r) {
         return l.target==r.target && l.time==r.time && l.weight==r.weight;
     }
+
+    friend bool operator<(postsynaptic_spike_event l, postsynaptic_spike_event r) {
+        return l.time<r.time;
+    }
 };
 
 struct sample_event {

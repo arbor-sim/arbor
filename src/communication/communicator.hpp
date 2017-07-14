@@ -110,9 +110,6 @@ public:
                 const auto e = connection_part_[i+1];
                 util::sort(util::subrange_view(connections_, b, e));
             });
-
-        //for (auto c: connections_) std::cout << c << "\n";
-        //std::cout << "part: "; for (auto l: connection_part_) std::cout << l << " "; std::cout << "\n";
     }
 
     /// the minimum delay of all connections in the global network.

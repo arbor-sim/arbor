@@ -177,7 +177,8 @@ TEST(communicator, gather_spikes_variant) {
 }
 
 namespace {
-    // Homogenous cell population of cable cells.
+    // Population of cable and rss cells with ring connection topology.
+    // Even gid are rss, and odd gid are cable cells.
     class ring_recipe: public recipe {
     public:
         ring_recipe(cell_size_type s):
@@ -192,8 +193,9 @@ namespace {
         util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
-        cell_kind get_cell_kind(cell_gid_type) const override {
-            return cell_kind::cable1d_neuron;
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return gid%2? cell_kind::cable1d_neuron: cell_kind::regular_spike_source;
         }
 
         cell_count_info get_cell_count_info(cell_gid_type) const override {
@@ -240,7 +242,8 @@ namespace {
         return spike({gid, 0u}, time_type(gid));
     }
 
-    // Homogenous cell population of cable cells in all to all
+    // Population of cable and rss cells with all-to-all connection topology.
+    // Even gid are rss, and odd gid are cable cells.
     class all2all_recipe: public recipe {
     public:
         all2all_recipe(cell_size_type s):
@@ -255,8 +258,8 @@ namespace {
         util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
-        cell_kind get_cell_kind(cell_gid_type) const override {
-            return cell_kind::cable1d_neuron;
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return gid%2? cell_kind::cable1d_neuron: cell_kind::regular_spike_source;
         }
 
         cell_count_info get_cell_count_info(cell_gid_type) const override {
