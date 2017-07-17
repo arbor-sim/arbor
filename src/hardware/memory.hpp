@@ -4,7 +4,7 @@
 
 namespace nest {
 namespace mc {
-namespace util {
+namespace hw {
 
 // Use a signed type to store memory sizes because it can be used to store
 // the difference between two readings, which may be negative.
@@ -21,6 +21,6 @@ memory_size_type allocated_memory();
 // Returns a negative value on error, or if not using the gpu
 memory_size_type gpu_allocated_memory();
 
-} // namespace util
+} // namespace hw
 } // namespace mc
 } // namespace nest

@@ -2,8 +2,10 @@
 #include <vector>
 
 #include <util/config.hpp>
+#include <hardware/memory.hpp>
 
 #include "memory_meter.hpp"
+#include "meter.hpp"
 
 namespace nest {
 namespace mc {
@@ -15,7 +17,7 @@ namespace util {
 
 class memory_meter: public meter {
 protected:
-    std::vector<memory_size_type> readings_;
+    std::vector<hw::memory_size_type> readings_;
 
 public:
     std::string name() override {
@@ -27,7 +29,7 @@ public:
     }
 
     void take_reading() override {
-        readings_.push_back(allocated_memory());
+        readings_.push_back(hw::allocated_memory());
     }
 
     std::vector<double> measurements() override {
@@ -61,7 +63,7 @@ public:
     }
 
     void take_reading() override {
-        readings_.push_back(gpu_allocated_memory());
+        readings_.push_back(hw::gpu_allocated_memory());
     }
 };
 

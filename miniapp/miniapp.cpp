@@ -178,8 +178,8 @@ int main(int argc, char** argv) {
 
 void banner() {
     std::cout << "====================\n";
-    std::cout << "  starting miniapp\n";
-    std::cout << "  - " << threading::description() << " threading support\n";
+    std::cout << "  NestMC miniapp\n";
+    std::cout << "  - " << threading::description() << " threading support (" << threading::num_threads() << ")\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
     std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
