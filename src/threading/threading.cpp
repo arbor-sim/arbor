@@ -60,7 +60,7 @@ util::optional<size_t> get_env_num_threads() {
 size_t num_threads_init() {
     auto env_threads = get_env_num_threads();
     if (!env_threads || *env_threads==0u) {
-        auto detect_threads = hw::num_available_cores();
+        auto detect_threads = hw::num_cores();
         return detect_threads? *detect_threads: 1;
     }
     return *env_threads;

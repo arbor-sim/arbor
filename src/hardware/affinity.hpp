@@ -25,7 +25,7 @@ std::vector<int> get_affinity();
 // been playing with thread affinity.
 //
 // Returns 0 if unable to determine the number of cores.
-util::optional<std::size_t> num_available_cores();
+util::optional<std::size_t> num_cores();
 
 } // namespace util
 } // namespace mc

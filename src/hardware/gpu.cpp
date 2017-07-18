@@ -7,13 +7,13 @@ namespace mc {
 namespace hw {
 
 #ifdef NMC_HAVE_GPU
-unsigned num_available_gpus() {
+unsigned num_gpus() {
     int n;
     cudaGetDeviceCount(&n);
     return n;
 }
 #else
-unsigned num_available_gpus() {
+unsigned num_gpus() {
     return 0u;
 }
 #endif
