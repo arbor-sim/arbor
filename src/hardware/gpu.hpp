@@ -4,7 +4,7 @@ namespace nest {
 namespace mc {
 namespace hw {
 
-unsigned num_available_gpus();
+unsigned num_gpus();
 
 } // namespace hw
 } // namespace mc
