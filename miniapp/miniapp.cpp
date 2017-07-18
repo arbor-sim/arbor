@@ -175,14 +175,14 @@ int main(int argc, char** argv) {
 }
 
 void banner(hw::node nd) {
-    std::cout << "====================\n";
+    std::cout << "==========================================\n";
     std::cout << "  NestMC miniapp\n";
     std::cout << "  - distributed : " << global_policy::size()
               << " (" << std::to_string(global_policy::kind()) << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
               << " (" << threading::description() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
-    std::cout << "====================\n";
+    std::cout << "==========================================\n";
 }
 
 std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {

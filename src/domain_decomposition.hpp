@@ -63,9 +63,11 @@ public:
         domain_id_ = communication::global_policy::id();
         num_global_cells_ = rec.num_cells();
 
-        //
-        // GLOBAL LOAD BALANCE  /////////////////////////
-        //
+        // TODO: load balancing logic will be refactored into its own class,
+        // and the domain decomposition will become a much simpler representation
+        // of the result distribution of cells over domains.
+
+        // Global load balance
 
         gid_part_.reserve(num_domains_+1);
         for (auto d: make_span(0, num_domains_+1)) {
@@ -76,9 +78,7 @@ public:
         auto b = first_cell_on_domain(domain_id_);
         auto e = first_cell_on_domain(domain_id_+1);
 
-        //
-        // LOCAL LOAD BALANCE   /////////////////////////
-        //
+        // Local load balance
 
         std::unordered_map<kind_type, std::vector<cell_gid_type>> kind_lists;
         for (auto gid: make_span(b, e)) {
