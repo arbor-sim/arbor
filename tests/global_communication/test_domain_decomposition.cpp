@@ -8,6 +8,7 @@
 
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <hardware/node.hpp>
 
 using namespace nest::mc;
 
@@ -89,7 +90,7 @@ TEST(domain_decomp, homogeneous) {
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        node_description nd(1, 0);
+        hw::node nd(1, 0);
 
         // 10 cells per domain
         unsigned n_local = 10;
@@ -122,7 +123,7 @@ TEST(domain_decomp, homogeneous) {
     }
     {   // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that all cells will be placed on gpu in a single group.
-        node_description nd(1, 1);
+        hw::node nd(1, 1);
 
         // 10 cells per domain
         unsigned n_local = 10;
@@ -163,7 +164,7 @@ TEST(domain_decomp, heterogeneous) {
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        node_description nd(1, 0);
+        hw::node nd(1, 0);
 
         // 10 cells per domain
         unsigned n_local = 10;

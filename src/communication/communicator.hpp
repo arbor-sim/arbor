@@ -128,7 +128,7 @@ public:
     /// Returns the full global set of vectors, along with meta data about their partition
     gathered_vector<spike> exchange(std::vector<spike> local_spikes) {
         // global all-to-all to gather a local copy of the global spike list on each node.
-        util::sort(local_spikes);
+        util::sort_by(local_spikes, [](spike s){return s.source;});
         auto global_spikes = comms_.gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
         return global_spikes;
@@ -152,8 +152,6 @@ public:
         for (auto dom: make_span(0, num_domains_)) {
             auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
             auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
-            EXPECTS(algorithms::is_sorted(cons));
-            EXPECTS(algorithms::is_sorted(spks));
 
             /*
             if (cons.size()<spks.size()) {

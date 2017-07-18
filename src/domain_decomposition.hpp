@@ -7,6 +7,7 @@
 #include <backends.hpp>
 #include <common_types.hpp>
 #include <communication/global_policy.hpp>
+#include <hardware/node.hpp>
 #include <recipe.hpp>
 #include <util/optional.hpp>
 #include <util/partition.hpp>
@@ -21,16 +22,6 @@ inline bool has_gpu_backend(cell_kind k) {
     }
     return false;
 }
-
-// Meta data used to guide the domain_decomposition in distributing
-// and grouping cells.
-struct node_description {
-    node_description(int c, int g):
-        num_cpu_cores(c), num_gpus(g)
-    {}
-    int num_cpu_cores = 0;
-    int num_gpus = 0;
-};
 
 /// Utility type for meta data for a local cell group.
 class group_description {
@@ -62,8 +53,8 @@ class domain_decomposition {
     }
 
 public:
-    domain_decomposition(const recipe& rec, node_description nd):
-        node_description_(nd)
+    domain_decomposition(const recipe& rec, hw::node nd):
+        node_(nd)
     {
         using kind_type = std::underlying_type<cell_kind>::type;
         using util::make_span;
@@ -105,7 +96,7 @@ public:
 
         for (auto k: kinds) {
             // put all cells into a single cell group on the gpu if possible
-            if (node_description_.num_gpus && has_gpu_backend(k)) {
+            if (node_.num_gpus && has_gpu_backend(k)) {
                 groups_.push_back({k, std::move(kind_lists[k]), backend_policy::gpu});
             }
             // otherwise place into cell groups of size 1 on the cpu cores
@@ -152,7 +143,7 @@ public:
 private:
     int num_domains_;
     int domain_id_;
-    node_description node_description_;
+    hw::node node_;
     cell_size_type num_global_cells_;
     std::vector<cell_gid_type> gid_part_;
     std::vector<cell_kind> group_kinds_;

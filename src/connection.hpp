@@ -16,7 +16,7 @@ public:
                 cell_member_type dest,
                 float w,
                 time_type d,
-                cell_gid_type gidx=-1):
+                cell_gid_type gidx=cell_gid_type(-1)):
         source_(src),
         destination_(dest),
         weight_(w),

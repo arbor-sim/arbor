@@ -20,20 +20,6 @@ struct basic_spike {
     basic_spike(id_type s, time_type t):
         source(s), time(t)
     {}
-
-    /// Less than comparison operator for nest::mc::spike<> values:
-    /// spikes are ordered by spike time, for use in sorting and queueing.
-    friend bool operator<(basic_spike lhs, basic_spike rhs) {
-        return lhs.source < rhs.source;
-    }
-
-    friend bool operator<(cell_member_type lhs, basic_spike rhs) {
-        return lhs < rhs.source;
-    }
-
-    friend bool operator<(basic_spike lhs, cell_member_type rhs) {
-        return lhs.source < rhs;
-    }
 };
 
 /// Standard specialization:

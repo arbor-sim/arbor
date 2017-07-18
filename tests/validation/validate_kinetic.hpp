@@ -3,6 +3,7 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
+#include <hardware/node.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -32,7 +33,7 @@ void run_kinetic_dt(
     convergence_test_runner<float> runner("dt", samplers, meta);
     runner.load_reference_data(ref_file);
 
-    node_description nd(1, backend==backend_policy::gpu? 1: 0);
+    hw::node nd(1, backend==backend_policy::gpu? 1: 0);
     domain_decomposition decomp(singleton_recipe{c}, nd);
     model model(singleton_recipe{c}, decomp);
 

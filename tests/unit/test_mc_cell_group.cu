@@ -27,7 +27,7 @@ nest::mc::cell make_cell() {
 TEST(cell_group, test)
 {
     using cell_group_type = mc_cell_group<fvm_cell>;
-    auto group = cell_group_type{0, util::singleton_view(make_cell())};
+    auto group = cell_group_type({0u}, util::singleton_view(make_cell()));
 
     group.advance(50, 0.01);
 

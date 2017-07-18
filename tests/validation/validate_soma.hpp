@@ -3,6 +3,7 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
+#include <hardware/node.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -19,7 +20,7 @@ void validate_soma(nest::mc::backend_policy backend) {
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
 
-    node_description nd(1, backend==backend_policy::gpu? 1: 0);
+    hw::node nd(1, backend==backend_policy::gpu? 1: 0);
     domain_decomposition decomp(singleton_recipe{c}, nd);
     model m(singleton_recipe{c}, decomp);
 

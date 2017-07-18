@@ -8,6 +8,7 @@
 
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <hardware/node.hpp>
 #include <util/filter.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
@@ -373,7 +374,7 @@ TEST(communicator, ring)
     unsigned n_global = n_local*N;
 
     auto R = ring_recipe(n_global);
-    auto D = domain_decomposition(R, node_description(1,0));
+    auto D = domain_decomposition(R, hw::node(1,0));
     auto P = gid_prop_map(D);
     auto C = communication::communicator<policy>(R, D, P);
 
@@ -459,7 +460,7 @@ TEST(communicator, all2all)
     unsigned n_global = n_local*N;
 
     auto R = all2all_recipe(n_global);
-    auto D = domain_decomposition(R, node_description(1,0));
+    auto D = domain_decomposition(R, hw::node(1,0));
     auto P = gid_prop_map(D);
     auto C = communication::communicator<policy>(R, D, P);
 
