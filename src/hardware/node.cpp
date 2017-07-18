@@ -7,10 +7,10 @@ namespace mc {
 namespace hw {
 
 node::node():
-    num_gpus(num_available_gpus())
+    num_gpus(hw::num_gpus())
 {
     // If unable to determine the number of cores, use 1 core by default
-    auto avail = num_available_cores();
+    auto avail = hw::num_cores();
     if (!avail || *avail==0u) {
         num_cpu_cores = 1;
     }

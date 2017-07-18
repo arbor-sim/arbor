@@ -34,7 +34,6 @@ struct cl_options {
     // Simulation running parameters:
     double tfinal = 100.;
     double dt = 0.025;
-    uint32_t group_size = 1;
     bool bin_regular = false; // False => use 'following' instead of 'regular'.
     double bin_dt = 0.0025;   // 0 => no binning.
 
