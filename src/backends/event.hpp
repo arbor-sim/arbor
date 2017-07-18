@@ -18,11 +18,6 @@ struct target_handle {
     target_handle() {}
     target_handle(cell_local_size_type mech_id, cell_local_size_type index, cell_size_type cell_index):
         mech_id(mech_id), index(index), cell_index(cell_index) {}
-
-    friend std::ostream& operator<<(std::ostream& o, nest::mc::target_handle h) {
-        o << "{" << h.index << ", " << h.cell_index << ", " << h.mech_id << "}";
-        return o;
-    }
 };
 
 struct deliverable_event {

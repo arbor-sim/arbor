@@ -28,7 +28,7 @@ cell_group_ptr cell_group_factory(const recipe& rec, const group_description& gr
     auto backend = group.backend();
     switch (group.kind()) {
     case cell_kind::cable1d_neuron:
-        if (backend == backend_policy::gpu) {
+        if (backend == backend_kind::gpu) {
             return make_cell_group<gpu_fvm_cell>(group.gids(), descriptions);
         }
         else {

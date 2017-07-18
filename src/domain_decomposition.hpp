@@ -27,10 +27,10 @@ inline bool has_gpu_backend(cell_kind k) {
 class group_description {
     const cell_kind kind_;
     const std::vector<cell_gid_type> gids_;
-    const backend_policy backend_;
+    const backend_kind backend_;
 
 public:
-    group_description(cell_kind k, std::vector<cell_gid_type> g, backend_policy b):
+    group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
         kind_(k), gids_(std::move(g)), backend_(b)
     {}
 
@@ -38,7 +38,7 @@ public:
         return kind_;
     }
 
-    backend_policy backend() const {
+    backend_kind backend() const {
         return backend_;
     }
 
@@ -97,12 +97,12 @@ public:
         for (auto k: kinds) {
             // put all cells into a single cell group on the gpu if possible
             if (node_.num_gpus && has_gpu_backend(k)) {
-                groups_.push_back({k, std::move(kind_lists[k]), backend_policy::gpu});
+                groups_.push_back({k, std::move(kind_lists[k]), backend_kind::gpu});
             }
             // otherwise place into cell groups of size 1 on the cpu cores
             else {
                 for (auto gid: kind_lists[k]) {
-                    groups_.push_back({k, {gid}, backend_policy::multicore});
+                    groups_.push_back({k, {gid}, backend_kind::multicore});
                 }
             }
         }

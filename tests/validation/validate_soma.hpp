@@ -14,13 +14,13 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-void validate_soma(nest::mc::backend_policy backend) {
+void validate_soma(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
 
-    hw::node nd(1, backend==backend_policy::gpu? 1: 0);
+    hw::node nd(1, backend==backend_kind::gpu? 1: 0);
     domain_decomposition decomp(singleton_recipe{c}, nd);
     model m(singleton_recipe{c}, decomp);
 
@@ -32,7 +32,7 @@ void validate_soma(nest::mc::backend_policy backend) {
         {"model", "soma"},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend_policy", to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     convergence_test_runner<float> runner("dt", samplers, meta);

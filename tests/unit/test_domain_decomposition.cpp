@@ -108,7 +108,7 @@ TEST(domain_decomposition, homogenous_population)
             auto& grp = D.get_group(i);
             EXPECT_EQ(grp.gids().size(), 1u);
             EXPECT_EQ(grp.gids().front(), unsigned(i));
-            EXPECT_EQ(grp.backend(), backend_policy::multicore);
+            EXPECT_EQ(grp.backend(), backend_kind::multicore);
             EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
         }
     }
@@ -137,7 +137,7 @@ TEST(domain_decomposition, homogenous_population)
         EXPECT_EQ(grp.gids().size(), num_cells);
         EXPECT_EQ(grp.gids().front(), 0u);
         EXPECT_EQ(grp.gids().back(), num_cells-1);
-        EXPECT_EQ(grp.backend(), backend_policy::gpu);
+        EXPECT_EQ(grp.backend(), backend_kind::gpu);
         EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
     }
 }
@@ -174,7 +174,7 @@ TEST(domain_decomposition, heterogenous_population)
             EXPECT_EQ(grp.gids().size(), 1u);
             auto k = grp.kind();
             kind_lists[k].insert(grp.gids().front());
-            EXPECT_EQ(grp.backend(), backend_policy::multicore);
+            EXPECT_EQ(grp.backend(), backend_kind::multicore);
         }
 
         for (auto k: {cell_kind::cable1d_neuron, cell_kind::regular_spike_source}) {
@@ -207,7 +207,7 @@ TEST(domain_decomposition, heterogenous_population)
             auto& grp = D.get_group(i);
             auto k = grp.kind();
             if (k==cell_kind::cable1d_neuron) {
-                EXPECT_EQ(grp.backend(), backend_policy::gpu);
+                EXPECT_EQ(grp.backend(), backend_kind::gpu);
                 EXPECT_EQ(grp.gids().size(), num_cells/2);
                 for (auto gid: grp.gids()) {
                     EXPECT_TRUE(gid%2==0);
@@ -215,7 +215,7 @@ TEST(domain_decomposition, heterogenous_population)
                 }
             }
             else if (k==cell_kind::regular_spike_source){
-                EXPECT_EQ(grp.backend(), backend_policy::multicore);
+                EXPECT_EQ(grp.backend(), backend_kind::multicore);
                 EXPECT_EQ(grp.gids().size(), 1u);
                 EXPECT_TRUE(grp.gids().front()%2);
                 ++ncells;

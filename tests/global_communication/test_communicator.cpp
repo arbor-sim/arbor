@@ -374,7 +374,9 @@ TEST(communicator, ring)
     unsigned n_global = n_local*N;
 
     auto R = ring_recipe(n_global);
-    auto D = domain_decomposition(R, hw::node(1,0));
+    // use a node decomposition that reflects the resources available
+    // on the node that the test is running on, including gpus.
+    auto D = domain_decomposition(R, hw::node());
     auto P = gid_prop_map(D);
     auto C = communication::communicator<policy>(R, D, P);
 
@@ -460,7 +462,9 @@ TEST(communicator, all2all)
     unsigned n_global = n_local*N;
 
     auto R = all2all_recipe(n_global);
-    auto D = domain_decomposition(R, hw::node(1,0));
+    // use a node decomposition that reflects the resources available
+    // on the node that the test is running on, including gpus.
+    auto D = domain_decomposition(R, hw::node());
     auto P = gid_prop_map(D);
     auto C = communication::communicator<policy>(R, D, P);
 

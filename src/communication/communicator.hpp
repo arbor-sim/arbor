@@ -127,8 +127,10 @@ public:
     /// Takes as input the list of local_spikes that were generated on the calling domain.
     /// Returns the full global set of vectors, along with meta data about their partition
     gathered_vector<spike> exchange(std::vector<spike> local_spikes) {
-        // global all-to-all to gather a local copy of the global spike list on each node.
+        // sort the spikes in ascending order of source gid
         util::sort_by(local_spikes, [](spike s){return s.source;});
+
+        // global all-to-all to gather a local copy of the global spike list on each node.
         auto global_spikes = comms_.gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
         return global_spikes;
@@ -153,12 +155,18 @@ public:
             auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
             auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
 
-            /*
+            struct spike_pred {
+                bool operator()(const spike& spk, const cell_member_type& src)
+                    {return spk.source<src;}
+                bool operator()(const cell_member_type& src, const spike& spk)
+                    {return src<spk.source;}
+            };
             if (cons.size()<spks.size()) {
                 auto sp = spks.begin();
                 auto cn = cons.begin();
                 while (cn!=cons.end() && sp!=spks.end()) {
-                    auto sources = std::equal_range(sp, spks.end(), cn->source());
+                    auto sources =
+                        std::equal_range(sp, spks.end(), cn->source(), spike_pred());
 
                     for (auto s: make_range(sources.first, sources.second)) {
                         queues[cn->group_index()].push_back(cn->make_event(s));
@@ -169,7 +177,6 @@ public:
                 }
             }
             else {
-            */
                 auto cn = cons.begin();
                 auto sp = spks.begin();
                 while (cn!=cons.end() && sp!=spks.end()) {
@@ -182,7 +189,7 @@ public:
                     cn = targets.first;
                     ++sp;
                 }
-            //}
+            }
         }
 
         return queues;

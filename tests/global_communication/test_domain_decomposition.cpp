@@ -117,7 +117,7 @@ TEST(domain_decomp, homogeneous) {
             auto& grp = D.get_group(i-b);
             EXPECT_EQ(grp.gids().size(), 1u);
             EXPECT_EQ(grp.gids().front(), unsigned(i));
-            EXPECT_EQ(grp.backend(), backend_policy::multicore);
+            EXPECT_EQ(grp.backend(), backend_kind::multicore);
             EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
         }
     }
@@ -151,7 +151,7 @@ TEST(domain_decomp, homogeneous) {
         EXPECT_EQ(grp.gids().size(), n_local);
         EXPECT_EQ(grp.gids().front(), b);
         EXPECT_EQ(grp.gids().back(), e-1);
-        EXPECT_EQ(grp.backend(), backend_policy::gpu);
+        EXPECT_EQ(grp.backend(), backend_kind::gpu);
         EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
     }
 }
@@ -195,7 +195,7 @@ TEST(domain_decomp, heterogeneous) {
             auto& grp = D.get_group(i);
             EXPECT_EQ(grp.gids().size(), 1u);
             kind_lists[grp.kind()].insert(grp.gids().front());
-            EXPECT_EQ(grp.backend(), backend_policy::multicore);
+            EXPECT_EQ(grp.backend(), backend_kind::multicore);
         }
 
         for (auto k: {cell_kind::cable1d_neuron, cell_kind::regular_spike_source}) {

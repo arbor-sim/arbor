@@ -241,7 +241,7 @@ public:
                       probe_distribution pdist = probe_distribution{}):
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
-        // Cells are not allowed to connect to themselves, so we need at least two cells
+        // Cells are not allowed to connect to themselves; hence there must be least two cells
         // to build a connected network.
         if (ncell<2) {
             throw std::runtime_error("A randomly connected network must have at least 2 cells.");
