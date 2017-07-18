@@ -12,7 +12,7 @@ extern "C" {
 
 namespace nest {
 namespace mc {
-namespace util {
+namespace hw {
 
 #if defined(__linux__)
 memory_size_type allocated_memory() {
@@ -39,6 +39,6 @@ memory_size_type gpu_allocated_memory() {
 }
 #endif
 
-} // namespace util
+} // namespace hw
 } // namespace mc
 } // namespace nest

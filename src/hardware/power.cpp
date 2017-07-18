@@ -4,7 +4,7 @@
 
 namespace nest {
 namespace mc {
-namespace util {
+namespace hw {
 
 #ifdef NMC_HAVE_CRAY
 
@@ -27,6 +27,6 @@ energy_size_type energy() {
 
 #endif
 
-} // namespace util
+} // namespace hw
 } // namespace mc
 } // namespace nest
