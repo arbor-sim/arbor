@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 #include <common_types.hpp>
 
 // Structures for the representation of event delivery targets and

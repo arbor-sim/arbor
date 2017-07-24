@@ -139,7 +139,7 @@ public:
                     auto& s = samplers_[m->sampler_index];
                     EXPECTS((bool)s.sampler);
 
-                    time_type cell_time = lowered_.time(*gid2lid(s.cell_gid));
+                    time_type cell_time = lowered_.time(gid2lid(s.cell_gid));
                     if (cell_time<m->time) {
                         // This cell hasn't reached this sample time yet.
                         requeue_sample_events.push_back(*m);
@@ -285,18 +285,7 @@ private:
     // Use handle partition to get index from id.
     template <typename Divisions>
     std::size_t handle_partition_lookup(const Divisions& divisions, cell_member_type id) const {
-        // NB: without any assertion checking, this would just be:
-        // return divisions[*gid2lid(id.gid)]+id.index;
-
-        EXPECTS(gid2lid(id.gid));
-
-        auto handle_partition = util::partition_view(divisions);
-
-        auto ival = handle_partition[*gid2lid(id.gid)];
-        std::size_t i = ival.first + id.index;
-        EXPECTS(i<ival.second);
-
-        return i;
+        return divisions[gid2lid(id.gid)]+id.index;
     }
 
     // Get probe handle from probe id.
@@ -318,9 +307,10 @@ private:
         }
     }
 
-    util::optional<cell_gid_type> gid2lid(cell_gid_type gid) const {
+    cell_gid_type gid2lid(cell_gid_type gid) const {
         auto it = gid2lid_.find(gid);
-        return it==gid2lid_.end()? util::nothing: util::optional<cell_gid_type>(it->second);
+        EXPECTS(it!=gid2lid_.end());
+        return it->second;
     }
 };
 

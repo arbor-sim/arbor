@@ -1,25 +1,25 @@
+#include <algorithm>
+
 #include "affinity.hpp"
 #include "gpu.hpp"
-#include "node.hpp"
+#include "node_info.hpp"
 
 namespace nest {
 namespace mc {
 namespace hw {
 
-node::node():
-    num_gpus(hw::num_gpus())
-{
-    // If unable to determine the number of cores, use 1 core by default
-    auto avail = hw::num_cores();
-    if (!avail || *avail==0u) {
-        num_cpu_cores = 1;
-    }
-    num_cpu_cores = *avail;
-}
-
-node::node(int c, int g):
+node_info::node_info(unsigned c, unsigned g):
     num_cpu_cores(c), num_gpus(g)
 {}
+
+// Return a node_info that describes the hardware resources available on this node.
+// If unable to determine the number of available cores, assumes that there is one
+// core available.
+node_info get_node_info() {
+    auto res = num_cores();
+    unsigned ncpu = res? *res: 1u;
+    return {ncpu, num_gpus()};
+}
 
 } // namespace util
 } // namespace mc

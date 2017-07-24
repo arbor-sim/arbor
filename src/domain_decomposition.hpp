@@ -7,7 +7,7 @@
 #include <backends.hpp>
 #include <common_types.hpp>
 #include <communication/global_policy.hpp>
-#include <hardware/node.hpp>
+#include <hardware/node_info.hpp>
 #include <recipe.hpp>
 #include <util/optional.hpp>
 #include <util/partition.hpp>
@@ -53,7 +53,7 @@ class domain_decomposition {
     }
 
 public:
-    domain_decomposition(const recipe& rec, hw::node nd):
+    domain_decomposition(const recipe& rec, hw::node_info nd):
         node_(nd)
     {
         using kind_type = std::underlying_type<cell_kind>::type;
@@ -143,7 +143,7 @@ public:
 private:
     int num_domains_;
     int domain_id_;
-    hw::node node_;
+    hw::node_info node_;
     cell_size_type num_global_cells_;
     std::vector<cell_gid_type> gid_part_;
     std::vector<cell_kind> group_kinds_;

@@ -8,7 +8,7 @@
 
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <hardware/node.hpp>
+#include <hardware/node_info.hpp>
 #include <util/filter.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
@@ -376,7 +376,7 @@ TEST(communicator, ring)
     auto R = ring_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    auto D = domain_decomposition(R, hw::node());
+    auto D = domain_decomposition(R, hw::node_info());
     auto P = gid_prop_map(D);
     auto C = communication::communicator<policy>(R, D, P);
 
@@ -464,7 +464,7 @@ TEST(communicator, all2all)
     auto R = all2all_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    auto D = domain_decomposition(R, hw::node());
+    auto D = domain_decomposition(R, hw::node_info());
     auto P = gid_prop_map(D);
     auto C = communication::communicator<policy>(R, D, P);
 

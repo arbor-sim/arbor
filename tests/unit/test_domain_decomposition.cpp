@@ -2,7 +2,7 @@
 
 #include <backends.hpp>
 #include <domain_decomposition.hpp>
-#include <hardware/node.hpp>
+#include <hardware/node_info.hpp>
 
 using namespace nest::mc;
 
@@ -86,7 +86,7 @@ TEST(domain_decomposition, homogenous_population)
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        hw::node nd(1, 0);
+        hw::node_info nd(1, 0);
 
         unsigned num_cells = 10;
         domain_decomposition D(homo_recipe(num_cells), nd);
@@ -114,7 +114,7 @@ TEST(domain_decomposition, homogenous_population)
     }
     {   // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that all cells will be placed on gpu in a single group.
-        hw::node nd(1, 1);
+        hw::node_info nd(1, 1);
 
         unsigned num_cells = 10;
         domain_decomposition D(homo_recipe(num_cells), nd);
@@ -148,7 +148,7 @@ TEST(domain_decomposition, heterogenous_population)
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        hw::node nd(1, 0);
+        hw::node_info nd(1, 0);
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
@@ -188,7 +188,7 @@ TEST(domain_decomposition, heterogenous_population)
     {   // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that calble cells are on gpu in a single group, and
         // rff cells are on cpu in cell groups of size 1
-        hw::node nd(1, 1);
+        hw::node_info nd(1, 1);
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);

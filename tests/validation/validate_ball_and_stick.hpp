@@ -3,7 +3,7 @@
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
-#include <hardware/node.hpp>
+#include <hardware/node_info.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -50,7 +50,7 @@ void run_ncomp_convergence_test(
                 seg->set_compartments(ncomp);
             }
         }
-        hw::node nd(1, backend==backend_kind::gpu? 1: 0);
+        hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
         domain_decomposition decomp(singleton_recipe{c}, nd);
         model m(singleton_recipe{c}, decomp);
 

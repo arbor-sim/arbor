@@ -14,7 +14,7 @@ set(BASE_SOURCES
     hardware/affinity.cpp
     hardware/gpu.cpp
     hardware/memory.cpp
-    hardware/node.cpp
+    hardware/node_info.cpp
     hardware/power.cpp
     threading/threading.cpp
     util/debug.cpp

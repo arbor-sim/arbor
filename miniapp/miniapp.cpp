@@ -12,7 +12,8 @@
 #include <communication/global_policy.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
-#include <hardware/node.hpp>
+#include <hardware/gpu.hpp>
+#include <hardware/node_info.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
@@ -32,7 +33,7 @@ using namespace nest::mc;
 using global_policy = communication::global_policy;
 using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
-void banner(hw::node);
+void banner(hw::node_info);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(probe_record probe);
 using communicator_type = communication::communicator<communication::global_policy>;
@@ -68,8 +69,11 @@ int main(int argc, char** argv) {
             global_policy::set_sizes(options.dry_run_ranks, cells_per_rank);
         }
 
-        hw::node nd;
+        // Use a node description that uses the number of threads used by the
+        // threading back end, and 1 gpu if available.
+        hw::node_info nd;
         nd.num_cpu_cores = threading::num_threads();
+        nd.num_gpus = hw::num_gpus()? 1: 0;
         banner(nd);
 
         meters.checkpoint("setup");
@@ -174,7 +178,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node nd) {
+void banner(hw::node_info nd) {
     std::cout << "==========================================\n";
     std::cout << "  NestMC miniapp\n";
     std::cout << "  - distributed : " << global_policy::size()
