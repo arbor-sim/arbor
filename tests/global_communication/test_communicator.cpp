@@ -297,9 +297,21 @@ namespace {
     std::vector<cell_gid_type> get_gids(const domain_decomposition& D) {
         std::vector<cell_gid_type> gids;
         for (auto i: util::make_span(0, D.num_local_groups())) {
-            util::append(gids, D.get_group(i).gids());
+            util::append(gids, D.get_group(i).gids);
         }
         return gids;
+    }
+
+    // make a hash table mapping local gid to local cell_group index
+    std::unordered_map<cell_gid_type, cell_gid_type>
+    get_group_map(const domain_decomposition& D) {
+        std::unordered_map<cell_gid_type, cell_gid_type> map;
+        for (auto i: util::make_span(0, D.num_local_groups())) {
+            for (auto gid: D.get_group(i).gids) {
+                map[gid] = i;
+            }
+        }
+        return map;
     }
 }
 
@@ -308,12 +320,15 @@ using comm_type = communication::communicator<policy>;
 
 template <typename F>
 ::testing::AssertionResult
-test_ring(const domain_decomposition& D, comm_type& C, gid_prop_map& P, F&& f) {
+test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
     using util::transform_view;
     using util::assign_from;
     using util::filter;
 
+
     auto gids = get_gids(D);
+    auto group_map = get_group_map(D);
+
     std::vector<spike> local_spikes = assign_from(transform_view(filter(gids, f), make_spike));
     // Reverse the order of spikes so that they are "unsorted" in terms
     // of source gid.
@@ -342,7 +357,7 @@ test_ring(const domain_decomposition& D, comm_type& C, gid_prop_map& P, F&& f) {
         auto src = source_of(gid, D.num_global_cells());
         if (f(src)) {
             auto expected = expected_event_ring(gid, D.num_global_cells());
-            auto grp = P.get(gid)->local_group;
+            auto grp = group_map[gid];
             auto& q = queues[grp];
             if (std::find(q.begin(), q.end(), expected)==q.end()) {
                 return ::testing::AssertionFailure()
@@ -377,28 +392,29 @@ TEST(communicator, ring)
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     auto D = domain_decomposition(R, hw::node_info());
-    auto P = gid_prop_map(D);
-    auto C = communication::communicator<policy>(R, D, P);
+    auto C = communication::communicator<policy>(R, D);
 
     // every cell fires
-    EXPECT_TRUE(test_ring(D, C, P, [](cell_gid_type g){return true;}));
+    EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
     // last cell in each domain fires
-    EXPECT_TRUE(test_ring(D, C, P, [n_local](cell_gid_type g){return (g+1)%n_local == 0u;}));
+    EXPECT_TRUE(test_ring(D, C, [n_local](cell_gid_type g){return (g+1)%n_local == 0u;}));
     // oddly numbered cells fire
-    EXPECT_TRUE(test_ring(D, C, P, [n_local](cell_gid_type g){return g%2==0;}));
+    EXPECT_TRUE(test_ring(D, C, [n_local](cell_gid_type g){return g%2==0;}));
     // oddly numbered cells fire
-    EXPECT_TRUE(test_ring(D, C, P, [n_local](cell_gid_type g){return g%2==1;}));
+    EXPECT_TRUE(test_ring(D, C, [n_local](cell_gid_type g){return g%2==1;}));
 }
 
 template <typename F>
 ::testing::AssertionResult
-test_all2all(const domain_decomposition& D, comm_type& C, gid_prop_map& P, F&& f) {
+test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     using util::transform_view;
     using util::assign_from;
     using util::filter;
     using util::make_span;
 
     auto gids = get_gids(D);
+    auto group_map = get_group_map(D);
+
     std::vector<spike> local_spikes = assign_from(transform_view(filter(gids, f), make_spike));
     // Reverse the order of spikes so that they are "unsorted" in terms
     // of source gid.
@@ -428,7 +444,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, gid_prop_map& P, F&& f
     // search for the expected event.
     for (auto gid: gids) {
         // get the event queue that this gid belongs to
-        auto& q = queues[P.get(gid)->local_group];
+        auto& q = queues[group_map[gid]];
         for (auto src: spike_gids) {
             auto expected = expected_event_all2all(gid, src);
             if (std::find(q.begin(), q.end(), expected)==q.end()) {
@@ -465,15 +481,14 @@ TEST(communicator, all2all)
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     auto D = domain_decomposition(R, hw::node_info());
-    auto P = gid_prop_map(D);
-    auto C = communication::communicator<policy>(R, D, P);
+    auto C = communication::communicator<policy>(R, D);
 
     // every cell fires
-    EXPECT_TRUE(test_all2all(D, C, P, [](cell_gid_type g){return true;}));
+    EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return true;}));
     // only cell 0 fires
-    EXPECT_TRUE(test_all2all(D, C, P, [n_local](cell_gid_type g){return g==0u;}));
+    EXPECT_TRUE(test_all2all(D, C, [n_local](cell_gid_type g){return g==0u;}));
     // oddly numbered cells fire
-    EXPECT_TRUE(test_all2all(D, C, P, [n_local](cell_gid_type g){return g%2==0;}));
+    EXPECT_TRUE(test_all2all(D, C, [n_local](cell_gid_type g){return g%2==0;}));
     // oddly numbered cells fire
-    EXPECT_TRUE(test_all2all(D, C, P, [n_local](cell_gid_type g){return g%2==1;}));
+    EXPECT_TRUE(test_all2all(D, C, [n_local](cell_gid_type g){return g%2==1;}));
 }

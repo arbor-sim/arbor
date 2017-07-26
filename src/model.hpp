@@ -68,7 +68,10 @@ private:
     spike_export_function global_export_callback_ = util::nop_function;
     spike_export_function local_export_callback_ = util::nop_function;
 
-    gid_prop_map gid_props_;
+    // Hash table for looking up the group index of the cell_group that
+    // contains gid
+    std::unordered_map<cell_gid_type, cell_gid_type> gid_groups_;
+
     communicator_type communicator_;
 
     // Convenience functions that map the spike buffers and event queues onto

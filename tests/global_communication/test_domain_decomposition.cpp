@@ -115,10 +115,10 @@ TEST(domain_decomp, homogeneous) {
         // Each group should also be tagged for cpu execution
         for (auto i: gids) {
             auto& grp = D.get_group(i-b);
-            EXPECT_EQ(grp.gids().size(), 1u);
-            EXPECT_EQ(grp.gids().front(), unsigned(i));
-            EXPECT_EQ(grp.backend(), backend_kind::multicore);
-            EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
+            EXPECT_EQ(grp.gids.size(), 1u);
+            EXPECT_EQ(grp.gids.front(), unsigned(i));
+            EXPECT_EQ(grp.backend, backend_kind::multicore);
+            EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
         }
     }
     {   // Test on a node with 1 gpu and 1 cpu core.
@@ -148,11 +148,11 @@ TEST(domain_decomp, homogeneous) {
         // Each group should also be tagged for cpu execution
         auto grp = D.get_group(0u);
 
-        EXPECT_EQ(grp.gids().size(), n_local);
-        EXPECT_EQ(grp.gids().front(), b);
-        EXPECT_EQ(grp.gids().back(), e-1);
-        EXPECT_EQ(grp.backend(), backend_kind::gpu);
-        EXPECT_EQ(grp.kind(), cell_kind::cable1d_neuron);
+        EXPECT_EQ(grp.gids.size(), n_local);
+        EXPECT_EQ(grp.gids.front(), b);
+        EXPECT_EQ(grp.gids.back(), e-1);
+        EXPECT_EQ(grp.backend, backend_kind::gpu);
+        EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
     }
 }
 
@@ -193,9 +193,9 @@ TEST(domain_decomp, heterogeneous) {
         std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
         for (auto i: grps) {
             auto& grp = D.get_group(i);
-            EXPECT_EQ(grp.gids().size(), 1u);
-            kind_lists[grp.kind()].insert(grp.gids().front());
-            EXPECT_EQ(grp.backend(), backend_kind::multicore);
+            EXPECT_EQ(grp.gids.size(), 1u);
+            kind_lists[grp.kind].insert(grp.gids.front());
+            EXPECT_EQ(grp.backend, backend_kind::multicore);
         }
 
         for (auto k: {cell_kind::cable1d_neuron, cell_kind::regular_spike_source}) {

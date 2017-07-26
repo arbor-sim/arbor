@@ -15,9 +15,14 @@ namespace nest {
 namespace mc {
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
-    gid_props_(decomp),
-    communicator_(rec, decomp, gid_props_)
+    communicator_(rec, decomp)
 {
+    for (auto i: util::make_span(0, decomp.num_local_groups())) {
+        for (auto gid: decomp.get_group(i).gids) {
+            gid_groups_[gid] = i;
+        }
+    }
+
     // Generate the cell groups in parallel, with one task per cell group.
     cell_groups_.resize(decomp.num_local_groups());
     threading::parallel_for::apply(0, cell_groups_.size(),
@@ -144,8 +149,11 @@ time_type model::run(time_type tfinal, time_type dt) {
 }
 
 void model::attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom) {
-    if (auto props = gid_props_.get(probe_id.gid)) {
-        cell_groups_[(*props).local_group]->add_sampler(probe_id, f, tfrom);
+    // TODO: remove the gid_groups data structure completely when/if no longer needed
+    // for the probe interface.
+    auto it = gid_groups_.find(probe_id.gid);
+    if (it!=gid_groups_.end()) {
+        cell_groups_[it->second]->add_sampler(probe_id, f, tfrom);
     }
 }
 

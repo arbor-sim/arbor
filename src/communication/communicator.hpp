@@ -48,41 +48,46 @@ public:
 
     communicator() {}
 
-    explicit communicator(
-            const recipe& rec,
-            const domain_decomposition& dom_dec,
-            const gid_prop_map& gid_props)
-    {
+    explicit communicator(const recipe& rec, const domain_decomposition& dom_dec) {
         using util::make_span;
         num_domains_ = comms_.size();
         num_local_groups_ = dom_dec.num_local_groups();
 
-        // Make a list of local gid.
-        std::vector<cell_gid_type> gids;
-        gids.reserve(dom_dec.num_local_cells());
-        for (auto i: make_span(0, num_local_groups_)) {
-            const auto& group = dom_dec.get_group(i);
-            for (auto gid: group.gids()) {
-                gids.push_back(gid);
-            }
-        }
+        // For caching information about each cell
+        struct gid_info {
+            using connection_list = decltype(rec.connections_on(0));
+            cell_gid_type gid;
+            cell_gid_type local_group;
+            connection_list conns;
+            gid_info(cell_gid_type g, cell_gid_type lg, connection_list c):
+                gid(g), local_group(lg), conns(std::move(c)) {}
+        };
 
+        // Make a list of local gid with their group index and connections
+        //   -> gid_infos
         // Count the number of local connections (i.e. connections terminating on this domain)
         //  -> n_cons: scalar
         // Calculate and store domain id of the presynaptic cell on each local connection
-        //  -> ps_doms: array with one entry for every local connection
+        //  -> src_domains: array with one entry for every local connection
         // Also the count of presynaptic sources from each domain
-        //  -> ps_cnts: array with one entry for each domain
+        //  -> src_counts: array with one entry for each domain
+        std::vector<gid_info> gid_infos;
+        gid_infos.reserve(dom_dec.num_local_cells());
+
         cell_local_size_type n_cons = 0;
-        std::vector<unsigned> ps_doms;
-        std::vector<cell_size_type> ps_cnts(num_domains_);
-        for (auto gid: gids) {
-            const auto conns = rec.connections_on(gid);
-            n_cons += conns.size();
-            for (auto con: conns) {
-                const auto src = dom_dec.gid_domain(con.source.gid);
-                ps_doms.push_back(src);
-                ps_cnts[src]++;
+        std::vector<unsigned> src_domains;
+        std::vector<cell_size_type> src_counts(num_domains_);
+        for (auto i: make_span(0, num_local_groups_)) {
+            const auto& group = dom_dec.get_group(i);
+            for (auto gid: group.gids) {
+                gid_info info(gid, i, rec.connections_on(gid));
+                n_cons += info.conns.size();
+                for (auto con: info.conns) {
+                    const auto src = dom_dec.gid_domain(con.source.gid);
+                    src_domains.push_back(src);
+                    src_counts[src]++;
+                }
+                gid_infos.push_back(std::move(info));
             }
         }
 
@@ -90,25 +95,23 @@ public:
         // The loop above gave the information required to construct in place
         // the connections as partitioned by the domain of their source gid.
         connections_.resize(n_cons);
-        connection_part_ = algorithms::make_index(ps_cnts);
+        connection_part_ = algorithms::make_index(src_counts);
         auto offsets = connection_part_;
         std::size_t pos = 0;
-        for (auto gid: gids) {
-            const auto lg = gid_props.get(gid)->local_group;
-            for (auto c: rec.connections_on(gid)) {
-                const auto i = offsets[ps_doms[pos]]++;
-                connections_[i] = {c.source, c.dest, c.weight, c.delay, lg};
+        for (const auto& cell: gid_infos) {
+            for (auto c: cell.conns) {
+                const auto i = offsets[src_domains[pos]]++;
+                connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.local_group};
                 ++pos;
             }
         }
 
         // Sort the connections for each domain.
         // This is num_domains_ independent sorts, so it can be parallelized trivially.
+        const auto& cp = connection_part_;
         threading::parallel_for::apply(0, num_domains_,
             [&](cell_gid_type i) {
-                const auto b = connection_part_[i];
-                const auto e = connection_part_[i+1];
-                util::sort(util::subrange_view(connections_, b, e));
+                util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
             });
     }
 
@@ -161,12 +164,12 @@ public:
                 bool operator()(const cell_member_type& src, const spike& spk)
                     {return src<spk.source;}
             };
+
             if (cons.size()<spks.size()) {
                 auto sp = spks.begin();
                 auto cn = cons.begin();
                 while (cn!=cons.end() && sp!=spks.end()) {
-                    auto sources =
-                        std::equal_range(sp, spks.end(), cn->source(), spike_pred());
+                    auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
 
                     for (auto s: make_range(sources.first, sources.second)) {
                         queues[cn->group_index()].push_back(cn->make_event(s));
@@ -208,8 +211,7 @@ public:
 
 private:
     cell_size_type num_local_groups_;
-    cell_size_type num_domains_;
-    std::vector<connection> connections_;
+    cell_size_type num_domains_; std::vector<connection> connections_;
     std::vector<cell_size_type> connection_part_;
     communication_policy_type comms_;
     std::uint64_t num_spikes_ = 0u;
