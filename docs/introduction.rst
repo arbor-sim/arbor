@@ -1,7 +1,7 @@
 Why Arbor?
 ##########
 
-Ccomputational neuroscience relies heavily in computer simulations to achieve scientific outcomes.
+Computational neuroscience relies heavily in computer simulations to achieve scientific outcomes.
 In the push from petascale to exascale computing, a diverse ecosystem of computational platforms is emerging, include GPUs and vectorized multi-core processors.
 
 These new computing architectures promise exciting opportunities for larger, more detailed simulations run over longer time periods.
