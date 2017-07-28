@@ -1,6 +1,7 @@
+#include <cstdlib>
 #include <vector>
 
-#include <cstdlib>
+#include <util/optional.hpp>
 
 #ifdef __linux__
 
@@ -16,7 +17,7 @@
 
 namespace nest {
 namespace mc {
-namespace threading {
+namespace hw {
 
 #ifdef __linux__
 std::vector<int> get_affinity() {
@@ -51,10 +52,14 @@ std::vector<int> get_affinity() {
 }
 #endif
 
-unsigned count_available_cores() {
-    return get_affinity().size();
+util::optional<std::size_t> num_cores() {
+    auto cores = get_affinity();
+    if (cores.size()==0u) {
+        return util::nothing;
+    }
+    return cores.size();
 }
 
-} // namespace threading
+} // namespace hw
 } // namespace mc
 } // namespace nest

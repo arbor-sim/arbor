@@ -1,7 +1,7 @@
 set(BASE_SOURCES
+    backends/multicore/fvm.cpp
     common_types_io.cpp
     cell.cpp
-    #cell_group_factory.cpp
     event_binner.cpp
     model.cpp
     morphology.cpp
@@ -11,14 +11,15 @@ set(BASE_SOURCES
     profiling/power_meter.cpp
     profiling/profiler.cpp
     swcio.cpp
-    threading/affinity.cpp
+    hardware/affinity.cpp
+    hardware/gpu.cpp
+    hardware/memory.cpp
+    hardware/power.cpp
+    threading/threading.cpp
     util/debug.cpp
     util/hostname.cpp
-    util/memory.cpp
     util/path.cpp
-    util/power.cpp
     util/unwind.cpp
-    backends/multicore/fvm.cpp
 )
 set(CUDA_SOURCES
     backends/gpu/fvm.cu

@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cstdint>
 #include <vector>
+
+#include <util/optional.hpp>
 
 namespace nest {
 namespace mc {
-namespace threading {
+namespace hw {
 
 // The list of cores for which the calling thread has affinity.
 // If calling from the main thread at application start up, before
@@ -22,8 +25,8 @@ std::vector<int> get_affinity();
 // been playing with thread affinity.
 //
 // Returns 0 if unable to determine the number of cores.
-unsigned count_available_cores();
+util::optional<std::size_t> num_cores();
 
-} // namespace threading
+} // namespace util
 } // namespace mc
 } // namespace nest
