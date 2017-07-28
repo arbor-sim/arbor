@@ -54,7 +54,16 @@ const __m256d nmc_m256d_inf  = _mm256_set1_pd(std::numeric_limits<double>::infin
 const __m256d nmc_m256d_ninf = _mm256_set1_pd(-std::numeric_limits<double>::infinity());
 }
 
-static void nmc_mm256_print_pd(__m256d x, const char *name) {
+static void nmc_mm256_print_pd(__m256d x, const char *name) __attribute__ ((unused));
+static void nmc_mm256_print_epi32(__m128i x, const char *name) __attribute__ ((unused));
+static void nmc_mm256_print_epi64x(__m256i x, const char *name) __attribute__ ((unused));
+static __m256d nmc_mm256_exp_pd(__m256d x) __attribute__ ((unused));
+static __m256d nmc_mm256_subnormal_pd(__m256d x) __attribute__ ((unused));
+static __m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) __attribute__ ((unused));
+static __m256d nmc_mm256_log_pd(__m256d x) __attribute__ ((unused));
+static __m256d nmc_mm256_pow_pd(__m256d x, __m256d y) __attribute__ ((unused));
+
+void nmc_mm256_print_pd(__m256d x, const char *name) {
     double *val = (double *) &x;
     std::cout << name << " = { ";
     for (size_t i = 0; i < 4; ++i) {
@@ -64,7 +73,7 @@ static void nmc_mm256_print_pd(__m256d x, const char *name) {
     std::cout << "}\n";
 }
 
-static void nmc_mm256_print_epi32(__m128i x, const char *name) {
+void nmc_mm256_print_epi32(__m128i x, const char *name) {
     int *val = (int *) &x;
     std::cout << name << " = { ";
     for (size_t i = 0; i < 4; ++i) {
@@ -74,7 +83,7 @@ static void nmc_mm256_print_epi32(__m128i x, const char *name) {
     std::cout << "}\n";
 }
 
-static void nmc_mm256_print_epi64x(__m256i x, const char *name) {
+void nmc_mm256_print_epi64x(__m256i x, const char *name) {
     uint64_t *val = (uint64_t *) &x;
     std::cout << name << " = { ";
     for (size_t i = 0; i < 4; ++i) {
@@ -84,7 +93,7 @@ static void nmc_mm256_print_epi64x(__m256i x, const char *name) {
     std::cout << "}\n";
 }
 
-static __m256d nmc_mm256_exp_pd(__m256d x) {
+__m256d nmc_mm256_exp_pd(__m256d x) {
     __m256d x_orig = x;
     __m256d px = _mm256_floor_pd(
         _mm256_add_pd(
@@ -141,7 +150,7 @@ static __m256d nmc_mm256_exp_pd(__m256d x) {
 
 }
 
-static __m256d nmc_mm256_subnormal_pd(__m256d x) {
+__m256d nmc_mm256_subnormal_pd(__m256d x) {
     __m256i x_raw = _mm256_castpd_si256(x);
     __m256i exp_mask = _mm256_set1_epi64x(detail::dexp_mask);
     __m256d x_exp = _mm256_castsi256_pd(_mm256_and_si256(x_raw, exp_mask));
@@ -150,7 +159,7 @@ static __m256d nmc_mm256_subnormal_pd(__m256d x) {
     return _mm256_cmp_pd(x_exp, detail::nmc_m256d_zero, 0 /* _CMP_EQ_OQ */);
 }
 
-static __m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) {
+__m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) {
     __m256i exp_mask  = _mm256_set1_epi64x(detail::dexp_mask);
     __m256i mant_mask = _mm256_set1_epi64x(detail::dmant_mask);
 
@@ -212,7 +221,7 @@ static __m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) {
     return x;
 }
 
-static __m256d nmc_mm256_log_pd(__m256d x) {
+__m256d nmc_mm256_log_pd(__m256d x) {
     __m256d x_orig = x;
     __m128i x_exp;
     x = nmc_mm256_frexp_pd(x, &x_exp);
@@ -294,7 +303,7 @@ static __m256d nmc_mm256_log_pd(__m256d x) {
 }
 
 // Equivalent to exp(y*log(x))
-static __m256d nmc_mm256_pow_pd(__m256d x, __m256d y) {
+__m256d nmc_mm256_pow_pd(__m256d x, __m256d y) {
     return nmc_mm256_exp_pd(_mm256_mul_pd(y, nmc_mm256_log_pd(x)));
 }
 
