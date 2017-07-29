@@ -53,6 +53,7 @@ set(TEST_SOURCES
     test_math.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_model_ctor_exception.cpp
     test_multi_event_stream.cpp
     test_nop.cpp
     test_optional.cpp

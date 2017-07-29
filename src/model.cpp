@@ -1,5 +1,7 @@
 #include <model.hpp>
 
+#include <future>
+#include <type_traits>
 #include <vector>
 
 #include <backends.hpp>
@@ -14,34 +16,56 @@
 namespace nest {
 namespace mc {
 
+template <typename F, typename R=typename std::result_of<F()>::type>
+std::future<R> run_packaged(threading::task_group& g, const F& f) {
+    auto task=std::make_shared<std::packaged_task<R ()>>(f);
+    auto r=task->get_future();
+
+    g.run([task] { (*task)(); });
+    return std::move(r);
+}
+
 model::model(const recipe& rec, const domain_decomposition& decomp):
     domain_(decomp)
 {
+    using util::make_span;
+
     // set up communicator based on partition
     communicator_ = communicator_type(domain_.gid_group_partition());
 
     // generate the cell groups in parallel, with one task per cell group
-    cell_groups_.resize(domain_.num_local_groups());
+    auto n_group = domain_.num_local_groups();
+    std::vector<std::future<cell_group_ptr>> cell_group_future(n_group);
 
     // thread safe vector for constructing the list of probes in parallel
     threading::parallel_vector<probe_record> probe_tmp;
 
-    threading::parallel_for::apply(0, cell_groups_.size(),
-        [&](cell_gid_type i) {
-            PE("setup", "cells");
+    threading::task_group tasks;
+    for (auto i: make_span(0, n_group)) {
+        cell_group_future[i] = run_packaged(tasks,
+            [&, i]() -> cell_group_ptr {
+                PE("setup", "cells");
 
-            auto group = domain_.get_group(i);
-            std::vector<util::unique_any> cell_descriptions(group.end-group.begin);
+                auto group = domain_.get_group(i);
+                std::vector<util::unique_any> cell_descriptions(group.end-group.begin);
 
-            for (auto gid: util::make_span(group.begin, group.end)) {
-                auto i = gid-group.begin;
-                cell_descriptions[i] = rec.get_cell_description(gid);
-            }
+                for (auto gid: make_span(group.begin, group.end)) {
+                    auto i = gid-group.begin;
+                    cell_descriptions[i] = rec.get_cell_description(gid);
+                }
 
-            cell_groups_[i] = cell_group_factory(
-                    group.kind, group.begin, cell_descriptions, domain_.backend());
-            PL(2);
-        });
+                auto r = cell_group_factory(group.kind, group.begin, cell_descriptions, domain_.backend());
+                PL(2);
+
+                return std::move(r);
+            });
+    }
+
+    tasks.wait();
+    cell_groups_.reserve(n_group);
+    for (auto& f: cell_group_future) {
+        cell_groups_.push_back(f.get());
+    }
 
     // store probes
     for (const auto& c: cell_groups_) {
