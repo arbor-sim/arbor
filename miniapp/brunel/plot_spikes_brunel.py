@@ -1,6 +1,27 @@
+'''
+   Makes the raster plot where each point (x, y) represents the spike of neuron y in time x.
+   The points are colored differently, depending on which neuronal population they belong to.
+   Expects the number of excitatory (-n), inhibitory (-m) and external Poisson (-e) neurons as command line arguments.
+'''
+
+
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import random
+from argparse import ArgumentParser
+import sys
+
+# Three parameters are expected as command line arguments.
+# These arguments must match the arguments of the simulation of Brunel network
+# that was previously run.
+print("Expecting the number of excitatory (-n), inhibitory (-m) and external Poisson (-e) neurons as command line arguments.")
+
+parser = ArgumentParser()
+parser.add_argument("-n", "--n_exc", type=int, default=400, help="Number of excitatory neurons.")
+parser.add_argument("-m", "--n_inh", type=int, default=100, help="Number of inhibitory neurons.")
+parser.add_argument("-e", "--n_ext", type=int, default=400, help="Number of Poisson (external) neurons.")
+
+args = parser.parse_args()
 
 # reads two columns from file
 def read_file(file_name):
@@ -18,9 +39,9 @@ def read_file(file_name):
 
     return (ids, times)
 
-nexc = 400
-ninh = 100
-next = nexc
+nexc = args.n_exc
+ninh = args.n_inh
+next = args.n_ext
 
 (ids, times) = read_file("../../build/miniapp/brunel/spikes_0.gdf")
 
@@ -32,14 +53,15 @@ ax = fig.add_subplot(1, 1, 1)
 times_exc, ids_exc, times_inh, ids_inh, times_ext, ids_ext = [], [], [], [], [], []
 
 for (id, time) in zip(ids, times):
-    if id < nexc:
+    if id < nexc: # excitatory
         ids_exc += [id]
         times_exc += [time]
 
-    elif id < nexc + ninh:
+    elif id < nexc + ninh: # inhibitory
         ids_inh += [id]
         times_inh += [time]
-    else:
+    else: # Poisson (external)
+        # Plot only a half of Poisson spikes for readability reasons.
         if random.random() < 0.5:
             ids_ext += [id]
             times_ext += [time]

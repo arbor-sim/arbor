@@ -75,7 +75,7 @@ public:
         }
 
         // Advance each cell independently.
-        for (int i = 0; i < cells_.size(); ++i) {
+        for (size_t i = 0; i < cells_.size(); ++i) {
             advance_cell(tfinal, dt, i);
         }
         PL();

@@ -66,22 +66,21 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
  */
 class brunel_recipe: public recipe {
 public:
-    brunel_recipe(cell_size_type nexc, cell_size_type ninh, double in_degree_prop, float weight, float delay, float rel_inh_strength, double poiss_rate):
-    ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), rate_(poiss_rate)
-    {
+    brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
+                  float weight, float delay, float rel_inh_strength, double poiss_rate):
+        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay), rate_(poiss_rate) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
         }
         
         // Set up the parameters.
-        ncells_ext_ = nexc;
         weight_exc_ = weight;
-        weight_inh_ = -1.0 * rel_inh_strength * weight_exc_;
+        weight_inh_ = -rel_inh_strength * weight_exc_;
         weight_ext_ = weight;
-        in_degree_exc_ = (int) (in_degree_prop * nexc);
-        in_degree_inh_ = (int) (in_degree_prop * ninh);
-        in_degree_ext_ = (int) (in_degree_prop * ncells_ext_);
+        in_degree_exc_ = std::round(in_degree_prop * nexc);
+        in_degree_inh_ = std::round(in_degree_prop * ninh);
+        in_degree_ext_ = std::round(in_degree_prop * ncells_ext_);
     }
     
     cell_size_type num_cells() const override {
@@ -196,36 +195,22 @@ int main(int argc, char** argv) {
         nest::mc::util::meter_manager meters;
         meters.start();
         
-        std::cout << util::mask_stream(global_policy::id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
         
-        /*
-        // If compiled in dry run mode we have to set up the dry run
-        // communicator to simulate the number of ranks that may have been set
-        // as a command line parameter (if not, it is 1 rank by default)
-        if (global_policy::kind() == communication::global_policy_kind::dryrun) {
-            // Dry run mode requires that each rank has the same number of cells.
-            // Here we increase the total number of cells if required to ensure
-            // that this condition is satisfied.
-            auto cells_per_rank = (options.nexc)/options.dry_run_ranks;
-            if (options.cells % options.dry_run_ranks) {
-                ++cells_per_rank;
-                options.cells = cells_per_rank*options.dry_run_ranks;
-            }
-            
-            global_policy::set_sizes(options.dry_run_ranks, cells_per_rank);
-        }
-        */
         banner();
         
         meters.checkpoint("setup");
         
-        // The size of excitatory and poisson population.
+        // The size of excitatory population.
         cell_size_type nexc = options.nexc;
+        
         
         // The size of inhibitory population.
         cell_size_type ninh = options.ninh;
+        
+        // The size of Poisson (external) population.
+        cell_size_type next = options.next;
         
         // Fraction of connections each neuron receives from each of the 3 populations.
         double in_degree_prop = options.syn_per_cell_prop;
@@ -245,18 +230,17 @@ int main(int argc, char** argv) {
         // The number of cells in a single cell group.
         cell_size_type group_size = options.group_size;
         
-        brunel_recipe recipe(nexc, ninh, in_degree_prop, w, d, rel_inh_strength, poiss_rate);
-
-        auto register_exporter = [] (const io::cl_options& options) {
-            return
-            util::make_unique<file_export_type>(
-                                                options.file_name, options.output_path,
-                                                options.file_extension, options.over_write);
-        };
+        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_rate);
         
+        auto register_exporter = [] (const io::cl_options& options) {
+            return util::make_unique<file_export_type>
+                       (options.file_name, options.output_path,
+                        options.file_extension, options.over_write);
+        };
+
         group_rules rules;
         rules.policy = backend_policy::use_multicore;
-        rules.target_group_size = options.group_size;
+        rules.target_group_size = group_size;
         auto decomp = domain_decomposition(recipe, rules);
         
         model m(recipe, decomp);
@@ -266,20 +250,23 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
+                
                 m.set_local_spike_callback(
-                                           [&](const std::vector<spike>& spikes) {
-                                               file_exporter->output(spikes);
-                                           });
+                    [&](const std::vector<spike>& spikes) {
+                        file_exporter->output(spikes);
+                    }
+                );
             }
             else if(communication::global_policy::id()==0) {
                 file_exporter = register_exporter(options);
+                
                 m.set_global_spike_callback(
-                                            [&](const std::vector<spike>& spikes) {
-                                                file_exporter->output(spikes);
-                                            });
+                    [&](const std::vector<spike>& spikes) {
+                        file_exporter->output(spikes);
+                    }
+                );
             }
         }
-        
         meters.checkpoint("model-init");
         
         // run model

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-#include <iosfwd>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -22,6 +20,7 @@ namespace nest {
                 // Cell parameters:
                 uint32_t nexc = 400;
                 uint32_t ninh = 100;
+                uint32_t next = 400;
                 double syn_per_cell_prop = 0.05;
                 float weight = 1.2;
                 float delay = 0.1;
@@ -40,9 +39,6 @@ namespace nest {
                 std::string output_path = "./";
                 std::string file_name = "spikes";
                 std::string file_extension = "gdf";
-                
-                // Dry run parameters (pertinent only when built with 'dryrun' distrib model).
-                int dry_run_ranks = 1;
                 
                 // Turn on/off profiling output for all ranks.
                 bool profile_only_zero = false;
