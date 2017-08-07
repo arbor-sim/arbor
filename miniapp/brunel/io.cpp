@@ -12,7 +12,6 @@
 
 #include <util/meta.hpp>
 #include <util/optional.hpp>
-#include <util/strprintf.hpp>
 
 #include "io.hpp"
 
@@ -95,49 +94,60 @@ namespace nest {
                     
                     CustomCmdLine cmd("nest brunel miniapp harness", "0.1");
                     
-                    TCLAP::ValueArg<uint32_t> nexc_arg(
-                                                         "n", "n_excitatory", "total number of cells in the excitatory population",
-                                                         false, defopts.nexc, "integer", cmd);
-                    TCLAP::ValueArg<uint32_t> ninh_arg(
-                                                            "m", "n_inhibitory", "total number of cells in the inhibitory population",
-                                                            false, defopts.ninh, "integer", cmd);
-                    TCLAP::ValueArg<double> syn_prop_arg(
-                                                       "p", "in_degree_prop", "the proportion of connections from each of the 3 population (excitatory, inhibitory and Poisson) that each neuron receives",
-                                                       false, defopts.syn_per_cell_prop, "double", cmd);
-                    TCLAP::ValueArg<float> weight_arg(
-                                                         "w", "weight", "the weight of all excitatory connections",
-                                                         false, defopts.weight, "float", cmd);
-                    TCLAP::ValueArg<float> delay_arg(
-                                                      "d", "delay", "the delay of all connections",
-                                                      false, defopts.delay, "float", cmd);
+                    TCLAP::ValueArg<uint32_t> nexc_arg
+                        ("n", "n-excitatory", "total number of cells in the excitatory population",
+                         false, defopts.nexc, "integer", cmd);
                     
-                    TCLAP::ValueArg<float> rel_inh_strength_arg(
-                                                     "g", "rel_inh_w", "relative strength of inhibitory synapses with respect to the excitatory ones",
-                                                     false, defopts.rel_inh_strength, "float", cmd);
+                    TCLAP::ValueArg<uint32_t> ninh_arg
+                        ("m", "n-inhibitory", "total number of cells in the inhibitory population",
+                         false, defopts.ninh, "integer", cmd);
                     
-                    TCLAP::ValueArg<double> poiss_rate_arg(
-                                                                "r", "rate", "rate of Poisson cells [kHz]",
-                                                                false, defopts.poiss_rate, "double", cmd);
+                    TCLAP::ValueArg<uint32_t> next_arg
+                        ("e", "n-external", "total number of cells in the Poisson (external) population",
+                         false, defopts.ninh, "integer", cmd);
+                    
+                    TCLAP::ValueArg<double> syn_prop_arg
+                        ("p", "in-degree-prop", "the proportion of connections from each of the 3 populations (excitatory, inhibitory and Poisson) that each neuron receives",
+                         false, defopts.syn_per_cell_prop, "double", cmd);
+                    
+                    TCLAP::ValueArg<float> weight_arg
+                        ("w", "weight", "the weight of all excitatory connections",
+                         false, defopts.weight, "float", cmd);
+                    
+                    TCLAP::ValueArg<float> delay_arg
+                        ("d", "delay", "the delay of all connections",
+                         false, defopts.delay, "float", cmd);
+                    
+                    TCLAP::ValueArg<float> rel_inh_strength_arg
+                        ("g", "rel-inh-w", "relative strength of inhibitory synapses with respect to the excitatory ones",
+                         false, defopts.rel_inh_strength, "float", cmd);
+                    
+                    TCLAP::ValueArg<double> poiss_rate_arg
+                        ("r", "rate", "rate of Poisson cells [kHz]",
+                         false, defopts.poiss_rate, "double", cmd);
 
-                    TCLAP::ValueArg<double> tfinal_arg(
-                                                       "t", "tfinal", "run simulation to <time> ms",
-                                                       false, defopts.tfinal, "time", cmd);
-                    TCLAP::ValueArg<double> dt_arg(
-                                                   "s", "delta_t", "set simulation time step to <time> ms",
-                                                   false, defopts.dt, "time", cmd);
+                    TCLAP::ValueArg<double> tfinal_arg
+                        ("t", "tfinal", "length of the simulation period [ms]",
+                         false, defopts.tfinal, "time", cmd);
+                    
+                    TCLAP::ValueArg<double> dt_arg
+                        ("s", "delta-t", "simulation time step [ms] (this parameter is ignored)",
+                         false, defopts.dt, "time", cmd);
             
-                    TCLAP::ValueArg<uint32_t> group_size_arg(
-                                                             "G", "group-size", "number of cells per cell group",
-                                                             false, defopts.group_size, "integer", cmd);
-                    TCLAP::SwitchArg spike_output_arg(
-                                                      "f","spike-file-output","save spikes to file", cmd, false);
-                    TCLAP::ValueArg<unsigned> dry_run_ranks_arg(
-                                                                "D","dry-run-ranks","number of ranks in dry run mode",
-                                                                false, defopts.dry_run_ranks, "positive integer", cmd);
-                    TCLAP::SwitchArg profile_only_zero_arg(
-                                                           "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
-                    TCLAP::SwitchArg verbose_arg(
-                                                 "v", "verbose", "Present more verbose information to stdout", cmd, false);
+                    TCLAP::ValueArg<uint32_t> group_size_arg
+                        ("G", "group-size", "number of cells per cell group",
+                         false, defopts.group_size, "integer", cmd);
+                    
+                    TCLAP::SwitchArg spike_output_arg
+                        ("f","spike-file-output","save spikes to file", cmd, false);
+                    
+                    TCLAP::SwitchArg profile_only_zero_arg
+                        ("z", "profile-only-zero", "Only output profile information for rank 0",
+                         cmd, false);
+                    
+                    TCLAP::SwitchArg verbose_arg
+                        ("v", "verbose", "Present more verbose information to stdout", cmd, false);
+                    
                     cmd.reorder_arguments();
                     cmd.parse(argc, argv);
                     
@@ -147,6 +157,7 @@ namespace nest {
                     
                     update_option(options.nexc, nexc_arg);
                     update_option(options.ninh, ninh_arg);
+                    update_option(options.next, next_arg);
                     update_option(options.syn_per_cell_prop, syn_prop_arg);
                     update_option(options.weight, weight_arg);
                     update_option(options.delay, delay_arg);
@@ -157,7 +168,6 @@ namespace nest {
                     update_option(options.group_size, group_size_arg);
                     update_option(options.spike_file_output, spike_output_arg);
                     update_option(options.profile_only_zero, profile_only_zero_arg);
-                    update_option(options.dry_run_ranks, dry_run_ranks_arg);
                     
                     if (options.group_size < 1) {
                         throw usage_error("minimum of one cell per group");
@@ -183,8 +193,7 @@ namespace nest {
                 o << "simulation options:\n";
                 o << "  excitatory cells                                : " << options.nexc << "\n";
                 o << "  inhibitory cells                                : " << options.ninh << "\n";
-                // Number of Poisson cells is always equal to the number of excitatory cells.
-                o << "  Poisson cells (=#excitatory)                    : " << options.nexc << "\n";
+                o << "  Poisson cells                                   : " << options.next << "\n";
                 o << "  proportion of synapses/cell from each population: " << options.syn_per_cell_prop << "\n";
                 o << "  weight of excitatory synapses                   : " << options.weight << "\n";
                 o << "  relative strength of inhibitory synapses        : " << options.rel_inh_strength << "\n";
