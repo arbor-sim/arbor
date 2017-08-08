@@ -62,7 +62,7 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
  parameter weight, whereas the strength of inhibitory connections is rel_inh_strength * weight.
  Poisson neurons all spike independently with mean frequency poiss_rate [kHz].
  Because of the refractory period, the activity is mostly driven by poisson neurons and
- recurrent connections have just a small effect.
+ recurrent connections have a small effect.
  */
 class brunel_recipe: public recipe {
 public:
