@@ -56,7 +56,7 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
 
 /*
  Brunel networks consists of nexc excitatory LIF neurons, ninh inhibitory LIF neurons and
- next Poisson neurons. Each neuron in the network receives in_degree_prop * next excitatory connections
+ next Poisson neurons. Each neuron in the network receives in_degree_prop * nexc excitatory connections
  chosen randomly, in_degree_prop * ninh inhibitory connections and in_degree_prop * next Poisson connections.
  All the connections have the same delay. The strenght of excitatory and poisson connections is given by
  parameter weight, whereas the strength of inhibitory connections is rel_inh_strength * weight.
@@ -278,7 +278,6 @@ int main(int argc, char** argv) {
         auto const num_steps = options.tfinal / options.dt;
         util::profiler_output(0.001, m.num_cells()*num_steps, options.profile_only_zero);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
-        
         
         auto report = util::make_meter_report(meters);
         std::cout << report;
