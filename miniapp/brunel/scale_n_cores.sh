@@ -2,7 +2,7 @@
 n_exc=100           # exc population size
 n_inh=$((n_exc/4))  # inh popoulation size
 n_ext=100           # poisson population size
-prop=0.1            # prop of connections from each population
+prop=1            # prop of connections from each population
 weight=1            # exc connections weight
 rel_inh_strength=1  # relative strength of inhibitory connections
 delay=0.1           # delay of all connections
@@ -51,7 +51,7 @@ do
 
     n_inh=$((n_exc/4))
     n_ext=$((n_exc))
-    prop=$(echo "$prop/10" | bc -l)
+    prop=$(echo "$prop/10.0" | bc -l)
 
     for n_core in ${n_cores[@]}
     do
