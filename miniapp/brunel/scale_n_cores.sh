@@ -30,13 +30,13 @@ run() {
 }
 
 run_locally() {
-    NMC_NUM_THREADS=$n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size -f
+    ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size -f
 }
 
 # Preserve the newline characters by setting this empty (field splitting).
 IFS=
 
-cd build && make -j && cd ..
+cd ../../build && make -j && cd ../miniapp/brunel
 
 vary_n_exc=(100 1000 10000)
 
