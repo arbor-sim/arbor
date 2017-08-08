@@ -23,9 +23,9 @@ run() {
     # Use multithreading for 36 cores and otherwise no.
     if [ $n_core -eq 36 ]
     then
-        srun -n $n_rank -c $n_core NMC_NUM_THREADS=$n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+        NMC_NUM_THREADS=$n_core srun -n $n_rank -c $n_core ../../build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
     else
-        srun -n $n_rank -c $n_core --hint=nomultithread NMC_NUM_THREADS=$n_core ./build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+        NMC_NUM_THREADS=$n_core srun -n $n_rank -c $n_core --hint=nomultithread ../../build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
     fi
 }
 
@@ -46,12 +46,12 @@ do
 
     file="scaling_cores_"$n_exc".txt"
 
-    [ -e $file_name ] && rm $file
+    #[ -e $file_name ] && rm $file
     #[-e profile* ] rm profile*
 
     n_inh=$((n_exc/4))
     n_ext=$((n_exc))
-    prop=$((prop/10))
+    prop=$(echo "$prop/10" | bc)
 
     for n_core in ${n_cores[@]}
     do
