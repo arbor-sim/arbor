@@ -51,7 +51,7 @@ do
 
     n_inh=$((n_exc/4))
     n_ext=$((n_exc))
-    prop=$(echo "$prop/10" | bc)
+    prop=$(echo "$prop/10" | bc -l)
 
     for n_core in ${n_cores[@]}
     do
