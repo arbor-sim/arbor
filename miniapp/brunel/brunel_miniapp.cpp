@@ -279,7 +279,6 @@ int main(int argc, char** argv) {
         util::profiler_output(0.001, m.num_cells()*num_steps, options.profile_only_zero);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
         
-        
         auto report = util::make_meter_report(meters);
         std::cout << report;
         if (global_policy::id()==0) {
