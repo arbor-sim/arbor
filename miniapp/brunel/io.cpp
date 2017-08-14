@@ -148,6 +148,9 @@ namespace nest {
                     TCLAP::SwitchArg verbose_arg
                         ("v", "verbose", "Present more verbose information to stdout", cmd, false);
                     
+                    TCLAP::SwitchArg optimise_arg
+                        ("o", "optimise", "Optimise the communication of external (Poisson) spikes.", cmd, false);
+                    
                     cmd.reorder_arguments();
                     cmd.parse(argc, argv);
                     
@@ -168,6 +171,7 @@ namespace nest {
                     update_option(options.group_size, group_size_arg);
                     update_option(options.spike_file_output, spike_output_arg);
                     update_option(options.profile_only_zero, profile_only_zero_arg);
+                    update_option(options.optimise, optimise_arg);
                     
                     if (options.group_size < 1) {
                         throw usage_error("minimum of one cell per group");
@@ -203,7 +207,7 @@ namespace nest {
                 o << "  simulation time                                 : " << options.tfinal << "\n";
                 o << "  dt                                              : " << options.dt << "\n";
                 o << "  group size                                      : " << options.group_size << "\n";
-                
+                o << "  optimise                                        : " << options.optimise << "\n";
                 return o;
             }
             

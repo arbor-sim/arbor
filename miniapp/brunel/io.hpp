@@ -45,6 +45,9 @@ namespace nest {
                 
                 // Be more verbose with informational messages.
                 bool verbose = false;
+                
+                // Optimise the communication of external (Poisson) events.
+                bool optimise = false;
             };
             
             class usage_error: public std::runtime_error {

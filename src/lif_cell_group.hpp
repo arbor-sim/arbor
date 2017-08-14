@@ -4,6 +4,7 @@
 #include <event_queue.hpp>
 #include <lif_cell_description.hpp>
 #include <profiling/profiler.hpp>
+#include <random>
 #include <util/unique_any.hpp>
 #include <vector>
 
@@ -30,6 +31,7 @@ public:
 
         cell_events_.resize(cells_.size());
         last_time_updated_.resize(cells.size());
+        n_poiss_ = 0;
     }
 
     cell_kind get_cell_kind() const override {
@@ -65,18 +67,44 @@ public:
         PE("lif");
         // Distribute incoming events to individual cells.
         while (!events_.empty()) {
-            // Takes event from the queue and pops it.
+            // Take event from the queue and pop it.
             auto ev = events_.front();
             events_.pop();
 
             int target_gid = ev.target.gid;
             // Transform gid -> lid.
-            cell_events_[target_gid - gid_base_].push(ev);
+            int lid = target_gid - gid_base_;
+            
+            if (n_poiss_ > 0) {
+                // Generate all the Poisson events that happened before this event.
+                while (next_poiss_time_[lid] < ev.time) {
+                    //std::cout << "generating poisson spikes until ev.time" << std::endl;
+                    // Generate a Poisson event.
+                    postsynaptic_spike_event poiss_event = {{cell_gid_type(target_gid), 0}, next_poiss_time_[lid] + d_poiss_, w_poiss_};
+                    cell_events_[lid].push(poiss_event);
+                    // Sample next Poisson event.
+                    next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_;
+                }
+            }
+            
+            cell_events_[lid].push(ev);
         }
 
-        // Advance each cell independently.
-        for (size_t i = 0; i < cells_.size(); ++i) {
-            advance_cell(tfinal, dt, i);
+        for (size_t lid = 0; lid < cells_.size(); ++lid) {
+            if (n_poiss_ > 0) {
+                // Generate Poisson events until tfinal is reached.
+                while (next_poiss_time_[lid] < tfinal) {
+                    // Generate a Poisson event.
+                    postsynaptic_spike_event poiss_event = {{cell_gid_type(lid) + gid_base_, 0}, next_poiss_time_[lid] + d_poiss_, w_poiss_};
+                    cell_events_[lid].push(poiss_event);
+                    //std::cout << "generating poisson spikes until tfinal " << poiss_event << std::endl;
+                    // Sample next Poisson event.
+                    next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_;
+                }
+            }
+            
+            // Advance each cell independently.
+            advance_cell(tfinal, dt, lid);
         }
         PL();
     }
@@ -86,7 +114,7 @@ public:
             events_.push(e);
         }
     }
-
+    
     const std::vector<spike>& spikes() const override {
         return spikes_;
     }
@@ -114,7 +142,10 @@ public:
 
         // TODO: Remove after testing.
         voltage_.clear();
-        last_time_voltage_updated_ = 0;
+        // Question: Do we want to reset this as well?
+        //last_time_voltage_updated_ = 0;
+        
+        //next_poiss_time_.clear();
     }
 
     // TODO: Remove after testing.
@@ -126,6 +157,39 @@ public:
     // Used to set up the resolution of sampling voltage.
     void turn_on_sampling(time_type resolution) {
         sampling_dt_ = resolution;
+    }
+    
+    // Turn on Poisson input.
+    void add_poisson_stimuli(int n_poiss, float w_poiss, float d_poiss, double rate_kHz) {
+        EXPECTS(rate_kHz > 0);
+        EXPECTS(n_poiss > 0);
+        EXPECTS(d_poiss >= 0);
+        
+        //std::cout << "n_poiss = " << n_poiss << std::endl;
+        
+        n_poiss_ = n_poiss;
+        w_poiss_ = w_poiss;
+        d_poiss_ = d_poiss;
+        lambda_ = 1.0 / (rate_kHz * n_poiss_);
+        
+        //std::cout << rate_kHz << " " << n_poiss_ << std::endl;
+        
+        if (n_poiss_ > 0) {
+            // Seed generator of each cell based on cell's gid.
+            generator_.resize(cells_.size());
+            for (auto lid: util::make_span(0, cells_.size())) {
+                generator_[lid].seed(3521 + gid_base_ + lid);
+            }
+            
+            // Generate next poisson event for each cell.
+            next_poiss_time_.resize(cells_.size());
+            for (auto lid: util::make_span(0, cells_.size())) {
+                // Since lambda=1/rate, and we have n_poiss independent Poisson processes,
+                // this corresponds to Poisson(n_poiss * rate) distribution.
+                next_poiss_time_[lid] = exp_dist_(generator_[lid]) * lambda_;
+            }
+            
+        }
     }
 
 private:
@@ -154,9 +218,36 @@ private:
     // Assuming we have only 1 neuron in the group that
     // we want to track the voltage of.
     std::vector<std::pair<time_type, value_type> > voltage_;
-
+    
     // Last time voltage was updated.
     time_type last_time_voltage_updated_ = 0;
+    
+    // External spike generation.
+    
+    // Number of external Poisson sources per neuron
+    int n_poiss_;
+    
+    // lambda = 1 / rate_kHz
+    // If rate_kHz = 10kHz then lambda_ms = 0.1ms.
+    // Represents the expected inter-spike time period.
+    double lambda_;
+    
+    // The weight of Poisson input
+    float w_poiss_;
+    
+    // The delay of Poisson input;
+    float d_poiss_;
+    
+    // Random number generators.
+    // generator_[gid][i] = generator of i-th poisson source
+    // to the cell numbered gid.
+    std::vector<std::mt19937> generator_;
+    
+    // Unit exponential distribution (with mean 1).
+    std::exponential_distribution<time_type> exp_dist_ = std::exponential_distribution<time_type>(1.0);
+    
+    // Sampled next Poisson event time for each cell.
+    std::vector<time_type> next_poiss_time_;
 
     // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
     // Parameter dt is ignored, since we make a jumps between two consecutive spikes.
@@ -168,8 +259,10 @@ private:
         // If a neuron was in the refractory period,
         // ignore any new events that happened before t.
         while (cell_events_[lid].pop_if_before(t));
+        
         // Integrate until tfinal using the exact solution of membrane voltage differential equation.
         while (auto ev = cell_events_[lid].pop_if_before(tfinal)) {
+            //std::cout << "received event : " << ev.get() << std::endl;
             auto weight = ev->weight;
             auto spike_time = ev->time;
 
@@ -193,6 +286,7 @@ private:
 
             // If crossing threshold occurred
             if (cell.V_m >= cell.V_th) {
+                //std::cout << "spike occurred!" << std::endl;
                 cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
                 spike s = {spike_neuron_gid, spike_time};
 

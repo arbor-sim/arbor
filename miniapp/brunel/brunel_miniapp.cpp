@@ -67,8 +67,8 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
 class brunel_recipe: public recipe {
 public:
     brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
-                  float weight, float delay, float rel_inh_strength, double poiss_rate):
-        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay), rate_(poiss_rate) {
+                  float weight, float delay, float rel_inh_strength, double poiss_rate, bool optimised):
+        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay), rate_(poiss_rate), optimised_(optimised) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -80,11 +80,18 @@ public:
         weight_ext_ = weight;
         in_degree_exc_ = std::round(in_degree_prop * nexc);
         in_degree_inh_ = std::round(in_degree_prop * ninh);
-        in_degree_ext_ = std::round(in_degree_prop * ncells_ext_);
+        in_degree_ext_ = std::round(in_degree_prop * next);
+    
+        //std::cout << rate_ << " " << in_degree_ext_ << std::endl;
     }
     
     cell_size_type num_cells() const override {
-        return ncells_exc_ + ncells_inh_ + ncells_ext_;
+        if (optimised_) {
+            return ncells_exc_ + ncells_inh_;
+        }
+        else {
+            return ncells_exc_ + ncells_inh_ + ncells_ext_;
+        }
     }
     
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -96,6 +103,11 @@ public:
     }
     
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+        if (gid >= ncells_exc_ + ncells_inh_) {
+            //std::cout << "no connections on poisson" << std::endl;
+            return {};
+        }
+         
         std::vector<cell_connection> connections;
         // Sample and add incoming excitatory connections.
         for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
@@ -119,15 +131,17 @@ public:
             connections.push_back(conn);
         }
         
-        // Add incoming external Poisson connections.
-        for (auto i: sample_subset(gid, ncells_exc_ + ncells_inh_, ncells_exc_ + ncells_inh_ + ncells_ext_, in_degree_ext_)) {
-            cell_connection conn;
-            conn.source = {cell_gid_type(i), 0};
-            conn.dest = {gid, 0};
-            conn.weight = weight_ext_;
-            conn.delay = delay_;
+        if (!optimised_) {
+            // Add incoming external Poisson connections.
+            for (auto i: sample_subset(gid, ncells_exc_ + ncells_inh_, ncells_exc_ + ncells_inh_ + ncells_ext_, in_degree_ext_)) {
+                cell_connection conn;
+                conn.source = {cell_gid_type(i), 0};
+                conn.dest = {gid, 0};
+                conn.weight = weight_ext_;
+                conn.delay = delay_;
             
-            connections.push_back(conn);
+                connections.push_back(conn);
+            }
         }
         
         return connections;
@@ -180,11 +194,17 @@ private:
     // Number of connections that each neuron receives from inhibitory population.
     int in_degree_inh_;
     
-    // Number of connections that each neuron receives from the Poisson population.
+    // Number of connections that each neuron receives from external (Poisson) population.
     int in_degree_ext_;
     
     // Mean rate of Poisson spiking neurons.
     double rate_;
+    
+    // If optimised, then Poisson neurons are not modelled as a separate population,
+    // but are implemented inside the LIF neurons group.
+    // This is to reduce the communication costs that arise from communicating Poisson
+    // events between different cell groups.
+    bool optimised_;
 };
 
 
@@ -204,7 +224,6 @@ int main(int argc, char** argv) {
         
         // The size of excitatory population.
         cell_size_type nexc = options.nexc;
-        
         
         // The size of inhibitory population.
         cell_size_type ninh = options.ninh;
@@ -230,7 +249,9 @@ int main(int argc, char** argv) {
         // The number of cells in a single cell group.
         cell_size_type group_size = options.group_size;
         
-        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_rate);
+        bool optimised = options.optimise;
+        
+        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_rate, optimised);
         
         auto register_exporter = [] (const io::cl_options& options) {
             return util::make_unique<file_export_type>
@@ -244,6 +265,17 @@ int main(int argc, char** argv) {
         auto decomp = domain_decomposition(recipe, rules);
         
         model m(recipe, decomp);
+        
+        if (optimised) {
+            for (auto i: util::make_span(0, m.num_groups())) {
+                auto& group = m.group(i);
+                
+                if (group.get_cell_kind() == cell_kind::lif_neuron) {
+                    auto gr = dynamic_cast<lif_cell_group*>(&group);
+                    gr->add_poisson_stimuli(std::round(in_degree_prop * next), w, d, poiss_rate);
+                }
+            }
+        }
         
         // Initialize the spike exporting interface
         std::unique_ptr<file_export_type> file_exporter;
@@ -267,6 +299,7 @@ int main(int argc, char** argv) {
                 );
             }
         }
+        
         meters.checkpoint("model-init");
         
         // run model
