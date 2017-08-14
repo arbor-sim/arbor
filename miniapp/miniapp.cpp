@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
         // threading back end, and 1 gpu if available.
         hw::node_info nd;
         nd.num_cpu_cores = threading::num_threads();
-        nd.num_gpus = hw::num_gpus()? 1: 0;
+        nd.num_gpus = hw::num_gpus()>0? 1: 0;
         banner(nd);
 
         meters.checkpoint("setup");

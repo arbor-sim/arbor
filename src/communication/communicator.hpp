@@ -66,11 +66,11 @@ public:
         // Make a list of local gid with their group index and connections
         //   -> gid_infos
         // Count the number of local connections (i.e. connections terminating on this domain)
-        //  -> n_cons: scalar
+        //   -> n_cons: scalar
         // Calculate and store domain id of the presynaptic cell on each local connection
-        //  -> src_domains: array with one entry for every local connection
+        //   -> src_domains: array with one entry for every local connection
         // Also the count of presynaptic sources from each domain
-        //  -> src_counts: array with one entry for each domain
+        //   -> src_counts: array with one entry for each domain
         std::vector<gid_info> gid_infos;
         gid_infos.reserve(dom_dec.num_local_cells());
 
@@ -211,7 +211,8 @@ public:
 
 private:
     cell_size_type num_local_groups_;
-    cell_size_type num_domains_; std::vector<connection> connections_;
+    cell_size_type num_domains_;
+    std::vector<connection> connections_;
     std::vector<cell_size_type> connection_part_;
     communication_policy_type comms_;
     std::uint64_t num_spikes_ = 0u;

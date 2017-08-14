@@ -49,19 +49,19 @@ public:
     {}
 
     void advance(time_type tfinal, time_type dt) override {
-        for (auto lid: util::make_span(0, not_emit_it_.size())) {
+        for (auto i: util::make_span(0, not_emit_it_.size())) {
             // The first potential spike_time to emit for this cell
-            auto spike_time_it = not_emit_it_[lid];
+            auto spike_time_it = not_emit_it_[i];
 
             // Find the first spike past tfinal
-            not_emit_it_[lid] = std::find_if(
-                spike_time_it, spike_times_[lid].end(),
+            not_emit_it_[i] = std::find_if(
+                spike_time_it, spike_times_[i].end(),
                 [tfinal](time_type t) {return t >= tfinal; }
             );
 
             // Loop over the range and create spikes
-            for (; spike_time_it != not_emit_it_[lid]; ++spike_time_it) {
-                spikes_.push_back({ {gids_[lid], 0u}, *spike_time_it });
+            for (; spike_time_it != not_emit_it_[i]; ++spike_time_it) {
+                spikes_.push_back({ {gids_[i], 0u}, *spike_time_it });
             }
         }
     };

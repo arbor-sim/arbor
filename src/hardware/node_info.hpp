@@ -9,7 +9,9 @@ namespace hw {
 // will become richer.
 struct node_info {
     node_info() = default;
-    node_info(unsigned c, unsigned g);
+    node_info(unsigned c, unsigned g):
+        num_cpu_cores(c), num_gpus(g)
+    {}
 
     unsigned num_cpu_cores = 1;
     unsigned num_gpus = 0;
