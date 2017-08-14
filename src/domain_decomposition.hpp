@@ -36,7 +36,9 @@ struct group_description {
 
 class domain_decomposition {
     cell_gid_type first_cell(int dom) const {
-        return (cell_gid_type)(num_global_cells_*(dom/(double)num_domains_));
+        const cell_gid_type B = num_global_cells_/num_domains_;
+        const cell_gid_type R = num_global_cells_%B;
+        return dom*B + std::min(cell_gid_type(dom), R);
     }
 
 public:

@@ -114,7 +114,8 @@ TEST(domain_decomp, homogeneous) {
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
         for (auto i: gids) {
-            auto& grp = D.get_group(i-b);
+            auto local_group = i-b;
+            auto& grp = D.get_group(local_group);
             EXPECT_EQ(grp.gids.size(), 1u);
             EXPECT_EQ(grp.gids.front(), unsigned(i));
             EXPECT_EQ(grp.backend, backend_kind::multicore);
@@ -167,9 +168,9 @@ TEST(domain_decomp, heterogeneous) {
         hw::node_info nd(1, 0);
 
         // 10 cells per domain
-        unsigned n_local = 10;
-        unsigned n_global = n_local*N;
-        unsigned n_local_grps = n_local; // 1 cell per group
+        const unsigned n_local = 10;
+        const unsigned n_global = n_local*N;
+        const unsigned n_local_grps = n_local; // 1 cell per group
         auto R = hetero_recipe(n_global);
         domain_decomposition D(R, nd);
 
