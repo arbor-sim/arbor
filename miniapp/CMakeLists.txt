@@ -27,3 +27,5 @@ set_target_properties(miniapp.exe
    PROPERTIES
    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/miniapp"
 )
+
+add_subdirectory(brunel)

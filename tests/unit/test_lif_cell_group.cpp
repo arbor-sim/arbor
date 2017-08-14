@@ -21,7 +21,6 @@ public:
         return ncells_;
     }
 
-
     // LIF neurons have gid in range [0..ncells_-2] whereas fake cell is numbered with ncells_ - 1.
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         if (gid < ncells_ - 1) {
@@ -34,6 +33,8 @@ public:
         if (gid == ncells_ - 1) {
             return {};
         }
+
+        // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         cell_connection conn;
         conn.weight = weight_;
@@ -125,6 +126,7 @@ TEST(lif_cell_group, spikes_testing) {
     std::vector<postsynaptic_spike_event> events;
     std::vector<time_type> incoming_spikes;
     time_type simulation_end = 50;
+
     // Add events at times i for the first 80% time of the simulation.
     for (int i = 1; i < (int) (0.8 * simulation_end); i++) {
         // last parameter is the weight
@@ -199,7 +201,7 @@ TEST(lif_cell_group, domain_decomposition)
 
     // Runs the simulation for simulation_time with given timestep
     mod.run(simulation_time, 0.01);
-  
+
     // The number of cell groups.
     EXPECT_EQ(11, mod.num_groups());
     // The total number of cells in all the cell groups.

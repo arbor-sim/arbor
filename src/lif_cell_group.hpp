@@ -3,6 +3,7 @@
 #include <cell_group.hpp>
 #include <event_queue.hpp>
 #include <lif_cell_description.hpp>
+#include <profiling/profiler.hpp>
 #include <util/unique_any.hpp>
 #include <vector>
 
@@ -61,6 +62,7 @@ public:
     }
 
     void advance(time_type tfinal, time_type dt) override {
+        PE("lif");
         // Distribute incoming events to individual cells.
         while (!events_.empty()) {
             // Takes event from the queue and pops it.
@@ -73,9 +75,10 @@ public:
         }
 
         // Advance each cell independently.
-        for (int i = 0; i < cells_.size(); ++i) {
+        for (size_t i = 0; i < cells_.size(); ++i) {
             advance_cell(tfinal, dt, i);
         }
+        PL();
     }
 
     void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
@@ -107,7 +110,7 @@ public:
     void reset() override {
         spikes_.clear();
         // STL queue does not support clear()
-        events_ = {};
+        events_ = decltype(events_)();
 
         // TODO: Remove after testing.
         voltage_.clear();

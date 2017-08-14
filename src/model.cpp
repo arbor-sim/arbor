@@ -105,8 +105,9 @@ time_type model::run(time_type tfinal, time_type dt) {
                 group->enqueue_events(current_events()[i]);
                 PL();
 
+                PE("cells");
                 group->advance(tuntil, dt);
-
+                 PL();
                 PE("events");
                 current_spikes().insert(group->spikes());
                 group->clear_spikes();
