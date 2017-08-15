@@ -35,12 +35,6 @@ struct group_description {
 };
 
 class domain_decomposition {
-    cell_gid_type first_cell(int dom) const {
-        const cell_gid_type B = num_global_cells_/num_domains_;
-        const cell_gid_type R = num_global_cells_%B;
-        return dom*B + std::min(cell_gid_type(dom), R);
-    }
-
 public:
     domain_decomposition(const recipe& rec, hw::node_info nd):
         node_(nd)
@@ -52,25 +46,29 @@ public:
         domain_id_ = communication::global_policy::id();
         num_global_cells_ = rec.num_cells();
 
+        auto first_cell = [this](int dom) -> cell_gid_type {
+            const cell_gid_type B = num_global_cells_/num_domains_;
+            const cell_gid_type R = num_global_cells_%B;
+            return dom*B + std::min(cell_gid_type(dom), R);
+        };
+
+
         // TODO: load balancing logic will be refactored into its own class,
         // and the domain decomposition will become a much simpler representation
         // of the result distribution of cells over domains.
 
         // Global load balance
 
-        gid_part_.reserve(num_domains_+1);
+        gid_divisions_.reserve(num_domains_+1);
         for (auto d: make_span(0, num_domains_+1)) {
-            gid_part_.push_back(first_cell(d));
+            gid_divisions_.push_back(first_cell(d));
         }
-
-        // Partition the cells globally across the domains.
-        auto b = first_cell(domain_id_);
-        auto e = first_cell(domain_id_+1);
+        gid_part_ = util::partition_view(gid_divisions_);
 
         // Local load balance
 
         std::unordered_map<kind_type, std::vector<cell_gid_type>> kind_lists;
-        for (auto gid: make_span(b, e)) {
+        for (auto gid: make_span(gid_part_[domain_id_])) {
             kind_lists[rec.get_cell_kind(gid)].push_back(gid);
         }
 
@@ -106,8 +104,7 @@ public:
 
     int gid_domain(cell_gid_type gid) const {
         EXPECTS(gid<num_global_cells_);
-        auto& x = gid_part_;
-        return std::distance(x.begin(), std::upper_bound(x.begin(), x.end(), gid))-1;
+        return gid_part_.index(gid);
     }
 
     /// Returns the total number of cells in the global model.
@@ -117,7 +114,8 @@ public:
 
     /// Returns the number of cells on the local domain.
     cell_size_type num_local_cells() const {
-        return gid_part_[domain_id_+1] - gid_part_[domain_id_];
+        auto rng = gid_part_[domain_id_];
+        return rng.second - rng.first;
     }
 
     /// Returns the number of cell groups on the local domain.
@@ -132,8 +130,8 @@ public:
     }
 
     /// Tests whether a gid is on the local domain.
-    bool is_local_gid(cell_gid_type i) const {
-        return i>=gid_part_[domain_id_] && i<gid_part_[domain_id_+1];
+    bool is_local_gid(cell_gid_type gid) const {
+        return algorithms::in_interval(gid, gid_part_[domain_id_]);
     }
 
 private:
@@ -141,7 +139,8 @@ private:
     int domain_id_;
     hw::node_info node_;
     cell_size_type num_global_cells_;
-    std::vector<cell_gid_type> gid_part_;
+    std::vector<cell_gid_type> gid_divisions_;
+    decltype(util::make_partition(gid_divisions_, gid_divisions_)) gid_part_;
     std::vector<cell_kind> group_kinds_;
     std::vector<group_description> groups_;
 };
