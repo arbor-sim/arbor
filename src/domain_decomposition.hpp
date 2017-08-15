@@ -79,6 +79,11 @@ public:
         // listed before the others. This is a very primitive attempt at
         // scheduling; the cell_groups that run on the GPU will be executed
         // before other cell_groups, which is likely to be more efficient.
+        //
+        // TODO: This creates an dependency between the load balancer and
+        // the threading internals. We need support for setting the priority
+        // of cell group updates according to rules such as the back end on
+        // which the cell group is running.
         std::vector<cell_kind> kinds;
         for (auto l: kind_lists) {
             kinds.push_back(cell_kind(l.first));
