@@ -48,10 +48,9 @@ public:
 
         auto first_cell = [this](int dom) -> cell_gid_type {
             const cell_gid_type B = num_global_cells_/num_domains_;
-            const cell_gid_type R = num_global_cells_%B;
+            const cell_gid_type R = num_global_cells_ - num_domains_*B;
             return dom*B + std::min(cell_gid_type(dom), R);
         };
-
 
         // TODO: load balancing logic will be refactored into its own class,
         // and the domain decomposition will become a much simpler representation
