@@ -4,7 +4,7 @@ n_inh=$((n_exc/4))  # inh popoulation size
 n_ext=100           # poisson population size
 prop=0.5            # prop of connections from each population
 weight=1            # exc connections weight
-rel_inh_strength=0.5# relative strength of inhibitory connections
+rel_inh_strength=0.5 # relative strength of inhibitory connections
 delay=1             # delay of all connections
 rate=1              # rate of Poisson neruons
 time=100            # simulation time
@@ -32,6 +32,7 @@ run() {
         fi
     else
         if [ $optimised ]
+        then
             NMC_NUM_THREADS=$n_core srun -n $n_rank -c $n_core --hint=nomultithread ../../build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size -o
         else
             NMC_NUM_THREADS=$n_core srun -n $n_rank -c $n_core --hint=nomultithread ../../build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
@@ -51,7 +52,7 @@ make -j
 cd ../miniapp/brunel
 
 vary_n_exc=(100 1000 10000)
-optimised=false
+optimised=true
 
 for n_exc in ${vary_n_exc[@]}
 do
