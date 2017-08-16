@@ -46,10 +46,10 @@ public:
         domain_id_ = communication::global_policy::id();
         num_global_cells_ = rec.num_cells();
 
-        auto first_cell = [this](int dom) -> cell_gid_type {
+        auto dom_size = [this](unsigned dom) -> cell_gid_type {
             const cell_gid_type B = num_global_cells_/num_domains_;
             const cell_gid_type R = num_global_cells_ - num_domains_*B;
-            return dom*B + std::min(cell_gid_type(dom), R);
+            return B + (dom<R);
         };
 
         // TODO: load balancing logic will be refactored into its own class,
@@ -58,11 +58,8 @@ public:
 
         // Global load balance
 
-        gid_divisions_.reserve(num_domains_+1);
-        for (auto d: make_span(0, num_domains_+1)) {
-            gid_divisions_.push_back(first_cell(d));
-        }
-        gid_part_ = util::partition_view(gid_divisions_);
+        gid_part_ = make_partition(
+            gid_divisions_, transform_view(make_span(0, num_domains_), dom_size));
 
         // Local load balance
 
