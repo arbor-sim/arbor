@@ -57,35 +57,29 @@ When TBB is installed, it comes with some scripts that can be run to set up the 
 The scripts set the `TBB_ROOT` environment variable, which is used by the CMake configuration to find TBB.
 
 ```
-source <path to TBB installation>/tbbvars.sh
 cmake <path to CMakeLists.txt> -DNMC_THREADING_MODEL=tbb
 ```
 
 ### TBB on Cray systems
 
-To compile with TBB on Cray systems, load the intel module, which will automatically configure the environment.
-The guide below shows how to use the version of TBB that is installed as part of the Intel compiler toolchain.
-It is recommended that you install the most recent version of TBB yourself, and link against this, because older versions
-of TBB don't work with recent versions of GCC.
+TBB requires dynamic linking, which is not enabled by default in the Cray programming environment.
+CMake is quite brittle, so take care to follow these step closely.
+TBB provides a CMake package that will attempt to automatically download and compile TBB from within CMake.
+Set the environment variable `CRAYPE_LINK_TYPE=dynamic`, to instruct the Cray PE linker to enable dynamic linking.
+CMake (at least since CMake 3.6) will automatically detect the Cray programming environment, and will by default use static linking, unless the `CRAYPE_LINK_TYPE` environment variable has been set to `dynamic`.
+Note, the CMake package provided by TBB is very fragile, and won't work if CMake is forced to use the `CrayLinuxEnvironment` as shown in the code below. Instead, let Cmake automatically detect the programming environment.
 
 ```
-# load the gnu environment for compiling the application
-module load PrgEnv-gnu
-# gcc 5.x does not work with the version of TBB installed on Cray
-# requires at least version 4.4 of TBB
-module swap gcc/4.9.3
-# load the intel programming module
-# on Cray systems this automatically sets `TBB_ROOT` environment variable
-module load intel
-module load cmake
-export CXX=`which CC`
-export CC=`which cc`
+export CRAYPE_LINK_TYPE=dynamic
+cmake <path-to-arbor-source> -DNMC_THREADING_MODEL=tbb
 
-# multithreading only
-cmake <path to CMakeLists.txt> -DNMC_THREADING_MODEL=tbb -DSYSTEM_CRAY=ON
+# NOTE: specifying CMAKE_SYSTEM_NAME won't work, instead let CMake automatically
+# detect the build environment as above.
+cmake <path-to-arbor-source> -DNMC_THREADING_MODEL=tbb  -DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment
+```
 
-# multithreading and MPI
-cmake <path to CMakeLists.txt> -DNMC_THREADING_MODEL=tbb -DNMC_WITH_MPI=ON -DSYSTEM_CRAY=ON
+```
+export CRAYPE_LINK_TYPE=dynamic
 ```
 
 ## targeting KNL

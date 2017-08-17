@@ -71,11 +71,25 @@ if(NMC_THREADING_MODEL MATCHES "tbb")
     tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
 
     # configure TBB
-    find_package(TBB REQUIRED)
+    include(cmake/TBBConfig.cmake)
+    find_package(TBB REQUIRED tbb tbbmalloc)
+
     add_definitions(-DNMC_HAVE_TBB)
     set(NMC_WITH_TBB TRUE)
-    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
-    list(APPEND EXTERNAL_INCLUDES ${TBB_INCLUDE_DIRS})
+
+    # The TBB CMake packaged creates the TBB::tbb and TBB:tbbmalloc targets.
+    # The following likes should be sufficient, however on some systems
+    # (e.g. Cray PE), they don't work (because CMake). So manually add the
+    # library files with their path.
+    #list(APPEND EXTERNAL_LIBRARIES TBB::tbb)
+    #list(APPEND EXTERNAL_LIBRARIES TBB::tbbmalloc)
+    set(TBB_LIB_PATH ${CMAKE_BINARY_DIR}/tbb_cmake_build/tbb_cmake_build_subdir_release)
+    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbb.so)
+    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbbmalloc.so)
+
+    # The TBB headers are in the downloaded TBB source
+    list(APPEND EXTERNAL_INCLUDES ${tbb_root}/include)
+
 elseif(NMC_THREADING_MODEL MATCHES "cthread")
 
     find_package(Threads REQUIRED)
@@ -131,7 +145,10 @@ set_property(CACHE NMC_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 
 # Cray specific flags
 if(${NMC_SYSTEM_TYPE} MATCHES "Cray")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
+    # we no longer set the -dynamic flag for the compilere here, instead dynamic
+    # linking should be enabled by the user by setting the environment variable:
+    #   CRAYPE_LINK_TYPE=dynamic
+    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
     add_definitions(-DNMC_HAVE_CRAY)
 endif()
 
