@@ -64,9 +64,14 @@ set(NMC_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of 
 set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 if(NMC_THREADING_MODEL MATCHES "tbb")
+    # download and build TBB
+    include(cmake/TBBGet.cmake)
+    include(cmake/TBBBuild.cmake)
+    tbb_get(TBB_ROOT tbb_root SOURCE_CODE)
+    tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
 
+    # configure TBB
     find_package(TBB REQUIRED)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TBB_DEFINITIONS}")
     add_definitions(-DNMC_HAVE_TBB)
     set(NMC_WITH_TBB TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIBRARIES})
