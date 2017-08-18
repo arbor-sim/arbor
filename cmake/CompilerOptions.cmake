@@ -20,6 +20,16 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     # flag initializations such as
     #     std::array<int,3> a={1,2,3};
     set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
+
+    # Clang is erroneously warning that T is an 'unused type alias' in code like this:
+    # struct X {
+    #     using T = decltype(expression);
+    #     T x;
+    # };
+    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-unused-local-typedef")
+
+    # Ignore warning if string passed to snprintf is not a string literal.
+    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-format-security")
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
@@ -37,14 +47,14 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
-    # Disable warning for unused template parameter
-    # this is raised by a templated function in the json library.
-    set(CXXOPT_WALL "${CXXOPT_WALL} -wd488")
-
     # Compiler flags for generating KNL-specific AVX512 instructions.
     set(CXXOPT_KNL "-xMIC-AVX512")
     set(CXXOPT_AVX "-xAVX")
     set(CXXOPT_AVX2 "-xCORE-AVX2")
     set(CXXOPT_AVX512 "-xCORE-AVX512")
+
+    # Disable warning for unused template parameter
+    # this is raised by a templated function in the json library.
+    set(CXXOPT_WALL "${CXXOPT_WALL} -wd488")
 endif()
 

@@ -87,9 +87,6 @@ public:
     }
 
 private:
-    // gid of first cell in group.
-    cell_gid_type gid_base_;
-
     // Spikes that are generated.
     std::vector<spike> spikes_;
 

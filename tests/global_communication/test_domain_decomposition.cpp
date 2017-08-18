@@ -74,12 +74,6 @@ namespace {
     private:
         cell_size_type size_;
     };
-
-    // test whether running in dry run mode
-    inline bool is_dry_run() {
-        return communication::global_policy::kind() ==
-            communication::global_policy_kind::dryrun;
-    }
 }
 
 TEST(domain_decomp, homogeneous) {
