@@ -65,8 +65,8 @@ set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 if(NMC_THREADING_MODEL MATCHES "tbb")
     # download and build TBB
-    include(cmake/TBBGet.cmake)
-    include(cmake/TBBBuild.cmake)
+    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBGet.cmake)
+    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBBuild.cmake)
     tbb_get(TBB_ROOT tbb_root SOURCE_CODE)
     tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
 
