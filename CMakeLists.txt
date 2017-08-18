@@ -71,18 +71,17 @@ if(NMC_THREADING_MODEL MATCHES "tbb")
     tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
 
     # configure TBB
-    include(cmake/TBBConfig.cmake)
     find_package(TBB REQUIRED tbb tbbmalloc)
 
     add_definitions(-DNMC_HAVE_TBB)
     set(NMC_WITH_TBB TRUE)
 
-    # The TBB CMake packaged creates the TBB::tbb and TBB:tbbmalloc targets.
-    # The following likes should be sufficient, however on some systems
-    # (e.g. Cray PE), they don't work (because CMake). So manually add the
-    # library files with their path.
-    #list(APPEND EXTERNAL_LIBRARIES TBB::tbb)
-    #list(APPEND EXTERNAL_LIBRARIES TBB::tbbmalloc)
+    # The TBB CMake package creates the TBB::tbb and TBB:tbbmalloc targets.
+    # The following should be sufficient, however on some systems (e.g. Cray PE),
+    # they don't work (because CMake is fragile):
+    #   list(APPEND EXTERNAL_LIBRARIES TBB::tbb)
+    #   list(APPEND EXTERNAL_LIBRARIES TBB::tbbmalloc)
+    # So, instead, manually add the library links:
     set(TBB_LIB_PATH ${CMAKE_BINARY_DIR}/tbb_cmake_build/tbb_cmake_build_subdir_release)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbb.so)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbbmalloc.so)
