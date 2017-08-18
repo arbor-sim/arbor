@@ -84,7 +84,7 @@ todo_include_todos = True
 
 # Use the ReadTheDocs theme
 html_theme = "sphinx_rtd_theme"
-html_theme_path = ["_themes", ]
+html_theme_path = ["sphinx_rtd_theme", ]
 
 # html_theme_options = {}
 
