@@ -11,12 +11,12 @@ Before starting
 We will require:
 
   * git
-  * cmake
+  * cmake 3.0
   * C++11 compliant compiler
 
 For GPU support:
 
-  * NVIDIA CUDA toolkit
+  * NVIDIA CUDA toolkit 8.0
 
 To make these docs you also need:
 
