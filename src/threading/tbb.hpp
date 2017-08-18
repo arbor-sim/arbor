@@ -7,6 +7,7 @@
 #include <string>
 
 #include <tbb/tbb.h>
+#include <tbb/tbb_stddef.h>
 #include <tbb/compat/thread>
 #include <tbb/enumerable_thread_specific.h>
 
@@ -25,7 +26,7 @@ struct parallel_for {
 };
 
 inline std::string description() {
-    return "TBB";
+    return "TBBv" + std::to_string(tbb::TBB_runtime_interface_version());
 }
 
 struct timer {
