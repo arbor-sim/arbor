@@ -14,7 +14,7 @@ TEST(dss_cell, constructor)
     std::vector<util::unique_any> cell_descriptions(1);
     cell_descriptions[0] = util::unique_any(dss_cell_description(spikes));
 
-    dss_cell_group sut(0, cell_descriptions);
+    dss_cell_group sut({0}, cell_descriptions);
 }
 
 TEST(dss_cell, basic_usage)
@@ -27,7 +27,7 @@ TEST(dss_cell, basic_usage)
     std::vector<util::unique_any> cell_descriptions(1);
     cell_descriptions[0] = util::unique_any(dss_cell_description(spikes_to_emit));
 
-    dss_cell_group sut(0, cell_descriptions);
+    dss_cell_group sut({0}, cell_descriptions);
 
     // no spikes in this time frame
     sut.advance(0.09, 0.01);   // The dt (0,01) is not used
@@ -69,7 +69,7 @@ TEST(dss_cell, cell_kind_correct)
     std::vector<util::unique_any> cell_descriptions(1);
     cell_descriptions[0] = util::unique_any(dss_cell_description(spikes_to_emit));
 
-    dss_cell_group sut(0, cell_descriptions);
+    dss_cell_group sut({0}, cell_descriptions);
 
     EXPECT_EQ(cell_kind::data_spike_source, sut.get_cell_kind());
 }

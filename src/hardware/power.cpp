@@ -9,7 +9,7 @@ namespace hw {
 #ifdef NMC_HAVE_CRAY
 
 energy_size_type energy() {
-    energy_size_type result = -1;
+    energy_size_type result = energy_size_type(-1);
 
     std::ifstream fid("/sys/cray/pm_counters/energy");
     if (fid) {

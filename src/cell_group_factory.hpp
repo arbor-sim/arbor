@@ -4,17 +4,15 @@
 
 #include <backends.hpp>
 #include <cell_group.hpp>
+#include <domain_decomposition.hpp>
+#include <recipe.hpp>
 #include <util/unique_any.hpp>
 
 namespace nest {
 namespace mc {
 
 // Helper factory for building cell groups
-cell_group_ptr cell_group_factory(
-    cell_kind kind,
-    cell_gid_type first_gid,
-    const std::vector<util::unique_any>& cells,
-    backend_policy backend);
+cell_group_ptr cell_group_factory(const recipe& rec, const group_description& group);
 
 } // namespace mc
 } // namespace nest

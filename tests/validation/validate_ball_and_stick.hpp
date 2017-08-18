@@ -3,6 +3,7 @@
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
+#include <hardware/node_info.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -19,7 +20,7 @@ template <typename SamplerInfoSeq>
 void run_ncomp_convergence_test(
     const char* model_name,
     const nest::mc::util::path& ref_data_path,
-    nest::mc::backend_policy backend,
+    nest::mc::backend_kind backend,
     const nest::mc::cell& c,
     SamplerInfoSeq& samplers,
     float t_end=100.f)
@@ -35,7 +36,7 @@ void run_ncomp_convergence_test(
         {"dt", dt},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend_policy", to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     auto exclude = stimulus_ends(c);
@@ -49,7 +50,8 @@ void run_ncomp_convergence_test(
                 seg->set_compartments(ncomp);
             }
         }
-        domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+        hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
+        domain_decomposition decomp(singleton_recipe{c}, nd);
         model m(singleton_recipe{c}, decomp);
 
         runner.run(m, ncomp, t_end, dt, exclude);
@@ -58,7 +60,7 @@ void run_ncomp_convergence_test(
     runner.assert_all_convergence();
 }
 
-void validate_ball_and_stick(nest::mc::backend_policy backend) {
+void validate_ball_and_stick(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_stick();
@@ -79,7 +81,7 @@ void validate_ball_and_stick(nest::mc::backend_policy backend) {
         samplers);
 }
 
-void validate_ball_and_taper(nest::mc::backend_policy backend) {
+void validate_ball_and_taper(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_taper();
@@ -100,7 +102,7 @@ void validate_ball_and_taper(nest::mc::backend_policy backend) {
         samplers);
 }
 
-void validate_ball_and_3stick(nest::mc::backend_policy backend) {
+void validate_ball_and_3stick(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_3stick();
@@ -125,7 +127,7 @@ void validate_ball_and_3stick(nest::mc::backend_policy backend) {
         samplers);
 }
 
-void validate_rallpack1(nest::mc::backend_policy backend) {
+void validate_rallpack1(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_simple_cable();
@@ -151,7 +153,7 @@ void validate_rallpack1(nest::mc::backend_policy backend) {
         250.f);
 }
 
-void validate_ball_and_squiggle(nest::mc::backend_policy backend) {
+void validate_ball_and_squiggle(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_squiggle();

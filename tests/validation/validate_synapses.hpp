@@ -3,6 +3,7 @@
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <fvm_multicell.hpp>
+#include <hardware/node_info.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -18,7 +19,7 @@
 void run_synapse_test(
     const char* syn_type,
     const nest::mc::util::path& ref_data_path,
-    nest::mc::backend_policy backend,
+    nest::mc::backend_kind backend,
     float t_end=70.f,
     float dt=0.001)
 {
@@ -30,7 +31,7 @@ void run_synapse_test(
         {"model", syn_type},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend_policy", to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     cell c = make_cell_ball_and_stick(false); // no stimuli
@@ -58,9 +59,10 @@ void run_synapse_test(
     convergence_test_runner<int> runner("ncomp", samplers, meta);
     runner.load_reference_data(ref_data_path);
 
+    hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
-        domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+        domain_decomposition decomp(singleton_recipe{c}, nd);
         model m(singleton_recipe{c}, decomp);
         m.group(0).enqueue_events(synthetic_events);
 

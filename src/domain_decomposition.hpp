@@ -1,10 +1,13 @@
 #pragma once
 
+#include <type_traits>
 #include <vector>
+#include <unordered_map>
 
 #include <backends.hpp>
 #include <common_types.hpp>
 #include <communication/global_policy.hpp>
+#include <hardware/node_info.hpp>
 #include <recipe.hpp>
 #include <util/optional.hpp>
 #include <util/partition.hpp>
@@ -13,97 +16,91 @@
 namespace nest {
 namespace mc {
 
-// Meta data used to guide the domain_decomposition in distributing
-// and grouping cells.
-struct group_rules {
-    cell_size_type target_group_size;
-    backend_policy policy;
+inline bool has_gpu_backend(cell_kind k) {
+    if (k==cell_kind::cable1d_neuron) {
+        return true;
+    }
+    return false;
+}
+
+/// Utility type for meta data for a local cell group.
+struct group_description {
+    const cell_kind kind;
+    const std::vector<cell_gid_type> gids;
+    const backend_kind backend;
+
+    group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
+        kind(k), gids(std::move(g)), backend(b)
+    {}
 };
 
 class domain_decomposition {
-    using gid_partition_type =
-        util::partition_range<std::vector<cell_gid_type>::const_iterator>;
-
 public:
-    /// Utility type for meta data for a local cell group.
-    struct group_range_type {
-        cell_gid_type begin;
-        cell_gid_type end;
-        cell_kind kind;
-    };
-
-    domain_decomposition(const recipe& rec, const group_rules& rules):
-        backend_policy_(rules.policy)
+    domain_decomposition(const recipe& rec, hw::node_info nd):
+        node_(nd)
     {
-        EXPECTS(rules.target_group_size>0);
+        using kind_type = std::underlying_type<cell_kind>::type;
+        using util::make_span;
 
-        auto num_domains = communication::global_policy::size();
-        auto domain_id = communication::global_policy::id();
-
-        // Partition the cells globally across the domains.
+        num_domains_ = communication::global_policy::size();
+        domain_id_ = communication::global_policy::id();
         num_global_cells_ = rec.num_cells();
-        cell_begin_ = (cell_gid_type)(num_global_cells_*(domain_id/(double)num_domains));
-        cell_end_ = (cell_gid_type)(num_global_cells_*((domain_id+1)/(double)num_domains));
 
-        // Partition the local cells into cell groups that satisfy three
-        // criteria:
-        //  1. the cells in a group have contiguous gid
-        //  2. the size of a cell group does not exceed rules.target_group_size;
-        //  3. all cells in a cell group have the same cell_kind.
-        // This simple greedy algorithm appends contiguous cells to a cell
-        // group until either the target group size is reached, or a cell with a
-        // different kind is encountered.
-        // On completion, cell_starts_ partitions the local gid into cell
-        // groups, and group_kinds_ records the cell kind in each cell group.
-        if (num_local_cells()>0) {
-            cell_size_type group_size = 1;
+        auto dom_size = [this](unsigned dom) -> cell_gid_type {
+            const cell_gid_type B = num_global_cells_/num_domains_;
+            const cell_gid_type R = num_global_cells_ - num_domains_*B;
+            return B + (dom<R);
+        };
 
-            // 1st group starts at cell_begin_
-            group_starts_.push_back(cell_begin_);
-            auto group_kind = rec.get_cell_kind(cell_begin_);
+        // TODO: load balancing logic will be refactored into its own class,
+        // and the domain decomposition will become a much simpler representation
+        // of the result distribution of cells over domains.
 
-            // set kind for 1st group
-            group_kinds_.push_back(group_kind);
+        // Global load balance
 
-            cell_gid_type gid = cell_begin_+1;
-            while (gid<cell_end_) {
-                auto kind = rec.get_cell_kind(gid);
+        gid_part_ = make_partition(
+            gid_divisions_, transform_view(make_span(0, num_domains_), dom_size));
 
-                // Test if gid belongs to a new cell group, i.e. whether it has
-                // a new cell_kind or if the target group size has been reached.
-                if (kind!=group_kind || group_size>=rules.target_group_size) {
-                    group_starts_.push_back(gid);
-                    group_kinds_.push_back(kind);
-                    group_size = 0;
-                }
-                ++group_size;
-                ++gid;
+        // Local load balance
+
+        std::unordered_map<kind_type, std::vector<cell_gid_type>> kind_lists;
+        for (auto gid: make_span(gid_part_[domain_id_])) {
+            kind_lists[rec.get_cell_kind(gid)].push_back(gid);
+        }
+
+        // Create a flat vector of the cell kinds present on this node,
+        // partitioned such that kinds for which GPU implementation are
+        // listed before the others. This is a very primitive attempt at
+        // scheduling; the cell_groups that run on the GPU will be executed
+        // before other cell_groups, which is likely to be more efficient.
+        //
+        // TODO: This creates an dependency between the load balancer and
+        // the threading internals. We need support for setting the priority
+        // of cell group updates according to rules such as the back end on
+        // which the cell group is running.
+        std::vector<cell_kind> kinds;
+        for (auto l: kind_lists) {
+            kinds.push_back(cell_kind(l.first));
+        }
+        std::partition(kinds.begin(), kinds.end(), has_gpu_backend);
+
+        for (auto k: kinds) {
+            // put all cells into a single cell group on the gpu if possible
+            if (node_.num_gpus && has_gpu_backend(k)) {
+                groups_.push_back({k, std::move(kind_lists[k]), backend_kind::gpu});
             }
-            group_starts_.push_back(cell_end_);
+            // otherwise place into cell groups of size 1 on the cpu cores
+            else {
+                for (auto gid: kind_lists[k]) {
+                    groups_.push_back({k, {gid}, backend_kind::multicore});
+                }
+            }
         }
     }
 
-    /// Returns the local index of the cell_group that contains a cell with
-    /// with gid.
-    /// If the cell is not on the local domain, the optional return value is
-    /// not set.
-    util::optional<cell_size_type>
-    local_group_from_gid(cell_gid_type gid) const {
-        // check if gid is a local cell
-        if (!is_local_gid(gid)) {
-            return util::nothing;
-        }
-        return gid_group_partition().index(gid);
-    }
-
-    /// Returns the gid of the first cell on the local domain.
-    cell_gid_type cell_begin() const {
-        return cell_begin_;
-    }
-
-    /// Returns one past the gid of the last cell in the local domain.
-    cell_gid_type cell_end() const {
-        return cell_end_;
+    int gid_domain(cell_gid_type gid) const {
+        EXPECTS(gid<num_global_cells_);
+        return gid_part_.index(gid);
     }
 
     /// Returns the total number of cells in the global model.
@@ -113,42 +110,35 @@ public:
 
     /// Returns the number of cells on the local domain.
     cell_size_type num_local_cells() const {
-        return cell_end()-cell_begin();
+        auto rng = gid_part_[domain_id_];
+        return rng.second - rng.first;
     }
 
     /// Returns the number of cell groups on the local domain.
     cell_size_type num_local_groups() const {
-        return group_kinds_.size();
+        return groups_.size();
     }
 
     /// Returns meta data for a local cell group.
-    group_range_type get_group(cell_size_type i) const {
-        return {group_starts_[i], group_starts_[i+1], group_kinds_[i]};
+    const group_description& get_group(cell_size_type i) const {
+        EXPECTS(i<num_local_groups());
+        return groups_[i];
     }
 
     /// Tests whether a gid is on the local domain.
-    bool is_local_gid(cell_gid_type i) const {
-        return i>=cell_begin_ && i<cell_end_;
-    }
-
-    /// Return a partition of the cell gid over local cell groups.
-    gid_partition_type gid_group_partition() const {
-        return util::partition_view(group_starts_);
-    }
-
-    /// Returns the backend policy.
-    backend_policy backend() const {
-        return backend_policy_;
+    bool is_local_gid(cell_gid_type gid) const {
+        return algorithms::in_interval(gid, gid_part_[domain_id_]);
     }
 
 private:
-
-    backend_policy backend_policy_;
-    cell_gid_type cell_begin_;
-    cell_gid_type cell_end_;
+    int num_domains_;
+    int domain_id_;
+    hw::node_info node_;
     cell_size_type num_global_cells_;
-    std::vector<cell_size_type> group_starts_;
+    std::vector<cell_gid_type> gid_divisions_;
+    decltype(util::make_partition(gid_divisions_, gid_divisions_)) gid_part_;
     std::vector<cell_kind> group_kinds_;
+    std::vector<group_description> groups_;
 };
 
 } // namespace mc

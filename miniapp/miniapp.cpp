@@ -12,6 +12,8 @@
 #include <communication/global_policy.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
+#include <hardware/gpu.hpp>
+#include <hardware/node_info.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
@@ -31,7 +33,7 @@ using namespace nest::mc;
 using global_policy = communication::global_policy;
 using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
-void banner();
+void banner(hw::node_info);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 std::unique_ptr<sample_trace_type> make_trace(probe_record probe);
 using communicator_type = communication::communicator<communication::global_policy>;
@@ -67,7 +69,12 @@ int main(int argc, char** argv) {
             global_policy::set_sizes(options.dry_run_ranks, cells_per_rank);
         }
 
-        banner();
+        // Use a node description that uses the number of threads used by the
+        // threading back end, and 1 gpu if available.
+        hw::node_info nd;
+        nd.num_cpu_cores = threading::num_threads();
+        nd.num_gpus = hw::num_gpus()>0? 1: 0;
+        banner(nd);
 
         meters.checkpoint("setup");
 
@@ -85,11 +92,7 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        group_rules rules;
-        rules.policy = config::has_cuda?
-            backend_policy::prefer_gpu: backend_policy::use_multicore;
-        rules.target_group_size = options.group_size;
-        auto decomp = domain_decomposition(*recipe, rules);
+        auto decomp = domain_decomposition(*recipe, nd);
 
         model m(*recipe, decomp);
 
@@ -144,8 +147,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        auto const num_steps = options.tfinal / options.dt;
-        util::profiler_output(0.001, m.num_cells()*num_steps, options.profile_only_zero);
+        util::profiler_output(0.001, options.profile_only_zero);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces
@@ -176,13 +178,15 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner() {
-    std::cout << "====================\n";
+void banner(hw::node_info nd) {
+    std::cout << "==========================================\n";
     std::cout << "  NestMC miniapp\n";
-    std::cout << "  - " << threading::description() << " threading support (" << threading::num_threads() << ")\n";
-    std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-    std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
-    std::cout << "====================\n";
+    std::cout << "  - distributed : " << global_policy::size()
+              << " (" << std::to_string(global_policy::kind()) << ")\n";
+    std::cout << "  - threads     : " << nd.num_cpu_cores
+              << " (" << threading::description() << ")\n";
+    std::cout << "  - gpus        : " << nd.num_gpus << "\n";
+    std::cout << "==========================================\n";
 }
 
 std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {

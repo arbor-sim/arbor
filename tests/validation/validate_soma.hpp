@@ -3,6 +3,7 @@
 #include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
+#include <hardware/node_info.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -13,12 +14,14 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-void validate_soma(nest::mc::backend_policy backend) {
+void validate_soma(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_soma_only();
     add_common_voltage_probes(c);
-    domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
+
+    hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
+    domain_decomposition decomp(singleton_recipe{c}, nd);
     model m(singleton_recipe{c}, decomp);
 
     float sample_dt = .025f;
@@ -29,7 +32,7 @@ void validate_soma(nest::mc::backend_policy backend) {
         {"model", "soma"},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend_policy", to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     convergence_test_runner<float> runner("dt", samplers, meta);

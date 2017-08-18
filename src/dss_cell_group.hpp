@@ -9,27 +9,21 @@ namespace nest {
 namespace mc {
 
 /// Cell_group to collect spike sources
-class dss_cell_group : public cell_group {
+class dss_cell_group: public cell_group {
 public:
-    using source_id_type = cell_member_type;
-
-    dss_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cell_descriptions):
-        gid_base_(first_gid)
+    dss_cell_group(std::vector<cell_gid_type> gids,
+                   const std::vector<util::unique_any>& cell_descriptions):
+        gids_(std::move(gids))
     {
         using util::make_span;
         for (cell_gid_type i: make_span(0, cell_descriptions.size())) {
             // store spike times from description
-            const auto times = util::any_cast<dss_cell_description>(cell_descriptions[i]).spike_times;
-            spike_times_.push_back(std::vector<time_type>(times));
+            auto times = util::any_cast<dss_cell_description>(cell_descriptions[i]).spike_times;
+            util::sort(times);
+            spike_times_.push_back(std::move(times));
 
-            // Assure the spike times are sorted
-            std::sort(spike_times_[i].begin(), spike_times_[i].end());
-
-            // Now we can grab the first spike time
+            // Take a reference to the first spike time
             not_emit_it_.push_back(spike_times_[i].begin());
-
-            // create a lid to gid map
-            spike_sources_.push_back({gid_base_+i, 0});
         }
     }
 
@@ -40,12 +34,11 @@ public:
     }
 
     void reset() override {
-        // Declare both iterators outside of the for loop for consistency
+        // Reset the pointers to the next undelivered spike to the start
+        // of the input range.
         auto it = not_emit_it_.begin();
         auto times = spike_times_.begin();
-
         for (;it != not_emit_it_.end(); ++it, times++) {
-            // Point to the first not emitted spike.
             *it = times->begin();
         }
 
@@ -56,25 +49,25 @@ public:
     {}
 
     void advance(time_type tfinal, time_type dt) override {
-        for (auto cell_idx: util::make_span(0, not_emit_it_.size())) {
+        for (auto i: util::make_span(0, not_emit_it_.size())) {
             // The first potential spike_time to emit for this cell
-            auto spike_time_it = not_emit_it_[cell_idx];
+            auto spike_time_it = not_emit_it_[i];
 
-            // Find the first to not emit and store as iterator
-            not_emit_it_[cell_idx] = std::find_if(
-                spike_time_it, spike_times_[cell_idx].end(),
+            // Find the first spike past tfinal
+            not_emit_it_[i] = std::find_if(
+                spike_time_it, spike_times_[i].end(),
                 [tfinal](time_type t) {return t >= tfinal; }
             );
 
-            // loop over the range we now have (might be empty), and create spikes
-            for (; spike_time_it != not_emit_it_[cell_idx]; ++spike_time_it) {
-                spikes_.push_back({ spike_sources_[cell_idx], *spike_time_it });
+            // Loop over the range and create spikes
+            for (; spike_time_it != not_emit_it_[i]; ++spike_time_it) {
+                spikes_.push_back({ {gids_[i], 0u}, *spike_time_it });
             }
         }
     };
 
     void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
-        std::logic_error("The dss_cells do not support incoming events!");
+        std::runtime_error("The dss_cells do not support incoming events!");
     }
 
     const std::vector<spike>& spikes() const override {
@@ -94,14 +87,11 @@ public:
     }
 
 private:
-    // gid of first cell in group.
-    cell_gid_type gid_base_;
-
     // Spikes that are generated.
     std::vector<spike> spikes_;
 
-    // Spike generators attached to the cell
-    std::vector<source_id_type> spike_sources_;
+    // Map of local index to gid
+    std::vector<cell_gid_type> gids_;
 
     std::vector<probe_record> probes_;
 

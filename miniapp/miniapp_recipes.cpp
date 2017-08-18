@@ -239,7 +239,14 @@ public:
     basic_rgraph_recipe(cell_gid_type ncell,
                       basic_recipe_param param,
                       probe_distribution pdist = probe_distribution{}):
-        basic_cell_recipe(ncell, std::move(param), std::move(pdist)) {}
+        basic_cell_recipe(ncell, std::move(param), std::move(pdist))
+    {
+        // Cells are not allowed to connect to themselves; hence there must be least two cells
+        // to build a connected network.
+        if (ncell<2) {
+            throw std::runtime_error("A randomly connected network must have at least 2 cells.");
+        }
+    }
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;

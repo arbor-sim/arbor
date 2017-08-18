@@ -27,6 +27,15 @@ struct postsynaptic_spike_event {
     cell_member_type target;
     time_type time;
     float weight;
+
+    friend bool operator==(postsynaptic_spike_event l, postsynaptic_spike_event r) {
+        return l.target==r.target && l.time==r.time && l.weight==r.weight;
+    }
+
+    friend std::ostream& operator<<(std::ostream& o, const nest::mc::postsynaptic_spike_event& e)
+    {
+        return o << "E[tgt " << e.target << ", t " << e.time << ", w " << e.weight << "]";
+    }
 };
 
 struct sample_event {
@@ -140,9 +149,3 @@ private:
 
 } // namespace nest
 } // namespace mc
-
-inline std::ostream& operator<<(
-    std::ostream& o, const nest::mc::postsynaptic_spike_event& e)
-{
-    return o << "event[" << e.target << "," << e.time << "," << e.weight << "]";
-}

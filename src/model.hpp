@@ -12,6 +12,7 @@
 #include <sampler_function.hpp>
 #include <thread_private_spike_store.hpp>
 #include <util/nop.hpp>
+#include <util/rangeutil.hpp>
 #include <util/unique_any.hpp>
 
 namespace nest {
@@ -34,14 +35,13 @@ public:
 
     std::size_t num_spikes() const;
 
-    std::size_t num_groups() const;
-
-    std::size_t num_cells() const;
-
     // Set event binning policy on all our groups.
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
     // access cell_group directly
+    // TODO: depricate. Currently used in some validation tests to inject
+    // events directly into a cell group. This should be done with a spiking
+    // neuron.
     cell_group& group(int i);
 
     // register a callback that will perform a export of the global
@@ -53,11 +53,10 @@ public:
     void set_local_spike_callback(spike_export_function export_callback);
 
 private:
-    const domain_decomposition &domain_;
+    std::size_t num_groups() const;
 
     time_type t_ = 0.;
     std::vector<cell_group_ptr> cell_groups_;
-    communicator_type communicator_;
     std::vector<probe_record> probes_;
 
     using event_queue_type = typename communicator_type::event_queue;
@@ -68,6 +67,12 @@ private:
 
     spike_export_function global_export_callback_ = util::nop_function;
     spike_export_function local_export_callback_ = util::nop_function;
+
+    // Hash table for looking up the group index of the cell_group that
+    // contains gid
+    std::unordered_map<cell_gid_type, cell_gid_type> gid_groups_;
+
+    communicator_type communicator_;
 
     // Convenience functions that map the spike buffers and event queues onto
     // the appropriate integration interval.
