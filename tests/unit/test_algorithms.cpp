@@ -624,14 +624,18 @@ TEST(algorithms, binary_find)
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(a), ita), 0u);
-        if (found) EXPECT_EQ(*ita, 1);
+        if (found) {
+            EXPECT_EQ(*ita, 1);
+        }
 
         std::vector<int> v{1, 10, 15};
         auto itv = binary_find(v, 1);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(v), itv), 0u);
-        if (found) EXPECT_EQ(*itv, 1);
+        if (found) {
+            EXPECT_EQ(*itv, 1);
+        }
     }
 
     // value is last in range
@@ -641,14 +645,18 @@ TEST(algorithms, binary_find)
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(a), ita), 2u);
-        if (found) EXPECT_EQ(*ita, 15);
+        if (found) {
+            EXPECT_EQ(*ita, 15);
+        }
 
         std::vector<int> v{1, 10, 15};
         auto itv = binary_find(v, 15);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(v), itv), 2u);
-        if (found) EXPECT_EQ(*itv, 15);
+        if (found) {
+            EXPECT_EQ(*itv, 15);
+        }
     }
 
     // value is last present and neither first nor last in range
@@ -658,14 +666,18 @@ TEST(algorithms, binary_find)
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(a), ita), 1u);
-        if (found) EXPECT_EQ(*ita, 10);
+        if (found) {
+            EXPECT_EQ(*ita, 10);
+        }
 
         std::vector<int> v{1, 10, 15};
         auto itv = binary_find(v, 10);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(v), itv), 1u);
-        if (found) EXPECT_EQ(*itv, 10);
+        if (found) {
+            EXPECT_EQ(*itv, 10);
+        }
     }
 
     // value is last present and neither first nor last in range and range has even size
@@ -675,14 +687,18 @@ TEST(algorithms, binary_find)
         auto found = ita!=std::end(a);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(a), ita), 1u);
-        if (found) EXPECT_EQ(*ita, 10);
+        if (found) {
+            EXPECT_EQ(*ita, 10);
+        }
 
         std::vector<int> v{1, 10, 15, 27};
         auto itv = binary_find(v, 10);
         found = itv!=std::end(v);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(std::begin(v), itv), 1u);
-        if (found) EXPECT_EQ(*itv, 10);
+        if (found) {
+            EXPECT_EQ(*itv, 10);
+        }
     }
 
     // test for const types
@@ -695,7 +711,9 @@ TEST(algorithms, binary_find)
         auto found = itv!=std::end(vr);
         EXPECT_TRUE(found);
         EXPECT_EQ(std::distance(nest::mc::util::cbegin(v), itv), 1u);
-        if (found) EXPECT_EQ(*itv, 10);
+        if (found) {
+            EXPECT_EQ(*itv, 10);
+        }
     }
 }
 
