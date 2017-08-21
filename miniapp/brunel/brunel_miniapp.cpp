@@ -153,8 +153,8 @@ public:
             cell.V_reset = 0;
             cell.t_ref = 2;
 
-            if (optimised_) {
-                cell.n_poiss = ncells_ext_;
+            if (gid < ncells_exc_ && optimised_) {
+                cell.n_poiss = in_degree_ext_;
                 cell.w_poiss = weight_ext_;
                 cell.d_poiss = delay_;
                 cell.rate = rate_;

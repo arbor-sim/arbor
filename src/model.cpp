@@ -19,13 +19,12 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
 {
     // set up communicator based on partition
     communicator_ = communicator_type(domain_.gid_group_partition());
-
     // generate the cell groups in parallel, with one task per cell group
     cell_groups_.resize(domain_.num_local_groups());
 
     // thread safe vector for constructing the list of probes in parallel
     threading::parallel_vector<probe_record> probe_tmp;
-
+    
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
             PE("setup", "cells");
@@ -35,9 +34,10 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
 
             for (auto gid: util::make_span(group.begin, group.end)) {
                 auto i = gid-group.begin;
+                
                 cell_descriptions[i] = rec.get_cell_description(gid);
             }
-
+            
             cell_groups_[i] = cell_group_factory(
                     group.kind, group.begin, cell_descriptions, domain_.backend());
             PL(2);
@@ -62,6 +62,8 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
     // cell group for the first time step.
     current_events().resize(num_groups());
     future_events().resize(num_groups());
+    
+    std::cout << "Model constructed\n";
 }
 
 void model::reset() {
@@ -100,11 +102,9 @@ time_type model::run(time_type tfinal, time_type dt) {
             0u, cell_groups_.size(),
              [&](unsigned i) {
                 auto &group = cell_groups_[i];
-
                 PE("stepping","events");
                 group->enqueue_events(current_events()[i]);
                 PL();
-
                 PE("cells");
                 group->advance(tuntil, dt);
                  PL();

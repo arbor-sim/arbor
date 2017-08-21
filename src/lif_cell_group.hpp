@@ -25,10 +25,10 @@ public:
         cells_.reserve(cells.size());
         lambda_.reserve(cells.size());
 
-        generator_.resize(cells_.size());
-        next_poiss_time_.resize(cells_.size());
+        generator_.resize(cells.size());
+        next_poiss_time_.resize(cells.size());
 
-        cell_events_.resize(cells_.size());
+        cell_events_.resize(cells.size());
         last_time_updated_.resize(cells.size());
 
         // Cast each cell to lif_cell_description.
@@ -36,16 +36,18 @@ public:
             cells_.push_back(util::any_cast<lif_cell_description>(cell));
         }
 
+        //std::cout << "cells_.size() = " << cells_.size() << "\n";
+        
         // Initialize variables for the external Poisson input.
         for (auto lid : util::make_span(0, cells_.size())) {
             EXPECTS(cells_[lid].n_poiss >= 0);
             EXPECTS(cells_[lid].w_poiss >= 0);
             EXPECTS(cells_[lid].d_poiss >= 0);
             EXPECTS(cells_[lid].rate >= 0);
-            lambda_.push_back(1.0/(cells_[lid].rate * cells_[lid].n_poiss));
-
+            
             if (cells_[lid].n_poiss > 0) {
-                generator_[lid].seed(3521 + gid_base_ + lid);
+                lambda_.push_back(1.0/(cells_[lid].rate * cells_[lid].n_poiss));
+                generator_[lid].seed(1000 + first_gid + lid);
                 next_poiss_time_[lid] = exp_dist_(generator_[lid]) * lambda_[lid];
             }
         }
