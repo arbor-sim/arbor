@@ -25,6 +25,7 @@ if(NOT EXISTS "${rtdtheme_src_dir}/.git")
 
 endif()
 
+# a static path is required to avoid warning messages from sphinx-build
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/static")
 
 # configure target for the sphinx-generated html docs
@@ -49,10 +50,12 @@ else()
         COMMAND
             echo "Error: Sphinx must be installed to build documentation."
         COMMAND
-            exit 1
+            exit 1  # return error code to let CMake know that the build proccess should fail
         COMMENT
             "Generating Sphinx documentation")
 endif()
 
 # remove generated documentation when make clean is run
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${DOCS_BUILD_DIR}")
+
+unset(git_failed)
