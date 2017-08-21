@@ -1,0 +1,94 @@
+WITHOUT OPTIMISATION
+
+
+NMC_NUM_THREADS=1 srun -n 1 -c 1 --hint=nomultithread ../../build/miniapp/brunel/brunel_miniapp.exe -n 10000 -m 2500 -e 10000 -p 0.001 -w 1.2 -d 1 -g 0.5 -r 5 -t 1000 -s 1 -G 50
+
+====================
+  starting miniapp
+  - CThread Pool threading support
+  - communication policy: MPI (1)
+  - gpu support: off
+====================
+
+ ----------------------------------------------------
+|                      profiler                      |
+ ----------------------------------------------------
+wall time             89.196 s
+threads                    1
+thread efficiency      94.32 %
+
+total                        89.196     100.0
+  stepping                   84.081      94.3
+    cells                    42.267      47.4
+      lif                    35.165      39.4
+      pps                     4.774       5.4
+      other                   2.329       2.6
+    communication            30.912      34.7
+      events                 29.962      33.6
+      exchange                0.949       1.1
+        MPI                   0.118       0.1
+          Allgatherv-partition     0.115       0.1
+        other                 0.832       0.9
+    events                    6.090       6.8
+    other                     4.811       5.4
+  other                       5.116       5.7
+
+                       local    global
+throughput            252253    252253
+
+
+there were 52095045 spikes
+
+---- meters ------------------------------------------------------------
+                             time (s)     memory (MB)
+------------------------------------------------------------------------
+setup                          0.0002          0.0001
+model-init                     0.1704         67.0200
+model-simulate                89.0221         32.8052
+
+
+
+WITH OPTIMISATION
+
+
+
+NMC_NUM_THREADS=1 srun -n 1 -c 1 --hint=nomultithread ../../build/miniapp/brunel/brunel_miniapp.exe -n 10000 -m 2500 -e 10000 -p 0.001 -w 1.2 -d 1 -g 0.5 -r 5 -t 1000 -s 1 -G 50 -o
+
+====================
+  starting miniapp
+  - CThread Pool threading support
+  - communication policy: MPI (1)
+  - gpu support: off
+====================
+
+
+ ----------------------------------------------------
+|                      profiler                      |
+ ----------------------------------------------------
+wall time             54.098 s
+threads                    1
+thread efficiency      99.47 %
+
+total                        54.098     100.0
+  stepping                   53.809      99.5
+    cells                    51.235      94.7
+      lif                    51.161      94.6
+      other                   0.074       0.1
+    communication             2.166       4.0
+      events                  2.128       3.9
+    events                    0.276       0.5
+    other                     0.132       0.2
+  other                       0.289       0.5
+
+                       local    global
+throughput            231062    231062
+
+
+there were 2103204 spikes
+
+---- meters ------------------------------------------------------------
+                             time (s)     memory (MB)
+------------------------------------------------------------------------
+setup                          0.0003          0.0001
+model-init                     0.1261         70.5619
+model-simulate                53.9682         26.7333
