@@ -48,6 +48,8 @@ else()
     add_custom_target( ${DOCS_TARGET_NAME}
         COMMAND
             echo "Error: Sphinx must be installed to build documentation."
+        COMMAND
+            exit 1
         COMMENT
             "Generating Sphinx documentation")
 endif()
