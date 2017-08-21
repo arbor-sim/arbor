@@ -37,7 +37,7 @@ set(DOCS_TARGET_NAME docs)
 if (SPHINX_FOUND)
     add_custom_target( ${DOCS_TARGET_NAME}
         COMMAND
-            ${DOCS_EXECUTABLE}
+            ${SPHINX_EXECUTABLE}
             -b html
             -d "${DOCS_DOC_TREE_DIR}"
             -q # Quiet: no output other than errors and warnings.
