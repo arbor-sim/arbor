@@ -2,5 +2,5 @@
 	path = tests/ubench/google-benchmark
 	url = https://github.com/google/benchmark
 [submodule "docs/rtd_theme"]
-	path = docs/rtd_theme
+	path = doc/rtd_theme
 	url = https://github.com/rtfd/sphinx_rtd_theme.git
