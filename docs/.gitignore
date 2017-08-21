@@ -1,2 +1,5 @@
+# exclude working directories
+
 build
 rtd_theme
+static
