@@ -33,16 +33,24 @@ find_package(Sphinx)
 set(DOCS_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/html")
 set(DOCS_DOC_TREE_DIR "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
 set(DOCS_TARGET_NAME docs)
-add_custom_target( ${DOCS_TARGET_NAME}
-    COMMAND
-        ${DOCS_EXECUTABLE}
-        -b html
-        -d "${DOCS_DOC_TREE_DIR}"
-        -q # Quiet: no output other than errors and warnings.
-        "${CMAKE_CURRENT_SOURCE_DIR}" # Source
-        "${DOCS_BUILD_DIR}" # Output
-    COMMENT
-        "Generating Sphinx documentation")
+if (SPHINX_FOUND)
+    add_custom_target( ${DOCS_TARGET_NAME}
+        COMMAND
+            ${DOCS_EXECUTABLE}
+            -b html
+            -d "${DOCS_DOC_TREE_DIR}"
+            -q # Quiet: no output other than errors and warnings.
+            "${CMAKE_CURRENT_SOURCE_DIR}" # Source
+            "${DOCS_BUILD_DIR}" # Output
+        COMMENT
+            "Generating Sphinx documentation")
+else()
+    add_custom_target( ${DOCS_TARGET_NAME}
+        COMMAND
+            echo "Error: Sphinx must be installed to build documentation."
+        COMMENT
+            "Generating Sphinx documentation")
+endif()
 
 # remove generated documentation when make clean is run
 set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${DOCS_BUILD_DIR}")
