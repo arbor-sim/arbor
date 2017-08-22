@@ -76,13 +76,11 @@ do
         setup=$(echo $output | awk '/setup/ {print $2}')
         model_init=$(echo $output | awk '/model-init/ {print $2}')
         model_simulate=$(echo $output | awk '/model-simulate/ {print $2}')
-
         echo $n_core" "$setup" "$model_init" "$model_simulate
 
         # Output n_core and the duration to a file.
         echo $n_core" "$setup" "$model_init" "$model_simulate >> $file
     done
-
     prop=$(echo "$prop/10.0" | bc -l)
 done
 

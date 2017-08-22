@@ -107,7 +107,7 @@ time_type model::run(time_type tfinal, time_type dt) {
                 PL();
                 PE("cells");
                 group->advance(tuntil, dt);
-                 PL();
+                PL();
                 PE("events");
                 current_spikes().insert(group->spikes());
                 group->clear_spikes();

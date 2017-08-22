@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <json/json.hpp>
+#include <json/json.hpp>
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
@@ -38,7 +39,6 @@ using communicator_type = communication::communicator<communication::global_poli
 // We exclude gid because we don't want self-loops.
 std::vector<int> sample_subset(int gid, int start, int end, int m) {
     std::set<int> s;
-
     std::mt19937 gen(gid + 42);
     std::uniform_int_distribution<int> dis(start, end - 1);
     while (s.size() < m) {
@@ -47,7 +47,6 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
             s.insert(val);
         }
     }
-
     return {s.begin(), s.end()};
 }
 
@@ -88,7 +87,7 @@ public:
             return ncells_exc_ + ncells_inh_ + ncells_ext_;
         }
     }
-
+  
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         if (gid < ncells_exc_ + ncells_inh_) {
             return cell_kind::lif_neuron;
@@ -111,7 +110,6 @@ public:
             conn.dest = {gid, 0};
             conn.weight = weight_exc_;
             conn.delay = delay_;
-
             connections.push_back(conn);
         }
 
@@ -122,7 +120,6 @@ public:
             conn.dest = {gid, 0};
             conn.weight = weight_inh_;
             conn.delay = delay_;
-
             connections.push_back(conn);
         }
 
@@ -160,12 +157,11 @@ public:
                 cell.d_poiss = delay_;
                 cell.rate = rate_;
             }
-
             return cell;
         }
         return pss_cell_description(rate_);
     }
-
+  
     cell_count_info get_cell_count_info(cell_gid_type) const override {
         return {1u, 1u, 0u};
     }
@@ -214,7 +210,6 @@ private:
 
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
-
     try {
         nest::mc::util::meter_manager meters;
         meters.start();
@@ -278,7 +273,6 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
-
                 m.set_local_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
@@ -287,7 +281,6 @@ int main(int argc, char** argv) {
             }
             else if(communication::global_policy::id()==0) {
                 file_exporter = register_exporter(options);
-
                 m.set_global_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
@@ -295,7 +288,6 @@ int main(int argc, char** argv) {
                 );
             }
         }
-
         meters.checkpoint("model-init");
 
         // run model
