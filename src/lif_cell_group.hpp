@@ -13,7 +13,6 @@ namespace mc {
 
 class lif_cell_group: public cell_group {
 public:
-
     using value_type = double;
 
     lif_cell_group() = default;
@@ -42,13 +41,14 @@ public:
             EXPECTS(cells_[lid].d_poiss >= 0);
             EXPECTS(cells_[lid].rate >= 0);
 
-            // If cell receives some external Poisson input then initialize the corresponding variables.
+            // If a cell receives some external Poisson input then initialize the corresponding variables.
             if (cells_[lid].n_poiss > 0) {
                 lambda_.push_back(1.0/(cells_[lid].rate * cells_[lid].n_poiss));
                 generator_[lid].seed(1000 + first_gid + lid);
                 next_poiss_time_[lid] = exp_dist_(generator_[lid]) * lambda_[lid];
             }
         }
+    }
 
     cell_kind get_cell_kind() const override {
         return cell_kind::lif_neuron;
@@ -105,7 +105,6 @@ public:
 
         for (size_t lid = 0; lid < cells_.size(); ++lid) {
             if (cells_[lid].n_poiss > 0) {
-                // Generate Poisson events until tfinal is reached.
                 while (next_poiss_time_[lid] < tfinal) {
                     // Generate a Poisson event.
                     postsynaptic_spike_event poiss_event = {{cell_gid_type(lid) + gid_base_, 0}, next_poiss_time_[lid] + cells_[lid].d_poiss, cells_[lid].w_poiss};

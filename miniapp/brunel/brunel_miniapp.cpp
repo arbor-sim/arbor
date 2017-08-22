@@ -25,7 +25,6 @@
 #include <util/ioutil.hpp>
 #include <util/nop.hpp>
 #include <vector>
-
 #include "io.hpp"
 
 using namespace nest::mc;
