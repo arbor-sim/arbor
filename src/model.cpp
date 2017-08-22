@@ -17,18 +17,18 @@ namespace mc {
 model::model(const recipe& rec, const domain_decomposition& decomp):
     communicator_(rec, decomp)
 {
-    for (auto i: util::make_span(0, decomp.num_local_groups())) {
-        for (auto gid: decomp.get_group(i).gids) {
+    for (auto i: util::make_span(0, decomp.groups.size())) {
+        for (auto gid: decomp.groups[i].gids) {
             gid_groups_[gid] = i;
         }
     }
 
     // Generate the cell groups in parallel, with one task per cell group.
-    cell_groups_.resize(decomp.num_local_groups());
+    cell_groups_.resize(decomp.groups.size());
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
             PE("setup", "cells");
-            cell_groups_[i] = cell_group_factory(rec, decomp.get_group(i));
+            cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
 

@@ -1,8 +1,9 @@
 #pragma once
 
+#include <functional>
 #include <type_traits>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include <backends.hpp>
 #include <common_types.hpp>
@@ -23,44 +24,54 @@ inline bool has_gpu_backend(cell_kind k) {
     return false;
 }
 
-/// Utility type for meta data for a local cell group.
+/// Meta data for a local cell group.
 struct group_description {
+    /// The kind of cell in the group. All cells in a cell_group have the same type.
     const cell_kind kind;
+
+    /// The gids of the cells in the cell_group, sorted in ascending order.
     const std::vector<cell_gid_type> gids;
+
+    /// The back end on which the cell_group is to run.
     const backend_kind backend;
 
     group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
         kind(k), gids(std::move(g)), backend(b)
-    {}
+    {
+        EXPECTS(std::is_sorted(gids.begin(), gids.end()));
+    }
 };
 
+/// Meta data that describes a domain decomposition.
+/// A domain_decomposition type is responsible solely for describing the
+/// distribution of cells across cell_groups and domains.
+/// A load balancing algorithm is responsible for generating the
+/// domain_decomposition, e.g. nest::mc::partitioned_load_balancer().
 struct domain_decomposition {
-    domain_decomposition(int num_dom, int dom_id,
-                         cell_size_type n_local, cell_size_type n_global,
-                         std::vector<group_description> grps):
-        num_domains(num_dom),
-        domain_id(dom_id),
-        num_local_cells(n_local),
-        num_global_cells(n_global),
-        groups(std::move(grps))
-    {}
-
-    /// Return the domain id of cell with gid
-    int gid_domain(cell_gid_type gid) const {
-        EXPECTS(gid<num_global_cells_);
-        return gid_part_.index(gid);
-    }
-
     /// Tests whether a gid is on the local domain.
     bool is_local_gid(cell_gid_type gid) const {
         return gid_domain(gid)==domain_id;
     }
 
-    const int num_domains;
-    const int domain_id;
-    const cell_size_type num_local_cells;
-    const cell_size_type num_global_cells;
-    const std::vector<group_description> groups;
+    /// Return the domain id of cell with gid.
+    /// Supplied by the load balancing algorithm that generates the domain
+    /// decomposition.
+    std::function<int(cell_gid_type)> gid_domain;
+
+    /// Number of distrubuted domains
+    int num_domains;
+
+    /// The index of the local domain
+    int domain_id;
+
+    /// Total number of cells in the local domain
+    cell_size_type num_local_cells;
+
+    /// Total number of cells in the global model (sum over all domains)
+    cell_size_type num_global_cells;
+
+    /// Descriptions of the cell groups on the local domain
+    std::vector<group_description> groups;
 };
 
 } // namespace mc

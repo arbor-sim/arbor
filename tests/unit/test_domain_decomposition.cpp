@@ -3,6 +3,7 @@
 #include <backends.hpp>
 #include <domain_decomposition.hpp>
 #include <hardware/node_info.hpp>
+#include <load_balance.hpp>
 
 using namespace nest::mc;
 
@@ -72,14 +73,6 @@ namespace {
     };
 }
 
-//  domain_decomposition interface:
-//      int gid_domain(cell_gid_type gid)
-//      cell_size_type num_global_cells()
-//      cell_size_type num_local_cells()
-//      cell_size_type num_local_groups()
-//      const group_description& get_group(cell_size_type i)
-//      bool is_local_gid(cell_gid_type i)
-
 TEST(domain_decomposition, homogenous_population)
 {
     {   // Test on a node with 1 cpu core and no gpus.
@@ -89,11 +82,11 @@ TEST(domain_decomposition, homogenous_population)
         hw::node_info nd(1, 0);
 
         unsigned num_cells = 10;
-        domain_decomposition D(homo_recipe(num_cells), nd);
+        const auto D = partition_load_balance(homo_recipe(num_cells), nd);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
-        EXPECT_EQ(D.num_local_groups(), num_cells);
+        EXPECT_EQ(D.num_global_cells, num_cells);
+        EXPECT_EQ(D.num_local_cells, num_cells);
+        EXPECT_EQ(D.groups.size(), num_cells);
 
         auto gids = util::make_span(0, num_cells);
         for (auto gid: gids) {
@@ -105,7 +98,7 @@ TEST(domain_decomposition, homogenous_population)
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
         for (auto i: gids) {
-            auto& grp = D.get_group(i);
+            auto& grp = D.groups[i];
             EXPECT_EQ(grp.gids.size(), 1u);
             EXPECT_EQ(grp.gids.front(), unsigned(i));
             EXPECT_EQ(grp.backend, backend_kind::multicore);
@@ -117,11 +110,11 @@ TEST(domain_decomposition, homogenous_population)
         hw::node_info nd(1, 1);
 
         unsigned num_cells = 10;
-        domain_decomposition D(homo_recipe(num_cells), nd);
+        const auto D = partition_load_balance(homo_recipe(num_cells), nd);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
-        EXPECT_EQ(D.num_local_groups(), 1u);
+        EXPECT_EQ(D.num_global_cells, num_cells);
+        EXPECT_EQ(D.num_local_cells, num_cells);
+        EXPECT_EQ(D.groups.size(), 1u);
 
         auto gids = util::make_span(0, num_cells);
         for (auto gid: gids) {
@@ -132,7 +125,7 @@ TEST(domain_decomposition, homogenous_population)
 
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
-        auto grp = D.get_group(0u);
+        auto grp = D.groups[0u];
 
         EXPECT_EQ(grp.gids.size(), num_cells);
         EXPECT_EQ(grp.gids.front(), 0u);
@@ -152,11 +145,11 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        domain_decomposition D(R, nd);
+        const auto D = partition_load_balance(R, nd);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
-        EXPECT_EQ(D.num_local_groups(), num_cells);
+        EXPECT_EQ(D.num_global_cells, num_cells);
+        EXPECT_EQ(D.num_local_cells, num_cells);
+        EXPECT_EQ(D.groups.size(), num_cells);
 
         auto gids = util::make_span(0, num_cells);
         for (auto gid: gids) {
@@ -170,7 +163,7 @@ TEST(domain_decomposition, heterogenous_population)
         auto grps = util::make_span(0, num_cells);
         std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
         for (auto i: grps) {
-            auto& grp = D.get_group(i);
+            auto& grp = D.groups[i];
             EXPECT_EQ(grp.gids.size(), 1u);
             auto k = grp.kind;
             kind_lists[k].insert(grp.gids.front());
@@ -192,19 +185,19 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        domain_decomposition D(R, nd);
+        const auto D = partition_load_balance(R, nd);
 
-        EXPECT_EQ(D.num_global_cells(), num_cells);
-        EXPECT_EQ(D.num_local_cells(), num_cells);
+        EXPECT_EQ(D.num_global_cells, num_cells);
+        EXPECT_EQ(D.num_local_cells, num_cells);
         // one cell group with num_cells/2 on gpu, and num_cells/2 groups on cpu
         auto expected_groups = num_cells/2+1;
-        EXPECT_EQ(D.num_local_groups(), expected_groups);
+        EXPECT_EQ(D.groups.size(), expected_groups);
 
         auto grps = util::make_span(0, expected_groups);
         unsigned ncells = 0;
         // iterate over each group and test its properties
         for (auto i: grps) {
-            auto& grp = D.get_group(i);
+            auto& grp = D.groups[i];
             auto k = grp.kind;
             if (k==cell_kind::cable1d_neuron) {
                 EXPECT_EQ(grp.backend, backend_kind::gpu);

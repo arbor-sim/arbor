@@ -3,19 +3,20 @@ set(BASE_SOURCES
     common_types_io.cpp
     cell.cpp
     event_binner.cpp
-    model.cpp
-    morphology.cpp
-    parameter_list.cpp
-    profiling/memory_meter.cpp
-    profiling/meter_manager.cpp
-    profiling/power_meter.cpp
-    profiling/profiler.cpp
-    swcio.cpp
     hardware/affinity.cpp
     hardware/gpu.cpp
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
+    model.cpp
+    morphology.cpp
+    parameter_list.cpp
+    partition_load_balance.cpp
+    profiling/memory_meter.cpp
+    profiling/meter_manager.cpp
+    profiling/power_meter.cpp
+    profiling/profiler.cpp
+    swcio.cpp
     threading/threading.cpp
     util/debug.cpp
     util/hostname.cpp

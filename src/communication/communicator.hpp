@@ -51,7 +51,7 @@ public:
     explicit communicator(const recipe& rec, const domain_decomposition& dom_dec) {
         using util::make_span;
         num_domains_ = comms_.size();
-        num_local_groups_ = dom_dec.num_local_groups();
+        num_local_groups_ = dom_dec.groups.size();
 
         // For caching information about each cell
         struct gid_info {
@@ -72,13 +72,13 @@ public:
         // Also the count of presynaptic sources from each domain
         //   -> src_counts: array with one entry for each domain
         std::vector<gid_info> gid_infos;
-        gid_infos.reserve(dom_dec.num_local_cells());
+        gid_infos.reserve(dom_dec.num_local_cells);
 
         cell_local_size_type n_cons = 0;
         std::vector<unsigned> src_domains;
         std::vector<cell_size_type> src_counts(num_domains_);
         for (auto i: make_span(0, num_local_groups_)) {
-            const auto& group = dom_dec.get_group(i);
+            const auto& group = dom_dec.groups[i];
             for (auto gid: group.gids) {
                 gid_info info(gid, i, rec.connections_on(gid));
                 n_cons += info.conns.size();

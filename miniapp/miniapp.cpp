@@ -15,6 +15,7 @@
 #include <hardware/gpu.hpp>
 #include <hardware/node_info.hpp>
 #include <io/exporter_spike_file.hpp>
+#include <load_balance.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
@@ -92,7 +93,7 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        auto decomp = domain_decomposition(*recipe, nd);
+        auto decomp = partition_load_balance(*recipe, nd);
 
         model m(*recipe, decomp);
 

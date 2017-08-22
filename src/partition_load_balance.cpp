@@ -6,11 +6,23 @@
 namespace nest {
 namespace mc {
 
-domain_decomposition partition_load_balancer(const recipe& rec, hw::node_info nd) {
+domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd) {
+    struct partition_gid_domain {
+        partition_gid_domain(std::vector<cell_gid_type> divs):
+            gid_divisions(std::move(divs))
+        {}
+
+        int operator()(cell_gid_type gid) const {
+            auto gid_part = util::partition_view(gid_divisions);
+            return gid_part.index(gid);
+        }
+
+        const std::vector<cell_gid_type> gid_divisions;
+    };
+
     using kind_type = std::underlying_type<cell_kind>::type;
     using util::make_span;
 
-    // todo: these need to be added to the domain_decomposition
     unsigned num_domains = communication::global_policy::size();
     unsigned domain_id = communication::global_policy::id();
     auto num_global_cells = rec.num_cells();
@@ -68,8 +80,17 @@ domain_decomposition partition_load_balancer(const recipe& rec, hw::node_info nd
     auto rng = gid_part[domain_id];
     cell_size_type num_local_cells = rng.second - rng.first;
 
-    return domain_decomposition(
-        num_domains, domain_id, num_local_cells, num_global_cells, std::move(groups));
+    domain_decomposition d;
+    d.num_domains = num_domains;
+    d.domain_id = domain_id;
+    d.num_local_cells = num_local_cells;
+    d.num_global_cells = num_global_cells;
+    d.groups = std::move(groups);
+    d.gid_domain = partition_gid_domain(std::move(gid_divisions));
+
+    return d;
+
+    //return domain_decomposition(num_domains, domain_id, num_local_cells, num_global_cells, std::move(groups));
 }
 
 } // namespace mc

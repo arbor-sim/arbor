@@ -4,6 +4,7 @@
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
 #include <hardware/node_info.hpp>
+#include <load_balance.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -34,7 +35,7 @@ void run_kinetic_dt(
     runner.load_reference_data(ref_file);
 
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
-    domain_decomposition decomp(singleton_recipe{c}, nd);
+    auto decomp = partition_load_balance(singleton_recipe{c}, nd);
     model model(singleton_recipe{c}, decomp);
 
     auto exclude = stimulus_ends(c);

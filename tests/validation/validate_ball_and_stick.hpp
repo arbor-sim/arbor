@@ -3,6 +3,7 @@
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
+#include <load_balance.hpp>
 #include <hardware/node_info.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
@@ -51,7 +52,7 @@ void run_ncomp_convergence_test(
             }
         }
         hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
-        domain_decomposition decomp(singleton_recipe{c}, nd);
+        auto decomp = partition_load_balance(singleton_recipe{c}, nd);
         model m(singleton_recipe{c}, decomp);
 
         runner.run(m, ncomp, t_end, dt, exclude);
