@@ -53,7 +53,7 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
 }
 
 /*
- Brunel networks consists of nexc excitatory LIF neurons, ninh inhibitory LIF neurons and
+ Brunel network consists of nexc excitatory LIF neurons, ninh inhibitory LIF neurons and
  next Poisson neurons. Each neuron in the network receives in_degree_prop * nexc excitatory connections
  chosen randomly, in_degree_prop * ninh inhibitory connections and in_degree_prop * next Poisson connections.
  All the connections have the same delay. The strenght of excitatory and poisson connections is given by
@@ -99,8 +99,8 @@ public:
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+        // Poisson neurons don't receive any incoming connections.
         if (gid >= ncells_exc_ + ncells_inh_) {
-            //std::cout << "no connections on poisson" << std::endl;
             return {};
         }
 
@@ -127,6 +127,8 @@ public:
             connections.push_back(conn);
         }
 
+        // If not optimised, then Poisson population is explicitly created and thus
+        // we have to add the incoming connections from that population.
         if (!optimised_) {
             // Add incoming external Poisson connections.
             for (auto i: sample_subset(gid, ncells_exc_ + ncells_inh_, ncells_exc_ + ncells_inh_ + ncells_ext_, in_degree_ext_)) {
@@ -153,7 +155,7 @@ public:
             cell.V_reset = 0;
             cell.t_ref = 2;
 
-            if (gid < ncells_exc_ && optimised_) {
+            if (optimised_) {
                 cell.n_poiss = in_degree_ext_;
                 cell.w_poiss = weight_ext_;
                 cell.d_poiss = delay_;
@@ -252,6 +254,9 @@ int main(int argc, char** argv) {
         // The number of cells in a single cell group.
         cell_size_type group_size = options.group_size;
 
+        // If true, external Poisson input is integrated into LIF neurons
+        // in order to eliminate the unnecessary communication of Poisson spikes 
+        // Otherwise, the Poisson population exists as a separate entity.
         bool optimised = options.optimise;
 
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_rate, optimised);
