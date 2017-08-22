@@ -1,5 +1,5 @@
 #pragma once
-
+#include <threading/timer.hpp>
 #include <cell_group.hpp>
 #include <event_queue.hpp>
 #include <lif_cell_description.hpp>
@@ -81,6 +81,7 @@ public:
     void advance(time_type tfinal, time_type dt) override {
         PE("lif");
         // Distribute incoming events to individual cells.
+        auto tstart = threading::timer::tic();
         while (!events_.empty()) {
             // Take event from the queue and pop it.
             auto ev = events_.front();
@@ -103,6 +104,7 @@ public:
             cell_events_[lid].push(ev);
         }
 
+        auto tevents = threading::timer::tic();
         for (size_t lid = 0; lid < cells_.size(); ++lid) {
             if (cells_[lid].n_poiss > 0) {
                 while (next_poiss_time_[lid] < tfinal) {
@@ -117,6 +119,8 @@ public:
             advance_cell(tfinal, dt, lid);
         }
         PL();
+        auto tstop = threading::timer::tic();
+        std::cout << "Advance[" << gid_base_ << "] = " << threading::timer::difference(tstart, tevents) << " .. " << threading::timer::difference(tevents, tstop) << "\n";
     }
 
     void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {

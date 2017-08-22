@@ -1,12 +1,13 @@
 #include <model.hpp>
 
 #include <vector>
-
+#include <iomanip>
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
 #include <recipe.hpp>
+#include <threading/timer.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
@@ -14,17 +15,21 @@
 namespace nest {
 namespace mc {
 
+double ex_time;
+double adv_time;
+
 model::model(const recipe& rec, const domain_decomposition& decomp):
     domain_(decomp)
 {
     // set up communicator based on partition
     communicator_ = communicator_type(domain_.gid_group_partition());
+
     // generate the cell groups in parallel, with one task per cell group
     cell_groups_.resize(domain_.num_local_groups());
 
     // thread safe vector for constructing the list of probes in parallel
     threading::parallel_vector<probe_record> probe_tmp;
-    
+
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
             PE("setup", "cells");
@@ -34,10 +39,9 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
 
             for (auto gid: util::make_span(group.begin, group.end)) {
                 auto i = gid-group.begin;
-                
                 cell_descriptions[i] = rec.get_cell_description(gid);
             }
-            
+
             cell_groups_[i] = cell_group_factory(
                     group.kind, group.begin, cell_descriptions, domain_.backend());
             PL(2);
@@ -62,8 +66,6 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
     // cell group for the first time step.
     current_events().resize(num_groups());
     future_events().resize(num_groups());
-    
-    std::cout << "Model constructed\n";
 }
 
 void model::reset() {
@@ -95,6 +97,8 @@ time_type model::run(time_type tfinal, time_type dt) {
     // to overlap communication and computation.
     time_type t_interval = communicator_.min_delay()/2;
     time_type tuntil;
+    auto tstart = threading::timer::tic();
+    double t_cell_adv = 0;
 
     // task that updates cell state in parallel.
     auto update_cells = [&] () {
@@ -102,12 +106,19 @@ time_type model::run(time_type tfinal, time_type dt) {
             0u, cell_groups_.size(),
              [&](unsigned i) {
                 auto &group = cell_groups_[i];
+
                 PE("stepping","events");
                 group->enqueue_events(current_events()[i]);
                 PL();
+
                 PE("cells");
+                auto t1 = threading::timer::tic();
                 group->advance(tuntil, dt);
+                auto t2 = threading::timer::tic();
                 PL();
+
+                t_cell_adv += threading::timer::difference(t1, t2);
+
                 PE("events");
                 current_spikes().insert(group->spikes());
                 group->clear_spikes();
@@ -120,6 +131,8 @@ time_type model::run(time_type tfinal, time_type dt) {
     // events that must be delivered at the start of the next
     // integration period at the latest.
     auto exchange = [&] () {
+        auto tstart = threading::timer::tic();
+
         PE("stepping", "communication");
 
         PE("exchange");
@@ -137,7 +150,12 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL();
 
         PL(2);
+
+        auto tstop = threading::timer::tic();
+        ex_time += threading::timer::difference(tstart, tstop);
     };
+
+    util::profilers_restart();
 
     while (t_<tfinal) {
         tuntil = std::min(t_+t_interval, tfinal);
@@ -159,11 +177,22 @@ time_type model::run(time_type tfinal, time_type dt) {
         t_ = tuntil;
     }
 
+    util::profilers_stop();
+
     // Run the exchange one last time to ensure that all spikes are output
     // to file.
     event_queues_.exchange();
     local_spikes_.exchange();
     exchange();
+
+    auto tstop = threading::timer::tic();
+    adv_time += threading::timer::difference(tstart, tstop);
+
+    std::cout << "==================== times ====================\n";
+    std::cout << std::setprecision(4) << std::fixed << "exchange:           " << ex_time << "        |        " << ex_time / adv_time * 100 << "%\n";
+    std::cout << std::setprecision(4) << std::fixed << "cell advance:       " << t_cell_adv << "        |       " <<  t_cell_adv / adv_time * 100 << "%\n";
+    std::cout << std::setprecision(4) << std::fixed << "sim time:           " << adv_time << "\n";
+    std::cout << "===============================================\n";
 
     return t_;
 }
@@ -210,6 +239,5 @@ void model::set_global_spike_callback(spike_export_function export_callback) {
 void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
 }
-
 } // namespace mc
 } // namespace nest
