@@ -4,6 +4,7 @@
 #include <cell_group.hpp>
 #include <fvm_multicell.hpp>
 #include <hardware/node_info.hpp>
+#include <load_balance.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
@@ -62,7 +63,7 @@ void run_synapse_test(
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
-        domain_decomposition decomp(singleton_recipe{c}, nd);
+        auto decomp = partition_load_balance(singleton_recipe{c}, nd);
         model m(singleton_recipe{c}, decomp);
         m.group(0).enqueue_events(synthetic_events);
 

@@ -9,6 +9,7 @@
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <hardware/node_info.hpp>
+#include <load_balance.hpp>
 #include <util/filter.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
@@ -296,8 +297,8 @@ namespace {
     // make a list of the gids on the local domain
     std::vector<cell_gid_type> get_gids(const domain_decomposition& D) {
         std::vector<cell_gid_type> gids;
-        for (auto i: util::make_span(0, D.num_local_groups())) {
-            util::append(gids, D.get_group(i).gids);
+        for (auto i: util::make_span(0, D.groups.size())) {
+            util::append(gids, D.groups[i].gids);
         }
         return gids;
     }
@@ -306,8 +307,8 @@ namespace {
     std::unordered_map<cell_gid_type, cell_gid_type>
     get_group_map(const domain_decomposition& D) {
         std::unordered_map<cell_gid_type, cell_gid_type> map;
-        for (auto i: util::make_span(0, D.num_local_groups())) {
-            for (auto gid: D.get_group(i).gids) {
+        for (auto i: util::make_span(0, D.groups.size())) {
+            for (auto gid: D.groups[i].gids) {
                 map[gid] = i;
             }
         }
@@ -344,7 +345,7 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
 
     // generate the events
     auto queues = C.make_event_queues(global_spikes);
-    if (queues.size() != D.num_local_groups()) { // one queue for each cell group
+    if (queues.size() != D.groups.size()) { // one queue for each cell group
         return ::testing::AssertionFailure()
             << "expect one event queue for each cell group";
     }
@@ -354,9 +355,9 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
     // that gid. If so, look up the event queue of the cell_group of gid, and
     // search for the expected event.
     for (auto gid: gids) {
-        auto src = source_of(gid, D.num_global_cells());
+        auto src = source_of(gid, D.num_global_cells);
         if (f(src)) {
-            auto expected = expected_event_ring(gid, D.num_global_cells());
+            auto expected = expected_event_ring(gid, D.num_global_cells);
             auto grp = group_map[gid];
             auto& q = queues[grp];
             if (std::find(q.begin(), q.end(), expected)==q.end()) {
@@ -391,7 +392,7 @@ TEST(communicator, ring)
     auto R = ring_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    auto D = domain_decomposition(R, hw::node_info());
+    const auto D = partition_load_balance(R, hw::node_info());
     auto C = communication::communicator<policy>(R, D);
 
     // every cell fires
@@ -421,7 +422,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     std::reverse(local_spikes.begin(), local_spikes.end());
 
     std::vector<cell_gid_type> spike_gids = assign_from(
-        filter(make_span(0, D.num_global_cells()), f));
+        filter(make_span(0, D.groups.size()), f));
 
     // gather the global set of spikes
     auto global_spikes = C.exchange(local_spikes);
@@ -433,7 +434,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
 
     // generate the events
     auto queues = C.make_event_queues(global_spikes);
-    if (queues.size() != D.num_local_groups()) { // one queue for each cell group
+    if (queues.size() != D.groups.size()) { // one queue for each cell group
         return ::testing::AssertionFailure()
             << "expect one event queue for each cell group";
     }
@@ -461,7 +462,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     int num_events = std::accumulate(queues.begin(), queues.end(), 0,
             [](int l, decltype(queues.front())& r){return l + r.size();});
 
-    int expected_events = D.num_global_cells()*spike_gids.size();
+    int expected_events = D.num_global_cells*spike_gids.size();
 
     EXPECT_EQ(expected_events, policy::sum(num_events));
     return ::testing::AssertionSuccess();
@@ -480,7 +481,7 @@ TEST(communicator, all2all)
     auto R = all2all_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    auto D = domain_decomposition(R, hw::node_info());
+    const auto D = partition_load_balance(R, hw::node_info());
     auto C = communication::communicator<policy>(R, D);
 
     // every cell fires
