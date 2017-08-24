@@ -1,0 +1,4 @@
+# exclude working directories
+
+build
+static
