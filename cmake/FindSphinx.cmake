@@ -1,3 +1,6 @@
+# based on a script from the llvm project:
+#   http://releases.llvm.org/4.0.0/LICENSE.TXT
+
 # CMake find_package() Module for Sphinx documentation generator
 # http://sphinx-doc.org/
 #
