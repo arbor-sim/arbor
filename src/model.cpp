@@ -1,11 +1,10 @@
-#include <model.hpp>
-
 #include <vector>
 
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
+#include <model.hpp>
 #include <recipe.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
@@ -31,11 +30,6 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
             cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
-
-    // Store probes.
-    for (const auto& c: cell_groups_) {
-        util::append(probes_, c->probes());
-    }
 
     // Allocate an empty queue buffer for each cell group
     // These must be set initially to ensure that a queue is available for each
@@ -148,17 +142,40 @@ time_type model::run(time_type tfinal, time_type dt) {
     return t_;
 }
 
-void model::attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom) {
-    // TODO: remove the gid_groups data structure completely when/if no longer needed
-    // for the probe interface.
-    auto it = gid_groups_.find(probe_id.gid);
-    if (it!=gid_groups_.end()) {
-        cell_groups_[it->second]->add_sampler(probe_id, f, tfrom);
+sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy) {
+    sampler_association_handle h;
+    {
+        std::lock_guard<std::mutex> lock(sah_mutex_);
+        h = sah_set_.acquire();
     }
+
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->add_sampler(h, probe_ids, sched, f, policy);
+        });
+
+    return h;
 }
 
-const std::vector<probe_record>& model::probes() const {
-    return probes_;
+void model::remove_sampler(sampler_association_handle h) {
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_sampler(h);
+        });
+
+    std::lock_guard<std::mutex> lock(sah_mutex_);
+    sah_set_.release(h);
+}
+
+void model::remove_all_samplers() {
+    std::lock_guard<std::mutex> lock(sah_mutex_);
+
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_all_samplers();
+        });
+
+    sah_set_.clear();
 }
 
 std::size_t model::num_spikes() const {

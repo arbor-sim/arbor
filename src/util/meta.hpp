@@ -123,6 +123,10 @@ template <typename T>
 using enable_if_move_assignable_t =
     enable_if_t<std::is_move_assignable<T>::value>;
 
+template <typename T>
+using enable_if_trivially_copyable_t =
+    enable_if_t<std::is_trivially_copyable<T>::value>;
+
 // Iterator class test
 // (might not be portable before C++17)
 

@@ -6,6 +6,8 @@
  */
 
 #include <iosfwd>
+#include <cstddef>
+#include <functional>
 #include <type_traits>
 
 #include <util/lexcmp_def.hpp>
@@ -53,6 +55,10 @@ DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 
 using time_type = float;
 
+// Extra contextual information associated with a probe.
+
+using probe_tag = int;
+
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
@@ -66,3 +72,16 @@ enum cell_kind {
 } // namespace nest
 
 std::ostream& operator<<(std::ostream& O, nest::mc::cell_member_type m);
+
+namespace std {
+    template <> struct hash<nest::mc::cell_member_type> {
+        std::size_t operator()(const nest::mc::cell_member_type& m) const {
+            using namespace nest::mc;
+            static_assert(sizeof(std::size_t)>sizeof(cell_gid_type), "invalid size assumptions for hash of cell_member_type");
+
+            std::size_t k = ((std::size_t)m.gid << (8*sizeof(cell_gid_type))) + m.index;
+            return std::hash<std::size_t>{}(k);
+        }
+    };
+}
+

@@ -2,6 +2,7 @@
 
 #include <cell_group.hpp>
 #include <dss_cell_description.hpp>
+#include <recipe.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
@@ -11,23 +12,20 @@ namespace mc {
 /// Cell_group to collect spike sources
 class dss_cell_group: public cell_group {
 public:
-    dss_cell_group(std::vector<cell_gid_type> gids,
-                   const std::vector<util::unique_any>& cell_descriptions):
+    dss_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
         gids_(std::move(gids))
     {
-        using util::make_span;
-        for (cell_gid_type i: make_span(0, cell_descriptions.size())) {
+        for (auto gid: gids_) {
+            auto desc = util::any_cast<dss_cell_description>(rec.get_cell_description(gid));
             // store spike times from description
-            auto times = util::any_cast<dss_cell_description>(cell_descriptions[i]).spike_times;
+            auto times = desc.spike_times;
             util::sort(times);
             spike_times_.push_back(std::move(times));
 
             // Take a reference to the first spike time
-            not_emit_it_.push_back(spike_times_[i].begin());
+            not_emit_it_.push_back(spike_times_.back().begin());
         }
     }
-
-    virtual ~dss_cell_group() = default;
 
     cell_kind get_cell_kind() const override {
         return cell_kind::data_spike_source;
@@ -45,8 +43,7 @@ public:
         clear_spikes();
     }
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override
-    {}
+    void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
     void advance(time_type tfinal, time_type dt) override {
         for (auto i: util::make_span(0, not_emit_it_.size())) {
@@ -78,13 +75,13 @@ public:
         spikes_.clear();
     }
 
-    std::vector<probe_record> probes() const override {
-        return probes_;
-    }
-
-    void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override {
+    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, schedule sched, sampler_function fn, sampling_policy policy) override {
         std::logic_error("The dss_cells do not support sampling of internal state!");
     }
+
+    void remove_sampler(sampler_association_handle h) override {}
+
+    void remove_all_samplers() override {}
 
 private:
     // Spikes that are generated.
@@ -92,8 +89,6 @@ private:
 
     // Map of local index to gid
     std::vector<cell_gid_type> gids_;
-
-    std::vector<probe_record> probes_;
 
     // The dss_cell is simple: Put all logic in the cellgroup cause accelerator support
     // is not expected. We need storage for the cell state

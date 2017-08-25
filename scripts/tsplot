@@ -57,6 +57,8 @@ def parse_clargs():
                    help='use colour COLOUR a base for series matching EXPR')
     P.add_argument('-o', '--output', metavar='FILE', dest='outfile',
                    help='save plot to file FILE')
+    P.add_argument('-l', '--list', action='store_true',
+                   help='list selected time-series')
     P.add_argument('--dpi', metavar='NUM', dest='dpi',
                    type=int,
                    help='set dpi for output image')
@@ -446,19 +448,28 @@ for filename in args.inputs:
         j = json.load(f)
         tss.extend(read_json_timeseries(j, axis, select))
 
-if args.trange:
+if args.list:
     for ts in tss:
-        ts.trestrict(args.trange)
+        print 'name:', ts.meta['name']
+        print 'label:', ts.meta['label']
+        for k in [x for x in sorted(ts.meta.keys()) if x not in ['name', 'label']]:
+            print k+':', ts.meta[k]
+        print
 
-if args.exclude:
-    for ts in tss:
-        ts.exclude_outliers(args.exclude)
+else:
+    if args.trange:
+        for ts in tss:
+            ts.trestrict(args.trange)
 
-groupby = args.groupby if args.groupby else []
-plots = gather_ts_plots(tss, groupby)
+    if args.exclude:
+        for ts in tss:
+            ts.exclude_outliers(args.exclude)
 
-if not args.outfile:
-    M.interactive(False)
+    groupby = args.groupby if args.groupby else []
+    plots = gather_ts_plots(tss, groupby)
 
-colours = args.colours if args.colours else []
-plot_plots(plots, axis=axis, colour_overrides=colours, save=args.outfile, dpi=args.dpi, scale=args.scale)
+    if not args.outfile:
+        M.interactive(False)
+
+    colours = args.colours if args.colours else []
+    plot_plots(plots, axis=axis, colour_overrides=colours, save=args.outfile, dpi=args.dpi, scale=args.scale)

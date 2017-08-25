@@ -10,7 +10,9 @@
 #include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
 
-#include "../test_common_cells.hpp"
+#include "../common_cells.hpp"
+#include "../simple_recipes.hpp"
+
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
@@ -24,19 +26,21 @@ void run_kinetic_dt(
 {
     using namespace nest::mc;
 
-    float sample_dt = .025f;
-    sampler_info samplers[] = {
-        {"soma.mid", {0u, 0u}, simple_sampler(sample_dt)}
-    };
+    float sample_dt = g_trace_io.sample_dt();
+
+    cable1d_recipe rec{c};
+    rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});
+    probe_label plabels[1] = {"soma.mid", {0u, 0u}};
 
     meta["sim"] = "nestmc";
     meta["backend_kind"] = to_string(backend);
-    convergence_test_runner<float> runner("dt", samplers, meta);
+
+    convergence_test_runner<float> runner("dt", plabels, meta);
     runner.load_reference_data(ref_file);
 
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
-    auto decomp = partition_load_balance(singleton_recipe{c}, nd);
-    model model(singleton_recipe{c}, decomp);
+    auto decomp = partition_load_balance(rec, nd);
+    model model(rec, decomp);
 
     auto exclude = stimulus_ends(c);
 
@@ -49,7 +53,7 @@ void run_kinetic_dt(
 
             model.reset();
             float dt = float(1./oo_dt);
-            runner.run(model, dt, t_end, dt, exclude);
+            runner.run(model, dt, sample_dt, t_end, dt, exclude);
         }
     }
 
@@ -64,7 +68,6 @@ void validate_kinetic_kin1(nest::mc::backend_kind backend) {
     // 20 µm diameter soma with single mechanism, current probe
     cell c;
     auto soma = c.add_soma(10);
-    c.add_probe({{0, 0.5}, probeKind::membrane_current});
     soma->add_mechanism(std::string("test_kin1"));
 
     nlohmann::json meta = {
@@ -82,7 +85,6 @@ void validate_kinetic_kinlva(nest::mc::backend_kind backend) {
     // 20 µm diameter soma with single mechanism, current probe
     cell c;
     auto soma = c.add_soma(10);
-    c.add_probe({{0, 0.5}, probeKind::membrane_voltage});
     c.add_stimulus({0,0.5}, {20., 130., -0.025});
     soma->add_mechanism(std::string("test_kinlva"));
 
