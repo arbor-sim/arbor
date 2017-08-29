@@ -10,9 +10,9 @@ addons:
         packages:
         - g++-5
 
-branches:
-    only:
-    - feature/travis
+#branches:
+#   only:
+#   - feature/travis
 
 
 before_install:
