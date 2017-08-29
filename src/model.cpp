@@ -14,10 +14,6 @@
 
 namespace nest {
 namespace mc {
-
-double ex_time;
-double adv_time;
-
 model::model(const recipe& rec, const domain_decomposition& decomp):
     domain_(decomp)
 {
@@ -97,8 +93,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     // to overlap communication and computation.
     time_type t_interval = communicator_.min_delay()/2;
     time_type tuntil;
-    auto tstart = threading::timer::tic();
-    double t_cell_adv = 0;
 
     // task that updates cell state in parallel.
     auto update_cells = [&] () {
@@ -112,12 +106,8 @@ time_type model::run(time_type tfinal, time_type dt) {
                 PL();
 
                 PE("cells");
-                auto t1 = threading::timer::tic();
                 group->advance(tuntil, dt);
-                auto t2 = threading::timer::tic();
                 PL();
-
-                t_cell_adv += threading::timer::difference(t1, t2);
 
                 PE("events");
                 current_spikes().insert(group->spikes());
@@ -131,8 +121,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     // events that must be delivered at the start of the next
     // integration period at the latest.
     auto exchange = [&] () {
-        auto tstart = threading::timer::tic();
-
         PE("stepping", "communication");
 
         PE("exchange");
@@ -150,9 +138,6 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL();
 
         PL(2);
-
-        auto tstop = threading::timer::tic();
-        ex_time += threading::timer::difference(tstart, tstop);
     };
 
     util::profilers_restart();
@@ -184,15 +169,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     event_queues_.exchange();
     local_spikes_.exchange();
     exchange();
-
-    auto tstop = threading::timer::tic();
-    adv_time += threading::timer::difference(tstart, tstop);
-
-    std::cout << "==================== times ====================\n";
-    std::cout << std::setprecision(4) << std::fixed << "exchange:           " << ex_time << "        |        " << ex_time / adv_time * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::fixed << "cell advance:       " << t_cell_adv << "        |       " <<  t_cell_adv / adv_time * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::fixed << "sim time:           " << adv_time << "\n";
-    std::cout << "===============================================\n";
 
     return t_;
 }

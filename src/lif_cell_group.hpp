@@ -45,7 +45,7 @@ namespace nest {
                     if (cells_[lid].n_poiss > 0) {
                         lambda_.push_back(1.0/(cells_[lid].rate * cells_[lid].n_poiss));
                         generator_[lid].seed(1000 + first_gid + lid);
-                        next_poiss_time_[lid] = exp_dist_(generator_[lid]) * lambda_[lid];
+                        sample_next_poisson(lid);
                     }
                 }
             }
@@ -81,7 +81,6 @@ namespace nest {
             void advance(time_type tfinal, time_type dt) override {
                 PE("lif");
                 // Distribute incoming events to individual cells.
-                auto tstart = threading::timer::tic();
                 while (!events_.empty()) {
                     // Put the event to the corresponding cell's queue.
                     auto ev = events_.front();
@@ -94,14 +93,11 @@ namespace nest {
                     cell_events_[lid].push(ev);
                 }
 
-                auto tevents = threading::timer::tic();
                 for (size_t lid = 0; lid < cells_.size(); ++lid) {
                     // Advance each cell independently.
                     advance_cell(tfinal, dt, lid);
                 }
                 PL();
-                auto tstop = threading::timer::tic();
-                std::cout << "Advance[" << gid_base_ << "] = " << threading::timer::difference(tstart, tevents) << " .. " << threading::timer::difference(tevents, tstop) << "\n";
             }
 
             void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
@@ -202,11 +198,14 @@ namespace nest {
 
             // Returns the time of the next poisson event for given neuron,
             // taking into accout the delay of poisson spikes,
-            // withtout sampling the new poisson event time.
+            // without sampling a new Poisson event time.
             time_type next_poisson_event(cell_gid_type lid) {
                 return next_poiss_time_[lid] + cells_[lid].d_poiss;
             }
 
+            // Returns the next most recent event that is yet to be processed.
+            // It can be either Poisson event or the queue event.
+            // Only events that happened before tfinal are considered.
             util::optional<postsynaptic_spike_event> next_event(cell_gid_type lid, time_type tfinal) {
                 auto t_poiss = next_poisson_event(lid);
 
@@ -221,6 +220,7 @@ namespace nest {
                         return ev;
                     }
                     // t_poiss < {t_queue, tfinal} => return t_poiss
+                    sample_next_poisson(lid);
                     return postsynaptic_spike_event{{cell_lid_type(gid_base_ + lid), 0}, t_poiss, cells_[lid].w_poiss};
                 }
 
