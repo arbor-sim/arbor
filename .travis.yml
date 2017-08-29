@@ -2,7 +2,7 @@ language: cpp
 sudo: false
 os: linux
 dist: trusty
-compiler: g++
+compiler: gcc
 
 addons:
   apt:
@@ -11,7 +11,7 @@ addons:
     packages:
       - g++-6
 
-srcipt: ./run_build.sh
+srcipt: (source run_build.sh)
 
 #branches:
 #  only:
