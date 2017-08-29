@@ -90,12 +90,12 @@ TEST(schedule, regular) {
 }
 
 TEST(schedule, regular_invariants) {
-    SCOPED_TRACE("regular");
+    SCOPED_TRACE("regular_invariants");
     run_invariant_checks(regular_schedule(0.3), 3, 12, 7);
 }
 
 TEST(schedule, regular_reset) {
-    SCOPED_TRACE("regular");
+    SCOPED_TRACE("regular_reset");
     run_reset_check(regular_schedule(0.3), 3, 12, 7);
 }
 
@@ -115,14 +115,14 @@ TEST(schedule, explicit_schedule) {
 }
 
 TEST(schedule, explicit_invariants) {
-    SCOPED_TRACE("explicit");
+    SCOPED_TRACE("explicit_invariants");
 
     time_type times[] = {0.1, 0.3, 0.4, 0.42, 2.1, 2.3, 6.01, 9, 9.1, 9.8, 10, 11.2, 13};
     run_invariant_checks(explicit_schedule(times), 0.4, 10.2, 5);
 }
 
 TEST(schedule, explicit_reset) {
-    SCOPED_TRACE("explicit");
+    SCOPED_TRACE("explicit_reset");
 
     time_type times[] = {0.1, 0.3, 0.4, 0.42, 2.1, 2.3, 6.01, 9, 9.1, 9.8, 10, 11.2, 13};
     run_reset_check(explicit_schedule(times), 0.4, 10.2, 5);
@@ -202,13 +202,13 @@ TEST(schedule, poisson_uniformity) {
 
     // Run one sample K-S test for uniformity, with critical
     // value for the finite K-S statistic Dn of α=0.01.
- 
+
     schedule S = poisson_schedule(1./100, G);
     auto events = S.events(0,1);
     int n = (int)events.size();
     double dn = ks::dn_statistic(events);
 
-    EXPECT_LT(ks::dn_cdf(n, dn), 0.99);
+    EXPECT_LT(ks::dn_cdf(dn, n), 0.99);
 
     // Check that these tests fail for a non-Poisson
     // source.
@@ -224,18 +224,14 @@ TEST(schedule, poisson_uniformity) {
     n = (int)events.size();
     dn = ks::dn_statistic(events);
 
-    //std::cout << "n: " << n << "; dn: " << dn << "\n";
-    //std::cout << "F: " << ks::dn_cdf(n, dn) << "\n";
-
     // This test is currently failing, because we can't
     // use a sufficiently high `n` in the `dn_cdf` function
     // to get enough discrimination from the K-S test at
     // 1%. TODO: Fix this by implementing n>140 case in
     // `dn_cdf`.
 
-    // EXPECT_GT(ks::dn_cdf(n, dn), 0.99);
+    // EXPECT_GT(ks::dn_cdf(dn, n), 0.99);
 }
-
 
 TEST(schedule, poisson_rate) {
     // Test Poisson events over an interval against
@@ -263,18 +259,47 @@ TEST(schedule, poisson_rate) {
     EXPECT_FALSE(cdf>=alpha/2 && cdf<=1-alpha/2);
 }
 
-
 TEST(schedule, poisson_invariants) {
-    SCOPED_TRACE("poisson");
+    SCOPED_TRACE("poisson_invariants");
     std::mt19937_64 G;
     G.discard(100);
     run_invariant_checks(poisson_schedule(12.3, G), 5.1, 15.3, 7);
 }
 
 TEST(schedule, poisson_reset) {
-    SCOPED_TRACE("poisson");
+    SCOPED_TRACE("poisson_reset");
     std::mt19937_64 G;
     G.discard(200);
     run_reset_check(poisson_schedule(9.1, G), 1, 10, 7);
+}
+
+TEST(schedule, poisson_offset) {
+    // Expect Poisson schedule with an offset to give exactly the
+    // same sequence, after the offset, as a regular zero-based Poisson.
+
+    const double offset = 3.3;
+
+    std::mt19937_64 G1;
+    G1.discard(300);
+
+    std::vector<time_type> expected;
+    for (auto t: poisson_schedule(3.4, G1).events(0., 100.)) {
+        t += offset;
+        if (t<100.) {
+            expected.push_back(t);
+        }
+    }
+
+    std::mt19937_64 G2;
+    G2.discard(300);
+
+    EXPECT_TRUE(seq_almost_eq<time_type>(expected, poisson_schedule(offset, 3.4, G2).events(0., 100.)));
+}
+
+TEST(schedule, poisson_offset_reset) {
+    SCOPED_TRACE("poisson_reset");
+    std::mt19937_64 G;
+    G.discard(400);
+    run_reset_check(poisson_schedule(0.3, 9.1, G), 1, 10, 7);
 }
 

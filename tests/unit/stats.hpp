@@ -28,10 +28,11 @@ summary_stats summarize(const Seq& xs) {
     summary_stats s;
 
     for (auto x: xs) {
+        ++s.n;
         s.min = x<s.min? x: s.min;
         s.max = x>s.max? x: s.max;
         double d1 = x-s.mean;
-        s.mean += d1/++s.n;
+        s.mean += d1/s.n;
         double d2 = x-s.mean;
         s.variance += d1*d2;
     }
@@ -69,18 +70,17 @@ double dn_statistic(const Seq& qs) {
     return d/n;
 }
 
-// One sample K-S test:
+// One sample K-S test.
 // 
-// Input: K-S test statistic Dn, number of samples n.
-//
-// Output: P(Dn < u) for one-sample statistic u of n sample values.
+// Input: K-S test statistic d, number of observations n.
+// Output: P(Dn < d) where Dn ~ one-sample K–S statistic for n observations.
 //
 // Note: the implementation does not cover the full parameter space;
 // if N>140 and n·u² in [0.3, 18], the algorithm used may give a poor
 // result. The Pelz-Good approximation should be used here, but it has
-// not yet been coded up.
+// not yet been implemented.
 
-double dn_cdf(int n, double d);
+double dn_cdf(double d, int n);
 
 } // namespace ks
 
@@ -88,7 +88,10 @@ double dn_cdf(int n, double d);
 
 namespace poisson {
 
-// Approximate cdf using Wilson-Hilferty transform.
+// Approximate cdf of Poisson distribution using Wilson-Hilferty transform.
+//
+// Input: integer sample n.
+// Output: P(X < n) where X ~ Poisson(mu).
 
 double poisson_cdf_approx(int n, double mu);
 

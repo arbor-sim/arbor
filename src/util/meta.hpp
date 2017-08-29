@@ -275,8 +275,6 @@ struct second_t {
 };
 constexpr second_t second{};
 
-
-
 } // namespace util
 } // namespace mc
 } // namespace nest

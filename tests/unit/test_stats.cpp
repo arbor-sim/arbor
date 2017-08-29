@@ -31,38 +31,38 @@ TEST(stats, dn_cdf) {
     using std::pow;
     using std::tgamma;
 
-    // Compute cdf F of Dn for some known values and accuracies.
+    // Compute cdf F(x; n) of Dn for some known values and accuracies.
     // (See e.g. Simard and L'Ecuyer 2011.).
 
     // Zero and one tails:
     // 0 if x ≤ 1/2n; 1 if x ≥ 1.
 
-    EXPECT_EQ(0.0, ks::dn_cdf(1, 0));
-    EXPECT_EQ(0.0, ks::dn_cdf(10, 0.0));
-    EXPECT_EQ(0.0, ks::dn_cdf(10, 0.01));
-    EXPECT_EQ(0.0, ks::dn_cdf(10, 0.04999));
-    EXPECT_EQ(0.0, ks::dn_cdf(10000, 0.00004999));
+    EXPECT_EQ(0.0, ks::dn_cdf(0.0, 1));
+    EXPECT_EQ(0.0, ks::dn_cdf(0.0, 10));
+    EXPECT_EQ(0.0, ks::dn_cdf(0.01, 10));
+    EXPECT_EQ(0.0, ks::dn_cdf(0.04999, 10));
+    EXPECT_EQ(0.0, ks::dn_cdf(0.00004999, 10000));
     EXPECT_EQ(1.0, ks::dn_cdf(1, 1));
-    EXPECT_EQ(1.0, ks::dn_cdf(1, 1234.45));
-    EXPECT_EQ(1.0, ks::dn_cdf(10000, 1));
-    EXPECT_EQ(1.0, ks::dn_cdf(10000, 1234.45));
+    EXPECT_EQ(1.0, ks::dn_cdf(1234.45, 1));
+    EXPECT_EQ(1.0, ks::dn_cdf(1, 10000));
+    EXPECT_EQ(1.0, ks::dn_cdf(1234.45, 10000));
 
-    // When x in [1/2n, 1/n), F(x) = n!(2x-1/n)^n.
+    // When x in [1/2n, 1/n), F(x; n) = n!(2x-1/n)^n.
     int n = 3;
     double x = 0.3;
     double expected = tgamma(n+1)*pow(2*x-1./n, n);
-    EXPECT_NEAR(expected, ks::dn_cdf(n, x), expected*1e-15);
+    EXPECT_NEAR(expected, ks::dn_cdf(x, n), expected*1e-15);
 
-    // When x in [1-1/n, 1), F(x) = 1-2(1-x)^n.
+    // When x in [1-1/n, 1), F(x; n) = 1-2(1-x)^n.
     n = 5;
     x = 0.81;
     expected = 1-2*pow(1-x, n);
-    EXPECT_NEAR(expected, ks::dn_cdf(n, x), expected*1e-15);
+    EXPECT_NEAR(expected, ks::dn_cdf(x, n), expected*1e-15);
 
-    // When n·x^2 > 18.37, F(x) should be within double epsilon of 1.
+    // When n·x^2 > 18.37, F(x; n) should be within double epsilon of 1.
     n = 75;
     x = 0.5;
-    EXPECT_EQ(1., ks::dn_cdf(n, x));
+    EXPECT_EQ(1., ks::dn_cdf(x, n));
 
     // Various spots in the middle (avoiding n>140 until we have
     // a more complete implementation).
@@ -70,12 +70,12 @@ TEST(stats, dn_cdf) {
     n = 100;
     x = 0.2;
     expected = 1-0.000555192732802810;
-    EXPECT_NEAR(expected, ks::dn_cdf(n, x), 1e-15); // note: absolute error bound
+    EXPECT_NEAR(expected, ks::dn_cdf(x, n), 1e-15); // note: absolute error bound
 
     n = 140;
     x = 0.0464158883361278;
     expected = 0.0902623294750042;
-    EXPECT_NEAR(expected, ks::dn_cdf(n, x), expected*1e-14); // note: larger rel tol here
+    EXPECT_NEAR(expected, ks::dn_cdf(x, n), expected*1e-14); // note: larger rel tol here
 }
 
 TEST(stats, running) {

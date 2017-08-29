@@ -10,7 +10,7 @@
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <recipe.hpp>
-//#include <sampling.hpp>
+#include <sampling.hpp>
 #include <thread_private_spike_store.hpp>
 #include <util/nop.hpp>
 #include <util/handle_set.hpp>
@@ -18,11 +18,6 @@
 
 namespace nest {
 namespace mc {
-
-/*
- * Note: sampler functions may be invoked from a different
- * thread than that which called the `run` method.
- */
 
 class model {
 public:
@@ -35,7 +30,11 @@ public:
 
     time_type run(time_type tfinal, time_type dt);
 
-    sampler_association_handle add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
+    // Note: sampler functions may be invoked from a different thread than that
+    // which called the `run` method.
+
+    sampler_association_handle add_sampler(cell_member_predicate probe_ids,
+        schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
 
     void remove_sampler(sampler_association_handle);
 
@@ -103,12 +102,8 @@ private:
     std::vector<event_queue_type>& current_events()  { return event_queues_.get(); }
     std::vector<event_queue_type>& future_events()   { return event_queues_.other(); }
 
-    // Sampler associations may be changed from within a sampler function;
-    // a mutex is required to guard access to the sampler association handles.
-    std::mutex sah_mutex_;
-
     // Sampler associations handles are managed by a helper class.
-    util::handle_set<sampler_association_handle> sah_set_;
+    util::handle_set<sampler_association_handle> sassoc_handles_;
 };
 
 } // namespace mc

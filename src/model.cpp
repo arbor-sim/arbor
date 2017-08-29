@@ -143,11 +143,7 @@ time_type model::run(time_type tfinal, time_type dt) {
 }
 
 sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy) {
-    sampler_association_handle h;
-    {
-        std::lock_guard<std::mutex> lock(sah_mutex_);
-        h = sah_set_.acquire();
-    }
+    sampler_association_handle h = sassoc_handles_.acquire();
 
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](std::size_t i) {
@@ -163,19 +159,16 @@ void model::remove_sampler(sampler_association_handle h) {
             cell_groups_[i]->remove_sampler(h);
         });
 
-    std::lock_guard<std::mutex> lock(sah_mutex_);
-    sah_set_.release(h);
+    sassoc_handles_.release(h);
 }
 
 void model::remove_all_samplers() {
-    std::lock_guard<std::mutex> lock(sah_mutex_);
-
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](std::size_t i) {
             cell_groups_[i]->remove_all_samplers();
         });
 
-    sah_set_.clear();
+    sassoc_handles_.clear();
 }
 
 std::size_t model::num_spikes() const {

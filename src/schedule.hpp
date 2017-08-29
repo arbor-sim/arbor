@@ -131,15 +131,16 @@ inline schedule explicit_schedule(const Seq& seq) {
 template <typename RandomNumberEngine>
 class poisson_schedule_impl {
 public:
-    explicit poisson_schedule_impl(time_type mean_dt, const RandomNumberEngine& rng):
-        exp_(1./mean_dt), rng_(rng), reset_state_(rng), next_(0)
+    poisson_schedule_impl(time_type tstart, time_type mean_dt, const RandomNumberEngine& rng):
+        tstart_(tstart), exp_(1./mean_dt), rng_(rng), reset_state_(rng), next_(tstart)
     {
+        EXPECTS(tstart_>=0);
         step();
     }
 
     void reset() {
         rng_ = reset_state_;
-        next_ = 0;
+        next_ = tstart_;
         step();
     }
 
@@ -163,6 +164,7 @@ private:
         next_ += exp_(rng_);
     }
 
+    time_type tstart_;
     std::exponential_distribution<time_type> exp_;
     RandomNumberEngine rng_;
     RandomNumberEngine reset_state_;
@@ -171,9 +173,13 @@ private:
 
 template <typename RandomNumberEngine>
 inline schedule poisson_schedule(time_type mean_dt, const RandomNumberEngine& rng) {
-    return schedule(poisson_schedule_impl<RandomNumberEngine>(mean_dt, rng));
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(0., mean_dt, rng));
 }
 
+template <typename RandomNumberEngine>
+inline schedule poisson_schedule(time_type tstart, time_type mean_dt, const RandomNumberEngine& rng) {
+    return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, mean_dt, rng));
+}
 
 } // namespace mc
 } // namespace nest

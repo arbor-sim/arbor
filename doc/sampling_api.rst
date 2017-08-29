@@ -1,5 +1,5 @@
-New sampling API
-================
+Sampling API
+============
 
 The new API replaces the flexible but irreducibly inefficient scheme
 where the next sample time for a sampling was determined by the
@@ -30,17 +30,19 @@ Probes are specified in the recipe objects that are used to initialize a
 model; the specification of the item or value that is subjected to a
 probe will be specific to a particular cell type.
 
-.. code-block:: cpp
+.. container:: api-code
 
-        using probe_tag = int;
+   .. code-block:: cpp
 
-        struct probe_info {
-            cell_member_type id;   // cell gid, index of probe
-            probe_tag tag;         // opaque key, returned in sample record
-            any address;           // cell-type specific location info
-        };
+           using probe_tag = int;
 
-        probe_info recipe::get_probe(cell_member_type probe_id);
+           struct probe_info {
+               cell_member_type id;   // cell gid, index of probe
+               probe_tag tag;         // opaque key, returned in sample record
+               any address;           // cell-type specific location info
+           };
+
+           probe_info recipe::get_probe(cell_member_type probe_id);
 
 
 The ``id`` field in the ``probe_info`` struct will be the same value as
@@ -68,10 +70,12 @@ Samplers and sample records
 Data collected from probes (according to a schedule described below)
 will be passed to a sampler function or function object:
 
-.. code-block:: cpp
+.. container:: api-code
 
-        using sampler_function =
-            std::function<void (cell_member_type, probe_tag, size_t, const sample_record*)>;
+    .. code-block:: cpp
+
+            using sampler_function =
+                std::function<void (cell_member_type, probe_tag, size_t, const sample_record*)>;
 
 where the parameters are respectively the probe id, the tag, the number
 of samples and a pointer to the sequence of sample records.
@@ -82,43 +86,45 @@ the recipe.
 One ``sample_record`` struct contains one sample of the probe data at a
 given simulation time point:
 
-.. code-block:: cpp
+.. container:: api-code
 
-        struct sample_record {
-            time_type time;    // simulation time of sample
-            any_ptr data;      // sample data
-        };
+    .. code-block:: cpp
 
-The sample data in a sample record comprises a representation of the
-probe value that is contiguous in memory — i.e. stuctured data which is
-not in a flat data structure will need to be presented in a serialized
-form. The exact representation will depend on the nature of the object
-that is being probed, but it should depend only on the cell type and
+            struct sample_record {
+                time_type time;    // simulation time of sample
+                any_ptr data;      // sample data
+            };
+
+The ``data`` field points to the sample data, wrapped in ``any_ptr`` for
+type-checked access. The exact representation will depend on the nature of
+the object that is being probed, but it should depend only on the cell type and
 probe address.
 
 The data pointed to by ``data``, and the sample records themselves, are
 only guaranteed to be valid for the duration of the call to the sampler
 function. A simple sampler implementation for ``double`` data might be:
 
-.. code-block:: cpp
+.. container:: example-code
 
-        using sample_data = std::map<cell_member_type, std::vector<std::pair<double, double>>>;
+    .. code-block:: cpp
 
-        struct scalar_sampler {
-            sample_data& samples;
+            using sample_data = std::map<cell_member_type, std::vector<std::pair<double, double>>>;
 
-            explicit scalar_sample(sample_data& samples): samples(samples) {}
+            struct scalar_sampler {
+                sample_data& samples;
 
-            void operator()(cell_member_type id, probe_tag, size_t n, const sample_record* records) {
-                for (size_t i=0; i<n; ++i) {
-                    const auto& rec = records[i];
+                explicit scalar_sample(sample_data& samples): samples(samples) {}
 
-                    const double* data = any_cast<const double*>(rec.data);
-                    assert(data);
-                    samples[id].emplace_back(rec.time, *data);
+                void operator()(cell_member_type id, probe_tag, size_t n, const sample_record* records) {
+                    for (size_t i=0; i<n; ++i) {
+                        const auto& rec = records[i];
+
+                        const double* data = any_cast<const double*>(rec.data);
+                        assert(data);
+                        samples[id].emplace_back(rec.time, *data);
+                    }
                 }
-            }
-        };
+            };
 
 The use of ``any_ptr`` allows type-checked access to the sample data, which
 may differ in type from probe to probe.
@@ -130,36 +136,41 @@ Model and cell group interface
 Polling rates, policies and sampler functions are set through the
 ``model`` interface, after construction from a recipe.
 
-.. code-block:: cpp
+.. container:: api-code
 
-        using sampler_association_handle = std::size_t;
-        using cell_member_predicate = std::function<bool (cell_member_type)>;
+    .. code-block:: cpp
 
-        sampler_association_handle model::add_sampler(
-            cell_member_predicate probe_ids,
-            schedule sched,
-            sampler_function fn,
-            sampling_policy policy = sampling_policy::lax);
+            using sampler_association_handle = std::size_t;
+            using cell_member_predicate = std::function<bool (cell_member_type)>;
 
-        void model::remove_sampler(sampler_association_handle);
+            sampler_association_handle model::add_sampler(
+                cell_member_predicate probe_ids,
+                schedule sched,
+                sampler_function fn,
+                sampling_policy policy = sampling_policy::lax);
 
-        void model::remove_all_samplers();
+            void model::remove_sampler(sampler_association_handle);
+
+            void model::remove_all_samplers();
 
 Multiple samplers can then be associated with the same probe locations.
 The handle returned is only used for managing the lifetime of the
-association.
+association. The ``cell_member_predicate`` parameter defines the
+set of probe ids in terms of a membership test.
 
 Two helper functions are provided for making ``cell_member_predicate`` objects:
 
-.. code-block:: cpp
+.. container:: api-code
 
-        // Match all probe ids.
-        cell_member_predicate all_probes = [](cell_member_type pid) { return true; };
+   .. code-block:: cpp
 
-        // Match just one probe id.
-        cell_member_predicate one_probe(cell_member_type pid) {
-            return [pid](cell_member_type x) { return pid==x; };
-        }
+           // Match all probe ids.
+           cell_member_predicate all_probes = [](cell_member_type pid) { return true; };
+
+           // Match just one probe id.
+           cell_member_predicate one_probe(cell_member_type pid) {
+               return [pid](cell_member_type x) { return pid==x; };
+           }
 
 
 The ``sampling_policy`` policy is used to modify sampling behaviour: by
@@ -172,13 +183,15 @@ The model object will pass on the sampler setting request to the cell
 group that owns the given probe id. The ``cell_group`` interface will be
 correspondingly extended:
 
-.. code-block:: cpp
+.. container:: api-code
 
-        void cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, sample_schedule sched, sampler_function fn, sampling_policy policy);
+   .. code-block:: cpp
 
-        void cell_group::remove_sampler(sampler_association_handle);
+           void cell_group::add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, sample_schedule sched, sampler_function fn, sampling_policy policy);
 
-        void cell_group::remove_all_samplers();
+           void cell_group::remove_sampler(sampler_association_handle);
+
+           void cell_group::remove_all_samplers();
 
 Cell groups will invoke the corresponding sampler function directly, and
 may aggregate multiple samples with the same probe id in one call to the
@@ -204,11 +217,13 @@ given association of a sampler function to a set of probes.
 
 A ``schedule`` object has two methods:
 
-.. code-block:: cpp
+.. container:: api-code
 
-        void schedule::reset();
+   .. code-block:: cpp
 
-        std::vector<time_type> events(time_type t0, time_type t1)
+       void schedule::reset();
+
+       std::vector<time_type> events(time_type t0, time_type t1)
 
 The ``events(t0, t1)`` method returns a vector of monotonically
 increasing time values in the half-open interval ``[t0, t1)``.
@@ -225,19 +240,21 @@ implementation class, which can be any copy--constructible class that
 provides the methods ``reset()`` and ``events(t0, t1)`` above. Three
 schedule implementations are provided by the engine:
 
-.. code-block:: cpp
+.. container:: api-code
+
+   .. code-block:: cpp
 
 
-        // Schedule at integer multiples of dt:
-        schedule regular_schedule(time_type dt);
+           // Schedule at integer multiples of dt:
+           schedule regular_schedule(time_type dt);
 
-        // Schedule at a predetermined (sorted) sequence of times:
-        template <typename Seq>
-        schedule explicit_schedule(const Seq& seq);
+           // Schedule at a predetermined (sorted) sequence of times:
+           template <typename Seq>
+           schedule explicit_schedule(const Seq& seq);
 
-        // Schedule according to Poisson process with lambda = 1/mean_dt
-        template <typename RandomNumberEngine>
-        schedule poisson_schedule(time_type mean_dt, const RandomNumberEngine& rng);
+           // Schedule according to Poisson process with lambda = 1/mean_dt
+           template <typename RandomNumberEngine>
+           schedule poisson_schedule(time_type mean_dt, const RandomNumberEngine& rng);
 
 The ``schedule`` class and its implementations are found in ``schedule.hpp``.
 

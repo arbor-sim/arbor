@@ -5,9 +5,9 @@
  * library. (Expect analogues in future versions to be template parameters?)
  */
 
-#include <iosfwd>
 #include <cstddef>
 #include <functional>
+#include <iosfwd>
 #include <type_traits>
 
 #include <util/lexcmp_def.hpp>

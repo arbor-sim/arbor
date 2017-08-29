@@ -17,7 +17,6 @@
 #include <sampling.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
-#include <util/deduce_return.hpp>
 #include <util/filter.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
@@ -27,11 +26,6 @@
 
 namespace nest {
 namespace mc {
-
-namespace {
-    template <typename Map>
-    auto keys(Map& m) DEDUCED_RETURN_TYPE(util::transform_view(m, util::first));
-}
 
 template <typename LoweredCell>
 class mc_cell_group: public cell_group {
@@ -209,8 +203,11 @@ public:
         return spike_sources_;
     }
 
-    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, schedule sched, sampler_function fn, sampling_policy policy) override {
-        std::vector<cell_member_type> probeset = util::assign_from(util::filter(keys(probe_map_), probe_ids));
+    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids,
+                     schedule sched, sampler_function fn, sampling_policy policy) override
+    {
+        std::vector<cell_member_type> probeset =
+            util::assign_from(util::filter(util::keys(probe_map_), probe_ids));
 
         if (!probeset.empty()) {
             sampler_map_.add(h, sampler_association{std::move(sched), std::move(fn), std::move(probeset)});

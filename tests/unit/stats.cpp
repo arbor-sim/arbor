@@ -7,16 +7,17 @@
 namespace testing {
 namespace ks {
 
-/* Compute exact cdf of Dn using the Dubin 1973 algorithm
- * with the faster implementation of Carvalho 2015.
+/* Compute the exact cdf F(d) of the one-sample, two-sided Kolmogorov–Smirnov
+ * statisitc Dn for n observations, using the Dubin 1973 algorithm with the
+ * faster implementation of Carvalho 2015.
  *
- * Bounds on numerical applicability, and the lower bound
- * of 1-10^-15 (giving a result of 1 in double precision)
- * when n*d^2 ≥ 18 is from Simard and L'Ecuyer 2011.
+ * Bounds on numerical applicability, and the lower bound of 1-10^-15 (giving a
+ * result of 1 in double precision) when n*d^2 ≥ 18 is from Simard and L'Ecuyer
+ * 2011.
  *
- * This function should implement the Pelz-Good asymptopic
- * approximation, but doesn't. Instead it will throw an
- * error if the parameters fall into a bad region.
+ * This function should implement the Pelz-Good asymptopic approximation, but
+ * doesn't. Instead it will throw an error if the parameters fall into a bad
+ * region.
  *
  * References:
  *
@@ -34,7 +35,7 @@ namespace ks {
  *     DOI: 10.18637/jss.v039.i11
  */
 
-double dn_cdf(int n, double d) {
+double dn_cdf(double d, int  n) {
     // Tail cases:
 
     double nd = n*d;

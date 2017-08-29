@@ -28,8 +28,8 @@ using sampler_association_handle = std::size_t;
 
 enum class sampling_policy {
     lax,
-    interpolated, // placeholder: unsupported
-    exact         // placeholder: unsupported
+    // interpolated, // placeholder: unsupported
+    // exact         // placeholder: unsupported
 };
 
 } // namespace mc

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -23,28 +24,37 @@ public:
     using value_type = Handle;
 
     value_type acquire() {
-        if (top==std::numeric_limits<Handle>::max()) {
+        lock_guard lock(mex_);
+
+        if (top_==std::numeric_limits<Handle>::max()) {
             throw std::out_of_range("no more handles");
         }
-        return top++;
+        return top_++;
     }
 
     // Pre-requisite: h is a handle returned by
     // `acquire`, which has not been subject
     // to a subsequent `release`.
     void release(value_type h) {
-        if (h+1==top) {
-            --top;
+        lock_guard lock(mex_);
+
+        if (h+1==top_) {
+            --top_;
         }
     }
 
     // Release all handles.
     void clear() {
-        top = 0;
+        lock_guard lock(mex_);
+
+        top_ = 0;
     }
 
 private:
-    value_type top = 0;
+    value_type top_ = 0;
+
+    using lock_guard = std::lock_guard<std::mutex>;
+    std::mutex mex_;
 };
 
 } // namespace util

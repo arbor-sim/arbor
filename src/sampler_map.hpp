@@ -2,7 +2,7 @@
 
 /*
  * Helper classes for managing sampler/schedule associations in
- * cell group classes.
+ * cell group classes (see sampling_api doc).
  */
 
 #include <functional>
@@ -18,13 +18,16 @@
 namespace nest {
 namespace mc {
 
-// Manage associations between samplers, schedules, and probe ids.
+// An association between a samplers, schedule, and set of probe ids, as provided
+// to e.g. `model::add_sampler()`.
 
 struct sampler_association {
     schedule sched;
     sampler_function sampler;
     std::vector<cell_member_type> probe_ids;
 };
+
+// Maintain a set of associations paired with handles used for deletion.
 
 class sampler_association_map {
 public:
@@ -52,6 +55,8 @@ private:
     auto assoc_view() DEDUCED_RETURN_TYPE((util::transform_view(map_, &sampler_association_map::second)))
 
 public:
+    // Range-like view presents just the associations, omitting the handles.
+
     auto begin() DEDUCED_RETURN_TYPE(assoc_view().begin());
     auto end()   DEDUCED_RETURN_TYPE(assoc_view().end());
 };

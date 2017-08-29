@@ -106,7 +106,7 @@ int main(int argc, char** argv) {
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.
         std::vector<sample_trace> sample_traces;
-        for (auto g: decomp.groups) {
+        for (const auto& g: decomp.groups) {
             if (g.kind==cable1d_neuron) {
                 for (auto gid: g.gids) {
                     if (options.trace_max_gid && gid>*options.trace_max_gid) {
