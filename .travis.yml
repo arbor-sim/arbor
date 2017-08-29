@@ -12,7 +12,7 @@ addons:
 
 branches:
     only:
-    - master
+    - feature/travis
 
 
 before_install:
