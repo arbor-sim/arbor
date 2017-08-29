@@ -5,18 +5,14 @@ dist: trusty
 compiler: g++
 
 addons:
-    apt:
-        sources:
-        - ubuntu-toolchain-r-test
-        packages:
-        - g++-6
-
-before_install:
-- export CC=gcc-6
-- export CXX=g++-6
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-6
 
 srcipt: ./run_build.sh
 
 #branches:
-#   only:
-#   - feature/travis
+#  only:
+#    - feature/travis

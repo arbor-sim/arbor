@@ -1,3 +1,6 @@
+export CC=`which gcc-6`
+export CXX=`which g++-6`
+
 $(CC) --version
 $(CXX) --version
 cmake --version
