@@ -1,10 +1,11 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 CLEAR='\033[0m'
 
-error() {>&2 echo -e "${RED}ERROR${CLEAR}: $1"}
-progress() { echo; echo -e "${BLUE}STATUS${CLEAR}: $1"; echo}
+error() {>&2 echo -e "${RED}ERROR${CLEAR}: $1";}
+progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
 
 export CC=`which gcc-6`
 export CXX=`which g++-6`
