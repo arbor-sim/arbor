@@ -1,22 +1,22 @@
-sudo: enabled
 language: cpp
-compiler: gcc
+sudo: false
 os: linux
+dist: trusty
+compiler: g++
 
 addons:
     apt:
         sources:
         - ubuntu-toolchain-r-test
         packages:
-        - g++-5
+        - g++-6
+
+before_install:
+- export CC=gcc-6
+- export CXX=g++-6
+
+srcipt: ./run_build.sh
 
 #branches:
 #   only:
 #   - feature/travis
-
-
-before_install:
-- export CC=gcc-5
-- export CXX=g++-5
-
-srcipt: "source travis/run_build.sh"
