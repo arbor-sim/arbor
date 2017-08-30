@@ -3,17 +3,17 @@ sudo: false
 os: linux
 dist: trusty
 compiler: gcc
+cache:
+    apt: true
 
 env:
-    - WITH_THREAD=cthread
     matrix:
         - BUILD_NAME="debug-cthread"
         - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
 
-cache:
-    apt: true
 
-script: source test.sh
+before_script: source ./scripts/travis/build_defaults.sh
+script: source ./scripts/travis/test.sh
 
 #addons:
 #   apt:
@@ -22,5 +22,5 @@ script: source test.sh
 #       packages:
 #           - g++-6
 
-#script: source run_build.sh
+#script: source ./scripts/travis/run_build.sh
 
