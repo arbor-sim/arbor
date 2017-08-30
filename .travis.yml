@@ -5,17 +5,13 @@ dist: trusty
 compiler: gcc
 
 env:
+    - WITH_THREAD=cthread
     matrix:
         - BUILD_NAME="debug-cthread"
         - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
 
 cache:
     apt: true
-
-before_install:
-    - pwd
-    - WITH_THREAD=cthread
-
 
 script: source test.sh
 
