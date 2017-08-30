@@ -16,7 +16,9 @@ addons:
 env:
     matrix:
         - BUILD_NAME="debug"
-        - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
+        - 
+        #   the automatic checkout of tbb does not work
+        #- BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
 
 
 before_script: source ./scripts/travis/defaults.sh
