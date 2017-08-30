@@ -11,18 +11,19 @@ addons:
         sources:
             - ubuntu-toolchain-r-test
         packages:
+            - g++-5
             - g++-6
+            - g++-7
 
 env:
     matrix:
         - BUILD_NAME="debug"
-        - 
+        - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
         #   the automatic checkout of tbb does not work
-        #- BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
 
 
-before_script: source ./scripts/travis/defaults.sh
-script: source ./scripts/travis/run_build.sh
+#before_script: source ./scripts/travis/defaults.sh
+#script: source ./scripts/travis/run_build.sh
 
 
 

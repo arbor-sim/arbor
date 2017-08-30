@@ -31,24 +31,27 @@ cd $build_path
 progress "configuring with cmake"
 
 cmake_flags="-DNMC_WITH_ASSERTIONS=on"
-cmake_flags="$cmake_flags -DNMC_THREADING_MODEL=${WITH_THREAD}"
+cmake_flags="${cmake_flags} -DNMC_THREADING_MODEL=${WITH_THREAD}"
+
+echo "cmake flags: ${cmake_flags}"
+echo
 cmake .. ${cmake_flags}
 if [ $? -ne 0 ]; then
     error "unable to configure with cmake ${cmake_flags}"
     exit 2;
 fi
 
-for test_case in "test.exe" "global_communication.exe"
+for test_case in test.exe global_communication.exe
 do
     progress "making $test_case"
-    NUM_NUM_THREADS=2 make ${test_case} -j4 > /dev/null
+    make ${test_case} -j4 > /dev/null
     if [ $? -ne 0 ]; then
         error "unable to build ${test_case}"
         exit 3;
     fi
 
     progress "running $test_case"
-    NUM_NUM_THREADS=2 ./tests/${test_case}
+    NMC_NUM_THREADS=2 ./tests/${test_case}
     if [ $? -ne 0 ]; then
         error "some tests did not pass"
         exit 4;
