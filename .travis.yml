@@ -6,36 +6,21 @@ compiler: gcc
 cache:
     apt: true
 
+apt:
+    sources:
+        - ubuntu-toolchain-r-test
+
 env:
     matrix:
         - BUILD_NAME="debug"
         - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
-
-matrix:
-    include:
-        # gnu toolchain version 5
-        - os: linux
-          apt:
-            sources:
-                - ubuntu-toolchain-r-test
-            packages:
-                - g++-5
-          env:
-              - CC_SETUP="export CC=gcc-5 && export CXX=g++-5"
-
-        # gnu toolchain version 6
-        - os: linux
-          apt:
-            sources:
-                - ubuntu-toolchain-r-test
-            packages:
-                - g++-6
-          env:
-            - CC_SETUP="export CC=gcc-6 && export CXX=g++-6"
-
+    apt:
+        - packages:
+            - g++-5
+        - packages:
+            - g++-6
 
 before_script:
-    - ${CC_SETUP}
     - source ./scripts/travis/defaults.sh
 
 script: source ./scripts/travis/run_build.sh
