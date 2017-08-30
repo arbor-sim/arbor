@@ -135,22 +135,16 @@ TEST(lif_cell_group, spikes_testing) {
     }
 
     group->enqueue_events(events);
-    group->turn_on_sampling(0.01);
 
     // second parameter is dt, but is ignored
     group->advance(simulation_end, 0.01);
     std::vector<spike> spikes = group->spikes();
-
-    std::vector<std::pair<time_type, double> > voltage = group->voltage();
 
     std::ofstream in_spikes_file;
     in_spikes_file.open("../../tests/unit/lif_neuron_input_spikes.txt");
 
     std::ofstream out_spikes_file;
     out_spikes_file.open("../../tests/unit/lif_neuron_output_spikes.txt");
-
-    std::ofstream voltage_file;
-    voltage_file.open("../../tests/unit/lif_neuron_voltage.txt");
 
     for (auto& in_spike : incoming_spikes) {
         in_spikes_file << in_spike << std::endl;
@@ -160,13 +154,8 @@ TEST(lif_cell_group, spikes_testing) {
         out_spikes_file << out_spike.time << std::endl;
     }
 
-    for (auto& v : voltage) {
-        voltage_file << v.first << " " << v.second << std::endl;
-    }
-
     in_spikes_file.close();
     out_spikes_file.close();
-    voltage_file.close();
 }
 
 TEST(lif_cell_group, domain_decomposition)
