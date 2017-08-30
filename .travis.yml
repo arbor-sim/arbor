@@ -12,6 +12,13 @@ env:
 cache:
     apt: true
 
+before_install:
+    - pwd
+    - WITH_THREAD=cthread
+
+
+script: source test.sh
+
 #addons:
 #   apt:
 #       sources:
@@ -21,4 +28,3 @@ cache:
 
 #script: source run_build.sh
 
-script: source test.sh
