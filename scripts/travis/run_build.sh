@@ -16,12 +16,12 @@ build_path=build-${BUILD_NAME}
 # print build-specific and useful information
 progress "compiler versions"
 
-compiler_version=`${CXX} --dumpversion`
+compiler_version=`${CXX} -dumpversion`
 cmake_version=`cmake --version | grep version | awk '{print $3}'`
-echo "compiler ${compiler_version}"
-echo "cmake ${cmake_version}"
-echo "build path ${build_path}"
-echo "base path ${base_path}"
+echo "compiler   : ${compiler_version}"
+echo "cmake      : ${cmake_version}"
+echo "build path : ${build_path}"
+echo "base path  : ${base_path}"
 
 # make build path
 mkdir -p $build_path
