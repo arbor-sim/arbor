@@ -6,21 +6,21 @@ compiler: gcc
 cache:
     apt: true
 
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        packages:
+            - g++-6
+
 env:
     matrix:
-        - BUILD_NAME="debug-cthread"
+        - BUILD_NAME="debug"
         - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
 
 
 before_script: source ./scripts/travis/defaults.sh
-script: source ./scripts/travis/test.sh
+script: source ./scripts/travis/run_build.sh
 
-#addons:
-#   apt:
-#       sources:
-#           - ubuntu-toolchain-r-test
-#       packages:
-#           - g++-6
 
-#script: source ./scripts/travis/run_build.sh
 

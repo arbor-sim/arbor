@@ -14,15 +14,19 @@ ${CC} --version
 ${CXX} --version
 cmake --version
 
+base_path=`pwd`
+
 # make build path
-mkdir -p build
-cd build
+build_path=build-${BUILD_NAME}
+mkdir -p $build_path
+cd $build_path
 
 # run cmake
 progress "configuring with cmake"
-cmake ..
+cmake_flags="-DNMC_THREADING_MODEL=${WITH_THREAD}"
+cmake .. ${cmake_flags}
 if [ $? -ne 0 ]; then
-    error "unable to configure with cmake"
+    error "unable to configure with cmake ${cmake_flags}"
     exit 2;
 fi
 
@@ -41,3 +45,5 @@ if [ $? -ne 0 ]; then
     error "some unit tests did not pass"
     exit 4;
 fi
+
+cd $base_path

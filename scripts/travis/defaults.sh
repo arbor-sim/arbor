@@ -3,5 +3,5 @@ if [[ -z "${WITH_THREAD}" ]]; then
 fi
 
 if [[ -z "${WITH_DISTRIBUTED}" ]]; then
-    export WITH_THREAD=serial
+    export WITH_DISTRIBUTED=serial
 fi
