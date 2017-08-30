@@ -12,7 +12,7 @@ env:
         - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
 
 
-before_script: source ./scripts/travis/build_defaults.sh
+before_script: source ./scripts/travis/defaults.sh
 script: source ./scripts/travis/test.sh
 
 #addons:
