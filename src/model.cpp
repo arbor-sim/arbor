@@ -1,19 +1,19 @@
 #include <model.hpp>
 
 #include <vector>
-
+#include <iomanip>
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
 #include <recipe.hpp>
+#include <threading/timer.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
 
 namespace nest {
 namespace mc {
-
 model::model(const recipe& rec, const domain_decomposition& decomp):
     domain_(decomp)
 {
@@ -107,7 +107,8 @@ time_type model::run(time_type tfinal, time_type dt) {
 
                 PE("cells");
                 group->advance(tuntil, dt);
-                 PL();
+                PL();
+
                 PE("events");
                 current_spikes().insert(group->spikes());
                 group->clear_spikes();
@@ -139,6 +140,8 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL(2);
     };
 
+    util::profilers_restart();
+
     while (t_<tfinal) {
         tuntil = std::min(t_+t_interval, tfinal);
 
@@ -158,6 +161,8 @@ time_type model::run(time_type tfinal, time_type dt) {
 
         t_ = tuntil;
     }
+
+    util::profilers_stop();
 
     // Run the exchange one last time to ensure that all spikes are output
     // to file.
@@ -210,6 +215,5 @@ void model::set_global_spike_callback(spike_export_function export_callback) {
 void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
 }
-
 } // namespace mc
 } // namespace nest

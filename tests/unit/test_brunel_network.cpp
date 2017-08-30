@@ -1,9 +1,8 @@
 #include "../gtest.h"
-
 #include <cell_group_factory.hpp>
 #include <fstream>
 #include <lif_cell_description.hpp>
-#include <lif_cell_group.hpp>
+#include <lif_cell_group_mc.hpp>
 #include <model.hpp>
 #include <pss_cell_description.hpp>
 #include <pss_cell_group.hpp>
