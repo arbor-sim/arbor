@@ -4,15 +4,21 @@ os: linux
 dist: trusty
 compiler: gcc
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-6
+env:
+    matrix:
+        - BUILD_NAME="debug-cthread"
+        - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
 
-script: (source run_build.sh)
+cache:
+    apt: true
 
-#branches:
-#  only:
-#    - feature/travis
+#addons:
+#   apt:
+#       sources:
+#           - ubuntu-toolchain-r-test
+#       packages:
+#           - g++-6
+
+#script: source run_build.sh
+
+script: source test.sh
