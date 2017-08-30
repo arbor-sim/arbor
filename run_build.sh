@@ -7,8 +7,8 @@ CLEAR='\033[0m'
 error() {>&2 echo -e "${RED}ERROR${CLEAR}: $1";}
 progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
 
-export CC=`which gcc-6`
-export CXX=`which g++-6`
+export CC=`gcc-6`
+export CXX=`g++-6`
 
 ${CC} --version
 ${CXX} --version
