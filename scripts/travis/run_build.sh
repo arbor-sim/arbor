@@ -10,19 +10,26 @@ progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
 export CC=`which gcc-6`
 export CXX=`which g++-6`
 
-${CC} --version
-${CXX} --version
-cmake --version
-
 base_path=`pwd`
+build_path=build-${BUILD_NAME}
+
+# print build-specific and useful information
+progress "compiler versions"
+
+compiler_version=`${CXX} --dumpversion`
+cmake_version=`cmake --version | grep version | awk '{print $3}'`
+echo "compiler ${compiler_version}"
+echo "cmake ${cmake_version}"
+echo "build path ${build_path}"
+echo "base path ${base_path}"
 
 # make build path
-build_path=build-${BUILD_NAME}
 mkdir -p $build_path
 cd $build_path
 
 # run cmake
 progress "configuring with cmake"
+
 cmake_flags="-DNMC_THREADING_MODEL=${WITH_THREAD}"
 cmake .. ${cmake_flags}
 if [ $? -ne 0 ]; then
@@ -32,7 +39,7 @@ fi
 
 # make the tests
 progress "running make"
-make test.exe -j8
+make test.exe -j4
 if [ $? -ne 0 ]; then
     error "unable to build unit tests"
     exit 3;
