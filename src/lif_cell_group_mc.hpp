@@ -10,14 +10,14 @@
 
 namespace nest {
 namespace mc {
-    class lif_cell_group: public cell_group {
+    class lif_cell_group_mc: public cell_group {
     public:
         using value_type = double;
 
-        lif_cell_group() = default;
+        lif_cell_group_mc() = default;
 
         // Constructor containing gid of first cell in a group and a container of all cells.
-        lif_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells);
+        lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells);
 
         virtual cell_kind get_cell_kind() const override;
 

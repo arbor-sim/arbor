@@ -1,9 +1,8 @@
 #include "../gtest.h"
-
 #include <cell_group_factory.hpp>
 #include <fstream>
 #include <lif_cell_description.hpp>
-#include <lif_cell_group.hpp>
+#include <lif_cell_group_mc.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <rss_cell.hpp>
@@ -73,7 +72,7 @@ private:
 };
 
 
-TEST(lif_cell_group, recipe)
+TEST(lif_cell_group_mc, recipe)
 {
     ring_recipe rr(100, 1, 0.1);
     EXPECT_EQ(101, rr.num_cells());
@@ -83,7 +82,7 @@ TEST(lif_cell_group, recipe)
     EXPECT_EQ(99, rr.connections_on(0u)[0].source.gid);
 }
 
-TEST(lif_cell_group, cell_group_factory) {
+TEST(lif_cell_group_mc, cell_group_factory) {
     std::vector<util::unique_any> cells;
     cells.emplace_back(lif_cell_description());
     cells.emplace_back(lif_cell_description());
@@ -116,12 +115,12 @@ TEST(lif_cell_group, cell_group_factory) {
     EXPECT_EQ(3, spikes.size());
 }
 
-TEST(lif_cell_group, spikes_testing) {
+TEST(lif_cell_group_mc, spikes_testing) {
     std::vector<util::unique_any> cells;
     cells.emplace_back(lif_cell_description());
 
     auto gr = cell_group_factory(cell_kind::lif_neuron, 0, cells, backend_policy::use_multicore);
-    auto group = dynamic_cast<lif_cell_group*>(gr.get());
+    auto group = dynamic_cast<lif_cell_group_mc*>(gr.get());
 
     std::vector<postsynaptic_spike_event> events;
     std::vector<time_type> incoming_spikes;
@@ -158,7 +157,7 @@ TEST(lif_cell_group, spikes_testing) {
     out_spikes_file.close();
 }
 
-TEST(lif_cell_group, domain_decomposition)
+TEST(lif_cell_group_mc, domain_decomposition)
 {
     // Total number of cells.
     int num_cells = 99;

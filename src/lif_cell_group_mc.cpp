@@ -1,9 +1,9 @@
-#include <lif_cell_group.hpp>
+#include <lif_cell_group_mc.hpp>
 
 using namespace nest::mc;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
-lif_cell_group::lif_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
+lif_cell_group_mc::lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
 gid_base_(first_gid)
 {
     cells_.reserve(cells.size());
@@ -35,11 +35,11 @@ gid_base_(first_gid)
     }
 }
 
-cell_kind lif_cell_group::get_cell_kind() const {
+cell_kind lif_cell_group_mc::get_cell_kind() const {
     return cell_kind::lif_neuron;
 }
 
-void lif_cell_group::advance(time_type tfinal, time_type dt) {
+void lif_cell_group_mc::advance(time_type tfinal, time_type dt) {
     PE("lif");
     for (size_t lid = 0; lid < cells_.size(); ++lid) {
         // Advance each cell independently.
@@ -48,34 +48,34 @@ void lif_cell_group::advance(time_type tfinal, time_type dt) {
     PL();
 }
 
-void lif_cell_group::enqueue_events(const std::vector<postsynaptic_spike_event>& events) {
+void lif_cell_group_mc::enqueue_events(const std::vector<postsynaptic_spike_event>& events) {
     // Distribute incoming events to individual cells.
     for (auto& e: events) {
         cell_events_[e.target.gid - gid_base_].push(e);
     }
 }
 
-const std::vector<spike>& lif_cell_group::spikes() const {
+const std::vector<spike>& lif_cell_group_mc::spikes() const {
     return spikes_;
 }
 
-void lif_cell_group::clear_spikes() {
+void lif_cell_group_mc::clear_spikes() {
     spikes_.clear();
 }
 
 // TODO: implement sampler
-void lif_cell_group::add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time) {}
+void lif_cell_group_mc::add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time) {}
 
 // TODO: implement binner_
-void lif_cell_group::set_binning_policy(binning_kind policy, time_type bin_interval) {
+void lif_cell_group_mc::set_binning_policy(binning_kind policy, time_type bin_interval) {
 }
 
 // no probes in single-compartment cells
-std::vector<probe_record> lif_cell_group::probes() const {
+std::vector<probe_record> lif_cell_group_mc::probes() const {
     return {};
 }
 
-void lif_cell_group::reset() {
+void lif_cell_group_mc::reset() {
     spikes_.clear();
     // Clear all the event queues.
     for (auto& queue : cell_events_) {
@@ -84,21 +84,21 @@ void lif_cell_group::reset() {
 }
 
 // Samples next poisson spike.
-void lif_cell_group::sample_next_poisson(cell_gid_type lid) {
+void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
     next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
 }
 
 // Returns the time of the next poisson event for given neuron,
 // taking into accout the delay of poisson spikes,
 // without sampling a new Poisson event time.
-time_type lif_cell_group::next_poisson_event(cell_gid_type lid) {
+time_type lif_cell_group_mc::next_poisson_event(cell_gid_type lid) {
     return next_poiss_time_[lid] + cells_[lid].d_poiss;
 }
 
 // Returns the next most recent event that is yet to be processed.
 // It can be either Poisson event or the queue event.
 // Only events that happened before tfinal are considered.
-util::optional<postsynaptic_spike_event> lif_cell_group::next_event(cell_gid_type lid, time_type tfinal) {
+util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_type lid, time_type tfinal) {
     auto t_poiss = next_poisson_event(lid);
 
     // t_queue < {t_poiss, tfinal} => return t_queue
@@ -123,7 +123,7 @@ util::optional<postsynaptic_spike_event> lif_cell_group::next_event(cell_gid_typ
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid) {
+void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid) {
     // Current time of last update.
     auto t = last_time_updated_[lid];
     auto& cell = cells_[lid];

@@ -11,7 +11,7 @@
 #include <cell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <lif_cell_description.hpp>
-#include <lif_cell_group.hpp>
+#include <lif_cell_group_mc.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>

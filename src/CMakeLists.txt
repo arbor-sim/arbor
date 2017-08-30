@@ -3,7 +3,7 @@ set(BASE_SOURCES
     cell.cpp
     #cell_group_factory.cpp
     event_binner.cpp
-    lif_cell_group.cpp
+    lif_cell_group_mc.cpp
     model.cpp
     morphology.cpp
     parameter_list.cpp
