@@ -27,5 +27,5 @@ before_install:
     - CC=gcc-5
     - CXX=g++-5
 
-script: source ./scripts/travis/run_build.sh
+script: $(bash ./scripts/travis/run_build.sh)
 

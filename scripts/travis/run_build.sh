@@ -4,7 +4,7 @@ BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
 CLEAR='\033[0m'
 
-error() {>&2 echo -e "${RED}ERROR${CLEAR}: $1"; return 1;}
+error() {>&2 echo -e "${RED}ERROR${CLEAR}: $1"; exit 1;}
 progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
 
 base_path=`pwd`
@@ -48,7 +48,7 @@ echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
 progress "Unit tests"
-make test.exe -j4                  || error "errors building unit tests"
+make test.exe -j4 VERBOSE=1        || error "errors building unit tests"
 NMC_NUM_THREADS=2 ./tests/test.exe || error "errors running unit tests"
 
 progress "Global communication tests"
