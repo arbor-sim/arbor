@@ -26,9 +26,10 @@ echo "base path  : ${base_path}"
 launch="NMC_NUM_THREADS=2"
 if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     echo "mpi        : enabled"
-    CXX="mpicxx -cxx=${CXX}"
-    CC="mpicc -cc=${CC}"
+    CXX="mpicxx"
+    CC="mpicc"
     launch="${launch} mpiexec -n 4"
+    CXX_FLAGS="-DCMAKE_CXX_FLAGS=-cxx=${CXX}"
 fi
 
 #
@@ -42,7 +43,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DNMC_WITH_ASSERTIONS=on -DNMC_THREADING_MODEL=${WITH_THREAD} -DNMC_DISTRIBUTED_MODEL=${WITH_DISTRIBUTED}"
+cmake_flags="-DNMC_WITH_ASSERTIONS=on -DNMC_THREADING_MODEL=${WITH_THREAD} -DNMC_DISTRIBUTED_MODEL=${WITH_DISTRIBUTED} ${CXX_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
