@@ -442,7 +442,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
                  var.second->is_procedure()->kind()==procedureKind::net_receive)
         {
             // Override `deliver_events`.
-            text_.add_line("void deliver_events(multi_event_stream& events) override {");
+            text_.add_line("void deliver_events(multi_event_stream<deliverable_event>& events) override {");
             text_.increase_indentation();
             text_.add_line("auto ncell = events.n_streams();");
             text_.add_line("constexpr int blockwidth = 128;");
@@ -755,7 +755,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line(       "__global__");
         text_.add_gutter() << "void deliver_events("
                            << module_->name() << "_ParamPack<T,I> params_, "
-                           << "I mech_id, multi_event_stream::span_state state) {";
+                           << "I mech_id, multi_event_stream<deliverable_event>::span_state state) {";
         text_.add_line();
         increase_indentation();
 
@@ -767,7 +767,8 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 
         text_.add_line("for (auto j = state.span_begin[tid_]; j<state.mark[tid_]; ++j) {");
         increase_indentation();
-        text_.add_line("if (state.ev_mech_id[j]==mech_id) net_receive<T, I>(params_, state.ev_index[j], state.ev_weight[j]);");
+        text_.add_line("const auto& data = state.ev_data[j];");
+        text_.add_line("if (data.mech_id==mech_id) net_receive<T, I>(params_, data.mech_index, data.weight);");
         decrease_indentation();
         text_.add_line("}");
 

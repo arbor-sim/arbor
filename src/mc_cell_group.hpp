@@ -94,6 +94,17 @@ public:
             lowered_.add_event(binned_ev_time, handle, ev->weight);
         }
 
+        // Set up sampling data structures.
+        // All *TODO*
+        // 1. for each association (probes, times, sampler):
+        // 1.1 ignore if not times in interval.
+        // 1.2 make a sequence of probes x times sample events for m.e.q
+        // 1.3 push sampler onto vec
+        // 1.4 push a new backend stack onto queue (maybe do this in fvm)
+        // 2. after integration, for ea. entry sampler in vec:
+        // 2.1 make a sequence of sample entries from corresponding backend stack
+        // 2.2 call sampler with ptr into sequence.
+
         lowered_.setup_integration(tfinal, dt);
 
         // Set up sample event queue.

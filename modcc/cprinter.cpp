@@ -331,14 +331,14 @@ std::string CPrinter::emit_source() {
     }
 
     if(override_deliver_events) {
-        text_.add_line("void deliver_events(multi_event_stream& events) override {");
+        text_.add_line("void deliver_events(multi_event_stream<deliverable_event>& events) override {");
         text_.increase_indentation();
         text_.add_line("auto ncell = events.n_streams();");
         text_.add_line("for (size_type c = 0; c<ncell; ++c) {");
         text_.increase_indentation();
-        text_.add_line("for (auto ev: events.marked_events(c)) {");
+        text_.add_line("for (auto ev_data: events.marked_events(c)) {");
         text_.increase_indentation();
-        text_.add_line("if (ev.handle.mech_id==mech_id_) net_receive(ev.handle.index, ev.weight);");
+        text_.add_line("if (ev_data.mech_id==mech_id_) net_receive(ev_data.mech_index, ev_data.weight);");
         text_.decrease_indentation();
         text_.add_line("}");
         text_.decrease_indentation();
