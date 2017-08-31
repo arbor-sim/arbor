@@ -8,8 +8,8 @@ namespace mpi {
 
 // global state
 namespace state {
-    int size = -1;
-    int rank = -1;
+    int size = 1;
+    int rank = 0;
 } // namespace state
 
 void init(int *argc, char ***argv) {

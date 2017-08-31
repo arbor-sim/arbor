@@ -4,55 +4,58 @@ BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
 CLEAR='\033[0m'
 
-error() {>&2 echo -e "${RED}ERROR${CLEAR}: $1";}
+error() {>&2 echo -e "${RED}ERROR${CLEAR}: $1"; return 1;}
 progress() { echo; echo -e "${YELLOW}STATUS${CLEAR}: $1"; echo;}
 
 base_path=`pwd`
 build_path=build-${BUILD_NAME}
 
+#
 # print build-specific and useful information
-progress "compiler versions"
+#
+progress "build environment information"
 
 compiler_version=`${CXX} -dumpversion`
 cmake_version=`cmake --version | grep version | awk '{print $3}'`
+
 echo "compiler   : ${compiler_version}"
 echo "cmake      : ${cmake_version}"
 echo "build path : ${build_path}"
 echo "base path  : ${base_path}"
 
+launch="NMC_NUM_THREADS=2"
+if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
+    echo "mpi        : enabled"
+    CXX="mpicxx -cxx=${CXX}"
+    CC="mpicc -cc=${CC}"
+    launch="${launch} mpiexec -n 4"
+fi
+
+#
 # make build path
+#
 mkdir -p $build_path
 cd $build_path
 
+#
 # run cmake
-progress "configuring with cmake"
+#
+progress "Configuring with cmake"
 
-cmake_flags="-DNMC_WITH_ASSERTIONS=on"
-cmake_flags="${cmake_flags} -DNMC_THREADING_MODEL=${WITH_THREAD}"
-
+cmake_flags="-DNMC_WITH_ASSERTIONS=on -DNMC_THREADING_MODEL=${WITH_THREAD} -DNMC_DISTRIBUTED_MODEL=${WITH_DISTRIBUTED}"
 echo "cmake flags: ${cmake_flags}"
-echo
-cmake .. ${cmake_flags}
-if [ $? -ne 0 ]; then
-    error "unable to configure with cmake ${cmake_flags}"
-    exit 2;
-fi
+cmake .. ${cmake_flags} || error "unable to configure cmake"
 
-for test_case in test.exe global_communication.exe
-do
-    progress "making $test_case"
-    make ${test_case} -j4 > /dev/null
-    if [ $? -ne 0 ]; then
-        error "unable to build ${test_case}"
-        exit 3;
-    fi
+progress "Unit tests"
+make test.exe -j4                  || error "errors building unit tests"
+NMC_NUM_THREADS=2 ./tests/test.exe || error "errors running unit tests"
 
-    progress "running $test_case"
-    NMC_NUM_THREADS=2 ./tests/${test_case}
-    if [ $? -ne 0 ]; then
-        error "some tests did not pass"
-        exit 4;
-    fi
-done
+progress "Global communication tests"
+make global_communication.exe -j4          || error "errors building global communication tests"
+${launch} ./tests/global_communication.exe || error "errors running global communication tests"
+
+progress "Miniapp spike comparison test"
+make miniapp.exe -j4                        || error "errors building miniapp"
+${launch} ./miniapp/miniapp.exe -n 10 -t 10 || error "errors running miniapp"
 
 cd $base_path

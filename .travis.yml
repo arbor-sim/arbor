@@ -6,22 +6,26 @@ compiler: gcc
 cache:
     apt: true
 
-apt:
-    sources:
-        - ubuntu-toolchain-r-test
+addons:
+    apt:
+        sources:
+            - ubuntu-toolchain-r-test
+        packages:
+            - g++-5
+            - mpich
+            - libmpich-dev
 
 env:
-    matrix:
-        - BUILD_NAME="debug"
-        - BUILD_NAME="debug-tbb"       WITH_THREAD=tbb
-    apt:
-        - packages:
-            - g++-5
-        - packages:
-            - g++-6
+    # test single node/rank with different threading back ends
+    - BUILD_NAME=serial   WITH_THREAD=serial   WITH_DISTRIBUTED=serial
+    #- BUILD_NAME=cthread  WITH_THREAD=cthread  WITH_DISTRIBUTED=serial
+    #- BUILD_NAME=tbb      WITH_THREAD=tbb      WITH_DISTRIBUTED=serial
+    # test mpi
+    - BUILD_NAME=mpi      WITH_THREAD=cthread  WITH_DISTRIBUTED=mpi
 
-before_script:
-    - source ./scripts/travis/defaults.sh
+before_install:
+    - CC=gcc-5
+    - CXX=g++-5
 
 script: source ./scripts/travis/run_build.sh
 
