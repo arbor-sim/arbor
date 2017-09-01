@@ -106,9 +106,10 @@ namespace mpi {
         std::vector<char> buffer(displs.back());
 
         PE("MPI", "Gather");
-        MPI_Gatherv(str.data(), counts[rank()], traits::mpi_type(),                  // send
-                    buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive
-                    root, MPI_COMM_WORLD);
+        MPI_Gatherv(
+            const_cast<std::string::value_type*>(str.data()), counts[rank()], traits::mpi_type(), // send
+            buffer.data(), counts.data(), displs.data(), traits::mpi_type(),                      // receive
+            root, MPI_COMM_WORLD);
         PL(2);
 
         // Unpack the raw string data into a vector of strings.

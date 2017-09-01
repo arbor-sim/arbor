@@ -51,7 +51,7 @@ cmake .. ${cmake_flags} || error "unable to configure cmake"
 export NMC_NUM_THREADS=2
 
 progress "Unit tests"
-make test.exe -j4 VERBOSE=1        || error "errors building unit tests"
+make test.exe -j4  || error "errors building unit tests"
 ./tests/test.exe || error "errors running unit tests"
 
 progress "Global communication tests"
