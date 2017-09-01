@@ -422,7 +422,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     std::reverse(local_spikes.begin(), local_spikes.end());
 
     std::vector<cell_gid_type> spike_gids = assign_from(
-        filter(make_span(0, D.groups.size()), f));
+        filter(make_span(0, D.num_global_cells), f));
 
     // gather the global set of spikes
     auto global_spikes = C.exchange(local_spikes);

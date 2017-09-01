@@ -107,6 +107,7 @@ namespace mpi {
 
         PE("MPI", "Gather");
         MPI_Gatherv(
+            // const_cast required for MPI implementations that don't use const* in their interfaces
             const_cast<std::string::value_type*>(str.data()), counts[rank()], traits::mpi_type(), // send
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),                      // receive
             root, MPI_COMM_WORLD);
@@ -139,7 +140,6 @@ namespace mpi {
             // send buffer
             // const_cast required for MPI implementations that don't use const* in their interfaces
             const_cast<T*>(values.data()), counts[rank()], traits::mpi_type(),
-            //(void*)values.data(), counts[rank()], traits::mpi_type(),
             // receive buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
@@ -173,7 +173,6 @@ namespace mpi {
             // send buffer
             // const_cast required for MPI implementations that don't use const* in their interfaces
             const_cast<T*>(values.data()), counts[rank()], traits::mpi_type(),
-            //(void*)values.data(), counts[rank()], traits::mpi_type(),
             // receive buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
