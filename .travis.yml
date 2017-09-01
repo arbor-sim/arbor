@@ -12,8 +12,8 @@ addons:
             - ubuntu-toolchain-r-test
         packages:
             - g++-5
-            - mpich
-            - libmpich-dev
+            - openmpi-bin
+            - libopenmpi-dev
 
 env:
     # test single node/rank with different threading back ends

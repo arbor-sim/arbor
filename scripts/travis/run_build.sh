@@ -26,10 +26,12 @@ echo "base path  : ${base_path}"
 launch="NMC_NUM_THREADS=2"
 if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     echo "mpi        : enabled"
-    CXX="mpicxx"
+    export OMPI_CC=${CC}
+    export OMPI_CXX=${CXX}
+    #CXX_FLAGS="-DCMAKE_CXX_FLAGS=-cxx=${CXX}"
     CC="mpicc"
+    CXX="mpicxx"
     launch="${launch} mpiexec -n 4"
-    CXX_FLAGS="-DCMAKE_CXX_FLAGS=-cxx=${CXX}"
 fi
 
 #
