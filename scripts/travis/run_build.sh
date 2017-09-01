@@ -23,7 +23,6 @@ echo "cmake      : ${cmake_version}"
 echo "build path : ${build_path}"
 echo "base path  : ${base_path}"
 
-launch="NMC_NUM_THREADS=2"
 if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     echo "mpi        : enabled"
     export OMPI_CC=${CC}
@@ -31,7 +30,7 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     #CXX_FLAGS="-DCMAKE_CXX_FLAGS=-cxx=${CXX}"
     CC="mpicc"
     CXX="mpicxx"
-    launch="${launch} mpiexec -n 4"
+    launch="mpiexec -n 4"
 fi
 
 #
@@ -49,9 +48,10 @@ cmake_flags="-DNMC_WITH_ASSERTIONS=on -DNMC_THREADING_MODEL=${WITH_THREAD} -DNMC
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
+export NMC_NUM_THREADS=2
+
 progress "Unit tests"
 make test.exe -j4 VERBOSE=1        || error "errors building unit tests"
-NMC_NUM_THREADS=2
 ./tests/test.exe || error "errors running unit tests"
 
 progress "Global communication tests"

@@ -136,7 +136,9 @@ namespace mpi {
         PE("MPI", "Allgatherv");
         MPI_Allgatherv(
             // send buffer
-            values.data(), counts[rank()], traits::mpi_type(),
+            // const_cast required for MPI implementations that don't use const* in their interfaces
+            const_cast<T*>(values.data()), counts[rank()], traits::mpi_type(),
+            //(void*)values.data(), counts[rank()], traits::mpi_type(),
             // receive buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
@@ -168,7 +170,9 @@ namespace mpi {
         PE("MPI", "Allgatherv-partition");
         MPI_Allgatherv(
             // send buffer
-            values.data(), counts[rank()], traits::mpi_type(),
+            // const_cast required for MPI implementations that don't use const* in their interfaces
+            const_cast<T*>(values.data()), counts[rank()], traits::mpi_type(),
+            //(void*)values.data(), counts[rank()], traits::mpi_type(),
             // receive buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
