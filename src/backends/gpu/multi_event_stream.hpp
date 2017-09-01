@@ -63,7 +63,7 @@ protected:
         }
 
         // Staged events should already be sorted by index.
-        EXPECT(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
+        EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
 
         std::size_t n_ev = staged.size();
 
@@ -71,12 +71,13 @@ protected:
         tmp_ev_time_.reserve(n_ev);
 
         util::assign_by(tmp_ev_time_, staged, [](const Event& ev) { return event_time(ev); });
-        memory::copy(tmp_ev_time_, ev_time_);
+        ev_time_ = array(memory::make_view(tmp_ev_time_));
 
         // Determine divisions by `event_index` in ev list.
         tmp_divs_.clear();
         tmp_divs_.reserve(n_stream_+1);
 
+        size_type n_nonempty = 0;
         size_type ev_begin_i = 0;
         size_type ev_i = 0;
         tmp_divs_.push_back(ev_i);
@@ -85,13 +86,13 @@ protected:
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
-            EXPECT(std::is_sorted(&tmp_ev_time_[ev_begin_i], &tmp_ev_time_[ev_i]));
+            EXPECTS(std::is_sorted(&tmp_ev_time_[ev_begin_i], &tmp_ev_time_[ev_i]));
             n_nonempty += (tmp_divs_.back()!=ev_i);
             tmp_divs_.push_back(ev_i);
             ev_begin_i = ev_i;
         }
 
-        EXPECT(tmp_divs_.size()==n_stream_+1);
+        EXPECTS(tmp_divs_.size()==n_stream_+1);
         memory::copy(memory::make_view(tmp_divs_)(0,n_stream_), span_begin_);
         memory::copy(memory::make_view(tmp_divs_)(1,n_stream_+1), span_end_);
         memory::copy(span_begin_, mark_);
@@ -113,8 +114,7 @@ protected:
 template <typename Event>
 class multi_event_stream: public multi_event_stream_base {
 public:
-    using event_type = Event;
-    using event_data_type = ::nest::mc::event_time_type<Event>;
+    using event_data_type = ::nest::mc::event_data_type<Event>;
     using data_array = memory::device_vector<event_data_type>;
 
     multi_event_stream() {}
@@ -128,11 +128,11 @@ public:
         multi_event_stream_base::init(staged);
 
         tmp_ev_data_.clear();
-        tmp_ev_data_.reserve(staged);
+        tmp_ev_data_.reserve(staged.size());
 
         using ::nest::mc::event_data;
         util::assign_by(tmp_ev_data_, staged, [](const Event& ev) { return event_data(ev); });
-        memory::copy(tmp_ev_data_, ev_data_);
+        ev_data_ = data_array(memory::make_view(tmp_ev_data_));
     }
 
     // Interface for access by mechanism kernels:

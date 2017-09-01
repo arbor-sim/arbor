@@ -13,6 +13,8 @@
 
 using namespace nest::mc;
 
+using deliverable_event_stream = gpu::multi_event_stream<deliverable_event>;
+
 namespace common_events {
     // set up four targets across three streams and two mech ids.
 
@@ -43,12 +45,13 @@ namespace common_events {
 }
 
 TEST(multi_event_stream, init) {
-    using multi_event_stream = gpu::multi_event_stream;
     using namespace common_events;
 
-    multi_event_stream m(n_cell);
+    deliverable_event_stream m(n_cell);
     EXPECT_EQ(n_cell, m.n_streams());
 
+    auto events = common_events::events;
+    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
     m.init(events);
     EXPECT_FALSE(m.empty());
 
@@ -65,7 +68,7 @@ struct ev_info {
 __global__
 void copy_marked_events_kernel(
     unsigned ci,
-    gpu::multi_event_stream::span_state state,
+    deliverable_event_stream::span_state state,
     ev_info* store,
     unsigned& count,
     unsigned max_ev)
@@ -76,12 +79,13 @@ void copy_marked_events_kernel(
     unsigned k = 0;
     for (auto j = state.span_begin[ci]; j<state.mark[ci]; ++j) {
         if (k>=max_ev) break;
-        store[k++] = {state.ev_mech_id[j], state.ev_index[j], state.ev_weight[j]};
+	auto data = state.ev_data[j];
+        store[k++] = {data.mech_id, data.mech_index, data.weight};
     }
     count = k;
 }
 
-std::vector<ev_info> copy_marked_events(int ci, gpu::multi_event_stream& m) {
+std::vector<ev_info> copy_marked_events(int ci, deliverable_event_stream& m) {
     unsigned max_ev = 1000;
     memory::device_vector<ev_info> store(max_ev);
     memory::device_vector<unsigned> counter(1);
@@ -94,12 +98,13 @@ std::vector<ev_info> copy_marked_events(int ci, gpu::multi_event_stream& m) {
 }
 
 TEST(multi_event_stream, mark) {
-    using multi_event_stream = gpu::multi_event_stream;
     using namespace common_events;
 
-    multi_event_stream m(n_cell);
+    deliverable_event_stream m(n_cell);
     ASSERT_EQ(n_cell, m.n_streams());
 
+    auto events = common_events::events;
+    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
     m.init(events);
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
@@ -124,12 +129,12 @@ TEST(multi_event_stream, mark) {
         case cell_2:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[1].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[1].index, evs.front().index);
+            EXPECT_EQ(handle[1].mech_index, evs.front().index);
             break;
         case cell_3:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[3].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[3].index, evs.front().index);
+            EXPECT_EQ(handle[3].mech_index, evs.front().index);
             break;
         default:
             EXPECT_EQ(0u, n_marked);
@@ -152,12 +157,12 @@ TEST(multi_event_stream, mark) {
         case cell_1:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[0].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[0].index, evs.front().index);
+            EXPECT_EQ(handle[0].mech_index, evs.front().index);
             break;
         case cell_2:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[2].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[2].index, evs.front().index);
+            EXPECT_EQ(handle[2].mech_index, evs.front().index);
             break;
         default:
             EXPECT_EQ(0u, n_marked);
@@ -172,12 +177,13 @@ TEST(multi_event_stream, mark) {
 }
 
 TEST(multi_event_stream, time_if_before) {
-    using multi_event_stream = gpu::multi_event_stream;
     using namespace common_events;
 
-    multi_event_stream m(n_cell);
+    deliverable_event_stream m(n_cell);
     ASSERT_EQ(n_cell, m.n_streams());
 
+    auto events = common_events::events;
+    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
     m.init(events);
 
     // Test times less than all event times (first event at t=2).

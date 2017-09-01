@@ -6,17 +6,15 @@
 #include <fvm_multicell.hpp>
 #include <util/rangeutil.hpp>
 
-#include "../test_common_cells.hpp"
+#include "common.hpp"
+#include "../common_cells.hpp"
+#include "../simple_recipes.hpp"
 
 using namespace nest::mc;
+using fvm_cell = fvm::fvm_multicell<nest::mc::gpu::backend>;
 
-using fvm_cell =
-    fvm::fvm_multicell<nest::mc::gpu::backend>;
-
-nest::mc::cell make_cell() {
-    using namespace nest::mc;
-
-    cell c = make_cell_ball_and_stick();
+cell make_cell() {
+    auto c = make_cell_ball_and_stick();
 
     c.add_detector({0, 0}, 0);
     c.segment(1)->set_compartments(101);
@@ -24,10 +22,9 @@ nest::mc::cell make_cell() {
     return c;
 }
 
-TEST(cell_group, test)
+TEST(mc_cell_group, test)
 {
-    using cell_group_type = mc_cell_group<fvm_cell>;
-    auto group = cell_group_type({0u}, util::singleton_view(make_cell()));
+    mc_cell_group<fvm_cell> group({0u}, cable1d_recipe(make_cell()));
 
     group.advance(50, 0.01);
 
