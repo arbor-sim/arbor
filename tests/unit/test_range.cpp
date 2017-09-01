@@ -22,6 +22,7 @@
 
 using namespace nest::mc;
 using testing::null_terminated;
+using testing::nocopy;
 
 TEST(range, list_iterator) {
     std::list<int> l = { 2, 4, 6, 8, 10 };
@@ -475,6 +476,43 @@ TEST(range, all_of_any_of) {
     EXPECT_FALSE(util::any_of(cstr("8765"), pred));
     EXPECT_TRUE(util::any_of(cstr("87654"), pred));
     EXPECT_TRUE(util::any_of(cstr("87654x"), pred));
+}
+
+TEST(range, keys) {
+    {
+        std::map<int, double> map = {{10, 2.0}, {3, 8.0}};
+        std::vector<int> expected = {3, 10};
+        std::vector<int> keys = util::assign_from(util::keys(map));
+        EXPECT_EQ(expected, keys);
+    }
+
+    {
+        struct cmp {
+            bool operator()(const nocopy<int>& a, const nocopy<int>& b) const {
+                return a.value<b.value;
+            }
+        };
+        std::map<nocopy<int>, double, cmp> map;
+        map.insert(std::pair<nocopy<int>, double>(11, 2.0));
+        map.insert(std::pair<nocopy<int>, double>(2,  0.3));
+        map.insert(std::pair<nocopy<int>, double>(2,  0.8));
+        map.insert(std::pair<nocopy<int>, double>(5,  0.1));
+
+        std::vector<int> expected = {2, 5, 11};
+        std::vector<int> keys;
+        for (auto& k: util::keys(map)) {
+            keys.push_back(k.value);
+        }
+        EXPECT_EQ(expected, keys);
+    }
+
+    {
+        std::unordered_multimap<int, double> map = {{3, 0.1}, {5, 0.4}, {11, 0.8}, {5, 0.2}};
+        std::vector<int> expected = {3, 5, 5, 11};
+        std::vector<int> keys = util::assign_from(util::keys(map));
+        util::sort(keys);
+        EXPECT_EQ(expected, keys);
+    }
 }
 
 #ifdef NMC_HAVE_TBB

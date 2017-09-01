@@ -1,52 +1,28 @@
 #include "../gtest.h"
 
+#include <stdexcept>
+
 #include <backends.hpp>
 #include <domain_decomposition.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
 
+#include "../simple_recipes.hpp"
+
 using namespace nest::mc;
 
 namespace {
-    //
-    // Dummy recipes type for testing.
-    //
+    // Dummy recipes types for testing.
 
-    // Homogenous cell population of cable cells.
-    class homo_recipe: public recipe {
-    public:
-        homo_recipe(cell_size_type s): size_(s)
-        {}
-
-        cell_size_type num_cells() const override {
-            return size_;
-        }
-
-        util::unique_any get_cell_description(cell_gid_type) const override {
-            return {};
-        }
-        cell_kind get_cell_kind(cell_gid_type) const override {
-            return cell_kind::cable1d_neuron;
-        }
-
-        cell_count_info get_cell_count_info(cell_gid_type) const override {
-            return {0, 0, 0};
-        }
-        std::vector<cell_connection> connections_on(cell_gid_type) const override {
-            return {};
-        }
-
-    private:
-        cell_size_type size_;
-    };
+    struct dummy_cell {};
+    using homo_recipe = homogeneous_recipe<cell_kind::cable1d_neuron, dummy_cell>;
 
     // Heterogenous cell population of cable and rss cells.
-    // Interleaved so that cells with even gid are cable cells, and even gid are
+    // Interleaved so that cells with even gid are cable cells, and odd gid are
     // rss cells.
     class hetero_recipe: public recipe {
     public:
-        hetero_recipe(cell_size_type s): size_(s)
-        {}
+        hetero_recipe(cell_size_type s): size_(s) {}
 
         cell_size_type num_cells() const override {
             return size_;
@@ -55,17 +31,23 @@ namespace {
         util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
+
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return gid%2?
                 cell_kind::regular_spike_source:
                 cell_kind::cable1d_neuron;
         }
 
-        cell_count_info get_cell_count_info(cell_gid_type) const override {
-            return {0, 0, 0};
-        }
+        cell_size_type num_sources(cell_gid_type) const override { return 0; }
+        cell_size_type num_targets(cell_gid_type) const override { return 0; }
+        cell_size_type num_probes(cell_gid_type) const override { return 0; }
+
         std::vector<cell_connection> connections_on(cell_gid_type) const override {
             return {};
+        }
+
+        probe_info get_probe(cell_member_type) const override {
+            throw std::logic_error("no probes");
         }
 
     private:
@@ -82,7 +64,7 @@ TEST(domain_decomposition, homogenous_population)
         hw::node_info nd(1, 0);
 
         unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells), nd);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -110,7 +92,7 @@ TEST(domain_decomposition, homogenous_population)
         hw::node_info nd(1, 1);
 
         unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells), nd);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);

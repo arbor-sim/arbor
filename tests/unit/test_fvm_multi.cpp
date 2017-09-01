@@ -7,11 +7,14 @@
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
+#include <recipe.hpp>
+#include <sampler_map.hpp>
 #include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 
 #include "../test_util.hpp"
-#include "../test_common_cells.hpp"
+#include "../common_cells.hpp"
+#include "../simple_recipes.hpp"
 
 using fvm_cell =
     nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
@@ -23,10 +26,10 @@ TEST(fvm_multi, cable)
     nest::mc::cell cell=make_cell_ball_and_3stick();
 
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::probe_handle> probes;
+    probe_association_map<fvm_cell::probe_handle> probe_map;
 
     fvm_cell fvcell;
-    fvcell.initialize(util::singleton_view(cell), targets, probes);
+    fvcell.initialize({0}, cable1d_recipe(cell), targets, probe_map);
 
     auto& J = fvcell.jacobian();
 
@@ -66,10 +69,10 @@ TEST(fvm_multi, init)
     cell.segment(1)->set_compartments(10);
 
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::probe_handle> probes;
+    probe_association_map<fvm_cell::probe_handle> probe_map;
 
     fvm_cell fvcell;
-    fvcell.initialize(util::singleton_view(cell), targets, probes);
+    fvcell.initialize({0}, cable1d_recipe(cell), targets, probe_map);
 
     // This is naughty: removing const from the matrix reference, but is needed
     // to test the build_matrix() method below (which is only accessable
@@ -103,7 +106,6 @@ TEST(fvm_multi, init)
     };
     EXPECT_TRUE(is_neg(mat.u(1, J.size())));
     EXPECT_TRUE(is_pos(mat.d));
-
 }
 
 TEST(fvm_multi, multi_init)
@@ -129,11 +131,13 @@ TEST(fvm_multi, multi_init)
 
     cells[1].add_detector({0, 0}, 3.3);
 
-    std::vector<fvm_cell::target_handle> targets(4);
-    std::vector<fvm_cell::probe_handle> probes;
+    std::vector<fvm_cell::target_handle> targets;
+    probe_association_map<fvm_cell::probe_handle> probe_map;
 
     fvm_cell fvcell;
-    fvcell.initialize(cells, targets, probes);
+    fvcell.initialize({0, 1}, cable1d_recipe(cells), targets, probe_map);
+
+    EXPECT_EQ(4u, targets.size());
 
     auto& J = fvcell.jacobian();
     EXPECT_EQ(J.size(), 5u+13u);
@@ -169,7 +173,6 @@ TEST(fvm_multi, multi_init)
 TEST(fvm_multi, stimulus)
 {
     using namespace nest::mc;
-    using util::singleton_view;
 
     // the default ball and stick has one stimulus at the terminal end of the dendrite
     auto cell = make_cell_ball_and_stick();
@@ -191,10 +194,10 @@ TEST(fvm_multi, stimulus)
     // as during the stimulus windows.
 
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::probe_handle> probes;
+    probe_association_map<fvm_cell::probe_handle> probe_map;
 
     fvm_cell fvcell;
-    fvcell.initialize(singleton_view(cell), targets, probes);
+    fvcell.initialize({0}, cable1d_recipe(cell), targets, probe_map);
 
     auto ref = fvcell.find_mechanism("stimulus");
     ASSERT_TRUE(ref) << "no stimuli retrieved from lowered fvm cell: expected 2";
@@ -283,10 +286,10 @@ TEST(fvm_multi, mechanism_indexes)
 
     // generate the lowered fvm cell
     std::vector<fvm_cell::target_handle> targets;
-    std::vector<fvm_cell::probe_handle> probes;
+    probe_association_map<fvm_cell::probe_handle> probe_map;
 
     fvm_cell fvcell;
-    fvcell.initialize(util::singleton_view(c), targets, probes);
+    fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
 
     // make vectors with the expected CV indexes for each mechanism
     std::vector<unsigned> hh_index  = {0u, 4u, 5u, 6u, 7u, 8u};
@@ -380,11 +383,11 @@ void run_target_handle_test(std::vector<handle_info> all_handles) {
     }
 
     auto n = all_handles.size();
-    std::vector<fvm_cell::target_handle> targets(n);
-    std::vector<fvm_cell::probe_handle> probes;
+    std::vector<fvm_cell::target_handle> targets;
+    probe_association_map<fvm_cell::probe_handle> probe_map;
 
     fvm_cell fvcell;
-    fvcell.initialize(cells, targets, probes);
+    fvcell.initialize({0, 1}, cable1d_recipe(cells), targets, probe_map);
 
     ASSERT_EQ(n, util::size(targets));
     unsigned i = 0;

@@ -7,8 +7,8 @@
 #include <common_types.hpp>
 #include <event_binner.hpp>
 #include <event_queue.hpp>
-#include <probes.hpp>
-#include <sampler_function.hpp>
+#include <sampling.hpp>
+#include <schedule.hpp>
 #include <spike.hpp>
 
 namespace nest {
@@ -26,8 +26,13 @@ public:
     virtual void enqueue_events(const std::vector<postsynaptic_spike_event>& events) = 0;
     virtual const std::vector<spike>& spikes() const = 0;
     virtual void clear_spikes() = 0;
-    virtual void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) = 0;
-    virtual std::vector<probe_record> probes() const = 0;
+
+    // Sampler association methods below should be thread-safe, as they might be invoked
+    // from a sampler call back called from a different cell group running on a different thread.
+
+    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) = 0;
+    virtual void remove_sampler(sampler_association_handle) = 0;
+    virtual void remove_all_samplers() = 0;
 };
 
 using cell_group_ptr = std::unique_ptr<cell_group>;
