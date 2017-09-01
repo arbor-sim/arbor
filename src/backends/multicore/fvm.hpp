@@ -48,11 +48,12 @@ struct backend {
     using host_iview  = iview;
 
     using matrix_state = nest::mc::multicore::matrix_state<value_type, size_type>;
-    using multi_event_stream = nest::mc::multicore::multi_event_stream;
 
     // re-expose common backend event types
     using deliverable_event = nest::mc::deliverable_event;
     using target_handle = nest::mc::target_handle;
+
+    using deliverable_event_stream = nest::mc::multicore::multi_event_stream<deliverable_event>;
 
     //
     // mechanism infrastructure

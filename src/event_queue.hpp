@@ -39,6 +39,14 @@ struct postsynaptic_spike_event {
     }
 };
 
+// TODO: replace/move as part of new smapling
+struct sample_event {
+    using size_type = std::uint32_t;
+
+    size_type sampler_index;
+    time_type time;
+};
+
 template <typename Event>
 class event_queue {
 public :

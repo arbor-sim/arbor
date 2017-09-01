@@ -60,7 +60,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("using const_view = typename base::const_view;");
     text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using ion_type = typename base::ion_type;");
-    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
+    text_.add_line("using deliverable_event_stream = typename base::deliverable_event_stream;");
     text_.add_line();
 
     //////////////////////////////////////////////
@@ -331,7 +331,7 @@ std::string CPrinter::emit_source() {
     }
 
     if(override_deliver_events) {
-        text_.add_line("void deliver_events(multi_event_stream<deliverable_event>& events) override {");
+        text_.add_line("void deliver_events(deliverable_event_stream& events) override {");
         text_.increase_indentation();
         text_.add_line("auto ncell = events.n_streams();");
         text_.add_line("for (size_type c = 0; c<ncell; ++c) {");

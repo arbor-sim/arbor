@@ -104,6 +104,7 @@ public:
 
         EXPECTS(!has_pending_events());
 
+        util::stable_sort_by(staged_events_, [](const deliverable_event& ev) { return event_index(ev); });
         events_->init(staged_events_);
         staged_events_.clear();
     }
@@ -290,9 +291,8 @@ private:
     std::vector<deliverable_event> staged_events_;
 
     /// event queue for integration period
-    template <typename Event>
-    using multi_event_stream = typename backend::multi_event_stream<Event>;
-    std::unique_ptr<multi_event_stream<deliverable_event>> events_;
+    using deliverable_event_stream = typename backend::deliverable_event_stream;
+    std::unique_ptr<deliverable_event_stream> events_;
 
     bool has_pending_events() const {
         return events_ && !events_->empty();
@@ -592,7 +592,7 @@ void fvm_multicell<Backend>::initialize(
     std::vector<size_type> group_parent_index(ncomp);
 
     // setup per-cell event stores.
-    events_ = util::make_unique<multi_event_stream<deliverable_event>>(ncell_);
+    events_ = util::make_unique<deliverable_event_stream>(ncell_);
 
     // Create each cell:
 

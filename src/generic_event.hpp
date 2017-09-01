@@ -52,7 +52,7 @@ auto event_index(const Event& ev) -> decltype(ev.index) {
 }
 
 template <typename Event>
-auto event_data(const Event& ev) -> decltype(ev.index) {
+auto event_data(const Event& ev) -> decltype(ev.data) {
     return ev.data;
 }
 

@@ -14,8 +14,8 @@ struct target_handle {
     cell_size_type cell_index;       // which cell (acts as index into e.g. vec_t)
 
     target_handle() {}
-    target_handle(cell_local_size_type mech_id, cell_local_size_type index, cell_size_type cell_index):
-        mech_id(mech_id), index(index), cell_index(cell_index) {}
+    target_handle(cell_local_size_type mech_id, cell_local_size_type mech_index, cell_size_type cell_index):
+        mech_id(mech_id), mech_index(mech_index), cell_index(cell_index) {}
 };
 
 struct deliverable_event {
@@ -30,8 +30,8 @@ struct deliverable_event {
 };
 
 // Stream index accessor function for multi_event_stream:
-inline cell_size_type index(const deliverable_event& ev) {
-    return ev.value.cell_index;
+inline cell_size_type event_index(const deliverable_event& ev) {
+    return ev.handle.cell_index;
 }
 
 // Subset of event information required for mechanism delivery.
@@ -42,7 +42,7 @@ struct deliverable_event_data {
 };
 
 // Delivery data accessor function for multi_event_stream:
-inline deliverable_event_data data(const deliverable_event& ev) {
+inline deliverable_event_data event_data(const deliverable_event& ev) {
     return {ev.handle.mech_id, ev.handle.mech_index, ev.weight};
 }
 

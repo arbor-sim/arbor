@@ -2,9 +2,10 @@
 
 #include <algorithm>
 #include <iterator>
-#include <sstream>
+#include <functional>
 #include <list>
 #include <numeric>
+#include <sstream>
 #include <type_traits>
 
 #ifdef NMC_HAVE_TBB
@@ -23,6 +24,7 @@
 using namespace nest::mc;
 using testing::null_terminated;
 using testing::nocopy;
+using testing::nomove;
 
 TEST(range, list_iterator) {
     std::list<int> l = { 2, 4, 6, 8, 10 };
@@ -513,6 +515,88 @@ TEST(range, keys) {
         util::sort(keys);
         EXPECT_EQ(expected, keys);
     }
+}
+
+TEST(range, is_sorted_by) {
+    // Use `nomove` wrapper to count potential copies: implementation aims to
+    // minimize copies of projection return value, and invocations of the projection function.
+
+    struct cmp_nomove_ {
+        bool operator()(const nomove<int>& a, const nomove<int>& b) const {
+            return a.value<b.value;
+        }
+    } cmp_nomove;
+
+    int invocations = 0;
+    auto copies = []() { return nomove<int>::copy_ctor_count+nomove<int>::copy_assign_count; };
+    auto reset = [&]() { invocations = 0; nomove<int>::reset_counts(); };
+
+    auto id_copy = [&](const nomove<int>& x) -> const nomove<int>& { return ++invocations, x; };
+    auto get_value = [&](const nomove<int>& x) { return ++invocations, x.value; };
+
+    // 1. sorted non-empty vector
+
+    std::vector<nomove<int>> v_sorted = {10, 13, 13, 15, 16};
+    int n = v_sorted.size();
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_sorted, get_value));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(n, invocations);
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_sorted, id_copy, cmp_nomove));
+    EXPECT_EQ(n, copies());
+    EXPECT_EQ(n, invocations);
+
+    // 2. empty vector
+
+    std::vector<nomove<int>> v_empty;
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_empty, id_copy, cmp_nomove));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(0, invocations);
+
+    // 3. one-element vector
+
+    std::vector<nomove<int>> v_single = {-44};
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_single, id_copy, cmp_nomove));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(0, invocations);
+
+    // 4. unsorted vectors at second, third, fourth elements.
+
+    std::vector<nomove<int>> v_unsorted_2 = {2, 1, 3, 4};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_2, id_copy, cmp_nomove));
+    EXPECT_EQ(2, copies());
+    EXPECT_EQ(2, invocations);
+
+    std::vector<nomove<int>> v_unsorted_3 = {2, 3, 1, 4};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_3, id_copy, cmp_nomove));
+    EXPECT_EQ(3, copies());
+    EXPECT_EQ(3, invocations);
+
+    std::vector<nomove<int>> v_unsorted_4 = {2, 3, 4, 1};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_4, id_copy, cmp_nomove));
+    EXPECT_EQ(4, copies());
+    EXPECT_EQ(4, invocations);
+
+    // 5. sequence defined by input (not forward) iterator.
+
+    std::istringstream s_reversed("18 15 13 13 11");
+    auto seq = util::make_range(std::istream_iterator<int>(s_reversed), std::istream_iterator<int>());
+    EXPECT_FALSE(util::is_sorted_by(seq, [](int x) { return x+2; }));
+    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return 2-x; }));
+    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
 }
 
 #ifdef NMC_HAVE_TBB

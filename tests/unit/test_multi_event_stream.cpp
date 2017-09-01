@@ -3,6 +3,7 @@
 
 #include <backends/event.hpp>
 #include <backends/multicore/multi_event_stream.hpp>
+#include <util/rangeutil.hpp>
 
 using namespace nest::mc;
 
@@ -36,12 +37,14 @@ namespace common_events {
 }
 
 TEST(multi_event_stream, init) {
-    using multi_event_stream = multicore::multi_event_stream;
+    using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
     using namespace common_events;
 
     multi_event_stream m(n_cell);
     EXPECT_EQ(n_cell, m.n_streams());
 
+    auto events = common_events::events;
+    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
     m.init(events);
     EXPECT_FALSE(m.empty());
 
@@ -50,12 +53,14 @@ TEST(multi_event_stream, init) {
 }
 
 TEST(multi_event_stream, mark) {
-    using multi_event_stream = multicore::multi_event_stream;
+    using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
     using namespace common_events;
 
     multi_event_stream m(n_cell);
     ASSERT_EQ(n_cell, m.n_streams());
 
+    auto events = common_events::events;
+    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
     m.init(events);
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
@@ -78,13 +83,13 @@ TEST(multi_event_stream, mark) {
         switch (i) {
         case cell_2:
             EXPECT_EQ(1u, n_marked);
-            EXPECT_EQ(handle[1].mech_id, evs.front().handle.mech_id);
-            EXPECT_EQ(handle[1].index, evs.front().handle.index);
+            EXPECT_EQ(handle[1].mech_id, evs.front().mech_id);
+            EXPECT_EQ(handle[1].mech_index, evs.front().mech_index);
             break;
         case cell_3:
             EXPECT_EQ(1u, n_marked);
-            EXPECT_EQ(handle[3].mech_id, evs.front().handle.mech_id);
-            EXPECT_EQ(handle[3].index, evs.front().handle.index);
+            EXPECT_EQ(handle[3].mech_id, evs.front().mech_id);
+            EXPECT_EQ(handle[3].mech_index, evs.front().mech_index);
             break;
         default:
             EXPECT_EQ(0u, n_marked);
@@ -106,13 +111,13 @@ TEST(multi_event_stream, mark) {
         switch (i) {
         case cell_1:
             EXPECT_EQ(1u, n_marked);
-            EXPECT_EQ(handle[0].mech_id, evs.front().handle.mech_id);
-            EXPECT_EQ(handle[0].index, evs.front().handle.index);
+            EXPECT_EQ(handle[0].mech_id, evs.front().mech_id);
+            EXPECT_EQ(handle[0].mech_index, evs.front().mech_index);
             break;
         case cell_2:
             EXPECT_EQ(1u, n_marked);
-            EXPECT_EQ(handle[2].mech_id, evs.front().handle.mech_id);
-            EXPECT_EQ(handle[2].index, evs.front().handle.index);
+            EXPECT_EQ(handle[2].mech_id, evs.front().mech_id);
+            EXPECT_EQ(handle[2].mech_index, evs.front().mech_index);
             break;
         default:
             EXPECT_EQ(0u, n_marked);
@@ -127,12 +132,14 @@ TEST(multi_event_stream, mark) {
 }
 
 TEST(multi_event_stream, time_if_before) {
-    using multi_event_stream = multicore::multi_event_stream;
+    using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
     using namespace common_events;
 
     multi_event_stream m(n_cell);
     ASSERT_EQ(n_cell, m.n_streams());
 
+    auto events = common_events::events;
+    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
     m.init(events);
 
     // Test times less than all event times (first event at t=2).

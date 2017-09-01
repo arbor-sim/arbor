@@ -39,7 +39,7 @@ public:
 
     using ion_type = ion<backend>;
 
-    using multi_event_stream = typename backend::multi_event_stream;
+    using deliverable_event_stream = typename backend::deliverable_event_stream;
 
     mechanism(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, iarray&& node_index):
         mech_id_(mech_id),
@@ -66,7 +66,7 @@ public:
     virtual void nrn_init()     = 0;
     virtual void nrn_state()    = 0;
     virtual void nrn_current()  = 0;
-    virtual void deliver_events(multi_event_stream& events) {};
+    virtual void deliver_events(deliverable_event_stream& events) {};
     virtual bool uses_ion(ionKind) const = 0;
     virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
     virtual mechanismKind kind() const = 0;

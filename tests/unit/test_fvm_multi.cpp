@@ -397,7 +397,7 @@ void run_target_handle_test(std::vector<handle_info> all_handles) {
             const auto& mech = fvcell.mechanisms()[targets[i].mech_id];
             const auto& cvidx = mech->node_index();
             EXPECT_EQ(h.mech, mech->name());
-            EXPECT_EQ(h.cv, cvidx[targets[i].index]);
+            EXPECT_EQ(h.cv, cvidx[targets[i].mech_index]);
             EXPECT_EQ(h.cell, targets[i].cell_index);
             ++i;
         }
