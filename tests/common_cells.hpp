@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include <cell.hpp>
+#include <recipe.hpp>
 #include <segment.hpp>
 #include <math.hpp>
 #include <parameter_list.hpp>
@@ -293,23 +294,6 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
         // stimulus in the middle of our zero-volume 'soma'
         // corresponds to proximal end of cable.
         c.add_stimulus({0,0.5}, {0., math::infinity<>(), I});
-    }
-    return c;
-}
-
-
-/*
- * Attach voltage probes at each cable mid-point and end-point,
- * and at soma mid-point.
- */
-
-inline cell& add_common_voltage_probes(cell& c) {
-    auto ns = c.num_segments();
-    for (auto i=0u; i<ns; ++i) {
-        c.add_probe({{i, 0.5}, probeKind::membrane_voltage});
-        if (i>0) {
-            c.add_probe({{i, 1.0}, probeKind::membrane_voltage});
-        }
     }
     return c;
 }

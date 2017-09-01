@@ -16,6 +16,7 @@ set(BASE_SOURCES
     profiling/meter_manager.cpp
     profiling/power_meter.cpp
     profiling/profiler.cpp
+    schedule.cpp
     swcio.cpp
     threading/threading.cpp
     util/debug.cpp

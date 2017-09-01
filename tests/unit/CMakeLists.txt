@@ -61,12 +61,14 @@ set(TEST_SOURCES
     test_path.cpp
     test_point.cpp
     test_probe.cpp
-    test_segment.cpp
     test_range.cpp
+    test_segment.cpp
+    test_schedule.cpp
     test_rss_cell.cpp
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp
+    test_stats.cpp
     test_stimulus.cpp
     test_strprintf.cpp
     test_swcio.cpp
@@ -79,6 +81,9 @@ set(TEST_SOURCES
 
     # unit test driver
     test.cpp
+
+    # common routines
+    stats.cpp
 )
 
 
