@@ -3,8 +3,6 @@ sudo: false
 os: linux
 dist: trusty
 compiler: gcc
-cache:
-    apt: true
 
 addons:
     apt:
