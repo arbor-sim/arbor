@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -11,38 +12,17 @@
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
 
+#include "../simple_recipes.hpp"
+
 using namespace nest::mc;
 
 using communicator_type = communication::communicator<communication::global_policy>;
 
 namespace {
-    // Homogenous cell population of cable cells.
-    class homo_recipe: public recipe {
-    public:
-        homo_recipe(cell_size_type s): size_(s)
-        {}
+    // Dummy recipes types for testing.
 
-        cell_size_type num_cells() const override {
-            return size_;
-        }
-
-        util::unique_any get_cell_description(cell_gid_type) const override {
-            return {};
-        }
-        cell_kind get_cell_kind(cell_gid_type) const override {
-            return cell_kind::cable1d_neuron;
-        }
-
-        cell_count_info get_cell_count_info(cell_gid_type) const override {
-            return {0, 0, 0};
-        }
-        std::vector<cell_connection> connections_on(cell_gid_type) const override {
-            return {};
-        }
-
-    private:
-        cell_size_type size_;
-    };
+    struct dummy_cell {};
+    using homo_recipe = homogeneous_recipe<cell_kind::cable1d_neuron, dummy_cell>;
 
     // Heterogenous cell population of cable and rss cells.
     // Interleaved so that cells with even gid are cable cells, and even gid are
@@ -59,17 +39,23 @@ namespace {
         util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
+
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return gid%2?
                 cell_kind::regular_spike_source:
                 cell_kind::cable1d_neuron;
         }
 
-        cell_count_info get_cell_count_info(cell_gid_type) const override {
-            return {0, 0, 0};
-        }
+        cell_size_type num_sources(cell_gid_type) const override { return 0; }
+        cell_size_type num_targets(cell_gid_type) const override { return 0; }
+        cell_size_type num_probes(cell_gid_type) const override { return 0; }
+
         std::vector<cell_connection> connections_on(cell_gid_type) const override {
             return {};
+        }
+
+        probe_info get_probe(cell_member_type) const override {
+            throw std::logic_error("no probes");
         }
 
     private:
@@ -77,7 +63,7 @@ namespace {
     };
 }
 
-TEST(domain_decomp, homogeneous) {
+TEST(domain_decomposition, homogeneous_population) {
     const auto N = communication::global_policy::size();
     const auto I = communication::global_policy::id();
 
@@ -90,7 +76,7 @@ TEST(domain_decomp, homogeneous) {
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global), nd);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -124,7 +110,7 @@ TEST(domain_decomp, homogeneous) {
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global), nd);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -152,7 +138,7 @@ TEST(domain_decomp, homogeneous) {
     }
 }
 
-TEST(domain_decomp, heterogeneous) {
+TEST(domain_decomposition, heterogeneous_population) {
     const auto N = communication::global_policy::size();
     const auto I = communication::global_policy::id();
 
