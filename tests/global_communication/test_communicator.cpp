@@ -1,9 +1,6 @@
 #include "../gtest.h"
 
-#include <cstdio>
-#include <fstream>
-#include <iostream>
-#include <string>
+#include <stdexcept>
 #include <vector>
 
 #include <communication/communicator.hpp>
@@ -200,9 +197,9 @@ namespace {
             return gid%2? cell_kind::cable1d_neuron: cell_kind::regular_spike_source;
         }
 
-        cell_count_info get_cell_count_info(cell_gid_type) const override {
-            return {1, 1, 0};
-        }
+        cell_size_type num_sources(cell_gid_type) const override { return 1; }
+        cell_size_type num_targets(cell_gid_type) const override { return 1; }
+        cell_size_type num_probes(cell_gid_type) const override { return 0; }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             // a single connection from the preceding cell, i.e. a ring
@@ -216,11 +213,14 @@ namespace {
                         1.0f)};     // delay
         }
 
+        probe_info get_probe(cell_member_type) const override {
+            throw std::logic_error("no probes");
+        }
+
     private:
         cell_size_type size_;
         cell_size_type ranks_;
     };
-
 
     cell_gid_type source_of(cell_gid_type gid, cell_size_type num_cells) {
         if (gid) {
@@ -264,9 +264,9 @@ namespace {
             return gid%2? cell_kind::cable1d_neuron: cell_kind::regular_spike_source;
         }
 
-        cell_count_info get_cell_count_info(cell_gid_type) const override {
-            return {1, size_, 0};    // sources, targets, probes
-        }
+        cell_size_type num_sources(cell_gid_type) const override { return 1; }
+        cell_size_type num_targets(cell_gid_type) const override { return size_; }
+        cell_size_type num_probes(cell_gid_type) const override { return 0; }
 
         std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
             std::vector<cell_connection> cons;
@@ -280,6 +280,10 @@ namespace {
                 cons.push_back(con);
             }
             return cons;
+        }
+
+        probe_info get_probe(cell_member_type) const override {
+            throw std::logic_error("no probes");
         }
 
     private:
@@ -326,7 +330,6 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
     using util::assign_from;
     using util::filter;
 
-
     auto gids = get_gids(D);
     auto group_map = get_group_map(D);
 
@@ -338,7 +341,7 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
     // gather the global set of spikes
     auto global_spikes = C.exchange(local_spikes);
     if (global_spikes.size()!=policy::sum(local_spikes.size())) {
-        return ::testing::AssertionFailure() << " the number of gathered spikes "
+        return ::testing::AssertionFailure() << "the number of gathered spikes "
             << global_spikes.size() << " doesn't match the expected "
             << policy::sum(local_spikes.size());
     }
@@ -354,6 +357,7 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
     // Iterate over each local gid, and testing whether an event is expected for
     // that gid. If so, look up the event queue of the cell_group of gid, and
     // search for the expected event.
+    int expected_count = 0;
     for (auto gid: gids) {
         auto src = source_of(gid, D.num_global_cells);
         if (f(src)) {
@@ -362,8 +366,9 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
             auto& q = queues[grp];
             if (std::find(q.begin(), q.end(), expected)==q.end()) {
                 return ::testing::AssertionFailure()
-                    << " expected event " << expected << " was not found";
+                    << "expected event " << expected << " was not found";
             }
+            ++expected_count;
         }
     }
 
@@ -373,9 +378,12 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
     int num_events = std::accumulate(queues.begin(), queues.end(), 0,
             [](int l, decltype(queues.front())& r){return l + r.size();});
 
-    int expected_events = util::size(filter(gids, f));
+    if (expected_count!=num_events) {
+        return ::testing::AssertionFailure() <<
+            "the number of events " << num_events <<
+            " does not match expected count " << expected_count;
+    }
 
-    EXPECT_EQ(policy::sum(expected_events), policy::sum(num_events));
     return ::testing::AssertionSuccess();
 }
 
@@ -399,9 +407,9 @@ TEST(communicator, ring)
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
     // last cell in each domain fires
     EXPECT_TRUE(test_ring(D, C, [n_local](cell_gid_type g){return (g+1)%n_local == 0u;}));
-    // oddly numbered cells fire
+    // even-numbered cells fire
     EXPECT_TRUE(test_ring(D, C, [n_local](cell_gid_type g){return g%2==0;}));
-    // oddly numbered cells fire
+    // odd-numbered cells fire
     EXPECT_TRUE(test_ring(D, C, [n_local](cell_gid_type g){return g%2==1;}));
 }
 
@@ -427,7 +435,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     // gather the global set of spikes
     auto global_spikes = C.exchange(local_spikes);
     if (global_spikes.size()!=policy::sum(local_spikes.size())) {
-        return ::testing::AssertionFailure() << " the number of gathered spikes "
+        return ::testing::AssertionFailure() << "the number of gathered spikes "
             << global_spikes.size() << " doesn't match the expected "
             << policy::sum(local_spikes.size());
     }
@@ -443,6 +451,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     // Iterate over each local gid, and testing whether an event is expected for
     // that gid. If so, look up the event queue of the cell_group of gid, and
     // search for the expected event.
+    int expected_count = 0;
     for (auto gid: gids) {
         // get the event queue that this gid belongs to
         auto& q = queues[group_map[gid]];
@@ -453,6 +462,7 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
                     << "expected event " << expected
                     << " from " << src << " was not found";
             }
+            ++expected_count;
         }
     }
 
@@ -462,9 +472,12 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     int num_events = std::accumulate(queues.begin(), queues.end(), 0,
             [](int l, decltype(queues.front())& r){return l + r.size();});
 
-    int expected_events = D.num_global_cells*spike_gids.size();
+    if (expected_count!=num_events) {
+        return ::testing::AssertionFailure() <<
+            "the number of events " << num_events <<
+            " does not match expected count " << expected_count;
+    }
 
-    EXPECT_EQ(expected_events, policy::sum(num_events));
     return ::testing::AssertionSuccess();
 }
 
@@ -488,8 +501,8 @@ TEST(communicator, all2all)
     EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return true;}));
     // only cell 0 fires
     EXPECT_TRUE(test_all2all(D, C, [n_local](cell_gid_type g){return g==0u;}));
-    // oddly numbered cells fire
+    // even-numbered cells fire
     EXPECT_TRUE(test_all2all(D, C, [n_local](cell_gid_type g){return g%2==0;}));
-    // oddly numbered cells fire
+    // odd-numbered cells fire
     EXPECT_TRUE(test_all2all(D, C, [n_local](cell_gid_type g){return g%2==1;}));
 }

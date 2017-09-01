@@ -59,7 +59,7 @@ private:
     /// TODO : it might be an idea to use a resizeable buffer
     template <typename... Args>
     void printf_helper(const char* s, Args&&... args) {
-        snprintf(buffer_, sizeof(buffer_), s, std::forward<Args>(args)...);
+        std::snprintf(buffer_, sizeof(buffer_), s, std::forward<Args>(args)...);
         print(buffer_);
     }
 
@@ -110,7 +110,7 @@ public:
                 test_case.name()
             );
         }
-        printf_helper("\n");
+        print("\n");
     }
 
     // Called before a test starts.
