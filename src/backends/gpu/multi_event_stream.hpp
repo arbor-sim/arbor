@@ -7,6 +7,7 @@
 #include <generic_event.hpp>
 #include <memory/array.hpp>
 #include <memory/copy.hpp>
+#include <util/rangeutil.hpp>
 
 namespace nest {
 namespace mc {
@@ -62,7 +63,7 @@ protected:
         }
 
         // Staged events should already be sorted by index.
-        EXPECT(algorithm::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
+        EXPECT(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
 
         std::size_t n_ev = staged.size();
 
@@ -84,9 +85,10 @@ protected:
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
-            EXPECT(std::is_sorted(&ev_time_[ev_begin], &ev_time_[ev_i]));
+            EXPECT(std::is_sorted(&tmp_ev_time_[ev_begin_i], &tmp_ev_time_[ev_i]));
             n_nonempty += (tmp_divs_.back()!=ev_i);
             tmp_divs_.push_back(ev_i);
+            ev_begin_i = ev_i;
         }
 
         EXPECT(tmp_divs_.size()==n_stream_+1);

@@ -41,8 +41,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <backends/gpu/fvm.hpp>");
     text_.add_line("#include <backends/gpu/intrinsics.hpp>");
-    text_.add_line("#include <backends/gpu/multi_event_stream.hpp>");
     text_.add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
@@ -115,7 +115,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("namespace kernels {");
     {
         increase_indentation();
-        text_.add_line("using nest::mc::gpu::multi_event_stream;");
+        text_.add_line("using deliverable_event_stream = nest::mc::gpu::backend::deliverable_event_stream;");
 
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
@@ -162,7 +162,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using typename base::const_iview;");
     text_.add_line("using typename base::const_view;");
     text_.add_line("using typename base::ion_type;");
-    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
+    text_.add_line("using deliverable_event_stream = typename base::deliverable_event_stream;");
     text_.add_line("using param_pack_type = " + module_name + "_ParamPack<value_type, size_type>;");
 
     //////////////////////////////////////////////
@@ -442,7 +442,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
                  var.second->is_procedure()->kind()==procedureKind::net_receive)
         {
             // Override `deliver_events`.
-            text_.add_line("void deliver_events(multi_event_stream<deliverable_event>& events) override {");
+            text_.add_line("void deliver_events(deliverable_event_stream& events) override {");
             text_.increase_indentation();
             text_.add_line("auto ncell = events.n_streams();");
             text_.add_line("constexpr int blockwidth = 128;");
@@ -755,7 +755,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line(       "__global__");
         text_.add_gutter() << "void deliver_events("
                            << module_->name() << "_ParamPack<T,I> params_, "
-                           << "I mech_id, multi_event_stream<deliverable_event>::span_state state) {";
+                           << "I mech_id, deliverable_event_stream::span_state state) {";
         text_.add_line();
         increase_indentation();
 

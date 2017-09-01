@@ -51,11 +51,12 @@ struct backend {
 
     // matrix back end implementation
     using matrix_state = matrix_state_interleaved<value_type, size_type>;
-    using multi_event_stream = nest::mc::gpu::multi_event_stream;
 
     // re-expose common backend event types
     using deliverable_event = nest::mc::deliverable_event;
     using target_handle = nest::mc::target_handle;
+
+    using deliverable_event_stream = nest::mc::gpu::multi_event_stream<deliverable_event>;
 
     // mechanism infrastructure
     using ion = mechanisms::ion<backend>;
