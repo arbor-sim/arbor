@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <backends/gpu/stack.hpp>
-#include <memory/managed_ptr.hpp>
+#include <backends/gpu/managed_ptr.hpp>
 
 using namespace nest::mc;
 
@@ -52,7 +52,7 @@ TEST(stack, push_back) {
 
     const unsigned n = 10;
     EXPECT_TRUE(n%2 == 0); // require n is even for tests to work
-    auto s = memory::make_managed_ptr<stack>(n);
+    auto s = gpu::make_managed_ptr<stack>(n);
 
     kernels::push_back<<<1, n>>>(*s, kernels::all_ftor());
     cudaDeviceSynchronize();
