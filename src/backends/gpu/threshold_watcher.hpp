@@ -2,9 +2,9 @@
 
 #include <common_types.hpp>
 #include <memory/memory.hpp>
-#include <memory/managed_ptr.hpp>
 #include <util/span.hpp>
 
+#include "managed_ptr.hpp"
 #include "stack.hpp"
 #include "kernels/test_thresholds.hpp"
 
@@ -29,12 +29,6 @@ public:
     struct threshold_crossing {
         size_type index;    // index of variable
         value_type time;    // time of crossing
-        __host__ __device__
-        friend bool operator==
-            (const threshold_crossing& lhs, const threshold_crossing& rhs)
-        {
-            return lhs.index==rhs.index && lhs.time==rhs.time;
-        }
     };
 
     using stack_type = stack<threshold_crossing>;
@@ -57,7 +51,7 @@ public:
         thresholds_(memory::make_const_view(thresh)),
         prev_values_(values),
         is_crossed_(size()),
-        stack_(memory::make_managed_ptr<stack_type>(10*size()))
+        stack_(make_managed_ptr<stack_type>(10*size()))
     {
         reset();
     }
@@ -137,7 +131,7 @@ private:
     array prev_values_;         // values at previous sample time: on gpu
     iarray is_crossed_;         // bool flag for state of each watch: on gpu
 
-    memory::managed_ptr<stack_type> stack_;
+    managed_ptr<stack_type> stack_;
 };
 
 } // namespace gpu
