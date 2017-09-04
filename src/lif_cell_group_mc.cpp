@@ -7,7 +7,7 @@ lif_cell_group_mc::lif_cell_group_mc(cell_gid_type first_gid, const std::vector<
 gid_base_(first_gid)
 {
     cells_.reserve(cells.size());
-    lambda_.reserve(cells.size());
+    lambda_.resize(cells.size());
 
     generator_.resize(cells.size());
     next_poiss_time_.resize(cells.size());
@@ -28,7 +28,7 @@ gid_base_(first_gid)
 
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
-            lambda_.push_back(1.0/(cells_[lid].rate * cells_[lid].n_poiss));
+            lambda_[lid] = (1.0/(cells_[lid].rate * cells_[lid].n_poiss));
             generator_[lid].seed(1000 + first_gid + lid);
             sample_next_poisson(lid);
         }
