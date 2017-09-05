@@ -25,7 +25,9 @@ gid_base_(first_gid)
     w_poiss.reserve(cells.size());
     d_poiss.reserve(cells.size());
 
-    for (const auto& cell : cells) {
+    for (const auto& c : cells) {
+        lif_cell_description cell = util::any_cast<lif_cell_description>(c);
+
         cells_.push_back(cell);
 
         tau_m.push_back(cell.tau_m);
@@ -104,7 +106,7 @@ void lif_cell_group_gpu::reset() {
 // It can be either Poisson event or the queue event.
 // Only events that happened before tfinal are considered.
 __device__
-bool lif_cell_group_gpu::next_event(
+bool next_event(
        cell_gid_type gid_base_,
        time_type* next_poiss_time_,
        float* w_poiss,
@@ -133,7 +135,8 @@ bool lif_cell_group_gpu::next_event(
         // Poisson event is the most recent one.
         if (t_poiss < tfinal) {
             // Sample next Poisson event.
-            next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
+            // next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
+            next_poiss_time_[lid] += lambda_[lid];
             event = poiss_ev;
             return true;
         }
@@ -145,7 +148,8 @@ bool lif_cell_group_gpu::next_event(
     // There are no more queue events but possibly Poisson events.
     if (t_poiss < tfinal) {
         // Sample next Poisson event.
-        next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
+        // next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
+        next_poiss_time_[lid] += lambda_[lid];
         event = poiss_ev;
         return true;
     }
@@ -156,6 +160,7 @@ bool lif_cell_group_gpu::next_event(
 
 __global__
 void advance_kernel (cell_gid_type gid_base_,
+            cell_gid_type lid,
             time_type tfinal,
             unsigned num_cells,
             double* tau_m,
@@ -174,13 +179,14 @@ void advance_kernel (cell_gid_type gid_base_,
             time_type* next_poiss_time_,
             unsigned* cell_begin,
             unsigned* cell_end,
-            postsynaptic_spike_event* event_buffer)
+            postsynaptic_spike_event* event_buffer,
+            unsigned* spike_buffer)
 {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (idx < num_cells)
+    if (idx < num_cells) {
         // Current time of last update.
-        auto t = last_time_updated_[lid];
+        time_type t = last_time_updated_[lid];
         postsynaptic_spike_event ev;
         // If a neuron was in the refractory period,
         // ignore any new events that happened before t,
@@ -194,7 +200,7 @@ void advance_kernel (cell_gid_type gid_base_,
                         lambda_,
                         cell_begin,
                         cell_end,
-                        postsynaptic_spike_event* event_buffer,
+                        event_buffer,
                         ev)) {};
 
         // Integrate until tfinal using the exact solution of membrane voltage differential equation.
@@ -207,10 +213,10 @@ void advance_kernel (cell_gid_type gid_base_,
                         lambda_,
                         cell_begin,
                         cell_end,
-                        postsynaptic_spike_event* event_buffer,
+                        event_buffer,
                         ev))  {
-            auto weight = ev->weight;
-            auto event_time = ev->time;
+            auto weight = ev.weight;
+            auto event_time = ev.time;
 
             // If a neuron is in refractory period, ignore this event.
             if (event_time < t) {
@@ -229,10 +235,10 @@ void advance_kernel (cell_gid_type gid_base_,
                 cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
                 spike s = {spike_neuron_gid, t};
 
-                spikes_.push_back(s);
+                // spikes_.push_back(s);
 
                 // Advance last_time_updated.
-                t += cell.t_ref;
+                t += t_ref[lid];
 
                 // Reset the voltage to the resting potential.
                 V_m[lid] = E_L[lid];
@@ -250,7 +256,7 @@ void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_t
     cell_begin.clear();
     cell_end.clear();
 
-    for (unsigned i : util:make_span(0, cells_.size())) {
+    for (unsigned i : util::make_span(0, cells_.size())) {
         cell_begin.push_back(event_buffer.size());
         auto& q = cell_events_[i];
         while(auto e = q.pop_if_before(tfinal)){
@@ -266,6 +272,7 @@ void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_t
     managed_vector<unsigned> spike_buffer(event_buffer.size());
 
     advance_kernel<<<grid_dim, block_dim>>>(gid_base_,
+                                            lid,
                                             tfinal,
                                             cells_.size(),
                                             tau_m.data(),
@@ -284,7 +291,8 @@ void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_t
                                             next_poiss_time_.data(),
                                             cell_begin.data(),
                                             cell_end.data(),
-                                            event_buffer.data());
+                                            event_buffer.data(),
+                                            spike_buffer.data());
     /*
     // TODO: Wait for GPU to finish, then process the spikes
     unsigned cell_lid = 0;

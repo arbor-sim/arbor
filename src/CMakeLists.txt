@@ -25,6 +25,7 @@ set(CUDA_SOURCES
     backends/gpu/fvm.cu
     backends/gpu/multi_event_stream.cu
     memory/fill.cu
+    lif_cell_group_gpu.cu
 )
 
 # The cell_group_factory acts like an interface between the

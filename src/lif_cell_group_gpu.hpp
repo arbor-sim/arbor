@@ -11,14 +11,14 @@
 namespace nest {
 namespace mc {
 
-class lif_cell_group_mc: public cell_group {
+class lif_cell_group_gpu: public cell_group {
 public:
     using value_type = double;
 
-    lif_cell_group_mc() = default;
+    lif_cell_group_gpu() = default;
 
     // Constructor containing gid of first cell in a group and a container of all cells.
-    lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells);
+    lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells);
 
     virtual cell_kind get_cell_kind() const override;
 
@@ -47,6 +47,7 @@ private:
     managed_vector<postsynaptic_spike_event> event_buffer;
     managed_vector<unsigned> cell_begin;
     managed_vector<unsigned> cell_end;
+    std::vector<event_queue<postsynaptic_spike_event> > cell_events_;
 
     // LIF parameters.
     managed_vector<double> tau_m;
@@ -88,7 +89,7 @@ private:
     std::vector<lif_cell_description> cells_;
 
     // Spikes that are generated (not necessarily sorted).
-    managed_vector<spike> spikes_;
+    std::vector<spike> spikes_;
 
     // Time when the cell was last updated.
     managed_vector<time_type> last_time_updated_;
