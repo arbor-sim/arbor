@@ -6,7 +6,7 @@
 
 namespace nest {
 namespace mc {
-namespace memory {
+namespace gpu {
 
 // used to indicate that the type pointed to by the managed_ptr is to be
 // constructed in the managed_ptr constructor
@@ -40,7 +40,7 @@ class managed_ptr {
     // memory and constructing a type in place.
     template <typename... Args>
     managed_ptr(construct_in_place_tag, Args&&... args) {
-        managed_allocator<element_type> allocator;
+        memory::managed_allocator<element_type> allocator;
         data_ = allocator.allocate(1u);
         synchronize();
         data_ = new (data_) element_type(std::forward<Args>(args)...);
@@ -75,7 +75,7 @@ class managed_ptr {
 
     ~managed_ptr() {
         if (is_allocated()) {
-            managed_allocator<element_type> allocator;
+            memory::managed_allocator<element_type> allocator;
             synchronize(); // required to ensure that memory is not in use on GPU
             data_->~element_type();
             allocator.deallocate(data_, 1u);
@@ -112,7 +112,7 @@ managed_ptr<T> make_managed_ptr(Args&&... args) {
     return managed_ptr<T>(construct_in_place_tag(), std::forward<Args>(args)...);
 }
 
-} // namespace memory
+} // namespace gpu
 } // namespace mc
 } // namespace nest
 

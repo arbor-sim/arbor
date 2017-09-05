@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
 #include <backends/gpu/intrinsics.hpp>
-#include <memory/managed_ptr.hpp>
+#include <backends/gpu/managed_ptr.hpp>
 
 namespace kernels {
     template <typename T>
@@ -21,13 +21,13 @@ namespace kernels {
 TEST(gpu_intrinsics, cuda_atomic_add) {
     int expected = (128*129)/2;
 
-    auto f = nest::mc::memory::make_managed_ptr<float>(0.f);
+    auto f = nest::mc::gpu::make_managed_ptr<float>(0.f);
     kernels::test_atomic_add<<<1, 128>>>(f.get());
     cudaDeviceSynchronize();
 
     EXPECT_EQ(float(expected), *f);
 
-    auto d = nest::mc::memory::make_managed_ptr<double>(0.);
+    auto d = nest::mc::gpu::make_managed_ptr<double>(0.);
     kernels::test_atomic_add<<<1, 128>>>(d.get());
     cudaDeviceSynchronize();
 
@@ -38,13 +38,13 @@ TEST(gpu_intrinsics, cuda_atomic_add) {
 TEST(gpu_intrinsics, cuda_atomic_sub) {
     int expected = -(128*129)/2;
 
-    auto f = nest::mc::memory::make_managed_ptr<float>(0.f);
+    auto f = nest::mc::gpu::make_managed_ptr<float>(0.f);
     kernels::test_atomic_sub<<<1, 128>>>(f.get());
     cudaDeviceSynchronize();
 
     EXPECT_EQ(float(expected), *f);
 
-    auto d = nest::mc::memory::make_managed_ptr<double>(0.);
+    auto d = nest::mc::gpu::make_managed_ptr<double>(0.);
     kernels::test_atomic_sub<<<1, 128>>>(d.get());
     cudaDeviceSynchronize();
 

@@ -16,14 +16,6 @@ namespace memory {
 namespace gpu {
 
 //
-// prototypes for compiled wrappers around fill kernels for GPU memory
-//
-void fill8(uint8_t* v, uint8_t value, std::size_t n);
-void fill16(uint16_t* v, uint16_t value, std::size_t n);
-void fill32(uint32_t* v, uint32_t value, std::size_t n);
-void fill64(uint64_t* v, uint64_t value, std::size_t n);
-
-//
 // helpers for memory where at least one of the target or source is on the gpu
 //
 template <typename T>
