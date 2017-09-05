@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/fvm_types.hpp>
 #include <cell.hpp>
 #include <compartment.hpp>
 #include <event_queue.hpp>
@@ -48,10 +49,10 @@ public:
     using backend = Backend;
 
     /// the real number type
-    using value_type = typename backend::value_type;
+    using value_type = fvm_value_type;
 
     /// the integral index type
-    using size_type = typename backend::size_type;
+    using size_type = fvm_size_type;
 
     /// the container used for values
     using array = typename backend::array;
