@@ -1,6 +1,7 @@
 #include <lif_cell_group_gpu.hpp>
 
 using namespace nest::mc;
+using stack_type = gpu::stack<threshold_crossing>;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_gpu::lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
@@ -48,8 +49,9 @@ gid_base_(first_gid)
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
             lambda_[lid] = (1.0/(cells_[lid].rate * cells_[lid].n_poiss));
-            generator_[lid].seed(1000 + first_gid + lid);
-            sample_next_poisson(lid);
+            // generator_[lid].seed(1000 + first_gid + lid);
+            // sample_next_poisson(lid);
+            next_poiss_time_[lid] = lambda_[lid]; // TODO: sample randomly
         }
     }
 }
@@ -126,7 +128,7 @@ bool next_event(
     if (cell_begin[lid] < cell_end[lid]) {
         postsynaptic_spike_event q_ev = event_buffer[cell_begin[lid]];
         // Queue event is the most recent one.
-        if (q_ev.time < std::min(tfinal, t_poiss)) {
+        if (q_ev.time < min(tfinal, t_poiss)) {
             cell_begin[lid]++;
             event = q_ev;
             return true;
@@ -180,7 +182,7 @@ void advance_kernel (cell_gid_type gid_base_,
             unsigned* cell_begin,
             unsigned* cell_end,
             postsynaptic_spike_event* event_buffer,
-            unsigned* spike_buffer)
+            stack_type& spike_stack)
 {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -232,10 +234,10 @@ void advance_kernel (cell_gid_type gid_base_,
 
             // If crossing threshold occurred
             if (V_m[lid] >= V_th[lid]) {
-                cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
-                spike s = {spike_neuron_gid, t};
-
-                // spikes_.push_back(s);
+                threshold_crossing spike;
+                spike.index = lid;
+                spike.time = t;
+                (spike_stack).push_back(spike);
 
                 // Advance last_time_updated.
                 t += t_ref[lid];
@@ -269,7 +271,8 @@ void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_t
 
     unsigned grid_dim = (cells_.size() - 1) / block_dim + 1;
 
-    managed_vector<unsigned> spike_buffer(event_buffer.size());
+    // TODO: we have to know the maximum number of poisson spikes!
+    memory::managed_ptr<stack_type> spike_stack(memory::make_managed_ptr<stack_type>(10 * lambda_[gid_base_]));
 
     advance_kernel<<<grid_dim, block_dim>>>(gid_base_,
                                             lid,
@@ -292,12 +295,14 @@ void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_t
                                             cell_begin.data(),
                                             cell_end.data(),
                                             event_buffer.data(),
-                                            spike_buffer.data());
-    /*
-    // TODO: Wait for GPU to finish, then process the spikes
-    unsigned cell_lid = 0;
-    for (unsigned i = 0; i < spike_buffer.size(); ++i) {
-        if ( i >= cell_end[i])
+                                            *spike_stack);
+    cudaDeviceSynchronize();
+
+    // TODO: process the spikes
+    for (unsigned i = 0; i < spike_stack->size(); ++i) {
+        threshold_crossing crossing = (*spike_stack)[i];
+        spikes_.push_back(spike({crossing.index + gid_base_, 0}, crossing.time));
     }
-    */
+
+    spike_stack->clear();
 }

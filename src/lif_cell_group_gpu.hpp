@@ -7,9 +7,18 @@
 #include <random>
 #include <util/unique_any.hpp>
 #include <vector>
+#include <backends/gpu/stack.hpp>
+#include <memory/memory.hpp>
+#include <memory/managed_ptr.hpp>
 
 namespace nest {
 namespace mc {
+
+
+struct threshold_crossing {
+    cell_gid_type index;    // index of variable
+    time_type time;    // time of crossing
+ };
 
 class lif_cell_group_gpu: public cell_group {
 public:
@@ -19,6 +28,8 @@ public:
 
     // Constructor containing gid of first cell in a group and a container of all cells.
     lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells);
+
+
 
     virtual cell_kind get_cell_kind() const override;
 
