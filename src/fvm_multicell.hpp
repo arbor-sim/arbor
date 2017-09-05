@@ -61,8 +61,6 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
-    using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
-
     using target_handle = typename backend::target_handle;
     using deliverable_event = typename backend::deliverable_event;
 

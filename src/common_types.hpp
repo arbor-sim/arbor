@@ -59,6 +59,10 @@ using time_type = float;
 
 using probe_tag = int;
 
+// For holding counts and indexes into generated sample data.
+
+using sample_size_type = std::int32_t;
+
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 

@@ -1,12 +1,15 @@
 #pragma once
 
 #include <common_types.hpp>
+#include <backends/fvm_types.hpp>
 
 // Structures for the representation of event delivery targets and
 // staged events.
 
 namespace nest {
 namespace mc {
+
+// Post-synaptic spike events
 
 struct target_handle {
     cell_local_size_type mech_id;    // mechanism type identifier (per cell group).
@@ -45,6 +48,31 @@ struct deliverable_event_data {
 inline deliverable_event_data event_data(const deliverable_event& ev) {
     return {ev.handle.mech_id, ev.handle.mech_index, ev.weight};
 }
+
+
+// Sample events (scalar values)
+
+using probe_handle = const fvm_value_type*;
+
+struct raw_probe_info {
+    probe_handle handle;      // where the to-be-probed value sits
+    sample_size_type offset;  // offset into array to store raw probed value
+};
+
+struct sample_event {
+    time_type time;
+    cell_size_type cell_index;  // which cell probe is on
+    raw_probe_info raw;         // event payload: what gets put where on sample
+};
+
+inline raw_probe_info event_data(const sample_event& ev) {
+    return ev.raw;
+}
+
+inline raw_probe_info event_index(const sample_event& ev) {
+    return ev.cell_index;
+}
+
 
 } // namespace mc
 } // namespace nest

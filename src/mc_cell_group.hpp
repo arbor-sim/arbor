@@ -94,6 +94,9 @@ public:
             lowered_.add_event(binned_ev_time, handle, ev->weight);
         }
 
+        // TODO: consider moving a vector of deliverable_event objects into
+        // the lowered_ cell directly with e.g. lowered_.set_deliverable_events().
+
         // Set up sampling data structures.
         // All *TODO*
         // 1. for each association (probes, times, sampler):
@@ -105,13 +108,76 @@ public:
         // 2.1 make a sequence of sample entries from corresponding backend stack
         // 2.2 call sampler with ptr into sequence.
 
+
+        struct {
+            sampler_function sampler;
+            cell_member_type probe_id;
+            probe_tag tag;
+            sample_size_type n_entries;
+        } sampler_call_info;
+
+        std::vector<sampler_call_info> call_info; // TODO: make into members
+        std::vector<sample_event> sample_events;
+
+        for (const auto& sa: sampler_map_) {
+            auto sample_times = sa.sched.events(tstart, tfinal);
+            if (sample_times.empty()) {
+                continue;
+            }
+
+            auto probes = sa.probe_ids();
+            sample_size_type n_times = sample_times.size();
+
+            for (cell_member_type pid: probes) {
+                auto cell_index = gid_to_index(pid.gid);
+                auto p = probe_map_[pid];
+
+                call_info.push_back({sa.sampler, pid, p.tag, n_times});
+
+                for (auto t: sample_times) {
+                    sample_event ev{t, cell_index, {p.handle, n_samples++}};
+                    sample_events.push_back(ev);
+                }
+            }
+        }
+
+        std::vector<fvm_value_type> raw_samples(n_samples);
+
+        std::vector<sample_record> sample_records;
+        sample_records.reserve(n_samples);
+        for (const auto& ev: sample_events) {
+            sample_records.push_back({ev.time, &raw_samples[ev.raw.offset]});
+        }
+
+        // move sort to lowered cell or m.e.s as appropriate
+        util::sort_by(sample_events, [](const sample_event& ev) { event_time(ev); });
+        util::stable_sort_by(sample_events, [](const sample_event& ev) { event_index(ev); });
+
+        lowered_.set_sample_events(std::sample_events);
+
         lowered_.setup_integration(tfinal, dt);
 
+        while (!lowered_.integration_complete()) {
+            lowered_.step_integration();
+
+            if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
+                std::cerr << "warning: solution out of bounds  at (max) t "
+                          << lowered_.max_time() << " ms\n";
+            }
+        }
+
+        sampler_size_type sample_index = 0;
+        for (auto& sc: call_info) {
+            sc.sampler(sc.probe_id, sc.tag, sc.n_entries, &sample_records[sample_index]);
+            sample_index += sc.n_entries;
+        }
+
+#if 0
         // Set up sample event queue.
         struct sampler_entry {
             typename lowered_cell_type::probe_handle handle;
             probe_tag tag;
-            cell_member_type probe_id;
+            cell_member_type probe_id
             sampler_function sampler;
         };
         std::vector<sampler_entry> samplers;
@@ -181,6 +247,7 @@ public:
                           << lowered_.max_time() << " ms\n";
             }
         }
+#endif
 
         // Copy out spike voltage threshold crossings from the back end, then
         // generate spikes with global spike source ids. The threshold crossings
