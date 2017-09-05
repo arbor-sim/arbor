@@ -4,6 +4,7 @@
 #include <string>
 
 #include <backends/event.hpp>
+#include <backends/fvm_types.hpp>
 #include <common_types.hpp>
 #include <event_queue.hpp>
 #include <mechanism.hpp>
@@ -28,8 +29,8 @@ struct backend {
     }
 
     /// define the real and index types
-    using value_type = double;
-    using size_type  = nest::mc::cell_lid_type;
+    using value_type = fvm_value_type;
+    using size_type  = fvm_size_type;
 
     /// define storage types
     using array  = memory::host_vector<value_type>;
