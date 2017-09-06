@@ -148,7 +148,7 @@ namespace impl {
                 void* ptr = reinterpret_cast<void *>
                                 (aligned_malloc<char, Alignment>(size));
 
-                if(ptr == nullptr) {
+                if (!ptr) {
                     return nullptr;
                 }
 
@@ -166,7 +166,7 @@ namespace impl {
             }
 
             void free_policy(void *ptr) {
-                if(ptr == nullptr) {
+                if (!ptr) {
                     return;
                 }
                 cudaHostUnregister(ptr);
@@ -189,12 +189,12 @@ namespace impl {
             static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 1024 byte boundaries");
 
             void* allocate_policy(std::size_t n) {
-                if (n==0u) {
+                if (!n) {
                     return nullptr;
                 }
                 void* ptr;
                 auto status = cudaMallocManaged(&ptr, n);
-                if(status != cudaSuccess) {
+                if (status != cudaSuccess) {
                     LOG_ERROR("memory:: unable to allocate managed memory");
                     ptr = nullptr;
                 }
@@ -283,15 +283,14 @@ public:
     }
 
     pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
-        pointer p = reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
-        //std::cout << "aaa " << p << " : " << cnt << " " << util::type_printer<allocator>::print() << "\n";
-        return p;
-        //return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+        if (cnt) {
+            return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+        }
+        return nullptr;
     }
 
     void deallocate(pointer p, size_type cnt) {
-        //std::cout << "fff " << p << " : " << cnt << " " << util::type_printer<allocator>::print() << "\n";
-        if( p!=nullptr ) {
+        if (p) {
             free_policy(p);
         }
     }

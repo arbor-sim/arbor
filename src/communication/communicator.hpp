@@ -56,7 +56,6 @@ public:
 
         // For caching information about each cell
         struct gid_info {
-            //using connection_list = decltype(rec.connections_on(0));
             using connection_list = decltype(std::declval<recipe>().connections_on(0));
             cell_gid_type gid;
             cell_gid_type local_group;
