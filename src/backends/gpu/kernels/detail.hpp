@@ -48,8 +48,8 @@ constexpr inline unsigned block_count(unsigned n, unsigned block_size) {
 
 // The smallest size of a buffer required to store n items in such that the
 // buffer has size that is a multiple of block_dim.
-constexpr inline unsigned padded_size (unsigned n, unsigned block_dim) {
-    return n%block_dim ? n+block_dim-(n%block_dim): n;
+constexpr inline unsigned padded_size(unsigned n, unsigned block_dim) {
+    return block_dim*block_count(n, block_dim);
 }
 
 // Placeholders to use for mark padded locations in data structures that use

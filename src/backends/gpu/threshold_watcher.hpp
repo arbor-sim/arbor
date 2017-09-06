@@ -94,9 +94,7 @@ public:
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test() {
-        constexpr int block_dim = 128;
-        const int grid_dim = (size()+block_dim-1)/block_dim;
-        test_thresholds<<<grid_dim, block_dim>>>(
+        test_thresholds(
             cv_to_cell_.data(), t_after_.data(), t_before_.data(),
             size(),
             stack_.base(),
@@ -105,7 +103,12 @@ public:
 
         // Check that the number of spikes has not exceeded
         // the capacity of the stack.
+        // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
+        // host-device managed memory access.
+#ifdef NMC_HAVE_ASSERTIONS
+        cudaDeviceSynchronize();
         EXPECTS(stack_.size() <= stack_.capacity());
+#endif
     }
 
     /// the number of threashold values that are being monitored

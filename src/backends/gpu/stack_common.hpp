@@ -1,6 +1,6 @@
 #pragma once
 
-#include "backends/fvm_types.hpp"
+#include <backends/fvm_types.hpp>
 
 namespace nest {
 namespace mc {
@@ -28,21 +28,6 @@ struct stack_base {
 
     // Memory containing the value buffer
     value_type* data;
-
-    __device__
-    void push_back(const value_type& value) {
-        // Atomically increment the size_ counter. The atomicAdd returns
-        // the value of size_ before the increment, which is the location
-        // at which this thread can store value.
-        unsigned position = atomicAdd(&size, 1u);
-
-        // It is possible that size_>capacity_. In this case, only capacity_
-        // entries are stored, and additional values are lost. The size_
-        // will contain the total number of attempts to push,
-        if (position<capacity) {
-            data[position] = value;
-        }
-    }
 };
 
 
