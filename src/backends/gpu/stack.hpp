@@ -1,6 +1,9 @@
 #pragma once
 
+#include <algorithm>
+
 #include <memory/allocator.hpp>
+#include "stack_common.hpp"
 
 namespace nest {
 namespace mc {
@@ -22,91 +25,85 @@ namespace gpu {
 template <typename T>
 class stack {
     using value_type = T;
-    using allocator = memory::managed_allocator<value_type>;
+    template <typename U>
+    using allocator = memory::managed_allocator<U>;
 
-    // The number of items of type value_type that can be stored in the stack
-    unsigned capacity_;
-
-    // The number of items that have been stored
-    unsigned size_;
-
-    // Memory containing the value buffer
-    // Stored in managed memory to facilitate host-side access of values
-    // pushed from kernels on the device.
-    value_type* data_;
+    using base_type = stack_base<value_type>;
+    base_type* base_;
 
 public:
+    stack& operator==(const stack& other) = delete;
+    stack(const stack& other) = delete;
 
-    stack(unsigned capacity):
-        capacity_(capacity), size_(0u)
-    {
-        data_ = allocator().allocate(capacity_);
+    stack(stack&& other) {
+        std::swap(base_, other.base_);
     }
+
+    stack& operator=(stack&& other) {
+        std::swap(base_, other.base_);
+        return *this;
+    }
+
+    stack(unsigned capacity) {
+        base_ = allocator<base_type>().allocate(1);
+        base_->capacity = capacity;
+        base_->size = 0;
+        base_->data = allocator<value_type>().allocate(capacity);
+    }
+
+    stack(): stack(0) {}
 
     ~stack() {
-        allocator().deallocate(data_, capacity_);
-    }
-
-    // Append a new value to the stack.
-    // The value will only be appended if do_push is true.
-    __device__
-    void push_back(const value_type& value) {
-        // Atomically increment the size_ counter. The atomicAdd returns
-        // the value of size_ before the increment, which is the location
-        // at which this thread can store value.
-        unsigned position = atomicAdd(&size_, 1u);
-
-        // It is possible that size_>capacity_. In this case, only capacity_
-        // entries are stored, and additional values are lost. The size_
-        // will contain the total number of attempts to push,
-        if (position<capacity_) {
-            data_[position] = value;
+        if (base_) {
+            allocator<value_type>().deallocate(base_->data, base_->capacity);
+            allocator<base_type>().deallocate(base_, 1);
         }
     }
 
-    __host__
     void clear() {
-        size_ = 0;
+        base_->size = 0;
     }
 
     // The number of items that have been pushed back on the stack.
     // size may exceed capacity, which indicates that the caller attempted
     // to push back more values than there was space to store.
-    __host__ __device__
     unsigned size() const {
-        return size_;
+        return base_->size;
     }
 
     // The maximum number of items that can be stored in the stack.
-    __host__ __device__
     unsigned capacity() const {
-        return capacity_;
+        return base_->capacity;
+    }
+
+    base_type& base() {
+        return *base_;
     }
 
     value_type& operator[](unsigned i) {
-        EXPECTS(i<size_ && i<capacity_);
-        return data_[i];
+        EXPECTS(i<base_->size && i<base_->capacity);
+        return base_->data[i];
     }
 
     value_type& operator[](unsigned i) const {
-        EXPECTS(i<size_ && i<capacity_);
-        return data_[i];
+        EXPECTS(i<base_->size && i<base_->capacity);
+        return base_->data[i];
     }
 
     value_type* begin() {
-        return data_;
+        return base_->data;
     }
     const value_type* begin() const {
-        return data_;
+        return base_->data;
     }
 
     value_type* end() {
-        // Take care of the case where size_>capacity_.
-        return data_ + (size_>capacity_? capacity_: size_);
+        // Take care of the case where size>capacity.
+        return base_->data + std::min(base_->size, base_->capacity);
     }
     const value_type* end() const {
-        // Take care of the case where size_>capacity_.
-        return data_ + (size_>capacity_? capacity_: size_);
+        // Take care of the case where size>capacity.
+        return base_->data + std::min(base_->size, base_->capacity);
     }
 };
 

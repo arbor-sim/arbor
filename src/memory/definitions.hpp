@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <sstream>
+#include <typeinfo>
 
 namespace nest {
 namespace mc {
@@ -67,7 +68,7 @@ namespace util {
     template <typename T>
     struct type_printer{
         static std::string print() {
-            return std::string("T");
+            return typeid(T).name();
         }
     };
 

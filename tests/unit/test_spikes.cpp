@@ -18,7 +18,6 @@ using backend = USE_BACKEND;
 #endif
 
 TEST(spikes, threshold_watcher) {
-    using backend = multicore::backend;
     using size_type = backend::size_type;
     using value_type = backend::value_type;
     using array = backend::array;
@@ -61,7 +60,7 @@ TEST(spikes, threshold_watcher) {
 
     // test again at t=1, with unchanged values
     //  - nothing should change
-    util::fill(time_after, 1.);
+    memory::fill(time_after, 1.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
@@ -72,7 +71,7 @@ TEST(spikes, threshold_watcher) {
     //  - 2nd watch should now stop spiking
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
-    util::fill(time_after, 2.);
+    memory::fill(time_after, 2.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
@@ -100,7 +99,7 @@ TEST(spikes, threshold_watcher) {
     //  - all watches should stop spiking
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
-    util::fill(time_after, 4.);
+    memory::fill(time_after, 4.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
@@ -111,7 +110,7 @@ TEST(spikes, threshold_watcher) {
     //  - watch 3 should be spiking
     values[index[2]] = 6.;
     memory::copy(time_after, time_before);
-    util::fill(time_after, 5.);
+    memory::fill(time_after, 5.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
@@ -144,7 +143,7 @@ TEST(spikes, threshold_watcher) {
     //
     memory::fill(values, 0);
     values[index[0]] = 10.; // first watch should be intialized to spiking state
-    util::fill(time_before, 0.);
+    memory::fill(time_before, 0.);
     watch.reset();
     EXPECT_EQ(watch.crossings().size(), 0u);
     EXPECT_TRUE(watch.is_crossed(0));

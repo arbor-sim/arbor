@@ -1,15 +1,16 @@
 #pragma once
 
 #include <algorithm>
-#include <iostream>
-#include <vector>
-#include <random>
 #include <functional>
+#include <iostream>
+#include <random>
+#include <utility>
+#include <vector>
 
 #include <algorithms.hpp>
 #include <common_types.hpp>
-#include <connection.hpp>
 #include <communication/gathered_vector.hpp>
+#include <connection.hpp>
 #include <domain_decomposition.hpp>
 #include <event_queue.hpp>
 #include <recipe.hpp>
@@ -55,7 +56,8 @@ public:
 
         // For caching information about each cell
         struct gid_info {
-            using connection_list = decltype(rec.connections_on(0));
+            //using connection_list = decltype(rec.connections_on(0));
+            using connection_list = decltype(std::declval<recipe>().connections_on(0));
             cell_gid_type gid;
             cell_gid_type local_group;
             connection_list conns;

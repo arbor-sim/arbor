@@ -1,5 +1,10 @@
 #pragma once
 
+#include <backends/fvm_types.hpp>
+
+#include "../stack_common.hpp"
+#include "../stack.hpp"
+
 namespace nest {
 namespace mc {
 namespace gpu {
@@ -14,14 +19,14 @@ namespace gpu {
 ///     index      : index with locations in values to test for crossing
 ///     values     : values at t_prev
 ///     thresholds : threshold values to watch for crossings
-template <typename T, typename I, typename Stack>
 __global__
+static
 void test_thresholds(
-    const I* cv_to_cell, const T* t_after, const T* t_before,
+    const fvm_size_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
     int size,
-    Stack& stack,
-    I* is_crossed, T* prev_values,
-    const I* cv_index, const T* values, const T* thresholds)
+    stack_base<threshold_crossing>& stack,
+    fvm_size_type* is_crossed, fvm_value_type* prev_values,
+    const fvm_size_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -55,7 +60,7 @@ void test_thresholds(
     }
 
     if (crossed) {
-        stack.push_back({I(i), crossing_time});
+        //stack.push_back({fvm_size_type(i), crossing_time});
     }
 }
 
