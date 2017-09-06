@@ -113,7 +113,8 @@ public:
             sampler_function sampler;
             cell_member_type probe_id;
             probe_tag tag;
-            sample_size_type n_entries;
+            sample_size_type entries_begin;
+            sample_size_type entries_end;
         } sampler_call_info;
 
         std::vector<sampler_call_info> call_info; // TODO: make into members
@@ -132,7 +133,7 @@ public:
                 auto cell_index = gid_to_index(pid.gid);
                 auto p = probe_map_[pid];
 
-                call_info.push_back({sa.sampler, pid, p.tag, n_times});
+                call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times});
 
                 for (auto t: sample_times) {
                     sample_event ev{t, cell_index, {p.handle, n_samples++}};
@@ -142,17 +143,20 @@ public:
         }
 
         std::vector<fvm_value_type> raw_samples(n_samples);
-
-        std::vector<sample_record> sample_records;
+        std::vector<fvm_value_type> actual_sample_times(n_samples);
         sample_records.reserve(n_samples);
         for (const auto& ev: sample_events) {
+            // TODO: fix this: storing ev.time here is incorrect; need to get
+            // sample time from integrator. Consider changing API so that
+            // sampler function gets a _pointer_ to the time value.
             sample_records.push_back({ev.time, &raw_samples[ev.raw.offset]});
         }
 
-        // move sort to lowered cell or m.e.s as appropriate
+        // TODO: move sort to lowered cell or m.e.s as appropriate
         util::sort_by(sample_events, [](const sample_event& ev) { event_time(ev); });
         util::stable_sort_by(sample_events, [](const sample_event& ev) { event_index(ev); });
 
+        // TODO: add ptr to raw data vecs
         lowered_.set_sample_events(std::sample_events);
 
         lowered_.setup_integration(tfinal, dt);
@@ -166,88 +170,16 @@ public:
             }
         }
 
+        std::vector<sample_record> sample_records; // TODO -> member
         sampler_size_type sample_index = 0;
         for (auto& sc: call_info) {
-            sc.sampler(sc.probe_id, sc.tag, sc.n_entries, &sample_records[sample_index]);
-            sample_index += sc.n_entries;
+            sample_records.clear();
+            for (auto i = sc.begin; i!= sc.end; ++i) {
+                sample_records.push_back(sample_record{actual_sample_times[i], &raw_samples[i]});
+            }
+
+            sc.sampler(sc.probe_id, sc.tag, sc.end-sc.begin, sample_records.data());
         }
-
-#if 0
-        // Set up sample event queue.
-        struct sampler_entry {
-            typename lowered_cell_type::probe_handle handle;
-            probe_tag tag;
-            cell_member_type probe_id
-            sampler_function sampler;
-        };
-        std::vector<sampler_entry> samplers;
-
-        for (auto &assoc: sampler_map_) {
-            auto ts = assoc.sched.events(tstart, tfinal);
-            if (ts.empty()) {
-                continue;
-            }
-
-            for (auto p: assoc.probe_ids) {
-                EXPECTS(probe_map_.count(p)>0);
-                sample_event::size_type idx = samplers.size();
-                auto pinfo = probe_map_[p];
-
-                samplers.push_back({pinfo.handle, pinfo.tag, p, assoc.sampler});
-
-                for (auto t: ts) {
-                    sample_events_.push({idx, t});
-                }
-            }
-        }
-
-        util::optional<time_type> first_sample_time = sample_events_.time_if_before(tfinal);
-        std::vector<sample_event> requeue_sample_events;
-        while (!lowered_.integration_complete()) {
-            // Take any pending samples.
-            // TODO: Placeholder: this will be replaced by a backend polling implementation.
-
-            if (first_sample_time) {
-                PE("sampling");
-                time_type cell_max_time = lowered_.max_time();
-
-                requeue_sample_events.clear();
-                while (auto m = sample_events_.pop_if_before(cell_max_time)) {
-                    auto& s = samplers[m->sampler_index];
-                    EXPECTS((bool)s.sampler);
-
-                    time_type cell_time = lowered_.time(gid_to_index(s.probe_id.gid));
-                    if (cell_time<m->time) {
-                        // This cell hasn't reached this sample time yet.
-                        requeue_sample_events.push_back(*m);
-                    }
-                    else {
-                        const double value = lowered_.probe(s.handle);
-                        sample_record record = {cell_time, &value};
-                        s.sampler(s.probe_id, s.tag, 1u, &record);
-                    }
-                }
-                for (auto& ev: requeue_sample_events) {
-                    sample_events_.push(std::move(ev));
-                }
-                first_sample_time = sample_events_.time_if_before(tfinal);
-                PL();
-            }
-
-            // Ask lowered_ cell to integrate 'one step', delivering any
-            // events accordingly.
-            // TODO: Placeholder: with backend polling for samplers, we will
-            // request that the lowered cell perform the integration all the
-            // way to tfinal.
-
-            lowered_.step_integration();
-
-            if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
-                std::cerr << "warning: solution out of bounds  at (max) t "
-                          << lowered_.max_time() << " ms\n";
-            }
-        }
-#endif
 
         // Copy out spike voltage threshold crossings from the back end, then
         // generate spikes with global spike source ids. The threshold crossings

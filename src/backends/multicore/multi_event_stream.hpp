@@ -173,8 +173,6 @@ public:
     }
 
 private:
-    using span_type = std::pair<size_type, size_type>;
-
     std::vector<event_time_type> ev_time_;
     std::vector<size_type> span_begin_;
     std::vector<size_type> span_end_;

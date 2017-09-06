@@ -297,6 +297,11 @@ private:
         return events_ && !events_->empty();
     }
 
+    /// sample events for integration period
+    using sample_event_stream = typename backend::sample_event_stream;
+    std::unique_ptr<sample_event_stream> events_;
+
+
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
 
@@ -592,6 +597,7 @@ void fvm_multicell<Backend>::initialize(
 
     // setup per-cell event stores.
     events_ = util::make_unique<deliverable_event_stream>(ncell_);
+    sample_events_ = util::make_unique<sample_event_stream>(ncell_);
 
     // Create each cell:
 
@@ -711,10 +717,10 @@ void fvm_multicell<Backend>::initialize(
 
             switch (where.kind) {
             case cell_probe_address::membrane_voltage:
-                handle = {&fvm_multicell::voltage_, comp};
+                handle = fvm_multicell::voltage_.data()+comp;
                 break;
             case cell_probe_address::membrane_current:
-                handle = {&fvm_multicell::current_, comp};
+                handle = fvm_multicell::current_.data()+comp;
                 break;
             default:
                 throw std::logic_error("unrecognized probeKind");
@@ -908,6 +914,7 @@ void fvm_multicell<Backend>::step_integration() {
 
     // mark pending events for delivery
     events_->mark_until_after(time_);
+    sample_events_->mark_until_after(time_);
 
     // deliver pending events and update current contributions from mechanisms
     for(auto& m: mechanisms_) {
@@ -917,12 +924,20 @@ void fvm_multicell<Backend>::step_integration() {
         PL();
     }
 
+    // TODO: do samples here, so that a request for a sample at time u
+    // might be specified at a time t>=u, after any event delivery.
+    //
+    // TODO: need to have sample process *also write cell times* to
+    // sample store
+
     // remove delivered events from queue and set time_to_
     events_->drop_marked_events();
+    sample_events_->drop_marked_events();
 
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
     invalidate_time_cache();
     events_->event_time_if_before(time_to_);
+    sample_events_->event_time_if_before(time_to_);
     PL();
 
     // set per-cell and per-compartment dt (constant within a cell)

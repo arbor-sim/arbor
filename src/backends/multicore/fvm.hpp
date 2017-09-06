@@ -56,6 +56,8 @@ struct backend {
 
     using deliverable_event_stream = nest::mc::multicore::multi_event_stream<deliverable_event>;
 
+    using sample_event_stream = nest::mc::multicore::multi_event_stream<sample_event>;
+
     //
     // mechanism infrastructure
     //
@@ -125,6 +127,15 @@ struct backend {
 
         for (size_type i = 0; i<ncomp; ++i) {
             dt_comp[i] = dt_cell[cv_to_cell[i]];
+        }
+    }
+
+    // perform sampling as described by marked events in a sample_event_stream
+    static void perform_marked_samples(value_type* store, const sample_event_stream& s) {
+        for (size_type i = 0; i<s.size(); ++i) {
+            for (const auto& ev: s.marked_events(i)) {
+                store[ev.offset] = *ev.handle;
+            }
         }
     }
 

@@ -69,7 +69,7 @@ inline raw_probe_info event_data(const sample_event& ev) {
     return ev.raw;
 }
 
-inline raw_probe_info event_index(const sample_event& ev) {
+inline cell_size_type event_index(const sample_event& ev) {
     return ev.cell_index;
 }
 

@@ -11,6 +11,7 @@
 #include <util/rangeutil.hpp>
 
 #include "kernels/time_ops.hpp"
+#include "kernels/sample_delivery.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "matrix_state_flat.hpp"
 #include "multi_event_stream.hpp"
@@ -58,6 +59,8 @@ struct backend {
     using target_handle = nest::mc::target_handle;
 
     using deliverable_event_stream = nest::mc::gpu::multi_event_stream<deliverable_event>;
+
+    using sample_event_stream = nest::mc::multi_event_stream<sample_event>;
 
     // mechanism infrastructure
     using ion = mechanisms::ion<backend>;
@@ -123,6 +126,12 @@ struct backend {
         size_type ncomp = util::size(dt_comp);
 
         nest::mc::gpu::set_dt<value_type, size_type>(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
+    }
+
+    // perform sampling as described by marked events in a sample_event_stream
+    static void perform_marked_samples(value_type* store, const sample_event_stream& s) {
+        sample_event_stream::span_state state = s.delivery_data();
+        nest::mc::gpu::run_samples(state.n, store, state.ev_data, state.span_begin, state.mark);
     }
 
 private:
