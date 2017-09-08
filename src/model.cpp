@@ -1,11 +1,10 @@
-#include <model.hpp>
-
 #include <vector>
 
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
+#include <model.hpp>
 #include <recipe.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
@@ -15,47 +14,22 @@ namespace nest {
 namespace mc {
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
-    domain_(decomp)
+    communicator_(rec, decomp)
 {
-    // set up communicator based on partition
-    communicator_ = communicator_type(domain_.gid_group_partition());
+    for (auto i: util::make_span(0, decomp.groups.size())) {
+        for (auto gid: decomp.groups[i].gids) {
+            gid_groups_[gid] = i;
+        }
+    }
 
-    // generate the cell groups in parallel, with one task per cell group
-    cell_groups_.resize(domain_.num_local_groups());
-
-    // thread safe vector for constructing the list of probes in parallel
-    threading::parallel_vector<probe_record> probe_tmp;
-
+    // Generate the cell groups in parallel, with one task per cell group.
+    cell_groups_.resize(decomp.groups.size());
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
             PE("setup", "cells");
-
-            auto group = domain_.get_group(i);
-            std::vector<util::unique_any> cell_descriptions(group.end-group.begin);
-
-            for (auto gid: util::make_span(group.begin, group.end)) {
-                auto i = gid-group.begin;
-                cell_descriptions[i] = rec.get_cell_description(gid);
-            }
-
-            cell_groups_[i] = cell_group_factory(
-                    group.kind, group.begin, cell_descriptions, domain_.backend());
+            cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
-
-    // store probes
-    for (const auto& c: cell_groups_) {
-        util::append(probes_, c->probes());
-    }
-
-    // generate the network connections
-    for (cell_gid_type i: util::make_span(domain_.cell_begin(), domain_.cell_end())) {
-        for (const auto& cc: rec.connections_on(i)) {
-            connection conn{cc.source, cc.dest, cc.weight, cc.delay};
-            communicator_.add_connection(conn);
-        }
-    }
-    communicator_.construct();
 
     // Allocate an empty queue buffer for each cell group
     // These must be set initially to ensure that a queue is available for each
@@ -72,10 +46,10 @@ void model::reset() {
 
     communicator_.reset();
 
-    for(auto& q : current_events()) {
+    for(auto& q: current_events()) {
         q.clear();
     }
-    for(auto& q : future_events()) {
+    for(auto& q: future_events()) {
         q.clear();
     }
 
@@ -168,17 +142,33 @@ time_type model::run(time_type tfinal, time_type dt) {
     return t_;
 }
 
-void model::attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom) {
-    const auto idx = domain_.local_group_from_gid(probe_id.gid);
+sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy) {
+    sampler_association_handle h = sassoc_handles_.acquire();
 
-    // only attach samplers for local cells
-    if (idx) {
-        cell_groups_[*idx]->add_sampler(probe_id, f, tfrom);
-    }
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->add_sampler(h, probe_ids, sched, f, policy);
+        });
+
+    return h;
 }
 
-const std::vector<probe_record>& model::probes() const {
-    return probes_;
+void model::remove_sampler(sampler_association_handle h) {
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_sampler(h);
+        });
+
+    sassoc_handles_.release(h);
+}
+
+void model::remove_all_samplers() {
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_all_samplers();
+        });
+
+    sassoc_handles_.clear();
 }
 
 std::size_t model::num_spikes() const {
@@ -187,10 +177,6 @@ std::size_t model::num_spikes() const {
 
 std::size_t model::num_groups() const {
     return cell_groups_.size();
-}
-
-std::size_t model::num_cells() const {
-    return domain_.num_local_cells();
 }
 
 void model::set_binning_policy(binning_kind policy, time_type bin_interval) {

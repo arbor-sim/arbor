@@ -23,6 +23,9 @@ namespace mc {
  * output JSON file, if specified.
  */
 
+// TODO: split simulation options from trace_io structure; rename
+// file to e.g. 'trace_io.hpp'
+
 class trace_io {
 public:
     // Try to find the data directory on construction.
@@ -42,9 +45,9 @@ public:
         }
     }
 
-    void save_trace(const std::string& label, const trace_data& data, const nlohmann::json& meta);
-    void save_trace(const std::string& abscissa, const std::string& label, const trace_data& data, const nlohmann::json& meta);
-    std::map<std::string, trace_data> load_traces(const util::path& name);
+    void save_trace(const std::string& label, const trace_data<double>& data, const nlohmann::json& meta);
+    void save_trace(const std::string& abscissa, const std::string& label, const trace_data<double>& data, const nlohmann::json& meta);
+    std::map<std::string, trace_data<double>> load_traces(const util::path& name);
 
     // common flags, options set by driver
 
@@ -56,6 +59,9 @@ public:
 
     void set_min_dt(float dt) { min_dt_ = dt; }
     float min_dt() const { return min_dt_; }
+
+    void set_sample_dt(float dt) { sample_dt_ = dt; }
+    float sample_dt() const { return sample_dt_; }
 
     void set_datadir(const util::path& dir) { datadir_ = dir; }
 
@@ -81,6 +87,7 @@ private:
     bool verbose_flag_ = false;
     int max_ncomp_ = 100;
     float min_dt_ = 0.001f;
+    float sample_dt_ = 0.005f;
 
     // Returns value of NMC_DATADIR environment variable if set,
     // otherwise make a 'best-effort' search for the data directory,

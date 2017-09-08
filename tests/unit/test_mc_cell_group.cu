@@ -6,7 +6,8 @@
 #include <fvm_multicell.hpp>
 #include <util/rangeutil.hpp>
 
-#include "../test_common_cells.hpp"
+#include "../common_cells.hpp"
+#include "../simple_recipes.hpp"
 
 using namespace nest::mc;
 
@@ -26,8 +27,7 @@ nest::mc::cell make_cell() {
 
 TEST(cell_group, test)
 {
-    using cell_group_type = mc_cell_group<fvm_cell>;
-    auto group = cell_group_type{0, util::singleton_view(make_cell())};
+    mc_cell_group<fvm_cell> group({0u}, cable1d_recipe(make_cell()));
 
     group.advance(50, 0.01);
 

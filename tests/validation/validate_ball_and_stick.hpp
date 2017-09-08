@@ -3,31 +3,44 @@
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
+#include <load_balance.hpp>
+#include <hardware/node_info.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
+#include <segment.hpp>
 #include <simple_sampler.hpp>
+#include <util/meta.hpp>
 #include <util/path.hpp>
 
 #include "../gtest.h"
 
-#include "../test_common_cells.hpp"
+#include "../common_cells.hpp"
+#include "../simple_recipes.hpp"
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-template <typename SamplerInfoSeq>
+#include <iostream>
+
+struct probe_point {
+    const char* label;
+    nest::mc::segment_location where;
+};
+
+template <typename ProbePointSeq>
 void run_ncomp_convergence_test(
     const char* model_name,
     const nest::mc::util::path& ref_data_path,
-    nest::mc::backend_policy backend,
+    nest::mc::backend_kind backend,
     const nest::mc::cell& c,
-    SamplerInfoSeq& samplers,
+    ProbePointSeq& probe_points,
     float t_end=100.f)
 {
     using namespace nest::mc;
 
     auto max_ncomp = g_trace_io.max_ncomp();
     auto dt = g_trace_io.min_dt();
+    auto sample_dt = g_trace_io.sample_dt();
 
     nlohmann::json meta = {
         {"name", "membrane voltage"},
@@ -35,12 +48,19 @@ void run_ncomp_convergence_test(
         {"dt", dt},
         {"sim", "nestmc"},
         {"units", "mV"},
-        {"backend_policy", to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     auto exclude = stimulus_ends(c);
 
-    convergence_test_runner<int> runner("ncomp", samplers, meta);
+    auto n_probe = util::size(probe_points);
+    std::vector<probe_label> plabels;
+    plabels.reserve(n_probe);
+    for (unsigned i = 0; i<n_probe; ++i) {
+        plabels.push_back(probe_label{probe_points[i].label, {0u, i}});
+    }
+
+    convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
@@ -49,26 +69,29 @@ void run_ncomp_convergence_test(
                 seg->set_compartments(ncomp);
             }
         }
-        domain_decomposition decomp(singleton_recipe{c}, {1u, backend});
-        model m(singleton_recipe{c}, decomp);
+        cable1d_recipe rec{c};
+        for (const auto& p: probe_points) {
+            rec.add_probe(0, 0, cell_probe_address{p.where, cell_probe_address::membrane_voltage});
+        }
 
-        runner.run(m, ncomp, t_end, dt, exclude);
+        hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
+        auto decomp = partition_load_balance(rec, nd);
+        model m(rec, decomp);
+
+        runner.run(m, ncomp, sample_dt, t_end, dt, exclude);
     }
     runner.report();
     runner.assert_all_convergence();
 }
 
-void validate_ball_and_stick(nest::mc::backend_policy backend) {
+void validate_ball_and_stick(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_stick();
-    add_common_voltage_probes(c);
-
-    float sample_dt = 0.025f;
-    sampler_info samplers[] = {
-        {"soma.mid", {0u, 0u}, simple_sampler(sample_dt)},
-        {"dend.mid", {0u, 1u}, simple_sampler(sample_dt)},
-        {"dend.end", {0u, 2u}, simple_sampler(sample_dt)}
+    probe_point points[] = {
+        {"soma.mid", {0u, 0.5}},
+        {"dend.mid", {1u, 0.5}},
+        {"dend.end", {1u, 1.0}}
     };
 
     run_ncomp_convergence_test(
@@ -76,20 +99,17 @@ void validate_ball_and_stick(nest::mc::backend_policy backend) {
         "neuron_ball_and_stick.json",
         backend,
         c,
-        samplers);
+        points);
 }
 
-void validate_ball_and_taper(nest::mc::backend_policy backend) {
+void validate_ball_and_taper(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_taper();
-    add_common_voltage_probes(c);
-
-    float sample_dt = 0.025f;
-    sampler_info samplers[] = {
-        {"soma.mid", {0u, 0u}, simple_sampler(sample_dt)},
-        {"taper.mid", {0u, 1u}, simple_sampler(sample_dt)},
-        {"taper.end", {0u, 2u}, simple_sampler(sample_dt)}
+    probe_point points[] = {
+        {"soma.mid",  {0u, 0.5}},
+        {"taper.mid", {1u, 0.5}},
+        {"taper.end", {1u, 1.0}}
     };
 
     run_ncomp_convergence_test(
@@ -97,24 +117,21 @@ void validate_ball_and_taper(nest::mc::backend_policy backend) {
         "neuron_ball_and_taper.json",
         backend,
         c,
-        samplers);
+        points);
 }
 
-void validate_ball_and_3stick(nest::mc::backend_policy backend) {
+void validate_ball_and_3stick(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_3stick();
-    add_common_voltage_probes(c);
-
-    float sample_dt = 0.025f;
-    sampler_info samplers[] = {
-        {"soma.mid",  {0u, 0u}, simple_sampler(sample_dt)},
-        {"dend1.mid", {0u, 1u}, simple_sampler(sample_dt)},
-        {"dend1.end", {0u, 2u}, simple_sampler(sample_dt)},
-        {"dend2.mid", {0u, 3u}, simple_sampler(sample_dt)},
-        {"dend2.end", {0u, 4u}, simple_sampler(sample_dt)},
-        {"dend3.mid", {0u, 5u}, simple_sampler(sample_dt)},
-        {"dend3.end", {0u, 6u}, simple_sampler(sample_dt)}
+    probe_point points[] = {
+        {"soma.mid",  {0u, 0.5}},
+        {"dend1.mid", {1u, 0.5}},
+        {"dend1.end", {1u, 1.0}},
+        {"dend2.mid", {2u, 0.5}},
+        {"dend2.end", {2u, 1.0}},
+        {"dend3.mid", {3u, 0.5}},
+        {"dend3.end", {3u, 1.0}}
     };
 
     run_ncomp_convergence_test(
@@ -122,24 +139,17 @@ void validate_ball_and_3stick(nest::mc::backend_policy backend) {
         "neuron_ball_and_3stick.json",
         backend,
         c,
-        samplers);
+        points);
 }
 
-void validate_rallpack1(nest::mc::backend_policy backend) {
+void validate_rallpack1(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_simple_cable();
-
-    // three probes: left end, 30% along, right end.
-    c.add_probe({{1, 0.0}, probeKind::membrane_voltage});
-    c.add_probe({{1, 0.3}, probeKind::membrane_voltage});
-    c.add_probe({{1, 1.0}, probeKind::membrane_voltage});
-
-    float sample_dt = 0.025f;
-    sampler_info samplers[] = {
-        {"cable.x0.0", {0u, 0u}, simple_sampler(sample_dt)},
-        {"cable.x0.3", {0u, 1u}, simple_sampler(sample_dt)},
-        {"cable.x1.0", {0u, 2u}, simple_sampler(sample_dt)},
+    probe_point points[] = {
+        {"cable.x0.0", {1u, 0.0}},
+        {"cable.x0.3", {1u, 0.3}},
+        {"cable.x1.0", {1u, 1.0}}
     };
 
     run_ncomp_convergence_test(
@@ -147,21 +157,18 @@ void validate_rallpack1(nest::mc::backend_policy backend) {
         "numeric_rallpack1.json",
         backend,
         c,
-        samplers,
+        points,
         250.f);
 }
 
-void validate_ball_and_squiggle(nest::mc::backend_policy backend) {
+void validate_ball_and_squiggle(nest::mc::backend_kind backend) {
     using namespace nest::mc;
 
     cell c = make_cell_ball_and_squiggle();
-    add_common_voltage_probes(c);
-
-    float sample_dt = 0.025f;
-    sampler_info samplers[] = {
-        {"soma.mid", {0u, 0u}, simple_sampler(sample_dt)},
-        {"dend.mid", {0u, 1u}, simple_sampler(sample_dt)},
-        {"dend.end", {0u, 2u}, simple_sampler(sample_dt)}
+    probe_point points[] = {
+        {"soma.mid", {0u, 0.5}},
+        {"dend.mid", {1u, 0.5}},
+        {"dend.end", {1u, 1.0}}
     };
 
 #if 0
@@ -180,5 +187,5 @@ void validate_ball_and_squiggle(nest::mc::backend_policy backend) {
         "neuron_ball_and_squiggle.json",
         backend,
         c,
-        samplers);
+        points);
 }

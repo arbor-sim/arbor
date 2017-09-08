@@ -1,57 +1,68 @@
 #include "../gtest.h"
 
-#include "rss_cell.hpp"
+#include <rss_cell.hpp>
+#include <rss_cell_group.hpp>
 
-using namespace  nest::mc;
+#include "../simple_recipes.hpp"
 
-TEST(rss_cell, constructor)
-{
-    rss_cell test(0.0, 0.01, 1.0);
-}
+using namespace nest::mc;
+
+using rss_recipe = homogeneous_recipe<cell_kind::regular_spike_source, rss_cell>;
 
 TEST(rss_cell, basic_usage)
 {
-    rss_cell sut(0.1, 0.01, 0.2);
+    constexpr time_type dt = 0.01; // dt is ignored by rss_cell_group::advance().
 
-    // no spikes in this time frame
-    auto spikes = sut.spikes_until(0.09);
-    EXPECT_EQ(size_t(0), spikes.size());
+    // Use floating point times with an exact representation in order to avoid
+    // rounding issues.
+    rss_cell desc{0.125, 0.03125, 0.5};
+    rss_cell_group sut({0}, rss_recipe(1u, desc));
 
-    //only on in this time frame
-    spikes = sut.spikes_until(0.11);
-    EXPECT_EQ(size_t(1), spikes.size());
+    // No spikes in this time frame.
+    sut.advance(0.1, dt);
+    EXPECT_EQ(0u, sut.spikes().size());
 
-    // Reset the internal state to null
+    // Only on in this time frame
+    sut.clear_spikes();
+    sut.advance(0.127, dt);
+    EXPECT_EQ(1u, sut.spikes().size());
+
+    // Reset cell group state.
     sut.reset();
 
-    // Expect 10 excluding the 0.2
-    spikes = sut.spikes_until(0.2);
-    EXPECT_EQ(size_t(10), spikes.size());
+    // Expect 12 spikes excluding the 0.5 end point.
+    sut.advance(0.5, dt);
+    EXPECT_EQ(12u, sut.spikes().size());
 }
 
 TEST(rss_cell, poll_time_after_end_time)
 {
-    rss_cell sut(0.1, 0.01, 0.2);
+    constexpr time_type dt = 0.01; // dt is ignored by rss_cell_group::advance().
 
-    // no spikes in this time frame
-    auto spikes = sut.spikes_until(0.3);
-    EXPECT_EQ(size_t(10), spikes.size());
+    rss_cell desc{0.125, 0.03125, 0.5};
+    rss_cell_group sut({0}, rss_recipe(1u, desc));
 
-    // now ask for spikes for a time slot already passed.
-    spikes = sut.spikes_until(0.2);
+    // Expect 12 spikes in this time frame.
+    sut.advance(0.7, dt);
+    EXPECT_EQ(12u, sut.spikes().size());
+
+    // Now ask for spikes for a time slot already passed:
     // It should result in zero spikes because of the internal state!
-    EXPECT_EQ(size_t(0), spikes.size());
+    sut.clear_spikes();
+    sut.advance(0.2, dt);
+    EXPECT_EQ(0u, sut.spikes().size());
 
     sut.reset();
 
-    // Expect 10 excluding the 0.2
-    spikes = sut.spikes_until(0.2);
-    EXPECT_EQ(size_t(10), spikes.size());
+    // Expect 12 excluding the 0.5
+    sut.advance(0.5, dt);
+    EXPECT_EQ(12u, sut.spikes().size());
 }
 
 TEST(rss_cell, cell_kind_correct)
 {
-    rss_cell sut(0.1, 0.01, 0.2);
+    rss_cell desc{0.1, 0.01, 0.2};
+    rss_cell_group sut({0}, rss_recipe(1u, desc));
 
     EXPECT_EQ(cell_kind::regular_spike_source, sut.get_cell_kind());
 }

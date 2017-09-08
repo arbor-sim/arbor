@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/fvm_types.hpp>
 #include <cell.hpp>
 #include <compartment.hpp>
 #include <event_queue.hpp>
@@ -16,6 +17,8 @@
 #include <matrix.hpp>
 #include <memory/memory.hpp>
 #include <profiling/profiler.hpp>
+#include <recipe.hpp>
+#include <sampler_map.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util/meta.hpp>
@@ -46,10 +49,10 @@ public:
     using backend = Backend;
 
     /// the real number type
-    using value_type = typename backend::value_type;
+    using value_type = fvm_value_type;
 
     /// the integral index type
-    using size_type = typename backend::size_type;
+    using size_type = fvm_size_type;
 
     /// the container used for values
     using array = typename backend::array;
@@ -69,11 +72,16 @@ public:
         resting_potential_ = potential_mV;
     }
 
-    template <typename Cells, typename Targets, typename Probes>
+    // Set up data structures for a fixed collection of cells identified by `gids`
+    // with descriptions taken from the recipe `rec`.
+    //
+    // Lowered-cell specific handles for targets and probes are stored in the
+    // caller-provided vector `target_handles` and map `probe_map`.
     void initialize(
-        const Cells& cells,           // collection of nest::mc::cell descriptions
-        Targets& target_handles,      // (write) where to store target handles
-        Probes& probe_handles);       // (write) where to store probe handles
+        const std::vector<cell_gid_type>& gids,
+        const recipe& rec,
+        std::vector<target_handle>& target_handles,
+        probe_association_map<probe_handle>& probe_map);
 
     void reset();
 
@@ -226,8 +234,6 @@ public:
         return it==mechanisms_.end() ? util::nothing: util::just(*it);
     }
 
-    std::size_t num_probes() const { return probes_.size(); }
-
     //
     // Threshold crossing interface.
     // Used by calling code to perform spike detection
@@ -341,8 +347,6 @@ private:
 
     /// the ion species
     std::map<mechanisms::ionKind, ion> ions_;
-
-    std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
 
     /// Compact representation of the control volumes into which a segment is
     /// decomposed. Used to reconstruct the weights used to convert current
@@ -520,13 +524,14 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 }
 
 template <typename Backend>
-template <typename Cells, typename Targets, typename Probes>
 void fvm_multicell<Backend>::initialize(
-    const Cells& cells,
-    Targets& target_handles,
-    Probes& probe_handles)
+    const std::vector<cell_gid_type>& gids,
+    const recipe& rec,
+    std::vector<target_handle>& target_handles,
+    probe_association_map<probe_handle>& probe_map)
 {
     using memory::make_const_view;
+    using util::any_cast;
     using util::assign_by;
     using util::make_partition;
     using util::make_span;
@@ -535,13 +540,19 @@ void fvm_multicell<Backend>::initialize(
     using util::transform_view;
     using util::subrange_view;
 
-    // count total targets and probes for validation of handle container sizes
+    ncell_ = size(gids);
     std::size_t targets_count = 0u;
-    std::size_t probes_count = 0u;
-    auto targets_size = size(target_handles);
-    auto probes_size = size(probe_handles);
 
-    ncell_ = size(cells);
+    // Take cell descriptions from recipe. These are used initially
+    // to count compartments for allocation of data structures, and
+    // then interrogated again for the details for each cell in turn.
+
+    std::vector<cell> cells;
+    cells.reserve(gids.size());
+    for (auto gid: gids) {
+        cells.push_back(any_cast<cell>(rec.get_cell_description(gid)));
+    }
+
     auto cell_num_compartments =
         transform_view(cells, [](const cell& c) { return c.num_compartments(); });
 
@@ -583,8 +594,7 @@ void fvm_multicell<Backend>::initialize(
     // setup per-cell event stores.
     events_ = util::make_unique<multi_event_stream>(ncell_);
 
-    // create each cell:
-    auto probe_hi = probe_handles.begin();
+    // Create each cell:
 
     // Allocate scratch storage for calculating quantities used to build the
     // linear system: these will later be copied into target-specific storage
@@ -611,6 +621,7 @@ void fvm_multicell<Backend>::initialize(
     //  - each probe, stimulus and detector is attached to its compartment.
     for (auto i: make_span(0, ncell_)) {
         const auto& c = cells[i];
+        auto gid = gids[i];
         auto comp_ival = cell_comp_part[i];
 
         auto graph = c.model();
@@ -643,8 +654,6 @@ void fvm_multicell<Backend>::initialize(
         }
 
         for (const auto& syn: c.synapses()) {
-            EXPECTS(targets_count < targets_size);
-
             const auto& name = syn.mechanism.name();
             auto& map_entry = syn_mech_map[name];
 
@@ -693,31 +702,32 @@ void fvm_multicell<Backend>::initialize(
             thresholds.push_back(detector.threshold);
         }
 
-        // record probe locations by index into corresponding state vector
-        for (const auto& probe: c.probes()) {
-            EXPECTS(probes_count < probes_size);
+        // Retrieve probe addresses and tags from recipe for this cell.
+        for (cell_lid_type j: make_span(0, rec.num_probes(gid))) {
+            probe_info pi = rec.get_probe({gid, j});
+            auto where = any_cast<cell_probe_address>(pi.address);
 
-            auto comp = comp_ival.first+find_cv_index(probe.location, graph);
-            switch (probe.kind) {
-            case probeKind::membrane_voltage:
-                *probe_hi++ = {&fvm_multicell::voltage_, comp};
+            auto comp = comp_ival.first+find_cv_index(where.location, graph);
+            probe_handle handle;
+
+            switch (where.kind) {
+            case cell_probe_address::membrane_voltage:
+                handle = {&fvm_multicell::voltage_, comp};
                 break;
-            case probeKind::membrane_current:
-                *probe_hi++ = {&fvm_multicell::current_, comp};
+            case cell_probe_address::membrane_current:
+                handle = {&fvm_multicell::current_, comp};
                 break;
             default:
                 throw std::logic_error("unrecognized probeKind");
             }
-            ++probes_count;
+
+            probe_map.insert({pi.id, {handle, pi.tag}});
         }
     }
 
     // set a back-end supplied watcher on the voltage vector
     threshold_watcher_ =
         threshold_watcher(cv_to_cell_, time_, time_to_, voltage_, spike_detector_index, thresholds);
-
-    // confirm user-supplied container probes were appropriately sized.
-    EXPECTS(probes_size==probes_count);
 
     // store the geometric information in target-specific containers
     cv_areas_ = make_const_view(tmp_cv_areas);
@@ -778,6 +788,8 @@ void fvm_multicell<Backend>::initialize(
         mech_to_cv_index[mech_name] = mech_cv_index;
     }
 
+    target_handles.resize(targets_count);
+
     // Create point (synapse) mechanisms.
     for (auto& syni: syn_mech_map) {
         size_type mech_id = mechanisms_.size();
@@ -805,9 +817,6 @@ void fvm_multicell<Backend>::initialize(
             target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_tmp[entry.cv]);
         }
     }
-
-    // confirm user-supplied containers for targets are appropriately sized
-    EXPECTS(targets_size==targets_count);
 
     // build the ion species
     for (auto ion : mechanisms::ion_kinds()) {

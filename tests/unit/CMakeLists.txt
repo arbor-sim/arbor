@@ -62,12 +62,14 @@ set(TEST_SOURCES
     test_path.cpp
     test_point.cpp
     test_probe.cpp
-    test_segment.cpp
     test_range.cpp
+    test_segment.cpp
+    test_schedule.cpp
     test_rss_cell.cpp
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp
+    test_stats.cpp
     test_stimulus.cpp
     test_strprintf.cpp
     test_swcio.cpp
@@ -80,6 +82,9 @@ set(TEST_SOURCES
 
     # unit test driver
     test.cpp
+
+    # common routines
+    stats.cpp
 )
 
 
@@ -95,8 +100,6 @@ endif()
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
 if(NMC_WITH_CUDA)
-    # Omit -DDATADIR for cuda target because of CMake 3.7/3.8 FindCUDA quoting bug.
-
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
 endif()

@@ -3,7 +3,7 @@
 
 #include <fvm_multicell.hpp>
 
-const auto backend = nest::mc::backend_policy::prefer_gpu;
+const auto backend = nest::mc::backend_kind::gpu;
 
 TEST(ball_and_stick, neuron_ref) {
     validate_ball_and_stick(backend);

@@ -17,14 +17,14 @@ namespace mc {
 
 // Compute max |v_i - f(t_i)| where (t, v) is the 
 // first trace `u` and f is the piece-wise linear interpolant
-// of the second trace `ref`.
+// of the second trace `r`.
 
-double linf_distance(const trace_data& u, const trace_data& ref);
+double linf_distance(const trace_data<double>& u, const trace_data<double>& r);
 
-// Compute linf distance as above, excluding samples near
-// times given in `excl`, monotonically increasing.
+// Compute linf distance as above, excluding samples in the first trace
+// near times given in `excl`, monotonically increasing.
 
-double linf_distance(const trace_data& u, const trace_data& ref, const std::vector<float>& excl);
+double linf_distance(const trace_data<double>& u, const trace_data<double>& r, const std::vector<float>& excl);
 
 // Find local maxima (peaks) in a trace, excluding end points.
 
@@ -38,14 +38,14 @@ struct trace_peak {
     }
 };
 
-std::vector<trace_peak> local_maxima(const trace_data& u);
+std::vector<trace_peak> local_maxima(const trace_data<double>& u);
 
 // Compare differences in peak times across two traces.
 // Returns largest magnitute displacement between peaks,
 // together with a sampling error bound, or `nothing`
 // if the number of peaks differ.
 
-util::optional<trace_peak> peak_delta(const trace_data& a, const trace_data& b);
+util::optional<trace_peak> peak_delta(const trace_data<double>& a, const trace_data<double>& b);
 
 // Record for error data for convergence testing.
 // Only linf and peak_delta are used for convergence testing below;

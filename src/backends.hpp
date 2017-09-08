@@ -6,16 +6,19 @@
 namespace nest {
 namespace mc {
 
-enum class backend_policy {
-    use_multicore,      //  use multicore backend for all computation
-    prefer_gpu          //  use gpu back end when supported by cell_group type
+enum class backend_kind {
+    multicore,   //  use multicore backend for all computation
+    gpu          //  use gpu back end when supported by cell_group type
 };
 
-inline std::string to_string(backend_policy p) {
-    if (p==backend_policy::use_multicore) {
-        return "use_multicore";
+inline std::string to_string(backend_kind p) {
+    switch (p) {
+        case backend_kind::multicore:
+            return "multicore";
+        case backend_kind::gpu:
+            return "gpu";
     }
-    return "prefer_gpu";
+    return "unknown";
 }
 
 } // namespace mc

@@ -8,7 +8,6 @@
 #include <common_types.hpp>
 #include <cell_tree.hpp>
 #include <morphology.hpp>
-#include <probes.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util/debug.hpp>
@@ -31,9 +30,13 @@ int find_compartment_index(
     compartment_model const& graph
 );
 
-struct probe_spec {
+struct cell_probe_address {
+    enum probe_kind {
+        membrane_voltage, membrane_current
+    };
+
     segment_location location;
-    probeKind kind;
+    probe_kind kind;
 };
 
 // used in constructor below
@@ -66,14 +69,12 @@ public:
     // constructor
     cell();
 
-    // sometimes we really do want a copy (pending big morphology
-    // refactor)
+    // Sometimes we really do want a copy (pending big morphology refactor).
     cell(clone_cell_t, const cell& other):
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
-        spike_detectors_(other.spike_detectors_),
-        probes_(other.probes_)
+        spike_detectors_(other.spike_detectors_)
      {
          // unique_ptr's cannot be copy constructed, do a manual assignment
          segments_.reserve(other.segments_.size());
@@ -181,19 +182,6 @@ public:
         return spike_detectors_;
     }
 
-    //////////////////
-    // probes
-    //////////////////
-    index_type add_probe(probe_spec p) {
-        probes_.push_back(p);
-        return probes_.size()-1;
-    }
-
-    const std::vector<probe_spec>&
-    probes() const {
-        return probes_;
-    }
-
 private:
     // storage for connections
     std::vector<index_type> parents_;
@@ -209,9 +197,6 @@ private:
 
     // the sensors
     std::vector<detector_instance> spike_detectors_;
-
-    // the probes
-    std::vector<probe_spec> probes_;
 };
 
 // Checks that two cells have the same

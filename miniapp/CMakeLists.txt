@@ -5,12 +5,14 @@ set(MINIAPP_SOURCES
     io.cpp
     miniapp_recipes.cpp
     morphology_pool.cpp
+    trace.cpp
 )
 set(MINIAPP_SOURCES_CUDA
     miniapp.cu
     io.cpp
     miniapp_recipes.cpp
     morphology_pool.cpp
+    trace.cpp
 )
 
 add_executable(miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})

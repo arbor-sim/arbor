@@ -17,39 +17,6 @@ using backend = multicore::backend;
 using backend = USE_BACKEND;
 #endif
 
-TEST(spikes, ordering) {
-    {
-        spike s1({0,0}, 1), s2({0,0}, 2);
-        EXPECT_TRUE(s1<s2);
-    }
-    {
-        spike s1({0,0}, 1), s2({0,0}, 1);
-        EXPECT_FALSE(s1<s2);
-    }
-    {
-        spike s1({0,0}, 2), s2({0,0}, 1);
-        EXPECT_FALSE(s1<s2);
-    }
-}
-
-TEST(spikes, sorting) {
-    std::vector<spike> spikes = {
-        {{0,0}, 1},
-        {{0,0}, 2},
-        {{0,0}, 0},
-        {{0,0}, 3},
-        {{0,0}, 1},
-        {{0,0}, 2},
-    };
-
-    std::sort(spikes.begin(), spikes.end());
-
-    auto it = spikes.begin();
-    while (++it!=spikes.end()) {
-        EXPECT_TRUE(it->time >= (it-1)->time);
-    }
-}
-
 TEST(spikes, threshold_watcher) {
     using backend = multicore::backend;
     using size_type = backend::size_type;

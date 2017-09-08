@@ -10,6 +10,7 @@
 #include <ostream>
 #include <numeric>
 
+#include <util/deduce_return.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/transform.hpp>
@@ -313,6 +314,12 @@ std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
     }
     return {lower, upper};
 }
+
+// View over the keys in an associative container.
+
+template <typename Map>
+auto keys(Map& m) DEDUCED_RETURN_TYPE(util::transform_view(m, util::first));
+
 
 template <typename C, typename Seq>
 C make_copy(Seq const& seq) {

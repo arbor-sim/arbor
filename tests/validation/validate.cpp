@@ -21,8 +21,8 @@ const char* usage_str =
 "  -p, --path=DIR      Look for validation reference data in DIR\n"
 "  -m, --max-comp=N    Run convergence tests to a maximum of N\n"
 "                      compartments per segment\n"
-"  -d, --min-dt=DT     Run convergence tests with or with a minimumf\n"
-"                      timestep DT\n"
+"  -d, --min-dt=DT     Run convergence tests with a minimum timestep DT [ms]\n"
+"  -s, --sample-dt=DT  Sample rate for simulations [ms]\n"
 "  -h, --help          Display usage information and exit\n"
 "\n"
 "Validation data is searched by default in the directory specified by\n"
@@ -52,6 +52,9 @@ int main(int argc, char **argv) {
             else if (auto o = parse_opt<float>(arg, 'd', "min-dt")) {
                 g_trace_io.set_min_dt(*o);
             }
+            else if (auto o = parse_opt<float>(arg, 's', "sample-dt")) {
+                g_trace_io.set_sample_dt(*o);
+            }
             else if (auto o = parse_opt(arg, 'v', "verbose")) {
                 g_trace_io.set_verbose(true);
             }
@@ -66,7 +69,6 @@ int main(int argc, char **argv) {
 
         return RUN_ALL_TESTS();
     }
-
     catch (to::parse_opt_error& e) {
         to::usage(argv[0], usage_str, e.what());
         return 1;
