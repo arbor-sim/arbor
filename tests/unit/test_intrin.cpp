@@ -4,9 +4,6 @@
 #include <immintrin.h>
 
 #include "../gtest.h"
-//#include "../../../vdt/include/exp.h"
-//#include "../../../vdt/include/log.h"
-//#include "../../../vdt/include/vdtcore_common.h"
 
 using namespace nest::mc::multicore;
 
@@ -17,8 +14,8 @@ constexpr double dmin_denorm = std::numeric_limits<double>::denorm_min();
 constexpr double dinf = std::numeric_limits<double>::infinity();
 
 constexpr double values[] = {
-    -10, -3, -2, -1,
-    1,  2,  3, 10,
+    -300, -3, -2, -1,
+    1,  2,  3, 600,
     dqnan, -dinf, dinf, -0.0,
     dmin, dmax, dmin_denorm, +0.0,
 };

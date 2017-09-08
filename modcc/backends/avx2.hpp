@@ -5,6 +5,7 @@
 #pragma once
 
 #include "backends/base.hpp"
+#include "util/compat.hpp"
 
 
 namespace nest {
@@ -24,9 +25,10 @@ struct simd_intrinsics<targetKind::avx2> {
 
     static std::string emit_headers() {
         std::string ret = "#include <immintrin.h>";
-#ifndef __INTEL_COMPILER
-        ret += "\n#include <backends/multicore/intrin.hpp>";
-#endif
+        if (!compat::using_intel_compiler()) {
+            ret += "\n#include <backends/multicore/intrin.hpp>";
+        }
+
         return ret;
     }
 
