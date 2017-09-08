@@ -8,6 +8,10 @@ namespace mpi {
 
 // global state
 namespace state {
+    // TODO: in case MPI_Init is never called, this will mimic one rank with rank 0.
+    // This is not ideal: calls to MPI-dependent features such as reductions will
+    // still fail, however this allows us to run all the unit tests until the
+    // run-time executors are implemented.
     int size = 1;
     int rank = 0;
 } // namespace state
