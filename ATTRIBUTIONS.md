@@ -20,3 +20,10 @@ A CMake file for Intel Threading Building Blocks (TBB) written by Justus Calvin 
 MIT license.
 
 https://github.com/justusc/FindTBB
+
+## Transcendentals intrinsics
+
+The numerical algorithms for the transcendentals intrinsics are based on the scalar Cephes library.
+
+http://www.netlib.org/cephes/
+No License.
