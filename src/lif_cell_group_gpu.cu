@@ -2,6 +2,7 @@
 
 using namespace nest::mc;
 using stack_type = gpu::stack<threshold_crossing>;
+typedef r123::Philox2x32 RNG;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_gpu::lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
@@ -27,6 +28,7 @@ gid_base_(first_gid)
     d_poiss.reserve(cells.size());
 
     cell_events_.resize(cells.size());
+    poiss_event_counter.resize(cells.size());
 
     for (const auto& c : cells) {
         lif_cell_description cell = util::any_cast<lif_cell_description>(c);
@@ -53,7 +55,7 @@ gid_base_(first_gid)
             lambda_[lid] = (1.0/(cells_[lid].rate * cells_[lid].n_poiss));
             // generator_[lid].seed(1000 + first_gid + lid);
             // sample_next_poisson(lid);
-            next_poiss_time_[lid] = lambda_[lid]; // TODO: sample randomly
+            next_poiss_time_[lid] = -1; // TODO: sample randomly
         }
     }
 
@@ -97,6 +99,45 @@ void lif_cell_group_gpu::reset() {
     }
 }
 
+__device__
+void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, unsigned* poiss_event_counter) {
+    if (n_poiss[lid] > 0) {
+        // TODO: sample using Random123
+        RNG::ctr_type c = {{}};
+        RNG::ukey_type uk = {{}};
+        uk[0] = lid + gid_base_ + 1225;
+        RNG::key_type k = uk;
+        c[0] = poiss_event_counter[lid];
+        poiss_event_counter[lid]++;
+        RNG::ctr_type r = rng(c, k);
+
+        time_type t_update = r.front();
+        if (next_poiss_time_[lid] < 0) {
+            next_poiss_time_[lid] = t_update;
+        } else {
+            next_poiss_time_[lid] += t_update;
+        }
+    }
+}
+
+__device__
+util::optional<postsynaptic_spike_event>  next_poiss_before(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, float* w_poiss, float* d_poiss, time_type tfinal) {
+    if (n_poiss[lid] > 0) {
+        if (next_poiss_time_[lid] < 0) {
+            sample_poiss_time(lid, gid_base_, next_poiss_time_);
+        }
+        auto t_poiss = next_poiss_time_[lid] + d_poiss[lid];
+
+        if (t_poiss >= tfinal) {
+            return util::nothing;
+        }
+
+        auto poiss_ev = postsynaptic_spike_event{{cell_lid_type(gid_base_ + lid), 0}, t_poiss, w_poiss[lid]};
+        return poiss_ev;
+    }
+    return util::nothing;
+}
+
 // Returns the next most recent event that is yet to be processed.
 // It can be either Poisson event or the queue event.
 // Only events that happened before tfinal are considered.
@@ -104,6 +145,7 @@ __device__
 bool next_event(
        cell_gid_type gid_base_,
        time_type* next_poiss_time_,
+       unsigned* n_poiss,
        float* w_poiss,
        float * d_poiss,
        cell_gid_type lid,
@@ -112,44 +154,30 @@ bool next_event(
        unsigned* cell_begin,
        unsigned* cell_end,
        postsynaptic_spike_event* event_buffer,
-       postsynaptic_spike_event& event)
+       postsynaptic_spike_event& event,
+       unsigned* poiss_event_counter)
 {
-    auto t_poiss = next_poiss_time_[lid] + d_poiss[lid];
-    auto poiss_ev = postsynaptic_spike_event{{cell_lid_type(gid_base_ + lid), 0}, t_poiss, w_poiss[lid]};
-
     // There are still queue events.
     if (cell_begin[lid] < cell_end[lid]) {
         postsynaptic_spike_event q_ev = event_buffer[cell_begin[lid]];
+        // Poisson event is the most recent one.
+        if (event = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, min(q_ev.time, tfinal))) {
+            sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter);
+            return true;
+        }
         // Queue event is the most recent one.
-        if (q_ev.time < min(tfinal, t_poiss)) {
-            cell_begin[lid]++;
+        if (q_ev.time < tfinal) {
             event = q_ev;
             return true;
         }
-
-        // Poisson event is the most recent one.
-        if (t_poiss < tfinal) {
-            // Sample next Poisson event.
-            // next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
-            next_poiss_time_[lid] += lambda_[lid];
-            event = poiss_ev;
-            return true;
-        }
-
-        // There are events, but not before tfinal
+        // No events before tfinal.
         return false;
     }
 
-    // There are no more queue events but possibly Poisson events.
-    if (t_poiss < tfinal) {
-        // Sample next Poisson event.
-        // next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
-        next_poiss_time_[lid] += lambda_[lid];
-        event = poiss_ev;
+    if (event = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, tfinal)) {
+        sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter);
         return true;
     }
-
-    // There are neither Poisson nor queue events before tfinal.
     return false;
 }
 
@@ -174,7 +202,8 @@ void advance_kernel (cell_gid_type gid_base_,
             unsigned* cell_begin,
             unsigned* cell_end,
             postsynaptic_spike_event* event_buffer,
-            stack_type* spike_stack)
+            stack_type* spike_stack,
+            unsigned* poiss_event_counter)
 {
     int lid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -187,6 +216,7 @@ void advance_kernel (cell_gid_type gid_base_,
         // including poisson events as well.
         while (next_event(gid_base_,
                         next_poiss_time_,
+                        n_poiss,
                         w_poiss,
                         d_poiss,
                         lid,
@@ -195,11 +225,13 @@ void advance_kernel (cell_gid_type gid_base_,
                         cell_begin,
                         cell_end,
                         event_buffer,
-                        ev)) {};
+                        ev,
+                        poiss_event_counter)) {};
 
         // Integrate until tfinal using the exact solution of membrane voltage differential equation.
         while (next_event(gid_base_,
                         next_poiss_time_,
+                        n_poiss,
                         w_poiss,
                         d_poiss,
                         lid,
@@ -208,7 +240,8 @@ void advance_kernel (cell_gid_type gid_base_,
                         cell_begin,
                         cell_end,
                         event_buffer,
-                        ev))  {
+                        ev,
+                        poiss_event_counter))  {
             auto weight = ev.weight;
             auto event_time = ev.time;
 
@@ -284,7 +317,8 @@ void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
                                             cell_begin.data(),
                                             cell_end.data(),
                                             event_buffer.data(),
-                                            spike_stack.get());
+                                            spike_stack.get(),
+                                            poiss_event_counter.data());
     cudaDeviceSynchronize();
 
     // TODO: process the spikes

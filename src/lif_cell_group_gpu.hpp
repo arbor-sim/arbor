@@ -4,12 +4,12 @@
 #include <event_queue.hpp>
 #include <lif_cell_description.hpp>
 #include <profiling/profiler.hpp>
-#include <random>
 #include <util/unique_any.hpp>
 #include <vector>
 #include <backends/gpu/stack.hpp>
 #include <memory/memory.hpp>
 #include <memory/managed_ptr.hpp>
+#include <Random123/philox.h>
 
 namespace nest {
 namespace mc {
@@ -73,6 +73,7 @@ private:
     managed_vector<float> w_poiss;
     managed_vector<float> d_poiss;
 
+    memory::device_vector<unsigned> poiss_event_counter;
     // Samples next poisson spike.
     void sample_next_poisson(cell_gid_type lid);
 
