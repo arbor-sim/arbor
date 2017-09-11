@@ -6,6 +6,7 @@
 #include <list>
 #include <numeric>
 #include <type_traits>
+#include <unordered_map>
 
 #ifdef NMC_HAVE_TBB
 #include <tbb/tbb_stddef.h>
