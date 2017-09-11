@@ -41,6 +41,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <backends/event.hpp>");
     text_.add_line("#include <backends/gpu/intrinsics.hpp>");
     text_.add_line("#include <backends/gpu/multi_event_stream.hpp>");
     text_.add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
@@ -115,7 +116,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("namespace kernels {");
     {
         increase_indentation();
-        text_.add_line("using nest::mc::gpu::multi_event_stream;");
 
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
@@ -755,7 +755,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line(       "__global__");
         text_.add_gutter() << "void deliver_events("
                            << module_->name() << "_ParamPack<T,I> params_, "
-                           << "I mech_id, multi_event_stream::span_state state) {";
+                           << "I mech_id, nest::mc::gpu_event_state state) {";
         text_.add_line();
         increase_indentation();
 

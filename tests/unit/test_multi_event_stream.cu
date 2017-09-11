@@ -65,7 +65,7 @@ struct ev_info {
 __global__
 void copy_marked_events_kernel(
     unsigned ci,
-    gpu::multi_event_stream::span_state state,
+    nest::mc::gpu_event_state state,
     ev_info* store,
     unsigned& count,
     unsigned max_ev)

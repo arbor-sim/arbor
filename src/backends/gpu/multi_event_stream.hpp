@@ -52,17 +52,7 @@ public:
     // `t_until[i]` to the event time.
     void event_time_if_before(view t_until);
 
-    // Interface for access by mechanism kernels:
-    struct span_state {
-        size_type n;
-        const size_type* ev_mech_id;
-        const size_type* ev_index;
-        const value_type* ev_weight;
-        const size_type* span_begin;
-        const size_type* mark;
-    };
-
-    span_state delivery_data() const {
+    gpu_event_state delivery_data() const {
         return {n_stream_, ev_mech_id_.data(), ev_index_.data(), ev_weight_.data(), span_begin_.data(), mark_.data()};
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <common_types.hpp>
+#include "fvm_types.hpp"
 
 // Structures for the representation of event delivery targets and
 // staged events.
@@ -26,6 +27,18 @@ struct deliverable_event {
     deliverable_event() {}
     deliverable_event(time_type time, target_handle handle, float weight):
         time(time), handle(handle), weight(weight) {}
+};
+
+// Interface for access to the event stream data for mechanism gpu kernels.
+struct gpu_event_state {
+    using size_type = fvm_size_type;
+    using value_type = fvm_value_type;
+    size_type n;
+    const size_type* ev_mech_id;
+    const size_type* ev_index;
+    const value_type* ev_weight;
+    const size_type* span_begin;
+    const size_type* mark;
 };
 
 } // namespace mc
