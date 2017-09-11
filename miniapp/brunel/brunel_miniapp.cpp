@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
         };
 
         group_rules rules;
-        rules.policy = backend_policy::use_multicore;
+        rules.policy = backend_policy::prefer_gpu;
         rules.target_group_size = group_size;
         auto decomp = domain_decomposition(recipe, rules);
 

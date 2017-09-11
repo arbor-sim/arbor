@@ -29,8 +29,6 @@ public:
     // Constructor containing gid of first cell in a group and a container of all cells.
     lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells);
 
-
-
     virtual cell_kind get_cell_kind() const override;
 
     virtual void advance(time_type tfinal, time_type dt) override;
@@ -77,22 +75,6 @@ private:
 
     // Samples next poisson spike.
     void sample_next_poisson(cell_gid_type lid);
-
-    /*
-    // Returns the time of the next poisson event for given neuron,
-    // taking into accout the delay of poisson spikes,
-    // without sampling a new Poisson event time.
-    time_type next_poisson_event(cell_gid_type lid);
-
-    // Returns the next most recent event that is yet to be processed.
-    // It can be either Poisson event or the queue event.
-    // Only events that happened before tfinal are considered.
-    util::optional<postsynaptic_spike_event> next_event(cell_gid_type lid, time_type tfinal);
-     */
-
-    // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
-    // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-    void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid);
 
     // Gid of first cell in group.
     cell_gid_type gid_base_;

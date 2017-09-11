@@ -26,6 +26,8 @@ gid_base_(first_gid)
     w_poiss.reserve(cells.size());
     d_poiss.reserve(cells.size());
 
+    cell_events_.resize(cells.size());
+
     for (const auto& c : cells) {
         lif_cell_description cell = util::any_cast<lif_cell_description>(c);
 
@@ -54,19 +56,12 @@ gid_base_(first_gid)
             next_poiss_time_[lid] = lambda_[lid]; // TODO: sample randomly
         }
     }
+
+    std::cout << "Constructed the group " << first_gid << "\n";
 }
 
 cell_kind lif_cell_group_gpu::get_cell_kind() const {
     return cell_kind::lif_neuron;
-}
-
-void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
-    PE("lif");
-    for (size_t lid = 0; lid < cells_.size(); ++lid) {
-        // Advance each cell independently.
-        advance_cell(tfinal, dt, lid);
-    }
-    PL();
 }
 
 void lif_cell_group_gpu::enqueue_events(const std::vector<postsynaptic_spike_event>& events) {
@@ -84,10 +79,8 @@ void lif_cell_group_gpu::clear_spikes() {
     spikes_.clear();
 }
 
-// TODO: implement sampler
 void lif_cell_group_gpu::add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time) {}
 
-// TODO: implement binner_
 void lif_cell_group_gpu::set_binning_policy(binning_kind policy, time_type bin_interval) {
 }
 
@@ -162,7 +155,6 @@ bool next_event(
 
 __global__
 void advance_kernel (cell_gid_type gid_base_,
-            cell_gid_type lid,
             time_type tfinal,
             unsigned num_cells,
             double* tau_m,
@@ -182,11 +174,11 @@ void advance_kernel (cell_gid_type gid_base_,
             unsigned* cell_begin,
             unsigned* cell_end,
             postsynaptic_spike_event* event_buffer,
-            stack_type& spike_stack)
+            stack_type* spike_stack)
 {
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    int lid = threadIdx.x + blockIdx.x * blockDim.x;
 
-    if (idx < num_cells) {
+    if (lid < num_cells) {
         // Current time of last update.
         time_type t = last_time_updated_[lid];
         postsynaptic_spike_event ev;
@@ -237,7 +229,7 @@ void advance_kernel (cell_gid_type gid_base_,
                 threshold_crossing spike;
                 spike.index = lid;
                 spike.time = t;
-                (spike_stack).push_back(spike);
+                (*spike_stack).push_back(spike);
 
                 // Advance last_time_updated.
                 t += t_ref[lid];
@@ -251,9 +243,7 @@ void advance_kernel (cell_gid_type gid_base_,
     }
 }
 
-// Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
-// Parameter dt is ignored, since we make jumps between two consecutive spikes.
-void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid) {
+void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
     event_buffer.clear();
     cell_begin.clear();
     cell_end.clear();
@@ -272,10 +262,9 @@ void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_t
     unsigned grid_dim = (cells_.size() - 1) / block_dim + 1;
 
     // TODO: we have to know the maximum number of poisson spikes!
-    memory::managed_ptr<stack_type> spike_stack(memory::make_managed_ptr<stack_type>(10 * lambda_[gid_base_]));
+    memory::managed_ptr<stack_type> spike_stack(memory::make_managed_ptr<stack_type>(1000));
 
     advance_kernel<<<grid_dim, block_dim>>>(gid_base_,
-                                            lid,
                                             tfinal,
                                             cells_.size(),
                                             tau_m.data(),
@@ -295,7 +284,7 @@ void lif_cell_group_gpu::advance_cell(time_type tfinal, time_type dt, cell_gid_t
                                             cell_begin.data(),
                                             cell_end.data(),
                                             event_buffer.data(),
-                                            *spike_stack);
+                                            spike_stack.get());
     cudaDeviceSynchronize();
 
     // TODO: process the spikes
