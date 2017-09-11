@@ -42,6 +42,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
     text_.add_line("#include <backends/event.hpp>");
+    text_.add_line("#include <backends/fvm_types.hpp>");
     text_.add_line("#include <backends/gpu/intrinsics.hpp>");
     text_.add_line("#include <backends/gpu/multi_event_stream.hpp>");
     text_.add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
@@ -56,10 +57,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     // generate the parameter pack
     ////////////////////////////////////////////////////////////
     std::vector<std::string> param_pack;
-    text_.add_line("template <typename T, typename I>");
     text_.add_gutter() << "struct " << module_name << "_ParamPack {";
     text_.end_line();
     text_.increase_indentation();
+    text_.add_line("using T = nest::mc::fvm_value_type;");
+    text_.add_line("using I = nest::mc::fvm_size_type;");
     text_.add_line("// array parameters");
     for(auto const &var: array_variables) {
         text_.add_line("T* " + var->name() + ";");
@@ -147,7 +149,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + module_name;
 
-    text_.add_line("template<typename Backend>");
+    text_.add_line("template <typename Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
     text_.add_line("public:");
     text_.increase_indentation();
@@ -163,7 +165,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using typename base::const_view;");
     text_.add_line("using typename base::ion_type;");
     text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
-    text_.add_line("using param_pack_type = " + module_name + "_ParamPack<value_type, size_type>;");
+    text_.add_line("using param_pack_type = " + module_name + "_ParamPack;");
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -432,8 +434,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             text_.add_line("dim3 dim_grid(n/dim_block.x + (n%dim_block.x ? 1 : 0) );");
             text_.add_line();
             text_.add_line(
-                "kernels::" + name + "<value_type, size_type>"
-                + "<<<dim_grid, dim_block>>>(param_pack_);");
+                "kernels::" + name + "<<<dim_grid, dim_block>>>(param_pack_);");
             text_.decrease_indentation();
             text_.add_line("}");
             text_.add_line();
@@ -447,7 +448,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             text_.add_line("auto ncell = events.n_streams();");
             text_.add_line("constexpr int blockwidth = 128;");
             text_.add_line("int nblock = 1+(ncell-1)/blockwidth;");
-            text_.add_line("kernels::deliver_events<value_type, size_type>"
+            text_.add_line("kernels::deliver_events"
                            "<<<nblock, blockwidth>>>(param_pack_, mech_id_, events.delivery_data());");
             text_.decrease_indentation();
             text_.add_line("}");
@@ -456,7 +457,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             // Provide testing interface to `net_receive`.
             text_.add_line("void net_receive(int i_, value_type weight) override {");
             text_.increase_indentation();
-            text_.add_line("kernels::net_receive_global<value_type, size_type>"
+            text_.add_line("kernels::net_receive_global"
                            "<<<1, 1>>>(param_pack_, i_, weight);");
             text_.decrease_indentation();
             text_.add_line("}");
@@ -670,13 +671,12 @@ void CUDAPrinter::visit(IfExpression *e) {
 }
 
 void CUDAPrinter::print_procedure_prototype(ProcedureExpression *e) {
-    text_.add_gutter() << "template <typename T, typename I>\n";
     text_.add_line("__device__");
     text_.add_gutter() << "void " << e->name()
-                       << "(" << module_->name() << "_ParamPack<T, I> const& params_,"
+                       << "(" << module_->name() << "_ParamPack const& params_,"
                        << "const int tid_";
     for(auto& arg : e->args()) {
-        text_ << ", T " << arg->is_argument()->name();
+        text_ << ", nest::mc::fvm_value_type " << arg->is_argument()->name();
     }
     text_ << ")";
 }
@@ -698,7 +698,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         // print body
         increase_indentation();
 
-        text_.add_line("using value_type = T;");
+        text_.add_line("using value_type = nest::mc::fvm_value_type;");
         text_.add_line();
 
         e->body()->accept(this);
@@ -712,15 +712,13 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         // net_receive() kernel is a special case, not covered by APIMethod visit.
 
         // Core `net_receive` kernel is called device-side from `kernel::deliver_events`.
-        text_.add_gutter() << "template <typename T, typename I>\n";
         text_.add_line(       "__device__");
-        text_.add_gutter() << "void net_receive(const " << module_->name() << "_ParamPack<T,I>& params_, "
-                           << "I i_, T weight) {";
+        text_.add_gutter() << "void net_receive(const " << module_->name() << "_ParamPack& params_, "
+                           << "nest::mc::fvm_size_type i_, nest::mc::fvm_value_type weight) {";
         text_.add_line();
         increase_indentation();
 
-        text_.add_line("using value_type = T;");
-        text_.add_line("using iarray = I;");
+        text_.add_line("using value_type = nest::mc::fvm_value_type;");
         text_.add_line();
 
         text_.add_line("auto tid_ = i_;");
@@ -736,26 +734,24 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         // Global one-thread wrapper for `net_receive` kernel is used to implement the
         // `mechanism::net_receive` method. This is not called in the normal course
         // of event delivery.
-        text_.add_gutter() << "template <typename T, typename I>\n";
         text_.add_line(       "__global__");
         text_.add_gutter() << "void net_receive_global("
-                           << module_->name() << "_ParamPack<T,I> params_, "
-                           << "I i_, T weight) {";
+                           << module_->name() << "_ParamPack params_, "
+                           << "nest::mc::fvm_size_type i_, nest::mc::fvm_value_type weight) {";
         text_.add_line();
         increase_indentation();
 
         text_.add_line("if (threadIdx.x || blockIdx.x) return;");
-        text_.add_line("net_receive<T, I>(params_, i_, weight);");
+        text_.add_line("net_receive(params_, i_, weight);");
 
         decrease_indentation();
         text_.add_line("}");
         text_.add_line();
 
-        text_.add_gutter() << "template <typename T, typename I>\n";
         text_.add_line(       "__global__");
         text_.add_gutter() << "void deliver_events("
-                           << module_->name() << "_ParamPack<T,I> params_, "
-                           << "I mech_id, nest::mc::gpu_event_state state) {";
+                           << module_->name() << "_ParamPack params_, "
+                           << "nest::mc::fvm_size_type mech_id, nest::mc::gpu_event_state state) {";
         text_.add_line();
         increase_indentation();
 
@@ -767,7 +763,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 
         text_.add_line("for (auto j = state.span_begin[tid_]; j<state.mark[tid_]; ++j) {");
         increase_indentation();
-        text_.add_line("if (state.ev_mech_id[j]==mech_id) net_receive<T, I>(params_, state.ev_index[j], state.ev_weight[j]);");
+        text_.add_line("if (state.ev_mech_id[j]==mech_id) net_receive(params_, state.ev_index[j], state.ev_weight[j]);");
         decrease_indentation();
         text_.add_line("}");
 
@@ -782,10 +778,9 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 
 void CUDAPrinter::visit(APIMethod *e) {
     // print prototype
-    text_.add_gutter() << "template <typename T, typename I>\n";
     text_.add_line(       "__global__");
     text_.add_gutter() << "void " << e->name()
-                       << "(" << module_->name() << "_ParamPack<T,I> params_) {";
+                       << "(" << module_->name() << "_ParamPack params_) {";
     text_.add_line();
 
     if(!e->scope()) { // error: semantic analysis has not been performed
@@ -796,8 +791,7 @@ void CUDAPrinter::visit(APIMethod *e) {
     }
     increase_indentation();
 
-    text_.add_line("using value_type = T;");
-    text_.add_line("using iarray = I;");
+    text_.add_line("using value_type = nest::mc::fvm_value_type;");
     text_.add_line();
 
     text_.add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");
@@ -894,7 +888,7 @@ void CUDAPrinter::print_APIMethod_body(ProcedureExpression* e) {
 }
 
 void CUDAPrinter::visit(CallExpression *e) {
-    text_ << e->name() << "<T,I>(params_, tid_";
+    text_ << e->name() << "(params_, tid_";
     for(auto& arg: e->args()) {
         text_ << ", ";
         arg->accept(this);
