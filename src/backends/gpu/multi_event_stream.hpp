@@ -54,7 +54,7 @@ protected:
     {}
 
     template <typename Event>
-    void init(const std::vector<Event>& staged) {
+    void init(std::vector<Event> staged) {
         using ::nest::mc::event_time;
         using ::nest::mc::event_index;
 
@@ -62,11 +62,11 @@ protected:
             throw std::range_error("too many events");
         }
 
-        // Staged events should already be sorted by index.
-        EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
+        // Sort by index (staged events should already be time-sorted).
+        util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
+        EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_time(ev); }));
 
         std::size_t n_ev = staged.size();
-
         tmp_ev_time_.clear();
         tmp_ev_time_.reserve(n_ev);
 

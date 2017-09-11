@@ -87,6 +87,8 @@ public:
         time_type tstart = lowered_.min_time();
 
         // Bin pending events and enqueue on lowered state.
+        // TODO: batch events here, not in fvm cell (fvm lowered cell now takes
+        // the vector at integration set up).
         time_type ev_min_time = lowered_.max_time(); // (but we're synchronized here)
         while (auto ev = events_.pop_if_before(tfinal)) {
             auto handle = get_target_handle(ev->target);
@@ -120,6 +122,9 @@ public:
         std::vector<sampler_call_info> call_info; // TODO: make into members
         std::vector<sample_event> sample_events;
 
+        sample_size_type n_samples = 0;
+        sample_size_type max_samples_per_call = 0;
+
         for (const auto& sa: sampler_map_) {
             auto sample_times = sa.sched.events(tstart, tfinal);
             if (sample_times.empty()) {
@@ -128,6 +133,7 @@ public:
 
             auto probes = sa.probe_ids();
             sample_size_type n_times = sample_times.size();
+            max_samplers_per_call = std::max(max_samplers_per_sampler, n_times);
 
             for (cell_member_type pid: probes) {
                 auto cell_index = gid_to_index(pid.gid);
@@ -144,20 +150,10 @@ public:
 
         std::vector<fvm_value_type> raw_samples(n_samples);
         std::vector<fvm_value_type> actual_sample_times(n_samples);
-        sample_records.reserve(n_samples);
-        for (const auto& ev: sample_events) {
-            // TODO: fix this: storing ev.time here is incorrect; need to get
-            // sample time from integrator. Consider changing API so that
-            // sampler function gets a _pointer_ to the time value.
-            sample_records.push_back({ev.time, &raw_samples[ev.raw.offset]});
-        }
 
-        // TODO: move sort to lowered cell or m.e.s as appropriate
         util::sort_by(sample_events, [](const sample_event& ev) { event_time(ev); });
-        util::stable_sort_by(sample_events, [](const sample_event& ev) { event_index(ev); });
 
-        // TODO: add ptr to raw data vecs
-        lowered_.set_sample_events(std::sample_events);
+        lowered_.set_sample_events(sample_events);
 
         lowered_.setup_integration(tfinal, dt);
 
@@ -171,7 +167,8 @@ public:
         }
 
         std::vector<sample_record> sample_records; // TODO -> member
-        sampler_size_type sample_index = 0;
+        sample_records.reserve(max_samples_per_call);
+
         for (auto& sc: call_info) {
             sample_records.clear();
             for (auto i = sc.begin; i!= sc.end; ++i) {

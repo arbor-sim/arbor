@@ -61,6 +61,8 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
+    using const_view = typename array::const_view_type;
+
     using target_handle = typename backend::target_handle;
     using deliverable_event = typename backend::deliverable_event;
 
@@ -93,7 +95,11 @@ public:
     }
 
     // Initialize state prior to a sequence of integration steps.
-    void setup_integration(value_type tfinal, value_type dt_max) {
+    void setup_integration(
+        value_type tfinal, value_type dt_max,
+        std::vector<deliverable_event>& staged_events,
+        std::vector<sample_event>& staged_samples)
+    {
         EXPECTS(dt_max>0);
 
         tfinal_ = tfinal;
@@ -103,9 +109,16 @@ public:
 
         EXPECTS(!has_pending_events());
 
-        util::stable_sort_by(staged_events_, [](const deliverable_event& ev) { return event_index(ev); });
-        events_->init(staged_events_);
-        staged_events_.clear();
+        n_samples_ = staged_samples.size();
+
+        events_->init(staged_events);
+        sample_events_->init(staged_samples);
+
+        // Reallocate sample buffers if necessary.
+        if (sample_buffer_.size()<n_samples_) {
+            sample_buffer_ = array(n_samples_);
+            sample_time_buffer_ = array(n_samples_);
+        }
     }
 
     // Advance one integration step.
@@ -114,6 +127,17 @@ public:
     // Query integration completion state.
     bool integration_complete() const {
         return min_remaining_steps_==0;
+    }
+
+    // Access to sample data post-integration.
+    const_view sample_values() const {
+        EXPECTS(!sample_events_ || sample_events_->empty());
+        return sample_buffer_(0, n_samples_);
+    }
+
+    const_view sample_times() const {
+        EXPECTS(!sample_events_ || sample_events_->empty());
+        return sample_time_buffer_(0, n_samples_);
     }
 
     // Query per-cell time state.
@@ -146,12 +170,6 @@ public:
     void set_time_to_global(value_type t) {
         memory::fill(time_to_, t);
         invalidate_time_cache();
-    }
-
-    /// Add an event for processing in next integration stage.
-    void add_event(value_type ev_time, target_handle h, value_type weight) {
-        EXPECTS(integration_complete());
-        staged_events_.push_back(deliverable_event(ev_time, h, weight));
     }
 
     /// Following types and methods are public only for testing:
@@ -286,9 +304,6 @@ private:
         }
     }
 
-    /// events staged for upcoming integration stage
-    std::vector<deliverable_event> staged_events_;
-
     /// event queue for integration period
     using deliverable_event_stream = typename backend::deliverable_event_stream;
     std::unique_ptr<deliverable_event_stream> events_;
@@ -299,8 +314,12 @@ private:
 
     /// sample events for integration period
     using sample_event_stream = typename backend::sample_event_stream;
-    std::unique_ptr<sample_event_stream> events_;
+    std::unique_ptr<sample_event_stream> sample_events_;
 
+    /// sample buffers
+    size_type n_samples_ = 0;
+    array sample_buffer_;
+    array sample_time_buffer_;
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
@@ -917,18 +936,16 @@ void fvm_multicell<Backend>::step_integration() {
     sample_events_->mark_until_after(time_);
 
     // deliver pending events and update current contributions from mechanisms
-    for(auto& m: mechanisms_) {
+    for (auto& m: mechanisms_) {
         PE(m->name().c_str());
         m->deliver_events(*events_);
         m->nrn_current();
         PL();
     }
 
-    // TODO: do samples here, so that a request for a sample at time u
-    // might be specified at a time t>=u, after any event delivery.
-    //
-    // TODO: need to have sample process *also write cell times* to
-    // sample store
+    // perform any pending samples
+    // TODO: patch backend impl
+    backend::perform_marked_samples(sample_events_, sample_time_buffer_.data(), sample_buffer_.data());
 
     // remove delivered events from queue and set time_to_
     events_->drop_marked_events();
@@ -937,7 +954,6 @@ void fvm_multicell<Backend>::step_integration() {
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
     invalidate_time_cache();
     events_->event_time_if_before(time_to_);
-    sample_events_->event_time_if_before(time_to_);
     PL();
 
     // set per-cell and per-compartment dt (constant within a cell)
