@@ -1,9 +1,10 @@
 #include <lif_cell_group_gpu.hpp>
-#include <random123/philox.h>
+#include <random123/threefry.h>
+#include <random123/uniform.hpp>
 
 using namespace nest::mc;
 using stack_type = gpu::stack<threshold_crossing>;
-using RNG = r123::Philox2x32;
+using RNG = r123::Threefry2x32;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_gpu::lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
@@ -106,12 +107,11 @@ void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_p
         RNG::ctr_type c = {{}};
         RNG::key_type k = {{}};
         k[0] = lid + gid_base_ + 1225;
-
-        c[0] = poiss_event_counter[lid];
+        c.v[0] = poiss_event_counter[lid];
         poiss_event_counter[lid]++;
-        auto r = RNG(c, k);
+        RNG::ctr_type r = threefry2x32(c, k);
         // First sample unif ~ Uniform(0,1) and then use it to get the Poisson distribution.
-        time_type unif = u01<time_type>(r.v[0]);
+        time_type unif = r123::u01<time_type>(r.v[0]);
         time_type t_update = -lambda_[lid] * logf(1-unif);
         if (next_poiss_time_[lid] < 0) {
             next_poiss_time_[lid] = t_update;
@@ -122,10 +122,10 @@ void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_p
 }
 
 __device__
-util::optional<postsynaptic_spike_event>  next_poiss_before(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, float* w_poiss, float* d_poiss, time_type tfinal) {
+util::optional<postsynaptic_spike_event>  next_poiss_before(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, float* w_poiss, float* d_poiss, unsigned* poiss_event_counter, double* lambda_, time_type tfinal) {
     if (n_poiss[lid] > 0) {
         if (next_poiss_time_[lid] < 0) {
-            sample_poiss_time(lid, gid_base_, next_poiss_time_);
+            sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
         }
         auto t_poiss = next_poiss_time_[lid] + d_poiss[lid];
         if (t_poiss >= tfinal) {
@@ -161,7 +161,8 @@ bool next_event(
     if (cell_begin[lid] < cell_end[lid]) {
         postsynaptic_spike_event q_ev = event_buffer[cell_begin[lid]];
         // Poisson event is the most recent one.
-        if (event = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, min(q_ev.time, tfinal))) {
+        if (auto ev = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, poiss_event_counter, lambda_, min(q_ev.time, tfinal))) {
+            event = ev.get();
             sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
             return true;
         }
@@ -174,7 +175,8 @@ bool next_event(
         return false;
     }
 
-    if (event = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, tfinal)) {
+    if (auto ev = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, poiss_event_counter, lambda_, tfinal)) {
+        event = ev.get();
         sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
         return true;
     }
