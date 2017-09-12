@@ -5,6 +5,8 @@
 using namespace nest::mc;
 using stack_type = gpu::stack<threshold_crossing>;
 using RNG = r123::Threefry2x32;
+// Change this line if you change the random engine.
+#define sample_randomly threefry2x32
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_gpu::lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
@@ -54,13 +56,13 @@ gid_base_(first_gid)
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
             lambda_[lid] = (1.0/(cells_[lid].rate * cells_[lid].n_poiss));
-            // generator_[lid].seed(1000 + first_gid + lid);
-            // sample_next_poisson(lid);
-            next_poiss_time_[lid] = -1; // TODO: sample randomly
+            // -1 means that it is not sampled so far. 
+            // The reason why we do not sample it here is because we want to do the sampling completely on GPU.
+            next_poiss_time_[lid] = -1;
         }
     }
 
-    std::cout << "Constructed the group " << first_gid << "\n";
+    spike_stack = memory::make_managed_ptr<stack_type>(1000);
 }
 
 cell_kind lif_cell_group_gpu::get_cell_kind() const {
@@ -82,7 +84,8 @@ void lif_cell_group_gpu::clear_spikes() {
     spikes_.clear();
 }
 
-void lif_cell_group_gpu::add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time) {}
+void lif_cell_group_gpu::add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time) {
+}
 
 void lif_cell_group_gpu::set_binning_policy(binning_kind policy, time_type bin_interval) {
 }
@@ -103,16 +106,19 @@ void lif_cell_group_gpu::reset() {
 __device__
 void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, unsigned* poiss_event_counter, double* lambda_) {
     if (n_poiss[lid] > 0) {
-        // TODO: sample using Random123
+        // key = GID of the cell
+        // counter = total number of Poisson events seen so far.
         RNG::ctr_type c = {{}};
         RNG::key_type k = {{}};
         k[0] = lid + gid_base_ + 1225;
         c.v[0] = poiss_event_counter[lid];
         poiss_event_counter[lid]++;
-        RNG::ctr_type r = threefry2x32(c, k);
+        RNG::ctr_type r = sample_randomly(c, k);
+
         // First sample unif ~ Uniform(0,1) and then use it to get the Poisson distribution.
         time_type unif = r123::u01<time_type>(r.v[0]);
         time_type t_update = -lambda_[lid] * logf(1-unif);
+
         if (next_poiss_time_[lid] < 0) {
             next_poiss_time_[lid] = t_update;
         } else {
@@ -120,6 +126,7 @@ void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_p
         }
     }
 }
+
 // Computes the next Poisson event time for cell lid.
 // It assumes that the neuron recieves Poisson event (n_poiss > 0), which should be checked before invoking this method.
 __device__
@@ -312,7 +319,6 @@ void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
     unsigned grid_dim = (cells_.size() - 1) / block_dim + 1;
 
     // TODO: we have to know the maximum number of poisson spikes!
-    memory::managed_ptr<stack_type> spike_stack(memory::make_managed_ptr<stack_type>(1000));
 
     advance_kernel<<<grid_dim, block_dim>>>(gid_base_,
                                             tfinal,
@@ -338,7 +344,6 @@ void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
                                             poiss_event_counter.data());
     cudaDeviceSynchronize();
 
-    // TODO: process the spikes
     for (unsigned i = 0; i < spike_stack->size(); ++i) {
         threshold_crossing crossing = (*spike_stack)[i];
         spikes_.push_back(spike({crossing.index + gid_base_, 0}, crossing.time));

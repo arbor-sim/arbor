@@ -13,7 +13,6 @@
 namespace nest {
 namespace mc {
 
-
 struct threshold_crossing {
     cell_gid_type index;    // index of variable
     time_type time;    // time of crossing
@@ -49,12 +48,16 @@ public:
 private:
     template <typename T>
     using managed_vector = std::vector<T, memory::managed_allocator<T> >;
+    using stack_type = gpu::stack<threshold_crossing>;
 
     // Events management.
     managed_vector<postsynaptic_spike_event> event_buffer;
     managed_vector<unsigned> cell_begin;
     managed_vector<unsigned> cell_end;
     std::vector<event_queue<postsynaptic_spike_event> > cell_events_;
+
+    // Stack for collecting spikes.
+    memory::managed_ptr<stack_type> spike_stack;
 
     // LIF parameters.
     managed_vector<double> tau_m;
