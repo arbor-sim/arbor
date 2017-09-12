@@ -31,8 +31,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 // Check our AES implementation against the example in FIPS-197
 
-#include <Random123/aes.h>
-#include <Random123/ReinterpretCtr.hpp>
+#include <random123/aes.h>
+#include <random123/ReinterpretCtr.hpp>
 #if R123_USE_AES_OPENSSL
 #include <openssl/aes.h>
 #endif

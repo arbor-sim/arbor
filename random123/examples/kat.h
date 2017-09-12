@@ -32,10 +32,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef __katdoth__
 #define __katdoth__
 
-#include <Random123/philox.h>
-#include <Random123/threefry.h>
-#include <Random123/ars.h>
-#include <Random123/aes.h>
+#include <random123/philox.h>
+#include <random123/threefry.h>
+#include <random123/ars.h>
+#include <random123/aes.h>
 
 enum method_e{
 #define RNGNxW_TPL(base, N, W) base##N##x##W##_e,

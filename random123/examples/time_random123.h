@@ -43,8 +43,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * NxW.
  */
 
-#include <Random123/philox.h>
-#include <Random123/threefry.h>
+#include <random123/philox.h>
+#include <random123/threefry.h>
 
 #ifdef __OPENCL_VERSION__
 #define KERNEL __kernel

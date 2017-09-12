@@ -30,7 +30,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <stdio.h>
-#include <Random123/threefry.h>
+#include <random123/threefry.h>
 #include "uniform.hpp"
 
 /* Compute pi, using the u01 conversion with threefry2x64 and threefry2x32 */

@@ -38,7 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <errno.h>
 #include <assert.h>
 #include <math.h>
-#include <Random123/features/compilerfeatures.h>
+#include <random123/features/compilerfeatures.h>
 
 extern const char *progname;
 extern int debug;

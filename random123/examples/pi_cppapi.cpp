@@ -29,8 +29,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include <Random123/threefry.h>
-#include <Random123/ReinterpretCtr.hpp>
+#include <random123/threefry.h>
+#include <random123/ReinterpretCtr.hpp>
 #include <stdio.h>
 #include <assert.h>
 

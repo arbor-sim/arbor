@@ -42,9 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // 80-bit extended precision registers.  On x86-64 (and other IEEE-754
 // systems), temporaries are stored in 32-bit SSE registers.
 
-#include <Random123/philox.h>
-#include <Random123/MicroURNG.hpp>
-#include <Random123/ReinterpretCtr.hpp>
+#include <random123/philox.h>
+#include <random123/MicroURNG.hpp>
+#include <random123/ReinterpretCtr.hpp>
 #if R123_USE_CXX11_RANDOM
 #include <random>
 #endif

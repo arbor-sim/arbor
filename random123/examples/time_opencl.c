@@ -39,8 +39,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "util_opencl.h"
 
-#include "Random123/philox.h"
-#include "Random123/threefry.h"
+#include "random123/philox.h"
+#include "random123/threefry.h"
 
 #include "time_misc.h"
 #include "util_print.h"

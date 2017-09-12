@@ -38,10 +38,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "util.h"
 #include <sys/stat.h>
 
-#include "Random123/philox.h"
-#include "Random123/threefry.h"
-#include "Random123/ars.h"
-#include "Random123/aes.h"
+#include "random123/philox.h"
+#include "random123/threefry.h"
+#include "random123/ars.h"
+#include "random123/aes.h"
 
 #include "time_misc.h"
 #include "util_print.h"

@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // functions for boilerplate CUDA init and done
 #include "util_cuda.h"
 
-#include <Random123/philox.h>
+#include <random123/philox.h>
 
 int debug = 0;
 const char *progname;

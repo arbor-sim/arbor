@@ -35,7 +35,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // in some cases, emit some appropriate code to check that
 // they reflect reality.
 #include <assert.h>
-#include <Random123/features/compilerfeatures.h>
+#include <random123/features/compilerfeatures.h>
 #include <iostream>
 
 struct Outputter{

@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // encourage developers to copy it and modify it for their own
 // use.  We invite comments and improvements.
 
-#include <Random123/features/compilerfeatures.h>
+#include <random123/features/compilerfeatures.h>
 #include <array>
 #include "uniform.hpp"
 

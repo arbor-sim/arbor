@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <gsl/gsl_randist.h>
 #include <stdio.h>
-#include "Random123/philox.h"
-#include "Random123/threefry.h"
-#include "Random123/conventional/gsl_cbrng.h"
+#include "random123/philox.h"
+#include "random123/threefry.h"
+#include "random123/conventional/gsl_cbrng.h"
 #include <assert.h>
 
 /* Exercise the GSL_CBRNG macro */

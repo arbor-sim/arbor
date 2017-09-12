@@ -1,6 +1,6 @@
 // Test for boxmuller.h on CUDA
-#include <Random123/philox.h>
-#include <Random123/threefry.h>
+#include <random123/philox.h>
+#include <random123/threefry.h>
 #include "util.h"   // for timer()
 #include "util_cuda.h"	// for cuda_init, CHECKCALL
 #include "boxmuller.hpp"

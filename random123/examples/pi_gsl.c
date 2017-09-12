@@ -31,9 +31,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include <gsl/gsl_randist.h>
 #include <stdio.h>
-#include "Random123/philox.h"
-#include "Random123/threefry.h"
-#include "Random123/gsl_microrng.h"
+#include "random123/philox.h"
+#include "random123/threefry.h"
+#include "random123/gsl_microrng.h"
 
 /* Compute pi, using the gsl_ran_flat distribution with
    an underlying threefry4x64 counter-based rng (cbrng).

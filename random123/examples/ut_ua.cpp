@@ -38,8 +38,8 @@ int main(int, char**){
 }
 #else
 
-#include <Random123/array.h>
-#include <Random123/threefry.h>
+#include <random123/array.h>
+#include <random123/threefry.h>
 #include "ua.hpp"
 
 using namespace r123;

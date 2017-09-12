@@ -48,7 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 #include "uniform.hpp"
-#include <Random123/threefry.h>
+#include <random123/threefry.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <map>

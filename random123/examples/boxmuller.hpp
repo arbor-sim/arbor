@@ -63,7 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef _r123_BOXMULLER_HPP__
 #define _r123_BOXMULLER_HPP__
 
-#include <Random123/features/compilerfeatures.h>
+#include <random123/features/compilerfeatures.h>
 #include "uniform.hpp"
 #include <math.h>
 

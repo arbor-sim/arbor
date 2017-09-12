@@ -36,12 +36,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning (disable : 4521)
 #endif
 
-#include <Random123/philox.h>
-#include <Random123/aes.h>
-#include <Random123/threefry.h>
-#include <Random123/ars.h>
-#include <Random123/conventional/Engine.hpp>
-#include <Random123/ReinterpretCtr.hpp>
+#include <random123/philox.h>
+#include <random123/aes.h>
+#include <random123/threefry.h>
+#include <random123/ars.h>
+#include <random123/conventional/Engine.hpp>
+#include <random123/ReinterpretCtr.hpp>
 #if R123_USE_CXX11_RANDOM
 #include <random>
 #endif

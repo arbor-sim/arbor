@@ -29,13 +29,13 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include <Random123/features/compilerfeatures.h>
+#include <random123/features/compilerfeatures.h>
 #if !R123_USE_SSE
 #include <stdio.h>
 int main(){ printf("No SSE.  Nothing to check\n"); return 0; }
 #else
 
-#include <Random123/features/sse.h>
+#include <random123/features/sse.h>
 #include <sstream>
 
 int main(int, char **){

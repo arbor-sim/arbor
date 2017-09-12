@@ -31,7 +31,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #ifndef UTIL_M128_H__
 #define UTIL_M128_H__
-#include <Random123/features/sse.h>
+#include <random123/features/sse.h>
 
 // The formatting in fips-197 seems to correspond to
 // byte[15] [14] ... [0]

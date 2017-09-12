@@ -1,6 +1,6 @@
 // Test for boxmuller.h on CPU
-#include <Random123/philox.h>
-#include <Random123/threefry.h>
+#include <random123/philox.h>
+#include <random123/threefry.h>
 #include "boxmuller.hpp"
 #include "util.h"   // for timer()
 
