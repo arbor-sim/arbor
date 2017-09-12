@@ -129,9 +129,13 @@ struct backend {
     }
 
     // perform sampling as described by marked events in a sample_event_stream
-    static void perform_marked_samples(value_type* store, const sample_event_stream& s) {
-        sample_event_stream::span_state state = s.delivery_data();
-        nest::mc::gpu::run_samples(state.n, store, state.ev_data, state.span_begin, state.mark);
+    static void take_samples(
+        const sample_event_stream& s,
+        const_view time,
+        array& sample_time,
+        array& sample_value)
+    {
+        nest::mc::gpu::take_samples(s.marked_events(), time.data(), sample_time.data(), sample_value.data());
     }
 
 private:

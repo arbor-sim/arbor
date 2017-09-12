@@ -4,6 +4,7 @@
 
 #include <common_types.hpp>
 #include <backends/event.hpp>
+#include <backends/multi_event_stream_state.hpp>
 #include <generic_event.hpp>
 #include <memory/array.hpp>
 #include <memory/copy.hpp>
@@ -143,7 +144,7 @@ public:
         const size_type* mark;
     };
 
-    span_state delivery_data() const {
+    multi_event_stream_state<event_data_type> marked_events() const {
         return {n_stream_, ev_data_.data(), span_begin_.data(), mark_.data()};
     }
 

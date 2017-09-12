@@ -86,42 +86,32 @@ public:
         EXPECTS(lowered_.state_synchronized());
         time_type tstart = lowered_.min_time();
 
-        // Bin pending events and enqueue on lowered state.
-        // TODO: batch events here, not in fvm cell (fvm lowered cell now takes
-        // the vector at integration set up).
-        time_type ev_min_time = lowered_.max_time(); // (but we're synchronized here)
+        // Bin pending events and batch for lowered cell.
+        std::vector<deliverable_event> events;
+
         while (auto ev = events_.pop_if_before(tfinal)) {
-            auto handle = get_target_handle(ev->target);
-            auto binned_ev_time = binner_.bin(ev->target.gid, ev->time, ev_min_time);
-            lowered_.add_event(binned_ev_time, handle, ev->weight);
+            events.emplace_back(
+                binner_.bin(ev->target.gid, ev->time, tstart),
+                get_target_handle(ev->target),
+                ev->weight);
         }
 
-        // TODO: consider moving a vector of deliverable_event objects into
-        // the lowered_ cell directly with e.g. lowered_.set_deliverable_events().
-
-        // Set up sampling data structures.
-        // All *TODO*
-        // 1. for each association (probes, times, sampler):
-        // 1.1 ignore if not times in interval.
-        // 1.2 make a sequence of probes x times sample events for m.e.q
-        // 1.3 push sampler onto vec
-        // 1.4 push a new backend stack onto queue (maybe do this in fvm)
-        // 2. after integration, for ea. entry sampler in vec:
-        // 2.1 make a sequence of sample entries from corresponding backend stack
-        // 2.2 call sampler with ptr into sequence.
-
-
+        // Create sample events and delivery information.
         struct {
+            // Represents one call to a sampler callback.
             sampler_function sampler;
             cell_member_type probe_id;
             probe_tag tag;
-            sample_size_type entries_begin;
-            sample_size_type entries_end;
+
+            // Offsets are into lowered cell sample time and event arrays.
+            sample_size_type begin_offset;
+            sample_size_type end_offset;
         } sampler_call_info;
 
-        std::vector<sampler_call_info> call_info; // TODO: make into members
-        std::vector<sample_event> sample_events;
+        PE("sample-events");
+        std::vector<sampler_call_info> call_info; // TODO: make into members?
 
+        std::vector<sample_event> sample_events;
         sample_size_type n_samples = 0;
         sample_size_type max_samples_per_call = 0;
 
@@ -147,16 +137,11 @@ public:
                 }
             }
         }
-
-        std::vector<fvm_value_type> raw_samples(n_samples);
-        std::vector<fvm_value_type> actual_sample_times(n_samples);
-
         util::sort_by(sample_events, [](const sample_event& ev) { event_time(ev); });
+        PL();
 
-        lowered_.set_sample_events(sample_events);
-
-        lowered_.setup_integration(tfinal, dt);
-
+        // Run integration.
+        lowered_.setup_integration(tfinal, dt, std::move(events), std::move(sample_events));
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
 
@@ -166,17 +151,21 @@ public:
             }
         }
 
-        std::vector<sample_record> sample_records; // TODO -> member
+        PE("sample-deliver");
+        std::vector<sample_record> sample_records;
         sample_records.reserve(max_samples_per_call);
 
+        auto sample_time = lowered_.sample_time();
+        auto sample_value = lowered_.sample_value();
         for (auto& sc: call_info) {
             sample_records.clear();
-            for (auto i = sc.begin; i!= sc.end; ++i) {
-                sample_records.push_back(sample_record{actual_sample_times[i], &raw_samples[i]});
+            for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
+                sample_records.push_back(sample_record{sample_time[i], &sample_value[i]});
             }
 
             sc.sampler(sc.probe_id, sc.tag, sc.end-sc.begin, sample_records.data());
         }
+        PL();
 
         // Copy out spike voltage threshold crossings from the back end, then
         // generate spikes with global spike source ids. The threshold crossings

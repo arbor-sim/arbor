@@ -8,6 +8,7 @@
 
 #include <common_types.hpp>
 #include <backends/event.hpp>
+#include <backends/multi_event_stream_state.hpp>
 #include <generic_event.hpp>
 #include <algorithms.hpp>
 #include <util/debug.hpp>
@@ -117,9 +118,9 @@ public:
         }
     }
 
-    // Return range of marked events on stream `i`.
-    util::range<event_data_type*> marked_events(size_type i) {
-        return {&ev_data_[span_begin_[i]], &ev_data_[mark_[i]]};
+    // Interface for access to marked events by mechanisms/kernels:
+    multi_event_stream_state<event_data_type> marked_events() {
+        return {n_streams(), ev_data.data(), span_begin_.data(), span_end_.data()};
     }
 
     // If the head of `i`th event stream exists and has time less than `t_until[i]`, set

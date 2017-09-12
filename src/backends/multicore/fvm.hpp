@@ -131,10 +131,20 @@ struct backend {
     }
 
     // perform sampling as described by marked events in a sample_event_stream
-    static void perform_marked_samples(value_type* store, const sample_event_stream& s) {
-        for (size_type i = 0; i<s.size(); ++i) {
-            for (const auto& ev: s.marked_events(i)) {
-                store[ev.offset] = *ev.handle;
+    static void take_samples(
+        const sample_event_stream& s,
+        const_view time,
+        array& sample_times,
+        array& sample_values)
+    {
+        auto state = s.marked_events();
+        for (size_type i = 0; i<state.n_streams(); ++i) {
+            auto begin = state.begin_marked(i);
+            auto end = state.end_marked(i);
+
+            for (auto p = begin; p<end; ++p) {
+                sample_times[p->offset] = time[i];
+                sample_values[p->offset] = *p->handle;
             }
         }
     }

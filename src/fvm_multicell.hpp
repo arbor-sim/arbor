@@ -95,10 +95,12 @@ public:
     }
 
     // Initialize state prior to a sequence of integration steps.
+    // `staged_events` and `staged_samples` are expected to be
+    // sorted by event time.
     void setup_integration(
         value_type tfinal, value_type dt_max,
-        std::vector<deliverable_event>& staged_events,
-        std::vector<sample_event>& staged_samples)
+        const std::vector<deliverable_event>& staged_events,
+        const std::vector<sample_event>& staged_samples)
     {
         EXPECTS(dt_max>0);
 
@@ -115,9 +117,9 @@ public:
         sample_events_->init(staged_samples);
 
         // Reallocate sample buffers if necessary.
-        if (sample_buffer_.size()<n_samples_) {
-            sample_buffer_ = array(n_samples_);
-            sample_time_buffer_ = array(n_samples_);
+        if (sample_value_.size()<n_samples_) {
+            sample_value_ = array(n_samples_);
+            sample_time_ = array(n_samples_);
         }
     }
 
@@ -132,12 +134,12 @@ public:
     // Access to sample data post-integration.
     const_view sample_values() const {
         EXPECTS(!sample_events_ || sample_events_->empty());
-        return sample_buffer_(0, n_samples_);
+        return sample_values_(0, n_samples_);
     }
 
-    const_view sample_times() const {
+    const_view sample_time() const {
         EXPECTS(!sample_events_ || sample_events_->empty());
-        return sample_time_buffer_(0, n_samples_);
+        return sample_time_(0, n_samples_);
     }
 
     // Query per-cell time state.
@@ -318,8 +320,8 @@ private:
 
     /// sample buffers
     size_type n_samples_ = 0;
-    array sample_buffer_;
-    array sample_time_buffer_;
+    array sample_value_;
+    array sample_time_;
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
@@ -923,7 +925,6 @@ void fvm_multicell<Backend>::reset() {
     EXPECTS(!has_pending_events());
 }
 
-
 template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(!integration_complete());
@@ -944,8 +945,7 @@ void fvm_multicell<Backend>::step_integration() {
     }
 
     // perform any pending samples
-    // TODO: patch backend impl
-    backend::perform_marked_samples(sample_events_, sample_time_buffer_.data(), sample_buffer_.data());
+    backend::take_samples(sample_events_, time_, sample_time_, sample_value_);
 
     // remove delivered events from queue and set time_to_
     events_->drop_marked_events();
