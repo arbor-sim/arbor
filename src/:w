@@ -120,12 +120,10 @@ void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_p
         }
     }
 }
-// Computes the next Poisson event time for cell lid.
+// Computes the next Poisson event time for cell lid. 
 // It assumes that the neuron recieves Poisson event (n_poiss > 0), which should be checked before invoking this method.
 __device__
-postsynaptic_spike_event next_poiss_event(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, float* w_poiss, float* d_poiss, unsigned* poiss_event_counter, double* lambda_) {
-    EXPECTS(n_poiss[lid] > 0);
-    // If this is the first time the method is invoked for neuron lid, then sample the initial Poisson event time.
+postsynaptic_spike_event next_poiss_before(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, float* w_poiss, float* d_poiss, unsigned* poiss_event_counter, double* lambda_, time_type tfinal) {
     if (next_poiss_time_[lid] < 0) {
         sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
     }
@@ -155,46 +153,29 @@ bool next_event(
        postsynaptic_spike_event& event,
        unsigned* poiss_event_counter)
 {
-    bool have_poisson_events = n_poiss[lid] > 0;
-    bool have_queued_events = cell_begin[lid] < cell_end[lid];
-
-    postsynaptic_spike_event queue_event;
-    postsynaptic_spike_event poisson_event;
-
-    if (have_poisson_events) {
-        poisson_event = next_poiss_event(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, poiss_event_counter, lambda_);
-    }
-    if (have_queued_events) {
-        queue_event = event_buffer[cell_begin[lid]];
-    }
-    if (have_queued_events && have_poisson_events) {
-        if (queue_event.time < min(poisson_event.time, tfinal)) {
-            event = queue_event;
-            cell_begin[lid]++;
-            return true;
-        }
-        if (poisson_event.time < tfinal) {
-            event = poisson_event;
+    // There are still queue events.
+    if (cell_begin[lid] < cell_end[lid]) {
+        postsynaptic_spike_event q_ev = event_buffer[cell_begin[lid]];
+        // Poisson event is the most recent one.
+        if (auto ev = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, poiss_event_counter, lambda_, min(q_ev.time, tfinal))) {
+            event = ev.get();
             sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
             return true;
         }
+        // Queue event is the most recent one.
+        if (q_ev.time < tfinal) {
+            event = q_ev;
+            return true;
+        }
+        // No events before tfinal.
         return false;
     }
-    if (have_queued_events) {
-        if (queue_event.time < tfinal) {
-            event = queue_event;
-            cell_begin[lid]++;
-            return true;
-        }
-    }
-    if (have_poisson_events) {
-        if (poisson_event.time < tfinal) {
-            event = poisson_event;
-            sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
-            return true;
-        }
-    }
 
+    if (auto ev = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, poiss_event_counter, lambda_, tfinal)) {
+        event = ev.get();
+        sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
+        return true;
+    }
     return false;
 }
 
