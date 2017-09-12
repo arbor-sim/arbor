@@ -48,6 +48,8 @@ public:
         thresholds_(memory::make_const_view(thresh)),
         prev_values_(values),
         is_crossed_(size()),
+        // TODO: allocates enough space for 10 spikes per watch.
+        // A more robust approach might be needed to avoid overflows.
         stack_(10*size())
     {
         reset();
@@ -86,6 +88,9 @@ public:
     }
 
     const std::vector<threshold_crossing> crossings() const {
+        if (stack_.is_overflowed()) {
+            throw std::runtime_error("GPU spike buffer overflow.");
+        }
         return std::vector<threshold_crossing>(stack_.begin(), stack_.end());
     }
 
@@ -97,18 +102,14 @@ public:
         test_thresholds(
             cv_to_cell_.data(), t_after_.data(), t_before_.data(),
             size(),
-            stack_.base(),
+            stack_.storage(),
             is_crossed_.data(), prev_values_.data(),
             cv_index_.data(), values_.data(), thresholds_.data());
 
-        // Check that the number of spikes has not exceeded
-        // the capacity of the stack.
+        // Check that the number of spikes has not exceeded capacity.
         // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
         // host-device managed memory access.
-#ifdef NMC_HAVE_ASSERTIONS
-        cudaDeviceSynchronize();
-        EXPECTS(stack_.size() <= stack_.capacity());
-#endif
+        EXPECTS((cudaDeviceSynchronize(), !stack_.is_overflowed()));
     }
 
     /// the number of threashold values that are being monitored

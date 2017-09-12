@@ -6,7 +6,7 @@ namespace nest {
 namespace mc {
 namespace gpu {
 
-/// stores a single crossing event
+// stores a single crossing event
 struct threshold_crossing {
     fvm_size_type index;    // index of variable
     fvm_value_type time;    // time of crossing
@@ -16,8 +16,12 @@ struct threshold_crossing {
     }
 };
 
+// Concrete storage of gpu stack datatype.
+// The stack datatype resides in host memory, and holds a pointer to the
+// stack_storage in managed memory, which can be accessed by both host and
+// gpu code.
 template <typename T>
-struct stack_base {
+struct stack_storage {
     using value_type = T;
 
     // The number of items of type value_type that can be stored in the stack

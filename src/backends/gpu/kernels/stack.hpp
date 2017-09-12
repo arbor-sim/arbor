@@ -8,7 +8,7 @@ namespace gpu {
 
 template <typename T>
 __device__
-void push_back(stack_base<T>& s, const T& value) {
+void push_back(stack_storage<T>& s, const T& value) {
     // Atomically increment the size counter. The atomicAdd returns
     // the value of size before the increment, which is the location
     // at which this thread can store value.
@@ -20,6 +20,10 @@ void push_back(stack_base<T>& s, const T& value) {
     if (position<s.capacity) {
         s.data[position] = value;
     }
+
+    // Note: there are no guards against s.size overflowing: in which
+    // case the size counter would start again from 0, and values would
+    // be overwritten from the front of the stack.
 }
 
 } // namespace gpu
