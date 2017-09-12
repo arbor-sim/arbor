@@ -51,18 +51,24 @@ gid_base_(first_gid)
         d_poiss.push_back(cell.d_poiss);
     }
 
+    double sum_of_rates = 0;
+
     // Initialize variables for the external Poisson input.
     for (auto lid : util::make_span(0, cells_.size())) {
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
-            lambda_[lid] = (1.0/(cells_[lid].rate * cells_[lid].n_poiss));
+            auto rate = cells_[lid].rate * cells_[lid].n_poiss;
+            sum_of_rates += rate;
+            lambda_[lid] = (1.0/rate);
             // -1 means that it is not sampled so far. 
             // The reason why we do not sample it here is because we want to do the sampling completely on GPU.
             next_poiss_time_[lid] = -1;
         }
     }
 
-    spike_stack = memory::make_managed_ptr<stack_type>(1000);
+    // Warning: we assume there will be <= 100 * sum_of_rates produced spikes of this group
+    // during the interval of a single advance method.
+    spike_stack = memory::make_managed_ptr<stack_type>(sum_of_rates * 10);
 }
 
 cell_kind lif_cell_group_gpu::get_cell_kind() const {
@@ -301,6 +307,7 @@ void advance_kernel (cell_gid_type gid_base_,
 }
 
 void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
+    PE("lif");
     event_buffer.clear();
     cell_begin.clear();
     cell_end.clear();
@@ -317,8 +324,6 @@ void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
     unsigned block_dim = 128;
 
     unsigned grid_dim = (cells_.size() - 1) / block_dim + 1;
-
-    // TODO: we have to know the maximum number of poisson spikes!
 
     advance_kernel<<<grid_dim, block_dim>>>(gid_base_,
                                             tfinal,
@@ -350,4 +355,5 @@ void lif_cell_group_gpu::advance(time_type tfinal, time_type dt) {
     }
 
     spike_stack->clear();
+    PL();
 }
