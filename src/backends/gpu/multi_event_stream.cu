@@ -31,6 +31,26 @@ namespace kernels {
     }
 
     template <typename T, typename I>
+    __global__ void mark_until(
+        I n,
+        I* mark,
+        const I* span_end,
+        const T* ev_time,
+        const T* t_until)
+    {
+        I i = threadIdx.x+blockIdx.x*blockDim.x;
+        if (i<n) {
+            auto t = t_until[i];
+            auto end = span_end[i];
+            auto &m = mark[i];
+
+            while (m!=end && t>ev_time[m]) {
+                ++m;
+            }
+        }
+    }
+
+    template <typename T, typename I>
     __global__ void drop_marked_events(
         I n,
         I* n_nonempty,
@@ -83,6 +103,17 @@ void multi_event_stream_base::mark_until_after(const_view t_until) {
     constexpr int blockwidth = 128;
     int nblock = 1+(n_stream_-1)/blockwidth;
     kernels::mark_until_after<value_type, size_type><<<nblock, blockwidth>>>(
+        n_stream_, mark_.data(), span_end_.data(), ev_time_.data(), t_until.data());
+}
+
+// Designate for processing events `ev` at head of each event stream `i`
+// while `t_until[i]` >  `event_time(ev)`.
+void multi_event_stream_base::mark_until_after(const_view t_until) {
+    EXPECTS(n_streams()==util::size(t_until));
+
+    constexpr int blockwidth = 128;
+    int nblock = 1+(n_stream_-1)/blockwidth;
+    kernels::mark_until<value_type, size_type><<<nblock, blockwidth>>>(
         n_stream_, mark_.data(), span_end_.data(), ev_time_.data(), t_until.data());
 }
 

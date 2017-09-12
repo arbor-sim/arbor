@@ -36,6 +36,10 @@ public:
     // until `event_time(ev)` > `t_until[i]`.
     void mark_until_after(const_view t_until);
 
+    // Designate for processing events `ev` at head of each event stream `i`
+    // while `t_until[i]` > `event_time(ev)`.
+    void mark_until(const_view t_until);
+
     // Remove marked events from front of each event stream.
     void drop_marked_events();
 
@@ -118,6 +122,8 @@ public:
     using event_data_type = ::nest::mc::event_data_type<Event>;
     using data_array = memory::device_vector<event_data_type>;
 
+    using state = multi_event_stream_state<event_data_type>;
+
     multi_event_stream() {}
 
     explicit multi_event_stream(size_type n_stream):
@@ -144,7 +150,7 @@ public:
         const size_type* mark;
     };
 
-    multi_event_stream_state<event_data_type> marked_events() const {
+    state marked_events() const {
         return {n_stream_, ev_data_.data(), span_begin_.data(), mark_.data()};
     }
 

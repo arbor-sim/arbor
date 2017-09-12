@@ -36,6 +36,13 @@ namespace common_events {
     };
 }
 
+namespace {
+    // convenience wrapper around marked_events:
+    template <typename MultiEventStream>
+    auto marked_range(const MultiEventStream& m, unsigned i)
+        DEDUCED_RETURN_TYPE(util::make_range(m.marked_events().begin_marked(i), m.marked_events().end_marked(i)))
+}
+
 TEST(multi_event_stream, init) {
     using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
     using namespace common_events;
@@ -44,7 +51,7 @@ TEST(multi_event_stream, init) {
     EXPECT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
     EXPECT_FALSE(m.empty());
 
@@ -60,11 +67,11 @@ TEST(multi_event_stream, mark) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
-        EXPECT_TRUE(m.marked_events(i).empty());
+        EXPECT_TRUE(marked_range(m, i).empty());
     }
 
     std::vector<time_type> t_until(n_cell);
@@ -78,7 +85,7 @@ TEST(multi_event_stream, mark) {
     //     events[2] (with handle 3) at t=3.f on cell_3
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
-        auto evs = m.marked_events(i);
+        auto evs = marked_range(m, i);
         auto n_marked = evs.size();
         switch (i) {
         case cell_2:
@@ -97,7 +104,7 @@ TEST(multi_event_stream, mark) {
         }
     }
 
-    // Drop these events and mark all events up to t=5.f.
+    // Drop these events and mark all events up to and including t=5.f.
     //     cell_1 should have one marked event (events[1], handle 0)
     //     cell_2 should have one marked event (events[3], handle 2)
 
@@ -106,7 +113,7 @@ TEST(multi_event_stream, mark) {
     m.mark_until_after(t_until);
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
-        auto evs = m.marked_events(i);
+        auto evs = marked_range(m, i);
         auto n_marked = evs.size();
         switch (i) {
         case cell_1:
@@ -129,6 +136,38 @@ TEST(multi_event_stream, mark) {
     EXPECT_FALSE(m.empty());
     m.drop_marked_events();
     EXPECT_TRUE(m.empty());
+
+    // Confirm different semantics of `mark_until`.
+
+    m.init(events);
+    t_until[cell_1] = 3.1f;
+    t_until[cell_2] = 1.9f;
+    t_until[cell_3] = 3.f;
+    m.mark_until(t_until);
+
+    // Only one event should be marked: 
+    //     events[1] (with handle 0) at t=3.f on cell_1
+    //
+    // events[2] at 3.f on cell_3 should not be marked (3.f not less than 3.f)
+    // events[0] at 2.f on cell_2 should not be marked (2.f not less than 1.9f)
+    //     events[2] (with handle 3) at t=3.f on cell_3
+    //     events[0] (with handle 1) at t=2.f on cell_2 should _not_ be marked.
+
+    for (cell_size_type i = 0; i<n_cell; ++i) {
+        auto evs = marked_range(m, i);
+        auto n_marked = evs.size();
+        switch (i) {
+        case cell_1:
+            EXPECT_EQ(1u, n_marked);
+            EXPECT_EQ(handle[0].mech_id, evs.front().mech_id);
+            EXPECT_EQ(handle[0].mech_index, evs.front().mech_index);
+            break;
+        default:
+            EXPECT_EQ(0u, n_marked);
+            break;
+        }
+    }
+
 }
 
 TEST(multi_event_stream, time_if_before) {
@@ -139,7 +178,7 @@ TEST(multi_event_stream, time_if_before) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
 
     // Test times less than all event times (first event at t=2).

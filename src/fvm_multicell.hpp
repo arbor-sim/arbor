@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/event.hpp>
 #include <backends/fvm_types.hpp>
 #include <cell.hpp>
 #include <compartment.hpp>
@@ -61,10 +62,14 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
+    using view = typename array::view_type;
     using const_view = typename array::const_view_type;
 
-    using target_handle = typename backend::target_handle;
-    using deliverable_event = typename backend::deliverable_event;
+    // handles and events are currently common across implementations;
+    // re-expose definitions from `backends/event.hpp`.
+    using target_handle = ::nest::mc::target_handle;
+    using probe_handle = ::nest::mc::probe_handle;
+    using deliverable_event = ::nest::mc::deliverable_event;
 
     fvm_multicell() = default;
 
@@ -87,11 +92,11 @@ public:
 
     // fvm_multicell::deliver_event is used only for testing
     void deliver_event(target_handle h, value_type weight) {
-        mechanisms_[h.mech_id]->net_receive(h.index, weight);
+        mechanisms_[h.mech_id]->net_receive(h.mech_index, weight);
     }
 
     value_type probe(probe_handle h) const {
-        return (this->*h.first)[h.second];
+        return backend::dereference(h); // h is a pointer, but might be device-side.
     }
 
     // Initialize state prior to a sequence of integration steps.
@@ -132,9 +137,9 @@ public:
     }
 
     // Access to sample data post-integration.
-    const_view sample_values() const {
+    const_view sample_value() const {
         EXPECTS(!sample_events_ || sample_events_->empty());
-        return sample_values_(0, n_samples_);
+        return sample_value_(0, n_samples_);
     }
 
     const_view sample_time() const {
@@ -192,11 +197,6 @@ public:
     using iview = typename backend::iview;
     using const_iview = typename backend::const_iview;
 
-    /// view into value container
-    using view = typename backend::view;
-    using const_view = typename backend::const_view;
-
-    /// which requires const_view in the vector library
     const matrix_type& jacobian() { return matrix_; }
 
     /// return list of CV areas in :
@@ -918,8 +918,8 @@ void fvm_multicell<Backend>::reset() {
     tfinal_ = 0;
     dt_max_ = 0;
     min_remaining_steps_ = 0;
-    staged_events_.clear();
     events_->clear();
+    sample_events_->clear();
 
     EXPECTS(integration_complete());
     EXPECTS(!has_pending_events());
@@ -934,22 +934,17 @@ void fvm_multicell<Backend>::step_integration() {
 
     // mark pending events for delivery
     events_->mark_until_after(time_);
-    sample_events_->mark_until_after(time_);
 
     // deliver pending events and update current contributions from mechanisms
     for (auto& m: mechanisms_) {
         PE(m->name().c_str());
-        m->deliver_events(*events_);
+        m->deliver_events(events_->marked_events());
         m->nrn_current();
         PL();
     }
 
-    // perform any pending samples
-    backend::take_samples(sample_events_, time_, sample_time_, sample_value_);
-
     // remove delivered events from queue and set time_to_
     events_->drop_marked_events();
-    sample_events_->drop_marked_events();
 
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
     invalidate_time_cache();
@@ -958,6 +953,12 @@ void fvm_multicell<Backend>::step_integration() {
 
     // set per-cell and per-compartment dt (constant within a cell)
     backend::set_dt(dt_cell_, dt_comp_, time_to_, time_, cv_to_cell_);
+
+    // take samples if they lie within the integration step; they will be provided
+    // with the values (post-event delivery) at the beginning of the interval.
+    sample_events_->mark_until(time_to_);
+    backend::take_samples(sample_events_->marked_events(), time_, sample_time_, sample_value_);
+    sample_events_->drop_marked_events();
 
     // solve the linear system
     PE("matrix", "setup");

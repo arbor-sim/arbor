@@ -97,7 +97,7 @@ public:
         }
 
         // Create sample events and delivery information.
-        struct {
+        struct sampler_call_info {
             // Represents one call to a sampler callback.
             sampler_function sampler;
             cell_member_type probe_id;
@@ -106,7 +106,7 @@ public:
             // Offsets are into lowered cell sample time and event arrays.
             sample_size_type begin_offset;
             sample_size_type end_offset;
-        } sampler_call_info;
+        };
 
         PE("sample-events");
         std::vector<sampler_call_info> call_info; // TODO: make into members?
@@ -115,17 +115,16 @@ public:
         sample_size_type n_samples = 0;
         sample_size_type max_samples_per_call = 0;
 
-        for (const auto& sa: sampler_map_) {
+        for (auto& sa: sampler_map_) {
             auto sample_times = sa.sched.events(tstart, tfinal);
             if (sample_times.empty()) {
                 continue;
             }
 
-            auto probes = sa.probe_ids();
             sample_size_type n_times = sample_times.size();
-            max_samplers_per_call = std::max(max_samplers_per_sampler, n_times);
+            max_samples_per_call = std::max(max_samples_per_call, n_times);
 
-            for (cell_member_type pid: probes) {
+            for (cell_member_type pid: sa.probe_ids) {
                 auto cell_index = gid_to_index(pid.gid);
                 auto p = probe_map_[pid];
 
@@ -137,7 +136,7 @@ public:
                 }
             }
         }
-        util::sort_by(sample_events, [](const sample_event& ev) { event_time(ev); });
+        util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
         PL();
 
         // Run integration.
@@ -160,10 +159,10 @@ public:
         for (auto& sc: call_info) {
             sample_records.clear();
             for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
-                sample_records.push_back(sample_record{sample_time[i], &sample_value[i]});
+                sample_records.push_back(sample_record{time_type(sample_time[i]), &sample_value[i]});
             }
 
-            sc.sampler(sc.probe_id, sc.tag, sc.end-sc.begin, sample_records.data());
+            sc.sampler(sc.probe_id, sc.tag, sc.end_offset-sc.begin_offset, sample_records.data());
         }
         PL();
 

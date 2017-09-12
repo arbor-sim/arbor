@@ -30,6 +30,8 @@ public:
     using event_data_type = ::nest::mc::event_data_type<Event>;
     using event_index_type = ::nest::mc::event_index_type<Event>;
 
+    using state = multi_event_stream_state<event_data_type>;
+
     multi_event_stream() {}
 
     explicit multi_event_stream(size_type n_stream):
@@ -59,8 +61,8 @@ public:
         }
 
         // Sort by index (staged events should already be time-sorted).
-        util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
         EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_time(ev); }));
+        util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
 
         std::size_t n_ev = staged.size();
         util::assign_by(ev_data_, staged, [](const Event& ev) { return event_data(ev); });
@@ -109,6 +111,27 @@ public:
         }
     }
 
+    // Designate for processing events `ev` at head of each event stream `i`
+    // while `t_until[i]` > `event_time(ev)`.
+    template <typename TimeSeq>
+    void mark_until(const TimeSeq& t_until) {
+        using ::nest::mc::event_time;
+
+        EXPECTS(n_streams()==util::size(t_until));
+
+        // note: operation on each `i` is independent.
+        for (size_type i = 0; i<n_streams(); ++i) {
+            auto end = span_end_[i];
+            auto t = t_until[i];
+
+            auto mark = span_begin_[i];
+            while (mark!=end && t>ev_time_[mark]) {
+                ++mark;
+            }
+            mark_[i] = mark;
+        }
+    }
+
     // Remove marked events from front of each event stream.
     void drop_marked_events() {
         // note: operation on each `i` is independent.
@@ -119,8 +142,8 @@ public:
     }
 
     // Interface for access to marked events by mechanisms/kernels:
-    multi_event_stream_state<event_data_type> marked_events() {
-        return {n_streams(), ev_data.data(), span_begin_.data(), span_end_.data()};
+    state marked_events() const {
+        return {n_streams(), ev_data_.data(), span_begin_.data(), mark_.data()};
     }
 
     // If the head of `i`th event stream exists and has time less than `t_until[i]`, set
@@ -143,7 +166,7 @@ public:
     }
 
     friend std::ostream& operator<<(std::ostream& out, const multi_event_stream<Event>& m) {
-        auto n_ev = m.ev_.size();
+        auto n_ev = m.ev_data_.size();
         auto n = m.n_streams();
 
         out << "\n[";
@@ -161,7 +184,7 @@ public:
             bool discarded = i<n && m.span_begin_[i]>ev_i;
             bool marked = i<n && m.mark_[i]>ev_i;
 
-            if (out) {
+            if (discarded) {
                 out << "        x";
             }
             else {

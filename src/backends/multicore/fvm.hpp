@@ -50,12 +50,8 @@ struct backend {
 
     using matrix_state = nest::mc::multicore::matrix_state<value_type, size_type>;
 
-    // re-expose common backend event types
-    using deliverable_event = nest::mc::deliverable_event;
-    using target_handle = nest::mc::target_handle;
-
+    // backend-specific multi event streams.
     using deliverable_event_stream = nest::mc::multicore::multi_event_stream<deliverable_event>;
-
     using sample_event_stream = nest::mc::multicore::multi_event_stream<sample_event>;
 
     //
@@ -89,6 +85,11 @@ struct backend {
 
     static std::string name() {
         return "cpu";
+    }
+
+    // dereference a probe handle
+    static value_type dereference(probe_handle h) {
+        return *h; // just a pointer!
     }
 
     /// threshold crossing logic
@@ -132,15 +133,14 @@ struct backend {
 
     // perform sampling as described by marked events in a sample_event_stream
     static void take_samples(
-        const sample_event_stream& s,
+        const sample_event_stream::state& s,
         const_view time,
         array& sample_times,
         array& sample_values)
     {
-        auto state = s.marked_events();
-        for (size_type i = 0; i<state.n_streams(); ++i) {
-            auto begin = state.begin_marked(i);
-            auto end = state.end_marked(i);
+        for (size_type i = 0; i<s.n_streams(); ++i) {
+            auto begin = s.begin_marked(i);
+            auto end = s.end_marked(i);
 
             for (auto p = begin; p<end; ++p) {
                 sample_times[p->offset] = time[i];

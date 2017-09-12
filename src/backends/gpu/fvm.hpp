@@ -51,16 +51,18 @@ struct backend {
         return "gpu";
     }
 
+    // dereference a probe handle
+    static value_type dereference(probe_handle h) {
+        memory::const_device_reference v(h); // h is a device-side pointer
+        return v();
+    }
+
     // matrix back end implementation
     using matrix_state = matrix_state_interleaved<value_type, size_type>;
 
-    // re-expose common backend event types
-    using deliverable_event = nest::mc::deliverable_event;
-    using target_handle = nest::mc::target_handle;
-
+    // backend-specific multi event streams.
     using deliverable_event_stream = nest::mc::gpu::multi_event_stream<deliverable_event>;
-
-    using sample_event_stream = nest::mc::multi_event_stream<sample_event>;
+    using sample_event_stream = nest::mc::gpu::multi_event_stream<sample_event>;
 
     // mechanism infrastructure
     using ion = mechanisms::ion<backend>;
@@ -130,12 +132,12 @@ struct backend {
 
     // perform sampling as described by marked events in a sample_event_stream
     static void take_samples(
-        const sample_event_stream& s,
+        const sample_event_stream::state& s,
         const_view time,
         array& sample_time,
         array& sample_value)
     {
-        nest::mc::gpu::take_samples(s.marked_events(), time.data(), sample_time.data(), sample_value.data());
+        nest::mc::gpu::take_samples(s, time.data(), sample_time.data(), sample_value.data());
     }
 
 private:

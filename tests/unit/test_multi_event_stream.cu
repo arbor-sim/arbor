@@ -51,7 +51,7 @@ TEST(multi_event_stream, init) {
     EXPECT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
     EXPECT_FALSE(m.empty());
 
@@ -68,7 +68,7 @@ struct ev_info {
 __global__
 void copy_marked_events_kernel(
     unsigned ci,
-    deliverable_event_stream::span_state state,
+    deliverable_event_stream::state state,
     ev_info* store,
     unsigned& count,
     unsigned max_ev)
@@ -77,10 +77,9 @@ void copy_marked_events_kernel(
     if (threadIdx.x || blockIdx.x) return;
 
     unsigned k = 0;
-    for (auto j = state.span_begin[ci]; j<state.mark[ci]; ++j) {
+    for (auto p = state.begin_marked(ci); p<state.end_marked(ci); ++p) {
         if (k>=max_ev) break;
-	auto data = state.ev_data[j];
-        store[k++] = {data.mech_id, data.mech_index, data.weight};
+        store[k++] = {p->mech_id, p->mech_index, p->weight};
     }
     count = k;
 }
@@ -90,7 +89,7 @@ std::vector<ev_info> copy_marked_events(int ci, deliverable_event_stream& m) {
     memory::device_vector<ev_info> store(max_ev);
     memory::device_vector<unsigned> counter(1);
 
-    copy_marked_events_kernel<<<1,1>>>(ci, m.delivery_data(), store.data(), *counter.data(), max_ev);
+    copy_marked_events_kernel<<<1,1>>>(ci, m.marked_events(), store.data(), *counter.data(), max_ev);
     unsigned n_ev = counter[0];
     std::vector<ev_info> ev(n_ev);
     memory::copy(store(0, n_ev), ev);
@@ -104,7 +103,7 @@ TEST(multi_event_stream, mark) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
@@ -174,6 +173,37 @@ TEST(multi_event_stream, mark) {
     EXPECT_FALSE(m.empty());
     m.drop_marked_events();
     EXPECT_TRUE(m.empty());
+
+    // Confirm different semantics of `mark_until`.
+
+    m.init(events);
+    t_until[cell_1] = 3.1f;
+    t_until[cell_2] = 1.9f;
+    t_until[cell_3] = 3.f;
+    m.mark_until(t_until);
+
+    // Only one event should be marked: 
+    //     events[1] (with handle 0) at t=3.f on cell_1
+    //
+    // events[2] at 3.f on cell_3 should not be marked (3.f not less than 3.f)
+    // events[0] at 2.f on cell_2 should not be marked (2.f not less than 1.9f)
+    //     events[2] (with handle 3) at t=3.f on cell_3
+    //     events[0] (with handle 1) at t=2.f on cell_2 should _not_ be marked.
+
+    for (cell_size_type i = 0; i<n_cell; ++i) {
+        auto evs = copy_marked_events(i, m);
+        auto n_marked = evs.size();
+        switch (i) {
+        case cell_1:
+            EXPECT_EQ(1u, n_marked);
+            EXPECT_EQ(handle[0].mech_id, evs.front().mech_id);
+            EXPECT_EQ(handle[0].mech_index, evs.front().mech_index);
+            break;
+        default:
+            EXPECT_EQ(0u, n_marked);
+            break;
+        }
+    }
 }
 
 TEST(multi_event_stream, time_if_before) {
@@ -183,7 +213,7 @@ TEST(multi_event_stream, time_if_before) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    util::stable_sort_by(events, [](const deliverable_event& ev) { return event_index(ev); });
+    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
 
     // Test times less than all event times (first event at t=2).

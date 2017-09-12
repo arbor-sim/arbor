@@ -83,7 +83,7 @@ TEST(fvm_multi, init)
 
     // test that the matrix is initialized with sensible values
     //J.build_matrix(0.01);
-    fvcell.setup_integration(0.01, 0.01);
+    fvcell.setup_integration(0.01, 0.01, {}, {});
     fvcell.step_integration();
 
     auto& mat = J.state_;
