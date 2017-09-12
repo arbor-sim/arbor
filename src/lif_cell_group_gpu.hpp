@@ -9,7 +9,7 @@
 #include <backends/gpu/stack.hpp>
 #include <memory/memory.hpp>
 #include <memory/managed_ptr.hpp>
-#include <Random123/philox.h>
+#include <Random123/threefry.h>
 
 namespace nest {
 namespace mc {

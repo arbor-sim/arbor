@@ -2,7 +2,7 @@
 
 using namespace nest::mc;
 using stack_type = gpu::stack<threshold_crossing>;
-typedef r123::Philox2x32 RNG;
+typedef r123::Threefry2x64 RNG;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_gpu::lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
@@ -100,7 +100,7 @@ void lif_cell_group_gpu::reset() {
 }
 
 __device__
-void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, unsigned* poiss_event_counter) {
+void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_poiss, time_type* next_poiss_time_, unsigned* poiss_event_counter, double* lambda_) {
     if (n_poiss[lid] > 0) {
         // TODO: sample using Random123
         RNG::ctr_type c = {{}};
@@ -110,8 +110,9 @@ void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_p
         c[0] = poiss_event_counter[lid];
         poiss_event_counter[lid]++;
         RNG::ctr_type r = rng(c, k);
-
-        time_type t_update = r.front();
+        // First sample unif ~ Uniform(0,1) and then use it to get the Poisson distribution.
+        time_type unif = u01<time_type>(r.v[0]);
+        time_type t_update = -lambda_[lid] * logf(1-unif);
         if (next_poiss_time_[lid] < 0) {
             next_poiss_time_[lid] = t_update;
         } else {
@@ -162,7 +163,7 @@ bool next_event(
         postsynaptic_spike_event q_ev = event_buffer[cell_begin[lid]];
         // Poisson event is the most recent one.
         if (event = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, min(q_ev.time, tfinal))) {
-            sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter);
+            sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
             return true;
         }
         // Queue event is the most recent one.
@@ -175,7 +176,7 @@ bool next_event(
     }
 
     if (event = next_poiss_before(lid, gid_base_, n_poiss, next_poiss_time_, w_poiss, d_poiss, tfinal)) {
-        sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter);
+        sample_next_poiss(lid, gid_base_, n_poiss, next_poiss_time_, poiss_event_counter, lambda_);
         return true;
     }
     return false;
