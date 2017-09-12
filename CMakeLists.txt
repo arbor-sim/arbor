@@ -268,6 +268,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/src"
     "${PROJECT_SOURCE_DIR}/miniapp"
     "${PROJECT_SOURCE_DIR}/modcc"
+    “${PROJECT_SOURCE_DIR}/random123”
     "${PROJECT_SOURCE_DIR}")
 if(EXTERNAL_INCLUDES)
   include_directories("${EXTERNAL_INCLUDES}")
