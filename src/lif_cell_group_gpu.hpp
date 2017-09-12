@@ -9,7 +9,6 @@
 #include <backends/gpu/stack.hpp>
 #include <memory/memory.hpp>
 #include <memory/managed_ptr.hpp>
-#include <Random123/threefry.h>
 
 namespace nest {
 namespace mc {
@@ -48,7 +47,6 @@ public:
     virtual void reset() override;
 
 private:
-
     template <typename T>
     using managed_vector = std::vector<T, memory::managed_allocator<T> >;
 

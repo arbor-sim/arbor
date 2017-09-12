@@ -1,8 +1,9 @@
 #include <lif_cell_group_gpu.hpp>
+#include <random123/philox.h>
 
 using namespace nest::mc;
 using stack_type = gpu::stack<threshold_crossing>;
-typedef r123::Threefry2x64 RNG;
+using RNG = r123::Philox2x32;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_gpu::lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
@@ -26,9 +27,8 @@ gid_base_(first_gid)
     n_poiss.reserve(cells.size());
     w_poiss.reserve(cells.size());
     d_poiss.reserve(cells.size());
-
     cell_events_.resize(cells.size());
-    poiss_event_counter.resize(cells.size());
+    poiss_event_counter = memory::device_vector<unsigned>(cells.size());
 
     for (const auto& c : cells) {
         lif_cell_description cell = util::any_cast<lif_cell_description>(c);
@@ -104,12 +104,12 @@ void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_p
     if (n_poiss[lid] > 0) {
         // TODO: sample using Random123
         RNG::ctr_type c = {{}};
-        RNG::ukey_type uk = {{}};
-        uk[0] = lid + gid_base_ + 1225;
-        RNG::key_type k = uk;
+        RNG::key_type k = {{}};
+        k[0] = lid + gid_base_ + 1225;
+
         c[0] = poiss_event_counter[lid];
         poiss_event_counter[lid]++;
-        RNG::ctr_type r = rng(c, k);
+        auto r = RNG(c, k);
         // First sample unif ~ Uniform(0,1) and then use it to get the Poisson distribution.
         time_type unif = u01<time_type>(r.v[0]);
         time_type t_update = -lambda_[lid] * logf(1-unif);
@@ -128,7 +128,6 @@ util::optional<postsynaptic_spike_event>  next_poiss_before(cell_lid_type lid, c
             sample_poiss_time(lid, gid_base_, next_poiss_time_);
         }
         auto t_poiss = next_poiss_time_[lid] + d_poiss[lid];
-
         if (t_poiss >= tfinal) {
             return util::nothing;
         }
