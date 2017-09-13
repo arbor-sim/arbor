@@ -175,7 +175,7 @@ public:
             while (m.span_end_[i]<=ev_i && i<n) ++i;
             out << (i<n? util::strprintf(" % 7d ", i): "      ?");
         }
-        out << "\n[";
+        out << "]\n[";
 
         i = 0;
         for (unsigned ev_i = 0; ev_i<n_ev; ++ev_i) {

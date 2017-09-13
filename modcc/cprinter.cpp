@@ -338,7 +338,7 @@ std::string CPrinter::emit_source() {
         text_.increase_indentation();
 
         text_.add_line("auto begin = events.begin_marked(c);");
-        text_.add_line("auto end = events.begin_marked(c);");
+        text_.add_line("auto end = events.end_marked(c);");
         text_.add_line("for (auto p = begin; p<end; ++p) {");
         text_.increase_indentation();
         text_.add_line("if (p->mech_id==mech_id_) net_receive(p->mech_index, p->weight);");
