@@ -59,17 +59,11 @@ TEST(multi_event_stream, init) {
     EXPECT_TRUE(m.empty());
 }
 
-struct ev_info {
-    unsigned mech_id;
-    unsigned index;
-    double weight;
-};
-
 __global__
 void copy_marked_events_kernel(
     unsigned ci,
     deliverable_event_stream::state state,
-    ev_info* store,
+    deliverable_event_data* store,
     unsigned& count,
     unsigned max_ev)
 {
@@ -79,19 +73,19 @@ void copy_marked_events_kernel(
     unsigned k = 0;
     for (auto p = state.begin_marked(ci); p<state.end_marked(ci); ++p) {
         if (k>=max_ev) break;
-        store[k++] = {p->mech_id, p->mech_index, p->weight};
+        store[k++] = *p;
     }
     count = k;
 }
 
-std::vector<ev_info> copy_marked_events(int ci, deliverable_event_stream& m) {
+std::vector<deliverable_event_data> copy_marked_events(int ci, deliverable_event_stream& m) {
     unsigned max_ev = 1000;
-    memory::device_vector<ev_info> store(max_ev);
+    memory::device_vector<deliverable_event_data> store(max_ev);
     memory::device_vector<unsigned> counter(1);
 
     copy_marked_events_kernel<<<1,1>>>(ci, m.marked_events(), store.data(), *counter.data(), max_ev);
     unsigned n_ev = counter[0];
-    std::vector<ev_info> ev(n_ev);
+    std::vector<deliverable_event_data> ev(n_ev);
     memory::copy(store(0, n_ev), ev);
     return ev;
 }
@@ -128,12 +122,12 @@ TEST(multi_event_stream, mark) {
         case cell_2:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[1].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[1].mech_index, evs.front().index);
+            EXPECT_EQ(handle[1].mech_index, evs.front().mech_index);
             break;
         case cell_3:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[3].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[3].mech_index, evs.front().index);
+            EXPECT_EQ(handle[3].mech_index, evs.front().mech_index);
             break;
         default:
             EXPECT_EQ(0u, n_marked);
@@ -156,12 +150,12 @@ TEST(multi_event_stream, mark) {
         case cell_1:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[0].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[0].mech_index, evs.front().index);
+            EXPECT_EQ(handle[0].mech_index, evs.front().mech_index);
             break;
         case cell_2:
             ASSERT_EQ(1u, n_marked);
             EXPECT_EQ(handle[2].mech_id, evs.front().mech_id);
-            EXPECT_EQ(handle[2].mech_index, evs.front().index);
+            EXPECT_EQ(handle[2].mech_index, evs.front().mech_index);
             break;
         default:
             EXPECT_EQ(0u, n_marked);

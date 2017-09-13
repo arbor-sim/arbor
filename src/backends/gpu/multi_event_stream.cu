@@ -107,8 +107,8 @@ void multi_event_stream_base::mark_until_after(const_view t_until) {
 }
 
 // Designate for processing events `ev` at head of each event stream `i`
-// while `t_until[i]` >  `event_time(ev)`.
-void multi_event_stream_base::mark_until_after(const_view t_until) {
+// while `t_until[i]` > `event_time(ev)`.
+void multi_event_stream_base::mark_until(const_view t_until) {
     EXPECTS(n_streams()==util::size(t_until));
 
     constexpr int blockwidth = 128;

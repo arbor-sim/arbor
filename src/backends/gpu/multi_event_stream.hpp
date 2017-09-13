@@ -59,7 +59,7 @@ protected:
     {}
 
     template <typename Event>
-    void init(std::vector<Event> staged) {
+    void init(std::vector<Event>& staged) {
         using ::nest::mc::event_time;
         using ::nest::mc::event_index;
 
@@ -68,8 +68,8 @@ protected:
         }
 
         // Sort by index (staged events should already be time-sorted).
-        util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
         EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_time(ev); }));
+        util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
 
         std::size_t n_ev = staged.size();
         tmp_ev_time_.clear();
@@ -131,8 +131,8 @@ public:
 
     // Initialize event streams from a vector of events, sorted first by index
     // and then by time.
-    void init(const std::vector<Event>& staged) {
-        multi_event_stream_base::init(staged);
+    void init(std::vector<Event> staged) {
+        multi_event_stream_base::init(staged); // reorders `staged` in place.
 
         tmp_ev_data_.clear();
         tmp_ev_data_.reserve(staged.size());
@@ -141,14 +141,6 @@ public:
         util::assign_by(tmp_ev_data_, staged, [](const Event& ev) { return event_data(ev); });
         ev_data_ = data_array(memory::make_view(tmp_ev_data_));
     }
-
-    // Interface for access by mechanism kernels:
-    struct span_state {
-        size_type n;
-        const event_data_type* ev_data;
-        const size_type* span_begin;
-        const size_type* mark;
-    };
 
     state marked_events() const {
         return {n_stream_, ev_data_.data(), span_begin_.data(), mark_.data()};

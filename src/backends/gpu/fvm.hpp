@@ -11,7 +11,7 @@
 #include <util/rangeutil.hpp>
 
 #include "kernels/time_ops.hpp"
-#include "kernels/sample_delivery.hpp"
+#include "kernels/take_samples.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "matrix_state_flat.hpp"
 #include "multi_event_stream.hpp"
@@ -53,8 +53,8 @@ struct backend {
 
     // dereference a probe handle
     static value_type dereference(probe_handle h) {
-        memory::const_device_reference v(h); // h is a device-side pointer
-        return v();
+        memory::const_device_reference<value_type> v(h); // h is a device-side pointer
+        return v;
     }
 
     // matrix back end implementation

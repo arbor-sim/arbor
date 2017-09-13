@@ -49,13 +49,13 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 
-    text_.add_line("// same type as base::deliverable_event_stream_state in class definition");
-    text_.add_line("using deliverable_event_stream_state = multi_event_stream_state<deliverable_event_data>;");
-    text_.add_line();
-
     text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace gpu{ namespace " + module_name + "{");
     text_.add_line();
     increase_indentation();
+
+    text_.add_line("// same type as base::deliverable_event_stream_state in class definition");
+    text_.add_line("using deliverable_event_stream_state = multi_event_stream_state<deliverable_event_data>;");
+    text_.add_line();
 
     ////////////////////////////////////////////////////////////
     // generate the parameter pack

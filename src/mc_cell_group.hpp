@@ -143,7 +143,6 @@ public:
         lowered_.setup_integration(tfinal, dt, std::move(events), std::move(sample_events));
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
-
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds  at (max) t "
                           << lowered_.max_time() << " ms\n";
@@ -156,6 +155,7 @@ public:
 
         auto sample_time = lowered_.sample_time();
         auto sample_value = lowered_.sample_value();
+
         for (auto& sc: call_info) {
             sample_records.clear();
             for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {

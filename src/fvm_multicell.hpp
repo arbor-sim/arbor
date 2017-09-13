@@ -65,6 +65,9 @@ public:
     using view = typename array::view_type;
     using const_view = typename array::const_view_type;
 
+    /// the type (view or copy) for a const host-side view of an array
+    using host_view = decltype(memory::on_host(std::declval<array>()));
+
     // handles and events are currently common across implementations;
     // re-expose definitions from `backends/event.hpp`.
     using target_handle = ::nest::mc::target_handle;
@@ -137,14 +140,16 @@ public:
     }
 
     // Access to sample data post-integration.
-    const_view sample_value() const {
+    decltype(memory::make_const_view(std::declval<host_view>())) sample_value() const {
         EXPECTS(!sample_events_ || sample_events_->empty());
-        return sample_value_(0, n_samples_);
+        host_sample_value_ = memory::on_host(sample_value_);
+        return host_sample_value_;
     }
 
-    const_view sample_time() const {
+    decltype(memory::make_const_view(std::declval<host_view>())) sample_time() const {
         EXPECTS(!sample_events_ || sample_events_->empty());
-        return sample_time_(0, n_samples_);
+        host_sample_time_ = memory::on_host(sample_time_);
+        return host_sample_time_;
     }
 
     // Query per-cell time state.
@@ -322,6 +327,9 @@ private:
     size_type n_samples_ = 0;
     array sample_value_;
     array sample_time_;
+
+    mutable host_view host_sample_value_; // host-side views/copies of sample data
+    mutable host_view host_sample_time_;
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;

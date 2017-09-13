@@ -135,16 +135,16 @@ struct backend {
     static void take_samples(
         const sample_event_stream::state& s,
         const_view time,
-        array& sample_times,
-        array& sample_values)
+        array& sample_time,
+        array& sample_value)
     {
         for (size_type i = 0; i<s.n_streams(); ++i) {
             auto begin = s.begin_marked(i);
             auto end = s.end_marked(i);
 
             for (auto p = begin; p<end; ++p) {
-                sample_times[p->offset] = time[i];
-                sample_values[p->offset] = *p->handle;
+                sample_time[p->offset] = time[i];
+                sample_value[p->offset] = *p->handle;
             }
         }
     }
