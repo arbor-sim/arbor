@@ -6,7 +6,6 @@
 
 namespace nest {
 namespace mc {
-namespace mechanisms {
 
 /*
   Ion channels have the following fields, whose label corresponds to that
@@ -103,7 +102,6 @@ private :
     array Xo_;
 };
 
-} // namespace mechanisms
 } // namespace mc
 } // namespace nest
 

@@ -28,23 +28,22 @@ public:
     void visit(CallExpression *e)       override;
     void visit(ProcedureExpression *e)  override;
     void visit(APIMethod *e)            override;
-    void visit(LocalDeclaration *e)      override;
+    void visit(LocalDeclaration *e)     override;
     void visit(BlockExpression *e)      override;
     void visit(IfExpression *e)         override;
 
-    std::string text() const {
-        return text_.str();
+    std::string impl_header_text() const {
+        return impl_interface_.str();
     }
 
-    void set_gutter(int w) {
-        text_.set_gutter(w);
+    std::string impl_text() const {
+        return impl_.str();
     }
-    void increase_indentation(){
-        text_.increase_indentation();
+
+    std::string interface_text() const {
+        return interface_.str();
     }
-    void decrease_indentation(){
-        text_.decrease_indentation();
-    }
+
 private:
 
     bool is_input(Symbol *s) {
@@ -99,12 +98,25 @@ private:
     }
 
     void print_APIMethod_body(ProcedureExpression* e);
-    void print_procedure_prototype(ProcedureExpression *e);
+    std::string APIMethod_prototype(APIMethod *e);
+    std::string pack_name();
+    void print_device_function_prototype(ProcedureExpression *e);
     std::string index_string(Symbol *e);
 
+    std::string module_name_;
     Module *module_ = nullptr;
     tok parent_op_ = tok::eq;
-    TextBuffer text_;
-    //bool optimize_ = false;
+
+    TextBuffer interface_;
+    TextBuffer impl_;
+    TextBuffer impl_interface_;
+    TextBuffer* current_buffer_;
+
+    void set_buffer(TextBuffer& buf) {
+        current_buffer_ = &buf;
+    }
+    TextBuffer& buffer() {
+        return *current_buffer_;
+    }
 };
 

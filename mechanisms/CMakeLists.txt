@@ -29,13 +29,22 @@ build_modules(
     TARGET build_all_mods
 )
 
-set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/gpu")
-file(MAKE_DIRECTORY "${mech_dir}")
-build_modules(
-    ${mechanisms}
-    SOURCE_DIR "${mod_srcdir}"
-    DEST_DIR "${mech_dir}"
-    MODCC_FLAGS -t gpu ${modcc_opt}
-    TARGET build_all_gpu_mods
-)
+if(NMC_WITH_CUDA)
+    set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/gpu")
+    file(MAKE_DIRECTORY "${mech_dir}")
+    build_modules(
+        ${mechanisms}
+        SOURCE_DIR "${mod_srcdir}"
+        DEST_DIR "${mech_dir}"
+        MODCC_FLAGS -t gpu ${modcc_opt}
+        TARGET build_all_gpu_mods
+    )
+    foreach(mech ${mechanisms})
+        set(CUDA_MECH_SOURCES ${CUDA_MECH_SOURCES} ./gpu/${mech}_impl.cu)
+    endforeach()
+    cuda_add_library(gpu_mechanisms ${CUDA_MECH_SOURCES})
+    add_dependencies(gpu_mechanisms build_all_gpu_mods)
+    list(APPEND NESTMC_LIBRARIES gpu_mechanisms)
+endif()
 
+set(NESTMC_LIBRARIES "${NESTMC_LIBRARIES}" PARENT_SCOPE)

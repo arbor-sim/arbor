@@ -167,7 +167,7 @@ public:
     using stimulus = typename backend::stimulus;
 
     /// ion species storage
-    using ion = typename backend::ion;
+    using ion_type = typename backend::ion_type;
 
     /// view into index container
     using iview = typename backend::iview;
@@ -200,20 +200,20 @@ public:
     std::vector<mechanism>& mechanisms() { return mechanisms_; }
 
     /// return reference to list of ions
-    std::map<mechanisms::ionKind, ion>&       ions()       { return ions_; }
-    std::map<mechanisms::ionKind, ion> const& ions() const { return ions_; }
+    std::map<ionKind, ion_type>&       ions()       { return ions_; }
+    std::map<ionKind, ion_type> const& ions() const { return ions_; }
 
     /// return reference to sodium ion
-    ion&       ion_na()       { return ions_[mechanisms::ionKind::na]; }
-    ion const& ion_na() const { return ions_[mechanisms::ionKind::na]; }
+    ion_type&       ion_na()       { return ions_[ionKind::na]; }
+    ion_type const& ion_na() const { return ions_[ionKind::na]; }
 
     /// return reference to calcium ion
-    ion&       ion_ca()       { return ions_[mechanisms::ionKind::ca]; }
-    ion const& ion_ca() const { return ions_[mechanisms::ionKind::ca]; }
+    ion_type&       ion_ca()       { return ions_[ionKind::ca]; }
+    ion_type const& ion_ca() const { return ions_[ionKind::ca]; }
 
     /// return reference to pottasium ion
-    ion&       ion_k()       { return ions_[mechanisms::ionKind::k]; }
-    ion const& ion_k() const { return ions_[mechanisms::ionKind::k]; }
+    ion_type&       ion_k()       { return ions_[ionKind::k]; }
+    ion_type const& ion_k() const { return ions_[ionKind::k]; }
 
     /// flags if solution is physically realistic.
     /// here we define physically realistic as the voltage being within reasonable bounds.
@@ -346,7 +346,7 @@ private:
     std::vector<mechanism> mechanisms_;
 
     /// the ion species
-    std::map<mechanisms::ionKind, ion> ions_;
+    std::map<ionKind, ion_type> ions_;
 
     /// Compact representation of the control volumes into which a segment is
     /// decomposed. Used to reconstruct the weights used to convert current
@@ -819,7 +819,7 @@ void fvm_multicell<Backend>::initialize(
     }
 
     // build the ion species
-    for (auto ion : mechanisms::ion_kinds()) {
+    for (auto ion : ion_kinds()) {
         // find the compartment indexes of all compartments that have a
         // mechanism that depends on/influences ion
         std::set<size_type> index_set;
