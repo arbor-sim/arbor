@@ -82,19 +82,24 @@ public:
         binner_ = event_binner(policy, bin_interval);
     }
 
+
     void advance(time_type tfinal, time_type dt) override {
+        PE("advance");
         EXPECTS(lowered_.state_synchronized());
         time_type tstart = lowered_.min_time();
 
+        PE("event-setup");
         // Bin pending events and batch for lowered cell.
-        std::vector<deliverable_event> events;
+        std::vector<deliverable_event> staged_events;
+        staged_events.reserve(events_.size());
 
         while (auto ev = events_.pop_if_before(tfinal)) {
-            events.emplace_back(
+            staged_events.emplace_back(
                 binner_.bin(ev->target.gid, ev->time, tstart),
                 get_target_handle(ev->target),
                 ev->weight);
         }
+        PL();
 
         // Create sample events and delivery information.
         struct sampler_call_info {
@@ -108,8 +113,8 @@ public:
             sample_size_type end_offset;
         };
 
-        PE("sample-events");
-        std::vector<sampler_call_info> call_info; // TODO: make into members?
+        PE("sample-event-setup");
+        std::vector<sampler_call_info> call_info;
 
         std::vector<sample_event> sample_events;
         sample_size_type n_samples = 0;
@@ -140,7 +145,8 @@ public:
         PL();
 
         // Run integration.
-        lowered_.setup_integration(tfinal, dt, std::move(events), std::move(sample_events));
+        lowered_.setup_integration(tfinal, dt, std::move(staged_events), std::move(sample_events));
+        PE("integrator-steps");
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
@@ -148,6 +154,7 @@ public:
                           << lowered_.max_time() << " ms\n";
             }
         }
+        PL();
 
         PE("sample-deliver");
         std::vector<sample_record> sample_records;
@@ -170,13 +177,15 @@ public:
         // generate spikes with global spike source ids. The threshold crossings
         // record the local spike source index, which must be converted to a
         // global index for spike communication.
-        PE("events");
+        PE("spike-retrieve");
         for (auto c: lowered_.get_spikes()) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }
         // Now that the spikes have been generated, clear the old crossings
         // to get ready to record spikes from the next integration period.
         lowered_.clear_spikes();
+        PL();
+
         PL();
     }
 

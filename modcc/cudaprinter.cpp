@@ -760,7 +760,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line(       "__global__");
         text_.add_gutter() << "void deliver_events("
                            << module_->name() << "_ParamPack<T,I> params_, "
-                           << "I mech_id, const deliverable_event_stream_state& state) {";
+                           << "I mech_id, deliverable_event_stream_state state) {";
         text_.add_line();
         increase_indentation();
 
