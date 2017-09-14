@@ -288,8 +288,8 @@ if(NOT use_external_modcc)
     add_subdirectory(modcc)
 endif()
 
-add_subdirectory(mechanisms)
 add_subdirectory(src)
+add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
 add_subdirectory(miniapp)
 add_subdirectory(lmorpho)

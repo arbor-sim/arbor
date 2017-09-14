@@ -47,7 +47,7 @@ TEST(synapses, expsyn_basic_state)
     using size_type = multicore::backend::size_type;
     using value_type = multicore::backend::value_type;
 
-    using synapse_type = mechanisms::expsyn::mechanism_expsyn<multicore::backend>;
+    using synapse_type = multicore::mechanism_expsyn<multicore::backend>;
     int num_syn = 4;
     int num_comp = 4;
     int num_cell = 1;
@@ -62,7 +62,7 @@ TEST(synapses, expsyn_basic_state)
     synapse_type::array voltage(num_comp, -65.0);
     synapse_type::array current(num_comp,   1.0);
 
-    auto mech = mechanisms::make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
+    auto mech = make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();
@@ -108,7 +108,7 @@ TEST(synapses, exp2syn_basic_state)
     using size_type = multicore::backend::size_type;
     using value_type = multicore::backend::value_type;
 
-    using synapse_type = mechanisms::exp2syn::mechanism_exp2syn<multicore::backend>;
+    using synapse_type = multicore::mechanism_exp2syn<multicore::backend>;
     int num_syn = 4;
     int num_comp = 4;
     int num_cell = 1;
@@ -123,7 +123,7 @@ TEST(synapses, exp2syn_basic_state)
     synapse_type::array voltage(num_comp, -65.0);
     synapse_type::array current(num_comp,   1.0);
 
-    auto mech = mechanisms::make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
+    auto mech = make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();
