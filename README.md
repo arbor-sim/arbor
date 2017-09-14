@@ -1,4 +1,4 @@
-# NestMC Prototype
+# NestMC Prototype [![Build Status](https://travis-ci.org/eth-cscs/nestmc-proto.svg?branch=master)](https://travis-ci.org/eth-cscs/nestmc-proto)
 
 This is the repository for the NestMC prototype code. Unfortunately we do not have thorough documentation of how-to guides.
 Below are some guides for how to build the project and run the miniapp.
