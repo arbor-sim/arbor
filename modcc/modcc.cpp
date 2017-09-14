@@ -121,8 +121,11 @@ int main(int argc, char **argv) {
 
         m.semantic();
 
-        if( m.has_error() || m.has_warning() ) {
-            std::cout << m.error_string() << std::endl;
+        if( m.has_error() ) {
+            std::cerr << m.error_string() << std::endl;
+        }
+        if( m.has_warning() ) {
+            std::cerr << m.warning_string() << std::endl;
         }
 
         if(m.has_error()) {

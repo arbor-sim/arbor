@@ -163,9 +163,9 @@ std::string Module::error_string() const {
 
 std::string Module::warning_string() const {
     std::string str;
-    for (const error_entry& entry: errors()) {
+    for (auto& entry: warnings()) {
         if (!str.empty()) str += '\n';
-        str += purple("error   ");
+        str += purple("warning   ");
         str += white(pprintf("%:% ", file_name(), entry.location));
         str += entry.message;
     }
