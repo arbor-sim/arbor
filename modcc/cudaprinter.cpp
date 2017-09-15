@@ -765,13 +765,13 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         increase_indentation();
 
         text_.add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");
-        text_.add_line("auto const ncell_ = state.n_streams();");
+        text_.add_line("auto const ncell_ = state.n;");
         text_.add_line();
         text_.add_line("if(tid_<ncell_) {");
         increase_indentation();
 
-        text_.add_line("auto begin = state.begin_marked(tid_);");
-        text_.add_line("auto end = state.end_marked(tid_);");
+        text_.add_line("auto begin = state.ev_data+state.begin_offset[tid_];");
+        text_.add_line("auto end = state.ev_data+state.end_offset[tid_];");
         text_.add_line("for (auto p = begin; p<end; ++p) {");
         increase_indentation();
         text_.add_line("if (p->mech_id==mech_id) net_receive<T, I>(params_, p->mech_index, p->weight);");
