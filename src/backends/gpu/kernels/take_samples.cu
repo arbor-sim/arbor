@@ -8,12 +8,17 @@ namespace mc {
 namespace gpu {
 
 namespace kernels {
-    __global__ void take_samples(multi_event_stream_state<raw_probe_info> s, const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value) {
+    __global__ void take_samples(
+	    multi_event_stream_state<raw_probe_info> s,
+	    const fvm_value_type* time,
+	    fvm_value_type* sample_time,
+	    fvm_value_type* sample_value)
+    {
         int i = threadIdx.x+blockIdx.x*blockDim.x;
 
-        if (i<s.n_streams()) {
-            auto begin = s.begin_marked(i);
-            auto end = s.end_marked(i);
+        if (i<s.n) {
+            auto begin = s.ev_data+s.begin_offset[i];
+            auto end = s.ev_data+s.end_offset[i];
             for (auto p = begin; p!=end; ++p) {
                 sample_time[p->offset] = time[i];
                 sample_value[p->offset] = *p->handle;
@@ -22,7 +27,12 @@ namespace kernels {
     }
 }
 
-void take_samples(const multi_event_stream_state<raw_probe_info>& s, const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value) {
+void take_samples(
+	const multi_event_stream_state<raw_probe_info>& s,
+	const fvm_value_type* time,
+	fvm_value_type* sample_time,
+	fvm_value_type* sample_value)
+{
     if (!s.n_streams()) {
         return;
     }

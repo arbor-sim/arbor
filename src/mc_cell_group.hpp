@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/event.hpp>
 #include <cell_group.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>

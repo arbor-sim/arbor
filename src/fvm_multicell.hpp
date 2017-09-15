@@ -93,11 +93,12 @@ public:
 
     void reset();
 
-    // fvm_multicell::deliver_event is used only for testing
+    // fvm_multicell::deliver_event is used only for testing.
     void deliver_event(target_handle h, value_type weight) {
         mechanisms_[h.mech_id]->net_receive(h.mech_index, weight);
     }
 
+    // fvm_multicell::probe is used only for testing.
     value_type probe(probe_handle h) const {
         return backend::dereference(h); // h is a pointer, but might be device-side.
     }
@@ -121,8 +122,8 @@ public:
 
         n_samples_ = staged_samples.size();
 
-        events_->init(staged_events);
-        sample_events_->init(staged_samples);
+        events_.init(staged_events);
+        sample_events_.init(staged_samples);
 
         // Reallocate sample buffers if necessary.
         if (sample_value_.size()<n_samples_) {
@@ -141,13 +142,13 @@ public:
 
     // Access to sample data post-integration.
     decltype(memory::make_const_view(std::declval<host_view>())) sample_value() const {
-        EXPECTS(!sample_events_ || sample_events_->empty());
+        EXPECTS(sample_events_.empty());
         host_sample_value_ = memory::on_host(sample_value_);
         return host_sample_value_;
     }
 
     decltype(memory::make_const_view(std::declval<host_view>())) sample_time() const {
-        EXPECTS(!sample_events_ || sample_events_->empty());
+        EXPECTS(sample_events_.empty());
         host_sample_time_ = memory::on_host(sample_time_);
         return host_sample_time_;
     }
@@ -313,15 +314,15 @@ private:
 
     /// event queue for integration period
     using deliverable_event_stream = typename backend::deliverable_event_stream;
-    std::unique_ptr<deliverable_event_stream> events_;
+    deliverable_event_stream events_;
 
     bool has_pending_events() const {
-        return events_ && !events_->empty();
+        return !events_.empty();
     }
 
     /// sample events for integration period
     using sample_event_stream = typename backend::sample_event_stream;
-    std::unique_ptr<sample_event_stream> sample_events_;
+    sample_event_stream sample_events_;
 
     /// sample buffers
     size_type n_samples_ = 0;
@@ -625,8 +626,8 @@ void fvm_multicell<Backend>::initialize(
     std::vector<size_type> group_parent_index(ncomp);
 
     // setup per-cell event stores.
-    events_ = util::make_unique<deliverable_event_stream>(ncell_);
-    sample_events_ = util::make_unique<sample_event_stream>(ncell_);
+    events_ = deliverable_event_stream(ncell_);
+    sample_events_ = sample_event_stream(ncell_);
 
     // Create each cell:
 
@@ -926,8 +927,8 @@ void fvm_multicell<Backend>::reset() {
     tfinal_ = 0;
     dt_max_ = 0;
     min_remaining_steps_ = 0;
-    events_->clear();
-    sample_events_->clear();
+    events_.clear();
+    sample_events_.clear();
 
     EXPECTS(integration_complete());
     EXPECTS(!has_pending_events());
@@ -941,22 +942,22 @@ void fvm_multicell<Backend>::step_integration() {
     memory::fill(current_, 0.);
 
     // mark pending events for delivery
-    events_->mark_until_after(time_);
+    events_.mark_until_after(time_);
 
     // deliver pending events and update current contributions from mechanisms
     for (auto& m: mechanisms_) {
         PE(m->name().c_str());
-        m->deliver_events(events_->marked_events());
+        m->deliver_events(events_.marked_events());
         m->nrn_current();
         PL();
     }
 
     // remove delivered events from queue and set time_to_
-    events_->drop_marked_events();
+    events_.drop_marked_events();
 
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
     invalidate_time_cache();
-    events_->event_time_if_before(time_to_);
+    events_.event_time_if_before(time_to_);
     PL();
 
     // set per-cell and per-compartment dt (constant within a cell)
@@ -964,9 +965,9 @@ void fvm_multicell<Backend>::step_integration() {
 
     // take samples if they lie within the integration step; they will be provided
     // with the values (post-event delivery) at the beginning of the interval.
-    sample_events_->mark_until(time_to_);
-    backend::take_samples(sample_events_->marked_events(), time_, sample_time_, sample_value_);
-    sample_events_->drop_marked_events();
+    sample_events_.mark_until(time_to_);
+    backend::take_samples(sample_events_.marked_events(), time_, sample_time_, sample_value_);
+    sample_events_.drop_marked_events();
 
     // solve the linear system
     PE("matrix", "setup");

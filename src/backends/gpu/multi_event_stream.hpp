@@ -4,6 +4,7 @@
 
 #include <common_types.hpp>
 #include <backends/event.hpp>
+#include <backends/fvm_types.hpp>
 #include <backends/multi_event_stream_state.hpp>
 #include <generic_event.hpp>
 #include <memory/array.hpp>
@@ -18,9 +19,9 @@ namespace gpu {
 class multi_event_stream_base {
 public:
     using size_type = cell_size_type;
-    using value_type = double;
+    using value_type = fvm_value_type;
 
-    using array = memory::device_vector<double>;
+    using array = memory::device_vector<value_type>;
     using iarray = memory::device_vector<size_type>;
 
     using const_view = array::const_view_type;

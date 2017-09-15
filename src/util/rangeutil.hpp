@@ -332,26 +332,38 @@ bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
     auto i = std::begin(seq);
     auto e = std::end(seq);
 
-    if (i==e) return true;
+    if (i==e) {
+        return true;
+    }
 
     // Special one-element case for forward iterators.
     if (is_forward_iterator<decltype(i)>::value) {
         auto j = i;
-        if (++j==e) return true;
+        if (++j==e) {
+            return true;
+        }
     }
 
     auto v = proj(*i++);
 
     for (;;) {
-        if (i==e) return true;
+        if (i==e) {
+            return true;
+        }
         auto u = proj(*i++);
 
-        if (cmp(u, v)) return false;
+        if (cmp(u, v)) {
+            return false;
+        }
 
-        if (i==e) return true;
+        if (i==e) {
+            return true;
+        }
         v = proj(*i++);
 
-        if (cmp(v, u)) return false;
+        if (cmp(v, u)) {
+            return false;
+        }
     }
 }
 
