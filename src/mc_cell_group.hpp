@@ -103,8 +103,19 @@ public:
         PL();
 
         // Create sample events and delivery information.
+        //
+        // For each (schedule, sampler, probe set) in the sampler association
+        // map that will be triggered in this integration interval, create
+        // sample events for the lowered cell, one for each scheduled sample
+        // time and probe in the probe set.
+        //
+        // Each event is associated with an offset into the sample data and
+        // time buggers; these are assigned contiguously such that one call to
+        // a sampler callback can be represented by a `sampler_call_info`
+        // value as defined below, grouping together all the samples of the
+        // same probe for this callback in this association.
+
         struct sampler_call_info {
-            // Represents one call to a sampler callback.
             sampler_function sampler;
             cell_member_type probe_id;
             probe_tag tag;
@@ -142,6 +153,8 @@ public:
                 }
             }
         }
+
+        // Sample events must be ordered by time for the lowered cell.
         util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
         PL();
 
@@ -156,6 +169,11 @@ public:
             }
         }
         PL();
+
+
+        // For each sampler callback registered in `call_info`, construct the
+        // vector of sample entries from the lowered cell sample times and values
+        // and then call the callback.
 
         PE("sample-deliver");
         std::vector<sample_record> sample_records;
@@ -178,12 +196,15 @@ public:
         // generate spikes with global spike source ids. The threshold crossings
         // record the local spike source index, which must be converted to a
         // global index for spike communication.
+
         PE("spike-retrieve");
         for (auto c: lowered_.get_spikes()) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }
+
         // Now that the spikes have been generated, clear the old crossings
         // to get ready to record spikes from the next integration period.
+
         lowered_.clear_spikes();
         PL();
 
