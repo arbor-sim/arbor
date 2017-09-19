@@ -71,7 +71,9 @@ void copy_marked_events_kernel(
     if (threadIdx.x || blockIdx.x) return;
 
     unsigned k = 0;
-    for (auto p = state.begin_marked(ci); p<state.end_marked(ci); ++p) {
+    auto begin = state.ev_data+state.begin_offset[ci];
+    auto end = state.ev_data+state.end_offset[ci];
+    for (auto p = begin; p<end; ++p) {
         if (k>=max_ev) break;
         store[k++] = *p;
     }
