@@ -27,8 +27,10 @@ struct stack_storage {
     // The number of items of type value_type that can be stored in the stack
     unsigned capacity;
 
-    // The number of items that have been stored
-    unsigned size;
+    // The number of items that have been stored.
+    // This may exceed capacity if more stores were attempted than it is
+    // possible to store, in which case only the first capacity values are valid.
+    unsigned stores;
 
     // Memory containing the value buffer
     value_type* data;
