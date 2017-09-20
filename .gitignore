@@ -55,7 +55,7 @@ include/mechanisms
 
 # mechanisms generated from .mod files
 mechanisms/multicore/*.hpp
-mechanisms/gpu/*.hpp
+mechanisms/gpu/*.*
 
 # build path
 build*
