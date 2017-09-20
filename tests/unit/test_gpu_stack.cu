@@ -87,14 +87,14 @@ TEST(stack, overflow) {
     const unsigned n = 10;
     auto s = stack(n);
     auto& sstorage = s.storage();
-    EXPECT_FALSE(s.is_overflowed());
+    EXPECT_FALSE(s.overflow());
 
     // push 2n items into a stack of size n
     kernels::push_back<<<1, 2*n>>>(sstorage, kernels::all_ftor());
     cudaDeviceSynchronize();
     EXPECT_EQ(n, s.size());
     EXPECT_EQ(2*n, s.pushes());
-    EXPECT_TRUE(s.is_overflowed());
+    EXPECT_TRUE(s.overflow());
 }
 
 TEST(stack, empty) {

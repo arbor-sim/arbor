@@ -60,7 +60,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("using const_view = typename base::const_view;");
     text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using ion_type = typename base::ion_type;");
-    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
+    text_.add_line("using deliverable_event_stream_state = typename base::deliverable_event_stream_state;");
     text_.add_line();
 
     //////////////////////////////////////////////
@@ -331,14 +331,17 @@ std::string CPrinter::emit_source() {
     }
 
     if(override_deliver_events) {
-        text_.add_line("void deliver_events(multi_event_stream& events) override {");
+        text_.add_line("void deliver_events(const deliverable_event_stream_state& events) override {");
         text_.increase_indentation();
         text_.add_line("auto ncell = events.n_streams();");
         text_.add_line("for (size_type c = 0; c<ncell; ++c) {");
         text_.increase_indentation();
-        text_.add_line("for (auto ev: events.marked_events(c)) {");
+
+        text_.add_line("auto begin = events.begin_marked(c);");
+        text_.add_line("auto end = events.end_marked(c);");
+        text_.add_line("for (auto p = begin; p<end; ++p) {");
         text_.increase_indentation();
-        text_.add_line("if (ev.handle.mech_id==mech_id_) net_receive(ev.handle.index, ev.weight);");
+        text_.add_line("if (p->mech_id==mech_id_) net_receive(p->mech_index, p->weight);");
         text_.decrease_indentation();
         text_.add_line("}");
         text_.decrease_indentation();
@@ -403,7 +406,8 @@ void CPrinter::emit_headers() {
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
-    text_.add_line("#include <backends/multicore/multi_event_stream.hpp>");
+    text_.add_line("#include <backends/event.hpp>");
+    text_.add_line("#include <backends/multi_event_stream_state.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
 }

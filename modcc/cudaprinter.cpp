@@ -4,9 +4,6 @@
 #include "lexer.hpp"
 #include "options.hpp"
 
-/******************************************************************************
-******************************************************************************/
-
 std::string CUDAPrinter::pack_name() {
     return module_name_ + "_ParamPack";
 }
@@ -49,9 +46,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include <backends/fvm_types.hpp>");
     buffer().add_line("#include <backends/gpu/kernels/detail.hpp>");
     buffer().add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
+    buffer().add_line("#include <backends/multi_event_stream_state.hpp>");
     buffer().add_line();
 
     buffer().add_line("namespace nest{ namespace mc{ namespace gpu{");
+    buffer().add_line("using deliverable_event_stream_state = multi_event_stream_state<deliverable_event_data>;");
     buffer().add_line();
 
     // definition of parameter pack type
@@ -118,7 +117,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
         else if (var.second->is_net_receive()) {
             buffer().add_line(
-                "void deliver_events_" + module_name_ +"(" + pack_name() + " params_, nest::mc::fvm_size_type mech_id, nest::mc::gpu_event_state state);");
+                "void deliver_events_" + module_name_ +"(" + pack_name() + " params_, nest::mc::fvm_size_type mech_id, deliverable_event_stream_state state);");
         }
     }
     buffer().add_line();
@@ -180,7 +179,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
         else if (var.second->is_net_receive()) {
             buffer().add_line("void deliver_events_" + module_name_
-                + "(" + pack_name() + " params_, nest::mc::fvm_size_type mech_id, nest::mc::gpu_event_state state) {");
+                + "(" + pack_name() + " params_, nest::mc::fvm_size_type mech_id, deliverable_event_stream_state state) {");
             buffer().increase_indentation();
             buffer().add_line("const int n = state.n;");
             buffer().add_line("constexpr int blockwidth = 128;");
@@ -239,7 +238,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("using typename base::const_iview;");
     buffer().add_line("using typename base::const_view;");
     buffer().add_line("using typename base::ion_type;");
-    buffer().add_line("using multi_event_stream = typename base::multi_event_stream;");
+    buffer().add_line("using deliverable_event_stream_state = typename base::deliverable_event_stream_state;");
     buffer().add_line("using param_pack_type = " + pack_name() + ";");
 
     //////////////////////////////////////////////
@@ -513,11 +512,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
                  var.second->is_procedure()->kind()==procedureKind::net_receive)
         {
             // Override `deliver_events`.
-            buffer().add_line("void deliver_events(multi_event_stream& events) override {");
+            buffer().add_line("void deliver_events(const deliverable_event_stream_state& events) override {");
             buffer().increase_indentation();
 
             buffer().add_line("nest::mc::gpu::deliver_events_"+module_name_
-                              +"(param_pack_, mech_id_, events.delivery_data());");
+                              +"(param_pack_, mech_id_, events);");
 
             buffer().decrease_indentation();
             buffer().add_line("}");
@@ -811,7 +810,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         buffer().add_line(       "__global__");
         buffer().add_gutter() << "void deliver_events("
                            << module_->name() << "_ParamPack params_, "
-                           << "nest::mc::fvm_size_type mech_id, nest::mc::gpu_event_state state) {";
+                           << "nest::mc::fvm_size_type mech_id, deliverable_event_stream_state state) {";
         buffer().add_line();
         buffer().increase_indentation();
 
@@ -821,9 +820,16 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         buffer().add_line("if(tid_<ncell_) {");
         buffer().increase_indentation();
 
-        buffer().add_line("for (auto j = state.span_begin[tid_]; j<state.mark[tid_]; ++j) {");
+
+        buffer().add_line("auto begin = state.ev_data+state.begin_offset[tid_];");
+        buffer().add_line("auto end = state.ev_data+state.end_offset[tid_];");
+        buffer().add_line("for (auto p = begin; p<end; ++p) {");
         buffer().increase_indentation();
-        buffer().add_line("if (state.ev_mech_id[j]==mech_id) net_receive(params_, state.ev_index[j], state.ev_weight[j]);");
+        buffer().add_line("if (p->mech_id==mech_id) {");
+        buffer().increase_indentation();
+        buffer().add_line("net_receive(params_, p->mech_index, p->weight);");
+        buffer().decrease_indentation();
+        buffer().add_line("}");
         buffer().decrease_indentation();
         buffer().add_line("}");
 

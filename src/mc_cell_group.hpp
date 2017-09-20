@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/event.hpp>
 #include <cell_group.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
@@ -82,106 +83,131 @@ public:
         binner_ = event_binner(policy, bin_interval);
     }
 
+
     void advance(time_type tfinal, time_type dt) override {
+        PE("advance");
         EXPECTS(lowered_.state_synchronized());
         time_type tstart = lowered_.min_time();
 
-        // Bin pending events and enqueue on lowered state.
-        time_type ev_min_time = lowered_.max_time(); // (but we're synchronized here)
+        PE("event-setup");
+        // Bin pending events and batch for lowered cell.
+        std::vector<deliverable_event> staged_events;
+        staged_events.reserve(events_.size());
+
         while (auto ev = events_.pop_if_before(tfinal)) {
-            auto handle = get_target_handle(ev->target);
-            auto binned_ev_time = binner_.bin(ev->target.gid, ev->time, ev_min_time);
-            lowered_.add_event(binned_ev_time, handle, ev->weight);
+            staged_events.emplace_back(
+                binner_.bin(ev->target.gid, ev->time, tstart),
+                get_target_handle(ev->target),
+                ev->weight);
         }
+        PL();
 
-        lowered_.setup_integration(tfinal, dt);
+        // Create sample events and delivery information.
+        //
+        // For each (schedule, sampler, probe set) in the sampler association
+        // map that will be triggered in this integration interval, create
+        // sample events for the lowered cell, one for each scheduled sample
+        // time and probe in the probe set.
+        //
+        // Each event is associated with an offset into the sample data and
+        // time buffers; these are assigned contiguously such that one call to
+        // a sampler callback can be represented by a `sampler_call_info`
+        // value as defined below, grouping together all the samples of the
+        // same probe for this callback in this association.
 
-        // Set up sample event queue.
-        struct sampler_entry {
-            typename lowered_cell_type::probe_handle handle;
-            probe_tag tag;
-            cell_member_type probe_id;
+        struct sampler_call_info {
             sampler_function sampler;
-        };
-        std::vector<sampler_entry> samplers;
+            cell_member_type probe_id;
+            probe_tag tag;
 
-        for (auto &assoc: sampler_map_) {
-            auto ts = assoc.sched.events(tstart, tfinal);
-            if (ts.empty()) {
+            // Offsets are into lowered cell sample time and event arrays.
+            sample_size_type begin_offset;
+            sample_size_type end_offset;
+        };
+
+        PE("sample-event-setup");
+        std::vector<sampler_call_info> call_info;
+
+        std::vector<sample_event> sample_events;
+        sample_size_type n_samples = 0;
+        sample_size_type max_samples_per_call = 0;
+
+        for (auto& sa: sampler_map_) {
+            auto sample_times = sa.sched.events(tstart, tfinal);
+            if (sample_times.empty()) {
                 continue;
             }
 
-            for (auto p: assoc.probe_ids) {
-                EXPECTS(probe_map_.count(p)>0);
-                sample_event::size_type idx = samplers.size();
-                auto pinfo = probe_map_[p];
+            sample_size_type n_times = sample_times.size();
+            max_samples_per_call = std::max(max_samples_per_call, n_times);
 
-                samplers.push_back({pinfo.handle, pinfo.tag, p, assoc.sampler});
+            for (cell_member_type pid: sa.probe_ids) {
+                auto cell_index = gid_to_index(pid.gid);
+                auto p = probe_map_[pid];
 
-                for (auto t: ts) {
-                    sample_events_.push({idx, t});
+                call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times});
+
+                for (auto t: sample_times) {
+                    sample_event ev{t, cell_index, {p.handle, n_samples++}};
+                    sample_events.push_back(ev);
                 }
             }
         }
 
-        util::optional<time_type> first_sample_time = sample_events_.time_if_before(tfinal);
-        std::vector<sample_event> requeue_sample_events;
+        // Sample events must be ordered by time for the lowered cell.
+        util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
+        PL();
+
+        // Run integration.
+        lowered_.setup_integration(tfinal, dt, std::move(staged_events), std::move(sample_events));
+        PE("integrator-steps");
         while (!lowered_.integration_complete()) {
-            // Take any pending samples.
-            // TODO: Placeholder: this will be replaced by a backend polling implementation.
-
-            if (first_sample_time) {
-                PE("sampling");
-                time_type cell_max_time = lowered_.max_time();
-
-                requeue_sample_events.clear();
-                while (auto m = sample_events_.pop_if_before(cell_max_time)) {
-                    auto& s = samplers[m->sampler_index];
-                    EXPECTS((bool)s.sampler);
-
-                    time_type cell_time = lowered_.time(gid_to_index(s.probe_id.gid));
-                    if (cell_time<m->time) {
-                        // This cell hasn't reached this sample time yet.
-                        requeue_sample_events.push_back(*m);
-                    }
-                    else {
-                        const double value = lowered_.probe(s.handle);
-                        sample_record record = {cell_time, &value};
-                        s.sampler(s.probe_id, s.tag, 1u, &record);
-                    }
-                }
-                for (auto& ev: requeue_sample_events) {
-                    sample_events_.push(std::move(ev));
-                }
-                first_sample_time = sample_events_.time_if_before(tfinal);
-                PL();
-            }
-
-            // Ask lowered_ cell to integrate 'one step', delivering any
-            // events accordingly.
-            // TODO: Placeholder: with backend polling for samplers, we will
-            // request that the lowered cell perform the integration all the
-            // way to tfinal.
-
             lowered_.step_integration();
-
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds  at (max) t "
                           << lowered_.max_time() << " ms\n";
             }
         }
+        PL();
+
+
+        // For each sampler callback registered in `call_info`, construct the
+        // vector of sample entries from the lowered cell sample times and values
+        // and then call the callback.
+
+        PE("sample-deliver");
+        std::vector<sample_record> sample_records;
+        sample_records.reserve(max_samples_per_call);
+
+        auto sample_time = lowered_.sample_time();
+        auto sample_value = lowered_.sample_value();
+
+        for (auto& sc: call_info) {
+            sample_records.clear();
+            for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
+                sample_records.push_back(sample_record{time_type(sample_time[i]), &sample_value[i]});
+            }
+
+            sc.sampler(sc.probe_id, sc.tag, sc.end_offset-sc.begin_offset, sample_records.data());
+        }
+        PL();
 
         // Copy out spike voltage threshold crossings from the back end, then
         // generate spikes with global spike source ids. The threshold crossings
         // record the local spike source index, which must be converted to a
         // global index for spike communication.
-        PE("events");
+
+        PE("spike-retrieve");
         for (auto c: lowered_.get_spikes()) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }
+
         // Now that the spikes have been generated, clear the old crossings
         // to get ready to record spikes from the next integration period.
+
         lowered_.clear_spikes();
+        PL();
+
         PL();
     }
 

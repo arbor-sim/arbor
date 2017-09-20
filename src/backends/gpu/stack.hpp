@@ -34,7 +34,7 @@ class stack {
     storage_type* create_storage(unsigned n) {
         auto p = allocator<storage_type>().allocate(1);
         p->capacity = n;
-        p->size = 0;
+        p->stores = 0;
         p->data = allocator<value_type>().allocate(n);
         return p;
     }
@@ -62,23 +62,23 @@ public:
     }
 
     void clear() {
-        storage_->size = 0u;
+        storage_->stores = 0u;
     }
 
     // The number of items that have been pushed back on the stack.
     // This may exceed capacity, which indicates that the caller attempted
     // to push back more values than there was space to store.
     unsigned pushes() const {
-        return storage_->size;
+        return storage_->stores;
     }
 
-    bool is_overflowed() const {
-        return storage_->size>capacity();
+    bool overflow() const {
+        return storage_->stores>capacity();
     }
 
     // The number of values stored in the stack.
     unsigned size() const {
-        return std::min(storage_->size, storage_->capacity);
+        return std::min(storage_->stores, storage_->capacity);
     }
 
     // The maximum number of items that can be stored in the stack.

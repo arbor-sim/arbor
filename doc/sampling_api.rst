@@ -273,3 +273,23 @@ accessors.
 probe ids and tuples (*probe handle*, *probe tag*), where the *probe handle*
 is a cell-group specific accessor that allows efficient polling.
 
+
+Batched sampling in ``mc_cell_group``
+-------------------------------------
+
+The ``fvm_multicell`` implementations for CPU and GPU simulation of multi-compartment
+cable neurons perform sampling in a batched manner: when their integration is
+initialized, they take a sequence of ``sample_event`` objects which are used to
+populate an implementation-specific ``multi_event_stream`` that describes for each
+cell the sample times and what to sample over the integration interval.
+
+When an integration step for a cell covers a sample event on that cell, the sample
+is satisfied with the value from the cell state at the beginning of the time step,
+after any postsynaptic spike events have been delivered.
+
+It is the responsibility of the ``mc_cell_group::advance()`` method to create the sample
+events from the entries of its ``sampler_association_map``, and to dispatch the
+sampled values to the sampler callbacks after the integration is complete.
+Given an association tuple (*schedule*, *sampler*, *probe set*) where the *schedule*
+has (non-zero) *n* sample times in the current integration interval, the ``mc_cell_group`` will
+call the *sampler* callback once for probe in *probe set*, with *n* sample values.
