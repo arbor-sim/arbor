@@ -115,7 +115,11 @@ private:
     void set_buffer(TextBuffer& buf) {
         current_buffer_ = &buf;
     }
+
     TextBuffer& buffer() {
+        if (!current_buffer_) {
+            throw std::runtime_error("CUDAPrinter buffer must be set via CUDAPrinter::set_buffer() before accessing via CUDAPrinter::buffer().");
+        }
         return *current_buffer_;
     }
 };
