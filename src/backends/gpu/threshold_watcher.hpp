@@ -88,7 +88,7 @@ public:
     }
 
     const std::vector<threshold_crossing> crossings() const {
-        if (stack_.is_overflowed()) {
+        if (stack_.overflow()) {
             throw std::runtime_error("GPU spike buffer overflow.");
         }
         return std::vector<threshold_crossing>(stack_.begin(), stack_.end());
@@ -109,7 +109,7 @@ public:
         // Check that the number of spikes has not exceeded capacity.
         // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
         // host-device managed memory access.
-        EXPECTS((cudaDeviceSynchronize(), !stack_.is_overflowed()));
+        EXPECTS((cudaDeviceSynchronize(), !stack_.overflow()));
     }
 
     /// the number of threashold values that are being monitored

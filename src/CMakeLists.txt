@@ -29,6 +29,7 @@ set(CUDA_SOURCES
     backends/gpu/multi_event_stream.cu
     backends/gpu/fill.cu
     backends/gpu/kernels/test_thresholds.cu
+    backends/gpu/kernels/take_samples.cu
 )
 
 # The cell_group_factory acts like an interface between the

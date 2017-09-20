@@ -11,6 +11,7 @@
 #include <util/rangeutil.hpp>
 
 #include "kernels/time_ops.hpp"
+#include "kernels/take_samples.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "matrix_state_flat.hpp"
 #include "multi_event_stream.hpp"
@@ -50,13 +51,18 @@ struct backend {
         return "gpu";
     }
 
+    // dereference a probe handle
+    static value_type dereference(probe_handle h) {
+        memory::const_device_reference<value_type> v(h); // h is a device-side pointer
+        return v;
+    }
+
     // matrix back end implementation
     using matrix_state = matrix_state_interleaved<value_type, size_type>;
-    using multi_event_stream = nest::mc::gpu::multi_event_stream;
 
-    // re-expose common backend event types
-    using deliverable_event = nest::mc::deliverable_event;
-    using target_handle = nest::mc::target_handle;
+    // backend-specific multi event streams.
+    using deliverable_event_stream = nest::mc::gpu::multi_event_stream<deliverable_event>;
+    using sample_event_stream = nest::mc::gpu::multi_event_stream<sample_event>;
 
     // mechanism infrastructure
     using ion = mechanisms::ion<backend>;
@@ -121,6 +127,16 @@ struct backend {
         size_type ncomp = util::size(dt_comp);
 
         nest::mc::gpu::set_dt<value_type, size_type>(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
+    }
+
+    // perform sampling as described by marked events in a sample_event_stream
+    static void take_samples(
+        const sample_event_stream::state& s,
+        const_view time,
+        array& sample_time,
+        array& sample_value)
+    {
+        nest::mc::gpu::take_samples(s, time.data(), sample_time.data(), sample_value.data());
     }
 
 private:

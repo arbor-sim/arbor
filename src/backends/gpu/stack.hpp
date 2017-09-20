@@ -72,7 +72,7 @@ public:
         return storage_->size;
     }
 
-    bool is_overflowed() const {
+    bool overflow() const {
         return storage_->size>capacity();
     }
 
