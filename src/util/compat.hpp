@@ -7,6 +7,27 @@
 
 namespace compat {
 
+template<int major=0, int minor=0, int patchlevel=0>
+constexpr bool using_intel_compiler() {
+#if defined(__INTEL_COMPILER)
+    return __INTEL_COMPILER >= major*100 + minor &&
+           __INTEL_COMPILER_UPDATE >= patchlevel;
+#else
+    return false;
+#endif
+}
+
+template<int major=0, int minor=0, int patchlevel=0>
+constexpr bool using_gnu_compiler() {
+#if defined(__GNUC__)
+    constexpr int available = __GNUC__*10000 + __GNUC_MINOR__*100 + __GNUC_PATCHLEVEL__;
+    constexpr int required = major*10000 + minor*100 + patchlevel;
+    return available >= required;
+#else
+    return false;
+#endif
+}
+
 // std::end() broken with (at least) xlC 13.1.4.
 
 template <typename T>

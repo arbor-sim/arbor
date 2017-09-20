@@ -9,6 +9,12 @@
 #include "options.hpp"
 #include "textbuffer.hpp"
 
+#ifdef __GNUC__
+#   define ANNOT_UNUSED "__attribute__((unused))"
+#else
+#   define ANNOT_UNUSED ""
+#endif
+
 
 using namespace nest::mc;
 
@@ -111,13 +117,13 @@ void SimdPrinter<Arch>::visit(APIMethod *e) {
         text_.increase_indentation();
 
         // First emit the raw pointer of node_index_ and vec_ci_
-        text_.add_line("constexpr size_t simd_width = " +
+        text_.add_line("constexpr int simd_width = " +
                        simd_backend::emit_simd_width() +
                        " / (CHAR_BIT*sizeof(value_type));");
-        text_.add_line("const size_type* " + emit_rawptr_name("node_index_") +
-                       " = node_index_.data();");
-        text_.add_line("const size_type* " + emit_rawptr_name("vec_ci_") +
-                       " = vec_ci_.data();");
+        text_.add_line("const size_type " ANNOT_UNUSED " *" +
+                       emit_rawptr_name("node_index_") +" = node_index_.data();");
+        text_.add_line("const size_type " ANNOT_UNUSED " *" +
+                       emit_rawptr_name("vec_ci_") + " = vec_ci_.data();");
         text_.add_line();
 
         // create local indexed views
@@ -197,7 +203,7 @@ void SimdPrinter<Arch>::emit_indexed_view_simd(LocalVariable* var,
             if (var->is_read())
                 text_ << "const ";
 
-            text_ << "value_type* ";
+            text_ << "value_type " ANNOT_UNUSED " *";
             decls.insert(raw_index_name);
             text_ << raw_index_name << " = "
                   << emit_member_name(index_name) << ".data()";
@@ -219,7 +225,7 @@ void SimdPrinter<Arch>::emit_indexed_view_simd(LocalVariable* var,
             if (var->is_read())
                 text_ << "const ";
 
-            text_ << "value_type* ";
+            text_ << "value_type " ANNOT_UNUSED " *";
             decls.insert(ion_var_names.second);
             text_ << ion_var_names.second << " = " << iname << "."
                   << name << ".data()";
@@ -265,7 +271,7 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
             if (declared_ion_vars.find(vindex_name) == declared_ion_vars.cend()) {
                 declared_ion_vars.insert(vindex_name);
                 text_.add_gutter();
-                text_ << simd_backend::emit_index_type() << " "
+                text_ << simd_backend::emit_index_type() << " " ANNOT_UNUSED " "
                       << vindex_name << " = ";
                 // FIXME: cast should better go inside `emit_load_index()`
                 simd_backend::emit_load_index(
@@ -280,9 +286,9 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
                 if (declared_ion_vars.find(vci_name) == declared_ion_vars.cend()) {
                     declared_ion_vars.insert(vci_name);
                     text_.add_gutter();
-                    text_ << simd_backend::emit_index_type() << " "
+                    text_ << simd_backend::emit_index_type() << " " ANNOT_UNUSED " "
                           << vci_name << " = ";
-                    simd_backend::emit_gather_index(text_, "(int *)"+ci_ptr_name, vindex_name, "sizeof(size_type)");
+                    simd_backend::emit_gather_index(text_, "(int *)" + ci_ptr_name, vindex_name, "sizeof(size_type)");
                     text_.end_line(";");
                 }
             }
@@ -408,6 +414,9 @@ void SimdPrinter<Arch>::visit(CellIndexedVariable *e) {
     std::string vindex_name, value_name;
 
     vindex_name = emit_vtmp_name("vec_ci_");
+#ifdef __GNUC__
+    vindex_name += " __attribute__((unused))";
+#endif
     value_name = emit_rawptr_name(e->index_name());
 
     simd_backend::emit_gather(text_, vindex_name, value_name, "sizeof(value_type)");
