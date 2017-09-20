@@ -110,7 +110,7 @@ public:
         // time and probe in the probe set.
         //
         // Each event is associated with an offset into the sample data and
-        // time buggers; these are assigned contiguously such that one call to
+        // time buffers; these are assigned contiguously such that one call to
         // a sampler callback can be represented by a `sampler_call_info`
         // value as defined below, grouping together all the samples of the
         // same probe for this callback in this association.
