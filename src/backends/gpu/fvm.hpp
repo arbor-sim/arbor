@@ -92,8 +92,7 @@ struct backend {
         return mech_map_.count(name)>0;
     }
 
-    using threshold_watcher =
-        nest::mc::gpu::threshold_watcher<value_type, size_type>;
+    using threshold_watcher = nest::mc::gpu::threshold_watcher;
 
     // perform min/max reductions on 'array' type
     template <typename V>

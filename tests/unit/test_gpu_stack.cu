@@ -1,5 +1,6 @@
 #include "../gtest.h"
 
+#include <backends/gpu/kernels/stack.hpp>
 #include <backends/gpu/stack.hpp>
 #include <backends/gpu/managed_ptr.hpp>
 
@@ -18,9 +19,9 @@ TEST(stack, construction) {
 namespace kernels {
     template <typename F>
     __global__
-    void push_back(gpu::stack<int>& s, F f) {
+    void push_back(gpu::stack_storage<int>& s, F f) {
         if (f(threadIdx.x)) {
-            s.push_back(threadIdx.x);
+            nest::mc::gpu::push_back(s, int(threadIdx.x));
         }
     }
 
@@ -52,28 +53,58 @@ TEST(stack, push_back) {
 
     const unsigned n = 10;
     EXPECT_TRUE(n%2 == 0); // require n is even for tests to work
-    auto s = gpu::make_managed_ptr<stack>(n);
+    auto s = stack(n);
+    auto& sstorage = s.storage();
 
-    kernels::push_back<<<1, n>>>(*s, kernels::all_ftor());
+    kernels::push_back<<<1, n>>>(sstorage, kernels::all_ftor());
     cudaDeviceSynchronize();
-    EXPECT_EQ(n, s->size());
-    for (auto i=0; i<int(s->size()); ++i) {
-        EXPECT_EQ(i, (*s)[i]);
+    EXPECT_EQ(n, s.size());
+    for (auto i=0; i<int(s.size()); ++i) {
+        EXPECT_EQ(i, s[i]);
     }
 
-    s->clear();
-    kernels::push_back<<<1, n>>>(*s, kernels::even_ftor());
+    s.clear();
+    kernels::push_back<<<1, n>>>(sstorage, kernels::even_ftor());
     cudaDeviceSynchronize();
-    EXPECT_EQ(n/2, s->size());
-    for (auto i=0; i<int(s->size())/2; ++i) {
-        EXPECT_EQ(2*i, (*s)[i]);
+    EXPECT_EQ(n/2, s.size());
+    for (auto i=0; i<int(s.size())/2; ++i) {
+        EXPECT_EQ(2*i, s[i]);
     }
 
-    s->clear();
-    kernels::push_back<<<1, n>>>(*s, kernels::odd_ftor());
+    s.clear();
+    kernels::push_back<<<1, n>>>(sstorage, kernels::odd_ftor());
     cudaDeviceSynchronize();
-    EXPECT_EQ(n/2, s->size());
-    for (auto i=0; i<int(s->size())/2; ++i) {
-        EXPECT_EQ(2*i+1, (*s)[i]);
+    EXPECT_EQ(n/2, s.size());
+    for (auto i=0; i<int(s.size())/2; ++i) {
+        EXPECT_EQ(2*i+1, s[i]);
     }
+}
+
+TEST(stack, overflow) {
+    using T = int;
+    using stack = gpu::stack<T>;
+
+    const unsigned n = 10;
+    auto s = stack(n);
+    auto& sstorage = s.storage();
+    EXPECT_FALSE(s.overflow());
+
+    // push 2n items into a stack of size n
+    kernels::push_back<<<1, 2*n>>>(sstorage, kernels::all_ftor());
+    cudaDeviceSynchronize();
+    EXPECT_EQ(n, s.size());
+    EXPECT_EQ(2*n, s.pushes());
+    EXPECT_TRUE(s.overflow());
+}
+
+TEST(stack, empty) {
+    using T = int;
+    using stack = gpu::stack<T>;
+
+    stack s(0u);
+
+    EXPECT_EQ(s.size(), 0u);
+    EXPECT_EQ(s.capacity(), 0u);
+
+    EXPECT_EQ(s.storage().data, nullptr);
 }

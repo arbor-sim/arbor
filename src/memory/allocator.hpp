@@ -148,7 +148,7 @@ namespace impl {
                 void* ptr = reinterpret_cast<void *>
                                 (aligned_malloc<char, Alignment>(size));
 
-                if(ptr == nullptr) {
+                if (!ptr) {
                     return nullptr;
                 }
 
@@ -166,7 +166,7 @@ namespace impl {
             }
 
             void free_policy(void *ptr) {
-                if(ptr == nullptr) {
+                if (!ptr) {
                     return;
                 }
                 cudaHostUnregister(ptr);
@@ -189,9 +189,12 @@ namespace impl {
             static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 1024 byte boundaries");
 
             void* allocate_policy(std::size_t n) {
+                if (!n) {
+                    return nullptr;
+                }
                 void* ptr;
                 auto status = cudaMallocManaged(&ptr, n);
-                if(status != cudaSuccess) {
+                if (status != cudaSuccess) {
                     LOG_ERROR("memory:: unable to allocate managed memory");
                     ptr = nullptr;
                 }
@@ -208,7 +211,9 @@ namespace impl {
             }
 
             void free_policy(void* p) {
-                cudaFree(p);
+                if (p) {
+                    cudaFree(p);
+                }
             }
         };
 
@@ -278,11 +283,14 @@ public:
     }
 
     pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
-        return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+        if (cnt) {
+            return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+        }
+        return nullptr;
     }
 
-    void deallocate(pointer p, size_type) {
-        if( p!=nullptr ) {
+    void deallocate(pointer p, size_type cnt) {
+        if (p) {
             free_policy(p);
         }
     }
@@ -332,6 +340,13 @@ namespace util {
     struct type_printer<impl::cuda::device_policy>{
         static std::string print() {
             return std::string("device_policy");
+        }
+    };
+
+    template <>
+    struct type_printer<impl::cuda::managed_policy<>>{
+        static std::string print() {
+            return std::string("managed_policy");
         }
     };
 #endif

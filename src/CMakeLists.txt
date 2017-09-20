@@ -28,6 +28,7 @@ set(CUDA_SOURCES
     backends/gpu/fvm.cu
     backends/gpu/multi_event_stream.cu
     backends/gpu/fill.cu
+    backends/gpu/kernels/test_thresholds.cu
     backends/gpu/kernels/take_samples.cu
 )
 
