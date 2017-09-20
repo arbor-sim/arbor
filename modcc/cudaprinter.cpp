@@ -41,8 +41,10 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <backends/event.hpp>");
+    text_.add_line("#include <backends/multi_event_stream_state.hpp>");
+    text_.add_line("#include <backends/gpu/fvm.hpp>");
     text_.add_line("#include <backends/gpu/intrinsics.hpp>");
-    text_.add_line("#include <backends/gpu/multi_event_stream.hpp>");
     text_.add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
     text_.add_line();
@@ -50,6 +52,10 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace gpu{ namespace " + module_name + "{");
     text_.add_line();
     increase_indentation();
+
+    text_.add_line("// same type as base::deliverable_event_stream_state in class definition");
+    text_.add_line("using deliverable_event_stream_state = multi_event_stream_state<deliverable_event_data>;");
+    text_.add_line();
 
     ////////////////////////////////////////////////////////////
     // generate the parameter pack
@@ -115,7 +121,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("namespace kernels {");
     {
         increase_indentation();
-        text_.add_line("using nest::mc::gpu::multi_event_stream;");
 
         // forward declarations of procedures
         for(auto const &var : m.symbols()) {
@@ -162,7 +167,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     text_.add_line("using typename base::const_iview;");
     text_.add_line("using typename base::const_view;");
     text_.add_line("using typename base::ion_type;");
-    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
+    text_.add_line("using deliverable_event_stream_state = typename base::deliverable_event_stream_state;");
     text_.add_line("using param_pack_type = " + module_name + "_ParamPack<value_type, size_type>;");
 
     //////////////////////////////////////////////
@@ -442,13 +447,13 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
                  var.second->is_procedure()->kind()==procedureKind::net_receive)
         {
             // Override `deliver_events`.
-            text_.add_line("void deliver_events(multi_event_stream& events) override {");
+            text_.add_line("void deliver_events(const deliverable_event_stream_state& events) override {");
             text_.increase_indentation();
             text_.add_line("auto ncell = events.n_streams();");
             text_.add_line("constexpr int blockwidth = 128;");
             text_.add_line("int nblock = 1+(ncell-1)/blockwidth;");
             text_.add_line("kernels::deliver_events<value_type, size_type>"
-                           "<<<nblock, blockwidth>>>(param_pack_, mech_id_, events.delivery_data());");
+                           "<<<nblock, blockwidth>>>(param_pack_, mech_id_, events);");
             text_.decrease_indentation();
             text_.add_line("}");
             text_.add_line();
@@ -755,7 +760,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line(       "__global__");
         text_.add_gutter() << "void deliver_events("
                            << module_->name() << "_ParamPack<T,I> params_, "
-                           << "I mech_id, multi_event_stream::span_state state) {";
+                           << "I mech_id, deliverable_event_stream_state state) {";
         text_.add_line();
         increase_indentation();
 
@@ -765,9 +770,11 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         text_.add_line("if(tid_<ncell_) {");
         increase_indentation();
 
-        text_.add_line("for (auto j = state.span_begin[tid_]; j<state.mark[tid_]; ++j) {");
+        text_.add_line("auto begin = state.ev_data+state.begin_offset[tid_];");
+        text_.add_line("auto end = state.ev_data+state.end_offset[tid_];");
+        text_.add_line("for (auto p = begin; p<end; ++p) {");
         increase_indentation();
-        text_.add_line("if (state.ev_mech_id[j]==mech_id) net_receive<T, I>(params_, state.ev_index[j], state.ev_weight[j]);");
+        text_.add_line("if (p->mech_id==mech_id) net_receive<T, I>(params_, p->mech_index, p->weight);");
         decrease_indentation();
         text_.add_line("}");
 

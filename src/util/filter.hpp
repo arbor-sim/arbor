@@ -110,6 +110,7 @@ public:
             inner_ = std::move(other.inner_);
             end_ = std::move(other.end_);
             ok_ = other.ok_;
+            f_.destruct();
             f_.construct(std::move(other.f_.ref()));
         }
         return *this;

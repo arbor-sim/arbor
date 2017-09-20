@@ -8,6 +8,7 @@
 #include <utility>
 
 #include "common_types.hpp"
+#include "generic_event.hpp"
 #include "util/meta.hpp"
 #include "util/optional.hpp"
 #include "util/range.hpp"
@@ -18,7 +19,7 @@ namespace mc {
 
 /* Event classes `Event` used with `event_queue` must be move and copy constructible,
  * and either have a public field `time` that returns the time value, or provide an
- * overload of `event_time(const Event&)` which returns this value.
+ * overload of `event_time(const Event&)` which returns this value (see generic_event.hpp).
  *
  * Time values must be well ordered with respect to `operator>`.
  */
@@ -38,34 +39,11 @@ struct postsynaptic_spike_event {
     }
 };
 
-struct sample_event {
-    using size_type = std::uint32_t;
-
-    size_type sampler_index;
-    time_type time;
-};
-
-// Configuration point: define `event_time(ev)` for event objects `ev`
-// that do not have the corresponding `time` member field.
-
-template <typename Event>
-auto event_time(const Event& ev) -> decltype(ev.time) {
-    return ev.time;
-}
-
-namespace impl {
-    using ::nest::mc::event_time;
-
-    // wrap in `impl::` namespace to obtain correct ADL for return type.
-    template <typename Event>
-    using event_time_type = decltype(event_time(std::declval<Event>()));
-}
-
 template <typename Event>
 class event_queue {
 public :
     using value_type = Event;
-    using event_time_type = impl::event_time_type<Event>;
+    using event_time_type = ::nest::mc::event_time_type<Event>;
 
     event_queue() {}
 
