@@ -9,7 +9,7 @@ enable_language(CXX)
 # version 3.9 uses the old signature, while other packages use the new signature.
 if ("${CMAKE_VERSION}" MATCHES "^3.[0-9].")
     cmake_policy(SET CMP0023 OLD)
-#endif()
+endif()
 
 # save incoming CXX flags for forwarding to modcc external project
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
