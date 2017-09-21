@@ -255,15 +255,6 @@ struct matrix_state_interleaved {
     //   voltage [mV]
     //   current [nA]
     void assemble(const_view dt_cell, const_view voltage, const_view current) {
-        constexpr auto bd = impl::block_dim();
-        constexpr auto lw = impl::load_width();
-        constexpr auto block_dim = bd*lw;
-
-        // The number of threads is threads_per_matrix*num_mtx
-        const auto num_blocks = impl::block_count(num_matrices()*lw, block_dim);
-
-        //assemble_matrix_interleaved<value_type, size_type, bd, lw, block_dim>
-            //<<<num_blocks, block_dim>>>
         assemble_matrix_interleaved
             (d.data(), rhs.data(), invariant_d.data(),
              voltage.data(), current.data(), cv_capacitance.data(),

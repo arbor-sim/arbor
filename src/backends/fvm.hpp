@@ -36,13 +36,8 @@ struct null_backend: public multicore::backend {
 } // namespace mc
 } // namespace nest
 
-// FIXME: This include is where cuda-specific code leaks into the main application.
-// e.g.: CUDA kernels, functions marked __host__ __device__, etc.
-// Hence why it is guarded with NMC_HAVE_CUDA, and not, NMC_HAVE_GPU, like elsewhere in
-// the code. When we implement separate compilation of CUDA, this should be guarded with
-// NMC_HAVE_GPU, and the NMC_HAVE_CUDA flag depricated.
-#ifdef NMC_HAVE_CUDA
-    #include <backends/gpu/fvm.hpp>
+#ifdef NMC_HAVE_GPU
+#include <backends/gpu/fvm.hpp>
 #else
 namespace nest { namespace mc { namespace gpu {
     using backend = null_backend;

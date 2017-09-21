@@ -24,11 +24,6 @@ endif()
 
 add_executable(validate.exe ${VALIDATION_SOURCES})
 
-if(NMC_WITH_CUDA)
-    target_link_libraries(validate.exe LINK_PUBLIC gpu)
-endif()
-
-
 target_link_libraries(validate.exe LINK_PUBLIC gtest)
 target_link_libraries(validate.exe LINK_PUBLIC ${NESTMC_LIBRARIES})
 target_link_libraries(validate.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
