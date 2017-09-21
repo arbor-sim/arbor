@@ -47,10 +47,11 @@ build_modules(
 # Make a library with the implementations of the mechanism kernels
 
 if(NMC_WITH_CUDA)
-    # make list of the .cu files that 
+    # make list of the .cu files that implement the mechanism kernels
     foreach(mech ${mechanisms})
         set(cuda_mech_sources ${cuda_mech_sources} ${mech_dir}/${mech}_impl.cu)
     endforeach()
+
     # compile the .cu files into a library
     cuda_add_library(gpu_mechanisms ${cuda_mech_sources})
 

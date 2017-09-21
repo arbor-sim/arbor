@@ -1,4 +1,4 @@
-#pragma once
+#include <backends/fvm_types.hpp>
 
 #include "detail.hpp"
 
@@ -6,6 +6,7 @@ namespace nest {
 namespace mc {
 namespace gpu {
 
+namespace kernels {
 /// GPU implementatin of Hines matrix assembly
 /// Flat layout
 /// For a given time step size dt
@@ -139,6 +140,57 @@ void assemble_matrix_interleaved(
         store_pos += LoadWidth*BlockWidth;
         load_pos  += LoadWidth;
     }
+}
+
+} // namespace kernels
+
+void assemble_matrix_flat(
+        fvm_value_type* d,
+        fvm_value_type* rhs,
+        const fvm_value_type* invariant_d,
+        const fvm_value_type* voltage,
+        const fvm_value_type* current,
+        const fvm_value_type* cv_capacitance,
+        const fvm_size_type* cv_to_cell,
+        const fvm_value_type* dt_cell,
+        unsigned n)
+{
+    constexpr unsigned block_dim = 128;
+    const unsigned grid_dim = impl::block_count(n, block_dim);
+
+    kernels::assemble_matrix_flat
+        <fvm_value_type, fvm_size_type>
+        <<<grid_dim, block_dim>>>
+        (d, rhs, invariant_d, voltage, current, cv_capacitance, cv_to_cell, dt_cell, n);
+}
+
+//template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned Threads>
+void assemble_matrix_interleaved(
+    fvm_value_type* d,
+    fvm_value_type* rhs,
+    const fvm_value_type* invariant_d,
+    const fvm_value_type* voltage,
+    const fvm_value_type* current,
+    const fvm_value_type* cv_capacitance,
+    const fvm_size_type* sizes,
+    const fvm_size_type* starts,
+    const fvm_size_type* matrix_to_cell,
+    const fvm_value_type* dt_cell,
+    unsigned padded_size, unsigned num_mtx)
+{
+    constexpr unsigned bd = impl::block_dim();
+    constexpr unsigned lw = impl::load_width();
+    constexpr unsigned block_dim = bd*lw;
+
+    // The number of threads is threads_per_matrix*num_mtx
+    const unsigned grid_dim = impl::block_count(num_mtx*lw, block_dim);
+
+    kernels::assemble_matrix_interleaved
+        <fvm_value_type, fvm_size_type, bd, lw, block_dim>
+        <<<grid_dim, block_dim>>>
+        (d, rhs, invariant_d, voltage, current, cv_capacitance,
+         sizes, starts, matrix_to_cell,
+         dt_cell, padded_size, num_mtx);
 }
 
 } // namespace gpu

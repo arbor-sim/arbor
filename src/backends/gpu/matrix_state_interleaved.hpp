@@ -1,18 +1,60 @@
 #pragma once
 
+#include <backends/fvm_types.hpp>
 #include <memory/memory.hpp>
 #include <util/debug.hpp>
 #include <util/span.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
+#include <util/indirect.hpp>
 
-#include "kernels/solve_matrix.hpp"
-#include "kernels/assemble_matrix.hpp"
-#include "kernels/interleave.hpp"
+#include "kernels/detail.hpp"
 
 namespace nest {
 namespace mc {
 namespace gpu {
+
+// host side wrapper for interleaved matrix assembly kernel
+void assemble_matrix_interleaved(
+    fvm_value_type* d,
+    fvm_value_type* rhs,
+    const fvm_value_type* invariant_d,
+    const fvm_value_type* voltage,
+    const fvm_value_type* current,
+    const fvm_value_type* cv_capacitance,
+    const fvm_size_type* sizes,
+    const fvm_size_type* starts,
+    const fvm_size_type* matrix_to_cell,
+    const fvm_value_type* dt_cell,
+    unsigned padded_size, unsigned num_mtx);
+
+// host side wrapper for interleaved matrix solver kernel
+void solve_matrix_interleaved(
+    fvm_value_type* rhs,
+    fvm_value_type* d,
+    const fvm_value_type* u,
+    const fvm_size_type* p,
+    const fvm_size_type* sizes,
+    int padded_size,
+    int num_mtx);
+
+// host side wrapper for the flat to interleaved operation
+void flat_to_interleaved(
+    const fvm_value_type* in,
+    fvm_value_type* out,
+    const fvm_size_type* sizes,
+    const fvm_size_type* starts,
+    unsigned padded_size,
+    unsigned num_vec);
+
+// host side wrapper for the interleave to flat operation
+void interleaved_to_flat(
+    const fvm_value_type* in,
+    fvm_value_type* out,
+    const fvm_size_type* sizes,
+    const fvm_size_type* starts,
+    unsigned padded_size,
+    unsigned num_vec);
 
 // A helper that performs the interleave operation on host memory.
 template <typename T, typename I>
@@ -220,8 +262,9 @@ struct matrix_state_interleaved {
         // The number of threads is threads_per_matrix*num_mtx
         const auto num_blocks = impl::block_count(num_matrices()*lw, block_dim);
 
-        assemble_matrix_interleaved<value_type, size_type, bd, lw, block_dim>
-            <<<num_blocks, block_dim>>>
+        //assemble_matrix_interleaved<value_type, size_type, bd, lw, block_dim>
+            //<<<num_blocks, block_dim>>>
+        assemble_matrix_interleaved
             (d.data(), rhs.data(), invariant_d.data(),
              voltage.data(), current.data(), cv_capacitance.data(),
              matrix_sizes.data(), matrix_index.data(),
@@ -232,14 +275,12 @@ struct matrix_state_interleaved {
 
     void solve() {
         // Perform the Hines solve.
-        auto const grid_dim = impl::block_count(num_matrices(), impl::block_dim());
-        solve_matrix_interleaved<value_type, size_type, impl::block_dim()>
-            <<<grid_dim, impl::block_dim()>>>
-            (rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
+        solve_matrix_interleaved(
+             rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
              padded_matrix_size(), num_matrices());
 
         // Copy the solution from interleaved to front end storage.
-        interleaved_to_flat<value_type, size_type, impl::block_dim(), impl::load_width()>
+        interleaved_to_flat
             (rhs.data(), solution_.data(), matrix_sizes.data(), matrix_index.data(),
              padded_matrix_size(), num_matrices());
     }
