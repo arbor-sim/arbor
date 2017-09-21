@@ -206,14 +206,14 @@ int main(int argc, char **argv) {
         }
     }
 
-    catch(compiler_exception e) {
+    catch(compiler_exception& e) {
         std::cerr << red("internal compiler error: ")
                   << white("this means a bug in the compiler,"
                            " please report to modcc developers\n")
                   << e.what() << " @ " << e.location() << "\n";
         exit(1);
     }
-    catch(std::exception e) {
+    catch(std::exception& e) {
         std::cerr << red("internal compiler error: ")
                   << white("this means a bug in the compiler,"
                            " please report to modcc developers\n")
