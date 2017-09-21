@@ -47,7 +47,6 @@ set(TEST_SOURCES
     test_event_binner.cpp
     test_filter.cpp
     test_fvm_multi.cpp
-    #test_intrin.cpp
     test_mc_cell_group.cpp
     test_lexcmp.cpp
     test_mask_stream.cpp
@@ -87,6 +86,9 @@ set(TEST_SOURCES
     stats.cpp
 )
 
+if(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
+    list(APPEND TEST_SOURCES test_intrin.cpp)
+endif()
 
 set(TARGETS test.exe)
 
