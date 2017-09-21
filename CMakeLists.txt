@@ -7,9 +7,9 @@ enable_language(CXX)
 # Hide warnings about mixing old and new signatures for target_link_libraries.
 # These can't be avoided, because the FindCUDA packed provided by CMake before
 # version 3.9 uses the old signature, while other packages use the new signature.
-#if ("${CMAKE_VERSION}" MATCHES "^3.[0-8].")
+if ("${CMAKE_VERSION}" MATCHES "^3.[0-9].")
     cmake_policy(SET CMP0023 OLD)
-#endif()
+endif()
 
 # save incoming CXX flags for forwarding to modcc external project
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -288,8 +288,8 @@ if(NOT use_external_modcc)
     add_subdirectory(modcc)
 endif()
 
-add_subdirectory(mechanisms)
 add_subdirectory(src)
+add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
 add_subdirectory(miniapp)
 add_subdirectory(lmorpho)

@@ -43,7 +43,7 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + module_name;
 
-    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + module_name + "{");
+    text_.add_line("namespace nest{ namespace mc{ namespace multicore {");
     text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
@@ -392,7 +392,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("};");
     text_.add_line();
 
-    text_.add_line("}}}} // namespaces");
+    text_.add_line("}}} // namespaces");
     return text_.str();
 }
 

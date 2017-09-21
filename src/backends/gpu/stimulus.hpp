@@ -11,7 +11,6 @@
 
 namespace nest{
 namespace mc{
-namespace mechanisms {
 namespace gpu {
 
 namespace kernels {
@@ -133,6 +132,5 @@ public:
 };
 
 } // namespace gpu
-} // namespace mechanisms
 } // namespace mc
 } // namespace nest

@@ -11,6 +11,7 @@ build_modules(
     DEST_DIR "${mech_proto_dir}"
     MECH_SUFFIX _proto
     MODCC_FLAGS -t cpu
+    GENERATES .hpp
     TARGET build_test_mods
 )
 

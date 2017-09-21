@@ -57,11 +57,11 @@ struct backend {
     //
     // mechanism infrastructure
     //
-    using ion = mechanisms::ion<backend>;
+    using ion_type = ion<backend>;
 
-    using mechanism = mechanisms::mechanism_ptr<backend>;
+    using mechanism = mechanism_ptr<backend>;
 
-    using stimulus = mechanisms::multicore::stimulus<backend>;
+    using stimulus = multicore::stimulus<backend>;
 
     static mechanism make_mechanism(
         const std::string& name,
@@ -155,7 +155,7 @@ private:
 
     template <template <typename> class Mech>
     static mechanism maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
-        return mechanisms::make_mechanism<Mech<backend>>
+        return nest::mc::make_mechanism<Mech<backend>>
             (mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };

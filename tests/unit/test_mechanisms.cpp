@@ -69,17 +69,17 @@ template<typename T>
 void mech_update(T* mech, unsigned num_iters) {
 
     using namespace nest::mc;
-    std::map<mechanisms::ionKind, mechanisms::ion<typename T::backend>> ions;
+    std::map<ionKind, ion<typename T::backend>> ions;
 
     mech->set_params();
     mech->nrn_init();
-    for (auto ion_kind : mechanisms::ion_kinds()) {
+    for (auto ion_kind : ion_kinds()) {
         auto ion_indexes = util::make_copy<std::vector<typename T::size_type>>(
             mech->node_index_
         );
 
         // Create and fill in the ion
-        mechanisms::ion<typename T::backend> ion = ion_indexes;
+        ion<typename T::backend> ion = ion_indexes;
 
         memory::fill(ion.current(), 5.);
         memory::fill(ion.reversal_potential(), 100.);
@@ -179,12 +179,12 @@ TYPED_TEST_P(mechanisms, update) {
     typename mechanism_type::array  weights_copy(weights);
 
     // Create mechanisms
-    auto mech = nest::mc::mechanisms::make_mechanism<mechanism_type>(
+    auto mech = nest::mc::make_mechanism<mechanism_type>(
         0, cell_index, time, time_to, dt,
         voltage, current, std::move(weights), std::move(node_index)
     );
 
-    auto mech_proto = nest::mc::mechanisms::make_mechanism<proto_mechanism_type>(
+    auto mech_proto = nest::mc::make_mechanism<proto_mechanism_type>(
         0, cell_index, time, time_to, dt,
         voltage_copy, current_copy,
         std::move(weights_copy), std::move(node_index_copy)
@@ -203,30 +203,30 @@ REGISTER_TYPED_TEST_CASE_P(mechanisms, update);
 
 using mechanism_types = ::testing::Types<
     mechanism_info<
-        nest::mc::mechanisms::hh::mechanism_hh<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::hh_proto::mechanism_hh_proto<nest::mc::multicore::backend>
+        nest::mc::multicore::mechanism_hh<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_hh_proto<nest::mc::multicore::backend>
     >,
     mechanism_info<
-        nest::mc::mechanisms::pas::mechanism_pas<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::pas_proto::mechanism_pas_proto<nest::mc::multicore::backend>
+        nest::mc::multicore::mechanism_pas<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_pas_proto<nest::mc::multicore::backend>
     >,
     mechanism_info<
-        nest::mc::mechanisms::expsyn::mechanism_expsyn<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::expsyn_proto::mechanism_expsyn_proto<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_expsyn<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_expsyn_proto<nest::mc::multicore::backend>,
         true
     >,
     mechanism_info<
-        nest::mc::mechanisms::exp2syn::mechanism_exp2syn<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::exp2syn_proto::mechanism_exp2syn_proto<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_exp2syn<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_exp2syn_proto<nest::mc::multicore::backend>,
         true
     >,
     mechanism_info<
-        nest::mc::mechanisms::test_kin1::mechanism_test_kin1<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::test_kin1_proto::mechanism_test_kin1_proto<nest::mc::multicore::backend>
+        nest::mc::multicore::mechanism_test_kin1<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_test_kin1_proto<nest::mc::multicore::backend>
     >,
     mechanism_info<
-        nest::mc::mechanisms::test_kinlva::mechanism_test_kinlva<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::test_kinlva_proto::mechanism_test_kinlva_proto<nest::mc::multicore::backend>
+        nest::mc::multicore::mechanism_test_kinlva<nest::mc::multicore::backend>,
+        nest::mc::multicore::mechanism_test_kinlva_proto<nest::mc::multicore::backend>
     >
 >;
 

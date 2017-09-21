@@ -3,11 +3,6 @@
 #include <cstdint>
 #include <cfloat>
 
-#include <iostream>
-#include <limits>
-#include <string>
-#include <vector>
-
 namespace nest {
 namespace mc {
 namespace gpu {

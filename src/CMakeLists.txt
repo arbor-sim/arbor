@@ -50,7 +50,7 @@ if(NMC_WITH_CTHREAD)
     set(BASE_SOURCES ${BASE_SOURCES} threading/cthread.cpp)
 endif()
 
-add_library(nestmc ${BASE_SOURCES} ${HEADERS})
+add_library(nestmc ${BASE_SOURCES})
 list(APPEND NESTMC_LIBRARIES nestmc)
 
 if(NMC_WITH_CUDA)
