@@ -145,30 +145,37 @@ void n_vector(benchmark::State& state) {
         bool operator()(const pev& ev, float t) { return ev.time<t; }
     };
 
-    //auto binner = event_binner(binning_kind::regular, 0.001);
+    // NOTE: this is a "full" implementation, that can handle the case where
+    // input_events contains events that are to be delivered after the current
+    // delivery interval. The event_lanes vectors keep undelivered events.
     while (state.KeepRunning()) {
         ext.clear();
 
-        // push events into a single queue
+        // push events into a per-cell vectors (unsorted)
         for (const auto& e: input_events) {
             event_lanes[e.target.gid].push_back(e);
         }
+        // sort each per-cell queue and keep track of the subset of sorted
+        // events that are to be delivered in this interval.
         for (auto& lane: event_lanes) {
             std::sort(lane.begin(), lane.end(),
                       [](const pev& l, const pev& r) {return l.time<r.time;});
             ext.push_back(
                 std::lower_bound(lane.begin(), lane.end(), 1.f, ev_lt_pred()));
         }
+        // calculate partition of output buffer according to target cell gid
         part[0] = 0;
         for (size_t i=0; i<ncells; ++i) {
             part[i+1] = part[i] + std::distance(event_lanes[i].begin(), ext[i]);
         }
+        // copy events into the output flat buffer
         std::vector<postsynaptic_spike_event> staged_events(part.back());
         auto b = staged_events.begin();
         for (size_t i=0; i<ncells; ++i) {
             std::copy(event_lanes[i].begin(), ext[i], b+part[i]);
         }
 
+        // remove events that were delivered from the event lanes
         auto i=0u;
         for (auto& lane: event_lanes) {
             lane.erase(lane.begin(), ext[i++]);
