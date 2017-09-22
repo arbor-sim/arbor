@@ -93,7 +93,7 @@ endif()
 
 set(TARGETS test.exe)
 
-add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+add_executable(test.exe ${TEST_SOURCES})
 target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
 if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
@@ -104,7 +104,7 @@ target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
 if(NMC_WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
-    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
+    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES})
 endif()
 
 foreach(target ${TARGETS})
@@ -122,9 +122,3 @@ foreach(target ${TARGETS})
        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
     )
 endforeach()
-
-# Temporary hack (pending PR #266)
-if(NMC_WITH_CUDA)
-    target_link_libraries(test_cuda.exe LINK_PUBLIC nestmc)
-endif()
-
