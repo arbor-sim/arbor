@@ -105,8 +105,8 @@ struct backend {
     // perform element-wise comparison on 'array' type against `t_test`.
     template <typename V>
     static bool any_time_before(const memory::device_vector<V>& t, V t_test) {
-        // Note: ubbench benchmarking (on a P100) indicates that using the
-        // copying the time vectors to the host is faster than a device side
+        // Note: ubbench benchmarking (on a P100) indicates that copying the
+        // time vectors to the host is faster than a device side
         // implementation unless we're running over ten thousands of cells per
         // cell group.
 
@@ -123,7 +123,8 @@ struct backend {
         size_type ncell = util::size(dt_cell);
         size_type ncomp = util::size(dt_comp);
 
-        nest::mc::gpu::set_dt(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
+        nest::mc::gpu::set_dt(
+            ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
     }
 
     // perform sampling as described by marked events in a sample_event_stream
