@@ -4,6 +4,7 @@ include(ExternalProject)
 
 set(bench_sources
     accumulate_functor_values.cpp
+    event_setup.cpp
 )
 
 set(bench_sources_cuda
@@ -63,7 +64,8 @@ foreach(bench_src ${bench_sources})
     add_executable("${bench_exe}" EXCLUDE_FROM_ALL "${bench_src}")
     add_dependencies("${bench_exe}" gbench)
     target_include_directories("${bench_exe}" PRIVATE "${gbench_install_dir}/include")
-    target_link_libraries("${bench_exe}" "${gbench_install_dir}/lib/libbenchmark.a")
+    target_link_libraries("${bench_exe}" LINK_PUBLIC "${gbench_install_dir}/lib/libbenchmark.a")
+    target_link_libraries("${bench_exe}" LINK_PUBLIC ${NESTMC_LIBRARIES})
 
     list(APPEND bench_exe_list ${bench_exe})
 endforeach()
@@ -75,7 +77,7 @@ if(NMC_WITH_CUDA)
         string(REGEX REPLACE "\\.[^.]*$" "" bench_exe "${bench_src}")
         cuda_add_executable("${bench_exe}" EXCLUDE_FROM_ALL "${bench_src}")
         add_dependencies("${bench_exe}" gbench)
-        target_link_libraries("${bench_exe}" "${gbench_install_dir}/lib/libbenchmark.a")
+        target_link_libraries("${bench_exe}" LINK_PUBLIC "${gbench_install_dir}/lib/libbenchmark.a")
         target_link_libraries("${bench_exe}" LINK_PUBLIC ${NESTMC_LIBRARIES})
 
         list(APPEND bench_exe_list ${bench_exe})

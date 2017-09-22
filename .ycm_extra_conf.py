@@ -53,6 +53,8 @@ flags = [
     '-I',
     'modcc',
     '-I',
+    'tests/ubench/google-benchmark/include',
+    '-I',
     '/cm/shared/apps/cuda/8.0.44/include',
     '-DNMC_HAVE_GPU'
 ]
