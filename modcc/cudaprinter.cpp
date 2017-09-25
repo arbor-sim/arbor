@@ -44,9 +44,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#pragma once");
     buffer().add_line("#include <backends/event.hpp>");
     buffer().add_line("#include <backends/fvm_types.hpp>");
-    buffer().add_line("#include <backends/gpu/kernels/detail.hpp>");
-    buffer().add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
     buffer().add_line("#include <backends/multi_event_stream_state.hpp>");
+    buffer().add_line("#include <backends/gpu/kernels/detail.hpp>");
     buffer().add_line();
 
     buffer().add_line("namespace nest{ namespace mc{ namespace gpu{");
@@ -132,6 +131,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     // kernels
     buffer().add_line("#include \"" + module_name_ + "_impl.hpp\"");
     buffer().add_line();
+    buffer().add_line("#include <backends/gpu/intrinsics.hpp>");
+    buffer().add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
+    buffer().add_line();
     buffer().add_line("namespace nest{ namespace mc{ namespace gpu{");
     buffer().add_line("namespace kernels {");
     buffer().increase_indentation();
@@ -209,7 +211,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include <algorithms.hpp>");
     buffer().add_line("#include <backends/event.hpp>");
     buffer().add_line("#include <backends/fvm_types.hpp>");
-    buffer().add_line("#include <backends/gpu/intrinsics.hpp>");
     buffer().add_line("#include <backends/gpu/multi_event_stream.hpp>");
     buffer().add_line("#include <util/pprintf.hpp>");
     buffer().add_line();

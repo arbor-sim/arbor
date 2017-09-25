@@ -7,7 +7,7 @@
 
 #include <backends/event.hpp>
 #include <backends/gpu/multi_event_stream.hpp>
-#include <backends/gpu/kernels/time_ops.hpp>
+#include <backends/gpu/time_ops.hpp>
 #include <memory/wrappers.hpp>
 #include <util/rangeutil.hpp>
 
@@ -217,7 +217,7 @@ TEST(multi_event_stream, time_if_before) {
     std::vector<double> after;
 
     for (unsigned i = 0; i<n_cell; ++i) {
-	before[i] = 0.1+i/(double)n_cell;
+        before[i] = 0.1+i/(double)n_cell;
     }
 
     memory::device_vector<double> t = memory::on_gpu(before);
@@ -230,45 +230,18 @@ TEST(multi_event_stream, time_if_before) {
     // on cell_2 to restrict corresponding element of t.
 
     for (unsigned i = 0; i<n_cell; ++i) {
-	before[i] = 2.1+0.5*i/(double)n_cell;
+        before[i] = 2.1+0.5*i/(double)n_cell;
     }
     t = memory::make_view(before);
     m.event_time_if_before(t);
     util::assign(after, memory::on_host(t));
 
     for (unsigned i = 0; i<n_cell; ++i) {
-	if (i==cell_2) {
-	    EXPECT_EQ(2., after[i]);
-	}
-	else {
-	    EXPECT_EQ(before[i], after[i]);
-	}
+        if (i==cell_2) {
+            EXPECT_EQ(2., after[i]);
+        }
+        else {
+            EXPECT_EQ(before[i], after[i]);
+        }
     }
 }
-
-TEST(multi_event_stream, any_time_before) {
-    constexpr std::size_t n = 10000;
-    std::minstd_rand R;
-    std::uniform_real_distribution<float> g(0, 10);
-
-    std::vector<double> t(n);
-    std::generate(t.begin(), t.end(), [&]{ return g(R); });
-
-    memory::device_vector<double> t0 = memory::on_gpu(t);
-
-    double tmin = *std::min_element(t.begin(), t.end());
-    EXPECT_TRUE(gpu::any_time_before(n, t0.data(), tmin+0.01));
-    EXPECT_FALSE(gpu::any_time_before(n, t0.data(), tmin));
-
-    memory::device_vector<double> t1 = memory::on_gpu(t);
-    EXPECT_FALSE(gpu::any_time_before(n, t0.data(), t1.data()));
-
-    t[2*n/3] += 20;
-    t1 = memory::on_gpu(t);
-    EXPECT_TRUE(gpu::any_time_before(n, t0.data(), t1.data()));
-
-    t[2*n/3] -= 30;
-    t1 = memory::on_gpu(t);
-    EXPECT_FALSE(gpu::any_time_before(n, t0.data(), t1.data()));
-}
-

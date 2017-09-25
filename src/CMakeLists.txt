@@ -1,5 +1,6 @@
 set(BASE_SOURCES
     backends/multicore/fvm.cpp
+    cell_group_factory.cpp
     common_types_io.cpp
     cell.cpp
     event_binner.cpp
@@ -25,20 +26,17 @@ set(BASE_SOURCES
     util/unwind.cpp
 )
 set(CUDA_SOURCES
-    backends/gpu/fvm.cu
-    backends/gpu/multi_event_stream.cu
+    backends/gpu/fvm.cpp
     backends/gpu/fill.cu
-    backends/gpu/kernels/test_thresholds.cu
+    backends/gpu/multi_event_stream.cu
+    backends/gpu/kernels/assemble_matrix.cu
+    backends/gpu/kernels/interleave.cu
+    backends/gpu/kernels/solve_matrix.cu
+    backends/gpu/kernels/stim_current.cu
     backends/gpu/kernels/take_samples.cu
+    backends/gpu/kernels/test_thresholds.cu
+    backends/gpu/kernels/time_ops.cu
 )
-
-# The cell_group_factory acts like an interface between the
-# front end and back end.
-if(NMC_WITH_CUDA)
-    set(CUDA_SOURCES ${CUDA_SOURCES} cell_group_factory.cu)
-else()
-    set(BASE_SOURCES ${BASE_SOURCES} cell_group_factory.cpp)
-endif()
 
 if(NMC_WITH_MPI)
     set(BASE_SOURCES ${BASE_SOURCES} communication/mpi.cpp)
@@ -55,12 +53,7 @@ list(APPEND NESTMC_LIBRARIES nestmc)
 
 if(NMC_WITH_CUDA)
     cuda_add_library(gpu ${CUDA_SOURCES})
-    # FIXME
-    # The gpu library uses symbols fron nestmc, so we have to
-    # add nestmc to the end. This is a temporary hack that will
-    # go away when we have properly seperable front and back end
-    # compilation.
-    list(APPEND NESTMC_LIBRARIES gpu nestmc)
+    list(APPEND NESTMC_LIBRARIES gpu)
 endif()
 
 if (NMC_AUTO_RUN_MODCC_ON_CHANGES)

@@ -10,13 +10,13 @@
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
 
-#include "kernels/time_ops.hpp"
 #include "kernels/take_samples.hpp"
 #include "matrix_state_interleaved.hpp"
-#include "matrix_state_flat.hpp"
+//#include "matrix_state_flat.hpp"
 #include "multi_event_stream.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
+#include "time_ops.hpp"
 
 namespace nest {
 namespace mc {
@@ -105,20 +105,17 @@ struct backend {
     // perform element-wise comparison on 'array' type against `t_test`.
     template <typename V>
     static bool any_time_before(const memory::device_vector<V>& t, V t_test) {
-        // Note: benchmarking (on a P100) indicates that using the gpu::any_time_before
-        // function is slower than the copy, unless we're running over ten thousands of
-        // cells per cell group.
-        //
-        // Commenting out for now, but consider a size-dependent test or adaptive choice.
-
-        // return gpu::any_time_before(t.size(), t.data(), t_test);
+        // Note: ubbench benchmarking (on a P100) indicates that copying the
+        // time vectors to the host is faster than a device side
+        // implementation unless we're running over ten thousands of cells per
+        // cell group.
 
         auto v_copy = memory::on_host(t);
         return util::minmax_value(v_copy).first<t_test;
     }
 
     static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {
-        nest::mc::gpu::update_time_to<value_type, size_type>(time_to.size(), time_to.data(), time.data(), dt, tmax);
+        nest::mc::gpu::update_time_to(time_to.size(), time_to.data(), time.data(), dt, tmax);
     }
 
     // set the per-cell and per-compartment dt_ from time_to_ - time_.
@@ -126,7 +123,8 @@ struct backend {
         size_type ncell = util::size(dt_cell);
         size_type ncomp = util::size(dt_comp);
 
-        nest::mc::gpu::set_dt<value_type, size_type>(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
+        nest::mc::gpu::set_dt(
+            ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
     }
 
     // perform sampling as described by marked events in a sample_event_stream

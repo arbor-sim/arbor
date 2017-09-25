@@ -5,36 +5,12 @@
 
 #include <mechanism.hpp>
 #include <algorithms.hpp>
+#include "stim_current.hpp"
 #include <util/pprintf.hpp>
-
-#include "intrinsics.hpp"
 
 namespace nest{
 namespace mc{
 namespace gpu {
-
-namespace kernels {
-    template <typename T, typename I>
-    __global__
-    void stim_current(
-        const T* delay, const T* duration, const T* amplitude,
-        const I* node_index, int n, const I* cell_index, const T* time, T* current)
-    {
-        using value_type = T;
-        using iarray = I;
-
-        auto i = threadIdx.x + blockDim.x*blockIdx.x;
-
-        if (i<n) {
-            auto t = time[cell_index[i]];
-            if (t>=delay[i] && t<delay[i]+duration[i]) {
-                // use subtraction because the electrode currents are specified
-                // in terms of current into the compartment
-                cuda_atomic_add(current+node_index[i], -amplitude[i]);
-            }
-        }
-    }
-} // namespace kernels
 
 template<class Backend>
 class stimulus : public mechanism<Backend> {
@@ -107,16 +83,9 @@ public:
         // don't launch a kernel if there are no stimuli
         if (!size()) return;
 
-        auto n = size();
-        auto thread_dim = 192;
-        dim3 dim_block(thread_dim);
-        dim3 dim_grid((n+thread_dim-1)/thread_dim );
-
-        kernels::stim_current<value_type, size_type><<<dim_grid, dim_block>>>(
-            delay.data(), duration.data(), amplitude.data(),
-            node_index_.data(), n, vec_ci_.data(), vec_t_.data(),
-            vec_i_.data()
-        );
+        stim_current(delay.data(), duration.data(), amplitude.data(),
+                     node_index_.data(), size(), vec_ci_.data(), vec_t_.data(),
+                     vec_i_.data());
 
     }
 
