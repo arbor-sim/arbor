@@ -217,7 +217,7 @@ TEST(multi_event_stream, time_if_before) {
     std::vector<double> after;
 
     for (unsigned i = 0; i<n_cell; ++i) {
-    before[i] = 0.1+i/(double)n_cell;
+        before[i] = 0.1+i/(double)n_cell;
     }
 
     memory::device_vector<double> t = memory::on_gpu(before);
@@ -230,18 +230,18 @@ TEST(multi_event_stream, time_if_before) {
     // on cell_2 to restrict corresponding element of t.
 
     for (unsigned i = 0; i<n_cell; ++i) {
-    before[i] = 2.1+0.5*i/(double)n_cell;
+        before[i] = 2.1+0.5*i/(double)n_cell;
     }
     t = memory::make_view(before);
     m.event_time_if_before(t);
     util::assign(after, memory::on_host(t));
 
     for (unsigned i = 0; i<n_cell; ++i) {
-    if (i==cell_2) {
-        EXPECT_EQ(2., after[i]);
-    }
-    else {
-        EXPECT_EQ(before[i], after[i]);
-    }
+        if (i==cell_2) {
+            EXPECT_EQ(2., after[i]);
+        }
+        else {
+            EXPECT_EQ(before[i], after[i]);
+        }
     }
 }
