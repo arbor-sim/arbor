@@ -1,8 +1,8 @@
 // Compare methods for performing the "event-setup" step for mc cell groups.
 // The key concern is how to take an unsorted set of events
 //
-// TODO: These benchmarks assume that the cells in a cell group are continguous,
-// numbered 0:ncells-1. The cells in an mc_cell_group are not typically thus,
+// TODO: We assume that the cells in a cell group are numbered contiguously,
+// i.e. 0:ncells-1. The cells in an mc_cell_group are not typically thus,
 // instead a hash table is used to look up the cell_group local index from the
 // gid. A similar lookup should be added to theses tests, to moare accurately
 // reflect the mc_cell_group implementation.
@@ -49,9 +49,10 @@ std::vector<postsynaptic_spike_event> generate_inputs(size_t ncells, size_t ev_p
 void single_queue(benchmark::State& state) {
     using pev = postsynaptic_spike_event;
 
-    const std::size_t ev_per_cell = state.range(0);
-    const std::size_t ncells = state.range(1);
+    const std::size_t ncells = state.range(0);
+    const std::size_t ev_per_cell = state.range(1);
 
+    // state
     std::vector<pev> input_events = generate_inputs(ncells, ev_per_cell);
 
     //auto binner = event_binner(binning_kind::regular, 0.001);
@@ -73,9 +74,14 @@ void single_queue(benchmark::State& state) {
             staged_events.begin(), staged_events.end(),
             [](const pev& l, const pev& r) {return l.target.gid<r.target.gid;});
 
-        // TODO: calculate the partition ranges.
+        // TODO: calculate the partition ranges. This overhead is not included in
+        // this benchmark, however this method is that much slower already, that
+        // illustrating this wouldn't change the conclusions.
 
         /*
+         // This is the "full" implementation that converts post_synaptic events
+         // to deliverable_events. Kepp it here in case the benchmark should
+         // be extended to test this step.
         std::vector<deliverable_event> staged_events;
         staged_events.reserve(events.size());
         while (auto e = events.pop_if_before(2.f)) {
@@ -96,8 +102,8 @@ void single_queue(benchmark::State& state) {
 
 void n_queue(benchmark::State& state) {
     using pev = postsynaptic_spike_event;
-    const std::size_t ev_per_cell = state.range(0);
-    const std::size_t ncells = state.range(1);
+    const std::size_t ncells = state.range(0);
+    const std::size_t ev_per_cell = state.range(1);
 
     auto input_events = generate_inputs(ncells, ev_per_cell);
 
@@ -130,8 +136,8 @@ void n_queue(benchmark::State& state) {
 
 void n_vector(benchmark::State& state) {
     using pev = postsynaptic_spike_event;
-    const size_t ev_per_cell = state.range(0);
-    const size_t ncells = state.range(1);
+    const std::size_t ncells = state.range(0);
+    const std::size_t ev_per_cell = state.range(1);
 
     auto input_events = generate_inputs(ncells, ev_per_cell);
 
@@ -187,8 +193,7 @@ void n_vector(benchmark::State& state) {
 
 void run_custom_arguments(benchmark::internal::Benchmark* b) {
     for (auto ncells: {1, 10, 100, 1000, 10000}) {
-        //for (auto ev_per_cell: {128, 256, 512, 1024, 2048, 4096}) {
-        for (auto ev_per_cell: {256, 1024, 4096}) {
+        for (auto ev_per_cell: {128, 256, 512, 1024, 2048, 4096}) {
             b->Args({ncells, ev_per_cell});
         }
     }
