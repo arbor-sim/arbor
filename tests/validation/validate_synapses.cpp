@@ -32,7 +32,7 @@ void run_synapse_test(
     nlohmann::json meta = {
         {"name", "membrane voltage"},
         {"model", syn_type},
-        {"sim", "nestmc"},
+        {"sim", "arbor"},
         {"units", "mV"},
         {"backend_kind", to_string(backend)}
     };

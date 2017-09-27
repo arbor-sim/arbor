@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 #include <tbb/tbb_stddef.h>
 #endif
 
@@ -600,7 +600,7 @@ TEST(range, is_sorted_by) {
     EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
 }
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 
 TEST(range, tbb_split) {
     constexpr std::size_t N = 20;

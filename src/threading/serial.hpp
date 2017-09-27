@@ -1,7 +1,7 @@
 #pragma once
 
-#if !defined(NMC_HAVE_SERIAL)
-    #error "this header can only be loaded if NMC_HAVE_SERIAL is set"
+#if !defined(ARB_HAVE_SERIAL)
+    #error "this header can only be loaded if ARB_HAVE_SERIAL is set"
 #endif
 
 #include <algorithm>

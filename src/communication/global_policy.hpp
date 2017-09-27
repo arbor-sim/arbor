@@ -20,9 +20,9 @@ namespace std {
     }
 }
 
-#if defined(NMC_HAVE_MPI)
+#if defined(ARB_HAVE_MPI)
     #include "mpi_global_policy.hpp"
-#elif defined(NMC_HAVE_DRYRUN)
+#elif defined(ARB_HAVE_DRYRUN)
     #include "dryrun_global_policy.hpp"
 #else
     #include "serial_global_policy.hpp"

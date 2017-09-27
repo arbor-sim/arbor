@@ -77,7 +77,7 @@ struct simd_intrinsics<targetKind::avx2> {
                 tb << "_mm256_exp_pd(";
             }
             else {
-                tb << "arb::multicore::nmc_mm256_exp_pd(";
+                tb << "arb::multicore::arb_mm256_exp_pd(";
             }
             break;
         case tok::log:
@@ -85,7 +85,7 @@ struct simd_intrinsics<targetKind::avx2> {
                 tb << "_mm256_log_pd(";
             }
             else {
-                tb << "arb::multicore::nmc_mm256_log_pd(";
+                tb << "arb::multicore::arb_mm256_log_pd(";
             }
             break;
         default:
@@ -102,7 +102,7 @@ struct simd_intrinsics<targetKind::avx2> {
             tb << "_mm256_pow_pd(";
         }
         else {
-            tb << "arb::multicore::nmc_mm256_pow_pd(";
+            tb << "arb::multicore::arb_mm256_pow_pd(";
         }
 
         emit_operands(tb, arg_emitter(base), arg_emitter(exp));

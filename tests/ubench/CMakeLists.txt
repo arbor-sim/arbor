@@ -69,14 +69,14 @@ foreach(bench_src ${bench_sources})
 endforeach()
 
 
-if(NMC_WITH_CUDA)
+if(ARB_WITH_CUDA)
     cuda_include_directories("${gbench_install_dir}/include")
     foreach(bench_src ${bench_sources_cuda})
         string(REGEX REPLACE "\\.[^.]*$" "" bench_exe "${bench_src}")
         cuda_add_executable("${bench_exe}" EXCLUDE_FROM_ALL "${bench_src}")
         add_dependencies("${bench_exe}" gbench)
         target_link_libraries("${bench_exe}" "${gbench_install_dir}/lib/libbenchmark.a")
-        target_link_libraries("${bench_exe}" LINK_PUBLIC ${NESTMC_LIBRARIES})
+        target_link_libraries("${bench_exe}" LINK_PUBLIC ${ARB_LIBRARIES})
 
         list(APPEND bench_exe_list ${bench_exe})
     endforeach()

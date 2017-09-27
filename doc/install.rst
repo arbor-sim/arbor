@@ -31,9 +31,9 @@ The easiest way to acquire the latest version of Arbor is to check the code out 
 
 .. code-block:: bash
 
-    git clone https://github.com/eth-cscs/nestmc-proto.git
+    git clone https://github.com/eth-cscs/arbor.git
 
-You can also point your browser to our `Github page <https://github.com/eth-cscs/nestmc-proto>`_ and download a zip file.
+You can also point your browser to our `Github page <https://github.com/eth-cscs/arbor>`_ and download a zip file.
 
 .. _install_desktop:
 

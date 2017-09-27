@@ -5,7 +5,7 @@
 namespace arb {
 namespace hw {
 
-#ifdef NMC_HAVE_CRAY
+#ifdef ARB_HAVE_CRAY
 
 energy_size_type energy() {
     energy_size_type result = energy_size_type(-1);

@@ -48,7 +48,7 @@ void run_ncomp_convergence_test(
         {"name", "membrane voltage"},
         {"model", model_name},
         {"dt", dt},
-        {"sim", "nestmc"},
+        {"sim", "arbor"},
         {"units", "mV"},
         {"backend_kind", to_string(backend)}
     };

@@ -6,7 +6,7 @@ extern "C" {
 }
 #endif
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     #include <cuda_runtime.h>
 #endif
 
@@ -24,7 +24,7 @@ memory_size_type allocated_memory() {
 }
 #endif
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 memory_size_type gpu_allocated_memory() {
     std::size_t free;
     std::size_t total;
