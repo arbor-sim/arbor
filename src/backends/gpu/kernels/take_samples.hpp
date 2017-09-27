@@ -5,8 +5,7 @@
 #include <backends/fvm_types.hpp>
 #include <backends/multi_event_stream_state.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 void take_samples(
@@ -16,6 +15,5 @@ void take_samples(
     fvm_value_type* sample_value);
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

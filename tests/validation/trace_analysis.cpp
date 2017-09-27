@@ -14,8 +14,7 @@
 
 #include "trace_analysis.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 struct trace_interpolant {
     trace_interpolant(const trace_data<double>& trace): trace_(trace) {}
@@ -134,6 +133,5 @@ util::optional<trace_peak> peak_delta(const trace_data<double>& a, const trace_d
     return max_delta;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

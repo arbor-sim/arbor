@@ -9,8 +9,7 @@
 #include <iostream>
 #include <immintrin.h>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 namespace detail {
@@ -404,5 +403,4 @@ __m256d nmc_mm256_pow_pd(__m256d x, __m256d y) {
 }
 
 } // end namespace multicore
-} // end namespace mc
-} // end namespace nest
+} // end namespace arb

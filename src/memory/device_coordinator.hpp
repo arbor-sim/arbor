@@ -12,8 +12,7 @@
 #include "gpu.hpp"
 #include "util.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 // forward declare
@@ -253,7 +252,7 @@ public:
     // fill memory
     void set(view_type &rng, value_type value) {
         if (rng.size()) {
-            nest::mc::gpu::fill<value_type>(rng.data(), value, rng.size());
+            arb::gpu::fill<value_type>(rng.data(), value, rng.size());
         }
     }
 
@@ -278,5 +277,4 @@ public:
 };
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

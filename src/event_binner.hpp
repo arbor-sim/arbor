@@ -7,8 +7,7 @@
 #include <spike.hpp>
 #include <util/optional.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 enum class binning_kind {
     none,
@@ -49,6 +48,5 @@ private:
     void update_last_event_time(cell_gid_type id, time_type t);
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

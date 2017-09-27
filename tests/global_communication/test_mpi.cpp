@@ -9,8 +9,8 @@
 #include <communication/mpi.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
-using namespace nest::mc::communication;
+using namespace arb;
+using namespace arb::communication;
 
 struct big_thing {
     big_thing() {}

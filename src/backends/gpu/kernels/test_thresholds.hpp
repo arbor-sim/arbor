@@ -4,8 +4,7 @@
 
 #include "stack.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 extern void test_thresholds(
@@ -16,5 +15,4 @@ extern void test_thresholds(
     const fvm_size_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

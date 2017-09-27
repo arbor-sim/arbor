@@ -6,8 +6,7 @@
 
 #include "wrappers.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 template <typename LHS, typename RHS>
@@ -57,5 +56,4 @@ void fill(LHS&& target, T value) {
 }
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

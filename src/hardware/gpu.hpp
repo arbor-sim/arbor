@@ -1,11 +1,9 @@
 #pragma once
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 unsigned num_gpus();
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

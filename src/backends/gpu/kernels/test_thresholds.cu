@@ -3,8 +3,7 @@
 #include "detail.hpp"
 #include "stack.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 /// kernel used to test for threshold crossing test code.
@@ -75,5 +74,4 @@ void test_thresholds(
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

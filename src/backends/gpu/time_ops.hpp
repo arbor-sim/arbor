@@ -2,8 +2,7 @@
 
 #include <backends/fvm_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 void update_time_to(fvm_size_type n,
@@ -21,5 +20,4 @@ void set_dt(fvm_size_type ncell,
             const fvm_size_type* cv_to_cell);
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -2,8 +2,7 @@
 #include "detail.hpp"
 #include "interleave.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 // host side wrapper for the flat to interleaved operation
@@ -41,5 +40,4 @@ void interleaved_to_flat(
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

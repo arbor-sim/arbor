@@ -14,8 +14,7 @@
  * handles; smarter versions to be implemented as required.
  */
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename Handle>
@@ -58,6 +57,5 @@ private:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

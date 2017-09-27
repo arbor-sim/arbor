@@ -10,8 +10,7 @@ extern "C" {
     #include <cuda_runtime.h>
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 #if defined(__linux__)
@@ -40,5 +39,4 @@ memory_size_type gpu_allocated_memory() {
 #endif
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -16,8 +16,7 @@
 #include <util/rangeutil.hpp>
 #include <util/strprintf.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 template <typename Event>
@@ -26,9 +25,9 @@ public:
     using size_type = cell_size_type;
     using event_type = Event;
 
-    using event_time_type = ::nest::mc::event_time_type<Event>;
-    using event_data_type = ::nest::mc::event_data_type<Event>;
-    using event_index_type = ::nest::mc::event_index_type<Event>;
+    using event_time_type = ::arb::event_time_type<Event>;
+    using event_data_type = ::arb::event_data_type<Event>;
+    using event_index_type = ::arb::event_index_type<Event>;
 
     using state = multi_event_stream_state<event_data_type>;
 
@@ -52,9 +51,9 @@ public:
 
     // Initialize event streams from a vector of events, sorted by time.
     void init(std::vector<Event> staged) {
-        using ::nest::mc::event_time;
-        using ::nest::mc::event_index;
-        using ::nest::mc::event_data;
+        using ::arb::event_time;
+        using ::arb::event_index;
+        using ::arb::event_data;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
@@ -94,7 +93,7 @@ public:
     // until `event_time(ev)` > `t_until[i]`.
     template <typename TimeSeq>
     void mark_until_after(const TimeSeq& t_until) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
 
         EXPECTS(n_streams()==util::size(t_until));
 
@@ -115,7 +114,7 @@ public:
     // while `t_until[i]` > `event_time(ev)`.
     template <typename TimeSeq>
     void mark_until(const TimeSeq& t_until) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
 
         EXPECTS(n_streams()==util::size(t_until));
 
@@ -150,7 +149,7 @@ public:
     // `t_until[i]` to the event time.
     template <typename TimeSeq>
     void event_time_if_before(TimeSeq& t_until) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
 
         // note: operation on each `i` is independent.
         for (size_type i = 0; i<n_streams(); ++i) {
@@ -205,5 +204,4 @@ private:
 };
 
 } // namespace multicore
-} // namespace nest
-} // namespace mc
+} // namespace arb

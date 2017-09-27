@@ -10,8 +10,8 @@
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
-using namespace nest::mc;
-using fvm_cell = fvm::fvm_multicell<nest::mc::multicore::backend>;
+using namespace arb;
+using fvm_cell = fvm::fvm_multicell<arb::multicore::backend>;
 
 cell make_cell() {
     auto c = make_cell_ball_and_stick();

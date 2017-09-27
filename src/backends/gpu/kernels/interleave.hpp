@@ -2,8 +2,7 @@
 
 #include "detail.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -148,6 +147,5 @@ void interleaved_to_flat(
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

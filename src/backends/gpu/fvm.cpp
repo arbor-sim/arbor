@@ -7,8 +7,7 @@
 #include <mechanisms/gpu/test_kin1.hpp>
 #include <mechanisms/gpu/test_kinlva.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 std::map<std::string, backend::maker_type>
@@ -22,5 +21,4 @@ backend::mech_map_ = {
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

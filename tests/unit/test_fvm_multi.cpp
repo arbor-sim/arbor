@@ -17,13 +17,13 @@
 #include "../simple_recipes.hpp"
 
 using fvm_cell =
-    nest::mc::fvm::fvm_multicell<nest::mc::multicore::backend>;
+    arb::fvm::fvm_multicell<arb::multicore::backend>;
 
 TEST(fvm_multi, cable)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
-    nest::mc::cell cell=make_cell_ball_and_3stick();
+    arb::cell cell=make_cell_ball_and_3stick();
 
     std::vector<fvm_cell::target_handle> targets;
     probe_association_map<fvm_cell::probe_handle> probe_map;
@@ -46,9 +46,9 @@ TEST(fvm_multi, cable)
 
 TEST(fvm_multi, init)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
-    nest::mc::cell cell = make_cell_ball_and_stick();
+    arb::cell cell = make_cell_ball_and_stick();
 
     const auto m = cell.model();
     EXPECT_EQ(m.tree.num_segments(), 2u);
@@ -110,9 +110,9 @@ TEST(fvm_multi, init)
 
 TEST(fvm_multi, multi_init)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
-    nest::mc::cell cells[] = {
+    arb::cell cells[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_3stick()
     };
@@ -172,7 +172,7 @@ TEST(fvm_multi, multi_init)
 // test that stimuli are added correctly
 TEST(fvm_multi, stimulus)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
     // the default ball and stick has one stimulus at the terminal end of the dendrite
     auto cell = make_cell_ball_and_stick();
@@ -248,7 +248,7 @@ TEST(fvm_multi, stimulus)
 // test that mechanism indexes are computed correctly
 TEST(fvm_multi, mechanism_indexes)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
     // create a cell with 4 sements:
     // a soma with a branching dendrite
@@ -338,9 +338,9 @@ struct handle_info {
 // on a two-cell ball-and-stick system.
 
 void run_target_handle_test(std::vector<handle_info> all_handles) {
-    using namespace nest::mc;
+    using namespace arb;
 
-    nest::mc::cell cells[] = {
+    arb::cell cells[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_stick()
     };

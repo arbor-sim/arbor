@@ -65,7 +65,7 @@ def get_function_name(location, executable):
 
 def unmangle(mangled):
     unmangled = os.popen('c++filt ' + mangled).read().strip()
-    return unmangled.replace('nest::mc::', '')
+    return unmangled.replace('arb::', '')
 
 #
 # main

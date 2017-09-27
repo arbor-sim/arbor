@@ -7,7 +7,7 @@
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 template <typename T, typename I>
 __global__

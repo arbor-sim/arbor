@@ -12,8 +12,7 @@
 #include <util/meta.hpp>
 #include <util/make_unique.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 enum class mechanismKind {point, density};
 
@@ -114,5 +113,4 @@ auto make_mechanism(
 )
 DEDUCED_RETURN_TYPE(util::make_unique<M>(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices)))
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

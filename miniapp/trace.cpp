@@ -8,7 +8,7 @@
 
 #include "trace.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 static std::string to_string(cell_member_type m) {
     return std::to_string(m.gid)+"."+std::to_string(m.index);

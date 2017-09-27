@@ -5,8 +5,7 @@
 #include <memory/allocator.hpp>
 #include "stack_common.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 // A simple stack data structure for the GPU.
@@ -118,5 +117,4 @@ public:
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -32,7 +32,7 @@
 #include "miniapp_recipes.hpp"
 #include "trace.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 using util::any_cast;
 using util::make_span;

@@ -2,8 +2,7 @@
 
 #include <backends/multicore/fvm.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // A null back end used as a placeholder for back ends that are not supported
 // on the target platform.
@@ -33,13 +32,12 @@ struct null_backend: public multicore::backend {
     }
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 #ifdef NMC_HAVE_GPU
 #include <backends/gpu/fvm.hpp>
 #else
-namespace nest { namespace mc { namespace gpu {
+namespace arb {  namespace gpu {
     using backend = null_backend;
-}}} // namespace nest::mc::gpu
+}} // namespace arb::gpu
 #endif

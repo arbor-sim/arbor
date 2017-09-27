@@ -5,8 +5,7 @@
 
 #include <util/optional.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 // The list of cores for which the calling thread has affinity.
@@ -28,5 +27,4 @@ std::vector<int> get_affinity();
 util::optional<std::size_t> num_cores();
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

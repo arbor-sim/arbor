@@ -5,7 +5,7 @@
 
 #include "../gtest.h"
 
-using namespace nest::mc::multicore;
+using namespace arb::multicore;
 
 constexpr double dqnan = std::numeric_limits<double>::quiet_NaN();
 constexpr double dmax = std::numeric_limits<double>::max();

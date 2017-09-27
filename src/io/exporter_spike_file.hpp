@@ -15,8 +15,7 @@
 #include <util/file.hpp>
 #include <spike.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace io {
 
 template <typename CommunicationPolicy>
@@ -92,5 +91,4 @@ private:
 };
 
 } //communication
-} // namespace mc
-} // namespace nest
+} // namespace arb

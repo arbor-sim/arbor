@@ -16,7 +16,7 @@
 #endif
 
 
-using namespace nest::mc;
+using namespace arb;
 
 template<targetKind Arch>
 class SimdPrinter : public CPrinter {

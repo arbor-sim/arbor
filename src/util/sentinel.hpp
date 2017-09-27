@@ -10,8 +10,7 @@
  * algorithms.
  */
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template<typename I, typename S, bool Same>
@@ -27,7 +26,7 @@ struct iterator_category_select<I,S,true> {
 
 template <typename I, typename S>
 class sentinel_iterator {
-    nest::mc::util::either<I, S> e_;
+    arb::util::either<I, S> e_;
 
     I& iter() {
         EXPECTS(!is_sentinel());
@@ -189,5 +188,4 @@ sentinel_iterator_t<I, S> make_sentinel_end(const I& i, const S& s) {
 
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

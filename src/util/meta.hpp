@@ -8,8 +8,7 @@
 
 #include <util/compat.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Until C++14 ...
@@ -276,5 +275,4 @@ struct second_t {
 constexpr second_t second{};
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

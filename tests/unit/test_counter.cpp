@@ -5,7 +5,7 @@
 
 #include <util/counter.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 template <typename V>
 class counter_test: public ::testing::Test {};

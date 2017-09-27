@@ -11,8 +11,7 @@
 #   define HOST_DEVICE_IF_CUDA
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 namespace impl {
@@ -89,5 +88,4 @@ inline T lerp(T a, T b, T u) {
 } // namespace impl
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -7,8 +7,7 @@
 #include <mechanisms/multicore/test_kin1.hpp>
 #include <mechanisms/multicore/test_kinlva.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 std::map<std::string, backend::maker_type>
@@ -22,5 +21,4 @@ backend::mech_map_ = {
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -57,7 +57,7 @@ namespace ks {
 
 template <typename Seq>
 double dn_statistic(const Seq& qs) {
-    double n = static_cast<double>(nest::mc::util::size(qs));
+    double n = static_cast<double>(arb::util::size(qs));
     double d = 0;
     int j = 0;
     for (auto q: qs) {

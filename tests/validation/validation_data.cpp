@@ -11,8 +11,7 @@
 
 #include "validation_data.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 trace_io g_trace_io;
 
@@ -53,7 +52,7 @@ void trace_io::save_trace(const std::string& label, const trace_data<double>& da
 }
 
 void trace_io::save_trace(const std::string& abscissa, const std::string& label, const trace_data<double>& data, const nlohmann::json& meta) {
-    using namespace nest::mc;
+    using namespace arb;
 
     nlohmann::json j = meta;
     j["data"] = {
@@ -109,6 +108,5 @@ std::map<std::string, trace_data<double>> trace_io::load_traces(const util::path
     return traces;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

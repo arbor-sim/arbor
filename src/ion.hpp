@@ -4,8 +4,7 @@
 #include <memory/memory.hpp>
 #include <util/indirect.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /*
   Ion channels have the following fields, whose label corresponds to that
@@ -102,6 +101,5 @@ private :
     array Xo_;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

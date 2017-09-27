@@ -8,8 +8,7 @@
 #include <cell.hpp>
 #include <recipe.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // Common functionality: maintain an unordered map of probe data
 // per gid, built with `add_probe()`.
@@ -109,6 +108,5 @@ protected:
 };
 
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

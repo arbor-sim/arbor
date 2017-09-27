@@ -1,7 +1,6 @@
 #pragma once
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace config {
 
 // has_memory_measurement
@@ -37,5 +36,4 @@ constexpr bool has_cuda = false;
 #endif
 
 } // namespace config
-} // namespace mc
-} // namespace nest
+} // namespace arb

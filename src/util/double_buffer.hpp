@@ -5,8 +5,7 @@
 
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 /// double buffer with thread safe exchange/flip operation.
@@ -62,5 +61,4 @@ public:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

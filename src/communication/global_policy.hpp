@@ -2,14 +2,14 @@
 
 #include <string>
 
-namespace nest { namespace mc { namespace communication {
+namespace arb {  namespace communication {
     enum class global_policy_kind {serial, mpi, dryrun};
-}}}
+}}
 
 namespace std {
     inline
-    std::string to_string(nest::mc::communication::global_policy_kind k) {
-        using namespace nest::mc::communication;
+    std::string to_string(arb::communication::global_policy_kind k) {
+        using namespace arb::communication;
         if (k == global_policy_kind::mpi) {
             return "MPI";
         }
@@ -28,8 +28,7 @@ namespace std {
     #include "serial_global_policy.hpp"
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace communication {
 
 template <typename Policy>
@@ -54,5 +53,4 @@ struct policy_guard {
 using global_policy_guard = policy_guard<global_policy>;
 
 } // namespace communication
-} // namespace mc
-} // namespace nest
+} // namespace arb

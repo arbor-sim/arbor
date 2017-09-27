@@ -5,8 +5,7 @@
 #include <memory/copy.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 namespace kernels {
@@ -136,5 +135,4 @@ void multi_event_stream_base::event_time_if_before(view t_until) {
 
 
 } // namespace gpu
-} // namespace nest
-} // namespace mc
+} // namespace arb

@@ -11,7 +11,7 @@
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 using communicator_type = communication::communicator<communication::global_policy>;
 

@@ -10,8 +10,7 @@
 #include <cuda_runtime.h>
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 //
@@ -162,5 +161,4 @@ auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
 #endif
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -15,8 +15,7 @@
 #include <communication/mpi.hpp>
 #include <spike.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace communication {
 
 struct mpi_global_policy {
@@ -38,17 +37,17 @@ struct mpi_global_policy {
 
     template <typename T>
     static T min(T value) {
-        return nest::mc::mpi::reduce(value, MPI_MIN);
+        return arb::mpi::reduce(value, MPI_MIN);
     }
 
     template <typename T>
     static T max(T value) {
-        return nest::mc::mpi::reduce(value, MPI_MAX);
+        return arb::mpi::reduce(value, MPI_MAX);
     }
 
     template <typename T>
     static T sum(T value) {
-        return nest::mc::mpi::reduce(value, MPI_SUM);
+        return arb::mpi::reduce(value, MPI_SUM);
     }
 
     template <typename T>
@@ -61,11 +60,11 @@ struct mpi_global_policy {
     }
 
     static void setup(int& argc, char**& argv) {
-        nest::mc::mpi::init(&argc, &argv);
+        arb::mpi::init(&argc, &argv);
     }
 
     static void teardown() {
-        nest::mc::mpi::finalize();
+        arb::mpi::finalize();
     }
 
     static global_policy_kind kind() { return global_policy_kind::mpi; };
@@ -74,6 +73,5 @@ struct mpi_global_policy {
 using global_policy = mpi_global_policy;
 
 } // namespace communication
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

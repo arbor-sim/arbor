@@ -4,8 +4,7 @@
 
 #include <memory/allocator.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 // used to indicate that the type pointed to by the managed_ptr is to be
@@ -113,6 +112,5 @@ managed_ptr<T> make_managed_ptr(Args&&... args) {
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

@@ -8,8 +8,7 @@
 #include <communication/gathered_vector.hpp>
 #include <spike.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace communication {
 
 struct serial_global_policy {
@@ -68,5 +67,4 @@ struct serial_global_policy {
 using global_policy = serial_global_policy;
 
 } // namespace communication
-} // namespace mc
-} // namespace nest
+} // namespace arb

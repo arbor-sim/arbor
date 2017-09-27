@@ -14,7 +14,7 @@
 
 #include "../simple_recipes.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 using communicator_type = communication::communicator<communication::global_policy>;
 

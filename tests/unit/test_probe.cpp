@@ -9,11 +9,11 @@
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(probe, fvm_multicell)
 {
-    using fvm_cell = fvm::fvm_multicell<nest::mc::multicore::backend>;
+    using fvm_cell = fvm::fvm_multicell<arb::multicore::backend>;
 
     cell bs = make_cell_ball_and_stick(false);
 

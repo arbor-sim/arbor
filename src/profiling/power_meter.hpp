@@ -2,12 +2,10 @@
 
 #include "meter.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 meter_ptr make_power_meter();
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -11,8 +11,7 @@
 #include <tbb/compat/thread>
 #include <tbb/enumerable_thread_specific.h>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
 template <typename T>
