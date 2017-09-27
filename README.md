@@ -1,9 +1,9 @@
-# NestMC Prototype [![Build Status](https://travis-ci.org/eth-cscs/nestmc-proto.svg?branch=master)](https://travis-ci.org/eth-cscs/nestmc-proto)
+# NestMC Prototype [![Build Status](https://travis-ci.org/eth-cscs/arbor.svg?branch=master)](https://travis-ci.org/eth-cscs/arbor)
 
-This is the repository for the NestMC prototype code. Unfortunately we do not have thorough documentation of how-to guides.
+This is the repository for the Arbor library. Unfortunately we do not have thorough documentation of how-to guides.
 Below are some guides for how to build the project and run the miniapp.
 Contact us or submit a ticket if you have any questions or want help.
-https://github.com/eth-cscs/nestmc-proto
+https://github.com/eth-cscs/arbor
 
 1. Basic installation
 2. MPI
@@ -16,8 +16,8 @@ https://github.com/eth-cscs/nestmc-proto
 ## Basic installation
 ```bash
 # clone repository
-git clone git@github.com:eth-cscs/nestmc-proto.git
-cd nestmc-proto/
+git clone git@github.com:eth-cscs/arbor.git
+cd arbor/
 
 # setup environment
 # on a desktop system this is probably not required
@@ -127,8 +127,8 @@ which modcc
 
 ```bash
 # clone the repository and set up the submodules
-git clone https://github.com/eth-cscs/nestmc-proto.git
-cd nestmc-proto
+git clone https://github.com/eth-cscs/arbor.git
+cd arbor
 
 # make a path for out of source build
 mkdir build_knl
