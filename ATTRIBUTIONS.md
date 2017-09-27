@@ -33,8 +33,8 @@ http://llvm.org/
 ## Transcendentals intrinsics
 
 The numerical algorithms for the transcendentals intrinsics are based on the
-scalar Cephes library. We have been explicitly granted permission to
-incorporate this material in our work by the author.
+scalar Cephes library. We have been explicitly granted permission by the author to
+incorporate this material in our work.
 
 http://www.netlib.org/cephes/
 https://github.com/jeremybarnes/cephes (Github mirror)
