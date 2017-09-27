@@ -32,7 +32,9 @@ http://llvm.org/
 
 ## Transcendentals intrinsics
 
-The numerical algorithms for the transcendentals intrinsics are based on the scalar Cephes library.
+The numerical algorithms for the transcendentals intrinsics are based on the
+scalar Cephes library. We have been explicitly granted permission to
+incorporate this material in our work by the author.
 
 http://www.netlib.org/cephes/
 https://github.com/jeremybarnes/cephes (Github mirror)
@@ -45,11 +47,3 @@ Custom license (as it appears in the original `readme` from the project's page):
 >commercial product. In either event, it is copyrighted by the author.
 >What you see here may be used freely but it comes with no support or
 >guarantee.
->
->   The two known misprints in the book are repaired here in the
->source listings for the gamma function and the incomplete beta
->integral.
->
->
->   Stephen L. Moshier
->   moshier@na-net.ornl.gov
