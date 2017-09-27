@@ -1,4 +1,4 @@
-# NestMC Prototype [![Build Status](https://travis-ci.org/eth-cscs/arbor.svg?branch=master)](https://travis-ci.org/eth-cscs/arbor)
+# Arbor Library [![Build Status](https://travis-ci.org/eth-cscs/arbor.svg?branch=master)](https://travis-ci.org/eth-cscs/arbor)
 
 This is the repository for the Arbor library. Unfortunately we do not have thorough documentation of how-to guides.
 Below are some guides for how to build the project and run the miniapp.
