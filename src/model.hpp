@@ -80,8 +80,8 @@ private:
 
     communicator_type communicator_;
 
-    // Convenience functions that map the spike buffers and event queues onto
-    // the appropriate integration interval.
+    // Convenience functions that map the spike buffers onto the appropriate
+    // integration interval.
     //
     // To overlap communication and computation, integration intervals of
     // size Delta/2 are used, where Delta is the minimum delay in the global
@@ -91,16 +91,9 @@ private:
     // Then we define the following :
     //      current_spikes : spikes generated in the current interval
     //      previous_spikes: spikes generated in the preceding interval
-    //      current_events : events to be delivered at the start of
-    //                       the current interval
-    //      future_events  : events to be delivered at the start of
-    //                       the next interval
 
     local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
-
-    std::vector<event_queue_type>& current_events()  { return event_queues_.get(); }
-    std::vector<event_queue_type>& future_events()   { return event_queues_.other(); }
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;

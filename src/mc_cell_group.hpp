@@ -18,6 +18,7 @@
 #include <sampling.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
+#include <util/double_buffer.hpp>
 #include <util/filter.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
@@ -64,6 +65,12 @@ public:
             }
         }
 
+        // Create event lane buffers for each cell
+        pending_events_.get().resize(gids_.size());
+        pending_events_.other().resize(gids_.size());
+        future_events_.get().resize(gids_.size());
+        future_events_.other().resize(gids_.size());
+
         spike_sources_.shrink_to_fit();
     }
 
@@ -73,7 +80,10 @@ public:
 
     void reset() override {
         spikes_.clear();
-        events_.clear();
+        pending_events_.get().clear();
+        pending_events_.other().clear();
+        future_events_.get().clear();
+        future_events_.other().clear();
         reset_samplers();
         binner_.reset();
         lowered_.reset();
@@ -212,8 +222,20 @@ public:
     }
 
     void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
+        auto& pending_ = pending_events_.other();
         for (auto& e: events) {
-            events_.push(e);
+            // insert deliverable event into lane for target gid
+            auto lid = gid_to_index(e.target.gid);
+            auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
+            // EVENTS: tstart is not known at this time?
+            // is it the tfinal for the current integration interval?
+            auto ev(binner_.bin(e.target.gid, e.time, tstart), h, e.weight);
+            pending_[lid].push_back(e);
+        }
+
+        for (auto& q: pending_) {
+            // sort the events in lane
+            std::stable_sort(q.begin(), q.end());
         }
     }
 
@@ -268,7 +290,10 @@ private:
     event_binner binner_;
 
     // Pending events to be delivered.
-    event_queue<postsynaptic_spike_event> events_;
+    // EVENTS
+    //event_queue<postsynaptic_spike_event> events_;
+    util::double_buffer<std::vector<deliverable_event>> pending_events_;
+    util::double_buffer<std::vector<deliverable_event>> future_events_;
 
     // Pending samples to be taken.
     event_queue<sample_event> sample_events_;

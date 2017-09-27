@@ -30,12 +30,6 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
             cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
-
-    // Allocate an empty queue buffer for each cell group
-    // These must be set initially to ensure that a queue is available for each
-    // cell group for the first time step.
-    current_events().resize(num_groups());
-    future_events().resize(num_groups());
 }
 
 void model::reset() {
@@ -45,13 +39,6 @@ void model::reset() {
     }
 
     communicator_.reset();
-
-    for(auto& q: current_events()) {
-        q.clear();
-    }
-    for(auto& q: future_events()) {
-        q.clear();
-    }
 
     current_spikes().clear();
     previous_spikes().clear();
@@ -73,12 +60,12 @@ time_type model::run(time_type tfinal, time_type dt) {
     auto update_cells = [&] () {
         threading::parallel_for::apply(
             0u, cell_groups_.size(),
-             [&](unsigned i) {
+            [&](unsigned i) {
                 auto &group = cell_groups_[i];
 
-                PE("stepping","events");
-                group->enqueue_events(current_events()[i]);
-                PL();
+                //PE("stepping","events");
+                //group->enqueue_events(current_events()[i]);
+                //PL();
 
                 group->advance(tuntil, dt);
 
@@ -107,10 +94,12 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL();
 
         PE("events");
-        future_events() = communicator_.make_event_queues(global_spikes);
-        PL();
+        auto events = communicator_.make_event_queues(global_spikes);
+        for (auto i: util::make_span(0, cell_groups_.size())) {
+            cell_groups_[i]->enqueue_events(events[i]);
+        }
 
-        PL(2);
+        PL(3);
     };
 
     while (t_<tfinal) {
