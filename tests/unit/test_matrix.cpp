@@ -10,9 +10,9 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
-using matrix_type = matrix<nest::mc::multicore::backend>;
+using matrix_type = matrix<arb::multicore::backend>;
 using size_type  = matrix_type::size_type;
 using value_type = matrix_type::value_type;
 

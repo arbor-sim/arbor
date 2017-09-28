@@ -10,8 +10,7 @@
 #include "device_coordinator.hpp"
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 // specialization for host vectors
@@ -54,8 +53,7 @@ using hwb_view = array_view<T, host_coordinator<T, hwb_allocator<T>>>;
 #endif
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 // now import the helpers
 // these require that host_vector etc have been defined

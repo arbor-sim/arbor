@@ -11,8 +11,7 @@
 #include <schedule.hpp>
 #include <spike.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 class cell_group {
 public:
@@ -42,5 +41,4 @@ cell_group_ptr make_cell_group(Args&&... args) {
     return cell_group_ptr(new T(std::forward<Args>(args)...));
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

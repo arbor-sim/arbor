@@ -6,8 +6,7 @@
 #include <util/config.hpp>
 #include <hardware/power.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 class power_meter: public meter {
@@ -45,5 +44,4 @@ meter_ptr make_power_meter() {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

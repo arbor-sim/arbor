@@ -37,8 +37,7 @@
 #include <util/meta.hpp>
 #include <util/sentinel.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename U, typename S = U>
@@ -184,5 +183,4 @@ auto strict_view(const Seq& s) -> range<decltype(std::begin(s))>
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -8,8 +8,7 @@
 
 #include "morphology_pool.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 static morphology make_basic_y_morphology() {
     morphology morph;
@@ -52,5 +51,4 @@ void load_swc_morphology_glob(morphology_pool& pool, const std::string& swc_patt
 }
 
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

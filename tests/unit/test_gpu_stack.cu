@@ -4,7 +4,7 @@
 #include <backends/gpu/stack.hpp>
 #include <backends/gpu/managed_ptr.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(stack, construction) {
     using T = int;
@@ -21,7 +21,7 @@ namespace kernels {
     __global__
     void push_back(gpu::stack_storage<int>& s, F f) {
         if (f(threadIdx.x)) {
-            nest::mc::gpu::push_back(s, int(threadIdx.x));
+            arb::gpu::push_back(s, int(threadIdx.x));
         }
     }
 

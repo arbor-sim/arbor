@@ -5,7 +5,7 @@
 #include <backends/multicore/multi_event_stream.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 namespace common_events {
     // set up four targets across three streams and two mech ids.

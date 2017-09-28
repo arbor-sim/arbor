@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // A meter can be used to take a measurement of resource consumption, for
@@ -41,5 +40,4 @@ public:
 using meter_ptr = std::unique_ptr<meter>;
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

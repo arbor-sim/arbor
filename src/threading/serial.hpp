@@ -12,11 +12,10 @@
 
 #include "timer.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
-using nest::mc::threading::impl::timer;
+using arb::threading::impl::timer;
 
 ///////////////////////////////////////////////////////////////////////
 // types
@@ -120,7 +119,6 @@ public:
     {}
 };
 
-} // threading
-} // mc
-} // nest
+} // namespace threading
+} // namespace arb
 

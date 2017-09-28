@@ -4,7 +4,7 @@
 
 #include <util/ioutil.hpp>
 
-using namespace nest::mc::util;
+using namespace arb::util;
 
 TEST(mask_stream,nomask) {
     // expect mask_stream(true) on a new stream not to change rdbuf.

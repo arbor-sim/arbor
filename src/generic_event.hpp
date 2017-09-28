@@ -34,12 +34,11 @@
 //
 // template <typename Event>
 // bool is_before(const Event& a, const Event& b) {
-//     using ::nest::mc::event_time;
+//     using ::arb::event_time;
 //     return event_time(a)<event_time(b);
 // }
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename Event>
 auto event_time(const Event& ev) -> decltype(ev.time) {
@@ -59,9 +58,9 @@ auto event_data(const Event& ev) -> decltype(ev.data) {
 namespace impl {
     // Wrap in `impl::` namespace to obtain correct ADL for return type.
 
-    using ::nest::mc::event_time;
-    using ::nest::mc::event_index;
-    using ::nest::mc::event_data;
+    using ::arb::event_time;
+    using ::arb::event_index;
+    using ::arb::event_data;
 
     template <typename Event>
     using event_time_type = decltype(event_time(std::declval<Event>()));
@@ -82,6 +81,5 @@ using event_index_type = impl::event_index_type<Event>;
 template <typename Event>
 using event_data_type = impl::event_data_type<Event>;
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

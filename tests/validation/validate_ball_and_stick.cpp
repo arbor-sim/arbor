@@ -22,7 +22,7 @@
 
 #include "../gtest.h"
 
-using namespace nest::mc;
+using namespace arb;
 
 struct probe_point {
     const char* label;
@@ -38,7 +38,7 @@ void run_ncomp_convergence_test(
     ProbePointSeq& probe_points,
     float t_end=100.f)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
     auto max_ncomp = g_trace_io.max_ncomp();
     auto dt = g_trace_io.min_dt();
@@ -86,8 +86,8 @@ void run_ncomp_convergence_test(
     runner.assert_all_convergence();
 }
 
-void validate_ball_and_stick(nest::mc::backend_kind backend) {
-    using namespace nest::mc;
+void validate_ball_and_stick(arb::backend_kind backend) {
+    using namespace arb;
 
     cell c = make_cell_ball_and_stick();
     probe_point points[] = {
@@ -104,8 +104,8 @@ void validate_ball_and_stick(nest::mc::backend_kind backend) {
         points);
 }
 
-void validate_ball_and_taper(nest::mc::backend_kind backend) {
-    using namespace nest::mc;
+void validate_ball_and_taper(arb::backend_kind backend) {
+    using namespace arb;
 
     cell c = make_cell_ball_and_taper();
     probe_point points[] = {
@@ -122,8 +122,8 @@ void validate_ball_and_taper(nest::mc::backend_kind backend) {
         points);
 }
 
-void validate_ball_and_3stick(nest::mc::backend_kind backend) {
-    using namespace nest::mc;
+void validate_ball_and_3stick(arb::backend_kind backend) {
+    using namespace arb;
 
     cell c = make_cell_ball_and_3stick();
     probe_point points[] = {
@@ -144,8 +144,8 @@ void validate_ball_and_3stick(nest::mc::backend_kind backend) {
         points);
 }
 
-void validate_rallpack1(nest::mc::backend_kind backend) {
-    using namespace nest::mc;
+void validate_rallpack1(arb::backend_kind backend) {
+    using namespace arb;
 
     cell c = make_cell_simple_cable();
     probe_point points[] = {
@@ -163,8 +163,8 @@ void validate_rallpack1(nest::mc::backend_kind backend) {
         250.f);
 }
 
-void validate_ball_and_squiggle(nest::mc::backend_kind backend) {
-    using namespace nest::mc;
+void validate_ball_and_squiggle(arb::backend_kind backend) {
+    using namespace arb;
 
     cell c = make_cell_ball_and_squiggle();
     probe_point points[] = {

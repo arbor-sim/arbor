@@ -9,7 +9,7 @@
 
 #include <typeinfo>
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(any, copy_construction) {
     util::any any_int(2);

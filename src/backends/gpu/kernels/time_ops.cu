@@ -1,7 +1,6 @@
 #include <backends/fvm_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 namespace kernels {
@@ -76,5 +75,4 @@ void set_dt(fvm_size_type ncell,
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

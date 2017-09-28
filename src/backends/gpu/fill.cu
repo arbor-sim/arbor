@@ -1,7 +1,6 @@
 #include <cstdint>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 template <typename T, typename I>
@@ -39,5 +38,4 @@ void fill64(uint64_t* v, uint64_t value, std::size_t n) {
 };
 
 } // namespace gpu
-} // namespace nest
-} // namespace mc
+} // namespace arb

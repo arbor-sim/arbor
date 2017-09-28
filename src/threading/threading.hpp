@@ -2,8 +2,7 @@
 
 #include <util/optional.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
 // Test environment variables for user-specified count of threads.
@@ -24,8 +23,7 @@ util::optional<size_t> get_env_num_threads();
 size_t num_threads();
 
 } // namespace threading
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 #if defined(NMC_HAVE_TBB)
     #include "tbb.hpp"

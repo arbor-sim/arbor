@@ -8,8 +8,7 @@
 
 #include "threading.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
 // Test environment variables for user-specified count of threads.
@@ -81,5 +80,4 @@ size_t num_threads() {
 }
 
 } // namespace threading
-} // namespace mc
-} // namespace nest
+} // namespace arb

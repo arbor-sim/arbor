@@ -15,8 +15,7 @@
 #include "gpu.hpp"
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 // forward declare for type printers
@@ -196,5 +195,4 @@ public:
 };
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

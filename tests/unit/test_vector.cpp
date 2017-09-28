@@ -10,7 +10,7 @@
 //  wrappers
 //
 
-using namespace nest::mc;
+using namespace arb;
 
 // test that memory::make_view and make_const_view work on std::vector
 TEST(vector, make_view_stdvector) {

@@ -2,8 +2,7 @@
 
 #include "detail.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 namespace kernels {
@@ -194,5 +193,4 @@ void assemble_matrix_interleaved(
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

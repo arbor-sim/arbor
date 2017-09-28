@@ -8,8 +8,7 @@
 #include <util/indirect.hpp>
 #include <util/pprintf.hpp>
 
-namespace nest{
-namespace mc{
+namespace arb{
 namespace multicore{
 
 template<class Backend>
@@ -56,7 +55,7 @@ public:
 
     void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {
         throw std::domain_error(
-                nest::mc::util::pprintf("mechanism % does not support ion type\n", name()));
+                arb::util::pprintf("mechanism % does not support ion type\n", name()));
     }
 
     void nrn_init() override {}
@@ -105,5 +104,4 @@ public:
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

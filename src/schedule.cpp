@@ -8,8 +8,7 @@
 
 // Implementations for specific schedules.
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // Regular schedule implementation.
 
@@ -46,5 +45,4 @@ std::vector<time_type> explicit_schedule_impl::events(time_type t0, time_type t1
     return std::vector<time_type>(lb, ub);
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

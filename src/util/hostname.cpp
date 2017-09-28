@@ -10,8 +10,7 @@ extern "C" {
 }
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 #ifdef __linux__
@@ -32,6 +31,5 @@ util::optional<std::string> hostname() {
 #endif
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

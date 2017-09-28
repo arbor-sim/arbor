@@ -15,8 +15,7 @@
 
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 #ifdef __linux__
@@ -61,5 +60,4 @@ util::optional<std::size_t> num_cores() {
 }
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

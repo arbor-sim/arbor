@@ -10,8 +10,7 @@
 
 #include "kernels/detail.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 // host side wrapper for interleaved matrix assembly kernel
@@ -290,5 +289,4 @@ private:
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

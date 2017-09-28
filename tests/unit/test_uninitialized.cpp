@@ -3,7 +3,7 @@
 #include "util/uninitialized.hpp"
 #include "common.hpp"
 
-using namespace nest::mc::util;
+using namespace arb::util;
 
 namespace {
     struct count_ops {

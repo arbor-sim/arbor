@@ -15,8 +15,7 @@
 #include <profiling/profiler.hpp>
 
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace mpi {
 
     // prototypes
@@ -263,5 +262,4 @@ namespace mpi {
     }
 
 } // namespace mpi
-} // namespace mc
-} // namespace nest
+} // namespace arb

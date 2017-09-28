@@ -6,8 +6,7 @@
 // prototypes for compiled wrappers around fill kernels for GPU memory
 //
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 void fill8(uint8_t* v, uint8_t value, std::size_t n);
@@ -43,7 +42,7 @@ fill(T* ptr, T value, std::size_t n) { \
         sizeof(T), \
         reinterpret_cast<char*>(&v) \
     ); \
-    nest::mc::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n); \
+    arb::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n); \
 }
 
 FILL(8)
@@ -52,5 +51,4 @@ FILL(32)
 FILL(64)
 
 } // namespace gpu
-} // namespace nest
-} // namespace mc
+} // namespace arb

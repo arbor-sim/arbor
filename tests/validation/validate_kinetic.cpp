@@ -21,13 +21,13 @@
 #include "validation_data.hpp"
 
 void run_kinetic_dt(
-    nest::mc::backend_kind backend,
-    nest::mc::cell& c,
+    arb::backend_kind backend,
+    arb::cell& c,
     float t_end,
     nlohmann::json meta,
     const std::string& ref_file)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
     float sample_dt = g_trace_io.sample_dt();
 
@@ -65,8 +65,8 @@ end:
     runner.assert_all_convergence();
 }
 
-void validate_kinetic_kin1(nest::mc::backend_kind backend) {
-    using namespace nest::mc;
+void validate_kinetic_kin1(arb::backend_kind backend) {
+    using namespace arb;
 
     // 20 µm diameter soma with single mechanism, current probe
     cell c;
@@ -82,8 +82,8 @@ void validate_kinetic_kin1(nest::mc::backend_kind backend) {
     run_kinetic_dt(backend, c, 100.f, meta, "numeric_kin1.json");
 }
 
-void validate_kinetic_kinlva(nest::mc::backend_kind backend) {
-    using namespace nest::mc;
+void validate_kinetic_kinlva(arb::backend_kind backend) {
+    using namespace arb;
 
     // 20 µm diameter soma with single mechanism, current probe
     cell c;
@@ -101,18 +101,18 @@ void validate_kinetic_kinlva(nest::mc::backend_kind backend) {
 }
 
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(kinetic, kin1_numeric_ref) {
     validate_kinetic_kin1(backend_kind::multicore);
     if (hw::num_gpus()) {
-        validate_kinetic_kin1(nest::mc::backend_kind::gpu);
+        validate_kinetic_kin1(arb::backend_kind::gpu);
     }
 }
 
 TEST(kinetic, kinlva_numeric_ref) {
     validate_kinetic_kinlva(backend_kind::multicore);
     if (hw::num_gpus()) {
-        validate_kinetic_kinlva(nest::mc::backend_kind::gpu);
+        validate_kinetic_kinlva(arb::backend_kind::gpu);
     }
 }

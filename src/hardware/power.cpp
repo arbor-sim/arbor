@@ -2,8 +2,7 @@
 
 #include "power.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 #ifdef NMC_HAVE_CRAY
@@ -28,5 +27,4 @@ energy_size_type energy() {
 #endif
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

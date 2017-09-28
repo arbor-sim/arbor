@@ -14,7 +14,7 @@
 #include <profiling/profiler.hpp>
 #include <spike.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 using global_policy = communication::global_policy;
 using timer = util::timer_type;

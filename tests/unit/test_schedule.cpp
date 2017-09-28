@@ -11,7 +11,7 @@
 #include "common.hpp"
 #include "stats.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 using namespace testing;
 
 // Pull events from n non-contiguous subintervals of [t0, t1)

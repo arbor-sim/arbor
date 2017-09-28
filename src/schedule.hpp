@@ -12,8 +12,7 @@
 
 // Time schedules for probe–sampler associations.
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // A schedule describes a sequence of time values used for sampling. Schedules
 // are queried monotonically in time: if two method calls `events(t0, t1)` 
@@ -181,5 +180,4 @@ inline schedule poisson_schedule(time_type tstart, time_type mean_dt, const Rand
     return schedule(poisson_schedule_impl<RandomNumberEngine>(tstart, mean_dt, rng));
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

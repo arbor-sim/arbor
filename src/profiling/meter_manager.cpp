@@ -8,8 +8,7 @@
 #include "memory_meter.hpp"
 #include "power_meter.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 measurement::measurement(
@@ -174,5 +173,4 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

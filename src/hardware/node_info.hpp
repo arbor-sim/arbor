@@ -1,7 +1,6 @@
 #pragma once
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 // Information about the computational resources available on a compute node.
@@ -20,5 +19,4 @@ struct node_info {
 node_info get_node_info();
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

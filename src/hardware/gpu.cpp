@@ -2,8 +2,7 @@
     #include <cuda_runtime.h>
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 #ifdef NMC_HAVE_GPU
@@ -19,5 +18,4 @@ unsigned num_gpus() {
 #endif
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

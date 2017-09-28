@@ -9,7 +9,7 @@
 
 #include "../simple_recipes.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 namespace {
     // Dummy recipes types for testing.

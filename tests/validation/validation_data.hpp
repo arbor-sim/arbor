@@ -10,8 +10,7 @@
 #include <simple_sampler.hpp>
 #include <util/path.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /*
  * Class manages input (loading and parsing) of JSON
@@ -99,5 +98,4 @@ private:
 
 extern trace_io g_trace_io;
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

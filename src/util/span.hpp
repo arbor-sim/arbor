@@ -10,8 +10,7 @@
 #include <util/counter.hpp>
 #include <util/range.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename I>
@@ -29,5 +28,4 @@ span<typename std::common_type<I, J>::type> make_span(std::pair<I, J> interval) 
 
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

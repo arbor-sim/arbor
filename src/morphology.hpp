@@ -6,8 +6,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 struct section_point {
     double x, y, z, r;  // [µm], r is radius.
@@ -81,5 +80,4 @@ struct morphology {
     section_geometry& add_section(std::vector<section_point> points, unsigned parent_id = 0, section_kind kind = section_kind::none);
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

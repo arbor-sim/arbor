@@ -10,7 +10,7 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 using util::filter;
 using util::assign;
 using util::canonical_view;

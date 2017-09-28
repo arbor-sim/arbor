@@ -13,8 +13,7 @@
 #include "definitions.hpp"
 #include "util.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 namespace impl {
@@ -390,5 +389,4 @@ using cuda_allocator = allocator<T, impl::cuda::device_policy>;
 #endif
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -8,8 +8,7 @@
 #include <threading/threading.hpp>
 #include "unwind.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 constexpr inline bool is_debug_mode() {
@@ -49,7 +48,7 @@ extern std::mutex global_debug_cerr_mutex;
 
 template <typename... Args>
 void debug_emit_trace(const char* file, int line, const char* varlist, const Args&... args) {
-    if (nest::mc::threading::multithreaded()) {
+    if (arb::threading::multithreaded()) {
         std::stringstream buffer;
         buffer.precision(17);
 
@@ -96,11 +95,10 @@ impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 #ifdef NMC_HAVE_TRACE
-    #define TRACE(vars...) nest::mc::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
+    #define TRACE(vars...) arb::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
 #else
     #define TRACE(...)
 #endif
@@ -114,7 +112,7 @@ impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
 
     #define EXPECTS(condition) \
        (void)((condition) || \
-       nest::mc::util::global_failed_assertion_handler(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
+       arb::util::global_failed_assertion_handler(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
 #else
     #define EXPECTS(condition) \
        (void)(false && (condition))

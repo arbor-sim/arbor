@@ -44,8 +44,7 @@
 // After which a is in moved from state.
 
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 class unique_any {
@@ -207,5 +206,4 @@ unique_any make_unique_any(Args&&... args) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

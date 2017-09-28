@@ -5,8 +5,7 @@
 // Pointer representation of multi-event stream marked event state,
 // common across CPU and GPU backends.
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename EvData>
 struct multi_event_stream_state {
@@ -30,5 +29,4 @@ struct multi_event_stream_state {
     }
 };
 
-} // namespace nest
-} // namespace mc
+} // namespace arb

@@ -10,8 +10,7 @@
 #include <util/make_unique.hpp>
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Here we provide functionality that the profiler can use to control the CUDA
@@ -440,5 +439,4 @@ void profilers_restart() {};
 #endif
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

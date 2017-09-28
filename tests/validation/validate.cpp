@@ -11,7 +11,7 @@
 
 #include "validation_data.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 const char* usage_str =
 "[OPTION]...\n"

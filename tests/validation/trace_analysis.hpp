@@ -10,8 +10,7 @@
 #include <util/path.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /* Trace data comparison */
 
@@ -107,5 +106,4 @@ void report_conv_table(std::ostream& out, const ConvEntrySeq& tbl, const std::st
     }
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

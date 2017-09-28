@@ -16,8 +16,7 @@
 #include <util/handle_set.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 class model {
 public:
@@ -106,5 +105,4 @@ private:
     util::handle_set<sampler_association_handle> sassoc_handles_;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
