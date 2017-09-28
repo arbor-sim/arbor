@@ -119,7 +119,6 @@ public:
     {}
 };
 
-} // threading
-} // mc
-} // nest
+} // namespace threading
+} // namespace arb
 

@@ -66,9 +66,8 @@ void sort(Container& c) {
     tbb::parallel_sort(c.begin(), c.end());
 }
 
-} // threading
-} // mc
-} // nest
+} // namespace threading
+} // namespace arb
 
 namespace tbb {
     /// comparison operator for tbb::tick_count type
