@@ -34,7 +34,7 @@ struct null_backend: public multicore::backend {
 
 } // namespace arb
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 #include <backends/gpu/fvm.hpp>
 #else
 namespace arb {  namespace gpu {

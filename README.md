@@ -41,13 +41,13 @@ cd tests
 
 ## MPI
 
-Set the `NMC_WITH_MPI` option either via the ccmake interface, or via the command line as shown below.
+Set the `ARB_WITH_MPI` option either via the ccmake interface, or via the command line as shown below.
 To ensure that CMake detects MPI correctly, you should specify the MPI wrapper for the compiler by setting the `CXX` and `CC` environment variables.
 
 ```
 export CXX=mpicxx
 export CC=mpicc
-cmake <path to CMakeLists.txt> -DNMC_WITH_MPI=ON
+cmake <path to CMakeLists.txt> -DARB_WITH_MPI=ON
 ```
 
 ## TBB
@@ -57,7 +57,7 @@ When TBB is installed, it comes with some scripts that can be run to set up the 
 The scripts set the `TBB_ROOT` environment variable, which is used by the CMake configuration to find TBB.
 
 ```
-cmake <path to CMakeLists.txt> -DNMC_THREADING_MODEL=tbb
+cmake <path to CMakeLists.txt> -DARB_THREADING_MODEL=tbb
 ```
 
 ### TBB on Cray systems
@@ -71,11 +71,11 @@ Note, the CMake package provided by TBB is very fragile, and won't work if CMake
 
 ```
 export CRAYPE_LINK_TYPE=dynamic
-cmake <path-to-arbor-source> -DNMC_THREADING_MODEL=tbb
+cmake <path-to-arbor-source> -DARB_THREADING_MODEL=tbb
 
 # NOTE: specifying CMAKE_SYSTEM_NAME won't work, instead let CMake automatically
 # detect the build environment as above.
-cmake <path-to-arbor-source> -DNMC_THREADING_MODEL=tbb  -DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment
+cmake <path-to-arbor-source> -DARB_THREADING_MODEL=tbb  -DCMAKE_SYSTEM_NAME=CrayLinuxEnvironment
 ```
 
 ```
@@ -137,15 +137,15 @@ cd build_knl
 # run cmake with all the magic flags
 export CC=`which icc`
 export CXX=`which icpc`
-cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release -DNMC_THREADING_MODEL=tbb -DNMC_WITH_PROFILING=ON -DNMC_VECTORIZE_TARGET=KNL
+cmake <path to CMakeLists.txt> -DCMAKE_BUILD_TYPE=release -DARB_THREADING_MODEL=tbb -DARB_WITH_PROFILING=ON -DARB_VECTORIZE_TARGET=KNL
 make -j
 ```
 
 The flags passed into cmake are described:
   - `-DCMAKE_BUILD_TYPE=release` : build in release mode with `-O3`.
-  - `-DNMC_THREADING_MODEL=tbb` : use TBB for threading on multi-core
-  - `-DNMC_WITH_PROFILING=ON` : use internal profilers that print profiling report at end
-  - `-DNMC_VECTORIZE_TARGET=KNL` : generate AVX512 instructions, alternatively you can use:
+  - `-DARB_THREADING_MODEL=tbb` : use TBB for threading on multi-core
+  - `-DARB_WITH_PROFILING=ON` : use internal profilers that print profiling report at end
+  - `-DARB_VECTORIZE_TARGET=KNL` : generate AVX512 instructions, alternatively you can use:
     - `AVX2` for Haswell & Broadwell
     - `AVX` for Sandy Bridge and Ivy Bridge
 

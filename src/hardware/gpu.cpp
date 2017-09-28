@@ -1,11 +1,11 @@
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     #include <cuda_runtime.h>
 #endif
 
 namespace arb {
 namespace hw {
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 unsigned num_gpus() {
     int n;
     cudaGetDeviceCount(&n);

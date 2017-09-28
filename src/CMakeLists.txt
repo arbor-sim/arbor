@@ -38,30 +38,30 @@ set(CUDA_SOURCES
     backends/gpu/kernels/time_ops.cu
 )
 
-if(NMC_WITH_MPI)
+if(ARB_WITH_MPI)
     set(BASE_SOURCES ${BASE_SOURCES} communication/mpi.cpp)
-elseif(NMC_WITH_DRYRUN)
+elseif(ARB_WITH_DRYRUN)
     set(BASE_SOURCES ${BASE_SOURCES} communication/dryrun_global_policy.cpp)
 endif()
 
-if(NMC_WITH_CTHREAD)
+if(ARB_WITH_CTHREAD)
     set(BASE_SOURCES ${BASE_SOURCES} threading/cthread.cpp)
 endif()
 
-add_library(nestmc ${BASE_SOURCES})
-list(APPEND NESTMC_LIBRARIES nestmc)
+add_library(arbor ${BASE_SOURCES})
+list(APPEND ARB_LIBRARIES arbor)
 
-if(NMC_WITH_CUDA)
-    cuda_add_library(gpu ${CUDA_SOURCES})
-    list(APPEND NESTMC_LIBRARIES gpu)
+if(ARB_WITH_CUDA)
+    cuda_add_library(arborcu ${CUDA_SOURCES})
+    list(APPEND ARB_LIBRARIES arborcu)
 endif()
 
-if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
-    add_dependencies(nestmc build_all_mods)
-    if (NMC_WITH_CUDA)
-        add_dependencies(gpu build_all_gpu_mods)
+if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
+    add_dependencies(arbor build_all_mods)
+    if (ARB_WITH_CUDA)
+        add_dependencies(arborcu build_all_gpu_mods)
     endif()
 endif()
 
-# Make changes to the NMC_LIBRARIES visible to the parent scope.
-set(NESTMC_LIBRARIES "${NESTMC_LIBRARIES}" PARENT_SCOPE)
+# Make changes to the ARB_LIBRARIES visible to the parent scope.
+set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)

@@ -38,7 +38,7 @@ TEST(communicator, policy_basics) {
 //
 // Here we defined proxy types for testing the gather_spikes functionality.
 // These are a little bit simpler than the spike and source types used inside
-// NestMC, to simplify the testing.
+// Arbor, to simplify the testing.
 
 // Proxy for a spike source, which represents gid as an integer.
 struct source_proxy {

@@ -8,9 +8,13 @@ An NxN Hines matrix can be stored compactly with 3 vectors of length N:
   * `p`: the parent index
 Additionally, we often store N*1 vectors that have one value per compartment, e.g. voltage, solution or rhs vectors.
 
-In NestMC multicompartment a single cell has a matrix structure associated with in, that is derived directly from the connections between its constituent compartments. NestMC groups these cells into groups of cells, called `cell_groups`. The matrices for all the cells in a group are packed together 
+In Arbor, a single multicompartment cell has an associated matrix structure
+that is derived directly from the connections between its constituent
+compartments. Arbor groups these cells into groups of cells, called
+`cell_groups`. The matrices for all the cells in a group are packed together 
 
-The matrix packing applies the same packing operation to each vector associated with a matrix, i.e. the `u`, `d`, `p` and solution, voltage vectors.
+The matrix packing applies the same packing operation to each vector associated
+with a matrix, i.e. the `u`, `d`, `p` and solution, voltage vectors.
 
 In this discussion we use a simple example group of matrices to illustrate the storage methods, because an example is more illustrative than a formal description:
   * 7 vectors labeled `{a, b, c, d, e, f, g}`

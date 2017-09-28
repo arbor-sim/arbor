@@ -38,7 +38,7 @@ void validate_soma(backend_kind backend) {
     nlohmann::json meta = {
         {"name", "membrane voltage"},
         {"model", "soma"},
-        {"sim", "nestmc"},
+        {"sim", "arbor"},
         {"units", "mV"},
         {"backend_kind", to_string(backend)}
     };

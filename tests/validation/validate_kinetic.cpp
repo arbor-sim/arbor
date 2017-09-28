@@ -35,7 +35,7 @@ void run_kinetic_dt(
     rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});
     probe_label plabels[1] = {"soma.mid", {0u, 0u}};
 
-    meta["sim"] = "nestmc";
+    meta["sim"] = "arbor";
     meta["backend_kind"] = to_string(backend);
 
     convergence_test_runner<float> runner("dt", plabels, meta);

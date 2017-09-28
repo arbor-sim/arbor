@@ -62,7 +62,7 @@ void multi_file::open(unsigned n) {
 
 using arb::io::swc_record;
 
-// TODO: Move this functionality to nestmc library.
+// TODO: Move this functionality to arbor library.
 std::vector<swc_record> as_swc(const arb::morphology& morph) {
     using kind = swc_record::kind;
     std::map<int, int> parent_end_id;

@@ -97,13 +97,13 @@ impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
 } // namespace util
 } // namespace arb
 
-#ifdef NMC_HAVE_TRACE
+#ifdef ARB_HAVE_TRACE
     #define TRACE(vars...) arb::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
 #else
     #define TRACE(...)
 #endif
 
-#ifdef NMC_HAVE_ASSERTIONS
+#ifdef ARB_HAVE_ASSERTIONS
     #ifdef __GNUC__
         #define DEBUG_FUNCTION_NAME __PRETTY_FUNCTION__
     #else
@@ -116,4 +116,4 @@ impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
 #else
     #define EXPECTS(condition) \
        (void)(false && (condition))
-#endif // def NMC_HAVE_ASSERTIONS
+#endif // def ARB_HAVE_ASSERTIONS

@@ -122,7 +122,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
     try {
         cl_options defopts;
 
-        CustomCmdLine cmd("nest mc miniapp harness", "0.1");
+        CustomCmdLine cmd("arbor miniapp harness", "0.1");
 
         TCLAP::ValueArg<std::string> ifile_arg(
             "i", "ifile",

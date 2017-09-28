@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef NMC_HAVE_MPI
-#error "mpi_global_policy.hpp should only be compiled in a NMC_HAVE_MPI build"
+#ifndef ARB_HAVE_MPI
+#error "mpi_global_policy.hpp should only be compiled in a ARB_HAVE_MPI build"
 #endif
 
 #include <cstdint>

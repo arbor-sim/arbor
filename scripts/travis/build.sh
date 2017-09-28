@@ -44,7 +44,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DNMC_WITH_ASSERTIONS=on -DNMC_THREADING_MODEL=${WITH_THREAD} -DNMC_DISTRIBUTED_MODEL=${WITH_DISTRIBUTED} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_THREADING_MODEL=${WITH_THREAD} -DARB_DISTRIBUTED_MODEL=${WITH_DISTRIBUTED} ${CXX_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 

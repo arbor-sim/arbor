@@ -26,7 +26,7 @@
 #include <type_traits>
 #include <utility>
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 #include <tbb/tbb_stddef.h>
 #endif
 
@@ -108,7 +108,7 @@ struct range {
         return (*this)[n];
     }
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
     template <
         typename V = iterator,
         typename = enable_if_t<is_forward_iterator<V>::value>

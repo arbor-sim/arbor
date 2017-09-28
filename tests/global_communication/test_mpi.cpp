@@ -1,4 +1,4 @@
-#ifdef NMC_HAVE_MPI
+#ifdef ARB_HAVE_MPI
 
 #include "../gtest.h"
 
@@ -145,4 +145,4 @@ TEST(mpi, gather) {
     }
 }
 
-#endif // NMC_HAVE_MPI
+#endif // ARB_HAVE_MPI

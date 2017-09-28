@@ -1,6 +1,6 @@
 #include <numeric>
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     #include <cuda_profiler_api.h>
 #endif
 
@@ -18,7 +18,7 @@ namespace util {
 // a program control which parts of the program are to be profiled. It is a
 // simple wrapper around the API calls with a mutex to ensure correct behaviour
 // when multiple threads attempt to start or stop the profiler.
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 namespace gpu {
     bool is_running_nvprof = false;
     std::mutex gpu_profiler_mutex;
@@ -298,7 +298,7 @@ profiler_node profiler::performance_tree() {
 }
 
 
-#ifdef NMC_HAVE_PROFILING
+#ifdef ARB_HAVE_PROFILING
 namespace data {
     profiler_wrapper profilers_(profiler("root"));
 }
