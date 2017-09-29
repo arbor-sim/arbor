@@ -61,6 +61,9 @@ public:
 private:
     std::size_t num_groups() const;
 
+    // counter that is incremented at the end of each integration epoch
+    std::size_t epoch_ = 0;
+
     time_type t_ = 0.;
     std::vector<cell_group_ptr> cell_groups_;
 

@@ -44,7 +44,7 @@ public:
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
-    void advance(time_type tfinal, time_type dt) override {
+    void advance(time_type tfinal, time_type dt, std::size_t epoch) override {
         for (auto i: util::make_span(0, not_emit_it_.size())) {
             // The first potential spike_time to emit for this cell
             auto spike_time_it = not_emit_it_[i];
@@ -62,7 +62,7 @@ public:
         }
     };
 
-    void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
+    void enqueue_events(const std::vector<postsynaptic_spike_event>& events, time_type tfinal, std::size_t epoch) override {
         std::runtime_error("The dss_cells do not support incoming events!");
     }
 

@@ -66,7 +66,7 @@ time_type model::run(time_type tfinal, time_type dt) {
                 //group->enqueue_events(current_events()[i]);
                 //PL();
 
-                group->advance(tuntil, dt);
+                group->advance(tuntil, dt, epoch_);
 
                 PE("events");
                 current_spikes().insert(group->spikes());
@@ -95,7 +95,7 @@ time_type model::run(time_type tfinal, time_type dt) {
         PE("events");
         auto events = communicator_.make_event_queues(global_spikes);
         for (auto i: util::make_span(0, cell_groups_.size())) {
-            cell_groups_[i]->enqueue_events(events[i]);
+            cell_groups_[i]->enqueue_events(events[i], tuntil, epoch_);
         }
 
         PL(3);
@@ -119,6 +119,8 @@ time_type model::run(time_type tfinal, time_type dt) {
         g.wait();
 
         t_ = tuntil;
+
+        ++epoch_;
     }
 
     // Run the exchange one last time to ensure that all spikes are output

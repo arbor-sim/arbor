@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -21,8 +22,8 @@ public:
 
     virtual void reset() = 0;
     virtual void set_binning_policy(binning_kind policy, time_type bin_interval) = 0;
-    virtual void advance(time_type tfinal, time_type dt) = 0;
-    virtual void enqueue_events(const std::vector<postsynaptic_spike_event>& events) = 0;
+    virtual void advance(time_type tfinal, time_type dt, std::size_t epoch) = 0;
+    virtual void enqueue_events(const std::vector<postsynaptic_spike_event>& events, time_type tfinal, std::size_t epoch) = 0;
     virtual const std::vector<spike>& spikes() const = 0;
     virtual void clear_spikes() = 0;
 
