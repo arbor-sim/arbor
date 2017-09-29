@@ -27,8 +27,7 @@
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace fvm {
 
 inline int find_cv_index(const segment_location& loc, const compartment_model& graph) {
@@ -70,9 +69,9 @@ public:
 
     // handles and events are currently common across implementations;
     // re-expose definitions from `backends/event.hpp`.
-    using target_handle = ::nest::mc::target_handle;
-    using probe_handle = ::nest::mc::probe_handle;
-    using deliverable_event = ::nest::mc::deliverable_event;
+    using target_handle = ::arb::target_handle;
+    using probe_handle = ::arb::probe_handle;
+    using deliverable_event = ::arb::deliverable_event;
 
     fvm_multicell() = default;
 
@@ -1001,5 +1000,4 @@ void fvm_multicell<Backend>::step_integration() {
 }
 
 } // namespace fvm
-} // namespace mc
-} // namespace nest
+} // namespace arb

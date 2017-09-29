@@ -13,8 +13,7 @@
 #include <util/meta.hpp>
 #include <util/range.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 /* Note, this is actually only an input iterator if F is non-assignable, such
@@ -151,5 +150,4 @@ transform_view(Seq&& s, const F& f) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

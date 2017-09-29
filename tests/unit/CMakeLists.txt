@@ -87,7 +87,7 @@ set(TEST_SOURCES
     stats.cpp
 )
 
-if(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
+if(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
     list(APPEND TEST_SOURCES test_intrin.cpp)
 endif()
 
@@ -96,23 +96,23 @@ set(TARGETS test.exe)
 add_executable(test.exe ${TEST_SOURCES})
 target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
-if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
+if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
   add_dependencies(test.exe build_test_mods)
 endif()
 
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
-if(NMC_WITH_CUDA)
+if(ARB_WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
     cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES})
 endif()
 
 foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC gtest)
-    target_link_libraries(${target} LINK_PUBLIC ${NESTMC_LIBRARIES})
+    target_link_libraries(${target} LINK_PUBLIC ${ARB_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-    if(NMC_WITH_MPI)
+    if(ARB_WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()

@@ -12,8 +12,7 @@
 #include <point.hpp>
 #include <util/make_unique.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename T,
           typename valid = typename std::is_floating_point<T>::type>
@@ -488,5 +487,4 @@ struct segment_location {
     double position;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

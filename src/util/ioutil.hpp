@@ -2,8 +2,7 @@
 
 #include <iostream>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 class iosfmt_guard {
@@ -94,6 +93,5 @@ private:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

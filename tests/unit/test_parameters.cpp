@@ -8,11 +8,11 @@
 // test out the parameter infrastructure
 TEST(parameters, setting)
 {
-    nest::mc::parameter_list list("test");
+    arb::parameter_list list("test");
     EXPECT_EQ(list.name(), "test");
     EXPECT_EQ(list.num_parameters(), 0);
 
-    nest::mc::parameter p("a", 0.12, {0, 10});
+    arb::parameter p("a", 0.12, {0, 10});
 
     // add_parameter() returns a bool that indicates whether
     // it was able to successfull add the parameter

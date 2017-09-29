@@ -6,12 +6,11 @@ extern "C" {
 }
 #endif
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     #include <cuda_runtime.h>
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 #if defined(__linux__)
@@ -25,7 +24,7 @@ memory_size_type allocated_memory() {
 }
 #endif
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 memory_size_type gpu_allocated_memory() {
     std::size_t free;
     std::size_t total;
@@ -40,5 +39,4 @@ memory_size_type gpu_allocated_memory() {
 #endif
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

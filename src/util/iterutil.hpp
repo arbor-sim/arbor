@@ -13,8 +13,7 @@
 #include <util/compat.hpp>
 #include <util/meta.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 /*
@@ -214,5 +213,4 @@ public:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

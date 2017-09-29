@@ -10,8 +10,7 @@
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
     communicator_(rec, decomp)
@@ -186,5 +185,4 @@ void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

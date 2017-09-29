@@ -7,8 +7,7 @@
 #include <util/debug.hpp>
 #include <util/span.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Hines matrix
 /// Make the back end state implementation optional to allow for
@@ -92,5 +91,4 @@ public:
     state state_;
 };
 
-} // namespace nest
-} // namespace mc
+} // namespace arb

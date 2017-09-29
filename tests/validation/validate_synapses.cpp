@@ -19,7 +19,7 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 void run_synapse_test(
     const char* syn_type,
@@ -32,7 +32,7 @@ void run_synapse_test(
     nlohmann::json meta = {
         {"name", "membrane voltage"},
         {"model", syn_type},
-        {"sim", "nestmc"},
+        {"sim", "arbor"},
         {"units", "mV"},
         {"backend_kind", to_string(backend)}
     };

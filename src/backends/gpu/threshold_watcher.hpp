@@ -9,8 +9,7 @@
 #include "backends/fvm_types.hpp"
 #include "kernels/test_thresholds.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 /// threshold crossing logic
@@ -136,5 +135,4 @@ private:
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -4,8 +4,7 @@
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 template <typename T, typename I>
@@ -127,5 +126,4 @@ private:
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

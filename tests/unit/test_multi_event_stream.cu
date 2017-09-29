@@ -11,7 +11,7 @@
 #include <memory/wrappers.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 using deliverable_event_stream = gpu::multi_event_stream<deliverable_event>;
 

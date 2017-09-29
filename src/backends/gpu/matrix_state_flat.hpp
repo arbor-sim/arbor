@@ -7,8 +7,7 @@
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 void solve_matrix_flat(
@@ -135,5 +134,4 @@ private:
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

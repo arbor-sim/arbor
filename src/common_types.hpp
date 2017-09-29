@@ -12,8 +12,7 @@
 
 #include <util/lexcmp_def.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // For identifying cells globally.
 
@@ -72,15 +71,14 @@ enum cell_kind {
     data_spike_source,        // Spike source from values inserted via description
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
-std::ostream& operator<<(std::ostream& O, nest::mc::cell_member_type m);
+std::ostream& operator<<(std::ostream& O, arb::cell_member_type m);
 
 namespace std {
-    template <> struct hash<nest::mc::cell_member_type> {
-        std::size_t operator()(const nest::mc::cell_member_type& m) const {
-            using namespace nest::mc;
+    template <> struct hash<arb::cell_member_type> {
+        std::size_t operator()(const arb::cell_member_type& m) const {
+            using namespace arb;
             static_assert(sizeof(std::size_t)>sizeof(cell_gid_type), "invalid size assumptions for hash of cell_member_type");
 
             std::size_t k = ((std::size_t)m.gid << (8*sizeof(cell_gid_type))) + m.index;

@@ -65,8 +65,8 @@ private:
 
 public:
     mpi_listener(std::string f_base="") {
-        rank_ = nest::mc::communication::global_policy::id();
-        size_ = nest::mc::communication::global_policy::size();
+        rank_ = arb::communication::global_policy::id();
+        size_ = arb::communication::global_policy::size();
 
         if (f_base.empty()) {
             return;
@@ -149,7 +149,7 @@ public:
 
         // count the number of ranks that had errors
         int global_errors =
-            nest::mc::communication::global_policy::sum(test_failures_>0 ? 1 : 0);
+            arb::communication::global_policy::sum(test_failures_>0 ? 1 : 0);
         if (global_errors>0) {
             test_case_failures_++;
             printf_helper("  GLOBAL_FAIL on %d ranks\n", global_errors);

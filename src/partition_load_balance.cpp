@@ -3,8 +3,7 @@
 #include <hardware/node_info.hpp>
 #include <recipe.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd) {
     struct partition_gid_domain {
@@ -93,6 +92,5 @@ domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd)
     //return domain_decomposition(num_domains, domain_id, num_local_cells, num_global_cells, std::move(groups));
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

@@ -9,8 +9,7 @@
 #include <spike.hpp>
 #include <util/optional.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 void event_binner::reset() {
     last_event_times_.clear();
@@ -52,6 +51,5 @@ void event_binner::update_last_event_time(cell_gid_type id, time_type t) {
     last_event_times_[id] = t;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

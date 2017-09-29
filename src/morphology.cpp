@@ -5,10 +5,9 @@
 
 #include <morphology.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
-using ::nest::mc::math::lerp;
+using ::arb::math::lerp;
 
 static section_point lerp(const section_point& a, const section_point& b, double u) {
     return { lerp(a.x, b.x, u), lerp(a.y, b.y, u), lerp(a.z, b.z, u), lerp(a.r, b.r, u) };
@@ -134,5 +133,4 @@ void morphology::assert_valid() const {
 
 
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -6,7 +6,7 @@
 #include "util/optional.hpp"
 #include "common.hpp"
 
-using namespace nest::mc::util;
+using namespace arb::util;
 
 TEST(optionalm,ctors) {
     optional<int> a,b(3),c=b,d=4;

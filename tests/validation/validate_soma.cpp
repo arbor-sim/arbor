@@ -20,7 +20,7 @@
 
 #include "../gtest.h"
 
-using namespace nest::mc;
+using namespace arb;
 
 void validate_soma(backend_kind backend) {
     float sample_dt = g_trace_io.sample_dt();
@@ -38,7 +38,7 @@ void validate_soma(backend_kind backend) {
     nlohmann::json meta = {
         {"name", "membrane voltage"},
         {"model", "soma"},
-        {"sim", "nestmc"},
+        {"sim", "arbor"},
         {"units", "mV"},
         {"backend_kind", to_string(backend)}
     };

@@ -6,8 +6,7 @@
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Cell_group to collect spike sources
 class dss_cell_group: public cell_group {
@@ -100,6 +99,5 @@ private:
     std::vector<std::vector<time_type>::iterator > not_emit_it_;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

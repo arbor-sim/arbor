@@ -11,8 +11,7 @@
 #include <memory/copy.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 // Base class provides common implementations across event types.
@@ -61,8 +60,8 @@ protected:
 
     template <typename Event>
     void init(std::vector<Event>& staged) {
-        using ::nest::mc::event_time;
-        using ::nest::mc::event_index;
+        using ::arb::event_time;
+        using ::arb::event_index;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
@@ -120,7 +119,7 @@ protected:
 template <typename Event>
 class multi_event_stream: public multi_event_stream_base {
 public:
-    using event_data_type = ::nest::mc::event_data_type<Event>;
+    using event_data_type = ::arb::event_data_type<Event>;
     using data_array = memory::device_vector<event_data_type>;
 
     using state = multi_event_stream_state<event_data_type>;
@@ -138,7 +137,7 @@ public:
         tmp_ev_data_.clear();
         tmp_ev_data_.reserve(staged.size());
 
-        using ::nest::mc::event_data;
+        using ::arb::event_data;
         util::assign_by(tmp_ev_data_, staged, [](const Event& ev) { return event_data(ev); });
         ev_data_ = data_array(memory::make_view(tmp_ev_data_));
     }
@@ -155,5 +154,4 @@ private:
 };
 
 } // namespace gpu
-} // namespace nest
-} // namespace mc
+} // namespace arb

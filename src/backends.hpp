@@ -3,8 +3,7 @@
 #include <string>
 #include <backends/fvm.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 enum class backend_kind {
     multicore,   //  use multicore backend for all computation
@@ -21,5 +20,4 @@ inline std::string to_string(backend_kind p) {
     return "unknown";
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

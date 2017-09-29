@@ -8,8 +8,7 @@
 
 #include <functional>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 struct nop_function_t {
@@ -31,5 +30,4 @@ struct nop_function_t {
 static constexpr nop_function_t nop_function;
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

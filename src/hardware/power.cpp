@@ -2,11 +2,10 @@
 
 #include "power.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
-#ifdef NMC_HAVE_CRAY
+#ifdef ARB_HAVE_CRAY
 
 energy_size_type energy() {
     energy_size_type result = energy_size_type(-1);
@@ -28,5 +27,4 @@ energy_size_type energy() {
 #endif
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

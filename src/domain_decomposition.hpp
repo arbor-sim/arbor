@@ -14,8 +14,7 @@
 #include <util/partition.hpp>
 #include <util/transform.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 inline bool has_gpu_backend(cell_kind k) {
     if (k==cell_kind::cable1d_neuron) {
@@ -46,7 +45,7 @@ struct group_description {
 /// A domain_decomposition type is responsible solely for describing the
 /// distribution of cells across cell_groups and domains.
 /// A load balancing algorithm is responsible for generating the
-/// domain_decomposition, e.g. nest::mc::partitioned_load_balancer().
+/// domain_decomposition, e.g. arb::partitioned_load_balancer().
 struct domain_decomposition {
     /// Tests whether a gid is on the local domain.
     bool is_local_gid(cell_gid_type gid) const {
@@ -74,5 +73,4 @@ struct domain_decomposition {
     std::vector<group_description> groups;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

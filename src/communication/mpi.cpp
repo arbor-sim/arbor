@@ -2,8 +2,7 @@
 
 #include <communication/mpi.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace mpi {
 
 // global state
@@ -67,5 +66,4 @@ bool ballot(bool vote) {
 }
 
 } // namespace mpi
-} // namespace mc
-} // namespace nest
+} // namespace arb

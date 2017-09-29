@@ -2,19 +2,18 @@
 
 #include <util/optional.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
 // Test environment variables for user-specified count of threads.
 // Potential environment variables are tested in this order:
-//   1. use the environment variable specified by NMC_NUM_THREADS_VAR
-//   2. use NMC_NUM_THREADS
+//   1. use the environment variable specified by ARB_NUM_THREADS_VAR
+//   2. use ARB_NUM_THREADS
 //   3. use OMP_NUM_THREADS
 //   4. If no variable is set, returns no value.
 //
 // Valid values for the environment variable are:
-//      0 : NestMC is responsible for picking the number of threads.
+//      0 : Arbor is responsible for picking the number of threads.
 //     >0 : The number of threads to use.
 //
 // Throws std::runtime_error:
@@ -24,14 +23,13 @@ util::optional<size_t> get_env_num_threads();
 size_t num_threads();
 
 } // namespace threading
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
-#if defined(NMC_HAVE_TBB)
+#if defined(ARB_HAVE_TBB)
     #include "tbb.hpp"
-#elif defined(NMC_HAVE_CTHREAD)
+#elif defined(ARB_HAVE_CTHREAD)
     #include "cthread.hpp"
 #else
-    #define NMC_HAVE_SERIAL
+    #define ARB_HAVE_SERIAL
     #include "serial.hpp"
 #endif

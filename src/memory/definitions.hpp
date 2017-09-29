@@ -4,8 +4,7 @@
 #include <sstream>
 #include <typeinfo>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 namespace types {
@@ -113,6 +112,5 @@ namespace util {
 } // namespace util
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

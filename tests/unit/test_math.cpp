@@ -6,7 +6,7 @@
 #include <math.hpp>
 #include <util/compat.hpp>
 
-using namespace nest::mc::math;
+using namespace arb::math;
 
 TEST(math, pi) {
     // check regression against long double literal in implementation

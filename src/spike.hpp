@@ -5,8 +5,7 @@
 
 #include <common_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename I>
 struct basic_spike {
@@ -25,11 +24,10 @@ struct basic_spike {
 /// Standard specialization:
 using spike = basic_spike<cell_member_type>;
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
-// Custom stream operator for printing nest::mc::spike<> values.
+// Custom stream operator for printing arb::spike<> values.
 template <typename I>
-std::ostream& operator<<(std::ostream& o, nest::mc::basic_spike<I> s) {
+std::ostream& operator<<(std::ostream& o, arb::basic_spike<I> s) {
     return o << "S[src " << s.source << ", t " << s.time << "]";
 }

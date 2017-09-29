@@ -18,7 +18,7 @@
 
 #include <cuda.h>
 
-using namespace nest::mc;
+using namespace arb;
 
 using gpu::impl::npos;
 using util::make_span;

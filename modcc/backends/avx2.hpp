@@ -7,9 +7,7 @@
 #include "backends/base.hpp"
 #include "util/compat.hpp"
 
-
-namespace nest {
-namespace mc {
+namespace arb {
 namespace modcc {
 
 // Specialize for the different architectures
@@ -79,7 +77,7 @@ struct simd_intrinsics<targetKind::avx2> {
                 tb << "_mm256_exp_pd(";
             }
             else {
-                tb << "nest::mc::multicore::nmc_mm256_exp_pd(";
+                tb << "arb::multicore::arb_mm256_exp_pd(";
             }
             break;
         case tok::log:
@@ -87,7 +85,7 @@ struct simd_intrinsics<targetKind::avx2> {
                 tb << "_mm256_log_pd(";
             }
             else {
-                tb << "nest::mc::multicore::nmc_mm256_log_pd(";
+                tb << "arb::multicore::arb_mm256_log_pd(";
             }
             break;
         default:
@@ -104,7 +102,7 @@ struct simd_intrinsics<targetKind::avx2> {
             tb << "_mm256_pow_pd(";
         }
         else {
-            tb << "nest::mc::multicore::nmc_mm256_pow_pd(";
+            tb << "arb::multicore::arb_mm256_pow_pd(";
         }
 
         emit_operands(tb, arg_emitter(base), arg_emitter(exp));
@@ -203,4 +201,4 @@ private:
 int simd_intrinsics<targetKind::avx2>::varcnt = 0;
 const std::string simd_intrinsics<targetKind::avx2>::varprefix = "_r";
 
-}}} // closing namespaces
+}} // closing namespaces

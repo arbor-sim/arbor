@@ -15,7 +15,7 @@
 
 #include "simd_printer.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 //#define VERBOSE
 

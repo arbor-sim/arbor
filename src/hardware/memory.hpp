@@ -2,8 +2,7 @@
 
 #include <cstdint>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 // Use a signed type to store memory sizes because it can be used to store
@@ -22,5 +21,4 @@ memory_size_type allocated_memory();
 memory_size_type gpu_allocated_memory();
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb

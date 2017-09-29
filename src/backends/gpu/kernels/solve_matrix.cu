@@ -3,8 +3,7 @@
 #include "detail.hpp"
 #include <backends/fvm_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 namespace kernels {
@@ -118,5 +117,4 @@ void solve_matrix_interleaved(
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

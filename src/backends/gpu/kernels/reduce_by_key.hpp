@@ -3,8 +3,7 @@
 #include <cstdint>
 #include "detail.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 namespace impl{
@@ -128,5 +127,4 @@ void reduce_by_key(T contribution, T* target, I idx) {
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

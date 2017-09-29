@@ -25,8 +25,7 @@
 #include <util/lexcmp_def.hpp>
 #include <util/meta.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 struct any_ptr {
@@ -94,5 +93,4 @@ template <typename T>
 T any_cast(any_ptr p) noexcept { return p.as<T>(); }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

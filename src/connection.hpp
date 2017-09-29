@@ -6,8 +6,7 @@
 #include <event_queue.hpp>
 #include <spike.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 class connection {
 public:
@@ -58,10 +57,9 @@ static inline bool operator<(cell_member_type lhs, const connection& rhs) {
     return lhs < rhs.source();
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
-static inline std::ostream& operator<<(std::ostream& o, nest::mc::connection const& con) {
+static inline std::ostream& operator<<(std::ostream& o, arb::connection const& con) {
     return o << "con [" << con.source() << " -> " << con.destination()
              << " : weight " << con.weight()
              << ", delay " << con.delay() << "]";

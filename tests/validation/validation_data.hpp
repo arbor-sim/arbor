@@ -10,8 +10,7 @@
 #include <simple_sampler.hpp>
 #include <util/path.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /*
  * Class manages input (loading and parsing) of JSON
@@ -89,9 +88,9 @@ private:
     float min_dt_ = 0.001f;
     float sample_dt_ = 0.005f;
 
-    // Returns value of NMC_DATADIR environment variable if set,
+    // Returns value of ARB_DATADIR environment variable if set,
     // otherwise make a 'best-effort' search for the data directory,
-    // starting with NMC_DATADIR preprocessor define if defined and
+    // starting with ARB_DATADIR preprocessor define if defined and
     // if the directory exists, or else try './validation/data'
     // and '../validation/data'.
     static util::path find_datadir();
@@ -99,5 +98,4 @@ private:
 
 extern trace_io g_trace_io;
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

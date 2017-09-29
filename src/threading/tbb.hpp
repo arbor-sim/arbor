@@ -1,7 +1,7 @@
 #pragma once
 
-#if !defined(NMC_HAVE_TBB)
-    #error this header can only be loaded if NMC_HAVE_TBB is set
+#if !defined(ARB_HAVE_TBB)
+    #error this header can only be loaded if ARB_HAVE_TBB is set
 #endif
 
 #include <string>
@@ -11,8 +11,7 @@
 #include <tbb/compat/thread>
 #include <tbb/enumerable_thread_specific.h>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
 template <typename T>
@@ -67,9 +66,8 @@ void sort(Container& c) {
     tbb::parallel_sort(c.begin(), c.end());
 }
 
-} // threading
-} // mc
-} // nest
+} // namespace threading
+} // namespace arb
 
 namespace tbb {
     /// comparison operator for tbb::tick_count type

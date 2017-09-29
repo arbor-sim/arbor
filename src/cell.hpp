@@ -14,8 +14,7 @@
 #include <util/pprintf.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// wrapper around compartment layout information derived from a high level cell
 /// description
@@ -227,5 +226,4 @@ cable_segment* cell::add_cable(cell::index_type parent, Args&&... args)
 // section of the morphologu.
 cell make_cell(const morphology&, bool compartments_from_discretization=false);
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

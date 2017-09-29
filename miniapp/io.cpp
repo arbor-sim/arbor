@@ -21,13 +21,12 @@
 
 namespace TCLAP {
     template <typename V>
-    struct ArgTraits<nest::mc::util::optional<V>> {
+    struct ArgTraits<arb::util::optional<V>> {
         using ValueCategory = ValueLike;
     };
 } // namespace TCLAP
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 namespace util {
     // Using static here because we do not want external linkage for this operator.
@@ -123,7 +122,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
     try {
         cl_options defopts;
 
-        CustomCmdLine cmd("nest mc miniapp harness", "0.1");
+        CustomCmdLine cmd("arbor miniapp harness", "0.1");
 
         TCLAP::ValueArg<std::string> ifile_arg(
             "i", "ifile",
@@ -433,7 +432,7 @@ std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
 ///
 /// Returns a vector of time_type
 
-std::vector<time_type> get_parsed_spike_times_from_path(nest::mc::util::path path) {
+std::vector<time_type> get_parsed_spike_times_from_path(arb::util::path path) {
     std::ifstream fid(path);
     if (!fid) {
         throw std::runtime_error(util::strprintf(
@@ -444,5 +443,4 @@ std::vector<time_type> get_parsed_spike_times_from_path(nest::mc::util::path pat
 }
 
 } // namespace io
-} // namespace mc
-} // namespace nest
+} // namespace arb

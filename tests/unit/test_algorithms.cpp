@@ -23,7 +23,7 @@ TEST(algorithms, parallel_sort)
     // assert that the original vector has in fact been permuted
     EXPECT_FALSE(std::is_sorted(v.begin(), v.end()));
 
-    nest::mc::threading::sort(v);
+    arb::threading::sort(v);
 
     EXPECT_TRUE(std::is_sorted(v.begin(), v.end()));
     for(auto i=0; i<n; ++i) {
@@ -36,7 +36,7 @@ TEST(algorithms, sum)
 {
     // sum of 10 times 2 is 20
     std::vector<int> v1(10, 2);
-    EXPECT_EQ(10*2, nest::mc::algorithms::sum(v1));
+    EXPECT_EQ(10*2, arb::algorithms::sum(v1));
 
     // make an array 1:20 and sum it up using formula for arithmetic sequence
     auto n = 20;
@@ -45,28 +45,28 @@ TEST(algorithms, sum)
     // the result being required in EXPECT_EQ
     // std::iota(v2.begin(), v2.end(), 1);
     for(auto i=0; i<n; ++i) { v2[i] = i+1; }
-    EXPECT_EQ((n+1)*n/2, nest::mc::algorithms::sum(v2));
+    EXPECT_EQ((n+1)*n/2, arb::algorithms::sum(v2));
 }
 
 TEST(algorithms, make_index)
 {
     {
         std::vector<int> v(10, 1);
-        auto index = nest::mc::algorithms::make_index(v);
+        auto index = arb::algorithms::make_index(v);
 
         EXPECT_EQ(index.size(), 11u);
         EXPECT_EQ(index.front(), 0);
-        EXPECT_EQ(index.back(), nest::mc::algorithms::sum(v));
+        EXPECT_EQ(index.back(), arb::algorithms::sum(v));
     }
 
     {
         std::vector<int> v(10);
         std::iota(v.begin(), v.end(), 1);
-        auto index = nest::mc::algorithms::make_index(v);
+        auto index = arb::algorithms::make_index(v);
 
         EXPECT_EQ(index.size(), 11u);
         EXPECT_EQ(index.front(), 0);
-        EXPECT_EQ(index.back(), nest::mc::algorithms::sum(v));
+        EXPECT_EQ(index.back(), arb::algorithms::sum(v));
     }
 }
 
@@ -74,69 +74,69 @@ TEST(algorithms, minimal_degree)
 {
     {
         std::vector<int> v = {0};
-        EXPECT_TRUE(nest::mc::algorithms::is_minimal_degree(v));
+        EXPECT_TRUE(arb::algorithms::is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 0, 1, 2, 3, 4};
-        EXPECT_TRUE(nest::mc::algorithms::is_minimal_degree(v));
+        EXPECT_TRUE(arb::algorithms::is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 0, 1, 2, 0, 4};
-        EXPECT_TRUE(nest::mc::algorithms::is_minimal_degree(v));
+        EXPECT_TRUE(arb::algorithms::is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 0, 1, 2, 0, 4, 5, 4};
-        EXPECT_TRUE(nest::mc::algorithms::is_minimal_degree(v));
+        EXPECT_TRUE(arb::algorithms::is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {1};
-        EXPECT_FALSE(nest::mc::algorithms::is_minimal_degree(v));
+        EXPECT_FALSE(arb::algorithms::is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 2};
-        EXPECT_FALSE(nest::mc::algorithms::is_minimal_degree(v));
+        EXPECT_FALSE(arb::algorithms::is_minimal_degree(v));
     }
 
     {
         std::vector<int> v = {0, 1, 2};
-        EXPECT_FALSE(nest::mc::algorithms::is_minimal_degree(v));
+        EXPECT_FALSE(arb::algorithms::is_minimal_degree(v));
     }
 }
 
 TEST(algorithms, is_strictly_monotonic_increasing)
 {
     EXPECT_TRUE(
-        nest::mc::algorithms::is_strictly_monotonic_increasing(
+        arb::algorithms::is_strictly_monotonic_increasing(
             std::vector<int>{0}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_strictly_monotonic_increasing(
+        arb::algorithms::is_strictly_monotonic_increasing(
             std::vector<int>{0, 1, 2, 3}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_strictly_monotonic_increasing(
+        arb::algorithms::is_strictly_monotonic_increasing(
             std::vector<int>{8, 20, 42, 89}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_strictly_monotonic_increasing(
+        arb::algorithms::is_strictly_monotonic_increasing(
             std::vector<int>{0, 0}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_strictly_monotonic_increasing(
+        arb::algorithms::is_strictly_monotonic_increasing(
             std::vector<int>{8, 20, 20, 89}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_strictly_monotonic_increasing(
+        arb::algorithms::is_strictly_monotonic_increasing(
             std::vector<int>{3, 2, 1, 0}
         )
     );
@@ -145,32 +145,32 @@ TEST(algorithms, is_strictly_monotonic_increasing)
 TEST(algorithms, is_strictly_monotonic_decreasing)
 {
     EXPECT_TRUE(
-        nest::mc::algorithms::is_strictly_monotonic_decreasing(
+        arb::algorithms::is_strictly_monotonic_decreasing(
             std::vector<int>{0}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_strictly_monotonic_decreasing(
+        arb::algorithms::is_strictly_monotonic_decreasing(
             std::vector<int>{3, 2, 1, 0}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_strictly_monotonic_decreasing(
+        arb::algorithms::is_strictly_monotonic_decreasing(
             std::vector<int>{0, 1, 2, 3}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_strictly_monotonic_decreasing(
+        arb::algorithms::is_strictly_monotonic_decreasing(
             std::vector<int>{8, 20, 42, 89}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_strictly_monotonic_decreasing(
+        arb::algorithms::is_strictly_monotonic_decreasing(
             std::vector<int>{0, 0}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_strictly_monotonic_decreasing(
+        arb::algorithms::is_strictly_monotonic_decreasing(
             std::vector<int>{8, 20, 20, 89}
         )
     );
@@ -179,22 +179,22 @@ TEST(algorithms, is_strictly_monotonic_decreasing)
 TEST(algorithms, is_positive)
 {
     EXPECT_TRUE(
-        nest::mc::algorithms::is_positive(
+        arb::algorithms::is_positive(
             std::vector<int>{}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_positive(
+        arb::algorithms::is_positive(
             std::vector<int>{3, 2, 1}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_positive(
+        arb::algorithms::is_positive(
             std::vector<int>{3, 2, 1, 0}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_positive(
+        arb::algorithms::is_positive(
             std::vector<int>{-1}
         )
     );
@@ -214,7 +214,7 @@ TEST(algorithms, has_contiguous_compartments)
     //   5       6
     //
     EXPECT_FALSE(
-        nest::mc::algorithms::has_contiguous_compartments(
+        arb::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 2, 3, 4, 2}
         )
     );
@@ -231,7 +231,7 @@ TEST(algorithms, has_contiguous_compartments)
     //   4       7
     //
     EXPECT_FALSE(
-        nest::mc::algorithms::has_contiguous_compartments(
+        arb::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 2, 5}
         )
     );
@@ -248,7 +248,7 @@ TEST(algorithms, has_contiguous_compartments)
     //   4       6
     //
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_compartments(
+        arb::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 5, 2}
         )
     );
@@ -265,7 +265,7 @@ TEST(algorithms, has_contiguous_compartments)
     //   4       6
     //
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_compartments(
+        arb::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 1, 2, 3, 2, 5, 1}
         )
     );
@@ -278,21 +278,21 @@ TEST(algorithms, has_contiguous_compartments)
     // 3   4
     //
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_compartments(
+        arb::algorithms::has_contiguous_compartments(
             std::vector<int>{0, 0, 0, 1, 1}
         )
     );
 
     // Soma-only list
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_compartments(
+        arb::algorithms::has_contiguous_compartments(
             std::vector<int>{0}
         )
     );
 
     // Empty list
     EXPECT_TRUE(
-        nest::mc::algorithms::has_contiguous_compartments(
+        arb::algorithms::has_contiguous_compartments(
             std::vector<int>{}
         )
     );
@@ -301,32 +301,32 @@ TEST(algorithms, has_contiguous_compartments)
 TEST(algorithms, is_unique)
 {
     EXPECT_TRUE(
-        nest::mc::algorithms::is_unique(
+        arb::algorithms::is_unique(
             std::vector<int>{}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_unique(
+        arb::algorithms::is_unique(
             std::vector<int>{0}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_unique(
+        arb::algorithms::is_unique(
             std::vector<int>{0,1,100}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_unique(
+        arb::algorithms::is_unique(
             std::vector<int>{0,0}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_unique(
+        arb::algorithms::is_unique(
             std::vector<int>{0,1,2,2,3,4}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_unique(
+        arb::algorithms::is_unique(
             std::vector<int>{0,1,2,3,4,4}
         )
     );
@@ -335,42 +335,42 @@ TEST(algorithms, is_unique)
 TEST(algorithms, is_sorted)
 {
     EXPECT_TRUE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{100}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{0,1,2}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{0,2,100}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{0,0}
         )
     );
     EXPECT_TRUE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{0,1,2,2,2,2,3,4,5,5,5}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{0,1,2,1}
         )
     );
     EXPECT_FALSE(
-        nest::mc::algorithms::is_sorted(
+        arb::algorithms::is_sorted(
             std::vector<int>{1,0}
         )
     );
@@ -399,16 +399,16 @@ TEST(algorithms, child_count)
         std::vector<int> expected_child_count =
             { 3, 1, 1, 0, 1, 0, 1, 1, 2, 1, 0, 1, 1, 0 };
 
-        // auto count = nest::mc::algorithms::child_count(parent_index);
+        // auto count = arb::algorithms::child_count(parent_index);
         EXPECT_EQ(expected_child_count,
-                  nest::mc::algorithms::child_count(parent_index));
+                  arb::algorithms::child_count(parent_index));
     }
 
 }
 
 TEST(algorithms, branches)
 {
-    using namespace nest::mc;
+    using namespace arb;
 
     {
         //
@@ -546,7 +546,7 @@ struct test_index_into {
 TEST(algorithms, index_into)
 {
     using C = std::vector<int>;
-    using nest::mc::util::size;
+    using arb::util::size;
 
     // by default index_into assumes that the inputs satisfy
     // quite a strong set of prerequisites
@@ -565,14 +565,14 @@ TEST(algorithms, index_into)
     test_index_into tester;
     for(auto& t : tests) {
         EXPECT_TRUE(
-            tester(t.second, t.first, nest::mc::algorithms::index_into(t.second, t.first))
+            tester(t.second, t.first, arb::algorithms::index_into(t.second, t.first))
         );
     }
 
     // test for arrays
     int sub[] = {2, 3, 5, 9};
     int sup[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-    auto idx = nest::mc::algorithms::index_into(sub, sup);
+    auto idx = arb::algorithms::index_into(sub, sup);
     EXPECT_EQ(size(sub), size(idx));
     auto it = idx.begin();
     for (auto i: sub) {
@@ -582,7 +582,7 @@ TEST(algorithms, index_into)
 
 TEST(algorithms, binary_find)
 {
-    using nest::mc::algorithms::binary_find;
+    using arb::algorithms::binary_find;
 
     // empty containers
     {
@@ -710,7 +710,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(vr, 10);
         auto found = itv!=std::end(vr);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(nest::mc::util::cbegin(v), itv), 1u);
+        EXPECT_EQ(std::distance(arb::util::cbegin(v), itv), 1u);
         if (found) {
             EXPECT_EQ(*itv, 10);
         }
@@ -736,10 +736,10 @@ struct int_string {
 
 TEST(algorithms, binary_find_convert)
 {
-    using nest::mc::algorithms::binary_find;
+    using arb::algorithms::binary_find;
 
     std::vector<std::string> values = {"0", "10", "20", "30"};
-    auto it = nest::mc::algorithms::binary_find(values, int_string{20});
+    auto it = arb::algorithms::binary_find(values, int_string{20});
 
     EXPECT_TRUE(it!=values.end());
     EXPECT_TRUE(std::distance(values.begin(), it)==2u);

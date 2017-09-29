@@ -9,7 +9,7 @@
 #include <type_traits>
 #include <unordered_map>
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 #include <tbb/tbb_stddef.h>
 #endif
 
@@ -22,7 +22,7 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 using testing::null_terminated;
 using testing::nocopy;
 using testing::nomove;
@@ -445,9 +445,9 @@ TEST(range, sum_by) {
 }
 
 TEST(range, is_sequence) {
-    EXPECT_TRUE(nest::mc::util::is_sequence<std::vector<int>>::value);
-    EXPECT_TRUE(nest::mc::util::is_sequence<std::string>::value);
-    EXPECT_TRUE(nest::mc::util::is_sequence<int[8]>::value);
+    EXPECT_TRUE(arb::util::is_sequence<std::vector<int>>::value);
+    EXPECT_TRUE(arb::util::is_sequence<std::string>::value);
+    EXPECT_TRUE(arb::util::is_sequence<int[8]>::value);
 }
 
 TEST(range, all_of_any_of) {
@@ -600,7 +600,7 @@ TEST(range, is_sorted_by) {
     EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
 }
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 
 TEST(range, tbb_split) {
     constexpr std::size_t N = 20;

@@ -48,7 +48,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include <backends/gpu/kernels/detail.hpp>");
     buffer().add_line();
 
-    buffer().add_line("namespace nest{ namespace mc{ namespace gpu{");
+    buffer().add_line("namespace arb { namespace gpu{");
     buffer().add_line("using deliverable_event_stream_state = multi_event_stream_state<deliverable_event_data>;");
     buffer().add_line();
 
@@ -57,8 +57,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_gutter() << "struct " << pack_name()  << " {";
     buffer().end_line();
     buffer().increase_indentation();
-    buffer().add_line("using T = nest::mc::fvm_value_type;");
-    buffer().add_line("using I = nest::mc::fvm_size_type;");
+    buffer().add_line("using T = arb::fvm_value_type;");
+    buffer().add_line("using I = arb::fvm_size_type;");
     buffer().add_line("// array parameters");
     for(auto const &var: array_variables) {
         buffer().add_line("T* " + var->name() + ";");
@@ -116,11 +116,11 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
         else if (var.second->is_net_receive()) {
             buffer().add_line(
-                "void deliver_events_" + module_name_ +"(" + pack_name() + " params_, nest::mc::fvm_size_type mech_id, deliverable_event_stream_state state);");
+                "void deliver_events_" + module_name_ +"(" + pack_name() + " params_, arb::fvm_size_type mech_id, deliverable_event_stream_state state);");
         }
     }
     buffer().add_line();
-    buffer().add_line("}}} // namespace nest::mc::gpu");
+    buffer().add_line("}} // namespace arb::gpu");
 
     //
     // Implementation
@@ -134,7 +134,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include <backends/gpu/intrinsics.hpp>");
     buffer().add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
     buffer().add_line();
-    buffer().add_line("namespace nest{ namespace mc{ namespace gpu{");
+    buffer().add_line("namespace arb { namespace gpu{");
     buffer().add_line("namespace kernels {");
     buffer().increase_indentation();
     {
@@ -174,25 +174,25 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             buffer().add_line("constexpr int blockwidth = 128;");
             buffer().add_line("dim3 dim_block(blockwidth);");
             buffer().add_line("dim3 dim_grid(impl::block_count(n, blockwidth));");
-            buffer().add_line("nest::mc::gpu::kernels::"+e->name()+"_"+module_name_+"<<<dim_grid, dim_block>>>(params_);");
+            buffer().add_line("arb::gpu::kernels::"+e->name()+"_"+module_name_+"<<<dim_grid, dim_block>>>(params_);");
             buffer().decrease_indentation();
             buffer().add_line("}");
             buffer().add_line();
         }
         else if (var.second->is_net_receive()) {
             buffer().add_line("void deliver_events_" + module_name_
-                + "(" + pack_name() + " params_, nest::mc::fvm_size_type mech_id, deliverable_event_stream_state state) {");
+                + "(" + pack_name() + " params_, arb::fvm_size_type mech_id, deliverable_event_stream_state state) {");
             buffer().increase_indentation();
             buffer().add_line("const int n = state.n;");
             buffer().add_line("constexpr int blockwidth = 128;");
             buffer().add_line("const auto nblock = impl::block_count(n, blockwidth);");
-            buffer().add_line("nest::mc::gpu::kernels::deliver_events<<<nblock, blockwidth>>>(params_, mech_id, state);");
+            buffer().add_line("arb::gpu::kernels::deliver_events<<<nblock, blockwidth>>>(params_, mech_id, state);");
             buffer().decrease_indentation();
             buffer().add_line("}");
             buffer().add_line();
         }
     }
-    buffer().add_line("}}} // namespace nest::mc::gpu");
+    buffer().add_line("}} // namespace arb::gpu");
 
     //
     // Interface header
@@ -217,7 +217,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include \"" + module_name_ + "_impl.hpp\"");
     buffer().add_line();
 
-    buffer().add_line("namespace nest{ namespace mc{ namespace gpu{");
+    buffer().add_line("namespace arb { namespace gpu{");
     buffer().add_line();
 
     //////////////////////////////////////////////
@@ -448,7 +448,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     };
     buffer().add_line("void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) override {");
     buffer().increase_indentation();
-    buffer().add_line("using nest::mc::algorithms::index_into;");
+    buffer().add_line("using arb::algorithms::index_into;");
     if(has_ion(ionKind::Na)) {
         auto ion = find_ion(ionKind::Na);
         buffer().add_line("if(k==ionKind::na) {");
@@ -488,7 +488,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         buffer().decrease_indentation();
         buffer().add_line("}");
     }
-    buffer().add_line("throw std::domain_error(nest::mc::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
+    buffer().add_line("throw std::domain_error(arb::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
     buffer().decrease_indentation();
     buffer().add_line("}");
     buffer().add_line();
@@ -504,7 +504,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             auto name = proc->name();
             buffer().add_line("void " + name + "() {");
             buffer().increase_indentation();
-            buffer().add_line("nest::mc::gpu::"+name+"_"+module_name_+"(param_pack_);");
+            buffer().add_line("arb::gpu::"+name+"_"+module_name_+"(param_pack_);");
             buffer().decrease_indentation();
             buffer().add_line("}");
             buffer().add_line();
@@ -516,7 +516,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             buffer().add_line("void deliver_events(const deliverable_event_stream_state& events) override {");
             buffer().increase_indentation();
 
-            buffer().add_line("nest::mc::gpu::deliver_events_"+module_name_
+            buffer().add_line("arb::gpu::deliver_events_"+module_name_
                               +"(param_pack_, mech_id_, events);");
 
             buffer().decrease_indentation();
@@ -559,7 +559,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().decrease_indentation();
     buffer().add_line("};");
     buffer().add_line();
-    buffer().add_line("}}} // namespaces");
+    buffer().add_line("}} // namespaces");
 }
 
 void CUDAPrinter::visit(Expression *e) {
@@ -736,7 +736,7 @@ void CUDAPrinter::print_device_function_prototype(ProcedureExpression *e) {
                      << "(" << module_->name() << "_ParamPack const& params_,"
                      << "const int tid_";
     for(auto& arg : e->args()) {
-        buffer() << ", nest::mc::fvm_value_type " << arg->is_argument()->name();
+        buffer() << ", arb::fvm_value_type " << arg->is_argument()->name();
     }
     buffer() << ")";
 }
@@ -758,7 +758,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         // print body
         buffer().increase_indentation();
 
-        buffer().add_line("using value_type = nest::mc::fvm_value_type;");
+        buffer().add_line("using value_type = arb::fvm_value_type;");
         buffer().add_line();
 
         e->body()->accept(this);
@@ -774,11 +774,11 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         // Core `net_receive` kernel is called device-side from `kernel::deliver_events`.
         buffer().add_line(       "__device__");
         buffer().add_gutter() << "void net_receive(const " << module_->name() << "_ParamPack& params_, "
-                           << "nest::mc::fvm_size_type i_, nest::mc::fvm_value_type weight) {";
+                           << "arb::fvm_size_type i_, arb::fvm_value_type weight) {";
         buffer().add_line();
         buffer().increase_indentation();
 
-        buffer().add_line("using value_type = nest::mc::fvm_value_type;");
+        buffer().add_line("using value_type = arb::fvm_value_type;");
         buffer().add_line();
 
         buffer().add_line("auto tid_ = i_;");
@@ -797,7 +797,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         buffer().add_line(       "__global__");
         buffer().add_gutter() << "void net_receive_global("
                            << module_->name() << "_ParamPack params_, "
-                           << "nest::mc::fvm_size_type i_, nest::mc::fvm_value_type weight) {";
+                           << "arb::fvm_size_type i_, arb::fvm_value_type weight) {";
         buffer().add_line();
         buffer().increase_indentation();
 
@@ -811,7 +811,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         buffer().add_line(       "__global__");
         buffer().add_gutter() << "void deliver_events("
                            << module_->name() << "_ParamPack params_, "
-                           << "nest::mc::fvm_size_type mech_id, deliverable_event_stream_state state) {";
+                           << "arb::fvm_size_type mech_id, deliverable_event_stream_state state) {";
         buffer().add_line();
         buffer().increase_indentation();
 
@@ -861,7 +861,7 @@ void CUDAPrinter::visit(APIMethod *e) {
     }
     buffer().increase_indentation();
 
-    buffer().add_line("using value_type = nest::mc::fvm_value_type;");
+    buffer().add_line("using value_type = arb::fvm_value_type;");
     buffer().add_line();
 
     buffer().add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");
@@ -943,7 +943,7 @@ void CUDAPrinter::print_APIMethod_body(ProcedureExpression* e) {
             in->accept(this);
         }
         else {
-            buffer() << "nest::mc::gpu::reduce_by_key(";
+            buffer() << "arb::gpu::reduce_by_key(";
             if (out->op()==tok::minus) buffer() << "-";
             in->accept(this);
             // reduce_by_key() takes a pointer to the start of the target

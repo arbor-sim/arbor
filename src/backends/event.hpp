@@ -6,8 +6,7 @@
 // Structures for the representation of event delivery targets and
 // staged events.
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // Post-synaptic spike events
 
@@ -74,5 +73,4 @@ inline cell_size_type event_index(const sample_event& ev) {
 }
 
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

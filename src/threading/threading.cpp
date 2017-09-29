@@ -8,33 +8,32 @@
 
 #include "threading.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
 // Test environment variables for user-specified count of threads.
 //
-// NMC_NUM_THREADS is used if set, otherwise OMP_NUM_THREADS is used.
+// ARB_NUM_THREADS is used if set, otherwise OMP_NUM_THREADS is used.
 //
 // If neither variable is set, returns no value.
 //
 // Valid values for the environment variable are:
-//  0 : NestMC is responsible for picking the number of threads.
+//  0 : Arbor is responsible for picking the number of threads.
 //  >0: The number of threads to use.
 //
 // Throws std::runtime_error:
-//  NMC_NUM_THREADS or OMP_NUM_THREADS is set with invalid value.
+//  ARB_NUM_THREADS or OMP_NUM_THREADS is set with invalid value.
 util::optional<size_t> get_env_num_threads() {
     const char* str;
 
     // select variable to use:
-    //   If NMC_NUM_THREADS_VAR is set, use $NMC_NUM_THREADS_VAR
-    //   else if NMC_NUM_THREAD set, use it
+    //   If ARB_NUM_THREADS_VAR is set, use $ARB_NUM_THREADS_VAR
+    //   else if ARB_NUM_THREAD set, use it
     //   else if OMP_NUM_THREADS set, use it
-    if (auto nthreads_var_name = std::getenv("NMC_NUM_THREADS_VAR")) {
+    if (auto nthreads_var_name = std::getenv("ARB_NUM_THREADS_VAR")) {
         str = std::getenv(nthreads_var_name);
     }
-    else if (! (str = std::getenv("NMC_NUM_THREADS"))) {
+    else if (! (str = std::getenv("ARB_NUM_THREADS"))) {
         str = std::getenv("OMP_NUM_THREADS");
     }
 
@@ -72,7 +71,7 @@ size_t num_threads_init() {
 //      number of threads.
 size_t num_threads() {
     // TODO: this is a bit of a hack until we have user-configurable threading.
-#if defined(NMC_HAVE_SERIAL)
+#if defined(ARB_HAVE_SERIAL)
     return 1;
 #else
     static size_t num_threads_cached = num_threads_init();
@@ -81,5 +80,4 @@ size_t num_threads() {
 }
 
 } // namespace threading
-} // namespace mc
-} // namespace nest
+} // namespace arb

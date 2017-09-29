@@ -20,7 +20,7 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 #if 0
 // *Temporarily* disabled: compartment division policy

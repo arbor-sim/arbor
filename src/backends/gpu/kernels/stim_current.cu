@@ -1,8 +1,7 @@
 #include <backends/fvm_types.hpp>
 #include <backends/gpu/intrinsics.hpp>
 
-namespace nest{
-namespace mc{
+namespace arb{
 namespace gpu {
 
 namespace kernels {
@@ -44,5 +43,4 @@ void stim_current(
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

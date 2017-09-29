@@ -4,8 +4,7 @@
 
 #include <common_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Description for a data spike source: a cell that generates spikes provided as a vector of
 /// spike times at the start of a run.
@@ -19,5 +18,4 @@ struct dss_cell_description {
     {}
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

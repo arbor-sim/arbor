@@ -1,4 +1,4 @@
-#ifdef NMC_HAVE_MPI
+#ifdef ARB_HAVE_MPI
 
 #include "../gtest.h"
 
@@ -9,8 +9,8 @@
 #include <communication/mpi.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
-using namespace nest::mc::communication;
+using namespace arb;
+using namespace arb::communication;
 
 struct big_thing {
     big_thing() {}
@@ -145,4 +145,4 @@ TEST(mpi, gather) {
     }
 }
 
-#endif // NMC_HAVE_MPI
+#endif // ARB_HAVE_MPI

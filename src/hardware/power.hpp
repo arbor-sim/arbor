@@ -2,8 +2,7 @@
 
 #include <cstdint>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 // Energy in Joules (J)
@@ -13,5 +12,4 @@ using energy_size_type = std::uint64_t;
 energy_size_type energy();
 
 } // namespace hw
-} // namespace mc
-} // namespace nest
+} // namespace arb
