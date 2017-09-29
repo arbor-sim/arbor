@@ -104,7 +104,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     while (t_<tfinal) {
         tuntil = std::min(t_+t_interval, tfinal);
 
-        event_queues_.exchange();
         local_spikes_.exchange();
 
         // empty the spike buffers for the current integration period.
@@ -125,7 +124,6 @@ time_type model::run(time_type tfinal, time_type dt) {
 
     // Run the exchange one last time to ensure that all spikes are output
     // to file.
-    event_queues_.exchange();
     local_spikes_.exchange();
     exchange();
 
