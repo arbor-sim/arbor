@@ -7,8 +7,7 @@
 #include "backends/base.hpp"
 
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace modcc {
 
 // Specialize for the different architectures
@@ -148,4 +147,4 @@ struct simd_intrinsics<targetKind::avx512> {
     }
 };
 
-}}} // closing namespaces
+}} // closing namespaces

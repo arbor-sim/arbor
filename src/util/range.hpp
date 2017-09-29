@@ -26,7 +26,7 @@
 #include <type_traits>
 #include <utility>
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 #include <tbb/tbb_stddef.h>
 #endif
 
@@ -37,8 +37,7 @@
 #include <util/meta.hpp>
 #include <util/sentinel.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename U, typename S = U>
@@ -109,7 +108,7 @@ struct range {
         return (*this)[n];
     }
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
     template <
         typename V = iterator,
         typename = enable_if_t<is_forward_iterator<V>::value>
@@ -184,5 +183,4 @@ auto strict_view(const Seq& s) -> range<decltype(std::begin(s))>
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

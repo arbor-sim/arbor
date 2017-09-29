@@ -10,8 +10,7 @@
 #include <rss_cell_group.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 using gpu_fvm_cell = mc_cell_group<fvm::fvm_multicell<gpu::backend>>;
 using mc_fvm_cell = mc_cell_group<fvm::fvm_multicell<multicore::backend>>;
@@ -37,5 +36,4 @@ cell_group_ptr cell_group_factory(const recipe& rec, const group_description& gr
     }
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

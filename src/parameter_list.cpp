@@ -3,8 +3,7 @@
 
 #include "parameter_list.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 bool parameter_list::add_parameter(parameter p) {
     if (has_parameter(p.name)) {
@@ -87,11 +86,10 @@ auto parameter_list::find_by_name(std::string const& n) const
         );
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 std::ostream&
-operator<<(std::ostream& o, nest::mc::parameter const& p) {
+operator<<(std::ostream& o, arb::parameter const& p) {
     return o
         << "parameter("
         << "name " << p.name
@@ -101,9 +99,9 @@ operator<<(std::ostream& o, nest::mc::parameter const& p) {
 }
 
 std::ostream&
-operator<<(std::ostream& o, nest::mc::parameter_list const& l) {
+operator<<(std::ostream& o, arb::parameter_list const& l) {
     o << "parameters \"" << l.name() << "\" :\n";
-    for(nest::mc::parameter const& p : l.parameters()) {
+    for(arb::parameter const& p : l.parameters()) {
         o << " " << p << "\n";
     }
     return o;

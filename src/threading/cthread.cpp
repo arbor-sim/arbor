@@ -8,8 +8,8 @@
 #include "cthread.hpp"
 #include "threading.hpp"
 
-using namespace nest::mc::threading::impl;
-using namespace nest::mc;
+using namespace arb::threading::impl;
+using namespace arb;
 
 // RAII owner for a task in flight
 struct task_pool::run_task {

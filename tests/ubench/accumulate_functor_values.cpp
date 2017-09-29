@@ -15,7 +15,7 @@
 
 #define NOINLINE __attribute__((noinline))
 
-using namespace nest::mc;
+using namespace arb;
 
 inline long long square_function(long long x) { return x*x; }
 

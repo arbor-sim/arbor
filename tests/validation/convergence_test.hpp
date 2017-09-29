@@ -15,8 +15,7 @@
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 struct probe_label {
     const char* label;
@@ -154,5 +153,4 @@ inline std::vector<float> stimulus_ends(const cell& c) {
     return ts;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -7,8 +7,7 @@
 #include <rss_cell.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Cell group implementing RSS cells.
 
@@ -88,6 +87,5 @@ private:
     std::vector<spike> spikes_;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

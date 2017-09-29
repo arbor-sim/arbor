@@ -126,11 +126,15 @@ Platform:
 
 #### Motivation
 
-The reduction by key pattern with repeated keys is used when "point process" mechanism contributions to currents are collected.
-More than one point process, typically synapses, can be attached to a compartment,
-and when their contributions are computed and added to the per-compartment current in parallel, care must be taken to avoid race conditions.
-Early versions of NestMC used cuda atomic operations to perform the accumulation, which works quite well up to a certain point.
-However, performance with atomics decreases as the number of synapses per compartment increases, i.e. as the number of threads performing simultatneous atomic updates on the same location increases.
+The reduction by key pattern with repeated keys is used when "point process"
+mechanism contributions to currents are collected. More than one point process,
+typically synapses, can be attached to a compartment, and when their
+contributions are computed and added to the per-compartment current in
+parallel, care must be taken to avoid race conditions. Early versions of Arbor
+used cuda atomic operations to perform the accumulation, which works quite well
+up to a certain point. However, performance with atomics decreases as the
+number of synapses per compartment increases, i.e. as the number of threads
+performing simultatneous atomic updates on the same location increases.
 
 #### Implementations
 
@@ -153,11 +157,15 @@ Platform:
 * gcc version 5.2.0
 * nvcc version 8.0.61
 
-Results are presented as speedup for warp intrinsics vs atomics, for both single and double precision.
-Note that the P100 GPU has hardware support for double precision atomics, and we expect much larger speedup for double precision on Keplar GPUs that emulate double precision atomics with CAS.
-The benchmark updates `n` locations, each with an average density of `d` keys per location.
-This is equivalent to `n` compartments with `d` synapses per compartment.
-Atomics are faster for the case where both `n` and `d` are small, however the gpu is backend is for throughput simulations, with large cell groups with at least 10k compartments in total.
+Results are presented as speedup for warp intrinsics vs atomics, for both
+single and double precision. Note that the P100 GPU has hardware support for
+double precision atomics, and we expect much larger speedup for double
+precision on Keplar GPUs that emulate double precision atomics with CAS. The
+benchmark updates `n` locations, each with an average density of `d` keys per
+location. This is equivalent to `n` compartments with `d` synapses per
+compartment. Atomics are faster for the case where both `n` and `d` are small,
+however the gpu is backend is for throughput simulations, with large cell
+groups with at least 10k compartments in total.
 
 *float*
 

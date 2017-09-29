@@ -12,9 +12,13 @@
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
+#include <backends/gpu/matrix_state_flat.hpp>
+#include <backends/gpu/matrix_state_interleaved.hpp>
+#include <backends/gpu/kernels/interleave.hpp>
+
 #include <cuda.h>
 
-using namespace nest::mc;
+using namespace arb;
 
 using gpu::impl::npos;
 using util::make_span;

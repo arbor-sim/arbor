@@ -16,8 +16,7 @@
 #include <util/transform.hpp>
 #include <util/meta.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Present a single item as a range
@@ -373,6 +372,5 @@ C make_copy(Seq const& seq) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

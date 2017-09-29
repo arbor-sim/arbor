@@ -9,8 +9,7 @@
 #include <common_types.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 struct probe_info {
     cell_member_type id;
@@ -65,5 +64,4 @@ public:
     virtual probe_info get_probe(cell_member_type probe_id) const = 0;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

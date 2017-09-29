@@ -19,8 +19,7 @@
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 struct backend {
@@ -48,11 +47,11 @@ struct backend {
     using host_view   = view;
     using host_iview  = iview;
 
-    using matrix_state = nest::mc::multicore::matrix_state<value_type, size_type>;
+    using matrix_state = arb::multicore::matrix_state<value_type, size_type>;
 
     // backend-specific multi event streams.
-    using deliverable_event_stream = nest::mc::multicore::multi_event_stream<deliverable_event>;
-    using sample_event_stream = nest::mc::multicore::multi_event_stream<sample_event>;
+    using deliverable_event_stream = arb::multicore::multi_event_stream<deliverable_event>;
+    using sample_event_stream = arb::multicore::multi_event_stream<sample_event>;
 
     //
     // mechanism infrastructure
@@ -95,7 +94,7 @@ struct backend {
     /// threshold crossing logic
     /// used as part of spike detection back end
     using threshold_watcher =
-        nest::mc::multicore::threshold_watcher<value_type, size_type>;
+        arb::multicore::threshold_watcher<value_type, size_type>;
 
 
     // perform min/max reductions on 'array' type
@@ -155,11 +154,10 @@ private:
 
     template <template <typename> class Mech>
     static mechanism maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
-        return nest::mc::make_mechanism<Mech<backend>>
+        return arb::make_mechanism<Mech<backend>>
             (mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

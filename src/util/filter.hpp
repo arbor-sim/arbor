@@ -14,8 +14,7 @@
 
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 namespace impl {
@@ -241,5 +240,4 @@ filter(const Seq& s, const F& f) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

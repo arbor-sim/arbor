@@ -11,7 +11,7 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(transform, transform_view) {
     std::forward_list<int> fl = {1, 4, 6, 8, 10 };

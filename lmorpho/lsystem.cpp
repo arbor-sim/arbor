@@ -9,11 +9,11 @@
 
 #include "lsystem.hpp"
 
-using namespace nest::mc::math;
+using namespace arb::math;
 
-using nest::mc::section_geometry;
-using nest::mc::section_point;
-using nest::mc::morphology;
+using arb::section_geometry;
+using arb::section_point;
+using arb::morphology;
 
 // L-system implementation.
 
@@ -267,9 +267,9 @@ grow_result grow(section_tip tip, const lsys_sampler& S, Gen &g) {
     }
 }
 
-nest::mc::morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
+arb::morphology generate_morphology(const lsys_param& P, lsys_generator &g) {
     constexpr quaternion xaxis = {0, 1, 0, 0};
-    nest::mc::morphology morph;
+    arb::morphology morph;
 
     lsys_sampler S(P);
     double soma_radius = 0.5*S.diam_soma(g);

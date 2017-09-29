@@ -16,8 +16,7 @@
 
 #include <iostream>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename V>
 struct trace_entry {
@@ -74,5 +73,4 @@ inline simple_sampler<V> make_simple_sampler(trace_data<V>& trace) {
     return simple_sampler<V>(trace);
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -8,11 +8,9 @@
 #include <recipe.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // Helper factory for building cell groups
 cell_group_ptr cell_group_factory(const recipe& rec, const group_description& group);
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -4,11 +4,11 @@
 #include <threading/threading.hpp>
 #include <thread_private_spike_store.hpp>
 
-using nest::mc::spike;
+using arb::spike;
 
 TEST(spike_store, insert)
 {
-    using store_type = nest::mc::thread_private_spike_store;
+    using store_type = arb::thread_private_spike_store;
 
     store_type store;
 
@@ -52,7 +52,7 @@ TEST(spike_store, insert)
 
 TEST(spike_store, clear)
 {
-    using store_type = nest::mc::thread_private_spike_store;
+    using store_type = arb::thread_private_spike_store;
 
     store_type store;
 
@@ -67,7 +67,7 @@ TEST(spike_store, clear)
 
 TEST(spike_store, gather)
 {
-    using store_type = nest::mc::thread_private_spike_store;
+    using store_type = arb::thread_private_spike_store;
 
     store_type store;
 

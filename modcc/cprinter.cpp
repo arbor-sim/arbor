@@ -43,7 +43,7 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + module_name;
 
-    text_.add_line("namespace nest{ namespace mc{ namespace multicore {");
+    text_.add_line("namespace arb { namespace multicore {");
     text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
@@ -267,7 +267,7 @@ std::string CPrinter::emit_source() {
     };
     text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
-    text_.add_line("using nest::mc::algorithms::index_into;");
+    text_.add_line("using arb::algorithms::index_into;");
     if(has_ion(ionKind::Na)) {
         auto ion = find_ion(ionKind::Na);
         text_.add_line("if(k==ionKind::na) {");
@@ -307,7 +307,7 @@ std::string CPrinter::emit_source() {
         text_.decrease_indentation();
         text_.add_line("}");
     }
-    text_.add_line("throw std::domain_error(nest::mc::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
+    text_.add_line("throw std::domain_error(arb::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -392,7 +392,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("};");
     text_.add_line();
 
-    text_.add_line("}}} // namespaces");
+    text_.add_line("}} // namespaces");
     return text_.str();
 }
 

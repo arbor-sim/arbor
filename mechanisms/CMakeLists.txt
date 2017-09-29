@@ -10,14 +10,14 @@ set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 set(modcc_opt)
 set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/multicore")
 file(MAKE_DIRECTORY "${mech_dir}")
-if(NMC_VECTORIZE_TARGET STREQUAL "KNL")
+if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
     set(modcc_target "avx512")
-elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX")
+elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX")
     set(modcc_opt "-O")
     set(modcc_target "cpu")
-elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
+elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
     set(modcc_target "avx2")
-elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX512")
+elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
     set(modcc_target "avx512")
 else()
     set(modcc_target "cpu")
@@ -46,19 +46,20 @@ build_modules(
 
 # Make a library with the implementations of the mechanism kernels
 
-if(NMC_WITH_CUDA)
-    # make list of the .cu files that 
+if(ARB_WITH_CUDA)
+    # make list of the .cu files that implement the mechanism kernels
     foreach(mech ${mechanisms})
-        set(cuda_mech_sources ${cuda_mech_sources} ${mech_dir}/${mech}_impl.cu)
+        list(APPEND cuda_mech_sources ${mech_dir}/${mech}_impl.cu)
     endforeach()
+
     # compile the .cu files into a library
-    cuda_add_library(gpu_mechanisms ${cuda_mech_sources})
+    cuda_add_library(arbormechcu ${cuda_mech_sources})
 
     # force recompilation on changes to modcc or the underlying .mod files
-    if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
-        add_dependencies(gpu_mechanisms build_all_gpu_mods)
+    if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
+        add_dependencies(arbormechcu build_all_gpu_mods)
     endif()
 
-    list(APPEND NESTMC_LIBRARIES gpu_mechanisms)
-    set(NESTMC_LIBRARIES "${NESTMC_LIBRARIES}" PARENT_SCOPE)
+    list(APPEND ARB_LIBRARIES arbormechcu)
+    set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)
 endif()

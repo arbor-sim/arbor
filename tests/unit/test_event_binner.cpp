@@ -4,7 +4,7 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(event_binner, basic) {
     using testing::seq_almost_eq;

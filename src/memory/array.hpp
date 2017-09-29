@@ -15,8 +15,7 @@
 #include "util.hpp"
 #include "array_view.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory{
 
 // forward declarations
@@ -210,7 +209,7 @@ public:
 
     template <
         typename It,
-        typename = nest::mc::util::enable_if_t<nest::mc::util::is_forward_iterator<It>::value> >
+        typename = arb::util::enable_if_t<arb::util::is_forward_iterator<It>::value> >
     array(It b, It e) :
         base(coordinator_type().allocate(std::distance(b, e)))
     {
@@ -220,18 +219,18 @@ public:
                   << "\n  this  " << util::pretty_printer<array>::print(*this) << "\n";
                   //<< "\n  other " << util::pretty_printer<Other>::print(other) << std::endl;
 #endif
-        //auto canon = nest::mc::util::canonical_view(rng);
+        //auto canon = arb::util::canonical_view(rng);
         std::copy(b, e, this->begin());
     }
 
     template <typename Seq>
     array(
         const Seq& seq,
-        nest::mc::util::enable_if_t<
+        arb::util::enable_if_t<
             !std::is_convertible<Seq, std::size_t>::value
             && !impl::is_array_t<Seq>::value >* = nullptr
     ):
-        base(coordinator_type().allocate(nest::mc::util::size(seq)))
+        base(coordinator_type().allocate(arb::util::size(seq)))
     {
 #ifdef VERBOSE
         std::cerr << util::green("array(iterator, iterator)")
@@ -239,7 +238,7 @@ public:
                   << "\n  this  " << util::pretty_printer<array>::print(*this) << "\n";
                   //<< "\n  other " << util::pretty_printer<Other>::print(other) << std::endl;
 #endif
-        auto canon = nest::mc::util::canonical_view(seq);
+        auto canon = arb::util::canonical_view(seq);
         std::copy(std::begin(canon), std::end(canon), this->begin());
     }
 
@@ -262,6 +261,5 @@ private:
 };
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

@@ -2,8 +2,7 @@
 
 #include "../stack_common.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 template <typename T>
@@ -27,5 +26,4 @@ void push_back(stack_storage<T>& s, const T& value) {
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

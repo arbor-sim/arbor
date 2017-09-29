@@ -13,10 +13,10 @@
 #include "lsystem.hpp"
 #include "lsys_models.hpp"
 
-namespace to = nest::mc::to;
-using nest::mc::util::optional;
-using nest::mc::util::nothing;
-using nest::mc::util::just;
+namespace to = arb::to;
+using arb::util::optional;
+using arb::util::nothing;
+using arb::util::just;
 
 const char* usage_str =
 "[OPTION]...\n"

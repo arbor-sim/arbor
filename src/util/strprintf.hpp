@@ -10,8 +10,7 @@
 #include <utility>
 #include <vector>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 namespace impl {
@@ -49,5 +48,4 @@ std::string strprintf(const std::string& fmt, Args&&... args) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

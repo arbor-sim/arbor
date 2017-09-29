@@ -5,7 +5,7 @@
 
 #include "../gtest.h"
 
-using namespace nest::mc::multicore;
+using namespace arb::multicore;
 
 constexpr double dqnan = std::numeric_limits<double>::quiet_NaN();
 constexpr double dmax = std::numeric_limits<double>::max();
@@ -32,7 +32,7 @@ TEST(intrin, exp256) {
 
 
     for (size_t i = 0; i < 16/simd_len; ++i) {
-        __m256d vv = nmc_mm256_exp_pd(vvalues[i]);
+        __m256d vv = arb_mm256_exp_pd(vvalues[i]);
         double *intrin = (double *) &vv;
         for (size_t j = 0; j < simd_len; ++j) {
             double v = values[i*simd_len + j];
@@ -59,7 +59,7 @@ TEST(intrin, frexp256) {
 
     for (size_t i = 0; i < 16/simd_len; ++i) {
         __m128i vexp;
-        __m256d vbase = nmc_mm256_frexp_pd(vvalues[i], &vexp);
+        __m256d vbase = arb_mm256_frexp_pd(vvalues[i], &vexp);
         double *vbase_ = (double *) &vbase;
         int    *vexp_  = (int *) &vexp;
         for (size_t j = 0; j < simd_len; ++j) {
@@ -99,7 +99,7 @@ TEST(intrin, log256) {
 
 
     for (size_t i = 0; i < 16/simd_len; ++i) {
-        __m256d vv = nmc_mm256_log_pd(vvalues[i]);
+        __m256d vv = arb_mm256_log_pd(vvalues[i]);
         double *intrin = (double *) &vv;
         for (size_t j = 0; j < simd_len; ++j) {
             double v = values[i*simd_len + j];

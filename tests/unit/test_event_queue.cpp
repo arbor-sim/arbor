@@ -5,7 +5,7 @@
 
 #include <event_queue.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(event_queue, push) {
     using ps_event_queue = event_queue<postsynaptic_spike_event>;

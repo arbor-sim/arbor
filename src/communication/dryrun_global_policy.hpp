@@ -8,8 +8,7 @@
 #include <util/span.hpp>
 #include <spike.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace communication {
 
 extern int dryrun_num_local_cells;
@@ -90,5 +89,4 @@ struct dryrun_global_policy {
 using global_policy = dryrun_global_policy;
 
 } // namespace communication
-} // namespace mc
-} // namespace nest
+} // namespace arb

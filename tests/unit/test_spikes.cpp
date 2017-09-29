@@ -5,7 +5,7 @@
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 // This source is included in `test_spikes.cu`, which defines
 // USE_BACKEND to override the default `multicore::backend`

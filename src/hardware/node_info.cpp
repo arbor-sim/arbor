@@ -4,8 +4,7 @@
 #include "gpu.hpp"
 #include "node_info.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace hw {
 
 // Return a node_info that describes the hardware resources available on this node.
@@ -18,5 +17,4 @@ node_info get_node_info() {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

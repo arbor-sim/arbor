@@ -16,8 +16,7 @@
 
 #include <threading/threading.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 inline std::string green(std::string s)  { return s; }
@@ -26,7 +25,7 @@ inline std::string white(std::string s)  { return s; }
 inline std::string red(std::string s)    { return s; }
 inline std::string cyan(std::string s)   { return s; }
 
-using timer_type = nest::mc::threading::timer;
+using timer_type = arb::threading::timer;
 
 namespace impl {
     /// simple hashing function for strings
@@ -203,9 +202,9 @@ private:
     region_type* current_region_ = &root_region_;
 };
 
-#ifdef NMC_HAVE_PROFILING
+#ifdef ARB_HAVE_PROFILING
 namespace data {
-    using profiler_wrapper = nest::mc::threading::enumerable_thread_specific<profiler>;
+    using profiler_wrapper = arb::threading::enumerable_thread_specific<profiler>;
     extern profiler_wrapper profilers_;
 }
 #endif
@@ -226,7 +225,7 @@ void profiler_enter(const char* n);
 /// enter nested profiler regions in a single call
 template <class...Args>
 void profiler_enter(const char* n, Args... args) {
-#ifdef NMC_HAVE_PROFILING
+#ifdef ARB_HAVE_PROFILING
     get_profiler().enter(n);
     profiler_enter(args...);
 #endif
@@ -248,10 +247,9 @@ void profilers_restart();
 void profiler_output(double threshold, bool profile_only_zero);
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 // define some helper macros to make instrumentation of the source code with calls
 // to the profiler a little less visually distracting
-#define PE nest::mc::util::profiler_enter
-#define PL nest::mc::util::profiler_leave
+#define PE arb::util::profiler_enter
+#define PL arb::util::profiler_leave

@@ -15,7 +15,7 @@
 
 #include "simd_printer.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 //#define VERBOSE
 
@@ -208,18 +208,14 @@ int main(int argc, char **argv) {
         }
     }
 
-    catch(compiler_exception e) {
+    catch(compiler_exception& e) {
         std::cerr << red("internal compiler error: ")
                   << white("this means a bug in the compiler,"
                            " please report to modcc developers\n")
                   << e.what() << " @ " << e.location() << "\n";
         exit(1);
     }
-    catch(std::runtime_error e) {
-        std::cerr << red("error: ") << e.what() << "\n";
-        exit(1);
-    }
-    catch(std::exception e) {
+    catch(std::exception& e) {
         std::cerr << red("internal compiler error: ")
                   << white("this means a bug in the compiler,"
                            " please report to modcc developers\n")

@@ -6,8 +6,7 @@
 #include <math.hpp>
 #include <parameter_list.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /*
  * Create cell with just a soma:
@@ -298,5 +297,4 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
     return c;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

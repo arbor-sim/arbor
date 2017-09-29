@@ -6,8 +6,7 @@
 #include <string>
 #include <vector>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
     template <typename T>
     struct value_range {
@@ -207,11 +206,10 @@ namespace mc {
         }
     };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 template <typename T>
-std::ostream& operator<<(std::ostream& o, nest::mc::value_range<T> const& r)
+std::ostream& operator<<(std::ostream& o, arb::value_range<T> const& r)
 {
     o << "[";
     if(r.has_lower_bound())
@@ -226,6 +224,6 @@ std::ostream& operator<<(std::ostream& o, nest::mc::value_range<T> const& r)
     return o << "]";
 }
 
-std::ostream& operator<<(std::ostream& o, nest::mc::parameter const& p);
-std::ostream& operator<<(std::ostream& o, nest::mc::parameter_list const& l);
+std::ostream& operator<<(std::ostream& o, arb::parameter const& p);
+std::ostream& operator<<(std::ostream& o, arb::parameter_list const& l);
 

@@ -6,7 +6,7 @@
 
 #include "../simple_recipes.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 using dss_recipe = homogeneous_recipe<cell_kind::data_spike_source, dss_cell_description>;
 

@@ -6,8 +6,7 @@
 #include <common_types.hpp>
 #include <util/any_ptr.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 using cell_member_predicate = std::function<bool (cell_member_type)>;
 
@@ -32,5 +31,4 @@ enum class sampling_policy {
     // exact         // placeholder: unsupported
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

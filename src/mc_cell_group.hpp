@@ -25,8 +25,7 @@
 
 #include <profiling/profiler.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename LoweredCell>
 class mc_cell_group: public cell_group {
@@ -313,5 +312,4 @@ private:
     }
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

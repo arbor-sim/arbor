@@ -1,5 +1,6 @@
-namespace nest {
-namespace mc {
+#pragma once
+
+namespace arb {
 namespace threading {
 
 template <typename RandomIt>
@@ -17,7 +18,5 @@ void sort(Container& c) {
     std::sort(std::begin(c), std::end(c));
 }
 
-
-}
-}
-}
+} // namespace threading
+} // namespace arb

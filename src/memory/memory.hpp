@@ -6,12 +6,11 @@
 #include "definitions.hpp"
 #include "host_coordinator.hpp"
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 #include "device_coordinator.hpp"
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 // specialization for host vectors
@@ -29,7 +28,7 @@ std::ostream& operator<< (std::ostream& o, host_view<T> const& v) {
     return o;
 }
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 // specialization for pinned vectors. Use a host_coordinator, because memory is
 // in the host memory space, and all of the helpers (copy, set, etc) are the
 // same with and without page locked memory
@@ -54,8 +53,7 @@ using hwb_view = array_view<T, host_coordinator<T, hwb_allocator<T>>>;
 #endif
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 // now import the helpers
 // these require that host_vector etc have been defined

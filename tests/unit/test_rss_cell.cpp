@@ -5,7 +5,7 @@
 
 #include "../simple_recipes.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 using rss_recipe = homogeneous_recipe<cell_kind::regular_spike_source, rss_cell>;
 

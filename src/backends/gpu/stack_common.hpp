@@ -2,8 +2,7 @@
 
 #include <backends/fvm_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 // stores a single crossing event
@@ -38,5 +37,4 @@ struct stack_storage {
 
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

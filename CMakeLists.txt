@@ -29,23 +29,23 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 #----------------------------------------------------------
 # Option to enable assertions
 #----------------------------------------------------------
-option(NMC_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
-if(NMC_WITH_ASSERTIONS)
-    add_definitions("-DNMC_HAVE_ASSERTIONS")
+option(ARB_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
+if(ARB_WITH_ASSERTIONS)
+    add_definitions("-DARB_HAVE_ASSERTIONS")
 endif()
 
 #----------------------------------------------------------
 # Option to enable traces
 #----------------------------------------------------------
-option(NMC_WITH_TRACE "enable TRACE() macros in code" OFF)
-if(NMC_WITH_TRACE)
-    add_definitions("-DNMC_HAVE_TRACE")
+option(ARB_WITH_TRACE "enable TRACE() macros in code" OFF)
+if(ARB_WITH_TRACE)
+    add_definitions("-DARB_HAVE_TRACE")
 endif()
 
 #----------------------------------------------------------
 # Option to disable auto running of modcc compiler
 #----------------------------------------------------------
-option(NMC_AUTO_RUN_MODCC_ON_CHANGES
+option(ARB_AUTO_RUN_MODCC_ON_CHANGES
   "Rerun modcc compiler whenever *.mod file or modcc compiler change" ON)
 
 #----------------------------------------------------------
@@ -55,17 +55,17 @@ set(EXTERNAL_LIBRARIES "")
 set(EXTERNAL_INCLUDES "")
 
 #----------------------------------------------------------
-# list of libraries built inside NestMC
+# list of libraries built inside Arbor
 #----------------------------------------------------------
-set(NESTMC_LIBRARIES "")
+set(ARB_LIBRARIES "")
 
 #----------------------------------------------------------
 # Threading model selection
 #----------------------------------------------------------
-set(NMC_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
-set_property(CACHE NMC_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
+set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
+set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
-if(NMC_THREADING_MODEL MATCHES "tbb")
+if(ARB_THREADING_MODEL MATCHES "tbb")
     # download and build TBB
     include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBGet.cmake)
     include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBBuild.cmake)
@@ -75,8 +75,8 @@ if(NMC_THREADING_MODEL MATCHES "tbb")
     # configure TBB
     find_package(TBB REQUIRED tbb tbbmalloc)
 
-    add_definitions(-DNMC_HAVE_TBB)
-    set(NMC_WITH_TBB TRUE)
+    add_definitions(-DARB_HAVE_TBB)
+    set(ARB_WITH_TBB TRUE)
 
     # The TBB CMake package creates the TBB::tbb and TBB:tbbmalloc targets.
     # The following should be sufficient, however on some systems (e.g. Cray PE),
@@ -91,11 +91,11 @@ if(NMC_THREADING_MODEL MATCHES "tbb")
     # The TBB headers are in the downloaded TBB source
     list(APPEND EXTERNAL_INCLUDES ${tbb_root}/include)
 
-elseif(NMC_THREADING_MODEL MATCHES "cthread")
+elseif(ARB_THREADING_MODEL MATCHES "cthread")
 
     find_package(Threads REQUIRED)
-    add_definitions(-DNMC_HAVE_CTHREAD)
-    set(NMC_WITH_CTHREAD TRUE)
+    add_definitions(-DARB_HAVE_CTHREAD)
+    set(ARB_WITH_CTHREAD TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
     if(CMAKE_USE_PTHREADS_INIT)
@@ -116,8 +116,8 @@ endif()
 #----------------------------------------------------------
 # CUDA support
 #----------------------------------------------------------
-option(NMC_WITH_CUDA "use CUDA for GPU offload" OFF)
-if(NMC_WITH_CUDA)
+option(ARB_WITH_CUDA "use CUDA for GPU offload" OFF)
+if(ARB_WITH_CUDA)
     find_package(CUDA REQUIRED)
 
     # Turn off annoying and incorrect warnings generated in the JSON file.
@@ -125,14 +125,14 @@ if(NMC_WITH_CUDA)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
 
     # set the CUDA target specfic flags
-    # code regions protected by NMC_HAVE_CUDA should only be available to the CUDA
-    # compiler, which regions protected by NMC_HAVE_GPU are visible to both host
+    # code regions protected by ARB_HAVE_CUDA should only be available to the CUDA
+    # compiler, which regions protected by ARB_HAVE_GPU are visible to both host
     # and device compiler when targetting GPU.
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DNMC_HAVE_CUDA)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DNMC_HAVE_GPU)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_CUDA)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_GPU)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
 
-    add_definitions(-DNMC_HAVE_GPU)
+    add_definitions(-DARB_HAVE_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
     list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
 endif()
@@ -140,28 +140,28 @@ endif()
 #----------------------------------------------------------
 # Cray/BGQ/Generic Linux/other flag?
 #----------------------------------------------------------
-set(NMC_SYSTEM_TYPE "Generic" CACHE STRING 
+set(ARB_SYSTEM_TYPE "Generic" CACHE STRING 
     "Choose a system type to customize flags")
-set_property(CACHE NMC_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
+set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 
 # Cray specific flags
-if(${NMC_SYSTEM_TYPE} MATCHES "Cray")
+if(${ARB_SYSTEM_TYPE} MATCHES "Cray")
     # we no longer set the -dynamic flag for the compilere here, instead dynamic
     # linking should be enabled by the user by setting the environment variable:
     #   CRAYPE_LINK_TYPE=dynamic
     #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
-    add_definitions(-DNMC_HAVE_CRAY)
+    add_definitions(-DARB_HAVE_CRAY)
 endif()
 
 #----------------------------------------------------------
 # MPI support
 #----------------------------------------------------------
-set(NMC_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
-set_property(CACHE NMC_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
+set(ARB_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
+set_property(CACHE ARB_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
 
-if(NMC_DISTRIBUTED_MODEL MATCHES "mpi")
+if(ARB_DISTRIBUTED_MODEL MATCHES "mpi")
    # BGQ specific flags
-   if(${NMC_SYSTEM_TYPE} MATCHES "BGQ" )
+   if(${ARB_SYSTEM_TYPE} MATCHES "BGQ" )
       # On BGQ, set CXX to the mpi wrapper, and pass it a static
       add_definitions(-DMPICH2_CONST=const)
       set(MPI_FOUND TRUE)
@@ -171,46 +171,46 @@ if(NMC_DISTRIBUTED_MODEL MATCHES "mpi")
       find_package(MPI REQUIRED)
     endif()
     include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
-    add_definitions(-DNMC_HAVE_MPI)
+    add_definitions(-DARB_HAVE_MPI)
 
     # unfortunate workaround for C++ detection in system mpi.h
     add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
 
-    set(NMC_WITH_MPI TRUE)
+    set(ARB_WITH_MPI TRUE)
 
-elseif(NMC_DISTRIBUTED_MODEL MATCHES "dryrun")
-    add_definitions(-DNMC_HAVE_DRYRUN)
-    set(NMC_WITH_DRYRUN TRUE)
+elseif(ARB_DISTRIBUTED_MODEL MATCHES "dryrun")
+    add_definitions(-DARB_HAVE_DRYRUN)
+    set(ARB_WITH_DRYRUN TRUE)
 
-elseif(NMC_DISTRIBUTED_MODEL MATCHES "serial")
+elseif(ARB_DISTRIBUTED_MODEL MATCHES "serial")
     # no additional set up needed
 
 else()
-    message( FATAL_ERROR "-- Distributed communication model '${NMC_DISTRIBUTED_MODEL}' not supported, use one of serial/mpi/dryrun")
+    message( FATAL_ERROR "-- Distributed communication model '${ARB_DISTRIBUTED_MODEL}' not supported, use one of serial/mpi/dryrun")
 endif()
 
 #----------------------------------------------------------
 # Built-in profiler
 #----------------------------------------------------------
-option(NMC_WITH_PROFILING "use built-in profiling of miniapp" OFF)
-if(NMC_WITH_PROFILING)
-    add_definitions(-DNMC_HAVE_PROFILING)
+option(ARB_WITH_PROFILING "use built-in profiling of miniapp" OFF)
+if(ARB_WITH_PROFILING)
+    add_definitions(-DARB_HAVE_PROFILING)
 endif()
 
 #----------------------------------------------------------
 # vectorization target
 #----------------------------------------------------------
-set(NMC_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2,AVX512}")
-set_property(CACHE NMC_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX AVX2 AVX512)
+set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2,AVX512}")
+set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX AVX2 AVX512)
 
-if(NMC_VECTORIZE_TARGET STREQUAL "KNL")
+if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
-elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX")
+elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX}")
-elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX2")
+elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
-elseif(NMC_VECTORIZE_TARGET STREQUAL "AVX512")
+elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX512}")
 endif()
 
@@ -232,22 +232,22 @@ endif()
 # Validation data generation
 #----------------------------------------------------------
 # destination directory for generated data
-set(NMC_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
+set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
   "location of generated validation data")
 
 #----------------------------------------------------------
 # Whether to build validation data
 #----------------------------------------------------------
 # turn off by default
-option(NMC_BUILD_VALIDATION_DATA "generate validation data" OFF)
-if (NMC_BUILD_VALIDATION_DATA)
+option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
+if (ARB_BUILD_VALIDATION_DATA)
     # Whether to attempt to use julia to build validation data
     find_program(JULIA_BIN julia)
     if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
         message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
-        set(NMC_BUILD_JULIA_VALIDATION_DATA FALSE)
+        set(ARB_BUILD_JULIA_VALIDATION_DATA FALSE)
     else()
-        set(NMC_BUILD_JULIA_VALIDATION_DATA TRUE)
+        set(ARB_BUILD_JULIA_VALIDATION_DATA TRUE)
     endif()
 
     # Whether to attempt to use nrniv to build validation data
@@ -255,9 +255,9 @@ if (NMC_BUILD_VALIDATION_DATA)
     find_program(NRNIV_BIN nrniv)
     if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
         message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
-        set(NMC_BUILD_NRN_VALIDATION_DATA FALSE)
+        set(ARB_BUILD_NRN_VALIDATION_DATA FALSE)
     else()
-        set(NMC_BUILD_NRN_VALIDATION_DATA TRUE)
+        set(ARB_BUILD_NRN_VALIDATION_DATA TRUE)
     endif()
 endif()
 
@@ -279,7 +279,7 @@ endif()
 # Setup subdirs
 #----------------------------------------------------------
 # only include validation data if flag is set
-if(NMC_BUILD_VALIDATION_DATA)
+if(ARB_BUILD_VALIDATION_DATA)
     add_subdirectory(validation)
 endif()
 

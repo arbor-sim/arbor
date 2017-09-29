@@ -10,16 +10,15 @@
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
 
-#include "kernels/time_ops.hpp"
 #include "kernels/take_samples.hpp"
 #include "matrix_state_interleaved.hpp"
-#include "matrix_state_flat.hpp"
+//#include "matrix_state_flat.hpp"
 #include "multi_event_stream.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
+#include "time_ops.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 struct backend {
@@ -61,8 +60,8 @@ struct backend {
     using matrix_state = matrix_state_interleaved<value_type, size_type>;
 
     // backend-specific multi event streams.
-    using deliverable_event_stream = nest::mc::gpu::multi_event_stream<deliverable_event>;
-    using sample_event_stream = nest::mc::gpu::multi_event_stream<sample_event>;
+    using deliverable_event_stream = arb::gpu::multi_event_stream<deliverable_event>;
+    using sample_event_stream = arb::gpu::multi_event_stream<sample_event>;
 
     // mechanism infrastructure
     using ion_type = ion<backend>;
@@ -92,7 +91,7 @@ struct backend {
         return mech_map_.count(name)>0;
     }
 
-    using threshold_watcher = nest::mc::gpu::threshold_watcher;
+    using threshold_watcher = arb::gpu::threshold_watcher;
 
     // perform min/max reductions on 'array' type
     template <typename V>
@@ -105,20 +104,17 @@ struct backend {
     // perform element-wise comparison on 'array' type against `t_test`.
     template <typename V>
     static bool any_time_before(const memory::device_vector<V>& t, V t_test) {
-        // Note: benchmarking (on a P100) indicates that using the gpu::any_time_before
-        // function is slower than the copy, unless we're running over ten thousands of
-        // cells per cell group.
-        //
-        // Commenting out for now, but consider a size-dependent test or adaptive choice.
-
-        // return gpu::any_time_before(t.size(), t.data(), t_test);
+        // Note: ubbench benchmarking (on a P100) indicates that copying the
+        // time vectors to the host is faster than a device side
+        // implementation unless we're running over ten thousands of cells per
+        // cell group.
 
         auto v_copy = memory::on_host(t);
         return util::minmax_value(v_copy).first<t_test;
     }
 
     static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {
-        nest::mc::gpu::update_time_to<value_type, size_type>(time_to.size(), time_to.data(), time.data(), dt, tmax);
+        arb::gpu::update_time_to(time_to.size(), time_to.data(), time.data(), dt, tmax);
     }
 
     // set the per-cell and per-compartment dt_ from time_to_ - time_.
@@ -126,7 +122,8 @@ struct backend {
         size_type ncell = util::size(dt_cell);
         size_type ncomp = util::size(dt_comp);
 
-        nest::mc::gpu::set_dt<value_type, size_type>(ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
+        arb::gpu::set_dt(
+            ncell, ncomp, dt_cell.data(), dt_comp.data(), time_to.data(), time.data(), cv_to_cell.data());
     }
 
     // perform sampling as described by marked events in a sample_event_stream
@@ -136,7 +133,7 @@ struct backend {
         array& sample_time,
         array& sample_value)
     {
-        nest::mc::gpu::take_samples(s, time.data(), sample_time.data(), sample_value.data());
+        arb::gpu::take_samples(s, time.data(), sample_time.data(), sample_value.data());
     }
 
 private:
@@ -145,11 +142,10 @@ private:
 
     template <template <typename> class Mech>
     static mechanism maker(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
-        return nest::mc::make_mechanism<Mech<backend>>
+        return arb::make_mechanism<Mech<backend>>
             (mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

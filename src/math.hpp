@@ -4,8 +4,7 @@
 #include <limits>
 #include <utility>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace math {
 
 template <typename T>
@@ -200,6 +199,5 @@ inline quaternion rotation_z(double psi) {
 }
 
 } // namespace math
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

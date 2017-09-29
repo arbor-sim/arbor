@@ -32,7 +32,7 @@
 #include "miniapp_recipes.hpp"
 #include "trace.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 using util::any_cast;
 using util::make_span;
@@ -193,7 +193,7 @@ int main(int argc, char** argv) {
 
 void banner(hw::node_info nd) {
     std::cout << "==========================================\n";
-    std::cout << "  NestMC miniapp\n";
+    std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << global_policy::size()
               << " (" << std::to_string(global_policy::kind()) << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores

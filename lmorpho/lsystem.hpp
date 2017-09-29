@@ -8,7 +8,7 @@ struct lsys_param;
 
 using lsys_generator = std::minstd_rand;
 
-nest::mc::morphology generate_morphology(const lsys_param& P, lsys_generator& g);
+arb::morphology generate_morphology(const lsys_param& P, lsys_generator& g);
 
 // The distribution parameters used in the specification of the L-system parameters.
 // The distribution can be a constant, uniform over an interval, or truncated normal.

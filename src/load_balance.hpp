@@ -3,10 +3,8 @@
 #include <hardware/node_info.hpp>
 #include <recipe.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd);
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

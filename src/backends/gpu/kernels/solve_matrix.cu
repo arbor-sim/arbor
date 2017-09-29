@@ -1,10 +1,12 @@
-#pragma once
+#include <cassert>
 
 #include "detail.hpp"
+#include <backends/fvm_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
+
+namespace kernels {
 
 /// GPU implementation of Hines Matrix solver.
 /// Flat format
@@ -81,6 +83,38 @@ void solve_matrix_interleaved(
     }
 }
 
+} // namespace kernels
+
+void solve_matrix_flat(
+    fvm_value_type* rhs,
+    fvm_value_type* d,
+    const fvm_value_type* u,
+    const fvm_size_type* p,
+    const fvm_size_type* cell_cv_divs,
+    int num_mtx)
+{
+    constexpr unsigned block_dim = 128;
+    const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
+    kernels::solve_matrix_flat
+        <fvm_value_type, fvm_size_type>
+        <<<grid_dim, block_dim>>>
+        (rhs, d, u, p, cell_cv_divs, num_mtx);
+}
+
+void solve_matrix_interleaved(
+    fvm_value_type* rhs,
+    fvm_value_type* d,
+    const fvm_value_type* u,
+    const fvm_size_type* p,
+    const fvm_size_type* sizes,
+    int padded_size,
+    int num_mtx)
+{
+    const unsigned grid_dim = impl::block_count(num_mtx, impl::block_dim());
+    kernels::solve_matrix_interleaved<fvm_value_type, fvm_size_type, impl::block_dim()>
+        <<<grid_dim, impl::block_dim()>>>
+        (rhs, d, u, p, sizes, padded_size, num_mtx);
+}
+
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

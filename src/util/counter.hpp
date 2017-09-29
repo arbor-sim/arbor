@@ -6,8 +6,7 @@
 #include <iterator>
 #include <type_traits>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename V, typename = typename std::enable_if<std::is_integral<V>::value>::type>
@@ -93,5 +92,4 @@ private:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

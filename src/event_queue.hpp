@@ -14,8 +14,7 @@
 #include "util/range.hpp"
 #include "util/strprintf.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /* Event classes `Event` used with `event_queue` must be move and copy constructible,
  * and either have a public field `time` that returns the time value, or provide an
@@ -33,7 +32,7 @@ struct postsynaptic_spike_event {
         return l.target==r.target && l.time==r.time && l.weight==r.weight;
     }
 
-    friend std::ostream& operator<<(std::ostream& o, const nest::mc::postsynaptic_spike_event& e)
+    friend std::ostream& operator<<(std::ostream& o, const arb::postsynaptic_spike_event& e)
     {
         return o << "E[tgt " << e.target << ", t " << e.time << ", w " << e.weight << "]";
     }
@@ -43,7 +42,7 @@ template <typename Event>
 class event_queue {
 public :
     using value_type = Event;
-    using event_time_type = ::nest::mc::event_time_type<Event>;
+    using event_time_type = ::arb::event_time_type<Event>;
 
     event_queue() {}
 
@@ -69,7 +68,7 @@ public :
             return util::nothing;
         }
 
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         auto t = event_time(queue_.top());
         return t_until > t? util::just(t): util::nothing;
     }
@@ -78,7 +77,7 @@ public :
     // queue non-empty and the head satisfies predicate.
     template <typename Pred>
     util::optional<value_type> pop_if(Pred&& pred) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         if (!queue_.empty() && pred(queue_.top())) {
             auto ev = queue_.top();
             queue_.pop();
@@ -91,7 +90,7 @@ public :
 
     // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
     util::optional<value_type> pop_if_before(const event_time_type& t_until) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return t_until > event_time(ev); }
         );
@@ -99,7 +98,7 @@ public :
 
     // Pop and return top event `ev` of queue unless `event_time(ev)` > `t_until`
     util::optional<value_type> pop_if_not_after(const event_time_type& t_until) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
         );
@@ -113,7 +112,7 @@ public :
 private:
     struct event_greater {
         bool operator()(const Event& a, const Event& b) {
-            using ::nest::mc::event_time;
+            using ::arb::event_time;
             return event_time(a) > event_time(b);
         }
     };
@@ -125,5 +124,4 @@ private:
     > queue_;
 };
 
-} // namespace nest
-} // namespace mc
+} // namespace arb

@@ -9,8 +9,7 @@
 
 #include <algorithms.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename Int, typename Size = std::size_t>
 class tree {
@@ -333,5 +332,4 @@ std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
     return parent_index;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

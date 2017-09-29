@@ -20,8 +20,7 @@
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace communication {
 
 // When the communicator is constructed the number of target groups and targets
@@ -220,5 +219,4 @@ private:
 };
 
 } // namespace communication
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -15,8 +15,7 @@
 #include <util/deduce_return.hpp>
 #include <util/transform.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // An association between a samplers, schedule, and set of probe ids, as provided
 // to e.g. `model::add_sampler()`.
@@ -73,5 +72,4 @@ struct probe_association {
 template <typename Handle>
 using probe_association_map = std::unordered_map<cell_member_type, probe_association<Handle>>;
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

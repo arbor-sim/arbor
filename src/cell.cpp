@@ -3,8 +3,7 @@
 #include <tree.hpp>
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 int find_compartment_index(
     segment_location const& location,
@@ -280,5 +279,4 @@ cell make_cell(const morphology& morph, bool compartments_from_discretization) {
     return newcell;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

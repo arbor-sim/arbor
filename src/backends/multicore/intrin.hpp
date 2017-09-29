@@ -9,8 +9,7 @@
 #include <iostream>
 #include <immintrin.h>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 namespace detail {
@@ -56,24 +55,24 @@ constexpr int exp_bias = 1023;
 constexpr double dsqrth = 0.70710678118654752440;
 
 // Useful constants in vector registers
-const __m256d nmc_m256d_zero = _mm256_set1_pd(0.0);
-const __m256d nmc_m256d_one  = _mm256_set1_pd(1.0);
-const __m256d nmc_m256d_two  = _mm256_set1_pd(2.0);
-const __m256d nmc_m256d_nan  = _mm256_set1_pd(std::numeric_limits<double>::quiet_NaN());
-const __m256d nmc_m256d_inf  = _mm256_set1_pd(std::numeric_limits<double>::infinity());
-const __m256d nmc_m256d_ninf = _mm256_set1_pd(-std::numeric_limits<double>::infinity());
+const __m256d arb_m256d_zero = _mm256_set1_pd(0.0);
+const __m256d arb_m256d_one  = _mm256_set1_pd(1.0);
+const __m256d arb_m256d_two  = _mm256_set1_pd(2.0);
+const __m256d arb_m256d_nan  = _mm256_set1_pd(std::numeric_limits<double>::quiet_NaN());
+const __m256d arb_m256d_inf  = _mm256_set1_pd(std::numeric_limits<double>::infinity());
+const __m256d arb_m256d_ninf = _mm256_set1_pd(-std::numeric_limits<double>::infinity());
 }
 
-static void nmc_mm256_print_pd(__m256d x, const char *name) __attribute__ ((unused));
-static void nmc_mm256_print_epi32(__m128i x, const char *name) __attribute__ ((unused));
-static void nmc_mm256_print_epi64x(__m256i x, const char *name) __attribute__ ((unused));
-static __m256d nmc_mm256_exp_pd(__m256d x) __attribute__ ((unused));
-static __m256d nmc_mm256_subnormal_pd(__m256d x) __attribute__ ((unused));
-static __m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) __attribute__ ((unused));
-static __m256d nmc_mm256_log_pd(__m256d x) __attribute__ ((unused));
-static __m256d nmc_mm256_pow_pd(__m256d x, __m256d y) __attribute__ ((unused));
+static void arb_mm256_print_pd(__m256d x, const char *name) __attribute__ ((unused));
+static void arb_mm256_print_epi32(__m128i x, const char *name) __attribute__ ((unused));
+static void arb_mm256_print_epi64x(__m256i x, const char *name) __attribute__ ((unused));
+static __m256d arb_mm256_exp_pd(__m256d x) __attribute__ ((unused));
+static __m256d arb_mm256_subnormal_pd(__m256d x) __attribute__ ((unused));
+static __m256d arb_mm256_frexp_pd(__m256d x, __m128i *e) __attribute__ ((unused));
+static __m256d arb_mm256_log_pd(__m256d x) __attribute__ ((unused));
+static __m256d arb_mm256_pow_pd(__m256d x, __m256d y) __attribute__ ((unused));
 
-void nmc_mm256_print_pd(__m256d x, const char *name) {
+void arb_mm256_print_pd(__m256d x, const char *name) {
     double *val = (double *) &x;
     std::cout << name << " = { ";
     for (size_t i = 0; i < 4; ++i) {
@@ -83,7 +82,7 @@ void nmc_mm256_print_pd(__m256d x, const char *name) {
     std::cout << "}\n";
 }
 
-void nmc_mm256_print_epi32(__m128i x, const char *name) {
+void arb_mm256_print_epi32(__m128i x, const char *name) {
     int *val = (int *) &x;
     std::cout << name << " = { ";
     for (size_t i = 0; i < 4; ++i) {
@@ -93,7 +92,7 @@ void nmc_mm256_print_epi32(__m128i x, const char *name) {
     std::cout << "}\n";
 }
 
-void nmc_mm256_print_epi64x(__m256i x, const char *name) {
+void arb_mm256_print_epi64x(__m256i x, const char *name) {
     uint64_t *val = (uint64_t *) &x;
     std::cout << name << " = { ";
     for (size_t i = 0; i < 4; ++i) {
@@ -149,7 +148,7 @@ void nmc_mm256_print_epi64x(__m256i x, const char *name) {
 // the standard library seems not to do that, so we are getting differences
 // compared to std::exp() for large exponents.
 //
-__m256d nmc_mm256_exp_pd(__m256d x) {
+__m256d arb_mm256_exp_pd(__m256d x) {
     __m256d x_orig = x;
 
     __m256d px = _mm256_floor_pd(
@@ -194,8 +193,8 @@ __m256d nmc_mm256_exp_pd(__m256d x) {
 
     // Compute 1 + 2*P(x**2) / (Q(x**2)-P(x**2))
     x = _mm256_div_pd(px, _mm256_sub_pd(qx, px));
-    x = _mm256_add_pd(detail::nmc_m256d_one,
-                      _mm256_mul_pd(detail::nmc_m256d_two, x));
+    x = _mm256_add_pd(detail::arb_m256d_one,
+                      _mm256_mul_pd(detail::arb_m256d_two, x));
 
     // Finally, compute x *= 2**n
     __m256i n64 = _mm256_cvtepi32_epi64(n);
@@ -212,23 +211,23 @@ __m256d nmc_mm256_exp_pd(__m256d x) {
     );
     __m256d is_nan = _mm256_cmp_pd(x_orig, x_orig, 3 /* _CMP_UNORD_Q */ );
 
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_inf, is_large);
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_zero, is_small);
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_nan, is_nan);
+    x = _mm256_blendv_pd(x, detail::arb_m256d_inf, is_large);
+    x = _mm256_blendv_pd(x, detail::arb_m256d_zero, is_small);
+    x = _mm256_blendv_pd(x, detail::arb_m256d_nan, is_nan);
     return x;
 
 }
 
-__m256d nmc_mm256_subnormal_pd(__m256d x) {
+__m256d arb_mm256_subnormal_pd(__m256d x) {
     __m256i x_raw = _mm256_castpd_si256(x);
     __m256i exp_mask = _mm256_set1_epi64x(detail::dexp_mask);
     __m256d x_exp = _mm256_castsi256_pd(_mm256_and_si256(x_raw, exp_mask));
 
     // Subnormals have a zero exponent
-    return _mm256_cmp_pd(x_exp, detail::nmc_m256d_zero, 0 /* _CMP_EQ_OQ */);
+    return _mm256_cmp_pd(x_exp, detail::arb_m256d_zero, 0 /* _CMP_EQ_OQ */);
 }
 
-__m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) {
+__m256d arb_mm256_frexp_pd(__m256d x, __m128i *e) {
     __m256i exp_mask  = _mm256_set1_epi64x(detail::dexp_mask);
     __m256i mant_mask = _mm256_set1_epi64x(detail::dmant_mask);
 
@@ -253,13 +252,13 @@ __m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) {
 
     // Treat special cases
     __m256d is_zero = _mm256_cmp_pd(
-        x_orig, detail::nmc_m256d_zero, 0 /* _CMP_EQ_OQ */
+        x_orig, detail::arb_m256d_zero, 0 /* _CMP_EQ_OQ */
     );
     __m256d is_inf = _mm256_cmp_pd(
-        x_orig, detail::nmc_m256d_inf, 0 /* _CMP_EQ_OQ */
+        x_orig, detail::arb_m256d_inf, 0 /* _CMP_EQ_OQ */
     );
     __m256d is_ninf = _mm256_cmp_pd(
-        x_orig, detail::nmc_m256d_ninf, 0 /* _CMP_EQ_OQ */
+        x_orig, detail::arb_m256d_ninf, 0 /* _CMP_EQ_OQ */
     );
     __m256d is_nan = _mm256_cmp_pd(x_orig, x_orig, 3 /* _CMP_UNORD_Q */ );
 
@@ -267,13 +266,13 @@ __m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) {
     // have already prepared it as a power of 2
     __m256i is_denorm = _mm256_cmpeq_epi64(x_exp, _mm256_set1_epi64x(-1022));
 
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_zero, is_zero);
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_inf, is_inf);
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_ninf, is_ninf);
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_nan, is_nan);
+    x = _mm256_blendv_pd(x, detail::arb_m256d_zero, is_zero);
+    x = _mm256_blendv_pd(x, detail::arb_m256d_inf, is_inf);
+    x = _mm256_blendv_pd(x, detail::arb_m256d_ninf, is_ninf);
+    x = _mm256_blendv_pd(x, detail::arb_m256d_nan, is_nan);
 
     // FIXME: We treat denormalized numbers as zero here
-    x = _mm256_blendv_pd(x, detail::nmc_m256d_zero,
+    x = _mm256_blendv_pd(x, detail::arb_m256d_zero,
                          _mm256_castsi256_pd(is_denorm));
     x_exp = _mm256_blendv_epi8(x_exp, _mm256_set1_epi64x(0), is_denorm);
 
@@ -300,12 +299,12 @@ __m256d nmc_mm256_frexp_pd(__m256d x, __m128i *e) {
 //
 //   ln(1+x) = x - 0.5*x^2 + x^3*P(x)/Q(x)
 //
-__m256d nmc_mm256_log_pd(__m256d x) {
+__m256d arb_mm256_log_pd(__m256d x) {
     __m256d x_orig = x;
     __m128i x_exp;
 
     // x := x', x_exp := g
-    x = nmc_mm256_frexp_pd(x, &x_exp);
+    x = arb_mm256_frexp_pd(x, &x_exp);
 
     // convert x_exp to packed double
     __m256d dx_exp = _mm256_cvtepi32_pd(x_exp);
@@ -321,13 +320,13 @@ __m256d nmc_mm256_log_pd(__m256d x) {
 
     // Precompute both branches
     // 2*x - 1
-    __m256d x2m1 = _mm256_sub_pd(_mm256_add_pd(x, x), detail::nmc_m256d_one);
+    __m256d x2m1 = _mm256_sub_pd(_mm256_add_pd(x, x), detail::arb_m256d_one);
 
     // x - 1
-    __m256d xm1 = _mm256_sub_pd(x, detail::nmc_m256d_one);
+    __m256d xm1 = _mm256_sub_pd(x, detail::arb_m256d_one);
 
     // dx_exp - 1
-    __m256d dx_exp_m1 = _mm256_sub_pd(dx_exp, detail::nmc_m256d_one);
+    __m256d dx_exp_m1 = _mm256_sub_pd(dx_exp, detail::arb_m256d_one);
 
     x = _mm256_blendv_pd(xm1, x2m1, lt_sqrth);
     dx_exp = _mm256_blendv_pd(dx_exp, dx_exp_m1, lt_sqrth);
@@ -382,27 +381,26 @@ __m256d nmc_mm256_log_pd(__m256d x) {
 
     // Treat exceptional cases
     __m256d is_inf = _mm256_cmp_pd(
-        x_orig, detail::nmc_m256d_inf, 0 /* _CMP_EQ_OQ */);
+        x_orig, detail::arb_m256d_inf, 0 /* _CMP_EQ_OQ */);
     __m256d is_zero = _mm256_cmp_pd(
-        x_orig, detail::nmc_m256d_zero, 0 /* _CMP_EQ_OQ */);
+        x_orig, detail::arb_m256d_zero, 0 /* _CMP_EQ_OQ */);
     __m256d is_neg = _mm256_cmp_pd(
-        x_orig, detail::nmc_m256d_zero, 17 /* _CMP_LT_OQ */);
-    __m256d is_denorm = nmc_mm256_subnormal_pd(x_orig);
+        x_orig, detail::arb_m256d_zero, 17 /* _CMP_LT_OQ */);
+    __m256d is_denorm = arb_mm256_subnormal_pd(x_orig);
 
-    ret = _mm256_blendv_pd(ret, detail::nmc_m256d_inf, is_inf);
-    ret = _mm256_blendv_pd(ret, detail::nmc_m256d_ninf, is_zero);
+    ret = _mm256_blendv_pd(ret, detail::arb_m256d_inf, is_inf);
+    ret = _mm256_blendv_pd(ret, detail::arb_m256d_ninf, is_zero);
 
     // We treat denormalized cases as zeros
-    ret = _mm256_blendv_pd(ret, detail::nmc_m256d_ninf, is_denorm);
-    ret = _mm256_blendv_pd(ret, detail::nmc_m256d_nan, is_neg);
+    ret = _mm256_blendv_pd(ret, detail::arb_m256d_ninf, is_denorm);
+    ret = _mm256_blendv_pd(ret, detail::arb_m256d_nan, is_neg);
     return ret;
 }
 
 // Equivalent to exp(y*log(x))
-__m256d nmc_mm256_pow_pd(__m256d x, __m256d y) {
-    return nmc_mm256_exp_pd(_mm256_mul_pd(y, nmc_mm256_log_pd(x)));
+__m256d arb_mm256_pow_pd(__m256d x, __m256d y) {
+    return arb_mm256_exp_pd(_mm256_mul_pd(y, arb_mm256_log_pd(x)));
 }
 
 } // end namespace multicore
-} // end namespace mc
-} // end namespace nest
+} // end namespace arb

@@ -5,7 +5,7 @@
 
 #include "../src/point.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(point, construction)
 {

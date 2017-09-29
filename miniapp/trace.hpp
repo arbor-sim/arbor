@@ -11,10 +11,10 @@
 #include <simple_sampler.hpp>
 
 struct sample_trace {
-    nest::mc::cell_member_type probe_id;
+    arb::cell_member_type probe_id;
     std::string name;
     std::string units;
-    nest::mc::trace_data<double> samples;
+    arb::trace_data<double> samples;
 };
 
 void write_trace_csv(const sample_trace& trace, const std::string& prefix);

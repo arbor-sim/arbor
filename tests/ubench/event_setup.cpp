@@ -4,7 +4,7 @@
 // TODO: We assume that the cells in a cell group are numbered contiguously,
 // i.e. 0:ncells-1. The cells in an mc_cell_group are not typically thus,
 // instead a hash table is used to look up the cell_group local index from the
-// gid. A similar lookup should be added to theses tests, to moare accurately
+// gid. A similar lookup should be added to theses tests, to more accurately
 // reflect the mc_cell_group implementation.
 //
 // TODO: The staged_events output is a vector of postsynaptic_spike_event, not
@@ -13,20 +13,19 @@
 #include <random>
 #include <vector>
 
-#include <event_binner.hpp>
 #include <event_queue.hpp>
 #include <backends/event.hpp>
 
 #include <benchmark/benchmark.h>
 
-using namespace nest::mc;
+using namespace arb;
 
 std::vector<postsynaptic_spike_event> generate_inputs(size_t ncells, size_t ev_per_cell) {
     std::vector<postsynaptic_spike_event> input_events;
     std::default_random_engine engine;
     std::uniform_int_distribution<cell_gid_type>(0u, ncells);
 
-    std::default_random_engine gen;
+    std::mt19937 gen;
     std::uniform_int_distribution<cell_gid_type>
         gid_dist(0u, ncells-1);
     std::uniform_real_distribution<float>
@@ -55,7 +54,6 @@ void single_queue(benchmark::State& state) {
     // state
     std::vector<pev> input_events = generate_inputs(ncells, ev_per_cell);
 
-    //auto binner = event_binner(binning_kind::regular, 0.001);
     event_queue<pev> events;
     while (state.KeepRunning()) {
         // push events into a single queue
@@ -78,23 +76,8 @@ void single_queue(benchmark::State& state) {
         // this benchmark, however this method is that much slower already, that
         // illustrating this wouldn't change the conclusions.
 
-        /*
-         // This is the "full" implementation that converts post_synaptic events
-         // to deliverable_events. Kepp it here in case the benchmark should
-         // be extended to test this step.
-        std::vector<deliverable_event> staged_events;
-        staged_events.reserve(events.size());
-        while (auto e = events.pop_if_before(2.f)) {
-            staged_events.emplace_back(
-                binner.bin(e->target.gid, e->time, 0.f),
-                // TODO: this should do a lookup in a hash table?
-                //get_target_handle(e->target),
-                target_handle(0, 0, e->target.gid),
-                e->weight);
-        }
-
-        binner.reset();
-        */
+        // clobber contents of queue for next round of benchmark
+        events.clear();
 
         benchmark::ClobberMemory();
     }
@@ -130,6 +113,11 @@ void n_queue(benchmark::State& state) {
             part[++i] = staged_events.size();
         }
 
+        // clobber lanes for the next round of benchmarking
+        for (auto& lane: event_lanes) {
+            lane.clear();
+        }
+
         benchmark::ClobberMemory();
     }
 }
@@ -144,7 +132,7 @@ void n_vector(benchmark::State& state) {
     // state
     std::vector<std::vector<pev>> event_lanes(ncells);
     std::vector<size_t> part(ncells+1);
-    std::vector<decltype(input_events.begin())> ext(ncells);
+    std::vector<size_t> ext(ncells);
 
     struct ev_lt_pred {
         bool operator()(float t, const pev& ev) { return t<ev.time; }
@@ -167,24 +155,33 @@ void n_vector(benchmark::State& state) {
             std::sort(lane.begin(), lane.end(),
                       [](const pev& l, const pev& r) {return l.time<r.time;});
             ext.push_back(
-                std::lower_bound(lane.begin(), lane.end(), 1.f, ev_lt_pred()));
+                std::distance(
+                    lane.begin(),
+                    std::lower_bound(lane.begin(), lane.end(), 1.f, ev_lt_pred())));
         }
         // calculate partition of output buffer according to target cell gid
         part[0] = 0;
         for (size_t i=0; i<ncells; ++i) {
-            part[i+1] = part[i] + std::distance(event_lanes[i].begin(), ext[i]);
+            part[i+1] = part[i] + ext[i];
         }
         // copy events into the output flat buffer
         std::vector<postsynaptic_spike_event> staged_events(part.back());
         auto b = staged_events.begin();
         for (size_t i=0; i<ncells; ++i) {
-            std::copy(event_lanes[i].begin(), ext[i], b+part[i]);
+            auto bi = event_lanes[i].begin();
+            std::copy(bi, bi+ext[i], b+part[i]);
         }
 
         // remove events that were delivered from the event lanes
         auto i=0u;
         for (auto& lane: event_lanes) {
-            lane.erase(lane.begin(), ext[i++]);
+            auto b = lane.begin();
+            lane.erase(b, b+ext[i++]);
+        }
+
+        // clobber contents of lane for next round of benchmark
+        for (auto& lane: event_lanes) {
+            lane.clear();
         }
 
         benchmark::ClobberMemory();
