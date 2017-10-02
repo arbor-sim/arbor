@@ -69,7 +69,6 @@ protected:
 
         // Sort by index (staged events should already be time-sorted).
         EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
-        //util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
 
         std::size_t n_ev = staged.size();
         tmp_ev_time_.clear();
