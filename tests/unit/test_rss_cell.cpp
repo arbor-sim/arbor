@@ -19,19 +19,19 @@ TEST(rss_cell, basic_usage)
     rss_cell_group sut({0}, rss_recipe(1u, desc));
 
     // No spikes in this time frame.
-    sut.advance(0.1, dt);
+    sut.advance(0.1, dt, 0);
     EXPECT_EQ(0u, sut.spikes().size());
 
     // Only on in this time frame
     sut.clear_spikes();
-    sut.advance(0.127, dt);
+    sut.advance(0.127, dt, 1);
     EXPECT_EQ(1u, sut.spikes().size());
 
     // Reset cell group state.
     sut.reset();
 
     // Expect 12 spikes excluding the 0.5 end point.
-    sut.advance(0.5, dt);
+    sut.advance(0.5, dt, 0);
     EXPECT_EQ(12u, sut.spikes().size());
 }
 
@@ -43,19 +43,19 @@ TEST(rss_cell, poll_time_after_end_time)
     rss_cell_group sut({0}, rss_recipe(1u, desc));
 
     // Expect 12 spikes in this time frame.
-    sut.advance(0.7, dt);
+    sut.advance(0.7, dt, 0);
     EXPECT_EQ(12u, sut.spikes().size());
 
     // Now ask for spikes for a time slot already passed:
     // It should result in zero spikes because of the internal state!
     sut.clear_spikes();
-    sut.advance(0.2, dt);
+    sut.advance(0.2, dt, 1);
     EXPECT_EQ(0u, sut.spikes().size());
 
     sut.reset();
 
     // Expect 12 excluding the 0.5
-    sut.advance(0.5, dt);
+    sut.advance(0.5, dt, 0);
     EXPECT_EQ(12u, sut.spikes().size());
 }
 
