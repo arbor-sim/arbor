@@ -60,11 +60,8 @@ time_type model::run(time_type tfinal, time_type dt) {
         threading::parallel_for::apply(
             0u, cell_groups_.size(),
             [&](unsigned i) {
+                PE("stepping");
                 auto &group = cell_groups_[i];
-
-                //PE("stepping","events");
-                //group->enqueue_events(current_events()[i]);
-                //PL();
 
                 group->advance(tuntil, dt, epoch_);
 

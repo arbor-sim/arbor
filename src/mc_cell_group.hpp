@@ -99,18 +99,13 @@ public:
         time_type tstart = lowered_.min_time();
 
         PE("event-setup");
-        /*
-        // Bin pending events and batch for lowered cell.
-        std::vector<deliverable_event> staged_events;
-        staged_events.reserve(events_.size());
-
-        while (auto ev = events_.pop_if_before(tfinal)) {
-            staged_events.emplace_back(
-                binner_.bin(ev->target.gid, ev->time, tstart),
-                get_target_handle(ev->target),
-                ev->weight);
-        }
-        */
+        // STEPS:
+        // 1. push back into vector as before, however the values are now partitioned
+        // 2. don't pass partition information: let the event handler handle this
+        // 3. don't do stable sort
+        //
+        // FUTURE:
+        // 4. pass in lanes and partition information directly.
         staged_events_.clear();
         for (auto& lane: event_lanes(epoch)) {
             for (auto e: lane) {
@@ -121,13 +116,6 @@ public:
             }
         }
 
-        // STEPS:
-        // 1. push back into vector as before, however the values are now partitioned
-        // 2. don't pass partition information: let the event handler handle this
-        // 3. don't do stable sort
-        //
-        // FUTURE:
-        // 4. pass in lanes and partition information directly.
         PL();
 
         // Create sample events and delivery information.
