@@ -9,6 +9,7 @@
 #include <generic_event.hpp>
 #include <memory/array.hpp>
 #include <memory/copy.hpp>
+#include <profiling/profiler.hpp>
 #include <util/rangeutil.hpp>
 
 namespace arb {
@@ -63,7 +64,7 @@ protected:
         using ::arb::event_time;
         using ::arb::event_index;
 
-        PE("event-stream")
+        PE("event-stream");
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
         }

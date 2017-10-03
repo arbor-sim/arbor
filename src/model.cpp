@@ -89,13 +89,17 @@ time_type model::run(time_type tfinal, time_type dt) {
         global_export_callback_(global_spikes.values());
         PL();
 
-        PE("events");
+        PE("events", "from-spikes");
         auto events = communicator_.make_event_queues(global_spikes);
+        PL();
+
+        PE("enqueue");
         for (auto i: util::make_span(0, cell_groups_.size())) {
             cell_groups_[i]->enqueue_events(events[i], tuntil, epoch_);
         }
+        PL(2);
 
-        PL(3);
+        PL(2);
     };
 
     while (t_<tfinal) {
