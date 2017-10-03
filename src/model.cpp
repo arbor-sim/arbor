@@ -102,9 +102,9 @@ time_type model::run(time_type tfinal, time_type dt) {
                 util::subrange_view(events, communicator_.group_queue_range(i)),
                 tuntil, epoch_);
         }
-        PL();
+        PL(2);
 
-        PL(3);
+        PL(2);
     };
 
     //time_type ttt = 30.;
