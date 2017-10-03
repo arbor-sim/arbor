@@ -178,16 +178,16 @@ public:
         lowered_.setup_integration(tfinal, dt, staged_events_, std::move(sample_events));
         PE("integrator-steps");
 
-        auto ns = 0u;
+        //auto ns = 0u;
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds  at (max) t "
                           << lowered_.max_time() << " ms\n";
             }
-            ++ns;
+            //++ns;
         }
-        std::cout << "   " << ns << " steps\n";
+        //std::cout << "   " << ns << " steps\n";
         PL();
 
 
