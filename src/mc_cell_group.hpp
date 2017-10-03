@@ -79,7 +79,9 @@ public:
     void reset() override {
         spikes_.clear();
         reset_samplers();
-        binner_.reset();
+        for (auto& b: binners_) {
+            b.reset();
+        }
         lowered_.reset();
         for (auto& lanes: event_lanes_) {
             for (auto& lane: lanes) {
@@ -89,7 +91,8 @@ public:
     }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {
-        binner_ = event_binner(policy, bin_interval);
+        binners_.clear();
+        binners_.resize(gids_.size(), event_binner(policy, bin_interval));
     }
 
 
@@ -106,7 +109,7 @@ public:
             for (auto e: lane) {
                 if (e.time>=tfinal) break;
                 // TODO: don't use hash table in binner
-                //e.time = binner_.bin(e.handle.cell_index, e.time, tstart);
+                e.time = binners_[lid].bin(e.time, tstart);
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
@@ -175,13 +178,16 @@ public:
         lowered_.setup_integration(tfinal, dt, staged_events_, std::move(sample_events));
         PE("integrator-steps");
 
+        auto ns = 0u;
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds  at (max) t "
                           << lowered_.max_time() << " ms\n";
             }
+            ++ns;
         }
+        std::cout << "   " << ns << " steps\n";
         PL();
 
 
@@ -226,7 +232,6 @@ public:
     }
 
     void enqueue_events(
-            //const std::vector<postsynaptic_spike_event>& events,
             util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events,
             time_type tfinal,
             size_t epoch) override
@@ -235,10 +240,14 @@ public:
 
         auto& lf = event_lanes(epoch+1);
         const auto& lc = event_lanes(epoch);
-        for (auto l: util::make_span(0, gids_.size())) {
+        //for (auto l: util::make_span(0, gids_.size())) {
+        threading::parallel_for::apply(0, gids_.size(), [&] (unsigned l) {
+            PE("sort");
             // STEP 1: sort events in place in events[l]
             util::sort_by(events[l], [](const pse& e){return event_time(e);});
+            PL();
 
+            PE("merge");
             // STEP 2: clear lf
             lf[l].clear();
 
@@ -248,7 +257,9 @@ public:
             std::merge(
                 events[l].begin(), events[l].end(), pos, lc[l].end(), lf[l].begin(),
                 [](const pse& l, const pse& r) {return l.time<r.time;});
-        }
+            PL();
+        //}
+        });
     }
 
     const std::vector<spike>& spikes() const override {
@@ -303,7 +314,7 @@ private:
     std::vector<spike> spikes_;
 
     // Event time binning manager.
-    event_binner binner_;
+    std::vector<event_binner> binners_;
 
     // Pending events to be delivered.
     std::vector<std::vector<std::vector<postsynaptic_spike_event>>> event_lanes_;

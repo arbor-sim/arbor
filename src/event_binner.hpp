@@ -30,9 +30,7 @@ public:
     // Otherwise the returned binned time will be less than or equal to the parameter `t`,
     // and within `bin_interval_`.
 
-    time_type bin(cell_gid_type id,
-                  time_type t,
-                  time_type t_min = std::numeric_limits<time_type>::lowest());
+    time_type bin(time_type t, time_type t_min = std::numeric_limits<time_type>::lowest());
 
 private:
     binning_kind policy_;
@@ -40,12 +38,7 @@ private:
     // Interval in which event times can be aliased.
     time_type bin_interval_;
 
-    // (Consider replacing this with a vector-backed store.)
-    std::unordered_map<cell_gid_type, time_type> last_event_times_;
-
-    util::optional<time_type> last_event_time(cell_gid_type id);
-
-    void update_last_event_time(cell_gid_type id, time_type t);
+    util::optional<time_type> last_event_time_;
 };
 
 } // namespace arb
