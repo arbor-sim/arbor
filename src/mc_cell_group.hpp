@@ -99,20 +99,17 @@ public:
         time_type tstart = lowered_.min_time();
 
         PE("event-setup");
-        // STEPS:
-        // 1. push back into vector as before, however the values are now partitioned
-        // 2. don't pass partition information: let the event handler handle this
-        // 3. don't do stable sort
-        //
-        // FUTURE:
-        // 4. pass in lanes and partition information directly.
+        const auto& lc = event_lanes(epoch);
         staged_events_.clear();
-        for (auto& lane: event_lanes(epoch)) {
+        for (auto lid: util::make_span(0, gids_.size())) {
+            auto& lane = lc[lid];
             for (auto e: lane) {
                 if (e.time>=tfinal) break;
                 // TODO: don't use hash table in binner
-                e.time = binner_.bin(e.handle.cell_index, e.time, tstart),
-                staged_events_.push_back(e);
+                //e.time = binner_.bin(e.handle.cell_index, e.time, tstart);
+                auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
+                auto ev = deliverable_event(e.time, h, e.weight);
+                staged_events_.push_back(ev);
             }
         }
 
@@ -177,6 +174,7 @@ public:
         // Run integration.
         lowered_.setup_integration(tfinal, dt, staged_events_, std::move(sample_events));
         PE("integrator-steps");
+
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
@@ -228,34 +226,28 @@ public:
     }
 
     void enqueue_events(
-            const std::vector<postsynaptic_spike_event>& events,
+            //const std::vector<postsynaptic_spike_event>& events,
+            util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events,
             time_type tfinal,
             size_t epoch) override
     {
+        using pse = postsynaptic_spike_event;
+
         auto& lf = event_lanes(epoch+1);
-
-        // clear future event lanes
-        for (auto& l: lf) {
-            l.clear();
-        }
-        // add new events to future event lanes
-        for (auto& e: events) {
-            // insert deliverable event into lane for target gid
-            auto lid = gid_to_index(e.target.gid);
-            auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
-            auto ev = deliverable_event(e.time, h, e.weight);
-            lf[lid].push_back(ev);
-        }
-
         const auto& lc = event_lanes(epoch);
-        for (auto i: util::make_span(0u, gids_.size())) {
-            // append events that will be delivered in a future epoch from the current
-            // epoch's event list to the future list
-            auto pos = std::lower_bound(lc[i].begin(), lc[i].end(), tfinal, event_time_less());
-            lf[i].insert(lf[i].end(), pos, lc[i].end());
+        for (auto l: util::make_span(0, gids_.size())) {
+            // STEP 1: sort events in place in events[l]
+            util::sort_by(events[l], [](const pse& e){return event_time(e);});
 
-            // sort the future events
-            util::sort_by(lf[i], [](const deliverable_event& e){return event_time(e);});
+            // STEP 2: clear lf
+            lf[l].clear();
+
+            // STEP 3: merge new events and future events from lc into lf
+            auto pos = std::lower_bound(lc[l].begin(), lc[l].end(), tfinal, event_time_less());
+            lf[l].resize(events[l].size()+std::distance(pos, lc[l].end()));
+            std::merge(
+                events[l].begin(), events[l].end(), pos, lc[l].end(), lf[l].begin(),
+                [](const pse& l, const pse& r) {return l.time<r.time;});
         }
     }
 
@@ -291,7 +283,7 @@ public:
     }
 
 private:
-    std::vector<std::vector<deliverable_event>>& event_lanes(std::size_t epoch) {
+    std::vector<std::vector<postsynaptic_spike_event>>& event_lanes(std::size_t epoch) {
         return event_lanes_[epoch%2];
     }
 
@@ -314,7 +306,7 @@ private:
     event_binner binner_;
 
     // Pending events to be delivered.
-    std::vector<std::vector<std::vector<deliverable_event>>> event_lanes_;
+    std::vector<std::vector<std::vector<postsynaptic_spike_event>>> event_lanes_;
     std::vector<deliverable_event> staged_events_;
 
     // Pending samples to be taken.

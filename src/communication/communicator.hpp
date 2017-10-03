@@ -56,11 +56,11 @@ public:
         // For caching information about each cell
         struct gid_info {
             using connection_list = decltype(std::declval<recipe>().connections_on(0));
-            cell_gid_type gid;
-            cell_gid_type local_group;
-            connection_list conns;
-            gid_info(cell_gid_type g, cell_gid_type lg, connection_list c):
-                gid(g), local_group(lg), conns(std::move(c)) {}
+            cell_gid_type gid;       // global identifier of cell
+            cell_gid_type domain_id; // index of cell in this domain
+            connection_list conns;   // list of connections terminating at this cell
+            gid_info(cell_gid_type g, cell_gid_type di, connection_list c):
+                gid(g), domain_id(di), conns(std::move(c)) {}
         };
 
         // Make a list of local gid with their group index and connections
@@ -75,12 +75,13 @@ public:
         gid_infos.reserve(dom_dec.num_local_cells);
 
         cell_local_size_type n_cons = 0;
+        cell_local_size_type n_gid = 0;
         std::vector<unsigned> src_domains;
         std::vector<cell_size_type> src_counts(num_domains_);
-        for (auto i: make_span(0, num_local_groups_)) {
-            const auto& group = dom_dec.groups[i];
+        for (auto g: make_span(0, num_local_groups_)) {
+            const auto& group = dom_dec.groups[g];
             for (auto gid: group.gids) {
-                gid_info info(gid, i, rec.connections_on(gid));
+                gid_info info(gid, n_gid, rec.connections_on(gid));
                 n_cons += info.conns.size();
                 for (auto con: info.conns) {
                     const auto src = dom_dec.gid_domain(con.source.gid);
@@ -88,8 +89,11 @@ public:
                     src_counts[src]++;
                 }
                 gid_infos.push_back(std::move(info));
+                ++n_gid;
             }
         }
+
+        num_local_cells_ = n_gid;
 
         // Construct the connections.
         // The loop above gave the information required to construct in place
@@ -101,9 +105,16 @@ public:
         for (const auto& cell: gid_infos) {
             for (auto c: cell.conns) {
                 const auto i = offsets[src_domains[pos]]++;
-                connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.local_group};
+                // TODO: replace local_group index with domain_id: done
+                connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.domain_id};
                 ++pos;
             }
+        }
+
+        // TODO: build cell partition by group for passing view of vectors
+        domain_id_partition_.resize(num_local_groups_+1);
+        for (auto g: make_span(0, num_local_groups_)) {
+            domain_id_partition_[g+1] = domain_id_partition_[g] + dom_dec.groups[g].gids.size();
         }
 
         // Sort the connections for each domain.
@@ -115,7 +126,13 @@ public:
             });
     }
 
-    /// the minimum delay of all connections in the global network.
+    /// The range of event queues that belong to cells in group i.
+    std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i) {
+        EXPECTS(i<num_local_groups_);
+        return {domain_id_partition_[i], domain_id_partition_[i+i]};
+    }
+
+    /// The minimum delay of all connections in the global network.
     time_type min_delay() {
         auto local_min = std::numeric_limits<time_type>::max();
         for (auto& con : connections_) {
@@ -151,7 +168,8 @@ public:
         using util::make_span;
         using util::make_range;
 
-        auto queues = std::vector<event_queue>(num_local_groups_);
+        // TODO: make one queue for each cell, not each cell group: done
+        auto queues = std::vector<event_queue>(num_local_cells_);
         const auto& sp = global_spikes.partition();
         const auto& cp = connection_part_;
         for (auto dom: make_span(0, num_domains_)) {
@@ -172,7 +190,7 @@ public:
                     auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
 
                     for (auto s: make_range(sources.first, sources.second)) {
-                        queues[cn->group_index()].push_back(cn->make_event(s));
+                        queues[cn->domain_index()].push_back(cn->make_event(s));
                     }
 
                     sp = sources.first;
@@ -186,7 +204,7 @@ public:
                     auto targets = std::equal_range(cn, cons.end(), sp->source);
 
                     for (auto c: make_range(targets.first, targets.second)) {
-                        queues[c.group_index()].push_back(c.make_event(*sp));
+                        queues[c.domain_index()].push_back(c.make_event(*sp));
                     }
 
                     cn = targets.first;
@@ -210,10 +228,12 @@ public:
     }
 
 private:
+    cell_size_type num_local_cells_;
     cell_size_type num_local_groups_;
     cell_size_type num_domains_;
     std::vector<connection> connections_;
     std::vector<cell_size_type> connection_part_;
+    std::vector<cell_size_type> domain_id_partition_;
     communication_policy_type comms_;
     std::uint64_t num_spikes_ = 0u;
 };

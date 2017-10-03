@@ -10,6 +10,8 @@
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
 
+#include <cuda_profiler_api.h>
+
 namespace arb {
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
@@ -90,18 +92,30 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL();
 
         PE("events");
+        PE("from-spikes");
         auto events = communicator_.make_event_queues(global_spikes);
+        PL();
+
+        PE("enqueue");
         for (auto i: util::make_span(0, cell_groups_.size())) {
-            cell_groups_[i]->enqueue_events(events[i], tuntil, epoch_);
+            cell_groups_[i]->enqueue_events(
+                util::subrange_view(events, communicator_.group_queue_range(i)),
+                tuntil, epoch_);
         }
+        PL();
 
         PL(3);
     };
 
+    //time_type ttt = 30.;
     while (t_<tfinal) {
         tuntil = std::min(t_+t_interval, tfinal);
 
         local_spikes_.exchange();
+
+        // TODO
+        //bool pon = (t_>(ttt-1) && t_<(ttt-1+10));
+        //if (pon) cudaProfilerStart();
 
         // empty the spike buffers for the current integration period.
         // these buffers will store the new spikes generated in update_cells.
@@ -114,8 +128,10 @@ time_type model::run(time_type tfinal, time_type dt) {
         g.run(update_cells);
         g.wait();
 
-        t_ = tuntil;
+        // TODO
+        //if (pon) cudaProfilerStop();
 
+        t_ = tuntil;
         ++epoch_;
     }
 

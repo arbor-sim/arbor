@@ -9,6 +9,7 @@
 #include <generic_event.hpp>
 #include <memory/array.hpp>
 #include <memory/copy.hpp>
+#include <profiling/profiler.hpp>
 #include <util/rangeutil.hpp>
 
 namespace arb {
@@ -59,11 +60,11 @@ protected:
     {}
 
     template <typename Event>
-    void init(std::vector<Event>& staged) {
+    void init(const std::vector<Event>& staged) {
         using ::arb::event_time;
         using ::arb::event_index;
 
-        PE("event-stream")
+        PE("event-stream");
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
         }
@@ -132,7 +133,7 @@ public:
 
     // Initialize event streams from a vector of events, sorted first by index
     // and then by time.
-    void init(std::vector<Event> staged) {
+    void init(const std::vector<Event>& staged) {
         multi_event_stream_base::init(staged); // reorders `staged` in place.
 
         tmp_ev_data_.clear();

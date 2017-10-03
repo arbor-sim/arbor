@@ -47,7 +47,11 @@ public:
         time_ = tfinal;
     }
 
-    void enqueue_events(const std::vector<postsynaptic_spike_event>& events, time_type tfinal, std::size_t epoch) override {
+    void enqueue_events(
+            util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events,
+            time_type tfinal,
+            std::size_t epoch) override
+    {
         std::logic_error("rss_cell cannot deliver events");
     }
 
