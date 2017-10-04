@@ -10,8 +10,6 @@
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
 
-#include <cuda_profiler_api.h>
-
 namespace arb {
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
