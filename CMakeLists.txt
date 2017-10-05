@@ -263,12 +263,11 @@ endif()
 # Setup include dirs
 #----------------------------------------------------------
 include_directories(
-    "${PROJECT_SOURCE_DIR}/tclap"
     "${PROJECT_SOURCE_DIR}/include"
     "${PROJECT_SOURCE_DIR}/src"
     "${PROJECT_SOURCE_DIR}/miniapp"
     "${PROJECT_SOURCE_DIR}/modcc"
-    “${PROJECT_SOURCE_DIR}/random123”
+    "${PROJECT_SOURCE_DIR}/random123"
     "${PROJECT_SOURCE_DIR}")
 if(EXTERNAL_INCLUDES)
   include_directories("${EXTERNAL_INCLUDES}")
