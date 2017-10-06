@@ -7,10 +7,9 @@ weight=1.2            # exc connections weight
 rel_inh_strength=0.5 # relative strength of inhibitory connections
 delay=1             # delay of all connections
 rate=5              # rate of Poisson neruons
-time=1000            # simulation time
+time=100            # simulation time
 dt=1                # timestep (ignored)
 group_size=100       # size of cell groups
-optimised=1         # if 1, optimisation turned on
 
 # Multicore parameters.
 #n_ranks=(1 2 4 9 18)
@@ -33,8 +32,9 @@ run() {
 }
 
 run_temp() {
-    group_size=500000
-    srun -n 1 -c 5 ../../build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+    group_size=150000
+    #ssrun -n 1 -c 5 ../../build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
+    ../../build/miniapp/brunel/brunel_miniapp.exe -n $n_exc -m $n_inh -e $n_ext -p $prop -w $weight -d $delay -g $rel_inh_strength -r $rate -t $time -s $dt -G $group_size
 }
 
 # Preserve the newline characters by setting this empty (field splitting).
@@ -44,7 +44,7 @@ cd $SCRATCH/nestmc-proto/build
 make -j
 cd ../miniapp/brunel
 
-vary_n_exc=(100 1000 10000 100000)
+vary_n_exc=(1000 10000 100000)
 
 for n_exc in ${vary_n_exc[@]}
 do

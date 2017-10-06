@@ -32,7 +32,6 @@ gid_base_(first_gid)
     d_poiss.reserve(cells.size());
     cell_events_.resize(cells.size());
     poiss_event_counter = memory::device_vector<unsigned>(cells.size());
-
     for (const auto& c : cells) {
         lif_cell_description cell = util::any_cast<lif_cell_description>(c);
 

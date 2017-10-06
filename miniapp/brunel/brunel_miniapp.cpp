@@ -279,7 +279,6 @@ void banner() {
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-    std::cout << "  - gpu support: " << "off" << "\n";
     std::cout << "====================\n";
 }
 

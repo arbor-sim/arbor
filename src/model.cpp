@@ -1,5 +1,5 @@
 #include <model.hpp>
-
+#include <cuda_profiler_api.h>
 #include <vector>
 #include <iomanip>
 #include <backends.hpp>
@@ -100,7 +100,6 @@ time_type model::run(time_type tfinal, time_type dt) {
             0u, cell_groups_.size(),
              [&](unsigned i) {
                 auto &group = cell_groups_[i];
-
                 PE("stepping","events");
                 group->enqueue_events(current_events()[i]);
                 PL();
@@ -142,6 +141,7 @@ time_type model::run(time_type tfinal, time_type dt) {
 
     util::profilers_restart();
 
+    cudaProfilerStart();
     while (t_<tfinal) {
         tuntil = std::min(t_+t_interval, tfinal);
 
@@ -162,6 +162,7 @@ time_type model::run(time_type tfinal, time_type dt) {
         t_ = tuntil;
     }
 
+    cudaProfilerStop();
     util::profilers_stop();
 
     // Run the exchange one last time to ensure that all spikes are output
