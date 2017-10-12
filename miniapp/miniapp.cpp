@@ -1,31 +1,4 @@
-#include <cmath>
-#include <exception>
-#include <iostream>
-#include <fstream>
-#include <memory>
-#include <vector>
-
-#include <json/json.hpp>
-
-#include <common_types.hpp>
-#include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
-#include <cell.hpp>
-#include <fvm_multicell.hpp>
-#include <io/exporter_spike_file.hpp>
-#include <model.hpp>
-#include <profiling/profiler.hpp>
-#include <profiling/meter_manager.hpp>
-#include <threading/threading.hpp>
-#include <util/config.hpp>
-#include <util/debug.hpp>
-#include <util/ioutil.hpp>
-#include <util/nop.hpp>
-
-#include "io.hpp"
-#include "miniapp_recipes.hpp"
-#include "trace_sampler.hpp"
-
+#include "miniapp.hpp"
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
@@ -38,6 +11,7 @@ using communicator_type = communication::communicator<communication::global_poli
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 void report_compartment_stats(const recipe&);
+static size_t global_get_num_threads();
 
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
@@ -176,6 +150,7 @@ void banner() {
     std::cout << "====================\n";
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
+    std::cout << "  - " << global_get_num_threads() << "Totle thread numnber\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
     std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
