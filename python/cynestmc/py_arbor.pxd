@@ -1,6 +1,6 @@
 # This file is used to declear the parameters and functions that will be used.
 
-#inport the types from c++ library
+#import the types from c++ library
 from libcpp.vector cimport vector
 
 cdef extern from "common_types.hpp" namespace "nest::mc":
@@ -45,12 +45,50 @@ cdef extern from "recipe.hpp" namespace "nest::mc":
         float delay
 
     cdef cppclass recipe:
+
          cell_size_type num_cells()
          util::unique_any get_cell(cell_gid_type)    #TODO how to import it?
          cell_kind get_cell_kind(cell_gid_type)
          cell_count_info get_cell_count_info(cell_gid_type)
          std::vector<cell_connection> connections_on(cell_gid_type) #TODO how to fix this
 
+cdef extern from "miniapp_recipes.hpp" namespace "nest::mc":
+    cdef struct probe_distribution:
+        float proportion = 1.0
+        bool all_segments
+        bool membrane_voltage
+        bool membrane_current
+
+cdef extern from "io.hpp" namespace "nest::mc::io":
+    cdef struct cl_options:
+        # uint32_t cells = 1000
+        # uint32_t synapses_per_cell = 500
+        # std::string syn_type = "expsyn"
+        # uint32_t compartments_per_segment = 100
+        # util::optional<std::string> morphologies
+        # bool morph_rr = false
+        # bool all_to_all = false
+        # bool ring = false
+        # double tfinal = 100.
+        # double dt = 0.025
+        # uint32_t group_size = 1
+        # bool bin_regular = false
+        # double bin_dt = 0.0025
+        # bool probe_soma_only
+        # double probe_ratio = 0
+        # std::string trace_prefix
+        # util::optional<unsigned> trace_max_gid
+        # bool spike_file_output = false
+        # bool single_file_per_rank = false
+        # bool over_write = true
+        # std::string output_path = "./"
+        # std::string file_name = "spikes"
+        # std::string file_extension = "gdf"
+        # int dry_run_ranks = 1
+        # bool profile_only_zero = false
+        # bool report_compartments = false
+        # bool verbose = false
+    cl_options read_options(int argc, char** argv, bool allow_write = true)
 
 
 cdef extern from "model.hpp":
@@ -58,5 +96,5 @@ cdef extern from "model.hpp":
     void reset() except+
     time_type run(time_type tfinal, time_type dt) except+
     std::size_t num_spikes() except+
-
-
+    std::size_t num_groups() except+
+    std::size_t num_cells()  except+
