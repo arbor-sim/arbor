@@ -25,7 +25,7 @@ cdef extern from "domain_decomposition.hpp" namespace "nest::mc":
         cell_size_type target_group_size
         backend_policy policy
 
-    cdef cpp class domain_decomposition:
+    cdef cppclass domain_decomposition:
         domain_decomposition(const CRecipe&, const group_rules&) except+
 
 cdef extern from "pyrecipe.hpp" namespace "nest::mc":

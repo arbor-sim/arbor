@@ -17,7 +17,7 @@ protected:
     
 public:
     cyrecipe(PyObject* pyRecipe): pyRecipe(pyRecipe) {
-        Py_INCREF(pyRecipe)
+        Py_INCREF(pyRecipe);
     }
 
     ~cyrecipe() {
@@ -58,5 +58,6 @@ public:
 int c_call_something(cyrecipe* recipe) {
     try {return recipe->num_cells();}
     catch (PythonException) {}
+}
 }
 }

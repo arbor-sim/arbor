@@ -13,6 +13,7 @@ void write_trace_json(const sample_trace_type& trace, const std::string& prefix 
 void report_compartment_stats(const recipe&);
 static size_t global_get_num_threads();
 
+
 int main(int argc, char** argv) {
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
