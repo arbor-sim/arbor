@@ -1,18 +1,28 @@
-from libc.stdlib cimport malloc, free
+cdef class py_recipe:
+    cdef recipe* c_recipe
+    def __cinit__(self):
+        self.c_recipe = new recipe()
+    def __dealloc__(self):
+        del self.c_recipe
 
-def py_arbor(argv):
-    cdef int argc = <int> len(argv)
-    cdef char** argv = <char**> malloc((argc+1)*sizeof(char*))
+cdef class py_model:
+    cdef model* c_model
 
-    cdef io::cloptions options=io::read_options(argc, argv, global_policy::id()==0)
-    cdef probe_distribution pdist
-    cdef group_rules rules
-    recipe = make_recipe（options，pdist）
+    def __init__(self, py_recipe recipe, domain_decomposition decomp):
+        self.c_model = new module(recipe, decomp)
 
-    decomp = domain_decomposition(*recipe, rules)
-    modle m(*recipe, decomp)
-    m.run(options.tfinal, options.dt)
-    std::cout <<m.num_spikes()
+    def __dealloc__(self):
+        del self.c_model
 
+    def reset(self):
+      self.c_model.reset()
 
+    def run(self, float tfinal, float dt):
+      return self.c_model.run(tfinal, dt)
 
+    def num_spikes(self):
+      return self.c_model.num_spikes()
+    def num_groups(self):
+      return self.c_model.num_groups()
+    def num_cells(self):
+      return self.c_model.num_cells()
