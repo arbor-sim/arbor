@@ -11,7 +11,7 @@ using communicator_type = communication::communicator<communication::global_poli
 
 void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
 void report_compartment_stats(const recipe&);
-static size_t global_get_num_threads();
+//static size_t global_get_num_threads();
 
 
 int main(int argc, char** argv) {
@@ -151,7 +151,7 @@ void banner() {
     std::cout << "====================\n";
     std::cout << "  starting miniapp\n";
     std::cout << "  - " << threading::description() << " threading support\n";
-    std::cout << "  - " << global_get_num_threads() << "Totle thread numnber\n";
+   // std::cout << "  - " << global_get_num_threads() << "Totle thread numnber\n";
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
     std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
