@@ -1,6 +1,6 @@
 cdef class py_recipe:
     cdef recipe* c_recipe
-    def __cinit__(self):
+    def __cinit__(self, ):
         self.c_recipe = new recipe()
     def __dealloc__(self):
         del self.c_recipe

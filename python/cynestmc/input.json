@@ -1,0 +1,8 @@
+{
+    "cells": 1000,
+    "synapses": 500,
+    "compartments": 50,
+    "dt": 0.02,
+    "tfinal": 100.0,
+    "all_to_all": false
+}
