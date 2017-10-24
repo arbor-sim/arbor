@@ -128,7 +128,7 @@ public:
     /// The range of event queues that belong to cells in group i.
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i) {
         EXPECTS(i<num_local_groups_);
-        return {domain_id_partition_[i], domain_id_partition_[i+i]};
+        return {domain_id_partition_[i], domain_id_partition_[i+1]};
     }
 
     /// The minimum delay of all connections in the global network.
