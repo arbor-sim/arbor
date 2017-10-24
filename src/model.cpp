@@ -77,9 +77,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     // events that must be delivered at the start of the next
     // integration period at the latest.
     auto exchange = [&] () {
-        //util::timer_type timer;
-        //auto ts = timer.tic();
-
         PE("stepping", "communication");
 
         PE("exchange");
@@ -92,8 +89,7 @@ time_type model::run(time_type tfinal, time_type dt) {
         global_export_callback_(global_spikes.values());
         PL();
 
-        PE("events");
-        PE("from-spikes");
+        PE("events","from-spikes");
         auto events = communicator_.make_event_queues(global_spikes);
         PL();
 
@@ -106,24 +102,12 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL(2);
 
         PL(2);
-        //auto t_taken = timer.toc(ts);
-        //std::cout << "  TIME exchange     : " << t_taken << "\n";
     };
 
-    //util::timer_type timer;
-
-    //time_type ttt = 30.;
     while (t_<tfinal) {
         tuntil = std::min(t_+t_interval, tfinal);
 
-        //auto ts = timer.tic();
-        //std::cout << "STEP " << t_ << " -> " << tuntil << "\n";
-
         local_spikes_.exchange();
-
-        // TODO
-        //bool pon = (t_>(ttt-1) && t_<(ttt-1+10));
-        //if (pon) cudaProfilerStart();
 
         // empty the spike buffers for the current integration period.
         // these buffers will store the new spikes generated in update_cells.
@@ -136,14 +120,8 @@ time_type model::run(time_type tfinal, time_type dt) {
         g.run(update_cells);
         g.wait();
 
-        // TODO
-        //if (pon) cudaProfilerStop();
-
         t_ = tuntil;
         ++epoch_;
-
-        //auto t_taken = timer.toc(ts);
-        //std::cout << "  TIME step         : " << t_taken << "\n";
     }
 
     // Run the exchange one last time to ensure that all spikes are output

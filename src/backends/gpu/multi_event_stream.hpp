@@ -59,6 +59,8 @@ protected:
         n_nonempty_stream_(1)
     {}
 
+    // The list of events must be sorted in ascending order of index,
+    // with events of equal index further time-sorted.
     template <typename Event>
     void init(const std::vector<Event>& staged) {
         using ::arb::event_time;

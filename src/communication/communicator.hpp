@@ -105,13 +105,12 @@ public:
         for (const auto& cell: gid_infos) {
             for (auto c: cell.conns) {
                 const auto i = offsets[src_domains[pos]]++;
-                // TODO: replace local_group index with domain_id: done
                 connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.domain_id};
                 ++pos;
             }
         }
 
-        // TODO: build cell partition by group for passing view of vectors
+        // Build cell partition by group for passing events to cell groups
         domain_id_partition_.resize(num_local_groups_+1);
         for (auto g: make_span(0, num_local_groups_)) {
             domain_id_partition_[g+1] = domain_id_partition_[g] + dom_dec.groups[g].gids.size();
@@ -168,7 +167,6 @@ public:
         using util::make_span;
         using util::make_range;
 
-        // TODO: make one queue for each cell, not each cell group: done
         auto queues = std::vector<event_queue>(num_local_cells_);
         const auto& sp = global_spikes.partition();
         const auto& cp = connection_part_;
@@ -183,13 +181,21 @@ public:
                     {return src<spk.source;}
             };
 
+            // We have a choice of whether to walk spikes or connections:
+            // i.e., we can iterate over the spikes, and for each spike search
+            // the for connections that have the same source; or alternatively
+            // for each connection, we can search the list of spikes for spikes
+            // with the same source.
+            //
+            // We iterate over whichever set is the smallest, which has
+            // complexity of order max(S log(C), C log(S)), where S is the
+            // number of spikes, and C is the number of connections.
             if (cons.size()<spks.size()) {
                 auto sp = spks.begin();
                 auto cn = cons.begin();
                 while (cn!=cons.end() && sp!=spks.end()) {
                     auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
-
-                    for (auto s: make_range(sources.first, sources.second)) {
+                    for (auto s: make_range(sources)) {
                         queues[cn->domain_index()].push_back(cn->make_event(s));
                     }
 
@@ -202,8 +208,7 @@ public:
                 auto sp = spks.begin();
                 while (cn!=cons.end() && sp!=spks.end()) {
                     auto targets = std::equal_range(cn, cons.end(), sp->source);
-
-                    for (auto c: make_range(targets.first, targets.second)) {
+                    for (auto c: make_range(targets)) {
                         queues[c.domain_index()].push_back(c.make_event(*sp));
                     }
 

@@ -63,13 +63,14 @@ public:
                 spike_sources_.push_back({source_gid, lid});
             }
         }
+        spike_sources_.shrink_to_fit();
 
-        // Create event lane buffers for each cell
+        // Create event lane buffers.
+        // There is one set for each epoch: current and next.
         event_lanes_.resize(2);
+        // For each epoch there is one lane for each cell in the cell group.
         event_lanes_[0].resize(gids_.size());
         event_lanes_[1].resize(gids_.size());
-
-        spike_sources_.shrink_to_fit();
     }
 
     cell_kind get_cell_kind() const override {
@@ -108,14 +109,12 @@ public:
             auto& lane = lc[lid];
             for (auto e: lane) {
                 if (e.time>=tfinal) break;
-                // TODO: don't use hash table in binner
                 e.time = binners_[lid].bin(e.time, tstart);
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
                 auto ev = deliverable_event(e.time, h, e.weight);
                 staged_events_.push_back(ev);
             }
         }
-
         PL();
 
         // Create sample events and delivery information.
@@ -178,16 +177,13 @@ public:
         lowered_.setup_integration(tfinal, dt, staged_events_, std::move(sample_events));
         PE("integrator-steps");
 
-        //auto ns = 0u;
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
                 std::cerr << "warning: solution out of bounds  at (max) t "
                           << lowered_.max_time() << " ms\n";
             }
-            //++ns;
         }
-        //std::cout << "   " << ns << " steps\n";
         PL();
 
 
@@ -238,17 +234,22 @@ public:
     {
         using pse = postsynaptic_spike_event;
 
+        // Make convenience variables for event lanes:
+        //  lf: event lanes for the next epoch
+        //  lc: event lanes for the current epoch
         auto& lf = event_lanes(epoch+1);
         const auto& lc = event_lanes(epoch);
-        //for (auto l: util::make_span(0, gids_.size())) {
-        threading::parallel_for::apply(0, gids_.size(), [&] (unsigned l) {
+
+        // For a cell, merge the incoming events with events in lc that are
+        // not to be delivered in thie epoch, and store the result in lf.
+        auto merge_future_events = [&](unsigned l) {
             PE("sort");
             // STEP 1: sort events in place in events[l]
             util::sort_by(events[l], [](const pse& e){return event_time(e);});
             PL();
 
             PE("merge");
-            // STEP 2: clear lf
+            // STEP 2: clear lf to store merged list
             lf[l].clear();
 
             // STEP 3: merge new events and future events from lc into lf
@@ -258,8 +259,21 @@ public:
                 events[l].begin(), events[l].end(), pos, lc[l].end(), lf[l].begin(),
                 [](const pse& l, const pse& r) {return l.time<r.time;});
             PL();
-        //}
-        });
+        };
+
+        // This operation is independent for each cell, so it can be performed
+        // in parallel if there are sufficient cells in the cell group.
+        // TODO: use parallel loop based on argument to this function? This would
+        //       allow the caller, which has more context, to decide whether a
+        //       parallel loop is beneficial.
+        if (gids_.size()>1) {
+            threading::parallel_for::apply(0, gids_.size(), merge_future_events);
+        }
+        else {
+            for (unsigned l=0; l<gids_.size(); ++l) {
+                merge_future_events(l);
+            }
+        }
     }
 
     const std::vector<spike>& spikes() const override {

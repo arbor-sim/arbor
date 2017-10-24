@@ -24,23 +24,19 @@ namespace gpu {
     std::mutex gpu_profiler_mutex;
 
     void start_nvprof() {
-        /*
         std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
         if (!is_running_nvprof) {
             cudaProfilerStart();
         }
         is_running_nvprof = true;
-        */
     }
 
     void stop_nvprof() {
-        /*
         std::lock_guard<std::mutex> guard(gpu_profiler_mutex);
         if (is_running_nvprof) {
             cudaProfilerStop();
         }
         is_running_nvprof = false;
-        */
     }
 }
 #else
