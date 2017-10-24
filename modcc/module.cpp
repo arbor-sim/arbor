@@ -267,26 +267,25 @@ bool Module::semantic() {
     //.........................................................................
     // nrn_init : based on the INITIAL block (i.e. the 'initial' procedure
     //.........................................................................
+
+    // insert an empty INITIAL block if none was defined in the .mod file.
+    if( !has_symbol("initial", symbolKind::procedure) ) {
+        symbols_["initial"] = make_symbol<ProcedureExpression>(
+                Location(), "initial",
+                std::vector<expression_ptr>(),
+                make_expression<BlockExpression>(Location(), expr_list_type(), false)
+        );
+    }
     auto initial_api = make_empty_api_method("nrn_init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
+    auto& init_body = api_init->body()->statements();
 
-    if(api_init)
-    {
-        auto& body = api_init->body()->statements();
-
-        for(auto& e : *proc_init->body()) {
-            body.emplace_back(e->clone());
-        }
-
-        api_init->semantic(symbols_);
+    for(auto& e : *proc_init->body()) {
+        init_body.emplace_back(e->clone());
     }
-    else {
-        if(!proc_init) {
-            error("an INITIAL block is required", Location());
-        }
-        return false;
-    }
+
+    api_init->semantic(symbols_);
 
     // Look in the symbol table for a procedure with the name "breakpoint".
     // This symbol corresponds to the BREAKPOINT block in the .mod file
