@@ -43,8 +43,6 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + module_name;
 
-    std::cout << red("1") << std::endl;
-
     text_.add_line("namespace arb { namespace multicore {");
     text_.add_line();
     text_.add_line("template<class Backend>");
@@ -65,7 +63,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("using deliverable_event_stream_state = typename base::deliverable_event_stream_state;");
     text_.add_line();
 
-    std::cout << red("2") << std::endl;
     //////////////////////////////////////////////
     //////////////////////////////////////////////
     for(auto& ion: module_->neuron_block().ions) {
@@ -86,7 +83,6 @@ std::string CPrinter::emit_source() {
         text_.add_line(tname + " ion_" + ion.name + ";");
     }
 
-    std::cout << red("3") << std::endl;
     //////////////////////////////////////////////
     // constructor
     //////////////////////////////////////////////
@@ -99,7 +95,6 @@ std::string CPrinter::emit_source() {
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
     text_.end_line();
 
-    std::cout << red("4") << std::endl;
     text_.add_line();
     text_.add_line("// calculate the padding required to maintain proper alignment of sub arrays");
     text_.add_line("auto alignment  = data_.alignment();");
@@ -116,7 +111,6 @@ std::string CPrinter::emit_source() {
     // replace this : data_(1*n, 2*n);
     //    with this : data_(1*field_size, 1*field_size+n);
 
-    std::cout << red("5") << std::endl;
     text_.add_line();
     text_.add_line("// asign the sub-arrays");
     for(int i=0; i<num_vars; ++i) {
@@ -146,7 +140,6 @@ std::string CPrinter::emit_source() {
         }
         text_.add_line();
     }
-    std::cout << red("6") << std::endl;
 
     text_.add_line("// set initial values for variables and parameters");
     for(auto const& var : array_variables) {
@@ -174,7 +167,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("using base::size;");
     text_.add_line();
 
-    std::cout << red("7") << std::endl;
     text_.add_line("std::size_t memory() const override {");
     text_.increase_indentation();
     text_.add_line("auto s = std::size_t{0};");
@@ -208,7 +200,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    std::cout << red("8") << std::endl;
     // return true/false indicating if cell has dependency on k
     auto const& ions = module_->neuron_block().ions;
     auto find_ion = [&ions] (ionKind k) {
@@ -221,7 +212,6 @@ std::string CPrinter::emit_source() {
         return find_ion(k) != ions.end();
     };
 
-    std::cout << red("9") << std::endl;
     // bool uses_ion(ionKind k) const override
     text_.add_line("bool uses_ion(ionKind k) const override {");
     text_.increase_indentation();
@@ -246,7 +236,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    std::cout << red("10") << std::endl;
     /***************************************************************************
      *
      *   ion channels have the following fields :
@@ -276,7 +265,6 @@ std::string CPrinter::emit_source() {
         ) return true;
         return false;
     };
-    std::cout << red("11") << std::endl;
     text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
     text_.add_line("using arb::algorithms::index_into;");
@@ -324,7 +312,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    std::cout << red("12") << std::endl;
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
@@ -343,7 +330,6 @@ std::string CPrinter::emit_source() {
         }
     }
 
-    std::cout << red("12.1") << std::endl;
     if(override_deliver_events) {
         text_.add_line("void deliver_events(const deliverable_event_stream_state& events) override {");
         text_.increase_indentation();
@@ -365,7 +351,6 @@ std::string CPrinter::emit_source() {
         text_.add_line();
     }
 
-    std::cout << red("13") << std::endl;
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
@@ -392,7 +377,6 @@ std::string CPrinter::emit_source() {
         }
     }
 
-    std::cout << red("14") << std::endl;
     text_.add_line();
     text_.add_line("using base::mech_id_;");
     text_.add_line("using base::vec_ci_;");
@@ -719,7 +703,6 @@ void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
 }
 
 void CPrinter::print_APIMethod_optimized(APIMethod* e) {
-    std::cout << "printing APIMETHOD " << e->name() << "\n";
     // ------------- get mechanism properties ------------- //
 
     // make a list of all the local variables that have to be
@@ -844,7 +827,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     decrease_indentation();
 
     aliased_output_ = false;
-    std::cout << "         APIMETHOD " << e->name() << "\n";
 }
 
 void CPrinter::visit(CallExpression *e) {
