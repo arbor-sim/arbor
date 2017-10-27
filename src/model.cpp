@@ -1,5 +1,7 @@
 #include <model.hpp>
+#ifdef NMC_WITH_CUDA
 #include <cuda_profiler_api.h>
+#endif
 #include <vector>
 #include <iomanip>
 #include <backends.hpp>
@@ -140,8 +142,9 @@ time_type model::run(time_type tfinal, time_type dt) {
     };
 
     util::profilers_restart();
-
+#ifdef NMC_WITH_CUDA
     cudaProfilerStart();
+#endif
     while (t_<tfinal) {
         tuntil = std::min(t_+t_interval, tfinal);
 
@@ -161,8 +164,9 @@ time_type model::run(time_type tfinal, time_type dt) {
 
         t_ = tuntil;
     }
-
+#ifdef NMC_WITH_CUDA
     cudaProfilerStop();
+#endif
     util::profilers_stop();
 
     // Run the exchange one last time to ensure that all spikes are output

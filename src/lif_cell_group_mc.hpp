@@ -45,7 +45,7 @@ namespace mc {
         // Returns the time of the next poisson event for given neuron,
         // taking into accout the delay of poisson spikes,
         // without sampling a new Poisson event time.
-        time_type next_poisson_event(cell_gid_type lid);
+        util::optional<time_type> next_poisson_event(cell_gid_type lid, time_type tfinal);
 
         // Returns the next most recent event that is yet to be processed.
         // It can be either Poisson event or the queue event.

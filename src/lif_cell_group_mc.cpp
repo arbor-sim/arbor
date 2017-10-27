@@ -106,29 +106,24 @@ void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
 // Returns the time of the next poisson event for given neuron,
 // taking into accout the delay of poisson spikes,
 // without sampling a new Poisson event time.
-time_type lif_cell_group_mc::next_poisson_event(cell_gid_type lid) {
-    return next_poiss_time_[lid] + cells_[lid].d_poiss;
+util::optional<time_type> lif_cell_group_mc::next_poisson_event(cell_gid_type lid, time_type tfinal) {
+    if (cells_[lid].n_poiss > 0) {
+        time_type t_poiss =  next_poiss_time_[lid] + cells_[lid].d_poiss;
+        return t_poiss<tfinal ? util::optional<time_type>(t_poiss) : util::nothing;
+    }
+    return util::nothing;
 }
 
 // Returns the next most recent event that is yet to be processed.
 // It can be either Poisson event or the queue event.
 // Only events that happened before tfinal are considered.
 util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_type lid, time_type tfinal) {
-    auto t_poiss = next_poisson_event(lid);
-
-    // t_queue < {t_poiss, tfinal} => return t_queue
-    if (auto ev = cell_events_[lid].pop_if_before(std::min(tfinal, t_poiss))) {
-        return ev;
-    }
-
-    if (t_poiss < tfinal) {
-        // t_queue < t_poiss < tfinal => return t_queue
-        if (auto ev = cell_events_[lid].pop_if_before(t_poiss)) {
+    if (auto t_poiss = next_poisson_event(lid, tfinal)) {
+        if (auto ev = cell_events_[lid].pop_if_before(std::min(tfinal, t_poiss.get()))) {
             return ev;
         }
-        // t_poiss < {t_queue, tfinal} => return t_poiss
         sample_next_poisson(lid);
-        return postsynaptic_spike_event{{cell_lid_type(gid_base_ + lid), 0}, t_poiss, cells_[lid].w_poiss};
+        return postsynaptic_spike_event{{cell_lid_type(gid_base_ + lid), 0}, t_poiss.get(), cells_[lid].w_poiss};
     }
 
     // t_queue < tfinal < t_poiss => return t_queue
