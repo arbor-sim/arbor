@@ -12,6 +12,7 @@
 #include <io/exporter_spike_file.hpp>
 #include <lif_cell_description.hpp>
 #include <lif_cell_group_mc.hpp>
+#include <lif_cell_group_gpu.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
@@ -214,9 +215,9 @@ int main(int argc, char** argv) {
         };
 
         group_rules rules;
-        rules.policy = backend_policy::prefer_gpu;
+        rules.policy = config::has_cuda ? backend_policy::prefer_gpu : backend_policy::use_multicore;
         rules.target_group_size = group_size;
-        auto decomp = domain_decomposition(recipe, rules);
+        auto decomp = domain_decomposition(*recipe, rules);
 
         model m(recipe, decomp);
 

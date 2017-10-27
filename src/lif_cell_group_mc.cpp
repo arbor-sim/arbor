@@ -1,26 +1,28 @@
 #include <lif_cell_group_mc.hpp>
+#define sample_randomly threefry2x32
 
 using namespace nest::mc;
+using RNG = r123::Threefry2x32;
+
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_mc::lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
 gid_base_(first_gid)
 {
+    // reserve
     cells_.reserve(cells.size());
+
+    // resize
     lambda_.resize(cells.size());
-
-    generator_.resize(cells.size());
     next_poiss_time_.resize(cells.size());
-
     cell_events_.resize(cells.size());
     last_time_updated_.resize(cells.size());
-
-    for (const auto& cell : cells) {
-        cells_.push_back(util::any_cast<lif_cell_description>(cell));
-    }
+    poiss_event_counter = std::vector<unsigned>(cells.size());
 
     // Initialize variables for the external Poisson input.
     for (auto lid : util::make_span(0, cells_.size())) {
+        cells_.push_back(util::any_cast<lif_cell_description>(cells[lid]));
+
         EXPECTS(cells_[lid].n_poiss >= 0);
         EXPECTS(cells_[lid].w_poiss >= 0);
         EXPECTS(cells_[lid].d_poiss >= 0);
@@ -28,8 +30,8 @@ gid_base_(first_gid)
 
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
-            lambda_[lid] = (1.0/(cells_[lid].rate * cells_[lid].n_poiss));
-            generator_[lid].seed(1000 + first_gid + lid);
+            auto rate = cells_[lid].rate * cells_[lid].n_poiss;
+            lambda_[lid] = 1.0 / rate;
             sample_next_poisson(lid);
         }
     }
@@ -85,7 +87,20 @@ void lif_cell_group_mc::reset() {
 
 // Samples next poisson spike.
 void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
-    next_poiss_time_[lid] += exp_dist_(generator_[lid]) * lambda_[lid];
+    // key = GID of the cell
+    // counter = total number of Poisson events seen so far
+    RNG::ctr_type c = {{}};
+    RNG::key_type k = {{}};
+    k[0] = lid + gid_base_ + 1225;
+    c.v[0] = poiss_event_counter[lid];
+    poiss_event_counter[lid]++;
+    RNG::ctr_type r = sample_randomly(c, k);
+
+    // First sample unif~Uniform(0, 1) and then use it to get the Poisson distribution
+    time_type unif = r123::u01<time_type>(r.v[0]);
+    time_type t_update = -lambda_[lid] * logf(1 - unif);
+
+    next_poiss_time_[lid] += t_update;
 }
 
 // Returns the time of the next poisson event for given neuron,

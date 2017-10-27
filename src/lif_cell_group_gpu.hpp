@@ -9,6 +9,8 @@
 #include <backends/gpu/stack.hpp>
 #include <memory/memory.hpp>
 #include <memory/managed_ptr.hpp>
+#include <random123/threefry.h>
+#include <random123/uniform.hpp>
 
 namespace nest {
 namespace mc {
@@ -48,7 +50,6 @@ public:
 private:
     template <typename T>
     using managed_vector = std::vector<T, memory::managed_allocator<T> >;
-    using stack_type = gpu::stack<threshold_crossing>;
 
     // Events management.
     managed_vector<postsynaptic_spike_event> event_buffer;
@@ -93,16 +94,8 @@ private:
     // lambda = 1/(n_poiss * rate) for each cell.
     managed_vector<double> lambda_;
 
-    // Random number generators.
-    // Each cell has a separate generator in order to achieve the independence.
-    managed_vector<std::mt19937> generator_;
-
-    // Unit exponential distribution (with mean 1).
-    std::exponential_distribution<time_type> exp_dist_ = std::exponential_distribution<time_type>(1.0);
-
     // Sampled next Poisson event time for each cell.
     managed_vector<time_type> next_poiss_time_;
-
 };
 } // namespace mc
 } // namespace nest

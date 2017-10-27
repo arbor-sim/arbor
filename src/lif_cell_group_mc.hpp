@@ -4,7 +4,8 @@
 #include <event_queue.hpp>
 #include <lif_cell_description.hpp>
 #include <profiling/profiler.hpp>
-#include <random>
+#include <random123/threefry.h>
+#include <random123/uniform.hpp>
 #include <util/unique_any.hpp>
 #include <vector>
 
@@ -75,15 +76,12 @@ namespace mc {
         // lambda = 1/(n_poiss * rate) for each cell.
         std::vector<double> lambda_;
 
-        // Random number generators.
-        // Each cell has a separate generator in order to achieve the independence.
-        std::vector<std::mt19937> generator_;
-
-        // Unit exponential distribution (with mean 1).
-        std::exponential_distribution<time_type> exp_dist_ = std::exponential_distribution<time_type>(1.0);
-
         // Sampled next Poisson event time for each cell.
         std::vector<time_type> next_poiss_time_;
+
+        // Counts poisson events. 
+        // Used as an argument to random123 (since partially describes a state)
+        std::vector<unsigned> poiss_event_counter;
     };
 } // namespace mc
 } // namespace nest

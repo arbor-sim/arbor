@@ -1,24 +1,23 @@
 #include <lif_cell_group_gpu.hpp>
-#include <random123/threefry.h>
-#include <random123/uniform.hpp>
+// Change this line if you change the random engine.
+#define sample_randomly threefry2x32
 
 using namespace nest::mc;
 using stack_type = gpu::stack<threshold_crossing>;
 using RNG = r123::Threefry2x32;
-// Change this line if you change the random engine.
-#define sample_randomly threefry2x32
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_gpu::lif_cell_group_gpu(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
 gid_base_(first_gid)
 {
-    cells_.reserve(cells.size());
+    // resize
     lambda_.resize(cells.size());
-    generator_.resize(cells.size());
     next_poiss_time_.resize(cells.size());
-
+    cell_events_.resize(cells.size());
     last_time_updated_.resize(cells.size());
 
+    // reserve
+    cells_.reserve(cells.size());
     tau_m.reserve(cells.size());
     V_th.reserve(cells.size());
     C_m.reserve(cells.size());
@@ -26,12 +25,12 @@ gid_base_(first_gid)
     V_m.reserve(cells.size());
     V_reset.reserve(cells.size());
     t_ref.reserve(cells.size());
-
     n_poiss.reserve(cells.size());
     w_poiss.reserve(cells.size());
     d_poiss.reserve(cells.size());
-    cell_events_.resize(cells.size());
+
     poiss_event_counter = memory::device_vector<unsigned>(cells.size());
+
     for (const auto& c : cells) {
         lif_cell_description cell = util::any_cast<lif_cell_description>(c);
 
@@ -58,7 +57,7 @@ gid_base_(first_gid)
         if (cells_[lid].n_poiss > 0) {
             auto rate = cells_[lid].rate * cells_[lid].n_poiss;
             sum_of_rates += rate;
-            lambda_[lid] = (1.0/rate);
+            lambda_[lid] = 1.0/rate;
             // -1 means that it is not sampled so far. 
             // The reason why we do not sample it here is because we want to do the sampling completely on GPU.
             next_poiss_time_[lid] = -1;
