@@ -5,14 +5,13 @@
 #include <memory>
 #include <vector>
 #include <json/json.hpp>
+#include <cell_group_factory.hpp>
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <cell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <lif_cell_description.hpp>
-#include <lif_cell_group_mc.hpp>
-#include <lif_cell_group_gpu.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
@@ -215,9 +214,17 @@ int main(int argc, char** argv) {
         };
 
         group_rules rules;
-        rules.policy = config::has_cuda ? backend_policy::prefer_gpu : backend_policy::use_multicore;
+        if (config::has_cuda) {
+            std::cout << "Using CUDA backend\n";
+            rules.policy = backend_policy::prefer_gpu;
+        } else {
+            std::cout << "Using CPU backend\n";
+            rules.policy = backend_policy::use_multicore;
+        }
+
         rules.target_group_size = group_size;
-        auto decomp = domain_decomposition(*recipe, rules);
+        auto decomp = domain_decomposition(recipe, rules);
+
 
         model m(recipe, decomp);
 

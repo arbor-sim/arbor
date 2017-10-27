@@ -3,7 +3,6 @@
 #define sample_randomly threefry2x32
 
 using namespace nest::mc;
-using stack_type = gpu::stack<threshold_crossing>;
 using RNG = r123::Threefry2x32;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
@@ -230,7 +229,7 @@ void advance_kernel (cell_gid_type gid_base_,
             unsigned* cell_begin,
             unsigned* cell_end,
             postsynaptic_spike_event* event_buffer,
-            stack_type* spike_stack,
+            lif_cell_group_gpu::stack_type* spike_stack,
             unsigned* poiss_event_counter)
 {
     int lid = threadIdx.x + blockIdx.x * blockDim.x;

@@ -23,6 +23,10 @@ struct threshold_crossing {
 class lif_cell_group_gpu: public cell_group {
 public:
     using value_type = double;
+    using stack_type = gpu::stack<threshold_crossing>;
+
+    template <typename T>
+    using managed_vector = std::vector<T, memory::managed_allocator<T> >;
 
     lif_cell_group_gpu() = default;
 
@@ -48,9 +52,6 @@ public:
     virtual void reset() override;
 
 private:
-    template <typename T>
-    using managed_vector = std::vector<T, memory::managed_allocator<T> >;
-
     // Events management.
     managed_vector<postsynaptic_spike_event> event_buffer;
     managed_vector<unsigned> cell_begin;

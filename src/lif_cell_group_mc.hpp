@@ -81,7 +81,7 @@ namespace mc {
 
         // Counts poisson events. 
         // Used as an argument to random123 (since partially describes a state)
-        std::vector<unsigned> poiss_event_counter;
+        std::vector<unsigned> poiss_event_counter_;
     };
 } // namespace mc
 } // namespace nest

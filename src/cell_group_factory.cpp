@@ -5,7 +5,9 @@
 #include <dss_cell_group.hpp>
 #include <fvm_multicell.hpp>
 #include <lif_cell_group_mc.hpp>
+#ifdef NMC_WITH_CUDA
 #include <lif_cell_group_gpu.hpp>
+#endif
 #include <mc_cell_group.hpp>
 #include <pss_cell_group.hpp>
 #include <rss_cell_group.hpp>
@@ -36,12 +38,19 @@ cell_group_ptr cell_group_factory(
         return make_cell_group<rss_cell_group>(first_gid, cell_descriptions);
 
     case cell_kind::lif_neuron:
+        /*
         if (backend == backend_policy::prefer_gpu) {
             return make_cell_group<lif_cell_group_gpu>(first_gid, cell_descriptions);
         }
         else {
             return make_cell_group<lif_cell_group_mc>(first_gid, cell_descriptions);
         }
+        */
+#ifdef NMC_WITH_CUDA
+        return make_cell_group<lif_cell_group_gpu>(first_gid, cell_descriptions);
+#else
+        return make_cell_group<lif_cell_group_mc>(first_gid, cell_descriptions);
+#endif
 
     case cell_kind::poisson_spike_source:
         return make_cell_group<pss_cell_group>(first_gid, cell_descriptions);

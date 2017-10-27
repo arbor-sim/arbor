@@ -17,10 +17,10 @@ gid_base_(first_gid)
     next_poiss_time_.resize(cells.size());
     cell_events_.resize(cells.size());
     last_time_updated_.resize(cells.size());
-    poiss_event_counter = std::vector<unsigned>(cells.size());
+    poiss_event_counter_ = std::vector<unsigned>(cells.size());
 
     // Initialize variables for the external Poisson input.
-    for (auto lid : util::make_span(0, cells_.size())) {
+    for (auto lid : util::make_span(0, cells.size())) {
         cells_.push_back(util::any_cast<lif_cell_description>(cells[lid]));
 
         EXPECTS(cells_[lid].n_poiss >= 0);
@@ -92,8 +92,8 @@ void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
     RNG::ctr_type c = {{}};
     RNG::key_type k = {{}};
     k[0] = lid + gid_base_ + 1225;
-    c.v[0] = poiss_event_counter[lid];
-    poiss_event_counter[lid]++;
+    c.v[0] = poiss_event_counter_[lid];
+    poiss_event_counter_[lid]++;
     RNG::ctr_type r = sample_randomly(c, k);
 
     // First sample unif~Uniform(0, 1) and then use it to get the Poisson distribution
@@ -169,7 +169,6 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
         if (cell.V_m >= cell.V_th) {
             cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
             spike s = {spike_neuron_gid, t};
-
             spikes_.push_back(s);
 
             // Advance last_time_updated.
