@@ -3,6 +3,7 @@
 #include <cell_group.hpp>
 #include <event_queue.hpp>
 #include <lif_cell_description.hpp>
+#include <math.h>
 #include <profiling/profiler.hpp>
 #include <random123/threefry.h>
 #include <random123/uniform.hpp>
