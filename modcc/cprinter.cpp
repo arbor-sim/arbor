@@ -827,7 +827,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     decrease_indentation();
 
     aliased_output_ = false;
-    return;
 }
 
 void CPrinter::visit(CallExpression *e) {
