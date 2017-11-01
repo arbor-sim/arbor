@@ -11,7 +11,6 @@ set(BASE_SOURCES
     hardware/power.cpp
     model.cpp
     morphology.cpp
-    parameter_list.cpp
     partition_load_balance.cpp
     profiling/memory_meter.cpp
     profiling/meter_manager.cpp

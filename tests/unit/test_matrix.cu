@@ -291,7 +291,7 @@ TEST(matrix, assemble)
     std::generate(dt.begin(), dt.end(), [&](){return dt_dist(gen);});
 
     // Voltage and current values
-    m_mc.assemble(host_array(dt), host_array(group_size, -64), host_array(group_size, 10));
+    m_mc.assemble(on_host(dt), host_array(group_size, -64), host_array(group_size, 10));
     m_mc.solve();
     m_gpu.assemble(on_gpu(dt), gpu_array(group_size, -64), gpu_array(group_size, 10));
     m_gpu.solve();

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include "expression.hpp"
 #include "lexer.hpp"
@@ -60,6 +61,8 @@ private:
 
     std::vector<Token> comma_separated_identifiers();
     std::vector<Token> unit_description();
+    std::string value_literal();
+    std::pair<std::string, std::string> range_description();
 
     /// build the identifier list
     void add_variables_to_symbols();

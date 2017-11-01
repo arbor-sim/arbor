@@ -223,25 +223,6 @@ public:
         std::copy(b, e, this->begin());
     }
 
-    template <typename Seq>
-    array(
-        const Seq& seq,
-        arb::util::enable_if_t<
-            !std::is_convertible<Seq, std::size_t>::value
-            && !impl::is_array_t<Seq>::value >* = nullptr
-    ):
-        base(coordinator_type().allocate(arb::util::size(seq)))
-    {
-#ifdef VERBOSE
-        std::cerr << util::green("array(iterator, iterator)")
-                  << " " << util::type_printer<array>::print()
-                  << "\n  this  " << util::pretty_printer<array>::print(*this) << "\n";
-                  //<< "\n  other " << util::pretty_printer<Other>::print(other) << std::endl;
-#endif
-        auto canon = arb::util::canonical_view(seq);
-        std::copy(std::begin(canon), std::end(canon), this->begin());
-    }
-
     // use the accessors provided by array_view
     // this enforces the requirement that accessing all of or a sub-array of an
     // array should return a view, not a new array.

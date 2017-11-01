@@ -62,6 +62,8 @@ public:
 
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const = 0;
     virtual probe_info get_probe(cell_member_type probe_id) const = 0;
+
+    virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
 };
 
 } // namespace arb

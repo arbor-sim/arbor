@@ -11,7 +11,7 @@ struct null_backend: public multicore::backend {
         return false;
     }
 
-    static mechanism make_mechanism(
+    static mechanism_ptr make_mechanism(
         const std::string&,
         size_type,
         const_iview,

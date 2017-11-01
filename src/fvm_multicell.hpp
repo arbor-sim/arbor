@@ -191,6 +191,7 @@ public:
 
     /// mechanism type
     using mechanism = typename backend::mechanism;
+    using mechanism_ptr = typename backend::mechanism_ptr;
 
     /// stimulus type
     using stimulus = typename backend::stimulus;
@@ -221,7 +222,7 @@ public:
     std::size_t size() const { return matrix_.size(); }
 
     /// return reference to in iterable container of the mechanisms
-    std::vector<mechanism>& mechanisms() { return mechanisms_; }
+    std::vector<mechanism_ptr>& mechanisms() { return mechanisms_; }
 
     /// return reference to list of ions
     std::map<ionKind, ion_type>&       ions()       { return ions_; }
@@ -249,12 +250,12 @@ public:
     }
 
     /// Return reference to the mechanism that matches name.
-    /// The reference is const, because it this information should not be
+    /// The reference is const, because this information should not be
     /// modified by the caller, however it is needed for unit testing.
-    util::optional<const mechanism&> find_mechanism(const std::string& name) const {
+    util::optional<const mechanism_ptr&> find_mechanism(const std::string& name) const {
         auto it = std::find_if(
             std::begin(mechanisms_), std::end(mechanisms_),
-            [&name](const mechanism& m) {return m->name()==name;});
+            [&name](const mechanism_ptr& m) {return m->name()==name;});
         return it==mechanisms_.end() ? util::nothing: util::just(*it);
     }
 
@@ -376,7 +377,7 @@ private:
     array voltage_;
 
     /// the set of mechanisms present in the cell
-    std::vector<mechanism> mechanisms_;
+    std::vector<mechanism_ptr> mechanisms_;
 
     /// the ion species
     std::map<ionKind, ion_type> ions_;
@@ -420,6 +421,52 @@ private:
         std::vector<value_type>& tmp_cv_areas,
         std::vector<value_type>& cv_capacitance
     );
+
+    // TODO: This process should be simpler when we can deal with mechanism prototypes and have
+    // separate initialization.
+    //
+    // Create possibly-specialized mechanism and add to mechanism set.
+    // Weights are unset, and should be set specifically with mechanism::set_weights().
+    mechanism& make_mechanism(
+        const std::string& name,
+        const std::map<std::string, specialized_mechanism>& special_mechs,
+        const std::vector<size_type>& node_indices)
+    {
+        std::string impl_name = name;
+        std::vector<std::pair<std::string, double>> global_params;
+
+        if (special_mechs.count(name)) {
+            const auto& spec_mech = special_mechs.at(name);
+            impl_name = spec_mech.mech_name;
+            global_params = spec_mech.parameters;
+        }
+
+        size_type mech_id = mechanisms_.size();
+        auto m = backend::make_mechanism(impl_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, {}, node_indices);
+        if (impl_name!=name) {
+            m->set_alias(name);
+        }
+
+        for (const auto& pv: global_params) {
+            auto field = m->field_value_ptr(pv.first.c_str());
+            if (!field) {
+                throw std::invalid_argument("no scalar parameter "+pv.first+" in mechanism "+m->name());
+            }
+            m.get()->*field = pv.second;
+        }
+
+        mechanisms_.push_back(std::move(m));
+        return *mechanisms_.back();
+    }
+
+    // Throwing-wrapper around mechanism (range) parameter look up.
+    static view& mech_field(mechanism& m, const std::string& param_name) {
+        auto p = m.field_view_ptr(param_name.c_str());
+        if (!p) {
+            throw std::invalid_argument("no parameter "+param_name+" in mechanism "+m.name());
+        }
+        return m.*p;
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -442,6 +489,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 
     segment_cv_range cv_range;
 
+    auto cm = seg->cm;
+    auto rL = seg->rL;
+
     if (auto soma = seg->as_soma()) {
         // confirm assumption that there is one compartment in soma
         if (ncomp!=1) {
@@ -449,10 +499,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
         }
         auto i = comp_ival.first;
         auto area = math::area_sphere(soma->radius());
-        auto c_m = soma->mechanism("membrane").get("c_m").value;
 
         tmp_cv_areas[i] += area;
-        cv_capacitance[i] += area*c_m;
+        cv_capacitance[i] += area*cm;
 
         cv_range.segment_cvs = {comp_ival.first, comp_ival.first+1};
         cv_range.areas = {0.0, area};
@@ -487,9 +536,6 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
         //
         // The first control volume of any cell corresponds to the soma
         // and the first half of the first cable compartment of that cell.
-
-        auto c_m = cable->mechanism("membrane").get("c_m").value;
-        auto r_L = cable->mechanism("membrane").get("r_L").value;
 
         auto divs = div_compartments<div_compartment_integrator>(cable, ncomp);
 
@@ -535,7 +581,7 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
             auto V2 = div.right.volume;
             auto h = h1+h2;
 
-            auto conductance = 1/r_L*h*V1*V2/(h2*h2*V1+h1*h1*V2);
+            auto conductance = 1/rL*h*V1*V2/(h2*h2*V1+h1*h1*V2);
             // the scaling factor of 10^2 is to convert the quantity
             // to micro Siemens [μS]
             face_conductance[i] =  1e2 * conductance / h;
@@ -545,8 +591,8 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 
             tmp_cv_areas[j] += al;
             tmp_cv_areas[i] += ar;
-            cv_capacitance[j] += al * c_m;
-            cv_capacitance[i] += ar * c_m;
+            cv_capacitance[j] += al * cm;
+            cv_capacitance[i] += ar * cm;
         }
     }
     else {
@@ -575,6 +621,14 @@ void fvm_multicell<Backend>::initialize(
 
     ncell_ = size(gids);
     std::size_t targets_count = 0u;
+
+    // Handle any global parameters for these cell groups.
+    // (Currently: just specialized mechanisms).
+    std::map<std::string, specialized_mechanism> special_mechs;
+    util::any gprops = rec.get_global_properties(cable1d_neuron);
+    if (gprops.has_value()) {
+        special_mechs = util::any_cast<cell_global_properties&>(gprops).special_mechs;
+    }
 
     // Take cell descriptions from recipe. These are used initially
     // to count compartments for allocation of data structures, and
@@ -611,15 +665,36 @@ void fvm_multicell<Backend>::initialize(
     }
     memory::copy(cv_to_cell_tmp, cv_to_cell_);
 
-    // look up table: mechanism name -> list of cv_range objects
-    std::map<std::string, std::vector<segment_cv_range>> mech_to_cv_range;
+    // TODO: mechanism parameters are currently indexed by string keys; more efficient
+    // to use the mechanism member pointers, when these become easily accessible via
+    // the mechanism catalogue interface.
 
-    // look up table: point mechanism (synapse) name -> CV indices and target numbers.
-    struct syn_cv_and_target {
+    // look up table: mechanism name -> list of cv_range objects and parameter settings.
+
+    struct mech_area_contrib {
+        size_type index;
+        value_type area;
+    };
+
+    struct mech_info {
+        segment_cv_range cv_range;
+        // Note: owing to linearity constraints, the only parameters for which it is
+        // sensible to modify are those which make a linear contribution to currents
+        // (or ion fluxes, etc.)
+        std::map<std::string, value_type> param_map;
+        std::vector<mech_area_contrib> contributions;
+    };
+
+    std::map<std::string, std::vector<mech_info>> mech_map;
+
+    // look up table: point mechanism (synapse) name -> list of CV indices, target numbers, parameters.
+    struct syn_info {
         cell_lid_type cv;
         cell_lid_type target;
+        std::map<std::string, value_type> param_map;
     };
-    std::map<std::string, std::vector<syn_cv_and_target>> syn_mech_map;
+
+    std::map<std::string, std::vector<syn_info>> syn_mech_map;
 
     // initialize vector used for matrix creation.
     std::vector<size_type> group_parent_index(ncomp);
@@ -631,9 +706,9 @@ void fvm_multicell<Backend>::initialize(
     // Create each cell:
 
     // Allocate scratch storage for calculating quantities used to build the
-    // linear system: these will later be copied into target-specific storage
+    // linear system: these will later be copied into target-specific storage.
 
-    // face_conductance_[i] = area_face  / (r_L * delta_x);
+    // face_conductance_[i] = area_face  / (rL * delta_x);
     std::vector<value_type> face_conductance(ncomp); // [µS]
     /// cv_capacitance_[i] is the capacitance of CV membrane
     std::vector<value_type> cv_capacitance(ncomp);   // [µm^2*F*m^-2 = pF]
@@ -681,26 +756,24 @@ void fvm_multicell<Backend>::initialize(
                 face_conductance, tmp_cv_areas, cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
-                if (mech.name()!="membrane") {
-                    mech_to_cv_range[mech.name()].push_back(cv_range);
-                }
+                mech_map[mech.name()].push_back({cv_range, mech.values()});
             }
         }
 
         for (const auto& syn: c.synapses()) {
             const auto& name = syn.mechanism.name();
-            auto& map_entry = syn_mech_map[name];
 
             cell_lid_type syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
             cell_lid_type target_index = targets_count++;
 
-            map_entry.push_back(syn_cv_and_target{syn_cv, target_index});
+            syn_mech_map[name].push_back({syn_cv, target_index, syn.mechanism.values()});
         }
 
         //
         // add the stimuli
         //
 
+        // TODO: use same process as for synapses!
         // step 1: pack the index and parameter information into flat vectors
         std::vector<size_type> stim_index;
         std::vector<value_type> stim_durations;
@@ -726,7 +799,7 @@ void fvm_multicell<Backend>::initialize(
                 cv_to_cell_, time_, time_to_, dt_comp_,
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
-            mechanisms_.push_back(mechanism(stim));
+            mechanisms_.push_back(mechanism_ptr(stim));
         }
 
         // calculate spike detector handles are their corresponding compartment indices
@@ -770,85 +843,180 @@ void fvm_multicell<Backend>::initialize(
     matrix_ = matrix_type(
         group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance);
 
-    // For each density mechanism build the full node index, i.e the list of
-    // compartments with that mechanism, then build the mechanism instance.
-    std::vector<size_type> mech_cv_index(ncomp);
-    std::vector<value_type> mech_cv_weight(ncomp);
+    // Keep cv index list for each mechanism for ion set up below.
     std::map<std::string, std::vector<size_type>> mech_to_cv_index;
-    for (auto const& entry: mech_to_cv_range) {
+
+    // Working vectors (re-used per mechanism).
+    std::vector<size_type> mech_cv(ncomp);
+    std::vector<value_type> mech_weight(ncomp);
+
+    for (auto& entry: mech_map) {
         const auto& mech_name = entry.first;
-        const auto& seg_cv_ranges = entry.second;
+        auto& segments = entry.second;
 
-        // Clear the pre-allocated storage for mechanism indexes and weights.
-        // Reuse the same vectors each time to have only one malloc and free
-        // outside of the loop for each
-        mech_cv_index.clear();
-        mech_cv_weight.clear();
+        mech_cv.clear();
+        mech_weight.clear();
 
-        for (auto& rng: seg_cv_ranges) {
+        // Three passes are performed over the segment list:
+        //   1. Compute the CVs and area contributions where the mechanism is instanced.
+        //   2. Build table of modified parameters together with default values.
+        //   3. Compute weights and parameters.
+        // The mechanism is instantiated after the first pass, in order to gain
+        // access to default mechanism parameter values.
+
+        for (auto& seg: segments) {
+            const auto& rng = seg.cv_range;
+            seg.contributions.reserve(rng.size());
+
             if (rng.has_parent()) {
-                // locate the parent cv in the partially constructed list of cv indexes
-                auto it = algorithms::binary_find(mech_cv_index, rng.parent_cv);
-                if (it == mech_cv_index.end()) {
-                    mech_cv_index.push_back(rng.parent_cv);
-                    mech_cv_weight.push_back(0);
+                auto cv = rng.parent_cv;
+
+                auto it = algorithms::binary_find(mech_cv, cv);
+                size_type pos = it - mech_cv.begin();
+
+                if (it == mech_cv.end()) {
+                    mech_cv.push_back(cv);
                 }
-                auto pos = std::distance(std::begin(mech_cv_index), it);
 
-                // add area contribution to the parent cv for the segment
-                mech_cv_weight[pos] += rng.areas.first;
+                seg.contributions.push_back({pos, rng.areas.first});
             }
-            util::append(mech_cv_index, make_span(rng.segment_cvs));
-            util::append(mech_cv_weight, subrange_view(tmp_cv_areas, rng.segment_cvs));
 
-            // adjust the last CV
-            mech_cv_weight.back() = rng.areas.second;
+            for (auto cv: make_span(rng.segment_cvs)) {
+                size_type pos = mech_cv.size();
+                mech_cv.push_back(cv);
+                seg.contributions.push_back({pos, tmp_cv_areas[cv]});
+            }
 
-            EXPECTS(mech_cv_weight.size()==mech_cv_index.size());
+            // Last CV contribution may be only partial, so adjust.
+            seg.contributions.back().area = rng.areas.second;
+        }
+
+        auto nindex = mech_cv.size();
+
+        EXPECTS(std::is_sorted(mech_cv.begin(), mech_cv.end()));
+        EXPECTS(nindex>0);
+
+        auto& mech = make_mechanism(mech_name, special_mechs, mech_cv);
+
+        // Save the indices for ion set up below.
+
+        mech_to_cv_index[mech_name] = mech_cv;
+
+        // Build modified parameter table.
+
+        struct param_tbl_entry {
+            std::vector<value_type> values;
+            view* vptr;
+            value_type dflt;
+        };
+
+        std::map<std::string, param_tbl_entry> param_tbl;
+
+        for (const auto& seg: segments) {
+            for (const auto& pv: seg.param_map) {
+                if (param_tbl.count(pv.first)) {
+                    continue;
+                }
+
+                // Grab default value from mechanism data.
+                auto& entry = param_tbl[pv.first];
+                entry.vptr = &(mech_field(mech, pv.first));
+                entry.dflt = (*entry.vptr)[0];
+                entry.values.assign(nindex, 0.);
+            }
+        }
+
+        // Perform another pass of segment list to compute weights and (non-global) parameters.
+
+        mech_weight.assign(nindex, 0.);
+
+        for (const auto& seg: segments) {
+            for (auto cw: seg.contributions) {
+                mech_weight[cw.index] += cw.area;
+
+                for (auto& entry: param_tbl) {
+                    value_type v = entry.second.dflt;
+                    const auto& name = entry.first;
+
+                    auto it = seg.param_map.find(name);
+                    if (it != seg.param_map.end()) {
+                        v = it->second;
+                    }
+
+                    entry.second.values[cw.index] += cw.area*v;
+                }
+            }
+        }
+
+        for (auto& entry: param_tbl) {
+            for (size_type i = 0; i<nindex; ++i) {
+                entry.second.values[i] /= mech_weight[i];
+            }
+            memory::copy(entry.second.values, *entry.second.vptr);
         }
 
         // Scale the weights to get correct units (see w_i^d in formulation docs)
         // The units for the density channel weights are [10^2 μm^2 = 10^-10 m^2],
         // which requires that we scale the areas [μm^2] by 10^-2
-        for (auto& w: mech_cv_weight) {
+
+        for (auto& w: mech_weight) {
             w *= 1e-2;
         }
-
-        size_type mech_id = mechanisms_.size();
-        mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, mech_cv_weight, mech_cv_index));
-
-        // Save the indices for ion set up below.
-        mech_to_cv_index[mech_name] = mech_cv_index;
+        mech.set_weights(memory::make_const_view(mech_weight));
     }
 
     target_handles.resize(targets_count);
 
     // Create point (synapse) mechanisms.
-    for (auto& syni: syn_mech_map) {
+    for (auto& map_entry: syn_mech_map) {
         size_type mech_id = mechanisms_.size();
 
-        const auto& mech_name = syni.first;
-        auto& cv_assoc = syni.second;
+        const auto& mech_name = map_entry.first;
+        auto& syn_data = map_entry.second;
+        auto n_instance = syn_data.size();
 
-        // Sort CV indices but keep track of their corresponding targets.
-        auto cv_index = [](syn_cv_and_target x) { return x.cv; };
-        util::stable_sort_by(cv_assoc, cv_index);
-        std::vector<cell_lid_type> cv_indices = assign_from(transform_view(cv_assoc, cv_index));
+        // Build permutation p such that p[j] is the index into
+        // syn_data for the jth synapse of this mechanism type as ordered by cv index.
 
-        // Create the mechanism.
-        // An empty weight vector is supplied, because there are no weights applied to point
-        // processes, because their currents are calculated with the target units of [nA]
-        mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, {}, cv_indices));
+        auto cv_of = [&](cell_lid_type i) { return syn_data[i].cv; };
+
+        std::vector<cell_lid_type> p(n_instance);
+        std::iota(p.begin(), p.end(), 0u);
+        util::sort_by(p, cv_of);
+
+        std::vector<cell_lid_type> mech_cv;
+        mech_cv.reserve(n_instance);
+
+        // Build mechanism cv index vector and targets.
+        for (auto i: make_span(0u, n_instance)) {
+            const auto& syn = syn_data[p[i]];
+            mech_cv.push_back(syn.cv);
+            target_handles[syn.target] = target_handle(mech_id, i, cv_to_cell_tmp[syn.cv]);
+        }
+
+        auto& mech = make_mechanism(mech_name, special_mechs, mech_cv);
 
         // Save the indices for ion set up below.
-        mech_to_cv_index[mech_name] = cv_indices;
+        mech_to_cv_index[mech_name] = mech_cv;
 
-        // Make the target handles.
-        cell_lid_type instance = 0;
-        for (auto entry: cv_assoc) {
-            target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_tmp[entry.cv]);
+        // Update the mechanism parameters.
+        std::map<std::string, std::vector<std::pair<cell_lid_type, fvm_value_type>>> param_assigns;
+        for (auto i: make_span(0u, n_instance)) {
+            for (const auto& pv: syn_data[p[i]].param_map) {
+                param_assigns[pv.first].push_back({i, pv.second});
+            }
+        }
+
+        for (const auto& pa: param_assigns) {
+            auto field = mech.field_view_ptr(pa.first.c_str());
+            if (!field) {
+                throw std::invalid_argument("no field "+pa.first+" in mechanism "+mech.name());
+            }
+            host_array field_values = mech.*field;
+            for (const auto &iv: pa.second) {
+                field_values[iv.first] = iv.second;
+            }
+            memory::copy(field_values, mech.*field);
         }
     }
 
@@ -866,7 +1034,7 @@ void fvm_multicell<Backend>::initialize(
         std::vector<size_type> indexes(index_set.begin(), index_set.end());
 
         // create the ion state
-        if(indexes.size()) {
+        if (indexes.size()) {
             ions_[ion] = indexes;
         }
 
