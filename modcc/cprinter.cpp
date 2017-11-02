@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <string>
+#include <unordered_set>
 
 #include "cprinter.hpp"
 #include "lexer.hpp"
@@ -19,6 +20,7 @@ std::string CPrinter::emit_source() {
     // and a list of all scalar types
     std::vector<VariableExpression*> scalar_variables;
     std::vector<VariableExpression*> array_variables;
+
     for(auto& sym: module_->symbols()) {
         if(auto var = sym.second->is_variable()) {
             if(var->is_range()) {
@@ -132,12 +134,21 @@ std::string CPrinter::emit_source() {
     if (module_->kind() == moduleKind::density) {
         text_.add_line("// add the user-supplied weights for converting from current density");
         text_.add_line("// to per-compartment current in nA");
+        text_.add_line("if (weights.size()) {");
+        text_.increase_indentation();
         if(optimize_) {
             text_.add_line("memory::copy(weights, view(weights_, size()));");
         }
         else {
             text_.add_line("memory::copy(weights, weights_(0, size()));");
         }
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line("else {");
+        text_.increase_indentation();
+        text_.add_line("memory::fill(weights_, 1.0);");
+        text_.decrease_indentation();
+        text_.add_line("}");
         text_.add_line();
     }
 
@@ -179,10 +190,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    text_.add_line("void set_params() override {");
-    text_.add_line("}");
-    text_.add_line();
-
     text_.add_line("std::string name() const override {");
     text_.increase_indentation();
     text_.add_line("return \"" + module_name + "\";");
@@ -199,6 +206,16 @@ std::string CPrinter::emit_source() {
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
+
+    // Override `set_weights` method only for density mechanisms.
+    if (module_->kind() == moduleKind::density) {
+        text_.add_line("void set_weights(array&& weights) override {");
+        text_.increase_indentation();
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
 
     // return true/false indicating if cell has dependency on k
     auto const& ions = module_->neuron_block().ions;
@@ -351,6 +368,97 @@ std::string CPrinter::emit_source() {
         text_.add_line();
     }
 
+    // TODO: replace field_info() generation implemenation with separate schema info generation
+    // as per #349.
+    auto field_info_string = [](const std::string& kind, const Id& id) {
+        return  "field_spec{field_spec::" + kind + ", " +
+                "\"" + id.unit_string() + "\", " +
+                (id.has_value()? id.value: "0") +
+                (id.has_range()? ", " + id.range.first.spelling + "," + id.range.second.spelling: "") +
+                "}";
+    };
+
+    std::unordered_set<std::string> scalar_set;
+    for (auto& v: scalar_variables) {
+        scalar_set.insert(v->name());
+    }
+
+    std::vector<Id> global_param_ids;
+    std::vector<Id> instance_param_ids;
+
+    for (const Id& id: module_->parameter_block().parameters) {
+        auto var = id.token.spelling;
+        (scalar_set.count(var)? global_param_ids: instance_param_ids).push_back(id);
+    }
+    const std::vector<Id>& state_ids = module_->state_block().state_variables;
+
+    text_.add_line("util::optional<field_spec> field_info(const char* id) const /* override */ {");
+    text_.increase_indentation();
+    text_.add_line("static const std::pair<const char*, field_spec> field_tbl[] = {");
+    text_.increase_indentation();
+    for (const auto& id: global_param_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("global",id )+"},");
+    }
+    for (const auto& id: instance_param_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("parameter", id)+"},");
+    }
+    for (const auto& id: state_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("state", id)+"},");
+    }
+    text_.decrease_indentation();
+    text_.add_line("};");
+    text_.add_line();
+    text_.add_line("auto* info = util::table_lookup(field_tbl, id);");
+    text_.add_line("return info? util::just(*info): util::nothing;");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
+    if (!instance_param_ids.empty() || !state_ids.empty()) {
+        text_.add_line("view base::* field_view_ptr(const char* id) const override {");
+        text_.increase_indentation();
+        text_.add_line("static const std::pair<const char*, view "+class_name+"::*> field_tbl[] = {");
+        text_.increase_indentation();
+        for (const auto& id: instance_param_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        for (const auto& id: state_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        text_.decrease_indentation();
+        text_.add_line("};");
+        text_.add_line();
+        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("return pptr? static_cast<view base::*>(*pptr): nullptr;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
+
+    if (!global_param_ids.empty()) {
+        text_.add_line("value_type base::* field_value_ptr(const char* id) const override {");
+        text_.increase_indentation();
+        text_.add_line("static const std::pair<const char*, value_type "+class_name+"::*> field_tbl[] = {");
+        text_.increase_indentation();
+        for (const auto& id: global_param_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        text_.decrease_indentation();
+        text_.add_line("};");
+        text_.add_line();
+        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("return pptr? static_cast<value_type base::*>(*pptr): nullptr;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
+
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 
@@ -409,6 +517,7 @@ void CPrinter::emit_headers() {
     text_.add_line("#include <backends/event.hpp>");
     text_.add_line("#include <backends/multi_event_stream_state.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
+    text_.add_line("#include <util/simple_table.hpp>");
     text_.add_line();
 }
 

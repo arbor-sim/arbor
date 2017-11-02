@@ -34,8 +34,22 @@ public:
         pvec_.push_back({probe_id, tag, std::move(address)});
     }
 
+    void add_specialized_mechanism(std::string name, specialized_mechanism m) {
+        cell_gprop.special_mechs[name] = std::move(m);
+    }
+
+    util::any get_global_properties(cell_kind k) const override {
+        switch (k) {
+        case cable1d_neuron:
+            return cell_gprop;
+        default:
+            return util::any{};
+        }
+    }
+
 protected:
     std::unordered_map<cell_gid_type, std::vector<probe_info>> probes_;
+    cell_global_properties cell_gprop;
 };
 
 // Convenience derived recipe class for wrapping n copies of a single

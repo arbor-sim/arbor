@@ -38,9 +38,6 @@ public:
         return 0;
     }
 
-    void set_params() override {
-    }
-
     std::string name() const override {
         return "stimulus";
     }

@@ -38,7 +38,7 @@ void run_synapse_test(
     };
 
     cell c = make_cell_ball_and_stick(false); // no stimuli
-    parameter_list syn_default(syn_type);
+    mechanism_spec syn_default(syn_type);
     c.add_synapse({1, 0.5}, syn_default);
 
     // injected spike events

@@ -57,7 +57,7 @@ set(TEST_SOURCES
     test_multi_event_stream.cpp
     test_nop.cpp
     test_optional.cpp
-    test_parameters.cpp
+    test_mechinfo.cpp
     test_partition.cpp
     test_path.cpp
     test_point.cpp

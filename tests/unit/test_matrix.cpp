@@ -87,6 +87,8 @@ TEST(matrix, zero_diagonal)
     // elements should be ignored).
     // These submatrices should leave the rhs as-is when solved.
 
+    using memory::make_const_view;
+
     // Three matrices, sizes 3, 3 and 2, with no branching.
     std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
     std::vector<size_type> c = {0, 3, 5, 7};
@@ -96,9 +98,9 @@ TEST(matrix, zero_diagonal)
     EXPECT_EQ(3u, m.num_cells());
 
     auto& A = m.state_;
-    A.d =   vvec({2,  3,  2, 0,  0,  4,  5});
-    A.u =   vvec({0, -1, -1, 0, -1,  0, -2});
-    A.rhs = vvec({3,  5,  7, 7,  8, 16, 32});
+    A.d =   make_const_view(vvec({2,  3,  2, 0,  0,  4,  5}));
+    A.u =   make_const_view(vvec({0, -1, -1, 0, -1,  0, -2}));
+    A.rhs = make_const_view(vvec({3,  5,  7, 7,  8, 16, 32}));
 
     // Expected solution:
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};

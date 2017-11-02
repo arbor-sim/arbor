@@ -37,12 +37,12 @@ cell make_basic_cell(
         }
 
         if (segment->is_dendrite()) {
-            segment->add_mechanism(pas_parameters());
-            segment->mechanism("membrane").set("r_L", 100);
+            segment->add_mechanism("pas");
+            segment->rL = 100;
         }
     }
 
-    cell.soma()->add_mechanism(hh_parameters());
+    cell.soma()->add_mechanism("hh");
     cell.add_detector({0,0}, 20);
 
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
@@ -62,7 +62,7 @@ cell make_basic_cell(
 
     EXPECTS(!terminals.empty());
 
-    arb::parameter_list syn_default(syn_type);
+    arb::mechanism_spec syn_default(syn_type);
     for (unsigned i=0; i<num_synapses; ++i) {
         unsigned id = terminals[i%terminals.size()];
         cell.add_synapse({id, distribution(rng)}, syn_default);

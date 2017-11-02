@@ -5,6 +5,9 @@
  * more than one unit test.
  */
 
+#include <utility>
+#include <cmath>
+
 #include "../gtest.h"
 
 namespace testing {
@@ -139,6 +142,15 @@ template <typename FPType, typename Seq1, typename Seq2>
 
     if (i1!=e1 || i2!=e2) {
         return ::testing::AssertionFailure() << "sequences differ in length";
+    }
+    return ::testing::AssertionSuccess();
+}
+
+// Assert two floating point values are within a relative tolerance.
+inline ::testing::AssertionResult near_relative(double a, double b, double relerr) {
+    double tol = relerr*std::max(std::abs(a), std::abs(b));
+    if (std::abs(a-b)>tol) {
+        return ::testing::AssertionFailure() << "relative error between floating point numbers " << a << " and " << b << " exceeds tolerance " << relerr;
     }
     return ::testing::AssertionSuccess();
 }

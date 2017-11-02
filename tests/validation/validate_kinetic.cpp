@@ -23,6 +23,7 @@
 void run_kinetic_dt(
     arb::backend_kind backend,
     arb::cell& c,
+    arb::cell_probe_address probe,
     float t_end,
     nlohmann::json meta,
     const std::string& ref_file)
@@ -32,7 +33,7 @@ void run_kinetic_dt(
     float sample_dt = g_trace_io.sample_dt();
 
     cable1d_recipe rec{c};
-    rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});
+    rec.add_probe(0, 0, probe);
     probe_label plabels[1] = {"soma.mid", {0u, 0u}};
 
     meta["sim"] = "arbor";
@@ -71,7 +72,8 @@ void validate_kinetic_kin1(arb::backend_kind backend) {
     // 20 µm diameter soma with single mechanism, current probe
     cell c;
     auto soma = c.add_soma(10);
-    soma->add_mechanism(std::string("test_kin1"));
+    soma->add_mechanism("test_kin1");
+    cell_probe_address probe{{0, 0.5}, cell_probe_address::membrane_current};
 
     nlohmann::json meta = {
         {"model", "test_kin1"},
@@ -79,7 +81,7 @@ void validate_kinetic_kin1(arb::backend_kind backend) {
         {"units", "nA"}
     };
 
-    run_kinetic_dt(backend, c, 100.f, meta, "numeric_kin1.json");
+    run_kinetic_dt(backend, c, probe, 100.f, meta, "numeric_kin1.json");
 }
 
 void validate_kinetic_kinlva(arb::backend_kind backend) {
@@ -89,7 +91,8 @@ void validate_kinetic_kinlva(arb::backend_kind backend) {
     cell c;
     auto soma = c.add_soma(10);
     c.add_stimulus({0,0.5}, {20., 130., -0.025});
-    soma->add_mechanism(std::string("test_kinlva"));
+    soma->add_mechanism("test_kinlva");
+    cell_probe_address probe{{0, 0.5}, cell_probe_address::membrane_voltage};
 
     nlohmann::json meta = {
         {"model", "test_kinlva"},
@@ -97,7 +100,7 @@ void validate_kinetic_kinlva(arb::backend_kind backend) {
         {"units", "mV"}
     };
 
-    run_kinetic_dt(backend, c, 300.f, meta, "numeric_kinlva.json");
+    run_kinetic_dt(backend, c, probe, 300.f, meta, "numeric_kinlva.json");
 }
 
 
