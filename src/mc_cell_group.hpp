@@ -97,18 +97,18 @@ public:
     }
 
 
-    void advance(time_type tfinal, time_type dt, std::size_t epoch) override {
+    void advance(epoch ep, time_type dt) override {
         PE("advance");
         EXPECTS(lowered_.state_synchronized());
         time_type tstart = lowered_.min_time();
 
         PE("event-setup");
-        const auto& lc = event_lanes(epoch);
+        const auto& lc = event_lanes(ep.id);
         staged_events_.clear();
         for (auto lid: util::make_span(0, gids_.size())) {
             auto& lane = lc[lid];
             for (auto e: lane) {
-                if (e.time>=tfinal) break;
+                if (e.time>=ep.tfinal) break;
                 e.time = binners_[lid].bin(e.time, tstart);
                 auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
                 auto ev = deliverable_event(e.time, h, e.weight);
@@ -148,7 +148,7 @@ public:
         sample_size_type max_samples_per_call = 0;
 
         for (auto& sa: sampler_map_) {
-            auto sample_times = sa.sched.events(tstart, tfinal);
+            auto sample_times = sa.sched.events(tstart, ep.tfinal);
             if (sample_times.empty()) {
                 continue;
             }
@@ -174,7 +174,7 @@ public:
         PL();
 
         // Run integration.
-        lowered_.setup_integration(tfinal, dt, staged_events_, std::move(sample_events));
+        lowered_.setup_integration(ep.tfinal, dt, staged_events_, std::move(sample_events));
         PE("integrator-steps");
 
         while (!lowered_.integration_complete()) {
@@ -228,17 +228,16 @@ public:
     }
 
     void enqueue_events(
-            util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events,
-            time_type tfinal,
-            size_t epoch) override
+            epoch ep,
+            util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events) override
     {
         using pse = postsynaptic_spike_event;
 
         // Make convenience variables for event lanes:
         //  lf: event lanes for the next epoch
         //  lc: event lanes for the current epoch
-        auto& lf = event_lanes(epoch+1);
-        const auto& lc = event_lanes(epoch);
+        auto& lf = event_lanes(ep.id+1);
+        const auto& lc = event_lanes(ep.id);
 
         // For a cell, merge the incoming events with events in lc that are
         // not to be delivered in thie epoch, and store the result in lf.
@@ -253,7 +252,7 @@ public:
             lf[l].clear();
 
             // STEP 3: merge new events and future events from lc into lf
-            auto pos = std::lower_bound(lc[l].begin(), lc[l].end(), tfinal, event_time_less());
+            auto pos = std::lower_bound(lc[l].begin(), lc[l].end(), ep.tfinal, event_time_less());
             lf[l].resize(events[l].size()+std::distance(pos, lc[l].end()));
             std::merge(
                 events[l].begin(), events[l].end(), pos, lc[l].end(), lf[l].begin(),
@@ -308,8 +307,8 @@ public:
     }
 
 private:
-    std::vector<std::vector<postsynaptic_spike_event>>& event_lanes(std::size_t epoch) {
-        return event_lanes_[epoch%2];
+    std::vector<std::vector<postsynaptic_spike_event>>& event_lanes(std::size_t epoch_id) {
+        return event_lanes_[epoch_id%2];
     }
 
     // List of the gids of the cells in the group.

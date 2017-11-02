@@ -44,8 +44,8 @@ public:
     // Remove marked events from front of each event stream.
     void drop_marked_events();
 
-    // If the head of `i`th event stream exists and has time less than `t_until[i]`, set
-    // `t_until[i]` to the event time.
+    // If the head of `i`th event stream exists and has time less than
+    // `t_until[i]`, set `t_until[i]` to the event time.
     void event_time_if_before(view t_until);
 
 protected:
@@ -59,8 +59,7 @@ protected:
         n_nonempty_stream_(1)
     {}
 
-    // The list of events must be sorted in ascending order of index,
-    // with events of equal index further time-sorted.
+    // The list of events must be sorted sorted first by index and then by time.
     template <typename Event>
     void init(const std::vector<Event>& staged) {
         using ::arb::event_time;
@@ -71,7 +70,6 @@ protected:
             throw std::range_error("too many events");
         }
 
-        // Sort by index (staged events should already be time-sorted).
         EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
 
         std::size_t n_ev = staged.size();
@@ -136,7 +134,7 @@ public:
     // Initialize event streams from a vector of events, sorted first by index
     // and then by time.
     void init(const std::vector<Event>& staged) {
-        multi_event_stream_base::init(staged); // reorders `staged` in place.
+        multi_event_stream_base::init(staged);
 
         tmp_ev_data_.clear();
         tmp_ev_data_.reserve(staged.size());

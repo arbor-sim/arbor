@@ -57,10 +57,10 @@ public:
         struct gid_info {
             using connection_list = decltype(std::declval<recipe>().connections_on(0));
             cell_gid_type gid;       // global identifier of cell
-            cell_gid_type domain_id; // index of cell in this domain
+            cell_gid_type index_on_domain; // index of cell in this domain
             connection_list conns;   // list of connections terminating at this cell
             gid_info(cell_gid_type g, cell_gid_type di, connection_list c):
-                gid(g), domain_id(di), conns(std::move(c)) {}
+                gid(g), index_on_domain(di), conns(std::move(c)) {}
         };
 
         // Make a list of local gid with their group index and connections
@@ -105,16 +105,16 @@ public:
         for (const auto& cell: gid_infos) {
             for (auto c: cell.conns) {
                 const auto i = offsets[src_domains[pos]]++;
-                connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.domain_id};
+                connections_[i] = {c.source, c.dest, c.weight, c.delay, cell.index_on_domain};
                 ++pos;
             }
         }
 
         // Build cell partition by group for passing events to cell groups
-        domain_id_partition_.resize(num_local_groups_+1);
-        for (auto g: make_span(0, num_local_groups_)) {
-            domain_id_partition_[g+1] = domain_id_partition_[g] + dom_dec.groups[g].gids.size();
-        }
+        index_part_ = util::make_partition(index_divisions_,
+            util::transform_view(
+                dom_dec.groups,
+                [](const group_description& g){return g.gids.size();}));
 
         // Sort the connections for each domain.
         // This is num_domains_ independent sorts, so it can be parallelized trivially.
@@ -128,7 +128,7 @@ public:
     /// The range of event queues that belong to cells in group i.
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i) {
         EXPECTS(i<num_local_groups_);
-        return {domain_id_partition_[i], domain_id_partition_[i+1]};
+        return index_part_[i];
     }
 
     /// The minimum delay of all connections in the global network.
@@ -196,7 +196,7 @@ public:
                 while (cn!=cons.end() && sp!=spks.end()) {
                     auto sources = std::equal_range(sp, spks.end(), cn->source(), spike_pred());
                     for (auto s: make_range(sources)) {
-                        queues[cn->domain_index()].push_back(cn->make_event(s));
+                        queues[cn->index_on_domain()].push_back(cn->make_event(s));
                     }
 
                     sp = sources.first;
@@ -209,7 +209,7 @@ public:
                 while (cn!=cons.end() && sp!=spks.end()) {
                     auto targets = std::equal_range(cn, cons.end(), sp->source);
                     for (auto c: make_range(targets)) {
-                        queues[c.domain_index()].push_back(c.make_event(*sp));
+                        queues[c.index_on_domain()].push_back(c.make_event(*sp));
                     }
 
                     cn = targets.first;
@@ -238,7 +238,9 @@ private:
     cell_size_type num_domains_;
     std::vector<connection> connections_;
     std::vector<cell_size_type> connection_part_;
-    std::vector<cell_size_type> domain_id_partition_;
+    std::vector<cell_size_type> index_divisions_;
+    util::partition_view_type<std::vector<cell_size_type>> index_part_;
+
     communication_policy_type comms_;
     std::uint64_t num_spikes_ = 0u;
 };

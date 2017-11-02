@@ -18,13 +18,15 @@ TEST(dss_cell, basic_usage)
 
     // No spikes in this time frame.
     time_type dt = 0.01; // (note that dt is ignored in dss_cell_group).
-    sut.advance(0.09, dt, 0);
+    epoch ep(0, 0.09);
+    sut.advance(ep, dt);
 
     auto spikes = sut.spikes();
     EXPECT_EQ(0u, spikes.size());
 
     // Only one in this time frame.
-    sut.advance(0.11, 0.01, 1);
+    ep.advance(0.11);
+    sut.advance(ep, dt);
     spikes = sut.spikes();
     EXPECT_EQ(1u, spikes.size());
     ASSERT_FLOAT_EQ(spike_time, spikes[0].time);
@@ -35,7 +37,8 @@ TEST(dss_cell, basic_usage)
     EXPECT_EQ(0u, spikes.size());
 
     // No spike to be emitted.
-    sut.advance(0.12, dt, 2);
+    ep.advance(0.12);
+    sut.advance(ep, dt);
     spikes = sut.spikes();
     EXPECT_EQ(0u, spikes.size());
 
@@ -43,7 +46,8 @@ TEST(dss_cell, basic_usage)
     sut.reset();
 
     // Expect to have the one spike again after reset.
-    sut.advance(0.2, dt, 0);
+    ep.advance(0.2);
+    sut.advance(ep, dt);
     spikes = sut.spikes();
     EXPECT_EQ(1u, spikes.size());
     ASSERT_FLOAT_EQ(spike_time, spikes[0].time);

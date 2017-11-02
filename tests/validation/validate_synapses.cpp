@@ -75,8 +75,10 @@ void run_synapse_test(
 
         auto decomp = partition_load_balance(rec, nd);
         model m(rec, decomp);
-        // add events an odd epoch (1), so that they are available during integration of epoch 0.
-        m.group(0).enqueue_events(util::subrange_view(synthetic_events, 0, 1), 0., 1);
+
+        // Add events an odd epoch (1), so that they are available during integration of epoch 0.
+        // This is a bit of a hack.
+        m.group(0).enqueue_events(epoch(1, 0.), util::subrange_view(synthetic_events, 0, 1));
 
         runner.run(m, ncomp, sample_dt, t_end, dt, exclude);
     }

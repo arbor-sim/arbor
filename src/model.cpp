@@ -63,7 +63,7 @@ time_type model::run(time_type tfinal, time_type dt) {
                 PE("stepping");
                 auto &group = cell_groups_[i];
 
-                group->advance(tuntil, dt, epoch_);
+                group->advance(epoch_, dt);
 
                 PE("events");
                 current_spikes().insert(group->spikes());
@@ -96,17 +96,17 @@ time_type model::run(time_type tfinal, time_type dt) {
         PE("enqueue");
         for (auto i: util::make_span(0, cell_groups_.size())) {
             cell_groups_[i]->enqueue_events(
-                util::subrange_view(events, communicator_.group_queue_range(i)),
-                tuntil, epoch_);
+                epoch_,
+                util::subrange_view(events, communicator_.group_queue_range(i)));
         }
         PL(2);
 
         PL(2);
     };
 
+    tuntil = std::min(t_+t_interval, tfinal);
+    epoch_ = epoch(0, tuntil);
     while (t_<tfinal) {
-        tuntil = std::min(t_+t_interval, tfinal);
-
         local_spikes_.exchange();
 
         // empty the spike buffers for the current integration period.
@@ -121,7 +121,9 @@ time_type model::run(time_type tfinal, time_type dt) {
         g.wait();
 
         t_ = tuntil;
-        ++epoch_;
+
+        tuntil = std::min(t_+t_interval, tfinal);
+        epoch_.advance(tuntil);
     }
 
     // Run the exchange one last time to ensure that all spikes are output

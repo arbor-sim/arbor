@@ -6,9 +6,10 @@
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <common_types.hpp>
-#include <domain_decomposition.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <domain_decomposition.hpp>
+#include <epoch.hpp>
 #include <recipe.hpp>
 #include <sampling.hpp>
 #include <thread_private_spike_store.hpp>
@@ -61,8 +62,8 @@ public:
 private:
     std::size_t num_groups() const;
 
-    // counter that is incremented at the end of each integration epoch
-    std::size_t epoch_ = 0;
+    // keep track of information about the current integration interval
+    epoch epoch_;
 
     time_type t_ = 0.;
     std::vector<cell_group_ptr> cell_groups_;

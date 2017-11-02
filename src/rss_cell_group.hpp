@@ -34,24 +34,20 @@ public:
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
-    void advance(time_type tfinal, time_type dt, std::size_t epoch) override {
+    void advance(epoch ep, time_type dt) override {
         for (const auto& cell: cells_) {
             auto t = std::max(cell.start_time, time_);
-            auto t_end = std::min(cell.stop_time, tfinal);
+            auto t_end = std::min(cell.stop_time, ep.tfinal);
 
             while (t < t_end) {
                 spikes_.push_back({{cell.gid, 0}, t});
                 t += cell.period;
             }
         }
-        time_ = tfinal;
+        time_ = ep.tfinal;
     }
 
-    void enqueue_events(
-            util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events,
-            time_type tfinal,
-            std::size_t epoch) override
-    {
+    void enqueue_events(epoch, util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>>) override {
         std::logic_error("rss_cell cannot deliver events");
     }
 
