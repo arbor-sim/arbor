@@ -374,7 +374,7 @@ std::string CPrinter::emit_source() {
         return  "field_spec{field_spec::" + kind + ", " +
                 "\"" + id.unit_string() + "\", " +
                 (id.has_value()? id.value: "0") +
-                (id.has_range()? ", " + id.range.first + "," + id.range.second: "") +
+                (id.has_range()? ", " + id.range.first.spelling + "," + id.range.second.spelling: "") +
                 "}";
     };
 

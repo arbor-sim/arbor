@@ -62,7 +62,7 @@ private:
     std::vector<Token> comma_separated_identifiers();
     std::vector<Token> unit_description();
     std::string value_literal();
-    std::pair<std::string, std::string> range_description();
+    std::pair<Token, Token> range_description();
 
     /// build the identifier list
     void add_variables_to_symbols();

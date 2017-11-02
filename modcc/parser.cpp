@@ -649,9 +649,9 @@ unit_exit:
     return tokens;
 }
 
-std::pair<std::string, std::string> Parser::range_description() {
+std::pair<Token, Token> Parser::range_description() {
     int startline = location_.line;
-    std::string lb, ub;
+    Token lb, ub;
 
     if(token_.type != tok::lt) {
         error(pprintf("range description must start with a left angle bracket '%'", token_));
@@ -659,7 +659,7 @@ std::pair<std::string, std::string> Parser::range_description() {
     }
 
     get_token();
-    lb = value_literal();
+    lb = token_;
 
     if(token_.type != tok::comma) {
         error(pprintf("range description must separate lower and upper bound with a comma '%'", token_));
@@ -667,7 +667,7 @@ std::pair<std::string, std::string> Parser::range_description() {
     }
 
     get_token();
-    ub = value_literal();
+    ub = token_;
 
     if(token_.type != tok::gt) {
         error(pprintf("range description must end with a right angle bracket '%'", token_));

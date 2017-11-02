@@ -339,6 +339,7 @@ namespace {
         return wm_impl(wa+w, xa+w*x, rest...);
     }
 
+    // Computed weighted mean (w*x + ...) / (w + ...).
     template <typename... R>
     double wmean(double w, double x, R... rest) {
         return wm_impl(w, w*x, rest...);

@@ -118,6 +118,10 @@ public:
     // For global fields:
     virtual value_type mechanism::* field_value_ptr(const char* id) const { return nullptr; }
 
+    // Convenience wrappers for field access methods with string parameter.
+    view mechanism::* field_view_ptr(const std::string& id) const { return field_view_ptr(id.c_str()); }
+    value_type mechanism::* field_value_ptr(const std::string& id) const { return field_value_ptr(id.c_str()); }
+
     // net_receive() is used internally by deliver_events(), but
     // is exposed primarily for unit testing.
     virtual void net_receive(int, value_type) {};

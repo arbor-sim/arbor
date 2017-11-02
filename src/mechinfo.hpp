@@ -4,6 +4,13 @@
  *
  * Catalogue and schemata have placeholder implementations, to be
  * completed in future work.
+ *
+ * The `mechanism_spec` class is the public interface for describing
+ * a mechanism and its (non-global) parameters in cable1d_cell
+ * recipes. It presents a map-like interface for accessing and querying
+ * parameter values, and parameter assignments will be validated
+ * against a corresponding schema when that infrastructure is in
+ * place.
  */
 
 #include <string>

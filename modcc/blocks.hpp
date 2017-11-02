@@ -33,7 +33,7 @@ struct Id {
                        // string == no value
     unit_tokens units;
 
-    std::pair<std::string, std::string> range; // empty component => no range set
+    std::pair<Token, Token> range; // empty component => no range set
 
     Id(Token const& t, std::string const& v, unit_tokens const& u)
         : token(t), value(v), units(u)
@@ -46,7 +46,7 @@ struct Id {
     }
 
     bool has_range() const {
-        return !range.first.empty();
+        return !range.first.spelling.empty();
     }
 
     std::string unit_string() const {

@@ -245,13 +245,6 @@ inline cell make_cell_ball_and_3stick(bool with_stim = true) {
  *
  * Note: zero-volume soma added with same mechanisms, as
  * work-around for some existing fvm modelling issues.
- *
- * TODO: Set the correct values when parameters are generally
- * settable! 
- *
- * We can't currently change leak parameters
- * from defaults, so we scale other electrical parameters
- * proportionally.
  */
 
 inline cell make_cell_simple_cable(bool with_stim = true) {
@@ -265,20 +258,11 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
     double gbar = 0.000025;
     double I = 0.1;
 
-    // fudge factor! can't change passive membrane
-    // conductance from gbar0 = 0.001
-
-    double gbar0 = 0.001;
-    double f = gbar/gbar0;
-
-    // scale everything else
-    r_L *= f;
-    c_m /= f;
-    I /= f;
+    mechanism_spec pas("pas");
+    pas["g"] = gbar;
 
     for (auto& seg: c.segments()) {
-        seg->add_mechanism(mechanism_spec("pas"));
-        // seg->add_mechanism(mechanism_spec("pas").set("gbar", gbar)
+        seg->add_mechanism(pas);
         seg->rL = r_L;
         seg->cm = c_m;
 

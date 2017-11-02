@@ -448,7 +448,7 @@ private:
         }
 
         for (const auto& pv: global_params) {
-            auto field = m->field_value_ptr(pv.first.c_str());
+            auto field = m->field_value_ptr(pv.first);
             if (!field) {
                 throw std::invalid_argument("no scalar parameter "+pv.first+" in mechanism "+m->name());
             }
@@ -460,8 +460,8 @@ private:
     }
 
     // Throwing-wrapper around mechanism (range) parameter look up.
-    static view& mech_field(mechanism& m, const std::string& param_name) {
-        auto p = m.field_view_ptr(param_name.c_str());
+    static view mech_field(mechanism& m, const std::string& param_name) {
+        auto p = m.field_view_ptr(param_name);
         if (!p) {
             throw std::invalid_argument("no parameter "+param_name+" in mechanism "+m.name());
         }
@@ -902,12 +902,12 @@ void fvm_multicell<Backend>::initialize(
 
         mech_to_cv_index[mech_name] = mech_cv;
 
-        // Build modified parameter table.
+        // Build modified (non-global) parameter table.
 
         struct param_tbl_entry {
-            std::vector<value_type> values;
-            view* vptr;
-            value_type dflt;
+            std::vector<value_type> values; // staged for writing to mechanism
+            view data;                      // view to corresponding data in mechanism
+            value_type dflt;                // default value for parameter
         };
 
         std::map<std::string, param_tbl_entry> param_tbl;
@@ -920,8 +920,8 @@ void fvm_multicell<Backend>::initialize(
 
                 // Grab default value from mechanism data.
                 auto& entry = param_tbl[pv.first];
-                entry.vptr = &(mech_field(mech, pv.first));
-                entry.dflt = (*entry.vptr)[0];
+                entry.data = mech_field(mech, pv.first);
+                entry.dflt = entry.data[0];
                 entry.values.assign(nindex, 0.);
             }
         }
@@ -952,7 +952,7 @@ void fvm_multicell<Backend>::initialize(
             for (size_type i = 0; i<nindex; ++i) {
                 entry.second.values[i] /= mech_weight[i];
             }
-            memory::copy(entry.second.values, *entry.second.vptr);
+            memory::copy(entry.second.values, entry.second.data);
         }
 
         // Scale the weights to get correct units (see w_i^d in formulation docs)
@@ -1008,15 +1008,12 @@ void fvm_multicell<Backend>::initialize(
         }
 
         for (const auto& pa: param_assigns) {
-            auto field = mech.field_view_ptr(pa.first.c_str());
-            if (!field) {
-                throw std::invalid_argument("no field "+pa.first+" in mechanism "+mech.name());
-            }
-            host_array field_values = mech.*field;
+            view field_data = mech_field(mech, pa.first);
+            host_array field_values = field_data;
             for (const auto &iv: pa.second) {
                 field_values[iv.first] = iv.second;
             }
-            memory::copy(field_values, mech.*field);
+            memory::copy(field_values, field_data);
         }
     }
 
