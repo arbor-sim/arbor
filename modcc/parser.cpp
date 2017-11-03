@@ -650,7 +650,6 @@ unit_exit:
 }
 
 std::pair<Token, Token> Parser::range_description() {
-    int startline = location_.line;
     Token lb, ub;
 
     if(token_.type != tok::lt) {
