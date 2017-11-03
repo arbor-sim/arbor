@@ -42,11 +42,11 @@ void run_synapse_test(
     c.add_synapse({1, 0.5}, syn_default);
 
     // injected spike events
-    std::vector<postsynaptic_spike_event> synthetic_events = {
+    std::vector<std::vector<postsynaptic_spike_event>> synthetic_events = {{
         {{0u, 0u}, 10.0, 0.04},
         {{0u, 0u}, 20.0, 0.04},
         {{0u, 0u}, 40.0, 0.04}
-    };
+    }};
 
     // exclude points of discontinuity from linf analysis
     std::vector<float> exclude = {10.f, 20.f, 40.f};
@@ -75,7 +75,10 @@ void run_synapse_test(
 
         auto decomp = partition_load_balance(rec, nd);
         model m(rec, decomp);
-        m.group(0).enqueue_events(synthetic_events);
+
+        // Add events an odd epoch (1), so that they are available during integration of epoch 0.
+        // This is a bit of a hack.
+        m.group(0).enqueue_events(epoch(1, 0.), util::subrange_view(synthetic_events, 0, 1));
 
         runner.run(m, ncomp, sample_dt, t_end, dt, exclude);
     }

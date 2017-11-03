@@ -66,6 +66,11 @@ subrange_view(Seq& seq, std::pair<Offset1, Offset2> index) {
     return subrange_view(seq, index.first, index.second);
 }
 
+// helper for determining the type of a subrange_view
+template <typename Seq>
+using subrange_view_type = decltype(subrange_view(std::declval<Seq&>(), 0, 0));
+
+
 // Fill container or range.
 
 template <typename Seq, typename V>

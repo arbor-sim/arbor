@@ -2,6 +2,7 @@
 
 #include <backends/multicore/fvm.hpp>
 #include <common_types.hpp>
+#include <epoch.hpp>
 #include <fvm_multicell.hpp>
 #include <mc_cell_group.hpp>
 #include <util/rangeutil.hpp>
@@ -32,7 +33,7 @@ TEST(mc_cell_group, get_kind) {
 TEST(mc_cell_group, test) {
     mc_cell_group<fvm_cell> group{{0}, cable1d_recipe(make_cell()) };
 
-    group.advance(50, 0.01);
+    group.advance(epoch(0, 50), 0.01);
 
     // the model is expected to generate 4 spikes as a result of the
     // fixed stimulus over 50 ms
