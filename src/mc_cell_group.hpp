@@ -18,6 +18,7 @@
 #include <sampling.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
+#include <util/double_buffer.hpp>
 #include <util/filter.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
@@ -62,8 +63,14 @@ public:
                 spike_sources_.push_back({source_gid, lid});
             }
         }
-
         spike_sources_.shrink_to_fit();
+
+        // Create event lane buffers.
+        // There is one set for each epoch: current and next.
+        event_lanes_.resize(2);
+        // For each epoch there is one lane for each cell in the cell group.
+        event_lanes_[0].resize(gids_.size());
+        event_lanes_[1].resize(gids_.size());
     }
 
     cell_kind get_cell_kind() const override {
@@ -72,32 +79,41 @@ public:
 
     void reset() override {
         spikes_.clear();
-        events_.clear();
         reset_samplers();
-        binner_.reset();
+        for (auto& b: binners_) {
+            b.reset();
+        }
         lowered_.reset();
+        for (auto& lanes: event_lanes_) {
+            for (auto& lane: lanes) {
+                lane.clear();
+            }
+        }
     }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {
-        binner_ = event_binner(policy, bin_interval);
+        binners_.clear();
+        binners_.resize(gids_.size(), event_binner(policy, bin_interval));
     }
 
 
-    void advance(time_type tfinal, time_type dt) override {
+    void advance(epoch ep, time_type dt) override {
         PE("advance");
         EXPECTS(lowered_.state_synchronized());
         time_type tstart = lowered_.min_time();
 
         PE("event-setup");
-        // Bin pending events and batch for lowered cell.
-        std::vector<deliverable_event> staged_events;
-        staged_events.reserve(events_.size());
-
-        while (auto ev = events_.pop_if_before(tfinal)) {
-            staged_events.emplace_back(
-                binner_.bin(ev->target.gid, ev->time, tstart),
-                get_target_handle(ev->target),
-                ev->weight);
+        const auto& lc = event_lanes(ep.id);
+        staged_events_.clear();
+        for (auto lid: util::make_span(0, gids_.size())) {
+            auto& lane = lc[lid];
+            for (auto e: lane) {
+                if (e.time>=ep.tfinal) break;
+                e.time = binners_[lid].bin(e.time, tstart);
+                auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
+                auto ev = deliverable_event(e.time, h, e.weight);
+                staged_events_.push_back(ev);
+            }
         }
         PL();
 
@@ -132,7 +148,7 @@ public:
         sample_size_type max_samples_per_call = 0;
 
         for (auto& sa: sampler_map_) {
-            auto sample_times = sa.sched.events(tstart, tfinal);
+            auto sample_times = sa.sched.events(tstart, ep.tfinal);
             if (sample_times.empty()) {
                 continue;
             }
@@ -158,8 +174,9 @@ public:
         PL();
 
         // Run integration.
-        lowered_.setup_integration(tfinal, dt, std::move(staged_events), std::move(sample_events));
+        lowered_.setup_integration(ep.tfinal, dt, staged_events_, std::move(sample_events));
         PE("integrator-steps");
+
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
@@ -210,9 +227,51 @@ public:
         PL();
     }
 
-    void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
-        for (auto& e: events) {
-            events_.push(e);
+    void enqueue_events(
+            epoch ep,
+            util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events) override
+    {
+        using pse = postsynaptic_spike_event;
+
+        // Make convenience variables for event lanes:
+        //  lf: event lanes for the next epoch
+        //  lc: event lanes for the current epoch
+        auto& lf = event_lanes(ep.id+1);
+        const auto& lc = event_lanes(ep.id);
+
+        // For a cell, merge the incoming events with events in lc that are
+        // not to be delivered in thie epoch, and store the result in lf.
+        auto merge_future_events = [&](unsigned l) {
+            PE("sort");
+            // STEP 1: sort events in place in events[l]
+            util::sort_by(events[l], [](const pse& e){return event_time(e);});
+            PL();
+
+            PE("merge");
+            // STEP 2: clear lf to store merged list
+            lf[l].clear();
+
+            // STEP 3: merge new events and future events from lc into lf
+            auto pos = std::lower_bound(lc[l].begin(), lc[l].end(), ep.tfinal, event_time_less());
+            lf[l].resize(events[l].size()+std::distance(pos, lc[l].end()));
+            std::merge(
+                events[l].begin(), events[l].end(), pos, lc[l].end(), lf[l].begin(),
+                [](const pse& l, const pse& r) {return l.time<r.time;});
+            PL();
+        };
+
+        // This operation is independent for each cell, so it can be performed
+        // in parallel if there are sufficient cells in the cell group.
+        // TODO: use parallel loop based on argument to this function? This would
+        //       allow the caller, which has more context, to decide whether a
+        //       parallel loop is beneficial.
+        if (gids_.size()>1) {
+            threading::parallel_for::apply(0, gids_.size(), merge_future_events);
+        }
+        else {
+            for (unsigned l=0; l<gids_.size(); ++l) {
+                merge_future_events(l);
+            }
         }
     }
 
@@ -248,6 +307,10 @@ public:
     }
 
 private:
+    std::vector<std::vector<postsynaptic_spike_event>>& event_lanes(std::size_t epoch_id) {
+        return event_lanes_[epoch_id%2];
+    }
+
     // List of the gids of the cells in the group.
     std::vector<cell_gid_type> gids_;
 
@@ -264,10 +327,11 @@ private:
     std::vector<spike> spikes_;
 
     // Event time binning manager.
-    event_binner binner_;
+    std::vector<event_binner> binners_;
 
     // Pending events to be delivered.
-    event_queue<postsynaptic_spike_event> events_;
+    std::vector<std::vector<std::vector<postsynaptic_spike_event>>> event_lanes_;
+    std::vector<deliverable_event> staged_events_;
 
     // Pending samples to be taken.
     event_queue<sample_event> sample_events_;

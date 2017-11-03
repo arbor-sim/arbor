@@ -150,6 +150,11 @@ range<U, V> make_range(const U& left, const V& right) {
     return range<U, V>(left, right);
 }
 
+template <typename U, typename V>
+range<U, V> make_range(const std::pair<U, V>& iterators) {
+    return range<U, V>(iterators.first, iterators.second);
+}
+
 // Present a possibly sentinel-terminated range as an STL-compatible sequence
 // using the sentinel_iterator adaptor.
 

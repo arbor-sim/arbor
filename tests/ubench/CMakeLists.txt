@@ -5,6 +5,7 @@ include(ExternalProject)
 set(bench_sources
     accumulate_functor_values.cpp
     event_setup.cpp
+    event_binning.cpp
 )
 
 set(bench_sources_cuda

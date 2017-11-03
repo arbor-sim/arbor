@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+#include <type_traits>
+
 // Generic accessors for event types used in `event_queue` and
 // `multi_event_stream`.
 //
@@ -54,6 +57,18 @@ template <typename Event>
 auto event_data(const Event& ev) -> decltype(ev.data) {
     return ev.data;
 }
+
+struct event_time_less {
+    template <typename T, typename Event, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+    bool operator() (T l, const Event& r) {
+        return l<event_time(r);
+    }
+
+    template <typename T, typename Event, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+    bool operator() (const Event& l, T r) {
+        return event_time(l)<r;
+    }
+};
 
 namespace impl {
     // Wrap in `impl::` namespace to obtain correct ADL for return type.
