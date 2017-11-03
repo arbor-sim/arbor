@@ -40,11 +40,7 @@ public:
     using communication_policy_type = CommunicationPolicy;
 
     /// per-cell group lists of events to be delivered
-    using event_queue =
-        std::vector<postsynaptic_spike_event>;
-
-    using gid_partition_type =
-        util::partition_range<std::vector<cell_gid_type>::const_iterator>;
+    using event_queue = std::vector<postsynaptic_spike_event>;
 
     communicator() {}
 
@@ -56,10 +52,10 @@ public:
         // For caching information about each cell
         struct gid_info {
             using connection_list = decltype(std::declval<recipe>().connections_on(0));
-            cell_gid_type gid;       // global identifier of cell
-            cell_gid_type index_on_domain; // index of cell in this domain
-            connection_list conns;   // list of connections terminating at this cell
-            gid_info(cell_gid_type g, cell_gid_type di, connection_list c):
+            cell_gid_type gid;              // global identifier of cell
+            cell_size_type index_on_domain; // index of cell in this domain
+            connection_list conns;          // list of connections terminating at this cell
+            gid_info(cell_gid_type g, cell_size_type di, connection_list c):
                 gid(g), index_on_domain(di), conns(std::move(c)) {}
         };
 
@@ -120,7 +116,7 @@ public:
         // This is num_domains_ independent sorts, so it can be parallelized trivially.
         const auto& cp = connection_part_;
         threading::parallel_for::apply(0, num_domains_,
-            [&](cell_gid_type i) {
+            [&](cell_size_type i) {
                 util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
             });
     }
