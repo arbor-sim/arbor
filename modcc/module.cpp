@@ -37,6 +37,7 @@ class NrnCurrentRewriter: public BlockRewriterBase {
 
     moduleKind kind_;
     bool has_current_update_ = false;
+    std::set<std::string> ion_current_vars_;
 
 public:
     using BlockRewriterBase::visit;
@@ -55,6 +56,14 @@ public:
                 make_expression<MulBinaryExpression>(loc_,
                     id("weights_"),
                     id("current_"))));
+
+            for (auto& v: ion_current_vars_) {
+                statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                    id(v),
+                    make_expression<MulBinaryExpression>(loc_,
+                        id("weights_"),
+                        id(v))));
+            }
         }
     }
 
@@ -64,7 +73,11 @@ public:
         statements_.push_back(e->clone());
         auto loc = e->location();
 
-        if (is_ion_update(e)!=ionKind::none) {
+        auto update_kind = is_ion_update(e);
+        if (update_kind!=ionKind::none) {
+            if (update_kind!=ionKind::nonspecific) {
+                ion_current_vars_.insert(e->lhs()->is_identifier()->name());
+            }
             has_current_update_ = true;
 
             if (!linear_test(e->rhs(), {"v"}).is_linear) {
