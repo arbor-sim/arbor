@@ -215,7 +215,7 @@ public:
     view       voltage()       { return voltage_; }
     const_view voltage() const { return voltage_; }
 
-    /// return the current in each CV
+    /// return the current density in each CV: A.m^-2
     view       current()       { return current_; }
     const_view current() const { return current_; }
 
@@ -369,8 +369,8 @@ private:
         cached_time_valid_ = true;
     }
 
-    /// the transmembrane current over the surface of each CV [nA]
-    ///     I = area*i_m - I_e
+    /// the transmembrane current density over the surface of each CV [A.m^-2]
+    ///     I = i_m - I_e/area
     array current_;
 
     /// the potential in each CV [mV]
@@ -779,12 +779,14 @@ void fvm_multicell<Backend>::initialize(
         std::vector<value_type> stim_durations;
         std::vector<value_type> stim_delays;
         std::vector<value_type> stim_amplitudes;
+        std::vector<value_type> stim_weights;
         for (const auto& stim: c.stimuli()) {
             auto idx = comp_ival.first+find_cv_index(stim.location, graph);
             stim_index.push_back(idx);
             stim_durations.push_back(stim.clamp.duration());
             stim_delays.push_back(stim.clamp.delay());
             stim_amplitudes.push_back(stim.clamp.amplitude());
+            stim_weights.push_back(1e3/tmp_cv_areas[idx]);
         }
 
         // step 2: create the stimulus mechanism and initialize the stimulus
@@ -799,6 +801,7 @@ void fvm_multicell<Backend>::initialize(
                 cv_to_cell_, time_, time_to_, dt_comp_,
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
+            stim->set_weights(memory::make_const_view(stim_weights));
             mechanisms_.push_back(mechanism_ptr(stim));
         }
 
@@ -955,12 +958,11 @@ void fvm_multicell<Backend>::initialize(
             memory::copy(entry.second.values, entry.second.data);
         }
 
-        // Scale the weights to get correct units (see w_i^d in formulation docs)
-        // The units for the density channel weights are [10^2 μm^2 = 10^-10 m^2],
-        // which requires that we scale the areas [μm^2] by 10^-2
-
-        for (auto& w: mech_weight) {
-            w *= 1e-2;
+        // Scale the weights by the CV area to get the proportion of the CV surface
+        // on which the mechanism is present. After scaling, the current will have
+        // units A.m^-2.
+        for (auto i: make_span(0, mech_weight.size())) {
+            mech_weight[i] *= 10/tmp_cv_areas[mech_cv[i]];
         }
         mech.set_weights(memory::make_const_view(mech_weight));
     }
@@ -985,22 +987,28 @@ void fvm_multicell<Backend>::initialize(
         util::sort_by(p, cv_of);
 
         std::vector<cell_lid_type> mech_cv;
+        std::vector<value_type> mech_weight;
         mech_cv.reserve(n_instance);
+        mech_weight.reserve(n_instance);
 
-        // Build mechanism cv index vector and targets.
+        // Build mechanism cv index vector, weights and targets.
         for (auto i: make_span(0u, n_instance)) {
             const auto& syn = syn_data[p[i]];
             mech_cv.push_back(syn.cv);
+            // The weight for each synapses is 1/cv_area, scaled by 100 to match the units
+            // of 10.A.m^-2 used to store current densities in current_.
+            mech_weight.push_back(1e3/tmp_cv_areas[syn.cv]);
             target_handles[syn.target] = target_handle(mech_id, i, cv_to_cell_tmp[syn.cv]);
         }
 
         auto& mech = make_mechanism(mech_name, special_mechs, mech_cv);
+        mech.set_weights(memory::make_const_view(mech_weight));
 
         // Save the indices for ion set up below.
         mech_to_cv_index[mech_name] = mech_cv;
 
         // Update the mechanism parameters.
-        std::map<std::string, std::vector<std::pair<cell_lid_type, fvm_value_type>>> param_assigns;
+        std::map<std::string, std::vector<std::pair<cell_lid_type, value_type>>> param_assigns;
         for (auto i: make_span(0u, n_instance)) {
             for (const auto& pv: syn_data[p[i]].param_map) {
                 param_assigns[pv.first].push_back({i, pv.second});
@@ -1135,7 +1143,7 @@ void fvm_multicell<Backend>::step_integration() {
 
     // solve the linear system
     PE("matrix", "setup");
-    matrix_.assemble(dt_cell_, voltage_, current_);
+    matrix_.assemble(dt_cell_, voltage_, current_, cv_areas_);
 
     PL(); PE("solve");
     matrix_.solve();

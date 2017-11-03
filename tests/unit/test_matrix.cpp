@@ -139,18 +139,19 @@ TEST(matrix, zero_diagonal_assembled)
 
     // Intial voltage of zero; currents alone determine rhs.
     vvec v(7, 0.0);
-    vvec i = {-3, -5, -7, -6, -9, -16, -32};
+    vvec area(7, 1.0);
+    vvec i = {-3000, -5000, -7000, -6000, -9000, -16000, -32000};
 
     // Expected matrix and rhs:
-    // u = [ 0 -1 -1  0 -1  0 -2]
-    // d = [ 2  3  2  2  2  4  5]
-    // b = [ 3  5  7  2  4 16 32]
+    // u   = [ 0 -1 -1  0 -1  0 -2]
+    // d   = [ 2  3  2  2  2  4  5]
+    // rhs = [ 3  5  7  2  4 16 32]
     //
     // Expected solution:
     // x = [ 4  5  6  7  8  9 10]
 
     matrix_type m(p, c, Cm, g);
-    m.assemble(make_view(dt), make_view(v), make_view(i));
+    m.assemble(make_view(dt), make_view(v), make_view(i), make_view(area));
     m.solve();
 
     vvec x;
@@ -165,7 +166,7 @@ TEST(matrix, zero_diagonal_assembled)
     dt[1] = 0;
     v[3] = 20;
     v[4] = 30;
-    m.assemble(make_view(dt), make_view(v), make_view(i));
+    m.assemble(make_view(dt), make_view(v), make_view(i), make_view(area));
     m.solve();
 
     assign(x, m.solution());

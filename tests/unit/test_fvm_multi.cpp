@@ -207,6 +207,7 @@ TEST(fvm_multi, stimulus)
     EXPECT_EQ(stims->size(), 2u);
 
     auto I = fvcell.current();
+    auto A = fvcell.cv_areas();
 
     auto soma_idx = 0u;
     auto dend_idx = 4u;
@@ -225,7 +226,8 @@ TEST(fvm_multi, stimulus)
     fvcell.set_time_global(1.);
     fvcell.set_time_to_global(1.1);
     stims->nrn_current();
-    EXPECT_EQ(I[soma_idx], -0.1);
+    // take care to convert from A.m^-2 to nA
+    EXPECT_EQ(I[soma_idx]/(1e3/A[soma_idx]), -0.1);
 
     // test 3: Test that current is still injected at soma at t=1.5.
     //         Note that we test for injection of -0.2, because the
@@ -235,15 +237,15 @@ TEST(fvm_multi, stimulus)
     fvcell.set_time_to_global(1.6);
     stims->set_params();
     stims->nrn_current();
-    EXPECT_EQ(I[soma_idx], -0.2);
+    EXPECT_EQ(I[soma_idx]/(1e3/A[soma_idx]), -0.2);
 
     // test 4: test at t=10ms, when the the soma stim is not active, and
     //         dendrite stimulus is injecting a current of 0.3 nA
     fvcell.set_time_global(10.);
     fvcell.set_time_to_global(10.1);
     stims->nrn_current();
-    EXPECT_EQ(I[soma_idx], -0.2);
-    EXPECT_EQ(I[dend_idx], -0.3);
+    EXPECT_EQ(I[soma_idx]/(1e3/A[soma_idx]), -0.2);
+    EXPECT_EQ(I[dend_idx]/(1e3/A[dend_idx]), -0.3);
 }
 
 // test that mechanism indexes are computed correctly

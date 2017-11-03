@@ -50,13 +50,11 @@ public:
                     id("current_"),
                     make_expression<NumberExpression>(loc_, 0.0)));
 
-            if (kind_==moduleKind::density) {
-                statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                    id("current_"),
-                    make_expression<MulBinaryExpression>(loc_,
-                        id("weights_"),
-                        id("current_"))));
-            }
+            statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                id("current_"),
+                make_expression<MulBinaryExpression>(loc_,
+                    id("weights_"),
+                    id("current_"))));
         }
     }
 
@@ -430,11 +428,10 @@ void Module::add_variables_to_symbols() {
         symbols_[name] = symbol_ptr{t};
     };
 
-    // density mechanisms use a vector of weights from current densities to
-    // units of nA
-    if (kind()==moduleKind::density) {
-        create_variable("weights_", rangeKind::range, accessKind::read);
-    }
+    // mechanisms use a vector of weights to:
+    //  density mechs: convert current densities from 10.A.m^-2 to A.m^-2
+    //  point procs  : convert current in nA to current densities in A.m^-2
+    create_variable("weights_", rangeKind::range, accessKind::read);
 
     // add indexed variables to the table
     auto create_indexed_variable = [this]

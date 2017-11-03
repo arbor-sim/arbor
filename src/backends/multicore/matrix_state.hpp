@@ -65,10 +65,11 @@ public:
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
-    //   dt_cell [ms] (per cell)
-    //   voltage [mV]
-    //   current [nA]
-    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+    //   dt_cell         [ms]     (per cell)
+    //   voltage         [mV]     (per compartment)
+    //   current density [A.m^-2] (per compartment)
+    //   area            [um^2]   (per compartment)
+    void assemble(const_view dt_cell, const_view voltage, const_view current, const_view area) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         const size_type ncells = cell_cv_part.size();
 
@@ -82,7 +83,8 @@ public:
                     auto gi = factor*cv_capacitance[i];
 
                     d[i] = gi + invariant_d[i];
-                    rhs[i] = gi*voltage[i] - current[i];
+                    // convert current to units nA
+                    rhs[i] = gi*voltage[i] - 1e-3*area[i]*current[i];
                 }
             }
             else {

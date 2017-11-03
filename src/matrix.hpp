@@ -68,8 +68,8 @@ public:
     }
 
     /// Assemble the matrix for given dt
-    void assemble(const_view dt_cell, const_view voltage, const_view current) {
-        state_.assemble(dt_cell, voltage, current);
+    void assemble(const_view dt_cell, const_view voltage, const_view current, const_view area) {
+        state_.assemble(dt_cell, voltage, current, area);
     }
 
     /// Get a view of the solution
