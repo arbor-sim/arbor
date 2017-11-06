@@ -120,7 +120,7 @@ void sample_next_poiss(cell_lid_type lid, cell_gid_type gid_base_, unsigned* n_p
 
         // First sample unif ~ Uniform(0,1) and then use it to get the Poisson distribution.
         time_type unif = r123::u01<time_type>(r.v[0]);
-        time_type t_update = -lambda_[lid] * logf(1-unif);
+        time_type t_update = -lambda_[lid] * log(1-unif);
 
         if (next_poiss_time_[lid] < 0) {
             next_poiss_time_[lid] = t_update;

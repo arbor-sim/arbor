@@ -4,11 +4,12 @@
 using namespace nest::mc;
 using RNG = r123::Threefry2x32;
 
-
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_mc::lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
 gid_base_(first_gid)
 {
+    total_spikes = 0;
+
     // reserve
     cells_.reserve(cells.size());
 
@@ -83,6 +84,9 @@ void lif_cell_group_mc::reset() {
     for (auto& queue : cell_events_) {
         queue.clear();
     }
+    next_poiss_time_.clear();
+    poiss_event_counter_.clear();
+    last_time_updated_.clear();
 }
 
 // Samples next poisson spike.
@@ -93,12 +97,12 @@ void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
     RNG::key_type k = {{}};
     k[0] = lid + gid_base_ + 1225;
     c.v[0] = poiss_event_counter_[lid];
-    poiss_event_counter_[lid]++;
+    ++poiss_event_counter_[lid];
     RNG::ctr_type r = sample_randomly(c, k);
 
     // First sample unif~Uniform(0, 1) and then use it to get the Poisson distribution
     time_type unif = r123::u01<time_type>(r.v[0]);
-    time_type t_update = -lambda_[lid] * logf(1 - unif);
+    time_type t_update = -lambda_[lid] * log(1 - unif);
 
     next_poiss_time_[lid] += t_update;
 }
@@ -128,7 +132,6 @@ util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_
 
     // t_queue < tfinal < t_poiss => return t_queue
     return cell_events_[lid].pop_if_before(tfinal);
-
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
@@ -137,16 +140,19 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     // Current time of last update.
     auto t = last_time_updated_[lid];
     auto& cell = cells_[lid];
+    int total_events = 0;
 
     // If a neuron was in the refractory period,
     // ignore any new events that happened before t,
     // including poisson events as well.
-    while (auto ev = next_event(lid, t)) {};
+    while (auto ev = next_event(lid, t)) {
+    };
 
     // Integrate until tfinal using the exact solution of membrane voltage differential equation.
     while (auto ev = next_event(lid, tfinal)) {
         auto weight = ev->weight;
         auto event_time = ev->time;
+        total_events++;
 
         // If a neuron is in refractory period, ignore this event.
         if (event_time < t) {
@@ -165,6 +171,7 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
             cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
             spike s = {spike_neuron_gid, t};
             spikes_.push_back(s);
+            total_spikes++;
 
             // Advance last_time_updated.
             t += cell.t_ref;

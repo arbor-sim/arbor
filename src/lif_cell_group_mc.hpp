@@ -10,6 +10,8 @@
 #include <util/unique_any.hpp>
 #include <vector>
 
+#include <fstream>
+
 namespace nest {
 namespace mc {
     class lif_cell_group_mc: public cell_group {
