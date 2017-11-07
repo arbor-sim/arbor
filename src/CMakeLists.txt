@@ -11,6 +11,7 @@ set(BASE_SOURCES
     profiling/meter_manager.cpp
     profiling/power_meter.cpp
     profiling/profiler.cpp
+    random_generator.cpp
     swcio.cpp
     threading/affinity.cpp
     util/debug.cpp

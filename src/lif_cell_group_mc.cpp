@@ -1,15 +1,11 @@
 #include <lif_cell_group_mc.hpp>
-#define sample_randomly threefry2x32
 
 using namespace nest::mc;
-using RNG = r123::Threefry2x32;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
 lif_cell_group_mc::lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
 gid_base_(first_gid)
 {
-    total_spikes = 0;
-
     // reserve
     cells_.reserve(cells.size());
 
@@ -93,16 +89,12 @@ void lif_cell_group_mc::reset() {
 void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
     // key = GID of the cell
     // counter = total number of Poisson events seen so far
-    RNG::ctr_type c = {{}};
-    RNG::key_type k = {{}};
-    k[0] = lid + gid_base_ + 1225;
-    c.v[0] = poiss_event_counter_[lid];
+    auto key = lid + gid_base_ + 1225;
+    auto counter = poiss_event_counter_[lid];
     ++poiss_event_counter_[lid];
-    RNG::ctr_type r = sample_randomly(c, k);
 
     // First sample unif~Uniform(0, 1) and then use it to get the Poisson distribution
-    time_type unif = r123::u01<time_type>(r.v[0]);
-    time_type t_update = -lambda_[lid] * log(1 - unif);
+    time_type t_update = random_generator::sample_poisson(lambda_[lid], counter, key);
 
     next_poiss_time_[lid] += t_update;
 }
@@ -171,7 +163,6 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
             cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
             spike s = {spike_neuron_gid, t};
             spikes_.push_back(s);
-            total_spikes++;
 
             // Advance last_time_updated.
             t += cell.t_ref;
