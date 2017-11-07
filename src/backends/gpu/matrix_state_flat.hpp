@@ -25,6 +25,7 @@ void assemble_matrix_flat(
     const fvm_value_type* voltage,
     const fvm_value_type* current,
     const fvm_value_type* cv_capacitance,
+    const fvm_value_type* cv_area,
     const fvm_size_type* cv_to_cell,
     const fvm_value_type* dt_cell,
     unsigned n);
@@ -49,8 +50,9 @@ struct matrix_state_flat {
     array u;     // [μS]
     array rhs;   // [nA]
 
-    array cv_capacitance;      // [pF]
-    array face_conductance;    // [μS]
+    array cv_capacitance;    // [pF]
+    array face_conductance;  // [μS]
+    array cv_area;           // [μm^2]
 
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -60,17 +62,20 @@ struct matrix_state_flat {
     matrix_state_flat(const std::vector<size_type>& p,
                  const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
-                 const std::vector<value_type>& face_cond):
+                 const std::vector<value_type>& face_cond,
+                 const std::vector<value_type>& area):
         parent_index(memory::make_const_view(p)),
         cell_cv_divs(memory::make_const_view(cell_cv_divs)),
         cv_to_cell(p.size()),
         d(p.size()),
         u(p.size()),
         rhs(p.size()),
-        cv_capacitance(memory::make_const_view(cv_cap))
+        cv_capacitance(memory::make_const_view(cv_cap)),
+        cv_area(memory::make_const_view(area))
     {
         EXPECTS(cv_cap.size() == size());
         EXPECTS(face_cond.size() == size());
+        EXPECTS(area.size() == size());
         EXPECTS(cell_cv_divs.back() == size());
         EXPECTS(cell_cv_divs.size() > 1u);
 
@@ -114,7 +119,8 @@ struct matrix_state_flat {
         // perform assembly on the gpu
         assemble_matrix_flat(
             d.data(), rhs.data(), invariant_d.data(), voltage.data(),
-            current.data(), cv_capacitance.data(), cv_to_cell.data(), dt_cell.data(), size());
+            current.data(), cv_capacitance.data(), cv_area.data(),
+            cv_to_cell.data(), dt_cell.data(), size());
     }
 
     void solve() {

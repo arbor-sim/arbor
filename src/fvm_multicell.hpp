@@ -844,7 +844,7 @@ void fvm_multicell<Backend>::initialize(
 
     // initalize matrix
     matrix_ = matrix_type(
-        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance);
+        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance, tmp_cv_areas);
 
     // Keep cv index list for each mechanism for ion set up below.
     std::map<std::string, std::vector<size_type>> mech_to_cv_index;
@@ -1143,7 +1143,7 @@ void fvm_multicell<Backend>::step_integration() {
 
     // solve the linear system
     PE("matrix", "setup");
-    matrix_.assemble(dt_cell_, voltage_, current_, cv_areas_);
+    matrix_.assemble(dt_cell_, voltage_, current_);
 
     PL(); PE("solve");
     matrix_.solve();

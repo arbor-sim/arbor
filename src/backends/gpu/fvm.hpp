@@ -12,7 +12,6 @@
 
 #include "kernels/take_samples.hpp"
 #include "matrix_state_interleaved.hpp"
-//#include "matrix_state_flat.hpp"
 #include "multi_event_stream.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"

@@ -25,6 +25,7 @@ public:
 
     array cv_capacitance;      // [pF]
     array face_conductance;    // [μS]
+    array cv_area;             // [μm^2]
 
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -34,12 +35,14 @@ public:
     matrix_state(const std::vector<size_type>& p,
                  const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
-                 const std::vector<value_type>& cond):
+                 const std::vector<value_type>& cond,
+                 const std::vector<value_type>& area):
         parent_index(memory::make_const_view(p)),
         cell_cv_divs(memory::make_const_view(cell_cv_divs)),
         d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(memory::make_const_view(cap)),
-        face_conductance(memory::make_const_view(cond))
+        face_conductance(memory::make_const_view(cond)),
+        cv_area(memory::make_const_view(area))
     {
         EXPECTS(cap.size() == size());
         EXPECTS(cond.size() == size());
@@ -68,8 +71,7 @@ public:
     //   dt_cell         [ms]     (per cell)
     //   voltage         [mV]     (per compartment)
     //   current density [A.m^-2] (per compartment)
-    //   area            [um^2]   (per compartment)
-    void assemble(const_view dt_cell, const_view voltage, const_view current, const_view area) {
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
         const size_type ncells = cell_cv_part.size();
 
@@ -84,7 +86,7 @@ public:
 
                     d[i] = gi + invariant_d[i];
                     // convert current to units nA
-                    rhs[i] = gi*voltage[i] - 1e-3*area[i]*current[i];
+                    rhs[i] = gi*voltage[i] - 1e-3*cv_area[i]*current[i];
                 }
             }
             else {
