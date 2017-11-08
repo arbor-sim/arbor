@@ -1087,7 +1087,10 @@ void fvm_multicell<Backend>::reset() {
     set_time_global(0);
     set_time_to_global(0);
 
-    // clear currents and recalculate reversal potentials for all ion channels
+    // Update ion species:
+    //   - clear currents
+    //   - reset concentrations to defaults
+    //   - recalculate reversal potentials
     for (auto& i: ions_) {
         i.second.reset();
     }
@@ -1095,6 +1098,12 @@ void fvm_multicell<Backend>::reset() {
     for (auto& m : mechanisms_) {
         m->set_params();
         m->nrn_init();
+    }
+
+    // Updeate reversal potential to account for changes to concentrations made
+    // by calls to nrn_init() in mechansisms.
+    for (auto& i: ions_) {
+        i.second.update_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
     }
 
     // Reset state of the threshold watcher.
@@ -1127,7 +1136,7 @@ void fvm_multicell<Backend>::step_integration() {
     for (auto& i: ions_) {
         auto& ion = i.second;
         memory::fill(ion.current(), 0.);
-        ion.update_reversal_potential(6.3+273.15);
+        ion.update_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
     }
 
     // deliver pending events and update current contributions from mechanisms

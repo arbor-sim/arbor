@@ -13,6 +13,7 @@
 #include "kernels/take_samples.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "multi_event_stream.hpp"
+#include "nernst.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 #include "time_ops.hpp"
@@ -133,6 +134,17 @@ struct backend {
         array& sample_value)
     {
         arb::gpu::take_samples(s, time.data(), sample_time.data(), sample_value.data());
+    }
+
+    // Calculate the reversal potential eX (mV) using Nernst equation
+    // eX = RT/zF * ln(Xo/Xi)
+    //      R: universal gas constant 8.3144598 J.K-1.mol-1
+    //      T: temperature in Kelvin
+    //      z: valency of species (K, Na: +1) (Ca: +2)
+    //      F: Faraday's constant 96485.33289 C.mol-1
+    //      Xo/Xi: ratio of out/in concentrations
+    static void nernst(int valency, value_type temperature, const_view Xo, const_view Xi, view eX) {
+        arb::gpu::nernst(eX.size(), valency, temperature, Xo.data(), Xi.data(), eX.data());
     }
 
 private:
