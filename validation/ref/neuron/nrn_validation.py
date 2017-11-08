@@ -129,6 +129,17 @@ class VModel:
         soma.gl_hh = p['gl_hh']
         soma.el_hh = p['el_hh']
 
+        # Use the following exact values calcualted using
+        # the Nernst equation, because NEURON does not use correct values
+        # for R and F.
+        soma.ena =  63.55148117386
+        soma.ek  = -74.17164678272
+
+        # This is how we would get NEURON to use Nernst equation, when they
+        # correct the Nernst equation implementation.
+        #h.ion_style('k_ion', 3, 2, 1, 1, 1)
+        #h.ion_style('na_ion', 3, 2, 1, 1, 1)
+
         self.soma = soma
 
     def add_dendrite(self, name, geom, to=None, **kw):
