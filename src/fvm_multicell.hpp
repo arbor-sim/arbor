@@ -1053,10 +1053,6 @@ void fvm_multicell<Backend>::initialize(
         }
     }
 
-    // FIXME: Hard code ion channel concentrations
-    //        Neuron's defaults are defined in the file
-    //          nrn/src/nrnoc/membdef.h
-    //
     // Note: NEURON defined default values for reversal potential as follows,
     //       with units mV:
     //
@@ -1068,25 +1064,16 @@ void fvm_multicell<Backend>::initialize(
     // Whereas we use the Nernst equation to calculate reversal potentials at
     // the start of each time step.
 
-    // DEF_vrest = -65.0
-    // ena = 115.0 + DEF_vrest
-    // ek  = -12.0 + DEF_vrest
-    // eca =  12.5 * log(2.0/5e-5)
-
-    const auto DEF_vrest = -65.0;
-    memory::fill(ion_na().internal_concentration(),  10.0);         // mM
-    memory::fill(ion_na().external_concentration(), 140.0);         // mM
-    memory::fill(ion_na().reversal_potential(), 115+DEF_vrest);     // mV
+    ion_na().set_default_internal_concentration( 10);
+    ion_na().set_default_external_concentration(140);
     ion_na().set_valency(1);
 
-    memory::fill(ion_k().internal_concentration(),  54.4);          // mM
-    memory::fill(ion_k().external_concentration(),  2.5);           // mM
-    memory::fill(ion_k().reversal_potential(), -12+DEF_vrest);      // mV
+    ion_k().set_default_internal_concentration(54.4);
+    ion_k().set_default_external_concentration( 2.5);
     ion_k().set_valency(1);
 
-    memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
-    memory::fill(ion_ca().external_concentration(), 2.0);           // mM
-    memory::fill(ion_ca().reversal_potential(), 12.5*std::log(2.0/5e-5)); // mV
+    ion_ca().set_default_internal_concentration(5e-5);
+    ion_ca().set_default_external_concentration( 2.0);
     ion_ca().set_valency(2);
 
     // initialize mechanism and voltage state
@@ -1102,10 +1089,7 @@ void fvm_multicell<Backend>::reset() {
 
     // clear currents and recalculate reversal potentials for all ion channels
     for (auto& i: ions_) {
-        auto& ion = i.second;
-        memory::fill(ion.current(), 0.);
-        ion.update_reversal_potential(6.3+273.15);
-        // TODO: update concentrations?
+        i.second.reset();
     }
 
     for (auto& m : mechanisms_) {
@@ -1143,7 +1127,7 @@ void fvm_multicell<Backend>::step_integration() {
     for (auto& i: ions_) {
         auto& ion = i.second;
         memory::fill(ion.current(), 0.);
-        //ion.update_reversal_potential(6.3+273.15);
+        ion.update_reversal_potential(6.3+273.15);
     }
 
     // deliver pending events and update current contributions from mechanisms

@@ -63,7 +63,9 @@ public :
         eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-        valency_(0)
+        valency_(0),
+        Xi_default_(0),
+        Xo_default_(0)
     {}
 
     std::size_t memory() const {
@@ -75,22 +77,39 @@ public :
     void set_valency(int v) {
         valency_ = v;
     }
-
     int valency() const {
         return valency_;
+    }
+
+    void set_default_internal_concentration(value_type c) {
+        EXPECTS(c>=value_type(0));
+        Xi_default_ = c;
+    }
+    void set_default_external_concentration(value_type c) {
+        EXPECTS(c>=value_type(0));
+        Xo_default_ = c;
     }
 
     view current() {
         return iX_;
     }
+
     view reversal_potential() {
         return eX_;
     }
+
     view internal_concentration() {
         return Xi_;
     }
+
     view external_concentration() {
         return Xo_;
+    }
+
+    void reset() {
+        memory::fill(iX_, 0);
+        memory::fill(Xi_, Xi_default_);
+        memory::fill(Xo_, Xo_default_);
     }
 
     /// Calculate the reversal potential for all compartments using Nernst equation
@@ -110,11 +129,13 @@ public :
 private :
 
     iarray node_index_;
-    array iX_;
-    array eX_;
-    array Xi_;
-    array Xo_;
-    int valency_;
+    array iX_;  // (nA) current
+    array eX_;  // (mV) reversal potential
+    array Xi_;  // (mM) internal concentration
+    array Xo_;  // (mM) external concentration
+    int valency_;           // valency of ionic species
+    value_type Xi_default_; // (mM) default internal concentration
+    value_type Xo_default_; // (mM) default external concentration
 };
 
 } // namespace arb
