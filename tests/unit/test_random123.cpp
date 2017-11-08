@@ -40,3 +40,4 @@ TEST(random_generator, serial) {
         }
     }
 }
+

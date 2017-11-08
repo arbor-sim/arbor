@@ -6,6 +6,8 @@ using namespace nest::mc;
 lif_cell_group_mc::lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
 gid_base_(first_gid)
 {
+    output_file = std::ofstream("poisson" + std::to_string(first_gid) + ".txt");
+
     // reserve
     cells_.reserve(cells.size());
 
@@ -20,13 +22,12 @@ gid_base_(first_gid)
     for (auto lid : util::make_span(0, cells.size())) {
         cells_.push_back(util::any_cast<lif_cell_description>(cells[lid]));
 
-        EXPECTS(cells_[lid].n_poiss >= 0);
-        EXPECTS(cells_[lid].w_poiss >= 0);
-        EXPECTS(cells_[lid].d_poiss >= 0);
-        EXPECTS(cells_[lid].rate >= 0);
-
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
+            EXPECTS(cells_[lid].n_poiss >= 0);
+            EXPECTS(cells_[lid].w_poiss >= 0);
+            EXPECTS(cells_[lid].d_poiss >= 0);
+            EXPECTS(cells_[lid].rate >= 0);
             auto rate = cells_[lid].rate * cells_[lid].n_poiss;
             lambda_[lid] = 1.0 / rate;
             sample_next_poisson(lid);
@@ -48,9 +49,29 @@ void lif_cell_group_mc::advance(time_type tfinal, time_type dt) {
 }
 
 void lif_cell_group_mc::enqueue_events(const std::vector<postsynaptic_spike_event>& events) {
+    if (events.size() == 0) {
+        return;
+    }
+
+    // sort the events first according to their time and then according to their weight.
+    std::vector<postsynaptic_spike_event> sorted_events;
+    for (unsigned i = 0; i < events.size(); ++i) {
+        sorted_events.push_back(events[i]);
+    }
+
+    std::sort(sorted_events.begin(), sorted_events.end(),
+        [] (const postsynaptic_spike_event& a, const postsynaptic_spike_event& b) { 
+            if (a.time != b.time) {
+                return a.time < b.time;
+            }
+            return a.weight < b.weight;
+        }
+    );
+
     // Distribute incoming events to individual cells.
-    for (auto& e: events) {
-        cell_events_[e.target.gid - gid_base_].push(e);
+    for (auto& e: sorted_events) {
+        cell_events_[e.target.gid - gid_base_].push_back(e);
+        // cell_events_[e.target.gid - gid_base_].push(e);
     }
 }
 
@@ -89,7 +110,7 @@ void lif_cell_group_mc::reset() {
 void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
     // key = GID of the cell
     // counter = total number of Poisson events seen so far
-    auto key = lid + gid_base_ + 1225;
+    auto key = gid_base_ + lid + 1225;
     auto counter = poiss_event_counter_[lid];
     ++poiss_event_counter_[lid];
 
@@ -110,20 +131,31 @@ util::optional<time_type> lif_cell_group_mc::next_poisson_event(cell_gid_type li
     return util::nothing;
 }
 
+util::optional<postsynaptic_spike_event> pop_if_before(std::vector<postsynaptic_spike_event>& events, time_type tfinal) {
+    if (events.size() == 0 || events[0].time >= tfinal) {
+        return util::nothing;
+    }
+    auto ev = events[0];
+    events.erase(events.begin());
+    return ev;
+}
+
 // Returns the next most recent event that is yet to be processed.
 // It can be either Poisson event or the queue event.
 // Only events that happened before tfinal are considered.
 util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_type lid, time_type tfinal) {
     if (auto t_poiss = next_poisson_event(lid, tfinal)) {
-        if (auto ev = cell_events_[lid].pop_if_before(std::min(tfinal, t_poiss.get()))) {
+        // if (auto ev = cell_events_[lid].pop_if_before(std::min(tfinal, t_poiss.get()))) {
+        if (auto ev = pop_if_before(cell_events_[lid], tfinal)) {
             return ev;
         }
         sample_next_poisson(lid);
-        return postsynaptic_spike_event{{cell_lid_type(gid_base_ + lid), 0}, t_poiss.get(), cells_[lid].w_poiss};
+        return postsynaptic_spike_event{{cell_gid_type(gid_base_ + lid), 0}, t_poiss.get(), cells_[lid].w_poiss};
     }
 
     // t_queue < tfinal < t_poiss => return t_queue
-    return cell_events_[lid].pop_if_before(tfinal);
+    // return cell_events_[lid].pop_if_before(tfinal);
+    return pop_if_before(cell_events_[lid], tfinal);
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
@@ -132,7 +164,6 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     // Current time of last update.
     auto t = last_time_updated_[lid];
     auto& cell = cells_[lid];
-    int total_events = 0;
 
     // If a neuron was in the refractory period,
     // ignore any new events that happened before t,
@@ -144,7 +175,6 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     while (auto ev = next_event(lid, tfinal)) {
         auto weight = ev->weight;
         auto event_time = ev->time;
-        total_events++;
 
         // If a neuron is in refractory period, ignore this event.
         if (event_time < t) {
@@ -152,11 +182,15 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
         }
 
         // Let the membrane potential decay.
-        cell.V_m *= exp(-(event_time - t) / cell.tau_m);
+        auto decay = exp(-(event_time - t) / cell.tau_m);
+        cell.V_m *= decay;
+        auto update = weight / cell.C_m;
         // Add jump due to spike.
-        cell.V_m += weight/cell.C_m;
-
+        cell.V_m += update;
         t = event_time;
+        if ( gid_base_ + lid == 0) {
+            output_file << event_time << " " << cell.V_m << std::endl;
+        }
 
         // If crossing threshold occurred
         if (cell.V_m >= cell.V_th) {

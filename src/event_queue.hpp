@@ -34,6 +34,7 @@ struct sample_event {
 
     size_type sampler_index;
     time_type time;
+    float weight;
 };
 
 // Configuration point: define `event_time(ev)` for event objects `ev`

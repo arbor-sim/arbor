@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <threading/timer.hpp>
 #include <cell_group.hpp>
 #include <event_queue.hpp>
@@ -67,7 +68,8 @@ namespace mc {
         std::vector<spike> spikes_;
 
         // Pending events per cell.
-        std::vector<event_queue<postsynaptic_spike_event> > cell_events_;
+        // std::vector<event_queue<postsynaptic_spike_event> > cell_events_;
+        std::vector<std::vector<postsynaptic_spike_event> > cell_events_;
 
         // Time when the cell was last updated.
         std::vector<time_type> last_time_updated_;
@@ -83,6 +85,8 @@ namespace mc {
         // Counts poisson events. 
         // Used as an argument to random123 (since partially describes a state)
         std::vector<unsigned> poiss_event_counter_;
+
+        std::ofstream output_file;
     };
 } // namespace mc
 } // namespace nest

@@ -80,11 +80,7 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        if (gid < ncells_exc_ + ncells_inh_) {
-            return cell_kind::lif_neuron;
-        }
-
-        return cell_kind::poisson_spike_source;
+        return cell_kind::lif_neuron;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
