@@ -316,22 +316,20 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     }
     buffer().add_line();
 
-    // copy in the weights if this is a density mechanism
-    if (m.kind() == moduleKind::density) {
-        buffer().add_line("// add the user-supplied weights for converting from current density");
-        buffer().add_line("// to per-compartment current in nA");
-        buffer().add_line("if (weights.size()) {");
-        buffer().increase_indentation();
-        buffer().add_line("memory::copy(weights, weights_(0, size()));");
-        buffer().decrease_indentation();
-        buffer().add_line("}");
-        buffer().add_line("else {");
-        buffer().increase_indentation();
-        buffer().add_line("memory::fill(weights_, 1.0);");
-        buffer().decrease_indentation();
-        buffer().add_line("}");
-        buffer().add_line();
-    }
+    // copy in the weights
+    buffer().add_line("// add the user-supplied weights for converting from current density");
+    buffer().add_line("// to per-compartment current in nA");
+    buffer().add_line("if (weights.size()) {");
+    buffer().increase_indentation();
+    buffer().add_line("memory::copy(weights, weights_(0, size()));");
+    buffer().decrease_indentation();
+    buffer().add_line("}");
+    buffer().add_line("else {");
+    buffer().increase_indentation();
+    buffer().add_line("memory::fill(weights_, 1.0);");
+    buffer().decrease_indentation();
+    buffer().add_line("}");
+    buffer().add_line();
 
     buffer().decrease_indentation();
     buffer().add_line("}");
@@ -390,15 +388,13 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("}");
     buffer().add_line();
 
-    // Override `set_weights` method only for density mechanisms.
-    if (module_->kind() == moduleKind::density) {
-        buffer().add_line("void set_weights(array&& weights) override {");
-        buffer().increase_indentation();
-        buffer().add_line("memory::copy(weights, weights_(0, size()));");
-        buffer().decrease_indentation();
-        buffer().add_line("}");
-        buffer().add_line();
-    }
+    // Implement mechanism::set_weights method
+    buffer().add_line("void set_weights(array&& weights) override {");
+    buffer().increase_indentation();
+    buffer().add_line("memory::copy(weights, weights_(0, size()));");
+    buffer().decrease_indentation();
+    buffer().add_line("}");
+    buffer().add_line();
 
     //////////////////////////////////////////////
     //  print ion channel interface

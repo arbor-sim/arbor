@@ -118,7 +118,7 @@ The properly scaled RHS is
 \end{equation}
 
 \subsection{Putting It Together}
-Hey ho, let's go: from \eq{eq:linsys_LHS_scaled} and \eq{eq:linsys_RHS_scaled} the full scaled linear system is
+From \eq{eq:linsys_LHS_scaled} and \eq{eq:linsys_RHS_scaled} the full scaled linear system is
 \begin{align}
     &
     \left[
@@ -127,8 +127,9 @@ Hey ho, let's go: from \eq{eq:linsys_LHS_scaled} and \eq{eq:linsys_RHS_scaled} t
     V_i^{k+1} - \sum_{j\in\mathcal{N}_i} { 10^5\cdot\alpha_{ij} V_j^{k+1}} \nonumber \\
        & =
     \frac{\sigma_i \cmi}{\Delta t} V_i^k -
-        (10\cdot\sigma_i \bar{i}_m + 10^3(I_m - I_e)).
+        (10\cdot\sigma_i \bar{i}_m + 10^3(I_m - I_e)),
 \end{align}
+where the units on both sides have been scaled from $pA$ to $nA$, i.e. by a factor of $10^3$.
 This can be expressed more generally in terms of weights
 \begin{align}
     &

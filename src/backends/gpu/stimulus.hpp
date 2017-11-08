@@ -74,6 +74,11 @@ public:
         delay = memory::on_gpu(del);
     }
 
+    void set_weights(array&& w) override {
+        EXPECTS(size()==w.size());
+        weights = w;
+    }
+
     void nrn_current() override {
         if (amplitude.size() != size()) {
             throw std::domain_error("stimulus called with mismatched parameter size\n");
@@ -82,7 +87,7 @@ public:
         // don't launch a kernel if there are no stimuli
         if (!size()) return;
 
-        stim_current(delay.data(), duration.data(), amplitude.data(),
+        stim_current(delay.data(), duration.data(), amplitude.data(), weights.data(),
                      node_index_.data(), size(), vec_ci_.data(), vec_t_.data(),
                      vec_i_.data());
 
@@ -91,6 +96,7 @@ public:
     array amplitude;
     array duration;
     array delay;
+    array weights;
 
     using base::vec_ci_;
     using base::vec_t_;

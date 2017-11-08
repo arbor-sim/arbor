@@ -215,7 +215,7 @@ public:
     view       voltage()       { return voltage_; }
     const_view voltage() const { return voltage_; }
 
-    /// return the current in each CV
+    /// return the current density in each CV: A.m^-2
     view       current()       { return current_; }
     const_view current() const { return current_; }
 
@@ -369,8 +369,8 @@ private:
         cached_time_valid_ = true;
     }
 
-    /// the transmembrane current over the surface of each CV [nA]
-    ///     I = area*i_m - I_e
+    /// the transmembrane current density over the surface of each CV [A.m^-2]
+    ///     I = i_m - I_e/area
     array current_;
 
     /// the potential in each CV [mV]
@@ -779,12 +779,14 @@ void fvm_multicell<Backend>::initialize(
         std::vector<value_type> stim_durations;
         std::vector<value_type> stim_delays;
         std::vector<value_type> stim_amplitudes;
+        std::vector<value_type> stim_weights;
         for (const auto& stim: c.stimuli()) {
             auto idx = comp_ival.first+find_cv_index(stim.location, graph);
             stim_index.push_back(idx);
             stim_durations.push_back(stim.clamp.duration());
             stim_delays.push_back(stim.clamp.delay());
             stim_amplitudes.push_back(stim.clamp.amplitude());
+            stim_weights.push_back(1e3/tmp_cv_areas[idx]);
         }
 
         // step 2: create the stimulus mechanism and initialize the stimulus
@@ -799,6 +801,7 @@ void fvm_multicell<Backend>::initialize(
                 cv_to_cell_, time_, time_to_, dt_comp_,
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
+            stim->set_weights(memory::make_const_view(stim_weights));
             mechanisms_.push_back(mechanism_ptr(stim));
         }
 
@@ -841,7 +844,7 @@ void fvm_multicell<Backend>::initialize(
 
     // initalize matrix
     matrix_ = matrix_type(
-        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance);
+        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance, tmp_cv_areas);
 
     // Keep cv index list for each mechanism for ion set up below.
     std::map<std::string, std::vector<size_type>> mech_to_cv_index;
@@ -955,12 +958,11 @@ void fvm_multicell<Backend>::initialize(
             memory::copy(entry.second.values, entry.second.data);
         }
 
-        // Scale the weights to get correct units (see w_i^d in formulation docs)
-        // The units for the density channel weights are [10^2 μm^2 = 10^-10 m^2],
-        // which requires that we scale the areas [μm^2] by 10^-2
-
-        for (auto& w: mech_weight) {
-            w *= 1e-2;
+        // Scale the weights by the CV area to get the proportion of the CV surface
+        // on which the mechanism is present. After scaling, the current will have
+        // units A.m^-2.
+        for (auto i: make_span(0, mech_weight.size())) {
+            mech_weight[i] *= 10/tmp_cv_areas[mech_cv[i]];
         }
         mech.set_weights(memory::make_const_view(mech_weight));
     }
@@ -985,22 +987,28 @@ void fvm_multicell<Backend>::initialize(
         util::sort_by(p, cv_of);
 
         std::vector<cell_lid_type> mech_cv;
+        std::vector<value_type> mech_weight;
         mech_cv.reserve(n_instance);
+        mech_weight.reserve(n_instance);
 
-        // Build mechanism cv index vector and targets.
+        // Build mechanism cv index vector, weights and targets.
         for (auto i: make_span(0u, n_instance)) {
             const auto& syn = syn_data[p[i]];
             mech_cv.push_back(syn.cv);
+            // The weight for each synapses is 1/cv_area, scaled by 100 to match the units
+            // of 10.A.m^-2 used to store current densities in current_.
+            mech_weight.push_back(1e3/tmp_cv_areas[syn.cv]);
             target_handles[syn.target] = target_handle(mech_id, i, cv_to_cell_tmp[syn.cv]);
         }
 
         auto& mech = make_mechanism(mech_name, special_mechs, mech_cv);
+        mech.set_weights(memory::make_const_view(mech_weight));
 
         // Save the indices for ion set up below.
         mech_to_cv_index[mech_name] = mech_cv;
 
         // Update the mechanism parameters.
-        std::map<std::string, std::vector<std::pair<cell_lid_type, fvm_value_type>>> param_assigns;
+        std::map<std::string, std::vector<std::pair<cell_lid_type, value_type>>> param_assigns;
         for (auto i: make_span(0u, n_instance)) {
             for (const auto& pv: syn_data[p[i]].param_map) {
                 param_assigns[pv.first].push_back({i, pv.second});
@@ -1045,24 +1053,41 @@ void fvm_multicell<Backend>::initialize(
         }
     }
 
-    // FIXME: Hard code parameters for now.
-    //        Take defaults for reversal potential of sodium and potassium from
-    //        the default values in Neuron.
+    // FIXME: Hard code ion channel concentrations
     //        Neuron's defaults are defined in the file
     //          nrn/src/nrnoc/membdef.h
-    constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
+    //
+    // Note: NEURON defined default values for reversal potential as follows,
+    //       with units mV:
+    //
+    // const auto DEF_vrest = -65.0
+    // ena = 115.0 + DEF_vrest
+    // ek  = -12.0 + DEF_vrest
+    // eca = 12.5*std::log(2.0/5e-5)
+    //
+    // Whereas we use the Nernst equation to calculate reversal potentials at
+    // the start of each time step.
 
-    memory::fill(ion_na().reversal_potential(),     115+DEF_vrest); // mV
+    // DEF_vrest = -65.0
+    // ena = 115.0 + DEF_vrest
+    // ek  = -12.0 + DEF_vrest
+    // eca =  12.5 * log(2.0/5e-5)
+
+    const auto DEF_vrest = -65.0;
     memory::fill(ion_na().internal_concentration(),  10.0);         // mM
     memory::fill(ion_na().external_concentration(), 140.0);         // mM
+    memory::fill(ion_na().reversal_potential(), 115+DEF_vrest);     // mV
+    ion_na().set_valency(1);
 
-    memory::fill(ion_k().reversal_potential(),     -12.0+DEF_vrest);// mV
     memory::fill(ion_k().internal_concentration(),  54.4);          // mM
     memory::fill(ion_k().external_concentration(),  2.5);           // mM
+    memory::fill(ion_k().reversal_potential(), -12+DEF_vrest);      // mV
+    ion_k().set_valency(1);
 
-    memory::fill(ion_ca().reversal_potential(),     12.5*std::log(2.0/5e-5));// mV
     memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
     memory::fill(ion_ca().external_concentration(), 2.0);           // mM
+    memory::fill(ion_ca().reversal_potential(), 12.5*std::log(2.0/5e-5)); // mV
+    ion_ca().set_valency(2);
 
     // initialize mechanism and voltage state
     reset();
@@ -1075,9 +1100,15 @@ void fvm_multicell<Backend>::reset() {
     set_time_global(0);
     set_time_to_global(0);
 
+    // clear currents and recalculate reversal potentials for all ion channels
+    for (auto& i: ions_) {
+        auto& ion = i.second;
+        memory::fill(ion.current(), 0.);
+        ion.update_reversal_potential(6.3+273.15);
+        // TODO: update concentrations?
+    }
+
     for (auto& m : mechanisms_) {
-        // TODO : the parameters have to be set before the nrn_init
-        // for now use a dummy value of dt.
         m->set_params();
         m->nrn_init();
     }
@@ -1102,11 +1133,18 @@ template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(!integration_complete());
 
+    // mark pending events for delivery
+    events_.mark_until_after(time_);
+
     PE("current");
     memory::fill(current_, 0.);
 
-    // mark pending events for delivery
-    events_.mark_until_after(time_);
+    // clear currents and recalculate reversal potentials for all ion channels
+    for (auto& i: ions_) {
+        auto& ion = i.second;
+        memory::fill(ion.current(), 0.);
+        //ion.update_reversal_potential(6.3+273.15);
+    }
 
     // deliver pending events and update current contributions from mechanisms
     for (auto& m: mechanisms_) {

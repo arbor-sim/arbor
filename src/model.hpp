@@ -47,8 +47,7 @@ public:
 
     // access cell_group directly
     // TODO: deprecate. Currently used in some validation tests to inject
-    // events directly into a cell group. This should be done with a spiking
-    // neuron.
+    // events directly into a cell group.
     cell_group& group(int i);
 
     // register a callback that will perform a export of the global

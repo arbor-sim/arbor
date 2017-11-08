@@ -21,6 +21,7 @@ void assemble_matrix_flat(
         const T* voltage,
         const T* current,
         const T* cv_capacitance,
+        const T* area,
         const I* cv_to_cell,
         const T* dt_cell,
         unsigned n)
@@ -43,7 +44,7 @@ void assemble_matrix_flat(
 
             auto gi = factor * cv_capacitance[tid];
             d[tid] = gi + invariant_d[tid];
-            rhs[tid] = gi*voltage[tid] - current[tid];
+            rhs[tid] = gi*voltage[tid] - T(1e-3)*area[tid]*current[tid];
         }
         else {
             d[tid] = 0;
@@ -67,6 +68,7 @@ void assemble_matrix_interleaved(
         const T* voltage,
         const T* current,
         const T* cv_capacitance,
+        const T* area,
         const I* sizes,
         const I* starts,
         const I* matrix_to_cell,
@@ -126,7 +128,7 @@ void assemble_matrix_interleaved(
 
             if (dt>0) {
                 d[store_pos]   = (gi + invariant_d[store_pos]);
-                rhs[store_pos] = (gi*buffer_v[blk_pos] - buffer_i[blk_pos]);
+                rhs[store_pos] = (gi*buffer_v[blk_pos] - T(1e-3)*area[store_pos]*buffer_i[blk_pos]);
             }
             else {
                 d[store_pos]   = 0;
@@ -150,6 +152,7 @@ void assemble_matrix_flat(
         const fvm_value_type* voltage,
         const fvm_value_type* current,
         const fvm_value_type* cv_capacitance,
+        const fvm_value_type* area,
         const fvm_size_type* cv_to_cell,
         const fvm_value_type* dt_cell,
         unsigned n)
@@ -160,7 +163,8 @@ void assemble_matrix_flat(
     kernels::assemble_matrix_flat
         <fvm_value_type, fvm_size_type>
         <<<grid_dim, block_dim>>>
-        (d, rhs, invariant_d, voltage, current, cv_capacitance, cv_to_cell, dt_cell, n);
+        (d, rhs, invariant_d, voltage, current, cv_capacitance,
+         area, cv_to_cell, dt_cell, n);
 }
 
 //template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth, unsigned Threads>
@@ -171,6 +175,7 @@ void assemble_matrix_interleaved(
     const fvm_value_type* voltage,
     const fvm_value_type* current,
     const fvm_value_type* cv_capacitance,
+    const fvm_value_type* area,
     const fvm_size_type* sizes,
     const fvm_size_type* starts,
     const fvm_size_type* matrix_to_cell,
@@ -187,7 +192,7 @@ void assemble_matrix_interleaved(
     kernels::assemble_matrix_interleaved
         <fvm_value_type, fvm_size_type, bd, lw, block_dim>
         <<<grid_dim, block_dim>>>
-        (d, rhs, invariant_d, voltage, current, cv_capacitance,
+        (d, rhs, invariant_d, voltage, current, cv_capacitance, area,
          sizes, starts, matrix_to_cell,
          dt_cell, padded_size, num_mtx);
 }

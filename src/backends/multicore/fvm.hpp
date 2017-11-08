@@ -148,6 +148,21 @@ struct backend {
         }
     }
 
+    // Calculate the reversal potential eX (mV) using Nernst equation
+    // eX = RT/zF * ln(Xo/Xi)
+    //      R: universal gas constant 8.3144598 J.K-1.mol-1
+    //      T: temperature in Kelvin
+    //      z: valency of species (K, Na: +1) (Ca: +2)
+    //      F: Faraday's constant 96485.33289 C.mol-1
+    //      Xo/Xi: ratio of out/in concentrations
+    static void nernst(int valency, value_type temperature, const_view Xo, const_view Xi, view eX) {
+        constexpr value_type RF = 1e3*8.3144598/96485.33289; // factor 1e3 to scale from V -> mV
+        value_type factor = RF*temperature/valency;
+        for (std::size_t i=0; i<Xi.size(); ++i) {
+            eX[i] = factor*std::log(Xo[i]/Xi[i]);
+        }
+    }
+
 private:
     using maker_type = mechanism_ptr (*)(value_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
