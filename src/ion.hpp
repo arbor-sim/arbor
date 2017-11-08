@@ -62,13 +62,22 @@ public :
         iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-        Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
+        Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
+        valency_(0)
     {}
 
     std::size_t memory() const {
         return 4u*size() * sizeof(value_type)
                +  size() * sizeof(iarray)
                +  sizeof(ion);
+    }
+
+    void set_valency(int v) {
+        valency_ = v;
+    }
+
+    int valency() const {
+        return valency_;
     }
 
     view current() {
@@ -82,6 +91,12 @@ public :
     }
     view external_concentration() {
         return Xo_;
+    }
+
+    /// Calculate the reversal potential for all compartments using Nernst equation
+    /// temperature is in degrees Kelvin
+    void update_reversal_potential(value_type temperature) {
+        backend::nernst(valency_, temperature, Xo_, Xi_, eX_);
     }
 
     const_iview node_index() const {
@@ -99,6 +114,7 @@ private :
     array eX_;
     array Xi_;
     array Xo_;
+    int valency_;
 };
 
 } // namespace arb
