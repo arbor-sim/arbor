@@ -40,6 +40,9 @@ public:
     mc_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
         gids_(std::move(gids))
     {
+        // Default to no binning of events
+        set_binning_policy(binning_kind::none, 0);
+
         // Build lookup table for gid to local index.
         for (auto i: util::make_span(0, gids_.size())) {
             gid_index_map_[gids_[i]] = i;
