@@ -1,4 +1,6 @@
 #include "miniapp.hpp"
+#include <time.h>
+
 using namespace nest::mc;
 
 using global_policy = communication::global_policy;
@@ -15,6 +17,11 @@ void report_compartment_stats(const recipe&);
 
 
 int main(int argc, char** argv) {
+    time_t startTime;
+    time_t endTime;
+    time_t useTime;
+
+    startTime=time(NULL);
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
 
     try {
@@ -133,6 +140,9 @@ int main(int argc, char** argv) {
         }
 
         util::save_to_file(meters, "meters.json");
+        endTime = time(NULL);
+        useTime = endTime - startTime;
+        std::cout << "Use time: " << useTime << std::endl;
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
