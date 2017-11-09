@@ -1,3 +1,7 @@
+// <<<<<<< python
+// #include "miniapp.hpp"
+// #include <time.h>
+// =======
 #include <cmath>
 #include <exception>
 #include <iostream>
@@ -31,6 +35,7 @@
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
 #include "trace.hpp"
+// >>>>>>> master
 
 using namespace arb;
 
@@ -46,9 +51,20 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribut
 sample_trace make_trace(const probe_info& probe);
 
 void report_compartment_stats(const recipe&);
+//static size_t global_get_num_threads();
+
 
 int main(int argc, char** argv) {
+// <<<<<<< python
+//     time_t startTime;
+//     time_t endTime;
+//     time_t useTime;
+
+//     startTime=time(NULL);
+//     nest::mc::communication::global_policy_guard global_guard(argc, argv);
+// =======
     communication::global_policy_guard global_guard(argc, argv);
+// >>>>>>> master
 
     try {
         util::meter_manager meters;
@@ -169,6 +185,12 @@ int main(int argc, char** argv) {
             write_trace(trace, options.trace_prefix);
         }
 
+// <<<<<<< python
+//         util::save_to_file(meters, "meters.json");
+//         endTime = time(NULL);
+//         useTime = endTime - startTime;
+//         std::cout << "Use time: " << useTime << std::endl;
+// =======
         auto report = util::make_meter_report(meters);
         std::cout << report;
         if (global_policy::id()==0) {
@@ -177,6 +199,7 @@ int main(int argc, char** argv) {
             fid.open("meters.json");
             fid << std::setw(1) << util::to_json(report) << "\n";
         }
+// >>>>>>> master
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
@@ -190,6 +213,7 @@ int main(int argc, char** argv) {
     }
     return 0;
 }
+
 
 void banner(hw::node_info nd) {
     std::cout << "==========================================\n";

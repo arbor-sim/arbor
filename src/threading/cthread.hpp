@@ -9,3 +9,5 @@
 
 // and sorts use cthread_parallel_stable_sort
 #include "cthread_sort.hpp"
+
+static size_t global_get_num_threads();
