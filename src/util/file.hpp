@@ -3,8 +3,7 @@
 #include <string>
 #include <fstream>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 inline bool file_exists(const std::string& file_path) {
@@ -13,5 +12,4 @@ inline bool file_exists(const std::string& file_path) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

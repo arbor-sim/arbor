@@ -96,7 +96,7 @@ void IdentifierExpression::semantic(scope_ptr scp) {
     // indexed variable is used in this procedure. In which case, we create
     // a local variable which refers to the indexed variable, which will be
     // found for any subsequent variable lookup inside the procedure
-    if(auto sym = s->is_indexed_variable()) {
+    if(auto sym = s->is_abstract_indexed_variable()) {
         auto var = new LocalVariable(location_, spelling_);
         var->external_variable(sym);
         s = scope_->add_local_symbol(spelling_, scope_type::symbol_ptr{var});
@@ -260,6 +260,15 @@ std::string IndexedVariable::to_string() const {
         blue("indexed") + " " + yellow(name()) + "->" + yellow(index_name()) + "("
         + (is_write() ? " write-only" : " read-only")
         + ", ion" + (ion_channel()==ionKind::none ? red(ch) : green(ch)) + ") ";
+}
+
+/*******************************************************************************
+  CellIndexedVariable
+*******************************************************************************/
+
+std::string CellIndexedVariable::to_string() const {
+    auto ch = ::to_string(ion_channel());
+    return blue("cellindexed") + " " + yellow(name()) + "->" + yellow(index_name());
 }
 
 /*******************************************************************************
@@ -867,6 +876,9 @@ void VariableExpression::accept(Visitor *v) {
     v->visit(this);
 }
 void IndexedVariable::accept(Visitor *v) {
+    v->visit(this);
+}
+void CellIndexedVariable::accept(Visitor *v) {
     v->visit(this);
 }
 void NumberExpression::accept(Visitor *v) {

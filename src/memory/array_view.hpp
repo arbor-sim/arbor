@@ -10,8 +10,7 @@
 #include "range_limits.hpp"
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory{
 
 // forward declarations
@@ -498,6 +497,5 @@ protected :
 using impl::is_array_view;
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

@@ -5,13 +5,12 @@
 
 #include <memory/memory.hpp>
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 //
@@ -96,7 +95,7 @@ namespace util {
         return is_on_host<typename std::decay<T>::type>::value;
     }
 
-    #ifdef NMC_HAVE_GPU
+    #ifdef ARB_HAVE_GPU
     template <typename T>
     struct is_on_gpu : std::false_type {};
 
@@ -132,7 +131,7 @@ auto on_host(const C& c) -> decltype(make_const_view(c)) {
     return make_const_view(c);
 }
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 template <
     typename C,
     typename = typename std::enable_if<util::is_on_gpu_v<C>()>::type
@@ -162,5 +161,4 @@ auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
 #endif
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

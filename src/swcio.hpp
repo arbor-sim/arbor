@@ -13,8 +13,7 @@
 #include <point.hpp>
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace io {
 
 class swc_record {
@@ -72,12 +71,12 @@ public:
         return 2*r;
     }
 
-    nest::mc::point<coord_type> coord() const {
-        return nest::mc::point<coord_type>(x, y, z);
+    arb::point<coord_type> coord() const {
+        return arb::point<coord_type>(x, y, z);
     }
 
-    nest::mc::section_point as_section_point() const {
-        return nest::mc::section_point{x, y, z, r};
+    arb::section_point as_section_point() const {
+        return arb::section_point{x, y, z, r};
     }
 
     // validity checks
@@ -234,11 +233,10 @@ void swc_canonicalize_sequence(RandomAccessSequence& swc_records) {
         parent_list.push_back(swc_records[i].parent_id);
     }
 
-    if (!nest::mc::algorithms::has_contiguous_compartments(parent_list)) {
+    if (!arb::algorithms::has_contiguous_compartments(parent_list)) {
         throw swc_error("branches are not contiguously numbered", 0);
     }
 }
 
 } // namespace io
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <string>
+#include <unordered_set>
 
 #include "cprinter.hpp"
 #include "lexer.hpp"
@@ -18,6 +20,7 @@ std::string CPrinter::emit_source() {
     // and a list of all scalar types
     std::vector<VariableExpression*> scalar_variables;
     std::vector<VariableExpression*> array_variables;
+
     for(auto& sym: module_->symbols()) {
         if(auto var = sym.second->is_variable()) {
             if(var->is_range()) {
@@ -42,7 +45,7 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + module_name;
 
-    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + module_name + "{");
+    text_.add_line("namespace arb { namespace multicore {");
     text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
@@ -56,8 +59,10 @@ std::string CPrinter::emit_source() {
     text_.add_line("using iarray  = typename base::iarray;");
     text_.add_line("using view   = typename base::view;");
     text_.add_line("using iview  = typename base::iview;");
+    text_.add_line("using const_view = typename base::const_view;");
     text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using ion_type = typename base::ion_type;");
+    text_.add_line("using deliverable_event_stream_state = typename base::deliverable_event_stream_state;");
     text_.add_line();
 
     //////////////////////////////////////////////
@@ -85,8 +90,8 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     int num_vars = array_variables.size();
     text_.add_line();
-    text_.add_line(class_name + "(view vec_v, view vec_i, array&& weights, iarray&& node_index)");
-    text_.add_line(":   base(vec_v, vec_i, std::move(node_index))");
+    text_.add_line(class_name + "(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_index)");
+    text_.add_line(":   base(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(node_index))");
     text_.add_line("{");
     text_.increase_indentation();
     text_.add_gutter() << "size_type num_fields = " << num_vars << ";";
@@ -129,12 +134,21 @@ std::string CPrinter::emit_source() {
     if (module_->kind() == moduleKind::density) {
         text_.add_line("// add the user-supplied weights for converting from current density");
         text_.add_line("// to per-compartment current in nA");
+        text_.add_line("if (weights.size()) {");
+        text_.increase_indentation();
         if(optimize_) {
             text_.add_line("memory::copy(weights, view(weights_, size()));");
         }
         else {
             text_.add_line("memory::copy(weights, weights_(0, size()));");
         }
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line("else {");
+        text_.increase_indentation();
+        text_.add_line("memory::fill(weights_, 1.0);");
+        text_.decrease_indentation();
+        text_.add_line("}");
         text_.add_line();
     }
 
@@ -176,14 +190,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    text_.add_line("void set_params(value_type t_, value_type dt_) override {");
-    text_.increase_indentation();
-    text_.add_line("t = t_;");
-    text_.add_line("dt = dt_;");
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line();
-
     text_.add_line("std::string name() const override {");
     text_.increase_indentation();
     text_.add_line("return \"" + module_name + "\";");
@@ -200,6 +206,16 @@ std::string CPrinter::emit_source() {
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
+
+    // Override `set_weights` method only for density mechanisms.
+    if (module_->kind() == moduleKind::density) {
+        text_.add_line("void set_weights(array&& weights) override {");
+        text_.increase_indentation();
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
 
     // return true/false indicating if cell has dependency on k
     auto const& ions = module_->neuron_block().ions;
@@ -268,7 +284,7 @@ std::string CPrinter::emit_source() {
     };
     text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
-    text_.add_line("using nest::mc::algorithms::index_into;");
+    text_.add_line("using arb::algorithms::index_into;");
     if(has_ion(ionKind::Na)) {
         auto ion = find_ion(ionKind::Na);
         text_.add_line("if(k==ionKind::na) {");
@@ -308,7 +324,7 @@ std::string CPrinter::emit_source() {
         text_.decrease_indentation();
         text_.add_line("}");
     }
-    text_.add_line("throw std::domain_error(nest::mc::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
+    text_.add_line("throw std::domain_error(arb::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -319,15 +335,128 @@ std::string CPrinter::emit_source() {
     auto proctest = [] (procedureKind k) {
         return is_in(k, {procedureKind::normal, procedureKind::api, procedureKind::net_receive});
     };
+    bool override_deliver_events = false;
     for(auto const& var: module_->symbols()) {
         auto isproc = var.second->kind()==symbolKind::procedure;
-        if(isproc )
-        {
+        if(isproc) {
             auto proc = var.second->is_procedure();
             if(proctest(proc->kind())) {
                 proc->accept(this);
             }
+            override_deliver_events |= proc->kind()==procedureKind::net_receive;
         }
+    }
+
+    if(override_deliver_events) {
+        text_.add_line("void deliver_events(const deliverable_event_stream_state& events) override {");
+        text_.increase_indentation();
+        text_.add_line("auto ncell = events.n_streams();");
+        text_.add_line("for (size_type c = 0; c<ncell; ++c) {");
+        text_.increase_indentation();
+
+        text_.add_line("auto begin = events.begin_marked(c);");
+        text_.add_line("auto end = events.end_marked(c);");
+        text_.add_line("for (auto p = begin; p<end; ++p) {");
+        text_.increase_indentation();
+        text_.add_line("if (p->mech_id==mech_id_) net_receive(p->mech_index, p->weight);");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
+
+    // TODO: replace field_info() generation implemenation with separate schema info generation
+    // as per #349.
+    auto field_info_string = [](const std::string& kind, const Id& id) {
+        return  "field_spec{field_spec::" + kind + ", " +
+                "\"" + id.unit_string() + "\", " +
+                (id.has_value()? id.value: "0") +
+                (id.has_range()? ", " + id.range.first.spelling + "," + id.range.second.spelling: "") +
+                "}";
+    };
+
+    std::unordered_set<std::string> scalar_set;
+    for (auto& v: scalar_variables) {
+        scalar_set.insert(v->name());
+    }
+
+    std::vector<Id> global_param_ids;
+    std::vector<Id> instance_param_ids;
+
+    for (const Id& id: module_->parameter_block().parameters) {
+        auto var = id.token.spelling;
+        (scalar_set.count(var)? global_param_ids: instance_param_ids).push_back(id);
+    }
+    const std::vector<Id>& state_ids = module_->state_block().state_variables;
+
+    text_.add_line("util::optional<field_spec> field_info(const char* id) const /* override */ {");
+    text_.increase_indentation();
+    text_.add_line("static const std::pair<const char*, field_spec> field_tbl[] = {");
+    text_.increase_indentation();
+    for (const auto& id: global_param_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("global",id )+"},");
+    }
+    for (const auto& id: instance_param_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("parameter", id)+"},");
+    }
+    for (const auto& id: state_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("state", id)+"},");
+    }
+    text_.decrease_indentation();
+    text_.add_line("};");
+    text_.add_line();
+    text_.add_line("auto* info = util::table_lookup(field_tbl, id);");
+    text_.add_line("return info? util::just(*info): util::nothing;");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
+    if (!instance_param_ids.empty() || !state_ids.empty()) {
+        text_.add_line("view base::* field_view_ptr(const char* id) const override {");
+        text_.increase_indentation();
+        text_.add_line("static const std::pair<const char*, view "+class_name+"::*> field_tbl[] = {");
+        text_.increase_indentation();
+        for (const auto& id: instance_param_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        for (const auto& id: state_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        text_.decrease_indentation();
+        text_.add_line("};");
+        text_.add_line();
+        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("return pptr? static_cast<view base::*>(*pptr): nullptr;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
+
+    if (!global_param_ids.empty()) {
+        text_.add_line("value_type base::* field_value_ptr(const char* id) const override {");
+        text_.increase_indentation();
+        text_.add_line("static const std::pair<const char*, value_type "+class_name+"::*> field_tbl[] = {");
+        text_.increase_indentation();
+        for (const auto& id: global_param_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        text_.decrease_indentation();
+        text_.add_line("};");
+        text_.add_line();
+        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("return pptr? static_cast<value_type base::*>(*pptr): nullptr;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
     }
 
     //////////////////////////////////////////////
@@ -357,6 +486,11 @@ std::string CPrinter::emit_source() {
     }
 
     text_.add_line();
+    text_.add_line("using base::mech_id_;");
+    text_.add_line("using base::vec_ci_;");
+    text_.add_line("using base::vec_t_;");
+    text_.add_line("using base::vec_t_to_;");
+    text_.add_line("using base::vec_dt_;");
     text_.add_line("using base::vec_v_;");
     text_.add_line("using base::vec_i_;");
     text_.add_line("using base::node_index_;");
@@ -366,7 +500,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("};");
     text_.add_line();
 
-    text_.add_line("}}}} // namespaces");
+    text_.add_line("}} // namespaces");
     return text_.str();
 }
 
@@ -380,7 +514,10 @@ void CPrinter::emit_headers() {
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
+    text_.add_line("#include <backends/event.hpp>");
+    text_.add_line("#include <backends/multi_event_stream_state.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
+    text_.add_line("#include <util/simple_table.hpp>");
     text_.add_line();
 }
 
@@ -426,6 +563,10 @@ void CPrinter::visit(VariableExpression *e) {
 }
 
 void CPrinter::visit(IndexedVariable *e) {
+    text_ << e->index_name() << "[i_]";
+}
+
+void CPrinter::visit(CellIndexedVariable *e) {
     text_ << e->index_name() << "[i_]";
 }
 
@@ -582,20 +723,25 @@ void CPrinter::visit(APIMethod *e) {
         // create local indexed views
         for(auto &symbol : e->scope()->locals()) {
             auto var = symbol.second->is_local_variable();
-            if(var->is_indexed()) {
-                auto const& name = var->name();
-                auto const& index_name = var->external_variable()->index_name();
-                text_.add_gutter();
-                text_ << "auto " + index_name + " = util::indirect_view";
-                auto channel = var->external_variable()->ion_channel();
-                if(channel==ionKind::none) {
-                    text_ << "(" + index_name + "_, node_index_);\n";
-                }
-                else {
-                    auto iname = ion_store(channel);
-                    text_ << "(" << iname << "." << name << ", "
-                          << ion_store(channel) << ".index);\n";
-                }
+            if (!var->is_indexed()) continue;
+
+            auto external = var->external_variable();
+            auto const& name = var->name();
+            auto const& index_name = external->index_name();
+
+            text_.add_gutter();
+            text_ << "auto " + index_name + " = ";
+
+            if(external->is_cell_indexed_variable()) {
+                text_ << "util::indirect_view(util::indirect_view(" + index_name + "_, vec_ci_), node_index_);\n";
+            }
+            else if(external->is_ion()) {
+                auto channel = external->ion_channel();
+                auto iname = ion_store(channel);
+                text_ << "util::indirect_view(" << iname << "." << name << ", " << ion_store(channel) << ".index);\n";
+            }
+            else {
+                text_ << "util::indirect_view(" + index_name + "_, node_index_);\n";
             }
         }
 
@@ -790,7 +936,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     decrease_indentation();
 
     aliased_output_ = false;
-    return;
 }
 
 void CPrinter::visit(CallExpression *e) {

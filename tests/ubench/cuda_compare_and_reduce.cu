@@ -91,7 +91,7 @@ bool host_copy_compare(std::size_t n, int* aptr, int* bptr) {
 struct thrust_cmp_pred {
     __device__
     bool operator()(const thrust::tuple<int, int>& p) const {
-	return thrust::get<0>(p) < thrust::get<1>(p);
+        return thrust::get<0>(p) < thrust::get<1>(p);
     }
 };
 
@@ -129,9 +129,9 @@ bool custom_cuda_compare(std::size_t n, int* aptr, int* bptr) {
 template <typename T>
 struct device_store {
     device_store() {
-	void* p;
-	cudaMalloc(&p, sizeof(T));
-	ptr = (T*)p;
+    void* p;
+    cudaMalloc(&p, sizeof(T));
+    ptr = (T*)p;
     }
 
     ~device_store() { if (ptr) cudaFree(ptr); }
@@ -186,10 +186,8 @@ void bench_custom_cuda_compare_noalloc(benchmark::State& state) {
 void run_custom_arguments(benchmark::internal::Benchmark* b) {
     for (int n=1<<8; n<=1<<20; n*=2) {
         for (int oop: {0, 200, 4}) {
-
-// Uncomment to set fixed iteration count (for e.g. profiling):
-//	    b->Iterations(20);
-
+            // Uncomment to set fixed iteration count (for e.g. profiling):
+            //b->Iterations(20);
             b->Args({n, oop});
         }
     }

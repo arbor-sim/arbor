@@ -36,7 +36,7 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
     '-DNDEBUG',
-    '-DNMC_HAVE_CTHREAD',
+    '-DARB_HAVE_CTHREAD',
     '-std=c++11',
     '-x',
     'c++',
@@ -52,6 +52,8 @@ flags = [
     'miniapp',
     '-I',
     'modcc',
+    '-I',
+    'tests/ubench/google-benchmark/include',
     '-I',
     '/cm/shared/apps/cuda/8.0.44/include',
     '-I',

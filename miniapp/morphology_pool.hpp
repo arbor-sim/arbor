@@ -11,8 +11,7 @@
 #include <morphology.hpp>
 #include <util/path.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 class morphology_pool {
     std::shared_ptr<std::vector<morphology>> pool;
@@ -38,5 +37,4 @@ extern morphology_pool default_morphology_pool;
 void load_swc_morphology(morphology_pool& pool, const util::path& swc_path);
 void load_swc_morphology_glob(morphology_pool& pool, const std::string& pattern);
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

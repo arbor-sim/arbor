@@ -11,6 +11,7 @@ build_modules(
     DEST_DIR "${mech_proto_dir}"
     MECH_SUFFIX _proto
     MODCC_FLAGS -t cpu
+    GENERATES .hpp
     TARGET build_test_mods
 )
 
@@ -21,6 +22,8 @@ set(TEST_CUDA_SOURCES
     test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
+    test_multi_event_stream.cu
+    test_reduce_by_key.cu
     test_spikes.cu
     test_vector.cu
 
@@ -39,6 +42,7 @@ set(TEST_SOURCES
     test_counter.cpp
     test_cycle.cpp
     test_domain_decomposition.cpp
+    test_dss_cell_group.cpp
     test_either.cpp
     test_event_queue.cpp
     test_event_binner.cpp
@@ -50,18 +54,22 @@ set(TEST_SOURCES
     test_math.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_multi_event_stream.cpp
     test_nop.cpp
     test_optional.cpp
-    test_parameters.cpp
+    test_mechinfo.cpp
     test_partition.cpp
     test_path.cpp
     test_point.cpp
     test_probe.cpp
-    test_segment.cpp
     test_range.cpp
+    test_segment.cpp
+    test_schedule.cpp
+    test_rss_cell.cpp
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp
+    test_stats.cpp
     test_stimulus.cpp
     test_strprintf.cpp
     test_swcio.cpp
@@ -74,31 +82,37 @@ set(TEST_SOURCES
 
     # unit test driver
     test.cpp
+
+    # common routines
+    stats.cpp
 )
 
+if(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
+    list(APPEND TEST_SOURCES test_intrin.cpp)
+endif()
 
 set(TARGETS test.exe)
 
-add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+add_executable(test.exe ${TEST_SOURCES})
 target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
-if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
+if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
   add_dependencies(test.exe build_test_mods)
 endif()
 
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
-if(NMC_WITH_CUDA)
+if(ARB_WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
-    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
+    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES})
 endif()
 
 foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC gtest)
-    target_link_libraries(${target} LINK_PUBLIC ${NESTMC_LIBRARIES})
+    target_link_libraries(${target} LINK_PUBLIC ${ARB_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-    if(NMC_WITH_MPI)
+    if(ARB_WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()

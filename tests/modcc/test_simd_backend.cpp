@@ -4,7 +4,7 @@
 #include "token.hpp"
 #include "test.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 
 TEST(avx512, emit_binary_op) {

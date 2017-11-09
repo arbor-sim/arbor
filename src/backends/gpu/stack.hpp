@@ -1,9 +1,11 @@
 #pragma once
 
-#include <memory/allocator.hpp>
+#include <algorithm>
 
-namespace nest {
-namespace mc {
+#include <memory/allocator.hpp>
+#include "stack_common.hpp"
+
+namespace arb {
 namespace gpu {
 
 // A simple stack data structure for the GPU.
@@ -22,94 +24,97 @@ namespace gpu {
 template <typename T>
 class stack {
     using value_type = T;
-    using allocator = memory::managed_allocator<value_type>;
+    template <typename U>
+    using allocator = memory::managed_allocator<U>;
 
-    // The number of items of type value_type that can be stored in the stack
-    unsigned capacity_;
+    using storage_type = stack_storage<value_type>;
+    storage_type* storage_;
 
-    // The number of items that have been stored
-    unsigned size_;
-
-    // Memory containing the value buffer
-    // Stored in managed memory to facilitate host-side access of values
-    // pushed from kernels on the device.
-    value_type* data_;
+    storage_type* create_storage(unsigned n) {
+        auto p = allocator<storage_type>().allocate(1);
+        p->capacity = n;
+        p->stores = 0;
+        p->data = allocator<value_type>().allocate(n);
+        return p;
+    }
 
 public:
+    stack& operator=(const stack& other) = delete;
+    stack(const stack& other) = delete;
 
-    stack(unsigned capacity):
-        capacity_(capacity), size_(0u)
-    {
-        data_ = allocator().allocate(capacity_);
+    stack(): storage_(create_storage(0)) {}
+
+    stack(stack&& other): storage_(create_storage(0)) {
+        std::swap(storage_, other.storage_);
     }
+
+    stack& operator=(stack&& other) {
+        std::swap(storage_, other.storage_);
+        return *this;
+    }
+
+    explicit stack(unsigned capacity): storage_(create_storage(capacity)) {}
 
     ~stack() {
-        allocator().deallocate(data_, capacity_);
+        allocator<value_type>().deallocate(storage_->data, storage_->capacity);
+        allocator<storage_type>().deallocate(storage_, 1);
     }
 
-    // Append a new value to the stack.
-    // The value will only be appended if do_push is true.
-    __device__
-    void push_back(const value_type& value) {
-        // Atomically increment the size_ counter. The atomicAdd returns
-        // the value of size_ before the increment, which is the location
-        // at which this thread can store value.
-        unsigned position = atomicAdd(&size_, 1u);
-
-        // It is possible that size_>capacity_. In this case, only capacity_
-        // entries are stored, and additional values are lost. The size_
-        // will contain the total number of attempts to push,
-        if (position<capacity_) {
-            data_[position] = value;
-        }
-    }
-
-    __host__
     void clear() {
-        size_ = 0;
+        storage_->stores = 0u;
     }
 
     // The number of items that have been pushed back on the stack.
-    // size may exceed capacity, which indicates that the caller attempted
+    // This may exceed capacity, which indicates that the caller attempted
     // to push back more values than there was space to store.
-    __host__ __device__
+    unsigned pushes() const {
+        return storage_->stores;
+    }
+
+    bool overflow() const {
+        return storage_->stores>capacity();
+    }
+
+    // The number of values stored in the stack.
     unsigned size() const {
-        return size_;
+        return std::min(storage_->stores, storage_->capacity);
     }
 
     // The maximum number of items that can be stored in the stack.
-    __host__ __device__
     unsigned capacity() const {
-        return capacity_;
+        return storage_->capacity;
+    }
+
+    storage_type& storage() {
+        return *storage_;
     }
 
     value_type& operator[](unsigned i) {
-        EXPECTS(i<size_ && i<capacity_);
-        return data_[i];
+        EXPECTS(i<size());
+        return storage_->data[i];
     }
 
     value_type& operator[](unsigned i) const {
-        EXPECTS(i<size_ && i<capacity_);
-        return data_[i];
+        EXPECTS(i<size());
+        return storage_->data[i];
     }
 
     value_type* begin() {
-        return data_;
+        return storage_->data;
     }
     const value_type* begin() const {
-        return data_;
+        return storage_->data;
     }
 
     value_type* end() {
-        // Take care of the case where size_>capacity_.
-        return data_ + (size_>capacity_? capacity_: size_);
+        // Take care of the case where size>capacity.
+        return storage_->data + size();
     }
     const value_type* end() const {
-        // Take care of the case where size_>capacity_.
-        return data_ + (size_>capacity_? capacity_: size_);
+        // Take care of the case where size>capacity.
+        return storage_->data + size();
     }
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

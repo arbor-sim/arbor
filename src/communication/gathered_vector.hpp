@@ -6,8 +6,7 @@
 
 #include <algorithms.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename T>
 class gathered_vector {
@@ -48,5 +47,4 @@ private:
     std::vector<count_type> partition_;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

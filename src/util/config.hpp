@@ -1,7 +1,6 @@
 #pragma once
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace config {
 
 // has_memory_measurement
@@ -24,18 +23,17 @@ constexpr bool has_memory_measurement = true;
 constexpr bool has_memory_measurement = false;
 #endif
 
-#ifdef NMC_HAVE_CRAY
+#ifdef ARB_HAVE_CRAY
 constexpr bool has_power_measurement = true;
 #else
 constexpr bool has_power_measurement = false;
 #endif
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 constexpr bool has_cuda = true;
 #else
 constexpr bool has_cuda = false;
 #endif
 
 } // namespace config
-} // namespace mc
-} // namespace nest
+} // namespace arb

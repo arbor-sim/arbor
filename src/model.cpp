@@ -1,67 +1,34 @@
-#include <model.hpp>
-
 #include <vector>
 
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
+#include <model.hpp>
 #include <recipe.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
-    domain_(decomp)
+    communicator_(rec, decomp)
 {
-    // set up communicator based on partition
-    communicator_ = communicator_type(domain_.gid_group_partition());
+    for (auto i: util::make_span(0, decomp.groups.size())) {
+        for (auto gid: decomp.groups[i].gids) {
+            gid_groups_[gid] = i;
+        }
+    }
 
-    // generate the cell groups in parallel, with one task per cell group
-    cell_groups_.resize(domain_.num_local_groups());
-
-    // thread safe vector for constructing the list of probes in parallel
-    threading::parallel_vector<probe_record> probe_tmp;
-
+    // Generate the cell groups in parallel, with one task per cell group.
+    cell_groups_.resize(decomp.groups.size());
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
             PE("setup", "cells");
-
-            auto group = domain_.get_group(i);
-            std::vector<util::unique_any> cells(group.end-group.begin);
-
-            for (auto gid: util::make_span(group.begin, group.end)) {
-                auto i = gid-group.begin;
-                cells[i] = rec.get_cell(gid);
-            }
-
-            cell_groups_[i] = cell_group_factory(
-                    group.kind, group.begin, cells, domain_.backend());
+            cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
-
-    // store probes
-    for (const auto& c: cell_groups_) {
-        util::append(probes_, c->probes());
-    }
-
-    // generate the network connections
-    for (cell_gid_type i: util::make_span(domain_.cell_begin(), domain_.cell_end())) {
-        for (const auto& cc: rec.connections_on(i)) {
-            connection conn{cc.source, cc.dest, cc.weight, cc.delay};
-            communicator_.add_connection(conn);
-        }
-    }
-    communicator_.construct();
-
-    // Allocate an empty queue buffer for each cell group
-    // These must be set initially to ensure that a queue is available for each
-    // cell group for the first time step.
-    current_events().resize(num_groups());
-    future_events().resize(num_groups());
 }
 
 void model::reset() {
@@ -71,13 +38,6 @@ void model::reset() {
     }
 
     communicator_.reset();
-
-    for(auto& q : current_events()) {
-        q.clear();
-    }
-    for(auto& q : future_events()) {
-        q.clear();
-    }
 
     current_spikes().clear();
     previous_spikes().clear();
@@ -99,14 +59,11 @@ time_type model::run(time_type tfinal, time_type dt) {
     auto update_cells = [&] () {
         threading::parallel_for::apply(
             0u, cell_groups_.size(),
-             [&](unsigned i) {
+            [&](unsigned i) {
+                PE("stepping");
                 auto &group = cell_groups_[i];
 
-                PE("stepping","events");
-                group->enqueue_events(current_events()[i]);
-                PL();
-
-                group->advance(tuntil, dt);
+                group->advance(epoch_, dt);
 
                 PE("events");
                 current_spikes().insert(group->spikes());
@@ -132,17 +89,24 @@ time_type model::run(time_type tfinal, time_type dt) {
         global_export_callback_(global_spikes.values());
         PL();
 
-        PE("events");
-        future_events() = communicator_.make_event_queues(global_spikes);
+        PE("events","from-spikes");
+        auto events = communicator_.make_event_queues(global_spikes);
         PL();
+
+        PE("enqueue");
+        for (auto i: util::make_span(0, cell_groups_.size())) {
+            cell_groups_[i]->enqueue_events(
+                epoch_,
+                util::subrange_view(events, communicator_.group_queue_range(i)));
+        }
+        PL(2);
 
         PL(2);
     };
 
+    tuntil = std::min(t_+t_interval, tfinal);
+    epoch_ = epoch(0, tuntil);
     while (t_<tfinal) {
-        tuntil = std::min(t_+t_interval, tfinal);
-
-        event_queues_.exchange();
         local_spikes_.exchange();
 
         // empty the spike buffers for the current integration period.
@@ -157,40 +121,46 @@ time_type model::run(time_type tfinal, time_type dt) {
         g.wait();
 
         t_ = tuntil;
+
+        tuntil = std::min(t_+t_interval, tfinal);
+        epoch_.advance(tuntil);
     }
 
     // Run the exchange one last time to ensure that all spikes are output
     // to file.
-    event_queues_.exchange();
     local_spikes_.exchange();
     exchange();
 
     return t_;
 }
 
-// only thread safe if called outside the run() method
-void model::add_artificial_spike(cell_member_type source) {
-    add_artificial_spike(source, t_);
+sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy) {
+    sampler_association_handle h = sassoc_handles_.acquire();
+
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->add_sampler(h, probe_ids, sched, f, policy);
+        });
+
+    return h;
 }
 
-// only thread safe if called outside the run() method
-void model::add_artificial_spike(cell_member_type source, time_type tspike) {
-    if (domain_.is_local_gid(source.gid)) {
-        current_spikes().get().push_back({source, tspike});
-    }
+void model::remove_sampler(sampler_association_handle h) {
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_sampler(h);
+        });
+
+    sassoc_handles_.release(h);
 }
 
-void model::attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom) {
-    const auto idx = domain_.local_group_from_gid(probe_id.gid);
+void model::remove_all_samplers() {
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_all_samplers();
+        });
 
-    // only attach samplers for local cells
-    if (idx) {
-        cell_groups_[*idx]->add_sampler(probe_id, f, tfrom);
-    }
-}
-
-const std::vector<probe_record>& model::probes() const {
-    return probes_;
+    sassoc_handles_.clear();
 }
 
 std::size_t model::num_spikes() const {
@@ -199,10 +169,6 @@ std::size_t model::num_spikes() const {
 
 std::size_t model::num_groups() const {
     return cell_groups_.size();
-}
-
-std::size_t model::num_cells() const {
-    return domain_.num_local_cells();
 }
 
 void model::set_binning_policy(binning_kind policy, time_type bin_interval) {
@@ -223,5 +189,4 @@ void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

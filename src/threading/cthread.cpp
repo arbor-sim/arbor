@@ -1,3 +1,4 @@
+#include <atomic>
 #include <cassert>
 #include <cstring>
 #include <exception>
@@ -5,9 +6,10 @@
 #include <regex>
 
 #include "cthread.hpp"
-#include "affinity.hpp"
+#include "threading.hpp"
 
-using namespace nest::mc::threading::impl;
+using namespace arb::threading::impl;
+using namespace arb;
 
 // RAII owner for a task in flight
 struct task_pool::run_task {
@@ -133,55 +135,8 @@ void task_pool::wait(task_group* g) {
     run_tasks_while(g);
 }
 
-[[noreturn]]
-static void terminate(std::string msg) {
-    std::cerr << "NMC_NUM_THREADS_ERROR: " << msg << std::endl;
-    std::terminate();
-}
-
-// should check string, throw exception on missing or badly formed
-static size_t global_get_num_threads() {
-    const char* str;
-
-    // select variable to use:
-    //   If NMC_NUM_THREADS_VAR is set, use $NMC_NUM_THREADS_VAR
-    //   else if NMC_NUM_THREAD set, use it
-    //   else if OMP_NUM_THREADS set, use it
-    if (auto nthreads_var_name = std::getenv("NMC_NUM_THREADS_VAR")) {
-        str = std::getenv(nthreads_var_name);
-    }
-    else if (! (str = std::getenv("NMC_NUM_THREADS"))) {
-        str = std::getenv("OMP_NUM_THREADS");
-    }
-
-    // If the selected var is unset set the number of threads to
-    // the hint given by the standard library
-    if (!str) {
-        unsigned nthreads = nest::mc::threading::count_available_cores();
-        if (nthreads==0u) {
-            terminate(
-                "The number of threads was not set by the user, and I am unable "
-                "to determine a sane default number of threads on this system. "
-                "Use the NMC_NUM_THREADS environment variable to explicitly "
-                "set the number of threads.");
-        }
-        return nthreads;
-    }
-
-    auto nthreads = std::strtoul(str, nullptr, 10);
-
-    // check that the environment variable string describes a non-negative integer
-    if (nthreads==0 || errno==ERANGE ||
-        !std::regex_match(str, std::regex("\\s*\\d*[1-9]\\d*\\s*")))
-    {
-        terminate("The requested number of threads \""+std::string(str)
-            +"\" is not a reasonable positive integer");
-    }
-
-    return nthreads;
-}
-
 task_pool& task_pool::get_global_task_pool() {
-    static task_pool global_task_pool{global_get_num_threads()};
+    auto num_threads = threading::num_threads();
+    static task_pool global_task_pool(num_threads);
     return global_task_pool;
 }

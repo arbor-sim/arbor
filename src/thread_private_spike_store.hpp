@@ -6,8 +6,7 @@
 #include <spike.hpp>
 #include <threading/threading.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Handles the complexity of managing thread private buffers of spikes.
 /// Internally stores one thread private buffer of spikes for each hardware thread.
@@ -73,5 +72,4 @@ public :
     const_iterator end() const { return buffers_.begin(); }
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

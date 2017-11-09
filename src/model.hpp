@@ -1,21 +1,23 @@
 #pragma once
 
+#include <mutex>
 #include <vector>
 
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <common_types.hpp>
-#include <domain_decomposition.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <domain_decomposition.hpp>
+#include <epoch.hpp>
 #include <recipe.hpp>
-#include <sampler_function.hpp>
+#include <sampling.hpp>
 #include <thread_private_spike_store.hpp>
 #include <util/nop.hpp>
+#include <util/handle_set.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 class model {
 public:
@@ -28,26 +30,25 @@ public:
 
     time_type run(time_type tfinal, time_type dt);
 
-    // only thread safe if called outside the run() method
-    void add_artificial_spike(cell_member_type source);
+    // Note: sampler functions may be invoked from a different thread than that
+    // which called the `run` method.
 
-    // only thread safe if called outside the run() method
-    void add_artificial_spike(cell_member_type source, time_type tspike);
+    sampler_association_handle add_sampler(cell_member_predicate probe_ids,
+        schedule sched, sampler_function f, sampling_policy policy = sampling_policy::lax);
 
-    void attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom = 0);
+    void remove_sampler(sampler_association_handle);
 
-    const std::vector<probe_record>& probes() const;
+    void remove_all_samplers();
 
     std::size_t num_spikes() const;
-
-    std::size_t num_groups() const;
-
-    std::size_t num_cells() const;
 
     // Set event binning policy on all our groups.
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
     // access cell_group directly
+    // TODO: deprecate. Currently used in some validation tests to inject
+    // events directly into a cell group. This should be done with a spiking
+    // neuron.
     cell_group& group(int i);
 
     // register a callback that will perform a export of the global
@@ -59,15 +60,13 @@ public:
     void set_local_spike_callback(spike_export_function export_callback);
 
 private:
-    const domain_decomposition &domain_;
+    std::size_t num_groups() const;
+
+    // keep track of information about the current integration interval
+    epoch epoch_;
 
     time_type t_ = 0.;
     std::vector<cell_group_ptr> cell_groups_;
-    communicator_type communicator_;
-    std::vector<probe_record> probes_;
-
-    using event_queue_type = typename communicator_type::event_queue;
-    util::double_buffer<std::vector<event_queue_type>> event_queues_;
 
     using local_spike_store_type = thread_private_spike_store;
     util::double_buffer<local_spike_store_type> local_spikes_;
@@ -75,8 +74,14 @@ private:
     spike_export_function global_export_callback_ = util::nop_function;
     spike_export_function local_export_callback_ = util::nop_function;
 
-    // Convenience functions that map the spike buffers and event queues onto
-    // the appropriate integration interval.
+    // Hash table for looking up the group index of the cell_group that
+    // contains gid
+    std::unordered_map<cell_gid_type, cell_gid_type> gid_groups_;
+
+    communicator_type communicator_;
+
+    // Convenience functions that map the spike buffers onto the appropriate
+    // integration interval.
     //
     // To overlap communication and computation, integration intervals of
     // size Delta/2 are used, where Delta is the minimum delay in the global
@@ -86,17 +91,12 @@ private:
     // Then we define the following :
     //      current_spikes : spikes generated in the current interval
     //      previous_spikes: spikes generated in the preceding interval
-    //      current_events : events to be delivered at the start of
-    //                       the current interval
-    //      future_events  : events to be delivered at the start of
-    //                       the next interval
 
     local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
 
-    std::vector<event_queue_type>& current_events()  { return event_queues_.get(); }
-    std::vector<event_queue_type>& future_events()   { return event_queues_.other(); }
+    // Sampler associations handles are managed by a helper class.
+    util::handle_set<sampler_association_handle> sassoc_handles_;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

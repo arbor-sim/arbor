@@ -5,7 +5,7 @@
 #include "../gtest.h"
 #include <util/strprintf.hpp>
 
-using namespace nest::mc::util;
+using namespace arb::util;
 
 
 TEST(strprintf, simple) {

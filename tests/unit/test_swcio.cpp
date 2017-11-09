@@ -17,7 +17,7 @@
 #   define DATADIR "../data"
 #endif
 
-using namespace nest::mc;
+using namespace arb;
 
 // SWC tests
 void expect_record_equals(const io::swc_record& expected,
@@ -34,7 +34,7 @@ void expect_record_equals(const io::swc_record& expected,
 
 TEST(swc_record, construction)
 {
-    using namespace nest::mc::io;
+    using namespace arb::io;
 
     {
         // force an invalid type
@@ -103,7 +103,7 @@ TEST(swc_record, construction)
 
 TEST(swc_parser, invalid_input_istream)
 {
-    using namespace nest::mc::io;
+    using namespace arb::io;
 
     {
         // check incomplete lines; missing parent
@@ -125,7 +125,7 @@ TEST(swc_parser, invalid_input_istream)
 
 TEST(swc_parser, invalid_input_parse)
 {
-    using namespace nest::mc::io;
+    using namespace arb::io;
 
     {
         // check incomplete lines; missing parent
@@ -166,7 +166,7 @@ TEST(swc_parser, invalid_input_parse)
 
 TEST(swc_parser, valid_input)
 {
-    using namespace nest::mc::io;
+    using namespace arb::io;
 
     {
         // check empty file; no record may be parsed
@@ -302,7 +302,7 @@ TEST(swc_parser, valid_input)
 
 TEST(swc_parser, from_allen_db)
 {
-    using namespace nest::mc::io;
+    using namespace arb::io;
 
     std::string datadir{DATADIR};
     auto fname = datadir + "/example.swc";
@@ -321,7 +321,7 @@ TEST(swc_parser, from_allen_db)
 
 TEST(swc_parser, input_cleaning)
 {
-    using namespace nest::mc::io;
+    using namespace arb::io;
 
     {
         // Check duplicates
@@ -389,7 +389,7 @@ TEST(swc_parser, input_cleaning)
 
 TEST(swc_parser, raw)
 {
-    using namespace nest::mc::io;
+    using namespace arb::io;
 
     {
         // Check valid usage
@@ -434,7 +434,7 @@ TEST(swc_parser, raw)
 }
 
 TEST(swc_io, cell_construction) {
-    using namespace nest::mc;
+    using namespace arb;
 
     //
     //    0

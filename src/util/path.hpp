@@ -26,8 +26,7 @@
 #include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 class posix_path {
@@ -370,7 +369,7 @@ inline std::vector<path> glob(const std::string& pattern) {
 
 inline file_status status(const path& p) {
     std::error_code ec;
-    auto r = ::nest::mc::util::posix::status(p, ec);
+    auto r = ::arb::util::posix::status(p, ec);
     if (ec) {
         throw filesystem_error("status()", p, ec);
     }
@@ -426,6 +425,5 @@ inline bool exists(const path& p, std::error_code& ec) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

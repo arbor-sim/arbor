@@ -50,12 +50,10 @@ CMakeCache.txt
 cmake_install.cmake
 Makefile
 
-# mechanism implementations generated my modparser
-include/mechanisms
-
 # mechanisms generated from .mod files
 mechanisms/multicore/*.hpp
 mechanisms/gpu/*.hpp
+mechanisms/gpu/*.cu
 
 # build path
 build*

@@ -2,9 +2,9 @@
 
 #include <cstddef>
 #include <sstream>
+#include <typeinfo>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 namespace types {
@@ -67,7 +67,7 @@ namespace util {
     template <typename T>
     struct type_printer{
         static std::string print() {
-            return std::string("T");
+            return typeid(T).name();
         }
     };
 
@@ -112,6 +112,5 @@ namespace util {
 } // namespace util
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
