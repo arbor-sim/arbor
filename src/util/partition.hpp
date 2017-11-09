@@ -9,8 +9,7 @@
 #include <util/partition_iterator.hpp>
 #include <util/range.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 struct invalid_partition: std::runtime_error {
@@ -171,7 +170,8 @@ make_partition(Part& divisions, const Sizes& sizes, T from=T{}) {
     return partition_view(divisions);
 }
 
+template <typename Part>
+using partition_view_type = partition_range<typename sequence_traits<Part>::const_iterator>;
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

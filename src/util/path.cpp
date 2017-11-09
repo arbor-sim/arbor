@@ -20,8 +20,7 @@ extern "C" {
 #include <util/scope_exit.hpp>
 #include <util/path.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 namespace posix {
 
@@ -102,6 +101,5 @@ file_status symlink_status(const path& p, std::error_code& ec) {
 
 } // namespace posix
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

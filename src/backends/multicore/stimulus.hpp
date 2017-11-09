@@ -8,15 +8,13 @@
 #include <util/indirect.hpp>
 #include <util/pprintf.hpp>
 
-namespace nest{
-namespace mc{
-namespace mechanisms{
+namespace arb{
 namespace multicore{
 
 template<class Backend>
-class stimulus : public mechanisms::mechanism<Backend> {
+class stimulus : public mechanism<Backend> {
 public:
-    using base = mechanisms::mechanism<Backend>;
+    using base = mechanism<Backend>;
     using value_type  = typename base::value_type;
     using size_type   = typename base::size_type;
 
@@ -24,11 +22,14 @@ public:
     using iarray  = typename base::iarray;
     using view   = typename base::view;
     using iview  = typename base::iview;
+    using const_view = typename base::const_view;
     using const_iview = typename base::const_iview;
     using ion_type = typename base::ion_type;
 
-    stimulus(view vec_v, view vec_i, iarray&& node_index):
-        base(vec_v, vec_i, std::move(node_index))
+    static constexpr size_type no_mech_id = (size_type)-1;
+
+    stimulus(const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, iarray&& node_index):
+        base(no_mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(node_index))
     {}
 
     using base::size;
@@ -37,26 +38,21 @@ public:
         return 0;
     }
 
-    void set_params(value_type t_, value_type dt_) override {
-        t = t_;
-        dt = dt_;
-    }
-
     std::string name() const override {
         return "stimulus";
     }
 
-    mechanisms::mechanismKind kind() const override {
-        return mechanisms::mechanismKind::point;
+    mechanismKind kind() const override {
+        return mechanismKind::point;
     }
 
-    bool uses_ion(mechanisms::ionKind k) const override {
+    bool uses_ion(ionKind k) const override {
         return false;
     }
 
-    void set_ion(mechanisms::ionKind k, ion_type& i, std::vector<size_type>const& index) override {
+    void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {
         throw std::domain_error(
-                nest::mc::util::pprintf("mechanism % does not support ion type\n", name()));
+                arb::util::pprintf("mechanism % does not support ion type\n", name()));
     }
 
     void nrn_init() override {}
@@ -76,35 +72,40 @@ public:
         delay = del;
     }
 
+    void set_weights(array&& w) override {
+        EXPECTS(size()==w.size());
+        weights.resize(size());
+        std::copy(w.begin(), w.end(), weights.begin());
+    }
+
     void nrn_current() override {
         if (amplitude.size() != size()) {
             throw std::domain_error("stimulus called with mismatched parameter size\n");
         }
+        auto vec_t = util::indirect_view(util::indirect_view(vec_t_, vec_ci_), node_index_);
         auto vec_i = util::indirect_view(vec_i_, node_index_);
-        int n = size();
-        for(int i=0; i<n; ++i) {
-            if (t>=delay[i] && t<(delay[i]+duration[i])) {
+        size_type n = size();
+        for (size_type i=0; i<n; ++i) {
+            auto t = vec_t[i];
+            if (t>=delay[i] && t<delay[i]+duration[i]) {
                 // use subtraction because the electrod currents are specified
                 // in terms of current into the compartment
-                vec_i[i] -= amplitude[i];
+                vec_i[i] -= weights[i]*amplitude[i];
             }
         }
     }
 
-    value_type dt = 0;
-    value_type t = 0;
-
     std::vector<value_type> amplitude;
     std::vector<value_type> duration;
     std::vector<value_type> delay;
+    std::vector<value_type> weights;
 
+    using base::vec_ci_;
+    using base::vec_t_;
     using base::vec_v_;
     using base::vec_i_;
     using base::node_index_;
 };
 
 } // namespace multicore
-} // namespace mechanisms
-} // namespace mc
-} // namespace nest
-
+} // namespace arb

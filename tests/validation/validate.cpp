@@ -11,7 +11,7 @@
 
 #include "validation_data.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -21,15 +21,15 @@ const char* usage_str =
 "  -p, --path=DIR      Look for validation reference data in DIR\n"
 "  -m, --max-comp=N    Run convergence tests to a maximum of N\n"
 "                      compartments per segment\n"
-"  -d, --min-dt=DT     Run convergence tests with or with a minimumf\n"
-"                      timestep DT\n"
+"  -d, --min-dt=DT     Run convergence tests with a minimum timestep DT [ms]\n"
+"  -s, --sample-dt=DT  Sample rate for simulations [ms]\n"
 "  -h, --help          Display usage information and exit\n"
 "\n"
 "Validation data is searched by default in the directory specified by\n"
-"NMC_DATADIR at compile time. If NMC_DATADIR does not correspond to a\n"
+"ARB_DATADIR at compile time. If ARB_DATADIR does not correspond to a\n"
 "directory, the tests will try the paths './validation/data' and\n"
 "'../validation/data'. This default path can be overridden with the\n"
-"NMC_DATADIR environment variable, or with the -p command-line option.\n";
+"ARB_DATADIR environment variable, or with the -p command-line option.\n";
 
 int main(int argc, char **argv) {
     using to::parse_opt;
@@ -52,6 +52,9 @@ int main(int argc, char **argv) {
             else if (auto o = parse_opt<float>(arg, 'd', "min-dt")) {
                 g_trace_io.set_min_dt(*o);
             }
+            else if (auto o = parse_opt<float>(arg, 's', "sample-dt")) {
+                g_trace_io.set_sample_dt(*o);
+            }
             else if (auto o = parse_opt(arg, 'v', "verbose")) {
                 g_trace_io.set_verbose(true);
             }
@@ -66,7 +69,6 @@ int main(int argc, char **argv) {
 
         return RUN_ALL_TESTS();
     }
-
     catch (to::parse_opt_error& e) {
         to::usage(argv[0], usage_str, e.what());
         return 1;

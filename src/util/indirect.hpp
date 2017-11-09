@@ -14,8 +14,7 @@
 #include <util/transform.hpp>
 #include <util/meta.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Seq: random access sequence
@@ -45,5 +44,4 @@ auto indirect_view(RASeq&& data, const Seq& index_map)
 DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq>(std::move(data))));
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -1,7 +1,6 @@
 #pragma once
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 // tag for final element in a range
 struct end_type {};
@@ -13,5 +12,4 @@ namespace{
 }
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

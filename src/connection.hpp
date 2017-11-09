@@ -6,17 +6,21 @@
 #include <event_queue.hpp>
 #include <spike.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 class connection {
 public:
     connection() = default;
-    connection(cell_member_type src, cell_member_type dest, float w, time_type d) :
+    connection( cell_member_type src,
+                cell_member_type dest,
+                float w,
+                time_type d,
+                cell_gid_type didx=cell_gid_type(-1)):
         source_(src),
         destination_(dest),
         weight_(w),
-        delay_(d)
+        delay_(d),
+        index_on_domain_(didx)
     {}
 
     float weight() const { return weight_; }
@@ -24,6 +28,7 @@ public:
 
     cell_member_type source() const { return source_; }
     cell_member_type destination() const { return destination_; }
+    cell_size_type index_on_domain() const { return index_on_domain_; }
 
     postsynaptic_spike_event make_event(const spike& s) {
         return {destination_, s.time + delay_, weight_};
@@ -34,6 +39,7 @@ private:
     cell_member_type destination_;
     float weight_;
     time_type delay_;
+    cell_size_type index_on_domain_;
 };
 
 // connections are sorted by source id
@@ -51,10 +57,9 @@ static inline bool operator<(cell_member_type lhs, const connection& rhs) {
     return lhs < rhs.source();
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
-static inline std::ostream& operator<<(std::ostream& o, nest::mc::connection const& con) {
+static inline std::ostream& operator<<(std::ostream& o, arb::connection const& con) {
     return o << "con [" << con.source() << " -> " << con.destination()
              << " : weight " << con.weight()
              << ", delay " << con.delay() << "]";

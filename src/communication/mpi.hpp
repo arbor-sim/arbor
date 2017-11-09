@@ -15,8 +15,7 @@
 #include <profiling/profiler.hpp>
 
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace mpi {
 
     // prototypes
@@ -106,9 +105,11 @@ namespace mpi {
         std::vector<char> buffer(displs.back());
 
         PE("MPI", "Gather");
-        MPI_Gatherv(str.data(), counts[rank()], traits::mpi_type(),                  // send
-                    buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive
-                    root, MPI_COMM_WORLD);
+        MPI_Gatherv(
+            // const_cast required for MPI implementations that don't use const* in their interfaces
+            const_cast<std::string::value_type*>(str.data()), counts[rank()], traits::mpi_type(), // send
+            buffer.data(), counts.data(), displs.data(), traits::mpi_type(),                      // receive
+            root, MPI_COMM_WORLD);
         PL(2);
 
         // Unpack the raw string data into a vector of strings.
@@ -136,7 +137,8 @@ namespace mpi {
         PE("MPI", "Allgatherv");
         MPI_Allgatherv(
             // send buffer
-            values.data(), counts[rank()], traits::mpi_type(),
+            // const_cast required for MPI implementations that don't use const* in their interfaces
+            const_cast<T*>(values.data()), counts[rank()], traits::mpi_type(),
             // receive buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
@@ -168,7 +170,8 @@ namespace mpi {
         PE("MPI", "Allgatherv-partition");
         MPI_Allgatherv(
             // send buffer
-            values.data(), counts[rank()], traits::mpi_type(),
+            // const_cast required for MPI implementations that don't use const* in their interfaces
+            const_cast<T*>(values.data()), counts[rank()], traits::mpi_type(),
             // receive buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
@@ -259,5 +262,4 @@ namespace mpi {
     }
 
 } // namespace mpi
-} // namespace mc
-} // namespace nest
+} // namespace arb

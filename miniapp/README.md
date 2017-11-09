@@ -1,6 +1,6 @@
-# NEST MC miniapp
+# Arbor miniapp
 
-The miniapp is a simple benchmark of the NEST MC framework.
+The miniapp is a simple benchmark for the Arbor library.
 
 ## the model
 

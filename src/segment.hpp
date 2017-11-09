@@ -8,19 +8,11 @@
 #include <compartment.hpp>
 #include <math.hpp>
 #include <morphology.hpp>
-#include <parameter_list.hpp>
+#include <mechinfo.hpp>
 #include <point.hpp>
 #include <util/make_unique.hpp>
 
-namespace nest {
-namespace mc {
-
-template <typename T,
-          typename valid = typename std::is_floating_point<T>::type>
-struct segment_properties {
-    T rL = 180.0;   // resistivity [Ohm.cm]
-    T cm = 0.01;    // capacitance [F/m^2] : 10 nF/mm^2 = 0.01 F/m^2
-};
+namespace arb {
 
 // forward declarations of segment specializations
 class soma_segment;
@@ -88,79 +80,44 @@ public:
         return false;
     }
 
-    segment_properties<value_type> properties;
-
-    void add_mechanism(parameter_list p)
-    {
-        auto it = std::find_if(
-            mechanisms_.begin(), mechanisms_.end(),
-            [&p](parameter_list const& l){return l.name() == p.name();}
-        );
-        if(it!=mechanisms_.end()) {
-            throw std::out_of_range(
-                "attempt to add a mechanism parameter set to a segment which has an existing mechanism with the same name"
-            );
-        }
-
-        mechanisms_.push_back(std::move(p));
+    util::optional<mechanism_spec&> mechanism(const std::string& name) {
+        auto it = std::find_if(mechanisms_.begin(), mechanisms_.end(),
+            [&](mechanism_spec& m) { return m.name()==name; });
+        return it==mechanisms_.end()? util::nothing: util::just(*it);
     }
 
-    parameter_list& mechanism(std::string const& n)
-    {
-        auto it = std::find_if(
-            mechanisms_.begin(), mechanisms_.end(),
-            [&n](parameter_list const& l){return l.name() == n;}
-        );
-        if(it==mechanisms_.end()) {
-            throw std::out_of_range(
-                "attempt to access a parameter that is not defined in a segment"
-            );
+    void add_mechanism(mechanism_spec mech) {
+        auto m = mechanism(mech.name());
+        if (m) {
+            m.get() = std::move(mech);
         }
-
-        return *it;
+        else {
+            mechanisms_.push_back(std::move(mech));
+        }
     }
 
-    const parameter_list& mechanism(std::string const& n) const
-    {
-        auto it = std::find_if(
-            mechanisms_.begin(), mechanisms_.end(),
-            [&n](parameter_list const& l){return l.name() == n;}
-        );
-        if(it==mechanisms_.end()) {
-            throw std::out_of_range(
-                "attempt to access a parameter that is not defined in a segment"
-            );
-        }
-
-        return *it;
-    }
-
-    std::vector<parameter_list>& mechanisms()
-    {
+    const std::vector<mechanism_spec>& mechanisms() {
         return mechanisms_;
     }
 
-    const std::vector<parameter_list>& mechanisms() const
-    {
+    const std::vector<mechanism_spec>& mechanisms() const {
         return mechanisms_;
     }
+
+    // common electrical properties
+    value_type rL = 100.0;   // resistivity [Ohm.cm]
+    value_type cm = 0.01;    // capacitance [F/m^2] : 10 nF/mm^2 = 0.01 F/m^2
 
 protected:
+    segment(section_kind kind): kind_(kind) {}
+
     section_kind kind_;
-    std::vector<parameter_list> mechanisms_;
+    std::vector<mechanism_spec> mechanisms_;
 };
 
 class placeholder_segment : public segment {
 public:
-    using base = segment;
-    using base::kind_;
-    using base::value_type;
-    using base::size_type;
-
-    placeholder_segment()
-    {
-        kind_ = section_kind::none;
-    }
+    placeholder_segment(): segment(section_kind::none) {}
 
     std::unique_ptr<segment> clone() const override {
         // use default copy constructor
@@ -192,26 +149,10 @@ public:
 
 class soma_segment : public segment {
 public:
-    using base = segment;
-    using base::kind_;
-    using base::value_type;
-    using base::point_type;
-    using base::size_type;
-
     soma_segment() = delete;
 
-    soma_segment(value_type r):
-        radius_{r}
-    {
-        kind_ = section_kind::soma;
-        mechanisms_.push_back(membrane_parameters());
-    }
-
-    soma_segment(value_type r, point_type const& c):
-        soma_segment(r)
-    {
-        center_ = c;
-    }
+    explicit soma_segment(value_type r, point_type c = point_type{}):
+        segment(section_kind::soma), radius_{r}, center_(c) {}
 
     std::unique_ptr<segment> clone() const override {
         // use default copy constructor
@@ -274,46 +215,24 @@ public:
     cable_segment() = delete;
 
     // constructors for a cable with no location information
-    cable_segment(
-        section_kind k,
-        std::vector<value_type> r,
-        std::vector<value_type> lens
-    ) {
-        kind_ = k;
-        assert(k==section_kind::dendrite || k==section_kind::axon);
-
-        radii_   = std::move(r);
-        lengths_ = std::move(lens);
-
-        // add default membrane parameters
-        mechanisms_.push_back(membrane_parameters());
+    cable_segment(section_kind k, std::vector<value_type> r, std::vector<value_type> lens):
+        segment(k), radii_(std::move(r)), lengths_(std::move(lens))
+    {
+        assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
     }
 
-    cable_segment(
-        section_kind k,
-        value_type r1,
-        value_type r2,
-        value_type len
-    )
-    : cable_segment{k, std::vector<value_type>{r1, r2}, std::vector<value_type>{len}}
-    { }
+    cable_segment(section_kind k, value_type r1, value_type r2, value_type len):
+        //cable_segment{k, std::vector<value_type>{r1, r2}, std::vector<value_type>{len}}
+        cable_segment{k, {r1, r2}, decltype(lengths_){len}}
+    {}
 
     // constructor that lets the user describe the cable as a
     // seriew of radii and locations
-    cable_segment(
-        section_kind k,
-        std::vector<value_type> r,
-        std::vector<point_type> p
-    ) {
-        kind_ = k;
-        assert(k==section_kind::dendrite || k==section_kind::axon);
-
-        radii_     = std::move(r);
-        locations_ = std::move(p);
+    cable_segment(section_kind k, std::vector<value_type> r, std::vector<point_type> p):
+        segment(k), radii_(std::move(r)), locations_(std::move(p))
+    {
+        assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
         update_lengths();
-
-        // add default membrane parameters
-        mechanisms_.push_back(membrane_parameters());
     }
 
     // helper that lets user specify with the radius and location
@@ -325,9 +244,9 @@ public:
         value_type r2,
         point_type const& p1,
         point_type const& p2
-    )
-    :   cable_segment(k, {r1, r2}, {p1, p2})
-    { }
+    ):
+        cable_segment(k, {r1, r2}, {p1, p2})
+    {}
 
     std::unique_ptr<segment> clone() const override {
         // use default copy constructor
@@ -436,8 +355,7 @@ public:
     }
 
 private:
-    void update_lengths()
-    {
+    void update_lengths() {
         if (locations_.size()) {
             lengths_.resize(num_sub_segments());
             for (size_type i=0; i<num_sub_segments(); ++i) {
@@ -447,8 +365,8 @@ private:
     }
 
     size_type num_compartments_ = 1;
-    std::vector<value_type> lengths_;
     std::vector<value_type> radii_;
+    std::vector<value_type> lengths_;
     std::vector<point_type> locations_;
 };
 
@@ -488,5 +406,4 @@ struct segment_location {
     double position;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

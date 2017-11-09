@@ -7,8 +7,7 @@
 #include <string>
 #include <sstream>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 inline std::string pprintf(const char *s) {
@@ -47,5 +46,4 @@ std::string pprintf(const char *s, T value, Args... args) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

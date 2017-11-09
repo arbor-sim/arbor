@@ -12,8 +12,7 @@
 #include <util/meta.hpp>
 #include <util/optional.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace to {
 
 struct parse_opt_error: public std::runtime_error {
@@ -129,5 +128,4 @@ util::optional<void> parse_opt(char **& argp, char shortopt, const char* longopt
 
 
 } // namespace to;
-} // namespace mc
-} // namespace nest
+} // namespace arb

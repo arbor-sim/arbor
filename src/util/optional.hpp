@@ -22,8 +22,7 @@
 #include "util/meta.hpp"
 #include "util/uninitialized.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename X> struct optional;
@@ -429,5 +428,4 @@ optional<X> just(X&& x) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

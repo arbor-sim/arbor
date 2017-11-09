@@ -5,8 +5,7 @@
 
 // Convenience class for RAII control of resources.
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // `scope_exit` guard object will call provided functional object
@@ -50,5 +49,4 @@ scope_exit<typename std::decay<F>::type> on_scope_exit(F&& f) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -1,21 +1,24 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 #include <ostream>
 #include <queue>
 #include <type_traits>
 #include <utility>
 
 #include "common_types.hpp"
+#include "generic_event.hpp"
 #include "util/meta.hpp"
 #include "util/optional.hpp"
+#include "util/range.hpp"
+#include "util/strprintf.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /* Event classes `Event` used with `event_queue` must be move and copy constructible,
  * and either have a public field `time` that returns the time value, or provide an
- * overload of `event_time(const Event&)` which returns this value.
+ * overload of `event_time(const Event&)` which returns this value (see generic_event.hpp).
  *
  * Time values must be well ordered with respect to `operator>`.
  */
@@ -24,36 +27,22 @@ struct postsynaptic_spike_event {
     cell_member_type target;
     time_type time;
     float weight;
+
+    friend bool operator==(postsynaptic_spike_event l, postsynaptic_spike_event r) {
+        return l.target==r.target && l.time==r.time && l.weight==r.weight;
+    }
+
+    friend std::ostream& operator<<(std::ostream& o, const arb::postsynaptic_spike_event& e)
+    {
+        return o << "E[tgt " << e.target << ", t " << e.time << ", w " << e.weight << "]";
+    }
 };
-
-struct sample_event {
-    using size_type = std::uint32_t;
-
-    size_type sampler_index;
-    time_type time;
-};
-
-// Configuration point: define `event_time(ev)` for event objects `ev`
-// that do not have the corresponding `time` member field.
-
-template <typename Event>
-auto event_time(const Event& ev) -> decltype(ev.time) {
-    return ev.time;
-}
-
-namespace impl {
-    using ::nest::mc::event_time;
-
-    // wrap in `impl::` namespace to obtain correct ADL for return type.
-    template <typename Event>
-    using event_time_type = decltype(event_time(std::declval<Event>()));
-}
 
 template <typename Event>
 class event_queue {
 public :
     using value_type = Event;
-    using event_time_type = impl::event_time_type<Event>;
+    using event_time_type = ::arb::event_time_type<Event>;
 
     event_queue() {}
 
@@ -79,7 +68,7 @@ public :
             return util::nothing;
         }
 
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         auto t = event_time(queue_.top());
         return t_until > t? util::just(t): util::nothing;
     }
@@ -88,7 +77,7 @@ public :
     // queue non-empty and the head satisfies predicate.
     template <typename Pred>
     util::optional<value_type> pop_if(Pred&& pred) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         if (!queue_.empty() && pred(queue_.top())) {
             auto ev = queue_.top();
             queue_.pop();
@@ -101,7 +90,7 @@ public :
 
     // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.
     util::optional<value_type> pop_if_before(const event_time_type& t_until) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return t_until > event_time(ev); }
         );
@@ -109,7 +98,7 @@ public :
 
     // Pop and return top event `ev` of queue unless `event_time(ev)` > `t_until`
     util::optional<value_type> pop_if_not_after(const event_time_type& t_until) {
-        using ::nest::mc::event_time;
+        using ::arb::event_time;
         return pop_if(
             [&t_until](const value_type& ev) { return !(event_time(ev) > t_until); }
         );
@@ -123,7 +112,7 @@ public :
 private:
     struct event_greater {
         bool operator()(const Event& a, const Event& b) {
-            using ::nest::mc::event_time;
+            using ::arb::event_time;
             return event_time(a) > event_time(b);
         }
     };
@@ -135,11 +124,4 @@ private:
     > queue_;
 };
 
-} // namespace nest
-} // namespace mc
-
-inline std::ostream& operator<<(
-    std::ostream& o, const nest::mc::postsynaptic_spike_event& e)
-{
-    return o << "event[" << e.target << "," << e.time << "," << e.weight << "]";
-}
+} // namespace arb

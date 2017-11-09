@@ -1,16 +1,60 @@
 #pragma once
 
+#include <backends/fvm_types.hpp>
 #include <memory/memory.hpp>
+#include <util/debug.hpp>
 #include <util/span.hpp>
+#include <util/partition.hpp>
 #include <util/rangeutil.hpp>
+#include <util/indirect.hpp>
 
-#include "kernels/solve_matrix.hpp"
-#include "kernels/assemble_matrix.hpp"
-#include "kernels/interleave.hpp"
+#include "kernels/detail.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
+
+// host side wrapper for interleaved matrix assembly kernel
+void assemble_matrix_interleaved(
+    fvm_value_type* d,
+    fvm_value_type* rhs,
+    const fvm_value_type* invariant_d,
+    const fvm_value_type* voltage,
+    const fvm_value_type* current,
+    const fvm_value_type* cv_capacitance,
+    const fvm_value_type* area,
+    const fvm_size_type* sizes,
+    const fvm_size_type* starts,
+    const fvm_size_type* matrix_to_cell,
+    const fvm_value_type* dt_cell,
+    unsigned padded_size, unsigned num_mtx);
+
+// host side wrapper for interleaved matrix solver kernel
+void solve_matrix_interleaved(
+    fvm_value_type* rhs,
+    fvm_value_type* d,
+    const fvm_value_type* u,
+    const fvm_size_type* p,
+    const fvm_size_type* sizes,
+    int padded_size,
+    int num_mtx);
+
+// host side wrapper for the flat to interleaved operation
+void flat_to_interleaved(
+    const fvm_value_type* in,
+    fvm_value_type* out,
+    const fvm_size_type* sizes,
+    const fvm_size_type* starts,
+    unsigned padded_size,
+    unsigned num_vec);
+
+// host side wrapper for the interleave to flat operation
+void interleaved_to_flat(
+    const fvm_value_type* in,
+    fvm_value_type* out,
+    const fvm_size_type* sizes,
+    const fvm_size_type* starts,
+    unsigned padded_size,
+    unsigned num_vec);
 
 // A helper that performs the interleave operation on host memory.
 template <typename T, typename I>
@@ -55,6 +99,8 @@ struct matrix_state_interleaved {
     iarray matrix_sizes;
     // start values corresponding to matrix i in the external storage
     iarray matrix_index;
+    // map from matrix index (after permutation) to original cell index
+    iarray matrix_to_cell_index;
 
     // Storage for the matrix and parent index in interleaved format.
     // Includes the cv_capacitance, which is required for matrix assembly.
@@ -67,6 +113,9 @@ struct matrix_state_interleaved {
     // required for matrix assembly
     array cv_capacitance; // [pF]
 
+    // required for matrix assembly
+    array cv_area; // [μm^2]
+
     // the invariant part of the matrix diagonal
     array invariant_d;    // [μS]
 
@@ -77,7 +126,7 @@ struct matrix_state_interleaved {
     //  Storage for solution in uninterleaved format.
     //  Used to hold the storage for passing to caller, and must be updated
     //  after each call to the ::solve() method.
-    array solution;
+    array solution_;
 
     // default constructor
     matrix_state_interleaved() = default;
@@ -89,18 +138,20 @@ struct matrix_state_interleaved {
     //  cv_cap      // [pF]
     //  face_cond   // [μS]
     matrix_state_interleaved(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_idx,
+                 const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
-                 const std::vector<value_type>& face_cond)
+                 const std::vector<value_type>& face_cond,
+                 const std::vector<value_type>& area)
     {
         EXPECTS(cv_cap.size()    == p.size());
         EXPECTS(face_cond.size() == p.size());
-        EXPECTS(cell_idx.back()  == p.size());
+        EXPECTS(cell_cv_divs.back()  == p.size());
 
         // Just because you never know.
-        EXPECTS(cell_idx.size() <= UINT_MAX);
+        EXPECTS(cell_cv_divs.size() <= UINT_MAX);
 
         using util::make_span;
+        using util::indirect_view;
 
         // Convenience for commonly used type in this routine.
         using svec = std::vector<size_type>;
@@ -110,11 +161,11 @@ struct matrix_state_interleaved {
         //
 
         // Find the size of each matrix.
-        const auto num_mtx = cell_idx.size()-1;
         svec sizes;
-        for (auto it=cell_idx.begin()+1; it!=cell_idx.end(); ++it) {
-            sizes.push_back(*it - *(it-1));
+        for (auto cv_span: util::partition_view(cell_cv_divs)) {
+            sizes.push_back(cv_span.second-cv_span.first);
         }
+        const auto num_mtx = sizes.size();
 
         // Find permutations and sort indexes/sizes.
         svec perm(num_mtx);
@@ -123,15 +174,10 @@ struct matrix_state_interleaved {
         util::stable_sort_by(perm, [&sizes](size_type i){ return sizes[i]; });
         std::reverse(perm.begin(), perm.end());
 
-        // TODO: refactor to be less verbose with permutation_view
-        svec sizes_p;
-        for (auto i: make_span(0, num_mtx)) {
-            sizes_p.push_back(sizes[perm[i]]);
-        }
-        svec cell_index_p;
-        for (auto i: make_span(0, num_mtx)) {
-            cell_index_p.push_back(cell_idx[perm[i]]);
-        }
+        svec sizes_p = util::assign_from(indirect_view(sizes, perm));
+
+        auto cell_to_cv = util::subrange_view(cell_cv_divs, 0, num_mtx);
+        svec cell_to_cv_p = util::assign_from(indirect_view(cell_to_cv, perm));
 
         //
         // Calculate dimensions required to store matrices.
@@ -154,7 +200,7 @@ struct matrix_state_interleaved {
             auto lane  = mtx%block_dim();
 
             auto len = sizes_p[mtx];
-            auto src = cell_index_p[mtx];
+            auto src = cell_to_cv_p[mtx];
             auto dst = block*(block_dim()*padded_size) + lane;
             for (auto i: make_span(0, len)) {
                 // the p indexes are always relative to the start of the p vector.
@@ -189,52 +235,49 @@ struct matrix_state_interleaved {
         // memory, for use as an rvalue in an assignemt to a device vector.
         auto interleave = [&] (std::vector<T>const& x) {
             return memory::on_gpu(
-                flat_to_interleaved(x, sizes_p, cell_index_p, block_dim(), num_mtx, padded_size));
+                flat_to_interleaved(x, sizes_p, cell_to_cv_p, block_dim(), num_mtx, padded_size));
         };
-        u           = interleave(u_tmp);
-        invariant_d = interleave(invariant_d_tmp);
+        u              = interleave(u_tmp);
+        invariant_d    = interleave(invariant_d_tmp);
+        cv_area        = interleave(area);
         cv_capacitance = interleave(cv_cap);
 
         matrix_sizes = memory::make_const_view(sizes_p);
-        matrix_index = memory::make_const_view(cell_index_p);
+        matrix_index = memory::make_const_view(cell_to_cv_p);
+        matrix_to_cell_index = memory::make_const_view(perm);
 
         // Allocate space for storing the un-interleaved solution.
-        solution = array(p.size());
+        solution_ = array(p.size());
+    }
+
+    const_view solution() const {
+        return solution_;
     }
 
     // Assemble the matrix
-    // Afterwards the diagonal and RHS will have been set given dt, voltage and current
-    //   dt      [ms]
-    //   voltage [mV]
-    //   current [nA]
-    void assemble(value_type dt, const_view voltage, const_view current) {
-        constexpr auto bd = impl::block_dim();
-        constexpr auto lw = impl::load_width();
-        constexpr auto block_dim = bd*lw;
-
-        // The number of threads is threads_per_matrix*num_mtx
-        const auto num_blocks = impl::block_count(num_matrices()*lw, block_dim);
-
-        assemble_matrix_interleaved<value_type, size_type, bd, lw, block_dim>
-            <<<num_blocks, block_dim>>>
+    // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
+    //   dt_cell         [ms]     (per cell)
+    //   voltage         [mV]     (per compartment)
+    //   current density [A.m^-2] (per compartment)
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+        assemble_matrix_interleaved
             (d.data(), rhs.data(), invariant_d.data(),
-             voltage.data(), current.data(), cv_capacitance.data(),
+             voltage.data(), current.data(), cv_capacitance.data(), cv_area.data(),
              matrix_sizes.data(), matrix_index.data(),
-             dt, padded_matrix_size(), num_matrices());
+             matrix_to_cell_index.data(),
+             dt_cell.data(), padded_matrix_size(), num_matrices());
 
     }
 
     void solve() {
         // Perform the Hines solve.
-        auto const grid_dim = impl::block_count(num_matrices(), impl::block_dim());
-        solve_matrix_interleaved<value_type, size_type, impl::block_dim()>
-            <<<grid_dim, impl::block_dim()>>>
-            (rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
+        solve_matrix_interleaved(
+             rhs.data(), d.data(), u.data(), parent_index.data(), matrix_sizes.data(),
              padded_matrix_size(), num_matrices());
 
         // Copy the solution from interleaved to front end storage.
-        interleaved_to_flat<value_type, size_type, impl::block_dim(), impl::load_width()>
-            (rhs.data(), solution.data(), matrix_sizes.data(), matrix_index.data(),
+        interleaved_to_flat
+            (rhs.data(), solution_.data(), matrix_sizes.data(), matrix_index.data(),
              padded_matrix_size(), num_matrices());
     }
 
@@ -252,5 +295,4 @@ private:
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -12,8 +12,7 @@
 #include <swcio.hpp>
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace io {
 
 // swc_record implementation
@@ -157,5 +156,4 @@ std::vector<swc_record> parse_swc_file(std::istream& is) {
 }
 
 } // namespace io
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -13,11 +13,10 @@
 #include "textbuffer.hpp"
 #include "util/meta.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace modcc {
 
-using nest::mc::util::enable_if_t;
+using arb::util::enable_if_t;
 using operand_fn_t = std::function<void(TextBuffer&)>;
 
 static void emit_operands(TextBuffer& tb, operand_fn_t emitter) {
@@ -76,10 +75,16 @@ struct simd_intrinsics {
     static void emit_gather(TextBuffer& tb, const A& addr,
                             const I& index, const S& scale);
 
+    // int32 value version of `emit_gather` to look up cell indices
+    template<typename A, typename I, typename S>
+    static void emit_gather_index(TextBuffer& tb, const A& addr,
+                                  const I& index, const S& scale);
+
     template<typename T>
     static void emit_set_value(TextBuffer& tb, const T& arg);
 
-    static bool has_gather_scatter();
+    static bool has_gather();
+    static bool has_scatter();
 };
 
-}}} // closing namespaces
+}} // closing namespaces

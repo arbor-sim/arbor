@@ -1,4 +1,4 @@
-NestMC prototype includes code from the open source community. Thank you!
+Arbor includes code from the open source community. Thank you!
 
 ## JSON for Modern C++
 
@@ -10,13 +10,40 @@ https://github.com/nlohmann/json
 ## Templatized C++ Command Line Parser Library (TCLAP)
 
 A header only C++ library for command line argument parsing, written by Michael E. Smoot.
-MIT license
+MIT license.
 
 https://sourceforge.net/projects/tclap
 
 ## TBB module for CMake
 
-A CMake file for Intel Threading Building Blocks (TBB) written by Justus Calvin (GitHub handle justusc).
-MIT license.
+The CMake scripts provided in the Intel Threading Building Blocks respository are
+to configure TBB. These are located in the cmake/tbb path.
+Apache 2.0 license.
 
-https://github.com/justusc/FindTBB
+https://github.com/01org/tbb/blob/tbb_2017/LICENSE
+
+## Sphinx module for CMake
+
+The CMake script cmake/FindSphinx.cmake is a modified version of a script from the LLVM
+project.
+BSD License.
+
+http://llvm.org/
+
+## Transcendentals intrinsics
+
+The numerical algorithms for the transcendentals intrinsics are based on the
+scalar Cephes library. We have been explicitly granted permission by the author to
+incorporate this material in our work.
+
+http://www.netlib.org/cephes/
+https://github.com/jeremybarnes/cephes (Github mirror)
+
+Custom license (as it appears in the original `readme` from the project's page):
+
+>Some software in this archive may be from the book _Methods and
+>Programs for Mathematical Functions_ (Prentice-Hall or Simon & Schuster
+>International, 1989) or from the Cephes Mathematical Library, a
+>commercial product. In either event, it is copyrighted by the author.
+>What you see here may be used freely but it comes with no support or
+>guarantee.

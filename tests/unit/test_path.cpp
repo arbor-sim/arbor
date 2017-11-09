@@ -7,7 +7,7 @@
 
 #include <util/path.hpp>
 
-using namespace nest::mc::util;
+using namespace arb::util;
 
 TEST(path, posix_ctor) {
     // test constructor ans assignment overloads with sample character sequences.

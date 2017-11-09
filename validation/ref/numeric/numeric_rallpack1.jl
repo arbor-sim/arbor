@@ -14,7 +14,7 @@ function run_cable(x_prop, ts)
     # Physical properties:
 
     # f is a fudge factor. rM needs to be the same
-    # the same as in nestmc, where we cannot yet set
+    # the same as in arbor, where we cannot yet set
     # the membrane conductance parameter. Scaling
     # other parameters proportionally, however,
     # gives the same dynamics.

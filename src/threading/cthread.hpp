@@ -1,7 +1,7 @@
 #pragma once
 
-#if !defined(NMC_HAVE_CTHREAD)
-    #error "this header can only be loaded if NMC_HAVE_CTHREAD is set"
+#if !defined(ARB_HAVE_CTHREAD)
+    #error "this header can only be loaded if ARB_HAVE_CTHREAD is set"
 #endif
 
 // task_group definition

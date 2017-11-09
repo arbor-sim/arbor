@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
@@ -8,15 +9,13 @@
 #include <common_types.hpp>
 #include <cell_tree.hpp>
 #include <morphology.hpp>
-#include <probes.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util/debug.hpp>
 #include <util/pprintf.hpp>
 #include <util/rangeutil.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// wrapper around compartment layout information derived from a high level cell
 /// description
@@ -31,9 +30,28 @@ int find_compartment_index(
     compartment_model const& graph
 );
 
-struct probe_spec {
+// Probe type for cell descriptions.
+struct cell_probe_address {
+    enum probe_kind {
+        membrane_voltage, membrane_current
+    };
+
     segment_location location;
-    probeKind kind;
+    probe_kind kind;
+};
+
+// Global parameter type for cell descriptions.
+
+struct specialized_mechanism {
+    std::string mech_name; // underlying mechanism
+
+    // parameters specify global constants for the specialized mechanism
+    std::vector<std::pair<std::string, double>> parameters;
+};
+
+struct cell_global_properties {
+    // Mechanisms specialized by mechanism-global parameter settings.
+    std::map<std::string, specialized_mechanism> special_mechs;
 };
 
 // used in constructor below
@@ -50,7 +68,7 @@ public:
 
     struct synapse_instance {
         segment_location location;
-        parameter_list mechanism;
+        mechanism_spec mechanism;
     };
 
     struct stimulus_instance {
@@ -66,14 +84,12 @@ public:
     // constructor
     cell();
 
-    // sometimes we really do want a copy (pending big morphology
-    // refactor)
+    // Sometimes we really do want a copy (pending big morphology refactor).
     cell(clone_cell_t, const cell& other):
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
-        spike_detectors_(other.spike_detectors_),
-        probes_(other.probes_)
+        spike_detectors_(other.spike_detectors_)
      {
          // unique_ptr's cannot be copy constructed, do a manual assignment
          segments_.reserve(other.segments_.size());
@@ -158,7 +174,7 @@ public:
     //////////////////
     // synapses
     //////////////////
-    void add_synapse(segment_location loc, parameter_list p)
+    void add_synapse(segment_location loc, mechanism_spec p)
     {
         synapses_.push_back(synapse_instance{loc, std::move(p)});
     }
@@ -181,19 +197,6 @@ public:
         return spike_detectors_;
     }
 
-    //////////////////
-    // probes
-    //////////////////
-    index_type add_probe(probe_spec p) {
-        probes_.push_back(p);
-        return probes_.size()-1;
-    }
-
-    const std::vector<probe_spec>&
-    probes() const {
-        return probes_;
-    }
-
 private:
     // storage for connections
     std::vector<index_type> parents_;
@@ -209,9 +212,6 @@ private:
 
     // the sensors
     std::vector<detector_instance> spike_detectors_;
-
-    // the probes
-    std::vector<probe_spec> probes_;
 };
 
 // Checks that two cells have the same
@@ -242,5 +242,4 @@ cable_segment* cell::add_cable(cell::index_type parent, Args&&... args)
 // section of the morphologu.
 cell make_cell(const morphology&, bool compartments_from_discretization=false);
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

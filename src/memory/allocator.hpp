@@ -2,7 +2,7 @@
 
 #include <limits>
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 #include <cuda.h>
 #include <cuda_runtime.h>
 #endif
@@ -13,8 +13,7 @@
 #include "definitions.hpp"
 #include "util.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 namespace impl {
@@ -138,7 +137,7 @@ namespace impl {
     }
 #endif
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     namespace cuda {
         template <size_type Alignment>
         class pinned_policy {
@@ -148,7 +147,7 @@ namespace impl {
                 void* ptr = reinterpret_cast<void *>
                                 (aligned_malloc<char, Alignment>(size));
 
-                if(ptr == nullptr) {
+                if (!ptr) {
                     return nullptr;
                 }
 
@@ -166,7 +165,7 @@ namespace impl {
             }
 
             void free_policy(void *ptr) {
-                if(ptr == nullptr) {
+                if (!ptr) {
                     return;
                 }
                 cudaHostUnregister(ptr);
@@ -189,9 +188,12 @@ namespace impl {
             static_assert(1024%Alignment==0, "CUDA managed memory is always aligned on 1024 byte boundaries");
 
             void* allocate_policy(std::size_t n) {
+                if (!n) {
+                    return nullptr;
+                }
                 void* ptr;
                 auto status = cudaMallocManaged(&ptr, n);
-                if(status != cudaSuccess) {
+                if (status != cudaSuccess) {
                     LOG_ERROR("memory:: unable to allocate managed memory");
                     ptr = nullptr;
                 }
@@ -208,7 +210,9 @@ namespace impl {
             }
 
             void free_policy(void* p) {
-                cudaFree(p);
+                if (p) {
+                    cudaFree(p);
+                }
             }
         };
 
@@ -243,7 +247,7 @@ namespace impl {
             }
         };
     } // namespace cuda
-#endif // #ifdef NMC_HAVE_GPU
+#endif // #ifdef ARB_HAVE_GPU
 } // namespace impl
 
 template<typename T, typename Policy >
@@ -278,11 +282,14 @@ public:
     }
 
     pointer allocate(size_type cnt, typename std::allocator<void>::const_pointer = 0) {
-        return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+        if (cnt) {
+            return reinterpret_cast<T*>(allocate_policy(cnt*sizeof(T)));
+        }
+        return nullptr;
     }
 
-    void deallocate(pointer p, size_type) {
-        if( p!=nullptr ) {
+    void deallocate(pointer p, size_type cnt) {
+        if (p) {
             free_policy(p);
         }
     }
@@ -318,7 +325,7 @@ namespace util {
         }
     };
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     template <size_t Alignment>
     struct type_printer<impl::cuda::pinned_policy<Alignment>>{
         static std::string print() {
@@ -332,6 +339,13 @@ namespace util {
     struct type_printer<impl::cuda::device_policy>{
         static std::string print() {
             return std::string("device_policy");
+        }
+    };
+
+    template <>
+    struct type_printer<impl::cuda::managed_policy<>>{
+        static std::string print() {
+            return std::string("managed_policy");
         }
     };
 #endif
@@ -357,7 +371,7 @@ template <class T, size_t alignment=(512/8)>
 using hbw_allocator = allocator<T, impl::knl::hbw_policy<alignment>>;
 #endif
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 // For pinned and allocation set the default alignment to correspond to
 // the alignment of 1024 bytes, because pinned memory is allocated at
 // page boundaries. It is allocated at page boundaries (typically 4k),
@@ -375,5 +389,4 @@ using cuda_allocator = allocator<T, impl::cuda::device_policy>;
 #endif
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

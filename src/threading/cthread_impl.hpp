@@ -19,17 +19,16 @@
 
 #include "timer.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
 // Forward declare task_group at bottom of this header
 class task_group;
-using nest::mc::threading::impl::timer;
+using arb::threading::impl::timer;
 
 namespace impl {
 
-using nest::mc::threading::task_group;
+using arb::threading::task_group;
 using std::mutex;
 using lock = std::unique_lock<mutex>;
 using std::condition_variable;
@@ -56,7 +55,7 @@ private:
     thread_map thread_ids_;
     // flag to handle exit from all threads
     bool quit_ = false;
-    
+
     // internals for taking tasks as a resource
     // and running them (updating above)
     // They get run by a thread in order to consume
@@ -80,21 +79,21 @@ private:
     // must be > 0
     // singled only created in static get_global_task_pool()
     task_pool(std::size_t nthreads);
-    
+
     // task_pool is a singleton 
     task_pool(const task_pool&) = delete;
     task_pool& operator=(const task_pool&) = delete;
 
     // set quit and wait for secondary threads to end
     ~task_pool();
-  
+
 public:
     // Like tbb calls: run queues a task,
     // wait waits for all tasks in the group to be done
     void run(const task&);
     void run(task&&);
     void wait(task_group*);
-  
+
     // includes master thread
     int get_num_threads() {
         return threads_.size() + 1;
@@ -121,7 +120,7 @@ class enumerable_thread_specific {
 
     using storage_class = std::vector<T>;
     storage_class data;
-  
+
 public :
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
@@ -206,12 +205,12 @@ private:
     impl::task_pool& global_task_pool;
     // task pool manipulates in_flight
     friend impl::task_pool;
-  
+
 public:
     task_group():
         global_task_pool{impl::task_pool::get_global_task_pool()}
     {}
-    
+
     task_group(const task_group&) = delete;
     task_group& operator=(const task_group&) = delete;
 
@@ -264,6 +263,5 @@ struct parallel_for {
     }
 };
 
-} // threading
-} // mc
-} // nest
+} // namespace threading
+} // namespace arb

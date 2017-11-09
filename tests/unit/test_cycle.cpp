@@ -8,7 +8,7 @@
 #include <util/cycle.hpp>
 #include <util/meta.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(cycle_iterator, construct) {
     std::vector<int> values = { 4, 2, 3 };
