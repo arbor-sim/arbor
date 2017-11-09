@@ -442,8 +442,11 @@ void Module::add_variables_to_symbols() {
     };
 
     // mechanisms use a vector of weights to:
-    //  density mechs: convert current densities from 10.A.m^-2 to A.m^-2
-    //  point procs  : convert current in nA to current densities in A.m^-2
+    //  density mechs:
+    //      - convert current densities from 10.A.m^-2 to A.m^-2
+    //      - density or proportion of a CV's area affected by the mechansim
+    //  point procs:
+    //      - convert current in nA to current densities in A.m^-2
     create_variable("weights_", rangeKind::range, accessKind::read);
 
     // add indexed variables to the table
