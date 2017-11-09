@@ -43,6 +43,10 @@
 *.pdf
 *.toc
 *.blg
+*.fdb_latexmk
+*.fls
+*.bbl
+
 
 # cmake
 CMakeFiles

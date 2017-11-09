@@ -130,27 +130,25 @@ std::string CPrinter::emit_source() {
     }
     text_.add_line();
 
-    // copy in the weights if this is a density mechanism
-    if (module_->kind() == moduleKind::density) {
-        text_.add_line("// add the user-supplied weights for converting from current density");
-        text_.add_line("// to per-compartment current in nA");
-        text_.add_line("if (weights.size()) {");
-        text_.increase_indentation();
-        if(optimize_) {
-            text_.add_line("memory::copy(weights, view(weights_, size()));");
-        }
-        else {
-            text_.add_line("memory::copy(weights, weights_(0, size()));");
-        }
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line("else {");
-        text_.increase_indentation();
-        text_.add_line("memory::fill(weights_, 1.0);");
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line();
+    // copy in the weights
+    text_.add_line("// add the user-supplied weights for converting from current density");
+    text_.add_line("// to per-compartment current in nA");
+    text_.add_line("if (weights.size()) {");
+    text_.increase_indentation();
+    if(optimize_) {
+        text_.add_line("memory::copy(weights, view(weights_, size()));");
     }
+    else {
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+    }
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line("else {");
+    text_.increase_indentation();
+    text_.add_line("memory::fill(weights_, 1.0);");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
 
     text_.add_line("// set initial values for variables and parameters");
     for(auto const& var : array_variables) {
@@ -207,15 +205,13 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    // Override `set_weights` method only for density mechanisms.
-    if (module_->kind() == moduleKind::density) {
-        text_.add_line("void set_weights(array&& weights) override {");
-        text_.increase_indentation();
-        text_.add_line("memory::copy(weights, weights_(0, size()));");
-        text_.decrease_indentation();
-        text_.add_line("}");
-        text_.add_line();
-    }
+    // Implement `set_weights` method.
+    text_.add_line("void set_weights(array&& weights) override {");
+    text_.increase_indentation();
+    text_.add_line("memory::copy(weights, weights_(0, size()));");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
 
     // return true/false indicating if cell has dependency on k
     auto const& ions = module_->neuron_block().ions;
