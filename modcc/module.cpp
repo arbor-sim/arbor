@@ -37,6 +37,7 @@ class NrnCurrentRewriter: public BlockRewriterBase {
 
     moduleKind kind_;
     bool has_current_update_ = false;
+    std::set<std::string> ion_current_vars_;
 
 public:
     using BlockRewriterBase::visit;
@@ -50,12 +51,18 @@ public:
                     id("current_"),
                     make_expression<NumberExpression>(loc_, 0.0)));
 
-            if (kind_==moduleKind::density) {
+            statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                id("current_"),
+                make_expression<MulBinaryExpression>(loc_,
+                    id("weights_"),
+                    id("current_"))));
+
+            for (auto& v: ion_current_vars_) {
                 statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                    id("current_"),
+                    id(v),
                     make_expression<MulBinaryExpression>(loc_,
                         id("weights_"),
-                        id("current_"))));
+                        id(v))));
             }
         }
     }
@@ -66,7 +73,11 @@ public:
         statements_.push_back(e->clone());
         auto loc = e->location();
 
-        if (is_ion_update(e)!=ionKind::none) {
+        auto update_kind = is_ion_update(e);
+        if (update_kind!=ionKind::none) {
+            if (update_kind!=ionKind::nonspecific) {
+                ion_current_vars_.insert(e->lhs()->is_identifier()->name());
+            }
             has_current_update_ = true;
 
             if (!linear_test(e->rhs(), {"v"}).is_linear) {
@@ -430,11 +441,13 @@ void Module::add_variables_to_symbols() {
         symbols_[name] = symbol_ptr{t};
     };
 
-    // density mechanisms use a vector of weights from current densities to
-    // units of nA
-    if (kind()==moduleKind::density) {
-        create_variable("weights_", rangeKind::range, accessKind::read);
-    }
+    // mechanisms use a vector of weights to:
+    //  density mechs:
+    //      - convert current densities from 10.A.m^-2 to A.m^-2
+    //      - density or proportion of a CV's area affected by the mechansim
+    //  point procs:
+    //      - convert current in nA to current densities in A.m^-2
+    create_variable("weights_", rangeKind::range, accessKind::read);
 
     // add indexed variables to the table
     auto create_indexed_variable = [this]

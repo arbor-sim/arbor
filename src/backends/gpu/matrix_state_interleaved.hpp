@@ -21,6 +21,7 @@ void assemble_matrix_interleaved(
     const fvm_value_type* voltage,
     const fvm_value_type* current,
     const fvm_value_type* cv_capacitance,
+    const fvm_value_type* area,
     const fvm_size_type* sizes,
     const fvm_size_type* starts,
     const fvm_size_type* matrix_to_cell,
@@ -112,6 +113,9 @@ struct matrix_state_interleaved {
     // required for matrix assembly
     array cv_capacitance; // [pF]
 
+    // required for matrix assembly
+    array cv_area; // [μm^2]
+
     // the invariant part of the matrix diagonal
     array invariant_d;    // [μS]
 
@@ -136,7 +140,8 @@ struct matrix_state_interleaved {
     matrix_state_interleaved(const std::vector<size_type>& p,
                  const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
-                 const std::vector<value_type>& face_cond)
+                 const std::vector<value_type>& face_cond,
+                 const std::vector<value_type>& area)
     {
         EXPECTS(cv_cap.size()    == p.size());
         EXPECTS(face_cond.size() == p.size());
@@ -232,8 +237,9 @@ struct matrix_state_interleaved {
             return memory::on_gpu(
                 flat_to_interleaved(x, sizes_p, cell_to_cv_p, block_dim(), num_mtx, padded_size));
         };
-        u           = interleave(u_tmp);
-        invariant_d = interleave(invariant_d_tmp);
+        u              = interleave(u_tmp);
+        invariant_d    = interleave(invariant_d_tmp);
+        cv_area        = interleave(area);
         cv_capacitance = interleave(cv_cap);
 
         matrix_sizes = memory::make_const_view(sizes_p);
@@ -250,13 +256,13 @@ struct matrix_state_interleaved {
 
     // Assemble the matrix
     // Afterwards the diagonal and RHS will have been set given dt, voltage and current.
-    //   dt_cell [ms] (per cell)
-    //   voltage [mV]
-    //   current [nA]
+    //   dt_cell         [ms]     (per cell)
+    //   voltage         [mV]     (per compartment)
+    //   current density [A.m^-2] (per compartment)
     void assemble(const_view dt_cell, const_view voltage, const_view current) {
         assemble_matrix_interleaved
             (d.data(), rhs.data(), invariant_d.data(),
-             voltage.data(), current.data(), cv_capacitance.data(),
+             voltage.data(), current.data(), cv_capacitance.data(), cv_area.data(),
              matrix_sizes.data(), matrix_index.data(),
              matrix_to_cell_index.data(),
              dt_cell.data(), padded_matrix_size(), num_matrices());
