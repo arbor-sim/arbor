@@ -63,31 +63,15 @@ public :
         eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-        valency_(0),
-        Xi_default_(0),
-        Xo_default_(0)
+        valency(0),
+        default_internal_concentration(0),
+        default_external_concentration(0)
     {}
 
     std::size_t memory() const {
         return 4u*size() * sizeof(value_type)
                +  size() * sizeof(iarray)
                +  sizeof(ion);
-    }
-
-    void set_valency(int v) {
-        valency_ = v;
-    }
-    int valency() const {
-        return valency_;
-    }
-
-    void set_default_internal_concentration(value_type c) {
-        EXPECTS(c>=value_type(0));
-        Xi_default_ = c;
-    }
-    void set_default_external_concentration(value_type c) {
-        EXPECTS(c>=value_type(0));
-        Xo_default_ = c;
     }
 
     view current() {
@@ -107,15 +91,19 @@ public :
     }
 
     void reset() {
+        // The Nernst equation uses the assumption of nonzero concentrations:
+        EXPECTS(default_internal_concentration> value_type(0));
+        EXPECTS(default_external_concentration> value_type(0));
         memory::fill(iX_, 0);
-        memory::fill(Xi_, Xi_default_);
-        memory::fill(Xo_, Xo_default_);
+        memory::fill(Xi_, default_internal_concentration);
+        memory::fill(Xo_, default_external_concentration);
+        nernst_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
     }
 
     /// Calculate the reversal potential for all compartments using Nernst equation
     /// temperature is in degrees Kelvin
-    void update_reversal_potential(value_type temperature) {
-        backend::nernst(valency_, temperature, Xo_, Xi_, eX_);
+    void nernst_reversal_potential(value_type temperature) {
+        backend::nernst(valency, temperature, Xo_, Xi_, eX_);
     }
 
     const_iview node_index() const {
@@ -126,16 +114,17 @@ public :
         return node_index_.size();
     }
 
-private :
-
+private:
     iarray node_index_;
-    array iX_;  // (nA) current
-    array eX_;  // (mV) reversal potential
-    array Xi_;  // (mM) internal concentration
-    array Xo_;  // (mM) external concentration
-    int valency_;           // valency of ionic species
-    value_type Xi_default_; // (mM) default internal concentration
-    value_type Xo_default_; // (mM) default external concentration
+    array iX_;      // (nA) current
+    array eX_;      // (mV) reversal potential
+    array Xi_;      // (mM) internal concentration
+    array Xo_;      // (mM) external concentration
+
+public:
+    int valency;    // valency of ionic species
+    value_type default_internal_concentration; // (mM) default internal concentration
+    value_type default_external_concentration; // (mM) default external concentration
 };
 
 } // namespace arb

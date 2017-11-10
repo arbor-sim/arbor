@@ -1064,17 +1064,17 @@ void fvm_multicell<Backend>::initialize(
     // Whereas we use the Nernst equation to calculate reversal potentials at
     // the start of each time step.
 
-    ion_na().set_default_internal_concentration( 10);
-    ion_na().set_default_external_concentration(140);
-    ion_na().set_valency(1);
+    ion_na().default_internal_concentration = 10;
+    ion_na().default_external_concentration =140;
+    ion_na().valency = 1;
 
-    ion_k().set_default_internal_concentration(54.4);
-    ion_k().set_default_external_concentration( 2.5);
-    ion_k().set_valency(1);
+    ion_k().default_internal_concentration =54.4;
+    ion_k().default_external_concentration = 2.5;
+    ion_k().valency = 1;
 
-    ion_ca().set_default_internal_concentration(5e-5);
-    ion_ca().set_default_external_concentration( 2.0);
-    ion_ca().set_valency(2);
+    ion_ca().default_internal_concentration =5e-5;
+    ion_ca().default_external_concentration = 2.0;
+    ion_ca().valency = 2;
 
     // initialize mechanism and voltage state
     reset();
@@ -1103,7 +1103,7 @@ void fvm_multicell<Backend>::reset() {
     // Updeate reversal potential to account for changes to concentrations made
     // by calls to nrn_init() in mechansisms.
     for (auto& i: ions_) {
-        i.second.update_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
+        i.second.nernst_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
     }
 
     // Reset state of the threshold watcher.
@@ -1136,7 +1136,7 @@ void fvm_multicell<Backend>::step_integration() {
     for (auto& i: ions_) {
         auto& ion = i.second;
         memory::fill(ion.current(), 0.);
-        ion.update_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
+        ion.nernst_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
     }
 
     // deliver pending events and update current contributions from mechanisms
