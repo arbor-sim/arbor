@@ -13,6 +13,11 @@
 
 using namespace arb;
 
+namespace {
+    auto evtime = [](deliverable_event e) { return event_time(e); };
+    auto evindex = [](deliverable_event e) { return event_index(e); };
+}
+
 using deliverable_event_stream = gpu::multi_event_stream<deliverable_event>;
 
 namespace common_events {
@@ -51,7 +56,8 @@ TEST(multi_event_stream, init) {
     EXPECT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
+    ASSERT_TRUE(util::is_sorted_by(events, evtime));
+    util::stable_sort_by(events, evindex);
     m.init(events);
     EXPECT_FALSE(m.empty());
 
@@ -99,7 +105,8 @@ TEST(multi_event_stream, mark) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
+    ASSERT_TRUE(util::is_sorted_by(events, evtime));
+    util::stable_sort_by(events, evindex);
     m.init(events);
 
     for (cell_size_type i = 0; i<n_cell; ++i) {
@@ -209,7 +216,8 @@ TEST(multi_event_stream, time_if_before) {
     ASSERT_EQ(n_cell, m.n_streams());
 
     auto events = common_events::events;
-    ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
+    ASSERT_TRUE(util::is_sorted_by(events, evtime));
+    util::stable_sort_by(events, evindex);
     m.init(events);
 
     // Test times less than all event times (first event at t=2).

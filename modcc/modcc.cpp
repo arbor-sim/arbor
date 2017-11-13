@@ -17,8 +17,6 @@
 
 using namespace arb;
 
-//#define VERBOSE
-
 int main(int argc, char **argv) {
 
     // parse command line arguments

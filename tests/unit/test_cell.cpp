@@ -178,8 +178,7 @@ TEST(cell_type, clone)
     c.add_cable(1, section_kind::dendrite, 0.2, 0.15, 20);
     c.segment(2)->set_compartments(5);
 
-    parameter_list exp_default("expsyn");
-    c.add_synapse({1, 0.3}, exp_default);
+    c.add_synapse({1, 0.3}, mechanism_spec("expsyn"));
 
     c.add_detector({0, 0.5}, 10.0);
 

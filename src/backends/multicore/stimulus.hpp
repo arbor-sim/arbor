@@ -38,9 +38,6 @@ public:
         return 0;
     }
 
-    void set_params() override {
-    }
-
     std::string name() const override {
         return "stimulus";
     }
@@ -75,6 +72,12 @@ public:
         delay = del;
     }
 
+    void set_weights(array&& w) override {
+        EXPECTS(size()==w.size());
+        weights.resize(size());
+        std::copy(w.begin(), w.end(), weights.begin());
+    }
+
     void nrn_current() override {
         if (amplitude.size() != size()) {
             throw std::domain_error("stimulus called with mismatched parameter size\n");
@@ -87,7 +90,7 @@ public:
             if (t>=delay[i] && t<delay[i]+duration[i]) {
                 // use subtraction because the electrod currents are specified
                 // in terms of current into the compartment
-                vec_i[i] -= amplitude[i];
+                vec_i[i] -= weights[i]*amplitude[i];
             }
         }
     }
@@ -95,6 +98,7 @@ public:
     std::vector<value_type> amplitude;
     std::vector<value_type> duration;
     std::vector<value_type> delay;
+    std::vector<value_type> weights;
 
     using base::vec_ci_;
     using base::vec_t_;

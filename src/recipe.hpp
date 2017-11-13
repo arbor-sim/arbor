@@ -14,6 +14,8 @@ namespace arb {
 struct probe_info {
     cell_member_type id;
     probe_tag tag;
+
+    // Address type will be specific to cell kind of cell `id.gid`.
     util::any address;
 };
 
@@ -53,7 +55,8 @@ class recipe {
 public:
     virtual cell_size_type num_cells() const = 0;
 
-    virtual util::unique_any get_cell_description(cell_gid_type) const = 0;
+    // Cell description type will be specific to cell kind of cell with given gid.
+    virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
 
     virtual cell_size_type num_sources(cell_gid_type) const = 0;
@@ -62,6 +65,9 @@ public:
 
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const = 0;
     virtual probe_info get_probe(cell_member_type probe_id) const = 0;
+
+    // Global property type will be specific to given cell kind.
+    virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
 };
 
 } // namespace arb

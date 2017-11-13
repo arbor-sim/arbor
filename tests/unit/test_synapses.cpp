@@ -16,14 +16,11 @@ TEST(synapses, add_to_cell)
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);
-    soma->add_mechanism(hh_parameters());
+    soma->add_mechanism("hh");
 
-    parameter_list exp_default("expsyn");
-    parameter_list exp2_default("exp2syn");
-
-    cell.add_synapse({0, 0.1}, exp_default);
-    cell.add_synapse({1, 0.2}, exp2_default);
-    cell.add_synapse({0, 0.3}, exp_default);
+    cell.add_synapse({0, 0.1}, "expsyn");
+    cell.add_synapse({1, 0.2}, "exp2syn");
+    cell.add_synapse({0, 0.3}, "expsyn");
 
     EXPECT_EQ(3u, cell.synapses().size());
     const auto& syns = cell.synapses();
@@ -44,6 +41,7 @@ TEST(synapses, add_to_cell)
 TEST(synapses, expsyn_basic_state)
 {
     using namespace arb;
+    using memory::make_const_view;
     using size_type = multicore::backend::size_type;
     using value_type = multicore::backend::value_type;
 
@@ -62,7 +60,7 @@ TEST(synapses, expsyn_basic_state)
     synapse_type::array voltage(num_comp, -65.0);
     synapse_type::array current(num_comp,   1.0);
 
-    auto mech = make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
+    auto mech = make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, make_const_view(weights), make_const_view(node_index));
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();
@@ -105,6 +103,7 @@ TEST(synapses, expsyn_basic_state)
 TEST(synapses, exp2syn_basic_state)
 {
     using namespace arb;
+    using memory::make_const_view;
     using size_type = multicore::backend::size_type;
     using value_type = multicore::backend::value_type;
 
@@ -123,7 +122,7 @@ TEST(synapses, exp2syn_basic_state)
     synapse_type::array voltage(num_comp, -65.0);
     synapse_type::array current(num_comp,   1.0);
 
-    auto mech = make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, weights, node_index);
+    auto mech = make_mechanism<synapse_type>(0, cell_index, time, time_to, dt, voltage, current, make_const_view(weights), make_const_view(node_index));
     auto ptr = dynamic_cast<synapse_type*>(mech.get());
 
     auto n = ptr->size();

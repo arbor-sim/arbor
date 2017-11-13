@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <string>
+#include <unordered_set>
 
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
@@ -46,6 +48,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include <backends/fvm_types.hpp>");
     buffer().add_line("#include <backends/multi_event_stream_state.hpp>");
     buffer().add_line("#include <backends/gpu/kernels/detail.hpp>");
+    buffer().add_line("#include <util/simple_table.hpp>");
     buffer().add_line();
 
     buffer().add_line("namespace arb { namespace gpu{");
@@ -313,13 +316,20 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     }
     buffer().add_line();
 
-    // copy in the weights if this is a density mechanism
-    if (m.kind() == moduleKind::density) {
-        buffer().add_line("// add the user-supplied weights for converting from current density");
-        buffer().add_line("// to per-compartment current in nA");
-        buffer().add_line("memory::copy(weights, weights_(0, size()));");
-        buffer().add_line();
-    }
+    // copy in the weights
+    buffer().add_line("// add the user-supplied weights for converting from current density");
+    buffer().add_line("// to per-compartment current in nA");
+    buffer().add_line("if (weights.size()) {");
+    buffer().increase_indentation();
+    buffer().add_line("memory::copy(weights, weights_(0, size()));");
+    buffer().decrease_indentation();
+    buffer().add_line("}");
+    buffer().add_line("else {");
+    buffer().increase_indentation();
+    buffer().add_line("memory::fill(weights_, 1.0);");
+    buffer().decrease_indentation();
+    buffer().add_line("}");
+    buffer().add_line();
 
     buffer().decrease_indentation();
     buffer().add_line("}");
@@ -374,6 +384,14 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("mechanismKind kind() const override {");
     buffer().increase_indentation();
     buffer().add_line("return " + kind_str + ";");
+    buffer().decrease_indentation();
+    buffer().add_line("}");
+    buffer().add_line();
+
+    // Implement mechanism::set_weights method
+    buffer().add_line("void set_weights(array&& weights) override {");
+    buffer().increase_indentation();
+    buffer().add_line("memory::copy(weights, weights_(0, size()));");
     buffer().decrease_indentation();
     buffer().add_line("}");
     buffer().add_line();
@@ -525,6 +543,61 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
     }
 
+    std::unordered_set<std::string> scalar_set;
+    for (auto& v: scalar_variables) {
+        scalar_set.insert(v->name());
+    }
+
+    std::vector<Id> global_param_ids;
+    std::vector<Id> instance_param_ids;
+
+    for (const Id& id: module_->parameter_block().parameters) {
+        auto var = id.token.spelling;
+        (scalar_set.count(var)? global_param_ids: instance_param_ids).push_back(id);
+    }
+    const std::vector<Id>& state_ids = module_->state_block().state_variables;
+
+    if (!instance_param_ids.empty() || !state_ids.empty()) {
+        buffer().add_line("view base::* field_view_ptr(const char* id) const override {");
+        buffer().increase_indentation();
+        buffer().add_line("static const std::pair<const char*, view "+class_name+"::*> field_tbl[] = {");
+        buffer().increase_indentation();
+        for (const auto& id: instance_param_ids) {
+            auto var = id.token.spelling;
+            buffer().add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        for (const auto& id: state_ids) {
+            auto var = id.token.spelling;
+            buffer().add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        buffer().decrease_indentation();
+        buffer().add_line("};");
+        buffer().add_line();
+        buffer().add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        buffer().add_line("return pptr? static_cast<view base::*>(*pptr): nullptr;");
+        buffer().decrease_indentation();
+        buffer().add_line("}");
+        buffer().add_line();
+    }
+
+    if (!global_param_ids.empty()) {
+        buffer().add_line("value_type base::* field_value_ptr(const char* id) const override {");
+        buffer().increase_indentation();
+        buffer().add_line("static const std::pair<const char*, value_type "+class_name+"::*> field_tbl[] = {");
+        buffer().increase_indentation();
+        for (const auto& id: global_param_ids) {
+            auto var = id.token.spelling;
+            buffer().add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        buffer().decrease_indentation();
+        buffer().add_line("};");
+        buffer().add_line();
+        buffer().add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        buffer().add_line("return pptr? static_cast<value_type base::*>(*pptr): nullptr;");
+        buffer().decrease_indentation();
+        buffer().add_line("}");
+        buffer().add_line();
+    }
     //////////////////////////////////////////////
     //////////////////////////////////////////////
 

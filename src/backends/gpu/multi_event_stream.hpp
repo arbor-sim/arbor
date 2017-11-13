@@ -9,6 +9,7 @@
 #include <generic_event.hpp>
 #include <memory/array.hpp>
 #include <memory/copy.hpp>
+#include <profiling/profiler.hpp>
 #include <util/rangeutil.hpp>
 
 namespace arb {
@@ -43,8 +44,8 @@ public:
     // Remove marked events from front of each event stream.
     void drop_marked_events();
 
-    // If the head of `i`th event stream exists and has time less than `t_until[i]`, set
-    // `t_until[i]` to the event time.
+    // If the head of `i`th event stream exists and has time less than
+    // `t_until[i]`, set `t_until[i]` to the event time.
     void event_time_if_before(view t_until);
 
 protected:
@@ -58,18 +59,18 @@ protected:
         n_nonempty_stream_(1)
     {}
 
+    // The list of events must be sorted sorted first by index and then by time.
     template <typename Event>
-    void init(std::vector<Event>& staged) {
+    void init(const std::vector<Event>& staged) {
         using ::arb::event_time;
         using ::arb::event_index;
 
+        PE("event-stream");
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
         }
 
-        // Sort by index (staged events should already be time-sorted).
-        EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_time(ev); }));
-        util::stable_sort_by(staged, [](const Event& ev) { return event_index(ev); });
+        EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
 
         std::size_t n_ev = staged.size();
         tmp_ev_time_.clear();
@@ -102,6 +103,7 @@ protected:
         memory::copy(memory::make_view(tmp_divs_)(1,n_stream_+1), span_end_);
         memory::copy(span_begin_, mark_);
         n_nonempty_stream_[0] = n_nonempty;
+        PL();
     }
 
     size_type n_stream_;
@@ -131,8 +133,8 @@ public:
 
     // Initialize event streams from a vector of events, sorted first by index
     // and then by time.
-    void init(std::vector<Event> staged) {
-        multi_event_stream_base::init(staged); // reorders `staged` in place.
+    void init(const std::vector<Event>& staged) {
+        multi_event_stream_base::init(staged);
 
         tmp_ev_data_.clear();
         tmp_ev_data_.reserve(staged.size());

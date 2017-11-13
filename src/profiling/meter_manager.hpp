@@ -53,6 +53,7 @@ public:
 struct meter_report {
     std::vector<std::string> checkpoints;
     unsigned num_domains;
+    unsigned num_hosts;
     arb::communication::global_policy_kind communication_policy;
     std::vector<measurement> meters;
     std::vector<std::string> hosts;

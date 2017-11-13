@@ -29,12 +29,6 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
             cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
-
-    // Allocate an empty queue buffer for each cell group
-    // These must be set initially to ensure that a queue is available for each
-    // cell group for the first time step.
-    current_events().resize(num_groups());
-    future_events().resize(num_groups());
 }
 
 void model::reset() {
@@ -44,13 +38,6 @@ void model::reset() {
     }
 
     communicator_.reset();
-
-    for(auto& q: current_events()) {
-        q.clear();
-    }
-    for(auto& q: future_events()) {
-        q.clear();
-    }
 
     current_spikes().clear();
     previous_spikes().clear();
@@ -72,14 +59,11 @@ time_type model::run(time_type tfinal, time_type dt) {
     auto update_cells = [&] () {
         threading::parallel_for::apply(
             0u, cell_groups_.size(),
-             [&](unsigned i) {
+            [&](unsigned i) {
+                PE("stepping");
                 auto &group = cell_groups_[i];
 
-                PE("stepping","events");
-                group->enqueue_events(current_events()[i]);
-                PL();
-
-                group->advance(tuntil, dt);
+                group->advance(epoch_, dt);
 
                 PE("events");
                 current_spikes().insert(group->spikes());
@@ -105,17 +89,24 @@ time_type model::run(time_type tfinal, time_type dt) {
         global_export_callback_(global_spikes.values());
         PL();
 
-        PE("events");
-        future_events() = communicator_.make_event_queues(global_spikes);
+        PE("events","from-spikes");
+        auto events = communicator_.make_event_queues(global_spikes);
         PL();
+
+        PE("enqueue");
+        for (auto i: util::make_span(0, cell_groups_.size())) {
+            cell_groups_[i]->enqueue_events(
+                epoch_,
+                util::subrange_view(events, communicator_.group_queue_range(i)));
+        }
+        PL(2);
 
         PL(2);
     };
 
+    tuntil = std::min(t_+t_interval, tfinal);
+    epoch_ = epoch(0, tuntil);
     while (t_<tfinal) {
-        tuntil = std::min(t_+t_interval, tfinal);
-
-        event_queues_.exchange();
         local_spikes_.exchange();
 
         // empty the spike buffers for the current integration period.
@@ -130,11 +121,13 @@ time_type model::run(time_type tfinal, time_type dt) {
         g.wait();
 
         t_ = tuntil;
+
+        tuntil = std::min(t_+t_interval, tfinal);
+        epoch_.advance(tuntil);
     }
 
     // Run the exchange one last time to ensure that all spikes are output
     // to file.
-    event_queues_.exchange();
     local_spikes_.exchange();
     exchange();
 

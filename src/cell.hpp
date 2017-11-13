@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <mutex>
 #include <stdexcept>
 #include <thread>
@@ -29,6 +30,7 @@ int find_compartment_index(
     compartment_model const& graph
 );
 
+// Probe type for cell descriptions.
 struct cell_probe_address {
     enum probe_kind {
         membrane_voltage, membrane_current
@@ -36,6 +38,20 @@ struct cell_probe_address {
 
     segment_location location;
     probe_kind kind;
+};
+
+// Global parameter type for cell descriptions.
+
+struct specialized_mechanism {
+    std::string mech_name; // underlying mechanism
+
+    // parameters specify global constants for the specialized mechanism
+    std::vector<std::pair<std::string, double>> parameters;
+};
+
+struct cell_global_properties {
+    // Mechanisms specialized by mechanism-global parameter settings.
+    std::map<std::string, specialized_mechanism> special_mechs;
 };
 
 // used in constructor below
@@ -52,7 +68,7 @@ public:
 
     struct synapse_instance {
         segment_location location;
-        parameter_list mechanism;
+        mechanism_spec mechanism;
     };
 
     struct stimulus_instance {
@@ -158,7 +174,7 @@ public:
     //////////////////
     // synapses
     //////////////////
-    void add_synapse(segment_location loc, parameter_list p)
+    void add_synapse(segment_location loc, mechanism_spec p)
     {
         synapses_.push_back(synapse_instance{loc, std::move(p)});
     }

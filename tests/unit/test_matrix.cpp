@@ -21,7 +21,7 @@ using vvec = std::vector<value_type>;
 TEST(matrix, construct_from_parent_only)
 {
     std::vector<size_type> p = {0,0,1};
-    matrix_type m(p, {0, 3}, vvec(3), vvec(3));
+    matrix_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3));
     EXPECT_EQ(m.num_cells(), 1u);
     EXPECT_EQ(m.size(), 3u);
     EXPECT_EQ(p.size(), 3u);
@@ -39,7 +39,7 @@ TEST(matrix, solve_host)
 
     // trivial case : 1x1 matrix
     {
-        matrix_type m({0}, {0,1}, vvec(1), vvec(1));
+        matrix_type m({0}, {0,1}, vvec(1), vvec(1), vvec(1));
         auto& state = m.state_;
         fill(state.d,  2);
         fill(state.u, -1);
@@ -55,7 +55,7 @@ TEST(matrix, solve_host)
         for(auto n : make_span(2u,1001u)) {
             auto p = std::vector<size_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
-            matrix_type m(p, {0, n}, vvec(n), vvec(n));
+            matrix_type m(p, {0, n}, vvec(n), vvec(n), vvec(n));
 
             EXPECT_EQ(m.size(), n);
             EXPECT_EQ(m.num_cells(), 1u);
@@ -87,18 +87,20 @@ TEST(matrix, zero_diagonal)
     // elements should be ignored).
     // These submatrices should leave the rhs as-is when solved.
 
+    using memory::make_const_view;
+
     // Three matrices, sizes 3, 3 and 2, with no branching.
     std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
     std::vector<size_type> c = {0, 3, 5, 7};
-    matrix_type m(p, c, vvec(7), vvec(7));
+    matrix_type m(p, c, vvec(7), vvec(7), vvec(7));
 
     EXPECT_EQ(7u, m.size());
     EXPECT_EQ(3u, m.num_cells());
 
     auto& A = m.state_;
-    A.d =   vvec({2,  3,  2, 0,  0,  4,  5});
-    A.u =   vvec({0, -1, -1, 0, -1,  0, -2});
-    A.rhs = vvec({3,  5,  7, 7,  8, 16, 32});
+    A.d =   make_const_view(vvec({2,  3,  2, 0,  0,  4,  5}));
+    A.u =   make_const_view(vvec({0, -1, -1, 0, -1,  0, -2}));
+    A.rhs = make_const_view(vvec({3,  5,  7, 7,  8, 16, 32}));
 
     // Expected solution:
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
@@ -137,17 +139,18 @@ TEST(matrix, zero_diagonal_assembled)
 
     // Intial voltage of zero; currents alone determine rhs.
     vvec v(7, 0.0);
-    vvec i = {-3, -5, -7, -6, -9, -16, -32};
+    vvec area(7, 1.0);
+    vvec i = {-3000, -5000, -7000, -6000, -9000, -16000, -32000};
 
     // Expected matrix and rhs:
-    // u = [ 0 -1 -1  0 -1  0 -2]
-    // d = [ 2  3  2  2  2  4  5]
-    // b = [ 3  5  7  2  4 16 32]
+    // u   = [ 0 -1 -1  0 -1  0 -2]
+    // d   = [ 2  3  2  2  2  4  5]
+    // rhs = [ 3  5  7  2  4 16 32]
     //
     // Expected solution:
     // x = [ 4  5  6  7  8  9 10]
 
-    matrix_type m(p, c, Cm, g);
+    matrix_type m(p, c, Cm, g, area);
     m.assemble(make_view(dt), make_view(v), make_view(i));
     m.solve();
 

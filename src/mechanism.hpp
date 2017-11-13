@@ -4,15 +4,43 @@
 #include <memory>
 #include <string>
 
+#include <backends/fvm_types.hpp>
 #include <backends/event.hpp>
 #include <backends/multi_event_stream_state.hpp>
 #include <ion.hpp>
-#include <parameter_list.hpp>
 #include <util/indirect.hpp>
 #include <util/meta.hpp>
 #include <util/make_unique.hpp>
 
 namespace arb {
+
+struct field_spec {
+    enum field_kind {
+        parameter, // defined in 'PARAMETER' block and a 'RANGE' variable.
+        global,    // defined in 'PARAMETER' block and a 'GLOBAL' variable.
+        state,     // defined in 'STATE' block; run-time, read only values.
+    };
+    enum field_kind kind = parameter;
+
+    std::string units;
+
+    fvm_value_type default_value = 0;
+    fvm_value_type lower_bound = std::numeric_limits<fvm_value_type>::lowest();
+    fvm_value_type upper_bound = std::numeric_limits<fvm_value_type>::max();
+
+    // Until C++14, we need a ctor to provide default values instead of using
+    // default member initializers and aggregate initialization.
+    field_spec(
+        enum field_kind kind = parameter,
+        std::string units = "",
+        fvm_value_type default_value = 0.,
+        fvm_value_type lower_bound = std::numeric_limits<fvm_value_type>::lowest(),
+        fvm_value_type upper_bound = std::numeric_limits<fvm_value_type>::max()
+     ):
+        kind(kind), units(units), default_value(default_value), lower_bound(lower_bound), upper_bound(upper_bound)
+    {}
+};
+
 
 enum class mechanismKind {point, density};
 
@@ -60,7 +88,12 @@ public:
         return node_index_;
     }
 
-    virtual void set_params() = 0;
+    // Save pointers to data for use with GPU-side mechanisms;
+    // TODO: might be able to remove this method if we separate instantiation
+    // from initialization.
+    virtual void set_params() {}
+    virtual void set_weights(array&& weights) {} // override for density mechanisms
+
     virtual std::string name() const = 0;
     virtual std::size_t memory() const = 0;
     virtual void nrn_init()     = 0;
@@ -70,6 +103,24 @@ public:
     virtual bool uses_ion(ionKind) const = 0;
     virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
     virtual mechanismKind kind() const = 0;
+
+    // Mechanism instances with different global parameter settings can be distinguished by alias.
+    std::string alias() const {
+        return alias_.empty()? name(): alias_;
+    }
+
+    void set_alias(std::string alias) {
+        alias_ = std::move(alias);
+    }
+
+    // For non-global fields:
+    virtual view mechanism::* field_view_ptr(const char* id) const { return nullptr; }
+    // For global fields:
+    virtual value_type mechanism::* field_value_ptr(const char* id) const { return nullptr; }
+
+    // Convenience wrappers for field access methods with string parameter.
+    view mechanism::* field_view_ptr(const std::string& id) const { return field_view_ptr(id.c_str()); }
+    value_type mechanism::* field_value_ptr(const std::string& id) const { return field_value_ptr(id.c_str()); }
 
     // net_receive() is used internally by deliver_events(), but
     // is exposed primarily for unit testing.
@@ -94,6 +145,8 @@ public:
     view vec_i_;
     // Maps mechanism instance index to compartment index.
     iarray node_index_;
+
+    std::string alias_;
 };
 
 template <class Backend>

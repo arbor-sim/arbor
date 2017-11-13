@@ -38,10 +38,11 @@ public:
     matrix(const std::vector<size_type>& pi,
            const std::vector<size_type>& ci,
            const std::vector<value_type>& cv_capacitance,
-           const std::vector<value_type>& face_conductance):
+           const std::vector<value_type>& face_conductance,
+           const std::vector<value_type>& cv_area):
         parent_index_(memory::make_const_view(pi)),
         cell_index_(memory::make_const_view(ci)),
-        state_(pi, ci, cv_capacitance, face_conductance)
+        state_(pi, ci, cv_capacitance, face_conductance, cv_area)
     {
         EXPECTS(cell_index_[num_cells()] == parent_index_.size());
     }

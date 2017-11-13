@@ -57,12 +57,12 @@ struct backend {
     // mechanism infrastructure
     //
     using ion_type = ion<backend>;
-
-    using mechanism = mechanism_ptr<backend>;
-
     using stimulus = multicore::stimulus<backend>;
 
-    static mechanism make_mechanism(
+    using mechanism = arb::mechanism<backend>;
+    using mechanism_ptr = std::unique_ptr<mechanism>;
+
+    static mechanism_ptr make_mechanism(
         const std::string& name,
         size_type mech_id,
         const_iview vec_ci,
@@ -75,7 +75,7 @@ struct backend {
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return mech_map_.find(name)->second(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, array(weights), iarray(node_indices));
+        return mech_map_.find(name)->second(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -149,11 +149,11 @@ struct backend {
     }
 
 private:
-    using maker_type = mechanism (*)(value_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
+    using maker_type = mechanism_ptr (*)(value_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
+    static mechanism_ptr maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
         return arb::make_mechanism<Mech<backend>>
             (mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
