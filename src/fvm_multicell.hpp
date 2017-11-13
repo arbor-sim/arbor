@@ -1100,7 +1100,7 @@ void fvm_multicell<Backend>::reset() {
         m->nrn_init();
     }
 
-    // Updeate reversal potential to account for changes to concentrations made
+    // Update reversal potential to account for changes to concentrations made
     // by calls to nrn_init() in mechansisms.
     for (auto& i: ions_) {
         i.second.nernst_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
