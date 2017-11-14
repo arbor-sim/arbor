@@ -7,12 +7,13 @@
 #include <type_traits>
 #include <utility>
 
-#include "common_types.hpp"
-#include "generic_event.hpp"
-#include "util/meta.hpp"
-#include "util/optional.hpp"
-#include "util/range.hpp"
-#include "util/strprintf.hpp"
+#include <common_types.hpp>
+#include <generic_event.hpp>
+#include <util/meta.hpp>
+#include <util/optional.hpp>
+#include <util/range.hpp>
+#include <util/rangeutil.hpp>
+#include <util/strprintf.hpp>
 
 namespace arb {
 
@@ -37,6 +38,8 @@ struct postsynaptic_spike_event {
         return o << "E[tgt " << e.target << ", t " << e.time << ", w " << e.weight << "]";
     }
 };
+
+using event_lane_subrange = util::subrange_view_type<std::vector<postsynaptic_spike_event>>;
 
 template <typename Event>
 class event_queue {

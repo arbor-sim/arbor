@@ -220,6 +220,10 @@ public:
     /// Returns the total number of global spikes over the duration of the simulation
     std::uint64_t num_spikes() const { return num_spikes_; }
 
+    cell_size_type num_local_cells() const {
+        return num_local_cells_;
+    }
+
     const std::vector<connection>& connections() const {
         return connections_;
     }

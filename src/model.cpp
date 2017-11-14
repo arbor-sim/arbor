@@ -29,12 +29,27 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
             cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
+
+
+    // Create event lane buffers.
+    // There is one set for each epoch: current and next.
+    event_lanes_.resize(2);
+    // For each epoch there is one lane for each cell in the cell group.
+    event_lanes_[0].resize(communicator_.num_local_cells());
+    event_lanes_[1].resize(communicator_.num_local_cells());
 }
 
 void model::reset() {
     t_ = 0.;
+
     for (auto& group: cell_groups_) {
         group->reset();
+    }
+
+    for (auto& lanes: event_lanes_) {
+        for (auto& lane: lanes) {
+            lane.clear();
+        }
     }
 
     communicator_.reset();
@@ -63,8 +78,10 @@ time_type model::run(time_type tfinal, time_type dt) {
                 PE("stepping");
                 auto &group = cell_groups_[i];
 
-                group->advance(epoch_, dt);
-
+                auto queues = util::subrange_view(
+                    event_lanes(epoch_.id),
+                    communicator_.group_queue_range(i));
+                group->advance(epoch_, dt, queues);
                 PE("events");
                 current_spikes().insert(group->spikes());
                 group->clear_spikes();
@@ -94,10 +111,10 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL();
 
         PE("enqueue");
-        for (auto i: util::make_span(0, cell_groups_.size())) {
-            cell_groups_[i]->enqueue_events(
-                epoch_,
-                util::subrange_view(events, communicator_.group_queue_range(i)));
+        // EVENT:
+        // TODO: make this loop parallel
+        for (auto i: util::make_span(0, num_groups())) {
+            merge_events(events[i], i);
         }
         PL(2);
 
@@ -171,6 +188,10 @@ std::size_t model::num_groups() const {
     return cell_groups_.size();
 }
 
+std::vector<std::vector<postsynaptic_spike_event>>& model::event_lanes(std::size_t epoch_id) {
+    return event_lanes_[epoch_id%2];
+}
+
 void model::set_binning_policy(binning_kind policy, time_type bin_interval) {
     for (auto& group: cell_groups_) {
         group->set_binning_policy(policy, bin_interval);
@@ -187,6 +208,40 @@ void model::set_global_spike_callback(spike_export_function export_callback) {
 
 void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
+}
+
+
+void model::merge_events(
+    std::vector<postsynaptic_spike_event>& events,
+    std::size_t lane)
+{
+    using pse = postsynaptic_spike_event;
+
+    // Make convenience variables for event lanes:
+    //  lf: event lanes for the next epoch
+    //  lc: event lanes for the current epoch
+    auto& lf = event_lanes(epoch_.id+1)[lane];
+    const auto& lc = event_lanes(epoch_.id)[lane];
+
+    // For a cell, merge the incoming events with events in lc that are
+    // not to be delivered in thie epoch, and store the result in lf.
+    // TODO: sort by delivery time then weights
+    PE("sort");
+    // STEP 1: sort events in place in events[l]
+    util::sort_by(events, [](const pse& e){return event_time(e);});
+    PL();
+
+    PE("merge");
+    // STEP 2: clear lf to store merged list
+    lf.clear();
+
+    // STEP 3: merge new events and future events from lc into lf
+    auto pos = std::lower_bound(lc.begin(), lc.end(), epoch_.tfinal, event_time_less());
+    lf.resize(events.size()+std::distance(pos, lc.end()));
+    std::merge(
+        events.begin(), events.end(), pos, lc.end(), lf.begin(),
+        [](const pse& l, const pse& r) {return l.time<r.time;});
+    PL();
 }
 
 } // namespace arb

@@ -59,6 +59,10 @@ public:
     void set_local_spike_callback(spike_export_function export_callback);
 
 private:
+    std::vector<std::vector<postsynaptic_spike_event>>& event_lanes(std::size_t epoch_id);
+
+    void merge_events(std::vector<postsynaptic_spike_event>& events, std::size_t lane);
+
     std::size_t num_groups() const;
 
     // keep track of information about the current integration interval
@@ -93,6 +97,9 @@ private:
 
     local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
+
+    // Pending events to be delivered.
+    std::vector<std::vector<std::vector<postsynaptic_spike_event>>> event_lanes_;
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;
