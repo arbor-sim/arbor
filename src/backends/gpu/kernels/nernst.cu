@@ -1,5 +1,7 @@
 #include <cstdint>
 
+#include <constants.hpp>
+
 #include "../nernst.hpp"
 #include "detail.hpp"
 
@@ -11,11 +13,12 @@ namespace kernels {
     __global__ void nernst(std::size_t n, int valency, T temperature, const T* Xo, const T* Xi, T* eX) {
         auto i = threadIdx.x+blockIdx.x*blockDim.x;
 
-        constexpr T RF = 1e3*8.3144598/96485.33289; // factor 1e3 to scale from V -> mV
+        // factor 1e3 to scale from V -> mV
+        constexpr T RF = 1e3*constant::gas_constant/constant::faraday;
         T factor = RF*temperature/valency;
         if (i<n) {
             eX[i] = factor*std::log(Xo[i]/Xi[i]);
-        }
+    k   }
     }
 } // namespace kernels
 

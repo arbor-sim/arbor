@@ -97,7 +97,7 @@ public :
         memory::fill(iX_, 0);
         memory::fill(Xi_, default_internal_concentration);
         memory::fill(Xo_, default_external_concentration);
-        nernst_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
+        nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
     }
 
     /// Calculate the reversal potential for all compartments using Nernst equation

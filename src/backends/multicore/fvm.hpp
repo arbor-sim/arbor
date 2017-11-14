@@ -6,6 +6,7 @@
 #include <backends/event.hpp>
 #include <backends/fvm_types.hpp>
 #include <common_types.hpp>
+#include <constants.hpp>
 #include <event_queue.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
@@ -156,7 +157,8 @@ struct backend {
     //      F: Faraday's constant 96485.33289 C.mol-1
     //      Xo/Xi: ratio of out/in concentrations
     static void nernst(int valency, value_type temperature, const_view Xo, const_view Xi, view eX) {
-        constexpr value_type RF = 1e3*8.3144598/96485.33289; // factor 1e3 to scale from V -> mV
+        // factor 1e3 to scale from V -> mV
+        constexpr value_type RF = 1e3*constant::gas_constant/constant::faraday;
         value_type factor = RF*temperature/valency;
         for (std::size_t i=0; i<Xi.size(); ++i) {
             eX[i] = factor*std::log(Xo[i]/Xi[i]);

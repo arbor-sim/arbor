@@ -12,6 +12,7 @@
 #include <backends/fvm_types.hpp>
 #include <cell.hpp>
 #include <compartment.hpp>
+#include <constants.hpp>
 #include <event_queue.hpp>
 #include <ion.hpp>
 #include <math.hpp>
@@ -1103,7 +1104,7 @@ void fvm_multicell<Backend>::reset() {
     // Update reversal potential to account for changes to concentrations made
     // by calls to nrn_init() in mechansisms.
     for (auto& i: ions_) {
-        i.second.nernst_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
+        i.second.nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
     }
 
     // Reset state of the threshold watcher.
@@ -1136,7 +1137,7 @@ void fvm_multicell<Backend>::step_integration() {
     for (auto& i: ions_) {
         auto& ion = i.second;
         memory::fill(ion.current(), 0.);
-        ion.nernst_reversal_potential(6.3+273.15); // TODO: use temperature specfied in model
+        ion.nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
     }
 
     // deliver pending events and update current contributions from mechanisms

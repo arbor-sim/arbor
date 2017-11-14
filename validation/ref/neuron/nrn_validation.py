@@ -129,9 +129,18 @@ class VModel:
         soma.gl_hh = p['gl_hh']
         soma.el_hh = p['el_hh']
 
-        # Use the following exact values calcualted using
-        # the Nernst equation, because NEURON does not use correct values
-        # for R and F.
+        # For reversal potentials we use those computed using
+        # the Nernst equation with the following values:
+        #       R   8.3144598
+        #       F   96485.33289
+        #       nao 140   mM
+        #       nai  10   mM
+        #       ko    2.5 mM
+        #       ki   64.4 nM
+        # We don't use the default values for ena and ek taken
+        # from the HH paper:
+        #   ena    = 115.0mV + -65.0mV,
+        #   ek     = -12.0mV + -65.0mV,
         soma.ena =  63.55148117386
         soma.ek  = -74.17164678272
 
