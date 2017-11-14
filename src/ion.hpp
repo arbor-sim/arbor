@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <constants.hpp>
 #include <memory/memory.hpp>
 #include <util/indirect.hpp>
 

@@ -18,7 +18,7 @@ namespace kernels {
         T factor = RF*temperature/valency;
         if (i<n) {
             eX[i] = factor*std::log(Xo[i]/Xi[i]);
-    k   }
+        }
     }
 } // namespace kernels
 
