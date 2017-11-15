@@ -61,6 +61,7 @@ set(TEST_SOURCES
     test_partition.cpp
     test_path.cpp
     test_point.cpp
+    test_prefixbuf.cpp
     test_probe.cpp
     test_range.cpp
     test_segment.cpp

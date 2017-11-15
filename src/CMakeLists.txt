@@ -22,6 +22,7 @@ set(BASE_SOURCES
     util/debug.cpp
     util/hostname.cpp
     util/path.cpp
+    util/prefixbuf.cpp
     util/unwind.cpp
 )
 set(CUDA_SOURCES
