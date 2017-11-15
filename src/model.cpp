@@ -14,11 +14,7 @@
 
 namespace arb {
 
-void merge_events(
-    event_vector& events,
-    const event_vector& lc,
-    event_vector& lf,
-    time_type tfinal);
+void merge_events(time_type tfinal, const event_vector& lc, event_vector& events, event_vector& lf);
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
     communicator_(rec, decomp)
@@ -124,10 +120,10 @@ time_type model::run(time_type tfinal, time_type dt) {
             [&](cell_size_type i) {
                 const auto epid = epoch_.id;
                 merge_events(
-                    events[i],
+                    epoch_.tfinal,
                     event_lanes(epid)[i],
-                    event_lanes(epid+1)[i],
-                    epoch_.tfinal);
+                    events[i],
+                    event_lanes(epid+1)[i]);
             });
         PL(2);
 

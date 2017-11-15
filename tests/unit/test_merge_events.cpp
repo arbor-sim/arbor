@@ -6,12 +6,8 @@
 namespace arb {
     // Declare prototype of the merge_events function, because it is only
     // defined in the TU of model.cpp
-    void merge_events(
-        event_vector& events,
-        const event_vector& lc,
-        event_vector& lf,
-        time_type tfinal);
-}
+    void merge_events(time_type tfinal, const event_vector& lc, event_vector& events, event_vector& lf);
+} // namespace arb
 
 using namespace arb;
 
@@ -32,7 +28,7 @@ TEST(merge_events, empty)
     event_vector lc;
     event_vector lf;
 
-    merge_events(events, lc, lf, 0);
+    merge_events(0, lc, events, lf);
 
     EXPECT_EQ(lf.size(), 0u);
 }
@@ -64,7 +60,7 @@ TEST(merge_events, no_overlap)
         {{0, 0}, 11, 1},
     };
 
-    merge_events(events, lc, lf, 10);
+    merge_events(10, lc, events, lf);
 
     event_vector expected = {
         {{8, 0}, 10, 4},
@@ -102,7 +98,7 @@ TEST(merge_events, overlap)
         {{7, 0}, 10, 8},
     };
 
-    merge_events(events, lc, lf, 10);
+    merge_events(10, lc, events, lf);
 
     event_vector expected = {
         {{7, 0}, 10, 8}, // from events
