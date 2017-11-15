@@ -254,20 +254,24 @@ void model::inject_events(const event_vector& events) {
     }
 }
 
-void merge_events(
-    event_vector& events,
-    const event_vector& lc,
-    event_vector& lf,
-    time_type tfinal)
-{
+// Merge events that are to be delivered from two lists into a sorted list.
+// Events are sorted by delivery time, then target, then weight.
+//
+//  tfinal: The time at which the current epoch finishes.
+//  lc: Sorted set of events to be delivered before and after `tfinal`.
+//  events: Unsorted list of events with delivery time greater than or equal to
+//      tfinal. May be modified by the call.
+//  lf: Will hold a list of all postsynaptic events in `events` and `lc` that
+//      have delivery times greater than or equal to `tfinal`.
+void merge_events(time_type tfinal, const event_vector& lc, event_vector& events, event_vector& lf) {
     using pse = postsynaptic_spike_event;
 
     // For ordering events by: delivery time, then target index, then weight.
     auto lex_bind = [](const pse& e){return std::tie(e.time, e.target, e.weight);};
     auto lex_less = [lex_bind] (const pse& l, const pse& r) {return lex_bind(l)<lex_bind(r);};
 
-    // For a cell, merge the incoming events with events in lc that are
-    // not to be delivered in thie epoch, and store the result in lf.
+    // Merge the incoming events with events in lc that are not to be delivered
+    // in this epoch, and store the result in lf.
 
     // STEP 1: sort events in place in events[l]
     PE("sort");
