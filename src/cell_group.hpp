@@ -17,8 +17,6 @@ namespace arb {
 
 class cell_group {
 public:
-    using event_lane_subrange = util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>>;
-
     virtual ~cell_group() = default;
 
     virtual cell_kind get_cell_kind() const = 0;

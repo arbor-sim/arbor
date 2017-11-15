@@ -39,7 +39,8 @@ struct postsynaptic_spike_event {
     }
 };
 
-using event_lane_subrange = util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>>;
+using event_vector = std::vector<postsynaptic_spike_event>;
+using event_lane_subrange = util::subrange_view_type<std::vector<event_vector>>;
 
 template <typename Event>
 class event_queue {

@@ -1,3 +1,4 @@
+#include <set>
 #include <vector>
 
 #include <backends.hpp>
@@ -6,18 +7,26 @@
 #include <domain_decomposition.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
+#include <util/filter.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
 
 namespace arb {
 
+void merge_events(
+    event_vector& events,
+    const event_vector& lc,
+    event_vector& lf,
+    time_type tfinal);
+
 model::model(const recipe& rec, const domain_decomposition& decomp):
     communicator_(rec, decomp)
 {
+    cell_local_size_type lidx = 0;
     for (auto i: util::make_span(0, decomp.groups.size())) {
         for (auto gid: decomp.groups[i].gids) {
-            gid_groups_[gid] = i;
+            gid_to_local_[gid] = lidx++;
         }
     }
 
@@ -111,11 +120,15 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL();
 
         PE("enqueue");
-        // EVENT:
-        // TODO: make this loop parallel
-        for (auto i: util::make_span(0, num_groups())) {
-            merge_events(events[i], i);
-        }
+        threading::parallel_for::apply(0, num_groups(),
+            [&](cell_size_type i) {
+                const auto epid = epoch_.id;
+                merge_events(
+                    events[i],
+                    event_lanes(epid)[i],
+                    event_lanes(epid+1)[i],
+                    epoch_.tfinal);
+            });
         PL(2);
 
         PL(2);
@@ -188,7 +201,7 @@ std::size_t model::num_groups() const {
     return cell_groups_.size();
 }
 
-std::vector<std::vector<postsynaptic_spike_event>>& model::event_lanes(std::size_t epoch_id) {
+std::vector<event_vector>& model::event_lanes(std::size_t epoch_id) {
     return event_lanes_[epoch_id%2];
 }
 
@@ -196,10 +209,6 @@ void model::set_binning_policy(binning_kind policy, time_type bin_interval) {
     for (auto& group: cell_groups_) {
         group->set_binning_policy(policy, bin_interval);
     }
-}
-
-cell_group& model::group(int i) {
-    return *cell_groups_[i];
 }
 
 void model::set_global_spike_callback(spike_export_function export_callback) {
@@ -210,37 +219,69 @@ void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
 }
 
+util::optional<cell_size_type> model::local_cell_index(cell_gid_type gid) {
+    auto it = gid_to_local_.find(gid);
+    return it==gid_to_local_.end()?
+        util::nothing:
+        util::optional<cell_size_type>(it->second);
+}
 
-void model::merge_events(
-    std::vector<postsynaptic_spike_event>& events,
-    std::size_t lane)
+void model::inject_events(const event_vector& events) {
+    using pse = postsynaptic_spike_event;
+
+    auto& lanes = event_lanes(epoch_.id);
+
+    // Append all events that are to be delivered to local cells to the
+    // appropriate lane. At the same time, keep track of which lanes have been
+    // modified, because the lanes will have to be sorted once all events have
+    // been added.
+    event_vector local_events;
+    std::set<cell_size_type> modified_lanes;
+    for (auto& e: events) {
+        if (e.time<t_) {
+            throw std::runtime_error("model::inject_events(): attempt to inject an event at time " + std::to_string(e.time) + ", when model state is at time " + std::to_string(t_));
+        }
+        if (auto lidx = local_cell_index(e.target.gid)) {
+            lanes[*lidx].push_back(e);
+            modified_lanes.insert(*lidx);
+        }
+    }
+
+    // Sort events in the event lanes that were modified
+    auto event_bind = [] (const pse& e) {return std::tie(e.time, e.target, e.weight);};
+    for (auto l: modified_lanes) {
+        util::sort_by(lanes[l], event_bind);
+    }
+}
+
+void merge_events(
+    event_vector& events,
+    const event_vector& lc,
+    event_vector& lf,
+    time_type tfinal)
 {
     using pse = postsynaptic_spike_event;
 
-    // Make convenience variables for event lanes:
-    //  lf: event lanes for the next epoch
-    //  lc: event lanes for the current epoch
-    auto& lf = event_lanes(epoch_.id+1)[lane];
-    const auto& lc = event_lanes(epoch_.id)[lane];
+    // For ordering events by: delivery time, then target index, then weight.
+    auto lex_bind = [](const pse& e){return std::tie(e.time, e.target, e.weight);};
+    auto lex_less = [lex_bind] (const pse& l, const pse& r) {return lex_bind(l)<lex_bind(r);};
 
     // For a cell, merge the incoming events with events in lc that are
     // not to be delivered in thie epoch, and store the result in lf.
-    // TODO: sort by delivery time then weights
-    PE("sort");
+
     // STEP 1: sort events in place in events[l]
-    util::sort_by(events, [](const pse& e){return event_time(e);});
+    PE("sort");
+    util::sort_by(events, lex_bind);
     PL();
 
-    PE("merge");
     // STEP 2: clear lf to store merged list
     lf.clear();
 
     // STEP 3: merge new events and future events from lc into lf
-    auto pos = std::lower_bound(lc.begin(), lc.end(), epoch_.tfinal, event_time_less());
+    PE("merge");
+    auto pos = std::lower_bound(lc.begin(), lc.end(), tfinal, event_time_less());
     lf.resize(events.size()+std::distance(pos, lc.end()));
-    std::merge(
-        events.begin(), events.end(), pos, lc.end(), lf.begin(),
-        [](const pse& l, const pse& r) {return l.time<r.time;});
+    std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin(), lex_less);
     PL();
 }
 
