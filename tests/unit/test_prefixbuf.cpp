@@ -99,7 +99,7 @@ TEST(prefixbuf, setprefix) {
     p << indent << "one\ntwo ";
     p << setprefix("--->"); // override prefix
     p << "three\nfour ";
-    p << indent(0)         // restore indentation
+    p << indent(0)          // restore indentation
       << "five\nsix";
 
     std::string expected =
@@ -111,3 +111,24 @@ TEST(prefixbuf, setprefix) {
     EXPECT_EQ(expected, p.str());
 }
 
+TEST(prefixbuf, copyfmt) {
+    pfxstringstream p1;
+    pfxstringstream p2;
+
+    p1 << indent << "1\n" << indent << "2\n";
+    p2 << "0\n";
+
+    p2.copyfmt(p1);
+    p2 << "2\n" << popindent << "1\n";
+
+    p1 << indent << "3\n";
+
+    std::string expected1 =
+        "    1\n        2\n            3\n";
+
+    std::string expected2 =
+        "0\n        2\n    1\n";
+
+    EXPECT_EQ(expected1, p1.str());
+    EXPECT_EQ(expected2, p2.str());
+}

@@ -40,6 +40,9 @@ protected:
 // popindent:      undo last `indent` operation.
 // popindent(n)    undo last n `indent` operations.
 // settab(w):      set tab width to w (default is 4).
+//
+// Note that the prefix string is a property of the prefixbuf, not the stream,
+// and so will not be preserved by e.g. `copyfmt`.
 
 class setprefix {
 public:

@@ -72,6 +72,16 @@ int indent_manip::xindex() {
     return i;
 }
 
+static void apply_indent_prefix(std::ios& s, int index) {
+    if (auto pbuf = dynamic_cast<prefixbuf*>(s.rdbuf())) {
+        indent_stack* stack_ptr = static_cast<indent_stack*>(s.pword(index));
+        unsigned tabwidth = s.iword(index);
+
+        unsigned tabs = (!stack_ptr || stack_ptr->empty())? 0: stack_ptr->top();
+        pbuf->prefix = std::string(tabs*tabwidth, ' ');
+    }
+}
+
 static void indent_stack_callback(std::ios_base::event ev, std::ios_base& ios, int index) {
     void*& pword = ios.pword(index);
 
@@ -85,9 +95,14 @@ static void indent_stack_callback(std::ios_base::event ev, std::ios_base& ios, i
         break;
     case std::ios_base::copyfmt_event:
         if (pword) {
-            // clone stack
+            // Clone stack:
             indent_stack* stack_ptr = static_cast<indent_stack*>(pword);
             pword = new indent_stack(*stack_ptr);
+
+            // Set prefix if streambuf is a prefixbuf:
+            if (auto stream_ptr = dynamic_cast<std::ios*>(&ios)) {
+                apply_indent_prefix(*stream_ptr, index);
+            }
         }
         break;
     default:
@@ -121,11 +136,7 @@ std::ostream& operator<<(std::ostream& os, indent_manip in) {
         break;
     }
 
-    if (auto pbuf = dynamic_cast<prefixbuf*>(os.rdbuf())) {
-        unsigned tabs = stack.empty()? 0: stack.top();
-        pbuf->prefix = std::string(iword*tabs, ' ');
-    }
-
+    apply_indent_prefix(os, xindex);
     return os;
 }
 
