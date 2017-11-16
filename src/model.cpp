@@ -263,7 +263,6 @@ void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, ps
 
     // STEP 1: sort events in place in events[l]
     PE("sort");
-    //util::sort_by(events, pse_tie);
     util::sort(events);
     PL();
 
