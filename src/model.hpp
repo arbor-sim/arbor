@@ -1,6 +1,7 @@
 #pragma once
 
-#include <mutex>
+#include <array>
+#include <unordered_map>
 #include <vector>
 
 #include <backends.hpp>
@@ -45,20 +46,22 @@ public:
     // Set event binning policy on all our groups.
     void set_binning_policy(binning_kind policy, time_type bin_interval);
 
-    // access cell_group directly
-    // TODO: deprecate. Currently used in some validation tests to inject
-    // events directly into a cell group.
-    cell_group& group(int i);
-
-    // register a callback that will perform a export of the global
-    // spike vector
+    // Register a callback that will perform a export of the global
+    // spike vector.
     void set_global_spike_callback(spike_export_function export_callback);
 
-    // register a callback that will perform a export of the rank local
-    // spike vector
+    // Register a callback that will perform a export of the rank local
+    // spike vector.
     void set_local_spike_callback(spike_export_function export_callback);
 
+    // Add events directly to targets.
+    // Must be called before calling model::run, and must contain events that
+    // are to be delivered at or after the current model time.
+    void inject_events(const pse_vector& events);
+
 private:
+    std::vector<pse_vector>& event_lanes(std::size_t epoch_id);
+
     std::size_t num_groups() const;
 
     // keep track of information about the current integration interval
@@ -73,9 +76,10 @@ private:
     spike_export_function global_export_callback_ = util::nop_function;
     spike_export_function local_export_callback_ = util::nop_function;
 
-    // Hash table for looking up the group index of the cell_group that
-    // contains gid
-    std::unordered_map<cell_gid_type, cell_gid_type> gid_groups_;
+    // Hash table for looking up the the local index of a cell with a given gid
+    std::unordered_map<cell_gid_type, cell_size_type> gid_to_local_;
+
+    util::optional<cell_size_type> local_cell_index(cell_gid_type);
 
     communicator_type communicator_;
 
@@ -93,6 +97,9 @@ private:
 
     local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
+
+    // Pending events to be delivered.
+    std::array<std::vector<pse_vector>, 2> event_lanes_;
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;
