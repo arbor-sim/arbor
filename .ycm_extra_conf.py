@@ -56,9 +56,19 @@ flags = [
     'tests/ubench/google-benchmark/include',
     '-I',
     '/cm/shared/apps/cuda/8.0.44/include',
+<<<<<<< HEAD
     '-I',
     '/pybind11',
     '-DNMC_HAVE_GPU'
+=======
+# <<<<<<< python
+#     '-I',
+#     '/pybind11',
+#     '-DNMC_HAVE_GPU'
+# =======
+    '-DARB_HAVE_GPU'
+# >>>>>>> master
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the
