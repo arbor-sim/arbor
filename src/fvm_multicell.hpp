@@ -12,6 +12,7 @@
 #include <backends/fvm_types.hpp>
 #include <cell.hpp>
 #include <compartment.hpp>
+#include <constants.hpp>
 #include <event_queue.hpp>
 #include <ion.hpp>
 #include <math.hpp>
@@ -1053,24 +1054,28 @@ void fvm_multicell<Backend>::initialize(
         }
     }
 
-    // FIXME: Hard code parameters for now.
-    //        Take defaults for reversal potential of sodium and potassium from
-    //        the default values in Neuron.
-    //        Neuron's defaults are defined in the file
-    //          nrn/src/nrnoc/membdef.h
-    constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
+    // Note: NEURON defined default values for reversal potential as follows,
+    //       with units mV:
+    //
+    // const auto DEF_vrest = -65.0
+    // ena = 115.0 + DEF_vrest
+    // ek  = -12.0 + DEF_vrest
+    // eca = 12.5*std::log(2.0/5e-5)
+    //
+    // Whereas we use the Nernst equation to calculate reversal potentials at
+    // the start of each time step.
 
-    memory::fill(ion_na().reversal_potential(),     115+DEF_vrest); // mV
-    memory::fill(ion_na().internal_concentration(),  10.0);         // mM
-    memory::fill(ion_na().external_concentration(), 140.0);         // mM
+    ion_na().default_internal_concentration = 10;
+    ion_na().default_external_concentration =140;
+    ion_na().valency = 1;
 
-    memory::fill(ion_k().reversal_potential(),     -12.0+DEF_vrest);// mV
-    memory::fill(ion_k().internal_concentration(),  54.4);          // mM
-    memory::fill(ion_k().external_concentration(),  2.5);           // mM
+    ion_k().default_internal_concentration =54.4;
+    ion_k().default_external_concentration = 2.5;
+    ion_k().valency = 1;
 
-    memory::fill(ion_ca().reversal_potential(),     12.5*std::log(2.0/5e-5));// mV
-    memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
-    memory::fill(ion_ca().external_concentration(), 2.0);           // mM
+    ion_ca().default_internal_concentration =5e-5;
+    ion_ca().default_external_concentration = 2.0;
+    ion_ca().valency = 2;
 
     // initialize mechanism and voltage state
     reset();
@@ -1083,11 +1088,23 @@ void fvm_multicell<Backend>::reset() {
     set_time_global(0);
     set_time_to_global(0);
 
+    // Update ion species:
+    //   - clear currents
+    //   - reset concentrations to defaults
+    //   - recalculate reversal potentials
+    for (auto& i: ions_) {
+        i.second.reset();
+    }
+
     for (auto& m : mechanisms_) {
-        // TODO : the parameters have to be set before the nrn_init
-        // for now use a dummy value of dt.
         m->set_params();
         m->nrn_init();
+    }
+
+    // Update reversal potential to account for changes to concentrations made
+    // by calls to nrn_init() in mechansisms.
+    for (auto& i: ions_) {
+        i.second.nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
     }
 
     // Reset state of the threshold watcher.
@@ -1110,11 +1127,18 @@ template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(!integration_complete());
 
+    // mark pending events for delivery
+    events_.mark_until_after(time_);
+
     PE("current");
     memory::fill(current_, 0.);
 
-    // mark pending events for delivery
-    events_.mark_until_after(time_);
+    // clear currents and recalculate reversal potentials for all ion channels
+    for (auto& i: ions_) {
+        auto& ion = i.second;
+        memory::fill(ion.current(), 0.);
+        ion.nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
+    }
 
     // deliver pending events and update current contributions from mechanisms
     for (auto& m: mechanisms_) {

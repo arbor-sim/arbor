@@ -22,6 +22,7 @@ set(BASE_SOURCES
     util/debug.cpp
     util/hostname.cpp
     util/path.cpp
+    util/prefixbuf.cpp
     util/unwind.cpp
 )
 set(CUDA_SOURCES
@@ -30,6 +31,7 @@ set(CUDA_SOURCES
     backends/gpu/multi_event_stream.cu
     backends/gpu/kernels/assemble_matrix.cu
     backends/gpu/kernels/interleave.cu
+    backends/gpu/kernels/nernst.cu
     backends/gpu/kernels/solve_matrix.cu
     backends/gpu/kernels/stim_current.cu
     backends/gpu/kernels/take_samples.cu

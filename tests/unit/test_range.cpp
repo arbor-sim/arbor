@@ -402,6 +402,12 @@ TEST(range, assign_from) {
     }
 }
 
+struct foo {
+    int x;
+    int y;
+    friend bool operator==(const foo& l, const foo& r) {return l.x==r.x && l.y==r.y;};
+};
+
 TEST(range, sort) {
     char cstr[] = "howdy";
 
@@ -428,6 +434,16 @@ TEST(range, sort) {
 
     util::stable_sort_by(util::strict_view(mixed_range), rank);
     EXPECT_EQ(std::string("HELLOthere54321"), mixed);
+
+
+    // sort with user-provided less comparison function
+
+    std::vector<foo> X = {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}};
+
+    util::sort(X, [](const foo& l, const foo& r) {return l.y<r.y;});
+    EXPECT_EQ(X, (std::vector<foo>{{5, 0}, {4, 1}, {3, 2}, {2, 3}, {1, 4}, {0, 5}}));
+    util::sort(X, [](const foo& l, const foo& r) {return l.x<r.x;});
+    EXPECT_EQ(X, (std::vector<foo>{{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}}));
 }
 
 TEST(range, sum_by) {

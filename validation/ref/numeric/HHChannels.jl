@@ -19,12 +19,26 @@ immutable HHParam
     # constructor with default values, corresponding
     # to a resting potential of -65 mV and temperature 6.3 °C
     HHParam(;
-        #c_m    = 0.01nF*m^-2,
+        # default values from HH paper
+
+        # For reversal potentials we use those computed using
+        # the Nernst equation with the following values:
+        #       R   8.3144598
+        #       F   96485.33289
+        #       nao 140   mM
+        #       nai  10   mM
+        #       ko    2.5 mM
+        #       ki   64.4 nM
+        # We don't use the default values for ena and ek taken
+        # from the HH paper:
+        #   ena    = 115.0mV + -65.0mV,
+        #   ek     = -12.0mV + -65.0mV,
+        ena    =  63.55148117386mV,
+        ek     = -74.17164678272mV,
+
         c_m    = 0.01F*m^-2,
         gnabar = .12S*cm^-2,
-        ena    = 115.0mV + -65.0mV,
         gkbar  = .036S*cm^-2,
-        ek     = -12.0mV + -65.0mV,
         gl     = .0003S*cm^-2,
         el     = -54.3mV,
         q10    = 1

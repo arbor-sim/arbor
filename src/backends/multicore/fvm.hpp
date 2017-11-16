@@ -6,6 +6,7 @@
 #include <backends/event.hpp>
 #include <backends/fvm_types.hpp>
 #include <common_types.hpp>
+#include <constants.hpp>
 #include <event_queue.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
@@ -145,6 +146,22 @@ struct backend {
                 sample_time[p->offset] = time[i];
                 sample_value[p->offset] = *p->handle;
             }
+        }
+    }
+
+    // Calculate the reversal potential eX (mV) using Nernst equation
+    // eX = RT/zF * ln(Xo/Xi)
+    //      R: universal gas constant 8.3144598 J.K-1.mol-1
+    //      T: temperature in Kelvin
+    //      z: valency of species (K, Na: +1) (Ca: +2)
+    //      F: Faraday's constant 96485.33289 C.mol-1
+    //      Xo/Xi: ratio of out/in concentrations
+    static void nernst(int valency, value_type temperature, const_view Xo, const_view Xi, view eX) {
+        // factor 1e3 to scale from V -> mV
+        constexpr value_type RF = 1e3*constant::gas_constant/constant::faraday;
+        value_type factor = RF*temperature/valency;
+        for (std::size_t i=0; i<Xi.size(); ++i) {
+            eX[i] = factor*std::log(Xo[i]/Xi[i]);
         }
     }
 

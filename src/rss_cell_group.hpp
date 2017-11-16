@@ -34,7 +34,7 @@ public:
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
-    void advance(epoch ep, time_type dt) override {
+    void advance(epoch ep, time_type dt, const event_lane_subrange& events) override {
         for (const auto& cell: cells_) {
             auto t = std::max(cell.start_time, time_);
             auto t_end = std::min(cell.stop_time, ep.tfinal);
@@ -47,10 +47,6 @@ public:
         time_ = ep.tfinal;
     }
 
-    void enqueue_events(epoch, util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>>) override {
-        std::logic_error("rss_cell cannot deliver events");
-    }
-
     const std::vector<spike>& spikes() const override {
         return spikes_;
     }
@@ -59,7 +55,7 @@ public:
         spikes_.clear();
     }
 
-    virtual void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) {
+    void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) override {
         std::logic_error("rss_cell does not support sampling");
     }
 

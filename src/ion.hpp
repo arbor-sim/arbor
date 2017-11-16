@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <constants.hpp>
 #include <memory/memory.hpp>
 #include <util/indirect.hpp>
 
@@ -62,7 +63,10 @@ public :
         iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-        Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()}
+        Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
+        valency(0),
+        default_internal_concentration(0),
+        default_external_concentration(0)
     {}
 
     std::size_t memory() const {
@@ -74,14 +78,33 @@ public :
     view current() {
         return iX_;
     }
+
     view reversal_potential() {
         return eX_;
     }
+
     view internal_concentration() {
         return Xi_;
     }
+
     view external_concentration() {
         return Xo_;
+    }
+
+    void reset() {
+        // The Nernst equation uses the assumption of nonzero concentrations:
+        EXPECTS(default_internal_concentration> value_type(0));
+        EXPECTS(default_external_concentration> value_type(0));
+        memory::fill(iX_, 0);
+        memory::fill(Xi_, default_internal_concentration);
+        memory::fill(Xo_, default_external_concentration);
+        nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
+    }
+
+    /// Calculate the reversal potential for all compartments using Nernst equation
+    /// temperature is in degrees Kelvin
+    void nernst_reversal_potential(value_type temperature) {
+        backend::nernst(valency, temperature, Xo_, Xi_, eX_);
     }
 
     const_iview node_index() const {
@@ -92,13 +115,17 @@ public :
         return node_index_.size();
     }
 
-private :
-
+private:
     iarray node_index_;
-    array iX_;
-    array eX_;
-    array Xi_;
-    array Xo_;
+    array iX_;      // (nA) current
+    array eX_;      // (mV) reversal potential
+    array Xi_;      // (mM) internal concentration
+    array Xo_;      // (mM) external concentration
+
+public:
+    int valency;    // valency of ionic species
+    value_type default_internal_concentration; // (mM) default internal concentration
+    value_type default_external_concentration; // (mM) default external concentration
 };
 
 } // namespace arb
