@@ -487,19 +487,14 @@ void Parser::parse_parameter_block() {
         // look for equality
         if(token_.type==tok::eq) {
             get_token(); // consume '='
-            if(token_.type==tok::minus) {
-                parm.value = "-";
-                get_token();
-            }
-            if(token_.type != tok::integer && token_.type != tok::real) {
+            parm.value = value_literal();
+            if(status_ == lexerStatus::error) {
                 success = 0;
                 goto parm_exit;
             }
-            parm.value += token_.spelling; // store value as a string
-            get_token();
         }
 
-        // get the parameters
+        // get the units
         if(line==location_.line && token_.type == tok::lparen) {
             parm.units = unit_description();
             if(status_ == lexerStatus::error) {
@@ -508,6 +503,14 @@ void Parser::parse_parameter_block() {
             }
         }
 
+        // get the range
+        if(line==location_.line && token_.type == tok::lt) {
+            parm.range = range_description();
+            if(status_ == lexerStatus::error) {
+                success = 0;
+                goto parm_exit;
+            }
+        }
         block.parameters.push_back(parm);
     }
 
@@ -595,6 +598,26 @@ ass_exit:
     return;
 }
 
+// Parse a value (integral or real) with possible preceding unary minus,
+// and return as a string.
+std::string Parser::value_literal() {
+    std::string value;
+
+    if(token_.type==tok::minus) {
+        value = "-";
+        get_token();
+    }
+    if(token_.type != tok::integer && token_.type != tok::real) {
+        error(pprintf("numeric constant not an integer or real number '%'", token_));
+        return "";
+    }
+    else {
+        value += token_.spelling;
+        get_token();
+        return value;
+    }
+}
+
 std::vector<Token> Parser::unit_description() {
     static const tok legal_tokens[] = {tok::identifier, tok::divide, tok::real, tok::integer};
     int startline = location_.line;
@@ -602,7 +625,7 @@ std::vector<Token> Parser::unit_description() {
 
     // check that we start with a left parenthesis
     if(token_.type != tok::lparen) {
-        error(pprintf("unit description must start with a parenthesis '%'", tokens));
+        error(pprintf("unit description must start with a parenthesis '%'", token_));
         goto unit_exit;
     }
 
@@ -611,7 +634,7 @@ std::vector<Token> Parser::unit_description() {
     while(token_.type != tok::rparen) {
         // check for illegal tokens or a new line
         if( !is_in(token_.type,legal_tokens) || startline < location_.line ) {
-            error(pprintf("incorrect unit description '%'", tokens));
+            error(pprintf("incorrect unit description '%'", token_));
             goto unit_exit;
         }
 
@@ -624,6 +647,34 @@ std::vector<Token> Parser::unit_description() {
 
 unit_exit:
     return tokens;
+}
+
+std::pair<Token, Token> Parser::range_description() {
+    Token lb, ub;
+
+    if(token_.type != tok::lt) {
+        error(pprintf("range description must start with a left angle bracket '%'", token_));
+        return {};
+    }
+
+    get_token();
+    lb = token_;
+
+    if(token_.type != tok::comma) {
+        error(pprintf("range description must separate lower and upper bound with a comma '%'", token_));
+        return {};
+    }
+
+    get_token();
+    ub = token_;
+
+    if(token_.type != tok::gt) {
+        error(pprintf("range description must end with a right angle bracket '%'", token_));
+        return {};
+    }
+
+    get_token();
+    return {lb, ub};
 }
 
 // Returns a prototype expression for a function or procedure call

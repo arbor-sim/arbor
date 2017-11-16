@@ -3,13 +3,13 @@
 #include <memory>
 #include <vector>
 
+#include <communication/global_policy.hpp>
 #include <json/json.hpp>
 
 #include "meter.hpp"
 #include "profiler.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // A measurement has the following:
@@ -28,10 +28,6 @@ struct measurement {
     std::vector<std::vector<double>> measurements;
     measurement(std::string, std::string, const std::vector<double>&);
 };
-
-// Converts a measurement to a json type for serialization to file.
-// See src/profiling/meters.md for more information about the json formating.
-nlohmann::json to_json(const measurement& m);
 
 class meter_manager {
 private:
@@ -53,9 +49,19 @@ public:
     const std::vector<double>& times() const;
 };
 
-nlohmann::json to_json(const meter_manager&);
-void save_to_file(const meter_manager& manager, const std::string& name);
+// Simple type for gathering distributed meter information
+struct meter_report {
+    std::vector<std::string> checkpoints;
+    unsigned num_domains;
+    unsigned num_hosts;
+    arb::communication::global_policy_kind communication_policy;
+    std::vector<measurement> meters;
+    std::vector<std::string> hosts;
+};
+
+nlohmann::json to_json(const meter_report&);
+meter_report make_meter_report(const meter_manager& manager);
+std::ostream& operator<<(std::ostream& o, const meter_report& report);
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

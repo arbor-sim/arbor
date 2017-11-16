@@ -6,8 +6,7 @@
 #include <iterator>
 #include <type_traits>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename V, typename = typename std::enable_if<std::is_integral<V>::value>::type>
@@ -74,6 +73,8 @@ struct counter {
 
     value_type operator*() const { return v_; }
 
+    pointer operator->() const { return &v_; }
+
     value_type operator[](difference_type n) const { return v_+n; }
 
     bool operator==(counter x) const { return v_==x.v_; }
@@ -91,5 +92,4 @@ private:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

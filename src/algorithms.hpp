@@ -21,8 +21,7 @@
  *
  */
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace algorithms {
 
 template <typename C>
@@ -417,5 +416,4 @@ auto binary_find(Seq& seq, const T& value)
 }
 
 } // namespace algorithms
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -1,7 +1,6 @@
 #pragma once
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 class i_clamp {
     public:
@@ -50,5 +49,4 @@ class i_clamp {
     value_type amplitude_ = 0; // [nA]
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

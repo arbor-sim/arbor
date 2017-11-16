@@ -9,7 +9,7 @@
 
 #include <util/span.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(span, int_access) {
     using span = util::span<int>;

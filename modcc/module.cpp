@@ -37,6 +37,7 @@ class NrnCurrentRewriter: public BlockRewriterBase {
 
     moduleKind kind_;
     bool has_current_update_ = false;
+    std::set<std::string> ion_current_vars_;
 
 public:
     using BlockRewriterBase::visit;
@@ -50,12 +51,18 @@ public:
                     id("current_"),
                     make_expression<NumberExpression>(loc_, 0.0)));
 
-            if (kind_==moduleKind::density) {
+            statements_.push_back(make_expression<AssignmentExpression>(loc_,
+                id("current_"),
+                make_expression<MulBinaryExpression>(loc_,
+                    id("weights_"),
+                    id("current_"))));
+
+            for (auto& v: ion_current_vars_) {
                 statements_.push_back(make_expression<AssignmentExpression>(loc_,
-                    id("current_"),
+                    id(v),
                     make_expression<MulBinaryExpression>(loc_,
                         id("weights_"),
-                        id("current_"))));
+                        id(v))));
             }
         }
     }
@@ -66,7 +73,11 @@ public:
         statements_.push_back(e->clone());
         auto loc = e->location();
 
-        if (is_ion_update(e)!=ionKind::none) {
+        auto update_kind = is_ion_update(e);
+        if (update_kind!=ionKind::none) {
+            if (update_kind!=ionKind::nonspecific) {
+                ion_current_vars_.insert(e->lhs()->is_identifier()->name());
+            }
             has_current_update_ = true;
 
             if (!linear_test(e->rhs(), {"v"}).is_linear) {
@@ -163,9 +174,9 @@ std::string Module::error_string() const {
 
 std::string Module::warning_string() const {
     std::string str;
-    for (const error_entry& entry: errors()) {
+    for (auto& entry: warnings()) {
         if (!str.empty()) str += '\n';
-        str += purple("error   ");
+        str += purple("warning   ");
         str += white(pprintf("%:% ", file_name(), entry.location));
         str += entry.message;
     }
@@ -267,26 +278,25 @@ bool Module::semantic() {
     //.........................................................................
     // nrn_init : based on the INITIAL block (i.e. the 'initial' procedure
     //.........................................................................
+
+    // insert an empty INITIAL block if none was defined in the .mod file.
+    if( !has_symbol("initial", symbolKind::procedure) ) {
+        symbols_["initial"] = make_symbol<ProcedureExpression>(
+                Location(), "initial",
+                std::vector<expression_ptr>(),
+                make_expression<BlockExpression>(Location(), expr_list_type(), false)
+        );
+    }
     auto initial_api = make_empty_api_method("nrn_init", "initial");
     auto api_init  = initial_api.first;
     auto proc_init = initial_api.second;
+    auto& init_body = api_init->body()->statements();
 
-    if(api_init)
-    {
-        auto& body = api_init->body()->statements();
-
-        for(auto& e : *proc_init->body()) {
-            body.emplace_back(e->clone());
-        }
-
-        api_init->semantic(symbols_);
+    for(auto& e : *proc_init->body()) {
+        init_body.emplace_back(e->clone());
     }
-    else {
-        if(!proc_init) {
-            error("an INITIAL block is required", Location());
-        }
-        return false;
-    }
+
+    api_init->semantic(symbols_);
 
     // Look in the symbol table for a procedure with the name "breakpoint".
     // This symbol corresponds to the BREAKPOINT block in the .mod file
@@ -295,17 +305,13 @@ bool Module::semantic() {
     // The second is nrn_current, which is handled after this block
     auto state_api  = make_empty_api_method("nrn_state", "breakpoint");
     auto api_state  = state_api.first;
-    auto breakpoint = state_api.second;
+    auto breakpoint = state_api.second; // implies we are building the `nrn_state()` method.
 
     api_state->semantic(symbols_);
     scope_ptr nrn_state_scope = api_state->scope();
 
     if(breakpoint) {
-        //..........................................................
-        // nrn_state : The temporal integration of state variables
-        //..........................................................
-
-        // grab SOLVE statements, put them in `nrn_state` after translation.
+        // Grab SOLVE statements, put them in `nrn_state` after translation.
         bool found_solve = false;
         bool found_non_solve = false;
         std::set<std::string> solved_ids;
@@ -360,6 +366,7 @@ bool Module::semantic() {
                 }
 
                 // May have now redundant local variables; remove these first.
+                solve_block->semantic(nrn_state_scope);
                 solve_block = remove_unused_locals(solve_block->is_block());
 
                 // Copy body into nrn_state.
@@ -381,9 +388,13 @@ bool Module::semantic() {
                     breakpoint->location());
         }
         else {
-            // redo semantic pass in order to elimate any removed local symbols.
+            // Redo semantic pass in order to elimate any removed local symbols.
             api_state->semantic(symbols_);
         }
+
+        // Run remove locals pass again on the whole body in case `dt` was never used.
+        api_state->body(remove_unused_locals(api_state->body()));
+        api_state->semantic(symbols_);
 
         //..........................................................
         // nrn_current : update contributions to currents
@@ -430,13 +441,13 @@ void Module::add_variables_to_symbols() {
         symbols_[name] = symbol_ptr{t};
     };
 
-    create_variable("t",  rangeKind::scalar, accessKind::read);
-    create_variable("dt", rangeKind::scalar, accessKind::read);
-    // density mechanisms use a vector of weights from current densities to
-    // units of nA
-    if (kind()==moduleKind::density) {
-        create_variable("weights_", rangeKind::range, accessKind::read);
-    }
+    // mechanisms use a vector of weights to:
+    //  density mechs:
+    //      - convert current densities from 10.A.m^-2 to A.m^-2
+    //      - density or proportion of a CV's area affected by the mechansim
+    //  point procs:
+    //      - convert current in nA to current densities in A.m^-2
+    create_variable("weights_", rangeKind::range, accessKind::read);
 
     // add indexed variables to the table
     auto create_indexed_variable = [this]
@@ -456,6 +467,23 @@ void Module::add_variables_to_symbols() {
                             accessKind::write, ionKind::none, Location());
     create_indexed_variable("v", "vec_v", tok::eq,
                             accessKind::read,  ionKind::none, Location());
+    create_indexed_variable("dt", "vec_dt", tok::eq,
+                            accessKind::read,  ionKind::none, Location());
+
+    // add cell-indexed variables to the table
+    auto create_cell_indexed_variable = [this]
+        (std::string const& name, std::string const& indexed_name, Location loc = Location())
+    {
+        if(symbols_.count(name)) {
+            throw compiler_exception(
+                "trying to insert a symbol that already exists",
+                loc);
+        }
+        symbols_[name] = make_symbol<CellIndexedVariable>(loc, name, indexed_name);
+    };
+
+    create_cell_indexed_variable("t", "vec_t");
+    create_cell_indexed_variable("t_to", "vec_t_to");
 
     // add state variables
     for(auto const &var : state_block()) {

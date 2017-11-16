@@ -7,8 +7,7 @@
 #include <util/debug.hpp>
 #include <util/span.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Hines matrix
 /// Make the back end state implementation optional to allow for
@@ -36,13 +35,14 @@ public:
 
     matrix() = default;
 
-    matrix( const std::vector<size_type>& pi,
-            const std::vector<size_type>& ci,
-            const std::vector<value_type>& cv_capacitance,
-            const std::vector<value_type>& face_conductance):
+    matrix(const std::vector<size_type>& pi,
+           const std::vector<size_type>& ci,
+           const std::vector<value_type>& cv_capacitance,
+           const std::vector<value_type>& face_conductance,
+           const std::vector<value_type>& cv_area):
         parent_index_(memory::make_const_view(pi)),
         cell_index_(memory::make_const_view(ci)),
-        state_(pi, ci, cv_capacitance, face_conductance)
+        state_(pi, ci, cv_capacitance, face_conductance, cv_area)
     {
         EXPECTS(cell_index_[num_cells()] == parent_index_.size());
     }
@@ -69,17 +69,16 @@ public:
     }
 
     /// Assemble the matrix for given dt
-    void assemble(double dt, const_view voltage, const_view current) {
-        state_.assemble(dt, voltage, current);
+    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+        state_.assemble(dt_cell, voltage, current);
     }
 
     /// Get a view of the solution
     const_view solution() const {
-        return state_.solution;
+        return state_.solution();
     }
 
-    private:
-
+private:
     /// the parent indice that describe matrix structure
     iarray parent_index_;
 
@@ -93,5 +92,4 @@ public:
     state state_;
 };
 
-} // namespace nest
-} // namespace mc
+} // namespace arb

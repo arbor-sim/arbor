@@ -10,13 +10,13 @@
 #include <ostream>
 #include <numeric>
 
+#include <util/deduce_return.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/transform.hpp>
 #include <util/meta.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Present a single item as a range
@@ -41,26 +41,48 @@ range_view(Seq& seq) {
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator,
-    typename Size = typename sequence_traits<Seq>::size_type
+    typename Offset1,
+    typename Offset2,
+    typename Iter = typename sequence_traits<Seq>::iterator
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
-subrange_view(Seq& seq, Size bi, Size ei) {
-    Iter b = std::next(std::begin(seq), bi);
-    Iter e = std::next(b, ei-bi);
+subrange_view(Seq& seq, Offset1 bi, Offset2 ei) {
+    Iter b = std::begin(seq);
+    std::advance(b, bi);
+
+    Iter e = b;
+    std::advance(e, ei-bi);
     return make_range(b, e);
 }
 
 template <
     typename Seq,
-    typename Iter = typename sequence_traits<Seq>::iterator,
-    typename Size = typename sequence_traits<Seq>::size_type
+    typename Offset1,
+    typename Offset2,
+    typename Iter = typename sequence_traits<Seq>::iterator
 >
 enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
-subrange_view(Seq& seq, std::pair<Size, Size> index) {
-    Iter b = std::next(std::begin(seq), index.first);
-    Iter e = std::next(b, index.second-index.first);
-    return make_range(b, e);
+subrange_view(Seq& seq, std::pair<Offset1, Offset2> index) {
+    return subrange_view(seq, index.first, index.second);
+}
+
+// helper for determining the type of a subrange_view
+template <typename Seq>
+using subrange_view_type = decltype(subrange_view(std::declval<Seq&>(), 0, 0));
+
+
+// Fill container or range.
+
+template <typename Seq, typename V>
+void fill(Seq& seq, const V& value) {
+    auto canon = canonical_view(seq);
+    std::fill(canon.begin(), canon.end(), value);
+}
+
+template <typename Range, typename V>
+void fill(const Range& seq, const V& value) {
+    auto canon = canonical_view(seq);
+    std::fill(canon.begin(), canon.end(), value);
 }
 
 // Append sequence to a container
@@ -197,7 +219,6 @@ bool any_of(const Seq& seq, const Predicate& pred) {
     return std::any_of(std::begin(canon), std::end(canon), pred);
 }
 
-
 // Accumulate by projection `proj`
 
 template <
@@ -238,7 +259,7 @@ max_element_by(const Seq& seq, const Proj& proj) {
         });
 }
 
-// Maximum value
+// Maximum value.
 //
 // Value semantics instead of iterator semantics means it will operate
 // with input iterators.  Will return default-constructed value if sequence
@@ -259,7 +280,7 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
 
     auto i = std::begin(seq);
     auto e = std::end(seq);
-    auto m = *i;
+    Value m = *i;
     while (++i!=e) {
         Value x = *i;
         if (cmp(m, x)) {
@@ -269,12 +290,92 @@ Value max_value(const Seq& seq, Compare cmp = Compare{}) {
     return m;
 }
 
+// Minimum and maximum value.
+
+template <
+    typename Seq,
+    typename Value = typename sequence_traits<Seq>::value_type,
+    typename Compare = std::less<Value>
+>
+std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
+    if (util::empty(seq)) {
+        return {Value{}, Value{}};
+    }
+
+    auto i = std::begin(seq);
+    auto e = std::end(seq);
+    Value lower = *i;
+    Value upper = *i;
+    while (++i!=e) {
+        Value x = *i;
+        if (cmp(upper, x)) {
+            upper = std::move(x);
+        }
+        else if (cmp(x, lower)) {
+            lower = std::move(x);
+        }
+    }
+    return {lower, upper};
+}
+
+// View over the keys in an associative container.
+
+template <typename Map>
+auto keys(Map& m) DEDUCED_RETURN_TYPE(util::transform_view(m, util::first));
+
+// Test if sequence is sorted after apply projection `proj` to elements.
+// (TODO: this will perform unnecessary copies if `proj` returns a reference;
+// specialize on this if it becomes an issue.)
+
+template <
+    typename Seq,
+    typename Proj,
+    typename Compare = std::less<typename std::result_of<Proj (typename sequence_traits<Seq>::value_type)>::type>
+>
+bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
+    auto i = std::begin(seq);
+    auto e = std::end(seq);
+
+    if (i==e) {
+        return true;
+    }
+
+    // Special one-element case for forward iterators.
+    if (is_forward_iterator<decltype(i)>::value) {
+        auto j = i;
+        if (++j==e) {
+            return true;
+        }
+    }
+
+    auto v = proj(*i++);
+
+    for (;;) {
+        if (i==e) {
+            return true;
+        }
+        auto u = proj(*i++);
+
+        if (cmp(u, v)) {
+            return false;
+        }
+
+        if (i==e) {
+            return true;
+        }
+        v = proj(*i++);
+
+        if (cmp(v, u)) {
+            return false;
+        }
+    }
+}
+
 template <typename C, typename Seq>
 C make_copy(Seq const& seq) {
     return C{std::begin(seq), std::end(seq)};
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

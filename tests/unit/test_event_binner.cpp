@@ -4,55 +4,7 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
-
-TEST(event_binner, basic) {
-    using testing::seq_almost_eq;
-
-    std::pair<cell_gid_type, float> binning_test_data[] = {
-        { 11, 0.50 },
-        { 12, 0.70 },
-        { 14, 0.73 },
-        { 11, 1.80 },
-        { 12, 1.83 },
-        { 11, 1.90 },
-        { 11, 2.00 },
-        { 14, 2.00 },
-        { 11, 2.10 },
-        { 14, 2.30 }
-    };
-
-    std::unordered_map<cell_gid_type, std::vector<float>> ev_times;
-    std::vector<float> expected;
-
-    auto run_binner = [&](event_binner&& binner) {
-        ev_times.clear();
-        for (auto p: binning_test_data) {
-            ev_times[p.first].push_back(binner.bin(p.first, p.second));
-        }
-    };
-
-    run_binner(event_binner{binning_kind::none, 0});
-
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[11], (float []){0.50, 1.80, 1.90, 2.00, 2.10}));
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[12], (float []){0.70, 1.83}));
-    EXPECT_TRUE(ev_times[13].empty());
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[14], (float []){0.73, 2.00, 2.30}));
-
-    run_binner(event_binner{binning_kind::regular, 0.25});
-
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[11], (float []){0.50, 1.75, 1.75, 2.00, 2.00}));
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[12], (float []){0.50, 1.75}));
-    EXPECT_TRUE(ev_times[13].empty());
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[14], (float []){0.50, 2.00, 2.25}));
-
-    run_binner(event_binner{binning_kind::following, 0.25});
-
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[11], (float []){0.50, 1.80, 1.80, 1.80, 2.10}));
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[12], (float []){0.70, 1.83}));
-    EXPECT_TRUE(ev_times[13].empty());
-    EXPECT_TRUE(seq_almost_eq<float>(ev_times[14], (float []){0.73, 2.00, 2.30}));
-}
+using namespace arb;
 
 TEST(event_binner, with_min) {
     using testing::seq_almost_eq;
@@ -74,10 +26,10 @@ TEST(event_binner, with_min) {
         times.clear();
         for (auto p: test_data) {
             if (use_min) {
-                times.push_back(binner.bin(0, p.time, p.t_min));
+                times.push_back(binner.bin(p.time, p.t_min));
             }
             else {
-                times.push_back(binner.bin(0, p.time));
+                times.push_back(binner.bin(p.time));
             }
         }
     };

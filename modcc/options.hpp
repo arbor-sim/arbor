@@ -7,6 +7,7 @@ enum class targetKind {
     cpu,
     gpu,
     // Vectorisation targets
+    avx2,
     avx512
  };
 

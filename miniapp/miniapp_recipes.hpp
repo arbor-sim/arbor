@@ -5,13 +5,13 @@
 #include <stdexcept>
 
 #include <recipe.hpp>
+#include <util/optional.hpp>
 
 #include "morphology_pool.hpp"
 
 // miniapp-specific recipes
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 struct probe_distribution {
     float proportion = 1.f; // what proportion of cells should get probes?
@@ -39,6 +39,10 @@ struct basic_recipe_param {
 
     // If true, iterate through morphologies rather than select randomly.
     bool morphology_round_robin = false;
+
+    // If set we are importing the spikes injected in the network from file
+    // instead of a single spike at t==0
+    util::optional<std::string> input_spike_path;  // Path to file with spikes
 };
 
 std::unique_ptr<recipe> make_basic_ring_recipe(
@@ -56,5 +60,4 @@ std::unique_ptr<recipe> make_basic_rgraph_recipe(
         basic_recipe_param param,
         probe_distribution pdist = probe_distribution{});
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

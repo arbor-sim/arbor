@@ -1,7 +1,11 @@
 #include <algorithm>
 #include <exception>
 #include <fstream>
+#include <iostream>
 #include <istream>
+#include <memory>
+#include <sstream>
+#include <string>
 #include <type_traits>
 
 #include <tclap/CmdLine.h>
@@ -9,6 +13,7 @@
 
 #include <util/meta.hpp>
 #include <util/optional.hpp>
+#include <util/strprintf.hpp>
 
 #include "io.hpp"
 
@@ -16,13 +21,12 @@
 
 namespace TCLAP {
     template <typename V>
-    struct ArgTraits<nest::mc::util::optional<V>> {
+    struct ArgTraits<arb::util::optional<V>> {
         using ValueCategory = ValueLike;
     };
 } // namespace TCLAP
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 namespace util {
     // Using static here because we do not want external linkage for this operator.
@@ -118,7 +122,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
     try {
         cl_options defopts;
 
-        CustomCmdLine cmd("nest mc miniapp harness", "0.1");
+        CustomCmdLine cmd("arbor miniapp harness", "0.1");
 
         TCLAP::ValueArg<std::string> ifile_arg(
             "i", "ifile",
@@ -155,9 +159,9 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             "m","alltoall","all to all network", cmd, false);
         TCLAP::SwitchArg ring_arg(
             "r","ring","ring network", cmd, false);
-        TCLAP::ValueArg<uint32_t> group_size_arg(
-            "g", "group-size", "number of cells per cell group",
-            false, defopts.compartments_per_segment, "integer", cmd);
+        TCLAP::ValueArg<double> sample_dt_arg(
+            "", "sample-dt", "set sampling interval to <time> ms",
+            false, defopts.bin_dt, "time", cmd);
         TCLAP::ValueArg<double> probe_ratio_arg(
             "p", "probe-ratio", "proportion between 0 and 1 of cells to probe",
             false, defopts.probe_ratio, "proportion", cmd);
@@ -165,10 +169,13 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             "X", "probe-soma-only", "only probe cell somas, not dendrites", cmd, false);
         TCLAP::ValueArg<std::string> trace_prefix_arg(
             "P", "prefix", "write traces to files with prefix <prefix>",
-            false, defopts.trace_prefix, "stringr", cmd);
+            false, defopts.trace_prefix, "string", cmd);
         TCLAP::ValueArg<util::optional<unsigned>> trace_max_gid_arg(
             "T", "trace-max-gid", "only trace probes on cells up to and including <gid>",
             false, defopts.trace_max_gid, "gid", cmd);
+        TCLAP::ValueArg<std::string> trace_format_arg(
+            "F", "trace-format", "select trace data format: csv or json",
+            false, defopts.trace_prefix, "string", cmd);
         TCLAP::ValueArg<util::optional<std::string>> morphologies_arg(
             "M", "morphologies", "load morphologies from SWC files matching <glob>",
             false, defopts.morphologies, "glob", cmd);
@@ -185,6 +192,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
              "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
         TCLAP::SwitchArg verbose_arg(
              "v", "verbose", "Present more verbose information to stdout", cmd, false);
+        TCLAP::ValueArg<std::string> ispike_arg(
+            "I", "ispike_file",
+            "Input spikes from file",
+            false, "", "file name", cmd);
+
 
         cmd.reorder_arguments();
         cmd.parse(argc, argv);
@@ -213,11 +225,12 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                     update_option(options.tfinal, fopts, "tfinal");
                     update_option(options.all_to_all, fopts, "all_to_all");
                     update_option(options.ring, fopts, "ring");
-                    update_option(options.group_size, fopts, "group_size");
+                    update_option(options.sample_dt, fopts, "sample_dt");
                     update_option(options.probe_ratio, fopts, "probe_ratio");
                     update_option(options.probe_soma_only, fopts, "probe_soma_only");
                     update_option(options.trace_prefix, fopts, "trace_prefix");
                     update_option(options.trace_max_gid, fopts, "trace_max_gid");
+                    update_option(options.trace_format, fopts, "trace_format");
                     update_option(options.morphologies, fopts, "morphologies");
                     update_option(options.morph_rr, fopts, "morph_rr");
                     update_option(options.report_compartments, fopts, "report_compartments");
@@ -230,6 +243,11 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                         update_option(options.output_path, fopts, "output_path");
                         update_option(options.file_name, fopts, "file_name");
                         update_option(options.file_extension, fopts, "file_extension");
+                    }
+
+                    update_option(options.spike_file_input, fopts, "spike_file_input");
+                    if (options.spike_file_input) {
+                        update_option(options.input_spike_path, fopts, "input_spike_path");
                     }
 
                     update_option(options.dry_run_ranks, fopts, "dry_run_ranks");
@@ -257,11 +275,12 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.bin_regular, bin_regular_arg);
         update_option(options.all_to_all, all_to_all_arg);
         update_option(options.ring, ring_arg);
-        update_option(options.group_size, group_size_arg);
+        update_option(options.sample_dt, sample_dt_arg);
         update_option(options.probe_ratio, probe_ratio_arg);
         update_option(options.probe_soma_only, probe_soma_only_arg);
         update_option(options.trace_prefix, trace_prefix_arg);
         update_option(options.trace_max_gid, trace_max_gid_arg);
+        update_option(options.trace_format, trace_format_arg);
         update_option(options.morphologies, morphologies_arg);
         update_option(options.morph_rr, morph_rr_arg);
         update_option(options.report_compartments, report_compartments_arg);
@@ -269,12 +288,18 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.profile_only_zero, profile_only_zero_arg);
         update_option(options.dry_run_ranks, dry_run_ranks_arg);
 
-        if (options.all_to_all && options.ring) {
-            throw usage_error("can specify at most one of --ring and --all-to-all");
+        std::string is_file_name = ispike_arg.getValue();
+        if (is_file_name != "") {
+            options.spike_file_input = true;
+            update_option(options.input_spike_path, ispike_arg);
         }
 
-        if (options.group_size<1) {
-            throw usage_error("minimum of one cell per group");
+        if (options.trace_format!="csv" && options.trace_format!="json") {
+            throw usage_error("trace format must be one of: csv, json");
+        }
+
+        if (options.all_to_all && options.ring) {
+            throw usage_error("can specify at most one of --ring and --all-to-all");
         }
 
         save_file = ofile_arg.getValue();
@@ -300,7 +325,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 fopts["tfinal"] = options.tfinal;
                 fopts["all_to_all"] = options.all_to_all;
                 fopts["ring"] = options.ring;
-                fopts["group_size"] = options.group_size;
+                fopts["sample_dt"] = options.sample_dt;
                 fopts["probe_ratio"] = options.probe_ratio;
                 fopts["probe_soma_only"] = options.probe_soma_only;
                 fopts["trace_prefix"] = options.trace_prefix;
@@ -310,6 +335,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 else {
                     fopts["trace_max_gid"] = nullptr;
                 }
+                fopts["trace_format"] = options.trace_format;
                 if (options.morphologies) {
                     fopts["morphologies"] = options.morphologies.get();
                 }
@@ -351,7 +377,7 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
         (options.bin_dt==0? "none": options.bin_regular? "regular": "following") << "\n";
     o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
     o << "  ring network         : " << (options.ring ? "yes" : "no") << "\n";
-    o << "  group size           : " << options.group_size << "\n";
+    o << "  sample dt            : " << options.sample_dt << "\n";
     o << "  probe ratio          : " << options.probe_ratio << "\n";
     o << "  probe soma only      : " << (options.probe_soma_only ? "yes" : "no") << "\n";
     o << "  trace prefix         : " << options.trace_prefix << "\n";
@@ -360,6 +386,7 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
        o << *options.trace_max_gid;
     }
     o << "\n";
+    o << "  trace format         : " << options.trace_format << "\n";
     o << "  morphologies         : ";
     if (options.morphologies) {
        o << *options.morphologies;
@@ -371,6 +398,49 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
     return o;
 }
 
+
+/// Parse spike times from a stream
+/// A single spike per line, trailing whitespace is ignore
+/// Throws a usage error when parsing fails
+///
+/// Returns a vector of time_type
+
+std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
+    std::vector<time_type> times;
+    std::string line;
+    while (std::getline(fid, line)) {
+        std::stringstream s(line);
+
+        time_type t;
+        s >> t >> std::ws;
+
+        if (!s || s.peek() != EOF) {
+            throw std::runtime_error( util::strprintf(
+                    "Unable to parse spike file on line %d: \"%s\"\n",
+                    times.size(), line));
+        }
+
+        times.push_back(t);
+    }
+
+    return times;
+}
+
+/// Parse spike times from a file supplied in path
+/// A single spike per line, trailing white space is ignored
+/// Throws a usage error when opening file or parsing fails
+///
+/// Returns a vector of time_type
+
+std::vector<time_type> get_parsed_spike_times_from_path(arb::util::path path) {
+    std::ifstream fid(path);
+    if (!fid) {
+        throw std::runtime_error(util::strprintf(
+            "Unable to parse spike file: \"%s\"\n", path.c_str()));
+    }
+
+    return parse_spike_times_from_stream(fid);
+}
+
 } // namespace io
-} // namespace mc
-} // namespace nest
+} // namespace arb

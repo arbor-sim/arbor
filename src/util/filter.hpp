@@ -14,8 +14,7 @@
 
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 namespace impl {
@@ -110,6 +109,7 @@ public:
             inner_ = std::move(other.inner_);
             end_ = std::move(other.end_);
             ok_ = other.ok_;
+            f_.destruct();
             f_.construct(std::move(other.f_.ref()));
         }
         return *this;
@@ -240,5 +240,4 @@ filter(const Seq& s, const F& f) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

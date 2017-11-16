@@ -5,8 +5,7 @@
 #include <util/iterutil.hpp>
 #include <util/range.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename I, typename S = I>
@@ -216,5 +215,4 @@ cyclic_view(const std::initializer_list<T> &list) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

@@ -2,18 +2,21 @@
 
 #include <cstddef>
 #include <memory>
+#include <unordered_map>
 #include <stdexcept>
 
 #include <cell.hpp>
+#include <common_types.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
-struct cell_count_info {
-    cell_size_type num_sources;
-    cell_size_type num_targets;
-    cell_size_type num_probes;
+struct probe_info {
+    cell_member_type id;
+    probe_tag tag;
+
+    // Address type will be specific to cell kind of cell `id.gid`.
+    util::any address;
 };
 
 class invalid_recipe_error: public std::runtime_error {
@@ -42,58 +45,29 @@ struct cell_connection {
 
     float weight;
     float delay;
+
+    cell_connection(cell_connection_endpoint src, cell_connection_endpoint dst, float w, float d):
+        source(src), dest(dst), weight(w), delay(d)
+    {}
 };
 
 class recipe {
 public:
-    virtual cell_size_type num_cells() const =0;
+    virtual cell_size_type num_cells() const = 0;
 
-    virtual util::unique_any get_cell(cell_gid_type) const =0;
+    // Cell description type will be specific to cell kind of cell with given gid.
+    virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
 
-    virtual cell_count_info get_cell_count_info(cell_gid_type) const =0;
-    virtual std::vector<cell_connection> connections_on(cell_gid_type) const =0;
+    virtual cell_size_type num_sources(cell_gid_type) const = 0;
+    virtual cell_size_type num_targets(cell_gid_type) const = 0;
+    virtual cell_size_type num_probes(cell_gid_type) const = 0;
+
+    virtual std::vector<cell_connection> connections_on(cell_gid_type) const = 0;
+    virtual probe_info get_probe(cell_member_type probe_id) const = 0;
+
+    // Global property type will be specific to given cell kind.
+    virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
 };
 
-
-/*
- * Recipe consisting of a single, unconnected cell
- * is particularly simple. Note keeps a reference to
- * the provided cell, so be aware of life time issues.
- */
-
-class singleton_recipe: public recipe {
-public:
-    singleton_recipe(const cell& the_cell): cell_(the_cell) {}
-
-    cell_size_type num_cells() const override {
-        return 1;
-    }
-
-    util::unique_any get_cell(cell_gid_type) const override {
-        return util::unique_any(cell(clone_cell, cell_));
-    }
-
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        return cell_.get_cell_kind();
-    }
-
-    cell_count_info get_cell_count_info(cell_gid_type) const override {
-        cell_count_info k;
-        k.num_sources = cell_.detectors().size();
-        k.num_targets = cell_.synapses().size();
-        k.num_probes = cell_.probes().size();
-
-        return k;
-    }
-
-    std::vector<cell_connection> connections_on(cell_gid_type) const override {
-        return std::vector<cell_connection>{};
-    }
-
-private:
-    const cell& cell_;
-};
-
-} // namespace mc
-} // namespace nest
+} // namespace arb

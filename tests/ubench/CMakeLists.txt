@@ -3,10 +3,15 @@ include(ExternalProject)
 # List of micro benchmarks to build.
 
 set(bench_sources
-    accumulate_functor_values.cpp)
+    accumulate_functor_values.cpp
+    event_setup.cpp
+    event_binning.cpp
+)
 
 set(bench_sources_cuda
-    cuda_compare_and_reduce.cu)
+    cuda_compare_and_reduce.cu
+    cuda_reduce_by_key.cu
+)
 
 # Set up google benchmark as an external project.
 
@@ -60,19 +65,20 @@ foreach(bench_src ${bench_sources})
     add_executable("${bench_exe}" EXCLUDE_FROM_ALL "${bench_src}")
     add_dependencies("${bench_exe}" gbench)
     target_include_directories("${bench_exe}" PRIVATE "${gbench_install_dir}/include")
-    target_link_libraries("${bench_exe}" "${gbench_install_dir}/lib/libbenchmark.a")
+    target_link_libraries("${bench_exe}" LINK_PUBLIC "${gbench_install_dir}/lib/libbenchmark.a")
 
     list(APPEND bench_exe_list ${bench_exe})
 endforeach()
 
 
-if(NMC_WITH_CUDA)
+if(ARB_WITH_CUDA)
+    cuda_include_directories("${gbench_install_dir}/include")
     foreach(bench_src ${bench_sources_cuda})
         string(REGEX REPLACE "\\.[^.]*$" "" bench_exe "${bench_src}")
         cuda_add_executable("${bench_exe}" EXCLUDE_FROM_ALL "${bench_src}")
         add_dependencies("${bench_exe}" gbench)
-        target_include_directories("${bench_exe}" PRIVATE "${gbench_install_dir}/include")
         target_link_libraries("${bench_exe}" "${gbench_install_dir}/lib/libbenchmark.a")
+        target_link_libraries("${bench_exe}" LINK_PUBLIC ${ARB_LIBRARIES})
 
         list(APPEND bench_exe_list ${bench_exe})
     endforeach()

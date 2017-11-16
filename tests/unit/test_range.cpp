@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <iterator>
-#include <sstream>
+#include <functional>
 #include <list>
 #include <numeric>
+#include <sstream>
 #include <type_traits>
+#include <unordered_map>
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 #include <tbb/tbb_stddef.h>
 #endif
 
@@ -20,8 +22,10 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 using testing::null_terminated;
+using testing::nocopy;
+using testing::nomove;
 
 TEST(range, list_iterator) {
     std::list<int> l = { 2, 4, 6, 8, 10 };
@@ -190,6 +194,31 @@ TEST(range, strictify) {
     EXPECT_EQ(cstr+11, ptr_range.right);
 }
 
+TEST(range, subrange) {
+    int values[] = {10, 11, 12, 13, 14, 15, 16};
+
+    // `subrange_view` should handle offsets of different integral types sanely.
+    auto sub1 = util::subrange_view(values, 1, 6u);
+    EXPECT_EQ(11, sub1[0]);
+    EXPECT_EQ(15, sub1.back());
+
+    // Should be able to take subranges of subranges, and modify underlying
+    // sequence.
+    auto sub2 = util::subrange_view(sub1, 3ull, (short)4);
+    EXPECT_EQ(1u, sub2.size());
+
+    sub2[0] = 23;
+    EXPECT_EQ(23, values[4]);
+
+    // Taking a subrange view of a const range over non-const iterators
+    // should still allow modification of underlying sequence.
+    const util::range<int*> const_view(values, values+4);
+    auto sub3 = util::subrange_view(const_view, std::make_pair(1, 3u));
+    sub3[1] = 42;
+    EXPECT_EQ(42, values[2]);
+}
+
+
 TEST(range, max_element_by) {
     const char *cstr = "helloworld";
     auto cstr_range = util::make_range(cstr, null_terminated);
@@ -221,6 +250,25 @@ TEST(range, max_value) {
         util::transform_view(cstr_range, [](char c) { return c+1; }));
 
     EXPECT_EQ('x', i);
+}
+
+TEST(range, minmax_value) {
+    auto cstr_empty_range = util::make_range((const char*)"", null_terminated);
+    auto p1 = util::minmax_value(cstr_empty_range);
+    EXPECT_EQ('\0', p1.first);
+    EXPECT_EQ('\0', p1.second);
+
+    const char *cstr = "hello world";
+    auto cstr_range = util::make_range(cstr, null_terminated);
+    auto p2 = util::minmax_value(cstr_range);
+    EXPECT_EQ(' ', p2.first);
+    EXPECT_EQ('w', p2.second);
+
+    auto p3 = util::minmax_value(
+        util::transform_view(cstr_range, [](char c) { return -(int)c; }));
+
+    EXPECT_EQ('w', -p3.first);
+    EXPECT_EQ(' ', -p3.second);
 }
 
 
@@ -325,6 +373,16 @@ TEST(range, assign) {
     EXPECT_EQ("00110", text);
 }
 
+TEST(range, fill) {
+    std::vector<char> aaaa(4);
+    util::fill(aaaa, 'a');
+    EXPECT_EQ("aaaa", std::string(aaaa.begin(), aaaa.end()));
+
+    char cstr[] = "howdy";
+    util::fill(util::make_range((char *)cstr, null_terminated), 'q');
+    EXPECT_EQ("qqqqq", std::string(cstr));
+}
+
 TEST(range, assign_from) {
     int in[] = {0,1,2};
 
@@ -387,9 +445,9 @@ TEST(range, sum_by) {
 }
 
 TEST(range, is_sequence) {
-    EXPECT_TRUE(nest::mc::util::is_sequence<std::vector<int>>::value);
-    EXPECT_TRUE(nest::mc::util::is_sequence<std::string>::value);
-    EXPECT_TRUE(nest::mc::util::is_sequence<int[8]>::value);
+    EXPECT_TRUE(arb::util::is_sequence<std::vector<int>>::value);
+    EXPECT_TRUE(arb::util::is_sequence<std::string>::value);
+    EXPECT_TRUE(arb::util::is_sequence<int[8]>::value);
 }
 
 TEST(range, all_of_any_of) {
@@ -423,7 +481,126 @@ TEST(range, all_of_any_of) {
     EXPECT_TRUE(util::any_of(cstr("87654x"), pred));
 }
 
-#ifdef NMC_HAVE_TBB
+TEST(range, keys) {
+    {
+        std::map<int, double> map = {{10, 2.0}, {3, 8.0}};
+        std::vector<int> expected = {3, 10};
+        std::vector<int> keys = util::assign_from(util::keys(map));
+        EXPECT_EQ(expected, keys);
+    }
+
+    {
+        struct cmp {
+            bool operator()(const nocopy<int>& a, const nocopy<int>& b) const {
+                return a.value<b.value;
+            }
+        };
+        std::map<nocopy<int>, double, cmp> map;
+        map.insert(std::pair<nocopy<int>, double>(11, 2.0));
+        map.insert(std::pair<nocopy<int>, double>(2,  0.3));
+        map.insert(std::pair<nocopy<int>, double>(2,  0.8));
+        map.insert(std::pair<nocopy<int>, double>(5,  0.1));
+
+        std::vector<int> expected = {2, 5, 11};
+        std::vector<int> keys;
+        for (auto& k: util::keys(map)) {
+            keys.push_back(k.value);
+        }
+        EXPECT_EQ(expected, keys);
+    }
+
+    {
+        std::unordered_multimap<int, double> map = {{3, 0.1}, {5, 0.4}, {11, 0.8}, {5, 0.2}};
+        std::vector<int> expected = {3, 5, 5, 11};
+        std::vector<int> keys = util::assign_from(util::keys(map));
+        util::sort(keys);
+        EXPECT_EQ(expected, keys);
+    }
+}
+
+TEST(range, is_sorted_by) {
+    // Use `nomove` wrapper to count potential copies: implementation aims to
+    // minimize copies of projection return value, and invocations of the projection function.
+
+    struct cmp_nomove_ {
+        bool operator()(const nomove<int>& a, const nomove<int>& b) const {
+            return a.value<b.value;
+        }
+    } cmp_nomove;
+
+    int invocations = 0;
+    auto copies = []() { return nomove<int>::copy_ctor_count+nomove<int>::copy_assign_count; };
+    auto reset = [&]() { invocations = 0; nomove<int>::reset_counts(); };
+
+    auto id_copy = [&](const nomove<int>& x) -> const nomove<int>& { return ++invocations, x; };
+    auto get_value = [&](const nomove<int>& x) { return ++invocations, x.value; };
+
+    // 1. sorted non-empty vector
+
+    std::vector<nomove<int>> v_sorted = {10, 13, 13, 15, 16};
+    int n = v_sorted.size();
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_sorted, get_value));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(n, invocations);
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_sorted, id_copy, cmp_nomove));
+    EXPECT_EQ(n, copies());
+    EXPECT_EQ(n, invocations);
+
+    // 2. empty vector
+
+    std::vector<nomove<int>> v_empty;
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_empty, id_copy, cmp_nomove));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(0, invocations);
+
+    // 3. one-element vector
+
+    std::vector<nomove<int>> v_single = {-44};
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_single, id_copy, cmp_nomove));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(0, invocations);
+
+    // 4. unsorted vectors at second, third, fourth elements.
+
+    std::vector<nomove<int>> v_unsorted_2 = {2, 1, 3, 4};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_2, id_copy, cmp_nomove));
+    EXPECT_EQ(2, copies());
+    EXPECT_EQ(2, invocations);
+
+    std::vector<nomove<int>> v_unsorted_3 = {2, 3, 1, 4};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_3, id_copy, cmp_nomove));
+    EXPECT_EQ(3, copies());
+    EXPECT_EQ(3, invocations);
+
+    std::vector<nomove<int>> v_unsorted_4 = {2, 3, 4, 1};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_4, id_copy, cmp_nomove));
+    EXPECT_EQ(4, copies());
+    EXPECT_EQ(4, invocations);
+
+    // 5. sequence defined by input (not forward) iterator.
+
+    std::istringstream s_reversed("18 15 13 13 11");
+    auto seq = util::make_range(std::istream_iterator<int>(s_reversed), std::istream_iterator<int>());
+    EXPECT_FALSE(util::is_sorted_by(seq, [](int x) { return x+2; }));
+    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return 2-x; }));
+    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
+}
+
+#ifdef ARB_HAVE_TBB
 
 TEST(range, tbb_split) {
     constexpr std::size_t N = 20;

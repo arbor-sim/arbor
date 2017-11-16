@@ -3,12 +3,12 @@
 #include <iostream>
 #include <sstream>
 #include <mutex>
+#include <utility>
 
 #include <threading/threading.hpp>
 #include "unwind.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 constexpr inline bool is_debug_mode() {
@@ -48,8 +48,9 @@ extern std::mutex global_debug_cerr_mutex;
 
 template <typename... Args>
 void debug_emit_trace(const char* file, int line, const char* varlist, const Args&... args) {
-    if (nest::mc::threading::multithreaded()) {
+    if (arb::threading::multithreaded()) {
         std::stringstream buffer;
+        buffer.precision(17);
 
         debug_emit_trace_leader(buffer, file, line, varlist);
         debug_emit(buffer, args...);
@@ -65,17 +66,44 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
     }
 }
 
-} // namespace util
-} // namespace mc
-} // namespace nest
+namespace impl {
+    template <typename Seq, typename Separator>
+    struct sepval {
+        const Seq& seq;
+        Separator sep;
 
-#ifdef NMC_HAVE_TRACE
-    #define TRACE(vars...) nest::mc::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
+        sepval(const Seq& seq, Separator sep): seq(seq), sep(std::move(sep)) {}
+
+        friend std::ostream& operator<<(std::ostream& out, const sepval& sv) {
+            bool emitsep = false;
+            for (const auto& v: sv.seq) {
+                if (emitsep) out << sv.sep;
+                emitsep = true;
+                out << v;
+            }
+            return out;
+        }
+    };
+}
+
+// Wrap a sequence or container of values so that they can be printed
+// to an `std::ostream` with the elements separated by the supplied 
+// separator.
+template <typename Seq, typename Separator>
+impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
+    return impl::sepval<Seq, Separator>(seq, std::move(sep));
+}
+
+} // namespace util
+} // namespace arb
+
+#ifdef ARB_HAVE_TRACE
+    #define TRACE(vars...) arb::util::debug_emit_trace(__FILE__, __LINE__, #vars, ##vars)
 #else
     #define TRACE(...)
 #endif
 
-#ifdef NMC_HAVE_ASSERTIONS
+#ifdef ARB_HAVE_ASSERTIONS
     #ifdef __GNUC__
         #define DEBUG_FUNCTION_NAME __PRETTY_FUNCTION__
     #else
@@ -84,8 +112,8 @@ void debug_emit_trace(const char* file, int line, const char* varlist, const Arg
 
     #define EXPECTS(condition) \
        (void)((condition) || \
-       nest::mc::util::global_failed_assertion_handler(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
+       arb::util::global_failed_assertion_handler(#condition, __FILE__, __LINE__, DEBUG_FUNCTION_NAME))
 #else
     #define EXPECTS(condition) \
        (void)(false && (condition))
-#endif // def NMC_HAVE_ASSERTIONS
+#endif // def ARB_HAVE_ASSERTIONS

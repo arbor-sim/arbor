@@ -13,10 +13,10 @@
 
 class exporter_spike_file_fixture : public ::testing::Test {
 protected:
-    using communicator_type = nest::mc::communication::global_policy;
+    using communicator_type = arb::communication::global_policy;
 
     using exporter_type =
-        nest::mc::io::exporter_spike_file<communicator_type>;
+        arb::io::exporter_spike_file<communicator_type>;
 
     std::string file_name_;
     std::string path_;
@@ -87,7 +87,7 @@ TEST_F(exporter_spike_file_fixture, do_export) {
         exporter_type exporter(file_name_, path_, extension_);
 
         // Create some spikes
-        std::vector<nest::mc::spike> spikes;
+        std::vector<arb::spike> spikes;
         spikes.push_back({ { 0, 0 }, 0.0 });
         spikes.push_back({ { 0, 0 }, 0.1 });
         spikes.push_back({ { 1, 0 }, 1.0 });

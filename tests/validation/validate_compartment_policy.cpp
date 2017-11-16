@@ -13,12 +13,14 @@
 
 #include "../gtest.h"
 
-#include "../test_common_cells.hpp"
+#include "../common_cells.hpp"
+#include "../simple_recipes.hpp"
 #include "../test_util.hpp"
+
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 
 #if 0
 // *Temporarily* disabled: compartment division policy

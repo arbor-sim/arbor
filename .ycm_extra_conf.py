@@ -36,7 +36,7 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
     '-DNDEBUG',
-    '-DNMC_HAVE_CTHREAD',
+    '-DARB_HAVE_CTHREAD',
     '-std=c++11',
     '-x',
     'c++',
@@ -53,10 +53,22 @@ flags = [
     '-I',
     'modcc',
     '-I',
+    'tests/ubench/google-benchmark/include',
+    '-I',
     '/cm/shared/apps/cuda/8.0.44/include',
+<<<<<<< HEAD
     '-I',
     '/pybind11',
     '-DNMC_HAVE_GPU'
+=======
+# <<<<<<< python
+#     '-I',
+#     '/pybind11',
+#     '-DNMC_HAVE_GPU'
+# =======
+    '-DARB_HAVE_GPU'
+# >>>>>>> master
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

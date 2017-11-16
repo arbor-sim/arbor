@@ -1,24 +1,97 @@
+<<<<<<< HEAD
+<<<<<<< HEAD
 #include "miniapp.hpp"
-using namespace nest::mc;
+#include <time.h>
+=======
+=======
+// <<<<<<< python
+// #include "miniapp.hpp"
+// #include <time.h>
+// =======
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
+#include <cmath>
+#include <exception>
+#include <iostream>
+#include <fstream>
+#include <memory>
+#include <vector>
+
+#include <json/json.hpp>
+
+#include <common_types.hpp>
+#include <communication/communicator.hpp>
+#include <communication/global_policy.hpp>
+#include <cell.hpp>
+#include <fvm_multicell.hpp>
+#include <hardware/gpu.hpp>
+#include <hardware/node_info.hpp>
+#include <io/exporter_spike_file.hpp>
+#include <load_balance.hpp>
+#include <model.hpp>
+#include <profiling/profiler.hpp>
+#include <profiling/meter_manager.hpp>
+#include <sampling.hpp>
+#include <schedule.hpp>
+#include <threading/threading.hpp>
+#include <util/any.hpp>
+#include <util/config.hpp>
+#include <util/debug.hpp>
+#include <util/ioutil.hpp>
+#include <util/nop.hpp>
+
+#include "io.hpp"
+#include "miniapp_recipes.hpp"
+#include "trace.hpp"
+<<<<<<< HEAD
+>>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
+=======
+// >>>>>>> master
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
+
+using namespace arb;
+
+using util::any_cast;
+using util::make_span;
 
 using global_policy = communication::global_policy;
-using sample_trace_type = sample_trace<time_type, double>;
 using file_export_type = io::exporter_spike_file<global_policy>;
-void banner();
-std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
-std::unique_ptr<sample_trace_type> make_trace(probe_record probe);
 using communicator_type = communication::communicator<communication::global_policy>;
 
-void write_trace_json(const sample_trace_type& trace, const std::string& prefix = "trace_");
+void banner(hw::node_info);
+std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
+sample_trace make_trace(const probe_info& probe);
+
 void report_compartment_stats(const recipe&);
 //static size_t global_get_num_threads();
 
 
 int main(int argc, char** argv) {
+<<<<<<< HEAD
+<<<<<<< HEAD
+    time_t startTime;
+    time_t endTime;
+    time_t useTime;
+
+    startTime=time(NULL);
     nest::mc::communication::global_policy_guard global_guard(argc, argv);
+=======
+    communication::global_policy_guard global_guard(argc, argv);
+>>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
+=======
+// <<<<<<< python
+//     time_t startTime;
+//     time_t endTime;
+//     time_t useTime;
+
+//     startTime=time(NULL);
+//     nest::mc::communication::global_policy_guard global_guard(argc, argv);
+// =======
+    communication::global_policy_guard global_guard(argc, argv);
+// >>>>>>> master
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 
     try {
-        nest::mc::util::meter_manager meters;
+        util::meter_manager meters;
         meters.start();
 
         std::cout << util::mask_stream(global_policy::id()==0);
@@ -41,9 +114,14 @@ int main(int argc, char** argv) {
             global_policy::set_sizes(options.dry_run_ranks, cells_per_rank);
         }
 
-        banner();
+        // Use a node description that uses the number of threads used by the
+        // threading back end, and 1 gpu if available.
+        hw::node_info nd;
+        nd.num_cpu_cores = threading::num_threads();
+        nd.num_gpus = hw::num_gpus()>0? 1: 0;
+        banner(nd);
 
-        meters.checkpoint("global setup");
+        meters.checkpoint("setup");
 
         // determine what to attach probes to
         probe_distribution pdist;
@@ -51,6 +129,9 @@ int main(int argc, char** argv) {
         pdist.all_segments = !options.probe_soma_only;
 
         auto recipe = make_recipe(options, pdist);
+        if (options.report_compartments) {
+            report_compartment_stats(*recipe);
+        }
 
         auto register_exporter = [] (const io::cl_options& options) {
             return
@@ -59,16 +140,29 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        group_rules rules;
-        rules.policy = config::has_cuda?
-            backend_policy::prefer_gpu: backend_policy::use_multicore;
-        rules.target_group_size = options.group_size;
-        auto decomp = domain_decomposition(*recipe, rules);
-
+        auto decomp = partition_load_balance(*recipe, nd);
         model m(*recipe, decomp);
 
-        if (options.report_compartments) {
-            report_compartment_stats(*recipe);
+        // Set up samplers for probes on local cable cells, as requested
+        // by command line options.
+        std::vector<sample_trace> sample_traces;
+        for (const auto& g: decomp.groups) {
+            if (g.kind==cable1d_neuron) {
+                for (auto gid: g.gids) {
+                    if (options.trace_max_gid && gid>*options.trace_max_gid) {
+                        continue;
+                    }
+
+                    for (cell_lid_type j: make_span(0, recipe->num_probes(gid))) {
+                        sample_traces.push_back(make_trace(recipe->get_probe({gid, j})));
+                    }
+                }
+            }
+        }
+
+        auto ssched = regular_schedule(options.sample_dt);
+        for (auto& trace: sample_traces) {
+            m.add_sampler(one_probe(trace.probe_id), ssched, make_simple_sampler(trace.samples));
         }
 
         // Specify event binning/coalescing.
@@ -78,23 +172,6 @@ int main(int argc, char** argv) {
             binning_kind::following;
 
         m.set_binning_policy(binning_policy, options.bin_dt);
-
-        // Inject some artificial spikes, 1 per 20 neurons.
-        for (cell_gid_type c=0; c<recipe->num_cells(); c+=20) {
-            m.add_artificial_spike({c, 0});
-        }
-
-        // Attach samplers to all probes
-        std::vector<std::unique_ptr<sample_trace_type>> traces;
-        const time_type sample_dt = 0.1;
-        for (auto probe: m.probes()) {
-            if (options.trace_max_gid && probe.id.gid>*options.trace_max_gid) {
-                continue;
-            }
-
-            traces.push_back(make_trace(probe));
-            m.attach_sampler(probe.id, make_trace_sampler(traces.back().get(), sample_dt));
-        }
 
         // Initialize the spike exporting interface
         std::unique_ptr<file_export_type> file_exporter;
@@ -115,24 +192,51 @@ int main(int argc, char** argv) {
             }
         }
 
-        meters.checkpoint("model initialization");
+        meters.checkpoint("model-init");
 
         // run model
         m.run(options.tfinal, options.dt);
 
-        meters.checkpoint("time stepping");
+        meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        auto const num_steps = options.tfinal / options.dt;
-        util::profiler_output(0.001, m.num_cells()*num_steps, options.profile_only_zero);
+        util::profiler_output(0.001, options.profile_only_zero);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces
-        for (const auto& trace: traces) {
-            write_trace_json(*trace.get(), options.trace_prefix);
+        auto write_trace = options.trace_format=="json"? write_trace_json: write_trace_csv;
+        for (const auto& trace: sample_traces) {
+            write_trace(trace, options.trace_prefix);
         }
 
+<<<<<<< HEAD
+<<<<<<< HEAD
         util::save_to_file(meters, "meters.json");
+        endTime = time(NULL);
+        useTime = endTime - startTime;
+        std::cout << "Use time: " << useTime << std::endl;
+=======
+=======
+// <<<<<<< python
+//         util::save_to_file(meters, "meters.json");
+//         endTime = time(NULL);
+//         useTime = endTime - startTime;
+//         std::cout << "Use time: " << useTime << std::endl;
+// =======
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
+        auto report = util::make_meter_report(meters);
+        std::cout << report;
+        if (global_policy::id()==0) {
+            std::ofstream fid;
+            fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
+            fid.open("meters.json");
+            fid << std::setw(1) << util::to_json(report) << "\n";
+        }
+<<<<<<< HEAD
+>>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
+=======
+// >>>>>>> master
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
@@ -147,6 +251,8 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+<<<<<<< HEAD
+<<<<<<< HEAD
 void banner() {
     std::cout << "====================\n";
     std::cout << "  starting miniapp\n";
@@ -155,6 +261,23 @@ void banner() {
     std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
     std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
     std::cout << "====================\n";
+=======
+=======
+
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
+void banner(hw::node_info nd) {
+    std::cout << "==========================================\n";
+    std::cout << "  Arbor miniapp\n";
+    std::cout << "  - distributed : " << global_policy::size()
+              << " (" << std::to_string(global_policy::kind()) << ")\n";
+    std::cout << "  - threads     : " << nd.num_cpu_cores
+              << " (" << threading::description() << ")\n";
+    std::cout << "  - gpus        : " << nd.num_gpus << "\n";
+    std::cout << "==========================================\n";
+<<<<<<< HEAD
+>>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
+=======
+>>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 }
 
 std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {
@@ -169,8 +292,15 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     p.morphology_round_robin = options.morph_rr;
 
     p.num_compartments = options.compartments_per_segment;
+
+    // TODO: Put all recipe parameters in the recipes file
     p.num_synapses = options.all_to_all? options.cells-1: options.synapses_per_cell;
     p.synapse_type = options.syn_type;
+
+    // Parameters for spike input from file
+    if (options.spike_file_input) {
+        p.input_spike_path = options.input_spike_path;
+    }
 
     if (options.all_to_all) {
         return make_basic_kgraph_recipe(options.cells, p, pdist);
@@ -183,45 +313,25 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     }
 }
 
-std::unique_ptr<sample_trace_type> make_trace(probe_record probe) {
+sample_trace make_trace(const probe_info& probe) {
     std::string name = "";
     std::string units = "";
 
-    switch (probe.kind) {
-    case probeKind::membrane_voltage:
+    auto addr = any_cast<cell_probe_address>(probe.address);
+    switch (addr.kind) {
+    case cell_probe_address::membrane_voltage:
         name = "v";
         units = "mV";
         break;
-    case probeKind::membrane_current:
+    case cell_probe_address::membrane_current:
         name = "i";
         units = "mA/cm²";
         break;
     default: ;
     }
-    name += probe.location.segment? "dend" : "soma";
+    name += addr.location.segment? "dend" : "soma";
 
-    return util::make_unique<sample_trace_type>(probe.id, name, units);
-}
-
-void write_trace_json(const sample_trace_type& trace, const std::string& prefix) {
-    auto path = prefix + std::to_string(trace.probe_id.gid) +
-                "." + std::to_string(trace.probe_id.index) + "_" + trace.name + ".json";
-
-    nlohmann::json jrep;
-    jrep["name"] = trace.name;
-    jrep["units"] = trace.units;
-    jrep["cell"] = trace.probe_id.gid;
-    jrep["probe"] = trace.probe_id.index;
-
-    auto& jt = jrep["data"]["time"];
-    auto& jy = jrep["data"][trace.name];
-
-    for (const auto& sample: trace.samples) {
-        jt.push_back(sample.time);
-        jy.push_back(sample.value);
-    }
-    std::ofstream file(path);
-    file << std::setw(1) << jrep << std::endl;
+    return sample_trace{probe.id, name, units};
 }
 
 void report_compartment_stats(const recipe& rec) {
@@ -232,8 +342,8 @@ void report_compartment_stats(const recipe& rec) {
 
     for (std::size_t i = 0; i<ncell; ++i) {
         std::size_t ncomp = 0;
-        auto c = rec.get_cell(i);
-        if (auto ptr = util::any_cast<cell>(&c)) {
+        auto c = rec.get_cell_description(i);
+        if (auto ptr = any_cast<cell>(&c)) {
             ncomp = ptr->num_compartments();
         }
         ncomp_total += ncomp;

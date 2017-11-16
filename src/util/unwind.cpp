@@ -16,8 +16,7 @@
 #include <iostream>
 #include <vector>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 static_assert(sizeof(std::uintptr_t)>=sizeof(unw_word_t),
@@ -66,7 +65,7 @@ std::string demangle(std::string s) {
 }
 
 void backtrace::print(bool stop_at_main) const {
-    using namespace nest::mc::memory::util;
+    using namespace arb::memory::util;
 
     auto i = 0;
     while (file_exists("backtrace_" + std::to_string(i))) {
@@ -88,11 +87,10 @@ void backtrace::print(bool stop_at_main) const {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 #else
-nest::mc::util::backtrace::backtrace() {}
-void nest::mc::util::backtrace::print(bool) const {}
+arb::util::backtrace::backtrace() {}
+void arb::util::backtrace::print(bool) const {}
 #endif
 

@@ -1,16 +1,16 @@
 #include <string>
 #include <vector>
 
+#include "meter.hpp"
+
 #include <util/config.hpp>
+#include <hardware/power.hpp>
 
-#include "power_meter.hpp"
-
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 class power_meter: public meter {
-    std::vector<energy_size_type> readings_;
+    std::vector<hw::energy_size_type> readings_;
 
 public:
     std::string name() override {
@@ -32,7 +32,7 @@ public:
     }
 
     void take_reading() override {
-        readings_.push_back(energy());
+        readings_.push_back(hw::energy());
     }
 };
 
@@ -44,5 +44,4 @@ meter_ptr make_power_meter() {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

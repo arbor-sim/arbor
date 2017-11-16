@@ -59,7 +59,7 @@ public:
     swc_emitter(swc_emitter&&) = default;
 
     // write `index`th morphology as SWC. 
-    void operator()(unsigned index, const nest::mc::morphology& m);
+    void operator()(unsigned index, const arb::morphology& m);
 
     void close() { file_.close(); }
     ~swc_emitter() { close(); }
@@ -85,7 +85,7 @@ public:
     pvector_emitter(pvector_emitter&&) = default;
 
     // write pvector for `index`th morphology. 
-    void operator()(unsigned index, const nest::mc::morphology& m);
+    void operator()(unsigned index, const arb::morphology& m);
 
     void close() { file_.close(); }
     ~pvector_emitter() { close(); }

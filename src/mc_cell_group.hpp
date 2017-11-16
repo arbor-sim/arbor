@@ -3,26 +3,30 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <unordered_map>
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/event.hpp>
 #include <cell_group.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <event_binner.hpp>
 #include <event_queue.hpp>
 #include <recipe.hpp>
-#include <sampler_function.hpp>
+#include <sampler_map.hpp>
+#include <sampling.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
+#include <util/double_buffer.hpp>
+#include <util/filter.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
 #include <util/unique_any.hpp>
 
 #include <profiling/profiler.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename LoweredCell>
 class mc_cell_group: public cell_group {
@@ -30,63 +34,47 @@ public:
     using lowered_cell_type = LoweredCell;
     using value_type = typename lowered_cell_type::value_type;
     using size_type  = typename lowered_cell_type::value_type;
-    using source_id_type = cell_member_type;
 
     mc_cell_group() = default;
 
-    template <typename Cells>
-    mc_cell_group(cell_gid_type first_gid, const Cells& cells):
-        gid_base_{first_gid}
+    mc_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
+        gids_(std::move(gids))
     {
-        // Create lookup structure for probe and target ids.
-        build_handle_partitions(cells);
-        std::size_t n_probes = probe_handle_divisions_.back();
+        // Default to no binning of events
+        set_binning_policy(binning_kind::none, 0);
+
+        // Build lookup table for gid to local index.
+        for (auto i: util::make_span(0, gids_.size())) {
+            gid_index_map_[gids_[i]] = i;
+        }
+
+        // Create lookup structure for target ids.
+        build_target_handle_partition(rec);
         std::size_t n_targets = target_handle_divisions_.back();
-        std::size_t n_detectors = algorithms::sum(util::transform_view(
-            cells, [](const cell& c) { return c.detectors().size(); }));
 
-        // Allocate space to store handles.
-        target_handles_.resize(n_targets);
-        probe_handles_.resize(n_probes);
+        // Pre-allocate space to store handles, probe map.
+        auto n_probes = util::sum_by(gids_, [&rec](cell_gid_type i) { return rec.num_probes(i); });
+        probe_map_.reserve(n_probes);
+        target_handles_.reserve(n_targets);
 
-        lowered_.initialize(cells, target_handles_, probe_handles_);
+        // Construct cell implementation, retrieving handles and maps. 
+        lowered_.initialize(gids_, rec, target_handles_, probe_map_);
 
         // Create a list of the global identifiers for the spike sources
-        auto source_gid = cell_gid_type{gid_base_};
-        for (const auto& cell: cells) {
-            for (cell_lid_type lid=0u; lid<cell.detectors().size(); ++lid) {
-                spike_sources_.push_back(source_id_type{source_gid, lid});
-            }
-            ++source_gid;
-        }
-        EXPECTS(spike_sources_.size()==n_detectors);
-
-        // Create the enumeration of probes attached to cells in this cell group
-        probes_.reserve(n_probes);
-        for (auto i: util::make_span(0, cells.size())){
-            const cell_gid_type probe_gid = gid_base_ + i;
-            const auto probes_on_cell = cells[i].probes();
-            for (cell_lid_type lid: util::make_span(0, probes_on_cell.size())) {
-                // get the unique global identifier of this probe
-                cell_member_type id{probe_gid, lid};
-
-                // get the location and kind information of the probe
-                const auto p = probes_on_cell[lid];
-
-                // record the combined identifier and probe details
-                probes_.push_back(probe_record{id, p.location, p.kind});
+        for (auto source_gid: gids_) {
+            for (cell_lid_type lid = 0; lid<rec.num_sources(source_gid); ++lid) {
+                spike_sources_.push_back({source_gid, lid});
             }
         }
+        spike_sources_.shrink_to_fit();
+
+        // Create event lane buffers.
+        // There is one set for each epoch: current and next.
+        event_lanes_.resize(2);
+        // For each epoch there is one lane for each cell in the cell group.
+        event_lanes_[0].resize(gids_.size());
+        event_lanes_[1].resize(gids_.size());
     }
-
-    mc_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
-        mc_cell_group(
-            first_gid,
-            util::transform_view(
-                cells,
-                [](const util::unique_any& c) -> const cell& {return util::any_cast<const cell&>(c);})
-        )
-    {}
 
     cell_kind get_cell_kind() const override {
         return cell_kind::cable1d_neuron;
@@ -94,91 +82,199 @@ public:
 
     void reset() override {
         spikes_.clear();
-        events_.clear();
         reset_samplers();
-        binner_.reset();
+        for (auto& b: binners_) {
+            b.reset();
+        }
         lowered_.reset();
+        for (auto& lanes: event_lanes_) {
+            for (auto& lane: lanes) {
+                lane.clear();
+            }
+        }
     }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {
-        binner_ = event_binner(policy, bin_interval);
+        binners_.clear();
+        binners_.resize(gids_.size(), event_binner(policy, bin_interval));
     }
 
-    void advance(time_type tfinal, time_type dt) override {
+
+    void advance(epoch ep, time_type dt) override {
+        PE("advance");
         EXPECTS(lowered_.state_synchronized());
+        time_type tstart = lowered_.min_time();
 
-        // Bin pending events and enqueue on lowered state.
-        time_type ev_min_time = lowered_.max_time(); // (but we're synchronized here)
-        while (auto ev = events_.pop_if_before(tfinal)) {
-            auto handle = get_target_handle(ev->target);
-            auto binned_ev_time = binner_.bin(ev->target.gid, ev->time, ev_min_time);
-            lowered_.add_event(binned_ev_time, handle, ev->weight);
+        PE("event-setup");
+        const auto& lc = event_lanes(ep.id);
+        staged_events_.clear();
+        for (auto lid: util::make_span(0, gids_.size())) {
+            auto& lane = lc[lid];
+            for (auto e: lane) {
+                if (e.time>=ep.tfinal) break;
+                e.time = binners_[lid].bin(e.time, tstart);
+                auto h = target_handles_[target_handle_divisions_[lid]+e.target.index];
+                auto ev = deliverable_event(e.time, h, e.weight);
+                staged_events_.push_back(ev);
+            }
+        }
+        PL();
+
+        // Create sample events and delivery information.
+        //
+        // For each (schedule, sampler, probe set) in the sampler association
+        // map that will be triggered in this integration interval, create
+        // sample events for the lowered cell, one for each scheduled sample
+        // time and probe in the probe set.
+        //
+        // Each event is associated with an offset into the sample data and
+        // time buffers; these are assigned contiguously such that one call to
+        // a sampler callback can be represented by a `sampler_call_info`
+        // value as defined below, grouping together all the samples of the
+        // same probe for this callback in this association.
+
+        struct sampler_call_info {
+            sampler_function sampler;
+            cell_member_type probe_id;
+            probe_tag tag;
+
+            // Offsets are into lowered cell sample time and event arrays.
+            sample_size_type begin_offset;
+            sample_size_type end_offset;
+        };
+
+        PE("sample-event-setup");
+        std::vector<sampler_call_info> call_info;
+
+        std::vector<sample_event> sample_events;
+        sample_size_type n_samples = 0;
+        sample_size_type max_samples_per_call = 0;
+
+        for (auto& sa: sampler_map_) {
+            auto sample_times = sa.sched.events(tstart, ep.tfinal);
+            if (sample_times.empty()) {
+                continue;
+            }
+
+            sample_size_type n_times = sample_times.size();
+            max_samples_per_call = std::max(max_samples_per_call, n_times);
+
+            for (cell_member_type pid: sa.probe_ids) {
+                auto cell_index = gid_to_index(pid.gid);
+                auto p = probe_map_[pid];
+
+                call_info.push_back({sa.sampler, pid, p.tag, n_samples, n_samples+n_times});
+
+                for (auto t: sample_times) {
+                    sample_event ev{t, cell_index, {p.handle, n_samples++}};
+                    sample_events.push_back(ev);
+                }
+            }
         }
 
-        lowered_.setup_integration(tfinal, dt);
+        // Sample events must be ordered by time for the lowered cell.
+        util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
+        PL();
 
-        std::vector<sample_event> requeue_sample_events;
+        // Run integration.
+        lowered_.setup_integration(ep.tfinal, dt, staged_events_, std::move(sample_events));
+        PE("integrator-steps");
+
         while (!lowered_.integration_complete()) {
-            // Take any pending samples.
-            // TODO: Placeholder: this will be replaced by a backend polling implementation.
-
-            PE("sampling");
-            time_type cell_max_time = lowered_.max_time();
-
-            requeue_sample_events.clear();
-            while (auto m = sample_events_.pop_if_before(cell_max_time)) {
-                auto& s = samplers_[m->sampler_index];
-                EXPECTS((bool)s.sampler);
-
-                time_type cell_time = lowered_.time(s.cell_gid-gid_base_);
-                if (cell_time<m->time) {
-                    // This cell hasn't reached this sample time yet.
-                    requeue_sample_events.push_back(*m);
-                }
-                else {
-                    auto next = s.sampler(cell_time, lowered_.probe(s.handle));
-                    if (next) {
-                        m->time = std::max(*next, cell_time);
-                        requeue_sample_events.push_back(*m);
-                    }
-                }
-            }
-            for (auto& ev: requeue_sample_events) {
-                sample_events_.push(std::move(ev));
-            }
-            PL();
-
-            // Ask lowered_ cell to integrate 'one step', delivering any
-            // events accordingly.
-            // TODO: Placeholder: with backend polling for samplers, we will
-            // request that the lowered cell perform the integration all the
-            // way to tfinal.
-
             lowered_.step_integration();
-
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
-                std::cerr << "warning: solution out of bounds for cell "
-                          << gid_base_ << " at (max) t " << lowered_.max_time() << " ms\n";
+                std::cerr << "warning: solution out of bounds  at (max) t "
+                          << lowered_.max_time() << " ms\n";
             }
         }
+        PL();
+
+
+        // For each sampler callback registered in `call_info`, construct the
+        // vector of sample entries from the lowered cell sample times and values
+        // and then call the callback.
+
+        PE("sample-deliver");
+        std::vector<sample_record> sample_records;
+        sample_records.reserve(max_samples_per_call);
+
+        auto sample_time = lowered_.sample_time();
+        auto sample_value = lowered_.sample_value();
+
+        for (auto& sc: call_info) {
+            sample_records.clear();
+            for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
+                sample_records.push_back(sample_record{time_type(sample_time[i]), &sample_value[i]});
+            }
+
+            sc.sampler(sc.probe_id, sc.tag, sc.end_offset-sc.begin_offset, sample_records.data());
+        }
+        PL();
 
         // Copy out spike voltage threshold crossings from the back end, then
         // generate spikes with global spike source ids. The threshold crossings
         // record the local spike source index, which must be converted to a
         // global index for spike communication.
-        PE("events");
+
+        PE("spike-retrieve");
         for (auto c: lowered_.get_spikes()) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }
+
         // Now that the spikes have been generated, clear the old crossings
         // to get ready to record spikes from the next integration period.
+
         lowered_.clear_spikes();
+        PL();
+
         PL();
     }
 
-    void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
-        for (auto& e: events) {
-            events_.push(e);
+    void enqueue_events(
+            epoch ep,
+            util::subrange_view_type<std::vector<std::vector<postsynaptic_spike_event>>> events) override
+    {
+        using pse = postsynaptic_spike_event;
+
+        // Make convenience variables for event lanes:
+        //  lf: event lanes for the next epoch
+        //  lc: event lanes for the current epoch
+        auto& lf = event_lanes(ep.id+1);
+        const auto& lc = event_lanes(ep.id);
+
+        // For a cell, merge the incoming events with events in lc that are
+        // not to be delivered in thie epoch, and store the result in lf.
+        auto merge_future_events = [&](unsigned l) {
+            PE("sort");
+            // STEP 1: sort events in place in events[l]
+            util::sort_by(events[l], [](const pse& e){return event_time(e);});
+            PL();
+
+            PE("merge");
+            // STEP 2: clear lf to store merged list
+            lf[l].clear();
+
+            // STEP 3: merge new events and future events from lc into lf
+            auto pos = std::lower_bound(lc[l].begin(), lc[l].end(), ep.tfinal, event_time_less());
+            lf[l].resize(events[l].size()+std::distance(pos, lc[l].end()));
+            std::merge(
+                events[l].begin(), events[l].end(), pos, lc[l].end(), lf[l].begin(),
+                [](const pse& l, const pse& r) {return l.time<r.time;});
+            PL();
+        };
+
+        // This operation is independent for each cell, so it can be performed
+        // in parallel if there are sufficient cells in the cell group.
+        // TODO: use parallel loop based on argument to this function? This would
+        //       allow the caller, which has more context, to decide whether a
+        //       parallel loop is beneficial.
+        if (gids_.size()>1) {
+            threading::parallel_for::apply(0, gids_.size(), merge_future_events);
+        }
+        else {
+            for (unsigned l=0; l<gids_.size(); ++l) {
+                merge_future_events(l);
+            }
         }
     }
 
@@ -190,121 +286,97 @@ public:
         spikes_.clear();
     }
 
-    const std::vector<source_id_type>& spike_sources() const {
+    const std::vector<cell_member_type>& spike_sources() const {
         return spike_sources_;
     }
 
-    void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time) override {
-        auto handle = get_probe_handle(probe_id);
+    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids,
+                     schedule sched, sampler_function fn, sampling_policy policy) override
+    {
+        std::vector<cell_member_type> probeset =
+            util::assign_from(util::filter(util::keys(probe_map_), probe_ids));
 
-        using size_type = sample_event::size_type;
-        auto sampler_index = size_type(samplers_.size());
-        samplers_.push_back({handle, probe_id.gid, s});
-        sampler_start_times_.push_back(start_time);
-        sample_events_.push({sampler_index, start_time});
+        if (!probeset.empty()) {
+            sampler_map_.add(h, sampler_association{std::move(sched), std::move(fn), std::move(probeset)});
+        }
     }
 
-    std::vector<probe_record> probes() const override {
-        return probes_;
+    void remove_sampler(sampler_association_handle h) override {
+        sampler_map_.remove(h);
+    }
+
+    void remove_all_samplers() override {
+        sampler_map_.clear();
     }
 
 private:
-    // gid of first cell in group.
-    cell_gid_type gid_base_;
+    std::vector<std::vector<postsynaptic_spike_event>>& event_lanes(std::size_t epoch_id) {
+        return event_lanes_[epoch_id%2];
+    }
+
+    // List of the gids of the cells in the group.
+    std::vector<cell_gid_type> gids_;
+
+    // Hash table for converting gid to local index
+    std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
 
     // The lowered cell state (e.g. FVM) of the cell.
     lowered_cell_type lowered_;
 
     // Spike detectors attached to the cell.
-    std::vector<source_id_type> spike_sources_;
+    std::vector<cell_member_type> spike_sources_;
 
     // Spikes that are generated.
     std::vector<spike> spikes_;
 
     // Event time binning manager.
-    event_binner binner_;
+    std::vector<event_binner> binners_;
 
     // Pending events to be delivered.
-    event_queue<postsynaptic_spike_event> events_;
+    std::vector<std::vector<std::vector<postsynaptic_spike_event>>> event_lanes_;
+    std::vector<deliverable_event> staged_events_;
 
     // Pending samples to be taken.
     event_queue<sample_event> sample_events_;
-    std::vector<time_type> sampler_start_times_;
 
     // Handles for accessing lowered cell.
     using target_handle = typename lowered_cell_type::target_handle;
     std::vector<target_handle> target_handles_;
 
+    // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
     using probe_handle = typename lowered_cell_type::probe_handle;
-    std::vector<probe_handle> probe_handles_;
-
-    struct sampler_entry {
-        typename lowered_cell_type::probe_handle handle;
-        cell_gid_type cell_gid;
-        sampler_function sampler;
-    };
+    probe_association_map<probe_handle> probe_map_;
 
     // Collection of samplers to be run against probes in this group.
-    std::vector<sampler_entry> samplers_;
-
-    // Lookup table for probe ids -> local probe handle indices.
-    std::vector<std::size_t> probe_handle_divisions_;
+    sampler_association_map sampler_map_;
 
     // Lookup table for target ids -> local target handle indices.
     std::vector<std::size_t> target_handle_divisions_;
 
-    // Enumeration of the probes that are attached to the cells in the cell group
-    std::vector<probe_record> probes_;
-
     // Build handle index lookup tables.
-    template <typename Cells>
-    void build_handle_partitions(const Cells& cells) {
-        auto probe_counts =
-            util::transform_view(cells, [](const cell& c) { return c.probes().size(); });
-        auto target_counts =
-            util::transform_view(cells, [](const cell& c) { return c.synapses().size(); });
-
-        make_partition(probe_handle_divisions_, probe_counts);
-        make_partition(target_handle_divisions_, target_counts);
-    }
-
-    // Use handle partition to get index from id.
-    template <typename Divisions>
-    std::size_t handle_partition_lookup(const Divisions& divisions, cell_member_type id) const {
-        // NB: without any assertion checking, this would just be:
-        // return divisions[id.gid-gid_base_]+id.index;
-
-        EXPECTS(id.gid>=gid_base_);
-
-        auto handle_partition = util::partition_view(divisions);
-        EXPECTS(id.gid-gid_base_<handle_partition.size());
-
-        auto ival = handle_partition[id.gid-gid_base_];
-        std::size_t i = ival.first + id.index;
-        EXPECTS(i<ival.second);
-
-        return i;
-    }
-
-    // Get probe handle from probe id.
-    probe_handle get_probe_handle(cell_member_type probe_id) const {
-        return probe_handles_[handle_partition_lookup(probe_handle_divisions_, probe_id)];
+    void build_target_handle_partition(const recipe& rec) {
+        util::make_partition(target_handle_divisions_,
+            util::transform_view(gids_, [&rec](cell_gid_type i) { return rec.num_targets(i); }));
     }
 
     // Get target handle from target id.
-    target_handle get_target_handle(cell_member_type target_id) const {
-        return target_handles_[handle_partition_lookup(target_handle_divisions_, target_id)];
+    target_handle get_target_handle(cell_member_type id) const {
+        return target_handles_[target_handle_divisions_[gid_to_index(id.gid)]+id.index];
     }
 
     void reset_samplers() {
         // clear all pending sample events and reset to start at time 0
         sample_events_.clear();
-        using size_type = sample_event::size_type;
-        for(size_type i=0; i<samplers_.size(); ++i) {
-            sample_events_.push({i, sampler_start_times_[i]});
+        for (auto &assoc: sampler_map_) {
+            assoc.sched.reset();
         }
+    }
+
+    cell_gid_type gid_to_index(cell_gid_type gid) const {
+        auto it = gid_index_map_.find(gid);
+        EXPECTS(it!=gid_index_map_.end());
+        return it->second;
     }
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
