@@ -37,8 +37,7 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
 
 
     // Create event lane buffers.
-    // There is one set for each epoch: current and next.
-    event_lanes_.resize(2);
+    // There is one set for each epoch: current (0) and next (1).
     // For each epoch there is one lane for each cell in the cell group.
     event_lanes_[0].resize(communicator_.num_local_cells());
     event_lanes_[1].resize(communicator_.num_local_cells());

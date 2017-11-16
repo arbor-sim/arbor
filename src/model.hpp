@@ -1,6 +1,7 @@
 #pragma once
 
-#include <mutex>
+#include <array>
+#include <unordered_map>
 #include <vector>
 
 #include <backends.hpp>
@@ -98,7 +99,7 @@ private:
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
 
     // Pending events to be delivered.
-    std::vector<std::vector<event_vector>> event_lanes_;
+    std::array<std::vector<event_vector>, 2> event_lanes_;
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;
