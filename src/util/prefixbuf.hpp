@@ -11,6 +11,21 @@
 namespace arb {
 namespace util {
 
+// `prefixbuf` acts an output-only filter for another streambuf, inserting
+// the contents of the `prefix` string before the first character in a line.
+//
+// The following code, for example:
+//
+//     prefixbuf p(std::cout.rdbuf());
+//     std::cout.rdbuf(&p);
+//     p.prefix = ">>> ";
+//     std::cout << "hello\nworld\n";
+//
+// would emit to stdout:
+//
+//     >>> hello
+//     >>> world
+
 class prefixbuf: public std::streambuf {
 public:
     explicit prefixbuf(std::streambuf* inner): inner_(inner) {}
@@ -43,6 +58,12 @@ protected:
 //
 // Note that the prefix string is a property of the prefixbuf, not the stream,
 // and so will not be preserved by e.g. `copyfmt`.
+//
+// All but `setprefix` are implemented as values of type `indent_manip`
+// below.
+//
+// The manipulator `indent(0)` can be used to reset the prefix of the underlying
+// stream to match the current indentation level.
 
 class setprefix {
 public:
@@ -84,7 +105,9 @@ inline indent_manip settab(unsigned w) {
     return indent_manip{indent_manip::settab, w};
 }
 
-// Wrap an ostringstream with a prefixbuf.
+// Wrap an stringbuf with a prefixbuf, and present as a stream.
+// Acts very much like a `std::ostringstream`, but with prefix
+// and indent functionality.
 
 class pfxstringstream: public std::ostream {
 public:

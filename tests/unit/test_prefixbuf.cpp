@@ -9,10 +9,18 @@
 
 using namespace arb::util;
 
+// Test public std::stringbuf 'put' interfaces on prefixbuf.
+
 TEST(prefixbuf, prefix) {
+    // Write a C-string with `std::steambuf::sputn` ---
+    // exercises `prefixbuf::xsputn`.
+
     auto write_sputn = [](std::streambuf& b, const char* c) {
         b.sputn(c, std::strlen(c));
     };
+
+    // Write a C-string with `std::steambuf::sputc` ---
+    // exercises `prefixbuf::overflow`.
 
     auto write_sputc = [](std::streambuf& b, const char* c) {
         while (*c) {
@@ -41,6 +49,15 @@ TEST(prefixbuf, prefix) {
     EXPECT_EQ(expected, s.str());
 }
 
+// Test `pfxstringstream` basic functionality:
+//
+//   1. `rdbuf()` method gives pointer to `prefixbuf`.
+//
+//   2. Formatted write operations behave as expected,
+//      but with the prefixbuf prefix-inserting behaviour.
+//
+//   3. `str()` method gives string from wrapped `std::stringbuf`.
+
 TEST(prefixbuf, pfxstringstream) {
     pfxstringstream p;
 
@@ -56,6 +73,10 @@ TEST(prefixbuf, pfxstringstream) {
     EXPECT_EQ(expected, p.str());
 }
 
+// Test that the `pfxstringstream::str(const std::string&)` method
+// behaves analagously to that of `std::ostringstream`, viz. initializing
+// the contents of the buffer.
+
 TEST(prefixbuf, pfxstringstream_str) {
     pfxstringstream p;
     p.str("0123456789");
@@ -65,6 +86,8 @@ TEST(prefixbuf, pfxstringstream_str) {
     std::string expected = "__a\n__b789";
     EXPECT_EQ(expected, p.str());
 }
+
+// Test indent manipulators against expected prefixes.
 
 TEST(prefixbuf, indent_manip) {
     pfxstringstream p;
@@ -93,6 +116,13 @@ TEST(prefixbuf, indent_manip) {
     EXPECT_EQ(expected, p.str());
 }
 
+// `setprefix` goes behind the stream's back and sets the prefix
+// in the underling streambuf directly.
+//
+// The stream's indentation will be re-applied to the streambuf
+// when it encounters an indent manipulator; `indent(0)` would
+// otherwise constitute a NOP.
+
 TEST(prefixbuf, setprefix) {
     pfxstringstream p;
 
@@ -110,6 +140,11 @@ TEST(prefixbuf, setprefix) {
 
     EXPECT_EQ(expected, p.str());
 }
+
+// Confirm the callback associated with the indentation state
+// propagates the full indentation stack after `copyfmt`,
+// and imposes the corresponding prefix on the underlying
+// `prefixbuf`.
 
 TEST(prefixbuf, copyfmt) {
     pfxstringstream p1;
