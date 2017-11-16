@@ -155,12 +155,12 @@ public:
     /// Returns a vector of event queues, with one queue for each local cell group. The
     /// events in each queue are all events that must be delivered to targets in that cell
     /// group as a result of the global spike exchange.
-    std::vector<event_vector> make_event_queues(const gathered_vector<spike>& global_spikes) {
+    std::vector<pse_vector> make_event_queues(const gathered_vector<spike>& global_spikes) {
         using util::subrange_view;
         using util::make_span;
         using util::make_range;
 
-        auto queues = std::vector<event_vector>(num_local_cells_);
+        auto queues = std::vector<pse_vector>(num_local_cells_);
         const auto& sp = global_spikes.partition();
         const auto& cp = connection_part_;
         for (auto dom: make_span(0, num_domains_)) {

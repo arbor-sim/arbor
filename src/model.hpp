@@ -57,10 +57,10 @@ public:
     // Add events directly to targets.
     // Must be called before calling model::run, and must contain events that
     // are to be delivered at or after the current model time.
-    void inject_events(const event_vector& events);
+    void inject_events(const pse_vector& events);
 
 private:
-    std::vector<event_vector>& event_lanes(std::size_t epoch_id);
+    std::vector<pse_vector>& event_lanes(std::size_t epoch_id);
 
     std::size_t num_groups() const;
 
@@ -99,7 +99,7 @@ private:
     local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
 
     // Pending events to be delivered.
-    std::array<std::vector<event_vector>, 2> event_lanes_;
+    std::array<std::vector<pse_vector>, 2> event_lanes_;
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;

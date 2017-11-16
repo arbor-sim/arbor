@@ -14,7 +14,7 @@
 
 namespace arb {
 
-void merge_events(time_type tfinal, const event_vector& lc, event_vector& events, event_vector& lf);
+void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, pse_vector& lf);
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
     communicator_(rec, decomp)
@@ -196,7 +196,7 @@ std::size_t model::num_groups() const {
     return cell_groups_.size();
 }
 
-std::vector<event_vector>& model::event_lanes(std::size_t epoch_id) {
+std::vector<pse_vector>& model::event_lanes(std::size_t epoch_id) {
     return event_lanes_[epoch_id%2];
 }
 
@@ -221,16 +221,14 @@ util::optional<cell_size_type> model::local_cell_index(cell_gid_type gid) {
         util::optional<cell_size_type>(it->second);
 }
 
-void model::inject_events(const event_vector& events) {
-    using pse = postsynaptic_spike_event;
-
+void model::inject_events(const pse_vector& events) {
     auto& lanes = event_lanes(epoch_.id);
 
     // Append all events that are to be delivered to local cells to the
     // appropriate lane. At the same time, keep track of which lanes have been
     // modified, because the lanes will have to be sorted once all events have
     // been added.
-    event_vector local_events;
+    pse_vector local_events;
     std::set<cell_size_type> modified_lanes;
     for (auto& e: events) {
         if (e.time<t_) {
@@ -243,34 +241,30 @@ void model::inject_events(const event_vector& events) {
     }
 
     // Sort events in the event lanes that were modified
-    auto event_bind = [] (const pse& e) {return std::tie(e.time, e.target, e.weight);};
     for (auto l: modified_lanes) {
-        util::sort_by(lanes[l], event_bind);
+        util::sort(lanes[l]);
     }
 }
 
 // Merge events that are to be delivered from two lists into a sorted list.
 // Events are sorted by delivery time, then target, then weight.
 //
-//  tfinal: The time at which the current epoch finishes.
+//  tfinal: The time at which the current epoch finishes. The output list, `lc`,
+//          will contain all events with delivery times equal to or greater than
+//          tfinal.
 //  lc: Sorted set of events to be delivered before and after `tfinal`.
 //  events: Unsorted list of events with delivery time greater than or equal to
 //      tfinal. May be modified by the call.
 //  lf: Will hold a list of all postsynaptic events in `events` and `lc` that
 //      have delivery times greater than or equal to `tfinal`.
-void merge_events(time_type tfinal, const event_vector& lc, event_vector& events, event_vector& lf) {
-    using pse = postsynaptic_spike_event;
-
-    // For ordering events by: delivery time, then target index, then weight.
-    auto lex_bind = [](const pse& e){return std::tie(e.time, e.target, e.weight);};
-    auto lex_less = [lex_bind] (const pse& l, const pse& r) {return lex_bind(l)<lex_bind(r);};
-
+void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, pse_vector& lf) {
     // Merge the incoming events with events in lc that are not to be delivered
     // in this epoch, and store the result in lf.
 
     // STEP 1: sort events in place in events[l]
     PE("sort");
-    util::sort_by(events, lex_bind);
+    //util::sort_by(events, pse_tie);
+    util::sort(events);
     PL();
 
     // STEP 2: clear lf to store merged list
@@ -280,7 +274,7 @@ void merge_events(time_type tfinal, const event_vector& lc, event_vector& events
     PE("merge");
     auto pos = std::lower_bound(lc.begin(), lc.end(), tfinal, event_time_less());
     lf.resize(events.size()+std::distance(pos, lc.end()));
-    std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin(), lex_less);
+    std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin());
     PL();
 }
 
