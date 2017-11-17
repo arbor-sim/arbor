@@ -6,6 +6,7 @@
 #include "blocks.hpp"
 #include "error.hpp"
 #include "expression.hpp"
+#include "writeback.hpp"
 
 // wrapper around a .mod file
 class Module: public error_stack {
@@ -82,6 +83,10 @@ public:
     bool semantic();
     bool optimize();
 
+    const std::vector<WriteBack>& write_backs() const {
+        return write_backs_;
+    }
+
 private:
     moduleKind kind_;
     std::string title_;
@@ -119,4 +124,6 @@ private:
     UnitsBlock  units_block_;
     ParameterBlock parameter_block_;
     AssignedBlock assigned_block_;
+
+    std::vector<WriteBack> write_backs_;
 };

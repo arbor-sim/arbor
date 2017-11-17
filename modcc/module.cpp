@@ -456,7 +456,7 @@ void Module::add_variables_to_symbols() {
     {
         if(symbols_.count(name)) {
             throw compiler_exception(
-                "trying to insert a symbol that already exists",
+                pprintf("the symbol % already exists", yellow(name)),
                 loc);
         }
         symbols_[name] =
@@ -562,27 +562,48 @@ void Module::add_variables_to_symbols() {
     auto update_ion_symbols = [this, create_indexed_variable]
             (Token const& tkn, accessKind acc, ionKind channel)
     {
-        auto const& var = tkn.spelling;
+        auto const& name = tkn.spelling;
 
-        // add the ion variable's indexed shadow
-        if(has_symbol(var)) {
-            auto sym = symbols_[var].get();
+        if(has_symbol(name)) {
+            auto sym = symbols_[name].get();
 
-            // has the user declared a range/parameter with the same name?
-            if(sym->kind()!=symbolKind::indexed_variable) {
-                warning(
-                    pprintf("the symbol % clashes with the ion channel variable,"
-                            " and will be ignored", yellow(var)),
-                    sym->location()
-                );
-                // erase symbol
-                symbols_.erase(var);
+            //  if sym is an indexed_variable: error
+            //  else if sym is a state variable: register a writeback call
+            //  else if sym is a range (non parameter) variable: error
+            //  else if sym is a parameter variable: error
+            //  else it does not exist so make an indexed variable
+
+            // If the an indexed variable has already been created with the same name
+            // throw an error.
+            if(sym->kind()==symbolKind::indexed_variable) {
+                error(pprintf("the symbol defined % at % can't be redeclared",
+                              sym->location(), yellow(name)),
+                      tkn.location);
+                return;
+            }
+            else if(sym->kind()==symbolKind::variable) {
+                auto var = sym->is_variable();
+
+                // state variable: register writeback
+                if(var->is_state()) {
+                    // create writeback
+                    write_backs_.push_back(WriteBack(name, "ion_"+name, channel));
+                    return;
+                }
+
+                // error: a normal range variable or parameter can't have the same
+                // name as an indexed ion variable
+                error(pprintf("the ion channel variable % at % can't be redeclared",
+                              sym->location(), yellow(name)),
+                      tkn.location);
+                return;
             }
         }
 
-        create_indexed_variable(var, "ion_"+var,
+        // add the ion variable's indexed shadow
+        create_indexed_variable(name, "ion_"+name,
                                 acc==accessKind::read ? tok::eq : tok::plus,
-                                acc, channel, tkn.location);
+acc, channel, tkn.location);
     };
 
     // check for nonspecific current
