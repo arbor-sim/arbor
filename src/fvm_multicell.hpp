@@ -1099,6 +1099,7 @@ void fvm_multicell<Backend>::reset() {
     for (auto& m : mechanisms_) {
         m->set_params();
         m->nrn_init();
+        m->write_back();
     }
 
     // Update reversal potential to account for changes to concentrations made
@@ -1181,6 +1182,12 @@ void fvm_multicell<Backend>::step_integration() {
         PE(m->name().c_str());
         m->nrn_state();
         PL();
+    }
+    PL();
+
+    PE("ion-update");
+    for(auto& m: mechanisms_) {
+        m->write_back();
     }
     PL();
 

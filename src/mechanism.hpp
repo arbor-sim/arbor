@@ -104,6 +104,11 @@ public:
     virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
     virtual mechanismKind kind() const = 0;
 
+    // Used by mechanisms that update ion concentrations.
+    // Calling will copy the concentration, stored as internal state of the
+    // mechanism, to the "global" copy of ion species state.
+    virtual void write_back() {};
+
     // Mechanism instances with different global parameter settings can be distinguished by alias.
     std::string alias() const {
         return alias_.empty()? name(): alias_;
