@@ -1,9 +1,7 @@
 cdef class py_recipe:
     cdef recipe* c_recipe
-    
-    def __cinit__(self, int num_cells):
-        self.c_recipe = make_recipe(num_cells).release()
-        
+    def __cinit__(self, ):
+        self.c_recipe = new recipe()
     def __dealloc__(self):
         del self.c_recipe
 

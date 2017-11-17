@@ -2,10 +2,6 @@
 
 #import the types from c++ library
 from libcpp.vector cimport vector
-from memory cimport unique_ptr
-
-cdef extern:
-   cdef std::unique_ptr<recipe> make_recipe(int num_cells)
 
 cdef extern from "common_types.hpp" namespace "nest::mc":
     ctypedef std::uint32_t cell_gid_type    #TODO
