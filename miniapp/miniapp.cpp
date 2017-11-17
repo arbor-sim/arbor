@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-#include "miniapp.hpp"
-#include <time.h>
-=======
-=======
-// <<<<<<< python
-// #include "miniapp.hpp"
-// #include <time.h>
-// =======
->>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 #include <cmath>
 #include <exception>
 #include <iostream>
@@ -42,11 +31,6 @@
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
 #include "trace.hpp"
-<<<<<<< HEAD
->>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
-=======
-// >>>>>>> master
->>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 
 using namespace arb;
 
@@ -66,29 +50,7 @@ void report_compartment_stats(const recipe&);
 
 
 int main(int argc, char** argv) {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    time_t startTime;
-    time_t endTime;
-    time_t useTime;
-
-    startTime=time(NULL);
-    nest::mc::communication::global_policy_guard global_guard(argc, argv);
-=======
     communication::global_policy_guard global_guard(argc, argv);
->>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
-=======
-// <<<<<<< python
-//     time_t startTime;
-//     time_t endTime;
-//     time_t useTime;
-
-//     startTime=time(NULL);
-//     nest::mc::communication::global_policy_guard global_guard(argc, argv);
-// =======
-    communication::global_policy_guard global_guard(argc, argv);
-// >>>>>>> master
->>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 
     try {
         util::meter_manager meters;
@@ -209,21 +171,6 @@ int main(int argc, char** argv) {
             write_trace(trace, options.trace_prefix);
         }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-        util::save_to_file(meters, "meters.json");
-        endTime = time(NULL);
-        useTime = endTime - startTime;
-        std::cout << "Use time: " << useTime << std::endl;
-=======
-=======
-// <<<<<<< python
-//         util::save_to_file(meters, "meters.json");
-//         endTime = time(NULL);
-//         useTime = endTime - startTime;
-//         std::cout << "Use time: " << useTime << std::endl;
-// =======
->>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
         auto report = util::make_meter_report(meters);
         std::cout << report;
         if (global_policy::id()==0) {
@@ -232,11 +179,6 @@ int main(int argc, char** argv) {
             fid.open("meters.json");
             fid << std::setw(1) << util::to_json(report) << "\n";
         }
-<<<<<<< HEAD
->>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
-=======
-// >>>>>>> master
->>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
@@ -251,20 +193,6 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-void banner() {
-    std::cout << "====================\n";
-    std::cout << "  starting miniapp\n";
-    std::cout << "  - " << threading::description() << " threading support\n";
-   // std::cout << "  - " << global_get_num_threads() << "Totle thread numnber\n";
-    std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-    std::cout << "  - gpu support: " << (config::has_cuda? "on": "off") << "\n";
-    std::cout << "====================\n";
-=======
-=======
-
->>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 void banner(hw::node_info nd) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
@@ -274,10 +202,6 @@ void banner(hw::node_info nd) {
               << " (" << threading::description() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
-<<<<<<< HEAD
->>>>>>> d39cc9ca9940873c667947fb38ef27257fe93f45
-=======
->>>>>>> 6ef4b158f49a456c7d9c0eb55a5ddc90902e7d78
 }
 
 std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {
