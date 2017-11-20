@@ -7,20 +7,18 @@
 #include <mechanisms/multicore/test_kin1.hpp>
 #include <mechanisms/multicore/test_kinlva.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 std::map<std::string, backend::maker_type>
 backend::mech_map_ = {
-    { std::string("pas"),       maker<mechanisms::pas::mechanism_pas> },
-    { std::string("hh"),        maker<mechanisms::hh::mechanism_hh> },
-    { std::string("expsyn"),    maker<mechanisms::expsyn::mechanism_expsyn> },
-    { std::string("exp2syn"),   maker<mechanisms::exp2syn::mechanism_exp2syn> },
-    { std::string("test_kin1"), maker<mechanisms::test_kin1::mechanism_test_kin1> },
-    { std::string("test_kinlva"), maker<mechanisms::test_kinlva::mechanism_test_kinlva> }
+    { std::string("pas"),       maker<mechanism_pas> },
+    { std::string("hh"),        maker<mechanism_hh> },
+    { std::string("expsyn"),    maker<mechanism_expsyn> },
+    { std::string("exp2syn"),   maker<mechanism_exp2syn> },
+    { std::string("test_kin1"), maker<mechanism_test_kin1> },
+    { std::string("test_kinlva"), maker<mechanism_test_kinlva> }
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

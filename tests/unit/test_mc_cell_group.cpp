@@ -2,15 +2,17 @@
 
 #include <backends/multicore/fvm.hpp>
 #include <common_types.hpp>
+#include <epoch.hpp>
 #include <fvm_multicell.hpp>
 #include <mc_cell_group.hpp>
 #include <util/rangeutil.hpp>
 
 #include "common.hpp"
-#include "../test_common_cells.hpp"
+#include "../common_cells.hpp"
+#include "../simple_recipes.hpp"
 
-using namespace nest::mc;
-using fvm_cell = fvm::fvm_multicell<nest::mc::multicore::backend>;
+using namespace arb;
+using fvm_cell = fvm::fvm_multicell<arb::multicore::backend>;
 
 cell make_cell() {
     auto c = make_cell_ball_and_stick();
@@ -21,18 +23,17 @@ cell make_cell() {
     return c;
 }
 
-
 TEST(mc_cell_group, get_kind) {
-    mc_cell_group<fvm_cell> group{ 0, util::singleton_view(make_cell()) };
+    mc_cell_group<fvm_cell> group{{0}, cable1d_recipe(make_cell()) };
 
     // we are generating a mc_cell_group which should be of the correct type
     EXPECT_EQ(cell_kind::cable1d_neuron, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
-    mc_cell_group<fvm_cell> group{0, util::singleton_view(make_cell())};
+    mc_cell_group<fvm_cell> group{{0}, cable1d_recipe(make_cell()) };
 
-    group.advance(50, 0.01);
+    group.advance(epoch(0, 50), 0.01, {});
 
     // the model is expected to generate 4 spikes as a result of the
     // fixed stimulus over 50 ms
@@ -40,28 +41,34 @@ TEST(mc_cell_group, test) {
 }
 
 TEST(mc_cell_group, sources) {
-    using cell_group_type = mc_cell_group<fvm_cell>;
+    // Make twenty cells, with an extra detector on gids 0, 3 and 17
+    // to make things more interesting.
+    std::vector<cell> cells;
 
-    auto cell = make_cell();
-    EXPECT_EQ(cell.detectors().size(), 1u);
-    // add another detector on the cell to make things more interesting
-    cell.add_detector({1, 0.3}, 2.3);
+    for (int i=0; i<20; ++i) {
+        cells.push_back(make_cell());
+        if (i==0 || i==3 || i==17) {
+            cells.back().add_detector({1, 0.3}, 2.3);
+        }
 
-    cell_gid_type first_gid = 37u;
-    auto group = cell_group_type{first_gid, util::singleton_view(cell)};
+        EXPECT_EQ(1u + (i==0 || i==3 || i==17), cells.back().detectors().size());
+    }
 
-    // expect group sources to be lexicographically sorted by source id
-    // with gids in cell group's range and indices starting from zero
+    std::vector<cell_gid_type> gids = {3u, 4u, 10u, 16u, 17u, 18u};
+    mc_cell_group<fvm_cell> group{gids, cable1d_recipe(cells)};
+
+    // Expect group sources to be lexicographically sorted by source id
+    // with gids in cell group's range and indices starting from zero.
 
     const auto& sources = group.spike_sources();
-    for (unsigned i = 0; i<sources.size(); ++i) {
-        auto id = sources[i];
-        if (i==0) {
-            EXPECT_EQ(id.gid, first_gid);
+    for (unsigned j = 0; j<sources.size(); ++j) {
+        auto id = sources[j];
+        if (j==0) {
+            EXPECT_EQ(id.gid, gids[0]);
             EXPECT_EQ(id.index, 0u);
         }
         else {
-            auto prev = sources[i-1];
+            auto prev = sources[j-1];
             EXPECT_GT(id, prev);
             EXPECT_EQ(id.index, id.gid==prev.gid? prev.index+1: 0u);
         }

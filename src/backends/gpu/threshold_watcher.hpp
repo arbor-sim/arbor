@@ -2,44 +2,34 @@
 
 #include <common_types.hpp>
 #include <memory/memory.hpp>
-#include <memory/managed_ptr.hpp>
 #include <util/span.hpp>
 
+#include "managed_ptr.hpp"
 #include "stack.hpp"
+#include "backends/fvm_types.hpp"
 #include "kernels/test_thresholds.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 /// threshold crossing logic
 /// used as part of spike detection back end
-template <typename T, typename I>
 class threshold_watcher {
 public:
-    using value_type = T;
-    using size_type = I;
+    using value_type = fvm_value_type;
+    using size_type = fvm_size_type;
 
-    using array = memory::device_vector<T>;
-    using iarray = memory::device_vector<I>;
+    using array = memory::device_vector<value_type>;
+    using iarray = memory::device_vector<size_type>;
     using const_view = typename array::const_view_type;
     using const_iview = typename iarray::const_view_type;
-
-    /// stores a single crossing event
-    struct threshold_crossing {
-        size_type index;    // index of variable
-        value_type time;    // time of crossing
-        __host__ __device__
-        friend bool operator==
-            (const threshold_crossing& lhs, const threshold_crossing& rhs)
-        {
-            return lhs.index==rhs.index && lhs.time==rhs.time;
-        }
-    };
 
     using stack_type = stack<threshold_crossing>;
 
     threshold_watcher() = default;
+
+    threshold_watcher(threshold_watcher&& other) = default;
+    threshold_watcher& operator=(threshold_watcher&& other) = default;
 
     threshold_watcher(
             const_iview vec_ci,
@@ -57,7 +47,9 @@ public:
         thresholds_(memory::make_const_view(thresh)),
         prev_values_(values),
         is_crossed_(size()),
-        stack_(memory::make_managed_ptr<stack_type>(10*size()))
+        // TODO: allocates enough space for 10 spikes per watch.
+        // A more robust approach might be needed to avoid overflows.
+        stack_(10*size())
     {
         reset();
     }
@@ -65,7 +57,7 @@ public:
     /// Remove all stored crossings that were detected in previous calls
     /// to test()
     void clear_crossings() {
-        stack_->clear();
+        stack_.clear();
     }
 
     /// Reset state machine for each detector.
@@ -95,7 +87,10 @@ public:
     }
 
     const std::vector<threshold_crossing> crossings() const {
-        return std::vector<threshold_crossing>(stack_->begin(), stack_->end());
+        if (stack_.overflow()) {
+            throw std::runtime_error("GPU spike buffer overflow.");
+        }
+        return std::vector<threshold_crossing>(stack_.begin(), stack_.end());
     }
 
     /// Tests each target for changed threshold state.
@@ -103,18 +98,17 @@ public:
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test() {
-        constexpr int block_dim = 128;
-        const int grid_dim = (size()+block_dim-1)/block_dim;
-        test_thresholds<<<grid_dim, block_dim>>>(
+        test_thresholds(
             cv_to_cell_.data(), t_after_.data(), t_before_.data(),
             size(),
-            *stack_,
+            stack_.storage(),
             is_crossed_.data(), prev_values_.data(),
             cv_index_.data(), values_.data(), thresholds_.data());
 
-        // Check that the number of spikes has not exceeded
-        // the capacity of the stack.
-        EXPECTS(stack_->size() <= stack_->capacity());
+        // Check that the number of spikes has not exceeded capacity.
+        // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
+        // host-device managed memory access.
+        EXPECTS((cudaDeviceSynchronize(), !stack_.overflow()));
     }
 
     /// the number of threashold values that are being monitored
@@ -137,9 +131,8 @@ private:
     array prev_values_;         // values at previous sample time: on gpu
     iarray is_crossed_;         // bool flag for state of each watch: on gpu
 
-    memory::managed_ptr<stack_type> stack_;
+    stack_type stack_;
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

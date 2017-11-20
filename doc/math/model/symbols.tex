@@ -1,0 +1,219 @@
+%-------------------------------------------------------------------------------
+%\subsubsection{Balancing Units}
+%-------------------------------------------------------------------------------
+Ensuring that units are balanced and correct requires care.
+Take the system of linear equations that arises from the finite volume discretisation, specified in \eq{eq:ode_linsys} and \eq{eq:rhs_linsys}
+\begin{equation}
+    \label{eq:linsys_FV}
+    \left[
+        \frac{\sigma_i \cmi}{\Delta t} + \sum_{j\in\mathcal{N}_i} {\alpha_{ij}}
+    \right]
+    V_i^{k+1} - \sum_{j\in\mathcal{N}_i} { \alpha_{ij} V_j^{k+1}}
+        =
+    \frac{\sigma_i \cmi}{\Delta t} V_i^k -  \sigma_i(i_m^{k} - i_e).
+\end{equation}
+
+The choice of units for a parameter, e.g. $\mu m^2$ or $m^2$ for the area $\sigma_{ij}$, introduces a constant of proportionality wherever it is used ($10^{-12}$ in the case of $\mu m^2 \rightarrow m^2$).
+Wherever terms are added in \eq{eq:linsys_FV} the units must be checked, and constants of proportionality balanced.
+
+First, appropriate units for each of the parameters and variables are chosen in~\tbl{tbl:units}.
+We try to use the same units as NEURON, except for the specific membrane capacitance $c_m$, for which $F\cdot m^{-2}$ is used in place of $nF\cdot mm^{-2}$.
+
+\begin{table}[hp!]
+\begin{tabular}{lllr}
+    \hline
+    term                      &   units                 &  normalized units                         & NEURON \\
+    \hline
+    $t$                       &   $ms$                  &  $10^{-3} \cdot s$                        & yes    \\
+    $V$                       &   $mV$                  &  $10^{-3} \cdot V$                        & yes    \\
+    $a,~\Delta x$             &   $\mu m$               &  $10^{-6} \cdot m$                        & yes    \\
+    $\sigma_{i},~\sigma_{ij}$ &   $\mu m^2$             &  $10^{-12} \cdot m^2$                     & yes    \\
+    $c_m$                     &   $F\cdot m^{-2}$       &  $s\cdot A\cdot V^{-1}\cdot m^{-2}$       & no     \\
+    $r_L$                     &   $\Omega\cdot cm$      &  $10^{-2} \cdot A^{-1}\cdot V\cdot m$     & yes    \\
+    $\overline{g}$            &   $S\cdot cm^{-2}$      &  $10^{4} \cdot A\cdot V^{-1}\cdot m^{-2}$ & yes    \\
+    $g_s$                     &   $\mu S$               &  $10^{-6} \cdot A\cdot V^{-1}$            & yes    \\
+    $I_e$                     &   $nA$                  &  $10^{-9} \cdot A$                        & yes    \\
+    \hline
+\end{tabular}
+\caption{The units chosen for parameters and variables in Arbor. The NEURON column indicates whether the same units have been used as NEURON.}
+\label{tbl:units}
+\end{table}
+
+\subsection{Left Hand Side}
+First, we calculate the units for the term $\frac{\sigma_i \cmi}{\Delta t}$, as follows
+\begin{align}
+    \left[ \frac{\sigma_i \cmi}{\Delta t} \right]
+        &=
+    \frac{10^{-12}\cdot m^2 \cdot s\cdot A\cdot V^{-1}\cdot m^{-2} } {10^{-3}\cdot s}
+            \nonumber \\
+        &=
+    10^{-9} \cdot A \cdot V^{-1}. \label{eq:units_lhs_diag}
+\end{align}
+The units of $\alpha_{i,j}$ are:
+\begin{align}
+    \left[ \alpha_{i,j} \right]
+        &=
+    \left[ \frac{\sigma_{ij}}{ r_L \Delta x_{ij}} \right] \nonumber \\
+        &=
+    \frac{10^{-12}\cdot m^2}{ 10^{-2} \cdot A^{-1}\cdot V\cdot m \cdot 10^{-6}\cdot m}
+        \nonumber \\
+        &=
+    10^{-4}\cdot A \cdot V^{-1}, \label{eq:units_lhs_lu}
+\end{align}
+which can be scaled by $10^{5}$ to have the same scale as in \eq{eq:units_lhs_diag}.
+
+Thus, the RHS with scaling for units is:
+\begin{equation}
+    \label{eq:linsys_LHS_scaled}
+    \left[
+        \frac{\sigma_i \cmi}{\Delta t} + \sum_{j\in\mathcal{N}_i} {10^5\cdot\alpha_{ij}}
+    \right]
+    V_i^{k+1} - \sum_{j\in\mathcal{N}_i} { 10^5\cdot\alpha_{ij} V_j^{k+1}}.
+\end{equation}
+The implementation folds the $10^5$ factor into the $\alpha_{ij}$ terms when they are used to calculate the invariant component of the matrix during the initialization phase.
+
+After this scaling, the units of the LHS are
+\begin{align}
+    \text{units on LHS}
+        &= (10^{-9} \cdot A \cdot V^{-1})( 10^{-3} \cdot V) \nonumber \\
+        &= 10^{-12} \cdot A. \label{eq:balanced_units}
+\end{align}
+
+\subsection{Right Hand Side}
+The first term on the RHS has the same scaling factor as the LHS, so does not need to be changed.
+
+Density channels and point processes describe the membrane current differently in NMODL;
+as current densities ($10\cdot A\cdot m^{-2}$) and currents ($10^{-9}\cdot A$) respectively.
+The current term can be written as follows:
+\begin{equation}
+    \sigma_i (i_m - i_e) \equiv \sigma_i \bar{i}_m + I_m - I_e,
+\end{equation}
+where $\bar{i}_m$ is the current density contribution from ion channels, $I_m$ is the current contribution from synapses, and $I_e$ is current contribution from electrodes.
+
+The units of the current density as calculated via NMODL are
+\begin{equation}
+    \label{eq:im_unit}
+    \unit{ \bar{i}_m } =  \unit{ \overline{g} } \unit{ V }
+                       =  10 \cdot A \cdot m^{-2},
+\end{equation}
+so the units of the current from density channels are
+\begin{equation}
+    \unit{\sigma_i \bar{i}_m} = 10^{-12}\cdot{m}^2 \cdot 10 \cdot A \cdot m^{-2} = 10^{-11}\cdot A.
+\end{equation}
+Hence, the $\sigma_i \bar{i}_m$ term must be scaled by 10 to match units.
+
+Likewise the units of synapse and electrode current
+\begin{equation}
+    \label{eq:Im_unit}
+    \unit{ I_e } = \unit{ I_m } = \unit{ g_s } \unit{ V }
+                 = 10^{-9}\cdot A,
+\end{equation}
+which must be scaled by $10^3$ to match units.
+
+The properly scaled RHS is
+\begin{equation}
+    \label{eq:linsys_RHS_scaled}
+    \frac{\sigma_i \cmi}{\Delta t} V_i^k -
+        (10\cdot\sigma_i \bar{i}_m + 10^3(I_m - I_e)).
+\end{equation}
+
+\subsection{Putting It Together}
+From \eq{eq:linsys_LHS_scaled} and \eq{eq:linsys_RHS_scaled} the full scaled linear system is
+\begin{align}
+    &
+    \left[
+        \frac{\sigma_i \cmi}{\Delta t} + \sum_{j\in\mathcal{N}_i} {10^5\cdot\alpha_{ij}}
+    \right]
+    V_i^{k+1} - \sum_{j\in\mathcal{N}_i} { 10^5\cdot\alpha_{ij} V_j^{k+1}} \nonumber \\
+       & =
+    \frac{\sigma_i \cmi}{\Delta t} V_i^k -
+        (10\cdot\sigma_i \bar{i}_m + 10^3(I_m - I_e)),
+\end{align}
+where the units on both sides have been scaled from $pA$ to $nA$, i.e. by a factor of $10^3$.
+This can be expressed more generally in terms of weights
+\begin{align}
+    &
+    \left[
+        g_i + \sum_{j\in\mathcal{N}_i} {g_{ij}}
+    \right]
+    V_i^{k+1} - \sum_{j\in\mathcal{N}_i} { g_{ij} V_j^{k+1}} \nonumber \\
+       & =
+    g_i V_i^k -
+        (w_i^d \bar{i}_m + w_i^p(I_m - I_e)),
+\end{align}
+which can be expressed more compactly as
+\begin{equation}
+    Gv=i,
+\end{equation}
+where $G\in\mathbb{R}^{n\times n}$ is the conductance matrix, and $v, i \in \mathbb{R}^{n}$ are voltage and current vectors respectively.
+
+In Arbor the weights are chosen such that the conductance has units $\mu S$, voltage has units $mV$ and current has units $nA$.
+
+    \begin{center}
+
+    \begin{tabular}{llll}
+        \hline
+        weight & value & units  & SI \\
+        \hline
+        $g_i$    & $10^{-3}\frac{\sigma_i \cmi}{\Delta t}$ & $\mu S$ & $10^{-6} \cdot A\cdot V^{-1}$ \\
+        $g_{ij}$ & $10^2\alpha_{ij}$                       & $\mu S$ & $10^{-6} \cdot A\cdot V^{-1}$ \\
+        $w_i^d$  & $10^{-2}\cdot\sigma_i$                  & $10^2\mu m^{-2}$ & $10^{-10}m^2$ \\
+        $w_i^p$  & $1$                                     & $1$     & $1$ \\
+        \hline
+    \end{tabular}
+
+    \end{center}
+%------------------------------------------
+\subsection{Supplementary Unit Information}
+%------------------------------------------
+Here is some information about units scraped from Wikipedia for convenience.
+
+\begin{table*}[htp!]
+    \begin{center}
+
+    \begin{tabular}{llll}
+        \hline
+        quality & symbol & unit  & notes \\
+        \hline
+        energy     & $J$ & joule   $j$  & work to push 1 $N$ through 1 $m$ \\
+        charge     & $q$ & coulomb $C$  & $6.25\cdot10^{18}$ electrons, $[A\cdot s]$ \\
+        current    & $I$ & ampere  $A$  & $[C\cdot s^{-1}]$, $A$ is SI base unit\\
+        voltage    & $V$ & volt    $V$  & potential work per unit charge \\
+        resistance & $R$ & ohm $\Omega$ & recall Ohm's law $V=IR$ \\
+        capacitance& $C$ & farad   $F$  & $C=\frac{q}{V}$, $[J\cdot C^{2}]$\\
+        conductance& $g$ & siemens $S$  & $g=1/R$ i.e. inverse of resistance \\
+        \hline
+    \end{tabular}
+
+    \vspace{20pt}
+
+    \begin{tabular}{llll}
+        \hline
+        symbol & unit & equivalents & SI base \\
+        \hline
+        $J$    & $j$      &  $J\cdot s^{-1}$, $V\cdot A$ &
+            $kg\cdot m^{2}\cdot s^{-2}$ \\
+
+        $q$    & $C$      & $s\cdot A$ &
+            $s\cdot A$ \\
+
+        $I$    & $A$  & $C\cdot s^{-1}$ &
+            $A$ \\
+
+        $V$    & $V$      & $W\cdot A$ &
+            $kg\cdot m^{2}\cdot s^{-3}\cdot A^{-1}$ \\
+
+        $R$    & $\Omega$ & $V\cdot A^{-1}$ &
+            $kg\cdot m^{2}\cdot s^{-3}\cdot A^{-2}$ \\
+
+        $C$    & $F$      & $C\cdot V^{-1}$  &
+            $kg^{-1}\cdot m^{-2}\cdot s^{4}\cdot A^{2}$ \\
+        $g$    & $S$      & $A\cdot V^{-1}$  &
+            $kg^{-1}\cdot m^{-2}\cdot s^3\cdot A^2$ \\
+        \hline
+    \end{tabular}
+
+    \end{center}
+    \caption{Symbols and quantities.}
+\end{table*}
+

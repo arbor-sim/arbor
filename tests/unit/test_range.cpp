@@ -2,12 +2,14 @@
 
 #include <algorithm>
 #include <iterator>
-#include <sstream>
+#include <functional>
 #include <list>
 #include <numeric>
+#include <sstream>
 #include <type_traits>
+#include <unordered_map>
 
-#ifdef NMC_HAVE_TBB
+#ifdef ARB_HAVE_TBB
 #include <tbb/tbb_stddef.h>
 #endif
 
@@ -20,8 +22,10 @@
 
 #include "common.hpp"
 
-using namespace nest::mc;
+using namespace arb;
 using testing::null_terminated;
+using testing::nocopy;
+using testing::nomove;
 
 TEST(range, list_iterator) {
     std::list<int> l = { 2, 4, 6, 8, 10 };
@@ -398,6 +402,12 @@ TEST(range, assign_from) {
     }
 }
 
+struct foo {
+    int x;
+    int y;
+    friend bool operator==(const foo& l, const foo& r) {return l.x==r.x && l.y==r.y;};
+};
+
 TEST(range, sort) {
     char cstr[] = "howdy";
 
@@ -424,6 +434,16 @@ TEST(range, sort) {
 
     util::stable_sort_by(util::strict_view(mixed_range), rank);
     EXPECT_EQ(std::string("HELLOthere54321"), mixed);
+
+
+    // sort with user-provided less comparison function
+
+    std::vector<foo> X = {{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}};
+
+    util::sort(X, [](const foo& l, const foo& r) {return l.y<r.y;});
+    EXPECT_EQ(X, (std::vector<foo>{{5, 0}, {4, 1}, {3, 2}, {2, 3}, {1, 4}, {0, 5}}));
+    util::sort(X, [](const foo& l, const foo& r) {return l.x<r.x;});
+    EXPECT_EQ(X, (std::vector<foo>{{0, 5}, {1, 4}, {2, 3}, {3, 2}, {4, 1}, {5, 0}}));
 }
 
 TEST(range, sum_by) {
@@ -441,9 +461,9 @@ TEST(range, sum_by) {
 }
 
 TEST(range, is_sequence) {
-    EXPECT_TRUE(nest::mc::util::is_sequence<std::vector<int>>::value);
-    EXPECT_TRUE(nest::mc::util::is_sequence<std::string>::value);
-    EXPECT_TRUE(nest::mc::util::is_sequence<int[8]>::value);
+    EXPECT_TRUE(arb::util::is_sequence<std::vector<int>>::value);
+    EXPECT_TRUE(arb::util::is_sequence<std::string>::value);
+    EXPECT_TRUE(arb::util::is_sequence<int[8]>::value);
 }
 
 TEST(range, all_of_any_of) {
@@ -477,7 +497,126 @@ TEST(range, all_of_any_of) {
     EXPECT_TRUE(util::any_of(cstr("87654x"), pred));
 }
 
-#ifdef NMC_HAVE_TBB
+TEST(range, keys) {
+    {
+        std::map<int, double> map = {{10, 2.0}, {3, 8.0}};
+        std::vector<int> expected = {3, 10};
+        std::vector<int> keys = util::assign_from(util::keys(map));
+        EXPECT_EQ(expected, keys);
+    }
+
+    {
+        struct cmp {
+            bool operator()(const nocopy<int>& a, const nocopy<int>& b) const {
+                return a.value<b.value;
+            }
+        };
+        std::map<nocopy<int>, double, cmp> map;
+        map.insert(std::pair<nocopy<int>, double>(11, 2.0));
+        map.insert(std::pair<nocopy<int>, double>(2,  0.3));
+        map.insert(std::pair<nocopy<int>, double>(2,  0.8));
+        map.insert(std::pair<nocopy<int>, double>(5,  0.1));
+
+        std::vector<int> expected = {2, 5, 11};
+        std::vector<int> keys;
+        for (auto& k: util::keys(map)) {
+            keys.push_back(k.value);
+        }
+        EXPECT_EQ(expected, keys);
+    }
+
+    {
+        std::unordered_multimap<int, double> map = {{3, 0.1}, {5, 0.4}, {11, 0.8}, {5, 0.2}};
+        std::vector<int> expected = {3, 5, 5, 11};
+        std::vector<int> keys = util::assign_from(util::keys(map));
+        util::sort(keys);
+        EXPECT_EQ(expected, keys);
+    }
+}
+
+TEST(range, is_sorted_by) {
+    // Use `nomove` wrapper to count potential copies: implementation aims to
+    // minimize copies of projection return value, and invocations of the projection function.
+
+    struct cmp_nomove_ {
+        bool operator()(const nomove<int>& a, const nomove<int>& b) const {
+            return a.value<b.value;
+        }
+    } cmp_nomove;
+
+    int invocations = 0;
+    auto copies = []() { return nomove<int>::copy_ctor_count+nomove<int>::copy_assign_count; };
+    auto reset = [&]() { invocations = 0; nomove<int>::reset_counts(); };
+
+    auto id_copy = [&](const nomove<int>& x) -> const nomove<int>& { return ++invocations, x; };
+    auto get_value = [&](const nomove<int>& x) { return ++invocations, x.value; };
+
+    // 1. sorted non-empty vector
+
+    std::vector<nomove<int>> v_sorted = {10, 13, 13, 15, 16};
+    int n = v_sorted.size();
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_sorted, get_value));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(n, invocations);
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_sorted, id_copy, cmp_nomove));
+    EXPECT_EQ(n, copies());
+    EXPECT_EQ(n, invocations);
+
+    // 2. empty vector
+
+    std::vector<nomove<int>> v_empty;
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_empty, id_copy, cmp_nomove));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(0, invocations);
+
+    // 3. one-element vector
+
+    std::vector<nomove<int>> v_single = {-44};
+
+    reset();
+    EXPECT_TRUE(util::is_sorted_by(v_single, id_copy, cmp_nomove));
+    EXPECT_EQ(0, copies());
+    EXPECT_EQ(0, invocations);
+
+    // 4. unsorted vectors at second, third, fourth elements.
+
+    std::vector<nomove<int>> v_unsorted_2 = {2, 1, 3, 4};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_2, id_copy, cmp_nomove));
+    EXPECT_EQ(2, copies());
+    EXPECT_EQ(2, invocations);
+
+    std::vector<nomove<int>> v_unsorted_3 = {2, 3, 1, 4};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_3, id_copy, cmp_nomove));
+    EXPECT_EQ(3, copies());
+    EXPECT_EQ(3, invocations);
+
+    std::vector<nomove<int>> v_unsorted_4 = {2, 3, 4, 1};
+
+    reset();
+    EXPECT_FALSE(util::is_sorted_by(v_unsorted_4, id_copy, cmp_nomove));
+    EXPECT_EQ(4, copies());
+    EXPECT_EQ(4, invocations);
+
+    // 5. sequence defined by input (not forward) iterator.
+
+    std::istringstream s_reversed("18 15 13 13 11");
+    auto seq = util::make_range(std::istream_iterator<int>(s_reversed), std::istream_iterator<int>());
+    EXPECT_FALSE(util::is_sorted_by(seq, [](int x) { return x+2; }));
+    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return 2-x; }));
+    EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
+}
+
+#ifdef ARB_HAVE_TBB
 
 TEST(range, tbb_split) {
     constexpr std::size_t N = 20;

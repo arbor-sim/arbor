@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 /// Represents a source code location as a function name and address
@@ -34,5 +33,4 @@ private:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

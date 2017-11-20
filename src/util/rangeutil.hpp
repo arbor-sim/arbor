@@ -10,13 +10,13 @@
 #include <ostream>
 #include <numeric>
 
+#include <util/deduce_return.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/transform.hpp>
 #include <util/meta.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Present a single item as a range
@@ -65,6 +65,11 @@ enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
 subrange_view(Seq& seq, std::pair<Offset1, Offset2> index) {
     return subrange_view(seq, index.first, index.second);
 }
+
+// helper for determining the type of a subrange_view
+template <typename Seq>
+using subrange_view_type = decltype(subrange_view(std::declval<Seq&>(), 0, 0));
+
 
 // Fill container or range.
 
@@ -141,11 +146,25 @@ sort(Seq& seq) {
     std::sort(std::begin(canon), std::end(canon));
 }
 
+template <typename Seq, typename Less>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+sort(Seq& seq, const Less& less) {
+    auto canon = canonical_view(seq);
+    std::sort(std::begin(canon), std::end(canon), less);
+}
+
 template <typename Seq>
 enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
 sort(const Seq& seq) {
     auto canon = canonical_view(seq);
     std::sort(std::begin(canon), std::end(canon));
+}
+
+template <typename Seq, typename Less>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+sort(const Seq& seq, const Less& less) {
+    auto canon = canonical_view(seq);
+    std::sort(std::begin(canon), std::end(canon), less);
 }
 
 // Sort in-place by projection `proj`
@@ -213,7 +232,6 @@ bool any_of(const Seq& seq, const Predicate& pred) {
     auto canon = canonical_view(seq);
     return std::any_of(std::begin(canon), std::end(canon), pred);
 }
-
 
 // Accumulate by projection `proj`
 
@@ -314,12 +332,64 @@ std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
     return {lower, upper};
 }
 
+// View over the keys in an associative container.
+
+template <typename Map>
+auto keys(Map& m) DEDUCED_RETURN_TYPE(util::transform_view(m, util::first));
+
+// Test if sequence is sorted after apply projection `proj` to elements.
+// (TODO: this will perform unnecessary copies if `proj` returns a reference;
+// specialize on this if it becomes an issue.)
+
+template <
+    typename Seq,
+    typename Proj,
+    typename Compare = std::less<typename std::result_of<Proj (typename sequence_traits<Seq>::value_type)>::type>
+>
+bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
+    auto i = std::begin(seq);
+    auto e = std::end(seq);
+
+    if (i==e) {
+        return true;
+    }
+
+    // Special one-element case for forward iterators.
+    if (is_forward_iterator<decltype(i)>::value) {
+        auto j = i;
+        if (++j==e) {
+            return true;
+        }
+    }
+
+    auto v = proj(*i++);
+
+    for (;;) {
+        if (i==e) {
+            return true;
+        }
+        auto u = proj(*i++);
+
+        if (cmp(u, v)) {
+            return false;
+        }
+
+        if (i==e) {
+            return true;
+        }
+        v = proj(*i++);
+
+        if (cmp(v, u)) {
+            return false;
+        }
+    }
+}
+
 template <typename C, typename Seq>
 C make_copy(Seq const& seq) {
     return C{std::begin(seq), std::end(seq)};
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

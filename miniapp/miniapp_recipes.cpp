@@ -14,10 +14,9 @@
 #include "morphology_pool.hpp"
 
 
-namespace nest {
-namespace mc {
+namespace arb {
 
-// TODO: split cell description into separate morphology, stimulus, probes, mechanisms etc.
+// TODO: split cell description into separate morphology, stimulus, mechanisms etc.
 // description for greater data reuse.
 
 template <typename RNG>
@@ -28,7 +27,7 @@ cell make_basic_cell(
     const std::string& syn_type,
     RNG& rng)
 {
-    nest::mc::cell cell = make_cell(morph, true);
+    arb::cell cell = make_cell(morph, true);
 
     for (auto& segment: cell.segments()) {
         if (compartments_per_segment!=0) {
@@ -38,12 +37,12 @@ cell make_basic_cell(
         }
 
         if (segment->is_dendrite()) {
-            segment->add_mechanism(mc::pas_parameters());
-            segment->mechanism("membrane").set("r_L", 100);
+            segment->add_mechanism("pas");
+            segment->rL = 100;
         }
     }
 
-    cell.soma()->add_mechanism(mc::hh_parameters());
+    cell.soma()->add_mechanism("hh");
     cell.add_detector({0,0}, 20);
 
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
@@ -63,7 +62,7 @@ cell make_basic_cell(
 
     EXPECTS(!terminals.empty());
 
-    nest::mc::parameter_list syn_default(syn_type);
+    arb::mechanism_spec syn_default(syn_type);
     for (unsigned i=0; i<num_synapses; ++i) {
         unsigned id = terminals[i%terminals.size()];
         cell.add_synapse({id, distribution(rng)}, syn_default);
@@ -95,41 +94,56 @@ public:
                 return util::unique_any(dss_cell_description(spike_times));
             }
 
-            return util::unique_any(rss_cell::rss_cell_description(0.0, 0.1, 0.1));
+            return util::unique_any(rss_cell{0.0, 0.1, 0.1});
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
-        auto cc = get_cell_count_info(i);
         const auto& morph = get_morphology(i);
         unsigned cell_segments = morph.components();
 
-        auto cell = make_basic_cell(morph, param_.num_compartments, cc.num_targets,
+        auto cell = make_basic_cell(morph, param_.num_compartments, param_.num_synapses,
                         param_.synapse_type, gen);
 
         EXPECTS(cell.num_segments()==cell_segments);
-        EXPECTS(cell.probes().size()==0);
-        EXPECTS(cell.synapses().size()==cc.num_targets);
-        EXPECTS(cell.detectors().size()==cc.num_sources);
-
-        // add probes
-        if (cc.num_probes) {
-            unsigned n_probe_segs = pdist_.all_segments? cell_segments: 1u;
-            for (unsigned i = 0; i<n_probe_segs; ++i) {
-                if (pdist_.membrane_voltage) {
-                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_voltage});
-                }
-                if (pdist_.membrane_current) {
-                    cell.add_probe({{i, i? 0.5: 0.0}, mc::probeKind::membrane_current});
-                }
-            }
-        }
-        EXPECTS(cell.probes().size()==cc.num_probes);
+        EXPECTS(cell.synapses().size()==num_targets(i));
+        EXPECTS(cell.detectors().size()==num_sources(i));
 
         return util::unique_any(std::move(cell));
     }
 
-    cell_kind get_cell_kind(cell_gid_type i ) const override {
+    probe_info get_probe(cell_member_type probe_id) const override {
+        if (probe_id.index>=num_probes(probe_id.gid)) {
+            throw invalid_recipe_error("invalid probe id");
+        }
+
+        // if we have both voltage and current probes, then order them
+        // voltage compartment 0, current compartment 0, voltage compartment 1, ...
+
+        cell_probe_address::probe_kind kind;
+
+        int stride = pdist_.membrane_voltage+pdist_.membrane_current;
+
+        if (stride==1) {
+            // Just one kind of probe.
+            kind = pdist_.membrane_voltage?
+                cell_probe_address::membrane_voltage: cell_probe_address::membrane_current;
+        }
+        else {
+            EXPECTS(stride==2);
+            // Both kinds available.
+            kind = (probe_id.index%stride==0)?
+                cell_probe_address::membrane_voltage: cell_probe_address::membrane_current;
+        }
+
+        cell_lid_type compartment = probe_id.index/stride;
+        segment_location loc{compartment, compartment? 0.5: 0.0};
+
+        // Use probe kind as the token to be passed to a sampler.
+        return {probe_id, (int)kind, cell_probe_address{loc, kind}};
+    }
+
+    cell_kind get_cell_kind(cell_gid_type i) const override {
         // The last 'cell' is a rss_cell with one spike at t=0
         if (i == ncell_) {
             if (param_.input_spike_path) {
@@ -141,21 +155,24 @@ public:
         return cell_kind::cable1d_neuron;
     }
 
-    cell_count_info get_cell_count_info(cell_gid_type i) const override {
-        cell_count_info cc = {1, param_.num_synapses, 0 };
-        unsigned cell_segments = get_morphology(i).components();
+    cell_size_type num_sources(cell_gid_type i) const override {
+        return 1;
+    }
 
-        // probe this cell?
-        if (std::floor(i*pdist_.proportion)!=std::floor((i-1.0)*pdist_.proportion)) {
-            std::size_t np = pdist_.membrane_voltage + pdist_.membrane_current;
-            if (pdist_.all_segments) {
-                np *= cell_segments;
-            }
+    cell_size_type num_targets(cell_gid_type i) const override {
+        return param_.num_synapses;
+    }
 
-            cc.num_probes = np;
+    cell_size_type num_probes(cell_gid_type i) const override {
+        bool has_probe = (std::floor(i*pdist_.proportion)!=std::floor((i-1.0)*pdist_.proportion));
+
+        if (!has_probe) {
+            return 0;
         }
-
-        return cc;
+        else {
+            cell_size_type np = pdist_.all_segments? get_morphology(i).components(): 1;
+            return np*(pdist_.membrane_voltage+pdist_.membrane_current);
+        }
     }
 
 protected:
@@ -239,7 +256,14 @@ public:
     basic_rgraph_recipe(cell_gid_type ncell,
                       basic_recipe_param param,
                       probe_distribution pdist = probe_distribution{}):
-        basic_cell_recipe(ncell, std::move(param), std::move(pdist)) {}
+        basic_cell_recipe(ncell, std::move(param), std::move(pdist))
+    {
+        // Cells are not allowed to connect to themselves; hence there must be least two cells
+        // to build a connected network.
+        if (ncell<2) {
+            throw std::runtime_error("A randomly connected network must have at least 2 cells.");
+        }
+    }
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
@@ -332,5 +356,4 @@ std::unique_ptr<recipe> make_basic_kgraph_recipe(
     return std::unique_ptr<recipe>(new basic_kgraph_recipe(ncell, param, pdist));
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

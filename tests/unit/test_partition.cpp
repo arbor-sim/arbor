@@ -9,7 +9,7 @@
 #include <util/nop.hpp>
 #include <util/partition.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(partition, partition_view) {
     std::forward_list<int> fl = {1, 4, 6, 8, 10 };

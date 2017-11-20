@@ -20,9 +20,7 @@ namespace TCLAP {
     };
 } // namespace TCLAP
 
-namespace nest {
-namespace mc {
-
+namespace arbor {
     namespace util {
         // Using static here because we do not want external linkage for this operator.
         template <typename V>
@@ -200,5 +198,4 @@ namespace mc {
             return o;
         }
     } // namespace io
-} // namespace mc
-} // namespace nest
+} // namespace arbor

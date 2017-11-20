@@ -1,17 +1,34 @@
 #pragma once
 
+#include <backends/fvm_types.hpp>
 #include <memory/memory.hpp>
 #include <memory/wrappers.hpp>
 #include <util/span.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
 
-#include "kernels/solve_matrix.hpp"
-#include "kernels/assemble_matrix.hpp"
-
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
+
+void solve_matrix_flat(
+    fvm_value_type* rhs,
+    fvm_value_type* d,
+    const fvm_value_type* u,
+    const fvm_size_type* p,
+    const fvm_size_type* cell_cv_divs,
+    int num_mtx);
+
+void assemble_matrix_flat(
+    fvm_value_type* d,
+    fvm_value_type* rhs,
+    const fvm_value_type* invariant_d,
+    const fvm_value_type* voltage,
+    const fvm_value_type* current,
+    const fvm_value_type* cv_capacitance,
+    const fvm_value_type* cv_area,
+    const fvm_size_type* cv_to_cell,
+    const fvm_value_type* dt_cell,
+    unsigned n);
 
 /// matrix state
 template <typename T, typename I>
@@ -33,8 +50,9 @@ struct matrix_state_flat {
     array u;     // [μS]
     array rhs;   // [nA]
 
-    array cv_capacitance;      // [pF]
-    array face_conductance;    // [μS]
+    array cv_capacitance;    // [pF]
+    array face_conductance;  // [μS]
+    array cv_area;           // [μm^2]
 
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
@@ -44,17 +62,20 @@ struct matrix_state_flat {
     matrix_state_flat(const std::vector<size_type>& p,
                  const std::vector<size_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
-                 const std::vector<value_type>& face_cond):
+                 const std::vector<value_type>& face_cond,
+                 const std::vector<value_type>& area):
         parent_index(memory::make_const_view(p)),
         cell_cv_divs(memory::make_const_view(cell_cv_divs)),
         cv_to_cell(p.size()),
         d(p.size()),
         u(p.size()),
         rhs(p.size()),
-        cv_capacitance(memory::make_const_view(cv_cap))
+        cv_capacitance(memory::make_const_view(cv_cap)),
+        cv_area(memory::make_const_view(area))
     {
         EXPECTS(cv_cap.size() == size());
         EXPECTS(face_cond.size() == size());
+        EXPECTS(area.size() == size());
         EXPECTS(cell_cv_divs.back() == size());
         EXPECTS(cell_cv_divs.size() > 1u);
 
@@ -95,25 +116,17 @@ struct matrix_state_flat {
     //   voltage [mV]
     //   current [nA]
     void assemble(const_view dt_cell, const_view voltage, const_view current) {
-        // determine the grid dimensions for the kernel
-        auto const n = voltage.size();
-        auto const block_dim = 128;
-        auto const grid_dim = impl::block_count(n, block_dim);
-
-        assemble_matrix_flat<value_type, size_type><<<grid_dim, block_dim>>> (
+        // perform assembly on the gpu
+        assemble_matrix_flat(
             d.data(), rhs.data(), invariant_d.data(), voltage.data(),
-            current.data(), cv_capacitance.data(), cv_to_cell.data(), dt_cell.data(), size());
+            current.data(), cv_capacitance.data(), cv_area.data(),
+            cv_to_cell.data(), dt_cell.data(), size());
     }
 
     void solve() {
-        // determine the grid dimensions for the kernel
-        auto const block_dim = 128;
-        auto const grid_dim = impl::block_count(num_matrices(), block_dim);
-
         // perform solve on gpu
-        solve_matrix_flat<value_type, size_type><<<grid_dim, block_dim>>> (
-            rhs.data(), d.data(), u.data(), parent_index.data(),
-            cell_cv_divs.data(), num_matrices());
+        solve_matrix_flat(rhs.data(), d.data(), u.data(), parent_index.data(),
+                          cell_cv_divs.data(), num_matrices());
     }
 
     std::size_t size() const {
@@ -127,5 +140,4 @@ private:
 };
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb

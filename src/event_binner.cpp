@@ -9,14 +9,13 @@
 #include <spike.hpp>
 #include <util/optional.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 void event_binner::reset() {
-    last_event_times_.clear();
+    last_event_time_ = util::nothing;
 }
 
-time_type event_binner::bin(cell_gid_type id, time_type t, time_type t_min) {
+time_type event_binner::bin(time_type t, time_type t_min) {
     time_type t_binned = t;
 
     switch (policy_) {
@@ -28,12 +27,12 @@ time_type event_binner::bin(cell_gid_type id, time_type t, time_type t_min) {
         }
         break;
     case binning_kind::following:
-        if (auto last_t = last_event_time(id)) {
-            if (t-*last_t<bin_interval_) {
-                t_binned = *last_t;
+        if (last_event_time_) {
+            if (t-*last_event_time_<bin_interval_) {
+                t_binned = *last_event_time_;
             }
         }
-        update_last_event_time(id, t_binned);
+        last_event_time_ = t_binned;
         break;
     default:
         throw std::logic_error("unrecognized binning policy");
@@ -42,16 +41,5 @@ time_type event_binner::bin(cell_gid_type id, time_type t, time_type t_min) {
     return std::max(t_binned, t_min);
 }
 
-util::optional<time_type>
-event_binner::last_event_time(cell_gid_type id) {
-    auto it = last_event_times_.find(id);
-    return it==last_event_times_.end()? util::nothing: util::just(it->second);
-}
-
-void event_binner::update_last_event_time(cell_gid_type id, time_type t) {
-    last_event_times_[id] = t;
-}
-
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

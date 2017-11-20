@@ -1,7 +1,7 @@
 #include "../gtest.h"
 #include "util/nop.hpp"
 
-using namespace nest::mc::util;
+using namespace arb::util;
 
 TEST(nop, void_fn) {
     std::function<void ()> f(nop_function);

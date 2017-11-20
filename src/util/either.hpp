@@ -14,8 +14,7 @@
 #include "util/meta.hpp"
 #include "util/uninitialized.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 struct either_invalid_access: std::runtime_error {
@@ -383,5 +382,4 @@ public:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

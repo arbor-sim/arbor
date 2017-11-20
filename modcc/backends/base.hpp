@@ -13,11 +13,10 @@
 #include "textbuffer.hpp"
 #include "util/meta.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace modcc {
 
-using nest::mc::util::enable_if_t;
+using arb::util::enable_if_t;
 using operand_fn_t = std::function<void(TextBuffer&)>;
 
 static void emit_operands(TextBuffer& tb, operand_fn_t emitter) {
@@ -88,4 +87,4 @@ struct simd_intrinsics {
     static bool has_scatter();
 };
 
-}}} // closing namespaces
+}} // closing namespaces

@@ -11,8 +11,7 @@
 
 // miniapp-specific recipes
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 struct probe_distribution {
     float proportion = 1.f; // what proportion of cells should get probes?
@@ -61,5 +60,4 @@ std::unique_ptr<recipe> make_basic_rgraph_recipe(
         basic_recipe_param param,
         probe_distribution pdist = probe_distribution{});
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

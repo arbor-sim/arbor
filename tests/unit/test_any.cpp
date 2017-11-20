@@ -1,11 +1,15 @@
+//#include <iostream>
+#include <type_traits>
+
 #include "../gtest.h"
 #include "common.hpp"
 
-#include <iostream>
-
 #include <util/any.hpp>
+#include <util/any_ptr.hpp>
 
-using namespace nest::mc;
+#include <typeinfo>
+
+using namespace arb;
 
 TEST(any, copy_construction) {
     util::any any_int(2);
@@ -322,5 +326,120 @@ TEST(any, make_any) {
         std::vector<int> ref{1, 2, 3};
         EXPECT_EQ(ref, *vec);
     }
-
 }
+
+// Tests below are for `any_ptr` class.
+
+TEST(any_ptr, ctor_and_assign) {
+    using util::any_ptr;
+
+    any_ptr p;
+
+    EXPECT_FALSE(p);
+    EXPECT_FALSE(p.has_value());
+
+    int x;
+    any_ptr q(&x);
+
+    EXPECT_TRUE(q);
+    EXPECT_TRUE(q.has_value());
+
+    p = q;
+
+    EXPECT_TRUE(p);
+    EXPECT_TRUE(p.has_value());
+
+    p = nullptr;
+
+    EXPECT_FALSE(p);
+    EXPECT_FALSE(p.has_value());
+
+    p = &x;
+
+    EXPECT_TRUE(p);
+    EXPECT_TRUE(p.has_value());
+
+    p.reset();
+
+    EXPECT_FALSE(p);
+    EXPECT_FALSE(p.has_value());
+
+    p.reset(&x);
+
+    EXPECT_TRUE(p);
+    EXPECT_TRUE(p.has_value());
+
+    p.reset(nullptr);
+
+    EXPECT_FALSE(p);
+    EXPECT_FALSE(p.has_value());
+
+    p = nullptr;
+
+    EXPECT_FALSE(p);
+    EXPECT_FALSE(p.has_value());
+}
+
+
+TEST(any_ptr, ordering) {
+    using util::any_ptr;
+
+    int x[2];
+    double y;
+
+    any_ptr a(&x[0]);
+    any_ptr b(&x[1]);
+
+    EXPECT_LT(a, b);
+    EXPECT_LE(a, b);
+    EXPECT_NE(a, b);
+    EXPECT_GE(b, a);
+    EXPECT_GT(b, a);
+    EXPECT_FALSE(a==b);
+
+    any_ptr c(&y);
+
+    EXPECT_NE(c, a);
+    EXPECT_TRUE(a<c || a>c);
+    EXPECT_FALSE(a==c);
+}
+
+TEST(any_ptr, as_and_type) {
+    using util::any_ptr;
+
+    int x = 0;
+    const int y = 0;
+    any_ptr p;
+
+    EXPECT_FALSE(p.as<int*>());
+
+    p = &y;
+    EXPECT_FALSE(p.as<int*>());
+    EXPECT_TRUE(p.as<const int*>());
+    EXPECT_EQ(typeid(const int*), p.type());
+
+    p = &x;
+    EXPECT_TRUE(p.as<int*>());
+    EXPECT_FALSE(p.as<const int*>());
+    EXPECT_EQ(typeid(int*), p.type());
+
+    *p.as<int*>() = 3;
+    EXPECT_EQ(3, x);
+}
+
+TEST(any_ptr, any_cast) {
+    using util::any_ptr;
+    using util::any_cast;
+
+    int x = 0;
+    any_ptr p;
+
+    auto c1 = any_cast<int*>(p);
+    EXPECT_FALSE(c1);
+    EXPECT_TRUE((std::is_same<int*, decltype(c1)>::value));
+
+    p = &x;
+    auto c2 = any_cast<int*>(p);
+    EXPECT_TRUE(c2);
+}
+

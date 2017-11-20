@@ -1,6 +1,6 @@
 #include <numeric>
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     #include <cuda_profiler_api.h>
 #endif
 
@@ -10,8 +10,7 @@
 #include <util/make_unique.hpp>
 #include <util/debug.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Here we provide functionality that the profiler can use to control the CUDA
@@ -19,7 +18,7 @@ namespace util {
 // a program control which parts of the program are to be profiled. It is a
 // simple wrapper around the API calls with a mutex to ensure correct behaviour
 // when multiple threads attempt to start or stop the profiler.
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 namespace gpu {
     bool is_running_nvprof = false;
     std::mutex gpu_profiler_mutex;
@@ -299,7 +298,7 @@ profiler_node profiler::performance_tree() {
 }
 
 
-#ifdef NMC_HAVE_PROFILING
+#ifdef ARB_HAVE_PROFILING
 namespace data {
     profiler_wrapper profilers_(profiler("root"));
 }
@@ -345,7 +344,7 @@ void profilers_restart() {
     }
 }
 
-void profiler_output(double threshold, std::size_t num_local_work_items, bool profile_only_zero) {
+void profiler_output(double threshold, bool profile_only_zero) {
     profilers_stop();
 
     // Find the earliest start time and latest stop time over all profilers
@@ -383,10 +382,6 @@ void profiler_output(double threshold, std::size_t num_local_work_items, bool pr
     bool print = comm_rank==0 ? true : false;
     bool output_this_rank = (comm_rank == 0) || ! profile_only_zero;
 
-    // calculate the throughput in terms of work items per second
-    auto local_throughput = num_local_work_items / wall_time;
-    auto global_throughput = communication::global_policy::sum(local_throughput);
-
     if(print) {
         std::cout << " ---------------------------------------------------- \n";
         std::cout << "|                      profiler                      |\n";
@@ -413,10 +408,6 @@ void profiler_output(double threshold, std::size_t num_local_work_items, bool pr
             line, sizeof(line), "%-18s%10s%10s\n",
             "", "local", "global");
         std::cout << line;
-        std::snprintf(
-            line, sizeof(line), "%-18s%10d%10d\n",
-            "throughput", int(local_throughput), int(global_throughput));
-        std::cout << line;
 
         std::cout << "\n\n";
     }
@@ -426,7 +417,6 @@ void profiler_output(double threshold, std::size_t num_local_work_items, bool pr
     as_json["threads"] = nthreads;
     as_json["efficiency"] = efficiency;
     as_json["communicators"] = ncomms;
-    as_json["throughput"] = unsigned(local_throughput);
     as_json["rank"] = comm_rank;
     as_json["regions"] = p.as_json();
 
@@ -444,10 +434,9 @@ void profiler_enter(const char*) {}
 void profiler_leave() {}
 void profiler_leave(int) {}
 void profilers_stop() {}
-void profiler_output(double threshold, std::size_t num_local_work_items, bool profile_only_zero) {}
+void profiler_output(double threshold, bool profile_only_zero) {}
 void profilers_restart() {};
 #endif
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

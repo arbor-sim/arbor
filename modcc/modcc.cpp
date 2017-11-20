@@ -15,9 +15,7 @@
 
 #include "simd_printer.hpp"
 
-using namespace nest::mc;
-
-//#define VERBOSE
+using namespace arb;
 
 int main(int argc, char **argv) {
 
@@ -98,9 +96,9 @@ int main(int argc, char **argv) {
             Options::instance().print();
         }
 
-        ////////////////////////////////////////////////////////////
+        //
         // parsing
-        ////////////////////////////////////////////////////////////
+        //
         if(Options::instance().verbose) std::cout << green("[") + "parsing" + green("]") << std::endl;
 
         // initialize the parser
@@ -108,27 +106,33 @@ int main(int argc, char **argv) {
 
         // parse
         p.parse();
-        if(p.status() == lexerStatus::error) return 1;
+        if( p.status()==lexerStatus::error ) {
+            return 1;
+        }
 
-        ////////////////////////////////////////////////////////////
+        //
         // semantic analysis
-        ////////////////////////////////////////////////////////////
-        if(Options::instance().verbose)
+        //
+        if(Options::instance().verbose) {
             std::cout << green("[") + "semantic analysis" + green("]") << "\n";
+        }
 
         m.semantic();
 
-        if( m.has_error() || m.has_warning() ) {
-            std::cout << m.error_string() << std::endl;
+        if( m.has_error() ) {
+            std::cerr << m.error_string() << std::endl;
+        }
+        if( m.has_warning() ) {
+            std::cerr << m.warning_string() << std::endl;
         }
 
         if(m.has_error()) {
             return 1;
         }
 
-        ////////////////////////////////////////////////////////////
+        //
         // optimize
-        ////////////////////////////////////////////////////////////
+        //
         if(Options::instance().optimize) {
             if(Options::instance().verbose) std::cout << green("[") + "optimize" + green("]") << std::endl;
             m.optimize();
@@ -137,53 +141,49 @@ int main(int argc, char **argv) {
             }
         }
 
-        ////////////////////////////////////////////////////////////
+        //
         // generate output
-        ////////////////////////////////////////////////////////////
+        //
         if(Options::instance().verbose) {
             std::cout << green("[") + "code generation"
                       << green("]") << std::endl;
         }
 
-        std::string text;
-        switch(Options::instance().target) {
-            case targetKind::cpu  :
-                text = CPrinter(m, Options::instance().optimize).emit_source();
-                break;
-            case targetKind::gpu  :
-                text = CUDAPrinter(m, Options::instance().optimize).text();
-                break;
-            case targetKind::avx512:
-                text = SimdPrinter<targetKind::avx512>(
-                    m, Options::instance().optimize).emit_source();
-                break;
-            case targetKind::avx2:
-                text = SimdPrinter<targetKind::avx2>(
-                    m, Options::instance().optimize).emit_source();
-                break;
-            default :
-                std::cerr << red("error") << ": unknown printer" << std::endl;
-                exit(1);
-        }
+        auto txt_to_file = [](std::string const& fname, std::string const& txt) {
+            std::ofstream fid(fname);
+            if (!fid.is_open()) {
+                throw std::runtime_error("Unable to open file "+fname+" for output.");
+            }
+            fid << txt;
+        };
 
-        if(Options::instance().has_output) {
-            std::ofstream fout(Options::instance().outputname);
-            fout << text;
-            fout.close();
+        const auto name = Options::instance().outputname;
+        const auto target = Options::instance().target;
+        if (target==targetKind::cpu) {
+            CPrinter printer(m, Options::instance().optimize);
+            txt_to_file(name+".hpp", printer.emit_source());
+        }
+        else if (target==targetKind::gpu) {
+            CUDAPrinter printer(m, Options::instance().optimize);
+            txt_to_file(name+".hpp",      printer.interface_text());
+            txt_to_file(name+"_impl.hpp", printer.impl_header_text());
+            txt_to_file(name+"_impl.cu",  printer.impl_text());
+        }
+        else if (target==targetKind::avx512) {
+            SimdPrinter<targetKind::avx512>  printer(m, Options::instance().optimize);
+            txt_to_file(name+".hpp", printer.emit_source());
+        }
+        else if (target==targetKind::avx2) {
+            SimdPrinter<targetKind::avx2>  printer(m, Options::instance().optimize);
+            txt_to_file(name+".hpp", printer.emit_source());
         }
         else {
-            std::cout << cyan("--------------------------------------\n");
-            std::cout << text;
-            std::cout << cyan("--------------------------------------\n");
+            throw std::runtime_error("Unknown target architecture.");
         }
 
-        std::cout << yellow("successfully compiled ")
-                  << white(Options::instance().filename) << " -> "
-                  << white(Options::instance().outputname) << "\n";
-
-        ////////////////////////////////////////////////////////////
+        //
         // print module information
-        ////////////////////////////////////////////////////////////
+        //
         if(Options::instance().analysis) {
             std::cout << green("performance analysis") << std::endl;
             for(auto &symbol : m.symbols()) {
@@ -206,14 +206,14 @@ int main(int argc, char **argv) {
         }
     }
 
-    catch(compiler_exception e) {
+    catch(compiler_exception& e) {
         std::cerr << red("internal compiler error: ")
                   << white("this means a bug in the compiler,"
                            " please report to modcc developers\n")
                   << e.what() << " @ " << e.location() << "\n";
         exit(1);
     }
-    catch(std::exception e) {
+    catch(std::exception& e) {
         std::cerr << red("internal compiler error: ")
                   << white("this means a bug in the compiler,"
                            " please report to modcc developers\n")

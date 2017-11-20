@@ -2,80 +2,65 @@
 
 #include <cell_group.hpp>
 #include <dss_cell_description.hpp>
+#include <recipe.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Cell_group to collect spike sources
-class dss_cell_group : public cell_group {
+class dss_cell_group: public cell_group {
 public:
-    using source_id_type = cell_member_type;
-
-    dss_cell_group(cell_gid_type first_gid, const std::vector<util::unique_any>& cell_descriptions):
-        gid_base_(first_gid)
+    dss_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
+        gids_(std::move(gids))
     {
-        using util::make_span;
-        for (cell_gid_type i: make_span(0, cell_descriptions.size())) {
+        for (auto gid: gids_) {
+            auto desc = util::any_cast<dss_cell_description>(rec.get_cell_description(gid));
             // store spike times from description
-            const auto times = util::any_cast<dss_cell_description>(cell_descriptions[i]).spike_times;
-            spike_times_.push_back(std::vector<time_type>(times));
+            auto times = desc.spike_times;
+            util::sort(times);
+            spike_times_.push_back(std::move(times));
 
-            // Assure the spike times are sorted
-            std::sort(spike_times_[i].begin(), spike_times_[i].end());
-
-            // Now we can grab the first spike time
-            not_emit_it_.push_back(spike_times_[i].begin());
-
-            // create a lid to gid map
-            spike_sources_.push_back({gid_base_+i, 0});
+            // Take a reference to the first spike time
+            not_emit_it_.push_back(spike_times_.back().begin());
         }
     }
-
-    virtual ~dss_cell_group() = default;
 
     cell_kind get_cell_kind() const override {
         return cell_kind::data_spike_source;
     }
 
     void reset() override {
-        // Declare both iterators outside of the for loop for consistency
+        // Reset the pointers to the next undelivered spike to the start
+        // of the input range.
         auto it = not_emit_it_.begin();
         auto times = spike_times_.begin();
-
         for (;it != not_emit_it_.end(); ++it, times++) {
-            // Point to the first not emitted spike.
             *it = times->begin();
         }
 
         clear_spikes();
     }
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override
-    {}
+    void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
-    void advance(time_type tfinal, time_type dt) override {
-        for (auto cell_idx: util::make_span(0, not_emit_it_.size())) {
+    void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override {
+        for (auto i: util::make_span(0, not_emit_it_.size())) {
             // The first potential spike_time to emit for this cell
-            auto spike_time_it = not_emit_it_[cell_idx];
+            auto spike_time_it = not_emit_it_[i];
 
-            // Find the first to not emit and store as iterator
-            not_emit_it_[cell_idx] = std::find_if(
-                spike_time_it, spike_times_[cell_idx].end(),
-                [tfinal](time_type t) {return t >= tfinal; }
+            // Find the first spike past tfinal
+            not_emit_it_[i] = std::find_if(
+                spike_time_it, spike_times_[i].end(),
+                [ep](time_type t) {return t >= ep.tfinal; }
             );
 
-            // loop over the range we now have (might be empty), and create spikes
-            for (; spike_time_it != not_emit_it_[cell_idx]; ++spike_time_it) {
-                spikes_.push_back({ spike_sources_[cell_idx], *spike_time_it });
+            // Loop over the range and create spikes
+            for (; spike_time_it != not_emit_it_[i]; ++spike_time_it) {
+                spikes_.push_back({ {gids_[i], 0u}, *spike_time_it });
             }
         }
     };
-
-    void enqueue_events(const std::vector<postsynaptic_spike_event>& events) override {
-        std::logic_error("The dss_cells do not support incoming events!");
-    }
 
     const std::vector<spike>& spikes() const override {
         return spikes_;
@@ -85,25 +70,20 @@ public:
         spikes_.clear();
     }
 
-    std::vector<probe_record> probes() const override {
-        return probes_;
-    }
-
-    void add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time = 0) override {
+    void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, schedule sched, sampler_function fn, sampling_policy policy) override {
         std::logic_error("The dss_cells do not support sampling of internal state!");
     }
 
-private:
-    // gid of first cell in group.
-    cell_gid_type gid_base_;
+    void remove_sampler(sampler_association_handle h) override {}
 
+    void remove_all_samplers() override {}
+
+private:
     // Spikes that are generated.
     std::vector<spike> spikes_;
 
-    // Spike generators attached to the cell
-    std::vector<source_id_type> spike_sources_;
-
-    std::vector<probe_record> probes_;
+    // Map of local index to gid
+    std::vector<cell_gid_type> gids_;
 
     // The dss_cell is simple: Put all logic in the cellgroup cause accelerator support
     // is not expected. We need storage for the cell state
@@ -115,6 +95,5 @@ private:
     std::vector<std::vector<time_type>::iterator > not_emit_it_;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

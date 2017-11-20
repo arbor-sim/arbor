@@ -1,7 +1,7 @@
 #pragma once
 
-#if !defined(NMC_HAVE_SERIAL)
-    #error "this header can only be loaded if NMC_HAVE_SERIAL is set"
+#if !defined(ARB_HAVE_SERIAL)
+    #error "this header can only be loaded if ARB_HAVE_SERIAL is set"
 #endif
 
 #include <algorithm>
@@ -12,11 +12,10 @@
 
 #include "timer.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 
-using nest::mc::threading::impl::timer;
+using arb::threading::impl::timer;
 
 ///////////////////////////////////////////////////////////////////////
 // types
@@ -120,7 +119,6 @@ public:
     {}
 };
 
-} // threading
-} // mc
-} // nest
+} // namespace threading
+} // namespace arb
 

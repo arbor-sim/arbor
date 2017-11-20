@@ -7,12 +7,12 @@
 #include "../gtest.h"
 
 TEST(backends, gpu_is_null) {
-    using backend = nest::mc::gpu::backend;
+    using backend = arb::gpu::backend;
 
-    static_assert(std::is_same<backend, nest::mc::null_backend>::value || nest::mc::config::has_cuda,
+    static_assert(std::is_same<backend, arb::null_backend>::value || arb::config::has_cuda,
         "gpu back should be defined as null when compiling without gpu support.");
 
-    if (not nest::mc::config::has_cuda) {
+    if (not arb::config::has_cuda) {
         EXPECT_FALSE(backend::is_supported());
 
         EXPECT_FALSE(backend::has_mechanism("hh"));

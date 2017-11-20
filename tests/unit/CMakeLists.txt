@@ -11,6 +11,7 @@ build_modules(
     DEST_DIR "${mech_proto_dir}"
     MECH_SUFFIX _proto
     MODCC_FLAGS -t cpu
+    GENERATES .hpp
     TARGET build_test_mods
 )
 
@@ -55,22 +56,27 @@ set(TEST_SOURCES
     test_math.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_merge_events.cpp
     test_multi_event_stream.cpp
     test_nop.cpp
     test_optional.cpp
-    test_parameters.cpp
+    test_mechinfo.cpp
     test_partition.cpp
     test_path.cpp
     test_point.cpp
+    test_prefixbuf.cpp
     test_probe.cpp
     # test_pss_cell_group.cpp
     test_segment.cpp
     test_random123.cpp
     test_range.cpp
+    test_segment.cpp
+    test_schedule.cpp
     test_rss_cell.cpp
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp
+    test_stats.cpp
     test_stimulus.cpp
     test_strprintf.cpp
     test_swcio.cpp
@@ -83,33 +89,37 @@ set(TEST_SOURCES
 
     # unit test driver
     test.cpp
+
+    # common routines
+    stats.cpp
 )
 
+if(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
+    list(APPEND TEST_SOURCES test_intrin.cpp)
+endif()
 
 set(TARGETS test.exe)
 
-add_executable(test.exe ${TEST_SOURCES} ${HEADERS})
+add_executable(test.exe ${TEST_SOURCES})
 target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
-if (NMC_AUTO_RUN_MODCC_ON_CHANGES)
+if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
   add_dependencies(test.exe build_test_mods)
 endif()
 
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
-if(NMC_WITH_CUDA)
-    # Omit -DDATADIR for cuda target because of CMake 3.7/3.8 FindCUDA quoting bug.
-
+if(ARB_WITH_CUDA)
     set(TARGETS ${TARGETS} test_cuda.exe)
-    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES} ${HEADERS})
+    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES})
 endif()
 
 foreach(target ${TARGETS})
     target_link_libraries(${target} LINK_PUBLIC gtest)
-    target_link_libraries(${target} LINK_PUBLIC ${NESTMC_LIBRARIES})
+    target_link_libraries(${target} LINK_PUBLIC ${ARB_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-    if(NMC_WITH_MPI)
+    if(ARB_WITH_MPI)
         target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
         set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
     endif()
@@ -119,9 +129,3 @@ foreach(target ${TARGETS})
        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
     )
 endforeach()
-
-# Temporary hack (pending PR #266)
-if(NMC_WITH_CUDA)
-    target_link_libraries(test_cuda.exe LINK_PUBLIC nestmc)
-endif()
-

@@ -7,7 +7,7 @@
 
 // TODO: coverage!
 
-using namespace nest::mc::util;
+using namespace arb::util;
 
 TEST(either, basic) {
     either<int, std::string> e0(17);

@@ -1,6 +1,6 @@
 #include <algorithm>
 
-namespace nestmc {
+namespace arbmc {
 namespace range{
 
     template <typename C>

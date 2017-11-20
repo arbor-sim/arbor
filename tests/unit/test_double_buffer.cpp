@@ -6,7 +6,7 @@
 // are correctly stored in members
 TEST(double_buffer, exchange_and_get)
 {
-    using namespace nest::mc::util;
+    using namespace arb::util;
 
     double_buffer<int> buf;
 
@@ -27,7 +27,7 @@ TEST(double_buffer, exchange_and_get)
 
 TEST(double_buffer, assign_get_other)
 {
-    using namespace nest::mc::util;
+    using namespace arb::util;
 
     double_buffer<std::string> buf;
 
@@ -40,7 +40,7 @@ TEST(double_buffer, assign_get_other)
 
 TEST(double_buffer, non_pod)
 {
-    using namespace nest::mc::util;
+    using namespace arb::util;
 
     double_buffer<std::string> buf;
 

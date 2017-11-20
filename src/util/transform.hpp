@@ -13,8 +13,7 @@
 #include <util/meta.hpp>
 #include <util/range.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 /* Note, this is actually only an input iterator if F is non-assignable, such
@@ -35,7 +34,7 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     const I& inner() const { return inner_; }
     I& inner() { return inner_; }
 
-    using inner_value_type = util::decay_t<decltype(*inner_)>;
+    using inner_value_type = decltype(*inner_);
     using raw_value_type = typename std::result_of<F (inner_value_type)>::type;
 
     static constexpr bool present_lvalue = std::is_reference<raw_value_type>::value;
@@ -129,27 +128,26 @@ transform_iterator<I, util::decay_t<F>> make_transform_iterator(const I& i, cons
 template <
     typename Seq,
     typename F,
-    typename seq_citer = typename sequence_traits<Seq>::const_iterator,
-    typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<std::is_same<seq_citer, seq_csent>::value>
+    typename seq_iter = typename sequence_traits<Seq>::iterator,
+    typename seq_sent = typename sequence_traits<Seq>::sentinel,
+    typename = enable_if_t<std::is_same<seq_iter, seq_sent>::value>
 >
-range<transform_iterator<seq_citer, util::decay_t<F>>>
-transform_view(const Seq& s, const F& f) {
-    return {make_transform_iterator(util::cbegin(s), f), make_transform_iterator(util::cend(s), f)};
+range<transform_iterator<seq_iter, util::decay_t<F>>>
+transform_view(Seq&& s, const F& f) {
+    return {make_transform_iterator(std::begin(s), f), make_transform_iterator(std::end(s), f)};
 }
 
 template <
     typename Seq,
     typename F,
-    typename seq_citer = typename sequence_traits<Seq>::const_iterator,
-    typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<!std::is_same<seq_citer, seq_csent>::value>
+    typename seq_iter = typename sequence_traits<Seq>::iterator,
+    typename seq_sent = typename sequence_traits<Seq>::sentinel,
+    typename = enable_if_t<!std::is_same<seq_iter, seq_sent>::value>
 >
-range<transform_iterator<seq_citer, util::decay_t<F>>, seq_csent>
-transform_view(const Seq& s, const F& f) {
-    return {make_transform_iterator(util::cbegin(s), f), util::cend(s)};
+range<transform_iterator<seq_iter, util::decay_t<F>>, seq_sent>
+transform_view(Seq&& s, const F& f) {
+    return {make_transform_iterator(std::begin(s), f), std::end(s)};
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

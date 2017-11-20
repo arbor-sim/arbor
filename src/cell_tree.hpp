@@ -14,8 +14,7 @@
 #include <common_types.hpp>
 #include <tree.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// The tree data structure that describes the segments of a cell tree.
 /// A cell is represented as a tree where each node may have any number of
@@ -37,7 +36,7 @@ public:
     using view_type       = iarray::view_type;
     using const_view_type = iarray::const_view_type;
 
-    using tree = nest::mc::tree<int_type, size_type>;
+    using tree = arb::tree<int_type, size_type>;
     static constexpr int_type no_parent = tree::no_parent;
 
     /// default empty constructor
@@ -300,5 +299,4 @@ private :
     int_type soma_ = 0;
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb

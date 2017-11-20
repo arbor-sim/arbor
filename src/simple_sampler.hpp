@@ -5,73 +5,72 @@
  * trace data from a cell probe, with some metadata.
  */
 
-#include <functional>
 #include <vector>
 
 #include <common_types.hpp>
-#include <sampler_function.hpp>
-#include <util/optional.hpp>
+#include <sampling.hpp>
+#include <util/any_ptr.hpp>
 #include <util/deduce_return.hpp>
+#include <util/span.hpp>
 #include <util/transform.hpp>
 
-namespace nest {
-namespace mc {
+#include <iostream>
 
+namespace arb {
+
+template <typename V>
 struct trace_entry {
-    float t;
-    double v;
+    time_type t;
+    V v;
 };
 
-using trace_data = std::vector<trace_entry>;
+template <typename V>
+using trace_data = std::vector<trace_entry<V>>;
 
 // NB: work-around for lack of function return type deduction
 // in C++11; can't use lambda within DEDUCED_RETURN_TYPE.
 
 namespace impl {
-    inline float time(const trace_entry& x) { return x.t; }
-    inline float value(const trace_entry& x) { return x.v; }
+    template <typename V>
+    inline float time(const trace_entry<V>& x) { return x.t; }
+
+    template <typename V>
+    inline const V& value(const trace_entry<V>& x) { return x.v; }
 }
 
-inline auto times(const trace_data& trace) DEDUCED_RETURN_TYPE(
-   util::transform_view(trace, impl::time)
+template <typename V>
+inline auto times(const trace_data<V>& trace) DEDUCED_RETURN_TYPE(
+   util::transform_view(trace, impl::time<V>)
 )
 
-inline auto values(const trace_data& trace) DEDUCED_RETURN_TYPE(
-   util::transform_view(trace, impl::value)
+template <typename V>
+inline auto values(const trace_data<V>& trace) DEDUCED_RETURN_TYPE(
+   util::transform_view(trace, impl::value<V>)
 )
 
+template <typename V, typename = util::enable_if_trivially_copyable_t<V>>
 class simple_sampler {
 public:
-    trace_data trace;
+    explicit simple_sampler(trace_data<V>& trace): trace_(trace) {}
 
-    simple_sampler(time_type dt, time_type t0=0):
-        t0_(t0),
-        sample_dt_(dt),
-        t_next_sample_(t0)
-    {}
-
-    void reset() {
-        trace.clear();
-        t_next_sample_ = t0_;
-    }
-
-    sampler_function sampler() {
-        return [&](time_type t, double v) -> util::optional<time_type> {
-            if (t<t_next_sample_) {
-                return t_next_sample_;
+    void operator()(cell_member_type probe_id, probe_tag tag, std::size_t n, const sample_record* recs) {
+        for (auto i: util::make_span(0, n)) {
+            if (auto p = util::any_cast<const V*>(recs[i].data)) {
+                trace_.push_back({recs[i].time, *p});
             }
             else {
-                trace.push_back({t, v});
-                return t_next_sample_+=sample_dt_;
+                throw std::runtime_error("unexpected sample type in simple_sampler");
             }
-        };
+        }
     }
 
 private:
-    time_type t0_ = 0;
-    time_type sample_dt_ = 0;
-    time_type t_next_sample_ = 0;
+    trace_data<V>& trace_;
 };
 
-} // namespace mc
-} // namespace nest
+template <typename V>
+inline simple_sampler<V> make_simple_sampler(trace_data<V>& trace) {
+    return simple_sampler<V>(trace);
+}
+
+} // namespace arb

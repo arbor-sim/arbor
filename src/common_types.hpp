@@ -5,13 +5,14 @@
  * library. (Expect analogues in future versions to be template parameters?)
  */
 
+#include <cstddef>
+#include <functional>
 #include <iosfwd>
 #include <type_traits>
 
 #include <util/lexcmp_def.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 // For identifying cells globally.
 
@@ -53,6 +54,14 @@ DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 
 using time_type = float;
 
+// Extra contextual information associated with a probe.
+
+using probe_tag = int;
+
+// For holding counts and indexes into generated sample data.
+
+using sample_size_type = std::int32_t;
+
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
@@ -64,7 +73,19 @@ enum cell_kind {
     data_spike_source,        // Spike source from values inserted via description
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
-std::ostream& operator<<(std::ostream& O, nest::mc::cell_member_type m);
+std::ostream& operator<<(std::ostream& O, arb::cell_member_type m);
+
+namespace std {
+    template <> struct hash<arb::cell_member_type> {
+        std::size_t operator()(const arb::cell_member_type& m) const {
+            using namespace arb;
+            static_assert(sizeof(std::size_t)>sizeof(cell_gid_type), "invalid size assumptions for hash of cell_member_type");
+
+            std::size_t k = ((std::size_t)m.gid << (8*sizeof(cell_gid_type))) + m.index;
+            return std::hash<std::size_t>{}(k);
+        }
+    };
+}
+

@@ -32,7 +32,6 @@ public:
         if (gid == ncells_ - 1) {
             return {};
         }
-
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         cell_connection conn;
@@ -153,6 +152,10 @@ TEST(lif_cell_group_mc, spikes_testing) {
         out_spikes_file << out_spike.time << std::endl;
     }
 
+    for (auto& v : voltage) {
+        voltage_file << v.first << " " << v.second << std::endl;
+    }
+
     in_spikes_file.close();
     out_spikes_file.close();
 }
@@ -189,7 +192,6 @@ TEST(lif_cell_group_mc, domain_decomposition)
 
     // Runs the simulation for simulation_time with given timestep
     mod.run(simulation_time, 0.01);
-
     // The number of cell groups.
     EXPECT_EQ(11, mod.num_groups());
     // The total number of cells in all the cell groups.

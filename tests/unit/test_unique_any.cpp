@@ -7,7 +7,7 @@
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 TEST(unique_any, copy_construction) {
     using util::unique_any;

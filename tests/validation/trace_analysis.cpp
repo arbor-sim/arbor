@@ -14,11 +14,10 @@
 
 #include "trace_analysis.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 struct trace_interpolant {
-    trace_interpolant(const trace_data& trace): trace_(trace) {}
+    trace_interpolant(const trace_data<double>& trace): trace_(trace) {}
 
     double operator()(float t) const {
         if (trace_.empty()) return std::nan("");
@@ -37,15 +36,15 @@ struct trace_interpolant {
         return math::lerp(vx[i], vx[i+1], (t-p.first)/(p.second-p.first));
     }
 
-    const trace_data& trace_;
+    const trace_data<double>& trace_;
 };
 
-double linf_distance(const trace_data& u, const trace_data& ref) {
-    trace_interpolant f{ref};
+double linf_distance(const trace_data<double>& u, const trace_data<double>& r) {
+    trace_interpolant f{r};
 
     return util::max_value(
             util::transform_view(u,
-                [&](trace_entry x) { return std::abs(x.v-f(x.t)); }));
+                [&](trace_entry<double> x) { return std::abs(x.v-f(x.t)); }));
 }
 
 // Compute linf distance as above, but excluding sample points that lie
@@ -53,10 +52,10 @@ double linf_distance(const trace_data& u, const trace_data& ref) {
 //
 // `excl` contains the times to exclude, in ascending order.
 
-double linf_distance(const trace_data& u, const trace_data& ref, const std::vector<float>& excl) {
+double linf_distance(const trace_data<double>& u, const trace_data<double>& ref, const std::vector<float>& excl) {
     trace_interpolant f{ref};
 
-    trace_data reduced;
+    trace_data<double> reduced;
     unsigned nexcl = excl.size();
     unsigned ei = 0;
 
@@ -85,7 +84,7 @@ double linf_distance(const trace_data& u, const trace_data& ref, const std::vect
     return linf_distance(reduced, ref);
 }
 
-std::vector<trace_peak> local_maxima(const trace_data& u) {
+std::vector<trace_peak> local_maxima(const trace_data<double>& u) {
     std::vector<trace_peak> peaks;
     if (u.size()<2) return peaks;
 
@@ -116,7 +115,7 @@ std::vector<trace_peak> local_maxima(const trace_data& u) {
     return peaks;
 }
 
-util::optional<trace_peak> peak_delta(const trace_data& a, const trace_data& b) {
+util::optional<trace_peak> peak_delta(const trace_data<double>& a, const trace_data<double>& b) {
     auto p = local_maxima(a);
     auto q = local_maxima(b);
 
@@ -134,6 +133,5 @@ util::optional<trace_peak> peak_delta(const trace_data& a, const trace_data& b) 
     return max_delta;
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 

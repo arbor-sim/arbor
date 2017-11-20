@@ -1,10 +1,10 @@
 #pragma once
 
-#include <algorithm>
 #include <cstdint>
 #include <exception>
 
 #include <util/debug.hpp>
+#include <backends/gpu/fill.hpp>
 
 #include "allocator.hpp"
 #include "array.hpp"
@@ -12,8 +12,7 @@
 #include "gpu.hpp"
 #include "util.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 // forward declare
@@ -46,44 +45,6 @@ namespace util {
         }
     };
 } // namespace util
-
-namespace gpu {
-    // brief:
-    // We have to perform some type punning to pass arbitrary POD types to the
-    // GPU backend without polluting the library front end with CUDA kernels
-    // that would require compilation with nvcc.
-    //
-    // detail:
-    // The implementation takes advantage of 4 fill functions that fill GPU
-    // memory with a {8, 16, 32, 64} bit unsigned integer. We want to use these
-    // functions to fill a block of GPU memory with _any_ 8, 16, 32 or 64 bit POD
-    // value. The technique to do this with a 64-bit double, is to first convert
-    // the double into a 64-bit unsigned integer (with the same bits, not the
-    // same value), then call the 64-bit fill kernel precompiled using nvcc in
-    // the gpu library. This technique of converting from one type to another
-    // is called type-punning. There are some subtle challenges, due to C++'s
-    // strict aliasing rules, that require memcpy of single bytes if alignment
-    // of the two types does not match.
-
-    #define FILL(N) \
-    template <typename T> \
-    typename std::enable_if<sizeof(T)==sizeof(uint ## N ## _t)>::type \
-    fill(T* ptr, T value, size_t n) { \
-        using I = uint ## N ## _t; \
-        I v; \
-        std::copy_n( \
-            reinterpret_cast<char*>(&value), \
-            sizeof(T), \
-            reinterpret_cast<char*>(&v) \
-        ); \
-        fill ## N(reinterpret_cast<I*>(ptr), v, n); \
-    }
-
-    FILL(8)
-    FILL(16)
-    FILL(32)
-    FILL(64)
-}
 
 template <typename T>
 class const_device_reference {
@@ -291,7 +252,7 @@ public:
     // fill memory
     void set(view_type &rng, value_type value) {
         if (rng.size()) {
-            gpu::fill<value_type>(rng.data(), value, rng.size());
+            arb::gpu::fill<value_type>(rng.data(), value, rng.size());
         }
     }
 
@@ -316,5 +277,4 @@ public:
 };
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

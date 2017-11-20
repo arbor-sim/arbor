@@ -4,7 +4,9 @@
 #include <string>
 
 #include <backends/event.hpp>
+#include <backends/fvm_types.hpp>
 #include <common_types.hpp>
+#include <constants.hpp>
 #include <event_queue.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
@@ -18,8 +20,7 @@
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 struct backend {
@@ -28,8 +29,8 @@ struct backend {
     }
 
     /// define the real and index types
-    using value_type = double;
-    using size_type  = nest::mc::cell_lid_type;
+    using value_type = fvm_value_type;
+    using size_type  = fvm_size_type;
 
     /// define storage types
     using array  = memory::host_vector<value_type>;
@@ -47,23 +48,22 @@ struct backend {
     using host_view   = view;
     using host_iview  = iview;
 
-    using matrix_state = nest::mc::multicore::matrix_state<value_type, size_type>;
-    using multi_event_stream = nest::mc::multicore::multi_event_stream;
+    using matrix_state = arb::multicore::matrix_state<value_type, size_type>;
 
-    // re-expose common backend event types
-    using deliverable_event = nest::mc::deliverable_event;
-    using target_handle = nest::mc::target_handle;
+    // backend-specific multi event streams.
+    using deliverable_event_stream = arb::multicore::multi_event_stream<deliverable_event>;
+    using sample_event_stream = arb::multicore::multi_event_stream<sample_event>;
 
     //
     // mechanism infrastructure
     //
-    using ion = mechanisms::ion<backend>;
+    using ion_type = ion<backend>;
+    using stimulus = multicore::stimulus<backend>;
 
-    using mechanism = mechanisms::mechanism_ptr<backend>;
+    using mechanism = arb::mechanism<backend>;
+    using mechanism_ptr = std::unique_ptr<mechanism>;
 
-    using stimulus = mechanisms::multicore::stimulus<backend>;
-
-    static mechanism make_mechanism(
+    static mechanism_ptr make_mechanism(
         const std::string& name,
         size_type mech_id,
         const_iview vec_ci,
@@ -76,7 +76,7 @@ struct backend {
             throw std::out_of_range("no mechanism in database : " + name);
         }
 
-        return mech_map_.find(name)->second(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, array(weights), iarray(node_indices));
+        return mech_map_.find(name)->second(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
     }
 
     static bool has_mechanism(const std::string& name) {
@@ -87,10 +87,15 @@ struct backend {
         return "cpu";
     }
 
+    // dereference a probe handle
+    static value_type dereference(probe_handle h) {
+        return *h; // just a pointer!
+    }
+
     /// threshold crossing logic
     /// used as part of spike detection back end
     using threshold_watcher =
-        nest::mc::multicore::threshold_watcher<value_type, size_type>;
+        arb::multicore::threshold_watcher<value_type, size_type>;
 
 
     // perform min/max reductions on 'array' type
@@ -126,17 +131,50 @@ struct backend {
         }
     }
 
+    // perform sampling as described by marked events in a sample_event_stream
+    static void take_samples(
+        const sample_event_stream::state& s,
+        const_view time,
+        array& sample_time,
+        array& sample_value)
+    {
+        for (size_type i = 0; i<s.n_streams(); ++i) {
+            auto begin = s.begin_marked(i);
+            auto end = s.end_marked(i);
+
+            for (auto p = begin; p<end; ++p) {
+                sample_time[p->offset] = time[i];
+                sample_value[p->offset] = *p->handle;
+            }
+        }
+    }
+
+    // Calculate the reversal potential eX (mV) using Nernst equation
+    // eX = RT/zF * ln(Xo/Xi)
+    //      R: universal gas constant 8.3144598 J.K-1.mol-1
+    //      T: temperature in Kelvin
+    //      z: valency of species (K, Na: +1) (Ca: +2)
+    //      F: Faraday's constant 96485.33289 C.mol-1
+    //      Xo/Xi: ratio of out/in concentrations
+    static void nernst(int valency, value_type temperature, const_view Xo, const_view Xi, view eX) {
+        // factor 1e3 to scale from V -> mV
+        constexpr value_type RF = 1e3*constant::gas_constant/constant::faraday;
+        value_type factor = RF*temperature/valency;
+        for (std::size_t i=0; i<Xi.size(); ++i) {
+            eX[i] = factor*std::log(Xo[i]/Xi[i]);
+        }
+    }
+
 private:
-    using maker_type = mechanism (*)(value_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
+    using maker_type = mechanism_ptr (*)(value_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
 
     template <template <typename> class Mech>
-    static mechanism maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
-        return mechanisms::make_mechanism<Mech<backend>>
+    static mechanism_ptr maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
+        return arb::make_mechanism<Mech<backend>>
             (mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices));
     }
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

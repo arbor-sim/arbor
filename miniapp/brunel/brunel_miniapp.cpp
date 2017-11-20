@@ -48,14 +48,14 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
 }
 
 /*
-     A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
-     Each neuron in the network receives in_degree_prop * nexc excitatory connections
-     chosen randomly, in_degree_prop * ninh inhibitory connections and next (external) Poisson connections.
-     All the connections have the same delay. The strenght of excitatory and Poisson connections is given by
-     parameter weight, whereas the strength of inhibitory connections is rel_inh_strength * weight.
-     Poisson neurons all spike independently with mean frequency poiss_rate [kHz].
-     Because of the refractory period, the activity is mostly driven by Poisson neurons and
-     recurrent connections have a small effect.
+   A Brunel network consists of nexc excitatory LIF neurons and ninh inhibitory LIF neurons.
+   Each neuron in the network receives in_degree_prop * nexc excitatory connections
+   chosen randomly, in_degree_prop * ninh inhibitory connections and next (external) Poisson connections.
+   All the connections have the same delay. The strenght of excitatory and Poisson connections is given by
+   parameter weight, whereas the strength of inhibitory connections is rel_inh_strength * weight.
+   Poisson neurons all spike independently with mean frequency poiss_rate [kHz].
+   Because of the refractory period, the activity is mostly driven by Poisson neurons and
+   recurrent connections have a small effect.
  */
 class brunel_recipe: public recipe {
 public:
@@ -166,12 +166,9 @@ int main(int argc, char** argv) {
     try {
         nest::mc::util::meter_manager meters;
         meters.start();
-
         // read parameters
         io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
-
         banner();
-
         meters.checkpoint("setup");
 
         // The size of excitatory population.
@@ -210,6 +207,7 @@ int main(int argc, char** argv) {
         };
 
         group_rules rules;
+
         if (config::has_cuda) {
             std::cout << "Using CUDA backend\n";
             rules.policy = backend_policy::prefer_gpu;
@@ -229,6 +227,7 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
+                
                 m.set_local_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
@@ -237,6 +236,7 @@ int main(int argc, char** argv) {
             }
             else if(communication::global_policy::id()==0) {
                 file_exporter = register_exporter(options);
+                
                 m.set_global_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);

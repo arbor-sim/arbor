@@ -15,8 +15,7 @@
 #include <util/iterutil.hpp>
 #include <util/meta.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 template <typename I>
@@ -66,5 +65,4 @@ public:
 };
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

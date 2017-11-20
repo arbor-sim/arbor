@@ -4,8 +4,7 @@
 #include <limits>
 #include <ostream>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename T>
 struct point {
@@ -69,10 +68,9 @@ bool operator!=(const point<T> &rhs, const point<T> &lhs) {
     return !(rhs == lhs);
 }
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 template <typename T>
-std::ostream& operator << (std::ostream& o, nest::mc::point<T> const& p) {
+std::ostream& operator << (std::ostream& o, arb::point<T> const& p) {
     return o << "[" << p.x << ", " << p.y << ", " << p.z << "]";
 }

@@ -2,8 +2,7 @@
 
 #include <chrono>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace threading {
 namespace impl{
 
@@ -23,7 +22,6 @@ struct timer {
     }
 };
 
-}
 }
 }
 }

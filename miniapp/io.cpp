@@ -21,13 +21,12 @@
 
 namespace TCLAP {
     template <typename V>
-    struct ArgTraits<nest::mc::util::optional<V>> {
+    struct ArgTraits<arb::util::optional<V>> {
         using ValueCategory = ValueLike;
     };
 } // namespace TCLAP
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 namespace util {
     // Using static here because we do not want external linkage for this operator.
@@ -123,7 +122,7 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
     try {
         cl_options defopts;
 
-        CustomCmdLine cmd("nest mc miniapp harness", "0.1");
+        CustomCmdLine cmd("arbor miniapp harness", "0.1");
 
         TCLAP::ValueArg<std::string> ifile_arg(
             "i", "ifile",
@@ -160,9 +159,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             "m","alltoall","all to all network", cmd, false);
         TCLAP::SwitchArg ring_arg(
             "r","ring","ring network", cmd, false);
-        TCLAP::ValueArg<uint32_t> group_size_arg(
-            "g", "group-size", "number of cells per cell group",
-            false, defopts.compartments_per_segment, "integer", cmd);
         TCLAP::ValueArg<double> sample_dt_arg(
             "", "sample-dt", "set sampling interval to <time> ms",
             false, defopts.bin_dt, "time", cmd);
@@ -229,7 +225,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                     update_option(options.tfinal, fopts, "tfinal");
                     update_option(options.all_to_all, fopts, "all_to_all");
                     update_option(options.ring, fopts, "ring");
-                    update_option(options.group_size, fopts, "group_size");
                     update_option(options.sample_dt, fopts, "sample_dt");
                     update_option(options.probe_ratio, fopts, "probe_ratio");
                     update_option(options.probe_soma_only, fopts, "probe_soma_only");
@@ -280,7 +275,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.bin_regular, bin_regular_arg);
         update_option(options.all_to_all, all_to_all_arg);
         update_option(options.ring, ring_arg);
-        update_option(options.group_size, group_size_arg);
         update_option(options.sample_dt, sample_dt_arg);
         update_option(options.probe_ratio, probe_ratio_arg);
         update_option(options.probe_soma_only, probe_soma_only_arg);
@@ -308,10 +302,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
             throw usage_error("can specify at most one of --ring and --all-to-all");
         }
 
-        if (options.group_size<1) {
-            throw usage_error("minimum of one cell per group");
-        }
-
         save_file = ofile_arg.getValue();
     }
     catch (TCLAP::ArgException& e) {
@@ -335,7 +325,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 fopts["tfinal"] = options.tfinal;
                 fopts["all_to_all"] = options.all_to_all;
                 fopts["ring"] = options.ring;
-                fopts["group_size"] = options.group_size;
                 fopts["sample_dt"] = options.sample_dt;
                 fopts["probe_ratio"] = options.probe_ratio;
                 fopts["probe_soma_only"] = options.probe_soma_only;
@@ -388,7 +377,6 @@ std::ostream& operator<<(std::ostream& o, const cl_options& options) {
         (options.bin_dt==0? "none": options.bin_regular? "regular": "following") << "\n";
     o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
     o << "  ring network         : " << (options.ring ? "yes" : "no") << "\n";
-    o << "  group size           : " << options.group_size << "\n";
     o << "  sample dt            : " << options.sample_dt << "\n";
     o << "  probe ratio          : " << options.probe_ratio << "\n";
     o << "  probe soma only      : " << (options.probe_soma_only ? "yes" : "no") << "\n";
@@ -444,7 +432,7 @@ std::vector<time_type> parse_spike_times_from_stream(std::ifstream & fid) {
 ///
 /// Returns a vector of time_type
 
-std::vector<time_type> get_parsed_spike_times_from_path(nest::mc::util::path path) {
+std::vector<time_type> get_parsed_spike_times_from_path(arb::util::path path) {
     std::ifstream fid(path);
     if (!fid) {
         throw std::runtime_error(util::strprintf(
@@ -455,5 +443,4 @@ std::vector<time_type> get_parsed_spike_times_from_path(nest::mc::util::path pat
 }
 
 } // namespace io
-} // namespace mc
-} // namespace nest
+} // namespace arb

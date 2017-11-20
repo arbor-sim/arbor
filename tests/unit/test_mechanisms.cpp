@@ -25,7 +25,7 @@
 #include <util/cycle.hpp>
 
 TEST(mechanisms, helpers) {
-    using namespace nest::mc;
+    using namespace arb;
     using size_type = multicore::backend::size_type;
     using value_type = multicore::backend::value_type;
 
@@ -68,18 +68,18 @@ TEST(mechanisms, helpers) {
 template<typename T>
 void mech_update(T* mech, unsigned num_iters) {
 
-    using namespace nest::mc;
-    std::map<mechanisms::ionKind, mechanisms::ion<typename T::backend>> ions;
+    using namespace arb;
+    std::map<ionKind, ion<typename T::backend>> ions;
 
     mech->set_params();
     mech->nrn_init();
-    for (auto ion_kind : mechanisms::ion_kinds()) {
+    for (auto ion_kind : ion_kinds()) {
         auto ion_indexes = util::make_copy<std::vector<typename T::size_type>>(
             mech->node_index_
         );
 
         // Create and fill in the ion
-        mechanisms::ion<typename T::backend> ion = ion_indexes;
+        ion<typename T::backend> ion = ion_indexes;
 
         memory::fill(ion.current(), 5.);
         memory::fill(ion.reversal_potential(), 100.);
@@ -149,9 +149,9 @@ TYPED_TEST_P(mechanisms, update) {
     typename mechanism_type::array  time_to(num_cell, 2.1);
     typename mechanism_type::array  dt(num_comp, 2.1-2.);
 
-    array_init(voltage, nest::mc::util::cyclic_view({ -65.0, -61.0, -63.0 }));
-    array_init(current, nest::mc::util::cyclic_view({   1.0,   0.9,   1.1 }));
-    array_init(weights, nest::mc::util::cyclic_view({ 1.0 }));
+    array_init(voltage, arb::util::cyclic_view({ -65.0, -61.0, -63.0 }));
+    array_init(current, arb::util::cyclic_view({   1.0,   0.9,   1.1 }));
+    array_init(weights, arb::util::cyclic_view({ 1.0 }));
 
     // Initialise indexes
     std::vector<int> index_freq;
@@ -162,7 +162,7 @@ TYPED_TEST_P(mechanisms, update) {
         index_freq.assign({ 1 });
     }
 
-    auto freq_begin = nest::mc::util::cyclic_view(index_freq).cbegin();
+    auto freq_begin = arb::util::cyclic_view(index_freq).cbegin();
     auto freq = freq_begin;
     auto index = node_index.begin();
     while (index != node_index.end()) {
@@ -179,12 +179,12 @@ TYPED_TEST_P(mechanisms, update) {
     typename mechanism_type::array  weights_copy(weights);
 
     // Create mechanisms
-    auto mech = nest::mc::mechanisms::make_mechanism<mechanism_type>(
+    auto mech = arb::make_mechanism<mechanism_type>(
         0, cell_index, time, time_to, dt,
         voltage, current, std::move(weights), std::move(node_index)
     );
 
-    auto mech_proto = nest::mc::mechanisms::make_mechanism<proto_mechanism_type>(
+    auto mech_proto = arb::make_mechanism<proto_mechanism_type>(
         0, cell_index, time, time_to, dt,
         voltage_copy, current_copy,
         std::move(weights_copy), std::move(node_index_copy)
@@ -203,30 +203,30 @@ REGISTER_TYPED_TEST_CASE_P(mechanisms, update);
 
 using mechanism_types = ::testing::Types<
     mechanism_info<
-        nest::mc::mechanisms::hh::mechanism_hh<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::hh_proto::mechanism_hh_proto<nest::mc::multicore::backend>
+        arb::multicore::mechanism_hh<arb::multicore::backend>,
+        arb::multicore::mechanism_hh_proto<arb::multicore::backend>
     >,
     mechanism_info<
-        nest::mc::mechanisms::pas::mechanism_pas<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::pas_proto::mechanism_pas_proto<nest::mc::multicore::backend>
+        arb::multicore::mechanism_pas<arb::multicore::backend>,
+        arb::multicore::mechanism_pas_proto<arb::multicore::backend>
     >,
     mechanism_info<
-        nest::mc::mechanisms::expsyn::mechanism_expsyn<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::expsyn_proto::mechanism_expsyn_proto<nest::mc::multicore::backend>,
+        arb::multicore::mechanism_expsyn<arb::multicore::backend>,
+        arb::multicore::mechanism_expsyn_proto<arb::multicore::backend>,
         true
     >,
     mechanism_info<
-        nest::mc::mechanisms::exp2syn::mechanism_exp2syn<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::exp2syn_proto::mechanism_exp2syn_proto<nest::mc::multicore::backend>,
+        arb::multicore::mechanism_exp2syn<arb::multicore::backend>,
+        arb::multicore::mechanism_exp2syn_proto<arb::multicore::backend>,
         true
     >,
     mechanism_info<
-        nest::mc::mechanisms::test_kin1::mechanism_test_kin1<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::test_kin1_proto::mechanism_test_kin1_proto<nest::mc::multicore::backend>
+        arb::multicore::mechanism_test_kin1<arb::multicore::backend>,
+        arb::multicore::mechanism_test_kin1_proto<arb::multicore::backend>
     >,
     mechanism_info<
-        nest::mc::mechanisms::test_kinlva::mechanism_test_kinlva<nest::mc::multicore::backend>,
-        nest::mc::mechanisms::test_kinlva_proto::mechanism_test_kinlva_proto<nest::mc::multicore::backend>
+        arb::multicore::mechanism_test_kinlva<arb::multicore::backend>,
+        arb::multicore::mechanism_test_kinlva_proto<arb::multicore::backend>
     >
 >;
 
