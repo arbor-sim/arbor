@@ -364,6 +364,28 @@ std::string CPrinter::emit_source() {
         text_.add_line();
     }
 
+    if(module_->write_backs().size()) {
+        text_.add_line("void write_back() override {");
+        text_.increase_indentation();
+
+        text_.add_line("const size_type n_ = node_index_.size();");
+        for (auto& w: module_->write_backs()) {
+            auto& src = w.source_name;
+            auto tgt = w.target_name;
+            tgt.erase(tgt.begin(), tgt.begin()+tgt.find('_')+1);
+            auto istore = ion_store(w.ion_kind)+".";
+
+            text_.add_line();
+            text_.add_line("auto "+src+"_out_ = util::indirect_view("+istore+tgt+", "+istore+"index);");
+            text_.add_line("for (size_type i_ = 0; i_ < n_; ++i_) {");
+            text_.increase_indentation();
+            text_.add_line(src+"_out_[i_] = "+src+"[i_];");
+            text_.decrease_indentation(); text_.add_line("}");
+        }
+        text_.decrease_indentation(); text_.add_line("}");
+    }
+    text_.add_line();
+
     // TODO: replace field_info() generation implemenation with separate schema info generation
     // as per #349.
     auto field_info_string = [](const std::string& kind, const Id& id) {

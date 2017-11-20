@@ -7,6 +7,7 @@
 #include "mech_proto/pas.hpp"
 #include "mech_proto/test_kin1.hpp"
 #include "mech_proto/test_kinlva.hpp"
+#include "mech_proto/test_ca.hpp"
 
 // modcc generated mechanisms
 #include "mechanisms/multicore/expsyn.hpp"
@@ -15,6 +16,7 @@
 #include "mechanisms/multicore/pas.hpp"
 #include "mechanisms/multicore/test_kin1.hpp"
 #include "mechanisms/multicore/test_kinlva.hpp"
+#include "mechanisms/multicore/test_ca.hpp"
 
 #include <initializer_list>
 #include <backends/multicore/fvm.hpp>
@@ -227,6 +229,10 @@ using mechanism_types = ::testing::Types<
     mechanism_info<
         arb::multicore::mechanism_test_kinlva<arb::multicore::backend>,
         arb::multicore::mechanism_test_kinlva_proto<arb::multicore::backend>
+    >,
+    mechanism_info<
+        arb::multicore::mechanism_test_ca<arb::multicore::backend>,
+        arb::multicore::mechanism_test_ca_proto<arb::multicore::backend>
     >
 >;
 

@@ -122,6 +122,9 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
                 "void deliver_events_" + module_name_ +"(" + pack_name() + " params_, arb::fvm_size_type mech_id, deliverable_event_stream_state state);");
         }
     }
+    if(module_->write_backs().size()) {
+        buffer().add_line("void write_back_"+module_name_+"("+pack_name()+" params_);");
+    }
     buffer().add_line();
     buffer().add_line("}} // namespace arb::gpu");
 
@@ -164,6 +167,34 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             }
         }
     }
+
+    // print the write_back kernel
+    if(module_->write_backs().size()) {
+        buffer().add_line("__global__");
+        buffer().add_line("void write_back_"+module_name_+"("+pack_name()+" params_) {");
+        buffer().increase_indentation();
+
+        buffer().add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");
+        buffer().add_line("auto const n_ = params_.n_;");
+        buffer().add_line("if(tid_<n_) {");
+        buffer().increase_indentation();
+
+        auto ion_prefix = [](ionKind k) {
+            return k==ionKind::Ca? "ca": k==ionKind::Na? "na": "k";
+        };
+
+        for (auto& w: module_->write_backs()) {
+            auto& src = w.source_name;
+            auto& tgt = w.target_name;
+
+            auto idx = src + "_idx_";
+            buffer().add_line("auto "+idx+" = params_.ion_"+ion_prefix(w.ion_kind)+"_idx_[tid_];");
+            buffer().add_line("params_."+tgt+"["+idx+"] =  params_."+src+"[tid_];");
+        }
+        buffer().decrease_indentation(); buffer().add_line("}");
+        buffer().decrease_indentation(); buffer().add_line("}");
+    }
+
     buffer().decrease_indentation();
     buffer().add_line("} // kernel namespace");
 
@@ -194,6 +225,20 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             buffer().add_line("}");
             buffer().add_line();
         }
+    }
+
+    // add the write_back kernel wrapper if required by this module
+    if(module_->write_backs().size()) {
+        buffer().add_line("void write_back_"+module_name_+"("+pack_name()+" params_) {");
+        buffer().increase_indentation();
+        buffer().add_line("auto n = params_.n_;");
+        buffer().add_line("constexpr int blockwidth = 128;");
+        buffer().add_line("dim3 dim_block(blockwidth);");
+        buffer().add_line("dim3 dim_grid(impl::block_count(n, blockwidth));");
+        buffer().add_line("arb::gpu::kernels::write_back_"+module_name_+"<<<dim_grid, dim_block>>>(params_);");
+        buffer().decrease_indentation();
+        buffer().add_line("}");
+        buffer().add_line();
     }
     buffer().add_line("}} // namespace arb::gpu");
 
@@ -542,6 +587,14 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             buffer().add_line();
         }
     }
+
+    if(module_->write_backs().size()) {
+        buffer().add_line("void write_back() override {");
+        buffer().increase_indentation();
+        buffer().add_line("arb::gpu::write_back_"+module_name_+"(param_pack_);");
+        buffer().decrease_indentation(); buffer().add_line("}");
+    }
+    buffer().add_line();
 
     std::unordered_set<std::string> scalar_set;
     for (auto& v: scalar_variables) {
