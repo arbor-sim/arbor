@@ -315,6 +315,8 @@ public:
 
     expression_ptr clone() const override;
 
+    void semantic(scope_ptr scp) override;
+
     DerivativeExpression* is_derivative() override { return this; }
 
     ~DerivativeExpression() {}
