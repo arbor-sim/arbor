@@ -8,8 +8,7 @@
 #include "memory_meter.hpp"
 #include "power_meter.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 measurement::measurement(
@@ -121,10 +120,17 @@ meter_report make_meter_report(const meter_manager& manager) {
 
     // Gather a vector with the names of the node that each rank is running on.
     auto host = hostname();
-    report.hosts = gcom::gather(host? *host: "unknown", 0);
+    auto hosts = gcom::gather(host? *host: "unknown", 0);
+    report.hosts = hosts;
+
+    // Count the number of unique hosts.
+    // This is equivalent to the number of nodes on most systems.
+    util::sort(hosts);
+    auto num_hosts = std::distance(hosts.begin(), std::unique(hosts.begin(), hosts.end()));
 
     report.checkpoints = manager.checkpoint_names();
     report.num_domains = gcom::size();
+    report.num_hosts = num_hosts;
     report.communication_policy = gcom::kind();
 
     return report;
@@ -142,17 +148,20 @@ nlohmann::json to_json(const meter_report& report) {
 
 // Print easy to read report of meters to a stream.
 std::ostream& operator<<(std::ostream& o, const meter_report& report) {
-    o << "\n---- meters ------------------------------------------------------------\n";
-    o << strprintf("%21s", "");
+    o << "\n---- meters -------------------------------------------------------------------------------\n";
+    o << strprintf("meter%16s", "");
     for (auto const& m: report.meters) {
         if (m.name=="time") {
-            o << strprintf("%16s", "time (s)");
+            o << strprintf("%16s", "time(s)");
         }
         else if (m.name.find("memory")!=std::string::npos) {
-            o << strprintf("%16s", m.name+" (MB)");
+            o << strprintf("%16s", m.name+"(MB)");
+        }
+        else if (m.name.find("energy")!=std::string::npos) {
+            o << strprintf("%16s", m.name+"(kJ)");
         }
     }
-    o << "\n------------------------------------------------------------------------\n";
+    o << "\n-------------------------------------------------------------------------------------------\n";
     int cp_index = 0;
     for (auto name: report.checkpoints) {
         name.resize(20);
@@ -160,11 +169,17 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
         for (const auto& m: report.meters) {
             if (m.name=="time") {
                 std::vector<double> times = m.measurements[cp_index];
-                o << strprintf("%16.4f", algorithms::mean(times));
+                o << strprintf("%16.3f", algorithms::mean(times));
             }
             else if (m.name.find("memory")!=std::string::npos) {
                 std::vector<double> mem = m.measurements[cp_index];
-                o << strprintf("%16.4f", algorithms::mean(mem)*1e-6);
+                o << strprintf("%16.3f", algorithms::mean(mem)*1e-6);
+            }
+            else if (m.name.find("energy")!=std::string::npos) {
+                std::vector<double> e = m.measurements[cp_index];
+                // TODO: this is an approximation: better reduce a subset of measurements
+                auto doms_per_host = double(report.num_domains)/report.num_hosts;
+                o << strprintf("%16.3f", algorithms::sum(e)/doms_per_host*1e-3);
             }
         }
         o << "\n";
@@ -174,5 +189,4 @@ std::ostream& operator<<(std::ostream& o, const meter_report& report) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

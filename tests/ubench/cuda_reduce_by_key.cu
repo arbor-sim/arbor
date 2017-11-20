@@ -16,7 +16,7 @@
 #include <backends/gpu/intrinsics.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 // Run benchmarks
 //  * with between 100:1million entries to update

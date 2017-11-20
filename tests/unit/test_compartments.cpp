@@ -10,17 +10,17 @@
 #include <util/span.hpp>
 #include <util/transform.hpp>
 
-using namespace nest::mc;
-using namespace nest::mc::algorithms;
-using namespace nest::mc::math;
-using namespace nest::mc::util;
+using namespace arb;
+using namespace arb::algorithms;
+using namespace arb::math;
+using namespace arb::util;
 
 // not much to test here: just test that values passed into the constructor
 // are correctly stored in members
 TEST(compartments, compartment)
 {
     {
-        nest::mc::compartment c(100, 1.2, 2.1, 2.2);
+        arb::compartment c(100, 1.2, 2.1, 2.2);
         EXPECT_EQ(c.index, 100u);
         EXPECT_EQ(c.length, 1.2);
         EXPECT_EQ(c.radius.first, 2.1);
@@ -34,7 +34,7 @@ TEST(compartments, compartment)
     }
 
     {
-        nest::mc::compartment c{100, 1, 2, 3};
+        arb::compartment c{100, 1, 2, 3};
         EXPECT_EQ(c.index, 100u);
         EXPECT_EQ(c.length, 1.);
         EXPECT_EQ(c.radius.first, 2.);
@@ -44,7 +44,7 @@ TEST(compartments, compartment)
 
 TEST(compartments, make_compartment_range)
 {
-    using namespace nest::mc;
+    using namespace arb;
     auto rng = make_compartment_range(10, 1.0, 2.0, 10.);
 
     EXPECT_EQ((*rng.begin()).index, 0u);

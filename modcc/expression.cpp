@@ -127,6 +127,16 @@ expression_ptr DerivativeExpression::clone() const {
     return make_expression<DerivativeExpression>(location_, spelling_);
 }
 
+void DerivativeExpression::semantic(scope_ptr scp) {
+    IdentifierExpression::semantic(scp);
+    auto v = symbol_->is_variable();
+    if (!v || !v->is_state()) {
+        error( pprintf("the variable '%' must be a state variable to be differentiated",
+                        yellow(spelling_), location_));
+        return;
+    }
+}
+
 /*******************************************************************************
   NumberExpression
 ********************************************************************************/

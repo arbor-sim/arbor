@@ -5,8 +5,7 @@
 
 #include <common_types.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 template <typename I>
 struct basic_spike {
@@ -20,22 +19,15 @@ struct basic_spike {
     basic_spike(id_type s, time_type t):
         source(s), time(t)
     {}
-
-    /// Less than comparison operator for nest::mc::spike<> values:
-    /// spikes are ordered by spike time, for use in sorting and queueing.
-    friend bool operator<(basic_spike lhs, basic_spike rhs) {
-        return lhs.time < rhs.time;
-    }
 };
 
 /// Standard specialization:
 using spike = basic_spike<cell_member_type>;
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
-// Custom stream operator for printing nest::mc::spike<> values.
+// Custom stream operator for printing arb::spike<> values.
 template <typename I>
-std::ostream& operator<<(std::ostream& o, nest::mc::basic_spike<I> s) {
-    return o << "spike[t " << s.time << ", src " << s.source << "]";
+std::ostream& operator<<(std::ostream& o, arb::basic_spike<I> s) {
+    return o << "S[src " << s.source << ", t " << s.time << "]";
 }

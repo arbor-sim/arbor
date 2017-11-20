@@ -33,6 +33,8 @@ struct Id {
                        // string == no value
     unit_tokens units;
 
+    std::pair<Token, Token> range; // empty component => no range set
+
     Id(Token const& t, std::string const& v, unit_tokens const& u)
         : token(t), value(v), units(u)
     {}
@@ -40,7 +42,22 @@ struct Id {
     Id() {}
 
     bool has_value() const {
-        return value.size()>0;
+        return !value.empty();
+    }
+
+    bool has_range() const {
+        return !range.first.spelling.empty();
+    }
+
+    std::string unit_string() const {
+        std::string u;
+        for (auto& t: units) {
+            if (!u.empty()) {
+                u += ' ';
+            }
+            u += t.spelling;
+        }
+        return u;
     }
 
     std::string const& name() const {

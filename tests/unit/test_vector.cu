@@ -10,7 +10,7 @@
 //  wrappers
 //
 
-using namespace nest::mc;
+using namespace arb;
 
 // test that memory::on_gpu copies std::vector into a device vector
 TEST(vector, make_gpu_stdvector) {

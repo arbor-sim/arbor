@@ -11,19 +11,18 @@
 #include "allocator.hpp"
 #include "util.hpp"
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 #include "gpu.hpp"
 #endif
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 
 // forward declare for type printers
 template <typename T, class Allocator>
 class host_coordinator;
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
 template <typename T, class Allocator>
 class device_coordinator;
 #endif
@@ -124,7 +123,7 @@ public:
         std::copy(from.begin(), from.end(), to.begin());
     }
 
-#ifdef NMC_HAVE_GPU
+#ifdef ARB_HAVE_GPU
     // copy memory from device to host
     template <class Alloc>
     void copy(
@@ -196,5 +195,4 @@ public:
 };
 
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

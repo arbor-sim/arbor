@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <string>
+#include <unordered_set>
 
 #include "cprinter.hpp"
 #include "lexer.hpp"
@@ -19,6 +20,7 @@ std::string CPrinter::emit_source() {
     // and a list of all scalar types
     std::vector<VariableExpression*> scalar_variables;
     std::vector<VariableExpression*> array_variables;
+
     for(auto& sym: module_->symbols()) {
         if(auto var = sym.second->is_variable()) {
             if(var->is_range()) {
@@ -43,7 +45,7 @@ std::string CPrinter::emit_source() {
     //////////////////////////////////////////////
     std::string class_name = "mechanism_" + module_name;
 
-    text_.add_line("namespace nest{ namespace mc{ namespace mechanisms{ namespace " + module_name + "{");
+    text_.add_line("namespace arb { namespace multicore {");
     text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
@@ -60,7 +62,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("using const_view = typename base::const_view;");
     text_.add_line("using const_iview = typename base::const_iview;");
     text_.add_line("using ion_type = typename base::ion_type;");
-    text_.add_line("using multi_event_stream = typename base::multi_event_stream;");
+    text_.add_line("using deliverable_event_stream_state = typename base::deliverable_event_stream_state;");
     text_.add_line();
 
     //////////////////////////////////////////////
@@ -128,18 +130,25 @@ std::string CPrinter::emit_source() {
     }
     text_.add_line();
 
-    // copy in the weights if this is a density mechanism
-    if (module_->kind() == moduleKind::density) {
-        text_.add_line("// add the user-supplied weights for converting from current density");
-        text_.add_line("// to per-compartment current in nA");
-        if(optimize_) {
-            text_.add_line("memory::copy(weights, view(weights_, size()));");
-        }
-        else {
-            text_.add_line("memory::copy(weights, weights_(0, size()));");
-        }
-        text_.add_line();
+    // copy in the weights
+    text_.add_line("// add the user-supplied weights for converting from current density");
+    text_.add_line("// to per-compartment current in nA");
+    text_.add_line("if (weights.size()) {");
+    text_.increase_indentation();
+    if(optimize_) {
+        text_.add_line("memory::copy(weights, view(weights_, size()));");
     }
+    else {
+        text_.add_line("memory::copy(weights, weights_(0, size()));");
+    }
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line("else {");
+    text_.increase_indentation();
+    text_.add_line("memory::fill(weights_, 1.0);");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
 
     text_.add_line("// set initial values for variables and parameters");
     for(auto const& var : array_variables) {
@@ -179,10 +188,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    text_.add_line("void set_params() override {");
-    text_.add_line("}");
-    text_.add_line();
-
     text_.add_line("std::string name() const override {");
     text_.increase_indentation();
     text_.add_line("return \"" + module_name + "\";");
@@ -196,6 +201,14 @@ std::string CPrinter::emit_source() {
     text_.add_line("mechanismKind kind() const override {");
     text_.increase_indentation();
     text_.add_line("return " + kind_str + ";");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
+    // Implement `set_weights` method.
+    text_.add_line("void set_weights(array&& weights) override {");
+    text_.increase_indentation();
+    text_.add_line("memory::copy(weights, weights_(0, size()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -267,7 +280,7 @@ std::string CPrinter::emit_source() {
     };
     text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
-    text_.add_line("using nest::mc::algorithms::index_into;");
+    text_.add_line("using arb::algorithms::index_into;");
     if(has_ion(ionKind::Na)) {
         auto ion = find_ion(ionKind::Na);
         text_.add_line("if(k==ionKind::na) {");
@@ -307,7 +320,7 @@ std::string CPrinter::emit_source() {
         text_.decrease_indentation();
         text_.add_line("}");
     }
-    text_.add_line("throw std::domain_error(nest::mc::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
+    text_.add_line("throw std::domain_error(arb::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -331,18 +344,112 @@ std::string CPrinter::emit_source() {
     }
 
     if(override_deliver_events) {
-        text_.add_line("void deliver_events(multi_event_stream& events) override {");
+        text_.add_line("void deliver_events(const deliverable_event_stream_state& events) override {");
         text_.increase_indentation();
         text_.add_line("auto ncell = events.n_streams();");
         text_.add_line("for (size_type c = 0; c<ncell; ++c) {");
         text_.increase_indentation();
-        text_.add_line("for (auto ev: events.marked_events(c)) {");
+
+        text_.add_line("auto begin = events.begin_marked(c);");
+        text_.add_line("auto end = events.end_marked(c);");
+        text_.add_line("for (auto p = begin; p<end; ++p) {");
         text_.increase_indentation();
-        text_.add_line("if (ev.handle.mech_id==mech_id_) net_receive(ev.handle.index, ev.weight);");
+        text_.add_line("if (p->mech_id==mech_id_) net_receive(p->mech_index, p->weight);");
         text_.decrease_indentation();
         text_.add_line("}");
         text_.decrease_indentation();
         text_.add_line("}");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
+
+    // TODO: replace field_info() generation implemenation with separate schema info generation
+    // as per #349.
+    auto field_info_string = [](const std::string& kind, const Id& id) {
+        return  "field_spec{field_spec::" + kind + ", " +
+                "\"" + id.unit_string() + "\", " +
+                (id.has_value()? id.value: "0") +
+                (id.has_range()? ", " + id.range.first.spelling + "," + id.range.second.spelling: "") +
+                "}";
+    };
+
+    std::unordered_set<std::string> scalar_set;
+    for (auto& v: scalar_variables) {
+        scalar_set.insert(v->name());
+    }
+
+    std::vector<Id> global_param_ids;
+    std::vector<Id> instance_param_ids;
+
+    for (const Id& id: module_->parameter_block().parameters) {
+        auto var = id.token.spelling;
+        (scalar_set.count(var)? global_param_ids: instance_param_ids).push_back(id);
+    }
+    const std::vector<Id>& state_ids = module_->state_block().state_variables;
+
+    text_.add_line("util::optional<field_spec> field_info(const char* id) const /* override */ {");
+    text_.increase_indentation();
+    text_.add_line("static const std::pair<const char*, field_spec> field_tbl[] = {");
+    text_.increase_indentation();
+    for (const auto& id: global_param_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("global",id )+"},");
+    }
+    for (const auto& id: instance_param_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("parameter", id)+"},");
+    }
+    for (const auto& id: state_ids) {
+        auto var = id.token.spelling;
+        text_.add_line("{\""+var+"\", "+field_info_string("state", id)+"},");
+    }
+    text_.decrease_indentation();
+    text_.add_line("};");
+    text_.add_line();
+    text_.add_line("auto* info = util::table_lookup(field_tbl, id);");
+    text_.add_line("return info? util::just(*info): util::nothing;");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
+    if (!instance_param_ids.empty() || !state_ids.empty()) {
+        text_.add_line("view base::* field_view_ptr(const char* id) const override {");
+        text_.increase_indentation();
+        text_.add_line("static const std::pair<const char*, view "+class_name+"::*> field_tbl[] = {");
+        text_.increase_indentation();
+        for (const auto& id: instance_param_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        for (const auto& id: state_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        text_.decrease_indentation();
+        text_.add_line("};");
+        text_.add_line();
+        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("return pptr? static_cast<view base::*>(*pptr): nullptr;");
+        text_.decrease_indentation();
+        text_.add_line("}");
+        text_.add_line();
+    }
+
+    if (!global_param_ids.empty()) {
+        text_.add_line("value_type base::* field_value_ptr(const char* id) const override {");
+        text_.increase_indentation();
+        text_.add_line("static const std::pair<const char*, value_type "+class_name+"::*> field_tbl[] = {");
+        text_.increase_indentation();
+        for (const auto& id: global_param_ids) {
+            auto var = id.token.spelling;
+            text_.add_line("{\""+var+"\", &"+class_name+"::"+var+"},");
+        }
+        text_.decrease_indentation();
+        text_.add_line("};");
+        text_.add_line();
+        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("return pptr? static_cast<value_type base::*>(*pptr): nullptr;");
         text_.decrease_indentation();
         text_.add_line("}");
         text_.add_line();
@@ -389,7 +496,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("};");
     text_.add_line();
 
-    text_.add_line("}}}} // namespaces");
+    text_.add_line("}} // namespaces");
     return text_.str();
 }
 
@@ -403,8 +510,10 @@ void CPrinter::emit_headers() {
     text_.add_line();
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
-    text_.add_line("#include <backends/multicore/multi_event_stream.hpp>");
+    text_.add_line("#include <backends/event.hpp>");
+    text_.add_line("#include <backends/multi_event_stream_state.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
+    text_.add_line("#include <util/simple_table.hpp>");
     text_.add_line();
 }
 
@@ -823,7 +932,6 @@ void CPrinter::print_APIMethod_optimized(APIMethod* e) {
     decrease_indentation();
 
     aliased_output_ = false;
-    return;
 }
 
 void CPrinter::visit(CallExpression *e) {

@@ -5,7 +5,7 @@
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 // This source is included in `test_spikes.cu`, which defines
 // USE_BACKEND to override the default `multicore::backend`
@@ -17,41 +17,7 @@ using backend = multicore::backend;
 using backend = USE_BACKEND;
 #endif
 
-TEST(spikes, ordering) {
-    {
-        spike s1({0,0}, 1), s2({0,0}, 2);
-        EXPECT_TRUE(s1<s2);
-    }
-    {
-        spike s1({0,0}, 1), s2({0,0}, 1);
-        EXPECT_FALSE(s1<s2);
-    }
-    {
-        spike s1({0,0}, 2), s2({0,0}, 1);
-        EXPECT_FALSE(s1<s2);
-    }
-}
-
-TEST(spikes, sorting) {
-    std::vector<spike> spikes = {
-        {{0,0}, 1},
-        {{0,0}, 2},
-        {{0,0}, 0},
-        {{0,0}, 3},
-        {{0,0}, 1},
-        {{0,0}, 2},
-    };
-
-    std::sort(spikes.begin(), spikes.end());
-
-    auto it = spikes.begin();
-    while (++it!=spikes.end()) {
-        EXPECT_TRUE(it->time >= (it-1)->time);
-    }
-}
-
 TEST(spikes, threshold_watcher) {
-    using backend = multicore::backend;
     using size_type = backend::size_type;
     using value_type = backend::value_type;
     using array = backend::array;
@@ -94,7 +60,7 @@ TEST(spikes, threshold_watcher) {
 
     // test again at t=1, with unchanged values
     //  - nothing should change
-    util::fill(time_after, 1.);
+    memory::fill(time_after, 1.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_TRUE(watch.is_crossed(1));
@@ -105,7 +71,7 @@ TEST(spikes, threshold_watcher) {
     //  - 2nd watch should now stop spiking
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
-    util::fill(time_after, 2.);
+    memory::fill(time_after, 2.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
@@ -133,7 +99,7 @@ TEST(spikes, threshold_watcher) {
     //  - all watches should stop spiking
     memory::fill(values, 0.);
     memory::copy(time_after, time_before);
-    util::fill(time_after, 4.);
+    memory::fill(time_after, 4.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
@@ -144,7 +110,7 @@ TEST(spikes, threshold_watcher) {
     //  - watch 3 should be spiking
     values[index[2]] = 6.;
     memory::copy(time_after, time_before);
-    util::fill(time_after, 5.);
+    memory::fill(time_after, 5.);
     watch.test();
     EXPECT_FALSE(watch.is_crossed(0));
     EXPECT_FALSE(watch.is_crossed(1));
@@ -177,7 +143,7 @@ TEST(spikes, threshold_watcher) {
     //
     memory::fill(values, 0);
     values[index[0]] = 10.; // first watch should be intialized to spiking state
-    util::fill(time_before, 0.);
+    memory::fill(time_before, 0.);
     watch.reset();
     EXPECT_EQ(watch.crossings().size(), 0u);
     EXPECT_TRUE(watch.is_crossed(0));

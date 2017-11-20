@@ -13,8 +13,7 @@
 #include <util/rangeutil.hpp>
 #include <util/transform.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 
 /// Defines the simplest type of compartment
 /// The compartment is a conic frustrum
@@ -286,7 +285,6 @@ protected:
     }
 };
 
-} // namespace mc
-} // namespace nest
+} // namespace arb
 
 

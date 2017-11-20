@@ -9,8 +9,7 @@
 #include "meter.hpp"
 #include "profiler.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // A measurement has the following:
@@ -54,7 +53,8 @@ public:
 struct meter_report {
     std::vector<std::string> checkpoints;
     unsigned num_domains;
-    nest::mc::communication::global_policy_kind communication_policy;
+    unsigned num_hosts;
+    arb::communication::global_policy_kind communication_policy;
     std::vector<measurement> meters;
     std::vector<std::string> hosts;
 };
@@ -64,5 +64,4 @@ meter_report make_meter_report(const meter_manager& manager);
 std::ostream& operator<<(std::ostream& o, const meter_report& report);
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

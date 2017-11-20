@@ -5,10 +5,9 @@
 #pragma once
 
 #include "backends/base.hpp"
+#include "util/compat.hpp"
 
-
-namespace nest {
-namespace mc {
+namespace arb {
 namespace modcc {
 
 // Specialize for the different architectures
@@ -23,8 +22,13 @@ struct simd_intrinsics<targetKind::avx2> {
     }
 
     static std::string emit_headers() {
-        return "#include <immintrin.h>";
-    };
+        std::string ret = "#include <immintrin.h>";
+        if (!compat::using_intel_compiler()) {
+            ret += "\n#include <backends/multicore/intrin.hpp>";
+        }
+
+        return ret;
+    }
 
     static std::string emit_simd_width() {
         return "256";
@@ -69,10 +73,20 @@ struct simd_intrinsics<targetKind::avx2> {
             tb << "_mm256_sub_pd(_mm256_set1_pd(0), ";
             break;
         case tok::exp:
-            tb << "_mm256_exp_pd(";
+            if (compat::using_intel_compiler()) {
+                tb << "_mm256_exp_pd(";
+            }
+            else {
+                tb << "arb::multicore::arb_mm256_exp_pd(";
+            }
             break;
         case tok::log:
-            tb << "_mm256_log_pd(";
+            if (compat::using_intel_compiler()) {
+                tb << "_mm256_log_pd(";
+            }
+            else {
+                tb << "arb::multicore::arb_mm256_log_pd(";
+            }
             break;
         default:
             throw std::invalid_argument("Unknown unary operator");
@@ -84,7 +98,13 @@ struct simd_intrinsics<targetKind::avx2> {
 
     template<typename B, typename E>
     static void emit_pow(TextBuffer& tb, const B& base, const E& exp) {
-        tb << "_mm256_pow_pd(";
+        if (compat::using_intel_compiler()) {
+            tb << "_mm256_pow_pd(";
+        }
+        else {
+            tb << "arb::multicore::arb_mm256_pow_pd(";
+        }
+
         emit_operands(tb, arg_emitter(base), arg_emitter(exp));
         tb << ")";
     }
@@ -181,4 +201,4 @@ private:
 int simd_intrinsics<targetKind::avx2>::varcnt = 0;
 const std::string simd_intrinsics<targetKind::avx2>::varprefix = "_r";
 
-}}} // closing namespaces
+}} // closing namespaces

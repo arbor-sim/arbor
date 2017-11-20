@@ -16,7 +16,7 @@
 
 using json = nlohmann::json;
 
-using namespace nest::mc;
+using namespace arb;
 using int_type = cell_tree::int_type;
 
 
@@ -367,7 +367,7 @@ TEST(tree, make_parent_index)
     {
         std::vector<int> parent_index = {0};
         std::vector<int> counts = {1};
-        nest::mc::tree t(parent_index);
+        arb::tree t(parent_index);
         auto new_parent_index = make_parent_index(t, counts);
         EXPECT_EQ(parent_index.size(), new_parent_index.size());
     }
@@ -375,7 +375,7 @@ TEST(tree, make_parent_index)
     {
         std::vector<int> parent_index = {0};
         std::vector<int> counts = {5};
-        nest::mc::tree t(parent_index);
+        arb::tree t(parent_index);
         auto new_parent_index = make_parent_index(t, counts);
         EXPECT_EQ(new_parent_index.size(), (unsigned)counts[0]);
         EXPECT_EQ(new_parent_index[0], 0);
@@ -403,7 +403,7 @@ TEST(tree, make_parent_index)
         };
         for(auto &parent_index : trees) {
             std::vector<int> counts(parent_index.size(), 1);
-            nest::mc::tree t(parent_index);
+            arb::tree t(parent_index);
             auto new_parent_index = make_parent_index(t, counts);
             EXPECT_EQ(parent_index, new_parent_index);
         }
@@ -424,7 +424,7 @@ TEST(tree, make_parent_index)
     {
         std::vector<int> parent_index = {0,0,1,2,3,4,3,6,0,8};
         std::vector<int> counts = {1,3,2,2,2};
-        nest::mc::tree t(parent_index);
+        arb::tree t(parent_index);
         auto new_parent_index = make_parent_index(t, counts);
         EXPECT_EQ(parent_index, new_parent_index);
     }

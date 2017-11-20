@@ -2,8 +2,7 @@
 
 #include "detail.hpp"
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace gpu {
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -11,7 +10,7 @@ namespace gpu {
 // Hines matrices, see src/backends/matrix_storage.md
 ///////////////////////////////////////////////////////////////////////////////
 
-
+namespace kernels {
 // Data in a vector is to be interleaved into blocks of width BlockWidth.
 // The kernel assigns LoadWidth threads to each lane in the block.
 //
@@ -107,30 +106,46 @@ void interleaved_to_flat(
     }
 }
 
+} // namespace kernels
+
 // host side wrapper for the flat to interleaved operation
 template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth>
 void flat_to_interleaved(
-    const T* in, T* out, const I* sizes, const I* starts, unsigned padded_size, unsigned num_vec)
+    const T* in,
+    T* out,
+    const I* sizes,
+    const I* starts,
+    unsigned padded_size,
+    unsigned num_vec)
 {
     constexpr unsigned Threads = BlockWidth*LoadWidth;
     const unsigned blocks = impl::block_count(num_vec, BlockWidth);
 
-    flat_to_interleaved<T, I, BlockWidth, LoadWidth, Threads>
-        <<<blocks, Threads>>> (in, out, sizes, starts, padded_size, num_vec);
+    kernels::flat_to_interleaved
+        <T, I, BlockWidth, LoadWidth, Threads>
+        <<<blocks, Threads>>>
+        (in, out, sizes, starts, padded_size, num_vec);
 }
 
 // host side wrapper for the interleave to flat operation
 template <typename T, typename I, unsigned BlockWidth, unsigned LoadWidth>
 void interleaved_to_flat(
-    const T* in, T* out, const I* sizes, const I* starts, unsigned padded_size, unsigned num_vec)
+    const T* in,
+    T* out,
+    const I* sizes,
+    const I* starts,
+    unsigned padded_size,
+    unsigned num_vec)
 {
     constexpr unsigned Threads = BlockWidth*LoadWidth;
     const unsigned blocks = impl::block_count(num_vec, BlockWidth);
 
-    interleaved_to_flat<T, I, BlockWidth, LoadWidth, Threads>
-        <<<blocks, Threads>>> (in, out, sizes, starts, padded_size, num_vec);
+    kernels::interleaved_to_flat
+        <T, I, BlockWidth, LoadWidth, Threads>
+        <<<blocks, Threads>>>
+        (in, out, sizes, starts, padded_size, num_vec);
 }
 
 } // namespace gpu
-} // namespace mc
-} // namespace nest
+} // namespace arb
+

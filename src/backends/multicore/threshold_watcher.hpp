@@ -3,8 +3,7 @@
 #include <math.hpp>
 #include <memory/memory.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace multicore {
 
 template <typename T, typename I>
@@ -129,5 +128,4 @@ private:
 };
 
 } // namespace multicore
-} // namespace mc
-} // namespace nest
+} // namespace arb

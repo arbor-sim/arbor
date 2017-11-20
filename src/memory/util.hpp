@@ -6,10 +6,9 @@
 
 #include <util/debug.hpp>
 
-#define LOG_ERROR(msg) nest::mc::util::backtrace().print(); util::log_error(__FILE__, __LINE__, msg)
+#define LOG_ERROR(msg) arb::util::backtrace().print(); util::log_error(__FILE__, __LINE__, msg)
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace memory {
 namespace util {
 
@@ -88,5 +87,4 @@ inline void log_error(const char* file, int line, std::string msg) {
 
 } // namespace util
 } // namespace memory
-} // namespace mc
-} // namespace nest
+} // namespace arb

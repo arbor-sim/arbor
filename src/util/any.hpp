@@ -15,8 +15,7 @@
 // - Does not implement the in_place_type<T> constructors from the standard.
 // - Does not implement the emplace modifier from the standard.
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Defines a type of object to be thrown by the value-returning forms of
@@ -216,5 +215,4 @@ any make_any(Args&&... args) {
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

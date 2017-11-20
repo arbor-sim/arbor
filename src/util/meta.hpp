@@ -8,8 +8,7 @@
 
 #include <util/compat.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 // Until C++14 ...
@@ -122,6 +121,10 @@ using enable_if_copy_assignable_t =
 template <typename T>
 using enable_if_move_assignable_t =
     enable_if_t<std::is_move_assignable<T>::value>;
+
+template <typename T>
+using enable_if_trivially_copyable_t =
+    enable_if_t<std::is_trivially_copyable<T>::value>;
 
 // Iterator class test
 // (might not be portable before C++17)
@@ -271,8 +274,5 @@ struct second_t {
 };
 constexpr second_t second{};
 
-
-
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb

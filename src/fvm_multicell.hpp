@@ -8,14 +8,19 @@
 #include <vector>
 
 #include <algorithms.hpp>
+#include <backends/event.hpp>
+#include <backends/fvm_types.hpp>
 #include <cell.hpp>
 #include <compartment.hpp>
+#include <constants.hpp>
 #include <event_queue.hpp>
 #include <ion.hpp>
 #include <math.hpp>
 #include <matrix.hpp>
 #include <memory/memory.hpp>
 #include <profiling/profiler.hpp>
+#include <recipe.hpp>
+#include <sampler_map.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
 #include <util/meta.hpp>
@@ -23,8 +28,7 @@
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace fvm {
 
 inline int find_cv_index(const segment_location& loc, const compartment_model& graph) {
@@ -46,10 +50,10 @@ public:
     using backend = Backend;
 
     /// the real number type
-    using value_type = typename backend::value_type;
+    using value_type = fvm_value_type;
 
     /// the integral index type
-    using size_type = typename backend::size_type;
+    using size_type = fvm_size_type;
 
     /// the container used for values
     using array = typename backend::array;
@@ -58,10 +62,17 @@ public:
     /// the container used for indexes
     using iarray = typename backend::iarray;
 
-    using probe_handle = std::pair<const array fvm_multicell::*, size_type>;
+    using view = typename array::view_type;
+    using const_view = typename array::const_view_type;
 
-    using target_handle = typename backend::target_handle;
-    using deliverable_event = typename backend::deliverable_event;
+    /// the type (view or copy) for a const host-side view of an array
+    using host_view = decltype(memory::on_host(std::declval<array>()));
+
+    // handles and events are currently common across implementations;
+    // re-expose definitions from `backends/event.hpp`.
+    using target_handle = ::arb::target_handle;
+    using probe_handle = ::arb::probe_handle;
+    using deliverable_event = ::arb::deliverable_event;
 
     fvm_multicell() = default;
 
@@ -69,25 +80,37 @@ public:
         resting_potential_ = potential_mV;
     }
 
-    template <typename Cells, typename Targets, typename Probes>
+    // Set up data structures for a fixed collection of cells identified by `gids`
+    // with descriptions taken from the recipe `rec`.
+    //
+    // Lowered-cell specific handles for targets and probes are stored in the
+    // caller-provided vector `target_handles` and map `probe_map`.
     void initialize(
-        const Cells& cells,           // collection of nest::mc::cell descriptions
-        Targets& target_handles,      // (write) where to store target handles
-        Probes& probe_handles);       // (write) where to store probe handles
+        const std::vector<cell_gid_type>& gids,
+        const recipe& rec,
+        std::vector<target_handle>& target_handles,
+        probe_association_map<probe_handle>& probe_map);
 
     void reset();
 
-    // fvm_multicell::deliver_event is used only for testing
+    // fvm_multicell::deliver_event is used only for testing.
     void deliver_event(target_handle h, value_type weight) {
-        mechanisms_[h.mech_id]->net_receive(h.index, weight);
+        mechanisms_[h.mech_id]->net_receive(h.mech_index, weight);
     }
 
+    // fvm_multicell::probe is used only for testing.
     value_type probe(probe_handle h) const {
-        return (this->*h.first)[h.second];
+        return backend::dereference(h); // h is a pointer, but might be device-side.
     }
 
     // Initialize state prior to a sequence of integration steps.
-    void setup_integration(value_type tfinal, value_type dt_max) {
+    // `staged_events` and `staged_samples` are expected to be
+    // sorted by event time.
+    void setup_integration(
+        value_type tfinal, value_type dt_max,
+        const std::vector<deliverable_event>& staged_events,
+        const std::vector<sample_event>& staged_samples)
+    {
         EXPECTS(dt_max>0);
 
         tfinal_ = tfinal;
@@ -97,8 +120,16 @@ public:
 
         EXPECTS(!has_pending_events());
 
-        events_->init(std::move(staged_events_));
-        staged_events_.clear();
+        n_samples_ = staged_samples.size();
+
+        events_.init(staged_events);
+        sample_events_.init(staged_samples);
+
+        // Reallocate sample buffers if necessary.
+        if (sample_value_.size()<n_samples_) {
+            sample_value_ = array(n_samples_);
+            sample_time_ = array(n_samples_);
+        }
     }
 
     // Advance one integration step.
@@ -107,6 +138,19 @@ public:
     // Query integration completion state.
     bool integration_complete() const {
         return min_remaining_steps_==0;
+    }
+
+    // Access to sample data post-integration.
+    decltype(memory::make_const_view(std::declval<host_view>())) sample_value() const {
+        EXPECTS(sample_events_.empty());
+        host_sample_value_ = memory::on_host(sample_value_);
+        return host_sample_value_;
+    }
+
+    decltype(memory::make_const_view(std::declval<host_view>())) sample_time() const {
+        EXPECTS(sample_events_.empty());
+        host_sample_time_ = memory::on_host(sample_time_);
+        return host_sample_time_;
     }
 
     // Query per-cell time state.
@@ -141,12 +185,6 @@ public:
         invalidate_time_cache();
     }
 
-    /// Add an event for processing in next integration stage.
-    void add_event(value_type ev_time, target_handle h, value_type weight) {
-        EXPECTS(integration_complete());
-        staged_events_.push_back(deliverable_event(ev_time, h, weight));
-    }
-
     /// Following types and methods are public only for testing:
 
     /// the type used to store matrix information
@@ -154,22 +192,18 @@ public:
 
     /// mechanism type
     using mechanism = typename backend::mechanism;
+    using mechanism_ptr = typename backend::mechanism_ptr;
 
     /// stimulus type
     using stimulus = typename backend::stimulus;
 
     /// ion species storage
-    using ion = typename backend::ion;
+    using ion_type = typename backend::ion_type;
 
     /// view into index container
     using iview = typename backend::iview;
     using const_iview = typename backend::const_iview;
 
-    /// view into value container
-    using view = typename backend::view;
-    using const_view = typename backend::const_view;
-
-    /// which requires const_view in the vector library
     const matrix_type& jacobian() { return matrix_; }
 
     /// return list of CV areas in :
@@ -182,30 +216,30 @@ public:
     view       voltage()       { return voltage_; }
     const_view voltage() const { return voltage_; }
 
-    /// return the current in each CV
+    /// return the current density in each CV: A.m^-2
     view       current()       { return current_; }
     const_view current() const { return current_; }
 
     std::size_t size() const { return matrix_.size(); }
 
     /// return reference to in iterable container of the mechanisms
-    std::vector<mechanism>& mechanisms() { return mechanisms_; }
+    std::vector<mechanism_ptr>& mechanisms() { return mechanisms_; }
 
     /// return reference to list of ions
-    std::map<mechanisms::ionKind, ion>&       ions()       { return ions_; }
-    std::map<mechanisms::ionKind, ion> const& ions() const { return ions_; }
+    std::map<ionKind, ion_type>&       ions()       { return ions_; }
+    std::map<ionKind, ion_type> const& ions() const { return ions_; }
 
     /// return reference to sodium ion
-    ion&       ion_na()       { return ions_[mechanisms::ionKind::na]; }
-    ion const& ion_na() const { return ions_[mechanisms::ionKind::na]; }
+    ion_type&       ion_na()       { return ions_[ionKind::na]; }
+    ion_type const& ion_na() const { return ions_[ionKind::na]; }
 
     /// return reference to calcium ion
-    ion&       ion_ca()       { return ions_[mechanisms::ionKind::ca]; }
-    ion const& ion_ca() const { return ions_[mechanisms::ionKind::ca]; }
+    ion_type&       ion_ca()       { return ions_[ionKind::ca]; }
+    ion_type const& ion_ca() const { return ions_[ionKind::ca]; }
 
     /// return reference to pottasium ion
-    ion&       ion_k()       { return ions_[mechanisms::ionKind::k]; }
-    ion const& ion_k() const { return ions_[mechanisms::ionKind::k]; }
+    ion_type&       ion_k()       { return ions_[ionKind::k]; }
+    ion_type const& ion_k() const { return ions_[ionKind::k]; }
 
     /// flags if solution is physically realistic.
     /// here we define physically realistic as the voltage being within reasonable bounds.
@@ -217,16 +251,14 @@ public:
     }
 
     /// Return reference to the mechanism that matches name.
-    /// The reference is const, because it this information should not be
+    /// The reference is const, because this information should not be
     /// modified by the caller, however it is needed for unit testing.
-    util::optional<const mechanism&> find_mechanism(const std::string& name) const {
+    util::optional<const mechanism_ptr&> find_mechanism(const std::string& name) const {
         auto it = std::find_if(
             std::begin(mechanisms_), std::end(mechanisms_),
-            [&name](const mechanism& m) {return m->name()==name;});
+            [&name](const mechanism_ptr& m) {return m->name()==name;});
         return it==mechanisms_.end() ? util::nothing: util::just(*it);
     }
-
-    std::size_t num_probes() const { return probes_.size(); }
 
     //
     // Threshold crossing interface.
@@ -281,16 +313,25 @@ private:
         }
     }
 
-    /// events staged for upcoming integration stage
-    std::vector<deliverable_event> staged_events_;
-
     /// event queue for integration period
-    using multi_event_stream = typename backend::multi_event_stream;
-    std::unique_ptr<multi_event_stream> events_;
+    using deliverable_event_stream = typename backend::deliverable_event_stream;
+    deliverable_event_stream events_;
 
     bool has_pending_events() const {
-        return events_ && !events_->empty();
+        return !events_.empty();
     }
+
+    /// sample events for integration period
+    using sample_event_stream = typename backend::sample_event_stream;
+    sample_event_stream sample_events_;
+
+    /// sample buffers
+    size_type n_samples_ = 0;
+    array sample_value_;
+    array sample_time_;
+
+    mutable host_view host_sample_value_; // host-side views/copies of sample data
+    mutable host_view host_sample_time_;
 
     /// the linear system for implicit time stepping of cell state
     matrix_type matrix_;
@@ -329,20 +370,18 @@ private:
         cached_time_valid_ = true;
     }
 
-    /// the transmembrane current over the surface of each CV [nA]
-    ///     I = area*i_m - I_e
+    /// the transmembrane current density over the surface of each CV [A.m^-2]
+    ///     I = i_m - I_e/area
     array current_;
 
     /// the potential in each CV [mV]
     array voltage_;
 
     /// the set of mechanisms present in the cell
-    std::vector<mechanism> mechanisms_;
+    std::vector<mechanism_ptr> mechanisms_;
 
     /// the ion species
-    std::map<mechanisms::ionKind, ion> ions_;
-
-    std::vector<std::pair<const array fvm_multicell::*, size_type>> probes_;
+    std::map<ionKind, ion_type> ions_;
 
     /// Compact representation of the control volumes into which a segment is
     /// decomposed. Used to reconstruct the weights used to convert current
@@ -383,6 +422,52 @@ private:
         std::vector<value_type>& tmp_cv_areas,
         std::vector<value_type>& cv_capacitance
     );
+
+    // TODO: This process should be simpler when we can deal with mechanism prototypes and have
+    // separate initialization.
+    //
+    // Create possibly-specialized mechanism and add to mechanism set.
+    // Weights are unset, and should be set specifically with mechanism::set_weights().
+    mechanism& make_mechanism(
+        const std::string& name,
+        const std::map<std::string, specialized_mechanism>& special_mechs,
+        const std::vector<size_type>& node_indices)
+    {
+        std::string impl_name = name;
+        std::vector<std::pair<std::string, double>> global_params;
+
+        if (special_mechs.count(name)) {
+            const auto& spec_mech = special_mechs.at(name);
+            impl_name = spec_mech.mech_name;
+            global_params = spec_mech.parameters;
+        }
+
+        size_type mech_id = mechanisms_.size();
+        auto m = backend::make_mechanism(impl_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, {}, node_indices);
+        if (impl_name!=name) {
+            m->set_alias(name);
+        }
+
+        for (const auto& pv: global_params) {
+            auto field = m->field_value_ptr(pv.first);
+            if (!field) {
+                throw std::invalid_argument("no scalar parameter "+pv.first+" in mechanism "+m->name());
+            }
+            m.get()->*field = pv.second;
+        }
+
+        mechanisms_.push_back(std::move(m));
+        return *mechanisms_.back();
+    }
+
+    // Throwing-wrapper around mechanism (range) parameter look up.
+    static view mech_field(mechanism& m, const std::string& param_name) {
+        auto p = m.field_view_ptr(param_name);
+        if (!p) {
+            throw std::invalid_argument("no parameter "+param_name+" in mechanism "+m.name());
+        }
+        return m.*p;
+    }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -405,6 +490,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 
     segment_cv_range cv_range;
 
+    auto cm = seg->cm;
+    auto rL = seg->rL;
+
     if (auto soma = seg->as_soma()) {
         // confirm assumption that there is one compartment in soma
         if (ncomp!=1) {
@@ -412,10 +500,9 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
         }
         auto i = comp_ival.first;
         auto area = math::area_sphere(soma->radius());
-        auto c_m = soma->mechanism("membrane").get("c_m").value;
 
         tmp_cv_areas[i] += area;
-        cv_capacitance[i] += area*c_m;
+        cv_capacitance[i] += area*cm;
 
         cv_range.segment_cvs = {comp_ival.first, comp_ival.first+1};
         cv_range.areas = {0.0, area};
@@ -450,9 +537,6 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
         //
         // The first control volume of any cell corresponds to the soma
         // and the first half of the first cable compartment of that cell.
-
-        auto c_m = cable->mechanism("membrane").get("c_m").value;
-        auto r_L = cable->mechanism("membrane").get("r_L").value;
 
         auto divs = div_compartments<div_compartment_integrator>(cable, ncomp);
 
@@ -498,7 +582,7 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
             auto V2 = div.right.volume;
             auto h = h1+h2;
 
-            auto conductance = 1/r_L*h*V1*V2/(h2*h2*V1+h1*h1*V2);
+            auto conductance = 1/rL*h*V1*V2/(h2*h2*V1+h1*h1*V2);
             // the scaling factor of 10^2 is to convert the quantity
             // to micro Siemens [μS]
             face_conductance[i] =  1e2 * conductance / h;
@@ -508,8 +592,8 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 
             tmp_cv_areas[j] += al;
             tmp_cv_areas[i] += ar;
-            cv_capacitance[j] += al * c_m;
-            cv_capacitance[i] += ar * c_m;
+            cv_capacitance[j] += al * cm;
+            cv_capacitance[i] += ar * cm;
         }
     }
     else {
@@ -520,13 +604,14 @@ fvm_multicell<Backend>::compute_cv_area_capacitance(
 }
 
 template <typename Backend>
-template <typename Cells, typename Targets, typename Probes>
 void fvm_multicell<Backend>::initialize(
-    const Cells& cells,
-    Targets& target_handles,
-    Probes& probe_handles)
+    const std::vector<cell_gid_type>& gids,
+    const recipe& rec,
+    std::vector<target_handle>& target_handles,
+    probe_association_map<probe_handle>& probe_map)
 {
     using memory::make_const_view;
+    using util::any_cast;
     using util::assign_by;
     using util::make_partition;
     using util::make_span;
@@ -535,13 +620,27 @@ void fvm_multicell<Backend>::initialize(
     using util::transform_view;
     using util::subrange_view;
 
-    // count total targets and probes for validation of handle container sizes
+    ncell_ = size(gids);
     std::size_t targets_count = 0u;
-    std::size_t probes_count = 0u;
-    auto targets_size = size(target_handles);
-    auto probes_size = size(probe_handles);
 
-    ncell_ = size(cells);
+    // Handle any global parameters for these cell groups.
+    // (Currently: just specialized mechanisms).
+    std::map<std::string, specialized_mechanism> special_mechs;
+    util::any gprops = rec.get_global_properties(cable1d_neuron);
+    if (gprops.has_value()) {
+        special_mechs = util::any_cast<cell_global_properties&>(gprops).special_mechs;
+    }
+
+    // Take cell descriptions from recipe. These are used initially
+    // to count compartments for allocation of data structures, and
+    // then interrogated again for the details for each cell in turn.
+
+    std::vector<cell> cells;
+    cells.reserve(gids.size());
+    for (auto gid: gids) {
+        cells.push_back(any_cast<cell>(rec.get_cell_description(gid)));
+    }
+
     auto cell_num_compartments =
         transform_view(cells, [](const cell& c) { return c.num_compartments(); });
 
@@ -567,29 +666,50 @@ void fvm_multicell<Backend>::initialize(
     }
     memory::copy(cv_to_cell_tmp, cv_to_cell_);
 
-    // look up table: mechanism name -> list of cv_range objects
-    std::map<std::string, std::vector<segment_cv_range>> mech_to_cv_range;
+    // TODO: mechanism parameters are currently indexed by string keys; more efficient
+    // to use the mechanism member pointers, when these become easily accessible via
+    // the mechanism catalogue interface.
 
-    // look up table: point mechanism (synapse) name -> CV indices and target numbers.
-    struct syn_cv_and_target {
+    // look up table: mechanism name -> list of cv_range objects and parameter settings.
+
+    struct mech_area_contrib {
+        size_type index;
+        value_type area;
+    };
+
+    struct mech_info {
+        segment_cv_range cv_range;
+        // Note: owing to linearity constraints, the only parameters for which it is
+        // sensible to modify are those which make a linear contribution to currents
+        // (or ion fluxes, etc.)
+        std::map<std::string, value_type> param_map;
+        std::vector<mech_area_contrib> contributions;
+    };
+
+    std::map<std::string, std::vector<mech_info>> mech_map;
+
+    // look up table: point mechanism (synapse) name -> list of CV indices, target numbers, parameters.
+    struct syn_info {
         cell_lid_type cv;
         cell_lid_type target;
+        std::map<std::string, value_type> param_map;
     };
-    std::map<std::string, std::vector<syn_cv_and_target>> syn_mech_map;
+
+    std::map<std::string, std::vector<syn_info>> syn_mech_map;
 
     // initialize vector used for matrix creation.
     std::vector<size_type> group_parent_index(ncomp);
 
     // setup per-cell event stores.
-    events_ = util::make_unique<multi_event_stream>(ncell_);
+    events_ = deliverable_event_stream(ncell_);
+    sample_events_ = sample_event_stream(ncell_);
 
-    // create each cell:
-    auto probe_hi = probe_handles.begin();
+    // Create each cell:
 
     // Allocate scratch storage for calculating quantities used to build the
-    // linear system: these will later be copied into target-specific storage
+    // linear system: these will later be copied into target-specific storage.
 
-    // face_conductance_[i] = area_face  / (r_L * delta_x);
+    // face_conductance_[i] = area_face  / (rL * delta_x);
     std::vector<value_type> face_conductance(ncomp); // [µS]
     /// cv_capacitance_[i] is the capacitance of CV membrane
     std::vector<value_type> cv_capacitance(ncomp);   // [µm^2*F*m^-2 = pF]
@@ -611,6 +731,7 @@ void fvm_multicell<Backend>::initialize(
     //  - each probe, stimulus and detector is attached to its compartment.
     for (auto i: make_span(0, ncell_)) {
         const auto& c = cells[i];
+        auto gid = gids[i];
         auto comp_ival = cell_comp_part[i];
 
         auto graph = c.model();
@@ -636,39 +757,37 @@ void fvm_multicell<Backend>::initialize(
                 face_conductance, tmp_cv_areas, cv_capacitance);
 
             for (const auto& mech: seg->mechanisms()) {
-                if (mech.name()!="membrane") {
-                    mech_to_cv_range[mech.name()].push_back(cv_range);
-                }
+                mech_map[mech.name()].push_back({cv_range, mech.values()});
             }
         }
 
         for (const auto& syn: c.synapses()) {
-            EXPECTS(targets_count < targets_size);
-
             const auto& name = syn.mechanism.name();
-            auto& map_entry = syn_mech_map[name];
 
             cell_lid_type syn_cv = comp_ival.first + find_cv_index(syn.location, graph);
             cell_lid_type target_index = targets_count++;
 
-            map_entry.push_back(syn_cv_and_target{syn_cv, target_index});
+            syn_mech_map[name].push_back({syn_cv, target_index, syn.mechanism.values()});
         }
 
         //
         // add the stimuli
         //
 
+        // TODO: use same process as for synapses!
         // step 1: pack the index and parameter information into flat vectors
         std::vector<size_type> stim_index;
         std::vector<value_type> stim_durations;
         std::vector<value_type> stim_delays;
         std::vector<value_type> stim_amplitudes;
+        std::vector<value_type> stim_weights;
         for (const auto& stim: c.stimuli()) {
             auto idx = comp_ival.first+find_cv_index(stim.location, graph);
             stim_index.push_back(idx);
             stim_durations.push_back(stim.clamp.duration());
             stim_delays.push_back(stim.clamp.delay());
             stim_amplitudes.push_back(stim.clamp.amplitude());
+            stim_weights.push_back(1e3/tmp_cv_areas[idx]);
         }
 
         // step 2: create the stimulus mechanism and initialize the stimulus
@@ -683,7 +802,8 @@ void fvm_multicell<Backend>::initialize(
                 cv_to_cell_, time_, time_to_, dt_comp_,
                 voltage_, current_, memory::make_const_view(stim_index));
             stim->set_parameters(stim_amplitudes, stim_durations, stim_delays);
-            mechanisms_.push_back(mechanism(stim));
+            stim->set_weights(memory::make_const_view(stim_weights));
+            mechanisms_.push_back(mechanism_ptr(stim));
         }
 
         // calculate spike detector handles are their corresponding compartment indices
@@ -693,22 +813,26 @@ void fvm_multicell<Backend>::initialize(
             thresholds.push_back(detector.threshold);
         }
 
-        // record probe locations by index into corresponding state vector
-        for (const auto& probe: c.probes()) {
-            EXPECTS(probes_count < probes_size);
+        // Retrieve probe addresses and tags from recipe for this cell.
+        for (cell_lid_type j: make_span(0, rec.num_probes(gid))) {
+            probe_info pi = rec.get_probe({gid, j});
+            auto where = any_cast<cell_probe_address>(pi.address);
 
-            auto comp = comp_ival.first+find_cv_index(probe.location, graph);
-            switch (probe.kind) {
-            case probeKind::membrane_voltage:
-                *probe_hi++ = {&fvm_multicell::voltage_, comp};
+            auto comp = comp_ival.first+find_cv_index(where.location, graph);
+            probe_handle handle;
+
+            switch (where.kind) {
+            case cell_probe_address::membrane_voltage:
+                handle = fvm_multicell::voltage_.data()+comp;
                 break;
-            case probeKind::membrane_current:
-                *probe_hi++ = {&fvm_multicell::current_, comp};
+            case cell_probe_address::membrane_current:
+                handle = fvm_multicell::current_.data()+comp;
                 break;
             default:
                 throw std::logic_error("unrecognized probeKind");
             }
-            ++probes_count;
+
+            probe_map.insert({pi.id, {handle, pi.tag}});
         }
     }
 
@@ -716,101 +840,194 @@ void fvm_multicell<Backend>::initialize(
     threshold_watcher_ =
         threshold_watcher(cv_to_cell_, time_, time_to_, voltage_, spike_detector_index, thresholds);
 
-    // confirm user-supplied container probes were appropriately sized.
-    EXPECTS(probes_size==probes_count);
-
     // store the geometric information in target-specific containers
     cv_areas_ = make_const_view(tmp_cv_areas);
 
     // initalize matrix
     matrix_ = matrix_type(
-        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance);
+        group_parent_index, cell_comp_bounds, cv_capacitance, face_conductance, tmp_cv_areas);
 
-    // For each density mechanism build the full node index, i.e the list of
-    // compartments with that mechanism, then build the mechanism instance.
-    std::vector<size_type> mech_cv_index(ncomp);
-    std::vector<value_type> mech_cv_weight(ncomp);
+    // Keep cv index list for each mechanism for ion set up below.
     std::map<std::string, std::vector<size_type>> mech_to_cv_index;
-    for (auto const& entry: mech_to_cv_range) {
+
+    // Working vectors (re-used per mechanism).
+    std::vector<size_type> mech_cv(ncomp);
+    std::vector<value_type> mech_weight(ncomp);
+
+    for (auto& entry: mech_map) {
         const auto& mech_name = entry.first;
-        const auto& seg_cv_ranges = entry.second;
+        auto& segments = entry.second;
 
-        // Clear the pre-allocated storage for mechanism indexes and weights.
-        // Reuse the same vectors each time to have only one malloc and free
-        // outside of the loop for each
-        mech_cv_index.clear();
-        mech_cv_weight.clear();
+        mech_cv.clear();
+        mech_weight.clear();
 
-        for (auto& rng: seg_cv_ranges) {
+        // Three passes are performed over the segment list:
+        //   1. Compute the CVs and area contributions where the mechanism is instanced.
+        //   2. Build table of modified parameters together with default values.
+        //   3. Compute weights and parameters.
+        // The mechanism is instantiated after the first pass, in order to gain
+        // access to default mechanism parameter values.
+
+        for (auto& seg: segments) {
+            const auto& rng = seg.cv_range;
+            seg.contributions.reserve(rng.size());
+
             if (rng.has_parent()) {
-                // locate the parent cv in the partially constructed list of cv indexes
-                auto it = algorithms::binary_find(mech_cv_index, rng.parent_cv);
-                if (it == mech_cv_index.end()) {
-                    mech_cv_index.push_back(rng.parent_cv);
-                    mech_cv_weight.push_back(0);
+                auto cv = rng.parent_cv;
+
+                auto it = algorithms::binary_find(mech_cv, cv);
+                size_type pos = it - mech_cv.begin();
+
+                if (it == mech_cv.end()) {
+                    mech_cv.push_back(cv);
                 }
-                auto pos = std::distance(std::begin(mech_cv_index), it);
 
-                // add area contribution to the parent cv for the segment
-                mech_cv_weight[pos] += rng.areas.first;
+                seg.contributions.push_back({pos, rng.areas.first});
             }
-            util::append(mech_cv_index, make_span(rng.segment_cvs));
-            util::append(mech_cv_weight, subrange_view(tmp_cv_areas, rng.segment_cvs));
 
-            // adjust the last CV
-            mech_cv_weight.back() = rng.areas.second;
+            for (auto cv: make_span(rng.segment_cvs)) {
+                size_type pos = mech_cv.size();
+                mech_cv.push_back(cv);
+                seg.contributions.push_back({pos, tmp_cv_areas[cv]});
+            }
 
-            EXPECTS(mech_cv_weight.size()==mech_cv_index.size());
+            // Last CV contribution may be only partial, so adjust.
+            seg.contributions.back().area = rng.areas.second;
         }
 
-        // Scale the weights to get correct units (see w_i^d in formulation docs)
-        // The units for the density channel weights are [10^2 μm^2 = 10^-10 m^2],
-        // which requires that we scale the areas [μm^2] by 10^-2
-        for (auto& w: mech_cv_weight) {
-            w *= 1e-2;
-        }
+        auto nindex = mech_cv.size();
 
-        size_type mech_id = mechanisms_.size();
-        mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, mech_cv_weight, mech_cv_index));
+        EXPECTS(std::is_sorted(mech_cv.begin(), mech_cv.end()));
+        EXPECTS(nindex>0);
+
+        auto& mech = make_mechanism(mech_name, special_mechs, mech_cv);
 
         // Save the indices for ion set up below.
-        mech_to_cv_index[mech_name] = mech_cv_index;
+
+        mech_to_cv_index[mech_name] = mech_cv;
+
+        // Build modified (non-global) parameter table.
+
+        struct param_tbl_entry {
+            std::vector<value_type> values; // staged for writing to mechanism
+            view data;                      // view to corresponding data in mechanism
+            value_type dflt;                // default value for parameter
+        };
+
+        std::map<std::string, param_tbl_entry> param_tbl;
+
+        for (const auto& seg: segments) {
+            for (const auto& pv: seg.param_map) {
+                if (param_tbl.count(pv.first)) {
+                    continue;
+                }
+
+                // Grab default value from mechanism data.
+                auto& entry = param_tbl[pv.first];
+                entry.data = mech_field(mech, pv.first);
+                entry.dflt = entry.data[0];
+                entry.values.assign(nindex, 0.);
+            }
+        }
+
+        // Perform another pass of segment list to compute weights and (non-global) parameters.
+
+        mech_weight.assign(nindex, 0.);
+
+        for (const auto& seg: segments) {
+            for (auto cw: seg.contributions) {
+                mech_weight[cw.index] += cw.area;
+
+                for (auto& entry: param_tbl) {
+                    value_type v = entry.second.dflt;
+                    const auto& name = entry.first;
+
+                    auto it = seg.param_map.find(name);
+                    if (it != seg.param_map.end()) {
+                        v = it->second;
+                    }
+
+                    entry.second.values[cw.index] += cw.area*v;
+                }
+            }
+        }
+
+        for (auto& entry: param_tbl) {
+            for (size_type i = 0; i<nindex; ++i) {
+                entry.second.values[i] /= mech_weight[i];
+            }
+            memory::copy(entry.second.values, entry.second.data);
+        }
+
+        // Scale the weights by the CV area to get the proportion of the CV surface
+        // on which the mechanism is present. After scaling, the current will have
+        // units A.m^-2.
+        for (auto i: make_span(0, mech_weight.size())) {
+            mech_weight[i] *= 10/tmp_cv_areas[mech_cv[i]];
+        }
+        mech.set_weights(memory::make_const_view(mech_weight));
     }
+
+    target_handles.resize(targets_count);
 
     // Create point (synapse) mechanisms.
-    for (auto& syni: syn_mech_map) {
+    for (auto& map_entry: syn_mech_map) {
         size_type mech_id = mechanisms_.size();
 
-        const auto& mech_name = syni.first;
-        auto& cv_assoc = syni.second;
+        const auto& mech_name = map_entry.first;
+        auto& syn_data = map_entry.second;
+        auto n_instance = syn_data.size();
 
-        // Sort CV indices but keep track of their corresponding targets.
-        auto cv_index = [](syn_cv_and_target x) { return x.cv; };
-        util::stable_sort_by(cv_assoc, cv_index);
-        std::vector<cell_lid_type> cv_indices = assign_from(transform_view(cv_assoc, cv_index));
+        // Build permutation p such that p[j] is the index into
+        // syn_data for the jth synapse of this mechanism type as ordered by cv index.
 
-        // Create the mechanism.
-        // An empty weight vector is supplied, because there are no weights applied to point
-        // processes, because their currents are calculated with the target units of [nA]
-        mechanisms_.push_back(
-            backend::make_mechanism(mech_name, mech_id, cv_to_cell_, time_, time_to_, dt_comp_, voltage_, current_, {}, cv_indices));
+        auto cv_of = [&](cell_lid_type i) { return syn_data[i].cv; };
+
+        std::vector<cell_lid_type> p(n_instance);
+        std::iota(p.begin(), p.end(), 0u);
+        util::sort_by(p, cv_of);
+
+        std::vector<cell_lid_type> mech_cv;
+        std::vector<value_type> mech_weight;
+        mech_cv.reserve(n_instance);
+        mech_weight.reserve(n_instance);
+
+        // Build mechanism cv index vector, weights and targets.
+        for (auto i: make_span(0u, n_instance)) {
+            const auto& syn = syn_data[p[i]];
+            mech_cv.push_back(syn.cv);
+            // The weight for each synapses is 1/cv_area, scaled by 100 to match the units
+            // of 10.A.m^-2 used to store current densities in current_.
+            mech_weight.push_back(1e3/tmp_cv_areas[syn.cv]);
+            target_handles[syn.target] = target_handle(mech_id, i, cv_to_cell_tmp[syn.cv]);
+        }
+
+        auto& mech = make_mechanism(mech_name, special_mechs, mech_cv);
+        mech.set_weights(memory::make_const_view(mech_weight));
 
         // Save the indices for ion set up below.
-        mech_to_cv_index[mech_name] = cv_indices;
+        mech_to_cv_index[mech_name] = mech_cv;
 
-        // Make the target handles.
-        cell_lid_type instance = 0;
-        for (auto entry: cv_assoc) {
-            target_handles[entry.target] = target_handle(mech_id, instance++, cv_to_cell_tmp[entry.cv]);
+        // Update the mechanism parameters.
+        std::map<std::string, std::vector<std::pair<cell_lid_type, value_type>>> param_assigns;
+        for (auto i: make_span(0u, n_instance)) {
+            for (const auto& pv: syn_data[p[i]].param_map) {
+                param_assigns[pv.first].push_back({i, pv.second});
+            }
+        }
+
+        for (const auto& pa: param_assigns) {
+            view field_data = mech_field(mech, pa.first);
+            host_array field_values = field_data;
+            for (const auto &iv: pa.second) {
+                field_values[iv.first] = iv.second;
+            }
+            memory::copy(field_values, field_data);
         }
     }
 
-    // confirm user-supplied containers for targets are appropriately sized
-    EXPECTS(targets_size==targets_count);
-
     // build the ion species
-    for (auto ion : mechanisms::ion_kinds()) {
+    for (auto ion : ion_kinds()) {
         // find the compartment indexes of all compartments that have a
         // mechanism that depends on/influences ion
         std::set<size_type> index_set;
@@ -823,7 +1040,7 @@ void fvm_multicell<Backend>::initialize(
         std::vector<size_type> indexes(index_set.begin(), index_set.end());
 
         // create the ion state
-        if(indexes.size()) {
+        if (indexes.size()) {
             ions_[ion] = indexes;
         }
 
@@ -837,24 +1054,28 @@ void fvm_multicell<Backend>::initialize(
         }
     }
 
-    // FIXME: Hard code parameters for now.
-    //        Take defaults for reversal potential of sodium and potassium from
-    //        the default values in Neuron.
-    //        Neuron's defaults are defined in the file
-    //          nrn/src/nrnoc/membdef.h
-    constexpr value_type DEF_vrest = -65.0; // same name as #define in Neuron
+    // Note: NEURON defined default values for reversal potential as follows,
+    //       with units mV:
+    //
+    // const auto DEF_vrest = -65.0
+    // ena = 115.0 + DEF_vrest
+    // ek  = -12.0 + DEF_vrest
+    // eca = 12.5*std::log(2.0/5e-5)
+    //
+    // Whereas we use the Nernst equation to calculate reversal potentials at
+    // the start of each time step.
 
-    memory::fill(ion_na().reversal_potential(),     115+DEF_vrest); // mV
-    memory::fill(ion_na().internal_concentration(),  10.0);         // mM
-    memory::fill(ion_na().external_concentration(), 140.0);         // mM
+    ion_na().default_internal_concentration = 10;
+    ion_na().default_external_concentration =140;
+    ion_na().valency = 1;
 
-    memory::fill(ion_k().reversal_potential(),     -12.0+DEF_vrest);// mV
-    memory::fill(ion_k().internal_concentration(),  54.4);          // mM
-    memory::fill(ion_k().external_concentration(),  2.5);           // mM
+    ion_k().default_internal_concentration =54.4;
+    ion_k().default_external_concentration = 2.5;
+    ion_k().valency = 1;
 
-    memory::fill(ion_ca().reversal_potential(),     12.5*std::log(2.0/5e-5));// mV
-    memory::fill(ion_ca().internal_concentration(), 5e-5);          // mM
-    memory::fill(ion_ca().external_concentration(), 2.0);           // mM
+    ion_ca().default_internal_concentration =5e-5;
+    ion_ca().default_external_concentration = 2.0;
+    ion_ca().valency = 2;
 
     // initialize mechanism and voltage state
     reset();
@@ -867,11 +1088,23 @@ void fvm_multicell<Backend>::reset() {
     set_time_global(0);
     set_time_to_global(0);
 
+    // Update ion species:
+    //   - clear currents
+    //   - reset concentrations to defaults
+    //   - recalculate reversal potentials
+    for (auto& i: ions_) {
+        i.second.reset();
+    }
+
     for (auto& m : mechanisms_) {
-        // TODO : the parameters have to be set before the nrn_init
-        // for now use a dummy value of dt.
         m->set_params();
         m->nrn_init();
+    }
+
+    // Update reversal potential to account for changes to concentrations made
+    // by calls to nrn_init() in mechansisms.
+    for (auto& i: ions_) {
+        i.second.nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
     }
 
     // Reset state of the threshold watcher.
@@ -883,42 +1116,54 @@ void fvm_multicell<Backend>::reset() {
     tfinal_ = 0;
     dt_max_ = 0;
     min_remaining_steps_ = 0;
-    staged_events_.clear();
-    events_->clear();
+    events_.clear();
+    sample_events_.clear();
 
     EXPECTS(integration_complete());
     EXPECTS(!has_pending_events());
 }
 
-
 template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(!integration_complete());
 
+    // mark pending events for delivery
+    events_.mark_until_after(time_);
+
     PE("current");
     memory::fill(current_, 0.);
 
-    // mark pending events for delivery
-    events_->mark_until_after(time_);
+    // clear currents and recalculate reversal potentials for all ion channels
+    for (auto& i: ions_) {
+        auto& ion = i.second;
+        memory::fill(ion.current(), 0.);
+        ion.nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
+    }
 
     // deliver pending events and update current contributions from mechanisms
-    for(auto& m: mechanisms_) {
+    for (auto& m: mechanisms_) {
         PE(m->name().c_str());
-        m->deliver_events(*events_);
+        m->deliver_events(events_.marked_events());
         m->nrn_current();
         PL();
     }
 
     // remove delivered events from queue and set time_to_
-    events_->drop_marked_events();
+    events_.drop_marked_events();
 
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
     invalidate_time_cache();
-    events_->event_time_if_before(time_to_);
+    events_.event_time_if_before(time_to_);
     PL();
 
     // set per-cell and per-compartment dt (constant within a cell)
     backend::set_dt(dt_cell_, dt_comp_, time_to_, time_, cv_to_cell_);
+
+    // take samples if they lie within the integration step; they will be provided
+    // with the values (post-event delivery) at the beginning of the interval.
+    sample_events_.mark_until(time_to_);
+    backend::take_samples(sample_events_.marked_events(), time_, sample_time_, sample_value_);
+    sample_events_.drop_marked_events();
 
     // solve the linear system
     PE("matrix", "setup");
@@ -952,5 +1197,4 @@ void fvm_multicell<Backend>::step_integration() {
 }
 
 } // namespace fvm
-} // namespace mc
-} // namespace nest
+} // namespace arb

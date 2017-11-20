@@ -1,83 +1,62 @@
-#include <model.hpp>
-
+#include <set>
 #include <vector>
 
 #include <backends.hpp>
 #include <cell_group.hpp>
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
+#include <model.hpp>
 #include <recipe.hpp>
+#include <util/filter.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 #include <profiling/profiler.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
+
+void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, pse_vector& lf);
 
 model::model(const recipe& rec, const domain_decomposition& decomp):
-    domain_(decomp)
+    communicator_(rec, decomp)
 {
-    // set up communicator based on partition
-    communicator_ = communicator_type(domain_.gid_group_partition());
+    cell_local_size_type lidx = 0;
+    for (auto i: util::make_span(0, decomp.groups.size())) {
+        for (auto gid: decomp.groups[i].gids) {
+            gid_to_local_[gid] = lidx++;
+        }
+    }
 
-    // generate the cell groups in parallel, with one task per cell group
-    cell_groups_.resize(domain_.num_local_groups());
-
-    // thread safe vector for constructing the list of probes in parallel
-    threading::parallel_vector<probe_record> probe_tmp;
-
+    // Generate the cell groups in parallel, with one task per cell group.
+    cell_groups_.resize(decomp.groups.size());
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
             PE("setup", "cells");
-
-            auto group = domain_.get_group(i);
-            std::vector<util::unique_any> cell_descriptions(group.end-group.begin);
-
-            for (auto gid: util::make_span(group.begin, group.end)) {
-                auto i = gid-group.begin;
-                cell_descriptions[i] = rec.get_cell_description(gid);
-            }
-
-            cell_groups_[i] = cell_group_factory(
-                    group.kind, group.begin, cell_descriptions, domain_.backend());
+            cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
             PL(2);
         });
 
-    // store probes
-    for (const auto& c: cell_groups_) {
-        util::append(probes_, c->probes());
-    }
 
-    // generate the network connections
-    for (cell_gid_type i: util::make_span(domain_.cell_begin(), domain_.cell_end())) {
-        for (const auto& cc: rec.connections_on(i)) {
-            connection conn{cc.source, cc.dest, cc.weight, cc.delay};
-            communicator_.add_connection(conn);
-        }
-    }
-    communicator_.construct();
-
-    // Allocate an empty queue buffer for each cell group
-    // These must be set initially to ensure that a queue is available for each
-    // cell group for the first time step.
-    current_events().resize(num_groups());
-    future_events().resize(num_groups());
+    // Create event lane buffers.
+    // There is one set for each epoch: current (0) and next (1).
+    // For each epoch there is one lane for each cell in the cell group.
+    event_lanes_[0].resize(communicator_.num_local_cells());
+    event_lanes_[1].resize(communicator_.num_local_cells());
 }
 
 void model::reset() {
     t_ = 0.;
+
     for (auto& group: cell_groups_) {
         group->reset();
     }
 
-    communicator_.reset();
+    for (auto& lanes: event_lanes_) {
+        for (auto& lane: lanes) {
+            lane.clear();
+        }
+    }
 
-    for(auto& q : current_events()) {
-        q.clear();
-    }
-    for(auto& q : future_events()) {
-        q.clear();
-    }
+    communicator_.reset();
 
     current_spikes().clear();
     previous_spikes().clear();
@@ -98,16 +77,13 @@ time_type model::run(time_type tfinal, time_type dt) {
     auto update_cells = [&] () {
         threading::parallel_for::apply(
             0u, cell_groups_.size(),
-             [&](unsigned i) {
+            [&](unsigned i) {
+                PE("stepping");
                 auto &group = cell_groups_[i];
-
-                PE("stepping","events");
-                group->enqueue_events(current_events()[i]);
-                PL();
-
-                 PE("cells");
-                group->advance(tuntil, dt);
-                 PL();
+                auto queues = util::subrange_view(
+                    event_lanes(epoch_.id),
+                    communicator_.group_queue_range(i));
+                group->advance(epoch_, dt, queues);
                 PE("events");
                 current_spikes().insert(group->spikes());
                 group->clear_spikes();
@@ -132,17 +108,28 @@ time_type model::run(time_type tfinal, time_type dt) {
         global_export_callback_(global_spikes.values());
         PL();
 
-        PE("events");
-        future_events() = communicator_.make_event_queues(global_spikes);
+        PE("events","from-spikes");
+        auto events = communicator_.make_event_queues(global_spikes);
         PL();
+
+        PE("enqueue");
+        threading::parallel_for::apply(0, communicator_.num_local_cells(),
+            [&](cell_size_type i) {
+                const auto epid = epoch_.id;
+                merge_events(
+                    epoch_.tfinal,
+                    event_lanes(epid)[i],
+                    events[i],
+                    event_lanes(epid+1)[i]);
+            });
+        PL(2);
 
         PL(2);
     };
 
+    tuntil = std::min(t_+t_interval, tfinal);
+    epoch_ = epoch(0, tuntil);
     while (t_<tfinal) {
-        tuntil = std::min(t_+t_interval, tfinal);
-
-        event_queues_.exchange();
         local_spikes_.exchange();
 
         // empty the spike buffers for the current integration period.
@@ -157,28 +144,46 @@ time_type model::run(time_type tfinal, time_type dt) {
         g.wait();
 
         t_ = tuntil;
+
+        tuntil = std::min(t_+t_interval, tfinal);
+        epoch_.advance(tuntil);
     }
 
     // Run the exchange one last time to ensure that all spikes are output
     // to file.
-    event_queues_.exchange();
     local_spikes_.exchange();
     exchange();
 
     return t_;
 }
 
-void model::attach_sampler(cell_member_type probe_id, sampler_function f, time_type tfrom) {
-    const auto idx = domain_.local_group_from_gid(probe_id.gid);
+sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy) {
+    sampler_association_handle h = sassoc_handles_.acquire();
 
-    // only attach samplers for local cells
-    if (idx) {
-        cell_groups_[*idx]->add_sampler(probe_id, f, tfrom);
-    }
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->add_sampler(h, probe_ids, sched, f, policy);
+        });
+
+    return h;
 }
 
-const std::vector<probe_record>& model::probes() const {
-    return probes_;
+void model::remove_sampler(sampler_association_handle h) {
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_sampler(h);
+        });
+
+    sassoc_handles_.release(h);
+}
+
+void model::remove_all_samplers() {
+    threading::parallel_for::apply(0, cell_groups_.size(),
+        [&](std::size_t i) {
+            cell_groups_[i]->remove_all_samplers();
+        });
+
+    sassoc_handles_.clear();
 }
 
 std::size_t model::num_spikes() const {
@@ -189,18 +194,14 @@ std::size_t model::num_groups() const {
     return cell_groups_.size();
 }
 
-std::size_t model::num_cells() const {
-    return domain_.num_local_cells();
+std::vector<pse_vector>& model::event_lanes(std::size_t epoch_id) {
+    return event_lanes_[epoch_id%2];
 }
 
 void model::set_binning_policy(binning_kind policy, time_type bin_interval) {
     for (auto& group: cell_groups_) {
         group->set_binning_policy(policy, bin_interval);
     }
-}
-
-cell_group& model::group(int i) {
-    return *cell_groups_[i];
 }
 
 void model::set_global_spike_callback(spike_export_function export_callback) {
@@ -211,5 +212,67 @@ void model::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
 }
 
-} // namespace mc
-} // namespace nest
+util::optional<cell_size_type> model::local_cell_index(cell_gid_type gid) {
+    auto it = gid_to_local_.find(gid);
+    return it==gid_to_local_.end()?
+        util::nothing:
+        util::optional<cell_size_type>(it->second);
+}
+
+void model::inject_events(const pse_vector& events) {
+    auto& lanes = event_lanes(epoch_.id);
+
+    // Append all events that are to be delivered to local cells to the
+    // appropriate lane. At the same time, keep track of which lanes have been
+    // modified, because the lanes will have to be sorted once all events have
+    // been added.
+    pse_vector local_events;
+    std::set<cell_size_type> modified_lanes;
+    for (auto& e: events) {
+        if (e.time<t_) {
+            throw std::runtime_error("model::inject_events(): attempt to inject an event at time " + std::to_string(e.time) + ", when model state is at time " + std::to_string(t_));
+        }
+        if (auto lidx = local_cell_index(e.target.gid)) {
+            lanes[*lidx].push_back(e);
+            modified_lanes.insert(*lidx);
+        }
+    }
+
+    // Sort events in the event lanes that were modified
+    for (auto l: modified_lanes) {
+        util::sort(lanes[l]);
+    }
+}
+
+// Merge events that are to be delivered from two lists into a sorted list.
+// Events are sorted by delivery time, then target, then weight.
+//
+//  tfinal: The time at which the current epoch finishes. The output list, `lc`,
+//          will contain all events with delivery times equal to or greater than
+//          tfinal.
+//  lc: Sorted set of events to be delivered before and after `tfinal`.
+//  events: Unsorted list of events with delivery time greater than or equal to
+//      tfinal. May be modified by the call.
+//  lf: Will hold a list of all postsynaptic events in `events` and `lc` that
+//      have delivery times greater than or equal to `tfinal`.
+void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, pse_vector& lf) {
+    // Merge the incoming events with events in lc that are not to be delivered
+    // in this epoch, and store the result in lf.
+
+    // STEP 1: sort events in place in events[l]
+    PE("sort");
+    util::sort(events);
+    PL();
+
+    // STEP 2: clear lf to store merged list
+    lf.clear();
+
+    // STEP 3: merge new events and future events from lc into lf
+    PE("merge");
+    auto pos = std::lower_bound(lc.begin(), lc.end(), tfinal, event_time_less());
+    lf.resize(events.size()+std::distance(pos, lc.end()));
+    std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin());
+    PL();
+}
+
+} // namespace arb

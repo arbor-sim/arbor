@@ -11,8 +11,7 @@
 #include <util/optional.hpp>
 #include <util/path.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace io {
 
 // Holds the options for a simulation run.
@@ -34,7 +33,6 @@ struct cl_options {
     // Simulation running parameters:
     double tfinal = 100.;
     double dt = 0.025;
-    uint32_t group_size = 1;
     bool bin_regular = false; // False => use 'following' instead of 'regular'.
     double bin_dt = 0.0025;   // 0 => no binning.
 
@@ -91,8 +89,7 @@ cl_options read_options(int argc, char** argv, bool allow_write = true);
 /// Spike times are expected to be in milli seconds floating points
 /// On spike-time per line
 
-std::vector<time_type>  get_parsed_spike_times_from_path(nest::mc::util::path path);
+std::vector<time_type>  get_parsed_spike_times_from_path(arb::util::path path);
 
 } // namespace io
-} // namespace mc
-} // namespace nest
+} // namespace arb

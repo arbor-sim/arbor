@@ -9,8 +9,7 @@
 #include <util/ioutil.hpp>
 #include <util/unwind.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace util {
 
 std::mutex global_debug_cerr_mutex;
@@ -61,5 +60,4 @@ std::ostream& debug_emit_trace_leader(
 }
 
 } // namespace util
-} // namespace mc
-} // namespace nest
+} // namespace arb
