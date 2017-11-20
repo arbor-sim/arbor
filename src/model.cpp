@@ -115,7 +115,7 @@ time_type model::run(time_type tfinal, time_type dt) {
         PL();
 
         PE("enqueue");
-        threading::parallel_for::apply(0, num_groups(),
+        threading::parallel_for::apply(0, communicator_.num_local_cells(),
             [&](cell_size_type i) {
                 const auto epid = epoch_.id;
                 merge_events(
