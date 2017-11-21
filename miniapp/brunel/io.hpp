@@ -8,7 +8,7 @@
 #include <util/optional.hpp>
 #include <util/path.hpp>
 
-namespace arbor {
+namespace arb {
 namespace io {
     // Holds the options for a simulation run.
     // Default constructor gives default options.

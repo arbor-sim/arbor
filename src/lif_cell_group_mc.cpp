@@ -1,26 +1,32 @@
 #include <lif_cell_group_mc.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
-lif_cell_group_mc::lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells):
-gid_base_(first_gid)
+lif_cell_group_mc::lif_cell_group_mc(std::vector<cell_gid_type> gids, const recipe& rec):
+gids_(std::move(gids))
 {
-    output_file = std::ofstream("poisson" + std::to_string(first_gid) + ".txt");
+    // Default to no binning of events
+    set_binning_policy(binning_kind::none, 0);
+
+    // Build lookup table for gid to local index.
+    for (auto i: util::make_span(0, gids_.size())) {
+      gid_index_map_[gids_[i]] = i;
+    }
 
     // reserve
-    cells_.reserve(cells.size());
+    cells_.reserve(gids_.size());
 
     // resize
-    lambda_.resize(cells.size());
-    next_poiss_time_.resize(cells.size());
-    cell_events_.resize(cells.size());
-    last_time_updated_.resize(cells.size());
-    poiss_event_counter_ = std::vector<unsigned>(cells.size());
+    lambda_.resize(gids_.size());
+    next_poiss_time_.resize(gids_.size());
+    cell_events_.resize(gids_.size());
+    last_time_updated_.resize(gids_.size());
+    poiss_event_counter_ = std::vector<unsigned>(gids_.size());
 
     // Initialize variables for the external Poisson input.
-    for (auto lid : util::make_span(0, cells.size())) {
-        cells_.push_back(util::any_cast<lif_cell_description>(cells[lid]));
+    for (auto lid: util::make_span(0, gids_.size()))
+        cells_.push_back(util::any_cast<lif_cell_description>(rec.get_cell_description[gids_[lid]]));
 
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
@@ -39,40 +45,15 @@ cell_kind lif_cell_group_mc::get_cell_kind() const {
     return cell_kind::lif_neuron;
 }
 
-void lif_cell_group_mc::advance(time_type tfinal, time_type dt) {
+void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE("lif");
-    for (size_t lid = 0; lid < cells_.size(); ++lid) {
+    if (event_lanes.size()) {
+      for (auto lid: util::make_span(0, gids_.size())) {
         // Advance each cell independently.
-        advance_cell(tfinal, dt, lid);
+        advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
+      }
     }
     PL();
-}
-
-void lif_cell_group_mc::enqueue_events(const std::vector<postsynaptic_spike_event>& events) {
-    if (events.size() == 0) {
-        return;
-    }
-
-    // sort the events first according to their time and then according to their weight.
-    std::vector<postsynaptic_spike_event> sorted_events;
-    for (unsigned i = 0; i < events.size(); ++i) {
-        sorted_events.push_back(events[i]);
-    }
-
-    std::sort(sorted_events.begin(), sorted_events.end(),
-        [] (const postsynaptic_spike_event& a, const postsynaptic_spike_event& b) { 
-            if (a.time != b.time) {
-                return a.time < b.time;
-            }
-            return a.weight < b.weight;
-        }
-    );
-
-    // Distribute incoming events to individual cells.
-    for (auto& e: sorted_events) {
-        cell_events_[e.target.gid - gid_base_].push_back(e);
-        // cell_events_[e.target.gid - gid_base_].push(e);
-    }
 }
 
 const std::vector<spike>& lif_cell_group_mc::spikes() const {
@@ -84,15 +65,13 @@ void lif_cell_group_mc::clear_spikes() {
 }
 
 // TODO: implement sampler
-void lif_cell_group_mc::add_sampler(cell_member_type probe_id, sampler_function s, time_type start_time) {}
+void lif_cell_group_mc::add_sampler(sampler_association_handle h, cell_member_predicate probe_ids,
+                                    schedule sched, sampler_function fn, sampling_policy policy) {}
+void lif_cell_group_mc::remove_sampler(sampler_association_handle h) {}
+void lif_cell_group_mc::remove_all_samplers() {}
 
 // TODO: implement binner_
 void lif_cell_group_mc::set_binning_policy(binning_kind policy, time_type bin_interval) {
-}
-
-// no probes in single-compartment cells
-std::vector<probe_record> lif_cell_group_mc::probes() const {
-    return {};
 }
 
 void lif_cell_group_mc::reset() {
@@ -110,7 +89,7 @@ void lif_cell_group_mc::reset() {
 void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
     // key = GID of the cell
     // counter = total number of Poisson events seen so far
-    auto key = gid_base_ + lid + 1225;
+    auto key = gids_[lid] + 1225;
     auto counter = poiss_event_counter_[lid];
     ++poiss_event_counter_[lid];
 
@@ -131,36 +110,37 @@ util::optional<time_type> lif_cell_group_mc::next_poisson_event(cell_gid_type li
     return util::nothing;
 }
 
-util::optional<postsynaptic_spike_event> pop_if_before(std::vector<postsynaptic_spike_event>& events, time_type tfinal) {
-    if (events.size() == 0 || events[0].time >= tfinal) {
+util::optional<postsynaptic_spike_event> pop_if_before(pse_vector& event_lane, time_type tfinal) {
+    if (event_lane.size() == 0 || events[0].time >= tfinal) {
         return util::nothing;
     }
-    auto ev = events[0];
-    events.erase(events.begin());
+    auto ev = event_lane[0];
+    // TODO: do not erase, but just remember the last position
+    event_lane.erase(events.begin());
     return ev;
 }
 
 // Returns the next most recent event that is yet to be processed.
 // It can be either Poisson event or the queue event.
 // Only events that happened before tfinal are considered.
-util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_type lid, time_type tfinal) {
+util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_type lid, time_type tfinal, pse_vector& event_lane) {
     if (auto t_poiss = next_poisson_event(lid, tfinal)) {
         // if (auto ev = cell_events_[lid].pop_if_before(std::min(tfinal, t_poiss.get()))) {
-        if (auto ev = pop_if_before(cell_events_[lid], tfinal)) {
+        if (auto ev = pop_if_before(event_lane, tfinal)) {
             return ev;
         }
         sample_next_poisson(lid);
-        return postsynaptic_spike_event{{cell_gid_type(gid_base_ + lid), 0}, t_poiss.get(), cells_[lid].w_poiss};
+        return postsynaptic_spike_event{{cell_gid_type(gids_[lid]), 0}, t_poiss.get(), cells_[lid].w_poiss};
     }
 
     // t_queue < tfinal < t_poiss => return t_queue
     // return cell_events_[lid].pop_if_before(tfinal);
-    return pop_if_before(cell_events_[lid], tfinal);
+    return pop_if_before(event_lane, tfinal);
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
-void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid) {
+void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, pse_vector& event_lane) {
     // Current time of last update.
     auto t = last_time_updated_[lid];
     auto& cell = cells_[lid];
@@ -172,7 +152,7 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     };
 
     // Integrate until tfinal using the exact solution of membrane voltage differential equation.
-    while (auto ev = next_event(lid, tfinal)) {
+    while (auto ev = next_event(lid, tfinal, event_lane)) {
         auto weight = ev->weight;
         auto event_time = ev->time;
 
@@ -188,13 +168,10 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
         // Add jump due to spike.
         cell.V_m += update;
         t = event_time;
-        if ( gid_base_ + lid == 0) {
-            output_file << event_time << " " << cell.V_m << std::endl;
-        }
 
         // If crossing threshold occurred
         if (cell.V_m >= cell.V_th) {
-            cell_member_type spike_neuron_gid = {gid_base_ + lid, 0};
+            cell_member_type spike_neuron_gid = {gids_[lid], 0};
             spike s = {spike_neuron_gid, t};
             spikes_.push_back(s);
 

@@ -20,7 +20,7 @@ namespace TCLAP {
     };
 } // namespace TCLAP
 
-namespace arbor {
+namespace arb {
     namespace util {
         // Using static here because we do not want external linkage for this operator.
         template <typename V>
