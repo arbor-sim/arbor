@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 
-using namespace nest::mc::random_generator;
+using namespace arb::random_generator;
 
 TEST(random_generator, serial) {
     double lambda = 1.0 / 5.0;

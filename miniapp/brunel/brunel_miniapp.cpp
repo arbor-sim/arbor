@@ -12,6 +12,7 @@
 #include <cell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <lif_cell_description.hpp>
+#include <load_balance.hpp>
 #include <model.hpp>
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
@@ -24,12 +25,14 @@
 #include <util/nop.hpp>
 #include <vector>
 #include "io.hpp"
+#include <hardware/gpu.hpp>
+#include <hardware/node_info.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 
 using global_policy = communication::global_policy;
 using file_export_type = io::exporter_spike_file<global_policy>;
-void banner();
+void banner(hw::node_info);
 using communicator_type = communication::communicator<communication::global_policy>;
 
 // Samples m unique values in interval [start, end) - gid.
@@ -87,21 +90,17 @@ public:
         std::vector<cell_connection> connections;
         // Sample and add incoming excitatory connections.
         for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
-            cell_connection conn;
-            conn.source = {cell_gid_type(i), 0};
-            conn.dest = {gid, 0};
-            conn.weight = weight_exc_;
-            conn.delay = delay_;
+            cell_member_type source{cell_gid_type(i), 0};
+            cell_member_type target{gid, 0};
+            cell_connection conn(source, target, weight_exc_, delay_);
             connections.push_back(conn);
         }
 
         // Add incoming inhibitory connections.
         for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
-            cell_connection conn;
-            conn.source = {cell_gid_type(i), 0};
-            conn.dest = {gid, 0};
-            conn.weight = weight_inh_;
-            conn.delay = delay_;
+            cell_member_type source{cell_gid_type(i), 0};
+            cell_member_type target{gid, 0};
+            cell_connection conn(source, target, weight_inh_, delay_);
             connections.push_back(conn);
         }
 
@@ -124,8 +123,20 @@ public:
         return cell;
     }
 
-    cell_count_info get_cell_count_info(cell_gid_type) const override {
-        return {1u, 1u, 0u};
+    cell_size_type num_sources(cell_gid_type) const override {
+         return 1;
+    }
+
+    cell_size_type num_targets(cell_gid_type) const override {
+        return 1;
+    }
+
+    cell_size_type num_probes(cell_gid_type) const override {
+        return 0;
+    }
+
+    probe_info get_probe(cell_member_type probe_id) const override {
+        return {};
     }
 
 private:
@@ -160,15 +171,23 @@ private:
     double rate_;
 };
 
+using util::any_cast;
+using util::make_span;
+using global_policy = communication::global_policy;
+using file_export_type = io::exporter_spike_file<global_policy>;
 
 int main(int argc, char** argv) {
-    nest::mc::communication::global_policy_guard global_guard(argc, argv);
+    arb::communication::global_policy_guard global_guard(argc, argv);
     try {
-        nest::mc::util::meter_manager meters;
+        arb::util::meter_manager meters;
         meters.start();
         // read parameters
         io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
-        banner();
+        hw::node_info nd;
+        nd.num_cpu_cores = threading::num_threads();
+        nd.num_gpus = hw::num_gpus()>0? 1: 0;
+        banner(nd);
+
         meters.checkpoint("setup");
 
         // The size of excitatory population.
@@ -206,20 +225,7 @@ int main(int argc, char** argv) {
                         options.file_extension, options.over_write);
         };
 
-        group_rules rules;
-
-        if (config::has_cuda) {
-            std::cout << "Using CUDA backend\n";
-            rules.policy = backend_policy::prefer_gpu;
-        } else {
-            std::cout << "Using CPU backend\n";
-            rules.policy = backend_policy::use_multicore;
-        }
-
-        rules.target_group_size = group_size;
-        auto decomp = domain_decomposition(recipe, rules);
-
-
+        auto decomp = partition_load_balance(recipe, nd);
         model m(recipe, decomp);
 
         // Initialize the spike exporting interface
@@ -227,7 +233,7 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
-                
+
                 m.set_local_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
@@ -236,7 +242,7 @@ int main(int argc, char** argv) {
             }
             else if(communication::global_policy::id()==0) {
                 file_exporter = register_exporter(options);
-                
+
                 m.set_global_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
@@ -253,7 +259,7 @@ int main(int argc, char** argv) {
 
         // output profile and diagnostic feedback
         auto const num_steps = options.tfinal / options.dt;
-        util::profiler_output(0.001, m.num_cells()*num_steps, options.profile_only_zero);
+        util::profiler_output(0.001, options.profile_only_zero);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         auto report = util::make_meter_report(meters);
@@ -278,11 +284,14 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner() {
-    std::cout << "====================\n";
-    std::cout << "  starting miniapp\n";
-    std::cout << "  - " << threading::description() << " threading support\n";
-    std::cout << "  - communication policy: " << std::to_string(global_policy::kind()) << " (" << global_policy::size() << ")\n";
-    std::cout << "====================\n";
+void banner(hw::node_info nd) {
+    std::cout << "==========================================\n";
+    std::cout << "  Arbor miniapp\n";
+    std::cout << "  - distributed : " << global_policy::size()
+              << " (" << std::to_string(global_policy::kind()) << ")\n";
+    std::cout << "  - threads     : " << nd.num_cpu_cores
+              << " (" << threading::description() << ")\n";
+    std::cout << "  - gpus        : " << nd.num_gpus << "\n";
+    std::cout << "==========================================\n";
 }
 

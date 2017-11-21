@@ -1,7 +1,6 @@
 #include <random_generator.hpp>
 
-namespace nest {
-namespace mc {
+namespace arb {
 namespace random_generator {
 
 float sample_poisson(double lambda, unsigned counter, unsigned key) {
@@ -18,5 +17,4 @@ float sample_poisson(double lambda, unsigned counter, unsigned key) {
     return sample;
     }
 } // namespace random_generator
-} // namespace mc
-} // namespace nest
+} // namespace arb

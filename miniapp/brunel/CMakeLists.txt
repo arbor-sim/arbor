@@ -7,7 +7,7 @@ set(MINIAPP_SOURCES
 
 add_executable(brunel_miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 
-target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${NESTMC_LIBRARIES})
+target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${ARB_LIBRARIES})
 target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
 if(NMC_WITH_MPI)

@@ -25,8 +25,8 @@ gids_(std::move(gids))
     poiss_event_counter_ = std::vector<unsigned>(gids_.size());
 
     // Initialize variables for the external Poisson input.
-    for (auto lid: util::make_span(0, gids_.size()))
-        cells_.push_back(util::any_cast<lif_cell_description>(rec.get_cell_description[gids_[lid]]));
+    for (auto lid: util::make_span(0, gids_.size())) {
+        cells_.push_back(util::any_cast<lif_cell_description>(rec.get_cell_description(gids_[lid])));
 
         // If a cell receives some external Poisson input then initialize the corresponding variables.
         if (cells_[lid].n_poiss > 0) {
@@ -45,7 +45,7 @@ cell_kind lif_cell_group_mc::get_cell_kind() const {
     return cell_kind::lif_neuron;
 }
 
-void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+void lif_cell_group_mc::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE("lif");
     if (event_lanes.size()) {
       for (auto lid: util::make_span(0, gids_.size())) {
@@ -111,12 +111,12 @@ util::optional<time_type> lif_cell_group_mc::next_poisson_event(cell_gid_type li
 }
 
 util::optional<postsynaptic_spike_event> pop_if_before(pse_vector& event_lane, time_type tfinal) {
-    if (event_lane.size() == 0 || events[0].time >= tfinal) {
+    if (event_lane.size() == 0 || event_lane[0].time >= tfinal) {
         return util::nothing;
     }
     auto ev = event_lane[0];
     // TODO: do not erase, but just remember the last position
-    event_lane.erase(events.begin());
+    event_lane.erase(event_lane.begin());
     return ev;
 }
 
@@ -148,7 +148,7 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     // If a neuron was in the refractory period,
     // ignore any new events that happened before t,
     // including poisson events as well.
-    while (auto ev = next_event(lid, t)) {
+    while (auto ev = next_event(lid, t, event_lane)) {
     };
 
     // Integrate until tfinal using the exact solution of membrane voltage differential equation.

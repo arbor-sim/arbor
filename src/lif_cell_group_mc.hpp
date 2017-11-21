@@ -6,10 +6,9 @@
 #include <lif_cell_description.hpp>
 #include <profiling/profiler.hpp>
 #include <random_generator.hpp>
+#include <recipe.hpp>
 #include <util/unique_any.hpp>
 #include <vector>
-
-#include <fstream>
 
 namespace arb {
     class lif_cell_group_mc: public cell_group {
@@ -19,7 +18,7 @@ namespace arb {
         lif_cell_group_mc() = default;
 
         // Constructor containing gid of first cell in a group and a container of all cells.
-        lif_cell_group_mc(cell_gid_type first_gid, const std::vector<util::unique_any>& cells);
+        lif_cell_group_mc(std::vector<cell_gid_type> gids, const recipe& rec);
 
         virtual cell_kind get_cell_kind() const override;
         virtual void reset() override;

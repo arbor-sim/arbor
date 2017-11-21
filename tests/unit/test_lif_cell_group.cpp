@@ -8,9 +8,9 @@
 #include <rss_cell.hpp>
 #include <rss_cell_group.hpp>
 
-using namespace nest::mc;
+using namespace arb;
 // Simple ring network of lif neurons.
-class ring_recipe: public nest::mc::recipe {
+class ring_recipe: public arb::recipe {
 public:
     ring_recipe(cell_size_type n, float weight, float delay):
     ncells_(n + 1), weight_(weight), delay_(delay)
@@ -34,19 +34,16 @@ public:
         }
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
-        cell_connection conn;
-        conn.weight = weight_;
-        conn.delay = delay_;
-        conn.source = {(gid + cell_gid_type(ncells_) - 2) % (ncells_ - 1), 0};
-        conn.dest =   {gid, 0};
+        cell_member_type source{(gid + cell_gid_type(ncells_) - 2) % (ncells_ - 1), 0};
+        cell_member_type target{gid, 0};
+        cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
 
         // Connect fake cell (numbered ncells_-1) to the first cell (numbered 0).
         if (gid == 0) {
-            conn.weight = weight_;
-            conn.delay = delay_;
-            conn.source = {cell_gid_type(ncells_) - 1, 0};
-            conn.dest =   {gid, 0};
+            cell_member_type source{cell_gid_type(ncells_) - 1, 0};
+            cell_member_type target{gid, 0};
+            cell_connection conn(source, target, weight_, delay_);
             connections.push_back(conn);
         }
 
@@ -58,11 +55,22 @@ public:
             return lif_cell_description();
         }
         // Produces just a single spike at time 0ms.
-        return rss_cell::rss_cell_description(0, 1, 0.5);
+        auto rs = rss_cell::rss_cell();
+        rs.start_time = 0;
+        rs.period = 1;
+        rs.stop_time = 0.5;
+        return rs;
+
     }
 
-    cell_count_info get_cell_count_info(cell_gid_type) const override {
-        return {1u, 1u, 0u};
+    cell_size_type num_sources(cell_gid_type) const override {
+        return 1;
+    }
+    cell_size_type num_targets(cell_gid_type) const override {
+        return 1;
+    }
+    cell_size_type num_probes(cell_gid_type) const override {
+        return 0;
     }
 
 private:
@@ -152,10 +160,6 @@ TEST(lif_cell_group_mc, spikes_testing) {
         out_spikes_file << out_spike.time << std::endl;
     }
 
-    for (auto& v : voltage) {
-        voltage_file << v.first << " " << v.second << std::endl;
-    }
-
     in_spikes_file.close();
     out_spikes_file.close();
 }
@@ -195,7 +199,7 @@ TEST(lif_cell_group_mc, domain_decomposition)
     // The number of cell groups.
     EXPECT_EQ(11, mod.num_groups());
     // The total number of cells in all the cell groups.
-    EXPECT_EQ((num_cells + 1), mod.num_cells());
+    EXPECT_EQ((num_cells + 1), recipe.num_cells());
 
     for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
