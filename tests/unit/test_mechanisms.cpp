@@ -89,7 +89,7 @@ void mech_update(T* mech, unsigned num_iters) {
         memory::fill(ion.external_concentration(), 140.);
         ions[ion_kind] = ion;
 
-        if (mech->uses_ion(ion_kind)) {
+        if (mech->uses_ion(ion_kind).uses) {
             mech->set_ion(ion_kind, ions[ion_kind], ion_indexes);
         }
     }

@@ -165,6 +165,17 @@ struct backend {
         }
     }
 
+    static void init_concentration(
+            view Xi, view Xo,
+            const_view weight_Xi, const_view weight_Xo,
+            value_type c_int, value_type c_ext)
+    {
+        for (std::size_t i=0u; i<Xi.size(); ++i) {
+            Xi[i] = c_int*weight_Xi[i];
+            Xo[i] = c_ext*weight_Xo[i];
+        }
+    }
+
 private:
     using maker_type = mechanism_ptr (*)(value_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
     static std::map<std::string, maker_type> mech_map_;
