@@ -7,12 +7,13 @@
 #include <type_traits>
 #include <utility>
 
-#include "common_types.hpp"
-#include "generic_event.hpp"
-#include "util/meta.hpp"
-#include "util/optional.hpp"
-#include "util/range.hpp"
-#include "util/strprintf.hpp"
+#include <common_types.hpp>
+#include <generic_event.hpp>
+#include <util/meta.hpp>
+#include <util/optional.hpp>
+#include <util/range.hpp>
+#include <util/rangeutil.hpp>
+#include <util/strprintf.hpp>
 
 namespace arb {
 
@@ -28,8 +29,12 @@ struct postsynaptic_spike_event {
     time_type time;
     float weight;
 
-    friend bool operator==(postsynaptic_spike_event l, postsynaptic_spike_event r) {
+    friend bool operator==(const postsynaptic_spike_event& l, const postsynaptic_spike_event& r) {
         return l.target==r.target && l.time==r.time && l.weight==r.weight;
+    }
+
+    friend bool operator<(const postsynaptic_spike_event& l, const postsynaptic_spike_event& r) {
+        return std::tie(l.time, l.target, l.weight) < std::tie(r.time, r.target, r.weight);
     }
 
     friend std::ostream& operator<<(std::ostream& o, const arb::postsynaptic_spike_event& e)
@@ -37,6 +42,9 @@ struct postsynaptic_spike_event {
         return o << "E[tgt " << e.target << ", t " << e.time << ", w " << e.weight << "]";
     }
 };
+
+using pse_vector = std::vector<postsynaptic_spike_event>;
+using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
 
 template <typename Event>
 class event_queue {

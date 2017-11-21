@@ -146,11 +146,25 @@ sort(Seq& seq) {
     std::sort(std::begin(canon), std::end(canon));
 }
 
+template <typename Seq, typename Less>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+sort(Seq& seq, const Less& less) {
+    auto canon = canonical_view(seq);
+    std::sort(std::begin(canon), std::end(canon), less);
+}
+
 template <typename Seq>
 enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
 sort(const Seq& seq) {
     auto canon = canonical_view(seq);
     std::sort(std::begin(canon), std::end(canon));
+}
+
+template <typename Seq, typename Less>
+enable_if_t<!std::is_const<typename sequence_traits<Seq>::reference>::value>
+sort(const Seq& seq, const Less& less) {
+    auto canon = canonical_view(seq);
+    std::sort(std::begin(canon), std::end(canon), less);
 }
 
 // Sort in-place by projection `proj`
