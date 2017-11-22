@@ -573,7 +573,7 @@ void Module::add_variables_to_symbols() {
             //  else if sym is a parameter variable: error
             //  else it does not exist so make an indexed variable
 
-            // If the an indexed variable has already been created with the same name
+            // If an indexed variable has already been created with the same name
             // throw an error.
             if(sym->kind()==symbolKind::indexed_variable) {
                 error(pprintf("the symbol defined % at % can't be redeclared",
@@ -594,7 +594,7 @@ void Module::add_variables_to_symbols() {
                 // error: a normal range variable or parameter can't have the same
                 // name as an indexed ion variable
                 error(pprintf("the ion channel variable % at % can't be redeclared",
-                              sym->location(), yellow(name)),
+                              yellow(name), sym->location()),
                       tkn.location);
                 return;
             }
