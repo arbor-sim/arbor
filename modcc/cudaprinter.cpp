@@ -173,6 +173,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         buffer().add_line("__global__");
         buffer().add_line("void write_back_"+module_name_+"("+pack_name()+" params_) {");
         buffer().increase_indentation();
+        buffer().add_line("using value_type = arb::fvm_value_type;");
 
         buffer().add_line("auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;");
         buffer().add_line("auto const n_ = params_.n_;");
@@ -189,7 +190,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
             auto idx = src + "_idx_";
             buffer().add_line("auto "+idx+" = params_.ion_"+ion_prefix(w.ion_kind)+"_idx_[tid_];");
-            buffer().add_line("params_."+tgt+"["+idx+"] =  params_."+src+"[tid_];");
+            buffer().add_line("// 1/10 magic number due to unit normalisation");
+            buffer().add_line("params_."+tgt+"["+idx+"] = value_type(0.1)*params_.weights_[tid_]*params_."+src+"[tid_];");
         }
         buffer().decrease_indentation(); buffer().add_line("}");
         buffer().decrease_indentation(); buffer().add_line("}");
@@ -444,41 +446,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     //////////////////////////////////////////////
     //  print ion channel interface
     //////////////////////////////////////////////
-    // return true/false indicating if cell has dependency on k
-    auto const& ions = m.neuron_block().ions;
-    auto find_ion = [&ions] (ionKind k) {
-        return std::find_if(
-            ions.begin(), ions.end(),
-            [k](IonDep const& d) {return d.kind()==k;}
-        );
-    };
-    auto has_ion = [&ions, find_ion] (ionKind k) {
-        return find_ion(k) != ions.end();
-    };
-
-    // bool uses_ion(ionKind k) const override
-    buffer().add_line("bool uses_ion(ionKind k) const override {");
-    buffer().increase_indentation();
-    buffer().add_line("switch(k) {");
-    buffer().increase_indentation();
-    buffer().add_gutter()
-        << "case ionKind::na : return "
-        << (has_ion(ionKind::Na) ? "true" : "false") << ";";
-    buffer().end_line();
-    buffer().add_gutter()
-        << "case ionKind::ca : return "
-        << (has_ion(ionKind::Ca) ? "true" : "false") << ";";
-    buffer().end_line();
-    buffer().add_gutter()
-        << "case ionKind::k  : return "
-        << (has_ion(ionKind::K) ? "true" : "false") << ";";
-    buffer().end_line();
-    buffer().decrease_indentation();
-    buffer().add_line("}");
-    buffer().add_line("return false;");
-    buffer().decrease_indentation();
-    buffer().add_line("}");
-    buffer().add_line();
 
     /***************************************************************************
      *
@@ -496,66 +463,69 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
      *
      **************************************************************************/
 
-    // void set_ion(ionKind k, ion_type& i, const std::vector<size_type>&) override
-    //      TODO: this is done manually, which isn't going to scale
-    auto has_variable = [] (IonDep const& ion, std::string const& name) {
-        if( std::find_if(ion.read.begin(), ion.read.end(),
-                      [&name] (Token const& t) {return t.spelling==name;}
-            ) != ion.read.end()
-        ) return true;
-        if( std::find_if(ion.write.begin(), ion.write.end(),
-                      [&name] (Token const& t) {return t.spelling==name;}
-            ) != ion.write.end()
-        ) return true;
-        return false;
+    // return true/false indicating if cell has dependency on k
+    auto const& ions = module_->neuron_block().ions;
+    auto find_ion = [&ions] (ionKind k) {
+        return std::find_if(
+            ions.begin(), ions.end(),
+            [k](IonDep const& d) {return d.kind()==k;}
+        );
     };
-    buffer().add_line("void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) override {");
+    auto has_ion = [&ions, find_ion] (ionKind k) {
+        return find_ion(k) != ions.end();
+    };
+
+    // ion_spec uses_ion(ionKind k) const override
+    buffer().add_line("typename base::ion_spec uses_ion(ionKind k) const override {");
     buffer().increase_indentation();
-    buffer().add_line("using arb::algorithms::index_into;");
-    if(has_ion(ionKind::Na)) {
-        auto ion = find_ion(ionKind::Na);
-        buffer().add_line("if(k==ionKind::na) {");
-        buffer().increase_indentation();
-        buffer().add_line("ion_na.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ina")) buffer().add_line("ion_na.ina = i.current();");
-        if(has_variable(*ion, "ena")) buffer().add_line("ion_na.ena = i.reversal_potential();");
-        if(has_variable(*ion, "nai")) buffer().add_line("ion_na.nai = i.internal_concentration();");
-        if(has_variable(*ion, "nao")) buffer().add_line("ion_na.nao = i.external_concentration();");
-        buffer().add_line("return;");
-        buffer().decrease_indentation();
-        buffer().add_line("}");
+    buffer().add_line("bool uses = false;");
+    buffer().add_line("bool writes_ext = false;");
+    buffer().add_line("bool writes_int = false;");
+    for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
+        if (has_ion(k)) {
+            auto ion = *find_ion(k);
+            buffer().add_line("if (k==ionKind::" + ion.name + ") {");
+            buffer().increase_indentation();
+            buffer().add_line("uses = true;");
+            if (ion.writes_concentration_int()) buffer().add_line("writes_int = true;");
+            if (ion.writes_concentration_ext()) buffer().add_line("writes_ext = true;");
+            buffer().decrease_indentation();
+            buffer().add_line("}");
+        }
     }
-    if(has_ion(ionKind::Ca)) {
-        auto ion = find_ion(ionKind::Ca);
-        buffer().add_line("if(k==ionKind::ca) {");
-        buffer().increase_indentation();
-        buffer().add_line("ion_ca.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ica")) buffer().add_line("ion_ca.ica = i.current();");
-        if(has_variable(*ion, "eca")) buffer().add_line("ion_ca.eca = i.reversal_potential();");
-        if(has_variable(*ion, "cai")) buffer().add_line("ion_ca.cai = i.internal_concentration();");
-        if(has_variable(*ion, "cao")) buffer().add_line("ion_ca.cao = i.external_concentration();");
-        buffer().add_line("return;");
-        buffer().decrease_indentation();
-        buffer().add_line("}");
-    }
-    if(has_ion(ionKind::K)) {
-        auto ion = find_ion(ionKind::K);
-        buffer().add_line("if(k==ionKind::k) {");
-        buffer().increase_indentation();
-        buffer().add_line("ion_k.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ik")) buffer().add_line("ion_k.ik = i.current();");
-        if(has_variable(*ion, "ek")) buffer().add_line("ion_k.ek = i.reversal_potential();");
-        if(has_variable(*ion, "ki")) buffer().add_line("ion_k.ki = i.internal_concentration();");
-        if(has_variable(*ion, "ko")) buffer().add_line("ion_k.ko = i.external_concentration();");
-        buffer().add_line("return;");
-        buffer().decrease_indentation();
-        buffer().add_line("}");
+    buffer().add_line("return {uses, writes_int, writes_ext};");
+    buffer().decrease_indentation();
+    buffer().add_line("}");
+    buffer().add_line();
+
+    // void set_ion(ionKind k, ion_type& i) override
+    buffer().add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
+    buffer().increase_indentation();
+    for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
+        if (has_ion(k)) {
+            auto ion = *find_ion(k);
+            buffer().add_line("if (k==ionKind::" + ion.name + ") {");
+            buffer().increase_indentation();
+            auto n = ion.name;
+            auto pre = "ion_"+n;
+            buffer().add_line(pre+".index = memory::make_const_view(index);");
+            if (ion.uses_current())
+                buffer().add_line(pre+".i"+n+" = i.current();");
+            if (ion.uses_rev_potential())
+                buffer().add_line(pre+".e"+n+" = i.reversal_potential();");
+            if (ion.uses_concentration_int())
+                buffer().add_line(pre+"."+n+"i = i.internal_concentration();");
+            if (ion.uses_concentration_ext())
+                buffer().add_line(pre+"."+n+"o = i.external_concentration();");
+            buffer().add_line("return;");
+            buffer().decrease_indentation();
+            buffer().add_line("}");
+        }
     }
     buffer().add_line("throw std::domain_error(arb::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
     buffer().decrease_indentation();
     buffer().add_line("}");
     buffer().add_line();
-
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////

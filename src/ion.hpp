@@ -69,7 +69,7 @@ public :
         default_ext_concentration(0)
     {}
 
-    const void set_weights(const std::vector<value_type>& win, const std::vector<value_type>& wout) {
+    void set_weights(const std::vector<value_type>& win, const std::vector<value_type>& wout) {
         EXPECTS(win.size()  == size());
         EXPECTS(wout.size() == size());
         weight_Xi_ = memory::make_const_view(win);

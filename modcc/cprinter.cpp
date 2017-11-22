@@ -213,18 +213,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    // return true/false indicating if cell has dependency on k
-    auto const& ions = module_->neuron_block().ions;
-    auto find_ion = [&ions] (ionKind k) {
-        return std::find_if(
-            ions.begin(), ions.end(),
-            [k](IonDep const& d) {return d.kind()==k;}
-        );
-    };
-    auto has_ion = [&ions, find_ion] (ionKind k) {
-        return find_ion(k) != ions.end();
-    };
-
     /***************************************************************************
      *
      *   ion channels have the following fields :
@@ -240,6 +228,18 @@ std::string CPrinter::emit_source() {
      *       ---------------------------------------------------
      *
      **************************************************************************/
+
+    // return true/false indicating if cell has dependency on k
+    auto const& ions = module_->neuron_block().ions;
+    auto find_ion = [&ions] (ionKind k) {
+        return std::find_if(
+            ions.begin(), ions.end(),
+            [k](IonDep const& d) {return d.kind()==k;}
+        );
+    };
+    auto has_ion = [&ions, find_ion] (ionKind k) {
+        return find_ion(k) != ions.end();
+    };
 
     // ion_spec uses_ion(ionKind k) const override
     text_.add_line("typename base::ion_spec uses_ion(ionKind k) const override {");
@@ -346,8 +346,10 @@ std::string CPrinter::emit_source() {
             text_.add_line("auto "+src+"_out_ = util::indirect_view("+istore+tgt+", "+istore+"index);");
             text_.add_line("for (size_type i_ = 0; i_ < n_; ++i_) {");
             text_.increase_indentation();
-            text_.add_line(src+"_out_[i_] = "+src+"[i_];");
+            text_.add_line("// 1/10 magic number due to unit normalisation");
+            text_.add_line(src+"_out_["+istore+"index[i_]] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
             text_.decrease_indentation(); text_.add_line("}");
+            
         }
         text_.decrease_indentation(); text_.add_line("}");
     }
