@@ -61,6 +61,7 @@ set(TEST_SOURCES
     test_mechinfo.cpp
     test_partition.cpp
     test_path.cpp
+    test_pi_cell.cpp
     test_point.cpp
     test_prefixbuf.cpp
     test_probe.cpp
