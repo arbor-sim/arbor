@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
-#include <pi_cell.hpp>
-#include <pi_cell_group.hpp>
+#include <ips_cell.hpp>
+#include <ips_cell_group.hpp>
 
 #include "../simple_recipes.hpp"
 #include <random>

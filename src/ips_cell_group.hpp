@@ -6,7 +6,7 @@
 
 #include <cell_group.hpp>
 #include <recipe.hpp>
-#include <pi_cell.hpp>
+#include <ips_cell.hpp>
 #include <util/unique_any.hpp>
 
 
