@@ -169,8 +169,31 @@ TEST(ipss_cell_group, start_end_different_then_zero)
 TEST(ipss_cell_group, cell_kind_correct)
 {
     std::vector<std::pair<time_type, double>> rates_per_time;
+    rates_per_time.push_back({ 0.0, 20 });
     ipss_cell desc{0.1, 0.01, 0.2, rates_per_time};
     ipss_cell_group sut({0}, ipss_recipe(1u, desc));
 
     EXPECT_EQ(cell_kind::inhomogeneous_poisson_spike_source, sut.get_cell_kind());
+}
+
+
+TEST(ipss_cell_group, start_before_first_rate_change)
+{
+    std::vector<std::pair<time_type, double>> rates_per_time;
+    rates_per_time.push_back({ 0.11, 20 });
+    ipss_cell desc{ 0.1, 0.01, 0.2, rates_per_time };
+
+    // Gtest does not have the expect_exception shorthand
+    try {
+        ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
+        FAIL() << "Expected a failure";
+    }
+    catch (std::logic_error const & err)
+    {
+        EXPECT_EQ(err.what(), std::string("The start time of the neuron is before the first time/rate pair"));
+    }
+    catch (...)
+    {
+        FAIL() << "Expected logic_error but different exception encountered";
+    }
 }

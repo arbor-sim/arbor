@@ -15,9 +15,10 @@ struct ipss_cell {
     time_type sample_delta;
 
     // vector of spike_rates starting at times
+    // The vector needs at least a single entry
     std::vector<std::pair<time_type, double>> rates_per_time;
 
-    // vector of spike_rates starting at times
+    // vector of spike_rates each starting at the supplied time
     ipss_cell(time_type start_time, time_type stop_time, time_type sample_delta,
         std::vector<std::pair<time_type, double>> rates_per_time) :
         start_time(start_time),
