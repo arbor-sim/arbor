@@ -26,6 +26,8 @@ public:
             cells_.emplace_back(
                 util::any_cast<ipss_cell>(rec.get_cell_description(gid)), gid);
         }
+
+        distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
         reset();
     }
 
@@ -46,22 +48,18 @@ public:
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& events) override {
-        // We only know the dt at this stage.
-        auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
         for (auto& cell: cells_)
         {
-            // Get begin and start range, depending on the cell config and
-            // end the epoch ranges
+            // Get begin and start range: cell config and epoch ranges
             auto t = std::max(cell.start_time, cell.time);
             auto t_end = std::min(cell.stop_time, ep.tfinal);
 
-            // if cell does not fire in current advance step continue
+            // if cell is not active skip
             if (t >= t_end) {
                 continue;
             }
 
-            // Take a dt step, roll a dice determine if a spike is produced
-            // First convert the rate from spikes/sec to ms
+            // The probability per sample step
             time_type prob_per_dt = (cell.rate / 1000.0) * cell.sample_delta;
 
             // Float noise might result in a final step larger then t_end.
@@ -74,7 +72,6 @@ public:
                 t += cell.sample_delta;
             }
 
-            // Save the cell specific time
             cell.time = t;
         }
     }
@@ -116,7 +113,9 @@ private:
 
     // Spikes that are generated.
     std::vector<spike> spikes_;
-};
 
+    // Distribution for Poisson generation
+    std::uniform_real_distribution<float> distribution;
+};
 } // namespace arb
 
