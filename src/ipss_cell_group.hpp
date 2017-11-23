@@ -60,7 +60,7 @@ public:
             }
 
             // The probability per sample step
-            time_type prob_per_dt = (cell.rate / 1000.0) * cell.sample_delta;
+            time_type prob_per_dt = (cell.rates_per_time.at(0).second / 1000.0) * cell.sample_delta;
 
             // Float noise might result in a final step larger then t_end.
             while (t < t_end)
