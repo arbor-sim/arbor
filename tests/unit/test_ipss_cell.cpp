@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
-#include <ips_cell.hpp>
-#include <ips_cell_group.hpp>
+#include <ipss_cell.hpp>
+#include <ipss_cell_group.hpp>
 
 #include "../simple_recipes.hpp"
 #include <random>
@@ -12,9 +12,9 @@
 using namespace arb;
 using namespace std;
 
-using pi_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_source, ips_cell>;
+using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_source, ipss_cell>;
 
-TEST(ips_cell_group, basic_usage)
+TEST(ipss_cell_group, basic_usage)
 {
     // Create an array of spike times for 1000 ms of time using the same
     // seed for the random number generator (in one go)
@@ -24,7 +24,7 @@ TEST(ips_cell_group, basic_usage)
     time_type rate = 20;  // Hz
     time_type sample_delta = 0.1; // 0.1 ms
 
-    constexpr time_type dt = 0.01; // dt is ignored by ips_cell_group::advance().
+    constexpr time_type dt = 0.01; // dt is ignored by ipss_cell_group::advance().
 
     // Create the generator
     std::mt19937 gen(0);
@@ -40,8 +40,8 @@ TEST(ips_cell_group, basic_usage)
     }
 
     // Create the cell_group
-    ips_cell desc{ begin, end, rate, sample_delta};
-    ips_cell_group sut({0}, pi_recipe(1u, desc));
+    ipss_cell desc{ begin, end, rate, sample_delta};
+    ipss_cell_group sut({0}, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
         epoch ep(100.0 * idx, 100.0 * idx + 100.0);
@@ -60,7 +60,7 @@ TEST(ips_cell_group, basic_usage)
 }
 
 
-TEST(ips_cell_group, later_start)
+TEST(ipss_cell_group, later_start)
 {
     // Create an array of spike times for 1000 ms of time using the same
     // seed for the random number generator (in one go)
@@ -70,7 +70,7 @@ TEST(ips_cell_group, later_start)
     time_type rate = 20;  // Hz
     time_type sample_delta = 0.1; // 0.1 ms
 
-    constexpr time_type dt = 0.01; // dt is ignored by ips_cell_group::advance().
+    constexpr time_type dt = 0.01; // dt is ignored by ipss_cell_group::advance().
 
                                    // Create the generator
     std::mt19937 gen(0);
@@ -86,8 +86,8 @@ TEST(ips_cell_group, later_start)
     }
 
     // Create the cell_group
-    ips_cell desc{ begin, end, rate, sample_delta };
-    ips_cell_group sut({ 0 }, pi_recipe(1u, desc));
+    ipss_cell desc{ begin, end, rate, sample_delta };
+    ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
         epoch ep(100.0 * idx, 100.0 * idx + 100.0);
@@ -106,10 +106,10 @@ TEST(ips_cell_group, later_start)
 }
 
 
-TEST(ips_cell_group, cell_kind_correct)
+TEST(ipss_cell_group, cell_kind_correct)
 {
-    ips_cell desc{0.1, 0.01, 0.2};
-    ips_cell_group sut({0}, pi_recipe(1u, desc));
+    ipss_cell desc{0.1, 0.01, 0.2};
+    ipss_cell_group sut({0}, ipss_recipe(1u, desc));
 
-    EXPECT_EQ(cell_kind::inhomogeneous_poisson_source, sut.get_cell_kind());
+    EXPECT_EQ(cell_kind::inhomogeneous_poisson_spike_source, sut.get_cell_kind());
 }

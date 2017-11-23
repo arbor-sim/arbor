@@ -6,7 +6,7 @@
 
 #include <cell_group.hpp>
 #include <recipe.hpp>
-#include <ips_cell.hpp>
+#include <ipss_cell.hpp>
 #include <util/unique_any.hpp>
 
 
@@ -18,18 +18,18 @@ namespace arb {
 
 
 
-class ips_cell_group: public cell_group {
-struct ips_info;
-using cell_gen_time = std::tuple<std::vector<ips_info>::const_iterator,
+class ipss_cell_group: public cell_group {
+struct ipss_info;
+using cell_gen_time = std::tuple<std::vector<ipss_info>::const_iterator,
                                  std::vector<std::mt19937>::iterator,
                                  std::vector<time_type>::iterator>;
 
 public:
-    ips_cell_group(std::vector<cell_gid_type> gids, const recipe& rec) {
+    ipss_cell_group(std::vector<cell_gid_type> gids, const recipe& rec) {
         cells_.reserve(gids.size());
         for (auto gid: gids) {
             cells_.emplace_back(
-                util::any_cast<ips_cell>(rec.get_cell_description(gid)),
+                util::any_cast<ipss_cell>(rec.get_cell_description(gid)),
                 gid);
 
             random_generators.push_back(std::mt19937(gid));
@@ -42,7 +42,7 @@ public:
     }
 
     cell_kind get_cell_kind() const override {
-        return cell_kind::inhomogeneous_poisson_source;
+        return cell_kind::inhomogeneous_poisson_spike_source;
     }
 
     void reset() override {
@@ -114,16 +114,16 @@ public:
 
 private:
     // RSS description plus gid for each RSS cell.
-    struct ips_info: public ips_cell {
-        ips_info(ips_cell desc, cell_gid_type gid):
-            ips_cell(std::move(desc)), gid(gid)
+    struct ipss_info: public ipss_cell {
+        ipss_info(ipss_cell desc, cell_gid_type gid):
+            ipss_cell(std::move(desc)), gid(gid)
         {}
 
         cell_gid_type gid;
     };
 
     // RSS cell descriptions.
-    std::vector<ips_info> cells_;
+    std::vector<ipss_info> cells_;
 
     // Simulation time for all RSS cells in the group.
     std::vector<time_type> times_;

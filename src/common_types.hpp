@@ -69,7 +69,7 @@ enum cell_kind {
     cable1d_neuron,                 // Our own special mc neuron
     regular_spike_source,           // Regular spiking source
     data_spike_source,              // Spike source from values inserted via description
-    inhomogeneous_poisson_source,   // Poisson spike neuron with varying rate
+    inhomogeneous_poisson_spike_source,   // Poisson spike neuron with varying rate
 };
 
 } // namespace arb

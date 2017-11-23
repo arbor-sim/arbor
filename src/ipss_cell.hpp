@@ -7,7 +7,7 @@ namespace arb {
 /// Description class for a regular spike source: a cell that generates
 /// spikes with a fixed period over a given time interval.
 
-struct ips_cell {
+struct ipss_cell {
     time_type start_time;
     time_type stop_time;
 
