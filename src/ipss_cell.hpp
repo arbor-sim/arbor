@@ -8,6 +8,7 @@
 #include <ipss_cell_description.hpp>
 #include <util/unique_any.hpp>
 
+
 namespace arb {
 
 /// Cell implementation of inhomogeneous Poisson spike generator.
@@ -83,12 +84,14 @@ public:
             // Do we run till the next rate change or till end of epoch?
             double t_end_step = it_next_rate_->first < t_end ?
                 it_next_rate_->first : t_end;
-
             while (t < t_end_step) {
+
                 // roll a dice between 0 and 1, if below prop we have a spike
                 if (distribution_(generator_) < prob) {
                     spikes_.push_back({ { gid_, 0 }, t });
+
                 }
+
                 t += sample_delta;
                 prob += prob_dt_;
             }
@@ -97,6 +100,7 @@ public:
             if (it_next_rate_->first < t_end) {
                 // update the to the new rate
                 rate_change_step();
+                prob = prob_;
             }
         }
         // Store for next epoch
@@ -113,7 +117,6 @@ private:
         // We need the start value for this rate change
         auto start_time = it_next_rate_->first;
         prob_ = (it_next_rate_->second / 1000.0) * sample_delta;
-
         it_next_rate_++;
 
         // If we interpolate we calculate the rate_change per sample_delta step

@@ -12,7 +12,7 @@ struct ipss_cell_description {
     time_type stop_time;
 
     // Every sample_delta we sample if we should emit a spike (in ms)
-    time_type sample_delta;
+    double sample_delta;
 
     // vector of spike_rates starting at times
     // The vector needs at least a single entry
