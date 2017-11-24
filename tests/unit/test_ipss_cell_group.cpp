@@ -17,29 +17,44 @@ using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_so
 
 std::vector<spike> create_poisson_spike_train(time_type begin, time_type end,
      double sample_delta,
-    std::vector<std::pair<time_type, double>> rates_per_time) {
+    std::vector<std::pair<time_type, double>> rates_per_time, bool interpolate = false ) {
 
     // Create the generator
     std::mt19937 gen(0);
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
     double prop_per_time_step;
-
+    double prop_per_next_time_step;
+    unsigned steps;
+    double delta_prob;
     // Create the spikes and store in the correct way
     std::vector<spike> spikes;
 
     time_type t = begin;
     // We asume a properly constructed time_rate and start time
+    // and that the first entry starts at begin
     for (unsigned idx = 0; idx < rates_per_time.size() - 1; ++idx)
     {
         prop_per_time_step = (rates_per_time.at(idx).second / 1000.0) * sample_delta;
+        if (interpolate)
+        {
+            prop_per_next_time_step = (rates_per_time.at(idx + 1).second / 1000.0) * sample_delta;
+            steps = (rates_per_time.at(idx + 1).first - rates_per_time.at(idx).first) / sample_delta;
+            delta_prob = (prop_per_next_time_step - prop_per_time_step) / steps;
+        }
+
         for (; t < rates_per_time.at(idx + 1).first; t += sample_delta) {
             if (distribution(gen) < prop_per_time_step) {
                 spikes.push_back({ { 0, 0 }, t });
+            }
+            if (interpolate)
+            {
+                prop_per_time_step += delta_prob;
             }
         }
     }
     // Treat the last differently (until end time)
     prop_per_time_step = (rates_per_time.at(rates_per_time.size() - 1).second / 1000.0) * sample_delta;
+
     for (; t < end; t += sample_delta) {
         if (distribution(gen) < prop_per_time_step) {
             spikes.push_back({ { 0, 0 }, t });
