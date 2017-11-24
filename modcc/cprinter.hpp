@@ -121,7 +121,7 @@ protected:
     }
 
     bool is_point_process() {
-        return module_->kind() == moduleKind::point;
+        return module_ && module_->kind() == moduleKind::point;
     }
 
     std::vector<LocalVariable*> aliased_vars(APIMethod* e);

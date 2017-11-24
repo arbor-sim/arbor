@@ -16,11 +16,11 @@ TEST(CPrinter, statement) {
 
     // create a scope that contains the symbols used in the tests
     Scope<Symbol>::symbol_map globals;
-    globals["x"] = make_symbol<Symbol>(Location(), "x", symbolKind::local);
-    globals["y"] = make_symbol<Symbol>(Location(), "y", symbolKind::local);
-    globals["z"] = make_symbol<Symbol>(Location(), "z", symbolKind::local);
-
     auto scope = std::make_shared<Scope<Symbol>>(globals);
+
+    scope->add_local_symbol("x", make_symbol<LocalVariable>(Location(), "x", localVariableKind::local));
+    scope->add_local_symbol("y", make_symbol<LocalVariable>(Location(), "y", localVariableKind::local));
+    scope->add_local_symbol("z", make_symbol<LocalVariable>(Location(), "z", localVariableKind::local));
 
     for(auto const& expression : expressions) {
         auto e = parse_line_expression(expression);
@@ -33,10 +33,8 @@ TEST(CPrinter, statement) {
         auto v = make_unique<CPrinter>();
         e->accept(v.get());
 
-#ifdef VERBOSE_TEST
-        std::cout << e->to_string() << std::endl;
-                  << " :--: " << v->text() << std::endl;
-#endif
+        verbose_print(e->to_string());
+        verbose_print(" :--: ", v->text());
     }
 }
 
@@ -61,22 +59,17 @@ TEST(CPrinter, proc) {
     globals["v"]    = make_symbol<VariableExpression>(Location(), "v");
 
     for(auto const& expression : expressions) {
-        auto e = symbol_ptr{parse_procedure(expression)->is_symbol()};
+        expression_ptr e = parse_procedure(expression);
+        ASSERT_TRUE(e->is_symbol());
 
-        // sanity check the compiler
-        EXPECT_NE(e, nullptr);
+        auto procname = e->is_symbol()->name();
+        auto& proc = (globals[procname] = symbol_ptr(e.release()->is_symbol()));
 
-        if( e==nullptr ) continue;
-
-        globals["trates"] = std::move(e);
-
-        e->semantic(globals);
+        proc->semantic(globals);
         auto v = make_unique<CPrinter>();
-        e->accept(v.get());
+        proc->accept(v.get());
 
-#ifdef VERBOSE_TEST
-        std::cout << e->to_string() << std::endl;
-                  << " :--: " << v->text() << std::endl;
-#endif
+        verbose_print(proc->to_string());
+        verbose_print(" :--: ", v->text());
     }
 }
