@@ -23,7 +23,6 @@ public:
 protected:
     std::ostream& out_;
     Visitor* fallback_;
-    tok parent_op_ = tok::eq;
 
     void render_as_call(const char* sub, Expression*);
     void render_as_call(const char* sub, Expression*, Expression*);

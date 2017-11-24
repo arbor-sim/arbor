@@ -79,23 +79,34 @@ void CExprRenderer::visit(BinaryExpression *e) {
         throw compiler_exception(
             "CExprRender: unsupported binary operator "+token_string(e->op()), e->location());
     }
-    const char* op_spelling = binop_tbl.at(e->op());
 
-    auto pop = parent_op_;
-    bool use_brackets =
-        Lexer::binop_precedence(pop) > Lexer::binop_precedence(e->op())
-        || (pop==tok::divide && e->op()==tok::times);
-    parent_op_ = e->op();
+    const char* op_spelling = binop_tbl.at(e->op());
+    associativityKind assoc = Lexer::operator_associativity(e->op());
+    int op_prec = Lexer::binop_precedence(e->op());
+
+    auto need_paren = [op_prec](Expression* subexpr, bool assoc_side) -> bool {
+        if (auto b = subexpr->is_binary()) {
+            int sub_prec = Lexer::binop_precedence(b->op());
+            return sub_prec<op_prec || (!assoc_side && sub_prec==op_prec);
+        }
+        return false;
+    };
 
     auto lhs = e->lhs();
-    auto rhs = e->rhs();
+    if (need_paren(lhs, assoc==associativityKind::left)) {
+        render_as_call("", lhs);
+    }
+    else {
+        lhs->accept(this);
+    }
 
-    if (use_brackets) out_ << "(";
-    lhs->accept(this);
     out_ << op_spelling;
-    rhs->accept(this);
-    if (use_brackets) out_ << ")";
 
-    // reset parent precedence
-    parent_op_ = pop;
+    auto rhs = e->rhs();
+    if (need_paren(rhs, assoc==associativityKind::right)) {
+        render_as_call("", rhs);
+    }
+    else {
+        rhs->accept(this);
+    }
 }
