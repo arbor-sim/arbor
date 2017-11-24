@@ -60,9 +60,7 @@ public:
                 continue;
             }
 
-            // The probability per sample step
-            while (true)
-            {
+            while(t < t_end)  {
                 // Do we run till end of epoch, or till the next rate change
                 double t_end_step = cell.next_rate_change_it->first < t_end ?
                     cell.next_rate_change_it->first : t_end;
@@ -83,13 +81,10 @@ public:
                 if (cell.next_rate_change_it->first < t_end) {
                     // update the to the new rate
                     cell.current_rate = cell.next_rate_change_it->second;
-
                     // increase the next_rate_change_it pointer
                     cell.next_rate_change_it++;
                 }
-                else {
-                    break;
-                }
+
             }
             cell.time = t;
         }
