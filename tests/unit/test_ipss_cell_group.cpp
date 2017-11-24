@@ -16,17 +16,31 @@ using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_so
 
 
 std::vector<spike> create_poisson_spike_train(time_type begin, time_type end,
-    double rate, double sample_delta,
+     double sample_delta,
     std::vector<std::pair<time_type, double>> rates_per_time) {
 
     // Create the generator
     std::mt19937 gen(0);
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
-    auto prop_per_time_step = (rate / 1000.0) * sample_delta;
+    double prop_per_time_step;
 
     // Create the spikes and store in the correct way
     std::vector<spike> spikes;
-    for (time_type t = begin; t < end; t += sample_delta) {
+
+    time_type t = begin;
+    // We asume a properly constructed time_rate and start time
+    for (unsigned idx = 0; idx < rates_per_time.size() - 1; ++idx)
+    {
+        prop_per_time_step = (rates_per_time.at(idx).second / 1000.0) * sample_delta;
+        for (; t < rates_per_time.at(idx + 1).first; t += sample_delta) {
+            if (distribution(gen) < prop_per_time_step) {
+                spikes.push_back({ { 0, 0 }, t });
+            }
+        }
+    }
+    // Treat the last differently (until end time)
+    prop_per_time_step = (rates_per_time.at(rates_per_time.size() - 1).second / 1000.0) * sample_delta;
+    for (; t < end; t += sample_delta) {
         if (distribution(gen) < prop_per_time_step) {
             spikes.push_back({ { 0, 0 }, t });
         }
@@ -51,7 +65,7 @@ TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
 
     // Target output
     std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
-        rate, sample_delta, rates_per_time);
+         sample_delta, rates_per_time);
 
     // Create the cell group itself
     ipss_cell_group sut({0},
@@ -92,29 +106,8 @@ TEST(ipss_cell_group, differt_rates_non_interpolate)
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
 
     // Create the spikes and store in the correct way
-    std::vector<spike> spikes;
-
-    auto prop_per_time_step = (rates_per_time.at(0).second / 1000.0) * sample_delta;
-    time_type t = begin;
-    for (; t < rates_per_time.at(1).first; t += sample_delta) {
-        if (distribution(gen) < prop_per_time_step) {
-            spikes.push_back({ { 0, 0 }, t });
-        }
-    }
-
-    prop_per_time_step = (rates_per_time.at(1).second / 1000.0) * sample_delta;
-    for (; t < rates_per_time.at(2).first; t += sample_delta) {
-        if (distribution(gen) < prop_per_time_step) {
-            spikes.push_back({ { 0, 0 }, t });
-        }
-    }
-
-    prop_per_time_step = (rates_per_time.at(2).second / 1000.0) * sample_delta;
-    for (; t <end; t += sample_delta) {
-        if (distribution(gen) < prop_per_time_step) {
-            spikes.push_back({ { 0, 0 }, t });
-        }
-    }
+    std::vector<spike> spikes = create_poisson_spike_train(begin, end,
+         sample_delta, rates_per_time);;
 
 
     // Create the cell_group
