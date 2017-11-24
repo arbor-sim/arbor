@@ -12,7 +12,7 @@
 using namespace arb;
 using namespace std;
 
-using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_source, ipss_cell>;
+using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_source, ipss_cell_description>;
 
 
 TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
@@ -44,7 +44,7 @@ TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
     }
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time, false};
+    ipss_cell_description desc{ begin, end, sample_delta, rates_per_time, false};
     ipss_cell_group sut({0}, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
@@ -111,7 +111,7 @@ TEST(ipss_cell_group, differt_rates_non_interpolate)
 
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time, false };
+    ipss_cell_description desc{ begin, end, sample_delta, rates_per_time, false };
     ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
@@ -195,7 +195,7 @@ TEST(ipss_cell_group, differt_rates_interpolate)
 
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time, true };
+    ipss_cell_description desc{ begin, end, sample_delta, rates_per_time, true };
     ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
@@ -241,7 +241,7 @@ TEST(ipss_cell_group, test_reset)
     }
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time, false };
+    ipss_cell_description desc{ begin, end, sample_delta, rates_per_time, false };
     ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
 
     // Run the cell_group for some time
@@ -296,7 +296,7 @@ TEST(ipss_cell_group, start_end_different_then_zero)
     }
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time, false };
+    ipss_cell_description desc{ begin, end, sample_delta, rates_per_time, false };
     ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
@@ -320,7 +320,7 @@ TEST(ipss_cell_group, cell_kind_correct)
 {
     std::vector<std::pair<time_type, double>> rates_per_time;
     rates_per_time.push_back({ 0.0, 20 });
-    ipss_cell desc{0.1, 0.01, 0.2, rates_per_time};
+    ipss_cell_description desc{0.1, 0.01, 0.2, rates_per_time};
     ipss_cell_group sut({0}, ipss_recipe(1u, desc));
 
     EXPECT_EQ(cell_kind::inhomogeneous_poisson_spike_source, sut.get_cell_kind());
@@ -331,7 +331,7 @@ TEST(ipss_cell_group, start_before_first_rate_change)
 {
     std::vector<std::pair<time_type, double>> rates_per_time;
     rates_per_time.push_back({ 0.11, 20 });
-    ipss_cell desc{ 0.1, 0.01, 0.2, rates_per_time };
+    ipss_cell_description desc{ 0.1, 0.01, 0.2, rates_per_time };
 
     // Gtest does not have the expect_exception shorthand
     try {

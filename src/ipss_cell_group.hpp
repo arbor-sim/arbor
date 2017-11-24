@@ -22,7 +22,7 @@ public:
         cells_.reserve(gids.size());
         for (auto gid: gids) {
             cells_.emplace_back(
-                util::any_cast<ipss_cell>(rec.get_cell_description(gid)), gid);
+                util::any_cast<ipss_cell_description>(rec.get_cell_description(gid)), gid);
         }
 
         distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
@@ -105,9 +105,9 @@ public:
 
 private:
     // RSS description plus gid for each RSS cell.
-    struct ipss_info: public ipss_cell {
-        ipss_info(ipss_cell desc, cell_gid_type gid):
-            ipss_cell(std::move(desc)),
+    struct ipss_info: public ipss_cell_description {
+        ipss_info(ipss_cell_description desc, cell_gid_type gid):
+            ipss_cell_description(std::move(desc)),
             gid(gid),
             time(0.0),
             generator(gid),

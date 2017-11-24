@@ -7,7 +7,7 @@ namespace arb {
 /// Description class for a regular spike source: a cell that generates
 /// spikes with a fixed period over a given time interval.
 
-struct ipss_cell {
+struct ipss_cell_description {
     time_type start_time;
     time_type stop_time;
 
@@ -20,7 +20,7 @@ struct ipss_cell {
     bool interpolate;
 
     // vector of spike_rates each starting at the supplied time
-    ipss_cell(time_type start_time, time_type stop_time, time_type sample_delta,
+    ipss_cell_description(time_type start_time, time_type stop_time, time_type sample_delta,
         std::vector<std::pair<time_type, double>> rates_per_time, bool interpolate = true) :
         start_time(start_time),
         stop_time(stop_time),
