@@ -7,6 +7,7 @@
 #include <cell_group.hpp>
 #include <recipe.hpp>
 #include <ipss_cell_description.hpp>
+#include <ipss_cell.hpp>
 #include <util/unique_any.hpp>
 
 
@@ -24,8 +25,6 @@ public:
             cells_.emplace_back(
                 util::any_cast<ipss_cell_description>(rec.get_cell_description(gid)), gid);
         }
-
-        distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
         reset();
     }
 
@@ -36,12 +35,7 @@ public:
     void reset() override {
         clear_spikes();
         for (auto &cell: cells_) {
-            cell.time = 0.0;
-
-            // Reset the random number generator!
-            cell.generator = std::mt19937(cell.gid);
-
-            cell.initialize_cell_state();
+            cell.reset();
         }
     }
 
@@ -49,41 +43,7 @@ public:
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& events) override {
         for (auto& cell : cells_) {
-            // Get begin and start range: cell config and epoch ranges
-            auto t = std::max(cell.start_time, cell.time);
-            auto t_end = std::min(cell.stop_time, ep.tfinal);
-
-            // if cell is not active skip
-            if (t >= t_end) {
-                continue;
-            }
-
-            double prob = cell.current_prob;
-            while(t < t_end)  {
-                // Do we run till end of epoch, or till the next rate change
-                double t_end_step = cell.next_rate_change_it->first < t_end ?
-                    cell.next_rate_change_it->first : t_end;
-
-                // Float noise might result in a final step larger then t_end.
-                while (t < t_end_step)
-                {
-                    // roll a dice between 0 and 1, if below prop we have a spike
-                    if (distribution(cell.generator) < prob) {
-                        spikes_.push_back({ { cell.gid, 0 }, t });
-                    }
-                    t += cell.sample_delta;
-                    prob += cell.current_prob_dt;
-                }
-
-                // Did we have a rate change inside of the epoch?
-                if (cell.next_rate_change_it->first < t_end) {
-                    // update the to the new rate
-                    double last_time = cell.next_rate_change_it->first;
-                    cell.rate_change_step( last_time);
-                }
-            }
-            cell.time = t;
-            cell.current_prob = prob;
+            cell.advance(ep, spikes_);
         }
     }
 
@@ -96,7 +56,7 @@ public:
     }
 
     void add_sampler(sampler_association_handle, cell_member_predicate, schedule, sampler_function, sampling_policy) override {
-        std::logic_error("pi_cell does not support sampling");
+        std::logic_error("ipss_cell does not support sampling");
     }
 
     void remove_sampler(sampler_association_handle) override {}
@@ -104,79 +64,12 @@ public:
     void remove_all_samplers() override {}
 
 private:
-    // RSS description plus gid for each RSS cell.
-    struct ipss_info: public ipss_cell_description {
-        ipss_info(ipss_cell_description desc, cell_gid_type gid):
-            ipss_cell_description(std::move(desc)),
-            gid(gid),
-            time(0.0),
-            generator(gid),
-            current_prob(0.0),
-            current_prob_dt(0.0)
-            {
-            // We now have ownership of the rate_vector add a single rate pair
-            // At the end with the stop time. We can now use an itterator to the
-            // next rate change.
-            rates_per_time.push_back({ stop_time+ sample_delta, rates_per_time.back().second });
-
-            initialize_cell_state();
-        }
-
-        void initialize_cell_state() {
-            // Sanity check: we need a rate at the start of the neuron time
-            if (rates_per_time.cbegin()->first > start_time) {
-                throw std::logic_error("The start time of the neuron is before the first time/rate pair");
-            }
-
-            next_rate_change_it = rates_per_time.cbegin();
-            current_prob = next_rate_change_it->second;
-
-            // loop over the entries until we have the last change before
-            // the start time of the cell
-            while (next_rate_change_it->first <= start_time) {
-                double last_time = next_rate_change_it->first;
-
-                rate_change_step(last_time);
-            }
-        }
-        void rate_change_step( time_type last_time) {
-            current_prob =
-                (next_rate_change_it->second / 1000.0) * sample_delta;
-
-            // increase the next_rate_change_it pointer
-
-            next_rate_change_it++;
-            if (interpolate)
-            {
-                double next_prob = (next_rate_change_it->second / 1000.0) * sample_delta;
-                unsigned steps = (next_rate_change_it->first - last_time) / sample_delta;
-
-                current_prob_dt = (next_prob - current_prob) / steps;
-            }
-        }
-        cell_gid_type gid;
-        time_type time;
-
-        // Each cell has a unique generator
-        std::mt19937 generator;
-
-        // The current rate  (spike/s) we are running at
-        double current_prob;
-
-        double current_prob_dt;
-
-        // pointer into a vector of time rate pairs when to change to new rates
-        std::vector<std::pair<time_type, double>>::const_iterator next_rate_change_it;
-    };
-
     // RSS cell descriptions.
-    std::vector<ipss_info> cells_;
+    std::vector<ipss_cell> cells_;
 
     // Spikes that are generated.
     std::vector<spike> spikes_;
 
-    // Distribution for Poisson generation
-    std::uniform_real_distribution<float> distribution;
 };
 } // namespace arb
 
