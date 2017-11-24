@@ -1,6 +1,6 @@
 #include "../gtest.h"
 
-#include <ipss_cell.hpp>
+#include <ipss_cell_description.hpp>
 #include <ipss_cell_group.hpp>
 
 #include "../simple_recipes.hpp"

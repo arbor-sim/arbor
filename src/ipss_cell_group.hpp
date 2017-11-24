@@ -6,7 +6,7 @@
 
 #include <cell_group.hpp>
 #include <recipe.hpp>
-#include <ipss_cell.hpp>
+#include <ipss_cell_description.hpp>
 #include <util/unique_any.hpp>
 
 
