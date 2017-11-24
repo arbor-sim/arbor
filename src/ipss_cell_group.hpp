@@ -61,30 +61,56 @@ public:
             }
 
             while(t < t_end)  {
-                // Do we run till end of epoch, or till the next rate change
-                double t_end_step = cell.next_rate_change_it->first < t_end ?
-                    cell.next_rate_change_it->first : t_end;
+                if (cell.interpolate) {
+                    // Do we run till end of epoch, or till the next rate change
+                    double t_end_step = cell.next_rate_change_it->first < t_end ?
+                        cell.next_rate_change_it->first : t_end;
 
-                double prob_per_dt = (cell.current_rate / 1000.0) * cell.sample_delta;
+                    double prob_per_dt = (cell.current_prob / 1000.0) * cell.sample_delta;
 
-                // Float noise might result in a final step larger then t_end.
-                while (t < t_end_step)
-                {
-                    // roll a dice between 0 and 1, if below prop we have a spike
-                    if (distribution(cell.generator) < prob_per_dt) {
-                        spikes_.push_back({ { cell.gid, 0 }, t });
+                    // Float noise might result in a final step larger then t_end.
+                    while (t < t_end_step)
+                    {
+                        // roll a dice between 0 and 1, if below prop we have a spike
+                        if (distribution(cell.generator) < prob_per_dt) {
+                            spikes_.push_back({ { cell.gid, 0 }, t });
+                        }
+                        t += cell.sample_delta;
                     }
-                    t += cell.sample_delta;
-                }
 
-                // Did we have a rate change inside of the epoch?
-                if (cell.next_rate_change_it->first < t_end) {
-                    // update the to the new rate
-                    cell.current_rate = cell.next_rate_change_it->second;
-                    // increase the next_rate_change_it pointer
-                    cell.next_rate_change_it++;
-                }
+                    // Did we have a rate change inside of the epoch?
+                    if (cell.next_rate_change_it->first < t_end) {
+                        // update the to the new rate
+                        cell.current_prob = cell.next_rate_change_it->second;
+                        // increase the next_rate_change_it pointer
+                        cell.next_rate_change_it++;
+                    }
 
+                }
+                else {
+                    // Do we run till end of epoch, or till the next rate change
+                    double t_end_step = cell.next_rate_change_it->first < t_end ?
+                        cell.next_rate_change_it->first : t_end;
+
+                    // Float noise might result in a final step larger then t_end.
+                    while (t < t_end_step)
+                    {
+                        // roll a dice between 0 and 1, if below prop we have a spike
+                        if (distribution(cell.generator) < cell.current_prob) {
+                            spikes_.push_back({ { cell.gid, 0 }, t });
+                        }
+                        t += cell.sample_delta;
+                    }
+
+                    // Did we have a rate change inside of the epoch?
+                    if (cell.next_rate_change_it->first < t_end) {
+                        // update the to the new rate
+                        cell.current_prob =
+                            (cell.next_rate_change_it->second / 1000.0) * cell.sample_delta;
+                        // increase the next_rate_change_it pointer
+                        cell.next_rate_change_it++;
+                    }
+                }
             }
             cell.time = t;
         }
@@ -114,7 +140,10 @@ private:
             gid(gid),
             time(0.0),
             generator(gid),
-            current_rate(0.0) {
+            current_prob(0.0),
+            current_prob_dt(0.0),
+            step_idx(0)
+            {
             // We now have ownership of the rate_vector add a single rate pair
             // At the end with the stop time. We can now use an itterator to the
             // next rate change.
@@ -131,11 +160,13 @@ private:
             }
 
             next_rate_change_it = rates_per_time.cbegin();
-            current_rate = next_rate_change_it->second;
+            current_prob = next_rate_change_it->second;
             // loop over the entries until we have the last change before
             // the start time of the cell
             while (next_rate_change_it->first <= start_time) {
-                current_rate = next_rate_change_it->second;
+               current_prob =
+                    (next_rate_change_it->second / 1000.0) * sample_delta;
+
                 next_rate_change_it++;
             }
         }
@@ -147,10 +178,16 @@ private:
         std::mt19937 generator;
 
         // The current rate  (spike/s) we are running at
-        double current_rate;
+        double current_prob;
+
+        double current_prob_dt;
+
+        unsigned step_idx;
 
         // pointer into a vector of time rate pairs when to change to new rates
         std::vector<std::pair<time_type, double>>::const_iterator next_rate_change_it;
+
+
     };
 
     // RSS cell descriptions.

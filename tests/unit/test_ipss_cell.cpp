@@ -14,6 +14,13 @@ using namespace std;
 
 using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_source, ipss_cell>;
 
+
+
+
+
+
+
+
 TEST(ipss_cell_group, basic_usage)
 {
     // Create an array of spike times for 1000 ms of time using the same
@@ -43,7 +50,7 @@ TEST(ipss_cell_group, basic_usage)
     }
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time};
+    ipss_cell desc{ begin, end, sample_delta, rates_per_time, false};
     ipss_cell_group sut({0}, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
@@ -90,7 +97,7 @@ TEST(ipss_cell_group, test_reset)
     }
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time };
+    ipss_cell desc{ begin, end, sample_delta, rates_per_time, false };
     ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
 
     // Run the cell_group for some time
@@ -146,7 +153,7 @@ TEST(ipss_cell_group, start_end_different_then_zero)
     }
 
     // Create the cell_group
-    ipss_cell desc{ begin, end, sample_delta, rates_per_time };
+    ipss_cell desc{ begin, end, sample_delta, rates_per_time, false };
     ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
     std::vector<spike> spikes_from_cell;
     for (int idx = 0; idx < 10; ++idx) {
