@@ -19,69 +19,42 @@ class ipss_cell : public ipss_cell_description {
 public:
 
     ipss_cell(ipss_cell_description desc, cell_gid_type gid) :
-        ipss_cell_description(std::move(desc)),
-        gid(gid),
-        time(0.0),
-        generator(gid),
-        current_prob(0.0),
-        current_prob_dt(0.0)
-    {
+        ipss_cell_description(std::move(desc)), gid_(gid), time_(0.0),
+        generator_(gid), prob_(0.0), prob_dt_(0.0) {
         // We now have ownership of the rate_vector add a single rate pair
-        // At the end with the stop time. We can now use an itterator to the
+        // At the end with the stop time_. We can now use an itterator to the
         // next rate change.
         rates_per_time.push_back({ stop_time + sample_delta, rates_per_time.back().second });
 
+
         initialize_cell_state();
     }
 
-
-    void initialize_cell_state() {
-        // Sanity check: we need a rate at the start of the neuron time
-        if (rates_per_time.cbegin()->first > start_time) {
-            throw std::logic_error("The start time of the neuron is before the first time/rate pair");
-        }
-
-        next_rate_change_it = rates_per_time.cbegin();
-        current_prob = next_rate_change_it->second;
-
-        // loop over the entries until we have the last change before
-        // the start time of the cell
-        while (next_rate_change_it->first <= start_time) {
-            double last_time = next_rate_change_it->first;
-
-            rate_change_step(last_time);
-        }
+    cell_kind get_cell_kind() const {
+        return cell_kind::inhomogeneous_poisson_spike_source;
     }
-    void rate_change_step(time_type last_time) {
-        current_prob =
-            (next_rate_change_it->second / 1000.0) * sample_delta;
 
-        // increase the next_rate_change_it pointer
-
-        next_rate_change_it++;
-        if (interpolate)
-        {
-            double next_prob = (next_rate_change_it->second / 1000.0) * sample_delta;
-            unsigned steps = (next_rate_change_it->first - last_time) / sample_delta;
-
-            current_prob_dt = (next_prob - current_prob) / steps;
-        }
-    }
 
     void reset() {
-        time = 0.0;
+        time_ = 0.0;
 
         // Reset the random number generator!
-        generator = std::mt19937(gid);
+        generator_.seed(gid_);
 
         initialize_cell_state();
-
     }
 
+    /// Advance the Poisson generator until end of ep
+    /// If a rate change is occured during this ep the new rate will be used
+    /// including possible interpolation between steps.
+    ///
+    /// Floating point noise might result in a final step that ends a maximum of
+    /// sample_delta - MIN(float) after ep. Internal timekeeping will take this
+    /// in account in next steps.
     void advance(epoch ep, std::vector<spike>& spikes_)
     {
         // Get begin and start range: cell config and epoch ranges
-        auto t = std::max(start_time, time);
+        auto t = std::max(start_time, time_);
         auto t_end = std::min(stop_time, ep.tfinal);
 
         // if cell is not active skip
@@ -89,52 +62,93 @@ public:
             return;
         }
 
-        double prob = current_prob;
+        double prob = prob_;
         while (t < t_end) {
-            // Do we run till end of epoch, or till the next rate change
-            double t_end_step = next_rate_change_it->first < t_end ?
-                next_rate_change_it->first : t_end;
+            // Do we run till the next rate change or till end of epoch?
+            double t_end_step = it_next_rate_->first < t_end ?
+                it_next_rate_->first : t_end;
 
-            // Float noise might result in a final step larger then t_end.
             while (t < t_end_step)
             {
                 // roll a dice between 0 and 1, if below prop we have a spike
-                if (distribution(generator) < prob) {
-                    spikes_.push_back({ { gid, 0 }, t });
+                if (distribution_(generator_) < prob) {
+                    spikes_.push_back({ { gid_, 0 }, t });
                 }
                 t += sample_delta;
-                prob += current_prob_dt;
+                prob += prob_dt_;
             }
 
             // Did we have a rate change inside of the epoch?
-            if (next_rate_change_it->first < t_end) {
+            if (it_next_rate_->first < t_end) {
                 // update the to the new rate
-                double last_time = next_rate_change_it->first;
-                rate_change_step(last_time);
+                rate_change_step();
             }
         }
-        time = t;
-        current_prob = prob;
+        time_ = t;
+        prob_ = prob;
     }
 
 
 private:
-    cell_gid_type gid;
-    time_type time;
+    /// Set internal variables based on the rate vector supplied add construction
+    ///   - Find the first valid rate depending on the start time_
+    ///   - Set the rates and rate change per step
+    ///   - Set the iterator to the next rate change
+    void initialize_cell_state() {
+        // Sanity check: we need a rate at the start of the neuron time_
+        if (rates_per_time.cbegin()->first > start_time) {
+            throw std::logic_error("The start time of the neuron is before the first time/rate pair");
+        }
 
-    // Each cell has a unique generator
-    std::mt19937 generator;
+        it_next_rate_ = rates_per_time.cbegin();
+        prob_ = it_next_rate_->second;
+
+        // loop over the entries until we have the last change before
+        // the start time_ of the cell
+        while (it_next_rate_->first <= start_time) {
+            rate_change_step();
+        }
+    }
+
+    /// We need to do some book keeping when we have a rate_change step
+    ///   - Set the new base rate based on the rate vector
+    ///   - Update the next rate change it.
+    ///   if we have interpolation:
+    ///   - Calculate the rate_change per sample step size
+    void rate_change_step() {
+        auto last_time = it_next_rate_->first;
+        prob_ = (it_next_rate_->second / 1000.0) * sample_delta;
+
+        // increase the it_next_rate_ pointer
+
+        it_next_rate_++;
+        if (interpolate)
+        {
+            double next_prob = (it_next_rate_->second / 1000.0) * sample_delta;
+            unsigned steps = (it_next_rate_->first - last_time) / sample_delta;
+
+            prob_dt_ = (next_prob - prob_) / steps;
+        }
+    }
+
+
+
+    cell_gid_type gid_;
+    time_type time_;
+
+    // Each cell has a unique generator_
+    std::mt19937 generator_;
 
     // The current rate  (spike/s) we are running at
-    double current_prob;
+    double prob_;
 
-    double current_prob_dt;
+    double prob_dt_;
 
-    // pointer into a vector of time rate pairs when to change to new rates
-    std::vector<std::pair<time_type, double>>::const_iterator next_rate_change_it;
+    // pointer into a vector of time_ rate pairs when to change to new rates
+    std::vector<std::pair<time_type, double>>::const_iterator it_next_rate_;
 
     // Distribution for Poisson generation
-    std::uniform_real_distribution<float> distribution;
+    std::uniform_real_distribution<float> distribution_;
 };
 } // namespace arb
 
