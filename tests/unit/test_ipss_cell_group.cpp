@@ -15,20 +15,9 @@ using namespace std;
 using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_source, ipss_cell_description>;
 
 
-TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
-{
-    // Create an array of spike times for 1000 ms of time using the same
-    // seed for the random number generator (in one go)
-    // Then let the cell_group generate the spikes, they should be the same
-    time_type begin = 0;
-    time_type end = 1000.0;
-
-    time_type rate = 20;  // Hz
-    std::vector<std::pair<time_type, double>> rates_per_time;
-    rates_per_time.push_back({ 0.0, rate });
-    time_type sample_delta = 0.1; // 0.1 ms
-
-    constexpr time_type dt = 0.01; // dt is ignored by ipss_cell_group::advance().
+std::vector<spike> create_poisson_spike_train(time_type begin, time_type end,
+    double rate, double sample_delta,
+    std::vector<std::pair<time_type, double>> rates_per_time) {
 
     // Create the generator
     std::mt19937 gen(0);
@@ -43,21 +32,39 @@ TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
         }
     }
 
-    // Create the cell_group
-    ipss_cell_description desc{ begin, end, sample_delta, rates_per_time, false};
-    ipss_cell_group sut({0}, ipss_recipe(1u, desc));
-    std::vector<spike> spikes_from_cell;
-    for (int idx = 0; idx < 10; ++idx) {
-        epoch ep(100.0 * idx, 100.0 * idx + 100.0);
-        sut.advance(ep, dt, {});
-        spikes_from_cell.insert(spikes_from_cell.end(), sut.spikes().begin(), sut.spikes().end());
-        sut.clear_spikes();
+    return spikes;
+}
 
+TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
+{
+    // Create an array of spike times for 1000 ms of time using the same
+    // seed for the random number generator (in one go)
+    // Then let the cell_group generate the spikes, they should be the same
+    time_type begin = 0;
+    time_type end = 1000.0;
+    time_type rate = 20;  // Hz
+    time_type sample_delta = 0.1; // 0.1 ms
+
+    // The rate changes we want
+    std::vector<std::pair<time_type, double>> rates_per_time;
+    rates_per_time.push_back({ 0.0, rate });
+
+    // Target output
+    std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
+        rate, sample_delta, rates_per_time);
+
+    // Create the cell group itself
+    ipss_cell_group sut({0},
+        ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, false }));
+
+    // run the cell
+    for (std::size_t idx = 0; idx < 10; ++idx) {
+        sut.advance({ idx, time_type(100.0) * idx + time_type(100.0) }, 0.01, {});
     }
 
     // Check the output of the cell
-    EXPECT_EQ(spikes.size(), spikes_from_cell.size());
-    for (auto s1 = spikes.begin(), s2 = spikes_from_cell.begin(); s1 < spikes.end(); ++s1, ++s2) {
+    EXPECT_EQ(target_spikes.size(), sut.spikes().size());
+    for (std::vector<spike>::const_iterator s1 = target_spikes.begin(), s2 = sut.spikes().begin(); s1 < target_spikes.end(); ++s1, ++s2) {
         ASSERT_FLOAT_EQ(s1->time, s2->time);
     }
 }
@@ -69,15 +76,15 @@ TEST(ipss_cell_group, differt_rates_non_interpolate)
     // Then let the cell_group generate the spikes, they should be the same
     time_type begin = 0;
     time_type end = 10.0;
-
     time_type rate = 20;  // Hz
-    std::vector<std::pair<time_type, double>> rates_per_time;
+    time_type sample_delta = 0.1; // 0.1 ms
 
+    std::vector<std::pair<time_type, double>> rates_per_time;
     rates_per_time.push_back({ 0.0, rate });
     rates_per_time.push_back({ 3.0, rate * 3.0 });
     rates_per_time.push_back({ 4.0, rate * 4.0 });
 
-    time_type sample_delta = 0.1; // 0.1 ms
+
     constexpr time_type dt = 0.01; // dt is ignored by ipss_cell_group::advance().
 
     // Create the generator

@@ -19,7 +19,8 @@ struct ipss_cell_description {
     std::vector<std::pair<time_type, double>> rates_per_time;
     bool interpolate;
 
-    // vector of spike_rates each starting at the supplied time
+    // rates_per_time: A vector of spike_rates each starting at the supplied time
+    // The first time-rate pair should have a time before the start_time
     ipss_cell_description(time_type start_time, time_type stop_time, time_type sample_delta,
         std::vector<std::pair<time_type, double>> rates_per_time, bool interpolate = true) :
         start_time(start_time),
