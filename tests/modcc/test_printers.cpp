@@ -6,10 +6,6 @@
 #include "cprinter.hpp"
 #include "expression.hpp"
 
-//using scope_type = Scope<Symbol>;
-//using symbol_map = scope_type::symbol_map;
-//using symbol_ptr = Scope<Symbol>::symbol_ptr;
-
 struct testcase {
     const char* source;
     const char* expected;
@@ -24,16 +20,21 @@ TEST(CPrinter, statement) {
     std::vector<testcase> testcases = {
         {"y=x+3",            "y=x+3"},
         {"y=y^z",            "y=std::pow(y,z)"},
-        {"y=exp((x/2) + 3)", "y=exp(x/2+3)"}
+        {"y=exp((x/2) + 3)", "y=exp(x/2+3)"},
+        {"z=a/b/c",          "z=a/b/c"},
+        {"z=a/(b/c)",        "z=a/(b/c)"},
+        {"z=(a*b)/c",        "z=a*b/c"},
+        {"z=a-(b+c)",        "z=a-(b+c)"},
+        {"z=(a>0)<(b>0)",    "z=a>0<(b>0)"}
     };
 
     // create a scope that contains the symbols used in the tests
     Scope<Symbol>::symbol_map globals;
     auto scope = std::make_shared<Scope<Symbol>>(globals);
 
-    scope->add_local_symbol("x", make_symbol<LocalVariable>(Location(), "x", localVariableKind::local));
-    scope->add_local_symbol("y", make_symbol<LocalVariable>(Location(), "y", localVariableKind::local));
-    scope->add_local_symbol("z", make_symbol<LocalVariable>(Location(), "z", localVariableKind::local));
+    for (auto var: {"x", "y", "z", "a", "b", "c"}) {
+        scope->add_local_symbol(var, make_symbol<LocalVariable>(Location(), var, localVariableKind::local));
+    }
 
     for (const auto& tc: testcases) {
         auto e = parse_line_expression(tc.source);
@@ -43,9 +44,7 @@ TEST(CPrinter, statement) {
         auto v = make_unique<CPrinter>();
         e->accept(v.get());
 
-        verbose_print(e->to_string());
-        verbose_print(" :--: ", v->text());
-
+        verbose_print(e->to_string(), " :--: ", v->text());
         EXPECT_EQ(strip(tc.expected), strip(v->text()));
     }
 }
