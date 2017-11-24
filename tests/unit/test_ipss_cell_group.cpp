@@ -58,6 +58,7 @@ TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
     time_type end = 1000.0;
     time_type rate = 20;  // Hz
     time_type sample_delta = 0.1; // 0.1 ms
+    bool interpolate = false;
 
     // The rate changes we want
     std::vector<std::pair<time_type, double>> rates_per_time;
@@ -69,7 +70,7 @@ TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
 
     // Create the cell group itself
     ipss_cell_group sut({0},
-        ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, false }));
+        ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, interpolate }));
 
     // run the cell
     for (std::size_t idx = 0; idx < 10; ++idx) {
@@ -92,6 +93,7 @@ TEST(ipss_cell_group, differt_rates_non_interpolate)
     time_type end = 10.0;
     time_type rate = 20;  // Hz
     time_type sample_delta = 0.1; // 0.1 ms
+    bool interpolate = false;
 
     std::vector<std::pair<time_type, double>> rates_per_time;
     rates_per_time.push_back({ 0.0, rate });
@@ -99,27 +101,19 @@ TEST(ipss_cell_group, differt_rates_non_interpolate)
     rates_per_time.push_back({ 4.0, rate * 4.0 });
 
 
-    constexpr time_type dt = 0.01; // dt is ignored by ipss_cell_group::advance().
-
-    // Create the generator
-    std::mt19937 gen(0);
-    auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
-
     // Create the spikes and store in the correct way
     std::vector<spike> spikes = create_poisson_spike_train(begin, end,
          sample_delta, rates_per_time);;
 
 
     // Create the cell_group
-    ipss_cell_description desc{ begin, end, sample_delta, rates_per_time, false };
-    ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
-    std::vector<spike> spikes_from_cell;
-    for (int idx = 0; idx < 10; ++idx) {
-        epoch ep(100.0 * idx, 100.0 * idx + 100.0);
-        sut.advance(ep, dt, {});
-        spikes_from_cell.insert(spikes_from_cell.end(), sut.spikes().begin(), sut.spikes().end());
-        sut.clear_spikes();
 
+    ipss_cell_group sut({ 0 },
+        ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, interpolate }));
+
+    std::vector<spike> spikes_from_cell;
+    for (std::size_t idx = 0; idx < 10; ++idx) {
+        sut.advance({ idx, time_type(100.0) * idx + time_type(100.0) }, 0.01, {});
     }
 
     // Check the output of the cell
