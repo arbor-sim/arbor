@@ -116,35 +116,39 @@ private:
     ///   if we have interpolation:
     ///   - Calculate the rate_change per sample step size
     void rate_change_step() {
-        auto last_time = it_next_rate_->first;
+        // We need the start value for this rate change
+        auto start_time = it_next_rate_->first;
         prob_ = (it_next_rate_->second / 1000.0) * sample_delta;
 
-        // increase the it_next_rate_ pointer
-
+        // Increase the iterator
         it_next_rate_++;
-        if (interpolate)
-        {
-            double next_prob = (it_next_rate_->second / 1000.0) * sample_delta;
-            unsigned steps = (it_next_rate_->first - last_time) / sample_delta;
 
+        // If we interpolate we calculate the rate_change per sample_delta step
+        // based on the next rate change iterator values
+        if (interpolate) {
+            double next_prob = (it_next_rate_->second / 1000.0) * sample_delta;
+            unsigned steps = (it_next_rate_->first - start_time) / sample_delta;
             prob_dt_ = (next_prob - prob_) / steps;
         }
     }
 
-
-
     cell_gid_type gid_;
+
+    // Internal time of the cell. Assures that we have continues time when
+    // floating point noise occurs
     time_type time_;
 
-    // Each cell has a unique generator_
+    // Unique generator per cell
     std::mt19937 generator_;
 
     // The current rate  (spike/s) we are running at
     double prob_;
 
+    // How much much of a rate of change per sampling time step needed for
+    // interpolation.
     double prob_dt_;
 
-    // pointer into a vector of time_ rate pairs when to change to new rates
+    // pointer into a vector of time-rate pairs when to change to new rate
     std::vector<std::pair<time_type, double>>::const_iterator it_next_rate_;
 
     // Distribution for Poisson generation
