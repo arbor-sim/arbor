@@ -4,7 +4,9 @@
 #include "test.hpp"
 
 #include "cprinter.hpp"
+#include "cudaprinter.hpp"
 #include "expression.hpp"
+#include "textbuffer.hpp"
 
 struct testcase {
     const char* source;
@@ -16,7 +18,7 @@ static std::string strip(std::string text) {
     return std::regex_replace(text, rx, "");
 }
 
-TEST(CPrinter, statement) {
+TEST(scalar_printer, statement) {
     std::vector<testcase> testcases = {
         {"y=x+3",            "y=x+3"},
         {"y=y^z",            "y=std::pow(y,z)"},
@@ -41,11 +43,29 @@ TEST(CPrinter, statement) {
         ASSERT_TRUE(e);
 
         e->semantic(scope);
-        auto v = make_unique<CPrinter>();
-        e->accept(v.get());
 
-        verbose_print(e->to_string(), " :--: ", v->text());
-        EXPECT_EQ(strip(tc.expected), strip(v->text()));
+        {
+            SCOPED_TRACE("CPrinter");
+            auto printer = make_unique<CPrinter>();
+            e->accept(printer.get());
+            std::string text = printer->text();
+
+            verbose_print(e->to_string(), " :--: ", text);
+            EXPECT_EQ(strip(tc.expected), strip(text));
+        }
+
+        {
+            SCOPED_TRACE("CUDAPrinter");
+            TextBuffer buf;
+            auto printer = make_unique<CUDAPrinter>();
+            printer->set_buffer(buf);
+
+            e->accept(printer.get());
+            std::string text = buf.str();
+
+            verbose_print(e->to_string(), " :--: ", text);
+            EXPECT_EQ(strip(tc.expected), strip(text));
+        }
     }
 }
 

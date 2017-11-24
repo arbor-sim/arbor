@@ -44,6 +44,11 @@ public:
         return interface_.str();
     }
 
+    // public for testing purposes:
+    void set_buffer(TextBuffer& buf) {
+        current_buffer_ = &buf;
+    }
+
 private:
 
     bool is_input(Symbol *s) {
@@ -111,10 +116,6 @@ private:
     TextBuffer impl_;
     TextBuffer impl_interface_;
     TextBuffer* current_buffer_;
-
-    void set_buffer(TextBuffer& buf) {
-        current_buffer_ = &buf;
-    }
 
     TextBuffer& buffer() {
         if (!current_buffer_) {

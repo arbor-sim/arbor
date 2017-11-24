@@ -1,5 +1,6 @@
 set(MODCC_SOURCES
     astmanip.cpp
+    cexpr_render.cpp
     constantfolder.cpp
     cprinter.cpp
     cudaprinter.cpp

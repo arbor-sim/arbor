@@ -14,8 +14,6 @@ public:
     virtual void visit(Expression *e)           override;
     virtual void visit(UnaryExpression *e)      override;
     virtual void visit(BinaryExpression *e)     override;
-    virtual void visit(AssignmentExpression *e) override;
-    virtual void visit(PowBinaryExpression *e)  override;
     virtual void visit(NumberExpression *e)     override;
     virtual void visit(VariableExpression *e)   override;
     virtual void visit(Symbol *e)               override;
@@ -62,7 +60,6 @@ protected:
     void print_APIMethod_unoptimized(APIMethod* e);
 
     Module *module_ = nullptr;
-    tok parent_op_ = tok::eq;
     TextBuffer text_;
     bool optimize_ = false;
     bool aliased_output_ = false;
