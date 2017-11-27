@@ -1,11 +1,9 @@
 set(MODCC_SOURCES
     astmanip.cpp
-    constantfolder.cpp
     cprinter.cpp
     cudaprinter.cpp
     errorvisitor.cpp
     expression.cpp
-    expressionclassifier.cpp
     functionexpander.cpp
     functioninliner.cpp
     lexer.cpp

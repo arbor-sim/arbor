@@ -7,12 +7,11 @@
 #include "backends/base.hpp"
 #include "util/compat.hpp"
 
-namespace arb {
 namespace modcc {
 
 // Specialize for the different architectures
 template<>
-struct simd_intrinsics<targetKind::avx2> {
+struct simd_intrinsics<simdKind::avx2> {
     static bool has_scatter() {
         return false;
     }
@@ -198,7 +197,7 @@ private:
     const static std::string varprefix;
 };
 
-int simd_intrinsics<targetKind::avx2>::varcnt = 0;
-const std::string simd_intrinsics<targetKind::avx2>::varprefix = "_r";
+int simd_intrinsics<simdKind::avx2>::varcnt = 0;
+const std::string simd_intrinsics<simdKind::avx2>::varprefix = "_r";
 
-}} // closing namespaces
+} // namespace modcc
