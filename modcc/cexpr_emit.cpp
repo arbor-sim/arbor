@@ -35,7 +35,7 @@ void CExprEmitter::visit(UnaryExpression* e) {
 
     if (!unaryop_tbl.count(e->op())) {
         throw compiler_exception(
-            "CExprRender: unsupported unary operator "+token_string(e->op()), e->location());
+            "CExprEmitter: unsupported unary operator "+token_string(e->op()), e->location());
     }
 
     const char* op_spelling = unaryop_tbl.at(e->op());
@@ -77,7 +77,7 @@ void CExprEmitter::visit(BinaryExpression *e) {
 
     if (!binop_tbl.count(e->op())) {
         throw compiler_exception(
-            "CExprRender: unsupported binary operator "+token_string(e->op()), e->location());
+            "CExprEmitter: unsupported binary operator "+token_string(e->op()), e->location());
     }
 
     const char* op_spelling = binop_tbl.at(e->op());
