@@ -2,7 +2,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "cexpr_render.hpp"
+#include "cexpr_emit.hpp"
 #include "cprinter.hpp"
 #include "lexer.hpp"
 #include "options.hpp"
@@ -545,7 +545,7 @@ void CPrinter::visit(LocalVariable *e) {
 }
 
 void CPrinter::visit(NumberExpression *e) {
-    cexpr_render(e, text_.text(), this);
+    cexpr_emit(e, text_.text(), this);
 }
 
 void CPrinter::visit(IdentifierExpression *e) {
@@ -568,7 +568,7 @@ void CPrinter::visit(CellIndexedVariable *e) {
 }
 
 void CPrinter::visit(UnaryExpression *e) {
-    cexpr_render(e, text_.text(), this);
+    cexpr_emit(e, text_.text(), this);
 }
 
 void CPrinter::visit(BlockExpression *e) {
@@ -911,6 +911,6 @@ void CPrinter::visit(CallExpression *e) {
 }
 
 void CPrinter::visit(BinaryExpression *e) {
-    cexpr_render(e, text_.text(), this);
+    cexpr_emit(e, text_.text(), this);
 }
 

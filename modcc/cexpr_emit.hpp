@@ -6,9 +6,9 @@
 // Common functionality for generating source from binary expressions
 // as C expressions.
 
-class CExprRenderer: public Visitor {
+class CExprEmitter: public Visitor {
 public:
-    CExprRenderer(std::ostream& out, Visitor* fallback):
+    CExprEmitter(std::ostream& out, Visitor* fallback):
         out_(out), fallback_(fallback)
     {}
 
@@ -24,11 +24,11 @@ protected:
     std::ostream& out_;
     Visitor* fallback_;
 
-    void render_as_call(const char* sub, Expression*);
-    void render_as_call(const char* sub, Expression*, Expression*);
+    void emit_as_call(const char* sub, Expression*);
+    void emit_as_call(const char* sub, Expression*, Expression*);
 };
 
-inline void cexpr_render(Expression* e, std::ostream& out, Visitor* fallback) {
-    CExprRenderer renderer(out, fallback);
+inline void cexpr_emit(Expression* e, std::ostream& out, Visitor* fallback) {
+    CExprEmitter renderer(out, fallback);
     e->accept(&renderer);
 }

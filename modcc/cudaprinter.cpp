@@ -2,7 +2,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "cexpr_render.hpp"
+#include "cexpr_emit.hpp"
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
 #include "options.hpp"
@@ -646,7 +646,7 @@ void CUDAPrinter::visit(LocalDeclaration *e) {
 }
 
 void CUDAPrinter::visit(NumberExpression *e) {
-    cexpr_render(e, buffer().text(), this);
+    cexpr_emit(e, buffer().text(), this);
 }
 
 void CUDAPrinter::visit(IdentifierExpression *e) {
@@ -709,7 +709,7 @@ void CUDAPrinter::visit(LocalVariable *e) {
 }
 
 void CUDAPrinter::visit(UnaryExpression *e) {
-    cexpr_render(e, buffer().text(), this);
+    cexpr_emit(e, buffer().text(), this);
 }
 
 void CUDAPrinter::visit(BlockExpression *e) {
@@ -1005,5 +1005,5 @@ void CUDAPrinter::visit(CallExpression *e) {
 }
 
 void CUDAPrinter::visit(BinaryExpression *e) {
-    cexpr_render(e, buffer().text(), this);
+    cexpr_emit(e, buffer().text(), this);
 }

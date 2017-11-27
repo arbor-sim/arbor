@@ -14,8 +14,22 @@ struct testcase {
 };
 
 static std::string strip(std::string text) {
-    static std::regex rx(R"(\s)");
-    return std::regex_replace(text, rx, "");
+    // Strip all spaces, except when between two minus symbols, where instead
+    // they should be replaced by a single space:
+    //
+    // 1. Replace whitespace with two spaces.
+    // 2. Replace '-  -' with '- -'.
+    // 3. Replace '  ' with ''.
+
+    static std::regex rx1("\\s+");
+    static std::regex rx2("-  -");
+    static std::regex rx3("  ");
+
+    text = std::regex_replace(text, rx1, "  ");
+    text = std::regex_replace(text, rx2, "- -");
+    text = std::regex_replace(text, rx3, "");
+
+    return text;
 }
 
 TEST(scalar_printer, statement) {
@@ -27,7 +41,8 @@ TEST(scalar_printer, statement) {
         {"z=a/(b/c)",        "z=a/(b/c)"},
         {"z=(a*b)/c",        "z=a*b/c"},
         {"z=a-(b+c)",        "z=a-(b+c)"},
-        {"z=(a>0)<(b>0)",    "z=a>0<(b>0)"}
+        {"z=(a>0)<(b>0)",    "z=a>0<(b>0)"},
+        {"z=a- -2",          "z=a- -2"}
     };
 
     // create a scope that contains the symbols used in the tests

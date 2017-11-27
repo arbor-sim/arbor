@@ -1,16 +1,16 @@
 #include <ostream>
 #include <unordered_map>
 
-#include "cexpr_render.hpp"
+#include "cexpr_emit.hpp"
 #include "error.hpp"
 
-void CExprRenderer::render_as_call(const char* sub, Expression* e) {
+void CExprEmitter::emit_as_call(const char* sub, Expression* e) {
     out_ << sub << '(';
     e->accept(this);
     out_ << ')';
 }
 
-void CExprRenderer::render_as_call(const char* sub, Expression* e1, Expression* e2) {
+void CExprEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2) {
     out_ << sub << '(';
     e1->accept(this);
     out_ << ", ";
@@ -18,11 +18,11 @@ void CExprRenderer::render_as_call(const char* sub, Expression* e1, Expression* 
     out_ << ')';
 }
 
-void CExprRenderer::visit(NumberExpression* e) {
+void CExprEmitter::visit(NumberExpression* e) {
     out_ << " " << e->value();
 }
 
-void CExprRenderer::visit(UnaryExpression* e) {
+void CExprEmitter::visit(UnaryExpression* e) {
     // Place a space in front of minus sign to avoid invalid
     // expressions of the form: (v[i]--67)
     static std::unordered_map<tok, const char*> unaryop_tbl = {
@@ -48,21 +48,21 @@ void CExprRenderer::visit(UnaryExpression* e) {
         inner->accept(this);
     }
     else {
-        render_as_call(op_spelling, inner);
+        emit_as_call(op_spelling, inner);
     }
 }
 
-void CExprRenderer::visit(AssignmentExpression* e) {
+void CExprEmitter::visit(AssignmentExpression* e) {
     e->lhs()->accept(this);
     out_ << " = ";
     e->rhs()->accept(this);
 }
 
-void CExprRenderer::visit(PowBinaryExpression* e) {
-    render_as_call("std::pow", e->lhs(), e->rhs());
+void CExprEmitter::visit(PowBinaryExpression* e) {
+    emit_as_call("std::pow", e->lhs(), e->rhs());
 }
 
-void CExprRenderer::visit(BinaryExpression *e) {
+void CExprEmitter::visit(BinaryExpression *e) {
     static std::unordered_map<tok, const char*> binop_tbl = {
         {tok::minus,    "-"},
         {tok::plus,     "+"},
@@ -94,7 +94,7 @@ void CExprRenderer::visit(BinaryExpression *e) {
 
     auto lhs = e->lhs();
     if (need_paren(lhs, assoc==associativityKind::left)) {
-        render_as_call("", lhs);
+        emit_as_call("", lhs);
     }
     else {
         lhs->accept(this);
@@ -104,7 +104,7 @@ void CExprRenderer::visit(BinaryExpression *e) {
 
     auto rhs = e->rhs();
     if (need_paren(rhs, assoc==associativityKind::right)) {
-        render_as_call("", rhs);
+        emit_as_call("", rhs);
     }
     else {
         rhs->accept(this);
