@@ -5,6 +5,7 @@
 
 #include <cell.hpp>
 #include <dss_cell_description.hpp>
+#include <event_generator.hpp>
 #include <rss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
@@ -173,6 +174,10 @@ public:
             cell_size_type np = pdist_.all_segments? get_morphology(i).components(): 1;
             return np*(pdist_.membrane_voltage+pdist_.membrane_current);
         }
+    }
+
+    std::vector<event_generator> event_generators(cell_gid_type) const override {
+        return {};
     }
 
 protected:
