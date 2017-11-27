@@ -12,15 +12,16 @@
 using namespace arb;
 using namespace std;
 
-using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_source, ipss_cell_description>;
+using ipss_recipe = homogeneous_recipe<cell_kind::inhomogeneous_poisson_spike_source,
+    ipss_cell_description>;
 
 
 std::vector<spike> create_poisson_spike_train(time_type begin, time_type end,
-     double sample_delta,
+     double sample_delta, cell_gid_type gid,
     std::vector<std::pair<time_type, double>> rates_per_time, bool interpolate = false ) {
 
     // Create the generator
-    std::mt19937 gen(0);
+    std::mt19937 gen(gid);
     auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
     double prop_per_time_step;
     double prop_per_next_time_step;
@@ -52,7 +53,7 @@ std::vector<spike> create_poisson_spike_train(time_type begin, time_type end,
 
             if (dice_roll < prop_per_time_step) {
 
-                spikes.push_back({ { 0, 0 }, t });
+                spikes.push_back({ { gid, 0 }, t });
             }
 
             if (interpolate)   {
@@ -90,7 +91,7 @@ TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
 
     // Target output
     std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
-         sample_delta, rates_per_time);
+         sample_delta,0,  rates_per_time);
 
     // Create the cell group itself
     ipss_cell_group sut({0},
@@ -127,7 +128,7 @@ TEST(ipss_cell_group, differt_rates_non_interpolate)
 
     // Create the spikes and store in the correct way
     std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
-         sample_delta, rates_per_time);
+         sample_delta, 0, rates_per_time);
 
     ipss_cell_group sut({ 0 },
         ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, interpolate }));
@@ -164,7 +165,7 @@ TEST(ipss_cell_group, differt_rates_interpolate)
 
     // Create the spikes and store in the correct way
     std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
-        sample_delta, rates_per_time, interpolate);
+        sample_delta, 0, rates_per_time, interpolate);
 
     ipss_cell_group sut({ 0 },
         ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, interpolate }));
@@ -201,7 +202,7 @@ TEST(ipss_cell_group, test_reset)
 
     // Create the spikes and store in the correct way
     std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
-        sample_delta, rates_per_time, interpolate);
+        sample_delta,0, rates_per_time, interpolate);
 
     ipss_cell_group sut({ 0 },
         ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, interpolate }));
@@ -245,7 +246,7 @@ TEST(ipss_cell_group, start_end_different_then_zero)
 
     // Create the spikes and store in the correct way
     std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
-        sample_delta, rates_per_time, interpolate);
+        sample_delta, 0, rates_per_time, interpolate);
 
     ipss_cell_group sut({ 0 },
         ipss_recipe(1u, { begin, end, sample_delta, rates_per_time, interpolate }));
@@ -261,6 +262,58 @@ TEST(ipss_cell_group, start_end_different_then_zero)
         ASSERT_FLOAT_EQ(s1->time, s2->time);
     }
 }
+
+TEST(ipss_cell_group, multiple_cells)
+{
+    // Create an array of spike times for 1000 ms of time using the same
+    // seed for the random number generator (in one go)
+    // Then let the cell_group generate the spikes, they should be the same
+    time_type begin = 1.5;
+    time_type end = 10.0;
+    time_type rate = 2000;  // Hz
+    time_type sample_delta = 0.1; // 0.1 ms
+    bool interpolate = true;
+
+    unsigned nr_cells = 10;
+
+    std::vector<std::pair<time_type, double>> rates_per_time;
+    rates_per_time.push_back({ 0.0, 0.0 });
+    rates_per_time.push_back({ 3.0, rate * 3.0 });
+    rates_per_time.push_back({ 6.0, rate * 4.0 });
+    rates_per_time.push_back({ 8.0, rate * 0.0 });
+
+
+    std::vector<spike> target_spikes;
+
+    // Create the spikes and store in the correct way
+    std::vector<cell_gid_type> gids;
+    for (unsigned idx = 0; idx < nr_cells; ++idx)
+    {
+        gids.push_back(idx);
+       auto generated_spikes = create_poisson_spike_train(begin, end,
+            sample_delta, idx, rates_per_time, interpolate);
+
+        target_spikes.insert(target_spikes.end(), generated_spikes.begin(),
+            generated_spikes.end());
+    }
+
+    ipss_cell_group sut(gids,
+        ipss_recipe(nr_cells, { begin, end, sample_delta, rates_per_time, interpolate }));
+
+    for (std::size_t idx = 0; idx < 10; ++idx) {
+        sut.advance({ idx, time_type(100.0) * idx + time_type(100.0) }, 0.01, {});
+    }
+
+    // Check the output of the cell
+    EXPECT_TRUE(sut.spikes().size() > 0);
+
+
+    EXPECT_EQ(target_spikes.size(), sut.spikes().size());
+    //for (std::vector<spike>::const_iterator s1 = target_spikes.begin(), s2 = sut.spikes().begin(); s1 < target_spikes.end(); ++s1, ++s2) {
+    //    ASSERT_FLOAT_EQ(s1->time, s2->time);
+    //}
+}
+
 
 TEST(ipss_cell_group, cell_kind_correct)
 {
