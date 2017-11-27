@@ -39,6 +39,7 @@ public:
     ///   - Set the iterator to the next rate change
     ///   - time zero
     ///   - reseed rng
+    ///   - Interpolate start rate
     void reset() {
         time_ = 0.0;
 
@@ -59,6 +60,15 @@ public:
             rate_change_step();
         }
 
+        // When the start time is different then the first time-rate entry
+        // we need to 'interpolate' the starting prob_
+        // Previous pointer
+        auto it_prev = it_next_rate_;
+        it_prev--;
+
+        // How many step from pair time till start time
+        unsigned steps = (start_time - it_prev->first) / sample_delta;
+        prob_ += steps * prob_dt_;
     }
 
     /// Advance the Poisson generator until end of ep

@@ -38,6 +38,13 @@ std::vector<spike> create_poisson_spike_train(time_type begin, time_type end,
             prop_per_next_time_step = (rates_per_time.at(idx + 1).second / 1000.0) * sample_delta;
             steps = (rates_per_time.at(idx + 1).first - rates_per_time.at(idx).first) / sample_delta;
             delta_prob = (prop_per_next_time_step - prop_per_time_step) / steps;
+
+            // When the begin time is after the first sample we need to interpolate
+            if (idx == 0 && rates_per_time.size() > 1 && begin > rates_per_time.at(0).first) {
+                // How many step from pair time till start time
+                unsigned steps = (begin - rates_per_time.at(0).first) / sample_delta;
+                prop_per_time_step += steps * delta_prob;
+            }
         }
 
         for (; t < rates_per_time.at(idx + 1).first; t += sample_delta) {
@@ -246,10 +253,6 @@ TEST(ipss_cell_group, start_end_different_then_zero)
     for (std::size_t idx = 0; idx < 10; ++idx) {
         sut.advance({ idx, time_type(100.0) * idx + time_type(100.0) }, 0.01, {});
     }
-    sut.reset();
-    for (std::size_t idx = 0; idx < 10; ++idx) {
-        sut.advance({ idx, time_type(100.0) * idx + time_type(100.0) }, 0.01, {});
-    }
 
     // Check the output of the cell
     EXPECT_TRUE(sut.spikes().size() > 0);
@@ -259,36 +262,34 @@ TEST(ipss_cell_group, start_end_different_then_zero)
     }
 }
 
+TEST(ipss_cell_group, cell_kind_correct)
+{
+    std::vector<std::pair<time_type, double>> rates_per_time;
+    rates_per_time.push_back({ 0.0, 20 });
+    ipss_cell_description desc{0.1, 0.01, 0.2, rates_per_time};
+    ipss_cell_group sut({0}, ipss_recipe(1u, desc));
+
+    EXPECT_EQ(cell_kind::inhomogeneous_poisson_spike_source, sut.get_cell_kind());
+}
 
 
-//TEST(ipss_cell_group, cell_kind_correct)
-//{
-//    std::vector<std::pair<time_type, double>> rates_per_time;
-//    rates_per_time.push_back({ 0.0, 20 });
-//    ipss_cell_description desc{0.1, 0.01, 0.2, rates_per_time};
-//    ipss_cell_group sut({0}, ipss_recipe(1u, desc));
-//
-//    EXPECT_EQ(cell_kind::inhomogeneous_poisson_spike_source, sut.get_cell_kind());
-//}
-//
-//
-//TEST(ipss_cell_group, start_before_first_rate_change)
-//{
-//    std::vector<std::pair<time_type, double>> rates_per_time;
-//    rates_per_time.push_back({ 0.11, 20 });
-//    ipss_cell_description desc{ 0.1, 0.01, 0.2, rates_per_time };
-//
-//    // Gtest does not have the expect_exception shorthand
-//    try {
-//        ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
-//        FAIL() << "Expected a failure";
-//    }
-//    catch (std::logic_error const & err)
-//    {
-//        EXPECT_EQ(err.what(), std::string("The start time of the neuron is before the first time/rate pair"));
-//    }
-//    catch (...)
-//    {
-//        FAIL() << "Expected logic_error but different exception encountered";
-//    }
-//}
+TEST(ipss_cell_group, start_before_first_rate_change)
+{
+    std::vector<std::pair<time_type, double>> rates_per_time;
+    rates_per_time.push_back({ 0.11, 20 });
+    ipss_cell_description desc{ 0.1, 0.01, 0.2, rates_per_time };
+
+    // Gtest does not have the expect_exception shorthand
+    try {
+        ipss_cell_group sut({ 0 }, ipss_recipe(1u, desc));
+        FAIL() << "Expected a failure";
+    }
+    catch (std::logic_error const & err)
+    {
+        EXPECT_EQ(err.what(), std::string("The start time of the neuron is before the first time/rate pair"));
+    }
+    catch (...)
+    {
+        FAIL() << "Expected logic_error but different exception encountered";
+    }
+}
