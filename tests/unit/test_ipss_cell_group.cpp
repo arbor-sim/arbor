@@ -309,9 +309,32 @@ TEST(ipss_cell_group, multiple_cells)
 
 
     EXPECT_EQ(target_spikes.size(), sut.spikes().size());
-    //for (std::vector<spike>::const_iterator s1 = target_spikes.begin(), s2 = sut.spikes().begin(); s1 < target_spikes.end(); ++s1, ++s2) {
-    //    ASSERT_FLOAT_EQ(s1->time, s2->time);
-    //}
+
+    for (std::vector<spike>::const_iterator s2 = sut.spikes().begin();
+        s2 < sut.spikes().end(); ++s2) {
+
+        // Now loop over all the entries in the and find the matching spike
+        std::vector<spike>::iterator s1 = target_spikes.begin();
+        bool match_found = false;
+        for (;s1 < target_spikes.end(); ++s1)
+        {
+            // Check if the current spike is a match
+            // TODO: maybe use a better float compare?
+            if (s2->source == s1->source && s2->time == s1->time) {
+                match_found = true;
+                break;
+            }
+
+        }
+        ASSERT_TRUE(match_found) << "Did not found a matching spike in the target set";
+
+        // Now remove this spike to prevent double matching
+        target_spikes.erase(s1);
+    }
+
+    // The target vector should now be empty!
+
+    EXPECT_TRUE(target_spikes.size() == 0);
 }
 
 
