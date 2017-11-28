@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
 
         // Load module file and initialize Module object.
 
-        Module m(io::snarf(opt.modfile), opt.modfile);
+        Module m(io::read_all(opt.modfile), opt.modfile);
 
         if (m.empty()) {
             return report_error("empty file: "+opt.modfile);
@@ -209,22 +209,22 @@ int main(int argc, char **argv) {
                 outfile += "_gpu";
                 {
                     CUDAPrinter printer(m);
-                    io::blat(printer.interface_text(), outfile+".hpp");
-                    io::blat(printer.impl_header_text(), outfile+"_impl.hpp");
-                    io::blat(printer.impl_text(), outfile+"_impl.cu");
+                    io::write_all(printer.interface_text(), outfile+".hpp");
+                    io::write_all(printer.impl_header_text(), outfile+"_impl.hpp");
+                    io::write_all(printer.impl_text(), outfile+"_impl.cu");
                 }
                 break;
             case targetKind::cpu:
                 outfile += "_cpu.hpp";
                 switch (opt.simd_arch) {
                 case simdKind::none:
-                    io::blat(CPrinter(m).emit_source(), outfile);
+                    io::write_all(CPrinter(m).emit_source(), outfile);
                     break;
                 case simdKind::avx2:
-                    io::blat(SimdPrinter<simdKind::avx2>(m).emit_source(), outfile);
+                    io::write_all(SimdPrinter<simdKind::avx2>(m).emit_source(), outfile);
                     break;
                 case simdKind::avx512:
-                    io::blat(SimdPrinter<simdKind::avx512>(m).emit_source(), outfile);
+                    io::write_all(SimdPrinter<simdKind::avx512>(m).emit_source(), outfile);
                     break;
                 }
             }

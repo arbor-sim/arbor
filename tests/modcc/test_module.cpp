@@ -3,7 +3,7 @@
 #include "io/bulkio.hpp"
 
 TEST(Module, open) {
-    Module m(io::snarf(DATADIR "/test.mod"), "test.mod");
+    Module m(io::read_all(DATADIR "/test.mod"), "test.mod");
     if(!m.buffer().size()) {
         std::cout << "skipping Module.open test because unable to open input file" << std::endl;
         return;

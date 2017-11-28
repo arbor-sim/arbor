@@ -72,7 +72,7 @@ template <typename RetUniqPtr>
 }
 
 TEST(Parser, full_file) {
-    Module m(io::snarf(DATADIR "/test.mod"), "test.mod");
+    Module m(io::read_all(DATADIR "/test.mod"), "test.mod");
     if (m.buffer().size()==0) {
         std::cout << "skipping Parser.full_file test because unable to open input file" << std::endl;
         return;

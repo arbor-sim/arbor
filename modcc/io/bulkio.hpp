@@ -9,41 +9,41 @@
 namespace io {
 
 template <typename HasAssign>
-void snarf(std::istream& in, HasAssign& A) {
+void read_all(std::istream& in, HasAssign& A) {
     A.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
 template <typename HasAssign>
-void snarf(const std::string& filename, HasAssign& A) {
+void read_all(const std::string& filename, HasAssign& A) {
     std::ifstream fs;
     fs.exceptions(std::ios::failbit);
     fs.open(filename);
-    snarf(fs, A);
+    read_all(fs, A);
 }
 
-inline std::string snarf(std::istream& in) {
+inline std::string read_all(std::istream& in) {
     std::string s;
-    snarf(in, s);
+    read_all(in, s);
     return s;
 }
 
-inline std::string snarf(const std::string& filename) {
+inline std::string read_all(const std::string& filename) {
     std::string s;
-    snarf(filename, s);
+    read_all(filename, s);
     return s;
 }
 
 template <typename Container>
-void blat(const Container& data, std::ostream& out) {
+void write_all(const Container& data, std::ostream& out) {
     std::copy(std::begin(data), std::end(data), std::ostreambuf_iterator<char>(out));
 }
 
 template <typename Container>
-void blat(const Container& data, const std::string& filename) {
+void write_all(const Container& data, const std::string& filename) {
     std::ofstream fs;
     fs.exceptions(std::ios::failbit);
     fs.open(filename);
-    blat(data, fs);
+    write_all(data, fs);
 }
 
 }
