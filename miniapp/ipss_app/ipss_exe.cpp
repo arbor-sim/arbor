@@ -1,15 +1,19 @@
-#include <algorithm>
 #include <iostream>
 #include <fstream>
-#include <map>
 #include <random>
-#include <sstream>
-#include <vector>
-
-#include <iostream>
 
 #include <tinyopt.hpp>
 #include <util/optional.hpp>
+#include <common_types.hpp>
+
+#include "ipss_util.hpp"
+
+#include <ipss_cell_description.hpp>
+#include <ipss_cell_group.hpp>
+
+#include "../simple_recipes.hpp"
+
+
 
 namespace to = arb::to;
 using arb::util::optional;
@@ -32,9 +36,11 @@ const char* usage_str =
 
 int main(int argc, char** argv) {
     // options
-    int n_cells = 1;
+    unsigned n_cells = 1;
+    arb::time_type begin = 0.0;
+    arb::time_type end = 10.0;
     optional<unsigned> rng_seed;
-    optional<std::string> time_rate_csv;
+    optional<std::string> time_rate_path;
 
 
     try {
@@ -43,11 +49,20 @@ int main(int argc, char** argv) {
             if (auto o = to::parse_opt<int>(arg, 'n', "count")) {
                 n_cells = *o;
             }
-            if (auto o = to::parse_opt<unsigned>(arg, 's', "seed")) {
+            else if (auto o = to::parse_opt<unsigned>(arg, 's', "seed")) {
                 rng_seed = *o;
             }
-            else if (auto o = to::parse_opt<std::string>(arg, 0, "csv")) {
-                time_rate_csv = *o;
+            else if (auto o = to::parse_opt<arb::time_type>(arg, 'b', "begin")) {
+                begin = *o;
+            }
+            else if (auto o = to::parse_opt<arb::time_type>(arg, 'e', "end")) {
+                end = *o;
+            }
+            else if (auto o = to::parse_opt<std::string>(arg, 0, "pairs")) {
+                time_rate_path = *o;
+            }
+            else if (auto o = to::parse_opt<std::string>(arg, 0, "output")) {
+                time_rate_path = *o;
             }
             else {
                 throw to::parse_opt_error(*arg, "unrecognized option");
@@ -57,11 +72,13 @@ int main(int argc, char** argv) {
         std::minstd_rand g;
         if (rng_seed) {
             g.seed(rng_seed.get());
+            std::cout << "seed" << rng_seed.get() << std::endl;
+
         }
 
-        if (time_rate_csv) {
-
-            std::cout << "File with time rate pairs:" << time_rate_csv.get() << std::endl;
+        std::vector<std::pair<arb::time_type, double>> time_rate_pairs;
+        if (time_rate_path) {
+            time_rate_pairs = arb::parse_time_pair_in_path(time_rate_path.get());
         }
 
 
