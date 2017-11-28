@@ -1,55 +1,108 @@
+#include <regex>
+#include <string>
+
 #include "test.hpp"
 
 #include "cprinter.hpp"
+#include "cudaprinter.hpp"
+#include "expression.hpp"
+#include "textbuffer.hpp"
 
-using scope_type = Scope<Symbol>;
-using symbol_map = scope_type::symbol_map;
-using symbol_ptr = Scope<Symbol>::symbol_ptr;
+struct testcase {
+    const char* source;
+    const char* expected;
+};
 
-TEST(CPrinter, statement) {
-    std::vector<const char*> expressions =
-    {
-"y=x+3",
-"y=y^z",
-"y=exp(x/2 + 3)",
+static std::string strip(std::string text) {
+    // Strip all spaces, except when between two minus symbols, where instead
+    // they should be replaced by a single space:
+    //
+    // 1. Replace whitespace with two spaces.
+    // 2. Replace '-  -' with '- -'.
+    // 3. Replace '  ' with ''.
+
+    static std::regex rx1("\\s+");
+    static std::regex rx2("-  -");
+    static std::regex rx3("  ");
+
+    text = std::regex_replace(text, rx1, "  ");
+    text = std::regex_replace(text, rx2, "- -");
+    text = std::regex_replace(text, rx3, "");
+
+    return text;
+}
+
+TEST(scalar_printer, statement) {
+    std::vector<testcase> testcases = {
+        {"y=x+3",            "y=x+3"},
+        {"y=y^z",            "y=std::pow(y,z)"},
+        {"y=exp((x/2) + 3)", "y=exp(x/2+3)"},
+        {"z=a/b/c",          "z=a/b/c"},
+        {"z=a/(b/c)",        "z=a/(b/c)"},
+        {"z=(a*b)/c",        "z=a*b/c"},
+        {"z=a-(b+c)",        "z=a-(b+c)"},
+        {"z=(a>0)<(b>0)",    "z=a>0<(b>0)"},
+        {"z=a- -2",          "z=a- -2"}
     };
 
     // create a scope that contains the symbols used in the tests
     Scope<Symbol>::symbol_map globals;
-    globals["x"] = make_symbol<Symbol>(Location(), "x", symbolKind::local);
-    globals["y"] = make_symbol<Symbol>(Location(), "y", symbolKind::local);
-    globals["z"] = make_symbol<Symbol>(Location(), "z", symbolKind::local);
-
     auto scope = std::make_shared<Scope<Symbol>>(globals);
 
-    for(auto const& expression : expressions) {
-        auto e = parse_line_expression(expression);
+    for (auto var: {"x", "y", "z", "a", "b", "c"}) {
+        scope->add_local_symbol(var, make_symbol<LocalVariable>(Location(), var, localVariableKind::local));
+    }
 
-        // sanity check the compiler
-        EXPECT_NE(e, nullptr);
-        if( e==nullptr ) continue;
+    for (const auto& tc: testcases) {
+        auto e = parse_line_expression(tc.source);
+        ASSERT_TRUE(e);
 
         e->semantic(scope);
-        auto v = make_unique<CPrinter>();
-        e->accept(v.get());
 
-#ifdef VERBOSE_TEST
-        std::cout << e->to_string() << std::endl;
-                  << " :--: " << v->text() << std::endl;
-#endif
+        {
+            SCOPED_TRACE("CPrinter");
+            auto printer = make_unique<CPrinter>();
+            e->accept(printer.get());
+            std::string text = printer->text();
+
+            verbose_print(e->to_string(), " :--: ", text);
+            EXPECT_EQ(strip(tc.expected), strip(text));
+        }
+
+        {
+            SCOPED_TRACE("CUDAPrinter");
+            TextBuffer buf;
+            auto printer = make_unique<CUDAPrinter>();
+            printer->set_buffer(buf);
+
+            e->accept(printer.get());
+            std::string text = buf.str();
+
+            verbose_print(e->to_string(), " :--: ", text);
+            EXPECT_EQ(strip(tc.expected), strip(text));
+        }
     }
 }
 
 TEST(CPrinter, proc) {
-    std::vector<const char*> expressions =
-    {
-"PROCEDURE trates(v) {\n"
-"    LOCAL k\n"
-"    minf=1-1/(1+exp((v-k)/k))\n"
-"    hinf=1/(1+exp((v-k)/k))\n"
-"    mtau = 0.6\n"
-"    htau = 1500\n"
-"}"
+    std::vector<testcase> testcases = {
+        {
+            "PROCEDURE trates(v) {\n"
+            "    LOCAL k\n"
+            "    minf=1-1/(1+exp((v-k)/k))\n"
+            "    hinf=1/(1+exp((v-k)/k))\n"
+            "    mtau = 0.6\n"
+            "    htau = 1500\n"
+            "}"
+            ,
+            "void trates(int i_, value_type v) {\n"
+            "value_type k;\n"
+            "minf[i_] = 1-1/(1+exp((v-k)/k));\n"
+            "hinf[i_] = 1/(1+exp((v-k)/k));\n"
+            "mtau[i_] = 0.6;\n"
+            "htau[i_] = 1500;\n"
+            "}"
+        }
     };
 
     // create a scope that contains the symbols used in the tests
@@ -60,23 +113,20 @@ TEST(CPrinter, proc) {
     globals["htau"] = make_symbol<VariableExpression>(Location(), "htau");
     globals["v"]    = make_symbol<VariableExpression>(Location(), "v");
 
-    for(auto const& expression : expressions) {
-        auto e = symbol_ptr{parse_procedure(expression)->is_symbol()};
+    for (const auto& tc: testcases) {
+        expression_ptr e = parse_procedure(tc.source);
+        ASSERT_TRUE(e->is_symbol());
 
-        // sanity check the compiler
-        EXPECT_NE(e, nullptr);
+        auto procname = e->is_symbol()->name();
+        auto& proc = (globals[procname] = symbol_ptr(e.release()->is_symbol()));
 
-        if( e==nullptr ) continue;
-
-        globals["trates"] = std::move(e);
-
-        e->semantic(globals);
+        proc->semantic(globals);
         auto v = make_unique<CPrinter>();
-        e->accept(v.get());
+        proc->accept(v.get());
 
-#ifdef VERBOSE_TEST
-        std::cout << e->to_string() << std::endl;
-                  << " :--: " << v->text() << std::endl;
-#endif
+        verbose_print(proc->to_string());
+        verbose_print(" :--: ", v->text());
+
+        EXPECT_EQ(strip(tc.expected), strip(v->text()));
     }
 }

@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "cexpr_emit.hpp"
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
 #include "options.hpp"
@@ -645,7 +646,7 @@ void CUDAPrinter::visit(LocalDeclaration *e) {
 }
 
 void CUDAPrinter::visit(NumberExpression *e) {
-    buffer() << " " << e->value();
+    cexpr_emit(e, buffer().text(), this);
 }
 
 void CUDAPrinter::visit(IdentifierExpression *e) {
@@ -708,43 +709,7 @@ void CUDAPrinter::visit(LocalVariable *e) {
 }
 
 void CUDAPrinter::visit(UnaryExpression *e) {
-    auto b = (e->expression()->is_binary()!=nullptr);
-    switch(e->op()) {
-        case tok::minus :
-            // place a space in front of minus sign to avoid invalid
-            // expressions of the form : (v[i]--67)
-            // use parenthesis if expression is a binop, otherwise
-            // -(v+2) becomes -v+2
-            if(b) buffer() << " -(";
-            else  buffer() << " -";
-            e->expression()->accept(this);
-            if(b) buffer() << ")";
-            return;
-        case tok::exp :
-            buffer() << "exp(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        case tok::cos :
-            buffer() << "cos(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        case tok::sin :
-            buffer() << "sin(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        case tok::log :
-            buffer() << "log(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        default :
-            throw compiler_exception(
-                "CUDAPrinter unsupported unary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
+    cexpr_emit(e, buffer().text(), this);
 }
 
 void CUDAPrinter::visit(BlockExpression *e) {
@@ -1039,73 +1004,6 @@ void CUDAPrinter::visit(CallExpression *e) {
     buffer() << ")";
 }
 
-void CUDAPrinter::visit(AssignmentExpression *e) {
-    e->lhs()->accept(this);
-    buffer() << " = ";
-    e->rhs()->accept(this);
-}
-
-void CUDAPrinter::visit(PowBinaryExpression *e) {
-    buffer() << "std::pow(";
-    e->lhs()->accept(this);
-    buffer() << ", ";
-    e->rhs()->accept(this);
-    buffer() << ")";
-}
-
 void CUDAPrinter::visit(BinaryExpression *e) {
-    auto pop = parent_op_;
-    // TODO unit tests for parenthesis and binops
-    bool use_brackets =
-        Lexer::binop_precedence(pop) > Lexer::binop_precedence(e->op())
-        || (pop==tok::divide && e->op()==tok::times);
-    parent_op_ = e->op();
-
-
-    auto lhs = e->lhs();
-    auto rhs = e->rhs();
-    if(use_brackets) {
-        buffer() << "(";
-    }
-    lhs->accept(this);
-    switch(e->op()) {
-        case tok::minus :
-            buffer() << "-";
-            break;
-        case tok::plus :
-            buffer() << "+";
-            break;
-        case tok::times :
-            buffer() << "*";
-            break;
-        case tok::divide :
-            buffer() << "/";
-            break;
-        case tok::lt     :
-            buffer() << "<";
-            break;
-        case tok::lte    :
-            buffer() << "<=";
-            break;
-        case tok::gt     :
-            buffer() << ">";
-            break;
-        case tok::gte    :
-            buffer() << ">=";
-            break;
-        case tok::equality :
-            buffer() << "==";
-            break;
-        default :
-            throw compiler_exception(
-                "CUDAPrinter unsupported binary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
-    rhs->accept(this);
-    if(use_brackets) {
-        buffer() << ")";
-    }
-
-    // reset parent precedence
-    parent_op_ = pop;
+    cexpr_emit(e, buffer().text(), this);
 }

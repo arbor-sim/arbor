@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "cexpr_emit.hpp"
 #include "cprinter.hpp"
 #include "lexer.hpp"
 #include "options.hpp"
@@ -544,7 +545,7 @@ void CPrinter::visit(LocalVariable *e) {
 }
 
 void CPrinter::visit(NumberExpression *e) {
-    text_ << " " << e->value();
+    cexpr_emit(e, text_.text(), this);
 }
 
 void CPrinter::visit(IdentifierExpression *e) {
@@ -567,41 +568,7 @@ void CPrinter::visit(CellIndexedVariable *e) {
 }
 
 void CPrinter::visit(UnaryExpression *e) {
-    auto b = (e->expression()->is_binary()!=nullptr);
-    switch(e->op()) {
-        case tok::minus :
-            // place a space in front of minus sign to avoid invalid
-            // expressions of the form : (v[i]--67)
-            if(b) text_ << " -(";
-            else  text_ << " -";
-            e->expression()->accept(this);
-            if(b) text_ << ")";
-            return;
-        case tok::exp :
-            text_ << "exp(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        case tok::cos :
-            text_ << "cos(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        case tok::sin :
-            text_ << "sin(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        case tok::log :
-            text_ << "log(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        default :
-            throw compiler_exception(
-                "CPrinter unsupported unary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
+    cexpr_emit(e, text_.text(), this);
 }
 
 void CPrinter::visit(BlockExpression *e) {
@@ -943,72 +910,7 @@ void CPrinter::visit(CallExpression *e) {
     text_ << ")";
 }
 
-void CPrinter::visit(AssignmentExpression *e) {
-    e->lhs()->accept(this);
-    text_ << " = ";
-    e->rhs()->accept(this);
-}
-
-void CPrinter::visit(PowBinaryExpression *e) {
-    text_ << "std::pow(";
-    e->lhs()->accept(this);
-    text_ << ", ";
-    e->rhs()->accept(this);
-    text_ << ")";
-}
-
 void CPrinter::visit(BinaryExpression *e) {
-    auto pop = parent_op_;
-    // TODO unit tests for parenthesis and binops
-    bool use_brackets =
-        Lexer::binop_precedence(pop) > Lexer::binop_precedence(e->op())
-        || (pop==tok::divide && e->op()==tok::times);
-    parent_op_ = e->op();
-
-    auto lhs = e->lhs();
-    auto rhs = e->rhs();
-    if(use_brackets) {
-        text_ << "(";
-    }
-    lhs->accept(this);
-    switch(e->op()) {
-        case tok::minus :
-            text_ << "-";
-            break;
-        case tok::plus :
-            text_ << "+";
-            break;
-        case tok::times :
-            text_ << "*";
-            break;
-        case tok::divide :
-            text_ << "/";
-            break;
-        case tok::lt     :
-            text_ << "<";
-            break;
-        case tok::lte    :
-            text_ << "<=";
-            break;
-        case tok::gt     :
-            text_ << ">";
-            break;
-        case tok::gte    :
-            text_ << ">=";
-            break;
-        case tok::equality :
-            text_ << "==";
-            break;
-        default :
-            throw compiler_exception(
-                "CPrinter unsupported binary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
-    rhs->accept(this);
-    if(use_brackets) {
-        text_ << ")";
-    }
-
-    // reset parent precedence
-    parent_op_ = pop;
+    cexpr_emit(e, text_.text(), this);
 }
+
