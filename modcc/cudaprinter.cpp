@@ -132,7 +132,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     set_buffer(impl_);
 
     // kernels
-    buffer().add_line("#include \"" + module_name_ + "_impl.hpp\"");
+    buffer().add_line("#include \"" + module_name_ + "_gpu_impl.hpp\"");
     buffer().add_line();
     buffer().add_line("#include <backends/gpu/intrinsics.hpp>");
     buffer().add_line("#include <backends/gpu/kernels/reduce_by_key.hpp>");
@@ -257,7 +257,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include <backends/gpu/multi_event_stream.hpp>");
     buffer().add_line("#include <util/pprintf.hpp>");
     buffer().add_line();
-    buffer().add_line("#include \"" + module_name_ + "_impl.hpp\"");
+    buffer().add_line("#include \"" + module_name_ + "_gpu_impl.hpp\"");
     buffer().add_line();
 
     buffer().add_line("namespace arb { namespace gpu{");
