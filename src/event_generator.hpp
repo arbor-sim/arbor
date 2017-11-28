@@ -22,12 +22,8 @@ struct event_generator {
 };
 
 namespace impl {
-struct pse_iterator_sentinel {
-    pse_iterator_sentinel(float t): time(t) {}
-    float time;
-};
 
-// output iterator
+// models input iterator
 struct pse_iterator {
     using difference_type = std::ptrdiff_t;
     using value_type = postsynaptic_spike_event;
@@ -87,14 +83,21 @@ struct pse_iterator {
 
 } // namespace impl
 
+// Generator that feeds events that are specified with a vector
 struct vector_backed_generator: public event_generator {
-    vector_backed_generator(std::vector<postsynaptic_spike_event> events):
+    using pse = postsynaptic_spike_event;
+    vector_backed_generator(pse_vector events):
         events_(std::move(events)),
         it_(events_.begin())
     {}
 
     postsynaptic_spike_event next() override {
-        return *it_;
+        if (it_!=events_.end()) {
+            return *it_;
+        }
+        else {
+            return {{0, 0}, std::numeric_limits<time_type>::infinity(), 0.0};
+        }
     }
 
     void pop() override {
@@ -119,6 +122,51 @@ private:
     }
     std::vector<postsynaptic_spike_event> events_;
     std::vector<postsynaptic_spike_event>::const_iterator it_;
+};
+
+// Generates a stream of events
+//  * with the first event at time t_start
+//  * subsequent events at t_start+n*dt
+//  * with a set target and weight
+struct regular_generator: public event_generator {
+    using pse = postsynaptic_spike_event;
+
+    regular_generator(time_type tstart, time_type dt, cell_member_type target, float weight):
+        t_start_(tstart), step_(0), dt_(dt),
+        target_(target), weight_(weight)
+    {}
+
+    postsynaptic_spike_event next() override {
+        return {target_, t_start_+(step_*dt_), weight_};
+    }
+
+    void pop() override {
+        ++step_;
+    }
+
+    event_range events(time_type t0, time_type t1) override {
+        t0 = t0<t_start_? t_start_: t0;
+        step_ = (t0-t_start_)/dt_;
+        while (time()<t0) {
+            ++step_;
+        }
+        return {impl::pse_iterator(*this), impl::pse_iterator(t1)};
+    }
+
+    void reset() override {
+        step_ = 0;
+    }
+
+private:
+    time_type time() const {
+        return t_start_ + step_*dt_;
+    }
+
+    time_type t_start_;
+    std::size_t step_;
+    time_type dt_;
+    cell_member_type target_;
+    float weight_;
 };
 
 } // namespace arb
