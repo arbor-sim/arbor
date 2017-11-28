@@ -14,8 +14,6 @@ public:
     virtual void visit(Expression *e)           override;
     virtual void visit(UnaryExpression *e)      override;
     virtual void visit(BinaryExpression *e)     override;
-    virtual void visit(AssignmentExpression *e) override;
-    virtual void visit(PowBinaryExpression *e)  override;
     virtual void visit(NumberExpression *e)     override;
     virtual void visit(VariableExpression *e)   override;
     virtual void visit(Symbol *e)               override;
@@ -61,7 +59,6 @@ protected:
     void print_APIMethod(APIMethod* e);
 
     Module *module_ = nullptr;
-    tok parent_op_ = tok::eq;
     TextBuffer text_;
     bool aliased_output_ = false;
 
@@ -118,7 +115,7 @@ protected:
     }
 
     bool is_point_process() {
-        return module_->kind() == moduleKind::point;
+        return module_ && module_->kind() == moduleKind::point;
     }
 
     std::vector<LocalVariable*> aliased_vars(APIMethod* e);

@@ -5,7 +5,7 @@ set(MODCC_TEST_SOURCES
     test_module.cpp
     test_msparse.cpp
     test_parser.cpp
-    #test_printers.cpp
+    test_printers.cpp
     test_removelocals.cpp
     test_symdiff.cpp
     test_symge.cpp

@@ -77,6 +77,16 @@ enum class tok {
     reserved, // placeholder for generating keyword lookup
 };
 
+namespace std {
+    // note: necessary before C++14 (refer: lwg dr#2148).
+    template <>
+    struct hash<tok> {
+        std::size_t operator()(const tok& x) const {
+            return std::hash<int>()(static_cast<int>(x));
+        }
+    };
+}
+
 // what is in a token?
 //  tok indicating type of token
 //  information about its location

@@ -1,5 +1,6 @@
 set(MODCC_SOURCES
     astmanip.cpp
+    cexpr_emit.cpp
     cprinter.cpp
     cudaprinter.cpp
     errorvisitor.cpp
