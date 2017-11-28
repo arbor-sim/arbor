@@ -8,13 +8,13 @@
 
 namespace io {
 
-template <typename Assignable>
-void snarf(std::istream& in, Assignable& A) {
+template <typename HasAssign>
+void snarf(std::istream& in, HasAssign& A) {
     A.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
 }
 
-template <typename Assignable>
-void snarf(const std::string& filename, Assignable& A) {
+template <typename HasAssign>
+void snarf(const std::string& filename, HasAssign& A) {
     std::ifstream fs;
     fs.exceptions(std::ios::failbit);
     fs.open(filename);
