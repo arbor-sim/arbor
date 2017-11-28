@@ -1,20 +1,20 @@
 #include "../gtest.h"
 
 // Prototype mechanisms in tests
-#include "mech_proto/expsyn.hpp"
-#include "mech_proto/exp2syn.hpp"
-#include "mech_proto/hh.hpp"
-#include "mech_proto/pas.hpp"
-#include "mech_proto/test_kin1.hpp"
-#include "mech_proto/test_kinlva.hpp"
+#include "mech_proto/expsyn_cpu.hpp"
+#include "mech_proto/exp2syn_cpu.hpp"
+#include "mech_proto/hh_cpu.hpp"
+#include "mech_proto/pas_cpu.hpp"
+#include "mech_proto/test_kin1_cpu.hpp"
+#include "mech_proto/test_kinlva_cpu.hpp"
 
 // modcc generated mechanisms
-#include "mechanisms/multicore/expsyn.hpp"
-#include "mechanisms/multicore/exp2syn.hpp"
-#include "mechanisms/multicore/hh.hpp"
-#include "mechanisms/multicore/pas.hpp"
-#include "mechanisms/multicore/test_kin1.hpp"
-#include "mechanisms/multicore/test_kinlva.hpp"
+#include "mechanisms/multicore/expsyn_cpu.hpp"
+#include "mechanisms/multicore/exp2syn_cpu.hpp"
+#include "mechanisms/multicore/hh_cpu.hpp"
+#include "mechanisms/multicore/pas_cpu.hpp"
+#include "mechanisms/multicore/test_kin1_cpu.hpp"
+#include "mechanisms/multicore/test_kinlva_cpu.hpp"
 
 #include <initializer_list>
 #include <backends/multicore/fvm.hpp>

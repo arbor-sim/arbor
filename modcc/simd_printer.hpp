@@ -6,7 +6,6 @@
 #include "backends/simd.hpp"
 #include "cprinter.hpp"
 #include "modccutil.hpp"
-#include "options.hpp"
 #include "textbuffer.hpp"
 
 #ifdef __GNUC__
@@ -15,22 +14,16 @@
 #   define ANNOT_UNUSED ""
 #endif
 
-
-using namespace arb;
-
-template<targetKind Arch>
-class SimdPrinter : public CPrinter {
+template <simdKind Arch>
+class SimdPrinter: public CPrinter {
 public:
-    SimdPrinter()
-        : cprinter_(make_unique<CPrinter>())
+    SimdPrinter(): cprinter_(make_unique<CPrinter>())
     {}
 
-    // Initialize our base CPrinter in default unoptimized mode; we handle the
-    // vectorization ourselves
-    SimdPrinter(Module& m, bool optimize = false)
-        : CPrinter(m),
-          cprinter_(make_unique<CPrinter>(m))
-    { }
+    explicit SimdPrinter(Module& m):
+        CPrinter(m),
+        cprinter_(make_unique<CPrinter>(m))
+    {}
 
     void visit(NumberExpression *e) override {
         simd_backend::emit_set_value(text_, e->value());
@@ -102,7 +95,7 @@ private:
     bool range_load_ = true;
 };
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(APIMethod *e) {
     text_.add_gutter() << "void " << e->name() << "() override {\n";
     if (!e->scope()) { // error: semantic analysis has not been performed
@@ -157,7 +150,7 @@ void SimdPrinter<Arch>::visit(APIMethod *e) {
     text_.add_line("}\n");
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::emit_indexed_view(LocalVariable* var,
                                           std::set<std::string>& decls) {
     auto const& name = var->name();
@@ -187,7 +180,7 @@ void SimdPrinter<Arch>::emit_indexed_view(LocalVariable* var,
     }
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::emit_indexed_view_simd(LocalVariable* var,
                                                std::set<std::string>& decls) {
     auto const& name = var->name();
@@ -235,7 +228,7 @@ void SimdPrinter<Arch>::emit_indexed_view_simd(LocalVariable* var,
     text_.end_line(";");
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
                                       const std::string& start,
                                       const std::string& end,
@@ -391,7 +384,7 @@ void SimdPrinter<Arch>::emit_api_loop(APIMethod* e,
     text_.add_line("}");
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(IndexedVariable *e) {
     std::string vindex_name, value_name;
 
@@ -409,7 +402,7 @@ void SimdPrinter<Arch>::visit(IndexedVariable *e) {
     simd_backend::emit_gather(text_, value_name, vindex_name, "sizeof(value_type)");
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(CellIndexedVariable *e) {
     std::string vindex_name, value_name;
 
@@ -422,7 +415,7 @@ void SimdPrinter<Arch>::visit(CellIndexedVariable *e) {
     simd_backend::emit_gather(text_, vindex_name, value_name, "sizeof(value_type)");
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(BlockExpression *e) {
     if (!e->is_nested()) {
         std::vector<std::string> names;
@@ -458,7 +451,7 @@ void SimdPrinter<Arch>::visit(BlockExpression *e) {
     }
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(BinaryExpression *e) {
     auto lhs = e->lhs();
     auto rhs = e->rhs();
@@ -480,7 +473,7 @@ void SimdPrinter<Arch>::visit(BinaryExpression *e) {
     }
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(AssignmentExpression *e) {
     auto is_memop = [](Expression *e) {
         auto ident = e->is_identifier();
@@ -511,7 +504,7 @@ void SimdPrinter<Arch>::visit(AssignmentExpression *e) {
 }
 
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(VariableExpression *e) {
     if (e->is_range() && range_load_) {
         simd_backend::emit_load_unaligned(text_, "&" + e->name() + "[off_]");
@@ -524,7 +517,7 @@ void SimdPrinter<Arch>::visit(VariableExpression *e) {
     }
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(UnaryExpression *e) {
 
     auto arg = e->expression();
@@ -539,7 +532,7 @@ void SimdPrinter<Arch>::visit(UnaryExpression *e) {
     }
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(PowBinaryExpression *e) {
     auto lhs = e->lhs();
     auto rhs = e->rhs();
@@ -548,7 +541,7 @@ void SimdPrinter<Arch>::visit(PowBinaryExpression *e) {
     simd_backend::emit_pow(text_, emit_lhs, emit_rhs);
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(CallExpression *e) {
     text_ << e->name() << "(off_";
     for (auto& arg: e->args()) {
@@ -558,9 +551,9 @@ void SimdPrinter<Arch>::visit(CallExpression *e) {
     text_ << ")";
 }
 
-template<targetKind Arch>
+template <simdKind Arch>
 void SimdPrinter<Arch>::visit(ProcedureExpression *e) {
-    auto emit_procedure_unoptimized = [this](ProcedureExpression* e) {
+    auto emit_procedure_unvectorized = [this](ProcedureExpression* e) {
         auto cprinter = cprinter_.get();
         cprinter->clear_text();
         cprinter->set_gutter(text_.get_gutter());
@@ -570,7 +563,7 @@ void SimdPrinter<Arch>::visit(ProcedureExpression *e) {
 
     if (e->kind() == procedureKind::net_receive) {
         // Use non-vectorized printer for printing net_receive
-        emit_procedure_unoptimized(e);
+        emit_procedure_unvectorized(e);
         return;
     }
 
@@ -601,5 +594,5 @@ void SimdPrinter<Arch>::visit(ProcedureExpression *e) {
     text_.add_line();
 
     // Emit also the unvectorised version of the procedure
-    emit_procedure_unoptimized(e);
+    emit_procedure_unvectorized(e);
 }

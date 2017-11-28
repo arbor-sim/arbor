@@ -5,16 +5,10 @@
 #include "cexpr_emit.hpp"
 #include "cprinter.hpp"
 #include "lexer.hpp"
-#include "options.hpp"
 
 /******************************************************************************
                               CPrinter driver
 ******************************************************************************/
-
-CPrinter::CPrinter(Module &m, bool o)
-    : module_(&m),
-      optimize_(o)
-{ }
 
 std::string CPrinter::emit_source() {
     // make a list of vector types, both parameters and assigned
@@ -33,10 +27,7 @@ std::string CPrinter::emit_source() {
         }
     }
 
-    std::string module_name = Options::instance().modulename;
-    if (module_name == "") {
-        module_name = module_->name();
-    }
+    std::string module_name = module_->module_name();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -119,14 +110,8 @@ std::string CPrinter::emit_source() {
     for(int i=0; i<num_vars; ++i) {
         char namestr[128];
         sprintf(namestr, "%-15s", array_variables[i]->name().c_str());
-        if(optimize_) {
-            text_.add_gutter() << namestr << " = data_.data() + "
-                               << i << "*field_size;";
-        }
-        else {
-            text_.add_gutter() << namestr << " = data_("
-                               << i << "*field_size, " << i+1 << "*size());";
-        }
+        text_.add_gutter() << namestr << " = data_("
+                           << i << "*field_size, " << i+1 << "*size());";
         text_.end_line();
     }
     text_.add_line();
@@ -136,12 +121,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("// to per-compartment current in nA");
     text_.add_line("if (weights.size()) {");
     text_.increase_indentation();
-    if(optimize_) {
-        text_.add_line("memory::copy(weights, view(weights_, size()));");
-    }
-    else {
-        text_.add_line("memory::copy(weights, weights_(0, size()));");
-    }
+    text_.add_line("memory::copy(weights, weights_(0, size()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line("else {");
@@ -156,8 +136,7 @@ std::string CPrinter::emit_source() {
         double val = var->value();
         // only non-NaN fields need to be initialized, because data_
         // is NaN by default
-        std::string pointer_name = var->name();
-        if(!optimize_) pointer_name += ".data()";
+        std::string pointer_name = var->name()+".data()";
         if(val == val) {
             text_.add_gutter() << "std::fill(" << pointer_name << ", "
                                                << pointer_name << "+size(), "
@@ -461,12 +440,7 @@ std::string CPrinter::emit_source() {
 
     text_.add_line("array data_;");
     for(auto var: array_variables) {
-        if(optimize_) {
-            text_.add_line("value_type *" + var->name() + ";");
-        }
-        else {
-            text_.add_line("view " + var->name() + ";");
-        }
+        text_.add_line("view " + var->name() + ";");
     }
 
     for(auto var: scalar_variables) {
@@ -711,13 +685,7 @@ void CPrinter::visit(APIMethod *e) {
         // get loop dimensions
         text_.add_line("int n_ = node_index_.size();");
 
-        // hand off printing of loops to optimized or unoptimized backend
-        if(optimize_) {
-            print_APIMethod_optimized(e);
-        }
-        else {
-            print_APIMethod_unoptimized(e);
-        }
+        print_APIMethod(e);
     }
 
     // close up the loop body
@@ -767,138 +735,11 @@ void CPrinter::emit_api_loop(APIMethod* e,
     text_.add_line("}");
 }
 
-void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
+void CPrinter::print_APIMethod(APIMethod* e) {
     emit_api_loop(e, "int i_ = 0", "i_ < n_", "++i_");
     decrease_indentation();
 
     return;
-}
-
-void CPrinter::print_APIMethod_optimized(APIMethod* e) {
-    // ------------- get mechanism properties ------------- //
-
-    // make a list of all the local variables that have to be
-    // written out to global memory via an index
-    auto is_aliased = [this] (Symbol* s) -> LocalVariable* {
-        if(is_output(s)) {
-            return s->is_local_variable();
-        }
-        return nullptr;
-    };
-
-    std::vector<LocalVariable*> aliased_variables;
-    if(is_point_process()) {
-        for(auto &l : e->scope()->locals()) {
-            if(auto var = is_aliased(l.second.get())) {
-                aliased_variables.push_back(var);
-            }
-        }
-    }
-
-    aliased_output_ = aliased_variables.size()>0;
-
-    // only proceed with optimized output if the ouputs are aliased
-    // because all optimizations are for using ghost buffers to avoid
-    // race conditions in vectorized code
-    if(!aliased_output_) {
-        print_APIMethod_unoptimized(e);
-        return;
-    }
-
-    // ------------- block loop ------------- //
-
-    text_.add_line("constexpr int BSIZE = 4;");
-    text_.add_line("int NB = n_/BSIZE;");
-    for(auto out: aliased_variables) {
-        text_.add_line("value_type " + out->name() +  "[BSIZE];");
-    }
-
-    text_.add_line("for(int b_=0; b_<NB; ++b_) {");
-    text_.increase_indentation();
-    text_.add_line("int BSTART = BSIZE*b_;");
-    text_.add_line("int i_ = BSTART;");
-
-
-    text_.add_line("for(int j_=0; j_<BSIZE; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    // loads from external indexed arrays
-    for(auto &symbol : e->scope()->locals()) {
-        auto var = symbol.second->is_local_variable();
-        if(is_input(var)) {
-            auto ext = var->external_variable();
-            text_.add_gutter() << "value_type ";
-            var->accept(this);
-            text_ << " = ";
-            ext->accept(this);
-            text_.end_line(";");
-        }
-    }
-
-    e->body()->accept(this);
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end inner compute loop
-
-    text_.add_line("i_ = BSTART;");
-    text_.add_line("for(int j_=0; j_<BSIZE; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    for(auto out: aliased_variables) {
-        text_.add_gutter();
-        auto ext = out->external_variable();
-        ext->accept(this);
-        text_ << (ext->op() == tok::plus ? " += " : " -= ");
-        out->accept(this);
-        text_.end_line(";");
-    }
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end inner write loop
-    text_.decrease_indentation();
-    text_.add_line("}"); // end outer block loop
-
-    // ------------- block tail loop ------------- //
-
-    text_.add_line("int j_ = 0;");
-    text_.add_line("for(int i_=NB*BSIZE; i_<n_; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    for(auto &symbol : e->scope()->locals()) {
-        auto var = symbol.second->is_local_variable();
-        if(is_input(var)) {
-            auto ext = var->external_variable();
-            text_.add_gutter() << "value_type ";
-            var->accept(this);
-            text_ << " = ";
-            ext->accept(this);
-            text_.end_line(";");
-        }
-    }
-
-    e->body()->accept(this);
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end inner compute loop
-    text_.add_line("j_ = 0;");
-    text_.add_line("for(int i_=NB*BSIZE; i_<n_; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    for(auto out: aliased_variables) {
-        text_.add_gutter();
-        auto ext = out->external_variable();
-        ext->accept(this);
-        text_ << (ext->op() == tok::plus ? " += " : " -= ");
-        out->accept(this);
-        text_.end_line(";");
-    }
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end block tail loop
-
-    decrease_indentation();
-
-    aliased_output_ = false;
 }
 
 void CPrinter::visit(CallExpression *e) {

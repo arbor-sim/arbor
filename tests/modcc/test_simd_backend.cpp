@@ -1,16 +1,13 @@
 #include "backends/simd.hpp"
-#include "options.hpp"
 #include "textbuffer.hpp"
 #include "token.hpp"
 #include "test.hpp"
-
-using namespace arb;
 
 
 TEST(avx512, emit_binary_op) {
     TextBuffer tb;
 
-    using simd_backend = modcc::simd_intrinsics<targetKind::avx512>;
+    using simd_backend = modcc::simd_intrinsics<simdKind::avx512>;
 
     simd_backend::emit_binary_op(tb, tok::plus, "a", "b");
     EXPECT_EQ("_mm512_add_pd(a, b)", tb.str());
@@ -44,7 +41,7 @@ TEST(avx512, emit_binary_op) {
 TEST(avx512, emit_unary_op) {
     TextBuffer tb;
 
-    using simd_backend = modcc::simd_intrinsics<targetKind::avx512>;
+    using simd_backend = modcc::simd_intrinsics<simdKind::avx512>;
 
     // Test lambdas for generating the argument
     std::string arg = "a";

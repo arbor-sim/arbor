@@ -5,7 +5,6 @@
 #include "cexpr_emit.hpp"
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
-#include "options.hpp"
 
 std::string CUDAPrinter::pack_name() {
     return module_name_ + "_ParamPack";
@@ -30,10 +29,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
     }
 
-    module_name_ = Options::instance().modulename;
-    if (module_name_ == "") {
-        module_name_ = m.name();
-    }
+    module_name_ = module_->module_name();
 
     //
     // Implementation header.
@@ -771,7 +767,7 @@ void CUDAPrinter::visit(IfExpression *e) {
 void CUDAPrinter::print_device_function_prototype(ProcedureExpression *e) {
     buffer().add_line("__device__");
     buffer().add_gutter() << "void " << e->name()
-                     << "(" << module_->name() << "_ParamPack const& params_,"
+                     << "(" << module_name_ << "_ParamPack const& params_,"
                      << "const int tid_";
     for(auto& arg : e->args()) {
         buffer() << ", arb::fvm_value_type " << arg->is_argument()->name();
@@ -811,7 +807,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 
         // Core `net_receive` kernel is called device-side from `kernel::deliver_events`.
         buffer().add_line(       "__device__");
-        buffer().add_gutter() << "void net_receive(const " << module_->name() << "_ParamPack& params_, "
+        buffer().add_gutter() << "void net_receive(const " << module_name_ << "_ParamPack& params_, "
                            << "arb::fvm_size_type i_, arb::fvm_value_type weight) {";
         buffer().add_line();
         buffer().increase_indentation();
@@ -834,7 +830,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         // of event delivery.
         buffer().add_line(       "__global__");
         buffer().add_gutter() << "void net_receive_global("
-                           << module_->name() << "_ParamPack params_, "
+                           << module_name_ << "_ParamPack params_, "
                            << "arb::fvm_size_type i_, arb::fvm_value_type weight) {";
         buffer().add_line();
         buffer().increase_indentation();
@@ -848,7 +844,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 
         buffer().add_line(       "__global__");
         buffer().add_gutter() << "void deliver_events("
-                           << module_->name() << "_ParamPack params_, "
+                           << module_name_ << "_ParamPack params_, "
                            << "arb::fvm_size_type mech_id, deliverable_event_stream_state state) {";
         buffer().add_line();
         buffer().increase_indentation();
@@ -882,7 +878,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 }
 
 std::string CUDAPrinter::APIMethod_prototype(APIMethod *e) {
-    return "void " + e->name() + "_" + module_->name()
+    return "void " + e->name() + "_" + module_name_
         + "(" + pack_name() + " params_)";
 }
 

@@ -1,11 +1,11 @@
 #include "fvm.hpp"
 
-#include <mechanisms/gpu/hh.hpp>
-#include <mechanisms/gpu/pas.hpp>
-#include <mechanisms/gpu/expsyn.hpp>
-#include <mechanisms/gpu/exp2syn.hpp>
-#include <mechanisms/gpu/test_kin1.hpp>
-#include <mechanisms/gpu/test_kinlva.hpp>
+#include <mechanisms/gpu/hh_gpu.hpp>
+#include <mechanisms/gpu/pas_gpu.hpp>
+#include <mechanisms/gpu/expsyn_gpu.hpp>
+#include <mechanisms/gpu/exp2syn_gpu.hpp>
+#include <mechanisms/gpu/test_kin1_gpu.hpp>
+#include <mechanisms/gpu/test_kinlva_gpu.hpp>
 
 namespace arb {
 namespace gpu {
@@ -20,5 +20,5 @@ backend::mech_map_ = {
     { "test_kinlva", maker<mechanism_test_kinlva> }
 };
 
-} // namespace multicore
+} // namespace gpu
 } // namespace arb
