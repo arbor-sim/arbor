@@ -1,19 +1,15 @@
 #include <iostream>
 #include <fstream>
 #include <random>
+#include <vector>
+#include <utility>
 
 #include <tinyopt.hpp>
 #include <util/optional.hpp>
 #include <common_types.hpp>
+#include <spike.hpp>
 
 #include "ipss_util.hpp"
-
-#include <ipss_cell_description.hpp>
-#include <ipss_cell_group.hpp>
-
-#include "../simple_recipes.hpp"
-
-
 
 namespace to = arb::to;
 using arb::util::optional;
@@ -36,12 +32,14 @@ const char* usage_str =
 
 int main(int argc, char** argv) {
     // options
-    unsigned n_cells = 1;
+    unsigned n_cells = 1000;
     arb::time_type begin = 0.0;
-    arb::time_type end = 10.0;
+    arb::time_type end = 1000.0;
+    arb::time_type sample_delta = 0.1;
     optional<unsigned> rng_seed;
     optional<std::string> time_rate_path;
-
+    std::string output_path = "spikes.gdf";
+    bool interpolate;
 
     try {
         auto arg = argv + 1;
@@ -58,11 +56,17 @@ int main(int argc, char** argv) {
             else if (auto o = to::parse_opt<arb::time_type>(arg, 'e', "end")) {
                 end = *o;
             }
+            else if (auto o = to::parse_opt<arb::time_type>(arg, 's', "sample")) {
+                sample_delta = *o;
+            }
+            else if (auto o = to::parse_opt<bool>(arg, 'i', "interpolate")) {
+                interpolate = *o;
+            }
             else if (auto o = to::parse_opt<std::string>(arg, 0, "pairs")) {
                 time_rate_path = *o;
             }
             else if (auto o = to::parse_opt<std::string>(arg, 0, "output")) {
-                time_rate_path = *o;
+                output_path = *o;
             }
             else {
                 throw to::parse_opt_error(*arg, "unrecognized option");
@@ -76,13 +80,23 @@ int main(int argc, char** argv) {
 
         }
 
+        // Get the rate vector from file or default
         std::vector<std::pair<arb::time_type, double>> time_rate_pairs;
         if (time_rate_path) {
-            time_rate_pairs = arb::parse_time_pair_in_path(time_rate_path.get());
+            time_rate_pairs = ipss_impl::parse_time_rate_from_path(time_rate_path.get());
+        }
+        else {
+
+            time_rate_pairs = ipss_impl::default_time_rate_pairs();
         }
 
+        // Run the cells
+        std::vector<arb::spike> produced_spikes = ipss_impl::create_and_run_ipss_cell_group(
+            n_cells, begin, end, sample_delta, time_rate_pairs, interpolate
+        );
 
-
+        // Output the spikes to file
+        ipss_impl::write_spikes_to_path(produced_spikes, output_path);
     }
     catch (to::parse_opt_error& e) {
         std::cerr << argv[0] << ": " << e.what() << "\n";

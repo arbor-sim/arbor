@@ -1,5 +1,6 @@
 set(IPSS_SOURCES
     ipss_exe.cpp
+    ipss_impl.cpp
 )
 
 add_executable(ipss.exe ${IPSS_SOURCES})

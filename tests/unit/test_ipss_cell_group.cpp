@@ -91,7 +91,7 @@ TEST(ipss_cell_group, basic_usage_non_interpolate_constant)
 
     // Target output
     std::vector<spike> target_spikes = create_poisson_spike_train(begin, end,
-         sample_delta,0,  rates_per_time);
+         sample_delta, 0,  rates_per_time);
 
     // Create the cell group itself
     ipss_cell_group sut({0},
