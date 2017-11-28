@@ -12,10 +12,7 @@
 // describes a relationship with an ion channel
 struct IonDep {
     ionKind kind() const {
-        if(name=="k")  return ionKind::K;
-        if(name=="na") return ionKind::Na;
-        if(name=="ca") return ionKind::Ca;
-        return ionKind::none;
+        return to_ionKind(name);
     }
     std::string name;         // name of ion channel
     std::vector<Token> read;  // name of channels parameters to write

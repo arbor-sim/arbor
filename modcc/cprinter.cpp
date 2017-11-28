@@ -209,18 +209,6 @@ std::string CPrinter::emit_source() {
      *
      **************************************************************************/
 
-    // return true/false indicating if cell has dependency on k
-    auto const& ions = module_->neuron_block().ions;
-    auto find_ion = [&ions] (ionKind k) {
-        return std::find_if(
-            ions.begin(), ions.end(),
-            [k](IonDep const& d) {return d.kind()==k;}
-        );
-    };
-    auto has_ion = [&ions, find_ion] (ionKind k) {
-        return find_ion(k) != ions.end();
-    };
-
     // ion_spec uses_ion(ionKind k) const override
     text_.add_line("typename base::ion_spec uses_ion(ionKind k) const override {");
     text_.increase_indentation();
@@ -228,8 +216,8 @@ std::string CPrinter::emit_source() {
     text_.add_line("bool writes_ext = false;");
     text_.add_line("bool writes_int = false;");
     for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
-        if (has_ion(k)) {
-            auto ion = *find_ion(k);
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
             text_.add_line("if (k==ionKind::" + ion.name + ") {");
             text_.increase_indentation();
             text_.add_line("uses = true;");
@@ -248,8 +236,8 @@ std::string CPrinter::emit_source() {
     text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
     for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
-        if (has_ion(k)) {
-            auto ion = *find_ion(k);
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
             text_.add_line("if (k==ionKind::" + ion.name + ") {");
             text_.increase_indentation();
             auto n = ion.name;

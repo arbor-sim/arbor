@@ -69,6 +69,13 @@ public :
         default_ext_concentration(0)
     {}
 
+    // Set the weights used when setting default concentration values in each CV.
+    // The concentration of an ion species in a CV is a linear combination of
+    // default concentration and contributions from mechanisms that update the
+    // concentration. The weight is a value between 0 and 1 that represents the
+    // proportion of the CV area for which the default value is to be used
+    // (i.e. the proportion of the CV where the concentration is prescribed by a
+    // mechanism).
     void set_weights(const std::vector<value_type>& win, const std::vector<value_type>& wout) {
         EXPECTS(win.size()  == size());
         EXPECTS(wout.size() == size());

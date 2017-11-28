@@ -177,16 +177,12 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         buffer().add_line("if(tid_<n_) {");
         buffer().increase_indentation();
 
-        auto ion_prefix = [](ionKind k) {
-            return k==ionKind::Ca? "ca": k==ionKind::Na? "na": "k";
-        };
-
         for (auto& w: module_->write_backs()) {
             auto& src = w.source_name;
             auto& tgt = w.target_name;
 
             auto idx = src + "_idx_";
-            buffer().add_line("auto "+idx+" = params_.ion_"+ion_prefix(w.ion_kind)+"_idx_[tid_];");
+            buffer().add_line("auto "+idx+" = params_.ion_"+to_string(w.ion_kind)+"_idx_[tid_];");
             buffer().add_line("// 1/10 magic number due to unit normalisation");
             buffer().add_line("params_."+tgt+"["+idx+"] = value_type(0.1)*params_.weights_[tid_]*params_."+src+"[tid_];");
         }
@@ -460,18 +456,6 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
      *
      **************************************************************************/
 
-    // return true/false indicating if cell has dependency on k
-    auto const& ions = module_->neuron_block().ions;
-    auto find_ion = [&ions] (ionKind k) {
-        return std::find_if(
-            ions.begin(), ions.end(),
-            [k](IonDep const& d) {return d.kind()==k;}
-        );
-    };
-    auto has_ion = [&ions, find_ion] (ionKind k) {
-        return find_ion(k) != ions.end();
-    };
-
     // ion_spec uses_ion(ionKind k) const override
     buffer().add_line("typename base::ion_spec uses_ion(ionKind k) const override {");
     buffer().increase_indentation();
@@ -479,8 +463,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("bool writes_ext = false;");
     buffer().add_line("bool writes_int = false;");
     for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
-        if (has_ion(k)) {
-            auto ion = *find_ion(k);
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
             buffer().add_line("if (k==ionKind::" + ion.name + ") {");
             buffer().increase_indentation();
             buffer().add_line("uses = true;");
@@ -499,8 +483,8 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     buffer().increase_indentation();
     for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
-        if (has_ion(k)) {
-            auto ion = *find_ion(k);
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
             buffer().add_line("if (k==ionKind::" + ion.name + ") {");
             buffer().increase_indentation();
             auto n = ion.name;

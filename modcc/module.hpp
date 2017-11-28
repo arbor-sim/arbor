@@ -103,6 +103,19 @@ public:
         return write_backs_;
     }
 
+    auto find_ion(ionKind k) -> decltype(neuron_block().ions.begin()) {
+        auto& ions = neuron_block().ions;
+        return std::find_if(
+            ions.begin(), ions.end(),
+            [k](IonDep const& d) {return d.kind()==k;}
+        );
+    };
+
+    bool has_ion(ionKind k) {
+        return find_ion(k) != neuron_block().ions.end();
+    };
+
+
 private:
     moduleKind kind_;
     std::string title_;
