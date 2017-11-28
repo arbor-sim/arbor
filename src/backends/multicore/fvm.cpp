@@ -1,12 +1,12 @@
 #include "fvm.hpp"
 
-#include <mechanisms/multicore/hh.hpp>
-#include <mechanisms/multicore/pas.hpp>
-#include <mechanisms/multicore/expsyn.hpp>
-#include <mechanisms/multicore/exp2syn.hpp>
-#include <mechanisms/multicore/test_kin1.hpp>
-#include <mechanisms/multicore/test_kinlva.hpp>
-#include <mechanisms/multicore/test_ca.hpp>
+#include <mechanisms/multicore/hh_cpu.hpp>
+#include <mechanisms/multicore/pas_cpu.hpp>
+#include <mechanisms/multicore/expsyn_cpu.hpp>
+#include <mechanisms/multicore/exp2syn_cpu.hpp>
+#include <mechanisms/multicore/test_kin1_cpu.hpp>
+#include <mechanisms/multicore/test_kinlva_cpu.hpp>
+#include <mechanisms/multicore/test_ca_cpu.hpp>
 
 namespace arb {
 namespace multicore {

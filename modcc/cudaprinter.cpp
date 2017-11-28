@@ -2,9 +2,9 @@
 #include <string>
 #include <unordered_set>
 
+#include "cexpr_emit.hpp"
 #include "cudaprinter.hpp"
 #include "lexer.hpp"
-#include "options.hpp"
 
 std::string CUDAPrinter::pack_name() {
     return module_name_ + "_ParamPack";
@@ -29,10 +29,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         }
     }
 
-    module_name_ = Options::instance().modulename;
-    if (module_name_ == "") {
-        module_name_ = m.name();
-    }
+    module_name_ = module_->module_name();
 
     //
     // Implementation header.
@@ -668,7 +665,7 @@ void CUDAPrinter::visit(LocalDeclaration *e) {
 }
 
 void CUDAPrinter::visit(NumberExpression *e) {
-    buffer() << " " << e->value();
+    cexpr_emit(e, buffer().text(), this);
 }
 
 void CUDAPrinter::visit(IdentifierExpression *e) {
@@ -731,43 +728,7 @@ void CUDAPrinter::visit(LocalVariable *e) {
 }
 
 void CUDAPrinter::visit(UnaryExpression *e) {
-    auto b = (e->expression()->is_binary()!=nullptr);
-    switch(e->op()) {
-        case tok::minus :
-            // place a space in front of minus sign to avoid invalid
-            // expressions of the form : (v[i]--67)
-            // use parenthesis if expression is a binop, otherwise
-            // -(v+2) becomes -v+2
-            if(b) buffer() << " -(";
-            else  buffer() << " -";
-            e->expression()->accept(this);
-            if(b) buffer() << ")";
-            return;
-        case tok::exp :
-            buffer() << "exp(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        case tok::cos :
-            buffer() << "cos(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        case tok::sin :
-            buffer() << "sin(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        case tok::log :
-            buffer() << "log(";
-            e->expression()->accept(this);
-            buffer() << ")";
-            return;
-        default :
-            throw compiler_exception(
-                "CUDAPrinter unsupported unary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
+    cexpr_emit(e, buffer().text(), this);
 }
 
 void CUDAPrinter::visit(BlockExpression *e) {
@@ -829,7 +790,7 @@ void CUDAPrinter::visit(IfExpression *e) {
 void CUDAPrinter::print_device_function_prototype(ProcedureExpression *e) {
     buffer().add_line("__device__");
     buffer().add_gutter() << "void " << e->name()
-                     << "(" << module_->name() << "_ParamPack const& params_,"
+                     << "(" << module_name_ << "_ParamPack const& params_,"
                      << "const int tid_";
     for(auto& arg : e->args()) {
         buffer() << ", arb::fvm_value_type " << arg->is_argument()->name();
@@ -869,7 +830,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 
         // Core `net_receive` kernel is called device-side from `kernel::deliver_events`.
         buffer().add_line(       "__device__");
-        buffer().add_gutter() << "void net_receive(const " << module_->name() << "_ParamPack& params_, "
+        buffer().add_gutter() << "void net_receive(const " << module_name_ << "_ParamPack& params_, "
                            << "arb::fvm_size_type i_, arb::fvm_value_type weight) {";
         buffer().add_line();
         buffer().increase_indentation();
@@ -892,7 +853,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
         // of event delivery.
         buffer().add_line(       "__global__");
         buffer().add_gutter() << "void net_receive_global("
-                           << module_->name() << "_ParamPack params_, "
+                           << module_name_ << "_ParamPack params_, "
                            << "arb::fvm_size_type i_, arb::fvm_value_type weight) {";
         buffer().add_line();
         buffer().increase_indentation();
@@ -906,7 +867,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 
         buffer().add_line(       "__global__");
         buffer().add_gutter() << "void deliver_events("
-                           << module_->name() << "_ParamPack params_, "
+                           << module_name_ << "_ParamPack params_, "
                            << "arb::fvm_size_type mech_id, deliverable_event_stream_state state) {";
         buffer().add_line();
         buffer().increase_indentation();
@@ -940,7 +901,7 @@ void CUDAPrinter::visit(ProcedureExpression *e) {
 }
 
 std::string CUDAPrinter::APIMethod_prototype(APIMethod *e) {
-    return "void " + e->name() + "_" + module_->name()
+    return "void " + e->name() + "_" + module_name_
         + "(" + pack_name() + " params_)";
 }
 
@@ -1062,73 +1023,6 @@ void CUDAPrinter::visit(CallExpression *e) {
     buffer() << ")";
 }
 
-void CUDAPrinter::visit(AssignmentExpression *e) {
-    e->lhs()->accept(this);
-    buffer() << " = ";
-    e->rhs()->accept(this);
-}
-
-void CUDAPrinter::visit(PowBinaryExpression *e) {
-    buffer() << "std::pow(";
-    e->lhs()->accept(this);
-    buffer() << ", ";
-    e->rhs()->accept(this);
-    buffer() << ")";
-}
-
 void CUDAPrinter::visit(BinaryExpression *e) {
-    auto pop = parent_op_;
-    // TODO unit tests for parenthesis and binops
-    bool use_brackets =
-        Lexer::binop_precedence(pop) > Lexer::binop_precedence(e->op())
-        || (pop==tok::divide && e->op()==tok::times);
-    parent_op_ = e->op();
-
-
-    auto lhs = e->lhs();
-    auto rhs = e->rhs();
-    if(use_brackets) {
-        buffer() << "(";
-    }
-    lhs->accept(this);
-    switch(e->op()) {
-        case tok::minus :
-            buffer() << "-";
-            break;
-        case tok::plus :
-            buffer() << "+";
-            break;
-        case tok::times :
-            buffer() << "*";
-            break;
-        case tok::divide :
-            buffer() << "/";
-            break;
-        case tok::lt     :
-            buffer() << "<";
-            break;
-        case tok::lte    :
-            buffer() << "<=";
-            break;
-        case tok::gt     :
-            buffer() << ">";
-            break;
-        case tok::gte    :
-            buffer() << ">=";
-            break;
-        case tok::equality :
-            buffer() << "==";
-            break;
-        default :
-            throw compiler_exception(
-                "CUDAPrinter unsupported binary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
-    rhs->accept(this);
-    if(use_brackets) {
-        buffer() << ")";
-    }
-
-    // reset parent precedence
-    parent_op_ = pop;
+    cexpr_emit(e, buffer().text(), this);
 }
