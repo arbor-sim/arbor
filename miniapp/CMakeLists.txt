@@ -21,3 +21,5 @@ set_target_properties(
     PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/miniapp"
 )
+
+add_subdirectory(ipss_app)
