@@ -62,7 +62,7 @@ struct Options {
     bool verbose = true;
     bool analysis = false;
     simdKind simd_arch = simdKind::none;
-    std::unordered_set<targetKind> targets;
+    std::unordered_set<targetKind, enum_hash> targets;
 };
 
 // Helper for formatting tabulated output (option reporting).
