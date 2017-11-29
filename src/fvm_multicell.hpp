@@ -849,6 +849,9 @@ void fvm_multicell<Backend>::initialize(
 
     // Keep cv index list for each mechanism for ion set up below.
     std::map<std::string, std::vector<size_type>> mech_to_cv_index;
+    // Keep area of each cv occupied by each mechanism, which may be less than
+    // the total area of the cv.
+    std::map<std::string, std::vector<value_type>> mech_to_area;
 
     // Working vectors (re-used per mechanism).
     std::vector<size_type> mech_cv(ncomp);
@@ -952,6 +955,9 @@ void fvm_multicell<Backend>::initialize(
             }
         }
 
+        // Save the areas for ion setup below.
+        mech_to_area[mech_name] = mech_weight;
+
         for (auto& entry: param_tbl) {
             for (size_type i = 0; i<nindex; ++i) {
                 entry.second.values[i] /= mech_weight[i];
@@ -1032,26 +1038,55 @@ void fvm_multicell<Backend>::initialize(
         // mechanism that depends on/influences ion
         std::set<size_type> index_set;
         for (auto const& mech : mechanisms_) {
-            if(mech->uses_ion(ion)) {
+            if(mech->uses_ion(ion).uses) {
                 auto const& ni = mech_to_cv_index[mech->name()];
                 index_set.insert(ni.begin(), ni.end());
             }
         }
         std::vector<size_type> indexes(index_set.begin(), index_set.end());
+        const auto n = indexes.size();
+
+        if (n==0u) continue;
 
         // create the ion state
-        if (indexes.size()) {
-            ions_[ion] = indexes;
-        }
+        ions_[ion] = indexes;
 
-        // join the ion reference in each mechanism into the cell-wide ion state
+        std::vector<value_type> w_int;
+        w_int.reserve(n);
+        for (auto i: indexes) {
+            w_int.push_back(tmp_cv_areas[i]);
+        }
+        std::vector<value_type> w_out = w_int;
+
+        // Join the ion reference in each mechanism into the cell-wide ion state.
         for (auto& mech : mechanisms_) {
-            if (mech->uses_ion(ion)) {
-                auto const& ni = mech_to_cv_index[mech->name()];
-                mech->set_ion(ion, ions_[ion],
-                    util::make_copy<std::vector<size_type>> (algorithms::index_into(ni, indexes)));
+            const auto spec = mech->uses_ion(ion);
+            if (spec.uses) {
+                const auto& ni = mech_to_cv_index[mech->name()];
+                const auto m = ni.size(); // number of CVs
+                const std::vector<size_type> sub_index =
+                    util::assign_from(algorithms::index_into(ni, indexes));
+                mech->set_ion(ion, ions_[ion], sub_index);
+
+                const auto& ai = mech_to_area[mech->name()];
+                if (spec.write_concentration_in) {
+                    for (auto i: make_span(0, m)) {
+                        w_int[sub_index[i]] -= ai[i];
+                    }
+                }
+                if (spec.write_concentration_out) {
+                    for (auto i: make_span(0, m)) {
+                        w_out[sub_index[i]] -= ai[i];
+                    }
+                }
             }
         }
+        // Normalise the weights.
+        for (auto i: make_span(0, n)) {
+            w_int[i] /= tmp_cv_areas[indexes[i]];
+            w_out[i] /= tmp_cv_areas[indexes[i]];
+        }
+        ions_[ion].set_weights(w_int, w_out);
     }
 
     // Note: NEURON defined default values for reversal potential as follows,
@@ -1065,16 +1100,16 @@ void fvm_multicell<Backend>::initialize(
     // Whereas we use the Nernst equation to calculate reversal potentials at
     // the start of each time step.
 
-    ion_na().default_internal_concentration = 10;
-    ion_na().default_external_concentration =140;
+    ion_na().default_int_concentration = 10;
+    ion_na().default_ext_concentration =140;
     ion_na().valency = 1;
 
-    ion_k().default_internal_concentration =54.4;
-    ion_k().default_external_concentration = 2.5;
+    ion_k().default_int_concentration =54.4;
+    ion_k().default_ext_concentration = 2.5;
     ion_k().valency = 1;
 
-    ion_ca().default_internal_concentration =5e-5;
-    ion_ca().default_external_concentration = 2.0;
+    ion_ca().default_int_concentration =5e-5;
+    ion_ca().default_ext_concentration = 2.0;
     ion_ca().valency = 2;
 
     // initialize mechanism and voltage state
@@ -1099,6 +1134,7 @@ void fvm_multicell<Backend>::reset() {
     for (auto& m : mechanisms_) {
         m->set_params();
         m->nrn_init();
+        m->write_back();
     }
 
     // Update reversal potential to account for changes to concentrations made
@@ -1181,6 +1217,15 @@ void fvm_multicell<Backend>::step_integration() {
         PE(m->name().c_str());
         m->nrn_state();
         PL();
+    }
+    PL();
+
+    PE("ion-update");
+    for(auto& i: ions_) {
+        i.second.init_concentration();
+    }
+    for(auto& m: mechanisms_) {
+        m->write_back();
     }
     PL();
 

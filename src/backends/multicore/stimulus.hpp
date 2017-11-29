@@ -46,8 +46,8 @@ public:
         return mechanismKind::point;
     }
 
-    bool uses_ion(ionKind k) const override {
-        return false;
+    typename base::ion_spec uses_ion(ionKind k) const override {
+        return {false, false, false};
     }
 
     void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {

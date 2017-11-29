@@ -41,6 +41,13 @@ bool is_in(const X& x, const std::initializer_list<X>& c) {
     return impl::is_in(x, c, std::false_type{});
 }
 
+struct enum_hash {
+    template <typename E, typename V = typename std::underlying_type<E>::type>
+    std::size_t operator()(E e) const noexcept {
+        return std::hash<V>{}(static_cast<V>(e));
+    }
+};
+
 inline std::string pprintf(const char *s) {
     std::string errstring;
     while(*s) {

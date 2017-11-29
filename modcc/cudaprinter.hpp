@@ -14,8 +14,6 @@ public:
     void visit(Expression *e)           override;
     void visit(UnaryExpression *e)      override;
     void visit(BinaryExpression *e)     override;
-    void visit(AssignmentExpression *e) override;
-    void visit(PowBinaryExpression *e)  override;
     void visit(NumberExpression *e)     override;
     void visit(VariableExpression *e)   override;
 
@@ -42,6 +40,11 @@ public:
 
     std::string interface_text() const {
         return interface_.str();
+    }
+
+    // public for testing purposes:
+    void set_buffer(TextBuffer& buf) {
+        current_buffer_ = &buf;
     }
 
 private:
@@ -111,10 +114,6 @@ private:
     TextBuffer impl_;
     TextBuffer impl_interface_;
     TextBuffer* current_buffer_;
-
-    void set_buffer(TextBuffer& buf) {
-        current_buffer_ = &buf;
-    }
 
     TextBuffer& buffer() {
         if (!current_buffer_) {

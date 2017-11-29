@@ -261,10 +261,6 @@ private:
     std::string id_;
 };
 
-// ConstantSimplifyVisitior is not the same as ConstantFolderVisitor, as there is no way for a visitor
-// to modify an expression in place (only its children). This visitor instead builds a new expression
-// from the given one with constant simplifications.
-
 long double expr_value(Expression* e) {
     return e && e->is_number()? e->is_number()->value(): NAN;
 }
