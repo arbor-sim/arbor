@@ -6,6 +6,7 @@
 #include <mechanisms/gpu/exp2syn_gpu.hpp>
 #include <mechanisms/gpu/test_kin1_gpu.hpp>
 #include <mechanisms/gpu/test_kinlva_gpu.hpp>
+#include <mechanisms/gpu/test_ca_gpu.hpp>
 
 namespace arb {
 namespace gpu {
@@ -17,7 +18,8 @@ backend::mech_map_ = {
     { "expsyn",      maker<mechanism_expsyn> },
     { "exp2syn",     maker<mechanism_exp2syn> },
     { "test_kin1",   maker<mechanism_test_kin1> },
-    { "test_kinlva", maker<mechanism_test_kinlva> }
+    { "test_kinlva", maker<mechanism_test_kinlva> },
+    { "test_ca",     maker<mechanism_test_ca> }
 };
 
 } // namespace gpu

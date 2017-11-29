@@ -7,6 +7,7 @@
 #include "mech_proto/pas_cpu.hpp"
 #include "mech_proto/test_kin1_cpu.hpp"
 #include "mech_proto/test_kinlva_cpu.hpp"
+#include "mech_proto/test_ca_cpu.hpp"
 
 // modcc generated mechanisms
 #include "mechanisms/multicore/expsyn_cpu.hpp"
@@ -15,6 +16,7 @@
 #include "mechanisms/multicore/pas_cpu.hpp"
 #include "mechanisms/multicore/test_kin1_cpu.hpp"
 #include "mechanisms/multicore/test_kinlva_cpu.hpp"
+#include "mechanisms/multicore/test_ca_cpu.hpp"
 
 #include <initializer_list>
 #include <backends/multicore/fvm.hpp>
@@ -87,7 +89,7 @@ void mech_update(T* mech, unsigned num_iters) {
         memory::fill(ion.external_concentration(), 140.);
         ions[ion_kind] = ion;
 
-        if (mech->uses_ion(ion_kind)) {
+        if (mech->uses_ion(ion_kind).uses) {
             mech->set_ion(ion_kind, ions[ion_kind], ion_indexes);
         }
     }
@@ -227,6 +229,10 @@ using mechanism_types = ::testing::Types<
     mechanism_info<
         arb::multicore::mechanism_test_kinlva<arb::multicore::backend>,
         arb::multicore::mechanism_test_kinlva_proto<arb::multicore::backend>
+    >,
+    mechanism_info<
+        arb::multicore::mechanism_test_ca<arb::multicore::backend>,
+        arb::multicore::mechanism_test_ca_proto<arb::multicore::backend>
     >
 >;
 

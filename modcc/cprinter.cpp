@@ -193,42 +193,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    // return true/false indicating if cell has dependency on k
-    auto const& ions = module_->neuron_block().ions;
-    auto find_ion = [&ions] (ionKind k) {
-        return std::find_if(
-            ions.begin(), ions.end(),
-            [k](IonDep const& d) {return d.kind()==k;}
-        );
-    };
-    auto has_ion = [&ions, find_ion] (ionKind k) {
-        return find_ion(k) != ions.end();
-    };
-
-    // bool uses_ion(ionKind k) const override
-    text_.add_line("bool uses_ion(ionKind k) const override {");
-    text_.increase_indentation();
-    text_.add_line("switch(k) {");
-    text_.increase_indentation();
-    text_.add_gutter()
-        << "case ionKind::na : return "
-        << (has_ion(ionKind::Na) ? "true" : "false") << ";";
-    text_.end_line();
-    text_.add_gutter()
-        << "case ionKind::ca : return "
-        << (has_ion(ionKind::Ca) ? "true" : "false") << ";";
-    text_.end_line();
-    text_.add_gutter()
-        << "case ionKind::k  : return "
-        << (has_ion(ionKind::K) ? "true" : "false") << ";";
-    text_.end_line();
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line("return false;");
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line();
-
     /***************************************************************************
      *
      *   ion channels have the following fields :
@@ -245,67 +209,58 @@ std::string CPrinter::emit_source() {
      *
      **************************************************************************/
 
+    // ion_spec uses_ion(ionKind k) const override
+    text_.add_line("typename base::ion_spec uses_ion(ionKind k) const override {");
+    text_.increase_indentation();
+    text_.add_line("bool uses = false;");
+    text_.add_line("bool writes_ext = false;");
+    text_.add_line("bool writes_int = false;");
+    for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
+            text_.add_line("if (k==ionKind::" + ion.name + ") {");
+            text_.increase_indentation();
+            text_.add_line("uses = true;");
+            if (ion.writes_concentration_int()) text_.add_line("writes_int = true;");
+            if (ion.writes_concentration_ext()) text_.add_line("writes_ext = true;");
+            text_.decrease_indentation();
+            text_.add_line("}");
+        }
+    }
+    text_.add_line("return {uses, writes_int, writes_ext};");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
     // void set_ion(ionKind k, ion_type& i) override
-    //      TODO: this is done manually, which isn't going to scale
-    auto has_variable = [] (IonDep const& ion, std::string const& name) {
-        if( std::find_if(ion.read.begin(), ion.read.end(),
-                      [&name] (Token const& t) {return t.spelling==name;}
-            ) != ion.read.end()
-        ) return true;
-        if( std::find_if(ion.write.begin(), ion.write.end(),
-                      [&name] (Token const& t) {return t.spelling==name;}
-            ) != ion.write.end()
-        ) return true;
-        return false;
-    };
     text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
-    text_.add_line("using arb::algorithms::index_into;");
-    if(has_ion(ionKind::Na)) {
-        auto ion = find_ion(ionKind::Na);
-        text_.add_line("if(k==ionKind::na) {");
-        text_.increase_indentation();
-        text_.add_line("ion_na.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ina")) text_.add_line("ion_na.ina = i.current();");
-        if(has_variable(*ion, "ena")) text_.add_line("ion_na.ena = i.reversal_potential();");
-        if(has_variable(*ion, "nai")) text_.add_line("ion_na.nai = i.internal_concentration();");
-        if(has_variable(*ion, "nao")) text_.add_line("ion_na.nao = i.external_concentration();");
-        text_.add_line("return;");
-        text_.decrease_indentation();
-        text_.add_line("}");
-    }
-    if(has_ion(ionKind::Ca)) {
-        auto ion = find_ion(ionKind::Ca);
-        text_.add_line("if(k==ionKind::ca) {");
-        text_.increase_indentation();
-        text_.add_line("ion_ca.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ica")) text_.add_line("ion_ca.ica = i.current();");
-        if(has_variable(*ion, "eca")) text_.add_line("ion_ca.eca = i.reversal_potential();");
-        if(has_variable(*ion, "cai")) text_.add_line("ion_ca.cai = i.internal_concentration();");
-        if(has_variable(*ion, "cao")) text_.add_line("ion_ca.cao = i.external_concentration();");
-        text_.add_line("return;");
-        text_.decrease_indentation();
-        text_.add_line("}");
-    }
-    if(has_ion(ionKind::K)) {
-        auto ion = find_ion(ionKind::K);
-        text_.add_line("if(k==ionKind::k) {");
-        text_.increase_indentation();
-        text_.add_line("ion_k.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ik")) text_.add_line("ion_k.ik = i.current();");
-        if(has_variable(*ion, "ek")) text_.add_line("ion_k.ek = i.reversal_potential();");
-        if(has_variable(*ion, "ki")) text_.add_line("ion_k.ki = i.internal_concentration();");
-        if(has_variable(*ion, "ko")) text_.add_line("ion_k.ko = i.external_concentration();");
-        text_.add_line("return;");
-        text_.decrease_indentation();
-        text_.add_line("}");
+    for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
+            text_.add_line("if (k==ionKind::" + ion.name + ") {");
+            text_.increase_indentation();
+            auto n = ion.name;
+            auto pre = "ion_"+n;
+            text_.add_line(pre+".index = memory::make_const_view(index);");
+            if (ion.uses_current())
+                text_.add_line(pre+".i"+n+" = i.current();");
+            if (ion.uses_rev_potential())
+                text_.add_line(pre+".e"+n+" = i.reversal_potential();");
+            if (ion.uses_concentration_int())
+                text_.add_line(pre+"."+n+"i = i.internal_concentration();");
+            if (ion.uses_concentration_ext())
+                text_.add_line(pre+"."+n+"o = i.external_concentration();");
+            text_.add_line("return;");
+            text_.decrease_indentation();
+            text_.add_line("}");
+        }
     }
     text_.add_line("throw std::domain_error(arb::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
 
-    //////////////////////////////////////////////
     //////////////////////////////////////////////
 
     auto proctest = [] (procedureKind k) {
@@ -343,6 +298,30 @@ std::string CPrinter::emit_source() {
         text_.add_line("}");
         text_.add_line();
     }
+
+    if(module_->write_backs().size()) {
+        text_.add_line("void write_back() override {");
+        text_.increase_indentation();
+
+        text_.add_line("const size_type n_ = node_index_.size();");
+        for (auto& w: module_->write_backs()) {
+            auto& src = w.source_name;
+            auto tgt = w.target_name;
+            tgt.erase(tgt.begin(), tgt.begin()+tgt.find('_')+1);
+            auto istore = ion_store(w.ion_kind)+".";
+
+            text_.add_line();
+            text_.add_line("auto "+src+"_out_ = util::indirect_view("+istore+tgt+", "+istore+"index);");
+            text_.add_line("for (size_type i_ = 0; i_ < n_; ++i_) {");
+            text_.increase_indentation();
+            text_.add_line("// 1/10 magic number due to unit normalisation");
+            text_.add_line(src+"_out_["+istore+"index[i_]] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
+            text_.decrease_indentation(); text_.add_line("}");
+            
+        }
+        text_.decrease_indentation(); text_.add_line("}");
+    }
+    text_.add_line();
 
     // TODO: replace field_info() generation implemenation with separate schema info generation
     // as per #349.

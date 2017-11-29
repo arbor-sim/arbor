@@ -6,6 +6,7 @@
 #include "blocks.hpp"
 #include "error.hpp"
 #include "expression.hpp"
+#include "writeback.hpp"
 
 // wrapper around a .mod file
 class Module: public error_stack {
@@ -98,6 +99,23 @@ public:
     void add_variables_to_symbols();
     bool semantic();
 
+    const std::vector<WriteBack>& write_backs() const {
+        return write_backs_;
+    }
+
+    auto find_ion(ionKind k) -> decltype(neuron_block().ions.begin()) {
+        auto& ions = neuron_block().ions;
+        return std::find_if(
+            ions.begin(), ions.end(),
+            [k](IonDep const& d) {return d.kind()==k;}
+        );
+    };
+
+    bool has_ion(ionKind k) {
+        return find_ion(k) != neuron_block().ions.end();
+    };
+
+
 private:
     moduleKind kind_;
     std::string title_;
@@ -136,4 +154,6 @@ private:
     UnitsBlock  units_block_;
     ParameterBlock parameter_block_;
     AssignedBlock assigned_block_;
+
+    std::vector<WriteBack> write_backs_;
 };
