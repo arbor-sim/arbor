@@ -32,14 +32,14 @@ const char* usage_str =
 
 int main(int argc, char** argv) {
     // options
-    unsigned n_cells = 1000;
+    unsigned n_cells = 10000;
     arb::time_type begin = 0.0;
     arb::time_type end = 1000.0;
     arb::time_type sample_delta = 0.1;
     optional<unsigned> rng_seed;
     optional<std::string> time_rate_path;
     std::string output_path = "spikes.gdf";
-    bool interpolate;
+    bool interpolate = true;
 
     try {
         auto arg = argv + 1;

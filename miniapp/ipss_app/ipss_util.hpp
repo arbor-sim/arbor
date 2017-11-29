@@ -53,7 +53,7 @@ namespace ipss_impl {
         std::vector<std::pair<arb::time_type, double>> pairs;
 
         // We need some time range to follow
-        double mult = 3.0;
+        double mult = 30.0;
         pairs.push_back({ 0.0, 0.0 * mult});
         pairs.push_back({ 50.0, 0.0 * mult });
         pairs.push_back({ 100.0, 1.0 * mult });
@@ -100,7 +100,7 @@ namespace ipss_impl {
         std::ofstream outfile(path);
         if (outfile) {
             for (auto spike : spikes) {
-                outfile << spike.source << "," << spike.time << "\n";
+                outfile << spike.source.gid << "," << spike.time << "\n";
             }
         }
         else {
