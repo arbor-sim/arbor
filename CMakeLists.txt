@@ -291,6 +291,6 @@ endif()
 add_subdirectory(src)
 add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
-add_subdirectory(miniapp)
+add_subdirectory(miniapps)
 add_subdirectory(lmorpho)
 add_subdirectory(doc)
