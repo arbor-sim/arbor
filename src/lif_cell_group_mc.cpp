@@ -18,6 +18,7 @@ gids_(std::move(gids))
     cells_.reserve(gids_.size());
 
     // resize
+    next_queue_event_index.resize(gids_.size());
     lambda_.resize(gids_.size());
     next_poiss_time_.resize(gids_.size());
     cell_events_.resize(gids_.size());
@@ -50,6 +51,7 @@ void lif_cell_group_mc::advance(epoch ep, time_type dt, const event_lane_subrang
     if (event_lanes.size()) {
       for (auto lid: util::make_span(0, gids_.size())) {
         // Advance each cell independently.
+        next_queue_event_index[lid] = 0;
         advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
       }
     }
@@ -83,6 +85,7 @@ void lif_cell_group_mc::reset() {
     next_poiss_time_.clear();
     poiss_event_counter_.clear();
     last_time_updated_.clear();
+    next_queue_event_index.clear();
 }
 
 // Samples next poisson spike.
@@ -102,31 +105,34 @@ void lif_cell_group_mc::sample_next_poisson(cell_gid_type lid) {
 // Returns the time of the next poisson event for given neuron,
 // taking into accout the delay of poisson spikes,
 // without sampling a new Poisson event time.
-util::optional<time_type> lif_cell_group_mc::next_poisson_event(cell_gid_type lid, time_type tfinal) {
+template <typename Pred>
+util::optional<time_type> lif_cell_group_mc::next_poisson_event(cell_gid_type lid, time_type tfinal, Pred should_pop) {
     if (cells_[lid].n_poiss > 0) {
         time_type t_poiss =  next_poiss_time_[lid] + cells_[lid].d_poiss;
-        return t_poiss<tfinal ? util::optional<time_type>(t_poiss) : util::nothing;
+        return should_pop(t_poiss,tfinal) ? util::optional<time_type>(t_poiss) : util::nothing;
     }
     return util::nothing;
 }
 
-util::optional<postsynaptic_spike_event> pop_if_before(pse_vector& event_lane, time_type tfinal) {
-    if (event_lane.size() == 0 || event_lane[0].time >= tfinal) {
+template <typename Pred>
+util::optional<postsynaptic_spike_event> pop_if(pse_vector& event_lane, unsigned& start_index, time_type tfinal, Pred should_pop) {
+    if (event_lane.size() <= start_index || !should_pop(event_lane[start_index].time, tfinal)) {
         return util::nothing;
     }
-    auto ev = event_lane[0];
-    // TODO: do not erase, but just remember the last position
-    event_lane.erase(event_lane.begin());
+    // instead of deleting this event from the queue, just increase the starting index
+    auto ev = event_lane[start_index];
+    start_index++;
     return ev;
 }
 
 // Returns the next most recent event that is yet to be processed.
 // It can be either Poisson event or the queue event.
 // Only events that happened before tfinal are considered.
-util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_type lid, time_type tfinal, pse_vector& event_lane) {
-    if (auto t_poiss = next_poisson_event(lid, tfinal)) {
-        // if (auto ev = cell_events_[lid].pop_if_before(std::min(tfinal, t_poiss.get()))) {
-        if (auto ev = pop_if_before(event_lane, tfinal)) {
+template <typename Pred>
+util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_type lid, time_type tfinal, pse_vector& event_lane, Pred should_pop) {
+    if (auto t_poiss = next_poisson_event(lid, tfinal, should_pop)) {
+        // if (auto ev = cell_events_[lid].pop_if(std::min(tfinal, t_poiss.get()))) {
+        if (auto ev = pop_if(event_lane, next_queue_event_index[lid], tfinal, should_pop)) {
             return ev;
         }
         sample_next_poisson(lid);
@@ -134,8 +140,8 @@ util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_
     }
 
     // t_queue < tfinal < t_poiss => return t_queue
-    // return cell_events_[lid].pop_if_before(tfinal);
-    return pop_if_before(event_lane, tfinal);
+    // return cell_events_[lid].pop_if(tfinal);
+    return pop_if(event_lane, next_queue_event_index[lid], tfinal, should_pop);
 }
 
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
@@ -148,17 +154,22 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     // If a neuron was in the refractory period,
     // ignore any new events that happened before t,
     // including poisson events as well.
-    while (auto ev = next_event(lid, t, event_lane)) {
+    while (auto ev = next_event(lid, t, event_lane, [](time_type lhs, time_type rhs) -> bool {return lhs < rhs;})) {
     };
 
     // Integrate until tfinal using the exact solution of membrane voltage differential equation.
-    while (auto ev = next_event(lid, tfinal, event_lane)) {
+    while (auto ev = next_event(lid, tfinal, event_lane, [](time_type lhs, time_type rhs) -> bool {return lhs < rhs;})) {
         auto weight = ev->weight;
         auto event_time = ev->time;
 
         // If a neuron is in refractory period, ignore this event.
         if (event_time < t) {
             continue;
+        }
+
+        // if there are events that happened at the same time as this event, process them as well
+        while (auto coinciding_event = next_event(lid, event_time, event_lane, [](time_type lhs, time_type rhs) -> bool {return lhs <= rhs;})) {
+            weight += coinciding_event->weight;
         }
 
         // Let the membrane potential decay.

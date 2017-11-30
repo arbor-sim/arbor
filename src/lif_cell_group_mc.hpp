@@ -41,12 +41,14 @@ namespace arb {
         // Returns the time of the next poisson event for given neuron,
         // taking into accout the delay of poisson spikes,
         // without sampling a new Poisson event time.
-        util::optional<time_type> next_poisson_event(cell_gid_type lid, time_type tfinal);
+        template <typename Pred>
+        util::optional<time_type> next_poisson_event(cell_gid_type lid, time_type tfinal, Pred should_pop);
 
         // Returns the next most recent event that is yet to be processed.
         // It can be either Poisson event or the queue event.
         // Only events that happened before tfinal are considered.
-        util::optional<postsynaptic_spike_event> next_event(cell_gid_type lid, time_type tfinal, pse_vector& event_lane);
+        template <typename Pred>
+        util::optional<postsynaptic_spike_event> next_event(cell_gid_type lid, time_type tfinal, pse_vector& event_lane, Pred should_pop);
 
         // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
         // Parameter dt is ignored, since we make jumps between two consecutive spikes.
@@ -70,6 +72,7 @@ namespace arb {
 
         // Time when the cell was last updated.
         std::vector<time_type> last_time_updated_;
+        std::vector<unsigned> next_queue_event_index;
 
         // External spike generation.
 
