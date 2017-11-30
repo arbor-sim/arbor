@@ -3,18 +3,17 @@
 #include <utility>
 #include <common_types.hpp>
 #include <exception>
-#include <iostream>
+
+#include "../simple_recipes.hpp"
 
 #include <ipss_cell_description.hpp>
 #include <ipss_cell_group.hpp>
-
-#include "../simple_recipes.hpp"
 
 namespace ipss_impl {
     using ipss_recipe = arb::homogeneous_recipe<arb::cell_kind::inhomogeneous_poisson_spike_source,
         arb::ipss_cell_description>;
 
-    // Quick exception that can be instantiated with a string
+    // Simple exception class that can be instantiated with a string as what msg
     class ipss_error : public std::exception
     {
     public:
@@ -28,7 +27,6 @@ namespace ipss_impl {
     private:
         std::string what_;
     };
-
 
     // Parses time rate pairs separated with a comma from file returns them
     // as a vecotrime, rate pairs
@@ -55,17 +53,15 @@ namespace ipss_impl {
     }
 
     // Return our default vector of time rate pairs:
-    // a Gaussian bump in rate
-    std::vector<std::pair<arb::time_type, double>> default_time_rate_pairs()
-    {
+    // 'plot' of the default rates:
+    //  |
+    //  |     _-_
+    //  |    -   -  -
+    //  |   -     -- -
+    //  |__-__________-__
+    std::vector<std::pair<arb::time_type, double>> default_time_rate_pairs(){
         std::vector<std::pair<arb::time_type, double>> pairs;
 
-        /// A time varying rate range to follow:
-        ///  |
-        ///  |     _-_
-        ///  |    -   -  -
-        ///  |   -     -- -
-        ///  |__-__________-__
         double mult = 30.0;
         pairs.push_back({ 0.0, 0.0 * mult});
         pairs.push_back({ 50.0, 0.0 * mult });
@@ -84,13 +80,12 @@ namespace ipss_impl {
         return pairs;
     }
 
-    // Creates a ipss celgroup with the supplied time rate vector
-    // run the for the suplied time range (in ten steps)
+    // Creates a ipss cell group with the supplied time rate vector
+    // run the for the supplied time range (in ten steps)
     // collect the spikes and return these
     std::vector<arb::spike> create_and_run_ipss_cell_group(arb::cell_gid_type n_cells,
         arb::time_type begin, arb::time_type end, arb::time_type sample_delta,
-        std::vector<std::pair<arb::time_type, double>> rates_per_time, bool interpolate)
-    {
+        std::vector<std::pair<arb::time_type, double>> rates_per_time, bool interpolate) {
         // Create the cell indexes
         std::vector<arb::cell_gid_type> gids;
         for (arb::cell_gid_type idx = 0; idx < n_cells; ++idx) {
@@ -115,9 +110,8 @@ namespace ipss_impl {
         return std::vector<arb::spike>(sut.spikes());
     }
 
-
     // Simple spike writer output spikes according to the gpf standard
-    // gid, time \n
+    // gid, time
     void write_spikes_to_path(const std::vector<arb::spike> spikes, std::string path) {
         std::ofstream outfile(path);
         if (outfile) {
@@ -130,5 +124,3 @@ namespace ipss_impl {
         }
     }
 }
-
-

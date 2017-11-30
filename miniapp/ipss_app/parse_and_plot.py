@@ -1,8 +1,8 @@
+#!/usr/bin/env python
 """
 Simple (non automatic) validation script of the inhomgeneous Poisson Spike Source
 cell.
 """
-
 import matplotlib.pyplot as plt
 import collections
 import math
@@ -59,8 +59,10 @@ default_time_rate_pairs = [[0.0   , 0.0 * multiplier],
                            [1000.0, 0.0 * multiplier]]
 
 def parse_spike_file(path):
-    """ Simple spike file parsing function. Assumes no errors and might fail 
-    silently on errors"""
+    """ 
+    Simple spike file parsing function. Assumes no errors and might fail 
+    silently on errors
+    """
     spikes_per_cell = collections.defaultdict(list)
     with open(path , "r") as f:
         for line in f:
@@ -77,8 +79,10 @@ def parse_spike_file(path):
     return spikes_per_cell
 
 def parse_time_rate(path):
-    """ Simple spike file parsing function. Assumes no errors and might fail 
-    silently on errors"""
+    """ 
+    Simple spike file parsing function. Assumes no errors and might fail 
+    silently on errors
+    """
 
     time_rate = []
 
@@ -125,7 +129,6 @@ def binning(spikes_per_cell, bin_size = 1.0, duration = 1000.0):
 def plot_histogram_and_target_curve(bins, times=None, rates=None, plot_target=True):
     """
     Plot the histogram and target curve in one figure
-
     """
     plt.hist([idx for idx in range(len(bins))], len(bins), weights = bins)
     if plot_target:
@@ -173,6 +176,8 @@ def main(path_spikes=None, path_time_rate=None, plot_target=True, interpolate=Tr
     if not interpolate:
         time_rates = [x for x in time_rates for _ in (0, 1)]  # double each entry
         times, rates = zip(*time_rates)
+
+        # add on entry in front and back for non interpolated curve
         rates = [rates[0]] + list(rates)
         times = list(times) + [times[-1]]
     else:
@@ -190,7 +195,6 @@ def evaluate_string_true(s="True"):
     return s.lower() in ['true', '1', 't', 'yes', 'y']
 
 if __name__ == "__main__":
-
     # Non checked command line parsing
     spike_file_path = ""
     if len(sys.argv) == 1:
@@ -204,4 +208,3 @@ if __name__ == "__main__":
     else:
         usage()
         exit(1)
-

@@ -13,8 +13,6 @@
 
 namespace to = arb::to;
 using arb::util::optional;
-using arb::util::nothing;
-using arb::util::just;
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -97,8 +95,6 @@ int main(int argc, char** argv) {
         std::exit(1);
     }
 
-    // The functionality we want to execute
-
     // Get the rate vector from file or use the default
     std::vector<std::pair<arb::time_type, double>> time_rate_pairs;
     if (time_rate_path) {
@@ -108,7 +104,7 @@ int main(int argc, char** argv) {
         time_rate_pairs = ipss_impl::default_time_rate_pairs();
     }
 
-    // Create, and run the cells
+    // Create, and run the cells, get the spikes
     std::vector<arb::spike> produced_spikes = ipss_impl::create_and_run_ipss_cell_group(
         n_cells, begin, end, sample_delta, time_rate_pairs, interpolate);
 
@@ -117,4 +113,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-
