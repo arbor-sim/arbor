@@ -1,10 +1,29 @@
+"""
+Simple (non automatic) validation script of the inhomgeneous Poisson Spike Source
+cell.
+
+"""
+
 import matplotlib.pyplot as plt
 import collections
 import math
+import sys
 
 default_spike_file_path = "./spikes.gdf"
-
-
+multiplier = 30.0
+default_time_rate_pairs = [[0.0   , 0.0 * multiplier],
+                           [50.0  , 0.0 * multiplier],
+                           [100.0 , 1.0 * multiplier],
+                           [200.0 , 5.0 * multiplier],
+                           [300.0 , 7.0 * multiplier],
+                           [400.0 , 8.0 * multiplier],
+                           [500.0 , 7.0 * multiplier],
+                           [600.0 , 3.0 * multiplier],
+                           [700.0 , 3.0 * multiplier],
+                           [750.0 , 5.0 * multiplier],
+                           [800.0 , 2.5 * multiplier],
+                           [900.0 , 0.0 * multiplier],
+                           [1000.0, 0.0 * multiplier]]
 
 
 def parse_spike_file(path):
@@ -12,6 +31,8 @@ def parse_spike_file(path):
     silently on errors"""
 
     spikes_per_cell = collections.defaultdict(list)
+
+    print "debug" , path
 
     with open(path , "r") as f:
         for line in f:
@@ -28,40 +49,80 @@ def parse_spike_file(path):
     return spikes_per_cell
 
 
-def binning(spikes_per_cell):
-    bins=[0]*1000
+
+def binning(spikes_per_cell, bin_size = 1.0, duration = 1000.0):
+    """
+    Perform a simple binning on the collected spikes before duration
+    Assuming the times are in ms resolution
+    bin_size (ms)
+    duration (ms)
+
+    """
+    n_bins = int(math.floor(duration / bin_size))
+    bins=[0]*n_bins
 
     for gid, spikes in spikes_per_cell.items():
         for spike in spikes:
-            bin = int(math.floor(spike))
+            # Skip late spikes
+            if spike > duration:
+                continue
 
+            # Convert to bin idx and increase 
+            bins[int(math.floor(spike / bin_size))] += 1
 
-            bins[bin] += 1
+    # normalize to spikes/second. 
+    # we have 10000 cells but are binning per 1000
+    # so devide by 10
+    bins = [x / 10 for x in bins]
+
     return bins  
 
-        
+def plot_histogram_and_target_curve(bins, plot_target=True):
+    """
+    Plot the 
 
-
-
-
-def main(path):
-    spikes_per_cell = parse_spike_file(path)
-
-    bins = binning(spikes_per_cell)
+    """
     plt.hist([idx for idx in range(len(bins))], len(bins), weights = bins)
+    times, rates = zip(*default_time_rate_pairs)
+    rates = [ x for x in rates]
+    
 
+    plt.plot(times, rates, linewidth=7,alpha=0.7)
     plt.show()
 
+def main(path=None):
+    """
+    Simple main function
+    - Parse the spikes (expected in gdf format) from path 
+      if path == None default path './spikes.gdf' will be used
+    - Bin the spikes in 1000 ms bins
+    - Plot a histogram
+    - Plot a line with the default / expected rate if path is supplied
+    todo:
+    - Use the power of statistics to make this an automatic test
+    """
+    plot_default_curve = True
+
+    # If no path supplied 
+    if path == None:
+        path = default_spike_file_path
+    else:
+        plot_default_curve = False
 
 
-
-
+    spikes_per_cell = parse_spike_file(path)
+    bins = binning(spikes_per_cell)
+    plot_histogram_and_target_curve(bins)
 
 
 
 
 if __name__ == "__main__":
-    main(default_spike_file_path)
 
-
+    # Non checked command line parsing
+    spike_file_path = ""
+    if len(sys.argv) > 1:
+        main(sys.argv[1])
+    else:
+        main()
 

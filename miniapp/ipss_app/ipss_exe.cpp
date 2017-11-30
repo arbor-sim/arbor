@@ -72,31 +72,6 @@ int main(int argc, char** argv) {
                 throw to::parse_opt_error(*arg, "unrecognized option");
             }
         }
-
-        std::minstd_rand g;
-        if (rng_seed) {
-            g.seed(rng_seed.get());
-            std::cout << "seed" << rng_seed.get() << std::endl;
-
-        }
-
-        // Get the rate vector from file or default
-        std::vector<std::pair<arb::time_type, double>> time_rate_pairs;
-        if (time_rate_path) {
-            time_rate_pairs = ipss_impl::parse_time_rate_from_path(time_rate_path.get());
-        }
-        else {
-
-            time_rate_pairs = ipss_impl::default_time_rate_pairs();
-        }
-
-        // Run the cells
-        std::vector<arb::spike> produced_spikes = ipss_impl::create_and_run_ipss_cell_group(
-            n_cells, begin, end, sample_delta, time_rate_pairs, interpolate
-        );
-
-        // Output the spikes to file
-        ipss_impl::write_spikes_to_path(produced_spikes, output_path);
     }
     catch (to::parse_opt_error& e) {
         std::cerr << argv[0] << ": " << e.what() << "\n";
@@ -107,5 +82,32 @@ int main(int argc, char** argv) {
         std::cerr << "caught exception: " << e.what() << "\n";
         std::exit(1);
     }
+
+    // The functionality we want to execute
+    std::minstd_rand g;
+    if (rng_seed) {
+        g.seed(rng_seed.get());
+        std::cout << "seed" << rng_seed.get() << std::endl;
+
+    }
+
+    // Get the rate vector from file or use the default
+    std::vector<std::pair<arb::time_type, double>> time_rate_pairs;
+    if (time_rate_path) {
+        time_rate_pairs = ipss_impl::parse_time_rate_from_path(time_rate_path.get());
+    }
+    else {
+        time_rate_pairs = ipss_impl::default_time_rate_pairs();
+    }
+
+    // Create, and run the cells
+    std::vector<arb::spike> produced_spikes = ipss_impl::create_and_run_ipss_cell_group(
+        n_cells, begin, end, sample_delta, time_rate_pairs, interpolate
+    );
+
+    // Output the spikes to file
+    ipss_impl::write_spikes_to_path(produced_spikes, output_path);
+
+    return 0;
 }
 
