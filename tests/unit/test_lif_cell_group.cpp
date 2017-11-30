@@ -72,12 +72,64 @@ public:
     cell_size_type num_probes(cell_gid_type) const override {
         return 0;
     }
+    probe_info get_probe(cell_member_type probe_id) const override {
+        return {};
+    }
 
 private:
     int ncells_;
     float weight_, delay_;
 };
 
+class path_recipe: public arb::recipe {
+public:
+    path_recipe(cell_size_type n, float weight, float delay):
+    ncells_(n), weight_(weight), delay_(delay)
+    {}
+
+    cell_size_type num_cells() const override {
+        return ncells_;
+    }
+
+    // LIF neurons have gid in range [1..ncells_-1] whereas fake cell is numbered with 0.
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::lif_neuron;
+    }
+
+    std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+        if (gid == 0) {
+            return {};
+        }
+        std::vector<cell_connection> connections;
+        cell_member_type source{gid - 1, 0};
+        cell_member_type target{gid, 0};
+        cell_connection conn(source, target, weight_, delay_);
+        connections.push_back(conn);
+
+        return connections;
+    }
+
+    util::unique_any get_cell_description(cell_gid_type gid) const override {
+        return lif_cell_description();
+    }
+
+    cell_size_type num_sources(cell_gid_type) const override {
+        return 1;
+    }
+    cell_size_type num_targets(cell_gid_type) const override {
+        return 1;
+    }
+    cell_size_type num_probes(cell_gid_type) const override {
+        return 0;
+    }
+    probe_info get_probe(cell_member_type probe_id) const override {
+        return {};
+    }
+
+private:
+    int ncells_;
+    float weight_, delay_;
+};
 
 TEST(lif_cell_group_mc, recipe)
 {
