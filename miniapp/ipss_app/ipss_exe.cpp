@@ -23,7 +23,7 @@ const char* usage_str =
 "  -b, --begin=float      (0.0)    Start time (in ms) when to start generating\n"
 "  -e, --end=float        (1000.0) End time (in ms) when to end generation\n"
 "  -s, --sample=float     (0.1)    Internal sample rate for Poisson process\n"
-"  -i, --interpolate=bool (true)   Interpolate between the supplied time-rate pairs\n"
+"  -i, --interpolate=0/1  (1)   Interpolate between the supplied time-rate pairs\n"
 "\n"
 "  --pairs=path           (option)     Path to file with 'float, float' time rate pairs\n"
 "  --output=path          (./spikes.gdf) Export produced spikes to this path\n"

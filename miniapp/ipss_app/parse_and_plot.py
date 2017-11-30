@@ -10,6 +10,40 @@ import sys
 
 default_spike_file_path = "./spikes.gdf"
 multiplier = 30.0
+
+def usage():
+    print """
+Usage: 
+python parse_and_plot.py [path_spikes] [path_time_rate] [plot_target interpolate]
+
+Arguments:
+ -path_spikes    (../spikes)path to gdf formatted file with spikes
+ -path_time_rate file path with float, float pairs per line with time rate pairs
+ -plot_target    Plot the (expected) target rates as a line
+ -interpolate    Interpolate between the time-rate pairs
+
+parse_and_plot.py is a simple script to validate the performance of the 
+ipss cell. No input validation is performed.
+
+- Parse gdf spike file
+- Performs a binning operation for the first 1000 ms 
+  - with 1 ms binning 
+  - averages the found rates assuming a total of 10000 cells.
+- Displays a figure with the histogram of the instantatious spike rate for
+the whole group, including a target rate.
+
+Default target rate: 
+ hz.|                     
+ 240|     _-_             
+    |    -   -  -         
+    |   -     -- -        
+ 0  |__-__________-__     
+      100        900   ms 
+
+Todo:
+ - Add statistical test for correct output for automated validation
+"""
+
 default_time_rate_pairs = [[0.0   , 0.0 * multiplier],
                            [50.0  , 0.0 * multiplier],
                            [100.0 , 1.0 * multiplier],
@@ -24,7 +58,6 @@ default_time_rate_pairs = [[0.0   , 0.0 * multiplier],
                            [900.0 , 0.0 * multiplier],
                            [1000.0, 0.0 * multiplier]]
 
-
 def parse_spike_file(path):
     """ Simple spike file parsing function. Assumes no errors and might fail 
     silently on errors"""
@@ -38,7 +71,6 @@ def parse_spike_file(path):
             except:
                 print "Failed parsing:", tokens[0], ", ", tokens[1]               
                 exit(2)
-
 
             spikes_per_cell[gid].append(time)
 
@@ -64,15 +96,12 @@ def parse_time_rate(path):
 
     return time_rate
 
-
-
 def binning(spikes_per_cell, bin_size = 1.0, duration = 1000.0):
     """
     Perform a simple binning on the collected spikes before duration
     Assuming the times are in ms resolution
     bin_size (ms)
     duration (ms)
-
     """
     n_bins = int(math.floor(duration / bin_size))
     bins=[0]*n_bins
@@ -95,7 +124,7 @@ def binning(spikes_per_cell, bin_size = 1.0, duration = 1000.0):
 
 def plot_histogram_and_target_curve(bins, times=None, rates=None, plot_target=True):
     """
-    Plot the 
+    Plot the histogram and target curve in one figure
 
     """
     plt.hist([idx for idx in range(len(bins))], len(bins), weights = bins)
@@ -153,12 +182,19 @@ def main(path_spikes=None, path_time_rate=None, plot_target=True, interpolate=Tr
     plot_histogram_and_target_curve(bins, times, rates, plot_target)
 
 def evaluate_string_true(s="True"):
-    return s.lower() in ['true', '1', "t", "yes"]
+    """
+    Evaluates if s is a string with True value 
+    True -> 'true', '1', 't', 'yes', 'y'
+    Capitalization is ignored
+    """
+    return s.lower() in ['true', '1', 't', 'yes', 'y']
 
 if __name__ == "__main__":
 
     # Non checked command line parsing
     spike_file_path = ""
+    if len(sys.argv) == 1:
+        main()
     if len(sys.argv) == 4:
         main(sys.argv[1], sys.argv[2], bool(sys.argv[3]))
     elif len(sys.argv) == 5:
@@ -166,5 +202,6 @@ if __name__ == "__main__":
              evaluate_string_true(sys.argv[3]), 
              evaluate_string_true(sys.argv[4]))
     else:
-        main()
+        usage()
+        exit(1)
 
