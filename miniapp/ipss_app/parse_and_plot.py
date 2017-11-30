@@ -1,7 +1,6 @@
 """
 Simple (non automatic) validation script of the inhomgeneous Poisson Spike Source
 cell.
-
 """
 
 import matplotlib.pyplot as plt
@@ -29,11 +28,7 @@ default_time_rate_pairs = [[0.0   , 0.0 * multiplier],
 def parse_spike_file(path):
     """ Simple spike file parsing function. Assumes no errors and might fail 
     silently on errors"""
-
     spikes_per_cell = collections.defaultdict(list)
-
-    print "debug" , path
-
     with open(path , "r") as f:
         for line in f:
             tokens = line.split(",")
@@ -41,12 +36,33 @@ def parse_spike_file(path):
                 gid = int(tokens[0].strip())
                 time = float(tokens[1].strip())
             except:
-                print tokens[0], ", ", tokens[1]
-                exit()
+                print "Failed parsing:", tokens[0], ", ", tokens[1]               
+                exit(2)
+
 
             spikes_per_cell[gid].append(time)
 
     return spikes_per_cell
+
+def parse_time_rate(path):
+    """ Simple spike file parsing function. Assumes no errors and might fail 
+    silently on errors"""
+
+    time_rate = []
+
+    with open(path , "r") as f:
+        for line in f:
+            tokens = line.split(",")
+            try:
+                time = float(tokens[0].strip())
+                rate = float(tokens[1].strip())
+            except:
+                print "Failed parsing:", tokens[0], ", ", tokens[1]               
+                exit(2)
+
+            time_rate.append([time, rate])
+
+    return time_rate
 
 
 
@@ -77,20 +93,21 @@ def binning(spikes_per_cell, bin_size = 1.0, duration = 1000.0):
 
     return bins  
 
-def plot_histogram_and_target_curve(bins, plot_target=True):
+def plot_histogram_and_target_curve(bins, times=None, rates=None, plot_target=True):
     """
     Plot the 
 
     """
     plt.hist([idx for idx in range(len(bins))], len(bins), weights = bins)
-    times, rates = zip(*default_time_rate_pairs)
-    rates = [ x for x in rates]
-    
+    if plot_target:
+        plt.plot(times, rates, linewidth=7,alpha=0.7)
 
-    plt.plot(times, rates, linewidth=7,alpha=0.7)
+    plt.title("Instantanious spike rate for a population of ipss cells ")
+    plt.xlabel("Time (ms.)")
+    plt.ylabel("Instantanious spike rate (spikes / second)")
     plt.show()
 
-def main(path=None):
+def main(path_spikes=None, path_time_rate=None, plot_target=True, interpolate=True):
     """
     Simple main function
     - Parse the spikes (expected in gdf format) from path 
@@ -103,26 +120,51 @@ def main(path=None):
     """
     plot_default_curve = True
 
+    print plot_target, interpolate
+
     # If no path supplied 
-    if path == None:
-        path = default_spike_file_path
+    if path_spikes == None:
+        path_spikes = default_spike_file_path
+
+    # If no path supplied 
+    if not path_time_rate == None:
+        time_rates = parse_time_rate(path_time_rate)
     else:
-        plot_default_curve = False
+        time_rates = default_time_rate_pairs
 
 
-    spikes_per_cell = parse_spike_file(path)
+    # parse the spikes
+    spikes_per_cell = parse_spike_file(path_spikes)
+
+    # perform binnen
     bins = binning(spikes_per_cell)
-    plot_histogram_and_target_curve(bins)
+    
+    # convert time_rate pairs to two lists
+    # if we are NOT interpolating we need to fix the time_rates pairs
+    if not interpolate:
+        time_rates = [x for x in time_rates for _ in (0, 1)]  # double each entry
+        times, rates = zip(*time_rates)
+        rates = [rates[0]] + list(rates)
+        times = list(times) + [times[-1]]
+    else:
+        times, rates = zip(*time_rates)
 
+    # plot the binned spikes and the optional curve
+    plot_histogram_and_target_curve(bins, times, rates, plot_target)
 
-
+def evaluate_string_true(s="True"):
+    return s.lower() in ['true', '1', "t", "yes"]
 
 if __name__ == "__main__":
 
     # Non checked command line parsing
     spike_file_path = ""
-    if len(sys.argv) > 1:
-        main(sys.argv[1])
+    if len(sys.argv) == 4:
+        main(sys.argv[1], sys.argv[2], bool(sys.argv[3]))
+    elif len(sys.argv) == 5:
+        main(sys.argv[1], sys.argv[2],
+             evaluate_string_true(sys.argv[3]), 
+             evaluate_string_true(sys.argv[4]))
     else:
         main()
 
