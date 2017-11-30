@@ -1,10 +1,13 @@
 #include <cmath>
+#include <cstring>
 #include <memory>
 
 #include "test.hpp"
 #include "module.hpp"
 #include "modccutil.hpp"
 #include "parser.hpp"
+
+#include "io/bulkio.hpp"
 
 // overload for parser errors
 template <typename EPtr>
@@ -69,7 +72,7 @@ template <typename RetUniqPtr>
 }
 
 TEST(Parser, full_file) {
-    Module m(DATADIR "/test.mod");
+    Module m(io::read_all(DATADIR "/test.mod"), "test.mod");
     if (m.buffer().size()==0) {
         std::cout << "skipping Parser.full_file test because unable to open input file" << std::endl;
         return;
@@ -582,8 +585,8 @@ TEST(Parser, parse_state_block) {
     };
 
     expression_ptr null;
-    for (auto& text: state_blocks) {
-        Module m(text, sizeof(text));
+    for (const auto& text: state_blocks) {
+        Module m(text, text+std::strlen(text), "");
         Parser p(m, false);
         p.parse_state_block();
         EXPECT_EQ(lexerStatus::happy, p.status());

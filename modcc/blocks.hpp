@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -11,14 +12,42 @@
 // describes a relationship with an ion channel
 struct IonDep {
     ionKind kind() const {
-        if(name=="k")  return ionKind::K;
-        if(name=="na") return ionKind::Na;
-        if(name=="ca") return ionKind::Ca;
-        return ionKind::none;
+        return to_ionKind(name);
     }
     std::string name;         // name of ion channel
     std::vector<Token> read;  // name of channels parameters to write
     std::vector<Token> write; // name of channels parameters to read
+
+    bool has_variable(std::string const& name) {
+        return writes_variable(name) || reads_variable(name);
+    };
+    bool uses_current() {
+        return has_variable("i"+name);
+    };
+    bool uses_rev_potential() {
+        return has_variable("e"+name);
+    };
+    bool uses_concentration_int() {
+        return has_variable(name+"i");
+    };
+    bool uses_concentration_ext() {
+        return has_variable(name+"o");
+    };
+    bool writes_concentration_int() {
+        return writes_variable(name+"i");
+    };
+    bool writes_concentration_ext() {
+        return writes_variable(name+"o");
+    };
+
+    bool reads_variable(const std::string& name) {
+        return std::find_if(read.begin(), read.end(),
+                [&name](const Token& t) {return t.spelling==name;}) != read.end();
+    }
+    bool writes_variable(const std::string& name) {
+        return std::find_if(write.begin(), write.end(),
+                [&name](const Token& t) {return t.spelling==name;}) != write.end();
+    }
 };
 
 enum class moduleKind {

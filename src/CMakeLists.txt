@@ -34,7 +34,7 @@ set(CUDA_SOURCES
     lif_cell_group_gpu.cu
     backends/gpu/kernels/assemble_matrix.cu
     backends/gpu/kernels/interleave.cu
-    backends/gpu/kernels/nernst.cu
+    backends/gpu/kernels/ions.cu
     backends/gpu/kernels/solve_matrix.cu
     backends/gpu/kernels/stim_current.cu
     backends/gpu/kernels/take_samples.cu

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstring>
 #include <string>
+#include <stdexcept>
 
 /// indicate how a variable is accessed
 /// access is (read, written, or both)
@@ -50,13 +52,22 @@ inline std::string yesno(bool val) {
 ////////////////////////////////////////////
 inline std::string to_string(ionKind i) {
     switch(i) {
+        case ionKind::Ca   : return std::string("ca");
+        case ionKind::Na   : return std::string("na");
+        case ionKind::K    : return std::string("k");
         case ionKind::none : return std::string("none");
-        case ionKind::Ca   : return std::string("calcium");
-        case ionKind::Na   : return std::string("sodium");
-        case ionKind::K    : return std::string("potassium");
         case ionKind::nonspecific : return std::string("nonspecific");
     }
-    return std::string("<error : undefined ionKind>");
+    throw std::runtime_error("unknown ionKind");
+}
+
+inline ionKind to_ionKind(const std::string& s) {
+    if(s=="k") return ionKind::K;
+    if(s=="na") return ionKind::Na;
+    if(s=="ca") return ionKind::Ca;
+    if(s=="none") return ionKind::Ca;
+    if(s=="nonspecific") return ionKind::nonspecific;
+    throw std::runtime_error("invalid ion description string");
 }
 
 inline std::string to_string(visibilityKind v) {
