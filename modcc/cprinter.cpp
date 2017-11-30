@@ -2,18 +2,13 @@
 #include <string>
 #include <unordered_set>
 
+#include "cexpr_emit.hpp"
 #include "cprinter.hpp"
 #include "lexer.hpp"
-#include "options.hpp"
 
 /******************************************************************************
                               CPrinter driver
 ******************************************************************************/
-
-CPrinter::CPrinter(Module &m, bool o)
-    : module_(&m),
-      optimize_(o)
-{ }
 
 std::string CPrinter::emit_source() {
     // make a list of vector types, both parameters and assigned
@@ -32,10 +27,7 @@ std::string CPrinter::emit_source() {
         }
     }
 
-    std::string module_name = Options::instance().modulename;
-    if (module_name == "") {
-        module_name = module_->name();
-    }
+    std::string module_name = module_->module_name();
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
@@ -118,14 +110,8 @@ std::string CPrinter::emit_source() {
     for(int i=0; i<num_vars; ++i) {
         char namestr[128];
         sprintf(namestr, "%-15s", array_variables[i]->name().c_str());
-        if(optimize_) {
-            text_.add_gutter() << namestr << " = data_.data() + "
-                               << i << "*field_size;";
-        }
-        else {
-            text_.add_gutter() << namestr << " = data_("
-                               << i << "*field_size, " << i+1 << "*size());";
-        }
+        text_.add_gutter() << namestr << " = data_("
+                           << i << "*field_size, " << i+1 << "*size());";
         text_.end_line();
     }
     text_.add_line();
@@ -135,12 +121,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("// to per-compartment current in nA");
     text_.add_line("if (weights.size()) {");
     text_.increase_indentation();
-    if(optimize_) {
-        text_.add_line("memory::copy(weights, view(weights_, size()));");
-    }
-    else {
-        text_.add_line("memory::copy(weights, weights_(0, size()));");
-    }
+    text_.add_line("memory::copy(weights, weights_(0, size()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line("else {");
@@ -155,8 +136,7 @@ std::string CPrinter::emit_source() {
         double val = var->value();
         // only non-NaN fields need to be initialized, because data_
         // is NaN by default
-        std::string pointer_name = var->name();
-        if(!optimize_) pointer_name += ".data()";
+        std::string pointer_name = var->name()+".data()";
         if(val == val) {
             text_.add_gutter() << "std::fill(" << pointer_name << ", "
                                                << pointer_name << "+size(), "
@@ -213,42 +193,6 @@ std::string CPrinter::emit_source() {
     text_.add_line("}");
     text_.add_line();
 
-    // return true/false indicating if cell has dependency on k
-    auto const& ions = module_->neuron_block().ions;
-    auto find_ion = [&ions] (ionKind k) {
-        return std::find_if(
-            ions.begin(), ions.end(),
-            [k](IonDep const& d) {return d.kind()==k;}
-        );
-    };
-    auto has_ion = [&ions, find_ion] (ionKind k) {
-        return find_ion(k) != ions.end();
-    };
-
-    // bool uses_ion(ionKind k) const override
-    text_.add_line("bool uses_ion(ionKind k) const override {");
-    text_.increase_indentation();
-    text_.add_line("switch(k) {");
-    text_.increase_indentation();
-    text_.add_gutter()
-        << "case ionKind::na : return "
-        << (has_ion(ionKind::Na) ? "true" : "false") << ";";
-    text_.end_line();
-    text_.add_gutter()
-        << "case ionKind::ca : return "
-        << (has_ion(ionKind::Ca) ? "true" : "false") << ";";
-    text_.end_line();
-    text_.add_gutter()
-        << "case ionKind::k  : return "
-        << (has_ion(ionKind::K) ? "true" : "false") << ";";
-    text_.end_line();
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line("return false;");
-    text_.decrease_indentation();
-    text_.add_line("}");
-    text_.add_line();
-
     /***************************************************************************
      *
      *   ion channels have the following fields :
@@ -265,67 +209,58 @@ std::string CPrinter::emit_source() {
      *
      **************************************************************************/
 
+    // ion_spec uses_ion(ionKind k) const override
+    text_.add_line("typename base::ion_spec uses_ion(ionKind k) const override {");
+    text_.increase_indentation();
+    text_.add_line("bool uses = false;");
+    text_.add_line("bool writes_ext = false;");
+    text_.add_line("bool writes_int = false;");
+    for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
+            text_.add_line("if (k==ionKind::" + ion.name + ") {");
+            text_.increase_indentation();
+            text_.add_line("uses = true;");
+            if (ion.writes_concentration_int()) text_.add_line("writes_int = true;");
+            if (ion.writes_concentration_ext()) text_.add_line("writes_ext = true;");
+            text_.decrease_indentation();
+            text_.add_line("}");
+        }
+    }
+    text_.add_line("return {uses, writes_int, writes_ext};");
+    text_.decrease_indentation();
+    text_.add_line("}");
+    text_.add_line();
+
     // void set_ion(ionKind k, ion_type& i) override
-    //      TODO: this is done manually, which isn't going to scale
-    auto has_variable = [] (IonDep const& ion, std::string const& name) {
-        if( std::find_if(ion.read.begin(), ion.read.end(),
-                      [&name] (Token const& t) {return t.spelling==name;}
-            ) != ion.read.end()
-        ) return true;
-        if( std::find_if(ion.write.begin(), ion.write.end(),
-                      [&name] (Token const& t) {return t.spelling==name;}
-            ) != ion.write.end()
-        ) return true;
-        return false;
-    };
     text_.add_line("void set_ion(ionKind k, ion_type& i, std::vector<size_type>const& index) override {");
     text_.increase_indentation();
-    text_.add_line("using arb::algorithms::index_into;");
-    if(has_ion(ionKind::Na)) {
-        auto ion = find_ion(ionKind::Na);
-        text_.add_line("if(k==ionKind::na) {");
-        text_.increase_indentation();
-        text_.add_line("ion_na.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ina")) text_.add_line("ion_na.ina = i.current();");
-        if(has_variable(*ion, "ena")) text_.add_line("ion_na.ena = i.reversal_potential();");
-        if(has_variable(*ion, "nai")) text_.add_line("ion_na.nai = i.internal_concentration();");
-        if(has_variable(*ion, "nao")) text_.add_line("ion_na.nao = i.external_concentration();");
-        text_.add_line("return;");
-        text_.decrease_indentation();
-        text_.add_line("}");
-    }
-    if(has_ion(ionKind::Ca)) {
-        auto ion = find_ion(ionKind::Ca);
-        text_.add_line("if(k==ionKind::ca) {");
-        text_.increase_indentation();
-        text_.add_line("ion_ca.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ica")) text_.add_line("ion_ca.ica = i.current();");
-        if(has_variable(*ion, "eca")) text_.add_line("ion_ca.eca = i.reversal_potential();");
-        if(has_variable(*ion, "cai")) text_.add_line("ion_ca.cai = i.internal_concentration();");
-        if(has_variable(*ion, "cao")) text_.add_line("ion_ca.cao = i.external_concentration();");
-        text_.add_line("return;");
-        text_.decrease_indentation();
-        text_.add_line("}");
-    }
-    if(has_ion(ionKind::K)) {
-        auto ion = find_ion(ionKind::K);
-        text_.add_line("if(k==ionKind::k) {");
-        text_.increase_indentation();
-        text_.add_line("ion_k.index = iarray(memory::make_const_view(index));");
-        if(has_variable(*ion, "ik")) text_.add_line("ion_k.ik = i.current();");
-        if(has_variable(*ion, "ek")) text_.add_line("ion_k.ek = i.reversal_potential();");
-        if(has_variable(*ion, "ki")) text_.add_line("ion_k.ki = i.internal_concentration();");
-        if(has_variable(*ion, "ko")) text_.add_line("ion_k.ko = i.external_concentration();");
-        text_.add_line("return;");
-        text_.decrease_indentation();
-        text_.add_line("}");
+    for (auto k: {ionKind::Na, ionKind::Ca, ionKind::K}) {
+        if (module_->has_ion(k)) {
+            auto ion = *module_->find_ion(k);
+            text_.add_line("if (k==ionKind::" + ion.name + ") {");
+            text_.increase_indentation();
+            auto n = ion.name;
+            auto pre = "ion_"+n;
+            text_.add_line(pre+".index = memory::make_const_view(index);");
+            if (ion.uses_current())
+                text_.add_line(pre+".i"+n+" = i.current();");
+            if (ion.uses_rev_potential())
+                text_.add_line(pre+".e"+n+" = i.reversal_potential();");
+            if (ion.uses_concentration_int())
+                text_.add_line(pre+"."+n+"i = i.internal_concentration();");
+            if (ion.uses_concentration_ext())
+                text_.add_line(pre+"."+n+"o = i.external_concentration();");
+            text_.add_line("return;");
+            text_.decrease_indentation();
+            text_.add_line("}");
+        }
     }
     text_.add_line("throw std::domain_error(arb::util::pprintf(\"mechanism % does not support ion type\\n\", name()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
 
-    //////////////////////////////////////////////
     //////////////////////////////////////////////
 
     auto proctest = [] (procedureKind k) {
@@ -363,6 +298,30 @@ std::string CPrinter::emit_source() {
         text_.add_line("}");
         text_.add_line();
     }
+
+    if(module_->write_backs().size()) {
+        text_.add_line("void write_back() override {");
+        text_.increase_indentation();
+
+        text_.add_line("const size_type n_ = node_index_.size();");
+        for (auto& w: module_->write_backs()) {
+            auto& src = w.source_name;
+            auto tgt = w.target_name;
+            tgt.erase(tgt.begin(), tgt.begin()+tgt.find('_')+1);
+            auto istore = ion_store(w.ion_kind)+".";
+
+            text_.add_line();
+            text_.add_line("auto "+src+"_out_ = util::indirect_view("+istore+tgt+", "+istore+"index);");
+            text_.add_line("for (size_type i_ = 0; i_ < n_; ++i_) {");
+            text_.increase_indentation();
+            text_.add_line("// 1/10 magic number due to unit normalisation");
+            text_.add_line(src+"_out_["+istore+"index[i_]] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
+            text_.decrease_indentation(); text_.add_line("}");
+            
+        }
+        text_.decrease_indentation(); text_.add_line("}");
+    }
+    text_.add_line();
 
     // TODO: replace field_info() generation implemenation with separate schema info generation
     // as per #349.
@@ -460,12 +419,7 @@ std::string CPrinter::emit_source() {
 
     text_.add_line("array data_;");
     for(auto var: array_variables) {
-        if(optimize_) {
-            text_.add_line("value_type *" + var->name() + ";");
-        }
-        else {
-            text_.add_line("view " + var->name() + ";");
-        }
+        text_.add_line("view " + var->name() + ";");
     }
 
     for(auto var: scalar_variables) {
@@ -544,7 +498,7 @@ void CPrinter::visit(LocalVariable *e) {
 }
 
 void CPrinter::visit(NumberExpression *e) {
-    text_ << " " << e->value();
+    cexpr_emit(e, text_.text(), this);
 }
 
 void CPrinter::visit(IdentifierExpression *e) {
@@ -567,41 +521,7 @@ void CPrinter::visit(CellIndexedVariable *e) {
 }
 
 void CPrinter::visit(UnaryExpression *e) {
-    auto b = (e->expression()->is_binary()!=nullptr);
-    switch(e->op()) {
-        case tok::minus :
-            // place a space in front of minus sign to avoid invalid
-            // expressions of the form : (v[i]--67)
-            if(b) text_ << " -(";
-            else  text_ << " -";
-            e->expression()->accept(this);
-            if(b) text_ << ")";
-            return;
-        case tok::exp :
-            text_ << "exp(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        case tok::cos :
-            text_ << "cos(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        case tok::sin :
-            text_ << "sin(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        case tok::log :
-            text_ << "log(";
-            e->expression()->accept(this);
-            text_ << ")";
-            return;
-        default :
-            throw compiler_exception(
-                "CPrinter unsupported unary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
+    cexpr_emit(e, text_.text(), this);
 }
 
 void CPrinter::visit(BlockExpression *e) {
@@ -744,13 +664,7 @@ void CPrinter::visit(APIMethod *e) {
         // get loop dimensions
         text_.add_line("int n_ = node_index_.size();");
 
-        // hand off printing of loops to optimized or unoptimized backend
-        if(optimize_) {
-            print_APIMethod_optimized(e);
-        }
-        else {
-            print_APIMethod_unoptimized(e);
-        }
+        print_APIMethod(e);
     }
 
     // close up the loop body
@@ -800,138 +714,11 @@ void CPrinter::emit_api_loop(APIMethod* e,
     text_.add_line("}");
 }
 
-void CPrinter::print_APIMethod_unoptimized(APIMethod* e) {
+void CPrinter::print_APIMethod(APIMethod* e) {
     emit_api_loop(e, "int i_ = 0", "i_ < n_", "++i_");
     decrease_indentation();
 
     return;
-}
-
-void CPrinter::print_APIMethod_optimized(APIMethod* e) {
-    // ------------- get mechanism properties ------------- //
-
-    // make a list of all the local variables that have to be
-    // written out to global memory via an index
-    auto is_aliased = [this] (Symbol* s) -> LocalVariable* {
-        if(is_output(s)) {
-            return s->is_local_variable();
-        }
-        return nullptr;
-    };
-
-    std::vector<LocalVariable*> aliased_variables;
-    if(is_point_process()) {
-        for(auto &l : e->scope()->locals()) {
-            if(auto var = is_aliased(l.second.get())) {
-                aliased_variables.push_back(var);
-            }
-        }
-    }
-
-    aliased_output_ = aliased_variables.size()>0;
-
-    // only proceed with optimized output if the ouputs are aliased
-    // because all optimizations are for using ghost buffers to avoid
-    // race conditions in vectorized code
-    if(!aliased_output_) {
-        print_APIMethod_unoptimized(e);
-        return;
-    }
-
-    // ------------- block loop ------------- //
-
-    text_.add_line("constexpr int BSIZE = 4;");
-    text_.add_line("int NB = n_/BSIZE;");
-    for(auto out: aliased_variables) {
-        text_.add_line("value_type " + out->name() +  "[BSIZE];");
-    }
-
-    text_.add_line("for(int b_=0; b_<NB; ++b_) {");
-    text_.increase_indentation();
-    text_.add_line("int BSTART = BSIZE*b_;");
-    text_.add_line("int i_ = BSTART;");
-
-
-    text_.add_line("for(int j_=0; j_<BSIZE; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    // loads from external indexed arrays
-    for(auto &symbol : e->scope()->locals()) {
-        auto var = symbol.second->is_local_variable();
-        if(is_input(var)) {
-            auto ext = var->external_variable();
-            text_.add_gutter() << "value_type ";
-            var->accept(this);
-            text_ << " = ";
-            ext->accept(this);
-            text_.end_line(";");
-        }
-    }
-
-    e->body()->accept(this);
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end inner compute loop
-
-    text_.add_line("i_ = BSTART;");
-    text_.add_line("for(int j_=0; j_<BSIZE; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    for(auto out: aliased_variables) {
-        text_.add_gutter();
-        auto ext = out->external_variable();
-        ext->accept(this);
-        text_ << (ext->op() == tok::plus ? " += " : " -= ");
-        out->accept(this);
-        text_.end_line(";");
-    }
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end inner write loop
-    text_.decrease_indentation();
-    text_.add_line("}"); // end outer block loop
-
-    // ------------- block tail loop ------------- //
-
-    text_.add_line("int j_ = 0;");
-    text_.add_line("for(int i_=NB*BSIZE; i_<n_; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    for(auto &symbol : e->scope()->locals()) {
-        auto var = symbol.second->is_local_variable();
-        if(is_input(var)) {
-            auto ext = var->external_variable();
-            text_.add_gutter() << "value_type ";
-            var->accept(this);
-            text_ << " = ";
-            ext->accept(this);
-            text_.end_line(";");
-        }
-    }
-
-    e->body()->accept(this);
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end inner compute loop
-    text_.add_line("j_ = 0;");
-    text_.add_line("for(int i_=NB*BSIZE; i_<n_; ++j_, ++i_) {");
-    text_.increase_indentation();
-
-    for(auto out: aliased_variables) {
-        text_.add_gutter();
-        auto ext = out->external_variable();
-        ext->accept(this);
-        text_ << (ext->op() == tok::plus ? " += " : " -= ");
-        out->accept(this);
-        text_.end_line(";");
-    }
-
-    text_.decrease_indentation();
-    text_.add_line("}"); // end block tail loop
-
-    decrease_indentation();
-
-    aliased_output_ = false;
 }
 
 void CPrinter::visit(CallExpression *e) {
@@ -943,72 +730,7 @@ void CPrinter::visit(CallExpression *e) {
     text_ << ")";
 }
 
-void CPrinter::visit(AssignmentExpression *e) {
-    e->lhs()->accept(this);
-    text_ << " = ";
-    e->rhs()->accept(this);
-}
-
-void CPrinter::visit(PowBinaryExpression *e) {
-    text_ << "std::pow(";
-    e->lhs()->accept(this);
-    text_ << ", ";
-    e->rhs()->accept(this);
-    text_ << ")";
-}
-
 void CPrinter::visit(BinaryExpression *e) {
-    auto pop = parent_op_;
-    // TODO unit tests for parenthesis and binops
-    bool use_brackets =
-        Lexer::binop_precedence(pop) > Lexer::binop_precedence(e->op())
-        || (pop==tok::divide && e->op()==tok::times);
-    parent_op_ = e->op();
-
-    auto lhs = e->lhs();
-    auto rhs = e->rhs();
-    if(use_brackets) {
-        text_ << "(";
-    }
-    lhs->accept(this);
-    switch(e->op()) {
-        case tok::minus :
-            text_ << "-";
-            break;
-        case tok::plus :
-            text_ << "+";
-            break;
-        case tok::times :
-            text_ << "*";
-            break;
-        case tok::divide :
-            text_ << "/";
-            break;
-        case tok::lt     :
-            text_ << "<";
-            break;
-        case tok::lte    :
-            text_ << "<=";
-            break;
-        case tok::gt     :
-            text_ << ">";
-            break;
-        case tok::gte    :
-            text_ << ">=";
-            break;
-        case tok::equality :
-            text_ << "==";
-            break;
-        default :
-            throw compiler_exception(
-                "CPrinter unsupported binary operator " + yellow(token_string(e->op())),
-                e->location());
-    }
-    rhs->accept(this);
-    if(use_brackets) {
-        text_ << ")";
-    }
-
-    // reset parent precedence
-    parent_op_ = pop;
+    cexpr_emit(e, text_.text(), this);
 }
+

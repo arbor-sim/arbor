@@ -5,7 +5,6 @@
 #include <set>
 
 #include "errorvisitor.hpp"
-#include "expressionclassifier.hpp"
 #include "functionexpander.hpp"
 #include "functioninliner.hpp"
 #include "kineticrewriter.hpp"
@@ -96,77 +95,12 @@ public:
     }
 };
 
-Module::Module(std::string const& fname)
-: fname_(fname)
-{
-    // open the file at the end
-    std::ifstream fid;
-    fid.open(fname.c_str(), std::ios::binary | std::ios::ate);
-    if(!fid.is_open()) { // return if no file opened
-        return;
-    }
-
-    // determine size of file
-    std::size_t size = fid.tellg();
-    fid.seekg(0, std::ios::beg);
-
-    // allocate space for storage and read
-    buffer_.resize(size+1);
-    fid.read(buffer_.data(), size);
-    buffer_[size] = 0; // append \0 to terminate string
-}
-
-Module::Module(std::vector<char> const& buffer) {
-    buffer_ = buffer;
-
-    // add \0 to end of buffer if not already present
-    if (buffer_[buffer_.size()-1] != 0)
-        buffer_.push_back(0);
-}
-
-Module::Module(const char* buffer, size_t count) {
-    auto size = std::distance(buffer, std::find(buffer, buffer+count, '\0'));
-    buffer_.reserve(size+1);
-    buffer_.insert(buffer_.end(), buffer, buffer+size);
-    buffer_.push_back(0);
-}
-
-std::vector<Module::symbol_ptr>&
-Module::procedures() {
-    return procedures_;
-}
-
-std::vector<Module::symbol_ptr>const&
-Module::procedures() const {
-    return procedures_;
-}
-
-std::vector<Module::symbol_ptr>&
-Module::functions() {
-    return functions_;
-}
-
-std::vector<Module::symbol_ptr>const&
-Module::functions() const {
-    return functions_;
-}
-
-Module::symbol_map&
-Module::symbols() {
-    return symbols_;
-}
-
-Module::symbol_map const&
-Module::symbols() const {
-    return symbols_;
-}
-
 std::string Module::error_string() const {
     std::string str;
     for (const error_entry& entry: errors()) {
         if (!str.empty()) str += '\n';
         str += red("error   ");
-        str += white(pprintf("%:% ", file_name(), entry.location));
+        str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
     return str;
@@ -177,7 +111,7 @@ std::string Module::warning_string() const {
     for (auto& entry: warnings()) {
         if (!str.empty()) str += '\n';
         str += purple("warning   ");
-        str += white(pprintf("%:% ", file_name(), entry.location));
+        str += white(pprintf("%:% ", source_name(), entry.location));
         str += entry.message;
     }
     return str;
@@ -456,7 +390,7 @@ void Module::add_variables_to_symbols() {
     {
         if(symbols_.count(name)) {
             throw compiler_exception(
-                "trying to insert a symbol that already exists",
+                pprintf("the symbol % already exists", yellow(name)),
                 loc);
         }
         symbols_[name] =
@@ -562,27 +496,48 @@ void Module::add_variables_to_symbols() {
     auto update_ion_symbols = [this, create_indexed_variable]
             (Token const& tkn, accessKind acc, ionKind channel)
     {
-        auto const& var = tkn.spelling;
+        auto const& name = tkn.spelling;
 
-        // add the ion variable's indexed shadow
-        if(has_symbol(var)) {
-            auto sym = symbols_[var].get();
+        if(has_symbol(name)) {
+            auto sym = symbols_[name].get();
 
-            // has the user declared a range/parameter with the same name?
-            if(sym->kind()!=symbolKind::indexed_variable) {
-                warning(
-                    pprintf("the symbol % clashes with the ion channel variable,"
-                            " and will be ignored", yellow(var)),
-                    sym->location()
-                );
-                // erase symbol
-                symbols_.erase(var);
+            //  if sym is an indexed_variable: error
+            //  else if sym is a state variable: register a writeback call
+            //  else if sym is a range (non parameter) variable: error
+            //  else if sym is a parameter variable: error
+            //  else it does not exist so make an indexed variable
+
+            // If an indexed variable has already been created with the same name
+            // throw an error.
+            if(sym->kind()==symbolKind::indexed_variable) {
+                error(pprintf("the symbol defined % at % can't be redeclared",
+                              sym->location(), yellow(name)),
+                      tkn.location);
+                return;
+            }
+            else if(sym->kind()==symbolKind::variable) {
+                auto var = sym->is_variable();
+
+                // state variable: register writeback
+                if(var->is_state()) {
+                    // create writeback
+                    write_backs_.push_back(WriteBack(name, "ion_"+name, channel));
+                    return;
+                }
+
+                // error: a normal range variable or parameter can't have the same
+                // name as an indexed ion variable
+                error(pprintf("the ion channel variable % at % can't be redeclared",
+                              yellow(name), sym->location()),
+                      tkn.location);
+                return;
             }
         }
 
-        create_indexed_variable(var, "ion_"+var,
+        // add the ion variable's indexed shadow
+        create_indexed_variable(name, "ion_"+name,
                                 acc==accessKind::read ? tok::eq : tok::plus,
-                                acc, channel, tkn.location);
+acc, channel, tkn.location);
     };
 
     // check for nonspecific current
@@ -642,53 +597,6 @@ void Module::add_variables_to_symbols() {
     }
 }
 
-bool Module::optimize() {
-    // how to structure the optimizer
-    // loop over APIMethods
-    //      - apply optimization to each in turn
-    ConstantFolderVisitor folder;
-    for(auto &symbol : symbols_) {
-        auto kind = symbol.second->kind();
-        BlockExpression* body;
-        if(kind == symbolKind::procedure) {
-            // we are only interested in true procedures and APIMethods
-            auto proc = symbol.second->is_procedure();
-            auto pkind = proc->kind();
-            if(pkind == procedureKind::normal || pkind == procedureKind::api )
-                body = symbol.second->is_procedure()->body();
-            else
-                continue;
-        }
-        // for now don't look at functions
-        //else if(kind == symbolKind::function) {
-        //    body = symbol.second.expression->is_function()->body();
-        //}
-        else {
-            continue;
-        }
-
-        /////////////////////////////////////////////////////////////////////
-        // loop over folding and propogation steps until there are no changes
-        /////////////////////////////////////////////////////////////////////
-
-        // perform constant folding
-        for(auto& line : *body) {
-            line->accept(&folder);
-        }
-
-        // preform expression simplification
-        // i.e. removing zeros/refactoring reciprocals/etc
-
-        // perform constant propogation
-
-        /////////////////////////////////////////////////////////////////////
-        // remove dead local variables
-        /////////////////////////////////////////////////////////////////////
-    }
-
-    return true;
-}
-
 int Module::semantic_func_proc() {
     ////////////////////////////////////////////////////////////////////////////
     // now iterate over the functions and procedures and perform semantic
@@ -718,7 +626,7 @@ int Module::semantic_func_proc() {
             s->semantic(symbols_);
 
             // then use an error visitor to print out all the semantic errors
-            ErrorVisitor v(file_name());
+            ErrorVisitor v(source_name());
             s->accept(&v);
             errors += v.num_errors();
 
@@ -794,6 +702,11 @@ int Module::semantic_func_proc() {
                 std::cout << "body after inlining\n";
                 for(auto& l : b) std::cout << "  " << l->to_string() << " @ " << l->location() << "\n";
 #endif
+                // Finally, run a constant simplification pass.
+                if (auto proc = s->is_procedure()) {
+                    proc->body(constant_simplify(proc->body()));
+                    s->semantic(symbols_);
+                }
             }
         }
     }

@@ -1,7 +1,7 @@
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
 # Build prototype mechanisms for testing in test_mechanisms.
-set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva)
+set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
 set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
 file(MAKE_DIRECTORY "${mech_proto_dir}")
 
@@ -11,7 +11,7 @@ build_modules(
     DEST_DIR "${mech_proto_dir}"
     MECH_SUFFIX _proto
     MODCC_FLAGS -t cpu
-    GENERATES .hpp
+    GENERATES _cpu.hpp
     TARGET build_test_mods
 )
 

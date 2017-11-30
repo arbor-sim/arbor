@@ -6,16 +6,14 @@
 #include "textbuffer.hpp"
 #include "visitor.hpp"
 
-class CPrinter : public Visitor {
+class CPrinter: public Visitor {
 public:
     CPrinter() {}
-    CPrinter(Module &m, bool o=false);
+    explicit CPrinter(Module &m): module_(&m) {}
 
     virtual void visit(Expression *e)           override;
     virtual void visit(UnaryExpression *e)      override;
     virtual void visit(BinaryExpression *e)     override;
-    virtual void visit(AssignmentExpression *e) override;
-    virtual void visit(PowBinaryExpression *e)  override;
     virtual void visit(NumberExpression *e)     override;
     virtual void visit(VariableExpression *e)   override;
     virtual void visit(Symbol *e)               override;
@@ -58,13 +56,10 @@ public:
 
 protected:
     void print_mechanism(Visitor *backend);
-    void print_APIMethod_optimized(APIMethod* e);
-    void print_APIMethod_unoptimized(APIMethod* e);
+    void print_APIMethod(APIMethod* e);
 
     Module *module_ = nullptr;
-    tok parent_op_ = tok::eq;
     TextBuffer text_;
-    bool optimize_ = false;
     bool aliased_output_ = false;
 
     bool is_input(Symbol *s) {
@@ -109,7 +104,6 @@ protected:
 
     bool is_ghost_local(Symbol *s) {
         if(!is_point_process()) return false;
-        if(!optimize_)          return false;
         if(!aliased_output_)    return false;
         if(is_arg_local(s))     return false;
         return is_output(s);
@@ -121,7 +115,7 @@ protected:
     }
 
     bool is_point_process() {
-        return module_->kind() == moduleKind::point;
+        return module_ && module_->kind() == moduleKind::point;
     }
 
     std::vector<LocalVariable*> aliased_vars(APIMethod* e);
