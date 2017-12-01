@@ -54,7 +54,7 @@ namespace {
             return {};
         }
 
-        std::vector<event_generator> event_generators(cell_gid_type) const override {
+        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
             return {};
         }
 

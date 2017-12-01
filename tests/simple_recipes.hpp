@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <cell.hpp>
+#include <event_generator.hpp>
 #include <recipe.hpp>
 
 namespace arb {
@@ -19,7 +20,7 @@ public:
         return probes_.count(i)? probes_.at(i).size(): 0;
     }
 
-    std::vector<event_generator> event_generators(cell_gid_type) const override {
+    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
         return {};
     }
 

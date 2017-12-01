@@ -1,25 +1,21 @@
 #include "../gtest.h"
 
 #include <event_queue.hpp>
+#include <merge_events.hpp>
 #include <model.hpp>
 
-namespace arb {
-    // Declare prototype of the merge_events function, because it is only
-    // defined in the TU of model.cpp
-    void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, pse_vector& lf);
-} // namespace arb
-
 using namespace arb;
+
+namespace {
+    using gen_vec = std::vector<event_generator_ptr>;
+    gen_vec empty_gens;
+}
 
 std::ostream& operator<<(std::ostream& o, const pse_vector& events) {
     o << "{{"; for (auto e: events) o << " " << e;
     o << "}}";
     return o;
 }
-
-using pse = postsynaptic_spike_event;
-auto ev_bind = [] (const pse& e){ return std::tie(e.time, e.target, e.weight); };
-auto ev_less = [] (const pse& l, const pse& r){ return ev_bind(l)<ev_bind(r); };
 
 // Test the trivial case of merging empty sets
 TEST(merge_events, empty)
@@ -28,7 +24,7 @@ TEST(merge_events, empty)
     pse_vector lc;
     pse_vector lf;
 
-    merge_events(0, lc, events, lf);
+    merge_events(0, max_time, lc, events, empty_gens, lf);
 
     EXPECT_EQ(lf.size(), 0u);
 }
@@ -43,7 +39,7 @@ TEST(merge_events, no_overlap)
         {{0, 0}, 3, 3},
     };
     // Check that the inputs satisfy the precondition that lc is sorted.
-    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end(), ev_less));
+    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
 
     // These events should be removed from lf by merge_events, and replaced
     // with events to be delivered after t=10
@@ -60,7 +56,7 @@ TEST(merge_events, no_overlap)
         {{0, 0}, 11, 1},
     };
 
-    merge_events(10, lc, events, lf);
+    merge_events(10, max_time, lc, events, empty_gens, lf);
 
     pse_vector expected = {
         {{8, 0}, 10, 4},
@@ -69,7 +65,7 @@ TEST(merge_events, no_overlap)
         {{0, 0}, 12, 1},
     };
 
-    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end(), ev_less));
+    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
     EXPECT_EQ(expected, lf);
 }
 
@@ -85,7 +81,7 @@ TEST(merge_events, overlap)
         {{8, 0}, 10, 2},
         {{0, 0}, 11, 3},
     };
-    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end(), ev_less));
+    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
 
     pse_vector lf;
 
@@ -98,7 +94,7 @@ TEST(merge_events, overlap)
         {{7, 0}, 10, 8},
     };
 
-    merge_events(10, lc, events, lf);
+    merge_events(10, max_time, lc, events, empty_gens, lf);
 
     pse_vector expected = {
         {{7, 0}, 10, 8}, // from events
@@ -110,6 +106,138 @@ TEST(merge_events, overlap)
         {{0, 0}, 12, 1}, // from events
     };
 
-    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end(), ev_less));
+    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
     EXPECT_EQ(expected, lf);
+}
+
+TEST(merge_events, X)
+{
+    const time_type t0 = 10;
+    const time_type t1 = 20;
+
+    pse_vector lc = {
+        {{0, 0}, 1, 1},
+        {{0, 0}, 5, 1},
+        // The current epoch ends at t=10, so all events from here down are expected in lf.
+        {{8, 0}, 10, 2},
+        {{0, 0}, 11, 3},
+        {{8, 0}, 20, 2},
+        {{0, 0}, 21, 3},
+    };
+    EXPECT_TRUE(std::is_sorted(lc.begin(), lc.end()));
+
+    pse_vector lf;
+
+    pse_vector events = {
+        {{0, 0}, 12, 1},
+        {{0, 0}, 16, 2},
+        {{0, 0}, 22, 3},
+        {{8, 0}, 26, 4},
+    };
+
+    std::vector<event_generator_ptr> generators(2);
+    generators.push_back(
+        make_event_generator<regular_generator>
+        (t0, 5, cell_member_type{4,2}, 42.f));
+
+    merge_events(t0, t1, lc, events, generators, lf);
+
+    /*
+    pse_vector expected = {
+        {{7, 0}, 10, 8}, // from events
+        {{8, 0}, 10, 2}, // from lc
+        {{8, 0}, 10, 3}, // from events
+        {{0, 0}, 11, 1}, // from events
+        {{0, 0}, 11, 2}, // from events
+        {{0, 0}, 11, 3}, // from lc
+        {{0, 0}, 12, 1}, // from events
+    };
+    */
+
+    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    for (auto e: lf) {
+        std::cout << "  " << e << "\n";
+    }
+    //EXPECT_EQ(expected, lf);
+}
+
+TEST(merge_events, tourney_seq)
+{
+    pse_vector g1 = {
+        {{0, 0}, 1, 1},
+        {{0, 0}, 2, 2},
+        {{0, 0}, 3, 3},
+        {{0, 0}, 4, 4},
+        {{0, 0}, 5, 5},
+    };
+
+    pse_vector g2 = {
+        {{0, 0}, 1.5, 1},
+        {{0, 0}, 2.5, 2},
+        {{0, 0}, 3.5, 3},
+        {{0, 0}, 4.5, 4},
+        {{0, 0}, 5.5, 5},
+    };
+
+    std::vector<event_generator_ptr> generators;
+    generators.push_back(make_event_generator<seq_generator<pse_vector>>(g1));
+    generators.push_back(make_event_generator<seq_generator<pse_vector>>(g2));
+    impl::tourney_tree tree(generators);
+
+    pse_vector lf;
+    while (!tree.empty()) {
+        lf.push_back(tree.head());
+        tree.pop();
+    }
+
+    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    auto expected = g1;
+    util::append(expected, g2);
+    util::sort(expected);
+
+    EXPECT_EQ(expected, lf);
+}
+
+TEST(merge_events, tourney_poisson)
+{
+    using rndgen = std::mt19937_64;
+    auto ngen = 100u; // many generators, not a multiple of 2
+    time_type tfinal = 10;
+    time_type t0 = 0;
+    time_type dt = 0.1; // expected: 10/0.1=100 events per generator
+
+    std::vector<event_generator_ptr> generators;
+    for (auto i=0u; i<ngen; ++i) {
+        cell_member_type tgt{0, i};
+        float weight = i;
+        // the first and last generators have the same seed to test that sorting
+        // of events with the same time but different weights works properly.
+        rndgen G(i%(ngen-1));
+        generators.push_back(
+            make_event_generator<
+                poisson_generator<std::mt19937_64>>
+                (t0, dt, tgt, weight, G));
+    }
+
+    // manually generated the expected output
+    pse_vector expected;
+    for (auto& gen: generators) {
+        while (gen->next().time<tfinal) {
+            expected.push_back(gen->next());
+            gen->pop();
+        }
+        gen->reset();
+    }
+    util::sort(expected);
+
+    // generate output using tournament tree
+    impl::tourney_tree tree(generators);
+    pse_vector lf;
+    while (!tree.empty(tfinal)) {
+        lf.push_back(tree.head());
+        tree.pop();
+    }
+
+    EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
+    EXPECT_EQ(lf, expected);
 }

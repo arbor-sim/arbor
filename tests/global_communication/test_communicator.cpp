@@ -213,7 +213,7 @@ namespace {
                         1.0f)};     // delay
         }
 
-        std::vector<event_generator> event_generators(cell_gid_type) const override {
+        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
             return {};
         }
 
@@ -286,7 +286,7 @@ namespace {
             return cons;
         }
 
-        std::vector<event_generator> event_generators(cell_gid_type) const override {
+        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
             return {};
         }
 
