@@ -8,15 +8,18 @@
 #include <stdexcept>
 #include <string>
 
-#include "options.hpp"
 #include "token.hpp"
 #include "textbuffer.hpp"
-#include "util/meta.hpp"
 
-namespace arb {
+enum class simdKind {
+    none, avx2, avx512
+};
+
 namespace modcc {
 
-using arb::util::enable_if_t;
+template <bool V, typename R = void>
+using enable_if_t = typename std::enable_if<V, R>::type;
+
 using operand_fn_t = std::function<void(TextBuffer&)>;
 
 static void emit_operands(TextBuffer& tb, operand_fn_t emitter) {
@@ -41,7 +44,7 @@ static operand_fn_t arg_emitter(const operand_fn_t& arg) {
 }
 
 
-template<targetKind Arch>
+template<simdKind Arch>
 struct simd_intrinsics {
     static std::string emit_headers();
     static std::string emit_simd_width();
@@ -87,4 +90,4 @@ struct simd_intrinsics {
     static bool has_scatter();
 };
 
-}} // closing namespaces
+} // namespace modcc

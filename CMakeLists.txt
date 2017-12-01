@@ -201,13 +201,11 @@ endif()
 #----------------------------------------------------------
 # vectorization target
 #----------------------------------------------------------
-set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX,AVX2,AVX512}")
-set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX AVX2 AVX512)
+set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX2,AVX512}")
+set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
 
 if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX}")
 elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
 elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
@@ -291,6 +289,6 @@ endif()
 add_subdirectory(src)
 add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
-add_subdirectory(miniapp)
+add_subdirectory(miniapps)
 add_subdirectory(lmorpho)
 add_subdirectory(doc)

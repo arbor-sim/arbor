@@ -6,13 +6,11 @@
 
 #include "backends/base.hpp"
 
-
-namespace arb {
 namespace modcc {
 
 // Specialize for the different architectures
 template<>
-struct simd_intrinsics<targetKind::avx512> {
+struct simd_intrinsics<simdKind::avx512> {
 
     static bool has_scatter() {
         return true;
@@ -147,4 +145,4 @@ struct simd_intrinsics<targetKind::avx512> {
     }
 };
 
-}} // closing namespaces
+} // namespace modcc;

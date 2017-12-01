@@ -1,6 +1,3 @@
-#include <cstddef>
-#include <fstream>
-#include <set>
 #include <vector>
 
 #include "../gtest.h"
@@ -815,3 +812,81 @@ TEST(fvm_multi, target_handles_general)
     run_target_handle_test(handles);
 }
 
+// Test area-weighted linear combination of ion species concentrations
+
+TEST(fvm_multi, ion_weights) {
+    using namespace arb;
+
+    // Create a cell with 4 segments:
+    //   - Soma (segment 0) plus three dendrites (1, 2, 3) meeting at a branch point.
+    //   - Dendritic segments are given 1 compartments each.
+    //
+    //         /
+    //        d2
+    //       /
+    //   s0-d1
+    //       \.
+    //        d3
+    //
+    // The CV corresponding to the branch point should comprise the terminal
+    // 1/2 of segment 1 and the initial 1/2 of segments 2 and 3.
+    //
+    // Geometry:
+    //   soma 0: radius 5 µm
+    //   dend 1: 100 µm long, 1 µm diameter cynlinder
+    //   dend 2: 200 µm long, 1 µm diameter cynlinder
+    //   dend 3: 100 µm long, 1 µm diameter cynlinder
+    // The radius of the soma is chosen such that the surface area of soma is
+    // the same as a 100µm dendrite, which makes it easier to describe the
+    // expected weights.
+
+    cell c;
+    c.add_soma(5);
+
+    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 200);
+    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+
+    for (auto& s: c.segments()) s->set_compartments(1);
+
+    std::vector<std::vector<int>> seg_sets = {
+        {0}, {0,2}, {2, 3}, {0, 1, 2, 3},
+    };
+    std::vector<std::vector<unsigned>> expected_nodes = {
+        {0}, {0, 1, 2}, {0, 1, 2, 3}, {0, 1, 2, 3},
+    };
+    std::vector<std::vector<fvm_value_type>> expected_wght = {
+        {1./3}, {1./3, 1./2, 0.}, {1./3, 1./4, 0., 0.}, {0., 0., 0., 0.},
+    };
+
+    double con_int = 80;
+    double con_ext = 120;
+    for (auto run=0u; run<seg_sets.size(); ++run) {
+        for (auto i: seg_sets[run]) {
+            c.segments()[i]->add_mechanism(mechanism_spec("test_ca"));
+        }
+
+        std::vector<fvm_cell::target_handle> targets;
+        probe_association_map<fvm_cell::probe_handle> probe_map;
+
+        fvm_cell fvcell;
+        fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
+
+        auto& ion = fvcell.ion_ca();
+        ion.default_int_concentration = con_int;
+        ion.default_ext_concentration = con_ext;
+        ion.init_concentration();
+
+        auto& nodes = expected_nodes[run];
+        auto& weights = expected_wght[run];
+        auto ncv = nodes.size();
+        EXPECT_EQ(ncv, ion.node_index().size());
+        for (auto i: util::make_span(0, ncv)) {
+            EXPECT_EQ(nodes[i], ion.node_index()[i]);
+            EXPECT_FLOAT_EQ(weights[i], ion.internal_concentration_weights()[i]);
+
+            EXPECT_EQ(con_ext, ion.external_concentration()[i]);
+            EXPECT_FLOAT_EQ(1.0, ion.external_concentration_weights()[i]);
+        }
+    }
+}
