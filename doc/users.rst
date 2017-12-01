@@ -12,9 +12,4 @@ Introduction to the user guide, with examples and detailed descriptions of featu
 .. toctree::
    :maxdepth: 1
 
-   spike_sources
-
-.. toctree::
-   :maxdepth: 1
-
    model_inputs
