@@ -12,5 +12,5 @@ Introduction to the user guide, with examples and detailed descriptions of featu
 .. toctree::
    :maxdepth: 1
 
-   input_cells
+   input_cell
 
