@@ -498,8 +498,10 @@ void SimdPrinter<Arch>::visit(AssignmentExpression *e) {
                                            });
     }
     else {
-        // that's an ordinary assignment; use base printer
-        CPrinter::visit(e);
+        // that's an ordinary assignment
+        lhs->accept(this);
+        text_ << " = ";
+        rhs->accept(this);
     }
 }
 
