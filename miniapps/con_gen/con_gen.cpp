@@ -86,18 +86,24 @@ int main(int argc, char** argv) {
     arb::projection_pars pars(0.02, 100 );
     std::tuple<unsigned, unsigned, arb::projection_pars> proj(0, 1, pars);
     connectome.push_back(proj);
-
+    arb::projection_pars pars2(0.1, 1000);
+    std::tuple<unsigned, unsigned, arb::projection_pars> proj2(0, 1, pars2);
+    connectome.push_back(proj2);
 
 
 
     arb::connection_generator gen(populations, connectome);
     std::vector<arb::cell_gid_type> gids = gen.pre_synaptic_cells(15050);
 
+    std::vector<arb::cell_gid_type> gids2 = gen.pre_synaptic_cells(10010);
+
     std::ofstream outfile("gids.dat");
     if (outfile) {
-        for (auto gid : gids)
-        {
+        for (auto gid : gids) {
+            outfile << gid << "\n";
+        }
 
+        for (auto gid : gids2) {
             outfile << gid << "\n";
         }
 

@@ -49,9 +49,6 @@ namespace arb {
 
 class connection_generator {
 public:
-
-
-
     // Create
     connection_generator( std::vector<population> const populations,
         std::vector<std::tuple<unsigned, unsigned, projection_pars>> const connectome)
@@ -72,7 +69,6 @@ public:
         std::vector<cell_gid_type> connections;
         for (auto projection : connectome_)
         {
-            std::cout << "debug 1" << std::endl;
             // Sanity check that the populations exist
             EXPECTS(std::get<0>(projection) < populations_.size());
             EXPECTS(std::get<1>(projection) < populations_.size());
@@ -85,48 +81,40 @@ public:
             // projection
             // TODO: Replace with the fance in range function we have somewhere in the utils
             if (gid < post_pop.start_index || gid > (post_pop.start_index + post_pop.n_cells)) {
-
-                std::cout << gid << ", " << post_pop.start_index
-                    << post_pop.start_index << ", " << post_pop.n_cells << std::endl;
                 continue;
             }
-            std::cout << "debug 2" << std::endl;
+
             // From the projection get the parameters and generate the gids
             auto pro_pars = std::get<2>(projection);
-            // abs GID to local gid by substracting start index in population
-            auto population_cells = connections_impl(gen, gid - post_pop.start_index,
-                pro_pars.var, pro_pars.count, post_pop.x_side, post_pop.y_side);
+
+            // We need the gid of the post neuron
+            auto pop_local_gid = gid - post_pop.start_index;
+            EXPECTS(gid < (post_pop.x_side * post_pop.y_side));
+            // Convert this to a normalized location
+            float post_loc_x = float(gid % post_pop.x_side) / post_pop.x_side;
+            float post_loc_y = float(gid / post_pop.y_side) / post_pop.y_side;
+
+            // Now we sample from the pre population based on the x,y location
+            // We supply the connection_impl with the size of the pre polulation
+            auto population_cells = connections_impl(gen, post_loc_x, post_loc_y,
+                pro_pars.var, pro_pars.count, pre_pop.x_side, pre_pop.y_side);
 
             // Collect all together
             connections.insert(connections.end(),
                 population_cells.begin(), population_cells.end());
-
-            std::cout << "debug 3: " << connections.size() << std::endl;
         }
 
         return connections;
     }
 
-
-
-
-
-    std::vector<cell_gid_type> connections_impl(std::mt19937 gen, cell_gid_type gid,
-        float var, cell_gid_type count, cell_gid_type x_side, cell_gid_type y_side )
+    std::vector<cell_gid_type> connections_impl(std::mt19937 gen,
+        float post_loc_x, float post_loc_y,
+        float var, cell_gid_type count,
+        cell_gid_type x_side, cell_gid_type y_side )
     {
-        // Sanity check
-        EXPECTS(gid < (x_side * y_side));
-
-        // Convert gid to location, then convert to between [0, 1)
-        // x is the fast changing (columns)
-        // y is rows
-        float location_x = float(gid % x_side) / x_side;
-        float location_y = float(gid / x_side) / y_side;
-
-
         // Generate the distribution for these locations
-        std::normal_distribution<float> distr_x(location_x, var);
-        std::normal_distribution<float> distr_y(location_y, var);
+        std::normal_distribution<float> distr_x(post_loc_x, var);
+        std::normal_distribution<float> distr_y(post_loc_y, var);
 
         //*********************************************************
         // now draw normal distributed and convert to gid
@@ -142,7 +130,6 @@ public:
             x_source -= int(x_source);
             y_source -= int(y_source);
 
-            std::cout << x_source << ", " << y_source << std::endl;
             // convert to gid
             cell_gid_type gid_source = cell_gid_type(y_source * y_side) * x_side +
                 cell_gid_type(x_source * x_side);
