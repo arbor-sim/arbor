@@ -8,7 +8,7 @@
 #include <util/optional.hpp>
 #include <common_types.hpp>
 
-#include <connection_generator.hpp>
+#include "connection_generator.hpp"
 
 
 namespace to = arb::to;
@@ -76,9 +76,22 @@ int main(int argc, char** argv) {
         std::exit(1);
     }
 
-    arb::connection_generator gen;
+    // Create two population of 100 by 100 cells
+    std::vector<arb::population> populations;
+    populations.push_back({ 100, 100, true });
+    populations.push_back({ 100, 100, true });
 
-    std::vector<arb::cell_gid_type> gids = gen.connections(5050);
+    // Create a projection from index 0 to index 1
+    std::vector<std::tuple<unsigned, unsigned, arb::projection_pars>>  connectome;
+    arb::projection_pars pars(0.02, 100 );
+    std::tuple<unsigned, unsigned, arb::projection_pars> proj(0, 1, pars);
+    connectome.push_back(proj);
+
+
+
+
+    arb::connection_generator gen(populations, connectome);
+    std::vector<arb::cell_gid_type> gids = gen.pre_synaptic_cells(15050);
 
     std::ofstream outfile("gids.dat");
     if (outfile) {
