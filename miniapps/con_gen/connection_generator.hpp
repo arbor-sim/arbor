@@ -16,22 +16,19 @@
 
 namespace arb {
 
+    // Describes a 2d surface of neurons located on grid locations
+    // -x_side  number of neurons on the x-side
+    // -y_side  number of neurons on the y-side
     struct population {
-
     public:
         cell_gid_type x_side;
         cell_gid_type y_side;
         bool periodic;
 
-        // Maybee have a private struct that has this start index?
-        cell_gid_type start_index;
-
         cell_gid_type n_cells;
 
-        population(cell_gid_type x_side, cell_gid_type y_side, bool per,
-            cell_gid_type start_index = 0) :
-            x_side(x_side), y_side(y_side), periodic(per),
-            start_index(start_index), n_cells(x_side *y_side) {
+        population(cell_gid_type x_side, cell_gid_type y_side, bool per) :
+            x_side(x_side), y_side(y_side), periodic(per), n_cells(x_side *y_side) {
 
             // Sanity check
             EXPECTS(x_side > 0);
@@ -39,26 +36,37 @@ namespace arb {
         }
     };
 
+    // Describes a projection between the neurons between two populations
+    // - sd      sd of the normal distributed used to sample the pre_synaptic
+    //           The dimensions of the pre-population is sampled as if it has size 1.0 * 1.0
+    // - count   Number of samples to take. When sampling from a non periodic population
+    //           this count can be lower (akin with a sample in-vitro)
+    //
+    // - weight_mean  Mean synaptic weight for the created synapse
+    // - weight_sd    Standard deviation around mean for sampling the weights
+    //
+    // - delay_min      Minimal delay of the created synapse
+    // - delay_per_sd   Delay increase by sd distance between neurons
     struct projection_pars {
-        float stddev = 0.02;
+        float sd = 0.02;
         cell_gid_type count;
 
         // parameters for the synapses on this projection
         float weight_mean;
-        float weight_std;
+        float weight_sd;
 
         float delay_min;        // Minimal delay
-        float delay_per_std;    // per
+        float delay_per_sd;    // per
 
 
 
         projection_pars(float var, cell_gid_type count, float weight_mean,
             float weight_std, float delay_min, float delay_per_std) :
-            stddev(var), count(count),
-            weight_mean(weight_mean), weight_std(weight_std),
-            delay_min(delay_min), delay_per_std(delay_per_std){
+            sd(var), count(count),
+            weight_mean(weight_mean), weight_sd(weight_std),
+            delay_min(delay_min), delay_per_sd(delay_per_std){
             // Sanity checks
-            EXPECTS(stddev > 0.0);
+            EXPECTS(sd > 0.0);
             EXPECTS(count > 0);
             EXPECTS(weight_mean > 0);
             EXPECTS(weight_std > 0);
@@ -67,6 +75,24 @@ namespace arb {
         }
     };
 
+    // Helper struct to collect some parameters together
+    // -pre_idx    The index in the population list that is pre synaptic for this
+    //             projection
+    // -post_idx   The index in the population list that is post synaptic for this
+    //             projection
+    // -pars       Parameters used to generate the synapses for this connection
+    struct projection {
+        unsigned pre_idx;
+        unsigned post_idx;
+        projection_pars pars;
+
+        projection(unsigned pre_population, unsigned post_population, projection_pars pars) :
+            pre_idx(pre_population), post_idx(post_population), pars(pars) {}
+    };
+
+    // Return type for connection generation
+    // A set of pre-synaptic cell gid,
+    // weight and delay
     struct synaps_pars {
         cell_gid_type gid;
         float weight;
@@ -75,61 +101,84 @@ namespace arb {
              gid(gid),  weight(weight), delay(delay){}
     };
 
+
 class connection_generator {
+
 public:
-    // Create
+    // Connection generator.
+    // Expects a vector of populations descriptions and vector of projections
+    // between these
+    // TODO: This is a first implementation: sub populations are NOT implemented
     connection_generator( std::vector<population> const populations,
-        std::vector<std::tuple<unsigned, unsigned, projection_pars>> const connectome)
+        std::vector<projection> const connectome)
         : connectome_(connectome) {
         cell_gid_type gid_idx = 0;
-        // Create the local (instantiated) populations with start index set
+
+        // Create the local populations with start index set
         for (auto pop : populations) {
-            populations_.push_back(population(pop.x_side, pop.y_side, pop.periodic, gid_idx));
+            populations_.push_back(population_indexed(
+                pop.x_side, pop.y_side, pop.periodic, gid_idx ));
+
             gid_idx += pop.n_cells;
         }
     }
 
-    // Returns a vector of pre-synaptic cell gids  for gid
+    // Returns a vector of all synaptic parameters sets for this gid
     std::vector<synaps_pars> synapses_on(cell_gid_type gid) {
         std::mt19937 gen;
         gen.seed(gid);
 
         std::vector<synaps_pars> connections;
-        for (auto projection : connectome_)
+        for (auto project : connectome_)
         {
             // Sanity check that the populations exist
-            EXPECTS(std::get<0>(projection) < populations_.size());
-            EXPECTS(std::get<1>(projection) < populations_.size());
+            EXPECTS(project.pre_idx < populations_.size());
+            EXPECTS(project.post_idx < populations_.size());
 
             // Shorthand for the pre and post populations
-            auto pre_pop = populations_[std::get<0>(projection)];
-            auto post_pop = populations_[std::get<1>(projection)];
-            auto pro_pars = std::get<2>(projection);
+            auto pre_pop = populations_[project.pre_idx];
+            auto post_pop = populations_[project.post_idx];
+            auto pro_pars = project.pars;
 
             // Distribution to draw the weights
-            std::normal_distribution<float> weight_distr(pro_pars.weight_mean, pro_pars.weight_std);
+            std::normal_distribution<float> weight_distr(pro_pars.weight_mean, pro_pars.weight_sd);
+
+            // Used to assure correct weight sign
             float weight_sign = pro_pars.weight_mean < 0 ? -1 : 1;
-            // Check if this gid receives connections via this
-            // projection
-            // TODO: Replace with the fance in range function we have somewhere in the utils
+
+            // Check if this gid receives connections via this projection
+            // TODO: Replace with the fancy in range function we have somewhere in the utils
             if (gid < post_pop.start_index || gid > (post_pop.start_index + post_pop.n_cells)) {
                 continue;
             }
 
-            // We need the local gid of the post neuron
-            // TODO: is this check needed?
+            // Convert to the local gid of the post neuron
             auto pop_local_gid = gid - post_pop.start_index;
-            EXPECTS(pop_local_gid < (post_pop.x_side * post_pop.y_side));
 
             // Convert this to a normalized location
             std::pair<float, float> post_location = {
                 float(pop_local_gid % post_pop.x_side) / post_pop.x_side,
                 float(pop_local_gid / post_pop.y_side) / post_pop.y_side};
 
+            // If we have non square sides we need to correct the stdev to get
+            // circular projections!
+            float sd_x = pro_pars.sd;
+            float sd_y = pro_pars.sd;
+            if (post_pop.x_side != post_pop.y_side) {
+                if (post_pop.x_side < post_pop.y_side) {
+                    float ratio = float(post_pop.y_side) / post_pop.x_side;
+                    sd_x *= ratio;
+                }
+                else {
+                    float ratio = float(post_pop.x_side) / post_pop.y_side;
+                    sd_y *= ratio;
+                }
+            }
+
             // Now we sample from the pre population based on the x,y location
-            // We supply the connection_impl with the size of the pre polulation
+            // We supply the connection_impl with the size of the pre population
             auto pre_locations = connection_locations(gen, post_location,
-                pro_pars, post_pop.periodic);
+                pro_pars.count, sd_x, sd_y, post_pop.periodic);
 
             for (auto pre_location : pre_locations)
             {
@@ -137,20 +186,16 @@ public:
                 cell_gid_type gid_pre = cell_gid_type(pre_location.second * pre_pop.y_side) * pre_pop.x_side +
                     cell_gid_type(pre_location.first * pre_pop.x_side);
 
-                // Calculate the distance between the pre and post neuron. use
+                // Calculate the distance between the pre and post neuron.
                 float distance = std::sqrt(std::pow(pre_location.first * post_location.first, 2) +
                     std::pow(pre_location.second * post_location.second, 2));
 
-                float delay = distance / pro_pars.delay_per_std + pro_pars.delay_min;
+                float delay = distance / pro_pars.delay_per_sd + pro_pars.delay_min;
 
                 float weight = weight_distr(gen);
                 // Flip the sign of the weight depending if we are incorrect
-                // depending oninhib or exit
                 weight = (weight_sign * weight) < 0?  -weight: weight;
 
-                //std::cout << x_source << ", -" << int(x_source) << " = " << x_source << "    |    "
-                //    << y_source << " -" << int(y_source) << " = " << x_source
-                //    << " : " << gid_source << std::endl;
                 connections.push_back({ gid_pre ,weight,  delay });
             }
         }
@@ -159,18 +204,19 @@ public:
     }
 
     std::vector<std::pair<float, float>> connection_locations(std::mt19937 gen,
-        std::pair<float, float> const target_location, projection_pars const pars, bool periodic)
+        std::pair<float, float> const target_location, unsigned count,
+        float sd_x, float sd_y, bool periodic)
     {
         // Generate the distribution for these locations
-        std::normal_distribution<float> distr_x(target_location.first, pars.stddev);
-        std::normal_distribution<float> distr_y(target_location.second, pars.stddev);
+        std::normal_distribution<float> distr_x(target_location.first, sd_x);
+        std::normal_distribution<float> distr_y(target_location.second, sd_y);
 
         //*********************************************************
         // now draw normal distributed and convert to gid
         // we have the amount of connections we need
         std::vector<std::pair<float, float>> connections;
 
-        for (cell_gid_type idx = 0; idx < pars.count; ++idx) {
+        for (cell_gid_type idx = 0; idx < count; ++idx) {
             // draw the locations
             float x_source = distr_x(gen);
             float y_source = distr_y(gen);
@@ -198,11 +244,16 @@ public:
     }
 
 private:
-    std::vector<population> populations_;
-    std::vector<std::tuple<unsigned, unsigned, projection_pars>> connectome_;
+    struct population_indexed : public population {
+        cell_gid_type start_index;
 
+        population_indexed(cell_gid_type x_side, cell_gid_type y_side, bool periodic,
+            cell_gid_type start_index) :
+            population(x_side, y_side, periodic), start_index(start_index) {}
+    };
 
+    std::vector<population_indexed> populations_;
+    std::vector<projection> connectome_;
 };
-
 
 }
