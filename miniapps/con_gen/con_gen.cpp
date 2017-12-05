@@ -78,33 +78,33 @@ int main(int argc, char** argv) {
 
     // Create two population of 100 by 100 cells
     std::vector<arb::population> populations;
-    populations.push_back({ 100, 100, true });
+    populations.push_back({ 100, 100, true  });
     populations.push_back({ 100, 100, true });
 
     // Create a projection from index 0 to index 1
     std::vector<std::tuple<unsigned, unsigned, arb::projection_pars>>  connectome;
-    arb::projection_pars pars(0.02, 100 );
+    arb::projection_pars pars(0.02, 10, 2.0, 1.0, 1.0, 1.0);
     std::tuple<unsigned, unsigned, arb::projection_pars> proj(0, 1, pars);
     connectome.push_back(proj);
-    arb::projection_pars pars2(0.1, 1000);
+    arb::projection_pars pars2(0.1, 10, 2.0, 1.0, 1.0, 1.0);
     std::tuple<unsigned, unsigned, arb::projection_pars> proj2(0, 1, pars2);
     connectome.push_back(proj2);
 
 
 
     arb::connection_generator gen(populations, connectome);
-    std::vector<arb::cell_gid_type> gids = gen.pre_synaptic_cells(15050);
+    //std::vector<arb::cell_gid_type> gids = gen.pre_synaptic_cells(15050);
 
-    std::vector<arb::cell_gid_type> gids2 = gen.pre_synaptic_cells(10010);
+    auto synapses = gen.synapses_on(10099);
 
     std::ofstream outfile("gids.dat");
     if (outfile) {
-        for (auto gid : gids) {
-            outfile << gid << "\n";
-        }
+        //for (auto gid : gids) {
+        //    outfile << gid << "\n";
+        //}
 
-        for (auto gid : gids2) {
-            outfile << gid << "\n";
+        for (auto synapse : synapses) {
+            outfile << synapse.gid << "," << synapse.weight << "," << synapse.delay << "\n";
         }
 
     }
