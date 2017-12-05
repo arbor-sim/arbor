@@ -218,7 +218,8 @@ bool Module::semantic() {
         symbols_["initial"] = make_symbol<ProcedureExpression>(
                 Location(), "initial",
                 std::vector<expression_ptr>(),
-                make_expression<BlockExpression>(Location(), expr_list_type(), false)
+                make_expression<BlockExpression>(Location(), expr_list_type(), false),
+                procedureKind::initial
         );
     }
     auto initial_api = make_empty_api_method("nrn_init", "initial");
