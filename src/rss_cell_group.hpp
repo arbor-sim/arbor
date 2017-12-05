@@ -29,22 +29,24 @@ public:
 
     void reset() override {
         clear_spikes();
-        time_ = 0;
+        for (auto& cell : cells_) {
+            cell.t = 0;
+        }
     }
 
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& events) override {
-        for (const auto& cell: cells_) {
-            auto t = std::max(cell.start_time, time_);
+        for (auto& cell: cells_) {
+            auto t = std::max(cell.start_time, cell.t);
             auto t_end = std::min(cell.stop_time, ep.tfinal);
 
             while (t < t_end) {
                 spikes_.push_back({{cell.gid, 0}, t});
                 t += cell.period;
             }
+            cell.t = t;
         }
-        time_ = ep.tfinal;
     }
 
     const std::vector<spike>& spikes() const override {
@@ -71,13 +73,12 @@ private:
         {}
 
         cell_gid_type gid;
+        time_type t;
     };
 
     // RSS cell descriptions.
     std::vector<rss_info> cells_;
 
-    // Simulation time for all RSS cells in the group.
-    time_type time_;
 
     // Spikes that are generated.
     std::vector<spike> spikes_;
