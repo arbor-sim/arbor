@@ -8,7 +8,7 @@ import collections
 import math
 import sys
 
-default_spike_file_path = "./gids.dat"
+default_synapse_path = "./synapses.dat"
 multiplier = 30.0
 
 def usage():
@@ -57,13 +57,13 @@ def plot_gids_in_space(gids):
 
         l = plt.plot(x, y, 'ro')
         plt.setp(l, 'markersize', count)
-      
+
     plt.xlim((0,100))
     plt.ylim((0,100))
 
-    plt.title("Instantanious spike rate for a population of ipss cells ")
-    plt.xlabel("Time (ms.)")
-    plt.ylabel("Instantanious spike rate (spikes / second)")
+    #plt.title("Instantanious spike rate for a population of ipss cells ")
+    #plt.xlabel("Time (ms.)")
+    #plt.ylabel("Instantanious spike rate (spikes / second)")
     plt.show()
 
 def main():
@@ -71,7 +71,8 @@ def main():
 
     """
 
-    gids = parse_gid_file(default_spike_file_path)
+    gids = parse_gid_file(default_synapse_path)
+
 
     # plot the binned spikes and the optional curve
     plot_gids_in_space(gids)

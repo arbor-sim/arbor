@@ -9,6 +9,7 @@
 #include <common_types.hpp>
 
 #include "connection_generator.hpp"
+#include "con_gen_utils.hpp"
 
 
 namespace to = arb::to;
@@ -45,25 +46,34 @@ const char* usage_str =
 
 int main(int argc, char** argv) {
     // options
-    //unsigned n_cells = 10000;
-    //arb::time_type begin = 0.0;
-    //arb::time_type end = 1000.0;
-    //arb::time_type sample_delta = 0.1;
-    //bool interpolate = true;
+    optional<std::string> population_cfg_path;
+    optional<std::string> projection_cfg_path;
+
+    optional<std::string> gid_path;
+    std::string output_path = "./synapses.dat";
 
     try {
         auto arg = argv + 1;
         while (*arg) {
-            //if (auto o = to::parse_opt<int>(arg, 'n', "count")) {
-            //    n_cells = *o;
-            //}
-            //else if (auto o = to::parse_opt<arb::time_type>(arg, 'b', "begin")) {
-            //    begin = *o;
-            //}
-            //if
-            //else {
+            if (auto o = to::parse_opt<std::string>(arg, 0, "populations")) {
+                population_cfg_path = *o;
+            }
+            else if (auto o = to::parse_opt<std::string>(arg, 0, "projections")) {
+                projection_cfg_path = *o;
+            }
+            else if (auto o = to::parse_opt<std::string>(arg, 0, "gids")) {
+                gid_path = *o;
+            }
+            else if (auto o = to::parse_opt<std::string>(arg, 0, "output")) {
+                output_path = *o;
+            }
+            else if (auto o = to::parse_opt(arg, 'h', "help")) {
+                to::usage(argv[0], usage_str);
+                return 0;
+            }
+            else {
                 throw to::parse_opt_error(*arg, "unrecognized option");
-            //}
+            }
         }
     }
     catch (to::parse_opt_error& e) {
@@ -76,19 +86,47 @@ int main(int argc, char** argv) {
         std::exit(1);
     }
 
-    // Create two population of 100 by 100 cells
+    // If we have a supplied populations or connectome both should be supplied
+    if (population_cfg_path || projection_cfg_path) {
+        if (!population_cfg_path && projection_cfg_path) {
+            throw con_gen_util::con_gen_error("population_cfg_path or projection_cfg_path alone is not valid.");
+        }
+    }
+
+    // Parse the populations from file or use the default
     std::vector<arb::population> populations;
-    populations.push_back({ 100, 100, true  });
-    populations.push_back({ 100, 100, true });
+    if (population_cfg_path) {
+        populations = con_gen_util::parse_populations_from_path(population_cfg_path.get());
+    }
+    else {
+        populations = con_gen_util::default_populations();
+    }
 
-    // Create a projection from index 0 to index 1
+
+    // Parse the connectome from file or use the default
     std::vector<arb::projection>  connectome;
-    connectome.push_back({ 0,1, { 0.02, 100, 2.0, 1.0, 1.0, 1.0 } });
-    connectome.push_back({ 0,1,{ 0.1, 1000, 2.0, 1.0, 1.0, 1.0 } });
+    if (projection_cfg_path) {
+        connectome = con_gen_util::parse_projections_from_path(projection_cfg_path.get());
+    }
+    else {
+        connectome = con_gen_util::default_connectome();
+    }
 
+    // gids we want to poll
+    std::vector<arb::cell_gid_type> gids;
+    if (gid_path) {
+        gids = con_gen_util::parse_gids_from_path(gid_path.get());
+    }
+    else {
+        gids = { 10020, 12000, 17999, 19980 };
+    }
+
+
+    // The connection generator
     arb::connection_generator gen(populations, connectome);
 
-    std::ofstream outfile("gids.dat");
+    std::ofstream outfile(output_path);
+
     if (outfile) {
         std::vector<arb::cell_gid_type> gids = { 10020, 12000, 17999, 19980 };
         for (auto gid : gids)
@@ -98,14 +136,10 @@ int main(int argc, char** argv) {
                 outfile << synapse.gid << "," << synapse.weight << "," << synapse.delay << "\n";
             }
         }
-
-        //for (arb::cell_gid_type gid = 10000; gid < 20000; ++gid)
-        //{
-        //    auto synapses = gen.synapses_on(gid);
-        //}
-
     }
-
+    else {
+        throw con_gen_util::con_gen_error("Could not open supplied output_path");
+    }
 
     return 0;
 }

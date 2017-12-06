@@ -2,6 +2,7 @@
 //#include <hardware/node_info.hpp>
 //#include <recipe.hpp>
 
+#pragma once
 
 #include <vector>
 #include <utility>
