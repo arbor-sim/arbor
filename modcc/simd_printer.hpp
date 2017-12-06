@@ -16,6 +16,8 @@
 
 template <simdKind Arch>
 class SimdPrinter: public CPrinter {
+    using CPrinter::visit;
+
 public:
     SimdPrinter(): cprinter_(make_unique<CPrinter>())
     {}
