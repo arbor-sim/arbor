@@ -114,8 +114,9 @@ namespace con_gen_util {
     // On error parsing will stop and what is parsed until then is returned
     // throws a con_gen_error when file cannot be opened
     // IF a line starts with a comma, it is parsed as a comma separated list of gids
+    // finished with a '<' character
     // If a line starts with a - (or any other character). It is parsed as two
-    // comma separated gids
+    // comma separated gids and assumed to be a range
     // Types of parsed numbers is unsigned
     std::vector<arb::cell_gid_type> parse_gids_from_path(std::string path) {
         std::ifstream infile(path);
@@ -128,22 +129,22 @@ namespace con_gen_util {
         std::vector<arb::cell_gid_type> gids;
 
         if (infile) {
-            while (infile >> char_parsed) {
+            std::string line;
+            while (std::getline(infile, line)) {
+                std::istringstream iss(line);
+
+                iss >> char_parsed;
+
                 // Parse the first character if it is a , we expect a list of
                 // comma separated gids
                 if (char_parsed == ',') {
-                    while (infile >> gid >> char_parsed) {
+                    while (iss >> gid >> char_parsed) {
                         gids.push_back(gid);
-
-                        // if we are at the end of the gid list
-                        if (char_parsed == '<') {
-                            break;
-                        }
                     }
                 }
                 // assume it is a pair of gids defining a start and end point
                 else {
-                    infile >> gid >> comma >> gid_untill;
+                    iss >> gid >> comma >> gid_untill;
                     // No error checking!!
                     for (; gid < gid_untill; ++gid) {
                         gids.push_back(gid);
@@ -177,7 +178,7 @@ namespace con_gen_util {
     // 1 > 0. count 1000, ds 0.1 | weight -mean 2.0 -sd 1.0 | delay 1.0 -sd 1.0
     std::vector<arb::projection> default_connectome() {
         std::vector<arb::projection>  connectome;
-        connectome.push_back({ 0,1,{ 0.02, 400, 20.0, 1.0, 1.0, 1.0 } });
+        connectome.push_back({ 0,1,{ 0.02, 400,  2.0, 1.0, 1.0, 1.0 } });
         connectome.push_back({ 1,0,{ 0.05, 1000, 2.0, 1.0, 1.0, 1.0 } });
 
         return connectome;

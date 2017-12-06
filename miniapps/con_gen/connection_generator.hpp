@@ -18,8 +18,9 @@
 namespace arb {
 
     // Describes a 2d surface of neurons located on grid locations
-    // -x_side  number of neurons on the x-side
-    // -y_side  number of neurons on the y-side
+    // -x_side   number of neurons on the x-side
+    // -y_side   number of neurons on the y-side
+    // -periodic Do the border loop back to the other side (torus topology)
     struct population {
     public:
         cell_gid_type x_side;
@@ -197,7 +198,7 @@ public:
                 // Flip the sign of the weight depending if we are incorrect
                 weight = (weight_sign * weight) < 0?  -weight: weight;
 
-                connections.push_back({ gid_pre ,weight,  delay });
+                connections.push_back({ gid_pre + pre_pop.start_index, weight,  delay });
             }
         }
 
