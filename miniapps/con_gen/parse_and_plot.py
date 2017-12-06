@@ -96,7 +96,7 @@ def plot_gids_in_space(gids, weights, delays, populations):
 
     plt.title("Pre synaptic neurons for selected gids between two (green / red) populations")
     plt.xlabel("Cell position grid_x")
-    plt.xlabel("Cell position grid_y")
+    plt.ylabel("Cell position grid_y")
     plt.show()
 
 
