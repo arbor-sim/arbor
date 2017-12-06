@@ -94,9 +94,9 @@ def plot_gids_in_space(gids, weights, delays, populations):
     plt.xlim((-0.5, side_x - 0.5))
     plt.ylim((-0.5, side_y - 0.5))
 
-    plt.title("Pre synaptic neurons for selected gids")
-    plt.xlabel("Time (ms.)")
-    plt.ylabel("Instantanious spike rate (spikes / second)")
+    plt.title("Pre synaptic neurons for selected gids between two (green / red) populations")
+    plt.xlabel("Cell position grid_x")
+    plt.xlabel("Cell position grid_y")
     plt.show()
 
 
