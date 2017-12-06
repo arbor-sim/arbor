@@ -19,7 +19,7 @@ const char* usage_str =
 "[OPTION]...\n"
 "\n"
 " A small validation program for validating the generation of synaptic connection \n"
-" Between 2d sheets of neurons, with optionally a periodic border. Synapses are output\n"
+" Between 2d sheets of cells on a grid, with optionally a periodic border. Synapses are output\n"
 " to file and have a configurable weight and delay distribution. The dimensions of the \n "
 " populations can have arbitrary dimensions, although projecting on a population\n"
 " With a different side ratio is *not* tested\n"

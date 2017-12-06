@@ -91,8 +91,8 @@ def plot_gids_in_space(gids, weights, delays, populations):
         l = ax.plot(x, y, marker)
         plt.setp(l, 'markersize', count, zorder=zorder)
 
-    plt.xlim((-0.5, side_x + 0.5))
-    plt.ylim((-0.5,    side_y+ 0.5))
+    plt.xlim((-0.5, side_x - 0.5))
+    plt.ylim((-0.5, side_y - 0.5))
 
     plt.title("Pre synaptic neurons for selected gids")
     plt.xlabel("Time (ms.)")
