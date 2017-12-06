@@ -34,14 +34,11 @@ class NrnCurrentRewriter: public BlockRewriterBase {
         return ionKind::none;
     }
 
-    moduleKind kind_;
     bool has_current_update_ = false;
     std::set<std::string> ion_current_vars_;
 
 public:
     using BlockRewriterBase::visit;
-
-    explicit NrnCurrentRewriter(moduleKind kind): kind_(kind) {}
 
     virtual void finalize() override {
         if (has_current_update_) {
@@ -334,7 +331,7 @@ bool Module::semantic() {
         //..........................................................
         // nrn_current : update contributions to currents
         //..........................................................
-        NrnCurrentRewriter nrn_current_rewriter(kind());
+        NrnCurrentRewriter nrn_current_rewriter;
         breakpoint->accept(&nrn_current_rewriter);
         auto nrn_current_block = nrn_current_rewriter.as_block();
         if (!nrn_current_block) {

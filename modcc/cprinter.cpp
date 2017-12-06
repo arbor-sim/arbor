@@ -734,3 +734,11 @@ void CPrinter::visit(BinaryExpression *e) {
     cexpr_emit(e, text_.text(), this);
 }
 
+void CPrinter::visit(PowBinaryExpression *e) {
+    cexpr_emit(e, text_.text(), this);
+}
+
+void CPrinter::visit(AssignmentExpression *e) {
+    cexpr_emit(e, text_.text(), this);
+}
+
