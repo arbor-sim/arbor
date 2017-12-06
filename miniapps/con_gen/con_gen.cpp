@@ -118,7 +118,9 @@ int main(int argc, char** argv) {
         gids = con_gen_util::parse_gids_from_path(gid_path.get());
     }
     else {
-        gids = { 10020, 12000, 17999, 19980 };
+        gids = { 10320, 12003, 17997, 19580,
+            15070, 5030,  // These two are shifted !!
+            320, 2003, 7997, 9580, 5500 };
     }
 
 
@@ -128,7 +130,7 @@ int main(int argc, char** argv) {
     std::ofstream outfile(output_path);
 
     if (outfile) {
-        std::vector<arb::cell_gid_type> gids = { 10020, 12000, 17999, 19980 };
+        // Pick some neurons on the borders to see correct periodic boundary behaviour
         for (auto gid : gids)
         {
             auto synapses = gen.synapses_on(gid);

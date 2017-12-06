@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <sstream>
 #include <math.h>
 #include <tuple>
 #include <vector>
@@ -47,8 +48,13 @@ namespace con_gen_util {
         std::vector<arb::population> populations;
 
         if (infile) {
-            while (x_side >> comma >> y_side >> comma >> periodic) {
+            std::string line;
+            while (std::getline(infile, line)){
+                std::istringstream iss(line);
+                if (!(iss >> x_side >> comma >> y_side >> comma >> periodic)) {
+                    break; }
                 populations.push_back({ x_side, y_side, periodic });
+
             }
         }
         else {
@@ -83,10 +89,15 @@ namespace con_gen_util {
         std::vector<arb::projection> projection;
 
         if (infile) {
-            while (infile >> pre_population_id >> comma >> post_population_id >> comma >>
+            std::string line;
+            while (std::getline(infile, line)) {
+                std::istringstream iss(line);
+
+                if (!(iss >> pre_population_id >> comma >> post_population_id >> comma >>
                 count >> comma >> sd >> comma >> mean_weight >> comma >>
-                sd_weight >> comma >> min_delay >> comma >> delay_per_sd)
-                 {
+                sd_weight >> comma >> min_delay >> comma >> delay_per_sd)) {
+                    break;
+                }
                 projection.push_back({ pre_population_id,post_population_id,{
                     sd, count, mean_weight, sd_weight,min_delay, delay_per_sd}});
             }
@@ -161,13 +172,13 @@ namespace con_gen_util {
 
     // Default connectome
     // #1:
-    // 0 > 1. count 100, ds 0.02 | weight -mean 2.0 -sd 1.0 | delay 1.0 -sd 1.0
+    // 0 > 1. count 100, ds 0.02 | weight -mean 20.0 -sd 1.0 | delay 1.0 -sd 1.0
     // #2
     // 1 > 0. count 1000, ds 0.1 | weight -mean 2.0 -sd 1.0 | delay 1.0 -sd 1.0
     std::vector<arb::projection> default_connectome() {
         std::vector<arb::projection>  connectome;
-        connectome.push_back({ 0,1,{ 0.02, 100, 2.0, 1.0, 1.0, 1.0 } });
-        connectome.push_back({ 0,1,{ 0.1, 1000, 2.0, 1.0, 1.0, 1.0 } });
+        connectome.push_back({ 0,1,{ 0.02, 400, 20.0, 1.0, 1.0, 1.0 } });
+        connectome.push_back({ 1,0,{ 0.05, 1000, 2.0, 1.0, 1.0, 1.0 } });
 
         return connectome;
     }
