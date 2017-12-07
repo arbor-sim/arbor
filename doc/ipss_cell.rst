@@ -5,22 +5,22 @@ A cell that spikes with a variable Poisson distribution. The spike rates can be 
 
 Configuration options:
 
-+---------------+-------------+----------------------------------------------------------+
-| Parameter     | type        | Details                                                  |
-+===============+=============+==========================================================+
-| start_time    | float       | Time from start when the cell should start spiking (ms.).|
-+---------------+-------------+----------------------------------------------------------+
-| stop_time     | float       | When should the cell stop spiking (ms.)                  |
-+---------------+-------------+----------------------------------------------------------+
-| sample_delta  | vector      |  Every sample_delta entry a dice will be rolled of a     |
-|               |<time,float> |  spike should be emitted                                 |
-+---------------+-------------+----------------------------------------------------------+
-| rates_per_time|vector       | A vector of time-rate pairs defining the time varying    |
-|               |<float,float>|  spike rate.                                             |
-+---------------+-------------+----------------------------------------------------------+
-| interpolate   | bool        |Should the values be interpolated between the rates       |
-|               |             |supplied in the rates_per_time vector                     |
-+---------------+-------------+----------------------------------------------------------+
++---------------+---------------+-----------------------------------------------------------+
+| Parameter     |  type         |  Details                                                  |
++===============+===============+===========================================================+
+| start_time    |  float        |  Time from start when the cell should start spiking (ms.).|
++---------------+---------------+-----------------------------------------------------------+
+| stop_time     |  float        |  When should the cell stop spiking (ms.)                  |
++---------------+---------------+-----------------------------------------------------------+
+| sample_delta  |  float        |  Every sample_delta entry a dice will be rolled of a      |
+|               |               |  spike should be emitted                                  |
++---------------+---------------+-----------------------------------------------------------+
+| rates_per_time|  vector       |  A vector of time-rate pairs defining the time varying    |
+|               |  <float,float>|  spike rate.                                              |
++---------------+---------------+-----------------------------------------------------------+
+| interpolate   |  bool         |  Should the values be interpolated between the rates      |
+|               |               |  supplied in the rates_per_time vector                    |
++---------------+---------------+-----------------------------------------------------------+
 
 An mini application is available the generates spikes using this cell source: 
 /miniapps/ipss/ipss.exe
