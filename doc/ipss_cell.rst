@@ -3,7 +3,7 @@ Inhomogeneous Poisson Spike Source
 
 A cell that spikes with a variable Poisson distribution. The spike rates can be supplied as a list of times and rates. With optionally linear interpolation between the supplied sample points.
 
-Configuration options:
+Configuration is done with the class arb::ipss_cell_description
 
 +---------------+---------------+-----------------------------------------------------------+
 | Parameter     |  type         |  Details                                                  |
@@ -22,16 +22,17 @@ Configuration options:
 |               |               |  supplied in the rates_per_time vector                    |
 +---------------+---------------+-----------------------------------------------------------+
 
-An mini application is available the generates spikes using this cell source: 
+An mini application is available to illustrate using this cell source: 
 /miniapps/ipss/ipss.exe
+/miniapps/ipss/parse_and_plot.py
 
 .. image:: https://i.imgur.com/bprO9Ek.png
     :alt: inhomogeneous spike 
 
-Average spike rate of 10000 IPSS cells time binned with a 1 ms. bin. 
+Default output of the ipss app. Average spike rate of 10000 IPSS cells time binned with a 1 ms. bin. 
 The green line is the target frequency as supplied on the configuration.    
     
 Notes: 
 
-- The time range is inclusive at the start and exclusive at the stop_time [start, stop)
+- The start time range is inclusive while the stop_time is exclusive [start, stop)
 - The sample_delta steps are independent of the simulation time step.
