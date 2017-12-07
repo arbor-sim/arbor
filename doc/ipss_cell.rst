@@ -23,8 +23,9 @@ Configuration is done with the class arb::ipss_cell_description
 +---------------+---------------+-----------------------------------------------------------+
 
 An mini application is available to illustrate using this cell source: 
-/miniapps/ipss/ipss.exe
-/miniapps/ipss/parse_and_plot.py
+
+- /miniapps/ipss/ipss.exe
+- /miniapps/ipss/parse_and_plot.py
 
 .. image:: https://i.imgur.com/bprO9Ek.png
     :alt: inhomogeneous spike 
