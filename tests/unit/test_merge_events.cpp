@@ -6,16 +6,7 @@
 
 using namespace arb;
 
-namespace {
-    using gen_vec = std::vector<event_generator_ptr>;
-    gen_vec empty_gens;
-}
-
-std::ostream& operator<<(std::ostream& o, const pse_vector& events) {
-    o << "{{"; for (auto e: events) o << " " << e;
-    o << "}}";
-    return o;
-}
+std::vector<event_generator_ptr> empty_gens;
 
 // Test the trivial case of merging empty sets
 TEST(merge_events, empty)
