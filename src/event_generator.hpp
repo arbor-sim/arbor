@@ -11,99 +11,16 @@
 
 namespace arb {
 
-// forward declaration of types required to form event ranges
-namespace impl {
-    struct pse_iterator;
-}
-using event_range = util::range<impl::pse_iterator, impl::pse_iterator>;
-
 struct event_generator {
-    using iterator = impl::pse_iterator;
-
     // Return the next event
     // Should return the same event if called multiple times without calling
     // event_generator::pop().
     virtual postsynaptic_spike_event next() = 0;
     virtual void pop() = 0;
-    // return all events in half open range [t0, t1)
-    virtual event_range events(time_type t0, time_type t1) = 0;
     virtual void reset() = 0;
     virtual ~event_generator() {};
     virtual void advance(time_type t) = 0;
 };
-
-namespace impl {
-
-// models input iterator
-struct pse_iterator {
-    using difference_type = std::ptrdiff_t;
-    using value_type = postsynaptic_spike_event;
-    using pointer    = value_type*;
-    using reference  = value_type&;
-    using iterator_category = std::input_iterator_tag;
-
-    struct proxy {
-        proxy(postsynaptic_spike_event& ev): e(ev) {}
-        postsynaptic_spike_event e;
-        postsynaptic_spike_event operator*() {
-            return e;
-        }
-    };
-
-    pse_iterator():
-        pse_iterator(time_type(max_time)) // Default to maximum possible time.
-    {}
-
-    pse_iterator(event_generator& g):
-        gen_(&g), event_(g.next())
-    {}
-
-    // sentinel iterator
-    // Only time needs to be stored.
-    pse_iterator(time_type t):
-        gen_(nullptr), event_({{0,0}, t, 0})
-    {}
-
-    pse_iterator& operator++() {
-        gen_->pop();
-        event_ = gen_->next();
-        return *this;
-    }
-
-    proxy operator++(int) {
-        proxy p(event_);
-        gen_->pop();
-        event_ = gen_->next();
-        return p;
-    }
-
-    postsynaptic_spike_event operator*() const {
-        return event_;
-    }
-
-    const postsynaptic_spike_event* operator->() const {
-        return &event_;
-    }
-
-    bool operator==(const pse_iterator& other) const {
-        return other.gen_ ?
-            other.event_ == event_:
-            other.event_.time<=event_.time;
-    }
-    bool operator!=(const pse_iterator& other) const {
-        return !(*this==other);
-    }
-
-    event_generator* gen_;
-    postsynaptic_spike_event event_;
-};
-
-} // namespace impl
-
-inline
-impl::pse_iterator terminal_pse_iterator() {
-    return impl::pse_iterator(max_time);
-}
 
 inline
 postsynaptic_spike_event terminal_pse() {
@@ -130,11 +47,6 @@ struct vector_backed_generator: public event_generator {
         if (it_!=events_.end()) {
             ++it_;
         }
-    }
-
-    event_range events(time_type t0, time_type t1) override {
-        advance(t0);
-        return {iterator(*this), iterator(t1)};
     }
 
     void reset() override {
@@ -171,11 +83,6 @@ struct seq_generator: public event_generator {
         }
     }
 
-    event_range events(time_type t0, time_type t1) override {
-        advance(t0);
-        return {iterator(*this), iterator(t1)};
-    }
-
     void reset() override {
         it_ = events_.begin();
     }
@@ -208,11 +115,6 @@ struct regular_generator: public event_generator {
 
     void pop() override {
         ++step_;
-    }
-
-    event_range events(time_type t0, time_type t1) override {
-        advance(t0);
-        return {iterator(*this), iterator(t1)};
     }
 
     void advance(time_type t0) override {
@@ -271,11 +173,6 @@ struct poisson_generator: public event_generator {
 
     void pop() override {
         next_ += exp_(rng_);
-    }
-
-    event_range events(time_type t0, time_type t1) override {
-        advance(t0);
-        return {iterator(*this), iterator(t1)};
     }
 
     void advance(time_type t0) override {

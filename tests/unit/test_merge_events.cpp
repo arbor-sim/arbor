@@ -110,6 +110,7 @@ TEST(merge_events, overlap)
     EXPECT_EQ(expected, lf);
 }
 
+// Test the merge_events method with event generators.
 TEST(merge_events, X)
 {
     const time_type t0 = 10;
@@ -130,9 +131,9 @@ TEST(merge_events, X)
 
     pse_vector events = {
         {{0, 0}, 12, 1},
-        {{0, 0}, 16, 2},
-        {{0, 0}, 22, 3},
-        {{8, 0}, 26, 4},
+        {{1, 0}, 15, 2},
+        {{2, 0}, 22, 3},
+        {{3, 0}, 26, 4},
     };
 
     std::vector<event_generator_ptr> generators(2);
@@ -142,25 +143,24 @@ TEST(merge_events, X)
 
     merge_events(t0, t1, lc, events, generators, lf);
 
-    /*
     pse_vector expected = {
-        {{7, 0}, 10, 8}, // from events
-        {{8, 0}, 10, 2}, // from lc
-        {{8, 0}, 10, 3}, // from events
-        {{0, 0}, 11, 1}, // from events
-        {{0, 0}, 11, 2}, // from events
-        {{0, 0}, 11, 3}, // from lc
-        {{0, 0}, 12, 1}, // from events
+        {{4, 2}, 10, 42}, // from generator
+        {{8, 0}, 10, 2},  // from lc
+        {{0, 0}, 11, 3},  // from lc
+        {{0, 0}, 12, 1},  // from events
+        {{1, 0}, 15, 2},  // from events
+        {{4, 2}, 15, 42}, // from generator
+        {{8, 0}, 20, 2},  // from lc
+        {{0, 0}, 21, 3},  // from lc
+        {{2, 0}, 22, 3},  // from events
+        {{3, 0}, 26, 4},  // from events
     };
-    */
 
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
-    for (auto e: lf) {
-        std::cout << "  " << e << "\n";
-    }
-    //EXPECT_EQ(expected, lf);
+    EXPECT_EQ(expected, lf);
 }
 
+// Test the tournament tree for merging two small sequences 
 TEST(merge_events, tourney_seq)
 {
     pse_vector g1 = {
@@ -198,13 +198,17 @@ TEST(merge_events, tourney_seq)
     EXPECT_EQ(expected, lf);
 }
 
+// Test the tournament tree on a large set of Poisson generators.
 TEST(merge_events, tourney_poisson)
 {
     using rndgen = std::mt19937_64;
-    auto ngen = 100u; // many generators, not a multiple of 2
+    // Number of poisson generators.
+    // Not a power of 2, so that there will be "null" leaf nodes in the
+    // tournament tree.
+    auto ngen = 100u;
     time_type tfinal = 10;
     time_type t0 = 0;
-    time_type dt = 0.1; // expected: 10/0.1=100 events per generator
+    time_type dt = 0.1; // expected: tfinal/dt=100 events per generator
 
     std::vector<event_generator_ptr> generators;
     for (auto i=0u; i<ngen; ++i) {
@@ -219,18 +223,22 @@ TEST(merge_events, tourney_poisson)
                 (t0, dt, tgt, weight, G));
     }
 
-    // manually generated the expected output
+    // manually generate the expected output
     pse_vector expected;
     for (auto& gen: generators) {
+        // Push all events before tfinal in gen to the expected values.
         while (gen->next().time<tfinal) {
             expected.push_back(gen->next());
             gen->pop();
         }
+        // Reset the generator so that it is ready to generate the same
+        // events again for the tournament tree test.
         gen->reset();
     }
+    // Manually sort the expected events.
     util::sort(expected);
 
-    // generate output using tournament tree
+    // Generate output using tournament tree in lf.
     impl::tourney_tree tree(generators);
     pse_vector lf;
     while (!tree.empty(tfinal)) {
@@ -238,6 +246,7 @@ TEST(merge_events, tourney_poisson)
         tree.pop();
     }
 
+    // Test output of tournament tree.
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
     EXPECT_EQ(lf, expected);
 }

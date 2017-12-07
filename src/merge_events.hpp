@@ -30,8 +30,8 @@ void merge_events(time_type t0,
 
 namespace impl {
     // The tournament tree is used internally by the merge_events method, and
-    // it is not intended for use elsewhere in the code. It is exposed here for
-    // unit testing of its functionality.
+    // it is not intended for use elsewhere. It is exposed here for unit testing
+    // of its functionality.
     class tourney_tree {
         using key_val = std::pair<unsigned, postsynaptic_spike_event>;
 
@@ -41,8 +41,8 @@ namespace impl {
         bool empty(time_type t) const;
         postsynaptic_spike_event head() const;
         void pop();
-
         void print() const;
+
     private:
         void setup(unsigned i);
         void merge_up(unsigned i);
