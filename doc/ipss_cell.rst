@@ -12,16 +12,16 @@ Configuration options:
 - interpolate   : Should the values be interpolated between the rates supplied in the rates_per_time vector
 
 An mini application is available the generates spikes using this cell source. 
+
 The default time varying inhomogeneous spike rate produced
- 
 .. code-block:: cpp 
+
     hz.|                     
     240|     _-_             
        |    -   -  -         
        |   -     -- -        
     0  |__-__________-__     
         100        900   ms 
-
 
 Notes: 
 - The time range is inclusive at the start and exclusive at the stop_time [start, stop)
