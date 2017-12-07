@@ -38,12 +38,17 @@ public:
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& events) override {
         for (auto& cell: cells_) {
-            auto t = std::max(cell.start_time, cell.t);
+            auto t_start = std::max(cell.start_time, cell.t);
             auto t_end = std::min(cell.stop_time, ep.tfinal);
 
+            std::size_t step = 0;
+            auto t = t_start;
             while (t < t_end) {
                 spikes_.push_back({{cell.gid, 0}, t});
-                t += cell.period;
+
+                // update time using step counter
+                ++step;
+                t = t_start + step * cell.period;
             }
             cell.t = t;
         }
