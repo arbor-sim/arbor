@@ -13,18 +13,25 @@ The following standard operations are NOT possible:
 Types:
 ------
 Regular Spiking Source:
-    This cell emits spikes on regular intervals.
+    Emits spikes with regular intervals.
 
     .. toctree::
        :maxdepth: 1
       
        rss_cell
    
-.. toctree::
-   :maxdepth: 1
+Data Spike Source:
+    Emits spikes on configured times
    
-   dss_cell
-   
-.. toctree::
-   :maxdepth: 1
-   ipss_cell
+    .. toctree::
+       :maxdepth: 1
+       
+       dss_cell
+
+Inhomogeneous Poisson Spike Source
+    Emits Poisson distributed spikes trains with an time variable rate depending on 
+    a function described in the configuration
+       
+    .. toctree::
+       :maxdepth: 1
+       ipss_cell
