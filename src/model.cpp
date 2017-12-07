@@ -74,7 +74,6 @@ void model::reset() {
 
     for (auto& lane: event_generators_) {
         for (auto& gen: lane) {
-            std::cout << "resetting\n";
             if (gen) {
                 gen->reset();
             }

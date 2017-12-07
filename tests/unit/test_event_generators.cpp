@@ -8,18 +8,8 @@ using namespace arb;
 using pse = postsynaptic_spike_event;
 
 namespace{
-    auto compare=[](pse_vector expected, pse_vector r) {
-        if (r.size()!=expected.size()) {
-            FAIL() << "expected events does not match input events";
-        }
-
-        for (auto i=0ul; i<r.size(); ++i) {
-            EXPECT_EQ(expected[i], r[i]);
-            ++i;
-        }
-    };
-
     pse_vector draw(event_generator& gen, time_type t0, time_type t1) {
+        gen.reset();
         gen.advance(t0);
         pse_vector v;
         while (gen.next().time<t1) {
@@ -171,40 +161,33 @@ TEST(event_generators, seq) {
         {{0, 0}, 3.5, 7.0},
     };
 
-    {   // a range that includes all the events
-        SCOPED_TRACE("all events");
-        compare(in, draw(gen, 0, 4));
-    }
+    // a range that includes all the events
+    EXPECT_EQ(in, draw(gen, 0, 4));
 
-    {   // a strict subset including the first event
-        SCOPED_TRACE("subset with start");
-        compare(events(0, 2), draw(gen, 0, 3));
-    }
 
-    {   // a strict subset including the last event
-        SCOPED_TRACE("subset with last");
-        compare(events(2, 4), draw(gen, 3.0, 5));
-    }
+    // a strict subset including the first event
+    EXPECT_EQ(events(0, 2), draw(gen, 0, 3));
 
-    {   // subset that excludes first and last entries
-        SCOPED_TRACE("subset");
-        compare(events(1, 3), draw(gen, 2, 3.2));
-    }
 
-    {   // empty subset in the middle of range
-        SCOPED_TRACE("empty subset");
-        compare({}, draw(gen, 2, 2));
-    }
+    // a strict subset including the last event
+    EXPECT_EQ(events(2, 4), draw(gen, 3.0, 5));
 
-    {   // empty subset before first event
-        SCOPED_TRACE("empty early");
-        compare({}, draw(gen, 0, 0.05));
-    }
 
-    {   // empty subset after last event
-        SCOPED_TRACE("empty late");
-        compare({}, draw(gen, 10, 11));
-    }
+    // subset that excludes first and last entries
+    EXPECT_EQ(events(1, 3), draw(gen, 2, 3.2));
+
+
+    // empty subset in the middle of range
+    EXPECT_EQ(pse_vector{}, draw(gen, 2, 2));
+
+
+    // empty subset before first event
+    EXPECT_EQ(pse_vector{}, draw(gen, 0, 0.05));
+
+
+    // empty subset after last event
+    EXPECT_EQ(pse_vector{}, draw(gen, 10, 11));
+
 }
 
 TEST(event_generators, poisson) {
