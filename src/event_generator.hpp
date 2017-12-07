@@ -62,7 +62,7 @@ private:
     std::vector<postsynaptic_spike_event>::const_iterator it_;
 };
 
-// Generator that feeds events that are specified with a vector
+// Generator that for events in a generic sequence
 template <typename Seq>
 struct seq_generator: public event_generator {
     using pse = postsynaptic_spike_event;
@@ -148,7 +148,7 @@ private:
 };
 
 // Generates a stream of events
-//   - At times described by a Poisson point process with rate 1/dt
+//  * At times described by a Poisson point process with rate 1/dt
 template <typename RandomNumberEngine>
 struct poisson_generator: public event_generator {
     using pse = postsynaptic_spike_event;

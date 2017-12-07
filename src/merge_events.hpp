@@ -9,18 +9,33 @@
 
 namespace arb {
 
-// Merge events that are to be delivered from two lists into a sorted list.
-// Events are sorted by delivery time, then target, then weight.
-// TODO: update this comment.
+// merge_events generates a sorted list of postsynaptic events that are to be
+// delivered after the current epoch ends. It merges events from multiple
+// sources:
+//  lc : the list of currently enqueued events
+//  events : an unsorted list of events from the communicator
+//  generators : a set of event_generators
 //
-//  tfinal: The time at which the current epoch finishes. The output list, `lc`,
-//          will contain all events with delivery times equal to or greater than
-//          tfinal.
-//  lc: Sorted set of events to be delivered before and after `tfinal`.
-//  events: Unsorted list of events with delivery time greater than or equal to
-//      tfinal. May be modified by the call.
-//  lf: Will hold a list of all postsynaptic events in `events` and `lc` that
-//      have delivery times greater than or equal to `tfinal`.
+// The time intervales are illustrated below, along with the range of times
+// for events in each of lc, events and generators
+//  * t the start of the current epoch (not required to perform the merge).
+//  * t₀ the start of the next epoch
+//  * t₁ the end of the next epoch
+//
+//   t      t₀     t₁
+//   |------|------|
+//
+//   [----------------------] lc
+//          [---------------] events
+//          [------) generators
+//
+// The output list, stored in lf, will contain all the following:
+//  * all events in events list
+//  * events in lc with time >= t₀
+//  * events from each generator with time < t₁
+// All events in lc that are to be delivered before t₀ are discared, along with
+// events from generators after t₁. The generators are left in a state where
+// the next event in the generator is the first event with deliver time >= t₁.
 void merge_events(time_type t0,
                   time_type t1,
                   const pse_vector& lc,
