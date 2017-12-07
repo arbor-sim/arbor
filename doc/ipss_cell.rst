@@ -13,18 +13,14 @@ Configuration options:
 
 An mini application is available the generates spikes using this cell source. 
 
-The default time varying inhomogeneous spike rate produced
-.. code-block:: cpp 
+/miniapps/ipss/ipss.exe
 
-    hz.|                     
-    240|     _-_             
-       |    -   -  -         
-       |   -     -- -        
-    0  |__-__________-__     
-        100        900   ms 
+.. image:: https://i.imgur.com/bprO9Ek.png
+    :alt: inhomogeneous spike 
 
+Average spike rate of 10000 IPSS cells time binned with a 1 ms. bin. 
+The green line is the target frequency as supplied on the configuration.    
+    
 Notes: 
 - The time range is inclusive at the start and exclusive at the stop_time [start, stop)
 - The sample_delta steps are independent of the simulation time step.
-
-
