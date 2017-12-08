@@ -15,26 +15,30 @@
 
 #include <iostream>
 
-namespace arb {
+
+
+namespace arb_con_gen {
+
+    using namespace arb;
 
     // Describes a 2d surface of neurons located on grid locations
-    // -x_side   number of neurons on the x-side
-    // -y_side   number of neurons on the y-side
+    // -x_dim   number of neurons on the x-side
+    // -y_dim   number of neurons on the y-side
     // -periodic Do the border loop back to the other side (torus topology)
     struct population {
-    public:
-        cell_gid_type x_side;
-        cell_gid_type y_side;
+        cell_size_type x_dim;
+        cell_size_type y_dim;
         bool periodic;
 
-        cell_gid_type n_cells;
+        cell_size_type n_cells;
 
-        population(cell_gid_type x_side, cell_gid_type y_side, bool per) :
-            x_side(x_side), y_side(y_side), periodic(per), n_cells(x_side *y_side) {
+        population(cell_size_type x_dim, cell_size_type y_dim, bool per) :
+            x_dim(x_dim), y_dim(y_dim), periodic(per), n_cells(x_dim *y_dim)
+        {
 
             // Sanity check
-            EXPECTS(x_side > 0);
-            EXPECTS(y_side > 0);
+            EXPECTS(x_dim > 0);
+            EXPECTS(y_dim > 0);
         }
     };
 
@@ -51,7 +55,7 @@ namespace arb {
     // - delay_per_sd   Delay increase by sd distance between neurons
     struct projection_pars {
         float sd = 0.02;
-        cell_gid_type count;
+        cell_size_type count;
 
         // parameters for the synapses on this projection
         float weight_mean;
@@ -60,13 +64,12 @@ namespace arb {
         float delay_min;        // Minimal delay
         float delay_per_sd;    // per
 
-
-
-        projection_pars(float var, cell_gid_type count, float weight_mean,
+        projection_pars(float var, cell_size_type count, float weight_mean,
             float weight_std, float delay_min, float delay_per_std) :
             sd(var), count(count),
             weight_mean(weight_mean), weight_sd(weight_std),
-            delay_min(delay_min), delay_per_sd(delay_per_std){
+            delay_min(delay_min), delay_per_sd(delay_per_std)
+        {
             // Sanity checks
             EXPECTS(sd > 0.0);
             EXPECTS(count > 0);
@@ -84,11 +87,11 @@ namespace arb {
     //             projection
     // -pars       Parameters used to generate the synapses for this connection
     struct projection {
-        unsigned pre_idx;
-        unsigned post_idx;
+        cell_size_type pre_idx;
+        cell_size_type post_idx;
         projection_pars pars;
 
-        projection(unsigned pre_population, unsigned post_population, projection_pars pars) :
+        projection(cell_size_type pre_population, cell_size_type post_population, projection_pars pars) :
             pre_idx(pre_population), post_idx(post_population), pars(pars) {}
     };
 
@@ -119,7 +122,7 @@ public:
         // Create the local populations with start index set
         for (auto pop : populations) {
             populations_.push_back(population_indexed(
-                pop.x_side, pop.y_side, pop.periodic, gid_idx ));
+                pop.x_dim, pop.y_dim, pop.periodic, gid_idx ));
 
             gid_idx += pop.n_cells;
         }
@@ -159,20 +162,20 @@ public:
 
             // Convert this to a normalized location
             std::pair<float, float> post_location = {
-                float(pop_local_gid % post_pop.x_side) / post_pop.x_side,
-                float(pop_local_gid / post_pop.y_side) / post_pop.y_side};
+                float(pop_local_gid % post_pop.x_dim) / post_pop.x_dim,
+                float(pop_local_gid / post_pop.y_dim) / post_pop.y_dim};
 
             // If we have non square sides we need to correct the stdev to get
             // circular projections!
             float sd_x = pro_pars.sd;
             float sd_y = pro_pars.sd;
-            if (post_pop.x_side != post_pop.y_side) {
-                if (post_pop.x_side < post_pop.y_side) {
-                    float ratio = float(post_pop.y_side) / post_pop.x_side;
+            if (post_pop.x_dim != post_pop.y_dim) {
+                if (post_pop.x_dim < post_pop.y_dim) {
+                    float ratio = float(post_pop.y_dim) / post_pop.x_dim;
                     sd_x *= ratio;
                 }
                 else {
-                    float ratio = float(post_pop.x_side) / post_pop.y_side;
+                    float ratio = float(post_pop.x_dim) / post_pop.y_dim;
                     sd_y *= ratio;
                 }
             }
@@ -185,8 +188,8 @@ public:
             for (auto pre_location : pre_locations)
             {
                 // convert the normalized locations to gid
-                cell_gid_type gid_pre = cell_gid_type(pre_location.second * pre_pop.y_side) * pre_pop.x_side +
-                    cell_gid_type(pre_location.first * pre_pop.x_side);
+                cell_gid_type gid_pre = cell_gid_type(pre_location.second * pre_pop.y_dim) * pre_pop.x_dim +
+                    cell_gid_type(pre_location.first * pre_pop.x_dim);
 
                 // Calculate the distance between the pre and post neuron.
                 float distance = std::sqrt(std::pow(pre_location.first * post_location.first, 2) +
@@ -206,7 +209,7 @@ public:
     }
 
     std::vector<std::pair<float, float>> connection_locations(std::mt19937 gen,
-        std::pair<float, float> const target_location, unsigned count,
+        std::pair<float, float> const target_location, cell_size_type count,
         float sd_x, float sd_y, bool periodic)
     {
         // Generate the distribution for these locations
@@ -249,9 +252,9 @@ private:
     struct population_indexed : public population {
         cell_gid_type start_index;
 
-        population_indexed(cell_gid_type x_side, cell_gid_type y_side, bool periodic,
+        population_indexed(cell_size_type x_dim, cell_size_type y_dim, bool periodic,
             cell_gid_type start_index) :
-            population(x_side, y_side, periodic), start_index(start_index) {}
+            population(x_dim, y_dim, periodic), start_index(start_index) {}
     };
 
     std::vector<population_indexed> populations_;

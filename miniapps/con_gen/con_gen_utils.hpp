@@ -34,26 +34,26 @@ namespace con_gen_util {
     // On error parsing will stop and what is parsed until then is returned
     // throws a con_gen_error when file cannot be opened
     // The lines are parsed separated by a single comma:
-    // [x_side, y_side, periodic]
+    // [x_dim, y_dim, periodic]
     // with types:
     // unsigned, unsigned, 0 -or- 1
-    std::vector<arb::population> parse_populations_from_path(std::string path) {
+    std::vector<arb_con_gen::population> parse_populations_from_path(std::string path) {
         std::ifstream infile(path);
 
-        arb::cell_gid_type x_side;
-        arb::cell_gid_type y_side;
+        arb::cell_gid_type x_dim;
+        arb::cell_gid_type y_dim;
         bool periodic;
         char comma;
 
-        std::vector<arb::population> populations;
+        std::vector<arb_con_gen::population> populations;
 
         if (infile) {
             std::string line;
             while (std::getline(infile, line)){
                 std::istringstream iss(line);
-                if (!(iss >> x_side >> comma >> y_side >> comma >> periodic)) {
+                if (!(iss >> x_dim >> comma >> y_dim >> comma >> periodic)) {
                     break; }
-                populations.push_back({ x_side, y_side, periodic });
+                populations.push_back({ x_dim, y_dim, periodic });
 
             }
         }
@@ -73,7 +73,7 @@ namespace con_gen_util {
     //  mean_weight, sd_weight, min_delay, delay_per_sd_distance]
     // with types:
     // unsigned, unsigned, unsigned, float, float, float, float, float
-    std::vector<arb::projection> parse_projections_from_path(std::string path) {
+    std::vector<arb_con_gen::projection> parse_projections_from_path(std::string path) {
         std::ifstream infile(path);
 
         unsigned pre_population_id;
@@ -86,7 +86,7 @@ namespace con_gen_util {
         float    delay_per_sd;
         char comma;
 
-        std::vector<arb::projection> projection;
+        std::vector<arb_con_gen::projection> projection;
 
         if (infile) {
             std::string line;
@@ -162,8 +162,8 @@ namespace con_gen_util {
 
     // Default populations:
     // Two 2d sheets of 100 by 100 neurons with periodic bordes
-    std::vector<arb::population> default_populations() {
-        std::vector<arb::population> default_populations;
+    std::vector<arb_con_gen::population> default_populations() {
+        std::vector<arb_con_gen::population> default_populations;
 
         default_populations.push_back({ 100, 100, true });
         default_populations.push_back({ 100, 100, true });
@@ -176,8 +176,8 @@ namespace con_gen_util {
     // 0 > 1. count 100, ds 0.02 | weight -mean 20.0 -sd 1.0 | delay 1.0 -sd 1.0
     // #2
     // 1 > 0. count 1000, ds 0.1 | weight -mean 2.0 -sd 1.0 | delay 1.0 -sd 1.0
-    std::vector<arb::projection> default_connectome() {
-        std::vector<arb::projection>  connectome;
+    std::vector<arb_con_gen::projection> default_connectome() {
+        std::vector<arb_con_gen::projection>  connectome;
         connectome.push_back({ 0,1,{ 0.02, 400,  2.0, 1.0, 1.0, 1.0 } });
         connectome.push_back({ 1,0,{ 0.05, 1000, 2.0, 1.0, 1.0, 1.0 } });
 

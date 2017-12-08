@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
     }
 
     // Parse the populations from file or use the default
-    std::vector<arb::population> populations;
+    std::vector<arb_con_gen::population> populations;
     if (population_cfg_path) {
         populations = con_gen_util::parse_populations_from_path(population_cfg_path.get());
     }
@@ -134,7 +134,7 @@ int main(int argc, char** argv) {
 
 
     // Parse the connectome from file or use the default
-    std::vector<arb::projection>  connectome;
+    std::vector<arb_con_gen::projection>  connectome;
     if (projection_cfg_path) {
         connectome = con_gen_util::parse_projections_from_path(projection_cfg_path.get());
     }
@@ -155,7 +155,7 @@ int main(int argc, char** argv) {
 
 
     // The connection generator
-    arb::connection_generator gen(populations, connectome);
+    arb_con_gen::connection_generator gen(populations, connectome);
 
     std::ofstream outfile(output_path);
 
