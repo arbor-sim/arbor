@@ -30,6 +30,8 @@ namespace arb_con_gen {
 
         cell_size_type n_cells;
 
+        // TODO: enum topology_type ( grid, pure random, minimal distance)
+
         population(cell_size_type x_dim, cell_size_type y_dim, bool per) :
             x_dim(x_dim), y_dim(y_dim), periodic(per), n_cells(x_dim *y_dim)
         {
@@ -218,7 +220,7 @@ private:
     };
 
     std::vector<point> connection_locations(std::mt19937 gen,
-        point const target_location, cell_size_type count,
+        point target_location, cell_size_type count,
         float sd_x, float sd_y, bool periodic)
     {
         // Generate the distribution for these locations
