@@ -30,7 +30,7 @@ public:
     void reset() override {
         clear_spikes();
         for (auto& cell : cells_) {
-            cell.t = 0;
+            cell.step = 0;
         }
     }
 
@@ -38,19 +38,17 @@ public:
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& events) override {
         for (auto& cell: cells_) {
-            auto t_start = std::max(cell.start_time, cell.t);
-            auto t_end = std::min(cell.stop_time, ep.tfinal);
 
-            std::size_t step = 0;
-            auto t = t_start;
+            auto t_end = std::min(cell.stop_time, ep.tfinal);
+            auto t = cell.start_time + cell.step*cell.period;
+
             while (t < t_end) {
                 spikes_.push_back({{cell.gid, 0}, t});
 
-                // update time using step counter
-                ++step;
-                t = t_start + step * cell.period;
+                // Increasing time with period time step has float issues
+                ++cell.step;
+                t = cell.start_time + cell.step*cell.period;
             }
-            cell.t = t;
         }
     }
 
@@ -78,7 +76,10 @@ private:
         {}
 
         cell_gid_type gid;
-        time_type t;
+
+        // We do not store the time but a count of the number of step since start
+        // of cell. This prevents float problems at high number.
+        std::size_t step;
     };
 
     // RSS cell descriptions.
