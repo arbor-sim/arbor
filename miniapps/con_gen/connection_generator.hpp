@@ -9,13 +9,11 @@
 #include <tuple>
 #include <math.h>
 
+
 #include <common_types.hpp>
-#include <util/debug.hpp>
+#include <math.hpp>
 #include <random>
-
-#include <iostream>
-
-
+#include <util/debug.hpp>
 
 namespace arb_con_gen {
 
@@ -80,19 +78,20 @@ namespace arb_con_gen {
         }
     };
 
-    // Helper struct to collect some parameters together
+    // Helper struct to collect some parameters together for creating projections
     // -pre_idx    The index in the population list that is pre synaptic for this
     //             projection
     // -post_idx   The index in the population list that is post synaptic for this
     //             projection
     // -pars       Parameters used to generate the synapses for this connection
     struct projection {
-        cell_size_type pre_idx;
-        cell_size_type post_idx;
+        size_t pre_idx;
+        size_t post_idx;
         projection_pars pars;
 
-        projection(cell_size_type pre_population, cell_size_type post_population, projection_pars pars) :
-            pre_idx(pre_population), post_idx(post_population), pars(pars) {}
+        projection(size_t pre_population, size_t post_population, projection_pars pars) :
+            pre_idx(pre_population), post_idx(post_population), pars(pars)
+        {}
     };
 
     // Return type for connection generation
@@ -103,7 +102,8 @@ namespace arb_con_gen {
         float weight;
         float delay;
         synaps_pars(cell_gid_type gid, float weight, float delay ):
-             gid(gid),  weight(weight), delay(delay){}
+             gid(gid),  weight(weight), delay(delay)
+        {}
     };
 
 
@@ -114,9 +114,10 @@ public:
     // Expects a vector of populations descriptions and vector of projections
     // between these
     // TODO: This is a first implementation: sub populations are NOT implemented
-    connection_generator( std::vector<population> const populations,
-        std::vector<projection> const connectome)
-        : connectome_(connectome) {
+    connection_generator(const std::vector<population> & populations,
+        std::vector<projection> connectome):
+        connectome_(std::move(connectome))
+    {
         cell_gid_type gid_idx = 0;
 
         // Create the local populations with start index set
@@ -134,8 +135,8 @@ public:
         gen.seed(gid);
 
         std::vector<synaps_pars> connections;
-        for (auto project : connectome_)
-        {
+        for (auto project : connectome_) {
+
             // Sanity check that the populations exist
             EXPECTS(project.pre_idx < populations_.size());
             EXPECTS(project.post_idx < populations_.size());
@@ -149,7 +150,7 @@ public:
             std::normal_distribution<float> weight_distr(pro_pars.weight_mean, pro_pars.weight_sd);
 
             // Used to assure correct weight sign
-            float weight_sign = pro_pars.weight_mean < 0 ? -1 : 1;
+            float weight_sign = arb::math::signum(pro_pars.weight_mean);
 
             // Check if this gid receives connections via this projection
             // TODO: Replace with the fancy in range function we have somewhere in the utils
@@ -161,7 +162,7 @@ public:
             auto pop_local_gid = gid - post_pop.start_index;
 
             // Convert this to a normalized location
-            std::pair<float, float> post_location = {
+            point post_location = {
                 float(pop_local_gid % post_pop.x_dim) / post_pop.x_dim,
                 float(pop_local_gid / post_pop.y_dim) / post_pop.y_dim};
 
@@ -185,15 +186,15 @@ public:
             auto pre_locations = connection_locations(gen, post_location,
                 pro_pars.count, sd_x, sd_y, post_pop.periodic);
 
-            for (auto pre_location : pre_locations)
-            {
+            for (auto pre_location : pre_locations) {
+
                 // convert the normalized locations to gid
-                cell_gid_type gid_pre = cell_gid_type(pre_location.second * pre_pop.y_dim) * pre_pop.x_dim +
-                    cell_gid_type(pre_location.first * pre_pop.x_dim);
+                cell_gid_type gid_pre = cell_gid_type(pre_location.y * pre_pop.y_dim) * pre_pop.x_dim +
+                    cell_gid_type(pre_location.x * pre_pop.x_dim);
 
                 // Calculate the distance between the pre and post neuron.
-                float distance = std::sqrt(std::pow(pre_location.first * post_location.first, 2) +
-                    std::pow(pre_location.second * post_location.second, 2));
+                float distance = std::sqrt(std::pow(pre_location.x * post_location.x, 2) +
+                    std::pow(pre_location.y * post_location.y, 2));
 
                 float delay = distance / pro_pars.delay_per_sd + pro_pars.delay_min;
 
@@ -208,26 +209,34 @@ public:
         return connections;
     }
 
-    std::vector<std::pair<float, float>> connection_locations(std::mt19937 gen,
-        std::pair<float, float> const target_location, cell_size_type count,
+
+private:
+
+    struct point {
+        float x;
+        float y;
+    };
+
+    std::vector<point> connection_locations(std::mt19937 gen,
+        point const target_location, cell_size_type count,
         float sd_x, float sd_y, bool periodic)
     {
         // Generate the distribution for these locations
-        std::normal_distribution<float> distr_x(target_location.first, sd_x);
-        std::normal_distribution<float> distr_y(target_location.second, sd_y);
+        std::normal_distribution<float> distr_x(target_location.x, sd_x);
+        std::normal_distribution<float> distr_y(target_location.y, sd_y);
 
         //*********************************************************
         // now draw normal distributed and convert to gid
         // we have the amount of connections we need
-        std::vector<std::pair<float, float>> connections;
+        std::vector<point> connections;
 
         for (cell_gid_type idx = 0; idx < count; ++idx) {
+
             // draw the locations
             float x_source = distr_x(gen);
             float y_source = distr_y(gen);
 
-            if (periodic)
-            {
+            if (periodic) {
                 // Todo: add non-periodic borders
                 // normalize: move all values between [0.0, 1.0)
                 // int(floor(-1.1)) = -2  ---> -1.1 - -2 = 0.9
@@ -242,19 +251,24 @@ public:
                     continue;
                 }
             }
-            connections.push_back( { x_source , y_source });
+            connections.push_back({ x_source , y_source });
         }
 
         return connections;
     }
 
-private:
+    float distance(const point& p1, const point& p2) {
+        return std::sqrt(arb::math::square(p1.x - p2.x) + arb::math::square(p1.y - p2.y));
+    }
+
+
     struct population_indexed : public population {
         cell_gid_type start_index;
 
         population_indexed(cell_size_type x_dim, cell_size_type y_dim, bool periodic,
             cell_gid_type start_index) :
-            population(x_dim, y_dim, periodic), start_index(start_index) {}
+            population(x_dim, y_dim, periodic), start_index(start_index)
+        {}
     };
 
     std::vector<population_indexed> populations_;
