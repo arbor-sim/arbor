@@ -29,7 +29,7 @@ namespace ipss_impl {
     };
 
     // Parses time rate pairs separated with a comma from file returns them
-    // as a vecotrime, rate pairs
+    // as a vector of time, rate pairs
     // Throw and ipss_error when the file could not be opened
     // If errors occur during parsing they are eaten silently and parsing stops
     std::vector<std::pair<arb::time_type, double>> parse_time_rate_from_path(std::string path) {
