@@ -108,7 +108,6 @@ namespace arb_con_gen {
         {}
     };
 
-
 class connection_generator {
 
 public:
@@ -183,16 +182,23 @@ public:
                 }
             }
 
-            // Now we sample from the pre population based on the x,y location
-            // We supply the connection_impl with the size of the pre population
-            auto pre_locations = connection_locations(gen, post_location,
+            // Now we sample from the pre population based on the x,y location of the
+            // post cell
+            auto pre_locations = get_random_locations(gen, post_location,
                 pro_pars.count, sd_x, sd_y, post_pop.periodic);
 
+            // Convert to gid and draw the synaptic parameters for each
+            // generated location
             for (auto pre_location : pre_locations) {
 
+                // If we have Grid type topology
                 // convert the normalized locations to gid
                 cell_gid_type gid_pre = cell_gid_type(pre_location.y * pre_pop.y_dim) * pre_pop.x_dim +
                     cell_gid_type(pre_location.x * pre_pop.x_dim);
+                // absolute gid
+                gid_pre += pre_pop.start_index;
+
+                // TODO: If we have randomly distributed cell, use a quadtree to find the gid
 
                 // Calculate the distance between the pre and post neuron.
                 float distance = std::sqrt(std::pow(pre_location.x * post_location.x, 2) +
@@ -204,13 +210,12 @@ public:
                 // Flip the sign of the weight depending if we are incorrect
                 weight = (weight_sign * weight) < 0?  -weight: weight;
 
-                connections.push_back({ gid_pre + pre_pop.start_index, weight,  delay });
+                connections.push_back({ gid_pre, weight,  delay });
             }
         }
 
         return connections;
     }
-
 
 private:
 
@@ -219,7 +224,10 @@ private:
         float y;
     };
 
-    std::vector<point> connection_locations(std::mt19937 gen,
+
+    // Returns a vector of points from a 2d normal distribution around the
+    // supplied 2d location.
+    std::vector<point> get_random_locations(std::mt19937 gen,
         point target_location, cell_size_type count,
         float sd_x, float sd_y, bool periodic)
     {
