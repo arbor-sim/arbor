@@ -29,6 +29,14 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 #----------------------------------------------------------
 # Option to enable assertions
 #----------------------------------------------------------
+option(ARB_WITH_PYTHON "enable python bindings" OFF)
+if(ARB_WITH_ASSERTIONS)
+    add_definitions("-DARB_HAVE_PYTHON")
+endif()
+
+#----------------------------------------------------------
+# Option to enable assertions
+#----------------------------------------------------------
 option(ARB_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
 if(ARB_WITH_ASSERTIONS)
     add_definitions("-DARB_HAVE_ASSERTIONS")
@@ -272,6 +280,10 @@ include_directories(
 if(EXTERNAL_INCLUDES)
   include_directories("${EXTERNAL_INCLUDES}")
 endif()
+if(ARB_WITH_PYTHON)
+  include_directories("${PROJECT_SOURCE_DIR}/python")
+endif()
+
 
 #----------------------------------------------------------
 # Setup subdirs
@@ -290,5 +302,8 @@ add_subdirectory(src)
 add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
 add_subdirectory(miniapps)
+if(ARB_WITH_PYTHON)
+  add_subdirectory(python)
+endif()
 add_subdirectory(lmorpho)
 add_subdirectory(doc)
