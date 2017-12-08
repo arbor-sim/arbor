@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <random>
+#include <limits>
 
 #include <cell_group.hpp>
 #include <recipe.hpp>
@@ -20,11 +21,12 @@ public:
     /// Constructor
     ipss_cell(ipss_cell_description desc, cell_gid_type gid) :
         ipss_cell_description(std::move(desc)), gid_(gid), time_(0.0),
-        generator_(gid), prob_(0.0), prob_dt_(0.0) {
+        generator_(gid), prob_(0.0), prob_dt_(0.0)
+    {
         // We now have ownership of the rate_vector add a single rate pair
-        // At the end with the stop time_. We can now use an itterator to the
-        // next rate change.
-        rates_per_time.push_back({ stop_time + sample_delta, rates_per_time.back().second });
+        // At the end with the stop time_ at maximum time.
+        // We can now allways asure we have an itterator to the next rate change.
+        rates_per_time.push_back({ std::numeric_limits<time_type>::max(), rates_per_time.back().second });
 
         reset();
     }
