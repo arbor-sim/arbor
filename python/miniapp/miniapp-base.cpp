@@ -49,7 +49,12 @@ sample_trace make_trace(const probe_info& probe);
 
 void report_compartment_stats(const recipe&);
 
-int miniapp(int argc, char** argv) {
+int _test_miniapp() {
+    char* argv[] = {"pyarbor", "-n", "2", "-t", "1", NULL};
+    return _miniapp(5, argv);
+}
+
+int _miniapp(int argc, char** argv) {
     communication::global_policy_guard global_guard(argc, argv);
 
     try {

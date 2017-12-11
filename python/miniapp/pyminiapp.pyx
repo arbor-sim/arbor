@@ -1,20 +1,53 @@
 from libc.stdlib cimport malloc, free
+from cpython cimport bool
 
-cdef extern from "miniapp-base.hpp":
-    cdef int miniapp(int argc, char** argv)
+####### _stringify ##############
+# Wraps a "main" signature function
+# with a conversion from python objects
+#
+ctypedef int _Func(int, char**)
+#
+cdef bool _stringify(_Func func, str arg0, tuple argv):
+    # this is because I'm lazy
+    cdef list _argv = [arg0] + list(argv)
+    cdef int argc = <int> len(_argv)
 
-def pyarbor_miniapp(argv):
-    cdef int argc = <int> len(argv)
-    cdef char* arg0 = "pyarbor\0"
+    # convert all elements of argv and convert to strings
+    cdef list argv_str = [str(argvi) for argvi in _argv]
+
+    # allocate the argv buffer: remember the extra NULL at the end!
     cdef char** argv_chars = <char**> malloc((argc+1) * sizeof(char*))
-    cdef char** argv_chars_off = argv_chars + 1
     try:
-        argv_chars[0] = arg0
+
+        # args require a null at the end
         argv_chars[argc] = NULL
-
-        argv_bytes = [argvi.encode() for argvi in argv[1:]]
+        # encode the c strings correctly (and store them)
+        argv_bytes = [argvi.encode() for argvi in argv_str]
+        # and then put them in the array
         for i, argvi in enumerate(argv_bytes):
-            argv_chars_off[i] = argvi # c-string ref extracted
+            argv_chars[i] = argvi # c-string ref extracted
 
-        return miniapp(argc, argv_chars) == 0
-    finally: free(argv_chars)
+        # Now call our function
+        return func(argc, argv_chars) == 0
+    
+    finally:
+        # finally, clean up... whooowh
+        free(argv_chars)
+
+####### _miniapp #################################
+# C function defined in miniapp-base
+# miniapp main -> callable function
+cdef extern from "miniapp-base.hpp":
+    cdef int _miniapp(int argc, char** argv)
+    cdef int _test_miniapp()
+
+######## miniapp ###################################
+# miniapp(arg1, ...) in python
+#  calls the miniapp main function
+#  with a argv[0] of "pyarbor"
+def miniapp(*argv):
+    return _stringify(_miniapp, "pyarbor", argv)
+
+
+def test_miniapp():
+    return _test_miniapp() == 0

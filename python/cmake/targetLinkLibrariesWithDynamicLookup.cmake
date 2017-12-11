@@ -194,7 +194,7 @@ function(_test_weak_link_project
          can_weak_link_var
          project_name)
 
-  set(gnu_ld_ignore      "-Wl,--unresolved-symbols=ignore-all")
+  set(gnu_ld_ignore      "-Wl,--unresolved-symbols=ignore-all ")
   set(osx_dynamic_lookup           "-undefined dynamic_lookup")
   set(no_flag                                               "")
 

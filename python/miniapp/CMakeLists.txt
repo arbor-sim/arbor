@@ -8,7 +8,7 @@ set(PYMINIAPP_SOURCES
 
 add_cython_target( pyminiapp CXX )
 add_library( pyminiapp MODULE ${pyminiapp} ${PYMINIAPP_SOURCES} )
-#python_extension_module(pyminiapp)
+python_extension_module(pyminiapp)
 
 install(TARGETS pyminiapp LIBRARY DESTINATION pyminiapp)
 
