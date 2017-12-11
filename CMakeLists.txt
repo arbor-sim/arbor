@@ -30,8 +30,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Option to enable assertions
 #----------------------------------------------------------
 option(ARB_WITH_PYTHON "enable python bindings" OFF)
-if(ARB_WITH_ASSERTIONS)
-    add_definitions("-DARB_HAVE_PYTHON")
+option(BUILD_SHARED_LIBS "enable shared library" OFF)
+if(ARB_WITH_PYTHON)
+  add_definitions("-DARB_HAVE_PYTHON")
+  set(BUILD_SHARED_LIBS ON)
 endif()
 
 #----------------------------------------------------------
