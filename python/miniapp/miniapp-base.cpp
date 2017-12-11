@@ -32,7 +32,7 @@
 #include "miniapp_recipes.hpp"
 #include "trace.hpp"
 
-#include "miniapp.hpp"
+#include "miniapp-base.hpp"
 
 using namespace arb;
 

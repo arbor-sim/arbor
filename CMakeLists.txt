@@ -276,7 +276,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/tclap"
     "${PROJECT_SOURCE_DIR}/include"
     "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/miniapp"
+    "${PROJECT_SOURCE_DIR}/miniapps"
     "${PROJECT_SOURCE_DIR}/modcc"
     "${PROJECT_SOURCE_DIR}")
 if(EXTERNAL_INCLUDES)

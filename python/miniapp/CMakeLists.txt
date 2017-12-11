@@ -1,33 +1,30 @@
-# Defines the CMake commands/policies
-cmake_minimum_required( VERSION 2.8.5 )
+set(PYMINIAPP_SOURCES
+  miniapp-base.cpp
+  io.cpp
+  miniapp_recipes.cpp
+  morphology_pool.cpp
+  trace.cpp
+)
 
-# Set the project name
-project( PYARBOR_MINIAPP )
+add_cython_target( pyminiapp CXX )
+add_library( pyminiapp MODULE ${pyminiapp} ${PYMINIAPP_SOURCES} )
+#python_extension_module(pyminiapp)
 
-# Make the scripts available in the 'cmake' directory available for the
-# 'include()' command, 'find_package()' command.
-set( CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_LIST_DIR}/cmake )
+install(TARGETS pyminiapp LIBRARY DESTINATION pyminiapp)
 
-# Include the CMake script UseCython.cmake.  This defines add_cython_module().
-# Instruction for use can be found at the top of cmake/UseCython.cmake.
-include( UseCython )
+target_link_libraries(pyminiapp ${ARB_LIBRARIES})
+target_link_libraries(pyminiapp ${EXTERNAL_LIBRARIES})
 
-# With CMake, a clean separation can be made between the source tree and the
-# build tree.  When all source is compiled, as with pure C/C++, the source is
-# no-longer needed in the build tree.  However, with pure *.py source, the
-# source is processed directly.  To handle this, we reproduce the availability
-# of the source files in the build tree.
-add_custom_target( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ReplicatePythonSourceTree.cmake
-  ${CMAKE_CURRENT_BINARY_DIR}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
+include_directories("${PROJECT_SOURCE_DIR}/miniapp")
+target_link_libraries(pyminiapp ${PYTHON_LIBRARIES})
 
-include_directories( ${PYARBOR_MINIAPP_SOURCE_DIR}/src )
+if(ARB_WITH_MPI)
+    target_link_libraries(pyminiapp ${MPI_C_LIBRARIES})
+    set_property(TARGET pyminiapp APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+endif()
 
-#enable_testing()
-#find_file( NOSETESTS_EXECUTABLE nosetests )
-#add_test( nosetests "${NOSETESTS_EXECUTABLE}" -v --with-xunit )
-
-# Process the CMakeLists.txt in the 'src' and 'bin' directory.
-add_subdirectory( src )
-#add_subdirectory( bin )
+set_target_properties(
+    pyminiapp
+    PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/miniapps/pyminiapp"
+)

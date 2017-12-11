@@ -1,6 +1,6 @@
 from libc.stdlib cimport malloc, free
 
-cdef extern from "miniapp.hpp":
+cdef extern from "miniapp-base.hpp":
     cdef int miniapp(int argc, char** argv)
 
 def pyarbor_miniapp(argv):
