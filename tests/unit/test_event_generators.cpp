@@ -57,12 +57,15 @@ TEST(event_generators, regular) {
     cell_member_type target = {42, 3};
     float weight = 3.14;
 
-    regular_generator gen(t0, dt, target, weight);
+    //regular_generator gen(t0, dt, target, weight);
+    regular_generator gen(target, weight, t0, dt);
 
     // helper for building a set of 
     auto expected = [&] (std::vector<time_type> times) {
         pse_vector events;
-        for (auto t: times) events.push_back({target, t, weight});
+        for (auto t: times) {
+            events.push_back({target, t, weight});
+        }
         return events;
     };
 
@@ -83,19 +86,29 @@ TEST(event_generators, regular) {
     EXPECT_EQ(gen.next().time, time_type(10.5));
     gen.advance(12);
     EXPECT_EQ(gen.next().time, time_type(12));
+}
+
+// Test for rounding problems with large time values and the regular generator
+TEST(event_generator, regular_rounding) {
+    // make a regular generator that generates its first event at t=2ms and subsequent
+    // events regularly spaced 0.5 ms apart.
+    time_type t0 = 2.0;
+    time_type dt = 0.5;
+    cell_member_type target = {42, 3};
+    float weight = 3.14;
 
     // Test for rounding problems with large time values.
     // To better understand why this is an issue, uncomment the following:
     //   float T = 1802667.0f, DT = 0.024999f;
     //   std::size_t N = std::floor(T/DT);
     //   std::cout << "T " << T << " DT " << DT << " N " << N
-    //              << " T-N*DT " << T - (N*DT) << " P " << (T - (N*DT))/DT  << "\n";
+    //             << " T-N*DT " << T - (N*DT) << " P " << (T - (N*DT))/DT  << "\n";
     t0 = 1802667.0f;
     dt = 0.024999f;
     time_type int_len = 5*dt;
     time_type t1 = t0 + int_len;
     time_type t2 = t1 + int_len;
-    gen = regular_generator(t0, dt, target, weight);
+    auto gen = regular_generator(target, weight, t0, dt);
 
     // Take the interval I_a: t ∈ [t0, t2)
     // And the two sub-interavls
@@ -196,10 +209,10 @@ TEST(event_generators, poisson) {
 
     time_type t0 = 0;
     time_type t1 = 10;
-    time_type dt = 0.1;
+    time_type lambda = 10; // expect 10 events per ms
     cell_member_type target{4, 2};
     float weight = 42;
-    pgen gen(t0, dt, target, weight, G);
+    pgen gen(target, weight, G, t0, lambda);
 
     pse_vector int1;
     while (gen.next().time<t1) {
@@ -219,4 +232,33 @@ TEST(event_generators, poisson) {
 
     // Assert that the same sequence was generated
     EXPECT_EQ(int1, int2);
+}
+
+// Test a poisson generator that has a tstop past which no events
+// should be generated.
+TEST(event_generators, poisson_terminates) {
+    std::mt19937_64 G;
+    using pgen = poisson_generator<std::mt19937_64>;
+
+    time_type t0 = 0;
+    time_type t1 = 10;
+    time_type t2 = 1e7; // pick a time far past the end of the interval [t0, t1)
+    time_type lambda = 10; // expect 10 events per ms
+    cell_member_type target{4, 2};
+    float weight = 42;
+    // construct generator with explicit end time t1
+    pgen gen(target, weight, G, t0, lambda, t1);
+
+    pse_vector events;
+    // pull events off the generator well past the end of the end time t1
+    while (gen.next().time<t2) {
+        events.push_back(gen.next());
+        gen.pop();
+    }
+
+    // the generator should be exhausted
+    EXPECT_EQ(gen.next(), terminal_pse());
+
+    // the last event should be less than the end time
+    EXPECT_TRUE(events.back().time<t1);
 }

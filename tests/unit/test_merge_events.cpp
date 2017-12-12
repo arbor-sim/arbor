@@ -130,7 +130,7 @@ TEST(merge_events, X)
     std::vector<event_generator_ptr> generators(2);
     generators.push_back(
         make_event_generator<regular_generator>
-        (t0, 5, cell_member_type{4,2}, 42.f));
+        (cell_member_type{4,2}, 42.f, t0, 5));
 
     merge_events(t0, t1, lc, events, generators, lf);
 
@@ -199,7 +199,7 @@ TEST(merge_events, tourney_poisson)
     auto ngen = 100u;
     time_type tfinal = 10;
     time_type t0 = 0;
-    time_type dt = 0.1; // expected: tfinal/dt=100 events per generator
+    time_type lambda = 10; // expected: tfinal*lambda=1000 events per generator
 
     std::vector<event_generator_ptr> generators;
     for (auto i=0u; i<ngen; ++i) {
@@ -211,7 +211,7 @@ TEST(merge_events, tourney_poisson)
         generators.push_back(
             make_event_generator<
                 poisson_generator<std::mt19937_64>>
-                (t0, dt, tgt, weight, G));
+                (tgt, weight, G, t0, lambda));
     }
 
     // manually generate the expected output

@@ -11,15 +11,28 @@
 
 namespace arb {
 
+// An event_generator generates a sequence of events to be delivered to a cell.
+// The sequence of events is always in ascending order, i.e. each event will be
+// greater than the event that proceded it, where events are ordered by:
+//  - delivery time;
+//  - then target id for events with the same delivery time;
+//  - then weight for events with the same delivery time and target.
 struct event_generator {
-    // Return the next event
-    // Should return the same event if called multiple times without calling
-    // event_generator::pop().
+    // Return the next event in the stream.
+    // Returns the same event if called multiple times without calling pop().
     virtual postsynaptic_spike_event next() = 0;
+
+    // Move the generator to the next event in the stream.
     virtual void pop() = 0;
+
+    // Reset the generator to the same state that it had on construction.
     virtual void reset() = 0;
-    virtual ~event_generator() {};
+
+    // Update state of the generator such that the event returned by next() is
+    // the first event with delivery time >= t.
     virtual void advance(time_type t) = 0;
+
+    virtual ~event_generator() {};
 };
 
 inline
@@ -27,7 +40,8 @@ postsynaptic_spike_event terminal_pse() {
     return postsynaptic_spike_event{cell_member_type{0,0}, max_time, 0};
 }
 
-// Generator that feeds events that are specified with a vector
+// Generator that feeds events that are specified with a vector.
+// Makes a copy of the input sequence of events.
 struct vector_backed_generator: public event_generator {
     using pse = postsynaptic_spike_event;
     vector_backed_generator(pse_vector events):
@@ -62,7 +76,10 @@ private:
     std::vector<postsynaptic_spike_event>::const_iterator it_;
 };
 
-// Generator that for events in a generic sequence
+// Generator for events in a generic sequence.
+// The generator keeps a reference to a Seq, i.e. it does not own the sequence.
+// Care must be taken to avoid lifetime issues, to ensure that the generator
+// does not outlive the sequence.
 template <typename Seq>
 struct seq_generator: public event_generator {
     using pse = postsynaptic_spike_event;
@@ -97,20 +114,30 @@ private:
     typename Seq::const_iterator it_;
 };
 
-// Generates a stream of events
-//  * with the first event at time t_start
-//  * subsequent events at t_start+n*dt, ∀ n ∈ [0, ∞)
+// Generates a set of regularly spaced events:
+//  * with delivery times t=t_start+n*dt, ∀ t ∈ [t_start, t_stop)
 //  * with a set target and weight
 struct regular_generator: public event_generator {
     using pse = postsynaptic_spike_event;
 
-    regular_generator(time_type tstart, time_type dt, cell_member_type target, float weight):
-        t_start_(tstart), step_(0), dt_(dt),
-        target_(target), weight_(weight)
+    regular_generator(cell_member_type target,
+                      float weight,
+                      time_type tstart,
+                      time_type dt,
+                      time_type tstop=max_time):
+        target_(target),
+        weight_(weight),
+        step_(0),
+        t_start_(tstart),
+        dt_(dt),
+        t_stop_(tstop)
     {}
 
     postsynaptic_spike_event next() override {
-        return {target_, t_start_+(step_*dt_), weight_};
+        const auto t = time();
+        return t<t_stop_?
+            postsynaptic_spike_event{target_, t, weight_}:
+            terminal_pse();
     }
 
     void pop() override {
@@ -118,8 +145,9 @@ struct regular_generator: public event_generator {
     }
 
     void advance(time_type t0) override {
-        t0 = t0<t_start_? t_start_: t0;
+        t0 = std::max(t0, t_start_);
         step_ = (t0-t_start_)/dt_;
+
         // Finding the smallest value for step_ that satisfies the condition
         // that time() >= t0 is unfortunately a horror show because floating
         // point precission.
@@ -140,35 +168,40 @@ private:
         return t_start_ + step_*dt_;
     }
 
-    time_type t_start_;
-    std::size_t step_;
-    time_type dt_;
     cell_member_type target_;
     float weight_;
+    std::size_t step_;
+    time_type t_start_;
+    time_type dt_;
+    time_type t_stop_;
 };
 
-// Generates a stream of events
-//  * At times described by a Poisson point process with rate 1/dt
+// Generates a stream of events at times described by a Poisson point process
+// with rate_per_ms spikes per ms.
 template <typename RandomNumberEngine>
 struct poisson_generator: public event_generator {
     using pse = postsynaptic_spike_event;
 
-    poisson_generator(time_type tstart,
-                      time_type dt,
-                      cell_member_type target,
+    poisson_generator(cell_member_type target,
                       float weight,
-                      RandomNumberEngine rng):
-        t_start_(tstart),
-        exp_(1./dt),
+                      RandomNumberEngine rng,
+                      time_type tstart,
+                      time_type rate_per_ms,
+                      time_type tstop=max_time):
+        exp_(rate_per_ms),
         reset_state_(std::move(rng)),
         target_(target),
-        weight_(weight)
+        weight_(weight),
+        t_start_(tstart),
+        t_stop_(tstop)
     {
         reset();
     }
 
     postsynaptic_spike_event next() override {
-        return {target_, next_, weight_};
+        return next_<t_stop_?
+            postsynaptic_spike_event{target_, next_, weight_}:
+            terminal_pse();
     }
 
     void pop() override {
@@ -188,14 +221,15 @@ struct poisson_generator: public event_generator {
     }
 
 private:
-    const time_type t_start_;
     std::exponential_distribution<time_type> exp_;
     RandomNumberEngine rng_;
     const RandomNumberEngine reset_state_;
-    time_type next_;
-
     const cell_member_type target_;
     const float weight_;
+    const time_type t_start_;
+    const time_type t_stop_;
+    time_type next_;
+
 };
 
 using event_generator_ptr = std::unique_ptr<event_generator>;
