@@ -49,13 +49,8 @@ sample_trace make_trace(const probe_info& probe);
 
 void report_compartment_stats(const recipe&);
 
-int _test_miniapp() {
-    const char* argv[] = {"pyarbor", "-n", "2", "-t", "1", NULL};
-    return _miniapp(5, (char**) argv);
-}
-
-int _miniapp(int argc, char** argv) {
-    communication::global_policy_guard global_guard(argc, argv);
+int _miniapp(Options& options) {
+    communication::global_policy_guard global_guard(options.args.argc, options.args.argv);
 
     try {
         util::meter_manager meters;
