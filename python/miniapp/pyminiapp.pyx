@@ -9,20 +9,19 @@ ctypedef int _Func(int, char**)
 #
 cdef bool _stringify(_Func func, str arg0, tuple argv):
     # this is because I'm lazy
-    cdef list _argv = [arg0] + list(argv)
-    cdef int argc = <int> len(_argv)
+    cdef list argv_full = [arg0] + list(argv)
+    cdef int argc = <int> len(argv_full)
 
-    # convert all elements of argv and convert to strings
-    cdef list argv_str = [str(argvi) for argvi in _argv]
+    # convert all elements of argv and convert to strings, bytes, and store
+    cdef list argv_str   = [str(argvi)     for argvi in argv_full]
+    cdef list argv_bytes = [argvi.encode() for argvi in argv_str]
 
     # allocate the argv buffer: remember the extra NULL at the end!
     cdef char** argv_chars = <char**> malloc((argc+1) * sizeof(char*))
     try:
-
         # args require a null at the end
         argv_chars[argc] = NULL
         # encode the c strings correctly (and store them)
-        argv_bytes = [argvi.encode() for argvi in argv_str]
         # and then put them in the array
         for i, argvi in enumerate(argv_bytes):
             argv_chars[i] = argvi # c-string ref extracted
