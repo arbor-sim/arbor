@@ -44,12 +44,12 @@ using file_export_type = io::exporter_spike_file<global_policy>;
 using communicator_type = communication::communicator<communication::global_policy>;
 
 void banner(hw::node_info);
-std::unique_ptr<recipe> make_recipe(const Options&, const probe_distribution&);
+std::unique_ptr<recipe> make_recipe(const io::Options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 
 void report_compartment_stats(const recipe&);
 
-int _miniapp(Options& options) {
+int _miniapp(io::Options& options) {
     communication::global_policy_guard global_guard(options.args.argc, options.args.argv);
 
     try {
@@ -95,7 +95,7 @@ int _miniapp(Options& options) {
             report_compartment_stats(*recipe);
         }
 
-        auto register_exporter = [] (const Options& options) {
+        auto register_exporter = [] (const io::Options& options) {
             return
                 util::make_unique<file_export_type>(
                     options.file_name, options.output_path,
@@ -193,7 +193,7 @@ int _miniapp(Options& options) {
     return 0;
 }
 
-std::ostream& operator<<(std::ostream& o, const Options& options) {
+std::ostream& operator<<(std::ostream& o, const io::Options& options) {
     o << "simulation options:\n";
     o << "  cells                : " << options.cells << "\n";
     o << "  compartments/segment : " << options.compartments_per_segment << "\n";
@@ -238,7 +238,7 @@ void banner(hw::node_info nd) {
     std::cout << "==========================================\n";
 }
 
-std::unique_ptr<recipe> make_recipe(const Options& options, const probe_distribution& pdist) {
+std::unique_ptr<recipe> make_recipe(const io::Options& options, const probe_distribution& pdist) {
     basic_recipe_param p;
 
     if (options.morphologies) {

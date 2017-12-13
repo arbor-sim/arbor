@@ -170,5 +170,3 @@ cdef class Miniapp:
                 "Miniapp returned non-zero {}"
                 .format(self.ret)
             )
-            
-    

@@ -196,4 +196,6 @@ public:
 
 int miniapp(const Options&);
 
+}
+}
 #endif //ARBOR_MINIAPP_BASE
