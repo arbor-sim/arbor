@@ -195,40 +195,6 @@ int _miniapp(io::options& options) {
     return 0;
 }
 
-std::ostream& operator<<(std::ostream& o, const io::options& options) {
-    o << "simulation options:\n";
-    o << "  cells                : " << options.cells << "\n";
-    o << "  compartments/segment : " << options.compartments_per_segment << "\n";
-    o << "  synapses/cell        : " << options.synapses_per_cell << "\n";
-    o << "  simulation time      : " << options.tfinal << "\n";
-    o << "  dt                   : " << options.dt << "\n";
-    o << "  binning dt           : " << options.bin_dt << "\n";
-    o << "  binning policy       : " <<
-        (options.bin_dt==0? "none": options.bin_regular? "regular": "following") << "\n";
-    o << "  all to all network   : " << (options.all_to_all ? "yes" : "no") << "\n";
-    o << "  ring network         : " << (options.ring ? "yes" : "no") << "\n";
-    o << "  sample dt            : " << options.sample_dt << "\n";
-    o << "  probe ratio          : " << options.probe_ratio << "\n";
-    o << "  probe soma only      : " << (options.probe_soma_only ? "yes" : "no") << "\n";
-    o << "  trace prefix         : " << options.trace_prefix << "\n";
-    o << "  trace max gid        : ";
-    if (options.trace_max_gid) {
-       o << *options.trace_max_gid;
-    }
-    o << "\n";
-    o << "  trace format         : " << options.trace_format << "\n";
-    o << "  morphologies         : ";
-    if (options.morphologies) {
-       o << *options.morphologies;
-    }
-    o << "\n";
-    o << "  morphology r-r       : " << (options.morph_rr ? "yes" : "no") << "\n";
-    o << "  report compartments  : " << (options.report_compartments ? "yes" : "no") << "\n";
-
-    return o;
-}
-
-
 void banner(hw::node_info nd) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";

@@ -89,8 +89,6 @@ struct options {
     bool verbose = false;
 };
 
-std::ostream& operator<<(std::ostream& o, const options& opt);
-
 
 // calls from python
 class options_interface: private options {

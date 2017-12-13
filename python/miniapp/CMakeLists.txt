@@ -3,6 +3,7 @@ set(PYMINIAPP_SOURCES
   miniapp_recipes.cpp
   morphology_pool.cpp
   trace.cpp
+  io.cpp
 )
 
 add_cython_target( pyminiapp CXX )
