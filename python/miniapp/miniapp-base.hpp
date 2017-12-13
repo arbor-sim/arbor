@@ -4,17 +4,19 @@
 #include <vector>
 #include <string>
 
+#include "util/optional.hpp"
+
 namespace arb {
 namespace io {
 
-struct Argv {
+struct Args {
     // think...
-    std::vector<string> args;
+    std::vector<std::string> args;
     int argc;
     char** argv;
     std::vector<char*> storage;
 
-    Argv() {
+    Args() {
         set(std::vector<std::string>());
     }
 
@@ -24,7 +26,7 @@ struct Argv {
         storage.clear();
         
         for (auto&& arg: args) {
-            storage.push_back(arg);
+            storage.push_back((char*)arg.c_str());
         }
         storage.push_back(nullptr);
         argc = storage.size()-1;
@@ -87,15 +89,18 @@ struct Options {
     bool verbose = false;
 };
 
+std::ostream& operator<<(std::ostream& o, const Options& opt);
+
+
 // calls from python
 class OptionsInterface: private Options {
 public:
     Options& get_options() {
-        return options;
+        return *this;
     }
     
-    void set_args(std::vector<std::string> args) {
-        args.set(args);
+    void set_args(std::vector<std::string> args_) {
+        args.set(args_);
     }
     void set_cells(uint32_t _cells) {
         cells = _cells;
@@ -103,7 +108,7 @@ public:
     void set_synapses_per_cell(uint32_t _synapses_per_cell) {
         synapses_per_cell = _synapses_per_cell;
     }
-    void set_syn_type(string _syn_type) {
+    void set_syn_type(std::string _syn_type) {
         syn_type = _syn_type;
     }
     void set_compartments_per_segment(uint32_t _compartments_per_segment) {
@@ -142,13 +147,13 @@ public:
     void set_probe_ratio(double _probe_ratio) {
         probe_ratio = _probe_ratio;
     }
-    void set_trace_prefix(string _trace_prefix) {
+    void set_trace_prefix(std::string _trace_prefix) {
         trace_prefix = _trace_prefix;
     }
     void set_trace_max_gid(unsigned _trace_max_gid) {
         trace_max_gid = _trace_max_gid;
     }
-    void set_trace_format(string _trace_format) {
+    void set_trace_format(std::string _trace_format) {
         trace_format = _trace_format;
     }
     void set_spike_file_output(bool _spike_file_output) {
@@ -160,20 +165,20 @@ public:
     void set_over_write(bool _over_write) {
         over_write = _over_write;
     }
-    void set_output_path(string _output_path) {
+    void set_output_path(std::string _output_path) {
         output_path = _output_path;
     }
-    void set_file_name(string _file_name) {
+    void set_file_name(std::string _file_name) {
         file_name = _file_name;
     }
-    void set_file_extension(string _file_extension) {
+    void set_file_extension(std::string _file_extension) {
         file_extension = _file_extension;
     }
     void set_spike_file_input(bool _spike_file_input) {
         spike_file_input = _spike_file_input;
     }
-    void set_input_spike_path;(string _input_spike_path;) {
-        input_spike_path; = _input_spike_path;;
+    void set_input_spike_path(std::string _input_spike_path) {
+        input_spike_path = _input_spike_path;
     }
     void set_dry_run_ranks(int _dry_run_ranks) {
         dry_run_ranks = _dry_run_ranks;

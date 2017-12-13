@@ -1,6 +1,5 @@
 set(PYMINIAPP_SOURCES
   miniapp-base.cpp
-  io.cpp
   miniapp_recipes.cpp
   morphology_pool.cpp
   trace.cpp
