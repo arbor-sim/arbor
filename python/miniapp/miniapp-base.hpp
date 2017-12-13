@@ -192,7 +192,7 @@ public:
     }
 };
 
-int miniapp(const options&);
+int miniapp(options&);
 
 }
 }

@@ -49,7 +49,7 @@ sample_trace make_trace(const probe_info& probe);
 
 void report_compartment_stats(const recipe&);
 
-int _miniapp(io::options& options) {
+int io::miniapp(io::options& options) {
     communication::global_policy_guard global_guard(
         options.cargs.argc,
         options.cargs.argv);
