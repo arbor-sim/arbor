@@ -44,13 +44,15 @@ using file_export_type = io::exporter_spike_file<global_policy>;
 using communicator_type = communication::communicator<communication::global_policy>;
 
 void banner(hw::node_info);
-std::unique_ptr<recipe> make_recipe(const io::Options&, const probe_distribution&);
+std::unique_ptr<recipe> make_recipe(const io::options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 
 void report_compartment_stats(const recipe&);
 
-int _miniapp(io::Options& options) {
-    communication::global_policy_guard global_guard(options.args.argc, options.args.argv);
+int _miniapp(io::options& options) {
+    communication::global_policy_guard global_guard(
+        options.cargs.argc,
+        options.cargs.argv);
 
     try {
         util::meter_manager meters;
@@ -95,7 +97,7 @@ int _miniapp(io::Options& options) {
             report_compartment_stats(*recipe);
         }
 
-        auto register_exporter = [] (const io::Options& options) {
+        auto register_exporter = [] (const io::options& options) {
             return
                 util::make_unique<file_export_type>(
                     options.file_name, options.output_path,
@@ -193,7 +195,7 @@ int _miniapp(io::Options& options) {
     return 0;
 }
 
-std::ostream& operator<<(std::ostream& o, const io::Options& options) {
+std::ostream& operator<<(std::ostream& o, const io::options& options) {
     o << "simulation options:\n";
     o << "  cells                : " << options.cells << "\n";
     o << "  compartments/segment : " << options.compartments_per_segment << "\n";
@@ -238,7 +240,7 @@ void banner(hw::node_info nd) {
     std::cout << "==========================================\n";
 }
 
-std::unique_ptr<recipe> make_recipe(const io::Options& options, const probe_distribution& pdist) {
+std::unique_ptr<recipe> make_recipe(const io::options& options, const probe_distribution& pdist) {
     basic_recipe_param p;
 
     if (options.morphologies) {

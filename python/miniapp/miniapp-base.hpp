@@ -9,23 +9,23 @@
 namespace arb {
 namespace io {
 
-struct Args {
+struct args {
     // think...
-    std::vector<std::string> args;
+    std::vector<std::string> cargs;
     int argc;
     char** argv;
     std::vector<char*> storage;
 
-    Args() {
+    args() {
         set(std::vector<std::string>());
     }
 
-    void set(const std::vector<std::string>& args_)
+    void set(const std::vector<std::string>& cargs_)
     {
-        args = args_;
+        cargs = cargs_;
         storage.clear();
         
-        for (auto&& arg: args) {
+        for (auto&& arg: cargs) {
             storage.push_back((char*)arg.c_str());
         }
         storage.push_back(nullptr);
@@ -34,9 +34,9 @@ struct Args {
     }
 };
 
-struct Options {
+struct options {
     // command line args
-    Args args;
+    args cargs;
     
     // Cell parameters:
     uint32_t cells = 1000;
@@ -89,18 +89,18 @@ struct Options {
     bool verbose = false;
 };
 
-std::ostream& operator<<(std::ostream& o, const Options& opt);
+std::ostream& operator<<(std::ostream& o, const options& opt);
 
 
 // calls from python
-class OptionsInterface: private Options {
+class options_interface: private options {
 public:
-    Options& get_options() {
+    options& get_options() {
         return *this;
     }
     
-    void set_args(std::vector<std::string> args_) {
-        args.set(args_);
+    void set_cargs(std::vector<std::string> cargs_) {
+        cargs.set(cargs_);
     }
     void set_cells(uint32_t _cells) {
         cells = _cells;
@@ -194,7 +194,7 @@ public:
     }
 };
 
-int miniapp(const Options&);
+int miniapp(const options&);
 
 }
 }
