@@ -205,14 +205,14 @@ TEST(Parser, parse_if) {
     }
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_if,
-        "   if(a<b) {      \n"
+        "   if(abs(a-b)) {      \n"
         "       a = 2+b    \n"
         "   } else if(b>a){\n"
         "       a = 2+b    \n"
         "   }              "
     ));
     if (s) {
-        EXPECT_NE(s->condition()->is_binary(), nullptr);
+        EXPECT_NE(s->condition()->is_unary(), nullptr);
         EXPECT_NE(s->true_branch()->is_block(), nullptr);
         ASSERT_NE(s->false_branch(), nullptr);
         ASSERT_NE(s->false_branch()->is_if(), nullptr);
@@ -296,6 +296,7 @@ TEST(Parser, parse_line_expression) {
         "x=(y + 2 * z ^ 3)  ",
         "foo(x+3, y, bar(21.4))",
         "y=exp(x+3) + log(exp(x/y))",
+        "x=abs(y+z)",
         "a=x^y^z",
         "a=x/y/z"
     };

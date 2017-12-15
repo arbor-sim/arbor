@@ -26,11 +26,13 @@ void CExprEmitter::visit(UnaryExpression* e) {
     // Place a space in front of minus sign to avoid invalid
     // expressions of the form: (v[i]--67)
     static std::unordered_map<tok, const char*> unaryop_tbl = {
-        {tok::minus, " -"},
-        {tok::exp,   "exp"},
-        {tok::cos,   "cos"},
-        {tok::sin,   "sin"},
-        {tok::log,   "log"}
+        {tok::minus,   " -"},
+        {tok::exp,     "exp"},
+        {tok::cos,     "cos"},
+        {tok::sin,     "sin"},
+        {tok::log,     "log"},
+        {tok::abs,     "fabs"},
+        {tok::exprelr, "exprelr"}
     };
 
     if (!unaryop_tbl.count(e->op())) {

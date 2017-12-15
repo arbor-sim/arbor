@@ -39,3 +39,10 @@ inline float cuda_atomic_sub(float* address, float val) {
     return atomicAdd(address, -val);
 }
 
+__device__
+inline double exprelr(double x) {
+    if (1.0+x == 1.0) {
+        return 1.0;
+    }
+    return x/expm1(x);
+}

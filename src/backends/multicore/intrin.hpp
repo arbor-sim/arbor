@@ -7,6 +7,8 @@
 #pragma once
 
 #include <iostream>
+#include <limits>
+
 #include <immintrin.h>
 
 namespace arb {
@@ -70,6 +72,7 @@ static __m256d arb_mm256_exp_pd(__m256d x) __attribute__ ((unused));
 static __m256d arb_mm256_subnormal_pd(__m256d x) __attribute__ ((unused));
 static __m256d arb_mm256_frexp_pd(__m256d x, __m128i *e) __attribute__ ((unused));
 static __m256d arb_mm256_log_pd(__m256d x) __attribute__ ((unused));
+static __m256d arb_mm256_abs_pd(__m256d x) __attribute__ ((unused));
 static __m256d arb_mm256_pow_pd(__m256d x, __m256d y) __attribute__ ((unused));
 
 void arb_mm256_print_pd(__m256d x, const char *name) {
@@ -101,6 +104,53 @@ void arb_mm256_print_epi64x(__m256i x, const char *name) {
 
     std::cout << "}\n";
 }
+
+//
+// Calculates absolute value using AVX2 instructions
+//
+//  Calculated as follows:
+//     abs(x) = max(x, 0-x)
+//
+//  Other approaches that use a bitwise mask might be more efficient, but using
+//  max gives a simple one liner.
+inline
+__m256d arb_mm256_abs_pd(__m256d x) {
+    return _mm256_max_pd(x, _mm256_sub_pd(_mm256_set1_pd(0.), x));
+}
+
+/*
+__m512d arb_mm512_abs_pd(__m512d x) {
+    return _mm512_max_pd(x, _mm512_sub_pd(_mm512_set1_pd(0.), x));
+}
+*/
+
+//
+// Calculates exprelr value using AVX2 instructions
+//
+//  Calculated as follows:
+//     exprelr(x) = x / (exp(x)-1) = x / expm1(x)
+//
+// TODO: currently calculates exp(x)-1 for the denominator, which will not be
+//       accurate for x≈0. A vectorized implementation of expm1(x) would fix this.
+//       An example of such an implementation is in Cephes.
+inline
+__m256d arb_mm256_exprelr_pd(__m256d x) {
+    const auto ones = _mm256_set1_pd(1);
+    return _mm256_blendv_pd(
+            _mm256_div_pd(x, _mm256_sub_pd(arb_mm256_exp_pd(x), ones)), // x / (exp(x)-1)
+            ones,                                                       // 1
+            _mm256_cmp_pd(ones, _mm256_add_pd(x, ones), 0));            // 1+x == 1
+}
+
+#ifdef INTEL
+__m512d arb_mm512_exprelr_pd(__m512d x) {
+    const auto ones = _mm512_set1_pd(1);
+    return _mm512_blendv_pd(
+            _mm512_div_pd(x, _mm512_sub_pd(_mm512_exp_pd(x), ones)),    // x / (exp(x)-1)
+            ones,                                                       // 1
+            _mm512_cmp_pd(ones, _mm512_add_pd(x, ones), 0));            // 1+x == 1
+}
+#endif
 
 //
 // Calculates exponential using AVX2 instructions

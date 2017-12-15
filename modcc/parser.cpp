@@ -1192,10 +1192,12 @@ expression_ptr Parser::parse_unaryop() {
             e = parse_unaryop(); // handle recursive unary
             if(!e) return nullptr;
             return unary_expression(token_.location, op.type, std::move(e));
-        case tok::exp   :
-        case tok::sin   :
-        case tok::cos   :
-        case tok::log   :
+        case tok::exp    :
+        case tok::sin    :
+        case tok::cos    :
+        case tok::log    :
+        case tok::abs    :
+        case tok::exprelr:
             get_token();        // consume operator (exp, sin, cos or log)
             if(token_.type!=tok::lparen) {
                 error(  "missing parenthesis after call to "

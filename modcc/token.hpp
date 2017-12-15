@@ -63,7 +63,8 @@ enum class tok {
     point_process,
 
     // unary operators
-    exp, sin, cos, log,
+    exp, sin, cos, log, abs,
+    exprelr, // equivalent to x/(exp(x)-1) with exprelr(0)=1
 
     // logical keywords
     if_stmt, else_stmt, // add _stmt to avoid clash with c++ keywords

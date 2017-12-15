@@ -41,6 +41,8 @@ class ExpUnaryExpression;
 class LogUnaryExpression;
 class CosUnaryExpression;
 class SinUnaryExpression;
+class AbsUnaryExpression;
+class ExprelrUnaryExpression;
 class BinaryExpression;
 class AssignmentExpression;
 class ReactionExpression;
@@ -1238,6 +1240,27 @@ class LogUnaryExpression : public UnaryExpression {
 public:
     LogUnaryExpression(Location loc, expression_ptr e)
     :   UnaryExpression(loc, tok::log, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// absolute value unary expression, i.e. abs(x)
+class AbsUnaryExpression : public UnaryExpression {
+public:
+    AbsUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::abs, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// exprel reciprocal unary expression,
+// i.e. x/(exp(x)-1)=x/expm1(x) with exprelr(0)=1
+class ExprelrUnaryExpression : public UnaryExpression {
+public:
+    ExprelrUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::exprelr, std::move(e))
     {}
 
     void accept(Visitor *v) override;

@@ -39,6 +39,7 @@ std::string CPrinter::emit_source() {
 
     text_.add_line("namespace arb { namespace multicore {");
     text_.add_line();
+    text_.add_line("using math::exprelr;");
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
     text_.add_line("public:");
@@ -462,6 +463,7 @@ void CPrinter::emit_headers() {
     text_.add_line("#include <cmath>");
     text_.add_line("#include <limits>");
     text_.add_line();
+    text_.add_line("#include <math.hpp>");
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
     text_.add_line("#include <backends/event.hpp>");

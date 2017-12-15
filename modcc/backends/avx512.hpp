@@ -53,7 +53,7 @@ struct simd_intrinsics<simdKind::avx512> {
             tb << "_mm512_div_pd(";
             break;
         default:
-            throw std::invalid_argument("Unknown binary operator");
+            throw std::invalid_argument("Unable to generate avx512 for binary operator " + token_map[op]);
         }
 
         emit_operands(tb, arg_emitter(arg1), arg_emitter(arg2));
@@ -72,8 +72,14 @@ struct simd_intrinsics<simdKind::avx512> {
         case tok::log:
             tb << "_mm512_log_pd(";
             break;
+        case tok::abs:
+            tb << "arb::multicore::arb_mm512_abs_pd(";
+            break;
+        case tok::exprelr:
+            tb << "arb::multicore::arb_mm512_exprelr_pd(";
+            break;
         default:
-            throw std::invalid_argument("Unknown unary operator");
+            throw std::invalid_argument("Unable to generate avx512 for unary operator " + token_map[op]);
         }
 
         emit_operands(tb, arg_emitter(arg));

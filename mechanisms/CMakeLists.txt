@@ -2,6 +2,9 @@ include(BuildModules.cmake)
 
 # the list of built-in mechanisms to be provided by default
 set(mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
+#list(APPEND mechanisms nax)
+#list(APPEND mechanisms kdrmt)
+#list(APPEND mechanisms kamt)
 
 set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 

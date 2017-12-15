@@ -285,3 +285,16 @@ TEST(quaternion, rotate) {
     EXPECT_NEAR(q.x/2.+q.y*sqrt3o2, r.y, eps);
     EXPECT_NEAR(q.z, r.z, eps);
 }
+
+TEST(math, exprelr) {
+    constexpr double dmin = std::numeric_limits<double>::min();
+    constexpr double dmax = std::numeric_limits<double>::max();
+    constexpr double deps = std::numeric_limits<double>::epsilon();
+    double inputs[] = {-1.,  -0.,  0.,  1., -dmax,  -dmin,  dmin,  dmax, -deps, deps, 10*deps, 100*deps, 1000*deps};
+
+    for (auto x: inputs) {
+        if (std::fabs(x)<deps) EXPECT_EQ(1.0, exprelr(x));
+        else                   EXPECT_EQ(x/std::expm1(x), exprelr(x));
+    }
+}
+

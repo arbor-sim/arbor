@@ -42,7 +42,8 @@ TEST(scalar_printer, statement) {
         {"z=(a*b)/c",        "z=a*b/c"},
         {"z=a-(b+c)",        "z=a-(b+c)"},
         {"z=(a>0)<(b>0)",    "z=a>0<(b>0)"},
-        {"z=a- -2",          "z=a- -2"}
+        {"z=a- -2",          "z=a- -2"},
+        {"z=abs(x-z)",       "z=fabs(x-z)"}
     };
 
     // create a scope that contains the symbols used in the tests

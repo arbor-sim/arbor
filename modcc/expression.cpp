@@ -933,6 +933,12 @@ void ExpUnaryExpression::accept(Visitor *v) {
 void LogUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void AbsUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void ExprelrUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void CosUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -995,6 +1001,10 @@ expression_ptr unary_expression( Location loc,
             return make_expression<SinUnaryExpression>(loc, std::move(e));
         case tok::log :
             return make_expression<LogUnaryExpression>(loc, std::move(e));
+        case tok::abs :
+            return make_expression<AbsUnaryExpression>(loc, std::move(e));
+        case tok::exprelr :
+            return make_expression<ExprelrUnaryExpression>(loc, std::move(e));
        default :
             std::cerr << yellow(token_string(op))
                       << " is not a valid unary operator"
