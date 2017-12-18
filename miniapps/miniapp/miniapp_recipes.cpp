@@ -91,7 +91,7 @@ public:
         // or a spikes from file.
         if (i == ncell_) {
             if (param_.input_spike_path) {
-                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.get());
+                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.value());
                 return util::unique_any(dss_cell_description(spike_times));
             }
 

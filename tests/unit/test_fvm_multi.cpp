@@ -57,7 +57,7 @@ TEST(fvm_multi, init)
     const auto m = cell.model();
     EXPECT_EQ(m.tree.num_segments(), 2u);
 
-    auto& soma_hh = (cell.soma()->mechanism("hh")).get();
+    auto& soma_hh = (cell.soma()->mechanism("hh")).value();
 
     soma_hh.set("gnabar", 0.12);
     soma_hh.set("gkbar", 0.036);
@@ -200,7 +200,7 @@ TEST(fvm_multi, stimulus)
     auto ref = fvcell.find_mechanism("stimulus");
     ASSERT_TRUE(ref) << "no stimuli retrieved from lowered fvm cell: expected 2";
 
-    auto& stims = ref.get();
+    auto& stims = ref.value();
     EXPECT_EQ(stims->size(), 2u);
 
     auto I = fvcell.current();

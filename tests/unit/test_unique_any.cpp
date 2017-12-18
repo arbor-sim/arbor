@@ -1,13 +1,14 @@
-#include "../gtest.h"
-#include "common.hpp"
-
 #include <iostream>
 
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
 
+#include "../gtest.h"
+#include "common.hpp"
+
 using namespace arb;
+using namespace testing::string_literals;
 
 TEST(unique_any, copy_construction) {
     using util::unique_any;
@@ -24,7 +25,6 @@ TEST(unique_any, copy_construction) {
 }
 
 namespace {
-
     struct moveable {
         moveable() = default;
 
@@ -39,7 +39,6 @@ namespace {
         int moves=0;
         int copies=0;
     };
-
 }
 
 TEST(unique_any, move_construction) {

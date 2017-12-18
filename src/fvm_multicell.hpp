@@ -257,7 +257,7 @@ public:
         auto it = std::find_if(
             std::begin(mechanisms_), std::end(mechanisms_),
             [&name](const mechanism_ptr& m) {return m->name()==name;});
-        return it==mechanisms_.end() ? util::nothing: util::just(*it);
+        return it==mechanisms_.end() ? util::nullopt: util::just(*it);
     }
 
     //

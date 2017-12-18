@@ -119,7 +119,7 @@ util::optional<trace_peak> peak_delta(const trace_data<double>& a, const trace_d
     auto p = local_maxima(a);
     auto q = local_maxima(b);
 
-    if (p.size()!=q.size() || p.empty()) return util::nothing;
+    if (p.size()!=q.size() || p.empty()) return util::nullopt;
 
     auto max_delta = p[0]-q[0];
 
