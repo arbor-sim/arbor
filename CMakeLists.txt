@@ -29,6 +29,16 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 #----------------------------------------------------------
 # Option to enable assertions
 #----------------------------------------------------------
+option(ARB_WITH_PYTHON "enable python bindings" OFF)
+option(BUILD_SHARED_LIBS "enable shared library" OFF)
+if(ARB_WITH_PYTHON)
+  add_definitions("-DARB_HAVE_PYTHON")
+  set(BUILD_SHARED_LIBS ON)
+endif()
+
+#----------------------------------------------------------
+# Option to enable assertions
+#----------------------------------------------------------
 option(ARB_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
 if(ARB_WITH_ASSERTIONS)
     add_definitions("-DARB_HAVE_ASSERTIONS")
@@ -266,12 +276,16 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/tclap"
     "${PROJECT_SOURCE_DIR}/include"
     "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/miniapp"
+    "${PROJECT_SOURCE_DIR}/miniapps"
     "${PROJECT_SOURCE_DIR}/modcc"
     "${PROJECT_SOURCE_DIR}")
 if(EXTERNAL_INCLUDES)
   include_directories("${EXTERNAL_INCLUDES}")
 endif()
+if(ARB_WITH_PYTHON)
+  include_directories("${PROJECT_SOURCE_DIR}/python")
+endif()
+
 
 #----------------------------------------------------------
 # Setup subdirs
@@ -290,5 +304,8 @@ add_subdirectory(src)
 add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
 add_subdirectory(miniapps)
+if(ARB_WITH_PYTHON)
+  add_subdirectory(python)
+endif()
 add_subdirectory(lmorpho)
 add_subdirectory(doc)
