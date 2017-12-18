@@ -4,7 +4,7 @@
  *
  * Difference from C++17 std::optional:
  *
- * Missing functionality (to be added as required) :
+ * Missing functionality (to be added as required):
  *
  *   1. `constexpr` constructors.
  *
@@ -33,7 +33,7 @@
  *   3. `util::just`
  *
  *      This function acts like the value-constructing `std::make_optional<T>(T&&)`,
- *      except that it will to an optional<T&> if given an lvalue T as an argument.
+ *      except that it will return an optional<T&> if given an lvalue T as an argument.
  */
 
 #include <type_traits>
