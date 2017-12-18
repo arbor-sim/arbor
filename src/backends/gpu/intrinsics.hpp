@@ -46,3 +46,17 @@ inline double exprelr(double x) {
     }
     return x/expm1(x);
 }
+
+// Return minimum of the two values
+template <typename T>
+__device__
+inline T min(T lhs, T rhs) {
+    return rhs<lhs? rhs: lhs;
+}
+
+// Return maximum of the two values
+template <typename T>
+__device__
+inline T max(T lhs, T rhs) {
+    return lhs<rhs? lhs: rhs;
+}

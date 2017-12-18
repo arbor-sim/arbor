@@ -57,6 +57,12 @@ struct simd_intrinsics<simdKind::avx2> {
         case tok::divide:
             tb << "_mm256_div_pd(";
             break;
+        case tok::max:
+            tb << "_mm256_max_pd(";
+            break;
+        case tok::min:
+            tb << "arb::multicore::arb_mm256_min_pd(";
+            break;
         default:
             throw std::invalid_argument("Unable to generate avx2 for binary operator " + token_map[op]);
         }

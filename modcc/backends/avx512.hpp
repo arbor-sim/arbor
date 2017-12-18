@@ -52,6 +52,12 @@ struct simd_intrinsics<simdKind::avx512> {
         case tok::divide:
             tb << "_mm512_div_pd(";
             break;
+        case tok::max:
+            tb << "_mm512_max_pd(";
+            break;
+        case tok::min:
+            tb << "arb::multicore::arb_mm512_min_pd(";
+            break;
         default:
             throw std::invalid_argument("Unable to generate avx512 for binary operator " + token_map[op]);
         }

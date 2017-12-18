@@ -118,11 +118,11 @@ __m256d arb_mm256_abs_pd(__m256d x) {
     return _mm256_max_pd(x, _mm256_sub_pd(_mm256_set1_pd(0.), x));
 }
 
-/*
-__m512d arb_mm512_abs_pd(__m512d x) {
-    return _mm512_max_pd(x, _mm512_sub_pd(_mm512_set1_pd(0.), x));
+inline
+__m256d arb_mm256_min_pd(__m256d x, __m256d y) {
+    // substitute values in x with values from y where x>y
+    return _mm256_blendv_pd(x, y, _mm256_cmp_pd(x, y, 30)); // 30 -> _CMP_GT_OQ
 }
-*/
 
 //
 // Calculates exprelr value using AVX2 instructions
@@ -141,16 +141,6 @@ __m256d arb_mm256_exprelr_pd(__m256d x) {
             ones,                                                       // 1
             _mm256_cmp_pd(ones, _mm256_add_pd(x, ones), 0));            // 1+x == 1
 }
-
-#ifdef INTEL
-__m512d arb_mm512_exprelr_pd(__m512d x) {
-    const auto ones = _mm512_set1_pd(1);
-    return _mm512_blendv_pd(
-            _mm512_div_pd(x, _mm512_sub_pd(_mm512_exp_pd(x), ones)),    // x / (exp(x)-1)
-            ones,                                                       // 1
-            _mm512_cmp_pd(ones, _mm512_add_pd(x, ones), 0));            // 1+x == 1
-}
-#endif
 
 //
 // Calculates exponential using AVX2 instructions
@@ -451,6 +441,31 @@ __m256d arb_mm256_log_pd(__m256d x) {
 __m256d arb_mm256_pow_pd(__m256d x, __m256d y) {
     return arb_mm256_exp_pd(_mm256_mul_pd(y, arb_mm256_log_pd(x)));
 }
+
+#if defined(VEC_ARC_KNL) || defined(VEC_ARCH_AVX512)
+inline
+__m512d arb_mm512_abs_pd(__m512d x) {
+    return _mm512_max_pd(x, _mm512_sub_pd(_mm512_set1_pd(0.), x));
+}
+
+inline
+__m512d arb_mm512_min_pd(__m512d x, __m512d y) {
+    // substitute values in x with values from y where x>y
+    return _mm512_blendv_pd_mask(x, y, _mm512_cmp_pd_mask(x, y, 30)); // 30 -> _CMP_GT_OQ
+}
+
+inline
+__m512d arb_mm512_exprelr_pd(__m512d x) {
+    const auto ones = _mm512_set1_pd(1);
+    // Assume that we are using the Intel compiler, and use the vectorized expm1
+    // defined in the Intel SVML library.
+    return _mm512_blendv_pd_mask(
+            _mm512_div_pd(x, _mm512_expm1_pd(x)),                       // x / (exp(x)-1)
+            ones,                                                       // 1
+            _mm512_cmp_pd_mask(ones, _mm512_add_pd(x, ones), 0));            // 1+x == 1
+}
+#endif
+
 
 } // end namespace multicore
 } // end namespace arb

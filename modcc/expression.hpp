@@ -1308,6 +1308,7 @@ public:
     {}
 
     tok op() const {return op_;}
+    virtual bool is_infix() const {return true;}
     Expression* lhs() {return lhs_.get();}
     Expression* rhs() {return rhs_.get();}
     const Expression* lhs() const {return lhs_.get();}
@@ -1380,6 +1381,30 @@ public:
     DivBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::divide, std::move(lhs), std::move(rhs))
     {}
+
+    void accept(Visitor *v) override;
+};
+
+class MinBinaryExpression : public BinaryExpression {
+public:
+    MinBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+    :   BinaryExpression(loc, tok::min, std::move(lhs), std::move(rhs))
+    {}
+
+    // min is a prefix binop
+    bool is_infix() const override {return false;}
+
+    void accept(Visitor *v) override;
+};
+
+class MaxBinaryExpression : public BinaryExpression {
+public:
+    MaxBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+    :   BinaryExpression(loc, tok::max, std::move(lhs), std::move(rhs))
+    {}
+
+    // max is a prefix binop
+    bool is_infix() const override {return false;}
 
     void accept(Visitor *v) override;
 };

@@ -55,7 +55,7 @@ INITIAL {
 
 DERIVATIVE states {
     rates(v)
-    m' =  (minf-m)/mtau
+    m' = (minf-m)/mtau
     h' = (hinf-h)/htau
     n' = (ninf-n)/ntau
 }

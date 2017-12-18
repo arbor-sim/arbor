@@ -40,6 +40,9 @@ std::string CPrinter::emit_source() {
     text_.add_line("namespace arb { namespace multicore {");
     text_.add_line();
     text_.add_line("using math::exprelr;");
+    text_.add_line("using math::min;");
+    text_.add_line("using math::max;");
+    text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
     text_.add_line("public:");

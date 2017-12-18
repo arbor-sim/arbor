@@ -80,11 +80,22 @@ int signum(T x) {
     return (x>T(0)) - (x<T(0));
 }
 
+// Return minimum of the two values
+// Note: returns first argument in case of equality
+template <typename T>
+T min(const T& lhs, const T& rhs) {
+    return rhs<lhs? rhs: lhs;
+}
+
+// Return maximum of the two values
+// Note: returns second argument in case of equality
+template <typename T>
+T max(const T& lhs, const T& rhs) {
+    return lhs<rhs? lhs: rhs;
+}
+
 // Value of x/(exp(x)-1) with care taken to handle x=0 case
 template <typename T>
-#ifdef __CUDACC__
-__host__ __device__
-#endif
 inline
 T exprelr(T x) {
     // If abs(x) is less than epsilon return 1, else calculate the result directly.

@@ -12,6 +12,9 @@ enum class tok {
     /////////////////////////////
     // symbols
     /////////////////////////////
+
+    // infix binary ops
+
     // = + - * / ^
     eq, plus, minus, times, divide, pow,
     // comparison
@@ -61,6 +64,9 @@ enum class tok {
     solve, method,
     threadsafe, global,
     point_process,
+
+    // prefix binary operators
+    min, max,
 
     // unary operators
     exp, sin, cos, log, abs,

@@ -9,6 +9,9 @@
 
 using namespace arb::multicore;
 
+using arb::util::make_span;
+using arb::util::size;
+
 constexpr double dqnan = std::numeric_limits<double>::quiet_NaN();
 constexpr double dmax = std::numeric_limits<double>::max();
 constexpr double dmin = std::numeric_limits<double>::min();
@@ -74,6 +77,22 @@ TEST(intrin, abs256) {
     }
 }
 
+TEST(intrin, min256) {
+    constexpr size_t simd_len = 4;
+
+    __m256d lhs = _mm256_set_pd(-2,  2,  -dinf,  dinf);
+    __m256d rhs = _mm256_set_pd(2,  -2,  42, 1);
+
+    auto mi = arb_mm256_min_pd(lhs, rhs);
+
+    double* lp  = (double*) &lhs;
+    double* rp  = (double*) &rhs;
+    double* mip = (double*) &mi;
+    for (size_t j = 0; j < simd_len; ++j) {
+        EXPECT_DOUBLE_EQ(std::min(lp[j], rp[j]), mip[j]);
+    }
+}
+
 TEST(intrin, exprelr256) {
     constexpr size_t simd_len = 4;
 
@@ -87,7 +106,7 @@ TEST(intrin, exprelr256) {
         //_mm256_set_pd(-deps, deps, 10*deps,  100*deps),
     };
 
-    for (auto i: arb::util::make_span(0, arb::util::size(vvalues))) {
+    for (auto i: make_span(0, size(vvalues))) {
         auto x = arb_mm256_exprelr_pd(vvalues[i]);
         double* in  = (double*) &(vvalues[i]);
         double* out = (double*) &x;
