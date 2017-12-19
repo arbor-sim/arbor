@@ -59,7 +59,7 @@ constexpr double dsqrth = 0.70710678118654752440;
 
 #include "intrin_avx2.hpp"
 
-#if defined(VEC_ARC_KNL) || defined(VEC_ARCH_AVX512)
+#if defined(SIMD_KNL) || defined(SIMD_AVX512)
 #include "intrin_avx512.hpp"
 #endif
 
