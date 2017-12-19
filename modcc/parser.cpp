@@ -1257,6 +1257,7 @@ expression_ptr Parser::parse_primary() {
                 get_token(); // consume ,
 
                 auto rhs = parse_expression();
+                if (!rhs) return nullptr;
                 if (token_.type!=tok::rparen) {
                     error("expected closing parenthesis ')'");
                     return nullptr;
