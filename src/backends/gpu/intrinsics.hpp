@@ -51,12 +51,12 @@ inline double exprelr(double x) {
 template <typename T>
 __device__
 inline T min(T lhs, T rhs) {
-    return rhs<lhs? rhs: lhs;
+    return lhs<rhs? lhs: rhs;
 }
 
 // Return maximum of the two values
 template <typename T>
 __device__
 inline T max(T lhs, T rhs) {
-    return lhs<rhs? lhs: rhs;
+    return lhs<rhs? rhs: lhs;
 }

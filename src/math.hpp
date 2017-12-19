@@ -81,17 +81,15 @@ int signum(T x) {
 }
 
 // Return minimum of the two values
-// Note: returns first argument in case of equality
 template <typename T>
 T min(const T& lhs, const T& rhs) {
-    return rhs<lhs? rhs: lhs;
+    return lhs<rhs? lhs: rhs;
 }
 
 // Return maximum of the two values
-// Note: returns second argument in case of equality
 template <typename T>
 T max(const T& lhs, const T& rhs) {
-    return lhs<rhs? lhs: rhs;
+    return lhs<rhs? rhs: lhs;
 }
 
 // Value of x/(exp(x)-1) with care taken to handle x=0 case

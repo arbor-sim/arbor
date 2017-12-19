@@ -298,3 +298,31 @@ TEST(math, exprelr) {
     }
 }
 
+TEST(math, minmax) {
+    constexpr double inf = std::numeric_limits<double>::infinity();
+
+    struct X {
+        double lhs;
+        double rhs;
+        double expected_min;
+        double expected_max;
+    };
+
+    std::vector<X> inputs = {
+        {  0,    1,    0,   1},
+        { -1,    1,   -1,   1},
+        { 42,   42,   42,  42},
+        {inf, -inf, -inf, inf},
+        {  0,  inf,    0, inf},
+        {  0, -inf, -inf,   0},
+    };
+
+    for (auto x: inputs) {
+        // Call min and max with arguments in both possible orders.
+        EXPECT_EQ(min(x.lhs, x.rhs), x.expected_min);
+        EXPECT_EQ(min(x.rhs, x.lhs), x.expected_min);
+        EXPECT_EQ(max(x.lhs, x.rhs), x.expected_max);
+        EXPECT_EQ(max(x.rhs, x.lhs), x.expected_max);
+    }
+}
+
