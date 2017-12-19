@@ -243,7 +243,7 @@ void model::set_local_spike_callback(spike_export_function export_callback) {
 util::optional<cell_size_type> model::local_cell_index(cell_gid_type gid) {
     auto it = gid_to_local_.find(gid);
     return it==gid_to_local_.end()?
-        util::nothing:
+        util::nullopt:
         util::optional<cell_size_type>(it->second);
 }
 

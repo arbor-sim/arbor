@@ -54,7 +54,7 @@ std::vector<int> get_affinity() {
 util::optional<std::size_t> num_cores() {
     auto cores = get_affinity();
     if (cores.size()==0u) {
-        return util::nothing;
+        return util::nullopt;
     }
     return cores.size();
 }

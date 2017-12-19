@@ -367,7 +367,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("};");
     text_.add_line();
     text_.add_line("auto* info = util::table_lookup(field_tbl, id);");
-    text_.add_line("return info? util::just(*info): util::nothing;");
+    text_.add_line("return info? util::just(*info): util::nullopt;");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
