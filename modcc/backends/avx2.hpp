@@ -21,12 +21,18 @@ struct simd_intrinsics<simdKind::avx2> {
     }
 
     static std::string emit_headers() {
+        /*
         std::string ret = "#include <immintrin.h>";
+        ret += "\n#include <backends/multicore/intrin.hpp>";
         if (!compat::using_intel_compiler()) {
             ret += "\n#include <backends/multicore/intrin.hpp>";
         }
-
         return ret;
+        */
+
+        return
+            "#include <immintrin.h>\n"
+            "#include <backends/multicore/intrin.hpp>";
     }
 
     static std::string emit_simd_width() {
