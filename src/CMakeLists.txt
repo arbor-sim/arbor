@@ -9,6 +9,7 @@ set(BASE_SOURCES
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
+    merge_events.cpp
     model.cpp
     morphology.cpp
     partition_load_balance.cpp

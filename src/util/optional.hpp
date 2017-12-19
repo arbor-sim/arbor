@@ -1,18 +1,39 @@
 #pragma once
 
-/* An option class with a monadic interface.
+/* An option class supporting a subset of C++17 std::optional functionality.
  *
- * The std::option<T> class was proposed for inclusion into C++14, but was
- * ultimately rejected. (See N3672 proposal for details.) This class offers
- * similar functionality, namely a class that can represent a value (or
- * reference), or nothing at all.
+ * Difference from C++17 std::optional:
  *
- * In addition, this class offers monadic and monoidal bindings, allowing
- * the chaining of operations any one of which might represent failure with
- * an unset optional value.
+ * Missing functionality (to be added as required):
  *
- * One point of difference between the proposal N3672 and this implementation
- * is the lack of constexpr versions of the methods and constructors.
+ *   1. `constexpr` constructors.
+ *
+ *   2. Comparison operators other than `operator==`.
+ *
+ *   3. `std::hash` overload.
+ *
+ *   4. `swap()` method and ADL-available `swap()` function.
+ *
+ *   5. In-place construction with `std::in_place_t` tags or equivalent.
+ *
+ *   5. No `make_optional` function (but see `just` below).
+ *
+ * Additional/differing functionality:
+ *
+ *   1. Optional references.
+ *
+ *      `util::optional<T&>` acts as a value-like wrapper about a possible
+ *      reference of type T&. Methods such as `value()` or `value_or()`
+ *      return this reference.
+ *
+ *   2. Optional void.
+ *
+ *      Included primarily for ease of generic programming with `optional`.
+ *
+ *   3. `util::just`
+ *
+ *      This function acts like the value-constructing `std::make_optional<T>(T&&)`,
+ *      except that it will return an optional<T&> if given an lvalue T as an argument.
  */
 
 #include <type_traits>
@@ -37,8 +58,8 @@ struct optional_unset_error: std::runtime_error {
     {}
 };
 
-struct nothing_t {};
-constexpr nothing_t nothing{};
+struct nullopt_t {};
+constexpr nullopt_t nullopt{};
 
 namespace detail {
     template <typename Y>
@@ -83,6 +104,8 @@ namespace detail {
 
     protected:
         using data_type = util::uninitialized<X>;
+        using rvalue_reference = typename data_type::rvalue_reference;
+        using const_rvalue_reference = typename data_type::const_rvalue_reference;
 
     public:
         using reference = typename data_type::reference;
@@ -106,6 +129,12 @@ namespace detail {
         reference       ref()       { return data.ref(); }
         const_reference ref() const { return data.cref(); }
 
+        void assert_set() const {
+            if (!set) {
+                throw optional_unset_error();
+            }
+        }
+
     public:
         ~optional_base() {
             if (set) {
@@ -118,20 +147,6 @@ namespace detail {
 
         reference operator*() { return ref(); }
         const_reference operator*() const { return ref(); }
-
-        reference get() {
-            if (!set) {
-                throw optional_unset_error();
-            }
-            return ref();
-        }
-
-        const_reference get() const {
-            if (!set) {
-                throw optional_unset_error();
-            }
-            return ref();
-        }
 
         explicit operator bool() const { return set; }
 
@@ -151,60 +166,6 @@ namespace detail {
             }
             set = false;
         }
-
-        template <typename F>
-        auto bind(F&& f) -> lift_type_t<decltype(data.apply(std::forward<F>(f)))> {
-            using F_result_type = decltype(data.apply(std::forward<F>(f)));
-            using result_type = lift_type_t<F_result_type>;
-
-            if (!set) {
-                return result_type();
-            }
-
-            return bind_impl<result_type, std::is_void<F_result_type>::value>::
-                       bind(data, std::forward<F>(f));
-        }
-
-        template <typename F>
-        auto bind(F&& f) const -> lift_type_t<decltype(data.apply(std::forward<F>(f)))> {
-            using F_result_type = decltype(data.apply(std::forward<F>(f)));
-            using result_type = lift_type_t<F_result_type>;
-
-            if (!set) {
-                return result_type();
-            }
-
-            return bind_impl<result_type, std::is_void<F_result_type>::value>::
-                       bind(data, std::forward<F>(f));
-        }
-
-        template <typename F>
-        auto operator>>(F&& f) -> decltype(this->bind(std::forward<F>(f))) {
-            return bind(std::forward<F>(f));
-        }
-
-        template <typename F>
-        auto operator>>(F&& f) const -> decltype(this->bind(std::forward<F>(f))) {
-            return bind(std::forward<F>(f));
-        }
-
-    private:
-        template <typename R, bool F_void_return>
-        struct bind_impl {
-            template <typename DT, typename F>
-            static R bind(DT& d, F&& f) {
-                return R(d.apply(std::forward<F>(f)));
-            }
-        };
-
-        template <typename R>
-        struct bind_impl<R, true> {
-            template <typename DT, typename F>
-            static R bind(DT& d, F&& f) {
-                d.apply(std::forward<F>(f));
-                return R(true);
-            }
-        };
     };
 
     // type utilities
@@ -227,9 +188,10 @@ struct optional: detail::optional_base<X> {
     using base::ref;
     using base::reset;
     using base::data;
+    using base::assert_set;
 
     optional() noexcept: base() {}
-    optional(nothing_t) noexcept: base() {}
+    optional(nullopt_t) noexcept: base() {}
 
     optional(const X& x)
         noexcept(std::is_nothrow_copy_constructible<X>::value): base(true, x) {}
@@ -250,7 +212,7 @@ struct optional: detail::optional_base<X> {
     optional(optional<T>&& ot)
         noexcept(std::is_nothrow_constructible<X, T&&>::value): base(ot.set, std::move(ot.ref())) {}
 
-    optional& operator=(nothing_t) {
+    optional& operator=(nullopt_t) {
         reset();
         return *this;
     }
@@ -310,6 +272,32 @@ struct optional: detail::optional_base<X> {
         }
         return *this;
     }
+
+    X& value() & {
+        return assert_set(), ref();
+    }
+
+    const X& value() const& {
+        return assert_set(), ref();
+    }
+
+    X&& value() && {
+        return assert_set(), std::move(ref());
+    }
+
+    const X&& value() const&& {
+        return assert_set(), std::move(ref());
+    }
+
+    template <typename T>
+    X value_or(T&& alternative) const& {
+        return set? value(): static_cast<X>(std::forward<T>(alternative));
+    }
+
+    template <typename T>
+    X value_or(T&& alternative) && {
+        return set? std::move(value()): static_cast<X>(std::forward<T>(alternative));
+    }
 };
 
 template <typename X>
@@ -319,15 +307,16 @@ struct optional<X&>: detail::optional_base<X&> {
     using base::ref;
     using base::data;
     using base::reset;
+    using base::assert_set;
 
     optional() noexcept: base() {}
-    optional(nothing_t) noexcept: base() {}
+    optional(nullopt_t) noexcept: base() {}
     optional(X& x) noexcept: base(true, x) {}
 
     template <typename T>
     optional(optional<T&>& ot) noexcept: base(ot.set, ot.ref()) {}
 
-    optional& operator=(nothing_t) {
+    optional& operator=(nullopt_t) {
         reset();
         return *this;
     }
@@ -343,24 +332,39 @@ struct optional<X&>: detail::optional_base<X&> {
     optional& operator=(optional<Y&>& o) {
         set = o.set;
         if (o.set) {
-           data.construct(o.get());
+           data.construct(o.value());
         }
         return *this;
     }
+
+    X& value() {
+        return assert_set(), ref();
+    }
+
+    const X& value() const {
+        return assert_set(), ref();
+    }
+
+    template <typename T>
+    X& value_or(T& alternative) {
+        return set? ref(): static_cast<X&>(alternative);
+    }
+
+    template <typename T>
+    const X& value_or(const T& alternative) const {
+        return set? ref(): static_cast<const X&>(alternative);
+    }
 };
-
-
-/* special case for optional<void>, used as e.g. the result of
- * binding to a void function */
 
 template <>
 struct optional<void>: detail::optional_base<void> {
     using base = detail::optional_base<void>;
+    using base::assert_set;
     using base::set;
     using base::reset;
 
     optional(): base() {}
-    optional(nothing_t): base() {}
+    optional(nullopt_t): base() {}
 
     template <typename T>
     optional(T): base(true, true) {}
@@ -368,7 +372,7 @@ struct optional<void>: detail::optional_base<void> {
     template <typename T>
     optional(const optional<T>& o): base(o.set, true) {}
 
-    optional& operator=(nothing_t) {
+    optional& operator=(nullopt_t) {
         reset();
         return *this;
     }
@@ -391,36 +395,12 @@ struct optional<void>: detail::optional_base<void> {
     bool operator==(const optional<void>& o) const {
         return (set && o.set) || (!set && !o.set);
     }
+
+    void value() const { assert_set(); }
+
+    template <typename T>
+    void value_or(T) const {} // nop
 };
-
-
-template <typename A, typename B>
-typename std::enable_if<
-    detail::is_optional<A>::value || detail::is_optional<B>::value,
-    optional<
-        typename std::common_type<
-            detail::wrapped_type_t<A>,
-            detail::wrapped_type_t<B>
-        >::type
-    >
->::type
-operator|(A&& a, B&& b) {
-    return detail::decay_bool(a) ? a : b;
-}
-
-template <typename A, typename B>
-typename std::enable_if<
-    detail::is_optional<A>::value || detail::is_optional<B>::value,
-    optional<detail::wrapped_type_t<B>>
->::type
-operator&(A&& a, B&& b) {
-    using result_type = optional<detail::wrapped_type_t<B>>;
-    return a ? b: result_type();
-}
-
-inline optional<void> provided(bool condition) {
-    return condition ? optional<void>(true) : optional<void>();
-}
 
 template <typename X>
 optional<X> just(X&& x) {

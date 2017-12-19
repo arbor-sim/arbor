@@ -12,13 +12,13 @@ public:
         out_(out), fallback_(fallback)
     {}
 
-    virtual void visit(Expression* e) { e->accept(fallback_); }
+    void visit(Expression* e) override { e->accept(fallback_); }
 
-    virtual void visit(UnaryExpression *e)      override;
-    virtual void visit(BinaryExpression *e)     override;
-    virtual void visit(AssignmentExpression *e) override;
-    virtual void visit(PowBinaryExpression *e)  override;
-    virtual void visit(NumberExpression *e)     override;
+    void visit(UnaryExpression *e)      override;
+    void visit(BinaryExpression *e)     override;
+    void visit(AssignmentExpression *e) override;
+    void visit(PowBinaryExpression *e)  override;
+    void visit(NumberExpression *e)     override;
 
 protected:
     std::ostream& out_;

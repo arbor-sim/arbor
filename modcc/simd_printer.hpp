@@ -16,6 +16,8 @@
 
 template <simdKind Arch>
 class SimdPrinter: public CPrinter {
+    using CPrinter::visit;
+
 public:
     SimdPrinter(): cprinter_(make_unique<CPrinter>())
     {}
@@ -32,8 +34,8 @@ public:
     void visit(UnaryExpression *e) override;
     void visit(BinaryExpression *e) override;
     void visit(PowBinaryExpression *e) override;
-    void visit(ProcedureExpression *e) override;
     void visit(AssignmentExpression *e) override;
+    void visit(ProcedureExpression *e) override;
     void visit(VariableExpression *e) override;
     void visit(LocalVariable *e) override {
         const std::string& name = e->name();

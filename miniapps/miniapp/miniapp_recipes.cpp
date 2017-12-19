@@ -5,6 +5,7 @@
 
 #include <cell.hpp>
 #include <dss_cell_description.hpp>
+#include <event_generator.hpp>
 #include <rss_cell.hpp>
 #include <morphology.hpp>
 #include <util/debug.hpp>
@@ -90,7 +91,7 @@ public:
         // or a spikes from file.
         if (i == ncell_) {
             if (param_.input_spike_path) {
-                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.get());
+                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.value());
                 return util::unique_any(dss_cell_description(spike_times));
             }
 
@@ -173,6 +174,10 @@ public:
             cell_size_type np = pdist_.all_segments? get_morphology(i).components(): 1;
             return np*(pdist_.membrane_voltage+pdist_.membrane_current);
         }
+    }
+
+    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
+        return {};
     }
 
 protected:

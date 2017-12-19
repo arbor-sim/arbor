@@ -73,12 +73,12 @@ public :
     // Return time t of head of queue if `t_until` > `t`.
     util::optional<event_time_type> time_if_before(const event_time_type& t_until) {
         if (queue_.empty()) {
-            return util::nothing;
+            return util::nullopt;
         }
 
         using ::arb::event_time;
         auto t = event_time(queue_.top());
-        return t_until > t? util::just(t): util::nothing;
+        return t_until > t? util::just(t): util::nullopt;
     }
 
     // Generic conditional pop: pop and return head of queue if
@@ -92,7 +92,7 @@ public :
             return ev;
         }
         else {
-            return util::nothing;
+            return util::nullopt;
         }
     }
 
