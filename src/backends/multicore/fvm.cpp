@@ -7,6 +7,9 @@
 #include <mechanisms/multicore/test_kin1_cpu.hpp>
 #include <mechanisms/multicore/test_kinlva_cpu.hpp>
 #include <mechanisms/multicore/test_ca_cpu.hpp>
+#include <mechanisms/multicore/nax_cpu.hpp>
+#include <mechanisms/multicore/kamt_cpu.hpp>
+#include <mechanisms/multicore/kdrmt_cpu.hpp>
 
 namespace arb {
 namespace multicore {
@@ -19,7 +22,10 @@ backend::mech_map_ = {
     { std::string("exp2syn"),   maker<mechanism_exp2syn> },
     { std::string("test_kin1"), maker<mechanism_test_kin1> },
     { std::string("test_kinlva"), maker<mechanism_test_kinlva> },
-    { std::string("test_ca"),   maker<mechanism_test_ca> }
+    { std::string("test_ca"),   maker<mechanism_test_ca> },
+    { std::string("nax"),       maker<mechanism_nax> },
+    { std::string("kamt"),      maker<mechanism_kamt> },
+    { std::string("kdrmt"),     maker<mechanism_kdrmt> },
 };
 
 } // namespace multicore
