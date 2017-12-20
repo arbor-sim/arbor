@@ -19,5 +19,5 @@ endif()
 set_target_properties(
     miniapp.exe
     PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/miniapps/miniapp"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/example"
 )
