@@ -33,6 +33,12 @@ namespace kernels {
         result[i] = max(x[i], y[i]);
     }
 
+    __global__
+    void test_exprelr(double* x, double* result) {
+        const auto i = threadIdx.x;
+        result[i] = exprelr(x[i]);
+    }
+
 }
 
 // test atomic addition wrapper for single and double precision
@@ -124,5 +130,28 @@ TEST(gpu_intrinsics, minmax) {
     cudaDeviceSynchronize();
     for (auto i: make_span(0, n)) {
         EXPECT_EQ(double(result[i]), inputs[i].expected_max);
+    }
+}
+
+TEST(gpu_intrinsics, exprelr) {
+    constexpr double dmin = std::numeric_limits<double>::min();
+    constexpr double dmax = std::numeric_limits<double>::max();
+    constexpr double deps = std::numeric_limits<double>::epsilon();
+    double inputs[] = {-1.,  -0.,  0.,  1., -dmax,  -dmin,  dmin,  dmax, -deps, deps, 10*deps, 100*deps, 1000*deps};
+
+    auto n = arb::util::size(inputs);
+    arb::memory::device_vector<double> x(arb::memory::host_view<double>(inputs, n));
+    arb::memory::device_vector<double> result(n);
+
+    kernels::test_exprelr<<<1,n>>>(x.data(), result.data());
+    cudaDeviceSynchronize();
+
+    auto index = arb::util::make_span(0, n);
+    for (auto i: index) {
+        auto x = inputs[i];
+        double expected = std::fabs(x)<deps? 1.0: x/std::expm1(x);
+        double error = std::fabs(expected-double(result[i]));
+        double relerr = expected==0.? error: error/std::fabs(expected);
+        EXPECT_TRUE(relerr<deps);
     }
 }
