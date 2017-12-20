@@ -39,7 +39,6 @@ public:
 
         // Add and extra rate entry at max long, copy of the last orignal entry
         rates_per_step_.push_back({ -1, rates_per_step_.cend()->second });
-
         reset();
     }
 
@@ -55,31 +54,32 @@ public:
     ///   - reseed rng
     ///   - Interpolate start rate
     void reset() {
-        // Sanity check: we need a rate at the start of the neuron time_
-        if (start_step_ < rates_per_step_.cbegin()->first) {
-            throw std::logic_error("The start time of the neuron is before the first time/rate pair");
+        // Sanity checks
+        if (start_step_ > stop_step_) {
+            throw std::logic_error("The start time is after the end time in the Inhomogeneous Poisson Spike Source.");
         }
 
-        // Internal time of the cell to the zero
-        current_step_ = 0;
+        if (start_step_ < rates_per_step_.cbegin()->first) {
+            throw std::logic_error("The start time of the Inhomogeneous Poisson Spike Source is before the first time/rate pair");
+        }
 
         // set the pointer to the first and second entry in the rates vector
         current_rate_it_ = rates_per_step_.cbegin();
-
-
         next_rates_it_ = current_rate_it_;
         next_rates_it_++;
         update_rates();
+
         // Step through the rate_change vector if begin_step does not fall in the
         // range of the current pointers
-
-
         while (start_step_ >= next_rates_it_->first) {
             // updates the current rates and dt
             current_rate_it_++;
             next_rates_it_++;
             update_rates();
         }
+
+        // Set the internal step counter to the start of the cell
+        current_step_ = start_step_;
 
         // Reset the random number generator!
         generator_.seed(gid_);
@@ -93,24 +93,19 @@ public:
     {
         // Convert the epoch end to step
         unsigned long epoch_end_step = time_to_step_idx(ep.tfinal, sample_delta_);
-        std::cout << "epoch_end_step: " << epoch_end_step  << "\n";
-        // If we have started
-        if (epoch_end_step > start_step_) {
-            current_step_ = epoch_end_step;
+
+        // If the start time of the neuron is after the end of the epoch
+        if (start_step_ > epoch_end_step) {
             return;
         }
 
         auto end_step = std::min(stop_step_, epoch_end_step);
 
-        std::cout << "end_step: " << end_step << "\n";
-
         // epoch is after end of cell
         if (current_step_ >= end_step) {
-            current_step_ = end_step;
             return;
         }
 
-        std::cout << "base: "<< base_rate_ << "," << rate_delta_step_ << "\n";
         // We are in an active epoch, start stepping!
         do {
             // Should we change the rates in the current step?
@@ -120,9 +115,11 @@ public:
                 next_rates_it_++;
                 update_rates();
             }
+
             double spike_rate = base_rate_ + (current_step_ - current_rate_it_->first) * rate_delta_step_ ;
             auto dice_roll = distribution_(generator_);
-            std::cout << spike_rate << "," << spike_rate << "\n";
+            //std::cout << "current_step_: " << current_step_ << ", " << dice_roll
+            //    << "< " << spike_rate << "\n";
             if (dice_roll < spike_rate) {
                 spikes.push_back({ { gid_, 0 }, current_step_ * sample_delta_ });
             }
@@ -150,13 +147,10 @@ private:
     ///   if we have interpolation:
     ///   - Calculate the rate_change per sample step size
     void update_rates() {
-
-
         // First calculate the rate per time step (if we interpolate)
         auto steps_this_rate = next_rates_it_->first - current_rate_it_->first;
         auto rate_delta_this_range = (next_rates_it_->second - current_rate_it_->second);
 
-        std::cout << "steps_this_rate: " << steps_this_rate << "," << rate_delta_this_range << "\n";
         rate_delta_step_ = interpolate_ ? rate_delta_this_range / steps_this_rate : 0.0;
 
         // The base rate is the rate at the 0th step in this range plus
