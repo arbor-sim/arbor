@@ -6,7 +6,7 @@
 
 #include "../gtest.h"
 
-#include <cell_tree.hpp>
+#include <tree.hpp>
 #include <util/debug.hpp>
 
 // Path to data directory can be overriden at compile time.
@@ -17,25 +17,18 @@
 using json = nlohmann::json;
 
 using namespace arb;
-using int_type = cell_tree::int_type;
+using int_type = tree::int_type;
 
 
-TEST(cell_tree, from_parent_index) {
-    auto no_parent = cell_tree::no_parent;
+TEST(tree, from_parent_index) {
+    auto no_parent = tree::no_parent;
 
     // tree with single branch corresponding to the root node
     // this is equivalent to a single compartment model
     //      CASE 1 : single root node in parent_index
     {
         std::vector<int_type> parent_index = {0};
-        cell_tree tree(parent_index);
-        EXPECT_EQ(tree.num_segments(), 1u);
-        EXPECT_EQ(tree.num_children(0), 0u);
-    }
-    //      CASE 2 : empty parent_index
-    {
-        std::vector<int_type> parent_index;
-        cell_tree tree(parent_index);
+        tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 1u);
         EXPECT_EQ(tree.num_children(0), 0u);
     }
@@ -52,7 +45,7 @@ TEST(cell_tree, from_parent_index) {
         //
         std::vector<int_type> parent_index =
             {0, 0, 1, 2, 0, 4};
-        cell_tree tree(parent_index);
+        tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 3u);
         // the root has 2 children
         EXPECT_EQ(tree.num_children(0), 2u);
@@ -73,7 +66,7 @@ TEST(cell_tree, from_parent_index) {
         std::vector<int_type> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8};
 
-        cell_tree tree(parent_index);
+        tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 4u);
         // the root has 3 children
         EXPECT_EQ(tree.num_children(0), 3u);
@@ -106,7 +99,7 @@ TEST(cell_tree, from_parent_index) {
         //
         std::vector<int_type> parent_index =
             {0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12};
-        cell_tree tree(parent_index);
+        tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 6u);
         // the root has 3 children
         EXPECT_EQ(tree.num_children(0), 3u);
@@ -134,7 +127,7 @@ TEST(cell_tree, from_parent_index) {
         //           / \.
         //          2   3
         std::vector<int_type> parent_index = {0,0,1,1};
-        cell_tree tree(parent_index);
+        tree tree(parent_index);
 
         EXPECT_EQ(tree.num_segments(), 4u);
 
@@ -151,7 +144,7 @@ TEST(cell_tree, from_parent_index) {
         //           / \.
         //          2   3
         std::vector<int_type> parent_index = {0,0,1,1,0,0};
-        cell_tree tree(parent_index);
+        tree tree(parent_index);
 
         EXPECT_EQ(tree.num_segments(), 6u);
 
@@ -177,7 +170,7 @@ TEST(cell_tree, from_parent_index) {
         //             / \.
         //            5   6
         std::vector<int_type> parent_index = {0,0,0,1,1,4,4};
-        cell_tree tree(parent_index);
+        tree tree(parent_index);
 
         EXPECT_EQ(tree.num_segments(), 7u);
 

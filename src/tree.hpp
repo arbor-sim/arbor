@@ -4,18 +4,18 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
+
+#include <algorithms.hpp>
+#include <common_types.hpp>
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
-#include <algorithms.hpp>
-
 namespace arb {
 
-template <typename Int, typename Size = std::size_t>
 class tree {
 public:
-    using int_type = Int;
-    using size_type = Size;
+    using int_type   = cell_lid_type;
+    using size_type  = cell_local_size_type;
 
     using iarray = memory::host_vector<int_type>;
     using view_type  = typename iarray::view_type;
@@ -40,13 +40,11 @@ public:
 
     // copy constructors take advantage of the assignment operators
     // defined above
-    tree(tree const& other)
-    {
+    tree(tree const& other) {
         *this = other;
     }
 
-    tree(tree&& other)
-    {
+    tree(tree&& other) {
         *this = std::move(other);
     }
 
@@ -60,15 +58,17 @@ public:
     /// so the derive_segments parameter determines the case:
     ///     true:   case 1  (default)
     ///     false:  case 2
-    template <typename I>
-    tree(std::vector<I> const& parent_index, bool derive_segments=true)
-    {
+    //template <typename I>
+    tree(std::vector<int_type> parent_index, bool derive_segments=true) {
         // validate the inputs
         if(!algorithms::is_minimal_degree(parent_index)) {
             throw std::domain_error(
                 "parent index used to build a tree did not satisfy minimal degree ordering"
             );
         }
+
+        // an empty parent_index implies a single-compartment/segment cell
+        EXPECTS(parent_index.size()==0u);
 
         if (derive_segments) {
             auto segment_parents = algorithms::make_parent_index(
@@ -300,12 +300,12 @@ private:
     view_type parents_    = data_(0, 0);
 };
 
-template <typename IntT, typename SizeT, typename C>
-std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
+template <typename C>
+std::vector<tree::int_type> make_parent_index(tree const& t, C const& counts)
 {
     using util::make_span;
-    using int_type = typename tree<IntT, SizeT>::int_type;
-    constexpr auto no_parent = tree<IntT, SizeT>::no_parent;
+    using int_type = tree::int_type;
+    constexpr auto no_parent = tree::no_parent;
 
     if (!algorithms::is_positive(counts) || counts.size() != t.num_segments()) {
         throw std::domain_error(

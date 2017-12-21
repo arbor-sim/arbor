@@ -148,8 +148,7 @@ TEST(cell_type, multiple_cables)
         const auto model = c.model();
         auto const& con = model.tree;
 
-        auto no_parent = cell_tree::no_parent;
-
+        auto no_parent = tree::no_parent;
         EXPECT_EQ(con.num_segments(), 5u);
         EXPECT_EQ(con.parent(0), no_parent);
         EXPECT_EQ(con.parent(1), 0u);
