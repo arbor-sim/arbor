@@ -319,9 +319,8 @@ std::string CPrinter::emit_source() {
             text_.add_line("for (size_type i_ = 0; i_ < n_; ++i_) {");
             text_.increase_indentation();
             text_.add_line("// 1/10 magic number due to unit normalisation");
-            text_.add_line(src+"_out_["+istore+"index[i_]] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
+            text_.add_line(src+"_out_[i_] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
             text_.decrease_indentation(); text_.add_line("}");
-            
         }
         text_.decrease_indentation(); text_.add_line("}");
     }

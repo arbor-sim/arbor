@@ -7,6 +7,7 @@
 #include <common_types.hpp>
 #include <fvm_multicell.hpp>
 #include <load_balance.hpp>
+#include <math.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <sampler_map.hpp>
@@ -19,6 +20,8 @@
 #include "common.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
+
+#include "mechanisms/multicore/test_ca_cpu.hpp"
 
 using fvm_cell =
     arb::fvm::fvm_multicell<arb::multicore::backend>;
@@ -840,28 +843,37 @@ TEST(fvm_multi, ion_weights) {
     // the same as a 100µm dendrite, which makes it easier to describe the
     // expected weights.
 
-    cell c;
-    c.add_soma(5);
-
-    c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
-    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 200);
-    c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
-
-    for (auto& s: c.segments()) s->set_compartments(1);
-
     std::vector<std::vector<int>> seg_sets = {
-        {0}, {0,2}, {2, 3}, {0, 1, 2, 3},
+        {0}, {0,2}, {2, 3}, {0, 1, 2, 3}, {3}
     };
     std::vector<std::vector<unsigned>> expected_nodes = {
-        {0}, {0, 1, 2}, {0, 1, 2, 3}, {0, 1, 2, 3},
+        {0}, {0, 1, 2}, {1, 2, 3}, {0, 1, 2, 3}, {1, 3},
     };
     std::vector<std::vector<fvm_value_type>> expected_wght = {
-        {1./3}, {1./3, 1./2, 0.}, {1./3, 1./4, 0., 0.}, {0., 0., 0., 0.},
+        {1./3}, {1./3, 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0.}, {3./4, 0.}
     };
 
     double con_int = 80;
     double con_ext = 120;
+
+    //std::vector<std::vector<fvm_value_type>> expected_wght = {
+    //    {1./3}, {1./3, 1./2, 0.}, {1./4, 0., 0.}, {0., 0., 0., 0.},
+    //};
+
+    auto construct_cell = [](cell& c) {
+        c.add_soma(5);
+
+        c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
+        c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 200);
+        c.add_cable(1, section_kind::dendrite, 0.5, 0.5, 100);
+
+        for (auto& s: c.segments()) s->set_compartments(1);
+    };
+
     for (auto run=0u; run<seg_sets.size(); ++run) {
+        cell c;
+        construct_cell(c);
+
         for (auto i: seg_sets[run]) {
             c.segments()[i]->add_mechanism(mechanism_spec("test_ca"));
         }
@@ -888,5 +900,58 @@ TEST(fvm_multi, ion_weights) {
             EXPECT_EQ(con_ext, ion.external_concentration()[i]);
             EXPECT_FLOAT_EQ(1.0, ion.external_concentration_weights()[i]);
         }
+    }
+
+    // Check correct indexing when writing mechanism nodes are a subset
+    // of ion nodes.
+
+    {
+        cell c;
+        construct_cell(c);
+
+        // reader on CV 1 and 2 via segment 2:
+        c.segments()[2] ->add_mechanism(mechanism_spec("test_kinlva"));
+
+        // test_ca writer on CV 1 and 3 via segment 3:
+        c.segments()[3] ->add_mechanism(mechanism_spec("test_ca"));
+
+        std::vector<fvm_cell::target_handle> targets;
+        probe_association_map<fvm_cell::probe_handle> probe_map;
+
+        fvm_cell fvcell;
+        fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
+
+        auto& ion = fvcell.ion_ca();
+        ion.default_int_concentration = con_int;
+        ion.default_ext_concentration = con_ext;
+        ion.init_concentration();
+
+        //auto ni = ion.node_index();
+        std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index());
+        std::vector<unsigned> expected_ion_nodes = {1, 2, 3};
+        EXPECT_EQ(expected_ion_nodes, ion_nodes);
+
+        std::vector<double> ion_iconc_weights = util::assign_from(ion.internal_concentration_weights());
+        std::vector<double> expected_ion_iconc_weights = {0.75, 1., 0};
+        EXPECT_EQ(expected_ion_iconc_weights, ion_iconc_weights);
+
+        multicore::mechanism_test_ca<multicore::backend>* test_ca =
+            dynamic_cast<multicore::mechanism_test_ca<multicore::backend>*>(
+                fvcell.find_mechanism("test_ca").value().get());
+
+        double cai_contrib[3] = {200., 0., 300.};
+        for (int i = 0; i<2; ++i) {
+            test_ca->cai[i] = cai_contrib[test_ca->ion_ca.index[i]];
+        }
+
+        std::vector<double> expected_iconc(3);
+        for (int i = 0; i<3; ++i) {
+            expected_iconc[i] = math::lerp(cai_contrib[i], con_int, ion_iconc_weights[i]);
+        }
+
+        ion.init_concentration();
+        test_ca->write_back();
+        std::vector<double> ion_iconc = util::assign_from(ion.internal_concentration());
+        EXPECT_EQ(expected_iconc, ion_iconc);
     }
 }
