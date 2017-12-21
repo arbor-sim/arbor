@@ -32,7 +32,7 @@ public:
     using int_type        = cell_lid_type;
     using size_type       = cell_local_size_type;
 
-    using iarray      = memory::host_vector<int_type>;
+    using iarray          = memory::host_vector<int_type>;
     using view_type       = iarray::view_type;
     using const_view_type = iarray::const_view_type;
 
@@ -42,12 +42,11 @@ public:
     /// default empty constructor
     cell_tree() = default;
 
-    /// construct from a parent index
-    cell_tree(std::vector<int_type> const& parent_index)
-    {
+    /// Construct from an index of parent segment of each segment
+    cell_tree(std::vector<int_type> const& segment_parents) {
         // handle the case of an empty parent list, which implies a single-compartment model
-        if(parent_index.size()>0) {
-            tree_ = tree(parent_index);
+        if(segment_parents.size()>0) {
+            tree_ = tree(segment_parents, false);
         }
         else {
             tree_ = tree(std::vector<int_type>({0}));
@@ -71,7 +70,7 @@ public:
     // copy constructor
     cell_tree(cell_tree const& other)
     : tree_(other.tree_),
-      soma_(other.soma())
+      soma_(other.soma_)
     { }
 
     // assignment from rvalue
@@ -100,9 +99,11 @@ public:
         return tree_;
     }
 
+    /*
     int_type soma() const {
         return soma_;
     }
+    */
 
     /// Minimize the depth of the tree.
     int_type balance() {
@@ -127,7 +128,7 @@ public:
 
     /// returns the number of segments in the cell
     size_t num_segments() const {
-        return tree_.num_nodes();
+        return tree_.num_segments();
     }
 
     /// returns the number of child segments of segment b
