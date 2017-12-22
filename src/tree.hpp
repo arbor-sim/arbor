@@ -48,7 +48,8 @@ public:
         *this = std::move(other);
     }
 
-    /// create the tree from a parent_index
+    /// Create the tree from a parent index that lists the parent segment
+    /// of each segment in a cell tree.
     tree(std::vector<int_type> parent_index) {
         // validate the input
         if(!algorithms::is_minimal_degree(parent_index)) {
