@@ -36,7 +36,6 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     # Compiler flags for generating KNL-specific AVX512 instructions
     # supported in gcc 4.9.x and later.
     set(CXXOPT_KNL "-march=knl")
-    set(CXXOPT_AVX "-mavx")
     set(CXXOPT_AVX2 "-mavx2")
     set(CXXOPT_AVX512 "-mavx512f -mavx512cd")
 
@@ -49,7 +48,6 @@ endif()
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Intel")
     # Compiler flags for generating KNL-specific AVX512 instructions.
     set(CXXOPT_KNL "-xMIC-AVX512")
-    set(CXXOPT_AVX "-xAVX")
     set(CXXOPT_AVX2 "-xCORE-AVX2")
     set(CXXOPT_AVX512 "-xCORE-AVX512")
 

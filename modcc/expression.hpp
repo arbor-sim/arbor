@@ -16,48 +16,39 @@
 class Visitor;
 
 class Expression;
-class IdentifierExpression;
+class CallExpression;
 class BlockExpression;
-class InitialBlock;
 class IfExpression;
-class VariableExpression;
-class AbstractIndexedVariable;
-class IndexedVariable;
-class CellIndexedVariable;
-class NumberExpression;
-class IntegerExpression;
 class LocalDeclaration;
 class ArgumentExpression;
+class FunctionExpression;
 class DerivativeExpression;
 class PrototypeExpression;
-class CallExpression;
 class ProcedureExpression;
-class NetReceiveExpression;
-class APIMethod;
-class FunctionExpression;
-class UnaryExpression;
-class NegUnaryExpression;
-class ExpUnaryExpression;
-class LogUnaryExpression;
-class CosUnaryExpression;
-class SinUnaryExpression;
+class IdentifierExpression;
+class NumberExpression;
+class IntegerExpression;
 class BinaryExpression;
+class UnaryExpression;
 class AssignmentExpression;
+class ConserveExpression;
 class ReactionExpression;
 class StoichExpression;
 class StoichTermExpression;
-class ConserveExpression;
-class AddBinaryExpression;
-class SubBinaryExpression;
-class MulBinaryExpression;
-class DivBinaryExpression;
-class PowBinaryExpression;
 class ConditionalExpression;
+class InitialBlock;
 class SolveExpression;
-class ConductanceExpression;
 class Symbol;
+class ConductanceExpression;
+class PDiffExpression;
+class VariableExpression;
+class ProcedureExpression;
+class NetReceiveExpression;
+class APIMethod;
+class AbstractIndexedVariable;
+class IndexedVariable;
+class CellIndexedVariable;
 class LocalVariable;
-class PDiffExpression; // not parsed; possible result of symbolic differentiation
 
 using expression_ptr = std::unique_ptr<Expression>;
 using symbol_ptr = std::unique_ptr<Symbol>;
@@ -1243,6 +1234,27 @@ public:
     void accept(Visitor *v) override;
 };
 
+// absolute value unary expression, i.e. abs(x)
+class AbsUnaryExpression : public UnaryExpression {
+public:
+    AbsUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::abs, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
+// exprel reciprocal unary expression,
+// i.e. x/(exp(x)-1)=x/expm1(x) with exprelr(0)=1
+class ExprelrUnaryExpression : public UnaryExpression {
+public:
+    ExprelrUnaryExpression(Location loc, expression_ptr e)
+    :   UnaryExpression(loc, tok::exprelr, std::move(e))
+    {}
+
+    void accept(Visitor *v) override;
+};
+
 // cosine unary expression, i.e. cos(x)
 class CosUnaryExpression : public UnaryExpression {
 public:
@@ -1285,6 +1297,7 @@ public:
     {}
 
     tok op() const {return op_;}
+    virtual bool is_infix() const {return true;}
     Expression* lhs() {return lhs_.get();}
     Expression* rhs() {return rhs_.get();}
     const Expression* lhs() const {return lhs_.get();}
@@ -1357,6 +1370,30 @@ public:
     DivBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
     :   BinaryExpression(loc, tok::divide, std::move(lhs), std::move(rhs))
     {}
+
+    void accept(Visitor *v) override;
+};
+
+class MinBinaryExpression : public BinaryExpression {
+public:
+    MinBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+    :   BinaryExpression(loc, tok::min, std::move(lhs), std::move(rhs))
+    {}
+
+    // min is a prefix binop
+    bool is_infix() const override {return false;}
+
+    void accept(Visitor *v) override;
+};
+
+class MaxBinaryExpression : public BinaryExpression {
+public:
+    MaxBinaryExpression(Location loc, expression_ptr&& lhs, expression_ptr&& rhs)
+    :   BinaryExpression(loc, tok::max, std::move(lhs), std::move(rhs))
+    {}
+
+    // max is a prefix binop
+    bool is_infix() const override {return false;}
 
     void accept(Visitor *v) override;
 };

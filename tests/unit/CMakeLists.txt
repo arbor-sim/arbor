@@ -1,7 +1,7 @@
 include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
 
 # Build prototype mechanisms for testing in test_mechanisms.
-set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva)
+set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
 set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
 file(MAKE_DIRECTORY "${mech_proto_dir}")
 
@@ -11,14 +11,14 @@ build_modules(
     DEST_DIR "${mech_proto_dir}"
     MECH_SUFFIX _proto
     MODCC_FLAGS -t cpu
-    GENERATES .hpp
+    GENERATES _cpu.hpp
     TARGET build_test_mods
 )
 
 # Unit test sources
 
 set(TEST_CUDA_SOURCES
-    test_atomics.cu
+    test_intrin.cu
     test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
@@ -44,8 +44,9 @@ set(TEST_SOURCES
     test_domain_decomposition.cpp
     test_dss_cell_group.cpp
     test_either.cpp
-    test_event_queue.cpp
     test_event_binner.cpp
+    test_event_generators.cpp
+    test_event_queue.cpp
     test_filter.cpp
     test_fvm_multi.cpp
     test_ipss_cell_group.cpp

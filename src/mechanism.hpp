@@ -50,6 +50,12 @@ enum class mechanismKind {point, density};
 template <typename Backend>
 class mechanism {
 public:
+    struct ion_spec {
+        bool uses;
+        bool write_concentration_in;
+        bool write_concentration_out;
+    };
+
     using backend = Backend;
 
     using value_type = typename backend::value_type;
@@ -100,9 +106,14 @@ public:
     virtual void nrn_state()    = 0;
     virtual void nrn_current()  = 0;
     virtual void deliver_events(const deliverable_event_stream_state& events) {};
-    virtual bool uses_ion(ionKind) const = 0;
+    virtual ion_spec uses_ion(ionKind) const = 0;
     virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
     virtual mechanismKind kind() const = 0;
+
+    // Used by mechanisms that update ion concentrations.
+    // Calling will copy the concentration, stored as internal state of the
+    // mechanism, to the "global" copy of ion species state.
+    virtual void write_back() {};
 
     // Mechanism instances with different global parameter settings can be distinguished by alias.
     std::string alias() const {

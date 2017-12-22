@@ -13,7 +13,7 @@
 #include "kernels/take_samples.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "multi_event_stream.hpp"
-#include "nernst.hpp"
+#include "ions.hpp"
 #include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 #include "time_ops.hpp"
@@ -145,6 +145,14 @@ struct backend {
     //      Xo/Xi: ratio of out/in concentrations
     static void nernst(int valency, value_type temperature, const_view Xo, const_view Xi, view eX) {
         arb::gpu::nernst(eX.size(), valency, temperature, Xo.data(), Xi.data(), eX.data());
+    }
+
+    static void init_concentration(
+            view Xi, view Xo,
+            const_view weight_Xi, const_view weight_Xo,
+            value_type c_int, value_type c_ext)
+    {
+        arb::gpu::init_concentration(Xi.size(), Xi.data(), Xo.data(), weight_Xi.data(), weight_Xo.data(), c_int, c_ext);
     }
 
 private:

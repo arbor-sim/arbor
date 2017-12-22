@@ -1,8 +1,6 @@
-#include <iostream>
 #include <list>
 #include <cstring>
 
-#include "constantfolder.hpp"
 #include "parser.hpp"
 #include "perfvisitor.hpp"
 #include "token.hpp"
@@ -37,7 +35,7 @@ bool Parser::expect(tok tok, std::string const& str) {
 
 void Parser::error(std::string msg) {
     std::string location_info = pprintf(
-            "%:% ", module_ ? module_->file_name() : "", token_.location);
+            "%:% ", module_ ? module_->source_name() : "", token_.location);
     if(status_==lexerStatus::error) {
         // append to current string
         error_string_ += "\n" + white(location_info) + "\n  " +msg;
@@ -50,7 +48,7 @@ void Parser::error(std::string msg) {
 
 void Parser::error(std::string msg, Location loc) {
     std::string location_info = pprintf(
-            "%:% ", module_ ? module_->file_name() : "", loc);
+            "%:% ", module_ ? module_->source_name() : "", loc);
     if(status_==lexerStatus::error) {
         // append to current string
         error_string_ += "\n" + green(location_info) + msg;
@@ -1160,8 +1158,12 @@ expression_ptr Parser::parse_expression(int prec) {
         auto op = token_;
         auto p_op = binop_precedence(op.type);
 
+        // Note: all tokens that are not infix binary operators have
+        // precidence of -1, so expressions like function calls will short
+        // circuit this loop here.
         if(p_op<=prec) return lhs;
-        get_token();
+
+        get_token(); // consume the infix binary operator
 
         lhs = parse_binop(std::move(lhs), op);
         if(!lhs) return nullptr;
@@ -1193,10 +1195,12 @@ expression_ptr Parser::parse_unaryop() {
             e = parse_unaryop(); // handle recursive unary
             if(!e) return nullptr;
             return unary_expression(token_.location, op.type, std::move(e));
-        case tok::exp   :
-        case tok::sin   :
-        case tok::cos   :
-        case tok::log   :
+        case tok::exp    :
+        case tok::sin    :
+        case tok::cos    :
+        case tok::log    :
+        case tok::abs    :
+        case tok::exprelr:
             get_token();        // consume operator (exp, sin, cos or log)
             if(token_.type!=tok::lparen) {
                 error(  "missing parenthesis after call to "
@@ -1218,6 +1222,7 @@ expression_ptr Parser::parse_unaryop() {
 ///  ::  identifier
 ///  ::  call
 ///  ::  parenthesis expression (parsed recursively)
+///  ::  prefix binary operators
 expression_ptr Parser::parse_primary() {
     switch(token_.type) {
         case tok::real:
@@ -1231,6 +1236,35 @@ expression_ptr Parser::parse_primary() {
             return parse_identifier();
         case tok::lparen:
             return parse_parenthesis_expression();
+        case tok::min :
+        case tok::max :
+            {
+                auto op = token_;
+                // handle infix binary operators, e.g. min(l,r) and max(l,r)
+                get_token(); // consume operator keyword token
+                if (token_.type!=tok::lparen) {
+                    error("expected opening parenthesis '('");
+                    return nullptr;
+                }
+                get_token(); // consume (
+                auto lhs = parse_expression();
+                if (!lhs) return nullptr;
+
+                if (token_.type!=tok::comma) {
+                    error("expected comma ','");
+                    return nullptr;
+                }
+                get_token(); // consume ,
+
+                auto rhs = parse_expression();
+                if (!rhs) return nullptr;
+                if (token_.type!=tok::rparen) {
+                    error("expected closing parenthesis ')'");
+                    return nullptr;
+                }
+                get_token(); // consume )
+                return binary_expression(op.location, op.type, std::move(lhs), std::move(rhs));
+            }
         default: // fall through to return nullptr at end of function
             error( pprintf( "unexpected token '%' in expression",
                             yellow(token_.spelling) ));

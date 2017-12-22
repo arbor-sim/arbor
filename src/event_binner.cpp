@@ -12,7 +12,7 @@
 namespace arb {
 
 void event_binner::reset() {
-    last_event_time_ = util::nothing;
+    last_event_time_ = util::nullopt;
 }
 
 time_type event_binner::bin(time_type t, time_type t_min) {

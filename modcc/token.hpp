@@ -12,6 +12,9 @@ enum class tok {
     /////////////////////////////
     // symbols
     /////////////////////////////
+
+    // infix binary ops
+
     // = + - * / ^
     eq, plus, minus, times, divide, pow,
     // comparison
@@ -62,8 +65,12 @@ enum class tok {
     threadsafe, global,
     point_process,
 
+    // prefix binary operators
+    min, max,
+
     // unary operators
-    exp, sin, cos, log,
+    exp, sin, cos, log, abs,
+    exprelr, // equivalent to x/(exp(x)-1) with exprelr(0)=1
 
     // logical keywords
     if_stmt, else_stmt, // add _stmt to avoid clash with c++ keywords
@@ -76,6 +83,16 @@ enum class tok {
 
     reserved, // placeholder for generating keyword lookup
 };
+
+namespace std {
+    // note: necessary before C++14 (refer: lwg dr#2148).
+    template <>
+    struct hash<tok> {
+        std::size_t operator()(const tok& x) const {
+            return std::hash<int>()(static_cast<int>(x));
+        }
+    };
+}
 
 // what is in a token?
 //  tok indicating type of token

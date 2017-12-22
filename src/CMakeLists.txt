@@ -9,6 +9,7 @@ set(BASE_SOURCES
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
+    merge_events.cpp
     model.cpp
     morphology.cpp
     partition_load_balance.cpp
@@ -31,7 +32,7 @@ set(CUDA_SOURCES
     backends/gpu/multi_event_stream.cu
     backends/gpu/kernels/assemble_matrix.cu
     backends/gpu/kernels/interleave.cu
-    backends/gpu/kernels/nernst.cu
+    backends/gpu/kernels/ions.cu
     backends/gpu/kernels/solve_matrix.cu
     backends/gpu/kernels/stim_current.cu
     backends/gpu/kernels/take_samples.cu

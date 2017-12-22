@@ -39,3 +39,24 @@ inline float cuda_atomic_sub(float* address, float val) {
     return atomicAdd(address, -val);
 }
 
+__device__
+inline double exprelr(double x) {
+    if (1.0+x == 1.0) {
+        return 1.0;
+    }
+    return x/expm1(x);
+}
+
+// Return minimum of the two values
+template <typename T>
+__device__
+inline T min(T lhs, T rhs) {
+    return lhs<rhs? lhs: rhs;
+}
+
+// Return maximum of the two values
+template <typename T>
+__device__
+inline T max(T lhs, T rhs) {
+    return lhs<rhs? rhs: lhs;
+}

@@ -23,6 +23,8 @@
 #include "common.hpp"
 
 using namespace arb;
+
+using namespace  testing::string_literals;
 using testing::null_terminated;
 using testing::nocopy;
 using testing::nomove;
@@ -418,11 +420,11 @@ TEST(range, sort) {
 
     // simple sort
     util::sort(util::strict_view(cstr_range));
-    EXPECT_EQ(std::string("dhowy"), cstr);
+    EXPECT_EQ("dhowy"_s, cstr);
 
     // reverse sort by transform c to -c
     util::sort_by(util::strict_view(cstr_range), [](char c) { return -c; });
-    EXPECT_EQ(std::string("ywohd"), cstr);
+    EXPECT_EQ("ywohd"_s, cstr);
 
     // stable sort: move capitals to front, numbers to back
     auto rank = [](char c) {
@@ -433,7 +435,7 @@ TEST(range, sort) {
     auto mixed_range = util::make_range(std::begin(mixed), null_terminated);
 
     util::stable_sort_by(util::strict_view(mixed_range), rank);
-    EXPECT_EQ(std::string("HELLOthere54321"), mixed);
+    EXPECT_EQ("HELLOthere54321"_s, mixed);
 
 
     // sort with user-provided less comparison function
@@ -453,7 +455,7 @@ TEST(range, sum_by) {
     auto result = util::sum_by(words, prepend_);
     EXPECT_EQ("_fish_cakes_!", result);
 
-    result = util::sum_by(words, prepend_, std::string("tasty"));
+    result = util::sum_by(words, prepend_, "tasty"_s);
     EXPECT_EQ("tasty_fish_cakes_!", result);
 
     auto count = util::sum_by(words, [](const std::string &x) { return x.size(); });
@@ -475,10 +477,10 @@ TEST(range, all_of_any_of) {
     auto pred = [](char c) { return c=='x'? throw c:c<'5'; };
 
     // all
-    EXPECT_TRUE(util::all_of(std::string(), pred));
-    EXPECT_TRUE(util::all_of(std::string("1234"), pred));
-    EXPECT_FALSE(util::all_of(std::string("12345"), pred));
-    EXPECT_FALSE(util::all_of(std::string("12345x"), pred));
+    EXPECT_TRUE(util::all_of(""_s, pred));
+    EXPECT_TRUE(util::all_of("1234"_s, pred));
+    EXPECT_FALSE(util::all_of("12345"_s, pred));
+    EXPECT_FALSE(util::all_of("12345x"_s, pred));
 
     EXPECT_TRUE(util::all_of(cstr(""), pred));
     EXPECT_TRUE(util::all_of(cstr("1234"), pred));
@@ -486,10 +488,10 @@ TEST(range, all_of_any_of) {
     EXPECT_FALSE(util::all_of(cstr("12345x"), pred));
 
     // any
-    EXPECT_FALSE(util::any_of(std::string(), pred));
-    EXPECT_FALSE(util::any_of(std::string("8765"), pred));
-    EXPECT_TRUE(util::any_of(std::string("87654"), pred));
-    EXPECT_TRUE(util::any_of(std::string("87654x"), pred));
+    EXPECT_FALSE(util::any_of(""_s, pred));
+    EXPECT_FALSE(util::any_of("8765"_s, pred));
+    EXPECT_TRUE(util::any_of("87654"_s, pred));
+    EXPECT_TRUE(util::any_of("87654x"_s, pred));
 
     EXPECT_FALSE(util::any_of(cstr(""), pred));
     EXPECT_FALSE(util::any_of(cstr("8765"), pred));

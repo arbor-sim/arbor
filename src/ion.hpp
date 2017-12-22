@@ -65,14 +65,22 @@ public :
         Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         valency(0),
-        default_internal_concentration(0),
-        default_external_concentration(0)
+        default_int_concentration(0),
+        default_ext_concentration(0)
     {}
 
-    std::size_t memory() const {
-        return 4u*size() * sizeof(value_type)
-               +  size() * sizeof(iarray)
-               +  sizeof(ion);
+    // Set the weights used when setting default concentration values in each CV.
+    // The concentration of an ion species in a CV is a linear combination of
+    // default concentration and contributions from mechanisms that update the
+    // concentration. The weight is a value between 0 and 1 that represents the
+    // proportion of the CV area for which the default value is to be used
+    // (i.e. the proportion of the CV where the concentration is prescribed by a
+    // mechanism).
+    void set_weights(const std::vector<value_type>& win, const std::vector<value_type>& wout) {
+        EXPECTS(win.size()  == size());
+        EXPECTS(wout.size() == size());
+        weight_Xi_ = memory::make_const_view(win);
+        weight_Xo_ = memory::make_const_view(wout);
     }
 
     view current() {
@@ -91,13 +99,20 @@ public :
         return Xo_;
     }
 
+    view internal_concentration_weights() {
+        return weight_Xi_;
+    }
+
+    view external_concentration_weights() {
+        return weight_Xo_;
+    }
+
     void reset() {
         // The Nernst equation uses the assumption of nonzero concentrations:
-        EXPECTS(default_internal_concentration> value_type(0));
-        EXPECTS(default_external_concentration> value_type(0));
-        memory::fill(iX_, 0);
-        memory::fill(Xi_, default_internal_concentration);
-        memory::fill(Xo_, default_external_concentration);
+        EXPECTS(default_int_concentration > value_type(0));
+        EXPECTS(default_ext_concentration > value_type(0));
+        memory::fill(iX_, 0); // reset current
+        init_concentration(); // reset internal and external concentrations
         nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
     }
 
@@ -105,6 +120,12 @@ public :
     /// temperature is in degrees Kelvin
     void nernst_reversal_potential(value_type temperature) {
         backend::nernst(valency, temperature, Xo_, Xi_, eX_);
+    }
+
+    void init_concentration() {
+        backend::init_concentration(
+            Xi_, Xo_, weight_Xi_, weight_Xo_,
+            default_int_concentration, default_ext_concentration);
     }
 
     const_iview node_index() const {
@@ -117,15 +138,17 @@ public :
 
 private:
     iarray node_index_;
-    array iX_;      // (nA) current
-    array eX_;      // (mV) reversal potential
-    array Xi_;      // (mM) internal concentration
-    array Xo_;      // (mM) external concentration
+    array iX_;          // (nA) current
+    array eX_;          // (mV) reversal potential
+    array Xi_;          // (mM) internal concentration
+    array Xo_;          // (mM) external concentration
+    array weight_Xi_;   // (1) concentration weight internal
+    array weight_Xo_;   // (1) concentration weight external
 
 public:
     int valency;    // valency of ionic species
-    value_type default_internal_concentration; // (mM) default internal concentration
-    value_type default_external_concentration; // (mM) default external concentration
+    value_type default_int_concentration; // (mM) default internal concentration
+    value_type default_ext_concentration; // (mM) default external concentration
 };
 
 } // namespace arb
