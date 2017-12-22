@@ -111,7 +111,6 @@ public:
         }
 
         // We are in an active epoch, start stepping!
-        // TODO: Move first if() outside of the do loop
         do {
             // Should we change the rates in the current step?
 
@@ -125,9 +124,9 @@ public:
             // We are working with small probabilities use double
             // rate = base rate + nr steps since start rate * delta per step
             double spike_rate = base_rate_ + (current_step_ - current_rate_it_->first) * rate_delta_step_ ;
+
+            // This dice roll takes 93% of the runtime of this cell.
             auto dice_roll = distribution_(generator_);
-            //std::cout << "current_step_: " << current_step_ << ", " << dice_roll
-            //    << "< " << spike_rate << "\n";
             if (dice_roll < spike_rate) {
                 spikes.push_back({ { gid_, 0 }, current_step_ * sample_delta_ });
             }
