@@ -49,6 +49,7 @@ set(TEST_SOURCES
     test_event_queue.cpp
     test_filter.cpp
     test_fvm_multi.cpp
+    test_ipss_cell_group.cpp
     test_mc_cell_group.cpp
     test_lexcmp.cpp
     test_mask_stream.cpp
@@ -61,7 +62,7 @@ set(TEST_SOURCES
     test_optional.cpp
     test_mechinfo.cpp
     test_partition.cpp
-    test_path.cpp
+    test_path.cpp   
     test_point.cpp
     test_prefixbuf.cpp
     test_probe.cpp

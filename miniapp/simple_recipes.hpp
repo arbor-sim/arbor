@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <cell.hpp>
-#include <event_generator.hpp>
 #include <recipe.hpp>
 
 namespace arb {
@@ -18,10 +17,6 @@ class simple_recipe_base: public recipe {
 public:
     cell_size_type num_probes(cell_gid_type i) const override {
         return probes_.count(i)? probes_.at(i).size(): 0;
-    }
-
-    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-        return {};
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type) const override {
@@ -78,6 +73,11 @@ public:
 
     cell_size_type num_sources(cell_gid_type) const override { return 0; }
     cell_size_type num_targets(cell_gid_type) const override { return 0; }
+
+    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override
+    {
+        return std::vector<event_generator_ptr>();
+    }
 
     util::unique_any get_cell_description(cell_gid_type) const override {
         return util::make_unique_any<Description>(desc_);

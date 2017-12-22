@@ -8,6 +8,7 @@
 #include <mc_cell_group.hpp>
 #include <recipe.hpp>
 #include <rss_cell_group.hpp>
+#include <ipss_cell_group.hpp>
 #include <util/unique_any.hpp>
 
 namespace arb {
@@ -30,6 +31,9 @@ cell_group_ptr cell_group_factory(const recipe& rec, const group_description& gr
 
     case cell_kind::data_spike_source:
         return make_cell_group<dss_cell_group>(group.gids, rec);
+
+    case cell_kind::inhomogeneous_poisson_spike_source:
+        return make_cell_group<ipss_cell_group>(group.gids, rec);
 
     default:
         throw std::runtime_error("unknown cell kind");
