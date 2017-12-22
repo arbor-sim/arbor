@@ -208,7 +208,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     if (options.morphologies) {
         std::cout << "loading morphologies...\n";
         p.morphologies.clear();
-        load_swc_morphology_glob(p.morphologies, options.morphologies.get());
+        load_swc_morphology_glob(p.morphologies, options.morphologies.value());
         std::cout << "loading morphologies: " << p.morphologies.size() << " loaded.\n";
     }
     p.morphology_round_robin = options.morph_rr;

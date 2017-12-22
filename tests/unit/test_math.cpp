@@ -285,3 +285,44 @@ TEST(quaternion, rotate) {
     EXPECT_NEAR(q.x/2.+q.y*sqrt3o2, r.y, eps);
     EXPECT_NEAR(q.z, r.z, eps);
 }
+
+TEST(math, exprelr) {
+    constexpr double dmin = std::numeric_limits<double>::min();
+    constexpr double dmax = std::numeric_limits<double>::max();
+    constexpr double deps = std::numeric_limits<double>::epsilon();
+    double inputs[] = {-1.,  -0.,  0.,  1., -dmax,  -dmin,  dmin,  dmax, -deps, deps, 10*deps, 100*deps, 1000*deps};
+
+    for (auto x: inputs) {
+        if (std::fabs(x)<deps) EXPECT_EQ(1.0, exprelr(x));
+        else                   EXPECT_EQ(x/std::expm1(x), exprelr(x));
+    }
+}
+
+TEST(math, minmax) {
+    constexpr double inf = std::numeric_limits<double>::infinity();
+
+    struct X {
+        double lhs;
+        double rhs;
+        double expected_min;
+        double expected_max;
+    };
+
+    std::vector<X> inputs = {
+        {  0,    1,    0,   1},
+        { -1,    1,   -1,   1},
+        { 42,   42,   42,  42},
+        {inf, -inf, -inf, inf},
+        {  0,  inf,    0, inf},
+        {  0, -inf, -inf,   0},
+    };
+
+    for (auto x: inputs) {
+        // Call min and max with arguments in both possible orders.
+        EXPECT_EQ(min(x.lhs, x.rhs), x.expected_min);
+        EXPECT_EQ(min(x.rhs, x.lhs), x.expected_min);
+        EXPECT_EQ(max(x.lhs, x.rhs), x.expected_max);
+        EXPECT_EQ(max(x.rhs, x.lhs), x.expected_max);
+    }
+}
+

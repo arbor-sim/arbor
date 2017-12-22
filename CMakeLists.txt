@@ -193,7 +193,7 @@ endif()
 #----------------------------------------------------------
 # Built-in profiler
 #----------------------------------------------------------
-option(ARB_WITH_PROFILING "use built-in profiling of miniapp" OFF)
+option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 if(ARB_WITH_PROFILING)
     add_definitions(-DARB_HAVE_PROFILING)
 endif()
@@ -205,11 +205,11 @@ set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,
 set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
 
 if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL} -DSIMD_KNL")
 elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2} -DSIMD_AVX2")
 elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX512}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX512} -DSIMD_AVX512")
 endif()
 
 #----------------------------------------------------------
@@ -266,7 +266,6 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/tclap"
     "${PROJECT_SOURCE_DIR}/include"
     "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/miniapp"
     "${PROJECT_SOURCE_DIR}/modcc"
     "${PROJECT_SOURCE_DIR}")
 if(EXTERNAL_INCLUDES)
@@ -289,6 +288,6 @@ endif()
 add_subdirectory(src)
 add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
-add_subdirectory(miniapps)
+add_subdirectory(example)
 add_subdirectory(lmorpho)
 add_subdirectory(doc)

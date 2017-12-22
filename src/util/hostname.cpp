@@ -20,13 +20,13 @@ util::optional<std::string> hostname() {
     char name[256];
     auto result = gethostname(name, sizeof(name));
     if (result) {
-        return util::nothing;
+        return util::nullopt;
     }
     return std::string(name);
 }
 #else
 util::optional<std::string> hostname() {
-    return util::nothing;
+    return util::nullopt;
 }
 #endif
 

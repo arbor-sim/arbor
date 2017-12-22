@@ -80,6 +80,26 @@ int signum(T x) {
     return (x>T(0)) - (x<T(0));
 }
 
+// Return minimum of the two values
+template <typename T>
+T min(const T& lhs, const T& rhs) {
+    return lhs<rhs? lhs: rhs;
+}
+
+// Return maximum of the two values
+template <typename T>
+T max(const T& lhs, const T& rhs) {
+    return lhs<rhs? rhs: lhs;
+}
+
+// Value of x/(exp(x)-1) with care taken to handle x=0 case
+template <typename T>
+inline
+T exprelr(T x) {
+    // If abs(x) is less than epsilon return 1, else calculate the result directly.
+    return (T(1)==T(1)+x)? T(1): x/std::expm1(x);
+}
+
 // Quaternion implementation.
 // Represents w + x.i + y.j + z.k.
 

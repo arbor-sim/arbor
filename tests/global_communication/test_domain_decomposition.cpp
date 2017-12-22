@@ -54,6 +54,10 @@ namespace {
             return {};
         }
 
+        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
+            return {};
+        }
+
         probe_info get_probe(cell_member_type) const override {
             throw std::logic_error("no probes");
         }

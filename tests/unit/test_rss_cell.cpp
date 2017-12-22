@@ -62,6 +62,22 @@ TEST(rss_cell, poll_time_after_end_time)
     EXPECT_EQ(12u, sut.spikes().size());
 }
 
+TEST(rss_cell, rate_bigger_then_epoch)
+{
+    constexpr time_type dt = 0.01; // dt is ignored by rss_cell_group::advance().
+
+    rss_cell desc{ 0.0, 100.0, 1000.0 };
+    rss_cell_group sut({ 0 }, rss_recipe(1u, desc));
+
+    // take time steps of 10 ms
+    for (time_type start = 0.0; start < 1000.0; start += 10) {
+        sut.advance(epoch(start, start + 10.0), dt, {});
+    }
+    // We spike once every 100 ms so in 1000.0 ms we should have 10
+    EXPECT_EQ(10u, sut.spikes().size());
+}
+
+
 TEST(rss_cell, cell_kind_correct)
 {
     rss_cell desc{0.1, 0.01, 0.2};

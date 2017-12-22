@@ -397,6 +397,7 @@ void CallExpression::semantic(scope_ptr scp) {
     if(!s) {
         error(pprintf("there is no function or procedure named '%' ",
                       yellow(spelling_)));
+        return;
     }
     if(s->kind()==symbolKind::local_variable || s->kind()==symbolKind::variable) {
         error(pprintf("the symbol '%' refers to a variable, but it is being"
@@ -698,7 +699,7 @@ void AssignmentExpression::semantic(scope_ptr scp) {
     if(!lhs_->has_error() && !lhs_->is_lvalue()) {
         error("the left hand side of an assignment must be an lvalue");
     }
-    if(rhs_->is_procedure_call()) {
+    if(!rhs_->has_error() && rhs_->is_procedure_call()) {
         error("procedure calls can't be made in an expression");
     }
 }
@@ -933,6 +934,12 @@ void ExpUnaryExpression::accept(Visitor *v) {
 void LogUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void AbsUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void ExprelrUnaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void CosUnaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -969,6 +976,12 @@ void MulBinaryExpression::accept(Visitor *v) {
 void DivBinaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
+void MinBinaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
+void MaxBinaryExpression::accept(Visitor *v) {
+    v->visit(this);
+}
 void PowBinaryExpression::accept(Visitor *v) {
     v->visit(this);
 }
@@ -995,6 +1008,10 @@ expression_ptr unary_expression( Location loc,
             return make_expression<SinUnaryExpression>(loc, std::move(e));
         case tok::log :
             return make_expression<LogUnaryExpression>(loc, std::move(e));
+        case tok::abs :
+            return make_expression<AbsUnaryExpression>(loc, std::move(e));
+        case tok::exprelr :
+            return make_expression<ExprelrUnaryExpression>(loc, std::move(e));
        default :
             std::cerr << yellow(token_string(op))
                       << " is not a valid unary operator"
@@ -1037,6 +1054,14 @@ expression_ptr binary_expression(Location loc,
             );
         case tok::divide :
             return make_expression<DivBinaryExpression>(
+                loc, std::move(lhs), std::move(rhs)
+            );
+        case tok::min :
+            return make_expression<MinBinaryExpression>(
+                loc, std::move(lhs), std::move(rhs)
+            );
+        case tok::max :
+            return make_expression<MaxBinaryExpression>(
                 loc, std::move(lhs), std::move(rhs)
             );
         case tok::pow    :

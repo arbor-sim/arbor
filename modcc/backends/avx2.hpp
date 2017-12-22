@@ -21,12 +21,18 @@ struct simd_intrinsics<simdKind::avx2> {
     }
 
     static std::string emit_headers() {
+        /*
         std::string ret = "#include <immintrin.h>";
+        ret += "\n#include <backends/multicore/intrin.hpp>";
         if (!compat::using_intel_compiler()) {
             ret += "\n#include <backends/multicore/intrin.hpp>";
         }
-
         return ret;
+        */
+
+        return
+            "#include <immintrin.h>\n"
+            "#include <backends/multicore/intrin.hpp>";
     }
 
     static std::string emit_simd_width() {
@@ -57,8 +63,14 @@ struct simd_intrinsics<simdKind::avx2> {
         case tok::divide:
             tb << "_mm256_div_pd(";
             break;
+        case tok::max:
+            tb << "_mm256_max_pd(";
+            break;
+        case tok::min:
+            tb << "arb::multicore::arb_mm256_min_pd(";
+            break;
         default:
-            throw std::invalid_argument("Unknown binary operator");
+            throw std::invalid_argument("Unable to generate avx2 for binary operator " + token_map[op]);
         }
 
         emit_operands(tb, arg_emitter(arg1), arg_emitter(arg2));
@@ -87,8 +99,14 @@ struct simd_intrinsics<simdKind::avx2> {
                 tb << "arb::multicore::arb_mm256_log_pd(";
             }
             break;
+        case tok::abs:
+            tb << "arb::multicore::arb_mm256_abs_pd(";
+            break;
+        case tok::exprelr:
+            tb << "arb::multicore::arb_mm256_exprelr_pd(";
+            break;
         default:
-            throw std::invalid_argument("Unknown unary operator");
+            throw std::invalid_argument("Unable to generate avx2 for unary operator " + token_map[op]);
         }
 
         emit_operands(tb, arg_emitter(arg));

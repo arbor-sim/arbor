@@ -108,7 +108,6 @@ private:
 
     std::string module_name_;
     Module *module_ = nullptr;
-    tok parent_op_ = tok::eq;
 
     TextBuffer interface_;
     TextBuffer impl_;

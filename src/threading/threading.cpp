@@ -40,7 +40,7 @@ util::optional<size_t> get_env_num_threads() {
     // If the selected var is unset set the number of threads to
     // the hint given by the standard library
     if (!str) {
-        return util::nothing;
+        return util::nullopt;
     }
 
     auto nthreads = std::strtoul(str, nullptr, 10);

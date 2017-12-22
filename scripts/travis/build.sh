@@ -60,6 +60,6 @@ ${launch} ./tests/global_communication.exe || error "running global communicatio
 
 progress "Miniapp spike comparison test"
 make miniapp.exe -j4                         || error "building miniapp"
-${launch} ./miniapps/miniapp/miniapp.exe -n 20 -t 100 || error "running miniapp"
+${launch} ./example/miniapp.exe -n 20 -t 100 || error "running miniapp"
 
 cd $base_path

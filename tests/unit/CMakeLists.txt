@@ -18,7 +18,7 @@ build_modules(
 # Unit test sources
 
 set(TEST_CUDA_SOURCES
-    test_atomics.cu
+    test_intrin.cu
     test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
@@ -44,8 +44,9 @@ set(TEST_SOURCES
     test_domain_decomposition.cpp
     test_dss_cell_group.cpp
     test_either.cpp
-    test_event_queue.cpp
     test_event_binner.cpp
+    test_event_generators.cpp
+    test_event_queue.cpp
     test_filter.cpp
     test_fvm_multi.cpp
     test_mc_cell_group.cpp
