@@ -2,7 +2,7 @@
 
 #include "cell.hpp"
 
-TEST(cell_type, soma)
+TEST(cell, soma)
 {
     // test that insertion of a soma works
     //      define with no centre point
@@ -38,7 +38,7 @@ TEST(cell_type, soma)
     }
 }
 
-TEST(cell_type, add_segment)
+TEST(cell, add_segment)
 {
     using namespace arb;
     //  add a pre-defined segment
@@ -101,7 +101,7 @@ TEST(cell_type, add_segment)
     }
 }
 
-TEST(cell_type, multiple_cables)
+TEST(cell, multiple_cables)
 {
     using namespace arb;
 
@@ -164,7 +164,7 @@ TEST(cell_type, multiple_cables)
     }
 }
 
-TEST(cell_type, die_centipede)
+TEST(cell, unbranched_chain)
 {
     using namespace arb;
 
@@ -193,11 +193,19 @@ TEST(cell_type, die_centipede)
     EXPECT_EQ(c.area(), 4. + math::area_sphere(soma_radius));
 
     // construct the graph
-    const auto model = c.model();
-    auto const& con = model.tree;
+    const auto tree = c.model().tree;
+
+    auto no_parent = tree::no_parent;
+    EXPECT_EQ(tree.num_segments(), 3u);
+    EXPECT_EQ(tree.parent(0), no_parent);
+    EXPECT_EQ(tree.parent(1), 0u);
+    EXPECT_EQ(tree.parent(2), 1u);
+    EXPECT_EQ(tree.num_children(0), 1u);
+    EXPECT_EQ(tree.num_children(1), 1u);
+    EXPECT_EQ(tree.num_children(2), 0u);
 }
 
-TEST(cell_type, clone)
+TEST(cell, clone)
 {
     using namespace arb;
 
@@ -252,7 +260,7 @@ TEST(cell_type, clone)
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
 
-TEST(cell_type, get_kind)
+TEST(cell, get_kind)
 {
     using namespace arb;
 

@@ -68,7 +68,7 @@ public:
         }
 
         // an empty parent_index implies a single-compartment/segment cell
-        EXPECTS(parent_index.size()==0u);
+        EXPECTS(parent_index.size()!=0u);
 
         if (derive_segments) {
             auto segment_parents = algorithms::make_parent_index(
