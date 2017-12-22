@@ -16,7 +16,13 @@ namespace arb {
 /// Spikes are generated at a configurable sample rate. With a rate that can be
 /// varied across time. Rate can be piece wise constant or linearly interpolated
 /// per sample time step.
-
+/// All times supplied to the cell will be 'rounded' to the first higher multiple of
+/// of the supplied sample_delta.
+/// When interpolating the rate will be the averaged rate between the
+/// t and t+1. The return spike time will be t.
+/// The first rate supplied in the time-rate vector should be at or before the
+/// start time of the cell. The rate of the last supplied time-rate will be kept
+/// until the stop_time of the cell
 
 class ipss_cell   {
 public:
@@ -26,34 +32,20 @@ public:
         start_step_(time_to_step_idx(desc.start_time, sample_delta_)),
         stop_step_(time_to_step_idx(desc.stop_time, sample_delta_)),
         current_step_(0), interpolate_(desc.interpolate),
-        generator_(gid)
+        generator_(gid_)
     {
         // For internal storage convert the rates from spikes / second to
-        // spikes per sample_delta_ and the times to sample_delta_ time step since
-        // t = 0.0
+        // spikes per sample_delta_  and the time to step_idx from t = 0.0
         for (auto entry : desc.rates_per_time) {
             auto spikes_per_sample_delta = (entry.second / 1000.0) * sample_delta_;
             auto time_step = time_to_step_idx(entry.first, sample_delta_);
             rates_per_step_.push_back({ time_step, spikes_per_sample_delta });
         }
 
-        // Add and extra rate entry at max long, copy of the last orignal entry
+        // Add and extra rate entry at max long, copy of the last original entry
+        // This allows current and next iterator.
         rates_per_step_.push_back({ -1, rates_per_step_.cend()->second });
-        reset();
-    }
 
-    cell_kind get_cell_kind() const {
-        return cell_kind::inhomogeneous_poisson_spike_source;
-    }
-
-    /// reset internal variables based on the rate vector supplied add construction
-    ///   - Find the first valid rate depending on the start time_
-    ///   - Set the rates and rate change per step
-    ///   - Set the iterator to the next rate change
-    ///   - time zero
-    ///   - reseed rng
-    ///   - Interpolate start rate
-    void reset() {
         // Sanity checks
         if (start_step_ > stop_step_) {
             throw std::logic_error("The start time is after the end time in the Inhomogeneous Poisson Spike Source.");
@@ -62,6 +54,19 @@ public:
         if (start_step_ < rates_per_step_.cbegin()->first) {
             throw std::logic_error("The start time of the Inhomogeneous Poisson Spike Source is before the first time/rate pair");
         }
+
+        reset();
+    }
+
+    cell_kind get_cell_kind() const {
+        return cell_kind::inhomogeneous_poisson_spike_source;
+    }
+
+    /// reset cell to start state
+    ///   - Find the first valid rate depending on the start time_
+    ///   - Set the rates based on the rate change iterators
+    ///   - Reseed the rng
+    void reset() {
 
         // set the pointer to the first and second entry in the rates vector
         current_rate_it_ = rates_per_step_.cbegin();
@@ -88,7 +93,6 @@ public:
     /// Advance the Poisson generator until end of epoch
     /// If a rate change is occurred during this ep the new rate will be used
     /// including possible interpolation between steps.
-    ///
     void advance(epoch ep, std::vector<spike>& spikes)
     {
         // Convert the epoch end to step
@@ -107,8 +111,10 @@ public:
         }
 
         // We are in an active epoch, start stepping!
+        // TODO: Move first if() outside of the do loop
         do {
             // Should we change the rates in the current step?
+
             if (current_step_ == next_rates_it_->first) {
                 // update the itterators
                 current_rate_it_++;
@@ -116,6 +122,8 @@ public:
                 update_rates();
             }
 
+            // We are working with small probabilities use double
+            // rate = base rate + nr steps since start rate * delta per step
             double spike_rate = base_rate_ + (current_step_ - current_rate_it_->first) * rate_delta_step_ ;
             auto dice_roll = distribution_(generator_);
             //std::cout << "current_step_: " << current_step_ << ", " << dice_roll
@@ -142,14 +150,11 @@ public:
 
 private:
     /// We need to do some book keeping when we have a rate_change step
-    ///   - Set the new base rate based on the rate vector
-    ///   - Update the next rate change it.
-    ///   if we have interpolation:
-    ///   - Calculate the rate_change per sample step size
+    ///   - Calculate the base rate and the delta per step
     void update_rates() {
         // First calculate the rate per time step (if we interpolate)
         auto steps_this_rate = next_rates_it_->first - current_rate_it_->first;
-        auto rate_delta_this_range = (next_rates_it_->second - current_rate_it_->second);
+        auto rate_delta_this_range = next_rates_it_->second - current_rate_it_->second;
 
         rate_delta_step_ = interpolate_ ? rate_delta_this_range / steps_this_rate : 0.0;
 

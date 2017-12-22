@@ -33,6 +33,9 @@ TEST(ipss_cell_group, time_to_step_idx)
     ASSERT_EQ(2ul, ipss_cell::time_to_step_idx(nextafter(time_step, one), time_step));
 }
 
+
+// Helper function the returns a vector of spikes for comparison.
+// Testing mantra Repeat yourself differently
 std::vector<spike> create_poisson_spike_train(time_type begin, time_type end,
     time_type sample_delta, cell_gid_type gid,
     std::vector<std::pair<time_type, double>> rates_per_time, bool interpolate = false) {

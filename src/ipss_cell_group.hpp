@@ -15,7 +15,7 @@
 
 namespace arb {
 
-/// Cell group implementing RSS cells.
+/// Cell group collecting a group of ipss cells.
 
 class ipss_cell_group: public cell_group {
 public:
