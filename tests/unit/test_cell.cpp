@@ -2,7 +2,7 @@
 
 #include "cell.hpp"
 
-TEST(cell_type, soma)
+TEST(cell, soma)
 {
     // test that insertion of a soma works
     //      define with no centre point
@@ -38,7 +38,7 @@ TEST(cell_type, soma)
     }
 }
 
-TEST(cell_type, add_segment)
+TEST(cell, add_segment)
 {
     using namespace arb;
     //  add a pre-defined segment
@@ -101,7 +101,7 @@ TEST(cell_type, add_segment)
     }
 }
 
-TEST(cell_type, multiple_cables)
+TEST(cell, multiple_cables)
 {
     using namespace arb;
 
@@ -148,8 +148,7 @@ TEST(cell_type, multiple_cables)
         const auto model = c.model();
         auto const& con = model.tree;
 
-        auto no_parent = cell_tree::no_parent;
-
+        auto no_parent = tree::no_parent;
         EXPECT_EQ(con.num_segments(), 5u);
         EXPECT_EQ(con.parent(0), no_parent);
         EXPECT_EQ(con.parent(1), 0u);
@@ -165,7 +164,48 @@ TEST(cell_type, multiple_cables)
     }
 }
 
-TEST(cell_type, clone)
+TEST(cell, unbranched_chain)
+{
+    using namespace arb;
+
+    cell c;
+
+    auto soma_radius = std::pow(3./(4.*math::pi<double>()), 1./3.);
+
+    // Cell strucure that looks like a centipede: i.e. each segment has only one child
+    //
+    //   |       |
+    //  0|1-2-3-4|5-6-7-8
+    //   |       |
+
+    // add a soma
+    c.add_soma(soma_radius, {0,0,1});
+
+    // hook the dendrite and axons
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 1.0, 1.0, 1./math::pi<double>()));
+    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 1.0, 1.0, 1./math::pi<double>()));
+
+    EXPECT_EQ(c.num_segments(), 3u);
+    // each of the 3 segments has volume 1 by design
+    EXPECT_EQ(c.volume(), 3.);
+    // each of the 2 cables has volume 2., and the soma has an awkward area
+    // that isn't a round number
+    EXPECT_EQ(c.area(), 4. + math::area_sphere(soma_radius));
+
+    // construct the graph
+    const auto tree = c.model().tree;
+
+    auto no_parent = tree::no_parent;
+    EXPECT_EQ(tree.num_segments(), 3u);
+    EXPECT_EQ(tree.parent(0), no_parent);
+    EXPECT_EQ(tree.parent(1), 0u);
+    EXPECT_EQ(tree.parent(2), 1u);
+    EXPECT_EQ(tree.num_children(0), 1u);
+    EXPECT_EQ(tree.num_children(1), 1u);
+    EXPECT_EQ(tree.num_children(2), 0u);
+}
+
+TEST(cell, clone)
 {
     using namespace arb;
 
@@ -220,7 +260,7 @@ TEST(cell_type, clone)
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
 
-TEST(cell_type, get_kind)
+TEST(cell, get_kind)
 {
     using namespace arb;
 
