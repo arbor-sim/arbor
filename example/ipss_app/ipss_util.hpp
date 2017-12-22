@@ -4,7 +4,7 @@
 #include <common_types.hpp>
 #include <exception>
 
-#include "miniapp/simple_recipes.hpp"
+#include <tests/simple_recipes.hpp>
 
 #include <ipss_cell_description.hpp>
 #include <ipss_cell_group.hpp>

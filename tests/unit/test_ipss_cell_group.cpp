@@ -3,7 +3,7 @@
 #include <ipss_cell_description.hpp>
 #include <ipss_cell_group.hpp>
 
-#include "miniapp/simple_recipes.hpp"
+#include <tests/simple_recipes.hpp>
 #include <random>
 #include <math.h>
 #include <cmath>
