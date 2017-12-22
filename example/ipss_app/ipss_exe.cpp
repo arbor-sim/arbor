@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     // Get the rate vector from file or use the default
     std::vector<std::pair<arb::time_type, double>> time_rate_pairs;
     if (time_rate_path) {
-        time_rate_pairs = ipss_impl::parse_time_rate_from_path(time_rate_path.get());
+        time_rate_pairs = ipss_impl::parse_time_rate_from_path(time_rate_path.value());
     }
     else {
         time_rate_pairs = ipss_impl::default_time_rate_pairs();
