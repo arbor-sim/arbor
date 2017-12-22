@@ -169,7 +169,7 @@ compartment_model cell::model() const
 {
     compartment_model m;
 
-    m.tree = tree(parents_, false);
+    m.tree = tree(parents_);
     auto counts = compartment_counts();
     m.parent_index = make_parent_index(m.tree, counts);
     m.segment_index = algorithms::make_index(counts);

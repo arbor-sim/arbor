@@ -49,18 +49,8 @@ public:
     }
 
     /// create the tree from a parent_index
-    /// Create the tree from a parent_index.
-    /// The parent_index can be in one of two forms:
-    ///   1) describes connectivity of compartments, from which the tree
-    ///      needs to be derived;
-    ///   2) gives the parent of each segment in the tree.
-    /// There is no way to determine the case from inspection of parent_index alone,
-    /// so the derive_segments parameter determines the case:
-    ///     true:   case 1  (default)
-    ///     false:  case 2
-    //template <typename I>
-    tree(std::vector<int_type> parent_index, bool derive_segments=true) {
-        // validate the inputs
+    tree(std::vector<int_type> parent_index) {
+        // validate the input
         if(!algorithms::is_minimal_degree(parent_index)) {
             throw std::domain_error(
                 "parent index used to build a tree did not satisfy minimal degree ordering"
@@ -70,17 +60,8 @@ public:
         // an empty parent_index implies a single-compartment/segment cell
         EXPECTS(parent_index.size()!=0u);
 
-        if (derive_segments) {
-            auto segment_parents = algorithms::make_parent_index(
-                parent_index, algorithms::branches(parent_index));
-
-            init(segment_parents.size());
-            memory::copy(segment_parents, parents_);
-        }
-        else {
-            init(parent_index.size());
-            memory::copy(parent_index, parents_);
-        }
+        init(parent_index.size());
+        memory::copy(parent_index, parents_);
         parents_[0] = no_parent;
 
         memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);

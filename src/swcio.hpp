@@ -122,7 +122,7 @@ morphology swc_as_morphology(const RandomAccessSequence& swc_records) {
     // The parent of soma must be 0, while in SWC files is -1
     swc_parent_index[0] = 0;
     auto branch_index = algorithms::branches(swc_parent_index); // partitions [0, #records] by branch.
-    auto parent_branch_index = algorithms::make_parent_index(swc_parent_index, branch_index);
+    auto parent_branch_index = algorithms::tree_reduce(swc_parent_index, branch_index);
 
     // sanity check
     EXPECTS(parent_branch_index.size() == branch_index.size() - 1);

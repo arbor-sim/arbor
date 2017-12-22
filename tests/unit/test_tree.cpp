@@ -20,7 +20,7 @@ using namespace arb;
 using int_type = tree::int_type;
 
 
-TEST(tree, from_parent_index) {
+TEST(tree, from_segment_index) {
     auto no_parent = tree::no_parent;
 
     // tree with single branch corresponding to the root node
@@ -35,16 +35,11 @@ TEST(tree, from_parent_index) {
 
     {
         //
-        //        0               0
-        //       / \             / \.
-        //      1   4      =>   1   2
-        //     /     \.
-        //    2       5
-        //   /
-        //  3
+        //     0
+        //    / \.
+        //   1   2
         //
-        std::vector<int_type> parent_index =
-            {0, 0, 1, 2, 0, 4};
+        std::vector<int_type> parent_index = {0, 0, 0};
         tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 3u);
         // the root has 2 children
@@ -55,17 +50,24 @@ TEST(tree, from_parent_index) {
     }
     {
         //
-        //        0               0
-        //       /|\             /|\.
-        //      1 4 6      =>   1 2 3
-        //     /  |  \.
-        //    2   5   7
-        //   /         \.
-        //  3           8
+        //     0-1-2-3
         //
-        std::vector<int_type> parent_index =
-            {0, 0, 1, 2, 0, 4, 0, 6, 7, 8};
-
+        std::vector<int_type> parent_index = {0, 0, 1, 2};
+        tree tree(parent_index);
+        EXPECT_EQ(tree.num_segments(), 4u);
+        // all non-leaf nodes have 1 child
+        EXPECT_EQ(tree.num_children(0), 1u);
+        EXPECT_EQ(tree.num_children(1), 1u);
+        EXPECT_EQ(tree.num_children(2), 1u);
+        EXPECT_EQ(tree.num_children(3), 0u);
+    }
+    {
+        //
+        //     0
+        //    /|\.
+        //   1 2 3
+        //
+        std::vector<int_type> parent_index = {0, 0, 0, 0};
         tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 4u);
         // the root has 3 children
@@ -83,22 +85,13 @@ TEST(tree, from_parent_index) {
     }
     {
         //
-        //        0               0
-        //       /|\             /|\.
-        //      1 4 6      =>   1 2 3
-        //     /  |  \             / \.
-        //    2   5   7           4   5
-        //   /         \.
-        //  3           8
-        //             / \.
-        //            9   11
-        //           /     \.
-        //          10     12
-        //                   \.
-        //                   13
+        //   0
+        //  /|\.
+        // 1 2 3
+        //    / \.
+        //   4   5
         //
-        std::vector<int_type> parent_index =
-            {0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12};
+        std::vector<int_type> parent_index = {0, 0, 0, 0, 3, 3};
         tree tree(parent_index);
         EXPECT_EQ(tree.num_segments(), 6u);
         // the root has 3 children
