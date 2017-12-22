@@ -3,6 +3,17 @@ Inhomogeneous Poisson Spike Source
 
 A cell that spikes with a variable Poisson distribution. The spike rates can be supplied as a list of times and rates. With optionally linear interpolation between the supplied sample points.
 
+Spikes are generated at a configurable sample rate. With a rate that can be
+varied across time. 
+All times supplied to the cell will be 'rounded' to the first higher multiple of
+of the supplied sample_delta.
+When interpolating the rate will be the averaged rate between the
+t and t+1. The return spike time will be t.
+
+The first rate supplied in the time-rate vector should be at or before the
+start time of the cell. The last supplied time-rate will be kept
+until the stop_time of the cell
+
 Configuration is done with the class arb::ipss_cell_description
 
 +---------------+---------------+-----------------------------------------------------------+
@@ -16,7 +27,7 @@ Configuration is done with the class arb::ipss_cell_description
 |               |               |  spike should be emitted                                  |
 +---------------+---------------+-----------------------------------------------------------+
 | rates_per_time|  vector       |  A vector of time-rate pairs defining the time varying    |
-|               |  <float,float>|  spike rate.                                              |
+|               |  <float,double>|  spike rate.                                              |
 +---------------+---------------+-----------------------------------------------------------+
 | interpolate   |  bool         |  Should the values be interpolated between the rates      |
 |               |               |  supplied in the rates_per_time vector                    |
