@@ -152,8 +152,6 @@ def main(path_spikes=None, path_time_rate=None, plot_target=True, interpolate=Tr
     """
     plot_default_curve = True
 
-    print plot_target, interpolate
-
     # If no path supplied 
     if path_spikes == None:
         path_spikes = default_spike_file_path
