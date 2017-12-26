@@ -227,6 +227,15 @@ else()
 endif()
 
 #----------------------------------------------------------
+# Python bindings
+#----------------------------------------------------------
+set(use_python OFF)
+if(ARB_WITH_PYTHON)
+    set(use_python ON)
+    add_definitions(-DARB_HAVE_PYTHON)
+endif()
+
+#----------------------------------------------------------
 # Validation data generation
 #----------------------------------------------------------
 # destination directory for generated data
@@ -291,3 +300,7 @@ add_subdirectory(tests)
 add_subdirectory(example)
 add_subdirectory(lmorpho)
 add_subdirectory(doc)
+if (use_python)
+    add_subdirectory(python)
+endif ()
+
