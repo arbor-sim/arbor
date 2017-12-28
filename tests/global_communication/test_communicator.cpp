@@ -189,7 +189,7 @@ namespace {
             return size_;
         }
 
-        util::unique_any get_cell_description(cell_gid_type) const override {
+        util::any get_cell_description(cell_gid_type) const override {
             return {};
         }
 
@@ -261,7 +261,7 @@ namespace {
             return size_;
         }
 
-        util::unique_any get_cell_description(cell_gid_type) const override {
+        util::any get_cell_description(cell_gid_type) const override {
             return {};
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
