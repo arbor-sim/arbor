@@ -57,7 +57,7 @@ public:
     virtual cell_size_type num_cells() const = 0;
 
     // Cell description type will be specific to cell kind of cell with given gid.
-    virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
+    virtual util::any get_cell_description(cell_gid_type gid) const = 0;
     virtual cell_kind get_cell_kind(cell_gid_type) const = 0;
 
     virtual cell_size_type num_sources(cell_gid_type) const = 0;
