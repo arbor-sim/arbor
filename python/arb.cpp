@@ -1,56 +1,52 @@
+#include <vector>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include <profiling/meter_manager.hpp>
 #include <recipe.hpp>
+#include <rss_cell.hpp>
 
-#include <vector>
+#include "print.hpp"
+#include "recipe.hpp"
 
 namespace pb = pybind11;
 
-namespace arb {
-class py_recipe: public arb::recipe {
-public:
-    using recipe::recipe;
-
-    cell_size_type num_cells() const override {
-        PYBIND11_OVERLOAD_PURE(cell_size_type, recipe, num_cells);
-    }
-
-    // Cell description type will be specific to cell kind of cell with given gid.
-    util::unique_any get_cell_description(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD_PURE(util::unique_any, recipe, get_cell_description);
-    }
-
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        PYBIND11_OVERLOAD_PURE(cell_kind, recipe, get_cell_kind);
-    }
-
-    //cell_size_type num_sources(cell_gid_type) const {return 0;}
-    //cell_size_type num_targets(cell_gid_type) const {return 0;}
-    //cell_size_type num_probes(cell_gid_type) const {return 0;}
-
-    //std::vector<event_generator_ptr> event_generators(cell_gid_type) const {return {};};
-
-    //std::vector<cell_connection> connections_on(cell_gid_type) const {return {};};
-    //probe_info get_probe(cell_member_type probe_id) const {return {};};
-
-    // Global property type will be specific to given cell kind.
-    //util::any get_global_properties(cell_kind) const { return util::any{}; };
-};
-
-} // namespace arb
-
-arb::util::any foo(int val) {
-    return arb::util::any(val);
+template <typename T>
+arb::util::any wrap_any(T value) {
+    return arb::util::any(std::move(value));
 }
 
 PYBIND11_MODULE(arb, m) {
-    m.def("foo", &foo);
-
     //
     // util types
     //
+
+    pb::class_<arb::util::any> any(m, "any");
+    any.def("__str__",  &any_string)
+       .def("__repr__", &any_string);
+
+    pb::register_exception<arb::util::bad_any_cast>(m, "TypeError");
+
+    //
+    // cell types
+    //
+
+    // tell python about the cell_kind enum type
+    pybind11::enum_<arb::cell_kind>(m, "cell_kind")
+        .value("cable1d", arb::cell_kind::cable1d_neuron)
+        .value("regular_spike", arb::cell_kind::regular_spike_source)
+        .value("data_spike", arb::cell_kind::data_spike_source);
+
+    // wrap the regular spike source cell type
+    pb::class_<arb::rss_cell> rss_cell(m, "rss_cell");
+    rss_cell.def(pb::init<>())
+            .def_readwrite("start_time", &arb::rss_cell::start_time)
+            .def_readwrite("period",     &arb::rss_cell::period)
+            .def_readwrite("stop_time",  &arb::rss_cell::stop_time)
+            .def("__str__",  &rss_cell_string)
+            .def("__repr__", &rss_cell_string)
+            .def("wrap", &wrap_any<arb::rss_cell>);
 
     //
     // recipes
@@ -89,12 +85,8 @@ PYBIND11_MODULE(arb, m) {
 
     // wrap meter_report type such that print(meter_report) works
     pb::class_<arb::util::meter_report> meter_report(m, "meter_report");
-    meter_report.def("__str__",
-            [] (const arb::util::meter_report& r) {
-                std::stringstream s;
-                s << r;
-                return s.str();
-            });
+    meter_report.def("__str__", &meter_report_string)
+                .def("__repr__",&meter_report_string);
 
     m.def("make_meter_report", &arb::util::make_meter_report,
           "Generate a meter_report from a set of meters.");
