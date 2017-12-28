@@ -3,6 +3,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <domain_decomposition.hpp>
+#include <load_balance.hpp>
 #include <profiling/meter_manager.hpp>
 #include <recipe.hpp>
 #include <rss_cell.hpp>
@@ -53,13 +55,65 @@ PYBIND11_MODULE(arb, m) {
     //
     pb::class_<arb::recipe, arb::py_recipe> recipe(m, "recipe");
     recipe.def(pb::init<>())
-          .def("num_cells", &arb::recipe::num_cells)
-          .def("get_cell_description", &arb::recipe::get_cell_description)
-          .def("get_cell_kind", &arb::recipe::get_cell_kind);
+          .def("num_cells", &arb::recipe::num_cells,
+               "The number of cells in the model.")
+          .def("get_cell_description", &arb::recipe::get_cell_description,
+               "High level decription of the cell with global identifier gid.")
+          .def("get_cell_kind", &arb::recipe::get_cell_kind,
+               "The cell_kind of cell with global identifier gid.");
 
     //
     // load balancing and domain decomposition
     //
+
+    // tell python about the backend_kind enum type
+    pybind11::enum_<arb::backend_kind>(m, "backend_kind")
+        .value("gpu", arb::backend_kind::gpu)
+        .value("multicore", arb::backend_kind::multicore);
+
+    // group_description wrapper
+    pb::class_<arb::group_description> group_description(m, "group_description");
+    group_description
+        .def(pb::init<arb::cell_kind, std::vector<arb::cell_gid_type>, arb::backend_kind>(),
+            "construct group_description with cell_kind, list of gids, and backend.")
+        .def_readonly("kind", &arb::group_description::kind,
+            "The type of cell in the cell group.")
+        .def_readonly("gids", &arb::group_description::gids,
+            "The gids of the cells in the group in ascending order.")
+        .def_readonly("backend", &arb::group_description::backend,
+            "The hardware backend on which the cell group will run.")
+        .def("__str__",  &group_description_string)
+        .def("__repr__", &group_description_string);
+
+    // domain_decomposition wrapper
+    pb::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition");
+    domain_decomposition
+        .def(pb::init<>())
+        .def("is_local_gid", &arb::domain_decomposition::is_local_gid,
+            "Test if cell with gloabl identifier gid is in a local cell_group")
+        .def_readonly("num_domains", &arb::domain_decomposition::num_domains,
+            "Number of distrubuted domains")
+        .def_readonly("domain_id", &arb::domain_decomposition::domain_id,
+            "The index of the local domain")
+        .def_readonly("num_local_cells", &arb::domain_decomposition::num_local_cells,
+            "Total number of cells in the local domain")
+        .def_readonly("num_global_cells", &arb::domain_decomposition::num_global_cells,
+            "Total number of cells in the global model (sum over all domains)")
+        .def_readonly("groups", &arb::domain_decomposition::groups,
+            "Descriptions of the cell groups on the local domain")
+        .def("__str__",  &domain_decomposition_string)
+        .def("__repr__", &domain_decomposition_string);
+
+        /// Return the domain id of cell with gid.
+        /// Supplied by the load balancing algorithm that generates the domain
+        /// decomposition.
+        //std::function<int(cell_gid_type)> gid_domain;
+
+    // TODO: write guard types for MPI and threading state.
+
+    // TODO: wrap this in a helper function that automatically makes the node description
+    m.def("partition_load_balance", &arb::partition_load_balance,
+        "Simple load balancer.");
 
     //
     // models
