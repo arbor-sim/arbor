@@ -4,6 +4,7 @@
 #include <pybind11/stl.h>
 
 #include <domain_decomposition.hpp>
+#include <model.hpp>
 #include <load_balance.hpp>
 #include <profiling/meter_manager.hpp>
 #include <recipe.hpp>
@@ -19,15 +20,20 @@ arb::util::any wrap_any(T value) {
     return arb::util::any(std::move(value));
 }
 
+// helpful string literals that reduce verbosity
+using namespace pybind11::literals;
+
 PYBIND11_MODULE(arb, m) {
     //
     // util types
     //
 
+    // util::any
     pb::class_<arb::util::any> any(m, "any");
     any.def("__str__",  &any_string)
        .def("__repr__", &any_string);
 
+    // register the bad_any_cast exception as TypeError
     pb::register_exception<arb::util::bad_any_cast>(m, "TypeError");
 
     //
@@ -109,15 +115,41 @@ PYBIND11_MODULE(arb, m) {
         /// decomposition.
         //std::function<int(cell_gid_type)> gid_domain;
 
-    // TODO: write guard types for MPI and threading state.
+    // TODO: write guard types for MPI state.
 
     // TODO: wrap this in a helper function that automatically makes the node description
     m.def("partition_load_balance", &arb::partition_load_balance,
         "Simple load balancer.");
 
+    // node_info which describes the resources on a compute node
+    pb::class_<arb::hw::node_info> node_info(m, "node_info", "Describes the resources on a compute node.");
+    node_info
+        .def(pb::init<>())
+        .def(pb::init<unsigned, unsigned>())
+        .def_readwrite("num_cpu_cores", &arb::hw::node_info::num_cpu_cores, "The number of available CPU cores.")
+        .def_readwrite("num_gpus", &arb::hw::node_info::num_gpus, "The number of available GPUs.")
+        .def("__str__",  &node_info_string)
+        .def("__repr__", &node_info_string);
+
+    // get_node_info
+    m.def("get_node_info", &arb::hw::get_node_info,
+        "Returns a description of the hardware resources available on the host compute node.");
+
     //
     // models
     //
+    pb::class_<arb::model> model(m, "model", "An Arbor model.");
+
+    model
+        .def(pb::init<const arb::recipe&, const arb::domain_decomposition&>())
+        .def("reset", &arb::model::reset,
+            "Reset the model to its initial state to rerun the simulation again.")
+        .def("run", &arb::model::run,
+            "Advance the model state to a future time.", "tfinal"_a, "dt"_a);
+
+        //model(const recipe& rec, const domain_decomposition& decomp);
+        //void reset();
+        //time_type run(time_type tfinal, time_type dt);
 
     //
     // metering

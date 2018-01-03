@@ -11,6 +11,7 @@
 #include <sstream>
 
 #include <domain_decomposition.hpp>
+#include <hardware/node_info.hpp>
 #include <profiling/meter_manager.hpp>
 #include <recipe.hpp>
 #include <rss_cell.hpp>
@@ -104,6 +105,14 @@ std::string domain_decomposition_string(const arb::domain_decomposition& d) {
       << " domain " << d.domain_id << "/" << d.num_domains
       << " cells " << d.num_local_cells << "/" << d.num_global_cells
       << " in " << d.groups.size() << " cell groups]";
+
+    return s.str();
+}
+
+inline
+std::string node_info_string(const arb::hw::node_info& nd) {
+    std::stringstream s;
+    s << "[node_info: " << nd.num_cpu_cores << " cpus; " << nd.num_gpus << " gpus]";
 
     return s.str();
 }

@@ -16,16 +16,18 @@ public:
 
     // Cell description type will be specific to cell kind of cell with given gid.
     util::any get_cell_description(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD_PURE(util::any, recipe, get_cell_description);
+        PYBIND11_OVERLOAD_PURE(util::any, recipe, get_cell_description, gid);
     }
 
-    cell_kind get_cell_kind(cell_gid_type) const override {
-        PYBIND11_OVERLOAD_PURE(cell_kind, recipe, get_cell_kind);
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD_PURE(cell_kind, recipe, get_cell_kind, gid);
     }
 
-    //cell_size_type num_sources(cell_gid_type) const {return 0;}
-    //cell_size_type num_targets(cell_gid_type) const {return 0;}
-    //cell_size_type num_probes(cell_gid_type) const {return 0;}
+    // TODO: the following need to be implemented
+
+    //cell_size_type num_sources(cell_gid_type gid) const {return 0;}
+    //cell_size_type num_targets(cell_gid_type gid) const {return 0;}
+    //cell_size_type num_probes(cell_gid_type gid) const {return 0;}
 
     //std::vector<event_generator_ptr> event_generators(cell_gid_type) const {return {};};
 
