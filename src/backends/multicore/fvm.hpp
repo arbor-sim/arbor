@@ -295,7 +295,7 @@ public:
         // Allocate and initialize state and parameter vectors.
 
         constexpr std::size_t align = data_.alignment();
-        static_assert(align%sizeof(value_type)==0 || sizeof(value_type)%align==0);
+        static_assert(align%sizeof(value_type)==0 || sizeof(value_type)%align==0, "alignment incompatible with value type");
 
         auto stride = math::round_up(width_*sizeof(value_type), align)/sizeof(value_type);
 
