@@ -230,6 +230,7 @@ endif()
 # Python bindings
 #----------------------------------------------------------
 set(use_python OFF)
+option(ARB_WITH_PYTHON "enable python back end" OFF)
 if(ARB_WITH_PYTHON)
     set(use_python ON)
     add_definitions(-DARB_HAVE_PYTHON)

@@ -30,12 +30,12 @@ endif()
 set(PYBIND11_CPP_STANDARD -std=c++11)
 add_subdirectory(pybind11)
 
-pybind11_add_module(arb arb.cpp)
+pybind11_add_module(pyarb arb.cpp)
 
-target_link_libraries(arb LINK_PUBLIC ${ARB_LIBRARIES})
-target_link_libraries(arb LINK_PUBLIC ${EXTERNAL_LIBRARIES})
+target_link_libraries(pyarb LINK_PUBLIC ${ARB_LIBRARIES})
+target_link_libraries(pyarb LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
 if(ARB_WITH_MPI)
-    target_link_libraries(arb LINK_PUBLIC ${MPI_C_LIBRARIES})
-    set_property(TARGET arb APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
+    target_link_libraries(pyarb LINK_PUBLIC ${MPI_C_LIBRARIES})
+    set_property(TARGET pyarb APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 endif()

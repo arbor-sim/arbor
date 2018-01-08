@@ -32,27 +32,42 @@ std::string demangle(const char* mangled) {
 }
 
 inline
+std::string cell_member_string(arb::cell_member_type m) {
+    std::stringstream s;
+    s << "<cell_member: gid " << m.gid << ", index " << m.index << ">";
+    return s.str();
+}
+
+inline
+std::string spike_string(arb::spike sp) {
+    std::stringstream s;
+    s << "<spike: " << sp.source.gid << ":" << sp.source.index
+      << " @ " << sp.time << " ms>";
+    return s.str();
+}
+
+inline
 std::string any_string(const arb::util::any& a) {
     if (a.has_value()) {
-        return std::string("[Arbor any: ") + demangle(a.type().name()) + "]";
+        return std::string("<any: ") + demangle(a.type().name()) + ">";
     }
-    return "[Arbor any: empty]";
+    return "<any: empty>";
 }
 
 inline
 std::string meter_report_string(const arb::util::meter_report& r) {
     std::stringstream s;
-    s << "Arbor meter report:\n";
+    s << "meter report:\n";
     s << r;
     return s.str();
 }
 
 inline
 std::string rss_cell_string(const arb::rss_cell& c) {
-    return "[regular spiking cell: "
+    return "<regular spiking cell: "
          "from " + std::to_string(c.start_time)
         +" to "  + std::to_string(c.stop_time)
-        +" by "  + std::to_string(c.period) +"]";
+        +" by "  + std::to_string(c.period) +">";
 }
 
 const char* cell_kind_string(arb::cell_kind k) {
@@ -81,7 +96,7 @@ inline
 std::string group_description_string(const arb::group_description& g) {
     std::stringstream s;
     const auto ncells = g.gids.size();
-    s << "[group_description: "
+    s << "<group_description: "
       << ncells << " " << cell_kind_string(g.kind)
       << " cells on " << backend_kind_string(g.backend)
       << " gids {";
@@ -101,10 +116,11 @@ std::string group_description_string(const arb::group_description& g) {
 inline
 std::string domain_decomposition_string(const arb::domain_decomposition& d) {
     std::stringstream s;
-    s << "[domain_description: "
-      << " domain " << d.domain_id << "/" << d.num_domains
-      << " cells " << d.num_local_cells << "/" << d.num_global_cells
-      << " in " << d.groups.size() << " cell groups]";
+    s << "<domain_description:"
+      << " domain " << d.domain_id << " ∈ [0," << d.num_domains << "); "
+      << d.num_local_cells << " local cells in "
+      << d.groups.size() << " cell groups; "
+      << d.num_global_cells << " global cells>";
 
     return s.str();
 }
@@ -112,7 +128,7 @@ std::string domain_decomposition_string(const arb::domain_decomposition& d) {
 inline
 std::string node_info_string(const arb::hw::node_info& nd) {
     std::stringstream s;
-    s << "[node_info: " << nd.num_cpu_cores << " cpus; " << nd.num_gpus << " gpus]";
+    s << "<node_info: " << nd.num_cpu_cores << " cpus; " << nd.num_gpus << " gpus>";
 
     return s.str();
 }

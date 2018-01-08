@@ -20,10 +20,62 @@ arb::util::any wrap_any(T value) {
     return arb::util::any(std::move(value));
 }
 
+struct spike_recorder {
+    using f = arb::model::spike_export_function;
+    using spike_vec = std::vector<arb::spike>;
+    spike_vec spike_store;
+
+    f callback() {
+        return [&](const spike_vec& spikes) {
+            spike_store.insert(spike_store.end(), spikes.begin(), spikes.end());
+        };
+    }
+};
+
+std::unique_ptr<spike_recorder> make_spike_recorder(arb::model& m) {
+    auto r = arb::util::make_unique<spike_recorder>();
+    m.set_global_spike_callback(r->callback());
+    return r;
+}
+
 // helpful string literals that reduce verbosity
 using namespace pybind11::literals;
 
-PYBIND11_MODULE(arb, m) {
+PYBIND11_MODULE(pyarb, m) {
+    //
+    // common types
+    //
+
+    pb::class_<arb::cell_member_type> cell_member(m, "cell_member",
+        "For global identification of an item of cell local data.\n\n"
+        "Items of cell_member_type must:\n"
+        "(1) be associated with a unique cell, identified by the member gid;\n"
+        "(2) identify an item within a cell-local collection by the member index.\n");
+
+    cell_member
+        .def(pb::init<>())
+        .def_readwrite("index", &arb::cell_member_type::index,
+            "Cell-local index of the item.")
+        .def_readwrite("gid",   &arb::cell_member_type::gid,
+            "The global identifier of a cell.")
+        .def("__str__",  &cell_member_string)
+        .def("__repr__", &cell_member_string);
+
+    // spike recording
+    pb::class_<spike_recorder> spike_recorder(m, "spike_recorder");
+    spike_recorder
+        .def(pb::init<>())
+        .def_readonly("spikes", &spike_recorder::spike_store);
+    m.def("make_spike_recorder", &make_spike_recorder);
+
+    pb::class_<arb::spike> spike(m, "spike");
+    spike
+        .def(pb::init<>())
+        .def_readwrite("source", &arb::spike::source)
+        .def_readwrite("time", &arb::spike::time)
+        .def("__str__",  &spike_string)
+        .def("__repr__", &spike_string);
+
     //
     // util types
     //
@@ -53,19 +105,19 @@ PYBIND11_MODULE(arb, m) {
             .def_readwrite("period",     &arb::rss_cell::period)
             .def_readwrite("stop_time",  &arb::rss_cell::stop_time)
             .def("__str__",  &rss_cell_string)
-            .def("__repr__", &rss_cell_string)
-            .def("wrap", &wrap_any<arb::rss_cell>);
+            .def("__repr__", &rss_cell_string);
 
     //
     // recipes
     //
-    pb::class_<arb::recipe, arb::py_recipe> recipe(m, "recipe");
+    pb::class_<arb::py::recipe, arb::py::recipe_trampoline, std::shared_ptr<arb::py::recipe>>
+        recipe(m, "recipe");
     recipe.def(pb::init<>())
-          .def("num_cells", &arb::recipe::num_cells,
+          .def("num_cells", &arb::py::recipe::num_cells,
                "The number of cells in the model.")
-          .def("get_cell_description", &arb::recipe::get_cell_description,
+          .def("cell_description", &arb::py::recipe::cell_description,
                "High level decription of the cell with global identifier gid.")
-          .def("get_cell_kind", &arb::recipe::get_cell_kind,
+          .def("kind", &arb::py::recipe::kind,
                "The cell_kind of cell with global identifier gid.");
 
     //
@@ -109,25 +161,28 @@ PYBIND11_MODULE(arb, m) {
             "Descriptions of the cell groups on the local domain")
         .def("__str__",  &domain_decomposition_string)
         .def("__repr__", &domain_decomposition_string);
-
-        /// Return the domain id of cell with gid.
-        /// Supplied by the load balancing algorithm that generates the domain
-        /// decomposition.
+        /// TODO: add support for gid->domain id callback
         //std::function<int(cell_gid_type)> gid_domain;
 
     // TODO: write guard types for MPI state.
 
     // TODO: wrap this in a helper function that automatically makes the node description
-    m.def("partition_load_balance", &arb::partition_load_balance,
-        "Simple load balancer.");
+    m.def("partition_load_balance",
+        [](std::shared_ptr<arb::py::recipe>& r, const arb::hw::node_info& ni) {
+            return arb::partition_load_balance(arb::py_recipe_shim(r), ni);
+        },
+        "Simple load balancer.", "recipe"_a, "node"_a);
 
     // node_info which describes the resources on a compute node
-    pb::class_<arb::hw::node_info> node_info(m, "node_info", "Describes the resources on a compute node.");
+    pb::class_<arb::hw::node_info> node_info(m, "node_info",
+        "Describes the resources on a compute node.");
     node_info
         .def(pb::init<>())
         .def(pb::init<unsigned, unsigned>())
-        .def_readwrite("num_cpu_cores", &arb::hw::node_info::num_cpu_cores, "The number of available CPU cores.")
-        .def_readwrite("num_gpus", &arb::hw::node_info::num_gpus, "The number of available GPUs.")
+        .def_readwrite("num_cpu_cores", &arb::hw::node_info::num_cpu_cores,
+                "The number of available CPU cores.")
+        .def_readwrite("num_gpus", &arb::hw::node_info::num_gpus,
+                "The number of available GPUs.")
         .def("__str__",  &node_info_string)
         .def("__repr__", &node_info_string);
 
@@ -141,21 +196,29 @@ PYBIND11_MODULE(arb, m) {
     pb::class_<arb::model> model(m, "model", "An Arbor model.");
 
     model
-        .def(pb::init<const arb::recipe&, const arb::domain_decomposition&>())
+        // A custom constructor that wraps a python recipe with
+        // arb::py_recipe_shim before forwarding it to the arb::recipe constructor.
+        .def(pb::init(
+                [](std::shared_ptr<arb::py::recipe>& r, const arb::domain_decomposition& d) {
+                    return new arb::model(arb::py_recipe_shim(r), d);
+                }),
+                "Initialize the model described by a recipe, with cells and network "
+                "distributed according to decomp.",
+                "recipe"_a, "decomp"_a)
         .def("reset", &arb::model::reset,
-            "Reset the model to its initial state to rerun the simulation again.")
+                pb::call_guard<pb::gil_scoped_release>(),
+                "Reset the model to its initial state to rerun the simulation again.")
         .def("run", &arb::model::run,
-            "Advance the model state to a future time.", "tfinal"_a, "dt"_a);
-
-        //model(const recipe& rec, const domain_decomposition& decomp);
-        //void reset();
-        //time_type run(time_type tfinal, time_type dt);
+                pb::call_guard<pb::gil_scoped_release>(),
+                "Advance the model state to time tfinal, in time steps of size dt.",
+                "tfinal"_a, "dt"_a);
 
     //
     // metering
     //
     pb::class_<arb::util::measurement> measurement(m, "measurement",
-             "Describes the recording of a single statistic over the course of a simulation,\ngathered by the meter_manager.");
+             "Describes the recording of a single statistic over the course of a simulation,\n"
+             "gathered by the meter_manager.");
     measurement.def_readwrite("name", &arb::util::measurement::name,
                     "Descriptive label of the measurement, e.g. 'wall time' or 'memory'.")
                .def_readwrite("units", &arb::util::measurement::units,
