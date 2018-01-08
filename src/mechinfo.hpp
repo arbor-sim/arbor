@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <ion.hpp>
+#include <util/enumhash.hpp>
 
 namespace arb {
 
@@ -69,7 +70,7 @@ struct mechanism_info {
     std::unordered_map<std::string, mechanism_field_spec> state;
 
     // Ion dependencies.
-    std::unordered_map<ionKind, ion_dependency> ions;
+    std::unordered_map<ionKind, ion_dependency, util::enum_hash> ions;
 
     mechanism_fingerprint fingerprint;
 };

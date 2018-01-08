@@ -38,7 +38,7 @@ protected:
     std::size_t object_sizeof() const override { return sizeof(*this); }
 
     mechanism_field_table field_table() {
-        return {
+        return mechanism_field_table{
             {"delay", &delay, 0},
             {"duration", &duration, 0},
             {"amplitude", &amplitude, 0}

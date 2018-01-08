@@ -7,6 +7,7 @@
 #include <mechinfo.hpp>
 #include <mechcat.hpp>
 #include <util/deduce_return.hpp>
+#include <util/enumhash.hpp>
 #include <util/span.hpp>
 
 namespace arb {
@@ -117,7 +118,7 @@ struct fvm_mechanism_data {
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
 
     // Ion config, indexed by ionKind.
-    std::unordered_map<ionKind, fvm_ion_config> ions;
+    std::unordered_map<ionKind, fvm_ion_config, util::enum_hash> ions;
 
     // Total number of targets (point-mechanism points)
     std::size_t ntarget = 0;
