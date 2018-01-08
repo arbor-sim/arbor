@@ -1,14 +1,18 @@
 set(BASE_SOURCES
     backends/multicore/fvm.cpp
+    backends/multicore/stimulus.cpp
+    builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
     cell.cpp
     event_binner.cpp
+    fvm_layout.cpp
     hardware/affinity.cpp
     hardware/gpu.cpp
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
+    mechcat.cpp
     merge_events.cpp
     model.cpp
     morphology.cpp
@@ -23,7 +27,6 @@ set(BASE_SOURCES
     util/debug.cpp
     util/hostname.cpp
     util/path.cpp
-    util/prefixbuf.cpp
     util/unwind.cpp
 )
 set(CUDA_SOURCES

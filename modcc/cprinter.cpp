@@ -63,7 +63,7 @@ std::string CPrinter::emit_source() {
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    for(auto& ion: module_->neuron_block().ions) {
+    for(auto& ion: module_->ion_deps()) {
         auto tname = "Ion" + ion.name;
         text_.add_line("struct " + tname + " {");
         text_.increase_indentation();
@@ -125,12 +125,12 @@ std::string CPrinter::emit_source() {
     text_.add_line("// to per-compartment current in nA");
     text_.add_line("if (weights.size()) {");
     text_.increase_indentation();
-    text_.add_line("memory::copy(weights, weights_(0, size()));");
+    text_.add_line("memory::copy(weights, weight_(0, size()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line("else {");
     text_.increase_indentation();
-    text_.add_line("memory::fill(weights_, 1.0);");
+    text_.add_line("memory::fill(weight_, 1.0);");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -164,7 +164,7 @@ std::string CPrinter::emit_source() {
     text_.increase_indentation();
     text_.add_line("auto s = std::size_t{0};");
     text_.add_line("s += data_.size()*sizeof(value_type);");
-    for(auto& ion: module_->neuron_block().ions) {
+    for(auto& ion: module_->ion_deps()) {
         text_.add_line("s += ion_" + ion.name + ".memory();");
     }
     text_.add_line("return s;");
@@ -192,7 +192,7 @@ std::string CPrinter::emit_source() {
     // Implement `set_weights` method.
     text_.add_line("void set_weights(array&& weights) override {");
     text_.increase_indentation();
-    text_.add_line("memory::copy(weights, weights_(0, size()));");
+    text_.add_line("memory::copy(weights, weight_(0, size()));");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -319,7 +319,7 @@ std::string CPrinter::emit_source() {
             text_.add_line("for (size_type i_ = 0; i_ < n_; ++i_) {");
             text_.increase_indentation();
             text_.add_line("// 1/10 magic number due to unit normalisation");
-            text_.add_line(src+"_out_[i_] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
+            text_.add_line(src+"_out_[i_] += value_type(0.1)*weight_[i_]*"+src+"[i_];");
             text_.decrease_indentation(); text_.add_line("}");
         }
         text_.decrease_indentation(); text_.add_line("}");
@@ -369,7 +369,7 @@ std::string CPrinter::emit_source() {
     text_.decrease_indentation();
     text_.add_line("};");
     text_.add_line();
-    text_.add_line("auto* info = util::table_lookup(field_tbl, id);");
+    text_.add_line("auto* info = util::seq_lookup(field_tbl, id);");
     text_.add_line("return info? util::just(*info): util::nullopt;");
     text_.decrease_indentation();
     text_.add_line("}");
@@ -391,7 +391,7 @@ std::string CPrinter::emit_source() {
         text_.decrease_indentation();
         text_.add_line("};");
         text_.add_line();
-        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("auto* pptr = util::seq_lookup(field_tbl, id);");
         text_.add_line("return pptr? static_cast<view base::*>(*pptr): nullptr;");
         text_.decrease_indentation();
         text_.add_line("}");
@@ -410,7 +410,7 @@ std::string CPrinter::emit_source() {
         text_.decrease_indentation();
         text_.add_line("};");
         text_.add_line();
-        text_.add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        text_.add_line("auto* pptr = util::seq_lookup(field_tbl, id);");
         text_.add_line("return pptr? static_cast<value_type base::*>(*pptr): nullptr;");
         text_.decrease_indentation();
         text_.add_line("}");
@@ -471,7 +471,7 @@ void CPrinter::emit_headers() {
     text_.add_line("#include <backends/event.hpp>");
     text_.add_line("#include <backends/multi_event_stream_state.hpp>");
     text_.add_line("#include <util/pprintf.hpp>");
-    text_.add_line("#include <util/simple_table.hpp>");
+    text_.add_line("#include <util/maputil.hpp>");
     text_.add_line();
 }
 
@@ -496,9 +496,12 @@ void CPrinter::visit(Symbol *e) {
 void CPrinter::visit(LocalVariable *e) {
     std::string const& name = e->name();
     text_ << name;
+/*
     if(is_ghost_local(e)) {
+        std::cerr << "WOOT! ghost local " << name << "\n";
         text_ << "[j_]";
     }
+*/
 }
 
 void CPrinter::visit(NumberExpression *e) {
@@ -517,10 +520,6 @@ void CPrinter::visit(VariableExpression *e) {
 }
 
 void CPrinter::visit(IndexedVariable *e) {
-    text_ << e->index_name() << "[i_]";
-}
-
-void CPrinter::visit(CellIndexedVariable *e) {
     text_ << e->index_name() << "[i_]";
 }
 
@@ -652,10 +651,7 @@ void CPrinter::visit(APIMethod *e) {
             text_.add_gutter();
             text_ << "auto " + index_name + " = ";
 
-            if(external->is_cell_indexed_variable()) {
-                text_ << "util::indirect_view(util::indirect_view(" + index_name + "_, vec_ci_), node_index_);\n";
-            }
-            else if(external->is_ion()) {
+            if(external->is_ion()) {
                 auto channel = external->ion_channel();
                 auto iname = ion_store(channel);
                 text_ << "util::indirect_view(" << iname << "." << name << ", " << ion_store(channel) << ".index);\n";

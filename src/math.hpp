@@ -80,6 +80,20 @@ int signum(T x) {
     return (x>T(0)) - (x<T(0));
 }
 
+// Return r, the smallest magnitude multiple of b such that
+// v lies between 0 and r inclusive.
+template <
+    typename T,
+    typename U,
+    typename C = typename std::common_type<T, U>::type,
+    bool is_signed = std::is_signed<C>::value
+>
+C round_up(T v, U base) {
+    C m = v%base;
+    C abs_base = is_signed? std::abs(base): base;
+    return v-m+signum(m)*abs_base;
+}
+
 // Return minimum of the two values
 template <typename T>
 T min(const T& lhs, const T& rhs) {

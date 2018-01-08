@@ -176,16 +176,18 @@ auto canonical_view(const Seq& s) ->
 // iterators. Note: O(N) behaviour with forward iterator ranges or sentinel-terminated ranges.
 
 template <typename Seq>
-auto strict_view(Seq& s) -> range<decltype(std::begin(s))>
+auto strict_view(Seq&& s) -> range<decltype(std::begin(s))>
 {
-    return make_range(std::begin(s), std::next(util::upto(std::begin(s), std::end(s))));
+    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
 }
 
+#if 0
 template <typename Seq>
 auto strict_view(const Seq& s) -> range<decltype(std::begin(s))>
 {
-    return make_range(std::begin(s), std::next(util::upto(std::begin(s), std::end(s))));
+    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
 }
+#endif
 
 } // namespace util
 } // namespace arb

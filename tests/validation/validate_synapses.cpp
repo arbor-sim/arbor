@@ -1,6 +1,5 @@
 #include <cell.hpp>
 #include <cell_group.hpp>
-#include <fvm_multicell.hpp>
 #include <hardware/node_info.hpp>
 #include <hardware/gpu.hpp>
 #include <json/json.hpp>
@@ -38,7 +37,7 @@ void run_synapse_test(
     };
 
     cell c = make_cell_ball_and_stick(false); // no stimuli
-    mechanism_spec syn_default(syn_type);
+    mechanism_desc syn_default(syn_type);
     c.add_synapse({1, 0.5}, syn_default);
 
     // injected spike events

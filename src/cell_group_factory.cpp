@@ -4,7 +4,7 @@
 #include <cell_group.hpp>
 #include <domain_decomposition.hpp>
 #include <dss_cell_group.hpp>
-#include <fvm_multicell.hpp>
+#include <fvm_lowered_cell.hpp>
 #include <mc_cell_group.hpp>
 #include <recipe.hpp>
 #include <rss_cell_group.hpp>
@@ -12,8 +12,8 @@
 
 namespace arb {
 
-using gpu_fvm_cell = mc_cell_group<fvm::fvm_multicell<gpu::backend>>;
-using mc_fvm_cell = mc_cell_group<fvm::fvm_multicell<multicore::backend>>;
+using gpu_fvm_cell = mc_cell_group<fvm_lowered_cell<gpu::backend>>;
+using mc_fvm_cell = mc_cell_group<fvm_lowered_cell<multicore::backend>>;
 
 cell_group_ptr cell_group_factory(const recipe& rec, const group_description& group) {
     switch (group.kind) {

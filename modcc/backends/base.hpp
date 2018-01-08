@@ -7,6 +7,7 @@
 #include <functional>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 #include "token.hpp"
 #include "textbuffer.hpp"
@@ -42,7 +43,6 @@ arg_emitter(const T& arg) {
 static operand_fn_t arg_emitter(const operand_fn_t& arg) {
     return arg;
 }
-
 
 template<simdKind Arch>
 struct simd_intrinsics {

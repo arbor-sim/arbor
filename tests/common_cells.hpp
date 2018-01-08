@@ -258,7 +258,7 @@ inline cell make_cell_simple_cable(bool with_stim = true) {
     double gbar = 0.000025;
     double I = 0.1;
 
-    mechanism_spec pas("pas");
+    mechanism_desc pas("pas");
     pas["g"] = gbar;
 
     for (auto& seg: c.segments()) {

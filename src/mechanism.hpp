@@ -1,180 +1,99 @@
 #pragma once
 
-#include <algorithm>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <backends/fvm_types.hpp>
-#include <backends/event.hpp>
-#include <backends/multi_event_stream_state.hpp>
 #include <ion.hpp>
-#include <util/indirect.hpp>
-#include <util/meta.hpp>
-#include <util/make_unique.hpp>
+#include <mechinfo.hpp>
 
 namespace arb {
 
-struct field_spec {
-    enum field_kind {
-        parameter, // defined in 'PARAMETER' block and a 'RANGE' variable.
-        global,    // defined in 'PARAMETER' block and a 'GLOBAL' variable.
-        state,     // defined in 'STATE' block; run-time, read only values.
-    };
-    enum field_kind kind = parameter;
-
-    std::string units;
-
-    fvm_value_type default_value = 0;
-    fvm_value_type lower_bound = std::numeric_limits<fvm_value_type>::lowest();
-    fvm_value_type upper_bound = std::numeric_limits<fvm_value_type>::max();
-
-    // Until C++14, we need a ctor to provide default values instead of using
-    // default member initializers and aggregate initialization.
-    field_spec(
-        enum field_kind kind = parameter,
-        std::string units = "",
-        fvm_value_type default_value = 0.,
-        fvm_value_type lower_bound = std::numeric_limits<fvm_value_type>::lowest(),
-        fvm_value_type upper_bound = std::numeric_limits<fvm_value_type>::max()
-     ):
-        kind(kind), units(units), default_value(default_value), lower_bound(lower_bound), upper_bound(upper_bound)
-    {}
-};
-
-
 enum class mechanismKind {point, density};
 
-/// The mechanism type is templated on a memory policy type.
-/// The only difference between the abstract definition of a mechanism on host
-/// or gpu is the information is stored, and how it is accessed.
-template <typename Backend>
+class mechanism;
+using mechanism_ptr = std::unique_ptr<mechanism>;
+
+template <typename B> class concrete_mechanism;
+template <typename B>
+using concrete_mech_ptr = std::unique_ptr<concrete_mechanism<B>>;
+
 class mechanism {
 public:
-    struct ion_spec {
-        bool uses;
-        bool write_concentration_in;
-        bool write_concentration_out;
+    mechanism() = default;
+    mechanism(const mechanism&) = delete;
+
+    // Description of layout of mechanism across cell group: used as parameter in
+    // `concrete_mechanism<B>::instantiate` (v.i.)
+    struct layout {
+        std::vector<fvm_size_type> cv;      // Maps in-instance index to CV index.
+        std::vector<fvm_value_type> weight; // Maps in-instance index to compartment contribution.
     };
 
-    using backend = Backend;
+    // Return fingerprint of mechanism dynamics source description for validation/replication.
+    virtual const mechanism_fingerprint& fingerprint() const = 0;
 
-    using value_type = typename backend::value_type;
-    using size_type = typename backend::size_type;
+    // Name as given in mechanism source.
+    virtual std::string internal_name() const { return ""; }
 
-    // define storage types
-    using array = typename backend::array;
-    using iarray = typename backend::iarray;
-
-    using view = typename backend::view;
-    using iview = typename backend::iview;
-
-    using const_view = typename backend::const_view;
-    using const_iview = typename backend::const_iview;
-
-    using ion_type = ion<backend>;
-
-    using deliverable_event_stream_state = multi_event_stream_state<deliverable_event_data>;
-
-    mechanism(size_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, iarray&& node_index):
-        mech_id_(mech_id),
-        vec_ci_(vec_ci),
-        vec_t_(vec_t),
-        vec_t_to_(vec_t_to),
-        vec_dt_(vec_dt),
-        vec_v_(vec_v),
-        vec_i_(vec_i),
-        node_index_(std::move(node_index))
-    {}
-
-    std::size_t size() const {
-        return node_index_.size();
-    }
-
-    const_iview node_index() const {
-        return node_index_;
-    }
-
-    // Save pointers to data for use with GPU-side mechanisms;
-    // TODO: might be able to remove this method if we separate instantiation
-    // from initialization.
-    virtual void set_params() {}
-    virtual void set_weights(array&& weights) {} // override for density mechanisms
-
-    virtual std::string name() const = 0;
-    virtual std::size_t memory() const = 0;
-    virtual void nrn_init()     = 0;
-    virtual void nrn_state()    = 0;
-    virtual void nrn_current()  = 0;
-    virtual void deliver_events(const deliverable_event_stream_state& events) {};
-    virtual ion_spec uses_ion(ionKind) const = 0;
-    virtual void set_ion(ionKind k, ion_type& i, const std::vector<size_type>& index) = 0;
+    // Density or point mechanism?
     virtual mechanismKind kind() const = 0;
 
-    // Used by mechanisms that update ion concentrations.
-    // Calling will copy the concentration, stored as internal state of the
-    // mechanism, to the "global" copy of ion species state.
-    virtual void write_back() {};
+    // Memory use in bytes.
+    virtual std::size_t memory() const = 0;
 
-    // Mechanism instances with different global parameter settings can be distinguished by alias.
-    std::string alias() const {
-        return alias_.empty()? name(): alias_;
-    }
+    // Width of an instance: number of CVs (density mechanism) or sites (point mechanism)
+    // that the mechanism covers.
+    virtual std::size_t size() const = 0;
 
-    void set_alias(std::string alias) {
-        alias_ = std::move(alias);
-    }
+    // Cloning makes a new object of the derived concrete mechanism type, but does not
+    // copy any state.
+    virtual mechanism_ptr clone() const = 0;
 
-    // For non-global fields:
-    virtual view mechanism::* field_view_ptr(const char* id) const { return nullptr; }
-    // For global fields:
-    virtual value_type mechanism::* field_value_ptr(const char* id) const { return nullptr; }
+    // Parameter setting
+    virtual void set_global(const std::string& param, fvm_value_type value) = 0;
 
-    // Convenience wrappers for field access methods with string parameter.
-    view mechanism::* field_view_ptr(const std::string& id) const { return field_view_ptr(id.c_str()); }
-    value_type mechanism::* field_value_ptr(const std::string& id) const { return field_value_ptr(id.c_str()); }
+    // Node indices, weights, ion indices, and non-global parameters can be set post-instantiation:
+    virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
 
-    // net_receive() is used internally by deliver_events(), but
-    // is exposed primarily for unit testing.
-    virtual void net_receive(int, value_type) {};
+    // Simulation interfaces:
+    virtual void nrn_init() = 0;
+    virtual void nrn_state() = 0;
+    virtual void nrn_current() = 0;
+    virtual void deliver_events() {};
+    virtual void write_ions() = 0;
 
     virtual ~mechanism() = default;
 
-    // Mechanism identifier: index into list of mechanisms on cell group.
-    size_type mech_id_;
+    // Per-cell group identifier for an instantiated mechanism.
+    fvm_size_type mechanism_id() const { return mechanism_id_; }
 
-    // Maps compartment index to cell index.
-    const_iview vec_ci_;
-    // Maps cell index to integration start time.
-    const_view vec_t_;
-    // Maps cell index to integration stop time.
-    const_view vec_t_to_;
-    // Maps compartment index to (stop time) - (start time).
-    const_view vec_dt_;
-    // Maps compartment index to voltage.
-    view vec_v_;
-    // Maps compartment index to current.
-    view vec_i_;
-    // Maps mechanism instance index to compartment index.
-    iarray node_index_;
-
-    std::string alias_;
+protected:
+    // Per-cell group identifier for an instantiation of a mechanism; set by
+    // concrete_mechanism<B>::instantiate()
+    fvm_size_type mechanism_id_ = -1;
 };
 
-template <class Backend>
-using mechanism_ptr = std::unique_ptr<mechanism<Backend>>;
+// NOTE TO ME:
+// Generated mechanism code will need to be able to accept (one by one or via a list) the
+// set of ionkind <-> backend-storage associations.
+// Can put the smarts in concrete_mechanism<B>::set_shared_state(B::shared_state&).
+// 
+// Also: net_receive? Can we not expose this?
+// Also: enough introspection to support probe addresses for mechanism data (including state).
 
-template <typename M>
-auto make_mechanism(
-    typename M::size_type mech_id,
-    typename M::const_iview vec_ci,
-    typename M::const_view vec_t,
-    typename M::const_view vec_t_to,
-    typename M::const_view vec_dt,
-    typename M::view vec_v,
-    typename M::view vec_i,
-    typename M::array&& weights,
-    typename M::iarray&& node_indices
-)
-DEDUCED_RETURN_TYPE(util::make_unique<M>(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices)))
+// Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
+// likely via an intermediate class that captures common behaviour for that backend.
+
+template <typename Backend>
+class concrete_mechanism: public mechanism {
+public:
+    using backend = Backend;
+
+    // Instantiation: allocate per-instance state; set views/pointers to shared data.
+    virtual void instantiate(fvm_size_type id, typename backend::shared_state&, const layout&) = 0;
+};
+
 
 } // namespace arb

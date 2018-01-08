@@ -1,36 +1,51 @@
 #pragma once
 
-#include <map>
-#include <mutex>
+#include <unordered_map>
 #include <stdexcept>
-#include <thread>
 #include <vector>
 
 #include <common_types.hpp>
-#include <tree.hpp>
+#include <mechcat.hpp>
 #include <morphology.hpp>
 #include <segment.hpp>
-#include <stimulus.hpp>
-#include <util/debug.hpp>
-#include <util/pprintf.hpp>
+#include <tree.hpp>
 #include <util/rangeutil.hpp>
 
 namespace arb {
 
-/// wrapper around compartment layout information derived from a high level cell
-/// description
-struct compartment_model {
-    arb::tree tree;
-    std::vector<tree::int_type> parent_index;
-    std::vector<tree::int_type> segment_index;
+// Location specification for point processes.
+
+struct segment_location {
+    segment_location(cell_lid_type s, double l):
+        segment(s), position(l)
+    {
+        EXPECTS(position>=0. && position<=1.);
+    }
+
+     bool operator==(segment_location other) const {
+        return segment==other.segment && position==other.position;
+    }
+
+    cell_lid_type segment;
+    double position;
 };
 
-int find_compartment_index(
-    segment_location const& location,
-    compartment_model const& graph
-);
+// Current clamp description for stimulus specification.
+
+struct i_clamp {
+    using value_type = double;
+
+    value_type delay = 0;      // [ms]
+    value_type duration = 0;   // [ms]
+    value_type amplitude = 0;  // [nA]
+
+    i_clamp(value_type delay, value_type duration, value_type amplitude):
+        delay(delay), duration(duration), amplitude(amplitude)
+    {}
+};
 
 // Probe type for cell descriptions.
+
 struct cell_probe_address {
     enum probe_kind {
         membrane_voltage, membrane_current
@@ -42,16 +57,41 @@ struct cell_probe_address {
 
 // Global parameter type for cell descriptions.
 
-struct specialized_mechanism {
-    std::string mech_name; // underlying mechanism
+struct cell_global_properties {
+    const mechanism_catalogue* catalogue = &global_default_catalogue();
 
-    // parameters specify global constants for the specialized mechanism
-    std::vector<std::pair<std::string, double>> parameters;
+    // TODO: consider making some/all of the following parameters
+    // cell or even segment-local.
+    // 
+    // Consider also a model-level dictionary of default values that
+    // can be used to initialize per-cell-kind info?
+    //
+    // Defaults below chosen to match NEURON.
+
+    struct ion_info {
+        int charge;
+        double default_int_concentration;
+        double default_ext_concentration;
+    };
+
+    // Ion species currently limited to just "ca", "na", "k".
+    std::unordered_map<std::string, ion_info> ion_default = {
+        {"ca", { 2, 5e-5, 2.  }},
+        {"na", { 1, 10.,  140.}},
+        {"k",  { 1, 54.4, 2.5 }}
+    };
+
+    double temperature_K = constant::hh_squid_temp; // [K]
+    double init_membrane_potential_mV = -65; // [mV]
 };
 
-struct cell_global_properties {
-    // Mechanisms specialized by mechanism-global parameter settings.
-    std::map<std::string, specialized_mechanism> special_mechs;
+/// Wrapper around compartment layout information derived from a high level cell
+/// description.
+
+struct compartment_model {
+    arb::tree tree;
+    std::vector<tree::int_type> parent_index;
+    std::vector<tree::int_type> segment_index;
 };
 
 // used in constructor below
@@ -68,7 +108,7 @@ public:
 
     struct synapse_instance {
         segment_location location;
-        mechanism_spec mechanism;
+        mechanism_desc mechanism;
     };
 
     struct stimulus_instance {
@@ -83,6 +123,8 @@ public:
 
     // constructor
     cell();
+
+    cell(cell&&) = default;
 
     // Sometimes we really do want a copy (pending big morphology refactor).
     cell(clone_cell_t, const cell& other):
@@ -145,11 +187,9 @@ public:
     /// the total number of compartments over all segments
     size_type num_compartments() const;
 
-    std::vector<segment_ptr> const& segments() const;
-
-    /// return reference to array that enumerates the index of the parent of
-    /// each segment
-    std::vector<index_type> const& segment_parents() const;
+    std::vector<segment_ptr> const& segments() const {
+        return segments_;
+    }
 
     /// return a vector with the compartment count for each segment in the cell
     std::vector<size_type> compartment_counts() const;
@@ -174,7 +214,7 @@ public:
     //////////////////
     // synapses
     //////////////////
-    void add_synapse(segment_location loc, mechanism_spec p)
+    void add_synapse(segment_location loc, mechanism_desc p)
     {
         synapses_.push_back(synapse_instance{loc, std::move(p)});
     }
@@ -197,7 +237,16 @@ public:
         return spike_detectors_;
     }
 
+    // Checks that two cells have the same
+    //  - number and type of segments
+    //  - volume and area properties of each segment
+    //  - number of compartments in each segment
+    // (note: just used for testing: move to test code?)
+    friend bool cell_basic_equality(const cell&, const cell&);
+
 private:
+    void assert_valid_segment(index_type) const;
+
     // storage for connections
     std::vector<index_type> parents_;
 
@@ -213,12 +262,6 @@ private:
     // the sensors
     std::vector<detector_instance> spike_detectors_;
 };
-
-// Checks that two cells have the same
-//  - number and type of segments
-//  - volume and area properties of each segment
-//  - number of compartments in each segment
-bool cell_basic_equality(cell const& lhs, cell const& rhs);
 
 // create a cable by forwarding cable construction parameters provided by the user
 template <typename... Args>

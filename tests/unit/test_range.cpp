@@ -24,7 +24,7 @@
 
 using namespace arb;
 
-using namespace  testing::string_literals;
+using namespace testing::string_literals;
 using testing::null_terminated;
 using testing::nocopy;
 using testing::nomove;
@@ -194,6 +194,40 @@ TEST(range, strictify) {
     EXPECT_TRUE((std::is_same<decltype(ptr_range), util::range<const char *>>::value));
     EXPECT_EQ(cstr, ptr_range.left);
     EXPECT_EQ(cstr+11, ptr_range.right);
+
+    std::vector<double> empty;
+    auto empty_vec_range = util::strict_view(empty);
+    EXPECT_EQ(0u, empty_vec_range.size());
+    EXPECT_EQ(empty_vec_range.begin(), empty_vec_range.end());
+
+}
+
+TEST(range, range_view) {
+    double a[23];
+
+    auto r1 = util::range_view(a);
+    EXPECT_EQ(std::begin(a), r1.left);
+    EXPECT_EQ(std::end(a), r1.right);
+
+    std::list<int> l = {2, 3, 4};
+
+    auto r2 = util::range_view(l);
+    EXPECT_EQ(std::begin(l), r2.left);
+    EXPECT_EQ(std::end(l), r2.right);
+}
+
+TEST(range, range_pointer_view) {
+    double a[23];
+
+    auto r1 = util::range_pointer_view(a);
+    EXPECT_EQ(&a[0], r1.left);
+    EXPECT_EQ(&a[0]+23, r1.right);
+
+    std::vector<int> v = {2, 3, 4};
+
+    auto r2 = util::range_pointer_view(v);
+    EXPECT_EQ(&v[0], r2.left);
+    EXPECT_EQ(&v[0]+3, r2.right);
 }
 
 TEST(range, subrange) {
@@ -465,7 +499,7 @@ TEST(range, sum_by) {
 TEST(range, is_sequence) {
     EXPECT_TRUE(arb::util::is_sequence<std::vector<int>>::value);
     EXPECT_TRUE(arb::util::is_sequence<std::string>::value);
-    EXPECT_TRUE(arb::util::is_sequence<int[8]>::value);
+    EXPECT_TRUE(arb::util::is_sequence<int (&)[8]>::value);
 }
 
 TEST(range, all_of_any_of) {
@@ -499,41 +533,26 @@ TEST(range, all_of_any_of) {
     EXPECT_TRUE(util::any_of(cstr("87654x"), pred));
 }
 
-TEST(range, keys) {
-    {
-        std::map<int, double> map = {{10, 2.0}, {3, 8.0}};
-        std::vector<int> expected = {3, 10};
-        std::vector<int> keys = util::assign_from(util::keys(map));
-        EXPECT_EQ(expected, keys);
-    }
+TEST(range, is_sorted) {
+    // make a C string into a sentinel-terminated range
+    auto cstr = [](const char* s) { return util::make_range(s, null_terminated); };
 
-    {
-        struct cmp {
-            bool operator()(const nocopy<int>& a, const nocopy<int>& b) const {
-                return a.value<b.value;
-            }
-        };
-        std::map<nocopy<int>, double, cmp> map;
-        map.insert(std::pair<nocopy<int>, double>(11, 2.0));
-        map.insert(std::pair<nocopy<int>, double>(2,  0.3));
-        map.insert(std::pair<nocopy<int>, double>(2,  0.8));
-        map.insert(std::pair<nocopy<int>, double>(5,  0.1));
+    std::vector<int> s1 = {1, 2, 2, 3, 4};
+    std::vector<int> s2 = {};
 
-        std::vector<int> expected = {2, 5, 11};
-        std::vector<int> keys;
-        for (auto& k: util::keys(map)) {
-            keys.push_back(k.value);
-        }
-        EXPECT_EQ(expected, keys);
-    }
+    std::vector<int> u1 = {1, 2, 2, 1, 4};
 
-    {
-        std::unordered_multimap<int, double> map = {{3, 0.1}, {5, 0.4}, {11, 0.8}, {5, 0.2}};
-        std::vector<int> expected = {3, 5, 5, 11};
-        std::vector<int> keys = util::assign_from(util::keys(map));
-        util::sort(keys);
-        EXPECT_EQ(expected, keys);
-    }
+    using ivec = std::vector<int>;
+
+    EXPECT_TRUE(util::is_sorted(ivec{}));
+    EXPECT_TRUE(util::is_sorted(ivec({1,2,2,3,4})));
+    EXPECT_FALSE(util::is_sorted(ivec({1,2,2,1,4})));
+
+    EXPECT_TRUE(util::is_sorted(cstr("abccd")));
+    EXPECT_TRUE(util::is_sorted("abccd"_s));
+
+    EXPECT_FALSE(util::is_sorted(cstr("hello")));
+    EXPECT_FALSE(util::is_sorted("hello"_s));
 }
 
 TEST(range, is_sorted_by) {
@@ -617,6 +636,17 @@ TEST(range, is_sorted_by) {
     EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return 2-x; }));
     EXPECT_TRUE(util::is_sorted_by(seq, [](int x) { return x+2; }, std::greater<int>{}));
 }
+
+TEST(range, reverse) {
+    // make a C string into a sentinel-terminated range
+    auto cstr = [](const char* s) { return util::make_range(s, null_terminated); };
+
+    std::string rev;
+    util::assign(rev, util::reverse_view(cstr("hello")));
+
+    EXPECT_EQ("olleh"_s, rev);
+}
+
 
 #ifdef ARB_HAVE_TBB
 

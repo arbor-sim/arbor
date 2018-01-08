@@ -48,9 +48,11 @@ set(TEST_SOURCES
     test_event_generators.cpp
     test_event_queue.cpp
     test_filter.cpp
+    test_fvm_layout.cpp
     test_fvm_multi.cpp
     test_mc_cell_group.cpp
     test_lexcmp.cpp
+    test_maputil.cpp
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
@@ -63,7 +65,6 @@ set(TEST_SOURCES
     test_partition.cpp
     test_path.cpp
     test_point.cpp
-    test_prefixbuf.cpp
     test_probe.cpp
     test_range.cpp
     test_segment.cpp
@@ -73,7 +74,6 @@ set(TEST_SOURCES
     test_spikes.cpp
     test_spike_store.cpp
     test_stats.cpp
-    test_stimulus.cpp
     test_strprintf.cpp
     test_swcio.cpp
     test_synapses.cpp

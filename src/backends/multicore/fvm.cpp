@@ -1,5 +1,6 @@
 #include "fvm.hpp"
 
+#if 0
 #include <mechanisms/multicore/hh_cpu.hpp>
 #include <mechanisms/multicore/pas_cpu.hpp>
 #include <mechanisms/multicore/expsyn_cpu.hpp>
@@ -27,6 +28,6 @@ backend::mech_map_ = {
     { std::string("kamt"),      maker<mechanism_kamt> },
     { std::string("kdrmt"),     maker<mechanism_kdrmt> },
 };
-
 } // namespace multicore
 } // namespace arb
+#endif
