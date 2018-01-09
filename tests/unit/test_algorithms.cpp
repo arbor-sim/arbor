@@ -437,7 +437,7 @@ TEST(algorithms, branches)
         EXPECT_EQ(expected_branches, actual_branches);
 
         auto actual_parent_index =
-            algorithms::make_parent_index(parent_index, actual_branches);
+            algorithms::tree_reduce(parent_index, actual_branches);
         EXPECT_EQ(expected_parent_index, actual_parent_index);
 
         // Check find_branch
@@ -484,7 +484,7 @@ TEST(algorithms, branches)
         EXPECT_EQ(expected_branches, actual_branches);
 
         auto actual_parent_index =
-            algorithms::make_parent_index(parent_index, actual_branches);
+            algorithms::tree_reduce(parent_index, actual_branches);
         EXPECT_EQ(expected_parent_index, actual_parent_index);
     }
 
@@ -508,7 +508,7 @@ TEST(algorithms, branches)
         EXPECT_EQ(expected_branches, actual_branches);
 
         auto actual_parent_index =
-            algorithms::make_parent_index(parent_index, actual_branches);
+            algorithms::tree_reduce(parent_index, actual_branches);
         EXPECT_EQ(expected_parent_index, actual_parent_index);
     }
 
@@ -521,7 +521,7 @@ TEST(algorithms, branches)
         EXPECT_EQ(expected_branches, actual_branches);
 
         auto actual_parent_index =
-            algorithms::make_parent_index(parent_index, actual_branches);
+            algorithms::tree_reduce(parent_index, actual_branches);
         EXPECT_EQ(expected_parent_index, actual_parent_index);
     }
 }
