@@ -39,7 +39,7 @@ ACCESS_BIND(std::vector<arb::mechanism_ptr> fvm_cell::*, private_mechanisms_ptr,
 struct generic_isnan {
     template <typename V>
     bool operator()(V& v) const { return std::isnan(v); }
-} isnan;
+} isnan_;
 
 using namespace arb;
 
@@ -69,9 +69,9 @@ TEST(fvm_lowered, matrix_init)
     auto n = J.size();
     auto& mat = J.state_;
 
-    EXPECT_FALSE(util::any_of(mat.u(1, n), isnan));
-    EXPECT_FALSE(util::any_of(mat.d, isnan));
-    EXPECT_FALSE(util::any_of(J.solution(), isnan));
+    EXPECT_FALSE(util::any_of(mat.u(1, n), isnan_));
+    EXPECT_FALSE(util::any_of(mat.d, isnan_));
+    EXPECT_FALSE(util::any_of(J.solution(), isnan_));
 
     EXPECT_FALSE(util::any_of(mat.u(1, n), ispos));
     EXPECT_FALSE(util::any_of(mat.d, isneg));

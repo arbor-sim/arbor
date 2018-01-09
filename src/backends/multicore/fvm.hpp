@@ -19,6 +19,7 @@
 #include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
+#include <util/xtuple.hpp>
 
 #include <util/debug.hpp>
 
@@ -360,7 +361,7 @@ protected:
     using global_table_entry = std::pair<const char*, value_type*>;
     using mechanism_global_table = std::vector<global_table_entry>;
 
-    using field_table_entry = std::tuple<const char*, view*, value_type>;
+    using field_table_entry = util::xtuple<const char*, view*, value_type>;
     using mechanism_field_table = std::vector<field_table_entry>;
 
     using ion_state_entry = std::pair<ionKind, ion_state*>;

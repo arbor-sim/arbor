@@ -9,6 +9,7 @@
 #include <backends/multicore/fvm.hpp>
 #include <util/optional.hpp>
 #include <util/maputil.hpp>
+#include <util/xtuple.hpp>
 
 #include "common.hpp"
 #include "../test_util.hpp"
@@ -23,7 +24,7 @@ using view = backend::view;
 using const_view = backend::const_view;
 
 // Access to mechanisms protected data:
-using field_table_type = std::vector<std::tuple<const char*, view*, value_type>>;
+using field_table_type = std::vector<util::xtuple<const char*, view*, value_type>>;
 ACCESS_BIND(field_table_type (multicore::mechanism::*)(), field_table_ptr, &multicore::mechanism::field_table)
 
 const view& mechanism_field(std::unique_ptr<multicore::mechanism>& m, const std::string& key) {
