@@ -36,7 +36,7 @@ namespace {
             return size_;
         }
 
-        util::any get_cell_description(cell_gid_type) const override {
+        util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
 

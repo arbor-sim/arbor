@@ -189,7 +189,7 @@ namespace {
             return size_;
         }
 
-        util::any get_cell_description(cell_gid_type) const override {
+        util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
 
@@ -211,10 +211,6 @@ namespace {
                         src, dst,   // end points
                         float(gid), // weight
                         1.0f)};     // delay
-        }
-
-        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-            return {};
         }
 
         probe_info get_probe(cell_member_type) const override {
@@ -261,7 +257,7 @@ namespace {
             return size_;
         }
 
-        util::any get_cell_description(cell_gid_type) const override {
+        util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -284,10 +280,6 @@ namespace {
                 cons.push_back(con);
             }
             return cons;
-        }
-
-        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-            return {};
         }
 
         probe_info get_probe(cell_member_type) const override {

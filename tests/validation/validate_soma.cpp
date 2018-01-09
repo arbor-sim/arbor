@@ -2,7 +2,6 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <fvm_multicell.hpp>
 #include <hardware/gpu.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>

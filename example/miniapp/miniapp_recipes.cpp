@@ -86,7 +86,7 @@ public:
         return ncell_ + 1;  // We automatically add a fake cell to each recipe!
     }
 
-    util::any get_cell_description(cell_gid_type i) const override {
+    util::unique_any get_cell_description(cell_gid_type i) const override {
         // The last 'cell' is a spike source cell. Either a regular spiking
         // or a spikes from file.
         if (i == ncell_) {
@@ -95,7 +95,7 @@ public:
                 return util::any(dss_cell_description(spike_times));
             }
 
-            return util::any(rss_cell{0.0, 0.1, 0.1});
+            return util::unique_any(rss_cell{0.0, 0.1, 0.1});
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
@@ -110,7 +110,7 @@ public:
         EXPECTS(cell.synapses().size()==num_targets(i));
         EXPECTS(cell.detectors().size()==num_sources(i));
 
-        return util::any(std::move(cell));
+        return util::unique_any(std::move(cell));
     }
 
     probe_info get_probe(cell_member_type probe_id) const override {
@@ -174,10 +174,6 @@ public:
             cell_size_type np = pdist_.all_segments? get_morphology(i).components(): 1;
             return np*(pdist_.membrane_voltage+pdist_.membrane_current);
         }
-    }
-
-    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-        return {};
     }
 
 protected:

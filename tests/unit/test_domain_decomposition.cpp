@@ -28,7 +28,7 @@ namespace {
             return size_;
         }
 
-        util::any get_cell_description(cell_gid_type) const override {
+        util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
 
@@ -36,18 +36,6 @@ namespace {
             return gid%2?
                 cell_kind::regular_spike_source:
                 cell_kind::cable1d_neuron;
-        }
-
-        cell_size_type num_sources(cell_gid_type) const override { return 0; }
-        cell_size_type num_targets(cell_gid_type) const override { return 0; }
-        cell_size_type num_probes(cell_gid_type) const override { return 0; }
-
-        std::vector<cell_connection> connections_on(cell_gid_type) const override {
-            return {};
-        }
-
-        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-            return {};
         }
 
         probe_info get_probe(cell_member_type) const override {
