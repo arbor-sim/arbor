@@ -92,7 +92,7 @@ public:
         if (i == ncell_) {
             if (param_.input_spike_path) {
                 auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.value());
-                return util::any(dss_cell_description(spike_times));
+                return util::unique_any(dss_cell_description(spike_times));
             }
 
             return util::unique_any(rss_cell{0.0, 0.1, 0.1});
