@@ -364,8 +364,7 @@ void fvm_lowered_cell<B>::initialize(
             // (NEURON compatibility). F = [mA/cm²] / [A/m²] = 10.
 
             for (auto i: count_along(layout.cv)) {
-                auto cv = layout.cv[i];
-                layout.weight[i] = 10*config.norm_area[cv];
+                layout.weight[i] = 10*config.norm_area[i];
             }
         }
 

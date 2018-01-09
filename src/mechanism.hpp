@@ -75,14 +75,6 @@ protected:
     fvm_size_type mechanism_id_ = -1;
 };
 
-// NOTE TO ME:
-// Generated mechanism code will need to be able to accept (one by one or via a list) the
-// set of ionkind <-> backend-storage associations.
-// Can put the smarts in concrete_mechanism<B>::set_shared_state(B::shared_state&).
-// 
-// Also: net_receive? Can we not expose this?
-// Also: enough introspection to support probe addresses for mechanism data (including state).
-
 // Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
 // likely via an intermediate class that captures common behaviour for that backend.
 
