@@ -159,12 +159,12 @@ PYBIND11_MODULE(pyarb, m) {
             "Total number of cells in the global model (sum over all domains)")
         .def_readonly("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain")
+        .def("gid_domain",
+            [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
+                return d.gid_domain(gid);
+            }, "The domain of cell with global identifier gid.", "gid"_a)
         .def("__str__",  &domain_decomposition_string)
         .def("__repr__", &domain_decomposition_string);
-        /// TODO: add support for gid->domain id callback
-        //std::function<int(cell_gid_type)> gid_domain;
-
-    // TODO: write guard types for MPI state.
 
     // TODO: wrap this in a helper function that automatically makes the node description
     m.def("partition_load_balance",
@@ -202,6 +202,9 @@ PYBIND11_MODULE(pyarb, m) {
                 [](std::shared_ptr<arb::py::recipe>& r, const arb::domain_decomposition& d) {
                     return new arb::model(arb::py_recipe_shim(r), d);
                 }),
+                // Release the python gil, so that callbacks into the python
+                // recipe r don't deadlock.
+                pb::call_guard<pb::gil_scoped_release>(),
                 "Initialize the model described by a recipe, with cells and network "
                 "distributed according to decomp.",
                 "recipe"_a, "decomp"_a)
@@ -240,4 +243,3 @@ PYBIND11_MODULE(pyarb, m) {
     m.def("make_meter_report", &arb::util::make_meter_report,
           "Generate a meter_report from a set of meters.");
 }
-
