@@ -119,9 +119,9 @@ and model size information from the recipe:
 Beware the GIL
 --------------
 
-Recipe code written in Python will be called from multithreaded C++ code
-during model construction. To avoid deadlocks, the global interpreter lock, or
-GIL, must be released when the C++ is called from Python.
+Recipe code written in Python is called from multithreaded C++ code.
+To avoid deadlocks, the global interpreter lock, or GIL, must be released when
+the C++ is called from Python.
 
 Examples of calls where GIL deadlocks might happen include:
 
