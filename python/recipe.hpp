@@ -9,14 +9,15 @@
 
 namespace arb {
 
-// py_recipe is the recipe interface that used by Python.
+namespace py {
+
+// py::recipe is the recipe interface that used by Python.
 // Calls that return generic types return pybind11::object, to avoid
 // having to wrap some C++ types used by the C++ interface (specifically
 // util::any, std::unique_ptr, etc.)
 // For example, requests for cell description return pybind11::object, instead
 // of util::any used by the C++ recipe interface. The py_recipe_shim defined
 // below can unwrap.
-namespace py {
 class recipe {
 public:
     recipe() = default;
@@ -43,20 +44,29 @@ public:
         PYBIND11_OVERLOAD_PURE(cell_kind, recipe, kind, gid);
     }
 };
-}
 
+} // namespace arb::py
+
+// A recipe shim that forwards calls to arb::recipe to a python-side
+// arb::py::recipe implementation, and translates the output of the
+// arb::py::recipe return values to those used by arb::recipe.
+// For example, unwrap cell descriptions stored in PyObject, and rewrap
+// in util::unique_any.
 class py_recipe_shim: public arb::recipe {
+    // pointer to the python recipe implementation
     std::shared_ptr<py::recipe> impl_;
 
 public:
     using recipe::recipe;
 
-    py_recipe_shim(std::shared_ptr<py::recipe> r): impl_(r) {}
+    py_recipe_shim(std::shared_ptr<py::recipe> r): impl_(std::move(r)) {}
 
     cell_size_type num_cells() const override {
         return impl_->num_cells();
     }
 
+    // The py::recipe::cell_decription returns a pybind11::object, that is
+    // unwrapped and copied into a util::unique_any.
     util::any get_cell_description(cell_gid_type gid) const override {
         auto o = impl_->cell_description(gid);
         if (pybind11::isinstance<rss_cell>(o)) {

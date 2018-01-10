@@ -77,18 +77,6 @@ PYBIND11_MODULE(pyarb, m) {
         .def("__repr__", &spike_string);
 
     //
-    // util types
-    //
-
-    // util::any
-    pb::class_<arb::util::any> any(m, "any");
-    any.def("__str__",  &any_string)
-       .def("__repr__", &any_string);
-
-    // register the bad_any_cast exception as TypeError
-    pb::register_exception<arb::util::bad_any_cast>(m, "TypeError");
-
-    //
     // cell types
     //
 
@@ -166,7 +154,9 @@ PYBIND11_MODULE(pyarb, m) {
         .def("__str__",  &domain_decomposition_string)
         .def("__repr__", &domain_decomposition_string);
 
-    // TODO: wrap this in a helper function that automatically makes the node description
+    // partition_load_balancer
+    // The python recipe has to be shimmed for passing to the function that
+    // takes a C++ recipe.
     m.def("partition_load_balance",
         [](std::shared_ptr<arb::py::recipe>& r, const arb::hw::node_info& ni) {
             return arb::partition_load_balance(arb::py_recipe_shim(r), ni);
