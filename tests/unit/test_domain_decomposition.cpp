@@ -38,22 +38,6 @@ namespace {
                 cell_kind::cable1d_neuron;
         }
 
-        cell_size_type num_sources(cell_gid_type) const override { return 0; }
-        cell_size_type num_targets(cell_gid_type) const override { return 0; }
-        cell_size_type num_probes(cell_gid_type) const override { return 0; }
-
-        std::vector<cell_connection> connections_on(cell_gid_type) const override {
-            return {};
-        }
-
-        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-            return {};
-        }
-
-        probe_info get_probe(cell_member_type) const override {
-            throw std::logic_error("no probes");
-        }
-
     private:
         cell_size_type size_;
     };

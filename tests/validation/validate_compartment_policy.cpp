@@ -5,7 +5,6 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <fvm_multicell.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>

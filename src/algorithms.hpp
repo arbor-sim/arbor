@@ -242,9 +242,33 @@ typename C::value_type find_branch(const C& branch_index,
     return it - branch_index.begin() - 1;
 }
 
-
+// Find the reduced form of a tree represented as a parent index.
+// The operation of transforming a tree into a homeomorphic pre-image is called
+// 'reduction'. The 'reduced' tree is the smallest tree that maps into the tree
+// homeomorphically (i.e. preserving labels and child relationships).
+// For example, the tree represented by the following index:
+//      {0, 0, 1, 2, 0, 4, 0, 6, 7, 8, 9, 8, 11, 12}
+// Has reduced form
+//      {0, 0, 0, 0, 3, 3}
+//
+// This transformation can be represented graphically:
+//
+//        0               0
+//       /|\             /|\.
+//      1 4 6      =>   1 2 3
+//     /  |  \             / \.
+//    2   5   7           4   5
+//   /         \.
+//  3           8
+//             / \.
+//            9   11
+//           /     \.
+//          10     12
+//                   \.
+//                   13
+//
 template<typename C>
-std::vector<typename C::value_type> make_parent_index(
+std::vector<typename C::value_type> tree_reduce(
     const C& parent_index, const C& branch_index)
 {
     static_assert(

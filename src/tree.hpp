@@ -4,18 +4,18 @@
 #include <cassert>
 #include <numeric>
 #include <vector>
+
+#include <algorithms.hpp>
+#include <common_types.hpp>
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
-#include <algorithms.hpp>
-
 namespace arb {
 
-template <typename Int, typename Size = std::size_t>
 class tree {
 public:
-    using int_type = Int;
-    using size_type = Size;
+    using int_type   = cell_lid_type;
+    using size_type  = cell_local_size_type;
 
     using iarray = memory::host_vector<int_type>;
     using view_type  = typename iarray::view_type;
@@ -34,42 +34,37 @@ public:
 
     tree& operator=(tree const& other) {
         data_ = other.data_;
-        set_ranges(other.num_nodes());
+        set_ranges(other.num_segments());
         return *this;
     }
 
     // copy constructors take advantage of the assignment operators
     // defined above
-    tree(tree const& other)
-    {
+    tree(tree const& other) {
         *this = other;
     }
 
-    tree(tree&& other)
-    {
+    tree(tree&& other) {
         *this = std::move(other);
     }
 
-    /// create the tree from a parent_index
-    template <typename I>
-    tree(std::vector<I> const& parent_index)
-    {
-        // validate the inputs
+    /// Create the tree from a parent index that lists the parent segment
+    /// of each segment in a cell tree.
+    tree(std::vector<int_type> parent_index) {
+        // validate the input
         if(!algorithms::is_minimal_degree(parent_index)) {
             throw std::domain_error(
                 "parent index used to build a tree did not satisfy minimal degree ordering"
             );
         }
 
-        auto new_parent_index = algorithms::make_parent_index(
-            parent_index, algorithms::branches(parent_index));
+        // an empty parent_index implies a single-compartment/segment cell
+        EXPECTS(parent_index.size()!=0u);
 
-        init(new_parent_index.size());
-        //parents_(memory::all) = new_parent_index;
-        memory::copy(new_parent_index, parents_);
+        init(parent_index.size());
+        memory::copy(parent_index, parents_);
         parents_[0] = no_parent;
 
-        //child_index_(memory::all) = algorithms::make_index(algorithms::child_count(parents_));
         memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
 
         std::vector<int_type> pos(parents_.size(), 0);
@@ -88,8 +83,8 @@ public:
         return child_index_[b+1] - child_index_[b];
     }
 
-    size_type num_nodes() const {
-        // the number of nodes is the size of the child index minus 1
+    size_type num_segments() const {
+        // the number of segments/nodes is the size of the child index minus 1
         // ... except for the case of an empty tree
         auto sz = static_cast<size_type>(child_index_.size());
         return sz ? sz - 1 : 0;
@@ -129,7 +124,7 @@ public:
     }
 
     iarray change_root(size_t b) {
-        assert(b<num_nodes());
+        assert(b<num_segments());
 
         // no need to rebalance if the root node has been requested
         if(b==0) {
@@ -138,7 +133,7 @@ public:
 
         // create new tree with memory allocated
         tree new_tree;
-        new_tree.init(num_nodes());
+        new_tree.init(num_segments());
 
         // add the root node
         new_tree.parents_[0] = no_parent;
@@ -147,7 +142,7 @@ public:
         // allocate space for the permutation vector that
         // will represent the permutation performed on the branches
         // during the rebalancing
-        iarray p(num_nodes(), -1);
+        iarray p(num_segments(), -1);
 
         // recersively rebalance the tree
         new_tree.add_children(0, b, 0, p, *this);
@@ -161,7 +156,7 @@ public:
         // copy in new data with a move because the information in
         // new_tree is not kept
         std::swap(data_, new_tree.data_);
-        set_ranges(new_tree.num_nodes());
+        set_ranges(new_tree.num_segments());
 
         return p;
     }
@@ -287,14 +282,14 @@ private:
     view_type parents_    = data_(0, 0);
 };
 
-template <typename IntT, typename SizeT, typename C>
-std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
+template <typename C>
+std::vector<tree::int_type> make_parent_index(tree const& t, C const& counts)
 {
     using util::make_span;
-    using int_type = typename tree<IntT, SizeT>::int_type;
-    constexpr auto no_parent = tree<IntT, SizeT>::no_parent;
+    using int_type = tree::int_type;
+    constexpr auto no_parent = tree::no_parent;
 
-    if (!algorithms::is_positive(counts) || counts.size() != t.num_nodes()) {
+    if (!algorithms::is_positive(counts) || counts.size() != t.num_segments()) {
         throw std::domain_error(
             "make_parent_index requires one non-zero count per segment"
         );
@@ -303,7 +298,7 @@ std::vector<IntT> make_parent_index(tree<IntT, SizeT> const& t, C const& counts)
     auto num_compartments = index.back();
     std::vector<int_type> parent_index(num_compartments);
     int_type pos = 0;
-    for (int_type i : make_span(0, t.num_nodes())) {
+    for (int_type i : make_span(0, t.num_segments())) {
         // get the parent of this segment
         // taking care for the case where the root node has -1 as its parent
         auto parent = t.parent(i);
