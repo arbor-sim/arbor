@@ -1,0 +1,12 @@
+Work left to do in Python wrapper, in no particular order of priority:
+
+* defining connections to build networks
+* setting probes and samplers
+* plotting/viewing/printing sampler outputs
+* wrapper for cable cell definitions
+* event_generator wrapper
+* expose more of model querying interface
+* GPU support
+* MPI support
+* ring network example
+* all to all network example
