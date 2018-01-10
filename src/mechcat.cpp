@@ -95,7 +95,11 @@ void mechanism_catalogue::remove(const std::string& name) {
     do {
         n_delete = 0;
         for (auto it = derived_map_.begin(); it!=derived_map_.end(); ) {
-            if (!derived_map_.count(it->second.parent)) {
+            const auto& parent = it->second.parent;
+            if (info_map_.count(parent) || derived_map_.count(parent)) {
+                ++it;
+            }
+            else {
                 derived_map_.erase(it++);
                 ++n_delete;
             }

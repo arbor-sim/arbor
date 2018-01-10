@@ -113,7 +113,7 @@ TEST(fvm_lowered, matrix_init)
     EXPECT_FALSE(util::any_of(mat.d, isneg));
 }
 
-TEST(fvm_multi, target_handles) {
+TEST(fvm_lowered, target_handles) {
     using namespace arb;
 
     arb::cell cells[] = {
@@ -165,7 +165,7 @@ TEST(fvm_multi, target_handles) {
     EXPECT_EQ(1u, targets[3].cell_index);
 }
 
-TEST(fvm_multi, stimulus) {
+TEST(fvm_lowered, stimulus) {
     // Ball-and-stick with two stimuli:
     //
     //           |stim0 |stim1
@@ -238,7 +238,7 @@ TEST(fvm_multi, stimulus) {
 
 // Test derived mechanism behaviour.
 
-TEST(fvm_multi, derived_mechs) {
+TEST(fvm_lowered, derived_mechs) {
     // Create ball and stick cells with the 'test_kin1' mechanism, which produces
     // a voltage-independent current density of the form a + exp(-t/tau) as a function
     // of time t.
@@ -346,7 +346,7 @@ TEST(fvm_multi, derived_mechs) {
 
 // Test area-weighted linear combination of ion species concentrations
 
-TEST(fvm_multi, weighted_write_ion) {
+TEST(fvm_lowered, weighted_write_ion) {
     // Create a cell with 4 segments (same morphopology as in fvm_layout.ion_weights test):
     //   - Soma (segment 0) plus three dendrites (1, 2, 3) meeting at a branch point.
     //   - Dendritic segments are given 1 compartments each.
