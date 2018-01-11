@@ -4,6 +4,7 @@
 #include <cstring>
 #include <iterator>
 #include <utility>
+#include <type_traits>
 
 #include <util/deduce_return.hpp>
 #include <util/meta.hpp>
@@ -48,8 +49,6 @@ struct is_associative_container<Seq, void_t<impl::assoc_test<Seq>>>: impl::assoc
 // Returns optional<value> or optional<value&>. A reference optional is returned if:
 //   1. the sequence is an lvalue reference, and
 //   2. if the deduced return type from calling `get` on an entry from the sequence is an lvalue reference.
-//
-// TODO: unit tests
 
 namespace impl {
     // import std::get for ADL below.
@@ -118,8 +117,7 @@ auto value_by_key(C&& c, const Key& k)
 
 // Find the index into an ordered sequence of a value by binary search;
 // returns optional<size_type> for the size_type associated with the sequence.
-// (Note: this is pretty much all we use algorthim::binary_find for; TODO: rejig
-// unit tests to suit)
+// (Note: this is pretty much all we use algorthim::binary_find for.) 
 
 template <typename C, typename Key>
 optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key) {
