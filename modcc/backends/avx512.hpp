@@ -21,7 +21,9 @@ struct simd_intrinsics<simdKind::avx512> {
     }
 
     static std::string emit_headers() {
-        return "#include <immintrin.h>";
+        return
+            "#include <immintrin.h>\n"
+            "#include <backends/multicore/intrin.hpp>";
     };
 
     static std::string emit_simd_width() {
@@ -29,7 +31,7 @@ struct simd_intrinsics<simdKind::avx512> {
     }
 
     static std::string emit_value_type() {
-        return "__m512d";
+        return "vecd_avx512";
     }
 
     static std::string emit_index_type() {
@@ -41,19 +43,25 @@ struct simd_intrinsics<simdKind::avx512> {
                                const T1& arg1, const T2& arg2) {
         switch (op) {
         case tok::plus:
-            tb << "_mm512_add_pd(";
+            tb << "add(";
             break;
         case tok::minus:
-            tb << "_mm512_sub_pd(";
+            tb << "sub(";
             break;
         case tok::times:
-            tb << "_mm512_mul_pd(";
+            tb << "mul(";
             break;
         case tok::divide:
-            tb << "_mm512_div_pd(";
+            tb << "div(";
+            break;
+        case tok::max:
+            tb << "max(";
+            break;
+        case tok::min:
+            tb << "min(";
             break;
         default:
-            throw std::invalid_argument("Unknown binary operator");
+            throw std::invalid_argument("Unable to generate avx512 for binary operator " + token_map[op]);
         }
 
         emit_operands(tb, arg_emitter(arg1), arg_emitter(arg2));
@@ -64,7 +72,7 @@ struct simd_intrinsics<simdKind::avx512> {
     static void emit_unary_op(TextBuffer& tb, tok op, const T& arg) {
         switch (op) {
         case tok::minus:
-            tb << "_mm512_sub_pd(_mm512_set1_pd(0), ";
+            tb << "sub(set(0), ";
             break;
         case tok::exp:
             tb << "_mm512_exp_pd(";
@@ -72,8 +80,14 @@ struct simd_intrinsics<simdKind::avx512> {
         case tok::log:
             tb << "_mm512_log_pd(";
             break;
+        case tok::abs:
+            tb << "abs(";
+            break;
+        case tok::exprelr:
+            tb << "exprelr(";
+            break;
         default:
-            throw std::invalid_argument("Unknown unary operator");
+            throw std::invalid_argument("Unable to generate avx512 for unary operator " + token_map[op]);
         }
 
         emit_operands(tb, arg_emitter(arg));
@@ -139,7 +153,7 @@ struct simd_intrinsics<simdKind::avx512> {
 
     template<typename T>
     static void emit_set_value(TextBuffer& tb, const T& arg) {
-        tb << "_mm512_set1_pd(";
+        tb << "set(";
         emit_operands(tb, arg_emitter(arg));
         tb << ")";
     }

@@ -2,11 +2,13 @@
 #include <memory>
 #include <string>
 
-#include "../gtest.h"
 #include <util/strprintf.hpp>
 
-using namespace arb::util;
+#include "../gtest.h"
+#include "common.hpp"
 
+using namespace arb::util;
+using namespace testing::string_literals;
 
 TEST(strprintf, simple) {
     char buf[200];
@@ -58,6 +60,6 @@ TEST(strprintf, wrappers) {
 
     EXPECT_EQ(std::string(buf), strprintf("sptr %p", sptr));
 
-    EXPECT_EQ(std::string("fish"), strprintf("fi%s", std::string("sh")));
+    EXPECT_EQ("fish"_s, strprintf("fi%s", "sh"_s));
 }
 

@@ -72,28 +72,28 @@ namespace arb {
 
     // Return time t of head of queue if `t_until` > `t`.
     util::optional<event_time_type> time_if_before(const event_time_type& t_until) {
-      if (queue_.empty()) {
-        return util::nothing;
-      }
+        if (queue_.empty()) {
+            return util::nullopt;
+        }
 
-      using ::arb::event_time;
-      auto t = event_time(queue_.top());
-      return t_until > t? util::just(t): util::nothing;
+        using ::arb::event_time;
+        auto t = event_time(queue_.top());
+        return t_until > t? util::just(t): util::nullopt;
     }
 
     // Generic conditional pop: pop and return head of queue if
     // queue non-empty and the head satisfies predicate.
     template <typename Pred>
     util::optional<value_type> pop_if(Pred&& pred) {
-      using ::arb::event_time;
-      if (!queue_.empty() && pred(queue_.top())) {
-        auto ev = queue_.top();
-        queue_.pop();
-        return ev;
-      }
-      else {
-        return util::nothing;
-      }
+        using ::arb::event_time;
+        if (!queue_.empty() && pred(queue_.top())) {
+            auto ev = queue_.top();
+            queue_.pop();
+            return ev;
+        }
+        else {
+            return util::nullopt;
+        }
     }
 
     // Pop and return top event `ev` of queue if `t_until` > `event_time(ev)`.

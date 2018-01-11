@@ -11,22 +11,22 @@ public:
     CPrinter() {}
     explicit CPrinter(Module &m): module_(&m) {}
 
-    virtual void visit(Expression *e)           override;
-    virtual void visit(UnaryExpression *e)      override;
-    virtual void visit(BinaryExpression *e)     override;
-    virtual void visit(NumberExpression *e)     override;
-    virtual void visit(VariableExpression *e)   override;
-    virtual void visit(Symbol *e)               override;
-    virtual void visit(LocalVariable *e)        override;
-    virtual void visit(IndexedVariable *e)      override;
-    virtual void visit(CellIndexedVariable *e)  override;
-    virtual void visit(IdentifierExpression *e) override;
-    virtual void visit(CallExpression *e)       override;
-    virtual void visit(ProcedureExpression *e)  override;
-    virtual void visit(APIMethod *e)            override;
-    virtual void visit(LocalDeclaration *e)     override;
-    virtual void visit(BlockExpression *e)      override;
-    virtual void visit(IfExpression *e)         override;
+    void visit(Expression *e)           override;
+    void visit(UnaryExpression *e)      override;
+    void visit(BinaryExpression *e)     override;
+    void visit(NumberExpression *e)     override;
+    void visit(VariableExpression *e)   override;
+    void visit(Symbol *e)               override;
+    void visit(LocalVariable *e)        override;
+    void visit(IndexedVariable *e)      override;
+    void visit(CellIndexedVariable *e)  override;
+    void visit(IdentifierExpression *e) override;
+    void visit(CallExpression *e)       override;
+    void visit(ProcedureExpression *e)  override;
+    void visit(APIMethod *e)            override;
+    void visit(LocalDeclaration *e)     override;
+    void visit(BlockExpression *e)      override;
+    void visit(IfExpression *e)         override;
 
     std::string text() const {
         return text_.str();

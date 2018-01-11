@@ -7,6 +7,7 @@
 
 #include <cell.hpp>
 #include <common_types.hpp>
+#include <event_generator.hpp>
 #include <util/unique_any.hpp>
 
 namespace arb {
@@ -62,6 +63,8 @@ public:
     virtual cell_size_type num_sources(cell_gid_type) const = 0;
     virtual cell_size_type num_targets(cell_gid_type) const = 0;
     virtual cell_size_type num_probes(cell_gid_type) const = 0;
+
+    virtual std::vector<event_generator_ptr> event_generators(cell_gid_type) const = 0;
 
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const = 0;
     virtual probe_info get_probe(cell_member_type probe_id) const = 0;

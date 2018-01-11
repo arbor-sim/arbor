@@ -205,14 +205,14 @@ TEST(Parser, parse_if) {
     }
 
     EXPECT_TRUE(check_parse(s, &Parser::parse_if,
-        "   if(a<b) {      \n"
+        "   if(abs(a-b)) {      \n"
         "       a = 2+b    \n"
         "   } else if(b>a){\n"
         "       a = 2+b    \n"
         "   }              "
     ));
     if (s) {
-        EXPECT_NE(s->condition()->is_binary(), nullptr);
+        EXPECT_NE(s->condition()->is_unary(), nullptr);
         EXPECT_NE(s->true_branch()->is_block(), nullptr);
         ASSERT_NE(s->false_branch(), nullptr);
         ASSERT_NE(s->false_branch()->is_if(), nullptr);
@@ -296,8 +296,11 @@ TEST(Parser, parse_line_expression) {
         "x=(y + 2 * z ^ 3)  ",
         "foo(x+3, y, bar(21.4))",
         "y=exp(x+3) + log(exp(x/y))",
+        "x=abs(y+z)",
         "a=x^y^z",
-        "a=x/y/z"
+        "a=x/y/z",
+        "a=min(x,y)",
+        "a=max(min(x,z),y)",
     };
 
     for (auto& text: good_expr) {
@@ -499,6 +502,8 @@ long double eval(Expression *e) {
             case tok::times : return lhs*rhs;
             case tok::divide: return lhs/rhs;
             case tok::pow   : return std::pow(lhs,rhs);
+            case tok::min   : return std::min(lhs,rhs);
+            case tok::max   : return std::max(lhs,rhs);
             default:;
         }
     }
@@ -525,6 +530,10 @@ TEST(Parser, parse_binop) {
         {"2*3", 2.*3.},
         {"2/3", 2./3.},
         {"2^3", pow(2., 3.)},
+        {"min(2,3)", 2.},
+        {"min(3,2)", 2.},
+        {"max(2,3)", 3.},
+        {"max(3,2)", 3.},
 
         // more complicated
         {"2+3*2", 2.+(3*2)},
@@ -532,6 +541,10 @@ TEST(Parser, parse_binop) {
         {"2+3*(-2)", 2.+(3*-2)},
         {"2+3*(-+2)", 2.+(3*-+2)},
         {"2/3*4", (2./3.)*4.},
+        {"min(2+3, 4/2)", 4./2},
+        {"max(2+3, 4/2)", 2.+3.},
+        {"max(2+3, min(12, 24))", 12.},
+        {"max(min(12, 24), 2+3)", 12.},
         {"2 * 7 - 3 * 11 + 4 * 13", 2.*7.-3.*11.+4.*13.},
 
         // right associative
@@ -551,7 +564,7 @@ TEST(Parser, parse_binop) {
         std::unique_ptr<Expression> e;
         EXPECT_TRUE(check_parse(e, &Parser::parse_expression, test_case.first));
 
-        // A loose tolerance of 1d-10 is required here because the eval()
+        // A loose tolerance of 1e-10 is required here because the eval()
         // function uses long double for intermediate results (like constant
         // folding in modparser).  For expressions with transcendental
         // operations this can see relatively large divergence between the

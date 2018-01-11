@@ -42,7 +42,7 @@ struct default_parser {
         V v;
         std::istringstream stream(text);
         stream >> v;
-        return stream? util::just(v): util::nothing;
+        return stream? util::just(v): util::nullopt;
     }
 };
 
@@ -58,7 +58,7 @@ public:
         for (const auto& p: map_) {
             if (text==p.first) return p.second;
         }
-        return util::nothing;
+        return util::nullopt;
     }
 };
 
@@ -72,7 +72,7 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
     const char* arg = argp[0];
 
     if (!arg || arg[0]!='-') {
-        return util::nothing;
+        return util::nullopt;
     }
 
     std::string text;
@@ -91,7 +91,7 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
             argp += 1;
         }
         else {
-            return util::nothing;
+            return util::nullopt;
         }
     }
     else if (shortopt && arg[1]==shortopt && arg[2]==0) {
@@ -100,7 +100,7 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
         argp += 2;
     }
     else {
-        return util::nothing;
+        return util::nullopt;
     }
 
     auto v = parse(text);
@@ -111,7 +111,7 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
 
 util::optional<void> parse_opt(char **& argp, char shortopt, const char* longopt) {
     if (!*argp || *argp[0]!='-') {
-        return util::nothing;
+        return util::nullopt;
     }
     else if (argp[0][1]=='-' && longopt && !std::strcmp(argp[0]+2, longopt)) {
         ++argp;
@@ -122,7 +122,7 @@ util::optional<void> parse_opt(char **& argp, char shortopt, const char* longopt
         return true;
     }
     else {
-        return util::nothing;
+        return util::nullopt;
     }
 }
 

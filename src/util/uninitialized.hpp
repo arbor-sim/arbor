@@ -32,6 +32,8 @@ public:
     using const_pointer = const X*;
     using reference = X&;
     using const_reference= const X&;
+    using rvalue_reference = X&&;
+    using const_rvalue_reference= const X&&;
 
     pointer ptr() {
         // COMPAT: xlC 13.1.4 workaround:
@@ -92,6 +94,8 @@ public:
     using const_pointer = const X*;
     using reference = X&;
     using const_reference = const X&;
+    using rvalue_reference = X&;
+    using const_rvalue_reference= const X&;
 
     pointer ptr() { return data; }
     const_pointer cptr() const { return data; }
@@ -101,18 +105,6 @@ public:
 
     void construct(X& x) { data = &x; }
     void destruct() {}
-
-    // Apply the one-parameter functor F to the value by reference.
-    template <typename F>
-    result_of_t<F(reference)> apply(F&& f) {
-        return f(ref());
-    }
-
-    // Apply the one-parameter functor F to the value by const reference.
-    template <typename F>
-    result_of_t<F(const_reference)> apply(F&& f) const {
-        return f(cref());
-    }
 };
 
 /* Wrap a void type in an uninitialized template.
@@ -126,6 +118,8 @@ public:
     using const_pointer = const void*;
     using reference = void;
     using const_reference = void;
+    using rvalue_reference = void;
+    using const_rvalue_reference = void;
 
     pointer ptr() { return nullptr; }
     const_pointer cptr() const { return nullptr; }
@@ -137,10 +131,6 @@ public:
     void construct(...) {}
     // No operation.
     void destruct() {}
-
-    // Equivalent to f()
-    template <typename F>
-    result_of_t<F()> apply(F&& f) const { return f(); }
 };
 
 } // namespace util

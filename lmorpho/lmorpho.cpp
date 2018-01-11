@@ -15,7 +15,7 @@
 
 namespace to = arb::to;
 using arb::util::optional;
-using arb::util::nothing;
+using arb::util::nullopt;
 using arb::util::just;
 
 const char* usage_str =
@@ -31,7 +31,7 @@ const char* usage_str =
 "\n"
 "Generate artificial neuron morphologies based on L-system descriptions.\n"
 "\n"
-"If a FILE arrgument contains a '%', then one file will be written for\n"
+"If a FILE argument contains a '%', then one file will be written for\n"
 "each generated morphology, with the '%' replaced by the index of the\n"
 "morphology, starting from zero. Output for each morphology will otherwise\n"
 "be concatenated: SWC files will be headed by a comment line with the\n"
@@ -89,10 +89,10 @@ int main(int argc, char** argv) {
         }
 
         std::minstd_rand g;
-        if (rng_seed) g.seed(rng_seed.get());
+        if (rng_seed) g.seed(rng_seed.value());
 
-        auto emit_swc = swc_file? just(swc_emitter(*swc_file, n_morph)): nothing;
-        auto emit_pvec = pvector_file? just(pvector_emitter(*pvector_file, n_morph)): nothing;
+        auto emit_swc = swc_file? just(swc_emitter(*swc_file, n_morph)): nullopt;
+        auto emit_pvec = pvector_file? just(pvector_emitter(*pvector_file, n_morph)): nullopt;
 
         for (int i=0; i<n_morph; ++i) {
             auto morph = generate_morphology(P, g);
