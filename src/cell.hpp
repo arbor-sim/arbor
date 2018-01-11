@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <common_types.hpp>
-#include <cell_tree.hpp>
+#include <tree.hpp>
 #include <morphology.hpp>
 #include <segment.hpp>
 #include <stimulus.hpp>
@@ -20,9 +20,9 @@ namespace arb {
 /// wrapper around compartment layout information derived from a high level cell
 /// description
 struct compartment_model {
-    cell_tree tree;
-    std::vector<cell_tree::int_type> parent_index;
-    std::vector<cell_tree::int_type> segment_index;
+    arb::tree tree;
+    std::vector<tree::int_type> parent_index;
+    std::vector<tree::int_type> segment_index;
 };
 
 int find_compartment_index(

@@ -55,7 +55,7 @@ INITIAL {
 
 DERIVATIVE states {
     rates(v)
-    m' =  (minf-m)/mtau
+    m' = (minf-m)/mtau
     h' = (hinf-h)/htau
     n' = (ninf-n)/ntau
 }
@@ -88,13 +88,8 @@ PROCEDURE rates(v)
     ninf = alpha/sum
 }
 
-: We don't trap for zero in the denominator like Neuron, because function
-: inlining in modparser won't support it. There is a good argument that
-: vtrap should be provided as a built in of the language, because
-:   - it is a common pattern in many mechanisms.
-:   - it can be implemented efficiently on different back ends if the
-:     compiler has enough information.
 FUNCTION vtrap(x,y) {
-    vtrap = x/(exp(x/y) - 1)
+    : use built in exprelr(z) = z/(exp(z)-1), which handles the z=0 case correctly
+    vtrap = y*exprelr(x/y)
 }
 

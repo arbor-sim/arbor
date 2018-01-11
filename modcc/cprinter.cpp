@@ -39,6 +39,10 @@ std::string CPrinter::emit_source() {
 
     text_.add_line("namespace arb { namespace multicore {");
     text_.add_line();
+    text_.add_line("using math::exprelr;");
+    text_.add_line("using math::min;");
+    text_.add_line("using math::max;");
+    text_.add_line();
     text_.add_line("template<class Backend>");
     text_.add_line("class " + class_name + " : public mechanism<Backend> {");
     text_.add_line("public:");
@@ -315,9 +319,8 @@ std::string CPrinter::emit_source() {
             text_.add_line("for (size_type i_ = 0; i_ < n_; ++i_) {");
             text_.increase_indentation();
             text_.add_line("// 1/10 magic number due to unit normalisation");
-            text_.add_line(src+"_out_["+istore+"index[i_]] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
+            text_.add_line(src+"_out_[i_] += value_type(0.1)*weights_[i_]*"+src+"[i_];");
             text_.decrease_indentation(); text_.add_line("}");
-            
         }
         text_.decrease_indentation(); text_.add_line("}");
     }
@@ -367,7 +370,7 @@ std::string CPrinter::emit_source() {
     text_.add_line("};");
     text_.add_line();
     text_.add_line("auto* info = util::table_lookup(field_tbl, id);");
-    text_.add_line("return info? util::just(*info): util::nothing;");
+    text_.add_line("return info? util::just(*info): util::nullopt;");
     text_.decrease_indentation();
     text_.add_line("}");
     text_.add_line();
@@ -462,6 +465,7 @@ void CPrinter::emit_headers() {
     text_.add_line("#include <cmath>");
     text_.add_line("#include <limits>");
     text_.add_line();
+    text_.add_line("#include <math.hpp>");
     text_.add_line("#include <mechanism.hpp>");
     text_.add_line("#include <algorithms.hpp>");
     text_.add_line("#include <backends/event.hpp>");

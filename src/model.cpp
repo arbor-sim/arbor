@@ -5,6 +5,7 @@
 #include <cell_group.hpp>
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
+#include <merge_events.hpp>
 #include <model.hpp>
 #include <recipe.hpp>
 #include <util/filter.hpp>
@@ -14,16 +15,31 @@
 
 namespace arb {
 
-  void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, pse_vector& lf);
-
-  model::model(const recipe& rec, const domain_decomposition& decomp):
-  communicator_(rec, decomp)
-  {
+model::model(const recipe& rec, const domain_decomposition& decomp):
+    communicator_(rec, decomp)
+{
+    event_generators_.resize(communicator_.num_local_cells());
     cell_local_size_type lidx = 0;
-    for (auto i: util::make_span(0, decomp.groups.size())) {
-      for (auto gid: decomp.groups[i].gids) {
-        gid_to_local_[gid] = lidx++;
-      }
+    const auto& grps = decomp.groups;
+    for (auto i: util::make_span(0, grps.size())) {
+        for (auto gid: grps[i].gids) {
+            // Store mapping of gid to local cell index.
+            gid_to_local_[gid] = lidx++;
+
+            // Set up the event generators for cell gid.
+            auto rec_gens = rec.event_generators(gid);
+            auto& gens = event_generators_[lidx];
+            if (rec_gens.size()) {
+                // Allocate two empty event generators that will be used to
+                // merge events from the communicator and those already queued
+                // for delivery in future epochs.
+                gens.reserve(2+rec_gens.size());
+                gens.resize(2);
+                for (auto& g: rec_gens) {
+                    gens.push_back(std::move(g));
+                }
+            }
+        }
     }
 
     // Generate the cell groups in parallel, with one task per cell group.
@@ -54,6 +70,14 @@ namespace arb {
       for (auto& lane: lanes) {
         lane.clear();
       }
+    }
+
+    for (auto& lane: event_generators_) {
+        for (auto& gen: lane) {
+            if (gen) {
+                gen->reset();
+            }
+        }
     }
 
     communicator_.reset();
@@ -98,35 +122,37 @@ namespace arb {
     // events that must be delivered at the start of the next
     // integration period at the latest.
     auto exchange = [&] () {
-      PE("stepping", "communication");
+        PE("stepping", "communication");
 
-      PE("exchange");
-      auto local_spikes = previous_spikes().gather();
-      auto global_spikes = communicator_.exchange(local_spikes);
-      PL();
+        PE("exchange");
+        auto local_spikes = previous_spikes().gather();
+        auto global_spikes = communicator_.exchange(local_spikes);
+        PL();
 
-      PE("spike output");
-      local_export_callback_(local_spikes);
-      global_export_callback_(global_spikes.values());
-      PL();
+        PE("spike output");
+        local_export_callback_(local_spikes);
+        global_export_callback_(global_spikes.values());
+        PL();
 
-      PE("events","from-spikes");
-      auto events = communicator_.make_event_queues(global_spikes);
-      PL();
+        PE("events","from-spikes");
+        auto events = communicator_.make_event_queues(global_spikes);
+        PL();
 
-      PE("enqueue");
-      threading::parallel_for::apply(0, communicator_.num_local_cells(),
-                                     [&](cell_size_type i) {
-                                       const auto epid = epoch_.id;
-                                       merge_events(
-                                                    epoch_.tfinal,
-                                                    event_lanes(epid)[i],
-                                                    events[i],
-                                                    event_lanes(epid+1)[i]);
-                                     });
-      PL(2);
+        PE("enqueue");
+        threading::parallel_for::apply(0, communicator_.num_local_cells(),
+            [&](cell_size_type i) {
+                const auto epid = epoch_.id;
+                merge_events(
+                    epoch_.tfinal,
+                    epoch_.tfinal+std::min(t_+t_interval, tfinal),
+                    event_lanes(epid)[i],
+                    events[i],
+                    event_generators_[i],
+                    event_lanes(epid+1)[i]);
+            });
+        PL(2);
 
-      PL(2);
+        PL(2);
     };
 
     tuntil = std::min(t_+t_interval, tfinal);
@@ -217,9 +243,9 @@ namespace arb {
   util::optional<cell_size_type> model::local_cell_index(cell_gid_type gid) {
     auto it = gid_to_local_.find(gid);
     return it==gid_to_local_.end()?
-    util::nothing:
-    util::optional<cell_size_type>(it->second);
-  }
+        util::nullopt:
+        util::optional<cell_size_type>(it->second);
+}
 
   void model::inject_events(const pse_vector& events) {
     auto& lanes = event_lanes(epoch_.id);
@@ -244,37 +270,5 @@ namespace arb {
     for (auto l: modified_lanes) {
       util::sort(lanes[l]);
     }
-  }
-
-  // Merge events that are to be delivered from two lists into a sorted list.
-  // Events are sorted by delivery time, then target, then weight.
-  //
-  //  tfinal: The time at which the current epoch finishes. The output list, `lc`,
-  //          will contain all events with delivery times equal to or greater than
-  //          tfinal.
-  //  lc: Sorted set of events to be delivered before and after `tfinal`.
-  //  events: Unsorted list of events with delivery time greater than or equal to
-  //      tfinal. May be modified by the call.
-  //  lf: Will hold a list of all postsynaptic events in `events` and `lc` that
-  //      have delivery times greater than or equal to `tfinal`.
-  void merge_events(time_type tfinal, const pse_vector& lc, pse_vector& events, pse_vector& lf) {
-    // Merge the incoming events with events in lc that are not to be delivered
-    // in this epoch, and store the result in lf.
-
-    // STEP 1: sort events in place in events[l]
-    PE("sort");
-    util::sort(events);
-    PL();
-
-    // STEP 2: clear lf to store merged list
-    lf.clear();
-
-    // STEP 3: merge new events and future events from lc into lf
-    PE("merge");
-    auto pos = std::lower_bound(lc.begin(), lc.end(), tfinal, event_time_less());
-    lf.resize(events.size()+std::distance(pos, lc.end()));
-    std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin());
-    PL();
-  }
-
+}
 } // namespace arb

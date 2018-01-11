@@ -83,13 +83,13 @@ public:
     util::optional<mechanism_spec&> mechanism(const std::string& name) {
         auto it = std::find_if(mechanisms_.begin(), mechanisms_.end(),
             [&](mechanism_spec& m) { return m.name()==name; });
-        return it==mechanisms_.end()? util::nothing: util::just(*it);
+        return it==mechanisms_.end()? util::nullopt: util::just(*it);
     }
 
     void add_mechanism(mechanism_spec mech) {
         auto m = mechanism(mech.name());
         if (m) {
-            m.get() = std::move(mech);
+            *m = std::move(mech);
         }
         else {
             mechanisms_.push_back(std::move(mech));

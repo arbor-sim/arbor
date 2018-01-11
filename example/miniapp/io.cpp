@@ -105,7 +105,7 @@ static void update_option(util::optional<T>& opt, const nlohmann::json& j, const
     if (j.count(key)) {
         auto value = j[key];
         if (value.is_null()) {
-            opt = util::nothing;
+            opt = util::nullopt;
         }
         else {
             opt = value.get<T>();
@@ -330,14 +330,14 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                 fopts["probe_soma_only"] = options.probe_soma_only;
                 fopts["trace_prefix"] = options.trace_prefix;
                 if (options.trace_max_gid) {
-                    fopts["trace_max_gid"] = options.trace_max_gid.get();
+                    fopts["trace_max_gid"] = options.trace_max_gid.value();
                 }
                 else {
                     fopts["trace_max_gid"] = nullptr;
                 }
                 fopts["trace_format"] = options.trace_format;
                 if (options.morphologies) {
-                    fopts["morphologies"] = options.morphologies.get();
+                    fopts["morphologies"] = options.morphologies.value();
                 }
                 else {
                     fopts["morphologies"] = nullptr;
