@@ -114,9 +114,9 @@ namespace arb {
                     ("g", "rel-inh-w", "relative strength of inhibitory synapses with respect to the excitatory ones",
                      false, defopts.rel_inh_strength, "float", cmd);
 
-                TCLAP::ValueArg<double> poiss_rate_arg
-                    ("r", "rate", "rate of Poisson cells [kHz]",
-                     false, defopts.poiss_rate, "double", cmd);
+                TCLAP::ValueArg<double> poiss_lambda_arg
+                    ("l", "lambda", "Expected number of spikes from a single poisson cell per ms",
+                     false, defopts.poiss_lambda, "double", cmd);
 
                 TCLAP::ValueArg<double> tfinal_arg
                     ("t", "tfinal", "length of the simulation period [ms]",
@@ -153,7 +153,7 @@ namespace arb {
                 update_option(options.weight, weight_arg);
                 update_option(options.delay, delay_arg);
                 update_option(options.rel_inh_strength, rel_inh_strength_arg);
-                update_option(options.poiss_rate, poiss_rate_arg);
+                update_option(options.poiss_lambda, poiss_lambda_arg);
                 update_option(options.tfinal, tfinal_arg);
                 update_option(options.dt, dt_arg);
                 update_option(options.group_size, group_size_arg);
@@ -182,18 +182,18 @@ namespace arb {
 
         std::ostream& operator<<(std::ostream& o, const cl_options& options) {
             o << "simulation options:\n";
-            o << "  excitatory cells                                : " << options.nexc << "\n";
-            o << "  inhibitory cells                                : " << options.ninh << "\n";
-            o << "  Poisson connections per cell                    : " << options.next << "\n";
-            o << "  proportion of synapses/cell from each population: " << options.syn_per_cell_prop << "\n";
-            o << "  weight of excitatory synapses                   : " << options.weight << "\n";
-            o << "  relative strength of inhibitory synapses        : " << options.rel_inh_strength << "\n";
-            o << "  delay of all synapses                           : " << options.delay << "\n";
-            o << "  Poisson cells spiking rate [kHz]                : " << options.poiss_rate << "\n";
+            o << "  excitatory cells                                           : " << options.nexc << "\n";
+            o << "  inhibitory cells                                           : " << options.ninh << "\n";
+            o << "  Poisson connections per cell                               : " << options.next << "\n";
+            o << "  proportion of synapses/cell from each population           : " << options.syn_per_cell_prop << "\n";
+            o << "  weight of excitatory synapses                              : " << options.weight << "\n";
+            o << "  relative strength of inhibitory synapses                   : " << options.rel_inh_strength << "\n";
+            o << "  delay of all synapses                                      : " << options.delay << "\n";
+            o << "  expected number of spikes from a single poisson cell per ms: " << options.poiss_lambda << "\n";
             o << "\n";
-            o << "  simulation time                                 : " << options.tfinal << "\n";
-            o << "  dt                                              : " << options.dt << "\n";
-            o << "  group size                                      : " << options.group_size << "\n";
+            o << "  simulation time                                            : " << options.tfinal << "\n";
+            o << "  dt                                                         : " << options.dt << "\n";
+            o << "  group size                                                 : " << options.group_size << "\n";
             return o;
         }
     } // namespace io

@@ -13,7 +13,6 @@ struct lif_cell_description {
 
     // External Poisson input parameters.
     int n_poiss = 0;      // Number of external Poisson neurons.
-    double rate = 1;      // Rate of each Poisson neuron [kHz].
     float w_poiss = 1;    // Weight of each Poisson->LIF synapse.
     float d_poiss = 1;    // Delay of each Poisson->LIF synapse.
 };

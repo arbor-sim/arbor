@@ -1,5 +1,6 @@
 #include <cmath>
 #include <exception>
+#include <event_generator.hpp>
 #include <iostream>
 #include <fstream>
 #include <memory>
@@ -56,15 +57,16 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
    chosen randomly, in_degree_prop * ninh inhibitory connections and next (external) Poisson connections.
    All the connections have the same delay. The strenght of excitatory and Poisson connections is given by
    parameter weight, whereas the strength of inhibitory connections is rel_inh_strength * weight.
-   Poisson neurons all spike independently with mean frequency poiss_rate [kHz].
+   Poisson neurons all spike independently with expected number of spikes given by parameter poiss_lambda.
    Because of the refractory period, the activity is mostly driven by Poisson neurons and
    recurrent connections have a small effect.
  */
 class brunel_recipe: public recipe {
 public:
     brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
-                  float weight, float delay, float rel_inh_strength, double poiss_rate):
-        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay), rate_(poiss_rate) {
+                  float weight, float delay, float rel_inh_strength, double poiss_lambda):
+        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay) {
+        std::cout << "Inside Brunel recipe\n";
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -76,6 +78,8 @@ public:
         weight_ext_ = weight;
         in_degree_exc_ = std::round(in_degree_prop * nexc);
         in_degree_inh_ = std::round(in_degree_prop * ninh);
+        // TODO: add a check for lambda_ = -1
+        lambda_ = next * poiss_lambda;
     }
 
     cell_size_type num_cells() const override {
@@ -99,15 +103,15 @@ public:
         // Add incoming inhibitory connections.
         for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
             cell_member_type source{cell_gid_type(i), 0};
-            cell_member_type target{gid, 0};
+            cell_member_type target{gid, 1};
             cell_connection conn(source, target, weight_inh_, delay_);
             connections.push_back(conn);
         }
-
         return connections;
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
+        std::cout << "get_celL_description for gid " << gid << std::endl;
         auto cell = lif_cell_description();
         cell.tau_m = 10;
         cell.V_th = 10;
@@ -119,12 +123,28 @@ public:
         cell.n_poiss = ncells_ext_;
         cell.w_poiss = weight_ext_;
         cell.d_poiss = delay_;
-        cell.rate = rate_;
         return cell;
     }
 
-    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-        return {};
+    std::vector<event_generator_ptr> event_generators(cell_gid_type gid) const override {
+        std::vector<arb::event_generator_ptr> gens;
+
+        std::mt19937_64 G;
+        G.seed(gid + 42);
+
+        using pgen = poisson_generator<std::mt19937_64>;
+
+        time_type t0 = 0;
+        cell_member_type target{gid, 2};
+
+        pgen gen(target, weight_ext_, G, t0, lambda_);
+        gens.push_back(arb::make_event_generator<pgen>(
+                        target,
+                        weight_ext_,
+                        G,
+                        t0,
+                        lambda_));
+        return gens;
     }
 
     cell_size_type num_sources(cell_gid_type) const override {
@@ -171,8 +191,8 @@ private:
     // Number of connections that each neuron receives from inhibitory population.
     int in_degree_inh_;
 
-    // Mean rate of Poisson spiking neurons.
-    double rate_;
+    // Expected number of poisson spikes.
+    double lambda_;
 };
 
 using util::any_cast;
@@ -181,6 +201,7 @@ using global_policy = communication::global_policy;
 using file_export_type = io::exporter_spike_file<global_policy>;
 
 int main(int argc, char** argv) {
+    std::cout << "Starting brunel miniapp\n";
     arb::communication::global_policy_guard global_guard(argc, argv);
     try {
         arb::util::meter_manager meters;
@@ -216,13 +237,15 @@ int main(int argc, char** argv) {
         // Relative strength of inhibitory connections with respect to excitatory connections.
         float rel_inh_strength = options.rel_inh_strength;
 
-        // Mean rate of Poisson cells [kHz].
-        double poiss_rate = options.poiss_rate;
+        // Expected number of spikes from a single poisson cell per ms.
+        int poiss_lambda = options.poiss_lambda;
 
         // The number of cells in a single cell group.
         cell_size_type group_size = options.group_size;
 
-        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_rate);
+        std::cout << "Brunel recipe about to be created\n";
+        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda);
+        std::cout << "Brunel recipe created\n";
 
         auto register_exporter = [] (const io::cl_options& options) {
             return util::make_unique<file_export_type>
@@ -230,8 +253,11 @@ int main(int argc, char** argv) {
                         options.file_extension, options.over_write);
         };
 
+        std::cout << "Partition load balancing\n";
         auto decomp = partition_load_balance(recipe, nd);
+        std::cout << "Before model creation\n";
         model m(recipe, decomp);
+        std::cout << "Model created\n";
 
         // Initialize the spike exporting interface
         std::unique_ptr<file_export_type> file_exporter;

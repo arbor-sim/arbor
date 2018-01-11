@@ -42,6 +42,7 @@ public:
     communicator() {}
 
     explicit communicator(const recipe& rec, const domain_decomposition& dom_dec) {
+        std::cout << "Communicator creation" << std::endl;
         using util::make_span;
         num_domains_ = comms_.size();
         num_local_groups_ = dom_dec.groups.size();

@@ -21,7 +21,7 @@ namespace io {
         float weight = 1.2;
         float delay = 0.1;
         float rel_inh_strength = 1;
-        double poiss_rate = 1;
+        double poiss_lambda = 1;
 
         // Simulation running parameters:
         double tfinal = 100.;

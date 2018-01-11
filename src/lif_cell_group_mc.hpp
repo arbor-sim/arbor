@@ -35,21 +35,6 @@ namespace arb {
         virtual void remove_all_samplers() override;
 
     private:
-        // Samples next poisson spike.
-        void sample_next_poisson(cell_gid_type lid);
-
-        // Returns the time of the next poisson event for given neuron,
-        // taking into accout the delay of poisson spikes,
-        // without sampling a new Poisson event time.
-        template <typename Pred>
-        util::optional<time_type> next_poisson_event(cell_gid_type lid, time_type tfinal, Pred should_pop);
-
-        // Returns the next most recent event that is yet to be processed.
-        // It can be either Poisson event or the queue event.
-        // Only events that happened before tfinal are considered.
-        template <typename Pred>
-        util::optional<postsynaptic_spike_event> next_event(cell_gid_type lid, time_type tfinal, pse_vector& event_lane, Pred should_pop);
-
         // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
         // Parameter dt is ignored, since we make jumps between two consecutive spikes.
         void advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, pse_vector& event_lane);
@@ -57,39 +42,13 @@ namespace arb {
         // List of the gids of the cells in the group.
         std::vector<cell_gid_type> gids_;
 
-        // Hash table for converting gid to local index
-        std::unordered_map<cell_gid_type, cell_gid_type> gid_index_map_;
-
         // Cells that belong to this group.
         std::vector<lif_cell_description> cells_;
 
         // Spikes that are generated (not necessarily sorted).
         std::vector<spike> spikes_;
 
-        // Pending events per cell.
-        // std::vector<event_queue<postsynaptic_spike_event> > cell_events_;
-        std::vector<std::vector<postsynaptic_spike_event> > cell_events_;
-
         // Time when the cell was last updated.
         std::vector<time_type> last_time_updated_;
-        std::vector<unsigned> next_queue_event_index;
-
-        // External spike generation.
-
-        // lambda = 1/(n_poiss * rate) for each cell.
-        std::vector<double> lambda_;
-
-        // Sampled next Poisson event time for each cell.
-        std::vector<time_type> next_poiss_time_;
-
-        // Counts poisson events. 
-        // Used as an argument to random123 (since partially describes a state)
-        std::vector<unsigned> poiss_event_counter_;
-
-        cell_gid_type gid_to_index(cell_gid_type gid) const {
-          auto it = gid_index_map_.find(gid);
-          EXPECTS(it!=gid_index_map_.end());
-          return it->second;
-        }
     };
 } // namespace arb
