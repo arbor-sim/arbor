@@ -302,7 +302,7 @@ TEST(fvm_lowered, derived_mechs) {
             auto cmech = dynamic_cast<multicore::mechanism*>(mech.get());
             ASSERT_TRUE(cmech);
 
-            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau");
+            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"_s);
             ASSERT_TRUE(opt_tau_ptr);
             tau_values.push_back(*opt_tau_ptr.value());
         }
@@ -410,7 +410,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
 
-    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai");
+    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"_s);
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 
