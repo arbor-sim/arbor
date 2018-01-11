@@ -123,6 +123,10 @@ public:
         return cell;
     }
 
+    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
+        return {};
+    }
+
     cell_size_type num_sources(cell_gid_type) const override {
          return 1;
     }
@@ -181,6 +185,7 @@ int main(int argc, char** argv) {
     try {
         arb::util::meter_manager meters;
         meters.start();
+        std::cout << util::mask_stream(global_policy::id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
         hw::node_info nd;

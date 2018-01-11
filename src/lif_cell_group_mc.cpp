@@ -109,15 +109,15 @@ template <typename Pred>
 util::optional<time_type> lif_cell_group_mc::next_poisson_event(cell_gid_type lid, time_type tfinal, Pred should_pop) {
     if (cells_[lid].n_poiss > 0) {
         time_type t_poiss =  next_poiss_time_[lid] + cells_[lid].d_poiss;
-        return should_pop(t_poiss,tfinal) ? util::optional<time_type>(t_poiss) : util::nothing;
+        return should_pop(t_poiss,tfinal) ? util::optional<time_type>(t_poiss) : util::nullopt;
     }
-    return util::nothing;
+    return util::nullopt;
 }
 
 template <typename Pred>
 util::optional<postsynaptic_spike_event> pop_if(pse_vector& event_lane, unsigned& start_index, time_type tfinal, Pred should_pop) {
     if (event_lane.size() <= start_index || !should_pop(event_lane[start_index].time, tfinal)) {
-        return util::nothing;
+        return util::nullopt;
     }
     // instead of deleting this event from the queue, just increase the starting index
     auto ev = event_lane[start_index];
@@ -136,7 +136,7 @@ util::optional<postsynaptic_spike_event> lif_cell_group_mc::next_event(cell_gid_
             return ev;
         }
         sample_next_poisson(lid);
-        return postsynaptic_spike_event{{cell_gid_type(gids_[lid]), 0}, t_poiss.get(), cells_[lid].w_poiss};
+        return postsynaptic_spike_event{{cell_gid_type(gids_[lid]), 0}, t_poiss.value(), cells_[lid].w_poiss};
     }
 
     // t_queue < tfinal < t_poiss => return t_queue

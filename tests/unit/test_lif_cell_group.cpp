@@ -61,7 +61,6 @@ public:
         rs.period = 1;
         rs.stop_time = 0.5;
         return rs;
-
     }
 
     cell_size_type num_sources(cell_gid_type) const override {
@@ -74,6 +73,9 @@ public:
         return 0;
     }
     probe_info get_probe(cell_member_type probe_id) const override {
+        return {};
+    }
+    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
         return {};
     }
 
@@ -123,6 +125,9 @@ public:
         return 0;
     }
     probe_info get_probe(cell_member_type probe_id) const override {
+        return {};
+    }
+    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
         return {};
     }
 
