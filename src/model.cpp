@@ -24,7 +24,7 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
     for (auto i: util::make_span(0, grps.size())) {
         for (auto gid: grps[i].gids) {
             // Store mapping of gid to local cell index.
-            gid_to_local_[gid] = lidx++;
+            gid_to_local_[gid] = lidx;
 
             // Set up the event generators for cell gid.
             auto rec_gens = rec.event_generators(gid);
@@ -39,6 +39,7 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
                     gens.push_back(std::move(g));
                 }
             }
+            ++lidx;
         }
     }
 
