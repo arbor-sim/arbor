@@ -18,38 +18,30 @@ namespace arb {
 model::model(const recipe& rec, const domain_decomposition& decomp):
     communicator_(rec, decomp)
 {
-    std::cout << "Inside model" << std::endl;
     event_generators_.resize(communicator_.num_local_cells());
-    std::cout << "Event generators inside model\n";
     cell_local_size_type lidx = 0;
     const auto& grps = decomp.groups;
     for (auto i: util::make_span(0, grps.size())) {
         for (auto gid: grps[i].gids) {
             // Store mapping of gid to local cell index.
-            gid_to_local_[gid] = lidx++;
+            gid_to_local_[gid] = lidx;
 
             // Set up the event generators for cell gid.
             auto rec_gens = rec.event_generators(gid);
-            std::cout << "Generators created for gid " << gid << std::endl;
             auto& gens = event_generators_[lidx];
-            std::cout << "Again, generators in model " << std::endl;
-            std::cout << "rec_gens.size() = : " << rec_gens.size() << std::endl;
             if (rec_gens.size()) {
                 // Allocate two empty event generators that will be used to
                 // merge events from the communicator and those already queued
                 // for delivery in future epochs.
                 gens.reserve(2+rec_gens.size());
-                std::cout << "reserved space\n";
                 gens.resize(2);
-                std::cout << "Resized vector\n";
                 for (auto& g: rec_gens) {
-                    std::cout << "Pushing back generators for gid = " << gid << std::endl;
                     gens.push_back(std::move(g));
                 }
             }
+            lidx++;
         }
     }
-    std::cout << "First part finished inside model\n";
 
     // Generate the cell groups in parallel, with one task per cell group.
     cell_groups_.resize(decomp.groups.size());

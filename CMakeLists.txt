@@ -11,13 +11,16 @@ if ("${CMAKE_VERSION}" MATCHES "^3.[0-9].")
     cmake_policy(SET CMP0023 OLD)
 endif()
 
+# TODO: remove this after debugging
+set(GCC_SANITIZE_FLAGS "-fsanitize=address")
+
 # save incoming CXX flags for forwarding to modcc external project
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # compilation flags
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include("CompilerOptions")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL} ${GCC_SANITIZE_FLAGS}")
 
 # this generates a .json file with full compilation command for each file
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")

@@ -10,9 +10,4 @@ struct lif_cell_description {
     double V_m = E_L;     // Membrane potential [mV].
     double V_reset = E_L; // Reset potential [mV].
     double t_ref = 2;     // Refractory period [ms].
-
-    // External Poisson input parameters.
-    int n_poiss = 0;      // Number of external Poisson neurons.
-    float w_poiss = 1;    // Weight of each Poisson->LIF synapse.
-    float d_poiss = 1;    // Delay of each Poisson->LIF synapse.
 };

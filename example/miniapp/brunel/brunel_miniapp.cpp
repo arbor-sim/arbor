@@ -66,7 +66,6 @@ public:
     brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
                   float weight, float delay, float rel_inh_strength, double poiss_lambda):
         ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay) {
-        std::cout << "Inside Brunel recipe\n";
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -111,7 +110,6 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        std::cout << "get_celL_description for gid " << gid << std::endl;
         auto cell = lif_cell_description();
         cell.tau_m = 10;
         cell.V_th = 10;
@@ -120,9 +118,6 @@ public:
         cell.V_m = 0;
         cell.V_reset = 0;
         cell.t_ref = 2;
-        cell.n_poiss = ncells_ext_;
-        cell.w_poiss = weight_ext_;
-        cell.d_poiss = delay_;
         return cell;
     }
 
@@ -201,7 +196,6 @@ using global_policy = communication::global_policy;
 using file_export_type = io::exporter_spike_file<global_policy>;
 
 int main(int argc, char** argv) {
-    std::cout << "Starting brunel miniapp\n";
     arb::communication::global_policy_guard global_guard(argc, argv);
     try {
         arb::util::meter_manager meters;
@@ -243,9 +237,7 @@ int main(int argc, char** argv) {
         // The number of cells in a single cell group.
         cell_size_type group_size = options.group_size;
 
-        std::cout << "Brunel recipe about to be created\n";
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda);
-        std::cout << "Brunel recipe created\n";
 
         auto register_exporter = [] (const io::cl_options& options) {
             return util::make_unique<file_export_type>
@@ -253,11 +245,8 @@ int main(int argc, char** argv) {
                         options.file_extension, options.over_write);
         };
 
-        std::cout << "Partition load balancing\n";
         auto decomp = partition_load_balance(recipe, nd);
-        std::cout << "Before model creation\n";
         model m(recipe, decomp);
-        std::cout << "Model created\n";
 
         // Initialize the spike exporting interface
         std::unique_ptr<file_export_type> file_exporter;

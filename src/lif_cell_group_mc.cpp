@@ -6,7 +6,6 @@ using namespace arb;
 lif_cell_group_mc::lif_cell_group_mc(std::vector<cell_gid_type> gids, const recipe& rec):
 gids_(std::move(gids))
 {
-    std::cout << "Making lif group\n";
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
 
@@ -16,16 +15,8 @@ gids_(std::move(gids))
     // resize
     last_time_updated_.resize(gids_.size());
 
-    // Initialize variables for the external Poisson input.
     for (auto lid: util::make_span(0, gids_.size())) {
         cells_.push_back(util::any_cast<lif_cell_description>(rec.get_cell_description(gids_[lid])));
-
-        // If a cell receives some external Poisson input then initialize the corresponding variables.
-        if (cells_[lid].n_poiss > 0) {
-            EXPECTS(cells_[lid].n_poiss >= 0);
-            EXPECTS(cells_[lid].w_poiss >= 0);
-            EXPECTS(cells_[lid].d_poiss >= 0);
-        }
     }
 }
 
@@ -35,11 +26,12 @@ cell_kind lif_cell_group_mc::get_cell_kind() const {
 
 void lif_cell_group_mc::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE("lif");
-    if (event_lanes.size()) {
-      for (auto lid: util::make_span(0, gids_.size())) {
-        // Advance each cell independently.
-        advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
-      }
+    if (event_lanes.size() > 0) {
+        for (auto lid: util::make_span(0, gids_.size())) {
+            std::cout << "Cell " << gids_[lid] << " received " << event_lanes[lid].size() << " events!\n";
+            // Advance each cell independently.
+            advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
+        }
     }
     PL();
 }
@@ -70,7 +62,6 @@ void lif_cell_group_mc::reset() {
 // Advances a single cell (lid) with the exact solution (jumps can be arbitrary).
 // Parameter dt is ignored, since we make jumps between two consecutive spikes.
 void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_type lid, pse_vector& event_lane) {
-    std::cout << "Advancing cell " << lid << std::endl;
     // Current time of last update.
     auto t = last_time_updated_[lid];
     auto& cell = cells_[lid];
@@ -108,11 +99,11 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
         // Add jump due to spike.
         cell.V_m += update;
         t = time;
-
         // If crossing threshold occurred
         if (cell.V_m >= cell.V_th) {
             cell_member_type spike_neuron_gid = {gids_[lid], 0};
             spike s = {spike_neuron_gid, t};
+            std::cout << "Neuron " << gids_[lid] << " spiked!" << std::endl;
             spikes_.push_back(s);
 
             // Advance last_time_updated.
