@@ -26,9 +26,10 @@ cell_kind lif_cell_group_mc::get_cell_kind() const {
 
 void lif_cell_group_mc::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE("lif");
+    std::cout << "Advancing to " << ep.tfinal << std::endl;
     if (event_lanes.size() > 0) {
         for (auto lid: util::make_span(0, gids_.size())) {
-            std::cout << "Cell " << gids_[lid] << " received " << event_lanes[lid].size() << " events!\n";
+            // std::cout << "Received " << event_lanes[lid].size() << std::endl;
             // Advance each cell independently.
             advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
         }
@@ -71,7 +72,7 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     // ignore any new events that happened before t,
     // including poisson events as well.
     for (auto ev : event_lane) {
-        if (ev.time >= tfinal) break;
+        if (ev.time >= t) break;
         i++;
     }
 
@@ -103,7 +104,6 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
         if (cell.V_m >= cell.V_th) {
             cell_member_type spike_neuron_gid = {gids_[lid], 0};
             spike s = {spike_neuron_gid, t};
-            std::cout << "Neuron " << gids_[lid] << " spiked!" << std::endl;
             spikes_.push_back(s);
 
             // Advance last_time_updated.
