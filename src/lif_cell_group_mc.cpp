@@ -26,7 +26,6 @@ cell_kind lif_cell_group_mc::get_cell_kind() const {
 
 void lif_cell_group_mc::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE("lif");
-    std::cout << "Advancing to " << ep.tfinal << std::endl;
     if (event_lanes.size() > 0) {
         for (auto lid: util::make_span(0, gids_.size())) {
             // std::cout << "Received " << event_lanes[lid].size() << std::endl;
