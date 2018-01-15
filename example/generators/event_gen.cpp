@@ -69,8 +69,8 @@ public:
 
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
-        double e_weight =  10;
-        double i_weight = -10;
+        double e_weight =  0.01;
+        double i_weight = -0.005;
 
         // Make two event generators.
         std::vector<arb::event_generator_ptr> gens;
@@ -80,10 +80,11 @@ public:
                 e_weight,              // weight of events to deliver
                 RNG(29562872),         // random number generator to use
                 t0,                    // events start being delivered from this time
-                hz_to_freq(50)));      // 50 Hz average firing rate
+                hz_to_freq(5)));       // 50 Hz average firing rate
+
         gens.push_back(
             arb::make_event_generator<pgen>(
-                cell_member_type{0,0}, i_weight, RNG(86543891), t0, hz_to_freq(50)));
+                cell_member_type{0,0}, i_weight, RNG(86543891), t0, hz_to_freq(5)));
 
         return gens;
     }
@@ -120,10 +121,10 @@ int main() {
     arb::trace_data<double> voltage;
 
     // sample every ms
-    auto sched = arb::regular_schedule(1);
+    auto sched = arb::regular_schedule(25);
     model.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
-    model.run(100, 0.01);
+    model.run(1000, 0.01);
 
     std::cout << "at the end we have " << voltage.size() << " samples\n";
     for (auto v: voltage) {
