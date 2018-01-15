@@ -155,7 +155,7 @@ time_type model::run(time_type tfinal, time_type dt) {
         PE("enqueue");
         const auto t0 = epoch_.tfinal;
         const auto t1 = std::min(tfinal, t0+t_interval);
-        enqueue_events(t0, t1, epoch_.id);
+        setup_events(t0, t1, epoch_.id);
         PL(2);
 
         PL(2);
@@ -164,7 +164,7 @@ time_type model::run(time_type tfinal, time_type dt) {
     time_type tuntil = std::min(t_+t_interval, tfinal);
     epoch_ = epoch(0, tuntil);
     PE("stepping", "communication", "events", "enqueue");
-    enqueue_events(t_, tuntil, 1);
+    setup_events(t_, tuntil, 1);
     PL(4);
     while (t_<tfinal) {
         local_spikes_.exchange();
@@ -202,7 +202,7 @@ time_type model::run(time_type tfinal, time_type dt) {
 //      event_lanes[epoch]: take all events ≥ t_from
 //      event_generators  : take all events < t_to
 //      pending_events    : take all events
-void model::enqueue_events(time_type t_from, time_type t_to, std::size_t epoch) {
+void model::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
     const auto n = communicator_.num_local_cells();
     threading::parallel_for::apply(0, n,
         [&](cell_size_type i) {
