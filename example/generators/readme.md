@@ -1,0 +1,156 @@
+# Event Generator Example
+
+A miniapp that demonstrates how to describe event generators in a `arb::recipe`.
+
+This miniapp uses a simple model of a single cell, with one compartment
+corresponding to the soma.
+The soma has one synapse, to which two event generators, one inhibitory and one excitatory, are attached.
+
+## The Recipe
+
+We need to create a recipe that describes the model.
+All models derive from the `arb::recipe` base class.
+
+We call the recipe for this example `generator_recipe`, and declare it as follows:
+
+```C++
+class generator_recipe: public arb::recipe {
+public:
+    // There is just the one cell in the model
+    cell_size_type num_cells() const override {
+        return 1;
+    }
+
+    // ...
+};
+```
+
+### Describing The Network
+
+Every user-defined recipe must provide implementations for the following three methods:
+* `recipe::num_cells()`: return the total number of cells in the model.
+* `recipe::get_cell_description(gid)`: return a description of the cell with `gid`.
+* `recipe::get_cell_kind(gid)`:  return an `arb::cell_kind` enum value for the cell type.
+
+In addition to these three, we also need to implement
+`recipe::num_targets(gid)` to return 1, to indicate that there is one target
+(i.e. synapse) on the cell.
+
+This single cell model has no connections for spike communication, so the
+default `recipe::connections_on(gid)` method can use the default implementation,
+which returns an empty list of connections for a cell.
+
+Above you can see the definition of `recipe::num_cells()`, which is trivial for this model, which has only once cell.
+The `recipe::get_cell_description(gid)` and `recipe::get_cell_kind(gid)` methods are defined to return a single compartment cell with one synapse, and a `arb::cell_kind::cable1d_neuron` respectively:
+
+```C++
+    // Return an arb::cell that describes a single compartment cell with
+    // passive dynamics, and a single expsyn synapse.
+    arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
+        arb::cell c;
+
+        c.add_soma(18.8/2.0);
+        c.soma()->add_mechanism("pas");
+
+        // Add one synapse at the soma.
+        // This synapse will be the target for all events, from both event_generators.
+        auto syn_spec = arb::mechanism_spec("expsyn");
+        c.add_synapse({0, 0.5}, syn_spec);
+
+        return std::move(c); // move into unique_any wrapper
+    }
+
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        return cell_kind::cable1d_neuron;
+    }
+
+    // There is one synapse, i.e. target, on the cell.
+    cell_size_type num_targets(cell_gid_type gid) const override {
+        EXPECTS(gid==0); // There is only one cell in the model
+        return 1;
+    }
+```
+
+### Event Generators
+
+To add the event generators to the synapse, we implement the `recipe::event_generators(gid)` method.
+This method returns a vector of `event_generator_ptr` that are attached to the cell with `gid`.
+
+The `event_generator_ptr` is an alias for a `unique_ptr` wrapped around an `event_generator`.
+
+```
+using event_generator_ptr = std::unique_ptr<event_generator>;
+```
+
+It comes with a helper function `make_event_generator_ptr` that simplifies the process of creating an event generator and wrapping it in a `unique_ptr`.
+It has the same semantics as `std::unique_ptr`.
+
+For our demo, we want to attach two Poisson event generators to the synapse on our cell.
+
+1. An excitatory synapse with spiking frequency λ\_e and weight w\_e.
+2. An inhibitory synapse with spiking frequency λ\_i and weight w\_i.
+
+Each 
+
+### Sampling Voltages
+
+To visualise the result of our experiment, we want to sample the voltage in our cell at regular time points and save the resulting sequence to a JSON file.
+
+There are three parts to this process.
+
+1. Define the a `probe` in the recipe, which describes the location and variable to be sampled, i.e. the soma and voltage respectively for this example.
+2. Attach a sampler to this probe once the model has been created.
+3. Write the sampled values to a JSON file once the model has been run.
+
+#### 1. Define probe in recipe
+
+The `recipe::num_probes(gid)` and `recipe::get_probe(id)` have to be defined for sampling.
+In our case, the cell has one probe, which refers to the voltage at the soma.
+
+```C++
+    // There is one probe (for measuring voltage at the soma) on the cell
+    cell_size_type num_probes(cell_gid_type gid)  const override {
+        return 1;
+    }
+
+    arb::probe_info get_probe(cell_member_type id) const override {
+        // Get the appropriate kind for measuring voltage
+        cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
+
+        // The location at which we measure: position 0 on segment 0.
+        // The cell has only one segment, segment 0, which is the soma.
+        arb::segment_location loc(0, 0.0);
+
+        // Put this together into a `probe_info`
+        return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
+    }
+```
+
+#### 2. Attach sampler to model
+
+Once the model has been created, the model has internal state that tracks the value of the voltage at the probe location described by the recipe.
+We must attach a sampler to this probe to get sample values.
+
+The sampling interface is rich, and can be extended in many ways.
+For our simple use case there are three bits of information that need to be provided when creating a sampler
+
+1. The `probe_id` that identifies the probe (generated in the recipe).
+2. The schedule to use for sampling (in our case 10 samples every ms).
+3. The location where we want to save the samples for outputing later.
+
+```C++
+    // The id of the only probe (cell 0, probe 0)
+    auto probe_id = cell_member_type{0, 0};
+    // The schedule for sampling is 10 samples every 1 ms.
+    auto sched = arb::regular_schedule(0.1);
+    // Where the voltage samples will be stored as (time, value) pairs
+    arb::trace_data<double> voltage;
+    // Now attach the sampler:
+    model.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+```
+
+When the model is run, the `simple_sampler` that we attached to the probe will store the sample values as (time, voltage) pairs in the `voltage` vector.
+
+#### 3. Output to JSON
+
+

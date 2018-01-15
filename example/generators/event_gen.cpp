@@ -2,9 +2,15 @@
  * A miniapp that demonstrates how to use event generators.
  *
  * The miniapp builds a simple model of a single cell, with one compartment
- * corresponding to the soma. The soma has a single synapse, to which two 
+ * corresponding to the soma. The soma has a single synapse, to which two
  * event generators, one inhibitory, and one excitatory, are attached.
  */
+
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+
+#include <json/json.hpp>
 
 #include <cell.hpp>
 #include <common_types.hpp>
@@ -23,19 +29,23 @@ using arb::cell_kind;
 using arb::time_type;
 using arb::cell_probe_address;
 
+// Writes voltage trace as a json file.
+void write_trace_json(const arb::trace_data<double>& trace);
+
 class generator_recipe: public arb::recipe {
 public:
+    // There is just the one cell in the model
     cell_size_type num_cells() const override {
         return 1;
     }
 
+    // Create cell with just a single compartment for the soma:
+    //    soma diameter: 18.8 µm
+    //    mechanisms: pas [default params]
+    //    bulk resistivitiy: 100 Ω·cm [default]
+    //    capacitance: 0.01 F/m² [default]
+    //    synapses: 1 * expsyn
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        // Create cell with just a single compartment for the soma:
-        //    soma diameter: 18.8 µm
-        //    mechanisms: pas (default params)
-        //    bulk resistivitiy: 100 Ω·cm [default]
-        //    capacitance: 0.01 F/m² [default]
-        //    synapses: 2 * expsyn
         arb::cell c;
 
         c.add_soma(18.8/2.0);
@@ -47,44 +57,53 @@ public:
         auto syn_spec = arb::mechanism_spec("expsyn");
         c.add_synapse({0, 0.5}, syn_spec);
 
-        return c;
+        return std::move(c);
     }
 
-    cell_kind get_cell_kind(cell_gid_type) const override {
+    cell_kind get_cell_kind(cell_gid_type gid) const override {
+        EXPECTS(gid==0); // There is only one cell in the model
         return cell_kind::cable1d_neuron;
-    }
-    cell_size_type num_sources(cell_gid_type) const override {
-        return 0;
     }
 
     // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
-    cell_size_type num_targets(cell_gid_type) const override {
+    cell_size_type num_targets(cell_gid_type gid) const override {
+        EXPECTS(gid==0); // There is only one cell in the model
         return 1;
     }
 
-    // Return two generators attached to the one cell 
+    // Return two generators attached to the one cell.
     std::vector<arb::event_generator_ptr> event_generators(cell_gid_type gid) const override {
+        EXPECTS(gid==0); // There is only one cell in the model
+
         using RNG = std::mt19937_64;
         using pgen = arb::poisson_generator<RNG>;
 
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
-        double e_weight =  0.01;
+        double e_weight =  0.001;
         double i_weight = -0.005;
 
         // Make two event generators.
         std::vector<arb::event_generator_ptr> gens;
-        gens.push_back(
-            arb::make_event_generator<pgen>(
-                cell_member_type{0,0}, // target synapse (gid, local_id)
-                e_weight,              // weight of events to deliver
-                RNG(29562872),         // random number generator to use
-                t0,                    // events start being delivered from this time
-                hz_to_freq(5)));       // 50 Hz average firing rate
 
+        // Note that each generator gets a different random number generator.
+        // In practice you would use the gid and generator number to seed the
+        // generator, to get unique and reproduceable streams. For this trivial
+        // example with one cell and two generators, the seeds are hard-coded.
+
+        // Add excitatory generator
         gens.push_back(
             arb::make_event_generator<pgen>(
-                cell_member_type{0,0}, i_weight, RNG(86543891), t0, hz_to_freq(5)));
+                cell_member_type{0,0}, // Target synapse (gid, local_id).
+                e_weight,              // Weight of events to deliver
+                RNG(29562872),         // Random number generator to use
+                t0,                    // Events start being delivered from this time
+                hz_to_freq(500)));     // 50 Hz average firing rate
+
+        // Add inhibitory generator
+        gens.push_back(
+            arb::make_event_generator<pgen>(
+                cell_member_type{0,0}, i_weight, RNG(86543891), t0, hz_to_freq(20)));
 
         return gens;
     }
@@ -96,8 +115,8 @@ public:
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        EXPECTS(id.gid==0);     // There is one cell...
-        EXPECTS(id.index==0);   // with one probe, in the model.
+        EXPECTS(id.gid==0);     // There is one cell,
+        EXPECTS(id.index==0);   // with one probe.
 
         // Get the appropriate kind for measuring voltage
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
@@ -109,25 +128,52 @@ public:
 };
 
 int main() {
+    // Create an instance of our recipe.
     generator_recipe recipe;
 
+    // Make the domain decomposition for the model
     auto node = arb::hw::get_node_info();
     auto decomp = arb::partition_load_balance(recipe, node);
+
+    // Construct the model.
     arb::model model(recipe, decomp);
 
+    // Set up the probe that will measure voltage in the cell.
+
+    // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
     auto probe_id = cell_member_type{0, 0};
-    auto probe = recipe.get_probe(probe_id);
-
+    // The schedule for sampling is 10 samples every 1 ms.
+    auto sched = arb::regular_schedule(0.1);
+    // This is where the voltage samples will be stored as (time, value) pairs
     arb::trace_data<double> voltage;
-
-    // sample every ms
-    auto sched = arb::regular_schedule(25);
+    // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
     model.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
-    model.run(1000, 0.01);
+    // Run the model for 1 s (1000 ms), with time steps of 0.01 ms.
+    model.run(50, 0.01);
 
-    std::cout << "at the end we have " << voltage.size() << " samples\n";
-    for (auto v: voltage) {
-        std::cout << v.t << ": " << v.v << "\n";
-    }
+    // Write the samples to a json file.
+    write_trace_json(voltage);
 }
+
+void write_trace_json(const arb::trace_data<double>& trace) {
+    std::string path = "./voltages.json";
+
+    nlohmann::json json;
+    json["name"] = "event_gen_demo";
+    json["units"] = "mV";
+    json["cell"] = "0.0";
+    json["probe"] = "0";
+
+    auto& jt = json["data"]["time"];
+    auto& jy = json["data"]["voltage"];
+
+    for (const auto& sample: trace) {
+        jt.push_back(sample.t);
+        jy.push_back(sample.v);
+    }
+
+    std::ofstream file(path);
+    file << std::setw(1) << json << "\n";
+}
+
