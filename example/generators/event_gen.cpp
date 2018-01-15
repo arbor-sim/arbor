@@ -80,8 +80,8 @@ public:
 
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
-        double e_weight =  0.001;
-        double i_weight = -0.005;
+        double w_e =  0.001;
+        double w_i = -0.005;
 
         // Make two event generators.
         std::vector<arb::event_generator_ptr> gens;
@@ -95,7 +95,7 @@ public:
         gens.push_back(
             arb::make_event_generator<pgen>(
                 cell_member_type{0,0}, // Target synapse (gid, local_id).
-                e_weight,              // Weight of events to deliver
+                w_e,                   // Weight of events to deliver
                 RNG(29562872),         // Random number generator to use
                 t0,                    // Events start being delivered from this time
                 hz_to_freq(500)));     // 50 Hz average firing rate
@@ -103,7 +103,7 @@ public:
         // Add inhibitory generator
         gens.push_back(
             arb::make_event_generator<pgen>(
-                cell_member_type{0,0}, i_weight, RNG(86543891), t0, hz_to_freq(20)));
+                cell_member_type{0,0}, w_i, RNG(86543891), t0, hz_to_freq(20)));
 
         return gens;
     }

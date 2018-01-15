@@ -73,8 +73,54 @@ The `recipe::get_cell_description(gid)` and `recipe::get_cell_kind(gid)` methods
 
 ### Event Generators
 
+For our demo, we want to attach two Poisson event generators to the synapse on our cell.
+
+1. An excitatory synapse with spiking frequency λ\_e and weight w\_e.
+2. An inhibitory synapse with spiking frequency λ\_i and weight w\_i.
+
 To add the event generators to the synapse, we implement the `recipe::event_generators(gid)` method.
-This method returns a vector of `event_generator_ptr` that are attached to the cell with `gid`.
+
+The implementation of this with hard-coded frequencies and weights is:
+
+```C++
+    std::vector<arb::event_generator_ptr> event_generators(cell_gid_type gid) const override {
+        // The type of random number generator to use.
+        using RNG = std::mt19937_64;
+
+        // The poisson_generator is templated on the random number generator type.
+        using pgen = arb::poisson_generator<RNG>;
+
+        auto hz_to_freq = [](double hz) { return hz*1e-3; };
+        time_type t0 = 0;
+
+        // Define frequencies and weights for the excitatory and inhibitory generators.
+        double lamda_e =  hz_to_freq(500);
+        double lamba_i =  hz_to_freq(20);
+        double w_e =  0.001;
+        double w_i = -0.005;
+
+        // Make two event generators.
+        std::vector<arb::event_generator_ptr> gens;
+
+        // Add excitatory generator
+        gens.push_back(
+            arb::make_event_generator<pgen>(
+                cell_member_type{0,0}, // Target synapse (gid, local_id).
+                w_e,                   // Weight of events to deliver
+                RNG(29562872),         // Random number generator to use
+                t0,                    // Events start being delivered from this time
+                lambda_e));            // Expected frequency (events per ms)
+
+        // Add inhibitory generator
+        gens.push_back(
+            arb::make_event_generator<pgen>(
+                cell_member_type{0,0}, w_i, RNG(86543891), t0, lambda_i));
+
+        return gens;
+    }
+```
+
+The `recipe::event_generators(gid)` method returns a vector of `event_generator_ptr` that are attached to the cell with `gid`.
 
 The `event_generator_ptr` is an alias for a `unique_ptr` wrapped around an `event_generator`.
 
@@ -82,15 +128,19 @@ The `event_generator_ptr` is an alias for a `unique_ptr` wrapped around an `even
 using event_generator_ptr = std::unique_ptr<event_generator>;
 ```
 
-It comes with a helper function `make_event_generator_ptr` that simplifies the process of creating an event generator and wrapping it in a `unique_ptr`.
-It has the same semantics as `std::unique_ptr`.
+In the implementation, an empty vector is created, and the generators are created and `push_back`ed into the vector one after the other.
 
-For our demo, we want to attach two Poisson event generators to the synapse on our cell.
+The helper function `make_event_generator` is used to simplify the process of creating an event generator and wrapping it in a `unique_ptr`.
+It has the same semantics as [http://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique](`std::make_unique`):
 
-1. An excitatory synapse with spiking frequency λ\_e and weight w\_e.
-2. An inhibitory synapse with spiking frequency λ\_i and weight w\_i.
+* It takes as a template parameter the specialized type of `event_generator`, in this case `pgen`.
+* Then it takes as arguments the arguments to pass to the constructor of `pgen`.
 
-Each 
+Of the arguments passed to the Poisson event generators, the random number generator state require further explanation.
+Each Poisson generator has its own private random number generator state.
+The initial random number state is provided on construction.
+For a real world model, the state should have a seed that is some reproducable hash of `gid` and the generator id, to ensure reproducable random streams.
+For this simple example, we use hard coded seeds to initialize the random number state.
 
 ### Sampling Voltages
 
@@ -175,5 +225,4 @@ make -j event_gen.exe
 # uses the matplotlib in Python.
 ../scripts/tsplot voltages.json
 ```
-
 
