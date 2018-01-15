@@ -10,7 +10,7 @@ add_executable(brunel_miniapp.exe ${MINIAPP_SOURCES} ${HEADERS})
 target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${ARB_LIBRARIES})
 target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
-if(NMC_WITH_MPI)
+if(ARB_WITH_MPI)
     target_link_libraries(brunel_miniapp.exe LINK_PUBLIC ${MPI_C_LIBRARIES})
     set_property(TARGET brunel_miniapp.exe APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
 endif()
