@@ -163,7 +163,9 @@ time_type model::run(time_type tfinal, time_type dt) {
 
     time_type tuntil = std::min(t_+t_interval, tfinal);
     epoch_ = epoch(0, tuntil);
+    PE("stepping", "communication", "events", "enqueue");
     enqueue_events(t_, tuntil, 1);
+    PL(4);
     while (t_<tfinal) {
         local_spikes_.exchange();
 
