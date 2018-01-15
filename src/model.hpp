@@ -60,12 +60,9 @@ public:
     void inject_events(const pse_vector& events);
 
 private:
-    // This sets the event queues for epoch with epoch_id
-    // * All events in the queue for the epoch_id-1 that are not scheduled
-    //   for delivery before t_from.
-    // * All events in pending_events_.
-    // * All pending events in the event generators due for delivery before t_to
-    void enqueue_events(time_type t_from, time_type time_to, std::size_t epoch_id);
+    // Private helper function that sets up the event lanes for an epoch.
+    // See comments on implementation for more information.
+    void setup_events(time_type t_from, time_type time_to, std::size_t epoch_id);
 
     std::vector<pse_vector>& event_lanes(std::size_t epoch_id);
 
