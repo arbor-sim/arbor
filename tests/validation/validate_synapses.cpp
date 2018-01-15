@@ -1,6 +1,5 @@
 #include <cell.hpp>
 #include <cell_group.hpp>
-#include <fvm_multicell.hpp>
 #include <hardware/node_info.hpp>
 #include <hardware/gpu.hpp>
 #include <json/json.hpp>

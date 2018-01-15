@@ -78,6 +78,7 @@ enum cell_kind {
 } // namespace arb
 
 std::ostream& operator<<(std::ostream& O, arb::cell_member_type m);
+std::ostream& operator<<(std::ostream& O, arb::cell_kind k);
 
 namespace std {
     template <> struct hash<arb::cell_member_type> {

@@ -213,14 +213,6 @@ namespace {
                         1.0f)};     // delay
         }
 
-        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-            return {};
-        }
-
-        probe_info get_probe(cell_member_type) const override {
-            throw std::logic_error("no probes");
-        }
-
     private:
         cell_size_type size_;
         cell_size_type ranks_;
@@ -286,14 +278,6 @@ namespace {
             return cons;
         }
 
-        std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-            return {};
-        }
-
-        probe_info get_probe(cell_member_type) const override {
-            throw std::logic_error("no probes");
-        }
-
     private:
         cell_size_type size_;
         cell_size_type ranks_;
@@ -355,11 +339,8 @@ test_ring(const domain_decomposition& D, comm_type& C, F&& f) {
     }
 
     // generate the events
-    auto queues = C.make_event_queues(global_spikes);
-    if (queues.size() != D.groups.size()) { // one queue for each cell group
-        return ::testing::AssertionFailure()
-            << "expect one event queue for each cell group";
-    }
+    std::vector<arb::pse_vector> queues(C.num_local_cells());
+    C.make_event_queues(global_spikes, queues);
 
     // Assert that all the correct events were generated.
     // Iterate over each local gid, and testing whether an event is expected for
@@ -449,7 +430,8 @@ test_all2all(const domain_decomposition& D, comm_type& C, F&& f) {
     }
 
     // generate the events
-    auto queues = C.make_event_queues(global_spikes);
+    std::vector<arb::pse_vector> queues(C.num_local_cells());
+    C.make_event_queues(global_spikes, queues);
     if (queues.size() != D.groups.size()) { // one queue for each cell group
         return ::testing::AssertionFailure()
             << "expect one event queue for each cell group";

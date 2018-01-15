@@ -176,10 +176,6 @@ public:
         }
     }
 
-    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-        return {};
-    }
-
 protected:
     template <typename RNG>
     cell_connection draw_connection_params(RNG& rng) const {

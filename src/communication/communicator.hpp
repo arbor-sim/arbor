@@ -150,17 +150,22 @@ public:
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.
-    /// Return a vector that contains the event queues for each local cell group.
     ///
-    /// Returns a vector of event queues, with one queue for each local cell group. The
-    /// events in each queue are all events that must be delivered to targets in that cell
-    /// group as a result of the global spike exchange.
-    std::vector<pse_vector> make_event_queues(const gathered_vector<spike>& global_spikes) {
+    /// Takes reference to a vector of event lists as an argument, with one list
+    /// for each local cell group. On completion, the events in each list are
+    /// all events that must be delivered to targets in that cell group as a
+    /// result of the global spike exchange, plus any events that were already
+    /// in the list.
+    void make_event_queues(
+            const gathered_vector<spike>& global_spikes,
+            std::vector<pse_vector>& queues)
+    {
+        EXPECTS(queues.size()==num_local_cells_);
+
         using util::subrange_view;
         using util::make_span;
         using util::make_range;
 
-        auto queues = std::vector<pse_vector>(num_local_cells_);
         const auto& sp = global_spikes.partition();
         const auto& cp = connection_part_;
         for (auto dom: make_span(0, num_domains_)) {
@@ -210,8 +215,6 @@ public:
                 }
             }
         }
-
-        return queues;
     }
 
     /// Returns the total number of global spikes over the duration of the simulation
