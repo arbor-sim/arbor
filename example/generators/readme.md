@@ -78,7 +78,7 @@ This method returns a vector of `event_generator_ptr` that are attached to the c
 
 The `event_generator_ptr` is an alias for a `unique_ptr` wrapped around an `event_generator`.
 
-```
+```C++
 using event_generator_ptr = std::unique_ptr<event_generator>;
 ```
 
@@ -152,5 +152,28 @@ For our simple use case there are three bits of information that need to be prov
 When the model is run, the `simple_sampler` that we attached to the probe will store the sample values as (time, voltage) pairs in the `voltage` vector.
 
 #### 3. Output to JSON
+
+The function `write_trace_json()` uses the [JSON library](https://github.com/nlohmann/json) that is included in the Arbor library to write the output.
+We don't document its implementation here, instead we note that the format of the output was chosen to be compatible with the `tsplot` script provided by Arbor for plotting traces.
+
+## Visualising the Results.
+
+The voltage samples are saved to `voltages.json`, and can be visualised using the `tsplot` Python script distributed with Arbor.
+Here is an example set of steps used to build, run and plot the voltage trace:
+
+```bash
+# assuming that build is a subdirectory of the main arbor project path
+cd build
+
+# build the event generator demo
+make -j event_gen.exe
+
+# run the event generator demo
+./example/event_gen.exe
+
+# draw a plot of the results.
+# uses the matplotlib in Python.
+../scripts/tsplot voltages.json
+```
 
 
