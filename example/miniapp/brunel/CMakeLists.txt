@@ -1,4 +1,6 @@
 set(HEADERS
+    io.hpp
+    partitioner.hpp
 )
 set(MINIAPP_SOURCES
     brunel_miniapp.cpp
