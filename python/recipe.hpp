@@ -14,9 +14,9 @@ namespace py {
 // py::recipe is the recipe interface that used by Python.
 // Calls that return generic types return pybind11::object, to avoid
 // having to wrap some C++ types used by the C++ interface (specifically
-// util::any, std::unique_ptr, etc.)
+// util::unique_any, util::any, std::unique_ptr, etc.)
 // For example, requests for cell description return pybind11::object, instead
-// of util::any used by the C++ recipe interface. The py_recipe_shim defined
+// of util::unique_any used by the C++ recipe interface. The py_recipe_shim defined
 // below can unwrap.
 class recipe {
 public:
@@ -67,10 +67,10 @@ public:
 
     // The py::recipe::cell_decription returns a pybind11::object, that is
     // unwrapped and copied into a util::unique_any.
-    util::any get_cell_description(cell_gid_type gid) const override {
+    util::unique_any get_cell_description(cell_gid_type gid) const override {
         auto o = impl_->cell_description(gid);
         if (pybind11::isinstance<rss_cell>(o)) {
-            return util::any(pybind11::cast<rss_cell>(o));
+            return util::unique_any(pybind11::cast<rss_cell>(o));
         }
 
         throw std::runtime_error(

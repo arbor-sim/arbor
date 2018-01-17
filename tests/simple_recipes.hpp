@@ -20,14 +20,6 @@ public:
         return probes_.count(i)? probes_.at(i).size(): 0;
     }
 
-    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-        return {};
-    }
-
-    std::vector<cell_connection> connections_on(cell_gid_type) const override {
-        return {};
-    }
-
     virtual probe_info get_probe(cell_member_type probe_id) const override {
         return probes_.at(probe_id.gid).at(probe_id.index);
     }
@@ -76,11 +68,8 @@ public:
     cell_size_type num_cells() const override { return n_; }
     cell_kind get_cell_kind(cell_gid_type) const override { return Kind; }
 
-    cell_size_type num_sources(cell_gid_type) const override { return 0; }
-    cell_size_type num_targets(cell_gid_type) const override { return 0; }
-
-    util::any get_cell_description(cell_gid_type) const override {
-        return util::make_any<Description>(desc_);
+    util::unique_any get_cell_description(cell_gid_type) const override {
+        return util::make_unique_any<Description>(desc_);
     }
 
 protected:
@@ -118,8 +107,8 @@ public:
         return cells_.at(i).synapses().size();
     }
 
-    util::any get_cell_description(cell_gid_type i) const override {
-        return util::make_any<cell>(cells_[i]);
+    util::unique_any get_cell_description(cell_gid_type i) const override {
+        return util::make_unique_any<cell>(cells_[i]);
     }
 
 protected:

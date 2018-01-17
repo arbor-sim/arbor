@@ -15,11 +15,6 @@
 
 namespace pb = pybind11;
 
-template <typename T>
-arb::util::any wrap_any(T value) {
-    return arb::util::any(std::move(value));
-}
-
 struct spike_recorder {
     using f = arb::model::spike_export_function;
     using spike_vec = std::vector<arb::spike>;

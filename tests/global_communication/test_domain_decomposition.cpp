@@ -36,7 +36,7 @@ namespace {
             return size_;
         }
 
-        util::any get_cell_description(cell_gid_type) const override {
+        util::unique_any get_cell_description(cell_gid_type) const override {
             return {};
         }
 
@@ -58,9 +58,6 @@ namespace {
             return {};
         }
 
-        probe_info get_probe(cell_member_type) const override {
-            throw std::logic_error("no probes");
-        }
 
     private:
         cell_size_type size_;
