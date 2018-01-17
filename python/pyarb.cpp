@@ -12,26 +12,17 @@
 
 #include "print.hpp"
 #include "recipe.hpp"
+#include "sampling.hpp"
 
-namespace pb = pybind11;
-
-struct spike_recorder {
-    using f = arb::model::spike_export_function;
-    using spike_vec = std::vector<arb::spike>;
-    spike_vec spike_store;
-
-    f callback() {
-        return [&](const spike_vec& spikes) {
-            spike_store.insert(spike_store.end(), spikes.begin(), spikes.end());
-        };
-    }
+arb::domain_decomposition partition_load_balance(std::shared_ptr<arb::py::recipe>& r, const arb::hw::node_info& ni) {
+    return arb::partition_load_balance(arb::py_recipe_shim(r), ni);
 };
 
-std::unique_ptr<spike_recorder> make_spike_recorder(arb::model& m) {
-    auto r = arb::util::make_unique<spike_recorder>();
-    m.set_global_spike_callback(r->callback());
-    return r;
-}
+arb::domain_decomposition partition_load_balance(std::shared_ptr<arb::py::recipe>& r) {
+    return arb::partition_load_balance(arb::py_recipe_shim(r), arb::hw::get_node_info());
+};
+
+namespace pb = pybind11;
 
 // helpful string literals that reduce verbosity
 using namespace pybind11::literals;
@@ -56,12 +47,9 @@ PYBIND11_MODULE(pyarb, m) {
         .def("__str__",  &cell_member_string)
         .def("__repr__", &cell_member_string);
 
+    //
     // spike recording
-    pb::class_<spike_recorder> spike_recorder(m, "spike_recorder");
-    spike_recorder
-        .def(pb::init<>())
-        .def_readonly("spikes", &spike_recorder::spike_store);
-    m.def("make_spike_recorder", &make_spike_recorder);
+    //
 
     pb::class_<arb::spike> spike(m, "spike");
     spike
@@ -70,6 +58,15 @@ PYBIND11_MODULE(pyarb, m) {
         .def_readwrite("time", &arb::spike::time)
         .def("__str__",  &spike_string)
         .def("__repr__", &spike_string);
+
+    // Use shared_ptr for spike_recorder, so that all copies of a recorder will
+    // see the spikes from the model with which the recorder's callback has been
+    // registered.
+    pb::class_<spike_recorder, std::shared_ptr<spike_recorder>> spike_recorder(m, "spike_recorder");
+    spike_recorder
+        .def(pb::init<>())
+        .def_property_readonly("spikes", [](const ::spike_recorder& s) {return *(s.spike_store.get());} );
+    m.def("make_spike_recorder", &make_spike_recorder);
 
     //
     // cell types
@@ -132,15 +129,15 @@ PYBIND11_MODULE(pyarb, m) {
         .def(pb::init<>())
         .def("is_local_gid", &arb::domain_decomposition::is_local_gid,
             "Test if cell with gloabl identifier gid is in a local cell_group")
-        .def_readonly("num_domains", &arb::domain_decomposition::num_domains,
+        .def_readwrite("num_domains", &arb::domain_decomposition::num_domains,
             "Number of distrubuted domains")
-        .def_readonly("domain_id", &arb::domain_decomposition::domain_id,
+        .def_readwrite("domain_id", &arb::domain_decomposition::domain_id,
             "The index of the local domain")
-        .def_readonly("num_local_cells", &arb::domain_decomposition::num_local_cells,
+        .def_readwrite("num_local_cells", &arb::domain_decomposition::num_local_cells,
             "Total number of cells in the local domain")
-        .def_readonly("num_global_cells", &arb::domain_decomposition::num_global_cells,
+        .def_readwrite("num_global_cells", &arb::domain_decomposition::num_global_cells,
             "Total number of cells in the global model (sum over all domains)")
-        .def_readonly("groups", &arb::domain_decomposition::groups,
+        .def_readwrite("groups", &arb::domain_decomposition::groups,
             "Descriptions of the cell groups on the local domain")
         .def("gid_domain",
             [](const arb::domain_decomposition& d, arb::cell_gid_type gid) {
@@ -152,11 +149,23 @@ PYBIND11_MODULE(pyarb, m) {
     // partition_load_balancer
     // The python recipe has to be shimmed for passing to the function that
     // takes a C++ recipe.
+    /*
     m.def("partition_load_balance",
         [](std::shared_ptr<arb::py::recipe>& r, const arb::hw::node_info& ni) {
             return arb::partition_load_balance(arb::py_recipe_shim(r), ni);
         },
         "Simple load balancer.", "recipe"_a, "node"_a);
+    */
+    m.def("partition_load_balance",
+        static_cast<arb::domain_decomposition (*)(std::shared_ptr<arb::py::recipe>& r, const arb::hw::node_info& ni)>(
+            &partition_load_balance
+        ),
+        "Simple load balancer.", "recipe"_a, "node"_a);
+    m.def("partition_load_balance",
+        static_cast<arb::domain_decomposition (*)(std::shared_ptr<arb::py::recipe>& r)>(
+            &partition_load_balance
+        ),
+        "Simple load balancer.", "recipe"_a);
 
     // node_info which describes the resources on a compute node
     pb::class_<arb::hw::node_info> node_info(m, "node_info",

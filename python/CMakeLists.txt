@@ -30,7 +30,7 @@ endif()
 set(PYBIND11_CPP_STANDARD -std=c++11)
 add_subdirectory(pybind11)
 
-pybind11_add_module(pyarb arb.cpp)
+pybind11_add_module(pyarb pyarb.cpp sampling.cpp)
 
 target_link_libraries(pyarb LINK_PUBLIC ${ARB_LIBRARIES})
 target_link_libraries(pyarb LINK_PUBLIC ${EXTERNAL_LIBRARIES})

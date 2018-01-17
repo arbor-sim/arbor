@@ -70,6 +70,7 @@ std::string rss_cell_string(const arb::rss_cell& c) {
         +" by "  + std::to_string(c.period) +">";
 }
 
+inline
 const char* cell_kind_string(arb::cell_kind k) {
     switch (k) {
     case arb::cell_kind::regular_spike_source:
@@ -82,6 +83,7 @@ const char* cell_kind_string(arb::cell_kind k) {
     return "";
 }
 
+inline
 const char* backend_kind_string(arb::backend_kind k) {
     switch (k) {
     case arb::backend_kind::gpu:
