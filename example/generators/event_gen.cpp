@@ -48,7 +48,7 @@ public:
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
         arb::cell c;
 
-        c.add_soma(18.8/2.0);
+        c.add_soma(18.8/2.0); // convert 18.8 μm diameter to radius
         c.soma()->add_mechanism("pas");
 
         // Add one synapse at the soma.
@@ -80,16 +80,15 @@ public:
 
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
+
+        // Define frequencies and weights for the excitatory and inhibitory generators.
+        double lambda_e =  hz_to_freq(500);
+        double lambda_i =  hz_to_freq(20);
         double w_e =  0.001;
         double w_i = -0.005;
 
         // Make two event generators.
         std::vector<arb::event_generator_ptr> gens;
-
-        // Note that each generator gets a different random number generator.
-        // In practice you would use the gid and generator number to seed the
-        // generator, to get unique and reproduceable streams. For this trivial
-        // example with one cell and two generators, the seeds are hard-coded.
 
         // Add excitatory generator
         gens.push_back(
@@ -98,12 +97,12 @@ public:
                 w_e,                   // Weight of events to deliver
                 RNG(29562872),         // Random number generator to use
                 t0,                    // Events start being delivered from this time
-                hz_to_freq(500)));     // 50 Hz average firing rate
+                lambda_e));            // Expected frequency (events per ms)
 
         // Add inhibitory generator
         gens.push_back(
             arb::make_event_generator<pgen>(
-                cell_member_type{0,0}, w_i, RNG(86543891), t0, hz_to_freq(20)));
+                cell_member_type{0,0}, w_i, RNG(86543891), t0, lambda_i));
 
         return gens;
     }

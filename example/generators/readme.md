@@ -2,9 +2,13 @@
 
 A miniapp that demonstrates how to describe event generators in a `arb::recipe`.
 
-This miniapp uses a simple model of a single cell, with one compartment
-corresponding to the soma.
+This miniapp uses a simple model of a single cell, with one compartment corresponding to the soma.
 The soma has one synapse, to which two event generators, one inhibitory and one excitatory, are attached.
+
+The following topics are covered:
+* How to describe a simple single cell model with a `recipe`.
+* How to connect Poisson event generators to a synapse in a `recipe`.
+* How to sample the voltage on the soma of a cell.
 
 ## The Recipe
 
@@ -94,8 +98,8 @@ The implementation of this with hard-coded frequencies and weights is:
         time_type t0 = 0;
 
         // Define frequencies and weights for the excitatory and inhibitory generators.
-        double lamda_e =  hz_to_freq(500);
-        double lamba_i =  hz_to_freq(20);
+        double lambda_e =  hz_to_freq(500);
+        double lambda_i =  hz_to_freq(20);
         double w_e =  0.001;
         double w_i = -0.005;
 

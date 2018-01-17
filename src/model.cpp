@@ -284,10 +284,11 @@ void model::inject_events(const pse_vector& events) {
     for (auto& e: events) {
         if (e.time<t_) {
             throw std::runtime_error(
-                "model::inject_events(): attempt to inject an event at time "
+                "model::inject_events(): attempt to inject an event at time: "
                 + std::to_string(e.time)
-                + ", when model state is at time "
-                + std::to_string(t_));
+                + " ms, which is earlier than the current model time: "
+                + std::to_string(t_)
+                + " ms. Events must be injected on or after the current model time.");
         }
         // local_cell_index returns an optional type that evaluates
         // to true iff the gid is a local cell.
