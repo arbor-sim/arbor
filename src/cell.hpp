@@ -54,10 +54,6 @@ struct cell_global_properties {
     std::map<std::string, specialized_mechanism> special_mechs;
 };
 
-// used in constructor below
-struct clone_cell_t {};
-constexpr clone_cell_t clone_cell{};
-
 /// high-level abstract representation of a cell and its segments
 class cell {
 public:
@@ -81,22 +77,25 @@ public:
         double threshold;
     };
 
-    // constructor
+    /// Default constructor
     cell();
 
-    // Sometimes we really do want a copy (pending big morphology refactor).
-    cell(clone_cell_t, const cell& other):
+    /// Copy constructor
+    cell(const cell& other):
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
         spike_detectors_(other.spike_detectors_)
-     {
-         // unique_ptr's cannot be copy constructed, do a manual assignment
-         segments_.reserve(other.segments_.size());
-         for (const auto& s: other.segments_) {
-             segments_.push_back(s->clone());
-         }
-     }
+    {
+        // unique_ptr's cannot be copy constructed, do a manual assignment
+        segments_.reserve(other.segments_.size());
+        for (const auto& s: other.segments_) {
+            segments_.push_back(s->clone());
+        }
+    }
+
+    /// Move constructor
+    cell(cell&& other) = default;
 
     /// Return the kind of cell, used for grouping into cell_groups
     cell_kind get_cell_kind() const  {
