@@ -10,6 +10,9 @@ struct spike_recorder {
     std::shared_ptr<spike_vec> spike_store;
 
     export_func callback() {
+        // initialize the spike_store
+        spike_store = std::make_shared<spike_vec>();
+
         // The callback returned should capture by value, so that the shared
         // pointer is held by both the spike_recorder instance, and by the
         // callback, so if the spike_recorder is destructed in the calling
@@ -21,4 +24,4 @@ struct spike_recorder {
 };
 
 // Returns a spike_recorder that has been registered with the model m.
-spike_recorder make_spike_recorder(arb::model& m);
+std::shared_ptr<spike_recorder> make_spike_recorder(arb::model& m);
