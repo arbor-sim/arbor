@@ -638,7 +638,7 @@ void fvm_multicell<Backend>::initialize(
     std::vector<cell> cells;
     cells.reserve(gids.size());
     for (auto gid: gids) {
-        cells.push_back(any_cast<cell>(rec.get_cell_description(gid)));
+        cells.push_back(std::move(any_cast<cell>(rec.get_cell_description(gid))));
     }
 
     auto cell_num_compartments =

@@ -536,6 +536,15 @@ TEST(range, keys) {
     }
 }
 
+template <typename C>
+void emplace_back_sequence(C&& c) {}
+
+template <typename C, typename T, typename... Ts>
+void emplace_back_sequence(C&& c, T&& t, Ts&&... ts) {
+    c.emplace_back(std::forward<T>(t));
+    emplace_back_sequence(std::forward<C>(c), std::forward<Ts>(ts)...);
+}
+
 TEST(range, is_sorted_by) {
     // Use `nomove` wrapper to count potential copies: implementation aims to
     // minimize copies of projection return value, and invocations of the projection function.
@@ -555,7 +564,9 @@ TEST(range, is_sorted_by) {
 
     // 1. sorted non-empty vector
 
-    std::vector<nomove<int>> v_sorted = {10, 13, 13, 15, 16};
+    std::vector<nomove<int>> v_sorted;
+    emplace_back_sequence(v_sorted, 10, 13, 13, 15, 16);
+
     int n = v_sorted.size();
 
     reset();
@@ -579,7 +590,8 @@ TEST(range, is_sorted_by) {
 
     // 3. one-element vector
 
-    std::vector<nomove<int>> v_single = {-44};
+    std::vector<nomove<int>> v_single;
+    emplace_back_sequence(v_single, -44);
 
     reset();
     EXPECT_TRUE(util::is_sorted_by(v_single, id_copy, cmp_nomove));
@@ -588,21 +600,24 @@ TEST(range, is_sorted_by) {
 
     // 4. unsorted vectors at second, third, fourth elements.
 
-    std::vector<nomove<int>> v_unsorted_2 = {2, 1, 3, 4};
+    std::vector<nomove<int>> v_unsorted_2;
+    emplace_back_sequence(v_unsorted_2, 2, 1, 3, 4);
 
     reset();
     EXPECT_FALSE(util::is_sorted_by(v_unsorted_2, id_copy, cmp_nomove));
     EXPECT_EQ(2, copies());
     EXPECT_EQ(2, invocations);
 
-    std::vector<nomove<int>> v_unsorted_3 = {2, 3, 1, 4};
+    std::vector<nomove<int>> v_unsorted_3;
+    emplace_back_sequence(v_unsorted_3, 2, 3, 1, 4);
 
     reset();
     EXPECT_FALSE(util::is_sorted_by(v_unsorted_3, id_copy, cmp_nomove));
     EXPECT_EQ(3, copies());
     EXPECT_EQ(3, invocations);
 
-    std::vector<nomove<int>> v_unsorted_4 = {2, 3, 4, 1};
+    std::vector<nomove<int>> v_unsorted_4;
+    emplace_back_sequence(v_unsorted_4, 2, 3, 4, 1);
 
     reset();
     EXPECT_FALSE(util::is_sorted_by(v_unsorted_4, id_copy, cmp_nomove));
