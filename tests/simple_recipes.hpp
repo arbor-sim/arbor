@@ -12,7 +12,7 @@
 namespace arb {
 
 // Common functionality: maintain an unordered map of probe data
-// per gid, built with `add_probe()`.
+// per gid_, built with `add_probe()`.
 
 class simple_recipe_base: public recipe {
 public:
@@ -53,7 +53,7 @@ protected:
 // cell description, with no sources or targets. (Derive the class to
 // add sources, targets, connections etc.)
 //
-// Probes are simply stored in a multimap, keyed by gid and can be manually
+// Probes are simply stored in a multimap, keyed by gid_ and can be manually
 // added with 'add_probe()'.
 //
 // Wrapped description class must be both move- and copy-constructable.
