@@ -6,14 +6,11 @@
 #include <memory>
 #include <vector>
 #include <json/json.hpp>
-#include <cell_group_factory.hpp>
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <cell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <lif_cell_description.hpp>
-#include <load_balance.hpp>
 #include <model.hpp>
 #include "partitioner.hpp"
 #include <profiling/profiler.hpp>
@@ -39,10 +36,10 @@ using communicator_type = communication::communicator<communication::global_poli
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
-std::vector<int> sample_subset(int gid, int start, int end, int m) {
-    std::set<int> s;
+std::vector<cell_gid_type> sample_subset(cell_gid_type gid, cell_gid_type start, cell_gid_type end,  unsigned m) {
+    std::set<cell_gid_type> s;
     std::mt19937 gen(gid + 42);
-    std::uniform_int_distribution<int> dis(start, end - 1);
+    std::uniform_int_distribution<cell_gid_type> dis(start, end - 1);
     while (s.size() < m) {
         auto val = dis(gen);
         if (val != gid) {
@@ -65,8 +62,8 @@ std::vector<int> sample_subset(int gid, int start, int end, int m) {
 class brunel_recipe: public recipe {
 public:
     brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
-                  float weight, float delay, float rel_inh_strength, double poiss_lambda):
-        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay) {
+                  float weight, float delay, float rel_inh_strength, double poiss_lambda, int seed = 42):
+        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay), seed_(seed) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -75,10 +72,11 @@ public:
         // Set up the parameters.
         weight_exc_ = weight;
         weight_inh_ = -rel_inh_strength * weight_exc_;
-        weight_ext_ = weight;
+        weight_ext_ =  weight;
         in_degree_exc_ = std::round(in_degree_prop * nexc);
         in_degree_inh_ = std::round(in_degree_prop * ninh);
-        // TODO: add a check for lambda_ = -1
+        // each cell receives next incoming Poisson sources with mean rate poiss_lambda, which is equivalent
+        // to a single Poisson source with mean rate next*poiss_lambda
         lambda_ = next * poiss_lambda;
     }
 
@@ -92,7 +90,7 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
         std::vector<cell_connection> connections;
-        // Sample and add incoming excitatory connections.
+        // Add incoming excitatory connections.
         for (auto i: sample_subset(gid, 0, ncells_exc_, in_degree_exc_)) {
             cell_member_type source{cell_gid_type(i), 0};
             cell_member_type target{gid, 0};
@@ -103,7 +101,7 @@ public:
         // Add incoming inhibitory connections.
         for (auto i: sample_subset(gid, ncells_exc_, ncells_exc_ + ncells_inh_, in_degree_inh_)) {
             cell_member_type source{cell_gid_type(i), 0};
-            cell_member_type target{gid, 1};
+            cell_member_type target{gid, 0};
             cell_connection conn(source, target, weight_inh_, delay_);
             connections.push_back(conn);
         }
@@ -126,14 +124,13 @@ public:
         std::vector<arb::event_generator_ptr> gens;
 
         std::mt19937_64 G;
-        G.seed(gid + 42);
+        G.seed(gid + seed_);
 
         using pgen = poisson_generator<std::mt19937_64>;
 
         time_type t0 = 0;
-        cell_member_type target{gid, 2};
+        cell_member_type target{gid, 0};
 
-        pgen gen(target, weight_ext_, G, t0, lambda_);
         gens.push_back(arb::make_event_generator<pgen>(
                         target,
                         weight_ext_,
@@ -189,6 +186,9 @@ private:
 
     // Expected number of poisson spikes.
     double lambda_;
+
+    // Seed used for the Poisson spikes generation.
+    int seed_;
 };
 
 using util::any_cast;
@@ -238,7 +238,9 @@ int main(int argc, char** argv) {
         // The number of cells in a single cell group.
         cell_size_type group_size = options.group_size;
 
-        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda);
+        unsigned seed = options.seed;
+
+        brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
         auto register_exporter = [] (const io::cl_options& options) {
             return util::make_unique<file_export_type>
@@ -279,9 +281,8 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        auto const num_steps = options.tfinal / options.dt;
         util::profiler_output(0.001, options.profile_only_zero);
-        std::cout << "there were " << m.num_spikes() << " spikes\n";
+        std::cout << "There were " << m.num_spikes() << " spikes\n";
 
         auto report = util::make_meter_report(meters);
         std::cout << report;

@@ -23,14 +23,14 @@ public:
 
     // LIF neurons have gid in range [0..ncells_-2] whereas fake cell is numbered with ncells_ - 1.
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        if (gid < ncells_ - 1) {
+        if (gid < cell_gid_type(ncells_ - 1)) {
             return cell_kind::lif_neuron;
         }
         return cell_kind::regular_spike_source;
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-        if (gid == ncells_ - 1) {
+        if (gid == cell_gid_type(ncells_ - 1)) {
             return {};
         }
         // In a ring, each cell has just one incoming connection.
@@ -42,7 +42,7 @@ public:
 
         // Connect fake cell (numbered ncells_-1) to the first cell (numbered 0).
         if (gid == 0) {
-            cell_member_type source{cell_gid_type(ncells_) - 1, 0};
+            cell_member_type source{cell_gid_type(ncells_ - 1), 0};
             cell_member_type target{gid, 0};
             cell_connection conn(source, target, weight_, delay_);
             connections.push_back(conn);
@@ -52,7 +52,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        if (gid < ncells_ - 1) {
+        if (gid < cell_gid_type(ncells_ - 1)) {
             return lif_cell_description();
         }
         // Produces just a single spike at time 0ms.
@@ -139,11 +139,11 @@ private:
 TEST(lif_cell_group_mc, recipe)
 {
     ring_recipe rr(100, 1, 0.1);
-    EXPECT_EQ(101, rr.num_cells());
-    EXPECT_EQ(2, rr.connections_on(0u).size());
-    EXPECT_EQ(1, rr.connections_on(55u).size());
-    EXPECT_EQ(0, rr.connections_on(1u)[0].source.gid);
-    EXPECT_EQ(99, rr.connections_on(0u)[0].source.gid);
+    EXPECT_EQ(unsigned(101), rr.num_cells());
+    EXPECT_EQ(unsigned(2), rr.connections_on(0u).size());
+    EXPECT_EQ(unsigned(1), rr.connections_on(55u).size());
+    EXPECT_EQ(unsigned(0), rr.connections_on(1u)[0].source.gid);
+    EXPECT_EQ(unsigned(99), rr.connections_on(0u)[0].source.gid);
 }
 
 TEST(lif_cell_group_mc, spikes) {
@@ -176,7 +176,7 @@ TEST(lif_cell_group_mc, spikes) {
     m.run(tfinal, dt);
 
     // we expect 4 spikes: 2 by both neurons
-    EXPECT_EQ(4, m.num_spikes());
+    EXPECT_EQ(unsigned(4), m.num_spikes());
 }
 
 TEST(lif_cell_group_mc, ring)
@@ -191,9 +191,6 @@ TEST(lif_cell_group_mc, ring)
 
     // Total simulation time.
     time_type simulation_time = 100;
-
-    // The number of cells in a single cell group.
-    cell_size_type group_size = 10;
 
     auto recipe = ring_recipe(num_cells, weight, delay);
     auto decomp = partition_load_balance(recipe, nd);
@@ -212,12 +209,12 @@ TEST(lif_cell_group_mc, ring)
     // Runs the simulation for simulation_time with given timestep
     mod.run(simulation_time, 0.01);
     // The total number of cells in all the cell groups.
-    EXPECT_EQ((num_cells + 1), recipe.num_cells());
+    EXPECT_EQ(unsigned(num_cells + 1), recipe.num_cells());
 
     for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
         // We expect that Regular Spiking Cell spiked at time 0s.
-        if (spike.source.gid == num_cells) {
+        if (spike.source.gid == cell_gid_type(num_cells)) {
             EXPECT_EQ(0, spike.time);
         // Other LIF cell should spike consecutively.
         } else {

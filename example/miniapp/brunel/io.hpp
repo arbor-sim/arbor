@@ -27,6 +27,7 @@ namespace io {
         double tfinal = 100.;
         double dt = 1;
         uint32_t group_size = 10;
+        uint32_t seed = 42;
 
         // Parameters for spike output.
         bool spike_file_output = false;

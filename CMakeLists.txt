@@ -11,16 +11,13 @@ if ("${CMAKE_VERSION}" MATCHES "^3.[0-9].")
     cmake_policy(SET CMP0023 OLD)
 endif()
 
-# TODO: remove this after debugging
-set(GCC_SANITIZE_FLAGS "-fsanitize=address")
-
 # save incoming CXX flags for forwarding to modcc external project
 set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 # compilation flags
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include("CompilerOptions")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL} ${GCC_SANITIZE_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
 
 # this generates a .json file with full compilation command for each file
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
@@ -93,7 +90,9 @@ if(ARB_THREADING_MODEL MATCHES "tbb")
 
     # The TBB headers are in the downloaded TBB source
     list(APPEND EXTERNAL_INCLUDES ${tbb_root}/include)
+
 elseif(ARB_THREADING_MODEL MATCHES "cthread")
+
     find_package(Threads REQUIRED)
     add_definitions(-DARB_HAVE_CTHREAD)
     set(ARB_WITH_CTHREAD TRUE)
@@ -264,10 +263,10 @@ endif()
 # Setup include dirs
 #----------------------------------------------------------
 include_directories(
+    "${PROJECT_SOURCE_DIR}/tclap"
     "${PROJECT_SOURCE_DIR}/include"
     "${PROJECT_SOURCE_DIR}/src"
     "${PROJECT_SOURCE_DIR}/modcc"
-    "${PROJECT_SOURCE_DIR}/random123"
     "${PROJECT_SOURCE_DIR}")
 if(EXTERNAL_INCLUDES)
   include_directories("${EXTERNAL_INCLUDES}")

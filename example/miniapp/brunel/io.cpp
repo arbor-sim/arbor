@@ -130,6 +130,10 @@ namespace arb {
                     ("G", "group-size", "number of cells per cell group",
                      false, defopts.group_size, "integer", cmd);
 
+                TCLAP::ValueArg<uint32_t> seed_arg
+                    ("S", "seed", "seed for poisson spike generators",
+                     false, defopts.seed, "integer", cmd);
+
                 TCLAP::SwitchArg spike_output_arg
                     ("f","spike-file-output","save spikes to file", cmd, false);
 
@@ -157,6 +161,7 @@ namespace arb {
                 update_option(options.tfinal, tfinal_arg);
                 update_option(options.dt, dt_arg);
                 update_option(options.group_size, group_size_arg);
+                update_option(options.seed, seed_arg);
                 update_option(options.spike_file_output, spike_output_arg);
                 update_option(options.profile_only_zero, profile_only_zero_arg);
 
@@ -194,6 +199,7 @@ namespace arb {
             o << "  simulation time                                            : " << options.tfinal << "\n";
             o << "  dt                                                         : " << options.dt << "\n";
             o << "  group size                                                 : " << options.group_size << "\n";
+            o << "  seed                                                       : " << options.seed << "\n";
             return o;
         }
     } // namespace io

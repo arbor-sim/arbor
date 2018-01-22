@@ -28,7 +28,6 @@ void lif_cell_group_mc::advance(epoch ep, time_type dt, const event_lane_subrang
     PE("lif");
     if (event_lanes.size() > 0) {
         for (auto lid: util::make_span(0, gids_.size())) {
-            // std::cout << "Received " << event_lanes[lid].size() << std::endl;
             // Advance each cell independently.
             advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
         }
@@ -72,7 +71,7 @@ void lif_cell_group_mc::advance_cell(time_type tfinal, time_type dt, cell_gid_ty
     // including poisson events as well.
     for (auto ev : event_lane) {
         if (ev.time >= t) break;
-        i++;
+        ++i;
     }
 
     // Integrate until tfinal using the exact solution of membrane voltage differential equation.

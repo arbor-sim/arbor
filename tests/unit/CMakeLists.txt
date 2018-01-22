@@ -67,7 +67,6 @@ set(TEST_SOURCES
     test_prefixbuf.cpp
     test_probe.cpp
     test_segment.cpp
-    test_random123.cpp
     test_range.cpp
     test_segment.cpp
     test_schedule.cpp
