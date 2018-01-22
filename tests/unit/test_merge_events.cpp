@@ -102,7 +102,7 @@ TEST(merge_events, overlap)
 }
 
 // Test the merge_events method with event generators.
-TEST(merge_events, X)
+TEST(merge_events, with_generators)
 {
     const time_type t0 = 10;
     const time_type t1 = 20;

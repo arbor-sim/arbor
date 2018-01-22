@@ -134,3 +134,36 @@ std::string node_info_string(const arb::hw::node_info& nd) {
 
     return s.str();
 }
+
+inline
+std::string connection_string(const arb::cell_connection& con) {
+    std::stringstream s;
+    s << "<connection: " << con.source << " -> " << con.dest << ", delay " << con.delay << " ms, weight " << con.weight << " S⋅cm⁻²>";
+
+    return s.str();
+}
+
+inline
+std::string segment_location_string(const arb::segment_location& loc) {
+    std::stringstream s;
+    s << "<location: segment " << loc.segment << ", position " << loc.position << ">";
+
+    return s.str();
+}
+
+inline
+std::string cell_string(const arb::cell& c) {
+    std::stringstream s;
+    auto pick = [](std::stringstream& s, unsigned i, const char* a, const char* b) {
+        s << i << " " << (i==1? a: b);
+    };
+
+    s << "<cell: ";
+    pick(s, c.num_segments(), "segment, ", "segments, ");
+    pick(s, c.synapses().size(), "synapse, ", "synapses, ");
+    pick(s, c.stimuli().size(), "stimulus, ", "stimuli, ");
+    pick(s, c.detectors().size(), "detector", "detectors");
+    s << ">";
+
+    return s.str();
+}

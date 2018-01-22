@@ -26,6 +26,9 @@ public:
     virtual cell_size_type   num_cells() const = 0;
     virtual pybind11::object cell_description(cell_gid_type gid) const = 0;
     virtual cell_kind        kind(cell_gid_type gid) const = 0;
+    virtual std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const = 0;
+    virtual cell_size_type num_sources(cell_gid_type) const = 0;
+    virtual cell_size_type num_targets(cell_gid_type) const = 0;
 };
 
 class recipe_trampoline: public recipe {
@@ -42,6 +45,18 @@ public:
 
     cell_kind kind(cell_gid_type gid) const override {
         PYBIND11_OVERLOAD_PURE(cell_kind, recipe, kind, gid);
+    }
+
+    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD_PURE(std::vector<arb::cell_connection>, recipe, connections_on, gid);
+    }
+
+    cell_size_type num_sources(cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD_PURE(cell_size_type, recipe, num_sources, gid);
+    }
+
+    cell_size_type num_targets(cell_gid_type gid) const override {
+        PYBIND11_OVERLOAD_PURE(cell_size_type, recipe, num_targets, gid);
     }
 };
 
@@ -68,19 +83,36 @@ public:
     // The py::recipe::cell_decription returns a pybind11::object, that is
     // unwrapped and copied into a util::unique_any.
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto o = impl_->cell_description(gid);
+        pybind11::object o = impl_->cell_description(gid);
+
+        auto guard = pybind11::gil_scoped_acquire();
         if (pybind11::isinstance<rss_cell>(o)) {
             return util::unique_any(pybind11::cast<rss_cell>(o));
         }
+        else if (pybind11::isinstance<cell>(o)) {
+            return util::unique_any(pybind11::cast<cell>(o));
+        }
 
         throw std::runtime_error(
-            "Python Arbor recipe provided a cell_description ("
+            "Python Arbor recipe.cell_description returned a value ("
             + std::string(pybind11::str(o))
             + ") that does not describe a known arbor cell type.");
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         return impl_->kind(gid);
+    }
+
+    std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
+        return impl_->connections_on(gid);
+    }
+
+    cell_size_type num_sources(cell_gid_type gid) const override {
+        return impl_->num_sources(gid);
+    }
+
+    cell_size_type num_targets(cell_gid_type gid) const override {
+        return impl_->num_targets(gid);
     }
 };
 
