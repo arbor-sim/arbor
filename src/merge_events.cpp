@@ -55,6 +55,11 @@ tourney_tree::tourney_tree(std::vector<event_generator_ptr>& input):
 }
 
 void tourney_tree::print() const {
+    auto nxt=1u;
+    for (auto i=0u; i<nodes_; ++i) {
+        if (i==nxt-1) { nxt*=2; std::cout << "\n";}
+        std::cout << "{" << heap_[i].first << "," << heap_[i].second << "}\n";
+    }
 }
 
 bool tourney_tree::empty() const {
@@ -108,7 +113,7 @@ unsigned tourney_tree::parent(unsigned i) const {
     return (i-1)>>1;
 }
 unsigned tourney_tree::left(unsigned i) const {
-    return (i<<1)+1;
+    return (i<<1) + 1;
 }
 unsigned tourney_tree::right(unsigned i) const {
     return left(i)+1;

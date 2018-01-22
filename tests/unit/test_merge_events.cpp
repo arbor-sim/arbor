@@ -232,12 +232,9 @@ TEST(merge_events, tourney_poisson)
     // Generate output using tournament tree in lf.
     impl::tourney_tree tree(generators);
     pse_vector lf;
-    for (auto i=1; i<=10; ++i) {
-        time_type tt = i;
-        while (!tree.empty(tt)) {
-            lf.push_back(tree.head());
-            tree.pop();
-        }
+    while (!tree.empty(tfinal)) {
+        lf.push_back(tree.head());
+        tree.pop();
     }
 
     // Test output of tournament tree.

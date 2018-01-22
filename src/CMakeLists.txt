@@ -31,7 +31,6 @@ set(CUDA_SOURCES
     backends/gpu/fvm.cpp
     backends/gpu/fill.cu
     backends/gpu/multi_event_stream.cu
-    lif_cell_group_gpu.cu
     backends/gpu/kernels/assemble_matrix.cu
     backends/gpu/kernels/interleave.cu
     backends/gpu/kernels/ions.cu

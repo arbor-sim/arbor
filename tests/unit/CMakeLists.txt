@@ -66,7 +66,6 @@ set(TEST_SOURCES
     test_point.cpp
     test_prefixbuf.cpp
     test_probe.cpp
-    test_segment.cpp
     test_range.cpp
     test_segment.cpp
     test_schedule.cpp
