@@ -24,8 +24,6 @@ arb::domain_decomposition partition_load_balance(std::shared_ptr<arb::py::recipe
     return arb::partition_load_balance(arb::py_recipe_shim(r), arb::hw::get_node_info());
 };
 
-namespace pb = pybind11;
-
 // helpful string literals that reduce verbosity
 using namespace pybind11::literals;
 
@@ -34,15 +32,15 @@ PYBIND11_MODULE(pyarb, m) {
     // common types
     //
 
-    pb::class_<arb::cell_member_type> cell_member(m, "cell_member",
+    pybind11::class_<arb::cell_member_type> cell_member(m, "cell_member",
         "For global identification of an item of cell local data.\n\n"
         "Items of cell_member_type must:\n"
         "(1) be associated with a unique cell, identified by the member gid;\n"
         "(2) identify an item within a cell-local collection by the member index.\n");
 
     cell_member
-        .def(pb::init<>())
-        .def(pb::init(
+        .def(pybind11::init<>())
+        .def(pybind11::init(
             [](arb::cell_gid_type gid, arb::cell_lid_type idx) {
                 arb::cell_member_type m;
                 m.gid = gid;
@@ -60,9 +58,9 @@ PYBIND11_MODULE(pyarb, m) {
     // spike recording
     //
 
-    pb::class_<arb::spike> spike(m, "spike");
+    pybind11::class_<arb::spike> spike(m, "spike");
     spike
-        .def(pb::init<>())
+        .def(pybind11::init<>())
         .def_readwrite("source", &arb::spike::source)
         .def_readwrite("time", &arb::spike::time)
         .def("__str__",  &spike_string)
@@ -71,9 +69,9 @@ PYBIND11_MODULE(pyarb, m) {
     // Use shared_ptr for spike_recorder, so that all copies of a recorder will
     // see the spikes from the model with which the recorder's callback has been
     // registered.
-    pb::class_<spike_recorder, std::shared_ptr<spike_recorder>> spike_recorder(m, "spike_recorder");
+    pybind11::class_<spike_recorder, std::shared_ptr<spike_recorder>> spike_recorder(m, "spike_recorder");
     spike_recorder
-        .def(pb::init<>())
+        .def(pybind11::init<>())
         .def_property_readonly("spikes", [](const ::spike_recorder& s) {return *(s.spike_store.get());} );
     m.def("make_spike_recorder", &make_spike_recorder);
 
@@ -88,8 +86,8 @@ PYBIND11_MODULE(pyarb, m) {
         .value("data_spike", arb::cell_kind::data_spike_source);
 
     // wrap the regular spike source cell type
-    pb::class_<arb::rss_cell> rss_cell(m, "rss_cell");
-    rss_cell.def(pb::init<>())
+    pybind11::class_<arb::rss_cell> rss_cell(m, "rss_cell");
+    rss_cell.def(pybind11::init<>())
             .def_readwrite("start_time", &arb::rss_cell::start_time)
             .def_readwrite("period",     &arb::rss_cell::period)
             .def_readwrite("stop_time",  &arb::rss_cell::stop_time)
@@ -97,11 +95,11 @@ PYBIND11_MODULE(pyarb, m) {
             .def("__repr__", &rss_cell_string);
 
     // wrap cell description type
-    pb::class_<arb::cell> cell(m, "cell");
+    pybind11::class_<arb::cell> cell(m, "cell");
 
-    pb::class_<arb::segment_location> segment_location(m, "segment_location");
+    pybind11::class_<arb::segment_location> segment_location(m, "segment_location");
     segment_location
-        .def(pb::init<arb::cell_lid_type, double>())
+        .def(pybind11::init<arb::cell_lid_type, double>())
         .def_readwrite("segment", &arb::segment_location::segment)
         .def_readwrite("position", &arb::segment_location::position)
         .def("__str__",  &segment_location_string)
@@ -130,11 +128,11 @@ PYBIND11_MODULE(pyarb, m) {
     // Connections
     //
 
-    pb::class_<arb::cell_connection> connection(m, "connection");
+    pybind11::class_<arb::cell_connection> connection(m, "connection");
 
     connection
-        .def(pb::init<>())
-        .def(pb::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
+        .def(pybind11::init<>())
+        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
             "source"_a, "destination"_a, "weight"_a, "delay"_a)
         .def_readwrite("source", &arb::cell_connection::source,
             "The source of the conection (type: pyarb.cell_member)")
@@ -150,14 +148,14 @@ PYBIND11_MODULE(pyarb, m) {
     //
     // recipes
     //
-    pb::class_<arb::py::recipe, arb::py::recipe_trampoline, std::shared_ptr<arb::py::recipe>>
+    pybind11::class_<arb::py::recipe, arb::py::recipe_trampoline, std::shared_ptr<arb::py::recipe>>
         recipe(m, "recipe");
 
     recipe
-        .def(pb::init<>())
+        .def(pybind11::init<>())
         .def("num_cells", &arb::py::recipe::num_cells,
            "The number of cells in the model.")
-        .def("cell_description", &arb::py::recipe::cell_description, pb::return_value_policy::copy,
+        .def("cell_description", &arb::py::recipe::cell_description, pybind11::return_value_policy::copy,
            "High level decription of the cell with global identifier gid.")
         .def("kind", &arb::py::recipe::kind,
            "The cell_kind of cell with global identifier gid.")
@@ -175,9 +173,9 @@ PYBIND11_MODULE(pyarb, m) {
         .value("multicore", arb::backend_kind::multicore);
 
     // group_description wrapper
-    pb::class_<arb::group_description> group_description(m, "group_description");
+    pybind11::class_<arb::group_description> group_description(m, "group_description");
     group_description
-        .def(pb::init<arb::cell_kind, std::vector<arb::cell_gid_type>, arb::backend_kind>(),
+        .def(pybind11::init<arb::cell_kind, std::vector<arb::cell_gid_type>, arb::backend_kind>(),
             "construct group_description with cell_kind, list of gids, and backend.")
         .def_readonly("kind", &arb::group_description::kind,
             "The type of cell in the cell group.")
@@ -189,9 +187,9 @@ PYBIND11_MODULE(pyarb, m) {
         .def("__repr__", &group_description_string);
 
     // domain_decomposition wrapper
-    pb::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition");
+    pybind11::class_<arb::domain_decomposition> domain_decomposition(m, "domain_decomposition");
     domain_decomposition
-        .def(pb::init<>())
+        .def(pybind11::init<>())
         .def("is_local_gid", &arb::domain_decomposition::is_local_gid,
             "Test if cell with gloabl identifier gid is in a local cell_group")
         .def_readwrite("num_domains", &arb::domain_decomposition::num_domains,
@@ -226,11 +224,11 @@ PYBIND11_MODULE(pyarb, m) {
         "Simple load balancer.", "recipe"_a);
 
     // node_info which describes the resources on a compute node
-    pb::class_<arb::hw::node_info> node_info(m, "node_info",
+    pybind11::class_<arb::hw::node_info> node_info(m, "node_info",
         "Describes the resources on a compute node.");
     node_info
-        .def(pb::init<>())
-        .def(pb::init<unsigned, unsigned>())
+        .def(pybind11::init<>())
+        .def(pybind11::init<unsigned, unsigned>())
         .def_readwrite("num_cpu_cores", &arb::hw::node_info::num_cpu_cores,
                 "The number of available CPU cores.")
         .def_readwrite("num_gpus", &arb::hw::node_info::num_gpus,
@@ -245,33 +243,33 @@ PYBIND11_MODULE(pyarb, m) {
     //
     // models
     //
-    pb::class_<arb::model> model(m, "model", "An Arbor model.");
+    pybind11::class_<arb::model> model(m, "model", "An Arbor model.");
 
     model
         // A custom constructor that wraps a python recipe with
         // arb::py_recipe_shim before forwarding it to the arb::recipe constructor.
-        .def(pb::init(
+        .def(pybind11::init(
                 [](std::shared_ptr<arb::py::recipe>& r, const arb::domain_decomposition& d) {
                     return new arb::model(arb::py_recipe_shim(r), d);
                 }),
                 // Release the python gil, so that callbacks into the python
                 // recipe r don't deadlock.
-                pb::call_guard<pb::gil_scoped_release>(),
+                pybind11::call_guard<pybind11::gil_scoped_release>(),
                 "Initialize the model described by a recipe, with cells and network "
                 "distributed according to decomp.",
                 "recipe"_a, "decomp"_a)
         .def("reset", &arb::model::reset,
-                pb::call_guard<pb::gil_scoped_release>(),
+                pybind11::call_guard<pybind11::gil_scoped_release>(),
                 "Reset the model to its initial state to rerun the simulation again.")
         .def("run", &arb::model::run,
-                pb::call_guard<pb::gil_scoped_release>(),
+                pybind11::call_guard<pybind11::gil_scoped_release>(),
                 "Advance the model state to time tfinal, in time steps of size dt.",
                 "tfinal"_a, "dt"_a);
 
     //
     // metering
     //
-    pb::class_<arb::util::measurement> measurement(m, "measurement",
+    pybind11::class_<arb::util::measurement> measurement(m, "measurement",
              "Describes the recording of a single statistic over the course of a simulation,\n"
              "gathered by the meter_manager.");
     measurement.def_readwrite("name", &arb::util::measurement::name,
@@ -282,13 +280,13 @@ PYBIND11_MODULE(pyarb, m) {
                     "A list of measurements, with one entry for each checkpoint.\n"
                     "Each entry is a list of values, with one value for each domain (MPI rank).");
 
-    pb::class_<arb::util::meter_manager> meter_manager(m, "meter_manager");
-    meter_manager.def(pb::init<>())
+    pybind11::class_<arb::util::meter_manager> meter_manager(m, "meter_manager");
+    meter_manager.def(pybind11::init<>())
                      .def("start", &arb::util::meter_manager::start)
                      .def("checkpoint", &arb::util::meter_manager::checkpoint);
 
     // wrap meter_report type such that print(meter_report) works
-    pb::class_<arb::util::meter_report> meter_report(m, "meter_report");
+    pybind11::class_<arb::util::meter_report> meter_report(m, "meter_report");
     meter_report.def("__str__", &meter_report_string)
                 .def("__repr__",&meter_report_string);
 
