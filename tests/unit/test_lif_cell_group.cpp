@@ -10,19 +10,19 @@
 #include <rss_cell_group.hpp>
 
 using namespace arb;
-// Simple ring network of lif neurons.
-// with one regularly spiking cell connecting to the first cell in the ring.
+// Simple ring network of LIF neurons.
+// with one regularly spiking cell (fake cell) connected to the first cell in the ring.
 class ring_recipe: public arb::recipe {
 public:
-    ring_recipe(cell_size_type n, float weight, float delay):
-        ncells_(n), weight_(weight), delay_(delay)
+    ring_recipe(cell_size_type n_lif_cells, float weight, float delay):
+        n_lif_cells_(n_lif_cells), weight_(weight), delay_(delay)
     {}
 
     cell_size_type num_cells() const override {
-        return ncells_ + 1;
+        return n_lif_cells_ + 1;
     }
 
-    // LIF neurons have gid in range [1..ncells_] whereas fake cell is numbered with 0.
+    // LIF neurons have gid in range [1..n_lif_cells_] whereas fake cell is numbered with 0.
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         if (gid == 0) {
             return cell_kind::regular_spike_source;
@@ -34,13 +34,23 @@ public:
         if (gid == 0) {
             return {};
         }
+
         // In a ring, each cell has just one incoming connection.
         std::vector<cell_connection> connections;
         // gid-1 >= 0 since gid != 0
-        cell_member_type source{(gid - 1) % ncells_, 0};
+        cell_member_type source{(gid - 1) % n_lif_cells_, 0};
         cell_member_type target{gid, 0};
         cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
+
+        // If first LIF cell, then add
+        // the connection from the last LIF cell as well
+        if (gid == 1) {
+            cell_member_type source{n_lif_cells_, 0};
+            cell_member_type target{gid, 0};
+            cell_connection conn(source, target, weight_, delay_);
+            connections.push_back(conn);
+        }
 
         return connections;
     }
@@ -76,10 +86,11 @@ public:
     }
 
 private:
-    cell_size_type ncells_;
+    cell_size_type n_lif_cells_;
     float weight_, delay_;
 };
 
+// LIF cells connected in the manner of a path 0->1->...->n-1.
 class path_recipe: public arb::recipe {
 public:
     path_recipe(cell_size_type n, float weight, float delay):
@@ -87,7 +98,7 @@ public:
     {}
 
     cell_size_type num_cells() const override {
-        return ncells_ + 1;
+        return ncells_;
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -103,15 +114,6 @@ public:
         cell_member_type target{gid, 0};
         cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
-
-        // If first LIF cell, then add
-        // the connection from the last LIF cell as well
-        if (gid == 1) {
-            cell_member_type source{ncells_, 0};
-            cell_member_type target{gid, 0};
-            cell_connection conn(source, target, weight_, delay_);
-            connections.push_back(conn);
-        }
 
         return connections;
     }
@@ -148,7 +150,7 @@ TEST(lif_cell_group, recipe)
     EXPECT_EQ(2u, rr.connections_on(1u).size());
     EXPECT_EQ(1u, rr.connections_on(55u).size());
     EXPECT_EQ(0u, rr.connections_on(1u)[0].source.gid);
-    EXPECT_EQ(99u, rr.connections_on(1u)[1].source.gid);
+    EXPECT_EQ(100u, rr.connections_on(1u)[1].source.gid);
 }
 
 TEST(lif_cell_group, spikes) {
@@ -187,7 +189,7 @@ TEST(lif_cell_group, spikes) {
 TEST(lif_cell_group, ring)
 {
     // Total number of LIF cells.
-    cell_size_type num_cells = 99;
+    cell_size_type num_lif_cells = 99;
     double weight = 1000;
     double delay = 1;
 
@@ -197,7 +199,7 @@ TEST(lif_cell_group, ring)
     // Total simulation time.
     time_type simulation_time = 100;
 
-    auto recipe = ring_recipe(num_cells, weight, delay);
+    auto recipe = ring_recipe(num_lif_cells, weight, delay);
     auto decomp = partition_load_balance(recipe, nd);
 
     // Creates a model with a ring recipe of lif neurons
@@ -214,7 +216,8 @@ TEST(lif_cell_group, ring)
     // Runs the simulation for simulation_time with given timestep
     mod.run(simulation_time, 0.01);
     // The total number of cells in all the cell groups.
-    EXPECT_EQ(num_cells + 1u, recipe.num_cells());
+    // There is one additional fake cell (regularly spiking cell).
+    EXPECT_EQ(num_lif_cells + 1u, recipe.num_cells());
 
     for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
@@ -223,7 +226,7 @@ TEST(lif_cell_group, ring)
             EXPECT_EQ(0, spike.time);
         // Other LIF cell should spike consecutively.
         } else {
-            EXPECT_EQ(spike.source.gid + 1u, spike.time);
+            EXPECT_EQ(spike.source.gid, spike.time);
         }
     }
 }
