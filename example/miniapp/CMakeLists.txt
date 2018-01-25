@@ -22,4 +22,3 @@ set_target_properties(
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/example"
 )
 
-add_subdirectory(brunel)

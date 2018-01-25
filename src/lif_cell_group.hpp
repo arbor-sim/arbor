@@ -10,14 +10,14 @@
 #include <vector>
 
 namespace arb {
-class lif_cell_group_mc: public cell_group {
+class lif_cell_group: public cell_group {
 public:
     using value_type = double;
 
-    lif_cell_group_mc() = default;
+    lif_cell_group() = default;
 
     // Constructor containing gid of first cell in a group and a container of all cells.
-    lif_cell_group_mc(std::vector<cell_gid_type> gids, const recipe& rec);
+    lif_cell_group(std::vector<cell_gid_type> gids, const recipe& rec);
 
     virtual cell_kind get_cell_kind() const override;
     virtual void reset() override;

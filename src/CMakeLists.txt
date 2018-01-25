@@ -4,7 +4,7 @@ set(BASE_SOURCES
     common_types_io.cpp
     cell.cpp
     event_binner.cpp
-    lif_cell_group_mc.cpp
+    lif_cell_group.cpp
     hardware/affinity.cpp
     hardware/gpu.cpp
     hardware/memory.cpp

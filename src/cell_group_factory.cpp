@@ -5,7 +5,7 @@
 #include <domain_decomposition.hpp>
 #include <dss_cell_group.hpp>
 #include <fvm_multicell.hpp>
-#include <lif_cell_group_mc.hpp>
+#include <lif_cell_group.hpp>
 #include <mc_cell_group.hpp>
 #include <recipe.hpp>
 #include <rss_cell_group.hpp>
@@ -30,7 +30,7 @@ cell_group_ptr cell_group_factory(const recipe& rec, const group_description& gr
         return make_cell_group<rss_cell_group>(group.gids, rec);
 
     case cell_kind::lif_neuron:
-        return make_cell_group<lif_cell_group_mc>(group.gids, rec);
+        return make_cell_group<lif_cell_group>(group.gids, rec);
 
     case cell_kind::data_spike_source:
         return make_cell_group<dss_cell_group>(group.gids, rec);
