@@ -67,7 +67,7 @@ void lif_cell_group::advance_cell(time_type tfinal, time_type dt, cell_gid_type 
     for (unsigned i=0; i<n_events; ++i ) {
         auto& ev = event_lane[i];
         const auto time = ev.time;
-        const auto weight = ev.weight;
+        auto weight = ev.weight;
 
         if (time < t) continue;        // skip event if a neuron is in refactory period
         if (time >= tfinal) break;     // end of integration interval
