@@ -12,6 +12,7 @@
 #include <rss_cell.hpp>
 
 #include "cells.hpp"
+#include "event_generator.hpp"
 #include "print.hpp"
 #include "recipe.hpp"
 #include "sampling.hpp"
@@ -79,13 +80,13 @@ PYBIND11_MODULE(pyarb, m) {
     // cell types
     //
 
-    // tell python about the cell_kind enum type
+    // Wrap the cell_kind enum type.
     pybind11::enum_<arb::cell_kind>(m, "cell_kind")
         .value("cable1d", arb::cell_kind::cable1d_neuron)
         .value("regular_spike", arb::cell_kind::regular_spike_source)
         .value("data_spike", arb::cell_kind::data_spike_source);
 
-    // wrap the regular spike source cell type
+    // Wrap the regular spike source cell type.
     pybind11::class_<arb::rss_cell> rss_cell(m, "rss_cell");
     rss_cell.def(pybind11::init<>())
             .def_readwrite("start_time", &arb::rss_cell::start_time)
@@ -94,7 +95,7 @@ PYBIND11_MODULE(pyarb, m) {
             .def("__str__",  &rss_cell_string)
             .def("__repr__", &rss_cell_string);
 
-    // wrap cell description type
+    // Wrap cell description type.
     pybind11::class_<arb::cell> cell(m, "cell");
 
     pybind11::class_<arb::segment_location> segment_location(m, "segment_location");
@@ -105,15 +106,18 @@ PYBIND11_MODULE(pyarb, m) {
         .def("__str__",  &segment_location_string)
         .def("__repr__", &segment_location_string);
 
-    // don't expose underlying interface directly: instead use lamdbas to add some utility
-    cell.def("add_synapse", [](arb::cell& c, arb::segment_location l)
-                {c.add_synapse(l, arb::mechanism_spec("expsyn"));})
+    // Don't expose underlying interface directly: instead use lamdbas to add some utility
+    cell.def("add_synapse",
+                [](arb::cell& c, arb::segment_location l)
+                {c.add_synapse(l, arb::mechanism_spec("expsyn"));},
+                "location"_a)
         .def("add_stimulus",
                 [](arb::cell& c, arb::segment_location loc, double t0, double duration, double weight)
-                    {c.add_stimulus(loc, {t0, duration, weight});},
+                {c.add_stimulus(loc, {t0, duration, weight});},
                 "Add stimulus to the cell",
                 "location"_a, "t0 (ms)"_a, "duration (ms)"_a, "weight (nA)"_a)
-        .def("add_detector",  &arb::cell::add_detector)
+        .def("add_detector",  &arb::cell::add_detector,
+                "location"_a, "threashold(mV)"_a)
         .def("__str__",  &cell_string)
         .def("__repr__", &cell_string);
 
@@ -146,8 +150,39 @@ PYBIND11_MODULE(pyarb, m) {
         .def("__repr__", &connection_string);
 
     //
-    // recipes
+    // Event generators
     //
+
+    pybind11::class_<arb::postsynaptic_spike_event>
+        event(m, "event"
+            "A postsynaptic spike event, delivered to a target at a specified time."
+            " The target is typically a synapse. A postsynaptic event carries a"
+            " floating point weight value whose units or interpretation is target dependent,"
+            " though it is typically used to describe a change in conductance (S⋅cm⁻²).");
+
+    event
+        .def(pybind11::init<>())
+        .def_readwrite("target", &arb::postsynaptic_spike_event::target,
+            "Delivery target of the event (gid, lid)")
+        .def_readwrite("time",   &arb::postsynaptic_spike_event::time,
+            "Delivery time the event (ms)")
+        .def_readwrite("weight", &arb::postsynaptic_spike_event::weight,
+            "The weight of the event (S⋅cm⁻²)");
+
+    pybind11::class_<arb::event_generator, arb::py::event_generator>
+        event_generator(m, "event_generator");
+
+    event_generator
+        .def(pybind11::init<>())
+        .def("next", &arb::event_generator::next)
+        .def("pop", &arb::event_generator::pop)
+        .def("reset", &arb::event_generator::reset)
+        .def("advance", &arb::event_generator::advance);
+
+    //
+    // Recipes
+    //
+
     pybind11::class_<arb::py::recipe, arb::py::recipe_trampoline, std::shared_ptr<arb::py::recipe>>
         recipe(m, "recipe");
 
@@ -155,7 +190,8 @@ PYBIND11_MODULE(pyarb, m) {
         .def(pybind11::init<>())
         .def("num_cells", &arb::py::recipe::num_cells,
            "The number of cells in the model.")
-        .def("cell_description", &arb::py::recipe::cell_description, pybind11::return_value_policy::copy,
+        .def("cell_description",
+           &arb::py::recipe::cell_description, pybind11::return_value_policy::copy,
            "High level decription of the cell with global identifier gid.")
         .def("kind", &arb::py::recipe::kind,
            "The cell_kind of cell with global identifier gid.")
@@ -164,7 +200,7 @@ PYBIND11_MODULE(pyarb, m) {
         .def("num_sources", &arb::py::recipe::num_sources, "");
 
     //
-    // load balancing and domain decomposition
+    // Load balancing and domain decomposition
     //
 
     // tell python about the backend_kind enum type
@@ -269,17 +305,6 @@ PYBIND11_MODULE(pyarb, m) {
     //
     // metering
     //
-    pybind11::class_<arb::util::measurement> measurement(m, "measurement",
-             "Describes the recording of a single statistic over the course of a simulation,\n"
-             "gathered by the meter_manager.");
-    measurement.def_readwrite("name", &arb::util::measurement::name,
-                    "Descriptive label of the measurement, e.g. 'wall time' or 'memory'.")
-               .def_readwrite("units", &arb::util::measurement::units,
-                    "SI units of the measurement, e.g. s or MiB.")
-               .def_readwrite("measurements", &arb::util::measurement::measurements,
-                    "A list of measurements, with one entry for each checkpoint.\n"
-                    "Each entry is a list of values, with one value for each domain (MPI rank).");
-
     pybind11::class_<arb::util::meter_manager> meter_manager(m, "meter_manager");
     meter_manager.def(pybind11::init<>())
                      .def("start", &arb::util::meter_manager::start)
