@@ -85,7 +85,7 @@ public:
             });
 
         cell_local_size_type n_cons =
-            util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); }, 0);
+            util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
         std::vector<unsigned> src_domains;
         src_domains.reserve(n_cons);
         std::vector<cell_size_type> src_counts(num_domains_);
