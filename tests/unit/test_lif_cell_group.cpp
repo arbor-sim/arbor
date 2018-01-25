@@ -181,7 +181,7 @@ TEST(lif_cell_group, spikes) {
     m.run(tfinal, dt);
 
     // we expect 4 spikes: 2 by both neurons
-    EXPECT_EQ(unsigned(4), m.num_spikes());
+    EXPECT_EQ(4u, m.num_spikes());
 }
 
 TEST(lif_cell_group, ring)
@@ -214,7 +214,7 @@ TEST(lif_cell_group, ring)
     // Runs the simulation for simulation_time with given timestep
     mod.run(simulation_time, 0.01);
     // The total number of cells in all the cell groups.
-    EXPECT_EQ(unsigned(num_cells + 1), recipe.num_cells());
+    EXPECT_EQ(num_cells + 1, recipe.num_cells());
 
     for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
