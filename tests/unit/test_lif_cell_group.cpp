@@ -104,6 +104,15 @@ public:
         cell_connection conn(source, target, weight_, delay_);
         connections.push_back(conn);
 
+        // If first LIF cell, then add
+        // the connection from the last LIF cell as well
+        if (gid == 1) {
+            cell_member_type source{ncells_, 0};
+            cell_member_type target{gid, 0};
+            cell_connection conn(source, target, weight_, delay_);
+            connections.push_back(conn);
+        }
+
         return connections;
     }
 
