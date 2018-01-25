@@ -137,7 +137,7 @@ public:
     }
 
 private:
-    int ncells_;
+    cell_size_type ncells_;
     float weight_, delay_;
 };
 
@@ -187,7 +187,7 @@ TEST(lif_cell_group, spikes) {
 TEST(lif_cell_group, ring)
 {
     // Total number of LIF cells.
-    int num_cells = 99;
+    cell_size_type num_cells = 99;
     double weight = 1000;
     double delay = 1;
 
@@ -214,7 +214,7 @@ TEST(lif_cell_group, ring)
     // Runs the simulation for simulation_time with given timestep
     mod.run(simulation_time, 0.01);
     // The total number of cells in all the cell groups.
-    EXPECT_EQ(num_cells + 1, recipe.num_cells());
+    EXPECT_EQ(num_cells + 1u, recipe.num_cells());
 
     for (auto& spike : spike_buffer) {
         // Assumes that delay = 1
@@ -223,7 +223,7 @@ TEST(lif_cell_group, ring)
             EXPECT_EQ(0, spike.time);
         // Other LIF cell should spike consecutively.
         } else {
-            EXPECT_EQ(spike.source.gid + 1, spike.time);
+            EXPECT_EQ(spike.source.gid + 1u, spike.time);
         }
     }
 }
