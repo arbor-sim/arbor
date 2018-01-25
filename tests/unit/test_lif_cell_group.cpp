@@ -136,10 +136,10 @@ TEST(lif_cell_group, recipe)
 {
     ring_recipe rr(100, 1, 0.1);
     EXPECT_EQ(101u, rr.num_cells());
-    EXPECT_EQ(2u, rr.connections_on(0u).size());
+    EXPECT_EQ(2u, rr.connections_on(1u).size());
     EXPECT_EQ(1u, rr.connections_on(55u).size());
     EXPECT_EQ(0u, rr.connections_on(1u)[0].source.gid);
-    EXPECT_EQ(99u, rr.connections_on(0u)[0].source.gid);
+    EXPECT_EQ(99u, rr.connections_on(1u)[1].source.gid);
 }
 
 TEST(lif_cell_group, spikes) {
