@@ -108,7 +108,7 @@ TEST(event_generator, regular_rounding) {
     time_type int_len = 5*dt;
     time_type t1 = t0 + int_len;
     time_type t2 = t1 + int_len;
-    auto gen = regular_generator(target, weight, t0, dt);
+    event_generator gen = regular_generator(target, weight, t0, dt);
 
     // Take the interval I_a: t ∈ [t0, t2)
     // And the two sub-interavls
@@ -147,7 +147,7 @@ TEST(event_generators, seq) {
         return pse_vector(in.begin()+b, in.begin()+e);
     };
 
-    seq_generator<pse_vector> gen(in);
+    event_generator gen = seq_generator<pse_vector>(in);
 
     // Test pop, next and reset.
     for (auto e: in) {
