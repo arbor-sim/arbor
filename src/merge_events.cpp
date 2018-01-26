@@ -30,7 +30,7 @@ namespace impl {
 // unsigned is used for storing the index, because if drawing events from more
 // event generators than can be counted using an unsigned a complete redesign
 // will be needed.
-tourney_tree::tourney_tree(std::vector<event_generator_ptr>& input):
+tourney_tree::tourney_tree(std::vector<event_generator>& input):
     input_(input),
     n_lanes_(input_.size())
 {
@@ -47,7 +47,7 @@ tourney_tree::tourney_tree(std::vector<event_generator_ptr>& input):
     // Set the leaf nodes
     for (auto i=0u; i<leaves_; ++i) {
         heap_[leaf(i)] = i<n_lanes_?
-            key_val(i, input[i]->next()):
+            key_val(i, input[i].next()):
             key_val(i, terminal_pse()); // null leaf node
     }
     // Walk the tree to initialize the non-leaf nodes
@@ -80,9 +80,9 @@ void tourney_tree::pop() {
     unsigned lane = id(0);
     unsigned i = leaf(lane);
     // draw the next event from the input lane
-    input_[lane]->pop();
+    input_[lane].pop();
     // place event the leaf node for this lane
-    event(i) = input_[lane]->next();
+    event(i) = input_[lane].next();
 
     // re-heapify the tree with a single walk from leaf to root
     while ((i=parent(i))) {
@@ -144,7 +144,7 @@ unsigned tourney_tree::next_power_2(unsigned x) const {
 
 void merge_events(time_type t0, time_type t1,
                   const pse_vector& lc, pse_vector& events,
-                  std::vector<event_generator_ptr>& generators,
+                  std::vector<event_generator>& generators,
                   pse_vector& lf)
 {
     using std::distance;
@@ -167,12 +167,12 @@ void merge_events(time_type t0, time_type t1,
         EXPECTS(generators.size()>2u);
 
         // Make an event generator with all the events in events.
-        generators[0] = make_event_generator<seq_generator<pse_vector>>(events);
+        generators[0] = seq_generator<pse_vector>(events);
 
         // Make an event generator with all the events in lc with time >= t0
         auto lc_it = lower_bound(lc.begin(), lc.end(), t0, event_time_less());
         auto lc_range = util::make_range(lc_it, lc.end());
-        generators[1] = make_event_generator<seq_generator<decltype(lc_range)>>(lc_range);
+        generators[1] = seq_generator<decltype(lc_range)>(lc_range);
 
         // Perform k-way merge of all events in events, lc and the generators
         // that are due to be delivered in the interval [t₀, t₁)
@@ -190,6 +190,9 @@ void merge_events(time_type t0, time_type t1,
         const auto n = m + distance(lc_it, lc.end()) + distance(ev_it, events.end());
         lf.resize(n);
         std::merge(ev_it, events.end(), lc_it, lc.end(), lf.begin()+m);
+
+        // clear the generators associated with temporary event sequences
+        generators[0] = generators[1] = event_generator();
     }
     else {
         // Handle the case where the cell has no event generators: only events
