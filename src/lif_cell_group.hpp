@@ -10,6 +10,7 @@
 #include <vector>
 
 namespace arb {
+
 class lif_cell_group: public cell_group {
 public:
     using value_type = double;
@@ -50,4 +51,5 @@ private:
     // Time when the cell was last updated.
     std::vector<time_type> last_time_updated_;
 };
+
 } // namespace arb

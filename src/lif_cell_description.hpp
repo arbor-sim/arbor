@@ -1,5 +1,7 @@
 #pragma once
 
+namespace arb {
+
 // Model parameteres of leaky integrate and fire neuron model.
 struct lif_cell_description {
     // Neuronal parameters.
@@ -11,3 +13,5 @@ struct lif_cell_description {
     double V_reset = E_L; // Reset potential [mV].
     double t_ref = 2;     // Refractory period [ms].
 };
+
+} // namespace arb
