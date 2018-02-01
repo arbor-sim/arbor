@@ -48,8 +48,6 @@ namespace impl {
     // it is not intended for use elsewhere. It is exposed here for unit testing
     // of its functionality.
     class tourney_tree {
-        using key_val = std::pair<unsigned, postsynaptic_spike_event>;
-
     public:
         tourney_tree(std::vector<event_generator_ptr>& input);
         bool empty() const;
@@ -72,7 +70,8 @@ namespace impl {
         const postsynaptic_spike_event& event(unsigned i) const;
         unsigned next_power_2(unsigned x) const;
 
-        std::vector<key_val> heap_;
+        std::vector<unsigned> index_tree_;
+        pse_vector events_;
         const std::vector<event_generator_ptr>& input_;
         unsigned leaves_;
         unsigned nodes_;

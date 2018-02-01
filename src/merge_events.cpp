@@ -30,25 +30,25 @@ namespace impl {
 // unsigned is used for storing the index, because if drawing events from more
 // event generators than can be counted using an unsigned a complete redesign
 // will be needed.
-tourney_tree::tourney_tree(std::vector<event_generator_ptr>& input):
+tourney_tree::tourney_tree(std::vector<event_generator>& input):
     input_(input),
     n_lanes_(input_.size())
 {
-    // Must have at least 1 queue
-    EXPECTS(n_lanes_);
+    // Must have at least 2 queues
+    EXPECTS(n_lanes_>1);
     // Maximum value in unsigned limits how many queues we can have
     EXPECTS(n_lanes_<(1u<<(sizeof(unsigned)*8u-1u)));
 
     leaves_ = next_power_2(n_lanes_);
-    nodes_ = 2u*(leaves_-1u)+1u; // 2*l-1 with overflow protection
+    nodes_ = leaves_-1;
 
     // Allocate space for the tree nodes
-    heap_.resize(nodes_);
+    index_tree_.resize(nodes_);
+    events_.resize(leaves_, terminal_pse());
+
     // Set the leaf nodes
-    for (auto i=0u; i<leaves_; ++i) {
-        heap_[leaf(i)] = i<n_lanes_?
-            key_val(i, input[i]->next()):
-            key_val(i, terminal_pse()); // null leaf node
+    for (auto i=0u; i<n_lanes_; ++i) {
+        index_tree_[i] = input[i].next();
     }
     // Walk the tree to initialize the non-leaf nodes
     setup(0);
