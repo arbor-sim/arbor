@@ -12,6 +12,8 @@ struct lif_cell_description {
     double V_m = E_L;     // Initial value of the Membrane potential [mV].
     double V_reset = E_L; // Reset potential [mV].
     double t_ref = 2;     // Refractory period [ms].
+
+    lif_cell_description() = default;
 };
 
 } // namespace arb

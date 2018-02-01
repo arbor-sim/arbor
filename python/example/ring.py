@@ -7,13 +7,16 @@ from pyarb import cell_member as cmem
 # in python by implementing the pyarb.recipe interface.
 class ring_recipe(arb.recipe):
 
-    #def __init__(self, n=4):
-    #    self.ncells = n
+    def __init__(self, n=4):
+        # The base C++ class constructor must be called first, to ensure that
+        # all memory in the C++ class is initialized correctly.
+        arb.recipe.__init__(self)
+        self.ncells = n
 
     # The num_cells method that returns the total number of cells in the model
     # must be implemented.
     def num_cells(self):
-        return 4 #self.ncells
+        return self.ncells
 
     # The cell_description method returns a cell
     def cell_description(self, gid):
@@ -41,18 +44,13 @@ class ring_recipe(arb.recipe):
         src = self.num_cells()-1 if gid==0 else gid-1
         return [con(cmem(src,0), cmem(gid,0), 0.1, 10)]
 
-recipe = ring_recipe()
-
+recipe = ring_recipe(8)
 decomp = arb.partition_load_balance(recipe)
-
 model = arb.model(recipe, decomp)
-
 recorder = arb.make_spike_recorder(model)
-
 model.run(500, 0.025)
 
 spikes = recorder.spikes
-print('There were ', len(spikes), ' spikes:')
 for spike in spikes:
     print('  cell %2d at %8.3f ms'%(spike.source.gid, spike.time))
 

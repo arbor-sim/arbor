@@ -13,6 +13,7 @@
 
 #include "cells.hpp"
 #include "event_generator.hpp"
+#include "lif_cell_description.hpp"
 #include "print.hpp"
 #include "recipe.hpp"
 #include "sampling.hpp"
@@ -84,7 +85,28 @@ PYBIND11_MODULE(pyarb, m) {
     pybind11::enum_<arb::cell_kind>(m, "cell_kind")
         .value("cable1d", arb::cell_kind::cable1d_neuron)
         .value("regular_spike", arb::cell_kind::regular_spike_source)
-        .value("data_spike", arb::cell_kind::data_spike_source);
+        .value("data_spike", arb::cell_kind::data_spike_source)
+        .value("lif", arb::cell_kind::lif_neuron);
+
+
+    // Wrap the lif cell type.
+    pybind11::class_<arb::lif_cell_description> lif_cell(m, "lif_cell");
+    lif_cell
+        .def(pybind11::init<>())
+        .def_readwrite("tau_m", &arb::lif_cell_description::tau_m,
+                "Membrane potential decaying constant [ms].")
+        .def_readwrite("V_th", &arb::lif_cell_description::V_th,
+                "Firing threshold [mV].")
+        .def_readwrite("C_m", &arb::lif_cell_description::C_m,
+                "Membrane capacitance [pF].")
+        .def_readwrite("E_L", &arb::lif_cell_description::E_L,
+                "Resting potential [mV].")
+        .def_readwrite("V_m", &arb::lif_cell_description::V_m,
+                "Initial value of the Membrane potential [mV].")
+        .def_readwrite("V_reset", &arb::lif_cell_description::V_reset,
+                "Reset potential [mV].")
+        .def_readwrite("t_ref", &arb::lif_cell_description::t_ref,
+                "Refractory period [ms].");
 
     // Wrap the regular spike source cell type.
     pybind11::class_<arb::rss_cell> rss_cell(m, "rss_cell");
@@ -169,22 +191,63 @@ PYBIND11_MODULE(pyarb, m) {
         .def_readwrite("weight", &arb::postsynaptic_spike_event::weight,
             "The weight of the event (S⋅cm⁻²)");
 
-    pybind11::class_<arb::event_generator, arb::py::event_generator>
+    // Bind the generic event_generator class
+    pybind11::class_<arb::event_generator>
         event_generator(m, "event_generator");
 
     event_generator
         .def(pybind11::init<>())
-        .def("next", &arb::event_generator::next)
-        .def("pop", &arb::event_generator::pop)
-        .def("reset", &arb::event_generator::reset)
-        .def("advance", &arb::event_generator::advance);
+        .def(pybind11::init(
+            [](const arb::py::sequence_generator_desc& d) {return d.make_cpp();}))
+        .def(pybind11::init(
+            [](const arb::py::poisson_generator_desc& d) {return d.make_cpp();}))
+        .def(pybind11::init(
+            [](const arb::py::regular_generator_desc& d) {return d.make_cpp();}))
+        .def("next", &arb::event_generator::next,
+            "Get the current event in the stream. \n"
+            "Does not modify the state of the stream, i.e. multiple calls to \n"
+            "next() will return the same event in the absence of calls to pop(), \n"
+            "advance() or reset().")
+        .def("pop", &arb::event_generator::pop,
+            "Move the generator to the next event in the stream.")
+        .def("reset", &arb::event_generator::reset,
+            "Reset the generator to the same state that it had on construction.")
+        .def("advance", &arb::event_generator::advance,
+            "Update state of the generator such that the event returned by next() is \n"
+            "the first event with delivery time≥t.");
+
+    pybind11::class_<arb::py::regular_generator_desc> regular_generator(m, "regular_generator");
+    regular_generator
+        .def(pybind11::init<>())
+        .def_readwrite("target", &arb::py::regular_generator_desc::target)
+        .def_readwrite("weight", &arb::py::regular_generator_desc::weight)
+        .def_readwrite("tstart", &arb::py::regular_generator_desc::tstart)
+        .def_readwrite("tstop",  &arb::py::regular_generator_desc::tstop)
+        .def_readwrite("dt",     &arb::py::regular_generator_desc::dt);
+
+    pybind11::class_<arb::py::poisson_generator_desc> poisson_generator(m, "poisson_generator");
+    poisson_generator
+        .def(pybind11::init<>())
+        .def_readwrite("target",      &arb::py::poisson_generator_desc::target)
+        .def_readwrite("weight",      &arb::py::poisson_generator_desc::weight)
+        .def_readwrite("tstart",      &arb::py::poisson_generator_desc::tstart)
+        .def_readwrite("tstop",       &arb::py::poisson_generator_desc::tstop)
+        .def_readwrite("rate_per_ms", &arb::py::poisson_generator_desc::rate_per_ms)
+        .def_readwrite("seed",        &arb::py::poisson_generator_desc::seed);
+
+    pybind11::class_<arb::py::sequence_generator_desc> sequence_generator(m, "sequence_generator");
+    sequence_generator
+        .def(pybind11::init<>())
+        .def_readwrite("events", &arb::py::sequence_generator_desc::py_events);
 
     //
     // Recipes
     //
 
-    pybind11::class_<arb::py::recipe, arb::py::recipe_trampoline, std::shared_ptr<arb::py::recipe>>
-        recipe(m, "recipe");
+    pybind11::class_<arb::py::recipe,
+                     arb::py::recipe_trampoline,
+                     std::shared_ptr<arb::py::recipe>>
+        recipe(m, "recipe", pybind11::dynamic_attr());
 
     recipe
         .def(pybind11::init<>())
@@ -317,4 +380,6 @@ PYBIND11_MODULE(pyarb, m) {
 
     m.def("make_meter_report", &arb::util::make_meter_report,
           "Generate a meter_report from a set of meters.");
+
+    m.def("profiler_output", &arb::util::profiler_output);
 }

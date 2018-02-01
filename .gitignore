@@ -47,6 +47,9 @@
 *.fls
 *.bbl
 
+# profiling output
+callgrind.*
+perf.*
 
 # cmake
 CMakeFiles

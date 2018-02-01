@@ -17,6 +17,21 @@ namespace arb {
 
 namespace impl {
 
+constexpr inline
+unsigned parent(unsigned i) {
+    return (i-1)>>1;
+}
+
+constexpr inline
+unsigned left(unsigned i) {
+    return (i<<1) + 1;
+}
+
+constexpr inline
+unsigned right(unsigned i) {
+    return (i<<1) + 2; // left(i)+1
+}
+
 // The tournament tree data structure is used to merge k sorted lists of events.
 // See online for high-level information about tournament trees.
 //
@@ -102,38 +117,39 @@ void tourney_tree::setup(unsigned i) {
 // of its left and right children.
 // The result is undefined for leaf nodes.
 void tourney_tree::merge_up(unsigned i) {
-    const auto l = left(i);
-    const auto r = right(i);
-    heap_[i] = event(l)<event(r)? heap_[l]: heap_[r];
+    //const auto l = left(i);
+    //const auto r = right(i);
+    //heap_[i] = event(l)<event(r)? heap_[l]: heap_[r];
+    const unsigned l =  (i<<1) + 1;
+    const auto& hl = heap_[l];
+    const auto& hr = heap_[l+1];
+    heap_[i] = hl.second<hr.second? hl: hr;
 }
 
 // The tree is stored using the standard heap indexing scheme.
 
-unsigned tourney_tree::parent(unsigned i) const {
-    return (i-1)>>1;
-}
-unsigned tourney_tree::left(unsigned i) const {
-    return (i<<1) + 1;
-}
-unsigned tourney_tree::right(unsigned i) const {
-    return left(i)+1;
-}
+inline
 unsigned tourney_tree::leaf(unsigned i) const {
     return i+leaves_-1;
 }
+inline
 bool tourney_tree::is_leaf(unsigned i) const {
     return i>=leaves_-1;
 }
+inline
 const unsigned& tourney_tree::id(unsigned i) const {
     return heap_[i].first;
 }
+inline
 postsynaptic_spike_event& tourney_tree::event(unsigned i) {
     return heap_[i].second;
 }
+inline
 const postsynaptic_spike_event& tourney_tree::event(unsigned i) const {
     return heap_[i].second;
 }
 
+inline
 unsigned tourney_tree::next_power_2(unsigned x) const {
     unsigned n = 1;
     while (n<x) n<<=1;

@@ -79,6 +79,8 @@ const char* cell_kind_string(arb::cell_kind k) {
         return "cable 1d";
     case arb::cell_kind::data_spike_source:
         return "data spike source";
+    case arb::cell_kind::lif_neuron:
+        return "lif cell";
     }
     return "";
 }

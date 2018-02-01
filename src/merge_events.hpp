@@ -62,9 +62,6 @@ namespace impl {
         void setup(unsigned i);
         void merge_up(unsigned i);
         void update_lane(unsigned lane);
-        unsigned parent(unsigned i) const;
-        unsigned left(unsigned i) const;
-        unsigned right(unsigned i) const;
         unsigned leaf(unsigned i) const;
         bool is_leaf(unsigned i) const;
         const unsigned& id(unsigned i) const;
