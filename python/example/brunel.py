@@ -1,7 +1,14 @@
 import sys
+import argparse
 import random
 import pyarb as arb
 import matplotlib.pyplot as plt
+
+def parse_clargs():
+    p = argparse.ArgumentParser(description='A example python script that implements a Brunel benchmark.')
+    p.add_argument("-n", "--nin", type=int, default=100,
+            help="number of inhibitory cells: total cells = 5*n")
+    return p.parse_args()
 
 class brunel_recipe(arb.recipe):
     def __init__(self,
@@ -97,10 +104,12 @@ class brunel_recipe(arb.recipe):
 
         return [g]
 
+args = parse_clargs()
+
 # Use meters to measure the time taken to build and run the model.
 meters = arb.meter_manager()
 
-Ni = 500
+Ni = args.nin
 Ne = 4*Ni
 
 ϵ = 0.1
@@ -112,12 +121,11 @@ weight = 30
 
 recipe = brunel_recipe(Ne, Ni, ϵ, weight, delay, g, λ)
 
-print ('performing domain decomposition')
 meters.start()
 decomp = arb.partition_load_balance(recipe)
 meters.checkpoint('domain decomp')
 
-print ('creating model')
+print ('building model')
 model = arb.model(recipe, decomp)
 recorder = arb.make_spike_recorder(model)
 meters.checkpoint('model build')

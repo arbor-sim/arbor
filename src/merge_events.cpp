@@ -133,6 +133,13 @@ void tourney_tree::pop() {
         }
         const auto i = index_tree_[1];
         index_tree_[0] = events_[i]<events_[2]? i: 2;
+
+        // The two lines below are a branch-free alternative. They always require
+        // two comparisons, while avoiding one write to index_tree_.
+        //
+        // const auto i = events_[0]<events_[1]? 0: 1;
+        // index_tree_[0] = events_[i]<events_[2]? i: 2;
+
         return;
     }
     else if (n_lanes_==4) {
