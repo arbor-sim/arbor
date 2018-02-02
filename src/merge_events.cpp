@@ -49,31 +49,54 @@ tourney_tree::tourney_tree(std::vector<event_generator>& input):
     input_(input),
     n_lanes_(input_.size())
 {
-    // Must have at least 1 queue
-    EXPECTS(n_lanes_);
+    // Must have at least 3 queues
+    if (n_lanes_<=2) {
+        throw std::runtime_error(
+            "A tourney_tree must be initialized with at least 3 sequences to merge");
+    }
     // Maximum value in unsigned limits how many queues we can have
     EXPECTS(n_lanes_<(1u<<(sizeof(unsigned)*8u-1u)));
 
     leaves_ = next_power_2(n_lanes_);
-    nodes_ = 2u*(leaves_-1u)+1u; // 2*l-1 with overflow protection
+    nodes_ = leaves_-1;
 
     // Allocate space for the tree nodes
-    heap_.resize(nodes_);
+    index_tree_.resize(nodes_);
+    events_.resize(leaves_, terminal_pse());
+
     // Set the leaf nodes
-    for (auto i=0u; i<leaves_; ++i) {
-        heap_[leaf(i)] = i<n_lanes_?
-            key_val(i, input[i].next()):
-            key_val(i, terminal_pse()); // null leaf node
+    for (auto i=0u; i<n_lanes_; ++i) {
+        events_[i] = input[i].next();
+    }
+
+    // Initialize the index_tree_
+
+    // Handle special case for 4 leaves seperately
+    if (leaves_==4) {
+        const auto i = events_[0]<events_[1]? 0: 1;
+        index_tree_[1] = i;
+        const auto j = events_[2]<events_[3]? 2: 3;
+        index_tree_[2] = j;
+        index_tree_[0] = events_[i]<events_[j]? i: j;
+        return;
     }
     // Walk the tree to initialize the non-leaf nodes
     setup(0);
 }
 
 void tourney_tree::print() const {
-    auto nxt=1u;
-    for (auto i=0u; i<nodes_; ++i) {
-        if (i==nxt-1) { nxt*=2; std::cout << "\n";}
-        std::cout << "{" << heap_[i].first << "," << heap_[i].second << "}\n";
+    printf("%6s%8s%8s%8s\n", "lane", "time", "target", "weight");
+    unsigned i = 0u;
+    for (auto& e: events_) {
+        printf("%6u%8.4f%4u.%-3u%8.2f\n", i++, e.time, e.target.gid, e.target.index, e.weight);
+    }
+
+    unsigned end = 1;
+    i = 0;
+    while (end <= nodes_) {
+        while (i<end) std::cout << index_tree_[i++] << " ";
+        std::cout << "\n";
+        end = 2*end+1;
     }
 }
 
@@ -92,61 +115,85 @@ postsynaptic_spike_event tourney_tree::head() const {
 // Remove the smallest (most recent) event from the tree, then update the
 // tree so that head() returns the next event.
 void tourney_tree::pop() {
-    unsigned lane = id(0);
-    unsigned i = leaf(lane);
+    unsigned lane = index_tree_[0];
     // draw the next event from the input lane
     input_[lane].pop();
     // place event the leaf node for this lane
-    event(i) = input_[lane].next();
+    events_[lane] = input_[lane].next();
 
     // re-heapify the tree with a single walk from leaf to root
-    while ((i=parent(i))) {
-        merge_up(i);
+
+    // special cases for 3 and 4 lanes.
+    if (n_lanes_==3) {
+        if (lane<2) {
+            const auto i = events_[0]<events_[1]? 0: 1;
+            index_tree_[1] = i;
+            index_tree_[0] = events_[i]<events_[2]? i: 2;
+            return;
+        }
+        const auto i = index_tree_[1];
+        index_tree_[0] = events_[i]<events_[2]? i: 2;
+        return;
     }
-    merge_up(0); // handle the root
+    else if (n_lanes_==4) {
+        if (lane<2) {
+            const auto i = events_[0]<events_[1]? 0: 1;
+            index_tree_[1] = i;
+            const auto j = index_tree_[2];
+            index_tree_[0] = events_[i]<events_[j]? i: j;
+            return;
+        }
+        const auto i = events_[2]<events_[3]? 2: 3;
+        index_tree_[2] = i;
+        const auto j = index_tree_[1];
+        index_tree_[0] = events_[i]<events_[j]? i: j;
+        return;
+    }
+
+    // handle the general case of more than 4 lanes
+    int p = (nodes_+lane-1)/2;
+    unsigned olane = lane^1;
+    index_tree_[p] = events_[lane]<events_[olane] ? lane: olane;
+    while (p) {
+        const auto l1 = index_tree_[p];
+        const auto l2 = index_tree_[p-1+2*(p&1)];
+        p = (p-1)>>1; // p = parent(p)
+        index_tree_[p] = events_[l1]<events_[l2] ? l1: l2;
+    }
 }
 
 void tourney_tree::setup(unsigned i) {
-    if (is_leaf(i)) return;
-    setup(left(i));
-    setup(right(i));
-    merge_up(i);
+    if (is_leaf(i)) {
+        const auto l = left(i)-nodes_;
+        const auto r = l+1;
+        // set index_tree_[i] to the lane index of the highest priority child lane
+        index_tree_[i] = events_[l]<events_[r] ? l: r;
+        return;
+    }
+    const auto l = left(i);
+    const auto r = l+1;
+    setup(l);
+    setup(r);
+    const auto li = index_tree_[l];
+    const auto ri = index_tree_[r];
+    index_tree_[i] = events_[li]<events_[ri]? li: ri;
 };
-
-// Update the value at node i of the tree to be the smallest
-// of its left and right children.
-// The result is undefined for leaf nodes.
-void tourney_tree::merge_up(unsigned i) {
-    //const auto l = left(i);
-    //const auto r = right(i);
-    //heap_[i] = event(l)<event(r)? heap_[l]: heap_[r];
-    const unsigned l =  (i<<1) + 1;
-    const auto& hl = heap_[l];
-    const auto& hr = heap_[l+1];
-    heap_[i] = hl.second<hr.second? hl: hr;
-}
 
 // The tree is stored using the standard heap indexing scheme.
 
-inline
-unsigned tourney_tree::leaf(unsigned i) const {
-    return i+leaves_-1;
+inline bool tourney_tree::is_leaf(unsigned i) const {
+    return i >= nodes_/2;
 }
-inline
-bool tourney_tree::is_leaf(unsigned i) const {
-    return i>=leaves_-1;
+// tree position of left child of node i
+inline unsigned tourney_tree::left(unsigned i) const {
+    return (i<<1) + 1;
 }
-inline
-const unsigned& tourney_tree::id(unsigned i) const {
-    return heap_[i].first;
-}
-inline
 postsynaptic_spike_event& tourney_tree::event(unsigned i) {
-    return heap_[i].second;
+    return events_[index_tree_[i]];
 }
 inline
 const postsynaptic_spike_event& tourney_tree::event(unsigned i) const {
-    return heap_[i].second;
+    return events_[index_tree_[i]];
 }
 
 inline
