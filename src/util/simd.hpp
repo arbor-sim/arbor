@@ -40,6 +40,9 @@ namespace simd_detail {
     // vector_type I::broadcast(bool x)   Fill SIMD type with I::from_bool(x). [*]
     // vector_type I::immediate(a,b,...)  Populate SIMD type with given values.
     // vector_type I::immediate(bool...)  Populate SIMD type with representations of given booleans. [*]
+    //
+    // Load/store:
+    //
     // void I::copy_to(v, scalar_type*)   Store v to memory (unaligned).
     // vector_type I::copy_from(const scalar_type*)  Load from memory (unaligned).
     //
@@ -139,7 +142,7 @@ namespace simd_detail {
             std::memcpy(&value_, &other.value_, sizeof(vector_type));
         }
 
-        // Converting constructors.
+        // Converting constructors. TODO: deploy a `simd_cast` instead.
 
         template <typename X,
             typename = typename std::enable_if<
