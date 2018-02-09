@@ -150,9 +150,12 @@ void merge_events(time_type t0, time_type t1,
     using std::distance;
     using std::lower_bound;
 
+    PE(communication_events_enqueue_sort);
     // Sort events from the communicator in place.
     util::sort(events);
+    PL();
 
+    PE(communication_events_enqueue_merge);
     // Clear lf to store merged list.
     lf.clear();
 
@@ -199,6 +202,7 @@ void merge_events(time_type t0, time_type t1,
         lf.resize(events.size()+distance(pos, lc.end()));
         std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin());
     }
+    PL();
 }
 
 } // namespace arb

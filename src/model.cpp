@@ -55,9 +55,9 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
     cell_groups_.resize(decomp.groups.size());
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](cell_gid_type i) {
-            PE("setup", "cells");
+            //PE("setup", "cells");
             cell_groups_[i] = cell_group_factory(rec, decomp.groups[i]);
-            PL(2);
+            //PL(2);
         });
 
     // Create event lane buffers.
@@ -101,7 +101,7 @@ void model::reset() {
     current_spikes().clear();
     previous_spikes().clear();
 
-    util::profilers_restart();
+    util::profiler_restart();
 }
 
 time_type model::run(time_type tfinal, time_type dt) {
@@ -117,17 +117,16 @@ time_type model::run(time_type tfinal, time_type dt) {
         threading::parallel_for::apply(
             0u, cell_groups_.size(),
             [&](unsigned i) {
-                PE("stepping");
                 auto &group = cell_groups_[i];
 
                 auto queues = util::subrange_view(
                     event_lanes(epoch_.id),
                     communicator_.group_queue_range(i));
                 group->advance(epoch_, dt, queues);
-                PE("events");
+                PE(advance_spikes);
                 current_spikes().insert(group->spikes());
                 group->clear_spikes();
-                PL(2);
+                PL();
             });
     };
 
@@ -136,36 +135,36 @@ time_type model::run(time_type tfinal, time_type dt) {
     // events that must be delivered at the start of the next
     // integration period at the latest.
     auto exchange = [&] () {
-        PE("stepping", "communication");
+        PE(communication);
 
-        PE("exchange");
+        PE(communication_exchange);
         auto local_spikes = previous_spikes().gather();
         auto global_spikes = communicator_.exchange(local_spikes);
         PL();
 
-        PE("spike output");
+        PE(communication_spikeout);
         local_export_callback_(local_spikes);
         global_export_callback_(global_spikes.values());
         PL();
 
-        PE("events","from-spikes");
+        PE(communication_events_fromspikes);
         communicator_.make_event_queues(global_spikes, pending_events_);
         PL();
 
-        PE("enqueue");
+        PL();
+
         const auto t0 = epoch_.tfinal;
         const auto t1 = std::min(tfinal, t0+t_interval);
         setup_events(t0, t1, epoch_.id);
-        PL(2);
-
-        PL(2);
     };
+
+    util::profiler_start(); // start the profilers just before time stepping begins
 
     time_type tuntil = std::min(t_+t_interval, tfinal);
     epoch_ = epoch(0, tuntil);
-    PE("stepping", "communication", "events", "enqueue");
+    PE(communication_events_enqueue);
     setup_events(t_, tuntil, 1);
-    PL(4);
+    PL();
     while (t_<tfinal) {
         local_spikes_.exchange();
 
@@ -191,6 +190,8 @@ time_type model::run(time_type tfinal, time_type dt) {
     local_spikes_.exchange();
     exchange();
 
+    util::profiler_stop(); // stop the profilers at the end of time stepping
+
     return t_;
 }
 
@@ -214,6 +215,18 @@ void model::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
                 event_lanes(epoch+1)[i]);   // out: the event lane for the next epoch
             pending_events_[i].clear();
         });
+
+    /*
+    for (auto i=0u; i<n; ++i) {
+        merge_events(
+            t_from, t_to,
+            event_lanes(epoch)[i],      // in:  the current event lane
+            pending_events_[i],         // in:  events from the communicator
+            event_generators_[i],       // in:  event generators for this lane
+            event_lanes(epoch+1)[i]);   // out: the event lane for the next epoch
+        pending_events_[i].clear();
+    }
+    */
 }
 
 sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy) {

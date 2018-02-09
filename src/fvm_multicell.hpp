@@ -111,6 +111,8 @@ public:
         const std::vector<deliverable_event>& staged_events,
         const std::vector<sample_event>& staged_samples)
     {
+        PE(advance_integrate_setup);
+
         EXPECTS(dt_max>0);
 
         tfinal_ = tfinal;
@@ -130,6 +132,8 @@ public:
             sample_value_ = array(n_samples_);
             sample_time_ = array(n_samples_);
         }
+
+        PL();
     }
 
     // Advance one integration step.
@@ -1166,7 +1170,7 @@ void fvm_multicell<Backend>::step_integration() {
     // mark pending events for delivery
     events_.mark_until_after(time_);
 
-    PE("current");
+    PE(advance_integrate_current);
     memory::fill(current_, 0.);
 
     // clear currents and recalculate reversal potentials for all ion channels
@@ -1178,10 +1182,10 @@ void fvm_multicell<Backend>::step_integration() {
 
     // deliver pending events and update current contributions from mechanisms
     for (auto& m: mechanisms_) {
-        PE(m->name().c_str());
+        //PE(m->name().c_str());
         m->deliver_events(events_.marked_events());
         m->nrn_current();
-        PL();
+        //PL();
     }
 
     // remove delivered events from queue and set time_to_
@@ -1202,25 +1206,25 @@ void fvm_multicell<Backend>::step_integration() {
     sample_events_.drop_marked_events();
 
     // solve the linear system
-    PE("matrix", "setup");
+    PE(advance_integrate_mtxsetup);
     matrix_.assemble(dt_cell_, voltage_, current_);
-
-    PL(); PE("solve");
-    matrix_.solve();
     PL();
+
+    PE(advance_integrate_mtxsolve);
+    matrix_.solve();
     memory::copy(matrix_.solution(), voltage_);
     PL();
 
     // integrate state of gating variables etc.
-    PE("state");
+    PE(advance_integrate_state);
     for(auto& m: mechanisms_) {
-        PE(m->name().c_str());
+        //PE(m->name().c_str());
         m->nrn_state();
-        PL();
+        //PL();
     }
     PL();
 
-    PE("ion-update");
+    PE(advance_integrate_ionupdate);
     for(auto& i: ions_) {
         i.second.init_concentration();
     }

@@ -88,11 +88,11 @@ public:
     }
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override {
-        PE("advance");
+        PE(advance);
         EXPECTS(lowered_.state_synchronized());
         time_type tstart = lowered_.min_time();
 
-        PE("event-setup");
+        PE(advance_eventsetup);
         staged_events_.clear();
         // skip event binning if empty lanes are passed
         if (event_lanes.size()) {
@@ -132,7 +132,7 @@ public:
             sample_size_type end_offset;
         };
 
-        PE("sample-event-setup");
+        PE(advance_samplesetup);
         std::vector<sampler_call_info> call_info;
 
         std::vector<sample_event> sample_events;
@@ -166,9 +166,8 @@ public:
         PL();
 
         // Run integration.
+        PE(advance_integrate);
         lowered_.setup_integration(ep.tfinal, dt, staged_events_, std::move(sample_events));
-        PE("integrator-steps");
-
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
             if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
@@ -183,7 +182,7 @@ public:
         // vector of sample entries from the lowered cell sample times and values
         // and then call the callback.
 
-        PE("sample-deliver");
+        PE(advance_sampledeliver);
         std::vector<sample_record> sample_records;
         sample_records.reserve(max_samples_per_call);
 
@@ -205,7 +204,7 @@ public:
         // record the local spike source index, which must be converted to a
         // global index for spike communication.
 
-        PE("spike-retrieve");
+        PE(advance_spikes);
         for (auto c: lowered_.get_spikes()) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }

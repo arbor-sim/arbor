@@ -68,11 +68,11 @@ namespace mpi {
         auto buffer_size = (rank()==root) ? size() : 0;
         std::vector<T> buffer(buffer_size);
 
-        PE("MPI", "Gather");
+        PE(mpi_gather);
         MPI_Gather( &value,        traits::count(), traits::mpi_type(), // send buffer
                     buffer.data(), traits::count(), traits::mpi_type(), // receive buffer
                     root, MPI_COMM_WORLD);
-        PL(2);
+        PL();
 
         return buffer;
     }
@@ -86,11 +86,11 @@ namespace mpi {
         using traits = mpi_traits<T>;
         std::vector<T> buffer(size());
 
-        PE("MPI", "Allgather");
+        PE(mpi_allgather);
         MPI_Allgather( &value,        traits::count(), traits::mpi_type(), // send buffer
                        buffer.data(), traits::count(), traits::mpi_type(), // receive buffer
                        MPI_COMM_WORLD);
-        PL(2);
+        PL();
 
         return buffer;
     }
@@ -104,13 +104,13 @@ namespace mpi {
 
         std::vector<char> buffer(displs.back());
 
-        PE("MPI", "Gather");
+        PE(mpi_gather);
         MPI_Gatherv(
             // const_cast required for MPI implementations that don't use const* in their interfaces
             const_cast<std::string::value_type*>(str.data()), counts[rank()], traits::mpi_type(), // send
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),                      // receive
             root, MPI_COMM_WORLD);
-        PL(2);
+        PL();
 
         // Unpack the raw string data into a vector of strings.
         std::vector<std::string> result;
@@ -134,7 +134,7 @@ namespace mpi {
 
         std::vector<T> buffer(displs.back()/traits::count());
 
-        PE("MPI", "Allgatherv");
+        PE(mpi_allgatherv);
         MPI_Allgatherv(
             // send buffer
             // const_cast required for MPI implementations that don't use const* in their interfaces
@@ -143,7 +143,7 @@ namespace mpi {
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
         );
-        PL(2);
+        PL();
 
         return buffer;
     }
@@ -167,7 +167,7 @@ namespace mpi {
 
         std::vector<T> buffer(displs.back()/traits::count());
 
-        PE("MPI", "Allgatherv-partition");
+        PE(mpi_allgathervpartition);
         MPI_Allgatherv(
             // send buffer
             // const_cast required for MPI implementations that don't use const* in their interfaces
@@ -176,7 +176,7 @@ namespace mpi {
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),
             MPI_COMM_WORLD
         );
-        PL(2);
+        PL();
 
         for (auto& d : displs) {
             d /= traits::count();
@@ -197,9 +197,9 @@ namespace mpi {
 
         T result;
 
-        PE("MPI", "Reduce");
+        PE(mpi_reduce);
         MPI_Reduce(&value, &result, 1, traits::mpi_type(), op, root, MPI_COMM_WORLD);
-        PL(2);
+        PL();
 
         return result;
     }
@@ -213,9 +213,9 @@ namespace mpi {
 
         T result;
 
-        PE("MPI", "Allreduce");
+        PE(mpi_allreduce);
         MPI_Allreduce(&value, &result, 1, traits::mpi_type(), op, MPI_COMM_WORLD);
-        PL(2);
+        PL();
 
         return result;
     }
@@ -238,9 +238,9 @@ namespace mpi {
 
         using traits = mpi_traits<T>;
 
-        PE("MPI", "Bcast");
+        PE(mpi_bcast);
         MPI_Bcast(&value, traits::count(), traits::mpi_type(), root, MPI_COMM_WORLD);
-        PL(2);
+        PL();
 
         return value;
     }
@@ -254,9 +254,9 @@ namespace mpi {
         using traits = mpi_traits<T>;
         T value;
 
-        PE("MPI", "Bcast-void");
+        PE(mpi_bcast);
         MPI_Bcast(&value, traits::count(), traits::mpi_type(), root, MPI_COMM_WORLD);
-        PL(2);
+        PL();
 
         return value;
     }
