@@ -54,11 +54,10 @@ _value type_ is always `bool`.
 Note that `simd<V, N, I>` is ultimately a type alias for `detail::simd_impl<I<V,N>::type>`,
 where `I<V,N>::type` is a SIMD implementation class (see below).
 
-In the following: `S` stands for the class `simd<V, N, I>`, and `s`
+In the following:
 * `S` stands for the class `simd<V, N, I>`.
 * `s` is an object of type `S`.
 * `t`, `u` and `v` are const objects of type `S`.
-* `m` is a const object of type `simd_mask<V, N, I>`.
 * `i` is an index of type `int`.
 * `j` is a const object of type `simd<U, N, J>` where `U` is an integral type.
 * `x` is a value of type `V`.
@@ -94,11 +93,17 @@ Expression | Type | Description
 
 Expression | Type | Description
 -----------|------|------------
-`t+u` | `S`  | Lane-wise sum.
-`t-u` | `S`  | Lane-wise difference.
-`t*u` | `S`  | Lane-wise product.
-`t/u` | `S`  | Lane-wise quotient.
-`fma(t, u, v)` | `S`  | Lane-wise FMA _t_ * _u_ + _v_.
+`t+u`  | `S` | Lane-wise sum.
+`t-u`  | `S` | Lane-wise difference.
+`t*u`  | `S` | Lane-wise product.
+`t/u`  | `S` | Lane-wise quotient.
+`fma(t, u, v)` | `S` | Lane-wise FMA _t_ * _u_ + _v_.
+`s<t`  | `S::simd_mask` | Lane-wise less-than comparison.
+`s<=t` | `S::simd_mask` | Lane-wise less-than-or-equals comparison.
+`s>t`  | `S::simd_mask` | Lane-wise greater-than comparison.
+`s>=t` | `S::simd_mask` | Lane-wise greater-than-or-equals comparison.
+`s==t` | `S::simd_mask` | Lane-wise equality test.
+`s!=t` | `S::simd_mask` | Lane-wise inequality test.
 `s=t`  | `S&` | Lane-wise assignment.
 `s+=t` | `S&` | Equivalent to `s=s+t`.
 `s-=t` | `S&` | Equivalent to `s=s-t`.
@@ -106,17 +111,19 @@ Expression | Type | Description
 `s/=t` | `S&` | Equivalent to `s=s/t`.
 `t[i]` | `V` | Value in lane _i_.
 `s[i]=x` |`S::reference` | Set value in lane _i_ to `x`.
-`where(s[i]=x` |`S::reference` | Set value in lane _i_ to `x`.
+
+### `simd_mask`
+
+In the following:
+* `M` stands for the class `simd_mask<V, N, I>`.
+* `m` and `q` are const objects of type `simd_mask<V, N, I>`.
+
+Expression | Type | Description
+-----------|------|------------
 
 
 
-
-
-
-
-
-
-
+`where(m, s)=t` |`void` | Set `s[i]=t[i]` for _i_ such that `m[i]`.
 
 
 
