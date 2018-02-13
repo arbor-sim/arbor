@@ -1167,8 +1167,10 @@ template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(!integration_complete());
 
+    PE(advance_integrate_markuntil);
     // mark pending events for delivery
     events_.mark_until_after(time_);
+    PL();
 
     PE(advance_integrate_current);
     memory::fill(current_, 0.);
@@ -1182,19 +1184,18 @@ void fvm_multicell<Backend>::step_integration() {
 
     // deliver pending events and update current contributions from mechanisms
     for (auto& m: mechanisms_) {
-        //PE(m->name().c_str());
         m->deliver_events(events_.marked_events());
         m->nrn_current();
-        //PL();
     }
+    PL();
 
+    PE(advance_integrate_events);
     // remove delivered events from queue and set time_to_
     events_.drop_marked_events();
 
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
     invalidate_time_cache();
     events_.event_time_if_before(time_to_);
-    PL();
 
     // set per-cell and per-compartment dt (constant within a cell)
     backend::set_dt(dt_cell_, dt_comp_, time_to_, time_, cv_to_cell_);
@@ -1204,13 +1205,15 @@ void fvm_multicell<Backend>::step_integration() {
     sample_events_.mark_until(time_to_);
     backend::take_samples(sample_events_.marked_events(), time_, sample_time_, sample_value_);
     sample_events_.drop_marked_events();
+    PL();
 
     // solve the linear system
-    PE(advance_integrate_mtxsetup);
+    PM(advance_integrate_matrix);
+    PE(advance_integrate_matrix_build);
     matrix_.assemble(dt_cell_, voltage_, current_);
     PL();
 
-    PE(advance_integrate_mtxsolve);
+    PE(advance_integrate_matrix_solve);
     matrix_.solve();
     memory::copy(matrix_.solution(), voltage_);
     PL();
@@ -1218,9 +1221,7 @@ void fvm_multicell<Backend>::step_integration() {
     // integrate state of gating variables etc.
     PE(advance_integrate_state);
     for(auto& m: mechanisms_) {
-        //PE(m->name().c_str());
         m->nrn_state();
-        //PL();
     }
     PL();
 
@@ -1233,6 +1234,9 @@ void fvm_multicell<Backend>::step_integration() {
     }
     PL();
 
+    PE(advance_integrate_etc);
+
+    // update time stepping variables
     memory::copy(time_to_, time_);
     invalidate_time_cache();
 
@@ -1241,6 +1245,7 @@ void fvm_multicell<Backend>::step_integration() {
 
     // are we there yet?
     decrement_min_remaining();
+    PL();
 
     EXPECTS(!integration_complete() || !has_pending_events());
 }

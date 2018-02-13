@@ -160,8 +160,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        //util::profiler_output(0.001, options.profile_only_zero);
-        util::profiler_print();
+        util::profiler_print(0.1);
         std::cout << "there were " << m.num_spikes() << " spikes\n";
 
         // save traces

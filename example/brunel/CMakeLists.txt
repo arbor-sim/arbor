@@ -19,5 +19,5 @@ endif()
 
 set_target_properties(brunel_miniapp.exe
    PROPERTIES
-   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/example/miniapp/brunel"
+   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/example"
 )

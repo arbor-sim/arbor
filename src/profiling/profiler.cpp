@@ -40,24 +40,35 @@ const std::vector<sample>& recorder::samples() const {
 }
 
 void recorder::enter(std::size_t index) {
-    stamps_.push_back({index, timer_type::tic()});
+    if (index_!=npos) {
+        throw std::runtime_error("recorder::enter without matching recorder::leave");
+    }
+    index_ = index;
+    stamp_ = timer_type::tic();
     if (index>=samples_.size()) {
         samples_.resize(index+1);
     }
 }
 
 void recorder::leave() {
-    if (stamps_.size()==0) {
-        throw std::runtime_error("attempting to leave root region");
+    if (index_==npos) {
+        throw std::runtime_error("recorder::leave without matching recorder::enter");
     }
-    const auto& last = stamps_.back();
-    samples_[last.index].count++;
-    samples_[last.index].time += timer_type::toc(last.time);
-    stamps_.pop_back();
+    samples_[index_].count++;
+    samples_[index_].time += timer_type::toc(stamp_);
+    index_ = npos;
+}
+
+void recorder::mark(std::size_t index) {
+    if (index>=samples_.size()) {
+        samples_.resize(index+1);
+    }
+    ++samples_[index].count;
 }
 
 void recorder::clear() {
-    stamps_.clear();
+    //stamps_.clear();
+    index_ = npos;
     for (auto& s:samples_) {
         s.time = 0;
         s.count = 0;
@@ -78,6 +89,15 @@ void profiler::enter(std::size_t index) {
 void profiler::enter(const char* name) {
     const auto index = index_from_name(name);
     recorders_[threading::thread_id()].enter(index);
+}
+
+void profiler::mark(std::size_t index) {
+    recorders_[threading::thread_id()].mark(index);
+}
+
+void profiler::mark(const char* name) {
+    const auto index = index_from_name(name);
+    recorders_[threading::thread_id()].mark(index);
 }
 
 void profiler::leave() {
@@ -125,16 +145,32 @@ std::size_t profiler::index_from_name(const char* name) {
     return it->second;
 }
 
+double fix(profile_node& n) {
+    // accumulate all time taken in children
+    if (!n.children.empty()) {
+        n.time = 0;
+        for (auto &c: n.children) {
+            fix(c);
+            n.time += c.time;
+        }
+    }
+
+    // sort the children in descending order of time taken
+    util::sort_by(n.children, [](const profile_node& n){return -n.time;});
+
+    return n.time;
+}
+
 void print(
         profile_node& n,
         float total_time,
         unsigned nthreads,
-        float thresh=0.5,
+        float thresh,
         std::string indent="")
 {
     auto name = indent + n.name;
-    float thread_time = n.time/nthreads;
-    float proportion = thread_time/total_time*100;
+    float wall_time = n.time/nthreads;
+    float proportion = wall_time/total_time*100;
 
     // If the percentage of overall time for this region is below the
     // threashold, stop drawing this branch.
@@ -142,10 +178,8 @@ void print(
 
     printf(
         "%-20s%8lu%12.3f%12.3f%8.1f\n",
-        name.c_str(), n.count, float(n.time), thread_time, proportion);
+        name.c_str(), n.count, wall_time, float(n.time), proportion);
 
-    // sort the children in descending order of time taken
-    util::sort_by(n.children, [](const profile_node& n){return -n.time;});
     // print each of the children in turn
     for (auto& c: n.children) print(c, total_time, nthreads, thresh, indent+"  ");
 };
@@ -183,13 +217,13 @@ profile profiler::results() const {
     util::sort_by(index, [&](std::size_t i){return names[i].size();});
 
     const auto nthread = threading::num_threads();
-    profile_node tree("Total", nthread*p.time_taken, 1);
+    p.tree = profile_node("total", nthread*p.time_taken, 1);
     auto depth = 1u;
     auto j = 0u;
     auto idx = index[j];
     while (j<nreg) {
         while (j<nreg && names[idx].size()==depth) {
-            profile_node* node = &tree;
+            profile_node* node = &p.tree;
             for (auto i=0u; i<depth-1; ++i) {
                 auto& node_name = names[idx][i];
                 auto& kids = node->children;
@@ -199,8 +233,6 @@ profile profiler::results() const {
                     kids.begin(), kids.end(), [&](profile_node& n){return n.name==node_name;});
 
                 if (child==kids.end()) {
-                    // TODO: we have to populate these nodes with time and count information
-                    // derived from their children.
                     node->children.emplace_back(node_name, -1, 0);
                     node = &node->children.back();
                 }
@@ -214,8 +246,7 @@ profile profiler::results() const {
         }
         ++depth;
     }
-
-    p.tree = std::move(tree);
+    fix(p.tree);
 
     return p;
 }
@@ -252,7 +283,9 @@ void profiler_restart() {
     ::arb::util::data::profiler.restart();
 }
 
-void profiler_print() {
+// Print the current profiler statistics to stdout.
+// All regions that take less than threshold% of total time are not printed.
+void profiler_print(float threshold) {
     using util::make_span;
 
     std::cout << "\n-- PROFILER RESULTS --\n\n";
@@ -265,9 +298,9 @@ void profiler_print() {
     }
 
     printf("------------------------------------------------------------\n");
-    printf("%-20s%8s%12s%12s\n", "region", "calls", "time", "thread-time");
+    printf("%-20s%8s%12s%12s%8s\n", "region", "calls", "wall", "thread", "\%");
     printf("------------------------------------------------------------\n");
-    print(results.tree, results.time_taken, nthreads, 0, "");
+    print(results.tree, results.time_taken, nthreads, threshold, "");
     printf("------------------------------------------------------------\n\n");
 }
 
@@ -277,7 +310,7 @@ void profiler_leave(unsigned n) {}
 void profiler_start() {}
 void profiler_stop() {}
 void profiler_restart() {}
-void profiler_print() {}
+void profiler_print(float) {}
 #endif
 
 } // namespace util

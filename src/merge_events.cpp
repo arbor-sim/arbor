@@ -150,14 +150,15 @@ void merge_events(time_type t0, time_type t1,
     using std::distance;
     using std::lower_bound;
 
-    PE(communication_events_enqueue_sort);
+    PE(communication_enqueue_sort);
+
     // Sort events from the communicator in place.
     util::sort(events);
-    PL();
-
-    PE(communication_events_enqueue_merge);
     // Clear lf to store merged list.
     lf.clear();
+
+    PL();
+
 
     // Merge the incoming event sequences into a single vector in lf
     if (generators.size()) {
@@ -169,6 +170,7 @@ void merge_events(time_type t0, time_type t1,
         //           delivery times in the interval [t₁, ∞).
         EXPECTS(generators.size()>2u);
 
+        PE(communication_enqueue_setup);
         // Make an event generator with all the events in events.
         generators[0] = make_event_generator<seq_generator<pse_vector>>(events);
 
@@ -176,7 +178,9 @@ void merge_events(time_type t0, time_type t1,
         auto lc_it = lower_bound(lc.begin(), lc.end(), t0, event_time_less());
         auto lc_range = util::make_range(lc_it, lc.end());
         generators[1] = make_event_generator<seq_generator<decltype(lc_range)>>(lc_range);
+        PL();
 
+        PE(communication_enqueue_tree);
         // Perform k-way merge of all events in events, lc and the generators
         // that are due to be delivered in the interval [t₀, t₁)
         impl::tourney_tree tree(generators);
@@ -184,7 +188,9 @@ void merge_events(time_type t0, time_type t1,
             lf.push_back(tree.head());
             tree.pop();
         }
+        PL();
 
+        PE(communication_enqueue_merge);
         // Find first event in lc with delivery time >= t1
         lc_it = lower_bound(lc.begin(), lc.end(), t1, event_time_less());
         // Find first event in events with delivery time >= t1
@@ -193,16 +199,18 @@ void merge_events(time_type t0, time_type t1,
         const auto n = m + distance(lc_it, lc.end()) + distance(ev_it, events.end());
         lf.resize(n);
         std::merge(ev_it, events.end(), lc_it, lc.end(), lf.begin()+m);
+        PL();
     }
     else {
+        PE(communication_enqueue_merge);
         // Handle the case where the cell has no event generators: only events
         // in lc and lf with delivery times >= t0 must be merged, which can be
         // handles with a single call to std::merge.
         auto pos = std::lower_bound(lc.begin(), lc.end(), t0, event_time_less());
         lf.resize(events.size()+distance(pos, lc.end()));
         std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin());
+        PL();
     }
-    PL();
 }
 
 } // namespace arb

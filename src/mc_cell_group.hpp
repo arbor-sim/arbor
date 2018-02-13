@@ -88,7 +88,6 @@ public:
     }
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override {
-        PE(advance);
         EXPECTS(lowered_.state_synchronized());
         time_type tstart = lowered_.min_time();
 
@@ -166,7 +165,7 @@ public:
         PL();
 
         // Run integration.
-        PE(advance_integrate);
+        PM(advance_integrate);
         lowered_.setup_integration(ep.tfinal, dt, staged_events_, std::move(sample_events));
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();
@@ -175,8 +174,6 @@ public:
                           << lowered_.max_time() << " ms\n";
             }
         }
-        PL();
-
 
         // For each sampler callback registered in `call_info`, construct the
         // vector of sample entries from the lowered cell sample times and values
@@ -213,8 +210,6 @@ public:
         // to get ready to record spikes from the next integration period.
 
         lowered_.clear_spikes();
-        PL();
-
         PL();
     }
 
