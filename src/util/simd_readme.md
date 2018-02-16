@@ -109,100 +109,143 @@ Expression | Type | Description
 `s-=t` | `S&` | Equivalent to `s=s-t`.
 `s*=t` | `S&` | Equivalent to `s=s*t`.
 `s/=t` | `S&` | Equivalent to `s=s/t`.
+`s=x`  | `S&` | Equivalent to `s=S(x)`.
 `t[i]` | `V` | Value in lane _i_.
 `s[i]=x` |`S::reference` | Set value in lane _i_ to `x`.
+
 
 ### `simd_mask`
 
 In the following:
 * `M` stands for the class `simd_mask<V, N, I>`.
 * `m` and `q` are const objects of type `simd_mask<V, N, I>`.
+* `b` is a boolean value.
+* `v` is a pointer of type `const bool*`.
+
+#### Constructors
+
+Expression | Description
+-----------|------------
+`M(b)`  | A SIMD mask with all lanes equal to `b`.
+`M(q)`  | A copy of the SIMD mask `q`.
+`M(v)`  | A SIMD value comprising the values `v[0]`, ..., `v[N-1]`.
+
+#### Expressions
 
 Expression | Type | Description
 -----------|------|------------
+`!m`   | `M` | Lane-wise negation.
+`m&&q` | `M` | Lane-wise and.
+`m||q` | `M` | Lane-wise or.
+`m==q` | `M` | Lane-wise equality (equivalent to `m!=!q`).
+`m!=q` | `M` | Lane-wise xor.
+`m=q`  | `M&` | Lane-wise assignment.
+`m[i]` | `bool` | Value in lane _i_.
+`m[i]=b` |`M::reference` | Set value in lane _i_ to `b`.
 
 
+### `where_expression`
 
+In the following:
+* `W` stands for the class `where_expression<simd<V, N, I>>`.
+* `s` is a reference to a SIMD value of type `simd<V, N, I>&`.
+* `t` is a SIMD value of type `simd<V, N, I>`.
+* `x` is a scalar of type _V_.
+* `m` is a mask of type `simd<V, N, I>::simd_mask`.
+
+Expression | Type | Description
+-----------|------|------------
+`where(m, s)` | W | A proxy for masked-assignment operation.
 `where(m, s)=t` |`void` | Set `s[i]=t[i]` for _i_ such that `m[i]`.
+`where(m, s)=x` |`void` | Set `s[i]=x` for _i_ such that `m[i]`.
 
+## Casting
 
+The `simd_cast<S>(T)` top-level function converts a SIMD-value of
+type `T` to one of type `S`, provided they are of both the same
+length, and the value types of `T` is explicitly convertible to
+the value type of `S`.
 
 ## Implementation requirements
 
-A concrete implementation _C_ is expected to provide the following interface
-for all
+Each specific architecture is represented by a templated class `I`, with
+`I<V, N>::type` being the concrete implementation for an _N_-wide
+SIMD value with `value_type` _V_. Any such concrete implementation
+`C` must provide the following interface to support the SIMD value
+operations.
 
-    // Architecure-specific implementation type I requires the specification of
-    // the following interface, where 'a', 'b', etc. denote values of
-    // `scalar_type`, and 'u', 'v', 'w', etc. denote values of `vector_type`.
-    //
-    // Logical operations, bool constructors and bool conversions need only be
-    // provided for implementations that are used to proivde mask_type
-    // operations (marked with [*] below).
-    //
-    // Types:
-    //
-    // I::vector_type                     Underlying SIMD representation type.
-    // I::scalar_type                     Value type in one lane of vector_type.
-    // I::mask_impl                       Implementation type for comparison results.
-    // I::mask_type                       SIMD representation type for comparison results.
-    //                                    (equivalent to I::mask_impl::vector_type)
-    //
-    // Reflection:
-    //
-    // constexpr static unsigned width()
-    //
-    // Construction:
-    //
-    // vector_type I::broadcast(a)        Fill SIMD type with scalar a.
-    // vector_type I::broadcast(bool x)   Fill SIMD type with I::from_bool(x). [*]
-    // vector_type I::immediate(a,b,...)  Populate SIMD type with given values.
-    // vector_type I::immediate(bool...)  Populate SIMD type with representations of given booleans. [*]
-    //
-    // Load/store:
-    //
-    // void I::copy_to(v, scalar_type*)   Store v to memory (unaligned).
-    // vector_type I::copy_from(const scalar_type*)  Load from memory (unaligned).
-    //
-    // Conversion:
-    //
-    // I::is_convertible<V>::value        True if I::convert(V) defined.
-    // vector_type I::convert(V)          Convert from SIMD type V to vector_type.
-    //
-    // Element (lane) access:
-    //
-    // scalar_type I::element(u, i)       Value in ith lane of u.
-    // scalar_type I::bool_element(u, i)  Boolean value in ith lane of u. [*]
-    // void I::set_element(u, i, a)       Set u[i] to a.
-    // void I::set_element(u, i, bool f)  Set u[i] to representation of bool f. [*]
-    //
-    // (Note indexing should be such that `copy_to(x, p), p[i]` should
-    // have the same value as `x[i]`.)
-    //
-    // Arithmetic:
-    //
-    // vector_type I::mul(u, v)           Lane-wise multiplication.
-    // vector_type I::add(u, v)           Lane-wise addition.
-    // vector_type I::sub(u, v)           Lane-wise subtraction.
-    // vector_type I::div(u, v)           Lane-wise division.
-    // vector_type I::fma(u, v, w)        Lane-wise fused multiply-add (u*v+w).
-    // (TODO: add unary minus; add bitwise operations if there is utility)
-    //
-    // Comparison:
-    //
-    // mask_type I::cmp_eq(u, v)          Lane-wise equality.
-    // mask_type I::cmp_not_eq(u, v)      Lane-wise negated equality.
-    // (TODO: extend)
-    //
-    // Logical operations:
-    //
-    // vector_type I::logical_not(u)      Lane-wise negation. [*]
-    // vector_type I::logical_and(u, v)   Lane-wise logical and. [*]
-    // vector_type I::logical_or(u, v)    Lane-wise logical or. [*]
-    //
-    // Mask operations:
-    //
-    // vector_type I::select(mask_type m, u, v)  Lane-wise m? v: u.
+`simd_mask` types are also implemented in terms of a concrete implementation
+class. Operations that are required only for `simd_mask` functionality
+are marked with (*) below, and are not otherwise required.
 
+In the following, `C` represents the concrete implementation class for
+a SIMD class of width `N` and value type `V`.
+* `v` and `w` are values of type `C::vector_type`.
+* `u` is a reference of type `C::vector_type`.
+* `x` is a value of type `C::scalar_type`.
+* `p` is a pointer of type `C::scalar_type*`.
+* `b` is a bool value.
+* `i` is an unsigned (index) value.
+* `m` is a mask representation of type `C::mask_type`.
 
+#### Types
+
+Name | Type | Description
+-----|------|------------
+`C::vector_type` | _implementation defined_ | Underlying SIMD representation type.
+`C::scalar_type` | _implementation defined_ | Should be convertible to/from _V_.
+`C::mask_impl`   | _implementation defined_ | Concrete implementation class for mask SIMD type.
+`C::mask_type`   | `C::mask_type::vector_type` | Underlying SIMD representation for masks.
+`C::width`       | `unsigned` | The SIMD width _N_.
+
+#### Initialization, load, store
+
+Expression | Type | Description
+-----------|------|------------
+`C::broadcast(x)`  | `vector_type` | Fill representation with scalar _a_.
+`C::broadcast(b)`  | `vector_type` | Fill representation with bool _b_. (*)
+`C::copy_to(v, p)` | `void` | Store v to memory (unaligned).
+`C::copy_from(p)`  | `vector_type` | Load from memory (unaligned).
+
+#### Lane access
+
+Expression | Type | Description
+-----------|------|------------
+`C::element(v, i)` | `C::scalar_type` | Value in ith lane of _u_.
+`C::bool_element(v, i)` | `bool` | Boolean value in ith lane of _u_. (*)
+`C::set_element(u, i, x)` | `void` | Set value in lane _i_ of _u_ to _x_.
+`C::set_element(u, i, b)` | `void` | Set boolean value in lane _i_ of _u_ to _b_. (*)
+
+#### Arithmetic and logical operations
+
+Expression | Type | Description
+-----------|------|------------
+`C::mul(u, v)`       | `C::vector_type` |  Lane-wise multiplication.
+`C::add(u, v)`       | `C::vector_type` |  Lane-wise addition.
+`C::sub(u, v)`       | `C::vector_type` |  Lane-wise subtraction.
+`C::div(u, v)`       | `C::vector_type` |  Lane-wise division.
+`C::fma(u, v, w)`    | `C::vector_type` |  Lane-wise fused multiply-add (u*v+w).
+`C::logical_not(u)`    | `C::vector_type` |  Lane-wise negation. (*)
+`C::logical_and(u, v)` | `C::vector_type` |  Lane-wise logical and. (*)
+`C::logical_or(u, v)`  | `C::vector_type` |  Lane-wise logical or. (*)
+`C::select(m, v, w)` | `C::vector_type` |  Lane-wise _m_ ? _v_: _u_.
+
+#### Comparison
+
+Expression | Type | Description
+-----------|------|------------
+`C::cmp_eq(v, w)`  | `C::mask_type` | Lane-wise _v_ = _w_.
+`C::cmp_neq(v, w)` | `C::mask_type` | Lane-wise _v_ ≠ _w_.
+`C::cmp_gt(v, w)`  | `C::mask_type` | Lane-wise _v_ > _w_.
+`C::cmp_geq(v, w)` | `C::mask_type` | Lane-wise _v_ ≥ _w_.
+`C::cmp_lt(v, w)`  | `C::mask_type` | Lane-wise _v_ &lt; _w_.
+`C::cmp_leq(v, w)` | `C::mask_type` | Lane-wise _v_ ≤ _w_.
+
+### Gather/scatter
+
+TBC
+
+### Casting
+
+TBC
 

@@ -7,86 +7,6 @@
 namespace arb {
 
 namespace simd_detail {
-    // Specialize `native` for each implemented architecture.
-
-    template <typename Value, unsigned N>
-    struct native {
-        using type = void;
-    };
-
-    // Architecure-specific implementation type I requires the specification of
-    // the following interface, where 'a', 'b', etc. denote values of
-    // `scalar_type`, and 'u', 'v', 'w', etc. denote values of `vector_type`.
-    //
-    // Logical operations, bool constructors and bool conversions need only be
-    // provided for implementations that are used to proivde mask_type
-    // operations (marked with [*] below).
-    //
-    // Types:
-    //
-    // I::vector_type                     Underlying SIMD representation type.
-    // I::scalar_type                     Value type in one lane of vector_type.
-    // I::mask_impl                       Implementation type for comparison results.
-    // I::mask_type                       SIMD representation type for comparison results.
-    //                                    (equivalent to I::mask_impl::vector_type)
-    //
-    // Reflection:
-    //
-    // constexpr static unsigned width()
-    //
-    // Construction:
-    //
-    // vector_type I::broadcast(a)        Fill SIMD type with scalar a.
-    // vector_type I::broadcast(bool x)   Fill SIMD type with I::from_bool(x). [*]
-    // vector_type I::immediate(a,b,...)  Populate SIMD type with given values.
-    // vector_type I::immediate(bool...)  Populate SIMD type with representations of given booleans. [*]
-    //
-    // Load/store:
-    //
-    // void I::copy_to(v, scalar_type*)   Store v to memory (unaligned).
-    // vector_type I::copy_from(const scalar_type*)  Load from memory (unaligned).
-    //
-    // Conversion:
-    //
-    // I::is_convertible<V>::value        True if I::convert(V) defined.
-    // vector_type I::convert(V)          Convert from SIMD type V to vector_type.
-    //
-    // Element (lane) access:
-    //
-    // scalar_type I::element(u, i)       Value in ith lane of u.
-    // scalar_type I::bool_element(u, i)  Boolean value in ith lane of u. [*]
-    // void I::set_element(u, i, a)       Set u[i] to a.
-    // void I::set_element(u, i, bool f)  Set u[i] to representation of bool f. [*]
-    //
-    // (Note indexing should be such that `copy_to(x, p), p[i]` should
-    // have the same value as `x[i]`.)
-    //
-    // Arithmetic:
-    //
-    // vector_type I::mul(u, v)           Lane-wise multiplication.
-    // vector_type I::add(u, v)           Lane-wise addition.
-    // vector_type I::sub(u, v)           Lane-wise subtraction.
-    // vector_type I::div(u, v)           Lane-wise division.
-    // vector_type I::fma(u, v, w)        Lane-wise fused multiply-add (u*v+w).
-    // (TODO: add unary minus; add bitwise operations if there is utility)
-    //
-    // Comparison:
-    //
-    // mask_type I::cmp_eq(u, v)          Lane-wise equality.
-    // mask_type I::cmp_not_eq(u, v)      Lane-wise negated equality.
-    // (TODO: extend)
-    //
-    // Logical operations:
-    //
-    // vector_type I::logical_not(u)      Lane-wise negation. [*]
-    // vector_type I::logical_and(u, v)   Lane-wise logical and. [*]
-    // vector_type I::logical_or(u, v)    Lane-wise logical or. [*]
-    //
-    // Mask operations:
-    //
-    // vector_type I::select(mask_type m, u, v)  Lane-wise m? v: u.
-
-
     template <typename Impl>
     struct simd_mask_impl;
 
@@ -102,20 +22,11 @@ namespace simd_detail {
         using scalar_type = typename Impl::scalar_type;
         using simd_mask   = simd_mask_impl<typename Impl::mask_impl>;
 
-        static constexpr unsigned width() { return Impl::width(); }
-
-        // Generic constructors:
-        // 
-        // 1. From underlying representation type.
-        // 2. Fill from scalar_type.
-        // 3. Copy from pointer to scalar_type (explicit).
-        // 4. Immediate from scalar argument values.
-        // 5. Conversions from other SIMD value types of the same width,
-        //    with or without support from implementation class.
+        static constexpr unsigned width = Impl::width;
 
         simd_impl() = default;
 
-        // Construct from underlying representation type.
+        // Construct from underlying representation type (internal interface).
         simd_impl(const vector_type& v) {
             std::memcpy(&value_, &v, sizeof(vector_type));
         }
@@ -130,43 +41,14 @@ namespace simd_detail {
             value_ = Impl::copy_from(p);
         }
 
-        // Construct from values provided for each simd lane.
-        template <typename... Args,
-            typename = typename std::enable_if<1+sizeof...(Args)==Impl::width()>::type>
-        simd_impl(scalar_type v0, Args... rest) {
-            value_ = Impl::immediate(v0, static_cast<scalar_type>(rest)...);
-        }
-
         // Copy constructor.
         simd_impl(const simd_impl& other) {
             std::memcpy(&value_, &other.value_, sizeof(vector_type));
         }
 
-        // Converting constructors. TODO: deploy a `simd_cast` instead.
-
-        template <typename X,
-            typename = typename std::enable_if<
-                !std::is_same<X, scalar_type>::value &&
-                Impl::width()==X::width()
-            >::type>
-        explicit simd_impl(const simd_impl<X>& other):
-            simd_impl(other, typename Impl::template is_convertible<typename X::vector_type>::type{})
-        {}
-
         // Scalar asssignment fills vector.
         simd_impl& operator=(scalar_type x) {
             value_ = Impl::broadcast(x);
-            return *this;
-        }
-
-        // Conversion assignment.
-        template <typename X,
-            typename = typename std::enable_if<
-                !std::is_same<X, scalar_type>::value &&
-                Impl::width()==X::width()
-            >::type>
-        simd_impl& operator=(const simd_impl<X>& other) {
-            std::memcpy(&value_, &simd_impl(other).value_, sizeof(vector_type));
             return *this;
         }
 
@@ -208,14 +90,30 @@ namespace simd_detail {
             return Impl::fma(a.value_, b.value_, c.value_);
         }
 
-        // Lane-wise relational operations: ==, !=, (TODO: rest to come).
+        // Lane-wise relational operations.
 
         friend simd_mask operator==(const simd_impl& a, const simd_impl& b) {
             return Impl::cmp_eq(a.value_, b.value_);
         }
 
         friend simd_mask operator!=(const simd_impl& a, const simd_impl& b) {
-            return Impl::cmp_not_eq(a.value_, b.value_);
+            return Impl::cmp_neq(a.value_, b.value_);
+        }
+
+        friend simd_mask operator<=(const simd_impl& a, const simd_impl& b) {
+            return Impl::cmp_leq(a.value_, b.value_);
+        }
+
+        friend simd_mask operator<(const simd_impl& a, const simd_impl& b) {
+            return Impl::cmp_lt(a.value_, b.value_);
+        }
+
+        friend simd_mask operator>=(const simd_impl& a, const simd_impl& b) {
+            return Impl::cmp_geq(a.value_, b.value_);
+        }
+
+        friend simd_mask operator>(const simd_impl& a, const simd_impl& b) {
+            return Impl::cmp_gt(a.value_, b.value_);
         }
 
         // Compound assignment operations: +=, -=, *=, /=.
@@ -297,23 +195,6 @@ namespace simd_detail {
 
     protected:
         vector_type value_;
-
-        template <typename X>
-        simd_impl(const simd_impl<X>& other, std::true_type) {
-            value_ = Impl::convert(other.value_);
-        }
-
-        template <typename X>
-        simd_impl(const simd_impl<X>& other, std::false_type) {
-            typename simd_impl<X>::scalar_type from[width()];
-            scalar_type to[width()];
-
-            other.copy_to(from);
-            for (unsigned i = 0; i<width(); ++i) {
-                to[i] = static_cast<scalar_type>(from[i]);
-            }
-            copy_from(to);
-        }
     };
 
     template <typename Impl>
@@ -330,13 +211,6 @@ namespace simd_detail {
         // Construct by filling with scalar value.
         simd_mask_impl(bool x) {
             value_ = Impl::broadcast(x);
-        }
-
-        // Construct from values provided for each simd lane.
-        template <typename... Args,
-            typename = typename std::enable_if<1+sizeof...(Args)==Impl::width()>::type>
-        simd_mask_impl(bool v0, Args... rest) {
-            value_ = Impl::immediate(v0, static_cast<bool>(rest)...);
         }
 
         // Scalar asssignment fills vector.
@@ -398,18 +272,31 @@ namespace simd_detail {
     };
 } // namespace simd_detail
 
-template <typename Scalar, unsigned N>
-using simd =
-    simd_detail::simd_impl<
-        typename std::conditional<
-            std::is_same<void, typename simd_detail::native<Scalar, N>::type>::value,
-            simd_detail::generic<Scalar, N>,
-            typename simd_detail::native<Scalar, N>::type
-        >::type
-    >;
+namespace simd_abi {
+    template <typename Value, int N>
+    struct generic {
+        using type = simd_detail::generic<Value, N>;
+    };
 
-template <typename Scalar, unsigned N>
-using simd_mask = typename simd<Scalar, N>::simd_mask;
+    template <typename Value, int N>
+    struct native {
+        using type = void;
+    };
+
+    template <typename Value, int N>
+    struct default_abi {
+        using type = std::conditional<
+            std::is_same<void, typename native<Value, N>::type>::value,
+            typename generic<Value, N>::type,
+            typename native<Value, N>::type>::type;
+    };
+}
+
+template <typename Value, unsigned N, template <class, unsigned> Abi = simd_abi::default_abi>
+using simd = simd_detail::simd_impl<typename Abi<Value, N>::type>;
+
+template <typename Value, unsigned N>
+using simd_mask = typename simd<Value, N>::simd_mask;
 
 template <typename Simd>
 using where_expression = typename Simd::where_expression;
