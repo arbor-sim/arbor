@@ -9,14 +9,13 @@
 
 namespace arb {
 namespace simd_detail {
-namespace avx {
 
-struct double4 {
+struct avx_double4 {
     using scalar_type = double;
     using vector_type = __m256d;
 
     // Masks use the same representation:
-    using mask_impl = double4;
+    using mask_impl = avx_double4;
     using mask_type = typename mask_impl::vector_type;
 
     using int64 = std::int64_t;
@@ -26,10 +25,7 @@ struct double4 {
     static constexpr int cmp_eq_oq =  0; // _CMP_EQ_OQ
     static constexpr int cmp_neq_uq = 4; // _CMP_NEQ_UQ
 
-    constexpr static unsigned width() { return 4; }
-
-    template <typename V>
-    struct is_converible: std::false_type {};
+    constexpr static unsigned width = 4;
 
     static vector_type broadcast(double v) {
         return _mm256_set1_pd(v);
@@ -118,32 +114,43 @@ struct double4 {
     }
 };
 
-} // namespace avx
+} // namespace simd_detail
+
+namespace simd_abi {
+
+    template <typename T, unsigned N> struct avx;
+    template <> struct avx<double, 4> { using type = simd_detail::avx_double4; };
+
+} // namespace simd_abi;
+
+
+// AVX2 extends AVX operations, with the same data representation.
 
 #ifdef __AVX2__
 
-namespace avx2 {
+namespace simd_detail {
 
-struct double4: avx::double4 {
+struct avx2_double4: avx_double4 {
+    // Masks use the same representation:
+    using mask_impl = avx2_double4;
+    using mask_type = typename mask_impl::vector_type;
+
     static vector_type fma(const vector_type& a, const vector_type& b, const vector_type& c) {
         return _mm256_fmadd_pd(a, b, c);
     }
-}
-
-} // namespace avx2
-
-#endif // def __AVX2__
-
-template <>
-struct native<double, 4> {
-#ifdef __AVX2__
-    using type = avx2::double4;
-#else
-    using type = avx::double4;
-#endif
 };
 
 } // namespace simd_detail
+
+namespace simd_abi {
+
+    template <typename T, unsigned N> struct avx2;
+    template <> struct avx2<double, 4> { using type = simd_detail::avx2_double4; };
+
+} // namespace simd_abi;
+
+#endif // def __AVX2__
+
 } // namespace arb
 
 #endif // def __AVX__

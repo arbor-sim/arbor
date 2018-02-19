@@ -1,8 +1,10 @@
 #pragma once
 
+#include <array>
 #include <type_traits>
 
-#include <simd/generic.hpp>
+#include <util/simd/generic.hpp>
+#include <util/simd/native.hpp>
 
 namespace arb {
 
@@ -26,11 +28,6 @@ namespace simd_detail {
 
         simd_impl() = default;
 
-        // Construct from underlying representation type (internal interface).
-        simd_impl(const vector_type& v) {
-            std::memcpy(&value_, &v, sizeof(vector_type));
-        }
-
         // Construct by filling with scalar value.
         simd_impl(const scalar_type& x) {
             value_ = Impl::broadcast(x);
@@ -39,6 +36,15 @@ namespace simd_detail {
         // Construct from scalar values in memory.
         explicit simd_impl(const scalar_type* p) {
             value_ = Impl::copy_from(p);
+        }
+
+        // Construct from const array ref or std::array.
+        explicit simd_impl(const scalar_type (&a)[width]) {
+            value_ = Impl::copy_from(&a[0]);
+        }
+
+        explicit simd_impl(const std::array<scalar_type, width>& a) {
+            value_ = Impl::copy_from(a.data());
         }
 
         // Copy constructor.
@@ -273,26 +279,23 @@ namespace simd_detail {
 } // namespace simd_detail
 
 namespace simd_abi {
-    template <typename Value, int N>
+    template <typename Value, unsigned N>
     struct generic {
         using type = simd_detail::generic<Value, N>;
     };
 
-    template <typename Value, int N>
-    struct native {
-        using type = void;
-    };
+    // Note: `simd_abi::native` template class defined in `simd/native.hpp`.
 
-    template <typename Value, int N>
+    template <typename Value, unsigned N>
     struct default_abi {
-        using type = std::conditional<
+        using type = typename std::conditional<
             std::is_same<void, typename native<Value, N>::type>::value,
             typename generic<Value, N>::type,
             typename native<Value, N>::type>::type;
     };
 }
 
-template <typename Value, unsigned N, template <class, unsigned> Abi = simd_abi::default_abi>
+template <typename Value, unsigned N, template <class, unsigned> typename Abi = simd_abi::default_abi>
 using simd = simd_detail::simd_impl<typename Abi<Value, N>::type>;
 
 template <typename Value, unsigned N>

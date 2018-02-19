@@ -17,7 +17,7 @@ struct generic {
     using mask_impl = generic<int, N>;
     using mask_type = typename mask_impl::vector_type;
 
-    constexpr static unsigned width() { return N; }
+    constexpr static unsigned width = N;
 
     static vector_type broadcast(scalar_type v) {
         vector_type result;
@@ -40,9 +40,6 @@ struct generic {
     static void copy_to(const vector_type& v, scalar_type *p) {
         std::memcpy(p, &v, sizeof(v));
     }
-
-    template <typename V>
-    struct is_converible: std::false_type {};
 
     static scalar_type element(const vector_type& v, int i) {
         return v[i];

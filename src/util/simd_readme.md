@@ -62,7 +62,7 @@ In the following:
 * `j` is a const object of type `simd<U, N, J>` where `U` is an integral type.
 * `x` is a value of type `V`.
 * `p` is a pointer of type `V*`.
-* `c` is a pointer of type `const V*`.
+* `c` is a pointer of type `const V*` or a value of type `V[N]` (taken by reference).
 
 #### Type aliases and constexpr members
 
