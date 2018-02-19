@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <type_traits>
 
 #include <util/simd/generic.hpp>
@@ -41,10 +40,6 @@ namespace simd_detail {
         // Construct from const array ref or std::array.
         explicit simd_impl(const scalar_type (&a)[width]) {
             value_ = Impl::copy_from(&a[0]);
-        }
-
-        explicit simd_impl(const std::array<scalar_type, width>& a) {
-            value_ = Impl::copy_from(a.data());
         }
 
         // Copy constructor.
@@ -201,6 +196,10 @@ namespace simd_detail {
 
     protected:
         vector_type value_;
+
+        simd_impl(const vector_type& x) {
+            value_ = x;
+        }
     };
 
     template <typename Impl>
@@ -211,8 +210,6 @@ namespace simd_detail {
         using base::value_;
 
         simd_mask_impl() = default;
-
-        simd_mask_impl(const vector_type& v): base(v) {}
 
         // Construct by filling with scalar value.
         simd_mask_impl(bool x) {
@@ -275,6 +272,9 @@ namespace simd_detail {
         friend simd_mask_impl operator||(const simd_mask_impl& a, const simd_mask_impl& b) {
             return Impl::logical_or(a.value_, b.value_);
         }
+
+    protected:
+        simd_mask_impl(const vector_type& v): base(v) {}
     };
 } // namespace simd_detail
 

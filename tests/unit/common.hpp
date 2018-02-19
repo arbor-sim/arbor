@@ -155,6 +155,35 @@ template <typename FPType, typename Seq1, typename Seq2>
     return ::testing::AssertionSuccess();
 }
 
+// Assert two sequences of values are exactly equal.
+template <typename Seq1, typename Seq2>
+::testing::AssertionResult seq_eq(Seq1&& seq1, Seq2&& seq2) {
+    using std::begin;
+    using std::end;
+
+    auto i1 = begin(seq1);
+    auto i2 = begin(seq2);
+
+    auto e1 = end(seq1);
+    auto e2 = end(seq2);
+
+    for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
+        // cast to FPType to avoid warnings about lowering conversion
+        // if FPType has lower precision than Seq{12}::value_type
+        auto v1 = *i1;
+        auto v2 = *i2;
+
+        if (!(v1==v2)) {
+            return ::testing::AssertionFailure() << "values " << v1 << " and " << v2 << " differ at index " << j;
+        }
+    }
+
+    if (i1!=e1 || i2!=e2) {
+        return ::testing::AssertionFailure() << "sequences differ in length";
+    }
+    return ::testing::AssertionSuccess();
+}
+
 // Assert two floating point values are within a relative tolerance.
 inline ::testing::AssertionResult near_relative(double a, double b, double relerr) {
     double tol = relerr*std::max(std::abs(a), std::abs(b));
