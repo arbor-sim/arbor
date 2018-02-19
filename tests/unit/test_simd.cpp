@@ -146,41 +146,43 @@ TYPED_TEST_P(simdfp, arithmetic) {
 
     fp u[N], v[N], w[N], r[N];
 
-    fill_random(u);
-    fill_random(v);
-    fill_random(w);
+    for (unsigned i = 0; i<20u; ++i) {
+        fill_random(u);
+        fill_random(v);
+        fill_random(w);
 
-    fp u_plus_v[N];
-    for (unsigned i = 0; i<N; ++i) u_plus_v[i] = u[i]+v[i];
+        fp u_plus_v[N];
+        for (unsigned i = 0; i<N; ++i) u_plus_v[i] = u[i]+v[i];
 
-    fp u_minus_v[N];
-    for (unsigned i = 0; i<N; ++i) u_minus_v[i] = u[i]-v[i];
+        fp u_minus_v[N];
+        for (unsigned i = 0; i<N; ++i) u_minus_v[i] = u[i]-v[i];
 
-    fp u_times_v[N];
-    for (unsigned i = 0; i<N; ++i) u_times_v[i] = u[i]*v[i];
+        fp u_times_v[N];
+        for (unsigned i = 0; i<N; ++i) u_times_v[i] = u[i]*v[i];
 
-    fp u_divide_v[N];
-    for (unsigned i = 0; i<N; ++i) u_divide_v[i] = u[i]/v[i];
+        fp u_divide_v[N];
+        for (unsigned i = 0; i<N; ++i) u_divide_v[i] = u[i]/v[i];
 
-    fp fma_u_v_w[N];
-    for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = u[i]*v[i]+w[i];
+        fp fma_u_v_w[N];
+        for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = std::fma(u[i],v[i],w[i]);
 
-    simdfp us(u), vs(v), ws(w);
+        simdfp us(u), vs(v), ws(w);
 
-    (us+vs).copy_to(r);
-    EXPECT_TRUE(testing::seq_eq(u_plus_v, r));
+        (us+vs).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(u_plus_v, r));
 
-    (us-vs).copy_to(r);
-    EXPECT_TRUE(testing::seq_eq(u_minus_v, r));
+        (us-vs).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(u_minus_v, r));
 
-    (us*vs).copy_to(r);
-    EXPECT_TRUE(testing::seq_eq(u_times_v, r));
+        (us*vs).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(u_times_v, r));
 
-    (us/vs).copy_to(r);
-    EXPECT_TRUE(testing::seq_eq(u_divide_v, r));
+        (us/vs).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(u_divide_v, r));
 
-    (fma(us, vs, ws)).copy_to(r);
-    EXPECT_TRUE(testing::seq_almost_eq<fp>(fma_u_v_w, r));
+        (fma(us, vs, ws)).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(fma_u_v_w, r));
+    }
 }
 
 TYPED_TEST_P(simdfp, compound_assignment) {

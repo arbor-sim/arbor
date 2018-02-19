@@ -68,7 +68,11 @@ struct avx_double4 {
     }
 
     static vector_type fma(const vector_type& a, const vector_type& b, const vector_type& c) {
-        return _mm256_add_pd(_mm256_mul_pd(a, b), c);
+        vector_type r;
+        for (unsigned i = 0; i<width; ++i) {
+           r[i] = std::fma(a[i], b[i], c[i]);
+        }
+        return r;
     }
 
     static vector_type logical_not(const vector_type& a) {
