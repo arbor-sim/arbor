@@ -21,6 +21,8 @@ struct avx_double4 {
     using int64 = std::int64_t;
 
     static constexpr int cmp_gt_oq = 30; // _CMP_GT_OQ
+    static constexpr int cmp_ge_oq = 29; // _CMP_GE_OQ
+    static constexpr int cmp_le_oq = 18; // _CMP_LE_OQ
     static constexpr int cmp_lt_oq = 17; // _CMP_LT_OQ
     static constexpr int cmp_eq_oq =  0; // _CMP_EQ_OQ
     static constexpr int cmp_neq_uq = 4; // _CMP_NEQ_UQ
@@ -91,8 +93,24 @@ struct avx_double4 {
         return _mm256_cmp_pd(a, b, cmp_eq_oq);
     }
 
-    static mask_type cmp_not_eq(const vector_type& a, const vector_type& b) {
+    static mask_type cmp_neq(const vector_type& a, const vector_type& b) {
         return _mm256_cmp_pd(a, b, cmp_neq_uq);
+    }
+
+    static mask_type cmp_gt(const vector_type& a, const vector_type& b) {
+        return _mm256_cmp_pd(a, b, cmp_gt_oq);
+    }
+
+    static mask_type cmp_geq(const vector_type& a, const vector_type& b) {
+        return _mm256_cmp_pd(a, b, cmp_ge_oq);
+    }
+
+    static mask_type cmp_lt(const vector_type& a, const vector_type& b) {
+        return _mm256_cmp_pd(a, b, cmp_lt_oq);
+    }
+
+    static mask_type cmp_leq(const vector_type& a, const vector_type& b) {
+        return _mm256_cmp_pd(a, b, cmp_le_oq);
     }
 
     static vector_type select(const mask_type& m, const vector_type& u, const vector_type& v) {

@@ -101,10 +101,42 @@ struct generic {
         return result;
     }
 
-    static mask_type cmp_not_eq(const vector_type& u, const vector_type& v) {
+    static mask_type cmp_neq(const vector_type& u, const vector_type& v) {
         mask_type result;
         for (unsigned i = 0; i<N; ++i) {
             result[i] = u[i]!=v[i];
+        }
+        return result;
+    }
+
+    static mask_type cmp_gt(const vector_type& u, const vector_type& v) {
+        mask_type result;
+        for (unsigned i = 0; i<N; ++i) {
+            result[i] = u[i]>v[i];
+        }
+        return result;
+    }
+
+    static mask_type cmp_geq(const vector_type& u, const vector_type& v) {
+        mask_type result;
+        for (unsigned i = 0; i<N; ++i) {
+            result[i] = u[i]>=v[i];
+        }
+        return result;
+    }
+
+    static mask_type cmp_lt(const vector_type& u, const vector_type& v) {
+        mask_type result;
+        for (unsigned i = 0; i<N; ++i) {
+            result[i] = u[i]<v[i];
+        }
+        return result;
+    }
+
+    static mask_type cmp_leq(const vector_type& u, const vector_type& v) {
+        mask_type result;
+        for (unsigned i = 0; i<N; ++i) {
+            result[i] = u[i]<=v[i];
         }
         return result;
     }

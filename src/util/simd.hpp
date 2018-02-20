@@ -16,12 +16,14 @@ namespace simd_detail {
         // Type aliases:
         //
         //     vector_type           underlying representation,
+        //     mask_type             underlying representation for mask,
         //     scalar_type           internal value type in one simd lane,
         //     simd_mask             simd_mask_impl specialization represeting comparison results.
 
         using vector_type = typename Impl::vector_type;
         using scalar_type = typename Impl::scalar_type;
         using simd_mask   = simd_mask_impl<typename Impl::mask_impl>;
+        using mask_type   = typename Impl::mask_impl::vector_type;
 
         static constexpr unsigned width = Impl::width;
 
@@ -72,49 +74,49 @@ namespace simd_detail {
         // Arithmetic operations: +, -, *, /, fma.
 
         friend simd_impl operator+(const simd_impl& a, simd_impl b) {
-            return Impl::add(a.value_, b.value_);
+            return simd_impl::wrap(Impl::add(a.value_, b.value_));
         }
 
         friend simd_impl operator-(const simd_impl& a, simd_impl b) {
-            return Impl::sub(a.value_, b.value_);
+            return simd_impl::wrap(Impl::sub(a.value_, b.value_));
         }
 
         friend simd_impl operator*(const simd_impl& a, simd_impl b) {
-            return Impl::mul(a.value_, b.value_);
+            return simd_impl::wrap(Impl::mul(a.value_, b.value_));
         }
 
         friend simd_impl operator/(const simd_impl& a, simd_impl b) {
-            return Impl::div(a.value_, b.value_);
+            return simd_impl::wrap(Impl::div(a.value_, b.value_));
         }
 
         friend simd_impl fma(const simd_impl& a, simd_impl b, simd_impl c) {
-            return Impl::fma(a.value_, b.value_, c.value_);
+            return simd_impl::wrap(Impl::fma(a.value_, b.value_, c.value_));
         }
 
         // Lane-wise relational operations.
 
         friend simd_mask operator==(const simd_impl& a, const simd_impl& b) {
-            return Impl::cmp_eq(a.value_, b.value_);
+            return simd_impl::mask(Impl::cmp_eq(a.value_, b.value_));
         }
 
         friend simd_mask operator!=(const simd_impl& a, const simd_impl& b) {
-            return Impl::cmp_neq(a.value_, b.value_);
+            return simd_impl::mask(Impl::cmp_neq(a.value_, b.value_));
         }
 
         friend simd_mask operator<=(const simd_impl& a, const simd_impl& b) {
-            return Impl::cmp_leq(a.value_, b.value_);
+            return simd_impl::mask(Impl::cmp_leq(a.value_, b.value_));
         }
 
         friend simd_mask operator<(const simd_impl& a, const simd_impl& b) {
-            return Impl::cmp_lt(a.value_, b.value_);
+            return simd_impl::mask(Impl::cmp_lt(a.value_, b.value_));
         }
 
         friend simd_mask operator>=(const simd_impl& a, const simd_impl& b) {
-            return Impl::cmp_geq(a.value_, b.value_);
+            return simd_impl::mask(Impl::cmp_geq(a.value_, b.value_));
         }
 
         friend simd_mask operator>(const simd_impl& a, const simd_impl& b) {
-            return Impl::cmp_gt(a.value_, b.value_);
+            return simd_impl::mask(Impl::cmp_gt(a.value_, b.value_));
         }
 
         // Compound assignment operations: +=, -=, *=, /=.
@@ -196,9 +198,21 @@ namespace simd_detail {
 
     protected:
         vector_type value_;
-
         simd_impl(const vector_type& x) {
             value_ = x;
+        }
+
+    private:
+        static simd_impl wrap(const vector_type& v) {
+            simd_impl s;
+            s.value_ = v;
+            return s;
+        }
+
+        static simd_mask mask(const mask_type& v) {
+            simd_mask m;
+            m.value_ = v;
+            return m;
         }
     };
 
@@ -243,7 +257,7 @@ namespace simd_detail {
                 return *this;
             }
 
-            operator scalar_type() const {
+            operator bool() const {
                 return Impl::bool_element(*ptr_, i);
             }
 
@@ -262,19 +276,27 @@ namespace simd_detail {
         // Logical operations.
 
         simd_mask_impl operator!() const {
-            return Impl::logical_not(value_);
+            return simd_mask_impl::wrap(Impl::logical_not(value_));
         }
 
         friend simd_mask_impl operator&&(const simd_mask_impl& a, const simd_mask_impl& b) {
-            return Impl::logical_and(a.value_, b.value_);
+            return simd_mask_impl::wrap(Impl::logical_and(a.value_, b.value_));
         }
 
         friend simd_mask_impl operator||(const simd_mask_impl& a, const simd_mask_impl& b) {
-            return Impl::logical_or(a.value_, b.value_);
+            return simd_mask_impl::wrap(Impl::logical_or(a.value_, b.value_));
         }
 
-    protected:
+    private:
         simd_mask_impl(const vector_type& v): base(v) {}
+
+        template <class> friend class simd_impl;
+
+        static simd_mask_impl wrap(const vector_type& v) {
+            simd_mask_impl m;
+            m.value_ = v;
+            return m;
+        }
     };
 } // namespace simd_detail
 
@@ -308,5 +330,11 @@ template <typename Simd>
 where_expression<Simd> where(const typename Simd::simd_mask& m, Simd& v) {
     return where_expression<Simd>(m, v);
 }
+
+template <typename>
+struct is_simd: std::false_type {};
+
+template <typename Impl>
+struct is_simd<simd_detail::simd_impl<Impl>>: std::true_type {};
 
 } // namespace arb

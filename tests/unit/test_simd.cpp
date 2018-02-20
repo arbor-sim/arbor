@@ -114,16 +114,27 @@ TYPED_TEST_P(simdfp, copy_to_from) {
 // TODO: gather scatter test
 
 namespace {
-    template <typename FP, unsigned N>
-    void fill_random(FP (&a)[N]) {
-        static std::minstd_rand R(12345);
+    template <typename FP, unsigned N, typename Rng>
+    void fill_random_nz(FP (&a)[N], Rng& rng) {
         static std::uniform_real_distribution<FP> U(-1., 1.);
 
         for (unsigned i = 0; i<N; ++i) {
-            FP v = U(R);
-            while (!v) v = U(R);
+            FP v = U(rng);
+            while (!v) v = U(rng);
             a[i] = v;
         }
+    }
+
+    template <typename Simd, typename Rng, typename = typename std::enable_if<is_simd<Simd>::value>::type>
+    void fill_random_nz(Simd& s, Rng& rng) {
+        using fp = typename Simd::scalar_type;
+        constexpr unsigned N = Simd::width;
+
+        static std::uniform_real_distribution<fp> U(-1., 1.);
+
+        fp v[N];
+        fill_random_nz(v, rng);
+        s.copy_from(v);
     }
 
     template <typename Simd>
@@ -144,12 +155,13 @@ TYPED_TEST_P(simdfp, arithmetic) {
     using fp = typename simdfp::scalar_type;
     constexpr unsigned N = simdfp::width;
 
+    std::minstd_rand rng(12345);
     fp u[N], v[N], w[N], r[N];
 
     for (unsigned i = 0; i<20u; ++i) {
-        fill_random(u);
-        fill_random(v);
-        fill_random(w);
+        fill_random_nz(u, rng);
+        fill_random_nz(v, rng);
+        fill_random_nz(w, rng);
 
         fp u_plus_v[N];
         for (unsigned i = 0; i<N; ++i) u_plus_v[i] = u[i]+v[i];
@@ -187,16 +199,12 @@ TYPED_TEST_P(simdfp, arithmetic) {
 
 TYPED_TEST_P(simdfp, compound_assignment) {
     using simdfp = TypeParam;
-    using fp = typename simdfp::scalar_type;
-    constexpr unsigned N = simdfp::width;
 
-    fp u[N], v[N], w[N];
+    simdfp a, b, r;
 
-    fill_random(u);
-    fill_random(v);
-    fill_random(w);
-
-    simdfp a(u), b(v), c(w), r;
+    std::minstd_rand rng(23456);
+    fill_random_nz(a, rng);
+    fill_random_nz(b, rng);
 
     EXPECT_TRUE(simd_eq(a+b, (r = a)+=b));
     EXPECT_TRUE(simd_eq(a-b, (r = a)-=b));
@@ -204,7 +212,65 @@ TYPED_TEST_P(simdfp, compound_assignment) {
     EXPECT_TRUE(simd_eq(a/b, (r = a)/=b));
 }
 
-REGISTER_TYPED_TEST_CASE_P(simdfp, elements, element_lvalue, copy_to_from, arithmetic, compound_assignment);
+TYPED_TEST_P(simdfp, comparison) {
+    using simdfp = TypeParam;
+    using mask = typename simdfp::simd_mask;
+    constexpr unsigned N = simdfp::width;
+
+    std::minstd_rand rng(34567);
+    std::uniform_int_distribution<> sgn(-1, 1); // -1, 0 or 1.
+
+    for (unsigned i = 0; i<20u; ++i) {
+        int cmp[N];
+        bool test[N];
+        simdfp a, b;
+
+        fill_random_nz(b, rng);
+
+        for (unsigned j = 0; j<N; ++j) {
+            cmp[j] = sgn(rng);
+            a[j] = b[j]+0.1*cmp[j];
+        }
+
+        mask gt = a>b;
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = cmp[j]>0;
+            EXPECT_EQ(test[j], gt[j]);
+        }
+
+        mask geq = a>=b;
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = cmp[j]>=0;
+            EXPECT_EQ(test[j], geq[j]);
+        }
+
+        mask lt = a<b;
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = cmp[j]<0;
+            EXPECT_EQ(test[j], lt[j]);
+        }
+
+        mask leq = a<=b;
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = cmp[j]<=0;
+            EXPECT_EQ(test[j], leq[j]);
+        }
+
+        mask eq = a==b;
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = cmp[j]==0;
+            EXPECT_EQ(test[j], eq[j]);
+        }
+
+        mask ne = a!=b;
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = cmp[j]!=0;
+            EXPECT_EQ(test[j], ne[j]);
+        }
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(simdfp, elements, element_lvalue, copy_to_from, arithmetic, compound_assignment, comparison);
 
 typedef ::testing::Types<
     simd<float, 2, simd_abi::generic>,
