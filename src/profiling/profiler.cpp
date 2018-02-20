@@ -67,7 +67,6 @@ void recorder::mark(std::size_t index) {
 }
 
 void recorder::clear() {
-    //stamps_.clear();
     index_ = npos;
     for (auto& s:samples_) {
         s.time = 0;
@@ -78,7 +77,6 @@ void recorder::clear() {
 // profiler implementation
 
 profiler::profiler() {
-    std::cout << "INITIALIZING PROFILER WITH " << threading::num_threads() << " threads\n";
     recorders_.resize(threading::num_threads());
 }
 
