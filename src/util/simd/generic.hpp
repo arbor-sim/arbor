@@ -14,7 +14,7 @@ struct generic {
     using scalar_type = T;
     using vector_type = std::array<T, N>;
 
-    using mask_impl = generic<int, N>;
+    using mask_impl = generic<bool, N>;
     using mask_type = typename mask_impl::vector_type;
 
     constexpr static unsigned width = N;
@@ -22,12 +22,6 @@ struct generic {
     static vector_type broadcast(scalar_type v) {
         vector_type result;
         result.fill(v);
-        return result;
-    }
-
-    template <typename... V>
-    static vector_type immediate(V... vs) {
-        vector_type result({static_cast<scalar_type>(vs)...});
         return result;
     }
 
@@ -43,10 +37,6 @@ struct generic {
 
     static scalar_type element(const vector_type& v, int i) {
         return v[i];
-    }
-
-    static bool bool_element(const vector_type& v, int i) {
-        return static_cast<bool>(v[i]);
     }
 
     static void set_element(vector_type& v, int i, scalar_type x) {
@@ -171,6 +161,31 @@ struct generic {
             result[i] = mask[i]? v[i]: u[i];
         }
         return result;
+    }
+
+    // `mask_` methods apply only when `scalar_type` is `bool`.
+    static vector_type mask_broadcast(bool v) {
+        vector_type result;
+        result.fill(v);
+        return result;
+    }
+
+    static bool mask_element(const vector_type& v, int i) {
+        return static_cast<bool>(v[i]);
+    }
+
+    static void set_mask_element(vector_type& v, int i, bool x) {
+        v[i] = x;
+    }
+
+    static void mask_copy_to(const vector_type& v, bool* w) {
+        std::copy(v.begin(), v.end(), w);
+    }
+
+    static vector_type mask_copy_from(const bool* y) {
+        vector_type v;
+        std::copy(y, y+4, v.data());
+        return v;
     }
 };
 

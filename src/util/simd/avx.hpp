@@ -33,10 +33,6 @@ struct avx_double4 {
         return _mm256_set1_pd(v);
     }
 
-    static vector_type broadcast(bool b) {
-        return _mm256_castsi256_pd(_mm256_set1_epi64x((int64)-b));
-    }
-
     static vector_type immediate(double v0, double v1, double v2, double v3) {
         return _mm256_setr_pd(v0, v1, v2, v3);
     }
@@ -125,14 +121,70 @@ struct avx_double4 {
         u[i] = x;
     }
 
-    static scalar_type bool_element(const vector_type& u, int i) {
-        return u[i];
+    static vector_type mask_broadcast(bool b) {
+        return _mm256_castsi256_pd(_mm256_set1_epi64x(-(int64)b));
     }
 
-    static void set_element(vector_type& u, int i, bool b) {
+    static bool mask_element(const vector_type& u, int i) {
+        return static_cast<bool>(u[i]);
+    }
+
+    static void mask_set_element(vector_type& u, int i, bool b) {
         __m256i ui = _mm256_castpd_si256(u);
-        ui[i] = -b;
+        ui[i] = -(int64)b;
         u = _mm256_castsi256_pd(ui);
+    }
+
+    static void mask_copy_to(const vector_type& m, bool* y) {
+        __m128i zero = _mm_setzero_si128();
+
+        // Split into upper and lower 128-bits (two mask values
+        // in each), translate 0xffffffffffffffff to 0x0000000000000001.
+
+        __m128i ml = _mm_castpd_si128(_mm256_castpd256_pd128(m));
+        ml = _mm_sub_epi64(zero, ml);
+
+        __m128i mu = _mm_castpd_si128(_mm256_castpd256_pd128(_mm256_permute2f128_pd(m, m, 1)));
+        mu = _mm_sub_epi64(zero, mu);
+
+        // Move bytes with bool value to bytes 0 and 1 in lower half,
+        // bytes 2 and 3 in upper half, and merge with bitwise-or.
+
+        __m128i sl = _mm_setr_epi32(0x80800800ul,0,0,0);
+        ml = _mm_shuffle_epi8(ml, sl);
+
+        __m128i su = _mm_setr_epi32(0x08008080ul,0,0,0);
+        mu = _mm_shuffle_epi8(mu, su);
+
+        __m128i r = _mm_or_si128(mu, ml);
+        std::memcpy(y, &r, 4);
+    }
+
+    static vector_type mask_copy_from(const bool* w) {
+        __m128i zero = _mm_setzero_si128();
+
+        __m128i r;
+        std::memcpy(&r, w, 4);
+
+        // Move bytes:
+        //   rl: byte 0 to byte 0, byte 1 to byte 8, zero elsewhere.
+        //   ru: byte 2 to byte 0, byte 3 to byte 8, zero elsewhere.
+        //
+        // Subtract from zero to translate
+        // 0x0000000000000001 to 0xffffffffffffffff.
+
+        __m128i sl = _mm_setr_epi32(0x80808000ul, 0x80808080ul, 0x80808001ul, 0x80808080ul);
+        __m128i rl = _mm_sub_epi64(zero, _mm_shuffle_epi8(r, sl));
+
+        __m128i su = _mm_setr_epi32(0x80808002ul, 0x80808080ul, 0x80808003ul, 0x80808080ul);
+        __m128i ru = _mm_sub_epi64(zero, _mm_shuffle_epi8(r, su));
+
+        return _mm256_castsi256_pd(combine_m128i(ru, rl));
+    }
+
+protected:
+    static __m256i combine_m128i(__m128i hi, __m128i lo) {
+        return _mm256_insertf128_si256(_mm256_castsi128_si256(lo), hi, 1);
     }
 };
 
@@ -159,6 +211,34 @@ struct avx2_double4: avx_double4 {
 
     static vector_type fma(const vector_type& a, const vector_type& b, const vector_type& c) {
         return _mm256_fmadd_pd(a, b, c);
+    }
+
+    static void mask_copy_to(const vector_type& m, bool* y) {
+        __m256i zero = _mm256_setzero_si256();
+
+        // Translate 0xffffffffffffffff scalars to 0x0000000000000001.
+
+        __m256i x = _mm256_castpd_si256(m);
+        x = _mm256_sub_epi64(zero, x);
+
+        // Move lower 32-bits of each field to lower 128-bit half of x.
+
+        __m256i s1 = _mm256_setr_epi32(0,2,4,8,0,0,0,0);
+        x = _mm256_permutevar8x32_epi32(x, s1);
+
+        // Move the lowest byte from each 32-bit field to bottom bytes.
+
+        __m128i s2 = _mm_setr_epi32(0x0c080400ul,0,0,0);
+        __m128i r = _mm_shuffle_epi8(_mm256_castsi256_si128(x), s2);
+        std::memcpy(y, &r, 4);
+    }
+
+    static vector_type mask_copy_from(const bool* w) {
+        __m256i zero = _mm256_setzero_si256();
+
+        __m256i r;
+        std::memcpy(&r, w, 4);
+        return _mm256_sub_epi64(zero, _mm256_cvtepi8_epi64(r));
     }
 };
 

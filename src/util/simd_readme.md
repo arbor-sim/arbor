@@ -84,10 +84,10 @@ Expression | Description
 
 Expression | Type | Description
 -----------|------|------------
-`s.copy_from(c)`  | `void` | Set `s[0]=c[0]`, ..., `s[N-1]=c[N-1]`.
-`s.gather(c, j)`  | `void` | Set `s[0]=c[j[0]]`, ..., `s[N-1]=c[j[N-1]]`.
 `t.copy_to(p)`    | `void` | Set `p[0]=t[0]`, ..., `p[N-1]=t[N-1]`.
 `t.scatter(p, j)` | `void` | Set `p[j[0]]=t[0]`, ..., `p[j[N-1]]=t[N-1]`.
+`s.copy_from(c)`  | `void` | Set `s[0]=c[0]`, ..., `s[N-1]=c[N-1]`.
+`s.gather(c, j)`  | `void` | Set `s[0]=c[j[0]]`, ..., `s[N-1]=c[j[N-1]]`.
 
 #### Expressions
 
@@ -119,8 +119,10 @@ Expression | Type | Description
 In the following:
 * `M` stands for the class `simd_mask<V, N, I>`.
 * `m` and `q` are const objects of type `simd_mask<V, N, I>`.
+* `u` is an object of type `simd_mask<V, N, I>`.
 * `b` is a boolean value.
-* `v` is a pointer of type `const bool*`.
+* `w` is a pointer of type `bool*`.
+* `y` is a pointer of type `const bool*`.
 
 #### Constructors
 
@@ -128,7 +130,14 @@ Expression | Description
 -----------|------------
 `M(b)`  | A SIMD mask with all lanes equal to `b`.
 `M(q)`  | A copy of the SIMD mask `q`.
-`M(v)`  | A SIMD value comprising the values `v[0]`, ..., `v[N-1]`.
+`M(y)`  | A SIMD value comprising the values `v[0]`, ..., `v[N-1]`.
+
+#### Member functions
+
+Expression | Type | Description
+-----------|------|------------
+`m.copy_to(w)`    | `void` | Set `m[0]=w[0]`, ..., `m[N-1]=w[N-1]`.
+`u.copy_from(y)`  | `void` | Set `y[0]=u[0]`, ..., `y[N-1]=u[N-1]`.
 
 #### Expressions
 
@@ -185,6 +194,8 @@ a SIMD class of width `N` and value type `V`.
 * `x` is a value of type `C::scalar_type`.
 * `p` is a pointer of type `C::scalar_type*`.
 * `b` is a bool value.
+* `w` is a pointer to bool.
+* `y` is a const pointer to bool.
 * `i` is an unsigned (index) value.
 * `m` is a mask representation of type `C::mask_type`.
 
@@ -202,19 +213,25 @@ Name | Type | Description
 
 Expression | Type | Description
 -----------|------|------------
-`C::broadcast(x)`  | `vector_type` | Fill representation with scalar _a_.
-`C::broadcast(b)`  | `vector_type` | Fill representation with bool _b_. (*)
+`C::broadcast(x)`  | `C::vector_type` | Fill representation with scalar _a_.
 `C::copy_to(v, p)` | `void` | Store v to memory (unaligned).
-`C::copy_from(p)`  | `vector_type` | Load from memory (unaligned).
+`C::copy_from(p)`  | `C::vector_type` | Load from memory (unaligned).
 
 #### Lane access
 
 Expression | Type | Description
 -----------|------|------------
 `C::element(v, i)` | `C::scalar_type` | Value in ith lane of _u_.
-`C::bool_element(v, i)` | `bool` | Boolean value in ith lane of _u_. (*)
 `C::set_element(u, i, x)` | `void` | Set value in lane _i_ of _u_ to _x_.
-`C::set_element(u, i, b)` | `void` | Set boolean value in lane _i_ of _u_ to _b_. (*)
+
+#### Mask value support
+
+`C::mask_broadcast(b)`  | `C::vector_type` | Fill mask representation with bool _b_. (*)
+`C::mask_element(v, i)` | `bool`           | Mask value in ith lane of _v_. (*)
+`C::mask_set_element(u, i, b)` | `void`    | Set mask value in lane _i_ of _u_ to _b_. (*)
+`C::mask_copy_to(v, w)` | `void`           | Write bool values to memory (unaligned). (*)
+`C::mask_copy_from(y)`  | `C::vector_type` | Load bool values from memory (unaligned). (*)
+
 
 #### Arithmetic and logical operations
 

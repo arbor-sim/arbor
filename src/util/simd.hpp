@@ -39,7 +39,7 @@ namespace simd_detail {
             value_ = Impl::copy_from(p);
         }
 
-        // Construct from const array ref or std::array.
+        // Construct from const array ref.
         explicit simd_impl(const scalar_type (&a)[width]) {
             value_ = Impl::copy_from(&a[0]);
         }
@@ -221,25 +221,46 @@ namespace simd_detail {
         using base = simd_impl<Impl>;
         using typename base::vector_type;
         using typename base::scalar_type;
+        using base::width;
         using base::value_;
 
         simd_mask_impl() = default;
 
         // Construct by filling with scalar value.
-        simd_mask_impl(bool x) {
-            value_ = Impl::broadcast(x);
+        simd_mask_impl(bool b) {
+            value_ = Impl::mask_broadcast(b);
         }
 
         // Scalar asssignment fills vector.
-        simd_mask_impl& operator=(bool x) {
-            value_ = Impl::broadcast(x);
+        simd_mask_impl& operator=(bool b) {
+            value_ = Impl::mask_broadcast(b);
             return *this;
+        }
+
+        // Construct from bool values in memory.
+        explicit simd_mask_impl(const bool* y) {
+            value_ = Impl::mask_copy_from(y);
+        }
+
+        // Construct from const array ref.
+        explicit simd_mask_impl(const bool (&a)[width]) {
+            value_ = Impl::mask_copy_from(&a[0]);
         }
 
         // Copy assignment.
         simd_mask_impl& operator=(const simd_mask_impl& other) {
             std::memcpy(&value_, &other.value_, sizeof(vector_type));
             return *this;
+        }
+
+        // Read/write bool operations: copy_to, copy_from.
+
+        void copy_to(bool* w) const {
+            Impl::mask_copy_to(value_, w);
+        }
+
+        void copy_from(const bool* y) {
+            value_ = Impl::mask_copy_from(y);
         }
 
         // Array subscript operations.
@@ -253,12 +274,12 @@ namespace simd_detail {
                 ptr_(&value), i(i) {}
 
             reference& operator=(bool v) && {
-                Impl::set_element(*ptr_, i, v);
+                Impl::mask_set_element(*ptr_, i, v);
                 return *this;
             }
 
             operator bool() const {
-                return Impl::bool_element(*ptr_, i);
+                return Impl::mask_element(*ptr_, i);
             }
 
             vector_type* ptr_;

@@ -138,10 +138,11 @@ template <typename FPType, typename Seq1, typename Seq2>
     for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
         using FP = testing::internal::FloatingPoint<FPType>;
 
-        // cast to FPType to avoid warnings about lowering conversion
-        // if FPType has lower precision than Seq{12}::value_type
         auto v1 = *i1;
         auto v2 = *i2;
+
+        // Cast to FPType to avoid warnings about lowering conversion
+        // if FPType has lower precision than Seq{12}::value_type.
 
         if (!FP{v1}.AlmostEquals(FP{v2})) {
             return ::testing::AssertionFailure() << "floating point numbers " << v1 << " and " << v2 << " differ at index " << j;
@@ -168,8 +169,6 @@ template <typename Seq1, typename Seq2>
     auto e2 = end(seq2);
 
     for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
-        // cast to FPType to avoid warnings about lowering conversion
-        // if FPType has lower precision than Seq{12}::value_type
         auto v1 = *i1;
         auto v2 = *i2;
 
@@ -183,6 +182,22 @@ template <typename Seq1, typename Seq2>
     }
     return ::testing::AssertionSuccess();
 }
+
+// Assert elements 0..n-1 inclusive of two indexed collections are exactly equal.
+template <typename Arr1, typename Arr2>
+::testing::AssertionResult indexed_eq_n(int n, Arr1&& a1, Arr2&& a2) {
+    for (int i = 0; i<n; ++i) {
+        auto v1 = a1[i];
+        auto v2 = a2[i];
+
+        if (!(v1==v2)) {
+            return ::testing::AssertionFailure() << "values " << v1 << " and " << v2 << " differ at index " << i;
+        }
+    }
+
+    return ::testing::AssertionSuccess();
+}
+
 
 // Assert two floating point values are within a relative tolerance.
 inline ::testing::AssertionResult near_relative(double a, double b, double relerr) {
