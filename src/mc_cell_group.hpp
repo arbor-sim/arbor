@@ -165,7 +165,6 @@ public:
         PL();
 
         // Run integration.
-        PM(advance_integrate);
         lowered_.setup_integration(ep.tfinal, dt, staged_events_, std::move(sample_events));
         while (!lowered_.integration_complete()) {
             lowered_.step_integration();

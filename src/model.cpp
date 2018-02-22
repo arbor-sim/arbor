@@ -115,7 +115,6 @@ time_type model::run(time_type tfinal, time_type dt) {
         threading::parallel_for::apply(
             0u, cell_groups_.size(),
             [&](unsigned i) {
-                PM(advance);
                 auto &group = cell_groups_[i];
 
                 auto queues = util::subrange_view(
@@ -134,8 +133,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     // events that must be delivered at the start of the next
     // integration period at the latest.
     auto exchange = [&] () {
-        PM(communication);
-
         PE(communication_exchange);
         auto local_spikes = previous_spikes().gather();
         auto global_spikes = communicator_.exchange(local_spikes);
@@ -198,7 +195,6 @@ time_type model::run(time_type tfinal, time_type dt) {
 //      event_generators  : take all events < t_to
 //      pending_events    : take all events
 void model::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
-    PM(communication_enqueue);
     const auto n = communicator_.num_local_cells();
     threading::parallel_for::apply(0, n,
         [&](cell_size_type i) {

@@ -1208,7 +1208,6 @@ void fvm_multicell<Backend>::step_integration() {
     PL();
 
     // solve the linear system
-    PM(advance_integrate_matrix);
     PE(advance_integrate_matrix_build);
     matrix_.assemble(dt_cell_, voltage_, current_);
     PL();
