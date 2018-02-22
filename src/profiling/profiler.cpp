@@ -9,6 +9,7 @@
 namespace arb {
 namespace util {
 
+#ifdef ARB_HAVE_PROFILING
 namespace {
     bool is_valid_region_string(const std::string& s) {
         if (s.size()==0u || s.front()=='_' || s.back()=='_') return false;
@@ -322,8 +323,6 @@ const std::vector<std::string>& profiler::regions() const {
 // convenience functions for instrumenting code.
 //
 
-#ifdef ARB_HAVE_PROFILING
-
 void profiler_leave() {
     data::profiler.leave();
 }
@@ -374,7 +373,8 @@ void profiler_stop() {}
 void profiler_restart() {}
 void profiler_enter(std::size_t) {}
 profile profiler_summary();
-void profiler_print(const profile& prof, float threshold);
+void profiler_print(const profile& prof, float threshold) {};
+profile profiler_summary() {return profile();}
 std::size_t profiler_region_id(const char*) {return 0;}
 
 #endif // ARB_HAVE_PROFILING
