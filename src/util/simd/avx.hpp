@@ -386,6 +386,13 @@ struct avx2_double4: avx_double4 {
     }
 };
 
+struct gather_impl<avx2_double4, avx2_int4> {
+    using vector_type = __m256d;
+
+    static __m256d gather(const double* p, const __m128i& index) {
+        return  _mm256_i32gather_pd(p, index, 8);
+    };
+
 } // namespace simd_detail
 
 namespace simd_abi {
