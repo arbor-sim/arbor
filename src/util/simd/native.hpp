@@ -22,11 +22,13 @@ template <> struct native<T, N> { using type = typename A<T, N>::type; };\
 #if defined(__AVX2__)
 
 #include <util/simd/avx.hpp>
+ARB_DEF_NATIVE_SIMD_(int, 4, avx2)
 ARB_DEF_NATIVE_SIMD_(double, 4, avx2)
 
 #elif defined(__AVX__)
 
 #include <util/simd/avx.hpp>
+ARB_DEF_NATIVE_SIMD_(int, 4, avx)
 ARB_DEF_NATIVE_SIMD_(double, 4, avx)
 
 // #elif...

@@ -364,6 +364,7 @@ typedef ::testing::Types<
     simd<int, 4, simd_abi::avx2>,
     simd<double, 4, simd_abi::avx2>,
 #endif
+    simd<int, 4, simd_abi::default_abi>,
     simd<double, 4, simd_abi::default_abi>
 > simd_test_types;
 

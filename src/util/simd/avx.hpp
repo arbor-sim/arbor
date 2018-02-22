@@ -326,9 +326,8 @@ protected:
 namespace simd_abi {
 
     template <typename T, unsigned N> struct avx;
-    template <> struct avx<int, 4> { using type = simd_detail::avx_int4; };
 
-    template <typename T, unsigned N> struct avx;
+    template <> struct avx<int, 4> { using type = simd_detail::avx_int4; };
     template <> struct avx<double, 4> { using type = simd_detail::avx_double4; };
 
 } // namespace simd_abi;
@@ -386,21 +385,25 @@ struct avx2_double4: avx_double4 {
     }
 };
 
+template <typename Impl, typename ImplIndex>
+struct gather_impl;
+
+template <>
 struct gather_impl<avx2_double4, avx2_int4> {
     using vector_type = __m256d;
 
     static __m256d gather(const double* p, const __m128i& index) {
         return  _mm256_i32gather_pd(p, index, 8);
     };
+};
 
 } // namespace simd_detail
 
 namespace simd_abi {
 
     template <typename T, unsigned N> struct avx2;
-    template <> struct avx2<int, 4> { using type = simd_detail::avx2_int4; };
 
-    template <typename T, unsigned N> struct avx2;
+    template <> struct avx2<int, 4> { using type = simd_detail::avx2_int4; };
     template <> struct avx2<double, 4> { using type = simd_detail::avx2_double4; };
 
 } // namespace simd_abi;
