@@ -40,7 +40,7 @@ struct null_terminated_t {
 
 constexpr null_terminated_t null_terminated;
 
-// wrap a value type, with copy operations disabled
+// Wrap a value type, with copy operations disabled.
 
 template <typename V>
 struct nocopy {
@@ -81,7 +81,7 @@ int nocopy<V>::move_ctor_count;
 template <typename V>
 int nocopy<V>::move_assign_count;
 
-// wrap a value type, with move operations disabled
+// Wrap a value type, with move operations disabled.
 
 template <typename V>
 struct nomove {

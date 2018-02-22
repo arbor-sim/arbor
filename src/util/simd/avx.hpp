@@ -10,7 +10,137 @@
 namespace arb {
 namespace simd_detail {
 
+struct avx_int4 {
+    constexpr static unsigned width = 4;
+
+    using int32 = std::int32_t;
+    using scalar_type = int32;
+    using vector_type = __m128i;
+
+    // Masks use the same representation:
+    using mask_impl = avx_int4;
+    using mask_type = typename mask_impl::vector_type;
+
+    static vector_type broadcast(double v) {
+        return _mm_set1_epi32(v);
+    }
+
+    static void copy_to(const vector_type& v, scalar_type* p) {
+        _mm_storeu_si128((__m128i*)p, v);
+    }
+
+    static vector_type copy_from(const scalar_type* p) {
+        return _mm_loadu_si128((const __m128i*)p);
+    }
+
+    static vector_type add(const vector_type& a, const vector_type& b) {
+        return _mm_add_epi32(a, b);
+    }
+
+    static vector_type sub(const vector_type& a, const vector_type& b) {
+        return _mm_sub_epi32(a, b);
+    }
+
+    static vector_type mul(const vector_type& a, const vector_type& b) {
+        return _mm_mullo_epi32(a, b);
+    }
+
+    static vector_type div(const vector_type& a, const vector_type& b) {
+        int32 x[4], y[4], r[4];
+        copy_to(a, x);
+        copy_to(b, y);
+
+        for (unsigned i=0; i<4; ++i) {
+           r[i] = x[i]/y[i];
+        }
+
+        return copy_from(r);
+    }
+
+    static vector_type fma(const vector_type& a, const vector_type& b, const vector_type& c) {
+        return _mm_add_epi32(_mm_mullo_epi32(a, b), c);
+    }
+
+    static vector_type logical_not(const vector_type& a) {
+        __m128i ones = {};
+        return _mm_xor_si128(a, _mm_cmpeq_epi32(ones, ones));
+    }
+
+    static vector_type logical_and(const vector_type& a, const vector_type& b) {
+        return _mm_and_si128(a, b);
+    }
+
+    static vector_type logical_or(const vector_type& a, const vector_type& b) {
+        return _mm_or_si128(a, b);
+    }
+
+    static mask_type cmp_eq(const vector_type& a, const vector_type& b) {
+        return _mm_cmpeq_epi32(a, b);
+    }
+
+    static mask_type cmp_neq(const vector_type& a, const vector_type& b) {
+        return logical_not(cmp_eq(a, b));
+    }
+
+    static mask_type cmp_gt(const vector_type& a, const vector_type& b) {
+        return _mm_cmpgt_epi32(a, b);
+    }
+
+    static mask_type cmp_geq(const vector_type& a, const vector_type& b) {
+        return logical_not(cmp_gt(b, a));
+    }
+
+    static mask_type cmp_lt(const vector_type& a, const vector_type& b) {
+        return cmp_gt(b, a);
+    }
+
+    static mask_type cmp_leq(const vector_type& a, const vector_type& b) {
+        return logical_not(cmp_gt(a, b));
+    }
+
+    static scalar_type element(const vector_type& u, int i) {
+        int32 data[4];
+        copy_to(u, data);
+        return data[i];
+    }
+
+    static void set_element(vector_type& u, int i, scalar_type x) {
+        int32 data[4];
+        copy_to(u, data);
+        data[i] = x;
+        u = copy_from(data);
+    }
+
+    static vector_type mask_broadcast(bool b) {
+        return _mm_set1_epi32(-(int32)b);
+    }
+
+    static bool mask_element(const vector_type& u, int i) {
+        return static_cast<bool>(element(u, i));
+    }
+
+    static void mask_set_element(vector_type& u, int i, bool b) {
+        set_element(u, i, -(int32)b);
+    }
+
+    static void mask_copy_to(const vector_type& m, bool* y) {
+        __m128i s = _mm_setr_epi32(0x0c080400ul,0,0,0);
+        __m128i p = _mm_shuffle_epi8(m, s);
+        std::memcpy(y, &p, 4);
+    }
+
+    static vector_type mask_copy_from(const bool* w) {
+        __m128i r;
+        std::memcpy(&r, w, 4);
+
+        __m128i s = _mm_setr_epi32(0x80808000ul, 0x80808001ul, 0x80808002ul, 0x80808003ul);
+        return _mm_shuffle_epi8(r, s);
+    }
+};
+
 struct avx_double4 {
+    constexpr static unsigned width = 4;
+
     using scalar_type = double;
     using vector_type = __m256d;
 
@@ -20,25 +150,16 @@ struct avx_double4 {
 
     using int64 = std::int64_t;
 
-    static constexpr int cmp_gt_oq = 30; // _CMP_GT_OQ
-    static constexpr int cmp_ge_oq = 29; // _CMP_GE_OQ
-    static constexpr int cmp_le_oq = 18; // _CMP_LE_OQ
-    static constexpr int cmp_lt_oq = 17; // _CMP_LT_OQ
-    static constexpr int cmp_eq_oq =  0; // _CMP_EQ_OQ
-    static constexpr int cmp_neq_uq = 4; // _CMP_NEQ_UQ
-
-    constexpr static unsigned width = 4;
+    static constexpr int cmp_gt_oq = 30;  // _CMP_GT_OQ
+    static constexpr int cmp_ge_oq = 29;  // _CMP_GE_OQ
+    static constexpr int cmp_le_oq = 18;  // _CMP_LE_OQ
+    static constexpr int cmp_lt_oq = 17;  // _CMP_LT_OQ
+    static constexpr int cmp_eq_oq =  0;  // _CMP_EQ_OQ
+    static constexpr int cmp_neq_uq = 4;  // _CMP_NEQ_UQ
+    static constexpr int cmp_true_uq =15; // _CMP_TRUE_UQ
 
     static vector_type broadcast(double v) {
         return _mm256_set1_pd(v);
-    }
-
-    static vector_type immediate(double v0, double v1, double v2, double v3) {
-        return _mm256_setr_pd(v0, v1, v2, v3);
-    }
-
-    static vector_type immediate(bool b0, bool b1, bool b2, bool b3) {
-        return _mm256_castsi256_pd(_mm256_setr_epi64x(-b0, -b1, -b2, -b3));
     }
 
     static void copy_to(const vector_type& v, scalar_type* p) {
@@ -66,15 +187,21 @@ struct avx_double4 {
     }
 
     static vector_type fma(const vector_type& a, const vector_type& b, const vector_type& c) {
-        vector_type r;
-        for (unsigned i = 0; i<width; ++i) {
+        double x[4], y[4], z[4], r[4];
+        _mm256_storeu_pd(x, a);
+        _mm256_storeu_pd(y, b);
+        _mm256_storeu_pd(z, c);
+
+        for (unsigned i=0; i<4; ++i) {
            r[i] = std::fma(a[i], b[i], c[i]);
         }
-        return r;
+
+        return _mm256_loadu_pd(r);
     }
 
     static vector_type logical_not(const vector_type& a) {
-        return _mm256_castsi256_pd(~_mm256_castpd_si256(a));
+        __m256d ones = {};
+        return _mm256_xor_pd(a, _mm256_cmp_pd(ones, ones, 15));
     }
 
     static vector_type logical_and(const vector_type& a, const vector_type& b) {
@@ -114,11 +241,16 @@ struct avx_double4 {
     }
 
     static scalar_type element(const vector_type& u, int i) {
-        return u[i];
+        double data[4];
+        _mm256_storeu_pd(data, u);
+        return data[i];
     }
 
     static void set_element(vector_type& u, int i, scalar_type x) {
-        u[i] = x;
+        double data[4];
+        _mm256_storeu_pd(data, u);
+        data[i] = x;
+        u = _mm256_loadu_pd(data);
     }
 
     static vector_type mask_broadcast(bool b) {
@@ -126,13 +258,14 @@ struct avx_double4 {
     }
 
     static bool mask_element(const vector_type& u, int i) {
-        return static_cast<bool>(u[i]);
+        return static_cast<bool>(element(u, i));
     }
 
     static void mask_set_element(vector_type& u, int i, bool b) {
-        __m256i ui = _mm256_castpd_si256(u);
-        ui[i] = -(int64)b;
-        u = _mm256_castsi256_pd(ui);
+        char data[256];
+        _mm256_storeu_pd((double*)data, u);
+        ((int64*)data)[i] = -(int64)b;
+        u = _mm256_loadu_pd((double*)data);
     }
 
     static void mask_copy_to(const vector_type& m, bool* y) {
@@ -193,6 +326,9 @@ protected:
 namespace simd_abi {
 
     template <typename T, unsigned N> struct avx;
+    template <> struct avx<int, 4> { using type = simd_detail::avx_int4; };
+
+    template <typename T, unsigned N> struct avx;
     template <> struct avx<double, 4> { using type = simd_detail::avx_double4; };
 
 } // namespace simd_abi;
@@ -204,6 +340,8 @@ namespace simd_abi {
 
 namespace simd_detail {
 
+using avx2_int4 = avx_int4;
+
 struct avx2_double4: avx_double4 {
     // Masks use the same representation:
     using mask_impl = avx2_double4;
@@ -212,6 +350,12 @@ struct avx2_double4: avx_double4 {
     static vector_type fma(const vector_type& a, const vector_type& b, const vector_type& c) {
         return _mm256_fmadd_pd(a, b, c);
     }
+
+    static vector_type logical_not(const vector_type& a) {
+        __m256i ones;
+        return _mm256_xor_pd(a, a, _mm256_castsi256_pd(_mm256_cmpeq_epi32(ones, ones)));
+    }
+
 
     static void mask_copy_to(const vector_type& m, bool* y) {
         __m256i zero = _mm256_setzero_si256();
@@ -245,6 +389,9 @@ struct avx2_double4: avx_double4 {
 } // namespace simd_detail
 
 namespace simd_abi {
+
+    template <typename T, unsigned N> struct avx2;
+    template <> struct avx2<int, 4> { using type = simd_detail::avx2_int4; };
 
     template <typename T, unsigned N> struct avx2;
     template <> struct avx2<double, 4> { using type = simd_detail::avx2_double4; };

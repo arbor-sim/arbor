@@ -174,7 +174,7 @@ struct generic {
         return static_cast<bool>(v[i]);
     }
 
-    static void set_mask_element(vector_type& v, int i, bool x) {
+    static void mask_set_element(vector_type& v, int i, bool x) {
         v[i] = x;
     }
 
