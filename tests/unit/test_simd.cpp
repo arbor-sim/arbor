@@ -9,19 +9,20 @@ using namespace arb;
 
 namespace {
     template <typename V, typename = typename std::enable_if<std::is_floating_point<V>::value>::type>
-    std::uniform_real_distribution<V> make_udist() {
-        return std::uniform_real_distribution<V>(-1., 1.);
+    std::uniform_real_distribution<V> make_udist(V lb = -1., V ub = 1.) {
+        return std::uniform_real_distribution<V>(lb, ub);
     }
 
     template <typename V, typename = typename std::enable_if<std::is_integral<V>::value && !std::is_same<V, bool>::value>::type>
-    std::uniform_int_distribution<V> make_udist() {
-        constexpr V ub = std::numeric_limits<V>::max() >> (1+std::numeric_limits<V>::digits/2);
-        constexpr V lb = std::is_unsigned<V>::value? 0: -ub;
+    std::uniform_int_distribution<V> make_udist(
+            V lb = std::numeric_limits<V>::lowest() / (2 << std::numeric_limits<V>::digits/2),
+            V ub = std::numeric_limits<V>::max() >> (1+std::numeric_limits<V>::digits/2))
+    {
         return std::uniform_int_distribution<V>(lb, ub);
     }
 
     template <typename V, typename = typename std::enable_if<std::is_same<V, bool>::value>::type>
-    std::uniform_int_distribution<> make_udist() {
+    std::uniform_int_distribution<> make_udist(V lb = 0, V ub = 1) {
         return std::uniform_int_distribution<>(0, 1);
     }
 
@@ -31,6 +32,24 @@ namespace {
 
         static auto u = make_udist<V>();
         for (auto& x: seq) { x = u(rng); }
+    }
+
+    template <typename Seq, typename Rng, typename B>
+    void fill_random(Seq&& seq, Rng& rng, B lb, B ub) {
+        using V = typename std::decay<decltype(*std::begin(seq))>::type;
+
+        static auto u = make_udist<V>(lb, ub);
+        for (auto& x: seq) { x = u(rng); }
+    }
+
+    template <typename Simd, typename Rng, typename B, typename = typename std::enable_if<is_simd<Simd>::value>::type>
+    void fill_random(Simd& s, Rng& rng, B lb, B ub) {
+        using V = typename Simd::scalar_type;
+        constexpr unsigned N = Simd::width;
+
+        V v[N];
+        fill_random(v, rng, lb, ub);
+        s.copy_from(v);
     }
 
     template <typename Simd, typename Rng, typename = typename std::enable_if<is_simd<Simd>::value>::type>
@@ -140,8 +159,6 @@ TYPED_TEST_P(simd_value, copy_to_from) {
     EXPECT_TRUE(testing::indexed_eq_n(N, buf1, s));
     EXPECT_TRUE(testing::seq_eq(buf1, buf2));
 }
-
-// TODO: gather scatter test
 
 TYPED_TEST_P(simd_value, arithmetic) {
     using simd = TypeParam;
@@ -351,4 +368,75 @@ typedef ::testing::Types<
 > simd_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_value, simd_test_types);
+
+
+// TODO: scatter, masked gather tests
+
+template <typename A, typename B>
+struct simd_and_index {
+    using simd = A;
+    using simd_index = B;
+};
+
+template <typename SI>
+struct simd_indirect: public ::testing::Test {};
+
+TYPED_TEST_CASE_P(simd_indirect);
+
+TYPED_TEST_P(simd_indirect, gather) {
+    using simd = typename TypeParam::simd;
+    using simd_index = typename TypeParam::simd_index;
+
+    constexpr unsigned N = simd::width;
+    using scalar = typename simd::scalar_type;
+    using index = typename simd_index::scalar_type;
+
+    std::minstd_rand rng(1011);
+
+    constexpr std::size_t buflen = 1000;
+
+    for (unsigned i = 0; i<20u; ++i) {
+        scalar array[buflen];
+        index indirect[N];
+
+        fill_random(array, rng);
+        fill_random(indirect, rng, 0, (int)(buflen-1));
+
+        simd s;
+        s.gather(array, simd_index(indirect));
+
+        scalar test[N];
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = array[indirect[j]];
+        }
+
+        EXPECT_TRUE(::testing::indexed_eq_n(N, test, s));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(simd_indirect, gather);
+
+typedef ::testing::Types<
+    simd_and_index<simd<float, 4, simd_abi::generic>,
+                   simd<std::int64_t, 4, simd_abi::generic>>,
+
+    simd_and_index<simd<double, 8, simd_abi::generic>,
+                   simd<unsigned, 8, simd_abi::generic>>,
+
+#ifdef __AVX__
+    simd_and_index<simd<double, 4, simd_abi::avx>,
+                   simd<int, 4, simd_abi::avx>>,
+#endif
+
+#ifdef __AVX2__
+    simd_and_index<simd<double, 4, simd_abi::avx2>,
+                   simd<int, 4, simd_abi::avx2>>,
+#endif
+
+    simd_and_index<simd<double, 4, simd_abi::default_abi>,
+                   simd<int, 4, simd_abi::default_abi>>
+
+> simd_indirect_test_types;
+
+INSTANTIATE_TYPED_TEST_CASE_P(S, simd_indirect, simd_indirect_test_types);
 

@@ -8,6 +8,56 @@
 namespace arb {
 
 namespace simd_detail {
+    // Fallback implementations for gather, scatter, simd_cast: specialize per ABI impl.
+
+    template <typename Impl, typename ImplIndex>
+    struct gather_impl {
+        using vector_type = typename Impl::vector_type;
+        using scalar_type = typename Impl::scalar_type;
+        using index_type = typename ImplIndex::vector_type;
+
+        static vector_type gather(const scalar_type* p, const index_type& index) {
+            constexpr unsigned N = Impl::width;
+
+            typename ImplIndex::scalar_type o[N];
+            scalar_type data[N];
+
+            ImplIndex::copy_to(index, o);
+            for (unsigned i = 0; i<N; ++i) {
+                data[i] = p[o[i]];
+            }
+            return Impl::copy_from(data);
+        }
+    };
+
+    template <typename Impl, typename ImplIndex>
+    struct masked_gather_impl {
+        using vector_type = typename Impl::vector_type;
+        using scalar_type = typename Impl::scalar_type;
+        using index_type = typename ImplIndex::vector_type;
+
+        using mask_impl   = typename Impl::mask_impl;
+        using mask_type   = typename mask_impl::vector_type;
+
+        static vector_type gather(vector_type a, const scalar_type* p, const index_type& index, const mask_type& mask) {
+            constexpr unsigned N = Impl::width;
+
+            typename ImplIndex::scalar_type o[N];
+            bool m[N];
+            scalar_type data[N];
+
+            Impl::copy_to(a, data);
+            ImplIndex::copy_to(index, o);
+            mask_impl::mask_copy_to(mask, m);
+
+            for (unsigned i = 0; i<N; ++i) {
+                if (m[i]) { data[i] = p[o[i]]; }
+            }
+            a = Impl::copy_from(data);
+            return a;
+        }
+    };
+
     template <typename Impl>
     struct simd_mask_impl;
 
@@ -27,6 +77,10 @@ namespace simd_detail {
 
         static constexpr unsigned width = Impl::width;
 
+
+        template <typename Other>
+        friend class simd_impl;
+
         simd_impl() = default;
 
         // Construct by filling with scalar value.
@@ -41,7 +95,7 @@ namespace simd_detail {
 
         // Construct from const array ref.
         explicit simd_impl(const scalar_type (&a)[width]) {
-            value_ = Impl::copy_from(&a[0]);
+            value_ = Impl::copy_from(a);
         }
 
         // Copy constructor.
@@ -139,6 +193,13 @@ namespace simd_detail {
         simd_impl& operator/=(const simd_impl& x) {
             value_ = Impl::div(value_, x.value_);
             return *this;
+        }
+
+        // Gather (dispatch to simd_detail::gather_impl).
+
+        template <typename IndexImpl, typename = typename std::enable_if<width==IndexImpl::width>::type>
+        void gather(const scalar_type* p, const simd_impl<IndexImpl>& index) {
+            value_ = gather_impl<Impl, IndexImpl>::gather(p, index.value_);
         }
 
         // Array subscript operations.
