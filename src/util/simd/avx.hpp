@@ -352,8 +352,8 @@ struct avx2_double4: avx_double4 {
     }
 
     static vector_type logical_not(const vector_type& a) {
-        __m256i ones;
-        return _mm256_xor_pd(a, a, _mm256_castsi256_pd(_mm256_cmpeq_epi32(ones, ones)));
+        __m256i ones = {};
+        return _mm256_xor_pd(a, _mm256_castsi256_pd(_mm256_cmpeq_epi32(ones, ones)));
     }
 
 
@@ -380,9 +380,9 @@ struct avx2_double4: avx_double4 {
     static vector_type mask_copy_from(const bool* w) {
         __m256i zero = _mm256_setzero_si256();
 
-        __m256i r;
+        __m128i r;
         std::memcpy(&r, w, 4);
-        return _mm256_sub_epi64(zero, _mm256_cvtepi8_epi64(r));
+        return _mm256_castsi256_pd(_mm256_sub_epi64(zero, _mm256_cvtepi8_epi64(r)));
     }
 };
 
