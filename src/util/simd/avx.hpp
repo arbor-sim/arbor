@@ -292,7 +292,7 @@ struct simd_traits<avx2_double4> {
     using mask_impl = avx2_double4;
 };
 
-struct avx2_double4: avx2_double {
+struct avx2_double4: avx_double4 {
     static __m256d fma(const __m256d& a, const __m256d& b, const __m256d& c) {
         return _mm256_fmadd_pd(a, b, c);
     }
@@ -330,17 +330,19 @@ struct avx2_double4: avx2_double {
         return _mm256_castsi256_pd(_mm256_sub_epi64(zero, _mm256_cvtepi8_epi64(r)));
     }
 
-    static __m256d gather(avx2_int4, const double& p, const __m128i& index) {
-        return  _mm256_i32gather_pd(p, index, 8);
+    static __m256d gather(avx2_int4, const double* p, const __m128i& index) {
+        return _mm256_i32gather_pd(p, index, 8);
     }
+
+    static __m256d gather(avx2_int4, __m256d a, const double* p, const __m128i& index, const __m256d& mask) {
+        return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
+    };
 };
 #endif // def __AVX2__
 
 } // namespace simd_detail
 
-
 namespace simd_abi {
-
     template <typename T, unsigned N> struct avx;
 
     template <> struct avx<int, 4> { using type = simd_detail::avx_int4; };
@@ -352,25 +354,7 @@ namespace simd_abi {
     template <> struct avx2<int, 4> { using type = simd_detail::avx2_int4; };
     template <> struct avx2<double, 4> { using type = simd_detail::avx2_double4; };
 #endif
-
 } // namespace simd_abi;
-
-
-#ifdef __AVX2__
-namespace simd_detail {
-
-template <typename Impl, typename ImplIndex>
-struct masked_gather_impl;
-
-template <>
-struct masked_gather_impl<avx2_double4, avx2_int4> {
-    static __m256d gather(__m256d a, const double* p, const __m128i& index, const __m256d& mask) {
-        return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
-    };
-};
-
-} // namespace simd_detail
-#endif // def __AVX2__
 
 } // namespace arb
 

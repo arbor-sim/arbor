@@ -235,9 +235,10 @@ struct implbase {
     }
 
     static vector_type select(const mask_type& mask, const vector_type& u, const vector_type& v) {
-        store a, b, r;
         mask_store m;
-        I::mask_copy_to(mask, m);
+        mask_impl::mask_copy_to(mask, m);
+
+        store a, b, r;
         I::copy_to(u, a);
         I::copy_to(v, b);
 
@@ -258,11 +259,57 @@ struct implbase {
         typename ImplIndex::scalar_type o[width];
         ImplIndex::copy_to(index, o);
 
-        scalar_type data[width];
+        store a;
         for (unsigned i = 0; i<width; ++i) {
-            data[i] = p[o[i]];
+            a[i] = p[o[i]];
         }
-        return I::copy_from(data);
+        return I::copy_from(a);
+    }
+
+    template <typename ImplIndex>
+    static vector_type gather(ImplIndex, const vector_type& s, const scalar_type* p, const typename ImplIndex::vector_type& index, const mask_type& mask) {
+        mask_store m;
+        mask_impl::mask_copy_to(mask, m);
+
+        typename ImplIndex::scalar_type o[width];
+        ImplIndex::copy_to(index, o);
+
+        store a;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            if (m[i]) { a[i] = p[o[i]]; }
+        }
+        return I::copy_from(a);
+    };
+
+    template <typename ImplIndex>
+    static void scatter(ImplIndex, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index) {
+        typename ImplIndex::scalar_type o[width];
+        ImplIndex::copy_to(index, o);
+
+        store a;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            p[o[i]] = a[i];
+        }
+    }
+
+    template <typename ImplIndex>
+    static void scatter(ImplIndex, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, const mask_type& mask) {
+        mask_store m;
+        mask_impl::mask_copy_to(mask, m);
+
+        typename ImplIndex::scalar_type o[width];
+        ImplIndex::copy_to(index, o);
+
+        store a;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            if (m[i]) { p[o[i]] = a[i]; }
+        }
     }
 };
 
