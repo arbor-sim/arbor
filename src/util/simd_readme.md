@@ -260,6 +260,70 @@ Expression | Type | Description
 
 ### Gather/scatter
 
+Gather/scatter operations require in addition to the participating
+SIMD value to read or write, a SIMD value of indices to describe
+the offsets. Default implementations are provided by templated
+classes in `simd_detail`:
+
+* `simd_detail::gather_impl<Impl, ImplIndex>`
+* `simd_detail::masked_gather_impl<Impl, ImplIndex>`
+* `simd_detail::scatter_impl<Impl, ImplIndex>`
+* `simd_detail::masked_scatter_gather_impl<Impl, ImplIndex>`
+
+Here, `Impl` represents the concerete implementation class for
+the SIMD value, and `ImplIndex` the concrete implementation class
+for the SIMD index.
+
+The default implementations copy the SIMD data to standard C-style
+arrays and perform the loads and stores explicitly.
+Architecture-specific optimizations are then provided by specializing
+these implementation classes.
+
+#### Specializing gather operations
+
+Unmasked gather is provided by the static method
+```
+vector_type gather_impl<Impl, ImplIndex>::gather(
+    const scalar_type* p, const index_type& index)`
+```
+where `vector_type` is `Impl::vector_type`, the raw representation of the SIMD data,
+`scalar_type` is `Impl::scalar_type`, the per-lane type for the SIMD data, and `index_type`
+is `ImplIndex::vector_type`, the raw representation of the SIMD index.
+
+The method returns a raw SIMD value with lane values given by `p[index[i]]` for each lane `i`.
+
+An implementation for a specific architecture specializes the template and implements this
+static method. For example, the `AVX2` gather implementation for 4-wide `double` values
+and `int` offsets (within the `simd_detail` namespace):
+```
+template <typename Impl, typename ImplIndex>
+struct gather_impl;
+
+template <>
+struct gather_impl<avx2_double4, avx2_int4> {
+    static __m256d gather(const double* p, const __m128i& index) {
+        return  _mm256_i32gather_pd(p, index, 8);
+    };
+};
+
+```
+This provides an intrinsics-based implementation for the method
+`simd<double, 4, simd_avi::avx2>::gather(const double*, const simd<int, 4, simd_avi::avx2>)`
+
+Masked gather is provided by
+```
+vector_type masked_gather_impl<Impl, ImplIndex>::gather(
+    vector_type a, const scalar_type* p, const index_type& index, const mask_type& mask)
+```
+where `mask_type` is the raw SIMD representation for the mask associated with Impl, i.e.
+`Impl::mask_impl::vector_type`.
+
+The method returns a raw SIMD value with lane values given by `mask[i]? p[index[i]]: a[i]`.
+
+Architectural specialization is performed similarly.
+
+#### Specializing scatter operations
+
 TBC
 
 ### Casting

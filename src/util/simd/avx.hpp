@@ -390,10 +390,18 @@ struct gather_impl;
 
 template <>
 struct gather_impl<avx2_double4, avx2_int4> {
-    using vector_type = __m256d;
-
     static __m256d gather(const double* p, const __m128i& index) {
         return  _mm256_i32gather_pd(p, index, 8);
+    };
+};
+
+template <typename Impl, typename ImplIndex>
+struct masked_gather_impl;
+
+template <>
+struct masked_gather_impl<avx2_double4, avx2_int4> {
+    static __m256d gather(__m256d a, const double* p, const __m128i& index, const __m256& mask) {
+        return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
     };
 };
 

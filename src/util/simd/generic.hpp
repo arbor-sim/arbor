@@ -184,7 +184,7 @@ struct generic {
 
     static vector_type mask_copy_from(const bool* y) {
         vector_type v;
-        std::copy(y, y+4, v.data());
+        std::copy(y, y+N, v.data());
         return v;
     }
 };

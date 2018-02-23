@@ -73,6 +73,8 @@ namespace {
 
         return ::testing::seq_eq(as, bs);
     }
+
+    constexpr unsigned nrounds = 20u;
 }
 
 template <typename S>
@@ -168,7 +170,7 @@ TYPED_TEST_P(simd_value, arithmetic) {
     std::minstd_rand rng(1002);
     scalar u[N], v[N], w[N], r[N];
 
-    for (unsigned i = 0; i<20u; ++i) {
+    for (unsigned i = 0; i<nrounds; ++i) {
         fill_random(u, rng);
         fill_random(v, rng);
         fill_random(w, rng);
@@ -230,7 +232,7 @@ TYPED_TEST_P(simd_value, comparison) {
     std::minstd_rand rng(1004);
     std::uniform_int_distribution<> sgn(-1, 1); // -1, 0 or 1.
 
-    for (unsigned i = 0; i<20u; ++i) {
+    for (unsigned i = 0; i<nrounds; ++i) {
         int cmp[N];
         bool test[N];
         simd a, b;
@@ -292,7 +294,7 @@ TYPED_TEST_P(simd_value, mask_elements) {
         EXPECT_EQ(true, d[i]);
     }
 
-    for (unsigned i = 0; i<20u; ++i) {
+    for (unsigned i = 0; i<nrounds; ++i) {
         bool bv[N], cv[N], dv[N];
 
         fill_random(bv, rng);
@@ -328,7 +330,7 @@ TYPED_TEST_P(simd_value, mask_element_lvalue) {
 
     std::minstd_rand rng(1006);
 
-    for (unsigned i = 0; i<20u; ++i) {
+    for (unsigned i = 0; i<nrounds; ++i) {
         bool v[N];
         fill_random(v, rng);
 
@@ -349,13 +351,31 @@ TYPED_TEST_P(simd_value, mask_element_lvalue) {
     }
 }
 
+TYPED_TEST_P(simd_value, mask_copy_to_from) {
+    using simd = TypeParam;
+    using simd_mask = typename simd::simd_mask;
+    constexpr unsigned N = simd::width;
 
-REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue);
+    std::minstd_rand rng(1012);
+
+    for (unsigned i = 0; i<1u; ++i) {
+        bool buf1[N], buf2[N];
+        fill_random(buf1, rng);
+        fill_random(buf2, rng);
+
+        simd_mask m;
+        m.copy_from(buf1);
+        m.copy_to(buf2);
+
+        EXPECT_TRUE(testing::indexed_eq_n(N, buf1, m));
+        EXPECT_TRUE(testing::seq_eq(buf1, buf2));
+    }
+}
+
+
+REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from);
 
 typedef ::testing::Types<
-    simd<int, 4, simd_abi::generic>,
-    simd<float, 2, simd_abi::generic>,
-    simd<double, 4, simd_abi::generic>,
 #ifdef __AVX__
     simd<int, 4, simd_abi::avx>,
     simd<double, 4, simd_abi::avx>,
@@ -364,14 +384,17 @@ typedef ::testing::Types<
     simd<int, 4, simd_abi::avx2>,
     simd<double, 4, simd_abi::avx2>,
 #endif
+    simd<int, 4, simd_abi::generic>,
+    simd<float, 2, simd_abi::generic>,
+    simd<double, 4, simd_abi::generic>,
+    simd<float, 8, simd_abi::generic>,
     simd<int, 4, simd_abi::default_abi>,
     simd<double, 4, simd_abi::default_abi>
 > simd_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_value, simd_test_types);
 
-
-// TODO: scatter, masked gather tests
+// TODO: scatter, cast tests
 
 template <typename A, typename B>
 struct simd_and_index {
@@ -396,7 +419,7 @@ TYPED_TEST_P(simd_indirect, gather) {
 
     constexpr std::size_t buflen = 1000;
 
-    for (unsigned i = 0; i<20u; ++i) {
+    for (unsigned i = 0; i<nrounds; ++i) {
         scalar array[buflen];
         index indirect[N];
 
@@ -415,15 +438,48 @@ TYPED_TEST_P(simd_indirect, gather) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_indirect, gather);
+TYPED_TEST_P(simd_indirect, masked_gather) {
+    using simd = typename TypeParam::simd;
+    using simd_index = typename TypeParam::simd_index;
+    using simd_mask = typename simd::simd_mask;
+
+    constexpr unsigned N = simd::width;
+    using scalar = typename simd::scalar_type;
+    using index = typename simd_index::scalar_type;
+
+    std::minstd_rand rng(1011);
+
+    constexpr std::size_t buflen = 1000;
+
+    for (unsigned i = 0; i<nrounds; ++i) {
+        scalar array[buflen], original[N];
+        index indirect[N];
+        bool mask[N];
+
+        fill_random(array, rng);
+        fill_random(original, rng);
+        fill_random(indirect, rng, 0, (int)(buflen-1));
+        fill_random(mask, rng);
+
+        simd s;
+        simd_mask m;
+
+        s.copy_from(original);
+        m.copy_from(mask);
+        s.gather(array, simd_index(indirect), m);
+
+        scalar test[N];
+        for (unsigned j = 0; j<N; ++j) {
+            test[j] = mask[j]? array[indirect[j]]: original[j];
+        }
+
+        EXPECT_TRUE(::testing::indexed_eq_n(N, test, s));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(simd_indirect, gather, masked_gather);
 
 typedef ::testing::Types<
-    simd_and_index<simd<float, 4, simd_abi::generic>,
-                   simd<std::int64_t, 4, simd_abi::generic>>,
-
-    simd_and_index<simd<double, 8, simd_abi::generic>,
-                   simd<unsigned, 8, simd_abi::generic>>,
-
 #ifdef __AVX__
     simd_and_index<simd<double, 4, simd_abi::avx>,
                    simd<int, 4, simd_abi::avx>>,
@@ -434,10 +490,15 @@ typedef ::testing::Types<
                    simd<int, 4, simd_abi::avx2>>,
 #endif
 
+    simd_and_index<simd<float, 4, simd_abi::generic>,
+                   simd<std::int64_t, 4, simd_abi::generic>>,
+
+    simd_and_index<simd<double, 8, simd_abi::generic>,
+                   simd<unsigned, 8, simd_abi::generic>>,
+
     simd_and_index<simd<double, 4, simd_abi::default_abi>,
                    simd<int, 4, simd_abi::default_abi>>
 
 > simd_indirect_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_indirect, simd_indirect_test_types);
-
