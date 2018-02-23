@@ -400,7 +400,7 @@ struct masked_gather_impl;
 
 template <>
 struct masked_gather_impl<avx2_double4, avx2_int4> {
-    static __m256d gather(__m256d a, const double* p, const __m128i& index, const __m256& mask) {
+    static __m256d gather(__m256d a, const double* p, const __m128i& index, const __m256d& mask) {
         return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
     };
 };
