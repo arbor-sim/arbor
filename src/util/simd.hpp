@@ -2,6 +2,7 @@
 
 #include <type_traits>
 
+#include <util/simd/implbase.hpp>
 #include <util/simd/generic.hpp>
 #include <util/simd/native.hpp>
 
@@ -9,6 +10,8 @@ namespace arb {
 
 namespace simd_detail {
     // Fallback implementations for gather, scatter, simd_cast: specialize per ABI impl.
+
+/*
 
     template <typename Impl, typename ImplIndex>
     struct gather_impl {
@@ -30,6 +33,7 @@ namespace simd_detail {
             return Impl::copy_from(data);
         }
     };
+*/
 
     template <typename Impl, typename ImplIndex>
     struct masked_gather_impl {
@@ -118,13 +122,12 @@ namespace simd_detail {
         //     scalar_type           internal value type in one simd lane,
         //     simd_mask             simd_mask_impl specialization represeting comparison results.
 
-        using vector_type = typename Impl::vector_type;
-        using scalar_type = typename Impl::scalar_type;
-        using simd_mask   = simd_mask_impl<typename Impl::mask_impl>;
-        using mask_type   = typename Impl::mask_impl::vector_type;
+        using scalar_type = typename simd_traits<Impl>::scalar_type;
+        using vector_type = typename simd_traits<Impl>::vector_type;
+        static constexpr unsigned width = simd_traits<Impl>::width;
 
-        static constexpr unsigned width = Impl::width;
-
+        using simd_mask   = simd_mask_impl<typename simd_traits<Impl>::mask_impl>;
+        using mask_type   = typename simd_traits<typename simd_traits<Impl>::mask_impl>::vector_type;
 
         template <typename Other>
         friend class simd_impl;
@@ -245,12 +248,18 @@ namespace simd_detail {
 
         // Gather (dispatch to simd_detail::gather_impl or simd_detail::masked_gather_impl).
 
-        template <typename IndexImpl, typename = typename std::enable_if<width==IndexImpl::width>::type>
+/*
+        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void gather(const scalar_type* p, const simd_impl<IndexImpl>& index) {
             value_ = gather_impl<Impl, IndexImpl>::gather(p, index.value_);
         }
+*/
+        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+        void gather(const scalar_type* p, const simd_impl<IndexImpl>& index) {
+            value_ = Impl::gather(IndexImpl{}, p, index.value_);
+        }
 
-        template <typename IndexImpl, typename = typename std::enable_if<width==IndexImpl::width>::type>
+        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void gather(const scalar_type* p, const simd_impl<IndexImpl>& index, const simd_mask& mask) {
             value_ = masked_gather_impl<Impl, IndexImpl>::gather(value_, p, index.value_, mask.value_);
         }
@@ -436,12 +445,8 @@ namespace simd_detail {
 } // namespace simd_detail
 
 namespace simd_abi {
-    template <typename Value, unsigned N>
-    struct generic {
-        using type = simd_detail::generic<Value, N>;
-    };
-
-    // Note: `simd_abi::native` template class defined in `simd/native.hpp`.
+    // Note: `simd_abi::native` template class defined in `simd/native.hpp`,
+    // `simd_abi::generic` in `simd/genetic.hpp`.
 
     template <typename Value, unsigned N>
     struct default_abi {
@@ -452,7 +457,7 @@ namespace simd_abi {
     };
 }
 
-template <typename Value, unsigned N, template <class, unsigned> typename Abi = simd_abi::default_abi>
+template <typename Value, unsigned N, template <class, unsigned> class Abi = simd_abi::default_abi>
 using simd = simd_detail::simd_impl<typename Abi<Value, N>::type>;
 
 template <typename Value, unsigned N>
