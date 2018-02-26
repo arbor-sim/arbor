@@ -5,6 +5,8 @@
 
 #include "common.hpp"
 
+#include <iostream>
+
 using namespace arb;
 
 namespace {
@@ -30,20 +32,20 @@ namespace {
     void fill_random(Seq&& seq, Rng& rng) {
         using V = typename std::decay<decltype(*std::begin(seq))>::type;
 
-        static auto u = make_udist<V>();
+        auto u = make_udist<V>();
         for (auto& x: seq) { x = u(rng); }
     }
 
-    template <typename Seq, typename Rng, typename B>
-    void fill_random(Seq&& seq, Rng& rng, B lb, B ub) {
+    template <typename Seq, typename Rng, typename B1, typename B2>
+    void fill_random(Seq&& seq, Rng& rng, B1 lb, B2 ub) {
         using V = typename std::decay<decltype(*std::begin(seq))>::type;
 
-        static auto u = make_udist<V>(lb, ub);
+        auto u = make_udist<V>(lb, ub);
         for (auto& x: seq) { x = u(rng); }
     }
 
-    template <typename Simd, typename Rng, typename B, typename = typename std::enable_if<is_simd<Simd>::value>::type>
-    void fill_random(Simd& s, Rng& rng, B lb, B ub) {
+    template <typename Simd, typename Rng, typename B1, typename B2, typename = typename std::enable_if<is_simd<Simd>::value>::type>
+    void fill_random(Simd& s, Rng& rng, B1 lb, B2 ub) {
         using V = typename Simd::scalar_type;
         constexpr unsigned N = Simd::width;
 
@@ -175,6 +177,9 @@ TYPED_TEST_P(simd_value, arithmetic) {
         fill_random(v, rng);
         fill_random(w, rng);
 
+        scalar neg_u[N];
+        for (unsigned i = 0; i<N; ++i) neg_u[i] = -u[i];
+
         scalar u_plus_v[N];
         for (unsigned i = 0; i<N; ++i) u_plus_v[i] = u[i]+v[i];
 
@@ -191,6 +196,9 @@ TYPED_TEST_P(simd_value, arithmetic) {
         for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = std::fma(u[i],v[i],w[i]);
 
         simd us(u), vs(v), ws(w);
+
+        (-us).copy_to(r);
+        EXPECT_TRUE(testing::seq_eq(neg_u, r));
 
         (us+vs).copy_to(r);
         EXPECT_TRUE(testing::seq_eq(u_plus_v, r));
@@ -358,7 +366,7 @@ TYPED_TEST_P(simd_value, mask_copy_to_from) {
 
     std::minstd_rand rng(1012);
 
-    for (unsigned i = 0; i<1u; ++i) {
+    for (unsigned i = 0; i<nrounds; ++i) {
         bool buf1[N], buf2[N];
         fill_random(buf1, rng);
         fill_random(buf2, rng);
@@ -372,8 +380,34 @@ TYPED_TEST_P(simd_value, mask_copy_to_from) {
     }
 }
 
+TYPED_TEST_P(simd_value, maths) {
+    // min, max, abs tests valid for both fp and int types.
 
-REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from);
+    using simd = TypeParam;
+    using scalar = typename simd::scalar_type;
+    constexpr unsigned N = simd::width;
+
+    std::minstd_rand rng(1013);
+
+    for (unsigned i = 0; i<nrounds; ++i) {
+        scalar a[N], b[N], test[N];
+        fill_random(a, rng);
+        fill_random(b, rng);
+
+        simd as(a), bs(b);
+
+        for (unsigned j = 0; j<N; ++j) { test[j] = std::abs(a[j]); }
+        EXPECT_TRUE(testing::indexed_eq_n(N, test, abs(as)));
+
+        for (unsigned j = 0; j<N; ++j) { test[j] = std::min(a[j], b[j]); }
+        EXPECT_TRUE(testing::indexed_eq_n(N, test, min(as, bs)));
+
+        for (unsigned j = 0; j<N; ++j) { test[j] = std::max(a[j], b[j]); }
+        EXPECT_TRUE(testing::indexed_eq_n(N, test, max(as, bs)));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, maths);
 
 typedef ::testing::Types<
 #ifdef __AVX__
@@ -396,7 +430,133 @@ typedef ::testing::Types<
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_value, simd_test_types);
 
-// TODO: scatter, cast tests
+// FP-only SIMD value tests (maths).
+
+template <typename S>
+struct simd_fp_value: public ::testing::Test {};
+
+TYPED_TEST_CASE_P(simd_fp_value);
+
+TYPED_TEST_P(simd_fp_value, fp_maths) {
+    using simd = TypeParam;
+    using fp = typename simd::scalar_type;
+    constexpr unsigned N = simd::width;
+
+    std::minstd_rand rng(1014);
+
+    for (unsigned i = 0; i<nrounds; ++i) {
+        fp epsilon = std::numeric_limits<fp>::epsilon();
+        fp maxfp = std::numeric_limits<fp>::max();
+        int min_exponent = std::numeric_limits<fp>::min_exponent;
+        int max_exponent = std::numeric_limits<fp>::max_exponent;
+
+        fp u[N], v[N], r[N];
+
+        // sin, cos:
+        fill_random(u, rng);
+
+        fp sin_u[N];
+        for (unsigned i = 0; i<N; ++i) sin_u[i] = std::sin(u[i]);
+        sin(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(sin_u, r));
+
+        fp cos_u[N];
+        for (unsigned i = 0; i<N; ++i) cos_u[i] = std::cos(u[i]);
+        cos(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(cos_u, r));
+
+        // log: positive arg (allow negligible chance of zero arg, too).
+        fill_random(u, rng, 0., maxfp);
+
+        fp log_u[N];
+        for (unsigned i = 0; i<N; ++i) log_u[i] = std::log(u[i]);
+        log(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(log_u, r));
+
+        // exp: use max_exponent to get coverage over finite domain,
+        // plus test for zero result when arg is more negative.
+        // Allow dodgy results for denorm?
+
+        fp exp_min_arg = min_exponent*std::log(2.);
+        fp exp_max_arg = max_exponent*std::log(2.);
+        fill_random(u, rng, exp_min_arg, exp_max_arg);
+
+        fp exp_u[N];
+        for (unsigned i = 0; i<N; ++i) exp_u[i] = std::exp(u[i]);
+        exp(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(exp_u, r));
+
+        fp expm1_u[N];
+        for (unsigned i = 0; i<N; ++i) expm1_u[i] = std::expm1(u[i]);
+        expm1(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(expm1_u, r));
+
+        fp exprelr_u[N];
+        for (unsigned i = 0; i<N; ++i) {
+            exprelr_u[i] = u[i]+fp(1)==fp(1)? fp(1): u[i]/(std::exp(u[i])-fp(1));
+        }
+        exprelr(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(exprelr_u, r));
+
+        fill_random(u, rng, 0., epsilon);
+        fp expm1_u_small[N];
+        for (unsigned i = 0; i<N; ++i) {
+            expm1_u_small[i] = std::expm1(u[i]);
+            EXPECT_NEAR(u[i], expm1_u_small[i], 4*u[i]*epsilon); // just to confirm!
+        }
+        expm1(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(expm1_u_small, r));
+
+        fp exprelr_u_small[N];
+        for (unsigned i = 0; i<N; ++i) exprelr_u_small[i] = 1;
+        exprelr(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(exprelr_u_small, r));
+
+        fill_random(u, rng, 4*exp_min_arg, 2*exp_min_arg);
+        fp exp_u_very_negative[N];
+        for (unsigned i = 0; i<N; ++i) exp_u_very_negative[i] = std::exp(u[i]);
+        exp(simd(u)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(exp_u_very_negative, r));
+
+        fill_random(u, rng, 0., std::exp(1));
+        fill_random(v, rng, exp_min_arg, exp_max_arg);
+        fp pow_u_pos_v[N];
+        for (unsigned i = 0; i<N; ++i) pow_u_pos_v[i] = std::pow(u[i], v[i]);
+        pow(simd(u), simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(pow_u_pos_v, r));
+
+        fill_random(u, rng);
+        int int_exponent[N];
+        fill_random(int_exponent, rng, -2, 2);
+        for (unsigned i = 0; i<N; ++i) v[i] = int_exponent[i];
+
+        fp pow_u_v_int[N];
+        for (unsigned i = 0; i<N; ++i) pow_u_v_int[i] = std::pow(u[i], v[i]);
+        pow(simd(u), simd(v)).copy_to(r);
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(pow_u_v_int, r));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths);
+
+typedef ::testing::Types<
+#ifdef __AVX__
+    simd<double, 4, simd_abi::avx>,
+#endif
+#ifdef __AVX2__
+    simd<double, 4, simd_abi::avx2>,
+#endif
+
+    simd<float, 2, simd_abi::generic>,
+    simd<double, 4, simd_abi::generic>,
+    simd<float, 8, simd_abi::generic>,
+
+    simd<double, 4, simd_abi::default_abi>
+> simd_fp_test_types;
+
+INSTANTIATE_TYPED_TEST_CASE_P(S, simd_fp_value, simd_fp_test_types);
+
+// Gather/scatter tests.
 
 template <typename A, typename B>
 struct simd_and_index {

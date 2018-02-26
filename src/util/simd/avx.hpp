@@ -47,6 +47,11 @@ struct avx_int4: implbase<avx_int4> {
         return _mm_loadu_si128((const __m128i*)p);
     }
 
+    static __m128i negate(const __m128i& a) {
+        __m128i zero = _mm_setzero_si128();
+        return _mm_sub_epi32(zero, a);
+    }
+
     static __m128i add(const __m128i& a, const __m128i& b) {
         return _mm_add_epi32(a, b);
     }
@@ -151,6 +156,11 @@ struct avx_double4: implbase<avx_double4> {
 
     static __m256d copy_from(const double* p) {
         return _mm256_loadu_pd(p);
+    }
+
+    static __m256d negate(const __m256d& a) {
+        __m256d zero = _mm256_setzero_pd();
+        return _mm256_sub_pd(zero, a);
     }
 
     static __m256d add(const __m256d& a, const __m256d& b) {

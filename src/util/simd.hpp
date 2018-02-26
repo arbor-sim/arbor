@@ -10,8 +10,46 @@ namespace arb {
 
 namespace simd_detail {
     template <typename Impl>
-    struct simd_mask_impl;
+    struct simd_impl;
 
+    template <typename Impl>
+    struct simd_mask_impl;
+}
+
+// Forward declarations for top-level maths functions.
+// (these require access to private simd_impl<Impl>::wrap method).
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> abs(const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> sin(const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> cos(const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> exp(const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> log(const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> expm1(const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> exprelr(const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> pow(const simd_detail::simd_impl<Impl>&, const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> min(const simd_detail::simd_impl<Impl>&, const simd_detail::simd_impl<Impl>&);
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> max(const simd_detail::simd_impl<Impl>&, const simd_detail::simd_impl<Impl>&);
+
+namespace simd_detail {
     template <typename Impl>
     struct simd_impl {
         // Type aliases:
@@ -76,6 +114,10 @@ namespace simd_detail {
         }
 
         // Arithmetic operations: +, -, *, /, fma.
+
+        simd_impl operator-() const {
+            return wrap(Impl::negate(value_));
+        }
 
         friend simd_impl operator+(const simd_impl& a, simd_impl b) {
             return simd_impl::wrap(Impl::add(a.value_, b.value_));
@@ -221,6 +263,20 @@ namespace simd_detail {
             const simd_mask& mask_;
             simd_impl& data_;
         };
+
+        // Maths functions are implemented as top-level functions, but require
+        // access to `wrap`.
+
+        friend simd_impl abs<Impl>(const simd_impl&);
+        friend simd_impl sin<Impl>(const simd_impl&);
+        friend simd_impl cos<Impl>(const simd_impl&);
+        friend simd_impl exp<Impl>(const simd_impl&);
+        friend simd_impl log<Impl>(const simd_impl&);
+        friend simd_impl expm1<Impl>(const simd_impl&);
+        friend simd_impl exprelr<Impl>(const simd_impl&);
+        friend simd_impl min<Impl>(const simd_impl&, const simd_impl&);
+        friend simd_impl max<Impl>(const simd_impl&, const simd_impl&);
+        friend simd_impl pow<Impl>(const simd_impl&, const simd_impl&);
 
     protected:
         vector_type value_;
@@ -379,5 +435,57 @@ struct is_simd: std::false_type {};
 
 template <typename Impl>
 struct is_simd<simd_detail::simd_impl<Impl>>: std::true_type {};
+
+// Top-level maths functions: forward to underlying Impl.
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> abs(const simd_detail::simd_impl<Impl>& s) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::abs(s.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> sin(const simd_detail::simd_impl<Impl>& s) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::sin(s.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> cos(const simd_detail::simd_impl<Impl>& s) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::cos(s.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> exp(const simd_detail::simd_impl<Impl>& s) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::exp(s.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> log(const simd_detail::simd_impl<Impl>& s) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::log(s.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> expm1(const simd_detail::simd_impl<Impl>& s) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::expm1(s.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> exprelr(const simd_detail::simd_impl<Impl>& s) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::exprelr(s.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> pow(const simd_detail::simd_impl<Impl>& s, const simd_detail::simd_impl<Impl>& t) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::pow(s.value_, t.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> min(const simd_detail::simd_impl<Impl>& s, const simd_detail::simd_impl<Impl>& t) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::min(s.value_, t.value_));
+}
+
+template <typename Impl>
+simd_detail::simd_impl<Impl> max(const simd_detail::simd_impl<Impl>& s, const simd_detail::simd_impl<Impl>& t) {
+    return simd_detail::simd_impl<Impl>::wrap(Impl::max(s.value_, t.value_));
+}
 
 } // namespace arb

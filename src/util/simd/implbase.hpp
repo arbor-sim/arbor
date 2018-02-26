@@ -5,6 +5,27 @@
 // copy_to/copy_from.
 //
 // Also provides simd_detail::simd_traits type map.
+//
+// Maths functions are implemented in terms of
+// arithmetic primitives or lane-wise invocation of
+// std::math functions; specialized implementations
+// should be provided by the concrete implementation
+// where it is more efficient:
+//
+// Function | Default implemention by
+// ----------------------------------
+// min      | negate, cmp_gt, select
+// max      | negate, cmp_gt, select
+// abs      | negate, max
+// sin      | lane-wise std::sin
+// cos      | lane-wise std::cos
+// exp      | lane-wise std::exp
+// log      | lane-wise std::log
+// pow      | lane-wise std::pow
+// expm1    | lane-wise std::expm1
+// exprelr  | expm1, div, add, cmp_eq, select
+//
+// 'exprelr' is the function x ↦ x/(exp(x)-1).
 
 #include <cstring>
 #include <cmath>
@@ -72,6 +93,16 @@ struct implbase {
         I::copy_to(v, a);
         a[i] = x;
         v = I::copy_from(a);
+    }
+
+    static vector_type negate(const vector_type& u) {
+        store a, r;
+        I::copy_to(u, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = -a[i];
+        }
+        return I::copy_from(r);
     }
 
     static vector_type add(const vector_type& u, const vector_type& v) {
@@ -310,6 +341,86 @@ struct implbase {
         for (unsigned i = 0; i<width; ++i) {
             if (m[i]) { p[o[i]] = a[i]; }
         }
+    }
+
+    // Maths
+
+    static vector_type abs(const vector_type& s) {
+        return max(s, negate(s));
+    }
+
+    static vector_type min(const vector_type& s, const vector_type& t) {
+        return select(cmp_gt(t, s), t, s);
+    }
+
+    static vector_type max(const vector_type& s, const vector_type& t) {
+        return select(cmp_gt(t, s), s, t);
+    }
+
+    static vector_type sin(const vector_type& s) {
+        store a, r;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = std::sin(a[i]);
+        }
+        return I::copy_from(r);
+    }
+
+    static vector_type cos(const vector_type& s) {
+        store a, r;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = std::cos(a[i]);
+        }
+        return I::copy_from(r);
+    }
+
+    static vector_type exp(const vector_type& s) {
+        store a, r;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = std::exp(a[i]);
+        }
+        return I::copy_from(r);
+    }
+
+    static vector_type expm1(const vector_type& s) {
+        store a, r;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = std::expm1(a[i]);
+        }
+        return I::copy_from(r);
+    }
+
+    static vector_type log(const vector_type& s) {
+        store a, r;
+        I::copy_to(s, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = std::log(a[i]);
+        }
+        return I::copy_from(r);
+    }
+
+    static vector_type exprelr(const vector_type& s) {
+        vector_type ones = I::broadcast(1);
+        return select(cmp_eq(ones, add(ones, s)), div(s, expm1(s)), ones);
+    }
+
+    static vector_type pow(const vector_type& s, const vector_type &t) {
+        store a, b, r;
+        I::copy_to(s, a);
+        I::copy_to(t, b);
+
+        for (unsigned i = 0; i<width; ++i) {
+            r[i] = std::pow(a[i], b[i]);
+        }
+        return I::copy_from(r);
     }
 };
 
