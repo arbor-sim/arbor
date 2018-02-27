@@ -496,7 +496,7 @@ struct avx2_double4: avx_double4 {
 
         // Move lower 32-bits of each field to lower 128-bit half of x.
 
-        __m256i s1 = _mm256_setr_epi32(0,2,4,8,0,0,0,0);
+        __m256i s1 = _mm256_setr_epi32(0,2,4,6,0,0,0,0);
         x = _mm256_permutevar8x32_epi32(x, s1);
 
         // Move the lowest byte from each 32-bit field to bottom bytes.
@@ -572,7 +572,7 @@ protected:
     }
 
     // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
-    __m256d ldexp_positive(__m256d x, __m128i n) {
+    static __m256d ldexp_positive(__m256d x, __m128i n) {
         __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
         __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
         __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));

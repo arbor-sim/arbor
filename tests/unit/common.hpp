@@ -157,10 +157,10 @@ template <typename FPType, typename Seq1, typename Seq2>
 }
 
 template <typename V>
-bool generic_isnan(const V& x) { return false; }
-bool generic_isnan(float x) { return std::isnan(x); }
-bool generic_isnan(double x) { return std::isnan(x); }
-bool generic_isnan(long double x) { return std::isnan(x); }
+inline bool generic_isnan(const V& x) { return false; }
+inline bool generic_isnan(float x) { return std::isnan(x); }
+inline bool generic_isnan(double x) { return std::isnan(x); }
+inline bool generic_isnan(long double x) { return std::isnan(x); }
 
 template <typename U, typename V>
 static bool equiv(const U& u, const V& v) {
