@@ -452,7 +452,7 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
 
         fp u[N], v[N], r[N];
 
-        // sin, cos:
+        // Trigonometric functions (sin, cos):
         fill_random(u, rng);
 
         fp sin_u[N];
@@ -465,7 +465,8 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         cos(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(cos_u, r));
 
-        // log: positive arg (allow negligible chance of zero arg, too).
+        // Logarithms (natural log):
+        // Test positive args (allow negligible chance of zero arg, too).
         fill_random(u, rng, 0., maxfp);
 
         fp log_u[N];
@@ -473,10 +474,9 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         log(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(log_u, r));
 
-        // exp: use max_exponent to get coverage over finite domain,
-        // plus test for zero result when arg is more negative.
-        // Allow dodgy results for denorm?
+        // Exponential functions (exp, expm1, exprelr):
 
+        // Use max_exponent to get coverage over finite domain.
         fp exp_min_arg = min_exponent*std::log(2.);
         fp exp_max_arg = max_exponent*std::log(2.);
         fill_random(u, rng, exp_min_arg, exp_max_arg);
@@ -498,11 +498,12 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         exprelr(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(exprelr_u, r));
 
-        fill_random(u, rng, 0., epsilon);
+        // Test expm1 and exprelr with small (magnitude < fp epsilon) values.
+        fill_random(u, rng, -epsilon, epsilon);
         fp expm1_u_small[N];
         for (unsigned i = 0; i<N; ++i) {
             expm1_u_small[i] = std::expm1(u[i]);
-            EXPECT_NEAR(u[i], expm1_u_small[i], 4*u[i]*epsilon); // just to confirm!
+            EXPECT_NEAR(u[i], expm1_u_small[i], std::abs(4*u[i]*epsilon)); // just to confirm!
         }
         expm1(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(expm1_u_small, r));
@@ -512,12 +513,16 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         exprelr(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(exprelr_u_small, r));
 
+        // Test zero result for highly negative exponents.
         fill_random(u, rng, 4*exp_min_arg, 2*exp_min_arg);
         fp exp_u_very_negative[N];
         for (unsigned i = 0; i<N; ++i) exp_u_very_negative[i] = std::exp(u[i]);
         exp(simd(u)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(exp_u_very_negative, r));
 
+        // Power function:
+
+        // Non-negative base, arbitrary exponent.
         fill_random(u, rng, 0., std::exp(1));
         fill_random(v, rng, exp_min_arg, exp_max_arg);
         fp pow_u_pos_v[N];
@@ -525,11 +530,11 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         pow(simd(u), simd(v)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(pow_u_pos_v, r));
 
+        // Arbitrary base, small magnitude integer exponent.
         fill_random(u, rng);
         int int_exponent[N];
         fill_random(int_exponent, rng, -2, 2);
         for (unsigned i = 0; i<N; ++i) v[i] = int_exponent[i];
-
         fp pow_u_v_int[N];
         for (unsigned i = 0; i<N; ++i) pow_u_v_int[i] = std::pow(u[i], v[i]);
         pow(simd(u), simd(v)).copy_to(r);
@@ -537,7 +542,54 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths);
+// Check special function behaviour for specific values including
+// qNAN, infinity etc.
+
+TYPED_TEST_P(simd_fp_value, exp_special_values) {
+    using simd = TypeParam;
+    using fp = typename simd::scalar_type;
+    constexpr unsigned N = simd::width;
+
+    using limits = std::numeric_limits<fp>;
+
+    constexpr fp inf = limits::infinity();
+    constexpr fp eps = limits::epsilon();
+    constexpr fp largest = limits::max();
+    constexpr fp normal_least = limits::min();
+    constexpr fp denorm_least = limits::denorm_min();
+    constexpr fp qnan = limits::quiet_NaN();
+
+    const fp exp_minarg = std::log(normal_least);
+    const fp exp_maxarg = std::log(largest);
+
+    fp values[] = { inf, -inf, eps, -eps,
+                    eps/2, -eps/2, 0., -0.,
+                    1., -1., 2., -2.,
+                    normal_least, denorm_least, -normal_least, -denorm_least,
+                    exp_minarg, exp_maxarg, qnan, -qnan };
+
+    constexpr unsigned n_values = sizeof(values)/sizeof(fp);
+    constexpr unsigned n_packed = (n_values+N-1)/N;
+    fp data[n_packed][N];
+
+    std::fill((fp *)data, (fp *)data+N*n_packed, fp(0));
+    std::copy(std::begin(values), std::end(values), (fp *)data);
+
+    for (unsigned i = 0; i<n_packed; ++i) {
+        fp expected[N], result[N];
+        for (unsigned j = 0; j<N; ++j) {
+            expected[j] = std::exp(data[i][j]);
+        }
+
+        simd s(data[i]);
+        s = exp(s);
+        s.copy_to(result);
+
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(expected, result));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths, exp_special_values);
 
 typedef ::testing::Types<
 #ifdef __AVX__

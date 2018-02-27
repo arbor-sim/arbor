@@ -250,12 +250,12 @@ namespace simd_detail {
                 mask_(m), data_(v) {}
 
             where_expression& operator=(scalar_type v) {
-                data_ = Impl::select(mask_.value_, data_.value_, simd_impl(v).value_);
+                data_ = Impl::ifelse(mask_.value_, simd_impl(v).value_, data_.value_);
                 return *this;
             }
 
             where_expression& operator=(const simd_impl& v) {
-                data_ = Impl::select(mask_.value_, data_.value_, v.value_);
+                data_ = Impl::ifelse(mask_.value_, v.value_, data_.value_);
                 return *this;
             }
 

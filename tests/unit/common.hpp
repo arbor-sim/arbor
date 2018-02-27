@@ -144,7 +144,7 @@ template <typename FPType, typename Seq1, typename Seq2>
         // Cast to FPType to avoid warnings about lowering conversion
         // if FPType has lower precision than Seq{12}::value_type.
 
-        if (!FP{v1}.AlmostEquals(FP{v2})) {
+        if (!(std::isnan(v1) && std::isnan(v2)) && !FP{v1}.AlmostEquals(FP{v2})) {
             return ::testing::AssertionFailure() << "floating point numbers " << v1 << " and " << v2 << " differ at index " << j;
         }
 
@@ -156,7 +156,17 @@ template <typename FPType, typename Seq1, typename Seq2>
     return ::testing::AssertionSuccess();
 }
 
-// Assert two sequences of values are exactly equal.
+template <typename V>
+bool generic_isnan(const V& x) { return false; }
+bool generic_isnan(float x) { return std::isnan(x); }
+bool generic_isnan(double x) { return std::isnan(x); }
+bool generic_isnan(long double x) { return std::isnan(x); }
+
+template <typename U, typename V>
+static bool equiv(const U& u, const V& v) {
+    return u==v || (generic_isnan(u) && generic_isnan(v));
+}
+
 template <typename Seq1, typename Seq2>
 ::testing::AssertionResult seq_eq(Seq1&& seq1, Seq2&& seq2) {
     using std::begin;
@@ -172,7 +182,7 @@ template <typename Seq1, typename Seq2>
         auto v1 = *i1;
         auto v2 = *i2;
 
-        if (!(v1==v2)) {
+        if (!equiv(v1, v2)) {
             return ::testing::AssertionFailure() << "values " << v1 << " and " << v2 << " differ at index " << j;
         }
     }
@@ -190,7 +200,7 @@ template <typename Arr1, typename Arr2>
         auto v1 = a1[i];
         auto v2 = a2[i];
 
-        if (!(v1==v2)) {
+        if (!equiv(v1,v2)) {
             return ::testing::AssertionFailure() << "values " << v1 << " and " << v2 << " differ at index " << i;
         }
     }

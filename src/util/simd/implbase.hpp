@@ -14,8 +14,8 @@
 //
 // Function | Default implemention by
 // ----------------------------------
-// min      | negate, cmp_gt, select
-// max      | negate, cmp_gt, select
+// min      | negate, cmp_gt, ifelse
+// max      | negate, cmp_gt, ifelse
 // abs      | negate, max
 // sin      | lane-wise std::sin
 // cos      | lane-wise std::cos
@@ -23,7 +23,7 @@
 // log      | lane-wise std::log
 // pow      | lane-wise std::pow
 // expm1    | lane-wise std::expm1
-// exprelr  | expm1, div, add, cmp_eq, select
+// exprelr  | expm1, div, add, cmp_eq, ifelse
 //
 // 'exprelr' is the function x ↦ x/(exp(x)-1).
 
@@ -265,7 +265,7 @@ struct implbase {
         return I::copy_from(r);
     }
 
-    static vector_type select(const mask_type& mask, const vector_type& u, const vector_type& v) {
+    static vector_type ifelse(const mask_type& mask, const vector_type& u, const vector_type& v) {
         mask_store m;
         mask_impl::mask_copy_to(mask, m);
 
@@ -274,7 +274,7 @@ struct implbase {
         I::copy_to(v, b);
 
         for (unsigned i = 0; i<width; ++i) {
-            r[i] = m[i]? b[i]: a[i];
+            r[i] = m[i]? a[i]: b[i];
         }
         return I::copy_from(r);
     }
@@ -345,16 +345,22 @@ struct implbase {
 
     // Maths
 
-    static vector_type abs(const vector_type& s) {
-        return max(s, negate(s));
+    static vector_type abs(const vector_type& u) {
+        store a;
+        I::copy_to(u, a);
+
+        for (unsigned i = 0; i<width; ++i) {
+            a[i] = std::abs(a[i]);
+        }
+        return I::copy_from(a);
     }
 
     static vector_type min(const vector_type& s, const vector_type& t) {
-        return select(cmp_gt(t, s), t, s);
+        return ifelse(cmp_gt(t, s), s, t);
     }
 
     static vector_type max(const vector_type& s, const vector_type& t) {
-        return select(cmp_gt(t, s), s, t);
+        return ifelse(cmp_gt(t, s), t, s);
     }
 
     static vector_type sin(const vector_type& s) {
@@ -409,13 +415,14 @@ struct implbase {
 
     static vector_type exprelr(const vector_type& s) {
         vector_type ones = I::broadcast(1);
-        return select(cmp_eq(ones, add(ones, s)), div(s, expm1(s)), ones);
+        return ifelse(cmp_eq(ones, add(ones, s)), ones, div(s, expm1(s)));
     }
 
     static vector_type pow(const vector_type& s, const vector_type &t) {
         store a, b, r;
         I::copy_to(s, a);
         I::copy_to(t, b);
+
 
         for (unsigned i = 0; i<width; ++i) {
             r[i] = std::pow(a[i], b[i]);

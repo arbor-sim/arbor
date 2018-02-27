@@ -4,8 +4,11 @@
 
 #ifdef __AVX__
 
+#include <cmath>
 #include <cstdint>
 #include <immintrin.h>
+
+#include <util/simd/approx.hpp>
 
 namespace arb {
 namespace simd_detail {
@@ -105,6 +108,10 @@ struct avx_int4: implbase<avx_int4> {
         return logical_not(cmp_gt(a, b));
     }
 
+    static __m128i ifelse(const __m128i& m, const __m128i& u, const __m128i& v) {
+        return _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(u), _mm_castsi128_ps(v), _mm_castsi128_ps(m)));
+    }
+
     static __m128i mask_broadcast(bool b) {
         return _mm_set1_epi32(-(int32)b);
     }
@@ -130,6 +137,15 @@ struct avx_int4: implbase<avx_int4> {
         __m128i s = _mm_setr_epi32(0x80808000ul, 0x80808001ul, 0x80808002ul, 0x80808003ul);
         return _mm_shuffle_epi8(r, s);
     }
+
+    static __m128i max(const __m128i& a, const __m128i& b) {
+        return _mm_max_epi32(a, b);
+    }
+
+    static __m128i min(const __m128i& a, const __m128i& b) {
+        return _mm_min_epi32(a, b);
+    }
+
 };
 
 struct avx_double4: implbase<avx_double4> {
@@ -138,13 +154,15 @@ struct avx_double4: implbase<avx_double4> {
 
     using int64 = std::int64_t;
 
-    static constexpr int cmp_gt_oq = 30;  // _CMP_GT_OQ
-    static constexpr int cmp_ge_oq = 29;  // _CMP_GE_OQ
-    static constexpr int cmp_le_oq = 18;  // _CMP_LE_OQ
-    static constexpr int cmp_lt_oq = 17;  // _CMP_LT_OQ
-    static constexpr int cmp_eq_oq =  0;  // _CMP_EQ_OQ
-    static constexpr int cmp_neq_uq = 4;  // _CMP_NEQ_UQ
-    static constexpr int cmp_true_uq =15; // _CMP_TRUE_UQ
+    // CMPPD predicates:
+    static constexpr int cmp_eq_oq =    0;
+    static constexpr int cmp_unord_q =  3;
+    static constexpr int cmp_neq_uq =   4;
+    static constexpr int cmp_true_uq = 15;
+    static constexpr int cmp_lt_oq =   17;
+    static constexpr int cmp_le_oq =   18;
+    static constexpr int cmp_ge_oq =   29;
+    static constexpr int cmp_gt_oq =   30;
 
     static __m256d broadcast(double v) {
         return _mm256_set1_pd(v);
@@ -216,8 +234,8 @@ struct avx_double4: implbase<avx_double4> {
         return _mm256_cmp_pd(a, b, cmp_le_oq);
     }
 
-    static __m256d select(const __m256d& m, const __m256d& u, const __m256d& v) {
-        return _mm256_blendv_pd(u, v, m);
+    static __m256d ifelse(const __m256d& m, const __m256d& u, const __m256d& v) {
+        return _mm256_blendv_pd(v, u, m);
     }
 
     static __m256d mask_broadcast(bool b) {
@@ -282,9 +300,165 @@ struct avx_double4: implbase<avx_double4> {
         return _mm256_castsi256_pd(combine_m128i(ru, rl));
     }
 
+    static __m256d max(const __m256d& a, const __m256d& b) {
+        return _mm256_max_pd(a, b);
+    }
+
+    static __m256d min(const __m256d& a, const __m256d& b) {
+        return _mm256_min_pd(a, b);
+    }
+
+    static __m256d abs(const __m256d& x) {
+        // NOTE: recent gcc, clang and icc will quite happily vectorize
+        // a lane-wise std::abs, but not always optimally (specifically,
+        // icc 18 targetting pre-Broadwell architectures, and gcc version 6
+        // and earlier).
+        //
+        // Following instrinsics-based code compiles to essentially the same
+        // output as the best-case from auto-vectorization (modulo use of
+        // vbroadcastsd vs. indirect memory operand) with all three compilers.
+
+        __m256i m = _mm256_set1_epi64x(0x7fffffffffffffffll);
+        return _mm256_and_pd(x, _mm256_castsi256_pd(m));
+    }
+
+    //  Exponential is calculated as follows:
+    //     e^x = e^g * 2^n,
+    //
+    //  where g in [-0.5, 0.5) and n is an integer. Obviously 2^n can be calculated
+    //  fast with bit shift, whereas e^g is approximated using the order-6 rational
+    //  approximation:
+    //
+    //     e^g = R(g)/R(-g)
+    //
+    //  with R(x) split into even and odd terms:
+    //
+    //     R(x) = Q(x^2) + x*P(x^2)
+    //
+    //  so that the ratio can be computed as:
+    //
+    //     e^g = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
+    //
+    //  Note that the coefficients for R are close to but not the same as those
+    //  from the 6,6 Padé approximant to the exponential. 
+    //
+    //  The exponents n and g are calculated using the following formulas:
+    //
+    //  n = floor(x/ln(2) + 0.5)
+    //  g = x - n*ln(2)
+    //
+    //  They can be derived as follows:
+    //
+    //    e^x = 2^(x/ln(2))
+    //        = 2^-0.5 * 2^(x/ln(2) + 0.5)
+    //        = 2^r'-0.5 * 2^floor(x/ln(2) + 0.5)     (1)
+    //
+    // Setting n = floor(x/ln(2) + 0.5),
+    //
+    //    r' = x/ln(2) - n, and r' in [0, 1)
+    //
+    // Substituting r' in (1) gives us
+    //
+    //    e^x = 2^(x/ln(2) - n) * 2^n, where x/ln(2) - n is now in [-0.5, 0.5)
+    //        = e^(x-n*ln(2)) * 2^n
+    //        = e^g * 2^n, where g = x - n*ln(2)      (2)
+    //
+    // NOTE: The calculation of ln(2) in (2) is split in two operations to
+    // compensate for rounding errors:
+    //
+    //   ln(2) = C1 + C2, where
+    //
+    //   C1 = floor(2^k*ln(2))/2^k
+    //   C2 = ln(2) - C1
+    //
+    // We use k=32, since this is what the Cephes library does historically.
+    // Theoretically, we could use k=52 to match the IEEE-754 double accuracy, but
+    // the standard library seems not to do that, so we are getting differences
+    // compared to std::exp() for large exponents.
+
+    static  __m256d exp(const __m256d& x) {
+        // Masks for exceptional cases.
+
+        auto is_large = cmp_gt(x, broadcast(exp_maxarg));
+        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+        auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
+
+        // Compute n and g.
+
+        auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), broadcast(0.5)));
+
+        auto g = sub(x, mul(n, broadcast(ln2C1)));
+        g = sub(g, mul(n, broadcast(ln2C2)));
+
+        auto gg = mul(g, g);
+
+        // Compute the g*P(g^2) and Q(g^2).
+
+        auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
+        auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
+
+        // Compute R(g)/R(-g) = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
+
+        auto expg = add(broadcast(1), mul(broadcast(2),
+            div(odd, sub(even, odd))));
+
+        // Finally, compute product with 2^n.
+        // Note: can only achieve full range using the ldexp implementation,
+        // rather than multiplying by 2^n directly.
+
+        auto result = ldexp_positive(expg, _mm256_cvtpd_epi32(n));
+
+        return
+            ifelse(is_large, broadcast(HUGE_VAL),
+            ifelse(is_small, broadcast(0),
+            ifelse(is_nan, broadcast(NAN),
+                   result)));
+    }
+
 protected:
     static __m256i combine_m128i(__m128i hi, __m128i lo) {
         return _mm256_insertf128_si256(_mm256_castsi128_si256(lo), hi, 1);
+    }
+
+    static inline __m256d horner(__m256d x, double a0) {
+        return broadcast(a0);
+    }
+
+    template <typename... T>
+    static __m256d horner(__m256d x, double a0, T... tail) {
+        return add(mul(x, horner(x, tail...)), broadcast(a0));
+    }
+
+    static __m256d exp2int(__m128i n) {
+        n = _mm_slli_epi32(n, 20);
+        n = _mm_add_epi32(n, _mm_set1_epi32(1023<<20));
+
+        auto nl = _mm_shuffle_epi32(n, 0x50);
+        auto nh = _mm_shuffle_epi32(n, 0xfa);
+        __m256i nhnl = combine_m128i(nh, nl);
+
+        return _mm256_castps_pd(
+            _mm256_blend_ps(_mm256_set1_ps(0),
+            _mm256_castsi256_ps(nhnl),0xaa));
+    }
+
+    // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
+    static __m256d ldexp_positive(__m256d x, __m128i n) {
+        __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
+
+        n = _mm_slli_epi32(n, 20);
+        auto zero = _mm_set1_epi32(0);
+        auto nl = _mm_unpacklo_epi32(zero, n);
+        auto nh = _mm_unpackhi_epi32(zero, n);
+
+        __m128d xl = _mm256_castpd256_pd128(x);
+        __m128d xh = _mm256_extractf128_pd(x, 1);
+
+        __m128i suml = _mm_add_epi64(nl, _mm_castpd_si128(xl));
+        __m128i sumh = _mm_add_epi64(nh, _mm_castpd_si128(xh));
+        __m256i sumhl = combine_m128i(sumh, suml);
+
+        return _mm256_and_pd(_mm256_castsi256_pd(sumhl), smask);
     }
 };
 
@@ -347,6 +521,63 @@ struct avx2_double4: avx_double4 {
     static __m256d gather(avx2_int4, __m256d a, const double* p, const __m128i& index, const __m256d& mask) {
         return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
     };
+
+    // Same algorithm as for AVX, but use FMA and more efficient bit twiddling.
+    static  __m256d exp(const __m256d& x) {
+        // Masks for exceptional cases.
+
+        auto is_large = cmp_gt(x, broadcast(exp_maxarg));
+        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+        auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
+
+        // Compute n and g.
+
+        auto n = _mm256_floor_pd(fma(broadcast(ln2inv), x, broadcast(0.5)));
+
+        auto g = fma(n, broadcast(-ln2C1), x);
+        g = fma(n, broadcast(-ln2C2), g);
+
+        auto gg = mul(g, g);
+
+        // Compute the g*P(g^2) and Q(g^2).
+
+        auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
+        auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
+
+        // Compute R(g)/R(-g) = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
+
+        auto expg = fma(broadcast(2), div(odd, sub(even, odd)), broadcast(1));
+
+        // Finally, compute product with 2^n.
+        // Note: can only achieve full range using the ldexp implementation,
+        // rather than multiplying by 2^n directly.
+
+        auto result = ldexp_positive(expg, _mm256_cvtpd_epi32(n));
+
+        return
+            ifelse(is_large, broadcast(HUGE_VAL),
+            ifelse(is_small, broadcast(0),
+            ifelse(is_nan, broadcast(NAN),
+                   result)));
+    }
+
+protected:
+    static inline __m256d horner(__m256d x, double a0) {
+        return broadcast(a0);
+    }
+
+    template <typename... T>
+    static __m256d horner(__m256d x, double a0, T... tail) {
+        return fma(x, horner(x, tail...), broadcast(a0));
+    }
+
+    // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
+    __m256d ldexp_positive(__m256d x, __m128i n) {
+        __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
+        __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
+        __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
+        return _mm256_and_pd(_mm256_castsi256_pd(sum), smask);
+    }
 };
 #endif // def __AVX2__
 
