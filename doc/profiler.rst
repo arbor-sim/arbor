@@ -151,6 +151,7 @@ hierarchical report that shows accumulated time spent in each region and its chi
       communication                -       0.505       0.253    10.5
         exchange                  10       0.500       0.250    10.4
         sortspikes                10       0.005       0.003     0.1
+    WALLTIME      2.400 s
 
 For more information on starting the profiler and interpreting its output see
 `Running the Profiler`_ and `Profiler Output`_.
