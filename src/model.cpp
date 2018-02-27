@@ -133,10 +133,10 @@ time_type model::run(time_type tfinal, time_type dt) {
     // events that must be delivered at the start of the next
     // integration period at the latest.
     auto exchange = [&] () {
-        PE(communication_exchange);
+        PE(communication_exchange_gatherlocal);
         auto local_spikes = previous_spikes().gather();
-        auto global_spikes = communicator_.exchange(local_spikes);
         PL();
+        auto global_spikes = communicator_.exchange(local_spikes);
 
         PE(communication_spikeio);
         local_export_callback_(local_spikes);

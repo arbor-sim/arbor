@@ -148,12 +148,17 @@ public:
     /// Takes as input the list of local_spikes that were generated on the calling domain.
     /// Returns the full global set of vectors, along with meta data about their partition
     gathered_vector<spike> exchange(std::vector<spike> local_spikes) {
+        PE(communication_exchange_sort);
         // sort the spikes in ascending order of source gid
         util::sort_by(local_spikes, [](spike s){return s.source;});
+        PL();
 
+        PE(communication_exchange_gather);
         // global all-to-all to gather a local copy of the global spike list on each node.
         auto global_spikes = comms_.gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
+        PL();
+
         return global_spikes;
     }
 
