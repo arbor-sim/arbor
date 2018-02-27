@@ -1167,7 +1167,7 @@ template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(!integration_complete());
 
-    PE(advance_integrate_markuntil);
+    PE(advance_integrate_events);
     // mark pending events for delivery
     events_.mark_until_after(time_);
     PL();
@@ -1189,7 +1189,7 @@ void fvm_multicell<Backend>::step_integration() {
     }
     PL();
 
-    PE(advance_integrate_events);
+    PR(advance_integrate_events);
     // remove delivered events from queue and set time_to_
     events_.drop_marked_events();
 
@@ -1199,7 +1199,9 @@ void fvm_multicell<Backend>::step_integration() {
 
     // set per-cell and per-compartment dt (constant within a cell)
     backend::set_dt(dt_cell_, dt_comp_, time_to_, time_, cv_to_cell_);
+    PL();
 
+    PE(advance_integrate_samples);
     // take samples if they lie within the integration step; they will be provided
     // with the values (post-event delivery) at the beginning of the interval.
     sample_events_.mark_until(time_to_);
@@ -1233,18 +1235,19 @@ void fvm_multicell<Backend>::step_integration() {
     }
     PL();
 
-    PE(advance_integrate_etc);
-
+    PR(advance_integrate_events);
     // update time stepping variables
     memory::copy(time_to_, time_);
     invalidate_time_cache();
+    PL();
 
+    PE(advance_integrate_threshold);
     // update spike detector thresholds
     threshold_watcher_.test();
+    PL();
 
     // are we there yet?
     decrement_min_remaining();
-    PL();
 
     EXPECTS(!integration_complete() || !has_pending_events());
 }

@@ -40,10 +40,17 @@ profile profiler_summary();
 std::size_t profiler_region_id(const char* name);
 void profiler_print(const profile& prof, float threshold=1);
 
-#define PL arb::util::profiler_leave
+// enter a profiling region
 #define PE(name) \
     static std::size_t name ## _profile_region_tag__ = arb::util::profiler_region_id(#name); \
     arb::util::profiler_enter(name ## _profile_region_tag__);
+
+// re-enter profiling region
+#define PR(name) \
+    arb::util::profiler_enter(name ## _profile_region_tag__);
+
+// leave a profling region
+#define PL arb::util::profiler_leave
 
 } // namespace util
 } // namespace arb

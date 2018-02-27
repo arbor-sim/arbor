@@ -11,11 +11,18 @@ namespace util {
 
 #ifdef ARB_HAVE_PROFILING
 namespace {
+    // Check whether a string describes a valid profiler region name.
     bool is_valid_region_string(const std::string& s) {
         if (s.size()==0u || s.front()=='_' || s.back()=='_') return false;
         return s.find("__") == s.npos;
     }
 
+    //
+    // Return a list of the words in the string, using '_' as the delimiter
+    // string, e.g.:
+    //      "communicator"             -> {"communicator"}
+    //      "communicator_events"      -> {"communicator", "events"}
+    //      "communicator_events_sort" -> {"communicator", "events", "sort"}
     std::vector<std::string> split(const std::string& str) {
         std::vector<std::string> cont;
         std::size_t first = 0;
@@ -31,11 +38,9 @@ namespace {
 }
 
 // Holds the accumulated number of calls and time spent in a region.
-struct sample {
+struct profile_accumulator {
     std::size_t count=0;
     double time=0.;
-
-    sample() = default;
 };
 
 // Records the accumulated time spent in profiler regions on one thread.
@@ -52,11 +57,11 @@ class recorder {
     time_point start_time_;
 
     // One accumulator for call count and wall time for each region.
-    std::vector<sample> samples_;
+    std::vector<profile_accumulator> accumulators_;
 
 public:
     // Return a list of the accumulated call count and wall times for each region.
-    const std::vector<sample>& samples() const;
+    const std::vector<profile_accumulator>& accumulators() const;
 
     // Start timing the region with index.
     // Throws std::runtime_error if already timing a region.
@@ -70,14 +75,21 @@ public:
     void clear();
 };
 
-// forward declaration of profile output
-struct profile;
-
 // Manages the thread-local recorders.
 class profiler {
     std::vector<recorder> recorders_;
+
+    // Hash table that maps region names to a unique index.
+    // The regions are assigned consecutive indexes in the order that they are
+    // added to the profiler with calls to `index_from_name()`, with the first
+    // region numbered zero.
     std::unordered_map<const char*, std::size_t> name_index_;
+
+    // The name of each region being recorded, with index stored in name_index_
+    // is used to index into region_names_.
     std::vector<std::string> region_names_;
+
+    // Used to protect name_index_, which is shared between all threads.
     std::mutex mutex_;
     time_point tstart_;
     time_point tstop_;
@@ -85,6 +97,7 @@ class profiler {
 
 public:
     profiler();
+
     void start();
     void stop();
     void restart();
@@ -119,8 +132,8 @@ namespace data {
 
 // recorder implementation
 
-const std::vector<sample>& recorder::samples() const {
-    return samples_;
+const std::vector<profile_accumulator>& recorder::accumulators() const {
+    return accumulators_;
 }
 
 void recorder::enter(std::size_t index) {
@@ -129,8 +142,8 @@ void recorder::enter(std::size_t index) {
     }
     index_ = index;
     start_time_ = timer_type::tic();
-    if (index>=samples_.size()) {
-        samples_.resize(index+1);
+    if (index>=accumulators_.size()) {
+        accumulators_.resize(index+1);
     }
 }
 
@@ -138,14 +151,14 @@ void recorder::leave() {
     if (index_==npos) {
         throw std::runtime_error("recorder::leave without matching recorder::enter");
     }
-    samples_[index_].count++;
-    samples_[index_].time += timer_type::toc(start_time_);
+    accumulators_[index_].count++;
+    accumulators_[index_].time += timer_type::toc(start_time_);
     index_ = npos;
 }
 
 void recorder::clear() {
     index_ = npos;
-    for (auto& s:samples_) {
+    for (auto& s:accumulators_) {
         s.time = 0;
         s.count = 0;
     }
@@ -172,7 +185,7 @@ void profiler::leave() {
 
 void profiler::start() {
     if (running_) {
-        throw std::runtime_error("Can't start a profiler that is running.");
+        throw std::runtime_error("Attempt to start a profiler that is already running.");
     }
     running_ = true;
     tstart_ = timer_type::tic();
@@ -181,7 +194,7 @@ void profiler::start() {
 
 void profiler::stop() {
     if (!running_) {
-        throw std::runtime_error("Can't stop a profiler that isn't running.");
+        throw std::runtime_error("Attempt to stop a profiler that isn't running.");
     }
     running_ = false;
     tstop_ = timer_type::tic();
@@ -211,6 +224,10 @@ std::size_t profiler::index_from_name(const char* name) {
     return it->second;
 }
 
+// Used to prepare the profiler output for printing.
+// Perform a depth first traversal of a profile tree that:
+// - sorts the children of each node in ascending order of time taken;
+// - sets the time taken for each non-leaf node to the sum of its children.
 double sort_profile_tree(profile_node& n) {
     // accumulate all time taken in children
     if (!n.children.empty()) {
@@ -264,10 +281,10 @@ profile profiler::results() const {
     p.times = std::vector<double>(nregions);
     p.counts = std::vector<std::size_t>(nregions);
     for (auto& r: recorders_) {
-        auto& samples = r.samples();
-        for (auto i: make_span(0, samples.size())) {
-            p.times[i]  += samples[i].time;
-            p.counts[i] += samples[i].count;
+        auto& accumulators = r.accumulators();
+        for (auto i: make_span(0, accumulators.size())) {
+            p.times[i]  += accumulators[i].time;
+            p.counts[i] += accumulators[i].count;
         }
     }
 
@@ -359,6 +376,7 @@ void profiler_print(const profile& prof, float threshold) {
 
     printf("_p_ %-20s%12s%12s%12s%8s\n", "REGION", "CALLS", "THREAD", "WALL", "\%");
     print(tree, prof.wall_time, prof.num_threads, threshold, "");
+    printf("_p_ WALLTIME %10.3f s\n", float(prof.wall_time));
 }
 
 profile profiler_summary() {
