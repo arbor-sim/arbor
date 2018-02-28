@@ -13,6 +13,7 @@
 #include <connection.hpp>
 #include <domain_decomposition.hpp>
 #include <event_queue.hpp>
+#include <profiling/profiler.hpp>
 #include <recipe.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>

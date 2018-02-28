@@ -120,8 +120,8 @@ public:
         return cell;
     }
 
-    std::vector<event_generator_ptr> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator_ptr> gens;
+    std::vector<event_generator> event_generators(cell_gid_type gid) const override {
+        std::vector<arb::event_generator> gens;
 
         std::mt19937_64 G;
         G.seed(gid + seed_);
@@ -131,12 +131,7 @@ public:
         time_type t0 = 0;
         cell_member_type target{gid, 0};
 
-        gens.push_back(arb::make_event_generator<pgen>(
-                        target,
-                        weight_ext_,
-                        G,
-                        t0,
-                        lambda_));
+        gens.emplace_back(pgen(target, weight_ext_, G, t0, lambda_));
         return gens;
     }
 

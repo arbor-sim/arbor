@@ -83,10 +83,8 @@ void model::reset() {
     // Reset all event generators, and advance to t_.
     for (auto& lane: event_generators_) {
         for (auto& gen: lane) {
-            if (gen) {
-                gen->reset();
-                gen->advance(t_);
-            }
+            gen.reset();
+            gen.advance(t_);
         }
     }
 
