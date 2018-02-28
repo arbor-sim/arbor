@@ -76,7 +76,7 @@ private:
     std::vector<cell_group_ptr> cell_groups_;
 
     // one set of event_generators for each local cell
-    std::vector<std::vector<event_generator_ptr>> event_generators_;
+    std::vector<std::vector<event_generator>> event_generators_;
 
     using local_spike_store_type = thread_private_spike_store;
     util::double_buffer<local_spike_store_type> local_spikes_;

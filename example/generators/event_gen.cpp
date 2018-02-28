@@ -72,7 +72,7 @@ public:
     }
 
     // Return two generators attached to the one cell.
-    std::vector<arb::event_generator_ptr> event_generators(cell_gid_type gid) const override {
+    std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         EXPECTS(gid==0); // There is only one cell in the model
 
         using RNG = std::mt19937_64;
@@ -88,21 +88,19 @@ public:
         double w_i = -0.005;
 
         // Make two event generators.
-        std::vector<arb::event_generator_ptr> gens;
+        std::vector<arb::event_generator> gens;
 
         // Add excitatory generator
         gens.push_back(
-            arb::make_event_generator<pgen>(
-                cell_member_type{0,0}, // Target synapse (gid, local_id).
-                w_e,                   // Weight of events to deliver
-                RNG(29562872),         // Random number generator to use
-                t0,                    // Events start being delivered from this time
-                lambda_e));            // Expected frequency (events per ms)
+            pgen(cell_member_type{0,0}, // Target synapse (gid, local_id).
+                 w_e,                   // Weight of events to deliver
+                 RNG(29562872),         // Random number generator to use
+                 t0,                    // Events start being delivered from this time
+                 lambda_e));            // Expected frequency (events per ms)
 
         // Add inhibitory generator
-        gens.push_back(
-            arb::make_event_generator<pgen>(
-                cell_member_type{0,0}, w_i, RNG(86543891), t0, lambda_i));
+        gens.emplace_back(
+            pgen(cell_member_type{0,0}, w_i, RNG(86543891), t0, lambda_i));
 
         return gens;
     }
