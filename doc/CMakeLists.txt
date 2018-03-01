@@ -1,29 +1,10 @@
+include("${CMAKE_SOURCE_DIR}/cmake/GitSubmodule.cmake")
+
 # Set up rtd theme as an external project.
 set(rtdtheme_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/rtd_theme")
 
 find_package(Git)
-if(NOT EXISTS "${rtdtheme_src_dir}/.git")
-    set(git_failed)
-
-    if(GIT_FOUND)
-        message(STATUS "Updating the ReadTheDocs theme submodule ${rtdtheme_src_dir}")
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" submodule update --init "${rtdtheme_src_dir}"
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ERROR_VARIABLE git_error
-            RESULT_VARIABLE git_result)
-        if(NOT git_result EQUAL 0)
-            set(git_failed "${git_error}")
-        endif()
-    else()
-        set(git_failed "git not found")
-    endif()
-
-    if(git_failed)
-        message(WARNING "Unable to update the ReadTheDocs theme submodule: ${git_failed}")
-    endif()
-
-endif()
+git_submodule(ReadTheDocs "${rtdtheme_src_dir}")
 
 # a static path is required to avoid warning messages from sphinx-build
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/static")
