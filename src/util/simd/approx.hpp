@@ -1,11 +1,18 @@
 #pragma once
 
+#include <cfloat>
+
 // Constants/magic numbers for the approximation of
 // exponential, trigonometric and special functions.
+//
+// Polynomial coefficients and evaluation orders
+// match those of the Cephes library, http://www.netlib.org/cephes
 
 namespace arb {
 namespace simd_detail {
 
+// Exponential:
+//
 // Approximation of exponential by a Padé-like rational
 // polynomial R(x)/R(-x) of order 6.
 //
@@ -20,7 +27,7 @@ constexpr double Q1exp = 2.27265548208155028766E-1;
 constexpr double Q2exp = 2.52448340349684104192E-3;
 constexpr double Q3exp = 3.00198505138664455042E-6;
 
-// Cancellation-corrected ln(2) = ln2_C1 + ln2_ C2:
+// Cancellation-corrected ln(2) = ln2C1 + ln2C2:
 
 constexpr double ln2C1 = 6.93145751953125E-1;
 constexpr double ln2C2 = 1.42860682030941723212E-6;
@@ -30,11 +37,39 @@ constexpr double ln2C2 = 1.42860682030941723212E-6;
 constexpr double ln2inv = 1.4426950408889634073599;
 
 // Min and max argument values for finite and normal
-// double-precision exp
+// double-precision exponential.
 
-const double exp_minarg = -708.3964185322641;
-const double exp_maxarg = 709.782712893384;
+constexpr double exp_minarg = -708.3964185322641;
+constexpr double exp_maxarg = 709.782712893384;
 
+// Logarithm:
+//
+// Positive denormal numbers are treated as zero
+// for the purposes of the log function. 
+
+constexpr double log_minarg = DBL_MIN;
+constexpr double sqrt2 = 1.41421356237309504880;
+
+// Cancellation-corrected ln(2) = ln2C3 + ln2C4:
+
+constexpr double ln2C3 = 0.693359375;
+constexpr double ln2C4 = -2.121944400546905827679e-4;
+
+// Polynomial coefficients (Q is also order 5,
+// but monic).
+
+constexpr double P0log = 7.70838733755885391666E0;
+constexpr double P1log = 1.79368678507819816313e1;
+constexpr double P2log = 1.44989225341610930846e1;
+constexpr double P3log = 4.70579119878881725854e0;
+constexpr double P4log = 4.97494994976747001425e-1;
+constexpr double P5log = 1.01875663804580931796e-4;
+
+constexpr double Q0log = 2.31251620126765340583E1;
+constexpr double Q1log = 7.11544750618563894466e1;
+constexpr double Q2log = 8.29875266912776603211e1;
+constexpr double Q3log = 4.52279145837532221105e1;
+constexpr double Q4log = 1.12873587189167450590e1;
 
 } // namespace simd_detail
 } // namespace arb

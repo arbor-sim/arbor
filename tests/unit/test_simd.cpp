@@ -1,3 +1,4 @@
+#include <cmath>
 #include <random>
 
 #include <util/simd.hpp>
@@ -446,7 +447,6 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
 
     for (unsigned i = 0; i<nrounds; ++i) {
         fp epsilon = std::numeric_limits<fp>::epsilon();
-        fp maxfp = std::numeric_limits<fp>::max();
         int min_exponent = std::numeric_limits<fp>::min_exponent;
         int max_exponent = std::numeric_limits<fp>::max_exponent;
 
@@ -466,8 +466,12 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         EXPECT_TRUE(testing::seq_almost_eq<fp>(cos_u, r));
 
         // Logarithms (natural log):
-        // Test positive args (allow negligible chance of zero arg, too).
-        fill_random(u, rng, 0., maxfp);
+        fill_random(u, rng, -max_exponent*std::log(2.), max_exponent*std::log(2.));
+        for (auto& x: u) {
+            x = std::exp(x);
+            // SIMD log implementation may treat subnormal as zero
+            if (std::fpclassify(x)==FP_SUBNORMAL) x = 0;
+        }
 
         fp log_u[N];
         for (unsigned i = 0; i<N; ++i) log_u[i] = std::log(u[i]);

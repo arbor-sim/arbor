@@ -125,8 +125,11 @@ struct avx_int4: implbase<avx_int4> {
     }
 
     static void mask_copy_to(const __m128i& m, bool* y) {
+        // Negate (convert 0xffffffff to 0x00000001) and move low bytes to
+        // bottom 4 bytes.
+
         __m128i s = _mm_setr_epi32(0x0c080400ul,0,0,0);
-        __m128i p = _mm_shuffle_epi8(m, s);
+        __m128i p = _mm_shuffle_epi8(negate(m), s);
         std::memcpy(y, &p, 4);
     }
 
@@ -135,7 +138,7 @@ struct avx_int4: implbase<avx_int4> {
         std::memcpy(&r, w, 4);
 
         __m128i s = _mm_setr_epi32(0x80808000ul, 0x80808001ul, 0x80808002ul, 0x80808003ul);
-        return _mm_shuffle_epi8(r, s);
+        return negate(_mm_shuffle_epi8(r, s));
     }
 
     static __m128i max(const __m128i& a, const __m128i& b) {
@@ -161,6 +164,7 @@ struct avx_double4: implbase<avx_double4> {
     static constexpr int cmp_true_uq = 15;
     static constexpr int cmp_lt_oq =   17;
     static constexpr int cmp_le_oq =   18;
+    static constexpr int cmp_nge_uq =  25;
     static constexpr int cmp_ge_oq =   29;
     static constexpr int cmp_gt_oq =   30;
 
@@ -177,8 +181,7 @@ struct avx_double4: implbase<avx_double4> {
     }
 
     static __m256d negate(const __m256d& a) {
-        __m256d zero = _mm256_setzero_pd();
-        return _mm256_sub_pd(zero, a);
+        return _mm256_sub_pd(zero(), a);
     }
 
     static __m256d add(const __m256d& a, const __m256d& b) {
@@ -254,28 +257,10 @@ struct avx_double4: implbase<avx_double4> {
     }
 
     static void mask_copy_to(const __m256d& m, bool* y) {
-        __m128i zero = _mm_setzero_si128();
+        // Convert to 32-bit wide mask values, and delegate to
+        // avx2_int4.
 
-        // Split into upper and lower 128-bits (two mask values
-        // in each), translate 0xffffffffffffffff to 0x0000000000000001.
-
-        __m128i ml = _mm_castpd_si128(_mm256_castpd256_pd128(m));
-        ml = _mm_sub_epi64(zero, ml);
-
-        __m128i mu = _mm_castpd_si128(_mm256_castpd256_pd128(_mm256_permute2f128_pd(m, m, 1)));
-        mu = _mm_sub_epi64(zero, mu);
-
-        // Move bytes with bool value to bytes 0 and 1 in lower half,
-        // bytes 2 and 3 in upper half, and merge with bitwise-or.
-
-        __m128i sl = _mm_setr_epi32(0x80800800ul,0,0,0);
-        ml = _mm_shuffle_epi8(ml, sl);
-
-        __m128i su = _mm_setr_epi32(0x08008080ul,0,0,0);
-        mu = _mm_shuffle_epi8(mu, su);
-
-        __m128i r = _mm_or_si128(mu, ml);
-        std::memcpy(y, &r, 4);
+        avx_int4::mask_copy_to(lo_epi32(_mm256_castpd_si256(m)), y);
     }
 
     static __m256d mask_copy_from(const bool* w) {
@@ -309,15 +294,6 @@ struct avx_double4: implbase<avx_double4> {
     }
 
     static __m256d abs(const __m256d& x) {
-        // NOTE: recent gcc, clang and icc will quite happily vectorize
-        // a lane-wise std::abs, but not always optimally (specifically,
-        // icc 18 targetting pre-Broadwell architectures, and gcc version 6
-        // and earlier).
-        //
-        // Following instrinsics-based code compiles to essentially the same
-        // output as the best-case from auto-vectorization (modulo use of
-        // vbroadcastsd vs. indirect memory operand) with all three compilers.
-
         __m256i m = _mm256_set1_epi64x(0x7fffffffffffffffll);
         return _mm256_and_pd(x, _mm256_castsi256_pd(m));
     }
@@ -415,10 +391,87 @@ struct avx_double4: implbase<avx_double4> {
                    result)));
     }
 
+    // Natural logarithm:
+    //
+    // Decompose x = 2^g * u such that g is an integer and
+    // u is in the interval [sqrt(2)/2, sqrt(2)].
+    //
+    // Then ln(x) is computed as R(u-1) + g*ln(2) where
+    // R(z) is a rational polynomial approximating ln(z+1)
+    // for small z:
+    //
+    //     R(z) = z - z^2/2 + z^3 * P(z)/Q(z)
+    //
+    // where P and Q are degree 5 polynomials, Q monic.
+    //
+    // In order to avoid cancellation error, ln(2) is represented
+    // as C3 + C4, with the C4 correction term approx. -2.1e-4.
+    // The summation order for R(z)+2^g is:
+    //
+    //     z^3*P(z)/Q(z) + g*C4 - z^2/2 + z + g*C3
+
+    static __m256d log(const __m256d& x) {
+        // Masks for exceptional cases.
+
+        auto is_large = cmp_gt(x, broadcast(HUGE_VAL));
+        auto is_small = cmp_lt(x, broadcast(log_minarg));
+        auto is_domainerr = _mm256_cmp_pd(x, broadcast(0), cmp_nge_uq);
+
+        __m256d g = _mm256_cvtepi32_pd(logb_normal(x));
+        __m256d u = fraction_normal(x);
+
+        __m256d one = broadcast(1.);
+        __m256d half = broadcast(0.5);
+        auto gtsqrt2 = cmp_geq(u, broadcast(sqrt2));
+        g = ifelse(gtsqrt2, add(g, one), g);
+        u = ifelse(gtsqrt2, mul(u, half), u);
+
+        auto z = sub(u, one);
+        auto pz = horner(z, P0log, P1log, P2log, P3log, P4log, P5log);
+        auto qz = horner1(z, Q0log, Q1log, Q2log, Q3log, Q4log);
+
+        auto z2 = mul(z, z);
+        auto z3 = mul(z2, z);
+
+        auto r = div(mul(z3, pz), qz);
+        r = add(r, mul(g,  broadcast(ln2C4)));
+        r = sub(r, mul(z2, half));
+        r = add(r, z);
+        r = add(r, mul(g,  broadcast(ln2C3)));
+
+        // Return NaN if x is NaN or negarive, +inf if x is +inf,
+        // or -inf if zero or (positive) denormal.
+
+        return
+            ifelse(is_domainerr, broadcast(NAN),
+            ifelse(is_large, broadcast(HUGE_VAL),
+            ifelse(is_small, broadcast(-HUGE_VAL),
+                r)));
+    }
+
 protected:
+    static __m256d zero() {
+        return _mm256_setzero_pd();
+    }
+
+    static __m128i hi_epi32(__m256i x) {
+        __m128i xl = _mm256_castsi256_si128(x);
+        __m128i xh = _mm256_extractf128_si256(x, 1);
+        return _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(xl), _mm_castsi128_ps(xh), 0xddu));
+    }
+
+    static __m128i lo_epi32(__m256i x) {
+        __m128i xl = _mm256_castsi256_si128(x);
+        __m128i xh = _mm256_extractf128_si256(x, 1);
+        return _mm_castps_si128(_mm_shuffle_ps(_mm_castsi128_ps(xl), _mm_castsi128_ps(xh), 0x88u));
+    }
+
     static __m256i combine_m128i(__m128i hi, __m128i lo) {
         return _mm256_insertf128_si256(_mm256_castsi128_si256(lo), hi, 1);
     }
+
+    // horner(x, a0, ..., an) computes the degree n polynomial A(x) with coefficients
+    // a0, ..., an by a0+x*(a1+x*(a2+...+x*an)...).
 
     static inline __m256d horner(__m256d x, double a0) {
         return broadcast(a0);
@@ -427,6 +480,18 @@ protected:
     template <typename... T>
     static __m256d horner(__m256d x, double a0, T... tail) {
         return add(mul(x, horner(x, tail...)), broadcast(a0));
+    }
+
+    // horner1(x, a0, ..., an) computes the degree n+1 monic polynomial A(x) with coefficients
+    // a0, ..., an, 1 by by a0+x*(a1+x*(a2+...+x*(an+x)...).
+
+    static inline __m256d horner1(__m256d x, double a0) {
+        return add(x, broadcast(a0));
+    }
+
+    template <typename... T>
+    static __m256d horner1(__m256d x, double a0, T... tail) {
+        return add(mul(x, horner1(x, tail...)), broadcast(a0));
     }
 
     static __m256d exp2int(__m128i n) {
@@ -441,6 +506,22 @@ protected:
             _mm256_blend_ps(_mm256_set1_ps(0),
             _mm256_castsi256_ps(nhnl),0xaa));
     }
+
+    // Compute n and f such that x = 2^n*f, with |f| ∈ [1,2), given x is finite and normal.
+    static __m128i logb_normal(const __m256d& x) {
+        __m128i xw = hi_epi32(_mm256_castpd_si256(x));
+        __m128i emask = _mm_set1_epi32(0x7ff00000);
+        __m128i ebiased = _mm_srli_epi32(_mm_and_si128(xw, emask), 20);
+
+        return _mm_sub_epi32(ebiased, _mm_set1_epi32(1023));
+    }
+
+    static __m256d fraction_normal(const __m256d& x) {
+        __m256d emask = _mm256_castsi256_pd(_mm256_set1_epi64x(-0x7ff0000000000001)); // 0x800fffffffffffff
+        __m256d bias = _mm256_castsi256_pd(_mm256_set1_epi64x(0x3ff0000000000000));
+        return _mm256_or_pd(bias, _mm256_and_pd(emask, x));
+    }
+
 
     // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
     static __m256d ldexp_positive(__m256d x, __m128i n) {
@@ -487,23 +568,10 @@ struct avx2_double4: avx_double4 {
     }
 
     static void mask_copy_to(const __m256d& m, bool* y) {
-        __m256i zero = _mm256_setzero_si256();
+        // Convert to 32-bit wide mask values, and delegate to
+        // avx2_int4.
 
-        // Translate 0xffffffffffffffff scalars to 0x0000000000000001.
-
-        __m256i x = _mm256_castpd_si256(m);
-        x = _mm256_sub_epi64(zero, x);
-
-        // Move lower 32-bits of each field to lower 128-bit half of x.
-
-        __m256i s1 = _mm256_setr_epi32(0,2,4,6,0,0,0,0);
-        x = _mm256_permutevar8x32_epi32(x, s1);
-
-        // Move the lowest byte from each 32-bit field to bottom bytes.
-
-        __m128i s2 = _mm_setr_epi32(0x0c080400ul,0,0,0);
-        __m128i r = _mm_shuffle_epi8(_mm256_castsi256_si128(x), s2);
-        std::memcpy(y, &r, 4);
+        avx_int4::mask_copy_to(lo_epi32(_mm256_castpd_si256(m)), y);
     }
 
     static __m256d mask_copy_from(const bool* w) {
@@ -522,7 +590,9 @@ struct avx2_double4: avx_double4 {
         return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
     };
 
-    // Same algorithm as for AVX, but use FMA and more efficient bit twiddling.
+    // avx4_double4 versions of log and exp use the same algorithms as for avx_double4,
+    // but use AVX2-specialized bit manipulation and FMA.
+
     static  __m256d exp(const __m256d& x) {
         // Masks for exceptional cases.
 
@@ -561,7 +631,58 @@ struct avx2_double4: avx_double4 {
                    result)));
     }
 
+    static __m256d log(const __m256d& x) {
+        // Masks for exceptional cases.
+
+        auto is_large = cmp_gt(x, broadcast(HUGE_VAL));
+        auto is_small = cmp_lt(x, broadcast(log_minarg));
+        auto is_domainerr = _mm256_cmp_pd(x, broadcast(0), cmp_nge_uq);
+
+        __m256d g = _mm256_cvtepi32_pd(logb_normal(x));
+        __m256d u = fraction_normal(x);
+
+        __m256d one = broadcast(1.);
+        __m256d half = broadcast(0.5);
+        auto gtsqrt2 = cmp_geq(u, broadcast(sqrt2));
+        g = ifelse(gtsqrt2, add(g, one), g);
+        u = ifelse(gtsqrt2, mul(u, half), u);
+
+        auto z = sub(u, one);
+        auto pz = horner(z, P0log, P1log, P2log, P3log, P4log, P5log);
+        auto qz = horner1(z, Q0log, Q1log, Q2log, Q3log, Q4log);
+
+        auto z2 = mul(z, z);
+        auto z3 = mul(z2, z);
+
+        auto r = div(mul(z3, pz), qz);
+        r = fma(g,  broadcast(ln2C4), r);
+        r = fms(z2, half, r);
+        r = add(z, r);
+        r = fma(g,  broadcast(ln2C3), r);
+
+        // Return NaN if x is NaN or negarive, +inf if x is +inf,
+        // or -inf if zero or (positive) denormal.
+
+        return
+            ifelse(is_domainerr, broadcast(NAN),
+            ifelse(is_large, broadcast(HUGE_VAL),
+            ifelse(is_small, broadcast(-HUGE_VAL),
+                r)));
+    }
+
 protected:
+    static __m128i lo_epi32(__m256i a) {
+        a = _mm256_shuffle_epi32(a, 0x08);
+        a = _mm256_permute4x64_epi64(a, 0x08);
+        return _mm256_castsi256_si128(a);
+    }
+
+    static  __m128i hi_epi32(__m256i a) {
+        a = _mm256_shuffle_epi32(a, 0x0d);
+        a = _mm256_permute4x64_epi64(a, 0x08);
+        return _mm256_castsi256_si128(a);
+    }
+
     static inline __m256d horner(__m256d x, double a0) {
         return broadcast(a0);
     }
@@ -571,12 +692,35 @@ protected:
         return fma(x, horner(x, tail...), broadcast(a0));
     }
 
+    static inline __m256d horner1(__m256d x, double a0) {
+        return add(x, broadcast(a0));
+    }
+
+    template <typename... T>
+    static __m256d horner1(__m256d x, double a0, T... tail) {
+        return fma(x, horner1(x, tail...), broadcast(a0));
+    }
+
+    static __m256d fms(const __m256d& a, const __m256d& b, const __m256d& c) {
+        return _mm256_fmsub(a, b, c);
+    }
+
+
     // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
     static __m256d ldexp_positive(__m256d x, __m128i n) {
         __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
         __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
         __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
         return _mm256_and_pd(_mm256_castsi256_pd(sum), smask);
+    }
+
+    // Override avx_double4::logb_normal so as to use avx2 version of hi_epi32.
+    static __m128i logb_normal(const __m256d& x) {
+        __m128i xw = hi_epi32(_mm256_castpd_si256(x));
+        __m128i emask = _mm_set1_epi32(0x7ff00000);
+        __m128i ebiased = _mm_srli_epi32(_mm_and_si128(xw, emask), 20);
+
+        return _mm_sub_epi32(ebiased, _mm_set1_epi32(1023));
     }
 };
 #endif // def __AVX2__
