@@ -70,6 +70,7 @@ namespace impl {
 
         std::vector<unsigned> index_tree_;
         pse_vector events_;
+
         std::vector<event_generator>& input_;
         unsigned leaves_;
         unsigned nodes_;
