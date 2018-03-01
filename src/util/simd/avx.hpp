@@ -657,7 +657,7 @@ struct avx2_double4: avx_double4 {
         auto r = div(mul(z3, pz), qz);
         r = fma(g,  broadcast(ln2C4), r);
         r = fms(z2, half, r);
-        r = add(z, r);
+        r = sub(z, r);
         r = fma(g,  broadcast(ln2C3), r);
 
         // Return NaN if x is NaN or negarive, +inf if x is +inf,
@@ -702,7 +702,7 @@ protected:
     }
 
     static __m256d fms(const __m256d& a, const __m256d& b, const __m256d& c) {
-        return _mm256_fmsub(a, b, c);
+        return _mm256_fmsub_pd(a, b, c);
     }
 
 
