@@ -1,3 +1,10 @@
+
+# Call to ensure that the git submodule in location `path` is loaded.
+# If the submodule is not loaded, the function will attempt to check it
+# out using git.
+# Sets the following variable `name_AVAIL` to `ON` if the submodule is
+# available on completion, or `OFF` otherwise.
+
 function(git_submodule name path)
     set(success_var "${name}_AVAIL")
     set(${success_var} ON PARENT_SCOPE)
