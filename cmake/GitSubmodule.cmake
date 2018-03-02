@@ -1,4 +1,7 @@
 function(git_submodule name path)
+    set(success_var "${name}_AVAIL")
+    set(${success_var} ON PARENT_SCOPE)
+
     if(NOT EXISTS "${path}/.git")
         set(git_failed)
 
@@ -16,9 +19,11 @@ function(git_submodule name path)
             set(git_failed "git not found")
         endif()
 
+
         if(git_failed)
             message(WARNING "Unable to update the ${name} theme submodule: ${git_failed}")
+            # if the repository was not available, and git failed, set AVAIL to false
+            set(${success_var} OFF PARENT_SCOPE)
         endif()
-
     endif()
 endfunction()

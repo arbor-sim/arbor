@@ -26,27 +26,8 @@ set(gbench_cmake_args
 
 
 # Attempt to update git submodule if required.
-find_package(Git)
-if(NOT EXISTS "${gbench_src_dir}/.git")
-    set(git_failed)
-    if(GIT_FOUND)
-        message(STATUS "Updating the google-benchmark submodule ${gbench_src_dir}")
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" submodule update --init "${gbench_src_dir}"
-            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-            ERROR_VARIABLE git_error
-            RESULT_VARIABLE git_result)
-        if(NOT git_result EQUAL 0)
-            set(git_failed "${git_error}")
-        endif()
-    else()
-        set(git_failed "git not found")
-    endif()
-
-    if(git_failed)
-        message(WARNING "Unable to update the google-benchmark submodule: ${git_failed}")
-    endif()
-endif()
+include(GitSubmodule)
+git_submodule("google_bench" "${gbench_src_dir}")
 
 ExternalProject_Add(gbench
     # Add dummy DOWNLOAD_COMMAND to stop ExternalProject_Add terminating CMake if the
@@ -84,5 +65,15 @@ if(ARB_WITH_CUDA)
     endforeach()
 endif()
 
-add_custom_target(ubenches DEPENDS ${bench_exe_list})
+if (google_bench_AVAIL)
+    add_custom_target(ubenches DEPENDS ${bench_exe_list})
+else()
+    add_custom_target(ubenches
+        COMMAND
+            echo "Error: the git submodule for google bench in ${gbench_src_dir} needs to be checked out."
+        COMMAND
+            exit 1  # return error code to let CMake know that the build proccess should fail
+        COMMENT
+            "Building ubenches")
+endif()
 
