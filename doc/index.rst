@@ -18,7 +18,7 @@ Arbor is a high-performance library for computationa neurscience simulations.
    :caption: Users:
    :maxdepth: 1
 
-   users
+   python
 
 .. toctree::
    :caption: Developers:
