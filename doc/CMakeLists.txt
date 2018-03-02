@@ -12,7 +12,7 @@ set(error_msg "Error:")
 if (NOT SPHINX_FOUND)
     set(error_msg "${error_msg} Sphinx must be installed to build documentation.")
 endif()
-if (NOT read_the_docs_AVAIL))
+if (NOT read_the_docs_AVAIL)
     set(error_msg "${error_msg} The git submodule for read the docs in ${CMAKE_CURRENT_SOURCE_DIR}/rdt_theme needs to be checked out.")
 endif()
 
