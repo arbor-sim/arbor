@@ -6,8 +6,6 @@
 
 #include "common.hpp"
 
-#include <iostream>
-
 using namespace arb;
 
 namespace {

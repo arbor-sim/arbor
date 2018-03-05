@@ -43,6 +43,8 @@ struct avx512_mask8: implbase<avx512_mask8> {
 
         __m256i s = _mm256_set1_epi32(0x0c080400);
         a = _mm256_shuffle_epi8(a, s);
+
+        s = _mm256_setr_epi32(0, 4, 0, 0, 0, 0, 0, 0);
         a = _mm256_permutevar8x32_epi32(a, s);
 
         std::memcpy(b, &a, 8);

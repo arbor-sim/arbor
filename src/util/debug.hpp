@@ -99,7 +99,7 @@ namespace impl {
     struct hexdump_inline_wrap {
         const unsigned char* from;
         std::size_t size;
-        unsigned width = 4;
+        unsigned width;
 
         friend std::ostream& operator<<(std::ostream& out, const hexdump_inline_wrap& h) {
             using std::ptrdiff_t;
@@ -158,12 +158,12 @@ impl::sepval<Seq, const char*> csv(const Seq& seq) {
 // Dump something in hex (inline representation).
 
 template <typename T>
-impl::hexdump_inline_wrap hexdump(const T& obj, unsigned width=4) {
+impl::hexdump_inline_wrap hexdump(const T& obj, unsigned width = 4) {
     return impl::hexdump_inline_wrap{reinterpret_cast<const unsigned char*>(&obj), sizeof obj, width};
 }
 
 template <typename T>
-impl::hexdump_inline_wrap hexdump_n(const T* ptr, std::size_t n, unsigned width=4) {
+impl::hexdump_inline_wrap hexdump_n(const T* ptr, std::size_t n, unsigned width = 4) {
     return impl::hexdump_inline_wrap{reinterpret_cast<const unsigned char*>(ptr), n, width};
 }
 
