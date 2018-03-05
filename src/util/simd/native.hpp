@@ -31,8 +31,11 @@ ARB_DEF_NATIVE_SIMD_(double, 4, avx2)
 ARB_DEF_NATIVE_SIMD_(int, 4, avx)
 ARB_DEF_NATIVE_SIMD_(double, 4, avx)
 
-// #elif...
-
 #endif
 
+#if defined(__AVX512F__)
 
+#include <util/simd/avx512.hpp>
+ARB_DEF_NATIVE_SIMD_(double, 8, avx512)
+
+#endif

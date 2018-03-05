@@ -419,6 +419,9 @@ typedef ::testing::Types<
     simd<int, 4, simd_abi::avx2>,
     simd<double, 4, simd_abi::avx2>,
 #endif
+#ifdef __AVX512F__
+    simd<double, 8, simd_abi::avx512>,
+#endif
 
     simd<int, 4, simd_abi::generic>,
     simd<float, 2, simd_abi::generic>,
@@ -426,7 +429,9 @@ typedef ::testing::Types<
     simd<float, 8, simd_abi::generic>,
 
     simd<int, 4, simd_abi::default_abi>,
-    simd<double, 4, simd_abi::default_abi>
+    simd<double, 4, simd_abi::default_abi>,
+    simd<int, 8, simd_abi::default_abi>,
+    simd<double, 8, simd_abi::default_abi>
 > simd_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_value, simd_test_types);
@@ -602,12 +607,16 @@ typedef ::testing::Types<
 #ifdef __AVX2__
     simd<double, 4, simd_abi::avx2>,
 #endif
+#ifdef __AVX512F__
+    simd<double, 8, simd_abi::avx512>,
+#endif
 
     simd<float, 2, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
     simd<float, 8, simd_abi::generic>,
 
-    simd<double, 4, simd_abi::default_abi>
+    simd<double, 4, simd_abi::default_abi>,
+    simd<double, 8, simd_abi::default_abi>
 > simd_fp_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_fp_value, simd_fp_test_types);
@@ -775,6 +784,13 @@ typedef ::testing::Types<
                    simd<int, 4, simd_abi::avx2>>,
 #endif
 
+/* TODO
+#ifdef __AVX512F__
+    simd_and_index<simd<double, 8, simd_abi::avx512>,
+                   simd<int, 8, simd_abi::avx512>>,
+#endif
+*/
+
     simd_and_index<simd<float, 4, simd_abi::generic>,
                    simd<std::int64_t, 4, simd_abi::generic>>,
 
@@ -782,8 +798,10 @@ typedef ::testing::Types<
                    simd<unsigned, 8, simd_abi::generic>>,
 
     simd_and_index<simd<double, 4, simd_abi::default_abi>,
-                   simd<int, 4, simd_abi::default_abi>>
+                   simd<int, 4, simd_abi::default_abi>>,
 
+    simd_and_index<simd<double, 8, simd_abi::default_abi>,
+                   simd<int, 8, simd_abi::default_abi>>
 > simd_indirect_test_types;
 
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_indirect, simd_indirect_test_types);
