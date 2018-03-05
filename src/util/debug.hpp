@@ -2,8 +2,13 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <mutex>
 #include <utility>
+
+extern "C" {
+#include <endian.h>
+}
 
 #include <threading/threading.hpp>
 #include "unwind.hpp"
@@ -84,14 +89,82 @@ namespace impl {
             return out;
         }
     };
+
+    enum class endian {
+        little = __ORDER_LITTLE_ENDIAN__,
+        big = __ORDER_BIG_ENDIAN__,
+        native = __BYTE_ORDER__
+    };
+
+    struct hexdump_inline_wrap {
+        const unsigned char* from;
+        std::size_t size;
+        unsigned width = 4;
+
+        friend std::ostream& operator<<(std::ostream& out, const hexdump_inline_wrap& h) {
+            using std::ptrdiff_t;
+
+            constexpr bool little = endian::native==endian::little;
+            ptrdiff_t width = h.width;
+            const unsigned char* from = h.from;
+            const unsigned char *end = h.from+h.size;
+            std::string buf;
+
+            auto emit = [&buf](unsigned char c) {
+                const char* digit = "0123456789abcdef";
+                buf += digit[(c>>4)&0xf];
+                buf += digit[c&0xf];
+            };
+
+            constexpr unsigned bufsz = 512;
+            unsigned bufmargin = 4*width+1;
+
+            buf.reserve(bufsz);
+            while (end-from>width) {
+                if (buf.size()+bufmargin>=bufsz) {
+                    out << buf;
+                    buf.clear();
+                }
+                for (ptrdiff_t i = 0; i<width; ++i) {
+                    emit(little? from[width-i-1]: from[i]);
+                }
+                from += width;
+                buf += ' ';
+            }
+            for (ptrdiff_t i = 0; i<end-from; ++i) {
+                emit(little? from[width-i-1]: from[i]);
+            }
+
+            out << buf;
+            return out;
+        }
+    };
 }
 
 // Wrap a sequence or container of values so that they can be printed
 // to an `std::ostream` with the elements separated by the supplied 
 // separator.
+
 template <typename Seq, typename Separator>
 impl::sepval<Seq, Separator> sepval(const Seq& seq, Separator sep) {
     return impl::sepval<Seq, Separator>(seq, std::move(sep));
+}
+
+template <typename Seq>
+impl::sepval<Seq, const char*> csv(const Seq& seq) {
+    return sepval(seq, ", ");
+}
+
+// Dump something in hex (inline representation).
+
+template <typename T>
+impl::hexdump_inline_wrap hexdump(const T& obj, unsigned width=4) {
+    return impl::hexdump_inline_wrap{reinterpret_cast<const unsigned char*>(&obj), sizeof obj, width};
+}
+
+template <typename T>
+impl::hexdump_inline_wrap hexdump_n(const T* ptr, std::size_t n, unsigned width=4) {
+    return impl::hexdump_inline_wrap{reinterpret_cast<const unsigned char*>(ptr), n, width};
 }
 
 } // namespace util
