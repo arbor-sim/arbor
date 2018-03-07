@@ -84,7 +84,6 @@ struct simd_value: public ::testing::Test {};
 TYPED_TEST_CASE_P(simd_value);
 
 // Initialization and element access.
-
 TYPED_TEST_P(simd_value, elements) {
     using simd = TypeParam;
     using scalar = typename simd::scalar_type;
@@ -210,11 +209,19 @@ TYPED_TEST_P(simd_value, arithmetic) {
 
         (us/vs).copy_to(r);
 #if defined(__INTEL_COMPILER)
-        // icpc will by default use an approximation for scalar
-        // division, breaking equivalence test here unless a
-        // specific -fp-model option is provided.
-        // Play safe, and use an almost equal test in this case.
-        EXPECT_TRUE(testing::seq_almost_eq<scalar>(u_divide_v, r));
+        // icpc will by default use an approximation for scalar division,
+        // and a different one for vectorized scalar division; the latter,
+        // in particular, is often out by 1 ulp for normal quotients.
+        //
+        // Unfortunately, we can't check at compile time the floating
+        // point dodginess quotient.
+
+        if (std::is_floating_point<scalar>::value) {
+            EXPECT_TRUE(testing::seq_almost_eq<scalar>(u_divide_v, r));
+        }
+        else {
+            EXPECT_TRUE(testing::seq_eq(u_divide_v, r));
+        }
 #else
         EXPECT_TRUE(testing::seq_eq(u_divide_v, r));
 #endif
@@ -440,6 +447,8 @@ typedef ::testing::Types<
     simd<double, 8, simd_abi::default_abi>
 > simd_test_types;
 
+typedef ::testing::Types<simd<double, 4, simd_abi::avx2>> foo;
+
 INSTANTIATE_TYPED_TEST_CASE_P(S, simd_value, simd_test_types);
 
 // FP-only SIMD value tests (maths).
@@ -604,7 +613,48 @@ TYPED_TEST_P(simd_fp_value, exp_special_values) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths, exp_special_values);
+TYPED_TEST_P(simd_fp_value, log_special_values) {
+    using simd = TypeParam;
+    using fp = typename simd::scalar_type;
+    constexpr unsigned N = simd::width;
+
+    using limits = std::numeric_limits<fp>;
+
+    constexpr fp inf = limits::infinity();
+    constexpr fp eps = limits::epsilon();
+    constexpr fp largest = limits::max();
+    constexpr fp normal_least = limits::min();
+    constexpr fp denorm_least = limits::denorm_min();
+    constexpr fp qnan = limits::quiet_NaN();
+
+    fp values[] = { inf, -inf, eps, -eps,
+                    eps/2, -eps/2, 0., -0.,
+                    1., -1., 2., -2.,
+                    normal_least, denorm_least, -normal_least, -denorm_least,
+                    qnan, -qnan, largest };
+
+    constexpr unsigned n_values = sizeof(values)/sizeof(fp);
+    constexpr unsigned n_packed = (n_values+N-1)/N;
+    fp data[n_packed][N];
+
+    std::fill((fp *)data, (fp *)data+N*n_packed, fp(0));
+    std::copy(std::begin(values), std::end(values), (fp *)data);
+
+    for (unsigned i = 0; i<n_packed; ++i) {
+        fp expected[N], result[N];
+        for (unsigned j = 0; j<N; ++j) {
+            expected[j] = std::log(data[i][j]);
+        }
+
+        simd s(data[i]);
+        s = log(s);
+        s.copy_to(result);
+
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(expected, result));
+    }
+}
+
+REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths, exp_special_values, log_special_values);
 
 typedef ::testing::Types<
 #ifdef __AVX__

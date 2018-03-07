@@ -634,7 +634,7 @@ struct avx2_double4: avx_double4 {
     static __m256d log(const __m256d& x) {
         // Masks for exceptional cases.
 
-        auto is_large = cmp_gt(x, broadcast(HUGE_VAL));
+        auto is_large = cmp_geq(x, broadcast(HUGE_VAL));
         auto is_small = cmp_lt(x, broadcast(log_minarg));
         auto is_domainerr = _mm256_cmp_pd(x, broadcast(0), cmp_nge_uq);
 
@@ -660,7 +660,7 @@ struct avx2_double4: avx_double4 {
         r = sub(z, r);
         r = fma(g,  broadcast(ln2C3), r);
 
-        // Return NaN if x is NaN or negarive, +inf if x is +inf,
+        // Return NaN if x is NaN or negative, +inf if x is +inf,
         // or -inf if zero or (positive) denormal.
 
         return

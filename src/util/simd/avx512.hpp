@@ -295,15 +295,11 @@ struct avx512_double8: implbase<avx512_double8> {
     // Refer to avx/avx2 code for details of the exponential and log
     // implementations.
 
-    // TODO: use getmant, getexp, and maybe fixupimm for more
-    // efficient implementations.
-
     static  __m512d exp(const __m512d& x) {
         // Masks for exceptional cases.
 
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
         auto is_small = cmp_lt(x, broadcast(exp_minarg));
-        auto is_nan = _mm512_cmp_pd_mask(x, x, cmp_unord_q);
 
         // Compute n and g.
 
@@ -323,28 +319,24 @@ struct avx512_double8: implbase<avx512_double8> {
 
         auto expg = fma(broadcast(2), div(odd, sub(even, odd)), broadcast(1));
 
-        // Finally, compute product with 2^n.
-        // Note: can only achieve full range using the ldexp implementation,
-        // rather than multiplying by 2^n directly.
+        // Scale by 2^n, propogating NANs.
 
-        auto result = ldexp_positive(expg, _mm512_cvtpd_epi32(n));
+        auto result = _mm512_scalef_pd(expg, n);
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(0),
-            ifelse(is_nan, broadcast(NAN),
-                   result)));
+                   result));
     }
 
     static __m512d log(const __m512d& x) {
-       // Masks for exceptional cases.
+        // Masks for exceptional cases.
 
-        auto is_large = cmp_gt(x, broadcast(HUGE_VAL));
+        auto is_large = cmp_geq(x, broadcast(HUGE_VAL));
         auto is_small = cmp_lt(x, broadcast(log_minarg));
-        auto is_domainerr = _mm512_cmp_pd_mask(x, broadcast(0), cmp_nge_uq);
 
-        __m512d g = _mm512_cvtepi32_pd(logb_normal(x));
-        __m512d u = fraction_normal(x);
+        __m512d g = _mm512_getexp_pd(x);
+        __m512d u = _mm512_getmant_pd(x, _MM_MANT_NORM_1_2, _MM_MANT_SIGN_nan);
 
         __m512d one = broadcast(1.);
         __m512d half = broadcast(0.5);
@@ -365,24 +357,17 @@ struct avx512_double8: implbase<avx512_double8> {
         r = sub(z, r);
         r = fma(g,  broadcast(ln2C3), r);
 
-        // Return NaN if x is NaN or negarive, +inf if x is +inf,
-        // or -inf if zero or (positive) denormal.
+        // r is alrady NaN if x is NaN or negative, otherwise
+        // return  +inf if x is +inf, or -inf if zero or (positive) denormal.
 
         return
-            ifelse(is_domainerr, broadcast(NAN),
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-HUGE_VAL),
-                r)));
+                r));
     }
 #endif
 
 protected:
-    static __m256i hi_epi32(__m512i a) {
-        __m512i idx = _mm512_setr_epi32(1,3,5,7,9,11,13,15,0,0,0,0,0,0,0,0);
-        return _mm512_castsi512_si256(_mm512_permutexvar_epi32(idx, a));
-
-    }
-
     static inline __m512d horner1(__m512d x, double a0) {
         return add(x, broadcast(a0));
     }
@@ -403,31 +388,6 @@ protected:
 
     static __m512d fms(const __m512d& a, const __m512d& b, const __m512d& c) {
         return _mm512_fmsub_pd(a, b, c);
-    }
-
-
-    // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
-    static __m512d ldexp_positive(__m512d x, __m256i n) {
-        __m512i smask = _mm512_set1_epi64(0x7fffffffffffffffll);
-        __m512i nshift = _mm512_slli_epi64(_mm512_cvtepi32_epi64(n), 52);
-        __m512i sum = _mm512_add_epi64(nshift, _mm512_castpd_si512(x));
-
-        return _mm512_castsi512_pd(_mm512_and_si512(sum, smask));
-    }
-
-    // Compute n and f such that x = 2^n*f, with |f| ∈ [1,2), given x is finite and normal.
-    static __m256i logb_normal(const __m512d& x) {
-        __m256i xw = hi_epi32(_mm512_castpd_si512(x));
-        __m256i emask = _mm256_set1_epi32(0x7ff00000);
-        __m256i ebiased = _mm256_srli_epi32(_mm256_and_si256(xw, emask), 20);
-
-        return _mm256_sub_epi32(ebiased, _mm256_set1_epi32(1023));
-    }
-
-    static __m512d fraction_normal(const __m512d& x) {
-        __m512i emask = _mm512_set1_epi64(-0x7ff0000000000001); // 0x800fffffffffffff
-        __m512i bias = _mm512_set1_epi64(0x3ff0000000000000);
-        return _mm512_castsi512_pd(_mm512_or_si512(bias, _mm512_and_si512(emask, _mm512_castpd_si512(x))));
     }
 };
 
