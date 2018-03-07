@@ -275,25 +275,28 @@ struct avx512_double8: implbase<avx512_double8> {
     // approximations.
 
 #if defined(__INTEL_COMPILER)
-    static  __m512 exp(const __m512& x) {
+    static  __m512d exp(const __m512d& x) {
         return _mm512_exp_pd(x);
     }
 
-    static  __m512 expm1(const __m512& x) {
+    static  __m512d expm1(const __m512d& x) {
         return _mm512_expm1_pd(x);
     }
 
-    static __m512 log(const __m512& x) {
+    static __m512d log(const __m512d& x) {
         return _mm512_log_pd(x);
     }
 
-    static __m512 pow(const __m512& x, const __m512& y) {
+    static __m512d pow(const __m512d& x, const __m512d& y) {
         return _mm512_pow_pd(x, y);
     }
 #else
 
     // Refer to avx/avx2 code for details of the exponential and log
     // implementations.
+
+    // TODO: use getmant, getexp, and maybe fixupimm for more
+    // efficient implementations.
 
     static  __m512d exp(const __m512d& x) {
         // Masks for exceptional cases.

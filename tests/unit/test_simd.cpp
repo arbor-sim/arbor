@@ -209,7 +209,15 @@ TYPED_TEST_P(simd_value, arithmetic) {
         EXPECT_TRUE(testing::seq_eq(u_times_v, r));
 
         (us/vs).copy_to(r);
+#if defined(__INTEL_COMPILER)
+        // icpc will by default use an approximation for scalar
+        // division, breaking equivalence test here unless a
+        // specific -fp-model option is provided.
+        // Play safe, and use an almost equal test in this case.
+        EXPECT_TRUE(testing::seq_almost_eq<scalar>(u_divide_v, r));
+#else
         EXPECT_TRUE(testing::seq_eq(u_divide_v, r));
+#endif
 
         (fma(us, vs, ws)).copy_to(r);
         EXPECT_TRUE(testing::seq_eq(fma_u_v_w, r));
