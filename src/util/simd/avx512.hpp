@@ -329,6 +329,41 @@ struct avx512_double8: implbase<avx512_double8> {
                    result));
     }
 
+    static  __m512d expm1(const __m512d& x) {
+        auto is_large = cmp_gt(x, broadcast(exp_maxarg));
+        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+
+        auto half = broadcast(0.5);
+        auto one = broadcast(1.);
+
+        n = _mm512_maskz_roundscale_round_pd(
+                cmp_gt(abs(x), half),
+                mul(broadcast(ln2inv), x),
+                0,
+                _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
+
+        auto g = fma(n, broadcast(-ln2C1), x);
+        g = fma(n, broadcast(-ln2C2), g);
+
+        auto gg = mul(g, g);
+
+        auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
+        auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
+
+        // Compute R(g)/R(-g) -1 = 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
+
+        auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
+
+        // Scale by 2^n, propogating NANs.
+
+        auto result = add(sub(_mm512_scalef_pd(one, n), one), _mm512_scalef_pd(expgm1, n));
+
+        return
+            ifelse(is_large, broadcast(HUGE_VAL),
+            ifelse(is_small, broadcast(-1),
+                   result));
+    }
+
     static __m512d log(const __m512d& x) {
         // Masks for exceptional cases.
 

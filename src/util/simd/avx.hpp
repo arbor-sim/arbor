@@ -391,6 +391,44 @@ struct avx_double4: implbase<avx_double4> {
                    result)));
     }
 
+    // Use same rational polynomial expansion as for exp(x), without
+    // the unit term.
+    //
+    // For |x|<=0.5, take n to be zero. Otherwise, set n as above,
+    // and scale the answer by:
+    //     expm1(x) = 2^n * expm1(g) + (2^n - 1).
+
+    static  __m256d expm1(const __m256d& x) {
+        auto is_large = cmp_gt(x, broadcast(exp_maxarg));
+        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+        auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
+
+        auto half = broadcast(0.5);
+        auto one = broadcast(1.);
+
+        auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), half));
+        n = ifelse(cmp_gt(abs(x), half), n, zero());
+
+        auto g = sub(x, mul(n, broadcast(ln2C1)));
+        g = sub(g, mul(n, broadcast(ln2C2)));
+
+        auto gg = mul(g, g);
+
+        auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
+        auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
+
+        auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
+
+        auto nint = _mm256_cvtpd_epi32(n);
+        auto result = add(sub(exp2int(nint), one), ldexp_normal(expgm1, nint));
+
+        return
+            ifelse(is_large, broadcast(HUGE_VAL),
+            ifelse(is_small, broadcast(-1),
+            ifelse(is_nan, broadcast(NAN),
+                   result)));
+    }
+
     // Natural logarithm:
     //
     // Decompose x = 2^g * u such that g is an integer and
@@ -522,7 +560,6 @@ protected:
         return _mm256_or_pd(bias, _mm256_and_pd(emask, x));
     }
 
-
     // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
     static __m256d ldexp_positive(__m256d x, __m128i n) {
         __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
@@ -540,6 +577,26 @@ protected:
         __m256i sumhl = combine_m128i(sumh, suml);
 
         return _mm256_and_pd(_mm256_castsi256_pd(sumhl), smask);
+    }
+
+    // Compute 2^n*x when both x and 2^n*x are normal and finite.
+    static __m256d ldexp_normal(__m256d x, __m128i n) {
+        __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
+        __m256d sbits = _mm256_andnot_pd(smask, x);
+
+        n = _mm_slli_epi32(n, 20);
+        auto zero = _mm_set1_epi32(0);
+        auto nl = _mm_unpacklo_epi32(zero, n);
+        auto nh = _mm_unpackhi_epi32(zero, n);
+
+        __m128d xl = _mm256_castpd256_pd128(x);
+        __m128d xh = _mm256_extractf128_pd(x, 1);
+
+        __m128i suml = _mm_add_epi64(nl, _mm_castpd_si128(xl));
+        __m128i sumh = _mm_add_epi64(nh, _mm_castpd_si128(xh));
+        __m256i sumhl = combine_m128i(sumh, suml);
+
+        return _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sumhl), smask), sbits);
     }
 };
 
@@ -590,7 +647,7 @@ struct avx2_double4: avx_double4 {
         return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
     };
 
-    // avx4_double4 versions of log and exp use the same algorithms as for avx_double4,
+    // avx4_double4 versions of log, exp, and expm1 use the same algorithms as for avx_double4,
     // but use AVX2-specialized bit manipulation and FMA.
 
     static  __m256d exp(const __m256d& x) {
@@ -627,6 +684,37 @@ struct avx2_double4: avx_double4 {
         return
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(0),
+            ifelse(is_nan, broadcast(NAN),
+                   result)));
+    }
+
+    static  __m256d expm1(const __m256d& x) {
+        auto is_large = cmp_gt(x, broadcast(exp_maxarg));
+        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+        auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
+
+        auto half = broadcast(0.5);
+        auto one = broadcast(1.);
+
+        auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), half));
+        n = ifelse(cmp_gt(abs(x), half), n, zero());
+
+        auto g = fma(n, broadcast(-ln2C1), x);
+        g = fma(n, broadcast(-ln2C2), g);
+
+        auto gg = mul(g, g);
+
+        auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
+        auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
+
+        auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
+
+        auto nint = _mm256_cvtpd_epi32(n);
+        auto result = add(sub(exp2int(nint), one), ldexp_normal(expgm1, nint));
+
+        return
+            ifelse(is_large, broadcast(HUGE_VAL),
+            ifelse(is_small, broadcast(-1),
             ifelse(is_nan, broadcast(NAN),
                    result)));
     }
@@ -705,13 +793,30 @@ protected:
         return _mm256_fmsub_pd(a, b, c);
     }
 
+    // Compute 2.0^n.
+    static __m256d exp2int(__m128i n) {
+        n = _mm_add_epi32(n, 1023<<20);
+        __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
+        return _mm256_castsi256_pd(sum);
+    }
 
     // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
+    // Overrides avx_double4::ldexp_positive.
     static __m256d ldexp_positive(__m256d x, __m128i n) {
         __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
         __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
         __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
         return _mm256_and_pd(_mm256_castsi256_pd(sum), smask);
+    }
+
+    // Compute 2^n*x when both x and 2^n*x are normal and finite.
+    // Overrides avx_double4::ldexp_normal.
+    static __m256d ldexp_normal(__m256d x, __m128i n) {
+        __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
+        __m256d sbits = _mm256_andnot(smask, x);
+        __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
+        __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
+        return _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sum), smask), sbits);
     }
 
     // Override avx_double4::logb_normal so as to use avx2 version of hi_epi32.
