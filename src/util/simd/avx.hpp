@@ -562,8 +562,6 @@ protected:
 
     // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
     static __m256d ldexp_positive(__m256d x, __m128i n) {
-        __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
-
         n = _mm_slli_epi32(n, 20);
         auto zero = _mm_set1_epi32(0);
         auto nl = _mm_unpacklo_epi32(zero, n);
@@ -576,7 +574,7 @@ protected:
         __m128i sumh = _mm_add_epi64(nh, _mm_castpd_si128(xh));
         __m256i sumhl = combine_m128i(sumh, suml);
 
-        return _mm256_and_pd(_mm256_castsi256_pd(sumhl), smask);
+        return _mm256_castsi256_pd(sumhl);
     }
 
     // Compute 2^n*x when both x and 2^n*x are normal and finite.
@@ -794,26 +792,27 @@ protected:
     }
 
     // Compute 2.0^n.
+    // Overrides avx_double4::exp2int.
     static __m256d exp2int(__m128i n) {
-        n = _mm_add_epi32(n, 1023<<20);
+        __m256d x = broadcast(1);
         __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
+        __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
         return _mm256_castsi256_pd(sum);
     }
 
     // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
     // Overrides avx_double4::ldexp_positive.
     static __m256d ldexp_positive(__m256d x, __m128i n) {
-        __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
         __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
         __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
-        return _mm256_and_pd(_mm256_castsi256_pd(sum), smask);
+        return _mm256_castsi256_pd(sum);
     }
 
     // Compute 2^n*x when both x and 2^n*x are normal and finite.
     // Overrides avx_double4::ldexp_normal.
     static __m256d ldexp_normal(__m256d x, __m128i n) {
         __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
-        __m256d sbits = _mm256_andnot(smask, x);
+        __m256d sbits = _mm256_andnot_pd(smask, x);
         __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
         __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
         return _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sum), smask), sbits);

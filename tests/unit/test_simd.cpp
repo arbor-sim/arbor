@@ -625,17 +625,21 @@ TYPED_TEST_P(simd_fp_value, log_special_values) {
 
     using limits = std::numeric_limits<fp>;
 
+    // NOTE: simd log implementations may treat subnormal
+    // numbers as zero, so omit the denorm_least tests...
+
     constexpr fp inf = limits::infinity();
     constexpr fp eps = limits::epsilon();
     constexpr fp largest = limits::max();
     constexpr fp normal_least = limits::min();
-    constexpr fp denorm_least = limits::denorm_min();
+    //constexpr fp denorm_least = limits::denorm_min();
     constexpr fp qnan = limits::quiet_NaN();
 
     fp values[] = { inf, -inf, eps, -eps,
                     eps/2, -eps/2, 0., -0.,
                     1., -1., 2., -2.,
-                    normal_least, denorm_least, -normal_least, -denorm_least,
+                    //normal_least, denorm_least, -normal_least, -denorm_least,
+                    normal_least, -normal_least,
                     qnan, -qnan, largest };
 
     constexpr unsigned n_values = sizeof(values)/sizeof(fp);

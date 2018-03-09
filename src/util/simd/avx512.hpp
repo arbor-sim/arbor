@@ -336,11 +336,11 @@ struct avx512_double8: implbase<avx512_double8> {
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
 
-        n = _mm512_maskz_roundscale_round_pd(
-                cmp_gt(abs(x), half),
-                mul(broadcast(ln2inv), x),
-                0,
-                _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
+        auto n = _mm512_maskz_roundscale_round_pd(
+                    cmp_gt(abs(x), half),
+                    mul(broadcast(ln2inv), x),
+                    0,
+                    _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);
@@ -369,6 +369,7 @@ struct avx512_double8: implbase<avx512_double8> {
 
         auto is_large = cmp_geq(x, broadcast(HUGE_VAL));
         auto is_small = cmp_lt(x, broadcast(log_minarg));
+        is_small = avx512_mask8::logical_and(is_small, cmp_geq(x, broadcast(0)));
 
         __m512d g = _mm512_getexp_pd(x);
         __m512d u = _mm512_getmant_pd(x, _MM_MANT_NORM_1_2, _MM_MANT_SIGN_nan);
