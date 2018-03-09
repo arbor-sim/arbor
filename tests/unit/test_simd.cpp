@@ -616,6 +616,19 @@ TYPED_TEST_P(simd_fp_value, exp_special_values) {
 
         EXPECT_TRUE(testing::seq_almost_eq<fp>(expected, result));
     }
+
+    for (unsigned i = 0; i<n_packed; ++i) {
+        fp expected[N], result[N];
+        for (unsigned j = 0; j<N; ++j) {
+            expected[j] = std::expm1(data[i][j]);
+        }
+
+        simd s(data[i]);
+        s = expm1(s);
+        s.copy_to(result);
+
+        EXPECT_TRUE(testing::seq_almost_eq<fp>(expected, result));
+    }
 }
 
 TYPED_TEST_P(simd_fp_value, log_special_values) {

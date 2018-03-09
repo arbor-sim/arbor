@@ -451,7 +451,7 @@ struct avx_double4: implbase<avx_double4> {
     static __m256d log(const __m256d& x) {
         // Masks for exceptional cases.
 
-        auto is_large = cmp_gt(x, broadcast(HUGE_VAL));
+        auto is_large = cmp_geq(x, broadcast(HUGE_VAL));
         auto is_small = cmp_lt(x, broadcast(log_minarg));
         auto is_domainerr = _mm256_cmp_pd(x, broadcast(0), cmp_nge_uq);
 
