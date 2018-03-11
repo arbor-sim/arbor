@@ -616,6 +616,37 @@ TYPED_TEST_P(simd_fp_value, exp_special_values) {
 
         EXPECT_TRUE(testing::seq_almost_eq<fp>(expected, result));
     }
+}
+
+TYPED_TEST_P(simd_fp_value, expm1_special_values) {
+    using simd = TypeParam;
+    using fp = typename simd::scalar_type;
+    constexpr unsigned N = simd::width;
+
+    using limits = std::numeric_limits<fp>;
+
+    constexpr fp inf = limits::infinity();
+    constexpr fp eps = limits::epsilon();
+    constexpr fp largest = limits::max();
+    constexpr fp normal_least = limits::min();
+    constexpr fp denorm_least = limits::denorm_min();
+    constexpr fp qnan = limits::quiet_NaN();
+
+    const fp expm1_minarg = std::nextafter(std::log(eps/4), fp(0));
+    const fp expm1_maxarg = std::log(largest);
+
+    fp values[] = { inf, -inf, eps, -eps,
+                    eps/2, -eps/2, 0., -0.,
+                    1., -1., 2., -2.,
+                    normal_least, denorm_least, -normal_least, -denorm_least,
+                    expm1_minarg, expm1_maxarg, qnan, -qnan };
+
+    constexpr unsigned n_values = sizeof(values)/sizeof(fp);
+    constexpr unsigned n_packed = (n_values+N-1)/N;
+    fp data[n_packed][N];
+
+    std::fill((fp *)data, (fp *)data+N*n_packed, fp(0));
+    std::copy(std::begin(values), std::end(values), (fp *)data);
 
     for (unsigned i = 0; i<n_packed; ++i) {
         fp expected[N], result[N];
@@ -676,7 +707,7 @@ TYPED_TEST_P(simd_fp_value, log_special_values) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths, exp_special_values, log_special_values);
+REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths, exp_special_values, expm1_special_values, log_special_values);
 
 typedef ::testing::Types<
 #ifndef DEFAULT_ABI_ONLY

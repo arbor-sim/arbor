@@ -331,7 +331,7 @@ struct avx512_double8: implbase<avx512_double8> {
 
     static  __m512d expm1(const __m512d& x) {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
-        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+        auto is_small = cmp_lt(x, broadcast(expm1_minarg));
 
         auto half = broadcast(0.5);
         auto one = broadcast(1.);

@@ -400,14 +400,15 @@ struct avx_double4: implbase<avx_double4> {
 
     static  __m256d expm1(const __m256d& x) {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
-        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+        auto is_small = cmp_lt(x, broadcast(expm1_minarg));
         auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
 
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
 
+        auto smallx = cmp_leq(abs(x), half);
         auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), half));
-        n = ifelse(cmp_gt(abs(x), half), n, zero());
+        n = ifelse(smallx, zero(), n);
 
         auto g = sub(x, mul(n, broadcast(ln2C1)));
         g = sub(g, mul(n, broadcast(ln2C2)));
@@ -419,14 +420,19 @@ struct avx_double4: implbase<avx_double4> {
 
         auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
 
-        auto nint = _mm256_cvtpd_epi32(n);
-        auto result = add(sub(exp2int(nint), one), ldexp_normal(expgm1, nint));
+        // For small x (n zero), skip scaling (avoids underflow case when |x| very small).
+        // Otherwise, scale by 2 * (2^(n-1) * expgm1 + (2^(n-1)-0.5)) in order to
+        // avoid overflow case for n=1024.
+
+        auto nm1 = _mm256_cvtpd_epi32(sub(n, one));
+        auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), broadcast(2.));
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-1),
             ifelse(is_nan, broadcast(NAN),
-                   result)));
+            ifelse(smallx, expgm1,
+                   scaled))));
     }
 
     // Natural logarithm:
@@ -532,6 +538,7 @@ protected:
         return add(mul(x, horner1(x, tail...)), broadcast(a0));
     }
 
+    // Compute 2.0^n.
     static __m256d exp2int(__m128i n) {
         n = _mm_slli_epi32(n, 20);
         n = _mm_add_epi32(n, _mm_set1_epi32(1023<<20));
@@ -583,9 +590,9 @@ protected:
         __m256d sbits = _mm256_andnot_pd(smask, x);
 
         n = _mm_slli_epi32(n, 20);
-        auto zero = _mm_set1_epi32(0);
-        auto nl = _mm_unpacklo_epi32(zero, n);
-        auto nh = _mm_unpackhi_epi32(zero, n);
+        auto zi = _mm_set1_epi32(0);
+        auto nl = _mm_unpacklo_epi32(zi, n);
+        auto nh = _mm_unpackhi_epi32(zi, n);
 
         __m128d xl = _mm256_castpd256_pd128(x);
         __m128d xh = _mm256_extractf128_pd(x, 1);
@@ -594,7 +601,8 @@ protected:
         __m128i sumh = _mm_add_epi64(nh, _mm_castpd_si128(xh));
         __m256i sumhl = combine_m128i(sumh, suml);
 
-        return _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sumhl), smask), sbits);
+        auto nzans = _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sumhl), smask), sbits);
+        return ifelse(cmp_eq(x, zero()), zero(), nzans);
     }
 };
 
@@ -688,14 +696,15 @@ struct avx2_double4: avx_double4 {
 
     static  __m256d expm1(const __m256d& x) {
         auto is_large = cmp_gt(x, broadcast(exp_maxarg));
-        auto is_small = cmp_lt(x, broadcast(exp_minarg));
+        auto is_small = cmp_lt(x, broadcast(expm1_minarg));
         auto is_nan = _mm256_cmp_pd(x, x, cmp_unord_q);
 
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
 
-        auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), half));
-        n = ifelse(cmp_gt(abs(x), half), n, zero());
+        auto smallx = cmp_leq(abs(x), half);
+        auto n = _mm256_floor_pd(fma(broadcast(ln2inv), x), half);
+        n = ifelse(smallx, zero(), n);
 
         auto g = fma(n, broadcast(-ln2C1), x);
         g = fma(n, broadcast(-ln2C2), g);
@@ -707,14 +716,15 @@ struct avx2_double4: avx_double4 {
 
         auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
 
-        auto nint = _mm256_cvtpd_epi32(n);
-        auto result = add(sub(exp2int(nint), one), ldexp_normal(expgm1, nint));
+        auto nm1 = _mm256_cvtpd_epi32(sub(n, one));
+        auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), broadcast(2.));
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-1),
             ifelse(is_nan, broadcast(NAN),
-                   result)));
+            ifelse(smallx, expgm1,
+                   scaled)));
     }
 
     static __m256d log(const __m256d& x) {
@@ -815,7 +825,9 @@ protected:
         __m256d sbits = _mm256_andnot_pd(smask, x);
         __m256i nshift = _mm256_slli_epi64(_mm256_cvtepi32_epi64(n), 52);
         __m256i sum = _mm256_add_epi64(nshift, _mm256_castpd_si256(x));
-        return _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sum), smask), sbits);
+
+        auto nzans = _mm256_or_pd(_mm256_and_pd(_mm256_castsi256_pd(sum), smask), sbits);
+        return ifelse(cmp_eq(x, zero()), zero(), nzans);
     }
 
     // Override avx_double4::logb_normal so as to use avx2 version of hi_epi32.

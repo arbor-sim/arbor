@@ -42,6 +42,11 @@ constexpr double ln2inv = 1.4426950408889634073599;
 constexpr double exp_minarg = -708.3964185322641;
 constexpr double exp_maxarg = 709.782712893384;
 
+// For expm1, minimum argument that gives a result
+// over -1.
+
+constexpr double expm1_minarg = -37.42994775023705;
+
 // Logarithm:
 //
 // Positive denormal numbers are treated as zero
