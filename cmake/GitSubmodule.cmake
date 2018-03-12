@@ -8,7 +8,6 @@ function(check_git_submodule name path)
     set(success_var "${name}_avail")
     set(${success_var} ON PARENT_SCOPE)
 
-    message("looking in ${path}")
     if(NOT EXISTS "${path}/.git")
         message(
             "\nThe ${name} submodule is not available.\n"
