@@ -336,8 +336,9 @@ struct avx512_double8: implbase<avx512_double8> {
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
 
+        auto nnz = cmp_gt(abs(x), half);
         auto n = _mm512_maskz_roundscale_round_pd(
-                    cmp_gt(abs(x), half),
+                    nnz,
                     mul(broadcast(ln2inv), x),
                     0,
                     _MM_FROUND_TO_NEAREST_INT |_MM_FROUND_NO_EXC);
@@ -354,14 +355,23 @@ struct avx512_double8: implbase<avx512_double8> {
 
         auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
 
-        // Scale by 2^n, propogating NANs.
+        // For small x (n zero), bypass scaling step to avoid underflow.
+        // Otherwise, compute result 2^n * expgm1 + (2^n-1) by:
+        //     result = 2 * ( 2^(n-1)*expgm1 + (2^(n-1)+0.5) )
+        // to avoid overflow when n=1024.
 
-        auto result = add(sub(_mm512_scalef_pd(one, n), one), _mm512_scalef_pd(expgm1, n));
+        auto nm1 = sub(n, one);
+
+        auto result =
+            _mm512_scalef_pd(
+                add(sub(_mm512_scalef_pd(one, nm1), half),
+                    _mm512_scalef_pd(expgm1, nm1)),
+                one);
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-1),
-                   result));
+            ifelse(nnz, result, expgm1)));
     }
 
     static __m512d log(const __m512d& x) {

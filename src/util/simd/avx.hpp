@@ -298,54 +298,47 @@ struct avx_double4: implbase<avx_double4> {
         return _mm256_and_pd(x, _mm256_castsi256_pd(m));
     }
 
-    //  Exponential is calculated as follows:
-    //     e^x = e^g * 2^n,
+    // Exponential is calculated as follows:
     //
-    //  where g in [-0.5, 0.5) and n is an integer. Obviously 2^n can be calculated
-    //  fast with bit shift, whereas e^g is approximated using the order-6 rational
-    //  approximation:
+    //     e^x = e^g · 2^n,
+    //
+    // where g in [-0.5, 0.5) and n is an integer. 2^n can be
+    // calculated via bit manipulation or specialized scaling intrinsics,
+    // whereas e^g is approximated using the order-6 rational
+    // approximation:
     //
     //     e^g = R(g)/R(-g)
     //
-    //  with R(x) split into even and odd terms:
+    // with R(x) split into even and odd terms:
     //
-    //     R(x) = Q(x^2) + x*P(x^2)
+    //     R(x) = Q(x^2) + x·P(x^2)
     //
-    //  so that the ratio can be computed as:
+    // so that the ratio can be computed as:
     //
-    //     e^g = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
+    //     e^g = 1 + 2·g·P(g^2) / (Q(g^2)-g·P(g^2)).
     //
-    //  Note that the coefficients for R are close to but not the same as those
-    //  from the 6,6 Padé approximant to the exponential. 
+    // Note that the coefficients for R are close to but not the same as those
+    // from the 6,6 Padé approximant to the exponential. 
     //
-    //  The exponents n and g are calculated using the following formulas:
+    // The exponents n and g are calculated by:
     //
-    //  n = floor(x/ln(2) + 0.5)
-    //  g = x - n*ln(2)
+    //     n = floor(x/ln(2) + 0.5)
+    //     g = x - n·ln(2)
     //
-    //  They can be derived as follows:
+    // so that x = g + n·ln(2). We have:
     //
-    //    e^x = 2^(x/ln(2))
-    //        = 2^-0.5 * 2^(x/ln(2) + 0.5)
-    //        = 2^r'-0.5 * 2^floor(x/ln(2) + 0.5)     (1)
-    //
-    // Setting n = floor(x/ln(2) + 0.5),
-    //
-    //    r' = x/ln(2) - n, and r' in [0, 1)
-    //
-    // Substituting r' in (1) gives us
-    //
-    //    e^x = 2^(x/ln(2) - n) * 2^n, where x/ln(2) - n is now in [-0.5, 0.5)
-    //        = e^(x-n*ln(2)) * 2^n
-    //        = e^g * 2^n, where g = x - n*ln(2)      (2)
+    //     |g| = |x - n·ln(2)|
+    //         = |x - x + α·ln(2)|
+    //  
+    // for some fraction |α| ≤ 0.5, and thus |g| ≤ 0.5ln(2) ≈ 0.347.
     //
     // NOTE: The calculation of ln(2) in (2) is split in two operations to
     // compensate for rounding errors:
     //
-    //   ln(2) = C1 + C2, where
+    //    ln(2) = C1 + C2, where
     //
-    //   C1 = floor(2^k*ln(2))/2^k
-    //   C2 = ln(2) - C1
+    //    C1 = floor(2^k*ln(2))/2^k
+    //    C2 = ln(2) - C1
     //
     // We use k=32, since this is what the Cephes library does historically.
     // Theoretically, we could use k=52 to match the IEEE-754 double accuracy, but
@@ -405,10 +398,11 @@ struct avx_double4: implbase<avx_double4> {
 
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
+        auto two = add(one, one);
 
-        auto smallx = cmp_leq(abs(x), half);
+        auto nzero = cmp_leq(abs(x), half);
         auto n = _mm256_floor_pd(add(mul(broadcast(ln2inv), x), half));
-        n = ifelse(smallx, zero(), n);
+        n = ifelse(nzero, zero(), n);
 
         auto g = sub(x, mul(n, broadcast(ln2C1)));
         g = sub(g, mul(n, broadcast(ln2C2)));
@@ -418,20 +412,21 @@ struct avx_double4: implbase<avx_double4> {
         auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
         auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
-        auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
+        auto expgm1 = mul(two, div(odd, sub(even, odd)));
 
-        // For small x (n zero), skip scaling (avoids underflow case when |x| very small).
-        // Otherwise, scale by 2 * (2^(n-1) * expgm1 + (2^(n-1)-0.5)) in order to
-        // avoid overflow case for n=1024.
+        // For small x (n zero), bypass scaling step to avoid underflow.
+        // Otherwise, compute result 2^n * expgm1 + (2^n-1) by:
+        //     result = 2 * ( 2^(n-1)*expgm1 + (2^(n-1)+0.5) )
+        // to avoid overflow when n=1024.
 
         auto nm1 = _mm256_cvtpd_epi32(sub(n, one));
-        auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), broadcast(2.));
+        auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), two);
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-1),
             ifelse(is_nan, broadcast(NAN),
-            ifelse(smallx, expgm1,
+            ifelse(nzero, expgm1,
                    scaled))));
     }
 
@@ -515,7 +510,7 @@ protected:
     }
 
     // horner(x, a0, ..., an) computes the degree n polynomial A(x) with coefficients
-    // a0, ..., an by a0+x*(a1+x*(a2+...+x*an)...).
+    // a0, ..., an by a0+x·(a1+x·(a2+...+x·an)...).
 
     static inline __m256d horner(__m256d x, double a0) {
         return broadcast(a0);
@@ -527,7 +522,7 @@ protected:
     }
 
     // horner1(x, a0, ..., an) computes the degree n+1 monic polynomial A(x) with coefficients
-    // a0, ..., an, 1 by by a0+x*(a1+x*(a2+...+x*(an+x)...).
+    // a0, ..., an, 1 by by a0+x·(a1+x·(a2+...+x·(an+x)...).
 
     static inline __m256d horner1(__m256d x, double a0) {
         return add(x, broadcast(a0));
@@ -552,7 +547,7 @@ protected:
             _mm256_castsi256_ps(nhnl),0xaa));
     }
 
-    // Compute n and f such that x = 2^n*f, with |f| ∈ [1,2), given x is finite and normal.
+    // Compute n and f such that x = 2^n·f, with |f| ∈ [1,2), given x is finite and normal.
     static __m128i logb_normal(const __m256d& x) {
         __m128i xw = hi_epi32(_mm256_castpd_si256(x));
         __m128i emask = _mm_set1_epi32(0x7ff00000);
@@ -562,12 +557,13 @@ protected:
     }
 
     static __m256d fraction_normal(const __m256d& x) {
-        __m256d emask = _mm256_castsi256_pd(_mm256_set1_epi64x(-0x7ff0000000000001)); // 0x800fffffffffffff
+        // 0x800fffffffffffff (intrinsic takes signed parameter)
+        __m256d emask = _mm256_castsi256_pd(_mm256_set1_epi64x(-0x7ff0000000000001));
         __m256d bias = _mm256_castsi256_pd(_mm256_set1_epi64x(0x3ff0000000000000));
         return _mm256_or_pd(bias, _mm256_and_pd(emask, x));
     }
 
-    // Compute 2^n*x when both x and 2^n*x are normal, finite and strictly positive doubles.
+    // Compute 2^n·x when both x and 2^n·x are normal, finite and strictly positive doubles.
     static __m256d ldexp_positive(__m256d x, __m128i n) {
         n = _mm_slli_epi32(n, 20);
         auto zero = _mm_set1_epi32(0);
@@ -584,7 +580,7 @@ protected:
         return _mm256_castsi256_pd(sumhl);
     }
 
-    // Compute 2^n*x when both x and 2^n*x are normal and finite.
+    // Compute 2^n·x when both x and 2^n·x are normal and finite.
     static __m256d ldexp_normal(__m256d x, __m128i n) {
         __m256d smask = _mm256_castsi256_pd(_mm256_set1_epi64x(0x7fffffffffffffffll));
         __m256d sbits = _mm256_andnot_pd(smask, x);
@@ -701,9 +697,10 @@ struct avx2_double4: avx_double4 {
 
         auto half = broadcast(0.5);
         auto one = broadcast(1.);
+        auto two = add(one, one);
 
         auto smallx = cmp_leq(abs(x), half);
-        auto n = _mm256_floor_pd(fma(broadcast(ln2inv), x), half);
+        auto n = _mm256_floor_pd(fma(broadcast(ln2inv), x, half));
         n = ifelse(smallx, zero(), n);
 
         auto g = fma(n, broadcast(-ln2C1), x);
@@ -714,17 +711,17 @@ struct avx2_double4: avx_double4 {
         auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
         auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
-        auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
+        auto expgm1 = mul(two, div(odd, sub(even, odd)));
 
         auto nm1 = _mm256_cvtpd_epi32(sub(n, one));
-        auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), broadcast(2.));
+        auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), two);
 
         return
             ifelse(is_large, broadcast(HUGE_VAL),
             ifelse(is_small, broadcast(-1),
             ifelse(is_nan, broadcast(NAN),
             ifelse(smallx, expgm1,
-                   scaled)));
+                   scaled))));
     }
 
     static __m256d log(const __m256d& x) {
