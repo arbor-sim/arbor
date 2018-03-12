@@ -96,8 +96,6 @@ void model::reset() {
 
     current_spikes().clear();
     previous_spikes().clear();
-
-    util::profiler_restart();
 }
 
 time_type model::run(time_type tfinal, time_type dt) {
@@ -150,8 +148,6 @@ time_type model::run(time_type tfinal, time_type dt) {
         setup_events(t0, t1, epoch_.id);
     };
 
-    util::profiler_start(); // start the profilers just before time stepping begins
-
     time_type tuntil = std::min(t_+t_interval, tfinal);
     epoch_ = epoch(0, tuntil);
     setup_events(t_, tuntil, 1);
@@ -178,8 +174,6 @@ time_type model::run(time_type tfinal, time_type dt) {
     // Run the exchange one last time to ensure that all spikes are output to file.
     local_spikes_.exchange();
     exchange();
-
-    util::profiler_stop(); // stop the profilers at the end of time stepping
 
     return t_;
 }

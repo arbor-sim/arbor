@@ -81,7 +81,7 @@ class profiler {
 
     // Hash table that maps region names to a unique index.
     // The regions are assigned consecutive indexes in the order that they are
-    // added to the profiler with calls to `index_from_name()`, with the first
+    // added to the profiler with calls to `region_index()`, with the first
     // region numbered zero.
     std::unordered_map<const char*, std::size_t> name_index_;
 
@@ -105,8 +105,13 @@ public:
     void enter(const char* name);
     void leave();
     const std::vector<std::string>& regions() const;
-    std::size_t index_from_name(const char* name);
+    std::size_t region_index(const char* name);
     profile results() const;
+
+    static profiler& get_global_profiler() {
+        static profiler p;
+        return p;
+    }
 };
 
 
@@ -126,10 +131,6 @@ struct profile_node {
         name(std::move(n)), time(0), count(npos) {}
 };
 
-namespace data {
-    arb::util::profiler profiler;
-}
-
 // recorder implementation
 
 const std::vector<profile_accumulator>& recorder::accumulators() const {
@@ -140,19 +141,22 @@ void recorder::enter(std::size_t index) {
     if (index_!=npos) {
         throw std::runtime_error("recorder::enter without matching recorder::leave");
     }
-    index_ = index;
-    start_time_ = timer_type::tic();
     if (index>=accumulators_.size()) {
         accumulators_.resize(index+1);
     }
+    index_ = index;
+    start_time_ = timer_type::tic();
 }
 
 void recorder::leave() {
+    // calculate the elapsed time before any other steps, to increase accuracy.
+    auto delta = timer_type::toc(start_time_);
+
     if (index_==npos) {
         throw std::runtime_error("recorder::leave without matching recorder::enter");
     }
     accumulators_[index_].count++;
-    accumulators_[index_].time += timer_type::toc(start_time_);
+    accumulators_[index_].time += delta;
     index_ = npos;
 }
 
@@ -175,7 +179,7 @@ void profiler::enter(std::size_t index) {
 }
 
 void profiler::enter(const char* name) {
-    const auto index = index_from_name(name);
+    const auto index = region_index(name);
     recorders_[threading::thread_id()].enter(index);
 }
 
@@ -189,7 +193,6 @@ void profiler::start() {
     }
     running_ = true;
     tstart_ = timer_type::tic();
-    tstart_= timer_type::tic();
 }
 
 void profiler::stop() {
@@ -210,7 +213,7 @@ void profiler::restart() {
     tstart_ = timer_type::tic();
 }
 
-std::size_t profiler::index_from_name(const char* name) {
+std::size_t profiler::region_index(const char* name) {
     // The name_index_ hash table is shared by all threads, so all access
     // has to be protected by a mutex.
     std::lock_guard<std::mutex> guard(mutex_);
@@ -341,30 +344,30 @@ const std::vector<std::string>& profiler::regions() const {
 //
 
 void profiler_leave() {
-    data::profiler.leave();
+    profiler::get_global_profiler().leave();
 }
 
 void profiler_start() {
-    data::profiler.start();
+    profiler::get_global_profiler().start();
 }
 
 void profiler_stop() {
-    data::profiler.stop();
+    profiler::get_global_profiler().stop();
 }
 
 void profiler_restart() {
-    data::profiler.restart();
+    profiler::get_global_profiler().restart();
 }
 
 std::size_t profiler_region_id(const char* name) {
     if (!is_valid_region_string(name)) {
         throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
     }
-    return data::profiler.index_from_name(name);
+    return profiler::get_global_profiler().region_index(name);
 }
 
 void profiler_enter(std::size_t region_id) {
-    data::profiler.enter(region_id);
+    profiler::get_global_profiler().enter(region_id);
 }
 
 // Print profiler statistics to stdout.
@@ -380,7 +383,7 @@ void profiler_print(const profile& prof, float threshold) {
 }
 
 profile profiler_summary() {
-    return data::profiler.results();
+    return profiler::get_global_profiler().results();
 }
 
 #else

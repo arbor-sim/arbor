@@ -155,7 +155,9 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init");
 
         // run model
+        util::profiler_start();
         m.run(options.tfinal, options.dt);
+        util::profiler_stop();
 
         meters.checkpoint("model-simulate");
 

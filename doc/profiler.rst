@@ -13,7 +13,7 @@ For example to compile a debug build with profiling turned on:
 
 .. code-block:: bash
 
-    cmake .. ARB_WITH_PROFILING=ON
+    cmake .. -DARB_WITH_PROFILING=ON
 
 Instrumenting Code
 ------------------
