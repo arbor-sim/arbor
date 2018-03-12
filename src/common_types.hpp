@@ -69,6 +69,7 @@ using sample_size_type = std::int32_t;
 
 enum cell_kind {
     cable1d_neuron,           // Our own special mc neuron
+    lif_neuron,               // Leaky-integrate and fire neuron
     regular_spike_source,     // Regular spiking source
     data_spike_source,        // Spike source from values inserted via description
 };

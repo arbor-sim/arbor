@@ -40,7 +40,7 @@ void merge_events(time_type t0,
                   time_type t1,
                   const pse_vector& lc,
                   pse_vector& pending_events,
-                  std::vector<event_generator_ptr>& generators,
+                  std::vector<event_generator>& generators,
                   pse_vector& lf);
 
 namespace impl {
@@ -51,7 +51,7 @@ namespace impl {
         using key_val = std::pair<unsigned, postsynaptic_spike_event>;
 
     public:
-        tourney_tree(std::vector<event_generator_ptr>& input);
+        tourney_tree(std::vector<event_generator>& input);
         bool empty() const;
         bool empty(time_type t) const;
         postsynaptic_spike_event head() const;
@@ -73,7 +73,7 @@ namespace impl {
         unsigned next_power_2(unsigned x) const;
 
         std::vector<key_val> heap_;
-        const std::vector<event_generator_ptr>& input_;
+        std::vector<event_generator>& input_;
         unsigned leaves_;
         unsigned nodes_;
         unsigned n_lanes_;
