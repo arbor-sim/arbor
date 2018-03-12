@@ -14,7 +14,15 @@ add_subdirectory(global_communication)
 add_subdirectory(performance)
 
 # Microbenchmarks.
-add_subdirectory(ubench)
+# Attempt to update git submodule if required.
+check_git_submodule(google_bench "${CMAKE_CURRENT_SOURCE_DIR}/ubench/google-benchmark")
+if (google_bench_avail)
+    add_subdirectory(ubench)
+else()
+    add_error_target(ubenches
+        "Building micro benchmarks"
+        "Git submodule for google benchmark is not available")
+endif()
 
 # regression / delta tests
 # Employing the full simulator. validated using deltas on output data
