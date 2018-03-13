@@ -106,6 +106,17 @@ struct implbase {
         }
     }
 
+    static vector_type copy_from_masked(const scalar_type* p, const mask_type& mask) {
+        store a;
+
+        mask_store m;
+        mask_impl::mask_copy_to(mask, m);
+        for (unsigned i = 0; i<width; ++i) {
+            if (m[i]) a[i] = p[i];
+        }
+        return I::copy_from(a);
+    }
+
     static vector_type copy_from_masked(const vector_type& v, const scalar_type* p, const mask_type& mask) {
         store a;
         I::copy_to(v, a);

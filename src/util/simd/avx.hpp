@@ -54,6 +54,10 @@ struct avx_int4: implbase<avx_int4> {
         return _mm_loadu_si128((const __m128i*)p);
     }
 
+    static __m128i copy_from_masked(const int32* p, const __m128i& mask) {
+        return _mm_castps_si128(_mm_maskload_ps(reinterpret_cast<const float*>(p), mask));
+    }
+
     static __m128i copy_from_masked(const __m128i& v, const int32* p, const __m128i& mask) {
         __m128 d = _mm_maskload_ps(reinterpret_cast<const float*>(p), mask);
         return ifelse(mask, _mm_castps_si128(d), v);
@@ -201,6 +205,10 @@ struct avx_double4: implbase<avx_double4> {
 
     static __m256d copy_from(const double* p) {
         return _mm256_loadu_pd(p);
+    }
+
+    static __m256d copy_from_masked(const double* p, const __m256d& mask) {
+        return _mm256_maskload_pd(p, _mm256_castpd_si256(mask));
     }
 
     static __m256d copy_from_masked(const __m256d& v, const double* p, const __m256d& mask) {

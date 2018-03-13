@@ -90,6 +90,16 @@ namespace simd_detail {
             value_ = Impl::copy_from(a);
         }
 
+        // Construct from scalar values in memory with mask.
+        explicit simd_impl(const scalar_type* p, const simd_mask& m) {
+            value_ = Impl::copy_from_masked(p, m.value_);
+        }
+
+        // Construct from const array ref with mask.
+        explicit simd_impl(const scalar_type (&a)[width], const simd_mask& m) {
+            value_ = Impl::copy_from_masked(a, m.value_);
+        }
+
         // Copy constructor.
         simd_impl(const simd_impl& other) {
             std::memcpy(&value_, &other.value_, sizeof(vector_type));

@@ -14,6 +14,7 @@ namespace arb {
 namespace simd_detail {
 
 struct avx512_double8;
+struct avx512_int8;
 struct avx512_mask8;
 
 template <>
@@ -29,6 +30,14 @@ struct simd_traits<avx512_double8> {
     static constexpr unsigned width = 8;
     using scalar_type = double;
     using vector_type = __m512d;
+    using mask_impl = avx512_mask8;
+};
+
+template <>
+struct simd_traits<avx512_int8> {
+    static constexpr unsigned width = 8;
+    using scalar_type = int;
+    using vector_type = __m512i;
     using mask_impl = avx512_mask8;
 };
 
@@ -187,11 +196,169 @@ struct avx512_mask8: implbase<avx512_mask8> {
     }
 };
 
+struct avx512_int8: implbase<avx512_int8> {
+    // Use default implementations for:
+    //     element, set_element.
+    //
+    // Consider changing mask representation to __mmask16
+    // and be explicit about comparison masks: restrictions
+    // to __mmask8 seem to produce a lot of ultimately unnecessary
+    // operations. 
+
+    static __mmask8 lo() { return _mm512_int2mask(0xff); }
+
+    static __m512i broadcast(int v) {
+        return _mm512_set1_epi32(v);
+    }
+
+    static void copy_to(const __m512i& v, int* p) {
+        _mm512_mask_storeu_epi32(p, lo(), v);
+    }
+
+    static void copy_to_masked(const __m512i& v, int* p, const __mmask8& mask) {
+        _mm512_mask_storeu_epi32(p, mask, v);
+    }
+
+    static __m512i copy_from(const int* p) {
+        return _mm512_maskz_loadu_epi32(lo(), p);
+    }
+
+    static __m512i copy_from_masked(const int* p, const __mmask8& mask) {
+        return _mm512_maskz_loadu_epi32(mask, p);
+    }
+
+    static __m512i copy_from_masked(const __m512i& v, const int* p, const __mmask8& mask) {
+        return _mm512_mask_loadu_epi32(v, mask, p);
+    }
+
+    static __m512i negate(const __m512i& a) {
+        return sub(_mm512_setzero_epi32(), a);
+    }
+
+    static __m512i add(const __m512i& a, const __m512i& b) {
+        return _mm512_add_epi32(a, b);
+    }
+
+    static __m512i sub(const __m512i& a, const __m512i& b) {
+        return _mm512_sub_epi32(a, b);
+    }
+
+    static __m512i mul(const __m512i& a, const __m512i& b) {
+        return _mm512_mul_epi32(a, b);
+    }
+
+    static __m512i div(const __m512i& a, const __m512i& b) {
+        // Can represent 32-bit exactly in double, so do a fp division with fixed rounding.
+        constexpr int rtz = _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC;
+        auto da = _mm512_cvtepi32_pd(_mm512_castsi512_si256(a));
+        auto db = _mm512_cvtepi32_pd(_mm512_castsi512_si256(b));
+        auto fpdiv = _mm512_div_round_pd(da, db, rtz);
+        return _mm512_castsi256_si512(_mm512_cvt_roundpd_epi32(fpdiv, rtz));
+    }
+
+    static __m512i fma(const __m512i& a, const __m512i& b, const __m512i& c) {
+        return add(mul(a, b), c);
+    }
+
+    static __mmask8 cmp_eq(const __m512i& a, const __m512i& b) {
+        return _mm512_cmpeq_epi32_mask(a, b);
+    }
+
+    static __mmask8 cmp_neq(const __m512i& a, const __m512i& b) {
+        return _mm512_cmpneq_epi32_mask(a, b);
+    }
+
+    static __mmask8 cmp_gt(const __m512i& a, const __m512i& b) {
+        return _mm512_cmpgt_epi32_mask(a, b);
+    }
+
+    static __mmask8 cmp_geq(const __m512i& a, const __m512i& b) {
+        return _mm512_cmpge_epi32_mask(a, b);
+    }
+
+    static __mmask8 cmp_lt(const __m512i& a, const __m512i& b) {
+        return _mm512_cmplt_epi32_mask(a, b);
+    }
+
+    static __mmask8 cmp_leq(const __m512i& a, const __m512i& b) {
+        return _mm512_cmple_epi32_mask(a, b);
+    }
+
+    static __m512i ifelse(const __mmask8& m, const __m512i& u, const __m512i& v) {
+        return _mm512_mask_blend_epi32(m, v, u);
+    }
+
+    static __m512i max(const __m512i& a, const __m512i& b) {
+        return _mm512_max_epi32(a, b);
+    }
+
+    static __m512i min(const __m512i& a, const __m512i& b) {
+        return _mm512_min_epi32(a, b);
+    }
+
+    static __m512i abs(const __m512i& a) {
+        return _mm512_abs_epi32(a);
+    }
+
+    // Generic 8-wide int solutions for gather and scatter.
+
+    template <typename Impl>
+    using is_int8_simd = std::integral_constant<bool, std::is_same<int, typename Impl::scalar_type>::value && Impl::width==8>;
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static __m512i gather(ImplIndex, const int* p, const typename ImplIndex::vector_type& index) {
+        int o[16];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m512i*>(o);
+        return _mm512_mask_i32gather_epi32(_mm512_setzero_epi32(), lo(), _mm512_loadu_si512(op), p, 4);
+    }
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static __m512i gather(ImplIndex, __m512i a, const int* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+        int o[16];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m512i*>(o);
+        return _mm512_mask_i32gather_epi32(a, mask, _mm512_loadu_si512(op), p, 4);
+    }
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static void scatter(ImplIndex, const __m512i& s, int* p, const typename ImplIndex::vector_type& index) {
+        int o[16];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m512i*>(o);
+        _mm512_mask_i32scatter_epi32(p, lo(), _mm512_loadu_si512(op), s, 4);
+    }
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static void scatter(ImplIndex, const __m512i& s, int* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+        int o[16];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m512i*>(o);
+        _mm512_mask_i32scatter_epi32(p, mask, _mm512_loadu_si512(op), s, 4);
+    }
+
+    // Specialized 8-wide gather and scatter for avx512_int8 implementation.
+
+    static __m512i gather(avx512_int8, const int* p, const __m512i& index) {
+        return _mm512_mask_i32gather_epi32(_mm512_setzero_epi32(), lo(), index, p, 4);
+    }
+
+    static __m512i gather(avx512_int8, __m512i a, const int* p, const __m512i& index, const __mmask8& mask) {
+        return _mm512_mask_i32gather_epi32(a, mask, index, p, 4);
+    }
+
+    static void scatter(avx512_int8, const __m512i& s, int* p, const __m512i& index) {
+        _mm512_mask_i32scatter_epi32(p, lo(), index, s, 4);
+    }
+
+    static void scatter(avx512_int8, const __m512i& s, int* p, const __m512i& index, const __mmask8& mask) {
+        _mm512_mask_i32scatter_epi32(p, mask, index, s, 4);
+    }
+};
+
 struct avx512_double8: implbase<avx512_double8> {
     // Use default implementations for:
-    //     element, set_element, fma.
-
-    using int64 = std::int64_t;
+    //     element, set_element.
 
     // CMPPD predicates:
     static constexpr int cmp_eq_oq =    0;
@@ -220,6 +387,10 @@ struct avx512_double8: implbase<avx512_double8> {
         return _mm512_loadu_pd(p);
     }
 
+    static __m512d copy_from_masked(const double* p, const __mmask8& mask) {
+        return _mm512_maskz_loadu_pd(mask, p);
+    }
+
     static __m512d copy_from_masked(const __m512d& v, const double* p, const __mmask8& mask) {
         return _mm512_mask_loadu_pd(v, mask, p);
     }
@@ -242,6 +413,10 @@ struct avx512_double8: implbase<avx512_double8> {
 
     static __m512d div(const __m512d& a, const __m512d& b) {
         return _mm512_div_pd(a, b);
+    }
+
+    static __m512d fma(const __m512d& a, const __m512d& b, const __m512d& c) {
+        return _mm512_fmadd_pd(a, b, c);
     }
 
     static __mmask8 cmp_eq(const __m512d& a, const __m512d& b) {
@@ -284,6 +459,61 @@ struct avx512_double8: implbase<avx512_double8> {
         // (NB: _mm512_abs_pd() wrapper buggy on gcc, so use AND directly.)
         __m512i m = _mm512_set1_epi64(0x7fffffffffffffff);
         return _mm512_castsi512_pd(_mm512_and_epi64(_mm512_castpd_si512(x), m));
+    }
+
+    // Generic 8-wide int solutions for gather and scatter.
+
+    template <typename Impl>
+    using is_int8_simd = std::integral_constant<bool, std::is_same<int, typename Impl::scalar_type>::value && Impl::width==8>;
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static __m512d gather(ImplIndex, const double* p, const typename ImplIndex::vector_type& index) {
+        int o[8];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m256i*>(o);
+        return _mm512_i32gather_pd(_mm256_loadu_si256(op), p, 8);
+    }
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static __m512d gather(ImplIndex, __m512d a, const double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+        int o[8];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m256i*>(o);
+        return _mm512_mask_i32gather_pd(a, mask, _mm256_loadu_si256(op), p, 8);
+    }
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static void scatter(ImplIndex, const __m512d& s, double* p, const typename ImplIndex::vector_type& index) {
+        int o[8];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m256i*>(o);
+        _mm512_i32scatter_pd(p, _mm256_loadu_si256(op), s, 8);
+    }
+
+    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static void scatter(ImplIndex, const __m512d& s, double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+        int o[8];
+        ImplIndex::copy_to(index, o);
+        auto op = reinterpret_cast<const __m256i*>(o);
+        _mm512_mask_i32scatter_pd(p, mask, _mm256_loadu_si256(op), s, 8);
+    }
+
+    // Specialized 8-wide gather and scatter for avx512_int8 implementation.
+
+    static __m512d gather(avx512_int8, const double* p, const __m512i& index) {
+        return _mm512_i32gather_pd(_mm512_castsi512_si256(index), p, 8);
+    }
+
+    static __m512d gather(avx512_int8, __m512d a, const double* p, const __m512i& index, const __mmask8& mask) {
+        return _mm512_mask_i32gather_pd(a, mask, _mm512_castsi512_si256(index), p, 8);
+    }
+
+    static void scatter(avx512_int8, const __m512d& s, double* p, const __m512i& index) {
+        _mm512_i32scatter_pd(p, _mm512_castsi512_si256(index), s, 8);
+    }
+
+    static void scatter(avx512_int8, const __m512d& s, double* p, const __m512i& index, const __mmask8& mask) {
+        _mm512_mask_i32scatter_pd(p, mask, _mm512_castsi512_si256(index), s, 8);
     }
 
     // Use SVML for exp and log if compiling with icpc, else use ratpoly
@@ -457,6 +687,7 @@ protected:
 namespace simd_abi {
     template <typename T, unsigned N> struct avx512;
     template <> struct avx512<double, 8> { using type = simd_detail::avx512_double8; };
+    template <> struct avx512<int, 8> { using type = simd_detail::avx512_int8; };
 } // namespace simd_abi;
 
 } // namespace arb

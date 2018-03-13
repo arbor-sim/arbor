@@ -203,6 +203,30 @@ TYPED_TEST_P(simd_value, copy_to_from_masked) {
     }
 }
 
+TYPED_TEST_P(simd_value, construct_masked) {
+    using simd = TypeParam;
+    using mask = typename simd::simd_mask;
+    using scalar = typename simd::scalar_type;
+    constexpr unsigned N = simd::width;
+
+    std::minstd_rand rng(1031);
+
+    for (unsigned i = 0; i<nrounds; ++i) {
+        scalar buf[N];
+        fill_random(buf, rng);
+
+        bool mbuf[N];
+        fill_random(mbuf, rng);
+
+        mask m(mbuf);
+        simd s(buf, m);
+
+        for (unsigned i = 0; i<N; ++i) {
+            if (!mbuf[i]) continue;
+            EXPECT_EQ(buf[i], s[i]);
+        }
+    }
+}
 
 TYPED_TEST_P(simd_value, arithmetic) {
     using simd = TypeParam;
@@ -482,7 +506,7 @@ TYPED_TEST_P(simd_value, maths) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, copy_to_from_masked, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, mask_unpack, maths);
+REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, copy_to_from_masked, construct_masked, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, mask_unpack, maths);
 
 typedef ::testing::Types<
 #ifndef DEFAULT_ABI_ONLY
