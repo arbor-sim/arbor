@@ -669,7 +669,7 @@ struct avx2_double4: avx_double4 {
     static __m256d mask_unpack(unsigned long long k) {
         // Only care about bottom four bits of k.
         __m256i b = _mm256_set1_epi8((char)k);
-        b = logical_or(b, _mm256_setr_epi64x(
+        b = _mm256_or_si256(b, _mm256_setr_epi64x(
                 0xfefefefefefefefe, 0xfdfdfdfdfdfdfdfd,
                 0xfbfbfbfbfbfbfbfb, 0xf7f7f7f7f7f7f7f7));
 

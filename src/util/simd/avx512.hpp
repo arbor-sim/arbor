@@ -212,7 +212,7 @@ struct avx512_double8: implbase<avx512_double8> {
         _mm512_storeu_pd(p, v);
     }
 
-    static void copy_to_masked(const __m6512& v, double* p, const __mask8& mask) {
+    static void copy_to_masked(const __m512d& v, double* p, const __mmask8& mask) {
         _mm512_mask_storeu_pd(p, mask, v);
     }
 
@@ -220,7 +220,7 @@ struct avx512_double8: implbase<avx512_double8> {
         return _mm512_loadu_pd(p);
     }
 
-    static __m512d copy_from_masked(const __m512d& v, const double* p, const __mask8& mask) {
+    static __m512d copy_from_masked(const __m512d& v, const double* p, const __mmask8& mask) {
         return _mm512_mask_loadu_pd(v, mask, p);
     }
 
