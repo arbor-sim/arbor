@@ -17,8 +17,8 @@ Three user-facing template classes are provided:
 
    *N*-wide vector type of values of type *V*, using architecture-specific
    implementation *I*. The implementation parameter is itself a template,
-   with ``I<V, N>::type`` being an alias for the concrete implementation
-   class (see below) for *I*.
+   acting as a type-map, with ``I<V, N>::type`` being the concrete implementation
+   class (see below) for *N*-wide vectors of type *V* for this architecture.
 
    The implementation ``simd_abi::generic`` provides a ``std::array``-backed
    implementation for arbitrary *V* and *N*, while ``simd_abi::native``
@@ -40,27 +40,31 @@ Three user-facing template classes are provided:
 
    The result of a ``where`` expression, used for masked assignment.
 
+Implementation typemaps live in the ``simd_abi`` namespace, while concrete
+implementation classes live in ``simd_detail``. A particular specialization
+for an architecture, for example 4-wide double on AVX, then requires:
 
-Implementations for specific ISAs should provide corresponding type maps
-in ``simd_abi``, e.g. ``simd_abi::avx2<V, N>``, as well as specializing
-``simd_abi::native`` as appropriate.
+*  A concrete implementation class, e.g. ``simd_detail::avx_double4``.
 
-The *scalar type* associated with a ``simd`` class is the type corresponding
-to one lane in the underlying representation. The *value type* is the
-type for one lane as presented in the interface. These types will typically
-be the same, with the exception of ``simd_mask`` classes, where the
-*value type* is always ``bool``.
+*  A specialization of its ABI map, so that ``simd_abi::avx<double, 4>::type``
+   is an alias for ``simd_detail::avx_double4``.
+
+*  A specialization of the native ABI map, so that
+   ``simd_abi::native<double, 4>::type`` is an alias for ``simd_abi::avx<double, 4>::type``.
+
 
 Class ``simd``
 ^^^^^^^^^^^^^^
 
-Note that ``simd<V, N, I>`` is ultimately a type alias for ``detail::simd_impl<I<V,N>::type>``,
-where ``I<V,N>::type`` is a SIMD implementation class (see below).
+The class ``simd<V, N, I>`` is an alias for ``simd_detail::simd_impl<I<V, N>::type>``;
+the class ``simd_detail::simd_impl<C>`` provides the public interface and
+arithmetic operators for a concrete implementation class `C`.
 
 In the following:
 
 * ``S`` stands for the class ``simd<V, N, I>``.
-* ``s`` is an object of type ``S``.
+* ``s`` is an SIMD value of type ``S``.
+* ``m`` is a mask value of type ``S::simd_mask``.
 * ``t``, ``u`` and ``v`` are const objects of type ``S``.
 * ``i`` is an index of type ``int``.
 * ``j`` is a const object of type ``simd<U, N, J>`` where ``U`` is an integral type.
@@ -79,7 +83,7 @@ In the following:
       - Type
       - Description
 
-    * - ``S::value_type``
+    * - ``S::scalar_type``
       - ``V``
       - The type of one lane of the SIMD type.
 
@@ -127,6 +131,10 @@ In the following:
       - ``void``
       - Set ``p[j[0]]=t[0]``, ..., ``p[j[N-1]]=t[N-1]``.
 
+    * - ``t.scatter(p, j, m)``
+      - ``void``
+      - Set ``p[j[i]]=t[i]`` where ``m[i]`` is true.
+
     * - ``s.copy_from(c)``
       - ``void``
       - Set ``s[0]=c[0]``, ..., ``s[N-1]=c[N-1]``.
@@ -134,6 +142,10 @@ In the following:
     * - ``s.gather(c, j)``
       - ``void``
       - Set ``s[0]=c[j[0]]``, ..., ``s[N-1]=c[j[N-1]]``.
+
+    * - ``s.gather(c, j, m)``
+      - ``void``
+      - Set ``s[i]=c[j[i]]`` where ``m[i]`` is true.
 
 .. rubric:: Expressions
 
@@ -221,9 +233,23 @@ In the following:
       - ``S::reference``
       - Set value in lane *i* to ``x``.
 
+The (non-const) index operator `operator[]` returns a proxy object of type `S::reference`,
+which writes the corresponding lane in the SIMD value on assignment, and has an
+implicit conversion to `scalar_type`.
+
 
 Class ``simd_mask``
 ^^^^^^^^^^^^^^^^^^^
+
+``simd_mask<V, N, I>`` is an alias for ``simd<V, N, I>::simd_mask``, which in turn
+will be an alias for a class ``simd_detail::simd_mask_impl<D>``, where ``D`` is
+a concrete implementation class for the SIMD mask representation. ``simd_mask_impl<D>``
+inherits from and is implemented in terms of ``simd_detail::simd_impl<D>``,
+but note that the concrete implementation class ``D`` may or may not be the same
+as the concrete implementation class ``I<V, N>::type`` used by ``simd<V, N, I>``.
+
+Mask values are read and written as ``bool`` values of 0 or 1, which may
+differ from the internal representation in each lane of the SIMD implementation.
 
 In the following:
 
@@ -316,6 +342,13 @@ In the following:
 Class ``where_expression``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+``where_expression<S>`` represents a masked subset of the lanes
+of a SIMD value of type ``S``, used for conditional assignment,
+masked scatter, and masked gather. It is a type alias for
+``S::where_expression``, and is the result of an expression of the
+form ``where(mask, simdvalue)``.
+
+
 In the following:
 
 * ``W`` stands for the class ``where_expression<simd<V, N, I>>``.
@@ -323,7 +356,9 @@ In the following:
 * ``t`` is a SIMD value of type ``simd<V, N, I>``.
 * ``x`` is a scalar of type *V*.
 * ``m`` is a mask of type ``simd<V, N, I>::simd_mask``.
-
+* ``j`` is a const object of type ``simd<U, N, J>`` where ``U`` is an integral type.
+* ``p`` is a pointer of type ``V*``.
+* ``c`` is a pointer of type ``const V*`` or a value of type ``V[N]`` (taken by reference).
 
 .. list-table:: 
     :widths: 20 20 60
@@ -345,6 +380,20 @@ In the following:
       - ``void``
       - Set ``s[i]=x`` for *i* such that ``m[i]``.
 
+    * - ``where(m, s).gather(c, j)``
+      - ``void``
+      - Set ``s[i]=c[j[i]]`` for *i* such that ``m[i]``.
+
+    * - ``where(m, s).scatter(p, j)``
+      - ``void``
+      - Set ``p[j[i]]=c[i]`` for *i* such that ``m[i]``.
+
+Example
+-------
+
+The following code performs an element-wise vector product, storing
+only non-zero values1
+stroing
 
 Implementation requirements
 ---------------------------

@@ -165,6 +165,45 @@ TYPED_TEST_P(simd_value, copy_to_from) {
     EXPECT_TRUE(testing::seq_eq(buf1, buf2));
 }
 
+TYPED_TEST_P(simd_value, copy_to_from_masked) {
+    using simd = TypeParam;
+    using mask = typename simd::simd_mask;
+    using scalar = typename simd::scalar_type;
+    constexpr unsigned N = simd::width;
+
+    std::minstd_rand rng(1031);
+
+    for (unsigned i = 0; i<nrounds; ++i) {
+        scalar buf1[N], buf2[N], buf3[N];
+        fill_random(buf1, rng);
+        fill_random(buf2, rng);
+        fill_random(buf3, rng);
+
+        bool mbuf1[N], mbuf2[N];
+        fill_random(mbuf1, rng);
+        fill_random(mbuf2, rng);
+        mask m1(mbuf1);
+        mask m2(mbuf2);
+
+        scalar expected[N];
+        for (unsigned i = 0; i<N; ++i) {
+            expected[i] = mbuf1[i]? buf2[i]: buf1[i];
+        }
+
+        simd s(buf1);
+        where(m1, s).copy_from(buf2);
+        EXPECT_TRUE(testing::indexed_eq_n(N, expected, s));
+
+        for (unsigned i = 0; i<N; ++i) {
+            if (!mbuf2[i]) expected[i] = buf3[i];
+        }
+
+        where(m2, s).copy_to(buf3);
+        EXPECT_TRUE(testing::indexed_eq_n(N, expected, buf3));
+    }
+}
+
+
 TYPED_TEST_P(simd_value, arithmetic) {
     using simd = TypeParam;
     using scalar = typename simd::scalar_type;
@@ -397,6 +436,25 @@ TYPED_TEST_P(simd_value, mask_copy_to_from) {
     }
 }
 
+TYPED_TEST_P(simd_value, mask_unpack) {
+    using simd = TypeParam;
+    using mask = typename simd::simd_mask;
+    constexpr unsigned N = simd::width;
+
+    std::minstd_rand rng(1035);
+    std::uniform_int_distribution<unsigned long long> U(0, (1ull<<N)-1);
+
+    for (unsigned i = 0; i<nrounds; ++i) {
+        unsigned long long packed = U(rng);
+        bool b[N];
+        mask::unpack(packed).copy_to(b);
+
+        for (unsigned j = 0; j<N; ++j) {
+            EXPECT_EQ((bool)(packed&(1ull<<j)), b[j]);
+        }
+    }
+}
+
 TYPED_TEST_P(simd_value, maths) {
     // min, max, abs tests valid for both fp and int types.
 
@@ -424,7 +482,7 @@ TYPED_TEST_P(simd_value, maths) {
     }
 }
 
-REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, maths);
+REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, copy_to_from_masked, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, mask_unpack, maths);
 
 typedef ::testing::Types<
 #ifndef DEFAULT_ABI_ONLY
@@ -806,7 +864,8 @@ TYPED_TEST_P(simd_indirect, masked_gather) {
         }
 
         simd s(original);
-        s.gather(array, simd_index(indirect), simd_mask(mask));
+        simd_mask m(mask);
+        where(m, s).gather(array, simd_index(indirect));
 
         EXPECT_TRUE(::testing::indexed_eq_n(N, test, s));
     }
@@ -877,7 +936,8 @@ TYPED_TEST_P(simd_indirect, masked_scatter) {
         }
 
         simd s(values);
-        s.scatter(array, simd_index(indirect), simd_mask(mask));
+        simd_mask m(mask);
+        where(m, s).scatter(array, simd_index(indirect));
 
         EXPECT_TRUE(::testing::indexed_eq_n(N, test, array));
     }

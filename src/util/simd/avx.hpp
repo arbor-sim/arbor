@@ -46,8 +46,17 @@ struct avx_int4: implbase<avx_int4> {
         _mm_storeu_si128((__m128i*)p, v);
     }
 
+    static void copy_to_masked(const __m128i& v, int32* p, const __m128i& mask) {
+        _mm_maskstore_ps(reinterpret_cast<float*>(p), mask, _mm_castsi128_ps(v));
+    }
+
     static __m128i copy_from(const int32* p) {
         return _mm_loadu_si128((const __m128i*)p);
+    }
+
+    static __m128i copy_from_masked(const __m128i& v, const int32* p, const __m128i& mask) {
+        __m128 d = _mm_maskload_ps(reinterpret_cast<const float*>(p), mask);
+        return ifelse(mask, _mm_castps_si128(d), v);
     }
 
     static __m128i negate(const __m128i& a) {
@@ -109,11 +118,21 @@ struct avx_int4: implbase<avx_int4> {
     }
 
     static __m128i ifelse(const __m128i& m, const __m128i& u, const __m128i& v) {
-        return _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(u), _mm_castsi128_ps(v), _mm_castsi128_ps(m)));
+        return _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(v), _mm_castsi128_ps(u), _mm_castsi128_ps(m)));
     }
 
     static __m128i mask_broadcast(bool b) {
         return _mm_set1_epi32(-(int32)b);
+    }
+
+    static __m128i mask_unpack(unsigned long long k) {
+        // Only care about bottom four bits of k.
+        __m128i b = _mm_set1_epi8((char)k);
+        b = logical_or(b, _mm_setr_epi32(0xfefefefe,0xfdfdfdfd,0xfbfbfbfb,0xf7f7f7f7));
+
+        __m128i ones = {};
+        ones = _mm_cmpeq_epi32(ones, ones);
+        return _mm_cmpeq_epi32(b, ones);
     }
 
     static bool mask_element(const __m128i& u, int i) {
@@ -176,8 +195,17 @@ struct avx_double4: implbase<avx_double4> {
         _mm256_storeu_pd(p, v);
     }
 
+    static void copy_to_masked(const __m256d& v, double* p, const __m256d& mask) {
+        _mm256_maskstore_pd(p, _mm256_castpd_si256(mask), v);
+    }
+
     static __m256d copy_from(const double* p) {
         return _mm256_loadu_pd(p);
+    }
+
+    static __m256d copy_from_masked(const __m256d& v, const double* p, const __m256d& mask) {
+        __m256d d = _mm256_maskload_pd(p, _mm256_castpd_si256(mask));
+        return ifelse(mask, d, v);
     }
 
     static __m256d negate(const __m256d& a) {
@@ -247,6 +275,20 @@ struct avx_double4: implbase<avx_double4> {
 
     static bool mask_element(const __m256d& u, int i) {
         return static_cast<bool>(element(u, i));
+    }
+
+    static __m256d mask_unpack(unsigned long long k) {
+        // Only care about bottom four bits of k.
+        __m128i b = _mm_set1_epi8((char)k);
+        // (Note: there is no _mm_setr_epi64x (!))
+        __m128i bl = _mm_or_si128(b, _mm_set_epi64x(0xfdfdfdfdfdfdfdfd, 0xfefefefefefefefe));
+        __m128i bu = _mm_or_si128(b, _mm_set_epi64x(0xf7f7f7f7f7f7f7f7, 0xfbfbfbfbfbfbfbfb));
+
+        __m128i ones = {};
+        ones = _mm_cmpeq_epi32(ones, ones);
+        bl = _mm_cmpeq_epi64(bl, ones);
+        bu = _mm_cmpeq_epi64(bu, ones);
+        return _mm256_castsi256_pd(combine_m128i(bu, bl));
     }
 
     static void mask_set_element(__m256d& u, int i, bool b) {
@@ -332,13 +374,11 @@ struct avx_double4: implbase<avx_double4> {
     //  
     // for some fraction |α| ≤ 0.5, and thus |g| ≤ 0.5ln(2) ≈ 0.347.
     //
-    // NOTE: The calculation of ln(2) in (2) is split in two operations to
-    // compensate for rounding errors:
+    // Tne subtraction x - n·ln(2) is performed in two parts, with
+    // ln(2) = C1 + C2, in order to compensate for the possible loss of precision
+    // attributable to catastrophic rounding. C1 comprises the first
+    // 32-bits of mantissa, C2 the remainder.
     //
-    //    ln(2) = C1 + C2, where
-    //
-    //    C1 = floor(2^k*ln(2))/2^k
-    //    C2 = ln(2) - C1
     //
     // We use k=32, since this is what the Cephes library does historically.
     // Theoretically, we could use k=52 to match the IEEE-754 double accuracy, but
@@ -624,6 +664,18 @@ struct avx2_double4: avx_double4 {
     static vector_type logical_not(const vector_type& a) {
         __m256i ones = {};
         return _mm256_xor_pd(a, _mm256_castsi256_pd(_mm256_cmpeq_epi32(ones, ones)));
+    }
+
+    static __m256d mask_unpack(unsigned long long k) {
+        // Only care about bottom four bits of k.
+        __m256i b = _mm256_set1_epi8((char)k);
+        b = logical_or(b, _mm256_setr_epi64x(
+                0xfefefefefefefefe, 0xfdfdfdfdfdfdfdfd,
+                0xfbfbfbfbfbfbfbfb, 0xf7f7f7f7f7f7f7f7));
+
+        __m256i ones = {};
+        ones = _mm256_cmpeq_epi64(ones, ones);
+        return _mm256_castsi256_pd(_mm256_cmpeq_epi64(ones, b));
     }
 
     static void mask_copy_to(const __m256d& m, bool* y) {

@@ -57,6 +57,9 @@ struct avx512_mask8: implbase<avx512_mask8> {
         return _mm512_int2mask(_mm256_movemask_epi8(a));
     }
 
+    // Note: fall back to implbase implementations of copy_to_masked and copy_from_masked;
+    // could be improved with the use of AVX512BW instructions on supported platforms.
+
     static __mmask8 logical_not(const __mmask8& k) {
         return _mm512_knot(k);
     }
@@ -163,6 +166,10 @@ struct avx512_mask8: implbase<avx512_mask8> {
         return broadcast(b);
     }
 
+    static __mmask8 mask_unpack(unsigned long long p) {
+        return _mm512_int2mask(p);
+    }
+
     static bool mask_element(const __mmask8& u, int i) {
         return element(u, i);
     }
@@ -205,8 +212,16 @@ struct avx512_double8: implbase<avx512_double8> {
         _mm512_storeu_pd(p, v);
     }
 
+    static void copy_to_masked(const __m6512& v, double* p, const __mask8& mask) {
+        _mm512_mask_storeu_pd(p, mask, v);
+    }
+
     static __m512d copy_from(const double* p) {
         return _mm512_loadu_pd(p);
+    }
+
+    static __m512d copy_from_masked(const __m512d& v, const double* p, const __mask8& mask) {
+        return _mm512_mask_loadu_pd(v, mask, p);
     }
 
     static __m512d negate(const __m512d& a) {

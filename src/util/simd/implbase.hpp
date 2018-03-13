@@ -73,8 +73,8 @@ struct implbase {
     using mask_impl = typename simd_traits<I>::mask_impl;
     using mask_type = typename simd_traits<mask_impl>::vector_type;
 
-    using store = scalar_type [width];
-    using mask_store = bool [width];
+    using store = scalar_type[width];
+    using mask_store = bool[width];
 
     static vector_type broadcast(scalar_type x) {
         store a;
@@ -93,6 +93,29 @@ struct implbase {
         I::copy_to(v, a);
         a[i] = x;
         v = I::copy_from(a);
+    }
+
+    static void copy_to_masked(const vector_type& v, scalar_type* p, const mask_type& mask) {
+        store a;
+        I::copy_to(v, a);
+
+        mask_store m;
+        mask_impl::mask_copy_to(mask, m);
+        for (unsigned i = 0; i<width; ++i) {
+            if (m[i]) p[i] = a[i];
+        }
+    }
+
+    static vector_type copy_from_masked(const vector_type& v, const scalar_type* p, const mask_type& mask) {
+        store a;
+        I::copy_to(v, a);
+
+        mask_store m;
+        mask_impl::mask_copy_to(mask, m);
+        for (unsigned i = 0; i<width; ++i) {
+            if (m[i]) a[i] = p[i];
+        }
+        return I::copy_from(a);
     }
 
     static vector_type negate(const vector_type& u) {
@@ -282,6 +305,14 @@ struct implbase {
     static vector_type mask_broadcast(bool v) {
         mask_store m;
         std::fill(std::begin(m), std::end(m), v);
+        return I::mask_copy_from(m);
+    }
+
+    static vector_type mask_unpack(unsigned long long k) {
+        mask_store m;
+        for (unsigned i = 0; i<width; ++i) {
+            m[i] = k&(1ull<<i);
+        }
         return I::mask_copy_from(m);
     }
 

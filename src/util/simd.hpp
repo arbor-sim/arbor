@@ -54,17 +54,21 @@ namespace simd_detail {
     struct simd_impl {
         // Type aliases:
         //
-        //     vector_type           underlying representation,
-        //     mask_type             underlying representation for mask,
         //     scalar_type           internal value type in one simd lane,
-        //     simd_mask             simd_mask_impl specialization represeting comparison results.
+        //     simd_mask             simd_mask_impl specialization represeting comparison results,
+        //
+        //     vector_type           underlying representation,
+        //     mask_type             underlying representation for mask.
 
         using scalar_type = typename simd_traits<Impl>::scalar_type;
-        using vector_type = typename simd_traits<Impl>::vector_type;
-        static constexpr unsigned width = simd_traits<Impl>::width;
-
         using simd_mask   = simd_mask_impl<typename simd_traits<Impl>::mask_impl>;
+
+    protected:
+        using vector_type = typename simd_traits<Impl>::vector_type;
         using mask_type   = typename simd_traits<typename simd_traits<Impl>::mask_impl>::vector_type;
+
+    public:
+        static constexpr unsigned width = simd_traits<Impl>::width;
 
         template <typename Other>
         friend class simd_impl;
@@ -187,7 +191,7 @@ namespace simd_detail {
             return *this;
         }
 
-        // Gather (dispatch to simd_detail::gather_impl or simd_detail::masked_gather_impl).
+        // Gather and scatter.
 
         template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void gather(const scalar_type* p, const simd_impl<IndexImpl>& index) {
@@ -195,18 +199,8 @@ namespace simd_detail {
         }
 
         template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
-        void gather(const scalar_type* p, const simd_impl<IndexImpl>& index, const simd_mask& mask) {
-            value_ = Impl::gather(IndexImpl{}, value_, p, index.value_, mask.value_);
-        }
-
-        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void scatter(scalar_type* p, const simd_impl<IndexImpl>& index) {
             Impl::scatter(IndexImpl{}, value_, p, index.value_);
-        }
-
-        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
-        void scatter(scalar_type* p, const simd_impl<IndexImpl>& index, const simd_mask& mask) {
-            Impl::scatter(IndexImpl{}, value_, p, index.value_, mask.value_);
         }
 
         // Array subscript operations.
@@ -246,17 +240,35 @@ namespace simd_detail {
             where_expression(const where_expression&) = default;
             where_expression& operator=(const where_expression&) = delete;
 
-            where_expression(const simd_mask& m, simd_impl& v):
-                mask_(m), data_(v) {}
+            where_expression(const simd_mask& m, simd_impl& s):
+                mask_(m), data_(s) {}
 
             where_expression& operator=(scalar_type v) {
-                data_ = Impl::ifelse(mask_.value_, simd_impl(v).value_, data_.value_);
+                data_.value_ = Impl::ifelse(mask_.value_, simd_impl(v).value_, data_.value_);
                 return *this;
             }
 
             where_expression& operator=(const simd_impl& v) {
-                data_ = Impl::ifelse(mask_.value_, v.value_, data_.value_);
+                data_.value_ = Impl::ifelse(mask_.value_, v.value_, data_.value_);
                 return *this;
+            }
+
+            void copy_to(scalar_type* p) const {
+                Impl::copy_to_masked(data_.value_, p, mask_.value_);
+            }
+
+            void copy_from(const scalar_type* p) {
+                data_.value_ = Impl::copy_from_masked(data_.value_, p, mask_.value_);
+            }
+
+            template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+            void gather(const scalar_type* p, const simd_impl<IndexImpl>& index) {
+                data_.value_ = Impl::gather(IndexImpl{}, data_.value_, p, index.value_, mask_.value_);
+            }
+
+            template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+            void scatter(scalar_type* p, const simd_impl<IndexImpl>& index) {
+                Impl::scatter(IndexImpl{}, data_.value_, p, index.value_, mask_.value_);
             }
 
         private:
@@ -388,6 +400,12 @@ namespace simd_detail {
 
         friend simd_mask_impl operator||(const simd_mask_impl& a, const simd_mask_impl& b) {
             return simd_mask_impl::wrap(Impl::logical_or(a.value_, b.value_));
+        }
+
+        // Make mask from corresponding bits of integer.
+
+        static simd_mask_impl unpack(unsigned long long bits) {
+            return simd_mask_impl::wrap(Impl::mask_unpack(bits));
         }
 
     private:
