@@ -244,7 +244,13 @@ struct avx512_int8: implbase<avx512_int8> {
     }
 
     static __m512i mul(const __m512i& a, const __m512i& b) {
-        return _mm512_mul_epi32(a, b);
+        // Can represent 32-bit exactly in double, and technically overflow is
+        // undefined behaviour, so we can do this in doubles.
+        constexpr int rtz = _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC;
+        auto da = _mm512_cvtepi32_pd(_mm512_castsi512_si256(a));
+        auto db = _mm512_cvtepi32_pd(_mm512_castsi512_si256(b));
+        auto fpmul = _mm512_mul_round_pd(da, db, rtz);
+        return _mm512_castsi256_si512(_mm512_cvt_roundpd_epi32(fpmul, rtz));
     }
 
     static __m512i div(const __m512i& a, const __m512i& b) {
