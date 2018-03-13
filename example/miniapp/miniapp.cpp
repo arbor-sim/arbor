@@ -155,17 +155,13 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init");
 
         // run model
-        util::profiler_start();
         m.run(options.tfinal, options.dt);
-        util::profiler_stop();
 
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
         auto profile = util::profiler_summary();
-        if (global_policy::id()==0) {
-            util::profiler_print(util::profiler_summary(), 0.05);
-        }
+        std::cout << profile << "\n";
         std::cout << "\nthere were " << m.num_spikes() << " spikes\n";
 
         // save traces

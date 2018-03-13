@@ -276,10 +276,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        auto profile = util::profiler_summary();
-        if (global_policy::id()==0) {
-            util::profiler_print(util::profiler_summary(), 0.05);
-        }
+        std::cout << util::profiler_summary() << "\n";
         std::cout << "\nThere were " << m.num_spikes() << " spikes\n";
 
         auto report = util::make_meter_report(meters);

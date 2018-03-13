@@ -1189,7 +1189,7 @@ void fvm_multicell<Backend>::step_integration() {
     }
     PL();
 
-    PR(advance_integrate_events);
+    PE(advance_integrate_events);
     // remove delivered events from queue and set time_to_
     events_.drop_marked_events();
 
@@ -1235,7 +1235,7 @@ void fvm_multicell<Backend>::step_integration() {
     }
     PL();
 
-    PR(advance_integrate_events);
+    PE(advance_integrate_events);
     // update time stepping variables
     memory::copy(time_to_, time_);
     invalidate_time_cache();

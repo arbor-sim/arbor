@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ostream>
 #include <unordered_map>
 #include <vector>
 
@@ -9,8 +10,8 @@
 namespace arb {
 namespace util {
 
-using timer_type = arb::threading::timer;
-using time_point = timer_type::time_point;
+// type used for region identifiers
+using region_id_type = std::size_t;
 
 // The results of a profiler run.
 struct profile {
@@ -30,27 +31,35 @@ struct profile {
     double wall_time;
 };
 
-void profiler_start();
-void profiler_stop();
-void profiler_restart();
+void profiler_clear();
 void profiler_enter(std::size_t region_id);
 void profiler_leave();
 
 profile profiler_summary();
 std::size_t profiler_region_id(const char* name);
-void profiler_print(const profile& prof, float threshold=1);
 
-// enter a profiling region
-#define PE(name) \
-    static std::size_t name ## _profile_region_tag__ = arb::util::profiler_region_id(#name); \
-    arb::util::profiler_enter(name ## _profile_region_tag__);
+std::ostream& operator<<(std::ostream&, const profile&);
 
-// re-enter profiling region
-#define PR(name) \
-    arb::util::profiler_enter(name ## _profile_region_tag__);
+#ifdef ARB_HAVE_PROFILING
 
-// leave a profling region
-#define PL arb::util::profiler_leave
+    // enter a profiling region
+    #define REGION_TAG_NAME(x) x##_profile_region_tag__
+    #define PE(name) \
+        { \
+            static std::size_t REGION_TAG_NAME(name) = arb::util::profiler_region_id(#name); \
+            arb::util::profiler_enter(REGION_TAG_NAME(name)); \
+        }
+
+    // leave a profling region
+    #define PL arb::util::profiler_leave
+
+#else
+
+    #define PE(name)
+    #define PL()
+
+#endif
 
 } // namespace util
 } // namespace arb
+

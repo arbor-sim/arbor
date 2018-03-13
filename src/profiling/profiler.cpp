@@ -1,5 +1,5 @@
 #include <cstdio>
-#include <iostream>
+#include <ostream>
 
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>
@@ -8,6 +8,9 @@
 
 namespace arb {
 namespace util {
+
+using timer_type = arb::threading::timer;
+using time_point = timer_type::time_point;
 
 #ifdef ARB_HAVE_PROFILING
 namespace {
@@ -47,13 +50,12 @@ struct profile_accumulator {
 // There is one recorder for each thread.
 class recorder {
     // used to mark that the recorder is not currently timing a region.
-    static constexpr std::size_t npos = std::numeric_limits<std::size_t>::max();
+    static constexpr region_id_type npos = std::numeric_limits<region_id_type>::max();
 
     // The index of the region being timed.
     // If set to npos, no region is being timed.
-    std::size_t index_ = npos;
+    region_id_type index_ = npos;
 
-    // The time at which the currently profiled region started.
     time_point start_time_;
 
     // One accumulator for call count and wall time for each region.
@@ -65,7 +67,7 @@ public:
 
     // Start timing the region with index.
     // Throws std::runtime_error if already timing a region.
-    void enter(std::size_t index);
+    void enter(region_id_type index);
 
     // Stop timing the current region, and add the time taken to the accumulated time.
     // Throws std::runtime_error if not currently timing a region.
@@ -83,7 +85,7 @@ class profiler {
     // The regions are assigned consecutive indexes in the order that they are
     // added to the profiler with calls to `region_index()`, with the first
     // region numbered zero.
-    std::unordered_map<const char*, std::size_t> name_index_;
+    std::unordered_map<const char*, region_id_type> name_index_;
 
     // The name of each region being recorded, with index stored in name_index_
     // is used to index into region_names_.
@@ -91,21 +93,15 @@ class profiler {
 
     // Used to protect name_index_, which is shared between all threads.
     std::mutex mutex_;
-    time_point tstart_;
-    time_point tstop_;
-    bool running_ = false;
 
 public:
     profiler();
 
-    void start();
-    void stop();
-    void restart();
-    void enter(std::size_t index);
+    void enter(region_id_type index);
     void enter(const char* name);
     void leave();
     const std::vector<std::string>& regions() const;
-    std::size_t region_index(const char* name);
+    region_id_type region_index(const char* name);
     profile results() const;
 
     static profiler& get_global_profiler() {
@@ -117,15 +113,15 @@ public:
 
 // Utility structure used to organise profiler regions into a tree for printing.
 struct profile_node {
-    static constexpr std::size_t npos = std::numeric_limits<std::size_t>::max();
+    static constexpr region_id_type npos = std::numeric_limits<region_id_type>::max();
 
     std::string name;
     double time = 0;
-    std::size_t count = npos;
+    region_id_type count = npos;
     std::vector<profile_node> children;
 
     profile_node() = default;
-    profile_node(std::string n, double t, std::size_t c):
+    profile_node(std::string n, double t, region_id_type c):
         name(std::move(n)), time(t), count(c) {}
     profile_node(std::string n):
         name(std::move(n)), time(0), count(npos) {}
@@ -137,7 +133,7 @@ const std::vector<profile_accumulator>& recorder::accumulators() const {
     return accumulators_;
 }
 
-void recorder::enter(std::size_t index) {
+void recorder::enter(region_id_type index) {
     if (index_!=npos) {
         throw std::runtime_error("recorder::enter without matching recorder::leave");
     }
@@ -174,7 +170,7 @@ profiler::profiler() {
     recorders_.resize(threading::num_threads());
 }
 
-void profiler::enter(std::size_t index) {
+void profiler::enter(region_id_type index) {
     recorders_[threading::thread_id()].enter(index);
 }
 
@@ -187,33 +183,7 @@ void profiler::leave() {
     recorders_[threading::thread_id()].leave();
 }
 
-void profiler::start() {
-    if (running_) {
-        throw std::runtime_error("Attempt to start a profiler that is already running.");
-    }
-    running_ = true;
-    tstart_ = timer_type::tic();
-}
-
-void profiler::stop() {
-    if (!running_) {
-        throw std::runtime_error("Attempt to stop a profiler that isn't running.");
-    }
-    running_ = false;
-    tstop_ = timer_type::tic();
-}
-
-void profiler::restart() {
-    if (running_) {
-        throw std::runtime_error("Can't restart a profiler that is running.");
-    }
-    for (auto& r: recorders_) {
-        r.clear();
-    }
-    tstart_ = timer_type::tic();
-}
-
-std::size_t profiler::region_index(const char* name) {
+region_id_type profiler::region_index(const char* name) {
     // The name_index_ hash table is shared by all threads, so all access
     // has to be protected by a mutex.
     std::lock_guard<std::mutex> guard(mutex_);
@@ -247,42 +217,14 @@ double sort_profile_tree(profile_node& n) {
     return n.time;
 }
 
-void print(profile_node& n,
-           float wall_time,
-           unsigned nthreads,
-           float thresh,
-           std::string indent="")
-{
-    auto name = indent + n.name;
-    float per_thread_time = n.time/nthreads;
-    float proportion = per_thread_time/wall_time*100;
-
-    // If the percentage of overall time for this region is below the
-    // threashold, stop drawing this branch.
-    if (proportion<thresh) return;
-
-    if (n.count==profile_node::npos) {
-        printf("_p_ %-20s%12s%12.3f%12.3f%8.1f\n",
-               name.c_str(), "-", float(n.time), per_thread_time, proportion);
-    }
-    else {
-        printf("_p_ %-20s%12lu%12.3f%12.3f%8.1f\n",
-               name.c_str(), n.count, float(n.time), per_thread_time, proportion);
-    }
-
-    // print each of the children in turn
-    for (auto& c: n.children) print(c, wall_time, nthreads, thresh, indent+"  ");
-};
-
 profile profiler::results() const {
     const auto nregions = region_names_.size();
 
     profile p;
-    p.wall_time = timer_type::difference(tstart_, tstop_);
     p.names = region_names_;
 
     p.times = std::vector<double>(nregions);
-    p.counts = std::vector<std::size_t>(nregions);
+    p.counts = std::vector<region_id_type>(nregions);
     for (auto& r: recorders_) {
         auto& accumulators = r.accumulators();
         for (auto i: make_span(0, accumulators.size())) {
@@ -298,7 +240,6 @@ profile profiler::results() const {
 
 profile_node make_profile_tree(const profile& p) {
     using std::vector;
-    using std::size_t;
     using util::make_span;
     using util::assign_from;
     using util::transform_view;
@@ -339,6 +280,37 @@ const std::vector<std::string>& profiler::regions() const {
     return region_names_;
 }
 
+void print(std::ostream& o,
+           profile_node& n,
+           float wall_time,
+           unsigned nthreads,
+           float thresh,
+           std::string indent="")
+{
+    static char buf[80];
+
+    auto name = indent + n.name;
+    float per_thread_time = n.time/nthreads;
+    float proportion = n.time/wall_time*100;
+
+    // If the percentage of overall time for this region is below the
+    // threashold, stop drawing this branch.
+    if (proportion<thresh) return;
+
+    if (n.count==profile_node::npos) {
+        snprintf(buf, util::size(buf), "_p_ %-20s%12s%12.3f%12.3f%8.1f",
+               name.c_str(), "-", float(n.time), per_thread_time, proportion);
+    }
+    else {
+        snprintf(buf, util::size(buf), "_p_ %-20s%12lu%12.3f%12.3f%8.1f",
+               name.c_str(), n.count, float(n.time), per_thread_time, proportion);
+    }
+    o << "\n" << buf;
+
+    // print each of the children in turn
+    for (auto& c: n.children) print(o, c, wall_time, nthreads, thresh, indent+"  ");
+};
+
 //
 // convenience functions for instrumenting code.
 //
@@ -347,39 +319,29 @@ void profiler_leave() {
     profiler::get_global_profiler().leave();
 }
 
-void profiler_start() {
-    profiler::get_global_profiler().start();
-}
-
-void profiler_stop() {
-    profiler::get_global_profiler().stop();
-}
-
-void profiler_restart() {
-    profiler::get_global_profiler().restart();
-}
-
-std::size_t profiler_region_id(const char* name) {
+region_id_type profiler_region_id(const char* name) {
     if (!is_valid_region_string(name)) {
         throw std::runtime_error(std::string("'")+name+"' is not a valid profiler region name.");
     }
     return profiler::get_global_profiler().region_index(name);
 }
 
-void profiler_enter(std::size_t region_id) {
+void profiler_enter(region_id_type region_id) {
     profiler::get_global_profiler().enter(region_id);
 }
 
-// Print profiler statistics to stdout.
-// All regions that take less than threshold% of total time are not printed.
-void profiler_print(const profile& prof, float threshold) {
+// Print profiler statistics to an ostream
+std::ostream& operator<<(std::ostream& o, const profile& prof) {
+    char buf[80];
+
     using util::make_span;
 
     auto tree = make_profile_tree(prof);
 
-    printf("_p_ %-20s%12s%12s%12s%8s\n", "REGION", "CALLS", "THREAD", "WALL", "\%");
-    print(tree, prof.wall_time, prof.num_threads, threshold, "");
-    printf("_p_ WALLTIME %10.3f s\n", float(prof.wall_time));
+    snprintf(buf, util::size(buf), "_p_ %-20s%12s%12s%12s%8s", "REGION", "CALLS", "THREAD", "WALL", "\%");
+    o << buf;
+    print(o, tree, tree.time, prof.num_threads, 0, "");
+    return o;
 }
 
 profile profiler_summary() {
@@ -389,14 +351,12 @@ profile profiler_summary() {
 #else
 
 void profiler_leave() {}
-void profiler_start() {}
-void profiler_stop() {}
-void profiler_restart() {}
-void profiler_enter(std::size_t) {}
+void profiler_enter(region_id_type) {}
 profile profiler_summary();
 void profiler_print(const profile& prof, float threshold) {};
 profile profiler_summary() {return profile();}
-std::size_t profiler_region_id(const char*) {return 0;}
+region_id_type profiler_region_id(const char*) {return 0;}
+std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
 
 #endif // ARB_HAVE_PROFILING
 
