@@ -125,7 +125,7 @@ Below is an example of using sub-regions:
             }
 
             // print profiler results
-            util::profiler_print(util::profiler_summary());
+            std::cout << util::profiler_summary() << "\n";
         }
 
 The ``communication`` region, is broken into two sub regions: ``exchange`` and ``sortspikes``.
@@ -148,17 +148,15 @@ hierarchical report that shows accumulated time spent in each region and its chi
     _p_     exchange                  10       0.500       0.250    10.6
     _p_     sortspikes                10       0.005       0.003     0.1
 
-For _p_ more information on starting the profiler and interpreting its output see
+For _p_ more information on interpreting the profiler's output see
 `Running the Profiler`_ and `Profiler Output`_.
 
 Running the Profiler
 --------------------
 
-Before recording time spent in regions, the profiler must first be started, and
-then it must be stopped when all profiling is completed.
-The time stamp is recorded at each call to stop and start to determine the total
-wall time spent in the profiler. This can be used to determine the proportion of
-total thread time spent in each region.
+The profiler does not need to be started or stopped by the user.
+At any point a summary of profiler region counts and times can be obtained,
+and the profiler regions can be reset.
 
 .. container:: example-code
 
@@ -185,7 +183,7 @@ total thread time spent in each region.
             util::profiler_clear();
         }
 
-After a call to ``util::profiler_clear``, all counters and timers are set to zero, to effectively restart the timers for profiling regions.
+After a call to ``util::profiler_clear``, all counters and timers are set to zero.
 This could be used, for example, to generate seperate profiler reports for model building and model executation phases of a simulation.
 
 Profiler Output

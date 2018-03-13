@@ -158,10 +158,7 @@ void recorder::leave() {
 
 void recorder::clear() {
     index_ = npos;
-    for (auto& s:accumulators_) {
-        s.time = 0;
-        s.count = 0;
-    }
+    accumulators_.resize(0);
 }
 
 // profiler implementation
