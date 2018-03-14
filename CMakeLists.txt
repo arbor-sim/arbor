@@ -66,14 +66,23 @@ set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of 
 set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 if(ARB_THREADING_MODEL MATCHES "tbb")
+    # build tbb as a static library along with tbb malloc
+    set(TBB_BUILD_STATIC ON)
+    set(TBB_BUILD_TBBMALLOC ON)
+    # turn off shard library and test compilation
+    set(TBB_BUILD_SHARED OFF)
+    set(TBB_BUILD_TBBMALLOC_PROXY OFF)
+    set(TBB_BUILD_TESTS OFF)
+
     # download and build TBB
-    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBGet.cmake)
-    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBBuild.cmake)
-    tbb_get(TBB_ROOT tbb_root SOURCE_CODE)
-    tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
+    #include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBGet.cmake)
+    #include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBBuild.cmake)
+    #tbb_get(TBB_ROOT tbb_root SOURCE_CODE)
+    #tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
 
     # configure TBB
-    find_package(TBB REQUIRED tbb tbbmalloc)
+    #find_package(TBB REQUIRED tbb tbbmalloc)
+    include()
 
     add_definitions(-DARB_HAVE_TBB)
     set(ARB_WITH_TBB TRUE)
@@ -84,6 +93,8 @@ if(ARB_THREADING_MODEL MATCHES "tbb")
     #   list(APPEND EXTERNAL_LIBRARIES TBB::tbb)
     #   list(APPEND EXTERNAL_LIBRARIES TBB::tbbmalloc)
     # So, instead, manually add the library links:
+
+    # TODO: these paths need changing
     set(TBB_LIB_PATH ${CMAKE_BINARY_DIR}/tbb_cmake_build/tbb_cmake_build_subdir_release)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbb.so)
     list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbbmalloc.so)
