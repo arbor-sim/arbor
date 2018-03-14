@@ -8,6 +8,38 @@ compiler intrinsics for the manipulation of architecture-specific vector
 The implementation is rather loosely based on the data-parallel vector types
 proposal P0214R6 for the C++ Parallelism TS 2.
 
+Examples
+--------
+
+The following code performs an element-wise vector product, storing
+only non-zero values in the resultant array.
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        #include <util/simd.hpp>
+        using namespace arb;
+
+        void product_nonzero(int n, const double* a, const double* b, double* result) {
+            constexpr int N = simd_abi::native_width<double>::value;
+            using simd = simd<double, N>;
+            using mask = simd::simd_mask;
+
+            int i = 0;
+            for (; i+N<=n; i+=N) {
+                auto vp = simd(a+i)*simd(b+i);
+                where(vp!=0, vp).copy_to(result+i);
+            }
+
+            int tail = n-i;
+            auto m = mask::unpack((1<<tail)-1);
+
+            auto vp = simd(a+i, m)*simd(b+i, m);
+            where(m && vp!=0, vp).copy_to(c+i);
+        }
+
+
 Classes
 -------
 
@@ -53,7 +85,7 @@ for an architecture, for example 4-wide double on AVX, then requires:
    ``simd_abi::native<double, 4>::type`` is an alias for ``simd_abi::avx<double, 4>::type``.
 
 The maximum natively supported width for a scalar type *V* is recorded in
-`simd_abi::native_width<V>::value`.
+``simd_abi::native_width<V>::value``.
 
 Class ``simd``
 ^^^^^^^^^^^^^^
@@ -71,8 +103,11 @@ In the following:
 * *i* is an index of type ``int``.
 * *j* is a const object of type ``simd<U, N, J>`` where *U* is an integral type.
 * *x* is a value of type *V*.
-* *p* is a pointer of type ``V*``.
-* *c* is a pointer of type ``const V*`` or a value of type ``V[N]`` (taken by reference).
+* *p* is a pointer to *V*.
+* *c* is a const pointer to *V* or a length *N* array of *V*.
+
+Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
+*v*\ `i`:sub:
 
 
 .. rubric:: Type aliases and constexpr members
@@ -86,7 +121,7 @@ In the following:
       - Description
 
     * - ``S::scalar_type``
-      - ``V``
+      - *V*
       - The type of one lane of the SIMD type.
 
     * - ``S::simd_mask``
@@ -107,13 +142,16 @@ In the following:
       - Description
 
     * - ``S(x)``
-      - A SIMD value with all lanes equal to *x*.
+      - A SIMD value *v* with *v*\ `i`:sub: equal to *x* for *i* = 0…*N*-1.
 
     * - ``S(t)``
       - A copy of the SIMD value *t*.
 
     * - ``S(c)``
-      - A SIMD value comprising the values ``c[0]``, ..., ``c[N-1]``.
+      - A SIMD value *v* with *v*\ `i`:sub: equal to ``c[i]`` for *i* = 0…*N*-1.
+
+    * - ``S(c, m)``
+      - A SIMD value *v* with *v*\ `i`:sub: equal to ``c[i]`` for *i* where *m*\ `i`:sub: is true.
 
 .. rubric:: Member functions
 
@@ -127,27 +165,19 @@ In the following:
 
     * - ``t.copy_to(p)``
       - ``void``
-      - Set ``p[0]=t[0]``, ..., ``p[N-1]=t[N-1]``.
+      - Set ``p[i]`` to *t*\ `i`:sub: for *i* = 0…*N*-1.
 
     * - ``t.scatter(p, j)``
       - ``void``
-      - Set ``p[j[0]]=t[0]``, ..., ``p[j[N-1]]=t[N-1]``.
-
-    * - ``t.scatter(p, j, m)``
-      - ``void``
-      - Set ``p[j[i]]=t[i]`` where ``m[i]`` is true.
+      - Set ``p[j[i]]`` to *t*\ `i`:sub: for *i* = 0…*N*-1.
 
     * - ``s.copy_from(c)``
       - ``void``
-      - Set ``s[0]=c[0]``, ..., ``s[N-1]=c[N-1]``.
+      - Set *s*\ `i`:sub: to ``c[i]`` for *i* = 0…*N*-1.
 
     * - ``s.gather(c, j)``
       - ``void``
-      - Set ``s[0]=c[j[0]]``, ..., ``s[N-1]=c[j[N-1]]``.
-
-    * - ``s.gather(c, j, m)``
-      - ``void``
-      - Set ``s[i]=c[j[i]]`` where ``m[i]`` is true.
+      - Set *s*\ `i`:sub: to ``c[j[i]]`` for *i* = 0…*N*-1.
 
 .. rubric:: Expressions
 
@@ -229,11 +259,11 @@ In the following:
 
     * - ``t[i]``
       - ``V``
-      - Value in lane *i*.
+      - Value *t*\ `i`:sub:
 
     * - ``s[i]=x``
       - ``S::reference``
-      - Set value in lane *i* to *x*.
+      - Set value *s*\ `i`:sub: to *x*.
 
 The (non-const) index operator `operator[]` returns a proxy object of type `S::reference`,
 which writes the corresponding lane in the SIMD value on assignment, and has an
@@ -259,8 +289,10 @@ In the following:
 * *m* and *q* are const objects of type ``simd_mask<V, N, I>``.
 * *u* is an object of type ``simd_mask<V, N, I>``.
 * *b* is a boolean value.
-* *w* is a pointer of type ``bool*``.
-* *y* is a pointer of type ``const bool*``.
+* *w* is a pointer to ``bool``.
+* *y* is a const pointer to ``bool`` or a length *N* array of ``bool``.
+* *i* is of type ``int``.
+* *k* is of type ``unsigned long long``.
 
 .. rubric:: Constructors
 
@@ -272,13 +304,15 @@ In the following:
       - Description
 
     * - ``M(b)``
-      - A SIMD mask with all lanes equal to *b*.
+      - A SIMD mask *u* with *u*\ `i`:sub: equal to *b* for *i* = 0…*N*-1.
 
-    * - ``M(q)``
-      - A copy of the SIMD mask *q*.
+    * - ``M(m)``
+      - A copy of the SIMD mask *m*.
 
     * - ``M(y)``
-      - A SIMD value comprising the values ``v[0]``, ..., ``v[N-1]``.
+      - A SIMD value *u* with *u*\ `i`:sub: equal to ``y[i]`` for *i* = 0…*N*-1.
+
+Note that ``simd_mask`` does not (currently) offer a masked pointer/array constructor.
 
 .. rubric:: Member functions
 
@@ -292,11 +326,11 @@ In the following:
 
     * - ``m.copy_to(w)``
       - ``void``
-      - Set ``m[0]=w[0]``, ..., ``m[N-1]=w[N-1]``.
+      - Write the boolean value *m*\ `i`:sub: to ``w[i]`` for *i* = 0…*N*-1.
 
     * - ``u.copy_from(y)``
       - ``void``
-      - Set ``y[0]=u[0]``, ..., ``y[N-1]=u[N-1]``.
+      - Set *u*\ `i`:sub: to the boolean value ``y[i]`` for *i* = 0…*N*-1.
 
 .. rubric:: Expressions
 
@@ -314,11 +348,11 @@ In the following:
 
     * - ``m&&q``
       - ``M``
-      - Lane-wise and.
+      - Lane-wise logical and.
 
     * - ``m||q``
       - ``M``
-      - Lane-wise or.
+      - Lane-wise logical or.
 
     * - ``m==q``
       - ``M``
@@ -326,7 +360,7 @@ In the following:
 
     * - ``m!=q``
       - ``M``
-      - Lane-wise xor.
+      - Lane-wise logical xor.
 
     * - ``m=q``
       - ``M&``
@@ -334,11 +368,25 @@ In the following:
 
     * - ``m[i]``
       - ``bool``
-      - Value in lane *i*.
+      - Boolean value *m*\ `i`:sub:.
 
     * - ``m[i]=b``
       - ``M::reference``
-      - Set value in lane *i* to *b*.
+      - Set *m*\ `i`:sub: to boolean value *b*.
+
+.. rubric:: Static member functions
+
+.. list-table:: 
+    :widths: 20 20 60
+    :header-rows: 1
+
+    * - Expression
+      - Type
+      - Description
+
+    * - ``M::unpack(k)``
+      - ``M``
+      - Mask with value *m*\ `i`:sub: equal to the *i*\ th bit of *k*.
 
 
 Class ``where_expression``
@@ -355,11 +403,11 @@ In the following:
 * *W* stands for the class ``where_expression<simd<V, N, I>>``.
 * *s* is a reference to a SIMD value of type ``simd<V, N, I>&``.
 * *t* is a SIMD value of type ``simd<V, N, I>``.
-* *x* is a scalar of type *V*.
 * *m* is a mask of type ``simd<V, N, I>::simd_mask``.
 * *j* is a const object of type ``simd<U, N, J>`` where *U* is an integral type.
-* *p* is a pointer of type ``V*``.
-* *c* is a pointer of type ``const V*`` or a value of type ``V[N]`` (taken by reference).
+* *x* is a scalar of type *V*.
+* *p* is a pointer to *V*.
+* *c* is a const pointer to *V* or a length *N* array of *V*.
 
 .. list-table:: 
     :widths: 20 20 60
@@ -371,62 +419,98 @@ In the following:
 
     * - ``where(m, s)``
       - ``W``
-      - A proxy for masked-assignment operation.
+      - A proxy for masked-assignment operations.
 
     * - ``where(m, s)=t``
       - ``void``
-      - Set ``s[i]=t[i]`` for *i* such that ``m[i]``.
+      - Set *s*\ `i`:sub: to *t*\ `i`:sub: for *i* where *m*\ `i`:sub: is true.
 
     * - ``where(m, s)=x``
       - ``void``
-      - Set ``s[i]=x`` for *i* such that ``m[i]``.
+      - Set *s*\ `i`:sub: to *x* for *i* where *m*\ `i`:sub: is true.
 
     * - ``where(m, s).copy_to(p)``
       - ``void``
-      - Set ``p[i]=s[i]`` for *i* such that ``m[i]``.
-
-    * - ``where(m, s).copy_from(c)``
-      - ``void``
-      - Set ``s[i]=c[i]`` for *i* such that ``m[i]``.
-
-    * - ``where(m, s).gather(c, j)``
-      - ``void``
-      - Set ``s[i]=c[j[i]]`` for *i* such that ``m[i]``.
+      - Set ``p[i]`` to *s*\ `i`:sub: for *i* where *m*\ `i`:sub: is true.
 
     * - ``where(m, s).scatter(p, j)``
       - ``void``
-      - Set ``p[j[i]]=s[i]`` for *i* such that ``m[i]``.
+      - Set ``p[j[i]]`` to *s*\ `i`:sub: for *i* where *m*\ `i`:sub: is true.
 
-Examples
---------
+    * - ``where(m, s).copy_from(c)``
+      - ``void``
+      - Set *s*\ `i`:sub: to ``c[i]`` for *i* where *m*\ `i`:sub: is true.
 
-The following code performs an element-wise vector product, storing
-only non-zero values in the resultant array.
+    * - ``where(m, s).gather(c, j)``
+      - ``void``
+      - Set *s*\ `i`:sub: to ``c[j[i]]`` for *i* where *m*\ `i`:sub: is true.
 
-.. container:: example-code
 
-    .. code-block:: cpp
+Top-level functions
+-------------------
 
-        #include <util/simd.hpp>
-        using namespace arb;
+Lane-wise mathematical operations *abs(x)*, *min(x, y)* and *max(x, y)* are offered for
+all SIMD value types, while the transcendental functions are only usable for
+SIMD floating point types.
 
-        void product_nonzero(int n, const double* a, const double* b, double* result) {
-            constexpr int N = simd_abi::native_width<double>::value;
-            using simd = simd<double, N>;
-            using mask = simd::simd_mask;
+Vectorized implementations of some of the transcendental functions are provided:
+refer to :doc:`simd_maths` for details.
 
-            int i = 0;
-            for (; i+N<=n; i+=N) {
-                auto vp = simd(a+i)*simd(b+i);
-                where(vp!=0, vp).copy_to(result+i);
-            }
 
-            int tail = n-i;
-            auto m = mask::unpack((1<<tail)-1);
+In the following:
 
-            auto vp = simd(a+i, m)*simd(b+i, m);
-            where(m && vp!=0, vp).copy_to(c+i);
-        }
+* *A* is a SIMD class ``simd<K, N, I>`` for some scalar type *K*.
+* *S* is a SIMD class ``simd<V, N, I>`` for a floating point type *V*.
+* *a* and *b* are values of type *A*.
+* *s* and *t* are values of type *S*.
+
+.. list-table:: 
+    :widths: 20 20 60
+    :header-rows: 1
+
+    * - Expression
+      - Type
+      - Description
+
+    * - ``abs(a)``
+      - *A*
+      - Lane-wise absolute value of *a*.
+
+    * - ``min(a, b)``
+      - *A*
+      - Lane-wise minimum of *a* and *b*.
+
+    * - ``max(a, b)``
+      - *A*
+      - Lane-wise maximum of *a* and *b*.
+
+    * - ``sin(s)``
+      - *S*
+      - Lane-wise sine of *s*.
+
+    * - ``cos(s)``
+      - *S*
+      - Lane-wise cosine of *s*.
+
+    * - ``log(s)``
+      - *S*
+      - Lane-wise natural logarithm of *s*.
+
+    * - ``exp(s)``
+      - *S*
+      - Lane-wise exponential of *s*.
+
+    * - ``expm1(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto e^x - 1`.
+
+    * - ``exprelr(s)``
+      - *S*
+      - Lane-wise :math:`x \mapsto x / (e^x - 1)`.
+
+    * - ``pow(s, t)``
+      - *S*
+      - Lane-wise raise *s* to the power of *t*.
 
 
 Implementation requirements
