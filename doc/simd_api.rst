@@ -516,27 +516,27 @@ In the following:
 Implementation requirements
 ---------------------------
 
-Each specific architecture is represented by a templated class ``I``, with
+Each specific architecture is represented by a templated class *I*, with
 ``I<V, N>::type`` being the concrete implementation for an *N*-wide
 SIMD value with ``scalar_type`` *V*.
 
-A concrete implementation class ``C`` inherits from ``simd_detail::implbase<C>``,
+A concrete implementation class *C* inherits from ``simd_detail::implbase<C>``,
 which provides (via CRTP) generic implementations of most of the SIMD
 functionality. The base class ``implbase<C>`` in turn relies upon
 ``simd_detail::simd_traits<C>`` to look up the SIMD width, and associated types.
 
-All the required SIMD operations are given by static member functions of ``C``.
+All the required SIMD operations are given by static member functions of *C*.
 
 Minimal implementation
 ^^^^^^^^^^^^^^^^^^^^^^
 
-In the following, let ``C`` be the concrete implementation class for a
-``N``-wide vector of scalar_type ``V``, with low-level representation
-``arch_vector``.
+In the following, let *C* be the concrete implementation class for a
+*N*-wide vector of scalar_type *V*, with low-level representation
+``archvec``.
 
 The specialization of ``simd_detail::simd_traits<C>`` then exposes these
-types and values, and also provides the concrete implementation class ``M``
-for masks associated with ``C``:
+types and values, and also provides the concrete implementation class *M*
+for masks associated with *C*:
 
 .. container:: api-code
 
@@ -546,13 +546,13 @@ for masks associated with ``C``:
         struct simd_traits<C> {
             static constexpr unsigned width = N;
             using scalar_type = V;
-            using vector_type = arch_vector;
+            using vector_type = archvec;
             using mask_impl = M;
         };
 
 
-The class ``M`` may or may not be the same as ``C``.  For example,
-``simd_detail::avx_double4``, provides both the arithmetic operations and mask
+The mask implementation class *M* may or may not be the same as *C*.
+For example, ``simd_detail::avx_double4`` provides both the arithmetic operations and mask
 operations for an AVX 4 × double SIMD vector, while the mask
 implementation for ``simd_detail::avx512_double8`` is ``simd_detail::avx512_mask8``.
 
@@ -596,19 +596,19 @@ Concrete implementation API
 In the following, *C* represents the concrete implementation class for
 a SIMD class of width *N* and value type *V*.
 
-* *v* and *w* are values of type ``C::vector_type``.
-* *u* is a reference of type ``C::vector_type``.
+* *u*, *v*, and *w* are values of type ``C::vector_type``.
+* *r* is a reference of type ``C::vector_type``.
 * *x* is a value of type ``C::scalar_type``.
 * *c* is a const pointer of type ``const C::scalar_type*``.
 * *p* is a pointer of type ``C::scalar_type*``.
+* *j* is a SIMD index representation of type ``J::vector_type`` for
+  an integral concrete implementation class *J*.
 * *b* is a ``bool`` value.
 * *w* is a pointer to ``bool``.
 * *y* is a const pointer to ``bool``.
 * *i* is an unsigned (index) value.
+* *k* is an unsigned long long value.
 * *m* is a mask representation of type ``C::mask_type``.
-
-The value in lane *i* of a SIMD vector or mask *v* is denoted by
-*v*\ `i`:sub:
 
 .. rubric:: Types and constants
 
@@ -689,9 +689,49 @@ The value in lane *i* of a SIMD vector or mask *v* is denoted by
       - ``C::scalar_type``
       - Value in ith lane of *u*.
 
-    * - ``C::set_element(u, i, x)``
+    * - ``C::set_element(r, i, x)``
       - ``void``
-      - Set value in lane *i* of *u* to *x*.
+      - Set value in lane *i* of *r* to *x*.
+
+.. rubric:: Gather and scatter
+
+The offsets for gather and scatter operations are given
+by a vector type ``J::vector_type`` for some possibly
+different concrete implementation class *J*, and the
+static methods implementing gather and scatter are templated
+on this class.
+
+Implementations can provide optimized versions for specific
+index classes *J*; this process would be simplified with
+more support for casts between SIMD types and their concrete
+implementations, functionality which is not yet provided.
+
+The first argument to these functions is a dummy argument
+of type *J*, used only to disambiguate overloads.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 20 20 60
+
+    * - Expression
+      - Type
+      - Description
+
+    * - ``C::gather(J{}, p, j)``
+      - ``C::vector_type``
+      - Vector *v* with values *v*\ `i`:sub: = ``p[j[i]]``.
+
+    * - ``C::gather(J{}, u, p, j, m)``
+      - ``C::vector_type``
+      - Vector *v* with values *v*\ `i`:sub: = *m*\ `i`:sub: ? ``p[j[i]]`` : *u*\ `i`:sub:.
+
+    * - ``C::scatter(J{}, u, p, j)``
+      - ``void``
+      - Write values *u*\ `i`:sub: to ``p[j[i]]``.
+
+    * - ``C::scatter(J{}, u, p, j, m)``
+      - ``void``
+      - Write values *u*\ `i`:sub: to ``p[j[i]]`` for lanes *i* where *m*\ `i`:sub: is true.
 
 .. rubric:: Arithmetic operations
 
@@ -702,6 +742,10 @@ The value in lane *i* of a SIMD vector or mask *v* is denoted by
     * - Expression
       - Type
       - Description
+
+    * - ``C::negate(v)``
+      - ``C::vector_type``
+      - Lane-wise unary minus.
 
     * - ``C::mul(u, v)``
       - ``C::vector_type``
@@ -723,7 +767,7 @@ The value in lane *i* of a SIMD vector or mask *v* is denoted by
       - ``C::vector_type``
       - Lane-wise fused multiply-add (u*v+w).
 
-.. rubric:: Comparison
+.. rubric:: Comparison and blends
 
 .. list-table:: 
     :widths: 20 20 60
@@ -733,29 +777,86 @@ The value in lane *i* of a SIMD vector or mask *v* is denoted by
       - Type
       - Description
 
-    * - ``C::cmp_eq(v, w)``
+    * - ``C::cmp_eq(u, v)``
       - ``C::mask_type``
-      - Lane-wise *v* = *w*.
+      - Lane-wise *u* = *v*.
 
-    * - ``C::cmp_neq(v, w)``
+    * - ``C::cmp_neq(u, v)``
       - ``C::mask_type``
-      - Lane-wise *v* ≠ *w*.
+      - Lane-wise *u* ≠ *v*.
 
-    * - ``C::cmp_gt(v, w)``
+    * - ``C::cmp_gt(u, v)``
       - ``C::mask_type``
-      - Lane-wise *v* > *w*.
+      - Lane-wise *u* > *v*.
 
-    * - ``C::cmp_geq(v, w)``
+    * - ``C::cmp_geq(u, v)``
       - ``C::mask_type``
-      - Lane-wise *v* ≥ *w*.
+      - Lane-wise *u* ≥ *v*.
 
-    * - ``C::cmp_lt(v, w)``
+    * - ``C::cmp_lt(u, v)``
       - ``C::mask_type``
-      - Lane-wise *v* &lt; *w*.
+      - Lane-wise *u* < *v*.
 
-    * - ``C::cmp_leq(v, w)``
+    * - ``C::cmp_leq(u, v)``
       - ``C::mask_type``
-      - Lane-wise *v* ≤ *w*.
+      - Lane-wise *u* ≤ *v*.
+
+    * - ``C::ifelse(m, u, v)``
+      - ``C::vector_type``
+      - Vector *w* with values *w*\ `i`:sub: = *m*\ `i`:sub: ? *u*\ `i`:sub: : *v*\ `i`:sub:.
+
+.. rubric:: Mathematical function support.
+
+With the exception of ``abs``, ``min`` and ``max``, these are only
+required for floating point vector implementations.
+
+.. list-table:: 
+    :widths: 20 20 60
+    :header-rows: 1
+
+    * - Expression
+      - Type
+      - Description
+
+    * - ``C::abs(v)``
+      - ``C::vector_type``
+      - Lane-wise absolute value.
+
+    * - ``C::min(u, v)``
+      - ``C::vector_type``
+      - Lane-wise minimum.
+
+    * - ``C::max(u, v)``
+      - ``C::vector_type``
+      - Lane-wise maximum.
+
+    * - ``C::sin(v)``
+      - ``C::vector_type``
+      - Lane-wise sine.
+
+    * - ``C::cos(v)``
+      - ``C::vector_type``
+      - Lane-wise cosine.
+
+    * - ``C::log(v)``
+      - ``C::vector_type``
+      - Lane-wise natural logarithm.
+
+    * - ``C::exp(v)``
+      - ``C::vector_type``
+      - Lane-wise exponential.
+
+    * - ``C::expm1(v)``
+      - ``C::vector_type``
+      - Lane-wise :math:`x \mapsto e^x -1`.
+
+    * - ``C::exprelr(v)``
+      - ``C::vector_type``
+      - Lane-wise :math:`x \mapsto x/(e^x -1)`.
+
+    * - ``C::pow(u, v)``
+      - ``C::vector_type``
+      - Lane-wise *u* raised to the power of *v*.
 
 .. rubric:: Mask value support
 
@@ -790,6 +891,11 @@ SIMD mask class.
       - ``C::vector_type``
       - Load bool values from memory (unaligned).
 
+    * - ``C::mask_unpack(k)``
+      - ``C::vector_type``
+      - Return vector *v* with boolean value *v*\ `i`:sub: equal
+        to the *i*\ th bit of *k*.
+
 .. rubric:: Logical operations
 
 Logical operations are only required if *C* constitutes the implementation of a
@@ -820,77 +926,23 @@ SIMD mask class.
       - Lane-wise *m*? *v*: *u*.
 
 
-Gather/scatter
-^^^^^^^^^^^^^^
+Missing functionality
+---------------------
 
-TODO: fix all this up; it's out of date!
+There is no support yet for the following features, although some of these
+will need to be provided in order to improve the efficiency of SIMD versions
+of our generated mechanisms.
 
-Gather/scatter operations require in addition to the participating
-SIMD value to read or write, a SIMD value of indices to describe
-the offsets. Default implementations are provided by templated
-classes in ``simd_detail``:
+* A SIMD cast function, e.g. ``simd_cast<S>(const T&)`` that converts between
+  different SIMD wrappers of the same width. The infrastructure that supports
+  this in concrete implementation classes would also simplify the implementation
+  of more generic ``gather`` and ``scatter`` methods.
 
-* ``simd_detail::gather_impl<Impl, ImplIndex>``
-* ``simd_detail::masked_gather_impl<Impl, ImplIndex>``
-* ``simd_detail::scatter_impl<Impl, ImplIndex>``
-* ``simd_detail::masked_scatter_gather_impl<Impl, ImplIndex>``
+* Horizontal reductions across the lanes of a SIMD value or where-expression.
 
-Here, ``Impl`` represents the concerete implementation class for
-the SIMD value, and ``ImplIndex`` the concrete implementation class
-for the SIMD index.
+* Vectorizable implementations of trigonometric functions.
 
-The default implementations copy the SIMD data to standard C-style
-arrays and perform the loads and stores explicitly.
-Architecture-specific optimizations are then provided by specializing
-these implementation classes.
-
-Specializing gather operations
-""""""""""""""""""""""""""""""
-
-Unmasked gather is provided by the static method ::
-
-    vector_type gather_impl<Impl, ImplIndex>::gather(const scalar_type* p, const index_type& index)
-
-where ``vector_type`` is ``Impl::vector_type``, the raw representation of the SIMD data,
-``scalar_type`` is ``Impl::scalar_type``, the per-lane type for the SIMD data, and ``index_type``
-is ``ImplIndex::vector_type``, the raw representation of the SIMD index.
-
-The method returns a raw SIMD value with lane values given by ``p[index[i]]`` for each lane ``i``.
-
-An implementation for a specific architecture specializes the template and implements this
-static method. For example, the ``AVX2`` gather implementation for 4-wide ``double`` values
-and ``int`` offsets (within the ``simd_detail`` namespace)::
-
-    template <typename Impl, typename ImplIndex>
-    struct gather_impl;
-
-    template <>
-    struct gather_impl<avx2_double4, avx2_int4> {
-        static __m256d gather(const double* p, const __m128i& index) {
-            return  _mm256_i32gather_pd(p, index, 8);
-        };
-    };
-
-This provides an intrinsics-based implementation for the method
-``simd<double, 4, simd_avi::avx2>::gather(const double*, const simd<int, 4, simd_avi::avx2>)``
-
-Masked gather is provided by ::
-
-    vector_type masked_gather_impl<Impl, ImplIndex>::gather(
-        vector_type a, const scalar_type* p, const index_type& index, const mask_type& mask)
-
-where ``mask_type`` is the raw SIMD representation for the mask associated with Impl, i.e.
-``Impl::mask_impl::vector_type``.
-
-The method returns a raw SIMD value with lane values given by ``mask[i]? p[index[i]]: a[i]``.
-
-Architectural specialization is performed similarly.
-
-#### Specializing scatter operations
-
-TBC
-
-### Casting
-
-TBC
+* Compound assignment operations for where-expressions. Extending the concrete
+  implementation API to support this would allow, for example, efficient use
+  of AVX512 masked arithmetic instructions.
 
