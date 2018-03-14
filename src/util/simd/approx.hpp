@@ -6,7 +6,11 @@
 // exponential, trigonometric and special functions.
 //
 // Polynomial coefficients and evaluation orders
-// match those of the Cephes library, http://www.netlib.org/cephes
+// match those of the Cephes library,
+// <URL: http://www.netlib.org/cephes>.
+//
+// Refer to the developer documentation for more
+// detail concerning the approximations.
 
 namespace arb {
 namespace simd_detail {

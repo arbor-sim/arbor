@@ -112,7 +112,7 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
 
 .. rubric:: Type aliases and constexpr members
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -134,7 +134,7 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
 
 .. rubric:: Constructors
 
-.. list-table:: 
+.. list-table::
     :widths: 20 80
     :header-rows: 1
 
@@ -155,7 +155,7 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
 
 .. rubric:: Member functions
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -181,7 +181,7 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
 
 .. rubric:: Expressions
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -296,7 +296,7 @@ In the following:
 
 .. rubric:: Constructors
 
-.. list-table:: 
+.. list-table::
     :widths: 20 80
     :header-rows: 1
 
@@ -316,7 +316,7 @@ Note that ``simd_mask`` does not (currently) offer a masked pointer/array constr
 
 .. rubric:: Member functions
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -334,7 +334,7 @@ Note that ``simd_mask`` does not (currently) offer a masked pointer/array constr
 
 .. rubric:: Expressions
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -376,7 +376,7 @@ Note that ``simd_mask`` does not (currently) offer a masked pointer/array constr
 
 .. rubric:: Static member functions
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -409,7 +409,7 @@ In the following:
 * *p* is a pointer to *V*.
 * *c* is a const pointer to *V* or a length *N* array of *V*.
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -464,7 +464,7 @@ In the following:
 * *a* and *b* are values of type *A*.
 * *s* and *t* are values of type *S*.
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -612,7 +612,7 @@ a SIMD class of width *N* and value type *V*.
 
 .. rubric:: Types and constants
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -642,7 +642,7 @@ a SIMD class of width *N* and value type *V*.
 
 .. rubric:: Initialization, load, store
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -677,7 +677,7 @@ a SIMD class of width *N* and value type *V*.
 
 .. rubric:: Lane access
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -735,7 +735,7 @@ of type *J*, used only to disambiguate overloads.
 
 .. rubric:: Arithmetic operations
 
-.. list-table:: 
+.. list-table::
     :header-rows: 1
     :widths: 20 20 60
 
@@ -769,7 +769,7 @@ of type *J*, used only to disambiguate overloads.
 
 .. rubric:: Comparison and blends
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -810,7 +810,7 @@ of type *J*, used only to disambiguate overloads.
 With the exception of ``abs``, ``min`` and ``max``, these are only
 required for floating point vector implementations.
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -863,7 +863,7 @@ required for floating point vector implementations.
 Mask operations are only required if *C* constitutes the implementation of a
 SIMD mask class.
 
-.. list-table:: 
+.. list-table::
     :widths: 20 20 60
     :header-rows: 1
 
@@ -901,7 +901,7 @@ SIMD mask class.
 Logical operations are only required if *C* constitutes the implementation of a
 SIMD mask class.
 
-.. list-table:: 
+.. list-table::
     :header-rows: 1
     :widths: 20 20 60
 

@@ -34,7 +34,7 @@ struct simd_traits<avx_double4> {
 
 struct avx_int4: implbase<avx_int4> {
     // Use default implementations for:
-    //     element, set_element, fma, div.
+    //     element, set_element, div.
 
     using int32 = std::int32_t;
 
@@ -386,12 +386,6 @@ struct avx_double4: implbase<avx_double4> {
     // ln(2) = C1 + C2, in order to compensate for the possible loss of precision
     // attributable to catastrophic rounding. C1 comprises the first
     // 32-bits of mantissa, C2 the remainder.
-    //
-    //
-    // We use k=32, since this is what the Cephes library does historically.
-    // Theoretically, we could use k=52 to match the IEEE-754 double accuracy, but
-    // the standard library seems not to do that, so we are getting differences
-    // compared to std::exp() for large exponents.
 
     static  __m256d exp(const __m256d& x) {
         // Masks for exceptional cases.

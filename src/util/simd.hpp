@@ -433,7 +433,7 @@ namespace simd_detail {
 
 namespace simd_abi {
     // Note: `simd_abi::native` template class defined in `simd/native.hpp`,
-    // `simd_abi::generic` in `simd/genetic.hpp`.
+    // `simd_abi::generic` in `simd/generic.hpp`.
 
     template <typename Value, unsigned N>
     struct default_abi {
