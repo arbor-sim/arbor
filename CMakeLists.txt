@@ -79,8 +79,8 @@ if(ARB_THREADING_MODEL MATCHES "tbb")
     option(TBB_BUILD_TESTS           OFF)
 
     # Use the CMake configuration in the TBB submodule
-    # Reset the CXX flags, so that the TBB submodule picks its
-    # own flags.
+    # Reset the CXX flags, to avoid the litany of warnings that -Wall
+    # gives when compiling TBB.
     set(CMAKE_CXX_FLAGS_TBB_BACK "${CMAKE_CXX_FLAGS}")
     unset(CMAKE_CXX_FLAGS)
     add_subdirectory(tbb)
