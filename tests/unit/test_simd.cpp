@@ -6,9 +6,6 @@
 
 #include "common.hpp"
 
-// For quicker compiling while debugging:
-#define DEFAULT_ABI_ONLY
-
 using namespace arb;
 
 namespace {
@@ -509,7 +506,6 @@ TYPED_TEST_P(simd_value, maths) {
 REGISTER_TYPED_TEST_CASE_P(simd_value, elements, element_lvalue, copy_to_from, copy_to_from_masked, construct_masked, arithmetic, compound_assignment, comparison, mask_elements, mask_element_lvalue, mask_copy_to_from, mask_unpack, maths);
 
 typedef ::testing::Types<
-#ifndef DEFAULT_ABI_ONLY
 
 #ifdef __AVX__
     simd<int, 4, simd_abi::avx>,
@@ -520,15 +516,13 @@ typedef ::testing::Types<
     simd<double, 4, simd_abi::avx2>,
 #endif
 #ifdef __AVX512F__
+    simd<int, 8, simd_abi::avx512>,
     simd<double, 8, simd_abi::avx512>,
 #endif
 
     simd<int, 4, simd_abi::generic>,
-    simd<float, 2, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
-    simd<float, 8, simd_abi::generic>,
-
-#endif // ndef DEFAULT_ABI_ONLY
+    simd<float, 16, simd_abi::generic>,
 
     simd<int, 4, simd_abi::default_abi>,
     simd<double, 4, simd_abi::default_abi>,
