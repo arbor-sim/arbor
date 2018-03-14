@@ -786,7 +786,6 @@ TYPED_TEST_P(simd_fp_value, log_special_values) {
 REGISTER_TYPED_TEST_CASE_P(simd_fp_value, fp_maths, exp_special_values, expm1_special_values, log_special_values);
 
 typedef ::testing::Types<
-#ifndef DEFAULT_ABI_ONLY
 
 #ifdef __AVX__
     simd<double, 4, simd_abi::avx>,
@@ -801,8 +800,6 @@ typedef ::testing::Types<
     simd<float, 2, simd_abi::generic>,
     simd<double, 4, simd_abi::generic>,
     simd<float, 8, simd_abi::generic>,
-
-#endif // ndef DEFAULT_ABI_ONLY
 
     simd<double, 4, simd_abi::default_abi>,
     simd<double, 8, simd_abi::default_abi>
@@ -965,7 +962,6 @@ TYPED_TEST_P(simd_indirect, masked_scatter) {
 REGISTER_TYPED_TEST_CASE_P(simd_indirect, gather, masked_gather, scatter, masked_scatter);
 
 typedef ::testing::Types<
-#ifndef DEFAULT_ABI_ONLY
 
 #ifdef __AVX__
     simd_and_index<simd<double, 4, simd_abi::avx>,
@@ -987,8 +983,6 @@ typedef ::testing::Types<
 
     simd_and_index<simd<double, 8, simd_abi::generic>,
                    simd<unsigned, 8, simd_abi::generic>>,
-
-#endif // ndef DEFAULT_ABI_ONLY
 
     simd_and_index<simd<double, 4, simd_abi::default_abi>,
                    simd<int, 4, simd_abi::default_abi>>,
