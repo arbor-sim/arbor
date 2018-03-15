@@ -43,11 +43,10 @@ std::ostream& operator<<(std::ostream&, const profile&);
 #ifdef ARB_HAVE_PROFILING
 
     // enter a profiling region
-    #define REGION_TAG_NAME(x) x##_profile_region_tag__
     #define PE(name) \
         { \
-            static std::size_t REGION_TAG_NAME(name) = arb::util::profiler_region_id(#name); \
-            arb::util::profiler_enter(REGION_TAG_NAME(name)); \
+            static std::size_t region_id__ = arb::util::profiler_region_id(#name); \
+            arb::util::profiler_enter(region_id__); \
         }
 
     // leave a profling region
