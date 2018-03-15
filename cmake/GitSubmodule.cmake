@@ -10,11 +10,11 @@ function(check_git_submodule name path)
 
     if(NOT EXISTS "${path}/.git")
         message(
-            "\nThe ${name} submodule is not available.\n"
-            "To check out all submodules you can use the following commands:\n"
+            "\nThe git submodule for ${name} is not available.\n"
+            "To check out all submodules use the following commands:\n"
             "    git submodule init\n"
             "    git submodule update\n"
-            "Or download them when checking out:\n"
+            "Or download submodules recursively when checking out:\n"
             "    git clone --recursive https://github.com/eth-cscs/arbor.git\n"
         )
 
