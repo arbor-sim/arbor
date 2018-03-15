@@ -325,12 +325,18 @@ public:
             }
             memory::copy(memory::make_const_view(values), field);
         }
+        else {
+            throw std::logic_error("internal error: no such mechanism parameter");
+        }
     }
 
     void set_global(const std::string& key, fvm_value_type value) override {
         if (auto opt_ptr = util::value_by_key(global_table(), key)) {
             value_type& global = *opt_ptr.value();
             global = value;
+        }
+        else {
+            throw std::logic_error("internal error: no such mechanism global");
         }
     }
 

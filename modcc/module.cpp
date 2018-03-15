@@ -467,9 +467,6 @@ void Module::add_variables_to_symbols() {
         }
 
         // Parameters are scalar by default, but may later be changed to range.
-        // Linkage is local except for special variable 'celsius' [which is disabled for now!]
-
-        //linkageKind linkage = id.name()=="celsius"? linkageKind::external: linkageKind::local;
         linkageKind linkage = linkageKind::local;
         auto& sym = create_variable(id.token,
             accessKind::read, visibilityKind::global, linkage, rangeKind::scalar);

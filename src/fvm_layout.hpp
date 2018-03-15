@@ -12,6 +12,8 @@
 
 namespace arb {
 
+// Discretization data for an unbranched segment.
+
 struct segment_info {
     using value_type = fvm_value_type;
     using size_type = fvm_size_type;
@@ -44,6 +46,9 @@ struct segment_info {
         }
     }
 };
+
+// Discretization of morphologies and electrical properties for
+// cells in a cell group.
 
 struct fvm_discretization {
     using value_type = fvm_value_type;
@@ -81,6 +86,9 @@ struct fvm_discretization {
 
 fvm_discretization fvm_discretize(const std::vector<cell>& cells);
 
+
+// Post-discretization data for point and density mechanism instantiation.
+
 struct fvm_mechanism_config {
     using value_type = fvm_value_type;
     using size_type = fvm_size_type;
@@ -100,6 +108,8 @@ struct fvm_mechanism_config {
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
 };
+
+// Post-discretization data for ion channel state.
 
 struct fvm_ion_config {
     using value_type = fvm_value_type;

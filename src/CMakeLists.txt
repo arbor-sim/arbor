@@ -1,5 +1,4 @@
 set(BASE_SOURCES
-    backends/multicore/fvm.cpp
     backends/multicore/stimulus.cpp
     builtin_mechanisms.cpp
     cell_group_factory.cpp

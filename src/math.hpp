@@ -80,18 +80,37 @@ int signum(T x) {
     return (x>T(0)) - (x<T(0));
 }
 
-// Return r, the smallest magnitude multiple of b such that
-// v lies between 0 and r inclusive.
+namespace impl {
+    template <typename T>
+    T abs_if_signed(const T& x, std::true_type) {
+        return std::abs(x);
+    }
+
+    template <typename T>
+    T abs_if_signed(const T& x, std::false_type) {
+        return x;
+    }
+}
+
+// round_up(v, b) returns r, the smallest magnitude multiple of b
+// such that v lies between 0 and r inclusive.
+//
+// Examples:
+//     round_up( 7,  3) ==  9
+//     round_up( 7, -3) ==  9
+//     round_up(-7,  3) == -9
+//     round_up(-7, -3) == -9
+//     round_up( 8,  4) ==  8
+
 template <
     typename T,
     typename U,
     typename C = typename std::common_type<T, U>::type,
-    bool is_signed = std::is_signed<C>::value
+    typename Signed = typename std::is_signed<C>::type
 >
-C round_up(T v, U base) {
-    C m = v%base;
-    C abs_base = is_signed? std::abs(base): base;
-    return v-m+signum(m)*abs_base;
+C round_up(T v, U b) {
+    C m = v%b;
+    return v-m+signum(m)*impl::abs_if_signed(b, Signed{});
 }
 
 // Return minimum of the two values

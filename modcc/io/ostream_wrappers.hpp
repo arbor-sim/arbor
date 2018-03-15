@@ -38,7 +38,9 @@ struct separator {
     bool visited = false;
 
     friend std::ostream& operator<<(std::ostream& o, separator& sep) {
-        return o << (sep.visited++? sep.delimiter: sep.prefix);
+        o << (sep.visited? sep.delimiter: sep.prefix);
+        sep.visited = true;
+        return o;
     }
 
     void reset() { visited = false; }

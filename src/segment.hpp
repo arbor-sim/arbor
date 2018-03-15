@@ -39,7 +39,7 @@ struct mechanism_desc {
     mechanism_desc(std::string name): name_(std::move(name)) {}
     mechanism_desc(const char* name): name_(name) {}
 
-    mechanism_desc& set(std::string key, double value) {
+    mechanism_desc& set(const std::string& key, double value) {
         param_[key] = value;
         return *this;
     }

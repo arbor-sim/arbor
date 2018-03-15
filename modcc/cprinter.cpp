@@ -496,12 +496,6 @@ void CPrinter::visit(Symbol *e) {
 void CPrinter::visit(LocalVariable *e) {
     std::string const& name = e->name();
     text_ << name;
-/*
-    if(is_ghost_local(e)) {
-        std::cerr << "WOOT! ghost local " << name << "\n";
-        text_ << "[j_]";
-    }
-*/
 }
 
 void CPrinter::visit(NumberExpression *e) {

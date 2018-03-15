@@ -166,7 +166,7 @@ public:
 
         // Run integration and collect samples, spikes.
         PE("integrate");
-        auto R = lowered_.integrate(ep.tfinal, dt, staged_events_, std::move(sample_events), util::is_debug_mode());
+        auto result = lowered_.integrate(ep.tfinal, dt, staged_events_, std::move(sample_events), util::is_debug_mode());
         PL();
 
         // For each sampler callback registered in `call_info`, construct the
@@ -180,7 +180,7 @@ public:
         for (auto& sc: call_info) {
             sample_records.clear();
             for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
-               sample_records.push_back(sample_record{time_type(R.sample_time[i]), &R.sample_value[i]});
+               sample_records.push_back(sample_record{time_type(result.sample_time[i]), &result.sample_value[i]});
             }
 
             sc.sampler(sc.probe_id, sc.tag, sc.end_offset-sc.begin_offset, sample_records.data());
@@ -192,7 +192,7 @@ public:
         // record the local spike source index, which must be converted to a
         // global index for spike communication.
 
-        for (auto c: R.crossings) {
+        for (auto c: result.crossings) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }
         PL();
