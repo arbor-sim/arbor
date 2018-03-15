@@ -66,40 +66,46 @@ set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of 
 set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 if(ARB_THREADING_MODEL MATCHES "tbb")
-    # download and build TBB
-    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBGet.cmake)
-    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBBuild.cmake)
-    tbb_get(TBB_ROOT tbb_root SOURCE_CODE)
-    tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
+    # TODO: update to use built-in support for detecting git submodules.
+    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/tbb/.git")
+        message(FATAL_ERROR
+            "\nThe git submodule for tbb must be checked out to use TBB.\n"
+            "  git submodule init\n"
+            "  git submodule update\n")
+    endif()
 
-    # configure TBB
-    find_package(TBB REQUIRED tbb tbbmalloc)
+    # turn off proxy malloc library and test compilation
+    option(TBB_BUILD_TBBMALLOC_PROXY OFF)
+    option(TBB_BUILD_TESTS           OFF)
 
+    # Use the CMake configuration in the TBB submodule
+    # Reset the CXX flags, to avoid the litany of warnings that -Wall
+    # gives when compiling TBB.
+    set(CMAKE_CXX_FLAGS_TBB_BACK "${CMAKE_CXX_FLAGS}")
+    unset(CMAKE_CXX_FLAGS)
+    add_subdirectory(tbb)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_TBB_BACK}")
+
+    # set flags for TBB
     add_definitions(-DARB_HAVE_TBB)
     set(ARB_WITH_TBB TRUE)
 
-    # The TBB CMake package creates the TBB::tbb and TBB:tbbmalloc targets.
-    # The following should be sufficient, however on some systems (e.g. Cray PE),
-    # they don't work (because CMake is fragile):
-    #   list(APPEND EXTERNAL_LIBRARIES TBB::tbb)
-    #   list(APPEND EXTERNAL_LIBRARIES TBB::tbbmalloc)
-    # So, instead, manually add the library links:
-    set(TBB_LIB_PATH ${CMAKE_BINARY_DIR}/tbb_cmake_build/tbb_cmake_build_subdir_release)
-    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbb.so)
-    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbbmalloc.so)
+    include_directories(${CMAKE_SOURCE_DIR}/tbb/include)
 
-    # The TBB headers are in the downloaded TBB source
-    list(APPEND EXTERNAL_INCLUDES ${tbb_root}/include)
+    list(APPEND EXTERNAL_LIBRARIES tbb_static tbbmalloc_static)
+    list(APPEND EXTERNAL_LIBRARIES pthread dl)
+
+    # TODO add support for user-supplied tbb implementation,
+    # e.g. using an TBB_ROOT variable.
 
 elseif(ARB_THREADING_MODEL MATCHES "cthread")
-
     find_package(Threads REQUIRED)
     add_definitions(-DARB_HAVE_CTHREAD)
     set(ARB_WITH_CTHREAD TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
     if(CMAKE_USE_PTHREADS_INIT)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
 endif()
 
