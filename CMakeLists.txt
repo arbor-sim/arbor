@@ -302,6 +302,6 @@ if (rtdtheme_avail)
 else()
     add_error_target( docs
         "Generating Sphinx documentation"
-        "The git submodule for read the docs is not available.")
+        "The git submodule for read the docs is not available")
 endif()
 
