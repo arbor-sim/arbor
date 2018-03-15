@@ -4,6 +4,7 @@
     #error this header can only be loaded if ARB_HAVE_TBB is set
 #endif
 
+#include <atomic>
 #include <string>
 
 #include <tbb/tbb.h>
@@ -50,6 +51,13 @@ template <typename T>
 using parallel_vector = tbb::concurrent_vector<T>;
 
 using task_group = tbb::task_group;
+
+inline
+std::size_t thread_id() {
+    static std::atomic<std::size_t> num_threads(0);
+    thread_local std::size_t thread_id = num_threads++;
+    return thread_id;
+}
 
 template <typename RandomIt>
 void sort(RandomIt begin, RandomIt end) {

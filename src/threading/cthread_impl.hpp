@@ -263,5 +263,9 @@ struct parallel_for {
     }
 };
 
+inline std::size_t thread_id() {
+    return impl::task_pool::get_global_task_pool().get_current_thread();
+}
+
 } // namespace threading
 } // namespace arb

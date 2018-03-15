@@ -65,7 +65,6 @@ protected:
         using ::arb::event_time;
         using ::arb::event_index;
 
-        PE("event-stream");
         if (staged.size()>std::numeric_limits<size_type>::max()) {
             throw std::range_error("too many events");
         }
@@ -103,7 +102,6 @@ protected:
         memory::copy(memory::make_view(tmp_divs_)(1,n_stream_+1), span_end_);
         memory::copy(span_begin_, mark_);
         n_nonempty_stream_[0] = n_nonempty;
-        PL();
     }
 
     size_type n_stream_;

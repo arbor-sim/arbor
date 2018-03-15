@@ -25,5 +25,6 @@ Arbor is a high-performance library for computationa neurscience simulations.
    :maxdepth: 1
 
    library
+   profiler
    sampling_api
 
