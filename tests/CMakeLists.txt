@@ -21,7 +21,7 @@ if (google_bench_avail)
 else()
     add_error_target(ubenches
         "Building micro benchmarks"
-        "The git submodule for google benchmark is not available")
+        "The git submodule for google benchmark is not available.")
 endif()
 
 # regression / delta tests
