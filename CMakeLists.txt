@@ -227,6 +227,19 @@ else()
 endif()
 
 #----------------------------------------------------------
+# Python bindings
+#----------------------------------------------------------
+set(use_python OFF)
+option(ARB_WITH_PYTHON "enable python back end" OFF)
+if(ARB_WITH_PYTHON)
+    set(use_python ON)
+    add_definitions(-DARB_HAVE_PYTHON)
+    # Required to link the dynamic libraries for python modules.
+    # Effectively adds '-fpic' flag to CXX_FLAGS.
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+#----------------------------------------------------------
 # Validation data generation
 #----------------------------------------------------------
 # destination directory for generated data
@@ -291,3 +304,7 @@ add_subdirectory(tests)
 add_subdirectory(example)
 add_subdirectory(lmorpho)
 add_subdirectory(doc)
+if (use_python)
+    add_subdirectory(python)
+endif ()
+

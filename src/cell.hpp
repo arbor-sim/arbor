@@ -97,11 +97,6 @@ public:
     /// Move constructor
     cell(cell&& other) = default;
 
-    /// Return the kind of cell, used for grouping into cell_groups
-    cell_kind get_cell_kind() const  {
-        return cell_kind::cable1d_neuron;
-    }
-
     /// add a soma to the cell
     /// radius must be specified
     soma_segment* add_soma(value_type radius, point_type center=point_type());
@@ -173,8 +168,7 @@ public:
     //////////////////
     // synapses
     //////////////////
-    void add_synapse(segment_location loc, mechanism_spec p)
-    {
+    void add_synapse(segment_location loc, mechanism_spec p) {
         synapses_.push_back(synapse_instance{loc, std::move(p)});
     }
     const std::vector<synapse_instance>& synapses() const {

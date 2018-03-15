@@ -1,7 +1,7 @@
 Arbor
 =====
 
-Arbor is a high-performance library for computationa neurscience simulations.
+Arbor is a high-performance library for computational neurscience simulations.
 
 .. toctree::
    :maxdepth: 1
@@ -24,7 +24,7 @@ Arbor is a high-performance library for computationa neurscience simulations.
    :caption: Developers:
    :maxdepth: 1
 
+   python
    library
    profiler
    sampling_api
-

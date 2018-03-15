@@ -1,0 +1,45 @@
+Work left to do in Python wrapper, in no particular order of priority:
+
+- defining connections to build networks
+recipe stuff
+    * querying the number of targets (for events)
+    * querying the number of sources (of spikes)
+* plotting/viewing/printing sampler outputs
+* event_generator wrapper
+* expose more of model querying interface
+* simple C functions for making example cells
+* setting probes and samplers
+* LIF cell
+* ring network example
+* all to all network example
+* GPU support
+* MPI support
+
+* wrapper for cable cell definitions
+
+cells:
+    * wrap arb::cell
+    * three functions that mak basic cells with no synapses or stimuli
+        *. soma only single compartment
+        2. ball and stick
+        3. ball and 3 stick
+    * function for adding stimulus
+    * function for adding synapses
+    * function for adding detector
+
+ring recipe
+    - hh single compartment cells in a ring of n cells
+    - brief stimulus on cell 1
+     *
+     * Stimuli:
+     *    soma centre, t=[10 ms, 110 ms), 0.1 nA
+
+
+event generators:
+    - event generator trampoline
+    - wrap available event generators
+        - poisson
+        - regular
+        - one that takes a Python list
+
+probe support

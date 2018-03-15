@@ -48,8 +48,6 @@ namespace impl {
     // it is not intended for use elsewhere. It is exposed here for unit testing
     // of its functionality.
     class tourney_tree {
-        using key_val = std::pair<unsigned, postsynaptic_spike_event>;
-
     public:
         tourney_tree(std::vector<event_generator>& input);
         bool empty() const;
@@ -60,11 +58,9 @@ namespace impl {
 
     private:
         void setup(unsigned i);
-        void merge_up(unsigned i);
+        void merge_children(unsigned i);
         void update_lane(unsigned lane);
-        unsigned parent(unsigned i) const;
         unsigned left(unsigned i) const;
-        unsigned right(unsigned i) const;
         unsigned leaf(unsigned i) const;
         bool is_leaf(unsigned i) const;
         const unsigned& id(unsigned i) const;
@@ -72,7 +68,9 @@ namespace impl {
         const postsynaptic_spike_event& event(unsigned i) const;
         unsigned next_power_2(unsigned x) const;
 
-        std::vector<key_val> heap_;
+        std::vector<unsigned> index_tree_;
+        pse_vector events_;
+
         std::vector<event_generator>& input_;
         unsigned leaves_;
         unsigned nodes_;

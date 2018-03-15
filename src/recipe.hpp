@@ -41,11 +41,13 @@ using cell_connection_endpoint = cell_member_type;
 // two in the current code. These two types could well be merged.
 
 struct cell_connection {
-    cell_connection_endpoint source;
-    cell_connection_endpoint dest;
+    cell_connection_endpoint source = {0,0};
+    cell_connection_endpoint dest = {0,0};
 
-    float weight;
-    float delay;
+    float weight=0.f;
+    float delay=0.f;
+
+    cell_connection() = default;
 
     cell_connection(cell_connection_endpoint src, cell_connection_endpoint dst, float w, float d):
         source(src), dest(dst), weight(w), delay(d)
@@ -54,6 +56,8 @@ struct cell_connection {
 
 class recipe {
 public:
+    virtual ~recipe() = default;
+
     virtual cell_size_type num_cells() const = 0;
 
     // Cell description type will be specific to cell kind of cell with given gid.
@@ -73,7 +77,6 @@ public:
     virtual probe_info get_probe(cell_member_type) const {
         throw std::logic_error("no probes");
     }
-
 
     // Global property type will be specific to given cell kind.
     virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
