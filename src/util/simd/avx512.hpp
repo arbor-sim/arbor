@@ -36,7 +36,7 @@ struct simd_traits<avx512_double8> {
 template <>
 struct simd_traits<avx512_int8> {
     static constexpr unsigned width = 8;
-    using scalar_type = int;
+    using scalar_type = std::int32_t;
     using vector_type = __m512i;
     using mask_impl = avx512_mask8;
 };
@@ -205,29 +205,33 @@ struct avx512_int8: implbase<avx512_int8> {
     // to __mmask8 seem to produce a lot of ultimately unnecessary
     // operations. 
 
-    static __mmask8 lo() { return _mm512_int2mask(0xff); }
+    using int32 = std::int32_t;
 
-    static __m512i broadcast(int v) {
+    static __mmask8 lo() {
+        return _mm512_int2mask(0xff);
+    }
+
+    static __m512i broadcast(int32 v) {
         return _mm512_set1_epi32(v);
     }
 
-    static void copy_to(const __m512i& v, int* p) {
+    static void copy_to(const __m512i& v, int32* p) {
         _mm512_mask_storeu_epi32(p, lo(), v);
     }
 
-    static void copy_to_masked(const __m512i& v, int* p, const __mmask8& mask) {
+    static void copy_to_masked(const __m512i& v, int32* p, const __mmask8& mask) {
         _mm512_mask_storeu_epi32(p, mask, v);
     }
 
-    static __m512i copy_from(const int* p) {
+    static __m512i copy_from(const int32* p) {
         return _mm512_maskz_loadu_epi32(lo(), p);
     }
 
-    static __m512i copy_from_masked(const int* p, const __mmask8& mask) {
+    static __m512i copy_from_masked(const int32* p, const __mmask8& mask) {
         return _mm512_maskz_loadu_epi32(mask, p);
     }
 
-    static __m512i copy_from_masked(const __m512i& v, const int* p, const __mmask8& mask) {
+    static __m512i copy_from_masked(const __m512i& v, const int32* p, const __mmask8& mask) {
         return _mm512_mask_loadu_epi32(v, mask, p);
     }
 
@@ -246,7 +250,7 @@ struct avx512_int8: implbase<avx512_int8> {
     static __m512i mul(const __m512i& a, const __m512i& b) {
         // Can represent 32-bit exactly in double, and technically overflow is
         // undefined behaviour, so we can do this in doubles.
-        constexpr int rtz = _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC;
+        constexpr int32 rtz = _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC;
         auto da = _mm512_cvtepi32_pd(_mm512_castsi512_si256(a));
         auto db = _mm512_cvtepi32_pd(_mm512_castsi512_si256(b));
         auto fpmul = _mm512_mul_round_pd(da, db, rtz);
@@ -255,7 +259,7 @@ struct avx512_int8: implbase<avx512_int8> {
 
     static __m512i div(const __m512i& a, const __m512i& b) {
         // Can represent 32-bit exactly in double, so do a fp division with fixed rounding.
-        constexpr int rtz = _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC;
+        constexpr int32 rtz = _MM_FROUND_TO_ZERO | _MM_FROUND_NO_EXC;
         auto da = _mm512_cvtepi32_pd(_mm512_castsi512_si256(a));
         auto db = _mm512_cvtepi32_pd(_mm512_castsi512_si256(b));
         auto fpdiv = _mm512_div_round_pd(da, db, rtz);
@@ -311,33 +315,37 @@ struct avx512_int8: implbase<avx512_int8> {
     template <typename Impl>
     using is_int8_simd = std::integral_constant<bool, std::is_same<int, typename Impl::scalar_type>::value && Impl::width==8>;
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static __m512i gather(ImplIndex, const int* p, const typename ImplIndex::vector_type& index) {
-        int o[16];
+    template <typename ImplIndex,
+              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static __m512i gather(ImplIndex, const int32* p, const typename ImplIndex::vector_type& index) {
+        int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
         return _mm512_mask_i32gather_epi32(_mm512_setzero_epi32(), lo(), _mm512_loadu_si512(op), p, 4);
     }
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static __m512i gather(ImplIndex, __m512i a, const int* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
-        int o[16];
+    template <typename ImplIndex,
+              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static __m512i gather(ImplIndex, __m512i a, const int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+        int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
         return _mm512_mask_i32gather_epi32(a, mask, _mm512_loadu_si512(op), p, 4);
     }
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static void scatter(ImplIndex, const __m512i& s, int* p, const typename ImplIndex::vector_type& index) {
-        int o[16];
+    template <typename ImplIndex,
+              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static void scatter(ImplIndex, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index) {
+        int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
         _mm512_mask_i32scatter_epi32(p, lo(), _mm512_loadu_si512(op), s, 4);
     }
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static void scatter(ImplIndex, const __m512i& s, int* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
-        int o[16];
+    template <typename ImplIndex,
+              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    static void scatter(ImplIndex, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+        int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
         _mm512_mask_i32scatter_epi32(p, mask, _mm512_loadu_si512(op), s, 4);
@@ -345,19 +353,19 @@ struct avx512_int8: implbase<avx512_int8> {
 
     // Specialized 8-wide gather and scatter for avx512_int8 implementation.
 
-    static __m512i gather(avx512_int8, const int* p, const __m512i& index) {
+    static __m512i gather(avx512_int8, const int32* p, const __m512i& index) {
         return _mm512_mask_i32gather_epi32(_mm512_setzero_epi32(), lo(), index, p, 4);
     }
 
-    static __m512i gather(avx512_int8, __m512i a, const int* p, const __m512i& index, const __mmask8& mask) {
+    static __m512i gather(avx512_int8, __m512i a, const int32* p, const __m512i& index, const __mmask8& mask) {
         return _mm512_mask_i32gather_epi32(a, mask, index, p, 4);
     }
 
-    static void scatter(avx512_int8, const __m512i& s, int* p, const __m512i& index) {
+    static void scatter(avx512_int8, const __m512i& s, int32* p, const __m512i& index) {
         _mm512_mask_i32scatter_epi32(p, lo(), index, s, 4);
     }
 
-    static void scatter(avx512_int8, const __m512i& s, int* p, const __m512i& index, const __mmask8& mask) {
+    static void scatter(avx512_int8, const __m512i& s, int32* p, const __m512i& index, const __mmask8& mask) {
         _mm512_mask_i32scatter_epi32(p, mask, index, s, 4);
     }
 };

@@ -33,12 +33,11 @@ struct simd_traits<avx_double4> {
 };
 
 struct avx_int4: implbase<avx_int4> {
-    // Use default implementations for:
-    //     element, set_element, div.
+    // Use default implementations for: element, set_element, div.
 
     using int32 = std::int32_t;
 
-    static __m128i broadcast(double v) {
+    static __m128i broadcast(int32 v) {
         return _mm_set1_epi32(v);
     }
 
@@ -171,7 +170,6 @@ struct avx_int4: implbase<avx_int4> {
     static __m128i min(const __m128i& a, const __m128i& b) {
         return _mm_min_epi32(a, b);
     }
-
 };
 
 struct avx_double4: implbase<avx_double4> {
@@ -645,7 +643,9 @@ protected:
 };
 
 
-#ifdef __AVX2__
+#if defined(__AVX2__) && defined(__FMA__)
+
+// Same implementation as for AVX.
 using avx2_int4 = avx_int4;
 
 struct avx2_double4;
@@ -657,6 +657,11 @@ struct simd_traits<avx2_double4> {
     using vector_type = __m256d;
     using mask_impl = avx2_double4;
 };
+
+// Note: we derive from avx_double4 only as an implementation shortcut.
+// Because `avx2_double4` does not derive from `implbase<avx2_double4>`,
+// any fallback methods in `implbase` will use the `avx_double4`
+// functions rather than the `avx2_double4` functions.
 
 struct avx2_double4: avx_double4 {
     static __m256d fma(const __m256d& a, const __m256d& b, const __m256d& c) {
@@ -890,7 +895,7 @@ protected:
         return _mm_sub_epi32(ebiased, _mm_set1_epi32(1023));
     }
 };
-#endif // def __AVX2__
+#endif // defined(__AVX2__) && defined(__FMA__)
 
 } // namespace simd_detail
 
@@ -900,7 +905,7 @@ namespace simd_abi {
     template <> struct avx<int, 4> { using type = simd_detail::avx_int4; };
     template <> struct avx<double, 4> { using type = simd_detail::avx_double4; };
 
-#ifdef __AVX2__
+#if defined(__AVX2__) && defined(__FMA__)
     template <typename T, unsigned N> struct avx2;
 
     template <> struct avx2<int, 4> { using type = simd_detail::avx2_int4; };

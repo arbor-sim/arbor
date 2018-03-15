@@ -6,10 +6,12 @@ compiler intrinsics for the manipulation of architecture-specific vector
 (SIMD) values.
 
 The implementation is rather loosely based on the data-parallel vector types
-proposal P0214R6 for the C++ Parallelism TS 2.
+proposal `P0214R6 for the C++ Parallelism TS 2 <http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2017/p0214r6.pdf>`_.
 
-Examples
---------
+Unless otherwise specified, all classes, namespaces and top-level functions
+described below are all within the top-level `arb` namespace.
+
+.. rubric:: Example usage
 
 The following code performs an element-wise vector product, storing
 only non-zero values in the resultant array.
@@ -55,7 +57,7 @@ Three user-facing template classes are provided:
    The implementation ``simd_abi::generic`` provides a ``std::array``-backed
    implementation for arbitrary *V* and *N*, while ``simd_abi::native``
    maps to the native architecture implementation for *V* and *N*, if
-   supported.
+   one is available for the target architecture.
 
    ``simd_abi::default_abi`` will use ``simd_abi::native`` if available, or
    else fall back to the generic implementation.
@@ -265,9 +267,9 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
       - ``S::reference``
       - Set value *s*\ `i`:sub: to *x*.
 
-The (non-const) index operator `operator[]` returns a proxy object of type `S::reference`,
+The (non-const) index operator ``operator[]`` returns a proxy object of type ``S::reference``,
 which writes the corresponding lane in the SIMD value on assignment, and has an
-implicit conversion to `scalar_type`.
+implicit conversion to ``scalar_type``.
 
 
 Class ``simd_mask``

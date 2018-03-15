@@ -2,6 +2,22 @@
 
 // Native SIMD representations based on architecture.
 
+// Predefined macros from the compiler are used to guard
+// architecture-specific code here and in the source code
+// for the concrete implementation classes.
+//
+// For x86 vector extensions, the same preprocessor defines
+// are used across gcc, clang and icpc: __AVX__, __AVX2__,
+// __FMA__, __AVX512F__.
+//
+// Note that the FMA extensions for x86 are strictly speaking
+// independent of AVX2, and instructing gcc (for example)
+// to generate AVX2 code with '-mavx2' will not enable FMA
+// instructions unless '-mfma' is also given. It is generally
+// safer to explicitly request the target using
+// '-march', '-mcpu' or '-x', depending on the compiler and
+// architecure.
+
 namespace arb {
 namespace simd_abi {
 
@@ -14,12 +30,16 @@ struct native {
 } // namespace arb
 
 #define ARB_DEF_NATIVE_SIMD_(T, N, A)\
-namespace arb { namespace simd_abi {\
-template <> struct native<T, N> { using type = typename A<T, N>::type; };\
-}}
+namespace arb {\
+namespace simd_abi {\
+template <> struct native<T, N> {\
+    using type = typename A<T, N>::type;\
+};\
+}\
+}
 
 
-#if defined(__AVX2__)
+#if defined(__AVX2__) && defined(__FMA__)
 
 #include <util/simd/avx.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 4, avx2)

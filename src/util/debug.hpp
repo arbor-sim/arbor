@@ -96,6 +96,7 @@ namespace impl {
         native = __BYTE_ORDER__
     };
 
+    // Wrapper for emitting values on an ostream as a sequence of hex digits.
     struct hexdump_inline_wrap {
         const unsigned char* from;
         std::size_t size;
@@ -107,7 +108,7 @@ namespace impl {
             constexpr bool little = endian::native==endian::little;
             ptrdiff_t width = h.width;
             const unsigned char* from = h.from;
-            const unsigned char *end = h.from+h.size;
+            const unsigned char* end = h.from+h.size;
             std::string buf;
 
             auto emit = [&buf](unsigned char c) {

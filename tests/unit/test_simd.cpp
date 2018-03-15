@@ -9,6 +9,13 @@
 using namespace arb;
 
 namespace {
+    // Use different distributions in `fill_random`, based on the value type in question:
+    //
+    //     * floating point type => uniform_real_distribution, default interval [-1, 1).
+    //     * bool                => uniform_int_distribution, default interval [0, 1).
+    //     * other integral type => uniform_int_distribution, default interval [L, U]
+    //                              such that L^2+L and U^2+U fit within the integer range.
+
     template <typename V, typename = typename std::enable_if<std::is_floating_point<V>::value>::type>
     std::uniform_real_distribution<V> make_udist(V lb = -1., V ub = 1.) {
         return std::uniform_real_distribution<V>(lb, ub);

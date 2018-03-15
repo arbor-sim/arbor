@@ -465,14 +465,12 @@ struct implbase {
         I::copy_to(s, a);
         I::copy_to(t, b);
 
-
         for (unsigned i = 0; i<width; ++i) {
             r[i] = std::pow(a[i], b[i]);
         }
         return I::copy_from(r);
     }
 };
-
 
 } // namespace simd_detail
 } // namespace arb
