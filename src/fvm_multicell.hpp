@@ -111,6 +111,8 @@ public:
         const std::vector<deliverable_event>& staged_events,
         const std::vector<sample_event>& staged_samples)
     {
+        PE(advance_integrate_setup);
+
         EXPECTS(dt_max>0);
 
         tfinal_ = tfinal;
@@ -130,6 +132,8 @@ public:
             sample_value_ = array(n_samples_);
             sample_time_ = array(n_samples_);
         }
+
+        PL();
     }
 
     // Advance one integration step.
@@ -1163,10 +1167,12 @@ template <typename Backend>
 void fvm_multicell<Backend>::step_integration() {
     EXPECTS(!integration_complete());
 
+    PE(advance_integrate_events);
     // mark pending events for delivery
     events_.mark_until_after(time_);
+    PL();
 
-    PE("current");
+    PE(advance_integrate_current);
     memory::fill(current_, 0.);
 
     // clear currents and recalculate reversal potentials for all ion channels
@@ -1178,49 +1184,49 @@ void fvm_multicell<Backend>::step_integration() {
 
     // deliver pending events and update current contributions from mechanisms
     for (auto& m: mechanisms_) {
-        PE(m->name().c_str());
         m->deliver_events(events_.marked_events());
         m->nrn_current();
-        PL();
     }
+    PL();
 
+    PE(advance_integrate_events);
     // remove delivered events from queue and set time_to_
     events_.drop_marked_events();
 
     backend::update_time_to(time_to_, time_, dt_max_, tfinal_);
     invalidate_time_cache();
     events_.event_time_if_before(time_to_);
-    PL();
 
     // set per-cell and per-compartment dt (constant within a cell)
     backend::set_dt(dt_cell_, dt_comp_, time_to_, time_, cv_to_cell_);
+    PL();
 
+    PE(advance_integrate_samples);
     // take samples if they lie within the integration step; they will be provided
     // with the values (post-event delivery) at the beginning of the interval.
     sample_events_.mark_until(time_to_);
     backend::take_samples(sample_events_.marked_events(), time_, sample_time_, sample_value_);
     sample_events_.drop_marked_events();
+    PL();
 
     // solve the linear system
-    PE("matrix", "setup");
+    PE(advance_integrate_matrix_build);
     matrix_.assemble(dt_cell_, voltage_, current_);
-
-    PL(); PE("solve");
-    matrix_.solve();
     PL();
+
+    PE(advance_integrate_matrix_solve);
+    matrix_.solve();
     memory::copy(matrix_.solution(), voltage_);
     PL();
 
     // integrate state of gating variables etc.
-    PE("state");
+    PE(advance_integrate_state);
     for(auto& m: mechanisms_) {
-        PE(m->name().c_str());
         m->nrn_state();
-        PL();
     }
     PL();
 
-    PE("ion-update");
+    PE(advance_integrate_ionupdate);
     for(auto& i: ions_) {
         i.second.init_concentration();
     }
@@ -1229,11 +1235,16 @@ void fvm_multicell<Backend>::step_integration() {
     }
     PL();
 
+    PE(advance_integrate_events);
+    // update time stepping variables
     memory::copy(time_to_, time_);
     invalidate_time_cache();
+    PL();
 
+    PE(advance_integrate_threshold);
     // update spike detector thresholds
     threshold_watcher_.test();
+    PL();
 
     // are we there yet?
     decrement_min_remaining();

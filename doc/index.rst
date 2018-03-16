@@ -27,5 +27,6 @@ Arbor is a high-performance library for computationa neurscience simulations.
    library
    simd_api
    simd_maths
+   profiler
    sampling_api
 
