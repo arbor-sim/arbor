@@ -1,8 +1,10 @@
 # Set up pybind11 as an external project.
-set(pb11_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/pybind11")
+set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
+check_git_submodule(pybind11 "${pb11_src_dir}")
 
-include(GitSubmodule)
-git_submodule(pybind11 "${pb11_src_dir}")
+if(NOT pybind11_avail)
+    message(FATAL_ERROR "The git submodule for pybind11 is not available: unable to support python"
+endif()
 
 # Set up pybind11, which is used to generate python bindings.
 # Pybind11 has good cmake support, so just add the pybind11 directory,

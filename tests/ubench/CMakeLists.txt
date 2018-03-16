@@ -24,11 +24,6 @@ set(gbench_cmake_args
     "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
     "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
 
-
-# Attempt to update git submodule if required.
-include(GitSubmodule)
-git_submodule("google_bench" "${gbench_src_dir}")
-
 ExternalProject_Add(gbench
     # Add dummy DOWNLOAD_COMMAND to stop ExternalProject_Add terminating CMake if the
     # git submodule had not been udpated.
@@ -65,15 +60,4 @@ if(ARB_WITH_CUDA)
     endforeach()
 endif()
 
-if (google_bench_AVAIL)
-    add_custom_target(ubenches DEPENDS ${bench_exe_list})
-else()
-    add_custom_target(ubenches
-        COMMAND
-            echo "Error: the git submodule for google bench in ${gbench_src_dir} needs to be checked out."
-        COMMAND
-            exit 1  # return error code to let CMake know that the build proccess should fail
-        COMMENT
-            "Building ubenches")
-endif()
-
+add_custom_target(ubenches DEPENDS ${bench_exe_list})

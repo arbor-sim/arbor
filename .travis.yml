@@ -17,10 +17,10 @@ env:
     # test single node/rank with different threading back ends
     - BUILD_NAME=serial   WITH_THREAD=serial   WITH_DISTRIBUTED=serial
     - BUILD_NAME=cthread  WITH_THREAD=cthread  WITH_DISTRIBUTED=serial
-    # The tbb backend sometimes fails to build because CMake. Turn it off until our CMake TBB support is stable.
-    #- BUILD_NAME=tbb      WITH_THREAD=tbb      WITH_DISTRIBUTED=serial
+    - BUILD_NAME=tbb      WITH_THREAD=tbb      WITH_DISTRIBUTED=serial
     # test mpi
     - BUILD_NAME=mpi      WITH_THREAD=cthread  WITH_DISTRIBUTED=mpi
+    - BUILD_NAME=mpitbb   WITH_THREAD=tbb  WITH_DISTRIBUTED=mpi
 
 before_install:
     - CC=gcc-5

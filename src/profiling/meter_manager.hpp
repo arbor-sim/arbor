@@ -31,9 +31,12 @@ struct measurement {
 
 class meter_manager {
 private:
+    using timer_type = arb::threading::timer;
+    using time_point = timer_type::time_point;
+
     bool started_ = false;
 
-    timer_type::time_point start_time_;
+    time_point start_time_;
     std::vector<double> times_;
 
     std::vector<std::unique_ptr<meter>> meters_;
