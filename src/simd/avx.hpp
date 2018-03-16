@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 // AVX/AVX2 SIMD intrinsics implementation.
 
 #ifdef __AVX__
@@ -454,7 +456,10 @@ struct avx_double4: implbase<avx_double4> {
         auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
         auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
-        auto expgm1 = mul(two, div(odd, sub(even, odd)));
+        // Note: multiply by two, *then* divide: avoids a subnormal
+        // intermediate that will get truncated to zero with default
+        // icpc options.
+        auto expgm1 = div(mul(two, odd), sub(even, odd));
 
         // For small x (n zero), bypass scaling step to avoid underflow.
         // Otherwise, compute result 2^n * expgm1 + (2^n-1) by:
@@ -772,7 +777,7 @@ struct avx2_double4: avx_double4 {
         auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
         auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
-        auto expgm1 = mul(two, div(odd, sub(even, odd)));
+        auto expgm1 = div(mul(two, odd), sub(even, odd));
 
         auto nm1 = _mm256_cvtpd_epi32(sub(n, one));
         auto scaled = mul(add(sub(exp2int(nm1), half), ldexp_normal(expgm1, nm1)), two);
