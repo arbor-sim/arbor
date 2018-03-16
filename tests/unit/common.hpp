@@ -40,7 +40,7 @@ struct null_terminated_t {
 
 constexpr null_terminated_t null_terminated;
 
-// wrap a value type, with copy operations disabled
+// Wrap a value type, with copy operations disabled.
 
 template <typename V>
 struct nocopy {
@@ -81,7 +81,7 @@ int nocopy<V>::move_ctor_count;
 template <typename V>
 int nocopy<V>::move_assign_count;
 
-// wrap a value type, with move operations disabled
+// Wrap a value type, with move operations disabled.
 
 template <typename V>
 struct nomove {
@@ -138,12 +138,13 @@ template <typename FPType, typename Seq1, typename Seq2>
     for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
         using FP = testing::internal::FloatingPoint<FPType>;
 
-        // cast to FPType to avoid warnings about lowering conversion
-        // if FPType has lower precision than Seq{12}::value_type
         auto v1 = *i1;
         auto v2 = *i2;
 
-        if (!FP{v1}.AlmostEquals(FP{v2})) {
+        // Cast to FPType to avoid warnings about lowering conversion
+        // if FPType has lower precision than Seq{12}::value_type.
+
+        if (!(std::isnan(v1) && std::isnan(v2)) && !FP{v1}.AlmostEquals(FP{v2})) {
             return ::testing::AssertionFailure() << "floating point numbers " << v1 << " and " << v2 << " differ at index " << j;
         }
 
@@ -154,6 +155,59 @@ template <typename FPType, typename Seq1, typename Seq2>
     }
     return ::testing::AssertionSuccess();
 }
+
+template <typename V>
+inline bool generic_isnan(const V& x) { return false; }
+inline bool generic_isnan(float x) { return std::isnan(x); }
+inline bool generic_isnan(double x) { return std::isnan(x); }
+inline bool generic_isnan(long double x) { return std::isnan(x); }
+
+template <typename U, typename V>
+static bool equiv(const U& u, const V& v) {
+    return u==v || (generic_isnan(u) && generic_isnan(v));
+}
+
+template <typename Seq1, typename Seq2>
+::testing::AssertionResult seq_eq(Seq1&& seq1, Seq2&& seq2) {
+    using std::begin;
+    using std::end;
+
+    auto i1 = begin(seq1);
+    auto i2 = begin(seq2);
+
+    auto e1 = end(seq1);
+    auto e2 = end(seq2);
+
+    for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
+        auto v1 = *i1;
+        auto v2 = *i2;
+
+        if (!equiv(v1, v2)) {
+            return ::testing::AssertionFailure() << "values " << v1 << " and " << v2 << " differ at index " << j;
+        }
+    }
+
+    if (i1!=e1 || i2!=e2) {
+        return ::testing::AssertionFailure() << "sequences differ in length";
+    }
+    return ::testing::AssertionSuccess();
+}
+
+// Assert elements 0..n-1 inclusive of two indexed collections are exactly equal.
+template <typename Arr1, typename Arr2>
+::testing::AssertionResult indexed_eq_n(int n, Arr1&& a1, Arr2&& a2) {
+    for (int i = 0; i<n; ++i) {
+        auto v1 = a1[i];
+        auto v2 = a2[i];
+
+        if (!equiv(v1,v2)) {
+            return ::testing::AssertionFailure() << "values " << v1 << " and " << v2 << " differ at index " << i;
+        }
+    }
+
+    return ::testing::AssertionSuccess();
+}
+
 
 // Assert two floating point values are within a relative tolerance.
 inline ::testing::AssertionResult near_relative(double a, double b, double relerr) {
