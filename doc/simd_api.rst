@@ -571,7 +571,7 @@ of ``copy_to`` and ``copy_from`` (see the section below for semantics):
         };
 
 If the implementation is also acting as a mask implementation, it must also
-provide ``make_copy_to``, ``mask_copy_from``, ``mask_element`` and
+provide ``mask_copy_to``, ``mask_copy_from``, ``mask_element`` and
 ``mask_set_element``:
 
 .. container:: api-code
@@ -599,7 +599,7 @@ In the following, *C* represents the concrete implementation class for
 a SIMD class of width *N* and value type *V*.
 
 * *u*, *v*, and *w* are values of type ``C::vector_type``.
-* *r* is a reference of type ``C::vector_type``.
+* *r* is a reference of type ``C::vector_type&``.
 * *x* is a value of type ``C::scalar_type``.
 * *c* is a const pointer of type ``const C::scalar_type*``.
 * *p* is a pointer of type ``C::scalar_type*``.
