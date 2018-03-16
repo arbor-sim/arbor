@@ -71,7 +71,7 @@ so that the ratio can be calculated by:
 
     e^g \approx 1 + \frac{2gP(g^2)}{Q(g^2)-gP(g^2)}.
 
-Randomized testing indicates the approximation is accurate to 1 ulp.
+Randomized testing indicates the approximation is accurate to 2 ulp.
 
 
 `\operatorname{expm1}(x)`
