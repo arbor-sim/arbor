@@ -50,6 +50,7 @@
 //     void I::mask_set_element(vector_type& v, int i, bool x);
 
 namespace arb {
+namespace simd {
 namespace simd_detail {
 
 // The simd_traits class provides the mapping between a concrete SIMD
@@ -473,4 +474,5 @@ struct implbase {
 };
 
 } // namespace simd_detail
+} // namespace simd
 } // namespace arb

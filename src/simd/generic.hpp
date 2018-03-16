@@ -4,9 +4,10 @@
 #include <cstring>
 #include <cmath>
 
-#include <util/simd/implbase.hpp>
+#include <simd/implbase.hpp>
 
 namespace arb {
+namespace simd {
 namespace simd_detail {
 
 template <typename T, unsigned N>
@@ -63,4 +64,5 @@ namespace simd_abi {
 
 } // namespace simd_abi
 
+} // namespace simd
 } // namespace arb

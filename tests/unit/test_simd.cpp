@@ -1,12 +1,12 @@
 #include <cmath>
 #include <random>
 
-#include <util/simd.hpp>
-#include <util/simd/avx.hpp>
+#include <simd/simd.hpp>
+#include <simd/avx.hpp>
 
 #include "common.hpp"
 
-using namespace arb;
+using namespace arb::simd;
 
 namespace {
     // Use different distributions in `fill_random`, based on the value type in question:

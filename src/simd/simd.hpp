@@ -2,11 +2,12 @@
 
 #include <type_traits>
 
-#include <util/simd/implbase.hpp>
-#include <util/simd/generic.hpp>
-#include <util/simd/native.hpp>
+#include <simd/implbase.hpp>
+#include <simd/generic.hpp>
+#include <simd/native.hpp>
 
 namespace arb {
+namespace simd {
 
 namespace simd_detail {
     template <typename Impl>
@@ -516,4 +517,5 @@ simd_detail::simd_impl<Impl> max(const simd_detail::simd_impl<Impl>& s, const si
     return simd_detail::simd_impl<Impl>::wrap(Impl::max(s.value_, t.value_));
 }
 
+} // namespace simd
 } // namespace arb

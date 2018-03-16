@@ -8,9 +8,11 @@
 #include <cstdint>
 #include <immintrin.h>
 
-#include <util/simd/approx.hpp>
+#include <simd/approx.hpp>
+#include <simd/implbase.hpp>
 
 namespace arb {
+namespace simd {
 namespace simd_detail {
 
 struct avx512_double8;
@@ -702,8 +704,9 @@ namespace simd_abi {
     template <typename T, unsigned N> struct avx512;
     template <> struct avx512<double, 8> { using type = simd_detail::avx512_double8; };
     template <> struct avx512<int, 8> { using type = simd_detail::avx512_int8; };
-} // namespace simd_abi;
+} // namespace simd_abi
 
+} // namespace simd
 } // namespace arb
 
 #endif // def __AVX512F__

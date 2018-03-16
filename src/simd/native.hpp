@@ -19,6 +19,7 @@
 // architecure.
 
 namespace arb {
+namespace simd {
 namespace simd_abi {
 
 template <typename Value, unsigned N>
@@ -27,6 +28,7 @@ struct native {
 };
 
 } // namespace simd_abi
+} // namespace simd
 } // namespace arb
 
 #define ARB_DEF_NATIVE_SIMD_(T, N, A)\
@@ -41,13 +43,13 @@ template <> struct native<T, N> {\
 
 #if defined(__AVX2__) && defined(__FMA__)
 
-#include <util/simd/avx.hpp>
+#include <simd/avx.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 4, avx2)
 ARB_DEF_NATIVE_SIMD_(double, 4, avx2)
 
 #elif defined(__AVX__)
 
-#include <util/simd/avx.hpp>
+#include <simd/avx.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 4, avx)
 ARB_DEF_NATIVE_SIMD_(double, 4, avx)
 
@@ -55,7 +57,7 @@ ARB_DEF_NATIVE_SIMD_(double, 4, avx)
 
 #if defined(__AVX512F__)
 
-#include <util/simd/avx512.hpp>
+#include <simd/avx512.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 8, avx512)
 ARB_DEF_NATIVE_SIMD_(double, 8, avx512)
 
@@ -63,6 +65,7 @@ ARB_DEF_NATIVE_SIMD_(double, 8, avx512)
 
 
 namespace arb {
+namespace simd {
 namespace simd_abi {
 
 // Define native widths based on largest native vector implementation
@@ -86,4 +89,5 @@ struct native_width<Value, 1> {
 };
 
 } // namespace simd_abi
+} // namespace simd
 } // namespace arb
