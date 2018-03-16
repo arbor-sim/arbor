@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iostream>
-
 // AVX/AVX2 SIMD intrinsics implementation.
 
 #ifdef __AVX__
