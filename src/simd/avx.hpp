@@ -12,7 +12,7 @@
 #include <simd/implbase.hpp>
 
 namespace arb {
-namespace simsimd {
+namespace simd {
 namespace simd_detail {
 
 struct avx_int4;

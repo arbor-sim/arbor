@@ -13,6 +13,7 @@
 // detail concerning the approximations.
 
 namespace arb {
+namespace simd {
 namespace simd_detail {
 
 // Exponential:
@@ -81,4 +82,5 @@ constexpr double Q3log = 4.52279145837532221105e1;
 constexpr double Q4log = 1.12873587189167450590e1;
 
 } // namespace simd_detail
+} // namespace simd
 } // namespace arb
