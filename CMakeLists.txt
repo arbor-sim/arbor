@@ -209,7 +209,7 @@ set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,
 set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
 
 # Note: this option conflates modcc code generation options and
-# the target architecture for compilation of Arbor.
+# the target architecture for compilation of Arbor. TODO: fix!
 
 if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL} -DSIMD_KNL")
