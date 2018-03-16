@@ -291,9 +291,23 @@ if(NOT use_external_modcc)
     add_subdirectory(modcc)
 endif()
 
+#----------------------------------------------------------
+# set up for targets that require git submodules.
+#----------------------------------------------------------
+include(GitSubmodule) # required for check_git_submodule
+include(ErrorTarget)  # reguired for add_error_target
+check_git_submodule(rtdtheme "${PROJECT_SOURCE_DIR}/doc/rtd_theme")
+
 add_subdirectory(src)
 add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
 add_subdirectory(example)
 add_subdirectory(lmorpho)
-add_subdirectory(doc)
+if (rtdtheme_avail)
+    add_subdirectory(doc)
+else()
+    add_error_target( docs
+        "Generating Sphinx documentation"
+        "The git submodule for read the docs is not available")
+endif()
+
