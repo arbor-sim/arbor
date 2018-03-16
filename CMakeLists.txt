@@ -66,12 +66,10 @@ set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of 
 set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 if(ARB_THREADING_MODEL MATCHES "tbb")
-    # TODO: update to use built-in support for detecting git submodules.
-    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/tbb/.git")
-        message(FATAL_ERROR
-            "\nThe git submodule for tbb must be checked out to use TBB.\n"
-            "  git submodule init\n"
-            "  git submodule update\n")
+    include(GitSubmodule) # required for check_git_submodule
+    check_git_submodule(tbb "${CMAKE_SOURCE_DIR}/tbb")
+    if(NOT tbb_avail)
+        message(FATAL_ERROR "TBB git submodule required.")
     endif()
 
     # turn off proxy malloc library and test compilation
