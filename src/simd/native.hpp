@@ -33,10 +33,12 @@ struct native {
 
 #define ARB_DEF_NATIVE_SIMD_(T, N, A)\
 namespace arb {\
+namespace simd {\
 namespace simd_abi {\
 template <> struct native<T, N> {\
     using type = typename A<T, N>::type;\
 };\
+}\
 }\
 }
 
