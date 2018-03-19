@@ -614,7 +614,7 @@ struct avx512_double8: implbase<avx512_double8> {
 
         // Compute R(g)/R(-g) -1 = 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
 
-        auto expgm1 = mul(broadcast(2), div(odd, sub(even, odd)));
+        auto expgm1 = div(mul(broadcast(2), odd), sub(even, odd));
 
         // For small x (n zero), bypass scaling step to avoid underflow.
         // Otherwise, compute result 2^n * expgm1 + (2^n-1) by:
