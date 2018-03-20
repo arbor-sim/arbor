@@ -134,7 +134,7 @@ if(ARB_WITH_CUDA)
     # and device compiler when targetting GPU.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_CUDA)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_GPU)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60) # minimum target P100 GPUs
 
     add_definitions(-DARB_HAVE_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
