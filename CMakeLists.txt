@@ -205,7 +205,7 @@ endif()
 #----------------------------------------------------------
 # vectorization target
 #----------------------------------------------------------
-set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX2,AVX512}")
+set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {none,KNL,AVX2,AVX512}")
 set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
 
 if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
