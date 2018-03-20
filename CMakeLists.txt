@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 # project info
-project(cell_algorithms)
+project(arbor)
 enable_language(CXX)
 
 # Hide warnings about mixing old and new signatures for target_link_libraries.
