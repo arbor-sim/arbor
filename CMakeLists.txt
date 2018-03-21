@@ -118,6 +118,12 @@ if(UNWIND_FOUND)
 endif()
 
 #----------------------------------------------------------
+# Git, used to automatically check out submodules if not
+# already checked out.
+#----------------------------------------------------------
+find_package(Git)
+
+#----------------------------------------------------------
 # CUDA support
 #----------------------------------------------------------
 option(ARB_WITH_CUDA "use CUDA for GPU offload" OFF)
@@ -220,6 +226,17 @@ elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
 endif()
 
 #----------------------------------------------------------
+# Python bindings
+#----------------------------------------------------------
+option(ARB_WITH_PYTHON "enable python front end" OFF)
+if(ARB_WITH_PYTHON)
+    add_definitions(-DARB_HAVE_PYTHON)
+    # Required to link the dynamic libraries for python modules.
+    # Effectively adds '-fpic' flag to CXX_FLAGS.
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
+#----------------------------------------------------------
 # Only build modcc if it has not already been installed.
 # This is useful if cross compiling for KNL, when it is not desirable to compile
 # modcc with the same flags that are used for the KNL target.
@@ -311,4 +328,6 @@ else()
         "Generating Sphinx documentation"
         "The git submodule for read the docs is not available")
 endif()
-
+if (ARB_WITH_PYTHON)
+    add_subdirectory(python)
+endif ()
