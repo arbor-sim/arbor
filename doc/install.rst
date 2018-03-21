@@ -466,10 +466,13 @@ Cross Compiling NMODL
 ---------------------
 
 Care must be taken when Arbor is compiled on a system with a different architecture to the target system where Arbor will run.
-
 This occurs quite frequently on HPC systems, for example when building on a login/service node that has a different architecture to the compute nodes.
 
 Here we will use the example of compiling for Intel KNL, which typically has Intel Xeon CPUs on login nodes that don't support the AVX512 instructions used by KNL.
+
+If Arbor is run on a system that does not support the architecture it was compiled for, we see ``Illegal instruction`` errors.
+
+
 
 .. _debugging:
 
