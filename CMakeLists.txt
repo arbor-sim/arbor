@@ -118,12 +118,6 @@ if(UNWIND_FOUND)
 endif()
 
 #----------------------------------------------------------
-# Git, used to automatically check out submodules if not
-# already checked out.
-#----------------------------------------------------------
-find_package(Git)
-
-#----------------------------------------------------------
 # CUDA support
 #----------------------------------------------------------
 option(ARB_WITH_CUDA "use CUDA for GPU offload" OFF)
