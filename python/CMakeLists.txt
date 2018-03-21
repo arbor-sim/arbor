@@ -3,7 +3,7 @@ set(pb11_src_dir "${PROJECT_SOURCE_DIR}/python/pybind11")
 check_git_submodule(pybind11 "${pb11_src_dir}")
 
 if(NOT pybind11_avail)
-    message(FATAL_ERROR "The git submodule for pybind11 is not available: unable to support python"
+    message(FATAL_ERROR "The git submodule for pybind11 is not available, required for python support")
 endif()
 
 # Set up pybind11, which is used to generate python bindings.
