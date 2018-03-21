@@ -1,13 +1,13 @@
 Installing Arbor
 ################
 
-Installation of Arbor is done by checking out the source code and compiling it on
+Installation of Arbor is done by obtaining the source code and compiling it on
 the target system.
 
 This guide starts with an overview of the building process, and the various options
 available to customize the build.
-The guide then covers installation and running on `HPC clusters <_cluster>`_, followed by a
-troubleshooting guide for common build problems.
+The guide then covers installation and running on `HPC clusters <cluster_>`_, followed by a
+`troubleshooting guide <troubleshooting_>`_ for common build problems.
 
 .. _install_requirements:
 
@@ -27,7 +27,7 @@ with very few tools.
     =========== ============================================
     git         To check out the code, min version 2.0.
     cmake       To set up the build, min version 3.0.
-    compiler    A C++11 compliant compiler. See `compilers <compilers_>`_.
+    compiler    A C++11 compiler. See `compilers <compilers_>`_.
     =========== ============================================
 
 
@@ -45,21 +45,21 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     =========== ============ ============================================
     Compiler    Min version  Notes
     =========== ============ ============================================
-    GCC         5.2.0        Earlier 5.x releases probably work.
+    GCC         5.2.0        5.1 probably works, 5.0 doesn't.
     Clang       4.0          Clang 3.8 and later probably work.
     Apple Clang 9
-    Intel       17.0.1       Needs GCC 5 or later for std library.
+    Intel       17.0.1       Needs GCC 5 or later for standard library.
     =========== ============ ============================================
 
 .. Note::
     The ``CC`` and ``CXX`` environment variables are used to specify the compiler executable
-    to the CMake build scripts. If these are not set, CMake may use a different compiler.
-    On the system that the test below was performed, CMake used ``/usr/bin/c++``,
-    which was GCC version 4.8.5.
+    to the CMake build scripts. If these are not set, CMake will automatically choose a compiler.
+    On the system that the test below was performed, if the ``CC`` and ``CXX`` variables are
+    not set, CMake used ``/usr/bin/c++``, which was GCC version 4.8.5.
 
     .. code-block:: bash
 
-        # check which version of gcc is available
+        # check which version of GCC is available
         $ g++ --version
         g++ (GCC) 5.2.0
         Copyright (C) 2015 Free Software Foundation, Inc.
@@ -80,10 +80,11 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     Is is commonly assumed that to get the best performance one should use a vendor-specific
     compiler (e.g. the Intel, Cray or IBM compilers). These compilers are often better at
     auto-vectorizing loops, however for everything else GCC and Clang nearly always generate
-    much more efficient code.
+    more efficient code.
 
-    The main computational loops in Arbor are cross compiled from NMODL, from which
-    Arbor generates vectorized code, which can be compiled very efficiently by GCC
+    The main computational loops in Arbor are based on
+    `NMODL <https://www.neuron.yale.edu/neuron/static/docs/help/neuron/nmodl/nmodl.html>`_,
+    from which Arbor generates vectorized code, which can be compiled very efficiently by GCC
     and Clang.
     This allows us focus on GCC and Clang for faster compilation times, fewer
     compiler bugs to work around, and support for recent C++ standards.
@@ -91,8 +92,8 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
 .. Note::
     The IBM xlc compiler versions 13.1.4 and 13.1.6 have been tested for compiling on
     IBM power 8. Arbor contains some patches to work around xlc compiler bugs,
-    however we do not recommend using xlc because GCC produces much faster code,
-    with much lower comilation times.
+    however we do not recommend using xlc because GCC produces faster code,
+    with lower comilation times.
 
 Optional Requirements
 ---------------------
@@ -240,13 +241,11 @@ Explicit vectorization of key computational kernels can be enabled in Arbor by s
 
 By default the ``none`` target is selected, which relies on compiler auto-vectorization.
 
-    cmake -DARB_VECTORIZE_TARGET={none,KNL,AVX2,AVX512}
-
 .. Warning::
     The vectorization target must be supported by the target architecture.
     A sure sign that an unsuported vectorization was chosen is an ``Illegal instruction``
-    error at runtime. In the example below, we attempt to run the unit tests for an ``AVX2``
-    build on an Ivy Bridge CPU, which does not support them
+    error at runtime. In the example below, the unit tests for an ``ARB_VECTORIZE_TARGET=AVX2``
+    build are run on an Ivy Bridge CPU, which does not support AVX2 vector instructions:
 
     .. code-block:: none
 
@@ -258,7 +257,7 @@ By default the ``none`` target is selected, which relies on compiler auto-vector
         Illegal instruction
 
     See the hints on `cross compiling <crosscompiling_>`_ if you get illegal instruction
-    errors when trying to cross compile.
+    errors when trying to compile on HPC systems.
 
 .. Note::
     The vectorization selection will change soon, to an interface with two parameters. The first
@@ -267,7 +266,9 @@ By default the ``none`` target is selected, which relies on compiler auto-vector
 
     .. code-block:: bash
 
-        cmake -DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE=ON -DARB_ARCH=broadwell
+        cmake -DCMAKE_BUILD_TYPE=release \
+              -DARB_ARCH=broadwell       \
+              -DARB_VECTORIZE=ON         \
 
 
 .. _threading:
@@ -282,7 +283,7 @@ by setting the ``ARB_THREADING_MODEL`` CMake option:
 
     cmake -DARB_THREADING_MODEL={serial,cthread,tbb}
 
-By default Arbor is built with multithreading enabled, using the `cthread`,
+By default Arbor is built with multithreading enabled with the **cthread** backend,
 which is implemented in the Arbor source code.
 
 
@@ -291,9 +292,9 @@ which is implemented in the Arbor source code.
     =========== ============== =================================================
     Model       Source         Description
     =========== ============== =================================================
-    cthread         Arbor      Default. Multithreaded, based on C++11 ``std::thread``.
-    serial          Arbor      Single threaded.
-    tbb         git submodule  `Intel TBB <https://www.threadingbuildingblocks.org/>`_.
+    **cthread** Arbor          Default. Multithreaded, based on C++11 ``std::thread``.
+    **serial**  Arbor          Single threaded.
+    **tbb**     git submodule  `Intel TBB <https://www.threadingbuildingblocks.org/>`_.
                                Recommended when using many threads.
     =========== ============== =================================================
 
@@ -341,11 +342,11 @@ Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting t
 HPC Clusters
 ============
 
-HPC clusters offer their own unique challenges when compiling and running software,
-so we cover some common issues in this section.
-If you encounter unique challenges on your target system that are not covered here,
-please make an issue on our `Github <https://github.com/eth-cscs/arbor/issues>`_.
-We will do our best to help you directly, and update this guide to help future users.
+HPC clusters offer their own unique challenges when compiling and running
+software, so we cover some common issues in this section.  If you have problems
+on your target system that are not covered here, please make an issue on the
+Arbor `Github issues <https://github.com/eth-cscs/arbor/issues>`_ page.
+We will do our best to help you directly, and update this guide to help other users.
 
 MPI
 ---
@@ -362,9 +363,9 @@ is:
     export CXX=`which mpicxx`
 
     # configure with mpi, tbb threading and compiled with optimizations
-    cmake .. -DARB_DISTRIBUTED_MODEL=mpi \
-             -DCMAKE_BUILD_TYPE=release  \
-             -DARB_THREADING_MODEL=tbb   \
+    cmake .. -DARB_DISTRIBUTED_MODEL=mpi \      # Use MPI
+             -DCMAKE_BUILD_TYPE=release  \      # Optimizations on
+             -DARB_THREADING_MODEL=tbb   \      # TBB threading library
 
     # run unit tests for global communication on 2 MPI ranks
     mpirun -n 2 ./tests/global_communication.exe
@@ -372,9 +373,9 @@ is:
 The first step to building with MPI support is to set the ``CC`` and ``CXX`` environment variables to refer to the mpi compiler wrappers.
 
 .. Note::
-    MPI distributions provide *compiler wrappers* for compiling MPI applications.
+    MPI distributions provide **compiler wrappers** for compiling MPI applications.
 
-    In the example above the C and C++ compiler wrappers for C and C++ called
+    In the example above the compiler wrappers for C and C++ called
     ``mpicc`` and ``mpicxx`` respectively. The name of the compiler wrapper
     is dependent on the MPI distribution.
 
@@ -400,7 +401,7 @@ For example, to use the GCC compilers, select the GNU programming enviroment:
 
     module swap PrgEnv-cray PrgEnv-gnu
 
-The version of the compiler can then be set by choosing an appropriate gcc module.
+The version of the GCC can then be set by choosing an appropriate gcc module.
 In the example below we use ``module avail`` to see which versions of GCC are available,
 then choose GCC 7.1.0
 
@@ -417,10 +418,11 @@ then choose GCC 7.1.0
     g++ (GCC) 7.1.0 20170502 (Cray Inc.)
 
     # set compiler wrappers
-    $ export CC=`which cc`; export CXX=`which CC`;
+    $ export CC=`which cc`
+    $ export CXX=`which CC`
 
-Note that the C and C++ compiler wrappers are, rather confusingly, called
-``cc`` and ``CC`` respectively on Cray systems.
+Note that the C and C++ compiler wrappers are called ``cc`` and ``CC``
+respectively on Cray systems.
 
 CMake detects that it is being run in the Cray programming environment, which makes
 our lives a little bit more difficult (CMake sometimes tries a bit too hard to help).
@@ -457,6 +459,8 @@ then build Arbor is:
     Arbor will crash at runtime with obscure errors that are very difficult to debug.
 
 
+.. _troubleshooting:
+
 Troubleshooting
 ===============
 
@@ -468,10 +472,101 @@ Cross Compiling NMODL
 Care must be taken when Arbor is compiled on a system with a different architecture to the target system where Arbor will run.
 This occurs quite frequently on HPC systems, for example when building on a login/service node that has a different architecture to the compute nodes.
 
-Here we will use the example of compiling for Intel KNL, which typically has Intel Xeon CPUs on login nodes that don't support the AVX512 instructions used by KNL.
+.. Note::
+    If building Arbor on a laptop or desktop system, i.e. on the same computer that
+    you will run Arbor on, cross compilation is not an issue.
 
-If Arbor is run on a system that does not support the architecture it was compiled for, we see ``Illegal instruction`` errors.
+.. Warning::
+    ``Illegal instruction`` errors are a sure sign that
+    Arbor is running on a system that does not support the architecture it was compiled for.
 
+When cross compiling, we have to take care that the *modcc* compiler, which is used to convert NMODL to C++/CUDA code, is able to run on the compilation node.
+
+By default, CMake looks for the *modcc* executable, ``modcc``, in paths specified by the ``PATH`` environment variable, and will use this executable if it finds it.
+Otherwise, the CMake script will build *modcc* from source.
+To ensure that cross compilation works, a copy of modcc that is compiled for the build system should be in ``PATH``.
+
+Here we will use the example of compiling for Intel KNL on a Cray system, which has Intel Sandy Bridge CPUs on login nodes that don't support the AVX512 instructions used by KNL.
+
+
+.. code-block:: bash
+
+    #
+    #   Step 1: Build modcc.
+    #
+
+    module swap PrgEnv-cray PrgEnv-gnu
+    # Important: use GNU compilers directly, not the compiler wrappers,
+    # which generate code for KNL, not the login nodes.
+    export CC=`which gcc`; export CXX=`which g++`;
+    export CRAYPE_LINK_TYPE=dynamic
+
+    # make a path for the modcc build
+    mkdir build_modcc
+    cd build_modcc
+
+    # configure and make modcc
+    cmake ..
+    make -j modcc
+
+    # set PATH to find modcc
+    cd ..
+    export PATH=`pwd`/build_modcc/modcc:$PATH
+
+    #
+    #   Step 2: Build Arbor.
+    #
+
+    mkdir build; cd build;
+    # use the compiler wrappers to build Arbor
+    export CC=`which cc`; export CXX=`which CC`;
+    cmake .. -DARB_DISTRIBUTED_MODEL=mpi    \
+             -DCMAKE_BUILD_TYPE=release     \
+             -DARB_THREADING_MODEL=tbb      \
+             -DARB_SYSTEM_TYPE=Cray         \
+             -DARB_VECTORIZE_TARGET=KNL
+
+
+.. Note::
+    Cross compilation issues can occur when there are minor differences between login and compute nodes, e.g.
+    when the login node has Intel Haswell, and the compute nodes have Intel Broadwell.
+
+    Other systems, such as IBM BGQ, have very different architectures for login and compute nodes.
+
+    If the *modcc* compiler was not compiled for the login node, illegal instruction errors will
+    occur when building, e.g.
+
+    .. code-block:: none
+
+        $ make
+        ...
+        [ 40%] modcc generating: /users/bcumming/arbor_knl/mechanisms/multicore/pas_cpu.hpp
+        /bin/sh: line 1: 12735 Illegal instruction     (core dumped) /users/bcumming/arbor_knl/build_modcc/modcc/modcc -t cpu -s\ avx512 -o /users/bcumming/arbor_knl/mechanisms/multicore/pas /users/bcumming/arbor_knl/mechanisms/mod/pas.mod
+        mechanisms/CMakeFiles/build_all_mods.dir/build.make:69: recipe for target '../mechanisms/multicore/pas_cpu.hpp' failed
+
+    If you have errors when running the tests or a miniapp, then either the wrong
+    ``ARB_VECTORIZE_TARGET`` was selected; or you might have forgot to launch on the
+    compute node. e.g.:
+
+    .. code-block:: none
+
+        $ ./tests/test.exe
+        Illegal instruction (core dumped)
+
+    On the Cray KNL system, ``srun`` is used to launch (it might be ``mpirun``
+    or similar on your system):
+
+    .. code-block:: none
+
+        $ srun -n1 -c1 ./tests/test.exe
+        [==========] Running 609 tests from 108 test cases.
+        [----------] Global test environment set-up.
+        [----------] 15 tests from algorithms
+        [ RUN      ] algorithms.parallel_sort
+        [       OK ] algorithms.parallel_sort (15 ms)
+        [ RUN      ] algorithms.sum
+        [       OK ] algorithms.sum (0 ms)
+        ...
 
 
 .. _debugging:
@@ -510,12 +605,49 @@ and have to be turned on by setting the ``ARB_WITH_ASSERTIONS`` CMake option:
     `bug report <https://github.com/eth-cscs/arbor/issues>`_ you send to the Arbor developers!
 
 
+CMake CMP0023 Warning
+---------------------
 
-Other...
---------
+On version 3.9 or greater CMake generates the following warning:
 
-Issues to cover:
-    * That annoying `CMP0023` cmake warning
-    * CMake warnings about missing git submodules
-    * Intel compiler uses GCC 4 headers
+    CMake Deprecation Warning at CMakeLists.txt:11 (cmake_policy):
+      The OLD behavior for policy CMP0023 will be removed from a future version
+      of CMake.
 
+This is caused because we have to work around conflicting modules in CMake, and
+isn't a problem. It will be fixed when we start using the built in support for
+CUDA introduced in CMake 3.9.
+
+CMake Git Submodule Warnings
+----------------------------
+
+When running CMake, warnings like the following indicate that the git submodules
+need to be `updated <downloading_>`_.
+
+.. code-block:: none
+
+    The git submodule for rtdtheme is not available.
+    To check out all submodules use the following commands:
+        git submodule init
+        git submodule update
+    Or download submodules recursively when checking out:
+        git clone --recursive https://github.com/eth-cscs/arbor.git
+
+
+Wrong Headers for Intel Compiler
+------------------------------------
+
+The Intel C++ compiler does not provide its own copy of the C++ standard library,
+instead it uses the implementation from GCC. You can see what the default version of
+GCC is by ``g++ --versions``.
+
+If the Intel compiler uses an old version of the standard library,
+errors like the following occur:
+
+.. code-block:: none
+
+    /users/bcumming/arbor_knl/src/util/meta.hpp(127): error: namespace "std" has no member "is_trivially_copyable"
+      enable_if_t<std::is_trivially_copyable<T>::value>;
+
+On clusters, a GCC module with a full C++11 implementation of the standard library,
+i.e. version 5.1 or later, can be loaded to fix the issue.
