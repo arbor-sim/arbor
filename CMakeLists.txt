@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 # project info
-project(cell_algorithms)
+project(arbor)
 enable_language(CXX)
 
 # Hide warnings about mixing old and new signatures for target_link_libraries.
@@ -66,40 +66,44 @@ set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of 
 set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 if(ARB_THREADING_MODEL MATCHES "tbb")
-    # download and build TBB
-    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBGet.cmake)
-    include(${CMAKE_SOURCE_DIR}/cmake/tbb/TBBBuild.cmake)
-    tbb_get(TBB_ROOT tbb_root SOURCE_CODE)
-    tbb_build(TBB_ROOT ${tbb_root} CONFIG_DIR TBB_DIR)
+    include(GitSubmodule) # required for check_git_submodule
+    check_git_submodule(tbb "${CMAKE_SOURCE_DIR}/tbb")
+    if(NOT tbb_avail)
+        message(FATAL_ERROR "TBB git submodule required.")
+    endif()
 
-    # configure TBB
-    find_package(TBB REQUIRED tbb tbbmalloc)
+    # turn off proxy malloc library and test compilation
+    option(TBB_BUILD_TBBMALLOC_PROXY OFF)
+    option(TBB_BUILD_TESTS           OFF)
 
+    # Use the CMake configuration in the TBB submodule
+    # Reset the CXX flags, to avoid the litany of warnings that -Wall
+    # gives when compiling TBB.
+    set(CMAKE_CXX_FLAGS_TBB_BACK "${CMAKE_CXX_FLAGS}")
+    unset(CMAKE_CXX_FLAGS)
+    add_subdirectory(tbb)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_TBB_BACK}")
+
+    # set flags for TBB
     add_definitions(-DARB_HAVE_TBB)
     set(ARB_WITH_TBB TRUE)
 
-    # The TBB CMake package creates the TBB::tbb and TBB:tbbmalloc targets.
-    # The following should be sufficient, however on some systems (e.g. Cray PE),
-    # they don't work (because CMake is fragile):
-    #   list(APPEND EXTERNAL_LIBRARIES TBB::tbb)
-    #   list(APPEND EXTERNAL_LIBRARIES TBB::tbbmalloc)
-    # So, instead, manually add the library links:
-    set(TBB_LIB_PATH ${CMAKE_BINARY_DIR}/tbb_cmake_build/tbb_cmake_build_subdir_release)
-    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbb.so)
-    list(APPEND EXTERNAL_LIBRARIES ${TBB_LIB_PATH}/libtbbmalloc.so)
+    include_directories(${CMAKE_SOURCE_DIR}/tbb/include)
 
-    # The TBB headers are in the downloaded TBB source
-    list(APPEND EXTERNAL_INCLUDES ${tbb_root}/include)
+    list(APPEND EXTERNAL_LIBRARIES tbb_static tbbmalloc_static)
+    list(APPEND EXTERNAL_LIBRARIES pthread dl)
+
+    # TODO add support for user-supplied tbb implementation,
+    # e.g. using an TBB_ROOT variable.
 
 elseif(ARB_THREADING_MODEL MATCHES "cthread")
-
     find_package(Threads REQUIRED)
     add_definitions(-DARB_HAVE_CTHREAD)
     set(ARB_WITH_CTHREAD TRUE)
     list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
 
     if(CMAKE_USE_PTHREADS_INIT)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
     endif()
 endif()
 
@@ -204,6 +208,9 @@ endif()
 set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX2,AVX512}")
 set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
 
+# Note: this option conflates modcc code generation options and
+# the target architecture for compilation of Arbor. TODO: fix!
+
 if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL} -DSIMD_KNL")
 elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
@@ -285,9 +292,23 @@ if(NOT use_external_modcc)
     add_subdirectory(modcc)
 endif()
 
+#----------------------------------------------------------
+# set up for targets that require git submodules.
+#----------------------------------------------------------
+include(GitSubmodule) # required for check_git_submodule
+include(ErrorTarget)  # reguired for add_error_target
+check_git_submodule(rtdtheme "${PROJECT_SOURCE_DIR}/doc/rtd_theme")
+
 add_subdirectory(src)
 add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
 add_subdirectory(tests)
 add_subdirectory(example)
 add_subdirectory(lmorpho)
-add_subdirectory(doc)
+if (rtdtheme_avail)
+    add_subdirectory(doc)
+else()
+    add_error_target( docs
+        "Generating Sphinx documentation"
+        "The git submodule for read the docs is not available")
+endif()
+
