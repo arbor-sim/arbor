@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 # project info
-project(cell_algorithms)
+project(arbor)
 enable_language(CXX)
 
 # Hide warnings about mixing old and new signatures for target_link_libraries.
@@ -213,6 +213,9 @@ endif()
 #----------------------------------------------------------
 set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {KNL,AVX2,AVX512}")
 set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
+
+# Note: this option conflates modcc code generation options and
+# the target architecture for compilation of Arbor. TODO: fix!
 
 if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL} -DSIMD_KNL")
