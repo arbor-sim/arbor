@@ -610,6 +610,8 @@ CMake CMP0023 Warning
 
 On version 3.9 or greater CMake generates the following warning:
 
+.. code-block:: none
+
     CMake Deprecation Warning at CMakeLists.txt:11 (cmake_policy):
       The OLD behavior for policy CMP0023 will be removed from a future version
       of CMake.
