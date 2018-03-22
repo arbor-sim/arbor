@@ -1,3 +1,4 @@
+#include <algorithms.hpp>
 #include <communication/global_policy.hpp>
 #include <util/hostname.hpp>
 #include <util/strprintf.hpp>

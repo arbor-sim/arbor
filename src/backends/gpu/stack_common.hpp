@@ -5,16 +5,6 @@
 namespace arb {
 namespace gpu {
 
-// stores a single crossing event
-struct threshold_crossing {
-    fvm_size_type index;    // index of variable
-    fvm_value_type time;    // time of crossing
-
-    friend bool operator==(threshold_crossing l, threshold_crossing r) {
-        return l.index==r.index && l.time==r.time;
-    }
-};
-
 // Concrete storage of gpu stack datatype.
 // The stack datatype resides in host memory, and holds a pointer to the
 // stack_storage in managed memory, which can be accessed by both host and

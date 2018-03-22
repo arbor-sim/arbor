@@ -6,7 +6,9 @@
 #include <tclap/CmdLine.h>
 
 #include "cprinter.hpp"
+#include "cprinter2.hpp"
 #include "cudaprinter.hpp"
+#include "infoprinter.hpp"
 #include "modccutil.hpp"
 #include "module.hpp"
 #include "parser.hpp"
@@ -34,11 +36,13 @@ int report_ice(const std::string& message) {
 enum class targetKind {
     cpu,
     gpu,
+//    cpuwip
 };
 
 std::unordered_map<std::string, targetKind> targetKindMap = {
     {"cpu", targetKind::cpu},
-    {"gpu", targetKind::gpu}
+    {"gpu", targetKind::gpu},
+//    {"cpuwip", targetKind::cpuwip}
 };
 
 std::unordered_map<std::string, simdKind> simdKindMap = {
@@ -68,12 +72,12 @@ struct Options {
 // Helper for formatting tabulated output (option reporting).
 struct table_prefix { std::string text; };
 std::ostream& operator<<(std::ostream& out, const table_prefix& tb) {
-    return out << cyan("| "+tb.text) << std::left << std::setw(61-tb.text.size());
+    return out << cyan("| "+tb.text) << std::right << std::setw(58-tb.text.size());
 };
 
 std::ostream& operator<<(std::ostream& out, const Options& opt) {
     static const char* noyes[2] = {"no", "yes"};
-    static const std::string line_end = cyan("|") + "\n";
+    static const std::string line_end = cyan(" |") + "\n";
     static const std::string tableline = cyan("."+std::string(60, '-')+".")+"\n";
 
     std::string targets;
@@ -202,10 +206,13 @@ int main(int argc, char **argv) {
         // If no output prefix given, use the module name.
         std::string prefix = opt.outprefix.empty()? m.module_name(): opt.outprefix;
 
+        io::write_all(build_info_header(m, "arb"), prefix+".hpp");
+
         for (targetKind target: opt.targets) {
             std::string outfile = prefix;
             switch (target) {
             case targetKind::gpu:
+                // TODO: make cudaprinter work with new internal mechanism API
                 outfile += "_gpu";
                 {
                     CUDAPrinter printer(m);
@@ -215,18 +222,10 @@ int main(int argc, char **argv) {
                 }
                 break;
             case targetKind::cpu:
-                outfile += "_cpu.hpp";
-                switch (opt.simd_arch) {
-                case simdKind::none:
-                    io::write_all(CPrinter(m).emit_source(), outfile);
-                    break;
-                case simdKind::avx2:
-                    io::write_all(SimdPrinter<simdKind::avx2>(m).emit_source(), outfile);
-                    break;
-                case simdKind::avx512:
-                    io::write_all(SimdPrinter<simdKind::avx512>(m).emit_source(), outfile);
-                    break;
-                }
+                // TODO: merge in SIMD code
+                outfile += "_cpu.cpp";
+                io::write_all(emit_cpp_source(m, "arb"), outfile);
+                break;
             }
         }
 

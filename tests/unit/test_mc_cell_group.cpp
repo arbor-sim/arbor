@@ -3,7 +3,7 @@
 #include <backends/multicore/fvm.hpp>
 #include <common_types.hpp>
 #include <epoch.hpp>
-#include <fvm_multicell.hpp>
+#include <fvm_lowered_cell.hpp>
 #include <mc_cell_group.hpp>
 #include <util/rangeutil.hpp>
 
@@ -12,7 +12,7 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
-using fvm_cell = fvm::fvm_multicell<arb::multicore::backend>;
+using fvm_cell = fvm_lowered_cell<arb::multicore::backend>;
 
 cell make_cell() {
     auto c = make_cell_ball_and_stick();
@@ -26,17 +26,15 @@ cell make_cell() {
 TEST(mc_cell_group, get_kind) {
     mc_cell_group<fvm_cell> group{{0}, cable1d_recipe(make_cell()) };
 
-    // we are generating a mc_cell_group which should be of the correct type
     EXPECT_EQ(cell_kind::cable1d_neuron, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
     mc_cell_group<fvm_cell> group{{0}, cable1d_recipe(make_cell()) };
-
     group.advance(epoch(0, 50), 0.01, {});
 
-    // the model is expected to generate 4 spikes as a result of the
-    // fixed stimulus over 50 ms
+    // Model is expected to generate 4 spikes as a result of the
+    // fixed stimulus over 50 ms.
     EXPECT_EQ(4u, group.spikes().size());
 }
 

@@ -11,6 +11,7 @@
 #include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
+#include <util/rangeutil.hpp>
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
@@ -118,19 +119,30 @@ bool is_minimal_degree(C const& c)
     return it==c.end();
 }
 
-template <typename C>
-bool is_positive(C const& c)
-{
-    static_assert(
-        std::is_integral<typename C::value_type>::value,
-        "is_positive only applies to integral types"
-    );
-    for(auto v : c) {
-        if(v<1) {
-            return false;
-        }
+struct generic_is_positive {
+    template <typename V>
+    bool operator()(V v) const {
+        static V zero = V{};
+        return v>zero;
     }
-    return true;
+};
+
+struct generic_is_negative {
+    template <typename V>
+    bool operator()(V v) const {
+        static V zero = V{};
+        return v<zero;
+    }
+};
+
+template <typename C>
+bool all_positive(const C& c) {
+    return util::all_of(c, generic_is_positive{});
+}
+
+template <typename C>
+bool all_negative(const C& c) {
+    return util::all_of(c, generic_is_negative{});
 }
 
 template<typename C>
@@ -296,13 +308,7 @@ std::vector<typename C::value_type> tree_reduce(
     return new_parent_index;
 }
 
-
-template<typename Seq, typename = util::enable_if_sequence_t<Seq>>
-bool is_sorted(const Seq& seq) {
-    return std::is_sorted(std::begin(seq), std::end(seq));
-}
-
-template< typename Seq, typename = util::enable_if_sequence_t<Seq>>
+template <typename Seq, typename = util::enable_if_sequence_t<Seq&>>
 bool is_unique(const Seq& seq) {
     return std::adjacent_find(std::begin(seq), std::end(seq)) == std::end(seq);
 }
@@ -405,7 +411,7 @@ auto index_into(const Sub& sub, const Super& super)
 {
 
     EXPECTS(is_unique(super) && is_unique(sub));
-    EXPECTS(is_sorted(super) && is_sorted(sub));
+    EXPECTS(util::is_sorted(super) && util::is_sorted(sub));
     EXPECTS(util::size(sub) <= util::size(super));
 
     using iterator = index_into_iterator<

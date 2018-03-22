@@ -89,8 +89,7 @@ public:
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override {
         PE("advance");
-        EXPECTS(lowered_.state_synchronized());
-        time_type tstart = lowered_.min_time();
+        time_type tstart = lowered_.time();
 
         PE("event-setup");
         staged_events_.clear();
@@ -165,19 +164,10 @@ public:
         util::sort_by(sample_events, [](const sample_event& ev) { return event_time(ev); });
         PL();
 
-        // Run integration.
-        lowered_.setup_integration(ep.tfinal, dt, staged_events_, std::move(sample_events));
-        PE("integrator-steps");
-
-        while (!lowered_.integration_complete()) {
-            lowered_.step_integration();
-            if (util::is_debug_mode() && !lowered_.is_physical_solution()) {
-                std::cerr << "warning: solution out of bounds  at (max) t "
-                          << lowered_.max_time() << " ms\n";
-            }
-        }
+        // Run integration and collect samples, spikes.
+        PE("integrate");
+        auto result = lowered_.integrate(ep.tfinal, dt, staged_events_, std::move(sample_events), util::is_debug_mode());
         PL();
-
 
         // For each sampler callback registered in `call_info`, construct the
         // vector of sample entries from the lowered cell sample times and values
@@ -187,13 +177,10 @@ public:
         std::vector<sample_record> sample_records;
         sample_records.reserve(max_samples_per_call);
 
-        auto sample_time = lowered_.sample_time();
-        auto sample_value = lowered_.sample_value();
-
         for (auto& sc: call_info) {
             sample_records.clear();
             for (auto i = sc.begin_offset; i!=sc.end_offset; ++i) {
-                sample_records.push_back(sample_record{time_type(sample_time[i]), &sample_value[i]});
+               sample_records.push_back(sample_record{time_type(result.sample_time[i]), &result.sample_value[i]});
             }
 
             sc.sampler(sc.probe_id, sc.tag, sc.end_offset-sc.begin_offset, sample_records.data());
@@ -205,17 +192,9 @@ public:
         // record the local spike source index, which must be converted to a
         // global index for spike communication.
 
-        PE("spike-retrieve");
-        for (auto c: lowered_.get_spikes()) {
+        for (auto c: result.crossings) {
             spikes_.push_back({spike_sources_[c.index], time_type(c.time)});
         }
-
-        // Now that the spikes have been generated, clear the old crossings
-        // to get ready to record spikes from the next integration period.
-
-        lowered_.clear_spikes();
-        PL();
-
         PL();
     }
 
@@ -276,11 +255,9 @@ private:
     event_queue<sample_event> sample_events_;
 
     // Handles for accessing lowered cell.
-    using target_handle = typename lowered_cell_type::target_handle;
     std::vector<target_handle> target_handles_;
 
     // Maps probe ids to probe handles (from lowered cell) and tags (from probe descriptions).
-    using probe_handle = typename lowered_cell_type::probe_handle;
     probe_association_map<probe_handle> probe_map_;
 
     // Collection of samplers to be run against probes in this group.

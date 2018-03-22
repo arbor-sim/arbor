@@ -1,13 +1,12 @@
-#include "../gtest.h"
-
 #include <cstring>
 #include <iomanip>
 #include <string>
 #include <sstream>
 
-#include <util/prefixbuf.hpp>
+#include "io/prefixbuf.hpp"
+#include "test.hpp"
 
-using namespace arb::util;
+using namespace io;
 
 // Test public std::stringbuf 'put' interfaces on prefixbuf.
 
@@ -45,6 +44,36 @@ TEST(prefixbuf, prefix) {
         ":) bar quux\n"
         ":) baz xyzzy\n"
         "^^ plugh\n";
+
+    EXPECT_EQ(expected, s.str());
+}
+
+// A prefixbuf can be configure to emit or not emit the
+// prefix for empty lines.
+
+TEST(prefixbuf, empty_lines) {
+    auto write_sputn = [](std::streambuf& b, const char* c) {
+        b.sputn(c, std::strlen(c));
+    };
+
+    std::stringbuf s;
+
+    prefixbuf p1(&s, false); // omit prefix on blank lines
+    p1.prefix = "1> ";
+    write_sputn(p1, "hello\n\nfishies!\n\n");
+
+    prefixbuf p2(&s, true); // include prefix on blank lines
+    p2.prefix = "2> ";
+    write_sputn(p2, "hello\n\nbunnies!\n");
+
+    std::string expected =
+        "1> hello\n"
+        "\n"
+        "1> fishies!\n"
+        "\n"
+        "2> hello\n"
+        "2> \n"
+        "2> bunnies!\n";
 
     EXPECT_EQ(expected, s.str());
 }

@@ -8,8 +8,7 @@
 #include <sstream>
 #include <string>
 
-namespace arb {
-namespace util {
+namespace io {
 
 // `prefixbuf` acts an output-only filter for another streambuf, inserting
 // the contents of the `prefix` string before the first character in a line.
@@ -25,10 +24,14 @@ namespace util {
 //
 //     >>> hello
 //     >>> world
+//
+// A flag determines if the prefixbuf should or should not emit the prefix
+// for empty lines.
 
 class prefixbuf: public std::streambuf {
 public:
-    explicit prefixbuf(std::streambuf* inner): inner_(inner) {}
+    explicit prefixbuf(std::streambuf* inner, bool prefix_empty_lines=false):
+        inner_(inner), prefix_empty_lines_(prefix_empty_lines) {}
 
     prefixbuf(prefixbuf&&) = default;
     prefixbuf(const prefixbuf&) = delete;
@@ -41,6 +44,7 @@ public:
 
 protected:
     std::streambuf* inner_;
+    bool prefix_empty_lines_ = false;
     bool bol_ = true;
 
     std::streamsize xsputn(const char_type* s, std::streamsize count) override;
@@ -130,6 +134,4 @@ private:
     prefixbuf pbuf_;
 };
 
-
-} // namespace util
-} // namespace arb
+} // namespace io

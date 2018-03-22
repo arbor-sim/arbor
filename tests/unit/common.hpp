@@ -13,7 +13,7 @@
 
 namespace testing {
 
-// string ctor suffix (until C++14!)
+// String ctor suffix (until C++14!).
 
 namespace string_literals {
     inline std::string operator ""_s(const char* s, std::size_t n) {
@@ -21,7 +21,8 @@ namespace string_literals {
     }
 }
 
-// sentinel for use with range-related tests
+
+// Sentinel for C-style strings, for use with range-related tests.
 
 struct null_terminated_t {
     bool operator==(const char *p) const { return !*p; }
@@ -40,7 +41,8 @@ struct null_terminated_t {
 
 constexpr null_terminated_t null_terminated;
 
-// wrap a value type, with copy operations disabled
+
+// Wrap a value type, with copy operations disabled.
 
 template <typename V>
 struct nocopy {
@@ -81,7 +83,8 @@ int nocopy<V>::move_ctor_count;
 template <typename V>
 int nocopy<V>::move_assign_count;
 
-// wrap a value type, with move operations disabled
+
+// Wrap a value type, with move operations disabled.
 
 template <typename V>
 struct nomove {
@@ -120,10 +123,46 @@ int nomove<V>::copy_ctor_count;
 template <typename V>
 int nomove<V>::copy_assign_count;
 
+
+// Subvert class access protections. Demo:
+//
+//     class foo {
+//         int secret = 7;
+//     };
+//
+//     int foo::* secret_mptr;
+//     template class access::bind<int foo::*, secret_mptr, &foo::secret>;
+//
+//     int seven = foo{}.*secret_mptr;
+//
+// Or with shortcut define (places global in anonymous namespace):
+//
+//     ACCESS_BIND(int foo::*, secret_mptr, &foo::secret)
+//
+//     int seven = foo{}.*secret_mptr;
+
+namespace access {
+    template <typename V, V& store, V value>
+    struct bind {
+        static struct binder {
+            binder() { store = value; }
+        } init;
+    };
+
+    template <typename V, V& store, V value>
+    typename bind<V, store, value>::binder bind<V, store, value>::init;
+} // namespace access
+
+#define ACCESS_BIND(type, global, value)\
+namespace { using global ## _type_ = type; global ## _type_ global; }\
+template class ::testing::access::bind<type, global, value>;
+
+
 // Google Test assertion-returning predicates:
 
 // Assert two sequences of floating point values are almost equal.
 // (Uses internal class `FloatingPoint` from gtest.)
+
 template <typename FPType, typename Seq1, typename Seq2>
 ::testing::AssertionResult seq_almost_eq(Seq1&& seq1, Seq2&& seq2) {
     using std::begin;
@@ -156,6 +195,7 @@ template <typename FPType, typename Seq1, typename Seq2>
 }
 
 // Assert two floating point values are within a relative tolerance.
+
 inline ::testing::AssertionResult near_relative(double a, double b, double relerr) {
     double tol = relerr*std::max(std::abs(a), std::abs(b));
     if (std::abs(a-b)>tol) {

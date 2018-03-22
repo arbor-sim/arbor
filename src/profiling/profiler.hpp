@@ -203,7 +203,7 @@ private:
 };
 
 #ifdef ARB_HAVE_PROFILING
-namespace data {
+namespace pdata {
     using profiler_wrapper = arb::threading::enumerable_thread_specific<profiler>;
     extern profiler_wrapper profilers_;
 }

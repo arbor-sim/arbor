@@ -3,10 +3,9 @@
 #include <string>
 #include <vector>
 
-#include <util/prefixbuf.hpp>
+#include "io/prefixbuf.hpp"
 
-namespace arb {
-namespace util {
+namespace io {
 
 // prefixbuf implementation:
 
@@ -15,7 +14,9 @@ std::streamsize prefixbuf::xsputn(const char_type* s, std::streamsize count) {
 
     while (count>0) {
         if (bol_) {
-            inner_->sputn(&prefix[0], prefix.size());
+            if (prefix_empty_lines_ || s[0]!='\n') {
+                inner_->sputn(&prefix[0], prefix.size());
+            }
             bol_ = false;
         }
 
@@ -140,5 +141,4 @@ std::ostream& operator<<(std::ostream& os, indent_manip in) {
     return os;
 }
 
-} // namespace util
-} // namespace arb
+} // namespace io

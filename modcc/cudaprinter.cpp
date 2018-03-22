@@ -10,6 +10,17 @@ std::string CUDAPrinter::pack_name() {
     return module_name_ + "_ParamPack";
 }
 
+#if 0
+// C++ and CUDA sources both use the same parameter pack structure.
+// This structure is included directly in both the generated .cpp
+// and .cu files so as to limit the total number of generated sources.
+
+void CUDAPrinter::define_pack_struct(TextBuffer& buf) {
+
+
+}
+#endif
+
 CUDAPrinter::CUDAPrinter(Module &m, bool o)
     :   module_(&m)
 {
@@ -45,7 +56,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("#include <backends/fvm_types.hpp>");
     buffer().add_line("#include <backends/multi_event_stream_state.hpp>");
     buffer().add_line("#include <backends/gpu/kernels/detail.hpp>");
-    buffer().add_line("#include <util/simple_table.hpp>");
+    buffer().add_line("#include <util/maputil.hpp>");
     buffer().add_line();
 
     buffer().add_line("namespace arb { namespace gpu{");
@@ -70,7 +81,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         param_pack.push_back(var->name());
     }
     buffer().add_line("// ion channel dependencies");
-    for(auto& ion: m.neuron_block().ions) {
+    for(auto& ion: m.ion_deps()) {
         auto tname = "ion_" + ion.name;
         for(auto& field : ion.read) {
             buffer().add_line("T* ion_" + field.spelling + ";");
@@ -184,7 +195,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
             auto idx = src + "_idx_";
             buffer().add_line("auto "+idx+" = params_.ion_"+to_string(w.ion_kind)+"_idx_[tid_];");
             buffer().add_line("// 1/10 magic number due to unit normalisation");
-            buffer().add_line("params_."+tgt+"["+idx+"] = value_type(0.1)*params_.weights_[tid_]*params_."+src+"[tid_];");
+            buffer().add_line("params_."+tgt+"["+idx+"] = value_type(0.1)*params_.weight_[tid_]*params_."+src+"[tid_];");
         }
         buffer().decrease_indentation(); buffer().add_line("}");
         buffer().decrease_indentation(); buffer().add_line("}");
@@ -287,7 +298,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
 
     //////////////////////////////////////////////
     //////////////////////////////////////////////
-    for(auto& ion: m.neuron_block().ions) {
+    for(auto& ion: m.ion_deps()) {
         auto tname = "Ion" + ion.name;
         buffer().add_line("struct " + tname + " {");
         buffer().increase_indentation();
@@ -361,12 +372,12 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().add_line("// to per-compartment current in nA");
     buffer().add_line("if (weights.size()) {");
     buffer().increase_indentation();
-    buffer().add_line("memory::copy(weights, weights_(0, size()));");
+    buffer().add_line("memory::copy(weights, weight_(0, size()));");
     buffer().decrease_indentation();
     buffer().add_line("}");
     buffer().add_line("else {");
     buffer().increase_indentation();
-    buffer().add_line("memory::fill(weights_, 1.0);");
+    buffer().add_line("memory::fill(weight_, 1.0);");
     buffer().decrease_indentation();
     buffer().add_line("}");
     buffer().add_line();
@@ -385,7 +396,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     buffer().increase_indentation();
     buffer().add_line("auto s = std::size_t{0};");
     buffer().add_line("s += data_.size()*sizeof(value_type);");
-    for(auto& ion: m.neuron_block().ions) {
+    for(auto& ion: m.ion_deps()) {
         buffer().add_line("s += ion_" + ion.name + ".memory();");
     }
     buffer().add_line("return s;");
@@ -431,7 +442,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
     // Implement mechanism::set_weights method
     buffer().add_line("void set_weights(array&& weights) override {");
     buffer().increase_indentation();
-    buffer().add_line("memory::copy(weights, weights_(0, size()));");
+    buffer().add_line("memory::copy(weights, weight_(0, size()));");
     buffer().decrease_indentation();
     buffer().add_line("}");
     buffer().add_line();
@@ -577,7 +588,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         buffer().decrease_indentation();
         buffer().add_line("};");
         buffer().add_line();
-        buffer().add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        buffer().add_line("auto* pptr = util::seq_lookup(field_tbl, id);");
         buffer().add_line("return pptr? static_cast<view base::*>(*pptr): nullptr;");
         buffer().decrease_indentation();
         buffer().add_line("}");
@@ -596,7 +607,7 @@ CUDAPrinter::CUDAPrinter(Module &m, bool o)
         buffer().decrease_indentation();
         buffer().add_line("};");
         buffer().add_line();
-        buffer().add_line("auto* pptr = util::table_lookup(field_tbl, id);");
+        buffer().add_line("auto* pptr = util::seq_lookup(field_tbl, id);");
         buffer().add_line("return pptr? static_cast<value_type base::*>(*pptr): nullptr;");
         buffer().decrease_indentation();
         buffer().add_line("}");
@@ -691,20 +702,12 @@ std::string CUDAPrinter::index_string(Symbol *s) {
                     s->location());
         }
     }
-    else if(s->is_cell_indexed_variable()) {
-        return "cid_";
-    }
     return "";
 }
 
 void CUDAPrinter::visit(IndexedVariable *e) {
     buffer() << "params_." << e->index_name() << "[" << index_string(e) << "]";
 }
-
-void CUDAPrinter::visit(CellIndexedVariable *e) {
-    buffer() << "params_." << e->index_name() << "[" << index_string(e) << "]";
-}
-
 
 void CUDAPrinter::visit(LocalVariable *e) {
     std::string const& name = e->name();

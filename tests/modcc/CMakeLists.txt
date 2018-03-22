@@ -5,6 +5,7 @@ set(MODCC_TEST_SOURCES
     test_module.cpp
     test_msparse.cpp
     test_parser.cpp
+    test_prefixbuf.cpp
     test_printers.cpp
     test_removelocals.cpp
     test_symdiff.cpp
@@ -20,6 +21,8 @@ set(MODCC_TEST_SOURCES
     test_simd_backend.cpp
     test.cpp
 )
+
+include_directories("${PROJECT_SOURCE_DIR}/modcc")
 
 add_definitions("-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 add_executable(test_modcc ${MODCC_TEST_SOURCES})

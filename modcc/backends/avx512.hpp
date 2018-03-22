@@ -159,4 +159,4 @@ struct simd_intrinsics<simdKind::avx512> {
     }
 };
 
-} // namespace modcc;
+} // namespace modcc

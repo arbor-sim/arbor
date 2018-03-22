@@ -1,5 +1,6 @@
 #pragma once
 
+#include <backends/fvm_types.hpp>
 #include <math.hpp>
 #include <memory/memory.hpp>
 
@@ -16,17 +17,6 @@ public:
     using const_view = typename array::const_view_type;
     using iarray = memory::host_vector<size_type>;
     using const_iview = typename iarray::const_view_type;
-
-    /// stores a single crossing event
-    struct threshold_crossing {
-        size_type index;    // index of variable
-        value_type time;    // time of crossing
-        friend bool operator== (
-            const threshold_crossing& lhs, const threshold_crossing& rhs)
-        {
-            return lhs.index==rhs.index && lhs.time==rhs.time;
-        }
-    };
 
     threshold_watcher() = default;
 

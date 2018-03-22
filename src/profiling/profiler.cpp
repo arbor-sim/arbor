@@ -299,12 +299,12 @@ profiler_node profiler::performance_tree() {
 
 
 #ifdef ARB_HAVE_PROFILING
-namespace data {
+namespace pdata {
     profiler_wrapper profilers_(profiler("root"));
 }
 
 profiler& get_profiler() {
-    auto& p = data::profilers_.local();
+    auto& p = pdata::profilers_.local();
     if (!p.is_activated()) {
         p.start();
     }
@@ -313,7 +313,7 @@ profiler& get_profiler() {
 
 // this will throw an exception if the profler has already been started
 void profiler_start() {
-    data::profilers_.local().start();
+    pdata::profilers_.local().start();
 }
 void profiler_stop() {
     get_profiler().stop();
@@ -332,14 +332,14 @@ void profiler_leave(int nlevels) {
 /// iterate over all profilers and ensure that they have the same start stop times
 void profilers_stop() {
     gpu::stop_nvprof();
-    for (auto& p : data::profilers_) {
+    for (auto& p : pdata::profilers_) {
         p.stop();
     }
 }
 
 /// iterate over all profilers and reset
 void profilers_restart() {
-    for (auto& p : data::profilers_) {
+    for (auto& p : pdata::profilers_) {
         p.restart();
     }
 }
@@ -353,22 +353,22 @@ void profiler_output(double threshold, bool profile_only_zero) {
     // profilers might start at different times. In this case, the time stamp
     // when the first profiler started is taken as the start time of the whole
     // measurement period. Likewise for the last profiler to stop.
-    auto start_time = data::profilers_.begin()->start_time();
-    auto stop_time = data::profilers_.begin()->stop_time();
-    for(auto& p : data::profilers_) {
+    auto start_time = pdata::profilers_.begin()->start_time();
+    auto stop_time = pdata::profilers_.begin()->stop_time();
+    for(auto& p : pdata::profilers_) {
         start_time = std::min(start_time, p.start_time());
         stop_time  = std::max(stop_time,  p.stop_time());
     }
     // calculate the wall time
     auto wall_time = timer_type::difference(start_time, stop_time);
     // calculate the accumulated wall time over all threads
-    auto nthreads = data::profilers_.size();
+    auto nthreads = pdata::profilers_.size();
     auto thread_wall = wall_time * nthreads;
 
     // gather the profilers into one accumulated profile over all threads
     auto thread_measured = 0.; // accumulator for the time measured in each thread
     auto p = profiler_node(0, "total");
-    for(auto& thread_profiler : data::profilers_) {
+    for(auto& thread_profiler : pdata::profilers_) {
         auto tree = thread_profiler.performance_tree();
         thread_measured += tree.value - tree.time_in_other();
         p.fuse(thread_profiler.performance_tree());

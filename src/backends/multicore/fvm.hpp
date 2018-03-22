@@ -2,37 +2,41 @@
 
 #include <map>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <backends/event.hpp>
 #include <backends/fvm_types.hpp>
 #include <common_types.hpp>
 #include <constants.hpp>
 #include <event_queue.hpp>
+#include <ion.hpp>
+#include <math.hpp>
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
 #include <memory/wrappers.hpp>
+#include <util/maputil.hpp>
 #include <util/meta.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
+#include <util/xtuple.hpp>
+
+#include <util/debug.hpp>
 
 #include "matrix_state.hpp"
 #include "multi_event_stream.hpp"
-#include "stimulus.hpp"
 #include "threshold_watcher.hpp"
 
 namespace arb {
 namespace multicore {
 
 struct backend {
-    static bool is_supported() {
-        return true;
-    }
+    static bool is_supported() { return true; }
+    static std::string name() { return "cpu"; }
 
-    /// define the real and index types
     using value_type = fvm_value_type;
     using size_type  = fvm_size_type;
 
-    /// define storage types
     using array  = memory::host_vector<value_type>;
     using iarray = memory::host_vector<size_type>;
 
@@ -42,72 +46,89 @@ struct backend {
     using iview       = typename iarray::view_type;
     using const_iview = typename iarray::const_view_type;
 
-    using host_array  = array;
-    using host_iarray = iarray;
-
-    using host_view   = view;
-    using host_iview  = iview;
+    using host_array = array;
+    using host_view = array::view_type;
 
     using matrix_state = arb::multicore::matrix_state<value_type, size_type>;
+    using threshold_watcher = arb::multicore::threshold_watcher<value_type, size_type>;
 
     // backend-specific multi event streams.
     using deliverable_event_stream = arb::multicore::multi_event_stream<deliverable_event>;
     using sample_event_stream = arb::multicore::multi_event_stream<sample_event>;
 
-    //
-    // mechanism infrastructure
-    //
-    using ion_type = ion<backend>;
-    using stimulus = multicore::stimulus<backend>;
+    // Shared cell(s) state for mechanisms and integration:
+    struct shared_state {
+        size_type n_cell = 0;   // Number of distinct cells (integration domains).
+        size_type n_cv = 0;     // Total number of CVs.
 
-    using mechanism = arb::mechanism<backend>;
-    using mechanism_ptr = std::unique_ptr<mechanism>;
+        iarray cv_to_cell;      // Maps CV index to cell index.
+        array  time;            // Maps cell index to integration start time [ms].
+        array  time_to;         // Maps cell index to integration stop time [ms].
+        array  dt;              // Maps cell index to (stop time) - (start time) [ms].
+        array  dt_comp;         // Maps CV index to dt [ms].
+        array  voltage;         // Maps CV index to membrane voltage [mV].
+        array  current_density; // Maps CV index to current density [A/m²].
 
-    static mechanism_ptr make_mechanism(
-        const std::string& name,
-        size_type mech_id,
-        const_iview vec_ci,
-        const_view vec_t, const_view vec_t_to, const_view vec_dt,
-        view vec_v, view vec_i,
-        const std::vector<value_type>& weights,
-        const std::vector<size_type>& node_indices)
-    {
-        if (!has_mechanism(name)) {
-            throw std::out_of_range("no mechanism in database : " + name);
+        std::map<ionKind, ion<backend>> ion_data;
+
+        deliverable_event_stream deliverable_events;
+
+        // debug interface only
+        friend std::ostream& operator<<(std::ostream& o, const shared_state& s) {
+            s.emit(o);
+            return o;
         }
 
-        return mech_map_.find(name)->second(mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, memory::make_const_view(weights), memory::make_const_view(node_indices));
-    }
+        // debug interface only
+        void emit(std::ostream& out) const {
+            using util::sepval;
 
-    static bool has_mechanism(const std::string& name) {
-        return mech_map_.count(name)>0;
-    }
+            out << "n_cell " << n_cell << "\n----\n";
+            out << "n_cv " << n_cell << "\n----\n";
+            out << "cv_to_cell:\n" << sepval(cv_to_cell, ',') << "\n";
+            out << "time:\n" << sepval(time, ',') << "\n";
+            out << "time_to:\n" << sepval(time_to, ',') << "\n";
+            out << "dt:\n" << sepval(dt, ',') << "\n";
+            out << "dt_comp:\n" << sepval(dt_comp, ',') << "\n";
+            out << "voltage:\n" << sepval(voltage, ',') << "\n";
+            out << "current_density:\n" << sepval(current_density, ',') << "\n";
+            for (auto& ki: ion_data) {
+                auto kn = to_string(ki.first);
+                auto& i = const_cast<ion<backend>&>(ki.second);
+                out << kn << ".current_density:\n" << sepval(i.current_density(), ',') << "\n";
+                out << kn << ".reversal_potential:\n" << sepval(i.reversal_potential(), ',') << "\n";
+                out << kn << ".internal_concentration:\n" << sepval(i.internal_concentration(), ',') << "\n";
+                out << kn << ".external_concentration:\n" << sepval(i.external_concentration(), ',') << "\n";
+            }
+        }
 
-    static std::string name() {
-        return "cpu";
-    }
+        shared_state() = default;
 
-    // dereference a probe handle
-    static value_type dereference(probe_handle h) {
-        return *h; // just a pointer!
-    }
+        shared_state(
+            size_type n_cell,
+            const std::vector<size_type>& cv_to_cell
+        ):
+            n_cell(n_cell),
+            n_cv(cv_to_cell.size()),
+            cv_to_cell(memory::make_const_view(cv_to_cell)),
+            time(n_cell),
+            time_to(n_cell),
+            dt(n_cell),
+            dt_comp(n_cv),
+            voltage(n_cv),
+            current_density(n_cv),
+            deliverable_events(n_cell)
+        {}
 
-    /// threshold crossing logic
-    /// used as part of spike detection back end
-    using threshold_watcher =
-        arb::multicore::threshold_watcher<value_type, size_type>;
-
+        void add_ion(ionKind kind, ion<backend> ion) {
+            ion_data.emplace(kind, std::move(ion));
+        }
+    };
 
     // perform min/max reductions on 'array' type
     template <typename V>
     static std::pair<V, V> minmax_value(const memory::host_vector<V>& v) {
         return util::minmax_value(v);
-    }
-
-    // perform element-wise comparison on 'array' type against `t_test`.
-    template <typename V>
-    static bool any_time_before(const memory::host_vector<V>& t, V t_test) {
-        return minmax_value(t).first<t_test;
     }
 
     static void update_time_to(array& time_to, const_view time, value_type dt, value_type tmax) {
@@ -175,16 +196,205 @@ struct backend {
             Xo[i] = c_ext*weight_Xo[i];
         }
     }
+};
+
+// Base class for all generated mechanisms for multicore back-end.
+
+class mechanism: public arb::concrete_mechanism<arb::multicore::backend> {
+public:
+    using value_type = fvm_value_type;
+    using size_type = fvm_size_type;
+
+protected:
+    using backend = arb::multicore::backend;
+    using deliverable_event_stream = backend::deliverable_event_stream;
+
+    using array  = backend::array;
+    using iarray = backend::iarray;
+
+    using view       = backend::view;
+    using const_view = backend::const_view;
+
+    using iview       = backend::iview;
+    using const_iview = backend::const_iview;
+
+    struct ion_state {
+        view current_density;
+        view reversal_potential;
+        view internal_concentration;
+        view external_concentration;
+    };
 
 private:
-    using maker_type = mechanism_ptr (*)(value_type, const_iview, const_view, const_view, const_view, view, view, array&&, iarray&&);
-    static std::map<std::string, maker_type> mech_map_;
+    std::size_t width_ = 0; // Instance width (number of CVs/sites)
+    std::size_t n_ion_ = 0;
 
-    template <template <typename> class Mech>
-    static mechanism_ptr maker(value_type mech_id, const_iview vec_ci, const_view vec_t, const_view vec_t_to, const_view vec_dt, view vec_v, view vec_i, array&& weights, iarray&& node_indices) {
-        return arb::make_mechanism<Mech<backend>>
-            (mech_id, vec_ci, vec_t, vec_t_to, vec_dt, vec_v, vec_i, std::move(weights), std::move(node_indices));
+public:
+    std::size_t size() const override {
+        return width_;
     }
+
+    std::size_t memory() const override {
+        std::size_t s = object_sizeof();
+
+        s += sizeof(value_type) * (data_.size() + weight_.size());
+        s += sizeof(size_type) * width_ * (n_ion_ + 1); // node and ion indices.
+        return s;
+    }
+
+    void instantiate(fvm_size_type id, backend::shared_state& shared, const layout& w) override {
+        using memory::make_view;
+        using memory::make_const_view;
+
+        mechanism_id_ = id;
+        width_ = w.cv.size();
+
+        // Assign non-owning views onto shared state:
+
+        vec_ci_   = make_const_view(shared.cv_to_cell);
+        vec_t_    = make_const_view(shared.time);
+        vec_t_to_ = make_const_view(shared.time_to);
+        vec_dt_   = make_const_view(shared.dt_comp);
+        vec_v_    = make_view(shared.voltage);
+        vec_i_    = make_view(shared.current_density);
+
+        auto ion_state_tbl = ion_state_table();
+        n_ion_ = ion_state_tbl.size();
+        for (auto i: ion_state_tbl) {
+            util::optional<ion<backend>&> oion = util::value_by_key(shared.ion_data, i.first);
+            if (!oion) {
+                throw std::logic_error("mechanism holds ion with no corresponding shared state");
+            }
+
+            ion_state& state = *i.second;
+            state.current_density = oion->current_density();
+            state.reversal_potential = oion->reversal_potential();
+            state.internal_concentration = oion->internal_concentration();
+            state.external_concentration = oion->external_concentration();
+        }
+
+        event_stream_ptr_ = &shared.deliverable_events;
+
+        // Allocate and copy local state: weight, node indices, ion indices.
+
+        node_index_ = iarray(make_const_view(w.cv));
+        weight_     = array(make_const_view(w.weight));
+
+        for (auto i: ion_index_table()) {
+            std::vector<size_type> mech_ion_index;
+
+            util::optional<ion<backend>&> oion = util::value_by_key(shared.ion_data, i.first);
+            if (!oion) {
+                throw std::logic_error("mechanism holds ion with no corresponding shared state");
+            }
+
+            iarray& x = *i.second;
+            util::assign(mech_ion_index, algorithms::index_into(w.cv, oion->node_index()));
+            x = iarray(make_view(mech_ion_index));
+        }
+
+        // Allocate and initialize state and parameter vectors.
+
+        constexpr std::size_t align = data_.alignment();
+        static_assert(align%sizeof(value_type)==0 || sizeof(value_type)%align==0, "alignment incompatible with value type");
+
+        auto stride = math::round_up(width_*sizeof(value_type), align)/sizeof(value_type);
+
+        auto fields = field_table();
+        std::size_t n_field = fields.size();
+
+        data_ = array(n_field*stride, NAN);
+        for (std::size_t i = 0; i<n_field; ++i) {
+            auto& field_view = *std::get<1>(fields[i]);
+
+            field_view = data_(i*stride, i*stride+width_);
+            memory::fill(field_view, std::get<2>(fields[i]));
+        }
+    }
+
+    void deliver_events() override {
+        // Delegate to derived class, passing in event queue state.
+        deliver_events(event_stream_ptr_->marked_events());
+    }
+
+    void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) override {
+        if (auto opt_ptr = util::value_by_key(field_table(), key)) {
+            view& field = *opt_ptr.value();
+            if (field.size() != values.size()) {
+                throw std::logic_error("internal error: mechanism parameter size mismatch");
+            }
+            memory::copy(memory::make_const_view(values), field);
+        }
+        else {
+            throw std::logic_error("internal error: no such mechanism parameter");
+        }
+    }
+
+    void set_global(const std::string& key, fvm_value_type value) override {
+        if (auto opt_ptr = util::value_by_key(global_table(), key)) {
+            value_type& global = *opt_ptr.value();
+            global = value;
+        }
+        else {
+            throw std::logic_error("internal error: no such mechanism global");
+        }
+    }
+
+protected:
+    // Non-owning views onto shared cell state, excepting ion state.
+
+    const_iview vec_ci_;
+    const_view vec_t_;
+    const_view vec_t_to_;
+    const_view vec_dt_;
+    view vec_v_;
+    view vec_i_;
+    deliverable_event_stream* event_stream_ptr_;
+
+    // Per-mechanism index and weight data, excepting ion indices.
+
+    iarray node_index_;
+    array weight_;
+
+    // Bulk storage for state and parameter variables.
+
+    array data_;
+
+    // Generated mechanism field, global and ion table lookup types.
+    // First component is name, second is pointer to corresponing member.
+    // Field table entries have a third component for the field default value.
+
+    using global_table_entry = std::pair<const char*, value_type*>;
+    using mechanism_global_table = std::vector<global_table_entry>;
+
+    using field_table_entry = util::xtuple<const char*, view*, value_type>;
+    using mechanism_field_table = std::vector<field_table_entry>;
+
+    using ion_state_entry = std::pair<ionKind, ion_state*>;
+    using mechanism_ion_state_table = std::vector<ion_state_entry>;
+
+    using ion_index_entry = std::pair<ionKind, iarray*>;
+    using mechanism_ion_index_table = std::vector<ion_index_entry>;
+
+    // Generated mechanisms must implement the following methods, together with
+    // clone(), kind(), nrn_init(), nrn_state(), nrn_current() and deliver_events() (if
+    // required) from arb::mechanism.
+
+    // Member tables: introspection into derived mechanism fields, views etc.
+    // Default implementations correspond to no corresponding fields/globals/ions.
+
+    virtual mechanism_field_table field_table() { return {}; }
+    virtual mechanism_global_table global_table() { return {}; }
+    virtual mechanism_ion_state_table ion_state_table() { return {}; }
+    virtual mechanism_ion_index_table ion_index_table() { return {}; }
+
+    // Report raw size in bytes of mechanism object.
+
+    virtual std::size_t object_sizeof() const = 0;
+
+    // Event delivery, given event queue state:
+
+    virtual void deliver_events(deliverable_event_stream::state) {};
 };
 
 } // namespace multicore

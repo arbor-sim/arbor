@@ -1,8 +1,28 @@
+#include <cmath>
+#include <iomanip>
 #include <ostream>
 #include <unordered_map>
 
 #include "cexpr_emit.hpp"
 #include "error.hpp"
+#include "io/ostream_wrappers.hpp"
+#include "io/prefixbuf.hpp"
+
+std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
+    bool neg = std::signbit(wrap.value);
+
+    switch (std::fpclassify(wrap.value)) {
+    case FP_INFINITE:
+        return out << (neg? "-": "") << "INFINITY";
+    case FP_NAN:
+        return out << "NAN";
+    case FP_ZERO:
+        return out << (neg? "-0.": "0");
+    default:
+        return out <<
+            (std::stringstream{} << io::classic << std::setprecision(17) << wrap.value).rdbuf();
+    }
+}
 
 void CExprEmitter::emit_as_call(const char* sub, Expression* e) {
     out_ << sub << '(';
@@ -19,7 +39,7 @@ void CExprEmitter::emit_as_call(const char* sub, Expression* e1, Expression* e2)
 }
 
 void CExprEmitter::visit(NumberExpression* e) {
-    out_ << " " << e->value();
+    out_ << " " << as_c_double(e->value());
 }
 
 void CExprEmitter::visit(UnaryExpression* e) {
@@ -118,5 +138,25 @@ void CExprEmitter::visit(BinaryExpression* e) {
     }
     else {
         emit_as_call(op_spelling, lhs, rhs);
+    }
+}
+
+void CExprEmitter::visit(IfExpression* e) {
+    out_ << "if (";
+    e->condition()->accept(this);
+    out_ << ") {\n" << io::indent;
+    e->true_branch()->accept(this);
+    out_ << io::popindent << "}\n";
+
+    if (auto fb = e->false_branch()) {
+        out_ << "else ";
+        if (fb->is_if()) {
+            fb->accept(this);
+        }
+        else {
+            out_ << "{\n" << io::indent;
+            fb->accept(this);
+            out_ << io::popindent << "}\n";
+        }
     }
 }

@@ -7,8 +7,9 @@ set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 
 # Generate mechanism implementations for host/cpu environment
 
-set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/multicore")
-file(MAKE_DIRECTORY "${mech_dir}")
+set(mech_dir "mechanisms/generated")
+set(abs_mech_dir "${CMAKE_SOURCE_DIR}/${mech_dir}")
+file(MAKE_DIRECTORY "${abs_mech_dir}")
 
 if(ARB_VECTORIZE_TARGET STREQUAL "none")
     set(modcc_simd "")
@@ -22,34 +23,44 @@ else()
     message(SEND_ERROR "Unrecognized architecture for ARB_VECTORIZE_TARGET")
     set(modcc_simd "")
 endif()
+
+
 build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
-    DEST_DIR "${mech_dir}"
-    MODCC_FLAGS -t cpu ${modcc_simd}
-    GENERATES _cpu.hpp
+    DEST_DIR "${abs_mech_dir}"
+    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
+    GENERATES .hpp _cpu.cpp _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
     TARGET build_all_mods
 )
 
-# Generate mechanism implementations for gpu
+# Generate source for default mechanism catalogue
 
-set(mech_dir "${CMAKE_CURRENT_SOURCE_DIR}/gpu")
-file(MAKE_DIRECTORY "${mech_dir}")
-build_modules(
-    ${mechanisms}
-    SOURCE_DIR "${mod_srcdir}"
-    DEST_DIR "${mech_dir}"
-    MODCC_FLAGS -t gpu
-    GENERATES _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
-    TARGET build_all_gpu_mods
+set(catsrc ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
+set(default_catalogue_options -I ${mech_dir} -B multicore -o ${catsrc})
+add_custom_command(
+    OUTPUT ${catsrc}
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_default_catalogue ${default_catalogue_options} ${mechanisms}
+    DEPENDS build_all_mods generate_default_catalogue
 )
 
 # Make a library with the implementations of the mechanism kernels
 
+foreach(mech ${mechanisms})
+    list(APPEND cpu_mech_sources ${abs_mech_dir}/${mech}_cpu.cpp)
+endforeach()
+
+add_library(arbormech ${cpu_mech_sources} ${catsrc})
+if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
+    add_dependencies(arbormech build_all_mods)
+endif()
+
+list(APPEND ARB_LIBRARIES arbormech)
+
 if(ARB_WITH_CUDA)
     # make list of the .cu files that implement the mechanism kernels
     foreach(mech ${mechanisms})
-        list(APPEND cuda_mech_sources ${mech_dir}/${mech}_gpu_impl.cu)
+        list(APPEND cuda_mech_sources ${abs_mech_dir}/${mech}_gpu_impl.cu)
     endforeach()
 
     # compile the .cu files into a library
@@ -61,5 +72,6 @@ if(ARB_WITH_CUDA)
     endif()
 
     list(APPEND ARB_LIBRARIES arbormechcu)
-    set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)
 endif()
+
+set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)

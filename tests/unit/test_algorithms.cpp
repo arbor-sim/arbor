@@ -1,13 +1,15 @@
 #include <iterator>
 #include <random>
+#include <string>
 #include <vector>
 
 #include "../gtest.h"
 
 #include <algorithms.hpp>
-#include "../test_util.hpp"
 #include <util/debug.hpp>
 #include <util/meta.hpp>
+
+#include "../test_util.hpp"
 
 /// tests the sort implementation in threading
 /// is only parallel if TBB is being used
@@ -176,28 +178,39 @@ TEST(algorithms, is_strictly_monotonic_decreasing)
     );
 }
 
-TEST(algorithms, is_positive)
-{
-    EXPECT_TRUE(
-        arb::algorithms::is_positive(
-            std::vector<int>{}
-        )
-    );
-    EXPECT_TRUE(
-        arb::algorithms::is_positive(
-            std::vector<int>{3, 2, 1}
-        )
-    );
-    EXPECT_FALSE(
-        arb::algorithms::is_positive(
-            std::vector<int>{3, 2, 1, 0}
-        )
-    );
-    EXPECT_FALSE(
-        arb::algorithms::is_positive(
-            std::vector<int>{-1}
-        )
-    );
+TEST(algorithms, all_positive) {
+    using arb::algorithms::all_positive;
+
+    EXPECT_TRUE(all_positive(std::vector<int>{}));
+    EXPECT_TRUE(all_positive(std::vector<int>{3, 2, 1}));
+    EXPECT_FALSE(all_positive(std::vector<int>{3, 2, 1, 0}));
+    EXPECT_FALSE(all_positive(std::vector<int>{-1}));
+
+    EXPECT_TRUE(all_positive((double []){1., 2.}));
+    EXPECT_FALSE(all_positive((double []){1., 0.}));
+    EXPECT_FALSE(all_positive((double []){NAN}));
+
+    EXPECT_TRUE(all_positive((std::string []){"a", "b"}));
+    EXPECT_FALSE(all_positive((std::string []){"a", "", "b"}));
+}
+
+TEST(algorithms, all_negative) {
+    using arb::algorithms::all_negative;
+
+    EXPECT_TRUE(all_negative(std::vector<int>{}));
+    EXPECT_TRUE(all_negative(std::vector<int>{-3, -2, -1}));
+    EXPECT_FALSE(all_negative(std::vector<int>{-3, -2, -1, 0}));
+    EXPECT_FALSE(all_negative(std::vector<int>{1}));
+
+    double negzero = std::copysign(0., -1.);
+
+    EXPECT_TRUE(all_negative((double []){-1., -2.}));
+    EXPECT_FALSE(all_negative((double []){-1., 0.}));
+    EXPECT_FALSE(all_negative((double []){-1., negzero}));
+    EXPECT_FALSE(all_negative((double []){NAN}));
+
+    EXPECT_FALSE(all_negative((std::string []){"", "b"}));
+    EXPECT_FALSE(all_negative((std::string []){""}));
 }
 
 TEST(algorithms, has_contiguous_compartments)
@@ -328,50 +341,6 @@ TEST(algorithms, is_unique)
     EXPECT_FALSE(
         arb::algorithms::is_unique(
             std::vector<int>{0,1,2,3,4,4}
-        )
-    );
-}
-
-TEST(algorithms, is_sorted)
-{
-    EXPECT_TRUE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{}
-        )
-    );
-    EXPECT_TRUE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{100}
-        )
-    );
-    EXPECT_TRUE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{0,1,2}
-        )
-    );
-    EXPECT_TRUE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{0,2,100}
-        )
-    );
-    EXPECT_TRUE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{0,0}
-        )
-    );
-    EXPECT_TRUE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{0,1,2,2,2,2,3,4,5,5,5}
-        )
-    );
-    EXPECT_FALSE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{0,1,2,1}
-        )
-    );
-    EXPECT_FALSE(
-        arb::algorithms::is_sorted(
-            std::vector<int>{1,0}
         )
     );
 }

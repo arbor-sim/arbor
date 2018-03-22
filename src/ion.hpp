@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdexcept>
+#include <string>
+
 #include <array>
 #include <constants.hpp>
 #include <memory/memory.hpp>
@@ -14,7 +17,7 @@ namespace arb {
     ---------------------------------------------------
     label   Ca      Na      K   name
     ---------------------------------------------------
-    iX      ica     ina     ik  current
+    iX      ica     ina     ik  current_density
     eX      eca     ena     ek  reversal_potential
     Xi      cai     nai     ki  internal_concentration
     Xo      cao     nao     ko  external_concentration
@@ -22,28 +25,23 @@ namespace arb {
     ---------------------------------------------------
 */
 
-/// enumerate the ion channel types
+// Fixed set of ion species (to be generalized in the future):
+
 enum class ionKind {ca, na, k};
-
-inline static
-std::string to_string(ionKind k) {
-    switch(k) {
-        case ionKind::na : return "sodium";
-        case ionKind::ca : return "calcium";
-        case ionKind::k  : return "pottasium";
+inline std::string to_string(ionKind k) {
+    switch (k) {
+    case ionKind::ca: return "ca";
+    case ionKind::na: return "na";
+    case ionKind::k:  return "k";
+    default: throw std::out_of_range("unknown ionKind");
     }
-    return "unkown";
 }
 
-/// a helper for iterting over the ion species
-constexpr std::array<ionKind, 3> ion_kinds() {
-    return {ionKind::ca, ionKind::na, ionKind::k};
-}
+// Backend-specific ion state.
 
-/// storage for ion channel information in a cell group
 template<typename Backend>
 class ion {
-public :
+public:
     using backend = Backend;
 
     // expose tempalte parameters
@@ -58,13 +56,13 @@ public :
 
     ion() = default;
 
-    ion(const std::vector<size_type>& idx) :
+    ion(const std::vector<size_type>& idx):
         node_index_{memory::make_const_view(idx)},
         iX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         eX_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xi_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
         Xo_{idx.size(), std::numeric_limits<value_type>::quiet_NaN()},
-        valency(0),
+        charge(0),
         default_int_concentration(0),
         default_ext_concentration(0)
     {}
@@ -83,7 +81,7 @@ public :
         weight_Xo_ = memory::make_const_view(wout);
     }
 
-    view current() {
+    view current_density() {
         return iX_;
     }
 
@@ -107,19 +105,19 @@ public :
         return weight_Xo_;
     }
 
-    void reset() {
+    void reset(double temperature_K) {
         // The Nernst equation uses the assumption of nonzero concentrations:
         EXPECTS(default_int_concentration > value_type(0));
         EXPECTS(default_ext_concentration > value_type(0));
         memory::fill(iX_, 0); // reset current
         init_concentration(); // reset internal and external concentrations
-        nernst_reversal_potential(constant::hh_squid_temp); // TODO: use temperature specfied in model
+        nernst_reversal_potential(temperature_K);
     }
 
-    /// Calculate the reversal potential for all compartments using Nernst equation
-    /// temperature is in degrees Kelvin
-    void nernst_reversal_potential(value_type temperature) {
-        backend::nernst(valency, temperature, Xo_, Xi_, eX_);
+    // Calculate the reversal potential for all compartments using Nernst equation.
+    // Temperature is in degrees Kelvin
+    void nernst_reversal_potential(value_type temperature_K) {
+        backend::nernst(charge, temperature_K, Xo_, Xi_, eX_);
     }
 
     void init_concentration() {
@@ -146,7 +144,7 @@ private:
     array weight_Xo_;   // (1) concentration weight external
 
 public:
-    int valency;    // valency of ionic species
+    int charge;    // charge of ionic species
     value_type default_int_concentration; // (mM) default internal concentration
     value_type default_ext_concentration; // (mM) default external concentration
 };

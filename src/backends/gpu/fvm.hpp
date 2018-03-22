@@ -46,6 +46,8 @@ struct backend {
     using host_view   = typename host_array::view_type;
     using host_iview  = typename host_iarray::const_view_type;
 
+    using host_array_mirror = memory::host_vector<value_type>;
+
     static std::string name() {
         return "gpu";
     }

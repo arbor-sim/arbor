@@ -1,11 +1,14 @@
 #include <regex>
 #include <string>
+#include <sstream>
 
 #include "test.hpp"
 
+#include "cexpr_emit.hpp"
 #include "cprinter.hpp"
 #include "cudaprinter.hpp"
 #include "expression.hpp"
+#include "symdiff.hpp"
 #include "textbuffer.hpp"
 
 struct testcase {
@@ -30,6 +33,26 @@ static std::string strip(std::string text) {
     text = std::regex_replace(text, rx3, "");
 
     return text;
+}
+
+TEST(scalar_printer, constants) {
+    testcase testcases[] = {
+        {"1./0.",      "INFINITY"},
+        {"-1./0.",     "-INFINITY"},
+        {"(-1)^0.5",   "NAN"},
+        {"1/(-1./0.)", "-0."},
+        {"1-1",        "0"},
+    };
+
+    for (const auto& tc: testcases) {
+        auto expr = constant_simplify(parse_expression(tc.source));
+        ASSERT_TRUE(expr && expr->is_number());
+
+        std::stringstream s;
+        s << as_c_double(expr->is_number()->value());
+
+        EXPECT_EQ(std::string(tc.expected), s.str());
+    }
 }
 
 TEST(scalar_printer, statement) {
@@ -87,24 +110,22 @@ TEST(scalar_printer, statement) {
     }
 }
 
-TEST(CPrinter, proc) {
+TEST(CPrinter, proc_body) {
     std::vector<testcase> testcases = {
         {
             "PROCEDURE trates(v) {\n"
             "    LOCAL k\n"
             "    minf=1-1/(1+exp((v-k)/k))\n"
             "    hinf=1/(1+exp((v-k)/k))\n"
-            "    mtau = 0.6\n"
+            "    mtau = 0.5\n"
             "    htau = 1500\n"
             "}"
             ,
-            "void trates(int i_, value_type v) {\n"
             "value_type k;\n"
             "minf[i_] = 1-1/(1+exp((v-k)/k));\n"
             "hinf[i_] = 1/(1+exp((v-k)/k));\n"
-            "mtau[i_] = 0.6;\n"
+            "mtau[i_] = 0.5;\n"
             "htau[i_] = 1500;\n"
-            "}"
         }
     };
 
@@ -125,9 +146,9 @@ TEST(CPrinter, proc) {
 
         proc->semantic(globals);
         auto v = make_unique<CPrinter>();
-        proc->accept(v.get());
+        proc->is_procedure()->body()->accept(v.get());
 
-        verbose_print(proc->to_string());
+        verbose_print(proc->is_procedure()->body()->to_string());
         verbose_print(" :--: ", v->text());
 
         EXPECT_EQ(strip(tc.expected), strip(v->text()));
