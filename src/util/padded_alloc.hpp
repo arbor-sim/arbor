@@ -7,6 +7,21 @@
 #include <iostream>
 
 // Allocator with run-time alignment and padding guarantees.
+//
+// Assignment does not change the alignment property of the
+// allocator on the left hand side of the assignment, so that
+// e.g.
+// ```
+//     std::vector<int, padded_allocator<int>> a(100, 32), b(50, 64);
+//     a = b;
+//     assert(a.get_allocator().alignment()==32);
+// ```
+// will pass, and the vector `a` will not require reallocation.
+//
+// For move assignment, this means we cannot allow a simple ownership
+// transfer if the left hand side has a stronger alignment guarantee
+// that the right hand side. Correspondingly, we have to return `false`
+// for the allocator equality test if the alignments differ.
 
 namespace arb {
 namespace util {
@@ -15,9 +30,9 @@ template <typename T>
 struct padded_allocator {
     using value_type = T;
     using pointer = T*;
-    using propagate_on_container_copy_assignment = std::true_type;
-    using propagate_on_container_move_assignment = std::true_type;
-    using propagate_on_container_swap = std::true_type;
+    using propagate_on_container_copy_assignment = std::false_type;
+    using propagate_on_container_move_assignment = std::false_type;
+    using propagate_on_container_swap = std::false_type;
     using is_always_equal = std::false_type;
 
     padded_allocator() noexcept {}
@@ -54,8 +69,8 @@ struct padded_allocator {
         std::free(p);
     }
 
-    bool operator==(const padded_allocator& a) const { return a.alignment_==alignment_; }
-    bool operator!=(const padded_allocator& a) const { return a.alignment_!=alignment_; }
+    bool operator==(const padded_allocator& a) const { return alignment_==a.alignment_; }
+    bool operator!=(const padded_allocator& a) const { return !(*this==a); }
 
     std::size_t alignment() const { return alignment_; }
 

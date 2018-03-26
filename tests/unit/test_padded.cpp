@@ -16,6 +16,7 @@ using arb::util::padded_allocator;
 template <typename T>
 using pvector = std::vector<T, padded_allocator<T>>;
 
+// (For k a power of 2 only)
 static bool is_aligned(void* p, std::size_t k) {
     auto addr = reinterpret_cast<std::uintptr_t>(p);
     return !(addr&(k-1));
@@ -29,6 +30,15 @@ TEST(padded_vector, alignment) {
     EXPECT_TRUE(is_aligned(a.data(), 1024));
 }
 
+TEST(padded_vector, allocator_constraints) {
+    EXPECT_THROW(padded_allocator<char>(7), std::range_error);
+
+    padded_allocator<char> pa(2); // less than sizeof(void*)
+    std::vector<char, padded_allocator<char>> v(7, pa);
+
+    EXPECT_TRUE(is_aligned(v.data(), sizeof(void*)));
+}
+
 TEST(padded_vector, allocator_propagation) {
     padded_allocator<double> pa(1024);
     pvector<double> a(101, pa);
@@ -38,25 +48,24 @@ TEST(padded_vector, allocator_propagation) {
     pvector<double> b(101);
     auto pb = b.get_allocator();
 
+    // Differing alignment => allocators compare not-equal.
     EXPECT_EQ(1u, pb.alignment());
     EXPECT_NE(pa, pb);
 
+    // Don't propagate on copy- or move-assignment:
     b = a;
-    EXPECT_EQ(1024u, b.get_allocator().alignment());
-    EXPECT_TRUE(is_aligned(b.data(), 1024));
-    EXPECT_EQ(pa, b.get_allocator());
-    EXPECT_NE(pb, b.get_allocator());
+    EXPECT_EQ(pb.alignment(), b.get_allocator().alignment());
+    EXPECT_NE(pb.alignment(), pa.alignment());
 
     pvector<double> c;
     c = std::move(a);
-
-    EXPECT_EQ(pa, c.get_allocator());
+    EXPECT_NE(c.get_allocator().alignment(), pa.alignment());
 }
 
 
 #ifdef INSTRUMENT_MALLOC
 
-struct count_allocs: testing::with_instrumented_malloc {
+struct alloc_data {
     unsigned n_malloc = 0;
     unsigned n_realloc = 0;
     unsigned n_memalign = 0;
@@ -64,20 +73,28 @@ struct count_allocs: testing::with_instrumented_malloc {
     std::size_t last_malloc = -1;
     std::size_t last_realloc = -1;
     std::size_t last_memalign = -1;
+};
+
+struct count_allocs: testing::with_instrumented_malloc {
+    alloc_data data;
 
     void on_malloc(std::size_t size, const void*) override {
-        ++n_malloc;
-        last_malloc = size;
+        ++data.n_malloc;
+        data.last_malloc = size;
     }
 
     void on_realloc(void*, std::size_t size, const void*) override {
-        ++n_realloc;
-        last_realloc = size;
+        ++data.n_realloc;
+        data.last_realloc = size;
     }
 
     void on_memalign(std::size_t, std::size_t size, const void*) override {
-        ++n_memalign;
-        last_memalign = size;
+        ++data.n_memalign;
+        data.last_memalign = size;
+    }
+
+    void reset() {
+        data = alloc_data();
     }
 };
 
@@ -85,48 +102,58 @@ TEST(padded_vector, instrumented) {
     count_allocs A;
 
     padded_allocator<double> pad256(256), pad32(32);
-    pvector<double> v1(303, pad256);
+    pvector<double> v1p256(303, pad256);
+    alloc_data mdata = A.data;
 
     unsigned expected_v1_alloc = 303*sizeof(double);
     expected_v1_alloc = expected_v1_alloc%256? 256*(1+expected_v1_alloc/256): expected_v1_alloc;
 
-    EXPECT_EQ(1u, A.n_memalign);
-    EXPECT_EQ(0u, A.n_malloc);
-    EXPECT_EQ(0u, A.n_realloc);
-    EXPECT_EQ(expected_v1_alloc, A.last_memalign);
+    EXPECT_EQ(1u, mdata.n_memalign);
+    EXPECT_EQ(0u, mdata.n_malloc);
+    EXPECT_EQ(0u, mdata.n_realloc);
+    EXPECT_EQ(expected_v1_alloc, mdata.last_memalign);
 
-    pvector<double> v2(pad32);
-    v2 = std::move(v1); // move should move allocator and not copy
+    // Move assignment: v2 has differing alignment guarantee, so cannot
+    // take ownership of v1's data. We expect that v2 will need to allocate.
 
-    EXPECT_EQ(1u, A.n_memalign);
-    EXPECT_EQ(0u, A.n_malloc);
-    EXPECT_EQ(0u, A.n_realloc);
+    pvector<double> v2p32(10, pad32);
+    A.reset();
+    v2p32 = std::move(v1p256);
+    mdata = A.data;
 
-    pvector<double> v3(700, pad256);
+    EXPECT_EQ(1u, mdata.n_memalign);
+    EXPECT_EQ(0u, mdata.n_malloc);
+    EXPECT_EQ(0u, mdata.n_realloc);
 
-    EXPECT_EQ(2u, A.n_memalign);
-    EXPECT_EQ(0u, A.n_malloc);
-    EXPECT_EQ(0u, A.n_realloc);
+    pvector<double> v3p256(101, pad256), v4p256(700, pad256);
 
-    v3 = v2; // same alignment, larger size => shouldn't need to allocate
+    A.reset();
+    v4p256 = v3p256; // same alignment, larger size => shouldn't need to allocate
+    mdata = A.data;
 
-    EXPECT_EQ(2u, A.n_memalign);
-    EXPECT_EQ(0u, A.n_malloc);
-    EXPECT_EQ(0u, A.n_realloc);
+    EXPECT_EQ(0u, mdata.n_memalign);
+    EXPECT_EQ(0u, mdata.n_malloc);
+    EXPECT_EQ(0u, mdata.n_realloc);
 
-    pvector<double> v4(700, pad32);
+    A.reset();
+    pvector<double> v5p32(701, pad32);
+    mdata = A.data;
 
-    EXPECT_EQ(3u, A.n_memalign);
-    EXPECT_EQ(0u, A.n_malloc);
-    EXPECT_EQ(0u, A.n_realloc);
-    EXPECT_NE(expected_v1_alloc, A.last_memalign);
+    unsigned expected_v5_alloc = 701*sizeof(double);
+    expected_v5_alloc = expected_v5_alloc%32? 32*(1+expected_v5_alloc/32): expected_v5_alloc;
 
-    v4 = v2; // different alignment, so will have to reallocate
+    EXPECT_EQ(1u, mdata.n_memalign);
+    EXPECT_EQ(0u, mdata.n_malloc);
+    EXPECT_EQ(0u, mdata.n_realloc);
+    EXPECT_EQ(expected_v5_alloc, mdata.last_memalign);
 
-    EXPECT_EQ(4u, A.n_memalign);
-    EXPECT_EQ(0u, A.n_malloc);
-    EXPECT_EQ(0u, A.n_realloc);
-    EXPECT_EQ(expected_v1_alloc, A.last_memalign);
+    A.reset();
+    v5p32 = v3p256; // different alignment, but enough space, so shouldn't reallocate.
+    mdata = A.data;
+
+    EXPECT_EQ(0u, mdata.n_memalign);
+    EXPECT_EQ(0u, mdata.n_malloc);
+    EXPECT_EQ(0u, mdata.n_realloc);
 }
 
 #endif // ifdef INSTRUMENT_MALLOC
