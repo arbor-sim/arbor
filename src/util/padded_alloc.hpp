@@ -8,6 +8,13 @@
 
 // Allocator with run-time alignment and padding guarantees.
 //
+// With an alignment value of `n`, any allocations will be
+// aligned to have a starting address of a multiple of `n`,
+// and the size of the allocation will be padded so that the
+// one-past-the-end address is also a multiple of `n`.
+//
+// Any alignment `n` specified must be a power of two.
+//
 // Assignment does not change the alignment property of the
 // allocator on the left hand side of the assignment, so that
 // e.g.
