@@ -61,6 +61,7 @@ set(TEST_SOURCES
     test_nop.cpp
     test_optional.cpp
     test_mechinfo.cpp
+    test_padded.cpp
     test_partition.cpp
     test_path.cpp
     test_point.cpp

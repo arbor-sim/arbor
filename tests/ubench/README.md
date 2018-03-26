@@ -263,3 +263,88 @@ Overall, maintaining seperate queues for each cell is much faster for more than 
 |1Q    |  1.0 | 1.0 | 1.0 | 1.0 | 1.0 |
 |nQ    |  1.1 | 1.8 | 2.8 | 3.7 | 5.4 |
 |nV    |  2.4 | 2.6 | 3.9 | 5.8 | 7.8 |
+
+---
+
+### `default_construct`
+
+#### Motivation
+
+The `padded_allocator` code allows us to use, for example, a `std::vector` for CPU-side aligned storage and padded storage (for SIMD)
+instead of the `memory::array` class. The latter though does not construct its elements, while a `std::vector` will use the allocator's
+`construct` method.
+
+For scalar values that have trivial default constructors, a `std::allocator` construction with no arguments will value-initialize,
+which will zero initialize any non-class values. By supplying an alternate `construct` method, we can make an allocator that will
+default-initialize instead, skipping any initialization for non-class values, and providing semantics similar to that of
+`memory::array`.
+
+Is it worth doing so?
+
+#### Implementation
+
+The microbenchmark uses an adaptor class that replaces the allocator `construct` methods to default initialize if there are no
+arguments given. The benchmark creates a vector using the standard or adapted allocator, fills with the numbers from 1 to n
+and takes the sum.
+
+For comparison, the benchmark also compares the two vectors when they are initialized by a pair of iterators that provide the
+same enumeration from 1 to n.
+
+#### Results
+
+With this low computation-to-size ratio task, using the default constructing adaptor gives a significant performance benefit.
+With the iterator-pair construction however, where we would expect no performance difference, GCC (but not Clang) produces
+very much slower code.
+
+Note that Clang produces overall considerably faster code.
+
+Platform:
+* Xeon E3-1220 v2 with base clock 3.1 GHz and max clock 3.5 GHz. 
+* Linux 4.9.75
+* gcc version 7.3.1
+* clang version 6.0.0
+* optimization options: -O3 -march=ivybridge
+
+##### Create then fill and sum
+
+*GCC*
+
+|    size  | value-initialized | default-initialized |
+|---------:|------------------:|--------------------:|
+|    1 kiB |            403 ns |              331 ns |
+|    4 kiB |          1 430 ns |            1 142 ns |
+|   32 kiB |         12 377 ns |            8 982 ns |
+|  256 kiB |        114 598 ns |           81 599 ns |
+| 1024 kiB |        455 502 ns |          323 366 ns |
+
+*Clang*
+
+|    size  | value-initialized | default-initialized |
+|---------:|------------------:|--------------------:|
+|    1 kib |            228 ns |              147 ns |
+|    4 kib |            826 ns |              527 ns |
+|   32 kib |         10 425 ns |            6 823 ns |
+|  256 kib |        106 497 ns |           72 375 ns |
+| 1024 kib |        430 561 ns |          293 999 ns |
+
+##### Create directly from counting iterators and sum
+
+*GCC*
+
+|    size  | value-initialized | default-initialized |
+|---------:|------------------:|--------------------:|
+|    1 kiB |            335 ns |              775 ns |
+|    4 kiB |          1 146 ns |            2 920 ns |
+|   32 kiB |          8 954 ns |           23 197 ns |
+|  256 kiB |         81 609 ns |          193 230 ns |
+| 1024 kiB |        322 947 ns |          763 243 ns |
+
+*Clang*
+
+|    size  | value-initialized | default-initialized |
+|---------:|------------------:|--------------------:|
+|    1 kiB |            151 ns |              160 ns |
+|    4 kiB |            531 ns |              528 ns |
+|   32 kiB |          6 790 ns |            6 816 ns |
+|  256 kiB |         72 460 ns |           72 687 ns |
+| 1024 kiB |        293 991 ns |          293 746 ns |
