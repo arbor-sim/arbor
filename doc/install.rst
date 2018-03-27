@@ -159,7 +159,7 @@ Building Arbor
 Once the Arbor code has been checked out, it can be built by first running CMake to configure the build, then running make.
 
 Below is a simple workflow for: **1)** getting the source; **2)** configuring the build;
-**3)** building then; **4)** running tests.
+**3)** building; **4)** then running tests.
 For more detailed build configuration options, see the `quick start <quickstart_>`_ guide.
 
 .. code-block:: bash
@@ -294,7 +294,7 @@ By default the ``none`` target is selected, which relies on compiler auto-vector
 
 .. _threading:
 
-Multi Threading
+Multithreading
 ---------------
 
 Arbor provides three possible multithreading implementations. The implementation
@@ -666,7 +666,7 @@ Wrong Headers for Intel Compiler
 
 The Intel C++ compiler does not provide its own copy of the C++ standard library,
 instead it uses the implementation from GCC. You can see what the default version of
-GCC is by ``g++ --versions``.
+GCC is by ``g++ --version``.
 
 If the Intel compiler uses an old version of the standard library,
 errors like the following occur:
