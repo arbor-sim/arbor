@@ -92,7 +92,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     `NMODL <https://www.neuron.yale.edu/neuron/static/docs/help/neuron/nmodl/nmodl.html>`_.
     The generated code is explicitly vectorised, obviating the need for vendor compilers,
     and we can take advantage of their benefits of GCC and Clang:
-    faster compilation times; fewer compiler bugs, and support for recent C++ standards.
+    faster compilation times; fewer compiler bugs; and support for recent C++ standards.
 
 .. Note::
     The IBM xlc compiler versions 13.1.4 and 13.1.6 have been tested for compiling on
