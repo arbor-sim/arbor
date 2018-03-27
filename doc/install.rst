@@ -51,13 +51,20 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     Intel       17.0.1       Needs GCC 5 or later for standard library.
     =========== ============ ============================================
 
+.. _note_CC:
+
 .. Note::
-    The ``CC`` and ``CXX`` environment variables are used to specify the compiler executable
-    to the CMake build scripts. If these are not set, CMake will automatically choose a compiler.
-    On the system that the test below was performed, if the ``CC`` and ``CXX`` variables are
-    not set, CMake used ``/usr/bin/c++``, which was GCC version 4.8.5.
+    The ``CC`` and ``CXX`` environment variables specify which compiler executable
+    CMake should use. If these are not set, CMake will attempt to automatically choose a compiler,
+    which may be too old to compile Arbor.
+    For example, the default compiler chosen below by CMake was GCC 4.8.5 at ``/usr/bin/c++``,
+    so the ``CC`` and ``CXX`` variables were used to specify GCC 5.2.0 before calling ``cmake``.
 
     .. code-block:: bash
+
+        # on this system CMake chooses the following compiler by default
+        $ c++ --version
+        c++ (GCC) 4.8.5 20150623 (Red Hat 4.8.5-16)
 
         # check which version of GCC is available
         $ g++ --version
@@ -82,12 +89,11 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     auto-vectorizing loops, however for everything else GCC and Clang nearly always generate
     more efficient code.
 
-    The main computational loops in Arbor are based on
-    `NMODL <https://www.neuron.yale.edu/neuron/static/docs/help/neuron/nmodl/nmodl.html>`_,
-    from which Arbor generates vectorized code, which can be compiled very efficiently by GCC
-    and Clang.
-    This allows us focus on GCC and Clang for faster compilation times, fewer
-    compiler bugs to work around, and support for recent C++ standards.
+    The main computational loops in Arbor are generated from
+    `NMODL <https://www.neuron.yale.edu/neuron/static/docs/help/neuron/nmodl/nmodl.html>`_.
+    The generated code is explicitly vectorised, obviating the need for vendor compilers,
+    and we can take advantage of their benefits of GCC and Clang:
+    faster compilation times; fewer compiler bugs, and support for recent C++ standards.
 
 .. Note::
     The IBM xlc compiler versions 13.1.4 and 13.1.6 have been tested for compiling on
@@ -151,45 +157,60 @@ If you use the zip file, then don't forget to run git submodule update manually.
 Building Arbor
 ==============
 
-Before building an optimzed version for your target system, it is a good idea to build a debug version:
+Once the Arbor code has been checked out, it can be built by first running CMake to configure the build, then running make.
+
+Below is a simple workflow for: **1)** getting the source; **2)** configuring the build;
+**3)** building then; **4)** running tests.
+For more detailed build configuration options, see the `quick start <quickstart_>`_ guide.
 
 .. code-block:: bash
 
-    # clone
+    # 1) Clone
     git clone https://github.com/eth-cscs/arbor.git --recursive
     cd arbor
 
-    # make a path for building
+    # Make a path for building
     mkdir build
     cd build
 
-    # use CMake to configure the build with default options
-    cmake ..
+    # 2) Use CMake to configure the build in release mode.
+    # Release mode should be used for installing and benchmarking Arbor
+    cmake .. -DCMAKE_BUILD_TYPE=release
+
+    # 3) Build Arbor
     make -j 4
 
-    # run tests
+    # 4) Run tests
     ./test/test.exe
     ./test/global_communication.exe
 
-This sequence of commands will build Arbor in debug mode with the default options.
+This will build Arbor in release mode with the `default C++ compiler <note_CC_>`_.
+
+.. _quickstart:
 
 Quick Start: Examples
 ---------------------
 
-Below are some example of CMake configurations for Arbor. For more detail on individual CMake parameters and flags, follow links to the more detailed descriptions below.
+Below are some example of CMake configurations for Arbor. For more detail on individual
+CMake parameters and flags, follow links to the more detailed descriptions below.
 
-.. topic:: `Debug <buildtarget_>`_ mode with `assertions <debugging_>`_, `single threaded <threading_>`_ with `Clang <compilers_>`_.
+.. topic:: `Debug <buildtarget_>`_ mode with `assertions <debugging_>`_,
+           `single threaded <threading_>`_.
+
+    If you encounter problems building or running Arbor, compile with these options
+    for testing and debugging.
+
+    .. code-block:: bash
+
+        cmake .. -DARB_WITH_ASSERTIONS=ON -DARB_THREADING_MODEL=serial
+
+.. topic:: `Release <buildtarget_>`_ mode (i.e. build with optimization flags)
+           with `Clang <compilers_>`_
 
     .. code-block:: bash
 
         export CC=`which clang`
         export CXX=`which clang++`
-        cmake .. -DARB_WITH_ASSERTIONS=ON -DARB_THREADING_MODEL=serial
-
-.. topic:: `Release <buildtarget_>`_ mode (i.e. build with optimization flags)
-
-    .. code-block:: bash
-
         cmake .. -DCMAKE_BUILD_TYPE=release
 
 .. topic:: `Release <buildtarget_>`_ mode on `Haswell <vectorize_>`_ with `cthread threading <threading_>`_
@@ -276,8 +297,8 @@ By default the ``none`` target is selected, which relies on compiler auto-vector
 Multi Threading
 ---------------
 
-Arbor provides three threading back ends, one of which is selected at compile time.
-by setting the ``ARB_THREADING_MODEL`` CMake option:
+Arbor provides three possible multithreading implementations. The implementation
+is selected at compile time by setting the ``ARB_THREADING_MODEL`` CMake option:
 
 .. code-block:: bash
 
@@ -335,7 +356,9 @@ Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting t
     cmake .. -DARB_WITH_CUDA=ON
 
 .. Note::
-    Abor requires CUDA version >= 8, and targets P100 GPUs.
+    Abor requires
+    * CUDA version >= 8
+    * P100 or more recent GPU (``sm_arch60``)
 
 .. _cluster:
 
@@ -370,7 +393,9 @@ is:
     # run unit tests for global communication on 2 MPI ranks
     mpirun -n 2 ./tests/global_communication.exe
 
-The first step to building with MPI support is to set the ``CC`` and ``CXX`` environment variables to refer to the mpi compiler wrappers.
+The example above set ``CC`` and ``CXX`` environment variables to use compiler
+wrappers provided by the MPI implementation. It is possible to build without wrappers,
+and CMake will attempt to find the library and headers.
 
 .. Note::
     MPI distributions provide **compiler wrappers** for compiling MPI applications.
