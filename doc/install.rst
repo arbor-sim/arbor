@@ -92,7 +92,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     `NMODL <https://www.neuron.yale.edu/neuron/static/docs/help/neuron/nmodl/nmodl.html>`_.
     The generated code is explicitly vectorised, obviating the need for vendor compilers,
     and we can take advantage of their benefits of GCC and Clang:
-    faster compilation times; fewer compiler bugs, and support for recent C++ standards.
+    faster compilation times; fewer compiler bugs; and support for recent C++ standards.
 
 .. Note::
     The IBM xlc compiler versions 13.1.4 and 13.1.6 have been tested for compiling on
@@ -164,7 +164,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
 
 .. code-block:: bash
 
-    # 1) Clone
+    # 1) Clone.
     git clone https://github.com/eth-cscs/arbor.git --recursive
     cd arbor
 
@@ -174,13 +174,13 @@ For more detailed build configuration options, see the `quick start <quickstart_
 
     # 2) Use CMake to configure the build.
     # By default Arbor builds in release mode, i.e. with optimizations on.
-    # Release mode should be used for installing and benchmarking Arbor
+    # Release mode should be used for installing and benchmarking Arbor.
     cmake ..
 
-    # 3) Build Arbor
+    # 3) Build Arbor.
     make -j 4
 
-    # 4) Run tests
+    # 4) Run tests.
     ./test/test.exe
     ./test/global_communication.exe
 
