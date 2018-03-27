@@ -20,7 +20,7 @@ env:
     - BUILD_NAME=tbb      WITH_THREAD=tbb      WITH_DISTRIBUTED=serial
     # test mpi
     - BUILD_NAME=mpi      WITH_THREAD=cthread  WITH_DISTRIBUTED=mpi
-    - BUILD_NAME=mpitbb   WITH_THREAD=tbb  WITH_DISTRIBUTED=mpi
+    - BUILD_NAME=mpitbb   WITH_THREAD=tbb      WITH_DISTRIBUTED=mpi
 
 before_install:
     - CC=gcc-5
