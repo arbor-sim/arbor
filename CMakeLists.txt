@@ -11,8 +11,13 @@ if ("${CMAKE_VERSION}" MATCHES "^3.[0-9].")
     cmake_policy(SET CMP0023 OLD)
 endif()
 
-# save incoming CXX flags for forwarding to modcc external project
-set(SAVED_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+# Set release as the default build type.
+# Otherwise, CMake will default to debug.
+if (NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
+endif()
 
 # compilation flags
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")

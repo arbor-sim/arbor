@@ -30,7 +30,6 @@ with very few tools.
     compiler    A C++11 compiler. See `compilers <compilers_>`_.
     =========== ============================================
 
-
 .. _compilers:
 
 Compilers
@@ -173,9 +172,10 @@ For more detailed build configuration options, see the `quick start <quickstart_
     mkdir build
     cd build
 
-    # 2) Use CMake to configure the build in release mode.
+    # 2) Use CMake to configure the build.
+    # By default Arbor builds in release mode, i.e. with optimizations on.
     # Release mode should be used for installing and benchmarking Arbor
-    cmake .. -DCMAKE_BUILD_TYPE=release
+    cmake ..
 
     # 3) Build Arbor
     make -j 4
@@ -202,7 +202,9 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
     .. code-block:: bash
 
-        cmake .. -DARB_WITH_ASSERTIONS=ON -DARB_THREADING_MODEL=serial
+        cmake .. -DARB_THREADING_MODEL=serial \
+                 -DARB_WITH_ASSERTIONS=ON     \
+                 -DCMAKE_BUILD_TYPE=debug
 
 .. topic:: `Release <buildtarget_>`_ mode (i.e. build with optimization flags)
            with `Clang <compilers_>`_
@@ -211,19 +213,19 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         export CC=`which clang`
         export CXX=`which clang++`
-        cmake .. -DCMAKE_BUILD_TYPE=release
+        cmake ..
 
 .. topic:: `Release <buildtarget_>`_ mode on `Haswell <vectorize_>`_ with `cthread threading <threading_>`_
 
     .. code-block:: bash
 
-        cmake .. -DCMAKE_BUILD_TYPE=release -DARB_THREADING_MODEL=cthread -DARB_VECTORIZE_TARGET=AVX2
+        cmake .. -DARB_THREADING_MODEL=cthread -DARB_VECTORIZE_TARGET=AVX2
 
 .. topic:: `Release <buildtarget_>`_ mode on `KNL <vectorize_>`_ with `TBB threading <threading_>`_
 
     .. code-block:: bash
 
-        cmake .. -DCMAKE_BUILD_TYPE=release -DARB_THREADING_MODEL=tbb -DARB_VECTORIZE_TARGET=KNL
+        cmake .. -DARB_THREADING_MODEL=tbb -DARB_VECTORIZE_TARGET=KNL
 
 .. topic:: `Release <buildtarget_>`_ mode with `CUDA <gpu_>`_ and `AVX2 <vectorize_>`_ and `GCC 5 <compilers_>`_
 
@@ -231,18 +233,16 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         export CC=gcc-5
         export CXX=g++-5
-        cmake .. -DCMAKE_BUILD_TYPE=release -DARB_VECTORIZE_TARGET=AVX2 -DARB_WITH_CUDA=ON
-
-
+        cmake .. -DARB_VECTORIZE_TARGET=AVX2 -DARB_WITH_CUDA=ON
 
 .. _buildtarget:
 
 Build Target
 ------------
 
-By default, Arbor is built in debug mode, which is very slow.
-Arbor should be built in `release` mode, by setting the standard CMake
-``CMAKE_BUILD_TYPE`` parameter.
+By default, Arbor is built in release mode, which should be used when installing
+or benchmarking Arbor. To compile in debug mode (which in practical terms means
+with ``-g -O0`` flags), use the ``CMAKE_BUILD_TYPE`` CMake parameter.
 
 .. code-block:: bash
 
@@ -356,9 +356,9 @@ Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting t
     cmake .. -DARB_WITH_CUDA=ON
 
 .. Note::
-    Abor requires
-    * CUDA version >= 8
-    * P100 or more recent GPU (``sm_arch60``)
+    Abor requires:
+      * CUDA version >= 8
+      * P100 or more recent GPU (``-arch=sm_60``)
 
 .. _cluster:
 
