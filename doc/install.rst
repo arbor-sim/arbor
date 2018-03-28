@@ -25,8 +25,8 @@ with very few tools.
     =========== ============================================
     Tool        Notes
     =========== ============================================
-    git         To check out the code, min version 2.0.
-    cmake       To set up the build, min version 3.0.
+    Git         To check out the code, min version 2.0.
+    CMake       To set up the build, min version 3.0.
     compiler    A C++11 compiler. See `compilers <compilers_>`_.
     =========== ============================================
 
@@ -98,7 +98,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     The IBM xlc compiler versions 13.1.4 and 13.1.6 have been tested for compiling on
     IBM power 8. Arbor contains some patches to work around xlc compiler bugs,
     however we do not recommend using xlc because GCC produces faster code,
-    with lower comilation times.
+    with faster compilation times.
 
 Optional Requirements
 ---------------------
@@ -131,16 +131,16 @@ the `Github repository <https://github.com/eth-cscs/arbor>`_:
 
 .. code-block:: bash
 
-    git clone https://github.com/eth-cscs/arbor.git --recursive
+    git clone https://github.com/eth-cscs/arbor.git --recurse-submodules
 
-We recommend using a recursive checkout, because Arbor uses git submodules for some
+We recommend using a recursive checkout, because Arbor uses Git submodules for some
 of its library dependencies.
 The CMake configuration attempts to detect if a required submodule is available, and
 will print a helpful warning
 or error message if not, but it is up to the user to ensure that all required
 submodules are downloaded.
 
-The git submodules can be updated, or initialized in a project that didn't use a
+The Git submodules can be updated, or initialized in a project that didn't use a
 recursive checkout:
 
 .. code-block:: bash
@@ -149,7 +149,7 @@ recursive checkout:
 
 You can also point your browser to Arbor's
 `Github page <https://github.com/eth-cscs/arbor>`_ and download a zip file.
-If you use the zip file, then don't forget to run git submodule update manually.
+If you use the zip file, then don't forget to run Git submodule update manually.
 
 .. _building:
 
@@ -165,7 +165,7 @@ For more detailed build configuration options, see the `quick start <quickstart_
 .. code-block:: bash
 
     # 1) Clone.
-    git clone https://github.com/eth-cscs/arbor.git --recursive
+    git clone https://github.com/eth-cscs/arbor.git --recurse-submodules
     cd arbor
 
     # Make a path for building
@@ -295,7 +295,7 @@ By default the ``none`` target is selected, which relies on compiler auto-vector
 .. _threading:
 
 Multithreading
----------------
+--------------
 
 Arbor provides three possible multithreading implementations. The implementation
 is selected at compile time by setting the ``ARB_THREADING_MODEL`` CMake option:
@@ -315,7 +315,7 @@ which is implemented in the Arbor source code.
     =========== ============== =================================================
     **cthread** Arbor          Default. Multithreaded, based on C++11 ``std::thread``.
     **serial**  Arbor          Single threaded.
-    **tbb**     git submodule  `Intel TBB <https://www.threadingbuildingblocks.org/>`_.
+    **tbb**     Git submodule  `Intel TBB <https://www.threadingbuildingblocks.org/>`_.
                                Recommended when using many threads.
     =========== ============== =================================================
 
@@ -332,9 +332,9 @@ which is implemented in the Arbor source code.
 
 
 .. Note::
-    If the TBB back end is selected, Arbor's CMake uses a git submodule of the TBB
+    If the TBB back end is selected, Arbor's CMake uses a Git submodule of the TBB
     repository to build and link a static version of the the TBB library. If you get
-    an error stating that the TBB submodule is not available, you must update the git
+    an error stating that the TBB submodule is not available, you must update the Git
     submodules:
 
     .. code-block:: bash
@@ -394,8 +394,9 @@ is:
     mpirun -n 2 ./tests/global_communication.exe
 
 The example above set ``CC`` and ``CXX`` environment variables to use compiler
-wrappers provided by the MPI implementation. It is possible to build without wrappers,
-and CMake will attempt to find the library and headers.
+wrappers provided by the MPI implementation. It is recommended to use compiler
+wrappers for MPI, unless you know what you are doing and have a specific use
+case or issue to work around.
 
 .. Note::
     MPI distributions provide **compiler wrappers** for compiling MPI applications.
@@ -648,17 +649,17 @@ CUDA introduced in CMake 3.9.
 CMake Git Submodule Warnings
 ----------------------------
 
-When running CMake, warnings like the following indicate that the git submodules
+When running CMake, warnings like the following indicate that the Git submodules
 need to be `updated <downloading_>`_.
 
 .. code-block:: none
 
-    The git submodule for rtdtheme is not available.
+    The Git submodule for rtdtheme is not available.
     To check out all submodules use the following commands:
         git submodule init
         git submodule update
     Or download submodules recursively when checking out:
-        git clone --recursive https://github.com/eth-cscs/arbor.git
+        git clone --recurse-submodules https://github.com/eth-cscs/arbor.git
 
 
 Wrong Headers for Intel Compiler

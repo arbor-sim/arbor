@@ -12,38 +12,50 @@ find out information on cells, such as:
   * a description of a cell;
   * incoming network connections on a cell.
 
-A recipe is derived from ``arb::recipe`` abstract base class in ``src/recipe.hpp`` file.
+.. cpp:namespace:: arb
 
-.. container:: api-code
+.. cpp:class:: recipe
 
-    .. code-block:: cpp
+    A recipe is a description of a model, describing the cells and network, without any
+    information about how the model is to be represented or executed.
 
-        virtual cell_size_type num_cells() const = 0;
+    All recipes derive from :cpp:type:`arb::recipe`, and abstract base class in ``src/recipe.hpp``.
 
-    The number of cells in the model.
+    .. Warning::
+        All member functions must be **thread safe**, because the recipe is used by
+        multi-threaded code.
 
-.. container:: api-code
+    **Required Member Functions**
 
-    .. code-block:: cpp
+    The following member functions are required:
 
-        virtual cell_kind get_cell_kind(cell_gid_type gid) const = 0;
+    .. cpp:function:: virtual cell_size_type num_cells() const
 
-    The kind of the cell with ``gid``. ``arb::cell_kind`` is an enum
-    with possible values:
+        The number of cells in the model.
 
-.. container:: api-code
+    .. cpp:function:: virtual cell_kind get_cell_kind(cell_gid_type gid) const
 
-    .. code-block:: cpp
+        The kind of the cell with :cpp:var:`gid`. :cpp:type:`arb::cell_kind` is an enum
+        with possible values:
 
-        virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0;
+    .. cpp:function:: virtual util::unique_any get_cell_description(cell_gid_type gid) const
 
-    A description of the cell with ``gid``.
-    The type used to "describe" a cell depends on the kind of the cell.
-    The interface for querying the kind and description of a cell are
-    seperate to optimize model building: cell descriptions can be expensive
-    to generate, e.g. a description of the morphology and ion channels plus
-    synapses of a multi-compartment cell.
+        A description of the cell with :cpp:var:`gid`.
+        The type used to *describe* a cell depends on the kind of the cell.
+        The interface for querying the kind and description of a cell are
+        seperate to optimize model building: cell descriptions can be expensive
+        to generate, e.g. a description of the morphology and ion channels plus
+        synapses of a multi-compartment cell.
 
+    **Optional Member Functions**
+
+    .. cpp:function:: virtual foo() const
+
+        description of foo
+
+    .. cpp:function:: virtual foo() const
+
+        description of foo
 
 .. code-block:: C++
 
