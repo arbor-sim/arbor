@@ -49,7 +49,6 @@ Some key features include:
 
 .. toctree::
    :caption: C++ API:
-   :glob:
 
    cpp_intro
    cpp_common
