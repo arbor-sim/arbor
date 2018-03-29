@@ -2,7 +2,8 @@
 
 #include <vector>
 
-#include <model.hpp>
+#include <simulation.hpp>
+#include <schedule.hpp>
 #include <sampling.hpp>
 #include <simple_sampler.hpp>
 #include <util/filter.hpp>
@@ -72,7 +73,7 @@ public:
         }
     }
 
-    void run(model& m, Param p, float sample_dt, float t_end, float dt, const std::vector<float>& excl) {
+    void run(simulation& sim, Param p, float sample_dt, float t_end, float dt, const std::vector<float>& excl) {
         struct sampler_state {
             sampler_association_handle h; // Keep these for clean up at end.
             const char* label;
@@ -88,10 +89,10 @@ public:
             auto& entry = samplers.back();
 
             entry.label = pl.label;
-            entry.h = m.add_sampler(one_probe(pl.probe_id), regular_schedule(sample_dt), simple_sampler<double>(entry.trace));
+            entry.h = sim.add_sampler(one_probe(pl.probe_id), regular_schedule(sample_dt), simple_sampler<double>(entry.trace));
         }
 
-        m.run(t_end, dt);
+        sim.run(t_end, dt);
 
         for (auto& entry: samplers) {
             std::string label = entry.label;
@@ -114,7 +115,7 @@ public:
 
         // Remove added samplers.
         for (const auto& entry: samplers) {
-            m.remove_sampler(entry.h);
+            sim.remove_sampler(entry.h);
         }
     }
 

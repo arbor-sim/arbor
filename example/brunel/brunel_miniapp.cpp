@@ -1,31 +1,32 @@
 #include <cmath>
 #include <exception>
-#include <event_generator.hpp>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <memory>
+#include <set>
 #include <vector>
-#include <json/json.hpp>
+
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
+#include <event_generator.hpp>
+#include <hardware/gpu.hpp>
+#include <hardware/node_info.hpp>
 #include <io/exporter_spike_file.hpp>
+#include <json/json.hpp>
 #include <lif_cell_description.hpp>
-#include <model.hpp>
-#include "partitioner.hpp"
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
 #include <recipe.hpp>
-#include <set>
+#include <simulation.hpp>
 #include <threading/threading.hpp>
 #include <util/config.hpp>
 #include <util/debug.hpp>
 #include <util/ioutil.hpp>
 #include <util/nop.hpp>
-#include <vector>
+
+#include "partitioner.hpp"
 #include "io.hpp"
-#include <hardware/gpu.hpp>
-#include <hardware/node_info.hpp>
 
 using namespace arb;
 
@@ -244,7 +245,7 @@ int main(int argc, char** argv) {
         };
 
         auto decomp = decompose(recipe, group_size);
-        model m(recipe, decomp);
+        simulation sim(recipe, decomp);
 
         // Initialize the spike exporting interface
         std::unique_ptr<file_export_type> file_exporter;
@@ -252,7 +253,7 @@ int main(int argc, char** argv) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
 
-                m.set_local_spike_callback(
+                sim.set_local_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
                     }
@@ -261,7 +262,7 @@ int main(int argc, char** argv) {
             else if(communication::global_policy::id()==0) {
                 file_exporter = register_exporter(options);
 
-                m.set_global_spike_callback(
+                sim.set_global_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
                     }
@@ -270,14 +271,14 @@ int main(int argc, char** argv) {
         }
         meters.checkpoint("model-init");
 
-        // run model
-        m.run(options.tfinal, options.dt);
+        // run simulation
+        sim.run(options.tfinal, options.dt);
 
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
         std::cout << util::profiler_summary() << "\n";
-        std::cout << "\nThere were " << m.num_spikes() << " spikes\n";
+        std::cout << "\nThere were " << sim.num_spikes() << " spikes\n";
 
         auto report = util::make_meter_report(meters);
         std::cout << report;

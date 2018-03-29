@@ -4,7 +4,7 @@
 #include <hardware/gpu.hpp>
 #include <json/json.hpp>
 #include <load_balance.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
 #include <util/path.hpp>
@@ -73,11 +73,11 @@ void run_synapse_test(
         rec.add_probe(0, 0, cell_probe_address{{1, 1.0}, cell_probe_address::membrane_voltage});
 
         auto decomp = partition_load_balance(rec, nd);
-        model m(rec, decomp);
+        simulation sim(rec, decomp);
 
-        m.inject_events(synthetic_events);
+        sim.inject_events(synthetic_events);
 
-        runner.run(m, ncomp, sample_dt, t_end, dt, exclude);
+        runner.run(sim, ncomp, sample_dt, t_end, dt, exclude);
     }
     runner.report();
     runner.assert_all_convergence();

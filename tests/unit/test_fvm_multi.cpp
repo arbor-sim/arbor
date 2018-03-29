@@ -8,7 +8,7 @@
 #include <fvm_multicell.hpp>
 #include <load_balance.hpp>
 #include <math.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <sampler_map.hpp>
 #include <sampling.hpp>
@@ -584,7 +584,7 @@ TEST(fvm_multi, specialized_mechs) {
         float times[] = {10.f, 20.f};
 
         auto decomp = partition_load_balance(rec, hw::node_info{1u, 0u});
-        model sim(rec, decomp);
+        simulation sim(rec, decomp);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);
 

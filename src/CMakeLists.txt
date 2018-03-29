@@ -11,7 +11,7 @@ set(BASE_SOURCES
     hardware/node_info.cpp
     hardware/power.cpp
     merge_events.cpp
-    model.cpp
+    simulation.cpp
     morphology.cpp
     partition_load_balance.cpp
     profiling/memory_meter.cpp
