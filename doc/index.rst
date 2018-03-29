@@ -55,7 +55,6 @@ Some key features include:
 
    library
    simd_api
-   simd_maths
    profiler
    sampling_api
 
