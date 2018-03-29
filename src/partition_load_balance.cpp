@@ -2,6 +2,7 @@
 #include <domain_decomposition.hpp>
 #include <hardware/node_info.hpp>
 #include <recipe.hpp>
+#include <util/enumhash.hpp>
 
 namespace arb {
 
@@ -39,7 +40,8 @@ domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd)
 
     // Local load balance
 
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
+    std::unordered_map<cell_kind, std::vector<cell_gid_type>, arb::util::enum_hash>
+        kind_lists;
     for (auto gid: make_span(gid_part[domain_id])) {
         kind_lists[rec.get_cell_kind(gid)].push_back(gid);
     }
