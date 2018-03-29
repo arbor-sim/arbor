@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 # project info
-project(cell_algorithms)
+project(arbor)
 enable_language(CXX)
 
 # Hide warnings about mixing old and new signatures for target_link_libraries.
@@ -139,7 +139,7 @@ if(ARB_WITH_CUDA)
     # and device compiler when targetting GPU.
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_CUDA)
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_GPU)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60) # minimum target P100 GPUs
 
     add_definitions(-DARB_HAVE_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
@@ -212,6 +212,9 @@ endif()
 #----------------------------------------------------------
 set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {none,KNL,AVX2,AVX512}")
 set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
+
+# Note: this option conflates modcc code generation options and
+# the target architecture for compilation of Arbor. TODO: fix!
 
 if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL} -DSIMD_KNL")

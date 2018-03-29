@@ -59,6 +59,8 @@ Some key features include:
    :caption: Developers:
 
    library
+   simd_api
+   simd_maths
    profiler
    sampling_api
 

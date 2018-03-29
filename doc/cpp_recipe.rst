@@ -10,7 +10,7 @@ for information on cells, such as:
   * a description of a cell;
   * incoming network connections on a cell.
 
-The :cpp:class:`recipe` class documentation is below.
+The :cpp:class:`arb::recipe` class documentation is below.
 
 Why Recipes?
 --------------

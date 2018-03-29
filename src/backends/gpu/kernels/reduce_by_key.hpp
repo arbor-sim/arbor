@@ -8,6 +8,43 @@ namespace gpu {
 
 namespace impl{
 
+constexpr unsigned mask_all = 0xFFFFFFFF;
+
+// Wrappers around the CUDA warp intrinsics used in this file.
+// CUDA 9 replaced the warp intrinsics with _sync variants, and
+// depricated the old symbols.
+// These wrappers can be removed CUDA 9 becomnse the minimum
+// version used by Arbor.
+
+template <typename T>
+static __device__ __inline__
+T arb_shfl(T x, unsigned lane) {
+#if __CUDACC_VER_MAJOR__ < 9
+    return __shfl(x, lane);
+#else
+    return __shfl_sync(mask_all, x, lane);
+#endif
+}
+
+template <typename T>
+static __device__ __inline__
+unsigned arb_shfl_up(T x, unsigned delta) {
+#if __CUDACC_VER_MAJOR__ < 9
+    return __shfl_up(x, delta);
+#else
+    return __shfl_up_sync(mask_all, x, delta);
+#endif
+}
+
+static __device__ __inline__
+unsigned arb_ballot(int pred) {
+#if __CUDACC_VER_MAJOR__ < 9
+    return __ballot(pred);
+#else
+    return __ballot_sync(mask_all, pred);
+#endif
+}
+
 // return the power of 2 that is less than or equal to i
 __device__ __inline__
 unsigned rounddown_power_of_2(std::uint32_t i) {
@@ -22,6 +59,9 @@ unsigned rounddown_power_of_2(std::uint32_t i) {
 // with two 32 bit shuffles.
 // get_from_lane is a wrapper around __shfl() for both single and double
 // precision.
+// TODO: CUDA 9 provides a double precision version of __shfl that
+// implements this hack. When we make CUDA 9 the minimum version, use
+// the CUDA implementation instead.
 
 __device__ __inline__
 double get_from_lane(double x, unsigned lane) {
@@ -31,8 +71,8 @@ double get_from_lane(double x, unsigned lane) {
     asm volatile( "mov.b64 { %0, %1 }, %2;" : "=r"(lo), "=r"(hi) : "d"(x) );
 
     // shuffle the two 32b registers.
-    lo = __shfl(lo, lane);
-    hi = __shfl(hi, lane);
+    lo = arb_shfl(lo, lane);
+    hi = arb_shfl(hi, lane);
 
     // return the recombined 64 bit value
     return __hiloint2double(hi, lo);
@@ -40,7 +80,7 @@ double get_from_lane(double x, unsigned lane) {
 
 __device__ __inline__
 float get_from_lane(float value, unsigned lane) {
-    return __shfl(value, lane);
+    return arb_shfl(value, lane);
 }
 
 // run_length_type Stores information about a run length.
@@ -82,14 +122,14 @@ struct run_length_type {
         lane_id = threadIdx.x%threads_per_warp();
 
         // determine if this thread is the root
-        int left_idx  = __shfl_up(idx, 1);
+        int left_idx  = arb_shfl_up(idx, 1);
         int is_root = 1;
         if(lane_id>0) {
             is_root = (left_idx != idx);
         }
 
         // determine the range this thread contributes to
-        unsigned roots = __ballot(is_root);
+        unsigned roots = arb_ballot(is_root);
 
         right = right_limit(roots, lane_id+1);
         left  = threads_per_warp()-1-right_limit(__brev(roots), threads_per_warp()-1-lane_id);

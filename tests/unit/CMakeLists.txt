@@ -61,6 +61,7 @@ set(TEST_SOURCES
     test_nop.cpp
     test_optional.cpp
     test_mechinfo.cpp
+    test_padded.cpp
     test_partition.cpp
     test_path.cpp
     test_point.cpp
@@ -70,6 +71,7 @@ set(TEST_SOURCES
     test_segment.cpp
     test_schedule.cpp
     test_rss_cell.cpp
+    test_simd.cpp
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp
