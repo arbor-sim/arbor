@@ -8,4 +8,4 @@ implement models.
 Arbor makes a distinction between the **description** of a model, and the
 **execution** of a model.
 
-A :cpp:type:`arb::recipe` describes a model, and ...
+A :cpp:type:`arb::recipe` describes a model.
