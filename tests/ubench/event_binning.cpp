@@ -4,6 +4,7 @@
 // Keep this test as a prototype for testing, esp. when looking into binning.
 
 #include <random>
+#include <unordered_map>
 #include <vector>
 
 #include <event_queue.hpp>

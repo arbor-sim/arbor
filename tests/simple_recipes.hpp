@@ -26,14 +26,6 @@ public:
         return probes_.count(i)? probes_.at(i).size(): 0;
     }
 
-    std::vector<event_generator_ptr> event_generators(cell_gid_type) const override {
-        return {};
-    }
-
-    std::vector<cell_connection> connections_on(cell_gid_type) const override {
-        return {};
-    }
-
     virtual probe_info get_probe(cell_member_type probe_id) const override {
         return probes_.at(probe_id.gid).at(probe_id.index);
     }
@@ -83,9 +75,6 @@ public:
     cell_size_type num_cells() const override { return n_; }
     cell_kind get_cell_kind(cell_gid_type) const override { return Kind; }
 
-    cell_size_type num_sources(cell_gid_type) const override { return 0; }
-    cell_size_type num_targets(cell_gid_type) const override { return 0; }
-
     util::unique_any get_cell_description(cell_gid_type) const override {
         return util::make_unique_any<Description>(desc_);
     }
@@ -105,13 +94,13 @@ public:
     template <typename Seq>
     explicit cable1d_recipe(const Seq& cells) {
         for (const auto& c: cells) {
-            cells_.emplace_back(clone_cell, c);
+            cells_.emplace_back(c);
         }
     }
 
     explicit cable1d_recipe(const cell& c) {
         cells_.reserve(1);
-        cells_.emplace_back(clone_cell, c);
+        cells_.emplace_back(c);
     }
 
     cell_size_type num_cells() const override { return cells_.size(); }
@@ -126,7 +115,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        return util::make_unique_any<cell>(clone_cell, cells_[i]);
+        return util::make_unique_any<cell>(cells_[i]);
     }
 
 protected:

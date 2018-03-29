@@ -52,6 +52,7 @@ set(TEST_SOURCES
     test_fvm_lowered.cpp
     test_mc_cell_group.cpp
     test_lexcmp.cpp
+    test_lif_cell_group.cpp
     test_maputil.cpp
     test_mask_stream.cpp
     test_math.cpp
@@ -63,6 +64,7 @@ set(TEST_SOURCES
     test_nop.cpp
     test_optional.cpp
     test_mechinfo.cpp
+    test_padded.cpp
     test_partition.cpp
     test_path.cpp
     test_point.cpp
@@ -71,6 +73,7 @@ set(TEST_SOURCES
     test_segment.cpp
     test_schedule.cpp
     test_rss_cell.cpp
+    test_simd.cpp
     test_span.cpp
     test_spikes.cpp
     test_spike_store.cpp

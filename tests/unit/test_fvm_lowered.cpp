@@ -5,9 +5,11 @@
 #include <algorithms.hpp>
 #include <backends/fvm_types.hpp>
 #include <backends/multicore/fvm.hpp>
+#include <backends/multicore/mechanism.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_lowered_cell.hpp>
+#include <fvm_lowered_cell_impl.hpp>
 #include <load_balance.hpp>
 #include <math.hpp>
 #include <model.hpp>
@@ -28,12 +30,12 @@
 using namespace testing::string_literals;
 
 using backend = arb::multicore::backend;
-using fvm_cell = arb::fvm_lowered_cell<backend>;
+using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
 // Access to fvm_cell private data:
 
 using shared_state = backend::shared_state;
-ACCESS_BIND(shared_state fvm_cell::*, private_state_ptr, &fvm_cell::state_)
+ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, private_state_ptr, &fvm_cell::state_)
 
 using matrix = arb::matrix<arb::multicore::backend>;
 ACCESS_BIND(matrix fvm_cell::*, private_matrix_ptr, &fvm_cell::matrix_)
@@ -52,7 +54,7 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, const std::string& name) {
 // Access to mechanism-internal data:
 
 using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
-using mechanism_field_table = std::vector<arb::util::xtuple<const char*, backend::view*, arb::fvm_value_type>>;
+using mechanism_field_table = std::vector<arb::util::xtuple<const char*, arb::fvm_value_type**, arb::fvm_value_type>>;
 using mechanism_ion_index_table = std::vector<std::pair<arb::ionKind, backend::iarray*>>;
 
 ACCESS_BIND(\
@@ -105,11 +107,11 @@ TEST(fvm_lowered, matrix_init)
     auto n = J.size();
     auto& mat = J.state_;
 
-    EXPECT_FALSE(util::any_of(mat.u(1, n), isnan_));
+    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan_));
     EXPECT_FALSE(util::any_of(mat.d, isnan_));
     EXPECT_FALSE(util::any_of(J.solution(), isnan_));
 
-    EXPECT_FALSE(util::any_of(mat.u(1, n), ispos));
+    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), ispos));
     EXPECT_FALSE(util::any_of(mat.d, isneg));
 }
 
@@ -204,8 +206,9 @@ TEST(fvm_lowered, stimulus) {
     ASSERT_TRUE(stim);
     EXPECT_EQ(2u, stim->size());
 
-    auto& J = (fvcell.*private_state_ptr).current_density;
-    auto& T = (fvcell.*private_state_ptr).time;
+    auto& state = *(fvcell.*private_state_ptr).get();
+    auto& J = state.current_density;
+    auto& T = state.time;
 
     // Test that no current is injected at t=0.
     memory::fill(J, 0.);
@@ -395,16 +398,17 @@ TEST(fvm_lowered, weighted_write_ion) {
     fvm_cell fvcell;
     fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
 
-    auto& ion = (fvcell.*private_state_ptr).ion_data.at(ionKind::ca);
+    auto& state = *(fvcell.*private_state_ptr).get();
+    auto& ion = state.ion_data.at(ionKind::ca);
     ion.default_int_concentration = con_int;
     ion.default_ext_concentration = con_ext;
     ion.init_concentration();
 
-    std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index());
+    std::vector<unsigned> ion_nodes = util::assign_from(ion.node_index_);
     std::vector<unsigned> expected_ion_nodes = {1, 2, 3};
     EXPECT_EQ(expected_ion_nodes, ion_nodes);
 
-    std::vector<double> ion_iconc_weights = util::assign_from(ion.internal_concentration_weights());
+    std::vector<double> ion_iconc_weights = util::assign_from(ion.weight_Xi_);
     std::vector<double> expected_ion_iconc_weights = {0.75, 1., 0};
     EXPECT_EQ(expected_ion_iconc_weights, ion_iconc_weights);
 
@@ -430,7 +434,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     ion.init_concentration();
     test_ca->write_ions();
-    std::vector<double> ion_iconc = util::assign_from(ion.internal_concentration());
+    std::vector<double> ion_iconc = util::assign_from(ion.Xi_);
     EXPECT_EQ(expected_iconc, ion_iconc);
 }
 

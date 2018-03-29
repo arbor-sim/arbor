@@ -13,7 +13,7 @@ namespace arb {
 // delivered after the current epoch ends. It merges events from multiple
 // sources:
 //  lc : the list of currently enqueued events
-//  events : an unsorted list of events from the communicator
+//  pending_events : an unsorted list of events from the communicator
 //  generators : a set of event_generators
 //
 // The time intervales are illustrated below, along with the range of times
@@ -26,11 +26,11 @@ namespace arb {
 //   |------|------|
 //
 //   [----------------------] lc
-//          [---------------] events
+//          [---------------] pending_events
 //          [------) generators
 //
 // The output list, stored in lf, will contain all the following:
-//  * all events in events list
+//  * all events in pending_events
 //  * events in lc with time >= t₀
 //  * events from each generator with time < t₁
 // All events in lc that are to be delivered before t₀ are discared, along with
@@ -39,8 +39,8 @@ namespace arb {
 void merge_events(time_type t0,
                   time_type t1,
                   const pse_vector& lc,
-                  pse_vector& events,
-                  std::vector<event_generator_ptr>& generators,
+                  pse_vector& pending_events,
+                  std::vector<event_generator>& generators,
                   pse_vector& lf);
 
 namespace impl {
@@ -51,7 +51,7 @@ namespace impl {
         using key_val = std::pair<unsigned, postsynaptic_spike_event>;
 
     public:
-        tourney_tree(std::vector<event_generator_ptr>& input);
+        tourney_tree(std::vector<event_generator>& input);
         bool empty() const;
         bool empty(time_type t) const;
         postsynaptic_spike_event head() const;
@@ -73,7 +73,7 @@ namespace impl {
         unsigned next_power_2(unsigned x) const;
 
         std::vector<key_val> heap_;
-        const std::vector<event_generator_ptr>& input_;
+        std::vector<event_generator>& input_;
         unsigned leaves_;
         unsigned nodes_;
         unsigned n_lanes_;

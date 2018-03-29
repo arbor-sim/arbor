@@ -8,7 +8,6 @@
 #include "blocks.hpp"
 #include "error.hpp"
 #include "expression.hpp"
-#include "writeback.hpp"
 
 // wrapper around a .mod file
 class Module: public error_stack {
@@ -92,10 +91,6 @@ public:
     // Perform semantic analysis pass.
     bool semantic();
 
-    const std::vector<WriteBack>& write_backs() const {
-        return write_backs_;
-    }
-
     auto find_ion(ionKind k) -> decltype(ion_deps().begin()) {
         auto& ions = neuron_block().ions;
         return std::find_if(
@@ -121,9 +116,6 @@ private:
     UnitsBlock units_block_;
     ParameterBlock parameter_block_;
     AssignedBlock assigned_block_;
-
-    // Ion write info
-    std::vector<WriteBack> write_backs_;
 
     // AST storage.
     std::vector<symbol_ptr> callables_;

@@ -16,7 +16,7 @@
 using namespace arb;
 
 using global_policy = communication::global_policy;
-using timer = util::timer_type;
+using timer = threading::timer;
 
 int main(int argc, char** argv) {
 

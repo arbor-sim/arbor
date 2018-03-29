@@ -16,6 +16,10 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "XL")
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    set(CXXOPT_KNL "-march=knl")
+    set(CXXOPT_AVX2 "-mavx2 -mfma")
+    set(CXXOPT_AVX512 "-mavx512f -mavx512cd")
+
     # Disable 'missing-braces' warning: this will inappropriately
     # flag initializations such as
     #     std::array<int,3> a={1,2,3};
@@ -36,7 +40,7 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     # Compiler flags for generating KNL-specific AVX512 instructions
     # supported in gcc 4.9.x and later.
     set(CXXOPT_KNL "-march=knl")
-    set(CXXOPT_AVX2 "-mavx2")
+    set(CXXOPT_AVX2 "-mavx2 -mfma")
     set(CXXOPT_AVX512 "-mavx512f -mavx512cd")
 
     # Disable 'maybe-uninitialized' warning: this will be raised

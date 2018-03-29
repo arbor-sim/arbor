@@ -4,12 +4,13 @@
 
 #include "test.hpp"
 
-#include "cexpr_emit.hpp"
-#include "cprinter.hpp"
-#include "cudaprinter.hpp"
+#include "printer/cexpr_emit.hpp"
+#include "printer/cprinter.hpp"
 #include "expression.hpp"
 #include "symdiff.hpp"
-#include "textbuffer.hpp"
+
+// Note: CUDA printer disabled until new implementation finished.
+//#include "printer/cudaprinter.hpp"
 
 struct testcase {
     const char* source;
@@ -87,14 +88,16 @@ TEST(scalar_printer, statement) {
 
         {
             SCOPED_TRACE("CPrinter");
-            auto printer = make_unique<CPrinter>();
+            std::stringstream out;
+            auto printer = make_unique<CPrinter>(out);
             e->accept(printer.get());
-            std::string text = printer->text();
+            std::string text = out.str();
 
             verbose_print(e->to_string(), " :--: ", text);
             EXPECT_EQ(strip(tc.expected), strip(text));
         }
 
+#if 0
         {
             SCOPED_TRACE("CUDAPrinter");
             TextBuffer buf;
@@ -107,6 +110,7 @@ TEST(scalar_printer, statement) {
             verbose_print(e->to_string(), " :--: ", text);
             EXPECT_EQ(strip(tc.expected), strip(text));
         }
+#endif
     }
 }
 
@@ -115,8 +119,8 @@ TEST(CPrinter, proc_body) {
         {
             "PROCEDURE trates(v) {\n"
             "    LOCAL k\n"
-            "    minf=1-1/(1+exp((v-k)/k))\n"
-            "    hinf=1/(1+exp((v-k)/k))\n"
+            "    minf = 1-1/(1+exp((v-k)/k))\n"
+            "    hinf = 1/(1+exp((v-k)/k))\n"
             "    mtau = 0.5\n"
             "    htau = 1500\n"
             "}"
@@ -145,12 +149,14 @@ TEST(CPrinter, proc_body) {
         auto& proc = (globals[procname] = symbol_ptr(e.release()->is_symbol()));
 
         proc->semantic(globals);
-        auto v = make_unique<CPrinter>();
+        std::stringstream out;
+        auto v = make_unique<CPrinter>(out);
         proc->is_procedure()->body()->accept(v.get());
+        std::string text = out.str();
 
         verbose_print(proc->is_procedure()->body()->to_string());
-        verbose_print(" :--: ", v->text());
+        verbose_print(" :--: ", text);
 
-        EXPECT_EQ(strip(tc.expected), strip(v->text()));
+        EXPECT_EQ(strip(tc.expected), strip(text));
     }
 }

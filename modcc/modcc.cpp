@@ -1,19 +1,20 @@
 #include <exception>
 #include <iostream>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 
 #include <tclap/CmdLine.h>
 
-#include "cprinter.hpp"
-#include "cprinter2.hpp"
-#include "cudaprinter.hpp"
-#include "infoprinter.hpp"
+#include "printer/cprinter.hpp"
+//#include "printer/cudaprinter.hpp"
+#include "printer/infoprinter.hpp"
+#include "printer/simd.hpp"
+
 #include "modccutil.hpp"
 #include "module.hpp"
 #include "parser.hpp"
 #include "perfvisitor.hpp"
-#include "simd_printer.hpp"
 
 #include "io/bulkio.hpp"
 
@@ -36,19 +37,19 @@ int report_ice(const std::string& message) {
 enum class targetKind {
     cpu,
     gpu,
-//    cpuwip
 };
 
 std::unordered_map<std::string, targetKind> targetKindMap = {
     {"cpu", targetKind::cpu},
     {"gpu", targetKind::gpu},
-//    {"cpuwip", targetKind::cpuwip}
 };
 
 std::unordered_map<std::string, simdKind> simdKindMap = {
     {"none", simdKind::none},
+    {"avx",  simdKind::avx},
     {"avx2", simdKind::avx2},
-    {"avx512", simdKind::avx512}
+    {"avx512", simdKind::avx512},
+    {"native", simdKind::native}
 };
 
 template <typename Map, typename V>
@@ -215,14 +216,18 @@ int main(int argc, char **argv) {
                 // TODO: make cudaprinter work with new internal mechanism API
                 outfile += "_gpu";
                 {
+#if 0
                     CUDAPrinter printer(m);
                     io::write_all(printer.interface_text(), outfile+".hpp");
                     io::write_all(printer.impl_header_text(), outfile+"_impl.hpp");
                     io::write_all(printer.impl_text(), outfile+"_impl.cu");
+#else
+                    throw std::logic_error("CUDA printer temporariliy disabled");
+#endif
                 }
                 break;
             case targetKind::cpu:
-                // TODO: merge in SIMD code
+                // SIMD support TODO
                 outfile += "_cpu.cpp";
                 io::write_all(emit_cpp_source(m, "arb"), outfile);
                 break;

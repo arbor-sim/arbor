@@ -5,6 +5,7 @@
 
 #include "cexpr_emit.hpp"
 #include "error.hpp"
+#include "lexer.hpp"
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
 

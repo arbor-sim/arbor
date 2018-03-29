@@ -4,6 +4,8 @@
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
+#include "multicore_common.hpp"
+
 namespace arb {
 namespace multicore {
 
@@ -13,9 +15,10 @@ public:
     using value_type = T;
     using size_type = I;
 
-    using array = memory::host_vector<value_type>;
-    using const_view = typename array::const_view_type;
-    using iarray = memory::host_vector<size_type>;
+    using array = padded_vector<value_type>;
+    using const_view = const array&;
+
+    using iarray = padded_vector<size_type>;
     iarray parent_index;
     iarray cell_cv_divs;
 
@@ -37,12 +40,12 @@ public:
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
                  const std::vector<value_type>& area):
-        parent_index(memory::make_const_view(p)),
-        cell_cv_divs(memory::make_const_view(cell_cv_divs)),
+        parent_index(p.begin(), p.end()),
+        cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0), rhs(size()),
-        cv_capacitance(memory::make_const_view(cap)),
-        face_conductance(memory::make_const_view(cond)),
-        cv_area(memory::make_const_view(area))
+        cv_capacitance(cap.begin(), cap.end()),
+        face_conductance(cond.begin(), cond.end()),
+        cv_area(area.begin(), area.end())
     {
         EXPECTS(cap.size() == size());
         EXPECTS(cond.size() == size());

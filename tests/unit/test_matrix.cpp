@@ -6,6 +6,7 @@
 #include <math.hpp>
 #include <matrix.hpp>
 #include <backends/multicore/fvm.hpp>
+#include <util/rangeutil.hpp>
 #include <util/span.hpp>
 
 #include "common.hpp"
@@ -35,7 +36,7 @@ TEST(matrix, construct_from_parent_only)
 TEST(matrix, solve_host)
 {
     using util::make_span;
-    using memory::fill;
+    using util::fill;
 
     // trivial case : 1x1 matrix
     {
@@ -87,7 +88,7 @@ TEST(matrix, zero_diagonal)
     // elements should be ignored).
     // These submatrices should leave the rhs as-is when solved.
 
-    using memory::make_const_view;
+    using util::assign;
 
     // Three matrices, sizes 3, 3 and 2, with no branching.
     std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
@@ -98,9 +99,9 @@ TEST(matrix, zero_diagonal)
     EXPECT_EQ(3u, m.num_cells());
 
     auto& A = m.state_;
-    A.d =   make_const_view(vvec({2,  3,  2, 0,  0,  4,  5}));
-    A.u =   make_const_view(vvec({0, -1, -1, 0, -1,  0, -2}));
-    A.rhs = make_const_view(vvec({3,  5,  7, 7,  8, 16, 32}));
+    assign(A.d,   vvec({2,  3,  2, 0,  0,  4,  5}));
+    assign(A.u,   vvec({0, -1, -1, 0, -1,  0, -2}));
+    assign(A.rhs, vvec({3,  5,  7, 7,  8, 16, 32}));
 
     // Expected solution:
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
@@ -117,7 +118,7 @@ TEST(matrix, zero_diagonal_assembled)
     // test case from CV data.
 
     using util::assign;
-    using memory::make_view;
+    using array = matrix_type::array;
 
     // Combined matrix may have zero-blocks, corresponding to a zero dt.
     // Zero-blocks are indicated by zero value in the diagonal (the off-diagonal
@@ -132,15 +133,15 @@ TEST(matrix, zero_diagonal_assembled)
     vvec g = {0, 1, 1, 0, 1, 0, 2};
 
     // dt of 1e-3.
-    vvec dt(3, 1.0e-3);
+    array dt(3, 1.0e-3);
 
     // Capacitances.
     vvec Cm = {1, 1, 1, 1, 1, 2, 3};
 
     // Intial voltage of zero; currents alone determine rhs.
-    vvec v(7, 0.0);
+    array v(7, 0.0);
     vvec area(7, 1.0);
-    vvec i = {-3000, -5000, -7000, -6000, -9000, -16000, -32000};
+    array i = {-3000, -5000, -7000, -6000, -9000, -16000, -32000};
 
     // Expected matrix and rhs:
     // u   = [ 0 -1 -1  0 -1  0 -2]
@@ -151,11 +152,11 @@ TEST(matrix, zero_diagonal_assembled)
     // x = [ 4  5  6  7  8  9 10]
 
     matrix_type m(p, c, Cm, g, area);
-    m.assemble(make_view(dt), make_view(v), make_view(i));
+    m.assemble(dt, v, i);
     m.solve();
 
     vvec x;
-    assign(x, on_host(m.solution()));
+    assign(x, m.solution());
     std::vector<value_type> expected = {4, 5, 6, 7, 8, 9, 10};
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected, x));
@@ -166,7 +167,7 @@ TEST(matrix, zero_diagonal_assembled)
     dt[1] = 0;
     v[3] = 20;
     v[4] = 30;
-    m.assemble(make_view(dt), make_view(v), make_view(i));
+    m.assemble(dt, v, i);
     m.solve();
 
     assign(x, m.solution());

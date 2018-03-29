@@ -188,8 +188,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         TCLAP::ValueArg<unsigned> dry_run_ranks_arg(
             "D","dry-run-ranks","number of ranks in dry run mode",
             false, defopts.dry_run_ranks, "positive integer", cmd);
-        TCLAP::SwitchArg profile_only_zero_arg(
-             "z", "profile-only-zero", "Only output profile information for rank 0", cmd, false);
         TCLAP::SwitchArg verbose_arg(
              "v", "verbose", "Present more verbose information to stdout", cmd, false);
         TCLAP::ValueArg<std::string> ispike_arg(
@@ -251,9 +249,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                     }
 
                     update_option(options.dry_run_ranks, fopts, "dry_run_ranks");
-
-                    update_option(options.profile_only_zero, fopts, "profile_only_zero");
-
                 }
                 catch (std::exception& e) {
                     throw model_description_error(
@@ -285,7 +280,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.morph_rr, morph_rr_arg);
         update_option(options.report_compartments, report_compartments_arg);
         update_option(options.spike_file_output, spike_output_arg);
-        update_option(options.profile_only_zero, profile_only_zero_arg);
         update_option(options.dry_run_ranks, dry_run_ranks_arg);
 
         std::string is_file_name = ispike_arg.getValue();

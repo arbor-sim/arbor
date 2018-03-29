@@ -108,6 +108,13 @@ struct range {
         return (*this)[n];
     }
 
+    // Expose `data` method if a pointer range.
+    template <typename V = iterator, typename W = sentinel>
+    enable_if_t<std::is_same<V, W>::value && std::is_pointer<V>::value, iterator>
+    data() const {
+        return left;
+    }
+
 #ifdef ARB_HAVE_TBB
     template <
         typename V = iterator,

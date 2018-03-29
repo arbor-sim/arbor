@@ -4,7 +4,7 @@
 #include <backends/multicore/fvm.hpp>
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <fvm_lowered_cell.hpp>
+#include <fvm_lowered_cell_impl.hpp>
 #include <util/rangeutil.hpp>
 
 #include "common.hpp"
@@ -12,10 +12,10 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
-using fvm_cell = fvm_lowered_cell<multicore::backend>;
+using fvm_cell = fvm_lowered_cell_impl<multicore::backend>;
 using shared_state = multicore::backend::shared_state;
 
-ACCESS_BIND(shared_state fvm_cell::*, fvm_state_ptr, &fvm_cell::state_);
+ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, fvm_state_ptr, &fvm_cell::state_);
 
 TEST(probe, fvm_lowered_cell) {
     cell bs = make_cell_ball_and_stick(false);
@@ -54,7 +54,8 @@ TEST(probe, fvm_lowered_cell) {
     // for the voltage probes (cell membrane potential should
     // be constant), and zero for the current probe.
 
-    auto& voltage = (lcell.*fvm_state_ptr).voltage;
+    auto& state = *(lcell.*fvm_state_ptr).get();
+    auto& voltage = state.voltage;
 
     auto resting = voltage[0];
     EXPECT_NE(0.0, resting);

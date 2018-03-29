@@ -29,8 +29,10 @@ build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
     DEST_DIR "${abs_mech_dir}"
-    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
-    GENERATES .hpp _cpu.cpp _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
+#    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
+#    GENERATES .hpp _cpu.cpp _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
+    MODCC_FLAGS -t cpu ${modcc_simd}
+    GENERATES .hpp _cpu.cpp
     TARGET build_all_mods
 )
 

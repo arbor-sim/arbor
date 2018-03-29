@@ -50,7 +50,7 @@ TEST(spikes, threshold_watcher) {
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(cell_index, time_before, time_after, values, index, thresh);
+    backend::threshold_watcher watch(cell_index.data(), time_before.data(), time_after.data(), values.data(), index, thresh);
 
     // initially the first and third watch should not be spiking
     //           the second is spiking

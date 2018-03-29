@@ -40,6 +40,9 @@ public:
     // Density or point mechanism?
     virtual mechanismKind kind() const = 0;
 
+    // Does the implementation require padding and alignment of shared data structures?
+    virtual unsigned data_alignment() const { return 1; }
+
     // Memory use in bytes.
     virtual std::size_t memory() const = 0;
 

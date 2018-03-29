@@ -5,6 +5,8 @@
 #include <vector>
 
 #include <common_types.hpp>
+#include <constants.hpp>
+#include <ion.hpp>
 #include <mechcat.hpp>
 #include <morphology.hpp>
 #include <segment.hpp>
@@ -68,17 +70,11 @@ struct cell_global_properties {
     //
     // Defaults below chosen to match NEURON.
 
-    struct ion_info {
-        int charge;
-        double default_int_concentration;
-        double default_ext_concentration;
-    };
-
     // Ion species currently limited to just "ca", "na", "k".
     std::unordered_map<std::string, ion_info> ion_default = {
-        {"ca", { 2, 5e-5, 2.  }},
-        {"na", { 1, 10.,  140.}},
-        {"k",  { 1, 54.4, 2.5 }}
+        {"ca", { ionKind::ca, 2, 5e-5, 2.  }},
+        {"na", { ionKind::na, 1, 10.,  140.}},
+        {"k",  { ionKind::k,  1, 54.4, 2.5 }}
     };
 
     double temperature_K = constant::hh_squid_temp; // [K]
@@ -93,10 +89,6 @@ struct compartment_model {
     std::vector<tree::int_type> parent_index;
     std::vector<tree::int_type> segment_index;
 };
-
-// used in constructor below
-struct clone_cell_t {};
-constexpr clone_cell_t clone_cell{};
 
 /// high-level abstract representation of a cell and its segments
 class cell {
@@ -121,24 +113,25 @@ public:
         double threshold;
     };
 
-    // constructor
+    /// Default constructor
     cell();
 
-    cell(cell&&) = default;
-
-    // Sometimes we really do want a copy (pending big morphology refactor).
-    cell(clone_cell_t, const cell& other):
+    /// Copy constructor
+    cell(const cell& other):
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
         spike_detectors_(other.spike_detectors_)
-     {
-         // unique_ptr's cannot be copy constructed, do a manual assignment
-         segments_.reserve(other.segments_.size());
-         for (const auto& s: other.segments_) {
-             segments_.push_back(s->clone());
-         }
-     }
+    {
+        // unique_ptr's cannot be copy constructed, do a manual assignment
+        segments_.reserve(other.segments_.size());
+        for (const auto& s: other.segments_) {
+            segments_.push_back(s->clone());
+        }
+    }
+
+    /// Move constructor
+    cell(cell&& other) = default;
 
     /// Return the kind of cell, used for grouping into cell_groups
     cell_kind get_cell_kind() const  {

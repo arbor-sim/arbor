@@ -2,6 +2,7 @@
 
 #include <cell_group.hpp>
 #include <dss_cell_description.hpp>
+#include <profiling/profiler.hpp>
 #include <recipe.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
@@ -45,6 +46,7 @@ public:
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) override {
+        PE(advance_dss);
         for (auto i: util::make_span(0, not_emit_it_.size())) {
             // The first potential spike_time to emit for this cell
             auto spike_time_it = not_emit_it_[i];
@@ -60,6 +62,7 @@ public:
                 spikes_.push_back({ {gids_[i], 0u}, *spike_time_it });
             }
         }
+        PL();
     };
 
     const std::vector<spike>& spikes() const override {
