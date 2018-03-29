@@ -5,7 +5,7 @@
 
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
@@ -32,8 +32,8 @@ using namespace arb;
  */
 
 template <typename CompPolicy>
-std::vector<trace_data> run_model(const cell& c, float sample_dt, float t_end, float dt) {
-    model<fvm::fvm_multicell<double, cell_local_size_type, div_compartment_by_ends>> m{singleton_recipe(c)};
+std::vector<trace_data> run_simulation(const cell& c, float sample_dt, float t_end, float dt) {
+    simulation<fvm::fvm_multicell<double, cell_local_size_type, div_compartment_by_ends>> m{singleton_recipe(c)};
 
     const auto& probes = m.probes();
     std::size_t n_probes = probes.size();
@@ -59,9 +59,9 @@ void run_test(cell&& c) {
     float t_end = 100;
     float dt = 0.001;
 
-    auto traces_by_ends = run_model<div_compartment_by_ends>(c, sample_dt, t_end, dt);
-    auto traces_sampler = run_model<div_compartment_sampler>(c, sample_dt, t_end, dt);
-    auto traces_integrator = run_model<div_compartment_integrator>(c, sample_dt, t_end, dt);
+    auto traces_by_ends = run_simulation<div_compartment_by_ends>(c, sample_dt, t_end, dt);
+    auto traces_sampler = run_simulation<div_compartment_sampler>(c, sample_dt, t_end, dt);
+    auto traces_integrator = run_simulation<div_compartment_integrator>(c, sample_dt, t_end, dt);
 
     auto n_trace = traces_by_ends.size();
     ASSERT_GT(n_trace, 0);

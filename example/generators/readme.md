@@ -45,7 +45,8 @@ default `recipe::connections_on(gid)` method can use the default implementation,
 which returns an empty list of connections for a cell.
 
 Above you can see the definition of `recipe::num_cells()`, which is trivial for this model, which has only once cell.
-The `recipe::get_cell_description(gid)` and `recipe::get_cell_kind(gid)` methods are defined to return a single compartment cell with one synapse, and a `arb::cell_kind::cable1d_neuron` respectively:
+The `recipe::get_cell_description(gid)` and `recipe::get_cell_kind(gid)` methods are defined to return a single
+compartment cell with one synapse, and a `arb::cell_kind::cable1d_neuron` respectively:
 
 ```C++
     // Return an arb::cell that describes a single compartment cell with
@@ -139,8 +140,8 @@ To visualise the result of our experiment, we want to sample the voltage in our 
 There are three parts to this process.
 
 1. Define the a `probe` in the recipe, which describes the location and variable to be sampled, i.e. the soma and voltage respectively for this example.
-2. Attach a sampler to this probe once the model has been created.
-3. Write the sampled values to a JSON file once the model has been run.
+2. Attach a sampler to this probe once the simulation has been created.
+3. Write the sampled values to a JSON file once the simulation has been run.
 
 #### 1. Define probe in recipe
 
@@ -166,9 +167,9 @@ In our case, the cell has one probe, which refers to the voltage at the soma.
     }
 ```
 
-#### 2. Attach sampler to model
+#### 2. Attach sampler to simulation
 
-Once the model has been created, the model has internal state that tracks the value of the voltage at the probe location described by the recipe.
+Once the simulation has been created, the simulation has internal state that tracks the value of the voltage at the probe location described by the recipe.
 We must attach a sampler to this probe to get sample values.
 
 The sampling interface is rich, and can be extended in many ways.
@@ -186,10 +187,10 @@ For our simple use case there are three bits of information that need to be prov
     // Where the voltage samples will be stored as (time, value) pairs
     arb::trace_data<double> voltage;
     // Now attach the sampler:
-    model.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+    sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 ```
 
-When the model is run, the `simple_sampler` that we attached to the probe will store the sample values as (time, voltage) pairs in the `voltage` vector.
+When the simulation is run, the `simple_sampler` that we attached to the probe will store the sample values as (time, voltage) pairs in the `voltage` vector.
 
 #### 3. Output to JSON
 

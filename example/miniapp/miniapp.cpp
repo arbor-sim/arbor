@@ -16,7 +16,7 @@
 #include <hardware/node_info.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <load_balance.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <profiling/profiler.hpp>
 #include <profiling/meter_manager.hpp>
 #include <sampling.hpp>
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
         };
 
         auto decomp = partition_load_balance(*recipe, nd);
-        model m(*recipe, decomp);
+        simulation sim(*recipe, decomp);
 
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
 
         auto ssched = regular_schedule(options.sample_dt);
         for (auto& trace: sample_traces) {
-            m.add_sampler(one_probe(trace.probe_id), ssched, make_simple_sampler(trace.samples));
+            sim.add_sampler(one_probe(trace.probe_id), ssched, make_simple_sampler(trace.samples));
         }
 
         // Specify event binning/coalescing.
@@ -131,21 +131,21 @@ int main(int argc, char** argv) {
             options.bin_regular? binning_kind::regular:
             binning_kind::following;
 
-        m.set_binning_policy(binning_policy, options.bin_dt);
+        sim.set_binning_policy(binning_policy, options.bin_dt);
 
         // Initialize the spike exporting interface
         std::unique_ptr<file_export_type> file_exporter;
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
-                m.set_local_spike_callback(
+                sim.set_local_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                         file_exporter->output(spikes);
                     });
             }
             else if(communication::global_policy::id()==0) {
                 file_exporter = register_exporter(options);
-                m.set_global_spike_callback(
+                sim.set_global_spike_callback(
                     [&](const std::vector<spike>& spikes) {
                        file_exporter->output(spikes);
                     });
@@ -155,14 +155,14 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init");
 
         // run model
-        m.run(options.tfinal, options.dt);
+        sim.run(options.tfinal, options.dt);
 
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
         auto profile = util::profiler_summary();
         std::cout << profile << "\n";
-        std::cout << "\nthere were " << m.num_spikes() << " spikes\n";
+        std::cout << "\nthere were " << sim.num_spikes() << " spikes\n";
 
         // save traces
         auto write_trace = options.trace_format=="json"? write_trace_json: write_trace_csv;

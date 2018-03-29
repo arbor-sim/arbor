@@ -5,7 +5,7 @@
 #include <hardware/gpu.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
@@ -32,7 +32,7 @@ void validate_soma(backend_kind backend) {
 
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
     auto decomp = partition_load_balance(rec, nd);
-    model m(rec, decomp);
+    simulation sim(rec, decomp);
 
     nlohmann::json meta = {
         {"name", "membrane voltage"},
@@ -54,9 +54,9 @@ void validate_soma(backend_kind backend) {
             double oo_dt = base/multiple;
             if (oo_dt>max_oo_dt) goto end;
 
-            m.reset();
+            sim.reset();
             float dt = float(1./oo_dt);
-            runner.run(m, dt, sample_dt, t_end, dt, {});
+            runner.run(sim, dt, sample_dt, t_end, dt, {});
         }
     }
 end:
