@@ -52,8 +52,8 @@ Some key features include:
    :glob:
 
    cpp_intro
+   cpp_common
    cpp_recipe
-   cpp_model
 
 .. toctree::
    :caption: Developers:

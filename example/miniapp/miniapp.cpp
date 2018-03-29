@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
         // by command line options.
         std::vector<sample_trace> sample_traces;
         for (const auto& g: decomp.groups) {
-            if (g.kind==cable1d_neuron) {
+            if (g.kind==cell_kind::cable1d_neuron) {
                 for (auto gid: g.gids) {
                     if (options.trace_max_gid && gid>*options.trace_max_gid) {
                         continue;

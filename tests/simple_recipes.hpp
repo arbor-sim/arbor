@@ -37,7 +37,7 @@ public:
 
     util::any get_global_properties(cell_kind k) const override {
         switch (k) {
-        case cable1d_neuron:
+            case cell_kind::cable1d_neuron:
             return cell_gprop;
         default:
             return util::any{};
