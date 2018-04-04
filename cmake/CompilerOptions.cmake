@@ -25,6 +25,11 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
     #     std::array<int,3> a={1,2,3};
     set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
 
+    # Disable 'potentially-evaluated-expression' warning: this warns
+    # on expressions of the form `typeid(expr)` when `expr` has side
+    # effects.
+    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-potentially-evaluated-expression")
+
     # Clang is erroneously warning that T is an 'unused type alias' in code like this:
     # struct X {
     #     using T = decltype(expression);

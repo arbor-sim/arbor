@@ -45,8 +45,7 @@ struct index_into_iterator {
         align_fwd();
     }
 
-    //value_type operator*() const {
-    reference operator*() const {
+    value_type operator*() const {
         return idx;
     }
 

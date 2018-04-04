@@ -8,9 +8,6 @@
 using namespace arb;
 using namespace testing::string_literals;
 
-// clang complains unhelpfully about typeid(expr) where expr has side-effects.
-#pragma GCC diagnostic ignored "-Wpotentially-evaluated-expression"
-
 // Set up a small system of mechanisms and backends for testing,
 // comprising:
 //
@@ -24,7 +21,6 @@ using namespace testing::string_literals;
 //
 // * One implementation of burble for the bar backend, with
 //   a mismatched fingerprint: burble_bar.
-
 
 // Mechanism info:
 
