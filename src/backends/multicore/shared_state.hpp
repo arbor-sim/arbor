@@ -15,6 +15,7 @@
 #include <ion.hpp>
 #include <math.hpp>
 #include <simd/simd.hpp>
+#include <util/enumhash.hpp>
 #include <util/padded_alloc.hpp>
 #include <util/rangeutil.hpp>
 
@@ -28,6 +29,18 @@
 
 namespace arb {
 namespace multicore {
+
+/*
+ * Ion state fields correspond to NMODL ion variables, where X
+ * is replaced with the name of the ion. E.g. for calcium 'ca':
+ *
+ *     Field   NMODL variable   Meaning
+ *     -------------------------------------------------------
+ *     iX_     ica              calcium ion current density
+ *     eX_     eca              calcium ion channel reversal potential
+ *     Xi_     cai              internal calcium concentration
+ *     Xo_     cao              external calcium concentration
+ */
 
 struct ion_state {
     unsigned alignment = 1; // Alignment and padding multiple.
@@ -85,7 +98,7 @@ struct shared_state {
     array  voltage;           // Maps CV index to membrane voltage [mV].
     array  current_density;   // Maps CV index to current density [A/m²].
 
-    std::unordered_map<ionKind, ion_state> ion_data;
+    std::unordered_map<ionKind, ion_state, util::enum_hash> ion_data;
 
     deliverable_event_stream deliverable_events;
 

@@ -24,6 +24,8 @@
 #include <sampler_map.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
+#include <util/rangeutil.hpp>
+#include <util/transform.hpp>
 
 #include <util/debug.hpp>
 
@@ -282,6 +284,7 @@ void fvm_lowered_cell_impl<B>::initialize(
     using util::count_along;
     using util::make_span;
     using util::value_by_key;
+    using util::keys;
 
     std::vector<cell> cells;
     const std::size_t ncell = gids.size();
@@ -311,19 +314,18 @@ void fvm_lowered_cell_impl<B>::initialize(
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
     sample_events_ = sample_event_stream(ncell);
 
-    // Discrerize mechanism data.
+    // Discretize mechanism data.
 
     fvm_mechanism_data mech_data = fvm_build_mechanism_data(*catalogue, cells, D);
 
     // Create shared cell state.
     // (SIMD padding requires us to check each mechanism for alignment/padding constraints.)
 
-    unsigned data_alignment = 1;
-    for (auto& m: mech_data.mechanisms) {
-        const auto& name = m.first;
-        data_alignment = std::max(data_alignment, mech_instance(name)->data_alignment());
-    }
-    state_ = util::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment);
+    unsigned data_alignment = util::max_value(
+        util::transform_view(keys(mech_data.mechanisms),
+            [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
+
+    state_ = util::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 

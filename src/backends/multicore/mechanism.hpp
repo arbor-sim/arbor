@@ -48,7 +48,7 @@ public:
         std::size_t s = object_sizeof();
 
         s += sizeof(value_type) * (data_.size() + weight_.size());
-        s += sizeof(size_type) * width_ * (n_ion_ + 1); // node and ion indices.
+        s += sizeof(size_type) * width_padded_ * (n_ion_ + 1); // node and ion indices.
         return s;
     }
 
@@ -64,17 +64,18 @@ public:
     void set_global(const std::string& key, fvm_value_type value) override;
 
 protected:
-    std::size_t width_ = 0; // Instance width (number of CVs/sites)
+    std::size_t width_ = 0;        // Instance width (number of CVs/sites)
+    std::size_t width_padded_ = 0; // Width rounded up to multiple of pad/alignment.
     std::size_t n_ion_ = 0;
 
     // Non-owning views onto shared cell state, excepting ion state.
 
-    const size_type* vec_ci_;
-    const value_type* vec_t_;
-    const value_type* vec_t_to_;
-    const value_type* vec_dt_;
-    const value_type* vec_v_;
-    value_type* vec_i_;
+    const size_type* vec_ci_;     // CV to cell index.
+    const value_type* vec_t_;     // Cell index to cell-local time.
+    const value_type* vec_t_to_;  // Cell index to cell-local integration step time end.
+    const value_type* vec_dt_;    // CV to integration time step.
+    const value_type* vec_v_;     // CV to cell membrane voltage.
+    value_type* vec_i_;           // CV to cell membrane current density.
     deliverable_event_stream* event_stream_ptr_;
 
     // Per-mechanism index and weight data, excepting ion indices.
@@ -87,7 +88,7 @@ protected:
     array data_;
 
     // Generated mechanism field, global and ion table lookup types.
-    // First component is name, second is pointer to corresponing member.
+    // First component is name, second is pointer to corresponing member in class instance.
     // Field table entries have a third component for the field default value.
 
     using global_table_entry = std::pair<const char*, value_type*>;

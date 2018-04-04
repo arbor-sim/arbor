@@ -14,6 +14,7 @@
 #include <util/optional.hpp>
 #include <util/maputil.hpp>
 #include <util/padded_alloc.hpp>
+#include <util/range.hpp>
 
 #include "mechanism.hpp"
 #include "multicore_common.hpp"
@@ -42,10 +43,21 @@ void copy_extend(const Source& source, Dest& dest, const Fill& fill) {
     std::fill(tail, end(dest), fill);
 }
 
-void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, const layout& w) {
+// The derived class (typically generated code from modcc) holds pointers that need
+// to be set to point inside the shared state, or into the allocated parameter/variable
+// data block.
+//
+// In ths SIMD case, there may be a 'tail' of values that correspond to a partial
+// SIMD value when the width is not a multiple of the SIMD data width. In this
+// implementation we do not use SIMD masking to avoid tail values, but instead
+// extend the vectors to a multiple of the SIMD width: sites/CVs corresponding to
+// these past-the-end values are given a weight of zero, and any corresponding
+// indices into shared state point to the last valid slot.
+
+void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, const layout& pos_data) {
     util::padded_allocator<> pad(shared.alignment);
     mechanism_id_ = id;
-    width_ = w.cv.size();
+    width_ = pos_data.cv.size();
 
     // Assign non-owning views onto shared state:
 
@@ -74,26 +86,26 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
 
     event_stream_ptr_ = &shared.deliverable_events;
 
+    // If there are no sites (is this ever meaningful?) there is nothing more to do.
     if (width_==0) {
-        // If there are no sites (is this ever meaningful?) there is nothing
-        // more to do.
         return;
     }
 
     // Extend width to account for requisite SIMD padding.
-    fvm_size_type width_padded = math::round_up(width_, shared.alignment);
+    width_padded_ = math::round_up(width_, shared.alignment);
 
     // Allocate and copy local state: weight, node indices, ion indices.
+    // The tail comprises those elements between width_ and width_padded_:
     //
-    // For entries in the padded tail of weight_, set weight to zero.
-    // For indices in the padded tail of node_index_, set index to last valid CV index.
-    // For indices in the padded tail of ion index maps, set index to last valid ion index.
+    // * For entries in the padded tail of weight_, set weight to zero.
+    // * For indices in the padded tail of node_index_, set index to last valid CV index.
+    // * For indices in the padded tail of ion index maps, set index to last valid ion index.
 
-    node_index_ = iarray(width_padded, pad);
-    copy_extend(w.cv, node_index_, w.cv.back());
+    node_index_ = iarray(width_padded_, pad);
+    copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
 
-    weight_     = array(width_padded, pad);
-    copy_extend(w.weight, weight_, 0);
+    weight_     = array(width_padded_, pad);
+    copy_extend(pos_data.weight, weight_, 0);
 
     for (auto i: ion_index_table()) {
         std::vector<size_type> mech_ion_index;
@@ -105,22 +117,24 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
 
         auto indices = util::index_into(node_index_, oion->node_index_);
 
+        // Take reference to derived (generated) mechanism ion index member.
         auto& ion_index = *i.second;
-        ion_index = iarray(width_padded, pad);
+        ion_index = iarray(width_padded_, pad);
         copy_extend(indices, ion_index, util::back(indices));
     }
 
-    // Allocate and initialize state and parameter vectors.
+    // Allocate and initialize state and parameter vectors with default values.
 
     auto fields = field_table();
     std::size_t n_field = fields.size();
 
-    data_ = array(n_field*width_padded, NAN, pad);
+    data_ = array(n_field*width_padded_, NAN, pad);
     for (std::size_t i = 0; i<n_field; ++i) {
+        // Take reference to corresponding derived (generated) mechanism value pointer member.
         fvm_value_type*& field_ptr = *std::get<1>(fields[i]);
 
-        field_ptr = data_.data()+i*width_padded;
-        std::fill(field_ptr, field_ptr+width_, std::get<2>(fields[i]));
+        field_ptr = data_.data()+i*width_padded_;
+        std::fill(field_ptr, field_ptr+width_padded_, std::get<2>(fields[i]));
     }
 }
 
@@ -130,8 +144,13 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
             throw std::logic_error("internal error: mechanism parameter size mismatch");
         }
 
-        value_type* field_ptr = *opt_ptr.value();
-        std::copy(values.begin(), values.end(), field_ptr);
+        if (width_>0) {
+            // Retrieve corresponding derived (generated) mechanism value pointer member.
+            value_type* field_ptr = *opt_ptr.value();
+            util::range<value_type*> field(field_ptr, field_ptr+width_padded_);
+
+            copy_extend(values, field, values.back());
+        }
     }
     else {
         throw std::logic_error("internal error: no such mechanism parameter");
@@ -140,6 +159,7 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
 
 void mechanism::set_global(const std::string& key, fvm_value_type value) {
     if (auto opt_ptr = util::value_by_key(global_table(), key)) {
+        // Take reference to corresponding derived (generated) mechanism value member.
         value_type& global = *opt_ptr.value();
         global = value;
     }
@@ -147,7 +167,6 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
         throw std::logic_error("internal error: no such mechanism global");
     }
 }
-
 
 } // namespace multicore
 } // namespace arb

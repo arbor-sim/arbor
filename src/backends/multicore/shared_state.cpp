@@ -30,6 +30,9 @@ using simd_size_type = simd::simd<fvm_size_type, simd_width>;
 
 // Pick alignment compatible with native SIMD width for explicitly
 // vectorized operations below.
+//
+// TODO: Is SIMD use here a win? Test and compare; may be better to leave
+// these up to the compiler to optimize/auto-vectorize.
 
 inline unsigned min_alignment(unsigned align) {
     unsigned simd_align = sizeof(fvm_value_type)*simd_width;
