@@ -27,7 +27,7 @@ cells and members of cell-local collections.
 .. cpp:type::  cell_size_type
 
     An unsigned integer for sizes of collections of cells.
-    Unsigned type for counting cell_gid_type
+    Unsigned type for counting :cpp:type:`cell_gid_type`.
 
 
 .. cpp:type::  cell_lid_type
@@ -45,7 +45,7 @@ cells and members of cell-local collections.
 .. cpp:class:: cell_member_type
 
     For global identification of an item of cell local data.
-    Items of cell_member_type must:
+    Items of :cpp:type:`cell_member_type` must:
 
         * be associated with a unique cell, identified by the member
           :cpp:member:`gid`;

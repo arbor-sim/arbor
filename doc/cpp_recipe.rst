@@ -1,8 +1,7 @@
 Recipes
 ===============
 
-An Arbor recipe is a description of a model without any information about how the
-model is to be executed. It  provides interface that the model building phase queries
+An Arbor recipe is a description of a model. It  provides interface that the model building phase queries
 for information on cells, such as:
 
   * the number of cells in the model;
@@ -15,17 +14,16 @@ The :cpp:class:`arb::recipe` class documentation is below.
 Why Recipes?
 --------------
 
-The Recipe design was motivated by the following aims:
+The interface and design of Arbor recipes was motivated by the following aims:
 
     * Building a simulation from a recipe description must be possible in a
       distributed system efficiently with minimal communication.
-    * The model description (i.e. recipe) should be seperate from the
       instantiation of the model to execute on the target system.
     * To minimise the amount of memory used in model building, to make it
       possible to build and run simulations in one run.
 
 Recipe descriptions are cell-oriented, in order that the building phase can
-distributed and that the recipe description can be built indepedently of any
+be efficiently distributed and that the model can be built independently of any
 runtime execution environment.
 
 During model building, the recipe is queried first by a load balancer,
@@ -86,11 +84,11 @@ performance.
     please contact the developers, because we would like to develop tools that help
     make this simpler.
 
-.. topic:: Be reproducable
+.. topic:: Be reproducible
 
     Arbor is designed to give reproduceable results when the same model is run on
     different number of MPI ranks, or threads, or hardware (e.g. GPUs).
-    This only holds when a recipe provides a reproducable model description, which
+    This only holds when a recipe provides a reproducible model description, which
     can be a challenge when a description uses random numbers, e.g. to pick incoming
     connections to a cell from a random subset of a cell population.
     To get a reproduceable model, use the cell `gid` (or a hash based on the `gid`)
@@ -138,7 +136,9 @@ Class Documentation
 
     .. cpp:function:: virtual util::unique_any get_cell_description(cell_gid_type gid) const = 0
 
-        A description of `gid` 
+        A description of the cell `gid`, for example the morphology, synapses
+        and ion channels required to build a multi-compartment neuron.
+
         The type used to describe a cell depends on the kind of the cell.
         The interface for querying the kind and description of a cell are
         seperate to allow the the cell type to be provided without building
@@ -153,7 +153,7 @@ Class Documentation
         the argument :cpp:var:`gid`, and a valid synapse id ``con.dest.index`` on `gid`.
         See :cpp:type:`cell_connection`.
 
-        By default returns and empty list.
+        By default returns an empty list.
 
     .. cpp:function:: virtual std::vector<event_generator> event_generators(cell_gid_type gid) const
 
@@ -220,9 +220,10 @@ Class Documentation
     .. cpp:member:: float weight
 
         The weight delivered to the target synapse.
-        There are no fixed units for weights, because how they are
-        interpreted, or they are used at all, is a function of the
-        synapse type that receives it.
+        The weight is dimensionless, and its interpretation is
+        specific to the synapse type of the target. For example,
+        the `expsyn` synapse interprets it as a conductance
+        with units μS (micro-Siemens).
 
     .. cpp:member:: float delay
 
