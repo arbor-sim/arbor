@@ -1,8 +1,8 @@
 #include <cmath>
 
 #include <backends/builtin_mech_proto.hpp>
-#include <backends/multicore/fvm.hpp>
-#include <util/indirect.hpp>
+#include <backends/fvm_types.hpp>
+#include <backends/multicore/mechanism.hpp>
 
 namespace arb {
 
@@ -20,14 +20,14 @@ public:
     void nrn_init() override {}
     void nrn_state() override {}
     void nrn_current() override {
-        auto vec_t = util::indirect_view(util::indirect_view(vec_t_, vec_ci_), node_index_);
-        auto vec_i = util::indirect_view(vec_i_, node_index_);
         size_type n = size();
         for (size_type i=0; i<n; ++i) {
-            auto t = vec_t[i];
+            auto cv = node_index_[i];
+            auto t = vec_t_[vec_ci_[cv]];
+
             if (t>=delay[i] && t<delay[i]+duration[i]) {
                 // Amplitudes are given as a current into a compartment, so subtract.
-                vec_i[i] -= weight_[i]*amplitude[i];
+                vec_i_[cv] -= weight_[i]*amplitude[i];
             }
         }
     }
@@ -37,7 +37,7 @@ public:
 protected:
     std::size_t object_sizeof() const override { return sizeof(*this); }
 
-    mechanism_field_table field_table() {
+    mechanism_field_table field_table() override {
         return {
             {"delay", &delay, 0},
             {"duration", &duration, 0},
@@ -46,9 +46,9 @@ protected:
     }
 
 private:
-    view delay;
-    view duration;
-    view amplitude;
+    fvm_value_type* delay;
+    fvm_value_type* duration;
+    fvm_value_type* amplitude;
 };
 } // namespace multicore
 

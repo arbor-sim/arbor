@@ -5,10 +5,13 @@
 #include <vector>
 
 #include <cell.hpp>
+#include <constants.hpp>
 #include <mechcat.hpp>
 #include <backends/multicore/fvm.hpp>
+#include <backends/multicore/mechanism.hpp>
 #include <util/optional.hpp>
 #include <util/maputil.hpp>
+#include <util/range.hpp>
 #include <util/xtuple.hpp>
 
 #include "common.hpp"
@@ -20,23 +23,21 @@ using backend = ::arb::multicore::backend;
 using shared_state = backend::shared_state;
 using value_type = backend::value_type;
 using size_type = backend::size_type;
-using view = backend::view;
-using const_view = backend::const_view;
 
 // Access to mechanisms protected data:
-using field_table_type = std::vector<util::xtuple<const char*, view*, value_type>>;
+using field_table_type = std::vector<util::xtuple<const char*, value_type**, value_type>>;
 ACCESS_BIND(field_table_type (multicore::mechanism::*)(), field_table_ptr, &multicore::mechanism::field_table)
 
-const view& mechanism_field(std::unique_ptr<multicore::mechanism>& m, const std::string& key) {
+util::range<const value_type*> mechanism_field(std::unique_ptr<multicore::mechanism>& m, const std::string& key) {
     if (auto opt_ptr = util::value_by_key((m.get()->*field_table_ptr)(), key)) {
-        view v = *opt_ptr.value();
-        return *opt_ptr.value();
+        const value_type* field = *opt_ptr.value();
+        return util::make_range(field, field+m->size());
     }
     throw std::logic_error("internal error: no such field in mechanism");
 }
 
-ACCESS_BIND(view multicore::mechanism::*, vec_v_ptr, &multicore::mechanism::vec_v_)
-ACCESS_BIND(view multicore::mechanism::*, vec_i_ptr, &multicore::mechanism::vec_i_)
+ACCESS_BIND(const value_type* multicore::mechanism::*, vec_v_ptr, &multicore::mechanism::vec_v_)
+ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanism::vec_i_)
 
 TEST(synapses, add_to_cell) {
     using namespace arb;
@@ -75,22 +76,12 @@ static bool all_equal_to(const Seq& s, double v) {
 }
 
 TEST(synapses, syn_basic_state) {
+    using util::fill;
     using value_type = multicore::backend::value_type;
 
     int num_syn = 4;
     int num_comp = 4;
     int num_cell = 1;
-
-    shared_state state(num_cell, std::vector<size_type>(num_comp, 0));
-
-    memory::fill(state.voltage, -65.);
-    memory::fill(state.current_density, 1.0);
-    memory::fill(state.time, 0);
-    memory::fill(state.time_to, 0.1);
-    backend::set_dt(state.dt, state.dt_comp, state.time_to, state.time, state.cv_to_cell);
-
-    std::vector<size_type> syn_cv(num_syn, 0);
-    std::vector<value_type> syn_weight(num_syn, 1.0);
 
     auto multicore_mechanism_instance = [](const char* name) {
         return std::unique_ptr<multicore::mechanism>(
@@ -103,6 +94,17 @@ TEST(synapses, syn_basic_state) {
 
     auto exp2syn = multicore_mechanism_instance("exp2syn");
     ASSERT_TRUE(exp2syn);
+
+    auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
+    shared_state state(num_cell, std::vector<size_type>(num_comp, 0), align);
+
+    state.reset(-65., constant::hh_squid_temp);
+    fill(state.current_density, 1.0);
+    fill(state.time_to, 0.1);
+    state.set_dt();
+
+    std::vector<size_type> syn_cv(num_syn, 0);
+    std::vector<value_type> syn_weight(num_syn, 1.0);
 
     expsyn->instantiate(0, state, {syn_cv, syn_weight});
     exp2syn->instantiate(1, state, {syn_cv, syn_weight});
@@ -121,11 +123,19 @@ TEST(synapses, syn_basic_state) {
 
     // Current and voltage views correctly hooked up?
 
-    EXPECT_TRUE(all_equal_to(expsyn.get()->*vec_v_ptr, -65.));
-    EXPECT_TRUE(all_equal_to(exp2syn.get()->*vec_v_ptr, -65.));
+    const value_type* v_ptr;
+    v_ptr = expsyn.get()->*vec_v_ptr;
+    EXPECT_TRUE(all_equal_to(util::make_range(v_ptr, v_ptr+num_comp), -65.));
 
-    EXPECT_TRUE(all_equal_to(expsyn.get()->*vec_i_ptr, 1.));
-    EXPECT_TRUE(all_equal_to(exp2syn.get()->*vec_i_ptr, 1.));
+    v_ptr = exp2syn.get()->*vec_v_ptr;
+    EXPECT_TRUE(all_equal_to(util::make_range(v_ptr, v_ptr+num_comp), -65.));
+
+    const value_type* i_ptr;
+    i_ptr = expsyn.get()->*vec_i_ptr;
+    EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
+
+    i_ptr = exp2syn.get()->*vec_i_ptr;
+    EXPECT_TRUE(all_equal_to(util::make_range(i_ptr, i_ptr+num_comp), 1.));
 
     // Initialize state then check g, A, B have been set to zero.
 

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 namespace arb {
@@ -78,6 +79,20 @@ T constexpr lerp(T a, T b, U u) {
 template <typename T>
 int signum(T x) {
     return (x>T(0)) - (x<T(0));
+}
+
+// Next integral power of 2 for unsigned integers:
+//
+// next_pow2(x) returns 0 if x==0, else returns smallest 2^k such
+// that 2^k>=x.
+
+template <typename U, typename = typename std::enable_if<std::is_unsigned<U>::value>::type>
+U next_pow2(U x) {
+    --x;
+    for (unsigned s=1; s<std::numeric_limits<U>::digits; s<<=1) {
+        x|=(x>>s);
+    }
+    return ++x;
 }
 
 namespace impl {

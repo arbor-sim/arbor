@@ -29,8 +29,10 @@ build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
     DEST_DIR "${abs_mech_dir}"
-    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
-    GENERATES .hpp _cpu.cpp _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
+#    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
+#    GENERATES .hpp _cpu.cpp _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
+    MODCC_FLAGS -t cpu ${modcc_simd}
+    GENERATES .hpp _cpu.cpp
     TARGET build_all_mods
 )
 
@@ -55,6 +57,10 @@ if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
     add_dependencies(arbormech build_all_mods)
 endif()
 
+# Until we merge our myriad static libraries, we prepend mech libs, and also append CPU mech lib
+# which holds the generated default catalogue code.
+
+list(INSERT ARB_LIBRARIES 0 arbormech)
 list(APPEND ARB_LIBRARIES arbormech)
 
 if(ARB_WITH_CUDA)
@@ -71,7 +77,7 @@ if(ARB_WITH_CUDA)
         add_dependencies(arbormechcu build_all_gpu_mods)
     endif()
 
-    list(APPEND ARB_LIBRARIES arbormechcu)
+    list(INSERT ARB_LIBRARIES 0 arbormechcu)
 endif()
 
 set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)

@@ -1,4 +1,6 @@
 set(BASE_SOURCES
+    backends/multicore/mechanism.cpp
+    backends/multicore/shared_state.cpp
     backends/multicore/stimulus.cpp
     builtin_mechanisms.cpp
     cell_group_factory.cpp
@@ -6,11 +8,14 @@ set(BASE_SOURCES
     cell.cpp
     event_binner.cpp
     fvm_layout.cpp
+    fvm_lowered_cell_impl.cpp
     hardware/affinity.cpp
     hardware/gpu.cpp
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
+    lif_cell_group.cpp
+    mc_cell_group.cpp
     mechcat.cpp
     merge_events.cpp
     model.cpp
@@ -29,7 +34,6 @@ set(BASE_SOURCES
     util/unwind.cpp
 )
 set(CUDA_SOURCES
-    backends/gpu/fvm.cpp
     backends/gpu/fill.cu
     backends/gpu/multi_event_stream.cu
     backends/gpu/kernels/assemble_matrix.cu

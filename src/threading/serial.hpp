@@ -90,6 +90,10 @@ inline std::string description() {
 
 constexpr bool multithreaded() { return false; }
 
+inline std::size_t thread_id() {
+    return 0;
+}
+
 /// Proxy for tbb task group.
 /// The tbb version launches tasks asynchronously, returning control to the
 /// caller. The serial version implemented here simply runs the task, before

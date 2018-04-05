@@ -3,6 +3,7 @@
 #include <utility>
 
 #include <cell_group.hpp>
+#include <profiling/profiler.hpp>
 #include <recipe.hpp>
 #include <rss_cell.hpp>
 #include <util/unique_any.hpp>
@@ -37,6 +38,7 @@ public:
     void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
     void advance(epoch ep, time_type dt, const event_lane_subrange& events) override {
+        PE(advance_dss);
         for (auto& cell: cells_) {
 
             auto t_end = std::min(cell.stop_time, ep.tfinal);
@@ -50,6 +52,7 @@ public:
                 t = cell.start_time + cell.step*cell.period;
             }
         }
+        PL();
     }
 
     const std::vector<spike>& spikes() const override {

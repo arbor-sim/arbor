@@ -13,6 +13,7 @@
 #include <connection.hpp>
 #include <domain_decomposition.hpp>
 #include <event_queue.hpp>
+#include <profiling/profiler.hpp>
 #include <recipe.hpp>
 #include <spike.hpp>
 #include <util/debug.hpp>
@@ -45,6 +46,7 @@ public:
         using util::make_span;
         num_domains_ = comms_.size();
         num_local_groups_ = dom_dec.groups.size();
+        num_local_cells_ = dom_dec.num_local_cells;
 
         // For caching information about each cell
         struct gid_info {
@@ -52,6 +54,7 @@ public:
             cell_gid_type gid;              // global identifier of cell
             cell_size_type index_on_domain; // index of cell in this domain
             connection_list conns;          // list of connections terminating at this cell
+            gid_info() = default;           // so we can in a std::vector
             gid_info(cell_gid_type g, cell_size_type di, connection_list c):
                 gid(g), index_on_domain(di), conns(std::move(c)) {}
         };
@@ -64,29 +67,36 @@ public:
         //   -> src_domains: array with one entry for every local connection
         // Also the count of presynaptic sources from each domain
         //   -> src_counts: array with one entry for each domain
-        std::vector<gid_info> gid_infos;
-        gid_infos.reserve(dom_dec.num_local_cells);
 
-        cell_local_size_type n_cons = 0;
-        cell_local_size_type n_gid = 0;
+        // Record all the gid in a flat vector.
+        // These are used to map from local index to gid in the parallel loop
+        // that populates gid_infos.
+        std::vector<cell_gid_type> gids;
+        gids.reserve(num_local_cells_);
+        for (auto g: dom_dec.groups) {
+            util::append(gids, g.gids);
+        }
+        // Build the connection information for local cells in parallel.
+        std::vector<gid_info> gid_infos;
+        gid_infos.resize(num_local_cells_);
+        threading::parallel_for::apply(0, gids.size(),
+            [&](cell_size_type i) {
+                auto gid = gids[i];
+                gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
+            });
+
+        cell_local_size_type n_cons =
+            util::sum_by(gid_infos, [](const gid_info& g){ return g.conns.size(); });
         std::vector<unsigned> src_domains;
+        src_domains.reserve(n_cons);
         std::vector<cell_size_type> src_counts(num_domains_);
-        for (auto g: make_span(0, num_local_groups_)) {
-            const auto& group = dom_dec.groups[g];
-            for (auto gid: group.gids) {
-                gid_info info(gid, n_gid, rec.connections_on(gid));
-                n_cons += info.conns.size();
-                for (auto con: info.conns) {
-                    const auto src = dom_dec.gid_domain(con.source.gid);
-                    src_domains.push_back(src);
-                    src_counts[src]++;
-                }
-                gid_infos.push_back(std::move(info));
-                ++n_gid;
+        for (const auto& g: gid_infos) {
+            for (auto con: g.conns) {
+                const auto src = dom_dec.gid_domain(con.source.gid);
+                src_domains.push_back(src);
+                src_counts[src]++;
             }
         }
-
-        num_local_cells_ = n_gid;
 
         // Construct the connections.
         // The loop above gave the information required to construct in place
@@ -139,28 +149,38 @@ public:
     /// Takes as input the list of local_spikes that were generated on the calling domain.
     /// Returns the full global set of vectors, along with meta data about their partition
     gathered_vector<spike> exchange(std::vector<spike> local_spikes) {
+        PE(communication_exchange_sort);
         // sort the spikes in ascending order of source gid
         util::sort_by(local_spikes, [](spike s){return s.source;});
+        PL();
 
+        PE(communication_exchange_gather);
         // global all-to-all to gather a local copy of the global spike list on each node.
         auto global_spikes = comms_.gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
+        PL();
+
         return global_spikes;
     }
 
     /// Check each global spike in turn to see it generates local events.
     /// If so, make the events and insert them into the appropriate event list.
-    /// Return a vector that contains the event queues for each local cell group.
     ///
-    /// Returns a vector of event queues, with one queue for each local cell group. The
-    /// events in each queue are all events that must be delivered to targets in that cell
-    /// group as a result of the global spike exchange.
-    std::vector<pse_vector> make_event_queues(const gathered_vector<spike>& global_spikes) {
+    /// Takes reference to a vector of event lists as an argument, with one list
+    /// for each local cell group. On completion, the events in each list are
+    /// all events that must be delivered to targets in that cell group as a
+    /// result of the global spike exchange, plus any events that were already
+    /// in the list.
+    void make_event_queues(
+            const gathered_vector<spike>& global_spikes,
+            std::vector<pse_vector>& queues)
+    {
+        EXPECTS(queues.size()==num_local_cells_);
+
         using util::subrange_view;
         using util::make_span;
         using util::make_range;
 
-        auto queues = std::vector<pse_vector>(num_local_cells_);
         const auto& sp = global_spikes.partition();
         const auto& cp = connection_part_;
         for (auto dom: make_span(0, num_domains_)) {
@@ -210,8 +230,6 @@ public:
                 }
             }
         }
-
-        return queues;
     }
 
     /// Returns the total number of global spikes over the duration of the simulation

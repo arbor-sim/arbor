@@ -69,6 +69,7 @@ using sample_size_type = std::int32_t;
 
 enum cell_kind {
     cable1d_neuron,           // Our own special mc neuron
+    lif_neuron,               // Leaky-integrate and fire neuron
     regular_spike_source,     // Regular spiking source
     data_spike_source,        // Spike source from values inserted via description
 };
@@ -76,6 +77,7 @@ enum cell_kind {
 } // namespace arb
 
 std::ostream& operator<<(std::ostream& O, arb::cell_member_type m);
+std::ostream& operator<<(std::ostream& O, arb::cell_kind k);
 
 namespace std {
     template <> struct hash<arb::cell_member_type> {

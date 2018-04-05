@@ -22,7 +22,6 @@ using namespace testing::string_literals;
 // * One implementation of burble for the bar backend, with
 //   a mismatched fingerprint: burble_bar.
 
-
 // Mechanism info:
 
 using field_kind = mechanism_field_spec::field_kind;

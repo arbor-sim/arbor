@@ -97,7 +97,7 @@ Container& append(Container &c, const Seq& seq) {
 template <typename AssignableContainer, typename Seq>
 AssignableContainer& assign(AssignableContainer& c, const Seq& seq) {
     auto canon = canonical_view(seq);
-    c.assign(std::begin(canon), std::end(canon));
+    c.assign(canon.begin(), canon.end());
     return c;
 }
 
@@ -112,7 +112,8 @@ namespace impl {
         // This requires that C supports construction from a pair of iterators
         template <typename C>
         operator C() const {
-            return C(std::begin(ref), std::end(ref));
+            auto canon = canonical_view(ref);
+            return C(canon.begin(), canon.end());
         }
 
         const Seq& ref;

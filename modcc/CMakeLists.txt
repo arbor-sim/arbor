@@ -1,26 +1,25 @@
 set(MODCC_SOURCES
     astmanip.cpp
-    cexpr_emit.cpp
-    cprinter.cpp
-    cprinter2.cpp
-    cudaprinter.cpp
     errorvisitor.cpp
     expression.cpp
     functionexpander.cpp
     functioninliner.cpp
-    infoprinter.cpp
     lexer.cpp
     kineticrewriter.cpp
     module.cpp
     parser.cpp
-    printerutil.cpp
     solvers.cpp
     symdiff.cpp
     symge.cpp
-    textbuffer.cpp
     token.cpp
 
     io/prefixbuf.cpp
+
+    printer/cexpr_emit.cpp
+    printer/cprinter.cpp
+    #printer/cudaprinter.cpp
+    printer/infoprinter.cpp
+    printer/printerutil.cpp
 )
 
 include_directories("${PROJECT_SOURCE_DIR}/modcc")

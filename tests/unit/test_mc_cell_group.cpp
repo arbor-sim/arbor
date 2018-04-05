@@ -1,6 +1,6 @@
 #include "../gtest.h"
 
-#include <backends/multicore/fvm.hpp>
+#include <backends.hpp>
 #include <common_types.hpp>
 #include <epoch.hpp>
 #include <fvm_lowered_cell.hpp>
@@ -12,25 +12,35 @@
 #include "../simple_recipes.hpp"
 
 using namespace arb;
-using fvm_cell = fvm_lowered_cell<arb::multicore::backend>;
 
-cell make_cell() {
-    auto c = make_cell_ball_and_stick();
+namespace {
+    fvm_lowered_cell_ptr lowered_cell() {
+        return make_fvm_lowered_cell(backend_kind::multicore);
+    }
 
-    c.add_detector({0, 0}, 0);
-    c.segment(1)->set_compartments(101);
+    cell make_cell() {
+        auto c = make_cell_ball_and_stick();
 
-    return c;
+        c.add_detector({0, 0}, 0);
+        c.segment(1)->set_compartments(101);
+
+        return c;
+    }
 }
 
+ACCESS_BIND(
+    std::vector<cell_member_type> mc_cell_group::*,
+    private_spike_sources_ptr,
+    &mc_cell_group::spike_sources_)
+
 TEST(mc_cell_group, get_kind) {
-    mc_cell_group<fvm_cell> group{{0}, cable1d_recipe(make_cell()) };
+    mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
 
     EXPECT_EQ(cell_kind::cable1d_neuron, group.get_cell_kind());
 }
 
 TEST(mc_cell_group, test) {
-    mc_cell_group<fvm_cell> group{{0}, cable1d_recipe(make_cell()) };
+    mc_cell_group group{{0}, cable1d_recipe(make_cell()), lowered_cell()};
     group.advance(epoch(0, 50), 0.01, {});
 
     // Model is expected to generate 4 spikes as a result of the
@@ -53,12 +63,12 @@ TEST(mc_cell_group, sources) {
     }
 
     std::vector<cell_gid_type> gids = {3u, 4u, 10u, 16u, 17u, 18u};
-    mc_cell_group<fvm_cell> group{gids, cable1d_recipe(cells)};
+    mc_cell_group group{gids, cable1d_recipe(cells), lowered_cell()};
 
     // Expect group sources to be lexicographically sorted by source id
     // with gids in cell group's range and indices starting from zero.
 
-    const auto& sources = group.spike_sources();
+    const auto& sources = group.*private_spike_sources_ptr;
     for (unsigned j = 0; j<sources.size(); ++j) {
         auto id = sources[j];
         if (j==0) {

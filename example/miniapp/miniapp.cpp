@@ -159,8 +159,9 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        util::profiler_output(0.001, options.profile_only_zero);
-        std::cout << "there were " << m.num_spikes() << " spikes\n";
+        auto profile = util::profiler_summary();
+        std::cout << profile << "\n";
+        std::cout << "\nthere were " << m.num_spikes() << " spikes\n";
 
         // save traces
         auto write_trace = options.trace_format=="json"? write_trace_json: write_trace_csv;

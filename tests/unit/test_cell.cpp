@@ -224,7 +224,7 @@ TEST(cell, clone)
 
     // make clone
 
-    cell d(clone_cell, c);
+    cell d(c);
 
     // check equality
 

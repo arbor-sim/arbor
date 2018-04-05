@@ -6,7 +6,7 @@
 
 using namespace arb;
 
-std::vector<event_generator_ptr> empty_gens;
+std::vector<event_generator> empty_gens;
 
 // Test the trivial case of merging empty sets
 TEST(merge_events, empty)
@@ -127,10 +127,9 @@ TEST(merge_events, X)
         {{3, 0}, 26, 4},
     };
 
-    std::vector<event_generator_ptr> generators(2);
-    generators.push_back(
-        make_event_generator<regular_generator>
-        (cell_member_type{4,2}, 42.f, t0, 5));
+    std::vector<event_generator> generators(2);
+    generators.emplace_back(
+        regular_generator(cell_member_type{4,2}, 42.f, t0, 5));
 
     merge_events(t0, t1, lc, events, generators, lf);
 
@@ -170,9 +169,9 @@ TEST(merge_events, tourney_seq)
         {{0, 0}, 5.5, 5},
     };
 
-    std::vector<event_generator_ptr> generators;
-    generators.push_back(make_event_generator<seq_generator<pse_vector>>(g1));
-    generators.push_back(make_event_generator<seq_generator<pse_vector>>(g2));
+    std::vector<event_generator> generators;
+    generators.emplace_back(seq_generator<pse_vector>(g1));
+    generators.emplace_back(seq_generator<pse_vector>(g2));
     impl::tourney_tree tree(generators);
 
     pse_vector lf;
@@ -201,30 +200,28 @@ TEST(merge_events, tourney_poisson)
     time_type t0 = 0;
     time_type lambda = 10; // expected: tfinal*lambda=1000 events per generator
 
-    std::vector<event_generator_ptr> generators;
+    std::vector<event_generator> generators;
     for (auto i=0u; i<ngen; ++i) {
         cell_member_type tgt{0, i};
         float weight = i;
         // the first and last generators have the same seed to test that sorting
         // of events with the same time but different weights works properly.
         rndgen G(i%(ngen-1));
-        generators.push_back(
-            make_event_generator<
-                poisson_generator<std::mt19937_64>>
-                (tgt, weight, G, t0, lambda));
+        generators.emplace_back(
+                poisson_generator<std::mt19937_64>(tgt, weight, G, t0, lambda));
     }
 
     // manually generate the expected output
     pse_vector expected;
     for (auto& gen: generators) {
         // Push all events before tfinal in gen to the expected values.
-        while (gen->next().time<tfinal) {
-            expected.push_back(gen->next());
-            gen->pop();
+        while (gen.next().time<tfinal) {
+            expected.push_back(gen.next());
+            gen.pop();
         }
         // Reset the generator so that it is ready to generate the same
         // events again for the tournament tree test.
-        gen->reset();
+        gen.reset();
     }
     // Manually sort the expected events.
     util::sort(expected);

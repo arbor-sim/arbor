@@ -60,6 +60,10 @@ public:
     void inject_events(const pse_vector& events);
 
 private:
+    // Private helper function that sets up the event lanes for an epoch.
+    // See comments on implementation for more information.
+    void setup_events(time_type t_from, time_type time_to, std::size_t epoch_id);
+
     std::vector<pse_vector>& event_lanes(std::size_t epoch_id);
 
     std::size_t num_groups() const;
@@ -68,10 +72,11 @@ private:
     epoch epoch_;
 
     time_type t_ = 0.;
+    time_type min_delay_;
     std::vector<cell_group_ptr> cell_groups_;
 
     // one set of event_generators for each local cell
-    std::vector<std::vector<event_generator_ptr>> event_generators_;
+    std::vector<std::vector<event_generator>> event_generators_;
 
     using local_spike_store_type = thread_private_spike_store;
     util::double_buffer<local_spike_store_type> local_spikes_;
@@ -103,6 +108,7 @@ private:
 
     // Pending events to be delivered.
     std::array<std::vector<pse_vector>, 2> event_lanes_;
+    std::vector<pse_vector> pending_events_;
 
     // Sampler associations handles are managed by a helper class.
     util::handle_set<sampler_association_handle> sassoc_handles_;

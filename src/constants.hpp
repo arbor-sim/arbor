@@ -18,7 +18,7 @@ namespace constant {
 
 // Universal gas constant (R)
 // https://physics.nist.gov/cgi-bin/cuu/Value?r
-constexpr double gas_constant = 8.3144598;  //  J.°K^-1.mol^-1
+constexpr double gas_constant = 8.3144598;  //  J.K^-1.mol^-1
 
 // Faraday's constant (F)
 // https://physics.nist.gov/cgi-bin/cuu/Value?f
@@ -26,7 +26,7 @@ constexpr double faraday = 96485.33289;     // C.mol^-1
 
 // Temperature used in original Hodgkin-Huxley paper
 //      doi:10.1113/jphysiol.1952.sp004764
-constexpr double hh_squid_temp = 6.3+273.15; // °K
+constexpr double hh_squid_temp = 6.3+273.15; // K
 
 } // namespace arb
 } // namespace arb

@@ -16,10 +16,19 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "XL")
 endif()
 
 if(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    set(CXXOPT_KNL "-march=knl")
+    set(CXXOPT_AVX2 "-mavx2 -mfma")
+    set(CXXOPT_AVX512 "-mavx512f -mavx512cd")
+
     # Disable 'missing-braces' warning: this will inappropriately
     # flag initializations such as
     #     std::array<int,3> a={1,2,3};
     set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
+
+    # Disable 'potentially-evaluated-expression' warning: this warns
+    # on expressions of the form `typeid(expr)` when `expr` has side
+    # effects.
+    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-potentially-evaluated-expression")
 
     # Clang is erroneously warning that T is an 'unused type alias' in code like this:
     # struct X {
@@ -36,7 +45,7 @@ if(${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
     # Compiler flags for generating KNL-specific AVX512 instructions
     # supported in gcc 4.9.x and later.
     set(CXXOPT_KNL "-march=knl")
-    set(CXXOPT_AVX2 "-mavx2")
+    set(CXXOPT_AVX2 "-mavx2 -mfma")
     set(CXXOPT_AVX512 "-mavx512f -mavx512cd")
 
     # Disable 'maybe-uninitialized' warning: this will be raised
