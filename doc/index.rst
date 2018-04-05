@@ -26,7 +26,7 @@ Arbor is designed from the ground up for **many core**  architectures:
 Features
 --------
 
-We are actively developing Arbor, improving performance and adding features.
+We are actively developing `Arbor <https://github.com/eth-cscs/arbor>`_, improving performance and adding features.
 Some key features include:
 
     * Optimized back ends for CUDA, KNL and AVX2 intrinsics.
@@ -39,19 +39,23 @@ Some key features include:
 
 .. toctree::
    :caption: Getting Stared:
-   :maxdepth: 1
 
    install
 
 .. toctree::
    :caption: Users:
-   :maxdepth: 1
 
    users
 
 .. toctree::
+   :caption: C++ API:
+
+   cpp_intro
+   cpp_common
+   cpp_recipe
+
+.. toctree::
    :caption: Developers:
-   :maxdepth: 1
 
    library
    simd_api

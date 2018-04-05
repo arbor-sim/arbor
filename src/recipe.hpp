@@ -27,12 +27,8 @@ public:
 
 /* Recipe descriptions are cell-oriented: in order that the building
  * phase can be done distributedly and in order that the recipe
- * description can be built indepdently of any runtime execution
- * environment, connection end-points are represented by pairs
- * (cell index, source/target index on cell).
+ * description can be built indepdently of any runtime execution environment.
  */
-
-using cell_connection_endpoint = cell_member_type;
 
 // Note: `cell_connection` and `connection` have essentially the same data
 // and represent the same thing conceptually. `cell_connection` objects
@@ -41,6 +37,10 @@ using cell_connection_endpoint = cell_member_type;
 // two in the current code. These two types could well be merged.
 
 struct cell_connection {
+    // Connection end-points are represented by pairs
+    // (cell index, source/target index on cell).
+    using cell_connection_endpoint = cell_member_type;
+
     cell_connection_endpoint source;
     cell_connection_endpoint dest;
 

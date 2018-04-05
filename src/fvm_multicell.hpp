@@ -630,7 +630,7 @@ void fvm_multicell<Backend>::initialize(
     // Handle any global parameters for these cell groups.
     // (Currently: just specialized mechanisms).
     std::map<std::string, specialized_mechanism> special_mechs;
-    util::any gprops = rec.get_global_properties(cable1d_neuron);
+    util::any gprops = rec.get_global_properties(cell_kind::cable1d_neuron);
     if (gprops.has_value()) {
         special_mechs = util::any_cast<cell_global_properties&>(gprops).special_mechs;
     }
