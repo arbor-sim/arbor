@@ -1,8 +1,8 @@
 Recipes
 ===============
 
-An Arbor recipe is a description of a model. It  provides interface that the model building phase queries
-for information on cells, such as:
+An Arbor recipe is a description of a model. The recipe is queried during the model
+building phase to provide cell information, such as:
 
   * the number of cells in the model;
   * the type of a cell;
@@ -18,7 +18,6 @@ The interface and design of Arbor recipes was motivated by the following aims:
 
     * Building a simulation from a recipe description must be possible in a
       distributed system efficiently with minimal communication.
-      instantiation of the model to execute on the target system.
     * To minimise the amount of memory used in model building, to make it
       possible to build and run simulations in one run.
 
@@ -35,9 +34,9 @@ The steps of building a simulation from a recipe are:
 
 .. topic:: 1. Load balancing
 
-    First, the cell `gid` are partitioned cells over MPI ranks, and each rank
-    the cells to build up a cost model for the cells it has been assigned 
-    Then, the ranks coordinate to redistribute cells over MPI ranks so that
+    First, the cells are partitioned over MPI ranks, and each rank parses
+    the cells assigned to it to build a cost model.
+    The ranks then coordinate to redistribute cells over MPI ranks so that
     each rank has a balanced workload. Finally, each rank groups its local
     cells into :cpp:type:`cell_group` s that balance the work over threads (and
     GPU accelerators if available).
@@ -59,9 +58,9 @@ performance.
 
 .. topic:: Stay thread safe
 
-    The load balancing and model construction are multithreaded, i.e.
+    The load balancing and model construction are multithreaded, that is
     multiple threads query the recipe simultaneously.
-    So calls to a recipe member should not have side effects, and use
+    Hence calls to a recipe member should not have side effects, and should use
     lazy evaluation when possible (see `Be lazy <recipe_lazy_>`_).
 
 .. _recipe_lazy:
@@ -69,13 +68,13 @@ performance.
 .. topic:: Be lazy
 
     A recipe does not have to contain a complete description of the model in
-    memory, instead it should precompute as little as possible, and use
+    memory; it should precompute as little as possible, and use
     `lazy evaluation <https://en.wikipedia.org/wiki/Lazy_evaluation>`_ to generate
     information only when requested.
-    This has multiple benefites, including:
+    This has multiple benefits, including:
 
         * thread safety;
-        * minimise memory footprint of recipe.
+        * minimising memory footprint of recipe.
 
 .. topic:: Think of the cells
 
@@ -86,13 +85,13 @@ performance.
 
 .. topic:: Be reproducible
 
-    Arbor is designed to give reproduceable results when the same model is run on
-    different number of MPI ranks, or threads, or hardware (e.g. GPUs).
+    Arbor is designed to give reproduceable results when the same model is run on a
+    different number of MPI ranks or threads, or on different hardware (e.g. GPUs).
     This only holds when a recipe provides a reproducible model description, which
     can be a challenge when a description uses random numbers, e.g. to pick incoming
     connections to a cell from a random subset of a cell population.
     To get a reproduceable model, use the cell `gid` (or a hash based on the `gid`)
-    to see any random number generators, including those for :cpp:type:`event_generator` s.
+    to seed random number generators, including those for :cpp:type:`event_generator` s.
 
 
 Class Documentation
@@ -115,7 +114,7 @@ Class Documentation
 
     .. Warning::
         All member functions must be **thread safe**, because the recipe is used
-        by the multi-threaded model builing stage. In practice, this means that
+        by the multithreaded model builing stage. In practice, this means that
         multiple threads should be able to call member functions of a recipe
         simultaneously. Model building is multithreaded to reduce model building times,
         so recipe implementations should avoid using locks and mutexes to introduce
