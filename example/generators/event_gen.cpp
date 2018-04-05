@@ -54,8 +54,7 @@ public:
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        auto syn_spec = arb::mechanism_spec("expsyn");
-        c.add_synapse({0, 0.5}, syn_spec);
+        c.add_synapse({0, 0.5}, "expsyn");
 
         return std::move(c);
     }

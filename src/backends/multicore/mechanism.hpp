@@ -104,8 +104,8 @@ protected:
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
     // Generated mechanisms must implement the following methods, together with
-    // clone(), kind(), nrn_init(), nrn_state(), nrn_current() and deliver_events() (if
-    // required) from arb::mechanism.
+    // fingerprint(), clone(), kind(), nrn_init(), nrn_state(), nrn_current()
+    // and deliver_events() (if required) from arb::mechanism.
 
     // Member tables: introspection into derived mechanism fields, views etc.
     // Default implementations correspond to no corresponding fields/globals/ions.

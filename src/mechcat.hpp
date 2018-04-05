@@ -122,5 +122,4 @@ private:
 
 const mechanism_catalogue& global_default_catalogue();
 
-
 } // namespace arb
