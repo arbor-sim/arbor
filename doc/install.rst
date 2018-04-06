@@ -227,13 +227,13 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         cmake .. -DARB_THREADING_MODEL=tbb -DARB_VECTORIZE_TARGET=KNL
 
-.. topic:: `Release <buildtarget_>`_ mode with `CUDA <gpu_>`_ and `AVX2 <vectorize_>`_ and `GCC 5 <compilers_>`_
+.. topic:: `Release <buildtarget_>`_ mode with support for: `P100 GPUs <gpu_>`_; `AVX2 <vectorize_>`_; and `GCC 5 <compilers_>`_
 
     .. code-block:: bash
 
         export CC=gcc-5
         export CXX=g++-5
-        cmake .. -DARB_VECTORIZE_TARGET=AVX2 -DARB_WITH_CUDA=ON
+        cmake .. -DARB_VECTORIZE_TARGET=AVX2 -DARB_GPU_TARGET=P100
 
 .. _buildtarget:
 
@@ -349,16 +349,20 @@ which is implemented in the Arbor source code.
 GPU Backend
 -----------
 
-Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting the CMake ``ARB_WITH_CUDA`` option.
+Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting the
+CMake ``ARB_GPU_TARGET`` option:
 
 .. code-block:: bash
 
-    cmake .. -DARB_WITH_CUDA=ON
+    cmake -DARB_GPU_TARGET={none, K20, K80, P100}
+
+By default ``ARB_GPU_TARGET=none``, and a GPU target must explicitly be set to
+build for and run on GPUs.
 
 .. Note::
-    Abor requires:
-      * CUDA version >= 8
-      * P100 or more recent GPU (``-arch=sm_60``)
+    The main difference between the Kepler (K20 & K80) and Pascal (P100) GPUs is
+    the latter's built-in support for double precision atomics and fewer GPU
+    synchronizations when accessing managed memory.
 
 .. _cluster:
 
