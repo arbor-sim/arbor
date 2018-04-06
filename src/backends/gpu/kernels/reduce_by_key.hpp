@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "detail.hpp"
+#include <backends/gpu/intrinsics.hpp>
 
 namespace arb {
 namespace gpu {
@@ -9,6 +10,8 @@ namespace gpu {
 namespace impl{
 
 constexpr unsigned mask_all = 0xFFFFFFFF;
+
+
 
 // Wrappers around the CUDA warp intrinsics used in this file.
 // CUDA 9 replaced the warp intrinsics with _sync variants, and
@@ -162,7 +165,8 @@ void reduce_by_key(T contribution, T* target, I idx) {
 
     if(run.is_root()) {
         // Update atomically in case the run spans multiple warps.
-        atomicAdd(target+idx, contribution);
+        //atomicAdd(target+idx, contribution);
+        cuda_atomic_add(target+idx, contribution);
     }
 }
 

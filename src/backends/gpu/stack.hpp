@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include <memory/allocator.hpp>
+#include <backends/gpu/managed_ptr.hpp>
 #include "stack_common.hpp"
 
 namespace arb {
@@ -31,10 +32,13 @@ class stack {
     storage_type* storage_;
 
     storage_type* create_storage(unsigned n) {
+        if (managed_synch_required()) {
+            cudaDeviceSynchronize();
+        }
         auto p = allocator<storage_type>().allocate(1);
         p->capacity = n;
         p->stores = 0;
-        p->data = allocator<value_type>().allocate(n);
+        p->data = n? allocator<value_type>().allocate(n): nullptr;
         return p;
     }
 
@@ -56,7 +60,9 @@ public:
     explicit stack(unsigned capacity): storage_(create_storage(capacity)) {}
 
     ~stack() {
-        allocator<value_type>().deallocate(storage_->data, storage_->capacity);
+        if (storage_->data) {
+            allocator<value_type>().deallocate(storage_->data, storage_->capacity);
+        }
         allocator<storage_type>().deallocate(storage_, 1);
     }
 

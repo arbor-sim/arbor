@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cstdint>
 
 #include <constants.hpp>
@@ -41,10 +42,12 @@ void nernst(std::size_t n,
             const fvm_value_type* Xi,
             fvm_value_type* eX)
 {
-    constexpr int block_dim = 128;
-    const int grid_dim = impl::block_count(n, block_dim);
-    kernels::nernst<<<grid_dim, block_dim>>>
-        (n, valency, temperature, Xo, Xi, eX);
+    if (n>0) {
+        constexpr int block_dim = 128;
+        const int grid_dim = impl::block_count(n, block_dim);
+        kernels::nernst<<<grid_dim, block_dim>>>
+            (n, valency, temperature, Xo, Xi, eX);
+    }
 }
 
 void init_concentration(
@@ -53,10 +56,12 @@ void init_concentration(
             const fvm_value_type* weight_Xi, const fvm_value_type* weight_Xo,
             fvm_value_type c_int, fvm_value_type c_ext)
 {
-    constexpr int block_dim = 128;
-    const int grid_dim = impl::block_count(n, block_dim);
-    kernels::init_concentration<<<grid_dim, block_dim>>>
-        (n, Xi, Xo, weight_Xi, weight_Xo, c_int, c_ext);
+    if (n>0) {
+        constexpr int block_dim = 128;
+        const int grid_dim = impl::block_count(n, block_dim);
+        kernels::init_concentration<<<grid_dim, block_dim>>>
+            (n, Xi, Xo, weight_Xi, weight_Xo, c_int, c_ext);
+    }
 }
 
 } // namespace gpu

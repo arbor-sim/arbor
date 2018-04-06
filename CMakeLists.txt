@@ -125,25 +125,42 @@ endif()
 #----------------------------------------------------------
 # CUDA support
 #----------------------------------------------------------
-option(ARB_WITH_CUDA "use CUDA for GPU offload" OFF)
-if(ARB_WITH_CUDA)
+set(ARB_CUDA_TARGET "none" CACHE STRING "set the threading model, one of {none,K20,K80,P100}")
+set_property(CACHE ARB_CUDA_TARGET PROPERTY STRINGS none K20 K80 P100 )
+
+set(ARB_WITH_CUDA FALSE)
+
+if(NOT ARB_CUDA_TARGET MATCHES "none")
     find_package(CUDA REQUIRED)
+
+    set(ARB_WITH_CUDA TRUE)
 
     # Turn off annoying and incorrect warnings generated in the JSON file.
     # We also work around the same issue with the intel compiler.
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
+    # TODO: depricate if possible...
+    #set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\")
 
-    # set the CUDA target specfic flags
-    # code regions protected by ARB_HAVE_CUDA should only be available to the CUDA
+    # Code regions protected by ARB_HAVE_CUDA should only be available to the CUDA
     # compiler, which regions protected by ARB_HAVE_GPU are visible to both host
     # and device compiler when targetting GPU.
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_CUDA)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_GPU)
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60) # minimum target P100 GPUs
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-DARB_HAVE_CUDA;-DARB_HAVE_GPU)
 
     add_definitions(-DARB_HAVE_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
     list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
+endif()
+
+if(ARB_CUDA_TARGET MATCHES "K20")
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
+    add_definitions(-DARB_CUDA_ARCH=350)
+elseif(ARB_CUDA_TARGET MATCHES "K80")
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_37)
+    add_definitions(-DARB_CUDA_ARCH=370)
+elseif(ARB_CUDA_TARGET MATCHES "P100")
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
+    add_definitions(-DARB_CUDA_ARCH=600)
+elseif(NOT ARB_CUDA_TARGET MATCHES "none")
+    message( FATAL_ERROR "-- GPU architecture '${ARB_CUDA_TARGET}' not supported. Use one of {none, K20, K80, P100}")
 endif()
 
 #----------------------------------------------------------
