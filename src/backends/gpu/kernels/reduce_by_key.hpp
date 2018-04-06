@@ -165,7 +165,6 @@ void reduce_by_key(T contribution, T* target, I idx) {
 
     if(run.is_root()) {
         // Update atomically in case the run spans multiple warps.
-        //atomicAdd(target+idx, contribution);
         cuda_atomic_add(target+idx, contribution);
     }
 }
