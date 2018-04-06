@@ -666,16 +666,16 @@ a SIMD class of width *N* and value type *V*.
 
     * - ``C::copy_from(c)``
       - ``C::vector_type``
-      - Return a vector with values *v*\ `i`:sub: loaded from *p+i*. *p* may be unaligned.
+      - Return a vector with values *v*\ `i`:sub: loaded from *c+i*. *c* may be unaligned.
 
     * - ``C::copy_from_masked(c, m)``
       - ``C::vector_type``
-      - Return a vector with values *v*\ `i`:sub: loaded from *p+i* wherever *m*\ `i`:sub: is true. *p* may be unaligned.
+      - Return a vector with values *v*\ `i`:sub: loaded from *c+i* wherever *m*\ `i`:sub: is true. *c* may be unaligned.
 
     * - ``C::copy_from_masked(w, c, m)``
       - ``void``
-      - Return a vector with values *v*\ `i`:sub: loaded from *p+i* wherever *m*\ `i`:sub: is true, or equal to *w*\ `i`:sub
-        otherwise. *p* may be unaligned.
+      - Return a vector with values *v*\ `i`:sub: loaded from *c+i* wherever *m*\ `i`:sub: is true, or equal to *w*\ `i`:sub
+        otherwise. *c* may be unaligned.
 
 .. rubric:: Lane access
 
@@ -689,7 +689,7 @@ a SIMD class of width *N* and value type *V*.
 
     * - ``C::element(v, i)``
       - ``C::scalar_type``
-      - Value in ith lane of *u*.
+      - Value in ith lane of *v*.
 
     * - ``C::set_element(r, i, x)``
       - ``void``
@@ -925,7 +925,7 @@ SIMD mask class.
 
     * - ``C::select(m, v, w)``
       - ``C::vector_type``
-      - Lane-wise *m*? *v*: *u*.
+      - Lane-wise *m*? *v*: *w*.
 
 
 Missing functionality
