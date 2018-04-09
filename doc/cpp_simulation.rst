@@ -1,0 +1,138 @@
+Simulations
+===========
+
+From recipe to simulation
+-------------------------
+
+To build a simulation the following are needed:
+
+    * An :cpp:class:`arb::recipe` that describes the cells and connections
+      in the model.
+    * An :cpp:class:`arb::hw::node_info` type that describes the hardware
+      resources on which the model will be run.
+
+The workflow to build a simulation is to first generate a
+:cpp:class:`arb::domain_decomposition` that describes the distribution of the model
+over the hardware, then build the simulation.
+
+.. container:: example-code
+
+    .. code-block:: cpp
+
+        // Make description of the hardware that the simulation will run on.
+        arb::hw::node_info node;
+        node.num_cpu_cores = arb::threading::num_threads();
+        node.num_gpus = arb::hw::num_gpus()>0? 1: 0; // use 1 GPU if any available
+
+        // Make a recipe of user defined type my_recipe.
+        my_recipe recipe;
+
+        // Get a description of the partition the model over the cores
+        // (and gpu if available) on node.
+        auto decomp = arb::partition_load_balance(recipe, node);
+
+        // Instatitate the simulation that will run on the hardware described by node.
+        arb::simulation sim(recipe, decomp);
+
+
+Class Documentation
+-------------------
+
+.. cpp:namespace:: arb
+
+.. cpp:class:: simulation
+
+    The executable form of a model. A simulation is constructed
+    from a recipe, and then used to update model state and measure model state.
+
+    Simulations take the following inputs:
+
+        * The **constructor** takes an :cpp:class:`arb::recipe` that describes the model.
+        * The **constructor** takes an :cpp:class:`arb::domain_decomposition` that
+          describes how the cells in the model assigned to hardware resources.
+        * **Experimental inputs** that could change between model runs, such
+          as external spike trains.
+
+    Simulations provide an interface for executing and interacting with the model:
+
+        * **Advance model state** from one time to another and reset model
+          state to its original state before simulation was started.
+        * **I/O** interface for sampling simulation variables (e.g. compartment voltage
+          and current) and spike output.
+
+    **Types:**
+
+    .. cpp:type:: communicator_type = communication::communicator<communication::global_policy>
+
+        Type used for distributed communication of spikes and global synchronization.
+
+    .. cpp:type:: spike_export_function = std::function<void(const std::vector<spike>&)>
+
+        User-supplied callack function used as a sink for spikes generated
+        during a simulation. See :cpp:func:`set_local_spike_callback` and
+        :cpp:func:`set_global_spike_callback`.
+
+    **Constructor:**
+
+    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp)
+
+    **Experimental inputs:**
+
+    .. cpp:function:: void inject_events(const pse_vector& events)
+
+        Add events directly to targets.
+        Must be called before calling :cpp:func:`simulation::run`, and must contain events that
+        are to be delivered at or after the current simulation time.
+
+    **Updating Model State:**
+
+    .. cpp:function:: void reset()
+
+        Reset the state of the simulation to its original state before
+        :cpp:func:`simulation::run` was called.
+
+    .. cpp:function:: time_type run(time_type tfinal, time_type dt)
+
+        Run the simulation from current simulation time to :cpp:var:`tfinal`,
+        with maximum time step size :cpp:var:`dt`.
+
+    .. cpp:function:: void set_binning_policy(binning_kind policy, time_type bin_interval)
+
+        Set event binning policy on all our groups.
+
+    **I/O:**
+
+    .. cpp:function:: sampler_association_handle add_sampler(\
+                        cell_member_predicate probe_ids,\
+                        schedule sched,\
+                        sampler_function f,\
+                        sampling_policy policy = sampling_policy::lax)
+
+        Note: sampler functions may be invoked from a different thread than that
+        which called :cpp:func:`simulation::run`.
+
+        (see the :ref:`sampling_api` documentation.)
+
+    .. cpp:function:: void remove_sampler(sampler_association_handle)
+
+        Remove a sampler.
+        (see the :ref:`sampling_api` documentation.)
+
+    .. cpp:function:: void remove_all_samplers()
+
+        Remove all samplers from probes.
+        (see the :ref:`sampling_api` documentation.)
+
+    .. cpp:function:: std::size_t num_spikes() const
+
+        The total number of spikes in the global model.
+
+    .. cpp:function:: void set_global_spike_callback(spike_export_function export_callback)
+
+        Register a callback that will perform an export of the global spike vector.
+
+    .. cpp:function:: void set_local_spike_callback(spike_export_function export_callback)
+
+        Register a callback that will perform an export of the rank local spike vector.
+
+

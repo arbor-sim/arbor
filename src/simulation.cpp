@@ -253,11 +253,11 @@ void simulation::set_binning_policy(binning_kind policy, time_type bin_interval)
 }
 
 void simulation::set_global_spike_callback(spike_export_function export_callback) {
-    global_export_callback_ = export_callback;
+    global_export_callback_ = std::move(export_callback);
 }
 
 void simulation::set_local_spike_callback(spike_export_function export_callback) {
-    local_export_callback_ = export_callback;
+    local_export_callback_ = std::move(export_callback);
 }
 
 util::optional<cell_size_type> simulation::local_cell_index(cell_gid_type gid) {
