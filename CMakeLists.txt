@@ -125,7 +125,7 @@ endif()
 #----------------------------------------------------------
 # CUDA support
 #----------------------------------------------------------
-set(ARB_GPU_TARGET "none" CACHE STRING "set the threading model, one of {none,K20,K80,P100}")
+set(ARB_GPU_TARGET "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
 set_property(CACHE ARB_GPU_TARGET PROPERTY STRINGS none K20 K80 P100 )
 
 set(ARB_WITH_CUDA FALSE)

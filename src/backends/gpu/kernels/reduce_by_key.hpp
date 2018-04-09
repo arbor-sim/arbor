@@ -11,8 +11,6 @@ namespace impl{
 
 constexpr unsigned mask_all = 0xFFFFFFFF;
 
-
-
 // Wrappers around the CUDA warp intrinsics used in this file.
 // CUDA 9 replaced the warp intrinsics with _sync variants, and
 // depricated the old symbols.

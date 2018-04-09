@@ -2,8 +2,8 @@
 
 #include <algorithm>
 
-#include <memory/allocator.hpp>
 #include <backends/gpu/managed_ptr.hpp>
+#include <memory/allocator.hpp>
 #include "stack_common.hpp"
 
 namespace arb {
