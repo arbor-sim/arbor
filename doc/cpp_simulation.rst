@@ -29,9 +29,9 @@ over the hardware, then build the simulation.
 
         // Get a description of the partition the model over the cores
         // (and gpu if available) on node.
-        auto decomp = arb::partition_load_balance(recipe, node);
+        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, node);
 
-        // Instatitate the simulation that will run on the hardware described by node.
+        // Instatitate the simulation.
         arb::simulation sim(recipe, decomp);
 
 
@@ -43,14 +43,14 @@ Class Documentation
 .. cpp:class:: simulation
 
     The executable form of a model. A simulation is constructed
-    from a recipe, and then used to update model state and measure model state.
+    from a recipe, and then used to update and monitor model state.
 
     Simulations take the following inputs:
 
-        * The **constructor** takes an :cpp:class:`arb::recipe` that describes the model.
-        * The **constructor** takes an :cpp:class:`arb::domain_decomposition` that
-          describes how the cells in the model assigned to hardware resources.
-        * **Experimental inputs** that could change between model runs, such
+        * The **constructor** takes an :cpp:class:`arb::recipe` that describes
+          the model, and an :cpp:class:`arb::domain_decomposition` that
+          describes how the cells in the model are assigned to hardware resources.
+        * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 
     Simulations provide an interface for executing and interacting with the model:
@@ -125,14 +125,15 @@ Class Documentation
 
     .. cpp:function:: std::size_t num_spikes() const
 
-        The total number of spikes in the global model.
+        The total number of spikes that occurred since either construction or
+        last resetting the model.
 
     .. cpp:function:: void set_global_spike_callback(spike_export_function export_callback)
 
         Register a callback that will perform an export of the global spike vector.
+        Will be called on the MPI rank/domain with id 0.
 
     .. cpp:function:: void set_local_spike_callback(spike_export_function export_callback)
 
         Register a callback that will perform an export of the rank local spike vector.
-
-
+        Will be called on each MPI rank/domain with a copy of the local spikes.
