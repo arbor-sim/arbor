@@ -4,7 +4,7 @@
 #include <lif_cell_description.hpp>
 #include <lif_cell_group.hpp>
 #include <load_balance.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <rss_cell.hpp>
 #include <rss_cell_group.hpp>
@@ -161,7 +161,7 @@ TEST(lif_cell_group, spikes) {
     nd.num_cpu_cores = threading::num_threads();
 
     auto decomp = partition_load_balance(recipe, nd);
-    model m(recipe, decomp);
+    simulation sim(recipe, decomp);
 
     std::vector<postsynaptic_spike_event> events;
 
@@ -176,14 +176,14 @@ TEST(lif_cell_group, spikes) {
     // event, should thus trigger new spike (first neuron).
     events.push_back({{0, 0}, 50, 1000});
 
-    m.inject_events(events);
+    sim.inject_events(events);
 
     time_type tfinal = 100;
     time_type dt = 0.01;
-    m.run(tfinal, dt);
+    sim.run(tfinal, dt);
 
     // we expect 4 spikes: 2 by both neurons
-    EXPECT_EQ(4u, m.num_spikes());
+    EXPECT_EQ(4u, sim.num_spikes());
 }
 
 TEST(lif_cell_group, ring)
@@ -202,19 +202,19 @@ TEST(lif_cell_group, ring)
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
     auto decomp = partition_load_balance(recipe, nd);
 
-    // Creates a model with a ring recipe of lif neurons
-    model mod(recipe, decomp);
+    // Creates a simulation with a ring recipe of lif neurons
+    simulation sim(recipe, decomp);
 
     std::vector<spike> spike_buffer;
 
-    mod.set_global_spike_callback(
+    sim.set_global_spike_callback(
         [&spike_buffer](const std::vector<spike>& spikes) {
             spike_buffer.insert(spike_buffer.end(), spikes.begin(), spikes.end());
         }
     );
 
     // Runs the simulation for simulation_time with given timestep
-    mod.run(simulation_time, 0.01);
+    sim.run(simulation_time, 0.01);
     // The total number of cells in all the cell groups.
     // There is one additional fake cell (regularly spiking cell).
     EXPECT_EQ(num_lif_cells + 1u, recipe.num_cells());

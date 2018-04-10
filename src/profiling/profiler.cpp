@@ -289,6 +289,41 @@ void print(std::ostream& o,
     auto name = indent + n.name;
     float per_thread_time = n.time/nthreads;
     float proportion = n.time/wall_time*100;
+
+    // If the percentage of overall time for this region is below the
+    // threashold, stop drawing this branch.
+    if (proportion<thresh) return;
+
+    if (n.count==profile_node::npos) {
+        snprintf(buf, util::size(buf), "_p_ %-20s%12s%12.3f%12.3f%8.1f",
+               name.c_str(), "-", float(n.time), per_thread_time, proportion);
+    }
+    else {
+        snprintf(buf, util::size(buf), "_p_ %-20s%12lu%12.3f%12.3f%8.1f",
+               name.c_str(), n.count, float(n.time), per_thread_time, proportion);
+    }
+    o << "\n" << buf;
+
+    // print each of the children in turn
+    for (auto& c: n.children) print(o, c, wall_time, nthreads, thresh, indent+"  ");
+};
+
+//
+// convenience functions for instrumenting code.
+//
+
+void print(std::ostream& o,
+           profile_node& n,
+           float wall_time,
+           unsigned nthreads,
+           float thresh,
+           std::string indent="")
+{
+    static char buf[80];
+
+    auto name = indent + n.name;
+    float per_thread_time = n.time/nthreads;
+    float proportion = n.time/wall_time*100;
     // If the percentage of overall time for this region is below the
     // threashold, stop drawing this branch.
     if (proportion<thresh) return;

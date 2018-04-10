@@ -2,7 +2,6 @@
 
 #include <event_queue.hpp>
 #include <merge_events.hpp>
-#include <model.hpp>
 
 using namespace arb;
 

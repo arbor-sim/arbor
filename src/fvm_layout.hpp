@@ -91,19 +91,19 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells);
 
 struct fvm_mechanism_config {
     using value_type = fvm_value_type;
-    using size_type = fvm_size_type;
+    using index_type = fvm_index_type;
 
     mechanismKind kind;
 
     // Ordered CV indices where mechanism is present; may contain
     // duplicates for point mechanisms.
-    std::vector<size_type> cv;
+    std::vector<index_type> cv;
 
     // Normalized area contribution in corresponding CV (density mechanisms only).
     std::vector<value_type> norm_area;
 
     // Synapse target number (point mechanisms only).
-    std::vector<size_type> target;
+    std::vector<index_type> target;
 
     // (Non-global) parameters and parameter values across the mechanism instance.
     std::vector<std::pair<std::string, std::vector<value_type>>> param_values;
@@ -113,10 +113,10 @@ struct fvm_mechanism_config {
 
 struct fvm_ion_config {
     using value_type = fvm_value_type;
-    using size_type = fvm_size_type;
+    using index_type = fvm_index_type;
 
     // Ordered CV indices where ion must be present.
-    std::vector<size_type> cv;
+    std::vector<index_type> cv;
 
     // Normalized area contribution of default concentration contribution in corresponding CV.
     std::vector<value_type> iconc_norm_area;

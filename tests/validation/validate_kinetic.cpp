@@ -7,7 +7,7 @@
 #include <hardware/node_info.hpp>
 #include <hardware/gpu.hpp>
 #include <load_balance.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
@@ -43,7 +43,7 @@ void run_kinetic_dt(
 
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
     auto decomp = partition_load_balance(rec, nd);
-    model model(rec, decomp);
+    simulation sim(rec, decomp);
 
     auto exclude = stimulus_ends(c);
 
@@ -54,9 +54,9 @@ void run_kinetic_dt(
             double oo_dt = base/multiple;
             if (oo_dt>max_oo_dt) goto end;
 
-            model.reset();
+            sim.reset();
             float dt = float(1./oo_dt);
-            runner.run(model, dt, sample_dt, t_end, dt, exclude);
+            runner.run(sim, dt, sample_dt, t_end, dt, exclude);
         }
     }
 

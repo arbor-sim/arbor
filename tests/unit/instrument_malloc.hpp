@@ -48,6 +48,10 @@ namespace testing {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__INTEL_COMPILER)
+#pragma warning push
+#pragma warning disable 1478
+#endif
 
 // Totally not thread safe!
 struct with_instrumented_malloc {
@@ -132,6 +136,9 @@ private:
 };
 
 #pragma GCC diagnostic pop
+#if defined(__INTEL_COMPILER)
+#pragma warning pop
+#endif
 
 #else
 

@@ -2,7 +2,8 @@ Profiler
 ========
 
 The Arbor library has a built-in profiler for fine-grained timings of regions of interest in the code.
-The time stepping code in ``arb::model`` has been instrumented, so by enabling profiler support at compile time, users of the library can generate profile reports from calls to ``arb::model::run()``.
+The time stepping code in ``arb::simulation`` has been instrumented, so by enabling profiler support at
+compile time, users of the library can generate profile reports from calls to ``arb::simulation::run()``.
 
 Compilation
 -----------
@@ -184,7 +185,7 @@ and the profiler regions can be reset.
         }
 
 After a call to ``util::profiler_clear``, all counters and timers are set to zero.
-This could be used, for example, to generate seperate profiler reports for model building and model executation phases of a simulation.
+This could be used, for example, to generate seperate profiler reports for model building and model executation phases.
 
 Profiler Output
 ~~~~~~~~~~~~~~~

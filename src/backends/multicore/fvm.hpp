@@ -22,6 +22,7 @@ struct backend {
     static std::string name() { return "cpu"; }
 
     using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
     using size_type  = fvm_size_type;
 
     using array  = arb::multicore::array;
@@ -31,7 +32,7 @@ struct backend {
         return util::range_pointer_view(v);
     }
 
-    static util::range<const size_type*> host_view(const iarray& v) {
+    static util::range<const index_type*> host_view(const iarray& v) {
         return util::range_pointer_view(v);
     }
 
@@ -45,7 +46,7 @@ struct backend {
 
     static threshold_watcher voltage_watcher(
         const shared_state& state,
-        const std::vector<size_type>& cv,
+        const std::vector<index_type>& cv,
         const std::vector<value_type>& thresholds)
     {
         return threshold_watcher(

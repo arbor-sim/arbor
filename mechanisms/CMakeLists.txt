@@ -11,19 +11,9 @@ set(mech_dir "mechanisms/generated")
 set(abs_mech_dir "${CMAKE_SOURCE_DIR}/${mech_dir}")
 file(MAKE_DIRECTORY "${abs_mech_dir}")
 
-if(ARB_VECTORIZE_TARGET STREQUAL "none")
-    set(modcc_simd "")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "KNL")
-    set(modcc_simd "-s avx512")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
-    set(modcc_simd "-s avx512")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
-    set(modcc_simd "-s avx2")
-else()
-    message(SEND_ERROR "Unrecognized architecture for ARB_VECTORIZE_TARGET")
-    set(modcc_simd "")
+if(NOT ARB_VECTORIZE STREQUAL "none")
+    set(modcc_simd "-s ${ARB_VECTORIZE}")
 endif()
-
 
 build_modules(
     ${mechanisms}
@@ -53,6 +43,8 @@ foreach(mech ${mechanisms})
 endforeach()
 
 add_library(arbormech ${cpu_mech_sources} ${catsrc})
+target_compile_options(arbormech PRIVATE ${CXXOPT_ARCH})
+
 if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
     add_dependencies(arbormech build_all_mods)
 endif()

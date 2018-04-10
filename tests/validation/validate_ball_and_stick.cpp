@@ -5,7 +5,7 @@
 #include <load_balance.hpp>
 #include <hardware/node_info.hpp>
 #include <hardware/gpu.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <segment.hpp>
 #include <simple_sampler.hpp>
@@ -77,9 +77,9 @@ void run_ncomp_convergence_test(
 
         hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
         auto decomp = partition_load_balance(rec, nd);
-        model m(rec, decomp);
+        simulation sim(rec, decomp);
 
-        runner.run(m, ncomp, sample_dt, t_end, dt, exclude);
+        runner.run(sim, ncomp, sample_dt, t_end, dt, exclude);
     }
     runner.report();
     runner.assert_all_convergence();

@@ -36,6 +36,7 @@ class fvm_lowered_cell_impl: public fvm_lowered_cell {
 public:
     using backend = Backend;
     using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
     void reset() override;
@@ -294,7 +295,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         cells.push_back(any_cast<cell>(rec.get_cell_description(gid)));
     }
 
-    auto rec_props = rec.get_global_properties(cable1d_neuron);
+    auto rec_props = rec.get_global_properties(cell_kind::cable1d_neuron);
     auto global_props = rec_props.has_value()? any_cast<cell_global_properties>(rec_props): cell_global_properties{};
 
     const mechanism_catalogue* catalogue = global_props.catalogue;
@@ -386,7 +387,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Collect detectors, probe handles.
 
-    std::vector<size_type> detector_cv;
+    std::vector<index_type> detector_cv;
     std::vector<value_type> detector_threshold;
 
     for (auto cell_idx: make_span(ncell)) {

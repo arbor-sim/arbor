@@ -67,7 +67,7 @@ using sample_size_type = std::int32_t;
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
-enum cell_kind {
+enum class cell_kind {
     cable1d_neuron,           // Our own special mc neuron
     lif_neuron,               // Leaky-integrate and fire neuron
     regular_spike_source,     // Regular spiking source

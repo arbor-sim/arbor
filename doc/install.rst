@@ -159,7 +159,8 @@ Building Arbor
 Once the Arbor code has been checked out, it can be built by first running CMake to configure the build, then running make.
 
 Below is a simple workflow for: **1)** getting the source; **2)** configuring the build;
-**3)** building then; **4)** running tests.
+**3)** building; **4)** then running tests.
+
 For more detailed build configuration options, see the `quick start <quickstart_>`_ guide.
 
 .. code-block:: bash

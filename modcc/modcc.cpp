@@ -44,12 +44,13 @@ std::unordered_map<std::string, targetKind> targetKindMap = {
     {"gpu", targetKind::gpu},
 };
 
-std::unordered_map<std::string, simdKind> simdKindMap = {
-    {"none", simdKind::none},
-    {"avx",  simdKind::avx},
-    {"avx2", simdKind::avx2},
-    {"avx512", simdKind::avx512},
-    {"native", simdKind::native}
+std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
+    {"none", simd_spec::none},
+    {"avx",  simd_spec::avx},
+    {"avx2", simd_spec::avx2},
+    {"avx512", simd_spec::avx512},
+    {"default", simd_spec::default_abi},
+    {"native", simd_spec::native}
 };
 
 template <typename Map, typename V>
@@ -66,7 +67,7 @@ struct Options {
     std::string modulename;
     bool verbose = true;
     bool analysis = false;
-    simdKind simd_arch = simdKind::none;
+    simd_spec simd = simd_spec::none;
     std::unordered_set<targetKind, enum_hash> targets;
 };
 
@@ -75,6 +76,15 @@ struct table_prefix { std::string text; };
 std::ostream& operator<<(std::ostream& out, const table_prefix& tb) {
     return out << cyan("| "+tb.text) << std::right << std::setw(58-tb.text.size());
 };
+
+std::ostream& operator<<(std::ostream& out, simd_spec simd) {
+    std::stringstream s;
+    s << key_by_value(simdAbiMap, simd.abi);
+    if (simd.width!=0) {
+        s << '/' << simd.width;
+    }
+    return out << s.str();
+}
 
 std::ostream& operator<<(std::ostream& out, const Options& opt) {
     static const char* noyes[2] = {"no", "yes"};
@@ -92,7 +102,7 @@ std::ostream& operator<<(std::ostream& out, const Options& opt) {
         table_prefix{"output"} << (opt.outprefix.empty()? "-": opt.outprefix) << line_end <<
         table_prefix{"verbose"} << noyes[opt.verbose] << line_end <<
         table_prefix{"targets"} << targets << line_end <<
-        table_prefix{"simd"} << key_by_value(simdKindMap, opt.simd_arch) << line_end <<
+        table_prefix{"simd"} << opt.simd << line_end <<
         table_prefix{"analysis"} << noyes[opt.analysis] << line_end <<
         tableline;
 }
@@ -126,11 +136,16 @@ int main(int argc, char **argv) {
 
         MapConstraint targets_arg_constraint(targetKindMap);
         TCLAP::MultiArg<std::string>
-            target_arg("t", "target", "backend target={cpu, gpu}", false, &targets_arg_constraint, cmd);
+            target_arg("t", "target", "build module for cpu or gpu back-end", false, &targets_arg_constraint, cmd);
 
-        MapConstraint simd_arg_constraint(simdKindMap);
+        MapConstraint simd_arg_constraint(simdAbiMap);
         TCLAP::ValueArg<std::string>
-            simd_arg("s", "simd", "use SIMD intrinsics={avx512, avx2}", false, "", &simd_arg_constraint, cmd);
+            simd_arg("s", "simd", "use SIMD with given ABI", false, "", &simd_arg_constraint, cmd);
+
+        std::vector<unsigned> simd_width_arg_constraint_ = {0u, 1u, 2u, 4u, 8u, 16u, 32u, 64u};
+        TCLAP::ValuesConstraint<unsigned> simd_width_arg_constraint(simd_width_arg_constraint_);
+        TCLAP::ValueArg<unsigned>
+            simd_width_arg("S", "simd-width", "explicit SIMD vector width", false, 0, &simd_width_arg_constraint, cmd);
 
         TCLAP::SwitchArg verbose_arg("V","verbose","toggle verbose mode", cmd, false);
 
@@ -148,7 +163,7 @@ int main(int argc, char **argv) {
         opt.analysis = analysis_arg.getValue();
 
         if (!simd_arg.getValue().empty()) {
-            opt.simd_arch = simdKindMap.at(simd_arg.getValue());
+            opt.simd = simd_spec(simdAbiMap.at(simd_arg.getValue()), simd_width_arg.getValue());
         }
 
         for (auto& target: target_arg.getValue()) {
@@ -227,9 +242,8 @@ int main(int argc, char **argv) {
                 }
                 break;
             case targetKind::cpu:
-                // SIMD support TODO
                 outfile += "_cpu.cpp";
-                io::write_all(emit_cpp_source(m, "arb"), outfile);
+                io::write_all(emit_cpp_source(m, "arb", opt.simd), outfile);
                 break;
             }
         }

@@ -7,8 +7,9 @@
 #include "visitor.hpp"
 
 #include "printer/cexpr_emit.hpp"
+#include "printer/simd.hpp"
 
-std::string emit_cpp_source(const Module& m, const std::string& ns);
+std::string emit_cpp_source(const Module& m, const std::string& ns, simd_spec simd);
 
 // CPrinter and SimdPrinter visitors exposed in header for testing purposes only.
 
@@ -37,9 +38,6 @@ private:
     std::ostream& out_;
 };
 
-
-/*
-template <simdKind Arch>
 class SimdPrinter: public Visitor {
 public:
     SimdPrinter(std::ostream& out): out_(out) {}
@@ -54,13 +52,12 @@ public:
     void visit(VariableExpression*) override;
     void visit(LocalVariable*) override;
     void visit(IndexedVariable*) override;
+    void visit(AssignmentExpression*) override;
 
-    void visit(NumberExpression* e) override;
-    void visit(UnaryExpression* e) override;
-    void visit(BinaryExpression* e) override;
-    void visit(IfExpression* e) override;
+    void visit(NumberExpression* e) override { cexpr_emit(e, out_, this); }
+    void visit(UnaryExpression* e) override { cexpr_emit(e, out_, this); }
+    void visit(BinaryExpression* e) override { cexpr_emit(e, out_, this); }
 
 private:
     std::ostream& out_;
 };
-*/

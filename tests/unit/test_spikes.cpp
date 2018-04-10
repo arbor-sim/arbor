@@ -18,8 +18,8 @@ using backend = USE_BACKEND;
 #endif
 
 TEST(spikes, threshold_watcher) {
-    using size_type = backend::size_type;
     using value_type = backend::value_type;
+    using index_type = backend::index_type;
     using array = backend::array;
     using iarray = backend::iarray;
     using list = backend::threshold_watcher::crossing_list;
@@ -28,7 +28,7 @@ TEST(spikes, threshold_watcher) {
     // elements in total).
     const auto n = 10;
 
-    const std::vector<size_type> index{0, 5, 7};
+    const std::vector<index_type> index{0, 5, 7};
     const std::vector<value_type> thresh{1., 2., 3.};
 
     // all values are initially 0, except for values[5] which we set

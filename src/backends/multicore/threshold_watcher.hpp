@@ -19,11 +19,11 @@ public:
     threshold_watcher() = default;
 
     threshold_watcher(
-        const fvm_size_type* cv_to_cell,
+        const fvm_index_type* cv_to_cell,
         const fvm_value_type* t_before,
         const fvm_value_type* t_after,
         const fvm_value_type* values,
-        const std::vector<fvm_size_type>& cv_index,
+        const std::vector<fvm_index_type>& cv_index,
         const std::vector<fvm_value_type>& thresholds
     ):
         cv_to_cell_(cv_to_cell),
@@ -51,7 +51,7 @@ public:
     /// calling, because the values are used to determine the initial state
     void reset() {
         clear_crossings();
-        for (auto i=0u; i<n_cv_; ++i) {
+        for (fvm_size_type i = 0; i<n_cv_; ++i) {
             is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
         }
     }
@@ -104,14 +104,14 @@ public:
 private:
     /// Non-owning pointers to cv-to-cell map, per-cell time data,
     /// and the values for to test against thresholds.
-    const fvm_size_type* cv_to_cell_ = nullptr;
+    const fvm_index_type* cv_to_cell_ = nullptr;
     const fvm_value_type* t_before_ = nullptr;
     const fvm_value_type* t_after_ = nullptr;
     const fvm_value_type* values_ = nullptr;
 
     /// Threshold watcher state.
     fvm_size_type n_cv_ = 0;
-    std::vector<fvm_size_type> cv_index_;
+    std::vector<fvm_index_type> cv_index_;
     std::vector<fvm_size_type> is_crossed_;
     std::vector<fvm_value_type> thresholds_;
     std::vector<fvm_value_type> v_prev_;
