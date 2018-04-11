@@ -161,9 +161,9 @@ Documentation for the data structures used to describe domain decompositions.
 
     .. cpp:member:: std::function<int(cell_gid_type)> gid_domain
 
-        A function can be used to query the domain id that a cell assigned to
+        A function for querying the domain id that a cell assigned to
         (using global identifier :cpp:var:`gid`).
-        It is a pure function, that is it has no side effects, and hence is
+        It must be a pure function, that is it has no side effects, and hence is
         thread safe.
 
     .. cpp:member:: int num_domains
