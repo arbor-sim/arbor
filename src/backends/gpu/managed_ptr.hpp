@@ -7,6 +7,17 @@
 namespace arb {
 namespace gpu {
 
+// Pre-pascal NVIDIA GPUs don't support page faulting for GPU reads of managed
+// memory, so when a kernel is launched, all managed memory is copied to the
+// GPU. The upshot of this is that no CPU-side reads can be made of _any_
+// managed memory can be made whe _any_ kernel is running.  The following helper
+// function can be used to determine whether synchronization is required before
+// CPU-side reads of managed memory.
+constexpr
+bool managed_synch_required() {
+    return (ARB_CUDA_ARCH < 600); // all GPUs before P100
+}
+
 // used to indicate that the type pointed to by the managed_ptr is to be
 // constructed in the managed_ptr constructor
 struct construct_in_place_tag {};
