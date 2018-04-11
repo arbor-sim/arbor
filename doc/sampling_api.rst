@@ -1,3 +1,5 @@
+.. _sampling_api:
+
 Sampling API
 ============
 
