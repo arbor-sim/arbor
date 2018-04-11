@@ -11,11 +11,6 @@ namespace multicore {
 
 class threshold_watcher {
 public:
-    /// Data type used to store the crossings.
-    /// Provided to make type-generic calling code.
-    using crossing_list =  std::vector<threshold_crossing>;
-
-public:
     threshold_watcher() = default;
 
     threshold_watcher(
@@ -115,7 +110,7 @@ private:
     std::vector<fvm_size_type> is_crossed_;
     std::vector<fvm_value_type> thresholds_;
     std::vector<fvm_value_type> v_prev_;
-    crossing_list crossings_;
+    std::vector<threshold_crossing> crossings_;
 };
 
 } // namespace multicore

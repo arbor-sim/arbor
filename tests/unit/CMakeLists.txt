@@ -19,13 +19,16 @@ build_modules(
 
 set(TEST_CUDA_SOURCES
     test_intrin.cu
-    test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
-    test_multi_event_stream.cu
+    test_matrix_cpuvsgpu.cpp
     test_reduce_by_key.cu
-    test_spikes.cu
     test_vector.cu
+
+    test_mc_cell_group_gpu.cpp
+    test_multi_event_stream_gpu.cpp
+    test_multi_event_stream_gpu.cu
+    test_spikes_gpu.cpp
 
     # unit test driver
     test.cpp

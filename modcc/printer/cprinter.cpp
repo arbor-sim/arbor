@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include <string>
 #include <unordered_set>
@@ -185,10 +186,24 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
         sep.reset();
         for (const auto& array: vars.arrays) {
             auto memb = array->name();
-            auto dflt = array->value();
-            out << sep << "{" << quote(memb) << ", &" << memb << ", " << as_c_double(dflt) << "}";
+            out << sep << "{" << quote(memb) << ", &" << memb << "}";
         }
         out << popindent << "\n};" << popindent << "\n}\n";
+
+        out <<
+            "mechanism_field_default_table field_default_table() override {\n" << indent <<
+            "return {" << indent;
+
+        sep.reset();
+        for (const auto& array: vars.arrays) {
+            auto memb = array->name();
+            auto dflt = array->value();
+            if (!std::isnan(dflt)) {
+                out << sep << "{" << quote(memb) << ", " << as_c_double(dflt) << "}";
+            }
+        }
+        out << popindent << "\n};" << popindent << "\n}\n";
+
     }
 
     if (!ion_deps.empty()) {

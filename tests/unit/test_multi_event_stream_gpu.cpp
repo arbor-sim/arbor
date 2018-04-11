@@ -2,12 +2,10 @@
 #include <random>
 #include <vector>
 
-#include <cuda.h>
 #include "../gtest.h"
 
 #include <backends/event.hpp>
 #include <backends/gpu/multi_event_stream.hpp>
-#include <backends/gpu/time_ops.hpp>
 #include <memory/wrappers.hpp>
 #include <util/rangeutil.hpp>
 
@@ -65,33 +63,20 @@ TEST(multi_event_stream, init) {
     EXPECT_TRUE(m.empty());
 }
 
-__global__
-void copy_marked_events_kernel(
+// CUDA kernel wrapper:
+void run_copy_marked_events_kernel(
     unsigned ci,
     deliverable_event_stream::state state,
     deliverable_event_data* store,
     unsigned& count,
-    unsigned max_ev)
-{
-    // use only one thread here
-    if (threadIdx.x || blockIdx.x) return;
-
-    unsigned k = 0;
-    auto begin = state.ev_data+state.begin_offset[ci];
-    auto end = state.ev_data+state.end_offset[ci];
-    for (auto p = begin; p<end; ++p) {
-        if (k>=max_ev) break;
-        store[k++] = *p;
-    }
-    count = k;
-}
+    unsigned max_ev);
 
 std::vector<deliverable_event_data> copy_marked_events(int ci, deliverable_event_stream& m) {
     unsigned max_ev = 1000;
     memory::device_vector<deliverable_event_data> store(max_ev);
     memory::device_vector<unsigned> counter(1);
 
-    copy_marked_events_kernel<<<1,1>>>(ci, m.marked_events(), store.data(), *counter.data(), max_ev);
+    run_copy_marked_events_kernel(ci, m.marked_events(), store.data(), *counter.data(), max_ev);
     unsigned n_ev = counter[0];
     std::vector<deliverable_event_data> ev(n_ev);
     memory::copy(store(0, n_ev), ev);

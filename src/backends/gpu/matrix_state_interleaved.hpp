@@ -1,6 +1,7 @@
 #pragma once
 
 #include <backends/fvm_types.hpp>
+#include <math.hpp>
 #include <memory/memory.hpp>
 #include <util/debug.hpp>
 #include <util/span.hpp>
@@ -8,7 +9,8 @@
 #include <util/rangeutil.hpp>
 #include <util/indirect.hpp>
 
-#include "kernels/detail.hpp"
+#include "cuda_common.hpp"
+#include "matrix_common.hpp"
 
 namespace arb {
 namespace gpu {
@@ -182,31 +184,31 @@ struct matrix_state_interleaved {
         //
         // Calculate dimensions required to store matrices.
         //
-        using impl::block_dim;
+        constexpr unsigned block_dim = impl::matrices_per_block();
         using impl::matrix_padding;
 
         // To start, take simplest approach of assuming all matrices stored
         // in blocks of the same dimension: padded_size
-        padded_size = impl::padded_size(sizes_p[0], matrix_padding());
-        const auto num_blocks = impl::block_count(num_mtx, block_dim());
+        padded_size = math::round_up(sizes_p[0], matrix_padding());
+        const auto num_blocks = impl::block_count(num_mtx, block_dim);
 
-        const auto total_storage = num_blocks*block_dim()*padded_size;
+        const auto total_storage = num_blocks*block_dim*padded_size;
 
         // calculate the interleaved and permuted p vector
         constexpr auto npos = std::numeric_limits<size_type>::max();
         std::vector<size_type> p_tmp(total_storage, npos);
         for (auto mtx: make_span(0, num_mtx)) {
-            auto block = mtx/block_dim();
-            auto lane  = mtx%block_dim();
+            auto block = mtx/block_dim;
+            auto lane  = mtx%block_dim;
 
             auto len = sizes_p[mtx];
             auto src = cell_to_cv_p[mtx];
-            auto dst = block*(block_dim()*padded_size) + lane;
+            auto dst = block*(block_dim*padded_size) + lane;
             for (auto i: make_span(0, len)) {
                 // the p indexes are always relative to the start of the p vector.
                 // the addition and subtraction of dst and src respectively is to convert from
                 // the original offset to the new padded and permuted offset.
-                p_tmp[dst+block_dim()*i] = dst + block_dim()*(p[src+i]-src);
+                p_tmp[dst+block_dim*i] = dst + block_dim*(p[src+i]-src);
             }
         }
 
@@ -235,7 +237,7 @@ struct matrix_state_interleaved {
         // memory, for use as an rvalue in an assignemt to a device vector.
         auto interleave = [&] (std::vector<T>const& x) {
             return memory::on_gpu(
-                flat_to_interleaved(x, sizes_p, cell_to_cv_p, block_dim(), num_mtx, padded_size));
+                flat_to_interleaved(x, sizes_p, cell_to_cv_p, block_dim, num_mtx, padded_size));
         };
         u              = interleave(u_tmp);
         invariant_d    = interleave(invariant_d_tmp);

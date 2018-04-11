@@ -53,13 +53,14 @@ struct segment_info {
 struct fvm_discretization {
     using value_type = fvm_value_type;
     using size_type = fvm_size_type;
+    using index_type = fvm_index_type;
 
     size_type ncell;
     size_type ncomp;
 
     // Note: if CV j has no parent, parent_cv[j] = j. TODO: confirm!
     std::vector<size_type> parent_cv;
-    std::vector<size_type> cv_to_cell;
+    std::vector<index_type> cv_to_cell;
 
     std::vector<value_type> face_conductance; // [µS]
     std::vector<value_type> cv_area;          // [µm²]

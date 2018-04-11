@@ -2,7 +2,8 @@
 
 #include <limits>
 
-#include <backends/gpu/intrinsics.hpp>
+#include <backends/gpu/cuda_atomic.hpp>
+#include <backends/gpu/math.hpp>
 #include <backends/gpu/managed_ptr.hpp>
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>
@@ -24,19 +25,19 @@ namespace kernels {
     __global__
     void test_min(double* x, double* y, double* result) {
         const auto i = threadIdx.x;
-        result[i] = min(x[i], y[i]);
+        result[i] = arb::gpu::min(x[i], y[i]);
     }
 
     __global__
     void test_max(double* x, double* y, double* result) {
         const auto i = threadIdx.x;
-        result[i] = max(x[i], y[i]);
+        result[i] = arb::gpu::max(x[i], y[i]);
     }
 
     __global__
     void test_exprelr(double* x, double* result) {
         const auto i = threadIdx.x;
-        result[i] = exprelr(x[i]);
+        result[i] = arb::gpu::exprelr(x[i]);
     }
 
 }

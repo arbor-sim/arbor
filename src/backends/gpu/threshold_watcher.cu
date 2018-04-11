@@ -1,10 +1,20 @@
+#include <cmath>
+
 #include <backends/fvm_types.hpp>
 
-#include "detail.hpp"
-#include "stack.hpp"
+#include "cuda_common.hpp"
+#include "stack_cu.hpp"
 
 namespace arb {
 namespace gpu {
+
+namespace kernel {
+
+template <typename T>
+__device__
+inline T lerp(T a, T b, T u) {
+    return std::fma(u, b, std::fma(-u, a, a));
+}
 
 /// kernel used to test for threshold crossing test code.
 /// params:
@@ -17,12 +27,12 @@ namespace gpu {
 ///     values     : values at t_prev
 ///     thresholds : threshold values to watch for crossings
 __global__
-void test_thresholds_kernel(
-    const fvm_size_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
+void test_thresholds_impl(
     int size,
+    const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
     fvm_size_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_size_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
 
@@ -42,7 +52,7 @@ void test_thresholds_kernel(
                 // The threshold has been passed, so estimate the time using
                 // linear interpolation
                 auto pos = (thresh - v_prev)/(v - v_prev);
-                crossing_time = impl::lerp(t_before[cell], t_after[cell], pos);
+                crossing_time = lerp(t_before[cell], t_after[cell], pos);
 
                 is_crossed[i] = 1;
                 crossed = true;
@@ -60,17 +70,39 @@ void test_thresholds_kernel(
     }
 }
 
-void test_thresholds(
-    const fvm_size_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
+__global__
+extern void reset_crossed_impl(
+    int size, fvm_index_type* is_crossed,
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+{
+    int i = threadIdx.x + blockIdx.x*blockDim.x;
+    if (i<size) {
+        is_crossed[i] = values[cv_index[i]] >= thresholds[i];
+    }
+}
+
+} // namespace kernel
+
+void test_thresholds_impl(
     int size,
+    const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
     fvm_size_type* is_crossed, fvm_value_type* prev_values,
-    const fvm_size_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {
     constexpr int block_dim = 128;
     const int grid_dim = impl::block_count(size, block_dim);
-    test_thresholds_kernel<<<grid_dim, block_dim>>>(
-        cv_to_cell, t_after, t_before, size, stack, is_crossed, prev_values, cv_index, values, thresholds);
+    kernel::test_thresholds_impl<<<grid_dim, block_dim>>>(
+        size, cv_to_cell, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
+}
+
+extern void reset_crossed_impl(
+    int size, fvm_index_type* is_crossed,
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
+{
+    constexpr int block_dim = 128;
+    const int grid_dim = impl::block_count(size, block_dim);
+    kernel::reset_crossed_impl<<<grid_dim, block_dim>>>(size, is_crossed, cv_index, values, thresholds);
 }
 
 } // namespace gpu

@@ -1,6 +1,7 @@
 #include <backends/fvm_types.hpp>
 
-#include "detail.hpp"
+#include "cuda_common.hpp"
+#include "matrix_common.hpp"
 
 namespace arb {
 namespace gpu {
@@ -182,7 +183,7 @@ void assemble_matrix_interleaved(
     const fvm_value_type* dt_cell,
     unsigned padded_size, unsigned num_mtx)
 {
-    constexpr unsigned bd = impl::block_dim();
+    constexpr unsigned bd = impl::matrices_per_block();
     constexpr unsigned lw = impl::load_width();
     constexpr unsigned block_dim = bd*lw;
 

@@ -8,11 +8,11 @@
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>
 
-#include "matrix_state.hpp"
-#include "multi_event_stream.hpp"
-#include "multicore_common.hpp"
-#include "shared_state.hpp"
-#include "threshold_watcher.hpp"
+#include <backends/multicore/matrix_state.hpp>
+#include <backends/multicore/multi_event_stream.hpp>
+#include <backends/multicore/multicore_common.hpp>
+#include <backends/multicore/shared_state.hpp>
+#include <backends/multicore/threshold_watcher.hpp>
 
 namespace arb {
 namespace multicore {

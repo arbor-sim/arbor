@@ -10,6 +10,8 @@
 namespace arb {
 namespace gpu {
 
+// CUDA implementation entry points:
+
 void solve_matrix_flat(
     fvm_value_type* rhs,
     fvm_value_type* d,

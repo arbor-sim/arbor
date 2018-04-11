@@ -16,9 +16,9 @@
 #include <util/padded_alloc.hpp>
 #include <util/range.hpp>
 
-#include "mechanism.hpp"
-#include "multicore_common.hpp"
-#include "fvm.hpp"
+#include <backends/multicore/mechanism.hpp>
+#include <backends/multicore/multicore_common.hpp>
+#include <backends/multicore/fvm.hpp>
 
 namespace arb {
 namespace multicore {
@@ -108,10 +108,12 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
     data_ = array((1+n_field)*width_padded_, NAN, pad);
     for (std::size_t i = 0; i<n_field; ++i) {
         // Take reference to corresponding derived (generated) mechanism value pointer member.
-        fvm_value_type*& field_ptr = *std::get<1>(fields[i]);
-
+        fvm_value_type*& field_ptr = *(fields[i].second);
         field_ptr = data_.data()+(i+1)*width_padded_;
-        std::fill(field_ptr, field_ptr+width_padded_, std::get<2>(fields[i]));
+
+        if (auto opt_value = value_by_key(field_default_table(), fields[i].first)) {
+            std::fill(field_ptr, field_ptr+width_padded_, *opt_value);
+        }
     }
     weight_ = data_.data();
 
@@ -127,8 +129,6 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
 
     for (auto i: ion_index_table()) {
-        std::vector<index_type> mech_ion_index;
-
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, i.first);
         if (!oion) {
             throw std::logic_error("mechanism holds ion with no corresponding shared state");

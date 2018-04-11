@@ -20,7 +20,7 @@ build_modules(
     SOURCE_DIR "${mod_srcdir}"
     DEST_DIR "${abs_mech_dir}"
 #    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
-#    GENERATES .hpp _cpu.cpp _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
+#    GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     MODCC_FLAGS -t cpu ${modcc_simd}
     GENERATES .hpp _cpu.cpp
     TARGET build_all_mods
@@ -55,21 +55,21 @@ endif()
 list(INSERT ARB_LIBRARIES 0 arbormech)
 list(APPEND ARB_LIBRARIES arbormech)
 
-if(ARB_WITH_CUDA)
-    # make list of the .cu files that implement the mechanism kernels
-    foreach(mech ${mechanisms})
-        list(APPEND cuda_mech_sources ${abs_mech_dir}/${mech}_gpu_impl.cu)
-    endforeach()
-
-    # compile the .cu files into a library
-    cuda_add_library(arbormechcu ${cuda_mech_sources})
-
-    # force recompilation on changes to modcc or the underlying .mod files
-    if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
-        add_dependencies(arbormechcu build_all_gpu_mods)
-    endif()
-
-    list(INSERT ARB_LIBRARIES 0 arbormechcu)
-endif()
+#if(ARB_WITH_CUDA)
+#    # make list of the .cu files that implement the mechanism kernels
+#    foreach(mech ${mechanisms})
+#        list(APPEND cuda_mech_sources ${abs_mech_dir}/${mech}_gpu.cu)
+#    endforeach()
+#
+#    # compile the .cu files into a library
+#    cuda_add_library(arbormechcu ${cuda_mech_sources})
+#
+#    # force recompilation on changes to modcc or the underlying .mod files
+#    if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
+#        add_dependencies(arbormechcu build_all_mods)
+#    endif()
+#
+#    list(INSERT ARB_LIBRARIES 0 arbormechcu)
+#endif()
 
 set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory/memory.hpp>
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
@@ -65,7 +64,7 @@ public:
     const_view solution() const {
         // In this back end the solution is a simple view of the rhs, which
         // contains the solution after the matrix_solve is performed.
-        return const_view(rhs);
+        return rhs;
     }
 
 

@@ -11,26 +11,27 @@
 #include <common_types.hpp>
 #include <mechanism.hpp>
 
-#include <backends/multicore/multicore_common.hpp>
-#include <backends/multicore/fvm.hpp>
+#include <backends/gpu/fvm.hpp>
+#include <backends/gpu/gpu_store_types.hpp>
+#include <backends/gpu/mechanism_ppack_base.hpp>
 
 namespace arb {
-namespace multicore {
+namespace gpu {
 
-// Base class for all generated mechanisms for multicore back-end.
+// Base class for all generated mechanisms for gpu back-end.
 
-class mechanism: public arb::concrete_mechanism<arb::multicore::backend> {
+class mechanism: public arb::concrete_mechanism<arb::gpu::backend> {
 public:
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
 protected:
-    using backend = arb::multicore::backend;
+    using backend = arb::gpu::backend;
     using deliverable_event_stream = backend::deliverable_event_stream;
 
-    using array  = arb::multicore::array;
-    using iarray = arb::multicore::iarray;
+    using array  = arb::gpu::array;
+    using iarray = arb::gpu::iarray;
 
     struct ion_state_view {
         value_type* current_density;
@@ -48,7 +49,7 @@ public:
         std::size_t s = object_sizeof();
 
         s += sizeof(value_type) * data_.size();
-        s += sizeof(size_type) * width_padded_ * (n_ion_ + 1); // node and ion indices.
+        s += sizeof(index_type) * indices_.size();
         return s;
     }
 
@@ -65,26 +66,22 @@ public:
 
 protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)
-    size_type width_padded_ = 0; // Width rounded up to multiple of pad/alignment.
     size_type n_ion_ = 0;
 
-    // Non-owning views onto shared cell state, excepting ion state.
+    // Returns pointer to (derived) parameter-pack object that holds:
+    // * pointers to shared cell state `vec_ci_` et al.,
+    // * pointer to mechanism weights `weight_`,
+    // * pointer to mechanism node indices `node_index_`,
+    // * mechanism global scalars and pointers to mechanism range parameters.
+    // * mechanism ion_state_view objects and pointers to mechanism ion indices.
 
-    const index_type* vec_ci_;     // CV to cell index.
-    const value_type* vec_t_;     // Cell index to cell-local time.
-    const value_type* vec_t_to_;  // Cell index to cell-local integration step time end.
-    const value_type* vec_dt_;    // CV to integration time step.
-    const value_type* vec_v_;     // CV to cell membrane voltage.
-    value_type* vec_i_;           // CV to cell membrane current density.
+    virtual mechanism_ppack_base* ppack_ptr() = 0;
+
     deliverable_event_stream* event_stream_ptr_;
 
-    // Per-mechanism index and weight data, excepting ion indices.
+    // Bulk storage for index vectors and state and parameter variables.
 
-    iarray node_index_;
-    const value_type* weight_;    // Points within data_ after instantiation.
-
-    // Bulk storage for state and parameter variables.
-
+    iarray indices_;
     array data_;
 
     // Generated mechanism field, global and ion table lookup types.
@@ -104,7 +101,7 @@ protected:
     using ion_state_entry = std::pair<ionKind, ion_state_view*>;
     using mechanism_ion_state_table = std::vector<ion_state_entry>;
 
-    using ion_index_entry = std::pair<ionKind, iarray*>;
+    using ion_index_entry = std::pair<ionKind, index_type**>;
     using mechanism_ion_index_table = std::vector<ion_index_entry>;
 
     // Generated mechanisms must implement the following methods, together with
@@ -129,5 +126,5 @@ protected:
     virtual void deliver_events(deliverable_event_stream::state) {};
 };
 
-} // namespace multicore
+} // namespace gpu
 } // namespace arb

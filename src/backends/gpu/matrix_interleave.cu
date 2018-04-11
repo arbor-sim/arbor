@@ -1,6 +1,7 @@
 #include <backends/fvm_types.hpp>
-#include "detail.hpp"
-#include "interleave.hpp"
+
+#include "matrix_common.hpp"
+#include "matrix_interleave.hpp"
 
 namespace arb {
 namespace gpu {
@@ -14,7 +15,7 @@ void flat_to_interleaved(
     unsigned padded_size,
     unsigned num_vec)
 {
-    constexpr unsigned BlockWidth = impl::block_dim();
+    constexpr unsigned BlockWidth = impl::matrices_per_block();
     constexpr unsigned LoadWidth  = impl::load_width();
 
     flat_to_interleaved
@@ -31,7 +32,7 @@ void interleaved_to_flat(
     unsigned padded_size,
     unsigned num_vec)
 {
-    constexpr unsigned BlockWidth = impl::block_dim();
+    constexpr unsigned BlockWidth = impl::matrices_per_block();
     constexpr unsigned LoadWidth  = impl::load_width();
 
     interleaved_to_flat

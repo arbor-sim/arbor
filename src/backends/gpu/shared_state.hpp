@@ -1,34 +1,16 @@
 #pragma once
 
-#include <cmath>
 #include <iosfwd>
-#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
-#include <common_types.hpp>
-#include <constants.hpp>
-#include <event_queue.hpp>
-#include <ion.hpp>
-#include <math.hpp>
-#include <simd/simd.hpp>
 #include <util/enumhash.hpp>
-#include <util/padded_alloc.hpp>
-#include <util/rangeutil.hpp>
-
-#include <util/debug.hpp>
-
-#include "matrix_state.hpp"
-#include "multi_event_stream.hpp"
-#include "threshold_watcher.hpp"
-
-#include "multicore_common.hpp"
+#include <backends/fvm_types.hpp>
+#include <backends/gpu/gpu_store_types.hpp>
 
 namespace arb {
-namespace multicore {
+namespace gpu {
 
 /*
  * Ion state fields correspond to NMODL ion variables, where X
@@ -43,8 +25,6 @@ namespace multicore {
  */
 
 struct ion_state {
-    unsigned alignment = 1; // Alignment and padding multiple.
-
     iarray node_index_; // Instance to CV map.
     array iX_;          // (nA) current
     array eX_;          // (mV) reversal potential
@@ -84,9 +64,6 @@ struct ion_state {
 };
 
 struct shared_state {
-    unsigned alignment = 1;   // Alignment and padding multiple.
-    util::padded_allocator<> alloc;  // Allocator with corresponging alignment/padding.
-
     fvm_size_type n_cell = 0; // Number of distinct cells (integration domains).
     fvm_size_type n_cv = 0;   // Total number of CVs.
 
@@ -147,6 +124,5 @@ struct shared_state {
 // For debugging only:
 std::ostream& operator<<(std::ostream& o, const shared_state& s);
 
-
-} // namespace multicore
+} // namespace gpu
 } // namespace arb

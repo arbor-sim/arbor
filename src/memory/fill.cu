@@ -1,6 +1,7 @@
 #include <cstdint>
 
 namespace arb {
+namespace memory {
 namespace gpu {
 
 template <typename T, typename I>
@@ -38,4 +39,5 @@ void fill64(uint64_t* v, uint64_t value, std::size_t n) {
 };
 
 } // namespace gpu
+} // namespace memory
 } // namespace arb
