@@ -16,11 +16,11 @@ Domain decomposition
     including the type of the cell, and whether the cell group will run on a CPU
     core or the GPU.
 
-    See :cpp:class:`arb::domain_decimposition`.
+    See :cpp:class:`arb::domain_decomposition`.
 
 Load balancer
     A distributed algorithm that determines the domain decomposition using the
-    model recipe and and description of the available computational resources as
+    model recipe and a description of the available computational resources as
     inputs.
 
     See :cpp:func:`arb::partition_load_balance`.
@@ -80,12 +80,12 @@ distributed with MPI communication. The returned :cpp:class:`domain_decompositio
 describes the cell groups on the local MPI rank.
 
 .. Note::
-    Power users know their model and the hardware resources that
-    they are running on very well, and know best how to partition their model
-    workload to get optimal performance.
-    The :cpp:class:`domain_decomposition` type is kept very simple, and is
-    independent of any load balancing algorithm, so power users can supply their
+    The :cpp:class:`domain_decomposition` type is simple and
+    independent of any load balancing algorithm, so users can supply their
     own domain decomposition without using one of the built-in load balancers.
+    This is useful for cases where the provided load balancers are inadequate,
+    and when the user has specific insight into running their model on the
+    target computer.
 
 .. cpp:namespace:: arb
 
@@ -94,6 +94,19 @@ describes the cell groups on the local MPI rank.
     Construct a :cpp:class:`domain_decomposition` that distributes the cells
     in the model described by :cpp:var:`rec` over the hardware resources described
     by `hw::node_info`.
+
+    The algorithm counts the number of each cell type in the global model, then
+    partitions the cells of each type equally over the available nodes.
+    If a GPU is available, and if the cell type can be run on the GPU, the
+    cells on each node are put one large group to maximise the amount of fine
+    grained parallelism in the cell group.
+    Otherwise, cells are grouped into small groups that fit in cache, and can be
+    distributed over the available cores.
+
+    .. Note::
+        The partitioning assumes that all cells of the same kind have equal
+        computational cost, hence it may not produce a balanced partition for
+        models with cells that have a large variance in computational costs.
 
 Decomposition
 -------------
@@ -112,33 +125,46 @@ Documentation for the data structures used to describe domain decompositions.
 
     .. cpp:enumerator:: gpu
 
-        Use gpu back end.
+        Use GPU back end.
 
         .. Note::
-            Can only be set if the :cpp:class:`cell_group` type supports the GPU backend.
+            Setting the GPU back end is only meaningful if the
+            :cpp:class:`cell_group` type supports the GPU backend.
+            If 
 
 .. cpp:class:: domain_decomposition
 
-    Describes a domain decomposition. Solely responsible for describing the
+    Describes a domain decomposition and is soley responsible for describing the
     distribution of cells across cell groups and domains.
-    Holds cell group descriptions (:cpp:member:`groups`) for cells assigned to
+    It holds cell group descriptions (:cpp:member:`groups`) for cells assigned to
     the local domain, and a helper function (:cpp:member:`gid_domain`) used to
     look up which domain a cell has been assigned to.
-    Also has meta-data about the number of cells in the global model, and the
-    number of domains over which the model is destributed.
+    The :cpp:class:`domain_decomposition` object also has meta-data about the
+    number of cells in the global model, and the number of domains over which
+    the model is destributed.
 
-    A load balancing algorithm generates the domain decomposition, for example see
-    :cpp:func:`partition_load_balance`.
+    .. Note::
+        The domain decomposition represents a division **all** of the cells in
+        the model into non-overlapping sets, with one set of cells assigned to
+        each domain.
+        A domain decomposition is generated either by a load balancer or is
+        directly specified by a user, and it is a requirement that the
+        decomposition is correct:
 
-    .. cpp:function:: bool is_local_gid(cell_gid_type gid) const
-
-        Tests whether the cell with :cpp:var:`gid` is on the local domain.
+            * Every cell in the model appears once in one and only one cell
+              :cpp:member:`groups` on one and only one local
+              :cpp:class:`domain_decomposition` object.
+            * :cpp:member:`num_local_cells` is the sum of the number of cells in
+              each of the :cpp:member:`groups`.
+            * The sum of :cpp:member:`num_local_cells` over all domains matches
+              :cpp:member:`num_global_cells`.
 
     .. cpp:member:: std::function<int(cell_gid_type)> gid_domain
 
-        A callback function that returns the domain id that a cell assigned to
+        A function can be used to query the domain id that a cell assigned to
         (using global identifier :cpp:var:`gid`).
-        Set by the load balancing algorithm that generates the domain decomposition.
+        It is a pure function, that is it has no side effects, and hence is
+        thread safe.
 
     .. cpp:member:: int num_domains
 

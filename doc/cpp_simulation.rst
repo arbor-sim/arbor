@@ -57,8 +57,8 @@ Class Documentation
 
         * **Advance model state** from one time to another and reset model
           state to its original state before simulation was started.
-        * **I/O** interface for sampling simulation variables (e.g. compartment voltage
-          and current) and spike output.
+        * **I/O** interface for sampling simulation state during execution
+          (e.g. compartment voltage and current) and spike output.
 
     **Types:**
 
@@ -88,8 +88,7 @@ Class Documentation
 
     .. cpp:function:: void reset()
 
-        Reset the state of the simulation to its original state before
-        :cpp:func:`simulation::run` was called.
+        Reset the state of the simulation to its initial state.
 
     .. cpp:function:: time_type run(time_type tfinal, time_type dt)
 
@@ -125,15 +124,19 @@ Class Documentation
 
     .. cpp:function:: std::size_t num_spikes() const
 
-        The total number of spikes that occurred since either construction or
-        last resetting the model.
+        The total number of spikes generated since either construction or
+        the last call to :cpp:func:`simulation::reset`.
 
     .. cpp:function:: void set_global_spike_callback(spike_export_function export_callback)
 
-        Register a callback that will perform an export of the global spike vector.
+        Register a callback that will periodically be passed a vector with all of
+        the spikes generated over all domains (the global spike vector) since
+        the last call.
         Will be called on the MPI rank/domain with id 0.
 
     .. cpp:function:: void set_local_spike_callback(spike_export_function export_callback)
 
-        Register a callback that will perform an export of the rank local spike vector.
+        Register a callback that will periodically be passed a vector with all of
+        the spikes generated on the local domain (the local spike vector) since
+        the last call.
         Will be called on each MPI rank/domain with a copy of the local spikes.
