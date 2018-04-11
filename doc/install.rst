@@ -233,7 +233,7 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         export CC=gcc-5
         export CXX=g++-5
-        cmake .. -DARB_VECTORIZE_TARGET=AVX2 -DARB_GPU_TARGET=P100
+        cmake .. -DARB_VECTORIZE_TARGET=AVX2 -DARB_GPU_MODEL=P100
 
 .. _buildtarget:
 
@@ -350,13 +350,13 @@ GPU Backend
 -----------
 
 Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting the
-CMake ``ARB_GPU_TARGET`` option:
+CMake ``ARB_GPU_MODEL`` option to match the GPU model to target:
 
 .. code-block:: bash
 
-    cmake -DARB_GPU_TARGET={none, K20, K80, P100}
+    cmake -DARB_GPU_MODEL={none, K20, K80, P100}
 
-By default ``ARB_GPU_TARGET=none``, and a GPU target must explicitly be set to
+By default ``ARB_GPU_MODEL=none``, and a GPU target must explicitly be set to
 build for and run on GPUs.
 
 .. Note::

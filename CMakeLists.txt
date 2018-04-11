@@ -125,12 +125,12 @@ endif()
 #----------------------------------------------------------
 # CUDA support
 #----------------------------------------------------------
-set(ARB_GPU_TARGET "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
-set_property(CACHE ARB_GPU_TARGET PROPERTY STRINGS none K20 K80 P100 )
+set(ARB_GPU_MODEL "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
+set_property(CACHE ARB_GPU_MODEL PROPERTY STRINGS none K20 K80 P100 )
 
 set(ARB_WITH_CUDA FALSE)
 
-if(NOT ARB_GPU_TARGET MATCHES "none")
+if(NOT ARB_GPU_MODEL MATCHES "none")
     find_package(CUDA REQUIRED)
     set(ARB_WITH_CUDA TRUE)
     add_definitions(-DARB_HAVE_GPU)
@@ -138,17 +138,17 @@ if(NOT ARB_GPU_TARGET MATCHES "none")
     list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
 endif()
 
-if(ARB_GPU_TARGET MATCHES "K20")
+if(ARB_GPU_MODEL MATCHES "K20")
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
     add_definitions(-DARB_CUDA_ARCH=350)
-elseif(ARB_GPU_TARGET MATCHES "K80")
+elseif(ARB_GPU_MODEL MATCHES "K80")
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_37)
     add_definitions(-DARB_CUDA_ARCH=370)
-elseif(ARB_GPU_TARGET MATCHES "P100")
+elseif(ARB_GPU_MODEL MATCHES "P100")
     set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
     add_definitions(-DARB_CUDA_ARCH=600)
-elseif(NOT ARB_GPU_TARGET MATCHES "none")
-    message( FATAL_ERROR "-- GPU architecture '${ARB_GPU_TARGET}' not supported. Use one of {none, K20, K80, P100}")
+elseif(NOT ARB_GPU_MODEL MATCHES "none")
+    message( FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
 endif()
 
 #----------------------------------------------------------
