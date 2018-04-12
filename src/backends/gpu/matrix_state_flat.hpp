@@ -16,8 +16,8 @@ void solve_matrix_flat(
     fvm_value_type* rhs,
     fvm_value_type* d,
     const fvm_value_type* u,
-    const fvm_size_type* p,
-    const fvm_size_type* cell_cv_divs,
+    const fvm_index_type* p,
+    const fvm_index_type* cell_cv_divs,
     int num_mtx);
 
 void assemble_matrix_flat(
@@ -28,7 +28,7 @@ void assemble_matrix_flat(
     const fvm_value_type* current,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* cv_area,
-    const fvm_size_type* cv_to_cell,
+    const fvm_index_type* cv_to_cell,
     const fvm_value_type* dt_cell,
     unsigned n);
 
@@ -36,10 +36,10 @@ void assemble_matrix_flat(
 template <typename T, typename I>
 struct matrix_state_flat {
     using value_type = T;
-    using size_type = I;
+    using index_type = I;
 
     using array  = memory::device_vector<value_type>;
-    using iarray = memory::device_vector<size_type>;
+    using iarray = memory::device_vector<index_type>;
 
     using view = typename array::view_type;
     using const_view = typename array::const_view_type;
@@ -61,8 +61,8 @@ struct matrix_state_flat {
 
     matrix_state_flat() = default;
 
-    matrix_state_flat(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_cv_divs,
+    matrix_state_flat(const std::vector<index_type>& p,
+                 const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
                  const std::vector<value_type>& area):
@@ -78,13 +78,13 @@ struct matrix_state_flat {
         EXPECTS(cv_cap.size() == size());
         EXPECTS(face_cond.size() == size());
         EXPECTS(area.size() == size());
-        EXPECTS(cell_cv_divs.back() == size());
+        EXPECTS(cell_cv_divs.back() == (index_type)size());
         EXPECTS(cell_cv_divs.size() > 1u);
 
         using memory::make_const_view;
 
         auto n = d.size();
-        std::vector<size_type> cv_to_cell_tmp(n, 0);
+        std::vector<index_type> cv_to_cell_tmp(n, 0);
         std::vector<value_type> invariant_d_tmp(n, 0);
         std::vector<value_type> u_tmp(n, 0);
 
@@ -96,7 +96,7 @@ struct matrix_state_flat {
             invariant_d_tmp[p[i]] += gij;
         }
 
-        size_type ci = 0;
+        index_type ci = 0;
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
             util::fill(util::subrange_view(cv_to_cell_tmp, cv_span), ci);
             ++ci;

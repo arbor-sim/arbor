@@ -4,6 +4,7 @@
 #include <constants.hpp>
 #include <ion.hpp>
 #include <memory/wrappers.hpp>
+#include <util/rangeutil.hpp>
 
 #include <backends/event.hpp>
 #include <backends/fvm_types.hpp>
@@ -39,11 +40,15 @@ void set_dt_impl(
     fvm_size_type ncell, fvm_size_type ncomp, fvm_value_type* dt_cell, fvm_value_type* dt_comp,
     const fvm_value_type* time_to, const fvm_value_type* time, const fvm_index_type* cv_to_cell);
 
-std::pair<fvm_value_type, fvm_value_type> minmax_value_impl(fvm_size_type n, const fvm_value_type* v);
-
 void take_samples_impl(
     const multi_event_stream_state<raw_probe_info>& s,
     const fvm_value_type* time, fvm_value_type* sample_time, fvm_value_type* sample_value);
+
+// GPU-side minmax: consider CUDA kernel replacement.
+std::pair<fvm_value_type, fvm_value_type> minmax_value_impl(fvm_size_type n, const fvm_value_type* v) {
+    auto v_copy = memory::on_host(memory::const_device_view<fvm_value_type>(v, n));
+    return util::minmax_value(v_copy);
+}
 
 // Ion state methods:
 

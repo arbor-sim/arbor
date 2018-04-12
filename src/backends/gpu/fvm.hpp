@@ -31,15 +31,15 @@ struct backend {
     using array  = arb::gpu::array;
     using iarray = arb::gpu::iarray;
 
-    memory::host_vector<value_type> host_view(const array& v) {
+    static memory::host_vector<value_type> host_view(const array& v) {
         return memory::on_host(v);
     }
 
-    memory::host_vector<index_type> host_view(const iarray& v) {
+    static memory::host_vector<index_type> host_view(const iarray& v) {
         return memory::on_host(v);
     }
 
-    using matrix_state = arb::gpu::matrix_state_interleaved<value_type, size_type>;
+    using matrix_state = arb::gpu::matrix_state_interleaved<value_type, index_type>;
     using threshold_watcher = arb::gpu::threshold_watcher;
 
     using deliverable_event_stream = arb::gpu::deliverable_event_stream;

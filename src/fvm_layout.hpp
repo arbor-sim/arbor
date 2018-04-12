@@ -53,13 +53,13 @@ struct segment_info {
 struct fvm_discretization {
     using value_type = fvm_value_type;
     using size_type = fvm_size_type;
-    using index_type = fvm_index_type;
+    using index_type = fvm_index_type; // In particular, used for CV indices.
 
     size_type ncell;
     size_type ncomp;
 
     // Note: if CV j has no parent, parent_cv[j] = j. TODO: confirm!
-    std::vector<size_type> parent_cv;
+    std::vector<index_type> parent_cv;
     std::vector<index_type> cv_to_cell;
 
     std::vector<value_type> face_conductance; // [µS]
@@ -68,7 +68,7 @@ struct fvm_discretization {
 
     std::vector<segment_info> segments;
     std::vector<size_type> cell_segment_bounds; // Partitions segment indices by cell.
-    std::vector<size_type> cell_cv_bounds;      // Partitions CV indices by cell.
+    std::vector<index_type> cell_cv_bounds;      // Partitions CV indices by cell.
 
     auto cell_segment_part() const
         DEDUCED_RETURN_TYPE(util::partition_view(cell_segment_bounds))

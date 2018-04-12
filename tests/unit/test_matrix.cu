@@ -208,7 +208,7 @@ TEST(matrix, interleave)
 TEST(matrix, backends)
 {
     using T = fvm_value_type;
-    using I = fvm_size_type;
+    using I = fvm_index_type;
 
     using state_flat = gpu::matrix_state_flat<T, I>;
     using state_intl = gpu::matrix_state_interleaved<T, I>;

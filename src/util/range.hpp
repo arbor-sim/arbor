@@ -63,8 +63,26 @@ struct range {
         left(std::forward<U1>(l)), right(std::forward<U2>(r))
     {}
 
+    template <
+        typename U1,
+        typename U2,
+        typename = enable_if_t<
+            std::is_constructible<iterator, U1>::value &&
+            std::is_constructible<sentinel, U2>::value>
+    >
+    range(const range<U1, U2>& other):
+        left(other.left), right(other.right)
+    {}
+
     range& operator=(const range&) = default;
     range& operator=(range&&) = default;
+
+    template <typename U1, typename U2>
+    range& operator=(const range<U1, U2>& other) {
+        left = other.left;
+        right = other.right;
+        return *this;
+    }
 
     bool empty() const { return left == right; }
 

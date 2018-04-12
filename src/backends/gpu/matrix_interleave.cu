@@ -10,8 +10,8 @@ namespace gpu {
 void flat_to_interleaved(
     const fvm_value_type* in,
     fvm_value_type* out,
-    const fvm_size_type* sizes,
-    const fvm_size_type* starts,
+    const fvm_index_type* sizes,
+    const fvm_index_type* starts,
     unsigned padded_size,
     unsigned num_vec)
 {
@@ -19,7 +19,7 @@ void flat_to_interleaved(
     constexpr unsigned LoadWidth  = impl::load_width();
 
     flat_to_interleaved
-        <fvm_value_type, fvm_size_type, BlockWidth, LoadWidth>
+        <fvm_value_type, fvm_index_type, BlockWidth, LoadWidth>
         (in, out, sizes, starts, padded_size, num_vec);
 }
 
@@ -27,8 +27,8 @@ void flat_to_interleaved(
 void interleaved_to_flat(
     const fvm_value_type* in,
     fvm_value_type* out,
-    const fvm_size_type* sizes,
-    const fvm_size_type* starts,
+    const fvm_index_type* sizes,
+    const fvm_index_type* starts,
     unsigned padded_size,
     unsigned num_vec)
 {
@@ -36,7 +36,7 @@ void interleaved_to_flat(
     constexpr unsigned LoadWidth  = impl::load_width();
 
     interleaved_to_flat
-        <fvm_value_type, fvm_size_type, BlockWidth, LoadWidth>
+        <fvm_value_type, fvm_index_type, BlockWidth, LoadWidth>
         (in, out, sizes, starts, padded_size, num_vec);
 }
 

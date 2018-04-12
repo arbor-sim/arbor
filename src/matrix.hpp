@@ -31,8 +31,8 @@ public:
 
     matrix() = default;
 
-    matrix(const std::vector<size_type>& pi,
-           const std::vector<size_type>& ci,
+    matrix(const std::vector<index_type>& pi,
+           const std::vector<index_type>& ci,
            const std::vector<value_type>& cv_capacitance,
            const std::vector<value_type>& face_conductance,
            const std::vector<value_type>& cv_area):
@@ -70,7 +70,7 @@ public:
     }
 
     /// Get a view of the solution
-    const array& solution() const {
+    typename State::const_view solution() const {
         return state_.solution();
     }
 
