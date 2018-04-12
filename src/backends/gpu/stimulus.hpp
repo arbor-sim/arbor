@@ -11,7 +11,7 @@ struct stimulus_pp: mechanism_ppack_base {
     fvm_value_type* amplitude;
 };
 
-void stimulus_current_impl(int n, stimulus_pp&);
+void stimulus_current_impl(int n, const stimulus_pp&);
 
 } // namespace gpu
 } // namespace arb
