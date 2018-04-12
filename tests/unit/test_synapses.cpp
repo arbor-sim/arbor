@@ -12,7 +12,6 @@
 #include <util/optional.hpp>
 #include <util/maputil.hpp>
 #include <util/range.hpp>
-#include <util/xtuple.hpp>
 
 #include "common.hpp"
 #include "../test_util.hpp"

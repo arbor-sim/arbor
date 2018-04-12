@@ -130,36 +130,37 @@ TEST(fvm_layout, topology) {
 
     // Partitions of CVs and segments by cell:
 
-    using upair = std::pair<fvm_size_type, fvm_size_type>;
+    using spair = std::pair<fvm_size_type, fvm_size_type>;
+    using ipair = std::pair<fvm_index_type, fvm_index_type>;
 
-    EXPECT_EQ(upair(0, 2),    D.cell_segment_part()[0]);
-    EXPECT_EQ(upair(2, nseg), D.cell_segment_part()[1]);
+    EXPECT_EQ(spair(0, 2),    D.cell_segment_part()[0]);
+    EXPECT_EQ(spair(2, nseg), D.cell_segment_part()[1]);
 
-    EXPECT_EQ(upair(0, 5),       D.cell_cv_part()[0]);
-    EXPECT_EQ(upair(5, D.ncomp), D.cell_cv_part()[1]);
+    EXPECT_EQ(ipair(0, 5),       D.cell_cv_part()[0]);
+    EXPECT_EQ(ipair(5, D.ncomp), D.cell_cv_part()[1]);
 
     // Segment and CV parent relationships:
 
-    using uvec = std::vector<fvm_size_type>;
+    using ivec = std::vector<fvm_index_type>;
 
-    EXPECT_EQ(uvec({0,0,1,2,3,5,5,6,7,8,9,10,11,12,9,14,15,16}), D.parent_cv);
+    EXPECT_EQ(ivec({0,0,1,2,3,5,5,6,7,8,9,10,11,12,9,14,15,16}), D.parent_cv);
 
     EXPECT_FALSE(D.segments[0].has_parent());
-    EXPECT_EQ(0u, D.segments[1].parent_cv);
+    EXPECT_EQ(0, D.segments[1].parent_cv);
 
     EXPECT_FALSE(D.segments[2].has_parent());
-    EXPECT_EQ(5u, D.segments[3].parent_cv);
-    EXPECT_EQ(9u, D.segments[4].parent_cv);
-    EXPECT_EQ(9u, D.segments[5].parent_cv);
+    EXPECT_EQ(5, D.segments[3].parent_cv);
+    EXPECT_EQ(9, D.segments[4].parent_cv);
+    EXPECT_EQ(9, D.segments[5].parent_cv);
 
     // Segment CV ranges (half-open, exclusing parent):
 
-    EXPECT_EQ(upair(0,1), D.segments[0].cv_range());
-    EXPECT_EQ(upair(1,5), D.segments[1].cv_range());
-    EXPECT_EQ(upair(5,6), D.segments[2].cv_range());
-    EXPECT_EQ(upair(6,10), D.segments[3].cv_range());
-    EXPECT_EQ(upair(10,14), D.segments[4].cv_range());
-    EXPECT_EQ(upair(14,18), D.segments[5].cv_range());
+    EXPECT_EQ(ipair(0,1), D.segments[0].cv_range());
+    EXPECT_EQ(ipair(1,5), D.segments[1].cv_range());
+    EXPECT_EQ(ipair(5,6), D.segments[2].cv_range());
+    EXPECT_EQ(ipair(6,10), D.segments[3].cv_range());
+    EXPECT_EQ(ipair(10,14), D.segments[4].cv_range());
+    EXPECT_EQ(ipair(14,18), D.segments[5].cv_range());
 
     // CV to cell index:
 

@@ -21,7 +21,6 @@
 #include <util/meta.hpp>
 #include <util/maputil.hpp>
 #include <util/rangeutil.hpp>
-#include <util/xtuple.hpp>
 
 #include "common.hpp"
 #include "../common_cells.hpp"
