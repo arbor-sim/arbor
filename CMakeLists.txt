@@ -210,8 +210,7 @@ endif()
 #----------------------------------------------------------
 # Modcc vectorization target
 #----------------------------------------------------------
-set(ARB_VECTORIZE "none" CACHE STRING "SIMD ABI for generated code vectorization {none, native, avx, avx2, avx512}")
-set_property(CACHE ARB_VECTORIZE PROPERTY STRINGS none native avx avx2 avx512)
+option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
 #----------------------------------------------------------
 # Target microarchitecture for building arbor libraries

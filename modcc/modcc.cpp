@@ -49,7 +49,7 @@ std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
     {"avx",  simd_spec::avx},
     {"avx2", simd_spec::avx2},
     {"avx512", simd_spec::avx512},
-    {"default", simd_spec::default_abi},
+    {"default_abi", simd_spec::default_abi},
     {"native", simd_spec::native}
 };
 
@@ -122,6 +122,37 @@ struct MapConstraint: private std::vector<std::string>, public TCLAP::ValuesCons
     }
 };
 
+simd_spec parse_simd_spec(std::string spec) {
+    auto npos = std::string::npos;
+    unsigned width = 0;
+
+    auto suffix = spec.find_last_of('/');
+    if (suffix!=npos) {
+        width = stoul(spec.substr(suffix+1));
+        spec = spec.substr(0, suffix);
+    }
+
+    return simd_spec(simdAbiMap.at(spec.c_str()), width);
+}
+
+struct SimdAbiConstraint: public TCLAP::Constraint<std::string> {
+    std::string description() const override {
+        return "simd_abi[/n]";
+    }
+    std::string shortID() const override {
+        return description();
+    }
+    bool check(const std::string& spec) const override {
+        try {
+            (void)parse_simd_spec(spec);
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+};
+
 int main(int argc, char **argv) {
     Options opt;
 
@@ -138,14 +169,12 @@ int main(int argc, char **argv) {
         TCLAP::MultiArg<std::string>
             target_arg("t", "target", "build module for cpu or gpu back-end", false, &targets_arg_constraint, cmd);
 
-        MapConstraint simd_arg_constraint(simdAbiMap);
-        TCLAP::ValueArg<std::string>
-            simd_arg("s", "simd", "use SIMD with given ABI", false, "", &simd_arg_constraint, cmd);
+        TCLAP::SwitchArg
+            simd_arg("s", "simd", "generate code with explicit SIMD vectorization", cmd, false);
 
-        std::vector<unsigned> simd_width_arg_constraint_ = {0u, 1u, 2u, 4u, 8u, 16u, 32u, 64u};
-        TCLAP::ValuesConstraint<unsigned> simd_width_arg_constraint(simd_width_arg_constraint_);
-        TCLAP::ValueArg<unsigned>
-            simd_width_arg("S", "simd-width", "explicit SIMD vector width", false, 0, &simd_width_arg_constraint, cmd);
+        SimdAbiConstraint simd_abi_constraint;
+        TCLAP::ValueArg<std::string>
+            simd_abi_arg("S", "simd-abi", "override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...", false, "", &simd_abi_constraint, cmd);
 
         TCLAP::SwitchArg verbose_arg("V","verbose","toggle verbose mode", cmd, false);
 
@@ -162,8 +191,11 @@ int main(int argc, char **argv) {
         opt.verbose = verbose_arg.getValue();
         opt.analysis = analysis_arg.getValue();
 
-        if (!simd_arg.getValue().empty()) {
-            opt.simd = simd_spec(simdAbiMap.at(simd_arg.getValue()), simd_width_arg.getValue());
+        if (simd_arg.getValue()) {
+            opt.simd = simd_spec(simd_spec::native);
+            if (!simd_abi_arg.getValue().empty()) {
+                opt.simd = parse_simd_spec(simd_abi_arg.getValue());
+            }
         }
 
         for (auto& target: target_arg.getValue()) {

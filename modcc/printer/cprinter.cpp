@@ -134,7 +134,7 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
 
         out <<
             "using simd_value = S::simd<fvm_value_type, simd_width_, " << abi << ">;\n"
-            "using simd_index = S::simd<fvm_index_type,  simd_width_, " << abi << ">;\n"
+            "using simd_index = S::simd<fvm_index_type, simd_width_, " << abi << ">;\n"
             "\n";
     }
 
