@@ -53,6 +53,8 @@ Some key features include:
    cpp_intro
    cpp_common
    cpp_recipe
+   cpp_domdec
+   cpp_simulation
 
 .. toctree::
    :caption: Developers:

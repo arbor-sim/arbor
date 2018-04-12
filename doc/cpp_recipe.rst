@@ -1,7 +1,7 @@
 Recipes
 ===============
 
-An Arbor recipe is a description of a model. The recipe is queried during the model
+An Arbor **recipe** is a description of a model. The recipe is queried during the model
 building phase to provide cell information, such as:
 
   * the number of cells in the model;
@@ -52,9 +52,8 @@ The steps of building a simulation from a recipe are:
 Best Practices
 --------------
 
-Here is a set of rules of tumb to keep in mind when making recipes. The first is
-mandatory, and following the others as closely as possible will lead to better
-performance.
+Here is a set of rules of thumb to keep in mind when making recipes. The first is
+mandatory, and following the others will lead to better performance.
 
 .. topic:: Stay thread safe
 
@@ -68,13 +67,13 @@ performance.
 .. topic:: Be lazy
 
     A recipe does not have to contain a complete description of the model in
-    memory; it should precompute as little as possible, and use
+    memory; precompute as little as possible, and use
     `lazy evaluation <https://en.wikipedia.org/wiki/Lazy_evaluation>`_ to generate
     information only when requested.
     This has multiple benefits, including:
 
         * thread safety;
-        * minimising memory footprint of recipe.
+        * minimising the memory footprint of the recipe.
 
 .. topic:: Think of the cells
 

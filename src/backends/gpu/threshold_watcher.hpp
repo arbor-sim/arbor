@@ -61,9 +61,11 @@ public:
         reset();
     }
 
-    /// Remove all stored crossings that were detected in previous calls
-    /// to test()
+    /// Remove all stored crossings that were detected in previous calls to test()
     void clear_crossings() {
+        if (managed_synch_required()) {
+            cudaDeviceSynchronize();
+        }
         stack_.clear();
     }
 
@@ -84,6 +86,7 @@ public:
         if (stack_.overflow()) {
             throw std::runtime_error("GPU spike buffer overflow.");
         }
+
         return std::vector<threshold_crossing>(stack_.begin(), stack_.end());
     }
 

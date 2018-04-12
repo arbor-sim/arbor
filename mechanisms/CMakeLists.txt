@@ -7,18 +7,17 @@ set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 
 # Generate mechanism implementations for host/cpu environment
 
-set(mech_dir "mechanisms/generated")
-set(abs_mech_dir "${CMAKE_SOURCE_DIR}/${mech_dir}")
-file(MAKE_DIRECTORY "${abs_mech_dir}")
+set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${mech_dir}")
 
-if(NOT ARB_VECTORIZE STREQUAL "none")
-    set(modcc_simd "-s ${ARB_VECTORIZE}")
+if(ARB_VECTORIZE)
+    set(modcc_simd "-s")
 endif()
 
 build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
-    DEST_DIR "${abs_mech_dir}"
+    DEST_DIR "${mech_dir}"
 #    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
 #    GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     MODCC_FLAGS -t cpu ${modcc_simd}
@@ -39,7 +38,7 @@ add_custom_command(
 # Make a library with the implementations of the mechanism kernels
 
 foreach(mech ${mechanisms})
-    list(APPEND cpu_mech_sources ${abs_mech_dir}/${mech}_cpu.cpp)
+    list(APPEND cpu_mech_sources ${mech_dir}/${mech}_cpu.cpp)
 endforeach()
 
 add_library(arbormech ${cpu_mech_sources} ${catsrc})
@@ -55,10 +54,10 @@ endif()
 list(INSERT ARB_LIBRARIES 0 arbormech)
 list(APPEND ARB_LIBRARIES arbormech)
 
-#if(ARB_WITH_CUDA)
+if(ARB_WITH_CUDA)
 #    # make list of the .cu files that implement the mechanism kernels
 #    foreach(mech ${mechanisms})
-#        list(APPEND cuda_mech_sources ${abs_mech_dir}/${mech}_gpu.cu)
+#        list(APPEND cuda_mech_sources ${mech_dir}/${mech}_gpu_impl.cu)
 #    endforeach()
 #
 #    # compile the .cu files into a library
@@ -66,10 +65,10 @@ list(APPEND ARB_LIBRARIES arbormech)
 #
 #    # force recompilation on changes to modcc or the underlying .mod files
 #    if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
-#        add_dependencies(arbormechcu build_all_mods)
+#        add_dependencies(arbormechcu build_all_gpu_mods)
 #    endif()
 #
 #    list(INSERT ARB_LIBRARIES 0 arbormechcu)
-#endif()
+endif()
 
 set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)

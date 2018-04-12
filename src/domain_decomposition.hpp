@@ -48,11 +48,6 @@ struct group_description {
 /// A load balancing algorithm is responsible for generating the
 /// domain_decomposition, e.g. arb::partitioned_load_balancer().
 struct domain_decomposition {
-    /// Tests whether a gid is on the local domain.
-    bool is_local_gid(cell_gid_type gid) const {
-        return gid_domain(gid)==domain_id;
-    }
-
     /// Return the domain id of cell with gid.
     /// Supplied by the load balancing algorithm that generates the domain
     /// decomposition.
