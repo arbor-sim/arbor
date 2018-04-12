@@ -260,26 +260,26 @@ TEST(fvm_layout, mech_index) {
     auto& expsyn_config = M.mechanisms.at("expsyn");
     auto& exp2syn_config = M.mechanisms.at("exp2syn");
 
-    using uvec = std::vector<fvm_size_type>;
+    using ivec = std::vector<fvm_index_type>;
     using fvec = std::vector<fvm_value_type>;
 
     // HH on somas of two cells, with CVs 0 and 5.
     // Proportional area contrib: soma area/CV area.
 
     EXPECT_EQ(mechanismKind::density, hh_config.kind);
-    EXPECT_EQ(uvec({0,5}), hh_config.cv);
+    EXPECT_EQ(ivec({0,5}), hh_config.cv);
 
     fvec norm_area({cells[0].soma()->area()/D.cv_area[0], cells[1].soma()->area()/D.cv_area[5]});
-    EXPECT_EQ(norm_area, hh_config.norm_area);
+    EXPECT_TRUE(testing::seq_almost_eq<double>(norm_area, hh_config.norm_area));
 
     // Three expsyn synapses, two 0.4 along segment 1, and one 0.4 along segment 5.
     // 0.4 along => second (non-parent) CV for segment.
 
-    EXPECT_EQ(uvec({2, 2, 15}), expsyn_config.cv);
+    EXPECT_EQ(ivec({2, 2, 15}), expsyn_config.cv);
 
     // One exp2syn synapse, 0.4 along segment 4.
 
-    EXPECT_EQ(uvec({11}), exp2syn_config.cv);
+    EXPECT_EQ(ivec({11}), exp2syn_config.cv);
 
     // There should be a K and Na ion channel associated with each
     // hh mechanism node.
@@ -288,8 +288,8 @@ TEST(fvm_layout, mech_index) {
     ASSERT_EQ(1u, M.ions.count(ionKind::k));
     EXPECT_EQ(0u, M.ions.count(ionKind::ca));
 
-    EXPECT_EQ(uvec({0,5}), M.ions.at(ionKind::na).cv);
-    EXPECT_EQ(uvec({0,5}), M.ions.at(ionKind::k).cv);
+    EXPECT_EQ(ivec({0,5}), M.ions.at(ionKind::na).cv);
+    EXPECT_EQ(ivec({0,5}), M.ions.at(ionKind::k).cv);
 }
 
 TEST(fvm_layout, synapse_targets) {
@@ -540,13 +540,14 @@ TEST(fvm_layout, ion_weights) {
     };
 
     using uvec = std::vector<fvm_size_type>;
+    using ivec = std::vector<fvm_index_type>;
     using fvec = std::vector<fvm_value_type>;
 
     uvec mech_segs[] = {
         {0}, {0,2}, {2, 3}, {0, 1, 2, 3}, {3}
     };
 
-    uvec expected_ion_cv[] = {
+    ivec expected_ion_cv[] = {
         {0}, {0, 1, 2}, {1, 2, 3}, {0, 1, 2, 3}, {1, 3}
     };
 

@@ -6,7 +6,7 @@
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
 #include <merge_events.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <util/filter.hpp>
 #include <util/span.hpp>
@@ -15,7 +15,7 @@
 
 namespace arb {
 
-model::model(const recipe& rec, const domain_decomposition& decomp):
+simulation::simulation(const recipe& rec, const domain_decomposition& decomp):
     communicator_(rec, decomp)
 {
     const auto num_local_cells = communicator_.num_local_cells();
@@ -65,7 +65,7 @@ model::model(const recipe& rec, const domain_decomposition& decomp):
     event_lanes_[1].resize(num_local_cells);
 }
 
-void model::reset() {
+void simulation::reset() {
     t_ = 0.;
 
     // Reset cell group state.
@@ -98,7 +98,7 @@ void model::reset() {
     previous_spikes().clear();
 }
 
-time_type model::run(time_type tfinal, time_type dt) {
+time_type simulation::run(time_type tfinal, time_type dt) {
     // Calculate the size of the largest possible time integration interval
     // before communication of spikes is required.
     // If spike exchange and cell update are serialized, this is the
@@ -186,7 +186,7 @@ time_type model::run(time_type tfinal, time_type dt) {
 //      event_lanes[epoch]: take all events ≥ t_from
 //      event_generators  : take all events < t_to
 //      pending_events    : take all events
-void model::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
+void simulation::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
     const auto n = communicator_.num_local_cells();
     threading::parallel_for::apply(0, n,
         [&](cell_size_type i) {
@@ -200,7 +200,12 @@ void model::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
         });
 }
 
-sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, schedule sched, sampler_function f, sampling_policy policy) {
+sampler_association_handle simulation::add_sampler(
+        cell_member_predicate probe_ids,
+        schedule sched,
+        sampler_function f,
+        sampling_policy policy)
+{
     sampler_association_handle h = sassoc_handles_.acquire();
 
     threading::parallel_for::apply(0, cell_groups_.size(),
@@ -211,7 +216,7 @@ sampler_association_handle model::add_sampler(cell_member_predicate probe_ids, s
     return h;
 }
 
-void model::remove_sampler(sampler_association_handle h) {
+void simulation::remove_sampler(sampler_association_handle h) {
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](std::size_t i) {
             cell_groups_[i]->remove_sampler(h);
@@ -220,7 +225,7 @@ void model::remove_sampler(sampler_association_handle h) {
     sassoc_handles_.release(h);
 }
 
-void model::remove_all_samplers() {
+void simulation::remove_all_samplers() {
     threading::parallel_for::apply(0, cell_groups_.size(),
         [&](std::size_t i) {
             cell_groups_[i]->remove_all_samplers();
@@ -229,50 +234,50 @@ void model::remove_all_samplers() {
     sassoc_handles_.clear();
 }
 
-std::size_t model::num_spikes() const {
+std::size_t simulation::num_spikes() const {
     return communicator_.num_spikes();
 }
 
-std::size_t model::num_groups() const {
+std::size_t simulation::num_groups() const {
     return cell_groups_.size();
 }
 
-std::vector<pse_vector>& model::event_lanes(std::size_t epoch_id) {
+std::vector<pse_vector>& simulation::event_lanes(std::size_t epoch_id) {
     return event_lanes_[epoch_id%2];
 }
 
-void model::set_binning_policy(binning_kind policy, time_type bin_interval) {
+void simulation::set_binning_policy(binning_kind policy, time_type bin_interval) {
     for (auto& group: cell_groups_) {
         group->set_binning_policy(policy, bin_interval);
     }
 }
 
-void model::set_global_spike_callback(spike_export_function export_callback) {
+void simulation::set_global_spike_callback(spike_export_function export_callback) {
     global_export_callback_ = export_callback;
 }
 
-void model::set_local_spike_callback(spike_export_function export_callback) {
+void simulation::set_local_spike_callback(spike_export_function export_callback) {
     local_export_callback_ = export_callback;
 }
 
-util::optional<cell_size_type> model::local_cell_index(cell_gid_type gid) {
+util::optional<cell_size_type> simulation::local_cell_index(cell_gid_type gid) {
     auto it = gid_to_local_.find(gid);
     return it==gid_to_local_.end()?
         util::nullopt:
         util::optional<cell_size_type>(it->second);
 }
 
-void model::inject_events(const pse_vector& events) {
+void simulation::inject_events(const pse_vector& events) {
     // Push all events that are to be delivered to local cells into the
     // pending event list for the event's target cell.
     for (auto& e: events) {
         if (e.time<t_) {
             throw std::runtime_error(
-                "model::inject_events(): attempt to inject an event at time: "
+                "simulation::inject_events(): attempt to inject an event at time: "
                 + std::to_string(e.time)
-                + " ms, which is earlier than the current model time: "
+                + " ms, which is earlier than the current simulation time: "
                 + std::to_string(t_)
-                + " ms. Events must be injected on or after the current model time.");
+                + " ms. Events must be injected on or after the current simulation time.");
         }
         // local_cell_index returns an optional type that evaluates
         // to true iff the gid is a local cell.

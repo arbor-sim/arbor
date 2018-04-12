@@ -78,6 +78,7 @@ static bool all_equal_to(const Seq& s, double v) {
 TEST(synapses, syn_basic_state) {
     using util::fill;
     using value_type = multicore::backend::value_type;
+    using index_type = multicore::backend::index_type;
 
     int num_syn = 4;
     int num_comp = 4;
@@ -103,7 +104,7 @@ TEST(synapses, syn_basic_state) {
     fill(state.time_to, 0.1);
     state.set_dt();
 
-    std::vector<size_type> syn_cv(num_syn, 0);
+    std::vector<index_type> syn_cv(num_syn, 0);
     std::vector<value_type> syn_weight(num_syn, 1.0);
 
     expsyn->instantiate(0, state, {syn_cv, syn_weight});

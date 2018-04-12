@@ -7,28 +7,17 @@ set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 
 # Generate mechanism implementations for host/cpu environment
 
-set(mech_dir "mechanisms/generated")
-set(abs_mech_dir "${CMAKE_SOURCE_DIR}/${mech_dir}")
-file(MAKE_DIRECTORY "${abs_mech_dir}")
+set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
+file(MAKE_DIRECTORY "${mech_dir}")
 
-if(ARB_VECTORIZE_TARGET STREQUAL "none")
-    set(modcc_simd "")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "KNL")
-    set(modcc_simd "-s avx512")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
-    set(modcc_simd "-s avx512")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
-    set(modcc_simd "-s avx2")
-else()
-    message(SEND_ERROR "Unrecognized architecture for ARB_VECTORIZE_TARGET")
-    set(modcc_simd "")
+if(ARB_VECTORIZE)
+    set(modcc_simd "-s")
 endif()
-
 
 build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
-    DEST_DIR "${abs_mech_dir}"
+    DEST_DIR "${mech_dir}"
 #    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
 #    GENERATES .hpp _cpu.cpp _gpu_impl.cu _gpu.hpp _gpu_impl.hpp
     MODCC_FLAGS -t cpu ${modcc_simd}
@@ -49,10 +38,12 @@ add_custom_command(
 # Make a library with the implementations of the mechanism kernels
 
 foreach(mech ${mechanisms})
-    list(APPEND cpu_mech_sources ${abs_mech_dir}/${mech}_cpu.cpp)
+    list(APPEND cpu_mech_sources ${mech_dir}/${mech}_cpu.cpp)
 endforeach()
 
 add_library(arbormech ${cpu_mech_sources} ${catsrc})
+target_compile_options(arbormech PRIVATE ${CXXOPT_ARCH})
+
 if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
     add_dependencies(arbormech build_all_mods)
 endif()
@@ -66,7 +57,7 @@ list(APPEND ARB_LIBRARIES arbormech)
 if(ARB_WITH_CUDA)
     # make list of the .cu files that implement the mechanism kernels
     foreach(mech ${mechanisms})
-        list(APPEND cuda_mech_sources ${abs_mech_dir}/${mech}_gpu_impl.cu)
+        list(APPEND cuda_mech_sources ${mech_dir}/${mech}_gpu_impl.cu)
     endforeach()
 
     # compile the .cu files into a library

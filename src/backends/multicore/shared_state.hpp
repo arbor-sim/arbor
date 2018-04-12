@@ -61,7 +61,7 @@ struct ion_state {
 
     ion_state(
         ion_info info,
-        const std::vector<fvm_size_type>& cv,
+        const std::vector<fvm_index_type>& cv,
         const std::vector<fvm_value_type>& iconc_norm_area,
         const std::vector<fvm_value_type>& econc_norm_area,
         unsigned align
@@ -112,7 +112,7 @@ struct shared_state {
 
     void add_ion(
         ion_info info,
-        const std::vector<fvm_size_type>& cv,
+        const std::vector<fvm_index_type>& cv,
         const std::vector<fvm_value_type>& iconc_norm_area,
         const std::vector<fvm_value_type>& econc_norm_area);
 

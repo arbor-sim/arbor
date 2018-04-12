@@ -15,6 +15,7 @@ using namespace arb;
 
 using matrix_type = matrix<arb::multicore::backend>;
 using size_type  = matrix_type::size_type;
+using index_type = matrix_type::index_type;
 using value_type = matrix_type::value_type;
 
 using vvec = std::vector<value_type>;
@@ -28,9 +29,9 @@ TEST(matrix, construct_from_parent_only)
     EXPECT_EQ(p.size(), 3u);
 
     auto mp = m.p();
-    EXPECT_EQ(mp[0], 0u);
-    EXPECT_EQ(mp[1], 0u);
-    EXPECT_EQ(mp[2], 1u);
+    EXPECT_EQ(mp[0], index_type(0));
+    EXPECT_EQ(mp[1], index_type(0));
+    EXPECT_EQ(mp[2], index_type(1));
 }
 
 TEST(matrix, solve_host)

@@ -18,7 +18,7 @@ std::ostream& operator<<(std::ostream& out, as_c_double wrap) {
     case FP_NAN:
         return out << "NAN";
     case FP_ZERO:
-        return out << (neg? "-0.": "0");
+        return out << (neg? "-0.": "0.");
     default:
         return out <<
             (std::stringstream{} << io::classic << std::setprecision(17) << wrap.value).rdbuf();
@@ -82,7 +82,7 @@ void CExprEmitter::visit(AssignmentExpression* e) {
 }
 
 void CExprEmitter::visit(PowBinaryExpression* e) {
-    emit_as_call("std::pow", e->lhs(), e->rhs());
+    emit_as_call("pow", e->lhs(), e->rhs());
 }
 
 void CExprEmitter::visit(BinaryExpression* e) {

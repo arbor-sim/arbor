@@ -6,7 +6,6 @@
 #include <cell_group_factory.hpp>
 #include <domain_decomposition.hpp>
 #include <merge_events.hpp>
-#include <model.hpp>
 #include <recipe.hpp>
 #include <util/filter.hpp>
 #include <util/span.hpp>

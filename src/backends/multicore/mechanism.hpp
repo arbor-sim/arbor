@@ -23,6 +23,7 @@ namespace multicore {
 class mechanism: public arb::concrete_mechanism<arb::multicore::backend> {
 public:
     using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
 protected:
@@ -47,7 +48,7 @@ public:
     std::size_t memory() const override {
         std::size_t s = object_sizeof();
 
-        s += sizeof(value_type) * (data_.size() + weight_.size());
+        s += sizeof(value_type) * data_.size();
         s += sizeof(size_type) * width_padded_ * (n_ion_ + 1); // node and ion indices.
         return s;
     }
@@ -64,13 +65,13 @@ public:
     void set_global(const std::string& key, fvm_value_type value) override;
 
 protected:
-    std::size_t width_ = 0;        // Instance width (number of CVs/sites)
-    std::size_t width_padded_ = 0; // Width rounded up to multiple of pad/alignment.
-    std::size_t n_ion_ = 0;
+    size_type width_ = 0;        // Instance width (number of CVs/sites)
+    size_type width_padded_ = 0; // Width rounded up to multiple of pad/alignment.
+    size_type n_ion_ = 0;
 
     // Non-owning views onto shared cell state, excepting ion state.
 
-    const size_type* vec_ci_;     // CV to cell index.
+    const index_type* vec_ci_;     // CV to cell index.
     const value_type* vec_t_;     // Cell index to cell-local time.
     const value_type* vec_t_to_;  // Cell index to cell-local integration step time end.
     const value_type* vec_dt_;    // CV to integration time step.
@@ -81,7 +82,7 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
-    array weight_;
+    const value_type* weight_;    // Points within data_ after instantiation.
 
     // Bulk storage for state and parameter variables.
 

@@ -8,6 +8,7 @@ namespace arb {
 
 using fvm_value_type = double;
 using fvm_size_type = cell_local_size_type;
+using fvm_index_type = int;
 
 // Stores a single crossing event.
 

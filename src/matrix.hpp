@@ -19,6 +19,7 @@ public:
 
     // define basic types
     using value_type = typename backend::value_type;
+    using index_type = typename backend::index_type;
     using size_type = typename backend::size_type;
 
     // define storage types
@@ -39,7 +40,7 @@ public:
         cell_index_(ci.begin(), ci.end()),
         state_(pi, ci, cv_capacitance, face_conductance, cv_area)
     {
-        EXPECTS(cell_index_[num_cells()] == parent_index_.size());
+        EXPECTS(cell_index_[num_cells()] == index_type(parent_index_.size()));
     }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)

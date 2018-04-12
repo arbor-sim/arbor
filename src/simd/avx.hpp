@@ -37,6 +37,8 @@ struct simd_traits<avx_double4> {
 struct avx_int4: implbase<avx_int4> {
     // Use default implementations for: element, set_element, div.
 
+    using implbase<avx_int4>::cast_from;
+
     using int32 = std::int32_t;
 
     static __m128i broadcast(int32 v) {
@@ -62,6 +64,14 @@ struct avx_int4: implbase<avx_int4> {
     static __m128i copy_from_masked(const __m128i& v, const int32* p, const __m128i& mask) {
         __m128 d = _mm_maskload_ps(reinterpret_cast<const float*>(p), mask);
         return ifelse(mask, _mm_castps_si128(d), v);
+    }
+
+    static __m128i cast_from(tag<avx_double4>, const __m256d& v) {
+        return _mm256_cvttpd_epi32(v);
+    }
+
+    static int element0(const __m128i& a) {
+        return _mm_cvtsi128_si32(a);
     }
 
     static __m128i negate(const __m128i& a) {
@@ -172,11 +182,22 @@ struct avx_int4: implbase<avx_int4> {
     static __m128i min(const __m128i& a, const __m128i& b) {
         return _mm_min_epi32(a, b);
     }
+
+    static int reduce_add(const __m128i& a) {
+        // Add [a3|a2|a1|a0] to [a2|a3|a0|a1]
+        __m128i b = add(a, _mm_shuffle_epi32(a, 0xb1));
+        // Add [b3|b2|b1|b0] to [b1|b0|b3|b2]
+        __m128i c = add(b, _mm_shuffle_epi32(b, 0x4e));
+
+        return element0(c);
+    }
 };
 
 struct avx_double4: implbase<avx_double4> {
     // Use default implementations for:
     //     element, set_element, fma.
+
+    using implbase<avx_double4>::cast_from;
 
     using int64 = std::int64_t;
 
@@ -214,6 +235,14 @@ struct avx_double4: implbase<avx_double4> {
     static __m256d copy_from_masked(const __m256d& v, const double* p, const __m256d& mask) {
         __m256d d = _mm256_maskload_pd(p, _mm256_castpd_si256(mask));
         return ifelse(mask, d, v);
+    }
+
+    static __m256d cast_from(tag<avx_int4>, const __m128i& v) {
+        return _mm256_cvtepi32_pd(v);
+    }
+
+    static double element0(const __m256d& a) {
+        return _mm_cvtsd_f64(_mm256_castpd256_pd128(a));
     }
 
     static __m256d negate(const __m256d& a) {
@@ -346,6 +375,15 @@ struct avx_double4: implbase<avx_double4> {
     static __m256d abs(const __m256d& x) {
         __m256i m = _mm256_set1_epi64x(0x7fffffffffffffffll);
         return _mm256_and_pd(x, _mm256_castsi256_pd(m));
+    }
+
+    static double reduce_add(const __m256d& a) {
+        // add [a3|a2|a1|a0] to [a1|a0|a3|a2]
+        __m256d b = add(a, _mm256_permute2f128_pd(a, a, 0x01));
+        // add [b3|b2|b1|b0] to [b2|b3|b0|b1]
+        __m256d c = add(b, _mm256_permute_pd(b, 0x05));
+
+        return element0(c);
     }
 
     // Exponential is calculated as follows:
@@ -650,10 +688,16 @@ protected:
 
 #if defined(__AVX2__) && defined(__FMA__)
 
-// Same implementation as for AVX.
-using avx2_int4 = avx_int4;
-
+struct avx2_int4;
 struct avx2_double4;
+
+template <>
+struct simd_traits<avx2_int4> {
+    static constexpr unsigned width = 4;
+    using scalar_type = std::int32_t;
+    using vector_type = __m128i;
+    using mask_impl = avx_int4;
+};
 
 template <>
 struct simd_traits<avx2_double4> {
@@ -663,12 +707,34 @@ struct simd_traits<avx2_double4> {
     using mask_impl = avx2_double4;
 };
 
+// Note: we derive from avx_int4 only as an implementation shortcut.
+// Because `avx2_int4` does not derive from `implbase<avx2_int4>`,
+// any fallback methods in `implbase` will use the `avx_int4`
+// functions rather than the `avx2_int4` functions.
+
+struct avx2_int4: avx_int4 {
+    using implbase<avx_int4>::cast_from;
+
+    // Need to provide a cast overload for avx2_double4 tag:
+    static __m128i cast_from(tag<avx2_double4>, const __m256d& v) {
+        return _mm256_cvttpd_epi32(v);
+    }
+};
+
 // Note: we derive from avx_double4 only as an implementation shortcut.
 // Because `avx2_double4` does not derive from `implbase<avx2_double4>`,
 // any fallback methods in `implbase` will use the `avx_double4`
 // functions rather than the `avx2_double4` functions.
 
 struct avx2_double4: avx_double4 {
+    using implbase<avx_double4>::cast_from;
+    using implbase<avx_double4>::gather;
+
+    // Need to provide a cast overload for avx2_int4 tag:
+    static __m256d cast_from(tag<avx2_int4>, const __m128i& v) {
+        return _mm256_cvtepi32_pd(v);
+    }
+
     static __m256d fma(const __m256d& a, const __m256d& b, const __m256d& c) {
         return _mm256_fmadd_pd(a, b, c);
     }
@@ -705,11 +771,11 @@ struct avx2_double4: avx_double4 {
         return _mm256_castsi256_pd(_mm256_sub_epi64(zero, _mm256_cvtepi8_epi64(r)));
     }
 
-    static __m256d gather(avx2_int4, const double* p, const __m128i& index) {
+    static __m256d gather(tag<avx2_int4>, const double* p, const __m128i& index) {
         return _mm256_i32gather_pd(p, index, 8);
     }
 
-    static __m256d gather(avx2_int4, __m256d a, const double* p, const __m128i& index, const __m256d& mask) {
+    static __m256d gather(tag<avx2_int4>, __m256d a, const double* p, const __m128i& index, const __m256d& mask) {
         return  _mm256_mask_i32gather_pd(a, p, index, mask, 8);
     };
 

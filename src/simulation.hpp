@@ -20,12 +20,12 @@
 
 namespace arb {
 
-class model {
+class simulation {
 public:
     using communicator_type = communication::communicator<communication::global_policy>;
     using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
-    model(const recipe& rec, const domain_decomposition& decomp);
+    simulation(const recipe& rec, const domain_decomposition& decomp);
 
     void reset();
 
@@ -55,8 +55,8 @@ public:
     void set_local_spike_callback(spike_export_function export_callback);
 
     // Add events directly to targets.
-    // Must be called before calling model::run, and must contain events that
-    // are to be delivered at or after the current model time.
+    // Must be called before calling simulation::run, and must contain events that
+    // are to be delivered at or after the current simulation time.
     void inject_events(const pse_vector& events);
 
 private:

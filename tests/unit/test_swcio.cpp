@@ -473,9 +473,9 @@ TEST(swc_io, cell_construction) {
     EXPECT_TRUE(cell.has_soma());
     EXPECT_EQ(4u, cell.num_segments());
 
-    EXPECT_EQ(norm(points[1]-points[2]), cell.cable(1)->length());
-    EXPECT_EQ(norm(points[2]-points[3]), cell.cable(2)->length());
-    EXPECT_EQ(norm(points[2]-points[4]) + norm(points[4]-points[5]),
+    EXPECT_DOUBLE_EQ(norm(points[1]-points[2]), cell.cable(1)->length());
+    EXPECT_DOUBLE_EQ(norm(points[2]-points[3]), cell.cable(2)->length());
+    EXPECT_DOUBLE_EQ(norm(points[2]-points[4]) + norm(points[4]-points[5]),
               cell.cable(3)->length());
 
 

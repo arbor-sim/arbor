@@ -1,5 +1,8 @@
 #pragma once
 
+#include <functional>
+#include <type_traits>
+
 // Work around for C++11 defect #2148: hashing enums should be supported directly by std::hash.
 // Fixed in C++14.
 

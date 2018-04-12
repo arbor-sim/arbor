@@ -26,7 +26,7 @@ namespace multicore {
 
 constexpr unsigned simd_width = simd::simd_abi::native_width<fvm_value_type>::value;
 using simd_value_type = simd::simd<fvm_value_type, simd_width>;
-using simd_size_type = simd::simd<fvm_size_type, simd_width>;
+using simd_index_type = simd::simd<fvm_index_type, simd_width>;
 
 // Pick alignment compatible with native SIMD width for explicitly
 // vectorized operations below.
@@ -46,7 +46,7 @@ using pad = util::padded_allocator<>;
 
 ion_state::ion_state(
     ion_info info,
-    const std::vector<fvm_size_type>& cv,
+    const std::vector<fvm_index_type>& cv,
     const std::vector<fvm_value_type>& iconc_norm_area,
     const std::vector<fvm_value_type>& econc_norm_area,
     unsigned align
@@ -82,12 +82,12 @@ void ion_state::nernst(fvm_value_type temperature_K) {
     // 1e3 factor required to scale from V -> mV.
     constexpr fvm_value_type RF = 1e3*constant::gas_constant/constant::faraday;
 
-    fvm_value_type factor = RF*temperature_K/charge;
+    simd_value_type factor = RF*temperature_K/charge;
     for (std::size_t i=0; i<Xi_.size(); i+=simd_width) {
         simd_value_type xi(Xi_.data()+i);
         simd_value_type xo(Xo_.data()+i);
 
-        auto ex = factor*simd::log(xo/xi);
+        auto ex = factor*log(xo/xi);
         ex.copy_to(eX_.data()+i);
     }
 }
@@ -140,7 +140,7 @@ shared_state::shared_state(
 
 void shared_state::add_ion(
     ion_info info,
-    const std::vector<fvm_size_type>& cv,
+    const std::vector<fvm_index_type>& cv,
     const std::vector<fvm_value_type>& iconc_norm_area,
     const std::vector<fvm_value_type>& econc_norm_area)
 {
@@ -182,7 +182,7 @@ void shared_state::ions_nernst_reversal_potential(fvm_value_type temperature_K) 
 void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
     for (fvm_size_type i = 0; i<n_cell; i+=simd_width) {
         simd_value_type t(time.data()+i);
-        t = simd::min(t+dt_step, simd_value_type(tmax));
+        t = min(t+dt_step, simd_value_type(tmax));
         t.copy_to(time_to.data()+i);
     }
 }
@@ -197,10 +197,9 @@ void shared_state::set_dt() {
     }
 
     for (fvm_size_type i = 0; i<n_cv; i+=simd_width) {
-        simd_size_type cell_idx(cv_to_cell.data()+i);
+        simd_index_type cell_idx(cv_to_cell.data()+i);
 
-        simd_value_type dt;
-        dt.gather(dt_cell.data(), cell_idx);
+        simd_value_type dt(simd::indirect(dt_cell.data(), cell_idx));
         dt.copy_to(dt_cv.data()+i);
     }
 }

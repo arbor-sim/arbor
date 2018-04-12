@@ -161,8 +161,36 @@ template struct ::testing::access::bind<type, global, value>;
 
 // Google Test assertion-returning predicates:
 
-// Assert two sequences of floating point values are almost equal.
+// Assert two values are 'almost equal', with exact test for non-floating point types.
 // (Uses internal class `FloatingPoint` from gtest.)
+
+template <typename FPType>
+::testing::AssertionResult almost_eq_(FPType a, FPType b, std::true_type) {
+    using FP = testing::internal::FloatingPoint<FPType>;
+
+    if ((std::isnan(a) && std::isnan(b)) || FP{a}.AlmostEquals(FP{b})) {
+        return ::testing::AssertionSuccess();
+    }
+
+    return ::testing::AssertionFailure() << "floating point numbers " << a << " and " << b << " differ";
+}
+
+template <typename X>
+::testing::AssertionResult almost_eq_(const X& a, const X& b, std::false_type) {
+    if (a==b) {
+        return ::testing::AssertionSuccess();
+    }
+
+    return ::testing::AssertionFailure() << "values " << a << " and " << b << " differ";
+}
+
+template <typename X>
+::testing::AssertionResult almost_eq(const X& a, const X& b) {
+    return almost_eq_(a, b, typename std::is_floating_point<X>::type{});
+}
+
+// Assert two sequences of floating point values are almost equal, with explicit
+// specification of floating point type.
 
 template <typename FPType, typename Seq1, typename Seq2>
 ::testing::AssertionResult seq_almost_eq(Seq1&& seq1, Seq2&& seq2) {
@@ -176,7 +204,6 @@ template <typename FPType, typename Seq1, typename Seq2>
     auto e2 = end(seq2);
 
     for (std::size_t j = 0; i1!=e1 && i2!=e2; ++i1, ++i2, ++j) {
-        using FP = testing::internal::FloatingPoint<FPType>;
 
         auto v1 = *i1;
         auto v2 = *i2;
@@ -184,10 +211,8 @@ template <typename FPType, typename Seq1, typename Seq2>
         // Cast to FPType to avoid warnings about lowering conversion
         // if FPType has lower precision than Seq{12}::value_type.
 
-        if (!(std::isnan(v1) && std::isnan(v2)) && !FP{v1}.AlmostEquals(FP{v2})) {
-            return ::testing::AssertionFailure() << "floating point numbers " << v1 << " and " << v2 << " differ at index " << j;
-        }
-
+        auto status = almost_eq((FPType)(v1), (FPType)(v2));
+        if (!status) return status << " at index " << j;
     }
 
     if (i1!=e1 || i2!=e2) {
@@ -234,6 +259,7 @@ template <typename Seq1, typename Seq2>
 }
 
 // Assert elements 0..n-1 inclusive of two indexed collections are exactly equal.
+
 template <typename Arr1, typename Arr2>
 ::testing::AssertionResult indexed_eq_n(int n, Arr1&& a1, Arr2&& a2) {
     for (int i = 0; i<n; ++i) {
@@ -248,6 +274,20 @@ template <typename Arr1, typename Arr2>
     return ::testing::AssertionSuccess();
 }
 
+// Assert elements 0..n-1 inclusive of two indexed collections are almost equal.
+
+template <typename Arr1, typename Arr2>
+::testing::AssertionResult indexed_almost_eq_n(int n, Arr1&& a1, Arr2&& a2) {
+    for (int i = 0; i<n; ++i) {
+        auto v1 = a1[i];
+        auto v2 = a2[i];
+
+        auto status = almost_eq(v1, v2);
+        if (!status) return status << " at index " << i;
+    }
+
+    return ::testing::AssertionSuccess();
+}
 
 // Assert two floating point values are within a relative tolerance.
 

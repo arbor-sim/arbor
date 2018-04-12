@@ -27,7 +27,7 @@ public:
     // Description of layout of mechanism across cell group: used as parameter in
     // `concrete_mechanism<B>::instantiate` (v.i.)
     struct layout {
-        std::vector<fvm_size_type> cv;      // Maps in-instance index to CV index.
+        std::vector<fvm_index_type> cv;     // Maps in-instance index to CV index.
         std::vector<fvm_value_type> weight; // Maps in-instance index to compartment contribution.
     };
 

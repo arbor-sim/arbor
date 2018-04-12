@@ -18,7 +18,7 @@ set(BASE_SOURCES
     mc_cell_group.cpp
     mechcat.cpp
     merge_events.cpp
-    model.cpp
+    simulation.cpp
     morphology.cpp
     partition_load_balance.cpp
     profiling/memory_meter.cpp
@@ -57,6 +57,7 @@ if(ARB_WITH_CTHREAD)
 endif()
 
 add_library(arbor ${BASE_SOURCES})
+target_compile_options(arbor PRIVATE ${CXXOPT_ARCH})
 list(APPEND ARB_LIBRARIES arbor)
 
 if(ARB_WITH_CUDA)

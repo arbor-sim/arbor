@@ -17,7 +17,7 @@
 #include <event_generator.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
-#include <model.hpp>
+#include <simulation.hpp>
 #include <recipe.hpp>
 #include <simple_sampler.hpp>
 
@@ -132,7 +132,7 @@ int main() {
     auto decomp = arb::partition_load_balance(recipe, node);
 
     // Construct the model.
-    arb::model model(recipe, decomp);
+    arb::simulation sim(recipe, decomp);
 
     // Set up the probe that will measure voltage in the cell.
 
@@ -143,10 +143,10 @@ int main() {
     // This is where the voltage samples will be stored as (time, value) pairs
     arb::trace_data<double> voltage;
     // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-    model.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+    sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
-    // Run the model for 1 s (1000 ms), with time steps of 0.01 ms.
-    model.run(50, 0.01);
+    // Run the simulation for 1 s (1000 ms), with time steps of 0.01 ms.
+    sim.run(50, 0.01);
 
     // Write the samples to a json file.
     write_trace_json(voltage);

@@ -51,6 +51,19 @@
 
 namespace arb {
 namespace simd {
+
+// Constraints on possible index conflicts can be used to select a more
+// efficient indexed update, gather or scatter.
+
+enum class index_constraint {
+    none = 0,
+    // For indices k[0], k[1],...:
+
+    independent, // k[i]==k[j] => i=j.
+    contiguous,  // k[i]==k[0]+i
+    constant     // k[i]==k[j] ∀ i, j
+};
+
 namespace simd_detail {
 
 // The simd_traits class provides the mapping between a concrete SIMD
@@ -65,6 +78,13 @@ struct simd_traits {
     using mask_impl = void;
 };
 
+// The `tag` template is used to dispatch gather, scatter and cast_from
+// operations that involve a (possibly) different SIMD implemenation
+// class.
+
+template <typename I>
+struct tag {};
+
 template <typename I>
 struct implbase {
     constexpr static unsigned width = simd_traits<I>::width;
@@ -77,6 +97,31 @@ struct implbase {
     using store = scalar_type[width];
     using mask_store = bool[width];
 
+    template <typename ImplFrom>
+    static vector_type cast_from_(tag<ImplFrom>, const typename ImplFrom::vector_type& v, std::true_type) {
+        store a;
+        ImplFrom::copy_to(v, a);
+        return I::copy_from(a);
+    }
+
+    template <typename ImplFrom>
+    static vector_type cast_from_(tag<ImplFrom>, const typename ImplFrom::vector_type& v, std::false_type) {
+        using other_scalar_type = typename simd_traits<ImplFrom>::scalar_type;
+        other_scalar_type b[width];
+        ImplFrom::copy_to(v, b);
+        store a;
+        std::copy(b, b+width, a);
+        return I::copy_from(a);
+    }
+
+    template <
+        typename ImplFrom,
+        typename other_scalar_type = typename simd_traits<ImplFrom>::scalar_type
+    >
+    static vector_type cast_from(tag<ImplFrom> tag, const typename ImplFrom::vector_type& v) {
+        return cast_from_(tag, v, typename std::is_same<scalar_type, other_scalar_type>::type{});
+    }
+
     static vector_type broadcast(scalar_type x) {
         store a;
         std::fill(std::begin(a), std::end(a), x);
@@ -87,6 +132,10 @@ struct implbase {
         store a;
         I::copy_to(v, a);
         return a[i];
+    }
+
+    static scalar_type element0(const vector_type&v) {
+        return element(v, 0);
     }
 
     static void set_element(vector_type& v, int i, scalar_type x) {
@@ -329,7 +378,7 @@ struct implbase {
     }
 
     template <typename ImplIndex>
-    static vector_type gather(ImplIndex, const scalar_type* p, const typename ImplIndex::vector_type& index) {
+    static vector_type gather(tag<ImplIndex>, const scalar_type* p, const typename ImplIndex::vector_type& index) {
         typename ImplIndex::scalar_type o[width];
         ImplIndex::copy_to(index, o);
 
@@ -341,7 +390,7 @@ struct implbase {
     }
 
     template <typename ImplIndex>
-    static vector_type gather(ImplIndex, const vector_type& s, const scalar_type* p, const typename ImplIndex::vector_type& index, const mask_type& mask) {
+    static vector_type gather(tag<ImplIndex>, const vector_type& s, const scalar_type* p, const typename ImplIndex::vector_type& index, const mask_type& mask) {
         mask_store m;
         mask_impl::mask_copy_to(mask, m);
 
@@ -355,10 +404,10 @@ struct implbase {
             if (m[i]) { a[i] = p[o[i]]; }
         }
         return I::copy_from(a);
-    };
+    }
 
     template <typename ImplIndex>
-    static void scatter(ImplIndex, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index) {
+    static void scatter(tag<ImplIndex>, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index) {
         typename ImplIndex::scalar_type o[width];
         ImplIndex::copy_to(index, o);
 
@@ -371,7 +420,7 @@ struct implbase {
     }
 
     template <typename ImplIndex>
-    static void scatter(ImplIndex, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, const mask_type& mask) {
+    static void scatter(tag<ImplIndex>, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, const mask_type& mask) {
         mask_store m;
         mask_impl::mask_copy_to(mask, m);
 
@@ -384,6 +433,54 @@ struct implbase {
         for (unsigned i = 0; i<width; ++i) {
             if (m[i]) { p[o[i]] = a[i]; }
         }
+    }
+
+    template <typename ImplIndex>
+    static void compound_indexed_add(tag<ImplIndex> tag, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, index_constraint constraint) {
+        switch (constraint) {
+        case index_constraint::none:
+            {
+                typename ImplIndex::scalar_type o[width];
+                ImplIndex::copy_to(index, o);
+
+                store a;
+                I::copy_to(s, a);
+
+                for (unsigned i = 0; i<width; ++i) {
+                    p[o[i]] += a[i];
+                }
+            }
+            break;
+        case index_constraint::independent:
+            {
+                vector_type v = I::add(I::gather(tag, p, index), s);
+                I::scatter(tag, v, p, index);
+            }
+            break;
+        case index_constraint::contiguous:
+            {
+                p += ImplIndex::element0(index);
+                vector_type v = I::add(I::copy_from(p), s);
+                I::copy_to(v, p);
+            }
+            break;
+        case index_constraint::constant:
+            {
+                p += ImplIndex::element0(index);
+                *p += I::reduce_add(s);
+            }
+            break;
+        }
+    }
+
+    static scalar_type reduce_add(const vector_type& s) {
+        store a;
+        I::copy_to(s, a);
+        scalar_type r = a[0];
+        for (unsigned i=1; i<width; ++i) {
+            r += a[i];
+        }
+        return r;
     }
 
     // Maths
@@ -399,11 +496,11 @@ struct implbase {
     }
 
     static vector_type min(const vector_type& s, const vector_type& t) {
-        return ifelse(cmp_gt(t, s), s, t);
+        return I::ifelse(I::cmp_gt(t, s), s, t);
     }
 
     static vector_type max(const vector_type& s, const vector_type& t) {
-        return ifelse(cmp_gt(t, s), t, s);
+        return I::ifelse(I::cmp_gt(t, s), t, s);
     }
 
     static vector_type sin(const vector_type& s) {
@@ -458,7 +555,7 @@ struct implbase {
 
     static vector_type exprelr(const vector_type& s) {
         vector_type ones = I::broadcast(1);
-        return ifelse(cmp_eq(ones, add(ones, s)), ones, div(s, expm1(s)));
+        return I::ifelse(I::cmp_eq(ones, I::add(ones, s)), ones, I::div(s, I::expm1(s)));
     }
 
     static vector_type pow(const vector_type& s, const vector_type &t) {

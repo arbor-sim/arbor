@@ -234,6 +234,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     using util::optional;
 
     using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
     using string_set = std::unordered_set<std::string>;
@@ -379,7 +380,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             const segment_info& seg_info = D.segments[segment];
 
             if (seg_info.has_parent()) {
-                size_type cv = seg_info.parent_cv;
+                index_type cv = seg_info.parent_cv;
                 optional<std::size_t> parent_idx = util::binary_search_index(ion.cv, cv);
                 if (!parent_idx) {
                     ion.cv.push_back(cv);
@@ -425,7 +426,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         auto& ion_configs = mechdata.ions;     // TODO: C++14 ditto
         auto accumulate_mech_data =
             [&param_index, &param_value, &param_area_contrib, &config, &info, &ion_configs]
-            (size_type index, size_type cv, value_type area, const mechanism_desc& desc)
+            (size_type index, index_type cv, value_type area, const mechanism_desc& desc)
         {
             for (auto& kv: desc.values()) {
                 int pidx = param_index.at(kv.first);
@@ -458,7 +459,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
             const mechanism_desc& mech_desc = *seg_entry.second;
 
             if (seg_info.has_parent()) {
-                size_type cv = seg_info.parent_cv;
+                index_type cv = seg_info.parent_cv;
                 optional<std::size_t> parent_idx = util::binary_search_index(config.cv, cv);
                 if (!parent_idx) {
                     parent_idx = config.cv.size();

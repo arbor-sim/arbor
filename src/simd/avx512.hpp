@@ -44,6 +44,10 @@ struct simd_traits<avx512_int8> {
 };
 
 struct avx512_mask8: implbase<avx512_mask8> {
+    using implbase<avx512_mask8>::gather;
+    using implbase<avx512_mask8>::scatter;
+    using implbase<avx512_mask8>::cast_from;
+
     static __mmask8 broadcast(bool b) {
         return _mm512_int2mask(-b);
     }
@@ -207,6 +211,10 @@ struct avx512_int8: implbase<avx512_int8> {
     // to __mmask8 seem to produce a lot of ultimately unnecessary
     // operations. 
 
+    using implbase<avx512_int8>::gather;
+    using implbase<avx512_int8>::scatter;
+    using implbase<avx512_int8>::cast_from;
+
     using int32 = std::int32_t;
 
     static __mmask8 lo() {
@@ -235,6 +243,10 @@ struct avx512_int8: implbase<avx512_int8> {
 
     static __m512i copy_from_masked(const __m512i& v, const int32* p, const __mmask8& mask) {
         return _mm512_mask_loadu_epi32(v, mask, p);
+    }
+
+    static int element0(const __m512i& a) {
+        return _mm_cvtsi128_si32(_mm512_castsi512_si128(a));
     }
 
     static __m512i negate(const __m512i& a) {
@@ -312,6 +324,20 @@ struct avx512_int8: implbase<avx512_int8> {
         return _mm512_abs_epi32(a);
     }
 
+    static int reduce_add(const __m512i& a) {
+        // Add [...|a7|a6|a5|a4|a3|a2|a1|a0] to [...|a3|a2|a1|a0|a7|a6|a5|a4]
+        //__m512i b = add(a, _mm512_shuffle_i32x4(a, a, 0xb1));
+        __m512i b = add(a, _mm512_shuffle_i32x4(a, a, _MM_PERM_CDAB)); // 0xb1
+        // Add [...|b7|b6|b5|b4|b3|b2|b1|b0] to [...|b6|b7|b4|b5|b2|b3|b0|b1]
+        //__m512i c = add(b, _mm512_shuffle_epi32(b, 0xb1));
+        __m512i c = add(b, _mm512_shuffle_epi32(b, _MM_PERM_CDAB)); // 0xb1
+        // Add [...|c7|c6|c5|c4|c3|c2|c1|c0] to [...|c5|c4|c7|c6|c1|c0|c3|c2]
+        //__m512i d = add(c, _mm512_shuffle_epi32(c, 0x4e));
+        __m512i d = add(c, _mm512_shuffle_epi32(c, _MM_PERM_BADC)); // 0x4e
+
+        return element0(d);
+    }
+
     // Generic 8-wide int solutions for gather and scatter.
 
     template <typename Impl>
@@ -319,7 +345,7 @@ struct avx512_int8: implbase<avx512_int8> {
 
     template <typename ImplIndex,
               typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static __m512i gather(ImplIndex, const int32* p, const typename ImplIndex::vector_type& index) {
+    static __m512i gather(tag<ImplIndex>, const int32* p, const typename ImplIndex::vector_type& index) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
@@ -328,7 +354,7 @@ struct avx512_int8: implbase<avx512_int8> {
 
     template <typename ImplIndex,
               typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static __m512i gather(ImplIndex, __m512i a, const int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+    static __m512i gather(tag<ImplIndex>, const __m512i& a, const int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
@@ -337,7 +363,7 @@ struct avx512_int8: implbase<avx512_int8> {
 
     template <typename ImplIndex,
               typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static void scatter(ImplIndex, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index) {
+    static void scatter(tag<ImplIndex>, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
@@ -346,7 +372,7 @@ struct avx512_int8: implbase<avx512_int8> {
 
     template <typename ImplIndex,
               typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static void scatter(ImplIndex, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+    static void scatter(tag<ImplIndex>, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m512i*>(o);
@@ -375,6 +401,10 @@ struct avx512_int8: implbase<avx512_int8> {
 struct avx512_double8: implbase<avx512_double8> {
     // Use default implementations for:
     //     element, set_element.
+
+    using implbase<avx512_double8>::gather;
+    using implbase<avx512_double8>::scatter;
+    using implbase<avx512_double8>::cast_from;
 
     // CMPPD predicates:
     static constexpr int cmp_eq_oq =    0;
@@ -409,6 +439,10 @@ struct avx512_double8: implbase<avx512_double8> {
 
     static __m512d copy_from_masked(const __m512d& v, const double* p, const __mmask8& mask) {
         return _mm512_mask_loadu_pd(v, mask, p);
+    }
+
+    static double element0(const __m512d& a) {
+        return _mm_cvtsd_f64(_mm512_castpd512_pd128(a));
     }
 
     static __m512d negate(const __m512d& a) {
@@ -477,13 +511,24 @@ struct avx512_double8: implbase<avx512_double8> {
         return _mm512_castsi512_pd(_mm512_and_epi64(_mm512_castpd_si512(x), m));
     }
 
+    static double reduce_add(const __m512d& a) {
+        // add [a7|a6|a5|a4|a3|a2|a1|a0] to [a3|a2|a1|a0|a7|a6|a5|a4]
+        __m512d b = add(a, _mm512_shuffle_f64x2(a, a, 0x4e));
+        // add [b7|b6|b5|b4|b3|b2|b1|b0] to [b5|b4|b7|b6|b1|b0|b3|b2]
+        __m512d c = add(b, _mm512_permutex_pd(b, 0x4e));
+        // add [c7|c6|c5|c4|c3|c2|c1|c0] to [c6|c7|c4|c5|c2|c3|c0|c1]
+        __m512d d = add(c, _mm512_permute_pd(c, 0x55));
+
+        return element0(d);
+    }
+
     // Generic 8-wide int solutions for gather and scatter.
 
     template <typename Impl>
     using is_int8_simd = std::integral_constant<bool, std::is_same<int, typename Impl::scalar_type>::value && Impl::width==8>;
 
     template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static __m512d gather(ImplIndex, const double* p, const typename ImplIndex::vector_type& index) {
+    static __m512d gather(tag<ImplIndex>, const double* p, const typename ImplIndex::vector_type& index) {
         int o[8];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m256i*>(o);
@@ -491,7 +536,7 @@ struct avx512_double8: implbase<avx512_double8> {
     }
 
     template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static __m512d gather(ImplIndex, __m512d a, const double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+    static __m512d gather(tag<ImplIndex>, const __m512d& a, const double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int o[8];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m256i*>(o);
@@ -499,7 +544,7 @@ struct avx512_double8: implbase<avx512_double8> {
     }
 
     template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static void scatter(ImplIndex, const __m512d& s, double* p, const typename ImplIndex::vector_type& index) {
+    static void scatter(tag<ImplIndex>, const __m512d& s, double* p, const typename ImplIndex::vector_type& index) {
         int o[8];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m256i*>(o);
@@ -507,7 +552,7 @@ struct avx512_double8: implbase<avx512_double8> {
     }
 
     template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
-    static void scatter(ImplIndex, const __m512d& s, double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
+    static void scatter(tag<ImplIndex>, const __m512d& s, double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int o[8];
         ImplIndex::copy_to(index, o);
         auto op = reinterpret_cast<const __m256i*>(o);
@@ -572,8 +617,7 @@ struct avx512_double8: implbase<avx512_double8> {
         auto gg = mul(g, g);
 
         // Compute the g*P(g^2) and Q(g^2).
-
-        auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
+auto odd = mul(g, horner(gg, P0exp, P1exp, P2exp));
         auto even = horner(gg, Q0exp, Q1exp, Q2exp, Q3exp);
 
         // Compute R(g)/R(-g) = 1 + 2*g*P(g^2) / (Q(g^2)-g*P(g^2))
