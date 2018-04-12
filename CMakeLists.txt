@@ -131,7 +131,11 @@ if(ARB_WITH_CUDA)
 
     # Turn off annoying and incorrect warnings generated in the JSON file.
     # We also work around the same issue with the intel compiler.
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-Xcudafe \"--diag_suppress=not_used_in_template_function_params\";-Xcudafe \"--diag_suppress=cast_to_qualified_type\";-Xcudafe \"--diag_suppress=integer_sign_change\")
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
+        -Xcudafe --diag_suppress=not_used_in_template_function_params
+        -Xcudafe --diag_suppress=cast_to_qualified_type
+        -Xcudafe --diag_suppress=integer_sign_change
+        -Xcudafe --diag_suppress=unsigned_compare_with_zero)
 
     # set the CUDA target specfic flags
     # code regions protected by ARB_HAVE_CUDA should only be available to the CUDA
@@ -149,7 +153,7 @@ endif()
 #----------------------------------------------------------
 # Cray/BGQ/Generic Linux/other flag?
 #----------------------------------------------------------
-set(ARB_SYSTEM_TYPE "Generic" CACHE STRING 
+set(ARB_SYSTEM_TYPE "Generic" CACHE STRING
     "Choose a system type to customize flags")
 set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 

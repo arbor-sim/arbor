@@ -39,6 +39,7 @@ if(ARB_WITH_CUDA)
         backends/gpu/mechanism.cpp
         backends/gpu/shared_state.cpp
         backends/gpu/stimulus.cpp
+        backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
     )
 endif()

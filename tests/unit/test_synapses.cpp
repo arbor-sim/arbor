@@ -25,7 +25,7 @@ using value_type = backend::value_type;
 using size_type = backend::size_type;
 
 // Access to mechanisms protected data:
-using field_table_type = std::vector<util::xtuple<const char*, value_type**, value_type>>;
+using field_table_type = std::vector<std::pair<const char*, value_type**>>;
 ACCESS_BIND(field_table_type (multicore::mechanism::*)(), field_table_ptr, &multicore::mechanism::field_table)
 
 util::range<const value_type*> mechanism_field(std::unique_ptr<multicore::mechanism>& m, const std::string& key) {
@@ -97,7 +97,7 @@ TEST(synapses, syn_basic_state) {
     ASSERT_TRUE(exp2syn);
 
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());
-    shared_state state(num_cell, std::vector<size_type>(num_comp, 0), align);
+    shared_state state(num_cell, std::vector<index_type>(num_comp, 0), align);
 
     state.reset(-65., constant::hh_squid_temp);
     fill(state.current_density, 1.0);

@@ -165,7 +165,7 @@ TEST(fvm_layout, topology) {
 
     for (auto ci: make_span(D.ncell)) {
         for (auto cv: make_span(D.cell_cv_part()[ci])) {
-            EXPECT_EQ(ci, D.cv_to_cell[cv]);
+            EXPECT_EQ(ci, (fvm_size_type)D.cv_to_cell[cv]);
         }
     }
 }

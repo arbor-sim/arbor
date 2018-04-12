@@ -17,16 +17,16 @@ namespace gpu {
 
 // CUDA implementation entry point:
 
-extern void test_thresholds_impl(
+void test_thresholds_impl(
     int size,
     const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
 
-extern void reset_crossed_impl(
+void reset_crossed_impl(
     int size,
-    const fvm_index_type* cv_to_cell, fvm_index_type* is_crossed,
+    fvm_index_type* is_crossed,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
 
 
@@ -72,7 +72,7 @@ public:
     /// calling, because the values are used to determine the initial state
     void reset() {
         clear_crossings();
-        reset_crossed_impl((int)size(), cv_to_cell_, is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
+        reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
     }
 
     // Testing-only interface.

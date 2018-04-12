@@ -31,7 +31,7 @@ void test_thresholds_impl(
     int size,
     const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
-    fvm_size_type* is_crossed, fvm_value_type* prev_values,
+    fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {
     int i = threadIdx.x + blockIdx.x*blockDim.x;
@@ -87,7 +87,7 @@ void test_thresholds_impl(
     int size,
     const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
     stack_storage<threshold_crossing>& stack,
-    fvm_size_type* is_crossed, fvm_value_type* prev_values,
+    fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {
     constexpr int block_dim = 128;
@@ -96,7 +96,7 @@ void test_thresholds_impl(
         size, cv_to_cell, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
 }
 
-extern void reset_crossed_impl(
+void reset_crossed_impl(
     int size, fvm_index_type* is_crossed,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {

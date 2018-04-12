@@ -9,7 +9,7 @@ namespace gpu {
 
 namespace kernel {
     __global__
-    void stimulus_current_impl(int n, const stimulus_pp& pp) {
+    void stimulus_current_impl(int n, stimulus_pp& pp) {
         auto i = threadIdx.x + blockDim.x*blockIdx.x;
         if (i<n) {
             auto t = pp.vec_t_[pp.vec_ci_[i]];
@@ -23,7 +23,7 @@ namespace kernel {
 } // namespace kernel
 
 
-void stimulus_current_impl(int n, const stimulus_pp& pp) {
+void stimulus_current_impl(int n, stimulus_pp& pp) {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(n, block_dim);
 
