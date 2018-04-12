@@ -40,18 +40,6 @@ std::vector<LocalVariable*> pure_locals(scope_ptr scope) {
     return vars;
 }
 
-bool receives_events(const Module& m) {
-    for (auto& sym: m.symbols()) {
-        if (auto proc = sym.second->is_procedure()) {
-            if (proc->kind()==procedureKind::net_receive) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 std::vector<ProcedureExpression*> normal_procedures(const Module& m) {
     std::vector<ProcedureExpression*> procs;
 

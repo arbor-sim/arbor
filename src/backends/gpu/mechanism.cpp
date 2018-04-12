@@ -124,8 +124,9 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
 
         // Take reference to derived (generated) mechanism ion index pointer.
         auto& ion_index_ptr = *ion_index_tbl[i].second;
-        ion_index_ptr = indices_.data()+(i+1)*width_padded_;
-        memory::copy(make_const_view(mech_ion_index), device_view(ion_index_ptr, width_));
+        auto index_start = indices_.data()+(i+1)*width_padded_;
+        ion_index_ptr = index_start;
+        memory::copy(make_const_view(mech_ion_index), device_view(index_start, width_));
     }
 }
 

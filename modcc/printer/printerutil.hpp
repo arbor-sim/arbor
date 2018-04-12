@@ -7,10 +7,16 @@
 #include <vector>
 
 #include "blocks.hpp"
+#include "error.hpp"
 #include "expression.hpp"
 #include "module.hpp"
 
 std::vector<std::string> namespace_components(const std::string& qualified_namespace);
+
+inline const char* arb_header_prefix() {
+    static const char* prefix = "";
+    return prefix;
+}
 
 struct namespace_declaration_open {
     const std::vector<std::string>& ids;
@@ -44,6 +50,16 @@ inline const char* module_kind_str(const Module& m) {
         "::arb::mechanismKind::point";
 }
 
+// Check expression non-null and scoped, or else throw.
+
+inline void assert_has_scope(Expression* expr, const std::string& context) {
+    return
+        !expr? throw compiler_exception("missing expression for "+context):
+        !expr->scope()? throw compiler_exception("printer invoked before semantic pass for "+context):
+        void();
+}
+
+
 // Scope query functions:
 
 // All local variables in scope with `is_indexed()` true.
@@ -52,10 +68,8 @@ std::vector<LocalVariable*> indexed_locals(scope_ptr scope);
 // All local variables in scope with `is_arg()` and `is_indexed()` false.
 std::vector<LocalVariable*> pure_locals(scope_ptr scope);
 
-// Module state query functions:
 
-// Does this module require a specialized `deliver_events()`?
-bool receives_events(const Module&);
+// Module state query functions:
 
 // Normal (not API, net_receive) procedures in module:
 

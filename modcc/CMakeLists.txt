@@ -17,7 +17,7 @@ set(MODCC_SOURCES
 
     printer/cexpr_emit.cpp
     printer/cprinter.cpp
-    #printer/cudaprinter.cpp
+    printer/cudaprinter.cpp
     printer/infoprinter.cpp
     printer/printerutil.cpp
 )

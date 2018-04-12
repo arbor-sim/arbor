@@ -7,7 +7,7 @@
 #include <tclap/CmdLine.h>
 
 #include "printer/cprinter.hpp"
-//#include "printer/cudaprinter.hpp"
+#include "printer/cudaprinter.hpp"
 #include "printer/infoprinter.hpp"
 #include "printer/simd.hpp"
 
@@ -260,22 +260,11 @@ int main(int argc, char **argv) {
             std::string outfile = prefix;
             switch (target) {
             case targetKind::gpu:
-                // TODO: make cudaprinter work with new internal mechanism API
-                outfile += "_gpu";
-                {
-#if 0
-                    CUDAPrinter printer(m);
-                    io::write_all(printer.interface_text(), outfile+".hpp");
-                    io::write_all(printer.impl_header_text(), outfile+"_impl.hpp");
-                    io::write_all(printer.impl_text(), outfile+"_impl.cu");
-#else
-                    throw std::logic_error("CUDA printer temporariliy disabled");
-#endif
-                }
+                io::write_all(emit_cuda_cpp_source(m, "arb"), outfile+"_gpu.cpp");
+                io::write_all(emit_cuda_cu_source(m, "arb"), outfile+"_gpu.cu");
                 break;
             case targetKind::cpu:
-                outfile += "_cpu.cpp";
-                io::write_all(emit_cpp_source(m, "arb", opt.simd), outfile);
+                io::write_all(emit_cpp_source(m, "arb", opt.simd), outfile+"_cpu.cpp");
                 break;
             }
         }
