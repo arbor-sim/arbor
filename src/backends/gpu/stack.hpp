@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <backends/gpu/managed_ptr.hpp>
 #include <memory/allocator.hpp>
 #include "stack_common.hpp"
 
@@ -28,13 +29,13 @@ class stack {
     using allocator = memory::managed_allocator<U>;
 
     using storage_type = stack_storage<value_type>;
-    storage_type* storage_;
+    managed_ptr<storage_type> storage_;
 
-    storage_type* create_storage(unsigned n) {
-        auto p = allocator<storage_type>().allocate(1);
+    managed_ptr<storage_type> create_storage(unsigned n) {
+        auto p = make_managed_ptr<storage_type>();
         p->capacity = n;
         p->stores = 0;
-        p->data = allocator<value_type>().allocate(n);
+        p->data = n? allocator<value_type>().allocate(n): nullptr;
         return p;
     }
 
@@ -56,8 +57,9 @@ public:
     explicit stack(unsigned capacity): storage_(create_storage(capacity)) {}
 
     ~stack() {
-        allocator<value_type>().deallocate(storage_->data, storage_->capacity);
-        allocator<storage_type>().deallocate(storage_, 1);
+        if (storage_->data) {
+            allocator<value_type>().deallocate(storage_->data, storage_->capacity);
+        }
     }
 
     void clear() {

@@ -88,10 +88,7 @@ TEST(domain_decomposition, homogeneous_population) {
         auto gids = util::make_span(b, e);
         for (auto gid: gids) {
             EXPECT_EQ(I, D.gid_domain(gid));
-            EXPECT_TRUE(D.is_local_gid(gid));
         }
-        EXPECT_FALSE(D.is_local_gid(b-1));
-        EXPECT_FALSE(D.is_local_gid(e));
 
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
@@ -122,10 +119,7 @@ TEST(domain_decomposition, homogeneous_population) {
         auto gids = util::make_span(b, e);
         for (auto gid: gids) {
             EXPECT_EQ(I, D.gid_domain(gid));
-            EXPECT_TRUE(D.is_local_gid(gid));
         }
-        EXPECT_FALSE(D.is_local_gid(b-1));
-        EXPECT_FALSE(D.is_local_gid(e));
 
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
@@ -165,10 +159,7 @@ TEST(domain_decomposition, heterogeneous_population) {
         auto gids = util::make_span(b, e);
         for (auto gid: gids) {
             EXPECT_EQ(I, D.gid_domain(gid));
-            EXPECT_TRUE(D.is_local_gid(gid));
         }
-        EXPECT_FALSE(D.is_local_gid(b-1));
-        EXPECT_FALSE(D.is_local_gid(e));
 
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
