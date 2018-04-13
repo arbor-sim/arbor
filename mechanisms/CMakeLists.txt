@@ -45,6 +45,7 @@ endforeach()
 
 add_library(arbormech ${cpu_mech_sources} ${catsrc})
 target_compile_options(arbormech PRIVATE ${CXXOPT_ARCH})
+set(mech_libs arbormech)
 
 if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
     add_dependencies(arbormech build_all_mods)
@@ -56,17 +57,19 @@ if(ARB_WITH_CUDA)
     endforeach()
 
     cuda_add_library(arbormechcu ${cuda_mech_sources})
+    set(mech_libs arbormech arbormechcu)
 
     # force recompilation on changes to modcc or the underlying .mod files
     if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
         add_dependencies(arbormechcu build_all_mods)
     endif()
+
 endif()
 
 # Until we merge our myriad static libraries, we prepend mech libs and also append mech libs
 # to capture generated default catalogue code interdependencies with arbor lib.
 
-list(INSERT ARB_LIBRARIES 0 arbormech arbormechcu)
-list(APPEND ARB_LIBRARIES arbormech arbormechcu)
+list(INSERT ARB_LIBRARIES 0 ${mech_libs})
+list(APPEND ARB_LIBRARIES ${mech_libs})
 
 set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)
