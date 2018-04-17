@@ -7,7 +7,7 @@
 
 using namespace arb;
 
-// This source is included in `test_spikes.cu`, which defines
+// This source is included in `test_spikes_gpu.cpp`, which defines
 // USE_BACKEND to override the default `multicore::backend`
 // used for CPU tests.
 
@@ -22,7 +22,7 @@ TEST(spikes, threshold_watcher) {
     using index_type = backend::index_type;
     using array = backend::array;
     using iarray = backend::iarray;
-    using list = backend::threshold_watcher::crossing_list;
+    using list = std::vector<threshold_crossing>;
 
     // the test creates a watch on 3 values in the array values (which has 10
     // elements in total).

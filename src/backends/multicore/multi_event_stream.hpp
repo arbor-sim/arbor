@@ -6,8 +6,8 @@
 #include <ostream>
 #include <utility>
 
-#include <common_types.hpp>
 #include <backends/event.hpp>
+#include <backends/fvm_types.hpp>
 #include <backends/multi_event_stream_state.hpp>
 #include <generic_event.hpp>
 #include <algorithms.hpp>
@@ -22,7 +22,8 @@ namespace multicore {
 template <typename Event>
 class multi_event_stream {
 public:
-    using size_type = cell_size_type;
+    using size_type = fvm_size_type;
+    using index_type = fvm_index_type;
     using event_type = Event;
 
     using event_time_type = ::arb::event_time_type<Event>;
@@ -44,9 +45,9 @@ public:
         ev_data_.clear();
         remaining_ = 0;
 
-        util::fill(span_begin_, 0u);
-        util::fill(span_end_, 0u);
-        util::fill(mark_, 0u);
+        util::fill(span_begin_, 0);
+        util::fill(span_end_, 0);
+        util::fill(mark_, 0);
     }
 
     // Initialize event streams from a vector of events, sorted by time.
@@ -72,10 +73,10 @@ public:
         EXPECTS(n_streams() == span_end_.size());
         EXPECTS(n_streams() == mark_.size());
 
-        size_type ev_begin_i = 0;
-        size_type ev_i = 0;
+        index_type ev_begin_i = 0;
+        index_type ev_i = 0;
         for (size_type s = 0; s<n_streams(); ++s) {
-            while (ev_i<n_ev && event_index(staged[ev_i])<s+1) ++ev_i;
+            while ((size_type)ev_i<n_ev && (size_type)(event_index(staged[ev_i]))<s+1) ++ev_i;
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
@@ -196,9 +197,9 @@ public:
 
 private:
     std::vector<event_time_type> ev_time_;
-    std::vector<size_type> span_begin_;
-    std::vector<size_type> span_end_;
-    std::vector<size_type> mark_;
+    std::vector<index_type> span_begin_;
+    std::vector<index_type> span_end_;
+    std::vector<index_type> mark_;
     std::vector<event_data_type> ev_data_;
     size_type remaining_ = 0;
 };

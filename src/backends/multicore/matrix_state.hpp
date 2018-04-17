@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory/memory.hpp>
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
@@ -13,12 +12,12 @@ template <typename T, typename I>
 struct matrix_state {
 public:
     using value_type = T;
-    using size_type = I;
+    using index_type = I;
 
     using array = padded_vector<value_type>;
     using const_view = const array&;
 
-    using iarray = padded_vector<size_type>;
+    using iarray = padded_vector<index_type>;
     iarray parent_index;
     iarray cell_cv_divs;
 
@@ -35,8 +34,8 @@ public:
 
     matrix_state() = default;
 
-    matrix_state(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_cv_divs,
+    matrix_state(const std::vector<index_type>& p,
+                 const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
                  const std::vector<value_type>& area):
@@ -49,7 +48,7 @@ public:
     {
         EXPECTS(cap.size() == size());
         EXPECTS(cond.size() == size());
-        EXPECTS(cell_cv_divs.back() == size());
+        EXPECTS(cell_cv_divs.back() == (index_type)size());
 
         auto n = size();
         invariant_d = array(n, 0);
@@ -65,7 +64,7 @@ public:
     const_view solution() const {
         // In this back end the solution is a simple view of the rhs, which
         // contains the solution after the matrix_solve is performed.
-        return const_view(rhs);
+        return rhs;
     }
 
 
@@ -76,7 +75,7 @@ public:
     //   current density [A.m^-2] (per compartment)
     void assemble(const_view dt_cell, const_view voltage, const_view current) {
         auto cell_cv_part = util::partition_view(cell_cv_divs);
-        const size_type ncells = cell_cv_part.size();
+        const index_type ncells = cell_cv_part.size();
 
         // loop over submatrices
         for (auto m: util::make_span(0, ncells)) {

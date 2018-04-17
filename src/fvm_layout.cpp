@@ -92,6 +92,7 @@ void extend_to(ResizableContainer& c, const Index& i) {
 
 fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
     using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
     fvm_discretization D;
@@ -99,7 +100,7 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
     util::make_partition(D.cell_segment_bounds,
         transform_view(cells, [](const cell& c) { return c.num_segments(); }));
 
-    std::vector<size_type> cell_comp_bounds;
+    std::vector<index_type> cell_comp_bounds;
     auto cell_comp_part = make_partition(cell_comp_bounds,
         transform_view(cells, [](const cell& c) { return c.num_compartments(); }));
 
@@ -109,10 +110,10 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
     D.face_conductance.assign(D.ncomp, 0.);
     D.cv_area.assign(D.ncomp, 0.);
     D.cv_capacitance.assign(D.ncomp, 0.);
-    D.parent_cv.assign(D.ncomp, size_type(-1));
+    D.parent_cv.assign(D.ncomp, index_type(-1));
     D.cv_to_cell.resize(D.ncomp);
     for (auto i: make_span(0, D.ncell)) {
-        util::fill(subrange_view(D.cv_to_cell, cell_comp_part[i]), i);
+        util::fill(subrange_view(D.cv_to_cell, cell_comp_part[i]), static_cast<index_type>(i));
     }
 
     std::vector<size_type> seg_comp_bounds;

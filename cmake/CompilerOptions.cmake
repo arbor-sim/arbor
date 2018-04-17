@@ -53,12 +53,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # Compiler flags for generating KNL-specific AVX512 instructions
-    # supported in gcc 4.9.x and later.
-    set(CXXOPT_KNL "-march=knl")
-    set(CXXOPT_AVX2 "-mavx2 -mfma")
-    set(CXXOPT_AVX512 "-mavx512f -mavx512cd")
-
     # Disable 'maybe-uninitialized' warning: this will be raised
     # inappropriately in some uses of util::optional<T> when T
     # is a primitive type.
@@ -66,11 +60,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-    # Compiler flags for generating KNL-specific AVX512 instructions.
-    set(CXXOPT_KNL "-xMIC-AVX512")
-    set(CXXOPT_AVX2 "-xCORE-AVX2")
-    set(CXXOPT_AVX512 "-xCORE-AVX512")
-
     # Disable warning for unused template parameter
     # this is raised by a templated function in the json library.
     set(CXXOPT_WALL "${CXXOPT_WALL} -wd488")

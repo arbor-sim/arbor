@@ -1,6 +1,7 @@
 #include <cassert>
 
-#include "detail.hpp"
+#include "cuda_common.hpp"
+#include "matrix_common.hpp"
 #include <backends/fvm_types.hpp>
 
 namespace arb {
@@ -89,14 +90,14 @@ void solve_matrix_flat(
     fvm_value_type* rhs,
     fvm_value_type* d,
     const fvm_value_type* u,
-    const fvm_size_type* p,
-    const fvm_size_type* cell_cv_divs,
+    const fvm_index_type* p,
+    const fvm_index_type* cell_cv_divs,
     int num_mtx)
 {
     constexpr unsigned block_dim = 128;
     const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
     kernels::solve_matrix_flat
-        <fvm_value_type, fvm_size_type>
+        <fvm_value_type, fvm_index_type>
         <<<grid_dim, block_dim>>>
         (rhs, d, u, p, cell_cv_divs, num_mtx);
 }
@@ -105,14 +106,15 @@ void solve_matrix_interleaved(
     fvm_value_type* rhs,
     fvm_value_type* d,
     const fvm_value_type* u,
-    const fvm_size_type* p,
-    const fvm_size_type* sizes,
+    const fvm_index_type* p,
+    const fvm_index_type* sizes,
     int padded_size,
     int num_mtx)
 {
-    const unsigned grid_dim = impl::block_count(num_mtx, impl::block_dim());
-    kernels::solve_matrix_interleaved<fvm_value_type, fvm_size_type, impl::block_dim()>
-        <<<grid_dim, impl::block_dim()>>>
+    constexpr unsigned block_dim = impl::matrices_per_block();
+    const unsigned grid_dim = impl::block_count(num_mtx, block_dim);
+    kernels::solve_matrix_interleaved<fvm_value_type, fvm_index_type, block_dim>
+        <<<grid_dim, block_dim>>>
         (rhs, d, u, p, sizes, padded_size, num_mtx);
 }
 

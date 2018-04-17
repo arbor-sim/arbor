@@ -1,4 +1,4 @@
-set(BASE_SOURCES
+set(arbor_cxx_sources
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
     backends/multicore/stimulus.cpp
@@ -33,42 +33,54 @@ set(BASE_SOURCES
     util/path.cpp
     util/unwind.cpp
 )
-set(CUDA_SOURCES
-    backends/gpu/fill.cu
-    backends/gpu/multi_event_stream.cu
-    backends/gpu/kernels/assemble_matrix.cu
-    backends/gpu/kernels/interleave.cu
-    backends/gpu/kernels/ions.cu
-    backends/gpu/kernels/solve_matrix.cu
-    backends/gpu/kernels/stim_current.cu
-    backends/gpu/kernels/take_samples.cu
-    backends/gpu/kernels/test_thresholds.cu
-    backends/gpu/kernels/time_ops.cu
-)
+
+if(ARB_WITH_CUDA)
+    list(APPEND arbor_cxx_sources
+        backends/gpu/mechanism.cpp
+        backends/gpu/shared_state.cpp
+        backends/gpu/stimulus.cpp
+        backends/gpu/stimulus.cu
+        backends/gpu/threshold_watcher.cu
+    )
+endif()
 
 if(ARB_WITH_MPI)
-    set(BASE_SOURCES ${BASE_SOURCES} communication/mpi.cpp)
+    list(APPEND arbor_cxx_sources
+        communication/mpi.cpp)
 elseif(ARB_WITH_DRYRUN)
-    set(BASE_SOURCES ${BASE_SOURCES} communication/dryrun_global_policy.cpp)
+    list(APPEND arbor_cxx_sources
+        communication/dryrun_global_policy.cpp)
 endif()
 
 if(ARB_WITH_CTHREAD)
-    set(BASE_SOURCES ${BASE_SOURCES} threading/cthread.cpp)
+    list(APPEND arbor_cxx_sources
+        threading/cthread.cpp)
 endif()
 
-add_library(arbor ${BASE_SOURCES})
+set(arbor_cuda_sources
+    memory/fill.cu
+    backends/gpu/matrix_assemble.cu
+    backends/gpu/matrix_interleave.cu
+    backends/gpu/matrix_solve.cu
+    backends/gpu/multi_event_stream.cu
+    backends/gpu/shared_state.cu
+    backends/gpu/stimulus.cu
+    backends/gpu/threshold_watcher.cu
+)
+
+add_library(arbor ${arbor_cxx_sources})
 target_compile_options(arbor PRIVATE ${CXXOPT_ARCH})
 list(APPEND ARB_LIBRARIES arbor)
 
 if(ARB_WITH_CUDA)
-    cuda_add_library(arborcu ${CUDA_SOURCES})
+    cuda_add_library(arborcu ${arbor_cuda_sources})
     list(APPEND ARB_LIBRARIES arborcu)
 endif()
 
 if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
     add_dependencies(arbor build_all_mods)
     if (ARB_WITH_CUDA)
-        add_dependencies(arborcu build_all_gpu_mods)
+        add_dependencies(arborcu build_all_mods)
     endif()
 endif()
 

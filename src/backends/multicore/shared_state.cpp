@@ -114,7 +114,7 @@ void ion_state::zero_current() {
 
 shared_state::shared_state(
     fvm_size_type n_cell,
-    const std::vector<fvm_size_type>& cv_to_cell_vec,
+    const std::vector<fvm_index_type>& cv_to_cell_vec,
     unsigned align
 ):
     alignment(min_alignment(align)),

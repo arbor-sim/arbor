@@ -7,6 +7,7 @@
 //
 
 namespace arb {
+namespace memory {
 namespace gpu {
 
 void fill8(uint8_t* v, uint8_t value, std::size_t n);
@@ -42,7 +43,7 @@ fill(T* ptr, T value, std::size_t n) { \
         sizeof(T), \
         reinterpret_cast<char*>(&v) \
     ); \
-    arb::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n); \
+    ::arb::memory::gpu::fill ## N(reinterpret_cast<I*>(ptr), v, n); \
 }
 
 FILL(8)
@@ -51,4 +52,5 @@ FILL(32)
 FILL(64)
 
 } // namespace gpu
+} // namespace memory
 } // namespace arb

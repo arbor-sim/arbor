@@ -57,7 +57,7 @@ public:
     // Parameter setting
     virtual void set_global(const std::string& param, fvm_value_type value) = 0;
 
-    // Node indices, weights, ion indices, and non-global parameters can be set post-instantiation:
+    // Non-global parameters can be set post-instantiation:
     virtual void set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) = 0;
 
     // Simulation interfaces:

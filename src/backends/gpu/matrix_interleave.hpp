@@ -1,6 +1,7 @@
 #pragma once
 
-#include "detail.hpp"
+#include "cuda_common.hpp"
+#include "matrix_common.hpp"
 
 namespace arb {
 namespace gpu {

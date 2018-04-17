@@ -8,11 +8,11 @@
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>
 
-#include "matrix_state.hpp"
-#include "multi_event_stream.hpp"
-#include "multicore_common.hpp"
-#include "shared_state.hpp"
-#include "threshold_watcher.hpp"
+#include <backends/multicore/matrix_state.hpp>
+#include <backends/multicore/multi_event_stream.hpp>
+#include <backends/multicore/multicore_common.hpp>
+#include <backends/multicore/shared_state.hpp>
+#include <backends/multicore/threshold_watcher.hpp>
 
 namespace arb {
 namespace multicore {
@@ -36,7 +36,7 @@ struct backend {
         return util::range_pointer_view(v);
     }
 
-    using matrix_state = arb::multicore::matrix_state<value_type, size_type>;
+    using matrix_state = arb::multicore::matrix_state<value_type, index_type>;
     using threshold_watcher = arb::multicore::threshold_watcher;
 
     using deliverable_event_stream = arb::multicore::deliverable_event_stream;

@@ -16,7 +16,7 @@ fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p) {
         return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<multicore::backend>);
     case backend_kind::gpu:
 #ifdef ARB_HAVE_GPU
-        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<multicore::backend>);
+        return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<gpu::backend>);
 #endif
         ; // fall through
     default:

@@ -4,7 +4,7 @@
 
 #include <backends/gpu/managed_ptr.hpp>
 #include <memory/allocator.hpp>
-#include "stack_common.hpp"
+#include "stack_storage.hpp"
 
 namespace arb {
 namespace gpu {

@@ -14,7 +14,6 @@
 using namespace arb;
 
 using matrix_type = matrix<arb::multicore::backend>;
-using size_type  = matrix_type::size_type;
 using index_type = matrix_type::index_type;
 using value_type = matrix_type::value_type;
 
@@ -22,7 +21,7 @@ using vvec = std::vector<value_type>;
 
 TEST(matrix, construct_from_parent_only)
 {
-    std::vector<size_type> p = {0,0,1};
+    std::vector<index_type> p = {0,0,1};
     matrix_type m(p, {0, 3}, vvec(3), vvec(3), vvec(3));
     EXPECT_EQ(m.num_cells(), 1u);
     EXPECT_EQ(m.size(), 3u);
@@ -54,12 +53,12 @@ TEST(matrix, solve_host)
 
     // matrices in the range of 2x2 to 1000x1000
     {
-        for(auto n : make_span(2u,1001u)) {
-            auto p = std::vector<size_type>(n);
+        for(auto n : make_span(2, 1001)) {
+            auto p = std::vector<index_type>(n);
             std::iota(p.begin()+1, p.end(), 0);
             matrix_type m(p, {0, n}, vvec(n), vvec(n), vvec(n));
 
-            EXPECT_EQ(m.size(), n);
+            EXPECT_EQ(m.size(), (unsigned)n);
             EXPECT_EQ(m.num_cells(), 1u);
 
             auto& A = m.state_;
@@ -92,8 +91,8 @@ TEST(matrix, zero_diagonal)
     using util::assign;
 
     // Three matrices, sizes 3, 3 and 2, with no branching.
-    std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
-    std::vector<size_type> c = {0, 3, 5, 7};
+    std::vector<index_type> p = {0, 0, 1, 3, 3, 5, 5};
+    std::vector<index_type> c = {0, 3, 5, 7};
     matrix_type m(p, c, vvec(7), vvec(7), vvec(7));
 
     EXPECT_EQ(7u, m.size());
@@ -127,8 +126,8 @@ TEST(matrix, zero_diagonal_assembled)
     // These submatrices should leave the rhs as-is when solved.
 
     // Three matrices, sizes 3, 3 and 2, with no branching.
-    std::vector<size_type> p = {0, 0, 1, 3, 3, 5, 5};
-    std::vector<size_type> c = {0, 3, 5, 7};
+    std::vector<index_type> p = {0, 0, 1, 3, 3, 5, 5};
+    std::vector<index_type> c = {0, 3, 5, 7};
 
     // Face conductances.
     vvec g = {0, 1, 1, 0, 1, 0, 2};

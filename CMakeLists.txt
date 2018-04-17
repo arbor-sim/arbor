@@ -132,6 +132,11 @@ set(ARB_WITH_CUDA FALSE)
 
 if(NOT ARB_GPU_MODEL MATCHES "none")
     find_package(CUDA REQUIRED)
+
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
+        -Xcudafe --diag_suppress=integer_sign_change
+        -Xcudafe --diag_suppress=unsigned_compare_with_zero)
+
     set(ARB_WITH_CUDA TRUE)
     add_definitions(-DARB_HAVE_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
@@ -154,7 +159,7 @@ endif()
 #----------------------------------------------------------
 # Cray/BGQ/Generic Linux/other flag?
 #----------------------------------------------------------
-set(ARB_SYSTEM_TYPE "Generic" CACHE STRING 
+set(ARB_SYSTEM_TYPE "Generic" CACHE STRING
     "Choose a system type to customize flags")
 set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 

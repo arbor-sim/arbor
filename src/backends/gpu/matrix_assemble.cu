@@ -1,6 +1,7 @@
 #include <backends/fvm_types.hpp>
 
-#include "detail.hpp"
+#include "cuda_common.hpp"
+#include "matrix_common.hpp"
 
 namespace arb {
 namespace gpu {
@@ -153,7 +154,7 @@ void assemble_matrix_flat(
         const fvm_value_type* current,
         const fvm_value_type* cv_capacitance,
         const fvm_value_type* area,
-        const fvm_size_type* cv_to_cell,
+        const fvm_index_type* cv_to_cell,
         const fvm_value_type* dt_cell,
         unsigned n)
 {
@@ -161,7 +162,7 @@ void assemble_matrix_flat(
     const unsigned grid_dim = impl::block_count(n, block_dim);
 
     kernels::assemble_matrix_flat
-        <fvm_value_type, fvm_size_type>
+        <fvm_value_type, fvm_index_type>
         <<<grid_dim, block_dim>>>
         (d, rhs, invariant_d, voltage, current, cv_capacitance,
          area, cv_to_cell, dt_cell, n);
@@ -176,13 +177,13 @@ void assemble_matrix_interleaved(
     const fvm_value_type* current,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
-    const fvm_size_type* sizes,
-    const fvm_size_type* starts,
-    const fvm_size_type* matrix_to_cell,
+    const fvm_index_type* sizes,
+    const fvm_index_type* starts,
+    const fvm_index_type* matrix_to_cell,
     const fvm_value_type* dt_cell,
     unsigned padded_size, unsigned num_mtx)
 {
-    constexpr unsigned bd = impl::block_dim();
+    constexpr unsigned bd = impl::matrices_per_block();
     constexpr unsigned lw = impl::load_width();
     constexpr unsigned block_dim = bd*lw;
 
@@ -190,7 +191,7 @@ void assemble_matrix_interleaved(
     const unsigned grid_dim = impl::block_count(num_mtx*lw, block_dim);
 
     kernels::assemble_matrix_interleaved
-        <fvm_value_type, fvm_size_type, bd, lw, block_dim>
+        <fvm_value_type, fvm_index_type, bd, lw, block_dim>
         <<<grid_dim, block_dim>>>
         (d, rhs, invariant_d, voltage, current, cv_capacitance, area,
          sizes, starts, matrix_to_cell,

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cfloat>
-#include <cmath>
-#include <cstdint>
 #include <climits>
 
 #ifdef __CUDACC__
@@ -17,7 +15,7 @@ namespace gpu {
 namespace impl {
 // Number of matrices per block in block-interleaved storage
 HOST_DEVICE_IF_CUDA
-constexpr inline unsigned block_dim() {
+constexpr inline unsigned matrices_per_block() {
     return 32u;
 }
 
@@ -32,26 +30,6 @@ constexpr inline unsigned load_width() {
 HOST_DEVICE_IF_CUDA
 constexpr inline unsigned matrix_padding() {
     return load_width();
-}
-
-// Number of threads per warp
-// This has always been 32, however it may change in future NVIDIA gpus
-HOST_DEVICE_IF_CUDA
-constexpr inline unsigned threads_per_warp() {
-    return 32u;
-}
-
-// The minimum number of bins required to store n values where the bins have
-// dimension of block_size.
-HOST_DEVICE_IF_CUDA
-constexpr inline unsigned block_count(unsigned n, unsigned block_size) {
-    return (n+block_size-1)/block_size;
-}
-
-// The smallest size of a buffer required to store n items in such that the
-// buffer has size that is a multiple of block_dim.
-constexpr inline unsigned padded_size(unsigned n, unsigned block_dim) {
-    return block_dim*block_count(n, block_dim);
 }
 
 // Placeholders to use for mark padded locations in data structures that use
@@ -76,13 +54,6 @@ template <typename T>
 HOST_DEVICE_IF_CUDA
 constexpr bool is_npos(T v) {
     return v == npos<T>();
-}
-
-/// Cuda lerp by u on [a,b]: (1-u)*a + u*b.
-template <typename T>
-HOST_DEVICE_IF_CUDA
-inline T lerp(T a, T b, T u) {
-    return std::fma(u, b, std::fma(-u, a, a));
 }
 
 } // namespace impl

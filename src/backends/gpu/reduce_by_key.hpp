@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include "detail.hpp"
-#include <backends/gpu/intrinsics.hpp>
+#include "cuda_atomic.hpp"
+#include "cuda_common.hpp"
 
 namespace arb {
 namespace gpu {

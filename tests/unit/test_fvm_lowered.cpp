@@ -21,7 +21,6 @@
 #include <util/meta.hpp>
 #include <util/maputil.hpp>
 #include <util/rangeutil.hpp>
-#include <util/xtuple.hpp>
 
 #include "common.hpp"
 #include "../common_cells.hpp"
@@ -54,7 +53,7 @@ arb::mechanism* find_mechanism(fvm_cell& fvcell, const std::string& name) {
 // Access to mechanism-internal data:
 
 using mechanism_global_table = std::vector<std::pair<const char*, arb::fvm_value_type*>>;
-using mechanism_field_table = std::vector<arb::util::xtuple<const char*, arb::fvm_value_type**, arb::fvm_value_type>>;
+using mechanism_field_table = std::vector<std::pair<const char*, arb::fvm_value_type**>>;
 using mechanism_ion_index_table = std::vector<std::pair<arb::ionKind, backend::iarray*>>;
 
 ACCESS_BIND(\
