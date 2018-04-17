@@ -119,13 +119,14 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
             throw std::logic_error("mechanism holds ion with no corresponding shared state");
         }
 
-        auto indices = util::index_into(pos_data.cv, oion->node_index_);
+        auto indices = util::index_into(pos_data.cv, memory::on_host(oion->node_index_));
         std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
 
         // Take reference to derived (generated) mechanism ion index pointer.
         auto& ion_index_ptr = *ion_index_tbl[i].second;
-        ion_index_ptr = indices_.data()+(i+1)*width_padded_;
-        memory::copy(make_const_view(mech_ion_index), device_view(ion_index_ptr, width_));
+        auto index_start = indices_.data()+(i+1)*width_padded_;
+        ion_index_ptr = index_start;
+        memory::copy(make_const_view(mech_ion_index), device_view(index_start, width_));
     }
 }
 

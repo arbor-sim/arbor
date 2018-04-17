@@ -6,6 +6,7 @@
 #include "expression.hpp"
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
+#include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
 #include "printer/printerutil.hpp"
 
@@ -40,13 +41,6 @@ struct simdprint {
     }
 };
 
-void confirm_ok(Expression* expr, const std::string context) {
-    return
-        !expr? throw compiler_exception("missing expression for "+context):
-        !expr->scope()? throw compiler_exception("printer invoked before semantic pass for "+context):
-        void();
-}
-
 static std::string ion_state_field(std::string ion_name) {
     return "ion_"+ion_name+"_";
 }
@@ -56,7 +50,6 @@ static std::string ion_state_index(std::string ion_name) {
 }
 
 std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_spec simd) {
-    const char* arb_header_prefix = "";
     std::string name = module_.module_name();
     std::string class_name = "mechanism_cpu_"+name;
     auto ns_components = namespace_components(ns);
@@ -71,9 +64,9 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
 
     // init_api, state_api, current_api methods are mandatory:
 
-    confirm_ok(init_api, "nrn_init");
-    confirm_ok(state_api, "nrn_state");
-    confirm_ok(current_api, "nrn_current");
+    assert_has_scope(init_api, "nrn_init");
+    assert_has_scope(state_api, "nrn_state");
+    assert_has_scope(current_api, "nrn_current");
 
     auto vars = local_module_variables(module_);
     auto ion_deps = module_.ion_deps();
@@ -85,11 +78,11 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
         "#include <cmath>\n"
         "#include <cstddef>\n"
         "#include <memory>\n"
-        "#include <" << arb_header_prefix << "backends/multicore/mechanism.hpp>\n"
-        "#include <" << arb_header_prefix << "math.hpp>\n";
+        "#include <" << arb_header_prefix() << "backends/multicore/mechanism.hpp>\n"
+        "#include <" << arb_header_prefix() << "math.hpp>\n";
 
     if (with_simd) {
-        out << "#include <" << arb_header_prefix << "simd/simd.hpp>\n";
+        out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
     }
 
     out <<
