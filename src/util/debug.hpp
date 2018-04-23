@@ -7,7 +7,7 @@
 #include <utility>
 
 extern "C" {
-#include <endian.h>
+#include <sys/types.h>
 }
 
 #include <threading/threading.hpp>
