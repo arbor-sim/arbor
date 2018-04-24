@@ -7,6 +7,8 @@
 #include <utility>
 
 extern "C" {
+// The system header endian.h is not in /sys/include/ on Mac OS X.
+// Include sys/types.h, which pulls in endian.h on all systems.
 #include <sys/types.h>
 }
 
