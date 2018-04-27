@@ -11,8 +11,6 @@
 #include "expression.hpp"
 #include "module.hpp"
 
-std::vector<std::string> namespace_components(const std::string& qualified_namespace);
-
 inline const char* arb_header_prefix() {
     static const char* prefix = "";
     return prefix;
@@ -94,9 +92,21 @@ struct module_variables_t {
 
 module_variables_t local_module_variables(const Module&);
 
+// "normal" procedures in a module.
+// A normal procedure is one that has been declared with the
+// PROCEDURE keyword in NMODL.
+
+std::vector<ProcedureExpression*> module_normal_procedures(const Module& m);
+
 // Extract key procedures from module.
 
 APIMethod* find_api_method(const Module& m, const char* which);
 
 NetReceiveExpression* find_net_receive(const Module& m);
 
+struct indexed_variable_info {
+    std::string data_var;
+    std::string index_var;
+};
+
+indexed_variable_info decode_indexed_variable(IndexedVariable* sym);

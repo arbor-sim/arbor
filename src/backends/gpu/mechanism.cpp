@@ -51,6 +51,8 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
 
     mechanism_ppack_base* pp = ppack_ptr(); // From derived class instance.
 
+    pp->width_ = width_;
+
     pp->vec_ci_   = shared.cv_to_cell.data();
     pp->vec_t_    = shared.time.data();
     pp->vec_t_to_ = shared.time_to.data();
@@ -119,7 +121,8 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
             throw std::logic_error("mechanism holds ion with no corresponding shared state");
         }
 
-        auto indices = util::index_into(pos_data.cv, memory::on_host(oion->node_index_));
+        auto ni = memory::on_host(oion->node_index_);
+        auto indices = util::index_into(pos_data.cv, ni);
         std::vector<index_type> mech_ion_index(indices.begin(), indices.end());
 
         // Take reference to derived (generated) mechanism ion index pointer.

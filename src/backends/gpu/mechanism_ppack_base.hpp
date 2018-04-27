@@ -27,6 +27,8 @@ struct mechanism_ppack_base {
     using index_type = fvm_index_type;
     using ion_state_view = ::arb::gpu::ion_state_view;
 
+    index_type width_;
+
     const index_type* vec_ci_;
     const value_type* vec_t_;
     const value_type* vec_t_to_;
