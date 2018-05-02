@@ -61,7 +61,7 @@ public:
 
 protected:
     size_type width_ = 0;        // Instance width (number of CVs/sites)
-    size_type n_ion_ = 0;
+    size_type num_ions_ = 0;
 
     // Returns pointer to (derived) parameter-pack object that holds:
     // * pointers to shared cell state `vec_ci_` et al.,

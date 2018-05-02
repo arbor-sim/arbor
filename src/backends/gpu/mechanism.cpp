@@ -36,11 +36,24 @@ memory::const_device_view<T> device_view(const T* ptr, std::size_t n) {
     return memory::const_device_view<T>(ptr, n);
 }
 
-// The derived class (typically generated code from modcc) holds pointers that need
-// to be set to point inside the shared state, or into the allocated parameter/variable
-// data block.
+// The derived class (typically generated code from modcc) holds pointers to
+// data fields. These point point to either:
+//   * shared fields read/written by all mechanisms in a cell group
+//     (e.g. the per-compartment voltage vec_c);
+//   * or mechanism specific parameter or variable fields stored inside the
+//     mechanism.
+// These pointers need to be set point inside the shared state of the cell
+// group, or into the allocated parameter/variable data block.
+//
+// The mechanism::instantiate() method takes a reference to the cell group
+// shared state and discretised cell layout information, and sets the
+// pointers. This also involves setting the pointers in the parameter pack,
+// which is used to pass pointers to CUDA kernels.
 
-void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, const layout& pos_data) {
+void mechanism::instantiate(fvm_size_type id,
+                            backend::shared_state& shared,
+                            const layout& pos_data)
+{
     mechanism_id_ = id;
     width_ = pos_data.cv.size();
 
@@ -62,7 +75,7 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
     pp->vec_i_    = shared.current_density.data();
 
     auto ion_state_tbl = ion_state_table();
-    n_ion_ = ion_state_tbl.size();
+    num_ions_ = ion_state_tbl.size();
 
     for (auto i: ion_state_tbl) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, i.first);
@@ -88,13 +101,13 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
     // (First sub-array of data_ is used for width_.)
 
     auto fields = field_table();
-    std::size_t n_field = fields.size();
+    std::size_t num_fields = fields.size();
 
-    data_ = array((1+n_field)*width_padded_, NAN);
+    data_ = array((1+num_fields)*width_padded_, NAN);
     memory::copy(make_const_view(pos_data.weight), device_view(data_.data(), width_));
     pp->weight_ = data_.data();
 
-    for (auto i: make_span(0, n_field)) {
+    for (auto i: make_span(0, num_fields)) {
         // Take reference to corresponding derived (generated) mechanism value pointer member.
         fvm_value_type*& field_ptr = *std::get<1>(fields[i]);
         field_ptr = data_.data()+(i+1)*width_padded_;
@@ -107,15 +120,15 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
     // Allocate and initialize index vectors, viz. node_index_ and any ion indices.
     // (First sub-array of indices_ is used for node_index_.)
 
-    indices_ = iarray((1+n_ion_)*width_padded_);
+    indices_ = iarray((1+num_ions_)*width_padded_);
 
     memory::copy(make_const_view(pos_data.cv), device_view(indices_.data(), width_));
     pp->node_index_ = indices_.data();
 
     auto ion_index_tbl = ion_index_table();
-    EXPECTS(n_ion_==ion_index_tbl.size());
+    EXPECTS(num_ions_==ion_index_tbl.size());
 
-    for (auto i: make_span(0, n_ion_)) {
+    for (auto i: make_span(0, num_ions_)) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, ion_index_tbl[i].first);
         if (!oion) {
             throw std::logic_error("mechanism holds ion with no corresponding shared state");
