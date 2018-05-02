@@ -1,6 +1,7 @@
 #pragma once
 
 #include <backends/fvm_types.hpp>
+#include <math.hpp>
 #include <memory/memory.hpp>
 #include <util/debug.hpp>
 #include <util/span.hpp>
@@ -8,7 +9,8 @@
 #include <util/rangeutil.hpp>
 #include <util/indirect.hpp>
 
-#include "kernels/detail.hpp"
+#include "cuda_common.hpp"
+#include "matrix_common.hpp"
 
 namespace arb {
 namespace gpu {
@@ -22,9 +24,9 @@ void assemble_matrix_interleaved(
     const fvm_value_type* current,
     const fvm_value_type* cv_capacitance,
     const fvm_value_type* area,
-    const fvm_size_type* sizes,
-    const fvm_size_type* starts,
-    const fvm_size_type* matrix_to_cell,
+    const fvm_index_type* sizes,
+    const fvm_index_type* starts,
+    const fvm_index_type* matrix_to_cell,
     const fvm_value_type* dt_cell,
     unsigned padded_size, unsigned num_mtx);
 
@@ -33,8 +35,8 @@ void solve_matrix_interleaved(
     fvm_value_type* rhs,
     fvm_value_type* d,
     const fvm_value_type* u,
-    const fvm_size_type* p,
-    const fvm_size_type* sizes,
+    const fvm_index_type* p,
+    const fvm_index_type* sizes,
     int padded_size,
     int num_mtx);
 
@@ -42,8 +44,8 @@ void solve_matrix_interleaved(
 void flat_to_interleaved(
     const fvm_value_type* in,
     fvm_value_type* out,
-    const fvm_size_type* sizes,
-    const fvm_size_type* starts,
+    const fvm_index_type* sizes,
+    const fvm_index_type* starts,
     unsigned padded_size,
     unsigned num_vec);
 
@@ -51,8 +53,8 @@ void flat_to_interleaved(
 void interleaved_to_flat(
     const fvm_value_type* in,
     fvm_value_type* out,
-    const fvm_size_type* sizes,
-    const fvm_size_type* starts,
+    const fvm_index_type* sizes,
+    const fvm_index_type* starts,
     unsigned padded_size,
     unsigned num_vec);
 
@@ -85,10 +87,10 @@ std::vector<T> flat_to_interleaved(
 template <typename T, typename I>
 struct matrix_state_interleaved {
     using value_type = T;
-    using size_type = I;
+    using index_type = I;
 
     using array  = memory::device_vector<value_type>;
-    using iarray = memory::device_vector<size_type>;
+    using iarray = memory::device_vector<index_type>;
 
     using const_view = typename array::const_view_type;
 
@@ -137,15 +139,15 @@ struct matrix_state_interleaved {
     // of indexes and data structures in the constructor.
     //  cv_cap      // [pF]
     //  face_cond   // [μS]
-    matrix_state_interleaved(const std::vector<size_type>& p,
-                 const std::vector<size_type>& cell_cv_divs,
+    matrix_state_interleaved(const std::vector<index_type>& p,
+                 const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cv_cap,
                  const std::vector<value_type>& face_cond,
                  const std::vector<value_type>& area)
     {
         EXPECTS(cv_cap.size()    == p.size());
         EXPECTS(face_cond.size() == p.size());
-        EXPECTS(cell_cv_divs.back()  == p.size());
+        EXPECTS(cell_cv_divs.back()  == (index_type)p.size());
 
         // Just because you never know.
         EXPECTS(cell_cv_divs.size() <= UINT_MAX);
@@ -154,7 +156,7 @@ struct matrix_state_interleaved {
         using util::indirect_view;
 
         // Convenience for commonly used type in this routine.
-        using svec = std::vector<size_type>;
+        using svec = std::vector<index_type>;
 
         //
         // Sort matrices in descending order of size.
@@ -171,7 +173,7 @@ struct matrix_state_interleaved {
         svec perm(num_mtx);
         std::iota(perm.begin(), perm.end(), 0);
         // calculate the permutation of matrices to put the in ascending size
-        util::stable_sort_by(perm, [&sizes](size_type i){ return sizes[i]; });
+        util::stable_sort_by(perm, [&sizes](index_type i){ return sizes[i]; });
         std::reverse(perm.begin(), perm.end());
 
         svec sizes_p = util::assign_from(indirect_view(sizes, perm));
@@ -182,31 +184,31 @@ struct matrix_state_interleaved {
         //
         // Calculate dimensions required to store matrices.
         //
-        using impl::block_dim;
+        constexpr unsigned block_dim = impl::matrices_per_block();
         using impl::matrix_padding;
 
         // To start, take simplest approach of assuming all matrices stored
         // in blocks of the same dimension: padded_size
-        padded_size = impl::padded_size(sizes_p[0], matrix_padding());
-        const auto num_blocks = impl::block_count(num_mtx, block_dim());
+        padded_size = math::round_up(sizes_p[0], matrix_padding());
+        const auto num_blocks = impl::block_count(num_mtx, block_dim);
 
-        const auto total_storage = num_blocks*block_dim()*padded_size;
+        const auto total_storage = num_blocks*block_dim*padded_size;
 
         // calculate the interleaved and permuted p vector
-        constexpr auto npos = std::numeric_limits<size_type>::max();
-        std::vector<size_type> p_tmp(total_storage, npos);
+        constexpr auto npos = std::numeric_limits<index_type>::max();
+        std::vector<index_type> p_tmp(total_storage, npos);
         for (auto mtx: make_span(0, num_mtx)) {
-            auto block = mtx/block_dim();
-            auto lane  = mtx%block_dim();
+            auto block = mtx/block_dim;
+            auto lane  = mtx%block_dim;
 
             auto len = sizes_p[mtx];
             auto src = cell_to_cv_p[mtx];
-            auto dst = block*(block_dim()*padded_size) + lane;
+            auto dst = block*(block_dim*padded_size) + lane;
             for (auto i: make_span(0, len)) {
                 // the p indexes are always relative to the start of the p vector.
                 // the addition and subtraction of dst and src respectively is to convert from
                 // the original offset to the new padded and permuted offset.
-                p_tmp[dst+block_dim()*i] = dst + block_dim()*(p[src+i]-src);
+                p_tmp[dst+block_dim*i] = dst + block_dim*(p[src+i]-src);
             }
         }
 
@@ -235,7 +237,7 @@ struct matrix_state_interleaved {
         // memory, for use as an rvalue in an assignemt to a device vector.
         auto interleave = [&] (std::vector<T>const& x) {
             return memory::on_gpu(
-                flat_to_interleaved(x, sizes_p, cell_to_cv_p, block_dim(), num_mtx, padded_size));
+                flat_to_interleaved(x, sizes_p, cell_to_cv_p, block_dim, num_mtx, padded_size));
         };
         u              = interleave(u_tmp);
         invariant_d    = interleave(invariant_d_tmp);

@@ -4,49 +4,56 @@
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 
-#include "managed_ptr.hpp"
+#include <backends/fvm_types.hpp>
+
+#include <backends/gpu/gpu_store_types.hpp>
+#include <backends/gpu/managed_ptr.hpp>
+#include <backends/gpu/stack.hpp>
+
 #include "stack.hpp"
-#include "backends/fvm_types.hpp"
-#include "kernels/test_thresholds.hpp"
 
 namespace arb {
 namespace gpu {
 
-/// threshold crossing logic
-/// used as part of spike detection back end
+// CUDA implementation entry point:
+
+void test_thresholds_impl(
+    int size,
+    const fvm_index_type* cv_to_cell, const fvm_value_type* t_after, const fvm_value_type* t_before,
+    stack_storage<threshold_crossing>& stack,
+    fvm_index_type* is_crossed, fvm_value_type* prev_values,
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
+
+void reset_crossed_impl(
+    int size,
+    fvm_index_type* is_crossed,
+    const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds);
+
+
 class threshold_watcher {
 public:
-    using value_type = fvm_value_type;
-    using size_type = fvm_size_type;
-
-    using array = memory::device_vector<value_type>;
-    using iarray = memory::device_vector<size_type>;
-    using const_view = typename array::const_view_type;
-    using const_iview = typename iarray::const_view_type;
-
     using stack_type = stack<threshold_crossing>;
 
     threshold_watcher() = default;
-
     threshold_watcher(threshold_watcher&& other) = default;
     threshold_watcher& operator=(threshold_watcher&& other) = default;
 
     threshold_watcher(
-            const_iview vec_ci,
-            const_view vec_t_before,
-            const_view vec_t_after,
-            const_view values,
-            const std::vector<size_type>& index,
-            const std::vector<value_type>& thresh,
-            value_type t=0):
-        cv_to_cell_(vec_ci),
-        t_before_(vec_t_before),
-        t_after_(vec_t_after),
+        const fvm_index_type* cv_to_cell,
+        const fvm_value_type* t_before,
+        const fvm_value_type* t_after,
+        const fvm_value_type* values,
+        const std::vector<fvm_index_type>& cv_index,
+        const std::vector<fvm_value_type>& thresholds
+    ):
+        cv_to_cell_(cv_to_cell),
+        t_before_(t_before),
+        t_after_(t_after),
         values_(values),
-        cv_index_(memory::make_const_view(index)),
-        thresholds_(memory::make_const_view(thresh)),
-        prev_values_(values),
-        is_crossed_(size()),
+        cv_index_(memory::make_const_view(cv_index)),
+        is_crossed_(cv_index.size()),
+        thresholds_(memory::make_const_view(thresholds)),
+        v_prev_(memory::const_host_view<fvm_value_type>(values, cv_index.size())),
         // TODO: allocates enough space for 10 spikes per watch.
         // A more robust approach might be needed to avoid overflows.
         stack_(10*size())
@@ -67,24 +74,11 @@ public:
     /// calling, because the values are used to determine the initial state
     void reset() {
         clear_crossings();
-
-        // Make host-side copies of the information needed to calculate
-        // the initial crossed state
-        auto values = memory::on_host(values_);
-        auto thresholds = memory::on_host(thresholds_);
-        auto cv_index = memory::on_host(cv_index_);
-
-        // calculate the initial crossed state in host memory
-        std::vector<size_type> crossed(size());
-        for (auto i: util::make_span(0u, size())) {
-            crossed[i] = values[cv_index[i]] < thresholds[i] ? 0 : 1;
-        }
-
-        // copy the initial crossed state to device memory
-        memory::copy(crossed, is_crossed_);
+        reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
     }
 
-    bool is_crossed(size_type i) const {
+    // Testing-only interface.
+    bool is_crossed(int i) const {
         return is_crossed_[i];
     }
 
@@ -101,12 +95,12 @@ public:
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test() {
-        test_thresholds(
-            cv_to_cell_.data(), t_after_.data(), t_before_.data(),
-            size(),
+        test_thresholds_impl(
+            (int)size(),
+            cv_to_cell_, t_after_, t_before_,
             stack_.storage(),
-            is_crossed_.data(), prev_values_.data(),
-            cv_index_.data(), values_.data(), thresholds_.data());
+            is_crossed_.data(), v_prev_.data(),
+            cv_index_.data(), values_, thresholds_.data());
 
         // Check that the number of spikes has not exceeded capacity.
         // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
@@ -119,21 +113,21 @@ public:
         return cv_index_.size();
     }
 
-    /// Data type used to store the crossings.
-    /// Provided to make type-generic calling code.
-    using crossing_list =  std::vector<threshold_crossing>;
-
 private:
-    const_iview cv_to_cell_;    // index to cell mapping: on gpu
-    const_view t_before_;       // times per cell corresponding to prev_values_: on gpu
-    const_view t_after_;        // times per cell corresponding to values_: on gpu
-    const_view values_;         // values to watch: on gpu
-    iarray cv_index_;           // compartment indexes of values to watch: on gpu
+    /// Non-owning pointers to gpu-side cv-to-cell map, per-cell time data,
+    /// and the values for to test against thresholds.
+    const fvm_index_type* cv_to_cell_ = nullptr;
+    const fvm_value_type* t_before_ = nullptr;
+    const fvm_value_type* t_after_ = nullptr;
+    const fvm_value_type* values_ = nullptr;
 
-    array thresholds_;          // threshold for each watch: on gpu
-    array prev_values_;         // values at previous sample time: on gpu
-    iarray is_crossed_;         // bool flag for state of each watch: on gpu
+    // Threshold watch state, with data on gpu:
+    iarray cv_index_;           // Compartment indexes of values to watch.
+    iarray is_crossed_;         // Boolean flag for state of each watch.
+    array thresholds_;          // Threshold for each watch.
+    array v_prev_;              // Values at previous sample time.
 
+    // Hybrid host/gpu data structure for accumulating threshold crossings.
     stack_type stack_;
 };
 

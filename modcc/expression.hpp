@@ -45,9 +45,7 @@ class VariableExpression;
 class ProcedureExpression;
 class NetReceiveExpression;
 class APIMethod;
-class AbstractIndexedVariable;
 class IndexedVariable;
-class CellIndexedVariable;
 class LocalVariable;
 
 using expression_ptr = std::unique_ptr<Expression>;
@@ -226,9 +224,7 @@ public :
     virtual ProcedureExpression*  is_procedure()         {return nullptr;}
     virtual NetReceiveExpression* is_net_receive()       {return nullptr;}
     virtual APIMethod*            is_api_method()        {return nullptr;}
-    virtual AbstractIndexedVariable* is_abstract_indexed_variable()  {return nullptr;}
     virtual IndexedVariable*      is_indexed_variable()  {return nullptr;}
-    virtual CellIndexedVariable*  is_cell_indexed_variable()  {return nullptr;}
     virtual LocalVariable*        is_local_variable()    {return nullptr;}
 
 private :
@@ -268,6 +264,7 @@ public:
 
     void semantic(scope_ptr scp) override;
 
+    void symbol(Symbol* sym) { symbol_ = sym; }
     Symbol* symbol() { return symbol_; };
 
     void accept(Visitor *v) override;
@@ -463,6 +460,9 @@ public:
     void state(bool s) {
         is_state_ = s;
     }
+    void shadows(Symbol* s) {
+        shadows_ = s;
+    }
 
     accessKind access() const {
         return access_;
@@ -475,6 +475,10 @@ public:
     }
     ionKind ion_channel() const {
         return ion_channel_;
+    }
+
+    Symbol* shadows() const {
+        return shadows_;
     }
 
     bool is_ion()       const {return ion_channel_ != ionKind::none;}
@@ -504,40 +508,24 @@ protected:
     rangeKind      range_kind_  = rangeKind::range;
     ionKind        ion_channel_ = ionKind::none;
     double         value_       = std::numeric_limits<double>::quiet_NaN();
-};
-
-// abstract base class for the two sorts of indexed externals
-class AbstractIndexedVariable: public Symbol {
-public:
-    AbstractIndexedVariable(Location loc, std::string name, symbolKind kind)
-    :   Symbol(std::move(loc), std::move(name), std::move(kind))
-    {}
-
-    virtual accessKind access() const = 0;
-    virtual ionKind ion_channel() const = 0;
-    virtual std::string const& index_name() const = 0;
-    virtual tok op() const = 0;
-
-    virtual bool is_ion()   const = 0;
-    virtual bool is_read()  const = 0;
-    virtual bool is_write() const = 0;
-
-    AbstractIndexedVariable* is_abstract_indexed_variable() override {return this;}
+    Symbol*        shadows_     = nullptr;
 };
 
 // an indexed variable
-class IndexedVariable : public AbstractIndexedVariable {
+class IndexedVariable : public Symbol {
 public:
     IndexedVariable(Location loc,
                     std::string lookup_name,
                     std::string index_name,
+                    sourceKind data_source,
                     accessKind acc,
                     tok o=tok::eq,
                     ionKind channel=ionKind::none)
-    :   AbstractIndexedVariable(loc, std::move(lookup_name), symbolKind::indexed_variable),
+    :   Symbol(std::move(loc), std::move(lookup_name), symbolKind::indexed_variable),
         access_(acc),
         ion_channel_(channel),
-        index_name_(index_name),
+        index_name_(index_name), // (TODO: deprecate/remove this...)
+        data_source_(data_source),
         op_(o)
     {
         std::string msg;
@@ -568,14 +556,15 @@ public:
 
     std::string to_string() const override;
 
-    accessKind access() const override { return access_; }
-    ionKind ion_channel() const override { return ion_channel_; }
-    std::string const& index_name() const override { return index_name_; }
-    tok op() const override { return op_; }
+    accessKind access() const { return access_; }
+    ionKind ion_channel() const { return ion_channel_; }
+    sourceKind data_source() const { return data_source_; }
+    std::string const& index_name() const { return index_name_; }
+    tok op() const { return op_; }
 
-    bool is_ion()   const override { return ion_channel_ != ionKind::none; }
-    bool is_read()  const override { return access_ == accessKind::read;   }
-    bool is_write() const override { return access_ == accessKind::write;  }
+    bool is_ion()   const { return ion_channel_ != ionKind::none; }
+    bool is_read()  const { return access_ == accessKind::read;   }
+    bool is_write() const { return access_ == accessKind::write;  }
 
     void accept(Visitor *v) override;
     IndexedVariable* is_indexed_variable() override {return this;}
@@ -584,39 +573,10 @@ public:
 protected:
     accessKind  access_;
     ionKind     ion_channel_;
-    std::string index_name_;
+    std::string index_name_; // hint to printer only
+    sourceKind  data_source_;
     tok op_;
 };
-
-class CellIndexedVariable : public AbstractIndexedVariable {
-public:
-    CellIndexedVariable(Location loc,
-                    std::string lookup_name,
-                    std::string index_name)
-    :   AbstractIndexedVariable(loc, std::move(lookup_name), symbolKind::indexed_variable),
-        index_name_(std::move(index_name))
-    {}
-
-    std::string to_string() const override;
-
-    accessKind access() const override { return accessKind::read; }
-    ionKind ion_channel() const override { return ionKind::none; }
-    std::string const& index_name() const override { return index_name_; }
-    tok op() const override { return tok::plus; }
-
-    bool is_ion()   const override { return false; }
-    bool is_read()  const override { return true; }
-    bool is_write() const override { return false; }
-
-    void accept(Visitor *v) override;
-    CellIndexedVariable* is_cell_indexed_variable() override {return this;}
-
-    ~CellIndexedVariable() {}
-
-protected:
-    std::string index_name_;
-};
-
 
 class LocalVariable : public Symbol {
 public :
@@ -662,11 +622,11 @@ public :
         return kind_==localVariableKind::argument;
     }
 
-    AbstractIndexedVariable* external_variable() {
+    IndexedVariable* external_variable() {
         return external_;
     }
 
-    void external_variable(AbstractIndexedVariable *i) {
+    void external_variable(IndexedVariable *i) {
         external_ = i;
     }
 
@@ -674,7 +634,7 @@ public :
     void accept(Visitor *v) override;
 
 private :
-    AbstractIndexedVariable *external_=nullptr;
+    IndexedVariable *external_=nullptr;
     localVariableKind kind_;
 };
 

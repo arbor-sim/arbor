@@ -9,7 +9,6 @@
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
-#include <fvm_multicell.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <profiling/profiler.hpp>
 #include <spike.hpp>

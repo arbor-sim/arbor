@@ -113,14 +113,14 @@ bool Parser::parse() {
                 {
                 auto p = parse_procedure();
                 if(!p) break;
-                module_->procedures().emplace_back(std::move(p));
+                module_->add_callable(std::move(p));
                 }
                 break;
             case tok::function  :
                 {
                 auto f = parse_function();
                 if(!f) break;
-                module_->functions().emplace_back(std::move(f));
+                module_->add_callable(std::move(f));
                 }
                 break;
             default :

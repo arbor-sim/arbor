@@ -16,6 +16,12 @@ namespace arb {
 
 class simple_recipe_base: public recipe {
 public:
+    simple_recipe_base():
+        catalogue_(global_default_catalogue())
+    {
+        cell_gprop_.catalogue = &catalogue_;
+    }
+
     cell_size_type num_probes(cell_gid_type i) const override {
         return probes_.count(i)? probes_.at(i).size(): 0;
     }
@@ -31,22 +37,23 @@ public:
         pvec_.push_back({probe_id, tag, std::move(address)});
     }
 
-    void add_specialized_mechanism(std::string name, specialized_mechanism m) {
-        cell_gprop.special_mechs[name] = std::move(m);
-    }
-
     util::any get_global_properties(cell_kind k) const override {
         switch (k) {
-            case cell_kind::cable1d_neuron:
-            return cell_gprop;
+        case cell_kind::cable1d_neuron:
+            return cell_gprop_;
         default:
             return util::any{};
         }
     }
 
+    mechanism_catalogue& catalogue() {
+        return catalogue_;
+    }
+
 protected:
     std::unordered_map<cell_gid_type, std::vector<probe_info>> probes_;
-    cell_global_properties cell_gprop;
+    cell_global_properties cell_gprop_;
+    mechanism_catalogue catalogue_;
 };
 
 // Convenience derived recipe class for wrapping n copies of a single

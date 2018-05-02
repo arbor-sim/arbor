@@ -144,8 +144,8 @@ inline std::vector<float> stimulus_ends(const cell& c) {
     std::vector<float> ts;
 
     for (const auto& stimulus: c.stimuli()) {
-        float t0 = stimulus.clamp.delay();
-        float t1 = t0+stimulus.clamp.duration();
+        float t0 = stimulus.clamp.delay;
+        float t1 = t0+stimulus.clamp.duration;
         ts.push_back(t0);
         ts.push_back(t1);
     }

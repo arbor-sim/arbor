@@ -63,8 +63,26 @@ struct range {
         left(std::forward<U1>(l)), right(std::forward<U2>(r))
     {}
 
+    template <
+        typename U1,
+        typename U2,
+        typename = enable_if_t<
+            std::is_constructible<iterator, U1>::value &&
+            std::is_constructible<sentinel, U2>::value>
+    >
+    range(const range<U1, U2>& other):
+        left(other.left), right(other.right)
+    {}
+
     range& operator=(const range&) = default;
     range& operator=(range&&) = default;
+
+    template <typename U1, typename U2>
+    range& operator=(const range<U1, U2>& other) {
+        left = other.left;
+        right = other.right;
+        return *this;
+    }
 
     bool empty() const { return left == right; }
 
@@ -106,6 +124,13 @@ struct range {
             throw std::out_of_range("out of range in range");
         }
         return (*this)[n];
+    }
+
+    // Expose `data` method if a pointer range.
+    template <typename V = iterator, typename W = sentinel>
+    enable_if_t<std::is_same<V, W>::value && std::is_pointer<V>::value, iterator>
+    data() const {
+        return left;
     }
 
 #ifdef ARB_HAVE_TBB
@@ -176,16 +201,18 @@ auto canonical_view(const Seq& s) ->
 // iterators. Note: O(N) behaviour with forward iterator ranges or sentinel-terminated ranges.
 
 template <typename Seq>
-auto strict_view(Seq& s) -> range<decltype(std::begin(s))>
+auto strict_view(Seq&& s) -> range<decltype(std::begin(s))>
 {
-    return make_range(std::begin(s), std::next(util::upto(std::begin(s), std::end(s))));
+    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
 }
 
+#if 0
 template <typename Seq>
 auto strict_view(const Seq& s) -> range<decltype(std::begin(s))>
 {
-    return make_range(std::begin(s), std::next(util::upto(std::begin(s), std::end(s))));
+    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
 }
+#endif
 
 } // namespace util
 } // namespace arb

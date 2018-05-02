@@ -25,6 +25,19 @@
 #define CAN_INSTRUMENT_MALLOC
 #endif
 
+// Disable if using address sanitizer though:
+
+// This is how clang tells us.
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+#undef CAN_INSTRUMENT_MALLOC
+#endif
+#endif
+// This is how gcc tells us.
+#if defined(__SANITIZE_ADDRESS__)
+#undef CAN_INSTRUMENT_MALLOC
+#endif
+
 namespace testing {
 
 #ifdef CAN_INSTRUMENT_MALLOC
@@ -35,6 +48,10 @@ namespace testing {
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#if defined(__INTEL_COMPILER)
+#pragma warning push
+#pragma warning disable 1478
+#endif
 
 // Totally not thread safe!
 struct with_instrumented_malloc {
@@ -119,6 +136,9 @@ private:
 };
 
 #pragma GCC diagnostic pop
+#if defined(__INTEL_COMPILER)
+#pragma warning pop
+#endif
 
 #else
 

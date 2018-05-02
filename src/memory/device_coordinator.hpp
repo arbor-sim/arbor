@@ -4,11 +4,11 @@
 #include <exception>
 
 #include <util/debug.hpp>
-#include <backends/gpu/fill.hpp>
 
 #include "allocator.hpp"
 #include "array.hpp"
 #include "definitions.hpp"
+#include "fill.hpp"
 #include "gpu.hpp"
 #include "util.hpp"
 
@@ -23,7 +23,6 @@ template <typename T, class Allocator>
 class host_coordinator;
 
 namespace util {
-
     template <typename T, typename Allocator>
     struct type_printer<device_coordinator<T,Allocator>>{
         static std::string print() {
@@ -252,7 +251,7 @@ public:
     // fill memory
     void set(view_type &rng, value_type value) {
         if (rng.size()) {
-            arb::gpu::fill<value_type>(rng.data(), value, rng.size());
+            gpu::fill<value_type>(rng.data(), value, rng.size());
         }
     }
 

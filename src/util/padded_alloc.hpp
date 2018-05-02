@@ -15,31 +15,27 @@
 //
 // Any alignment `n` specified must be a power of two.
 //
-// Assignment does not change the alignment property of the
-// allocator on the left hand side of the assignment, so that
+// Assignment operations propagate the alignment/padding, so that
 // e.g.
 // ```
 //     std::vector<int, padded_allocator<int>> a(100, 32), b(50, 64);
 //     a = b;
-//     assert(a.get_allocator().alignment()==32);
+//     assert(a.get_allocator().alignment()==64);
 // ```
-// will pass, and the vector `a` will not require reallocation.
-//
-// For move assignment, this means we cannot allow a simple ownership
-// transfer if the left hand side has a stronger alignment guarantee
-// that the right hand side. Correspondingly, we have to return `false`
+// will pass, and the vector `a` will require reallocation.
+// Correspondingly, we have to return `false`
 // for the allocator equality test if the alignments differ.
 
 namespace arb {
 namespace util {
 
-template <typename T>
+template <typename T = void>
 struct padded_allocator {
     using value_type = T;
     using pointer = T*;
-    using propagate_on_container_copy_assignment = std::false_type;
-    using propagate_on_container_move_assignment = std::false_type;
-    using propagate_on_container_swap = std::false_type;
+    using propagate_on_container_copy_assignment = std::true_type;
+    using propagate_on_container_move_assignment = std::true_type;
+    using propagate_on_container_swap = std::true_type;
     using is_always_equal = std::false_type;
 
     padded_allocator() noexcept {}

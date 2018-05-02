@@ -132,7 +132,7 @@ struct vector_backed_generator {
         events_(std::move(events)),
         it_(events_.begin())
     {
-        if (!std::is_sorted(events_.begin(), events_.end())) {
+        if (!util::is_sorted(events_)) {
             util::sort(events_);
         }
     }
@@ -171,7 +171,7 @@ struct seq_generator {
         events_(events),
         it_(std::begin(events_))
     {
-        EXPECTS(std::is_sorted(events_.begin(), events_.end()));
+        EXPECTS(util::is_sorted(events_));
     }
 
     postsynaptic_spike_event next() {

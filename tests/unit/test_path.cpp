@@ -68,8 +68,8 @@ TEST(path, posix_native) {
     EXPECT_EQ(qs, qs_bis);
 
     // cstr
-    const char *c = posix_path{ps}.c_str();
-    EXPECT_TRUE(!std::strcmp(c, ps.c_str()));
+    posix_path ps_path{ps};
+    EXPECT_TRUE(!std::strcmp(ps_path.c_str(), ps.c_str()));
 }
 
 TEST(path, posix_generic) {

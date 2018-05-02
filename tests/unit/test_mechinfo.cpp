@@ -2,24 +2,23 @@
 #include <string>
 #include <vector>
 
-#include "mechinfo.hpp"
+#include <cell.hpp>
+//#include "mechinfo.hpp"
 
 #include "../gtest.h"
 #include "../test_util.hpp"
 
-// TODO: expand tests when we have exported mechanism schemata
-// from modcc.
+// TODO: This test is really checking part of the recipe description
+// for cable1d cells, so move it there. Make actual tests for mechinfo
+// here!
 
 using namespace arb;
 
-TEST(mechanism_spec, setting) {
-    mechanism_spec m("foo");
+TEST(mechanism_desc, setting) {
+    mechanism_desc m("foo");
 
     m.set("a", 3.2);
     m.set("b", 4.3);
-
-    auto dflt = m["c"];
-    EXPECT_EQ(0., dflt); // note: 0 default is artefact of dummy schema
 
     EXPECT_EQ(3.2, m["a"]);
     EXPECT_EQ(4.3, m["b"]);

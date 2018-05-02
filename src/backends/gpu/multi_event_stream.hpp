@@ -20,9 +20,10 @@ class multi_event_stream_base {
 public:
     using size_type = cell_size_type;
     using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
 
     using array = memory::device_vector<value_type>;
-    using iarray = memory::device_vector<size_type>;
+    using iarray = memory::device_vector<index_type>;
 
     using const_view = array::const_view_type;
     using view = array::view_type;
@@ -83,11 +84,11 @@ protected:
         tmp_divs_.reserve(n_stream_+1);
 
         size_type n_nonempty = 0;
-        size_type ev_begin_i = 0;
-        size_type ev_i = 0;
+        index_type ev_begin_i = 0;
+        index_type ev_i = 0;
         tmp_divs_.push_back(ev_i);
         for (size_type s = 0; s<n_stream_; ++s) {
-            while (ev_i<n_ev && event_index(staged[ev_i])<s+1) ++ev_i;
+            while ((size_type)ev_i<n_ev && (size_type)event_index(staged[ev_i])<s+1) ++ev_i;
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
@@ -113,7 +114,7 @@ protected:
 
     // Host-side vectors for staging values in init():
     std::vector<value_type> tmp_ev_time_;
-    std::vector<size_type> tmp_divs_;
+    std::vector<index_type> tmp_divs_;
 };
 
 template <typename Event>

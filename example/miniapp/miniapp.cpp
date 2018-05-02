@@ -11,7 +11,6 @@
 #include <communication/communicator.hpp>
 #include <communication/global_policy.hpp>
 #include <cell.hpp>
-#include <fvm_multicell.hpp>
 #include <hardware/gpu.hpp>
 #include <hardware/node_info.hpp>
 #include <io/exporter_spike_file.hpp>

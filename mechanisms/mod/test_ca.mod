@@ -21,6 +21,10 @@ PARAMETER {
 
 ASSIGNED {}
 
+INITIAL {
+    cai = cai0
+}
+
 STATE {
     cai (mM)
 }

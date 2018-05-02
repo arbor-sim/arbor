@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 namespace arb {
@@ -78,6 +79,53 @@ T constexpr lerp(T a, T b, U u) {
 template <typename T>
 int signum(T x) {
     return (x>T(0)) - (x<T(0));
+}
+
+// Next integral power of 2 for unsigned integers:
+//
+// next_pow2(x) returns 0 if x==0, else returns smallest 2^k such
+// that 2^k>=x.
+
+template <typename U, typename = typename std::enable_if<std::is_unsigned<U>::value>::type>
+U next_pow2(U x) {
+    --x;
+    for (unsigned s=1; s<std::numeric_limits<U>::digits; s<<=1) {
+        x|=(x>>s);
+    }
+    return ++x;
+}
+
+namespace impl {
+    template <typename T>
+    T abs_if_signed(const T& x, std::true_type) {
+        return std::abs(x);
+    }
+
+    template <typename T>
+    T abs_if_signed(const T& x, std::false_type) {
+        return x;
+    }
+}
+
+// round_up(v, b) returns r, the smallest magnitude multiple of b
+// such that v lies between 0 and r inclusive.
+//
+// Examples:
+//     round_up( 7,  3) ==  9
+//     round_up( 7, -3) ==  9
+//     round_up(-7,  3) == -9
+//     round_up(-7, -3) == -9
+//     round_up( 8,  4) ==  8
+
+template <
+    typename T,
+    typename U,
+    typename C = typename std::common_type<T, U>::type,
+    typename Signed = typename std::is_signed<C>::type
+>
+C round_up(T v, U b) {
+    C m = v%b;
+    return v-m+signum(m)*impl::abs_if_signed(b, Signed{});
 }
 
 // Return minimum of the two values

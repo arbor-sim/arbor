@@ -1,12 +1,16 @@
 #include <regex>
 #include <string>
+#include <sstream>
 
 #include "test.hpp"
 
-#include "cprinter.hpp"
-#include "cudaprinter.hpp"
+#include "printer/cexpr_emit.hpp"
+#include "printer/cprinter.hpp"
 #include "expression.hpp"
-#include "textbuffer.hpp"
+#include "symdiff.hpp"
+
+// Note: CUDA printer disabled until new implementation finished.
+//#include "printer/cudaprinter.hpp"
 
 struct testcase {
     const char* source;
@@ -30,6 +34,26 @@ static std::string strip(std::string text) {
     text = std::regex_replace(text, rx3, "");
 
     return text;
+}
+
+TEST(scalar_printer, constants) {
+    testcase testcases[] = {
+        {"1./0.",      "INFINITY"},
+        {"-1./0.",     "-INFINITY"},
+        {"(-1)^0.5",   "NAN"},
+        {"1/(-1./0.)", "-0."},
+        {"1-1",        "0"},
+    };
+
+    for (const auto& tc: testcases) {
+        auto expr = constant_simplify(parse_expression(tc.source));
+        ASSERT_TRUE(expr && expr->is_number());
+
+        std::stringstream s;
+        s << as_c_double(expr->is_number()->value());
+
+        EXPECT_EQ(std::string(tc.expected), s.str());
+    }
 }
 
 TEST(scalar_printer, statement) {
@@ -64,14 +88,16 @@ TEST(scalar_printer, statement) {
 
         {
             SCOPED_TRACE("CPrinter");
-            auto printer = make_unique<CPrinter>();
+            std::stringstream out;
+            auto printer = make_unique<CPrinter>(out);
             e->accept(printer.get());
-            std::string text = printer->text();
+            std::string text = out.str();
 
             verbose_print(e->to_string(), " :--: ", text);
             EXPECT_EQ(strip(tc.expected), strip(text));
         }
 
+#if 0
         {
             SCOPED_TRACE("CUDAPrinter");
             TextBuffer buf;
@@ -84,27 +110,26 @@ TEST(scalar_printer, statement) {
             verbose_print(e->to_string(), " :--: ", text);
             EXPECT_EQ(strip(tc.expected), strip(text));
         }
+#endif
     }
 }
 
-TEST(CPrinter, proc) {
+TEST(CPrinter, proc_body) {
     std::vector<testcase> testcases = {
         {
             "PROCEDURE trates(v) {\n"
             "    LOCAL k\n"
-            "    minf=1-1/(1+exp((v-k)/k))\n"
-            "    hinf=1/(1+exp((v-k)/k))\n"
-            "    mtau = 0.6\n"
+            "    minf = 1-1/(1+exp((v-k)/k))\n"
+            "    hinf = 1/(1+exp((v-k)/k))\n"
+            "    mtau = 0.5\n"
             "    htau = 1500\n"
             "}"
             ,
-            "void trates(int i_, value_type v) {\n"
             "value_type k;\n"
             "minf[i_] = 1-1/(1+exp((v-k)/k));\n"
             "hinf[i_] = 1/(1+exp((v-k)/k));\n"
-            "mtau[i_] = 0.6;\n"
+            "mtau[i_] = 0.5;\n"
             "htau[i_] = 1500;\n"
-            "}"
         }
     };
 
@@ -124,12 +149,14 @@ TEST(CPrinter, proc) {
         auto& proc = (globals[procname] = symbol_ptr(e.release()->is_symbol()));
 
         proc->semantic(globals);
-        auto v = make_unique<CPrinter>();
-        proc->accept(v.get());
+        std::stringstream out;
+        auto v = make_unique<CPrinter>(out);
+        proc->is_procedure()->body()->accept(v.get());
+        std::string text = out.str();
 
-        verbose_print(proc->to_string());
-        verbose_print(" :--: ", v->text());
+        verbose_print(proc->is_procedure()->body()->to_string());
+        verbose_print(" :--: ", text);
 
-        EXPECT_EQ(strip(tc.expected), strip(v->text()));
+        EXPECT_EQ(strip(tc.expected), strip(text));
     }
 }

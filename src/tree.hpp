@@ -289,7 +289,7 @@ std::vector<tree::int_type> make_parent_index(tree const& t, C const& counts)
     using int_type = tree::int_type;
     constexpr auto no_parent = tree::no_parent;
 
-    if (!algorithms::is_positive(counts) || counts.size() != t.num_segments()) {
+    if (!algorithms::all_positive(counts) || counts.size() != t.num_segments()) {
         throw std::domain_error(
             "make_parent_index requires one non-zero count per segment"
         );
