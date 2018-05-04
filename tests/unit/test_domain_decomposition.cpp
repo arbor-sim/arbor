@@ -3,6 +3,7 @@
 #include <stdexcept>
 
 #include <backends.hpp>
+#include <communication/global_context.hpp>
 #include <domain_decomposition.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
@@ -43,8 +44,11 @@ namespace {
     };
 }
 
+// test assumes one domain
 TEST(domain_decomposition, homogenous_population)
 {
+    global_context context;
+
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
@@ -52,7 +56,7 @@ TEST(domain_decomposition, homogenous_population)
         hw::node_info nd(1, 0);
 
         unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -78,7 +82,7 @@ TEST(domain_decomposition, homogenous_population)
         hw::node_info nd(1, 1);
 
         unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -103,6 +107,8 @@ TEST(domain_decomposition, homogenous_population)
 
 TEST(domain_decomposition, heterogenous_population)
 {
+    global_context context;
+
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
@@ -111,7 +117,7 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, nd);
+        const auto D = partition_load_balance(R, nd, &context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -149,7 +155,7 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, nd);
+        const auto D = partition_load_balance(R, nd, &context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);

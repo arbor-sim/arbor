@@ -1,4 +1,4 @@
-#include <communication/global_policy.hpp>
+#include <communication/global_context.hpp>
 #include <util/hostname.hpp>
 #include <util/strprintf.hpp>
 #include <util/rangeutil.hpp>
@@ -11,26 +11,25 @@
 namespace arb {
 namespace util {
 
-measurement::measurement(
-        std::string n, std::string u, const std::vector<double>& readings):
+measurement::measurement(std::string n, std::string u,
+                         const std::vector<double>& readings,
+                         const global_context* ctx):
     name(std::move(n)), units(std::move(u))
 {
-    using gcom = communication::global_policy;
-
     // Assert that the same number of readings were taken on every domain.
     const auto num_readings = readings.size();
-    if (gcom::min(num_readings)!=gcom::max(num_readings)) {
+    if (ctx->min(num_readings)!=ctx->max(num_readings)) {
         throw std::out_of_range(
             "the number of checkpoints in the \""+name+"\" meter do not match across domains");
     }
 
     // Gather across all of the domains onto the root domain.
     for (auto r: readings) {
-        measurements.push_back(gcom::gather(r, 0));
+        measurements.push_back(ctx->gather(r, 0));
     }
 }
 
-meter_manager::meter_manager() {
+meter_manager::meter_manager(const global_context* ctx): glob_ctx_(ctx) {
     if (auto m = make_memory_meter()) {
         meters_.push_back(std::move(m));
     }
@@ -53,7 +52,7 @@ void meter_manager::start() {
     }
 
     // Enforce a global barrier after taking the time stamp
-    communication::global_policy::barrier();
+    glob_ctx_->barrier();
 
     start_time_ = timer_type::tic();
 };
@@ -73,7 +72,7 @@ void meter_manager::checkpoint(std::string name) {
     }
 
     // Synchronize all domains before setting start time for the next interval
-    communication::global_policy::barrier();
+    glob_ctx_->barrier();
     start_time_ = timer_type::tic();
 }
 
@@ -87,6 +86,10 @@ const std::vector<std::string>& meter_manager::checkpoint_names() const {
 
 const std::vector<double>& meter_manager::times() const {
     return times_;
+}
+
+const global_context* meter_manager::context() const {
+    return glob_ctx_;
 }
 
 nlohmann::json to_json(const measurement& mnt) {
@@ -107,20 +110,20 @@ nlohmann::json to_json(const measurement& mnt) {
 meter_report make_meter_report(const meter_manager& manager) {
     meter_report report;
 
-    using gcom = communication::global_policy;
+    auto ctx = manager.context();
 
     // Add the times to the meter outputs
-    report.meters.push_back(measurement("time", "s", manager.times()));
+    report.meters.push_back(measurement("time", "s", manager.times(), ctx));
 
     // Gather the meter outputs into a json Array
     for (auto& m: manager.meters()) {
         report.meters.push_back(
-            measurement(m->name(), m->units(), m->measurements()));
+            measurement(m->name(), m->units(), m->measurements(), ctx));
     }
 
     // Gather a vector with the names of the node that each rank is running on.
     auto host = hostname();
-    auto hosts = gcom::gather(host? *host: "unknown", 0);
+    auto hosts = ctx->gather(host? *host: "unknown", 0);
     report.hosts = hosts;
 
     // Count the number of unique hosts.
@@ -129,9 +132,8 @@ meter_report make_meter_report(const meter_manager& manager) {
     auto num_hosts = std::distance(hosts.begin(), std::unique(hosts.begin(), hosts.end()));
 
     report.checkpoints = manager.checkpoint_names();
-    report.num_domains = gcom::size();
+    report.num_domains = ctx->size();
     report.num_hosts = num_hosts;
-    report.communication_policy = gcom::kind();
 
     return report;
 }
@@ -140,7 +142,6 @@ nlohmann::json to_json(const meter_report& report) {
     return {
         {"checkpoints", report.checkpoints},
         {"num_domains", report.num_domains},
-        {"global_model", std::to_string(report.communication_policy)},
         {"meters", util::transform_view(report.meters, [](measurement const& m){return to_json(m);})},
         {"hosts", report.hosts},
     };

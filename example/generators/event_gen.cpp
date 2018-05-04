@@ -14,6 +14,7 @@
 
 #include <cell.hpp>
 #include <common_types.hpp>
+#include <communication/global_context.hpp>
 #include <event_generator.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
@@ -125,15 +126,17 @@ public:
 };
 
 int main() {
+    arb::global_context context = arb::serial_context();
+
     // Create an instance of our recipe.
     generator_recipe recipe;
 
     // Make the domain decomposition for the model
     auto node = arb::hw::get_node_info();
-    auto decomp = arb::partition_load_balance(recipe, node);
+    auto decomp = arb::partition_load_balance(recipe, node, &context);
 
     // Construct the model.
-    arb::simulation sim(recipe, decomp);
+    arb::simulation sim(recipe, decomp, &context);
 
     // Set up the probe that will measure voltage in the cell.
 

@@ -15,8 +15,11 @@
 
 namespace arb {
 
-simulation::simulation(const recipe& rec, const domain_decomposition& decomp):
-    communicator_(rec, decomp)
+simulation::simulation(const recipe& rec,
+                       const domain_decomposition& decomp,
+                       const global_context* ctx):
+    context_(ctx),
+    communicator_(rec, decomp, ctx)
 {
     const auto num_local_cells = communicator_.num_local_cells();
 

@@ -10,6 +10,7 @@
 #include <algorithms.hpp>
 #include <common_types.hpp>
 #include <communication/gathered_vector.hpp>
+#include <communication/global_context.hpp>
 #include <connection.hpp>
 #include <domain_decomposition.hpp>
 #include <event_queue.hpp>
@@ -35,16 +36,17 @@ namespace communication {
 // to build the data structures required for efficient spike communication and
 // event generation.
 
-template <typename CommunicationPolicy>
 class communicator {
 public:
-    using communication_policy_type = CommunicationPolicy;
-
     communicator() {}
 
-    explicit communicator(const recipe& rec, const domain_decomposition& dom_dec) {
+    explicit communicator(const recipe& rec,
+                          const domain_decomposition& dom_dec,
+                          const global_context* ctx)
+    {
         using util::make_span;
-        num_domains_ = comms_.size();
+        context_ = ctx;
+        num_domains_ = context_->size();
         num_local_groups_ = dom_dec.groups.size();
         num_local_cells_ = dom_dec.num_local_cells;
 
@@ -141,7 +143,7 @@ public:
             local_min = std::min(local_min, con.delay());
         }
 
-        return comms_.min(local_min);
+        return context_->min(local_min);
     }
 
     /// Perform exchange of spikes.
@@ -156,7 +158,7 @@ public:
 
         PE(communication_exchange_gather);
         // global all-to-all to gather a local copy of the global spike list on each node.
-        auto global_spikes = comms_.gather_spikes(local_spikes);
+        auto global_spikes = context_->gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
         PL();
 
@@ -256,7 +258,7 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    communication_policy_type comms_;
+    const global_context* context_;
     std::uint64_t num_spikes_ = 0u;
 };
 

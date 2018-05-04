@@ -9,7 +9,7 @@
 
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
+#include <communication/global_context.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
 #include <hardware/gpu.hpp>
@@ -37,49 +37,37 @@ using namespace arb;
 using util::any_cast;
 using util::make_span;
 
-using global_policy = communication::global_policy;
-using file_export_type = io::exporter_spike_file<global_policy>;
-using communicator_type = communication::communicator<communication::global_policy>;
-
-void banner(hw::node_info);
+void banner(hw::node_info, const global_context*);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 
 void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
-    communication::global_policy_guard global_guard(argc, argv);
+    // default serial context
+    global_context context;
 
     try {
-        util::meter_manager meters;
+        #ifdef ARB_HAVE_MPI
+        mpi::global_guard guard(&argc, &argv);
+        context = mpi_context(MPI_COMM_WORLD);
+        #endif
+
+        util::meter_manager meters(&context);
         meters.start();
 
-        std::cout << util::mask_stream(global_policy::id()==0);
+        std::cout << util::mask_stream(context.id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, global_policy::id()==0);
+        io::cl_options options = io::read_options(argc, argv, context.id()==0);
 
-        // If compiled in dry run mode we have to set up the dry run
-        // communicator to simulate the number of ranks that may have been set
-        // as a command line parameter (if not, it is 1 rank by default)
-        if (global_policy::kind() == communication::global_policy_kind::dryrun) {
-            // Dry run mode requires that each rank has the same number of cells.
-            // Here we increase the total number of cells if required to ensure
-            // that this condition is satisfied.
-            auto cells_per_rank = options.cells/options.dry_run_ranks;
-            if (options.cells % options.dry_run_ranks) {
-                ++cells_per_rank;
-                options.cells = cells_per_rank*options.dry_run_ranks;
-            }
-
-            global_policy::set_sizes(options.dry_run_ranks, cells_per_rank);
-        }
+        // TODO: add dry run mode
 
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
         hw::node_info nd;
         nd.num_cpu_cores = threading::num_threads();
         nd.num_gpus = hw::num_gpus()>0? 1: 0;
-        banner(nd);
+        banner(nd, &context);
 
         meters.checkpoint("setup");
 
@@ -95,13 +83,13 @@ int main(int argc, char** argv) {
 
         auto register_exporter = [] (const io::cl_options& options) {
             return
-                util::make_unique<file_export_type>(
+                util::make_unique<io::exporter_spike_file>(
                     options.file_name, options.output_path,
                     options.file_extension, options.over_write);
         };
 
-        auto decomp = partition_load_balance(*recipe, nd);
-        simulation sim(*recipe, decomp);
+        auto decomp = partition_load_balance(*recipe, nd, &context);
+        simulation sim(*recipe, decomp, &context);
 
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.
@@ -134,7 +122,7 @@ int main(int argc, char** argv) {
         sim.set_binning_policy(binning_policy, options.bin_dt);
 
         // Initialize the spike exporting interface
-        std::unique_ptr<file_export_type> file_exporter;
+        std::unique_ptr<io::exporter_spike_file> file_exporter;
         if (options.spike_file_output) {
             if (options.single_file_per_rank) {
                 file_exporter = register_exporter(options);
@@ -143,7 +131,7 @@ int main(int argc, char** argv) {
                         file_exporter->output(spikes);
                     });
             }
-            else if(communication::global_policy::id()==0) {
+            else if(context.id()==0) {
                 file_exporter = register_exporter(options);
                 sim.set_global_spike_callback(
                     [&](const std::vector<spike>& spikes) {
@@ -172,7 +160,7 @@ int main(int argc, char** argv) {
 
         auto report = util::make_meter_report(meters);
         std::cout << report;
-        if (global_policy::id()==0) {
+        if (context.id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -181,7 +169,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(global_policy::id()==0);
+        std::cerr << util::mask_stream(context.id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -192,11 +180,10 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd) {
+void banner(hw::node_info nd, const global_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << global_policy::size()
-              << " (" << std::to_string(global_policy::kind()) << ")\n";
+    std::cout << "  - distributed : " << ctx->size() << "\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
               << " (" << threading::description() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";

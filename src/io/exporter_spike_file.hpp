@@ -11,6 +11,7 @@
 #include <cstdio>
 
 #include <common_types.hpp>
+#include <communication/global_context.hpp>
 #include <io/exporter.hpp>
 #include <util/file.hpp>
 #include <spike.hpp>
@@ -18,11 +19,8 @@
 namespace arb {
 namespace io {
 
-template <typename CommunicationPolicy>
-class exporter_spike_file : public exporter<CommunicationPolicy> {
+class exporter_spike_file : public exporter {
 public:
-    using communication_policy_type = CommunicationPolicy;
-
     // Constructor
     // over_write if true will overwrite the specified output file (default = true)
     // output_path  relative or absolute path
@@ -32,11 +30,12 @@ public:
         const std::string& file_name,
         const std::string& path,
         const std::string& file_extension,
+        int index,
         bool over_write=true)
     {
         file_path_ =
             create_output_file_path(
-                file_name, path, file_extension, communication_policy_.id());
+                file_name, path, file_extension, index);
 
         //test if the file exist and depending on over_write throw or delete
         if (!over_write && util::file_exists(file_path_)) {
@@ -86,8 +85,6 @@ private:
     // Handle to opened file handle
     std::ofstream file_handle_;
     std::string file_path_;
-
-    communication_policy_type communication_policy_;
 };
 
 } //communication

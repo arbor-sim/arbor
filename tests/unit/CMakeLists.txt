@@ -71,6 +71,7 @@ set(TEST_SOURCES
     test_segment.cpp
     test_schedule.cpp
     test_rss_cell.cpp
+    test_serial_context.cpp
     test_simd.cpp
     test_span.cpp
     test_spikes.cpp

@@ -10,9 +10,6 @@ add_subdirectory(validation)
 # Test for the internode communication (eg. mpi)
 add_subdirectory(global_communication)
 
-# Tests for performance: This could include stand alone tests. These do not necessarily be run automatically
-add_subdirectory(performance)
-
 # Microbenchmarks.
 # Attempt to update git submodule if required.
 check_git_submodule(google_bench "${CMAKE_CURRENT_SOURCE_DIR}/ubench/google-benchmark")

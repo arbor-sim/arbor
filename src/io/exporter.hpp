@@ -13,7 +13,6 @@ namespace io {
 // Exposes one virtual functions:
 //    do_export(vector<type>) receiving a vector of parameters to export
 
-template <typename CommunicationPolicy>
 class exporter {
 public:
     // Performs the export of the data

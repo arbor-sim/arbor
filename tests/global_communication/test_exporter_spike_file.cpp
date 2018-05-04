@@ -1,4 +1,5 @@
 #include "../gtest.h"
+#include "test.hpp"
 
 #include <cstdio>
 #include <fstream>
@@ -7,16 +8,14 @@
 #include <vector>
 
 #include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
+#include <communication/global_context.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <spike.hpp>
 
 class exporter_spike_file_fixture : public ::testing::Test {
 protected:
-    using communicator_type = arb::communication::global_policy;
-
     using exporter_type =
-        arb::io::exporter_spike_file<communicator_type>;
+        arb::io::exporter_spike_file;
 
     std::string file_name_;
     std::string path_;
@@ -27,7 +26,7 @@ protected:
         file_name_("spikes_exporter_spike_file_fixture"),
         path_("./"),
         extension_("gdf"),
-        index_(communicator_type::id())
+        index_(g_context.id())
     {}
 
     std::string get_standard_file_name() {
@@ -84,7 +83,7 @@ TEST_F(exporter_spike_file_fixture, create_output_file_path) {
 
 TEST_F(exporter_spike_file_fixture, do_export) {
     {
-        exporter_type exporter(file_name_, path_, extension_);
+        exporter_type exporter(file_name_, path_, extension_, g_context.id());
 
         // Create some spikes
         std::vector<arb::spike> spikes;
