@@ -46,6 +46,10 @@ struct serial_context {
     }
 
     void barrier() const {}
+
+    std::string name() const {
+        return "serial";
+    }
 };
 
 } // namespace arb

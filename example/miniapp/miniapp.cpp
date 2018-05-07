@@ -183,7 +183,8 @@ int main(int argc, char** argv) {
 void banner(hw::node_info nd, const global_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->size() << "\n";
+    std::cout << "  - distributed : " << ctx->size()
+              << " (" << ctx->name() << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
               << " (" << threading::description() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";

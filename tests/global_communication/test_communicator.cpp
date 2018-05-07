@@ -14,13 +14,8 @@
 
 using namespace arb;
 
-/*
 static bool is_dry_run() {
-    return communication::global_policy::kind() ==
-        communication::global_policy_kind::dryrun;
-}
-*/
-static bool is_dry_run() {
+    //return global_policy::kind() == global_policy_kind::dryrun;
     return false;
 }
 
@@ -53,23 +48,24 @@ int get_value(const arb::spike& s) {
 
 // Test low level spike_gather function when each domain produces the same
 // number of spikes in the pattern used by dry run mode.
-/* TODO: implement when dry run is reimplemented
 TEST(communicator, gather_spikes_equal) {
     const auto num_domains = g_context.size();
     const auto rank = g_context.id();
 
     const auto n_local_spikes = 10;
-    const auto n_local_cells = n_local_spikes;
 
+    /*
+    const auto n_local_cells = n_local_spikes;
     // Important: set up meta-data in dry run back end.
     if (is_dry_run()) {
         g_context.set_sizes(g_context.size(), n_local_cells);
     }
+    */
 
     // Create local spikes for communication.
-    std::vector<spike_proxy> local_spikes;
+    std::vector<spike> local_spikes;
     for (auto i=0; i<n_local_spikes; ++i) {
-        local_spikes.push_back(spike_proxy{i+rank*n_local_spikes, rank});
+        local_spikes.push_back(gen_spike(i+rank*n_local_spikes, rank));
     }
 
     // Perform exchange
@@ -98,14 +94,13 @@ TEST(communicator, gather_spikes_equal) {
         const auto s = spikes[i];
         EXPECT_EQ(i, unsigned(s.source.gid));
         if (is_dry_run()) {
-            EXPECT_EQ(0, s.value);
+            EXPECT_EQ(0, get_value(s));
         }
         else {
-            EXPECT_EQ(int(i)/n_local_spikes, s.value);
+            EXPECT_EQ(int(i)/n_local_spikes, get_value(s));
         }
     }
 }
-*/
 
 // Test low level spike_gather function when the number of spikes per domain
 // are not equal.
@@ -302,7 +297,7 @@ namespace {
 
 template <typename F>
 ::testing::AssertionResult
-test_ring(const domain_decomposition& D, communication::communicator& C, F&& f) {
+test_ring(const domain_decomposition& D, communicator& C, F&& f) {
     using util::transform_view;
     using util::assign_from;
     using util::filter;
@@ -375,7 +370,7 @@ TEST(communicator, ring)
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, hw::node_info(), &g_context);
-    auto C = communication::communicator(R, D, &g_context);
+    auto C = communicator(R, D, &g_context);
 
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
@@ -389,7 +384,7 @@ TEST(communicator, ring)
 
 template <typename F>
 ::testing::AssertionResult
-test_all2all(const domain_decomposition& D, communication::communicator& C, F&& f) {
+test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
     using util::transform_view;
     using util::assign_from;
     using util::filter;
@@ -470,7 +465,7 @@ TEST(communicator, all2all)
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, hw::node_info(), &g_context);
-    auto C = communication::communicator(R, D, &g_context);
+    auto C = communicator(R, D, &g_context);
 
     // every cell fires
     EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return true;}));

@@ -91,7 +91,7 @@ private:
 
     util::optional<cell_size_type> local_cell_index(cell_gid_type);
 
-    communication::communicator communicator_;
+    communicator communicator_;
 
     // Convenience functions that map the spike buffers onto the appropriate
     // integration interval.

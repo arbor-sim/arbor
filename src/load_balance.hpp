@@ -5,6 +5,8 @@
 
 namespace arb {
 
-domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd, const global_context* ctx);
+domain_decomposition partition_load_balance(const recipe& rec,
+                                            hw::node_info nd,
+                                            const global_context* ctx);
 
 } // namespace arb

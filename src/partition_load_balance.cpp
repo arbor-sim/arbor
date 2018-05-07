@@ -6,7 +6,10 @@
 
 namespace arb {
 
-domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd, const global_context* ctx) {
+domain_decomposition partition_load_balance(const recipe& rec,
+                                            hw::node_info nd,
+                                            const global_context* ctx)
+{
     struct partition_gid_domain {
         partition_gid_domain(std::vector<cell_gid_type> divs):
             gid_divisions(std::move(divs))

@@ -23,7 +23,6 @@
 #include <util/rangeutil.hpp>
 
 namespace arb {
-namespace communication {
 
 // When the communicator is constructed the number of target groups and targets
 // is specified, along with a mapping between local cell id and local
@@ -262,5 +261,4 @@ private:
     std::uint64_t num_spikes_ = 0u;
 };
 
-} // namespace communication
 } // namespace arb

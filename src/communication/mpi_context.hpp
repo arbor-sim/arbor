@@ -55,6 +55,10 @@ struct mpi_context {
     void barrier() const {
         mpi::barrier(comm_);
     }
+
+    std::string name() const {
+        return "MPI";
+    }
 };
 
 } // namespace arb

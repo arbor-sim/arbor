@@ -43,7 +43,7 @@ int mpi_error::error_code() const {
     return error_code_;
 }
 
-void init(int *argc, char ***argv) {
+void init(int* argc, char*** argv) {
     int provided;
 
     // initialize with thread serialized level of thread safety

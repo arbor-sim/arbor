@@ -11,7 +11,6 @@
 #include <cstdio>
 
 #include <common_types.hpp>
-#include <communication/global_context.hpp>
 #include <io/exporter.hpp>
 #include <util/file.hpp>
 #include <spike.hpp>
@@ -19,7 +18,7 @@
 namespace arb {
 namespace io {
 
-class exporter_spike_file : public exporter {
+class exporter_spike_file: public exporter {
 public:
     // Constructor
     // over_write if true will overwrite the specified output file (default = true)

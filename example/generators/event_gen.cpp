@@ -126,7 +126,10 @@ public:
 };
 
 int main() {
-    arb::global_context context = arb::serial_context();
+    // A global_context is required for distributed computation (e.g. MPI).
+    // For this simple one-cell example, non-distributed context is suitable,
+    // which is what we get with a default-constructed global_context.
+    arb::global_context context;
 
     // Create an instance of our recipe.
     generator_recipe recipe;

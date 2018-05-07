@@ -188,14 +188,13 @@ using util::any_cast;
 using util::make_span;
 
 int main(int argc, char** argv) {
-    #ifdef ARB_HAVE_MPI
-    mpi::global_guard guard(&argc, &argv);
-    global_context context = mpi_context(MPI_COMM_WORLD);
-    #else
-    global_context context = serial_context();
-    #endif
+    global_context context;
 
     try {
+#ifdef ARB_HAVE_MPI
+        mpi::global_guard guard(&argc, &argv);
+        context = mpi_context(MPI_COMM_WORLD);
+#endif
         arb::util::meter_manager meters(&context);
         meters.start();
         std::cout << util::mask_stream(context.id()==0);
@@ -306,7 +305,8 @@ int main(int argc, char** argv) {
 void banner(hw::node_info nd, const global_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->size() << "\n";
+    std::cout << "  - distributed : " << ctx->size()
+              << " (" << ctx->name() << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
               << " (" << threading::description() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
