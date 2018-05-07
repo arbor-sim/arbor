@@ -94,8 +94,8 @@ Class Documentation
 
     .. cpp:function:: time_type run(time_type tfinal, time_type dt)
 
-        Run the simulation from current simulation time to :cpp:var:`tfinal`,
-        with maximum time step size :cpp:var:`dt`.
+        Run the simulation from current simulation time to :cpp:any:`tfinal`,
+        with maximum time step size :cpp:any:`dt`.
 
     .. cpp:function:: void set_binning_policy(binning_kind policy, time_type bin_interval)
 
