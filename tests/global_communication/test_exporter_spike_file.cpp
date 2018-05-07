@@ -14,8 +14,7 @@
 
 class exporter_spike_file_fixture : public ::testing::Test {
 protected:
-    using exporter_type =
-        arb::io::exporter_spike_file;
+    using exporter_type = arb::io::exporter_spike_file;
 
     std::string file_name_;
     std::string path_;
@@ -47,15 +46,19 @@ protected:
 };
 
 TEST_F(exporter_spike_file_fixture, constructor) {
-    exporter_type exporter(file_name_, path_, extension_, true);
+    // Create an exporter, and overwrite if neccesary.
+    exporter_type exporter(file_name_, path_, extension_, index_, true);
 
-    //test if the file exist and depending on over_write throw or delete
-    std::ifstream f(get_standard_file_name());
-    EXPECT_TRUE(f.good());
+    // Assert that the output file exists
+    {
+        std::ifstream f(get_standard_file_name());
+        ASSERT_TRUE(f.good());
+    }
 
-    // We now know the file exists, so create a new exporter with overwrite false
+    // Create a new exporter with overwrite false. This should throw, because an
+    // outut file with the same name is in use by exporter.
     try {
-        exporter_type exporter1(file_name_, path_, extension_, false);
+        exporter_type exporter1(file_name_, path_, extension_, index_, false);
         FAIL() << "expected a file already exists error";
     }
     catch (const std::runtime_error& err) {
