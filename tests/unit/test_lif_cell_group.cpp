@@ -1,6 +1,6 @@
 #include "../gtest.h"
 #include <cell_group_factory.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <fstream>
 #include <lif_cell_description.hpp>
 #include <lif_cell_group.hpp>
@@ -155,7 +155,7 @@ TEST(lif_cell_group, recipe)
 }
 
 TEST(lif_cell_group, spikes) {
-    global_context context;
+    distributed_context context;
 
     // make two lif cells
     path_recipe recipe(2, 1000, 0.1);
@@ -202,7 +202,7 @@ TEST(lif_cell_group, ring)
     // Total simulation time.
     time_type simulation_time = 100;
 
-    global_context context;
+    distributed_context context;
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
     auto decomp = partition_load_balance(recipe, nd, &context);
 

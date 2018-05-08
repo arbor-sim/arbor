@@ -5,7 +5,7 @@
 #include <backends/multicore/fvm.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <fvm_multicell.hpp>
 #include <load_balance.hpp>
 #include <math.hpp>
@@ -584,7 +584,7 @@ TEST(fvm_multi, specialized_mechs) {
 
         float times[] = {10.f, 20.f};
 
-        global_context context;
+        distributed_context context;
         auto decomp = partition_load_balance(rec, hw::node_info{1u, 0u}, &context);
         simulation sim(rec, decomp, &context);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);

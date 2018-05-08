@@ -14,7 +14,7 @@
 
 #include <cell.hpp>
 #include <common_types.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <event_generator.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
@@ -126,10 +126,10 @@ public:
 };
 
 int main() {
-    // A global_context is required for distributed computation (e.g. MPI).
+    // A distributed_context is required for distributed computation (e.g. MPI).
     // For this simple one-cell example, non-distributed context is suitable,
-    // which is what we get with a default-constructed global_context.
-    arb::global_context context;
+    // which is what we get with a default-constructed distributed_context.
+    arb::distributed_context context;
 
     // Create an instance of our recipe.
     generator_recipe recipe;

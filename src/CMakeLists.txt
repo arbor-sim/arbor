@@ -43,8 +43,6 @@ set(CUDA_SOURCES
 
 if(ARB_WITH_MPI)
     set(BASE_SOURCES ${BASE_SOURCES} communication/mpi.cpp)
-elseif(ARB_WITH_DRYRUN)
-    set(BASE_SOURCES ${BASE_SOURCES} communication/dryrun_global_policy.cpp)
 endif()
 
 if(ARB_WITH_CTHREAD)

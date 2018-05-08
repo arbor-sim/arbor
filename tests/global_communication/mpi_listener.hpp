@@ -4,7 +4,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 
 #include "../gtest.h"
 
@@ -35,7 +35,7 @@ private:
     int test_case_failures_;
     int test_case_tests_;
     int test_failures_;
-    const arb::global_context* context_;
+    const arb::distributed_context* context_;
 
     bool does_print() const {
         return rank_==0;
@@ -65,7 +65,7 @@ private:
     }
 
 public:
-    mpi_listener(std::string f_base, const arb::global_context* ctx): context_(ctx) {
+    mpi_listener(std::string f_base, const arb::distributed_context* ctx): context_(ctx) {
         rank_ = context_->id();
         size_ = context_->size();
 

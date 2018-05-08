@@ -9,13 +9,13 @@
 
 #include <tinyopt.hpp>
 #include <communication/communicator.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <util/ioutil.hpp>
 
 
 using namespace arb;
 
-global_context g_context;
+distributed_context g_context;
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
     // We need to set the communicator policy at the top level
     // this allows us to build multiple communicators in the tests
     #ifdef ARB_HAVE_MPI
-    mpi::global_guard guard(&argc, &argv);
+    mpi::scoped_guard guard(&argc, &argv);
     g_context = mpi_context(MPI_COMM_WORLD);
     #else
     g_context = serial_context();

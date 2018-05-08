@@ -1,4 +1,4 @@
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <util/hostname.hpp>
 #include <util/strprintf.hpp>
 #include <util/rangeutil.hpp>
@@ -13,7 +13,7 @@ namespace util {
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
-                         const global_context* ctx):
+                         const distributed_context* ctx):
     name(std::move(n)), units(std::move(u))
 {
     // Assert that the same number of readings were taken on every domain.
@@ -29,7 +29,7 @@ measurement::measurement(std::string n, std::string u,
     }
 }
 
-meter_manager::meter_manager(const global_context* ctx): glob_ctx_(ctx) {
+meter_manager::meter_manager(const distributed_context* ctx): glob_ctx_(ctx) {
     if (auto m = make_memory_meter()) {
         meters_.push_back(std::move(m));
     }
@@ -88,7 +88,7 @@ const std::vector<double>& meter_manager::times() const {
     return times_;
 }
 
-const global_context* meter_manager::context() const {
+const distributed_context* meter_manager::context() const {
     return glob_ctx_;
 }
 

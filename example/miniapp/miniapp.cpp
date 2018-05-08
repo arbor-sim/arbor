@@ -9,7 +9,7 @@
 
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <cell.hpp>
 #include <fvm_multicell.hpp>
 #include <hardware/gpu.hpp>
@@ -37,7 +37,7 @@ using namespace arb;
 using util::any_cast;
 using util::make_span;
 
-void banner(hw::node_info, const global_context*);
+void banner(hw::node_info, const distributed_context*);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 
@@ -45,11 +45,11 @@ void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
     // default serial context
-    global_context context;
+    distributed_context context;
 
     try {
         #ifdef ARB_HAVE_MPI
-        mpi::global_guard guard(&argc, &argv);
+        mpi::scoped_guard guard(&argc, &argv);
         context = mpi_context(MPI_COMM_WORLD);
         #endif
 
@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const global_context* ctx) {
+void banner(hw::node_info nd, const distributed_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->size()

@@ -89,7 +89,7 @@ describes the cell groups on the local MPI rank.
 
 .. cpp:namespace:: arb
 
-.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd, const global_context* ctx)
+.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd, const distributed_context* ctx)
 
     Construct a :cpp:class:`domain_decomposition` that distributes the cells
     in the model described by :cpp:any:`rec` over the set of distributed

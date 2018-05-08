@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <json/json.hpp>
 
 #include "meter.hpp"
@@ -26,7 +26,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&, const global_context*);
+    measurement(std::string, std::string, const std::vector<double>&, const distributed_context*);
 };
 
 class meter_manager {
@@ -42,13 +42,13 @@ private:
     std::vector<std::unique_ptr<meter>> meters_;
     std::vector<std::string> checkpoint_names_;
 
-    const global_context* glob_ctx_;
+    const distributed_context* glob_ctx_;
 
 public:
-    meter_manager(const global_context* ctx);
+    meter_manager(const distributed_context* ctx);
     void start();
     void checkpoint(std::string name);
-    const global_context* context() const;
+    const distributed_context* context() const;
 
     const std::vector<std::unique_ptr<meter>>& meters() const;
     const std::vector<std::string>& checkpoint_names() const;

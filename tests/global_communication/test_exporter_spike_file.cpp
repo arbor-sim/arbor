@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <communication/communicator.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <spike.hpp>
 

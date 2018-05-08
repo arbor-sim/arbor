@@ -20,7 +20,7 @@ over the hardware, then build the simulation.
     .. code-block:: cpp
 
         // Get a communication context
-        arb::global_context context;
+        arb::distributed_context context;
 
         // Make description of the hardware that the simulation will run on.
         arb::hw::node_info node;
@@ -54,7 +54,7 @@ Class Documentation
             *   an :cpp:class:`arb::recipe` that describes the model;
             *   an :cpp:class:`arb::domain_decomposition` that describes how the
                 cells in the model are assigned to hardware resources;
-            *   an :cpp:class:`arb::global_context` which performs communication
+            *   an :cpp:class:`arb::distributed_context` which performs communication
                 on distributed memory syustems.
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
@@ -76,7 +76,7 @@ Class Documentation
 
     **Constructor:**
 
-    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const global_context* ctx)
+    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx)
 
     **Experimental inputs:**
 

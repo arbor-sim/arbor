@@ -40,9 +40,9 @@ private:
     int error_code_;
 };
 
-struct global_guard {
-    global_guard(int *argc, char ***argv);
-    ~global_guard();
+struct scoped_guard {
+    scoped_guard(int *argc, char ***argv);
+    ~scoped_guard();
 };
 
 // Type traits for automatically setting MPI_Datatype information for C++ types.

@@ -10,7 +10,7 @@
 #include <algorithms.hpp>
 #include <common_types.hpp>
 #include <communication/gathered_vector.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <connection.hpp>
 #include <domain_decomposition.hpp>
 #include <event_queue.hpp>
@@ -41,7 +41,7 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          const global_context* ctx)
+                          const distributed_context* ctx)
     {
         using util::make_span;
         context_ = ctx;
@@ -257,7 +257,7 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    const global_context* context_;
+    const distributed_context* context_;
     std::uint64_t num_spikes_ = 0u;
 };
 

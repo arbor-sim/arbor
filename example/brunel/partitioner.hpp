@@ -1,11 +1,11 @@
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <domain_decomposition.hpp>
 #include <hardware/node_info.hpp>
 #include <recipe.hpp>
 
 namespace arb {
     static
-    domain_decomposition decompose(const recipe& rec, const unsigned group_size, const global_context* ctx) {
+    domain_decomposition decompose(const recipe& rec, const unsigned group_size, const distributed_context* ctx) {
         struct partition_gid_domain {
             partition_gid_domain(std::vector<cell_gid_type> divs):
                 gid_divisions(std::move(divs))

@@ -1,13 +1,13 @@
 #include <vector>
 
 #include "../gtest.h"
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <spike.hpp>
 
-// Test that there are no errors constructing a global_context from a serial_context
-TEST(serial_context, construct_global_context)
+// Test that there are no errors constructing a distributed_context from a serial_context
+TEST(serial_context, construct_distributed_context)
 {
-    arb::global_context ctx = arb::serial_context();
+    arb::distributed_context ctx = arb::serial_context();
 }
 
 TEST(serial_context, size_rank)

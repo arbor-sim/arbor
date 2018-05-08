@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <communication/communicator.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
 

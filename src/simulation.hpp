@@ -8,7 +8,7 @@
 #include <cell_group.hpp>
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <domain_decomposition.hpp>
 #include <epoch.hpp>
 #include <recipe.hpp>
@@ -24,7 +24,7 @@ class simulation {
 public:
     using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
-    simulation(const recipe& rec, const domain_decomposition& decomp, const global_context* ctx);
+    simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx);
 
     void reset();
 
@@ -68,7 +68,7 @@ private:
     std::size_t num_groups() const;
 
     // communication context
-    const global_context* context_;
+    const distributed_context* context_;
 
     // keep track of information about the current integration interval
     epoch epoch_;

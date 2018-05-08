@@ -3,7 +3,7 @@
 #include <stdexcept>
 
 #include <backends.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <domain_decomposition.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
@@ -47,7 +47,7 @@ namespace {
 // test assumes one domain
 TEST(domain_decomposition, homogenous_population)
 {
-    global_context context;
+    distributed_context context;
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -107,7 +107,7 @@ TEST(domain_decomposition, homogenous_population)
 
 TEST(domain_decomposition, heterogenous_population)
 {
-    global_context context;
+    distributed_context context;
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.

@@ -8,7 +8,7 @@
 
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
-#include <communication/global_context.hpp>
+#include <communication/distributed_context.hpp>
 #include <event_generator.hpp>
 #include <hardware/gpu.hpp>
 #include <hardware/node_info.hpp>
@@ -30,7 +30,7 @@
 
 using namespace arb;
 
-void banner(hw::node_info, const global_context*);
+void banner(hw::node_info, const distributed_context*);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -188,11 +188,11 @@ using util::any_cast;
 using util::make_span;
 
 int main(int argc, char** argv) {
-    global_context context;
+    distributed_context context;
 
     try {
 #ifdef ARB_HAVE_MPI
-        mpi::global_guard guard(&argc, &argv);
+        mpi::scoped_guard guard(&argc, &argv);
         context = mpi_context(MPI_COMM_WORLD);
 #endif
         arb::util::meter_manager meters(&context);
@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const global_context* ctx) {
+void banner(hw::node_info nd, const distributed_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->size()

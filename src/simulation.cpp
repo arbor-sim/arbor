@@ -17,7 +17,7 @@ namespace arb {
 
 simulation::simulation(const recipe& rec,
                        const domain_decomposition& decomp,
-                       const global_context* ctx):
+                       const distributed_context* ctx):
     context_(ctx),
     communicator_(rec, decomp, ctx)
 {

@@ -34,20 +34,20 @@ namespace arb {
 #define WRAP_GATHER(T) std::vector<T> gather(T value, int root) const override { return wrapped.gather(value, root); }
 #define WRAP_ALL(T) WRAP_REDUCE(T) WRAP_GATHER(T)
 
-class global_context {
+class distributed_context {
 public:
     using spike_vector = std::vector<arb::spike>;
 
     // default constructor uses a serial context
-    global_context(): global_context(serial_context()) {}
+    distributed_context(): distributed_context(serial_context()) {}
 
     template <typename Impl>
-    global_context(Impl&& impl):
+    distributed_context(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
 
-    global_context(global_context&& other) = default;
-    global_context& operator=(global_context&& other) = default;
+    distributed_context(distributed_context&& other) = default;
+    distributed_context& operator=(distributed_context&& other) = default;
 
     gathered_vector<arb::spike> gather_spikes(const spike_vector& local_spikes) const {
         return impl_->gather_spikes(local_spikes);

@@ -7,11 +7,11 @@ namespace mpi {
 
 // global guard for initializing mpi.
 
-global_guard::global_guard(int *argc, char ***argv) {
+scoped_guard::scoped_guard(int *argc, char ***argv) {
     init(argc, argv);
 }
 
-global_guard::~global_guard() {
+scoped_guard::~scoped_guard() {
     finalize();
 }
 
