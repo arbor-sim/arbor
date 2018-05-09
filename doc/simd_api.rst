@@ -74,6 +74,10 @@ Three user-facing template classes are provided:
 
    The result of a ``where`` expression, used for masked assignment.
 
+There is, in addition, a templated class ``simd_detail::indirect_expression``
+that holds the result of an `indirect(...)` expression. These arise in
+gather and scatter operations, and are detailed below.
+
 Implementation typemaps live in the ``simd_abi`` namespace, while concrete
 implementation classes live in ``simd_detail``. A particular specialization
 for an architecture, for example 4-wide double on AVX, then requires:
@@ -89,6 +93,34 @@ for an architecture, for example 4-wide double on AVX, then requires:
 The maximum natively supported width for a scalar type *V* is recorded in
 ``simd_abi::native_width<V>::value``.
 
+Indirect expressions
+^^^^^^^^^^^^^^^^^^^^
+
+An expression of the form ``indirect(p, k)`` or ``indirect(p, k, constraint)`` describes
+a sequence of memory locations based at the pointer *p* with offsets given by the
+``simd`` variable *k*. A constraint of type ``index_constraint`` can be provided, which
+promises certain guarantees on the index values in *k*:
+
+.. list-table::
+    :widths: 20 80
+    :header-rows: 1
+
+    * - Constraint
+      - Guarantee
+
+    * - ``index_constraint::none``
+      - No restrictions.
+
+    * - ``index_constraint::independent``
+      - No indices are repeated, i.e. *k*\ `i`:sub: = *k*\ `j`:sub: implies *i* = *j*.
+
+    * - ``index_constraint::contiguous``
+      - Indices are sequential, i.e. *k*\ `i`:sub: = *k*\ `0`:sub: + *i*.
+
+    * - ``index_constraint::constant``
+      - Indices are all equal, i.e. *k*\ `i`:sub: = *k*\ `j`:sub: for all *i* and *j*.
+
+
 Class ``simd``
 ^^^^^^^^^^^^^^
 
@@ -99,9 +131,10 @@ arithmetic operators for a concrete implementation class `C`.
 In the following:
 
 * *S* stands for the class ``simd<V, N, I>``.
-* *s* is an SIMD value of type *S*.
+* *s* is a SIMD value of type *S*.
 * *m* is a mask value of type ``S::simd_mask``.
 * *t*, *u* and *v* are const objects of type *S*.
+* *w* is a SIMD value of type ``simd<W, N, J>``.
 * *i* is an index of type ``int``.
 * *j* is a const object of type ``simd<U, N, J>`` where *U* is an integral type.
 * *x* is a value of type *V*.
@@ -152,6 +185,12 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
     * - ``S(c)``
       - A SIMD value *v* with *v*\ `i`:sub: equal to ``c[i]`` for *i* = 0…*N*-1.
 
+    * - ``S(w)``
+      - A copy or value-cast of the SIMD value *w* of a different type but same width.
+
+    * - ``S(indirect(p, j))``
+      - A SIMD value *v* with *v*\ `i`:sub: equal to ``p[j[i]]`` for *i* = 0…*N*-1.
+
     * - ``S(c, m)``
       - A SIMD value *v* with *v*\ `i`:sub: equal to ``c[i]`` for *i* where *m*\ `i`:sub: is true.
 
@@ -169,7 +208,7 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
       - ``void``
       - Set ``p[i]`` to *t*\ `i`:sub: for *i* = 0…*N*-1.
 
-    * - ``t.scatter(p, j)``
+    * - ``t.copy_to(indirect(p, j))``
       - ``void``
       - Set ``p[j[i]]`` to *t*\ `i`:sub: for *i* = 0…*N*-1.
 
@@ -177,9 +216,13 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
       - ``void``
       - Set *s*\ `i`:sub: to ``c[i]`` for *i* = 0…*N*-1.
 
-    * - ``s.gather(c, j)``
+    * - ``s.copy_from(indirect(c, j))``
       - ``void``
       - Set *s*\ `i`:sub: to ``c[j[i]]`` for *i* = 0…*N*-1.
+
+    * - ``s.sum()``
+      - ``V``
+      - Sum of *s*\ `i`:sub: for *i* = 0…*N*-1.
 
 .. rubric:: Expressions
 
@@ -258,6 +301,18 @@ Here and below, the value in lane *i* of a SIMD vector or mask *v* is denoted by
     * - ``s=x``
       - ``S&``
       - Equivalent to ``s=S(x)``.
+
+    * - ``indirect(p, j)=t``
+      - ``decltype(indirect(p, j))&``
+      - Equivalent to ``t.copy_to(indirect(p, j))``.
+
+    * - ``indirect(p, j)+=t``
+      - ``decltype(indirect(p, j))&``
+      - Compound indirect assignment: ``p[j[i]]+=t[i]`` for *i* = 0…*N*-1.
+
+    * - ``indirect(p, j)-=t``
+      - ``decltype(indirect(p, j))&``
+      - Compound indirect assignment: ``p[j[i]]-=t[i]`` for *i* = 0…*N*-1.
 
     * - ``t[i]``
       - ``V``
@@ -435,7 +490,7 @@ In the following:
       - ``void``
       - Set ``p[i]`` to *s*\ `i`:sub: for *i* where *m*\ `i`:sub: is true.
 
-    * - ``where(m, s).scatter(p, j)``
+    * - ``where(m, s).copy_to(indirect(p, j))``
       - ``void``
       - Set ``p[j[i]]`` to *s*\ `i`:sub: for *i* where *m*\ `i`:sub: is true.
 
@@ -443,7 +498,7 @@ In the following:
       - ``void``
       - Set *s*\ `i`:sub: to ``c[i]`` for *i* where *m*\ `i`:sub: is true.
 
-    * - ``where(m, s).gather(c, j)``
+    * - ``where(m, s).copy_from(indirect(c, j))``
       - ``void``
       - Set *s*\ `i`:sub: to ``c[j[i]]`` for *i* where *m*\ `i`:sub: is true.
 
@@ -463,8 +518,11 @@ In the following:
 
 * *A* is a SIMD class ``simd<K, N, I>`` for some scalar type *K*.
 * *S* is a SIMD class ``simd<V, N, I>`` for a floating point type *V*.
+* *W* is a SIMD class ``simd<L, N, J>`` for some scalar type *L* of the same width as *A*.
 * *a* and *b* are values of type *A*.
 * *s* and *t* are values of type *S*.
+* *w* is a value of type *W*.
+* *v* is a value of type ``std::array<W, N>``.
 
 .. list-table::
     :widths: 20 20 60
@@ -514,6 +572,19 @@ In the following:
       - *S*
       - Lane-wise raise *s* to the power of *t*.
 
+    * - ``simd_cast<std::array<L, N>>(s)``
+      - ``std::array<L, N>``
+      - Lane-wise cast to scalar type `L` as ``std::array``
+
+    * - ``simd_cast<simd<L, N, J>>(s)``
+      - ``simd<L, N, J>``
+      - Lane-wise cast to scalar type `L` as SIMD value.
+
+    * - ``simd_cast<S>(w)``
+      - *S*
+      - Lane-wise case to scalar type K from ``std::array`` as
+        SIMD value.
+
 
 Implementation requirements
 ---------------------------
@@ -528,6 +599,9 @@ functionality. The base class ``implbase<C>`` in turn relies upon
 ``simd_detail::simd_traits<C>`` to look up the SIMD width, and associated types.
 
 All the required SIMD operations are given by static member functions of *C*.
+
+Some arguments to static member functions use a tag class (``simd_detail::tag``)
+parameterized on a concrete implementation class for dispatch purposes.
 
 Minimal implementation
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -605,12 +679,15 @@ a SIMD class of width *N* and value type *V*.
 * *p* is a pointer of type ``C::scalar_type*``.
 * *j* is a SIMD index representation of type ``J::vector_type`` for
   an integral concrete implementation class *J*.
+* *w* is a SIMD representation of type ``W::vector_type`` for
+  a (different) concrete implementation class *W*.
 * *b* is a ``bool`` value.
 * *w* is a pointer to ``bool``.
 * *y* is a const pointer to ``bool``.
 * *i* is an unsigned (index) value.
 * *k* is an unsigned long long value.
 * *m* is a mask representation of type ``C::mask_type``.
+* *z* is an ``index_constraint`` value.
 
 .. rubric:: Types and constants
 
@@ -652,6 +729,11 @@ a SIMD class of width *N* and value type *V*.
       - Type
       - Description
 
+    * - ``C::cast_from(tag<W>{}, w)``
+      - ``C::vector_type``
+      - Return a vector with values *v*\ `i`:sub: = *w*\ `i`:sub:, where ``W::scalar_type``
+        is implicitly convertible to ``C::scalar_type``.
+
     * - ``C::broadcast(x)``
       - ``C::vector_type``
       - Fill representation with scalar *x*.
@@ -672,9 +754,9 @@ a SIMD class of width *N* and value type *V*.
       - ``C::vector_type``
       - Return a vector with values *v*\ `i`:sub: loaded from *c+i* wherever *m*\ `i`:sub: is true. *c* may be unaligned.
 
-    * - ``C::copy_from_masked(w, c, m)``
+    * - ``C::copy_from_masked(u, c, m)``
       - ``void``
-      - Return a vector with values *v*\ `i`:sub: loaded from *c+i* wherever *m*\ `i`:sub: is true, or equal to *w*\ `i`:sub
+      - Return a vector with values *v*\ `i`:sub: loaded from *c+i* wherever *m*\ `i`:sub: is true, or equal to *u*\ `i`:sub
         otherwise. *c* may be unaligned.
 
 .. rubric:: Lane access
@@ -719,21 +801,45 @@ of type *J*, used only to disambiguate overloads.
       - Type
       - Description
 
-    * - ``C::gather(J{}, p, j)``
+    * - ``C::gather(tag<J>{}, p, j)``
       - ``C::vector_type``
       - Vector *v* with values *v*\ `i`:sub: = ``p[j[i]]``.
 
-    * - ``C::gather(J{}, u, p, j, m)``
+    * - ``C::gather(tag<J>{}, u, p, j, m)``
       - ``C::vector_type``
       - Vector *v* with values *v*\ `i`:sub: = *m*\ `i`:sub: ? ``p[j[i]]`` : *u*\ `i`:sub:.
 
-    * - ``C::scatter(J{}, u, p, j)``
+    * - ``C::scatter(tag<J>{}, u, p, j)``
       - ``void``
       - Write values *u*\ `i`:sub: to ``p[j[i]]``.
 
-    * - ``C::scatter(J{}, u, p, j, m)``
+    * - ``C::scatter(tag<J>{}, u, p, j, m)``
       - ``void``
       - Write values *u*\ `i`:sub: to ``p[j[i]]`` for lanes *i* where *m*\ `i`:sub: is true.
+
+    * - ``C::compound_indexed_add(tag<J>{}, u, p, j, z)``
+      - ``void``
+      - Update values ``p[j[i]] += u[i]`` for lanes *i*, subject to constraint *z*.
+
+.. rubric:: Casting
+
+Implementations can provide optimized versions of lane-wise
+value casting from other specific implementation classes.
+
+The first argument is a dummy argument
+of type *J*, used only to disambiguate overloads.
+
+.. list-table::
+    :header-rows: 1
+    :widths: 20 20 60
+
+    * - Expression
+      - Type
+      - Description
+
+    * - ``C::cast_from(J{}, p, j)``
+      - ``C::vector_type``
+      - Vector *v* with values *v*\ `i`:sub: = *w*\ `i`:sub:, cast to ``C::scalar_type``.
 
 .. rubric:: Arithmetic operations
 
@@ -768,6 +874,10 @@ of type *J*, used only to disambiguate overloads.
     * - ``C::fma(u, v, w)``
       - ``C::vector_type``
       - Lane-wise fused multiply-add (u*v+w).
+
+    * - ``C::reduce_add(u)``
+      - ``C::scalar_type``
+      - (Horizontal) sum of values *u*\ `i`:sub: in each lane.
 
 .. rubric:: Comparison and blends
 
@@ -935,18 +1045,8 @@ There is no support yet for the following features, although some of these
 will need to be provided in order to improve the efficiency of SIMD versions
 of our generated mechanisms.
 
-* A SIMD cast function, e.g. ``simd_cast<S>(const T&)`` that converts between
-  different SIMD wrappers of the same width. The infrastructure that supports
-  this in concrete implementation classes would also simplify the implementation
-  of more generic ``gather`` and ``scatter`` methods.
-
-* Horizontal reductions across the lanes of a SIMD value or where-expression.
-
+* Contraint-based dispatch for indirect operations other than ``+=`` and ``-=``.
 * Vectorizable implementations of trigonometric functions.
-
-* Compound assignment operations for where-expressions. Extending the concrete
-  implementation API to support this would allow, for example, efficient use
-  of AVX512 masked arithmetic instructions.
 
 .. _simd_maths:
 
