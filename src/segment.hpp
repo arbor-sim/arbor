@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cmath>
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <algorithms.hpp>
@@ -11,8 +14,59 @@
 #include <mechinfo.hpp>
 #include <point.hpp>
 #include <util/make_unique.hpp>
+#include <util/maputil.hpp>
 
 namespace arb {
+
+// Mechanism information attached to a segment.
+
+struct mechanism_desc {
+    struct field_proxy {
+        mechanism_desc* m;
+        std::string key;
+
+        field_proxy& operator=(double v) {
+            m->set(key, v);
+            return *this;
+        }
+
+        operator double() const {
+            return m->get(key);
+        }
+    };
+
+    // implicit
+    mechanism_desc(std::string name): name_(std::move(name)) {}
+    mechanism_desc(const char* name): name_(name) {}
+
+    mechanism_desc& set(const std::string& key, double value) {
+        param_[key] = value;
+        return *this;
+    }
+
+    double operator[](const std::string& key) const {
+        return get(key);
+    }
+
+    field_proxy operator[](const std::string& key) {
+        return {this, key};
+    }
+
+    double get(const std::string& key) const {
+        auto optv = util::value_by_key(param_, key);
+        return optv? *optv: throw std::out_of_range("no field "+key+" set");
+    }
+
+    const std::unordered_map<std::string, double>& values() const {
+        return param_;
+    }
+
+    const std::string& name() const { return name_; }
+
+private:
+    std::string name_;
+    std::unordered_map<std::string, double> param_;
+};
 
 // forward declarations of segment specializations
 class soma_segment;
@@ -80,13 +134,13 @@ public:
         return false;
     }
 
-    util::optional<mechanism_spec&> mechanism(const std::string& name) {
+    util::optional<mechanism_desc&> mechanism(const std::string& name) {
         auto it = std::find_if(mechanisms_.begin(), mechanisms_.end(),
-            [&](mechanism_spec& m) { return m.name()==name; });
+            [&](mechanism_desc& m) { return m.name()==name; });
         return it==mechanisms_.end()? util::nullopt: util::just(*it);
     }
 
-    void add_mechanism(mechanism_spec mech) {
+    void add_mechanism(mechanism_desc mech) {
         auto m = mechanism(mech.name());
         if (m) {
             *m = std::move(mech);
@@ -96,11 +150,11 @@ public:
         }
     }
 
-    const std::vector<mechanism_spec>& mechanisms() {
+    const std::vector<mechanism_desc>& mechanisms() {
         return mechanisms_;
     }
 
-    const std::vector<mechanism_spec>& mechanisms() const {
+    const std::vector<mechanism_desc>& mechanisms() const {
         return mechanisms_;
     }
 
@@ -112,7 +166,7 @@ protected:
     segment(section_kind kind): kind_(kind) {}
 
     section_kind kind_;
-    std::vector<mechanism_spec> mechanisms_;
+    std::vector<mechanism_desc> mechanisms_;
 };
 
 class placeholder_segment : public segment {
@@ -218,11 +272,10 @@ public:
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<value_type> lens):
         segment(k), radii_(std::move(r)), lengths_(std::move(lens))
     {
-        assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
+        EXPECTS(kind_==section_kind::dendrite || kind_==section_kind::axon);
     }
 
     cable_segment(section_kind k, value_type r1, value_type r2, value_type len):
-        //cable_segment{k, std::vector<value_type>{r1, r2}, std::vector<value_type>{len}}
         cable_segment{k, {r1, r2}, decltype(lengths_){len}}
     {}
 
@@ -231,7 +284,7 @@ public:
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<point_type> p):
         segment(k), radii_(std::move(r)), locations_(std::move(p))
     {
-        assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
+        EXPECTS(kind_==section_kind::dendrite || kind_==section_kind::axon);
         update_lengths();
     }
 
@@ -392,18 +445,5 @@ template <typename DivCompClass>
 DivCompClass div_compartments(const cable_segment* cable) {
     return DivCompClass(cable->num_compartments(), cable->radii(), cable->lengths());
 }
-
-struct segment_location {
-    segment_location(cell_lid_type s, double l):
-        segment(s), position(l)
-    {
-        EXPECTS(position>=0. && position<=1.);
-    }
-    friend bool operator==(segment_location l, segment_location r) {
-        return l.segment==r.segment && l.position==r.position;
-    }
-    cell_lid_type segment;
-    double position;
-};
 
 } // namespace arb

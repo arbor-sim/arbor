@@ -1,3 +1,6 @@
+#if 0
+// Disabled pending new SIMD printer code.
+
 #include "backends/simd.hpp"
 #include "textbuffer.hpp"
 #include "token.hpp"
@@ -61,3 +64,4 @@ TEST(avx512, emit_unary_op) {
     simd_backend::emit_load_index(tb, "&a");
     EXPECT_EQ("_mm256_lddqu_si256(&a)", tb.str());
 }
+#endif

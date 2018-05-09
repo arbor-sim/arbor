@@ -1,20 +1,23 @@
 #include "../gtest.h"
 
+#include <backends/event.hpp>
 #include <backends/multicore/fvm.hpp>
 #include <common_types.hpp>
 #include <cell.hpp>
-#include <fvm_multicell.hpp>
+#include <fvm_lowered_cell_impl.hpp>
 #include <util/rangeutil.hpp>
 
+#include "common.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
 using namespace arb;
+using fvm_cell = fvm_lowered_cell_impl<multicore::backend>;
+using shared_state = multicore::backend::shared_state;
 
-TEST(probe, fvm_multicell)
-{
-    using fvm_cell = fvm::fvm_multicell<arb::multicore::backend>;
+ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, fvm_state_ptr, &fvm_cell::state_);
 
+TEST(probe, fvm_lowered_cell) {
     cell bs = make_cell_ball_and_stick(false);
 
     i_clamp stim(0, 100, 0.3);
@@ -30,8 +33,8 @@ TEST(probe, fvm_multicell)
     rec.add_probe(0, 20, cell_probe_address{loc1, cell_probe_address::membrane_voltage});
     rec.add_probe(0, 30, cell_probe_address{loc2, cell_probe_address::membrane_current});
 
-    std::vector<fvm_cell::target_handle> targets;
-    probe_association_map<fvm_cell::probe_handle> probe_map;
+    std::vector<target_handle> targets;
+    probe_association_map<probe_handle> probe_map;
 
     fvm_cell lcell;
     lcell.initialize({0}, rec, targets, probe_map);
@@ -43,20 +46,24 @@ TEST(probe, fvm_multicell)
     EXPECT_EQ(20, probe_map.at({0, 1}).tag);
     EXPECT_EQ(30, probe_map.at({0, 2}).tag);
 
-    fvm_cell::probe_handle p0 = probe_map.at({0, 0}).handle;
-    fvm_cell::probe_handle p1 = probe_map.at({0, 1}).handle;
-    fvm_cell::probe_handle p2 = probe_map.at({0, 2}).handle;
+    probe_handle p0 = probe_map.at({0, 0}).handle;
+    probe_handle p1 = probe_map.at({0, 1}).handle;
+    probe_handle p2 = probe_map.at({0, 2}).handle;
 
     // Expect initial probe values to be the resting potential
     // for the voltage probes (cell membrane potential should
     // be constant), and zero for the current probe.
 
-    auto resting = lcell.voltage()[0];
+    auto& state = *(lcell.*fvm_state_ptr).get();
+    auto& voltage = state.voltage;
+
+    auto resting = voltage[0];
     EXPECT_NE(0.0, resting);
 
-    EXPECT_EQ(resting, lcell.probe(p0));
-    EXPECT_EQ(resting, lcell.probe(p1));
-    EXPECT_EQ(0.0, lcell.probe(p2));
+    // (Probe handles are just pointers in this implementation).
+    EXPECT_EQ(resting, *p0);
+    EXPECT_EQ(resting, *p1);
+    EXPECT_EQ(0.0, *p2);
 
     // After an integration step, expect voltage probe values
     // to differ from resting, and between each other, and
@@ -65,15 +72,13 @@ TEST(probe, fvm_multicell)
     // First probe, at (0,0), should match voltage in first
     // compartment.
 
-    lcell.setup_integration(0.1, 0.0025, {}, {});
-    lcell.step_integration();
-    lcell.step_integration();
+    lcell.integrate(0.01, 0.0025, {}, {});
 
-    EXPECT_NE(resting, lcell.probe(p0));
-    EXPECT_NE(resting, lcell.probe(p1));
-    EXPECT_NE(lcell.probe(p0), lcell.probe(p1));
-    EXPECT_NE(0.0, lcell.probe(p2));
+    EXPECT_NE(resting, *p0);
+    EXPECT_NE(resting, *p1);
+    EXPECT_NE(*p0, *p1);
+    EXPECT_NE(0.0, *p2);
 
-    EXPECT_EQ(lcell.voltage()[0], lcell.probe(p0));
+    EXPECT_EQ(voltage[0], *p0);
 }
 

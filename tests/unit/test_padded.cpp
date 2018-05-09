@@ -1,10 +1,5 @@
 #include <cstdint>
 
-#if (__GLIBC__==2)
-#include <malloc.h>
-#define INSTRUMENT_MALLOC
-#endif
-
 #include <util/padded_alloc.hpp>
 
 #include "../gtest.h"
@@ -52,23 +47,24 @@ TEST(padded_vector, allocator_propagation) {
     EXPECT_EQ(1u, pb.alignment());
     EXPECT_NE(pa, pb);
 
-    // Don't propagate on copy- or move-assignment:
+    // Propagate on copy- or move-assignment:
     b = a;
-    EXPECT_EQ(pb.alignment(), b.get_allocator().alignment());
-    EXPECT_NE(pb.alignment(), pa.alignment());
+    EXPECT_NE(pb.alignment(), b.get_allocator().alignment());
+    EXPECT_EQ(pa.alignment(), b.get_allocator().alignment());
 
     pvector<double> c;
     c = std::move(a);
-    EXPECT_NE(c.get_allocator().alignment(), pa.alignment());
+    EXPECT_EQ(c.get_allocator().alignment(), pa.alignment());
 }
 
 
-#ifdef INSTRUMENT_MALLOC
+#ifdef CAN_INSTRUMENT_MALLOC
 
 struct alloc_data {
     unsigned n_malloc = 0;
     unsigned n_realloc = 0;
     unsigned n_memalign = 0;
+    unsigned n_free = 0;
 
     std::size_t last_malloc = -1;
     std::size_t last_realloc = -1;
@@ -93,6 +89,10 @@ struct count_allocs: testing::with_instrumented_malloc {
         data.last_memalign = size;
     }
 
+    void on_free(void*, const void*) override {
+        ++data.n_free;
+    }
+
     void reset() {
         data = alloc_data();
     }
@@ -113,15 +113,15 @@ TEST(padded_vector, instrumented) {
     EXPECT_EQ(0u, mdata.n_realloc);
     EXPECT_EQ(expected_v1_alloc, mdata.last_memalign);
 
-    // Move assignment: v2 has differing alignment guarantee, so cannot
-    // take ownership of v1's data. We expect that v2 will need to allocate.
+    // Move assignment: allocators propagate, so we do not expect v2
+    // to perform a new allocation.
 
     pvector<double> v2p32(10, pad32);
     A.reset();
     v2p32 = std::move(v1p256);
     mdata = A.data;
 
-    EXPECT_EQ(1u, mdata.n_memalign);
+    EXPECT_EQ(0u, mdata.n_memalign);
     EXPECT_EQ(0u, mdata.n_malloc);
     EXPECT_EQ(0u, mdata.n_realloc);
 
@@ -148,12 +148,13 @@ TEST(padded_vector, instrumented) {
     EXPECT_EQ(expected_v5_alloc, mdata.last_memalign);
 
     A.reset();
-    v5p32 = v3p256; // different alignment, but enough space, so shouldn't reallocate.
+    v5p32 = v3p256; // enough space, but different alignment, so should free and then allocate.
     mdata = A.data;
 
-    EXPECT_EQ(0u, mdata.n_memalign);
+    EXPECT_EQ(1u, mdata.n_free);
+    EXPECT_EQ(1u, mdata.n_memalign);
     EXPECT_EQ(0u, mdata.n_malloc);
     EXPECT_EQ(0u, mdata.n_realloc);
 }
 
-#endif // ifdef INSTRUMENT_MALLOC
+#endif // ifdef CAN_INSTRUMENT_MALLOC

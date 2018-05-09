@@ -16,7 +16,8 @@ add_executable(global_communication.exe ${COMMUNICATION_SOURCES} ${HEADERS})
 set(TARGETS global_communication.exe)
 
 foreach(target ${TARGETS})
-    target_link_libraries(${target} LINK_PUBLIC arbor gtest)
+    target_link_libraries(${target} LINK_PUBLIC gtest)
+    target_link_libraries(${target} LINK_PUBLIC ${ARB_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
 
     if(ARB_WITH_MPI)

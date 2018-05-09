@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <common_types.hpp>
+#include <util/debug.hpp>
 
 namespace arb {
 

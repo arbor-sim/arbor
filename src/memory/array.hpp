@@ -6,21 +6,27 @@
 
 #pragma once
 
+#include <cstdlib>
 #include <iostream>
 #include <type_traits>
 
+#include <util/debug.hpp>
 #include <util/range.hpp>
 
 #include "definitions.hpp"
 #include "util.hpp"
+#include "allocator.hpp"
 #include "array_view.hpp"
 
 namespace arb {
-namespace memory{
+namespace memory {
 
 // forward declarations
-template<typename T, typename Coord>
+template <typename T, typename Coord>
 class array;
+
+template <typename T, class Allocator>
+class host_coordinator;
 
 namespace util {
     template <typename T, typename Coord>
@@ -209,7 +215,7 @@ public:
 
     template <
         typename It,
-        typename = arb::util::enable_if_t<arb::util::is_forward_iterator<It>::value> >
+        typename = arb::util::enable_if_t<arb::util::is_random_access_iterator<It>::value> >
     array(It b, It e) :
         base(coordinator_type().allocate(std::distance(b, e)))
     {
@@ -219,8 +225,13 @@ public:
                   << "\n  this  " << util::pretty_printer<array>::print(*this) << "\n";
                   //<< "\n  other " << util::pretty_printer<Other>::print(other) << std::endl;
 #endif
-        //auto canon = arb::util::canonical_view(rng);
-        std::copy(b, e, this->begin());
+        // Only valid for contiguous range, but we can't test that at compile time.
+        // Can check though that taking &*b+n = &*e where n = e-b, while acknowledging
+        // this is not fail safe.
+        EXPECTS(&*b+(e-b)==&*e);
+
+        using V = typename std::iterator_traits<iterator>::value_type;
+        coordinator_.copy(const_array_view<V, host_coordinator<V, aligned_allocator<V>>>(&*b, e-b), view_type(*this));
     }
 
     // use the accessors provided by array_view

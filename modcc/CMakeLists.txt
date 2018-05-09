@@ -1,8 +1,5 @@
 set(MODCC_SOURCES
     astmanip.cpp
-    cexpr_emit.cpp
-    cprinter.cpp
-    cudaprinter.cpp
     errorvisitor.cpp
     expression.cpp
     functionexpander.cpp
@@ -14,9 +11,18 @@ set(MODCC_SOURCES
     solvers.cpp
     symdiff.cpp
     symge.cpp
-    textbuffer.cpp
     token.cpp
+
+    io/prefixbuf.cpp
+
+    printer/cexpr_emit.cpp
+    printer/cprinter.cpp
+    printer/cudaprinter.cpp
+    printer/infoprinter.cpp
+    printer/printerutil.cpp
 )
+
+include_directories("${PROJECT_SOURCE_DIR}/modcc")
 
 add_library(compiler ${MODCC_SOURCES})
 

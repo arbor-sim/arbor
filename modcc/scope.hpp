@@ -22,9 +22,9 @@ public:
     Scope(symbol_map& s);
     ~Scope() {};
     symbol_type* add_local_symbol(std::string const& name, symbol_ptr s);
-    symbol_type* find(std::string const& name);
-    symbol_type* find_local(std::string const& name);
-    symbol_type* find_global(std::string const& name);
+    symbol_type* find(std::string const& name) const;
+    symbol_type* find_local(std::string const& name) const;
+    symbol_type* find_global(std::string const& name) const;
     std::string to_string() const;
 
     symbol_map& locals();
@@ -58,14 +58,14 @@ Scope<Symbol>::add_local_symbol( std::string const& name,
 
 template<typename Symbol>
 Symbol*
-Scope<Symbol>::find(std::string const& name) {
+Scope<Symbol>::find(std::string const& name) const {
     auto local = find_local(name);
     return local ? local : find_global(name);
 }
 
 template<typename Symbol>
 Symbol*
-Scope<Symbol>::find_local(std::string const& name) {
+Scope<Symbol>::find_local(std::string const& name) const {
     // search in local symbols
     auto local = local_symbols_.find(name);
 
@@ -78,7 +78,7 @@ Scope<Symbol>::find_local(std::string const& name) {
 
 template<typename Symbol>
 Symbol*
-Scope<Symbol>::find_global(std::string const& name) {
+Scope<Symbol>::find_global(std::string const& name) const {
     // search in global symbols
     if( global_symbols_ ) {
         auto global = global_symbols_->find(name);

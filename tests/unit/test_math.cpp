@@ -140,6 +140,89 @@ TEST(math, signum) {
     EXPECT_EQ(-1, signum(-infinity<float>()));
 }
 
+TEST(math, next_pow2) {
+    EXPECT_EQ(0u, next_pow2(0u));
+    EXPECT_EQ(1u, next_pow2(1u));
+    EXPECT_EQ(2u, next_pow2(2u));
+    EXPECT_EQ(4u, next_pow2(3u));
+    EXPECT_EQ(4u, next_pow2(3u));
+    EXPECT_EQ(64u, next_pow2(53u));
+    EXPECT_EQ(0u, next_pow2(unsigned(-1)));
+
+    auto unsigned_bits = std::numeric_limits<unsigned>::digits;
+    unsigned big = 1u<<(unsigned_bits-1);
+
+    EXPECT_EQ(big, next_pow2(big));
+    EXPECT_EQ(big, next_pow2(big-1));
+    EXPECT_EQ(big/2, next_pow2(big/2));
+    EXPECT_EQ(big/2, next_pow2(big/2-35));
+    EXPECT_EQ(0u, next_pow2(big+1));
+    EXPECT_EQ(0u, next_pow2(big+big/2));
+
+
+    EXPECT_EQ(0ull, next_pow2(0ull));
+    EXPECT_EQ(1ull, next_pow2(1ull));
+    EXPECT_EQ(2ull, next_pow2(2ull));
+    EXPECT_EQ(4ull, next_pow2(3ull));
+    EXPECT_EQ(4ull, next_pow2(3ull));
+    EXPECT_EQ(64ull, next_pow2(53ull));
+    EXPECT_EQ(0ull, next_pow2((unsigned long long)(-1)));
+
+    auto ull_bits = std::numeric_limits<unsigned long long>::digits;
+    unsigned long long bigll = 1ull<<(ull_bits-1);
+
+    EXPECT_EQ(bigll, next_pow2(bigll));
+    EXPECT_EQ(bigll, next_pow2(bigll-1));
+    EXPECT_EQ(bigll/2, next_pow2(bigll/2));
+    EXPECT_EQ(bigll/2, next_pow2(bigll/2-35));
+    EXPECT_EQ(0ull, next_pow2(bigll+1));
+    EXPECT_EQ(0ull, next_pow2(bigll+bigll/2));
+}
+
+TEST(math, round_up) {
+    // signed tests
+
+    EXPECT_EQ(0, round_up(0, 23));
+    EXPECT_EQ(0, round_up(0, -23));
+
+    EXPECT_EQ(99, round_up(99, 1));
+    EXPECT_EQ(99, round_up(99, -1));
+    EXPECT_EQ(-99, round_up(-99, 1));
+    EXPECT_EQ(-99, round_up(-99, -1));
+
+    int base1 = 100;
+    EXPECT_EQ(5*base1, round_up(5*base1, base1));
+    EXPECT_EQ(5*base1, round_up(5*base1-1, base1));
+    EXPECT_EQ(5*base1, round_up(4*base1+1, base1));
+    EXPECT_EQ(-5*base1, round_up(-5*base1, base1));
+    EXPECT_EQ(-5*base1, round_up(-5*base1+1, base1));
+    EXPECT_EQ(-5*base1, round_up(-4*base1-1, base1));
+
+    int base2 = -23;
+    EXPECT_EQ(7*base2, round_up(7*base2, base2));
+    EXPECT_EQ(7*base2, round_up(7*base2+1, base2));
+    EXPECT_EQ(7*base2, round_up(6*base2-1, base2));
+    EXPECT_EQ(-7*base2, round_up(-7*base2, base2));
+    EXPECT_EQ(-7*base2, round_up(-7*base2-1, base2));
+    EXPECT_EQ(-7*base2, round_up(-6*base2+1, base2));
+
+    // unsigned tests
+
+    EXPECT_EQ(0u, round_up(0u, 23u));
+    EXPECT_EQ(99u, round_up(99, 1u));
+
+    unsigned base3 = 100;
+    EXPECT_EQ(5*base3, round_up(5*base3, base3));
+    EXPECT_EQ(5*base3, round_up(5*base3-1, base3));
+    EXPECT_EQ(5*base3, round_up(4*base3+1, base3));
+
+    // promotion works?
+    ASSERT_GT(sizeof(unsigned long long), sizeof(int));
+    unsigned long long v = 1ull << (std::numeric_limits<unsigned long long>::digits-1);
+    int base = 4;
+    EXPECT_EQ(v, round_up(v, base));
+    EXPECT_EQ(v-base, round_up(v-base-1, base));
+}
 
 TEST(quaternion, ctor) {
     // scalar

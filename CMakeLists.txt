@@ -132,6 +132,11 @@ set(ARB_WITH_CUDA FALSE)
 
 if(NOT ARB_GPU_MODEL MATCHES "none")
     find_package(CUDA REQUIRED)
+
+    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
+        -Xcudafe --diag_suppress=integer_sign_change
+        -Xcudafe --diag_suppress=unsigned_compare_with_zero)
+
     set(ARB_WITH_CUDA TRUE)
     add_definitions(-DARB_HAVE_GPU)
     include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
@@ -154,7 +159,7 @@ endif()
 #----------------------------------------------------------
 # Cray/BGQ/Generic Linux/other flag?
 #----------------------------------------------------------
-set(ARB_SYSTEM_TYPE "Generic" CACHE STRING 
+set(ARB_SYSTEM_TYPE "Generic" CACHE STRING
     "Choose a system type to customize flags")
 set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 
@@ -213,20 +218,17 @@ if(ARB_WITH_PROFILING)
 endif()
 
 #----------------------------------------------------------
-# vectorization target
+# Modcc vectorization target
 #----------------------------------------------------------
-set(ARB_VECTORIZE_TARGET "none" CACHE STRING "CPU target for vectorization {none,KNL,AVX2,AVX512}")
-set_property(CACHE ARB_VECTORIZE_TARGET PROPERTY STRINGS none KNL AVX2 AVX512)
+option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
-# Note: this option conflates modcc code generation options and
-# the target architecture for compilation of Arbor. TODO: fix!
-
-if(ARB_VECTORIZE_TARGET STREQUAL "KNL")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_KNL} -DSIMD_KNL")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX2} -DSIMD_AVX2")
-elseif(ARB_VECTORIZE_TARGET STREQUAL "AVX512")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_AVX512} -DSIMD_AVX512")
+#----------------------------------------------------------
+# Target microarchitecture for building arbor libraries
+#----------------------------------------------------------
+set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
+if(ARB_ARCH)
+    # Sets CXXOPT_ARCH variable accordingly:
+    set_arch_target("${ARB_ARCH}")
 endif()
 
 #----------------------------------------------------------

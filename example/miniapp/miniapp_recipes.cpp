@@ -63,7 +63,7 @@ cell make_basic_cell(
 
     EXPECTS(!terminals.empty());
 
-    arb::mechanism_spec syn_default(syn_type);
+    arb::mechanism_desc syn_default(syn_type);
     for (unsigned i=0; i<num_synapses; ++i) {
         unsigned id = terminals[i%terminals.size()];
         cell.add_synapse({id, distribution(rng)}, syn_default);

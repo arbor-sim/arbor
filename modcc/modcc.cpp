@@ -1,17 +1,20 @@
 #include <exception>
 #include <iostream>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
 
 #include <tclap/CmdLine.h>
 
-#include "cprinter.hpp"
-#include "cudaprinter.hpp"
+#include "printer/cprinter.hpp"
+#include "printer/cudaprinter.hpp"
+#include "printer/infoprinter.hpp"
+#include "printer/simd.hpp"
+
 #include "modccutil.hpp"
 #include "module.hpp"
 #include "parser.hpp"
 #include "perfvisitor.hpp"
-#include "simd_printer.hpp"
 
 #include "io/bulkio.hpp"
 
@@ -38,13 +41,16 @@ enum class targetKind {
 
 std::unordered_map<std::string, targetKind> targetKindMap = {
     {"cpu", targetKind::cpu},
-    {"gpu", targetKind::gpu}
+    {"gpu", targetKind::gpu},
 };
 
-std::unordered_map<std::string, simdKind> simdKindMap = {
-    {"none", simdKind::none},
-    {"avx2", simdKind::avx2},
-    {"avx512", simdKind::avx512}
+std::unordered_map<std::string, enum simd_spec::simd_abi> simdAbiMap = {
+    {"none", simd_spec::none},
+    {"avx",  simd_spec::avx},
+    {"avx2", simd_spec::avx2},
+    {"avx512", simd_spec::avx512},
+    {"default_abi", simd_spec::default_abi},
+    {"native", simd_spec::native}
 };
 
 template <typename Map, typename V>
@@ -61,19 +67,28 @@ struct Options {
     std::string modulename;
     bool verbose = true;
     bool analysis = false;
-    simdKind simd_arch = simdKind::none;
+    simd_spec simd = simd_spec::none;
     std::unordered_set<targetKind, enum_hash> targets;
 };
 
 // Helper for formatting tabulated output (option reporting).
 struct table_prefix { std::string text; };
 std::ostream& operator<<(std::ostream& out, const table_prefix& tb) {
-    return out << cyan("| "+tb.text) << std::left << std::setw(61-tb.text.size());
+    return out << cyan("| "+tb.text) << std::right << std::setw(58-tb.text.size());
 };
+
+std::ostream& operator<<(std::ostream& out, simd_spec simd) {
+    std::stringstream s;
+    s << key_by_value(simdAbiMap, simd.abi);
+    if (simd.width!=0) {
+        s << '/' << simd.width;
+    }
+    return out << s.str();
+}
 
 std::ostream& operator<<(std::ostream& out, const Options& opt) {
     static const char* noyes[2] = {"no", "yes"};
-    static const std::string line_end = cyan("|") + "\n";
+    static const std::string line_end = cyan(" |") + "\n";
     static const std::string tableline = cyan("."+std::string(60, '-')+".")+"\n";
 
     std::string targets;
@@ -87,7 +102,7 @@ std::ostream& operator<<(std::ostream& out, const Options& opt) {
         table_prefix{"output"} << (opt.outprefix.empty()? "-": opt.outprefix) << line_end <<
         table_prefix{"verbose"} << noyes[opt.verbose] << line_end <<
         table_prefix{"targets"} << targets << line_end <<
-        table_prefix{"simd"} << key_by_value(simdKindMap, opt.simd_arch) << line_end <<
+        table_prefix{"simd"} << opt.simd << line_end <<
         table_prefix{"analysis"} << noyes[opt.analysis] << line_end <<
         tableline;
 }
@@ -107,6 +122,37 @@ struct MapConstraint: private std::vector<std::string>, public TCLAP::ValuesCons
     }
 };
 
+simd_spec parse_simd_spec(std::string spec) {
+    auto npos = std::string::npos;
+    unsigned width = 0;
+
+    auto suffix = spec.find_last_of('/');
+    if (suffix!=npos) {
+        width = stoul(spec.substr(suffix+1));
+        spec = spec.substr(0, suffix);
+    }
+
+    return simd_spec(simdAbiMap.at(spec.c_str()), width);
+}
+
+struct SimdAbiConstraint: public TCLAP::Constraint<std::string> {
+    std::string description() const override {
+        return "simd_abi[/n]";
+    }
+    std::string shortID() const override {
+        return description();
+    }
+    bool check(const std::string& spec) const override {
+        try {
+            (void)parse_simd_spec(spec);
+            return true;
+        }
+        catch (...) {
+            return false;
+        }
+    }
+};
+
 int main(int argc, char **argv) {
     Options opt;
 
@@ -121,11 +167,14 @@ int main(int argc, char **argv) {
 
         MapConstraint targets_arg_constraint(targetKindMap);
         TCLAP::MultiArg<std::string>
-            target_arg("t", "target", "backend target={cpu, gpu}", false, &targets_arg_constraint, cmd);
+            target_arg("t", "target", "build module for cpu or gpu back-end", false, &targets_arg_constraint, cmd);
 
-        MapConstraint simd_arg_constraint(simdKindMap);
+        TCLAP::SwitchArg
+            simd_arg("s", "simd", "generate code with explicit SIMD vectorization", cmd, false);
+
+        SimdAbiConstraint simd_abi_constraint;
         TCLAP::ValueArg<std::string>
-            simd_arg("s", "simd", "use SIMD intrinsics={avx512, avx2}", false, "", &simd_arg_constraint, cmd);
+            simd_abi_arg("S", "simd-abi", "override SIMD ABI in generated code. Use /n suffix to force SIMD width to be size n. Examples: 'avx2', 'native/4', ...", false, "", &simd_abi_constraint, cmd);
 
         TCLAP::SwitchArg verbose_arg("V","verbose","toggle verbose mode", cmd, false);
 
@@ -142,8 +191,11 @@ int main(int argc, char **argv) {
         opt.verbose = verbose_arg.getValue();
         opt.analysis = analysis_arg.getValue();
 
-        if (!simd_arg.getValue().empty()) {
-            opt.simd_arch = simdKindMap.at(simd_arg.getValue());
+        if (simd_arg.getValue()) {
+            opt.simd = simd_spec(simd_spec::native);
+            if (!simd_abi_arg.getValue().empty()) {
+                opt.simd = parse_simd_spec(simd_abi_arg.getValue());
+            }
         }
 
         for (auto& target: target_arg.getValue()) {
@@ -202,31 +254,18 @@ int main(int argc, char **argv) {
         // If no output prefix given, use the module name.
         std::string prefix = opt.outprefix.empty()? m.module_name(): opt.outprefix;
 
+        io::write_all(build_info_header(m, "arb"), prefix+".hpp");
+
         for (targetKind target: opt.targets) {
             std::string outfile = prefix;
             switch (target) {
             case targetKind::gpu:
-                outfile += "_gpu";
-                {
-                    CUDAPrinter printer(m);
-                    io::write_all(printer.interface_text(), outfile+".hpp");
-                    io::write_all(printer.impl_header_text(), outfile+"_impl.hpp");
-                    io::write_all(printer.impl_text(), outfile+"_impl.cu");
-                }
+                io::write_all(emit_cuda_cpp_source(m, "arb"), outfile+"_gpu.cpp");
+                io::write_all(emit_cuda_cu_source(m, "arb"), outfile+"_gpu.cu");
                 break;
             case targetKind::cpu:
-                outfile += "_cpu.hpp";
-                switch (opt.simd_arch) {
-                case simdKind::none:
-                    io::write_all(CPrinter(m).emit_source(), outfile);
-                    break;
-                case simdKind::avx2:
-                    io::write_all(SimdPrinter<simdKind::avx2>(m).emit_source(), outfile);
-                    break;
-                case simdKind::avx512:
-                    io::write_all(SimdPrinter<simdKind::avx512>(m).emit_source(), outfile);
-                    break;
-                }
+                io::write_all(emit_cpp_source(m, "arb", opt.simd), outfile+"_cpu.cpp");
+                break;
             }
         }
 

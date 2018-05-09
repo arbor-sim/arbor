@@ -1,51 +1,37 @@
 #pragma once
 
+#include <backends/fvm_types.hpp>
 #include <math.hpp>
-#include <memory/memory.hpp>
+#include <util/debug.hpp>
+
+#include "multicore_common.hpp"
 
 namespace arb {
 namespace multicore {
 
-template <typename T, typename I>
 class threshold_watcher {
 public:
-    using value_type = T;
-    using size_type = I;
-
-    using array = memory::host_vector<value_type>;
-    using const_view = typename array::const_view_type;
-    using iarray = memory::host_vector<size_type>;
-    using const_iview = typename iarray::const_view_type;
-
-    /// stores a single crossing event
-    struct threshold_crossing {
-        size_type index;    // index of variable
-        value_type time;    // time of crossing
-        friend bool operator== (
-            const threshold_crossing& lhs, const threshold_crossing& rhs)
-        {
-            return lhs.index==rhs.index && lhs.time==rhs.time;
-        }
-    };
-
     threshold_watcher() = default;
 
     threshold_watcher(
-            const_iview vec_ci,
-            const_view vec_t_before,
-            const_view vec_t_after,
-            const_view vals,
-            const std::vector<size_type>& indxs,
-            const std::vector<value_type>& thresh):
-        cv_to_cell_(vec_ci),
-        t_before_(vec_t_before),
-        t_after_(vec_t_after),
-        values_(vals),
-        cv_index_(memory::make_const_view(indxs)),
-        thresholds_(memory::make_const_view(thresh)),
-        v_prev_(vals)
+        const fvm_index_type* cv_to_cell,
+        const fvm_value_type* t_before,
+        const fvm_value_type* t_after,
+        const fvm_value_type* values,
+        const std::vector<fvm_index_type>& cv_index,
+        const std::vector<fvm_value_type>& thresholds
+    ):
+        cv_to_cell_(cv_to_cell),
+        t_before_(t_before),
+        t_after_(t_after),
+        values_(values),
+        n_cv_(cv_index.size()),
+        cv_index_(cv_index),
+        is_crossed_(n_cv_),
+        thresholds_(thresholds),
+        v_prev_(values_, values_+n_cv_)
     {
-        is_crossed_ = iarray(size());
+        EXPECTS(n_cv_==thresholds.size());
         reset();
     }
 
@@ -60,7 +46,7 @@ public:
     /// calling, because the values are used to determine the initial state
     void reset() {
         clear_crossings();
-        for (auto i=0u; i<size(); ++i) {
+        for (fvm_size_type i = 0; i<n_cv_; ++i) {
             is_crossed_[i] = values_[cv_index_[i]]>=thresholds_[i];
         }
     }
@@ -73,7 +59,7 @@ public:
     /// Crossing events are recorded for each threshold that
     /// is crossed since the last call to test
     void test() {
-        for (auto i=0u; i<size(); ++i) {
+        for (fvm_size_type i = 0; i<n_cv_; ++i) {
             auto cv     = cv_index_[i];
             auto cell   = cv_to_cell_[cv];
             auto v_prev = v_prev_[i];
@@ -101,30 +87,30 @@ public:
         }
     }
 
-    bool is_crossed(size_type i) const {
+    bool is_crossed(fvm_size_type i) const {
         return is_crossed_[i];
     }
 
-    /// the number of threashold values that are being monitored
+    /// The number of threshold values that are monitored.
     std::size_t size() const {
-        return cv_index_.size();
+        return n_cv_;
     }
 
-    /// Data type used to store the crossings.
-    /// Provided to make type-generic calling code.
-    using crossing_list =  std::vector<threshold_crossing>;
-
 private:
-    const_iview cv_to_cell_;
-    const_view t_before_;
-    const_view t_after_;
-    const_view values_;
-    iarray cv_index_;
+    /// Non-owning pointers to cv-to-cell map, per-cell time data,
+    /// and the values for to test against thresholds.
+    const fvm_index_type* cv_to_cell_ = nullptr;
+    const fvm_value_type* t_before_ = nullptr;
+    const fvm_value_type* t_after_ = nullptr;
+    const fvm_value_type* values_ = nullptr;
 
-    array thresholds_;
-    array v_prev_;
-    crossing_list crossings_;
-    iarray is_crossed_;
+    /// Threshold watcher state.
+    fvm_size_type n_cv_ = 0;
+    std::vector<fvm_index_type> cv_index_;
+    std::vector<fvm_size_type> is_crossed_;
+    std::vector<fvm_value_type> thresholds_;
+    std::vector<fvm_value_type> v_prev_;
+    std::vector<threshold_crossing> crossings_;
 };
 
 } // namespace multicore

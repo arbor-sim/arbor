@@ -18,6 +18,8 @@ template <typename T>
 using host_vector = array<T, host_coordinator<T>>;
 template <typename T>
 using host_view = array_view<T, host_coordinator<T>>;
+template <typename T>
+using const_host_view = const_array_view<T, host_coordinator<T>>;
 
 template <typename T>
 std::ostream& operator<< (std::ostream& o, host_view<T> const& v) {
@@ -42,6 +44,8 @@ template <typename T>
 using device_vector = array<T, device_coordinator<T, cuda_allocator<T>>>;
 template <typename T>
 using device_view = array_view<T, device_coordinator<T, cuda_allocator<T>>>;
+template <typename T>
+using const_device_view = const_array_view<T, device_coordinator<T, cuda_allocator<T>>>;
 #endif
 
 #ifdef WITH_KNL
