@@ -69,7 +69,7 @@ ion_state::ion_state(
 
 void ion_state::nernst(fvm_value_type temperature_K) {
     // Nernst equation: reversal potenial eX given by:
-    //     
+    //
     //     eX = RT/zF * ln(Xo/Xi)
     //
     // where:
@@ -233,22 +233,23 @@ void shared_state::take_samples(
 std::ostream& operator<<(std::ostream& out, const shared_state& s) {
     using util::csv;
 
-    out << "n_cell " << s.n_cell << "\n----\n";
-    out << "n_cv " << s.n_cv << "\n----\n";
-    out << "cv_to_cell:\n" << csv(s.cv_to_cell) << "\n";
-    out << "time:\n" << csv(s.time) << "\n";
-    out << "time_to:\n" << csv(s.time_to) << "\n";
-    out << "dt:\n" << csv(s.dt_cell) << "\n";
-    out << "dt_comp:\n" << csv(s.dt_cv) << "\n";
-    out << "voltage:\n" << csv(s.voltage) << "\n";
-    out << "current_density:\n" << csv(s.current_density) << "\n";
+    out << "n_cell     " << s.n_cell << "\n";
+    out << "n_cv       " << s.n_cv << "\n";
+    out << "cv_to_cell " << csv(s.cv_to_cell) << "\n";
+    out << "time       " << csv(s.time) << "\n";
+    out << "time_to    " << csv(s.time_to) << "\n";
+    out << "dt_cell    " << csv(s.dt_cell) << "\n";
+    out << "dt_cv      " << csv(s.dt_cv) << "\n";
+    out << "voltage    " << csv(s.voltage) << "\n";
+    out << "current    " << csv(s.current_density) << "\n";
     for (auto& ki: s.ion_data) {
         auto kn = to_string(ki.first);
         auto& i = const_cast<ion_state&>(ki.second);
-        out << kn << ".current_density:\n" << csv(i.iX_) << "\n";
-        out << kn << ".reversal_potential:\n" << csv(i.eX_) << "\n";
-        out << kn << ".internal_concentration:\n" << csv(i.Xi_) << "\n";
-        out << kn << ".external_concentration:\n" << csv(i.Xo_) << "\n";
+        out << kn << ".current_density        " << csv(i.iX_) << "\n";
+        out << kn << ".reversal_potential     " << csv(i.eX_) << "\n";
+        out << kn << ".internal_concentration " << csv(i.Xi_) << "\n";
+        out << kn << ".external_concentration " << csv(i.Xo_) << "\n";
+        out << kn << ".node_index             " << csv(i.node_index_) << "\n";
     }
 
     return out;

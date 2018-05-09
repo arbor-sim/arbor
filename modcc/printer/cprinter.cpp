@@ -313,49 +313,6 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     return out.str();
 }
 
-struct indexed_variable_info {
-    std::string data_var;
-    std::string index_var;
-};
-
-indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
-    std::string data_var, ion_pfx;
-    std::string index_var = "node_index_";
-
-    if (sym->is_ion()) {
-        ion_pfx = "ion_"+to_string(sym->ion_channel())+"_";
-        index_var = ion_pfx+"index_";
-    }
-
-    switch (sym->data_source()) {
-    case sourceKind::voltage:
-        data_var="vec_v_";
-        break;
-    case sourceKind::current:
-        data_var="vec_i_";
-        break;
-    case sourceKind::dt:
-        data_var="vec_dt_";
-        break;
-    case sourceKind::ion_current:
-        data_var=ion_pfx+".current_density";
-        break;
-    case sourceKind::ion_revpot:
-        data_var=ion_pfx+".reversal_potential";
-        break;
-    case sourceKind::ion_iconc:
-        data_var=ion_pfx+".internal_concentration";
-        break;
-    case sourceKind::ion_econc:
-        data_var=ion_pfx+".external_concentration";
-        break;
-    default:
-        throw compiler_exception("unrecognized indexed data source", sym->location());
-    }
-
-    return {data_var, index_var};
-}
-
 // Scalar printing:
 
 void CPrinter::visit(IdentifierExpression *e) {
