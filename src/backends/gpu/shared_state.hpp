@@ -76,9 +76,6 @@ struct shared_state {
     array  voltage;           // Maps CV index to membrane voltage [mV].
     array  current_density;   // Maps CV index to current density [A/m²].
 
-    // For debugging only
-    friend std::ostream& operator<<(std::ostream& o, shared_state& s);
-
     std::unordered_map<ionKind, ion_state, util::enum_hash> ion_data;
 
     deliverable_event_stream deliverable_events;
@@ -125,8 +122,8 @@ struct shared_state {
     void reset(fvm_value_type initial_voltage, fvm_value_type temperature_K);
 };
 
-// For debugging only.
-std::ostream& operator<<(std::ostream& o, const shared_state& s);
+// For debugging only
+std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 } // namespace arb

@@ -254,17 +254,17 @@ int main(int argc, char **argv) {
         // If no output prefix given, use the module name.
         std::string prefix = opt.outprefix.empty()? m.module_name(): opt.outprefix;
 
-        io::write_all(build_info_header(m), prefix+".hpp");
+        io::write_all(build_info_header(m, "arb"), prefix+".hpp");
 
         for (targetKind target: opt.targets) {
             std::string outfile = prefix;
             switch (target) {
             case targetKind::gpu:
-                io::write_all(emit_cuda_cpp_source(m), outfile+"_gpu.cpp");
-                io::write_all(emit_cuda_cu_source(m), outfile+"_gpu.cu");
+                io::write_all(emit_cuda_cpp_source(m, "arb"), outfile+"_gpu.cpp");
+                io::write_all(emit_cuda_cu_source(m, "arb"), outfile+"_gpu.cu");
                 break;
             case targetKind::cpu:
-                io::write_all(emit_cpp_source(m, opt.simd), outfile+"_cpu.cpp");
+                io::write_all(emit_cpp_source(m, "arb", opt.simd), outfile+"_cpu.cpp");
                 break;
             }
         }

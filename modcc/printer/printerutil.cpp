@@ -6,6 +6,18 @@
 #include "module.hpp"
 #include "printerutil.hpp"
 
+std::vector<std::string> namespace_components(const std::string& ns) {
+    static std::regex ns_regex("([^:]+)(?:::|$)");
+
+    std::vector<std::string> components;
+    auto i = std::sregex_iterator(ns.begin(), ns.end(), ns_regex);
+    while (i!=std::sregex_iterator()) {
+        components.push_back(i++->str(1));
+    }
+
+    return components;
+}
+
 std::vector<LocalVariable*> indexed_locals(scope_ptr scope) {
     std::vector<LocalVariable*> vars;
     for (auto& entry: scope->locals()) {

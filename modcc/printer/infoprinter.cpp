@@ -49,7 +49,7 @@ std::ostream& operator<<(std::ostream& out, const ion_dep_info& wrap) {
         << boolalpha[ion.writes_concentration_ext()] << "}}";
 }
 
-std::string build_info_header(const Module& m) {
+std::string build_info_header(const Module& m, const std::string& qual_namespace) {
     using io::indent;
     using io::popindent;
 
@@ -58,7 +58,7 @@ std::string build_info_header(const Module& m) {
 
     std::string name = m.module_name();
     auto ids = public_variable_ids(m);
-    std::vector<std::string> ns_components = {"arb"};
+    auto ns_components = namespace_components(qual_namespace);
 
     io::pfxstringstream out;
 

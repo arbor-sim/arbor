@@ -9,7 +9,7 @@
 #include "printer/cexpr_emit.hpp"
 #include "printer/simd.hpp"
 
-std::string emit_cpp_source(const Module& m, simd_spec simd);
+std::string emit_cpp_source(const Module& m, const std::string& ns, simd_spec simd);
 
 // CPrinter and SimdPrinter visitors exposed in header for testing purposes only.
 

@@ -49,10 +49,10 @@ static std::string ion_state_index(std::string ion_name) {
     return "ion_"+ion_name+"_index_";
 }
 
-std::string emit_cpp_source(const Module& module_, simd_spec simd) {
+std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_spec simd) {
     std::string name = module_.module_name();
     std::string class_name = "mechanism_cpu_"+name;
-    std::vector<std::string> ns_components = {"arb"};
+    auto ns_components = namespace_components(ns);
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
     APIMethod* init_api = find_api_method(module_, "nrn_init");

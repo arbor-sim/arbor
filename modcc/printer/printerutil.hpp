@@ -11,6 +11,8 @@
 #include "expression.hpp"
 #include "module.hpp"
 
+std::vector<std::string> namespace_components(const std::string& qualified_namespace);
+
 inline const char* arb_header_prefix() {
     static const char* prefix = "";
     return prefix;
