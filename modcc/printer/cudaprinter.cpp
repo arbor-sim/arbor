@@ -3,6 +3,7 @@
 #include <string>
 #include <unordered_set>
 
+#include "cudaprinter.hpp"
 #include "expression.hpp"
 #include "io/ostream_wrappers.hpp"
 #include "io/prefixbuf.hpp"
@@ -13,8 +14,23 @@ using io::indent;
 using io::popindent;
 using io::quote;
 
-// Emit stream_stat alis, parameter pack struct.
 void emit_common_defs(std::ostream&, const Module& module_);
+void emit_api_body_cu(std::ostream& out, APIMethod* method, bool is_point_proc);
+void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* proc);
+void emit_state_read_cu(std::ostream& out, LocalVariable* local);
+void emit_state_update_cu(std::ostream& out, Symbol* from,
+                          IndexedVariable* external, bool is_point_proc);
+const char* index_id(Symbol *s);
+
+struct cuprint {
+    Expression* expr_;
+    explicit cuprint(Expression* expr): expr_(expr) {}
+
+    friend std::ostream& operator<<(std::ostream& out, const cuprint& w) {
+        CudaPrinter printer(out);
+        return w.expr_->accept(&printer), out;
+    }
+};
 
 std::string make_class_name(const std::string& module_name) {
     return "mechanism_gpu_"+module_name;
@@ -53,20 +69,21 @@ std::string emit_cuda_cpp_source(const Module& module_, const std::string& ns) {
 
     out <<
         "#include <" << arb_header_prefix() << "backends/gpu/mechanism.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n"
-        "\n" << namespace_declaration_open(ns_components) <<
-        "\n";
+        "#include <" << arb_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
+
+    out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
     emit_common_defs(out, module_);
 
     out <<
-        "void " << class_name << "_nrn_init_(int, " << ppack_name << "&);\n"
-        "void " << class_name << "_nrn_state_(int, " << ppack_name << "&);\n"
-        "void " << class_name << "_nrn_current_(int, " << ppack_name << "&);\n"
-        "void " << class_name << "_write_ions_(int, " << ppack_name << "&);\n";
+        "void " << class_name << "_nrn_init_(" << ppack_name << "&);\n"
+        "void " << class_name << "_nrn_state_(" << ppack_name << "&);\n"
+        "void " << class_name << "_nrn_current_(" << ppack_name << "&);\n"
+        "void " << class_name << "_write_ions_(" << ppack_name << "&);\n";
 
     net_receive && out <<
-        "void " << class_name << "_deliver_events_(int, " << ppack_name << "&, deliverable_event_stream_state events);\n";
+        "void " << class_name << "_deliver_events_(int mech_id, "
+        << ppack_name << "&, deliverable_event_stream_state events);\n";
 
     out <<
         "\n"
@@ -81,21 +98,21 @@ std::string emit_cuda_cpp_source(const Module& module_, const std::string& ns) {
         "mechanism_ptr clone() const override { return mechanism_ptr(new " << class_name << "()); }\n"
         "\n"
         "void nrn_init() override {\n" << indent <<
-        class_name << "_nrn_init_(width_, pp_);\n" << popindent <<
+        class_name << "_nrn_init_(pp_);\n" << popindent <<
         "}\n\n"
         "void nrn_state() override {\n" << indent <<
-        class_name << "_nrn_state_(width_, pp_);\n" << popindent <<
+        class_name << "_nrn_state_(pp_);\n" << popindent <<
         "}\n\n"
         "void nrn_current() override {\n" << indent <<
-        class_name << "_nrn_current_(width_, pp_);\n" << popindent <<
+        class_name << "_nrn_current_(pp_);\n" << popindent <<
         "}\n\n"
         "void write_ions() override {\n" << indent <<
-        class_name << "_write_ions_(width_, pp_);\n" << popindent <<
+        class_name << "_write_ions_(pp_);\n" << popindent <<
         "}\n\n";
 
     net_receive && out <<
         "void deliver_events(deliverable_event_stream_state events) override {\n" << indent <<
-        class_name << "_deliver_events_(width_, pp_, events);\n" << popindent <<
+        class_name << "_deliver_events_(mechanism_id_, pp_, events);\n" << popindent <<
         "}\n\n";
 
     out << popindent <<
@@ -182,6 +199,7 @@ std::string emit_cuda_cu_source(const Module& module_, const std::string& ns) {
     std::string class_name = make_class_name(name);
     std::string ppack_name = make_ppack_name(name);
     auto ns_components = namespace_components(ns);
+    const bool is_point_proc = module_.kind() == moduleKind::point;
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
     APIMethod* init_api = find_api_method(module_, "nrn_init");
@@ -196,29 +214,122 @@ std::string emit_cuda_cu_source(const Module& module_, const std::string& ns) {
     io::pfxstringstream out;
 
     out <<
+        "#include <iostream>\n"
         "#include <" << arb_header_prefix() << "backends/event.hpp>\n"
         "#include <" << arb_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
-        "#include <" << arb_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n"
-        "\n" << namespace_declaration_open(ns_components) <<
-        "\n";
+        "#include <" << arb_header_prefix() << "backends/gpu/cuda_common.hpp>\n"
+        "#include <" << arb_header_prefix() << "backends/gpu/math.hpp>\n"
+        "#include <" << arb_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
 
-    emit_common_defs(out, module_);
+    is_point_proc && out <<
+        "#include <" << arb_header_prefix() << "backends/gpu/reduce_by_key.hpp>\n";
+
+    out << "\n" << namespace_declaration_open(ns_components) << "\n";
 
     out <<
         "using value_type = ::arb::gpu::mechanism_ppack_base::value_type;\n"
         "using index_type = ::arb::gpu::mechanism_ppack_base::index_type;\n"
         "\n";
 
-    out <<
-        "void " << class_name << "_nrn_init_(int, " << ppack_name << "&) {};\n"
-        "void " << class_name << "_nrn_state_(int, " << ppack_name << "&) {};\n"
-        "void " << class_name << "_nrn_current_(int, " << ppack_name << "&) {};\n"
-        "void " << class_name << "_write_ions_(int, " << ppack_name << "&) {};\n";
+    emit_common_defs(out, module_);
 
-    net_receive && out <<
-        "void " << class_name << "_deliver_events_(int, " << ppack_name << "&, deliverable_event_stream_state events) {}\n";
+    // Print the CUDA code and kernels:
+    //  - first __device__ functions that implement NMODL PROCEDUREs.
+    //  - then __global__ kernels that implement API methods and call the procedures.
 
-    (void)write_ions_api;
+    out << "namespace {\n\n"; // place inside an anonymous namespace
+
+    out << "using arb::gpu::exprelr;\n";
+    out << "using arb::gpu::min;\n";
+    out << "using arb::gpu::max;\n\n";
+
+    // Procedures as __device__ functions.
+    auto emit_procedure_kernel = [&] (ProcedureExpression* e) {
+        out << "__device__\n"
+            << "void " << e->name()
+            << "(" << ppack_name << " params_, int tid_";
+        for(auto& arg: e->args()) {
+            out << ", value_type " << arg->is_argument()->name();
+        }
+        out << ") {\n" << indent
+            << cuprint(e->body())
+            << popindent << "}\n\n";
+    };
+
+    for (auto& p: module_normal_procedures(module_)) {
+        emit_procedure_kernel(p);
+    }
+
+    // API methods as __global__ kernels.
+    auto emit_api_kernel = [&] (APIMethod* e) {
+        // Only print the kernel if the method is not empty.
+        if (!e->body()->statements().empty()) {
+            out << "__global__\n"
+                << "void " << e->name() << "(" << ppack_name << " params_) {\n" << indent
+                << "int n_ = params_.width_;\n";
+            emit_api_body_cu(out, e, is_point_proc);
+            out << popindent << "}\n\n";
+        }
+    };
+
+    emit_api_kernel(init_api);
+    emit_api_kernel(state_api);
+    emit_api_kernel(current_api);
+    emit_api_kernel(write_ions_api);
+
+    // event delivery
+    if (net_receive) {
+        out << "__global__\n"
+            << "void deliver_events(int mech_id_, " <<  ppack_name << " params_, "
+            << "deliverable_event_stream_state events) {\n" << indent
+            << "auto tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n"
+            << "auto const ncell_ = events.n;\n\n"
+
+            << "if(tid_<ncell_) {\n" << indent
+            << "auto begin = events.ev_data+events.begin_offset[tid_];\n"
+            << "auto end = events.ev_data+events.end_offset[tid_];\n"
+            << "for (auto p = begin; p<end; ++p) {\n" << indent
+            << "if (p->mech_id==mech_id_) {\n" << indent
+            << "auto tid_ = p->mech_index;\n"
+            << "auto weight = p->weight;\n"
+            << cuprint(net_receive->body())
+            << popindent << "}\n"
+            << popindent << "}\n"
+            << popindent << "}\n"
+            << popindent << "}\n";
+    }
+
+    out << "} // namspace\n\n"; // close anonymous namespace
+
+    // Write wrappers.
+    auto emit_api_wrapper = [&] (APIMethod* e) {
+        out << "void " << class_name << "_" << e->name() << "_(" << ppack_name << "& p) {";
+
+        // Only call the kernel if the kernel is required.
+        !e->body()->statements().empty() && out
+            << "\n" << indent
+            << "auto n = p.width_;\n"
+            << "unsigned block_dim = 128;\n"
+            << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+            << e->name() << "<<<grid_dim, block_dim>>>(p);\n"
+            << popindent;
+
+        out << "}\n\n";
+    };
+    emit_api_wrapper(init_api);
+    emit_api_wrapper(current_api);
+    emit_api_wrapper(state_api);
+    emit_api_wrapper(write_ions_api);
+
+    net_receive && out
+        << "void " << class_name << "_deliver_events_("
+        << "int mech_id, "
+        << ppack_name << "& p, deliverable_event_stream_state events) {\n" << indent
+        << "auto n = events.n;\n"
+        << "unsigned block_dim = 128;\n"
+        << "unsigned grid_dim = gpu::impl::block_count(n, block_dim);\n"
+        << "deliver_events<<<grid_dim, block_dim>>>(mech_id, p, events);\n"
+        << popindent << "}\n\n";
 
     out << namespace_declaration_close(ns_components);
     return out.str();
@@ -232,11 +343,10 @@ void emit_common_defs(std::ostream& out, const Module& module_) {
     auto ion_deps = module_.ion_deps();
 
     find_net_receive(module_) && out <<
-        "using deliverable_event_stream_state = ::arb::multi_event_stream_state<::arb::deliverable_event_data>;\n"
-        "\n";
+        "using deliverable_event_stream_state =\n"
+        "    ::arb::multi_event_stream_state<::arb::deliverable_event_data>;\n\n";
 
-    out <<
-        "struct " << ppack_name << ": ::arb::gpu::mechanism_ppack_base {\n" << indent;
+    out << "struct " << ppack_name << ": ::arb::gpu::mechanism_ppack_base {\n" << indent;
 
     for (const auto& scalar: vars.scalars) {
         out << "value_type " << scalar->name() <<  " = " << as_c_double(scalar->value()) << ";\n";
@@ -252,4 +362,106 @@ void emit_common_defs(std::ostream& out, const Module& module_) {
     out << popindent << "};\n\n";
 }
 
+void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
+    auto body = e->body();
+    auto indexed_vars = indexed_locals(e->scope());
 
+    if (!body->statements().empty()) {
+        out << "int tid_ = threadIdx.x + blockDim.x*blockIdx.x;\n";
+        out << "if (tid_<n_) {\n" << indent;
+        out << "auto gid_ __attribute__((unused)) = params_.node_index_[tid_];\n";
+        out << "auto cid_ __attribute__((unused)) = params_.vec_ci_[gid_];\n";
+
+        auto uses_ion = [&] (ionKind k) {
+            for(auto &symbol : e->scope()->locals()) {
+                if (k == symbol.second->is_local_variable()->ion_channel()) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        uses_ion(ionKind::K)  && out << "auto kid_  = params_.ion_k_index_[tid_];\n";
+        uses_ion(ionKind::Ca) && out << "auto caid_ = params_.ion_ca_index_[tid_];\n";
+        uses_ion(ionKind::Na) && out << "auto naid_ = params_.ion_na_index_[tid_];\n";
+
+        for (auto& sym: indexed_vars) {
+            emit_state_read_cu(out, sym);
+        }
+
+        out << cuprint(body);
+
+        for (auto& sym: indexed_vars) {
+            emit_state_update_cu(out, sym, sym->external_variable(), is_point_proc);
+        }
+        out << popindent << "}\n";
+    }
+}
+
+void emit_procedure_body_cu(std::ostream& out, ProcedureExpression* e) {
+    out << cuprint(e->body());
+}
+
+void emit_state_read_cu(std::ostream& out, LocalVariable* local) {
+    out << "value_type " << cuprint(local) << " = ";
+
+    if (local->is_read()) {
+        out << cuprint(local->external_variable()) << ";\n";
+    }
+    else {
+        out << "0;\n";
+    }
+}
+
+void emit_state_update_cu(std::ostream& out, Symbol* from,
+                          IndexedVariable* external, bool is_point_proc)
+{
+    if (!external->is_write()) return;
+
+    const bool is_minus = external->op()==tok::minus;
+    if (is_point_proc) {
+        out << "arb::gpu::reduce_by_key(";
+        is_minus && out << "-";
+        out << from->name()
+            << ", params_." << decode_indexed_variable(external).data_var << ", gid_);\n";
+    }
+    else {
+        out << cuprint(external) << (is_minus? " -= ": " += ") << from->name() << ";\n";
+    }
+}
+
+// Gives the name of the local variable used to index into a field.
+const char* index_id(Symbol *s) {
+    if(s->is_variable()) return "tid_";
+    else if(auto var = s->is_indexed_variable()) {
+        switch(var->ion_channel()) {
+            case ionKind::none: return "gid_";
+            case ionKind::Ca:   return "caid_";
+            case ionKind::Na:   return "naid_";
+            case ionKind::K:    return "kid_";
+            default :
+                throw compiler_exception("CudaPrinter unknown ion type", s->location());
+        }
+    }
+    return "";
+}
+
+// CUDA Printer visitors
+
+void CudaPrinter::visit(VariableExpression *sym) {
+    out_ << "params_." << sym->name() << (sym->is_range()? "[tid_]": "");
+}
+
+void CudaPrinter::visit(IndexedVariable *e) {
+    auto d = decode_indexed_variable(e);
+    out_ << "params_." << d.data_var << "[" << index_id(e) <<  "]";
+}
+
+void CudaPrinter::visit(CallExpression* e) {
+    out_ << e->name() << "(params_, tid_";
+    for (auto& arg: e->args()) {
+        out_ << ", ";
+        arg->accept(this);
+    }
+    out_ << ")";
+}

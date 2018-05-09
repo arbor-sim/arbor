@@ -58,6 +58,7 @@ public:
         // A more robust approach might be needed to avoid overflows.
         stack_(10*size())
     {
+        crossings_.reserve(stack_.capacity());
         reset();
     }
 
@@ -74,7 +75,9 @@ public:
     /// calling, because the values are used to determine the initial state
     void reset() {
         clear_crossings();
-        reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
+        if (size()>0) {
+            reset_crossed_impl((int)size(), is_crossed_.data(), cv_index_.data(), values_, thresholds_.data());
+        }
     }
 
     // Testing-only interface.
@@ -82,12 +85,14 @@ public:
         return is_crossed_[i];
     }
 
-    const std::vector<threshold_crossing> crossings() const {
+    const std::vector<threshold_crossing>& crossings() const {
         if (stack_.overflow()) {
             throw std::runtime_error("GPU spike buffer overflow.");
         }
 
-        return std::vector<threshold_crossing>(stack_.begin(), stack_.end());
+        crossings_.clear();
+        crossings_.insert(crossings_.end(), stack_.begin(), stack_.end());
+        return crossings_;
     }
 
     /// Tests each target for changed threshold state.
@@ -95,17 +100,19 @@ public:
     /// crossed since current time t, and the last time the test was
     /// performed.
     void test() {
-        test_thresholds_impl(
-            (int)size(),
-            cv_to_cell_, t_after_, t_before_,
-            stack_.storage(),
-            is_crossed_.data(), v_prev_.data(),
-            cv_index_.data(), values_, thresholds_.data());
+        if (size()>0) {
+            test_thresholds_impl(
+                (int)size(),
+                cv_to_cell_, t_after_, t_before_,
+                stack_.storage(),
+                is_crossed_.data(), v_prev_.data(),
+                cv_index_.data(), values_, thresholds_.data());
 
-        // Check that the number of spikes has not exceeded capacity.
-        // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
-        // host-device managed memory access.
-        EXPECTS((cudaDeviceSynchronize(), !stack_.overflow()));
+            // Check that the number of spikes has not exceeded capacity.
+            // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
+            // host-device managed memory access.
+            EXPECTS((cudaDeviceSynchronize(), !stack_.overflow()));
+        }
     }
 
     /// the number of threashold values that are being monitored
@@ -129,6 +136,9 @@ private:
 
     // Hybrid host/gpu data structure for accumulating threshold crossings.
     stack_type stack_;
+
+    // host side storage for the crossings
+    mutable std::vector<threshold_crossing> crossings_;
 };
 
 } // namespace gpu

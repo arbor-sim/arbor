@@ -90,19 +90,23 @@ void test_thresholds_impl(
     fvm_index_type* is_crossed, fvm_value_type* prev_values,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {
-    constexpr int block_dim = 128;
-    const int grid_dim = impl::block_count(size, block_dim);
-    kernel::test_thresholds_impl<<<grid_dim, block_dim>>>(
-        size, cv_to_cell, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
+    if (size>0) {
+        constexpr int block_dim = 128;
+        const int grid_dim = impl::block_count(size, block_dim);
+        kernel::test_thresholds_impl<<<grid_dim, block_dim>>>(
+            size, cv_to_cell, t_after, t_before, stack, is_crossed, prev_values, cv_index, values, thresholds);
+    }
 }
 
 void reset_crossed_impl(
     int size, fvm_index_type* is_crossed,
     const fvm_index_type* cv_index, const fvm_value_type* values, const fvm_value_type* thresholds)
 {
-    constexpr int block_dim = 128;
-    const int grid_dim = impl::block_count(size, block_dim);
-    kernel::reset_crossed_impl<<<grid_dim, block_dim>>>(size, is_crossed, cv_index, values, thresholds);
+    if (size>0) {
+        constexpr int block_dim = 128;
+        const int grid_dim = impl::block_count(size, block_dim);
+        kernel::reset_crossed_impl<<<grid_dim, block_dim>>>(size, is_crossed, cv_index, values, thresholds);
+    }
 }
 
 } // namespace gpu

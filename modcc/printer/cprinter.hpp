@@ -34,7 +34,7 @@ public:
     void visit(BinaryExpression* e) override { cexpr_emit(e, out_, this); }
     void visit(IfExpression* e) override { cexpr_emit(e, out_, this); }
 
-private:
+protected:
     std::ostream& out_;
 };
 
