@@ -207,8 +207,14 @@ CMake parameters and flags, follow links to the more detailed descriptions below
                  -DARB_WITH_ASSERTIONS=ON     \
                  -DCMAKE_BUILD_TYPE=debug
 
-.. topic:: `Release <buildtarget_>`_ mode (i.e. build with optimization flags)
-           with `Clang <compilers_>`_
+.. topic:: `Release <buildtarget_>`_ mode (i.e. build with optimization flags) with default
+           compiler, optimized for the `system architecture <vectorize_>`_.
+
+    .. code-block:: bash
+
+        cmake .. -DARB_ARCH=native
+
+.. topic:: `Release <buildtarget_>`_ mode with `Clang <compilers_>`_.
 
     .. code-block:: bash
 
@@ -216,25 +222,25 @@ CMake parameters and flags, follow links to the more detailed descriptions below
         export CXX=`which clang++`
         cmake ..
 
-.. topic:: `Release <buildtarget_>`_ mode on `Haswell <vectorize_>`_ with `cthread threading <threading_>`_
+.. topic:: `Release <buildtarget_>`_ mode for the `Haswell architecture <vectorize_>`_ with `cthread threading <threading_>`_ and `explicit vectorization <vectorize_>`_ of kernels.
 
     .. code-block:: bash
 
-        cmake .. -DARB_THREADING_MODEL=cthread -DARB_VECTORIZE_TARGET=AVX2
+        cmake .. -DARB_THREADING_MODEL=cthread -DARB_VECTORIZE=ON -DARB_ARCH=haswell
 
 .. topic:: `Release <buildtarget_>`_ mode on `KNL <vectorize_>`_ with `TBB threading <threading_>`_
 
     .. code-block:: bash
 
-        cmake .. -DARB_THREADING_MODEL=tbb -DARB_VECTORIZE_TARGET=KNL
+        cmake .. -DARB_THREADING_MODEL=tbb -DARB_VECTORIZE=ON -DARB_ARCH=knl
 
-.. topic:: `Release <buildtarget_>`_ mode with support for: `P100 GPUs <gpu_>`_; `AVX2 <vectorize_>`_; and `GCC 5 <compilers_>`_
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, targeting the `Broadwell architecture <vectorize_>`_, with support for `P100 GPUs <gpu_>`_, and building with `GCC 5 <compilers_>`_.
 
     .. code-block:: bash
 
         export CC=gcc-5
         export CXX=g++-5
-        cmake .. -DARB_VECTORIZE_TARGET=AVX2 -DARB_GPU_MODEL=P100
+        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU_MODEL=P100
 
 .. _buildtarget:
 
@@ -251,46 +257,27 @@ with ``-g -O0`` flags), use the ``CMAKE_BUILD_TYPE`` CMake parameter.
 
 ..  _vectorize:
 
-Vectorization
--------------
+Vectorization and architecture
+------------------------------
 
-Explicit vectorization of key computational kernels can be enabled in Arbor by setting the
-``ARB_VECTORIZE_TARGET`` CMake parameter:
+For both optimization and vectorization, the target architecture for the library
+can be specified with ``ARB_ARCH``. Values correspond to the architecture names
+given to (for example) GCC and Clang with the ``-mcpu`` or ``-march`` options.
+A good choice for many environments is to choose the native architecture:
 
 .. code-block:: bash
 
-    cmake -DARB_VECTORIZE_TARGET={none,KNL,AVX2,AVX512}
+    cmake -DARB_ARCH=native
 
-By default the ``none`` target is selected, which relies on compiler auto-vectorization.
+Explicit vectorization of key computational kernels can be enabled in Arbor by setting the
+``ARB_VECTORIZE_TARGET`` CMake flag:
 
-.. Warning::
-    The vectorization target must be supported by the target architecture.
-    A sure sign that an unsuported vectorization was chosen is an ``Illegal instruction``
-    error at runtime. In the example below, the unit tests for an ``ARB_VECTORIZE_TARGET=AVX2``
-    build are run on an Ivy Bridge CPU, which does not support AVX2 vector instructions:
+.. code-block:: bash
 
-    .. code-block:: none
+    cmake -DARB_VECTORIZE=ON
 
-        $ ./tests/test.exe
-        [==========] Running 581 tests from 105 test cases.
-        [----------] Global test environment set-up.
-        [----------] 15 tests from algorithms
-        [ RUN      ] algorithms.parallel_sort
-        Illegal instruction
-
-    See the hints on `cross compiling <crosscompiling_>`_ if you get illegal instruction
-    errors when trying to compile on HPC systems.
-
-.. Note::
-    The vectorization selection will change soon, to an interface with two parameters. The first
-    will toggle vectorization, and the second will specify a specific architecture to target.
-    For example, to generate optimized code for Intel Broadwell (i.e. AVX2 intrinsics):
-
-    .. code-block:: bash
-
-        cmake -DCMAKE_BUILD_TYPE=release \
-              -DARB_ARCH=broadwell       \
-              -DARB_VECTORIZE=ON         \
+By default, these kernels are not explicitly vectorized and will instead rely
+on compiler auto-vectorization.
 
 
 .. _threading:
@@ -500,24 +487,37 @@ Troubleshooting
 Cross Compiling NMODL
 ---------------------
 
-Care must be taken when Arbor is compiled on a system with a different architecture to the target system where Arbor will run.
-This occurs quite frequently on HPC systems, for example when building on a login/service node that has a different architecture to the compute nodes.
+Care must be taken when Arbor is compiled on a system with a different
+architecture to the target system where Arbor will run. This occurs quite
+frequently on HPC systems, for example when building on a login/service node
+that has a different architecture to the compute nodes.
 
 .. Note::
     If building Arbor on a laptop or desktop system, i.e. on the same computer that
     you will run Arbor on, cross compilation is not an issue.
 
+.. Note::
+    The ``ARB_ARCH`` setting is not applied to the building of ``modcc``.
+    On systems where the build node and compute node have different architectures
+    within the same family, this may mean that separate compilation of ``modcc``
+    is not necessary.
+
 .. Warning::
     ``Illegal instruction`` errors are a sure sign that
     Arbor is running on a system that does not support the architecture it was compiled for.
 
-When cross compiling, we have to take care that the *modcc* compiler, which is used to convert NMODL to C++/CUDA code, is able to run on the compilation node.
+When cross compiling, we have to take care that the *modcc* compiler, which is
+used to convert NMODL to C++/CUDA code, is able to run on the compilation node.
 
-By default, CMake looks for the *modcc* executable, ``modcc``, in paths specified by the ``PATH`` environment variable, and will use this executable if it finds it.
-Otherwise, the CMake script will build *modcc* from source.
-To ensure that cross compilation works, a copy of modcc that is compiled for the build system should be in ``PATH``.
+By default, CMake looks for the *modcc* executable, ``modcc``, in paths
+specified by the ``PATH`` environment variable, and will use this executable if
+it finds it. Otherwise, the CMake script will build *modcc* from source. To
+ensure that cross compilation works, a copy of modcc that is compiled for the
+build system should be in ``PATH``.
 
-Here we will use the example of compiling for Intel KNL on a Cray system, which has Intel Sandy Bridge CPUs on login nodes that don't support the AVX512 instructions used by KNL.
+Here we will use the example of compiling for Intel KNL on a Cray system, which
+has Intel Sandy Bridge CPUs on login nodes that don't support the AVX512
+instructions used by KNL.
 
 
 .. code-block:: bash
@@ -555,7 +555,7 @@ Here we will use the example of compiling for Intel KNL on a Cray system, which 
              -DCMAKE_BUILD_TYPE=release     \
              -DARB_THREADING_MODEL=tbb      \
              -DARB_SYSTEM_TYPE=Cray         \
-             -DARB_VECTORIZE_TARGET=KNL
+             -DARB_ARCH=knl
 
 
 .. Note::
@@ -576,7 +576,7 @@ Here we will use the example of compiling for Intel KNL on a Cray system, which 
         mechanisms/CMakeFiles/build_all_mods.dir/build.make:69: recipe for target '../mechanisms/multicore/pas_cpu.hpp' failed
 
     If you have errors when running the tests or a miniapp, then either the wrong
-    ``ARB_VECTORIZE_TARGET`` was selected; or you might have forgot to launch on the
+    ``ARB_ARCH`` target architecture was selected; or you might have forgot to launch on the
     compute node. e.g.:
 
     .. code-block:: none
