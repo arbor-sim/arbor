@@ -76,7 +76,7 @@ ion_state::ion_state(
 
 void ion_state::nernst(fvm_value_type temperature_K) {
     // Nernst equation: reversal potenial eX given by:
-    //     
+    //
     //     eX = RT/zF * ln(Xo/Xi)
     //
     // where:
@@ -90,7 +90,7 @@ void ion_state::nernst(fvm_value_type temperature_K) {
     constexpr fvm_value_type RF = 1e3*constant::gas_constant/constant::faraday;
 
     fvm_value_type factor = RF*temperature_K/charge;
-    nernst_impl(Xi_.size(), factor, Xi_.data(), Xo_.data(), eX_.data());
+    nernst_impl(Xi_.size(), factor, Xo_.data(), Xi_.data(), eX_.data());
 }
 
 void ion_state::init_concentration() {
@@ -170,7 +170,7 @@ void shared_state::update_time_to(fvm_value_type dt_step, fvm_value_type tmax) {
 }
 
 void shared_state::set_dt() {
-    set_dt_impl(n_cell, n_cv, dt_cell.data(), dt_cv.data(), time_to.data(), time_to.data(), cv_to_cell.data());
+    set_dt_impl(n_cell, n_cv, dt_cell.data(), dt_cv.data(), time_to.data(), time.data(), cv_to_cell.data());
 }
 
 std::pair<fvm_value_type, fvm_value_type> shared_state::time_bounds() const {
@@ -183,6 +183,27 @@ std::pair<fvm_value_type, fvm_value_type> shared_state::voltage_bounds() const {
 
 void shared_state::take_samples(const sample_event_stream::state& s, array& sample_time, array& sample_value) {
     take_samples_impl(s, time.data(), sample_time.data(), sample_value.data());
+}
+
+// Debug interface
+std::ostream& operator<<(std::ostream& o, shared_state& s) {
+    o << " cv_to_cell " << s.cv_to_cell << "\n";
+    o << " time       " << s.time << "\n";
+    o << " time_to    " << s.time_to << "\n";
+    o << " dt_cell    " << s.dt_cell << "\n";
+    o << " dt_cv      " << s.dt_cv << "\n";
+    o << " voltage    " << s.voltage << "\n";
+    o << " current    " << s.current_density << "\n";
+    for (auto& ki: s.ion_data) {
+        auto kn = to_string(ki.first);
+        auto& i = const_cast<ion_state&>(ki.second);
+        o << " " << kn << ".current_density        " << i.iX_ << "\n";
+        o << " " << kn << ".reversal_potential     " << i.eX_ << "\n";
+        o << " " << kn << ".internal_concentration " << i.Xi_ << "\n";
+        o << " " << kn << ".external_concentration " << i.Xo_ << "\n";
+        o << " " << kn << ".node_index             " << i.node_index_ << "\n";
+    }
+    return o;
 }
 
 } // namespace gpu

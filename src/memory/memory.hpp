@@ -46,6 +46,19 @@ template <typename T>
 using device_view = array_view<T, device_coordinator<T, cuda_allocator<T>>>;
 template <typename T>
 using const_device_view = const_array_view<T, device_coordinator<T, cuda_allocator<T>>>;
+
+template <typename T>
+std::ostream& operator<<(std::ostream& o, device_view<T> v) {
+    std::size_t i=0u;
+    for (; i<v.size()-1; ++i) o << v[i] << ", ";
+    return o << v[i];
+}
+template <typename T>
+std::ostream& operator<<(std::ostream& o, const_device_view<T> v) {
+    std::size_t i=0u;
+    for (; i<v.size()-1; ++i) o << v[i] << ", ";
+    return o << v[i];
+}
 #endif
 
 #ifdef WITH_KNL

@@ -5,9 +5,10 @@
 #include <utility>
 #include <vector>
 
-#include <util/enumhash.hpp>
 #include <backends/fvm_types.hpp>
 #include <backends/gpu/gpu_store_types.hpp>
+#include <ion.hpp>
+#include <util/enumhash.hpp>
 
 namespace arb {
 namespace gpu {
@@ -121,8 +122,8 @@ struct shared_state {
     void reset(fvm_value_type initial_voltage, fvm_value_type temperature_K);
 };
 
-// For debugging only:
-std::ostream& operator<<(std::ostream& o, const shared_state& s);
+// For debugging only
+std::ostream& operator<<(std::ostream& o, shared_state& s);
 
 } // namespace gpu
 } // namespace arb
