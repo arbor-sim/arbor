@@ -412,11 +412,11 @@ void emit_api_body(std::ostream& out, APIMethod* method) {
 
 // SIMD printing:
 
-std::string index_i_name(const std::string& index_var) {
+static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
-std::string index_constraint_name(const std::string& index_var) {
+static std::string index_constraint_name(const std::string& index_var) {
     return index_var+"constraint_";
 }
 
