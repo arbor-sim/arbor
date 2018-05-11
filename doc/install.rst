@@ -270,7 +270,7 @@ A good choice for many environments is to choose the native architecture:
     cmake -DARB_ARCH=native
 
 Explicit vectorization of key computational kernels can be enabled in Arbor by setting the
-``ARB_VECTORIZE_TARGET`` CMake flag:
+``ARB_VECTORIZE`` CMake flag:
 
 .. code-block:: bash
 
