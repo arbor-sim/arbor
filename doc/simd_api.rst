@@ -346,7 +346,7 @@ In the following:
 * *m* and *q* are const objects of type ``simd_mask<V, N, I>``.
 * *u* is an object of type ``simd_mask<V, N, I>``.
 * *b* is a boolean value.
-* *w* is a pointer to ``bool``.
+* *q* is a pointer to ``bool``.
 * *y* is a const pointer to ``bool`` or a length *N* array of ``bool``.
 * *i* is of type ``int``.
 * *k* is of type ``unsigned long long``.
@@ -381,9 +381,9 @@ Note that ``simd_mask`` does not (currently) offer a masked pointer/array constr
       - Type
       - Description
 
-    * - ``m.copy_to(w)``
+    * - ``m.copy_to(q)``
       - ``void``
-      - Write the boolean value *m*\ `i`:sub: to ``w[i]`` for *i* = 0…*N*-1.
+      - Write the boolean value *m*\ `i`:sub: to ``q[i]`` for *i* = 0…*N*-1.
 
     * - ``u.copy_from(y)``
       - ``void``
@@ -516,13 +516,13 @@ refer to the `vector transcendental functions documentation <simd_maths_>`_ for 
 
 In the following:
 
+* *I* and *J* are SIMD implementations.
 * *A* is a SIMD class ``simd<K, N, I>`` for some scalar type *K*.
 * *S* is a SIMD class ``simd<V, N, I>`` for a floating point type *V*.
-* *W* is a SIMD class ``simd<L, N, J>`` for some scalar type *L* of the same width as *A*.
+* *L* is a scalar type implicitly convertible from *K*.
 * *a* and *b* are values of type *A*.
 * *s* and *t* are values of type *S*.
-* *w* is a value of type *W*.
-* *v* is a value of type ``std::array<W, N>``.
+* *r* is a value of type ``std::array<K, N>``.
 
 .. list-table::
     :widths: 20 20 60
@@ -572,18 +572,17 @@ In the following:
       - *S*
       - Lane-wise raise *s* to the power of *t*.
 
-    * - ``simd_cast<std::array<L, N>>(s)``
+    * - ``simd_cast<std::array<L, N>>(a)``
       - ``std::array<L, N>``
-      - Lane-wise cast to scalar type `L` as ``std::array``
+      - Lane-wise cast of values in *a* to scalar type *L* in ``std::array<L, N>``.
 
-    * - ``simd_cast<simd<L, N, J>>(s)``
+    * - ``simd_cast<simd<L, N, J>>(a)``
       - ``simd<L, N, J>``
-      - Lane-wise cast to scalar type `L` as SIMD value.
+      - Lane-wise cast of values in *a* to scalar type *L* in ``simd<L, N, J>``.
 
-    * - ``simd_cast<S>(w)``
-      - *S*
-      - Lane-wise case to scalar type K from ``std::array`` as
-        SIMD value.
+    * - ``simd_cast<simd<L, N, J>>(r)``
+      - ``simd<L, N, J>``
+      - Lane-wise cast of values in the ``std::array<K, N>`` value *r* to scalar type *L* in ``simd<L, N, J>``.
 
 
 Implementation requirements
@@ -679,10 +678,10 @@ a SIMD class of width *N* and value type *V*.
 * *p* is a pointer of type ``C::scalar_type*``.
 * *j* is a SIMD index representation of type ``J::vector_type`` for
   an integral concrete implementation class *J*.
-* *w* is a SIMD representation of type ``W::vector_type`` for
-  a (different) concrete implementation class *W*.
+* *d* is a SIMD representation of type ``D::vector_type`` for
+  a (different) concrete implementation class *D*.
 * *b* is a ``bool`` value.
-* *w* is a pointer to ``bool``.
+* *q* is a pointer to ``bool``.
 * *y* is a const pointer to ``bool``.
 * *i* is an unsigned (index) value.
 * *k* is an unsigned long long value.
@@ -729,9 +728,9 @@ a SIMD class of width *N* and value type *V*.
       - Type
       - Description
 
-    * - ``C::cast_from(tag<W>{}, w)``
+    * - ``C::cast_from(tag<W>{}, d)``
       - ``C::vector_type``
-      - Return a vector with values *v*\ `i`:sub: = *w*\ `i`:sub:, where ``W::scalar_type``
+      - Return a vector with values *v*\ `i`:sub: = *d*\ `i`:sub:, where ``D::scalar_type``
         is implicitly convertible to ``C::scalar_type``.
 
     * - ``C::broadcast(x)``
@@ -756,7 +755,7 @@ a SIMD class of width *N* and value type *V*.
 
     * - ``C::copy_from_masked(u, c, m)``
       - ``void``
-      - Return a vector with values *v*\ `i`:sub: loaded from *c+i* wherever *m*\ `i`:sub: is true, or equal to *u*\ `i`:sub
+      - Return a vector with values *v*\ `i`:sub: loaded from *c+i* wherever *m*\ `i`:sub: is true, or equal to *u*\ `i`:sub:
         otherwise. *c* may be unaligned.
 
 .. rubric:: Lane access
@@ -837,9 +836,9 @@ of type *J*, used only to disambiguate overloads.
       - Type
       - Description
 
-    * - ``C::cast_from(J{}, p, j)``
+    * - ``C::cast_from(tag<J>{}, d)``
       - ``C::vector_type``
-      - Vector *v* with values *v*\ `i`:sub: = *w*\ `i`:sub:, cast to ``C::scalar_type``.
+      - Returns vector *v* with values *v*\ `i`:sub: = *d*\ `i`:sub:, cast from ``D::scalar_type`` to ``C::scalar_type``.
 
 .. rubric:: Arithmetic operations
 
@@ -995,7 +994,7 @@ SIMD mask class.
       - ``void``
       - Set mask value *u*\ `i`:sub: to *b*.
 
-    * - ``C::mask_copy_to(v, w)``
+    * - ``C::mask_copy_to(v, q)``
       - ``void``
       - Write bool values to memory (unaligned).
 
