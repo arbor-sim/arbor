@@ -41,7 +41,7 @@ void run_kinetic_dt(
     convergence_test_runner<float> runner("dt", plabels, meta);
     runner.load_reference_data(ref_file);
 
-    distributed_context context = serial_context();
+    distributed_context context;
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
     auto decomp = partition_load_balance(rec, nd, &context);
     simulation sim(rec, decomp, &context);

@@ -75,7 +75,7 @@ void run_ncomp_convergence_test(
             rec.add_probe(0, 0, cell_probe_address{p.where, cell_probe_address::membrane_voltage});
         }
 
-        distributed_context context = serial_context();
+        distributed_context context;
         hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
         auto decomp = partition_load_balance(rec, nd, &context);
         simulation sim(rec, decomp, &context);

@@ -4,23 +4,23 @@
 #include <communication/distributed_context.hpp>
 #include <spike.hpp>
 
-// Test that there are no errors constructing a distributed_context from a serial_context
-TEST(serial_context, construct_distributed_context)
+// Test that there are no errors constructing a distributed_context from a local_context
+TEST(local_context, construct_distributed_context)
 {
-    arb::distributed_context ctx = arb::serial_context();
+    arb::distributed_context ctx = arb::local_context();
 }
 
-TEST(serial_context, size_rank)
+TEST(local_context, size_rank)
 {
-    arb::serial_context ctx;
+    arb::local_context ctx;
 
     EXPECT_EQ(ctx.size(), 1);
     EXPECT_EQ(ctx.id(), 0);
 }
 
-TEST(serial_context, minmax)
+TEST(local_context, minmax)
 {
-    arb::serial_context ctx;
+    arb::local_context ctx;
 
     EXPECT_EQ(1., ctx.min(1.));
     EXPECT_EQ(1., ctx.max(1.));
@@ -37,9 +37,9 @@ TEST(serial_context, minmax)
     EXPECT_EQ(one64, ctx.max(one64));
 }
 
-TEST(serial_context, sum)
+TEST(local_context, sum)
 {
-    arb::serial_context ctx;
+    arb::local_context ctx;
 
     EXPECT_EQ(42.,  ctx.min(42.));
     EXPECT_EQ(42.f, ctx.min(42.));
@@ -47,17 +47,17 @@ TEST(serial_context, sum)
     EXPECT_EQ(42u,  ctx.min(42u));
 }
 
-TEST(serial_context, gather)
+TEST(local_context, gather)
 {
-    arb::serial_context ctx;
+    arb::local_context ctx;
 
     EXPECT_EQ(std::vector<int>{42}, ctx.gather(42, 0));
     EXPECT_EQ(std::vector<double>{42}, ctx.gather(42., 0));
 }
 
-TEST(serial_context, gather_spikes)
+TEST(local_context, gather_spikes)
 {
-    arb::serial_context ctx;
+    arb::local_context ctx;
     using svec = std::vector<arb::spike>;
 
     svec spikes = {

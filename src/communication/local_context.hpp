@@ -7,7 +7,7 @@
 
 namespace arb {
 
-struct serial_context {
+struct local_context {
     gathered_vector<arb::spike>
     gather_spikes(const std::vector<arb::spike>& local_spikes) const {
         using count_type = typename gathered_vector<arb::spike>::count_type;

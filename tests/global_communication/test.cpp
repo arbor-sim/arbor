@@ -30,8 +30,6 @@ int main(int argc, char **argv) {
     #ifdef ARB_HAVE_MPI
     mpi::scoped_guard guard(&argc, &argv);
     g_context = mpi_context(MPI_COMM_WORLD);
-    #else
-    g_context = serial_context();
     #endif
 
     // initialize google test environment

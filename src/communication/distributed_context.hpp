@@ -9,7 +9,7 @@
 #if defined(ARB_HAVE_MPI)
 #   include "mpi_context.hpp"
 #endif
-#include "serial_context.hpp"
+#include "local_context.hpp"
 
 
 namespace arb {
@@ -38,8 +38,8 @@ class distributed_context {
 public:
     using spike_vector = std::vector<arb::spike>;
 
-    // default constructor uses a serial context
-    distributed_context(): distributed_context(serial_context()) {}
+    // default constructor uses a local context
+    distributed_context(): distributed_context(local_context()) {}
 
     template <typename Impl>
     distributed_context(Impl&& impl):
