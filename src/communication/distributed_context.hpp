@@ -75,8 +75,7 @@ public:
         return impl_->gather(value, root);
     }
 
-    private:
-
+private:
     struct interface {
         virtual gathered_vector<arb::spike>
             gather_spikes(const spike_vector& local_spikes) const = 0;
