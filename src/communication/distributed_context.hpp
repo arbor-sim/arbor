@@ -14,25 +14,25 @@
 
 namespace arb {
 
-#define PUBLIC_COLLECTIVES(T) \
+#define ARB_PUBLIC_COLLECTIVES_(T) \
     T min(T value) const { return impl_->min(value); }\
     T max(T value) const { return impl_->max(value); }\
     T sum(T value) const { return impl_->sum(value); }\
     std::vector<T> gather(T value, int root) const { return impl_->gather(value, root); }
 
-#define INTERFACE_COLLECTIVES(T) \
+#define ARB_INTERFACE_COLLECTIVES_(T) \
     virtual T min(T value) const = 0;\
     virtual T max(T value) const = 0;\
     virtual T sum(T value) const = 0;\
     virtual std::vector<T> gather(T value, int root) const = 0;
 
-#define WRAP_COLLECTIVES(T) \
+#define ARB_WRAP_COLLECTIVES_(T) \
     T min(T value) const override { return wrapped.min(value); }\
     T max(T value) const override { return wrapped.max(value); }\
     T sum(T value) const override { return wrapped.sum(value); }\
     std::vector<T> gather(T value, int root) const override { return wrapped.gather(value, root); }
 
-#define COLLECTIVE_TYPES float, double, int, std::uint32_t, std::uint64_t
+#define ARB_COLLECTIVE_TYPES_ float, double, int, std::uint32_t, std::uint64_t
 
 class distributed_context {
 public:
@@ -69,7 +69,7 @@ public:
         return impl_->name();
     }
 
-    PP_FOREACH(PUBLIC_COLLECTIVES, COLLECTIVE_TYPES);
+    ARB_PP_FOREACH(ARB_PUBLIC_COLLECTIVES_, ARB_COLLECTIVE_TYPES_);
 
     std::vector<std::string> gather(std::string value, int root) const {
         return impl_->gather(value, root);
@@ -84,7 +84,7 @@ private:
         virtual void barrier() const = 0;
         virtual std::string name() const = 0;
 
-        PP_FOREACH(INTERFACE_COLLECTIVES, COLLECTIVE_TYPES);
+        ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_);
         virtual std::vector<std::string> gather(std::string value, int root) const = 0;
 
         virtual ~interface() {}
@@ -112,7 +112,7 @@ private:
             return wrapped.name();
         }
 
-        PP_FOREACH(WRAP_COLLECTIVES, COLLECTIVE_TYPES)
+        ARB_PP_FOREACH(ARB_WRAP_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
 
         std::vector<std::string> gather(std::string value, int root) const override {
             return wrapped.gather(value, root);
