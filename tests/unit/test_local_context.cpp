@@ -53,6 +53,7 @@ TEST(local_context, gather)
 
     EXPECT_EQ(std::vector<int>{42}, ctx.gather(42, 0));
     EXPECT_EQ(std::vector<double>{42}, ctx.gather(42., 0));
+    EXPECT_EQ(std::vector<std::string>{"42"}, ctx.gather(std::string("42"), 0));
 }
 
 TEST(local_context, gather_spikes)

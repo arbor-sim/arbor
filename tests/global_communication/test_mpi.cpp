@@ -29,7 +29,8 @@ private:
 };
 
 TEST(mpi, gather_all) {
-    int id = g_context.id();
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
     std::vector<big_thing> data;
     // odd ranks: three items; even ranks: one item.
@@ -41,7 +42,7 @@ TEST(mpi, gather_all) {
     }
 
     std::vector<big_thing> expected;
-    for (int i = 0; i<g_context.size(); ++i) {
+    for (int i = 0; i<size; ++i) {
         if (i%2) {
             int rank_data[] = { i, i+7, i+8 };
             util::append(expected, rank_data);
@@ -58,7 +59,8 @@ TEST(mpi, gather_all) {
 }
 
 TEST(mpi, gather_all_with_partition) {
-    int id = g_context.id();
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
     std::vector<big_thing> data;
     // odd ranks: three items; even ranks: one item.
@@ -73,7 +75,7 @@ TEST(mpi, gather_all_with_partition) {
     std::vector<unsigned> expected_divisions;
 
     expected_divisions.push_back(0);
-    for (int i = 0; i<g_context.size(); ++i) {
+    for (int i = 0; i<size; ++i) {
         if (i%2) {
             int rank_data[] = { i, i+7, i+8 };
             util::append(expected_values, rank_data);
@@ -93,7 +95,8 @@ TEST(mpi, gather_all_with_partition) {
 }
 
 TEST(mpi, gather_string) {
-    int id = g_context.id();
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
     // Make a string of variable length, with the character
     // in the string distrubuted as follows
@@ -113,7 +116,7 @@ TEST(mpi, gather_string) {
     auto gathered = mpi::gather(s, 0, MPI_COMM_WORLD);
 
     if (!id) {
-        ASSERT_TRUE(g_context.size()==(int)gathered.size());
+        ASSERT_TRUE(size==(int)gathered.size());
         for (std::size_t i=0; i<gathered.size(); ++i) {
             EXPECT_EQ(make_string(i), gathered[i]);
         }
@@ -121,13 +124,13 @@ TEST(mpi, gather_string) {
 }
 
 TEST(mpi, gather) {
-    mpi_context ctx(MPI_COMM_WORLD);
-    int id = ctx.id();
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
     auto gathered = mpi::gather(id, 0, MPI_COMM_WORLD);
 
     if (!id) {
-        ASSERT_TRUE(ctx.size()==(int)gathered.size());
+        ASSERT_TRUE(size==(int)gathered.size());
         for (std::size_t i=0; i<gathered.size(); ++i) {
             EXPECT_EQ(int(i), gathered[i]);
         }
