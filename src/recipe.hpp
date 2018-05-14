@@ -74,9 +74,10 @@ public:
         throw std::logic_error("no probes");
     }
 
-
     // Global property type will be specific to given cell kind.
     virtual util::any get_global_properties(cell_kind) const { return util::any{}; };
+
+    virtual ~recipe() {}
 };
 
 } // namespace arb

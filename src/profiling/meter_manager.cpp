@@ -1,4 +1,5 @@
 #include <communication/distributed_context.hpp>
+#include <algorithms.hpp>
 #include <util/hostname.hpp>
 #include <util/strprintf.hpp>
 #include <util/rangeutil.hpp>

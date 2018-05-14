@@ -11,6 +11,7 @@
 #include <recipe.hpp>
 #include <util/optional.hpp>
 #include <util/partition.hpp>
+#include <util/range.hpp>
 #include <util/transform.hpp>
 
 namespace arb {
@@ -36,7 +37,7 @@ struct group_description {
     group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
         kind(k), gids(std::move(g)), backend(b)
     {
-        EXPECTS(std::is_sorted(gids.begin(), gids.end()));
+        EXPECTS(util::is_sorted(gids));
     }
 };
 

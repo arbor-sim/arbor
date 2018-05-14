@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include <backends/gpu/kernels/reduce_by_key.hpp>
+#include <backends/gpu/reduce_by_key.hpp>
 #include <memory/memory.hpp>
 #include <util/span.hpp>
 #include <util/rangeutil.hpp>

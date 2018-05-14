@@ -101,7 +101,7 @@ inline schedule regular_schedule(time_type dt) {
 // Schedule at times given explicitly via a provided sorted sequence.
 class explicit_schedule_impl {
 public:
-    template <typename Seq, typename = util::enable_if_sequence_t<Seq>>
+    template <typename Seq, typename = util::enable_if_sequence_t<const Seq&>>
     explicit explicit_schedule_impl(const Seq& seq):
         start_index_(0),
         times_(std::begin(seq), compat::end(seq))

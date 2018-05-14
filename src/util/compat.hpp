@@ -27,8 +27,14 @@ constexpr bool using_gnu_compiler(int major=0, int minor=0, int patchlevel=0) {
 
 // std::end() broken with (at least) xlC 13.1.4.
 
+namespace impl {
+    using std::end;
+    template <typename T>
+    auto end_(T& x) -> decltype(end(x)) { return end(x); }
+}
+
 template <typename T>
-auto end(T& x) -> decltype(x.end()) { return x.end(); }
+auto end(T& x) -> decltype(impl::end_(x)) { return impl::end_(x); }
 
 template <typename T, std::size_t N>
 T* end(T (&x)[N]) { return &x[0]+N; }

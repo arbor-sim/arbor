@@ -17,21 +17,24 @@ build_modules(
 
 # Unit test sources
 
-set(TEST_CUDA_SOURCES
+set(test_cuda_sources
     test_intrin.cu
-    test_mc_cell_group.cu
     test_gpu_stack.cu
     test_matrix.cu
-    test_multi_event_stream.cu
+    test_matrix_cpuvsgpu.cpp
     test_reduce_by_key.cu
-    test_spikes.cu
     test_vector.cu
+
+    test_mc_cell_group_gpu.cpp
+    test_multi_event_stream_gpu.cpp
+    test_multi_event_stream_gpu.cu
+    test_spikes_gpu.cpp
 
     # unit test driver
     test.cpp
 )
 
-set(TEST_SOURCES
+set(test_sources
     # unit tests
     test_algorithms.cpp
     test_any.cpp
@@ -48,14 +51,17 @@ set(TEST_SOURCES
     test_event_generators.cpp
     test_event_queue.cpp
     test_filter.cpp
-    test_fvm_multi.cpp
-    test_lif_cell_group.cpp
+    test_fvm_layout.cpp
+    test_fvm_lowered.cpp
     test_mc_cell_group.cpp
     test_lexcmp.cpp
+    test_lif_cell_group.cpp
+    test_maputil.cpp
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
     test_mechanisms.cpp
+    test_mechcat.cpp
     test_merge_events.cpp
     test_multi_event_stream.cpp
     test_nop.cpp
@@ -65,7 +71,6 @@ set(TEST_SOURCES
     test_partition.cpp
     test_path.cpp
     test_point.cpp
-    test_prefixbuf.cpp
     test_probe.cpp
     test_range.cpp
     test_segment.cpp
@@ -77,7 +82,6 @@ set(TEST_SOURCES
     test_spikes.cpp
     test_spike_store.cpp
     test_stats.cpp
-    test_stimulus.cpp
     test_strprintf.cpp
     test_swcio.cpp
     test_synapses.cpp
@@ -94,13 +98,10 @@ set(TEST_SOURCES
     stats.cpp
 )
 
-if(ARB_VECTORIZE_TARGET STREQUAL "AVX2")
-    list(APPEND TEST_SOURCES test_intrin.cpp)
-endif()
+set(targets test.exe)
 
-set(TARGETS test.exe)
-
-add_executable(test.exe ${TEST_SOURCES})
+add_executable(test.exe ${test_sources})
+target_compile_options(test.exe PRIVATE ${CXXOPT_ARCH})
 target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
 
 if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
@@ -110,11 +111,11 @@ endif()
 target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
 
 if(ARB_WITH_CUDA)
-    set(TARGETS ${TARGETS} test_cuda.exe)
-    cuda_add_executable(test_cuda.exe ${TEST_CUDA_SOURCES})
+    list(APPEND targets test_cuda.exe)
+    cuda_add_executable(test_cuda.exe ${test_cuda_sources})
 endif()
 
-foreach(target ${TARGETS})
+foreach(target ${targets})
     target_link_libraries(${target} LINK_PUBLIC gtest)
     target_link_libraries(${target} LINK_PUBLIC ${ARB_LIBRARIES})
     target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})

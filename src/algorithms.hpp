@@ -11,6 +11,7 @@
 #include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
+#include <util/rangeutil.hpp>
 
 /*
  * Some simple wrappers around stl algorithms to improve readability of code
@@ -118,19 +119,30 @@ bool is_minimal_degree(C const& c)
     return it==c.end();
 }
 
-template <typename C>
-bool is_positive(C const& c)
-{
-    static_assert(
-        std::is_integral<typename C::value_type>::value,
-        "is_positive only applies to integral types"
-    );
-    for(auto v : c) {
-        if(v<1) {
-            return false;
-        }
+struct generic_is_positive {
+    template <typename V>
+    bool operator()(V v) const {
+        static V zero = V{};
+        return v>zero;
     }
-    return true;
+};
+
+struct generic_is_negative {
+    template <typename V>
+    bool operator()(V v) const {
+        static V zero = V{};
+        return v<zero;
+    }
+};
+
+template <typename C>
+bool all_positive(const C& c) {
+    return util::all_of(c, generic_is_positive{});
+}
+
+template <typename C>
+bool all_negative(const C& c) {
+    return util::all_of(c, generic_is_negative{});
 }
 
 template<typename C>
@@ -296,126 +308,11 @@ std::vector<typename C::value_type> tree_reduce(
     return new_parent_index;
 }
 
-
-template<typename Seq, typename = util::enable_if_sequence_t<Seq>>
-bool is_sorted(const Seq& seq) {
-    return std::is_sorted(std::begin(seq), std::end(seq));
-}
-
-template< typename Seq, typename = util::enable_if_sequence_t<Seq>>
+template <typename Seq, typename = util::enable_if_sequence_t<Seq&>>
 bool is_unique(const Seq& seq) {
     return std::adjacent_find(std::begin(seq), std::end(seq)) == std::end(seq);
 }
 
-template <typename SubIt, typename SupIt, typename SupEnd>
-class index_into_iterator {
-public:
-    using value_type = typename std::iterator_traits<SupIt>::difference_type;
-    using difference_type = value_type;
-    using pointer = const value_type*;
-    using reference = const value_type&;
-    using iterator_category = std::forward_iterator_tag;
-
-private:
-    using super_iterator = SupIt;
-    using super_senitel  = SupEnd;
-    using sub_iterator   = SubIt;
-
-    sub_iterator sub_it_;
-
-    mutable super_iterator super_it_;
-    const super_senitel super_end_;
-
-    mutable value_type super_idx_;
-
-public:
-    index_into_iterator(sub_iterator sub, super_iterator sup, super_senitel sup_end) :
-        sub_it_(sub),
-        super_it_(sup),
-        super_end_(sup_end),
-        super_idx_(0)
-    {}
-
-    value_type operator*() {
-        advance_super();
-        return super_idx_;
-    }
-
-    value_type operator*() const {
-        advance_super();
-        return super_idx_;
-    }
-
-    bool operator==(const index_into_iterator& other) {
-        return sub_it_ == other.sub_it_;
-    }
-
-    bool operator!=(const index_into_iterator& other) {
-        return !(*this == other);
-    }
-
-    index_into_iterator operator++() {
-        ++sub_it_;
-        return (*this);
-    }
-
-    index_into_iterator operator++(int) {
-        auto previous = *this;
-        ++(*this);
-        return previous;
-    }
-
-    static constexpr value_type npos = value_type(-1);
-
-private:
-
-    bool is_aligned() const {
-        return *sub_it_ == *super_it_;
-    }
-
-    void advance_super() {
-        while(super_it_!=super_end_ && !is_aligned()) {
-            ++super_it_;
-            ++super_idx_;
-        }
-
-        // this indicates that no match was found in super for a value
-        // in sub, which violates the precondition that sub is a subset of super
-        EXPECTS(!(super_it_==super_end_));
-
-        // set guard for users to test for validity if assertions are disabled
-        if (super_it_==super_end_) {
-            super_idx_ = npos;
-        }
-    }
-};
-
-/// Return an index that maps entries in sub to their corresponding values in
-/// super, where sub is a subset of super.  /
-/// Both sets are sorted and have unique entries. Complexity is O(n), where n is
-/// size of super
-template<typename Sub, typename Super>
-auto index_into(const Sub& sub, const Super& super)
-    -> util::range<
-        index_into_iterator<
-            typename util::sequence_traits<Sub>::const_iterator,
-            typename util::sequence_traits<Super>::const_iterator,
-            typename util::sequence_traits<Super>::const_sentinel
-        >>
-{
-
-    EXPECTS(is_unique(super) && is_unique(sub));
-    EXPECTS(is_sorted(super) && is_sorted(sub));
-    EXPECTS(util::size(sub) <= util::size(super));
-
-    using iterator = index_into_iterator<
-            typename util::sequence_traits<Sub>::const_iterator,
-            typename util::sequence_traits<Super>::const_iterator,
-            typename util::sequence_traits<Super>::const_sentinel >;
-    auto begin = iterator(std::begin(sub), std::begin(super), std::end(super));
-    auto end   = iterator(std::end(sub), std::end(super), std::end(super));
-    return util::make_range(begin, end);
-}
 
 /// Binary search, because std::binary_search doesn't return information
 /// about where a match was found.

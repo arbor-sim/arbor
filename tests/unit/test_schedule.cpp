@@ -177,7 +177,7 @@ double poisson_schedule_dispersion(int nbin, double mean_dt, RNG& G) {
 // random sequence were allowed to vary freely.
 
 TEST(schedule, poisson_uniformity) {
-    // Run Poisson dispersion test for N=101 with two-sided
+    // Run Poisson dispersion test for N=1001 with two-sided
     // χ²-test critical value α=0.01.
     //
     // Test based on: N·dispersion ~ χ²(N-1) (approximately)

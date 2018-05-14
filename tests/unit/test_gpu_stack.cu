@@ -1,7 +1,7 @@
 #include "../gtest.h"
 
-#include <backends/gpu/kernels/stack.hpp>
 #include <backends/gpu/stack.hpp>
+#include <backends/gpu/stack_cu.hpp>
 #include <backends/gpu/managed_ptr.hpp>
 
 using namespace arb;

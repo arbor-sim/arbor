@@ -20,6 +20,8 @@ public:
 
     // Returns the status of the exporter
     virtual bool good() const = 0;
+
+    virtual ~exporter() {}
 };
 
 } //communication

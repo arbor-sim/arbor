@@ -19,32 +19,28 @@ public:
 
     // define basic types
     using value_type = typename backend::value_type;
+    using index_type = typename backend::index_type;
     using size_type = typename backend::size_type;
 
     // define storage types
     using array = typename backend::array;
     using iarray = typename backend::iarray;
 
-    using const_view = typename backend::const_view;
-    using const_iview = typename backend::const_iview;
-
-    using host_array = typename backend::host_array;
-
     // back end specific storage for matrix state
     using state = State;
 
     matrix() = default;
 
-    matrix(const std::vector<size_type>& pi,
-           const std::vector<size_type>& ci,
+    matrix(const std::vector<index_type>& pi,
+           const std::vector<index_type>& ci,
            const std::vector<value_type>& cv_capacitance,
            const std::vector<value_type>& face_conductance,
            const std::vector<value_type>& cv_area):
-        parent_index_(memory::make_const_view(pi)),
-        cell_index_(memory::make_const_view(ci)),
+        parent_index_(pi.begin(), pi.end()),
+        cell_index_(ci.begin(), ci.end()),
         state_(pi, ci, cv_capacitance, face_conductance, cv_area)
     {
-        EXPECTS(cell_index_[num_cells()] == parent_index_.size());
+        EXPECTS(cell_index_[num_cells()] == index_type(parent_index_.size()));
     }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)
@@ -58,10 +54,10 @@ public:
     }
 
     /// the vector holding the parent index
-    const_iview p() const { return parent_index_; }
+    const iarray& p() const { return parent_index_; }
 
     /// the partition of the parent index over the cells
-    const_iview cell_index() const { return cell_index_; }
+    const iarray& cell_index() const { return cell_index_; }
 
     /// Solve the linear system.
     void solve() {
@@ -69,12 +65,12 @@ public:
     }
 
     /// Assemble the matrix for given dt
-    void assemble(const_view dt_cell, const_view voltage, const_view current) {
+    void assemble(const array& dt_cell, const array& voltage, const array& current) {
         state_.assemble(dt_cell, voltage, current);
     }
 
     /// Get a view of the solution
-    const_view solution() const {
+    typename State::const_view solution() const {
         return state_.solution();
     }
 

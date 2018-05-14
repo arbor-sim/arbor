@@ -55,8 +55,7 @@ public:
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        auto syn_spec = arb::mechanism_spec("expsyn");
-        c.add_synapse({0, 0.5}, syn_spec);
+        c.add_synapse({0, 0.5}, "expsyn");
 
         return std::move(c);
     }
@@ -152,8 +151,8 @@ int main() {
     // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
     sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
-    // Run the simulation for 1 s (1000 ms), with time steps of 0.01 ms.
-    sim.run(50, 0.01);
+    // Run the simulation for 100 ms, with time steps of 0.01 ms.
+    sim.run(100, 0.01);
 
     // Write the samples to a json file.
     write_trace_json(voltage);
