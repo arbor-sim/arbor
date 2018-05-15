@@ -257,28 +257,44 @@ with ``-g -O0`` flags), use the ``CMAKE_BUILD_TYPE`` CMake parameter.
 
 ..  _vectorize:
 
-Vectorization and architecture
-------------------------------
+Architecture
+------------
 
-For both optimization and vectorization, the target architecture for the library
-can be specified with ``ARB_ARCH``. Values correspond to the architecture names
-given to (for example) GCC and Clang with the ``-mcpu`` or ``-march`` options.
-A good choice for many environments is to choose the native architecture:
+By default, Arbor is built to target whichever architecture is the compiler default,
+which often involves a sacrifice of performance for binary portability. The target
+architecture can be explicitly set with the ``ARB_ARCH`` configuration option. This
+will be used to direct the compiler to use the corresponding instruction sets and
+to optimize for that architecture.
+
+When building and installing on the same machine, a good choice for many environments
+is to set ``ARB_ARCH`` to ``native``:
 
 .. code-block:: bash
 
     cmake -DARB_ARCH=native
 
-Explicit vectorization of key computational kernels can be enabled in Arbor by setting the
+When deploying on a different machine, one should, for an optimized library, specify
+the specific architecture of that machine. The valid values correspond to those given
+to the ``-mcpu`` or ``-march`` options for GCC and Clang; the build system will translate
+these names to corresponding values for other supported compilers.
+
+Specific recent x86-family CPU architectures include ``ivybridge``, ``haswell``,
+``broadwell``, ``skylake``, ``knl`` (Intel) and ``bdver1``, ``bdver2``, ``bdver3``,
+``bdver4``, ``znver1`` (AMD).
+
+Vectorization
+-------------
+
+Explicit vectorization of computational kernels can be enabled in Arbor by setting the
 ``ARB_VECTORIZE`` CMake flag:
 
 .. code-block:: bash
 
     cmake -DARB_VECTORIZE=ON
 
-By default, these kernels are not explicitly vectorized and will instead rely
-on compiler auto-vectorization.
-
+With this flag set, the library will use architecture-specific vectorization intrinsics
+to implement these kernels. Supported vectorization ISAs are currently limited to
+AVX, AVX2 and AVX512 as supported on recent Intel and AMD x86 family CPUs.
 
 .. _threading:
 
