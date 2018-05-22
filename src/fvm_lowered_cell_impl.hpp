@@ -165,13 +165,13 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         state_->deliverable_events.mark_until_after(state_->time);
         PL();
 
-        PE(advance_integrate_current);
+        PE(advance_integrate_current_zero);
         state_->zero_currents();
+        PL();
         for (auto& m: mechanisms_) {
             m->deliver_events();
             m->nrn_current();
         }
-        PL();
 
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
@@ -203,11 +203,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Integrate mechanism state.
 
-        PE(advance_integrate_state);
         for (auto& m: mechanisms_) {
             m->nrn_state();
         }
-        PL();
 
         // Update ion concentrations.
 
