@@ -14,6 +14,13 @@ using io::indent;
 using io::popindent;
 using io::quote;
 
+constexpr bool with_profiling() {
+#ifdef ARB_HAVE_PROFILING
+    return true;
+#else
+    return false;
+#endif
+}
 
 void emit_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
 void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::string& qualified = "");
@@ -79,8 +86,10 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
         "#include <cstddef>\n"
         "#include <memory>\n"
         "#include <" << arb_header_prefix() << "backends/multicore/mechanism.hpp>\n"
-        "#include <" << arb_header_prefix() << "profiling/profiler.hpp>\n"
         "#include <" << arb_header_prefix() << "math.hpp>\n";
+
+    with_profiling() &&
+        out << "#include <" << arb_header_prefix() << "profiling/profiler.hpp>\n";
 
     if (with_simd) {
         out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
@@ -281,15 +290,15 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     out << popindent << "}\n\n";
 
     out << "void " << class_name << "::nrn_state() {\n" << indent;
-    out << "PE(advance_integrate_state_" << name << ");\n";
+    with_profiling() && out << "PE(advance_integrate_state_" << name << ");\n";
     emit_body(state_api);
-    out <<  "PL();\n";
+    with_profiling() && out <<  "PL();\n";
     out << popindent << "}\n\n";
 
     out << "void " << class_name << "::nrn_current() {\n" << indent;
-    out << "PE(advance_integrate_current_" << name << ");\n";
+    with_profiling() && out << "PE(advance_integrate_current_" << name << ");\n";
     emit_body(current_api);
-    out <<  "PL();\n";
+    with_profiling() && out <<  "PL();\n";
     out << popindent << "}\n\n";
 
     out << "void " << class_name << "::write_ions() {\n" << indent;
