@@ -8,9 +8,11 @@
 #include <simd/simd.hpp>
 #include <simd/avx.hpp>
 
+#include <common_types.hpp>
 #include "common.hpp"
 
 using namespace arb::simd;
+using index_constraint = arb::index_constraint;
 
 namespace {
     // Use different distributions in `fill_random`, based on the value type in question:

@@ -51,19 +51,6 @@
 
 namespace arb {
 namespace simd {
-
-// Constraints on possible index conflicts can be used to select a more
-// efficient indexed update, gather or scatter.
-
-enum class index_constraint {
-    none = 0,
-    // For indices k[0], k[1],...:
-
-    independent, // k[i]==k[j] => i=j.
-    contiguous,  // k[i]==k[0]+i
-    constant     // k[i]==k[j] ∀ i, j
-};
-
 namespace simd_detail {
 
 // The simd_traits class provides the mapping between a concrete SIMD

@@ -19,6 +19,7 @@
 #include <backends/multicore/mechanism.hpp>
 #include <backends/multicore/multicore_common.hpp>
 #include <backends/multicore/fvm.hpp>
+#include <backends/multicore/partition_by_constraint.hpp>
 
 namespace arb {
 namespace multicore {
@@ -127,6 +128,7 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
     node_index_ = iarray(width_padded_, pad);
     copy_extend(pos_data.cv, node_index_, pos_data.cv.back());
     copy_extend(pos_data.weight, make_range(data_.data(), data_.data()+width_padded_), 0);
+    gen_constraint(node_index_, constraint_index_);
 
     for (auto i: ion_index_table()) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, i.first);

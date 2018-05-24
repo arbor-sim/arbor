@@ -12,6 +12,7 @@
 #include <mechanism.hpp>
 
 #include <backends/multicore/multicore_common.hpp>
+#include <backends/multicore/partition_by_constraint.hpp>
 #include <backends/multicore/fvm.hpp>
 
 namespace arb {
@@ -81,6 +82,7 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
+    constraint_partition constraint_index_;
     const value_type* weight_;    // Points within data_ after instantiation.
 
     // Bulk storage for state and parameter variables.

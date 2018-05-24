@@ -69,6 +69,7 @@ set(test_sources
     test_mechinfo.cpp
     test_padded.cpp
     test_partition.cpp
+    test_partition_by_constraint.cpp
     test_path.cpp
     test_point.cpp
     test_probe.cpp

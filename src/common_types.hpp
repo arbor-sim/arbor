@@ -49,6 +49,17 @@ struct cell_member_type {
     cell_lid_type index;
 };
 
+// Constraints on possible index conflicts can be used to select a more
+// efficient indexed update, gather or scatter.
+
+enum class index_constraint {
+    none = 0,
+    // For indices k[0], k[1],...:
+    independent, // k[i]==k[j] => i=j.
+    contiguous,  // k[i]==k[0]+i
+    constant     // k[i]==k[j] ∀ i, j
+};
+
 DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 
 // For storing time values [ms]
