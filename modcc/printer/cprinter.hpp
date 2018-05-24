@@ -41,6 +41,7 @@ protected:
 class SimdPrinter: public Visitor {
 public:
     SimdPrinter(std::ostream& out): out_(out) {}
+    SimdPrinter(std::ostream& out, bool is_indexed): out_(out), is_indexed_(is_indexed) {}
 
     void visit(Expression* e) override {
         throw compiler_exception("SimdPrinter cannot translate expression "+e->to_string());
@@ -60,4 +61,5 @@ public:
 
 private:
     std::ostream& out_;
+    bool is_indexed_;
 };

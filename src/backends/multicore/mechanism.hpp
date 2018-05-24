@@ -82,7 +82,7 @@ protected:
     // Per-mechanism index and weight data, excepting ion indices.
 
     iarray node_index_;
-    constraint_partition constraint_index_;
+    constraint_partitions constraint_indices_;
     const value_type* weight_;    // Points within data_ after instantiation.
 
     // Bulk storage for state and parameter variables.
