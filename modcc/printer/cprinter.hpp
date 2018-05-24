@@ -41,10 +41,18 @@ protected:
 class SimdPrinter: public Visitor {
 public:
     SimdPrinter(std::ostream& out): out_(out) {}
-    SimdPrinter(std::ostream& out, bool is_indexed): out_(out), is_indexed_(is_indexed) {}
 
     void visit(Expression* e) override {
         throw compiler_exception("SimdPrinter cannot translate expression "+e->to_string());
+    }
+    void set_var_indexed_to(bool is_var_indexed) {
+        is_var_indexed_ = is_var_indexed;
+    }
+    void set_contiguous_to(bool is_contiguous) {
+        is_contiguous_ = is_contiguous;
+    }
+    void set_constant_to(bool is_constant) {
+        is_constant_ = is_constant;
     }
 
     void visit(BlockExpression*) override;
@@ -61,5 +69,7 @@ public:
 
 private:
     std::ostream& out_;
-    bool is_indexed_;
+    bool is_var_indexed_;
+    bool is_contiguous_;
+    bool is_constant_;
 };

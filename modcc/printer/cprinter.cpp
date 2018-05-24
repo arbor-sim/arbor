@@ -33,12 +33,29 @@ struct cprint {
 
 struct simdprint {
     Expression* expr_;
-    bool is_indexed_;
-    explicit simdprint(Expression* expr): expr_(expr), is_indexed_(false) {}
-    explicit simdprint(Expression* expr, bool is_indexed): expr_(expr), is_indexed_(is_indexed) {}
+    bool is_var_indexed_;
+    bool is_contiguous;
+    bool is_constant;
+
+    explicit simdprint(Expression* expr): expr_(expr), is_var_indexed_(false), is_contiguous(false), is_constant(false) {}
+    explicit simdprint(Expression* expr, bool is_indexed):
+            expr_(expr), is_var_indexed_(is_indexed) {}
+
+    void set_var_indexed() {
+        is_var_indexed_ = true;
+    }
+    void set_contiguous() {
+        is_contiguous = true;
+    }
+    void set_constant() {
+        is_constant = true;
+    }
 
     friend std::ostream& operator<<(std::ostream& out, const simdprint& w) {
-        SimdPrinter printer(out, w.is_indexed_);
+        SimdPrinter printer(out);
+        printer.set_var_indexed_to(w.is_var_indexed_);
+        printer.set_contiguous_to(w.is_contiguous);
+        printer.set_constant_to(w.is_constant);
         return w.expr_->accept(&printer), out;
     }
 };
@@ -378,7 +395,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     out << "value_type " << cprint(local) << " = ";
 
     if (local->is_read()) {
-        out << cprint(local->external_variable()) << ";\n";
+         out << cprint(local->external_variable()) << ";\n";
     }
     else {
         out << "0;\n";
@@ -388,7 +405,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
 void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
     if (!external->is_write()) return;
 
-    const char* op = external->op()==tok::plus? " += ": " -= ";
+    const char *op = external->op() == tok::plus ? " += " : " -= ";
     out << cprint(external) << op << from->name() << ";\n";
 }
 
@@ -420,7 +437,7 @@ static std::string index_i_name(const std::string& index_var) {
 }
 
 static std::string index_constraint_name(const std::string& index_var) {
-    return index_var+"category_";
+    return index_var+"constraint_";
 }
 
 
@@ -433,7 +450,7 @@ void SimdPrinter::visit(LocalVariable* sym) {
 }
 
 void SimdPrinter::visit(VariableExpression *sym) {
-    if(is_indexed_) {
+    if(is_var_indexed_) {
         out_ << "simd_value(" << sym->name() << "+index_)";
     }
     else if (sym->is_range()) {
@@ -455,7 +472,7 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         out_ << "simd_value(";
         e->rhs()->accept(this);
-        if(is_indexed_)
+        if(is_var_indexed_)
             out_ << ").copy_to(" << lhs->name() << "+index_)";
         else
             out_ << ").copy_to(" << lhs->name() << "+i_)";
@@ -468,9 +485,21 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
 void SimdPrinter::visit(IndexedVariable *sym) {
     indexed_variable_info v = decode_indexed_variable(sym);
-    out_ << "S::indirect(" << v.data_var
-         << ", " << index_i_name(v.index_var)
-         << ", constraint_category_)";
+    if(is_contiguous_) {
+        out_ << v.data_var
+             << " + " << v.index_var
+             << "[index_]";
+    }
+    else if(is_constant_){
+        out_ << v.data_var
+             << "[" << v.index_var
+             << "element0]";
+    }
+    else {
+        out_ << "S::indirect(" << v.data_var
+             << ", " << index_i_name(v.index_var)
+             << ", constraint_category_)";
+    }
 }
 
 void SimdPrinter::visit(CallExpression* e) {
@@ -515,22 +544,35 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
     out << ")";
 }
 
-void emit_simd_state_read(std::ostream& out, LocalVariable* local) {
+void emit_simd_state_read(std::ostream& out, LocalVariable* local, simdprint& printer) {
     out << "simd_value " << local->name();
 
     if (local->is_read()) {
-        out << "(" << simdprint(local->external_variable()) << ");\n";
+        if(printer.is_constant) {
+            out << " = " << printer << ";\n";
+        }
+        else {
+            out << "(" << printer << ");\n";
+        }
     }
     else {
         out << " = 0;\n";
     }
 }
 
-void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
+void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, simdprint &printer) {
     if (!external->is_write()) return;
 
-    const char* op = external->op()==tok::plus? " += ": " -= ";
-    out << simdprint(external) << op << from->name() << ";\n";
+    const char *op = external->op() == tok::plus ? " += " : " -= ";
+    if(printer.is_contiguous) {
+        out << "simd_value t_"<< external->name() <<"(" << printer <<");\n";
+        out << "t_" << external->name() << op << from->name() << ";\n";
+        out << "t_" << external->name() << ".copy_to(" << printer << ");\n";
+
+    }
+    else {
+        out << printer << op << from->name() << ";\n";
+    }
 }
 
 
@@ -568,18 +610,21 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
 
                 out << "unsigned index_ = constraint_indices_.contiguous_indices[i_];\n";
 
-                for (auto &index: indices) {
-                    out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
+                for (auto &sym: indexed_vars) {
+                    simdprint printer(sym->external_variable());
+                    printer.set_contiguous();
+                    emit_simd_state_read(out, sym, printer);
                 }
 
-                for (auto &sym: indexed_vars) {
-                    emit_simd_state_read(out, sym);
-                }
+                simdprint printer(body);
+                printer.set_var_indexed();
 
-                out << simdprint(body,true);
+                out << printer;
 
                 for (auto &sym: indexed_vars) {
-                    emit_simd_state_update(out, sym, sym->external_variable());
+                    simdprint printer(sym->external_variable());
+                    printer.set_contiguous();
+                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
                 }
                 out << popindent << "}\n";
             }
@@ -597,13 +642,18 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
                 }
 
                 for (auto &sym: indexed_vars) {
-                    emit_simd_state_read(out, sym);
+                    simdprint printer(sym->external_variable());
+                    emit_simd_state_read(out, sym, printer);
                 }
 
-                out << simdprint(body,true);
+                simdprint printer(body);
+                printer.set_var_indexed();
+
+                out << printer;
 
                 for (auto &sym: indexed_vars) {
-                    emit_simd_state_update(out, sym, sym->external_variable());
+                    simdprint printer(sym->external_variable());
+                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
                 }
                 out << popindent << "}\n";
             }
@@ -621,13 +671,19 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
                 }
 
                 for (auto &sym: indexed_vars) {
-                    emit_simd_state_read(out, sym);
+                    simdprint printer(sym->external_variable());
+                    emit_simd_state_read(out, sym, printer);
+
                 }
 
-                out << simdprint(body,true);
+                simdprint printer(body);
+                printer.set_var_indexed();
+
+                out << printer;
 
                 for (auto &sym: indexed_vars) {
-                    emit_simd_state_update(out, sym, sym->external_variable());
+                    simdprint printer(sym->external_variable());
+                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
                 }
                 out << popindent << "}\n";
             }
@@ -642,17 +698,24 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
 
 
                 for (auto &index: indices) {
-                    out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
+                    out << "simd_index::scalar_type " << index <<"element0 = " << index <<"[index_];\n";
+                    out << index_i_name(index) << " = " << index << "element0;\n";
                 }
 
                 for (auto &sym: indexed_vars) {
-                    emit_simd_state_read(out, sym);
+                    simdprint printer(sym->external_variable());
+                    printer.set_constant();
+                    emit_simd_state_read(out, sym, printer);
                 }
 
-                out << simdprint(body,true);
+                simdprint printer(body);
+                printer.set_var_indexed();
+
+                out << printer;
 
                 for (auto &sym: indexed_vars) {
-                    emit_simd_state_update(out, sym, sym->external_variable());
+                    simdprint printer(sym->external_variable());
+                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
                 }
                 out << popindent << "}\n";
             }
@@ -667,13 +730,15 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
             }
 
             for (auto &sym: indexed_vars) {
-                emit_simd_state_read(out, sym);
+                simdprint printer(sym->external_variable());
+                emit_simd_state_read(out, sym, printer);
             }
 
             out << simdprint(body);
 
             for (auto &sym: indexed_vars) {
-                emit_simd_state_update(out, sym, sym->external_variable());
+                simdprint printer(sym->external_variable());
+                emit_simd_state_update(out, sym, sym->external_variable(), printer);
             }
             out << popindent << "}\n";
         }
