@@ -86,7 +86,7 @@ function(set_arch_target arch)
 
         # Use -mcpu for all supported targets _except_ for x86, where it should be -march.
 
-        if(target_model MATCHES "x86" OR target_model MATCHES "amd64")
+        if(target_model MATCHES "x86" OR target_model MATCHES "amd64" OR target_model MATCHES "aarch64")
             set(CXXOPT_ARCH "-march=${arch}")
         else()
             set(CXXOPT_ARCH "-mcpu=${arch}")
