@@ -435,44 +435,6 @@ struct implbase {
         }
     }
 
-    template <typename ImplIndex>
-    static void compound_indexed_add(tag<ImplIndex> tag, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, index_constraint constraint) {
-        switch (constraint) {
-        case index_constraint::none:
-            {
-                typename ImplIndex::scalar_type o[width];
-                ImplIndex::copy_to(index, o);
-
-                store a;
-                I::copy_to(s, a);
-
-                for (unsigned i = 0; i<width; ++i) {
-                    p[o[i]] += a[i];
-                }
-            }
-            break;
-        case index_constraint::independent:
-            {
-                vector_type v = I::add(I::gather(tag, p, index), s);
-                I::scatter(tag, v, p, index);
-            }
-            break;
-        case index_constraint::contiguous:
-            {
-                p += ImplIndex::element0(index);
-                vector_type v = I::add(I::copy_from(p), s);
-                I::copy_to(v, p);
-            }
-            break;
-        case index_constraint::constant:
-            {
-                p += ImplIndex::element0(index);
-                *p += I::reduce_add(s);
-            }
-            break;
-        }
-    }
-
     static scalar_type reduce_add(const vector_type& s) {
         store a;
         I::copy_to(s, a);

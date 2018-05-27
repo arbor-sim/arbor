@@ -7,6 +7,7 @@ set(bench_sources
     default_construct.cpp
     event_setup.cpp
     event_binning.cpp
+    mech_vec.cpp
 )
 
 set(bench_sources_cuda
@@ -43,6 +44,7 @@ foreach(bench_src ${bench_sources})
     add_dependencies("${bench_exe}" gbench)
     target_include_directories("${bench_exe}" PRIVATE "${gbench_install_dir}/include")
     target_link_libraries("${bench_exe}" LINK_PUBLIC "${gbench_install_dir}/lib/libbenchmark.a")
+    target_link_libraries("${bench_exe}" LINK_PUBLIC ${ARB_LIBRARIES})
 
     list(APPEND bench_exe_list ${bench_exe})
 endforeach()
