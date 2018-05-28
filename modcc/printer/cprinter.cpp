@@ -21,6 +21,20 @@ void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::s
 void emit_api_body(std::ostream&, APIMethod*);
 void emit_simd_api_body(std::ostream&, APIMethod*, moduleKind);
 
+void emit_index_initialize(std::ostream &out, const std::unordered_set<std::string> &indices,
+                           simd_expr_constraint constraint);
+
+void emit_body_for_loop(std::ostream &out, BlockExpression *body, const std::vector<LocalVariable *> &indexed_vars,
+                   const std::unordered_set<std::string> &indices, const simd_expr_constraint &read_constraint,
+                   const simd_expr_constraint &write_constraint);
+
+void emit_for_loop_per_constraint(std::ostream &out, BlockExpression *body,
+                                  const std::vector<LocalVariable *> &indexed_vars,
+                                  const std::unordered_set<std::string> &indices,
+                                  const simd_expr_constraint &read_constraint,
+                                  const simd_expr_constraint &write_constraint,
+                                  std::string underlying_constraint_name);
+
 struct cprint {
     Expression* expr_;
     explicit cprint(Expression* expr): expr_(expr) {}
@@ -33,29 +47,25 @@ struct cprint {
 
 struct simdprint {
     Expression* expr_;
-    bool is_var_indexed_;
-    bool is_contiguous;
-    bool is_constant;
+    bool is_indirect_index_;
+    simd_expr_constraint constraint_;
 
-    explicit simdprint(Expression* expr): expr_(expr), is_var_indexed_(false), is_contiguous(false), is_constant(false) {}
-    explicit simdprint(Expression* expr, bool is_indexed):
-            expr_(expr), is_var_indexed_(is_indexed) {}
+    explicit simdprint(Expression* expr): expr_(expr), is_indirect_index_(false),
+                                          constraint_(simd_expr_constraint::other) {}
+    explicit simdprint(Expression* expr, bool is_indexed, simd_expr_constraint constraint):
+            expr_(expr), is_indirect_index_(is_indexed), constraint_(constraint) {}
 
-    void set_var_indexed() {
-        is_var_indexed_ = true;
+    void set_indirect_index() {
+        is_indirect_index_ = true;
     }
-    void set_contiguous() {
-        is_contiguous = true;
-    }
-    void set_constant() {
-        is_constant = true;
+    void set_constraint(simd_expr_constraint constraint) {
+        constraint_ = constraint;
     }
 
     friend std::ostream& operator<<(std::ostream& out, const simdprint& w) {
         SimdPrinter printer(out);
-        printer.set_var_indexed_to(w.is_var_indexed_);
-        printer.set_contiguous_to(w.is_contiguous);
-        printer.set_constant_to(w.is_constant);
+        printer.set_var_indexed_to(w.is_indirect_index_);
+        printer.set_constraint(w.constraint_);
         return w.expr_->accept(&printer), out;
     }
 };
@@ -126,7 +136,6 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     if (with_simd) {
         out <<
             "namespace S = ::arb::simd;\n"
-            "namespace M = ::arb::multicore;\n"
             "static constexpr unsigned simd_width_ = ";
 
         if (!simd.width) {
@@ -395,7 +404,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
     out << "value_type " << cprint(local) << " = ";
 
     if (local->is_read()) {
-         out << cprint(local->external_variable()) << ";\n";
+        out << cprint(local->external_variable()) << ";\n";
     }
     else {
         out << "0;\n";
@@ -405,7 +414,7 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
 void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
     if (!external->is_write()) return;
 
-    const char *op = external->op() == tok::plus ? " += " : " -= ";
+    const char* op = external->op()==tok::plus? " += ": " -= ";
     out << cprint(external) << op << from->name() << ";\n";
 }
 
@@ -436,11 +445,6 @@ static std::string index_i_name(const std::string& index_var) {
     return index_var+"i_";
 }
 
-static std::string index_constraint_name(const std::string& index_var) {
-    return index_var+"constraint_";
-}
-
-
 void SimdPrinter::visit(IdentifierExpression *e) {
     e->symbol()->accept(this);
 }
@@ -450,12 +454,11 @@ void SimdPrinter::visit(LocalVariable* sym) {
 }
 
 void SimdPrinter::visit(VariableExpression *sym) {
-    if(is_var_indexed_) {
-        out_ << "simd_value(" << sym->name() << "+index_)";
-    }
-    else if (sym->is_range()) {
-
-        out_ << "simd_value(" << sym->name() << "+i_)";
+    if (sym->is_range()) {
+        if(is_indirect_index_)
+            out_ << "simd_value(" << sym->name() << "+index_)";
+        else
+            out_ << "simd_value(" << sym->name() << "+i_)";
     }
     else {
         out_ << sym->name();
@@ -472,7 +475,7 @@ void SimdPrinter::visit(AssignmentExpression* e) {
     if (lhs->is_variable() && lhs->is_variable()->is_range()) {
         out_ << "simd_value(";
         e->rhs()->accept(this);
-        if(is_var_indexed_)
+        if(is_indirect_index_)
             out_ << ").copy_to(" << lhs->name() << "+index_)";
         else
             out_ << ").copy_to(" << lhs->name() << "+i_)";
@@ -485,25 +488,13 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
 void SimdPrinter::visit(IndexedVariable *sym) {
     indexed_variable_info v = decode_indexed_variable(sym);
-    if(is_contiguous_) {
-        out_ << v.data_var
-             << " + " << v.index_var
-             << "[index_]";
-    }
-    else if(is_constant_){
-        out_ << v.data_var
-             << "[" << v.index_var
-             << "element0]";
-    }
-    else {
-        out_ << "S::indirect(" << v.data_var
-             << ", " << index_i_name(v.index_var)
-             << ", constraint_category_)";
-    }
+    out_ << "S::indirect(" << v.data_var
+         << ", " << index_i_name(v.index_var)
+         << ", constraint_category_)";
 }
 
 void SimdPrinter::visit(CallExpression* e) {
-    out_ << e->name() << "(index_";
+    out_ << e->name() << "(i_";
     for (auto& arg: e->args()) {
         out_ << ", ";
         arg->accept(this);
@@ -544,37 +535,104 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
     out << ")";
 }
 
-void emit_simd_state_read(std::ostream& out, LocalVariable* local, simdprint& printer) {
+void emit_simd_state_read(std::ostream &out, LocalVariable *local, simd_expr_constraint constraint) {
     out << "simd_value " << local->name();
 
     if (local->is_read()) {
-        if(printer.is_constant) {
-            out << " = " << printer << ";\n";
+        indexed_variable_info v = decode_indexed_variable(local->external_variable());
+        if(constraint == simd_expr_constraint::contiguous) {
+            out << "(" <<  v.data_var
+                 << " + " << v.index_var
+                 << "[index_]);\n";
         }
-        else {
-            out << "(" << printer << ");\n";
+        else if(constraint == simd_expr_constraint::constant){
+            out << "(" << v.data_var
+                 << "[" << v.index_var
+                 << "element0]);\n";
         }
+        else
+            out << "(" <<  simdprint(local->external_variable()) << ");\n";
     }
     else {
         out << " = 0;\n";
     }
 }
 
-void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, simdprint &printer) {
+void emit_simd_state_update(std::ostream &out, Symbol *from, IndexedVariable *external, simd_expr_constraint constraint) {
     if (!external->is_write()) return;
 
-    const char *op = external->op() == tok::plus ? " += " : " -= ";
-    if(printer.is_contiguous) {
-        out << "simd_value t_"<< external->name() <<"(" << printer <<");\n";
+    const char* op = external->op()==tok::plus? " += ": " -= ";
+    indexed_variable_info v = decode_indexed_variable(external);
+
+    if(constraint == simd_expr_constraint::contiguous) {
+        out << "simd_value t_"<< external->name() <<"(" << v.data_var << " + " << v.index_var << "[index_]);\n";
         out << "t_" << external->name() << op << from->name() << ";\n";
-        out << "t_" << external->name() << ".copy_to(" << printer << ");\n";
+        out << "t_" << external->name() << ".copy_to(" << v.data_var << " + " << v.index_var << "[index_]);\n";
 
     }
     else {
-        out << printer << op << from->name() << ";\n";
+        out << simdprint(external) << op << from->name() << ";\n";
     }
 }
 
+void emit_index_initialize(std::ostream &out, const std::unordered_set<std::string> &indices,
+                           simd_expr_constraint constraint) {
+    switch(constraint) {
+        case simd_expr_constraint::contiguous :
+            break;
+        case simd_expr_constraint::constant : {
+            for (auto &index: indices) {
+                out << "simd_index::scalar_type " << index << "element0 = " << index << "[index_];\n";
+                out << index_i_name(index) << " = " << index << "element0;\n";
+            }
+        }
+            break;
+        case simd_expr_constraint::other : {
+            for (auto &index: indices) {
+                out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
+            }
+        }
+            break;
+    }
+}
+
+void emit_body_for_loop(std::ostream &out, BlockExpression *body, const std::vector<LocalVariable *> &indexed_vars,
+                        const std::unordered_set<std::string> &indices, const simd_expr_constraint &read_constraint,
+                        const simd_expr_constraint &write_constraint) {
+    emit_index_initialize(out, indices, read_constraint);
+
+    for (auto &sym: indexed_vars) {
+        emit_simd_state_read(out, sym, read_constraint);
+    }
+
+    simdprint printer(body);
+    printer.set_indirect_index();
+
+    out << printer;
+
+    for (auto &sym: indexed_vars) {
+        emit_simd_state_update(out, sym, sym->external_variable(), write_constraint);
+    }
+}
+
+void emit_for_loop_per_constraint(std::ostream &out, BlockExpression *body,
+                                  const std::vector<LocalVariable *> &indexed_vars,
+                                  const std::unordered_set<std::string> &indices,
+                                  const simd_expr_constraint &read_constraint,
+                                  const simd_expr_constraint &write_constraint,
+                                  std::string underlying_constraint_name) {
+
+    out << "constraint_category_ = index_constraint::"<< underlying_constraint_name << ";\n";
+    out << "for (unsigned i_ = 0; i_ < index_constraints_." << underlying_constraint_name
+        << ".size(); i_++) {\n"
+        << indent;
+
+    out << "index_type index_ = index_constraints_." << underlying_constraint_name << "[i_];\n";
+
+    emit_body_for_loop(out, body, indexed_vars, indices, read_constraint, write_constraint);
+
+    out << popindent << "}\n";
+}
 
 void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_kind) {
     auto body = method->body();
@@ -585,162 +643,51 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
         indices.insert(decode_indexed_variable(sym->external_variable()).index_var);
     }
 
-    // Note: expect to make index constraints non-constant for point mechanisms as
-    // an optimization in the near future.
-
-    // Another note: (TODO) can't actually use index_constraint::independent
-    // for density mechanisms because of collisions in the padded part of
-    // the indices. Work-arounds exist, but not yet implemented.
-
-    if (!body->statements().empty())
-        for (auto& index: indices) {
-            out << "simd_index " << index_i_name(index) << ";\n";
-        }
-
     if (!body->statements().empty()) {
         if (!indices.empty()) {
+            for (auto& index: indices) {
+                out << "simd_index " << index_i_name(index) << ";\n";
+            }
+
             out << "index_constraint constraint_category_;\n\n";
 
+            //Generate for loop for all contiguous simd_vectors
+            simd_expr_constraint constraint = simd_expr_constraint::contiguous;
+            std::string underlying_constraint = "contiguous";
 
-            {
-                out << "constraint_category_ = index_constraint::contiguous;\n";
-                out <<
-                    "for (unsigned i_ = 0; i_ < constraint_indices_.contiguous_indices.size(); i_++) {\n"
-                    << indent;
+            emit_for_loop_per_constraint(out, body, indexed_vars, indices, constraint,
+                                         constraint, underlying_constraint);
 
-                out << "unsigned index_ = constraint_indices_.contiguous_indices[i_];\n";
+            //Generate for loop for all independent simd_vectors
+            constraint = simd_expr_constraint::other;
+            underlying_constraint = "independent";
 
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    printer.set_contiguous();
-                    emit_simd_state_read(out, sym, printer);
-                }
+            emit_for_loop_per_constraint(out, body, indexed_vars, indices, constraint,
+                                         constraint, underlying_constraint);
 
-                simdprint printer(body);
-                printer.set_var_indexed();
+            //Generate for loop for all simd_vectors that have no optimizing constraints
+            constraint = simd_expr_constraint::other;
+            underlying_constraint = "none";
 
-                out << printer;
+            emit_for_loop_per_constraint(out, body, indexed_vars, indices, constraint,
+                                         constraint, underlying_constraint);
 
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    printer.set_contiguous();
-                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
-                }
-                out << popindent << "}\n";
-            }
+            //Generate for loop for all constant simd_vectors
+            simd_expr_constraint read_constraint = simd_expr_constraint::constant;
+            simd_expr_constraint write_constraint = simd_expr_constraint::other;
+            underlying_constraint = "constant";
 
-            {
-                out << "constraint_category_ = index_constraint::independent;\n";
-                out <<
-                    "for (unsigned i_ = 0; i_ < constraint_indices_.independent_indices.size(); i_++) {\n"
-                    << indent;
+            emit_for_loop_per_constraint(out, body, indexed_vars, indices, read_constraint,
+                                         write_constraint, underlying_constraint);
 
-                out << "unsigned index_ = constraint_indices_.independent_indices[i_];\n";
-
-                for (auto &index: indices) {
-                    out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
-                }
-
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    emit_simd_state_read(out, sym, printer);
-                }
-
-                simdprint printer(body);
-                printer.set_var_indexed();
-
-                out << printer;
-
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
-                }
-                out << popindent << "}\n";
-            }
-
-            {
-                out << "constraint_category_ = index_constraint::none;\n";
-                out <<
-                    "for (unsigned i_ = 0; i_ < constraint_indices_.serialized_indices.size(); i_++) {\n"
-                    << indent;
-
-                out << "unsigned index_ = constraint_indices_.serialized_indices[i_];\n";
-
-                for (auto &index: indices) {
-                    out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
-                }
-
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    emit_simd_state_read(out, sym, printer);
-
-                }
-
-                simdprint printer(body);
-                printer.set_var_indexed();
-
-                out << printer;
-
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
-                }
-                out << popindent << "}\n";
-            }
-
-            {
-                out << "constraint_category_ = index_constraint::constant;\n";
-                out <<
-                    "for (unsigned i_ = 0; i_ < constraint_indices_.constant_indices.size() ; i_++) {\n"
-                    << indent;
-
-                out << "unsigned index_ = constraint_indices_.constant_indices[i_];\n";
-
-
-                for (auto &index: indices) {
-                    out << "simd_index::scalar_type " << index <<"element0 = " << index <<"[index_];\n";
-                    out << index_i_name(index) << " = " << index << "element0;\n";
-                }
-
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    printer.set_constant();
-                    emit_simd_state_read(out, sym, printer);
-                }
-
-                simdprint printer(body);
-                printer.set_var_indexed();
-
-                out << printer;
-
-                for (auto &sym: indexed_vars) {
-                    simdprint printer(sym->external_variable());
-                    emit_simd_state_update(out, sym, sym->external_variable(), printer);
-                }
-                out << popindent << "}\n";
-            }
-
-        } else {
+        }
+        else {
             out << "unsigned n_ = width_;\n\n";
             out <<
                 "for (unsigned i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent;
-
-            for (auto &index: indices) {
-                out << index_i_name(index) << ".copy_from(" << index << ".data()+i_);\n";
-            }
-
-            for (auto &sym: indexed_vars) {
-                simdprint printer(sym->external_variable());
-                emit_simd_state_read(out, sym, printer);
-            }
-
             out << simdprint(body);
-
-            for (auto &sym: indexed_vars) {
-                simdprint printer(sym->external_variable());
-                emit_simd_state_update(out, sym, sym->external_variable(), printer);
-            }
             out << popindent << "}\n";
         }
     }
 }
+

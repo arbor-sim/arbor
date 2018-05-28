@@ -38,6 +38,13 @@ protected:
     std::ostream& out_;
 };
 
+
+enum class simd_expr_constraint{
+    constant,
+    contiguous,
+    other
+};
+
 class SimdPrinter: public Visitor {
 public:
     SimdPrinter(std::ostream& out): out_(out) {}
@@ -45,14 +52,11 @@ public:
     void visit(Expression* e) override {
         throw compiler_exception("SimdPrinter cannot translate expression "+e->to_string());
     }
-    void set_var_indexed_to(bool is_var_indexed) {
-        is_var_indexed_ = is_var_indexed;
+    void set_var_indexed_to(bool is_indirect_index) {
+        is_indirect_index_ = is_indirect_index;
     }
-    void set_contiguous_to(bool is_contiguous) {
-        is_contiguous_ = is_contiguous;
-    }
-    void set_constant_to(bool is_constant) {
-        is_constant_ = is_constant;
+    void set_constraint(simd_expr_constraint constraint) {
+        constraint_ = constraint;
     }
 
     void visit(BlockExpression*) override;
@@ -69,7 +73,6 @@ public:
 
 private:
     std::ostream& out_;
-    bool is_var_indexed_;
-    bool is_contiguous_;
-    bool is_constant_;
+    bool is_indirect_index_;
+    simd_expr_constraint constraint_;
 };

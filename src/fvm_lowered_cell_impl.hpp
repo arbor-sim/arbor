@@ -55,10 +55,6 @@ public:
         bool check_physical = false) override;
 
     value_type time() const override { return tmin_; }
-    
-    std::vector<mechanism_ptr>& mechanisms() {
-        return mechanisms_;
-    }
 
 private:
     // Host or GPU-side back-end dependent storage.
