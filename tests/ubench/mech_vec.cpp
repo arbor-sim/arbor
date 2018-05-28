@@ -432,17 +432,17 @@ void run_custom_arguments(benchmark::internal::Benchmark* b) {
         b->Args({ncomps});
     }
 }
-void run_exp_custom_arguments(benchmark::internal::Benchmark* b) {
+void run_expsyn_custom_arguments(benchmark::internal::Benchmark* b) {
     for (auto ncomps: {10, 100, 1000, 10000, 100000, 1000000, 10000000}) {
         b->Args({ncomps, ncomps*10});
     }
 }
 BENCHMARK(expsyn_1_branch_current)->Apply(run_exp_custom_arguments);
 BENCHMARK(expsyn_1_branch_state)->Apply(run_exp_custom_arguments);
-/*BENCHMARK(pas_1_branch_current)->Apply(run_custom_arguments);
+BENCHMARK(pas_1_branch_current)->Apply(run_custom_arguments);
 BENCHMARK(hh_1_branch_current)->Apply(run_custom_arguments);
 BENCHMARK(hh_1_branch_state)->Apply(run_custom_arguments);
 BENCHMARK(pas_3_branches_current)->Apply(run_custom_arguments);
 BENCHMARK(hh_3_branches_current)->Apply(run_custom_arguments);
-BENCHMARK(hh_3_branches_state)->Apply(run_custom_arguments);*/
+BENCHMARK(hh_3_branches_state)->Apply(run_custom_arguments);
 BENCHMARK_MAIN();

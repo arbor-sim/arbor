@@ -58,14 +58,10 @@ struct simdprint {
     void set_indirect_index() {
         is_indirect_index_ = true;
     }
-    void set_constraint(simd_expr_constraint constraint) {
-        constraint_ = constraint;
-    }
 
     friend std::ostream& operator<<(std::ostream& out, const simdprint& w) {
         SimdPrinter printer(out);
         printer.set_var_indexed_to(w.is_indirect_index_);
-        printer.set_constraint(w.constraint_);
         return w.expr_->accept(&printer), out;
     }
 };

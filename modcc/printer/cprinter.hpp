@@ -55,9 +55,6 @@ public:
     void set_var_indexed_to(bool is_indirect_index) {
         is_indirect_index_ = is_indirect_index;
     }
-    void set_constraint(simd_expr_constraint constraint) {
-        constraint_ = constraint;
-    }
 
     void visit(BlockExpression*) override;
     void visit(CallExpression*) override;
@@ -74,5 +71,4 @@ public:
 private:
     std::ostream& out_;
     bool is_indirect_index_;
-    simd_expr_constraint constraint_;
 };

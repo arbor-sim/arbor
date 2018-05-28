@@ -12,7 +12,6 @@ static constexpr unsigned simd_width_ = S::simd_abi::native_width<fvm_value_type
 struct constraint_partitions {
     using iarray = arb::multicore::iarray;
 
-    static constexpr int num_compartments = 4;
     iarray contiguous;
     iarray constant;
     iarray independent;
@@ -65,7 +64,7 @@ index_constraint get_subvector_index_constraint(const T& node_index, unsigned i)
 template <typename T>
 void generate_index_constraint_partitions(const T& node_index, constraint_partitions& partitions, unsigned width) {
 
-    for (unsigned i = 0; i < node_index.size(); i+= simd_width_) {
+    for (unsigned i = 0; i < width; i+= simd_width_) {
         index_constraint constraint = get_subvector_index_constraint(node_index, i);
         switch(constraint) {
             case index_constraint::none: {
@@ -86,19 +85,6 @@ void generate_index_constraint_partitions(const T& node_index, constraint_partit
             break;
         }
     }
-
-    if(simd_width_ != 1) {
-        unsigned size_of_constant_section = ((width + (simd_width_ - 1))/ simd_width_) -
-                                            (partitions.none.size() +
-                                             partitions.independent.size() +
-                                             partitions.contiguous.size() );
-
-        partitions.constant.resize(size_of_constant_section);
-    }
-    else {
-        partitions.contiguous.resize(width);
-    }
-
 }
 
 template <typename T>
