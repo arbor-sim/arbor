@@ -7,6 +7,7 @@
 #include <common_types.hpp>
 #include <event_queue.hpp>
 #include <util/rangeutil.hpp>
+#include <util/meta.hpp>
 
 namespace arb {
 
@@ -21,7 +22,11 @@ public:
 
     time_seq(): time_seq(dummy_seq()) {}
 
-    template <typename Impl>
+    template <
+        typename Impl,
+        typename = typename util::enable_if_t<
+            !std::is_same<typename std::decay<Impl>::type,
+                          time_seq>::value>>
     time_seq(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}

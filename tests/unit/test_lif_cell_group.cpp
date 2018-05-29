@@ -6,8 +6,6 @@
 #include <load_balance.hpp>
 #include <simulation.hpp>
 #include <recipe.hpp>
-#include <rss_cell.hpp>
-#include <rss_cell_group.hpp>
 
 using namespace arb;
 // Simple ring network of LIF neurons.
@@ -25,7 +23,7 @@ public:
     // LIF neurons have gid in range [1..n_lif_cells_] whereas fake cell is numbered with 0.
     cell_kind get_cell_kind(cell_gid_type gid) const override {
         if (gid == 0) {
-            return cell_kind::regular_spike_source;
+            return cell_kind::spike_source;
         }
         return cell_kind::lif_neuron;
     }
@@ -59,11 +57,7 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            auto rs = arb::rss_cell();
-            rs.start_time = 0;
-            rs.period = 1;
-            rs.stop_time = 0.5;
-            return rs;
+            return time_seq(vector_time_seq({0.f}));
         }
         // LIF cell.
         return lif_cell_description();

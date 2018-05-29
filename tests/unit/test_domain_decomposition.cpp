@@ -17,9 +17,9 @@ namespace {
     struct dummy_cell {};
     using homo_recipe = homogeneous_recipe<cell_kind::cable1d_neuron, dummy_cell>;
 
-    // Heterogenous cell population of cable and rss cells.
+    // Heterogenous cell population of cable and spike source cells.
     // Interleaved so that cells with even gid are cable cells, and odd gid are
-    // rss cells.
+    // spike source cells.
     class hetero_recipe: public recipe {
     public:
         hetero_recipe(cell_size_type s): size_(s) {}
@@ -34,7 +34,7 @@ namespace {
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return gid%2?
-                cell_kind::regular_spike_source:
+                cell_kind::spike_source:
                 cell_kind::cable1d_neuron;
         }
 
@@ -134,7 +134,7 @@ TEST(domain_decomposition, heterogenous_population)
             EXPECT_EQ(grp.backend, backend_kind::multicore);
         }
 
-        for (auto k: {cell_kind::cable1d_neuron, cell_kind::regular_spike_source}) {
+        for (auto k: {cell_kind::cable1d_neuron, cell_kind::spike_source}) {
             const auto& gids = kind_lists[k];
             EXPECT_EQ(gids.size(), num_cells/2);
             for (auto gid: gids) {
@@ -171,7 +171,7 @@ TEST(domain_decomposition, heterogenous_population)
                     ++ncells;
                 }
             }
-            else if (k==cell_kind::regular_spike_source){
+            else if (k==cell_kind::spike_source){
                 EXPECT_EQ(grp.backend, backend_kind::multicore);
                 EXPECT_EQ(grp.gids.size(), 1u);
                 EXPECT_TRUE(grp.gids.front()%2);

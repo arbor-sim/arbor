@@ -45,7 +45,6 @@ set(test_sources
     test_counter.cpp
     test_cycle.cpp
     test_domain_decomposition.cpp
-    test_dss_cell_group.cpp
     test_either.cpp
     test_event_binner.cpp
     test_event_generators.cpp
@@ -75,7 +74,7 @@ set(test_sources
     test_range.cpp
     test_segment.cpp
     test_schedule.cpp
-    test_rss_cell.cpp
+    test_spike_source.cpp
     test_simd.cpp
     test_span.cpp
     test_spikes.cpp
