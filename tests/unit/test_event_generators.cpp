@@ -257,7 +257,7 @@ TEST(event_generators, poisson_terminates) {
     }
 
     // the generator should be exhausted
-    EXPECT_EQ(gen.next(), terminal_pse());
+    EXPECT_TRUE(is_terminal_pse(gen.next()));
 
     // the last event should be less than the end time
     EXPECT_TRUE(events.back().time<t1);
