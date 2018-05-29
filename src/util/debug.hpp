@@ -18,8 +18,11 @@ extern "C" {
 namespace arb {
 namespace util {
 
+// The preprocessor symbol ARB_DEBUG is automatically defined by
+// the build system if built in a 'debug' configuration.
+
 constexpr inline bool is_debug_mode() {
-#ifndef NDEBUG
+#ifdef ARB_DEBUG
     return true;
 #else
     return false;

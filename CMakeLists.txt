@@ -1,15 +1,12 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.9)
 
 # project info
 project(arbor)
 enable_language(CXX)
 
-# Hide warnings about mixing old and new signatures for target_link_libraries.
-# These can't be avoided, because the FindCUDA packed provided by CMake before
-# version 3.9 uses the old signature, while other packages use the new signature.
-if ("${CMAKE_VERSION}" MATCHES "^3.[0-9].")
-    cmake_policy(SET CMP0023 OLD)
-endif()
+#----------------------------------------------------------
+# Global CMake configuration
+#----------------------------------------------------------
 
 # Set release as the default build type.
 # Otherwise, CMake will default to debug.
@@ -19,187 +16,164 @@ if (NOT CMAKE_BUILD_TYPE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
 endif()
 
-# compilation flags
+# When we find threads, prefer -pthread option.
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
+# Include own CMake modules in search path.
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-include("CompilerOptions")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
 
-# this generates a .json file with full compilation command for each file
-set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
-
-# generated .a and .so go into /lib
+# Build paths.
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-#----------------------------------------------------------
-# Option to enable assertions
-#----------------------------------------------------------
-option(ARB_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
-if(ARB_WITH_ASSERTIONS)
-    add_definitions("-DARB_HAVE_ASSERTIONS")
-endif()
+# Installation paths. TODO
+# ...
+
+# Generate a .json file with full compilation command for each file.
+set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
+
+
+# compilation flags
+#TODO: move these to target-specific bits
+include("CompilerOptions")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
+
+# Used to marshall definitions, include paths and linkage based on configuration state:
+add_library(libarbor_deps INTERFACE)
 
 #----------------------------------------------------------
-# Option to enable traces
+# Configure-time build options for Arbor:
 #----------------------------------------------------------
-option(ARB_WITH_TRACE "enable TRACE() macros in code" OFF)
-if(ARB_WITH_TRACE)
-    add_definitions("-DARB_HAVE_TRACE")
-endif()
 
-#----------------------------------------------------------
-# Option to disable auto running of modcc compiler
-#----------------------------------------------------------
-option(ARB_AUTO_RUN_MODCC_ON_CHANGES
-  "Rerun modcc compiler whenever *.mod file or modcc compiler change" ON)
+# Enable CUDA support with ARB_GPU_MODEL
 
-#----------------------------------------------------------
-# prepare list of libraries/includes needed by external libs
-#----------------------------------------------------------
-set(EXTERNAL_LIBRARIES "")
-set(EXTERNAL_INCLUDES "")
-
-#----------------------------------------------------------
-# list of libraries built inside Arbor
-#----------------------------------------------------------
-set(ARB_LIBRARIES "")
-
-#----------------------------------------------------------
-# Threading model selection
-#----------------------------------------------------------
-set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
-set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
-
-if(ARB_THREADING_MODEL MATCHES "tbb")
-    include(GitSubmodule) # required for check_git_submodule
-    check_git_submodule(tbb "${CMAKE_SOURCE_DIR}/tbb")
-    if(NOT tbb_avail)
-        message(FATAL_ERROR "TBB git submodule required.")
-    endif()
-
-    # turn off proxy malloc library and test compilation
-    option(TBB_BUILD_TBBMALLOC_PROXY OFF)
-    option(TBB_BUILD_TESTS           OFF)
-
-    # Use the CMake configuration in the TBB submodule
-    # Reset the CXX flags, to avoid the litany of warnings that -Wall
-    # gives when compiling TBB.
-    set(CMAKE_CXX_FLAGS_TBB_BACK "${CMAKE_CXX_FLAGS}")
-    unset(CMAKE_CXX_FLAGS)
-    add_subdirectory(tbb)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_TBB_BACK}")
-
-    # set flags for TBB
-    add_definitions(-DARB_HAVE_TBB)
-    set(ARB_WITH_TBB TRUE)
-
-    include_directories(${CMAKE_SOURCE_DIR}/tbb/include)
-
-    list(APPEND EXTERNAL_LIBRARIES tbb_static tbbmalloc_static)
-    list(APPEND EXTERNAL_LIBRARIES pthread dl)
-
-    # TODO add support for user-supplied tbb implementation,
-    # e.g. using an TBB_ROOT variable.
-
-elseif(ARB_THREADING_MODEL MATCHES "cthread")
-    find_package(Threads REQUIRED)
-    add_definitions(-DARB_HAVE_CTHREAD)
-    set(ARB_WITH_CTHREAD TRUE)
-    list(APPEND EXTERNAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-
-    if(CMAKE_USE_PTHREADS_INIT)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
-    endif()
-endif()
-
-#----------------------------------------------------------
-# libunwind for pretty printing stack traces
-#----------------------------------------------------------
-find_package(Unwind)
-if(UNWIND_FOUND)
-    add_definitions(-DWITH_UNWIND)
-    include_directories(${UNWIND_INCLUDE_DIR})
-    list(APPEND EXTERNAL_LIBRARIES ${UNWIND_LIBRARIES})
-endif()
-
-#----------------------------------------------------------
-# CUDA support
-#----------------------------------------------------------
 set(ARB_GPU_MODEL "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
 set_property(CACHE ARB_GPU_MODEL PROPERTY STRINGS none K20 K80 P100 )
 
-set(ARB_WITH_CUDA FALSE)
+# Use in-tree TBB?
 
-if(NOT ARB_GPU_MODEL MATCHES "none")
-    find_package(CUDA REQUIRED)
+option(ARB_PRIVATE_TBBLIB "build and link against in-tree TBB build" OFF)
+mark_as_advanced(ARB_PRIVATE_TBBLIB)
 
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-        -Xcudafe --diag_suppress=integer_sign_change
-        -Xcudafe --diag_suppress=unsigned_compare_with_zero)
+# Use externally built modcc?
 
-    set(ARB_WITH_CUDA TRUE)
-    add_definitions(-DARB_HAVE_GPU)
-    include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
-    list(APPEND EXTERNAL_LIBRARIES ${CUDA_LIBRARIES})
-endif()
+set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 
-if(ARB_GPU_MODEL MATCHES "K20")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_35)
-    add_definitions(-DARB_CUDA_ARCH=350)
-elseif(ARB_GPU_MODEL MATCHES "K80")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_37)
-    add_definitions(-DARB_CUDA_ARCH=370)
-elseif(ARB_GPU_MODEL MATCHES "P100")
-    set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-arch=sm_60)
-    add_definitions(-DARB_CUDA_ARCH=600)
-elseif(NOT ARB_GPU_MODEL MATCHES "none")
-    message( FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
-endif()
+# System-specific configuration for BG/Q, Cray.
 
-#----------------------------------------------------------
-# Cray/BGQ/Generic Linux/other flag?
-#----------------------------------------------------------
-set(ARB_SYSTEM_TYPE "Generic" CACHE STRING
-    "Choose a system type to customize flags")
+set(ARB_SYSTEM_TYPE "Generic" CACHE STRING "Choose a system type to customize flags")
 set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 
-# Cray specific flags
-if(${ARB_SYSTEM_TYPE} MATCHES "Cray")
-    # we no longer set the -dynamic flag for the compilere here, instead dynamic
-    # linking should be enabled by the user by setting the environment variable:
-    #   CRAYPE_LINK_TYPE=dynamic
-    #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -dynamic")
-    add_definitions(-DARB_HAVE_CRAY)
-endif()
+# # Note: Disabling auto-rebuild of modules is only relevant in
+# # some specific development contexts, and should normally be
+# # left enabled.
+# 
+# option(ARB_AUTO_RUN_MODCC_ON_CHANGES
+#   "Rerun modcc compiler whenever *.mod file or modcc compiler change" ON)
+# mark_as_advanced(ARB_AUTO_RUN_MODCC_ON_CHANGES)
+
 
 #----------------------------------------------------------
-# MPI support
+# Configure-time features for Arbor:
 #----------------------------------------------------------
+
+set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
+set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
+
 set(ARB_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
 set_property(CACHE ARB_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
 
+option(ARB_WITH_PROFILING "use built-in profiling" OFF)
+
+option(ARB_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
+
+# Note: TRACE() is used only in development, and should never
+# be present in any released code; it is safe to leave TRACE macros enabled.
+
+option(ARB_WITH_TRACE "enable TRACE() macros in code" ON)
+mark_as_advanced(ARB_WITH_TRACE)
+
+#----------------------------------------------------------
+# Set up flags and dependencies for library target:
+#----------------------------------------------------------
+
+# System-specific defines
+#-------------------------
+
+if(${ARB_SYSTEM_TYPE} MATCHES "Cray")
+    # User should also enable dynamic linking by setting the environment variable:
+    #   CRAYPE_LINK_TYPE=dynamic
+    add_definitions(-DARB_HAVE_CRAY)
+endif()
+
+# Profiling and test features
+#-----------------------------
+
+if(ARB_WITH_PROFILING)
+    target_compile_definitions(libarbor_deps ARB_HAVE_PROFILING)
+endif()
+if(ARB_WITH_ASSERTIONS)
+    target_compile_definitions(libarbor_deps ARB_HAVE_ASSERTIONS)
+endif()
+if(ARB_WITH_TRACE)
+    target_compile_definitions(libarbor_deps ARB_HAVE_TRACE)
+endif()
+
+# Threading model
+#-----------------
+
+if(ARB_THREADING_MODEL MATCHES "tbb")
+    if(ARB_PRIVATE_TBBLIB)
+        # Build and link against a local copy of TBB:
+
+        include(GitSubmodule) # required for check_git_submodule
+        check_git_submodule(tbb "${CMAKE_SOURCE_DIR}/tbb")
+        if(NOT tbb_avail)
+            message(FATAL_ERROR "TBB git submodule required.")
+        endif()
+
+        # Turn off proxy malloc library and test compilation.
+        option(TBB_BUILD_TBBMALLOC_PROXY OFF)
+        option(TBB_BUILD_TESTS           OFF)
+
+        add_subdirectory(tbb)
+
+        target_link_libraries(libarbor_deps INTERFACE tbb_static tbbmalloc_static)
+        target_include_directories(libarbor_deps SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/tbb/include)
+    else()
+        find_package(TBB REQUIRED)
+        target_link_libraries(libarbor_deps INTERFACE TBB::tbb)
+    endif()
+    target_compile_definitions(libarbor_deps INTERFACE ARB_HAVE_TBB)
+
+elseif(ARB_THREADING_MODEL MATCHES "cthread")
+    set(ARB_WITH_CTHREAD TRUE)
+
+    find_package(Threads REQUIRED)
+    target_compile_definitions(libarbor_deps ARB_HAVE_CTHREAD)
+    target_link_libraries(libarbor_deps INTERFACE Threads::Threads)
+
+endif()
+
+# Distributed model
+#-------------------
+
 if(ARB_DISTRIBUTED_MODEL MATCHES "mpi")
-   # BGQ specific flags
-   if(${ARB_SYSTEM_TYPE} MATCHES "BGQ" )
-      # On BGQ, set CXX to the mpi wrapper, and pass it a static
-      add_definitions(-DMPICH2_CONST=const)
-      set(MPI_FOUND TRUE)
+    # BGQ specific flags
+    if(${ARB_SYSTEM_TYPE} MATCHES "BGQ" )
+        # On BGQ, set CXX to the mpi wrapper, and pass it a static
+        target_compile_definitions(libarbor_deps INTERFACE MPICH2_CONST=const)
+        set(MPI_FOUND TRUE)
+    else()
+        find_package(MPI REQUIRED CXX)
+        target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
     endif()
 
-    if (NOT MPI_FOUND)
-      find_package(MPI REQUIRED)
-    endif()
-    include_directories(SYSTEM ${MPI_C_INCLUDE_PATH})
-    add_definitions(-DARB_HAVE_MPI)
-
-    # unfortunate workaround for C++ detection in system mpi.h
-    add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
-    set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
-
+    target_compile_definitions(libarbor_deps INTERFACE ARB_HAVE_MPI)
     set(ARB_WITH_MPI TRUE)
 
 elseif(ARB_DISTRIBUTED_MODEL MATCHES "dryrun")
-    add_definitions(-DARB_HAVE_DRYRUN)
+    target_compile_definitions(libarbor_deps INTERFACE ARB_HAVE_DRYRUN)
     set(ARB_WITH_DRYRUN TRUE)
 
 elseif(ARB_DISTRIBUTED_MODEL MATCHES "serial")
@@ -209,13 +183,74 @@ else()
     message( FATAL_ERROR "-- Distributed communication model '${ARB_DISTRIBUTED_MODEL}' not supported, use one of serial/mpi/dryrun")
 endif()
 
-#----------------------------------------------------------
-# Built-in profiler
-#----------------------------------------------------------
-option(ARB_WITH_PROFILING "use built-in profiling" OFF)
-if(ARB_WITH_PROFILING)
-    add_definitions(-DARB_HAVE_PROFILING)
+# CUDA support
+#--------------
+
+if(NOT ARB_GPU_MODEL MATCHES "none")
+    include(CheckLanguage)
+    check_language(CUDA)
+
+    if (CMAKE_CUDA_COMPILER)
+        message(FATAL_ERROR "Missing CUDA support.")
+    endif()
+    enable_language(CUDA)
+    set(ARB_WITH_CUDA TRUE)
+
+    target_compile_options(libarbor_deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=integer_sign_change
+        $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=unsigned_compare_with_zero)
+    target_compile_definitions(libarbor_deps ARB_HAVE_GPU)
+
+    if(ARB_GPU_MODEL MATCHES "K20")
+        set(cuda_arch sm_35)
+        set(arb_cuda_arch 350)
+    elseif(ARB_GPU_MODEL MATCHES "K80")
+        set(cuda_arch sm_37)
+        set(arb_cuda_arch 370)
+    elseif(ARB_GPU_MODEL MATCHES "P100")
+        set(cuda_arch sm_60)
+        set(arb_cuda_arch 600)
+    else()
+        message(FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
+    endif()
+
+    target_compile_options(libarbor_deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-arch=${cuda_arch})
+    target_compile_definitions(libarbor_deps ARB_CUDA_ARCH=${arb_cuda_arch})
 endif()
+
+# Use libunwind if available for pretty printing stack traces
+#-------------------------------------------------------------
+
+find_package(Unwind)
+if(Unwind_FOUND)
+    target_link_libraries(libarbor_deps Unwind::unwind)
+    target_compile_definitions(libarbor_deps ARB_WITH_UNWIND)
+endif()
+
+# Build and use modcc unless explicit path given
+#------------------------------------------------
+
+if(ARB_MODCC)
+    find_program(modcc NAMES ${ARB_MODCC} NO_CMAKE_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    if(NOT modcc)
+        message(FATAL_ERROR "Unable to find modcc executable.")
+    endif()
+    set(ARB_WITH_EXTERNAL_MODCC TRUE)
+else()
+    set(modcc $<TARGET_FILE:modcc>)
+endif()
+
+#----------------------------------------------------------
+# prepare list of libraries/includes needed by external libs
+#----------------------------------------------------------
+
+# TODO: Replace with public include directories for libarbor:
+# i.e. $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:.../include>
+set(EXTERNAL_LIBRARIES "")
+# TODO: Replace with interface libraries on libarbor target:
+set(EXTERNAL_INCLUDES "")
+
 
 #----------------------------------------------------------
 # Modcc vectorization target
@@ -231,19 +266,6 @@ if(ARB_ARCH)
     set_arch_target("${ARB_ARCH}")
 endif()
 
-#----------------------------------------------------------
-# Only build modcc if it has not already been installed.
-# This is useful if cross compiling for KNL, when it is not desirable to compile
-# modcc with the same flags that are used for the KNL target.
-#----------------------------------------------------------
-set(use_external_modcc OFF)
-find_program(MODCC_BIN modcc)
-if(MODCC_BIN)
-    set(use_external_modcc ON)
-    set(modcc "${MODCC_BIN}")
-else()
-    set(modcc $<TARGET_FILE:modcc>)
-endif()
 
 #----------------------------------------------------------
 # Validation data generation
