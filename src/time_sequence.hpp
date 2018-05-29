@@ -1,10 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 #include <random>
 
 #include <common_types.hpp>
 #include <event_queue.hpp>
+#include <util/rangeutil.hpp>
 
 namespace arb {
 
@@ -107,6 +109,41 @@ private:
         void advance(time_type t) {};
     };
 
+};
+
+// Sequence of time points prescribed by a vector
+struct vector_time_seq {
+    vector_time_seq(std::vector<time_type> seq):
+        seq_(std::move(seq))
+    {
+        // Ensure that the time values are sorted.
+        if(!std::is_sorted(seq_.begin(), seq_.end())) {
+            util::sort(seq_);
+        }
+        reset();
+    }
+
+    time_type next() {
+        return it_==seq_.end()? max_time: *it_;
+    }
+
+    void pop() {
+        if (it_!=seq_.end()) {
+            ++it_;
+        }
+    }
+
+    void advance(time_type t0) {
+        it_ = std::lower_bound(seq_.begin(), seq_.end(), t0);
+    }
+
+    void reset() {
+        it_ = seq_.begin();
+    }
+
+private:
+    std::vector<time_type> seq_;
+    std::vector<time_type>::const_iterator it_;
 };
 
 // Generates a set of regularly spaced time samples.

@@ -134,36 +134,32 @@ private:
 // Makes a copy of the input sequence of events.
 struct vector_backed_generator {
     using pse = postsynaptic_spike_event;
-    vector_backed_generator(pse_vector events):
-        events_(std::move(events)),
-        it_(events_.begin())
-    {
-        if (!util::is_sorted(events_)) {
-            util::sort(events_);
-        }
-    }
+    vector_backed_generator(cell_member_type target, float weight, std::vector<time_type> samples):
+        target_(target),
+        weight_(weight),
+        tseq_(std::move(samples))
+    {}
 
     postsynaptic_spike_event next() {
-        return it_==events_.end()? terminal_pse(): *it_;
+        return postsynaptic_spike_event{target_, tseq_.next(), weight_};
     }
 
     void pop() {
-        if (it_!=events_.end()) {
-            ++it_;
-        }
+        tseq_.pop();
     }
 
     void reset() {
-        it_ = events_.begin();
+        tseq_.reset();
     }
 
     void advance(time_type t) {
-        it_ = std::lower_bound(events_.begin(), events_.end(), t, event_time_less());
+        tseq_.advance(t);
     }
 
 private:
-    std::vector<postsynaptic_spike_event> events_;
-    std::vector<postsynaptic_spike_event>::const_iterator it_;
+    cell_member_type target_;
+    float weight_;
+    vector_time_seq tseq_;
 };
 
 // Generator for events in a generic sequence.
