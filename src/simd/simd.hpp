@@ -160,23 +160,19 @@ namespace simd_detail {
         template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void copy_from(indirect_expression<IndexImpl, scalar_type> pi) {
             switch (pi.constraint) {
-                case index_constraint::none:
-                {
-                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
-                }
+            case index_constraint::none:
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
                 break;
-                case index_constraint::independent:
-                {
-                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
-                }
+            case index_constraint::independent:
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
                 break;
-                case index_constraint::contiguous:
+            case index_constraint::contiguous:
                 {
                     scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
                     value_ = Impl::copy_from(p);
                 }
                 break;
-                case index_constraint::constant:
+            case index_constraint::constant:
                 {
                     scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
                     scalar_type l = (*p);
@@ -189,23 +185,19 @@ namespace simd_detail {
         template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
         void copy_from(indirect_expression<IndexImpl, const scalar_type> pi) {
             switch (pi.constraint) {
-                case index_constraint::none:
-                {
-                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
-                }
+            case index_constraint::none:
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
                 break;
-                case index_constraint::independent:
-                {
-                    value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
-                }
+            case index_constraint::independent:
+                value_ = Impl::gather(tag<IndexImpl>{}, pi.p, pi.index);
                 break;
-                case index_constraint::contiguous:
+            case index_constraint::contiguous:
                 {
                     const scalar_type* p = IndexImpl::element0(pi.index) + pi.p;
                     value_ = Impl::copy_from(p);
                 }
                 break;
-                case index_constraint::constant:
+            case index_constraint::constant:
                 {
                     const scalar_type *p = IndexImpl::element0(pi.index) + pi.p;
                     scalar_type l = (*p);
@@ -218,8 +210,8 @@ namespace simd_detail {
 
         template <typename ImplIndex>
         static void compound_indexed_add(tag<ImplIndex> tag, const vector_type& s, scalar_type* p, const typename ImplIndex::vector_type& index, index_constraint constraint) {
-            switch (constraint) {
-                case index_constraint::none:
+            switch (constraint) { 
+            case index_constraint::none:
                 {
                     typename ImplIndex::scalar_type o[width];
                     ImplIndex::copy_to(index, o);
@@ -228,28 +220,26 @@ namespace simd_detail {
                     Impl::copy_to(s, a);
 
                     for (unsigned i = 0; i<width; ++i) {
-                        p[o[i]] += a[i];
+                            p[o[i]] += a[i];
                     }
                 }
                 break;
-                case index_constraint::independent:
+            case index_constraint::independent:
                 {
                     vector_type v = Impl::add(Impl::gather(tag, p, index), s);
                     Impl::scatter(tag, v, p, index);
                 }
                 break;
-                case index_constraint::contiguous:
+            case index_constraint::contiguous:
                 {
                     p += ImplIndex::element0(index);
                     vector_type v = Impl::add(Impl::copy_from(p), s);
                     Impl::copy_to(v, p);
                 }
                 break;
-                case index_constraint::constant:
-                {
-                    p += ImplIndex::element0(index);
-                    *p += Impl::reduce_add(s);
-                }
+            case index_constraint::constant:
+                p += ImplIndex::element0(index);
+                *p += Impl::reduce_add(s);
                 break;
             }
         }

@@ -21,18 +21,18 @@ void emit_simd_procedure_proto(std::ostream&, ProcedureExpression*, const std::s
 void emit_api_body(std::ostream&, APIMethod*);
 void emit_simd_api_body(std::ostream&, APIMethod*, moduleKind);
 
-void emit_index_initialize(std::ostream &out, const std::unordered_set<std::string> &indices,
+void emit_index_initialize(std::ostream& out, const std::unordered_set<std::string>& indices,
                            simd_expr_constraint constraint);
 
-void emit_body_for_loop(std::ostream &out, BlockExpression *body, const std::vector<LocalVariable *> &indexed_vars,
-                   const std::unordered_set<std::string> &indices, const simd_expr_constraint &read_constraint,
-                   const simd_expr_constraint &write_constraint);
+void emit_body_for_loop(std::ostream& out, BlockExpression* body, const std::vector<LocalVariable*>& indexed_vars,
+                   const std::unordered_set<std::string>& indices, const simd_expr_constraint& read_constraint,
+                   const simd_expr_constraint& write_constraint);
 
-void emit_for_loop_per_constraint(std::ostream &out, BlockExpression *body,
-                                  const std::vector<LocalVariable *> &indexed_vars,
-                                  const std::unordered_set<std::string> &indices,
-                                  const simd_expr_constraint &read_constraint,
-                                  const simd_expr_constraint &write_constraint,
+void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
+                                  const std::vector<LocalVariable*>& indexed_vars,
+                                  const std::unordered_set<std::string>& indices,
+                                  const simd_expr_constraint& read_constraint,
+                                  const simd_expr_constraint& write_constraint,
                                   std::string underlying_constraint_name);
 
 struct cprint {
@@ -132,6 +132,7 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     if (with_simd) {
         out <<
             "namespace S = ::arb::simd;\n"
+            "using S::index_constraint;\n"
             "static constexpr unsigned simd_width_ = ";
 
         if (!simd.width) {
@@ -531,7 +532,7 @@ void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const 
     out << ")";
 }
 
-void emit_simd_state_read(std::ostream &out, LocalVariable *local, simd_expr_constraint constraint) {
+void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_constraint constraint) {
     out << "simd_value " << local->name();
 
     if (local->is_read()) {
@@ -554,7 +555,7 @@ void emit_simd_state_read(std::ostream &out, LocalVariable *local, simd_expr_con
     }
 }
 
-void emit_simd_state_update(std::ostream &out, Symbol *from, IndexedVariable *external, simd_expr_constraint constraint) {
+void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* external, simd_expr_constraint constraint) {
     if (!external->is_write()) return;
 
     const char* op = external->op()==tok::plus? " += ": " -= ";
@@ -571,20 +572,20 @@ void emit_simd_state_update(std::ostream &out, Symbol *from, IndexedVariable *ex
     }
 }
 
-void emit_index_initialize(std::ostream &out, const std::unordered_set<std::string> &indices,
+void emit_index_initialize(std::ostream& out, const std::unordered_set<std::string>& indices,
                            simd_expr_constraint constraint) {
     switch(constraint) {
         case simd_expr_constraint::contiguous :
             break;
         case simd_expr_constraint::constant : {
-            for (auto &index: indices) {
+            for (auto& index: indices) {
                 out << "simd_index::scalar_type " << index << "element0 = " << index << "[index_];\n";
                 out << index_i_name(index) << " = " << index << "element0;\n";
             }
         }
             break;
         case simd_expr_constraint::other : {
-            for (auto &index: indices) {
+            for (auto& index: indices) {
                 out << index_i_name(index) << ".copy_from(" << index << ".data() + index_);\n";
             }
         }
@@ -592,12 +593,12 @@ void emit_index_initialize(std::ostream &out, const std::unordered_set<std::stri
     }
 }
 
-void emit_body_for_loop(std::ostream &out, BlockExpression *body, const std::vector<LocalVariable *> &indexed_vars,
-                        const std::unordered_set<std::string> &indices, const simd_expr_constraint &read_constraint,
-                        const simd_expr_constraint &write_constraint) {
+void emit_body_for_loop(std::ostream& out, BlockExpression* body, const std::vector<LocalVariable*>& indexed_vars,
+                        const std::unordered_set<std::string>& indices, const simd_expr_constraint& read_constraint,
+                        const simd_expr_constraint& write_constraint) {
     emit_index_initialize(out, indices, read_constraint);
 
-    for (auto &sym: indexed_vars) {
+    for (auto& sym: indexed_vars) {
         emit_simd_state_read(out, sym, read_constraint);
     }
 
@@ -606,16 +607,16 @@ void emit_body_for_loop(std::ostream &out, BlockExpression *body, const std::vec
 
     out << printer;
 
-    for (auto &sym: indexed_vars) {
+    for (auto& sym: indexed_vars) {
         emit_simd_state_update(out, sym, sym->external_variable(), write_constraint);
     }
 }
 
-void emit_for_loop_per_constraint(std::ostream &out, BlockExpression *body,
-                                  const std::vector<LocalVariable *> &indexed_vars,
-                                  const std::unordered_set<std::string> &indices,
-                                  const simd_expr_constraint &read_constraint,
-                                  const simd_expr_constraint &write_constraint,
+void emit_for_loop_per_constraint(std::ostream& out, BlockExpression* body,
+                                  const std::vector<LocalVariable*>& indexed_vars,
+                                  const std::unordered_set<std::string>& indices,
+                                  const simd_expr_constraint& read_constraint,
+                                  const simd_expr_constraint& write_constraint,
                                   std::string underlying_constraint_name) {
 
     out << "constraint_category_ = index_constraint::"<< underlying_constraint_name << ";\n";

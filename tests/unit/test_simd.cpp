@@ -12,7 +12,7 @@
 #include "common.hpp"
 
 using namespace arb::simd;
-using index_constraint = arb::index_constraint;
+using index_constraint = arb::simd::index_constraint;
 
 namespace {
     // Use different distributions in `fill_random`, based on the value type in question:

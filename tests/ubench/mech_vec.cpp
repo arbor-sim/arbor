@@ -12,6 +12,18 @@ using namespace arb;
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
 
+mechanism_ptr& find_mechanism(const std::string& name, fvm_cell& cell) {
+    auto &mechs = cell.mechanisms();
+    auto it = std::find_if(mechs.begin(),
+                           mechs.end(),
+                           [&](mechanism_ptr& m){return m->internal_name()==name;});
+    if (it==mechs.end()) {
+        std::cerr << "couldn't find mechanism with name " << name << "\n";
+        exit(1);
+    }
+    return *it;
+}
+
 class recipe_expsyn_1_branch: public recipe {
     unsigned num_comp_;
     unsigned num_synapse_;
@@ -37,9 +49,11 @@ public:
             }
         }
 
+        auto distribution = std::uniform_real_distribution<float>(0.f, 1.0f);
+
         for(unsigned i = 0; i < num_synapse_; i++) {
-            float loc = ((float)i/(float)num_synapse_);
-            c.add_synapse({1, loc}, "expsyn");
+            auto gen = std::mt19937(i);
+            c.add_synapse({1, distribution(gen)}, "expsyn");
         }
 
         return std::move(c);
@@ -180,38 +194,23 @@ public:
     virtual cell_kind get_cell_kind(cell_gid_type) const override {
         return cell_kind::cable1d_neuron;
     }
-
-    //virtual cell_size_type num_targets(cell_gid_type) const { return 0; }
 };
 
 void expsyn_1_branch_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     const unsigned nsynapse = state.range(1);
+    recipe_expsyn_1_branch rec_expsyn_1_branch(ncomp, nsynapse);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_expsyn_1_branch recipe_expsyn_1_branch1(ncomp, nsynapse);
 
     fvm_cell cell;
-    cell.initialize(gids, recipe_expsyn_1_branch1, target_handles, probe_handles);
+    cell.initialize(gids, rec_expsyn_1_branch, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "expsyn") {
-            idx = i;
-            break;
-        }
-    }
+    auto& m = find_mechanism("expsyn", cell);
 
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find pas\n";
-        exit(1);
-    }
-
-    auto& m = mechs[idx];
     while (state.KeepRunning()) {
-        // call nrn_current
         m->nrn_current();
     }
 }
@@ -219,210 +218,126 @@ void expsyn_1_branch_current(benchmark::State& state) {
 void expsyn_1_branch_state(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
     const unsigned nsynapse = state.range(1);
+    recipe_expsyn_1_branch rec_expsyn_1_branch(ncomp, nsynapse);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_expsyn_1_branch recipe_expsyn_1_branch1(ncomp, nsynapse);
 
     fvm_cell cell;
-    cell.initialize(gids, recipe_expsyn_1_branch1, target_handles, probe_handles);
+    cell.initialize(gids, rec_expsyn_1_branch, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "expsyn") {
-            idx = i;
-            break;
-        }
-    }
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find pas\n";
-        exit(1);
-    }
+    auto& m = find_mechanism("expsyn", cell);
 
-    auto& m = mechs[idx];
     while (state.KeepRunning()) {
-        // call nrn_state
         m->nrn_state();
     }
 }
 
 void pas_1_branch_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
+    recipe_pas_1_branch rec_pas_1_branch(ncomp);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_pas_1_branch rec_pas_1_branch(ncomp);
 
     fvm_cell cell;
     cell.initialize(gids, rec_pas_1_branch, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "pas") {
-            idx = i;
-			break;
-        }
-    }
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find pas\n";
-        exit(1);
-    }
+    auto& m = find_mechanism("pas", cell);
 
-    auto& m = mechs[idx];
     while (state.KeepRunning()) {
-        // call nrn_current
         m->nrn_current();
     }
 }
 
 void pas_3_branches_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
+    recipe_pas_3_branches rec_pas_3_branches(ncomp);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_pas_3_branches rec_pas_3_branches(ncomp);
 
     fvm_cell cell;
     cell.initialize(gids, rec_pas_3_branches, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "pas") {
-            idx = i;
-			break;
-        }
-    }
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find pas\n";
-        exit(1);
-    }
-    auto& m = mechs[idx];
+    auto& m = find_mechanism("pas", cell);
 
     while (state.KeepRunning()) {
-        // call nrn_current
         m->nrn_current();
     }
 }
 
 void hh_1_branch_state(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
+    recipe_hh_1_branch rec_hh_1_branch(ncomp);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_hh_1_branch rec_hh_1_branch(ncomp);
 
     fvm_cell cell;
     cell.initialize(gids, rec_hh_1_branch, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "hh") {
-            idx = i;
-			break;
-        }
-    }
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find hh\n";
-        exit(1);
-    }
-    auto& m = mechs[idx];
+    auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        // call nrn_state
         m->nrn_state();
     }
 }
 
 void hh_1_branch_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
+    recipe_hh_1_branch rec_hh_1_branch(ncomp);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_hh_1_branch rec_hh_1_branch(ncomp);
 
     fvm_cell cell;
     cell.initialize(gids, rec_hh_1_branch, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "hh") {
-            idx = i;
-			break;
-        }
-    }
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find hh\n";
-        exit(1);
-    }
-    auto& m = mechs[idx];
+    auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        // call nrn_current
         m->nrn_current();
     }
 }
 
 void hh_3_branches_state(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
+    recipe_hh_3_branches rec_hh_3_branches(ncomp);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_hh_3_branches rec_hh_3_branches(ncomp);
 
     fvm_cell cell;
     cell.initialize(gids, rec_hh_3_branches, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "hh") {
-            idx = i;
-			break;
-        }
-    }
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find hh\n";
-        exit(1);
-    }
-    auto& m = mechs[idx];
+    auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        // call nrn_state
         m->nrn_state();
     }
 }
 
 void hh_3_branches_current(benchmark::State& state) {
     const unsigned ncomp = state.range(0);
+    recipe_hh_3_branches rec_hh_3_branches(ncomp);
+
     std::vector<cell_gid_type> gids = {0};
     std::vector<target_handle> target_handles;
     probe_association_map<probe_handle> probe_handles;
-    recipe_hh_3_branches rec_hh_3_branches(ncomp);
 
     fvm_cell cell;
     cell.initialize(gids, rec_hh_3_branches, target_handles, probe_handles);
 
-    int idx = -1;
-    auto &mechs = cell.mechanisms();
-    for (unsigned i=0; i<mechs.size(); ++i) {
-        if (mechs[i]->internal_name() == "hh") {
-            idx = i;
-			break;
-        }
-    }
-    if (idx==-1) {
-        std::cout << "ERROR: couldn't find hh\n";
-        exit(1);
-    }
-    auto& m = mechs[idx];
+    auto& m = find_mechanism("hh", cell);
 
     while (state.KeepRunning()) {
-        // call nrn_current
         m->nrn_current();
     }
 }
@@ -432,8 +347,8 @@ void run_custom_arguments(benchmark::internal::Benchmark* b) {
         b->Args({ncomps});
     }
 }
-void run_expsyn_custom_arguments(benchmark::internal::Benchmark* b) {
-    for (auto ncomps: {10, 100, 1000, 10000, 100000, 1000000, 10000000}) {
+void run_exp_custom_arguments(benchmark::internal::Benchmark* b) {
+    for (auto ncomps: {10, 100, 1000, 10000, 100000, 1000000}) {
         b->Args({ncomps, ncomps*10});
     }
 }
