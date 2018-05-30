@@ -1,10 +1,10 @@
 #include <exception>
 
 #include <cell_group.hpp>
-#include <recipe.hpp>
-#include <time_sequence.hpp>
 #include <profiling/profiler.hpp>
+#include <recipe.hpp>
 #include <spike_source_cell_group.hpp>
+#include <time_sequence.hpp>
 
 namespace arb {
 

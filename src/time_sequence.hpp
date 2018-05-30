@@ -6,8 +6,8 @@
 
 #include <common_types.hpp>
 #include <event_queue.hpp>
-#include <util/rangeutil.hpp>
 #include <util/meta.hpp>
+#include <util/rangeutil.hpp>
 
 namespace arb {
 
