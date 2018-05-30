@@ -10,6 +10,8 @@ using namespace arb;
 using pse = postsynaptic_spike_event;
 
 namespace{
+    // Helper function that draws all samples in the half open interval
+    // t ∈ [t0, t1) from a time_seq.
     std::vector<time_type> draw(time_seq& gen, time_type t0, time_type t1) {
         gen.reset();
         gen.advance(t0);
@@ -23,18 +25,18 @@ namespace{
 }
 
 TEST(time_seq, vector) {
-    std::vector<time_type> in = {0.1, 1.0, 1.0, 1.5, 2.3, 3.0, 3.5, };
+    std::vector<time_type> times = {0.1, 1.0, 1.0, 1.5, 2.3, 3.0, 3.5, };
 
-    vector_time_seq seq(in);
+    vector_time_seq seq(times);
 
     // Test pop, next and reset.
-    for (auto e: in) {
-        EXPECT_EQ(e, seq.next());
+    for (auto t: times) {
+        EXPECT_EQ(t, seq.next());
         seq.pop();
     }
     seq.reset();
-    for (auto e: in) {
-        EXPECT_EQ(e, seq.next());
+    for (auto t: times) {
+        EXPECT_EQ(t, seq.next());
         seq.pop();
     }
 
@@ -46,11 +48,7 @@ TEST(time_seq, vector) {
 TEST(time_seq, regular) {
     // make a regular generator that generates its first event at t=2ms and subsequent
     // events regularly spaced 0.5 ms apart.
-    time_type t0 = 2.0;
-    time_type dt = 0.5;
-
-    //regular_generator gen(t0, dt, target, weight);
-    regular_time_seq seq(t0, dt);
+    regular_time_seq seq(2, 0.5);
 
     // Test pop, next and reset.
     for (auto e:  {2.0, 2.5, 3.0, 3.5, 4.0, 4.5}) {
@@ -64,10 +62,14 @@ TEST(time_seq, regular) {
     }
     seq.reset();
 
-    // Test advance
+    // Test advance()
+
     seq.advance(10.1);
+    // next event greater ≥ 10.1 should be 10.5
     EXPECT_EQ(seq.next(), time_type(10.5));
+
     seq.advance(12);
+    // next event greater ≥ 12   should be 12
     EXPECT_EQ(seq.next(), time_type(12));
 }
 
@@ -170,4 +172,3 @@ TEST(time_seq, poisson_terminates) {
     // the last sample should be less than the end time
     EXPECT_TRUE(sequence.back()<t1);
 }
-
