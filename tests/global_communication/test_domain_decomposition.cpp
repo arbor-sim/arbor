@@ -42,7 +42,7 @@ namespace {
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
             return gid%2?
-                cell_kind::regular_spike_source:
+                cell_kind::spike_source:
                 cell_kind::cable1d_neuron;
         }
 
@@ -172,7 +172,7 @@ TEST(domain_decomposition, heterogeneous_population) {
             EXPECT_EQ(grp.backend, backend_kind::multicore);
         }
 
-        for (auto k: {cell_kind::cable1d_neuron, cell_kind::regular_spike_source}) {
+        for (auto k: {cell_kind::cable1d_neuron, cell_kind::spike_source}) {
             const auto& gids = kind_lists[k];
             EXPECT_EQ(gids.size(), n_local/2);
             for (auto gid: gids) {

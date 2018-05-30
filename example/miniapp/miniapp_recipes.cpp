@@ -4,16 +4,15 @@
 #include <utility>
 
 #include <cell.hpp>
-#include <dss_cell_description.hpp>
 #include <event_generator.hpp>
-#include <rss_cell.hpp>
 #include <morphology.hpp>
+#include <spike_source_cell_group.hpp>
+#include <time_sequence.hpp>
 #include <util/debug.hpp>
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
 #include "morphology_pool.hpp"
-
 
 namespace arb {
 
@@ -87,15 +86,9 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        // The last 'cell' is a spike source cell. Either a regular spiking
-        // or a spikes from file.
+        // The last 'cell' is a spike source cell.
         if (i == ncell_) {
-            if (param_.input_spike_path) {
-                auto spike_times = io::get_parsed_spike_times_from_path(param_.input_spike_path.value());
-                return util::unique_any(dss_cell_description(spike_times));
-            }
-
-            return util::unique_any(rss_cell{0.0, 0.1, 0.1});
+            return util::unique_any(time_seq(regular_time_seq(0.0, 0.1, 0.1)));
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
@@ -145,13 +138,9 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type i) const override {
-        // The last 'cell' is a rss_cell with one spike at t=0
+        // The last 'cell' is a regular spike source with one spike at t=0
         if (i == ncell_) {
-            if (param_.input_spike_path) {
-                return cell_kind::data_spike_source;
-            }
-
-            return cell_kind::regular_spike_source;
+            return cell_kind::spike_source;
         }
         return cell_kind::cable1d_neuron;
     }
@@ -269,7 +258,7 @@ public:
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
 
-        // The rss_cell does not have inputs
+        // The regular spike cell does not have inputs
         if (i == ncell_) {
             return conns;
         }
@@ -287,7 +276,7 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The rss_cell spikes at t=0, with these connections it looks like
+            // The regular spike source spikes at t=0, with these connections it looks like
             // (source % 20) == 0 spikes at that moment.
             if (source % 20 == 0) {
                 cc.source = {ncell_, 0};
@@ -322,7 +311,7 @@ public:
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
         std::vector<cell_connection> conns;
-        // The rss_cell does not have inputs
+        // The spike source does not have inputs
         if (i == ncell_) {
             return conns;
         }
@@ -337,7 +326,7 @@ public:
             cc.dest = {i, t};
             conns.push_back(cc);
 
-            // The rss_cell spikes at t=0, with these connections it looks like
+            // The spike source spikes at t=0, with these connections it looks like
             // (source % 20) == 0 spikes at that moment.
             if (source % 20 == 0) {
                 cc.source = {ncell_, 0};

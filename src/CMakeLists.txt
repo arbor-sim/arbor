@@ -26,6 +26,7 @@ set(arbor_cxx_sources
     profiling/power_meter.cpp
     profiling/profiler.cpp
     schedule.cpp
+    spike_source_cell_group.cpp
     swcio.cpp
     threading/threading.cpp
     util/debug.cpp
