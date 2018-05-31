@@ -9,7 +9,8 @@
 
 namespace arb {
 
-benchmark_cell_group::benchmark_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
+benchmark_cell_group::benchmark_cell_group(std::vector<cell_gid_type> gids,
+                                           const recipe& rec):
     gids_(std::move(gids))
 {
     cells_.reserve(gids_.size());
@@ -20,18 +21,32 @@ benchmark_cell_group::benchmark_cell_group(std::vector<cell_gid_type> gids, cons
     reset();
 }
 
+void benchmark_cell_group::reset() {
+    t_ = 0;
+
+    for (auto& c: cells_) {
+        c.time_sequence.reset();
+    }
+
+    clear_spikes();
+}
+
 cell_kind benchmark_cell_group::get_cell_kind() const {
     return cell_kind::benchmark;
 }
 
-void benchmark_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
+void benchmark_cell_group::advance(epoch ep,
+                                   time_type dt,
+                                   const event_lane_subrange& event_lanes)
+{
     using std::chrono::high_resolution_clock;
-    using duration = std::chrono::duration<double, std::micro>;
+    using duration_type = std::chrono::duration<double, std::micro>;
 
     PE(advance_bench_cell);
     for (auto i: util::make_span(0, gids_.size())) {
         auto& tseq = cells_[i].time_sequence;
-        const double t = cells_[i].run_time_per_us*(ep.tfinal-t); // TODO: 
+        // expected time to complete epoch in micro seconds.
+        const double duration_us = cells_[i].run_time_per_ms*(ep.tfinal-t_);
         const auto gid = gids_[i];
 
         // start timer
@@ -43,22 +58,12 @@ void benchmark_cell_group::advance(epoch ep, time_type dt, const event_lane_subr
         }
 
         // wait until the expected time to advance has elapsed.
-        while(duration(high_resolution_clock::now()-start).count()<t);
+        while(duration_type(high_resolution_clock::now()-start).count() < duration_us);
     }
     t_ = ep.tfinal;
 
     PL();
 };
-
-void benchmark_cell_group::reset() {
-    t_ = 0;
-
-    for (auto& c: cells_) {
-        c.time_sequence.reset();
-    }
-
-    clear_spikes();
-}
 
 const std::vector<spike>& benchmark_cell_group::spikes() const {
     return spikes_;
