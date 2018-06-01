@@ -4,7 +4,6 @@
 #include <string>
 #include <exception>
 
-#include <communication/global_policy.hpp>
 #include <tinyopt.hpp>
 
 #include "../gtest.h"
@@ -34,7 +33,6 @@ const char* usage_str =
 int main(int argc, char **argv) {
     using to::parse_opt;
 
-    communication::global_policy_guard global_guard(argc, argv);
     ::testing::InitGoogleTest(&argc, argv);
 
     try {

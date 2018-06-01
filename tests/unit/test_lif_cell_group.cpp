@@ -1,5 +1,6 @@
 #include "../gtest.h"
 #include <cell_group_factory.hpp>
+#include <communication/distributed_context.hpp>
 #include <fstream>
 #include <lif_cell_description.hpp>
 #include <lif_cell_group.hpp>
@@ -154,14 +155,16 @@ TEST(lif_cell_group, recipe)
 }
 
 TEST(lif_cell_group, spikes) {
+    distributed_context context;
+
     // make two lif cells
     path_recipe recipe(2, 1000, 0.1);
 
     hw::node_info nd;
     nd.num_cpu_cores = threading::num_threads();
 
-    auto decomp = partition_load_balance(recipe, nd);
-    simulation sim(recipe, decomp);
+    auto decomp = partition_load_balance(recipe, nd, &context);
+    simulation sim(recipe, decomp, &context);
 
     std::vector<postsynaptic_spike_event> events;
 
@@ -199,11 +202,12 @@ TEST(lif_cell_group, ring)
     // Total simulation time.
     time_type simulation_time = 100;
 
+    distributed_context context;
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
-    auto decomp = partition_load_balance(recipe, nd);
+    auto decomp = partition_load_balance(recipe, nd, &context);
 
     // Creates a simulation with a ring recipe of lif neurons
-    simulation sim(recipe, decomp);
+    simulation sim(recipe, decomp, &context);
 
     std::vector<spike> spike_buffer;
 

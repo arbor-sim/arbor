@@ -9,11 +9,13 @@
 
 #include <tinyopt.hpp>
 #include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
+#include <communication/distributed_context.hpp>
 #include <util/ioutil.hpp>
 
 
 using namespace arb;
+
+distributed_context g_context;
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -22,11 +24,13 @@ const char* usage_str =
 "  -h, --help          Display usage information and exit\n";
 
 int main(int argc, char **argv) {
-    using policy = communication::global_policy;
 
     // We need to set the communicator policy at the top level
     // this allows us to build multiple communicators in the tests
-    communication::global_policy_guard global_guard(argc, argv);
+    #ifdef ARB_HAVE_MPI
+    mpi::scoped_guard guard(&argc, &argv);
+    g_context = mpi_context(MPI_COMM_WORLD);
+    #endif
 
     // initialize google test environment
     testing::InitGoogleTest(&argc, argv);
@@ -36,7 +40,7 @@ int main(int argc, char **argv) {
     // first delete the original printer
     delete listeners.Release(listeners.default_result_printer());
     // now add our custom printer
-    listeners.Append(new mpi_listener("results_global_communication"));
+    listeners.Append(new mpi_listener("results_global_communication", &g_context));
 
     int return_value = 0;
     try {
@@ -49,7 +53,8 @@ int main(int argc, char **argv) {
                 // Note that this must be set again for each test that uses a different
                 // number of cells per domain, e.g.
                 //      policy::set_sizes(policy::size(), new_cells_per_rank)
-                policy::set_sizes(*comm_size, 0);
+                // TODO: fix when dry run mode reimplemented
+                //policy::set_sizes(*comm_size, 0);
             }
             else if (auto o = to::parse_opt(arg, 'h', "help")) {
                 to::usage(argv[0], usage_str);
@@ -77,5 +82,5 @@ int main(int argc, char **argv) {
 
     // perform global collective, to ensure that all ranks return
     // the same exit code
-    return policy::max(return_value);
+    return g_context.max(return_value);
 }

@@ -4,7 +4,7 @@
 #include <fstream>
 #include <stdexcept>
 
-#include <communication/global_policy.hpp>
+#include <communication/distributed_context.hpp>
 
 #include "../gtest.h"
 
@@ -35,6 +35,7 @@ private:
     int test_case_failures_;
     int test_case_tests_;
     int test_failures_;
+    const arb::distributed_context* context_;
 
     bool does_print() const {
         return rank_==0;
@@ -64,9 +65,9 @@ private:
     }
 
 public:
-    mpi_listener(std::string f_base="") {
-        rank_ = arb::communication::global_policy::id();
-        size_ = arb::communication::global_policy::size();
+    mpi_listener(std::string f_base, const arb::distributed_context* ctx): context_(ctx) {
+        rank_ = context_->id();
+        size_ = context_->size();
 
         if (f_base.empty()) {
             return;
@@ -148,8 +149,7 @@ public:
         test_case_tests_++;
 
         // count the number of ranks that had errors
-        int global_errors =
-            arb::communication::global_policy::sum(test_failures_>0 ? 1 : 0);
+        int global_errors = context_->sum(test_failures_>0 ? 1 : 0);
         if (global_errors>0) {
             test_case_failures_++;
             printf_helper("  GLOBAL_FAIL on %d ranks\n", global_errors);

@@ -148,7 +148,7 @@ Class Documentation
 
         Returns a list of all the **incoming** connections for `gid` .
         Each connection ``con`` should have post-synaptic target ``con.dest.gid`` that matches
-        the argument :cpp:var:`gid`, and a valid synapse id ``con.dest.index`` on `gid`.
+        the argument :cpp:any:`gid`, and a valid synapse id ``con.dest.index`` on `gid`.
         See :cpp:type:`cell_connection`.
 
         By default returns an empty list.

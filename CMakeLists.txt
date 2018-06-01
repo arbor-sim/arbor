@@ -82,12 +82,11 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
 set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
-set(ARB_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
-set_property(CACHE ARB_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
+set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
 
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
-set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
+option(ARB_WITH_MPI "build with MPI support" OFF)
 
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
@@ -158,32 +157,14 @@ elseif(ARB_THREADING_MODEL MATCHES "cthread")
 
 endif()
 
-# Distributed model
+# MPI support
 #-------------------
 
-if(ARB_DISTRIBUTED_MODEL MATCHES "mpi")
-    # BGQ specific flags
-    if(${ARB_SYSTEM_TYPE} MATCHES "BGQ" )
-        # On BGQ, set CXX to the mpi wrapper, and pass it a static
-        target_compile_definitions(arbor_deps INTERFACE MPICH2_CONST=const)
-        set(MPI_FOUND TRUE)
-    else()
-        find_package(MPI REQUIRED CXX)
-        target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
-    endif()
-
+if(ARB_WITH_MPI)
+    find_package(MPI REQUIRED CXX)
+    target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
     target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_MPI)
-    set(ARB_WITH_MPI TRUE)
-
-elseif(ARB_DISTRIBUTED_MODEL MATCHES "dryrun")
-    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_DRYRUN)
-    set(ARB_WITH_DRYRUN TRUE)
-
-elseif(ARB_DISTRIBUTED_MODEL MATCHES "serial")
-    # no additional set up needed
-
-else()
-    message( FATAL_ERROR "-- Distributed communication model '${ARB_DISTRIBUTED_MODEL}' not supported, use one of serial/mpi/dryrun")
+    target_link_libraries(arbor_deps INTERFACE MPI::MPI_CXX)
 endif()
 
 # CUDA support

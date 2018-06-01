@@ -8,7 +8,7 @@
 #include <cell_group.hpp>
 #include <common_types.hpp>
 #include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
+#include <communication/distributed_context.hpp>
 #include <domain_decomposition.hpp>
 #include <epoch.hpp>
 #include <recipe.hpp>
@@ -22,10 +22,9 @@ namespace arb {
 
 class simulation {
 public:
-    using communicator_type = communication::communicator<communication::global_policy>;
     using spike_export_function = std::function<void(const std::vector<spike>&)>;
 
-    simulation(const recipe& rec, const domain_decomposition& decomp);
+    simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx);
 
     void reset();
 
@@ -68,6 +67,9 @@ private:
 
     std::size_t num_groups() const;
 
+    // communication context
+    const distributed_context* context_;
+
     // keep track of information about the current integration interval
     epoch epoch_;
 
@@ -89,7 +91,7 @@ private:
 
     util::optional<cell_size_type> local_cell_index(cell_gid_type);
 
-    communicator_type communicator_;
+    communicator communicator_;
 
     // Convenience functions that map the spike buffers onto the appropriate
     // integration interval.

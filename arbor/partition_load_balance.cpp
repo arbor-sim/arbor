@@ -1,4 +1,4 @@
-#include <communication/global_policy.hpp>
+#include <communication/distributed_context.hpp>
 #include <domain_decomposition.hpp>
 #include <hardware/node_info.hpp>
 #include <recipe.hpp>
@@ -6,7 +6,10 @@
 
 namespace arb {
 
-domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd) {
+domain_decomposition partition_load_balance(const recipe& rec,
+                                            hw::node_info nd,
+                                            const distributed_context* ctx)
+{
     struct partition_gid_domain {
         partition_gid_domain(std::vector<cell_gid_type> divs):
             gid_divisions(std::move(divs))
@@ -22,8 +25,8 @@ domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd)
 
     using util::make_span;
 
-    unsigned num_domains = communication::global_policy::size();
-    unsigned domain_id = communication::global_policy::id();
+    unsigned num_domains = ctx->size();
+    unsigned domain_id = ctx->id();
     auto num_global_cells = rec.num_cells();
 
     auto dom_size = [&](unsigned dom) -> cell_gid_type {
@@ -89,8 +92,6 @@ domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd)
     d.gid_domain = partition_gid_domain(std::move(gid_divisions));
 
     return d;
-
-    //return domain_decomposition(num_domains, domain_id, num_local_cells, num_global_cells, std::move(groups));
 }
 
 } // namespace arb

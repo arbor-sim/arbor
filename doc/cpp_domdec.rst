@@ -1,3 +1,5 @@
+.. _cppdomdec:
+
 Domain Decomposition
 ====================
 
@@ -89,11 +91,12 @@ describes the cell groups on the local MPI rank.
 
 .. cpp:namespace:: arb
 
-.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd)
+.. cpp:function:: domain_decomposition partition_load_balance(const recipe& rec, hw::node_info nd, const distributed_context* ctx)
 
     Construct a :cpp:class:`domain_decomposition` that distributes the cells
-    in the model described by :cpp:var:`rec` over the hardware resources described
-    by `hw::node_info`.
+    in the model described by :cpp:any:`rec` over the set of distributed
+    compute nodes that communicate using :cpp:any:`ctx`, with hardware resources
+    on the calling node described by :cpp:any:`nd`.
 
     The algorithm counts the number of each cell type in the global model, then
     partitions the cells of each type equally over the available nodes.
