@@ -19,6 +19,10 @@ struct basic_spike {
     basic_spike(id_type s, time_type t):
         source(s), time(t)
     {}
+
+    friend bool operator==(const basic_spike& l, const basic_spike& r) {
+        return l.source==r.source && l.time==r.time;
+    }
 };
 
 /// Standard specialization:

@@ -8,15 +8,14 @@
 #include <vector>
 
 #include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
+#include <communication/distributed_context.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
 
 #include "../simple_recipes.hpp"
+#include "test.hpp"
 
 using namespace arb;
-
-using communicator_type = communication::communicator<communication::global_policy>;
 
 namespace {
     // Dummy recipes types for testing.
@@ -65,8 +64,8 @@ namespace {
 }
 
 TEST(domain_decomposition, homogeneous_population) {
-    const auto N = communication::global_policy::size();
-    const auto I = communication::global_policy::id();
+    const auto N = g_context.size();
+    const auto I = g_context.id();
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -77,7 +76,7 @@ TEST(domain_decomposition, homogeneous_population) {
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, &g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -108,7 +107,7 @@ TEST(domain_decomposition, homogeneous_population) {
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, &g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -134,8 +133,8 @@ TEST(domain_decomposition, homogeneous_population) {
 }
 
 TEST(domain_decomposition, heterogeneous_population) {
-    const auto N = communication::global_policy::size();
-    const auto I = communication::global_policy::id();
+    const auto N = g_context.size();
+    const auto I = g_context.id();
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -148,7 +147,7 @@ TEST(domain_decomposition, heterogeneous_population) {
         const unsigned n_global = n_local*N;
         const unsigned n_local_grps = n_local; // 1 cell per group
         auto R = hetero_recipe(n_global);
-        const auto D = partition_load_balance(R, nd);
+        const auto D = partition_load_balance(R, nd, &g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);

@@ -1,16 +1,15 @@
 #ifdef ARB_HAVE_MPI
 
 #include "../gtest.h"
+#include "test.hpp"
 
 #include <cstring>
 #include <vector>
 
-#include <communication/global_policy.hpp>
 #include <communication/mpi.hpp>
 #include <util/rangeutil.hpp>
 
 using namespace arb;
-using namespace arb::communication;
 
 struct big_thing {
     big_thing() {}
@@ -30,9 +29,8 @@ private:
 };
 
 TEST(mpi, gather_all) {
-    using policy = mpi_global_policy;
-
-    int id = policy::id();
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
     std::vector<big_thing> data;
     // odd ranks: three items; even ranks: one item.
@@ -44,7 +42,7 @@ TEST(mpi, gather_all) {
     }
 
     std::vector<big_thing> expected;
-    for (int i = 0; i<policy::size(); ++i) {
+    for (int i = 0; i<size; ++i) {
         if (i%2) {
             int rank_data[] = { i, i+7, i+8 };
             util::append(expected, rank_data);
@@ -55,15 +53,14 @@ TEST(mpi, gather_all) {
         }
     }
 
-    auto gathered = mpi::gather_all(data);
+    auto gathered = mpi::gather_all(data, MPI_COMM_WORLD);
 
     EXPECT_EQ(expected, gathered);
 }
 
 TEST(mpi, gather_all_with_partition) {
-    using policy = mpi_global_policy;
-
-    int id = policy::id();
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
     std::vector<big_thing> data;
     // odd ranks: three items; even ranks: one item.
@@ -78,7 +75,7 @@ TEST(mpi, gather_all_with_partition) {
     std::vector<unsigned> expected_divisions;
 
     expected_divisions.push_back(0);
-    for (int i = 0; i<policy::size(); ++i) {
+    for (int i = 0; i<size; ++i) {
         if (i%2) {
             int rank_data[] = { i, i+7, i+8 };
             util::append(expected_values, rank_data);
@@ -91,16 +88,15 @@ TEST(mpi, gather_all_with_partition) {
         }
     }
 
-    auto gathered = mpi::gather_all_with_partition(data);
+    auto gathered = mpi::gather_all_with_partition(data, MPI_COMM_WORLD);
 
     EXPECT_EQ(expected_values, gathered.values());
     EXPECT_EQ(expected_divisions, gathered.partition());
 }
 
 TEST(mpi, gather_string) {
-    using policy = mpi_global_policy;
-
-    int id = policy::id();
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
     // Make a string of variable length, with the character
     // in the string distrubuted as follows
@@ -117,10 +113,10 @@ TEST(mpi, gather_string) {
 
     auto s = make_string(id);
 
-    auto gathered = mpi::gather(s, 0);
+    auto gathered = mpi::gather(s, 0, MPI_COMM_WORLD);
 
     if (!id) {
-        ASSERT_TRUE(policy::size()==(int)gathered.size());
+        ASSERT_TRUE(size==(int)gathered.size());
         for (std::size_t i=0; i<gathered.size(); ++i) {
             EXPECT_EQ(make_string(i), gathered[i]);
         }
@@ -128,14 +124,13 @@ TEST(mpi, gather_string) {
 }
 
 TEST(mpi, gather) {
-    using policy = mpi_global_policy;
+    int id = mpi::rank(MPI_COMM_WORLD);
+    int size = mpi::size(MPI_COMM_WORLD);
 
-    int id = policy::id();
-
-    auto gathered = mpi::gather(id, 0);
+    auto gathered = mpi::gather(id, 0, MPI_COMM_WORLD);
 
     if (!id) {
-        ASSERT_TRUE(policy::size()==(int)gathered.size());
+        ASSERT_TRUE(size==(int)gathered.size());
         for (std::size_t i=0; i<gathered.size(); ++i) {
             EXPECT_EQ(int(i), gathered[i]);
         }

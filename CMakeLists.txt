@@ -175,10 +175,9 @@ endif()
 #----------------------------------------------------------
 # MPI support
 #----------------------------------------------------------
-set(ARB_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
-set_property(CACHE ARB_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
+option(ARB_WITH_MPI "build with support for MPI" OFF)
 
-if(ARB_DISTRIBUTED_MODEL MATCHES "mpi")
+if(ARB_WITH_MPI)
    # BGQ specific flags
    if(${ARB_SYSTEM_TYPE} MATCHES "BGQ" )
       # On BGQ, set CXX to the mpi wrapper, and pass it a static
@@ -195,18 +194,6 @@ if(ARB_DISTRIBUTED_MODEL MATCHES "mpi")
     # unfortunate workaround for C++ detection in system mpi.h
     add_definitions(-DMPICH_SKIP_MPICXX=1 -DOMPI_SKIP_MPICXX=1)
     set_property(DIRECTORY APPEND_STRING PROPERTY COMPILE_OPTIONS "${MPI_C_COMPILE_FLAGS}")
-
-    set(ARB_WITH_MPI TRUE)
-
-elseif(ARB_DISTRIBUTED_MODEL MATCHES "dryrun")
-    add_definitions(-DARB_HAVE_DRYRUN)
-    set(ARB_WITH_DRYRUN TRUE)
-
-elseif(ARB_DISTRIBUTED_MODEL MATCHES "serial")
-    # no additional set up needed
-
-else()
-    message( FATAL_ERROR "-- Distributed communication model '${ARB_DISTRIBUTED_MODEL}' not supported, use one of serial/mpi/dryrun")
 endif()
 
 #----------------------------------------------------------
