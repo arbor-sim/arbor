@@ -29,7 +29,7 @@ function cable_normalized(x::Float64, t::Float64, L::Float64; tol=1e-8)
         sum = exp(-t/L)
         Ltol = L*tol
 
-        for k = countfrom(1)
+        for k = Iterators.countfrom(1)
             a = k*pi/L
             b = exp(-t*(1+a^2))
 
@@ -94,7 +94,7 @@ function cable(x, t, L, lambda, tau, r, V, I; tol=1e-8)
         return V
     else
         tol_n = abs(tol/scale)
-        return scale*cable_normalized(x/lambda, t/tau, L/lambda, tol=tol_n) + V
+        return scale*cable_normalized(Float64(x/lambda), Float64(t/tau), Float64(L/lambda), tol=tol_n) + V
     end
 end
 

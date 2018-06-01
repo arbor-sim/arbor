@@ -8,8 +8,12 @@ enable_language(CXX)
 # Global CMake configuration
 #----------------------------------------------------------
 
-# Set release as the default build type.
-# Otherwise, CMake will default to debug.
+# Include own CMake modules in search path, load common modules.
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include(GitSubmodule) # required for check_git_submodule
+include(ErrorTarget)  # reguired for add_error_target
+
+# Set release as the default build type (CMake default is debug.)
 if (NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
   # Set the possible values of build type for cmake-gui
@@ -18,9 +22,6 @@ endif()
 
 # When we find threads, prefer -pthread option.
 set(THREADS_PREFER_PTHREAD_FLAG ON)
-
-# Include own CMake modules in search path.
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 # Build paths.
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -32,14 +33,15 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # Generate a .json file with full compilation command for each file.
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 
-
-# compilation flags
-#TODO: move these to target-specific bits
-include("CompilerOptions")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXXOPT_DEBUG} ${CXXOPT_CXX11} ${CXXOPT_PTHREAD} ${CXXOPT_WALL}")
-
 # Used to marshall definitions, include paths and linkage based on configuration state:
-add_library(libarbor_deps INTERFACE)
+add_library(arbor_deps INTERFACE)
+
+# Compiler options common to library, examples, tests, etc.
+
+set(CMAKE_CXX_STANDARD 11)
+
+include("CompilerOptions")
+add_compile_options(${CXXOPT_DEBUG} ${CXXOPT_WALL})
 
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
@@ -64,14 +66,14 @@ set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
 set(ARB_SYSTEM_TYPE "Generic" CACHE STRING "Choose a system type to customize flags")
 set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 
-# # Note: Disabling auto-rebuild of modules is only relevant in
-# # some specific development contexts, and should normally be
-# # left enabled.
-# 
-# option(ARB_AUTO_RUN_MODCC_ON_CHANGES
-#   "Rerun modcc compiler whenever *.mod file or modcc compiler change" ON)
-# mark_as_advanced(ARB_AUTO_RUN_MODCC_ON_CHANGES)
+# Generate validation data for validation tests?
 
+option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
+
+# Where to generate and find validation data?
+
+set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
+  "location of generated validation data")
 
 #----------------------------------------------------------
 # Configure-time features for Arbor:
@@ -82,6 +84,10 @@ set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
 set(ARB_DISTRIBUTED_MODEL "serial" CACHE STRING "set the global communication model, one of serial/mpi/dryrun")
 set_property(CACHE ARB_DISTRIBUTED_MODEL PROPERTY STRINGS serial mpi dryrun)
+
+option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
+
+set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
 
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
@@ -97,26 +103,24 @@ mark_as_advanced(ARB_WITH_TRACE)
 # Set up flags and dependencies for library target:
 #----------------------------------------------------------
 
-# System-specific defines
-#-------------------------
-
-if(${ARB_SYSTEM_TYPE} MATCHES "Cray")
-    # User should also enable dynamic linking by setting the environment variable:
-    #   CRAYPE_LINK_TYPE=dynamic
-    add_definitions(-DARB_HAVE_CRAY)
+# Target microarchitecture for building arbor libraries, tests and examples
+#---------------------------------------------------------------------------
+if(ARB_ARCH)
+    set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
+    target_compile_options(arbor_deps INTERFACE ${ARB_CXXOPT_ARCH})
 endif()
 
 # Profiling and test features
 #-----------------------------
 
 if(ARB_WITH_PROFILING)
-    target_compile_definitions(libarbor_deps ARB_HAVE_PROFILING)
+    target_compile_definitions(arbor_deps ARB_HAVE_PROFILING)
 endif()
 if(ARB_WITH_ASSERTIONS)
-    target_compile_definitions(libarbor_deps ARB_HAVE_ASSERTIONS)
+    target_compile_definitions(arbor_deps ARB_HAVE_ASSERTIONS)
 endif()
 if(ARB_WITH_TRACE)
-    target_compile_definitions(libarbor_deps ARB_HAVE_TRACE)
+    target_compile_definitions(arbor_deps ARB_HAVE_TRACE)
 endif()
 
 # Threading model
@@ -125,7 +129,6 @@ endif()
 if(ARB_THREADING_MODEL MATCHES "tbb")
     if(ARB_PRIVATE_TBBLIB)
         # Build and link against a local copy of TBB:
-
         include(GitSubmodule) # required for check_git_submodule
         check_git_submodule(tbb "${CMAKE_SOURCE_DIR}/tbb")
         if(NOT tbb_avail)
@@ -138,20 +141,20 @@ if(ARB_THREADING_MODEL MATCHES "tbb")
 
         add_subdirectory(tbb)
 
-        target_link_libraries(libarbor_deps INTERFACE tbb_static tbbmalloc_static)
-        target_include_directories(libarbor_deps SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/tbb/include)
+        target_link_libraries(arbor_deps INTERFACE tbb_static tbbmalloc_static)
+        target_include_directories(arbor_deps SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/tbb/include)
     else()
         find_package(TBB REQUIRED)
-        target_link_libraries(libarbor_deps INTERFACE TBB::tbb)
+        target_link_libraries(arbor_deps INTERFACE TBB::tbb)
     endif()
-    target_compile_definitions(libarbor_deps INTERFACE ARB_HAVE_TBB)
+    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_TBB)
 
 elseif(ARB_THREADING_MODEL MATCHES "cthread")
     set(ARB_WITH_CTHREAD TRUE)
 
     find_package(Threads REQUIRED)
-    target_compile_definitions(libarbor_deps ARB_HAVE_CTHREAD)
-    target_link_libraries(libarbor_deps INTERFACE Threads::Threads)
+    target_compile_definitions(arbor_deps ARB_HAVE_CTHREAD)
+    target_link_libraries(arbor_deps INTERFACE Threads::Threads)
 
 endif()
 
@@ -162,18 +165,18 @@ if(ARB_DISTRIBUTED_MODEL MATCHES "mpi")
     # BGQ specific flags
     if(${ARB_SYSTEM_TYPE} MATCHES "BGQ" )
         # On BGQ, set CXX to the mpi wrapper, and pass it a static
-        target_compile_definitions(libarbor_deps INTERFACE MPICH2_CONST=const)
+        target_compile_definitions(arbor_deps INTERFACE MPICH2_CONST=const)
         set(MPI_FOUND TRUE)
     else()
         find_package(MPI REQUIRED CXX)
         target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
     endif()
 
-    target_compile_definitions(libarbor_deps INTERFACE ARB_HAVE_MPI)
+    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_MPI)
     set(ARB_WITH_MPI TRUE)
 
 elseif(ARB_DISTRIBUTED_MODEL MATCHES "dryrun")
-    target_compile_definitions(libarbor_deps INTERFACE ARB_HAVE_DRYRUN)
+    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_DRYRUN)
     set(ARB_WITH_DRYRUN TRUE)
 
 elseif(ARB_DISTRIBUTED_MODEL MATCHES "serial")
@@ -196,10 +199,10 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
     enable_language(CUDA)
     set(ARB_WITH_CUDA TRUE)
 
-    target_compile_options(libarbor_deps INTERFACE
+    target_compile_options(arbor_deps INTERFACE
         $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=integer_sign_change
         $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=unsigned_compare_with_zero)
-    target_compile_definitions(libarbor_deps ARB_HAVE_GPU)
+    target_compile_definitions(arbor_deps ARB_HAVE_GPU)
 
     if(ARB_GPU_MODEL MATCHES "K20")
         set(cuda_arch sm_35)
@@ -214,9 +217,9 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
         message(FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
     endif()
 
-    target_compile_options(libarbor_deps INTERFACE
+    target_compile_options(arbor_deps INTERFACE
         $<$<COMPILE_LANGUAGE:CUDA>:-arch=${cuda_arch})
-    target_compile_definitions(libarbor_deps ARB_CUDA_ARCH=${arb_cuda_arch})
+    target_compile_definitions(arbor_deps ARB_CUDA_ARCH=${arb_cuda_arch})
 endif()
 
 # Use libunwind if available for pretty printing stack traces
@@ -224,8 +227,8 @@ endif()
 
 find_package(Unwind)
 if(Unwind_FOUND)
-    target_link_libraries(libarbor_deps Unwind::unwind)
-    target_compile_definitions(libarbor_deps ARB_WITH_UNWIND)
+    target_link_libraries(arbor_deps Unwind::unwind)
+    target_compile_definitions(arbor_deps ARB_WITH_UNWIND)
 endif()
 
 # Build and use modcc unless explicit path given
@@ -241,43 +244,28 @@ else()
     set(modcc $<TARGET_FILE:modcc>)
 endif()
 
-#----------------------------------------------------------
-# prepare list of libraries/includes needed by external libs
-#----------------------------------------------------------
-
-# TODO: Replace with public include directories for libarbor:
-# i.e. $<INSTALL_INTERFACE:include> $<BUILD_INTERFACE:.../include>
-set(EXTERNAL_LIBRARIES "")
-# TODO: Replace with interface libraries on libarbor target:
-set(EXTERNAL_INCLUDES "")
-
 
 #----------------------------------------------------------
-# Modcc vectorization target
+# Configure targets in sub-directories.
 #----------------------------------------------------------
-option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
-#----------------------------------------------------------
-# Target microarchitecture for building arbor libraries
-#----------------------------------------------------------
-set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
-if(ARB_ARCH)
-    # Sets CXXOPT_ARCH variable accordingly:
-    set_arch_target("${ARB_ARCH}")
+add_subdirectory(arbor)        # Library source, mechanisms
+add_subdirectory(tests)        # Unit and validation tests
+add_subdirectory(example)
+#add_subdirectory(lmorpho)
+add_subdirectory(doc)
+
+if(ARB_BUILD_VALIDATION_DATA)
+    add_subdirectory(validation)
 endif()
 
 
-#----------------------------------------------------------
-# Validation data generation
-#----------------------------------------------------------
-# destination directory for generated data
-set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
-  "location of generated validation data")
 
 #----------------------------------------------------------
 # Whether to build validation data
 #----------------------------------------------------------
-# turn off by default
+# turn off by default == TODO move to validation dir
+
 option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
 if (ARB_BUILD_VALIDATION_DATA)
     # Whether to attempt to use julia to build validation data
@@ -298,51 +286,5 @@ if (ARB_BUILD_VALIDATION_DATA)
     else()
         set(ARB_BUILD_NRN_VALIDATION_DATA TRUE)
     endif()
-endif()
-
-#----------------------------------------------------------
-# Setup include dirs
-#----------------------------------------------------------
-include_directories(
-    "${PROJECT_SOURCE_DIR}/tclap"
-    "${PROJECT_SOURCE_DIR}/include"
-    "${PROJECT_SOURCE_DIR}/src"
-    "${PROJECT_SOURCE_DIR}/modcc"
-    "${PROJECT_SOURCE_DIR}")
-if(EXTERNAL_INCLUDES)
-  include_directories("${EXTERNAL_INCLUDES}")
-endif()
-
-#----------------------------------------------------------
-# Setup subdirs
-#----------------------------------------------------------
-# only include validation data if flag is set
-if(ARB_BUILD_VALIDATION_DATA)
-    add_subdirectory(validation)
-endif()
-
-# only compile modcc if it is not provided externally
-if(NOT use_external_modcc)
-    add_subdirectory(modcc)
-endif()
-
-#----------------------------------------------------------
-# set up for targets that require git submodules.
-#----------------------------------------------------------
-include(GitSubmodule) # required for check_git_submodule
-include(ErrorTarget)  # reguired for add_error_target
-check_git_submodule(rtdtheme "${PROJECT_SOURCE_DIR}/doc/rtd_theme")
-
-add_subdirectory(src)
-add_subdirectory(mechanisms) # after src path so that gpu_mechanism library is last on link line
-add_subdirectory(tests)
-add_subdirectory(example)
-add_subdirectory(lmorpho)
-if (rtdtheme_avail)
-    add_subdirectory(doc)
-else()
-    add_error_target( docs
-        "Generating Sphinx documentation"
-        "The git submodule for read the docs is not available")
 endif()
 

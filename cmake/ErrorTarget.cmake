@@ -4,8 +4,10 @@
 #   message : the error message
 
 function(add_error_target name comment message)
-    add_custom_target(${name}
-        COMMAND echo "  Error: ${message}."
-        COMMAND exit 1
-        COMMENT "${comment}")
+    if (NOT TARGET ${name})
+        add_custom_target(${name}
+            COMMAND echo "  Error: ${message}."
+            COMMAND exit 1
+            COMMENT "${comment}")
+    endif()
 endfunction()

@@ -3,8 +3,11 @@
 include("PassiveCable.jl")
 
 using JSON
-using SIUnits.ShortUnits
+using Unitful
+using Unitful.DefaultSymbols
 using PassiveCable
+
+scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
 # This should run the same effective model
 # as rallpack1, but with differing
@@ -42,24 +45,25 @@ function run_cable(x_prop, ts)
 end
 
 function run_rallpack1(x_prop, ts)
-    return [rallpack1(0.001*x_prop, t/s)*V for t in ts]
+    return [rallpack1(0.001*x_prop, scale(t, 1s))*V for t in ts]
 end
 
 # Generate traces at x=0, x=0.3L, x=L
 
 ts = collect(0s: 0.025ms: 250ms)
+
 trace = Dict(
     :name => "membrane voltage",
     :sim => "numeric",
     :model => "rallpack1",
     :units => "mV",
     :data => Dict(
-        :time => map(t->t/ms, ts),
-        Symbol("cable.x0.0") => map(v->v/mV, run_cable(0, ts)),
-        Symbol("cable.x0.3") => map(v->v/mV, run_cable(0.3, ts)),
-        Symbol("cable.x1.0") => map(v->v/mV, run_cable(1.0, ts))
+        :time => scale.(ts, 1ms),
+        Symbol("cable.x0.0") => scale.(run_cable(0, ts), 1mV),
+        Symbol("cable.x0.3") => scale.(run_cable(0.3, ts), 1mV),
+        Symbol("cable.x1.0") => scale.(run_cable(1.0, ts), 1mV)
     )
 )
 
-println(JSON.json([trace]))
+ println(JSON.json([trace]))
 

@@ -5,7 +5,7 @@
 namespace arb {
 namespace hw {
 
-#ifdef ARB_HAVE_CRAY
+// Currently only supporting Cray PM counters.
 
 energy_size_type energy() {
     energy_size_type result = energy_size_type(-1);
@@ -17,14 +17,6 @@ energy_size_type energy() {
 
     return result;
 }
-
-#else
-
-energy_size_type energy() {
-    return -1;
-}
-
-#endif
 
 } // namespace hw
 } // namespace arb

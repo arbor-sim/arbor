@@ -3,8 +3,11 @@
 include("HHChannels.jl")
 
 using JSON
-using SIUnits.ShortUnits
+using Unitful
+using Unitful.DefaultSymbols
 using HHChannels
+
+scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
 radius = 18.8µm/2
 area = 4*pi*radius^2
@@ -18,8 +21,8 @@ trace = Dict(
     :model => "soma",
     :units => "mV",
     :data => Dict(
-        :time => map(t->t/ms, ts),
-        Symbol("soma.mid") => map(v->v/mV, vs)
+        :time => scale.(ts, 1ms),
+        Symbol("soma.mid") => scale.(vs, 1mV)
     )
 )
 

@@ -1,9 +1,9 @@
 include(CMakeParseArguments)
 
-# Uses CMake variables modcc and use_external_modcc as set in top level CMakeLists.txt
+# If a MODCC executable is explicitly provided, don't make the in-tree modcc a dependency.
 
 function(build_modules)
-    cmake_parse_arguments(build_modules "" "TARGET;SOURCE_DIR;DEST_DIR;MECH_SUFFIX" "MODCC_FLAGS;GENERATES" ${ARGN})
+    cmake_parse_arguments(build_modules "" "MODCC;TARGET;SOURCE_DIR;DEST_DIR;MECH_SUFFIX" "MODCC_FLAGS;GENERATES" ${ARGN})
 
     foreach(mech ${build_modules_UNPARSED_ARGUMENTS})
         set(mod "${build_modules_SOURCE_DIR}/${mech}.mod")
@@ -14,8 +14,11 @@ function(build_modules)
         endforeach()
 
         set(depends "${mod}")
-        if(NOT use_external_modcc)
+        if(build_modules_MODCC)
+            set(modcc_bin ${build_modules_MODCC_FLAGS})
+        else()
             list(APPEND depends modcc)
+            set(modcc_bin $<TARGET_FILE:modcc>)
         endif()
 
         set(flags ${build_modules_MODCC_FLAGS} -o "${out}")
@@ -27,7 +30,7 @@ function(build_modules)
             OUTPUT ${generated}
             DEPENDS ${depends}
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-            COMMAND ${modcc} ${flags} ${mod}
+            COMMAND ${modcc_bin} ${flags} ${mod}
             COMMENT "modcc generating: ${generated}"
         )
         set_source_files_properties(${generated}  PROPERTIES GENERATED TRUE)
@@ -37,7 +40,7 @@ function(build_modules)
     # Fake target to always trigger .mod -> .hpp/.cu dependencies because CMake
     if (build_modules_TARGET)
         set(depends ${all_mod_hpps})
-        if(NOT use_external_modcc)
+        if(NOT build_modules_MODCC)
             list(APPEND depends modcc)
         endif()
         add_custom_target(${build_modules_TARGET} DEPENDS ${depends})

@@ -1,9 +1,7 @@
 # Compiler-aware compiler options
 
 set(CXXOPT_DEBUG "-g")
-set(CXXOPT_PTHREAD "-pthread")
 set(CXXOPT_CXX11 "-std=c++11")
-set(CXXOPT_WALL "-Wall")
 
 # CMake (at least sometimes) misidentifies XL 13 for Linux as Clang.
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -17,59 +15,67 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "XL")
-    # Disable 'missing-braces' warning: this will inappropriately
-    # flag initializations such as
-    #     std::array<int,3> a={1,2,3};
-    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
-
     # CMake, bless its soul, likes to insert this unsupported flag. Hilarity ensues.
     string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CXXOPT_KNL "-march=knl")
-    set(CXXOPT_AVX2 "-mavx2 -mfma")
-    set(CXXOPT_AVX512 "-mavx512f -mavx512cd")
+# Warning options: disable specific spurious warnings as required.
 
-    # Disable 'missing-braces' warning: this will inappropriately
-    # flag initializations such as
-    #     std::array<int,3> a={1,2,3};
-    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-missing-braces")
+set(CXXOPT_WALL
+    "-Wall"
 
-    # Disable 'potentially-evaluated-expression' warning: this warns
-    # on expressions of the form `typeid(expr)` when `expr` has side
-    # effects.
-    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-potentially-evaluated-expression")
+    # XL C:
+    #
+    # * Disable 'missing-braces' warning: this will inappropriately
+    #   flag initializations such as
+    #       std::array<int,3> a={1,2,3};
 
-    # Clang is erroneously warning that T is an 'unused type alias' in code like this:
-    # struct X {
-    #     using T = decltype(expression);
-    #     T x;
-    # };
-    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-unused-local-typedef")
+    $<IF:$<CXX_COMPILER_ID:XL>,"-Wno-missing-braces",>
 
-    # Ignore warning if string passed to snprintf is not a string literal.
-    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-format-security")
-endif()
+    # Clang:
+    #
+    # * Disable 'potentially-evaluated-expression' warning: this warns
+    #   on expressions of the form `typeid(expr)` when `expr` has side
+    #   effects.
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    # Disable 'maybe-uninitialized' warning: this will be raised
-    # inappropriately in some uses of util::optional<T> when T
-    # is a primitive type.
-    set(CXXOPT_WALL "${CXXOPT_WALL} -Wno-maybe-uninitialized")
-endif()
+    $<IF:$<CXX_COMPILER_ID:Clang>,"-Wno-potentially-evaluated-expression",>
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
+    # * Clang erroneously warns that T is an 'unused type alias'
+    #   in code like this:
+    #       struct X {
+    #           using T = decltype(expression);
+    #           T x;
+    #       };
+
+    $<IF:$<CXX_COMPILER_ID:Clang>,"-Wno-unused-local-typedef",>
+
+    # * Ignore warning if string passed to snprintf is not a string literal.
+
+    $<IF:$<CXX_COMPILER_ID:Clang>,"-Wno-format-security",>
+
+    # GCC:
+    #
+    # * Disable 'maybe-uninitialized' warning: this will be raised
+    #   inappropriately in some uses of util::optional<T> when T
+    #   is a primitive type.
+
+    $<IF:$<CXX_COMPILER_ID:GNU>,"-Wno-maybe-uninitialized",)
+
+    # Intel:
+    #
     # Disable warning for unused template parameter
     # this is raised by a templated function in the json library.
-    set(CXXOPT_WALL "${CXXOPT_WALL} -wd488")
+
+    $<IF:$<CXX_COMPILER_ID:Intel>,"-wd488",)
+
 endif()
 
-# Set CXXOPT_ARCH in parent scope according to requested architecture.
+
+# Set ${optvar} in parent scope according to requested architecture.
 # Architectures are given by the same names that GCC uses for its
 # -mcpu or -march options.
 
-function(set_arch_target arch)
+function(set_arch_target optvar arch)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         # Correct compiler option unfortunately depends upon the target architecture family.
         # Extract this information from running the configured compiler with --verbose.
@@ -87,9 +93,9 @@ function(set_arch_target arch)
         # Use -mcpu for all supported targets _except_ for x86, where it should be -march.
 
         if(target_model MATCHES "x86" OR target_model MATCHES "amd64")
-            set(CXXOPT_ARCH "-march=${arch}")
+            set(arch_opt "-march=${arch}")
         else()
-            set(CXXOPT_ARCH "-mcpu=${arch}")
+            set(arch_opt "-mcpu=${arch}")
         endif()
 
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel")
@@ -124,9 +130,9 @@ function(set_arch_target arch)
         endif()
 
         if(tune)
-            set(CXXOPT_ARCH "-x${arch};-mtune=${tune}")
+            set(arch_opt "-x${arch};-mtune=${tune}")
         else()
-            set(CXXOPT_ARCH "-x${arch}")
+            set(arch_opt "-x${arch}")
         endif()
 
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "XL")
@@ -136,11 +142,11 @@ function(set_arch_target arch)
         # xlC, gcc, and clang all recognize power8 and power9 as architecture keywords.
 
         if(arch MATCHES "native")
-            set(CXXOPT_ARCH "-qarch=auto")
+            set(arch_opt "-qarch=auto")
         else()
-            set(CXXOPT_ARCH "-mcpu=${arch}")
+            set(arch_opt "-mcpu=${arch}")
         endif()
     endif()
 
-    set(CXXOPT_ARCH "${CXXOPT_ARCH}" PARENT_SCOPE)
+    set("${optvar}" "${arch_opt}" PARENT_SCOPE)
 endfunction()
