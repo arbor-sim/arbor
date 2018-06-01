@@ -43,9 +43,22 @@ function(add_validation_data)
 endfunction()
 
 
-if(ARB_BUILD_NRN_VALIDATION_DATA)
+# Only run Julia-based numeric validation data generators if Julia and required
+# modules are available.
+
+find_package(Julia COMPONENTS Sundials Unitful JSON)
+if(Julia_FOUND)
+    add_subdirectory(ref/numeric)
+else()
+    message(WARNING "julia and required packages not found: will not automatically build validation data sets from julia scripts")
+endif()
+
+
+# Only run NEURON-based generators if nrniv is found.
+
+find_program(Nnriv_EXECUTABLE nrniv)
+if(Nnriv_EXECUTABLE)
     add_subdirectory(ref/neuron)
 endif()
 
-add_subdirectory(ref/numeric)
 

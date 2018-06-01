@@ -240,32 +240,3 @@ if(ARB_BUILD_VALIDATION_DATA)
     add_subdirectory(validation)
 endif()
 
-
-
-#----------------------------------------------------------
-# Whether to build validation data
-#----------------------------------------------------------
-# turn off by default == TODO move to validation dir
-
-option(ARB_BUILD_VALIDATION_DATA "generate validation data" OFF)
-if (ARB_BUILD_VALIDATION_DATA)
-    # Whether to attempt to use julia to build validation data
-    find_program(JULIA_BIN julia)
-    if(JULIA_BIN STREQUAL "JULIA_BIN-NOTFOUND")
-        message(STATUS "julia not found; will not automatically build validation data sets from julia scripts")
-        set(ARB_BUILD_JULIA_VALIDATION_DATA FALSE)
-    else()
-        set(ARB_BUILD_JULIA_VALIDATION_DATA TRUE)
-    endif()
-
-    # Whether to attempt to use nrniv to build validation data
-    # (if we find nrniv, do)
-    find_program(NRNIV_BIN nrniv)
-    if(NRNIV_BIN STREQUAL "NRNIV_BIN-NOTFOUND")
-        message(STATUS "nrniv not found; will not automatically build NEURON validation data sets")
-        set(ARB_BUILD_NRN_VALIDATION_DATA FALSE)
-    else()
-        set(ARB_BUILD_NRN_VALIDATION_DATA TRUE)
-    endif()
-endif()
-
