@@ -25,6 +25,19 @@ bool is_terminal_pse(const postsynaptic_spike_event& e) {
     return e.time==terminal_time;
 }
 
+
+// The simplest possible generator that generates no events.
+// Declared ahead of event_generator so that it can be used as the default
+// generator.
+struct empty_generator {
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
+    }
+    void pop() {}
+    void reset() {}
+    void advance(time_type t) {};
+};
+
 // An event_generator generates a sequence of events to be delivered to a cell.
 // The sequence of events is always in ascending order, i.e. each event will be
 // greater than the event that proceded it, where events are ordered by:
@@ -123,16 +136,6 @@ private:
 
         Impl wrapped;
     };
-
-    struct empty_generator {
-        postsynaptic_spike_event front() {
-            return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
-        }
-        void pop() {}
-        void reset() {}
-        void advance(time_type t) {};
-    };
-
 };
 
 // Generator that feeds events that are specified with a vector.
@@ -200,7 +203,6 @@ struct seq_generator {
     }
 
 private:
-
     const Seq& events_;
     typename Seq::const_iterator it_;
 };
@@ -238,7 +240,6 @@ struct regular_generator {
     }
 
 private:
-
     cell_member_type target_;
     float weight_;
     regular_time_seq tseq_;

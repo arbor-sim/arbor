@@ -11,6 +11,14 @@
 
 namespace arb {
 
+
+struct empty_time_seq {
+    time_type front() { return terminal_time; }
+    void pop() {}
+    void reset() {}
+    void advance(time_type t) {};
+};
+
 // An time_sequence generates a sequence of time points.
 // The sequence of times is always monotonically increasing, i.e. each time is
 // not earlier than the time that proceded it.
@@ -20,7 +28,7 @@ public:
     // copy, move and constructor interface
     //
 
-    time_seq(): time_seq(dummy_seq()) {}
+    time_seq(): time_seq(empty_time_seq()) {}
 
     template <
         typename Impl,
@@ -106,14 +114,6 @@ private:
 
         Impl wrapped;
     };
-
-    struct dummy_seq {
-        time_type front() { return terminal_time; }
-        void pop() {}
-        void reset() {}
-        void advance(time_type t) {};
-    };
-
 };
 
 // Sequence of time points prescribed by a vector
