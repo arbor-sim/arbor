@@ -76,7 +76,7 @@ Class Documentation
     Defines the interface used by Arbor to query and perform collective
     operations on distributed systems.
 
-    Uses value-sematic type erasure. The main benefit of this approach is that
+    Uses value-semantic type erasure. The main benefit of this approach is that
     classes that implement the interface can use duck typing instead of
     deriving from :cpp:class:`distributed_context`.
 
