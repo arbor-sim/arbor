@@ -5,6 +5,7 @@
 #include <lif_cell_group.hpp>
 #include <load_balance.hpp>
 #include <simulation.hpp>
+#include <spike_source_cell_group.hpp>
 #include <recipe.hpp>
 
 using namespace arb;
@@ -57,7 +58,7 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return time_seq(vector_time_seq({0.f}));
+            return spike_source_cell{vector_time_seq({0.f})};
         }
         // LIF cell.
         return lif_cell_description();

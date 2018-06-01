@@ -16,8 +16,8 @@ namespace{
         gen.reset();
         gen.advance(t0);
         std::vector<time_type> v;
-        while (gen.next()<t1) {
-            v.push_back(gen.next());
+        while (gen.front()<t1) {
+            v.push_back(gen.front());
             gen.pop();
         }
         return v;
@@ -31,18 +31,18 @@ TEST(time_seq, vector) {
 
     // Test pop, next and reset.
     for (auto t: times) {
-        EXPECT_EQ(t, seq.next());
+        EXPECT_EQ(t, seq.front());
         seq.pop();
     }
     seq.reset();
     for (auto t: times) {
-        EXPECT_EQ(t, seq.next());
+        EXPECT_EQ(t, seq.front());
         seq.pop();
     }
 
     // The loop above should have drained all samples from seq, so we expect
-    // that the next() time sample will be max_time.
-    EXPECT_EQ(seq.next(), max_time);
+    // that the front() time sample will be terminal_time.
+    EXPECT_EQ(seq.front(), terminal_time);
 }
 
 TEST(time_seq, regular) {
@@ -52,12 +52,12 @@ TEST(time_seq, regular) {
 
     // Test pop, next and reset.
     for (auto e:  {2.0, 2.5, 3.0, 3.5, 4.0, 4.5}) {
-        EXPECT_EQ(e, seq.next());
+        EXPECT_EQ(e, seq.front());
         seq.pop();
     }
     seq.reset();
     for (auto e:  {2.0, 2.5, 3.0, 3.5, 4.0, 4.5}) {
-        EXPECT_EQ(e, seq.next());
+        EXPECT_EQ(e, seq.front());
         seq.pop();
     }
     seq.reset();
@@ -66,11 +66,11 @@ TEST(time_seq, regular) {
 
     seq.advance(10.1);
     // next event greater ≥ 10.1 should be 10.5
-    EXPECT_EQ(seq.next(), time_type(10.5));
+    EXPECT_EQ(seq.front(), time_type(10.5));
 
     seq.advance(12);
     // next event greater ≥ 12   should be 12
-    EXPECT_EQ(seq.next(), time_type(12));
+    EXPECT_EQ(seq.front(), time_type(12));
 }
 
 // Test for rounding problems with large time values and the regular sequence
@@ -126,8 +126,8 @@ TEST(time_seq, poisson) {
     pseq seq(G, t0, lambda);
 
     std::vector<time_type> int1;
-    while (seq.next()<t1) {
-        int1.push_back(seq.next());
+    while (seq.front()<t1) {
+        int1.push_back(seq.front());
         seq.pop();
     }
     // Test that the output is sorted
@@ -136,8 +136,8 @@ TEST(time_seq, poisson) {
     // Reset and generate the same sequence of time points
     seq.reset();
     std::vector<time_type> int2;
-    while (seq.next()<t1) {
-        int2.push_back(seq.next());
+    while (seq.front()<t1) {
+        int2.push_back(seq.front());
         seq.pop();
     }
 
@@ -161,13 +161,13 @@ TEST(time_seq, poisson_terminates) {
 
     std::vector<time_type> sequence;
     // pull samples off the sequence well past the end of the end time t1
-    while (seq.next()<t2) {
-        sequence.push_back(seq.next());
+    while (seq.front()<t2) {
+        sequence.push_back(seq.front());
         seq.pop();
     }
 
     // the sequence should be exhausted
-    EXPECT_EQ(seq.next(), max_time);
+    EXPECT_EQ(seq.front(), terminal_time);
 
     // the last sample should be less than the end time
     EXPECT_TRUE(sequence.back()<t1);

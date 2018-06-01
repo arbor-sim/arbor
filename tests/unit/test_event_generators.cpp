@@ -12,8 +12,8 @@ namespace{
         gen.reset();
         gen.advance(t0);
         pse_vector v;
-        while (gen.next().time<t1) {
-            v.push_back(gen.next());
+        while (gen.front().time<t1) {
+            v.push_back(gen.front());
             gen.pop();
         }
         return v;
@@ -42,21 +42,21 @@ TEST(event_generators, regular) {
 
     // Test pop, next and reset.
     for (auto e:  expected({2.0, 2.5, 3.0, 3.5, 4.0, 4.5})) {
-        EXPECT_EQ(e, gen.next());
+        EXPECT_EQ(e, gen.front());
         gen.pop();
     }
     gen.reset();
     for (auto e:  expected({2.0, 2.5, 3.0, 3.5, 4.0, 4.5})) {
-        EXPECT_EQ(e, gen.next());
+        EXPECT_EQ(e, gen.front());
         gen.pop();
     }
     gen.reset();
 
     // Test advance
     gen.advance(10.1);
-    EXPECT_EQ(gen.next().time, time_type(10.5));
+    EXPECT_EQ(gen.front().time, time_type(10.5));
     gen.advance(12);
-    EXPECT_EQ(gen.next().time, time_type(12));
+    EXPECT_EQ(gen.front().time, time_type(12));
 }
 
 TEST(event_generators, seq) {
@@ -78,17 +78,17 @@ TEST(event_generators, seq) {
 
     // Test pop, next and reset.
     for (auto e: in) {
-        EXPECT_EQ(e, gen.next());
+        EXPECT_EQ(e, gen.front());
         gen.pop();
     }
     gen.reset();
     for (auto e: in) {
-        EXPECT_EQ(e, gen.next());
+        EXPECT_EQ(e, gen.front());
         gen.pop();
     }
     // The loop above should have drained all events from gen, so we expect
-    // that the next() event will be the special terminal_pse event.
-    EXPECT_EQ(gen.next(), terminal_pse());
+    // that the front() event will be the special terminal_pse event.
+    EXPECT_TRUE(is_terminal_pse(gen.front()));
 
     gen.reset();
 
@@ -142,8 +142,8 @@ TEST(event_generators, poisson) {
     pgen gen(target, weight, G, t0, lambda);
 
     pse_vector int1;
-    while (gen.next().time<t1) {
-        int1.push_back(gen.next());
+    while (gen.front().time<t1) {
+        int1.push_back(gen.front());
         gen.pop();
     }
     // Test that the output is sorted
@@ -152,8 +152,8 @@ TEST(event_generators, poisson) {
     // Reset and generate the same sequence of events
     gen.reset();
     pse_vector int2;
-    while (gen.next().time<t1) {
-        int2.push_back(gen.next());
+    while (gen.front().time<t1) {
+        int2.push_back(gen.front());
         gen.pop();
     }
 

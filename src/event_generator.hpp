@@ -12,14 +12,17 @@
 
 namespace arb {
 
-inline
-postsynaptic_spike_event terminal_pse() {
-    return postsynaptic_spike_event{cell_member_type{0,0}, max_time, 0};
+// Generate a postsynaptic spike event that has delivery time set to
+// terminal_time. Such events are used as senitels, to indicate the
+// end of a sequence.
+inline constexpr
+postsynaptic_spike_event make_terminal_pse() {
+    return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
 }
 
 inline
 bool is_terminal_pse(const postsynaptic_spike_event& e) {
-    return e.time==max_time;
+    return e.time==terminal_time;
 }
 
 // An event_generator generates a sequence of events to be delivered to a cell.
@@ -34,7 +37,7 @@ public:
     // copy, move and constructor interface
     //
 
-    event_generator(): event_generator(dummy_generator()) {}
+    event_generator(): event_generator(empty_generator()) {}
 
     template <typename Impl>
     event_generator(Impl&& impl):
@@ -59,10 +62,10 @@ public:
 
     // Get the current event in the stream.
     // Does not modify the state of the stream, i.e. multiple calls to
-    // next() will return the same event in the absence of calls to pop(),
+    // front() will return the same event in the absence of calls to pop(),
     // advance() or reset().
-    postsynaptic_spike_event next() {
-        return impl_->next();
+    postsynaptic_spike_event front() {
+        return impl_->front();
     }
 
     // Move the generator to the next event in the stream.
@@ -75,7 +78,7 @@ public:
         impl_->reset();
     }
 
-    // Update state of the generator such that the event returned by next() is
+    // Update state of the generator such that the event returned by front() is
     // the first event with delivery time >= t.
     void advance(time_type t) {
         return impl_->advance(t);
@@ -83,7 +86,7 @@ public:
 
 private:
     struct interface {
-        virtual postsynaptic_spike_event next() = 0;
+        virtual postsynaptic_spike_event front() = 0;
         virtual void pop() = 0;
         virtual void advance(time_type t) = 0;
         virtual void reset() = 0;
@@ -98,8 +101,8 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        postsynaptic_spike_event next() override {
-            return wrapped.next();
+        postsynaptic_spike_event front() override {
+            return wrapped.front();
         }
 
         void pop() override {
@@ -121,8 +124,10 @@ private:
         Impl wrapped;
     };
 
-    struct dummy_generator {
-        postsynaptic_spike_event next() { return terminal_pse(); }
+    struct empty_generator {
+        postsynaptic_spike_event front() {
+            return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
+        }
         void pop() {}
         void reset() {}
         void advance(time_type t) {};
@@ -140,8 +145,8 @@ struct vector_backed_generator {
         tseq_(std::move(samples))
     {}
 
-    postsynaptic_spike_event next() {
-        return postsynaptic_spike_event{target_, tseq_.next(), weight_};
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {
@@ -176,8 +181,8 @@ struct seq_generator {
         EXPECTS(util::is_sorted(events_));
     }
 
-    postsynaptic_spike_event next() {
-        return it_==events_.end()? terminal_pse(): *it_;
+    postsynaptic_spike_event front() {
+        return it_==events_.end()? make_terminal_pse(): *it_;
     }
 
     void pop() {
@@ -210,14 +215,14 @@ struct regular_generator {
                       float weight,
                       time_type tstart,
                       time_type dt,
-                      time_type tstop=max_time):
+                      time_type tstop=terminal_time):
         target_(target),
         weight_(weight),
         tseq_(tstart, dt, tstop)
     {}
 
-    postsynaptic_spike_event next() {
-        return postsynaptic_spike_event{target_, tseq_.next(), weight_};
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {
@@ -250,7 +255,7 @@ struct poisson_generator {
                       RandomNumberEngine rng,
                       time_type tstart,
                       time_type rate_per_ms,
-                      time_type tstop=max_time):
+                      time_type tstop=terminal_time):
         target_(target),
         weight_(weight),
         tseq_(std::move(rng), tstart, rate_per_ms, tstop)
@@ -258,8 +263,8 @@ struct poisson_generator {
         reset();
     }
 
-    postsynaptic_spike_event next() {
-        return postsynaptic_spike_event{target_, tseq_.next(), weight_};
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {

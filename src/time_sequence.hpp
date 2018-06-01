@@ -49,13 +49,13 @@ public:
 
     // Get the current time in the stream.
     // Does not modify the state of the stream, i.e. multiple calls to
-    // next() will return the same time in the absence of calls to pop(),
+    // front() will return the same time in the absence of calls to pop(),
     // advance() or reset().
-    time_type next() {
-        return impl_->next();
+    time_type front() {
+        return impl_->front();
     }
 
-    // Move the generator to the next time in the stream.
+    // Move the generator to the front time in the stream.
     void pop() {
         impl_->pop();
     }
@@ -65,7 +65,7 @@ public:
         impl_->reset();
     }
 
-    // Update state of the generator such that the time returned by next() is
+    // Update state of the generator such that the time returned by front() is
     // the first time with delivery time >= t.
     void advance(time_type t) {
         return impl_->advance(t);
@@ -73,7 +73,7 @@ public:
 
 private:
     struct interface {
-        virtual time_type next() = 0;
+        virtual time_type front() = 0;
         virtual void pop() = 0;
         virtual void advance(time_type t) = 0;
         virtual void reset() = 0;
@@ -88,8 +88,8 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        time_type next() override {
-            return wrapped.next();
+        time_type front() override {
+            return wrapped.front();
         }
         void pop() override {
             return wrapped.pop();
@@ -108,7 +108,7 @@ private:
     };
 
     struct dummy_seq {
-        time_type next() { return max_time; }
+        time_type front() { return terminal_time; }
         void pop() {}
         void reset() {}
         void advance(time_type t) {};
@@ -128,8 +128,8 @@ struct vector_time_seq {
         reset();
     }
 
-    time_type next() {
-        return it_==seq_.end()? max_time: *it_;
+    time_type front() {
+        return it_==seq_.end()? terminal_time: *it_;
     }
 
     void pop() {
@@ -156,16 +156,16 @@ private:
 struct regular_time_seq {
     regular_time_seq(time_type tstart,
                      time_type dt,
-                     time_type tstop=max_time):
+                     time_type tstop=terminal_time):
         step_(0),
         t_start_(tstart),
         dt_(dt),
         t_stop_(tstop)
     {}
 
-    time_type next() {
+    time_type front() {
         const auto t = time();
-        return t<t_stop_? t: max_time;
+        return t<t_stop_? t: terminal_time;
     }
 
     void pop() {
@@ -209,7 +209,7 @@ struct poisson_time_seq {
     poisson_time_seq(RandomNumberEngine rng,
                      time_type tstart,
                      time_type rate_per_ms,
-                     time_type tstop=max_time):
+                     time_type tstop=terminal_time):
         exp_(rate_per_ms),
         reset_state_(std::move(rng)),
         t_start_(tstart),
@@ -218,8 +218,8 @@ struct poisson_time_seq {
         reset();
     }
 
-    time_type next() {
-        return next_<t_stop_? next_: max_time;
+    time_type front() {
+        return next_<t_stop_? next_: terminal_time;
     }
 
     void pop() {
