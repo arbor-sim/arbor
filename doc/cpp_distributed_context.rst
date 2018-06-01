@@ -154,7 +154,7 @@ Class Documentation
 
 .. cpp:class:: local_context
 
-    Implements the :cpp:class:`arb::distributed_context` interface
+    Implements the :cpp:class:`arb::distributed_context` interface for
     non-distributed computation.
 
     This is the default :cpp:class:`arb::distributed_context`, and should be used
@@ -172,7 +172,7 @@ Class Documentation
 
 .. cpp:class:: mpi_context
 
-    Implements the :cpp:class:`arb::distributed_context` interface
+    Implements the :cpp:class:`arb::distributed_context` interface for
     distributed computation using the MPI message passing library.
 
     **Constructor:**
