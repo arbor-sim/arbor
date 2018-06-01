@@ -1,3 +1,5 @@
+.. _cppdomdec:
+
 Domain Decomposition
 ====================
 

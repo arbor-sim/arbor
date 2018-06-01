@@ -1,3 +1,5 @@
+.. _cppsimulation:
+
 Simulations
 ===========
 
@@ -8,12 +10,15 @@ To build a simulation the following are needed:
 
     * An :cpp:class:`arb::recipe` that describes the cells and connections
       in the model.
-    * An :cpp:class:`arb::hw::node_info` type that describes the hardware
+    * An :cpp:class:`arb::hw::node_info` that describes the CPU and GPU hardware
       resources on which the model will be run.
+    * An :cpp:class:`arb::distributed_context` that describes the distributed system
+      on which the model will run.
 
 The workflow to build a simulation is to first generate a
 :cpp:class:`arb::domain_decomposition` that describes the distribution of the model
-over the hardware, then build the simulation.
+over the local and distributed hardware resources (see :ref:`cppdomdec` and :ref:`cppdistcontext`),
+then build the simulation.
 
 .. container:: example-code
 

@@ -34,6 +34,17 @@ namespace arb {
 
 #define ARB_COLLECTIVE_TYPES_ float, double, int, std::uint32_t, std::uint64_t
 
+// distributed_context
+//
+// Defines the concept/interface for a distributed communication context.
+//
+// Uses value-semantic type erasure to define the interface, so that
+// types that implement the interface can use duck-typing, without having
+// to inherit from distributed_context.
+//
+// For the simplest example of a distributed_context implementation,
+// see local_context, which is the default context.
+
 class distributed_context {
 public:
     using spike_vector = std::vector<arb::spike>;
