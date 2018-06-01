@@ -6,6 +6,7 @@
 #include <backends/fvm_types.hpp>
 #include <backends/multicore/fvm.hpp>
 #include <backends/multicore/mechanism.hpp>
+#include <communication/distributed_context.hpp>
 #include <cell.hpp>
 #include <common_types.hpp>
 #include <fvm_lowered_cell.hpp>
@@ -329,8 +330,9 @@ TEST(fvm_lowered, derived_mechs) {
 
         float times[] = {10.f, 20.f};
 
-        auto decomp = partition_load_balance(rec, hw::node_info{1u, 0u});
-        simulation sim(rec, decomp);
+        distributed_context context;
+        auto decomp = partition_load_balance(rec, hw::node_info{1u, 0u}, &context);
+        simulation sim(rec, decomp, &context);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);
 
@@ -365,9 +367,9 @@ TEST(fvm_lowered, weighted_write_ion) {
     //
     // Geometry:
     //   soma 0: radius 5 µm
-    //   dend 1: 100 µm long, 1 µm diameter cynlinder
-    //   dend 2: 200 µm long, 1 µm diameter cynlinder
-    //   dend 3: 100 µm long, 1 µm diameter cynlinder
+    //   dend 1: 100 µm long, 1 µm diameter cylinder
+    //   dend 2: 200 µm long, 1 µm diameter cylinder
+    //   dend 3: 100 µm long, 1 µm diameter cylinder
     //
     // The radius of the soma is chosen such that the surface area of soma is
     // the same as a 100µm dendrite, which makes it easier to describe the

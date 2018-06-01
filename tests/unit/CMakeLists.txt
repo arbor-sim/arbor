@@ -75,6 +75,7 @@ set(test_sources
     test_segment.cpp
     test_schedule.cpp
     test_spike_source.cpp
+    test_local_context.cpp
     test_simd.cpp
     test_span.cpp
     test_spikes.cpp

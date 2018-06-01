@@ -60,6 +60,7 @@ void run_synapse_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
+    distributed_context context;
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
@@ -72,8 +73,8 @@ void run_synapse_test(
         // dend.end
         rec.add_probe(0, 0, cell_probe_address{{1, 1.0}, cell_probe_address::membrane_voltage});
 
-        auto decomp = partition_load_balance(rec, nd);
-        simulation sim(rec, decomp);
+        auto decomp = partition_load_balance(rec, nd, &context);
+        simulation sim(rec, decomp, &context);
 
         sim.inject_events(synthetic_events);
 

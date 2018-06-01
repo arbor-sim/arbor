@@ -48,9 +48,6 @@ endif()
 if(ARB_WITH_MPI)
     list(APPEND arbor_cxx_sources
         communication/mpi.cpp)
-elseif(ARB_WITH_DRYRUN)
-    list(APPEND arbor_cxx_sources
-        communication/dryrun_global_policy.cpp)
 endif()
 
 if(ARB_WITH_CTHREAD)

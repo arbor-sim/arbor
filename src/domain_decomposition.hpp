@@ -7,7 +7,6 @@
 
 #include <backends.hpp>
 #include <common_types.hpp>
-#include <communication/global_policy.hpp>
 #include <hardware/node_info.hpp>
 #include <recipe.hpp>
 #include <util/optional.hpp>
