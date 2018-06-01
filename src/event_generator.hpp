@@ -13,7 +13,7 @@
 namespace arb {
 
 // Generate a postsynaptic spike event that has delivery time set to
-// terminal_time. Such events are used as senitels, to indicate the
+// terminal_time. Such events are used as sentinels, to indicate the
 // end of a sequence.
 inline constexpr
 postsynaptic_spike_event make_terminal_pse() {
