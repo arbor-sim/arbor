@@ -88,7 +88,7 @@ public:
     util::unique_any get_cell_description(cell_gid_type i) const override {
         // The last 'cell' is a spike source cell.
         if (i == ncell_) {
-            return util::unique_any(time_seq(regular_time_seq(0.0, 0.1, 0.1)));
+            return util::unique_any(spike_source_cell{regular_time_seq(0.0, 0.1, 0.1)});
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...

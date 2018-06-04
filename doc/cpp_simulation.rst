@@ -1,3 +1,5 @@
+.. _cppsimulation:
+
 Simulations
 ===========
 
@@ -8,16 +10,22 @@ To build a simulation the following are needed:
 
     * An :cpp:class:`arb::recipe` that describes the cells and connections
       in the model.
-    * An :cpp:class:`arb::hw::node_info` type that describes the hardware
+    * An :cpp:class:`arb::hw::node_info` that describes the CPU and GPU hardware
       resources on which the model will be run.
+    * An :cpp:class:`arb::distributed_context` that describes the distributed system
+      on which the model will run.
 
 The workflow to build a simulation is to first generate a
 :cpp:class:`arb::domain_decomposition` that describes the distribution of the model
-over the hardware, then build the simulation.
+over the local and distributed hardware resources (see :ref:`cppdomdec` and :ref:`cppdistcontext`),
+then build the simulation.
 
 .. container:: example-code
 
     .. code-block:: cpp
+
+        // Get a communication context
+        arb::distributed_context context;
 
         // Make description of the hardware that the simulation will run on.
         arb::hw::node_info node;
@@ -29,10 +37,10 @@ over the hardware, then build the simulation.
 
         // Get a description of the partition the model over the cores
         // (and gpu if available) on node.
-        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, node);
+        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, node, &context);
 
         // Instatitate the simulation.
-        arb::simulation sim(recipe, decomp);
+        arb::simulation sim(recipe, decomp, &context);
 
 
 Class Documentation
@@ -47,9 +55,12 @@ Class Documentation
 
     Simulations take the following inputs:
 
-        * The **constructor** takes an :cpp:class:`arb::recipe` that describes
-          the model, and an :cpp:class:`arb::domain_decomposition` that
-          describes how the cells in the model are assigned to hardware resources.
+        * The **constructor** takes:
+            *   an :cpp:class:`arb::recipe` that describes the model;
+            *   an :cpp:class:`arb::domain_decomposition` that describes how the
+                cells in the model are assigned to hardware resources;
+            *   an :cpp:class:`arb::distributed_context` which performs communication
+                on distributed memory syustems.
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 
@@ -62,10 +73,6 @@ Class Documentation
 
     **Types:**
 
-    .. cpp:type:: communicator_type = communication::communicator<communication::global_policy>
-
-        Type used for distributed communication of spikes and global synchronization.
-
     .. cpp:type:: spike_export_function = std::function<void(const std::vector<spike>&)>
 
         User-supplied callack function used as a sink for spikes generated
@@ -74,7 +81,7 @@ Class Documentation
 
     **Constructor:**
 
-    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp)
+    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx)
 
     **Experimental inputs:**
 
@@ -92,8 +99,8 @@ Class Documentation
 
     .. cpp:function:: time_type run(time_type tfinal, time_type dt)
 
-        Run the simulation from current simulation time to :cpp:var:`tfinal`,
-        with maximum time step size :cpp:var:`dt`.
+        Run the simulation from current simulation time to :cpp:any:`tfinal`,
+        with maximum time step size :cpp:any:`dt`.
 
     .. cpp:function:: void set_binning_policy(binning_kind policy, time_type bin_interval)
 

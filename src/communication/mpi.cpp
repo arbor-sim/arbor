@@ -5,56 +5,73 @@
 namespace arb {
 namespace mpi {
 
-// global state
-namespace state {
-    // TODO: in case MPI_Init is never called, this will mimic one rank with rank 0.
-    // This is not ideal: calls to MPI-dependent features such as reductions will
-    // still fail, however this allows us to run all the unit tests until the
-    // run-time executors are implemented.
-    int size = 1;
-    int rank = 0;
-} // namespace state
+// global guard for initializing mpi.
 
-void init(int *argc, char ***argv) {
+scoped_guard::scoped_guard(int *argc, char ***argv) {
+    init(argc, argv);
+}
+
+scoped_guard::~scoped_guard() {
+    finalize();
+}
+
+// MPI exception class.
+
+mpi_error::mpi_error(const char* msg, int code):
+    error_code_(code)
+{
+    thread_local char buffer[MPI_MAX_ERROR_STRING];
+    int n;
+    MPI_Error_string(error_code_, buffer, &n);
+    message_ = "MPI error (";
+    message_ += buffer;
+    message_ += "): ";
+    message_ += msg;
+}
+
+void handle_mpi_error(const char* msg, int code) {
+    if (code!=MPI_SUCCESS) {
+        throw mpi_error(msg, code);
+    }
+}
+
+const char* mpi_error::what() const throw() {
+    return message_.c_str();
+}
+
+int mpi_error::error_code() const {
+    return error_code_;
+}
+
+void init(int* argc, char*** argv) {
     int provided;
 
     // initialize with thread serialized level of thread safety
     MPI_Init_thread(argc, argv, MPI_THREAD_SERIALIZED, &provided);
-    assert(provided>=MPI_THREAD_SERIALIZED);
 
-    MPI_Comm_rank(MPI_COMM_WORLD, &state::rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &state::size);
+    if(provided<MPI_THREAD_SERIALIZED) {
+        throw mpi_error("Unable to initialize MPI with MPI_THREAD_SERIALIZED", MPI_ERR_OTHER);
+    }
 }
 
 void finalize() {
     MPI_Finalize();
 }
 
-bool is_root() {
-    return state::rank == 0;
+int rank(MPI_Comm comm) {
+    int r;
+    handle_mpi_error("MPI_Rank", MPI_Comm_rank(comm, &r));
+    return r;
 }
 
-int rank() {
-    return state::rank;
+int size(MPI_Comm comm) {
+    int s;
+    handle_mpi_error("MPI_Size", MPI_Comm_size(comm, &s));
+    return s;
 }
 
-int size() {
-    return state::size;
-}
-
-void barrier() {
-    MPI_Barrier(MPI_COMM_WORLD);
-}
-
-bool ballot(bool vote) {
-    using traits = mpi_traits<char>;
-
-    char result;
-    char value = vote ? 1 : 0;
-
-    MPI_Allreduce(&value, &result, 1, traits::mpi_type(), MPI_LAND, MPI_COMM_WORLD);
-
-    return result;
+void barrier(MPI_Comm comm) {
+    handle_mpi_error("MPI_Barrier", MPI_Barrier(comm));
 }
 
 } // namespace mpi

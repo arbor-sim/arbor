@@ -46,8 +46,8 @@ tourney_tree::tourney_tree(std::vector<event_generator>& input):
     // Set the leaf nodes
     for (auto i=0u; i<leaves_; ++i) {
         heap_[leaf(i)] = i<n_lanes_?
-            key_val(i, input[i].next()):
-            key_val(i, terminal_pse()); // null leaf node
+            key_val(i, input[i].front()):
+            key_val(i, make_terminal_pse()); // null leaf node
     }
     // Walk the tree to initialize the non-leaf nodes
     setup(0);
@@ -62,7 +62,7 @@ void tourney_tree::print() const {
 }
 
 bool tourney_tree::empty() const {
-    return event(0).time == max_time;
+    return event(0).time == terminal_time;
 }
 
 bool tourney_tree::empty(time_type t) const {
@@ -81,7 +81,7 @@ void tourney_tree::pop() {
     // draw the next event from the input lane
     input_[lane].pop();
     // place event the leaf node for this lane
-    event(i) = input_[lane].next();
+    event(i) = input_[lane].front();
 
     // re-heapify the tree with a single walk from leaf to root
     while ((i=parent(i))) {

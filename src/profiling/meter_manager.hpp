@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include <communication/global_policy.hpp>
+#include <communication/distributed_context.hpp>
 #include <json/json.hpp>
 
 #include "meter.hpp"
@@ -26,7 +26,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&);
+    measurement(std::string, std::string, const std::vector<double>&, const distributed_context*);
 };
 
 class meter_manager {
@@ -42,10 +42,13 @@ private:
     std::vector<std::unique_ptr<meter>> meters_;
     std::vector<std::string> checkpoint_names_;
 
+    const distributed_context* glob_ctx_;
+
 public:
-    meter_manager();
+    meter_manager(const distributed_context* ctx);
     void start();
     void checkpoint(std::string name);
+    const distributed_context* context() const;
 
     const std::vector<std::unique_ptr<meter>>& meters() const;
     const std::vector<std::string>& checkpoint_names() const;
@@ -57,7 +60,6 @@ struct meter_report {
     std::vector<std::string> checkpoints;
     unsigned num_domains;
     unsigned num_hosts;
-    arb::communication::global_policy_kind communication_policy;
     std::vector<measurement> meters;
     std::vector<std::string> hosts;
 };

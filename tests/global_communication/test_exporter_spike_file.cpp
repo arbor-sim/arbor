@@ -1,4 +1,5 @@
 #include "../gtest.h"
+#include "test.hpp"
 
 #include <cstdio>
 #include <fstream>
@@ -7,16 +8,13 @@
 #include <vector>
 
 #include <communication/communicator.hpp>
-#include <communication/global_policy.hpp>
+#include <communication/distributed_context.hpp>
 #include <io/exporter_spike_file.hpp>
 #include <spike.hpp>
 
 class exporter_spike_file_fixture : public ::testing::Test {
 protected:
-    using communicator_type = arb::communication::global_policy;
-
-    using exporter_type =
-        arb::io::exporter_spike_file<communicator_type>;
+    using exporter_type = arb::io::exporter_spike_file;
 
     std::string file_name_;
     std::string path_;
@@ -27,7 +25,7 @@ protected:
         file_name_("spikes_exporter_spike_file_fixture"),
         path_("./"),
         extension_("gdf"),
-        index_(communicator_type::id())
+        index_(g_context.id())
     {}
 
     std::string get_standard_file_name() {
@@ -48,15 +46,19 @@ protected:
 };
 
 TEST_F(exporter_spike_file_fixture, constructor) {
-    exporter_type exporter(file_name_, path_, extension_, true);
+    // Create an exporter, and overwrite if neccesary.
+    exporter_type exporter(file_name_, path_, extension_, index_, true);
 
-    //test if the file exist and depending on over_write throw or delete
-    std::ifstream f(get_standard_file_name());
-    EXPECT_TRUE(f.good());
+    // Assert that the output file exists
+    {
+        std::ifstream f(get_standard_file_name());
+        ASSERT_TRUE(f.good());
+    }
 
-    // We now know the file exists, so create a new exporter with overwrite false
+    // Create a new exporter with overwrite false. This should throw, because an
+    // outut file with the same name is in use by exporter.
     try {
-        exporter_type exporter1(file_name_, path_, extension_, false);
+        exporter_type exporter1(file_name_, path_, extension_, index_, false);
         FAIL() << "expected a file already exists error";
     }
     catch (const std::runtime_error& err) {
@@ -84,7 +86,7 @@ TEST_F(exporter_spike_file_fixture, create_output_file_path) {
 
 TEST_F(exporter_spike_file_fixture, do_export) {
     {
-        exporter_type exporter(file_name_, path_, extension_);
+        exporter_type exporter(file_name_, path_, extension_, g_context.id());
 
         // Create some spikes
         std::vector<arb::spike> spikes;
