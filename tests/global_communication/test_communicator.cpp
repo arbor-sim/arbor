@@ -177,7 +177,7 @@ namespace {
         }
 
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2? cell_kind::cable1d_neuron: cell_kind::regular_spike_source;
+            return gid%2? cell_kind::cable1d_neuron: cell_kind::spike_source;
         }
 
         cell_size_type num_sources(cell_gid_type) const override { return 1; }
@@ -240,7 +240,7 @@ namespace {
             return {};
         }
         cell_kind get_cell_kind(cell_gid_type gid) const override {
-            return gid%2? cell_kind::cable1d_neuron: cell_kind::regular_spike_source;
+            return gid%2? cell_kind::cable1d_neuron: cell_kind::spike_source;
         }
 
         cell_size_type num_sources(cell_gid_type) const override { return 1; }

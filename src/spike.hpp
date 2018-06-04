@@ -21,7 +21,7 @@ struct basic_spike {
     {}
 
     friend bool operator==(const basic_spike& l, const basic_spike& r) {
-        return l.source==r.source && l.time==r.time;
+        return l.time==r.time && l.source==r.source;
     }
 };
 
