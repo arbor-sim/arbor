@@ -39,6 +39,7 @@ add_custom_command(
 
 # Make libraries with the implementations of the mechanism kernels.
 
+set(mech_sources ${catsrc})
 foreach(mech ${mechanisms})
     list(APPEND mech_sources ${mech_dir}/${mech}_cpu.cpp)
     if(ARB_WITH_CUDA)
@@ -47,4 +48,5 @@ foreach(mech ${mechanisms})
     endif()
 endforeach()
 
-set(arbor_mechanism_sources PARENT_SCOPE ${mech_sources})
+message(STATUS "debug: mech_sources: ${mech_sources}")
+set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)
