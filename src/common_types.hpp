@@ -68,10 +68,10 @@ using sample_size_type = std::int32_t;
 // group equal kinds in the same cell group.
 
 enum class cell_kind {
-    cable1d_neuron,   // Our own special mc neuron
-    lif_neuron,       // Leaky-integrate and fire neuron
-    spike_source,     // Cell that generates spikes at a user-supplied sequence of time points
-    benchmark,        // Proxy cell used for benchmarking
+    cable1d_neuron,   // Our own special mc neuron.
+    lif_neuron,       // Leaky-integrate and fire neuron.
+    spike_source,     // Cell that generates spikes at a user-supplied sequence of time points.
+    benchmark,        // Proxy cell used for benchmarking.
 };
 
 } // namespace arb
