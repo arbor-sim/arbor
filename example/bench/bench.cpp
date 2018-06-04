@@ -20,28 +20,20 @@
 
 using namespace arb;
 
-const char* usage_str =
-"[OPTION]...\n"
-"\n"
-"  -i, --input        json file with model parameters\n";
-
 int main(int argc, char** argv) {
     try {
-        // default serial context
         distributed_context context;
-
-        bench_params params = read_options(argc, argv);
-
         #ifdef ARB_HAVE_MPI
         mpi::scoped_guard guard(&argc, &argv);
         context = mpi_context(MPI_COMM_WORLD);
         #endif
-
         const bool is_root =  context.id()==0;
 
         std::cout << util::mask_stream(is_root);
+
+        bench_params params = read_options(argc, argv);
+
         std::cout << params << "\n";
-        //bench_params p("input.json");
 
         util::meter_manager meters(&context);
         meters.start();

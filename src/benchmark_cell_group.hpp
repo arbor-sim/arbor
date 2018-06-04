@@ -17,7 +17,7 @@ public:
 
     void reset() override;
 
-    void set_binning_policy(binning_kind policy, time_type bin_interval) override;
+    void set_binning_policy(binning_kind policy, time_type bin_interval) override {}
 
     const std::vector<spike>& spikes() const override;
 
@@ -25,9 +25,9 @@ public:
 
     void add_sampler(sampler_association_handle h, cell_member_predicate probe_ids, schedule sched, sampler_function fn, sampling_policy policy) override;
 
-    void remove_sampler(sampler_association_handle h) override;
+    void remove_sampler(sampler_association_handle h) override {}
 
-    void remove_all_samplers() override;
+    void remove_all_samplers() override {}
 
 private:
     time_type t_;

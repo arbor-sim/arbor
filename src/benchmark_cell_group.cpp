@@ -83,10 +83,4 @@ void benchmark_cell_group::add_sampler(sampler_association_handle h,
     std::logic_error("A benchmark_cell group doen't support sampling of internal state!");
 }
 
-void benchmark_cell_group::remove_sampler(sampler_association_handle h) {}
-
-void benchmark_cell_group::remove_all_samplers() {}
-
-void benchmark_cell_group::set_binning_policy(binning_kind policy, time_type bin_interval) {}
-
 } // namespace arb
