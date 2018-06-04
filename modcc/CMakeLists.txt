@@ -1,4 +1,5 @@
-set(MODCC_SOURCES
+set(modcc_sources
+
     astmanip.cpp
     errorvisitor.cpp
     expression.cpp
@@ -6,15 +7,14 @@ set(MODCC_SOURCES
     functioninliner.cpp
     lexer.cpp
     kineticrewriter.cpp
+    modcc.cpp
     module.cpp
     parser.cpp
     solvers.cpp
     symdiff.cpp
     symge.cpp
     token.cpp
-
     io/prefixbuf.cpp
-
     printer/cexpr_emit.cpp
     printer/cprinter.cpp
     printer/cudaprinter.cpp
@@ -22,15 +22,5 @@ set(MODCC_SOURCES
     printer/printerutil.cpp
 )
 
-include_directories("${PROJECT_SOURCE_DIR}/modcc")
-
-add_library(compiler ${MODCC_SOURCES})
-
-add_executable(modcc modcc.cpp)
-
-target_link_libraries(modcc LINK_PUBLIC compiler)
-
-set_target_properties(modcc
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/modcc"
-)
+add_executable(modcc ${modcc_sources})
+target_include_directories(modcc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)

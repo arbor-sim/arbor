@@ -26,6 +26,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 # Build paths.
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Installation paths. TODO
 # ...
@@ -113,13 +114,13 @@ endif()
 #-----------------------------
 
 if(ARB_WITH_PROFILING)
-    target_compile_definitions(arbor_deps ARB_HAVE_PROFILING)
+    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_PROFILING)
 endif()
 if(ARB_WITH_ASSERTIONS)
-    target_compile_definitions(arbor_deps ARB_HAVE_ASSERTIONS)
+    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_ASSERTIONS)
 endif()
 if(ARB_WITH_TRACE)
-    target_compile_definitions(arbor_deps ARB_HAVE_TRACE)
+    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_TRACE)
 endif()
 
 # Threading model
@@ -152,7 +153,7 @@ elseif(ARB_THREADING_MODEL MATCHES "cthread")
     set(ARB_WITH_CTHREAD TRUE)
 
     find_package(Threads REQUIRED)
-    target_compile_definitions(arbor_deps ARB_HAVE_CTHREAD)
+    target_compile_definitions(arbor_deps INTERFACE ARB_HAVE_CTHREAD)
     target_link_libraries(arbor_deps INTERFACE Threads::Threads)
 
 endif()
@@ -230,13 +231,14 @@ endif()
 # Configure targets in sub-directories.
 #----------------------------------------------------------
 
+add_subdirectory(modcc)
 add_subdirectory(arbor)        # Library source, mechanisms
-add_subdirectory(tests)        # Unit and validation tests
-add_subdirectory(example)
-#add_subdirectory(lmorpho)
-add_subdirectory(doc)
+# add_subdirectory(tests)        # Unit and validation tests
+# add_subdirectory(example)
+# add_subdirectory(lmorpho)
+# add_subdirectory(doc)
 
 if(ARB_BUILD_VALIDATION_DATA)
-    add_subdirectory(validation)
+#    add_subdirectory(validation)
 endif()
 

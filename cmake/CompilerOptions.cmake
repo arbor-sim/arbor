@@ -22,7 +22,7 @@ endif()
 # Warning options: disable specific spurious warnings as required.
 
 set(CXXOPT_WALL
-    "-Wall"
+    -Wall
 
     # XL C:
     #
@@ -30,7 +30,7 @@ set(CXXOPT_WALL
     #   flag initializations such as
     #       std::array<int,3> a={1,2,3};
 
-    $<IF:$<CXX_COMPILER_ID:XL>,"-Wno-missing-braces",>
+    $<IF:$<CXX_COMPILER_ID:XL>,-Wno-missing-braces,>
 
     # Clang:
     #
@@ -38,7 +38,7 @@ set(CXXOPT_WALL
     #   on expressions of the form `typeid(expr)` when `expr` has side
     #   effects.
 
-    $<IF:$<CXX_COMPILER_ID:Clang>,"-Wno-potentially-evaluated-expression",>
+    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-potentially-evaluated-expression,>
 
     # * Clang erroneously warns that T is an 'unused type alias'
     #   in code like this:
@@ -47,11 +47,11 @@ set(CXXOPT_WALL
     #           T x;
     #       };
 
-    $<IF:$<CXX_COMPILER_ID:Clang>,"-Wno-unused-local-typedef",>
+    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-unused-local-typedef,>
 
     # * Ignore warning if string passed to snprintf is not a string literal.
 
-    $<IF:$<CXX_COMPILER_ID:Clang>,"-Wno-format-security",>
+    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-format-security,>
 
     # GCC:
     #
@@ -59,16 +59,14 @@ set(CXXOPT_WALL
     #   inappropriately in some uses of util::optional<T> when T
     #   is a primitive type.
 
-    $<IF:$<CXX_COMPILER_ID:GNU>,"-Wno-maybe-uninitialized",)
+    $<IF:$<CXX_COMPILER_ID:GNU>,-Wno-maybe-uninitialized,>
 
     # Intel:
     #
     # Disable warning for unused template parameter
     # this is raised by a templated function in the json library.
 
-    $<IF:$<CXX_COMPILER_ID:Intel>,"-wd488",)
-
-endif()
+    $<IF:$<CXX_COMPILER_ID:Intel>,-wd488,>)
 
 
 # Set ${optvar} in parent scope according to requested architecture.

@@ -66,8 +66,9 @@ endif()
 
 # Mechanisms (generated from .mod files):
 # (Sets arbor_mechanism_sources variable, build_all_mods target).
-add_subdirectory(../mechanisms)
+add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 target_link_libraries(arbor PRIVATE ${libarbor_deps})
+target_include_directories(arbor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
 
