@@ -6,7 +6,7 @@
 #include <cell.hpp>
 #include <event_generator.hpp>
 #include <morphology.hpp>
-#include <spike_source_cell_group.hpp>
+#include <spike_source_cell.hpp>
 #include <time_sequence.hpp>
 #include <util/debug.hpp>
 

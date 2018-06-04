@@ -8,8 +8,8 @@
 
 #include <json/json.hpp>
 
-#include <communication/global_policy.hpp>
 #include <common_types.hpp>
+#include <communication/distributed_context.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
 #include <profiling/meter_manager.hpp>
@@ -20,29 +20,30 @@
 
 using namespace arb;
 
-int main() {
-    std::cout << util::mask_stream(communication::global_policy::id()==0);
+const char* usage_str =
+"[OPTION]...\n"
+"\n"
+"  -i, --input        json file with model parameters\n";
 
-    bench_params params;
-    params.name = "test";
-    params.num_cells = 100;
-    params.tfinal = 100;
-    params.cell.spike_freq_hz = 20;
-    params.cell.us_per_ms = 20;
-    params.network.fan_in = 10000;
-    params.network.min_delay = 10;
-
-    std::cout << params << "\n";
-
+int main(int argc, char** argv) {
     try {
-        bench_params p("input.json");
-    }
-    catch (std::exception& e) {
-        std::cout << e.what() << "\n";
-    }
+        // default serial context
+        distributed_context context;
 
-    try {
-        util::meter_manager meters;
+        bench_params params = read_options(argc, argv);
+
+        #ifdef ARB_HAVE_MPI
+        mpi::scoped_guard guard(&argc, &argv);
+        context = mpi_context(MPI_COMM_WORLD);
+        #endif
+
+        const bool is_root =  context.id()==0;
+
+        std::cout << util::mask_stream(is_root);
+        std::cout << params << "\n";
+        //bench_params p("input.json");
+
+        util::meter_manager meters(&context);
         meters.start();
 
         // Create an instance of our recipe.
@@ -51,22 +52,22 @@ int main() {
 
         // Make the domain decomposition for the model
         auto node = arb::hw::get_node_info();
-        auto decomp = arb::partition_load_balance(recipe, node);
+        auto decomp = arb::partition_load_balance(recipe, node, &context);
         meters.checkpoint("domain-decomp");
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp);
+        arb::simulation sim(recipe, decomp, &context);
         meters.checkpoint("model-build");
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.
-        sim.run(params.tfinal, 0.01);
+        sim.run(params.duration, 0.01);
         meters.checkpoint("model-run");
 
         // write meters
         auto report = util::make_meter_report(meters);
         std::cout << report << "\n";
 
-        if (communication::global_policy::id()==0) {
+        if (is_root==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -75,12 +76,11 @@ int main() {
 
         // output profile and diagnostic feedback
         auto profile = util::profiler_summary();
-        std::cout << "\n" << profile << "\n\n";
+        std::cout << profile << "\n";
 
-        unsigned expected_spikes = params.tfinal/1000. * params.num_cells * params.cell.spike_freq_hz;
-        std::cout << "\nthere were " << sim.num_spikes() << " spikes (expected " << expected_spikes << ")\n";
+        std::cout << "there were " << sim.num_spikes() << " spikes\n";
     }
-    catch (std::exception e) {
+    catch (std::exception& e) {
         std::cerr << "exception caught running benchmark miniapp:\n" << e.what() << std::endl;
     }
 }

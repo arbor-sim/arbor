@@ -6,7 +6,7 @@
 #include <lif_cell_group.hpp>
 #include <load_balance.hpp>
 #include <simulation.hpp>
-#include <spike_source_cell_group.hpp>
+#include <spike_source_cell.hpp>
 #include <recipe.hpp>
 
 using namespace arb;

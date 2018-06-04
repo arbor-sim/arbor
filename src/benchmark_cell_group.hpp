@@ -1,18 +1,11 @@
 #pragma once
 
+#include <benchmark_cell.hpp>
 #include <cell_group.hpp>
 #include <recipe.hpp>
 #include <time_sequence.hpp>
 
 namespace arb {
-
-struct benchmark_cell {
-    time_seq time_sequence;
-
-    // Time taken in μs to advance the cell one ms of simulation time.
-    // If equal to 1, then a single cell can be advanced per 
-    double run_time_per_ms;
-};
 
 class benchmark_cell_group: public cell_group {
 public:

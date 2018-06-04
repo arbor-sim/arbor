@@ -8,7 +8,6 @@
 #include <json/json.hpp>
 
 #include <common_types.hpp>
-#include <communication/communicator.hpp>
 #include <communication/distributed_context.hpp>
 #include <cell.hpp>
 #include <hardware/gpu.hpp>

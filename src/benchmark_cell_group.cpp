@@ -4,6 +4,7 @@
 #include <cell_group.hpp>
 #include <profiling/profiler.hpp>
 #include <recipe.hpp>
+#include <benchmark_cell.hpp>
 #include <benchmark_cell_group.hpp>
 #include <time_sequence.hpp>
 
@@ -52,8 +53,8 @@ void benchmark_cell_group::advance(epoch ep,
         // start timer
         auto start = high_resolution_clock::now();
 
-        while (tseq.next()<ep.tfinal) {
-            spikes_.push_back({{gid, 0u}, tseq.next()});
+        while (tseq.front()<ep.tfinal) {
+            spikes_.push_back({{gid, 0u}, tseq.front()});
             tseq.pop();
         }
 

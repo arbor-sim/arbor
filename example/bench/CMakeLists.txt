@@ -1,4 +1,4 @@
-add_executable(bench.exe bench.cpp recipe.cpp)
+add_executable(bench.exe bench.cpp recipe.cpp parameters.cpp)
 
 target_link_libraries(bench.exe LINK_PUBLIC ${ARB_LIBRARIES})
 target_link_libraries(bench.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
