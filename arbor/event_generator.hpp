@@ -6,15 +6,37 @@
 
 #include <common_types.hpp>
 #include <event_queue.hpp>
+#include <time_sequence.hpp>
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>
 
 namespace arb {
 
-inline
-postsynaptic_spike_event terminal_pse() {
-    return postsynaptic_spike_event{cell_member_type{0,0}, max_time, 0};
+// Generate a postsynaptic spike event that has delivery time set to
+// terminal_time. Such events are used as sentinels, to indicate the
+// end of a sequence.
+inline constexpr
+postsynaptic_spike_event make_terminal_pse() {
+    return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
 }
+
+inline
+bool is_terminal_pse(const postsynaptic_spike_event& e) {
+    return e.time==terminal_time;
+}
+
+
+// The simplest possible generator that generates no events.
+// Declared ahead of event_generator so that it can be used as the default
+// generator.
+struct empty_generator {
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
+    }
+    void pop() {}
+    void reset() {}
+    void advance(time_type t) {};
+};
 
 // An event_generator generates a sequence of events to be delivered to a cell.
 // The sequence of events is always in ascending order, i.e. each event will be
@@ -28,7 +50,7 @@ public:
     // copy, move and constructor interface
     //
 
-    event_generator(): event_generator(dummy_generator()) {}
+    event_generator(): event_generator(empty_generator()) {}
 
     template <typename Impl>
     event_generator(Impl&& impl):
@@ -53,10 +75,10 @@ public:
 
     // Get the current event in the stream.
     // Does not modify the state of the stream, i.e. multiple calls to
-    // next() will return the same event in the absence of calls to pop(),
+    // front() will return the same event in the absence of calls to pop(),
     // advance() or reset().
-    postsynaptic_spike_event next() {
-        return impl_->next();
+    postsynaptic_spike_event front() {
+        return impl_->front();
     }
 
     // Move the generator to the next event in the stream.
@@ -69,7 +91,7 @@ public:
         impl_->reset();
     }
 
-    // Update state of the generator such that the event returned by next() is
+    // Update state of the generator such that the event returned by front() is
     // the first event with delivery time >= t.
     void advance(time_type t) {
         return impl_->advance(t);
@@ -77,7 +99,7 @@ public:
 
 private:
     struct interface {
-        virtual postsynaptic_spike_event next() = 0;
+        virtual postsynaptic_spike_event front() = 0;
         virtual void pop() = 0;
         virtual void advance(time_type t) = 0;
         virtual void reset() = 0;
@@ -92,8 +114,8 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        postsynaptic_spike_event next() override {
-            return wrapped.next();
+        postsynaptic_spike_event front() override {
+            return wrapped.front();
         }
 
         void pop() override {
@@ -114,50 +136,38 @@ private:
 
         Impl wrapped;
     };
-
-    struct dummy_generator {
-        postsynaptic_spike_event next() { return terminal_pse(); }
-        void pop() {}
-        void reset() {}
-        void advance(time_type t) {};
-    };
-
 };
 
 // Generator that feeds events that are specified with a vector.
 // Makes a copy of the input sequence of events.
 struct vector_backed_generator {
     using pse = postsynaptic_spike_event;
-    vector_backed_generator(pse_vector events):
-        events_(std::move(events)),
-        it_(events_.begin())
-    {
-        if (!util::is_sorted(events_)) {
-            util::sort(events_);
-        }
-    }
+    vector_backed_generator(cell_member_type target, float weight, std::vector<time_type> samples):
+        target_(target),
+        weight_(weight),
+        tseq_(std::move(samples))
+    {}
 
-    postsynaptic_spike_event next() {
-        return it_==events_.end()? terminal_pse(): *it_;
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {
-        if (it_!=events_.end()) {
-            ++it_;
-        }
+        tseq_.pop();
     }
 
     void reset() {
-        it_ = events_.begin();
+        tseq_.reset();
     }
 
     void advance(time_type t) {
-        it_ = std::lower_bound(events_.begin(), events_.end(), t, event_time_less());
+        tseq_.advance(t);
     }
 
 private:
-    std::vector<postsynaptic_spike_event> events_;
-    std::vector<postsynaptic_spike_event>::const_iterator it_;
+    cell_member_type target_;
+    float weight_;
+    vector_time_seq tseq_;
 };
 
 // Generator for events in a generic sequence.
@@ -174,8 +184,8 @@ struct seq_generator {
         EXPECTS(util::is_sorted(events_));
     }
 
-    postsynaptic_spike_event next() {
-        return it_==events_.end()? terminal_pse(): *it_;
+    postsynaptic_spike_event front() {
+        return it_==events_.end()? make_terminal_pse(): *it_;
     }
 
     void pop() {
@@ -193,7 +203,6 @@ struct seq_generator {
     }
 
 private:
-
     const Seq& events_;
     typename Seq::const_iterator it_;
 };
@@ -208,56 +217,32 @@ struct regular_generator {
                       float weight,
                       time_type tstart,
                       time_type dt,
-                      time_type tstop=max_time):
+                      time_type tstop=terminal_time):
         target_(target),
         weight_(weight),
-        step_(0),
-        t_start_(tstart),
-        dt_(dt),
-        t_stop_(tstop)
+        tseq_(tstart, dt, tstop)
     {}
 
-    postsynaptic_spike_event next() {
-        const auto t = time();
-        return t<t_stop_?
-            postsynaptic_spike_event{target_, t, weight_}:
-            terminal_pse();
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {
-        ++step_;
+        tseq_.pop();
     }
 
     void advance(time_type t0) {
-        t0 = std::max(t0, t_start_);
-        step_ = (t0-t_start_)/dt_;
-
-        // Finding the smallest value for step_ that satisfies the condition
-        // that time() >= t0 is unfortunately a horror show because floating
-        // point precission.
-        while (step_ && time()>=t0) {
-            --step_;
-        }
-        while (time()<t0) {
-            ++step_;
-        }
+        tseq_.advance(t0);
     }
 
     void reset() {
-        step_ = 0;
+        tseq_.reset();
     }
 
 private:
-    time_type time() const {
-        return t_start_ + step_*dt_;
-    }
-
     cell_member_type target_;
     float weight_;
-    std::size_t step_;
-    time_type t_start_;
-    time_type dt_;
-    time_type t_stop_;
+    regular_time_seq tseq_;
 };
 
 // Generates a stream of events at times described by a Poisson point process
@@ -271,48 +256,34 @@ struct poisson_generator {
                       RandomNumberEngine rng,
                       time_type tstart,
                       time_type rate_per_ms,
-                      time_type tstop=max_time):
-        exp_(rate_per_ms),
-        reset_state_(std::move(rng)),
+                      time_type tstop=terminal_time):
         target_(target),
         weight_(weight),
-        t_start_(tstart),
-        t_stop_(tstop)
+        tseq_(std::move(rng), tstart, rate_per_ms, tstop)
     {
         reset();
     }
 
-    postsynaptic_spike_event next() {
-        return next_<t_stop_?
-            postsynaptic_spike_event{target_, next_, weight_}:
-            terminal_pse();
+    postsynaptic_spike_event front() {
+        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {
-        next_ += exp_(rng_);
+        tseq_.pop();
     }
 
     void advance(time_type t0) {
-        while (next_<t0) {
-            pop();
-        }
+        tseq_.advance(t0);
     }
 
     void reset() {
-        rng_ = reset_state_;
-        next_ = t_start_;
-        pop();
+        tseq_.reset();
     }
 
 private:
-    std::exponential_distribution<time_type> exp_;
-    RandomNumberEngine rng_;
-    const RandomNumberEngine reset_state_;
     const cell_member_type target_;
     const float weight_;
-    const time_type t_start_;
-    const time_type t_stop_;
-    time_type next_;
+    poisson_time_seq<RandomNumberEngine> tseq_;
 };
 
 } // namespace arb

@@ -14,7 +14,7 @@ TEST(merge_events, empty)
     pse_vector lc;
     pse_vector lf;
 
-    merge_events(0, max_time, lc, events, empty_gens, lf);
+    merge_events(0, terminal_time, lc, events, empty_gens, lf);
 
     EXPECT_EQ(lf.size(), 0u);
 }
@@ -46,7 +46,7 @@ TEST(merge_events, no_overlap)
         {{0, 0}, 11, 1},
     };
 
-    merge_events(10, max_time, lc, events, empty_gens, lf);
+    merge_events(10, terminal_time, lc, events, empty_gens, lf);
 
     pse_vector expected = {
         {{8, 0}, 10, 4},
@@ -84,7 +84,7 @@ TEST(merge_events, overlap)
         {{7, 0}, 10, 8},
     };
 
-    merge_events(10, max_time, lc, events, empty_gens, lf);
+    merge_events(10, terminal_time, lc, events, empty_gens, lf);
 
     pse_vector expected = {
         {{7, 0}, 10, 8}, // from events
@@ -214,8 +214,8 @@ TEST(merge_events, tourney_poisson)
     pse_vector expected;
     for (auto& gen: generators) {
         // Push all events before tfinal in gen to the expected values.
-        while (gen.next().time<tfinal) {
-            expected.push_back(gen.next());
+        while (gen.front().time<tfinal) {
+            expected.push_back(gen.front());
             gen.pop();
         }
         // Reset the generator so that it is ready to generate the same
