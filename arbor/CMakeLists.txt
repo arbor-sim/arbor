@@ -68,9 +68,12 @@ endif()
 # Mechanisms (generated from .mod files):
 # (Sets arbor_mechanism_sources variable, build_all_mods target).
 add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
-message(STATUS "debug: arbor_mechanism_sources: ${arbor_mechanism_sources}")
+
+# Source file properties are directory-local?!
+set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE)
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 target_link_libraries(arbor PRIVATE arbor_deps)
 target_include_directories(arbor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
+add_dependencies(arbor build_all_mods)
 

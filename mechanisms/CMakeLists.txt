@@ -34,8 +34,13 @@ endif()
 add_custom_command(
     OUTPUT ${catsrc}
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_default_catalogue ${default_catalogue_options} ${mechanisms}
-    DEPENDS build_all_mods generate_default_catalogue
+    DEPENDS generate_default_catalogue
 )
+
+# I can't believe I have to do this.
+set_source_files_properties(${catsrc} PROPERTIES GENERATED TRUE)
+add_custom_target(default_catalogue_cpp_target DEPENDS ${catsrc})
+add_dependencies(build_all_mods default_catalogue_cpp_target)
 
 # Make libraries with the implementations of the mechanism kernels.
 
@@ -48,5 +53,4 @@ foreach(mech ${mechanisms})
     endif()
 endforeach()
 
-message(STATUS "debug: mech_sources: ${mech_sources}")
 set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)

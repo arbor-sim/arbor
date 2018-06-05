@@ -5,6 +5,7 @@ include(CMakeParseArguments)
 function(build_modules)
     cmake_parse_arguments(build_modules "" "MODCC;TARGET;SOURCE_DIR;DEST_DIR;MECH_SUFFIX" "MODCC_FLAGS;GENERATES" ${ARGN})
 
+    set(all_generated)
     foreach(mech ${build_modules_UNPARSED_ARGUMENTS})
         set(mod "${build_modules_SOURCE_DIR}/${mech}.mod")
         set(out "${build_modules_DEST_DIR}/${mech}")
@@ -15,7 +16,7 @@ function(build_modules)
 
         set(depends "${mod}")
         if(build_modules_MODCC)
-            set(modcc_bin ${build_modules_MODCC_FLAGS})
+            set(modcc_bin ${build_modules_MODCC})
         else()
             list(APPEND depends modcc)
             set(modcc_bin $<TARGET_FILE:modcc>)
@@ -33,13 +34,13 @@ function(build_modules)
             COMMAND ${modcc_bin} ${flags} ${mod}
             COMMENT "modcc generating: ${generated}"
         )
-        set_source_files_properties(${generated}  PROPERTIES GENERATED TRUE)
-        list(APPEND all_mod_hpps ${generated})
+        set_source_files_properties(${generated} PROPERTIES GENERATED TRUE)
+        list(APPEND all_generated ${generated})
     endforeach()
 
     # Fake target to always trigger .mod -> .hpp/.cu dependencies because CMake
     if (build_modules_TARGET)
-        set(depends ${all_mod_hpps})
+        set(depends ${all_generated})
         if(NOT build_modules_MODCC)
             list(APPEND depends modcc)
         endif()
