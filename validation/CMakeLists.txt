@@ -56,8 +56,8 @@ endif()
 
 # Only run NEURON-based generators if nrniv is found.
 
-find_program(Nnriv_EXECUTABLE nrniv)
-if(Nnriv_EXECUTABLE)
+find_program(Nrniv_EXECUTABLE nrniv)
+if(Nrniv_EXECUTABLE)
     add_subdirectory(ref/neuron)
 endif()
 

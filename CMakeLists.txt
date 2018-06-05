@@ -209,7 +209,7 @@ endif()
 
 find_package(Unwind)
 if(Unwind_FOUND)
-    target_link_libraries(arbor_deps Unwind::unwind)
+    target_link_libraries(arbor_deps INTERFACE Unwind::unwind)
     target_compile_definitions(arbor_deps ARB_WITH_UNWIND)
 endif()
 
@@ -239,6 +239,6 @@ add_subdirectory(arbor)        # Library source, mechanisms
 # add_subdirectory(doc)
 
 if(ARB_BUILD_VALIDATION_DATA)
-#    add_subdirectory(validation)
+    add_subdirectory(validation)
 endif()
 
