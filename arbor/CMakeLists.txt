@@ -75,5 +75,6 @@ set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 target_link_libraries(arbor PRIVATE arbor_deps)
 target_include_directories(arbor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
+target_include_directories(arbor INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}) # TODO: split out into public headers
 add_dependencies(arbor build_all_mods)
 

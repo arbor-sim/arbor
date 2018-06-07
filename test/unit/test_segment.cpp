@@ -2,7 +2,7 @@
 
 #include "../gtest.h"
 
-#include "../src/segment.hpp"
+#include "segment.hpp"
 
 TEST(segments, soma)
 {

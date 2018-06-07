@@ -4,7 +4,7 @@ target_include_directories(gtest PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(gtest PUBLIC Threads::Threads)
 
 ## Unit tests.
-#add_subdirectory(unit)
+add_subdirectory(unit)
 #
 ## Test validating models, possebly needing other software installed.
 #add_subdirectory(validation)

@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <json/json.hpp>
 #include <numeric>
 #include <vector>
 
@@ -9,16 +8,8 @@
 #include <tree.hpp>
 #include <util/debug.hpp>
 
-// Path to data directory can be overriden at compile time.
-#if !defined(DATADIR)
-#define DATADIR "../data"
-#endif
-
-using json = nlohmann::json;
-
 using namespace arb;
 using int_type = tree::int_type;
-
 
 TEST(tree, from_segment_index) {
     auto no_parent = tree::no_parent;

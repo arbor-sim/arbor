@@ -3,7 +3,7 @@
 
 #include "../gtest.h"
 
-#include "../src/point.hpp"
+#include "point.hpp"
 
 using namespace arb;
 

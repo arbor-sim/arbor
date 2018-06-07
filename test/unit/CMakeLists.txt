@@ -1,41 +1,27 @@
-include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
+# TODO: test_mechanism and mechanism prototype comparisons must
+# be re-jigged.
 
 # Build prototype mechanisms for testing in test_mechanisms.
-set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
-set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
-file(MAKE_DIRECTORY "${mech_proto_dir}")
-
-build_modules(
-    ${proto_mechanisms}
-    SOURCE_DIR "${PROJECT_SOURCE_DIR}/mechanisms/mod"
-    DEST_DIR "${mech_proto_dir}"
-    MECH_SUFFIX _proto
-    MODCC_FLAGS -t cpu
-    GENERATES _cpu.hpp
-    TARGET build_test_mods
-)
+#
+#include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
+#
+# set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
+# set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
+# file(MAKE_DIRECTORY "${mech_proto_dir}")
+# 
+# build_modules(
+#     ${proto_mechanisms}
+#     SOURCE_DIR "${PROJECT_SOURCE_DIR}/mechanisms/mod"
+#     DEST_DIR "${mech_proto_dir}"
+#     MECH_SUFFIX _proto
+#     MODCC_FLAGS -t cpu
+#     GENERATES _cpu.hpp
+#     TARGET build_test_mods
+# )
 
 # Unit test sources
 
-set(test_cuda_sources
-    test_intrin.cu
-    test_gpu_stack.cu
-    test_matrix.cu
-    test_matrix_cpuvsgpu.cpp
-    test_reduce_by_key.cu
-    test_vector.cu
-
-    test_mc_cell_group_gpu.cpp
-    test_multi_event_stream_gpu.cpp
-    test_multi_event_stream_gpu.cu
-    test_spikes_gpu.cpp
-
-    # unit test driver
-    test.cpp
-)
-
-set(test_sources
-    # unit tests
+set(unit_sources
     test_algorithms.cpp
     test_any.cpp
     test_backend.cpp
@@ -99,35 +85,24 @@ set(test_sources
     stats.cpp
 )
 
-set(targets test.exe)
-
-add_executable(test.exe ${test_sources})
-target_compile_options(test.exe PRIVATE ${CXXOPT_ARCH})
-target_compile_definitions(test.exe PUBLIC "-DDATADIR=\"${PROJECT_SOURCE_DIR}/data\"")
-
-if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
-  add_dependencies(test.exe build_test_mods)
-endif()
-
-target_include_directories(test.exe PRIVATE "${mech_proto_dir}/..")
-
 if(ARB_WITH_CUDA)
-    list(APPEND targets test_cuda.exe)
-    cuda_add_executable(test_cuda.exe ${test_cuda_sources})
+    list(APPEND unit_sources
+
+        test_intrin.cu
+        test_gpu_stack.cu
+        test_matrix.cu
+        test_matrix_cpuvsgpu.cpp
+        test_reduce_by_key.cu
+        test_vector.cu
+
+        test_mc_cell_group_gpu.cpp
+        test_multi_event_stream_gpu.cpp
+        test_multi_event_stream_gpu.cu
+        test_spikes_gpu.cpp
+    )
 endif()
 
-foreach(target ${targets})
-    target_link_libraries(${target} LINK_PUBLIC gtest)
-    target_link_libraries(${target} LINK_PUBLIC ${ARB_LIBRARIES})
-    target_link_libraries(${target} LINK_PUBLIC ${EXTERNAL_LIBRARIES})
-
-    if(ARB_WITH_MPI)
-        target_link_libraries(${target} LINK_PUBLIC ${MPI_C_LIBRARIES})
-        set_property(TARGET ${target} APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-    endif()
-
-    set_target_properties(${target}
-       PROPERTIES
-       RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-    )
-endforeach()
+add_executable(unit ${unit_sources})
+target_compile_options(unit PRIVATE ${CXXOPT_ARCH})
+target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
+target_link_libraries(unit PRIVATE gtest arbor)

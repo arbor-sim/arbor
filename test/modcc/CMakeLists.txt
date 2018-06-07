@@ -24,9 +24,4 @@ set(unit-modcc_sources
 add_executable(unit-modcc ${unit-modcc_sources})
 target_link_libraries(unit-modcc PRIVATE libmodcc gtest)
 target_compile_definitions(unit-modcc PRIVATE "DATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
-
-set_target_properties(unit-modcc
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test"
-    EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC}
-)
+set_target_properties(unit-modcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})

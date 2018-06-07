@@ -9,8 +9,8 @@
 
 #include "../gtest.h"
 
-#include "../src/cell.hpp"
-#include "../src/swcio.hpp"
+#include "cell.hpp"
+#include "swcio.hpp"
 
 // Path to data directory can be overriden at compile time.
 #if !defined(DATADIR)

@@ -40,6 +40,7 @@ add_library(arbor_deps INTERFACE)
 # Compiler options common to library, examples, tests, etc.
 
 set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} $ENV{CXXFLAGS})
 
 include("CompilerOptions")
 add_compile_options(${CXXOPT_DEBUG} ${CXXOPT_WALL})
@@ -48,10 +49,18 @@ add_compile_options(${CXXOPT_DEBUG} ${CXXOPT_WALL})
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
-# Enable CUDA support with ARB_GPU_MODEL
+# Enable CUDA support with ARB_GPU_MODEL.
 
 set(ARB_GPU_MODEL "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
 set_property(CACHE ARB_GPU_MODEL PROPERTY STRINGS none K20 K80 P100 )
+
+# Specify target archiecture.
+
+set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
+
+# Perform explicit vectorization?
+
+option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
 # Use in-tree TBB?
 
@@ -61,11 +70,6 @@ mark_as_advanced(ARB_PRIVATE_TBBLIB)
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
-
-# System-specific configuration for BG/Q, Cray.
-
-set(ARB_SYSTEM_TYPE "Generic" CACHE STRING "Choose a system type to customize flags")
-set_property(CACHE ARB_SYSTEM_TYPE PROPERTY STRINGS Generic Cray BGQ )
 
 # Generate validation data for validation tests?
 
@@ -82,10 +86,6 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 
 set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
 set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
-
-set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
-
-option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
