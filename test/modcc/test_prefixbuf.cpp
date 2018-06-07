@@ -4,7 +4,7 @@
 #include <sstream>
 
 #include "io/prefixbuf.hpp"
-#include "test.hpp"
+#include "common.hpp"
 
 using namespace io;
 

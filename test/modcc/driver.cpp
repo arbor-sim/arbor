@@ -4,7 +4,7 @@
 
 #include <cstring>
 
-#include "test.hpp"
+#include "common.hpp"
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

@@ -8,7 +8,7 @@
 #include "parser.hpp"
 #include "scope.hpp"
 
-#include "test.hpp"
+#include "common.hpp"
 
 symbol_ptr make_global(std::string name) {
     return make_symbol<VariableExpression>(Location(), std::move(name));

@@ -2,7 +2,7 @@
 #include <cstring>
 #include <memory>
 
-#include "test.hpp"
+#include "common.hpp"
 #include "module.hpp"
 #include "modccutil.hpp"
 #include "parser.hpp"

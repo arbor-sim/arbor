@@ -1,6 +1,6 @@
 #include <cmath>
 
-#include "test.hpp"
+#include "common.hpp"
 
 #include "symdiff.hpp"
 #include "parser.hpp"

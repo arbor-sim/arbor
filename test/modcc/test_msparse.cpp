@@ -1,7 +1,7 @@
 #include <utility>
 
+#include "common.hpp"
 #include "msparse.hpp"
-#include "test.hpp"
 
 using drow = msparse::row<double>;
 using dmatrix = msparse::matrix<double>;

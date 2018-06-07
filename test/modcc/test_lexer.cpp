@@ -4,7 +4,7 @@
 #include <iterator>
 #include <utility>
 
-#include "test.hpp"
+#include "common.hpp"
 #include "lexer.hpp"
 
 class VerboseLexer: public Lexer {

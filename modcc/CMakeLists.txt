@@ -1,4 +1,7 @@
-set(modcc_sources
+# The modcc compiler is split into a staric library and driver;
+# unit tests for the driver also use this library.
+
+set(libmodcc_sources
 
     astmanip.cpp
     errorvisitor.cpp
@@ -7,7 +10,6 @@ set(modcc_sources
     functioninliner.cpp
     lexer.cpp
     kineticrewriter.cpp
-    modcc.cpp
     module.cpp
     parser.cpp
     solvers.cpp
@@ -22,5 +24,14 @@ set(modcc_sources
     printer/printerutil.cpp
 )
 
+set(modcc_sources modcc.cpp)
+
+add_library(libmodcc STATIC ${libmodcc_sources})
+target_include_directories(libmodcc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
+
 add_executable(modcc ${modcc_sources})
 target_include_directories(modcc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
+target_link_libraries(modcc libmodcc)
+
+set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})

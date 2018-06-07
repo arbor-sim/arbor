@@ -4,7 +4,7 @@
 #include "backends/simd.hpp"
 #include "textbuffer.hpp"
 #include "token.hpp"
-#include "test.hpp"
+#include "common.hpp"
 
 
 TEST(avx512, emit_binary_op) {

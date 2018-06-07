@@ -6,8 +6,8 @@
 #include "parser.hpp"
 
 #include "alg_collect.hpp"
+#include "common.hpp"
 #include "expr_expand.hpp"
-#include "test.hpp"
 
 expr_list_type& statements(Expression *e) {
     if (e) {

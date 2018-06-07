@@ -2,7 +2,7 @@
 #include <string>
 #include <sstream>
 
-#include "test.hpp"
+#include "common.hpp"
 
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
@@ -42,7 +42,7 @@ TEST(scalar_printer, constants) {
         {"-1./0.",     "-INFINITY"},
         {"(-1)^0.5",   "NAN"},
         {"1/(-1./0.)", "-0."},
-        {"1-1",        "0"},
+        {"1-1",        "0."},
     };
 
     for (const auto& tc: testcases) {
@@ -59,13 +59,13 @@ TEST(scalar_printer, constants) {
 TEST(scalar_printer, statement) {
     std::vector<testcase> testcases = {
         {"y=x+3",            "y=x+3"},
-        {"y=y^z",            "y=std::pow(y,z)"},
+        {"y=y^z",            "y=pow(y,z)"},
         {"y=exp((x/2) + 3)", "y=exp(x/2+3)"},
         {"z=a/b/c",          "z=a/b/c"},
         {"z=a/(b/c)",        "z=a/(b/c)"},
         {"z=(a*b)/c",        "z=a*b/c"},
         {"z=a-(b+c)",        "z=a-(b+c)"},
-        {"z=(a>0)<(b>0)",    "z=a>0<(b>0)"},
+        {"z=(a>0)<(b>0)",    "z=a>0.<(b>0.)"},
         {"z=a- -2",          "z=a- -2"},
         {"z=abs(x-z)",       "z=fabs(x-z)"},
         {"z=min(x,y)",       "z=min(x,y)"},

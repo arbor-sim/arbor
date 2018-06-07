@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "symge.hpp"
-#include "test.hpp"
+#include "common.hpp"
 
 using namespace symge;
 

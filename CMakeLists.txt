@@ -224,6 +224,7 @@ if(ARB_MODCC)
     set(ARB_WITH_EXTERNAL_MODCC TRUE)
 else()
     set(modcc $<TARGET_FILE:modcc>)
+    set(ARB_WITH_EXTERNAL_MODCC FALSE)
 endif()
 
 
@@ -231,9 +232,9 @@ endif()
 # Configure targets in sub-directories.
 #----------------------------------------------------------
 
-add_subdirectory(modcc)
-add_subdirectory(arbor)        # Library source, mechanisms
-# add_subdirectory(tests)        # Unit and validation tests
+add_subdirectory(modcc)        # NMODL compiler.
+add_subdirectory(arbor)        # Library source, mechanisms.
+add_subdirectory(test)         # Unit and validation tests.
 # add_subdirectory(example)
 # add_subdirectory(lmorpho)
 # add_subdirectory(doc)

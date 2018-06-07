@@ -1,5 +1,5 @@
 [submodule "tests/ubench/google-benchmark"]
-	path = tests/ubench/google-benchmark
+	path = test/ubench/google-benchmark
 	url = https://github.com/google/benchmark
 [submodule "doc/rtd_theme"]
 	path = doc/rtd_theme

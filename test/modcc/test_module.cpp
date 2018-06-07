@@ -1,6 +1,6 @@
-#include "test.hpp"
-#include "module.hpp"
+#include "common.hpp"
 #include "io/bulkio.hpp"
+#include "module.hpp"
 
 TEST(Module, open) {
     Module m(io::read_all(DATADIR "/test.mod"), "test.mod");
