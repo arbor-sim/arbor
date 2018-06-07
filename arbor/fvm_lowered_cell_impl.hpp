@@ -56,6 +56,11 @@ public:
 
     value_type time() const override { return tmin_; }
 
+    //Exposed for testing purposes
+    std::vector<mechanism_ptr>& mechanisms() {
+        return mechanisms_;
+    }
+
 private:
     // Host or GPU-side back-end dependent storage.
     using array = typename backend::array;
