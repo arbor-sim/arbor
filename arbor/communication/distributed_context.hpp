@@ -107,19 +107,19 @@ private:
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
         gathered_vector<arb::spike>
-        gather_spikes(const spike_vector& local_spikes) const {
+        gather_spikes(const spike_vector& local_spikes) const override {
             return wrapped.gather_spikes(local_spikes);
         }
-        int id() const {
+        int id() const override {
             return wrapped.id();
         }
-        int size() const {
+        int size() const override {
             return wrapped.size();
         }
-        void barrier() const {
+        void barrier() const override {
             wrapped.barrier();
         }
-        std::string name() const {
+        std::string name() const override {
             return wrapped.name();
         }
 

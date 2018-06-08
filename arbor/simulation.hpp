@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -13,12 +14,12 @@
 #include <epoch.hpp>
 #include <recipe.hpp>
 #include <sampling.hpp>
-#include <thread_private_spike_store.hpp>
 #include <util/nop.hpp>
 #include <util/handle_set.hpp>
-#include <util/unique_any.hpp>
 
 namespace arb {
+
+class spike_double_buffer;
 
 class simulation {
 public:
@@ -58,6 +59,8 @@ public:
     // are to be delivered at or after the current simulation time.
     void inject_events(const pse_vector& events);
 
+    ~simulation();
+
 private:
     // Private helper function that sets up the event lanes for an epoch.
     // See comments on implementation for more information.
@@ -66,9 +69,6 @@ private:
     std::vector<pse_vector>& event_lanes(std::size_t epoch_id);
 
     std::size_t num_groups() const;
-
-    // communication context
-    const distributed_context* context_;
 
     // keep track of information about the current integration interval
     epoch epoch_;
@@ -80,8 +80,7 @@ private:
     // one set of event_generators for each local cell
     std::vector<std::vector<event_generator>> event_generators_;
 
-    using local_spike_store_type = thread_private_spike_store;
-    util::double_buffer<local_spike_store_type> local_spikes_;
+    std::unique_ptr<spike_double_buffer> local_spikes_;
 
     spike_export_function global_export_callback_ = util::nop_function;
     spike_export_function local_export_callback_ = util::nop_function;
@@ -92,21 +91,6 @@ private:
     util::optional<cell_size_type> local_cell_index(cell_gid_type);
 
     communicator communicator_;
-
-    // Convenience functions that map the spike buffers onto the appropriate
-    // integration interval.
-    //
-    // To overlap communication and computation, integration intervals of
-    // size Delta/2 are used, where Delta is the minimum delay in the global
-    // system.
-    // From the frame of reference of the current integration period we
-    // define three intervals: previous, current and future
-    // Then we define the following :
-    //      current_spikes : spikes generated in the current interval
-    //      previous_spikes: spikes generated in the preceding interval
-
-    local_spike_store_type& current_spikes()  { return local_spikes_.get(); }
-    local_spike_store_type& previous_spikes() { return local_spikes_.other(); }
 
     // Pending events to be delivered.
     std::array<std::vector<pse_vector>, 2> event_lanes_;

@@ -1,3 +1,4 @@
+#include <memory>
 #include <set>
 #include <vector>
 
@@ -8,6 +9,8 @@
 #include <merge_events.hpp>
 #include <simulation.hpp>
 #include <recipe.hpp>
+#include <thread_private_spike_store.hpp>
+#include <util/double_buffer.hpp>
 #include <util/filter.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
@@ -15,10 +18,33 @@
 
 namespace arb {
 
+using local_spike_store_type = thread_private_spike_store;
+
+class spike_double_buffer {
+    util::double_buffer<local_spike_store_type> buffer_;
+
+public:
+    // Convenience functions that map the spike buffers onto the appropriate
+    // integration interval.
+    //
+    // To overlap communication and computation, integration intervals of
+    // size Delta/2 are used, where Delta is the minimum delay in the global
+    // system.
+    // From the frame of reference of the current integration period we
+    // define three intervals: previous, current and future
+    // Then we define the following :
+    //      current:  spikes generated in the current interval
+    //      previous: spikes generated in the preceding interval
+
+    local_spike_store_type& current()  { return buffer_.get(); }
+    local_spike_store_type& previous() { return buffer_.other(); }
+    void exchange() { buffer_.exchange(); }
+};
+
 simulation::simulation(const recipe& rec,
                        const domain_decomposition& decomp,
                        const distributed_context* ctx):
-    context_(ctx),
+    local_spikes_(new spike_double_buffer{}),
     communicator_(rec, decomp, ctx)
 {
     const auto num_local_cells = communicator_.num_local_cells();
@@ -68,6 +94,8 @@ simulation::simulation(const recipe& rec,
     event_lanes_[1].resize(num_local_cells);
 }
 
+simulation::~simulation() = default;
+
 void simulation::reset() {
     t_ = 0.;
 
@@ -97,8 +125,8 @@ void simulation::reset() {
 
     communicator_.reset();
 
-    current_spikes().clear();
-    previous_spikes().clear();
+    local_spikes_->current().clear();
+    local_spikes_->previous().clear();
 }
 
 time_type simulation::run(time_type tfinal, time_type dt) {
@@ -121,7 +149,7 @@ time_type simulation::run(time_type tfinal, time_type dt) {
                     communicator_.group_queue_range(i));
                 group->advance(epoch_, dt, queues);
                 PE(advance_spikes);
-                current_spikes().insert(group->spikes());
+                local_spikes_->current().insert(group->spikes());
                 group->clear_spikes();
                 PL();
             });
@@ -133,7 +161,7 @@ time_type simulation::run(time_type tfinal, time_type dt) {
     // integration period at the latest.
     auto exchange = [&] () {
         PE(communication_exchange_gatherlocal);
-        auto local_spikes = previous_spikes().gather();
+        auto local_spikes = local_spikes_->previous().gather();
         PL();
         auto global_spikes = communicator_.exchange(local_spikes);
 
@@ -155,11 +183,11 @@ time_type simulation::run(time_type tfinal, time_type dt) {
     epoch_ = epoch(0, tuntil);
     setup_events(t_, tuntil, 1);
     while (t_<tfinal) {
-        local_spikes_.exchange();
+        local_spikes_->exchange();
 
         // empty the spike buffers for the current integration period.
         // these buffers will store the new spikes generated in update_cells.
-        current_spikes().clear();
+        local_spikes_->current().clear();
 
         // run the tasks, overlapping if the threading model and number of
         // available threads permits it.
@@ -175,7 +203,7 @@ time_type simulation::run(time_type tfinal, time_type dt) {
     }
 
     // Run the exchange one last time to ensure that all spikes are output to file.
-    local_spikes_.exchange();
+    local_spikes_->exchange();
     exchange();
 
     return t_;
