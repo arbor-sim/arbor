@@ -7,7 +7,7 @@ target_link_libraries(gtest PUBLIC Threads::Threads)
 add_subdirectory(unit)
 
 # Test validating models, possebly needing other software installed.
-#add_subdirectory(validation)
+add_subdirectory(validation)
 
 # Test MPI wrappers and distribution operations.
 add_subdirectory(unit-distributed)

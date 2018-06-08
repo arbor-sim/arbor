@@ -1,4 +1,4 @@
-set(VALIDATION_SOURCES
+set(validation_sources
     # unit tests
     validate_ball_and_stick.cpp
     validate_compartment_policy.cpp
@@ -14,31 +14,11 @@ set(VALIDATION_SOURCES
     validate.cpp
 )
 
-if(ARB_VALIDATION_DATA_DIR)
-    if ("${CMAKE_VERSION}" MATCHES "^3.[789].")
-        message(WARNING "CMake ${CMAKE_VERSION} has broken FindCUDA; omitting ARB_DATADIR define.")
-    else()
-        add_definitions("-DARB_DATADIR=\"${ARB_VALIDATION_DATA_DIR}\"")
-    endif()
-endif()
-
-add_executable(validate.exe ${VALIDATION_SOURCES})
-
-target_link_libraries(validate.exe LINK_PUBLIC gtest)
-target_link_libraries(validate.exe LINK_PUBLIC ${ARB_LIBRARIES})
-target_link_libraries(validate.exe LINK_PUBLIC ${EXTERNAL_LIBRARIES})
-
-if(ARB_WITH_MPI)
-    target_link_libraries(validate.exe LINK_PUBLIC ${MPI_C_LIBRARIES})
-    set_property(TARGET validate.exe APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-endif()
-
-set_target_properties(
-    validate.exe
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests"
-)
+add_executable(validate ${validation_sources})
+target_compile_definitions(validate PRIVATE "ARB_DATADIR=\"${ARB_VALIDATION_DATA_DIR}\"")
+target_link_libraries(validate PRIVATE gtest arbor)
+target_include_directories(validate PRIVATE "${PROJECT_SOURCE_DIR}/external")
 
 if(ARB_BUILD_VALIDATION_DATA)
-    add_dependencies(validate.exe validation_data)
+    add_dependencies(validate validation_data)
 endif()
