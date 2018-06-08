@@ -11,6 +11,7 @@
 
 #include <algorithms.hpp>
 #include <communication/gathered_vector.hpp>
+#include <communication/mpi_error.hpp>
 #include <util/debug.hpp>
 #include <profiling/profiler.hpp>
 
@@ -19,31 +20,12 @@ namespace arb {
 namespace mpi {
 
 // prototypes
-void init(int *argc, char ***argv);
-void finalize();
 int rank(MPI_Comm);
 int size(MPI_Comm);
 void barrier(MPI_Comm);
 
-void handle_mpi_error(const char* msg, int code);
-
-// Exception class to be thrown when MPI API calls return a error code other
-// than MPI_SUCCESS.
-class mpi_error: public std::exception {
-public:
-    mpi_error(const char* msg, int code);
-    const char* what() const throw() override;
-    int error_code() const;
-
-private:
-    std::string message_;
-    int error_code_;
-};
-
-struct scoped_guard {
-    scoped_guard(int *argc, char ***argv);
-    ~scoped_guard();
-};
+#define MPI_OR_THROW(fn, ...)\
+while (int r_ = fn(__VA_ARGS__)) throw mpi_error(r_, #fn)
 
 // Type traits for automatically setting MPI_Datatype information for C++ types.
 template <typename T>
@@ -86,10 +68,10 @@ std::vector<T> gather(T value, int root, MPI_Comm comm) {
     auto buffer_size = (rank(comm)==root) ? size(comm) : 0;
     std::vector<T> buffer(buffer_size);
 
-    handle_mpi_error("MPI_Gather",
-    MPI_Gather( &value,        traits::count(), traits::mpi_type(), // send buffer
+    MPI_OR_THROW(MPI_Gather,
+                &value,        traits::count(), traits::mpi_type(), // send buffer
                 buffer.data(), traits::count(), traits::mpi_type(), // receive buffer
-                root, comm));
+                root, comm);
 
     return buffer;
 }
@@ -102,11 +84,10 @@ std::vector<T> gather_all(T value, MPI_Comm comm) {
     using traits = mpi_traits<T>;
     std::vector<T> buffer(size(comm));
 
-    handle_mpi_error("MPI_Allgather",
-        MPI_Allgather(
+    MPI_OR_THROW(MPI_Allgather,
             &value,        traits::count(), traits::mpi_type(), // send buffer
             buffer.data(), traits::count(), traits::mpi_type(), // receive buffer
-            comm));
+            comm);
 
     return buffer;
 }
@@ -123,11 +104,10 @@ inline std::vector<std::string> gather(std::string str, int root, MPI_Comm comm)
     // const_cast required for MPI implementations that don't use const* in
     // their interfaces.
     std::string::value_type* ptr = const_cast<std::string::value_type*>(str.data());
-    handle_mpi_error("MPI_Gatherv",
-        MPI_Gatherv(
+    MPI_OR_THROW(MPI_Gatherv,
             ptr, counts[rank(comm)], traits::mpi_type(),                       // send
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(),   // receive
-            root, comm));
+            root, comm);
 
     // Unpack the raw string data into a vector of strings.
     std::vector<std::string> result;
@@ -150,12 +130,11 @@ std::vector<T> gather_all(const std::vector<T>& values, MPI_Comm comm) {
     auto displs = algorithms::make_index(counts);
 
     std::vector<T> buffer(displs.back()/traits::count());
-    handle_mpi_error("MPI_Allgatherv",
-        MPI_Allgatherv(
+    MPI_OR_THROW(MPI_Allgatherv,
             // const_cast required for MPI implementations that don't use const* in their interfaces
             const_cast<T*>(values.data()), counts[rank(comm)], traits::mpi_type(),  // send buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive buffer
-            comm));
+            comm);
 
     return buffer;
 }
@@ -179,12 +158,11 @@ gathered_vector<T> gather_all_with_partition(const std::vector<T>& values, MPI_C
 
     std::vector<T> buffer(displs.back()/traits::count());
 
-    handle_mpi_error("MPI_Allgatherv",
-        MPI_Allgatherv(
+    MPI_OR_THROW(MPI_Allgatherv,
             // const_cast required for MPI implementations that don't use const* in their interfaces
             const_cast<T*>(values.data()), counts[rank(comm)], traits::mpi_type(), // send buffer
             buffer.data(), counts.data(), displs.data(), traits::mpi_type(), // receive buffer
-            comm));
+            comm);
 
     for (auto& d : displs) {
         d /= traits::count();
@@ -204,8 +182,8 @@ T reduce(T value, MPI_Op op, int root, MPI_Comm comm) {
 
     T result;
 
-    handle_mpi_error("MPI_Reduce",
-        MPI_Reduce(&value, &result, 1, traits::mpi_type(), op, root, comm));
+    MPI_OR_THROW(MPI_Reduce,
+        &value, &result, 1, traits::mpi_type(), op, root, comm);
 
     return result;
 }
@@ -240,8 +218,8 @@ T broadcast(T value, int root, MPI_Comm comm) {
 
     using traits = mpi_traits<T>;
 
-    handle_mpi_error("MPI_Bcast",
-        MPI_Bcast(&value, traits::count(), traits::mpi_type(), root, comm));
+    MPI_OR_THROW(MPI_Bcast,
+        &value, traits::count(), traits::mpi_type(), root, comm);
 
     return value;
 }
@@ -254,8 +232,8 @@ T broadcast(int root, MPI_Comm comm) {
     using traits = mpi_traits<T>;
     T value;
 
-    handle_mpi_error("MPI_Bcast",
-        MPI_Bcast(&value, traits::count(), traits::mpi_type(), root, comm));
+    MPI_OR_THROW(MPI_Bcast,
+        &value, traits::count(), traits::mpi_type(), root, comm);
 
     return value;
 }

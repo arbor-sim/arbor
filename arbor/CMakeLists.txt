@@ -58,6 +58,7 @@ endif()
 if(ARB_WITH_MPI)
     list(APPEND arbor_sources
         communication/mpi.cpp
+        communication/mpi_error.cpp
         communication/mpi_context.cpp)
 endif()
 

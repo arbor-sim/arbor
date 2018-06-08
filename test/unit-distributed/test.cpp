@@ -5,12 +5,17 @@
 
 #include "../gtest.h"
 
-#include "distributed_listener.hpp"
-
 #include <tinyopt.hpp>
 #include <communication/communicator.hpp>
 #include <communication/distributed_context.hpp>
+#include <communication/mpi_context.hpp>
 #include <util/ioutil.hpp>
+
+#include "distributed_listener.hpp"
+
+#ifdef TEST_MPI
+#include "with_mpi.hpp"
+#endif
 
 using namespace arb;
 
@@ -27,7 +32,7 @@ int main(int argc, char **argv) {
     // this allows us to build multiple communicators in the tests
 
 #ifdef TEST_MPI
-    mpi::scoped_guard guard(&argc, &argv);
+    with_mpi guard(argc, argv, false);
     g_context = mpi_context(MPI_COMM_WORLD);
 #elif defined(TEST_LOCAL)
     g_context = local_context();
@@ -77,7 +82,8 @@ int main(int argc, char **argv) {
         return_value = 1;
     }
     catch (std::exception& e) {
-        std::cerr << "caught exception: " << e.what() << "\n";
+        //std::cerr << "caught exception: " << e.what() << "\n";
+        std::cout << "caught exception: " << e.what() << std::endl;
         return_value = 1;
     }
 

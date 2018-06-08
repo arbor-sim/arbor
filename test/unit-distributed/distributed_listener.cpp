@@ -10,7 +10,7 @@
 #include "distributed_listener.hpp"
 
 distributed_listener::printer::printer(std::string base_name, int rank) {
-    base_name += "_"+std::to_string(rank)+".txt";
+    base_name += "_"+std::to_string(rank)+".out";
 
     fid_.open(base_name);
     if (!fid_) {
@@ -50,13 +50,13 @@ void distributed_listener::OnTestCaseStart(const TestCase& test_case) {
 void distributed_listener::OnTestCaseEnd(const TestCase& test_case) {
     emit_
         << "    PASSED " << test_case_tests_-test_case_failures_
-        << " of " << test_case_tests_ << "tests"
+        << " of " << test_case_tests_ << " tests"
         << " in " << test_case.name() << "\n";
 
     if (test_case_failures_>0) {
         emit_
             << "    FAILED " << test_case_failures_
-            << " of " << test_case_tests_ << "tests"
+            << " of " << test_case_tests_ << " tests"
             << " in " << test_case.name() << "\n";
     }
 
@@ -65,7 +65,7 @@ void distributed_listener::OnTestCaseEnd(const TestCase& test_case) {
 
 void distributed_listener::OnTestStart(const TestInfo& test_info) {
     emit_
-        << "TEST:  " << test_info.test_case_name()
+        << "TEST: " << test_info.test_case_name()
         << "::" << test_info.name() << "\n";
 
     test_failures_ = 0;
