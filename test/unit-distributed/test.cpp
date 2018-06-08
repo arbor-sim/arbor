@@ -5,13 +5,12 @@
 
 #include "../gtest.h"
 
-#include "mpi_listener.hpp"
+#include "distributed_listener.hpp"
 
 #include <tinyopt.hpp>
 #include <communication/communicator.hpp>
 #include <communication/distributed_context.hpp>
 #include <util/ioutil.hpp>
-
 
 using namespace arb;
 
@@ -24,23 +23,26 @@ const char* usage_str =
 "  -h, --help          Display usage information and exit\n";
 
 int main(int argc, char **argv) {
-
     // We need to set the communicator policy at the top level
     // this allows us to build multiple communicators in the tests
-    #ifdef ARB_HAVE_MPI
+
+#ifdef TEST_MPI
     mpi::scoped_guard guard(&argc, &argv);
     g_context = mpi_context(MPI_COMM_WORLD);
-    #endif
+#elif defined(TEST_LOCAL)
+    g_context = local_context();
+#else
+#error "define TEST_MPI or TEST_LOCAL for distributed test"
+#endif
 
     // initialize google test environment
     testing::InitGoogleTest(&argc, argv);
 
     // set up a custom listener that prints messages in an MPI-friendly way
     auto& listeners = testing::UnitTest::GetInstance()->listeners();
-    // first delete the original printer
+    // replace original printer with our custom printer
     delete listeners.Release(listeners.default_result_printer());
-    // now add our custom printer
-    listeners.Append(new mpi_listener("results_global_communication", &g_context));
+    listeners.Append(new distributed_listener("run_"+g_context.name(), &g_context));
 
     int return_value = 0;
     try {
@@ -70,7 +72,6 @@ int main(int argc, char **argv) {
         //      1 : failure
         return_value = RUN_ALL_TESTS();
     }
-
     catch (to::parse_opt_error& e) {
         to::usage(argv[0], usage_str, e.what());
         return_value = 1;

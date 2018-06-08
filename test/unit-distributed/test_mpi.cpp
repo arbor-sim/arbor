@@ -1,4 +1,4 @@
-#ifdef ARB_HAVE_MPI
+#ifdef TEST_MPI
 
 #include "../gtest.h"
 #include "test.hpp"
@@ -140,4 +140,4 @@ TEST(mpi, gather) {
     }
 }
 
-#endif // ARB_HAVE_MPI
+#endif // TEST_MPI

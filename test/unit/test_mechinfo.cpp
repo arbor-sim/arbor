@@ -3,10 +3,8 @@
 #include <vector>
 
 #include <cell.hpp>
-//#include "mechinfo.hpp"
 
 #include "../gtest.h"
-#include "../test_util.hpp"
 
 // TODO: This test is really checking part of the recipe description
 // for cable1d cells, so move it there. Make actual tests for mechinfo

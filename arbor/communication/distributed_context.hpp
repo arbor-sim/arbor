@@ -4,13 +4,8 @@
 
 #include <spike.hpp>
 #include <communication/gathered_vector.hpp>
+#include <communication/local_context.hpp>
 #include <util/pp_util.hpp>
-
-#if defined(ARB_HAVE_MPI)
-#   include "mpi_context.hpp"
-#endif
-#include "local_context.hpp"
-
 
 namespace arb {
 

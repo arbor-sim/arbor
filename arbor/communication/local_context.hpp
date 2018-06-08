@@ -48,7 +48,7 @@ struct local_context {
     void barrier() const {}
 
     std::string name() const {
-        return "serial";
+        return "local";
     }
 };
 

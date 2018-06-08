@@ -14,7 +14,6 @@
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
-#include "../test_util.hpp"
 
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"

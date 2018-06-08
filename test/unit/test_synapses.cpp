@@ -14,7 +14,6 @@
 #include <util/range.hpp>
 
 #include "common.hpp"
-#include "../test_util.hpp"
 
 using namespace arb;
 
