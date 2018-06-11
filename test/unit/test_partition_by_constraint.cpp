@@ -30,9 +30,9 @@ TEST(partition_by_constraint, partition_contiguous) {
 
     output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
-    EXPECT_EQ(0, output.independent.size());
-    EXPECT_EQ(0, output.none.size());
-    EXPECT_EQ(0, output.constant.size());
+    EXPECT_EQ(0u, output.independent.size());
+    EXPECT_EQ(0u, output.none.size());
+    EXPECT_EQ(0u, output.constant.size());
     EXPECT_EQ(expected, output.contiguous);
 }
 
@@ -51,14 +51,14 @@ TEST(partition_by_constraint, partition_constant) {
 
     output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
-    EXPECT_EQ(0, output.independent.size());
-    EXPECT_EQ(0, output.none.size());
+    EXPECT_EQ(0u, output.independent.size());
+    EXPECT_EQ(0u, output.none.size());
     if(simd_width_ != 1) {
-        EXPECT_EQ(0, output.contiguous.size());
+        EXPECT_EQ(0u, output.contiguous.size());
         EXPECT_EQ(expected, output.constant);
     }
     else {
-        EXPECT_EQ(0, output.constant.size());
+        EXPECT_EQ(0u, output.constant.size());
         EXPECT_EQ(expected, output.contiguous);
     }
 }
@@ -76,14 +76,14 @@ TEST(partition_by_constraint, partition_independent) {
 
     output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
-    EXPECT_EQ(0, output.constant.size());
-    EXPECT_EQ(0, output.none.size());
+    EXPECT_EQ(0u, output.constant.size());
+    EXPECT_EQ(0u, output.none.size());
     if(simd_width_ != 1) {
-        EXPECT_EQ(0, output.contiguous.size());
+        EXPECT_EQ(0u, output.contiguous.size());
         EXPECT_EQ(expected, output.independent);
     }
     else {
-        EXPECT_EQ(0, output.independent.size());
+        EXPECT_EQ(0u, output.independent.size());
         EXPECT_EQ(expected, output.contiguous);
     }
 }
@@ -101,14 +101,14 @@ TEST(partition_by_constraint, partition_none) {
 
     output = multicore::make_constraint_partition(input_index, input_size_, simd_width_);
 
-    EXPECT_EQ(0, output.independent.size());
-    EXPECT_EQ(0, output.constant.size());
+    EXPECT_EQ(0u, output.independent.size());
+    EXPECT_EQ(0u, output.constant.size());
     if(simd_width_ != 1) {
-        EXPECT_EQ(0, output.contiguous.size());
+        EXPECT_EQ(0u, output.contiguous.size());
         EXPECT_EQ(expected, output.none);
     }
     else {
-        EXPECT_EQ(0, output.none.size());
+        EXPECT_EQ(0u, output.none.size());
         EXPECT_EQ(expected, output.contiguous);
     }
 }

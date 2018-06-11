@@ -15,16 +15,22 @@ from builtins import range
 # but this is chatty on stdout, which means we get
 # junk in our data if capturing output.
 
-def hoc_setup():
+def hoc_execute_quiet(arg):
     with open(os.devnull, 'wb') as null:
         fd = sys.stdout.fileno()
         keep = os.dup(fd)
         sys.stdout.flush()
         os.dup2(null.fileno(), fd)
-
-        h('load_file("stdrun.hoc")')
+        h(arg)
         sys.stdout.flush()
         os.dup2(keep, fd)
+
+def hoc_setup():
+    hoc_execute_quiet('load_file("stdrun.hoc")')
+
+def hoc_quit():
+    hoc_execute_quiet('quit()')
+    #h('quit()')
 
 default_model_parameters = {
     'gnabar_hh':  0.12,   # H-H sodium conductance in S/cm^2
@@ -211,7 +217,7 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
     # Instrument every segment for section voltage reports.
     if report_t is None:
         if report_dt is not None:
-            report_t = [report_dt*(1+i) for i in xrange(int(tend/report_dt))]
+            report_t = [report_dt*(1+i) for i in range(int(tend/report_dt))]
         else:
             report_t = []
     elif not isinstance(report_t, list):
@@ -223,7 +229,7 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
     if report_t:
         for s in h.allsec():
             nseg = s.nseg;
-            ps = [0] + [(i+0.5)/nseg for i in xrange(nseg)] + [1]
+            ps = [0] + [(i+0.5)/nseg for i in range(nseg)] + [1]
             vs = [h.Vector() for p in ps]
             for p, v in zip(ps, vs):
                 v.record(s(p)._ref_v, vreport_t_hoc)
@@ -284,7 +290,7 @@ def nrn_assert_no_sections():
         assert False, 'a section exists'
 
 def nrn_stop():
-    h.quit()
+    hoc_quit()
 
 # Run hoc setup on load
 hoc_setup()
