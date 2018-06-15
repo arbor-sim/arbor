@@ -5,10 +5,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include <threading/threading.hpp>
+#include <arbor/profile/timer.hpp>
 
 namespace arb {
-namespace util {
+namespace profile {
 
 // type used for region identifiers
 using region_id_type = std::size_t;
@@ -40,25 +40,6 @@ std::size_t profiler_region_id(const char* name);
 
 std::ostream& operator<<(std::ostream&, const profile&);
 
-#ifdef ARB_HAVE_PROFILING
-
-    // enter a profiling region
-    #define PE(name) \
-        { \
-            static std::size_t region_id__ = arb::util::profiler_region_id(#name); \
-            arb::util::profiler_enter(region_id__); \
-        }
-
-    // leave a profling region
-    #define PL arb::util::profiler_leave
-
-#else
-
-    #define PE(name)
-    #define PL()
-
-#endif
-
-} // namespace util
+} // namespace profile
 } // namespace arb
 

@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <algorithms.hpp>
 #include <common_types.hpp>
 #include <communication/gathered_vector.hpp>
@@ -14,10 +16,9 @@
 #include <connection.hpp>
 #include <domain_decomposition.hpp>
 #include <event_queue.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 #include <recipe.hpp>
 #include <spike.hpp>
-#include <util/debug.hpp>
 #include <util/double_buffer.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
@@ -131,7 +132,7 @@ public:
 
     /// The range of event queues that belong to cells in group i.
     std::pair<cell_size_type, cell_size_type> group_queue_range(cell_size_type i) {
-        EXPECTS(i<num_local_groups_);
+        arb_assert(i<num_local_groups_);
         return index_part_[i];
     }
 
@@ -176,7 +177,7 @@ public:
             const gathered_vector<spike>& global_spikes,
             std::vector<pse_vector>& queues)
     {
-        EXPECTS(queues.size()==num_local_cells_);
+        arb_assert(queues.size()==num_local_cells_);
 
         using util::subrange_view;
         using util::make_span;

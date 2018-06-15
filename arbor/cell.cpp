@@ -161,7 +161,7 @@ cell make_cell(const morphology& morph, bool compartments_from_discretization) {
         return newcell;
     }
 
-    EXPECTS(morph.check_valid());
+    arb_assert(morph.check_valid());
 
     // (not supporting soma-less cells yet)
     newcell.add_soma(morph.soma.r, point3d(morph.soma.x, morph.soma.y, morph.soma.z));

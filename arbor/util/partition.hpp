@@ -43,7 +43,7 @@ public:
 
     template <typename Seq>
     partition_range(const Seq& s): base{std::begin(s), upto(std::begin(s), std::end(s))} {
-        EXPECTS(is_valid());
+        arb_assert(is_valid());
     }
 
     // explicitly check invariants

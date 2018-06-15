@@ -35,3 +35,6 @@ target_include_directories(modcc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_S
 target_link_libraries(modcc libmodcc)
 
 set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
+
+install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+

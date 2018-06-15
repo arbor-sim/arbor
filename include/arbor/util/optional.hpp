@@ -40,8 +40,7 @@
 #include <stdexcept>
 #include <utility>
 
-#include "util/meta.hpp"
-#include "util/uninitialized.hpp"
+#include <arbor/util/uninitialized.hpp>
 
 namespace arb {
 namespace util {
@@ -170,7 +169,7 @@ namespace detail {
 
     // type utilities
     template <typename T>
-    using enable_unless_optional_t = enable_if_t<!is_optional<T>::value>;
+    using enable_unless_optional_t = typename enable_if_t<!is_optional<T>::value>::type;
 
     // avoid nonnull address warnings when using operator| with e.g. char array constants
     template <typename T>

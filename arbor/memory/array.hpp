@@ -10,7 +10,8 @@
 #include <iostream>
 #include <type_traits>
 
-#include <util/debug.hpp>
+#include <arbor/assert.hpp>
+
 #include <util/range.hpp>
 
 #include "definitions.hpp"
@@ -228,7 +229,7 @@ public:
         // Only valid for contiguous range, but we can't test that at compile time.
         // Can check though that taking &*b+n = &*e where n = e-b, while acknowledging
         // this is not fail safe.
-        EXPECTS(&*b+(e-b)==&*e);
+        arb_assert(&*b+(e-b)==&*e);
 
         using V = typename std::iterator_traits<iterator>::value_type;
         coordinator_.copy(const_array_view<V, host_coordinator<V, aligned_allocator<V>>>(&*b, e-b), view_type(*this));

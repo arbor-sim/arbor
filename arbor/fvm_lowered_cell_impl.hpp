@@ -13,13 +13,15 @@
 #include <vector>
 #include <stdexcept>
 
+#include <arbor/assert.hpp>
+
 #include <common_types.hpp>
 #include <builtin_mechanisms.hpp>
 #include <fvm_layout.hpp>
 #include <fvm_lowered_cell.hpp>
 #include <ion.hpp>
 #include <matrix.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 #include <recipe.hpp>
 #include <sampler_map.hpp>
 #include <util/meta.hpp>
@@ -27,7 +29,6 @@
 #include <util/rangeutil.hpp>
 #include <util/transform.hpp>
 
-#include <util/debug.hpp>
 
 namespace arb {
 
@@ -97,7 +98,7 @@ private:
     // Assign tmin_ and call assert_tmin() if assertions on.
     void set_tmin(value_type t) {
         tmin_ = t;
-        EXPECTS((assert_tmin(), true));
+        arb_assert((assert_tmin(), true));
     }
 
     static unsigned dt_steps(value_type t0, value_type t1, value_type dt) {
@@ -155,7 +156,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     state_->deliverable_events.init(std::move(staged_events));
     sample_events_.init(std::move(staged_samples));
 
-    EXPECTS((assert_tmin(), true));
+    arb_assert((assert_tmin(), true));
     unsigned remaining_steps = dt_steps(tmin_, tfinal, dt_max);
     PL();
 
@@ -316,7 +317,7 @@ void fvm_lowered_cell_impl<B>::initialize(
     // Discretize cells, build matrix.
 
     fvm_discretization D = fvm_discretize(cells);
-    EXPECTS(D.ncell == ncell);
+    arb_assert(D.ncell == ncell);
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
     sample_events_ = sample_event_stream(ncell);
 

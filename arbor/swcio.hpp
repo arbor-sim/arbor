@@ -8,10 +8,11 @@
 #include <unordered_set>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <algorithms.hpp>
 #include <morphology.hpp>
 #include <point.hpp>
-#include <util/debug.hpp>
 
 namespace arb {
 namespace io {
@@ -125,7 +126,7 @@ morphology swc_as_morphology(const RandomAccessSequence& swc_records) {
     auto parent_branch_index = algorithms::tree_reduce(swc_parent_index, branch_index);
 
     // sanity check
-    EXPECTS(parent_branch_index.size() == branch_index.size() - 1);
+    arb_assert(parent_branch_index.size() == branch_index.size() - 1);
 
     // Add the soma first; then the segments
     const auto& soma = swc_records[0];

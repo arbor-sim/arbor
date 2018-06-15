@@ -8,11 +8,12 @@
 #include <memory>
 #include <type_traits>
 
+#include <arbor/assert.hpp>
+
 #include <util/iterutil.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 
-#include <util/debug.hpp>
 
 namespace arb {
 namespace util {

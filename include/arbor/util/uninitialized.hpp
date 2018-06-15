@@ -12,11 +12,18 @@
 #include <type_traits>
 #include <utility>
 
-#include "util/compat.hpp"
-#include "util/meta.hpp"
+#include <arbor/util/compat.hpp>
 
 namespace arb {
 namespace util {
+
+template <typename T>
+using enable_if_copy_constructible_t =
+    typename std::enable_if<is_copy_constructible<T>::value>::type;
+
+template <typename... T>
+using enable_if_constructible_t =
+    typename std::enable_if<is_constructible<T...>::value>::type;
 
 /*
  * Maintains storage for a value of type X, with explicit

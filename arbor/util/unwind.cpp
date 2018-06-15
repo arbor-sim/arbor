@@ -64,6 +64,21 @@ std::string demangle(std::string s) {
     return s;
 }
 
+std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
+    for (auto& f: trace.frames_) {
+        char loc_str[64];
+        snprintf(loc_str, sizeof(loc_str), "0x%lx", f.position);
+        out << loc_str << " " << f.name << "\n";
+        if (f.name=="main") {
+            break;
+        }
+    }
+}
+
+#if 0
+// Temporarily deprecated: automatic writing to disk of strack traces
+// needs to be run-time configurable.
+
 void backtrace::print(bool stop_at_main) const {
     using namespace arb::memory::util;
 
@@ -85,12 +100,26 @@ void backtrace::print(bool stop_at_main) const {
     std::cerr << "           View a brief summary of the backtrace by running \"scripts/print_backtrace " << fname << " -b\".\n";
     std::cerr << "           Run \"scripts/print_backtrace -h\" for more options.\n";
 }
+#endif
 
 } // namespace util
 } // namespace arb
 
 #else
-arb::util::backtrace::backtrace() {}
-void arb::util::backtrace::print(bool) const {}
+
+namespace arb {
+namespace util {
+
+backtrace::backtrace() {}
+
+std::ostream& operator<<(std::ostream& out, const backtrace& trace) {
+    return out;
+}
+
+//void arb::util::backtrace::print(bool) const {}
+
+} // namespace util
+} // namespace arb
+
 #endif
 

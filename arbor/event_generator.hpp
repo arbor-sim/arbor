@@ -181,7 +181,7 @@ struct seq_generator {
         events_(events),
         it_(std::begin(events_))
     {
-        EXPECTS(util::is_sorted(events_));
+        arb_assert(util::is_sorted(events_));
     }
 
     postsynaptic_spike_event front() {

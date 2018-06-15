@@ -7,10 +7,9 @@
 #include "profiler.hpp"
 
 namespace arb {
-namespace util {
+namespace profile {
 
-using timer_type = arb::threading::timer;
-using time_point = timer_type::time_point;
+using timer_type = timer<>;
 
 #ifdef ARB_HAVE_PROFILING
 namespace {
@@ -56,7 +55,7 @@ class recorder {
     // If set to npos, no region is being timed.
     region_id_type index_ = npos;
 
-    time_point start_time_;
+    tick_type start_time_;
 
     // One accumulator for call count and wall time for each region.
     std::vector<profile_accumulator> accumulators_;
@@ -357,5 +356,5 @@ std::ostream& operator<<(std::ostream& o, const profile&) {return o;}
 
 #endif // ARB_HAVE_PROFILING
 
-} // namespace util
+} // namespace profile
 } // namespace arb

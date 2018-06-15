@@ -5,10 +5,11 @@
 #include <type_traits>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include "definitions.hpp"
 #include "util.hpp"
 #include "range_limits.hpp"
-#include <util/debug.hpp>
 
 namespace arb {
 namespace memory{
@@ -163,7 +164,7 @@ public:
     explicit array_view(array_view& other, size_type n) :
         pointer_(other.data()), size_(n)
     {
-        EXPECTS(n<=other.size());
+        arb_assert(n<=other.size());
         #ifdef VERBOSE
         std::cout << util::green("array_view(array_view, size_type)")
                   << "\n  this  " << util::pretty_printer<array_view>::print(*this)
@@ -180,14 +181,14 @@ public:
     /// access half open sub-range using two indexes [left, right)
     view_type operator()(size_type left, size_type right) {
         #ifndef NDEBUG
-        EXPECTS(right<=size_ && left<=right);
+        arb_assert(right<=size_ && left<=right);
         #endif
         return view_type(pointer_+left, right-left);
     }
 
     const_view_type operator()(size_type left, size_type right) const {
         #ifndef NDEBUG
-        EXPECTS(right<=size_ && left<=right);
+        arb_assert(right<=size_ && left<=right);
         #endif
         return view_type(pointer_+left, right-left);
     }
@@ -195,14 +196,14 @@ public:
     /// access half open sub-range using one index and one-past-the-end [left, end)
     view_type operator()(size_type left, end_type) {
         #ifndef NDEBUG
-        EXPECTS(left<=size_);
+        arb_assert(left<=size_);
         #endif
         return view_type(pointer_+left, size_-left);
     }
 
     const_view_type operator()(size_type left, end_type) const {
         #ifndef NDEBUG
-        EXPECTS(left<=size_);
+        arb_assert(left<=size_);
         #endif
         return view_type(pointer_+left, size_-left);
     }
@@ -260,14 +261,14 @@ public:
     // return a reference type provided by Coordinator
     reference operator[] (size_type i) {
         #ifndef NDEBUG
-        EXPECTS(i<size_);
+        arb_assert(i<size_);
         #endif
         return coordinator_.make_reference(pointer_+i);
     }
 
     const_reference operator[] (size_type i) const {
         #ifndef NDEBUG
-        EXPECTS(i<size_);
+        arb_assert(i<size_);
         #endif
         return coordinator_.make_reference(pointer_+i);
     }
@@ -367,13 +368,13 @@ public:
     explicit const_array_view(view_type& other, size_type n) :
         pointer_(other.data()), size_(n)
     {
-        EXPECTS(n<=other.size());
+        arb_assert(n<=other.size());
     }
 
     explicit const_array_view(const_array_view& other, size_type n) :
         pointer_(other.data()), size_(n)
     {
-        EXPECTS(n<=other.size());
+        arb_assert(n<=other.size());
     }
 
     explicit const_array_view() {
@@ -385,7 +386,7 @@ public:
     /// access half open sub-range using two indexes [left, right)
     const_view_type operator()(size_type left, size_type right) const {
 #ifndef NDEBUG
-        EXPECTS(right<=size_ && left<=right);
+        arb_assert(right<=size_ && left<=right);
 #endif
         return const_view_type(pointer_+left, right-left);
     }
@@ -393,7 +394,7 @@ public:
     /// access half open sub-range using one index and one-past-the-end [left, end)
     const_view_type operator()(size_type left, end_type) const {
 #ifndef NDEBUG
-        EXPECTS(left<=size_);
+        arb_assert(left<=size_);
 #endif
         return const_view_type(pointer_+left, size_-left);
     }
@@ -439,7 +440,7 @@ public:
     // return a reference type provided by Coordinator
     const_reference operator[] (size_type i) const {
         #ifndef NDEBUG
-        EXPECTS(i<size_);
+        arb_assert(i<size_);
         #endif
         return coordinator_.make_reference(pointer_+i);
     }

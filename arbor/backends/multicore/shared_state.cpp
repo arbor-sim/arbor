@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <backends/event.hpp>
 #include <backends/fvm_types.hpp>
 #include <common_types.hpp>
@@ -15,7 +17,6 @@
 #include <util/padded_alloc.hpp>
 #include <util/rangeutil.hpp>
 
-#include <util/debug.hpp>
 
 #include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
@@ -63,8 +64,8 @@ ion_state::ion_state(
     default_int_concentration(info.default_int_concentration),
     default_ext_concentration(info.default_ext_concentration)
 {
-    EXPECTS(node_index_.size()==weight_Xi_.size());
-    EXPECTS(node_index_.size()==weight_Xo_.size());
+    arb_assert(node_index_.size()==weight_Xi_.size());
+    arb_assert(node_index_.size()==weight_Xo_.size());
 }
 
 void ion_state::nernst(fvm_value_type temperature_K) {

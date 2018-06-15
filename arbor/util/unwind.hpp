@@ -28,6 +28,8 @@ public:
     void print(bool stop_at_main=true) const;
     const std::vector<source_location>& frames() const { return frames_; }
 
+    friend std::ostream& operator<<(std::ostream&, const backtrace&);
+
 private:
     std::vector<source_location> frames_;
 };

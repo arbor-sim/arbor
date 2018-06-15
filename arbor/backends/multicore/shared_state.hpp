@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <backends/event.hpp>
 #include <backends/fvm_types.hpp>
 #include <common_types.hpp>
@@ -19,7 +21,6 @@
 #include <util/padded_alloc.hpp>
 #include <util/rangeutil.hpp>
 
-#include <util/debug.hpp>
 
 #include "matrix_state.hpp"
 #include "multi_event_stream.hpp"

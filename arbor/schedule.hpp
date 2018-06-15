@@ -5,9 +5,10 @@
 #include <random>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <common_types.hpp>
 #include <util/compat.hpp>
-#include <util/debug.hpp>
 #include <util/meta.hpp>
 
 // Time schedules for probe–sampler associations.
@@ -106,7 +107,7 @@ public:
         start_index_(0),
         times_(std::begin(seq), compat::end(seq))
     {
-        EXPECTS(std::is_sorted(times_.begin(), times_.end()));
+        arb_assert(std::is_sorted(times_.begin(), times_.end()));
     }
 
     void reset() {
@@ -133,7 +134,7 @@ public:
     poisson_schedule_impl(time_type tstart, time_type mean_dt, const RandomNumberEngine& rng):
         tstart_(tstart), exp_(1./mean_dt), rng_(rng), reset_state_(rng), next_(tstart)
     {
-        EXPECTS(tstart_>=0);
+        arb_assert(tstart_>=0);
         step();
     }
 

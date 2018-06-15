@@ -9,7 +9,7 @@
 #include <generic_event.hpp>
 #include <memory/array.hpp>
 #include <memory/copy.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 #include <util/rangeutil.hpp>
 
 namespace arb {
@@ -70,7 +70,7 @@ protected:
             throw std::range_error("too many events");
         }
 
-        EXPECTS(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
+        arb_assert(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));
 
         std::size_t n_ev = staged.size();
         tmp_ev_time_.clear();
@@ -92,13 +92,13 @@ protected:
 
             // Within a subrange of events with the same index, events should
             // be sorted by time.
-            EXPECTS(std::is_sorted(&tmp_ev_time_[ev_begin_i], &tmp_ev_time_[ev_i]));
+            arb_assert(std::is_sorted(&tmp_ev_time_[ev_begin_i], &tmp_ev_time_[ev_i]));
             n_nonempty += (tmp_divs_.back()!=ev_i);
             tmp_divs_.push_back(ev_i);
             ev_begin_i = ev_i;
         }
 
-        EXPECTS(tmp_divs_.size()==n_stream_+1);
+        arb_assert(tmp_divs_.size()==n_stream_+1);
         memory::copy(memory::make_view(tmp_divs_)(0,n_stream_), span_begin_);
         memory::copy(memory::make_view(tmp_divs_)(1,n_stream_+1), span_end_);
         memory::copy(span_begin_, mark_);

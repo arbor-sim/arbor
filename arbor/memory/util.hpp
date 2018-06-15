@@ -4,7 +4,7 @@
 #include <sstream>
 #include <vector>
 
-#include <util/debug.hpp>
+#include <arbor/assert.hpp>
 
 #define LOG_ERROR(msg) arb::util::backtrace().print(); util::log_error(__FILE__, __LINE__, msg)
 

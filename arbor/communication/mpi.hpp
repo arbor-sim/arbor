@@ -5,15 +5,14 @@
 #include <type_traits>
 #include <vector>
 
-#include <cassert>
-
 #include <mpi.h>
+
+#include <arbor/assert.hpp>
 
 #include <algorithms.hpp>
 #include <communication/gathered_vector.hpp>
 #include <communication/mpi_error.hpp>
-#include <util/debug.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 
 
 namespace arb {

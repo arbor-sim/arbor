@@ -1,3 +1,5 @@
+#include <arbor/profile/timer.hpp>
+
 #include <communication/distributed_context.hpp>
 #include <algorithms.hpp>
 #include <util/hostname.hpp>
@@ -10,7 +12,7 @@
 #include "power_meter.hpp"
 
 namespace arb {
-namespace util {
+namespace profile {
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
@@ -43,7 +45,7 @@ meter_manager::meter_manager(const distributed_context* ctx): glob_ctx_(ctx) {
 };
 
 void meter_manager::start() {
-    EXPECTS(!started_);
+    arb_assert(!started_);
 
     started_ = true;
 
@@ -60,11 +62,10 @@ void meter_manager::start() {
 
 
 void meter_manager::checkpoint(std::string name) {
-    EXPECTS(started_);
+    arb_assert(started_);
 
     // Record the time taken on this domain since the last checkpoint
-    auto end_time = timer_type::tic();
-    times_.push_back(timer_type::difference(start_time_, end_time));
+    times_.push_back(timer<>::toc(start_time_));
 
     // Update meters
     checkpoint_names_.push_back(std::move(name));
@@ -74,7 +75,7 @@ void meter_manager::checkpoint(std::string name) {
 
     // Synchronize all domains before setting start time for the next interval
     glob_ctx_->barrier();
-    start_time_ = timer_type::tic();
+    start_time_ = timer<>::tic();
 }
 
 const std::vector<std::unique_ptr<meter>>& meter_manager::meters() const {

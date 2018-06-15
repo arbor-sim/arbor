@@ -59,7 +59,7 @@ public:
         }
 
         // an empty parent_index implies a single-compartment/segment cell
-        EXPECTS(parent_index.size()!=0u);
+        arb_assert(parent_index.size()!=0u);
 
         init(parent_index.size());
         memory::copy(parent_index, parents_);

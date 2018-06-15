@@ -1,6 +1,7 @@
 # Sources:
 
 set(arbor_sources
+    assert.cpp
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
     backends/multicore/stimulus.cpp
@@ -16,6 +17,8 @@ set(arbor_sources
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
+    io/locked_ostream.cpp
+    io/serialize_hex.cpp
     lif_cell_group.cpp
     mc_cell_group.cpp
     mechcat.cpp
@@ -23,15 +26,15 @@ set(arbor_sources
     simulation.cpp
     morphology.cpp
     partition_load_balance.cpp
-    profiling/memory_meter.cpp
-    profiling/meter_manager.cpp
-    profiling/power_meter.cpp
-    profiling/profiler.cpp
+    profile/clock.cpp
+    profile/memory_meter.cpp
+    profile/meter_manager.cpp
+    profile/power_meter.cpp
+    profile/profiler.cpp
     schedule.cpp
     spike_source_cell_group.cpp
     swcio.cpp
     threading/threading.cpp
-    util/debug.cpp
     util/hostname.cpp
     util/path.cpp
     util/unwind.cpp
@@ -67,16 +70,28 @@ if(ARB_WITH_CTHREAD)
         threading/cthread.cpp)
 endif()
 
-# Mechanisms (generated from .mod files):
-# (Sets arbor_mechanism_sources variable, build_all_mods target).
-add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
+# Add special target for private include directory, for use by arbor target
+# and arbor unit tests.
 
-# Source file properties are directory-local?!
+add_library(arbor-private-headers INTERFACE)
+target_include_directories(arbor-private-headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Mechanisms, generated from .mod files; sets arbor_mechanism_sources
+# variable, build_all_mods target. Note: CMake source file properties are
+# directory-local.
+
+add_subdirectory(../mechanisms "${CMAKE_BINARY_DIR}/mechanisms")
 set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE)
 
+# Library target:
+
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
-target_link_libraries(arbor PRIVATE arbor_deps)
-target_include_directories(arbor PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
-target_include_directories(arbor INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}) # TODO: split out into public headers
 add_dependencies(arbor build_all_mods)
+target_link_libraries(arbor PRIVATE arbor-private arbor-private-headers)
+target_link_libraries(arbor PUBLIC arbor-public-headers)
+if(ARB_WITH_TBB)
+target_link_libraries(arbor PRIVATE ext-tbb)
+endif()
+
+install(TARGETS arbor ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

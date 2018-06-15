@@ -189,7 +189,7 @@ public:
         nseg_ = size(segs_);
         scale_ = segs_.bounds().second/n;
         assign(radii_, radii);
-        EXPECTS(size(radii_)==size(offsets_));
+        arb_assert(size(radii_)==size(offsets_));
     }
 
     div_compartment operator()(size_type i) const {
@@ -219,7 +219,7 @@ protected:
     };
 
     sub_segment_index locate(value_type x) const {
-        EXPECTS(x>=0);
+        arb_assert(x>=0);
 
         auto i = segs_.index(x);
         if (i==segs_.npos) {
@@ -263,7 +263,7 @@ public:
 
 protected:
     semi_compartment sub_segment_frustrum(sub_segment_index a, sub_segment_index b) const {
-        EXPECTS(a.i==b.i && a.p<=b.p);
+        arb_assert(a.i==b.i && a.p<=b.p);
 
         auto seg = segs_[a.i];
         auto l = (b.p-a.p)*(seg.second-seg.first);

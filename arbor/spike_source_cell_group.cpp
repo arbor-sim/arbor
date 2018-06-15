@@ -1,7 +1,7 @@
 #include <exception>
 
 #include <cell_group.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 #include <recipe.hpp>
 #include <spike_source_cell_group.hpp>
 #include <time_sequence.hpp>

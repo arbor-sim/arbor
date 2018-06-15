@@ -4,7 +4,7 @@
 #include <cell_group.hpp>
 #include <event_queue.hpp>
 #include <lif_cell_description.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 #include <recipe.hpp>
 #include <util/unique_any.hpp>
 #include <vector>

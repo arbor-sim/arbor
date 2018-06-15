@@ -1,9 +1,10 @@
 #pragma once
 
+#include <arbor/assert.hpp>
+
 #include <backends/fvm_types.hpp>
 #include <math.hpp>
 #include <memory/memory.hpp>
-#include <util/debug.hpp>
 #include <util/span.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
@@ -145,12 +146,12 @@ struct matrix_state_interleaved {
                  const std::vector<value_type>& face_cond,
                  const std::vector<value_type>& area)
     {
-        EXPECTS(cv_cap.size()    == p.size());
-        EXPECTS(face_cond.size() == p.size());
-        EXPECTS(cell_cv_divs.back()  == (index_type)p.size());
+        arb_assert(cv_cap.size()    == p.size());
+        arb_assert(face_cond.size() == p.size());
+        arb_assert(cell_cv_divs.back()  == (index_type)p.size());
 
         // Just because you never know.
-        EXPECTS(cell_cv_divs.size() <= UINT_MAX);
+        arb_assert(cell_cv_divs.size() <= UINT_MAX);
 
         using util::make_span;
         using util::indirect_view;

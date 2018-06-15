@@ -1,16 +1,17 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
-#include <communication/distributed_context.hpp>
-#include <json/json.hpp>
+#include <arbor/profile/meter.hpp>
+#include <arbor/profile/timer.hpp>
 
-#include "meter.hpp"
-#include "profiler.hpp"
+// TODO: -> public header
+#include "communication/distributed_context.hpp"
 
 namespace arb {
-namespace util {
+namespace profile {
 
 // A measurement has the following:
 //  * name
@@ -36,7 +37,7 @@ private:
 
     bool started_ = false;
 
-    time_point start_time_;
+    tick_type start_time_;
     std::vector<double> times_;
 
     std::vector<std::unique_ptr<meter>> meters_;
@@ -64,9 +65,8 @@ struct meter_report {
     std::vector<std::string> hosts;
 };
 
-nlohmann::json to_json(const meter_report&);
 meter_report make_meter_report(const meter_manager& manager);
 std::ostream& operator<<(std::ostream& o, const meter_report& report);
 
-} // namespace util
+} // namespace profile
 } // namespace arb

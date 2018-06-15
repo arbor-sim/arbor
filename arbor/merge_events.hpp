@@ -5,7 +5,7 @@
 
 #include <event_generator.hpp>
 #include <event_queue.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 

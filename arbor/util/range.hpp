@@ -30,8 +30,9 @@
 #include <tbb/tbb_stddef.h>
 #endif
 
+#include <arbor/assert.hpp>
+
 #include <util/counter.hpp>
-#include <util/debug.hpp>
 #include <util/either.hpp>
 #include <util/iterutil.hpp>
 #include <util/meta.hpp>

@@ -46,9 +46,9 @@ public:
         face_conductance(cond.begin(), cond.end()),
         cv_area(area.begin(), area.end())
     {
-        EXPECTS(cap.size() == size());
-        EXPECTS(cond.size() == size());
-        EXPECTS(cell_cv_divs.back() == (index_type)size());
+        arb_assert(cap.size() == size());
+        arb_assert(cond.size() == size());
+        arb_assert(cell_cv_divs.back() == (index_type)size());
 
         auto n = size();
         invariant_d = array(n, 0);

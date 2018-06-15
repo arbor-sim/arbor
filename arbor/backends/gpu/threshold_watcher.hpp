@@ -111,7 +111,7 @@ public:
             // Check that the number of spikes has not exceeded capacity.
             // ATTENTION: requires cudaDeviceSynchronize to avoid simultaneous
             // host-device managed memory access.
-            EXPECTS((cudaDeviceSynchronize(), !stack_.overflow()));
+            arb_assert((cudaDeviceSynchronize(), !stack_.overflow()));
         }
     }
 

@@ -272,7 +272,7 @@ public:
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<value_type> lens):
         segment(k), radii_(std::move(r)), lengths_(std::move(lens))
     {
-        EXPECTS(kind_==section_kind::dendrite || kind_==section_kind::axon);
+        arb_assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
     }
 
     cable_segment(section_kind k, value_type r1, value_type r2, value_type len):
@@ -284,7 +284,7 @@ public:
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<point_type> p):
         segment(k), radii_(std::move(r)), locations_(std::move(p))
     {
-        EXPECTS(kind_==section_kind::dendrite || kind_==section_kind::axon);
+        arb_assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
         update_lengths();
     }
 

@@ -99,7 +99,7 @@ void multi_event_stream_base::clear() {
 // Designate for processing events `ev` at head of each event stream `i`
 // until `event_time(ev)` > `t_until[i]`.
 void multi_event_stream_base::mark_until_after(const_view t_until) {
-    EXPECTS(n_streams()==util::size(t_until));
+    arb_assert(n_streams()==util::size(t_until));
 
     constexpr int block_dim = 128;
 
@@ -112,7 +112,7 @@ void multi_event_stream_base::mark_until_after(const_view t_until) {
 // Designate for processing events `ev` at head of each event stream `i`
 // while `t_until[i]` > `event_time(ev)`.
 void multi_event_stream_base::mark_until(const_view t_until) {
-    EXPECTS(n_streams()==util::size(t_until));
+    arb_assert(n_streams()==util::size(t_until));
     constexpr int block_dim = 128;
 
     unsigned n = n_stream_;

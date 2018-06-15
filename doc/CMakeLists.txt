@@ -32,5 +32,7 @@ if(NOT TARGET docs)
 
     # Remove generated documentation when make clean is run.
     set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${doctree_dir}" "${html_dir}")
+
+    install(DIRECTORY ${html_dir} DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()
 

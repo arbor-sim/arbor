@@ -5,5 +5,5 @@
 	path = doc/rtd_theme
 	url = https://github.com/rtfd/sphinx_rtd_theme.git
 [submodule "tbb"]
-	path = tbb
+	path = ext/tbb
 	url = https://github.com/wjakob/tbb.git

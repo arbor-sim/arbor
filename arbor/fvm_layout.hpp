@@ -80,7 +80,7 @@ struct fvm_discretization {
         auto cell_segs = cell_segment_part()[cell_index];
 
         size_type seg = segloc.segment+cell_segs.first;
-        EXPECTS(seg<cell_segs.second);
+        arb_assert(seg<cell_segs.second);
         return segments[seg].cv_by_position(segloc.position);
     }
 };

@@ -16,8 +16,9 @@
 #include <iterator>
 #include <type_traits>
 
+#include <arbor/assert.hpp>
+
 #include <util/compat.hpp>
-#include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 
@@ -50,7 +51,7 @@ struct index_into_iterator {
     }
 
     index_into_iterator& operator++() {
-        EXPECTS(sup!=sup_end);
+        arb_assert(sup!=sup_end);
 
         ++sub;
         align_fwd();
@@ -116,7 +117,7 @@ private:
             --sup;
         }
 
-        EXPECTS(*sub==*sup);
+        arb_assert(*sub==*sup);
     }
 };
 

@@ -146,7 +146,7 @@ void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, con
         ion_index = iarray(width_padded_, pad);
         copy_extend(indices, ion_index, util::back(indices));
 
-        EXPECTS(compatible_index_constraints(node_index_, ion_index, simd_width));
+        arb_assert(compatible_index_constraints(node_index_, ion_index, simd_width));
     }
 
 }

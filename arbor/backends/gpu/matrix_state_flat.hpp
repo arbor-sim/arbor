@@ -75,11 +75,11 @@ struct matrix_state_flat {
         cv_capacitance(memory::make_const_view(cv_cap)),
         cv_area(memory::make_const_view(area))
     {
-        EXPECTS(cv_cap.size() == size());
-        EXPECTS(face_cond.size() == size());
-        EXPECTS(area.size() == size());
-        EXPECTS(cell_cv_divs.back() == (index_type)size());
-        EXPECTS(cell_cv_divs.size() > 1u);
+        arb_assert(cv_cap.size() == size());
+        arb_assert(face_cond.size() == size());
+        arb_assert(area.size() == size());
+        arb_assert(cell_cv_divs.back() == (index_type)size());
+        arb_assert(cell_cv_divs.size() > 1u);
 
         using memory::make_const_view;
 

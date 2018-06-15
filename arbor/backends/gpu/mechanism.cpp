@@ -126,7 +126,7 @@ void mechanism::instantiate(fvm_size_type id,
     pp->node_index_ = indices_.data();
 
     auto ion_index_tbl = ion_index_table();
-    EXPECTS(num_ions_==ion_index_tbl.size());
+    arb_assert(num_ions_==ion_index_tbl.size());
 
     for (auto i: make_span(0, num_ions_)) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, ion_index_tbl[i].first);

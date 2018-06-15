@@ -18,8 +18,8 @@ public:
         values_(std::move(v)),
         partition_(std::move(p))
     {
-        EXPECTS(util::is_sorted(partition_));
-        EXPECTS(partition_.back() == values_.size());
+        arb_assert(util::is_sorted(partition_));
+        arb_assert(partition_.back() == values_.size());
     }
 
     /// the partition of distribution

@@ -14,7 +14,7 @@
 #include <util/filter.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 

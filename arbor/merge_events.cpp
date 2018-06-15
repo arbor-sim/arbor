@@ -10,7 +10,7 @@
 #include <util/filter.hpp>
 #include <util/span.hpp>
 #include <util/unique_any.hpp>
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 
@@ -34,9 +34,9 @@ tourney_tree::tourney_tree(std::vector<event_generator>& input):
     n_lanes_(input_.size())
 {
     // Must have at least 1 queue
-    EXPECTS(n_lanes_);
+    arb_assert(n_lanes_);
     // Maximum value in unsigned limits how many queues we can have
-    EXPECTS(n_lanes_<(1u<<(sizeof(unsigned)*8u-1u)));
+    arb_assert(n_lanes_<(1u<<(sizeof(unsigned)*8u-1u)));
 
     leaves_ = next_power_2(n_lanes_);
     nodes_ = 2u*(leaves_-1u)+1u; // 2*l-1 with overflow protection
@@ -167,7 +167,7 @@ void merge_events(time_type t0, time_type t1,
         //           generators to be delivered in the time interval [t₀, t₁).
         //  Step 2 : Use std::merge to append events in lc and events with
         //           delivery times in the interval [t₁, ∞).
-        EXPECTS(generators.size()>2u);
+        arb_assert(generators.size()>2u);
 
         PE(communication_enqueue_setup);
         // Make an event generator with all the events in events.

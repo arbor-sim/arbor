@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace arb {
-namespace util {
+namespace profile {
 
 // A meter can be used to take a measurement of resource consumption, for
 // example wall time, memory or energy consumption.
@@ -39,5 +39,5 @@ public:
 
 using meter_ptr = std::unique_ptr<meter>;
 
-} // namespace util
+} // namespace profile
 } // namespace arb

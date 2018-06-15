@@ -3,7 +3,7 @@
 #include <array>
 #include <atomic>
 
-#include <util/debug.hpp>
+#include <arbor/assert.hpp>
 
 namespace arb {
 namespace util {

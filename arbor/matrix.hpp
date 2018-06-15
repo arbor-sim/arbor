@@ -2,9 +2,9 @@
 
 #include <type_traits>
 
-#include <memory/memory.hpp>
+#include <arbor/assert.hpp>
 
-#include <util/debug.hpp>
+#include <memory/memory.hpp>
 #include <util/span.hpp>
 
 namespace arb {
@@ -40,7 +40,7 @@ public:
         cell_index_(ci.begin(), ci.end()),
         state_(pi, ci, cv_capacitance, face_conductance, cv_area)
     {
-        EXPECTS(cell_index_[num_cells()] == index_type(parent_index_.size()));
+        arb_assert(cell_index_[num_cells()] == index_type(parent_index_.size()));
     }
 
     /// the dimension of the matrix (i.e. the number of rows or colums)

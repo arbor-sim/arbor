@@ -2,6 +2,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <backends/event.hpp>
 #include <cell.hpp>
 #include <cell_group.hpp>
@@ -18,8 +20,7 @@
 #include <util/filter.hpp>
 #include <util/partition.hpp>
 
-#include <profiling/profiler.hpp>
-#include <util/debug.hpp>
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 

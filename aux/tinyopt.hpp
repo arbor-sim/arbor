@@ -9,11 +9,12 @@
 #include <utility>
 #include <vector>
 
-#include <util/meta.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
-namespace arb {
 namespace to {
+
+using optional = arb::util::optional;
+using nullopt = arb::nullopt;
 
 struct parse_opt_error: public std::runtime_error {
     parse_opt_error(const std::string& s): std::runtime_error(s) {}
@@ -38,11 +39,11 @@ void usage(const char* argv0, const std::string& usage_str, const std::string& p
 
 template <typename V>
 struct default_parser {
-    util::optional<V> operator()(const std::string& text) const {
+    optional<V> operator()(const std::string& text) const {
         V v;
         std::istringstream stream(text);
         stream >> v;
-        return stream? util::just(v): util::nullopt;
+        return stream? util::just(v): nullopt;
     }
 };
 
@@ -54,11 +55,11 @@ public:
     template <typename KeywordPairs>
     keyword_parser(const KeywordPairs& pairs): map_(std::begin(pairs), std::end(pairs)) {}
 
-    util::optional<V> operator()(const std::string& text) const {
+    optional<V> operator()(const std::string& text) const {
         for (const auto& p: map_) {
             if (text==p.first) return p.second;
         }
-        return util::nullopt;
+        return nullopt;
     }
 };
 
@@ -67,12 +68,12 @@ auto keywords(const KeywordPairs& pairs) -> keyword_parser<decltype(std::begin(p
     return keyword_parser<decltype(std::begin(pairs)->second)>(pairs);
 }
 
-template <typename V = std::string, typename P = default_parser<V>, typename = util::enable_if_t<!std::is_same<V, void>::value>>
-util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nullptr, const P& parse = P{}) {
+template <typename V = std::string, typename P = default_parser<V>, typename = typename std::enable_if<!std::is_same<V, void>::value>::type>
+optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nullptr, const P& parse = P{}) {
     const char* arg = argp[0];
 
     if (!arg || arg[0]!='-') {
-        return util::nullopt;
+        return nullopt;
     }
 
     std::string text;
@@ -91,7 +92,7 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
             argp += 1;
         }
         else {
-            return util::nullopt;
+            return nullopt;
         }
     }
     else if (shortopt && arg[1]==shortopt && arg[2]==0) {
@@ -100,7 +101,7 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
         argp += 2;
     }
     else {
-        return util::nullopt;
+        return nullopt;
     }
 
     auto v = parse(text);
@@ -109,9 +110,9 @@ util::optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nu
     return v;
 }
 
-util::optional<void> parse_opt(char **& argp, char shortopt, const char* longopt) {
+optional<void> parse_opt(char **& argp, char shortopt, const char* longopt) {
     if (!*argp || *argp[0]!='-') {
-        return util::nullopt;
+        return nullopt;
     }
     else if (argp[0][1]=='-' && longopt && !std::strcmp(argp[0]+2, longopt)) {
         ++argp;
@@ -122,10 +123,8 @@ util::optional<void> parse_opt(char **& argp, char shortopt, const char* longopt
         return true;
     }
     else {
-        return util::nullopt;
+        return nullopt;
     }
 }
 
-
-} // namespace to;
-} // namespace arb
+} // namespace to

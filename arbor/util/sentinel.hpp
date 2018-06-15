@@ -29,22 +29,22 @@ class sentinel_iterator {
     arb::util::either<I, S> e_;
 
     I& iter() {
-        EXPECTS(!is_sentinel());
+        arb_assert(!is_sentinel());
         return e_.template unsafe_get<0>();
     }
 
     const I& iter() const {
-        EXPECTS(!is_sentinel());
+        arb_assert(!is_sentinel());
         return e_.template unsafe_get<0>();
     }
 
     S& sentinel() {
-        EXPECTS(is_sentinel());
+        arb_assert(is_sentinel());
         return e_.template unsafe_get<1>();
     }
 
     const S& sentinel() const {
-        EXPECTS(is_sentinel());
+        arb_assert(is_sentinel());
         return e_.template unsafe_get<1>();
     }
 

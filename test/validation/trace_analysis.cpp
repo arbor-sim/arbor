@@ -31,7 +31,7 @@ struct trace_interpolant {
 
         auto part = util::partition_view(tx);
         auto i = part.index(t);
-        EXPECTS(i != part.npos);
+        arb_assert(i != part.npos);
         auto p = part[i];
         return math::lerp(vx[i], vx[i+1], (t-p.first)/(p.second-p.first));
     }

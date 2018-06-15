@@ -5,12 +5,13 @@
 #include <sstream>
 #include <unordered_set>
 
+#include <arbor/assert.hpp>
+
 #include <algorithms.hpp>
 #include <cell.hpp>
 #include <morphology.hpp>
 #include <point.hpp>
 #include <swcio.hpp>
-#include <util/debug.hpp>
 
 namespace arb {
 namespace io {

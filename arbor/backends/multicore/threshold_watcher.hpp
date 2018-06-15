@@ -1,8 +1,9 @@
 #pragma once
 
+#include <arbor/assert.hpp>
+
 #include <backends/fvm_types.hpp>
 #include <math.hpp>
-#include <util/debug.hpp>
 
 #include "multicore_common.hpp"
 
@@ -31,7 +32,7 @@ public:
         thresholds_(thresholds),
         v_prev_(values_, values_+n_cv_)
     {
-        EXPECTS(n_cv_==thresholds.size());
+        arb_assert(n_cv_==thresholds.size());
         reset();
     }
 

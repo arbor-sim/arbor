@@ -21,7 +21,7 @@ struct segment_location {
     segment_location(cell_lid_type s, double l):
         segment(s), position(l)
     {
-        EXPECTS(position>=0. && position<=1.);
+        arb_assert(position>=0. && position<=1.);
     }
 
      bool operator==(segment_location other) const {

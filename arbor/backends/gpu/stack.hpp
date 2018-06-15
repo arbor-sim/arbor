@@ -92,12 +92,12 @@ public:
     }
 
     value_type& operator[](unsigned i) {
-        EXPECTS(i<size());
+        arb_assert(i<size());
         return storage_->data[i];
     }
 
     value_type& operator[](unsigned i) const {
-        EXPECTS(i<size());
+        arb_assert(i<size());
         return storage_->data[i];
     }
 

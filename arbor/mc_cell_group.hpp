@@ -6,6 +6,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <backends/event.hpp>
 #include <cell_group.hpp>
 #include <cell.hpp>
@@ -17,14 +19,13 @@
 #include <sampler_map.hpp>
 #include <sampling.hpp>
 #include <spike.hpp>
-#include <util/debug.hpp>
 #include <util/double_buffer.hpp>
 #include <util/filter.hpp>
 #include <util/partition.hpp>
 #include <util/range.hpp>
 #include <util/unique_any.hpp>
 
-#include <profiling/profiler.hpp>
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 

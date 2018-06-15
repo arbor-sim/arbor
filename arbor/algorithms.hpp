@@ -7,8 +7,9 @@
 #include <type_traits>
 #include <vector>
 
+#include <arbor/assert.hpp>
+
 #include <util/compat.hpp>
-#include <util/debug.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>
@@ -193,7 +194,7 @@ std::vector<typename C::value_type> branches(const C& parent_index)
         "integral type required"
     );
 
-    EXPECTS(has_contiguous_compartments(parent_index));
+    arb_assert(has_contiguous_compartments(parent_index));
 
     std::vector<typename C::value_type> branch_index;
     if (parent_index.empty()) {
@@ -292,9 +293,9 @@ std::vector<typename C::value_type> tree_reduce(
         return {};
     }
 
-    EXPECTS(parent_index.size()-branch_index.back() == 0);
-    EXPECTS(has_contiguous_compartments(parent_index));
-    EXPECTS(is_strictly_monotonic_increasing(branch_index));
+    arb_assert(parent_index.size()-branch_index.back() == 0);
+    arb_assert(has_contiguous_compartments(parent_index));
+    arb_assert(is_strictly_monotonic_increasing(branch_index));
 
     // expand the branch index
     auto expanded_branch = expand_branches(branch_index);

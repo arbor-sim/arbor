@@ -2,8 +2,9 @@
 
 #include <cstdint>
 
+#include <arbor/assert.hpp>
+
 #include <common_types.hpp>
-#include <util/debug.hpp>
 
 namespace arb {
 
@@ -28,7 +29,7 @@ struct epoch {
     epoch(std::size_t id, time_type tfinal): id(id), tfinal(tfinal) {}
 
     void advance(time_type t) {
-        EXPECTS(t>=tfinal);
+        arb_assert(t>=tfinal);
         tfinal = t;
         ++id;
     }
