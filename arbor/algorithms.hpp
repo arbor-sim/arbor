@@ -9,7 +9,7 @@
 
 #include <arbor/assert.hpp>
 
-#include <util/compat.hpp>
+#include <arbor/util/compat.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>

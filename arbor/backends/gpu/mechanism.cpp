@@ -10,7 +10,7 @@
 #include <mechanism.hpp>
 #include <memory/memory.hpp>
 #include <util/index_into.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 #include <util/maputil.hpp>
 #include <util/range.hpp>
 #include <util/span.hpp>

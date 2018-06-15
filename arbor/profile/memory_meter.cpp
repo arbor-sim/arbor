@@ -1,14 +1,14 @@
 #include <string>
 #include <vector>
 
-#include <util/config.hpp>
-#include <hardware/memory.hpp>
+#include <arbor/profile/meter.hpp>
 
+#include "util/config.hpp"
+#include "hardware/memory.hpp"
 #include "memory_meter.hpp"
-#include "meter.hpp"
 
 namespace arb {
-namespace util {
+namespace profile {
 
 //
 //  memory_meter
@@ -73,5 +73,5 @@ meter_ptr make_gpu_memory_meter() {
     return meter_ptr(new gpu_memory_meter());
 }
 
-} // namespace util
+} // namespace profile
 } // namespace arb

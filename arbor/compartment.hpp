@@ -5,7 +5,7 @@
 
 #include <common_types.hpp>
 #include <math.hpp>
-#include <util/compat.hpp>
+#include <arbor/util/compat.hpp>
 #include <util/counter.hpp>
 #include <util/iterutil.hpp>
 #include <util/partition.hpp>

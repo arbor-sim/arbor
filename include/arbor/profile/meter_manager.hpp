@@ -32,9 +32,6 @@ struct measurement {
 
 class meter_manager {
 private:
-    using timer_type = arb::threading::timer;
-    using time_point = timer_type::time_point;
-
     bool started_ = false;
 
     tick_type start_time_;

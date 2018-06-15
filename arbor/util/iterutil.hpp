@@ -10,8 +10,9 @@
 #include <type_traits>
 #include <utility>
 
-#include <util/compat.hpp>
-#include <util/meta.hpp>
+#include <arbor/util/compat.hpp>
+
+#include "util/meta.hpp"
 
 namespace arb {
 namespace util {

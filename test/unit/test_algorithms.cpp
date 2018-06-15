@@ -6,11 +6,12 @@
 
 #include "../gtest.h"
 
-#include <algorithms.hpp>
-#include <util/compat.hpp>
-#include <util/debug.hpp>
-#include <util/index_into.hpp>
-#include <util/meta.hpp>
+#include <arbor/util/compat.hpp>
+
+#include "algorithms.hpp"
+#include "util/debug.hpp"
+#include "util/index_into.hpp"
+#include "util/meta.hpp"
 
 #include "common.hpp"
 

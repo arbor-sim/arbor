@@ -17,8 +17,8 @@
 #include <type_traits>
 
 #include <arbor/assert.hpp>
+#include <arbor/util/compat.hpp>
 
-#include <util/compat.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
 

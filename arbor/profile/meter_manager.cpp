@@ -1,18 +1,21 @@
 #include <arbor/profile/timer.hpp>
 
-#include <communication/distributed_context.hpp>
-#include <algorithms.hpp>
-#include <util/hostname.hpp>
-#include <util/strprintf.hpp>
-#include <util/rangeutil.hpp>
-#include <json/json.hpp>
+#include <arbor/profile/meter_manager.hpp>
 
-#include "meter_manager.hpp"
 #include "memory_meter.hpp"
 #include "power_meter.hpp"
 
+#include "communication/distributed_context.hpp"
+#include "algorithms.hpp"
+#include "util/hostname.hpp"
+#include "util/strprintf.hpp"
+#include "util/rangeutil.hpp"
+
 namespace arb {
 namespace profile {
+
+using timer_type = timer<>;
+using util::strprintf;
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
@@ -94,19 +97,6 @@ const distributed_context* meter_manager::context() const {
     return glob_ctx_;
 }
 
-nlohmann::json to_json(const measurement& mnt) {
-    nlohmann::json measurements;
-    for (const auto& m: mnt.measurements) {
-        measurements.push_back(m);
-    }
-
-    return {
-        {"name", mnt.name},
-        {"units", mnt.units},
-        {"measurements", measurements}
-    };
-}
-
 // Build a report of meters, for use at the end of a simulation
 // for output to file or analysis.
 meter_report make_meter_report(const meter_manager& manager) {
@@ -117,14 +107,14 @@ meter_report make_meter_report(const meter_manager& manager) {
     // Add the times to the meter outputs
     report.meters.push_back(measurement("time", "s", manager.times(), ctx));
 
-    // Gather the meter outputs into a json Array
+    // Gather the meter outputs.
     for (auto& m: manager.meters()) {
         report.meters.push_back(
             measurement(m->name(), m->units(), m->measurements(), ctx));
     }
 
     // Gather a vector with the names of the node that each rank is running on.
-    auto host = hostname();
+    auto host = util::hostname();
     auto hosts = ctx->gather(host? *host: "unknown", 0);
     report.hosts = hosts;
 
@@ -138,15 +128,6 @@ meter_report make_meter_report(const meter_manager& manager) {
     report.num_hosts = num_hosts;
 
     return report;
-}
-
-nlohmann::json to_json(const meter_report& report) {
-    return {
-        {"checkpoints", report.checkpoints},
-        {"num_domains", report.num_domains},
-        {"meters", util::transform_view(report.meters, [](measurement const& m){return to_json(m);})},
-        {"hosts", report.hosts},
-    };
 }
 
 // Print easy to read report of meters to a stream.

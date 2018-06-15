@@ -7,7 +7,7 @@
 #include <common_types.hpp>
 #include <event_binner.hpp>
 #include <spike.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
 namespace arb {
 

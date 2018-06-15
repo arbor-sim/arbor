@@ -33,8 +33,7 @@ struct fvm_lowered_cell {
         fvm_value_type tfinal,
         fvm_value_type max_dt,
         std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples,
-        bool check_physical = false) = 0;
+        std::vector<sample_event> staged_samples) = 0;
 
     virtual fvm_value_type time() const = 0;
 

@@ -11,7 +11,7 @@
 #include <math.hpp>
 #include <mechanism.hpp>
 #include <util/index_into.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 #include <util/maputil.hpp>
 #include <util/padded_alloc.hpp>
 #include <util/range.hpp>

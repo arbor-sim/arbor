@@ -1,6 +1,6 @@
 #include <string>
 
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
 #include "hostname.hpp"
 

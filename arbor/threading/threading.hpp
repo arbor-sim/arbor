@@ -1,6 +1,6 @@
 #pragma once
 
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
 namespace arb {
 namespace threading {

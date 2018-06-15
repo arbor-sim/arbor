@@ -1,12 +1,12 @@
 #pragma once
 
-#include "meter.hpp"
+#include <arbor/profile/meter.hpp>
 
 namespace arb {
-namespace util {
+namespace profile {
 
 meter_ptr make_memory_meter();
 meter_ptr make_gpu_memory_meter();
 
-} // namespace util
+} // namespace profile
 } // namespace arb

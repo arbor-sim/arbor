@@ -7,16 +7,16 @@
 
 #include <arbor/assert.hpp>
 
-#include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
-#include <common_types.hpp>
-#include <constants.hpp>
-#include <ion.hpp>
-#include <math.hpp>
-#include <simd/simd.hpp>
-#include <util/padded_alloc.hpp>
-#include <util/rangeutil.hpp>
-
+#include "backends/event.hpp"
+#include "backends/fvm_types.hpp"
+#include "common_types.hpp"
+#include "constants.hpp"
+#include "io/sepval.hpp"
+#include "ion.hpp"
+#include "math.hpp"
+#include "simd/simd.hpp"
+#include "util/padded_alloc.hpp"
+#include "util/rangeutil.hpp"
 
 #include "multi_event_stream.hpp"
 #include "multicore_common.hpp"
@@ -232,7 +232,7 @@ void shared_state::take_samples(
 
 // (Debug interface only.)
 std::ostream& operator<<(std::ostream& out, const shared_state& s) {
-    using util::csv;
+    using io::csv;
 
     out << "n_cell     " << s.n_cell << "\n";
     out << "n_cv       " << s.n_cv << "\n";

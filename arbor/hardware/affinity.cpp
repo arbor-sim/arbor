@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <vector>
 
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
 #ifdef __linux__
 

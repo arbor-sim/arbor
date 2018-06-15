@@ -5,6 +5,9 @@
 namespace arb {
 namespace hw {
 
+// Test for support on configured architecture:
+bool has_energy_measurement();
+
 // Energy in Joules (J)
 using energy_size_type = std::uint64_t;
 

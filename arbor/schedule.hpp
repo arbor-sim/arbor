@@ -8,7 +8,7 @@
 #include <arbor/assert.hpp>
 
 #include <common_types.hpp>
-#include <util/compat.hpp>
+#include <arbor/util/compat.hpp>
 #include <util/meta.hpp>
 
 // Time schedules for probe–sampler associations.

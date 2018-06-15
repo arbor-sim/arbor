@@ -1,13 +1,13 @@
 #include <string>
 #include <vector>
 
-#include "meter.hpp"
+#include <arbor/profile/meter.hpp>
 
-#include <util/config.hpp>
-#include <hardware/power.hpp>
+#include "util/config.hpp"
+#include "hardware/power.hpp"
 
 namespace arb {
-namespace util {
+namespace profile {
 
 class power_meter: public meter {
     std::vector<hw::energy_size_type> readings_;
@@ -43,5 +43,5 @@ meter_ptr make_power_meter() {
     return meter_ptr(new power_meter());
 }
 
-} // namespace util
+} // namespace profile
 } // namespace arb

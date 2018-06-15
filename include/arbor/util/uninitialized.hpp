@@ -19,11 +19,11 @@ namespace util {
 
 template <typename T>
 using enable_if_copy_constructible_t =
-    typename std::enable_if<is_copy_constructible<T>::value>::type;
+    typename std::enable_if<std::is_copy_constructible<T>::value>::type;
 
 template <typename... T>
 using enable_if_constructible_t =
-    typename std::enable_if<is_constructible<T...>::value>::type;
+    typename std::enable_if<std::is_constructible<T...>::value>::type;
 
 /*
  * Maintains storage for a value of type X, with explicit
@@ -80,11 +80,11 @@ public:
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    result_of_t<F(reference)> apply(F&& f) { return f(ref()); }
+    typename std::result_of<F(reference)>::type apply(F&& f) { return f(ref()); }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    result_of_t<F(const_reference)> apply(F&& f) const { return f(cref()); }
+    typename std::result_of<F(const_reference)>::type apply(F&& f) const { return f(cref()); }
 };
 
 /*

@@ -11,8 +11,9 @@
 #include <stdexcept>
 #include <utility>
 
+#include <arbor/util/uninitialized.hpp>
+
 #include "util/meta.hpp"
-#include "util/uninitialized.hpp"
 
 namespace arb {
 namespace util {

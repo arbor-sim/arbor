@@ -27,12 +27,11 @@ set(libmodcc_sources
 set(modcc_sources modcc.cpp)
 
 add_library(libmodcc STATIC ${libmodcc_sources})
-target_include_directories(libmodcc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(libmodcc PUBLIC .)
 set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
 
 add_executable(modcc ${modcc_sources})
-target_include_directories(modcc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/external)
-target_link_libraries(modcc libmodcc)
+target_link_libraries(modcc libmodcc ext-tclap)
 
 set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
 

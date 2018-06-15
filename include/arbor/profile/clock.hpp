@@ -1,3 +1,5 @@
+#pragma once
+
 typedef unsigned long long tick_type;
 
 // Assuming POSIX monotonic clock is available; add

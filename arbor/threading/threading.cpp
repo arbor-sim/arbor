@@ -3,7 +3,7 @@
 #include <regex>
 #include <string>
 
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 #include <hardware/affinity.hpp>
 
 #include "threading.hpp"

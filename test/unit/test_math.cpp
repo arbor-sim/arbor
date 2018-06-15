@@ -3,8 +3,9 @@
 
 #include "../gtest.h"
 
-#include <math.hpp>
-#include <util/compat.hpp>
+#include <arbor/util/compat.hpp>
+
+#include "math.hpp"
 
 using namespace arb::math;
 

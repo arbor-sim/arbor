@@ -1,10 +1,12 @@
+#pragma once
+
 #include <arbor/profile/clock.hpp>
 
 namespace arb {
 namespace profile {
 
 template <typename Clock = default_clock>
-struct timer<Clock> {
+struct timer {
     static inline tick_type tic() {
         return Clock::now();
     }

@@ -52,8 +52,7 @@ public:
         value_type tfinal,
         value_type max_dt,
         std::vector<deliverable_event> staged_events,
-        std::vector<sample_event> staged_samples,
-        bool check_physical = false) override;
+        std::vector<sample_event> staged_samples) override;
 
     value_type time() const override { return tmin_; }
 
@@ -82,6 +81,9 @@ private:
     value_type initial_voltage_ = NAN;
     value_type temperature_ = NAN;
     std::vector<mechanism_ptr> mechanisms_;
+
+    // Non-physical voltage check threshold, 0 => no check.
+    value_type check_voltage_mV = 0;
 
     // Host-side views/copies and local state.
     decltype(backend::host_view(sample_time_)) sample_time_host_;
@@ -138,8 +140,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     value_type tfinal,
     value_type dt_max,
     std::vector<deliverable_event> staged_events,
-    std::vector<sample_event> staged_samples,
-    bool check_physical)
+    std::vector<sample_event> staged_samples)
 {
     using util::as_const;
 
@@ -230,9 +231,9 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Check for non-physical solutions:
 
-        if (check_physical) {
+        if (check_voltage_mV>0) {
             PE(advance_integrate_physicalcheck);
-            assert_voltage_bounded(1000.);
+            assert_voltage_bounded(check_voltage_mV);
             PL();
         }
 
@@ -313,6 +314,10 @@ void fvm_lowered_cell_impl<B>::initialize(
         auto cat = builtin_mechanisms().has(name)? &builtin_mechanisms(): catalogue;
         return cat->instance<backend>(name);
     };
+
+    // Check for physically reasonable membrane volages?
+
+    check_voltage_mV = global_props.membrane_voltage_limit_mV;
 
     // Discretize cells, build matrix.
 

@@ -6,8 +6,9 @@
 #include <iterator>
 #include <type_traits>
 
-#include <util/compat.hpp>
-#include <util/deduce_return.hpp>
+#include <arbor/util/compat.hpp>
+
+#include "util/deduce_return.hpp"
 
 namespace arb {
 namespace util {

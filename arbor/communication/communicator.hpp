@@ -9,19 +9,20 @@
 
 #include <arbor/assert.hpp>
 
-#include <algorithms.hpp>
-#include <common_types.hpp>
-#include <communication/gathered_vector.hpp>
-#include <communication/distributed_context.hpp>
-#include <connection.hpp>
-#include <domain_decomposition.hpp>
-#include <event_queue.hpp>
+#include "algorithms.hpp"
+#include "common_types.hpp"
+#include "communication/gathered_vector.hpp"
+#include "communication/distributed_context.hpp"
+#include "connection.hpp"
+#include "domain_decomposition.hpp"
+#include "event_queue.hpp"
 #include "profile/profiler_macro.hpp"
-#include <recipe.hpp>
-#include <spike.hpp>
-#include <util/double_buffer.hpp>
-#include <util/partition.hpp>
-#include <util/rangeutil.hpp>
+#include "recipe.hpp"
+#include "spike.hpp"
+#include "threading/threading.hpp"
+#include "util/double_buffer.hpp"
+#include "util/partition.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 

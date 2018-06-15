@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
 namespace arb {
 namespace hw {

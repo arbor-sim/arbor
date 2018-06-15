@@ -1,11 +1,11 @@
 #pragma once
 
-#include "meter.hpp"
+#include <arbor/profile/meter.hpp>
 
 namespace arb {
-namespace util {
+namespace profile {
 
 meter_ptr make_power_meter();
 
-} // namespace util
+} // namespace profile
 } // namespace arb

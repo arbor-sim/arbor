@@ -154,7 +154,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     PL();
 
     // Run integration and collect samples, spikes.
-    auto result = lowered_->integrate(ep.tfinal, dt, staged_events_, std::move(sample_events), util::is_debug_mode());
+    auto result = lowered_->integrate(ep.tfinal, dt, staged_events_, std::move(sample_events));
 
     // For each sampler callback registered in `call_info`, construct the
     // vector of sample entries from the lowered cell sample times and values

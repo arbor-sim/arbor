@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
 namespace arb {
 namespace util {

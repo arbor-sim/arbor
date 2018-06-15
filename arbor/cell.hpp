@@ -62,6 +62,10 @@ struct cell_probe_address {
 struct cell_global_properties {
     const mechanism_catalogue* catalogue = &global_default_catalogue();
 
+    // If >0, check membrane voltage magnitude is less than limit
+    // during integration.
+    double membrane_voltage_limit_mV = 0;
+
     // TODO: consider making some/all of the following parameters
     // cell or even segment-local.
     // 

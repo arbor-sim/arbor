@@ -1,10 +1,10 @@
 #include <cstdio>
 #include <ostream>
 
-#include <util/span.hpp>
-#include <util/rangeutil.hpp>
+#include <arbor/profile/profiler.hpp>
 
-#include "profiler.hpp"
+#include "util/span.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 namespace profile {

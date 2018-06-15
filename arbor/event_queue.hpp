@@ -10,7 +10,7 @@
 #include <common_types.hpp>
 #include <generic_event.hpp>
 #include <util/meta.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 #include <util/range.hpp>
 #include <util/rangeutil.hpp>
 #include <util/strprintf.hpp>

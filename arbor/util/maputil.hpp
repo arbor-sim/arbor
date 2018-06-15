@@ -8,7 +8,7 @@
 
 #include <util/deduce_return.hpp>
 #include <util/meta.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 #include <util/transform.hpp>
 
 // Convenience views, algorithms for maps and map-like containers.
