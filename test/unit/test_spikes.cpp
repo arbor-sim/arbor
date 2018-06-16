@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
-#include <spike.hpp>
+#include <arbor/spike.hpp>
+
 #include <backends/multicore/fvm.hpp>
 #include <memory/memory.hpp>
 #include <util/rangeutil.hpp>

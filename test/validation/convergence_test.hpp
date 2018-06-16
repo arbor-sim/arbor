@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 #include <simulation.hpp>
 #include <schedule.hpp>
 #include <sampling.hpp>
@@ -9,7 +11,6 @@
 #include <util/filter.hpp>
 #include <util/rangeutil.hpp>
 
-#include <json/json.hpp>
 
 #include "../gtest.h"
 

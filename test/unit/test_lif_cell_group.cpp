@@ -1,6 +1,8 @@
 #include "../gtest.h"
+
+#include <arbor/distributed_context.hpp>
+
 #include <cell_group_factory.hpp>
-#include <communication/distributed_context.hpp>
 #include <fstream>
 #include <lif_cell_description.hpp>
 #include <lif_cell_group.hpp>

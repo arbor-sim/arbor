@@ -7,8 +7,9 @@
 #include <string>
 #include <vector>
 
+#include <arbor/distributed_context.hpp>
+
 #include <communication/communicator.hpp>
-#include <communication/distributed_context.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
 

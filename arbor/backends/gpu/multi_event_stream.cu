@@ -1,9 +1,10 @@
-#include <common_types.hpp>
-#include <backends/event.hpp>
-#include <backends/gpu/multi_event_stream.hpp>
-#include <memory/array.hpp>
-#include <memory/copy.hpp>
-#include <util/rangeutil.hpp>
+#include <arbor/common_types.hpp>
+
+#include "backends/event.hpp"
+#include "backends/gpu/multi_event_stream.hpp"
+#include "memory/array.hpp"
+#include "memory/copy.hpp"
+#include "util/rangeutil.hpp"
 
 #include "cuda_common.hpp"
 

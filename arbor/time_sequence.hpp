@@ -4,10 +4,11 @@
 #include <memory>
 #include <random>
 
-#include <common_types.hpp>
-#include <event_queue.hpp>
-#include <util/meta.hpp>
-#include <util/rangeutil.hpp>
+#include <arbor/common_types.hpp>
+
+#include "event_queue.hpp"
+#include "util/meta.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 

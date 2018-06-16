@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
-#include "util/uninitialized.hpp"
+#include <arbor/util/uninitialized.hpp>
+
 #include "common.hpp"
 
 using namespace arb::util;

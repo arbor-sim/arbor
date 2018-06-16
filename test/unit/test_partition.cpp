@@ -5,7 +5,8 @@
 #include <string>
 #include <vector>
 
-#include <util/debug.hpp>
+#include <arbor/assert.hpp>
+
 #include <util/nop.hpp>
 #include <util/partition.hpp>
 
@@ -47,7 +48,7 @@ TEST(partition, short_partition_view) {
 
 TEST(partition, check_monotonicity) {
     // override any EXPECTS checks in partition
-    util::global_failed_assertion_handler = util::ignore_failed_assertion;
+    arb::global_failed_assertion_handler = arb::ignore_failed_assertion;
 
     int divs_ok[] = {1, 2, 2, 3, 3};
     EXPECT_NO_THROW(util::partition_view(divs_ok).validate());

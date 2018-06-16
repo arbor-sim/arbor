@@ -1,7 +1,8 @@
-#include <communication/distributed_context.hpp>
-#include <domain_decomposition.hpp>
-#include <hardware/node_info.hpp>
-#include <recipe.hpp>
+#include <arbor/distributed_context.hpp>
+
+#include "domain_decomposition.hpp"
+#include "hardware/node_info.hpp"
+#include "recipe.hpp"
 
 namespace arb {
 

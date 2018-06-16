@@ -1,8 +1,9 @@
-#include <communication/distributed_context.hpp>
-#include <domain_decomposition.hpp>
-#include <hardware/node_info.hpp>
-#include <recipe.hpp>
-#include <util/enumhash.hpp>
+#include <arbor//distributed_context.hpp>
+
+#include "domain_decomposition.hpp"
+#include "hardware/node_info.hpp"
+#include "recipe.hpp"
+#include "util/enumhash.hpp"
 
 namespace arb {
 

@@ -2,13 +2,14 @@
 
 #include "../gtest.h"
 
+#include <arbor/distributed_context.hpp>
+#include <arbor/common_types.hpp>
+
 #include <algorithms.hpp>
 #include <backends/fvm_types.hpp>
 #include <backends/multicore/fvm.hpp>
 #include <backends/multicore/mechanism.hpp>
-#include <communication/distributed_context.hpp>
 #include <cell.hpp>
-#include <common_types.hpp>
 #include <fvm_lowered_cell.hpp>
 #include <fvm_lowered_cell_impl.hpp>
 #include <load_balance.hpp>

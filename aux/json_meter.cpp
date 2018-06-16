@@ -1,4 +1,4 @@
-#include <arbor/profiling/meter_manager.hpp>
+#include <arbor/profile/meter_manager.hpp>
 #include <nlohmann/json.hpp>
 
 namespace aux {
@@ -16,11 +16,16 @@ static nlohmann::json to_json(const arb::profile::measurement& mnt) {
     };
 }
 
-nlohmann::json to_json(const arb::profile::meter_report&) {
+nlohmann::json to_json(const arb::profile::meter_report& report) {
+    nlohmann::json json_meters;
+    for (const auto& mnt: report.meters) {
+        json_meters.push_back(to_json(mnt));
+    }
+
     return {
         {"checkpoints", report.checkpoints},
         {"num_domains", report.num_domains},
-        {"meters", util::transform_view(report.meters, [](measurement const& m){return to_json(m);})},
+        {"meters", json_meters},
         {"hosts", report.hosts},
     };
 }

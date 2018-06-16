@@ -7,13 +7,13 @@
 #include <utility>
 #include <vector>
 
-#include <backends/fvm_types.hpp>
-#include <common_types.hpp>
-#include <mechanism.hpp>
+#include <arbor/common_types.hpp>
 
-#include <backends/gpu/fvm.hpp>
-#include <backends/gpu/gpu_store_types.hpp>
-#include <backends/gpu/mechanism_ppack_base.hpp>
+#include "backends/fvm_types.hpp"
+#include "mechanism.hpp"
+#include "backends/gpu/fvm.hpp"
+#include "backends/gpu/gpu_store_types.hpp"
+#include "backends/gpu/mechanism_ppack_base.hpp"
 
 namespace arb {
 namespace gpu {

@@ -2,15 +2,16 @@
 
 // Indexed collection of pop-only event queues --- multicore back-end implementation.
 
-#include <common_types.hpp>
-#include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
-#include <backends/multi_event_stream_state.hpp>
-#include <generic_event.hpp>
-#include <memory/array.hpp>
-#include <memory/copy.hpp>
+#include <arbor/common_types.hpp>
+
+#include "backends/event.hpp"
+#include "backends/fvm_types.hpp"
+#include "backends/multi_event_stream_state.hpp"
+#include "generic_event.hpp"
+#include "memory/array.hpp"
+#include "memory/copy.hpp"
 #include "profile/profiler_macro.hpp"
-#include <util/rangeutil.hpp>
+#include "util/rangeutil.hpp"
 
 namespace arb {
 namespace gpu {

@@ -6,7 +6,6 @@
 #include "../gtest.h"
 
 #include <tree.hpp>
-#include <util/debug.hpp>
 
 using namespace arb;
 using int_type = tree::int_type;

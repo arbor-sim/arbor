@@ -2,13 +2,14 @@
 #include <fstream>
 #include <string>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
 #include "../gtest.h"
 
+#include <arbor/util/optional.hpp>
+
 #include <math.hpp>
 #include <simple_sampler.hpp>
-#include <util/optional.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
 

@@ -3,8 +3,7 @@
 #include <cstdint>
 
 #include <arbor/assert.hpp>
-
-#include <common_types.hpp>
+#include <arbor/common_types.hpp>
 
 namespace arb {
 

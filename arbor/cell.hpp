@@ -4,14 +4,15 @@
 #include <stdexcept>
 #include <vector>
 
-#include <common_types.hpp>
-#include <constants.hpp>
-#include <ion.hpp>
-#include <mechcat.hpp>
-#include <morphology.hpp>
-#include <segment.hpp>
-#include <tree.hpp>
-#include <util/rangeutil.hpp>
+#include <arbor/common_types.hpp>
+
+#include "constants.hpp"
+#include "ion.hpp"
+#include "mechcat.hpp"
+#include "morphology.hpp"
+#include "segment.hpp"
+#include "tree.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 

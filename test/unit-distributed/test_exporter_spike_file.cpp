@@ -7,10 +7,11 @@
 #include <string>
 #include <vector>
 
+#include <arbor/distributed_context.hpp>
+#include <arbor/spike.hpp>
+
 #include <communication/communicator.hpp>
-#include <communication/distributed_context.hpp>
 #include <io/exporter_spike_file.hpp>
-#include <spike.hpp>
 
 class exporter_spike_file_fixture : public ::testing::Test {
 protected:

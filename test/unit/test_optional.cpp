@@ -4,7 +4,9 @@
 #include <typeinfo>
 
 #include "../gtest.h"
-#include "util/optional.hpp"
+
+#include <arbor/util/optional.hpp>
+
 #include "common.hpp"
 
 using namespace arb::util;

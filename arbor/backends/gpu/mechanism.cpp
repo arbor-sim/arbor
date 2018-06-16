@@ -5,19 +5,20 @@
 #include <utility>
 #include <vector>
 
-#include <common_types.hpp>
-#include <math.hpp>
-#include <mechanism.hpp>
-#include <memory/memory.hpp>
-#include <util/index_into.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
-#include <util/maputil.hpp>
-#include <util/range.hpp>
-#include <util/span.hpp>
 
-#include <backends/fvm_types.hpp>
-#include <backends/gpu/mechanism.hpp>
-#include <backends/gpu/fvm.hpp>
+#include "math.hpp"
+#include "mechanism.hpp"
+#include "memory/memory.hpp"
+#include "util/index_into.hpp"
+#include "util/maputil.hpp"
+#include "util/range.hpp"
+#include "util/span.hpp"
+
+#include "backends/fvm_types.hpp"
+#include "backends/gpu/mechanism.hpp"
+#include "backends/gpu/fvm.hpp"
 
 namespace arb {
 namespace gpu {

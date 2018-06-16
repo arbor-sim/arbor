@@ -5,8 +5,9 @@
 #include <string>
 #include <vector>
 
+#include <arbor/common_types.hpp>
+
 #include <simd/simd.hpp>
-#include <common_types.hpp>
 #include <backends/multicore/multicore_common.hpp>
 #include <backends/multicore/partition_by_constraint.hpp>
 

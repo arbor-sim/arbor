@@ -4,9 +4,10 @@
 
 #include "../gtest.h"
 
+#include <arbor/util/optional.hpp>
+
 #include <simple_sampler.hpp>
 #include <math.hpp>
-#include <util/optional.hpp>
 #include <util/path.hpp>
 #include <util/rangeutil.hpp>
 

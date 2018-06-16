@@ -1,11 +1,12 @@
 #include <vector>
 
+#include <arbor/util/optional.hpp>
+
 #include <cell.hpp>
 #include <fvm_layout.hpp>
 #include <math.hpp>
 #include <mechcat.hpp>
 #include <util/maputil.hpp>
-#include <util/optional.hpp>
 #include <util/rangeutil.hpp>
 #include <util/span.hpp>
 

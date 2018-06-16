@@ -7,7 +7,6 @@
 #include <simd/implbase.hpp>
 #include <simd/generic.hpp>
 #include <simd/native.hpp>
-#include <common_types.hpp>
 
 namespace arb {
 namespace simd {

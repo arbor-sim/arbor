@@ -3,8 +3,8 @@
 #include <random>
 #include <string>
 
-#include <common_types.hpp>
-#include <spike.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
 
 namespace arb {
 namespace io {

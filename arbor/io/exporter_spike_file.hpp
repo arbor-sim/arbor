@@ -10,10 +10,11 @@
 #include <cstring>
 #include <cstdio>
 
-#include <common_types.hpp>
-#include <io/exporter.hpp>
-#include <util/file.hpp>
-#include <spike.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
+
+#include "io/exporter.hpp"
+#include "util/file.hpp"
 
 namespace arb {
 namespace io {

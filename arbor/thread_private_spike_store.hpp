@@ -2,9 +2,10 @@
 
 #include <vector>
 
-#include <common_types.hpp>
-#include <spike.hpp>
-#include <threading/threading.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
+
+#include "threading/threading.hpp"
 
 namespace arb {
 

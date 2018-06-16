@@ -7,13 +7,14 @@
 #include <utility>
 #include <vector>
 
-#include <backends/fvm_types.hpp>
-#include <common_types.hpp>
-#include <mechanism.hpp>
+#include <arbor/common_types.hpp>
 
-#include <backends/multicore/multicore_common.hpp>
-#include <backends/multicore/partition_by_constraint.hpp>
-#include <backends/multicore/fvm.hpp>
+#include "backends/fvm_types.hpp"
+#include "backends/multicore/multicore_common.hpp"
+#include "backends/multicore/partition_by_constraint.hpp"
+#include "backends/multicore/fvm.hpp"
+
+#include "../../mechanism.hpp"
 
 namespace arb {
 namespace multicore {

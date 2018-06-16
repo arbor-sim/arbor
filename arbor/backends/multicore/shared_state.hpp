@@ -8,19 +8,18 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/common_types.hpp>
 
-#include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
-#include <common_types.hpp>
-#include <constants.hpp>
-#include <event_queue.hpp>
-#include <ion.hpp>
-#include <math.hpp>
-#include <simd/simd.hpp>
-#include <util/enumhash.hpp>
-#include <util/padded_alloc.hpp>
-#include <util/rangeutil.hpp>
-
+#include "backends/event.hpp"
+#include "backends/fvm_types.hpp"
+#include "constants.hpp"
+#include "event_queue.hpp"
+#include "ion.hpp"
+#include "math.hpp"
+#include "simd/simd.hpp"
+#include "util/enumhash.hpp"
+#include "util/padded_alloc.hpp"
+#include "util/rangeutil.hpp"
 
 #include "matrix_state.hpp"
 #include "multi_event_stream.hpp"

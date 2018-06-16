@@ -13,8 +13,9 @@
 
 namespace to {
 
-using optional = arb::util::optional;
-using nullopt = arb::nullopt;
+using arb::util::optional;
+using arb::util::nullopt;
+using arb::util::just;
 
 struct parse_opt_error: public std::runtime_error {
     parse_opt_error(const std::string& s): std::runtime_error(s) {}
@@ -43,7 +44,7 @@ struct default_parser {
         V v;
         std::istringstream stream(text);
         stream >> v;
-        return stream? util::just(v): nullopt;
+        return stream? just(v): nullopt;
     }
 };
 

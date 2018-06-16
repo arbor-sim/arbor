@@ -5,10 +5,10 @@
 
 #include "../gtest.h"
 
+#include <arbor/distributed_context.hpp>
+
 #include <tinyopt.hpp>
 #include <communication/communicator.hpp>
-#include <communication/distributed_context.hpp>
-#include <communication/mpi_context.hpp>
 #include <util/ioutil.hpp>
 
 #include "distributed_listener.hpp"

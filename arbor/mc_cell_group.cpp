@@ -3,24 +3,23 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
 
-#include <backends/event.hpp>
-#include <cell.hpp>
-#include <cell_group.hpp>
-#include <common_types.hpp>
-#include <cell_group.hpp>
-#include <event_binner.hpp>
-#include <event_queue.hpp>
-#include <fvm_lowered_cell.hpp>
-#include <mc_cell_group.hpp>
-#include <recipe.hpp>
-#include <sampler_map.hpp>
-#include <sampling.hpp>
-#include <spike.hpp>
-#include <util/filter.hpp>
-#include <util/partition.hpp>
-
+#include "backends/event.hpp"
+#include "cell.hpp"
+#include "cell_group.hpp"
+#include "cell_group.hpp"
+#include "event_binner.hpp"
+#include "event_queue.hpp"
+#include "fvm_lowered_cell.hpp"
+#include "mc_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
+#include "recipe.hpp"
+#include "sampler_map.hpp"
+#include "sampling.hpp"
+#include "util/filter.hpp"
+#include "util/partition.hpp"
 
 namespace arb {
 

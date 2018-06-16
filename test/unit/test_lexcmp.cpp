@@ -1,12 +1,12 @@
 #include "../gtest.h"
 
-#include <util/lexcmp_def.hpp>
+#include <arbor/util/lexcmp_def.hpp>
 
 struct lexcmp_test_one {
     int foo;
 };
 
-DEFINE_LEXICOGRAPHIC_ORDERING(lexcmp_test_one, (a.foo), (b.foo))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lexcmp_test_one, (a.foo), (b.foo))
 
 TEST(lexcmp_def,one) {
     lexcmp_test_one p{3}, q{4}, r{4};
@@ -29,7 +29,7 @@ struct lexcmp_test_three {
 };
 
 // test fields in reverse order: z, y, x
-DEFINE_LEXICOGRAPHIC_ORDERING(lexcmp_test_three, (a.z,a.y,a.x), (b.z,b.y,b.x))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lexcmp_test_three, (a.z,a.y,a.x), (b.z,b.y,b.x))
 
 TEST(lexcmp_def,three) {
     lexcmp_test_three p{1,"foo",2};
@@ -69,7 +69,7 @@ private:
     int foo_;
 };
 
-DEFINE_LEXICOGRAPHIC_ORDERING(lexcmp_test_refmemfn, (a.foo()), (b.foo()))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(lexcmp_test_refmemfn, (a.foo()), (b.foo()))
 
 TEST(lexcmp_def,refmemfn) {
     lexcmp_test_refmemfn p{3};
@@ -95,7 +95,7 @@ private:
     int bar_;
 };
 
-DEFINE_LEXICOGRAPHIC_ORDERING_BY_VALUE(lexcmp_test_valmemfn, (a.foo(),a.bar()), (b.foo(),b.bar()))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING_BY_VALUE(lexcmp_test_valmemfn, (a.foo(),a.bar()), (b.foo(),b.bar()))
 
 TEST(lexcmp_def,proxy) {
     lexcmp_test_valmemfn p{3,2}, q{3,4};

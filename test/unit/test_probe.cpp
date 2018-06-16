@@ -1,8 +1,9 @@
 #include "../gtest.h"
 
+#include <arbor/common_types.hpp>
+
 #include <backends/event.hpp>
 #include <backends/multicore/fvm.hpp>
-#include <common_types.hpp>
 #include <cell.hpp>
 #include <fvm_lowered_cell_impl.hpp>
 #include <util/rangeutil.hpp>

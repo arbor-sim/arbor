@@ -6,15 +6,16 @@
 #include <unordered_map>
 #include <vector>
 
-#include <algorithms.hpp>
-#include <common_types.hpp>
-#include <compartment.hpp>
-#include <math.hpp>
-#include <morphology.hpp>
-#include <mechinfo.hpp>
-#include <point.hpp>
-#include <util/make_unique.hpp>
-#include <util/maputil.hpp>
+#include <arbor/common_types.hpp>
+
+#include "algorithms.hpp"
+#include "compartment.hpp"
+#include "math.hpp"
+#include "morphology.hpp"
+#include "mechinfo.hpp"
+#include "point.hpp"
+#include "util/make_unique.hpp"
+#include "util/maputil.hpp"
 
 namespace arb {
 

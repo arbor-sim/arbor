@@ -1,11 +1,11 @@
 #pragma once
 
+#include <memory>
 #include <string>
 
-#include <spike.hpp>
-#include <communication/gathered_vector.hpp>
-#include <communication/local_context.hpp>
-#include <util/pp_util.hpp>
+#include <arbor/spike.hpp>
+#include <arbor/communication/gathered_vector.hpp>
+#include <arbor/util/pp_util.hpp>
 
 namespace arb {
 
@@ -29,8 +29,6 @@ namespace arb {
 
 #define ARB_COLLECTIVE_TYPES_ float, double, int, std::uint32_t, std::uint64_t
 
-// distributed_context
-//
 // Defines the concept/interface for a distributed communication context.
 //
 // Uses value-semantic type erasure to define the interface, so that
@@ -44,8 +42,8 @@ class distributed_context {
 public:
     using spike_vector = std::vector<arb::spike>;
 
-    // default constructor uses a local context
-    distributed_context(): distributed_context(local_context()) {}
+    // default constructor uses a local context: see below.
+    distributed_context();
 
     template <typename Impl>
     distributed_context(Impl&& impl):
@@ -129,6 +127,48 @@ private:
 
     std::unique_ptr<interface> impl_;
 };
+
+struct local_context {
+    gathered_vector<arb::spike>
+    gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+        using count_type = typename gathered_vector<arb::spike>::count_type;
+        return gathered_vector<arb::spike>(
+            std::vector<arb::spike>(local_spikes),
+            {0u, static_cast<count_type>(local_spikes.size())}
+        );
+    }
+
+    int id() const { return 0; }
+
+    int size() const { return 1; }
+
+    template <typename T>
+    T min(T value) const { return value; }
+
+    template <typename T>
+    T max(T value) const { return value; }
+
+    template <typename T>
+    T sum(T value) const { return value; }
+
+    template <typename T>
+    std::vector<T> gather(T value, int) const { return {std::move(value)}; }
+
+    void barrier() const {}
+
+    std::string name() const { return "local"; }
+};
+
+inline distributed_context::distributed_context():
+    distributed_context(local_context())
+{}
+
+// MPI context creation functions only provided if built with MPI support.
+
+distributed_context mpi_context();
+
+template <typename MPICommType>
+distributed_context mpi_context(MPICommType);
 
 } // namespace arb
 

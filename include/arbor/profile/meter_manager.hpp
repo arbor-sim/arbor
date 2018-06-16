@@ -4,11 +4,9 @@
 #include <string>
 #include <vector>
 
+#include <arbor/distributed_context.hpp>
 #include <arbor/profile/meter.hpp>
 #include <arbor/profile/timer.hpp>
-
-// TODO: -> public header
-#include "communication/distributed_context.hpp"
 
 namespace arb {
 namespace profile {

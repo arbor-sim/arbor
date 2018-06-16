@@ -1,8 +1,9 @@
+#include <nlohmann/json.hpp>
+
 #include <cell.hpp>
 #include <cell_group.hpp>
 #include <hardware/node_info.hpp>
 #include <hardware/gpu.hpp>
-#include <json/json.hpp>
 #include <load_balance.hpp>
 #include <simulation.hpp>
 #include <recipe.hpp>

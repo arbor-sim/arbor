@@ -5,7 +5,7 @@
 #include <string>
 #include <utility>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
 #include <simple_sampler.hpp>
 #include <util/path.hpp>

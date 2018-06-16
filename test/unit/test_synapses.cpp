@@ -4,12 +4,13 @@
 #include <tuple>
 #include <vector>
 
+#include <arbor/util/optional.hpp>
+
 #include <cell.hpp>
 #include <constants.hpp>
 #include <mechcat.hpp>
 #include <backends/multicore/fvm.hpp>
 #include <backends/multicore/mechanism.hpp>
-#include <util/optional.hpp>
 #include <util/maputil.hpp>
 #include <util/range.hpp>
 

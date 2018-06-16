@@ -2,7 +2,7 @@
 
 #include <mpi.h>
 
-#include <communication/mpi_error.hpp>
+#include <arbor/communication/mpi_error.hpp>
 
 struct with_mpi {
     with_mpi(int& argc, char**& argv, bool fatal_errors = true) {

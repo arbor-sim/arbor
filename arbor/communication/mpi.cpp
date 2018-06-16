@@ -1,6 +1,6 @@
 #include <mpi.h>
 
-#include <communication/mpi.hpp>
+#include "communication/mpi.hpp"
 
 namespace arb {
 namespace mpi {

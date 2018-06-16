@@ -3,7 +3,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include <common_types.hpp>
+#include <arbor/common_types.hpp>
+
 #include <schedule.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>

@@ -7,13 +7,14 @@
 #include <type_traits>
 #include <utility>
 
-#include <common_types.hpp>
-#include <generic_event.hpp>
-#include <util/meta.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
-#include <util/range.hpp>
-#include <util/rangeutil.hpp>
-#include <util/strprintf.hpp>
+
+#include "generic_event.hpp"
+#include "util/meta.hpp"
+#include "util/range.hpp"
+#include "util/rangeutil.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 

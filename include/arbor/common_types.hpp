@@ -11,7 +11,7 @@
 #include <iosfwd>
 #include <type_traits>
 
-#include <util/lexcmp_def.hpp>
+#include <arbor/util/lexcmp_def.hpp>
 
 namespace arb {
 
@@ -49,7 +49,7 @@ struct cell_member_type {
     cell_lid_type index;
 };
 
-DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING(cell_member_type,(a.gid,a.index),(b.gid,b.index))
 
 // For storing time values [ms]
 

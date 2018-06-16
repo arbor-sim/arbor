@@ -1,7 +1,9 @@
 #include <iostream>
 
+#include <arbor/common_types.hpp>
+#include <nlohmann/json.hpp>
+
 #include <cell.hpp>
-#include <common_types.hpp>
 #include <load_balance.hpp>
 #include <hardware/node_info.hpp>
 #include <hardware/gpu.hpp>
@@ -11,7 +13,6 @@
 #include <simple_sampler.hpp>
 #include <util/meta.hpp>
 #include <util/path.hpp>
-#include <json/json.hpp>
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"

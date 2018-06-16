@@ -1,9 +1,10 @@
 #include <fstream>
 #include <utility>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <common_types.hpp>
+#include <arbor/common_types.hpp>
+
 #include <cell.hpp>
 #include <simulation.hpp>
 #include <recipe.hpp>

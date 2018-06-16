@@ -5,17 +5,18 @@
 #include <unordered_map>
 #include <vector>
 
-#include <backends.hpp>
-#include <cell_group.hpp>
-#include <common_types.hpp>
-#include <communication/communicator.hpp>
-#include <communication/distributed_context.hpp>
-#include <domain_decomposition.hpp>
-#include <epoch.hpp>
-#include <recipe.hpp>
-#include <sampling.hpp>
-#include <util/nop.hpp>
-#include <util/handle_set.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+
+#include "backends.hpp"
+#include "cell_group.hpp"
+#include "communication/communicator.hpp"
+#include "domain_decomposition.hpp"
+#include "epoch.hpp"
+#include "recipe.hpp"
+#include "sampling.hpp"
+#include "util/nop.hpp"
+#include "util/handle_set.hpp"
 
 namespace arb {
 

@@ -7,14 +7,13 @@
 
 #include <vector>
 
-#include <common_types.hpp>
-#include <sampling.hpp>
-#include <util/any_ptr.hpp>
-#include <util/deduce_return.hpp>
-#include <util/span.hpp>
-#include <util/transform.hpp>
+#include <arbor/common_types.hpp>
 
-#include <iostream>
+#include "sampling.hpp"
+#include "util/any_ptr.hpp"
+#include "util/deduce_return.hpp"
+#include "util/span.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
 

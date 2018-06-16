@@ -1,11 +1,11 @@
 #include <arbor/profile/timer.hpp>
 
+#include <arbor/distributed_context.hpp>
 #include <arbor/profile/meter_manager.hpp>
 
 #include "memory_meter.hpp"
 #include "power_meter.hpp"
 
-#include "communication/distributed_context.hpp"
 #include "algorithms.hpp"
 #include "util/hostname.hpp"
 #include "util/strprintf.hpp"

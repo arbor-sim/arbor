@@ -9,11 +9,12 @@
 #include <mutex>
 #include <unordered_map>
 
-#include <common_types.hpp>
-#include <sampling.hpp>
-#include <schedule.hpp>
-#include <util/deduce_return.hpp>
-#include <util/transform.hpp>
+#include <arbor/common_types.hpp>
+
+#include "sampling.hpp"
+#include "schedule.hpp"
+#include "util/deduce_return.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
 

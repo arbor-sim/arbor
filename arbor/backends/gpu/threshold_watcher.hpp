@@ -1,14 +1,14 @@
 #pragma once
 
-#include <common_types.hpp>
-#include <memory/memory.hpp>
-#include <util/span.hpp>
+#include <arbor/common_types.hpp>
 
-#include <backends/fvm_types.hpp>
+#include "memory/memory.hpp"
+#include "util/span.hpp"
 
-#include <backends/gpu/gpu_store_types.hpp>
-#include <backends/gpu/managed_ptr.hpp>
-#include <backends/gpu/stack.hpp>
+#include "backends/fvm_types.hpp"
+#include "backends/gpu/gpu_store_types.hpp"
+#include "backends/gpu/managed_ptr.hpp"
+#include "backends/gpu/stack.hpp"
 
 #include "stack.hpp"
 

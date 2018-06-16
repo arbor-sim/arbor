@@ -4,10 +4,11 @@
 #include <stdexcept>
 #include <unordered_map>
 
-#include <common_types.hpp>
-#include <event_binner.hpp>
-#include <spike.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
 #include <arbor/util/optional.hpp>
+
+#include "event_binner.hpp"
 
 namespace arb {
 

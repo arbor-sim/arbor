@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdint>
-#include <numeric>
+#include <cstddef>
+#include <algorithm>
 #include <vector>
 
-#include <util/rangeutil.hpp>
+#include <arbor/assert.hpp>
 
 namespace arb {
 
@@ -18,7 +18,7 @@ public:
         values_(std::move(v)),
         partition_(std::move(p))
     {
-        arb_assert(util::is_sorted(partition_));
+        arb_assert(std::is_sorted(partition_.begin(), partition_.end()));
         arb_assert(partition_.back() == values_.size());
     }
 

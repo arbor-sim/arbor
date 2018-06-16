@@ -1,6 +1,6 @@
-#include <communication/mpi_error.hpp>
-
 #include <mpi.h>
+
+#include <arbor/communication/mpi_error.hpp>
 
 namespace arb {
 

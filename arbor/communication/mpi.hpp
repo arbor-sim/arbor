@@ -8,10 +8,10 @@
 #include <mpi.h>
 
 #include <arbor/assert.hpp>
+#include <arbor/communication/gathered_vector.hpp>
+#include <arbor/communication/mpi_error.hpp>
 
-#include <algorithms.hpp>
-#include <communication/gathered_vector.hpp>
-#include <communication/mpi_error.hpp>
+#include "algorithms.hpp"
 #include "profile/profiler_macro.hpp"
 
 

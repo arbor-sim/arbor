@@ -1,6 +1,6 @@
 #pragma once
 
-#include <common_types.hpp>
+#include <arbor/common_types.hpp>
 
 // Basic types shared across FVM implementations/backends.
 

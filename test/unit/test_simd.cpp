@@ -8,7 +8,6 @@
 #include <simd/simd.hpp>
 #include <simd/avx.hpp>
 
-#include <common_types.hpp>
 #include "common.hpp"
 
 using namespace arb::simd;

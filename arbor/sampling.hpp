@@ -3,8 +3,9 @@
 #include <cstddef>
 #include <functional>
 
-#include <common_types.hpp>
-#include <util/any_ptr.hpp>
+#include <arbor/common_types.hpp>
+
+#include "util/any_ptr.hpp"
 
 namespace arb {
 

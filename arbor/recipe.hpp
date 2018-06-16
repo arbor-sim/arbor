@@ -5,10 +5,11 @@
 #include <unordered_map>
 #include <stdexcept>
 
-#include <cell.hpp>
-#include <common_types.hpp>
-#include <event_generator.hpp>
-#include <util/unique_any.hpp>
+#include <arbor/common_types.hpp>
+
+#include "cell.hpp"
+#include "event_generator.hpp"
+#include "util/unique_any.hpp"
 
 namespace arb {
 

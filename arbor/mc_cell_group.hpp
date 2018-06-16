@@ -7,25 +7,24 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
 
-#include <backends/event.hpp>
-#include <cell_group.hpp>
-#include <cell.hpp>
-#include <common_types.hpp>
-#include <event_binner.hpp>
-#include <event_queue.hpp>
-#include <fvm_lowered_cell.hpp>
-#include <recipe.hpp>
-#include <sampler_map.hpp>
-#include <sampling.hpp>
-#include <spike.hpp>
-#include <util/double_buffer.hpp>
-#include <util/filter.hpp>
-#include <util/partition.hpp>
-#include <util/range.hpp>
-#include <util/unique_any.hpp>
-
+#include "backends/event.hpp"
+#include "cell.hpp"
+#include "cell_group.hpp"
+#include "event_binner.hpp"
+#include "event_queue.hpp"
+#include "fvm_lowered_cell.hpp"
 #include "profile/profiler_macro.hpp"
+#include "recipe.hpp"
+#include "sampler_map.hpp"
+#include "sampling.hpp"
+#include "util/double_buffer.hpp"
+#include "util/filter.hpp"
+#include "util/partition.hpp"
+#include "util/range.hpp"
+#include "util/unique_any.hpp"
 
 namespace arb {
 

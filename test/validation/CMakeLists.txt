@@ -16,8 +16,8 @@ set(validation_sources
 
 add_executable(validate ${validation_sources})
 target_compile_definitions(validate PRIVATE "ARB_DATADIR=\"${ARB_VALIDATION_DATA_DIR}\"")
-target_link_libraries(validate PRIVATE gtest arbor)
-target_include_directories(validate PRIVATE "${PROJECT_SOURCE_DIR}/external")
+target_link_libraries(validate PRIVATE gtest arbor arbor-aux ext-json)
+target_link_libraries(validate PRIVATE arbor-private-headers) # temporary
 
 if(ARB_BUILD_VALIDATION_DATA)
     add_dependencies(validate validation_data)

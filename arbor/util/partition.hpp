@@ -1,13 +1,14 @@
 #pragma once
 
+#include <algorithm>
 #include <iterator>
 #include <stdexcept>
 #include <type_traits>
 
-#include <util/either.hpp>
-#include <util/meta.hpp>
-#include <util/partition_iterator.hpp>
-#include <util/range.hpp>
+#include "util/either.hpp"
+#include "util/meta.hpp"
+#include "util/partition_iterator.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 namespace util {

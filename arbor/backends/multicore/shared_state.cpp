@@ -6,10 +6,10 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/common_types.hpp>
 
 #include "backends/event.hpp"
 #include "backends/fvm_types.hpp"
-#include "common_types.hpp"
 #include "constants.hpp"
 #include "io/sepval.hpp"
 #include "ion.hpp"

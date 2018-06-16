@@ -5,21 +5,21 @@
 #include <utility>
 #include <vector>
 
-#include <backends/fvm_types.hpp>
-#include <common_types.hpp>
-
-#include <math.hpp>
-#include <mechanism.hpp>
-#include <util/index_into.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
-#include <util/maputil.hpp>
-#include <util/padded_alloc.hpp>
-#include <util/range.hpp>
 
-#include <backends/multicore/mechanism.hpp>
-#include <backends/multicore/multicore_common.hpp>
-#include <backends/multicore/fvm.hpp>
-#include <backends/multicore/partition_by_constraint.hpp>
+#include "math.hpp"
+#include "mechanism.hpp"
+#include "util/index_into.hpp"
+#include "util/maputil.hpp"
+#include "util/padded_alloc.hpp"
+#include "util/range.hpp"
+
+#include "backends/fvm_types.hpp"
+#include "backends/multicore/mechanism.hpp"
+#include "backends/multicore/multicore_common.hpp"
+#include "backends/multicore/fvm.hpp"
+#include "backends/multicore/partition_by_constraint.hpp"
 
 namespace arb {
 namespace multicore {

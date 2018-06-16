@@ -5,10 +5,11 @@
 #include <numeric>
 #include <vector>
 
-#include <algorithms.hpp>
-#include <common_types.hpp>
-#include <memory/memory.hpp>
-#include <util/span.hpp>
+#include <arbor/common_types.hpp>
+
+#include "algorithms.hpp"
+#include "memory/memory.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 

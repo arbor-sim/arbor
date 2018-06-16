@@ -3,8 +3,8 @@
 #include <limits>
 #include <unordered_map>
 
-#include <common_types.hpp>
-#include <spike.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
 #include <arbor/util/optional.hpp>
 
 namespace arb {

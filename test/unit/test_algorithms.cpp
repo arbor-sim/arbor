@@ -9,7 +9,7 @@
 #include <arbor/util/compat.hpp>
 
 #include "algorithms.hpp"
-#include "util/debug.hpp"
+#include "threading/threading.hpp"
 #include "util/index_into.hpp"
 #include "util/meta.hpp"
 

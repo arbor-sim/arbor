@@ -10,9 +10,10 @@
 
 #include <mpi.h>
 
-#include <communication/mpi.hpp>
-#include <communication/mpi_context.hpp>
-#include <spike.hpp>
+#include <arbor/distributed_context.hpp>
+#include <arbor/spike.hpp>
+
+#include "communication/mpi.hpp"
 
 namespace arb {
 

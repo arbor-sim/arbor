@@ -4,14 +4,15 @@
 #include <memory>
 #include <vector>
 
-#include <cell.hpp>
-#include <common_types.hpp>
-#include <epoch.hpp>
-#include <event_binner.hpp>
-#include <event_queue.hpp>
-#include <sampling.hpp>
-#include <schedule.hpp>
-#include <spike.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/spike.hpp>
+
+#include "cell.hpp"
+#include "epoch.hpp"
+#include "event_binner.hpp"
+#include "event_queue.hpp"
+#include "sampling.hpp"
+#include "schedule.hpp"
 
 namespace arb {
 

@@ -2,11 +2,12 @@
 
 #include <stdexcept>
 
-#include <backends.hpp>
-#include <communication/distributed_context.hpp>
-#include <domain_decomposition.hpp>
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
+#include <arbor/distributed_context.hpp>
+
+#include "backends.hpp"
+#include "domain_decomposition.hpp"
+#include "hardware/node_info.hpp"
+#include "load_balance.hpp"
 
 #include "../simple_recipes.hpp"
 

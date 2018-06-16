@@ -1,8 +1,9 @@
 #include "../gtest.h"
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <common_types.hpp>
+#include <arbor/common_types.hpp>
+
 #include <cell.hpp>
 #include <hardware/node_info.hpp>
 #include <hardware/gpu.hpp>

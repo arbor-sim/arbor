@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
-#include <spike.hpp>
+#include <arbor/spike.hpp>
+
 #include <threading/threading.hpp>
 #include <thread_private_spike_store.hpp>
 

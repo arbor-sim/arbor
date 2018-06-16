@@ -22,8 +22,7 @@
 #include <cstddef>
 #include <type_traits>
 
-#include <util/lexcmp_def.hpp>
-#include <util/meta.hpp>
+#include <arbor/util/lexcmp_def.hpp>
 
 namespace arb {
 namespace util {
@@ -53,7 +52,7 @@ struct any_ptr {
         type_ptr_ = &typeid(T*);
     }
 
-    template <typename T, typename = enable_if_t<std::is_pointer<T>::value>>
+    template <typename T, typename = typename std::enable_if<std::is_pointer<T>::value>::type>
     T as() const noexcept {
         if (std::is_same<T, void*>::value) {
             return (T)ptr_;
@@ -86,7 +85,7 @@ private:
 };
 
 // Order, compare by pointer value:
-DEFINE_LEXICOGRAPHIC_ORDERING_BY_VALUE(any_ptr, (a.as<void*>()), (b.as<void*>()))
+ARB_DEFINE_LEXICOGRAPHIC_ORDERING_BY_VALUE(any_ptr, (a.as<void*>()), (b.as<void*>()))
 
 // Overload `util::any_cast` for these pointers.
 template <typename T>

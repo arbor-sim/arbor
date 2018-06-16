@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <communication/distributed_context.hpp>
+#include <arbor/distributed_context.hpp>
 
 #include "../gtest.h"
 
