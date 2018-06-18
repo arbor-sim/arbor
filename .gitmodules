@@ -1,8 +1,8 @@
-[submodule "tests/ubench/google-benchmark"]
+[submodule "google-benchmark"]
 	path = ext/google-benchmark
 	url = https://github.com/google/benchmark
-[submodule "doc/rtd_theme"]
-	path = doc/sphinx_rtd_theme
+[submodule "sphinx_rtd_theme"]
+	path = ext/sphinx_rtd_theme
 	url = https://github.com/rtfd/sphinx_rtd_theme.git
 [submodule "tbb"]
 	path = ext/tbb
