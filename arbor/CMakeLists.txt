@@ -38,6 +38,7 @@ set(arbor_sources
     util/hostname.cpp
     util/path.cpp
     util/unwind.cpp
+    version.cpp
 )
 
 if(ARB_WITH_CUDA)

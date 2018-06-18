@@ -77,6 +77,7 @@ set(unit_sources
     test_uninitialized.cpp
     test_unique_any.cpp
     test_vector.cpp
+    test_version.cpp
 
     # unit test driver
     test.cpp
