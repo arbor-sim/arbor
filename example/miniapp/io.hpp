@@ -7,10 +7,12 @@
 #include <utility>
 #include <vector>
 
-#include <common_types.hpp>
-#include <util/optional.hpp>
-#include <util/path.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/util/optional.hpp>
 
+#include "util/path.hpp"
+
+// TODO: this shouldn't be in arb namespace
 namespace arb {
 namespace io {
 

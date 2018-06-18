@@ -6,24 +6,23 @@
 #include <set>
 #include <vector>
 
-#include <common_types.hpp>
-#include <communication/communicator.hpp>
-#include <communication/distributed_context.hpp>
-#include <event_generator.hpp>
-#include <hardware/gpu.hpp>
-#include <hardware/node_info.hpp>
-#include <io/exporter_spike_file.hpp>
-#include <json/json.hpp>
-#include <lif_cell_description.hpp>
-#include <profiling/profiler.hpp>
-#include <profiling/meter_manager.hpp>
-#include <recipe.hpp>
-#include <simulation.hpp>
-#include <threading/threading.hpp>
-#include <util/config.hpp>
-#include <util/debug.hpp>
-#include <util/ioutil.hpp>
-#include <util/nop.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+#include <arbor/profile/meter_manager.hpp>
+#include <arbor/profile/profiler.hpp>
+
+#include "json_meter.hpp"
+
+#include "communication/communicator.hpp"
+#include "event_generator.hpp"
+#include "hardware/gpu.hpp"
+#include "hardware/node_info.hpp"
+#include "io/exporter_spike_file.hpp"
+#include "lif_cell_description.hpp"
+#include "recipe.hpp"
+#include "simulation.hpp"
+#include "threading/threading.hpp"
+#include "util/ioutil.hpp"
 
 #include "partitioner.hpp"
 #include "io.hpp"
@@ -195,7 +194,7 @@ int main(int argc, char** argv) {
         mpi::scoped_guard guard(&argc, &argv);
         context = mpi_context(MPI_COMM_WORLD);
 #endif
-        arb::util::meter_manager meters(&context);
+        arb::profile::meter_manager meters(&context);
         meters.start();
         std::cout << util::mask_stream(context.id()==0);
         // read parameters
@@ -277,16 +276,16 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        std::cout << util::profiler_summary() << "\n";
+        std::cout << profile::profiler_summary() << "\n";
         std::cout << "\nThere were " << sim.num_spikes() << " spikes\n";
 
-        auto report = util::make_meter_report(meters);
+        auto report = profile::make_meter_report(meters);
         std::cout << report;
         if (context.id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << util::to_json(report) << "\n";
+            fid << std::setw(1) << aux::to_json(report) << "\n";
         }
     }
     catch (io::usage_error& e) {

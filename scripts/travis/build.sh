@@ -67,7 +67,7 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
 fi
 
 progress "Miniapp spike comparison test"
-make miniapp -j4                         || error "building miniapp"
-${launch} ./example/miniapp -n 20 -t 100 || error "running miniapp"
+make miniapp -j4                     || error "building miniapp"
+${launch} ./bin/miniapp -n 20 -t 100 || error "running miniapp"
 
 cd $base_path

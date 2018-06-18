@@ -3,12 +3,13 @@
 #include <vector>
 #include <utility>
 
-#include <cell.hpp>
-#include <event_generator.hpp>
-#include <morphology.hpp>
-#include <spike_source_cell_group.hpp>
-#include <time_sequence.hpp>
-#include <util/debug.hpp>
+#include <arbor/assert.hpp>
+
+#include "cell.hpp"
+#include "event_generator.hpp"
+#include "morphology.hpp"
+#include "spike_source_cell_group.hpp"
+#include "time_sequence.hpp"
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -60,7 +61,7 @@ cell make_basic_cell(
         }
     }
 
-    EXPECTS(!terminals.empty());
+    arb_assert(!terminals.empty());
 
     arb::mechanism_desc syn_default(syn_type);
     for (unsigned i=0; i<num_synapses; ++i) {
@@ -76,7 +77,7 @@ public:
     basic_cell_recipe(cell_gid_type ncell, basic_recipe_param param, probe_distribution pdist):
         ncell_(ncell), param_(std::move(param)), pdist_(std::move(pdist))
     {
-        EXPECTS(param_.morphologies.size()>0);
+        arb_assert(param_.morphologies.size()>0);
         delay_distribution_param_ = exp_param{param_.mean_connection_delay_ms
                             - param_.min_connection_delay_ms};
     }
@@ -99,9 +100,9 @@ public:
         auto cell = make_basic_cell(morph, param_.num_compartments, param_.num_synapses,
                         param_.synapse_type, gen);
 
-        EXPECTS(cell.num_segments()==cell_segments);
-        EXPECTS(cell.synapses().size()==num_targets(i));
-        EXPECTS(cell.detectors().size()==num_sources(i));
+        arb_assert(cell.num_segments()==cell_segments);
+        arb_assert(cell.synapses().size()==num_targets(i));
+        arb_assert(cell.detectors().size()==num_sources(i));
 
         return util::unique_any(std::move(cell));
     }
@@ -124,7 +125,7 @@ public:
                 cell_probe_address::membrane_voltage: cell_probe_address::membrane_current;
         }
         else {
-            EXPECTS(stride==2);
+            arb_assert(stride==2);
             // Both kinds available.
             kind = (probe_id.index%stride==0)?
                 cell_probe_address::membrane_voltage: cell_probe_address::membrane_current;
@@ -319,7 +320,7 @@ public:
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
             cell_gid_type source = t>=i? t+1: t;
-            EXPECTS(source<ncell_);
+            arb_assert(source<ncell_);
 
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};

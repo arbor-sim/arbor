@@ -6,9 +6,11 @@
 #include <sstream>
 #include <string>
 #include <type_traits>
+
 #include <tclap/CmdLine.h>
-#include <util/meta.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
+
+#include "util/meta.hpp"
 #include "io.hpp"
 
 // Let TCLAP understand value arguments that are of an optional type.

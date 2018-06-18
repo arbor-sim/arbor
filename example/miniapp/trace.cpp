@@ -1,10 +1,11 @@
 #include <fstream>
 #include <string>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <common_types.hpp>
-#include <util/strprintf.hpp>
+#include <arbor/common_types.hpp>
+
+#include "util/strprintf.hpp"
 
 #include "trace.hpp"
 

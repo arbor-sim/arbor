@@ -1,8 +1,10 @@
 #include <cstdio>
+#include <mutex>
 #include <ostream>
 
 #include <arbor/profile/profiler.hpp>
 
+#include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
 
@@ -10,6 +12,7 @@ namespace arb {
 namespace profile {
 
 using timer_type = timer<>;
+using util::make_span;
 
 #ifdef ARB_HAVE_PROFILING
 namespace {
@@ -236,7 +239,6 @@ profile profiler::results() const {
 
 profile_node make_profile_tree(const profile& p) {
     using std::vector;
-    using util::make_span;
     using util::assign_from;
     using util::transform_view;
 
@@ -329,8 +331,6 @@ void profiler_enter(region_id_type region_id) {
 // Print profiler statistics to an ostream
 std::ostream& operator<<(std::ostream& o, const profile& prof) {
     char buf[80];
-
-    using util::make_span;
 
     auto tree = make_profile_tree(prof);
 

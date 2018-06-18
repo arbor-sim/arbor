@@ -5,27 +5,25 @@
 #include <memory>
 #include <vector>
 
-#include <json/json.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+#include <arbor/profile/meter_manager.hpp>
+#include <arbor/profile/profiler.hpp>
 
-#include <common_types.hpp>
-#include <communication/communicator.hpp>
-#include <communication/distributed_context.hpp>
-#include <cell.hpp>
-#include <hardware/gpu.hpp>
-#include <hardware/node_info.hpp>
-#include <io/exporter_spike_file.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <profiling/profiler.hpp>
-#include <profiling/meter_manager.hpp>
-#include <sampling.hpp>
-#include <schedule.hpp>
-#include <threading/threading.hpp>
-#include <util/any.hpp>
-#include <util/config.hpp>
-#include <util/debug.hpp>
-#include <util/ioutil.hpp>
-#include <util/nop.hpp>
+#include "communication/communicator.hpp"
+#include "cell.hpp"
+#include "hardware/gpu.hpp"
+#include "hardware/node_info.hpp"
+#include "io/exporter_spike_file.hpp"
+#include "load_balance.hpp"
+#include "simulation.hpp"
+#include "sampling.hpp"
+#include "schedule.hpp"
+#include "threading/threading.hpp"
+#include "util/any.hpp"
+#include "util/ioutil.hpp"
+
+#include "json_meter.hpp"
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -52,7 +50,7 @@ int main(int argc, char** argv) {
         context = mpi_context(MPI_COMM_WORLD);
         #endif
 
-        util::meter_manager meters(&context);
+        profile::meter_manager meters(&context);
         meters.start();
 
         std::cout << util::mask_stream(context.id()==0);
@@ -147,7 +145,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        auto profile = util::profiler_summary();
+        auto profile = profile::profiler_summary();
         std::cout << profile << "\n";
         std::cout << "\nthere were " << sim.num_spikes() << " spikes\n";
 
@@ -157,13 +155,13 @@ int main(int argc, char** argv) {
             write_trace(trace, options.trace_prefix);
         }
 
-        auto report = util::make_meter_report(meters);
+        auto report = profile::make_meter_report(meters);
         std::cout << report;
         if (context.id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << util::to_json(report) << "\n";
+            fid << std::setw(1) << aux::to_json(report) << "\n";
         }
     }
     catch (io::usage_error& e) {

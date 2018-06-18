@@ -232,7 +232,8 @@ add_subdirectory(arbor)
 # unit, unit-mpi, unit-local, unit-modcc, validate
 add_subdirectory(test)
 
-# add_subdirectory(example)
+# miniapp, brunel-minapp, event-gen 
+add_subdirectory(example)
 
 # lmorpho:
 add_subdirectory(lmorpho)
