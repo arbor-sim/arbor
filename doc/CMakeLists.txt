@@ -1,38 +1,29 @@
 find_package(Sphinx)
-if(NOT SPHINX_FOUND)
-    add_error_target(docs
-        "Generating Sphinx documentation"
-        "Sphinx must be installed to build documentation")
-endif()
+add_target_if(SPHINX_FOUND
+    check-sphinx
+    "Finding Sphinx"
+    "Sphinx must be installed to build documentation")
 
-check_git_submodule(rtdtheme "${PROJECT_SOURCE_DIR}/doc/rtd_theme")
-if (NOT rtdtheme_avail)
-    add_error_target(docs
-        "Generating Sphinx documentation"
-        "The git submodule for read the docs is not available")
-endif()
+set(html_dir "${CMAKE_CURRENT_BINARY_DIR}/html")
+set(doctree_dir "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
 
-if(NOT TARGET docs)
-    # A static path is required to avoid warning messages from sphinx-build.
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/static")
+get_property(theme_path TARGET ext-sphinx_rtd_theme PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
+string(REPLACE ";" "," theme_path "${theme_path}")
 
-    set(html_dir "${CMAKE_CURRENT_BINARY_DIR}/html")
-    set(doctree_dir "${CMAKE_CURRENT_BINARY_DIR}/_doctrees")
+add_custom_target(html
+    COMMAND
+        ${SPHINX_EXECUTABLE}
+        -b html
+        -d ${doctree_dir}
+        -D "html_theme_path=${theme_path}"
+        -q                          # Quiet: no output other than errors and warnings.
+        ${CMAKE_CURRENT_SOURCE_DIR} # Source directory
+        ${html_dir}                 # Output directory
+    DEPENDS check-sphinx ext-sphinx_rtd_theme
+    COMMENT
+        "Generating Sphinx documentation")
 
-    add_custom_target(docs
-        COMMAND
-            ${SPHINX_EXECUTABLE}
-            -b html
-            -d "${doctree_dir}"
-            -q # Quiet: no output other than errors and warnings.
-            "${CMAKE_CURRENT_SOURCE_DIR}" # Source
-            "${html_dir}" # Output
-        COMMENT
-            "Generating Sphinx documentation")
+# Remove generated documentation when make clean is run.
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${doctree_dir}" "${html_dir}")
 
-    # Remove generated documentation when make clean is run.
-    set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES "${doctree_dir}" "${html_dir}")
-
-    install(DIRECTORY ${html_dir} DESTINATION ${CMAKE_INSTALL_DOCDIR})
-endif()
-
+install(DIRECTORY ${html_dir} DESTINATION ${CMAKE_INSTALL_DOCDIR}/html)

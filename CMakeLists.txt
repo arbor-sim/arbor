@@ -237,7 +237,8 @@ add_subdirectory(test)
 # lmorpho:
 add_subdirectory(lmorpho)
 
-# add_subdirectory(doc)
+# html:
+add_subdirectory(doc)
 
 # validation-data:
 if(ARB_BUILD_VALIDATION_DATA)
