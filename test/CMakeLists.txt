@@ -16,12 +16,4 @@ add_subdirectory(unit-distributed)
 add_subdirectory(unit-modcc)
 
 ## Microbenchmarks.
-## Attempt to update git submodule if required.
-#check_git_submodule(google_bench "${CMAKE_CURRENT_SOURCE_DIR}/ubench/google-benchmark")
-#if (google_bench_avail)
-#    add_subdirectory(ubench)
-#else()
-#    add_error_target(ubenches
-#        "Building micro benchmarks"
-#        "The git submodule for google benchmark is not available")
-#endif()
+add_subdirectory(ubench)

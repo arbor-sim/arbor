@@ -92,22 +92,16 @@ option(ARB_WITH_MPI "build with MPI support" OFF)
 
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
-option(ARB_WITH_ASSERTIONS "enable EXPECTS() assertions in code" OFF)
-
-# Note: TRACE() is used only in development, and should never
-# be present in any released code; it is safe to leave TRACE macros enabled.
-
-option(ARB_WITH_TRACE "enable TRACE() macros in code" ON)
-mark_as_advanced(ARB_WITH_TRACE)
+option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
 #----------------------------------------------------------
 # Set up flags and dependencies:
 #----------------------------------------------------------
 
-# Interface library `arbor-private` collects dependencies, options etc.
-# for the arbor library and arbor unit tests.
+# Interface library `arbor-deps` collects dependencies, options etc.
+# for the arbor library.
 
-add_library(arbor-private INTERFACE)
+add_library(arbor-deps INTERFACE)
 
 # External libraries in `ext` sub-directory: json, tclap and
 # (if ARB_REQUIRE_TBB is true) tbb.
@@ -116,7 +110,7 @@ add_library(arbor-private INTERFACE)
 add_subdirectory(ext)
 
 # Auxilary/helper utiliies in `aux` are common across test executables
-# and examples. Creates interface library `aux`.
+# and examples. Creates interface library `arbor-aux`.
 
 add_subdirectory(aux)
 
@@ -124,30 +118,30 @@ add_subdirectory(aux)
 #---------------------------------------------------------------------------
 if(ARB_ARCH)
     set_arch_target(ARB_CXXOPT_ARCH "${ARB_ARCH}")
-    target_compile_options(arbor-private INTERFACE ${ARB_CXXOPT_ARCH})
+    target_compile_options(arbor-deps INTERFACE ${ARB_CXXOPT_ARCH})
 endif()
 
 # Profiling and test features
 #-----------------------------
 
 if(ARB_WITH_PROFILING)
-    target_compile_definitions(arbor-private INTERFACE ARB_HAVE_PROFILING)
+    target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_PROFILING)
 endif()
 if(ARB_WITH_ASSERTIONS)
-    target_compile_definitions(arbor-private INTERFACE ARB_HAVE_ASSERTIONS)
+    target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_ASSERTIONS)
 endif()
 
 # Threading model
 #-----------------
 
 if(ARB_THREADING_MODEL MATCHES "tbb")
-    target_link_libraries(arbor-private INTERFACE ext-tbb)
+    target_link_libraries(arbor-deps INTERFACE ext-tbb)
 elseif(ARB_THREADING_MODEL MATCHES "cthread")
     set(ARB_WITH_CTHREAD TRUE)
 
     find_package(Threads REQUIRED)
-    target_compile_definitions(arbor-private INTERFACE ARB_HAVE_CTHREAD)
-    target_link_libraries(arbor-private INTERFACE Threads::Threads)
+    target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_CTHREAD)
+    target_link_libraries(arbor-deps INTERFACE Threads::Threads)
 
 endif()
 
@@ -157,8 +151,8 @@ endif()
 if(ARB_WITH_MPI)
     find_package(MPI REQUIRED CXX)
     target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
-    target_compile_definitions(arbor-private INTERFACE ARB_HAVE_MPI)
-    target_link_libraries(arbor-private INTERFACE MPI::MPI_CXX)
+    target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_MPI)
+    target_link_libraries(arbor-deps INTERFACE MPI::MPI_CXX)
 endif()
 
 # CUDA support
@@ -174,10 +168,10 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
     enable_language(CUDA)
     set(ARB_WITH_CUDA TRUE)
 
-    target_compile_options(arbor-private INTERFACE
+    target_compile_options(arbor-deps INTERFACE
         $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=integer_sign_change
         $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=unsigned_compare_with_zero)
-    target_compile_definitions(arbor-private ARB_HAVE_GPU)
+    target_compile_definitions(arbor-deps ARB_HAVE_GPU)
 
     if(ARB_GPU_MODEL MATCHES "K20")
         set(cuda_arch sm_35)
@@ -192,9 +186,9 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
         message(FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
     endif()
 
-    target_compile_options(arbor-private INTERFACE
+    target_compile_options(arbor-deps INTERFACE
         $<$<COMPILE_LANGUAGE:CUDA>:-arch=${cuda_arch})
-    target_compile_definitions(arbor-private ARB_CUDA_ARCH=${arb_cuda_arch})
+    target_compile_definitions(arbor-deps ARB_CUDA_ARCH=${arb_cuda_arch})
 endif()
 
 # Use libunwind if available for pretty printing stack traces
@@ -202,8 +196,8 @@ endif()
 
 find_package(Unwind)
 if(Unwind_FOUND)
-    target_link_libraries(arbor-private INTERFACE Unwind::unwind)
-    target_compile_definitions(arbor-private ARB_WITH_UNWIND)
+    target_link_libraries(arbor-deps INTERFACE Unwind::unwind)
+    target_compile_definitions(arbor-deps ARB_WITH_UNWIND)
 endif()
 
 # Build and use modcc unless explicit path given

@@ -71,7 +71,8 @@ if(ARB_WITH_CTHREAD)
 endif()
 
 # Add special target for private include directory, for use by arbor target
-# and arbor unit tests.
+# and arbor unit tests. Private headers are also used for the other binaries
+# until the process of splitting our private and public headers is complete.
 
 add_library(arbor-private-headers INTERFACE)
 target_include_directories(arbor-private-headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -87,7 +88,7 @@ set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)
-target_link_libraries(arbor PRIVATE arbor-private arbor-private-headers)
+target_link_libraries(arbor PRIVATE arbor-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-headers)
 if(ARB_WITH_TBB)
 target_link_libraries(arbor PRIVATE ext-tbb)

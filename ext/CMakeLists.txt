@@ -33,3 +33,38 @@ if(ARB_REQUIRE_TBB)
     endif()
 endif()
 
+# Google benchmark for microbenchmarks:
+
+check_git_submodule(gbench google-benchmark)
+if(gbench_avail)
+    # Set up google benchmark as an external project.
+
+    include(ExternalProject)
+    set(gbench_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/google-benchmark")
+    set(gbench_install_dir "${CMAKE_CURRENT_BINARY_DIR}/google-benchmark")
+    set(gbench_cmake_args
+        "-DCMAKE_BUILD_TYPE=release"
+        "-DCMAKE_INSTALL_PREFIX=${gbench_install_dir}"
+        "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+        "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}")
+
+    ExternalProject_Add(gbench-build
+        # Add dummy DOWNLOAD_COMMAND to stop ExternalProject_Add terminating CMake if the
+        # git submodule had not been udpated.
+        DOWNLOAD_COMMAND "${CMAKE_COMMAND}" -E echo "Warning: ${gbench_src_dir} empty or missing."
+        SOURCE_DIR "${gbench_src_dir}"
+        CMAKE_ARGS "${gbench_cmake_args}"
+        INSTALL_DIR "${gbench_install_dir}"
+    )
+    set_target_properties(gbench-build PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+else()
+    add_error_target(gbench-build
+        "Building Google benchmark library"
+        "The git submodule for google benchmark is not available")
+endif()
+
+add_library(ext-benchmark INTERFACE)
+add_dependencies(ext-benchmark gbench-build)
+target_include_directories(ext-benchmark INTERFACE "${gbench_install_dir}/include")
+target_link_libraries(ext-benchmark INTERFACE "${gbench_install_dir}/lib/libbenchmark.a")
