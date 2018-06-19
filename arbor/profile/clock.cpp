@@ -11,7 +11,7 @@ namespace profile {
 
 inline tick_type posix_clock_gettime_ns(clockid_t clock) {
     timespec ts;
-    if (!clock_gettime(clock, &ts)) {
+    if (clock_gettime(clock, &ts)) {
         return (unsigned long long)-1;
     }
 

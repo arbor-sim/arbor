@@ -11,7 +11,7 @@ struct timer {
         return Clock::now();
     }
 
-    static inline tick_type toc(tick_type t) {
+    static inline double toc(tick_type t) {
         return (Clock::now()-t)*Clock::seconds_per_tick();
     }
 };
