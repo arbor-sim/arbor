@@ -1,5 +1,6 @@
 #include <cmath>
 #include <iostream>
+#include <regex>
 #include <string>
 #include <unordered_set>
 
@@ -8,6 +9,7 @@
 #include "io/prefixbuf.hpp"
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
+#include "printer/printeropt.hpp"
 #include "printer/printerutil.hpp"
 
 using io::indent;
@@ -81,10 +83,10 @@ static std::string ion_state_index(std::string ion_name) {
     return "ion_"+ion_name+"_index_";
 }
 
-std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_spec simd) {
+std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     std::string name = module_.module_name();
     std::string class_name = "mechanism_cpu_"+name;
-    auto ns_components = namespace_components(ns);
+    auto ns_components = namespace_components(opt.cpp_namespace);
 
     NetReceiveExpression* net_receive = find_net_receive(module_);
     APIMethod* init_api = find_api_method(module_, "nrn_init");
@@ -92,7 +94,7 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     APIMethod* current_api = find_api_method(module_, "nrn_current");
     APIMethod* write_ions_api = find_api_method(module_, "write_ions");
 
-    bool with_simd = simd.abi!=simd_spec::none;
+    bool with_simd = opt.simd.abi!=simd_spec::none;
 
     // init_api, state_api, current_api methods are mandatory:
 
@@ -104,20 +106,42 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     auto ion_deps = module_.ion_deps();
     std::string fingerprint = "<placeholder>";
 
+    auto profiler_enter = [name, opt](const char* region_prefix) -> std::string {
+        static std::regex invalid_profile_chars("[^a-zA-Z0-9]");
+
+        if (opt.profile) {
+            std::string region_name = region_prefix;
+            region_name += '_';
+            region_name += std::regex_replace(name, invalid_profile_chars, "");
+
+            return
+                "{\n"
+                "    static auto id = ::arb::profile::profiler_region_id(\""
+                + region_name + "\");\n"
+                "    ::arb::profile::profiler_enter(id);\n"
+                "}\n";
+        }
+        else return "";
+    };
+
+    auto profiler_leave = [opt]() -> std::string {
+        return opt.profile? "::arb::profile::profiler_leave();\n": "";
+    };
+
     io::pfxstringstream out;
 
     out <<
         "#include <cmath>\n"
         "#include <cstddef>\n"
         "#include <memory>\n"
-        "#include <" << arb_header_prefix() << "backends/multicore/mechanism.hpp>\n"
-        "#include <" << arb_header_prefix() << "math.hpp>\n";
+        "#include <" << arb_private_header_prefix() << "backends/multicore/mechanism.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "math.hpp>\n";
 
-    with_profiling() &&
-        out << "#include <" << arb_header_prefix() << "profiling/profiler.hpp>\n";
+    opt.profile &&
+        out << "#include <" << arb_header_prefix() << "profile/profiler.hpp>\n";
 
     if (with_simd) {
-        out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
+        out << "#include <" << arb_private_header_prefix() << "simd/simd.hpp>\n";
     }
 
     out <<
@@ -145,15 +169,15 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
             "using S::index_constraint;\n"
             "static constexpr unsigned simd_width_ = ";
 
-        if (!simd.width) {
+        if (!opt.simd.width) {
             out << "S::simd_abi::native_width<fvm_value_type>::value;\n";
         }
         else {
-            out << simd.width << ";\n";
+            out << opt.simd.width << ";\n";
         }
 
         std::string abi = "S::simd_abi::";
-        switch (simd.abi) {
+        switch (opt.simd.abi) {
         case simd_spec::avx:    abi += "avx";    break;
         case simd_spec::avx2:   abi += "avx2";   break;
         case simd_spec::avx512: abi += "avx512"; break;
@@ -316,15 +340,15 @@ std::string emit_cpp_source(const Module& module_, const std::string& ns, simd_s
     out << popindent << "}\n\n";
 
     out << "void " << class_name << "::nrn_state() {\n" << indent;
-    with_profiling() && out << "PE(advance_integrate_state_" << name << ");\n";
+    out << profiler_enter("advance_integrate_state");
     emit_body(state_api);
-    with_profiling() && out <<  "PL();\n";
+    out << profiler_leave();
     out << popindent << "}\n\n";
 
     out << "void " << class_name << "::nrn_current() {\n" << indent;
-    with_profiling() && out << "PE(advance_integrate_current_" << name << ");\n";
+    out << profiler_enter("advance_integrate_current");
     emit_body(current_api);
-    with_profiling() && out <<  "PL();\n";
+    out << profiler_leave();
     out << popindent << "}\n\n";
 
     out << "void " << class_name << "::write_ions() {\n" << indent;

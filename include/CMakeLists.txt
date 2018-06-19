@@ -16,7 +16,7 @@ target_include_directories(arbor-public-headers INTERFACE
 
 add_custom_command(
     OUTPUT _always_rebuild
-    COMMAND ${CMAKE_COMMAND} -E echo
+    COMMAND true
 )
 
 add_custom_command(

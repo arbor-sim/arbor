@@ -7,8 +7,8 @@
     // enter a profiling region
     #define PE(name) \
         { \
-            static std::size_t region_id__ = arb::profile::profiler_region_id(#name); \
-            arb::profile::profiler_enter(region_id__); \
+            static std::size_t region_id_ = arb::profile::profiler_region_id(#name); \
+            arb::profile::profiler_enter(region_id_); \
         }
 
     // leave a profling region
