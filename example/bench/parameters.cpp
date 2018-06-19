@@ -8,11 +8,8 @@
 
 #include "parameters.hpp"
 
-double bench_params::expected_advance_rate() const {
-    return cell.us_per_ms*1e-3;
-}
 double bench_params::expected_advance_time() const {
-    return expected_advance_rate() * duration*1e-3 * num_cells;
+    return cell.realtime_ratio * duration*1e-3 * num_cells;
 }
 unsigned bench_params::expected_spikes() const {
     return num_cells * duration*1e-3 * cell.spike_freq_hz;
@@ -35,7 +32,7 @@ std::ostream& operator<<(std::ostream& o, const bench_params& p) {
       << "  fan in:        " << p.network.fan_in << " connections/cell\n"
       << "  min delay:     " << p.network.min_delay << " ms\n"
       << "  spike freq:    " << p.cell.spike_freq_hz << " Hz\n"
-      << "  cell overhead: " << p.expected_advance_rate() << " ms to advance 1 ms\n";
+      << "  cell overhead: " << p.cell.realtime_ratio << " ms to advance 1 ms\n";
     o << "expected:\n"
       << "  cell advance: " << p.expected_advance_time() << " s\n"
       << "  spikes:       " << p.expected_spikes() << "\n"
@@ -97,8 +94,8 @@ bench_params read_options(int argc, char** argv) {
     if (auto o  = extract<unsigned>("fan-in", json)) {
         params.network.fan_in = *o;
     }
-    if (auto o  = extract<double>("cell-overhead", json)) {
-        params.cell.us_per_ms = *o;
+    if (auto o  = extract<double>("realtime-ratio", json)) {
+        params.cell.realtime_ratio = *o;
     }
     if (auto o  = extract<double>("spike-frequency", json)) {
         params.cell.spike_freq_hz = *o;

@@ -13,7 +13,7 @@ cell_size_type bench_recipe::num_cells() const {
 arb::util::unique_any bench_recipe::get_cell_description(cell_gid_type gid) const {
     using RNG = std::mt19937_64;
     arb::benchmark_cell cell;
-    cell.run_time_per_ms = params_.cell.us_per_ms;
+    cell.realtime_ratio = params_.cell.realtime_ratio;
     cell.time_sequence = arb::poisson_time_seq<RNG>(RNG(gid), 0, 1e-3*params_.cell.spike_freq_hz);
     return std::move(cell);
 }

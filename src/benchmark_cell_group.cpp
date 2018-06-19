@@ -44,13 +44,15 @@ void benchmark_cell_group::advance(epoch ep,
     using duration_type = std::chrono::duration<double, std::micro>;
 
     PE(advance_bench_cell);
+    // Micro-seconds to advance in this epoch.
+    auto us = 1e3*(ep.tfinal-t_);
     for (auto i: util::make_span(0, gids_.size())) {
         auto& tseq = cells_[i].time_sequence;
-        // expected time to complete epoch in micro seconds.
-        const double duration_us = cells_[i].run_time_per_ms*(ep.tfinal-t_);
+        // Expected time to complete epoch in micro seconds.
+        const double duration_us = cells_[i].realtime_ratio*us;
         const auto gid = gids_[i];
 
-        // start timer
+        // Start timer.
         auto start = high_resolution_clock::now();
 
         while (tseq.front()<ep.tfinal) {
@@ -58,8 +60,8 @@ void benchmark_cell_group::advance(epoch ep,
             tseq.pop();
         }
 
-        // wait until the expected time to advance has elapsed.
-        while(duration_type(high_resolution_clock::now()-start).count() < duration_us);
+        // Wait until the expected time to advance has elapsed.
+        while (duration_type(high_resolution_clock::now()-start).count() < duration_us);
     }
     t_ = ep.tfinal;
 

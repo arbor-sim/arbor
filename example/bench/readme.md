@@ -33,7 +33,7 @@ An example parameter file is:
     "fan-in": 10000,
     "min-delay": 10,
     "spike-frequency": 20,
-    "cell-overhead": 50
+    "realtime-ratio": 0.1
 }
 ```
 
@@ -47,7 +47,7 @@ The parameters in the file:
   * `min-delay`: the minimum delay of the network.
   * `spike-frequency`: frequency of the independent Poisson processes that
     generate spikes for each cell.
-  * `cell-overhead`: the ratio between time taken to advance a single cell in
+  * `realtime-ratio`: the ratio between time taken to advance a single cell in
     the simulation and the simulated time. For example, a value of 1 indicates
     that the cell is simulated in real time, while a value of 0.1 indicates
     that 10s can be simulated in a single second.
