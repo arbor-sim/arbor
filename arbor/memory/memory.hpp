@@ -5,10 +5,7 @@
 #include "array.hpp"
 #include "definitions.hpp"
 #include "host_coordinator.hpp"
-
-#ifdef ARB_HAVE_GPU
 #include "device_coordinator.hpp"
-#endif
 
 namespace arb {
 namespace memory {
@@ -30,7 +27,6 @@ std::ostream& operator<< (std::ostream& o, host_view<T> const& v) {
     return o;
 }
 
-#ifdef ARB_HAVE_GPU
 // specialization for pinned vectors. Use a host_coordinator, because memory is
 // in the host memory space, and all of the helpers (copy, set, etc) are the
 // same with and without page locked memory
@@ -59,15 +55,6 @@ std::ostream& operator<<(std::ostream& o, const_device_view<T> v) {
     for (; i<v.size()-1; ++i) o << v[i] << ", ";
     return o << v[i];
 }
-#endif
-
-#ifdef WITH_KNL
-// specialization for HBW memory on KNL
-template <typename T>
-using hwb_vector = array<T, host_coordinator<T, hwb_allocator<T>>>;
-template <typename T>
-using hwb_view = array_view<T, host_coordinator<T, hwb_allocator<T>>>;
-#endif
 
 } // namespace memory
 } // namespace arb

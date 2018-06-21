@@ -1,47 +1,8 @@
+# 3.9 requirement for CUDA language support.
 cmake_minimum_required(VERSION 3.9)
 
 project(arbor VERSION 0.1)
 enable_language(CXX)
-
-#----------------------------------------------------------
-# Global CMake configuration
-#----------------------------------------------------------
-
-# Use GNU standard installation path conventions.
-include(GNUInstallDirs)
-
-# Include own CMake modules in search path, load common modules.
-
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
-include(GitSubmodule) # required for check_git_submodule
-include(ErrorTarget)  # reguired for add_error_target
-
-# Set release as the default build type (CMake default is debug.)
-
-if (NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui
-  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
-endif()
-
-# When we find threads, prefer -pthread option.
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-
-# Build paths.
-
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-# Generate a .json file with full compilation command for each file.
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
-
-# Compiler options common to library, examples, tests, etc.
-
-include("CompilerOptions")
-add_compile_options(${CXXOPT_DEBUG} ${CXXOPT_WALL})
-set(CMAKE_CXX_STANDARD 11)
 
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
@@ -84,15 +45,61 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
 set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
 
-if(ARB_THREADING_MODEL STREQUAL "tbb")
-set(ARB_WITH_TBB TRUE)
-endif()
-
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
+
+#----------------------------------------------------------
+# Global CMake configuration
+#----------------------------------------------------------
+
+# Use GNU standard installation path conventions.
+include(GNUInstallDirs)
+
+# Include own CMake modules in search path, load common modules.
+
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+include(GitSubmodule) # required for check_git_submodule
+include(ErrorTarget)  # reguired for add_error_target
+include(FindThreadsCudaFix) # bug work around
+
+# Set release as the default build type (CMake default is debug.)
+
+if (NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE release CACHE STRING "Choose the type of build." FORCE)
+    # Set the possible values of build type for cmake-gui
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
+endif()
+
+# When we find threads, prefer -pthread option.
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
+# Add CUDA as a language if GPU support requested.
+# (This has to be set early so as to enable CUDA tests in generator
+# expressions.)
+if(NOT ARB_GPU_MODEL MATCHES "none")
+    enable_language(CUDA)
+endif()
+
+# Build paths.
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# Generate a .json file with full compilation command for each file.
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
+
+# Compiler options common to library, examples, tests, etc.
+
+include("CompilerOptions")
+add_compile_options(
+    "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_DEBUG}>"
+    "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
+set(CMAKE_CXX_STANDARD 11)
 
 #----------------------------------------------------------
 # Set up flags and dependencies:
@@ -103,8 +110,7 @@ option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
 add_library(arbor-deps INTERFACE)
 
-# External libraries in `ext` sub-directory: json, tclap and
-# (if ARB_REQUIRE_TBB is true) tbb.
+# External libraries in `ext` sub-directory: json, tclap and tbb.
 # Creates interface libraries `ext-json`, `ext-tclap` and `ext-tbb`.
 
 add_subdirectory(ext)
@@ -135,14 +141,15 @@ endif()
 #-----------------
 
 if(ARB_THREADING_MODEL MATCHES "tbb")
+    set(ARB_WITH_TBB TRUE)
     target_link_libraries(arbor-deps INTERFACE ext-tbb)
+    target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_TBB)
 elseif(ARB_THREADING_MODEL MATCHES "cthread")
     set(ARB_WITH_CTHREAD TRUE)
-
     find_package(Threads REQUIRED)
+    find_threads_cuda_fix()
     target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_CTHREAD)
     target_link_libraries(arbor-deps INTERFACE Threads::Threads)
-
 endif()
 
 # MPI support
@@ -159,19 +166,12 @@ endif()
 #--------------
 
 if(NOT ARB_GPU_MODEL MATCHES "none")
-    include(CheckLanguage)
-    check_language(CUDA)
-
-    if (CMAKE_CUDA_COMPILER)
-        message(FATAL_ERROR "Missing CUDA support.")
-    endif()
-    enable_language(CUDA)
     set(ARB_WITH_CUDA TRUE)
 
-    target_compile_options(arbor-deps INTERFACE
-        $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=integer_sign_change
-        $<$<COMPILE_LANGUAGE:CUDA>:--diag_suppress=unsigned_compare_with_zero)
-    target_compile_definitions(arbor-deps ARB_HAVE_GPU)
+    add_compile_options(
+        "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
+        "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
+    target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_GPU)
 
     if(ARB_GPU_MODEL MATCHES "K20")
         set(cuda_arch sm_35)
@@ -187,8 +187,8 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
     endif()
 
     target_compile_options(arbor-deps INTERFACE
-        $<$<COMPILE_LANGUAGE:CUDA>:-arch=${cuda_arch})
-    target_compile_definitions(arbor-deps ARB_CUDA_ARCH=${arb_cuda_arch})
+        $<$<COMPILE_LANGUAGE:CUDA>:-arch=${cuda_arch}>)
+    target_compile_definitions(arbor-deps INTERFACE ARB_CUDA_ARCH=${arb_cuda_arch})
 endif()
 
 # Use libunwind if available for pretty printing stack traces

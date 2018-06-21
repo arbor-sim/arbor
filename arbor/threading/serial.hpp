@@ -1,21 +1,14 @@
 #pragma once
 
-#if !defined(ARB_HAVE_SERIAL)
-    #error "this header can only be loaded if ARB_HAVE_SERIAL is set"
-#endif
-
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <string>
 #include <vector>
 
-#include "timer.hpp"
-
 namespace arb {
 namespace threading {
-
-using arb::threading::impl::timer;
+inline namespace serial {
 
 ///////////////////////////////////////////////////////////////////////
 // types
@@ -123,6 +116,7 @@ public:
     {}
 };
 
+} // namespace serial
 } // namespace threading
 } // namespace arb
 

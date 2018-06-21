@@ -6,14 +6,11 @@
 
 #include <arbor/assert.hpp>
 
+#include "cuda_wrappers.hpp"
 #include "definitions.hpp"
 #include "array.hpp"
 #include "allocator.hpp"
 #include "util.hpp"
-
-#ifdef ARB_HAVE_GPU
-#include "gpu.hpp"
-#endif
 
 namespace arb {
 namespace memory {
@@ -22,10 +19,8 @@ namespace memory {
 template <typename T, class Allocator>
 class host_coordinator;
 
-#ifdef ARB_HAVE_GPU
 template <typename T, class Allocator>
 class device_coordinator;
-#endif
 
 namespace util {
     template <typename T, typename Allocator>
@@ -123,7 +118,6 @@ public:
         std::copy(from.begin(), from.end(), to.begin());
     }
 
-#ifdef ARB_HAVE_GPU
     // copy memory from device to host
     template <class Alloc>
     void copy(
@@ -140,7 +134,7 @@ public:
                   << util::print_pointer(to.data()) << std::endl;
         #endif
 
-        gpu::memcpy_d2h(from.data(), to.data(), from.size());
+        cuda_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy memory from host to device
@@ -159,9 +153,8 @@ public:
                   << util::print_pointer(to.data()) << std::endl;
         #endif
 
-        gpu::memcpy_h2d(from.data(), to.data(), from.size());
+        cuda_memcpy_h2d(to.data(), from.data(), from.size()*sizeof(value_type));
     }
-#endif
 
     // set all values in a range to val
     void set(view_type rng, value_type val) {

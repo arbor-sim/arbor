@@ -7,7 +7,7 @@
 
 using namespace arb;
 
-namespace common_events {
+namespace {
     // set up four targets across three streams and two mech ids.
 
     constexpr cell_local_size_type mech_1 = 10u;
@@ -28,7 +28,7 @@ namespace common_events {
     // cell_2 (handle 1 and 2) has two events at t=2 and t=5
     // cell_3 (handle 3) has one event at t=3
 
-    std::vector<deliverable_event> events = {
+    std::vector<deliverable_event> common_events = {
         deliverable_event(2.f, handle[1], 2.f),
         deliverable_event(3.f, handle[0], 1.f),
         deliverable_event(3.f, handle[3], 4.f),
@@ -45,12 +45,11 @@ namespace {
 
 TEST(multi_event_stream, init) {
     using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
-    using namespace common_events;
 
     multi_event_stream m(n_cell);
     EXPECT_EQ(n_cell, m.n_streams());
 
-    auto events = common_events::events;
+    auto events = common_events;
     ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
     EXPECT_FALSE(m.empty());
@@ -61,12 +60,11 @@ TEST(multi_event_stream, init) {
 
 TEST(multi_event_stream, mark) {
     using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
-    using namespace common_events;
 
     multi_event_stream m(n_cell);
     ASSERT_EQ(n_cell, m.n_streams());
 
-    auto events = common_events::events;
+    auto events = common_events;
     ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
 
@@ -172,12 +170,11 @@ TEST(multi_event_stream, mark) {
 
 TEST(multi_event_stream, time_if_before) {
     using multi_event_stream = multicore::multi_event_stream<deliverable_event>;
-    using namespace common_events;
 
     multi_event_stream m(n_cell);
     ASSERT_EQ(n_cell, m.n_streams());
 
-    auto events = common_events::events;
+    auto events = common_events;
     ASSERT_TRUE(util::is_sorted_by(events, [](deliverable_event e) { return event_time(e); }));
     m.init(events);
 

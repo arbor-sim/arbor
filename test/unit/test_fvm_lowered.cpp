@@ -2,27 +2,27 @@
 
 #include "../gtest.h"
 
-#include <arbor/distributed_context.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+#include <arbor/fvm_types.hpp>
 
-#include <algorithms.hpp>
-#include <backends/fvm_types.hpp>
-#include <backends/multicore/fvm.hpp>
-#include <backends/multicore/mechanism.hpp>
-#include <cell.hpp>
-#include <fvm_lowered_cell.hpp>
-#include <fvm_lowered_cell_impl.hpp>
-#include <load_balance.hpp>
-#include <math.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <sampler_map.hpp>
-#include <sampling.hpp>
-#include <schedule.hpp>
-#include <segment.hpp>
-#include <util/meta.hpp>
-#include <util/maputil.hpp>
-#include <util/rangeutil.hpp>
+#include "algorithms.hpp"
+#include "backends/multicore/fvm.hpp"
+#include "backends/multicore/mechanism.hpp"
+#include "cell.hpp"
+#include "fvm_lowered_cell.hpp"
+#include "fvm_lowered_cell_impl.hpp"
+#include "load_balance.hpp"
+#include "math.hpp"
+#include "simulation.hpp"
+#include "recipe.hpp"
+#include "sampler_map.hpp"
+#include "sampling.hpp"
+#include "schedule.hpp"
+#include "segment.hpp"
+#include "util/meta.hpp"
+#include "util/maputil.hpp"
+#include "util/rangeutil.hpp"
 
 #include "common.hpp"
 #include "../common_cells.hpp"

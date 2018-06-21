@@ -10,6 +10,8 @@
 #include <arbor/distributed_context.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
+#include <arbor/threadinfo.hpp>
+#include <arbor/version.hpp>
 
 #include "json_meter.hpp"
 
@@ -21,7 +23,6 @@
 #include "lif_cell_description.hpp"
 #include "recipe.hpp"
 #include "simulation.hpp"
-#include "threading/threading.hpp"
 #include "util/ioutil.hpp"
 
 #include "partitioner.hpp"
@@ -190,7 +191,7 @@ int main(int argc, char** argv) {
     distributed_context context;
 
     try {
-#ifdef ARB_HAVE_MPI
+#ifdef ARB_MPI_ENABLED
         mpi::scoped_guard guard(&argc, &argv);
         context = mpi_context(MPI_COMM_WORLD);
 #endif
@@ -200,7 +201,7 @@ int main(int argc, char** argv) {
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.id()==0);
         hw::node_info nd;
-        nd.num_cpu_cores = threading::num_threads();
+        nd.num_cpu_cores = arb::thread_count();
         nd.num_gpus = hw::num_gpus()>0? 1: 0;
         banner(nd, &context);
 
@@ -307,7 +308,7 @@ void banner(hw::node_info nd, const distributed_context* ctx) {
     std::cout << "  - distributed : " << ctx->size()
               << " (" << ctx->name() << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
-              << " (" << threading::description() << ")\n";
+              << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
 }

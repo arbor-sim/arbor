@@ -5,10 +5,10 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/mechcat.hpp>
+#include <arbor/ion.hpp>
 
 #include "constants.hpp"
-#include "ion.hpp"
-#include "mechcat.hpp"
 #include "morphology.hpp"
 #include "segment.hpp"
 #include "tree.hpp"

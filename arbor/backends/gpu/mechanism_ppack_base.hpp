@@ -3,7 +3,7 @@
 // Base class for parameter packs for GPU generated kernels:
 // will be included by .cu generated sources.
 
-#include <backends/fvm_types.hpp>
+#include <arbor/fvm_types.hpp>
 
 namespace arb {
 namespace gpu {

@@ -8,11 +8,12 @@
 #include <utility>
 #include <vector>
 
-#include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
-#include <math.hpp>
-#include <simd/simd.hpp>
-#include <util/padded_alloc.hpp>
+#include <arbor/fvm_types.hpp>
+
+#include "backends/event.hpp"
+#include "math.hpp"
+#include "simd/simd.hpp"
+#include "util/padded_alloc.hpp"
 
 #include "multi_event_stream.hpp"
 

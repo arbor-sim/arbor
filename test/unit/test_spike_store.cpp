@@ -2,8 +2,7 @@
 
 #include <arbor/spike.hpp>
 
-#include <threading/threading.hpp>
-#include <thread_private_spike_store.hpp>
+#include "thread_private_spike_store.hpp"
 
 using arb::spike;
 

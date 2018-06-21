@@ -1,4 +1,4 @@
-#include <backends/fvm_types.hpp>
+#include <arbor/fvm_types.hpp>
 
 #include "cuda_common.hpp"
 #include "matrix_common.hpp"

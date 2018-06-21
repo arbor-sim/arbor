@@ -107,3 +107,4 @@ add_executable(unit ${unit_sources})
 target_compile_options(unit PRIVATE ${CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
 target_link_libraries(unit PRIVATE gtest arbor arbor-private-headers)
+

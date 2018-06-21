@@ -5,12 +5,12 @@
 //
 // Defines array, iarray, and specialized multi-event stream classes.
 
-#include <memory/memory.hpp>
+#include <arbor/fvm_types.hpp>
 
-#include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
-#include <backends/gpu/multi_event_stream.hpp>
-#include <backends/gpu/multi_event_stream.hpp>
+#include "memory/memory.hpp"
+#include "backends/event.hpp"
+#include "backends/gpu/multi_event_stream.hpp"
+#include "backends/gpu/multi_event_stream.hpp"
 
 namespace arb {
 namespace gpu {

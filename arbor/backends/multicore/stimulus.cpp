@@ -1,8 +1,9 @@
 #include <cmath>
 
-#include <backends/builtin_mech_proto.hpp>
-#include <backends/fvm_types.hpp>
-#include <backends/multicore/mechanism.hpp>
+#include <arbor/fvm_types.hpp>
+
+#include "backends/builtin_mech_proto.hpp"
+#include "backends/multicore/mechanism.hpp"
 
 namespace arb {
 

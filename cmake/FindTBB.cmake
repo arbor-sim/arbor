@@ -39,13 +39,16 @@ if(NOT TBB_FOUND)
         set(TBB_INCLUDE_DIRS ${TBB_INCLUDE_DIR})
         set(TBB_LIBRARIES ${_libtbb} ${_libtbbmalloc})
         if(NOT TARGET TBB::tbb)
-            add_library(TBB::tbb UNKNOWN IMPORTED)
+            if("${_libtbb}" MATCHES "\.a$")
+                add_library(TBB::tbb STATIC IMPORTED GLOBAL)
+            else()
+                add_library(TBB::tbb SHARED IMPORTED GLOBAL)
+            endif()
             set_target_properties(TBB::tbb PROPERTIES
                     IMPORTED_LOCATION "${_libtbb}"
-                    INTERFACE_LINK_LIBRARIES "${_libtbbmalloc}"
+                    INTERFACE_LINK_LIBRARIES "${_libtbbmalloc}" Threads::Threads ${CMAKE_DL_LIBS}
                     INTERFACE_INCLUDE_DIRECTORIES "${TBB_INCLUDE_DIR}"
             )
-            target_link_libraries(TBB:tbb PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
         endif()
     endif()
     mark_as_advanced(TBB_INCLUDE_DIR)

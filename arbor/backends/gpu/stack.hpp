@@ -2,8 +2,10 @@
 
 #include <algorithm>
 
-#include <backends/gpu/managed_ptr.hpp>
-#include <memory/allocator.hpp>
+#include <arbor/assert.hpp>
+
+#include "backends/gpu/managed_ptr.hpp"
+#include "memory/allocator.hpp"
 #include "stack_storage.hpp"
 
 namespace arb {
@@ -57,9 +59,16 @@ public:
     explicit stack(unsigned capacity): storage_(create_storage(capacity)) {}
 
     ~stack() {
+        storage_.synchronize();
         if (storage_->data) {
             allocator<value_type>().deallocate(storage_->data, storage_->capacity);
         }
+    }
+
+    // Perform any required synchronization if concurrent host-side access is not supported.
+    // (Correctness still requires that GPU operations on this stack are complete.)
+    void host_access() const {
+        storage_.host_access();
     }
 
     void clear() {

@@ -1,11 +1,17 @@
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/arbor)
 if(ARB_WITH_ASSERTIONS)
-configure_file(arbor/assert_macro.hpp.enabled arbor/assert_macro.hpp COPYONLY)
+    configure_file(arbor/assert_macro.hpp.enabled arbor/assert_macro.hpp COPYONLY)
 else()
-configure_file(arbor/assert_macro.hpp.disabled arbor/assert_macro.hpp COPYONLY)
+    configure_file(arbor/assert_macro.hpp.disabled arbor/assert_macro.hpp COPYONLY)
 endif()
 
 add_library(arbor-public-headers INTERFACE)
+
+# At build time, public headers found in this directory and in
+# binary directory (viz. assert.hpp, version.hpp). For consumers
+# of an installed arbor package, the include files will be found
+# in the 'include' subdirectory of the instalation path.
+
 target_include_directories(arbor-public-headers INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
@@ -19,10 +25,29 @@ add_custom_command(
     COMMAND true
 )
 
+set(arb_features)
+if(ARB_WITH_ASSERTIONS)
+    list(APPEND arb_features ASSERT)
+endif()
+if(ARB_WITH_MPI)
+    list(APPEND arb_features MPI)
+endif()
+if(ARB_WITH_CUDA)
+    list(APPEND arb_features GPU)
+endif()
+if(ARB_WITH_PROFILING)
+    list(APPEND arb_features PROFILE)
+endif()
+if(ARB_WITH_TBB)
+    list(APPEND arb_features TBB)
+elseif(ARB_WITH_CTHREAD)
+    list(APPEND arb_features CTHREAD)
+endif()
+
 add_custom_command(
     OUTPUT version.hpp-test
     DEPENDS _always_rebuild
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${PROJECT_VERSION} > version.hpp-test
+    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/git-source-id ${PROJECT_VERSION} ${arb_features} > version.hpp-test
 )
 
 set(version_hpp_path arbor/version.hpp)

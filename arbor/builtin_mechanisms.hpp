@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mechcat.hpp>
+#include <arbor/mechcat.hpp>
 
 namespace arb {
 

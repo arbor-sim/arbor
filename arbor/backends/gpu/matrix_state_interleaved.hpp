@@ -1,14 +1,14 @@
 #pragma once
 
 #include <arbor/assert.hpp>
+#include <arbor/fvm_types.hpp>
 
-#include <backends/fvm_types.hpp>
-#include <math.hpp>
-#include <memory/memory.hpp>
-#include <util/span.hpp>
-#include <util/partition.hpp>
-#include <util/rangeutil.hpp>
-#include <util/indirect.hpp>
+#include "math.hpp"
+#include "memory/memory.hpp"
+#include "util/span.hpp"
+#include "util/partition.hpp"
+#include "util/rangeutil.hpp"
+#include "util/indirect.hpp"
 
 #include "cuda_common.hpp"
 #include "matrix_common.hpp"

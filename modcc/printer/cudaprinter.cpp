@@ -218,7 +218,7 @@ std::string emit_cuda_cu_source(const Module& module_, const printer_options& op
         "#include <" << arb_private_header_prefix() << "backends/event.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/multi_event_stream_state.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/cuda_common.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "backends/gpu/math.hpp>\n"
+        "#include <" << arb_private_header_prefix() << "backends/gpu/math_cu.hpp>\n"
         "#include <" << arb_private_header_prefix() << "backends/gpu/mechanism_ppack_base.hpp>\n";
 
     is_point_proc && out <<

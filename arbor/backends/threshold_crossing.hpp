@@ -1,16 +1,10 @@
 #pragma once
 
-#include <arbor/common_types.hpp>
-
-// Basic types shared across FVM implementations/backends.
+#include <arbor/fvm_types.hpp>
 
 namespace arb {
 
-using fvm_value_type = double;
-using fvm_size_type = cell_local_size_type;
-using fvm_index_type = int;
-
-// Stores a single crossing event.
+// Representation of a single crossing event.
 
 struct threshold_crossing {
     fvm_size_type index;    // index of variable

@@ -2,6 +2,7 @@
 
 namespace arb {
 namespace threading {
+inline namespace cthread {
 
 template <typename RandomIt>
 void sort(RandomIt begin, RandomIt end) {
@@ -18,5 +19,6 @@ void sort(Container& c) {
     std::sort(std::begin(c), std::end(c));
 }
 
+} // namespace cthread
 } // namespace threading
 } // namespace arb

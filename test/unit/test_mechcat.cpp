@@ -1,7 +1,7 @@
-#include <backends/fvm_types.hpp>
-#include <mechanism.hpp>
-#include <mechcat.hpp>
-#include <mechinfo.hpp>
+#include <arbor/fvm_types.hpp>
+#include <arbor/mechanism.hpp>
+#include <arbor/mechcat.hpp>
+#include <arbor/mechinfo.hpp>
 
 #include "common.hpp"
 

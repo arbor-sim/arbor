@@ -1,9 +1,10 @@
-#include <mechcat.hpp>
-#include <backends/builtin_mech_proto.hpp>
+#include <arbor/mechcat.hpp>
 
-#include <backends/multicore/fvm.hpp>
+#include "backends/builtin_mech_proto.hpp"
+
+#include "backends/multicore/fvm.hpp"
 #if ARB_HAVE_GPU
-#include <backends/gpu/fvm.hpp>
+#include "backends/gpu/fvm.hpp"
 #endif
 
 namespace arb {

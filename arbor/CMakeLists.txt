@@ -22,6 +22,8 @@ set(arbor_sources
     lif_cell_group.cpp
     mc_cell_group.cpp
     mechcat.cpp
+    memory/cuda_wrappers.cpp
+    memory/util.cpp
     merge_events.cpp
     simulation.cpp
     morphology.cpp
@@ -34,7 +36,9 @@ set(arbor_sources
     schedule.cpp
     spike_source_cell_group.cpp
     swcio.cpp
+    threadinfo.cpp
     threading/threading.cpp
+    thread_private_spike_store.cpp
     util/hostname.cpp
     util/path.cpp
     util/unwind.cpp
@@ -48,6 +52,7 @@ if(ARB_WITH_CUDA)
         backends/gpu/stimulus.cpp
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
+        backends/gpu/managed_ptr.cpp
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_interleave.cu
         backends/gpu/matrix_solve.cu
@@ -92,7 +97,7 @@ add_dependencies(arbor build_all_mods)
 target_link_libraries(arbor PRIVATE arbor-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-headers)
 if(ARB_WITH_TBB)
-target_link_libraries(arbor PRIVATE ext-tbb)
+target_link_libraries(arbor PUBLIC ext-tbb)
 endif()
 
 install(TARGETS arbor ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})

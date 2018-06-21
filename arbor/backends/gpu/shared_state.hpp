@@ -5,10 +5,11 @@
 #include <utility>
 #include <vector>
 
-#include <backends/fvm_types.hpp>
-#include <backends/gpu/gpu_store_types.hpp>
-#include <ion.hpp>
-#include <util/enumhash.hpp>
+#include <arbor/fvm_types.hpp>
+#include <arbor/ion.hpp>
+#include <arbor/util/enumhash.hpp>
+
+#include "backends/gpu/gpu_store_types.hpp"
 
 namespace arb {
 namespace gpu {

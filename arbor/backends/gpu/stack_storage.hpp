@@ -1,6 +1,6 @@
 #pragma once
 
-#include <backends/fvm_types.hpp>
+#include <arbor/fvm_types.hpp>
 
 namespace arb {
 namespace gpu {

@@ -17,14 +17,12 @@
 
 #include <cstdlib>
 
-#include "timer.hpp"
-
 namespace arb {
 namespace threading {
+inline namespace cthread {
 
 // Forward declare task_group at bottom of this header
 class task_group;
-using arb::threading::impl::timer;
 
 namespace impl {
 
@@ -267,5 +265,6 @@ inline std::size_t thread_id() {
     return impl::task_pool::get_global_task_pool().get_current_thread();
 }
 
+} // namespace cthread
 } // namespace threading
 } // namespace arb

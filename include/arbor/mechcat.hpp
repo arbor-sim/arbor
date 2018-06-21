@@ -6,8 +6,8 @@
 #include <typeindex>
 #include <vector>
 
-#include <mechinfo.hpp>
-#include <mechanism.hpp>
+#include <arbor/mechinfo.hpp>
+#include <arbor/mechanism.hpp>
 
 // Mechanism catalogue maintains:
 //

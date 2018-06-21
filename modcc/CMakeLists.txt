@@ -35,5 +35,5 @@ target_link_libraries(modcc libmodcc ext-tclap)
 
 set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
 
-install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_LIBEXECDIR})
+install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 

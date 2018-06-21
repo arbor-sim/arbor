@@ -4,13 +4,12 @@
 #include <string>
 
 #include <arbor/common_types.hpp>
+#include <arbor/fvm_types.hpp>
 
-#include "mechanism.hpp"
 #include "memory/memory.hpp"
 #include "util/rangeutil.hpp"
 
 #include "backends/event.hpp"
-#include "backends/fvm_types.hpp"
 
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"

@@ -1,14 +1,15 @@
 #pragma once
 
-#include <backends/fvm_types.hpp>
-#include <cell.hpp>
-#include <compartment.hpp>
-#include <mechanism.hpp>
-#include <mechinfo.hpp>
-#include <mechcat.hpp>
-#include <util/deduce_return.hpp>
-#include <util/enumhash.hpp>
-#include <util/span.hpp>
+#include <arbor/fvm_types.hpp>
+#include <arbor/mechanism.hpp>
+#include <arbor/mechinfo.hpp>
+#include <arbor/mechcat.hpp>
+#include <arbor/util/enumhash.hpp>
+
+#include "cell.hpp"
+#include "compartment.hpp"
+#include "util/deduce_return.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 

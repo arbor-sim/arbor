@@ -5,10 +5,10 @@
 #include <vector>
 
 #include <arbor/util/optional.hpp>
+#include <arbor/mechcat.hpp>
 
 #include <cell.hpp>
 #include <constants.hpp>
-#include <mechcat.hpp>
 #include <backends/multicore/fvm.hpp>
 #include <backends/multicore/mechanism.hpp>
 #include <util/maputil.hpp>

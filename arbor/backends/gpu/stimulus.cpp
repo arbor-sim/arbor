@@ -1,9 +1,6 @@
-#include <cmath>
-
-#include <backends/builtin_mech_proto.hpp>
-#include <backends/fvm_types.hpp>
-#include <backends/gpu/mechanism.hpp>
-#include <backends/gpu/mechanism_ppack_base.hpp>
+#include "backends/builtin_mech_proto.hpp"
+#include "backends/gpu/mechanism.hpp"
+#include "backends/gpu/mechanism_ppack_base.hpp"
 
 #include "stimulus.hpp"
 

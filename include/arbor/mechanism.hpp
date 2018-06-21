@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include <backends/fvm_types.hpp>
-#include <ion.hpp>
-#include <mechinfo.hpp>
+#include <arbor/fvm_types.hpp>
+#include <arbor/ion.hpp>
+#include <arbor/mechinfo.hpp>
 
 namespace arb {
 
@@ -70,12 +70,12 @@ public:
     virtual ~mechanism() = default;
 
     // Per-cell group identifier for an instantiated mechanism.
-    fvm_size_type mechanism_id() const { return mechanism_id_; }
+    unsigned  mechanism_id() const { return mechanism_id_; }
 
 protected:
     // Per-cell group identifier for an instantiation of a mechanism; set by
     // concrete_mechanism<B>::instantiate()
-    fvm_size_type mechanism_id_ = -1;
+    unsigned  mechanism_id_ = -1;
 };
 
 // Backend-specific implementations provide mechanisms that are derived from `concrete_mechanism<Backend>`,
@@ -87,7 +87,7 @@ public:
     using backend = Backend;
 
     // Instantiation: allocate per-instance state; set views/pointers to shared data.
-    virtual void instantiate(fvm_size_type id, typename backend::shared_state&, const layout&) = 0;
+    virtual void instantiate(unsigned  id, typename backend::shared_state&, const layout&) = 0;
 };
 
 

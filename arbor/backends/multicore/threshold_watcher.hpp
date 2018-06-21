@@ -1,9 +1,10 @@
 #pragma once
 
 #include <arbor/assert.hpp>
+#include <arbor/fvm_types.hpp>
 
-#include <backends/fvm_types.hpp>
-#include <math.hpp>
+#include "backends/threshold_crossing.hpp"
+#include "math.hpp"
 
 #include "multicore_common.hpp"
 

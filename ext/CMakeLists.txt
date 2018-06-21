@@ -12,24 +12,38 @@ target_include_directories(ext-tclap INTERFACE tclap/include)
 # Alias system TBB or build locally and export that, according
 # to ARB_PRIVATE_TBBLIB setting.
 
-if(ARB_REQUIRE_TBB)
+find_package(TBB)
+if(ARB_PRIVATE_TBBLIB OR NOT TBB_FOUND)
+    check_git_submodule(tbb tbb)
+    add_target_if(tbb_avail check-tbb-submodule "Checking TBB submodule" "TBB git submodule required")
+
+    # Turn off proxy malloc library and test compilation.
+    option(TBB_BUILD_TBBMALLOC_PROXY "" OFF)
+    option(TBB_BUILD_TESTS           "" OFF)
+    # Only make static libraries.
+    option(TBB_BUILD_SHARED          "" OFF)
+    option(TBB_BUILD_STATIC          "" ON)
+
+    add_subdirectory(tbb EXCLUDE_FROM_ALL)
+
+    add_library(ext-tbb INTERFACE)
+    add_dependencies(ext-tbb check-tbb-submodule)
+    target_link_libraries(ext-tbb INTERFACE tbb_static tbbmalloc_static)
+    target_include_directories(ext-tbb SYSTEM INTERFACE tbb/include)
+
+    # Can't use install(TARGETS) because 1) tbb targets are defined in
+    # a subdirectory and 2) having been excluded-from-all, the behaviour
+    # might have been undefined anyway. Seriously.
+
+    install(FILES "$<TARGET_FILE:tbb_static>" "$<TARGET_FILE:tbbmalloc_static>" DESTINATION ${CMAKE_INSTALL_LIBDIR} OPTIONAL)
+else()
+    add_library(ext-tbb ALIAS TBB::tbb)
+endif()
+
+if(ARB_WITH_TBB)
     if(ARB_PRIVATE_TBBLIB)
-        check_git_submodule(tbb tbb)
-        if(NOT tbb_avail)
-            message(FATAL_ERROR "TBB git submodule required.")
-        endif()
-
-        # Turn off proxy malloc library and test compilation.
-        option(TBB_BUILD_TBBMALLOC_PROXY OFF)
-        option(TBB_BUILD_TESTS           OFF)
-
-        add_subdirectory(tbb)
-        add_library(ext-tbb INTERFACE)
-        target_link_libraries(ext-tbb INTERFACE tbb_static tbbmalloc_static)
-        target_include_directories(ext-tbb SYSTEM INTERFACE tbb/include)
     else()
         find_package(TBB REQUIRED)
-        add_library(ext-tbb ALIAS TBB::tbb)
     endif()
 endif()
 

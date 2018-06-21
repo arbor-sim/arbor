@@ -1,7 +1,8 @@
 #include <cmath>
 
-#include <backends/fvm_types.hpp>
+#include <arbor/fvm_types.hpp>
 
+#include "backends/threshold_crossing.hpp"
 #include "cuda_common.hpp"
 #include "stack_cu.hpp"
 

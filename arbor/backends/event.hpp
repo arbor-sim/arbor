@@ -1,8 +1,7 @@
 #pragma once
 
 #include <arbor/common_types.hpp>
-
-#include "backends/fvm_types.hpp"
+#include <arbor/fvm_types.hpp>
 
 // Structures for the representation of event delivery targets and
 // staged events.

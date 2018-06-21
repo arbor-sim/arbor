@@ -5,17 +5,17 @@
 #include <utility>
 #include <vector>
 
+#include <arbor/fvm_types.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/mechanism.hpp>
 #include <arbor/util/optional.hpp>
 
 #include "math.hpp"
-#include "mechanism.hpp"
 #include "util/index_into.hpp"
 #include "util/maputil.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/range.hpp"
 
-#include "backends/fvm_types.hpp"
 #include "backends/multicore/mechanism.hpp"
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/fvm.hpp"
@@ -61,7 +61,7 @@ void copy_extend(const Source& source, Dest&& dest, const Fill& fill) {
 // these past-the-end values are given a weight of zero, and any corresponding
 // indices into shared state point to the last valid slot.
 
-void mechanism::instantiate(fvm_size_type id, backend::shared_state& shared, const layout& pos_data) {
+void mechanism::instantiate(unsigned id, backend::shared_state& shared, const layout& pos_data) {
     using util::make_range;
 
     util::padded_allocator<> pad(shared.alignment);

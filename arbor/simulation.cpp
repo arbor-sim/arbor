@@ -18,10 +18,8 @@
 
 namespace arb {
 
-using local_spike_store_type = thread_private_spike_store;
-
 class spike_double_buffer {
-    util::double_buffer<local_spike_store_type> buffer_;
+    util::double_buffer<thread_private_spike_store> buffer_;
 
 public:
     // Convenience functions that map the spike buffers onto the appropriate
@@ -36,8 +34,8 @@ public:
     //      current:  spikes generated in the current interval
     //      previous: spikes generated in the preceding interval
 
-    local_spike_store_type& current()  { return buffer_.get(); }
-    local_spike_store_type& previous() { return buffer_.other(); }
+    thread_private_spike_store& current()  { return buffer_.get(); }
+    thread_private_spike_store& previous() { return buffer_.other(); }
     void exchange() { buffer_.exchange(); }
 };
 

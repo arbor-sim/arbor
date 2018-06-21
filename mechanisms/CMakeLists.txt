@@ -12,7 +12,7 @@ file(MAKE_DIRECTORY "${mech_dir}")
 
 set(modcc_flags)
 if(ARB_VECTORIZE)
-    list(APPEND modcc_flags "-s")
+    list(APPEND modcc_flags "--simd")
 endif()
 if(ARB_WITH_PROFILING)
     list(APPEND modcc_flags "--profile")
@@ -30,7 +30,7 @@ build_modules(
 # Generate source for default mechanism catalogue.
 
 set(catsrc ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
-set(default_catalogue_options -I ${mech_dir} -o ${catsrc} -B multicore)
+set(default_catalogue_options -A arbor -I ${mech_dir} -o ${catsrc} -B multicore)
 if(ARB_WITH_CUDA)
     list(APPEND default_catalogue_options -B gpu)
 endif()
@@ -41,8 +41,6 @@ add_custom_command(
     DEPENDS generate_default_catalogue
 )
 
-# I can't believe I have to do this.
-set_source_files_properties(${catsrc} PROPERTIES GENERATED TRUE)
 add_custom_target(default_catalogue_cpp_target DEPENDS ${catsrc})
 add_dependencies(build_all_mods default_catalogue_cpp_target)
 

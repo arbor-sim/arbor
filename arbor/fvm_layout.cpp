@@ -3,13 +3,14 @@
 #include <unordered_set>
 #include <vector>
 
-#include <fvm_layout.hpp>
-#include <util/enumhash.hpp>
-#include <util/maputil.hpp>
-#include <util/meta.hpp>
-#include <util/partition.hpp>
-#include <util/rangeutil.hpp>
-#include <util/transform.hpp>
+#include <arbor/util/enumhash.hpp>
+
+#include "fvm_layout.hpp"
+#include "util/maputil.hpp"
+#include "util/meta.hpp"
+#include "util/partition.hpp"
+#include "util/rangeutil.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
 

@@ -14,11 +14,13 @@ using namespace arb;
 
 #ifndef USE_BACKEND
 using backend = multicore::backend;
+#define SPIKES_TEST_CLASS spikes
 #else
 using backend = USE_BACKEND;
+#define SPIKES_TEST_CLASS spikes_gpu
 #endif
 
-TEST(spikes, threshold_watcher) {
+TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     using value_type = backend::value_type;
     using index_type = backend::index_type;
     using array = backend::array;

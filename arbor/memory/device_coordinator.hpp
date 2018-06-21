@@ -7,9 +7,9 @@
 
 #include "allocator.hpp"
 #include "array.hpp"
+#include "cuda_wrappers.hpp"
 #include "definitions.hpp"
 #include "fill.hpp"
-#include "gpu.hpp"
 #include "util.hpp"
 
 namespace arb {
@@ -56,13 +56,8 @@ public:
 
     operator T() const {
         T tmp;
-        auto success
-            = cudaMemcpy(&tmp, pointer_, sizeof(T), cudaMemcpyDeviceToHost);
-        if(success != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)) + ") " + cudaGetErrorString(success));
-            abort();
-        }
-        return T(tmp);
+        cuda_memcpy_d2h(&tmp, pointer_, sizeof(T));
+        return tmp;
     }
 
 protected:
@@ -80,25 +75,15 @@ public:
 
     device_reference(pointer p) : pointer_(p) {}
 
-    device_reference& operator = (const T& value) {
-        auto success =
-            cudaMemcpy(pointer_, &value, sizeof(T), cudaMemcpyHostToDevice);
-        if(success != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(h2d, " + std::to_string(sizeof(T)) + ") " + cudaGetErrorString(success));
-            abort();
-        }
+    device_reference& operator=(const T& value) {
+        cuda_memcpy_h2d(pointer_, &value, sizeof(T));
         return *this;
     }
 
     operator T() const {
         T tmp;
-        auto success =
-            cudaMemcpy(&tmp, pointer_, sizeof(T), cudaMemcpyDeviceToHost);
-        if(success != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(d2h, " + std::to_string(sizeof(T)) + ") " + cudaGetErrorString(success));
-            abort();
-        }
-        return T(tmp);
+        cuda_memcpy_d2h(&tmp, pointer_, sizeof(T));
+        return tmp;
     }
 
 private:
@@ -156,11 +141,6 @@ public:
 
     // copy memory from one gpu range to another
     void copy(const_view_type from, view_type to) {
-    //template<typename Alloc1, typename Alloc2>
-    //void copy(
-        //const_array_view<value_type, device_coordinator<value_type, Alloc1>> from,
-        //array_view<value_type, device_coordinator<value_type, Alloc2>> to)
-    //{
         #ifdef VERBOSE
         std::cerr << util::type_printer<device_coordinator>::print()
                   << util::blue("::copy") << "(size=" << from.size() << ") "
@@ -170,7 +150,7 @@ public:
         arb_assert(from.size()==to.size());
         arb_assert(!from.overlaps(to));
 
-        gpu::memcpy_d2d(from.data(), to.data(), from.size());
+        cuda_memcpy_d2d(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy memory from gpu to host
@@ -187,7 +167,7 @@ public:
         #endif
         arb_assert(from.size()==to.size());
 
-        gpu::memcpy_d2h(from.data(), to.data(), from.size());
+        cuda_memcpy_d2h(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy memory from host to gpu
@@ -204,7 +184,7 @@ public:
         #endif
         arb_assert(from.size()==to.size());
 
-        gpu::memcpy_h2d(from.data(), to.data(), from.size());
+        cuda_memcpy_h2d(to.data(), from.data(), from.size()*sizeof(value_type));
     }
 
     // copy from pinned memory to device
@@ -229,16 +209,7 @@ public:
                   << util::print_pointer(to.data()) << "\n";
         #endif
 
-        auto status = cudaMemcpy(
-                reinterpret_cast<void*>(to.begin()),
-                reinterpret_cast<const void*>(from.begin()),
-                from.size()*sizeof(value_type),
-                cudaMemcpyHostToDevice
-        );
-        if(status != cudaSuccess) {
-            LOG_ERROR("cudaMemcpy(h2d, " + std::to_string(sizeof(T)*from.size()) + ") " + cudaGetErrorString(status));
-            abort();
-        }
+        cuda_memcpy_h2d(to.begin(), from.begin(), from.size()*sizeof(value_type));
     }
 
     // generates compile time error if there is an attempt to copy from memory

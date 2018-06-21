@@ -6,17 +6,17 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/fvm_types.hpp>
+#include <arbor/mechanism.hpp>
 #include <arbor/util/optional.hpp>
 
 #include "math.hpp"
-#include "mechanism.hpp"
 #include "memory/memory.hpp"
 #include "util/index_into.hpp"
 #include "util/maputil.hpp"
 #include "util/range.hpp"
 #include "util/span.hpp"
 
-#include "backends/fvm_types.hpp"
 #include "backends/gpu/mechanism.hpp"
 #include "backends/gpu/fvm.hpp"
 
@@ -51,7 +51,7 @@ memory::const_device_view<T> device_view(const T* ptr, std::size_t n) {
 // pointers. This also involves setting the pointers in the parameter pack,
 // which is used to pass pointers to CUDA kernels.
 
-void mechanism::instantiate(fvm_size_type id,
+void mechanism::instantiate(unsigned id,
                             backend::shared_state& shared,
                             const layout& pos_data)
 {

@@ -3,7 +3,6 @@
 
 #include <arbor/profile/meter.hpp>
 
-#include "util/config.hpp"
 #include "hardware/power.hpp"
 
 namespace arb {
@@ -37,7 +36,7 @@ public:
 };
 
 meter_ptr make_power_meter() {
-    if (not config::has_power_measurement) {
+    if (!arb::hw::has_energy_measurement()) {
         return nullptr;
     }
     return meter_ptr(new power_meter());

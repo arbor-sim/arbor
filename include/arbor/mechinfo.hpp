@@ -10,8 +10,8 @@
 #include <utility>
 #include <vector>
 
-#include <ion.hpp>
-#include <util/enumhash.hpp>
+#include <arbor/ion.hpp>
+#include <arbor/util/enumhash.hpp>
 
 namespace arb {
 

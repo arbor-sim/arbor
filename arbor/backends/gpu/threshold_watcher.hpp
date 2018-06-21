@@ -1,11 +1,12 @@
 #pragma once
 
 #include <arbor/common_types.hpp>
+#include <arbor/fvm_types.hpp>
 
 #include "memory/memory.hpp"
 #include "util/span.hpp"
 
-#include "backends/fvm_types.hpp"
+#include "backends/threshold_crossing.hpp"
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/managed_ptr.hpp"
 #include "backends/gpu/stack.hpp"
@@ -64,9 +65,7 @@ public:
 
     /// Remove all stored crossings that were detected in previous calls to test()
     void clear_crossings() {
-        if (managed_synch_required()) {
-            cudaDeviceSynchronize();
-        }
+        stack_.host_access();
         stack_.clear();
     }
 
@@ -86,6 +85,8 @@ public:
     }
 
     const std::vector<threshold_crossing>& crossings() const {
+        stack_.host_access();
+
         if (stack_.overflow()) {
             throw std::runtime_error("GPU spike buffer overflow.");
         }
@@ -115,7 +116,7 @@ public:
         }
     }
 
-    /// the number of threashold values that are being monitored
+    /// the number of threshold values that are being monitored
     std::size_t size() const {
         return cv_index_.size();
     }

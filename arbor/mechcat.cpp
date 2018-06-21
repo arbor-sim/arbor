@@ -3,9 +3,10 @@
 #include <string>
 #include <vector>
 
-#include <mechcat.hpp>
-#include <util/maputil.hpp>
-#include <util/make_unique.hpp>
+#include <arbor/mechcat.hpp>
+
+#include "util/maputil.hpp"
+#include "util/make_unique.hpp"
 
 namespace arb {
 

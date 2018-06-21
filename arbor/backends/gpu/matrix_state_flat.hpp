@@ -1,11 +1,12 @@
 #pragma once
 
-#include <backends/fvm_types.hpp>
-#include <memory/memory.hpp>
-#include <memory/wrappers.hpp>
-#include <util/span.hpp>
-#include <util/partition.hpp>
-#include <util/rangeutil.hpp>
+#include <arbor/fvm_types.hpp>
+
+#include "memory/memory.hpp"
+#include "memory/wrappers.hpp"
+#include "util/span.hpp"
+#include "util/partition.hpp"
+#include "util/rangeutil.hpp"
 
 namespace arb {
 namespace gpu {

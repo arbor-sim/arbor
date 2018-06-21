@@ -2,12 +2,12 @@
 
 #include <limits>
 
-#include <backends/gpu/cuda_atomic.hpp>
-#include <backends/gpu/math.hpp>
-#include <backends/gpu/managed_ptr.hpp>
-#include <memory/memory.hpp>
-#include <util/rangeutil.hpp>
-#include <util/span.hpp>
+#include "backends/gpu/cuda_atomic.hpp"
+#include "backends/gpu/math_cu.hpp"
+#include "backends/gpu/managed_ptr.hpp"
+#include "memory/memory.hpp"
+#include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 namespace kernels {
     template <typename T>

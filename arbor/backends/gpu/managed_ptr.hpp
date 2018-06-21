@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 #include <memory/allocator.hpp>
 
@@ -10,13 +11,14 @@ namespace gpu {
 // Pre-pascal NVIDIA GPUs don't support page faulting for GPU reads of managed
 // memory, so when a kernel is launched, all managed memory is copied to the
 // GPU. The upshot of this is that no CPU-side reads can be made of _any_
-// managed memory can be made whe _any_ kernel is running.  The following helper
-// function can be used to determine whether synchronization is required before
-// CPU-side reads of managed memory.
-constexpr
-bool managed_synch_required() {
-    return (ARB_CUDA_ARCH < 600); // all GPUs before P100
-}
+// managed memory can be made whe _any_ kernel is running.
+//
+// The following helper function can be used to determine whether
+// synchronization is required before CPU-side reads of managed memory: if the
+// device concurrentManagedAccess property is zero, then safe host-side requires
+// a synchronization.
+
+bool device_concurrent_managed_access();
 
 // used to indicate that the type pointed to by the managed_ptr is to be
 // constructed in the managed_ptr constructor
@@ -34,13 +36,15 @@ struct construct_in_place_tag {};
 // instead of directly constructing the managed_ptr.
 template <typename T>
 class managed_ptr {
-    public:
+public:
 
     using element_type = T;
     using pointer = element_type*;
     using reference = element_type&;
 
-    managed_ptr() = default;
+    managed_ptr():
+        concurrent_managed_access(device_concurrent_managed_access())
+    {}
 
     managed_ptr(const managed_ptr& other) = delete;
 
@@ -49,14 +53,18 @@ class managed_ptr {
     // point of the wrapper is to hide the complexity of allocating managed
     // memory and constructing a type in place.
     template <typename... Args>
-    managed_ptr(construct_in_place_tag, Args&&... args) {
+    managed_ptr(construct_in_place_tag, Args&&... args):
+        concurrent_managed_access(device_concurrent_managed_access())
+    {
         memory::managed_allocator<element_type> allocator;
         data_ = allocator.allocate(1u);
         synchronize();
         data_ = new (data_) element_type(std::forward<Args>(args)...);
     }
 
-    managed_ptr(managed_ptr&& other) {
+    managed_ptr(managed_ptr&& other):
+        concurrent_managed_access(other.concurrent_managed_access)
+    {
         std::swap(other.data_, data_);
     }
 
@@ -105,7 +113,15 @@ class managed_ptr {
         cudaDeviceSynchronize();
     }
 
-    private:
+    // Synchronize if concurrent host-side access is not supported.
+    void host_access() const {
+        if (!concurrent_managed_access) {
+            cudaDeviceSynchronize();
+        }
+    }
+
+private:
+    const bool concurrent_managed_access;
 
     __host__ __device__
     bool is_allocated() const {

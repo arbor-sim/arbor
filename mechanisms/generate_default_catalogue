@@ -106,13 +106,17 @@ const mechanism_catalogue& global_default_catalogue() {
     def indent(n, lines):
         return '{{:<{0!s}}}'.format(n+1).format('\n').join(lines)
 
+    # TODO: use the commented include list below when private/public
+    # headers are resolved.
+
     return src.safe_substitute(dict(
         cmdline = " ".join(sys.argv),
         arbpfx = arbpfx,
         backend_includes = indent(0,
-            ['#include <{}backends/{}/fvm.hpp>'.format(arbpfx, b) for b in backends]),
+            # ['#include <{}backends/{}/fvm.hpp>'.format(arbpfx, b) for b in backends]),
+            ['#include "backends/{}/fvm.hpp"'.format(b) for b in backends]),
         module_includes = indent(0,
-            ['#include <{}{}.hpp>'.format(modpfx, m) for m in modules]),
+            ['#include "{}{}.hpp"'.format(modpfx, m) for m in modules]),
         add_modules = indent(4,
             ['cat.add("{0}", mechanism_{0}_info());'.format(m) for m in modules]),
         register_modules = indent(4,

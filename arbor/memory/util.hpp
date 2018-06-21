@@ -4,9 +4,7 @@
 #include <sstream>
 #include <vector>
 
-#include <arbor/assert.hpp>
-
-#define LOG_ERROR(msg) arb::util::backtrace().print(); util::log_error(__FILE__, __LINE__, msg)
+#define LOG_ERROR(msg) util::log_error(__FILE__, __LINE__, msg)
 
 namespace arb {
 namespace memory {
@@ -79,11 +77,7 @@ std::string print_pointer(const T* ptr) {
     return yellow(s.str());
 }
 
-inline void log_error(const char* file, int line, std::string msg) {
-    std::cerr
-        << red("runtime error") << " @ "
-        << white(file) << ":" << line << "\n    " << msg << std::endl;
-}
+void log_error(const char* file, int line, const std::string& msg);
 
 } // namespace util
 } // namespace memory

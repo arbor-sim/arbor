@@ -63,8 +63,8 @@ std::string build_info_header(const Module& m, const printer_options& opt) {
         "#pragma once\n"
         "#include <memory>\n"
         "\n"
-        "#include <" << arb_private_header_prefix() << "mechanism.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "mechinfo.hpp>\n"
+        "#include <" << arb_header_prefix() << "mechanism.hpp>\n"
+        "#include <" << arb_header_prefix() << "mechinfo.hpp>\n"
         "\n"
         << namespace_declaration_open(ns_components) <<
         "\n"

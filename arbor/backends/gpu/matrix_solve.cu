@@ -1,8 +1,7 @@
-#include <cassert>
+#include <arbor/fvm_types.hpp>
 
 #include "cuda_common.hpp"
 #include "matrix_common.hpp"
-#include <backends/fvm_types.hpp>
 
 namespace arb {
 namespace gpu {

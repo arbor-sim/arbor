@@ -1,10 +1,11 @@
 #include <cmath>
 
-#include <cell.hpp>
-#include <recipe.hpp>
-#include <segment.hpp>
-#include <math.hpp>
-#include <mechinfo.hpp>
+#include <arbor/mechinfo.hpp>
+
+#include "cell.hpp"
+#include "recipe.hpp"
+#include "segment.hpp"
+#include "math.hpp"
 
 namespace arb {
 

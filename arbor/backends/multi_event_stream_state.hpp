@@ -1,6 +1,6 @@
 #pragma once
 
-#include <backends/fvm_types.hpp>
+#include <arbor/fvm_types.hpp>
 
 // Pointer representation of multi-event stream marked event state,
 // common across CPU and GPU backends.

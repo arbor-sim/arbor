@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <arbor/common_types.hpp>
@@ -9,6 +10,8 @@
 
 namespace arb {
 
+struct local_spike_store_type;
+
 /// Handles the complexity of managing thread private buffers of spikes.
 /// Internally stores one thread private buffer of spikes for each hardware thread.
 /// This can be accessed directly using the get() method, which returns a reference to
@@ -17,34 +20,18 @@ namespace arb {
 /// and collate all of the buffers into a single vector respectively.
 class thread_private_spike_store {
 public :
+    thread_private_spike_store();
+    ~thread_private_spike_store();
+
     /// Collate all of the individual buffers into a single vector of spikes.
     /// Does not modify the buffer contents.
-    std::vector<spike> gather() const {
-        std::vector<spike> spikes;
-        unsigned num_spikes = 0u;
-        for (auto& b : buffers_) {
-            num_spikes += b.size();
-        }
-        spikes.reserve(num_spikes);
-
-        for (auto& b : buffers_) {
-            spikes.insert(spikes.begin(), b.begin(), b.end());
-        }
-
-        return spikes;
-    }
+    std::vector<spike> gather() const;
 
     /// Return a reference to the thread private buffer of the calling thread
-    std::vector<spike>& get() {
-        return buffers_.local();
-    }
+    std::vector<spike>& get();
 
     /// Clear all of the thread private buffers
-    void clear() {
-        for (auto& b : buffers_) {
-            b.clear();
-        }
-    }
+    void clear();
 
     /// Append the passed spikes to the end of the thread private buffer of the
     /// calling thread
@@ -55,22 +42,7 @@ public :
 
 private :
     /// thread private storage for accumulating spikes
-    using local_spike_store_type =
-        threading::enumerable_thread_specific<std::vector<spike>>;
-
-    local_spike_store_type buffers_;
-
-public :
-    using iterator = typename local_spike_store_type::iterator;
-    using const_iterator = typename local_spike_store_type::const_iterator;
-
-    // make the container iterable
-    // we iterate of threads, not individual containers
-
-    iterator begin() { return buffers_.begin(); }
-    iterator end() { return buffers_.begin(); }
-    const_iterator begin() const { return buffers_.begin(); }
-    const_iterator end() const { return buffers_.begin(); }
+    std::unique_ptr<local_spike_store_type> impl_;
 };
 
 } // namespace arb

@@ -1,10 +1,11 @@
 #include "../gtest.h"
 
-#include <backends.hpp>
-#include <common_types.hpp>
-#include <epoch.hpp>
-#include <fvm_lowered_cell.hpp>
-#include <mc_cell_group.hpp>
+#include <arbor/common_types.hpp>
+
+#include "backends.hpp"
+#include "epoch.hpp"
+#include "fvm_lowered_cell.hpp"
+#include "mc_cell_group.hpp"
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
@@ -26,7 +27,7 @@ namespace {
     }
 }
 
-TEST(mc_cell_group, test)
+TEST(mc_cell_group, gpu_test)
 {
     mc_cell_group group({0}, cable1d_recipe(make_cell()), lowered_cell());
     group.advance(epoch(0, 50), 0.01, {});

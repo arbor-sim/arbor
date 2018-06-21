@@ -3,9 +3,11 @@
 #include <memory>
 #include <vector>
 
+#include <arbor/fvm_types.hpp>
+
 #include <backends.hpp>
 #include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
+#include <backends/threshold_crossing.hpp>
 #include <recipe.hpp>
 #include <sampler_map.hpp>
 #include <util/range.hpp>

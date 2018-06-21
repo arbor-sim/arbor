@@ -7,15 +7,15 @@
 #include <utility>
 
 #include <arbor/assert.hpp>
+#include <arbor/fvm_types.hpp>
 
-#include <backends/event.hpp>
-#include <backends/fvm_types.hpp>
-#include <backends/multi_event_stream_state.hpp>
-#include <generic_event.hpp>
-#include <algorithms.hpp>
-#include <util/range.hpp>
-#include <util/rangeutil.hpp>
-#include <util/strprintf.hpp>
+#include "backends/event.hpp"
+#include "backends/multi_event_stream_state.hpp"
+#include "generic_event.hpp"
+#include "algorithms.hpp"
+#include "util/range.hpp"
+#include "util/rangeutil.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 namespace multicore {

@@ -2,14 +2,7 @@
 
 #include <limits>
 
-#ifdef ARB_HAVE_GPU
-#include <cuda.h>
-#include <cuda_runtime.h>
-#endif
-#ifdef WITH_KNL
-#include <hbwmalloc.h>
-#endif
-
+#include "cuda_wrappers.hpp"
 #include "definitions.hpp"
 #include "util.hpp"
 
@@ -96,48 +89,6 @@ namespace impl {
         }
     };
 
-#ifdef WITH_KNL
-    namespace knl {
-        // allocate memory with alignment specified as a template parameter
-        // returns nullptr on failure
-        template <typename T, size_type alignment=minimum_possible_alignment<T>()>
-        T* hbw_malloc(size_type size) {
-            // double check that alignment is a multiple of sizeof(void*),
-            // which is a prerequisite for posix_memalign()
-            static_assert( !(alignment%sizeof(void*)),
-                    "alignment is not a multiple of sizeof(void*)");
-            static_assert( is_power_of_two(alignment),
-                    "alignment is not a power of two");
-            void *ptr;
-            int result = hbw_posix_memalign(&ptr, alignment, size*sizeof(T));
-            if(result) {
-                return nullptr;
-            }
-            return reinterpret_cast<T*>(ptr);
-        }
-
-        template <size_type Alignment>
-        class hbw_policy {
-        public:
-            void *allocate_policy(size_type size) {
-                return reinterpret_cast<void *>(hbw_malloc<char, Alignment>(size));
-            }
-
-            void free_policy(void *ptr) {
-                hbw_free(ptr);
-            }
-
-            static constexpr size_type alignment() {
-                return Alignment;
-            }
-            static constexpr bool is_malloc_compatible() {
-                return true;
-            }
-        };
-    }
-#endif
-
-#ifdef ARB_HAVE_GPU
     namespace cuda {
         template <size_type Alignment>
         class pinned_policy {
@@ -152,13 +103,9 @@ namespace impl {
                 }
 
                 // register the memory with CUDA
-                auto status
-                    = cudaHostRegister(ptr, size, cudaHostRegisterPortable);
-
-                if(status != cudaSuccess) {
-                    LOG_ERROR("memory:: unable to register host memory with with cudaHostRegister");
+                if (!cuda_host_register(ptr, size)) {
                     free(ptr);
-                    return nullptr;
+                    ptr = nullptr;
                 }
 
                 return ptr;
@@ -168,7 +115,7 @@ namespace impl {
                 if (!ptr) {
                     return;
                 }
-                cudaHostUnregister(ptr);
+                cuda_host_unregister(ptr);
                 free(ptr);
             }
 
@@ -191,13 +138,7 @@ namespace impl {
                 if (!n) {
                     return nullptr;
                 }
-                void* ptr;
-                auto status = cudaMallocManaged(&ptr, n);
-                if (status != cudaSuccess) {
-                    LOG_ERROR("memory:: unable to allocate managed memory");
-                    ptr = nullptr;
-                }
-                return ptr;
+                return cuda_malloc_managed(n);
             }
 
             static constexpr size_type alignment() {
@@ -210,32 +151,18 @@ namespace impl {
             }
 
             void free_policy(void* p) {
-                if (p) {
-                    cudaFree(p);
-                }
+                cuda_free(p);
             }
         };
 
         class device_policy {
         public:
             void *allocate_policy(size_type size) {
-                void* ptr = nullptr;
-                auto status = cudaMalloc(&ptr, size);
-                if(status != cudaSuccess) {
-                    LOG_ERROR("CUDA: unable to allocate "+std::to_string(size)+" bytes");
-                    ptr = nullptr;
-                }
-
-                return ptr;
+                return cuda_malloc(size);
             }
 
             void free_policy(void *ptr) {
-                if(ptr) {
-                    auto status = cudaFree(ptr);
-                    if(status != cudaSuccess) {
-                        LOG_ERROR("CUDA: unable to free memory");
-                    }
-                }
+                cuda_free(ptr);
             }
 
             // memory allocated using cudaMalloc has alignment of 256 bytes
@@ -247,7 +174,6 @@ namespace impl {
             }
         };
     } // namespace cuda
-#endif // #ifdef ARB_HAVE_GPU
 } // namespace impl
 
 template<typename T, typename Policy >
@@ -325,7 +251,6 @@ namespace util {
         }
     };
 
-#ifdef ARB_HAVE_GPU
     template <size_t Alignment>
     struct type_printer<impl::cuda::pinned_policy<Alignment>>{
         static std::string print() {
@@ -348,7 +273,6 @@ namespace util {
             return std::string("managed_policy");
         }
     };
-#endif
 
     template <typename T, typename Policy>
     struct type_printer<allocator<T,Policy>>{
@@ -365,13 +289,6 @@ namespace util {
 template <class T, size_t alignment=impl::minimum_possible_alignment<T>()>
 using aligned_allocator = allocator<T, impl::aligned_policy<alignment>>;
 
-#ifdef WITH_KNL
-// align with 512 bit vector register size
-template <class T, size_t alignment=(512/8)>
-using hbw_allocator = allocator<T, impl::knl::hbw_policy<alignment>>;
-#endif
-
-#ifdef ARB_HAVE_GPU
 // For pinned and allocation set the default alignment to correspond to
 // the alignment of 1024 bytes, because pinned memory is allocated at
 // page boundaries. It is allocated at page boundaries (typically 4k),
@@ -385,8 +302,6 @@ using managed_allocator = allocator<T, impl::cuda::managed_policy<alignment>>;
 // use 256 as default alignment, because that is the default for cudaMalloc
 template <class T, size_t alignment=256>
 using cuda_allocator = allocator<T, impl::cuda::device_policy>;
-
-#endif
 
 } // namespace memory
 } // namespace arb

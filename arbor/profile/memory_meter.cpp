@@ -3,16 +3,11 @@
 
 #include <arbor/profile/meter.hpp>
 
-#include "util/config.hpp"
 #include "hardware/memory.hpp"
 #include "memory_meter.hpp"
 
 namespace arb {
 namespace profile {
-
-//
-//  memory_meter
-//
 
 class memory_meter: public meter {
 protected:
@@ -43,18 +38,16 @@ public:
 };
 
 meter_ptr make_memory_meter() {
-    if (not config::has_memory_measurement) {
+    if (hw::allocated_memory()==-1) {
         return nullptr;
     }
     return meter_ptr(new memory_meter());
 }
 
-//
-//  gpu_memory_meter
-//
 
 // The gpu memory meter specializes the reading and name methods of the basic
 // memory_meter.
+
 class gpu_memory_meter: public memory_meter {
 public:
     std::string name() override {
@@ -67,7 +60,7 @@ public:
 };
 
 meter_ptr make_gpu_memory_meter() {
-    if (not config::has_cuda) {
+    if (hw::gpu_allocated_memory()==-1) {
         return nullptr;
     }
     return meter_ptr(new gpu_memory_meter());

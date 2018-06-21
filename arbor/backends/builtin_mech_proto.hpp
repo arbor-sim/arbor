@@ -1,7 +1,7 @@
 #pragma once
 
-#include <mechanism.hpp>
-#include <mechinfo.hpp>
+#include <arbor/mechanism.hpp>
+#include <arbor/mechinfo.hpp>
 
 namespace arb {
 

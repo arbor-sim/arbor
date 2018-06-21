@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
+# arguments: version-string [feature...]
+
 version="$1"
+shift
 
 if gitlog=$(git log -1 --pretty=format:'%ci %H' 2>/dev/null); then
     git diff --quiet HEAD 2>/dev/null || gitlog="${gitlog} modified"
@@ -19,3 +22,8 @@ extern const char version[];
 extern const char source_id[];
 }
 __end__
+
+for feature in "$@"; do
+    echo "#define ARB_${feature}_ENABLED"
+done
+
