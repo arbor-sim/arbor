@@ -2,6 +2,7 @@ set(arbor_cxx_sources
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
     backends/multicore/stimulus.cpp
+    benchmark_cell_group.cpp
     builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
