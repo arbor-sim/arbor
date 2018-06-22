@@ -37,15 +37,10 @@ if(ARB_PRIVATE_TBBLIB OR NOT TBB_FOUND)
 
     install(FILES "$<TARGET_FILE:tbb_static>" "$<TARGET_FILE:tbbmalloc_static>" DESTINATION ${CMAKE_INSTALL_LIBDIR} OPTIONAL)
 else()
-    add_library(ext-tbb ALIAS TBB::tbb)
+    add_library(ext-tbb INTERFACE)
+    target_link_libraries(ext-tbb INTERFACE TBB::tbb)
 endif()
 
-if(ARB_WITH_TBB)
-    if(ARB_PRIVATE_TBBLIB)
-    else()
-        find_package(TBB REQUIRED)
-    endif()
-endif()
 
 # Google benchmark for microbenchmarks:
 
