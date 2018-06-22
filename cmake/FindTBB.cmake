@@ -16,14 +16,14 @@ if(NOT TBB_FOUND)
     find_package(Threads REQUIRED)
 
     set(_tbb_search_path ${TBB_ROOT_DIR} $ENV{TBBROOT} $ENV{TBB_ROOT})
-    set(_tbb_lib_suffixes lib/intel64/gcc4.7 lib/intel64/gcc4.4 lib/android lib/mic lib)
+    set(_tbb_lib_suffixes lib/intel64/gcc4.7 lib/intel64/gcc4.4 lib/gcc4.7 lib/gcc4.4 lib/android lib/mic lib)
 
     macro(_tbb_findlib libname)
         find_library(_lib${libname} ${libname}
             PATHS ${_tbb_search_path} NO_DEFAULT_PATH
             PATH_SUFFIXES ${_tbb_lib_suffixes})
         find_library(_lib${libname} ${libname}
-            PATH_SUFFIXES _tbb_lib_suffixes)
+            PATH_SUFFIXES ${_tbb_lib_suffixes})
     endmacro()
 
     _tbb_findlib(tbb)

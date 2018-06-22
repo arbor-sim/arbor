@@ -94,11 +94,8 @@ set_source_files_properties(${arbor_mechanism_sources} PROPERTIES GENERATED TRUE
 
 add_library(arbor ${arbor_sources} ${arbor_mechanism_sources})
 add_dependencies(arbor build_all_mods)
-target_link_libraries(arbor PRIVATE arbor-deps arbor-private-headers)
-target_link_libraries(arbor PUBLIC arbor-public-headers)
-if(ARB_WITH_TBB)
-target_link_libraries(arbor PUBLIC ext-tbb)
-endif()
+target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
+target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
 install(TARGETS arbor ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
