@@ -25,6 +25,7 @@
 #include "util/ioutil.hpp"
 
 #include "json_meter.hpp"
+#include "with_mpi.hpp"
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -46,10 +47,10 @@ int main(int argc, char** argv) {
     distributed_context context;
 
     try {
-        #ifdef ARB_MPI_ENABLED
-        mpi::scoped_guard guard(&argc, &argv);
+#ifdef ARB_MPI_ENABLED
+        with_mpi guard(argc, argv, false);
         context = mpi_context(MPI_COMM_WORLD);
-        #endif
+#endif
 
         profile::meter_manager meters(&context);
         meters.start();

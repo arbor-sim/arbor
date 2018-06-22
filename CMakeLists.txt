@@ -157,9 +157,18 @@ endif()
 
 if(ARB_WITH_MPI)
     find_package(MPI REQUIRED CXX)
-    target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
     target_compile_definitions(arbor-deps INTERFACE ARB_HAVE_MPI)
-    target_link_libraries(arbor-deps INTERFACE MPI::MPI_CXX)
+
+    # target_compile_definitions(MPI::MPI_CXX INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
+    # target_link_libraries(arbor-deps INTERFACE MPI::MPI_CXX)
+
+    # CMake 3.9 does not allow us to add definitions to an import target.
+    # so wrap MPI::MPI_CXX in an interface library 'mpi-wrap' instead.
+
+    add_library(mpi-wrap INTERFACE)
+    target_link_libraries(mpi-wrap INTERFACE MPI::MPI_CXX)
+    target_compile_definitions(mpi-wrap INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
+    target_link_libraries(arbor-deps INTERFACE mpi-wrap)
 endif()
 
 # CUDA support

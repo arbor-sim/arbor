@@ -14,6 +14,7 @@
 #include <arbor/version.hpp>
 
 #include "json_meter.hpp"
+#include "with_mpi.hpp"
 
 #include "communication/communicator.hpp"
 #include "event_generator.hpp"
@@ -192,7 +193,7 @@ int main(int argc, char** argv) {
 
     try {
 #ifdef ARB_MPI_ENABLED
-        mpi::scoped_guard guard(&argc, &argv);
+        with_mpi guard(argc, argv, false);
         context = mpi_context(MPI_COMM_WORLD);
 #endif
         arb::profile::meter_manager meters(&context);
