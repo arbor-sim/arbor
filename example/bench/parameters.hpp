@@ -9,7 +9,7 @@ using arb::time_type;
 
 struct bench_params {
     struct cell_params {
-        double spike_freq_hz = 20;   // Frequency in hz that cell will generate (poisson) spikes.
+        double spike_freq_hz = 10;   // Frequency in hz that cell will generate (poisson) spikes.
         double realtime_ratio = 0.1; // Integration speed relative to real time, e.g. 10 implies
                                      // that a cell is integrated 10 times slower than real time.
     };

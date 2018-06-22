@@ -60,7 +60,9 @@ void benchmark_cell_group::advance(epoch ep,
             tseq.pop();
         }
 
-        // Wait until the expected time to advance has elapsed.
+        // Wait until the expected time to advance has elapsed. Use a busy-wait
+        // so that the resources of this thread are tied up until the interval
+        // has elapsed, to emulate a "real" cell.
         while (duration_type(high_resolution_clock::now()-start).count() < duration_us);
     }
     t_ = ep.tfinal;
