@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.id()==0);
         hw::node_info nd;
-        nd.num_cpu_cores = arb::thread_count();
+        nd.num_cpu_cores = arb::num_threads();
         nd.num_gpus = hw::num_gpus()>0? 1: 0;
         banner(nd, &context);
 

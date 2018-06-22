@@ -15,11 +15,11 @@
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
 #if defined(ARB_TBB_ENABLED)
-#include "threading/tbb.hpp"
+    #include "threading/tbb.hpp"
 #elif defined(ARB_CTHREAD_ENABLED)
-#include "threading/cthread.hpp"
+    #include "threading/cthread.hpp"
 #else
-#include "threading/serial.hpp"
+    #include "threading/serial.hpp"
 #endif
 
 #include "common.hpp"

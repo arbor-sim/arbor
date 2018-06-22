@@ -159,7 +159,7 @@ TEST(lif_cell_group, spikes) {
     path_recipe recipe(2, 1000, 0.1);
 
     hw::node_info nd;
-    nd.num_cpu_cores = arb::thread_count();
+    nd.num_cpu_cores = arb::num_threads();
 
     auto decomp = partition_load_balance(recipe, nd, &context);
     simulation sim(recipe, decomp, &context);

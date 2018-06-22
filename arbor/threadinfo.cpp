@@ -6,7 +6,7 @@
 
 namespace arb {
 
-int thread_count() {
+int num_threads() {
     return threading::num_threads();
 }
 

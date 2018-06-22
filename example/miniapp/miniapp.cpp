@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
         hw::node_info nd;
-        nd.num_cpu_cores = arb::thread_count();
+        nd.num_cpu_cores = arb::num_threads();
         nd.num_gpus = hw::num_gpus()>0? 1: 0;
         banner(nd, &context);
 
