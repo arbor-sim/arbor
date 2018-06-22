@@ -14,7 +14,9 @@
 #include <arbor/version.hpp>
 
 #include "json_meter.hpp"
+#ifdef ARB_MPI_ENABLED
 #include "with_mpi.hpp"
+#endif
 
 #include "communication/communicator.hpp"
 #include "event_generator.hpp"

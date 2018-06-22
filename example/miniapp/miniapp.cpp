@@ -25,7 +25,9 @@
 #include "util/ioutil.hpp"
 
 #include "json_meter.hpp"
+#ifdef ARB_MPI_ENABLED
 #include "with_mpi.hpp"
+#endif
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
