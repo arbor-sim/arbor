@@ -1,5 +1,6 @@
 #include "../gtest.h"
 
+#include <spike_source_cell.hpp>
 #include <spike_source_cell_group.hpp>
 #include <time_sequence.hpp>
 #include <util/unique_any.hpp>
