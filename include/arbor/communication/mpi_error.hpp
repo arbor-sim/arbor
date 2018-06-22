@@ -46,10 +46,12 @@ enum class mpi_errc {
     invalid_assert = MPI_ERR_ASSERT,
     rma_access_conflict = MPI_ERR_RMA_CONFLICT,
     rma_synchronization_error = MPI_ERR_RMA_SYNC,
+#if MPI_VERSION >= 3
     rma_range_error = MPI_ERR_RMA_RANGE,
     rma_attach_failure = MPI_ERR_RMA_ATTACH,
     rma_share_failure = MPI_ERR_RMA_SHARED,
     rma_wrong_flavor = MPI_ERR_RMA_FLAVOR,
+#endif
     invalid_file_handle = MPI_ERR_FILE,
     not_same = MPI_ERR_NOT_SAME,
     amode_error = MPI_ERR_AMODE,
