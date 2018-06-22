@@ -1,14 +1,15 @@
 #pragma once
 
+#include <benchmark_cell.hpp>
 #include <cell_group.hpp>
 #include <recipe.hpp>
 #include <time_sequence.hpp>
 
 namespace arb {
 
-class spike_source_cell_group: public cell_group {
+class benchmark_cell_group: public cell_group {
 public:
-    spike_source_cell_group(std::vector<cell_gid_type> gids, const recipe& rec);
+    benchmark_cell_group(std::vector<cell_gid_type> gids, const recipe& rec);
 
     cell_kind get_cell_kind() const override;
 
@@ -29,9 +30,11 @@ public:
     void remove_all_samplers() override {}
 
 private:
+    time_type t_;
+
+    std::vector<benchmark_cell> cells_;
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
-    std::vector<time_seq> time_sequences_;
 };
 
 } // namespace arb

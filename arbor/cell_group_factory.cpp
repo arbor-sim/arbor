@@ -1,6 +1,7 @@
 #include <vector>
 
 #include <backends.hpp>
+#include <benchmark_cell_group.hpp>
 #include <cell_group.hpp>
 #include <domain_decomposition.hpp>
 #include <fvm_lowered_cell.hpp>
@@ -22,6 +23,9 @@ cell_group_ptr cell_group_factory(const recipe& rec, const group_description& gr
 
     case cell_kind::lif_neuron:
         return make_cell_group<lif_cell_group>(group.gids, rec);
+
+    case cell_kind::benchmark:
+        return make_cell_group<benchmark_cell_group>(group.gids, rec);
 
     default:
         throw std::runtime_error("unknown cell kind");
