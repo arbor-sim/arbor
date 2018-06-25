@@ -8,10 +8,12 @@
 #include "domain_decomposition.hpp"
 #include "hardware/node_info.hpp"
 #include "load_balance.hpp"
+#include "util/span.hpp"
 
 #include "../simple_recipes.hpp"
 
 using namespace arb;
+using arb::util::make_span;
 
 namespace {
     // Dummy recipes types for testing.
@@ -63,7 +65,7 @@ TEST(domain_decomposition, homogenous_population)
         EXPECT_EQ(D.num_local_cells, num_cells);
         EXPECT_EQ(D.groups.size(), num_cells);
 
-        auto gids = util::make_span(0, num_cells);
+        auto gids = make_span(num_cells);
         for (auto gid: gids) {
             EXPECT_EQ(0, D.gid_domain(gid));
         }
@@ -89,7 +91,7 @@ TEST(domain_decomposition, homogenous_population)
         EXPECT_EQ(D.num_local_cells, num_cells);
         EXPECT_EQ(D.groups.size(), 1u);
 
-        auto gids = util::make_span(0, num_cells);
+        auto gids = make_span(num_cells);
         for (auto gid: gids) {
             EXPECT_EQ(0, D.gid_domain(gid));
         }
@@ -124,14 +126,14 @@ TEST(domain_decomposition, heterogenous_population)
         EXPECT_EQ(D.num_local_cells, num_cells);
         EXPECT_EQ(D.groups.size(), num_cells);
 
-        auto gids = util::make_span(0, num_cells);
+        auto gids = make_span(num_cells);
         for (auto gid: gids) {
             EXPECT_EQ(0, D.gid_domain(gid));
         }
 
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
-        auto grps = util::make_span(0, num_cells);
+        auto grps = make_span(num_cells);
         std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
         for (auto i: grps) {
             auto& grp = D.groups[i];
@@ -164,7 +166,7 @@ TEST(domain_decomposition, heterogenous_population)
         auto expected_groups = num_cells/2+1;
         EXPECT_EQ(D.groups.size(), expected_groups);
 
-        auto grps = util::make_span(0, expected_groups);
+        auto grps = make_span(expected_groups);
         unsigned ncells = 0;
         // iterate over each group and test its properties
         for (auto i: grps) {

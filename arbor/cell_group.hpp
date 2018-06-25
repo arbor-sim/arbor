@@ -5,13 +5,12 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
 
-#include "cell.hpp"
 #include "epoch.hpp"
 #include "event_binner.hpp"
 #include "event_queue.hpp"
-#include "sampling.hpp"
 #include "schedule.hpp"
 
 namespace arb {

@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#include <simd/simd.hpp>
+#include <arbor/simd/simd.hpp>
 
 namespace arb {
 namespace simd {

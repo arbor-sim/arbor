@@ -141,7 +141,7 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         out << "#include <" << arb_header_prefix() << "profile/profiler.hpp>\n";
 
     if (with_simd) {
-        out << "#include <" << arb_private_header_prefix() << "simd/simd.hpp>\n";
+        out << "#include <" << arb_header_prefix() << "simd/simd.hpp>\n";
     }
 
     out <<

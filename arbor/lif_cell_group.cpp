@@ -1,5 +1,7 @@
 #include <lif_cell_group.hpp>
 
+#include "util/span.hpp"
+
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
@@ -12,8 +14,8 @@ gids_(std::move(gids))
     cells_.reserve(gids_.size());
     last_time_updated_.resize(gids_.size());
 
-    for (auto lid: util::make_span(0, gids_.size())) {
-        cells_.push_back(util::any_cast<lif_cell_description>(rec.get_cell_description(gids_[lid])));
+    for (auto lid: util::make_span(gids_.size())) {
+        cells_.push_back(util::any_cast<lif_cell>(rec.get_cell_description(gids_[lid])));
     }
 }
 
@@ -24,7 +26,7 @@ cell_kind lif_cell_group::get_cell_kind() const {
 void lif_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE(advance_lif);
     if (event_lanes.size() > 0) {
-        for (auto lid: util::make_span(0, gids_.size())) {
+        for (auto lid: util::make_span(gids_.size())) {
             // Advance each cell independently.
             advance_cell(ep.tfinal, dt, lid, event_lanes[lid]);
         }

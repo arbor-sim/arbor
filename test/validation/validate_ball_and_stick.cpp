@@ -1,18 +1,18 @@
 #include <iostream>
 
-#include <arbor/common_types.hpp>
 #include <nlohmann/json.hpp>
 
-#include <cell.hpp>
-#include <load_balance.hpp>
-#include <hardware/node_info.hpp>
-#include <hardware/gpu.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <segment.hpp>
-#include <simple_sampler.hpp>
-#include <util/meta.hpp>
-#include <util/path.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/simple_sampler.hpp>
+
+#include "load_balance.hpp"
+#include "hardware/node_info.hpp"
+#include "hardware/gpu.hpp"
+#include "simulation.hpp"
+#include "recipe.hpp"
+#include "util/meta.hpp"
+#include "util/path.hpp"
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
@@ -34,7 +34,7 @@ void run_ncomp_convergence_test(
     const char* model_name,
     const util::path& ref_data_path,
     backend_kind backend,
-    const cell& c,
+    const mc_cell& c,
     ProbePointSeq& probe_points,
     float t_end=100.f)
 {
@@ -90,7 +90,7 @@ void run_ncomp_convergence_test(
 void validate_ball_and_stick(arb::backend_kind backend) {
     using namespace arb;
 
-    cell c = make_cell_ball_and_stick();
+    mc_cell c = make_cell_ball_and_stick();
     probe_point points[] = {
         {"soma.mid", {0u, 0.5}},
         {"dend.mid", {1u, 0.5}},
@@ -108,7 +108,7 @@ void validate_ball_and_stick(arb::backend_kind backend) {
 void validate_ball_and_taper(arb::backend_kind backend) {
     using namespace arb;
 
-    cell c = make_cell_ball_and_taper();
+    mc_cell c = make_cell_ball_and_taper();
     probe_point points[] = {
         {"soma.mid",  {0u, 0.5}},
         {"taper.mid", {1u, 0.5}},
@@ -126,7 +126,7 @@ void validate_ball_and_taper(arb::backend_kind backend) {
 void validate_ball_and_3stick(arb::backend_kind backend) {
     using namespace arb;
 
-    cell c = make_cell_ball_and_3stick();
+    mc_cell c = make_cell_ball_and_3stick();
     probe_point points[] = {
         {"soma.mid",  {0u, 0.5}},
         {"dend1.mid", {1u, 0.5}},
@@ -148,7 +148,7 @@ void validate_ball_and_3stick(arb::backend_kind backend) {
 void validate_rallpack1(arb::backend_kind backend) {
     using namespace arb;
 
-    cell c = make_cell_simple_cable();
+    mc_cell c = make_cell_simple_cable();
     probe_point points[] = {
         {"cable.x0.0", {1u, 0.0}},
         {"cable.x0.3", {1u, 0.3}},
@@ -167,7 +167,7 @@ void validate_rallpack1(arb::backend_kind backend) {
 void validate_ball_and_squiggle(arb::backend_kind backend) {
     using namespace arb;
 
-    cell c = make_cell_ball_and_squiggle();
+    mc_cell c = make_cell_ball_and_squiggle();
     probe_point points[] = {
         {"soma.mid", {0u, 0.5}},
         {"dend.mid", {1u, 0.5}},

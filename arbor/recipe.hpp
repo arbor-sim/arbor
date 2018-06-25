@@ -6,10 +6,9 @@
 #include <stdexcept>
 
 #include <arbor/common_types.hpp>
+#include <arbor/util/unique_any.hpp>
 
-#include "cell.hpp"
 #include "event_generator.hpp"
-#include "util/unique_any.hpp"
 
 namespace arb {
 

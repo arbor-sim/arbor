@@ -5,9 +5,9 @@
 #include <random>
 
 #include <arbor/common_types.hpp>
+#include <arbor/time_sequence.hpp>
 
 #include "event_queue.hpp"
-#include "time_sequence.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
 

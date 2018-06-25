@@ -6,9 +6,11 @@
 
 #include <nlohmann/json.hpp>
 
-#include <simple_sampler.hpp>
-#include <util/path.hpp>
+#include <arbor/simple_sampler.hpp>
 
+#include "util/path.hpp"
+
+#include "trace_analysis.hpp"
 #include "validation_data.hpp"
 
 namespace arb {

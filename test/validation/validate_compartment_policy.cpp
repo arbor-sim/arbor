@@ -4,11 +4,11 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/simple_sampler.hpp>
 
-#include <cell.hpp>
 #include <simulation.hpp>
 #include <recipe.hpp>
-#include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
 
 #include "../gtest.h"

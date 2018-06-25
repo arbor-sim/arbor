@@ -1,12 +1,12 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
+#include <arbor/mc_cell.hpp>
 
-#include <backends/event.hpp>
-#include <backends/multicore/fvm.hpp>
-#include <cell.hpp>
-#include <fvm_lowered_cell_impl.hpp>
-#include <util/rangeutil.hpp>
+#include "backends/event.hpp"
+#include "backends/multicore/fvm.hpp"
+#include "fvm_lowered_cell_impl.hpp"
+#include "util/rangeutil.hpp"
 
 #include "common.hpp"
 #include "../common_cells.hpp"
@@ -19,7 +19,7 @@ using shared_state = multicore::backend::shared_state;
 ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, fvm_state_ptr, &fvm_cell::state_);
 
 TEST(probe, fvm_lowered_cell) {
-    cell bs = make_cell_ball_and_stick(false);
+    mc_cell bs = make_cell_ball_and_stick(false);
 
     i_clamp stim(0, 100, 0.3);
     bs.add_stimulus({1, 1}, stim);

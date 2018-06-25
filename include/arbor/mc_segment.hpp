@@ -1,21 +1,21 @@
 #pragma once
 
+#include <algorithm>
 #include <cmath>
+#include <memory>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/morphology.hpp>
 #include <arbor/mechinfo.hpp>
-
-#include "algorithms.hpp"
-#include "compartment.hpp"
-#include "math.hpp"
-#include "morphology.hpp"
-#include "point.hpp"
-#include "util/make_unique.hpp"
-#include "util/maputil.hpp"
+#include <arbor/point.hpp>
+#include <arbor/util/make_unique.hpp>
+#include <arbor/util/optional.hpp>
 
 namespace arb {
 
@@ -54,8 +54,13 @@ struct mechanism_desc {
     }
 
     double get(const std::string& key) const {
-        auto optv = util::value_by_key(param_, key);
-        return optv? *optv: throw std::out_of_range("no field "+key+" set");
+        auto i = param_.find(key);
+        if (i==param_.end()) {
+            throw std::out_of_range("no field "+key+" set");
+        }
+        else {
+            return i->second;
+        }
     }
 
     const std::unordered_map<std::string, double>& values() const {
@@ -74,14 +79,14 @@ class soma_segment;
 class cable_segment;
 
 // abstract base class for a cell segment
-class segment {
+class mc_segment {
 public:
     using value_type = double;
     using size_type = cell_local_size_type;
     using point_type = point<value_type>;
 
     // (Yet more motivation for a separate morphology description class!)
-    virtual std::unique_ptr<segment> clone() const = 0;
+    virtual std::unique_ptr<mc_segment> clone() const = 0;
 
     section_kind kind() const {
         return kind_;
@@ -105,10 +110,7 @@ public:
     virtual size_type num_compartments() const = 0;
     virtual void set_compartments(size_type) = 0;
 
-    virtual value_type volume() const = 0;
-    virtual value_type area()   const = 0;
-
-    virtual ~segment() = default;
+    virtual ~mc_segment() = default;
 
     virtual cable_segment* as_cable()
     {
@@ -164,29 +166,19 @@ public:
     value_type cm = 0.01;    // capacitance [F/m^2] : 10 nF/mm^2 = 0.01 F/m^2
 
 protected:
-    segment(section_kind kind): kind_(kind) {}
+    mc_segment(section_kind kind): kind_(kind) {}
 
     section_kind kind_;
     std::vector<mechanism_desc> mechanisms_;
 };
 
-class placeholder_segment : public segment {
+class placeholder_segment : public mc_segment {
 public:
-    placeholder_segment(): segment(section_kind::none) {}
+    placeholder_segment(): mc_segment(section_kind::none) {}
 
-    std::unique_ptr<segment> clone() const override {
+    std::unique_ptr<mc_segment> clone() const override {
         // use default copy constructor
         return util::make_unique<placeholder_segment>(*this);
-    }
-
-    value_type volume() const override
-    {
-        return std::numeric_limits<value_type>::quiet_NaN();
-    }
-
-    value_type area() const override
-    {
-        return std::numeric_limits<value_type>::quiet_NaN();
     }
 
     bool is_placeholder() const override
@@ -202,26 +194,16 @@ public:
     virtual void set_compartments(size_type) override {}
 };
 
-class soma_segment : public segment {
+class soma_segment : public mc_segment {
 public:
     soma_segment() = delete;
 
     explicit soma_segment(value_type r, point_type c = point_type{}):
-        segment(section_kind::soma), radius_{r}, center_(c) {}
+       mc_segment(section_kind::soma), radius_{r}, center_(c) {}
 
-    std::unique_ptr<segment> clone() const override {
+    std::unique_ptr<mc_segment> clone() const override {
         // use default copy constructor
         return util::make_unique<soma_segment>(*this);
-    }
-
-    value_type volume() const override
-    {
-        return math::volume_sphere(radius_);
-    }
-
-    value_type area() const override
-    {
-        return math::area_sphere(radius_);
     }
 
     value_type radius() const
@@ -259,9 +241,9 @@ private :
     point_type center_;
 };
 
-class cable_segment : public segment {
+class cable_segment : public mc_segment {
 public:
-    using base = segment;
+    using base = mc_segment;
     using base::kind_;
     using base::value_type;
     using base::point_type;
@@ -271,7 +253,7 @@ public:
 
     // constructors for a cable with no location information
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<value_type> lens):
-        segment(k), radii_(std::move(r)), lengths_(std::move(lens))
+        mc_segment(k), radii_(std::move(r)), lengths_(std::move(lens))
     {
         arb_assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
     }
@@ -283,7 +265,7 @@ public:
     // constructor that lets the user describe the cable as a
     // seriew of radii and locations
     cable_segment(section_kind k, std::vector<value_type> r, std::vector<point_type> p):
-        segment(k), radii_(std::move(r)), locations_(std::move(p))
+        mc_segment(k), radii_(std::move(r)), locations_(std::move(p))
     {
         arb_assert(kind_==section_kind::dendrite || kind_==section_kind::axon);
         update_lengths();
@@ -302,32 +284,14 @@ public:
         cable_segment(k, {r1, r2}, {p1, p2})
     {}
 
-    std::unique_ptr<segment> clone() const override {
+    std::unique_ptr<mc_segment> clone() const override {
         // use default copy constructor
         return util::make_unique<cable_segment>(*this);
     }
 
-    value_type volume() const override
-    {
-        auto sum = value_type{0};
-        for (auto i=0u; i<num_sub_segments(); ++i) {
-            sum += math::volume_frustrum(lengths_[i], radii_[i], radii_[i+1]);
-        }
-        return sum;
-    }
-
-    value_type area() const override
-    {
-        auto sum = value_type{0};
-        for (auto i=0u; i<num_sub_segments(); ++i) {
-            sum += math::area_frustrum(lengths_[i], radii_[i], radii_[i+1]);
-        }
-        return sum;
-    }
-
     value_type length() const
     {
-        return algorithms::sum(lengths_);
+        return std::accumulate(lengths_.begin(), lengths_.end(), value_type{});
     }
 
     bool has_locations() const
@@ -402,12 +366,6 @@ public:
         return rel*radii_[i] + (1.-rel)*radii_[i+1];
     }
 
-    /// iterable range type for simple compartment representation
-    compartment_range<size_type, value_type> compartments() const
-    {
-        return make_compartment_range(num_compartments(), radii_.front(), radii_.back(), length());
-    }
-
 private:
     void update_lengths() {
         if (locations_.size()) {
@@ -424,27 +382,14 @@ private:
     std::vector<point_type> locations_;
 };
 
-/// Unique pointer wrapper for abstract segment base class
-using segment_ptr = std::unique_ptr<segment>;
+using mc_segment_ptr = std::unique_ptr<mc_segment>;
 
 /// Helper for constructing segments in a segment_ptr unique pointer wrapper.
 /// Forwards the supplied arguments to construct a segment of type SegmentType.
 /// e.g. auto my_cable = make_segment<cable>(section_kind::dendrite, ... );
 template <typename SegmentType, typename... Args>
-segment_ptr make_segment(Args&&... args) {
-    return segment_ptr(new SegmentType(std::forward<Args>(args)...));
-}
-
-/// Divided compartment adaptors for cable segments
-
-template <typename DivCompClass>
-DivCompClass div_compartments(const cable_segment* cable, unsigned ncomp) {
-    return DivCompClass(ncomp, cable->radii(), cable->lengths());
-}
-
-template <typename DivCompClass>
-DivCompClass div_compartments(const cable_segment* cable) {
-    return DivCompClass(cable->num_compartments(), cable->radii(), cable->lengths());
+mc_segment_ptr make_segment(Args&&... args) {
+    return mc_segment_ptr(new SegmentType(std::forward<Args>(args)...));
 }
 
 } // namespace arb

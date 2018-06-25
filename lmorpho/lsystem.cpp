@@ -4,8 +4,9 @@
 #include <stack>
 #include <vector>
 
-#include <math.hpp>
-#include <morphology.hpp>
+#include <arbor/morphology.hpp>
+
+#include "math.hpp"
 
 #include "lsystem.hpp"
 

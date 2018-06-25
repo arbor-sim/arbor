@@ -3,7 +3,7 @@
 
 #include "../gtest.h"
 
-#include "point.hpp"
+#include <arbor/point.hpp>
 
 using namespace arb;
 

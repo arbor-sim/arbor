@@ -12,12 +12,10 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/ion.hpp>
 #include <arbor/util/enumhash.hpp>
+#include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
-#include "constants.hpp"
 #include "event_queue.hpp"
-#include "math.hpp"
-#include "simd/simd.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 

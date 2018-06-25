@@ -1,8 +1,9 @@
 #include <iostream>
 
-#include <util/rangeutil.hpp>
-#include <util/span.hpp>
-#include <util/unique_any.hpp>
+#include <arbor/util/unique_any.hpp>
+
+#include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 #include "../gtest.h"
 #include "common.hpp"

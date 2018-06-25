@@ -8,9 +8,11 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/lif_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/threadinfo.hpp>
+#include <arbor/util/make_unique.hpp>
 #include <arbor/version.hpp>
 
 #include "json_meter.hpp"
@@ -18,12 +20,10 @@
 #include "with_mpi.hpp"
 #endif
 
-#include "communication/communicator.hpp"
 #include "event_generator.hpp"
 #include "hardware/gpu.hpp"
 #include "hardware/node_info.hpp"
 #include "io/exporter_spike_file.hpp"
-#include "lif_cell_description.hpp"
 #include "recipe.hpp"
 #include "simulation.hpp"
 #include "util/ioutil.hpp"
@@ -110,7 +110,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell_description();
+        auto cell = lif_cell();
         cell.tau_m = 10;
         cell.V_th = 10;
         cell.C_m = 20;

@@ -4,8 +4,7 @@
 #include <functional>
 
 #include <arbor/common_types.hpp>
-
-#include "util/any_ptr.hpp"
+#include <arbor/util/any_ptr.hpp>
 
 namespace arb {
 

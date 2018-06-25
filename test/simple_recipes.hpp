@@ -5,7 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include <cell.hpp>
+#include <arbor/mc_cell.hpp>
+
 #include <event_generator.hpp>
 #include <recipe.hpp>
 
@@ -52,7 +53,7 @@ public:
 
 protected:
     std::unordered_map<cell_gid_type, std::vector<probe_info>> probes_;
-    cell_global_properties cell_gprop_;
+    mc_cell_global_properties cell_gprop_;
     mechanism_catalogue catalogue_;
 };
 
@@ -98,7 +99,7 @@ public:
         }
     }
 
-    explicit cable1d_recipe(const cell& c) {
+    explicit cable1d_recipe(const mc_cell& c) {
         cells_.reserve(1);
         cells_.emplace_back(c);
     }
@@ -115,11 +116,11 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        return util::make_unique_any<cell>(cells_[i]);
+        return util::make_unique_any<mc_cell>(cells_[i]);
     }
 
 protected:
-    std::vector<cell> cells_;
+    std::vector<mc_cell> cells_;
 };
 
 

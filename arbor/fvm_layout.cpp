@@ -3,9 +3,13 @@
 #include <unordered_set>
 #include <vector>
 
+#include <arbor/mc_cell.hpp>
 #include <arbor/util/enumhash.hpp>
 
+#include "algorithms.hpp"
+#include "fvm_compartment.hpp"
 #include "fvm_layout.hpp"
+#include "tree.hpp"
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/partition.hpp"
@@ -22,12 +26,27 @@ using util::value_by_key;
 
 // Convenience routines
 
-template <typename ResizableContainer, typename Index>
-void extend_to(ResizableContainer& c, const Index& i) {
-    if (util::size(c)<=i) {
-        c.resize(i+1);
+namespace {
+    template <typename ResizableContainer, typename Index>
+    void extend_to(ResizableContainer& c, const Index& i) {
+        if (util::size(c)<=i) {
+            c.resize(i+1);
+        }
     }
-}
+
+    struct compartment_model {
+        arb::tree tree;
+        std::vector<tree::int_type> parent_index;
+        std::vector<tree::int_type> segment_index;
+
+        explicit compartment_model(const mc_cell& cell) {
+            tree = arb::tree(cell.parents());
+            auto counts = cell.compartment_counts();
+            parent_index = make_parent_index(tree, counts);
+            segment_index = algorithms::make_index(counts);
+        }
+    };
+} // namespace
 
 // Cable segment discretization
 // ----------------------------
@@ -91,7 +110,7 @@ void extend_to(ResizableContainer& c, const Index& i) {
 //       = 1/R · hV₁V₂/(h₂²V₁+h₁²V₂)
 //
 
-fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
+fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
@@ -99,11 +118,11 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
     fvm_discretization D;
 
     util::make_partition(D.cell_segment_bounds,
-        transform_view(cells, [](const cell& c) { return c.num_segments(); }));
+        transform_view(cells, [](const mc_cell& c) { return c.num_segments(); }));
 
     std::vector<index_type> cell_comp_bounds;
     auto cell_comp_part = make_partition(cell_comp_bounds,
-        transform_view(cells, [](const cell& c) { return c.num_compartments(); }));
+        transform_view(cells, [](const mc_cell& c) { return c.num_compartments(); }));
 
     D.ncell = cells.size();
     D.ncomp = cell_comp_part.bounds().second;
@@ -120,7 +139,7 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
     std::vector<size_type> seg_comp_bounds;
     for (auto i: make_span(0, D.ncell)) {
         const auto& c = cells[i];
-        auto cell_graph = c.model();
+        compartment_model cell_graph (c);
         auto cell_comp_ival = cell_comp_part[i];
 
         auto cell_comp_base = cell_comp_ival.first;
@@ -132,7 +151,7 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
         seg_comp_bounds.clear();
         auto seg_comp_part = make_partition(
             seg_comp_bounds,
-            transform_view(c.segments(), [](const segment_ptr& s) { return s->num_compartments(); }),
+            transform_view(c.segments(), [](const mc_segment_ptr& s) { return s->num_compartments(); }),
             cell_comp_base);
 
         const auto nseg = seg_comp_part.size();
@@ -176,7 +195,7 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
             auto cm = cable->cm;    // [F/m²]
             auto rL = cable->rL;    // [Ω·cm]
 
-            auto divs = div_compartments<div_compartment_integrator>(cable, ncomp);
+            auto divs = div_compartment_integrator(ncomp, cable->radii(), cable->lengths());
 
             seg_info.parent_cv = D.parent_cv[seg_comp_ival.first];
             seg_info.parent_cv_area = divs(0).left.area;
@@ -230,7 +249,7 @@ fvm_discretization fvm_discretize(const std::vector<cell>& cells) {
 //       IIb. Density mechanism CVs, parameter values; ion channel default concentration contributions.
 //       IIc. Point mechanism CVs, parameter values, and targets.
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<cell>& cells, const fvm_discretization& D) {
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D) {
     using util::assign;
     using util::sort_by;
     using util::optional;

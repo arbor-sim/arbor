@@ -3,7 +3,7 @@
 namespace arb {
 
 // Model parameteres of leaky integrate and fire neuron model.
-struct lif_cell_description {
+struct lif_cell {
     // Neuronal parameters.
     double tau_m = 10;    // Membrane potential decaying constant [ms].
     double V_th = 10;     // Firing threshold [mV].

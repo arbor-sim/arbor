@@ -9,10 +9,10 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/morphology.hpp>
+#include <arbor/point.hpp>
 
-#include <algorithms.hpp>
-#include <morphology.hpp>
-#include <point.hpp>
+#include "algorithms.hpp"
 
 namespace arb {
 namespace io {

@@ -2,8 +2,8 @@
 
 #include <arbor/util/optional.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/mc_cell.hpp>
 
-#include "cell.hpp"
 #include "fvm_layout.hpp"
 #include "math.hpp"
 #include "util/maputil.hpp"
@@ -20,80 +20,116 @@ using util::make_span;
 using util::count_along;
 using util::value_by_key;
 
-std::vector<cell> two_cell_system() {
-    std::vector<cell> cells;
-
-    // Cell 0: simple ball and stick (see common_cells.hpp)
-    cells.push_back(make_cell_ball_and_stick());
-
-    // Cell 1: ball and 3-stick, but with uneven dendrite
-    // length and heterogeneous electrical properties:
-    //
-    // Bulk resistivity: 90 Ω·cm
-    // capacitance:
-    //    soma:       0.01  F/m² [default]
-    //    segment 1:  0.017 F/m²
-    //    segment 2:  0.013 F/m²
-    //    segment 3:  0.018 F/m²
-    //
-    // Soma diameter: 14 µm
-    // Some mechanisms: HH (default params)
-    //
-    // Segment 1 diameter: 1 µm
-    // Segment 1 length:   200 µm
-    //
-    // Segment 2 diameter: 0.8 µm
-    // Segment 2 length:   300 µm
-    //
-    // Segment 3 diameter: 0.7 µm
-    // Segment 3 length:   180 µm
-    //
-    // Dendrite mechanisms: passive (default params).
-    // Stimulus at end of segment 2, amplitude 0.45.
-    // Stimulus at end of segment 3, amplitude -0.2.
-    //
-    // All dendrite segments with 4 compartments.
-
-    cell c2;
-    segment* s;
-
-    s = c2.add_soma(14./2);
-    s->add_mechanism("hh");
-
-    s = c2.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200);
-    s->cm = 0.017;
-
-    s = c2.add_cable(1, section_kind::dendrite, 0.8/2, 0.8/2, 300);
-    s->cm = 0.013;
-
-    s = c2.add_cable(1, section_kind::dendrite, 0.7/2, 0.7/2, 180);
-    s->cm = 0.018;
-
-    c2.add_stimulus({2,1}, {5.,  80., 0.45});
-    c2.add_stimulus({3,1}, {40., 10.,-0.2});
-
-    for (auto& seg: c2.segments()) {
-        seg->rL = 90.;
-        if (seg->is_dendrite()) {
-            seg->add_mechanism("pas");
-            seg->set_compartments(4);
+namespace {
+    double area(const mc_segment* s) {
+        if (auto soma = s->as_soma()) {
+            return math::area_sphere(soma->radius());
+        }
+        else if (auto cable = s->as_cable()) {
+            unsigned nc = cable->num_sub_segments();
+            double a = 0;
+            for (unsigned i = 0; i<nc; ++i) {
+                a += math::area_frustrum(cable->lengths()[i], cable->radii()[i], cable->radii()[i+1]);
+            }
+            return a;
+        }
+        else {
+            return 0;
         }
     }
-    cells.push_back(std::move(c2));
-    return cells;
-}
 
-void check_two_cell_system(std::vector<cell>& cells) {
-    ASSERT_EQ(2u, cells[0].num_segments());
-    ASSERT_EQ(cells[0].segment(1)->num_compartments(), 4u);
-    ASSERT_EQ(cells[1].num_segments(), 4u);
-    ASSERT_EQ(cells[1].segment(1)->num_compartments(), 4u);
-    ASSERT_EQ(cells[1].segment(2)->num_compartments(), 4u);
-    ASSERT_EQ(cells[1].segment(3)->num_compartments(), 4u);
-}
+    double volume(const mc_segment* s) {
+        if (auto soma = s->as_soma()) {
+            return math::volume_sphere(soma->radius());
+        }
+        else if (auto cable = s->as_cable()) {
+            unsigned nc = cable->num_sub_segments();
+            double v = 0;
+            for (unsigned i = 0; i<nc; ++i) {
+                v += math::volume_frustrum(cable->lengths()[i], cable->radii()[i], cable->radii()[i+1]);
+            }
+            return v;
+        }
+        else {
+            return 0;
+        }
+    }
+
+    std::vector<mc_cell> two_cell_system() {
+        std::vector<mc_cell> cells;
+
+        // Cell 0: simple ball and stick (see common_cells.hpp)
+        cells.push_back(make_cell_ball_and_stick());
+
+        // Cell 1: ball and 3-stick, but with uneven dendrite
+        // length and heterogeneous electrical properties:
+        //
+        // Bulk resistivity: 90 Ω·cm
+        // capacitance:
+        //    soma:       0.01  F/m² [default]
+        //    segment 1:  0.017 F/m²
+        //    segment 2:  0.013 F/m²
+        //    segment 3:  0.018 F/m²
+        //
+        // Soma diameter: 14 µm
+        // Some mechanisms: HH (default params)
+        //
+        // Segment 1 diameter: 1 µm
+        // Segment 1 length:   200 µm
+        //
+        // Segment 2 diameter: 0.8 µm
+        // Segment 2 length:   300 µm
+        //
+        // Segment 3 diameter: 0.7 µm
+        // Segment 3 length:   180 µm
+        //
+        // Dendrite mechanisms: passive (default params).
+        // Stimulus at end of segment 2, amplitude 0.45.
+        // Stimulus at end of segment 3, amplitude -0.2.
+        //
+        // All dendrite segments with 4 compartments.
+
+        mc_cell c2;
+        mc_segment* s;
+
+        s = c2.add_soma(14./2);
+        s->add_mechanism("hh");
+
+        s = c2.add_cable(0, section_kind::dendrite, 1.0/2, 1.0/2, 200);
+        s->cm = 0.017;
+
+        s = c2.add_cable(1, section_kind::dendrite, 0.8/2, 0.8/2, 300);
+        s->cm = 0.013;
+
+        s = c2.add_cable(1, section_kind::dendrite, 0.7/2, 0.7/2, 180);
+        s->cm = 0.018;
+
+        c2.add_stimulus({2,1}, {5.,  80., 0.45});
+        c2.add_stimulus({3,1}, {40., 10.,-0.2});
+
+        for (auto& seg: c2.segments()) {
+            seg->rL = 90.;
+            if (seg->is_dendrite()) {
+                seg->add_mechanism("pas");
+                seg->set_compartments(4);
+            }
+        }
+        cells.push_back(std::move(c2));
+        return cells;
+    }
+
+    void check_two_cell_system(std::vector<mc_cell>& cells) {
+        ASSERT_EQ(2u, cells[0].num_segments());
+        ASSERT_EQ(cells[0].segment(1)->num_compartments(), 4u);
+        ASSERT_EQ(cells[1].num_segments(), 4u);
+        ASSERT_EQ(cells[1].segment(1)->num_compartments(), 4u);
+        ASSERT_EQ(cells[1].segment(2)->num_compartments(), 4u);
+        ASSERT_EQ(cells[1].segment(3)->num_compartments(), 4u);
+    }
+} // namespace
 
 TEST(fvm_layout, topology) {
-    std::vector<cell> cells = two_cell_system();
+    std::vector<mc_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
     fvm_discretization D = fvm_discretize(cells);
@@ -173,7 +209,7 @@ TEST(fvm_layout, topology) {
 }
 
 TEST(fvm_layout, area) {
-    std::vector<cell> cells = two_cell_system();
+    std::vector<mc_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
     fvm_discretization D = fvm_discretize(cells);
@@ -184,7 +220,7 @@ TEST(fvm_layout, area) {
     std::vector<double> A;
     for (auto ci: make_span(D.ncell)) {
         for (auto si: make_span(cells[ci].num_segments())) {
-            A.push_back(cells[ci].segment(si)->area());
+            A.push_back(area(cells[ci].segment(si)));
         }
     }
 
@@ -230,12 +266,12 @@ TEST(fvm_layout, area) {
     EXPECT_FLOAT_EQ(c, D.cv_capacitance[5]);
 
     // Confirm face conductance within a constant diameter
-    // segment equals a/h·1/rL where a is the cross sectional
+    // equals a/h·1/rL where a is the cross sectional
     // area, and h is the compartment length (given the
     // regular discretization).
 
     cable_segment* cable = cells[1].segment(2)->as_cable();
-    double a = cable->volume()/cable->length();
+    double a = volume(cable)/cable->length();
     EXPECT_FLOAT_EQ(math::pi<double>()*0.8*0.8/4, a);
 
     double h = cable->length()/4;
@@ -246,7 +282,7 @@ TEST(fvm_layout, area) {
 }
 
 TEST(fvm_layout, mech_index) {
-    std::vector<cell> cells = two_cell_system();
+    std::vector<mc_cell> cells = two_cell_system();
     check_two_cell_system(cells);
 
     // Add four synapses of two varieties across the cells.
@@ -271,7 +307,7 @@ TEST(fvm_layout, mech_index) {
     EXPECT_EQ(mechanismKind::density, hh_config.kind);
     EXPECT_EQ(ivec({0,5}), hh_config.cv);
 
-    fvec norm_area({cells[0].soma()->area()/D.cv_area[0], cells[1].soma()->area()/D.cv_area[5]});
+    fvec norm_area({area(cells[0].soma())/D.cv_area[0], area(cells[1].soma())/D.cv_area[5]});
     EXPECT_TRUE(testing::seq_almost_eq<double>(norm_area, hh_config.norm_area));
 
     // Three expsyn synapses, two 0.4 along segment 1, and one 0.4 along segment 5.
@@ -295,7 +331,7 @@ TEST(fvm_layout, mech_index) {
 }
 
 TEST(fvm_layout, synapse_targets) {
-    std::vector<cell> cells = two_cell_system();
+    std::vector<mc_cell> cells = two_cell_system();
 
     // Add synapses with different parameter values so that we can
     // ensure: 1) CVs for each synapse mechanism are sorted while
@@ -404,8 +440,8 @@ TEST(fvm_layout, density_norm_area) {
     //
     // Use divided compartment view on segments to compute area contributions.
 
-    std::vector<cell> cells(1);
-    cell& c = cells[0];
+    std::vector<mc_cell> cells(1);
+    mc_cell& c = cells[0];
     auto soma = c.add_soma(12.6157/2.0);
 
     c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
@@ -423,7 +459,7 @@ TEST(fvm_layout, density_norm_area) {
     double seg3_gl = .0004;
 
     for (int i = 0; i<4; ++i) {
-        segment& seg = *segs[i];
+        mc_segment& seg = *segs[i];
         seg.set_compartments(3);
 
         mechanism_desc hh("hh");
@@ -447,10 +483,13 @@ TEST(fvm_layout, density_norm_area) {
     std::vector<double> expected_gkbar(ncv, dflt_gkbar);
     std::vector<double> expected_gl(ncv, dflt_gl);
 
-    double soma_area = soma->area();
-    auto seg1_divs = div_compartments<div_compartment_by_ends>(segs[1]->as_cable());
-    auto seg2_divs = div_compartments<div_compartment_by_ends>(segs[2]->as_cable());
-    auto seg3_divs = div_compartments<div_compartment_by_ends>(segs[3]->as_cable());
+    auto div_by_ends = [](const cable_segment* cable) {
+        return div_compartment_by_ends(cable->num_compartments(), cable->radii(), cable->lengths());
+    };
+    double soma_area = area(soma);
+    auto seg1_divs = div_by_ends(segs[1]->as_cable());
+    auto seg2_divs = div_by_ends(segs[2]->as_cable());
+    auto seg3_divs = div_by_ends(segs[3]->as_cable());
 
     // CV 0: mix of soma and left of segment 1
     expected_gl[0] = wmean(soma_area, dflt_gl, seg1_divs(0).left.area, seg1_gl);
@@ -531,7 +570,7 @@ TEST(fvm_layout, ion_weights) {
     // the same as a 100µm dendrite, which makes it easier to describe the
     // expected weights.
 
-    auto construct_cell = [](cell& c) {
+    auto construct_cell = [](mc_cell& c) {
         c.add_soma(5);
 
         c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
@@ -558,8 +597,8 @@ TEST(fvm_layout, ion_weights) {
     };
 
     for (auto run: count_along(mech_segs)) {
-        std::vector<cell> cells(1);
-        cell& c = cells[0];
+        std::vector<mc_cell> cells(1);
+        mc_cell& c = cells[0];
         construct_cell(c);
 
         for (auto i: mech_segs[run]) {

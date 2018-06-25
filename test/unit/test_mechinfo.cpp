@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include <cell.hpp>
+#include <arbor/mc_cell.hpp>
 
 #include "../gtest.h"
 
