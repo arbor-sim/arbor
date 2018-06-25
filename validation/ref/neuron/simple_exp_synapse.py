@@ -19,5 +19,5 @@ model.add_spike(20, 0.04)
 model.add_spike(40, 0.04)
 
 data = V.run_nrn_sim(70, report_dt=10, model='expsyn')
-print json.dumps(data)
+print(json.dumps(data))
 V.nrn_stop()

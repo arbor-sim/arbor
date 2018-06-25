@@ -2,9 +2,9 @@
 #include <fstream>
 #include <string>
 
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
 #include "parameters.hpp"
 

@@ -9,11 +9,12 @@
 #include <type_traits>
 
 #include <tclap/CmdLine.h>
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <util/meta.hpp>
-#include <util/optional.hpp>
-#include <util/strprintf.hpp>
+#include <arbor/util/optional.hpp>
+
+#include "util/meta.hpp"
+#include "util/strprintf.hpp"
 
 #include "io.hpp"
 

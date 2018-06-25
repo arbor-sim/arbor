@@ -6,24 +6,27 @@
 #include <set>
 #include <vector>
 
-#include <common_types.hpp>
-#include <communication/communicator.hpp>
-#include <communication/distributed_context.hpp>
-#include <event_generator.hpp>
-#include <hardware/gpu.hpp>
-#include <hardware/node_info.hpp>
-#include <io/exporter_spike_file.hpp>
-#include <json/json.hpp>
-#include <lif_cell_description.hpp>
-#include <profiling/profiler.hpp>
-#include <profiling/meter_manager.hpp>
-#include <recipe.hpp>
-#include <simulation.hpp>
-#include <threading/threading.hpp>
-#include <util/config.hpp>
-#include <util/debug.hpp>
-#include <util/ioutil.hpp>
-#include <util/nop.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+#include <arbor/profile/meter_manager.hpp>
+#include <arbor/profile/profiler.hpp>
+#include <arbor/threadinfo.hpp>
+#include <arbor/version.hpp>
+
+#include "json_meter.hpp"
+#ifdef ARB_MPI_ENABLED
+#include "with_mpi.hpp"
+#endif
+
+#include "communication/communicator.hpp"
+#include "event_generator.hpp"
+#include "hardware/gpu.hpp"
+#include "hardware/node_info.hpp"
+#include "io/exporter_spike_file.hpp"
+#include "lif_cell_description.hpp"
+#include "recipe.hpp"
+#include "simulation.hpp"
+#include "util/ioutil.hpp"
 
 #include "partitioner.hpp"
 #include "io.hpp"
@@ -191,17 +194,17 @@ int main(int argc, char** argv) {
     distributed_context context;
 
     try {
-#ifdef ARB_HAVE_MPI
-        mpi::scoped_guard guard(&argc, &argv);
+#ifdef ARB_MPI_ENABLED
+        with_mpi guard(argc, argv, false);
         context = mpi_context(MPI_COMM_WORLD);
 #endif
-        arb::util::meter_manager meters(&context);
+        arb::profile::meter_manager meters(&context);
         meters.start();
         std::cout << util::mask_stream(context.id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.id()==0);
         hw::node_info nd;
-        nd.num_cpu_cores = threading::num_threads();
+        nd.num_cpu_cores = arb::num_threads();
         nd.num_gpus = hw::num_gpus()>0? 1: 0;
         banner(nd, &context);
 
@@ -277,16 +280,16 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-simulate");
 
         // output profile and diagnostic feedback
-        std::cout << util::profiler_summary() << "\n";
+        std::cout << profile::profiler_summary() << "\n";
         std::cout << "\nThere were " << sim.num_spikes() << " spikes\n";
 
-        auto report = util::make_meter_report(meters);
+        auto report = profile::make_meter_report(meters);
         std::cout << report;
         if (context.id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << util::to_json(report) << "\n";
+            fid << std::setw(1) << aux::to_json(report) << "\n";
         }
     }
     catch (io::usage_error& e) {
@@ -308,7 +311,7 @@ void banner(hw::node_info nd, const distributed_context* ctx) {
     std::cout << "  - distributed : " << ctx->size()
               << " (" << ctx->name() << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
-              << " (" << threading::description() << ")\n";
+              << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
 }

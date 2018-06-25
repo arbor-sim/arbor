@@ -1,32 +1,36 @@
 include(BuildModules.cmake)
 
-# the list of built-in mechanisms to be provided by default
+# The list of library-provided mechanisms used to populate the default catalogue:
 set(mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca nax kdrmt kamt)
 
 set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 
-# Generate mechanism implementations for host/cpu environment
+# Generate mechanism implementations.
 
 set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${mech_dir}")
 
+set(modcc_flags)
 if(ARB_VECTORIZE)
-    set(modcc_simd "-s")
+    list(APPEND modcc_flags "--simd")
+endif()
+if(ARB_WITH_PROFILING)
+    list(APPEND modcc_flags "--profile")
 endif()
 
 build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
     DEST_DIR "${mech_dir}"
-    MODCC_FLAGS -t cpu -t gpu ${modcc_simd}
+    MODCC_FLAGS -t cpu -t gpu ${modcc_flags}
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     TARGET build_all_mods
 )
 
-# Generate source for default mechanism catalogue
+# Generate source for default mechanism catalogue.
 
 set(catsrc ${CMAKE_CURRENT_BINARY_DIR}/default_catalogue.cpp)
-set(default_catalogue_options -I ${mech_dir} -o ${catsrc} -B multicore)
+set(default_catalogue_options -A arbor -I ${mech_dir} -o ${catsrc} -B multicore)
 if(ARB_WITH_CUDA)
     list(APPEND default_catalogue_options -B gpu)
 endif()
@@ -34,42 +38,21 @@ endif()
 add_custom_command(
     OUTPUT ${catsrc}
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/generate_default_catalogue ${default_catalogue_options} ${mechanisms}
-    DEPENDS build_all_mods generate_default_catalogue
+    DEPENDS generate_default_catalogue
 )
+
+add_custom_target(default_catalogue_cpp_target DEPENDS ${catsrc})
+add_dependencies(build_all_mods default_catalogue_cpp_target)
 
 # Make libraries with the implementations of the mechanism kernels.
 
+set(mech_sources ${catsrc})
 foreach(mech ${mechanisms})
-    list(APPEND cpu_mech_sources ${mech_dir}/${mech}_cpu.cpp)
+    list(APPEND mech_sources ${mech_dir}/${mech}_cpu.cpp)
+    if(ARB_WITH_CUDA)
+        list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cpp)
+        list(APPEND mech_sources ${mech_dir}/${mech}_gpu.cu)
+    endif()
 endforeach()
 
-add_library(arbormech ${cpu_mech_sources} ${catsrc})
-target_compile_options(arbormech PRIVATE ${CXXOPT_ARCH})
-set(mech_libs arbormech)
-
-if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
-    add_dependencies(arbormech build_all_mods)
-endif()
-
-if(ARB_WITH_CUDA)
-    foreach(mech ${mechanisms})
-        list(APPEND cuda_mech_sources "${mech_dir}/${mech}_gpu.cpp" "${mech_dir}/${mech}_gpu.cu")
-    endforeach()
-
-    cuda_add_library(arbormechcu ${cuda_mech_sources})
-    set(mech_libs arbormech arbormechcu)
-
-    # force recompilation on changes to modcc or the underlying .mod files
-    if (ARB_AUTO_RUN_MODCC_ON_CHANGES)
-        add_dependencies(arbormechcu build_all_mods)
-    endif()
-
-endif()
-
-# Until we merge our myriad static libraries, we prepend mech libs and also append mech libs
-# to capture generated default catalogue code interdependencies with arbor lib.
-
-list(INSERT ARB_LIBRARIES 0 ${mech_libs})
-list(APPEND ARB_LIBRARIES ${mech_libs})
-
-set(ARB_LIBRARIES "${ARB_LIBRARIES}" PARENT_SCOPE)
+set(arbor_mechanism_sources ${mech_sources} PARENT_SCOPE)

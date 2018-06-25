@@ -10,17 +10,18 @@
 #include <iomanip>
 #include <iostream>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <cell.hpp>
-#include <common_types.hpp>
-#include <communication/distributed_context.hpp>
-#include <event_generator.hpp>
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <simple_sampler.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+
+#include "cell.hpp"
+#include "event_generator.hpp"
+#include "hardware/node_info.hpp"
+#include "load_balance.hpp"
+#include "simulation.hpp"
+#include "recipe.hpp"
+#include "simple_sampler.hpp"
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -61,19 +62,19 @@ public:
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return cell_kind::cable1d_neuron;
     }
 
     // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
     cell_size_type num_targets(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     // Return two generators attached to the one cell.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
 
         using RNG = std::mt19937_64;
         using pgen = arb::poisson_generator<RNG>;
@@ -107,13 +108,13 @@ public:
 
     // There is one probe (for measuring voltage at the soma) on the cell
     cell_size_type num_probes(cell_gid_type gid)  const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        EXPECTS(id.gid==0);     // There is one cell,
-        EXPECTS(id.index==0);   // with one probe.
+        arb_assert(id.gid==0);     // There is one cell,
+        arb_assert(id.index==0);   // with one probe.
 
         // Get the appropriate kind for measuring voltage
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;

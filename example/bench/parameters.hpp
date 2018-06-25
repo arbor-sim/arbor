@@ -3,7 +3,7 @@
 #include <ostream>
 #include <string>
 
-#include <common_types.hpp>
+#include <arbor/common_types.hpp>
 
 using arb::time_type;
 

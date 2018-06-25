@@ -1,6 +1,7 @@
 #pragma once
 
-#include <common_types.hpp>
+#include <arbor/common_types.hpp>
+
 #include <recipe.hpp>
 
 #include "parameters.hpp"

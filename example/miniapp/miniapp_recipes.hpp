@@ -4,8 +4,9 @@
 #include <memory>
 #include <stdexcept>
 
-#include <recipe.hpp>
-#include <util/optional.hpp>
+#include <arbor/util/optional.hpp>
+
+#include "recipe.hpp"
 
 #include "morphology_pool.hpp"
 

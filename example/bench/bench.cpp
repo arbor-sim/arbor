@@ -6,15 +6,18 @@
 #include <iomanip>
 #include <iostream>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <common_types.hpp>
-#include <communication/distributed_context.hpp>
+#include <arbor/profile/meter_manager.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
-#include <profiling/meter_manager.hpp>
 #include <simulation.hpp>
 #include <util/ioutil.hpp>
+
+#include "json_meter.hpp"
 
 #include "recipe.hpp"
 
@@ -35,7 +38,7 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
-        util::meter_manager meters(&context);
+        profile::meter_manager meters(&context);
         meters.start();
 
         // Create an instance of our recipe.
@@ -56,18 +59,18 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-run");
 
         // write meters
-        auto report = util::make_meter_report(meters);
+        auto report = profile::make_meter_report(meters);
         std::cout << report << "\n";
 
         if (is_root==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << util::to_json(report) << "\n";
+            fid << std::setw(1) << aux::to_json(report) << "\n";
         }
 
         // output profile and diagnostic feedback
-        auto profile = util::profiler_summary();
+        auto profile = profile::profiler_summary();
         std::cout << profile << "\n";
 
         std::cout << "there were " << sim.num_spikes() << " spikes\n";
