@@ -78,17 +78,16 @@ public:
 
 //manipulates in_flight
 class task_system {
-public:
-    // queue of tasks
-    std::vector<notification_queue> q_;
-    // threads -> index
-    thread_map thread_ids_;
 private:
     std::size_t count_;
     //thread_resource
     thread_list threads_;
     //lock for thread_map
     mutex thread_ids_mutex_;
+    // queue of tasks
+    std::vector<notification_queue> q_;
+    // threads -> index
+    thread_map thread_ids_;
     // total number of tasks pushed in all queues
     std::atomic<unsigned> index_{0};
 
@@ -104,6 +103,9 @@ public:
 
     // pushes tasks into notification queue
     void async_(task&& tsk);
+
+    // waits for all tasks in the group to be done
+    void wait(task_group*);
 
     // runs tasks until quit is true
     void run_tasks_loop();
@@ -259,17 +261,19 @@ public:
     template<typename F>
     void run_and_wait(const F& f) {
         f();
-        wait();
+        global_task_system.wait(this);
     }
 
     template<typename F>
     void run_and_wait(F&& f) {
         f();
-        wait();
+        global_task_system.wait(this);
     }
 
     // wait till all tasks in this group are done
-    void wait();
+    void wait() {
+        global_task_system.wait(this);
+    }
 
     // Make sure that all tasks are done before clean up
     ~task_group() {
