@@ -83,8 +83,7 @@ void notification_queue::quit() {
     q_tasks_available_.notify_all();
 }
 
-template<typename B>
-void task_system::run_tasks_loop(B finished ){
+void task_system::run_tasks_loop(){
     size_t i = get_current_thread();
     while (true) {
         task tsk;
@@ -97,15 +96,7 @@ void task_system::run_tasks_loop(B finished ){
     }
 }
 
-void task_system::run_tasks_while(task_group* g) {
-    run_tasks_loop([=] {return ! g->get_in_flight();});
-}
-
-void task_system::run_tasks_forever() {
-    run_tasks_loop([] {return false;});
-}
-
-task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
+task_system::task_system(int nthreads) : q_(nthreads), count_(nthreads) {
     assert( nthreads > 0);
 
     // now for the main thread
@@ -115,7 +106,7 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     // and go from there
     lock thread_ids_lock{thread_ids_mutex_};
     for (std::size_t i = 1; i < count_; i++) {
-        threads_.emplace_back([&]{run_tasks_forever();});
+        threads_.emplace_back([&]{run_tasks_loop();});
         auto tid = threads_.back().get_id();
         thread_ids_[tid] = i;
     }
@@ -133,10 +124,6 @@ void task_system::async_(task&& tsk) {
         if(q_[(i + n) % count_].try_push(tsk)) return;
     }
     q_[i % count_].push(tsk);
-}
-
-void task_system::wait(task_group* g) {
-    run_tasks_while(g);
 }
 
 int task_system::get_num_threads() {
@@ -159,7 +146,7 @@ void task_group::wait() {
     while(get_in_flight()) {
         size_t i = global_task_system.get_current_thread();
         task tsk;
-        for(unsigned n = 0; n != global_task_system.get_num_threads(); n++) {
+        for(int n = 0; n != global_task_system.get_num_threads(); n++) {
             if(global_task_system.q_[(i + n) % global_task_system.get_num_threads()].try_pop(tsk)) {
                 tsk.first();
                 tsk.second->dec_in_flight();

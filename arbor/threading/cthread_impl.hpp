@@ -92,20 +92,6 @@ private:
     // total number of tasks pushed in all queues
     std::atomic<unsigned> index_{0};
 
-    // finished is a function/lambda
-    // that returns true when the infinite loop
-    // needs to be broken
-    template<typename B>
-    void run_tasks_loop(B finished );
-
-    // run tasks until a task_group tasks are done
-    // for wait
-    void run_tasks_while(task_group* g);
-
-    // loop forever for secondary threads
-    // until quit is set
-    void run_tasks_forever();
-
 public:
     // Create nthreads-1 new c std threads
     task_system(int nthreads);
@@ -118,8 +104,9 @@ public:
 
     // pushes tasks into notification queue
     void async_(task&& tsk);
-    // waits for all tasks in the group to be done
-    void wait(task_group*);
+
+    // runs tasks until quit is true
+    void run_tasks_loop();
 
     // includes master thread
     int get_num_threads();
