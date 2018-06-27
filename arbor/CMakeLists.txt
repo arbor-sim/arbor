@@ -44,7 +44,7 @@ set(arbor_sources
     util/path.cpp
     util/unwind.cpp
     version.cpp
-)
+        threading/timer.hpp)
 
 if(ARB_WITH_CUDA)
     list(APPEND arbor_sources
