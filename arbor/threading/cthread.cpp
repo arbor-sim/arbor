@@ -143,8 +143,8 @@ task_system& task_system::get_global_task_system() {
 }
 
 void task_system::wait(task_group* g) {
+    size_t i = get_current_thread();
     while(g->get_in_flight()) {
-        size_t i = get_current_thread();
         task tsk;
         for(int n = 0; n != get_num_threads(); n++) {
             if(q_[(i + n) % get_num_threads()].try_pop(tsk)) {
