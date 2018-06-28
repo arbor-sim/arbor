@@ -2,7 +2,9 @@
 #include <iostream>
 #include <thread>
 
-#include <../../arbor/threading/threading.hpp>
+#include <threading/threading.hpp>
+
+using namespace arb;
 
 struct timer_c {
     using time_point = std::chrono::time_point<std::chrono::system_clock>;
@@ -19,8 +21,6 @@ struct timer_c {
         return std::chrono::duration<double>{e-b}.count();
     }
 };
-
-using namespace arb;
 
 void run(unsigned long us_per_task, unsigned tasks) {
     auto duration = std::chrono::microseconds(us_per_task);
