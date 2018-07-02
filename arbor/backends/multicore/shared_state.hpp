@@ -11,8 +11,8 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/ion.hpp>
-#include <arbor/util/enumhash.hpp>
 #include <arbor/simd/simd.hpp>
+#include <arbor/util/enumhash.hpp>
 
 #include "backends/event.hpp"
 #include "event_queue.hpp"

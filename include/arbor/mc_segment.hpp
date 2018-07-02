@@ -58,9 +58,7 @@ struct mechanism_desc {
         if (i==param_.end()) {
             throw std::out_of_range("no field "+key+" set");
         }
-        else {
-            return i->second;
-        }
+        return i->second;
     }
 
     const std::unordered_map<std::string, double>& values() const {

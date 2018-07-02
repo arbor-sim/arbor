@@ -1,8 +1,8 @@
 #include <chrono>
 #include <exception>
 
-#include <arbor/time_sequence.hpp>
 #include <arbor/benchmark_cell.hpp>
+#include <arbor/time_sequence.hpp>
 
 #include <cell_group.hpp>
 #include <profile/profiler_macro.hpp>
