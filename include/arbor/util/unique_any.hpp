@@ -4,8 +4,7 @@
 #include <typeinfo>
 #include <type_traits>
 
-#include <util/any.hpp>
-#include <util/meta.hpp>
+#include <arbor/util/any.hpp>
 
 // A non copyable variant of util::any.
 // The two main use cases for such a container are
@@ -57,11 +56,10 @@ public:
 
     template <
         typename T,
-        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, unique_any>::value>
+        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, unique_any>::value>::type
     >
     unique_any(T&& other) {
-        using contained_type = util::decay_t<T>;
-        state_.reset(new model<contained_type>(std::forward<T>(other)));
+        state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
     }
 
     unique_any& operator=(unique_any&& other) noexcept {
@@ -71,11 +69,10 @@ public:
 
     template <
         typename T,
-        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, unique_any>::value>
+        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, unique_any>::value>::type
     >
     unique_any& operator=(T&& other) {
-        using contained_type = util::decay_t<T>;
-        state_.reset(new model<contained_type>(std::forward<T>(other)));
+        state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
         return *this;
     }
 
@@ -96,6 +93,9 @@ public:
     }
 
 private:
+    template <typename T>
+    using contained_type = typename std::decay<T>::type;
+
     struct interface {
         virtual ~interface() = default;
         virtual const std::type_info& type() = 0;

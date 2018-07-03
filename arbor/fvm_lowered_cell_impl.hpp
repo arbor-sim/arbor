@@ -24,6 +24,7 @@
 #include "profile/profiler_macro.hpp"
 #include "recipe.hpp"
 #include "sampler_map.hpp"
+#include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -292,16 +293,16 @@ void fvm_lowered_cell_impl<B>::initialize(
     using util::value_by_key;
     using util::keys;
 
-    std::vector<cell> cells;
+    std::vector<mc_cell> cells;
     const std::size_t ncell = gids.size();
 
     cells.reserve(ncell);
     for (auto gid: gids) {
-        cells.push_back(any_cast<cell>(rec.get_cell_description(gid)));
+        cells.push_back(any_cast<mc_cell>(rec.get_cell_description(gid)));
     }
 
     auto rec_props = rec.get_global_properties(cell_kind::cable1d_neuron);
-    auto global_props = rec_props.has_value()? any_cast<cell_global_properties>(rec_props): cell_global_properties{};
+    auto global_props = rec_props.has_value()? any_cast<mc_cell_global_properties>(rec_props): mc_cell_global_properties{};
 
     const mechanism_catalogue* catalogue = global_props.catalogue;
     initial_voltage_ = global_props.init_membrane_potential_mV;

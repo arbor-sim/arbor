@@ -4,6 +4,7 @@
 #include "domain_decomposition.hpp"
 #include "hardware/node_info.hpp"
 #include "recipe.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 
@@ -40,7 +41,7 @@ domain_decomposition partition_load_balance(const recipe& rec,
 
     std::vector<cell_gid_type> gid_divisions;
     auto gid_part = make_partition(
-        gid_divisions, transform_view(make_span(0, num_domains), dom_size));
+        gid_divisions, transform_view(make_span(num_domains), dom_size));
 
     // Local load balance
 

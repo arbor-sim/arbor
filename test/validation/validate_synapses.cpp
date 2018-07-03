@@ -1,14 +1,14 @@
 #include <nlohmann/json.hpp>
 
-#include <cell.hpp>
-#include <cell_group.hpp>
-#include <hardware/node_info.hpp>
-#include <hardware/gpu.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <simple_sampler.hpp>
-#include <util/path.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/simple_sampler.hpp>
+
+#include "hardware/node_info.hpp"
+#include "hardware/gpu.hpp"
+#include "load_balance.hpp"
+#include "simulation.hpp"
+#include "recipe.hpp"
+#include "util/path.hpp"
 
 #include "../gtest.h"
 
@@ -37,7 +37,7 @@ void run_synapse_test(
         {"backend_kind", to_string(backend)}
     };
 
-    cell c = make_cell_ball_and_stick(false); // no stimuli
+    mc_cell c = make_cell_ball_and_stick(false); // no stimuli
     mechanism_desc syn_default(syn_type);
     c.add_synapse({1, 0.5}, syn_default);
 

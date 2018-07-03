@@ -4,7 +4,7 @@
 #include <cstring>
 #include <cmath>
 
-#include <simd/implbase.hpp>
+#include <arbor/simd/implbase.hpp>
 
 namespace arb {
 namespace simd {

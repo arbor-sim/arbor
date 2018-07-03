@@ -4,9 +4,9 @@
 #include <cstddef>
 #include <type_traits>
 
-#include <simd/implbase.hpp>
-#include <simd/generic.hpp>
-#include <simd/native.hpp>
+#include <arbor/simd/implbase.hpp>
+#include <arbor/simd/generic.hpp>
+#include <arbor/simd/native.hpp>
 
 namespace arb {
 namespace simd {

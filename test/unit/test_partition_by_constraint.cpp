@@ -6,10 +6,10 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/simd/simd.hpp>
 
-#include <simd/simd.hpp>
-#include <backends/multicore/multicore_common.hpp>
-#include <backends/multicore/partition_by_constraint.hpp>
+#include "backends/multicore/multicore_common.hpp"
+#include "backends/multicore/partition_by_constraint.hpp"
 
 using namespace arb;
 using iarray = multicore::iarray;

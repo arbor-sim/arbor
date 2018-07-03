@@ -1,13 +1,11 @@
-//#include <iostream>
 #include <type_traits>
+#include <typeinfo>
+
+#include <arbor/util/any.hpp>
+#include <arbor/util/any_ptr.hpp>
 
 #include "../gtest.h"
 #include "common.hpp"
-
-#include <util/any.hpp>
-#include <util/any_ptr.hpp>
-
-#include <typeinfo>
 
 using namespace arb;
 using namespace testing::string_literals;

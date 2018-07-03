@@ -9,7 +9,6 @@
 #include <mc_cell_group.hpp>
 #include <recipe.hpp>
 #include <spike_source_cell_group.hpp>
-#include <util/unique_any.hpp>
 
 namespace arb {
 

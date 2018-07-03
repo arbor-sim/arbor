@@ -7,9 +7,11 @@
 #include <type_traits>
 #include <vector>
 
+#include <arbor/mc_cell.hpp>
+#include <arbor/morphology.hpp>
+
 #include "../gtest.h"
 
-#include "cell.hpp"
 #include "swcio.hpp"
 
 // Path to data directory can be overriden at compile time.
@@ -469,7 +471,7 @@ TEST(swc_io, cell_construction) {
     // swc -> morphology
     auto morph = io::swc_as_morphology(io::parse_swc_file(is));
 
-    cell cell = make_cell(morph, true);
+    mc_cell cell = make_mc_cell(morph, true);
     EXPECT_TRUE(cell.has_soma());
     EXPECT_EQ(4u, cell.num_segments());
 
@@ -518,11 +520,38 @@ TEST(swc_io, cell_construction) {
               cell.cable(3)->radius(0));
 }
 
+void expect_morph_eq(const morphology& a, const morphology& b) {
+    EXPECT_EQ(a.soma.r, b.soma.r);
+    EXPECT_EQ(a.sections.size(), b.sections.size());
+
+    for (unsigned i = 0; i<a.sections.size(); ++i) {
+        const section_geometry& r = a.sections[i];
+        const section_geometry& s = b.sections[i];
+
+        EXPECT_EQ(r.points.size(), s.points.size());
+        unsigned n = r.points.size();
+        if (n>1) {
+            auto r0 = r.points[0];
+            auto s0 = s.points[0];
+            EXPECT_EQ(r0.r, s0.r);
+
+            // TODO: check lengths for each line segment instead.
+            EXPECT_DOUBLE_EQ(r.length, s.length);
+
+            for (unsigned i = 1; i<n; ++i) {
+                auto r1 = r.points[i];
+                auto s1 = s.points[i];
+
+                EXPECT_EQ(r1.r, s1.r);
+            }
+        }
+    }
+}
+
 // check that simple ball and stick model with one dendrite attached to a soma
 // which is used in the validation tests can be loaded from file and matches
 // the one generated with the C++ interface
-TEST(swc_parser, from_file_ball_and_stick)
-{
+TEST(swc_parser, from_file_ball_and_stick) {
     std::string datadir{DATADIR};
     auto fname = datadir + "/ball_and_stick.swc";
     std::ifstream fid(fname);
@@ -531,17 +560,14 @@ TEST(swc_parser, from_file_ball_and_stick)
         return;
     }
 
-    // read the file into a cell object
-    auto bas_cell = make_cell(io::swc_as_morphology(io::parse_swc_file(fid)));
+    // read the file as morhpology
+    auto bas_morph = io::swc_as_morphology(io::parse_swc_file(fid));
 
-    // verify that the correct number of nodes was read
-    EXPECT_EQ(2u, bas_cell.num_segments());
-    EXPECT_EQ(2u, bas_cell.num_compartments());
+    // compare with expected morphology
+    morphology expected;
 
-    // make an equivalent cell via C++ interface
-    cell local_cell;
-    local_cell.add_soma(6.30785);
-    local_cell.add_cable(0, section_kind::dendrite, 0.5, 0.5, 200);
+    expected.soma = {0., 0., 0.,  6.30785};
+    expected.add_section({{6.30785, 0., 0., 0.5}, {206.30785, 0., 0., 0.5}}, 0u, section_kind::dendrite);
 
-    EXPECT_TRUE(cell_basic_equality(local_cell, bas_cell));
+    expect_morph_eq(expected, bas_morph);
 }

@@ -8,8 +8,9 @@
 #include <string>
 #include <vector>
 
-#include <morphology.hpp>
-#include <util/path.hpp>
+#include <arbor/morphology.hpp>
+
+#include "util/path.hpp"
 
 namespace arb {
 

@@ -4,12 +4,12 @@
 #include <utility>
 
 #include <arbor/assert.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/morphology.hpp>
+#include <arbor/spike_source_cell.hpp>
+#include <arbor/time_sequence.hpp>
 
-#include "cell.hpp"
 #include "event_generator.hpp"
-#include "morphology.hpp"
-#include "spike_source_cell.hpp"
-#include "time_sequence.hpp"
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -21,14 +21,14 @@ namespace arb {
 // description for greater data reuse.
 
 template <typename RNG>
-cell make_basic_cell(
+mc_cell make_basic_cell(
     const morphology& morph,
     unsigned compartments_per_segment,
     unsigned num_synapses,
     const std::string& syn_type,
     RNG& rng)
 {
-    arb::cell cell = make_cell(morph, true);
+    mc_cell cell = make_mc_cell(morph, true);
 
     for (auto& segment: cell.segments()) {
         if (compartments_per_segment!=0) {

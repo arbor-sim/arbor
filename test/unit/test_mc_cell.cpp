@@ -1,13 +1,17 @@
 #include "../gtest.h"
 
-#include "cell.hpp"
+#include <arbor/mc_cell.hpp>
 
-TEST(cell, soma)
-{
+#include "math.hpp"
+#include "tree.hpp"
+
+using namespace arb;
+
+TEST(mc_cell, soma) {
     // test that insertion of a soma works
     //      define with no centre point
     {
-        arb::cell c;
+        mc_cell c;
         auto soma_radius = 2.1;
 
         EXPECT_EQ(c.has_soma(), false);
@@ -22,7 +26,7 @@ TEST(cell, soma)
     // test that insertion of a soma works
     //      define with centre point @ (0,0,1)
     {
-        arb::cell c;
+        mc_cell c;
         auto soma_radius = 3.2;
 
         EXPECT_EQ(c.has_soma(), false);
@@ -38,12 +42,10 @@ TEST(cell, soma)
     }
 }
 
-TEST(cell, add_segment)
-{
-    using namespace arb;
+TEST(mc_cell, add_segment) {
     //  add a pre-defined segment
     {
-        cell c;
+        mc_cell c;
 
         auto soma_radius  = 2.1;
         auto cable_radius = 0.1;
@@ -64,7 +66,7 @@ TEST(cell, add_segment)
 
     //  add segment on the fly
     {
-        cell c;
+        mc_cell c;
 
         auto soma_radius  = 2.1;
         auto cable_radius = 0.1;
@@ -81,7 +83,7 @@ TEST(cell, add_segment)
         EXPECT_EQ(c.num_segments(), 2u);
     }
     {
-        cell c;
+        mc_cell c;
 
         auto soma_radius  = 2.1;
         auto cable_radius = 0.1;
@@ -101,10 +103,7 @@ TEST(cell, add_segment)
     }
 }
 
-TEST(cell, multiple_cables)
-{
-    using namespace arb;
-
+TEST(mc_cell, multiple_cables) {
     // generate a cylindrical cable segment of length 1/pi and radius 1
     //      volume = 1
     //      area   = 2
@@ -114,7 +113,7 @@ TEST(cell, multiple_cables)
 
     //  add a pre-defined segment
     {
-        cell c;
+        mc_cell c;
 
         auto soma_radius = std::pow(3./(4.*math::pi<double>()), 1./3.);
 
@@ -138,15 +137,9 @@ TEST(cell, multiple_cables)
         c.add_cable(1, seg(section_kind::dendrite));
 
         EXPECT_EQ(c.num_segments(), 5u);
-        // each of the 5 segments has volume 1 by design
-        EXPECT_EQ(c.volume(), 5.);
-        // each of the 4 cables has volume 2., and the soma has an awkward area
-        // that isn't a round number
-        EXPECT_EQ(c.area(), 8. + math::area_sphere(soma_radius));
 
         // construct the graph
-        const auto model = c.model();
-        auto const& con = model.tree;
+        tree con(c.parents());
 
         auto no_parent = tree::no_parent;
         EXPECT_EQ(con.num_segments(), 5u);
@@ -164,11 +157,8 @@ TEST(cell, multiple_cables)
     }
 }
 
-TEST(cell, unbranched_chain)
-{
-    using namespace arb;
-
-    cell c;
+TEST(mc_cell, unbranched_chain) {
+    mc_cell c;
 
     auto soma_radius = std::pow(3./(4.*math::pi<double>()), 1./3.);
 
@@ -186,32 +176,24 @@ TEST(cell, unbranched_chain)
     c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 1.0, 1.0, 1./math::pi<double>()));
 
     EXPECT_EQ(c.num_segments(), 3u);
-    // each of the 3 segments has volume 1 by design
-    EXPECT_EQ(c.volume(), 3.);
-    // each of the 2 cables has volume 2., and the soma has an awkward area
-    // that isn't a round number
-    EXPECT_EQ(c.area(), 4. + math::area_sphere(soma_radius));
 
     // construct the graph
-    const auto tree = c.model().tree;
+    tree con(c.parents());
 
     auto no_parent = tree::no_parent;
-    EXPECT_EQ(tree.num_segments(), 3u);
-    EXPECT_EQ(tree.parent(0), no_parent);
-    EXPECT_EQ(tree.parent(1), 0u);
-    EXPECT_EQ(tree.parent(2), 1u);
-    EXPECT_EQ(tree.num_children(0), 1u);
-    EXPECT_EQ(tree.num_children(1), 1u);
-    EXPECT_EQ(tree.num_children(2), 0u);
+    EXPECT_EQ(con.num_segments(), 3u);
+    EXPECT_EQ(con.parent(0), no_parent);
+    EXPECT_EQ(con.parent(1), 0u);
+    EXPECT_EQ(con.parent(2), 1u);
+    EXPECT_EQ(con.num_children(0), 1u);
+    EXPECT_EQ(con.num_children(1), 1u);
+    EXPECT_EQ(con.num_children(2), 0u);
 }
 
-TEST(cell, clone)
-{
-    using namespace arb;
-
+TEST(mc_cell, clone) {
     // make simple cell with multiple segments
 
-    cell c;
+    mc_cell c;
     c.add_soma(2.1);
     c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
     c.segment(1)->set_compartments(3);
@@ -224,7 +206,7 @@ TEST(cell, clone)
 
     // make clone
 
-    cell d(c);
+    mc_cell d(c);
 
     // check equality
 
@@ -260,11 +242,7 @@ TEST(cell, clone)
     EXPECT_EQ(c.segment(2)->num_compartments(), d.segment(2)->num_compartments());
 }
 
-TEST(cell, get_kind)
-{
-    using namespace arb;
-
-    // make a MC cell
-    cell c;
-    EXPECT_EQ( cell_kind::cable1d_neuron, c.get_cell_kind());
+TEST(mc_cell, get_kind) {
+    mc_cell c;
+    EXPECT_EQ(cell_kind::cable1d_neuron, c.get_cell_kind());
 }

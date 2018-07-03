@@ -3,69 +3,18 @@
 
 #include "../gtest.h"
 
-#include <algorithms.hpp>
-#include <compartment.hpp>
-
-#include <math.hpp>
-#include <util/span.hpp>
-#include <util/transform.hpp>
+#include "algorithms.hpp"
+#include "fvm_compartment.hpp"
+#include "math.hpp"
+#include "util/span.hpp"
+#include "util/transform.hpp"
 
 using namespace arb;
-using namespace arb::algorithms;
 using namespace arb::math;
-using namespace arb::util;
 
-// not much to test here: just test that values passed into the constructor
-// are correctly stored in members
-TEST(compartments, compartment)
-{
-    {
-        arb::compartment c(100, 1.2, 2.1, 2.2);
-        EXPECT_EQ(c.index, 100u);
-        EXPECT_EQ(c.length, 1.2);
-        EXPECT_EQ(c.radius.first, 2.1);
-        EXPECT_EQ(c.radius.second, 2.2);
-
-        auto c2 = c;
-        EXPECT_EQ(c2.index, 100u);
-        EXPECT_EQ(c2.length, 1.2);
-        EXPECT_EQ(c2.radius.first, 2.1);
-        EXPECT_EQ(c2.radius.second, 2.2);
-    }
-
-    {
-        arb::compartment c{100, 1, 2, 3};
-        EXPECT_EQ(c.index, 100u);
-        EXPECT_EQ(c.length, 1.);
-        EXPECT_EQ(c.radius.first, 2.);
-        EXPECT_EQ(c.radius.second, 3.);
-    }
-}
-
-TEST(compartments, make_compartment_range)
-{
-    using namespace arb;
-    auto rng = make_compartment_range(10, 1.0, 2.0, 10.);
-
-    EXPECT_EQ((*rng.begin()).index, 0u);
-    EXPECT_EQ((*rng.end()).index, 10u);
-    EXPECT_NE(rng.begin(), rng.end());
-
-    unsigned count = 0;
-    for (auto c : rng) {
-        EXPECT_EQ(c.index, count);
-        auto er = 1.0 + double(count)/10.;
-        EXPECT_DOUBLE_EQ(c.radius.first, er);
-        EXPECT_DOUBLE_EQ(c.radius.second, er+0.1);
-        EXPECT_EQ(c.length, 1.0);
-        ++count;
-    }
-    EXPECT_EQ(count, 10u);
-
-    // test case of zero length range
-    auto rng_empty = make_compartment_range(0, 1.0, 1.0, 0.);
-    EXPECT_EQ(rng_empty.begin(), rng_empty.end());
-}
+using arb::util::make_span;
+using arb::util::transform_view;
+using arb::algorithms::sum;
 
 // Divided compartments
 // (FVM-friendly compartment data)
@@ -81,12 +30,12 @@ struct pw_cable_data {
     double length() const { return sum(lengths); }
 
     double area() const {
-        return sum(transform_view(make_span(0, N),
+        return sum(transform_view(make_span(N),
             [&](unsigned i) { return area_frustrum(lengths[i], radii[i], radii[i+1]); }));
     }
 
     double volume() const {
-        return sum(transform_view(make_span(0, N),
+        return sum(transform_view(make_span(N),
             [&](unsigned i) { return volume_frustrum(lengths[i], radii[i], radii[i+1]); }));
     }
 };
@@ -128,8 +77,6 @@ void expect_equal_divs(const div_compartment& da, const div_compartment& db) {
 }
 
 TEST(compartments, div_ends) {
-    using namespace math;
-
     {
         div_compartment_by_ends divcomps{1, cable_one.radii, cable_one.lengths};
 
@@ -183,8 +130,6 @@ TEST(compartments, div_ends) {
 }
 
 TEST(compartments, div_sample) {
-    using namespace math;
-
     // expect by_ends and sampler to give same results on linear cable
     {
         constexpr unsigned ncomp = 7;
@@ -223,10 +168,10 @@ TEST(compartments, div_sample) {
             unsigned ncomp = m*nbase;
             div_compartment_sampler divs{ncomp, cable_jumble.radii, cable_jumble.lengths};
 
-            double area = sum(transform_view(make_span(0, ncomp),
+            double area = sum(transform_view(make_span(ncomp),
                 [&](unsigned i) { return divs(i).area(); }));
 
-            double volume = sum(transform_view(make_span(0, ncomp),
+            double volume = sum(transform_view(make_span(ncomp),
                 [&](unsigned i) { return divs(i).volume(); }));
 
             double e2 = std::min(area, area_expected)*ncomp*eps;
@@ -247,10 +192,10 @@ TEST(compartments, div_sample) {
             unsigned ncomp = m*nbase+1u;
             div_compartment_sampler divs{ncomp, cable_jumble.radii, cable_jumble.lengths};
 
-            double area = sum(transform_view(make_span(0, ncomp),
+            double area = sum(transform_view(make_span(ncomp),
                 [&](unsigned i) { return divs(i).area(); }));
 
-            double volume = sum(transform_view(make_span(0, ncomp),
+            double volume = sum(transform_view(make_span(ncomp),
                 [&](unsigned i) { return divs(i).volume(); }));
 
             SCOPED_TRACE("cable_jumble ncomp "+std::to_string(ncomp));
@@ -267,8 +212,6 @@ TEST(compartments, div_sample) {
 }
 
 TEST(compartments, div_integrator) {
-    using namespace math;
-
     // expect integrator and sampler to give same results on linear cable
     {
         constexpr unsigned ncomp = 7;
@@ -296,10 +239,10 @@ TEST(compartments, div_integrator) {
         for (unsigned ncomp: make_span(1u, 23u)) {
             div_compartment_integrator divs{ncomp, cable_jumble.radii, cable_jumble.lengths};
 
-            double area = sum(transform_view(make_span(0, ncomp),
+            double area = sum(transform_view(make_span(ncomp),
                 [&](unsigned i) { return divs(i).area(); }));
 
-            double volume = sum(transform_view(make_span(0, ncomp),
+            double volume = sum(transform_view(make_span(ncomp),
                 [&](unsigned i) { return divs(i).volume(); }));
 
             double e2 = std::min(area, area_expected)*ncomp*eps;

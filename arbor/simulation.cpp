@@ -2,18 +2,17 @@
 #include <set>
 #include <vector>
 
-#include <backends.hpp>
-#include <cell_group.hpp>
-#include <cell_group_factory.hpp>
-#include <domain_decomposition.hpp>
-#include <merge_events.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <thread_private_spike_store.hpp>
-#include <util/double_buffer.hpp>
-#include <util/filter.hpp>
-#include <util/span.hpp>
-#include <util/unique_any.hpp>
+#include "backends.hpp"
+#include "cell_group.hpp"
+#include "cell_group_factory.hpp"
+#include "domain_decomposition.hpp"
+#include "merge_events.hpp"
+#include "simulation.hpp"
+#include "recipe.hpp"
+#include "thread_private_spike_store.hpp"
+#include "util/double_buffer.hpp"
+#include "util/filter.hpp"
+#include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {

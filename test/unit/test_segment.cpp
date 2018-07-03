@@ -1,47 +1,33 @@
-#include <limits>
+#include <vector>
 
 #include "../gtest.h"
 
-#include "segment.hpp"
+#include <arbor/mc_segment.hpp>
 
-TEST(segments, soma)
-{
+#include "math.hpp"
+
+using namespace arb;
+
+TEST(mc_segment, kinfs) {
     using namespace arb;
     using arb::math::pi;
 
     {
         auto s = make_segment<soma_segment>(1.0);
-
-        EXPECT_EQ(s->volume(), pi<double>()*4./3.);
-        EXPECT_EQ(s->area(),   pi<double>()*4.);
         EXPECT_EQ(s->kind(),   section_kind::soma);
     }
 
     {
         auto s = make_segment<soma_segment>(1.0, point<double>(0., 1., 2.));
-
-        EXPECT_EQ(s->volume(), pi<double>()*4./3.);
-        EXPECT_EQ(s->area(),   pi<double>()*4.);
         EXPECT_EQ(s->kind(),   section_kind::soma);
     }
-}
 
-TEST(segments, cable)
-{
-    using namespace arb;
-    using arb::math::pi;
-
-    // take advantage of fact that a cable segment with constant radius 1 and
-    // length 1 has volume=1. and area=2
-    auto length = 1./pi<double>();
-    auto radius = 1.;
+    double length = 1./pi<double>();
+    double radius = 1.;
 
     // single cylindrical frustrum
     {
         auto s = make_segment<cable_segment>(section_kind::dendrite, radius, radius, length);
-
-        EXPECT_EQ(s->volume(), 1.0);
-        EXPECT_EQ(s->area(),   2.0);
         EXPECT_EQ(s->kind(),   section_kind::dendrite);
     }
 
@@ -54,16 +40,8 @@ TEST(segments, cable)
                 std::vector<double>{length, length, length}
             );
 
-        EXPECT_EQ(s->volume(), 3.0);
-        EXPECT_EQ(s->area(),   6.0);
         EXPECT_EQ(s->kind(),   section_kind::axon);
     }
-}
-
-TEST(segments, cable_positions)
-{
-    using namespace arb;
-    using arb::math::pi;
 
     // single frustrum of length 1 and radii 1 and 2
     // the centre of each end are at the origin (0,0,0) and (0,1,0)
@@ -75,8 +53,6 @@ TEST(segments, cable_positions)
                 point<double>(0,0,0), point<double>(0,1,0)
             );
 
-        EXPECT_EQ(s->volume(), math::volume_frustrum(1., 1., 2.));
-        EXPECT_EQ(s->area(),   math::area_frustrum  (1., 1., 2.));
         EXPECT_EQ(s->kind(),   section_kind::dendrite);
     }
 
@@ -90,8 +66,6 @@ TEST(segments, cable_positions)
                 std::vector<point<double>>{ {0,0,0}, {0,0.5,0}, {0,1,0} }
             );
 
-        EXPECT_EQ(s->volume(), math::volume_frustrum(1., 1., 2.));
-        EXPECT_EQ(s->area(),   math::area_frustrum(1., 1., 2.));
         EXPECT_EQ(s->kind(),   section_kind::axon);
     }
 }

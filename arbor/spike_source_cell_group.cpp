@@ -1,11 +1,13 @@
 #include <exception>
 
-#include <cell_group.hpp>
+#include <arbor/spike_source_cell.hpp>
+#include <arbor/time_sequence.hpp>
+
+#include "cell_group.hpp"
 #include "profile/profiler_macro.hpp"
-#include <recipe.hpp>
-#include <spike_source_cell.hpp>
-#include <spike_source_cell_group.hpp>
-#include <time_sequence.hpp>
+#include "recipe.hpp"
+#include "spike_source_cell_group.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 
@@ -31,7 +33,7 @@ cell_kind spike_source_cell_group::get_cell_kind() const {
 void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& event_lanes) {
     PE(advance_sscell);
 
-    for (auto i: util::make_span(0, gids_.size())) {
+    for (auto i: util::count_along(gids_)) {
         auto& tseq = time_sequences_[i];
         const auto gid = gids_[i];
 

@@ -3,8 +3,10 @@
 
 #include <vector>
 
-#include <time_sequence.hpp>
-#include <util/rangeutil.hpp>
+#include <arbor/time_sequence.hpp>
+
+#include "event_queue.hpp"
+#include "util/rangeutil.hpp"
 
 using namespace arb;
 using pse = postsynaptic_spike_event;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iosfwd>
 #include <vector>
 
 #include <event_generator.hpp>
@@ -56,7 +57,7 @@ namespace impl {
         bool empty(time_type t) const;
         postsynaptic_spike_event head() const;
         void pop();
-        void print() const;
+        friend std::ostream& operator<<(std::ostream&, const tourney_tree&);
 
     private:
         void setup(unsigned i);

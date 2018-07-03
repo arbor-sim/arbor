@@ -17,7 +17,7 @@ namespace {
         return make_fvm_lowered_cell(backend_kind::gpu);
     }
 
-    cell make_cell() {
+    mc_cell make_cell() {
         auto c = make_cell_ball_and_stick();
 
         c.add_detector({0, 0}, 0);

@@ -14,14 +14,14 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/simple_sampler.hpp>
 
-#include "cell.hpp"
 #include "event_generator.hpp"
 #include "hardware/node_info.hpp"
 #include "load_balance.hpp"
 #include "simulation.hpp"
 #include "recipe.hpp"
-#include "simple_sampler.hpp"
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -48,7 +48,7 @@ public:
     //    capacitance: 0.01 F/m² [default]
     //    synapses: 1 * expsyn
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::cell c;
+        arb::mc_cell c;
 
         c.add_soma(18.8/2.0); // convert 18.8 μm diameter to radius
         c.soma()->add_mechanism("pas");

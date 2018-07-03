@@ -4,8 +4,6 @@
 #include <typeinfo>
 #include <type_traits>
 
-#include <util/meta.hpp>
-
 // Partial implementation of std::any from C++17 standard.
 //      http://en.cppreference.com/w/cpp/utility/any
 //
@@ -40,10 +38,10 @@ public:
 
     template <
         typename T,
-        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, any>::value>
+        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, any>::value>::type
     >
     any(T&& other) {
-        using contained_type = util::decay_t<T>;
+        using contained_type = typename std::decay<T>::type;
         static_assert(std::is_copy_constructible<contained_type>::value,
             "Type of contained object stored in any must satisfy the CopyConstructible requirements.");
 
@@ -62,10 +60,10 @@ public:
 
     template <
         typename T,
-        typename = typename util::enable_if_t<!std::is_same<util::decay_t<T>, any>::value>
+        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, any>::value>::type
     >
     any& operator=(T&& other) {
-        using contained_type = util::decay_t<T>;
+        using contained_type = typename std::decay<T>::type;
 
         static_assert(std::is_copy_constructible<contained_type>::value,
             "Type of contained object stored in any must satisfy the CopyConstructible requirements.");

@@ -4,11 +4,10 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/sampling.hpp>
 #include <arbor/spike.hpp>
 
 #include "backends/event.hpp"
-#include "cell.hpp"
-#include "cell_group.hpp"
 #include "cell_group.hpp"
 #include "event_binner.hpp"
 #include "event_queue.hpp"
@@ -17,9 +16,10 @@
 #include "profile/profiler_macro.hpp"
 #include "recipe.hpp"
 #include "sampler_map.hpp"
-#include "sampling.hpp"
 #include "util/filter.hpp"
+#include "util/maputil.hpp"
 #include "util/partition.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 
@@ -30,7 +30,7 @@ mc_cell_group::mc_cell_group(std::vector<cell_gid_type> gids, const recipe& rec,
     set_binning_policy(binning_kind::none, 0);
 
     // Build lookup table for gid to local index.
-    for (auto i: util::make_span(0, gids_.size())) {
+    for (auto i: util::count_along(gids_)) {
         gid_index_map_[gids_[i]] = i;
     }
 
@@ -83,7 +83,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     staged_events_.clear();
     // skip event binning if empty lanes are passed
     if (event_lanes.size()) {
-        for (auto lid: util::make_span(0, gids_.size())) {
+        for (auto lid: util::count_along(gids_)) {
             auto& lane = event_lanes[lid];
             for (auto e: lane) {
                 if (e.time>=ep.tfinal) break;

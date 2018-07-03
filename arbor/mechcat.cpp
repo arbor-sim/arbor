@@ -4,9 +4,9 @@
 #include <vector>
 
 #include <arbor/mechcat.hpp>
+#include <arbor/util/make_unique.hpp>
 
 #include "util/maputil.hpp"
-#include "util/make_unique.hpp"
 
 namespace arb {
 

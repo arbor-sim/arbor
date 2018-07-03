@@ -1,9 +1,10 @@
 #include "../gtest.h"
 
-#include <spike_source_cell.hpp>
-#include <spike_source_cell_group.hpp>
-#include <time_sequence.hpp>
-#include <util/unique_any.hpp>
+#include <arbor/spike_source_cell.hpp>
+#include <arbor/time_sequence.hpp>
+#include <arbor/util/unique_any.hpp>
+
+#include "spike_source_cell_group.hpp"
 
 #include "../simple_recipes.hpp"
 

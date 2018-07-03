@@ -2,11 +2,12 @@
 
 #include <vector>
 
-#include <backends.hpp>
-#include <cell_group.hpp>
-#include <domain_decomposition.hpp>
-#include <recipe.hpp>
-#include <util/unique_any.hpp>
+#include <arbor/util/unique_any.hpp>
+
+#include "backends.hpp"
+#include "cell_group.hpp"
+#include "domain_decomposition.hpp"
+#include "recipe.hpp"
 
 namespace arb {
 

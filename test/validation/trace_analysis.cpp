@@ -7,11 +7,11 @@
 #include "../gtest.h"
 
 #include <arbor/util/optional.hpp>
+#include <arbor/simple_sampler.hpp>
 
-#include <math.hpp>
-#include <simple_sampler.hpp>
-#include <util/partition.hpp>
-#include <util/rangeutil.hpp>
+#include "math.hpp"
+#include "util/partition.hpp"
+#include "util/rangeutil.hpp"
 
 #include "trace_analysis.hpp"
 

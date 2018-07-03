@@ -3,11 +3,10 @@
 #include <algorithm>
 #include <memory>
 #include <random>
+#include <type_traits>
 
 #include <arbor/common_types.hpp>
 
-#include "event_queue.hpp"
-#include "util/meta.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {
@@ -33,9 +32,10 @@ public:
 
     template <
         typename Impl,
-        typename = typename util::enable_if_t<
+        typename = typename std::enable_if<
             !std::is_same<typename std::decay<Impl>::type,
-                          time_seq>::value>>
+                          time_seq>::value>::type
+    >
     time_seq(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))
     {}
@@ -123,8 +123,8 @@ struct vector_time_seq {
         seq_(std::move(seq))
     {
         // Ensure that the time values are sorted.
-        if(!std::is_sorted(seq_.begin(), seq_.end())) {
-            util::sort(seq_);
+        if (!std::is_sorted(seq_.begin(), seq_.end())) {
+            std::sort(seq_.begin(), seq_.end());
         }
         reset();
     }

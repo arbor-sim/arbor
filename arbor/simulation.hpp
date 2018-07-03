@@ -7,6 +7,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/sampling.hpp>
 
 #include "backends.hpp"
 #include "cell_group.hpp"
@@ -14,7 +15,6 @@
 #include "domain_decomposition.hpp"
 #include "epoch.hpp"
 #include "recipe.hpp"
-#include "sampling.hpp"
 #include "util/nop.hpp"
 #include "util/handle_set.hpp"
 

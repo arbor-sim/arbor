@@ -5,8 +5,8 @@
 #include <random>
 #include <unordered_set>
 
-#include <simd/simd.hpp>
-#include <simd/avx.hpp>
+#include <arbor/simd/simd.hpp>
+#include <arbor/simd/avx.hpp>
 
 #include "common.hpp"
 

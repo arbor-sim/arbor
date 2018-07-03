@@ -1,13 +1,13 @@
 #pragma once
 
 #include <arbor/fvm_types.hpp>
+#include <arbor/mc_cell.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
 #include <arbor/util/enumhash.hpp>
 
-#include "cell.hpp"
-#include "compartment.hpp"
+#include "fvm_compartment.hpp"
 #include "util/deduce_return.hpp"
 #include "util/span.hpp"
 
@@ -86,7 +86,7 @@ struct fvm_discretization {
     }
 };
 
-fvm_discretization fvm_discretize(const std::vector<cell>& cells);
+fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells);
 
 
 // Post-discretization data for point and density mechanism instantiation.
@@ -136,6 +136,6 @@ struct fvm_mechanism_data {
     std::size_t ntarget = 0;
 };
 
-fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<cell>& cells, const fvm_discretization& D);
+fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D);
 
 } // namespace arb

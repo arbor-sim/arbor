@@ -1,8 +1,9 @@
 #pragma once
 
-#include <cell_group.hpp>
-#include <recipe.hpp>
-#include <time_sequence.hpp>
+#include <arbor/time_sequence.hpp>
+
+#include "cell_group.hpp"
+#include "recipe.hpp"
 
 namespace arb {
 

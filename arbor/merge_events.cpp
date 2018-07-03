@@ -1,15 +1,15 @@
+#include <iostream>
 #include <set>
 #include <vector>
 
-#include <backends.hpp>
-#include <cell_group.hpp>
-#include <cell_group_factory.hpp>
-#include <domain_decomposition.hpp>
-#include <merge_events.hpp>
-#include <recipe.hpp>
-#include <util/filter.hpp>
-#include <util/span.hpp>
-#include <util/unique_any.hpp>
+#include "backends.hpp"
+#include "cell_group.hpp"
+#include "cell_group_factory.hpp"
+#include "domain_decomposition.hpp"
+#include "merge_events.hpp"
+#include "recipe.hpp"
+#include "util/filter.hpp"
+#include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
@@ -53,12 +53,16 @@ tourney_tree::tourney_tree(std::vector<event_generator>& input):
     setup(0);
 }
 
-void tourney_tree::print() const {
-    auto nxt=1u;
-    for (auto i=0u; i<nodes_; ++i) {
-        if (i==nxt-1) { nxt*=2; std::cout << "\n";}
-        std::cout << "{" << heap_[i].first << "," << heap_[i].second << "}\n";
+std::ostream& operator<<(std::ostream& out, const tourney_tree& tt) {
+    unsigned nxt = 1;
+    for (unsigned i = 0; i<tt.nodes_; ++i) {
+        if (i==nxt-1) {
+            nxt*=2;
+            out << "\n";
+        }
+        out << "{" << tt.heap_[i].first << "," << tt.heap_[i].second << "}\n";
     }
+    return out;
 }
 
 bool tourney_tree::empty() const {

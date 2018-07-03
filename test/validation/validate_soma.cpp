@@ -1,14 +1,14 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/simple_sampler.hpp>
 
-#include <cell.hpp>
 #include <hardware/gpu.hpp>
 #include <hardware/node_info.hpp>
 #include <load_balance.hpp>
 #include <simulation.hpp>
 #include <recipe.hpp>
-#include <simple_sampler.hpp>
 #include <util/rangeutil.hpp>
 
 #include "../common_cells.hpp"
@@ -25,7 +25,7 @@ using namespace arb;
 void validate_soma(backend_kind backend) {
     float sample_dt = g_trace_io.sample_dt();
 
-    cell c = make_cell_soma_only();
+    mc_cell c = make_cell_soma_only();
 
     cable1d_recipe rec{c};
     rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});

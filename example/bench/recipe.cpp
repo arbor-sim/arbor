@@ -1,9 +1,8 @@
 #include <random>
 
+#include <arbor/benchmark_cell.hpp>
 #include <arbor/common_types.hpp>
-
-#include <benchmark_cell.hpp>
-#include <time_sequence.hpp>
+#include <arbor/time_sequence.hpp>
 
 #include "recipe.hpp"
 

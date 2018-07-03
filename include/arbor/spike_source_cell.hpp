@@ -1,6 +1,6 @@
 #pragma once
 
-#include <time_sequence.hpp>
+#include <arbor/time_sequence.hpp>
 
 namespace arb {
 

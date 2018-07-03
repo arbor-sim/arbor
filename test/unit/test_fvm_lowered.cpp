@@ -5,11 +5,13 @@
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/mc_segment.hpp>
+#include <arbor/sampling.hpp>
 
 #include "algorithms.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
-#include "cell.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
 #include "load_balance.hpp"
@@ -17,9 +19,7 @@
 #include "simulation.hpp"
 #include "recipe.hpp"
 #include "sampler_map.hpp"
-#include "sampling.hpp"
 #include "schedule.hpp"
-#include "segment.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
@@ -87,7 +87,7 @@ TEST(fvm_lowered, matrix_init)
     algorithms::generic_is_positive ispos;
     algorithms::generic_is_negative isneg;
 
-    arb::cell cell = make_cell_ball_and_stick();
+    mc_cell cell = make_cell_ball_and_stick();
 
     ASSERT_EQ(2u, cell.num_segments());
     cell.segment(1)->set_compartments(10);
@@ -119,7 +119,7 @@ TEST(fvm_lowered, matrix_init)
 TEST(fvm_lowered, target_handles) {
     using namespace arb;
 
-    arb::cell cells[] = {
+    mc_cell cells[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_3stick()
     };
@@ -178,7 +178,7 @@ TEST(fvm_lowered, stimulus) {
     // amplitude | 0.3  |  0.1
     // CV        |   4  |    0
 
-    std::vector<cell> cells;
+    std::vector<mc_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
 
     cells[0].add_stimulus({1,1},   {5., 80., 0.3});
@@ -253,9 +253,9 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
-    std::vector<cell> cells(3);
+    std::vector<mc_cell> cells(3);
     for (int i = 0; i<3; ++i) {
-        cell& c = cells[i];
+        mc_cell& c = cells[i];
         c.add_soma(6.0);
         c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
 
@@ -376,7 +376,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     // the same as a 100µm dendrite, which makes it easier to describe the
     // expected weights.
 
-    cell c;
+    mc_cell c;
     c.add_soma(5);
 
     c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
