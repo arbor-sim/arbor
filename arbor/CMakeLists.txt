@@ -34,6 +34,7 @@ set(arbor_sources
     profile/meter_manager.cpp
     profile/power_meter.cpp
     profile/profiler.cpp
+    recipe.cpp
     schedule.cpp
     spike_source_cell_group.cpp
     swcio.cpp

@@ -1,11 +1,11 @@
 #include <exception>
 
+#include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/time_sequence.hpp>
 
 #include "cell_group.hpp"
 #include "profile/profiler_macro.hpp"
-#include "recipe.hpp"
 #include "spike_source_cell_group.hpp"
 #include "util/span.hpp"
 
@@ -21,7 +21,7 @@ spike_source_cell_group::spike_source_cell_group(std::vector<cell_gid_type> gids
             time_sequences_.push_back(std::move(cell.seq));
         }
         catch (util::bad_any_cast& e) {
-            throw std::runtime_error("model cell type mismatch: gid "+std::to_string(gid)+" is not a spike_source_cell");
+            throw bad_cell_description(cell_kind::spike_source, gid);
         }
     }
 }

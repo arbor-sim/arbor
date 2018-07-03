@@ -68,7 +68,7 @@ protected:
         using ::arb::event_index;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
-            throw std::range_error("too many events");
+            throw arbor_internal_error("gpu/multi_event_stream: too many events for size type");
         }
 
         arb_assert(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));

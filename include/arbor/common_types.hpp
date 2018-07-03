@@ -64,6 +64,13 @@ using probe_tag = int;
 
 using sample_size_type = std::int32_t;
 
+// Enumeration for execution back-end targets, as specified in domain decompositions.
+
+enum class backend_kind {
+    multicore,   //  Use multicore back-end for all computation.
+    gpu          //  Use gpu back-end when supported by cell_group implementation.
+};
+
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
@@ -78,6 +85,7 @@ enum class cell_kind {
 
 std::ostream& operator<<(std::ostream& O, arb::cell_member_type m);
 std::ostream& operator<<(std::ostream& O, arb::cell_kind k);
+std::ostream& operator<<(std::ostream& O, arb::backend_kind k);
 
 namespace std {
     template <> struct hash<arb::cell_member_type> {

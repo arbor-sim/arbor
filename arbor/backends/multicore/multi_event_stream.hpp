@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <arbor/assert.hpp>
+#include <arbor/arbexcept.hpp>
 #include <arbor/fvm_types.hpp>
 
 #include "backends/event.hpp"
@@ -58,7 +59,7 @@ public:
         using ::arb::event_data;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
-            throw std::range_error("too many events");
+            throw arbor_internal_error("multicore/multi_event_stream: too many events for size type");
         }
 
         // Sort by index (staged events should already be time-sorted).

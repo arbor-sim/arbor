@@ -2,12 +2,12 @@
 #include <exception>
 
 #include <arbor/benchmark_cell.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/time_sequence.hpp>
 
-#include <cell_group.hpp>
-#include <profile/profiler_macro.hpp>
-#include <recipe.hpp>
-#include <benchmark_cell_group.hpp>
+#include "cell_group.hpp"
+#include "profile/profiler_macro.hpp"
+#include "benchmark_cell_group.hpp"
 
 #include "util/span.hpp"
 

@@ -1,17 +1,23 @@
 #pragma once
 
-/* Thin wrapper around std::snprintf for sprintf-like formatting
- * to std::string. */
+// printf-like routines that return std::string.
+//
+// TODO: Consolidate with a single routine that provides a consistent interface
+// along the lines of the PO645R2 text formatting proposal.
 
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <sstream>
 #include <system_error>
 #include <utility>
 #include <vector>
 
 namespace arb {
 namespace util {
+
+// Use snprintf to format a string, with special handling for standard
+// smart pointer types and strings.
 
 namespace impl {
     template <typename X>
@@ -45,6 +51,34 @@ std::string strprintf(const char* fmt, Args&&... args) {
 template <typename... Args>
 std::string strprintf(const std::string& fmt, Args&&... args) {
     return strprintf(fmt.c_str(), std::forward<Args>(args)...);
+}
+
+// Substitute instances of '{}' in the format string with the following parameters,
+// using default std::ostream formatting.
+
+namespace impl {
+    void pprintf_(std::ostringstream& o, const char* s) {
+        o << s;
+    }
+
+    void pprintf_(std::ostringstream& o, const char* s, T&& value, Args...&& args) {
+        const char* t = s;
+        while (*t && !(*t=='{' && t[1]=='}')) {
+            ++t;
+        }
+        o.write(s, t-s);
+        if (*t) {
+            o << std::forward<T>(value);
+            pprintf_(o, t+2, std::forward<Args>(args)...);
+        }
+    }
+}
+
+template <typename T, typename ... Args>
+std::string pprintf(const char *s, Args...&& args) {
+    std::ostringstream o;
+    impl::pprintf_(o, std::forward<Args>(args)...);
+    return o.str();
 }
 
 } // namespace util

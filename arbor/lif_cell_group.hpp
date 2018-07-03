@@ -2,12 +2,13 @@
 
 #include <vector>
 
+#include <arbor/common_types.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/sampling.hpp>
+#include <arbor/spike.hpp>
 
 #include "cell_group.hpp"
-#include "event_queue.hpp"
-#include "profile/profiler_macro.hpp"
-#include "recipe.hpp"
 
 namespace arb {
 

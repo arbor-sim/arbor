@@ -21,3 +21,13 @@ std::ostream& operator<<(std::ostream& o, arb::cell_kind k) {
     return o;
 }
 
+std::ostream& operator<<(std::ostream& o, arb::backend_kind k) {
+    o << "backend_kind::";
+    switch (k) {
+    case arb::backend_kind::multicore:
+        return o << "multicore";
+    case arb::backend_kind::gpu:
+        return o << "gpu";
+    }
+    return o;
+}

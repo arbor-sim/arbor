@@ -2,12 +2,12 @@
 #include <set>
 #include <vector>
 
-#include "backends.hpp"
+#include <darboe/omain_decomposition.hpp>
+#include <arboe/recipe.hpp>
+
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
-#include "domain_decomposition.hpp"
 #include "merge_events.hpp"
-#include "recipe.hpp"
 #include "util/filter.hpp"
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"

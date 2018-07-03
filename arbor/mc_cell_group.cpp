@@ -5,6 +5,7 @@
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
 #include "backends/event.hpp"
@@ -14,7 +15,6 @@
 #include "fvm_lowered_cell.hpp"
 #include "mc_cell_group.hpp"
 #include "profile/profiler_macro.hpp"
-#include "recipe.hpp"
 #include "sampler_map.hpp"
 #include "util/filter.hpp"
 #include "util/maputil.hpp"

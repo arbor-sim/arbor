@@ -83,7 +83,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
     for (auto i: ion_state_tbl) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, i.first);
         if (!oion) {
-            throw std::logic_error("mechanism holds ion with no corresponding shared state");
+            throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
         }
 
         ion_state_view& ion_view = *i.second;
@@ -136,7 +136,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
     for (auto i: ion_index_table()) {
         util::optional<ion_state&> oion = value_by_key(shared.ion_data, i.first);
         if (!oion) {
-            throw std::logic_error("mechanism holds ion with no corresponding shared state");
+            throw arbor_internal_error("multicore/mechanism: mechanism holds ion with no corresponding shared state");
         }
 
         auto indices = util::index_into(node_index_, oion->node_index_);
@@ -154,7 +154,7 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
 void mechanism::set_parameter(const std::string& key, const std::vector<fvm_value_type>& values) {
     if (auto opt_ptr = value_by_key(field_table(), key)) {
         if (values.size()!=width_) {
-            throw std::logic_error("internal error: mechanism parameter size mismatch");
+            throw arbor_internal_error("multicore/mechanism: mechanism parameter size mismatch");
         }
 
         if (width_>0) {
@@ -166,7 +166,7 @@ void mechanism::set_parameter(const std::string& key, const std::vector<fvm_valu
         }
     }
     else {
-        throw std::logic_error("internal error: no such mechanism parameter");
+        throw arbor_internal_error("multicore/mechanism: no such mechanism parameter");
     }
 }
 
@@ -177,7 +177,7 @@ void mechanism::set_global(const std::string& key, fvm_value_type value) {
         global = value;
     }
     else {
-        throw std::logic_error("internal error: no such mechanism global");
+        throw arbor_internal_error("multicore/mechanism: no such mechanism global");
     }
 }
 
