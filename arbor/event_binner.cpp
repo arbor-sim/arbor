@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/optional.hpp>

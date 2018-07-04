@@ -5,11 +5,9 @@
 #include <random>
 
 #include <arbor/common_types.hpp>
+#include <arbor/generic_event.hpp>
+#include <arbor/spike_event.hpp>
 #include <arbor/time_sequence.hpp>
-
-#include "event_queue.hpp"
-#include "util/range.hpp"
-#include "util/rangeutil.hpp"
 
 namespace arb {
 
@@ -17,12 +15,12 @@ namespace arb {
 // terminal_time. Such events are used as sentinels, to indicate the
 // end of a sequence.
 inline constexpr
-postsynaptic_spike_event make_terminal_pse() {
-    return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
+spike_event make_terminal_pse() {
+    return spike_event{cell_member_type{0,0}, terminal_time, 0};
 }
 
 inline
-bool is_terminal_pse(const postsynaptic_spike_event& e) {
+bool is_terminal_pse(const spike_event& e) {
     return e.time==terminal_time;
 }
 
@@ -31,8 +29,8 @@ bool is_terminal_pse(const postsynaptic_spike_event& e) {
 // Declared ahead of event_generator so that it can be used as the default
 // generator.
 struct empty_generator {
-    postsynaptic_spike_event front() {
-        return postsynaptic_spike_event{cell_member_type{0,0}, terminal_time, 0};
+    spike_event front() {
+        return spike_event{cell_member_type{0,0}, terminal_time, 0};
     }
     void pop() {}
     void reset() {}
@@ -78,7 +76,7 @@ public:
     // Does not modify the state of the stream, i.e. multiple calls to
     // front() will return the same event in the absence of calls to pop(),
     // advance() or reset().
-    postsynaptic_spike_event front() {
+    spike_event front() {
         return impl_->front();
     }
 
@@ -100,7 +98,7 @@ public:
 
 private:
     struct interface {
-        virtual postsynaptic_spike_event front() = 0;
+        virtual spike_event front() = 0;
         virtual void pop() = 0;
         virtual void advance(time_type t) = 0;
         virtual void reset() = 0;
@@ -115,7 +113,7 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        postsynaptic_spike_event front() override {
+        spike_event front() override {
             return wrapped.front();
         }
 
@@ -142,15 +140,15 @@ private:
 // Generator that feeds events that are specified with a vector.
 // Makes a copy of the input sequence of events.
 struct vector_backed_generator {
-    using pse = postsynaptic_spike_event;
+    using pse = spike_event;
     vector_backed_generator(cell_member_type target, float weight, std::vector<time_type> samples):
         target_(target),
         weight_(weight),
         tseq_(std::move(samples))
     {}
 
-    postsynaptic_spike_event front() {
-        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
+    spike_event front() {
+        return spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {
@@ -177,15 +175,15 @@ private:
 // does not outlive the sequence.
 template <typename Seq>
 struct seq_generator {
-    using pse = postsynaptic_spike_event;
+    using pse = spike_event;
     seq_generator(Seq& events):
         events_(events),
         it_(std::begin(events_))
     {
-        arb_assert(util::is_sorted(events_));
+        arb_assert(std::is_sorted(events_.begin(), events_.end()));
     }
 
-    postsynaptic_spike_event front() {
+    spike_event front() {
         return it_==events_.end()? make_terminal_pse(): *it_;
     }
 
@@ -212,7 +210,7 @@ private:
 //  * with delivery times t=t_start+n*dt, ∀ t ∈ [t_start, t_stop)
 //  * with a set target and weight
 struct regular_generator {
-    using pse = postsynaptic_spike_event;
+    using pse = spike_event;
 
     regular_generator(cell_member_type target,
                       float weight,
@@ -224,8 +222,8 @@ struct regular_generator {
         tseq_(tstart, dt, tstop)
     {}
 
-    postsynaptic_spike_event front() {
-        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
+    spike_event front() {
+        return spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {
@@ -250,7 +248,7 @@ private:
 // with rate_per_ms spikes per ms.
 template <typename RandomNumberEngine>
 struct poisson_generator {
-    using pse = postsynaptic_spike_event;
+    using pse = spike_event;
 
     poisson_generator(cell_member_type target,
                       float weight,
@@ -265,8 +263,8 @@ struct poisson_generator {
         reset();
     }
 
-    postsynaptic_spike_event front() {
-        return postsynaptic_spike_event{target_, tseq_.front(), weight_};
+    spike_event front() {
+        return spike_event{target_, tseq_.front(), weight_};
     }
 
     void pop() {

@@ -11,14 +11,17 @@
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/profile/profiler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
 
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <util/ioutil.hpp>
+#include "hardware/node_info.hpp"
+#include "load_balance.hpp"
+#include "util/ioutil.hpp"
 
 #include "json_meter.hpp"
 
+#include "parameters.hpp"
 #include "recipe.hpp"
 
 using namespace arb;

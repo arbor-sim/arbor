@@ -4,12 +4,12 @@
 #include <utility>
 
 #include <arbor/assert.hpp>
+#include <arbor/event_generator.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/morphology.hpp>
 #include <arbor/spike_source_cell.hpp>
 #include <arbor/time_sequence.hpp>
 
-#include "event_generator.hpp"
 
 #include "io.hpp"
 #include "miniapp_recipes.hpp"
@@ -109,7 +109,7 @@ public:
 
     probe_info get_probe(cell_member_type probe_id) const override {
         if (probe_id.index>=num_probes(probe_id.gid)) {
-            throw invalid_recipe_error("invalid probe id");
+            throw arb::bad_probe_id(probe_id);
         }
 
         // if we have both voltage and current probes, then order them
@@ -305,7 +305,7 @@ public:
         basic_cell_recipe(ncell, std::move(param), std::move(pdist))
     {
         if (std::size_t(param.num_synapses) != ncell-1) {
-            throw invalid_recipe_error("number of synapses per cell must equal number "
+            throw std::runtime_error("number of synapses per cell must equal number "
                 "of cells minus one in complete graph model");
         }
     }

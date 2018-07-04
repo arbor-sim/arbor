@@ -2,8 +2,9 @@
 #include <set>
 #include <vector>
 
-#include <darboe/omain_decomposition.hpp>
-#include <arboe/recipe.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
 
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
@@ -73,7 +74,7 @@ bool tourney_tree::empty(time_type t) const {
     return event(0).time >= t;
 }
 
-postsynaptic_spike_event tourney_tree::head() const {
+spike_event tourney_tree::head() const {
     return event(0);
 }
 
@@ -130,10 +131,10 @@ bool tourney_tree::is_leaf(unsigned i) const {
 const unsigned& tourney_tree::id(unsigned i) const {
     return heap_[i].first;
 }
-postsynaptic_spike_event& tourney_tree::event(unsigned i) {
+spike_event& tourney_tree::event(unsigned i) {
     return heap_[i].second;
 }
-const postsynaptic_spike_event& tourney_tree::event(unsigned i) const {
+const spike_event& tourney_tree::event(unsigned i) const {
     return heap_[i].second;
 }
 

@@ -1,15 +1,14 @@
 #include "../gtest.h"
-#include "common.hpp"
 
 #include <vector>
 
 #include <arbor/time_sequence.hpp>
 
-#include "event_queue.hpp"
 #include "util/rangeutil.hpp"
 
+#include "common.hpp"
+
 using namespace arb;
-using pse = postsynaptic_spike_event;
 
 namespace{
     // Helper function that draws all samples in the half open interval

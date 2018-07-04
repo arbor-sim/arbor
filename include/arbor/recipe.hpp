@@ -67,7 +67,7 @@ public:
     }
 
     virtual probe_info get_probe(cell_member_type probe_id) const {
-        throw bad_probe_id(m);
+        throw bad_probe_id(probe_id);
     }
 
     // Global property type will be specific to given cell kind.

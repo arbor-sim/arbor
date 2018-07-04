@@ -1,6 +1,7 @@
 # Sources:
 
 set(arbor_sources
+    arbexcept.cpp
     assert.cpp
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
@@ -34,8 +35,8 @@ set(arbor_sources
     profile/meter_manager.cpp
     profile/power_meter.cpp
     profile/profiler.cpp
-    recipe.cpp
     schedule.cpp
+    spike_event_io.cpp
     spike_source_cell_group.cpp
     swcio.cpp
     threadinfo.cpp

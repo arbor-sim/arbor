@@ -9,10 +9,10 @@
 #include <arbor/assert.hpp>
 #include <arbor/arbexcept.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/generic_event.hpp>
 
 #include "backends/event.hpp"
 #include "backends/multi_event_stream_state.hpp"
-#include "generic_event.hpp"
 #include "algorithms.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"

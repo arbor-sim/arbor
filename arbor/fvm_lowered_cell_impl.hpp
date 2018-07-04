@@ -298,14 +298,14 @@ void fvm_lowered_cell_impl<B>::initialize(
     std::vector<mc_cell> cells;
     const std::size_t ncell = gids.size();
 
-    try {
-        cells.reserve(ncell);
-        for (auto gid: gids) {
+    cells.reserve(ncell);
+    for (auto gid: gids) {
+        try {
             cells.push_back(any_cast<mc_cell>(rec.get_cell_description(gid)));
         }
-    }
-    catch (util::bad_any_cast&) {
-        throw bad_cell_description(rec.get_cell_kind(gid), gid);
+        catch (util::bad_any_cast&) {
+            throw bad_cell_description(rec.get_cell_kind(gid), gid);
+        }
     }
 
     mc_cell_global_properties global_props;
@@ -316,7 +316,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         }
     }
     catch (util::bad_any_cast&) {
-        throw bad_global_property(rec.get_cell_kind(gid));
+        throw bad_global_property(cell_kind::cable1d_neuron);
     }
 
     const mechanism_catalogue* catalogue = global_props.catalogue;

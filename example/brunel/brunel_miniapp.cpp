@@ -8,9 +8,12 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
 #include <arbor/util/make_unique.hpp>
 #include <arbor/version.hpp>
@@ -20,12 +23,9 @@
 #include "with_mpi.hpp"
 #endif
 
-#include "event_generator.hpp"
 #include "hardware/gpu.hpp"
 #include "hardware/node_info.hpp"
 #include "io/exporter_spike_file.hpp"
-#include "recipe.hpp"
-#include "simulation.hpp"
 #include "util/ioutil.hpp"
 
 #include "partitioner.hpp"

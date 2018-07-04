@@ -3,15 +3,19 @@
 #include <vector>
 
 #include <arbor/recipe.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/schedule.hpp>
+#include <arbor/simulation.hpp>
 
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
-#include "domain_decomposition.hpp"
+#include "communication/communicator.hpp"
 #include "merge_events.hpp"
-#include "simulation.hpp"
 #include "thread_private_spike_store.hpp"
 #include "util/double_buffer.hpp"
 #include "util/filter.hpp"
+#include "util/maputil.hpp"
+#include "util/partition.hpp"
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
@@ -40,7 +44,7 @@ public:
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, const distribued_context* ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx);
 
     void reset();
 
@@ -102,16 +106,16 @@ private:
     // Apply a functional to each cell group in parallel.
     template <typename L>
     void foreach_group(L fn) {
-        threading::parallel_for::apply(0, cell_groups.size(),
-            [&cell_groups_](int i) { fn(cell_groups_[i]); });
+        threading::parallel_for::apply(0, cell_groups_.size(),
+            [&](int i) { fn(cell_groups_[i]); });
     }
 
     // Apply a functional to each cell group in parallel, supplying
     // the cell group pointer reference and index.
     template <typename L>
     void foreach_group_index(L fn) {
-        threading::parallel_for::apply(0, cell_groups.size(),
-            [&cell_groups_](int i) { fn(cell_groups_[i], i); });
+        threading::parallel_for::apply(0, cell_groups_.size(),
+            [&](int i) { fn(cell_groups_[i], i); });
     }
 };
 
@@ -372,7 +376,7 @@ sampler_association_handle simulation::add_sampler(
     sampler_function f,
     sampling_policy policy)
 {
-    return impl_->(std::move(probe_ids), std::move(schedule), std::move(f), policy);
+    return impl_->add_sampler(std::move(probe_ids), std::move(sched), std::move(f), policy);
 }
 
 void simulation::remove_sampler(sampler_association_handle h) {
@@ -380,11 +384,11 @@ void simulation::remove_sampler(sampler_association_handle h) {
 }
 
 void simulation::remove_all_samplers() {
-    impl_->remove_all_samplers(h);
+    impl_->remove_all_samplers();
 }
 
-std::size_t simulation::num_spikes() {
-    return impl_->num_spikes(h);
+std::size_t simulation::num_spikes() const {
+    return impl_->num_spikes();
 }
 
 void simulation::set_binning_policy(binning_kind policy, time_type bin_interval) {

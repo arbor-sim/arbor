@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <iterator>
 #include <memory>
 #include <random>
 #include <vector>
@@ -8,8 +9,6 @@
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/util/compat.hpp>
-
-#include "util/meta.hpp"
 
 // Time schedules for probe–sampler associations.
 
@@ -102,11 +101,17 @@ inline schedule regular_schedule(time_type dt) {
 // Schedule at times given explicitly via a provided sorted sequence.
 class explicit_schedule_impl {
 public:
-    template <typename Seq, typename = util::enable_if_sequence_t<const Seq&>>
+    explicit_schedule_impl(const explicit_schedule_impl&) = default;
+    explicit_schedule_impl(explicit_schedule_impl&&) = default;
+
+    template <typename Seq>
     explicit explicit_schedule_impl(const Seq& seq):
-        start_index_(0),
-        times_(std::begin(seq), compat::end(seq))
+        start_index_(0)
     {
+        using std::begin;
+        using compat::end; // TODO: replace with std::end when we nuke xlC support.
+
+        times_.assign(begin(seq), end(seq));
         arb_assert(std::is_sorted(times_.begin(), times_.end()));
     }
 

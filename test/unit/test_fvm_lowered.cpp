@@ -7,7 +7,10 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/mc_segment.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
+#include <arbor/simulation.hpp>
+#include <arbor/schedule.hpp>
 
 #include "algorithms.hpp"
 #include "backends/multicore/fvm.hpp"
@@ -16,10 +19,7 @@
 #include "fvm_lowered_cell_impl.hpp"
 #include "load_balance.hpp"
 #include "math.hpp"
-#include "simulation.hpp"
-#include "recipe.hpp"
 #include "sampler_map.hpp"
-#include "schedule.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"

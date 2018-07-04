@@ -11,17 +11,16 @@
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/sampling.hpp>
+#include <arbor/schedule.hpp>
+#include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
 #include <arbor/util/any.hpp>
 #include <arbor/version.hpp>
 
-#include "communication/communicator.hpp"
 #include "hardware/gpu.hpp"
 #include "hardware/node_info.hpp"
 #include "io/exporter_spike_file.hpp"
 #include "load_balance.hpp"
-#include "simulation.hpp"
-#include "schedule.hpp"
 #include "util/ioutil.hpp"
 
 #include "json_meter.hpp"
@@ -36,7 +35,6 @@
 using namespace arb;
 
 using util::any_cast;
-using util::make_span;
 
 void banner(hw::node_info, const distributed_context*);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
@@ -102,7 +100,7 @@ int main(int argc, char** argv) {
                         continue;
                     }
 
-                    for (cell_lid_type j: make_span(0, recipe->num_probes(gid))) {
+                    for (cell_lid_type j = 0; j<recipe->num_probes(gid); ++j) {
                         sample_traces.push_back(make_trace(recipe->get_probe({gid, j})));
                     }
                 }

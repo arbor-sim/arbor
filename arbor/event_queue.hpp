@@ -10,8 +10,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/spike_event.hpp>
 #include <arbor/util/optional.hpp>
-
-#include "generic_event.hpp"
+#include <arbor/generic_event.hpp>
 
 namespace arb {
 

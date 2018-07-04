@@ -5,13 +5,14 @@
 #include <vector>
 
 #include <arbor/distributed_context.hpp>
+#include <arbor/spike_event.hpp>
 
-#include <communication/communicator.hpp>
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
-#include <util/filter.hpp>
-#include <util/rangeutil.hpp>
-#include <util/span.hpp>
+#include "communication/communicator.hpp"
+#include "hardware/node_info.hpp"
+#include "load_balance.hpp"
+#include "util/filter.hpp"
+#include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 using namespace arb;
 
@@ -211,7 +212,7 @@ namespace {
 
     // gid expects an event from source_of(gid) with weight gid, and fired at
     // time source_of(gid).
-    postsynaptic_spike_event expected_event_ring(cell_gid_type gid, cell_size_type num_cells) {
+    spike_event expected_event_ring(cell_gid_type gid, cell_size_type num_cells) {
         auto sid = source_of(gid, num_cells);
         return {
             {gid, 0u},  // source
@@ -267,7 +268,7 @@ namespace {
         cell_size_type ranks_;
     };
 
-    postsynaptic_spike_event expected_event_all2all(cell_gid_type gid, cell_gid_type sid) {
+    spike_event expected_event_all2all(cell_gid_type gid, cell_gid_type sid) {
         return {
             {gid, sid},      // target, event from sid goes to synapse with index sid
             sid+1.0f,        // time (all conns have delay 1 ms)

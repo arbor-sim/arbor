@@ -1,3 +1,4 @@
+#include <arbor/arbexcept.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/mechcat.hpp>
@@ -194,7 +195,7 @@ TEST(mechcat, fingerprint) {
     EXPECT_EQ("burbleprint", cat.fingerprint("bleeble"));
 
     EXPECT_THROW(cat.register_implementation<bar_backend>("burble", make_mech<bar_backend, burble_bar>()),
-        std::invalid_argument);
+        arb::fingerprint_mismatch);
 }
 
 TEST(mechcat, derived_info) {
@@ -245,7 +246,7 @@ TEST(mechcat, remove) {
 TEST(mechcat, instance) {
     auto cat = build_fake_catalogue();
 
-    EXPECT_THROW(cat.instance<bar_backend>("burble"), std::invalid_argument);
+    EXPECT_THROW(cat.instance<bar_backend>("burble"), arb::no_such_implementation);
 
     // All fleebs on the bar backend have the same implementation:
 

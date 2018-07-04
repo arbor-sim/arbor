@@ -1,5 +1,5 @@
 #include <string>
-#include <strstream>
+#include <sstream>
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
@@ -33,12 +33,12 @@ bad_event_time::bad_event_time(time_type event_time, time_type sim_time):
 {}
 
 no_such_mechanism::no_such_mechanism(const std::string& mech_name):
-    arbor_exception(pprintf("no mechanism {} in catalogue"), mech_name),
+    arbor_exception(pprintf("no mechanism {} in catalogue", mech_name)),
     mech_name(mech_name)
 {}
 
 duplicate_mechanism::duplicate_mechanism(const std::string& mech_name):
-    arbor_exception(pprintf("mechanism {} already exists"), mech_name),
+    arbor_exception(pprintf("mechanism {} already exists", mech_name)),
     mech_name(mech_name)
 {}
 
@@ -60,7 +60,7 @@ invalid_parameter_value::invalid_parameter_value(const std::string& mech_name, c
     value(value)
 {}
 
-no_such_implementation::no_such_implementation(const std::string& mech_name, const std::string& backend_name):
+no_such_implementation::no_such_implementation(const std::string& mech_name):
     arbor_exception(pprintf("missing implementation for mechanism {} in catalogue", mech_name)),
     mech_name(mech_name)
 {}

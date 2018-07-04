@@ -6,13 +6,13 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
+#include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/spike_event.hpp>
 
 #include "epoch.hpp"
 #include "event_binner.hpp"
 #include "event_queue.hpp"
-#include "schedule.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {

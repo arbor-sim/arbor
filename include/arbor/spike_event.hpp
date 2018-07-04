@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iosfwd>
 #include <tuple>
 #include <vector>
 
@@ -14,15 +15,17 @@ struct spike_event {
     time_type time;
     float weight;
 
-    friend bool operator==(const postsynaptic_spike_event& l, const postsynaptic_spike_event& r) {
+    friend bool operator==(const spike_event& l, const spike_event& r) {
         return l.target==r.target && l.time==r.time && l.weight==r.weight;
     }
 
-    friend bool operator<(const postsynaptic_spike_event& l, const postsynaptic_spike_event& r) {
+    friend bool operator<(const spike_event& l, const spike_event& r) {
         return std::tie(l.time, l.target, l.weight) < std::tie(r.time, r.target, r.weight);
     }
 };
 
 using pse_vector = std::vector<spike_event>;
+
+std::ostream& operator<<(std::ostream&, const spike_event&);
 
 } // namespace arb

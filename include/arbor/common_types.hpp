@@ -81,11 +81,19 @@ enum class cell_kind {
     benchmark,        // Proxy cell used for benchmarking.
 };
 
-} // namespace arb
+// Enumeration for event time binning policy.
 
-std::ostream& operator<<(std::ostream& O, arb::cell_member_type m);
-std::ostream& operator<<(std::ostream& O, arb::cell_kind k);
-std::ostream& operator<<(std::ostream& O, arb::backend_kind k);
+enum class binning_kind {
+    none,
+    regular,   // => round time down to multiple of binning interval.
+    following, // => round times down to previous event if within binning interval.
+};
+
+std::ostream& operator<<(std::ostream& o, cell_member_type m);
+std::ostream& operator<<(std::ostream& o, cell_kind k);
+std::ostream& operator<<(std::ostream& o, backend_kind k);
+
+} // namespace arb
 
 namespace std {
     template <> struct hash<arb::cell_member_type> {

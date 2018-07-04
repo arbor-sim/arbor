@@ -4,10 +4,10 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/generic_event.hpp>
 
 #include "backends/event.hpp"
 #include "backends/multi_event_stream_state.hpp"
-#include "generic_event.hpp"
 #include "memory/array.hpp"
 #include "memory/copy.hpp"
 #include "profile/profiler_macro.hpp"

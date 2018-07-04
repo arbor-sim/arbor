@@ -11,8 +11,8 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/sampling.hpp>
+#include <arbor/schedule.hpp>
 
-#include "schedule.hpp"
 #include "util/deduce_return.hpp"
 #include "util/transform.hpp"
 

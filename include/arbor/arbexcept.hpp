@@ -30,8 +30,8 @@ struct arbor_exception: std::runtime_error {
 // Recipe errors:
 
 struct bad_cell_description: arbor_exception {
-    bad_cell_description(cell_kind kind, gid_type gid);
-    gid_type gid;
+    bad_cell_description(cell_kind kind, cell_gid_type gid);
+    cell_gid_type gid;
     cell_kind kind;
 };
 
@@ -79,7 +79,7 @@ struct no_such_parameter: arbor_exception {
 struct invalid_parameter_value: arbor_exception {
     invalid_parameter_value(const std::string& mech_name, const std::string& param_name, double value);
     std::string mech_name;
-    std::string param_name
+    std::string param_name;
     double value;
 };
 

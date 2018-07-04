@@ -3,12 +3,14 @@
 #include <cmath>
 #include <vector>
 
-#include <event_queue.hpp>
+#include <arbor/spike_event.hpp>
+
+#include "event_queue.hpp"
 
 using namespace arb;
 
 TEST(event_queue, push) {
-    using ps_event_queue = event_queue<postsynaptic_spike_event>;
+    using ps_event_queue = event_queue<spike_event>;
 
     ps_event_queue q;
 
@@ -29,7 +31,7 @@ TEST(event_queue, push) {
 }
 
 TEST(event_queue, pop_if_before) {
-    using ps_event_queue = event_queue<postsynaptic_spike_event>;
+    using ps_event_queue = event_queue<spike_event>;
 
     cell_member_type target[4] = {
         {1u, 0u},
@@ -38,7 +40,7 @@ TEST(event_queue, pop_if_before) {
         {2u, 3u}
     };
 
-    postsynaptic_spike_event events[] = {
+    spike_event events[] = {
         {target[0], 1.f, 2.f},
         {target[1], 2.f, 2.f},
         {target[2], 3.f, 2.f},

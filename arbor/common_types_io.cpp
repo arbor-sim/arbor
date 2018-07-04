@@ -2,8 +2,10 @@
 
 #include <arbor/common_types.hpp>
 
-std::ostream& operator<<(std::ostream& O, arb::cell_member_type m) {
-    return O << m.gid << ':' << m.index;
+namespace arb {
+
+std::ostream& operator<<(std::ostream& o, arb::cell_member_type m) {
+    return o << m.gid << ':' << m.index;
 }
 
 std::ostream& operator<<(std::ostream& o, arb::cell_kind k) {
@@ -30,4 +32,6 @@ std::ostream& operator<<(std::ostream& o, arb::backend_kind k) {
         return o << "gpu";
     }
     return o;
+}
+
 }

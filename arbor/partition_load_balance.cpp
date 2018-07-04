@@ -4,6 +4,7 @@
 #include <arbor/recipe.hpp>
 
 #include "hardware/node_info.hpp"
+#include "util/partition.hpp"
 #include "util/span.hpp"
 
 namespace arb {
