@@ -72,6 +72,7 @@ set(unit_sources
     test_swcio.cpp
     test_synapses.cpp
     test_time_seq.cpp
+    test_thread.cpp
     test_tree.cpp
     test_transform.cpp
     test_uninitialized.cpp

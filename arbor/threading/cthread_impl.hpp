@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+#include <type_traits>
 
 #include <thread>
 #include <mutex>
@@ -31,7 +33,8 @@ using std::mutex;
 using lock = std::unique_lock<mutex>;
 using std::condition_variable;
 
-using task = std::pair<std::function<void()>, task_group*>;
+//using task = std::pair<std::function<void()>, task_group*>;
+using task = std::function<void()>;
 using task_queue = std::deque<task>;
 
 using thread_list = std::vector<std::thread>;
@@ -55,7 +58,7 @@ public:
     bool pop(task& tsk);
 
     // Pushes a task into the task queue and increases task group counter.
-    void push(task&& tsk);
+    void push(task&& tsk); // TODO: need to use value?
     bool try_push(task& tsk);
 
     // Stop queue from popping new tasks.
@@ -92,13 +95,14 @@ public:
     ~task_system();
 
     // Pushes tasks into notification queue.
-    void async_(task&& tsk);
-
-    // Waits for all tasks in the group to be done.
-    void wait(task_group*);
+    void async_(task tsk);
 
     // Runs tasks until quit is true.
     void run_tasks_loop();
+
+    // Request that the task_system attempts to find and run a _single_ task.
+    // Will return without executing a task if no tasks available.
+    void try_run_task();
 
     // Includes master thread.
     int get_num_threads();
@@ -165,37 +169,48 @@ using lock = std::unique_lock<mutex>;
 
 class task_group {
 private:
-    std::atomic<std::size_t> in_flight{0};
-    impl::task_system& global_task_system;
+    std::atomic<std::size_t> in_flight_{0};
+    impl::task_system& task_system_;
 
 public:
     task_group():
-        global_task_system{impl::task_system::get_global_task_system()}
+        task_system_{impl::task_system::get_global_task_system()}
     {}
 
     task_group(const task_group&) = delete;
     task_group& operator=(const task_group&) = delete;
 
-    void dec_in_flight() {
-        in_flight--;
-    }
+    // TODO: this will be wrapped with another std::function<void()>
+    //       which might be a bit inneficient.
+    struct wrap {
+        std::function<void()> f;
+        std::atomic<std::size_t>& counter;
 
-    void inc_in_flight() {
-        in_flight++;
-    }
+        template <typename F>
+        wrap(F&& f, std::atomic<std::size_t>& counter):
+            f(std::forward<F>(f)),
+            counter(counter)
+        {}
 
-    std::size_t get_in_flight() {
-        return in_flight;
-    }
+        void operator()() {
+            f();
+            --counter;
+        }
+    };
 
     template<typename F>
     void run(F&& f) {
-        global_task_system.async_(impl::task{std::forward<F>(f), this});
+        ++in_flight_;
+
+        task_system_.async_(
+                wrap(std::forward<F>(f), in_flight_));
     }
 
     // wait till all tasks in this group are done
     void wait() {
-        global_task_system.wait(this);
+        while (in_flight_) {
+            task_system_.try_run_task();
+        }
     }
 
     // Make sure that all tasks are done before clean up

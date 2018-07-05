@@ -37,7 +37,7 @@ bool notification_queue::try_push(task& tsk) {
         lock q_lock{q_mutex_, std::try_to_lock};
         if(!q_lock) return false;
         q_tasks_.push_back(std::move(tsk));
-        tsk.second->inc_in_flight();
+        //tsk.second->inc_in_flight();
     }
     q_tasks_available_.notify_all();
     return true;
@@ -47,7 +47,7 @@ void notification_queue::push(task&& tsk) {
     {
         lock q_lock{q_mutex_};
         q_tasks_.push_back(std::move(tsk));
-        tsk.second->inc_in_flight();
+        //tsk.second->inc_in_flight();
     }
     q_tasks_available_.notify_all();
 }
@@ -67,9 +67,9 @@ void task_system::run_tasks_loop(){
         for(unsigned n = 0; n != count_; n++) {
             if(q_[(i + n) % count_].try_pop(tsk)) break;
         }
-        if(!tsk.first && !q_[i].pop(tsk)) break;
-        tsk.first();
-        tsk.second->dec_in_flight();
+        if(!tsk && !q_[i].pop(tsk)) break;
+        tsk();
+        //tsk.second->dec_in_flight();
     }
 }
 
@@ -94,7 +94,7 @@ task_system::~task_system() {
     for (auto& e : threads_) e.join();
 }
 
-void task_system::async_(task&& tsk) {
+void task_system::async_(task tsk) {
     auto i = index_++;
 
     for(unsigned n = 0; n != count_; n++) {
@@ -119,16 +119,30 @@ task_system& task_system::get_global_task_system() {
     return global_task_system;
 }
 
+void task_system::try_run_task() {
+    auto i = get_current_thread();
+    auto nt = get_num_threads();
+
+    task tsk;
+    for(int n = 0; n != nt; n++) {
+        if(q_[(i + n) % nt].try_pop(tsk)) {
+            tsk();
+            break;
+        }
+    }
+}
+/*
 void task_system::wait(task_group* g) {
     size_t i = get_current_thread();
     while(g->get_in_flight()) {
         task tsk;
         for(int n = 0; n != get_num_threads(); n++) {
             if(q_[(i + n) % get_num_threads()].try_pop(tsk)) {
-                tsk.first();
-                tsk.second->dec_in_flight();
+                tsk();
+                //tsk.second->dec_in_flight();
                 break;
             }
         }
     }
 }
+*/
