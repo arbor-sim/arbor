@@ -30,7 +30,7 @@ void validate_soma(backend_kind backend) {
 
     cable1d_recipe rec{c};
     rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});
-    probe_label plabels[1] = {"soma.mid", {0u, 0u}};
+    probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     distributed_context context;
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);

@@ -88,9 +88,12 @@ namespace impl_seqtrait {
     template <typename Seq, typename = void>
     struct data_returns_pointer: std::false_type {};
 
+    template <typename T, std::size_t N>
+    struct data_returns_pointer<T (&)[N], void>: public std::true_type {};
+
     template <typename T>
-    struct data_returns_pointer<T, void_t<decltype(util::data(std::declval<T>()))>>:
-        public std::is_pointer<decltype(util::data(std::declval<T>()))>::type {};
+    struct data_returns_pointer<T, void_t<decltype(std::declval<T>().data())>>:
+        public std::is_pointer<decltype(std::declval<T>().data())>::type {};
 
     template <typename Seq>
     struct sequence_traits {

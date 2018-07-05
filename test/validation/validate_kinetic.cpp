@@ -37,7 +37,8 @@ void run_kinetic_dt(
 
     cable1d_recipe rec{c};
     rec.add_probe(0, 0, probe);
-    probe_label plabels[1] = {"soma.mid", {0u, 0u}};
+
+    probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     meta["sim"] = "arbor";
     meta["backend_kind"] = util::to_string(backend);
