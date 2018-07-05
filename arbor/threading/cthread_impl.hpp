@@ -218,7 +218,7 @@ class task_group {
 private:
     std::atomic<std::size_t> in_flight{0};
     impl::task_system& global_task_system;
-    mutex g_mutex_;
+    //mutex g_mutex_;
 
 public:
     task_group():
@@ -229,17 +229,13 @@ public:
     task_group& operator=(const task_group&) = delete;
 
     void dec_in_flight() {
-        {
-            lock g_lock{g_mutex_};
-            in_flight--;
-        }
+        //lock g_lock{g_mutex_};
+        in_flight--;
     }
 
     void inc_in_flight() {
-        {
-            lock g_lock{g_mutex_};
-            in_flight++;
-        }
+        //lock g_lock{g_mutex_};
+        in_flight++;
     }
 
     std::size_t get_in_flight() {
