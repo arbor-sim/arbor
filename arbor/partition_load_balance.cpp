@@ -1,9 +1,10 @@
 #include <arbor/distributed_context.hpp>
 #include <arbor/util/enumhash.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
 
-#include "domain_decomposition.hpp"
 #include "hardware/node_info.hpp"
-#include "recipe.hpp"
+#include "util/partition.hpp"
 #include "util/span.hpp"
 
 namespace arb {

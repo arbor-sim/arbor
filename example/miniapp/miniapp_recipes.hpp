@@ -5,8 +5,7 @@
 #include <stdexcept>
 
 #include <arbor/util/optional.hpp>
-
-#include "recipe.hpp"
+#include <arbor/recipe.hpp>
 
 #include "morphology_pool.hpp"
 

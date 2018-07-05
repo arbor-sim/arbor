@@ -1,8 +1,11 @@
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
 
-#include "domain_decomposition.hpp"
 #include "hardware/node_info.hpp"
-#include "recipe.hpp"
+#include "util/partition.hpp"
+#include "util/span.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
     static
@@ -33,7 +36,7 @@ namespace arb {
         // Global load balance
         std::vector<cell_gid_type> gid_divisions;
         auto gid_part = make_partition(
-            gid_divisions, util::transform_view(util::make_span(0, num_domains), dom_size));
+            gid_divisions, util::transform_view(util::make_span(num_domains), dom_size));
 
         auto range = gid_part[domain_id];
         cell_size_type num_local_cells = range.second - range.first;

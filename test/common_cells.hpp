@@ -3,8 +3,7 @@
 #include <arbor/mc_cell.hpp>
 #include <arbor/mc_segment.hpp>
 #include <arbor/mechinfo.hpp>
-
-#include "recipe.hpp"
+#include <arbor/recipe.hpp>
 
 namespace arb {
 

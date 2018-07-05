@@ -1,9 +1,10 @@
 #pragma once
 
 #include <unordered_map>
-#include <stdexcept>
+#include <string>
 #include <vector>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/ion.hpp>
@@ -11,8 +12,15 @@
 #include <arbor/morphology.hpp>
 #include <arbor/mc_segment.hpp>
 
-
 namespace arb {
+
+// Specialize arbor exception for errors in cell building.
+
+struct mc_cell_error: arbor_exception {
+    mc_cell_error(const std::string& what):
+        arbor_exception("mc_cell: "+what)
+    {}
+};
 
 // Location specification for point processes.
 
@@ -161,7 +169,7 @@ public:
     const soma_segment* soma() const;
 
     /// access pointer to a cable segment
-    /// will throw an std::out_of_range exception if
+    /// will throw an mc_cell_error exception if
     /// the cable index is not valid
     cable_segment* cable(index_type index);
 
@@ -252,10 +260,8 @@ template <typename... Args>
 cable_segment* mc_cell::add_cable(mc_cell::index_type parent, Args&&... args)
 {
     // check for a valid parent id
-    if(parent>=num_segments()) {
-        throw std::out_of_range(
-            "parent index of cell segment is out of range"
-        );
+    if (parent>=num_segments()) {
+        throw mc_cell_error("parent index of cell segment is out of range");
     }
     segments_.push_back(make_segment<cable_segment>(std::forward<Args>(args)...));
     parents_.push_back(parent);

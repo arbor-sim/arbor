@@ -2,14 +2,15 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/mc_cell.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
+#include <arbor/simulation.hpp>
 
-#include <hardware/gpu.hpp>
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <util/rangeutil.hpp>
+#include "hardware/gpu.hpp"
+#include "hardware/node_info.hpp"
+#include "load_balance.hpp"
+#include "util/rangeutil.hpp"
+#include "util/strprintf.hpp"
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
@@ -41,7 +42,7 @@ void validate_soma(backend_kind backend) {
         {"model", "soma"},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", to_string(backend)}
+        {"backend_kind", util::to_string(backend)}
     };
 
     convergence_test_runner<float> runner("dt", plabels, meta);

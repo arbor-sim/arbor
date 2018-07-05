@@ -1,10 +1,13 @@
 #pragma once
 
 #include <arbor/benchmark_cell.hpp>
-#include <arbor/time_sequence.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/sampling.hpp>
+#include <arbor/spike.hpp>
 
 #include "cell_group.hpp"
-#include "recipe.hpp"
+#include "epoch.hpp"
 
 namespace arb {
 

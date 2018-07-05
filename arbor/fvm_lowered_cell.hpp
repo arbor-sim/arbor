@@ -3,14 +3,14 @@
 #include <memory>
 #include <vector>
 
+#include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/recipe.hpp>
 
-#include <backends.hpp>
-#include <backends/event.hpp>
-#include <backends/threshold_crossing.hpp>
-#include <recipe.hpp>
-#include <sampler_map.hpp>
-#include <util/range.hpp>
+#include "backends/event.hpp"
+#include "backends/threshold_crossing.hpp"
+#include "sampler_map.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 

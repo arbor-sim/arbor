@@ -1,11 +1,13 @@
 #include "../gtest.h"
+
+#include <arbor/event_generator.hpp>
+#include <arbor/spike_event.hpp>
+
+#include "util/rangeutil.hpp"
+
 #include "common.hpp"
 
-#include <event_generator.hpp>
-#include <util/rangeutil.hpp>
-
 using namespace arb;
-using pse = postsynaptic_spike_event;
 
 namespace{
     pse_vector draw(event_generator& gen, time_type t0, time_type t1) {
@@ -60,7 +62,7 @@ TEST(event_generators, regular) {
 }
 
 TEST(event_generators, seq) {
-    std::vector<pse> in = {
+    pse_vector in = {
         {{0, 0}, 0.1, 1.0},
         {{0, 0}, 1.0, 2.0},
         {{0, 0}, 1.0, 3.0},

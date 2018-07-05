@@ -25,7 +25,7 @@ constexpr bool using_gnu_compiler(int major=0, int minor=0, int patchlevel=0) {
 #endif
 }
 
-// std::end() broken with (at least) xlC 13.1.4.
+// std::end() broken with xlC 13.1.4; fixed in 13.1.5.
 
 namespace impl {
     using std::end;
@@ -43,6 +43,7 @@ template <typename T, std::size_t N>
 const T* end(const T (&x)[N]) { return &x[0]+N; }
 
 // Work-around bad optimization reordering in xlC 13.1.4.
+// Note: still broken in xlC 14.1.0
 
 inline void compiler_barrier_if_xlc_leq(unsigned ver) {
 #if defined(__xlC__)
@@ -64,6 +65,7 @@ inline void compiler_barrier_if_icc_leq(unsigned ver) {
 
 // Work-around bad ordering of std::isinf() (sometimes) within switch, xlC 13.1.4;
 // wrapping the call within another function appears to be sufficient.
+// Note: still broken in xlC 14.1.0.
 
 template <typename X>
 inline constexpr bool isinf(X x) { return std::isinf(x); }

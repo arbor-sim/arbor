@@ -11,14 +11,14 @@
 #include <arbor/common_types.hpp>
 #include <arbor/communication/gathered_vector.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
 #include "algorithms.hpp"
 #include "connection.hpp"
-#include "domain_decomposition.hpp"
 #include "event_queue.hpp"
 #include "profile/profiler_macro.hpp"
-#include "recipe.hpp"
 #include "threading/threading.hpp"
 #include "util/double_buffer.hpp"
 #include "util/partition.hpp"

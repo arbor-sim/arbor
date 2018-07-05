@@ -43,15 +43,15 @@ public:
     using const_rvalue_reference= const X&&;
 
     pointer ptr() {
-        // COMPAT: xlC 13.1.4 workaround:
+        // COMPAT: xlC 13.1.4 workaround (still broken in 14.1.0):
         // should be equivalent to `return reinterpret_cast<X*>(&data)`.
-        compat::compiler_barrier_if_xlc_leq(0x0d01);
+        compat::compiler_barrier_if_xlc_leq(0x0e01);
         return static_cast<X*>(static_cast<void*>(&data));
     }
     const_pointer cptr() const {
-        // COMPAT: xlC 13.1.4 workaround:
+        // COMPAT: xlC 13.1.4 workaround (still broken in 14.1.0):
         // should be equivalent to `return reinterpret_cast<const X*>(&data)`
-        compat::compiler_barrier_if_xlc_leq(0x0d01);
+        compat::compiler_barrier_if_xlc_leq(0x0e01);
         return static_cast<const X*>(static_cast<const void*>(&data));
     }
 
