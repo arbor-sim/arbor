@@ -32,20 +32,6 @@ bool notification_queue::pop(task& tsk) {
     return true;
 }
 
-template<typename B>
-bool notification_queue::pop_if_not(task& tsk, B finished) {
-    lock q_lock{q_mutex_};
-    while (q_tasks_.empty() && !quit_ && ! finished) {
-        q_tasks_available_.wait(q_lock);
-    }
-    if(q_tasks_.empty()) {
-        return false;
-    }
-    std::swap(tsk, q_tasks_.front());
-    q_tasks_.pop_front();
-    return true;
-}
-
 bool notification_queue::try_push(const task& tsk) {
     {
         lock q_lock{q_mutex_, std::try_to_lock};
