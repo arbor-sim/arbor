@@ -70,16 +70,18 @@ distance(I first, E last) {
  * generic front() and back() methods for containers or ranges
  */
 
-// TODO: Use ADL begin and end when we avoid explicit return type in C++14
 template <typename Seq>
-auto front(Seq& seq) -> decltype(*std::begin(seq)) {
-    return *std::begin(seq);
+decltype(auto) front(Seq& seq) {
+    using std::begin;
+    return *begin(seq);
 }
 
-// TODO: Use ADL begin and end when we avoid explicit return type in C++14
 template <typename Seq>
-auto back(Seq& seq) -> decltype(*std::begin(seq)) {
-    return *upto(std::begin(seq), std::end(seq));
+decltype(auto) back(Seq& seq) {
+    using std::begin;
+    using std::end;
+
+    return *upto(begin(seq), end(seq));
 }
 
 /*

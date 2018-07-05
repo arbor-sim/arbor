@@ -108,9 +108,9 @@ struct range {
         std::swap(right, other.right);
     }
 
-    auto front() const -> decltype(*left) { return *left; }
+    decltype(auto) front() const { return *left; }
 
-    auto back() const -> decltype(*left) { return *upto(left, right); }
+    decltype(auto) back() const { return *upto(left, right); }
 
     template <typename V = iterator>
     std::enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
@@ -184,37 +184,26 @@ range<U, V> make_range(const std::pair<U, V>& iterators) {
 // Present a possibly sentinel-terminated range as an STL-compatible sequence
 // using the sentinel_iterator adaptor.
 
-// TODO: ADL begin/end with C++14 deduced return.
 template <typename Seq>
-auto canonical_view(Seq& s) ->
-    range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
-{
-    return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
-}
+auto canonical_view(Seq&& s) {
+    using std::begin;
+    using std::end;
 
-template <typename Seq>
-auto canonical_view(const Seq& s) ->
-    range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
-{
-    return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
+    return make_range(
+        make_sentinel_iterator(begin(s), end(s)),
+        make_sentinel_end(begin(s), end(s)));
 }
 
 // Strictly evaluate end point in sentinel-terminated range and present as a range over
 // iterators. Note: O(N) behaviour with forward iterator ranges or sentinel-terminated ranges.
 
 template <typename Seq>
-auto strict_view(Seq&& s) -> range<decltype(std::begin(s))>
-{
-    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
-}
+auto strict_view(Seq&& s) {
+    using std::begin;
+    using std::end;
 
-#if 0
-template <typename Seq>
-auto strict_view(const Seq& s) -> range<decltype(std::begin(s))>
-{
-    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
+    return make_range(begin(s), begin(s)==end(s)? begin(s): std::next(util::upto(begin(s), end(s))));
 }
-#endif
 
 } // namespace util
 } // namespace arb

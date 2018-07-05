@@ -286,7 +286,7 @@ public:
     }
 
     static constexpr auto
-    alignment() -> decltype(coordinator_type::alignment()) {
+    alignment() {
         return coordinator_type::alignment();
     }
 
@@ -458,7 +458,7 @@ public:
     }
 
     static constexpr auto
-    alignment() -> decltype(coordinator_type::alignment()) {
+    alignment() {
         return coordinator_type::alignment();
     }
 

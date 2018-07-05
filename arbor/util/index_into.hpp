@@ -120,35 +120,18 @@ private:
     }
 };
 
-template <
-    typename Sub,
-    typename Super,
-    typename Canon = decltype(canonical_view(std::declval<Sub>()))
->
-auto index_into(const Sub& sub, const Super& sup)
-    -> range<
-           index_into_iterator<
-                typename sequence_traits<Canon>::const_iterator,
-                typename sequence_traits<Super>::const_iterator,
-                typename sequence_traits<Super>::const_sentinel
-           >
-       >
-{
-    using iterator =
-        index_into_iterator<
-            typename sequence_traits<Canon>::const_iterator,
-            typename sequence_traits<Super>::const_iterator,
-            typename sequence_traits<Super>::const_sentinel
-        >;
-
+template <typename Sub, typename Super>
+auto index_into(const Sub& sub, const Super& sup) {
     using std::begin;
     using std::end;
 
     auto canon = canonical_view(sub);
-    iterator b(canon.begin(), canon.end(), begin(sup), end(sup));
-    iterator e(canon.end(), canon.end(), begin(sup), end(sup));
+    using iterator = index_into_iterator<decltype(canon.begin()), decltype(begin(sup)), decltype(end(sup))>;
 
-    return range<iterator>(b, e);
+    return make_range(
+        iterator(canon.begin(), canon.end(), begin(sup), end(sup)),
+        iterator(canon.end(), canon.end(), begin(sup), end(sup))
+    );
 }
 
 } // namespace util

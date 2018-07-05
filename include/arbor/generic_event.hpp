@@ -44,17 +44,17 @@
 namespace arb {
 
 template <typename Event>
-auto event_time(const Event& ev) -> decltype(ev.time) {
+auto event_time(const Event& ev) {
     return ev.time;
 }
 
 template <typename Event>
-auto event_index(const Event& ev) -> decltype(ev.index) {
+auto event_index(const Event& ev) {
     return ev.index;
 }
 
 template <typename Event>
-auto event_data(const Event& ev) -> decltype(ev.data) {
+auto event_data(const Event& ev) {
     return ev.data;
 }
 

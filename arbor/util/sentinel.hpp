@@ -70,7 +70,7 @@ public:
 
     // forward and input iterator requirements
 
-    auto operator*() const -> decltype(*(this->iter())) { return *iter(); }
+    decltype(auto) operator*() const { return *iter(); }
 
     I operator->() const { return e_.template ptr<0>(); }
 
@@ -141,7 +141,7 @@ public:
         return iter()-x.iter();
     }
 
-    auto operator[](difference_type n) const -> decltype(*(this->iter())) {
+    decltype(auto) operator[](difference_type n) const {
         return *(iter()+n);
     }
 

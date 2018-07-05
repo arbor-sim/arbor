@@ -25,10 +25,10 @@ template <typename X, std::size_t N>
 constexpr std::size_t size(X (&)[N]) noexcept { return N; }
 
 template <typename C>
-constexpr auto data(C& c) -> decltype(c.data()) { return c.data(); }
+constexpr auto data(C& c) { return c.data(); }
 
 template <typename C>
-constexpr auto data(const C& c) -> decltype(c.data()) { return c.data(); }
+constexpr auto data(const C& c) { return c.data(); }
 
 template <typename T, std::size_t N>
 constexpr T* data(T (&a)[N]) noexcept { return a; }

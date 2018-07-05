@@ -309,12 +309,12 @@ public:
 
     // pointer to element access: return nullptr if it does not hold this item
     template <std::size_t I>
-    auto ptr() -> decltype(getter<I>::ptr(which, *this)) {
+    auto ptr() {
         return getter<I>::ptr(which, *this);
     }
 
     template <std::size_t I>
-    auto ptr() const -> decltype(getter<I>::ptr(which, *this)) {
+    auto ptr() const {
         return getter<I>::ptr(which, *this);
     }
 

@@ -120,7 +120,7 @@ template <
     typename C,
     typename = std::enable_if_t<util::is_on_host_v<C>()>
 >
-auto on_host(const C& c) -> decltype(make_const_view(c)) {
+auto on_host(const C& c) {
     return make_const_view(c);
 }
 

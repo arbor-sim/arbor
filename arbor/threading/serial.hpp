@@ -34,7 +34,7 @@ public :
     T& local() { return data[0]; }
     const T& local() const { return data[0]; }
 
-    auto size() -> decltype(data.size()) const { return data.size(); }
+    auto size() const { return data.size(); }
 
     iterator begin() { return data.begin(); }
     iterator end()   { return data.end(); }

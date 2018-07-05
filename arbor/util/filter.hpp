@@ -130,7 +130,7 @@ public:
 
     // forward and input iterator requirements
 
-    auto operator*() const -> decltype(*(this->inner_)) {
+    decltype(auto) operator*() const {
         advance();
         return *inner_;
     }
