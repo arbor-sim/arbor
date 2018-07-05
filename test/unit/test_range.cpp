@@ -315,7 +315,7 @@ TYPED_TEST_CASE_P(counter_range);
 
 TYPED_TEST_P(counter_range, max_size) {
     using int_type = TypeParam;
-    using unsigned_int_type = typename std::make_unsigned<int_type>::type;
+    using unsigned_int_type = std::make_unsigned_t<int_type>;
     using counter = util::counter<int_type>;
 
     auto l = counter{int_type{1}};
@@ -328,8 +328,8 @@ TYPED_TEST_P(counter_range, max_size) {
 
 TYPED_TEST_P(counter_range, extreme_size) {
     using int_type = TypeParam;
-    using signed_int_type = typename std::make_signed<int_type>::type;
-    using unsigned_int_type = typename std::make_unsigned<int_type>::type;
+    using signed_int_type = std::make_signed_t<int_type>;
+    using unsigned_int_type = std::make_unsigned_t<int_type>;
     using counter = util::counter<signed_int_type>;
 
     auto l = counter{std::numeric_limits<signed_int_type>::min()};
@@ -342,7 +342,7 @@ TYPED_TEST_P(counter_range, extreme_size) {
 
 TYPED_TEST_P(counter_range, size) {
     using int_type = TypeParam;
-    using signed_int_type = typename std::make_signed<int_type>::type;
+    using signed_int_type = std::make_signed_t<int_type>;
     using counter = util::counter<signed_int_type>;
 
     auto l = counter{signed_int_type{-3}};
@@ -354,7 +354,7 @@ TYPED_TEST_P(counter_range, size) {
 
 TYPED_TEST_P(counter_range, at) {
     using int_type = TypeParam;
-    using signed_int_type = typename std::make_signed<int_type>::type;
+    using signed_int_type = std::make_signed_t<int_type>;
     using counter = util::counter<signed_int_type>;
 
     auto l = counter{signed_int_type{-3}};
@@ -369,7 +369,7 @@ TYPED_TEST_P(counter_range, at) {
 
 TYPED_TEST_P(counter_range, iteration) {
     using int_type = TypeParam;
-    using signed_int_type = typename std::make_signed<int_type>::type;
+    using signed_int_type = std::make_signed_t<int_type>;
     using counter = util::counter<signed_int_type>;
 
     auto j = signed_int_type{-3};

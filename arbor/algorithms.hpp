@@ -31,7 +31,7 @@ typename util::sequence_traits<C>::value_type
 sum(C const& c)
 {
     using value_type = typename util::sequence_traits<C>::value_type;
-    return std::accumulate(util::cbegin(c), util::cend(c), value_type{0});
+    return std::accumulate(std::cbegin(c), std::cend(c), value_type{0});
 }
 
 template <typename C>

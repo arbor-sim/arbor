@@ -173,7 +173,7 @@ TEST(optional, ctor_nocopy) {
 
     const optional<nocopy> ccheck(nocopy(1));
     EXPECT_TRUE(std::is_rvalue_reference<decltype(std::move(ccheck).value())>::value);
-    EXPECT_TRUE(std::is_const<std::remove_reference<decltype(std::move(ccheck).value())>::type>::value);
+    EXPECT_TRUE(std::is_const<std::remove_reference_t<decltype(std::move(ccheck).value())>>::value);
 }
 
 TEST(optional, value_or) {
@@ -242,7 +242,7 @@ TEST(optional, ref_value_or) {
 
     const optional<double&> cx = x;
     auto& ref3 = cx.value_or(b);
-    EXPECT_TRUE(std::is_const<std::remove_reference<decltype(ref3)>::type>::value);
+    EXPECT_TRUE(std::is_const<std::remove_reference_t<decltype(ref3)>>::value);
     EXPECT_EQ(&b, &ref3);
 }
 

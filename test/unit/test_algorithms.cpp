@@ -780,7 +780,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(vr, 10);
         auto found = itv!=std::end(vr);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(arb::util::cbegin(v), itv), 1u);
+        EXPECT_EQ(std::distance(std::cbegin(v), itv), 1u);
         if (found) {
             EXPECT_EQ(*itv, 10);
         }

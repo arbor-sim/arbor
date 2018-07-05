@@ -47,7 +47,7 @@ struct range {
     using sentinel = S;
     using const_iterator = iterator;
     using difference_type = typename std::iterator_traits<iterator>::difference_type;
-    using size_type = typename std::make_unsigned<difference_type>::type;
+    using size_type = std::make_unsigned_t<difference_type>;
     using value_type = typename std::iterator_traits<iterator>::value_type;
     using reference = typename std::iterator_traits<iterator>::reference;
     using const_reference = const value_type&;
@@ -67,7 +67,7 @@ struct range {
     template <
         typename U1,
         typename U2,
-        typename = enable_if_t<
+        typename = std::enable_if_t<
             std::is_constructible<iterator, U1>::value &&
             std::is_constructible<sentinel, U2>::value>
     >
@@ -94,7 +94,7 @@ struct range {
     sentinel cend() const { return right; }
 
     template <typename V = iterator>
-    enable_if_t<is_forward_iterator<V>::value, size_type>
+    std::enable_if_t<is_forward_iterator<V>::value, size_type>
     size() const {
         return util::distance(begin(), end());
     }
@@ -113,13 +113,13 @@ struct range {
     auto back() const -> decltype(*left) { return *upto(left, right); }
 
     template <typename V = iterator>
-    enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
+    std::enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
     operator[](difference_type n) const {
         return *std::next(begin(), n);
     }
 
     template <typename V = iterator>
-    enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
+    std::enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
     at(difference_type n) const {
         if (size_type(n) >= size()) {
             throw std::out_of_range("out of range in range");
@@ -129,7 +129,7 @@ struct range {
 
     // Expose `data` method if a pointer range.
     template <typename V = iterator, typename W = sentinel>
-    enable_if_t<std::is_same<V, W>::value && std::is_pointer<V>::value, iterator>
+    std::enable_if_t<std::is_same<V, W>::value && std::is_pointer<V>::value, iterator>
     data() const {
         return left;
     }

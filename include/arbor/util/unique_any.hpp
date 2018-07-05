@@ -56,7 +56,7 @@ public:
 
     template <
         typename T,
-        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, unique_any>::value>::type
+        typename = std::enable_if_t<!std::is_same<std::decay_t<T>, unique_any>::value>
     >
     unique_any(T&& other) {
         state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
@@ -69,7 +69,7 @@ public:
 
     template <
         typename T,
-        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, unique_any>::value>::type
+        typename = std::enable_if_t<!std::is_same<std::decay_t<T>, unique_any>::value>
     >
     unique_any& operator=(T&& other) {
         state_.reset(new model<contained_type<T>>(std::forward<T>(other)));
@@ -94,7 +94,7 @@ public:
 
 private:
     template <typename T>
-    using contained_type = typename std::decay<T>::type;
+    using contained_type = std::decay_t<T>;
 
     struct interface {
         virtual ~interface() = default;

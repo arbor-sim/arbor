@@ -5,14 +5,13 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/make_unique.hpp>
 
 #include "util/maputil.hpp"
 
 namespace arb {
 
 using util::value_by_key;
-using util::make_unique;
+using std::make_unique;
 
 void mechanism_catalogue::add(const std::string& name, mechanism_info info) {
     if (has(name)) {

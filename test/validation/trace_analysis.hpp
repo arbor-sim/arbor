@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cfloat>
 #include <vector>
 
 #include "../gtest.h"
@@ -7,7 +8,6 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "math.hpp"
 #include "util/path.hpp"
 #include "util/deduce_return.hpp"
 #include "util/rangeutil.hpp"
@@ -93,7 +93,7 @@ void assert_convergence(const ConvEntrySeq& cs) {
     if (util::empty(cs)) return;
 
     auto tbound = [](trace_peak p) { return std::abs(p.t)+p.t_err; };
-    float peak_dt_bound = math::infinity<>();
+    float peak_dt_bound = INFINITY;
 
     for (auto pi = std::begin(cs); std::next(pi)!=std::end(cs); ++pi) {
         const auto& p = *pi;

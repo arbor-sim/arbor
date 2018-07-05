@@ -9,8 +9,8 @@ using namespace arb::math;
 
 TEST(math, pi) {
     // check regression against long double literal in implementation
-    auto pi_ld = pi<long double>();
-    auto pi_d = pi<double>();
+    auto pi_ld = pi<long double>;
+    auto pi_d = pi<double>;
 
     if (std::numeric_limits<long double>::digits>std::numeric_limits<double>::digits) {
         EXPECT_NE(0.0, pi_ld-pi_d);
@@ -55,11 +55,11 @@ TEST(math, lerp) {
 TEST(math, frustrum) {
     // cross check against cone calculation
     auto cone_area = [](double l, double r) {
-        return std::hypot(l,r)*r*pi<double>();
+        return std::hypot(l,r)*r*pi<double>;
     };
 
     auto cone_volume = [](double l, double r) {
-        return pi<double>()*square(r)*l/3.0;
+        return pi<double>*square(r)*l/3.0;
     };
 
     EXPECT_DOUBLE_EQ(cone_area(5.0, 1.3), area_frustrum(5.0, 0.0, 1.3));
@@ -81,17 +81,17 @@ TEST(math, frustrum) {
 
 TEST(math, infinity) {
     // check values for float, double, long double
-    auto finf = infinity<float>();
+    auto finf = infinity<float>;
     EXPECT_TRUE((std::is_same<float, decltype(finf)>::value));
     EXPECT_TRUE(std::isinf(finf));
     EXPECT_GT(finf, 0.f);
 
-    auto dinf = infinity<double>();
+    auto dinf = infinity<double>;
     EXPECT_TRUE((std::is_same<double, decltype(dinf)>::value));
     EXPECT_TRUE(std::isinf(dinf));
     EXPECT_GT(dinf, 0.0);
 
-    auto ldinf = infinity<long double>();
+    auto ldinf = infinity<long double>;
     EXPECT_TRUE((std::is_same<long double, decltype(ldinf)>::value));
     EXPECT_TRUE(std::isinf(ldinf));
     EXPECT_GT(ldinf, 0.0l);
@@ -101,7 +101,7 @@ TEST(math, infinity) {
         float f;
         double d;
         long double ld;
-    } check = {infinity<>(), infinity<>(), infinity<>()};
+    } check = {infinity<>, infinity<>, infinity<>};
 
     EXPECT_EQ(std::numeric_limits<float>::infinity(), check.f);
     EXPECT_EQ(std::numeric_limits<double>::infinity(), check.d);
@@ -130,10 +130,10 @@ TEST(math, signum) {
     double negzero = std::copysign(0., -1.);
     EXPECT_EQ(0, signum(negzero));
 
-    EXPECT_EQ(1, signum(infinity<double>()));
-    EXPECT_EQ(1, signum(infinity<float>()));
-    EXPECT_EQ(-1, signum(-infinity<double>()));
-    EXPECT_EQ(-1, signum(-infinity<float>()));
+    EXPECT_EQ(1, signum(infinity<double>));
+    EXPECT_EQ(1, signum(infinity<float>));
+    EXPECT_EQ(-1, signum(-infinity<double>));
+    EXPECT_EQ(-1, signum(-infinity<float>));
 }
 
 TEST(math, next_pow2) {
@@ -340,7 +340,7 @@ TEST(quaternion, assignop) {
 }
 
 TEST(quaternion, rotate) {
-    double deg_to_rad = pi<double>()/180.;
+    double deg_to_rad = pi<double>/180.;
     double sqrt3o2 = std::sqrt(3.)/2.;
     double eps = 1e-15;
 

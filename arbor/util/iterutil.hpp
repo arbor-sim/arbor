@@ -23,7 +23,7 @@ namespace util {
  * second is used when we can just return std::prev(end).
  */
 template <typename I, typename E>
-enable_if_t<
+std::enable_if_t<
     is_forward_iterator<I>::value &&
         (!is_bidirectional_iterator<E>::value || !std::is_constructible<I, E>::value),
     I>
@@ -37,14 +37,14 @@ upto(I iter, E end) {
 }
 
 template <typename I, typename E>
-enable_if_t<is_bidirectional_iterator<E>::value && std::is_constructible<I, E>::value, I>
+std::enable_if_t<is_bidirectional_iterator<E>::value && std::is_constructible<I, E>::value, I>
 upto(I iter, E end) {
     return iter==I{end}? iter: I{std::prev(end)};
 }
 
 template <typename I, typename E,
           typename C = common_random_access_iterator_t<I,E>>
-enable_if_t<std::is_same<I, E>::value ||
+std::enable_if_t<std::is_same<I, E>::value ||
             (has_common_random_access_iterator<I,E>::value &&
              is_forward_iterator<I>::value),
             typename std::iterator_traits<C>::difference_type>
@@ -53,7 +53,7 @@ distance(I first, E last) {
 }
 
 template <typename I, typename E>
-enable_if_t<!has_common_random_access_iterator<I, E>::value &&
+std::enable_if_t<!has_common_random_access_iterator<I, E>::value &&
             is_forward_iterator<I>::value,
             typename std::iterator_traits<I>::difference_type>
 distance(I first, E last) {

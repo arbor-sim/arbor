@@ -27,9 +27,9 @@ namespace impl {
     template <
         typename C,
         typename seq_value = typename sequence_traits<C>::value_type,
-        typename K = typename std::tuple_element<0, seq_value>::type,
-        typename V = typename std::tuple_element<0, seq_value>::type,
-        typename find_value = decay_t<decltype(*std::declval<C>().find(std::declval<K>()))>
+        typename K = std::tuple_element_t<0, seq_value>,
+        typename V = std::tuple_element_t<0, seq_value>,
+        typename find_value = std::decay_t<decltype(*std::declval<C>().find(std::declval<K>()))>
     >
     struct assoc_test: std::integral_constant<bool, std::is_same<seq_value, find_value>::value> {};
 }
@@ -68,11 +68,11 @@ namespace impl {
         typename Key,
         typename Eq = generic_equal_to,
         typename Ret0 = decltype(get<1>(*std::begin(std::declval<Seq&&>()))),
-        typename Ret = typename std::conditional<
+        typename Ret = std::conditional_t<
             std::is_rvalue_reference<Seq&&>::value || !std::is_lvalue_reference<Ret0>::value,
-            typename std::remove_reference<Ret0>::type,
+            std::remove_reference_t<Ret0>,
             Ret0
-        >::type
+        >
     >
     optional<Ret> value_by_key(std::false_type, Seq&& seq, const Key& key, Eq eq=Eq{}) {
         for (auto&& entry: seq) {
@@ -89,11 +89,11 @@ namespace impl {
         typename Key,
         typename FindRet = decltype(std::declval<Assoc&&>().find(std::declval<Key>())),
         typename Ret0 = decltype(get<1>(*std::declval<FindRet>())),
-        typename Ret = typename std::conditional<
+        typename Ret = std::conditional_t<
             std::is_rvalue_reference<Assoc&&>::value || !std::is_lvalue_reference<Ret0>::value,
-            typename std::remove_reference<Ret0>::type,
+            std::remove_reference_t<Ret0>,
             Ret0
-        >::type
+        >
     >
     optional<Ret> value_by_key(std::true_type, Assoc&& map, const Key& key) {
         auto it = map.find(key);

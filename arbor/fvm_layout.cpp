@@ -441,10 +441,12 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         std::vector<std::vector<value_type>> param_value(nparam);
         std::vector<std::vector<value_type>> param_area_contrib(nparam);
 
-        const auto& info = *entry.second.info; // TODO: C++14, use lambda capture with initializer
-        auto& ion_configs = mechdata.ions;     // TODO: C++14 ditto
         auto accumulate_mech_data =
-            [&param_index, &param_value, &param_area_contrib, &config, &info, &ion_configs]
+            [
+                &info = *entry.second.info,
+                &ion_configs = mechdata.ions,
+                &param_index, &param_value, &param_area_contrib, &config
+            ]
             (size_type index, index_type cv, value_type area, const mechanism_desc& desc)
         {
             for (auto& kv: desc.values()) {

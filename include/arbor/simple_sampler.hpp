@@ -24,7 +24,7 @@ struct trace_entry {
 template <typename V>
 using trace_data = std::vector<trace_entry<V>>;
 
-template <typename V, typename = typename std::enable_if<std::is_trivially_copyable<V>::value>::type>
+template <typename V, typename = std::enable_if_t<std::is_trivially_copyable<V>::value>>
 class simple_sampler {
 public:
     explicit simple_sampler(trace_data<V>& trace): trace_(trace) {}

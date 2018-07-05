@@ -2,6 +2,7 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <unordered_set>
 
@@ -312,13 +313,13 @@ bool Module::semantic() {
 
             switch(solve_expression->method()) {
             case solverMethod::cnexp:
-                solver = make_unique<CnexpSolverVisitor>();
+                solver = std::make_unique<CnexpSolverVisitor>();
                 break;
             case solverMethod::sparse:
-                solver = make_unique<SparseSolverVisitor>();
+                solver = std::make_unique<SparseSolverVisitor>();
                 break;
             case solverMethod::none:
-                solver = make_unique<DirectSolverVisitor>();
+                solver = std::make_unique<DirectSolverVisitor>();
                 break;
             }
 

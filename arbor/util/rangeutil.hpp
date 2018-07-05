@@ -39,7 +39,7 @@ range_view(Seq&& seq) {
     return make_range(std::begin(seq), std::end(seq));
 }
 
-template <typename Seq, typename = enable_if_t<sequence_traits<Seq&&>::is_contiguous>>
+template <typename Seq, typename = std::enable_if_t<sequence_traits<Seq&&>::is_contiguous>>
 auto range_pointer_view(Seq&& seq)
     DEDUCED_RETURN_TYPE(make_range(util::data(seq), util::data(seq)+util::size(seq)))
 
@@ -49,7 +49,7 @@ template <
     typename Offset2,
     typename Iter = typename sequence_traits<Seq&&>::iterator
 >
-enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
+std::enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
 subrange_view(Seq&& seq, Offset1 bi, Offset2 ei) {
     Iter b = std::begin(seq);
     std::advance(b, bi);
@@ -65,7 +65,7 @@ template <
     typename Offset2,
     typename Iter = typename sequence_traits<Seq&&>::iterator
 >
-enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
+std::enable_if_t<is_forward_iterator<Iter>::value, range<Iter>>
 subrange_view(Seq&& seq, std::pair<Offset1, Offset2> index) {
     return subrange_view(std::forward<Seq>(seq), index.first, index.second);
 }
@@ -139,14 +139,14 @@ AssignableContainer& assign_by(AssignableContainer& c, const Seq& seq, const Pro
 // Note that a const range reference may wrap non-const iterators.
 
 template <typename Seq>
-enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
+std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
 sort(Seq&& seq) {
     auto canon = canonical_view(seq);
     std::sort(std::begin(canon), std::end(canon));
 }
 
 template <typename Seq, typename Less>
-enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
+std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
 sort(Seq&& seq, const Less& less) {
     auto canon = canonical_view(seq);
     std::sort(std::begin(canon), std::end(canon), less);
@@ -155,7 +155,7 @@ sort(Seq&& seq, const Less& less) {
 // Sort in-place by projection `proj`
 
 template <typename Seq, typename Proj>
-enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
+std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
 sort_by(Seq&& seq, const Proj& proj) {
     using value_type = typename sequence_traits<Seq&&>::value_type;
     auto canon = canonical_view(seq);
@@ -169,7 +169,7 @@ sort_by(Seq&& seq, const Proj& proj) {
 // Stable sort in-place by projection `proj`
 
 template <typename Seq, typename Proj>
-enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
+std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
 stable_sort_by(Seq&& seq, const Proj& proj) {
     using value_type = typename sequence_traits<Seq&&>::value_type;
     auto canon = canonical_view(seq);
@@ -297,7 +297,7 @@ bool is_sorted(const Seq& seq) {
 template <
     typename Seq,
     typename Proj,
-    typename Compare = std::less<typename std::result_of<Proj (typename sequence_traits<const Seq&>::value_type)>::type>
+    typename Compare = std::less<std::result_of_t<Proj (typename sequence_traits<const Seq&>::value_type)>>
 >
 bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
     auto i = std::begin(seq);

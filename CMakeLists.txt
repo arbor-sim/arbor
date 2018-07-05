@@ -103,7 +103,7 @@ include("CompilerOptions")
 add_compile_options(
     "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_DEBUG}>"
     "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 #----------------------------------------------------------
 # Set up flags and dependencies:

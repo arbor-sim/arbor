@@ -39,7 +39,7 @@ DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq&>(da
 
 // icpc 17 fails to disambiguate without further qualification, so
 // we replace `template <typename RASeq, typename Seq>` with the following:
-template <typename RASeq, typename Seq, typename = util::enable_if_t<!std::is_reference<RASeq>::value>>
+template <typename RASeq, typename Seq, typename = std::enable_if_t<!std::is_reference<RASeq>::value>>
 auto indirect_view(RASeq&& data, const Seq& index_map)
 DEDUCED_RETURN_TYPE(transform_view(index_map, impl::indirect_accessor<RASeq>(std::move(data))));
 

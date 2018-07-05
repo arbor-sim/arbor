@@ -24,13 +24,13 @@ template <typename I>
 using span = range<counter<I>>;
 
 template <typename I, typename J>
-span<typename std::common_type<I, J>::type> make_span(I left, J right) {
-    return span<typename std::common_type<I, J>::type>(left, right);
+span<std::common_type_t<I, J>> make_span(I left, J right) {
+    return span<std::common_type_t<I, J>>(left, right);
 }
 
 template <typename I, typename J>
-span<typename std::common_type<I, J>::type> make_span(std::pair<I, J> interval) {
-    return span<typename std::common_type<I, J>::type>(interval.first, interval.second);
+span<std::common_type_t<I, J>> make_span(std::pair<I, J> interval) {
+    return span<std::common_type_t<I, J>>(interval.first, interval.second);
 }
 
 template <typename I>

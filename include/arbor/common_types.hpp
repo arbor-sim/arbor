@@ -21,7 +21,7 @@ using cell_gid_type = std::uint32_t;
 
 // For sizes of collections of cells.
 
-using cell_size_type = typename std::make_unsigned<cell_gid_type>::type;
+using cell_size_type = std::make_unsigned_t<cell_gid_type>;
 
 // For indexes into cell-local data.
 //
@@ -32,7 +32,7 @@ using cell_lid_type = std::uint32_t;
 
 // For counts of cell-local data.
 
-using cell_local_size_type = typename std::make_unsigned<cell_lid_type>::type;
+using cell_local_size_type = std::make_unsigned_t<cell_lid_type>;
 
 // For global identification of an item of cell local data.
 //

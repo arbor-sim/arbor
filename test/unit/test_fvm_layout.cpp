@@ -272,7 +272,7 @@ TEST(fvm_layout, area) {
 
     cable_segment* cable = cells[1].segment(2)->as_cable();
     double a = volume(cable)/cable->length();
-    EXPECT_FLOAT_EQ(math::pi<double>()*0.8*0.8/4, a);
+    EXPECT_FLOAT_EQ(math::pi<double>*0.8*0.8/4, a);
 
     double h = cable->length()/4;
     double g = a/h/cable->rL; // [µm·S/cm]

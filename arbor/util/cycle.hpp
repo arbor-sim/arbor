@@ -1,9 +1,11 @@
 #pragma once
 
 #include <initializer_list>
+#include <type_traits>
 #include <utility>
-#include <util/iterutil.hpp>
-#include <util/range.hpp>
+
+#include "util/iterutil.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 namespace util {
@@ -187,22 +189,22 @@ template <
     typename Seq,
     typename SeqIter = typename sequence_traits<Seq>::const_iterator,
     typename SeqSentinel = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<std::is_same<SeqIter, SeqSentinel>::value>
+    typename = std::enable_if_t<std::is_same<SeqIter, SeqSentinel>::value>
 >
 range<cyclic_iterator<SeqIter, SeqSentinel> > cyclic_view(const Seq& s) {
-    return { make_cyclic_iterator(util::cbegin(s), util::cend(s)),
-             make_cyclic_iterator(util::cend(s), util::cend(s)) };
+    return { make_cyclic_iterator(std::cbegin(s), std::cend(s)),
+             make_cyclic_iterator(std::cend(s), std::cend(s)) };
 }
 
 template <
     typename Seq,
     typename SeqIter = typename sequence_traits<Seq>::const_iterator,
     typename SeqSentinel = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<!std::is_same<SeqIter, SeqSentinel>::value>
+    typename = std::enable_if_t<!std::is_same<SeqIter, SeqSentinel>::value>
 >
 range<cyclic_iterator<SeqIter, SeqSentinel>, SeqSentinel>
 cyclic_view(const Seq& s) {
-    return { make_cyclic_iterator(util::cbegin(s), util::cend(s)), util::cend(s) };
+    return { make_cyclic_iterator(std::cbegin(s), std::cend(s)), std::cend(s) };
 }
 
 // Handle initializer lists
@@ -210,8 +212,8 @@ template <typename T>
 range<cyclic_iterator<typename std::initializer_list<T>::const_iterator,
                       typename std::initializer_list<T>::const_iterator> >
 cyclic_view(const std::initializer_list<T> &list) {
-    return { make_cyclic_iterator(util::cbegin(list), util::cend(list)),
-             make_cyclic_iterator(util::cend(list), util::cend(list)) };
+    return { make_cyclic_iterator(std::cbegin(list), std::cend(list)),
+             make_cyclic_iterator(std::cend(list), std::cend(list)) };
 }
 
 } // namespace util

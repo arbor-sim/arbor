@@ -116,7 +116,7 @@ public:
         typename A_ = A,
         bool a_ = std::is_default_constructible<A_>::value,
         bool b_ = std::is_default_constructible<B>::value,
-        typename = enable_if_t<a_ || (!a_ && b_)>,
+        typename = std::enable_if_t<a_ || (!a_ && b_)>,
         std::size_t w_ = a_? 0: 1
     >
     either() noexcept(std::is_nothrow_default_constructible<typename getter<w_>::type>::value):
@@ -132,7 +132,7 @@ public:
 
     template <
         typename B_ = B,
-        typename = enable_if_t<!std::is_same<A, B_>::value>
+        typename = std::enable_if_t<!std::is_same<A, B_>::value>
     >
     either(const B& b) noexcept(std::is_nothrow_copy_constructible<B>::value): which(1) {
         getter<1>::field(*this).construct(b);
@@ -144,7 +144,7 @@ public:
 
     template <
         typename B_ = B,
-        typename = enable_if_t<!std::is_same<A, B_>::value>
+        typename = std::enable_if_t<!std::is_same<A, B_>::value>
     >
     either(B&& b) noexcept(std::is_nothrow_move_constructible<B>::value): which(1) {
         getter<1>::field(*this).construct(std::move(b));

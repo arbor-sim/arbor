@@ -14,7 +14,6 @@
 #include <arbor/morphology.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/point.hpp>
-#include <arbor/util/make_unique.hpp>
 #include <arbor/util/optional.hpp>
 
 namespace arb {
@@ -176,7 +175,7 @@ public:
 
     std::unique_ptr<mc_segment> clone() const override {
         // use default copy constructor
-        return util::make_unique<placeholder_segment>(*this);
+        return std::make_unique<placeholder_segment>(*this);
     }
 
     bool is_placeholder() const override
@@ -201,7 +200,7 @@ public:
 
     std::unique_ptr<mc_segment> clone() const override {
         // use default copy constructor
-        return util::make_unique<soma_segment>(*this);
+        return std::make_unique<soma_segment>(*this);
     }
 
     value_type radius() const
@@ -284,7 +283,7 @@ public:
 
     std::unique_ptr<mc_segment> clone() const override {
         // use default copy constructor
-        return util::make_unique<cable_segment>(*this);
+        return std::make_unique<cable_segment>(*this);
     }
 
     value_type length() const

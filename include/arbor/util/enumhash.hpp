@@ -10,7 +10,7 @@ namespace arb {
 namespace util {
 
 struct enum_hash {
-    template <typename E, typename V = typename std::underlying_type<E>::type>
+    template <typename E, typename V = std::underlying_type_t<E>>
     std::size_t operator()(E e) const noexcept {
         return std::hash<V>{}(static_cast<V>(e));
     }

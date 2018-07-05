@@ -59,12 +59,12 @@ auto event_data(const Event& ev) -> decltype(ev.data) {
 }
 
 struct event_time_less {
-    template <typename T, typename Event, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+    template <typename T, typename Event, typename = std::enable_if_t<std::is_floating_point<T>::value>>
     bool operator() (T l, const Event& r) {
         return l<event_time(r);
     }
 
-    template <typename T, typename Event, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+    template <typename T, typename Event, typename = std::enable_if_t<std::is_floating_point<T>::value>>
     bool operator() (const Event& l, T r) {
         return event_time(l)<r;
     }

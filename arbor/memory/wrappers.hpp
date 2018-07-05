@@ -87,7 +87,7 @@ namespace util {
 
     template <typename T>
     constexpr bool is_on_host_v() {
-        return is_on_host<typename std::decay<T>::type>::value;
+        return is_on_host<std::decay_t<T>>::value;
     }
 
     template <typename T>
@@ -104,7 +104,7 @@ namespace util {
 
     template <typename T>
     constexpr bool is_on_gpu_v() {
-        return is_on_gpu<typename std::decay<T>::type>::value;
+        return is_on_gpu<std::decay_t<T>>::value;
     }
 }
 
@@ -118,7 +118,7 @@ namespace util {
 // host
 template <
     typename C,
-    typename = typename std::enable_if<util::is_on_host_v<C>()>::type
+    typename = std::enable_if_t<util::is_on_host_v<C>()>
 >
 auto on_host(const C& c) -> decltype(make_const_view(c)) {
     return make_const_view(c);
@@ -126,7 +126,7 @@ auto on_host(const C& c) -> decltype(make_const_view(c)) {
 
 template <
     typename C,
-    typename = typename std::enable_if<util::is_on_gpu_v<C>()>::type
+    typename = std::enable_if_t<util::is_on_gpu_v<C>()>
 >
 auto on_host(const C& c) -> host_vector<typename C::value_type> {
     using T = typename C::value_type;
@@ -136,7 +136,7 @@ auto on_host(const C& c) -> host_vector<typename C::value_type> {
 // gpu
 template <
     typename C,
-    typename = typename std::enable_if<util::is_on_gpu_v<C>()>::type
+    typename = std::enable_if_t<util::is_on_gpu_v<C>()>
 >
 auto on_gpu(const C& c) -> decltype(make_const_view(c)) {
     return make_const_view(c);
@@ -144,7 +144,7 @@ auto on_gpu(const C& c) -> decltype(make_const_view(c)) {
 
 template <
     typename C,
-    typename = typename std::enable_if<util::is_on_host_v<C>()>::type
+    typename = std::enable_if_t<util::is_on_host_v<C>()>
 >
 auto on_gpu(const C& c) -> device_vector<typename C::value_type> {
     using T = typename C::value_type;

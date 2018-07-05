@@ -38,10 +38,10 @@ public:
 
     template <
         typename T,
-        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, any>::value>::type
+        typename = std::enable_if_t<!std::is_same<std::decay_t<T>, any>::value>
     >
     any(T&& other) {
-        using contained_type = typename std::decay<T>::type;
+        using contained_type = std::decay_t<T>;
         static_assert(std::is_copy_constructible<contained_type>::value,
             "Type of contained object stored in any must satisfy the CopyConstructible requirements.");
 
@@ -60,10 +60,10 @@ public:
 
     template <
         typename T,
-        typename = typename std::enable_if<!std::is_same<typename std::decay<T>::type, any>::value>::type
+        typename = std::enable_if_t<!std::is_same<std::decay_t<T>, any>::value>
     >
     any& operator=(T&& other) {
-        using contained_type = typename std::decay<T>::type;
+        using contained_type = std::decay_t<T>;
 
         static_assert(std::is_copy_constructible<contained_type>::value,
             "Type of contained object stored in any must satisfy the CopyConstructible requirements.");
@@ -134,8 +134,7 @@ protected:
 namespace impl {
 
 template <typename T>
-using any_cast_remove_qual = typename
-    std::remove_cv<typename std::remove_reference<T>::type>::type;
+using any_cast_remove_qual = std::remove_cv_t<std::remove_reference_t<T>>;
 
 } // namespace impl
 

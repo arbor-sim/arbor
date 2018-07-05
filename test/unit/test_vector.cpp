@@ -31,7 +31,7 @@ TEST(vector, make_view_stdvector) {
 TEST(vector, make_host_stdvector) {
     std::vector<int> stdvec(10);
     auto host_vec = memory::on_host(stdvec);
-    using target_type = std::decay<decltype(host_vec)>::type;
+    using target_type = std::decay_t<decltype(host_vec)>;
     EXPECT_EQ(host_vec.size(), stdvec.size());
     EXPECT_EQ(host_vec.data(), stdvec.data());
     EXPECT_TRUE(memory::util::is_on_host<target_type>());
@@ -44,7 +44,7 @@ TEST(vector, make_host_hostvector) {
     memory::host_vector<int> vec(10);
     {   // test from host_vector
         auto host_view = memory::on_host(vec);
-        using target_type = std::decay<decltype(host_view)>::type;
+        using target_type = std::decay_t<decltype(host_view)>;
         EXPECT_EQ(host_view.size(), vec.size());
         EXPECT_EQ(host_view.data(), vec.data());
         EXPECT_TRUE(memory::util::is_on_host<target_type>());
@@ -54,7 +54,7 @@ TEST(vector, make_host_hostvector) {
     {   // test from view
         auto view = memory::make_view(vec);
         auto host_view = memory::on_host(view);
-        using target_type = std::decay<decltype(host_view)>::type;
+        using target_type = std::decay_t<decltype(host_view)>;
         EXPECT_EQ(host_view.size(), view.size());
         EXPECT_EQ(host_view.data(), view.data());
         EXPECT_TRUE(memory::util::is_on_host<target_type>());

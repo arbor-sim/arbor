@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 
         auto register_exporter = [] (const io::cl_options& options) {
             return
-                util::make_unique<io::exporter_spike_file>(
+                std::make_unique<io::exporter_spike_file>(
                     options.file_name, options.output_path,
                     options.file_extension, options.over_write);
         };

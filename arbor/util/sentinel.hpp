@@ -58,7 +58,7 @@ public:
 
     sentinel_iterator(I i): e_(i) {}
 
-    template <typename V = S, typename = enable_if_t<!std::is_same<I, V>::value>>
+    template <typename V = S, typename = std::enable_if_t<!std::is_same<I, V>::value>>
     sentinel_iterator(S i): e_(i) {}
 
     sentinel_iterator() = default;
@@ -174,7 +174,7 @@ public:
 
 template <typename I, typename S>
 using sentinel_iterator_t =
-    typename std::conditional<std::is_same<I, S>::value, I, sentinel_iterator<I, S>>::type;
+    std::conditional_t<std::is_same<I, S>::value, I, sentinel_iterator<I, S>>;
 
 template <typename I, typename S>
 sentinel_iterator_t<I, S> make_sentinel_iterator(const I& i, const S& s) {
