@@ -317,6 +317,10 @@ bool is_unique(const Seq& seq) {
 
 /// Binary search, because std::binary_search doesn't return information
 /// about where a match was found.
+
+// TODO: consolidate these with rangeutil routines; make them sentinel
+// friendly; use ADL for begin/end (simpler with C++14).
+
 template <typename It, typename T>
 It binary_find(It b, It e, const T& value) {
     auto it = std::lower_bound(b, e, value);
@@ -327,14 +331,14 @@ template <typename Seq, typename T>
 auto binary_find(const Seq& seq, const T& value)
     -> decltype(binary_find(std::begin(seq), std::end(seq), value))
 {
-    return binary_find(std::begin(seq), compat::end(seq), value);
+    return binary_find(std::begin(seq), std::end(seq), value);
 }
 
 template <typename Seq, typename T>
 auto binary_find(Seq& seq, const T& value)
     -> decltype(binary_find(std::begin(seq), std::end(seq), value))
 {
-    return binary_find(std::begin(seq), compat::end(seq), value);
+    return binary_find(std::begin(seq), std::end(seq), value);
 }
 
 } // namespace algorithms

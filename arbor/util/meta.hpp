@@ -6,7 +6,6 @@
 #include <iterator>
 #include <type_traits>
 
-#include <arbor/util/compat.hpp>
 
 #include "util/deduce_return.hpp"
 
@@ -57,20 +56,24 @@ constexpr typename std::add_const<T>::type& as_const(T& t) {
     return t;
 }
 
-// Wrap cbegin in inner namespace in order to properly invoke ADL.
+// Wrap cbegin, cend in inner namespace in order to properly invoke ADL.
 
 namespace impl {
     using std::begin;
+    using std::end;
 
     template <typename T>
     constexpr auto cbegin_(const T& c) DEDUCED_RETURN_TYPE(begin(c))
+
+    template <typename T>
+    constexpr auto cend_(const T& c) DEDUCED_RETURN_TYPE(end(c))
 }
 
 template <typename T>
 constexpr auto cbegin(const T& c) DEDUCED_RETURN_TYPE(impl::cbegin_(c))
 
 template <typename T>
-constexpr auto cend(const T& c) DEDUCED_RETURN_TYPE(compat::end(c))
+constexpr auto cend(const T& c) DEDUCED_RETURN_TYPE(impl::cend_(c))
 
 // Use sequence `empty() const` method if exists, otherwise
 // compare begin and end.
@@ -87,10 +90,11 @@ namespace impl_empty {
     };
 
     using std::begin;
+    using std::end;
 
     template <typename Seq>
     constexpr bool empty(const Seq& seq, std::false_type) {
-        return begin(seq)==compat::end(seq);
+        return begin(seq)==end(seq);
     }
 
     template <typename Seq>
@@ -113,6 +117,7 @@ constexpr bool empty(const T (& c)[N]) noexcept {
 
 namespace impl_seqtrait {
     using std::begin;
+    using std::end;
 
     template <typename Seq, typename = void>
     struct data_returns_pointer: std::false_type {};
@@ -130,8 +135,8 @@ namespace impl_seqtrait {
         using difference_type = typename std::iterator_traits<iterator>::difference_type;
         using size_type = decltype(size(std::declval<Seq&>()));
         // For use with heterogeneous ranges:
-        using sentinel = decltype(compat::end(std::declval<Seq&>()));
-        using const_sentinel = decltype(compat::end(std::declval<const Seq&>()));
+        using sentinel = decltype(end(std::declval<Seq&>()));
+        using const_sentinel = decltype(end(std::declval<const Seq&>()));
 
         static constexpr bool is_contiguous = data_returns_pointer<Seq>::value;
     };

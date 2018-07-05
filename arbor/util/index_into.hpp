@@ -17,10 +17,9 @@
 #include <type_traits>
 
 #include <arbor/assert.hpp>
-#include <arbor/util/compat.hpp>
 
-#include <util/meta.hpp>
-#include <util/range.hpp>
+#include "util/meta.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 namespace util {
@@ -143,10 +142,11 @@ auto index_into(const Sub& sub, const Super& sup)
         >;
 
     using std::begin;
+    using std::end;
 
     auto canon = canonical_view(sub);
-    iterator b(begin(canon), compat::end(canon), begin(sup), compat::end(sup));
-    iterator e(compat::end(canon), compat::end(canon), begin(sup), compat::end(sup));
+    iterator b(canon.begin(), canon.end(), begin(sup), end(sup));
+    iterator e(canon.end(), canon.end(), begin(sup), end(sup));
 
     return range<iterator>(b, e);
 }

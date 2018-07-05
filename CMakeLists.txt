@@ -93,6 +93,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 
+# Detect and deprecate xlC.
+
+include("CheckCompilerXLC")
+
 # Compiler options common to library, examples, tests, etc.
 
 include("CompilerOptions")
