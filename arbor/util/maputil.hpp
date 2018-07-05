@@ -56,19 +56,11 @@ namespace impl {
     // import std::get for ADL below.
     using std::get;
 
-    // TODO: C++14 use std::equal_to<void> for this.
-    struct generic_equal_to {
-        template <typename A, typename B>
-        bool operator()(A&& a, B&& b) {
-            return std::forward<A>(a)==std::forward<B>(b);
-        }
-    };
-
     // use linear search
     template <
         typename Seq,
         typename Key,
-        typename Eq = generic_equal_to,
+        typename Eq = std::equal_to<>,
         typename Ret0 = decltype(get<1>(*std::begin(std::declval<Seq&&>()))),
         typename Ret = std::conditional_t<
             std::is_rvalue_reference<Seq&&>::value || !std::is_lvalue_reference<Ret0>::value,
