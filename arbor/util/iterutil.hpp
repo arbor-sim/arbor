@@ -10,8 +10,6 @@
 #include <type_traits>
 #include <utility>
 
-#include <arbor/util/compat.hpp>
-
 #include "util/meta.hpp"
 
 namespace arb {
@@ -72,15 +70,16 @@ distance(I first, E last) {
  * generic front() and back() methods for containers or ranges
  */
 
+// TODO: Use ADL begin and end when we avoid explicit return type in C++14
 template <typename Seq>
 auto front(Seq& seq) -> decltype(*std::begin(seq)) {
     return *std::begin(seq);
 }
 
+// TODO: Use ADL begin and end when we avoid explicit return type in C++14
 template <typename Seq>
 auto back(Seq& seq) -> decltype(*std::begin(seq)) {
-    // COMPAT: use own `end` implementation to work around xlC 13.1 bug.
-    return *upto(std::begin(seq), compat::end(seq));
+    return *upto(std::begin(seq), std::end(seq));
 }
 
 /*

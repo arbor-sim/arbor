@@ -6,8 +6,6 @@
 
 #include "../gtest.h"
 
-#include <arbor/util/compat.hpp>
-
 #include "algorithms.hpp"
 #include "util/index_into.hpp"
 #include "util/meta.hpp"
@@ -538,7 +536,7 @@ template <typename Sub, typename Sup>
     }
 
     using std::begin;
-    using compat::end;
+    using std::end;
 
     auto sub_i = begin(sub);
     auto sup_i = begin(sup);

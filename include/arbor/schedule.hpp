@@ -109,7 +109,7 @@ public:
         start_index_(0)
     {
         using std::begin;
-        using compat::end; // TODO: replace with std::end when we nuke xlC support.
+        using std::end;
 
         times_.assign(begin(seq), end(seq));
         arb_assert(std::is_sorted(times_.begin(), times_.end()));

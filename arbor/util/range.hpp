@@ -184,6 +184,7 @@ range<U, V> make_range(const std::pair<U, V>& iterators) {
 // Present a possibly sentinel-terminated range as an STL-compatible sequence
 // using the sentinel_iterator adaptor.
 
+// TODO: ADL begin/end with C++14 deduced return.
 template <typename Seq>
 auto canonical_view(Seq& s) ->
     range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
