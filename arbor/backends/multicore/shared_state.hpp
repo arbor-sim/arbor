@@ -12,7 +12,6 @@
 #include <arbor/fvm_types.hpp>
 #include <arbor/ion.hpp>
 #include <arbor/simd/simd.hpp>
-#include <arbor/util/enumhash.hpp>
 
 #include "backends/event.hpp"
 #include "event_queue.hpp"
@@ -96,7 +95,7 @@ struct shared_state {
     array  voltage;           // Maps CV index to membrane voltage [mV].
     array  current_density;   // Maps CV index to current density [A/m²].
 
-    std::unordered_map<ionKind, ion_state, util::enum_hash> ion_data;
+    std::unordered_map<ionKind, ion_state> ion_data;
 
     deliverable_event_stream deliverable_events;
 

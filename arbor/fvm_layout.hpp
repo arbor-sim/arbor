@@ -5,7 +5,6 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/enumhash.hpp>
 
 #include "fvm_compartment.hpp"
 #include "util/span.hpp"
@@ -131,7 +130,7 @@ struct fvm_mechanism_data {
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
 
     // Ion config, indexed by ionKind.
-    std::unordered_map<ionKind, fvm_ion_config, util::enum_hash> ions;
+    std::unordered_map<ionKind, fvm_ion_config> ions;
 
     // Total number of targets (point-mechanism points)
     std::size_t ntarget = 0;

@@ -5,7 +5,6 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mc_cell.hpp>
-#include <arbor/util/enumhash.hpp>
 
 #include "algorithms.hpp"
 #include "fvm_compartment.hpp"
@@ -302,7 +301,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     // Temporary table for presence of ion channels, mapping ionKind to _sorted_
     // collection of segment indices.
 
-    std::unordered_map<ionKind, std::set<size_type>, util::enum_hash> ion_segments;
+    std::unordered_map<ionKind, std::set<size_type>> ion_segments;
 
     auto update_paramset_and_validate =
         [&catalogue]
