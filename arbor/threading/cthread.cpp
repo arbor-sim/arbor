@@ -14,7 +14,7 @@ using namespace arb;
 bool notification_queue::try_pop(task& tsk) {
     lock q_lock{q_mutex_, std::try_to_lock};
     if (!q_lock || q_tasks_.empty()) return false;
-    std::swap(tsk, q_tasks_.front());
+    tsk = std::move(q_tasks_.front());
     q_tasks_.pop_front();
     return true;
 }
@@ -27,12 +27,12 @@ bool notification_queue::pop(task& tsk) {
     if(q_tasks_.empty()) {
         return false;
     }
-    std::swap(tsk, q_tasks_.front());
+    tsk = std::move(q_tasks_.front());
     q_tasks_.pop_front();
     return true;
 }
 
-bool notification_queue::try_push(const task& tsk) {
+bool notification_queue::try_push(task& tsk) {
     {
         lock q_lock{q_mutex_, std::try_to_lock};
         if(!q_lock) return false;
@@ -47,15 +47,6 @@ void notification_queue::push(task&& tsk) {
     {
         lock q_lock{q_mutex_};
         q_tasks_.push_back(std::move(tsk));
-        tsk.second->inc_in_flight();
-    }
-    q_tasks_available_.notify_all();
-}
-
-void notification_queue::push(const task& tsk) {
-    {
-        lock q_lock{q_mutex_};
-        q_tasks_.push_back(tsk);
         tsk.second->inc_in_flight();
     }
     q_tasks_available_.notify_all();
@@ -109,7 +100,7 @@ void task_system::async_(task&& tsk) {
     for(unsigned n = 0; n != count_; n++) {
         if(q_[(i + n) % count_].try_push(tsk)) return;
     }
-    q_[i % count_].push(tsk);
+    q_[i % count_].push(std::move(tsk));
 }
 
 int task_system::get_num_threads() {
