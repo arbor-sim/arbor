@@ -2,6 +2,7 @@
 
 // Indexed collection of pop-only event queues --- multicore back-end implementation.
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/generic_event.hpp>
