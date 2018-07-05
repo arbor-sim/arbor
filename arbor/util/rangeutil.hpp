@@ -10,11 +10,9 @@
 #include <ostream>
 #include <numeric>
 
-#include <util/deduce_return.hpp>
-#include <util/meta.hpp>
-#include <util/range.hpp>
-#include <util/transform.hpp>
-#include <util/meta.hpp>
+#include "util/meta.hpp"
+#include "util/range.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
 namespace util {
@@ -40,8 +38,9 @@ range_view(Seq&& seq) {
 }
 
 template <typename Seq, typename = std::enable_if_t<sequence_traits<Seq&&>::is_contiguous>>
-auto range_pointer_view(Seq&& seq)
-    DEDUCED_RETURN_TYPE(make_range(util::data(seq), util::data(seq)+util::size(seq)))
+auto range_pointer_view(Seq&& seq) {
+    return make_range(util::data(seq), util::data(seq)+util::size(seq));
+}
 
 template <
     typename Seq,

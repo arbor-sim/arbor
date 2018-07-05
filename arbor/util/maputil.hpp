@@ -6,10 +6,10 @@
 #include <utility>
 #include <type_traits>
 
-#include <util/deduce_return.hpp>
-#include <util/meta.hpp>
 #include <arbor/util/optional.hpp>
-#include <util/transform.hpp>
+
+#include "util/meta.hpp"
+#include "util/transform.hpp"
 
 // Convenience views, algorithms for maps and map-like containers.
 
@@ -19,7 +19,9 @@ namespace util {
 // View over the keys (first elements) in a sequence of pairs or tuples.
 
 template <typename Seq>
-auto keys(Seq&& m) DEDUCED_RETURN_TYPE(util::transform_view(std::forward<Seq>(m), util::first))
+auto keys(Seq&& m) {
+    return util::transform_view(std::forward<Seq>(m), util::first);
+}
 
 // Is a container/sequence a map?
 
@@ -105,15 +107,16 @@ namespace impl {
 }
 
 template <typename C, typename Key, typename Eq>
-auto value_by_key(C&& c, const Key& k, Eq eq)
-   DEDUCED_RETURN_TYPE(impl::value_by_key(std::false_type{}, std::forward<C>(c), k, eq))
+auto value_by_key(C&& c, const Key& k, Eq eq) {
+    return impl::value_by_key(std::false_type{}, std::forward<C>(c), k, eq);
+}
 
 template <typename C, typename Key>
-auto value_by_key(C&& c, const Key& k)
-    DEDUCED_RETURN_TYPE(
-        impl::value_by_key(
-            std::integral_constant<bool, is_associative_container<C>::value>{},
-            std::forward<C>(c), k))
+auto value_by_key(C&& c, const Key& k) {
+    return impl::value_by_key(
+        std::integral_constant<bool, is_associative_container<C>::value>{},
+        std::forward<C>(c), k);
+}
 
 // Find the index into an ordered sequence of a value by binary search;
 // returns optional<size_type> for the size_type associated with the sequence.

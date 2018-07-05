@@ -8,8 +8,6 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "util/path.hpp"
-#include "util/deduce_return.hpp"
 #include "util/rangeutil.hpp"
 
 namespace arb {
@@ -18,26 +16,15 @@ namespace arb {
 
 // Extract time or value data from trace.
 
-namespace impl {
-    // NB: work-around for lack of function return type deduction
-    // in C++11; can't use lambda within DEDUCED_RETURN_TYPE.
-
-    template <typename V>
-    inline float time(const trace_entry<V>& x) { return x.t; }
-
-    template <typename V>
-    inline const V& value(const trace_entry<V>& x) { return x.v; }
+template <typename V>
+inline auto times(const trace_data<V>& trace) {
+   return util::transform_view(trace, [](auto& x) { return x.t; });
 }
 
 template <typename V>
-inline auto times(const trace_data<V>& trace) DEDUCED_RETURN_TYPE(
-   util::transform_view(trace, impl::time<V>)
-)
-
-template <typename V>
-inline auto values(const trace_data<V>& trace) DEDUCED_RETURN_TYPE(
-   util::transform_view(trace, impl::value<V>)
-)
+inline auto values(const trace_data<V>& trace) {
+   return util::transform_view(trace, [](auto& x) { return x.v; });
+}
 
 // Compute max |v_i - f(t_i)| where (t, v) is the 
 // first trace `u` and f is the piece-wise linear interpolant

@@ -7,10 +7,9 @@
 #include <type_traits>
 #include <utility>
 
-#include <util/counter.hpp>
-#include <util/deduce_return.hpp>
-#include <util/meta.hpp>
-#include <util/range.hpp>
+#include "util/counter.hpp"
+#include "util/meta.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 namespace util {
@@ -39,7 +38,9 @@ span<I> make_span(I right) {
 }
 
 template <typename Seq>
-auto count_along(const Seq& s) DEDUCED_RETURN_TYPE(util::make_span(util::size(s)))
+auto count_along(const Seq& s) {
+    return util::make_span(util::size(s));
+}
 
 } // namespace util
 } // namespace arb
