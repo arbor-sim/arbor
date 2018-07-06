@@ -9,7 +9,7 @@ addons:
         sources:
             - ubuntu-toolchain-r-test
         packages:
-            - g++-5
+            - g++-6
             - openmpi-bin
             - libopenmpi-dev
 
@@ -23,8 +23,8 @@ env:
     - BUILD_NAME=mpitbb   WITH_THREAD=tbb      WITH_DISTRIBUTED=mpi
 
 before_install:
-    - CC=gcc-5
-    - CXX=g++-5
+    - CC=gcc-6
+    - CXX=g++-6
 
 script: source ./scripts/travis/build.sh
 

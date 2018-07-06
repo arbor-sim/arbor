@@ -1,5 +1,5 @@
-# 3.9 requirement for CUDA language support.
-cmake_minimum_required(VERSION 3.9)
+# 3.8 requirement for CUDA language support.
+cmake_minimum_required(VERSION 3.8)
 
 project(arbor VERSION 0.1)
 enable_language(CXX)
