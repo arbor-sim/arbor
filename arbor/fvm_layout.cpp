@@ -440,9 +440,11 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         std::vector<std::vector<value_type>> param_value(nparam);
         std::vector<std::vector<value_type>> param_area_contrib(nparam);
 
+        // (gcc 6.x bug fails to deduce const in lambda capture reference initialization)
+        const auto& info = *entry.second.info;
         auto accumulate_mech_data =
             [
-                &info = *entry.second.info,
+                &info,
                 &ion_configs = mechdata.ions,
                 &param_index, &param_value, &param_area_contrib, &config
             ]
