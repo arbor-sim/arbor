@@ -180,31 +180,23 @@ public:
 
     /// access half open sub-range using two indexes [left, right)
     view_type operator()(size_type left, size_type right) {
-        #ifndef NDEBUG
         arb_assert(right<=size_ && left<=right);
-        #endif
         return view_type(pointer_+left, right-left);
     }
 
     const_view_type operator()(size_type left, size_type right) const {
-        #ifndef NDEBUG
         arb_assert(right<=size_ && left<=right);
-        #endif
         return view_type(pointer_+left, right-left);
     }
 
     /// access half open sub-range using one index and one-past-the-end [left, end)
     view_type operator()(size_type left, end_type) {
-        #ifndef NDEBUG
         arb_assert(left<=size_);
-        #endif
         return view_type(pointer_+left, size_-left);
     }
 
     const_view_type operator()(size_type left, end_type) const {
-        #ifndef NDEBUG
         arb_assert(left<=size_);
-        #endif
         return view_type(pointer_+left, size_-left);
     }
 
@@ -260,16 +252,12 @@ public:
     // per element accessors
     // return a reference type provided by Coordinator
     reference operator[] (size_type i) {
-        #ifndef NDEBUG
         arb_assert(i<size_);
-        #endif
         return coordinator_.make_reference(pointer_+i);
     }
 
     const_reference operator[] (size_type i) const {
-        #ifndef NDEBUG
         arb_assert(i<size_);
-        #endif
         return coordinator_.make_reference(pointer_+i);
     }
 
@@ -385,17 +373,13 @@ public:
 
     /// access half open sub-range using two indexes [left, right)
     const_view_type operator()(size_type left, size_type right) const {
-#ifndef NDEBUG
         arb_assert(right<=size_ && left<=right);
-#endif
         return const_view_type(pointer_+left, right-left);
     }
 
     /// access half open sub-range using one index and one-past-the-end [left, end)
     const_view_type operator()(size_type left, end_type) const {
-#ifndef NDEBUG
         arb_assert(left<=size_);
-#endif
         return const_view_type(pointer_+left, size_-left);
     }
 
@@ -439,9 +423,7 @@ public:
     // per element accessors
     // return a reference type provided by Coordinator
     const_reference operator[] (size_type i) const {
-        #ifndef NDEBUG
         arb_assert(i<size_);
-        #endif
         return coordinator_.make_reference(pointer_+i);
     }
 
