@@ -137,7 +137,7 @@ struct range {
 #ifdef ARB_HAVE_TBB
     template <
         typename V = iterator,
-        typename = enable_if_t<is_forward_iterator<V>::value>
+        typename = std::enable_if_t<is_forward_iterator<V>::value>
     >
     range(range& r, tbb::split):
         left(r.left), right(r.right)
@@ -148,7 +148,7 @@ struct range {
 
     template <
         typename V = iterator,
-        typename = enable_if_t<is_forward_iterator<V>::value>
+        typename = std::enable_if_t<is_forward_iterator<V>::value>
     >
     range(range& r, tbb::proportional_split p):
         left(r.left), right(r.right)
