@@ -10,18 +10,18 @@ set(arbor_sources
     builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
-    mc_cell.cpp
+    domain_info.cpp
     event_binner.cpp
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
     hardware/affinity.cpp
-    hardware/gpu.cpp
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     lif_cell_group.cpp
+    mc_cell.cpp
     mc_cell_group.cpp
     mechcat.cpp
     memory/cuda_wrappers.cpp

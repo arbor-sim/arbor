@@ -9,14 +9,16 @@
 
 namespace arb {
 
-inline bool has_gpu_backend(cell_kind k) {
-    if (k==cell_kind::cable1d_neuron) {
-        return true;
-    }
-    return false;
-}
+/// Local resource info for domain partitioning.
+struct domain_info {
+    unsigned num_threads = 1;
+    unsigned num_gpus = 0;
+};
 
-/// Meta data for a local cell group.
+/// Determine available local domain resources.
+domain_info local_domain_info();
+
+/// Metadata for a local cell group.
 struct group_description {
     /// The kind of cell in the group. All cells in a cell_group have the same type.
     const cell_kind kind;

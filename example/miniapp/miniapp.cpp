@@ -7,6 +7,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
@@ -17,15 +18,12 @@
 #include <arbor/util/any.hpp>
 #include <arbor/version.hpp>
 
-#include "hardware/gpu.hpp"
-#include "hardware/node_info.hpp"
 #include "io/exporter_spike_file.hpp"
-#include "load_balance.hpp"
-#include "util/ioutil.hpp"
 
-#include "json_meter.hpp"
+#include <aux/ioutil.hpp>
+#include <aux/json_meter.hpp>
 #ifdef ARB_MPI_ENABLED
-#include "with_mpi.hpp"
+#include <aux/with_mpi.hpp>
 #endif
 
 #include "io.hpp"
@@ -36,7 +34,7 @@ using namespace arb;
 
 using util::any_cast;
 
-void banner(hw::node_info, const distributed_context*);
+void banner(domain_info, const distributed_context*);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 
@@ -55,7 +53,7 @@ int main(int argc, char** argv) {
         profile::meter_manager meters(&context);
         meters.start();
 
-        std::cout << util::mask_stream(context.id()==0);
+        std::cout << aux::mask_stream(context.id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.id()==0);
 
@@ -63,9 +61,8 @@ int main(int argc, char** argv) {
 
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
-        hw::node_info nd;
-        nd.num_cpu_cores = arb::num_threads();
-        nd.num_gpus = hw::num_gpus()>0? 1: 0;
+        domain_info nd = local_domain_info();
+        nd.num_gpus = nd.num_gpus>=1? 1: 0;
         banner(nd, &context);
 
         meters.checkpoint("setup");
@@ -168,7 +165,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(context.id()==0);
+        std::cerr << aux::mask_stream(context.id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -179,12 +176,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const distributed_context* ctx) {
+void banner(domain_info nd, const distributed_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->size()
               << " (" << ctx->name() << ")\n";
-    std::cout << "  - threads     : " << nd.num_cpu_cores
+    std::cout << "  - threads     : " << nd.num_threads
               << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";

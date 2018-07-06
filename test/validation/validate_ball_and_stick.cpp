@@ -3,14 +3,13 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
-#include "load_balance.hpp"
-#include "hardware/node_info.hpp"
-#include "hardware/gpu.hpp"
 #include "util/meta.hpp"
 #include "util/path.hpp"
 #include "util/strprintf.hpp"
@@ -66,6 +65,10 @@ void run_ncomp_convergence_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
+    distributed_context context;
+    domain_info nd;
+    nd.num_gpus = (backend==backend_kind::gpu);
+
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         for (auto& seg: c.segments()) {
             if (!seg->is_soma()) {
@@ -77,8 +80,6 @@ void run_ncomp_convergence_test(
             rec.add_probe(0, 0, cell_probe_address{p.where, cell_probe_address::membrane_voltage});
         }
 
-        distributed_context context;
-        hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
         auto decomp = partition_load_balance(rec, nd, &context);
         simulation sim(rec, decomp, &context);
 

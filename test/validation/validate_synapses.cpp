@@ -1,13 +1,12 @@
 #include <nlohmann/json.hpp>
 
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
-#include "hardware/node_info.hpp"
-#include "hardware/gpu.hpp"
-#include "load_balance.hpp"
 #include "util/path.hpp"
 #include "util/strprintf.hpp"
 
@@ -63,7 +62,9 @@ void run_synapse_test(
     runner.load_reference_data(ref_data_path);
 
     distributed_context context;
-    hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
+    domain_info nd;
+    nd.num_gpus = (backend==backend_kind::gpu);
+
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
 

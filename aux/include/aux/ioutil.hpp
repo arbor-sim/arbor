@@ -2,26 +2,7 @@
 
 #include <iostream>
 
-namespace arb {
-namespace util {
-
-class iosfmt_guard {
-public:
-    explicit iosfmt_guard(std::ios& stream) :
-        save_(nullptr), stream_(stream)
-    {
-        save_.copyfmt(stream_);
-    }
-
-    ~iosfmt_guard() {
-        stream_.copyfmt(save_);
-    }
-
-private:
-    std::ios save_;
-    std::ios& stream_;
-};
-
+namespace aux {
 
 template <typename charT, typename traitsT = std::char_traits<charT> >
 class basic_null_streambuf: public std::basic_streambuf<charT, traitsT> {
@@ -92,6 +73,5 @@ private:
     bool mask_;
 };
 
-} // namespace util
-} // namespace arb
+} // namespace aux
 

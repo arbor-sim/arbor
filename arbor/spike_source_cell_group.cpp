@@ -11,8 +11,8 @@
 
 namespace arb {
 
-spike_source_cell_group::spike_source_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
-    gids_(std::move(gids))
+spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
+    gids_(gids)
 {
     time_sequences_.reserve(gids_.size());
     for (auto gid: gids_) {

@@ -1,15 +1,13 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
-#include "hardware/gpu.hpp"
-#include "hardware/node_info.hpp"
-#include "load_balance.hpp"
-#include "util/rangeutil.hpp"
 #include "util/strprintf.hpp"
 
 #include "../common_cells.hpp"
@@ -33,7 +31,9 @@ void validate_soma(backend_kind backend) {
     probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     distributed_context context;
-    hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
+    domain_info nd;
+    nd.num_gpus = (backend==backend_kind::gpu);
+
     auto decomp = partition_load_balance(rec, nd, &context);
     simulation sim(rec, decomp, &context);
 

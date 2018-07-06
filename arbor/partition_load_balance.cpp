@@ -2,14 +2,14 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 
-#include "hardware/node_info.hpp"
+#include "cell_group_factory.hpp"
 #include "util/partition.hpp"
 #include "util/span.hpp"
 
 namespace arb {
 
 domain_decomposition partition_load_balance(const recipe& rec,
-                                            hw::node_info nd,
+                                            domain_info nd,
                                             const distributed_context* ctx)
 {
     struct partition_gid_domain {
@@ -45,8 +45,7 @@ domain_decomposition partition_load_balance(const recipe& rec,
 
     // Local load balance
 
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>>
-        kind_lists;
+    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
     for (auto gid: make_span(gid_part[domain_id])) {
         kind_lists[rec.get_cell_kind(gid)].push_back(gid);
     }
@@ -61,6 +60,11 @@ domain_decomposition partition_load_balance(const recipe& rec,
     // the threading internals. We need support for setting the priority
     // of cell group updates according to rules such as the back end on
     // which the cell group is running.
+
+    auto has_gpu_backend = [](cell_kind c) {
+        return cell_kind_supported(c, backend_kind::gpu);
+    };
+
     std::vector<cell_kind> kinds;
     for (auto l: kind_lists) {
         kinds.push_back(cell_kind(l.first));

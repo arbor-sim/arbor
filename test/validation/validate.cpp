@@ -4,7 +4,7 @@
 #include <string>
 #include <exception>
 
-#include <tinyopt.hpp>
+#include <aux/tinyopt.hpp>
 
 #include "../gtest.h"
 
