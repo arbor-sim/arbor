@@ -32,9 +32,8 @@ public:
 
     template <
         typename Impl,
-        typename = typename std::enable_if<
-            !std::is_same<typename std::decay<Impl>::type,
-                          time_seq>::value>::type
+        typename = std::enable_if_t<
+            !std::is_same<std::decay_t<Impl>, time_seq>::value>
     >
     time_seq(Impl&& impl):
         impl_(new wrap<Impl>(std::forward<Impl>(impl)))

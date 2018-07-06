@@ -5,7 +5,6 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mc_cell.hpp>
-#include <arbor/util/enumhash.hpp>
 
 #include "algorithms.hpp"
 #include "fvm_compartment.hpp"
@@ -302,7 +301,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     // Temporary table for presence of ion channels, mapping ionKind to _sorted_
     // collection of segment indices.
 
-    std::unordered_map<ionKind, std::set<size_type>, util::enum_hash> ion_segments;
+    std::unordered_map<ionKind, std::set<size_type>> ion_segments;
 
     auto update_paramset_and_validate =
         [&catalogue]
@@ -441,10 +440,14 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         std::vector<std::vector<value_type>> param_value(nparam);
         std::vector<std::vector<value_type>> param_area_contrib(nparam);
 
-        const auto& info = *entry.second.info; // TODO: C++14, use lambda capture with initializer
-        auto& ion_configs = mechdata.ions;     // TODO: C++14 ditto
+        // (gcc 6.x bug fails to deduce const in lambda capture reference initialization)
+        const auto& info = *entry.second.info;
         auto accumulate_mech_data =
-            [&param_index, &param_value, &param_area_contrib, &config, &info, &ion_configs]
+            [
+                &info,
+                &ion_configs = mechdata.ions,
+                &param_index, &param_value, &param_area_contrib, &config
+            ]
             (size_type index, index_type cv, value_type area, const mechanism_desc& desc)
         {
             for (auto& kv: desc.values()) {

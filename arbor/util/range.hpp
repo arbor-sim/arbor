@@ -47,7 +47,7 @@ struct range {
     using sentinel = S;
     using const_iterator = iterator;
     using difference_type = typename std::iterator_traits<iterator>::difference_type;
-    using size_type = typename std::make_unsigned<difference_type>::type;
+    using size_type = std::make_unsigned_t<difference_type>;
     using value_type = typename std::iterator_traits<iterator>::value_type;
     using reference = typename std::iterator_traits<iterator>::reference;
     using const_reference = const value_type&;
@@ -67,7 +67,7 @@ struct range {
     template <
         typename U1,
         typename U2,
-        typename = enable_if_t<
+        typename = std::enable_if_t<
             std::is_constructible<iterator, U1>::value &&
             std::is_constructible<sentinel, U2>::value>
     >
@@ -94,7 +94,7 @@ struct range {
     sentinel cend() const { return right; }
 
     template <typename V = iterator>
-    enable_if_t<is_forward_iterator<V>::value, size_type>
+    std::enable_if_t<is_forward_iterator<V>::value, size_type>
     size() const {
         return util::distance(begin(), end());
     }
@@ -108,18 +108,18 @@ struct range {
         std::swap(right, other.right);
     }
 
-    auto front() const -> decltype(*left) { return *left; }
+    decltype(auto) front() const { return *left; }
 
-    auto back() const -> decltype(*left) { return *upto(left, right); }
+    decltype(auto) back() const { return *upto(left, right); }
 
     template <typename V = iterator>
-    enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
+    std::enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
     operator[](difference_type n) const {
         return *std::next(begin(), n);
     }
 
     template <typename V = iterator>
-    enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
+    std::enable_if_t<is_random_access_iterator<V>::value, decltype(*left)>
     at(difference_type n) const {
         if (size_type(n) >= size()) {
             throw std::out_of_range("out of range in range");
@@ -129,7 +129,7 @@ struct range {
 
     // Expose `data` method if a pointer range.
     template <typename V = iterator, typename W = sentinel>
-    enable_if_t<std::is_same<V, W>::value && std::is_pointer<V>::value, iterator>
+    std::enable_if_t<std::is_same<V, W>::value && std::is_pointer<V>::value, iterator>
     data() const {
         return left;
     }
@@ -137,7 +137,7 @@ struct range {
 #ifdef ARB_HAVE_TBB
     template <
         typename V = iterator,
-        typename = enable_if_t<is_forward_iterator<V>::value>
+        typename = std::enable_if_t<is_forward_iterator<V>::value>
     >
     range(range& r, tbb::split):
         left(r.left), right(r.right)
@@ -148,7 +148,7 @@ struct range {
 
     template <
         typename V = iterator,
-        typename = enable_if_t<is_forward_iterator<V>::value>
+        typename = std::enable_if_t<is_forward_iterator<V>::value>
     >
     range(range& r, tbb::proportional_split p):
         left(r.left), right(r.right)
@@ -184,37 +184,28 @@ range<U, V> make_range(const std::pair<U, V>& iterators) {
 // Present a possibly sentinel-terminated range as an STL-compatible sequence
 // using the sentinel_iterator adaptor.
 
-// TODO: ADL begin/end with C++14 deduced return.
 template <typename Seq>
-auto canonical_view(Seq& s) ->
-    range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
-{
-    return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
-}
+auto canonical_view(Seq&& s) {
+    using std::begin;
+    using std::end;
 
-template <typename Seq>
-auto canonical_view(const Seq& s) ->
-    range<sentinel_iterator_t<decltype(std::begin(s)), decltype(std::end(s))>>
-{
-    return {make_sentinel_iterator(std::begin(s), std::end(s)), make_sentinel_end(std::begin(s), std::end(s))};
+    return make_range(
+        make_sentinel_iterator(begin(s), end(s)),
+        make_sentinel_end(begin(s), end(s)));
 }
 
 // Strictly evaluate end point in sentinel-terminated range and present as a range over
 // iterators. Note: O(N) behaviour with forward iterator ranges or sentinel-terminated ranges.
 
 template <typename Seq>
-auto strict_view(Seq&& s) -> range<decltype(std::begin(s))>
-{
-    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
-}
+auto strict_view(Seq&& s) {
+    using std::begin;
+    using std::end;
 
-#if 0
-template <typename Seq>
-auto strict_view(const Seq& s) -> range<decltype(std::begin(s))>
-{
-    return make_range(std::begin(s), std::begin(s)==std::end(s)? std::begin(s): std::next(util::upto(std::begin(s), std::end(s))));
+    auto b = begin(s);
+    auto e = end(s);
+    return make_range(b, b==e? b: std::next(util::upto(b, e)));
 }
-#endif
 
 } // namespace util
 } // namespace arb

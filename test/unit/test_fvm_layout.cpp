@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 
 #include <arbor/util/optional.hpp>
@@ -13,8 +14,8 @@
 #include "common.hpp"
 #include "../common_cells.hpp"
 
+using namespace std::string_literals;
 using namespace arb;
-using namespace testing::string_literals;
 
 using util::make_span;
 using util::count_along;
@@ -272,7 +273,7 @@ TEST(fvm_layout, area) {
 
     cable_segment* cable = cells[1].segment(2)->as_cable();
     double a = volume(cable)/cable->length();
-    EXPECT_FLOAT_EQ(math::pi<double>()*0.8*0.8/4, a);
+    EXPECT_FLOAT_EQ(math::pi<double>*0.8*0.8/4, a);
 
     double h = cable->length()/4;
     double g = a/h/cable->rL; // [µm·S/cm]
@@ -365,11 +366,11 @@ TEST(fvm_layout, synapse_targets) {
 
     auto& expsyn_cv = M.mechanisms.at("expsyn").cv;
     auto& expsyn_target = M.mechanisms.at("expsyn").target;
-    auto& expsyn_e = value_by_key(M.mechanisms.at("expsyn").param_values, "e"_s).value();
+    auto& expsyn_e = value_by_key(M.mechanisms.at("expsyn").param_values, "e"s).value();
 
     auto& exp2syn_cv = M.mechanisms.at("exp2syn").cv;
     auto& exp2syn_target = M.mechanisms.at("exp2syn").target;
-    auto& exp2syn_e = value_by_key(M.mechanisms.at("exp2syn").param_values, "e"_s).value();
+    auto& exp2syn_e = value_by_key(M.mechanisms.at("exp2syn").param_values, "e"s).value();
 
     EXPECT_TRUE(util::is_sorted(expsyn_cv));
     EXPECT_TRUE(util::is_sorted(exp2syn_cv));
@@ -538,8 +539,8 @@ TEST(fvm_layout, density_norm_area) {
     ASSERT_EQ(1u, M.mechanisms.count("hh"));
     auto& hh_params = M.mechanisms.at("hh").param_values;
 
-    auto& gkbar = value_by_key(hh_params, "gkbar"_s).value();
-    auto& gl = value_by_key(hh_params, "gl"_s).value();
+    auto& gkbar = value_by_key(hh_params, "gkbar"s).value();
+    auto& gl = value_by_key(hh_params, "gl"s).value();
 
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gkbar, gkbar));
     EXPECT_TRUE(testing::seq_almost_eq<double>(expected_gl, gl));

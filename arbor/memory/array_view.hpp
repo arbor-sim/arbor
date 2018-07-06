@@ -138,7 +138,7 @@ public:
     // Constructors
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     explicit array_view(Other&& other) :
         pointer_(other.data()), size_(other.size())
@@ -146,7 +146,7 @@ public:
         #ifdef VERBOSE
         std::cout << util::green("array_view(&&Other) ")
                   << "\n  this  " << util::pretty_printer<array_view>::print(*this)
-                  << "\n  other " << util::pretty_printer<typename std::decay<Other>::type>::print(other)
+                  << "\n  other " << util::pretty_printer<std::decay_t<Other>>::print(other)
                   << "\n";
         #endif
     }
@@ -210,7 +210,7 @@ public:
 
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     array_view operator=(Other&& other) {
         #if VERBOSE
@@ -286,7 +286,7 @@ public:
     }
 
     static constexpr auto
-    alignment() -> decltype(coordinator_type::alignment()) {
+    alignment() {
         return coordinator_type::alignment();
     }
 
@@ -342,7 +342,7 @@ public:
     // Constructors
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     const_array_view(const Other& other) :
         pointer_(other.data()), size_(other.size())
@@ -350,7 +350,7 @@ public:
 #if VERBOSE
         std::cout << util::green("const_array_view(const Other&)")
                   << "\n  this  " << util::pretty_printer<const_array_view>::print(*this)
-                  << "\n  other " << util::pretty_printer<typename std::decay<Other>::type>::print(other)
+                  << "\n  other " << util::pretty_printer<std::decay_t<Other>>::print(other)
                   << std::endl;
 #endif
     }
@@ -401,7 +401,7 @@ public:
 
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     const_array_view operator=(Other&& other) {
 #if VERBOSE
@@ -458,7 +458,7 @@ public:
     }
 
     static constexpr auto
-    alignment() -> decltype(coordinator_type::alignment()) {
+    alignment() {
         return coordinator_type::alignment();
     }
 

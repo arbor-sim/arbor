@@ -108,18 +108,18 @@ namespace simd_detail {
         }
 
         // Construct from a different SIMD value by casting.
-        template <typename Other, typename = typename std::enable_if<width==simd_traits<Other>::width>::type>
+        template <typename Other, typename = std::enable_if_t<width==simd_traits<Other>::width>>
         explicit simd_impl(const simd_impl<Other>& x) {
             value_ = Impl::cast_from(tag<Other>{}, x.value_);
         }
 
         // Construct from indirect expression (gather).
-        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
         explicit simd_impl(indirect_expression<IndexImpl, scalar_type> pi) {
             copy_from(pi);
         }
 
-        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
         explicit simd_impl(indirect_expression<IndexImpl, const scalar_type> pi) {
             copy_from(pi);
         }
@@ -147,7 +147,7 @@ namespace simd_detail {
             Impl::copy_to(value_, p);
         }
 
-        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
         void copy_to(indirect_expression<IndexImpl, scalar_type> pi) const {
             Impl::scatter(tag<IndexImpl>{}, value_, pi.p, pi.index);
         }
@@ -156,7 +156,7 @@ namespace simd_detail {
             value_ = Impl::copy_from(p);
         }
 
-        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
         void copy_from(indirect_expression<IndexImpl, scalar_type> pi) {
             switch (pi.constraint) {
             case index_constraint::none:
@@ -181,7 +181,7 @@ namespace simd_detail {
             }
         }
 
-        template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+        template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
         void copy_from(indirect_expression<IndexImpl, const scalar_type> pi) {
             switch (pi.constraint) {
             case index_constraint::none:
@@ -384,12 +384,12 @@ namespace simd_detail {
 
             // Gather and scatter.
 
-            template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
             void copy_from(indirect_expression<IndexImpl, scalar_type> pi) {
                 data_.value_ = Impl::gather(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
             }
 
-            template <typename IndexImpl, typename = typename std::enable_if<width==simd_traits<IndexImpl>::width>::type>
+            template <typename IndexImpl, typename = std::enable_if_t<width==simd_traits<IndexImpl>::width>>
             void copy_to(indirect_expression<IndexImpl, scalar_type> pi) const {
                 Impl::scatter(tag<IndexImpl>{}, data_.value_, pi.p, pi.index, mask_.value_);
             }
@@ -581,7 +581,7 @@ namespace simd_detail {
         static constexpr unsigned N = simd_traits<ImplTo>::width;
         using scalar_type = typename simd_traits<ImplTo>::scalar_type;
 
-        template <typename ImplFrom, typename = typename std::enable_if<N==simd_traits<ImplFrom>::width>::type>
+        template <typename ImplFrom, typename = std::enable_if_t<N==simd_traits<ImplFrom>::width>>
         static simd_impl<ImplTo> cast(const simd_impl<ImplFrom>& v) {
             return simd_impl<ImplTo>(v);
         }
@@ -595,10 +595,10 @@ namespace simd_detail {
     struct simd_cast_impl<std::array<V, N>> {
         template <
             typename ImplFrom,
-            typename = typename std::enable_if<
+            typename = std::enable_if_t<
                 N==simd_traits<ImplFrom>::width &&
                 std::is_same<V, typename simd_traits<ImplFrom>::scalar_type>::value
-            >::type
+            >
         >
         static std::array<V, N> cast(const simd_impl<ImplFrom>& s) {
             std::array<V, N> a;
@@ -654,7 +654,7 @@ To simd_cast(const From& s) {
 template <
     typename IndexImpl,
     typename PtrLike,
-    typename V = typename std::remove_reference<decltype(*std::declval<PtrLike>())>::type
+    typename V = std::remove_reference_t<decltype(*std::declval<PtrLike>())>
 >
 simd_detail::indirect_expression<IndexImpl, V> indirect(
     PtrLike p,

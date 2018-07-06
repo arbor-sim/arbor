@@ -1,3 +1,5 @@
+#include <string>
+
 #include <arbor/arbexcept.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/mechanism.hpp>
@@ -6,8 +8,8 @@
 
 #include "common.hpp"
 
+using namespace std::string_literals;
 using namespace arb;
-using namespace testing::string_literals;
 
 // Set up a small system of mechanisms and backends for testing,
 // comprising:
@@ -260,7 +262,7 @@ TEST(mechcat, instance) {
     EXPECT_EQ(typeid(fleeb_bar), typeid(*special_fleeb_bar_mech.get()));
     EXPECT_EQ(typeid(fleeb_bar), typeid(*fleeb2_bar_mech.get()));
 
-    EXPECT_EQ("fleeb"_s, fleeb2_bar_mech->internal_name());
+    EXPECT_EQ("fleeb"s, fleeb2_bar_mech->internal_name());
 
     // special_fleeb and fleeb2 (deriving from special_fleeb) have a specialized
     // implementation:
@@ -275,8 +277,8 @@ TEST(mechcat, instance) {
     EXPECT_EQ(typeid(special_fleeb_foo), typeid(*special_fleeb_foo_mech.get()));
     EXPECT_EQ(typeid(special_fleeb_foo), typeid(*fleeb2_foo_mech.get()));
 
-    EXPECT_EQ("fleeb"_s, fleeb1_foo_mech->internal_name());
-    EXPECT_EQ("special fleeb"_s, fleeb2_foo_mech->internal_name());
+    EXPECT_EQ("fleeb"s, fleeb1_foo_mech->internal_name());
+    EXPECT_EQ("special fleeb"s, fleeb2_foo_mech->internal_name());
 }
 
 TEST(mechcat, instantiate) {

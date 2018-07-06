@@ -6,6 +6,7 @@
 #include "tree.hpp"
 
 using namespace arb;
+using ::arb::math::pi;
 
 TEST(mc_cell, soma) {
     // test that insertion of a soma works
@@ -108,14 +109,14 @@ TEST(mc_cell, multiple_cables) {
     //      volume = 1
     //      area   = 2
     auto seg = [](section_kind k) {
-        return make_segment<cable_segment>( k, 1.0, 1.0, 1./math::pi<double>() );
+        return make_segment<cable_segment>( k, 1.0, 1.0, 1./pi<double> );
     };
 
     //  add a pre-defined segment
     {
         mc_cell c;
 
-        auto soma_radius = std::pow(3./(4.*math::pi<double>()), 1./3.);
+        auto soma_radius = std::pow(3./(4.*pi<double>), 1./3.);
 
         // cell strucure as follows
         // left   :  segment numbering
@@ -160,7 +161,7 @@ TEST(mc_cell, multiple_cables) {
 TEST(mc_cell, unbranched_chain) {
     mc_cell c;
 
-    auto soma_radius = std::pow(3./(4.*math::pi<double>()), 1./3.);
+    auto soma_radius = std::pow(3./(4.*pi<double>), 1./3.);
 
     // Cell strucure that looks like a centipede: i.e. each segment has only one child
     //
@@ -172,8 +173,8 @@ TEST(mc_cell, unbranched_chain) {
     c.add_soma(soma_radius, {0,0,1});
 
     // hook the dendrite and axons
-    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 1.0, 1.0, 1./math::pi<double>()));
-    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 1.0, 1.0, 1./math::pi<double>()));
+    c.add_cable(0, make_segment<cable_segment>(section_kind::dendrite, 1.0, 1.0, 1./pi<double>));
+    c.add_cable(1, make_segment<cable_segment>(section_kind::dendrite, 1.0, 1.0, 1./pi<double>));
 
     EXPECT_EQ(c.num_segments(), 3u);
 

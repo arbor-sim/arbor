@@ -9,7 +9,7 @@
 namespace arb {
 namespace util {
 
-template <typename V, typename = typename std::enable_if<std::is_integral<V>::value>::type>
+template <typename V, typename = std::enable_if_t<std::is_integral<V>::value>>
 struct counter {
     using difference_type = V;
     using value_type = V;

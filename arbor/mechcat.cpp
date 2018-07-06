@@ -5,14 +5,13 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/make_unique.hpp>
 
 #include "util/maputil.hpp"
 
 namespace arb {
 
 using util::value_by_key;
-using util::make_unique;
+using std::make_unique;
 
 void mechanism_catalogue::add(const std::string& name, mechanism_info info) {
     if (has(name)) {
@@ -133,20 +132,17 @@ std::unique_ptr<mechanism> mechanism_catalogue::instance_impl(std::type_index ti
     }
 
     std::unique_ptr<mechanism> mech = prototype->clone();
-    // TODO: make recursive lambda without std::function in C++14
-    std::function<void (std::string, mechanism*)> apply_globals =
-        [this, &apply_globals](const std::string& name, mechanism* mptr)
-    {
+
+    auto apply_globals = [this](auto& self, const std::string& name, mechanism* mptr) -> void {
         if (auto p = value_by_key(derived_map_, name)) {
-            apply_globals(p->parent, mptr);
+            self(self, p->parent, mptr);
 
             for (auto& kv: p->globals) {
                 mptr->set_global(kv.first, kv.second);
             }
         }
     };
-
-    apply_globals(name, mech.get());
+    apply_globals(apply_globals, name, mech.get());
     return mech;
 }
 

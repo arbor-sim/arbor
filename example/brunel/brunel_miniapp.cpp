@@ -15,7 +15,6 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
-#include <arbor/util/make_unique.hpp>
 #include <arbor/version.hpp>
 
 #include "json_meter.hpp"
@@ -242,7 +241,7 @@ int main(int argc, char** argv) {
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
         auto register_exporter = [] (const io::cl_options& options) {
-            return util::make_unique<io::exporter_spike_file>
+            return std::make_unique<io::exporter_spike_file>
                        (options.file_name, options.output_path,
                         options.file_extension, options.over_write);
         };

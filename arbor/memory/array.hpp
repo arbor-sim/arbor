@@ -68,8 +68,8 @@ namespace impl {
     template <typename T>
     struct is_array :
         std::conditional<
-            impl::is_array_by_value<typename std::decay<T>::type>::value ||
-            impl::is_array_view    <typename std::decay<T>::type>::value,
+            impl::is_array_by_value<std::decay_t<T>>::value ||
+            impl::is_array_view    <std::decay_t<T>>::value,
             std::true_type, std::false_type
         >::type
     {};
@@ -116,7 +116,7 @@ public:
     // constructor by size
     template <
         typename I,
-        typename = typename std::enable_if<std::is_integral<I>::value>::type>
+        typename = std::enable_if_t<std::is_integral<I>::value>>
     array(I n) :
         base(coordinator_type().allocate(n))
     {
@@ -129,8 +129,8 @@ public:
     // constructor by size with default value
     template <
         typename II, typename TT,
-        typename = typename std::enable_if<std::is_integral<II>::value>::type,
-        typename = typename std::enable_if<std::is_convertible<TT,value_type>::value>::type >
+        typename = std::enable_if_t<std::is_integral<II>::value>,
+        typename = std::enable_if_t<std::is_convertible<TT,value_type>::value> >
     array(II n, TT value) :
         base(coordinator_type().allocate(n))
     {
@@ -168,7 +168,7 @@ public:
     // copy constructor where other is an array, array_view or array_reference
     template <
         typename Other,
-        typename = typename std::enable_if<impl::is_array_t<Other>::value>::type
+        typename = std::enable_if_t<impl::is_array_t<Other>::value>
     >
     array(const Other& other) :
         base(coordinator_type().allocate(other.size()))
@@ -216,7 +216,7 @@ public:
 
     template <
         typename It,
-        typename = arb::util::enable_if_t<arb::util::is_random_access_iterator<It>::value> >
+        typename = std::enable_if_t<arb::util::is_random_access_iterator<It>::value> >
     array(It b, It e) :
         base(coordinator_type().allocate(std::distance(b, e)))
     {

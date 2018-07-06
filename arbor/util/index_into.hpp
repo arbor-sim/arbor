@@ -30,14 +30,14 @@ struct index_into_iterator {
     using difference_type = value_type;
     using pointer = const value_type*;
     using reference = const value_type&;
-    using iterator_category = typename
-        std::conditional<
+    using iterator_category =
+        std::conditional_t<
             std::is_same<Sup, SupEnd>::value
                 && is_bidirectional_iterator_t<Sup>::value
                 && is_bidirectional_iterator_t<Sub>::value,
             std::bidirectional_iterator_tag,
             std::forward_iterator_tag
-        >::type;
+        >;
 
     index_into_iterator(const Sub& sub, const Sub& sub_end, const Sup& sup, const SupEnd& sup_end):
         sub(sub), sub_end(sub_end), sup(sup), sup_end(sup_end), idx(0)
@@ -120,35 +120,18 @@ private:
     }
 };
 
-template <
-    typename Sub,
-    typename Super,
-    typename Canon = decltype(canonical_view(std::declval<Sub>()))
->
-auto index_into(const Sub& sub, const Super& sup)
-    -> range<
-           index_into_iterator<
-                typename sequence_traits<Canon>::const_iterator,
-                typename sequence_traits<Super>::const_iterator,
-                typename sequence_traits<Super>::const_sentinel
-           >
-       >
-{
-    using iterator =
-        index_into_iterator<
-            typename sequence_traits<Canon>::const_iterator,
-            typename sequence_traits<Super>::const_iterator,
-            typename sequence_traits<Super>::const_sentinel
-        >;
-
+template <typename Sub, typename Super>
+auto index_into(const Sub& sub, const Super& sup) {
     using std::begin;
     using std::end;
 
     auto canon = canonical_view(sub);
-    iterator b(canon.begin(), canon.end(), begin(sup), end(sup));
-    iterator e(canon.end(), canon.end(), begin(sup), end(sup));
+    using iterator = index_into_iterator<decltype(canon.begin()), decltype(begin(sup)), decltype(end(sup))>;
 
-    return range<iterator>(b, e);
+    return make_range(
+        iterator(canon.begin(), canon.end(), begin(sup), end(sup)),
+        iterator(canon.end(), canon.end(), begin(sup), end(sup))
+    );
 }
 
 } // namespace util

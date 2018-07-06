@@ -344,7 +344,7 @@ struct avx512_int8: implbase<avx512_int8> {
     using is_int8_simd = std::integral_constant<bool, std::is_same<int, typename Impl::scalar_type>::value && Impl::width==8>;
 
     template <typename ImplIndex,
-              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+              typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static __m512i gather(tag<ImplIndex>, const int32* p, const typename ImplIndex::vector_type& index) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
@@ -353,7 +353,7 @@ struct avx512_int8: implbase<avx512_int8> {
     }
 
     template <typename ImplIndex,
-              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+              typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static __m512i gather(tag<ImplIndex>, const __m512i& a, const int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
@@ -362,7 +362,7 @@ struct avx512_int8: implbase<avx512_int8> {
     }
 
     template <typename ImplIndex,
-              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+              typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static void scatter(tag<ImplIndex>, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
@@ -371,7 +371,7 @@ struct avx512_int8: implbase<avx512_int8> {
     }
 
     template <typename ImplIndex,
-              typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+              typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static void scatter(tag<ImplIndex>, const __m512i& s, int32* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int32 o[16];
         ImplIndex::copy_to(index, o);
@@ -527,7 +527,7 @@ struct avx512_double8: implbase<avx512_double8> {
     template <typename Impl>
     using is_int8_simd = std::integral_constant<bool, std::is_same<int, typename Impl::scalar_type>::value && Impl::width==8>;
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    template <typename ImplIndex, typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static __m512d gather(tag<ImplIndex>, const double* p, const typename ImplIndex::vector_type& index) {
         int o[8];
         ImplIndex::copy_to(index, o);
@@ -535,7 +535,7 @@ struct avx512_double8: implbase<avx512_double8> {
         return _mm512_i32gather_pd(_mm256_loadu_si256(op), p, 8);
     }
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    template <typename ImplIndex, typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static __m512d gather(tag<ImplIndex>, const __m512d& a, const double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int o[8];
         ImplIndex::copy_to(index, o);
@@ -543,7 +543,7 @@ struct avx512_double8: implbase<avx512_double8> {
         return _mm512_mask_i32gather_pd(a, mask, _mm256_loadu_si256(op), p, 8);
     }
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    template <typename ImplIndex, typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static void scatter(tag<ImplIndex>, const __m512d& s, double* p, const typename ImplIndex::vector_type& index) {
         int o[8];
         ImplIndex::copy_to(index, o);
@@ -551,7 +551,7 @@ struct avx512_double8: implbase<avx512_double8> {
         _mm512_i32scatter_pd(p, _mm256_loadu_si256(op), s, 8);
     }
 
-    template <typename ImplIndex, typename = typename std::enable_if<is_int8_simd<ImplIndex>::value>::type>
+    template <typename ImplIndex, typename = std::enable_if_t<is_int8_simd<ImplIndex>::value>>
     static void scatter(tag<ImplIndex>, const __m512d& s, double* p, const typename ImplIndex::vector_type& index, const __mmask8& mask) {
         int o[8];
         ImplIndex::copy_to(index, o);

@@ -13,15 +13,6 @@
 
 namespace testing {
 
-// String ctor suffix (until C++14!).
-
-namespace string_literals {
-    inline std::string operator ""_s(const char* s, std::size_t n) {
-        return std::string(s, n);
-    }
-}
-
-
 // Sentinel for C-style strings, for use with range-related tests.
 
 struct null_terminated_t {

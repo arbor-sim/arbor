@@ -8,26 +8,11 @@
 namespace arb {
 namespace math {
 
-// TODO: C++14 variable template
 template <typename T>
-T constexpr pi() {
-    return T(3.1415926535897932384626433832795l);
-}
+T constexpr pi = 3.1415926535897932384626433832795l;
 
 template <typename T = float>
-T constexpr infinity() {
-    return std::numeric_limits<T>::infinity();
-}
-
-template <typename T>
-T constexpr mean(T a, T b) {
-    return (a+b) / T(2);
-}
-
-template <typename T>
-T constexpr mean(std::pair<T,T> const& p) {
-    return (p.first+p.second) / T(2);
-}
+T constexpr infinity = std::numeric_limits<T>::infinity();
 
 template <typename T>
 T constexpr square(T a) {
@@ -42,32 +27,32 @@ T constexpr cube(T a) {
 // Area of circle radius r.
 template <typename T>
 T constexpr area_circle(T r) {
-    return pi<T>() * square(r);
+    return pi<T> * square(r);
 }
 
 // Surface area of conic frustrum excluding the discs at each end,
 // with length L, end radii r1, r2.
 template <typename T>
 T constexpr area_frustrum(T L, T r1, T r2) {
-    return pi<T>() * (r1+r2) * sqrt(square(L) + square(r1-r2));
+    return pi<T> * (r1+r2) * sqrt(square(L) + square(r1-r2));
 }
 
 // Volume of conic frustrum of length L, end radii r1, r2.
 template <typename T>
 T constexpr volume_frustrum(T L, T r1, T r2) {
-    return pi<T>()/T(3) * (square(r1+r2) - r1*r2) * L;
+    return pi<T>/T(3) * (square(r1+r2) - r1*r2) * L;
 }
 
 // Volume of a sphere radius r.
 template <typename T>
 T constexpr volume_sphere(T r) {
-    return T(4)/T(3) * pi<T>() * cube(r);
+    return T(4)/T(3) * pi<T> * cube(r);
 }
 
 // Surface area of a sphere radius r.
 template <typename T>
 T constexpr area_sphere(T r) {
-    return T(4) * pi<T>() * square(r);
+    return T(4) * pi<T> * square(r);
 }
 
 // Linear interpolation by u in interval [a,b]: (1-u)*a + u*b.
@@ -87,7 +72,7 @@ int signum(T x) {
 // next_pow2(x) returns 0 if x==0, else returns smallest 2^k such
 // that 2^k>=x.
 
-template <typename U, typename = typename std::enable_if<std::is_unsigned<U>::value>::type>
+template <typename U, typename = std::enable_if_t<std::is_unsigned<U>::value>>
 U next_pow2(U x) {
     --x;
     for (unsigned s=1; s<std::numeric_limits<U>::digits; s<<=1) {
@@ -121,8 +106,8 @@ namespace impl {
 template <
     typename T,
     typename U,
-    typename C = typename std::common_type<T, U>::type,
-    typename Signed = typename std::is_signed<C>::type
+    typename C = std::common_type_t<T, U>,
+    typename Signed = std::is_signed<C>
 >
 C round_up(T v, U b) {
     C m = v%b;

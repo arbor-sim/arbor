@@ -17,9 +17,9 @@ void copy(LHS&& from, RHS&& to) {
 #ifdef VERBOSE
     std::cerr
         << util::blue("copy") << " "
-        << util::pretty_printer<typename std::decay<LHS>::type>::print(from)
+        << util::pretty_printer<std::decay_t<LHS>>::print(from)
         << util::cyan(" -> ")
-        << util::pretty_printer<typename std::decay<RHS>::type>::print(to)  << "\n";
+        << util::pretty_printer<std::decay_t<RHS>>::print(to)  << "\n";
 #endif
     // adapt views to the inputs
     auto lhs = make_const_view(from);
@@ -33,7 +33,7 @@ void copy(LHS&& from, RHS&& to) {
 
 template <typename LHS, typename T>
 void fill(LHS&& target, T value) {
-    using lhs_type = typename std::decay<LHS>::type;
+    using lhs_type = std::decay_t<LHS>;
     static_assert(
         std::is_convertible<T, typename lhs_type::value_type>::value,
         "can't fill container with a value of the supplied type"
@@ -41,7 +41,7 @@ void fill(LHS&& target, T value) {
 #ifdef VERBOSE
     std::cerr
         << util::blue("fill") << " "
-        << util::pretty_printer<typename std::decay<LHS>::type>::print(target)
+        << util::pretty_printer<std::decay_t<LHS>>::print(target)
         << util::cyan(" <- ")
         << T(value) << "\n";
 #endif

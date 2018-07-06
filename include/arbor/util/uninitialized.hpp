@@ -19,11 +19,11 @@ namespace util {
 
 template <typename T>
 using enable_if_copy_constructible_t =
-    typename std::enable_if<std::is_copy_constructible<T>::value>::type;
+    std::enable_if_t<std::is_copy_constructible<T>::value>;
 
 template <typename... T>
 using enable_if_constructible_t =
-    typename std::enable_if<std::is_constructible<T...>::value>::type;
+    std::enable_if_t<std::is_constructible<T...>::value>;
 
 /*
  * Maintains storage for a value of type X, with explicit
@@ -32,7 +32,7 @@ using enable_if_constructible_t =
 template <typename X>
 class uninitialized {
 private:
-    typename std::aligned_storage<sizeof(X), alignof(X)>::type data;
+    std::aligned_storage_t<sizeof(X), alignof(X)> data;
 
 public:
     using pointer = X*;
@@ -74,11 +74,11 @@ public:
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    typename std::result_of<F(reference)>::type apply(F&& f) { return f(ref()); }
+    std::result_of_t<F(reference)> apply(F&& f) { return f(ref()); }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    typename std::result_of<F(const_reference)>::type apply(F&& f) const { return f(cref()); }
+    std::result_of_t<F(const_reference)> apply(F&& f) const { return f(cref()); }
 };
 
 /*

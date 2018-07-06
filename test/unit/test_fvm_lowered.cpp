@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 
 #include "../gtest.h"
@@ -28,7 +29,7 @@
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
-using namespace testing::string_literals;
+using namespace std::string_literals;
 
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
@@ -74,18 +75,13 @@ ACCESS_BIND(\
     &arb::multicore::mechanism::ion_index_table)
 
 
-// TODO: C++14 replace use with generic lambda
-struct generic_isnan {
-    template <typename V>
-    bool operator()(V& v) const { return std::isnan(v); }
-} isnan_;
-
 using namespace arb;
 
 TEST(fvm_lowered, matrix_init)
 {
-    algorithms::generic_is_positive ispos;
-    algorithms::generic_is_negative isneg;
+    auto isnan = [](auto v) { return std::isnan(v); };
+    auto ispos = [](auto v) { return v>0; };
+    auto isneg = [](auto v) { return v<0; };
 
     mc_cell cell = make_cell_ball_and_stick();
 
@@ -108,9 +104,9 @@ TEST(fvm_lowered, matrix_init)
     auto n = J.size();
     auto& mat = J.state_;
 
-    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan_));
-    EXPECT_FALSE(util::any_of(mat.d, isnan_));
-    EXPECT_FALSE(util::any_of(J.solution(), isnan_));
+    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan));
+    EXPECT_FALSE(util::any_of(mat.d, isnan));
+    EXPECT_FALSE(util::any_of(J.solution(), isnan));
 
     EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), ispos));
     EXPECT_FALSE(util::any_of(mat.d, isneg));
@@ -301,12 +297,12 @@ TEST(fvm_lowered, derived_mechs) {
         using fvec = std::vector<fvm_value_type>;
         fvec tau_values;
         for (auto& mech: fvcell.*private_mechanisms_ptr) {
-            EXPECT_EQ("test_kin1"_s, mech->internal_name());
+            EXPECT_EQ("test_kin1"s, mech->internal_name());
 
             auto cmech = dynamic_cast<multicore::mechanism*>(mech.get());
             ASSERT_TRUE(cmech);
 
-            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"_s);
+            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"s);
             ASSERT_TRUE(opt_tau_ptr);
             tau_values.push_back(*opt_tau_ptr.value());
         }
@@ -416,7 +412,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
 
-    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"_s);
+    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"s);
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 

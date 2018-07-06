@@ -31,6 +31,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iterator>
+#include <type_traits>
 
 // Derived class I must at minimum provide:
 //
