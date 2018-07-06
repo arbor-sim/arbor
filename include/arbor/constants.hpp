@@ -14,8 +14,6 @@ namespace constant {
 // 2010    8.3144621   96485.3365
 // 2014    8.3144598   96485.33289
 
-// TODO: use value templates from C++14
-
 // Universal gas constant (R)
 // https://physics.nist.gov/cgi-bin/cuu/Value?r
 constexpr double gas_constant = 8.3144598;  //  J.K^-1.mol^-1

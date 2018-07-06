@@ -120,30 +120,14 @@ bool is_minimal_degree(C const& c)
     return it==c.end();
 }
 
-struct generic_is_positive {
-    template <typename V>
-    bool operator()(V v) const {
-        static V zero = V{};
-        return v>zero;
-    }
-};
-
-struct generic_is_negative {
-    template <typename V>
-    bool operator()(V v) const {
-        static V zero = V{};
-        return v<zero;
-    }
-};
-
 template <typename C>
 bool all_positive(const C& c) {
-    return util::all_of(c, generic_is_positive{});
+    return util::all_of(c, [](auto v) { return v>decltype(v){}; });
 }
 
 template <typename C>
 bool all_negative(const C& c) {
-    return util::all_of(c, generic_is_negative{});
+    return util::all_of(c, [](auto v) { return v<decltype(v){}; });
 }
 
 template<typename C>
