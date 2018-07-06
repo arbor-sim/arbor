@@ -15,15 +15,13 @@
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/simple_sampler.hpp>
+#include <arbor/simulation.hpp>
+#include <arbor/recipe.hpp>
 
-#include "event_generator.hpp"
 #include "hardware/node_info.hpp"
 #include "load_balance.hpp"
-#include "simulation.hpp"
-#include "recipe.hpp"
 
 #include "json_meter.hpp"
-
 #include "parameters.hpp"
 
 using arb::cell_gid_type;
