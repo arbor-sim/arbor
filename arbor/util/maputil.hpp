@@ -30,7 +30,6 @@ namespace impl {
         typename C,
         typename seq_value = typename sequence_traits<C>::value_type,
         typename K = std::tuple_element_t<0, seq_value>,
-        typename V = std::tuple_element_t<0, seq_value>,
         typename find_value = std::decay_t<decltype(*std::declval<C>().find(std::declval<K>()))>
     >
     struct assoc_test: std::integral_constant<bool, std::is_same<seq_value, find_value>::value> {};
@@ -118,7 +117,7 @@ template <typename C, typename Key>
 optional<typename sequence_traits<C>::difference_type> binary_search_index(const C& c, const Key& key) {
     auto strict = strict_view(c);
     auto it = std::lower_bound(strict.begin(), strict.end(), key);
-    return it!=strict.end() && key==*it? util::just(std::distance(strict.begin(), it)): util::nullopt;
+    return it!=strict.end() && key==*it? just(std::distance(strict.begin(), it)): nullopt;
 }
 
 // Key equality helper for NUL-terminated strings.
