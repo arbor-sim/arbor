@@ -5,10 +5,10 @@
 #include <unordered_map>
 #include <stdexcept>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/event_generator.hpp>
 #include <arbor/util/unique_any.hpp>
-
-#include "event_generator.hpp"
 
 namespace arb {
 
@@ -18,11 +18,6 @@ struct probe_info {
 
     // Address type will be specific to cell kind of cell `id.gid`.
     util::any address;
-};
-
-class invalid_recipe_error: public std::runtime_error {
-public:
-    invalid_recipe_error(std::string whatstr): std::runtime_error(std::move(whatstr)) {}
 };
 
 /* Recipe descriptions are cell-oriented: in order that the building
@@ -70,8 +65,9 @@ public:
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
         return {};
     }
-    virtual probe_info get_probe(cell_member_type) const {
-        throw std::logic_error("no probes");
+
+    virtual probe_info get_probe(cell_member_type probe_id) const {
+        throw bad_probe_id(probe_id);
     }
 
     // Global property type will be specific to given cell kind.

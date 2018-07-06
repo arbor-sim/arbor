@@ -44,27 +44,27 @@
 namespace arb {
 
 template <typename Event>
-auto event_time(const Event& ev) -> decltype(ev.time) {
+auto event_time(const Event& ev) {
     return ev.time;
 }
 
 template <typename Event>
-auto event_index(const Event& ev) -> decltype(ev.index) {
+auto event_index(const Event& ev) {
     return ev.index;
 }
 
 template <typename Event>
-auto event_data(const Event& ev) -> decltype(ev.data) {
+auto event_data(const Event& ev) {
     return ev.data;
 }
 
 struct event_time_less {
-    template <typename T, typename Event, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+    template <typename T, typename Event, typename = std::enable_if_t<std::is_floating_point<T>::value>>
     bool operator() (T l, const Event& r) {
         return l<event_time(r);
     }
 
-    template <typename T, typename Event, typename = typename std::enable_if<std::is_floating_point<T>::value>::type>
+    template <typename T, typename Event, typename = std::enable_if_t<std::is_floating_point<T>::value>>
     bool operator() (const Event& l, T r) {
         return event_time(l)<r;
     }

@@ -16,7 +16,7 @@ using namespace arb;
 TEST(vector, make_gpu_stdvector) {
     std::vector<int> stdvec(10);
     auto gpu_vec = memory::on_gpu(stdvec);
-    using target_type = std::decay<decltype(gpu_vec)>::type;
+    using target_type = std::decay_t<decltype(gpu_vec)>;
     EXPECT_EQ(gpu_vec.size(), stdvec.size());
     EXPECT_NE(gpu_vec.data(), stdvec.data());
     EXPECT_TRUE(memory::util::is_on_gpu<target_type>());
@@ -29,7 +29,7 @@ TEST(vector, make_gpu_stdvector) {
 TEST(vector, make_host_devicevector) {
     memory::device_vector<int> dvec(10);
     auto host_vec = memory::on_host(dvec);
-    using target_type = std::decay<decltype(host_vec)>::type;
+    using target_type = std::decay_t<decltype(host_vec)>;
     EXPECT_EQ(host_vec.size(), dvec.size());
     EXPECT_NE(host_vec.data(), dvec.data());
     EXPECT_TRUE(memory::util::is_on_host<target_type>());
@@ -43,7 +43,7 @@ TEST(vector, make_host_devicevector) {
 TEST(vector, make_gpu_devicevector) {
     memory::device_vector<int> dvec(10);
     auto view = memory::on_gpu(dvec);
-    using target_type = std::decay<decltype(view)>::type;
+    using target_type = std::decay_t<decltype(view)>;
     EXPECT_EQ(view.size(), dvec.size());
     EXPECT_EQ(view.data(), dvec.data());
     EXPECT_TRUE(memory::util::is_on_gpu<target_type>());

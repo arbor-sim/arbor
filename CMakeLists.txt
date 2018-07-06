@@ -1,5 +1,5 @@
-# 3.9 requirement for CUDA language support.
-cmake_minimum_required(VERSION 3.9)
+# 3.8 requirement for CUDA language support.
+cmake_minimum_required(VERSION 3.8)
 
 project(arbor VERSION 0.1)
 enable_language(CXX)
@@ -93,13 +93,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "YES")
 
+# Detect and deprecate xlC.
+
+include("CheckCompilerXLC")
+
 # Compiler options common to library, examples, tests, etc.
 
 include("CompilerOptions")
 add_compile_options(
     "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_DEBUG}>"
     "$<$<COMPILE_LANGUAGE:CXX>:${CXXOPT_WALL}>")
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 
 #----------------------------------------------------------
 # Set up flags and dependencies:

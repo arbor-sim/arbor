@@ -1,8 +1,7 @@
 #pragma once
 
 #include <arbor/common_types.hpp>
-
-#include <recipe.hpp>
+#include <arbor/recipe.hpp>
 
 #include "parameters.hpp"
 

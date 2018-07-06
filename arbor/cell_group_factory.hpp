@@ -1,13 +1,9 @@
 #pragma once
 
-#include <vector>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
 
-#include <arbor/util/unique_any.hpp>
-
-#include "backends.hpp"
 #include "cell_group.hpp"
-#include "domain_decomposition.hpp"
-#include "recipe.hpp"
 
 namespace arb {
 

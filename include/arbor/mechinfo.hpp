@@ -11,7 +11,6 @@
 #include <vector>
 
 #include <arbor/ion.hpp>
-#include <arbor/util/enumhash.hpp>
 
 namespace arb {
 
@@ -30,19 +29,6 @@ struct mechanism_field_spec {
     double upper_bound = std::numeric_limits<double>::max();
 
     bool valid(double x) const { return x>=lower_bound && x<=upper_bound; }
-
-    // TODO: C++14 - no need for ctor below, as aggregate initialization
-    // will work with default member initializers.
-
-    mechanism_field_spec(
-        enum field_kind kind = parameter,
-        std::string units = "",
-        double default_value = 0.,
-        double lower_bound = std::numeric_limits<double>::lowest(),
-        double upper_bound = std::numeric_limits<double>::max()
-     ):
-        kind(kind), units(units), default_value(default_value), lower_bound(lower_bound), upper_bound(upper_bound)
-    {}
 };
 
 struct ion_dependency {
@@ -71,7 +57,7 @@ struct mechanism_info {
     std::unordered_map<std::string, mechanism_field_spec> state;
 
     // Ion dependencies.
-    std::unordered_map<ionKind, ion_dependency, util::enum_hash> ions;
+    std::unordered_map<ionKind, ion_dependency> ions;
 
     mechanism_fingerprint fingerprint;
 };

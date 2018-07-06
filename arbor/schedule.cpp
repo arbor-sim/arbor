@@ -4,8 +4,7 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-
-#include "schedule.hpp"
+#include <arbor/schedule.hpp>
 
 // Implementations for specific schedules.
 

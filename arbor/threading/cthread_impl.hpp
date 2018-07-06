@@ -140,7 +140,7 @@ public :
       return data[global_task_pool.get_current_thread()];
     }
 
-    auto size() -> decltype(data.size()) const { return data.size(); }
+    auto size() const { return data.size(); }
 
     iterator begin() { return data.begin(); }
     iterator end()   { return data.end(); }
@@ -163,7 +163,7 @@ private:
 
     // call a function of type X f() in a lock
     template<typename F>
-    auto critical(F f) -> decltype(f()) {
+    decltype(auto) critical(F f) {
         impl::lock lock{mutex};
         return f();
     }

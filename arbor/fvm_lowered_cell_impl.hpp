@@ -9,25 +9,27 @@
 
 #include <cmath>
 #include <iterator>
+#include <memory>
+#include <stdexcept>
 #include <utility>
 #include <vector>
-#include <stdexcept>
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/ion.hpp>
+#include <arbor/recipe.hpp>
 
 #include "builtin_mechanisms.hpp"
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "matrix.hpp"
 #include "profile/profiler_macro.hpp"
-#include "recipe.hpp"
 #include "sampler_map.hpp"
 #include "util/maputil.hpp"
 #include "util/meta.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
+#include "util/strprintf.hpp"
 #include "util/transform.hpp"
 
 
@@ -113,10 +115,10 @@ template <typename Backend>
 void fvm_lowered_cell_impl<Backend>::assert_tmin() {
     auto time_minmax = state_->time_bounds();
     if (time_minmax.first != time_minmax.second) {
-        throw std::logic_error("inconsistent times across cells");
+        throw arbor_internal_error("fvm_lowered_cell: inconsistent times across cells");
     }
     if (time_minmax.first != tmin_) {
-        throw std::logic_error("out of synchronziation with cell state time");
+        throw arbor_internal_error("fvm_lowered_cell: out of synchronziation with cell state time");
     }
 }
 
@@ -276,8 +278,9 @@ void fvm_lowered_cell_impl<B>::assert_voltage_bounded(fvm_value_type bound) {
     }
 
     auto t_minmax = state_->time_bounds();
-    throw std::out_of_range("voltage solution out of bounds for t in ["+
-        std::to_string(t_minmax.first)+", "+std::to_string(t_minmax.second)+"]");
+    throw range_check_failure(
+        util::pprintf("voltage solution out of bounds for t in [{}, {}]", t_minmax.first, t_minmax.second),
+        v_minmax.first<-bound? v_minmax.first: v_minmax.second);
 }
 
 template <typename B>
@@ -298,11 +301,24 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     cells.reserve(ncell);
     for (auto gid: gids) {
-        cells.push_back(any_cast<mc_cell>(rec.get_cell_description(gid)));
+        try {
+            cells.push_back(any_cast<mc_cell>(rec.get_cell_description(gid)));
+        }
+        catch (util::bad_any_cast&) {
+            throw bad_cell_description(rec.get_cell_kind(gid), gid);
+        }
     }
 
-    auto rec_props = rec.get_global_properties(cell_kind::cable1d_neuron);
-    auto global_props = rec_props.has_value()? any_cast<mc_cell_global_properties>(rec_props): mc_cell_global_properties{};
+    mc_cell_global_properties global_props;
+    try {
+        util::any rec_props = rec.get_global_properties(cell_kind::cable1d_neuron);
+        if (rec_props.has_value()) {
+            global_props = any_cast<mc_cell_global_properties>(rec_props);
+        }
+    }
+    catch (util::bad_any_cast&) {
+        throw bad_global_property(cell_kind::cable1d_neuron);
+    }
 
     const mechanism_catalogue* catalogue = global_props.catalogue;
     initial_voltage_ = global_props.init_membrane_potential_mV;
@@ -336,7 +352,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         util::transform_view(keys(mech_data.mechanisms),
             [&](const std::string& name) { return mech_instance(name)->data_alignment(); }));
 
-    state_ = util::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment? data_alignment: 1u);
+    state_ = std::make_unique<shared_state>(ncell, D.cv_to_cell, data_alignment? data_alignment: 1u);
 
     // Instantiate mechanisms and ions.
 
@@ -423,7 +439,7 @@ void fvm_lowered_cell_impl<B>::initialize(
                 handle = state_->current_density.data()+cv;
                 break;
             default:
-                throw std::logic_error("unrecognized probeKind");
+                throw arbor_internal_error("fvm_lowered_cell: unrecognized probeKind");
             }
 
             probe_map.insert({pi.id, {handle, pi.tag}});

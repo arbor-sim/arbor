@@ -7,14 +7,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include <event_queue.hpp>
-#include <backends/event.hpp>
+#include <arbor/spike_event.hpp>
+
+#include "event_queue.hpp"
+#include "backends/event.hpp"
 
 #include <benchmark/benchmark.h>
 
 using namespace arb;
-
-using pse = postsynaptic_spike_event;
 
 std::vector<cell_gid_type> generate_gids(size_t n) {
     std::mt19937 engine;
@@ -31,9 +31,9 @@ std::vector<cell_gid_type> generate_gids(size_t n) {
     return gids;
 }
 
-std::vector<std::vector<pse>> generate_inputs(const std::vector<cell_gid_type>& gids, size_t ev_per_cell) {
+std::vector<pse_vector> generate_inputs(const std::vector<cell_gid_type>& gids, size_t ev_per_cell) {
     auto ncells = gids.size();
-    std::vector<std::vector<pse>> input_events;
+    std::vector<pse_vector> input_events;
 
     std::uniform_int_distribution<cell_gid_type>(0u, ncells);
     std::mt19937 gen;
@@ -42,7 +42,7 @@ std::vector<std::vector<pse>> generate_inputs(const std::vector<cell_gid_type>& 
 
     input_events.resize(ncells);
     for (std::size_t i=0; i<ncells*ev_per_cell; ++i) {
-        postsynaptic_spike_event ev;
+        spike_event ev;
         auto idx = gid_dist(gen);
         auto gid = gids[idx];
         auto t = 1.;

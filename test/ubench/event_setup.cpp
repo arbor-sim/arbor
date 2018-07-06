@@ -7,7 +7,7 @@
 // gid. A similar lookup should be added to theses tests, to more accurately
 // reflect the mc_cell_group implementation.
 //
-// TODO: The staged_events output is a vector of postsynaptic_spike_event, not
+// TODO: The staged_events output is a vector of spike_event, not
 // a deliverable event.
 
 #include <random>
@@ -20,8 +20,8 @@
 
 using namespace arb;
 
-std::vector<postsynaptic_spike_event> generate_inputs(size_t ncells, size_t ev_per_cell) {
-    std::vector<postsynaptic_spike_event> input_events;
+std::vector<spike_event> generate_inputs(size_t ncells, size_t ev_per_cell) {
+    std::vector<spike_event> input_events;
     std::default_random_engine engine;
     std::uniform_int_distribution<cell_gid_type>(0u, ncells);
 
@@ -33,7 +33,7 @@ std::vector<postsynaptic_spike_event> generate_inputs(size_t ncells, size_t ev_p
 
     input_events.reserve(ncells*ev_per_cell);
     for (std::size_t i=0; i<ncells*ev_per_cell; ++i) {
-        postsynaptic_spike_event ev;
+        spike_event ev;
         auto gid = gid_dist(gen);
         auto t = time_dist(gen);
         ev.target = {cell_gid_type(gid), cell_lid_type(0)};
@@ -46,7 +46,7 @@ std::vector<postsynaptic_spike_event> generate_inputs(size_t ncells, size_t ev_p
 }
 
 void single_queue(benchmark::State& state) {
-    using pev = postsynaptic_spike_event;
+    using pev = spike_event;
 
     const std::size_t ncells = state.range(0);
     const std::size_t ev_per_cell = state.range(1);
@@ -84,7 +84,7 @@ void single_queue(benchmark::State& state) {
 }
 
 void n_queue(benchmark::State& state) {
-    using pev = postsynaptic_spike_event;
+    using pev = spike_event;
     const std::size_t ncells = state.range(0);
     const std::size_t ev_per_cell = state.range(1);
 
@@ -123,7 +123,7 @@ void n_queue(benchmark::State& state) {
 }
 
 void n_vector(benchmark::State& state) {
-    using pev = postsynaptic_spike_event;
+    using pev = spike_event;
     const std::size_t ncells = state.range(0);
     const std::size_t ev_per_cell = state.range(1);
 
@@ -165,7 +165,7 @@ void n_vector(benchmark::State& state) {
             part[i+1] = part[i] + ext[i];
         }
         // copy events into the output flat buffer
-        std::vector<postsynaptic_spike_event> staged_events(part.back());
+        std::vector<spike_event> staged_events(part.back());
         auto b = staged_events.begin();
         for (size_t i=0; i<ncells; ++i) {
             auto bi = event_lanes[i].begin();

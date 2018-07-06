@@ -8,11 +8,13 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
-#include <arbor/util/make_unique.hpp>
 #include <arbor/version.hpp>
 
 #include "json_meter.hpp"
@@ -20,12 +22,9 @@
 #include "with_mpi.hpp"
 #endif
 
-#include "event_generator.hpp"
 #include "hardware/gpu.hpp"
 #include "hardware/node_info.hpp"
 #include "io/exporter_spike_file.hpp"
-#include "recipe.hpp"
-#include "simulation.hpp"
 #include "util/ioutil.hpp"
 
 #include "partitioner.hpp"
@@ -242,7 +241,7 @@ int main(int argc, char** argv) {
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
         auto register_exporter = [] (const io::cl_options& options) {
-            return util::make_unique<io::exporter_spike_file>
+            return std::make_unique<io::exporter_spike_file>
                        (options.file_name, options.output_path,
                         options.file_extension, options.over_write);
         };

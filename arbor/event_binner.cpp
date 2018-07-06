@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <unordered_map>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 #include <arbor/util/optional.hpp>
@@ -36,7 +37,7 @@ time_type event_binner::bin(time_type t, time_type t_min) {
         last_event_time_ = t_binned;
         break;
     default:
-        throw std::logic_error("unrecognized binning policy");
+        throw arbor_internal_error("event_binner: unrecognized binning policy");
     }
 
     return std::max(t_binned, t_min);

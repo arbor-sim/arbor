@@ -1,19 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <functional>
-#include <type_traits>
-#include <unordered_map>
 #include <vector>
 
+#include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/util/optional.hpp>
-
-#include "backends.hpp"
-#include "hardware/node_info.hpp"
-#include "recipe.hpp"
-#include "util/partition.hpp"
-#include "util/range.hpp"
-#include "util/transform.hpp"
 
 namespace arb {
 
@@ -38,7 +30,7 @@ struct group_description {
     group_description(cell_kind k, std::vector<cell_gid_type> g, backend_kind b):
         kind(k), gids(std::move(g)), backend(b)
     {
-        arb_assert(util::is_sorted(gids));
+        arb_assert(std::is_sorted(gids.begin(), gids.end()));
     }
 };
 

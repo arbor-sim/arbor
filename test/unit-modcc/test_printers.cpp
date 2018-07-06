@@ -1,3 +1,4 @@
+#include <memory>
 #include <regex>
 #include <string>
 #include <sstream>
@@ -6,6 +7,7 @@
 
 #include "printer/cexpr_emit.hpp"
 #include "printer/cprinter.hpp"
+#include "printer/cudaprinter.hpp"
 #include "expression.hpp"
 #include "symdiff.hpp"
 
@@ -89,7 +91,7 @@ TEST(scalar_printer, statement) {
         {
             SCOPED_TRACE("CPrinter");
             std::stringstream out;
-            auto printer = make_unique<CPrinter>(out);
+            auto printer = std::make_unique<CPrinter>(out);
             e->accept(printer.get());
             std::string text = out.str();
 
@@ -97,20 +99,16 @@ TEST(scalar_printer, statement) {
             EXPECT_EQ(strip(tc.expected), strip(text));
         }
 
-#if 0
         {
-            SCOPED_TRACE("CUDAPrinter");
-            TextBuffer buf;
-            auto printer = make_unique<CUDAPrinter>();
-            printer->set_buffer(buf);
-
+            SCOPED_TRACE("CudaPrinter");
+            std::stringstream out;
+            auto printer = std::make_unique<CudaPrinter>(out);
             e->accept(printer.get());
-            std::string text = buf.str();
+            std::string text = out.str();
 
             verbose_print(e->to_string(), " :--: ", text);
             EXPECT_EQ(strip(tc.expected), strip(text));
         }
-#endif
     }
 }
 
@@ -150,7 +148,7 @@ TEST(CPrinter, proc_body) {
 
         proc->semantic(globals);
         std::stringstream out;
-        auto v = make_unique<CPrinter>(out);
+        auto v = std::make_unique<CPrinter>(out);
         proc->is_procedure()->body()->accept(v.get());
         std::string text = out.str();
 

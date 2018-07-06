@@ -1,5 +1,6 @@
 #include <lif_cell_group.hpp>
 
+#include "profile/profiler_macro.hpp"
 #include "util/span.hpp"
 
 using namespace arb;

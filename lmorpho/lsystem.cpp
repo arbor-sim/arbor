@@ -5,7 +5,6 @@
 #include <vector>
 
 #include <arbor/morphology.hpp>
-
 #include "math.hpp"
 
 #include "lsystem.hpp"

@@ -6,33 +6,17 @@
 #include <iterator>
 #include <type_traits>
 
-#include <arbor/util/compat.hpp>
-
-#include "util/deduce_return.hpp"
-
 namespace arb {
 namespace util {
 
 // The following classes and functions can be replaced
 // with std functions when we migrate to later versions of C++.
 //
-// C++14:
-// result_of_t, enable_if_t, decay_t, size, cbegin, cend.
-//
 // C++17:
 // void_t, empty, data, as_const
 
-template <typename T>
-using result_of_t = typename std::result_of<T>::type;
-
-template <bool V, typename R = void>
-using enable_if_t = typename std::enable_if<V, R>::type;
-
 template <class...>
 using void_t = void;
-
-template <typename T>
-using decay_t = typename std::decay<T>::type;
 
 template <typename X>
 constexpr std::size_t size(const X& x) { return x.size(); }
@@ -41,10 +25,10 @@ template <typename X, std::size_t N>
 constexpr std::size_t size(X (&)[N]) noexcept { return N; }
 
 template <typename C>
-constexpr auto data(C& c) -> decltype(c.data()) { return c.data(); }
+constexpr auto data(C& c) { return c.data(); }
 
 template <typename C>
-constexpr auto data(const C& c) -> decltype(c.data()) { return c.data(); }
+constexpr auto data(const C& c) { return c.data(); }
 
 template <typename T, std::size_t N>
 constexpr T* data(T (&a)[N]) noexcept { return a; }
@@ -53,24 +37,9 @@ template <typename T>
 void as_const(T&& t) = delete;
 
 template <typename T>
-constexpr typename std::add_const<T>::type& as_const(T& t) {
+constexpr std::add_const_t<T>& as_const(T& t) {
     return t;
 }
-
-// Wrap cbegin in inner namespace in order to properly invoke ADL.
-
-namespace impl {
-    using std::begin;
-
-    template <typename T>
-    constexpr auto cbegin_(const T& c) DEDUCED_RETURN_TYPE(begin(c))
-}
-
-template <typename T>
-constexpr auto cbegin(const T& c) DEDUCED_RETURN_TYPE(impl::cbegin_(c))
-
-template <typename T>
-constexpr auto cend(const T& c) DEDUCED_RETURN_TYPE(compat::end(c))
 
 // Use sequence `empty() const` method if exists, otherwise
 // compare begin and end.
@@ -87,10 +56,11 @@ namespace impl_empty {
     };
 
     using std::begin;
+    using std::end;
 
     template <typename Seq>
     constexpr bool empty(const Seq& seq, std::false_type) {
-        return begin(seq)==compat::end(seq);
+        return begin(seq)==end(seq);
     }
 
     template <typename Seq>
@@ -113,13 +83,17 @@ constexpr bool empty(const T (& c)[N]) noexcept {
 
 namespace impl_seqtrait {
     using std::begin;
+    using std::end;
 
     template <typename Seq, typename = void>
     struct data_returns_pointer: std::false_type {};
 
+    template <typename T, std::size_t N>
+    struct data_returns_pointer<T (&)[N], void>: public std::true_type {};
+
     template <typename T>
-    struct data_returns_pointer<T, void_t<decltype(util::data(std::declval<T>()))>>:
-        public std::is_pointer<decltype(util::data(std::declval<T>()))>::type {};
+    struct data_returns_pointer<T, void_t<decltype(std::declval<T>().data())>>:
+        public std::is_pointer<decltype(std::declval<T>().data())>::type {};
 
     template <typename Seq>
     struct sequence_traits {
@@ -130,45 +104,69 @@ namespace impl_seqtrait {
         using difference_type = typename std::iterator_traits<iterator>::difference_type;
         using size_type = decltype(size(std::declval<Seq&>()));
         // For use with heterogeneous ranges:
-        using sentinel = decltype(compat::end(std::declval<Seq&>()));
-        using const_sentinel = decltype(compat::end(std::declval<const Seq&>()));
+        using sentinel = decltype(end(std::declval<Seq&>()));
+        using const_sentinel = decltype(end(std::declval<const Seq&>()));
 
         static constexpr bool is_contiguous = data_returns_pointer<Seq>::value;
+        static constexpr bool is_regular = std::is_same<iterator, sentinel>::value;
     };
+
+    template<typename T, typename V=void>
+    struct is_sequence:
+        std::false_type {};
+
+    template<typename T>
+    struct is_sequence<T, void_t<decltype(begin(std::declval<T>()))>>:
+        std::true_type {};
+
 }
 
 template <typename Seq>
 using sequence_traits = impl_seqtrait::sequence_traits<Seq>;
 
+// Sequence test by checking begin.
+
+template <typename T>
+using is_sequence = impl_seqtrait::is_sequence<T>;
+
+template <typename T>
+using enable_if_sequence_t = std::enable_if_t<util::is_sequence<T>::value>;
+
+template <typename T>
+using is_contiguous = std::integral_constant<bool, sequence_traits<T>::is_contiguous>;
+
+template <typename T>
+using is_regular_sequence = std::integral_constant<bool, sequence_traits<T>::is_regular>;
+
 // Convenience short cuts for `enable_if`
 
 template <typename T>
 using enable_if_copy_constructible_t =
-    enable_if_t<std::is_copy_constructible<T>::value>;
+    std::enable_if_t<std::is_copy_constructible<T>::value>;
 
 template <typename T>
 using enable_if_move_constructible_t =
-    enable_if_t<std::is_move_constructible<T>::value>;
+    std::enable_if_t<std::is_move_constructible<T>::value>;
 
 template <typename T>
 using enable_if_default_constructible_t =
-    enable_if_t<std::is_default_constructible<T>::value>;
+    std::enable_if_t<std::is_default_constructible<T>::value>;
 
 template <typename... T>
 using enable_if_constructible_t =
-    enable_if_t<std::is_constructible<T...>::value>;
+    std::enable_if_t<std::is_constructible<T...>::value>;
 
 template <typename T>
 using enable_if_copy_assignable_t =
-    enable_if_t<std::is_copy_assignable<T>::value>;
+    std::enable_if_t<std::is_copy_assignable<T>::value>;
 
 template <typename T>
 using enable_if_move_assignable_t =
-    enable_if_t<std::is_move_assignable<T>::value>;
+    std::enable_if_t<std::is_move_assignable<T>::value>;
 
 template <typename T>
 using enable_if_trivially_copyable_t =
-    enable_if_t<std::is_trivially_copyable<T>::value>;
+    std::enable_if_t<std::is_trivially_copyable<T>::value>;
 
 // Iterator class test
 // (might not be portable before C++17)
@@ -189,7 +187,7 @@ template <typename T, typename = void>
 struct is_random_access_iterator: public std::false_type {};
 
 template <typename T>
-struct is_random_access_iterator<T, enable_if_t<
+struct is_random_access_iterator<T, std::enable_if_t<
         std::is_same<
             std::random_access_iterator_tag,
             typename std::iterator_traits<T>::iterator_category>::value
@@ -204,7 +202,7 @@ template <typename T, typename = void>
 struct is_bidirectional_iterator: public std::false_type {};
 
 template <typename T>
-struct is_bidirectional_iterator<T, enable_if_t<
+struct is_bidirectional_iterator<T, std::enable_if_t<
         std::is_same<
             std::random_access_iterator_tag,
             typename std::iterator_traits<T>::iterator_category>::value
@@ -223,7 +221,7 @@ template <typename T, typename = void>
 struct is_forward_iterator: public std::false_type {};
 
 template <typename T>
-struct is_forward_iterator<T, enable_if_t<
+struct is_forward_iterator<T, std::enable_if_t<
         std::is_same<
             std::random_access_iterator_tag,
             typename std::iterator_traits<T>::iterator_category>::value
@@ -249,13 +247,13 @@ struct common_random_access_iterator<
     I,
     E,
     void_t<decltype(false? std::declval<I>(): std::declval<E>())>,
-    util::enable_if_t<
+    std::enable_if_t<
         is_random_access_iterator<
-            decay_t<decltype(false? std::declval<I>(): std::declval<E>())>
+            std::decay_t<decltype(false? std::declval<I>(): std::declval<E>())>
         >::value
     >
 > {
-    using type = util::decay_t<
+    using type = std::decay_t<
         decltype(false ? std::declval<I>() : std::declval<E>())
     >;
 };
@@ -270,17 +268,6 @@ struct has_common_random_access_iterator:
 template <typename I, typename E>
 struct has_common_random_access_iterator<I, E, void_t<util::common_random_access_iterator_t<I, E>>>:
     std::true_type {};
-
-template<typename T, typename V=void>
-struct is_sequence:
-    std::false_type {};
-
-template<typename T>
-struct is_sequence<T, void_t<decltype(std::begin(std::declval<T>()))>>:
-    std::true_type {};
-
-template <typename T>
-using enable_if_sequence_t = util::enable_if_t<util::is_sequence<T>::value>;
 
 // No generic lambdas in C++11, so some convenience accessors for pairs that
 // are type-generic

@@ -52,7 +52,7 @@ struct any_ptr {
         type_ptr_ = &typeid(T*);
     }
 
-    template <typename T, typename = typename std::enable_if<std::is_pointer<T>::value>::type>
+    template <typename T, typename = std::enable_if_t<std::is_pointer<T>::value>>
     T as() const noexcept {
         if (std::is_same<T, void*>::value) {
             return (T)ptr_;

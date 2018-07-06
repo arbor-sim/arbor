@@ -92,7 +92,7 @@ TEST(compartments, div_ends) {
         EXPECT_DOUBLE_EQ(volume_frustrum(l, r2, r1), d.volume());
 
         auto sl = l/2.0;
-        auto rc = mean(r1, r2);
+        auto rc = 0.5*(r1+r2);
 
         div_compartment expected{
             0,

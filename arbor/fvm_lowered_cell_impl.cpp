@@ -1,7 +1,9 @@
 #include <memory>
 #include <stdexcept>
 
-#include "backends.hpp"
+#include <arbor/arbexcept.hpp>
+#include <arbor/common_types.hpp>
+
 #include "backends/multicore/fvm.hpp"
 #ifdef ARB_HAVE_GPU
 #include "backends/gpu/fvm.hpp"
@@ -20,7 +22,7 @@ fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p) {
 #endif
         ; // fall through
     default:
-        throw std::logic_error("unsupported back-end");
+        throw arbor_internal_error("fvm_lowered_cell: unsupported back-end");
     }
 }
 

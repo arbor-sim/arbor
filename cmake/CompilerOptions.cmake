@@ -3,17 +3,6 @@
 set(CXXOPT_DEBUG "-g")
 set(CXXOPT_CXX11 "-std=c++11")
 
-# CMake (at least sometimes) misidentifies XL 13 for Linux as Clang.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    try_compile(ignore ${CMAKE_BINARY_DIR} ${PROJECT_SOURCE_DIR}/cmake/dummy.cpp COMPILE_DEFINITIONS --version OUTPUT_VARIABLE cc_out)
-    string(REPLACE "\n" ";" cc_out "${cc_out}")
-    foreach(line ${cc_out})
-        if(line MATCHES "^IBM XL C")
-            set(CMAKE_CXX_COMPILER_ID "XL")
-        endif()
-    endforeach(line)
-endif()
-
 if(CMAKE_CXX_COMPILER_ID MATCHES "XL")
     # CMake, bless its soul, likes to insert this unsupported flag. Hilarity ensues.
     string(REPLACE "-qhalt=e" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")

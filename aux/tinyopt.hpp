@@ -69,7 +69,7 @@ auto keywords(const KeywordPairs& pairs) -> keyword_parser<decltype(std::begin(p
     return keyword_parser<decltype(std::begin(pairs)->second)>(pairs);
 }
 
-template <typename V = std::string, typename P = default_parser<V>, typename = typename std::enable_if<!std::is_same<V, void>::value>::type>
+template <typename V = std::string, typename P = default_parser<V>, typename = std::enable_if_t<!std::is_same<V, void>::value>>
 optional<V> parse_opt(char **& argp, char shortopt, const char* longopt=nullptr, const P& parse = P{}) {
     const char* arg = argp[0];
 

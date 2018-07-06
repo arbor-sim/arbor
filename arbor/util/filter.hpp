@@ -69,11 +69,12 @@ class filter_iterator {
 public:
     using value_type = typename std::iterator_traits<I>::value_type;
     using difference_type = typename std::iterator_traits<I>::difference_type;
-    using iterator_category = typename std::conditional<
-        is_forward_iterator<I>::value,
-        std::forward_iterator_tag,
-        std::input_iterator_tag
-    >::type;
+    using iterator_category =
+        std::conditional_t<
+            is_forward_iterator<I>::value,
+            std::forward_iterator_tag,
+            std::input_iterator_tag
+        >;
 
     using pointer = typename std::iterator_traits<I>::pointer;
     using reference = typename std::iterator_traits<I>::reference;
@@ -129,7 +130,7 @@ public:
 
     // forward and input iterator requirements
 
-    auto operator*() const -> decltype(*(this->inner_)) {
+    decltype(auto) operator*() const {
         advance();
         return *inner_;
     }
@@ -182,62 +183,35 @@ public:
 };
 
 template <typename I, typename S, typename F>
-filter_iterator<I, S, util::decay_t<F>> make_filter_iterator(const I& i, const S& end, const F& f) {
-    return filter_iterator<I, S, util::decay_t<F>>(i, end, f);
+filter_iterator<I, S, std::decay_t<F>> make_filter_iterator(const I& i, const S& end, const F& f) {
+    return filter_iterator<I, S, std::decay_t<F>>(i, end, f);
 }
 
-// filter over const and non-const regular sequences:
+// TODO C++17: simplify with constexpr-if
+namespace filter_impl {
+    using std::begin;
+    using std::end;
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = enable_if_t<std::is_same<seq_iter, seq_sent>::value>
->
-range<filter_iterator<seq_iter, seq_iter, util::decay_t<F>>>
-filter(Seq& s, const F& f) {
-    return {make_filter_iterator(std::begin(s), std::end(s), f),
-            make_filter_iterator(std::end(s), std::end(s), f)};
+    // filter over regular sequences:
+    template <typename Seq, typename F>
+    auto filter_(Seq&& s, const F& f, std::true_type) {
+        auto b = begin(s);
+        auto e = end(s);
+        return make_range(make_filter_iterator(b, e, f), make_filter_iterator(e, e, f));
+    }
+
+    // filter over sentinel-terminated sequences:
+    template <typename Seq, typename F>
+    auto filter_(Seq&& s, const F& f, std::false_type) {
+        auto b = begin(s);
+        auto e = end(s);
+        return make_range(make_filter_iterator(b, e, f), e);
+    }
 }
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_citer = typename sequence_traits<Seq>::const_iterator,
-    typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<std::is_same<seq_citer, seq_csent>::value>
->
-range<filter_iterator<seq_citer, seq_citer, util::decay_t<F>>>
-filter(const Seq& s, const F& f) {
-    return {make_filter_iterator(util::cbegin(s), util::cend(s), f),
-            make_filter_iterator(util::cend(s), util::cend(s), f)};
-}
-
-// filter over const and non-const sentinel-terminated sequences:
-
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = enable_if_t<!std::is_same<seq_iter, seq_sent>::value>
->
-range<filter_iterator<seq_iter, seq_sent, util::decay_t<F>>, seq_sent>
-filter(Seq& s, const F& f) {
-    return {make_filter_iterator(std::begin(s), std::end(s), f), std::end(s)};
-}
-
-template <
-    typename Seq,
-    typename F,
-    typename seq_citer = typename sequence_traits<Seq>::const_iterator,
-    typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<!std::is_same<seq_citer, seq_csent>::value>
->
-range<filter_iterator<seq_citer, seq_csent, util::decay_t<F>>, seq_csent>
-filter(const Seq& s, const F& f) {
-    return {make_filter_iterator(util::cbegin(s), util::cend(s), f), util::cend(s)};
+template <typename Seq, typename F>
+auto filter(Seq&& s, const F& f) {
+    return filter_impl::filter_(std::forward<Seq>(s), f, is_regular_sequence<Seq&&>{});
 }
 
 } // namespace util

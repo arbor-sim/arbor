@@ -1,9 +1,9 @@
 #include <arbor/distributed_context.hpp>
-#include <arbor/util/enumhash.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
 
-#include "domain_decomposition.hpp"
 #include "hardware/node_info.hpp"
-#include "recipe.hpp"
+#include "util/partition.hpp"
 #include "util/span.hpp"
 
 namespace arb {
@@ -45,7 +45,7 @@ domain_decomposition partition_load_balance(const recipe& rec,
 
     // Local load balance
 
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>, arb::util::enum_hash>
+    std::unordered_map<cell_kind, std::vector<cell_gid_type>>
         kind_lists;
     for (auto gid: make_span(gid_part[domain_id])) {
         kind_lists[rec.get_cell_kind(gid)].push_back(gid);

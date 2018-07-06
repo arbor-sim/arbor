@@ -5,10 +5,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/event_generator.hpp>
 #include <arbor/mc_cell.hpp>
-
-#include <event_generator.hpp>
-#include <recipe.hpp>
+#include <arbor/recipe.hpp>
 
 namespace arb {
 

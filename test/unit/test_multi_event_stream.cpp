@@ -1,9 +1,9 @@
 #include <vector>
 #include "../gtest.h"
 
-#include <backends/event.hpp>
-#include <backends/multicore/multi_event_stream.hpp>
-#include <util/rangeutil.hpp>
+#include "backends/event.hpp"
+#include "backends/multicore/multi_event_stream.hpp"
+#include "util/rangeutil.hpp"
 
 using namespace arb;
 
@@ -39,8 +39,9 @@ namespace {
 namespace {
     // convenience wrapper around marked_events:
     template <typename MultiEventStream>
-    auto marked_range(const MultiEventStream& m, unsigned i)
-        DEDUCED_RETURN_TYPE(util::make_range(m.marked_events().begin_marked(i), m.marked_events().end_marked(i)))
+    auto marked_range(const MultiEventStream& m, unsigned i) {
+        return util::make_range(m.marked_events().begin_marked(i), m.marked_events().end_marked(i));
+    }
 }
 
 TEST(multi_event_stream, init) {

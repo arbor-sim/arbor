@@ -31,7 +31,7 @@ public:
     const I& inner() const { return inner_; }
     I& inner() { return inner_; }
 
-    using inner_value_type = decay_t<decltype(*inner_)>;
+    using inner_value_type = std::decay_t<decltype(*inner_)>;
 
     using typename base::difference_type;
     using value_type = std::pair<inner_value_type, inner_value_type>;
@@ -42,7 +42,7 @@ public:
 
     template <
         typename J,
-        typename = enable_if_t<!std::is_same<decay_t<J>, partition_iterator>::value>
+        typename = std::enable_if_t<!std::is_same<std::decay_t<J>, partition_iterator>::value>
     >
     explicit partition_iterator(J&& c): inner_{std::forward<J>(c)} {}
 

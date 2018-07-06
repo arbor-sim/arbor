@@ -14,14 +14,14 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/event_generator.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/simple_sampler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
 
-#include "event_generator.hpp"
 #include "hardware/node_info.hpp"
 #include "load_balance.hpp"
-#include "simulation.hpp"
-#include "recipe.hpp"
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;

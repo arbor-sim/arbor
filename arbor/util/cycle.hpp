@@ -1,9 +1,11 @@
 #pragma once
 
 #include <initializer_list>
+#include <type_traits>
 #include <utility>
-#include <util/iterutil.hpp>
-#include <util/range.hpp>
+
+#include "util/iterutil.hpp"
+#include "util/range.hpp"
 
 namespace arb {
 namespace util {
@@ -183,35 +185,39 @@ cyclic_iterator<I, S> make_cyclic_iterator(const I& iter, const S& sentinel) {
 }
 
 
-template <
-    typename Seq,
-    typename SeqIter = typename sequence_traits<Seq>::const_iterator,
-    typename SeqSentinel = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<std::is_same<SeqIter, SeqSentinel>::value>
->
-range<cyclic_iterator<SeqIter, SeqSentinel> > cyclic_view(const Seq& s) {
-    return { make_cyclic_iterator(util::cbegin(s), util::cend(s)),
-             make_cyclic_iterator(util::cend(s), util::cend(s)) };
+// TODO C++17: simplify with constexpr-if
+namespace cycle_impl {
+    using std::begin;
+    using std::end;
+
+    // cycle over regular sequences:
+    template <typename Seq>
+    auto cycle_(Seq&& s, std::true_type) {
+        auto b = begin(s);
+        auto e = end(s);
+        return make_range(make_cyclic_iterator(b, e), make_cyclic_iterator(e, e));
+    }
+
+    // cycle over sentinel-terminated sequences:
+    template <typename Seq>
+    auto cycle_(Seq&& s, std::false_type) {
+        auto b = begin(s);
+        auto e = end(s);
+        return make_range(make_cyclic_iterator(b, e), e);
+    }
 }
 
-template <
-    typename Seq,
-    typename SeqIter = typename sequence_traits<Seq>::const_iterator,
-    typename SeqSentinel = typename sequence_traits<Seq>::const_sentinel,
-    typename = enable_if_t<!std::is_same<SeqIter, SeqSentinel>::value>
->
-range<cyclic_iterator<SeqIter, SeqSentinel>, SeqSentinel>
-cyclic_view(const Seq& s) {
-    return { make_cyclic_iterator(util::cbegin(s), util::cend(s)), util::cend(s) };
+template <typename Seq>
+auto cyclic_view(Seq&& s) {
+    return cycle_impl::cycle_(std::forward<Seq>(s), is_regular_sequence<Seq&&>{});
 }
 
 // Handle initializer lists
 template <typename T>
-range<cyclic_iterator<typename std::initializer_list<T>::const_iterator,
-                      typename std::initializer_list<T>::const_iterator> >
-cyclic_view(const std::initializer_list<T> &list) {
-    return { make_cyclic_iterator(util::cbegin(list), util::cend(list)),
-             make_cyclic_iterator(util::cend(list), util::cend(list)) };
+auto cyclic_view(const std::initializer_list<T>& list) {
+    return make_range(
+        make_cyclic_iterator(list.begin(), list.end()),
+        make_cyclic_iterator(list.end(), list.end()));
 }
 
 } // namespace util

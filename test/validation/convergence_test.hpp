@@ -6,9 +6,9 @@
 
 #include <arbor/sampling.hpp>
 #include <arbor/simple_sampler.hpp>
+#include <arbor/simulation.hpp>
+#include <arbor/schedule.hpp>
 
-#include "simulation.hpp"
-#include "schedule.hpp"
 #include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 

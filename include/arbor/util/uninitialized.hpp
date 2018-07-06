@@ -19,11 +19,11 @@ namespace util {
 
 template <typename T>
 using enable_if_copy_constructible_t =
-    typename std::enable_if<std::is_copy_constructible<T>::value>::type;
+    std::enable_if_t<std::is_copy_constructible<T>::value>;
 
 template <typename... T>
 using enable_if_constructible_t =
-    typename std::enable_if<std::is_constructible<T...>::value>::type;
+    std::enable_if_t<std::is_constructible<T...>::value>;
 
 /*
  * Maintains storage for a value of type X, with explicit
@@ -32,7 +32,7 @@ using enable_if_constructible_t =
 template <typename X>
 class uninitialized {
 private:
-    typename std::aligned_storage<sizeof(X), alignof(X)>::type data;
+    std::aligned_storage_t<sizeof(X), alignof(X)> data;
 
 public:
     using pointer = X*;
@@ -43,16 +43,10 @@ public:
     using const_rvalue_reference= const X&&;
 
     pointer ptr() {
-        // COMPAT: xlC 13.1.4 workaround:
-        // should be equivalent to `return reinterpret_cast<X*>(&data)`.
-        compat::compiler_barrier_if_xlc_leq(0x0d01);
-        return static_cast<X*>(static_cast<void*>(&data));
+        return reinterpret_cast<X*>(&data);
     }
     const_pointer cptr() const {
-        // COMPAT: xlC 13.1.4 workaround:
-        // should be equivalent to `return reinterpret_cast<const X*>(&data)`
-        compat::compiler_barrier_if_xlc_leq(0x0d01);
-        return static_cast<const X*>(static_cast<const void*>(&data));
+        return reinterpret_cast<const X*>(&data);
     }
 
     reference ref() { return *ptr(); }
@@ -80,11 +74,11 @@ public:
 
     // Apply the one-parameter functor F to the value by reference.
     template <typename F>
-    typename std::result_of<F(reference)>::type apply(F&& f) { return f(ref()); }
+    std::result_of_t<F(reference)> apply(F&& f) { return f(ref()); }
 
     // Apply the one-parameter functor F to the value by const reference.
     template <typename F>
-    typename std::result_of<F(const_reference)>::type apply(F&& f) const { return f(cref()); }
+    std::result_of_t<F(const_reference)> apply(F&& f) const { return f(cref()); }
 };
 
 /*

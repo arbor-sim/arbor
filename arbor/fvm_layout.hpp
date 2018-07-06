@@ -5,10 +5,8 @@
 #include <arbor/mechanism.hpp>
 #include <arbor/mechinfo.hpp>
 #include <arbor/mechcat.hpp>
-#include <arbor/util/enumhash.hpp>
 
 #include "fvm_compartment.hpp"
-#include "util/deduce_return.hpp"
 #include "util/span.hpp"
 
 namespace arb {
@@ -71,11 +69,13 @@ struct fvm_discretization {
     std::vector<size_type> cell_segment_bounds; // Partitions segment indices by cell.
     std::vector<index_type> cell_cv_bounds;      // Partitions CV indices by cell.
 
-    auto cell_segment_part() const
-        DEDUCED_RETURN_TYPE(util::partition_view(cell_segment_bounds))
+    auto cell_segment_part() const {
+        return util::partition_view(cell_segment_bounds);
+    }
 
-    auto cell_cv_part() const
-        DEDUCED_RETURN_TYPE(util::partition_view(cell_cv_bounds))
+    auto cell_cv_part() const {
+        return util::partition_view(cell_cv_bounds);
+    }
 
     size_type segment_location_cv(size_type cell_index, segment_location segloc) const {
         auto cell_segs = cell_segment_part()[cell_index];
@@ -130,7 +130,7 @@ struct fvm_mechanism_data {
     std::unordered_map<std::string, fvm_mechanism_config> mechanisms;
 
     // Ion config, indexed by ionKind.
-    std::unordered_map<ionKind, fvm_ion_config, util::enum_hash> ions;
+    std::unordered_map<ionKind, fvm_ion_config> ions;
 
     // Total number of targets (point-mechanism points)
     std::size_t ntarget = 0;

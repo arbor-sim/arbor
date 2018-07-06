@@ -2,7 +2,6 @@
 
 #include <arbor/common_types.hpp>
 
-#include "backends.hpp"
 #include "epoch.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "mc_cell_group.hpp"

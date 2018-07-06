@@ -60,6 +60,9 @@ private:
         printer(std::string base_name, int rank);
     };
 
+    template <typename T>
+    friend printer& operator<<(printer&, const T&);
+
     const arb::distributed_context* context_;
     int rank_;
     int size_;

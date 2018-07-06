@@ -3,9 +3,8 @@
 #include <stdexcept>
 
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
 
-#include "backends.hpp"
-#include "domain_decomposition.hpp"
 #include "hardware/node_info.hpp"
 #include "load_balance.hpp"
 #include "util/span.hpp"

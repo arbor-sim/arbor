@@ -6,14 +6,15 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/mc_cell.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
+#include <arbor/simulation.hpp>
 
-#include <hardware/node_info.hpp>
-#include <hardware/gpu.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <recipe.hpp>
-#include <util/rangeutil.hpp>
+#include "hardware/node_info.hpp"
+#include "hardware/gpu.hpp"
+#include "load_balance.hpp"
+#include "util/rangeutil.hpp"
+#include "util/strprintf.hpp"
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
@@ -36,10 +37,11 @@ void run_kinetic_dt(
 
     cable1d_recipe rec{c};
     rec.add_probe(0, 0, probe);
-    probe_label plabels[1] = {"soma.mid", {0u, 0u}};
+
+    probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     meta["sim"] = "arbor";
-    meta["backend_kind"] = to_string(backend);
+    meta["backend_kind"] = util::to_string(backend);
 
     convergence_test_runner<float> runner("dt", plabels, meta);
     runner.load_reference_data(ref_file);

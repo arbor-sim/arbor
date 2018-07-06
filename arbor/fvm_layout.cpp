@@ -3,8 +3,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/mc_cell.hpp>
-#include <arbor/util/enumhash.hpp>
 
 #include "algorithms.hpp"
 #include "fvm_compartment.hpp"
@@ -156,16 +156,16 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 
         const auto nseg = seg_comp_part.size();
         if (nseg==0) {
-            throw std::invalid_argument("cannot discretrize cell with no segments");
+            throw arbor_internal_error("fvm_layout: cannot discretrize cell with no segments");
         }
 
         // Handle soma (first segment and root of tree) specifically.
         const auto soma = c.segment(0)->as_soma();
         if (!soma) {
-            throw std::logic_error("First segment of cell must be soma");
+            throw arbor_internal_error("fvm_layout: first segment of cell must be soma");
         }
         else if (soma->num_compartments()!=1) {
-            throw std::logic_error("Soma must have exactly one compartment");
+            throw arbor_internal_error("fvm_layout: soma must have exactly one compartment");
         }
 
         segment_info soma_info;
@@ -190,7 +190,7 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 
             const auto cable = c.segment(j)->as_cable();
             if (!cable) {
-                throw std::logic_error("Non-root segments of cell must be cable segments");
+                throw arbor_internal_error("fvm_layout: non-root segments of cell must be cable segments");
             }
             auto cm = cable->cm;    // [F/m²]
             auto rL = cable->rL;    // [Ω·cm]
@@ -301,7 +301,7 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     // Temporary table for presence of ion channels, mapping ionKind to _sorted_
     // collection of segment indices.
 
-    std::unordered_map<ionKind, std::set<size_type>, util::enum_hash> ion_segments;
+    std::unordered_map<ionKind, std::set<size_type>> ion_segments;
 
     auto update_paramset_and_validate =
         [&catalogue]
@@ -309,18 +309,15 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
     {
         auto& name = desc.name();
         if (!info) {
-            if (!catalogue.has(name)) {
-                throw std::out_of_range("No mechanism "+name+" in mechanism catalogue");
-            }
             info = &catalogue[name];
         }
         for (const auto& pv: desc.values()) {
             if (!paramset.count(pv.first)) {
                 if (!info->parameters.count(pv.first)) {
-                    throw std::out_of_range("Mechanism "+name+" has no parameter "+pv.first);
+                    throw no_such_parameter(name, pv.first);
                 }
                 if (!info->parameters.at(pv.first).valid(pv.second)) {
-                    throw std::out_of_range("Value out of range for mechanism "+name+" parameter "+pv.first);
+                    throw invalid_parameter_value(name, pv.first, pv.second);
                 }
                 paramset.insert(pv.first);
             }
@@ -443,10 +440,14 @@ fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue
         std::vector<std::vector<value_type>> param_value(nparam);
         std::vector<std::vector<value_type>> param_area_contrib(nparam);
 
-        const auto& info = *entry.second.info; // TODO: C++14, use lambda capture with initializer
-        auto& ion_configs = mechdata.ions;     // TODO: C++14 ditto
+        // (gcc 6.x bug fails to deduce const in lambda capture reference initialization)
+        const auto& info = *entry.second.info;
         auto accumulate_mech_data =
-            [&param_index, &param_value, &param_area_contrib, &config, &info, &ion_configs]
+            [
+                &info,
+                &ion_configs = mechdata.ions,
+                &param_index, &param_value, &param_area_contrib, &config
+            ]
             (size_type index, index_type cv, value_type area, const mechanism_desc& desc)
         {
             for (auto& kv: desc.values()) {

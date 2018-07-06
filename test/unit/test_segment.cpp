@@ -9,8 +9,7 @@
 using namespace arb;
 
 TEST(mc_segment, kinfs) {
-    using namespace arb;
-    using arb::math::pi;
+    using ::arb::math::pi;
 
     {
         auto s = make_segment<soma_segment>(1.0);
@@ -22,7 +21,7 @@ TEST(mc_segment, kinfs) {
         EXPECT_EQ(s->kind(),   section_kind::soma);
     }
 
-    double length = 1./pi<double>();
+    double length = 1./pi<double>;
     double radius = 1.;
 
     // single cylindrical frustrum

@@ -14,7 +14,7 @@ namespace util {
 
 template <
     typename F,
-    typename = typename std::enable_if<std::is_nothrow_move_constructible<F>::value>::type
+    typename = std::enable_if_t<std::is_nothrow_move_constructible<F>::value>
 >
 class scope_exit {
     F on_exit;
@@ -23,7 +23,7 @@ class scope_exit {
 public:
     template <
         typename F2,
-        typename = typename std::enable_if<std::is_nothrow_constructible<F, F2>::value>::type
+        typename = std::enable_if_t<std::is_nothrow_constructible<F, F2>::value>
     >
     explicit scope_exit(F2&& f) noexcept:
         on_exit(std::forward<F2>(f)) {}
@@ -44,8 +44,8 @@ public:
 };
 
 template <typename F>
-scope_exit<typename std::decay<F>::type> on_scope_exit(F&& f) {
-    return scope_exit<typename std::decay<F>::type>(std::forward<F>(f));
+scope_exit<std::decay_t<F>> on_scope_exit(F&& f) {
+    return scope_exit<std::decay_t<F>>(std::forward<F>(f));
 }
 
 } // namespace util
