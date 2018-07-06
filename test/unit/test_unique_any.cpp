@@ -9,7 +9,6 @@
 #include "common.hpp"
 
 using namespace arb;
-using namespace testing::string_literals;
 
 TEST(unique_any, copy_construction) {
     using util::unique_any;

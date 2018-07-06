@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 
 #include "../gtest.h"
@@ -28,7 +29,7 @@
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
-using namespace testing::string_literals;
+using namespace std::string_literals;
 
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
@@ -301,12 +302,12 @@ TEST(fvm_lowered, derived_mechs) {
         using fvec = std::vector<fvm_value_type>;
         fvec tau_values;
         for (auto& mech: fvcell.*private_mechanisms_ptr) {
-            EXPECT_EQ("test_kin1"_s, mech->internal_name());
+            EXPECT_EQ("test_kin1"s, mech->internal_name());
 
             auto cmech = dynamic_cast<multicore::mechanism*>(mech.get());
             ASSERT_TRUE(cmech);
 
-            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"_s);
+            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"s);
             ASSERT_TRUE(opt_tau_ptr);
             tau_values.push_back(*opt_tau_ptr.value());
         }
@@ -416,7 +417,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
 
-    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"_s);
+    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"s);
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 

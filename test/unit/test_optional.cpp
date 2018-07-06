@@ -9,8 +9,8 @@
 
 #include "common.hpp"
 
+using namespace std::string_literals;
 using namespace arb::util;
-using namespace testing::string_literals;
 
 TEST(optional, ctors) {
     optional<int> a, b(3), c = b, d = 4;
@@ -194,15 +194,15 @@ TEST(optional, value_or) {
     };
     check_conv cc{true};
 
-    optional<std::string> present = "present"_s;
+    optional<std::string> present = "present"s;
     optional<std::string> absent; // nullopt
 
     auto result = present.value_or(cc);
     EXPECT_EQ(typeid(std::string), typeid(result));
-    EXPECT_EQ("present"_s, result);
+    EXPECT_EQ("present"s, result);
 
     result = absent.value_or(cc);
-    EXPECT_EQ("true"_s, result);
+    EXPECT_EQ("true"s, result);
 
     // Check move semantics in argument:
 
