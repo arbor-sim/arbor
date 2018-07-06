@@ -25,7 +25,7 @@ auto keys(Seq&& m) {
 
 // Is a container/sequence a map?
 
-namespace impl {
+namespace maputil_impl {
     template <
         typename C,
         typename seq_value = typename sequence_traits<C>::value_type,
@@ -39,7 +39,7 @@ template <typename Seq, typename = void>
 struct is_associative_container: std::false_type {};
 
 template <typename Seq>
-struct is_associative_container<Seq, void_t<impl::assoc_test<Seq>>>: impl::assoc_test<Seq> {};
+struct is_associative_container<Seq, void_t<maputil_impl::assoc_test<Seq>>>: maputil_impl::assoc_test<Seq> {};
 
 // Find value in a sequence of key-value pairs or in a key-value assocation map, with
 // optional explicit comparator.
@@ -51,8 +51,9 @@ struct is_associative_container<Seq, void_t<impl::assoc_test<Seq>>>: impl::assoc
 //   1. the sequence is an lvalue reference, and
 //   2. if the deduced return type from calling `get` on an entry from the sequence is an lvalue reference.
 
-namespace impl {
-    // import std::get for ADL below.
+namespace maputil_impl {
+    // import std::get and std::begin for ADL below.
+    using std::begin;
     using std::get;
 
     // use linear search
@@ -60,7 +61,7 @@ namespace impl {
         typename Seq,
         typename Key,
         typename Eq = std::equal_to<>,
-        typename Ret0 = decltype(get<1>(*std::begin(std::declval<Seq&&>()))),
+        typename Ret0 = decltype(get<1>(*begin(std::declval<Seq&&>()))),
         typename Ret = std::conditional_t<
             std::is_rvalue_reference<Seq&&>::value || !std::is_lvalue_reference<Ret0>::value,
             std::remove_reference_t<Ret0>,
@@ -99,12 +100,12 @@ namespace impl {
 
 template <typename C, typename Key, typename Eq>
 auto value_by_key(C&& c, const Key& k, Eq eq) {
-    return impl::value_by_key(std::false_type{}, std::forward<C>(c), k, eq);
+    return maputil_impl::value_by_key(std::false_type{}, std::forward<C>(c), k, eq);
 }
 
 template <typename C, typename Key>
 auto value_by_key(C&& c, const Key& k) {
-    return impl::value_by_key(
+    return maputil_impl::value_by_key(
         std::integral_constant<bool, is_associative_container<C>::value>{},
         std::forward<C>(c), k);
 }

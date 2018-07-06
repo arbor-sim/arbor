@@ -187,58 +187,31 @@ filter_iterator<I, S, std::decay_t<F>> make_filter_iterator(const I& i, const S&
     return filter_iterator<I, S, std::decay_t<F>>(i, end, f);
 }
 
-// filter over const and non-const regular sequences:
+// TODO C++17: simplify with constexpr-if
+namespace filter_impl {
+    using std::begin;
+    using std::end;
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = std::enable_if_t<std::is_same<seq_iter, seq_sent>::value>
->
-range<filter_iterator<seq_iter, seq_iter, std::decay_t<F>>>
-filter(Seq& s, const F& f) {
-    return {make_filter_iterator(std::begin(s), std::end(s), f),
-            make_filter_iterator(std::end(s), std::end(s), f)};
+    // filter over regular sequences:
+    template <typename Seq, typename F>
+    auto filter_(Seq&& s, const F& f, std::true_type) {
+        auto b = begin(s);
+        auto e = end(s);
+        return make_range(make_filter_iterator(b, e, f), make_filter_iterator(e, e, f));
+    }
+
+    // filter over sentinel-terminated sequences:
+    template <typename Seq, typename F>
+    auto filter_(Seq&& s, const F& f, std::false_type) {
+        auto b = begin(s);
+        auto e = end(s);
+        return make_range(make_filter_iterator(b, e, f), e);
+    }
 }
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_citer = typename sequence_traits<Seq>::const_iterator,
-    typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
-    typename = std::enable_if_t<std::is_same<seq_citer, seq_csent>::value>
->
-range<filter_iterator<seq_citer, seq_citer, std::decay_t<F>>>
-filter(const Seq& s, const F& f) {
-    return {make_filter_iterator(std::cbegin(s), std::cend(s), f),
-            make_filter_iterator(std::cend(s), std::cend(s), f)};
-}
-
-// filter over const and non-const sentinel-terminated sequences:
-
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = std::enable_if_t<!std::is_same<seq_iter, seq_sent>::value>
->
-range<filter_iterator<seq_iter, seq_sent, std::decay_t<F>>, seq_sent>
-filter(Seq& s, const F& f) {
-    return {make_filter_iterator(std::begin(s), std::end(s), f), std::end(s)};
-}
-
-template <
-    typename Seq,
-    typename F,
-    typename seq_citer = typename sequence_traits<Seq>::const_iterator,
-    typename seq_csent = typename sequence_traits<Seq>::const_sentinel,
-    typename = std::enable_if_t<!std::is_same<seq_citer, seq_csent>::value>
->
-range<filter_iterator<seq_citer, seq_csent, std::decay_t<F>>, seq_csent>
-filter(const Seq& s, const F& f) {
-    return {make_filter_iterator(std::cbegin(s), std::cend(s), f), std::cend(s)};
+template <typename Seq, typename F>
+auto filter(Seq&& s, const F& f) {
+    return filter_impl::filter_(std::forward<Seq>(s), f, is_regular_sequence<Seq&&>{});
 }
 
 } // namespace util

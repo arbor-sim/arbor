@@ -125,28 +125,27 @@ transform_iterator<I, std::decay_t<F>> make_transform_iterator(const I& i, const
     return transform_iterator<I, std::decay_t<F>>(i, f);
 }
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = std::enable_if_t<std::is_same<seq_iter, seq_sent>::value>
->
-range<transform_iterator<seq_iter, std::decay_t<F>>>
-transform_view(Seq&& s, const F& f) {
-    return {make_transform_iterator(std::begin(s), f), make_transform_iterator(std::end(s), f)};
+// TODO C++17: simplify with constexpr-if
+namespace transform_impl {
+    using std::begin;
+    using std::end;
+
+    // transform over regular sequences:
+    template <typename Seq, typename F>
+    auto transform_(Seq&& s, const F& f, std::true_type) {
+        return make_range(make_transform_iterator(begin(s), f), make_transform_iterator(end(s), f));
+    }
+
+    // transform over sentinel-terminated sequences:
+    template <typename Seq, typename F>
+    auto transform_(Seq&& s, const F& f, std::false_type) {
+        return make_range(make_transform_iterator(begin(s), f), end(s));
+    }
 }
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = std::enable_if_t<!std::is_same<seq_iter, seq_sent>::value>
->
-range<transform_iterator<seq_iter, std::decay_t<F>>, seq_sent>
-transform_view(Seq&& s, const F& f) {
-    return {make_transform_iterator(std::begin(s), f), std::end(s)};
+template <typename Seq, typename F>
+auto transform_view(Seq&& s, const F& f) {
+    return transform_impl::transform_(std::forward<Seq>(s), f, is_regular_sequence<Seq&&>{});
 }
 
 } // namespace util

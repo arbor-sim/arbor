@@ -87,7 +87,7 @@ void fill(Seq&& seq, const V& value) {
 template <typename Container, typename Seq>
 Container& append(Container &c, const Seq& seq) {
     auto canon = canonical_view(seq);
-    c.insert(c.end(), std::begin(canon), std::end(canon));
+    c.insert(c.end(), canon.begin(), canon.end());
     return c;
 }
 
@@ -141,14 +141,14 @@ template <typename Seq>
 std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
 sort(Seq&& seq) {
     auto canon = canonical_view(seq);
-    std::sort(std::begin(canon), std::end(canon));
+    std::sort(canon.begin(), canon.end());
 }
 
 template <typename Seq, typename Less>
 std::enable_if_t<!std::is_const<typename sequence_traits<Seq&&>::reference>::value>
 sort(Seq&& seq, const Less& less) {
     auto canon = canonical_view(seq);
-    std::sort(std::begin(canon), std::end(canon), less);
+    std::sort(canon.begin(), canon.end(), less);
 }
 
 // Sort in-place by projection `proj`
@@ -159,7 +159,7 @@ sort_by(Seq&& seq, const Proj& proj) {
     using value_type = typename sequence_traits<Seq&&>::value_type;
     auto canon = canonical_view(seq);
 
-    std::sort(std::begin(canon), std::end(canon),
+    std::sort(canon.begin(), canon.end(),
         [&proj](const value_type& a, const value_type& b) {
             return proj(a) < proj(b);
         });
@@ -173,7 +173,7 @@ stable_sort_by(Seq&& seq, const Proj& proj) {
     using value_type = typename sequence_traits<Seq&&>::value_type;
     auto canon = canonical_view(seq);
 
-    std::stable_sort(std::begin(canon), std::end(canon),
+    std::stable_sort(canon.begin(), canon.end(),
         [&proj](const value_type& a, const value_type& b) {
             return proj(a) < proj(b);
         });
@@ -184,13 +184,13 @@ stable_sort_by(Seq&& seq, const Proj& proj) {
 template <typename Seq, typename Predicate>
 bool all_of(const Seq& seq, const Predicate& pred) {
     auto canon = canonical_view(seq);
-    return std::all_of(std::begin(canon), std::end(canon), pred);
+    return std::all_of(canon.begin(), canon.end(), pred);
 }
 
 template <typename Seq, typename Predicate>
 bool any_of(const Seq& seq, const Predicate& pred) {
     auto canon = canonical_view(seq);
-    return std::any_of(std::begin(canon), std::end(canon), pred);
+    return std::any_of(canon.begin(), canon.end(), pred);
 }
 
 // Accumulate by projection `proj`
@@ -202,7 +202,7 @@ template <
 >
 Value sum_by(const Seq& seq, const Proj& proj, Value base = Value{}) {
     auto canon = canonical_view(transform_view(seq, proj));
-    return std::accumulate(std::begin(canon), std::end(canon), base);
+    return std::accumulate(canon.begin(), canon.end(), base);
 }
 
 // Maximum element by projection `proj`
@@ -215,7 +215,7 @@ max_element_by(Seq&& seq, const Proj& proj) {
     using value_type = typename sequence_traits<Seq&&>::value_type;
     auto canon = canonical_view(seq);
 
-    return std::max_element(std::begin(canon), std::end(canon),
+    return std::max_element(canon.begin(), canon.end(),
         [&proj](const value_type& a, const value_type& b) {
             return proj(a) < proj(b);
         });
@@ -236,12 +236,15 @@ template <
     typename Compare = std::less<Value>
 >
 Value max_value(const Seq& seq, Compare cmp = Compare{}) {
+    using std::begin;
+    using std::end;
+
     if (util::empty(seq)) {
         return Value{};
     }
 
-    auto i = std::begin(seq);
-    auto e = std::end(seq);
+    auto i = begin(seq);
+    auto e = end(seq);
     Value m = *i;
     while (++i!=e) {
         Value x = *i;
@@ -260,12 +263,15 @@ template <
     typename Compare = std::less<Value>
 >
 std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
+    using std::begin;
+    using std::end;
+
     if (util::empty(seq)) {
         return {Value{}, Value{}};
     }
 
-    auto i = std::begin(seq);
-    auto e = std::end(seq);
+    auto i = begin(seq);
+    auto e = end(seq);
     Value lower = *i;
     Value upper = *i;
     while (++i!=e) {
@@ -285,7 +291,7 @@ std::pair<Value, Value> minmax_value(const Seq& seq, Compare cmp = Compare{}) {
 template <typename Seq, typename = util::enable_if_sequence_t<const Seq&>>
 bool is_sorted(const Seq& seq) {
     auto canon = canonical_view(seq);
-    return std::is_sorted(std::begin(canon), std::end(canon));
+    return std::is_sorted(canon.begin(), canon.end());
 }
 
 
@@ -299,8 +305,11 @@ template <
     typename Compare = std::less<std::result_of_t<Proj (typename sequence_traits<const Seq&>::value_type)>>
 >
 bool is_sorted_by(const Seq& seq, const Proj& proj, Compare cmp = Compare{}) {
-    auto i = std::begin(seq);
-    auto e = std::end(seq);
+    using std::begin;
+    using std::end;
+
+    auto i = begin(seq);
+    auto e = end(seq);
 
     if (i==e) {
         return true;

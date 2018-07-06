@@ -202,7 +202,9 @@ auto strict_view(Seq&& s) {
     using std::begin;
     using std::end;
 
-    return make_range(begin(s), begin(s)==end(s)? begin(s): std::next(util::upto(begin(s), end(s))));
+    auto b = begin(s);
+    auto e = end(s);
+    return make_range(b, b==e? b: std::next(util::upto(b, e)));
 }
 
 } // namespace util

@@ -295,7 +295,10 @@ std::vector<typename C::value_type> tree_reduce(
 
 template <typename Seq, typename = util::enable_if_sequence_t<Seq&>>
 bool is_unique(const Seq& seq) {
-    return std::adjacent_find(std::begin(seq), std::end(seq)) == std::end(seq);
+    using std::begin;
+    using std::end;
+
+    return std::adjacent_find(begin(seq), end(seq)) == end(seq);
 }
 
 

@@ -108,11 +108,35 @@ namespace impl_seqtrait {
         using const_sentinel = decltype(end(std::declval<const Seq&>()));
 
         static constexpr bool is_contiguous = data_returns_pointer<Seq>::value;
+        static constexpr bool is_regular = std::is_same<iterator, sentinel>::value;
     };
+
+    template<typename T, typename V=void>
+    struct is_sequence:
+        std::false_type {};
+
+    template<typename T>
+    struct is_sequence<T, void_t<decltype(begin(std::declval<T>()))>>:
+        std::true_type {};
+
 }
 
 template <typename Seq>
 using sequence_traits = impl_seqtrait::sequence_traits<Seq>;
+
+// Sequence test by checking begin.
+
+template <typename T>
+using is_sequence = impl_seqtrait::is_sequence<T>;
+
+template <typename T>
+using enable_if_sequence_t = std::enable_if_t<util::is_sequence<T>::value>;
+
+template <typename T>
+using is_contiguous = std::integral_constant<bool, sequence_traits<T>::is_contiguous>;
+
+template <typename T>
+using is_regular_sequence = std::integral_constant<bool, sequence_traits<T>::is_regular>;
 
 // Convenience short cuts for `enable_if`
 
@@ -244,17 +268,6 @@ struct has_common_random_access_iterator:
 template <typename I, typename E>
 struct has_common_random_access_iterator<I, E, void_t<util::common_random_access_iterator_t<I, E>>>:
     std::true_type {};
-
-template<typename T, typename V=void>
-struct is_sequence:
-    std::false_type {};
-
-template<typename T>
-struct is_sequence<T, void_t<decltype(std::begin(std::declval<T>()))>>:
-    std::true_type {};
-
-template <typename T>
-using enable_if_sequence_t = std::enable_if_t<util::is_sequence<T>::value>;
 
 // No generic lambdas in C++11, so some convenience accessors for pairs that
 // are type-generic
