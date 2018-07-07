@@ -28,9 +28,11 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     CC="mpicc"
     CXX="mpicxx"
     launch="mpiexec -n 4"
+    WITH_MPI="ON"
 else
     echo "mpi        : off"
     launch=""
+    WITH_MPI="OFF"
 fi
 
 #
@@ -44,22 +46,28 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_THREADING_MODEL=${WITH_THREAD} -DARB_DISTRIBUTED_MODEL=${WITH_DISTRIBUTED} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_THREADING_MODEL=${WITH_THREAD} -DARB_WITH_MPI=${WITH_MPI} ${CXX_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 
 export NMC_NUM_THREADS=2
 
 progress "Unit tests"
-make test.exe -j4  || error "building unit tests"
-./tests/test.exe --gtest_color=no || error "running unit tests"
+make unit -j4                || error "building unit tests"
+./bin/unit --gtest_color=no  || error "running unit tests"
 
-progress "Global communication tests"
-make global_communication.exe -j4          || error "building global communication tests"
-${launch} ./tests/global_communication.exe || error "running global communication tests"
+progress "Distributed unit tests (local)"
+make unit-local -j4          || error "building local distributed unit tests"
+./bin/unit-local             || error "running local distributed unit tests"
+
+if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
+    progress "Distributed unit tests (MPI)"
+    make unit-mpi -j4        || error "building MPI distributed unit tests"
+    ${launch} ./bin/unit-mpi || error "running MPI distributed unit tests"
+fi
 
 progress "Miniapp spike comparison test"
-make miniapp.exe -j4                         || error "building miniapp"
-${launch} ./example/miniapp.exe -n 20 -t 100 || error "running miniapp"
+make miniapp -j4                     || error "building miniapp"
+${launch} ./bin/miniapp -n 20 -t 100 || error "running miniapp"
 
 cd $base_path

@@ -1,10 +1,15 @@
-#include <communication/global_policy.hpp>
-#include <domain_decomposition.hpp>
-#include <hardware/node_info.hpp>
-#include <recipe.hpp>
+#include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
+
+#include "hardware/node_info.hpp"
+#include "util/partition.hpp"
+#include "util/span.hpp"
+#include "util/transform.hpp"
 
 namespace arb {
-    domain_decomposition decompose(const recipe& rec, const unsigned group_size) {
+    static
+    domain_decomposition decompose(const recipe& rec, const unsigned group_size, const distributed_context* ctx) {
         struct partition_gid_domain {
             partition_gid_domain(std::vector<cell_gid_type> divs):
                 gid_divisions(std::move(divs))
@@ -19,8 +24,8 @@ namespace arb {
         };
 
         cell_size_type num_global_cells = rec.num_cells();
-        unsigned num_domains = communication::global_policy::size();
-        int domain_id = communication::global_policy::id();
+        unsigned num_domains = ctx->size();
+        int domain_id = ctx->id();
 
         auto dom_size = [&](unsigned dom) -> cell_gid_type {
             const cell_gid_type B = num_global_cells/num_domains;
@@ -31,7 +36,7 @@ namespace arb {
         // Global load balance
         std::vector<cell_gid_type> gid_divisions;
         auto gid_part = make_partition(
-            gid_divisions, util::transform_view(util::make_span(0, num_domains), dom_size));
+            gid_divisions, util::transform_view(util::make_span(num_domains), dom_size));
 
         auto range = gid_part[domain_id];
         cell_size_type num_local_cells = range.second - range.first;

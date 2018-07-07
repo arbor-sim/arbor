@@ -10,16 +10,18 @@
 #include <iomanip>
 #include <iostream>
 
-#include <json/json.hpp>
+#include <nlohmann/json.hpp>
 
-#include <cell.hpp>
-#include <common_types.hpp>
-#include <event_generator.hpp>
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
-#include <model.hpp>
-#include <recipe.hpp>
-#include <simple_sampler.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/distributed_context.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/simple_sampler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
+
+#include "hardware/node_info.hpp"
+#include "load_balance.hpp"
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -46,7 +48,7 @@ public:
     //    capacitance: 0.01 F/m² [default]
     //    synapses: 1 * expsyn
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        arb::cell c;
+        arb::mc_cell c;
 
         c.add_soma(18.8/2.0); // convert 18.8 μm diameter to radius
         c.soma()->add_mechanism("pas");
@@ -54,26 +56,25 @@ public:
         // Add one synapse at the soma.
         // This synapse will be the target for all events, from both
         // event_generators.
-        auto syn_spec = arb::mechanism_spec("expsyn");
-        c.add_synapse({0, 0.5}, syn_spec);
+        c.add_synapse({0, 0.5}, "expsyn");
 
         return std::move(c);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return cell_kind::cable1d_neuron;
     }
 
     // The cell has one target synapse, which receives both inhibitory and exchitatory inputs.
     cell_size_type num_targets(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     // Return two generators attached to the one cell.
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
 
         using RNG = std::mt19937_64;
         using pgen = arb::poisson_generator<RNG>;
@@ -107,13 +108,13 @@ public:
 
     // There is one probe (for measuring voltage at the soma) on the cell
     cell_size_type num_probes(cell_gid_type gid)  const override {
-        EXPECTS(gid==0); // There is only one cell in the model
+        arb_assert(gid==0); // There is only one cell in the model
         return 1;
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        EXPECTS(id.gid==0);     // There is one cell,
-        EXPECTS(id.index==0);   // with one probe.
+        arb_assert(id.gid==0);     // There is one cell,
+        arb_assert(id.index==0);   // with one probe.
 
         // Get the appropriate kind for measuring voltage
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
@@ -125,15 +126,20 @@ public:
 };
 
 int main() {
+    // A distributed_context is required for distributed computation (e.g. MPI).
+    // For this simple one-cell example, non-distributed context is suitable,
+    // which is what we get with a default-constructed distributed_context.
+    arb::distributed_context context;
+
     // Create an instance of our recipe.
     generator_recipe recipe;
 
     // Make the domain decomposition for the model
     auto node = arb::hw::get_node_info();
-    auto decomp = arb::partition_load_balance(recipe, node);
+    auto decomp = arb::partition_load_balance(recipe, node, &context);
 
     // Construct the model.
-    arb::model model(recipe, decomp);
+    arb::simulation sim(recipe, decomp, &context);
 
     // Set up the probe that will measure voltage in the cell.
 
@@ -144,10 +150,10 @@ int main() {
     // This is where the voltage samples will be stored as (time, value) pairs
     arb::trace_data<double> voltage;
     // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-    model.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+    sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
-    // Run the model for 1 s (1000 ms), with time steps of 0.01 ms.
-    model.run(50, 0.01);
+    // Run the simulation for 100 ms, with time steps of 0.01 ms.
+    sim.run(100, 0.01);
 
     // Write the samples to a json file.
     write_trace_json(voltage);

@@ -2,11 +2,20 @@
 
 // Read or write the contents of a file in toto.
 
-#include <string>
-#include <iterator>
 #include <fstream>
+#include <iterator>
+#include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace io {
+
+// Note: catching std::ios_base::failure is broken for gcc versions before 7
+// with C++11, owing to ABI issues.
+
+struct bulkio_error: std::runtime_error {
+    bulkio_error(std::string what): std::runtime_error(std::move(what)) {}
+};
 
 template <typename HasAssign>
 void read_all(std::istream& in, HasAssign& A) {
@@ -15,10 +24,15 @@ void read_all(std::istream& in, HasAssign& A) {
 
 template <typename HasAssign>
 void read_all(const std::string& filename, HasAssign& A) {
-    std::ifstream fs;
-    fs.exceptions(std::ios::failbit);
-    fs.open(filename);
-    read_all(fs, A);
+    try {
+        std::ifstream fs;
+        fs.exceptions(std::ios::failbit);
+        fs.open(filename);
+        read_all(fs, A);
+    }
+    catch (const std::exception&) {
+        throw bulkio_error("failure reading "+filename);
+    }
 }
 
 inline std::string read_all(std::istream& in) {
@@ -40,10 +54,15 @@ void write_all(const Container& data, std::ostream& out) {
 
 template <typename Container>
 void write_all(const Container& data, const std::string& filename) {
-    std::ofstream fs;
-    fs.exceptions(std::ios::failbit);
-    fs.open(filename);
-    write_all(data, fs);
+    try {
+        std::ofstream fs;
+        fs.exceptions(std::ios::failbit);
+        fs.open(filename);
+        write_all(data, fs);
+    }
+    catch (const std::exception&) {
+        throw bulkio_error("failure writing "+filename);
+    }
 }
 
-}
+} // namespace io

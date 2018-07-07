@@ -2,9 +2,10 @@
 #include <memory>
 #include <vector>
 
-#include <morphology.hpp>
-#include <swcio.hpp>
-#include <util/path.hpp>
+#include <arbor/morphology.hpp>
+
+#include "swcio.hpp"
+#include "util/path.hpp"
 
 #include "morphology_pool.hpp"
 

@@ -4,9 +4,10 @@
 #include <string>
 #include <vector>
 
-#include <morphology.hpp>
-#include <swcio.hpp>
-#include <util/strprintf.hpp>
+#include <arbor/morphology.hpp>
+
+#include "swcio.hpp"
+#include "util/strprintf.hpp"
 
 #include "morphio.hpp"
 

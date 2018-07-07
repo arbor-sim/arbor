@@ -42,6 +42,18 @@ enum class ionKind {
     K         ///< potassium ion
 };
 
+/// possible external data source for indexed variables
+enum class sourceKind {
+    voltage,
+    current,
+    dt,
+    ion_current,
+    ion_revpot,
+    ion_iconc,
+    ion_econc,
+    no_source
+};
+
 inline std::string yesno(bool val) {
     return std::string(val ? "yes" : "no");
 };
@@ -99,22 +111,18 @@ inline std::ostream& operator<< (std::ostream& os, linkageKind l) {
     return os << to_string(l);
 }
 
-inline ionKind ion_kind_from_name(std::string field) {
-    if(field.substr(0,4) == "ion_") {
-        field = field.substr(4);
-    }
-    if(field=="ica" || field=="eca" || field=="cai" || field=="cao") {
-        return ionKind::Ca;
-    }
-    if(field=="ik" || field=="ek" || field=="ki" || field=="ko") {
-        return ionKind::K;
-    }
-    if(field=="ina" || field=="ena" || field=="nai" || field=="nao") {
-        return ionKind::Na;
-    }
-    return ionKind::none;
+/// ion variable to data source kind
+
+inline sourceKind ion_source(ionKind i, const std::string& var) {
+    std::string ion = to_string(i);
+    if (var=="i"+ion) return sourceKind::ion_current;
+    else if (var=="e"+ion) return sourceKind::ion_revpot;
+    else if (var==ion+"i") return sourceKind::ion_iconc;
+    else if (var==ion+"e") return sourceKind::ion_econc;
+    else return sourceKind::no_source;
 }
 
+// TODO: deprecate; back-end dependent.
 inline std::string ion_store(ionKind k) {
     switch(k) {
         case ionKind::Ca:

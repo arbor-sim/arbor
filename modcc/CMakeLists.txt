@@ -1,8 +1,9 @@
-set(MODCC_SOURCES
+# The modcc compiler is split into a staric library and driver;
+# unit tests for the driver also use this library.
+
+set(libmodcc_sources
+
     astmanip.cpp
-    cexpr_emit.cpp
-    cprinter.cpp
-    cudaprinter.cpp
     errorvisitor.cpp
     expression.cpp
     functionexpander.cpp
@@ -14,17 +15,25 @@ set(MODCC_SOURCES
     solvers.cpp
     symdiff.cpp
     symge.cpp
-    textbuffer.cpp
     token.cpp
+    io/prefixbuf.cpp
+    printer/cexpr_emit.cpp
+    printer/cprinter.cpp
+    printer/cudaprinter.cpp
+    printer/infoprinter.cpp
+    printer/printerutil.cpp
 )
 
-add_library(compiler ${MODCC_SOURCES})
+set(modcc_sources modcc.cpp)
 
-add_executable(modcc modcc.cpp)
+add_library(libmodcc STATIC ${libmodcc_sources})
+target_include_directories(libmodcc PUBLIC .)
+set_target_properties(libmodcc PROPERTIES OUTPUT_NAME modcc)
 
-target_link_libraries(modcc LINK_PUBLIC compiler)
+add_executable(modcc ${modcc_sources})
+target_link_libraries(modcc libmodcc ext-tclap)
 
-set_target_properties(modcc
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/modcc"
-)
+set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
+
+install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+

@@ -1,3 +1,5 @@
+.. _sampling_api:
+
 Sampling API
 ============
 
@@ -27,7 +29,7 @@ Probes
 ------
 
 Probes are specified in the recipe objects that are used to initialize a
-model; the specification of the item or value that is subjected to a
+simulation; the specification of the item or value that is subjected to a
 probe will be specific to a particular cell type.
 
 .. container:: api-code
@@ -134,7 +136,7 @@ Model and cell group interface
 ------------------------------
 
 Polling rates, policies and sampler functions are set through the
-``model`` interface, after construction from a recipe.
+``simulation`` interface, after construction from a recipe.
 
 .. container:: api-code
 
@@ -143,15 +145,15 @@ Polling rates, policies and sampler functions are set through the
             using sampler_association_handle = std::size_t;
             using cell_member_predicate = std::function<bool (cell_member_type)>;
 
-            sampler_association_handle model::add_sampler(
+            sampler_association_handle simulation::add_sampler(
                 cell_member_predicate probe_ids,
                 schedule sched,
                 sampler_function fn,
                 sampling_policy policy = sampling_policy::lax);
 
-            void model::remove_sampler(sampler_association_handle);
+            void simulation::remove_sampler(sampler_association_handle);
 
-            void model::remove_all_samplers();
+            void simulation::remove_all_samplers();
 
 Multiple samplers can then be associated with the same probe locations.
 The handle returned is only used for managing the lifetime of the
@@ -179,7 +181,7 @@ minimizes sampling overhead and which will not change the numerical
 behaviour of the simulation. Other policies may be implemented in the
 future, e.g. ``interpolated`` or ``exact``.
 
-The model object will pass on the sampler setting request to the cell
+The simulation object will pass on the sampler setting request to the cell
 group that owns the given probe id. The ``cell_group`` interface will be
 correspondingly extended:
 
@@ -262,7 +264,7 @@ The ``schedule`` class and its implementations are found in ``schedule.hpp``.
 Helper classes for probe/sampler management
 -------------------------------------------
 
-The ``model`` and ``mc_cell_group`` classes use classes defined in ``scheduler_map.hpp`` to simplify
+The ``simulation`` and ``mc_cell_group`` classes use classes defined in ``scheduler_map.hpp`` to simplify
 the management of sampler--probe associations and probe metdata.
 
 ``sampler_association_map`` wraps an ``unordered_map`` between sampler assocation

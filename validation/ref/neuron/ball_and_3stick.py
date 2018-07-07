@@ -21,7 +21,7 @@ model.add_iclamp(40, 10, -0.2, to='dend3')
 simdur = 100.0
 
 data = V.run_nrn_sim(simdur, report_dt=10, model='ball_and_3stick')
-print json.dumps(data)
+print(json.dumps(data))
 
 V.nrn_stop()
 

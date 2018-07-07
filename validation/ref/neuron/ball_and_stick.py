@@ -15,6 +15,6 @@ model.add_dendrite('dend', geom)
 model.add_iclamp(5, 80, 0.3, to='dend')
 
 data = V.run_nrn_sim(100, report_dt=10, model='ball_and_stick')
-print json.dumps(data)
+print(json.dumps(data))
 V.nrn_stop()
 

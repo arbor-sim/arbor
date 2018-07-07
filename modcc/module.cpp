@@ -2,7 +2,9 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <set>
+#include <unordered_set>
 
 #include "errorvisitor.hpp"
 #include "functionexpander.hpp"
@@ -50,14 +52,14 @@ public:
             statements_.push_back(make_expression<AssignmentExpression>(loc_,
                 id("current_"),
                 make_expression<MulBinaryExpression>(loc_,
-                    id("weights_"),
+                    id("weight_"),
                     id("current_"))));
 
             for (auto& v: ion_current_vars_) {
                 statements_.push_back(make_expression<AssignmentExpression>(loc_,
                     id(v),
                     make_expression<MulBinaryExpression>(loc_,
-                        id("weights_"),
+                        id("weight_"),
                         id(v))));
             }
         }
@@ -114,6 +116,10 @@ std::string Module::warning_string() const {
     return str;
 }
 
+void Module::add_callable(symbol_ptr callable) {
+    callables_.push_back(std::move(callable));
+}
+
 bool Module::semantic() {
     ////////////////////////////////////////////////////////////////////////////
     // create the symbol table
@@ -152,17 +158,16 @@ bool Module::semantic() {
     };
 
     // Add built in function that approximate exp use pade polynomials
-    functions_.push_back(
+    callables_.push_back(
         Parser{"FUNCTION exp_pade_11(z) { exp_pade_11=(1+0.5*z)/(1-0.5*z) }"}.parse_function());
-    functions_.push_back(
+    callables_.push_back(
         Parser{
             "FUNCTION exp_pade_22(z)"
             "{ exp_pade_22=(1+0.5*z+0.08333333333333333*z*z)/(1-0.5*z+0.08333333333333333*z*z) }"
         }.parse_function());
 
     // move functions and procedures to the symbol table
-    if(!move_symbols(functions_))  return false;
-    if(!move_symbols(procedures_)) return false;
+    if(!move_symbols(callables_))  return false;
 
     // perform semantic analysis and inlining on function and procedure bodies
     if(auto errors = semantic_func_proc()) {
@@ -205,6 +210,49 @@ bool Module::semantic() {
         auto proc = symbols_[name]->is_api_method();
         return std::make_pair(proc, source);
     };
+
+    // ... except for write_ions(), which we construct by hand here.
+
+    expr_list_type ion_assignments;
+
+    auto sym_to_id = [](Symbol* sym) -> expression_ptr {
+        auto id = make_expression<IdentifierExpression>(sym->location(), sym->name());
+        id->is_identifier()->symbol(sym);
+        return id;
+    };
+
+    auto numeric_literal = [](double v) -> expression_ptr {
+        return make_expression<NumberExpression>(Location{}, v);
+    };
+
+    for (auto& sym: symbols_) {
+        Location loc;
+
+        auto state = sym.second->is_variable();
+        if (!state || !state->is_state()) continue;
+
+        auto shadowed = state->shadows();
+        if (!shadowed) continue;
+
+        auto ionvar = shadowed->is_indexed_variable();
+        if (!ionvar || !ionvar->is_ion() || !ionvar->is_write()) continue;
+
+        auto weight = symbols_["weight_"].get();
+        if (!weight) throw compiler_exception("missing weight_ global", loc);
+
+        ion_assignments.push_back(
+            make_expression<AssignmentExpression>(loc,
+                sym_to_id(ionvar),
+                make_expression<MulBinaryExpression>(loc,
+                    make_expression<MulBinaryExpression>(loc,
+                        numeric_literal(0.1),
+                        sym_to_id(weight)),
+                    sym_to_id(state))));
+    }
+
+    symbols_["write_ions"] = make_symbol<APIMethod>(Location{}, "write_ions",
+        std::vector<expression_ptr>(),
+        make_expression<BlockExpression>(Location{}, std::move(ion_assignments), false));
 
     //.........................................................................
     // nrn_init : based on the INITIAL block (i.e. the 'initial' procedure
@@ -265,13 +313,13 @@ bool Module::semantic() {
 
             switch(solve_expression->method()) {
             case solverMethod::cnexp:
-                solver = make_unique<CnexpSolverVisitor>();
+                solver = std::make_unique<CnexpSolverVisitor>();
                 break;
             case solverMethod::sparse:
-                solver = make_unique<SparseSolverVisitor>();
+                solver = std::make_unique<SparseSolverVisitor>();
                 break;
             case solverMethod::none:
-                solver = make_unique<DirectSolverVisitor>();
+                solver = std::make_unique<DirectSolverVisitor>();
                 break;
             }
 
@@ -360,18 +408,18 @@ bool Module::semantic() {
 
 /// populate the symbol table with class scope variables
 void Module::add_variables_to_symbols() {
-    // add reserved symbols (not v, because for some reason it has to be added
-    // by the user)
-    auto create_variable = [this] (const char* name, rangeKind rng, accessKind acc) {
-        auto t = new VariableExpression(Location(), name);
-        t->state(false);
-        t->linkage(linkageKind::local);
-        t->ion_channel(ionKind::none);
-        t->range(rng);
-        t->access(acc);
-        t->visibility(visibilityKind::global);
-        symbols_[name] = symbol_ptr{t};
-    };
+    auto create_variable =
+        [this](const Token& token, accessKind a, visibilityKind v, linkageKind l,
+               rangeKind r, bool is_state = false) -> symbol_ptr&
+        {
+            auto var = new VariableExpression(token.location, token.spelling);
+            var->access(a);
+            var->visibility(v);
+            var->linkage(l);
+            var->range(r);
+            var->state(is_state);
+            return symbols_[var->name()] = symbol_ptr{var};
+        };
 
     // mechanisms use a vector of weights to:
     //  density mechs:
@@ -379,110 +427,65 @@ void Module::add_variables_to_symbols() {
     //      - density or proportion of a CV's area affected by the mechansim
     //  point procs:
     //      - convert current in nA to current densities in A.m^-2
-    create_variable("weights_", rangeKind::range, accessKind::read);
+
+    create_variable(Token(tok::identifier, "weight_"),
+        accessKind::read, visibilityKind::global, linkageKind::external, rangeKind::range);
 
     // add indexed variables to the table
     auto create_indexed_variable = [this]
-        (std::string const& name, std::string const& indexed_name,
-         tok op, accessKind acc, ionKind ch, Location loc)
+        (std::string const& name, std::string const& indexed_name, sourceKind data_source,
+         tok op, accessKind acc, ionKind ch, Location loc) -> symbol_ptr&
     {
         if(symbols_.count(name)) {
             throw compiler_exception(
-                pprintf("the symbol % already exists", yellow(name)),
-                loc);
+                pprintf("the symbol % already exists", yellow(name)), loc);
         }
-        symbols_[name] =
-            make_symbol<IndexedVariable>(loc, name, indexed_name, acc, op, ch);
+        return symbols_[name] =
+            make_symbol<IndexedVariable>(loc, name, indexed_name, data_source, acc, op, ch);
     };
 
-    create_indexed_variable("current_", "vec_i", tok::plus,
+    create_indexed_variable("current_", "vec_i", sourceKind::current, tok::plus,
                             accessKind::write, ionKind::none, Location());
-    create_indexed_variable("v", "vec_v", tok::eq,
+    create_indexed_variable("v", "vec_v", sourceKind::voltage, tok::eq,
                             accessKind::read,  ionKind::none, Location());
-    create_indexed_variable("dt", "vec_dt", tok::eq,
+    create_indexed_variable("dt", "vec_dt", sourceKind::dt, tok::eq,
                             accessKind::read,  ionKind::none, Location());
 
-    // add cell-indexed variables to the table
-    auto create_cell_indexed_variable = [this]
-        (std::string const& name, std::string const& indexed_name, Location loc = Location())
-    {
-        if(symbols_.count(name)) {
-            throw compiler_exception(
-                "trying to insert a symbol that already exists",
-                loc);
-        }
-        symbols_[name] = make_symbol<CellIndexedVariable>(loc, name, indexed_name);
-    };
+    // If we put back support for accessing cell time again from NMODL code,
+    // add indexed_variable also for "time" with appropriate cell-index based
+    // indirection in printers.
 
-    create_cell_indexed_variable("t", "vec_t");
-    create_cell_indexed_variable("t_to", "vec_t_to");
-
-    // add state variables
-    for(auto const &var : state_block()) {
-        VariableExpression *id = new VariableExpression(Location(), var.name());
-
-        id->state(true);    // set state to true
-        // state variables are private
-        //      what about if the state variables is an ion concentration?
-        id->linkage(linkageKind::local);
-        id->visibility(visibilityKind::local);
-        id->ion_channel(ionKind::none);    // no ion channel
-        id->range(rangeKind::range);       // always a range
-        id->access(accessKind::readwrite);
-
-        symbols_[var.name()] = symbol_ptr{id};
+    // Add state variables.
+    for (const Id& id: state_block_) {
+        create_variable(id.token,
+            accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range, true);
     }
 
-    // add the parameters
-    for(auto const& var : parameter_block()) {
-        auto name = var.name();
-        if(name == "v") { // global voltage values
-            // ignore voltage, which is added as an indexed variable by default
+    // Add parameters, ignoring built-in voltage variable "v".
+    for (const Id& id: parameter_block_) {
+        if (id.name() == "v") {
             continue;
         }
-        VariableExpression *id = new VariableExpression(Location(), name);
 
-        id->state(false);           // never a state variable
-        id->linkage(linkageKind::local);
-        // parameters are visible to Neuron
-        id->visibility(visibilityKind::global);
-        id->ion_channel(ionKind::none);
-        // scalar by default, may later be upgraded to range
-        id->range(rangeKind::scalar);
-        id->access(accessKind::read);
-
-        // check for 'special' variables
-        if(name == "celcius") { // global celcius parameter
-            id->linkage(linkageKind::external);
-        }
+        // Parameters are scalar by default, but may later be changed to range.
+        linkageKind linkage = linkageKind::local;
+        auto& sym = create_variable(id.token,
+            accessKind::read, visibilityKind::global, linkage, rangeKind::scalar);
 
         // set default value if one was specified
-        if(var.value.size()) {
-            id->value(std::stod(var.value));
+        if (id.has_value()) {
+            sym->is_variable()->value(std::stod(id.value));
         }
-
-        symbols_[name] = symbol_ptr{id};
     }
 
-    // add the assigned variables
-    for(auto const& var : assigned_block()) {
-        auto name = var.name();
-        if(name == "v") { // global voltage values
-            // ignore voltage, which is added as an indexed variable by default
+    // Add 'assigned' variables, ignoring built-in voltage variable "v".
+    for (const Id& id: assigned_block_) {
+        if (id.name() == "v") {
             continue;
         }
-        VariableExpression *id = new VariableExpression(var.token.location, name);
 
-        id->state(false);           // never a state variable
-        id->linkage(linkageKind::local);
-        // local visibility by default
-        id->visibility(visibilityKind::local);
-        id->ion_channel(ionKind::none); // can change later
-        // ranges because these are assigned to in loop
-        id->range(rangeKind::range);
-        id->access(accessKind::readwrite);
-
-        symbols_[name] = symbol_ptr{id};
+        create_variable(id.token,
+            accessKind::readwrite, visibilityKind::local, linkageKind::local, rangeKind::range);
     }
 
     ////////////////////////////////////////////////////
@@ -494,58 +497,42 @@ void Module::add_variables_to_symbols() {
     auto update_ion_symbols = [this, create_indexed_variable]
             (Token const& tkn, accessKind acc, ionKind channel)
     {
-        auto const& name = tkn.spelling;
+        std::string name = tkn.spelling;
+        sourceKind data_source = ion_source(channel, name);
 
-        if(has_symbol(name)) {
-            auto sym = symbols_[name].get();
+        // If the symbol already exists and is not a state variable,
+        // it is an error.
+        //
+        // Otherwise create an indexed variable and associate it
+        // with the state variable if present (via a different name)
+        // for ion state updates.
 
-            //  if sym is an indexed_variable: error
-            //  else if sym is a state variable: register a writeback call
-            //  else if sym is a range (non parameter) variable: error
-            //  else if sym is a parameter variable: error
-            //  else it does not exist so make an indexed variable
-
-            // If an indexed variable has already been created with the same name
-            // throw an error.
-            if(sym->kind()==symbolKind::indexed_variable) {
+        VariableExpression* state = nullptr;
+        if (has_symbol(name)) {
+            state = symbols_[name].get()->is_variable();
+            if (!state || !state->is_state()) {
                 error(pprintf("the symbol defined % at % can't be redeclared",
-                              sym->location(), yellow(name)),
-                      tkn.location);
+                    state->location(), yellow(name)), tkn.location);
                 return;
             }
-            else if(sym->kind()==symbolKind::variable) {
-                auto var = sym->is_variable();
-
-                // state variable: register writeback
-                if(var->is_state()) {
-                    // create writeback
-                    write_backs_.push_back(WriteBack(name, "ion_"+name, channel));
-                    return;
-                }
-
-                // error: a normal range variable or parameter can't have the same
-                // name as an indexed ion variable
-                error(pprintf("the ion channel variable % at % can't be redeclared",
-                              yellow(name), sym->location()),
-                      tkn.location);
-                return;
-            }
+            name += "_shadowed_";
         }
 
-        // add the ion variable's indexed shadow
-        create_indexed_variable(name, "ion_"+name,
-                                acc==accessKind::read ? tok::eq : tok::plus,
-acc, channel, tkn.location);
+        auto& sym = create_indexed_variable(name, "ion_"+name, data_source,
+                acc==accessKind::read ? tok::eq : tok::plus, acc, channel, tkn.location);
+
+        if (state) {
+            state->shadows(sym.get());
+        }
     };
 
     // check for nonspecific current
-    if( neuron_block().has_nonspecific_current() ) {
-        auto const& i = neuron_block().nonspecific_current;
+    if( neuron_block_.has_nonspecific_current() ) {
+        auto const& i = neuron_block_.nonspecific_current;
         update_ion_symbols(i, accessKind::write, ionKind::nonspecific);
     }
 
-
-    for(auto const& ion : neuron_block().ions) {
+    for(auto const& ion : neuron_block_.ions) {
         for(auto const& var : ion.read) {
             update_ion_symbols(var, accessKind::read, ion.kind());
         }
@@ -555,7 +542,7 @@ acc, channel, tkn.location);
     }
 
     // then GLOBAL variables
-    for(auto const& var : neuron_block().globals) {
+    for(auto const& var : neuron_block_.globals) {
         if(!symbols_[var.spelling]) {
             error( yellow(var.spelling) +
                    " is declared as GLOBAL, but has not been declared in the" +
@@ -575,7 +562,7 @@ acc, channel, tkn.location);
     }
 
     // then RANGE variables
-    for(auto const& var : neuron_block().ranges) {
+    for(auto const& var : neuron_block_.ranges) {
         if(!symbols_[var.spelling]) {
             error( yellow(var.spelling) +
                    " is declared as RANGE, but has not been declared in the" +
@@ -710,3 +697,4 @@ int Module::semantic_func_proc() {
     }
     return errors;
 }
+

@@ -4,9 +4,9 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <common_types.hpp>
-#include <util/optional.hpp>
-#include <util/path.hpp>
+
+#include <arbor/common_types.hpp>
+#include <arbor/util/optional.hpp>
 
 namespace arb {
 namespace io {
