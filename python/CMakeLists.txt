@@ -9,15 +9,16 @@ endif()
 # Set up pybind11, which is used to generate python bindings.
 # Pybind11 has good cmake support, so just add the pybind11 directory,
 # instead of using find_package.
-set(PYBIND11_CPP_STANDARD -std=c++11)
+set(PYBIND11_CPP_STANDARD -std=c++14)
 add_subdirectory(pybind11)
 
-pybind11_add_module(pyarb pyarb.cpp)
+# The python library. MODULE will make a python-exclusive model.
+add_library(pyarb MODULE pyarb.cpp)
 
-target_link_libraries(pyarb LINK_PUBLIC ${ARB_LIBRARIES})
-target_link_libraries(pyarb LINK_PUBLIC ${EXTERNAL_LIBRARIES})
+target_link_libraries(pyarb PRIVATE arbor pybind11::module)
+set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
-if(ARB_WITH_MPI)
-    target_link_libraries(pyarb LINK_PUBLIC ${MPI_C_LIBRARIES})
-    set_property(TARGET pyarb APPEND_STRING PROPERTY LINK_FLAGS "${MPI_C_LINK_FLAGS}")
-endif()
+# Determine the installation path, according to the python version.
+find_package(PythonInterp REQUIRED)
+set(ARB_PYEXECDIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")
+install(TARGETS pyarb LIBRARY DESTINATION ${ARB_PYEXECDIR})

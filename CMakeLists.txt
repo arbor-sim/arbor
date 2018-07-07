@@ -266,7 +266,7 @@ add_subdirectory(arbor)
 # unit, unit-mpi, unit-local, unit-modcc, validate
 add_subdirectory(test)
 
-# miniapp, brunel-minapp, event-gen 
+# miniapp, brunel-minapp, event-gen:
 add_subdirectory(example)
 
 # lmorpho:
@@ -277,8 +277,10 @@ add_subdirectory(doc)
 
 # validation-data:
 if(ARB_BUILD_VALIDATION_DATA)
-    add_subdirectory(validation) # validation-data
+    add_subdirectory(validation)
 endif()
+
+# python interface:
 if (ARB_WITH_PYTHON)
     add_subdirectory(python)
 endif ()
