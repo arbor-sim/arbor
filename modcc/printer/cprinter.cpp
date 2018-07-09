@@ -131,11 +131,12 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
     io::pfxstringstream out;
 
     out <<
+        "#include <algorithm>\n"
         "#include <cmath>\n"
         "#include <cstddef>\n"
         "#include <memory>\n"
         "#include <" << arb_private_header_prefix() << "backends/multicore/mechanism.hpp>\n"
-        "#include <" << arb_private_header_prefix() << "math.hpp>\n";
+        "#include <" << arb_header_prefix() << "math.hpp>\n";
 
     opt.profile &&
         out << "#include <" << arb_header_prefix() << "profile/profiler.hpp>\n";
@@ -152,13 +153,13 @@ std::string emit_cpp_source(const Module& module_, const printer_options& opt) {
         "using value_type = base::value_type;\n"
         "using size_type = base::size_type;\n"
         "using index_type = base::index_type;\n"
+        "using ::arb::math::exprelr;\n"
         "using ::std::abs;\n"
         "using ::std::cos;\n"
         "using ::std::exp;\n"
-        "using ::arb::math::exprelr;\n"
         "using ::std::log;\n"
-        "using ::arb::math::max;\n"
-        "using ::arb::math::min;\n"
+        "using ::std::max;\n"
+        "using ::std::min;\n"
         "using ::std::pow;\n"
         "using ::std::sin;\n"
         "\n";

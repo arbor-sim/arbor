@@ -2,10 +2,9 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/math.hpp>
 
 #include "backends/threshold_crossing.hpp"
-#include "math.hpp"
-
 #include "multicore_common.hpp"
 
 namespace arb {

@@ -8,13 +8,12 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
-#include "util/strprintf.hpp"
-
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
+#include "util.hpp"
 #include "validation_data.hpp"
 
 #include "../gtest.h"
@@ -42,7 +41,7 @@ void validate_soma(backend_kind backend) {
         {"model", "soma"},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", util::to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     convergence_test_runner<float> runner("dt", plabels, meta);
@@ -70,7 +69,7 @@ end:
 
 TEST(soma, numeric_ref) {
     validate_soma(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_soma(backend_kind::gpu);
     }
 }

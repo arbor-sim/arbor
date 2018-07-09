@@ -188,3 +188,43 @@ TEST(domain_decomposition, heterogenous_population)
         EXPECT_EQ(num_cells, ncells);
     }
 }
+
+TEST(domain_decomposition, hints) {
+    // Check that we can provide group size hint and gpu/cpu preference
+    // by cell kind.
+
+    distributed_context context;
+
+    partition_hint_map hints;
+    hints[cell_kind::cable1d_neuron].cpu_group_size = 3;
+    hints[cell_kind::cable1d_neuron].prefer_gpu = false;
+    hints[cell_kind::spike_source].cpu_group_size = 4;
+
+    domain_decomposition D = partition_load_balance(
+        hetero_recipe(20),
+        domain_info{16, 1}, // 16 threads, 1 gpu.
+        &context,
+        hints);
+
+    std::vector<std::vector<cell_gid_type>> expected_c1d_groups =
+        {{0, 2, 4}, {6, 8, 10}, {12, 14, 16}, {18}};
+
+    std::vector<std::vector<cell_gid_type>> expected_ss_groups =
+        {{1, 3, 5, 7}, {9, 11, 13, 15}, {17, 19}};
+
+    std::vector<std::vector<cell_gid_type>> c1d_groups, ss_groups;
+
+    for (auto& g: D.groups) {
+        EXPECT_TRUE(g.kind==cell_kind::cable1d_neuron || g.kind==cell_kind::spike_source);
+
+        if (g.kind==cell_kind::cable1d_neuron) {
+            c1d_groups.push_back(g.gids);
+        }
+        else if (g.kind==cell_kind::spike_source) {
+            ss_groups.push_back(g.gids);
+        }
+    }
+
+    EXPECT_EQ(expected_c1d_groups, c1d_groups);
+    EXPECT_EQ(expected_ss_groups, ss_groups);
+}

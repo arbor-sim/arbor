@@ -8,23 +8,11 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "util/rangeutil.hpp"
+#include "util.hpp"
 
 namespace arb {
 
 /* Trace data comparison */
-
-// Extract time or value data from trace.
-
-template <typename V>
-inline auto times(const trace_data<V>& trace) {
-   return util::transform_view(trace, [](auto& x) { return x.t; });
-}
-
-template <typename V>
-inline auto values(const trace_data<V>& trace) {
-   return util::transform_view(trace, [](auto& x) { return x.v; });
-}
 
 // Compute max |v_i - f(t_i)| where (t, v) is the 
 // first trace `u` and f is the piece-wise linear interpolant
@@ -77,7 +65,7 @@ using conv_data = std::vector<conv_entry<Param>>;
 
 template <typename ConvEntrySeq>
 void assert_convergence(const ConvEntrySeq& cs) {
-    if (util::empty(cs)) return;
+    if (size(cs)==0) return;
 
     auto tbound = [](trace_peak p) { return std::abs(p.t)+p.t_err; };
     float peak_dt_bound = INFINITY;

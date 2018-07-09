@@ -8,6 +8,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/load_balance.hpp>
+#include <arbor/math.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/mc_segment.hpp>
 #include <arbor/recipe.hpp>
@@ -20,7 +21,6 @@
 #include "backends/multicore/mechanism.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
-#include "math.hpp"
 #include "sampler_map.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"

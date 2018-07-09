@@ -8,6 +8,7 @@
 #include <type_traits>
 
 #include <tclap/CmdLine.h>
+
 #include <arbor/util/optional.hpp>
 
 #include "io.hpp"
@@ -66,9 +67,9 @@ namespace arb {
 
         // Update an option value from command line argument if set.
         template <
-        typename T,
-        typename Arg,
-        typename = std::enable_if_t<std::is_base_of<TCLAP::Arg, Arg>::value>
+            typename T,
+            typename Arg,
+            typename = std::enable_if_t<std::is_base_of<TCLAP::Arg, Arg>::value>
         >
         static void update_option(T& opt, Arg& arg) {
             if (arg.isSet()) {

@@ -6,9 +6,8 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
+#include <aux/path.hpp>
 
-#include "util/path.hpp"
-#include "util/strprintf.hpp"
 
 #include "../gtest.h"
 
@@ -17,13 +16,14 @@
 
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
+#include "util.hpp"
 #include "validation_data.hpp"
 
 using namespace arb;
 
 void run_synapse_test(
     const char* syn_type,
-    const util::path& ref_data_path,
+    const aux::path& ref_data_path,
     backend_kind backend,
     float t_end=70.f,
     float dt=0.001)
@@ -34,7 +34,7 @@ void run_synapse_test(
         {"model", syn_type},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", util::to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     mc_cell c = make_cell_ball_and_stick(false); // no stimuli
@@ -90,7 +90,7 @@ void run_synapse_test(
 TEST(simple_synapse, expsyn_neuron_ref) {
     SCOPED_TRACE("expsyn-multicore");
     run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         SCOPED_TRACE("expsyn-gpu");
         run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::gpu);
     }
@@ -99,7 +99,7 @@ TEST(simple_synapse, expsyn_neuron_ref) {
 TEST(simple_synapse, exp2syn_neuron_ref) {
     SCOPED_TRACE("exp2syn-multicore");
     run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         SCOPED_TRACE("exp2syn-gpu");
         run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::gpu);
     }

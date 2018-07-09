@@ -4,10 +4,10 @@
 #include <utility>
 
 #include <arbor/common_types.hpp>
+#include <arbor/math.hpp>
 #include <arbor/util/compat.hpp>
 
 #include "algorithms.hpp"
-#include "math.hpp"
 #include "util/iterutil.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"

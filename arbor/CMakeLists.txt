@@ -43,7 +43,6 @@ set(arbor_sources
     threading/threading.cpp
     thread_private_spike_store.cpp
     util/hostname.cpp
-    util/path.cpp
     util/unwind.cpp
     version.cpp
 )

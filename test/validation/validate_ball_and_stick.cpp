@@ -9,15 +9,14 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
-
-#include "util/meta.hpp"
-#include "util/path.hpp"
-#include "util/strprintf.hpp"
+#include <aux/path.hpp>
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
+
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
+#include "util.hpp"
 #include "validation_data.hpp"
 
 #include "../gtest.h"
@@ -32,7 +31,7 @@ struct probe_point {
 template <typename ProbePointSeq>
 void run_ncomp_convergence_test(
     const char* model_name,
-    const util::path& ref_data_path,
+    const aux::path& ref_data_path,
     backend_kind backend,
     const mc_cell& c,
     ProbePointSeq& probe_points,
@@ -50,12 +49,12 @@ void run_ncomp_convergence_test(
         {"dt", dt},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", util::to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     auto exclude = stimulus_ends(c);
 
-    auto n_probe = util::size(probe_points);
+    auto n_probe = size(probe_points);
     std::vector<probe_label> plabels;
     plabels.reserve(n_probe);
     for (unsigned i = 0; i<n_probe; ++i) {
@@ -197,35 +196,35 @@ void validate_ball_and_squiggle(arb::backend_kind backend) {
 
 TEST(ball_and_stick, neuron_ref) {
     validate_ball_and_stick(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_ball_and_stick(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_taper, neuron_ref) {
     validate_ball_and_taper(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_ball_and_taper(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_3stick, neuron_ref) {
     validate_ball_and_3stick(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_ball_and_3stick(backend_kind::gpu);
     }
 }
 
 TEST(rallpack1, numeric_ref) {
     validate_rallpack1(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_rallpack1(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_squiggle, neuron_ref) {
     validate_ball_and_squiggle(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_ball_and_squiggle(backend_kind::gpu);
     }
 }

@@ -14,14 +14,13 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-
-#include "hardware/node_info.hpp"
-#include "load_balance.hpp"
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -135,7 +134,7 @@ int main() {
     generator_recipe recipe;
 
     // Make the domain decomposition for the model
-    auto node = arb::hw::get_node_info();
+    auto node = local_domain_info();
     auto decomp = arb::partition_load_balance(recipe, node, &context);
 
     // Construct the model.

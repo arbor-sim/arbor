@@ -12,13 +12,12 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 
-#include "util/strprintf.hpp"
-
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
+#include "util.hpp"
 #include "validation_data.hpp"
 
 void run_kinetic_dt(
@@ -39,7 +38,7 @@ void run_kinetic_dt(
     probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     meta["sim"] = "arbor";
-    meta["backend_kind"] = util::to_string(backend);
+    meta["backend_kind"] = to_string(backend);
 
     convergence_test_runner<float> runner("dt", plabels, meta);
     runner.load_reference_data(ref_file);
@@ -113,14 +112,14 @@ using namespace arb;
 
 TEST(kinetic, kin1_numeric_ref) {
     validate_kinetic_kin1(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_kinetic_kin1(arb::backend_kind::gpu);
     }
 }
 
 TEST(kinetic, kinlva_numeric_ref) {
     validate_kinetic_kinlva(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_domain_info().num_gpus) {
         validate_kinetic_kinlva(arb::backend_kind::gpu);
     }
 }

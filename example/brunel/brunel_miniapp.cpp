@@ -8,8 +8,10 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
@@ -17,22 +19,19 @@
 #include <arbor/threadinfo.hpp>
 #include <arbor/version.hpp>
 
-#include "json_meter.hpp"
+#include <aux/ioutil.hpp>
+#include <aux/json_meter.hpp>
 #ifdef ARB_MPI_ENABLED
-#include "with_mpi.hpp"
+#include <aux/with_mpi.hpp>
 #endif
 
-#include "hardware/gpu.hpp"
-#include "hardware/node_info.hpp"
 #include "io/exporter_spike_file.hpp"
-#include "util/ioutil.hpp"
 
-#include "partitioner.hpp"
 #include "io.hpp"
 
 using namespace arb;
 
-void banner(hw::node_info, const distributed_context*);
+void banner(domain_info, const distributed_context*);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -186,9 +185,6 @@ private:
     int seed_;
 };
 
-using util::any_cast;
-using util::make_span;
-
 int main(int argc, char** argv) {
     distributed_context context;
 
@@ -199,12 +195,10 @@ int main(int argc, char** argv) {
 #endif
         arb::profile::meter_manager meters(&context);
         meters.start();
-        std::cout << util::mask_stream(context.id()==0);
+        std::cout << aux::mask_stream(context.id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.id()==0);
-        hw::node_info nd;
-        nd.num_cpu_cores = arb::num_threads();
-        nd.num_gpus = hw::num_gpus()>0? 1: 0;
+        domain_info nd = local_domain_info();
         banner(nd, &context);
 
         meters.checkpoint("setup");
@@ -246,7 +240,10 @@ int main(int argc, char** argv) {
                         options.file_extension, options.over_write);
         };
 
-        auto decomp = decompose(recipe, group_size, &context);
+        partition_hint_map hints;
+        hints[cell_kind::lif_neuron].cpu_group_size = group_size;
+        auto decomp = partition_load_balance(recipe, nd, &context, hints);
+
         simulation sim(recipe, decomp, &context);
 
         // Initialize the spike exporting interface
@@ -304,12 +301,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const distributed_context* ctx) {
+void banner(domain_info nd, const distributed_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->size()
               << " (" << ctx->name() << ")\n";
-    std::cout << "  - threads     : " << nd.num_cpu_cores
+    std::cout << "  - threads     : " << nd.num_threads
               << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";

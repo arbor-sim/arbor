@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include <util/path.hpp>
+#include <aux/path.hpp>
 
-using namespace arb::util;
+using namespace aux;
 
 TEST(path, posix_ctor) {
     // test constructor ans assignment overloads with sample character sequences.
@@ -41,14 +41,12 @@ TEST(path, posix_ctor) {
     EXPECT_EQ(str_cs, (p=p2).native());
     EXPECT_EQ(str_cs, (p=cs).native());
     EXPECT_EQ(str_cs, (p=str_cs).native());
-    EXPECT_EQ(str_cs, (p=vec_cs).native());
     EXPECT_EQ(str_cs, (p=std::move(p7)).native());
 
     // test assign overloads (and ref return values)
     EXPECT_EQ(str_cs, p.assign(p2).native());
     EXPECT_EQ(str_cs, p.assign(cs).native());
     EXPECT_EQ(str_cs, p.assign(str_cs).native());
-    EXPECT_EQ(str_cs, p.assign(vec_cs).native());
     EXPECT_EQ(str_cs, p.assign(vec_cs.begin(), vec_cs.end()).native());
 }
 
@@ -318,7 +316,7 @@ TEST(path, posix_status_perms) {
     perms expected = perms::owner_read|perms::owner_write|perms::group_read|perms::group_write|perms::others_read|perms::others_write;
     EXPECT_EQ(expected, null_perm);
 
-    // Expect / to be have exec flag set for everyonr
+    // Expect / to be have exec flag set for everyone
     perms root_perm = status("/").permissions();
     EXPECT_NE(perms::none, root_perm&perms::owner_exec);
     EXPECT_NE(perms::none, root_perm&perms::group_exec);
