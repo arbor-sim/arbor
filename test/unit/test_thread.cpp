@@ -139,7 +139,7 @@ TEST(task_group, individual_tasks) {
     auto num_threads = arb::num_threads();
 
     ftor_wait f;
-    for (int i = 0; i < 48 * num_threads; i++) {
+    for (int i = 0; i < 32 * num_threads; i++) {
         g.run(f);
     }
     g.wait();
@@ -151,7 +151,7 @@ TEST(task_group, parallel_for_tasks) {
     auto num_threads = arb::num_threads();
 
     ftor_parallel_wait f;
-    for (int i = 0; i < 48 * num_threads; i++) {
+    for (int i = 0; i < num_threads; i++) {
         g.run(f);
     }
     g.wait();
@@ -166,8 +166,8 @@ TEST(task_group, parallel_sum_vector) {
     std::vector<int> v, sum;
     sum.reserve(num_threads);
 
-    for (int i = 1; i <= total_size; i++) {
-        v.push_back(i);
+    for (int i = 0; i < total_size; i++) {
+        v.push_back(1);
     }
 
     for (int i = 0; i < num_threads; i++) {
@@ -186,7 +186,7 @@ TEST(task_group, parallel_sum_vector) {
         final_sum += sum[i];
     }
 
-    EXPECT_EQ(final_sum, (total_size*(total_size + 1)/2));
+    EXPECT_EQ(final_sum, total_size);
 }
 
 TEST(task_group, parallel_for_sum_vector) {
@@ -198,8 +198,8 @@ TEST(task_group, parallel_for_sum_vector) {
     std::vector<int> v, sum;
     sum.reserve(num_threads);
 
-    for (int i = 1; i <= total_size; i++) {
-        v.push_back(i);
+    for (int i = 0; i < total_size; i++) {
+        v.push_back(1);
     }
 
     arb::threading::parallel_for::apply(0, num_threads, [num_threads, v, &sum](int i)
@@ -216,7 +216,7 @@ TEST(task_group, parallel_for_sum_vector) {
         final_sum += sum[i];
     }
 
-    EXPECT_EQ(final_sum, (total_size*(total_size + 1)/2));
+    EXPECT_EQ(final_sum, total_size);
 }
 
 TEST(enumerable_thread_specific, test) {
