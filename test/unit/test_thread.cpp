@@ -157,66 +157,41 @@ TEST(task_group, parallel_for_tasks) {
     g.wait();
 }
 
-TEST(task_group, parallel_sum_vector) {
-    // Check for correctness
-    arb::threading::task_group g;
-    auto num_threads = arb::num_threads();
-    auto total_size = num_threads*num_threads;
+TEST(task_group, parallel_for) {
 
-    std::vector<int> v, sum;
-    sum.reserve(num_threads);
+    int a = -1;
+    arb::threading::parallel_for::apply(0, 0, [&](int i) {a = i;});
+    EXPECT_EQ(-1, a);
 
-    for (int i = 0; i < total_size; i++) {
-        v.push_back(1);
+    for (int n = 1; n < 100000; n*=2) {
+        std::vector<int> v(n, -1);
+        arb::threading::parallel_for::apply(0, n, [&](int i) {v[i] = i;});
+        for (int i = 0; i< n; i++) {
+            EXPECT_EQ(i, v[i]);
+        }
     }
-
-    for (int i = 0; i < num_threads; i++) {
-        g.run([i, num_threads, v, &sum]{
-            int temp = 0;
-            for (int j = i*num_threads; j < (i+1)*num_threads; j++) {
-                temp += v[j];
-            }
-            sum[i] = temp;
-        });
-    }
-    g.wait();
-
-    int final_sum = 0;
-    for (int i = 0; i< num_threads; i++) {
-        final_sum += sum[i];
-    }
-
-    EXPECT_EQ(final_sum, total_size);
 }
 
-TEST(task_group, parallel_for_sum_vector) {
-    // Check for correctness
-    arb::threading::task_group g;
-    auto num_threads = arb::num_threads();
-    auto total_size = num_threads*num_threads;
+TEST(task_group, nested_parallel_for) {
 
-    std::vector<int> v, sum;
-    sum.reserve(num_threads);
-
-    for (int i = 0; i < total_size; i++) {
-        v.push_back(1);
-    }
-
-    arb::threading::parallel_for::apply(0, num_threads, [num_threads, v, &sum](int i)
-    {
-        int temp = 0;
-        for (int j = i*num_threads; j < (i+1)*num_threads; j++) {
-            temp += v[j];
-        }
-        sum[i] = temp;
+    int a = -1;
+    arb::threading::parallel_for::apply(0, 0, [&](int i) {
+        arb::threading::parallel_for::apply(0, 0, [&](int i){a = i;});
     });
+    EXPECT_EQ(-1, a);
 
-    int final_sum = 0;
-    for (int i = 0; i< num_threads; i++) {
-        final_sum += sum[i];
+
+    for (int n = 1; n < 500; n*=2) {
+        std::vector<std::vector<int>> v(n, std::vector<int>(n, -1));
+        arb::threading::parallel_for::apply(0, n, [&](int i) {
+            arb::threading::parallel_for::apply(0, n, [&](int j){v[i][j] = i*n + j;});
+        });
+        for (int j = 0; j < n; j++) {
+            for (int i = 0; i < n; i++) {
+                EXPECT_EQ(i*n + j, v[i][j]);
+            }
+        }
     }
-
-    EXPECT_EQ(final_sum, total_size);
 }
 
 TEST(enumerable_thread_specific, test) {
