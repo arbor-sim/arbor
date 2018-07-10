@@ -17,6 +17,7 @@
 #include <unordered_map>
 #include <deque>
 #include <atomic>
+#include <type_traits>
 
 #include <cstdlib>
 
@@ -104,6 +105,9 @@ public:
     // Will return without executing a task if no tasks available.
     void try_run_task();
 
+    // Wait until all tasks in system have been executed
+    void wait();
+
     // Includes master thread.
     int get_num_threads();
 
@@ -166,6 +170,8 @@ constexpr bool multithreaded() { return true; }
 
 using std::mutex;
 using lock = std::unique_lock<mutex>;
+using task = std::function<void()>;
+
 
 class task_group {
 private:
@@ -180,16 +186,30 @@ public:
     task_group(const task_group&) = delete;
     task_group& operator=(const task_group&) = delete;
 
-    // TODO: this will be wrapped with another std::function<void()>
-    //       which might be a bit inneficient.
-    struct wrap {
-        std::function<void()> f;
+    template <typename F>
+    class wrap {
+        F f;
         std::atomic<std::size_t>& counter;
 
-        template <typename F>
-        wrap(F&& f, std::atomic<std::size_t>& counter):
-            f(std::forward<F>(f)),
-            counter(counter)
+    public:
+        //using call_type = F;
+
+        // Construct from a compatible function and atomic counter
+        template <typename F2>
+        explicit wrap(F2&& other, std::atomic<std::size_t>& c):
+                f(std::forward<F2>(other)),
+                counter(c)
+        {}
+
+        wrap(wrap&& other):
+                f(std::move(other.f)),
+                counter(other.counter)
+        {}
+
+        // Shouldn't be used, but is required if we want to wrap with std::function
+        wrap(const wrap& other):
+                f(other.f),
+                counter(other.counter)
         {}
 
         void operator()() {
@@ -198,12 +218,20 @@ public:
         }
     };
 
+    template <typename F>
+    //using callable = typename std::decay_t<F>;
+    using callable = typename std::decay<F>::type;
+
+    template <typename F>
+    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c) {
+        return wrap<callable<F>>(std::forward<F>(f), c);
+    }
+
     template<typename F>
     void run(F&& f) {
         ++in_flight_;
 
-        task_system_.async_(
-                wrap(std::forward<F>(f), in_flight_));
+        task_system_.async_(make_wrapped_function(std::forward<F>(f), in_flight_));
     }
 
     // wait till all tasks in this group are done
