@@ -6,14 +6,11 @@
 #include <ostream>
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
-#if defined(ARB_TBB_ENABLED)
-    #include "threading/tbb.hpp"
-#elif defined(ARB_CTHREAD_ENABLED)
-    #include "threading/cthread.hpp"
-#else
-    #include "threading/serial.hpp"
-#endif
 
+#if defined(ARB_CTHREAD_ENABLED)
+#include "threading/cthread.hpp"
+
+using namespace arb::threading::impl;
 namespace {
 
 std::atomic<int> nmove{0};
@@ -60,6 +57,54 @@ struct ftor_parallel_wait {
     }
 };
 
+}
+
+TEST(task_system, test_copy) {
+    task_system &ts = arb::threading::impl::task_system::get_global_task_system();
+
+    ftor f;
+    ts.async_(f);
+
+    // Copy into new ftor and move ftor into a task (std::function<void()>)
+    EXPECT_EQ(1, nmove);
+    EXPECT_EQ(1, ncopy);
+    reset();
+}
+
+TEST(task_system, test_move) {
+    task_system &s = arb::threading::impl::task_system::get_global_task_system();
+
+    ftor f;
+    s.async_(std::move(f));
+
+    // Move into new ftor and move ftor into a task (std::function<void()>)
+    EXPECT_EQ(2, nmove);
+    EXPECT_EQ(0, ncopy);
+    reset();
+}
+
+TEST(notification_queue, test_copy) {
+    notification_queue q;
+
+    ftor f;
+    q.push(f);
+
+    // Copy into new ftor and move ftor into a task (std::function<void()>)
+    EXPECT_EQ(1, nmove);
+    EXPECT_EQ(1, ncopy);
+    reset();
+}
+
+TEST(notification_queue, test_move) {
+    notification_queue q;
+
+    ftor f;
+
+    // Move into new ftor and move ftor into a task (std::function<void()>)
+    q.push(std::move(f));
+    EXPECT_EQ(2, nmove);
+    EXPECT_EQ(0, ncopy);
+    reset();
 }
 
 TEST(task_group, copy_task) {
@@ -158,13 +203,13 @@ TEST(task_group, parallel_for_sum_vector) {
     }
 
     arb::threading::parallel_for::apply(0, num_threads, [num_threads, v, &sum](int i)
-            {
-                int temp = 0;
-                for (int j = i*num_threads; j < (i+1)*num_threads; j++) {
-                    temp += v[j];
-                }
-                sum[i] = temp;
-            });
+    {
+        int temp = 0;
+        for (int j = i*num_threads; j < (i+1)*num_threads; j++) {
+            temp += v[j];
+        }
+        sum[i] = temp;
+    });
 
     int final_sum = 0;
     for (int i = 0; i< num_threads; i++) {
@@ -173,3 +218,25 @@ TEST(task_group, parallel_for_sum_vector) {
 
     EXPECT_EQ(final_sum, (total_size*(total_size + 1)/2));
 }
+
+TEST(enumerable_thread_specific, test) {
+    arb::threading::enumerable_thread_specific<int> buffers(0);
+    arb::threading::task_group g;
+
+    for (int i = 0; i < 100000; i++) {
+        g.run([&](){
+            auto& buf = buffers.local();
+            buf++;
+        });
+    }
+    g.wait();
+
+    int sum = 0;
+    for (auto b: buffers) {
+        sum += b;
+    }
+
+    EXPECT_EQ(100000, sum);
+}
+
+#endif
