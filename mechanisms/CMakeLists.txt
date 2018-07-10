@@ -18,10 +18,16 @@ if(ARB_WITH_PROFILING)
     list(APPEND modcc_flags "--profile")
 endif()
 
+set(external_modcc)
+if(ARB_WITH_EXTERNAL_MODCC)
+    set(external_modcc MODCC ${modcc})
+endif()
+
 build_modules(
     ${mechanisms}
     SOURCE_DIR "${mod_srcdir}"
     DEST_DIR "${mech_dir}"
+    ${external_modcc}
     MODCC_FLAGS -t cpu -t gpu ${modcc_flags}
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     TARGET build_all_mods
