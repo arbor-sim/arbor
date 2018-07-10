@@ -67,7 +67,6 @@ void task_system::run_tasks_loop(){
         }
         if(!tsk && !q_[i].pop(tsk)) break;
         tsk();
-        index_--;
     }
 }
 
@@ -79,7 +78,6 @@ void task_system::try_run_task() {
     for(int n = 0; n != nt; n++) {
         if(q_[(i + n) % nt].try_pop(tsk)) {
             tsk();
-            index_--;
             break;
         }
     }
@@ -95,8 +93,8 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     // and go from there
     lock thread_ids_lock{thread_ids_mutex_};
     for (std::size_t i = 1; i < count_; i++) {
-        threads_.emplace_back([&]{run_tasks_loop();});
-        auto tid = threads_.back().get_id();
+        threads_.emplace_back([this]{run_tasks_loop();});
+        tid = threads_.back().get_id();
         thread_ids_[tid] = i;
     }
 }
@@ -120,7 +118,6 @@ int task_system::get_num_threads() {
 }
 
 std::size_t task_system::get_current_thread() {
-    lock thread_ids_lock{thread_ids_mutex_};
     std::thread::id tid = std::this_thread::get_id();
     return thread_ids_[tid];
 }
@@ -131,9 +128,4 @@ task_system& task_system::get_global_task_system() {
     return global_task_system;
 }
 
-void task_system::wait() {
-    while(index_) {
-        try_run_task();
-    }
-}
 

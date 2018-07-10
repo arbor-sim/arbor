@@ -34,7 +34,6 @@ using std::mutex;
 using lock = std::unique_lock<mutex>;
 using std::condition_variable;
 
-//using task = std::pair<std::function<void()>, task_group*>;
 using task = std::function<void()>;
 using task_queue = std::deque<task>;
 
@@ -104,9 +103,6 @@ public:
     // Request that the task_system attempts to find and run a _single_ task.
     // Will return without executing a task if no tasks available.
     void try_run_task();
-
-    // Wait until all tasks in system have been executed
-    void wait();
 
     // Includes master thread.
     int get_num_threads();
@@ -192,7 +188,6 @@ public:
         std::atomic<std::size_t>& counter;
 
     public:
-        //using call_type = F;
 
         // Construct from a compatible function and atomic counter
         template <typename F2>
@@ -219,7 +214,6 @@ public:
     };
 
     template <typename F>
-    //using callable = typename std::decay_t<F>;
     using callable = typename std::decay<F>::type;
 
     template <typename F>
