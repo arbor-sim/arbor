@@ -18,10 +18,12 @@
 #include <arbor/util/any.hpp>
 #include <arbor/version.hpp>
 
-#include "io/exporter_spike_file.hpp"
 
 #include <aux/ioutil.hpp>
 #include <aux/json_meter.hpp>
+#include <aux/path.hpp>
+#include <aux/spike_emitter.hpp>
+#include <aux/strsub.hpp>
 #ifdef ARB_MPI_ENABLED
 #include <aux/with_mpi.hpp>
 #endif
@@ -37,7 +39,7 @@ using util::any_cast;
 void banner(domain_info, const distributed_context*);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
-
+std::fstream& open_or_throw(std::fstream& file, const aux::path& p, bool exclusive = false);
 void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
@@ -77,13 +79,6 @@ int main(int argc, char** argv) {
             report_compartment_stats(*recipe);
         }
 
-        auto register_exporter = [] (const io::cl_options& options) {
-            return
-                std::make_unique<io::exporter_spike_file>(
-                    options.file_name, options.output_path,
-                    options.file_extension, options.over_write);
-        };
-
         auto decomp = partition_load_balance(*recipe, nd, &context);
         simulation sim(*recipe, decomp, &context);
 
@@ -118,21 +113,21 @@ int main(int argc, char** argv) {
         sim.set_binning_policy(binning_policy, options.bin_dt);
 
         // Initialize the spike exporting interface
-        std::unique_ptr<io::exporter_spike_file> file_exporter;
+        std::fstream spike_out;
         if (options.spike_file_output) {
+            using std::ios_base;
+
+            auto rank = context.id();
+            aux::path p = options.output_path;
+            p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
+
             if (options.single_file_per_rank) {
-                file_exporter = register_exporter(options);
-                sim.set_local_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    });
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_local_spike_callback(aux::spike_emitter(spike_out));
             }
-            else if(context.id()==0) {
-                file_exporter = register_exporter(options);
-                sim.set_global_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                       file_exporter->output(spikes);
-                    });
+            else if (rank==0) {
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_global_spike_callback(aux::spike_emitter(spike_out));
             }
         }
 
@@ -255,3 +250,4 @@ void report_compartment_stats(const recipe& rec) {
 
     std::cout << "compartments/cell: min=" << ncomp_min <<"; max=" << ncomp_max << "; mean=" << (double)ncomp_total/ncell << "\n";
 }
+

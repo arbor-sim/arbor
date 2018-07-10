@@ -1,6 +1,20 @@
 #pragma once
 
+// Provides:
+//
+// * mask_stream
+//
+//   Stream manipulator that enables or disables writing to a stream based on a flag.
+//
+// * open_or_throw
+//
+//   Open an fstream, throwing on error. If the 'excl' flag is set, throw a
+//   std::runtime_error if the path exists.
+
 #include <iostream>
+#include <fstream>
+
+#include <aux/path.hpp>
 
 namespace aux {
 
@@ -72,6 +86,13 @@ private:
     // true => do not filter
     bool mask_;
 };
+
+std::fstream open_or_throw(const aux::path& p, std::ios_base::openmode, bool exclusive);
+
+inline std::fstream open_or_throw(const aux::path& p, bool exclusive) {
+    using std::ios_base;
+    return open_or_throw(p, ios_base::in|ios_base::out, exclusive);
+}
 
 } // namespace aux
 

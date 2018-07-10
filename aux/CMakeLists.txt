@@ -1,4 +1,11 @@
-set(aux-sources json_meter.cpp glob.cpp path.cpp)
+set(aux-sources
+
+    glob.cpp
+    ioutil.cpp
+    json_meter.cpp
+    path.cpp
+    spike_emitter.cpp
+)
 
 add_library(arbor-aux ${aux-sources})
 target_link_libraries(arbor-aux PUBLIC ext-json arbor)
