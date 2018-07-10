@@ -1,9 +1,9 @@
 #include <cmath>
 #include <vector>
 
-#include <math.hpp>
+#include <arbor/morphology.hpp>
 
-#include <morphology.hpp>
+#include "math.hpp"
 
 namespace arb {
 

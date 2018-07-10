@@ -9,12 +9,6 @@
 
 namespace arb {
 
-enum class binning_kind {
-    none,
-    regular,   // => round time down to multiple of binning interval.
-    following, // => round times down to previous event if within binning interval.
-};
-
 class event_binner {
 public:
     event_binner(): policy_(binning_kind::none), bin_interval_(0) {}

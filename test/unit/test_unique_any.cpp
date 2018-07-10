@@ -1,14 +1,14 @@
 #include <iostream>
 
-#include <util/rangeutil.hpp>
-#include <util/span.hpp>
-#include <util/unique_any.hpp>
+#include <arbor/util/unique_any.hpp>
+
+#include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 #include "../gtest.h"
 #include "common.hpp"
 
 using namespace arb;
-using namespace testing::string_literals;
 
 TEST(unique_any, copy_construction) {
     using util::unique_any;

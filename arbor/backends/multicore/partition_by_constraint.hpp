@@ -1,7 +1,8 @@
 #pragma once
 
-#include<vector>
-#include<simd/simd.hpp>
+#include <vector>
+
+#include <arbor/simd/simd.hpp>
 
 namespace arb {
 namespace multicore {

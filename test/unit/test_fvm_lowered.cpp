@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 
 #include "../gtest.h"
@@ -5,21 +6,21 @@
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/mc_cell.hpp>
+#include <arbor/mc_segment.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/sampling.hpp>
+#include <arbor/simulation.hpp>
+#include <arbor/schedule.hpp>
 
 #include "algorithms.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
-#include "cell.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
 #include "load_balance.hpp"
 #include "math.hpp"
-#include "simulation.hpp"
-#include "recipe.hpp"
 #include "sampler_map.hpp"
-#include "sampling.hpp"
-#include "schedule.hpp"
-#include "segment.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
@@ -28,7 +29,7 @@
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
-using namespace testing::string_literals;
+using namespace std::string_literals;
 
 using backend = arb::multicore::backend;
 using fvm_cell = arb::fvm_lowered_cell_impl<backend>;
@@ -74,20 +75,15 @@ ACCESS_BIND(\
     &arb::multicore::mechanism::ion_index_table)
 
 
-// TODO: C++14 replace use with generic lambda
-struct generic_isnan {
-    template <typename V>
-    bool operator()(V& v) const { return std::isnan(v); }
-} isnan_;
-
 using namespace arb;
 
 TEST(fvm_lowered, matrix_init)
 {
-    algorithms::generic_is_positive ispos;
-    algorithms::generic_is_negative isneg;
+    auto isnan = [](auto v) { return std::isnan(v); };
+    auto ispos = [](auto v) { return v>0; };
+    auto isneg = [](auto v) { return v<0; };
 
-    arb::cell cell = make_cell_ball_and_stick();
+    mc_cell cell = make_cell_ball_and_stick();
 
     ASSERT_EQ(2u, cell.num_segments());
     cell.segment(1)->set_compartments(10);
@@ -108,9 +104,9 @@ TEST(fvm_lowered, matrix_init)
     auto n = J.size();
     auto& mat = J.state_;
 
-    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan_));
-    EXPECT_FALSE(util::any_of(mat.d, isnan_));
-    EXPECT_FALSE(util::any_of(J.solution(), isnan_));
+    EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), isnan));
+    EXPECT_FALSE(util::any_of(mat.d, isnan));
+    EXPECT_FALSE(util::any_of(J.solution(), isnan));
 
     EXPECT_FALSE(util::any_of(util::subrange_view(mat.u, 1, n), ispos));
     EXPECT_FALSE(util::any_of(mat.d, isneg));
@@ -119,7 +115,7 @@ TEST(fvm_lowered, matrix_init)
 TEST(fvm_lowered, target_handles) {
     using namespace arb;
 
-    arb::cell cells[] = {
+    mc_cell cells[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_3stick()
     };
@@ -178,7 +174,7 @@ TEST(fvm_lowered, stimulus) {
     // amplitude | 0.3  |  0.1
     // CV        |   4  |    0
 
-    std::vector<cell> cells;
+    std::vector<mc_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
 
     cells[0].add_stimulus({1,1},   {5., 80., 0.3});
@@ -253,9 +249,9 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
-    std::vector<cell> cells(3);
+    std::vector<mc_cell> cells(3);
     for (int i = 0; i<3; ++i) {
-        cell& c = cells[i];
+        mc_cell& c = cells[i];
         c.add_soma(6.0);
         c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
 
@@ -301,12 +297,12 @@ TEST(fvm_lowered, derived_mechs) {
         using fvec = std::vector<fvm_value_type>;
         fvec tau_values;
         for (auto& mech: fvcell.*private_mechanisms_ptr) {
-            EXPECT_EQ("test_kin1"_s, mech->internal_name());
+            EXPECT_EQ("test_kin1"s, mech->internal_name());
 
             auto cmech = dynamic_cast<multicore::mechanism*>(mech.get());
             ASSERT_TRUE(cmech);
 
-            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"_s);
+            auto opt_tau_ptr = util::value_by_key((cmech->*private_global_table_ptr)(), "tau"s);
             ASSERT_TRUE(opt_tau_ptr);
             tau_values.push_back(*opt_tau_ptr.value());
         }
@@ -376,7 +372,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     // the same as a 100µm dendrite, which makes it easier to describe the
     // expected weights.
 
-    cell c;
+    mc_cell c;
     c.add_soma(5);
 
     c.add_cable(0, section_kind::dendrite, 0.5, 0.5, 100);
@@ -416,7 +412,7 @@ TEST(fvm_lowered, weighted_write_ion) {
 
     auto test_ca = dynamic_cast<multicore::mechanism*>(find_mechanism(fvcell, "test_ca"));
 
-    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"_s);
+    auto opt_cai_ptr = util::value_by_key((test_ca->*private_field_table_ptr)(), "cai"s);
     ASSERT_TRUE(opt_cai_ptr);
     auto& test_ca_cai = *opt_cai_ptr.value();
 

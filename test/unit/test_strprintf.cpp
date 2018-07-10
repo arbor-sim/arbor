@@ -7,8 +7,8 @@
 #include "../gtest.h"
 #include "common.hpp"
 
+using namespace std::string_literals;
 using namespace arb::util;
-using namespace testing::string_literals;
 
 TEST(strprintf, simple) {
     char buf[200];
@@ -60,6 +60,6 @@ TEST(strprintf, wrappers) {
 
     EXPECT_EQ(std::string(buf), strprintf("sptr %p", sptr));
 
-    EXPECT_EQ("fish"_s, strprintf("fi%s", "sh"_s));
+    EXPECT_EQ("fish"s, strprintf("fi%s", "sh"s));
 }
 

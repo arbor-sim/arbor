@@ -1,10 +1,12 @@
 #pragma once
 
-#include <algorithm>
+#include <iosfwd>
 #include <vector>
 
-#include <event_generator.hpp>
-#include <event_queue.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/spike_event.hpp>
+
+#include "event_queue.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
@@ -48,15 +50,15 @@ namespace impl {
     // it is not intended for use elsewhere. It is exposed here for unit testing
     // of its functionality.
     class tourney_tree {
-        using key_val = std::pair<unsigned, postsynaptic_spike_event>;
+        using key_val = std::pair<unsigned, spike_event>;
 
     public:
         tourney_tree(std::vector<event_generator>& input);
         bool empty() const;
         bool empty(time_type t) const;
-        postsynaptic_spike_event head() const;
+        spike_event head() const;
         void pop();
-        void print() const;
+        friend std::ostream& operator<<(std::ostream&, const tourney_tree&);
 
     private:
         void setup(unsigned i);
@@ -68,8 +70,8 @@ namespace impl {
         unsigned leaf(unsigned i) const;
         bool is_leaf(unsigned i) const;
         const unsigned& id(unsigned i) const;
-        postsynaptic_spike_event& event(unsigned i);
-        const postsynaptic_spike_event& event(unsigned i) const;
+        spike_event& event(unsigned i);
+        const spike_event& event(unsigned i) const;
         unsigned next_power_2(unsigned x) const;
 
         std::vector<key_val> heap_;

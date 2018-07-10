@@ -1,6 +1,7 @@
 # Sources:
 
 set(arbor_sources
+    arbexcept.cpp
     assert.cpp
     backends/multicore/mechanism.cpp
     backends/multicore/shared_state.cpp
@@ -9,7 +10,7 @@ set(arbor_sources
     builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
-    cell.cpp
+    mc_cell.cpp
     event_binner.cpp
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
@@ -35,6 +36,7 @@ set(arbor_sources
     profile/power_meter.cpp
     profile/profiler.cpp
     schedule.cpp
+    spike_event_io.cpp
     spike_source_cell_group.cpp
     swcio.cpp
     threadinfo.cpp

@@ -14,9 +14,9 @@ inline const mechanism_info& builtin_stimulus_info() {
         {},
         // parameters
         {
-            {"delay",     spec(spec::parameter, "ms", 0, 0)},
-            {"duration",  spec(spec::parameter, "ms", 0, 0)},
-            {"amplitude", spec(spec::parameter, "nA", 0, 0)}
+            {"delay",     {spec::parameter, "ms", 0, 0}},
+            {"duration",  {spec::parameter, "ms", 0, 0}},
+            {"amplitude", {spec::parameter, "nA", 0, 0}}
         },
         // state
         {},

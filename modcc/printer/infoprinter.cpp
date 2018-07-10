@@ -23,14 +23,14 @@ std::ostream& operator<<(std::ostream& out, const id_field_info& wrap) {
     const Id& id = wrap.id;
 
     out << "{" << quote(id.name()) << ", "
-        << "spec(spec::" << wrap.kind << ", " << quote(id.unit_string()) << ", "
+        << "{spec::" << wrap.kind << ", " << quote(id.unit_string()) << ", "
         << (id.has_value()? id.value: "0");
 
     if (id.has_range()) {
         out << ", " << id.range.first.spelling << "," << id.range.second.spelling;
     }
 
-    out << ")}";
+    out << "}}";
     return out;
 }
 

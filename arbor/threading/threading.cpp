@@ -3,10 +3,12 @@
 #include <regex>
 #include <string>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/util/optional.hpp>
 #include <hardware/affinity.hpp>
 
 #include "threading.hpp"
+#include "util/strprintf.hpp"
 
 namespace arb {
 namespace threading {
@@ -49,8 +51,8 @@ util::optional<size_t> get_env_num_threads() {
     if (errno==ERANGE ||
         !std::regex_match(str, std::regex("\\s*\\d*[0-9]\\d*\\s*")))
     {
-        throw std::runtime_error("The requested number of threads \""
-            +std::string(str)+"\" is not a valid value\n");
+        throw arbor_exception(util::pprintf(
+            "requested number of threads \"{}\" is not a valid value", str));
     }
 
     return nthreads;

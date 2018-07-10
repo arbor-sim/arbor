@@ -2,6 +2,7 @@
 
 #include <map>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -14,7 +15,7 @@
 
 using namespace arb;
 
-using namespace testing::string_literals;
+using namespace std::string_literals;
 using testing::nocopy;
 using testing::nomove;
 
@@ -163,10 +164,10 @@ TEST(maputil, value_by_key_sequence) {
 
     auto r1 = value_by_key(table, 3);
     EXPECT_TRUE(r1);
-    EXPECT_EQ("three"_s, r1.value());
+    EXPECT_EQ("three"s, r1.value());
     EXPECT_TRUE(is_optional_reference(r1));
     r1.value() = "four";
-    EXPECT_EQ("four"_s, value_by_key(table, 3).value());
+    EXPECT_EQ("four"s, value_by_key(table, 3).value());
 
     auto r2 = value_by_key(std::move(table), 1);
     EXPECT_TRUE(r2);

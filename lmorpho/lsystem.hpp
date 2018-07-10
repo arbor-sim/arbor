@@ -2,7 +2,7 @@
 
 #include <random>
 
-#include <morphology.hpp>
+#include <arbor/morphology.hpp>
 
 struct lsys_param;
 

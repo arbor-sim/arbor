@@ -33,7 +33,7 @@ void fill64(uint64_t* v, uint64_t value, std::size_t n);
 
 #define FILL(N) \
 template <typename T> \
-typename std::enable_if<sizeof(T)==sizeof(uint ## N ## _t)>::type \
+std::enable_if_t<sizeof(T)==sizeof(uint ## N ## _t)> \
 fill(T* ptr, T value, std::size_t n) { \
     using I = uint ## N ## _t; \
     I v; \

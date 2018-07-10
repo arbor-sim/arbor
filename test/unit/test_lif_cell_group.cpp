@@ -1,16 +1,17 @@
 #include "../gtest.h"
 
 #include <arbor/distributed_context.hpp>
+#include <arbor/lif_cell.hpp>
 #include <arbor/threadinfo.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
+#include <arbor/spike_source_cell.hpp>
 
-#include <cell_group_factory.hpp>
-#include <fstream>
-#include <lif_cell_description.hpp>
-#include <lif_cell_group.hpp>
-#include <load_balance.hpp>
-#include <simulation.hpp>
-#include <spike_source_cell.hpp>
-#include <recipe.hpp>
+#include "cell_group_factory.hpp"
+#include "hardware/node_info.hpp"
+#include "lif_cell_group.hpp"
+#include "load_balance.hpp"
+#include "threading/threading.hpp"
 
 using namespace arb;
 // Simple ring network of LIF neurons.
@@ -65,7 +66,7 @@ public:
             return spike_source_cell{vector_time_seq({0.f})};
         }
         // LIF cell.
-        return lif_cell_description();
+        return lif_cell();
     }
 
     cell_size_type num_sources(cell_gid_type) const override {
@@ -118,7 +119,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return lif_cell_description();
+        return lif_cell();
     }
 
     cell_size_type num_sources(cell_gid_type) const override {
@@ -164,7 +165,7 @@ TEST(lif_cell_group, spikes) {
     auto decomp = partition_load_balance(recipe, nd, &context);
     simulation sim(recipe, decomp, &context);
 
-    std::vector<postsynaptic_spike_event> events;
+    std::vector<spike_event> events;
 
     // First event to trigger the spike (first neuron).
     events.push_back({{0, 0}, 1, 1000});

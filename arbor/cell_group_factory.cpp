@@ -1,15 +1,16 @@
 #include <vector>
 
-#include <backends.hpp>
-#include <benchmark_cell_group.hpp>
-#include <cell_group.hpp>
-#include <domain_decomposition.hpp>
-#include <fvm_lowered_cell.hpp>
-#include <lif_cell_group.hpp>
-#include <mc_cell_group.hpp>
-#include <recipe.hpp>
-#include <spike_source_cell_group.hpp>
-#include <util/unique_any.hpp>
+#include <arbor/arbexcept.hpp>
+#include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
+
+#include "benchmark_cell_group.hpp"
+#include "cell_group.hpp"
+#include "fvm_lowered_cell.hpp"
+#include "lif_cell_group.hpp"
+#include "mc_cell_group.hpp"
+#include "spike_source_cell_group.hpp"
 
 namespace arb {
 
@@ -28,7 +29,7 @@ cell_group_ptr cell_group_factory(const recipe& rec, const group_description& gr
         return make_cell_group<benchmark_cell_group>(group.gids, rec);
 
     default:
-        throw std::runtime_error("unknown cell kind");
+        throw arbor_internal_error("cell_group_factory: unknown cell kind");
     }
 }
 

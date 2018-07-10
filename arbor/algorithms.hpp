@@ -31,7 +31,7 @@ typename util::sequence_traits<C>::value_type
 sum(C const& c)
 {
     using value_type = typename util::sequence_traits<C>::value_type;
-    return std::accumulate(util::cbegin(c), util::cend(c), value_type{0});
+    return std::accumulate(std::cbegin(c), std::cend(c), value_type{0});
 }
 
 template <typename C>
@@ -120,30 +120,14 @@ bool is_minimal_degree(C const& c)
     return it==c.end();
 }
 
-struct generic_is_positive {
-    template <typename V>
-    bool operator()(V v) const {
-        static V zero = V{};
-        return v>zero;
-    }
-};
-
-struct generic_is_negative {
-    template <typename V>
-    bool operator()(V v) const {
-        static V zero = V{};
-        return v<zero;
-    }
-};
-
 template <typename C>
 bool all_positive(const C& c) {
-    return util::all_of(c, generic_is_positive{});
+    return util::all_of(c, [](auto v) { return v>decltype(v){}; });
 }
 
 template <typename C>
 bool all_negative(const C& c) {
-    return util::all_of(c, generic_is_negative{});
+    return util::all_of(c, [](auto v) { return v<decltype(v){}; });
 }
 
 template<typename C>
@@ -311,12 +295,18 @@ std::vector<typename C::value_type> tree_reduce(
 
 template <typename Seq, typename = util::enable_if_sequence_t<Seq&>>
 bool is_unique(const Seq& seq) {
-    return std::adjacent_find(std::begin(seq), std::end(seq)) == std::end(seq);
+    using std::begin;
+    using std::end;
+
+    return std::adjacent_find(begin(seq), end(seq)) == end(seq);
 }
 
 
 /// Binary search, because std::binary_search doesn't return information
 /// about where a match was found.
+
+// TODO: consolidate these with rangeutil routines; make them sentinel
+
 template <typename It, typename T>
 It binary_find(It b, It e, const T& value) {
     auto it = std::lower_bound(b, e, value);
@@ -324,17 +314,19 @@ It binary_find(It b, It e, const T& value) {
 }
 
 template <typename Seq, typename T>
-auto binary_find(const Seq& seq, const T& value)
-    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
-{
-    return binary_find(std::begin(seq), compat::end(seq), value);
+auto binary_find(const Seq& seq, const T& value) {
+    using std::begin;
+    using std::end;
+
+    return binary_find(begin(seq), end(seq), value);
 }
 
 template <typename Seq, typename T>
-auto binary_find(Seq& seq, const T& value)
-    -> decltype(binary_find(std::begin(seq), std::end(seq), value))
-{
-    return binary_find(std::begin(seq), compat::end(seq), value);
+auto binary_find(Seq& seq, const T& value) {
+    using std::begin;
+    using std::end;
+
+    return binary_find(begin(seq), end(seq), value);
 }
 
 } // namespace algorithms

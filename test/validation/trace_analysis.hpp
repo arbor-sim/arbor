@@ -1,19 +1,30 @@
 #pragma once
 
+#include <cfloat>
 #include <vector>
 
 #include "../gtest.h"
 
+#include <arbor/simple_sampler.hpp>
 #include <arbor/util/optional.hpp>
 
-#include <simple_sampler.hpp>
-#include <math.hpp>
-#include <util/path.hpp>
-#include <util/rangeutil.hpp>
+#include "util/rangeutil.hpp"
 
 namespace arb {
 
 /* Trace data comparison */
+
+// Extract time or value data from trace.
+
+template <typename V>
+inline auto times(const trace_data<V>& trace) {
+   return util::transform_view(trace, [](auto& x) { return x.t; });
+}
+
+template <typename V>
+inline auto values(const trace_data<V>& trace) {
+   return util::transform_view(trace, [](auto& x) { return x.v; });
+}
 
 // Compute max |v_i - f(t_i)| where (t, v) is the 
 // first trace `u` and f is the piece-wise linear interpolant
@@ -69,7 +80,7 @@ void assert_convergence(const ConvEntrySeq& cs) {
     if (util::empty(cs)) return;
 
     auto tbound = [](trace_peak p) { return std::abs(p.t)+p.t_err; };
-    float peak_dt_bound = math::infinity<>();
+    float peak_dt_bound = INFINITY;
 
     for (auto pi = std::begin(cs); std::next(pi)!=std::end(cs); ++pi) {
         const auto& p = *pi;

@@ -5,8 +5,8 @@
 #include <random>
 #include <unordered_set>
 
-#include <simd/simd.hpp>
-#include <simd/avx.hpp>
+#include <arbor/simd/simd.hpp>
+#include <arbor/simd/avx.hpp>
 
 #include "common.hpp"
 
@@ -21,12 +21,12 @@ namespace {
     //     * other integral type => uniform_int_distribution, default interval [L, U]
     //                              such that L^2+L and U^2+U fit within the integer range.
 
-    template <typename V, typename = typename std::enable_if<std::is_floating_point<V>::value>::type>
+    template <typename V, typename = std::enable_if_t<std::is_floating_point<V>::value>>
     std::uniform_real_distribution<V> make_udist(V lb = -1., V ub = 1.) {
         return std::uniform_real_distribution<V>(lb, ub);
     }
 
-    template <typename V, typename = typename std::enable_if<std::is_integral<V>::value && !std::is_same<V, bool>::value>::type>
+    template <typename V, typename = std::enable_if_t<std::is_integral<V>::value && !std::is_same<V, bool>::value>>
     std::uniform_int_distribution<V> make_udist(
             V lb = std::numeric_limits<V>::lowest() / (2 << std::numeric_limits<V>::digits/2),
             V ub = std::numeric_limits<V>::max() >> (1+std::numeric_limits<V>::digits/2))
@@ -34,14 +34,14 @@ namespace {
         return std::uniform_int_distribution<V>(lb, ub);
     }
 
-    template <typename V, typename = typename std::enable_if<std::is_same<V, bool>::value>::type>
+    template <typename V, typename = std::enable_if_t<std::is_same<V, bool>::value>>
     std::uniform_int_distribution<> make_udist(V lb = 0, V ub = 1) {
         return std::uniform_int_distribution<>(0, 1);
     }
 
     template <typename Seq, typename Rng>
     void fill_random(Seq&& seq, Rng& rng) {
-        using V = typename std::decay<decltype(*std::begin(seq))>::type;
+        using V = std::decay_t<decltype(*std::begin(seq))>;
 
         auto u = make_udist<V>();
         for (auto& x: seq) { x = u(rng); }
@@ -49,13 +49,13 @@ namespace {
 
     template <typename Seq, typename Rng, typename B1, typename B2>
     void fill_random(Seq&& seq, Rng& rng, B1 lb, B2 ub) {
-        using V = typename std::decay<decltype(*std::begin(seq))>::type;
+        using V = std::decay_t<decltype(*std::begin(seq))>;
 
         auto u = make_udist<V>(lb, ub);
         for (auto& x: seq) { x = u(rng); }
     }
 
-    template <typename Simd, typename Rng, typename B1, typename B2, typename = typename std::enable_if<is_simd<Simd>::value>::type>
+    template <typename Simd, typename Rng, typename B1, typename B2, typename = std::enable_if_t<is_simd<Simd>::value>>
     void fill_random(Simd& s, Rng& rng, B1 lb, B2 ub) {
         using V = typename Simd::scalar_type;
         constexpr unsigned N = Simd::width;
@@ -65,7 +65,7 @@ namespace {
         s.copy_from(v);
     }
 
-    template <typename Simd, typename Rng, typename = typename std::enable_if<is_simd<Simd>::value>::type>
+    template <typename Simd, typename Rng, typename = std::enable_if_t<is_simd<Simd>::value>>
     void fill_random(Simd& s, Rng& rng) {
         using V = typename Simd::scalar_type;
         constexpr unsigned N = Simd::width;
@@ -1064,7 +1064,8 @@ TYPED_TEST_P(simd_indirect, add_and_subtract) {
 template <typename X>
 bool unique_elements(const X& xs) {
     using std::begin;
-    std::unordered_set<typename std::decay<decltype(*begin(xs))>::type> set;
+// WOOPWOOP
+    std::unordered_set<std::decay_t<decltype(*begin(xs))>> set;
     for (auto& x: xs) {
         if (!set.insert(x).second) return false;
     }

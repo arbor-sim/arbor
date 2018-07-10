@@ -1,12 +1,14 @@
 #pragma once
-#include <algorithm>
-#include <cell_group.hpp>
-#include <event_queue.hpp>
-#include <lif_cell_description.hpp>
-#include "profile/profiler_macro.hpp"
-#include <recipe.hpp>
-#include <util/unique_any.hpp>
+
 #include <vector>
+
+#include <arbor/common_types.hpp>
+#include <arbor/lif_cell.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/sampling.hpp>
+#include <arbor/spike.hpp>
+
+#include "cell_group.hpp"
 
 namespace arb {
 
@@ -42,7 +44,7 @@ private:
     std::vector<cell_gid_type> gids_;
 
     // Cells that belong to this group.
-    std::vector<lif_cell_description> cells_;
+    std::vector<lif_cell> cells_;
 
     // Spikes that are generated (not necessarily sorted).
     std::vector<spike> spikes_;

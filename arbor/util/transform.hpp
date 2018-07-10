@@ -35,16 +35,16 @@ class transform_iterator: public iterator_adaptor<transform_iterator<I, F>, I> {
     I& inner() { return inner_; }
 
     using inner_value_type = decltype(*inner_);
-    using raw_value_type = typename std::result_of<F (inner_value_type)>::type;
+    using raw_value_type = std::result_of_t<F (inner_value_type)>;
 
     static constexpr bool present_lvalue = std::is_reference<raw_value_type>::value;
 
 
 public:
     using typename base::difference_type;
-    using value_type = util::decay_t<raw_value_type>;
-    using pointer = typename std::conditional<present_lvalue, value_type*, const value_type*>::type;
-    using reference = typename std::conditional<present_lvalue, raw_value_type, const value_type&>::type;
+    using value_type = std::decay_t<raw_value_type>;
+    using pointer = std::conditional_t<present_lvalue, value_type*, const value_type*>;
+    using reference = std::conditional_t<present_lvalue, raw_value_type, const value_type&>;
 
     transform_iterator() = default;
 
@@ -80,17 +80,17 @@ public:
 
     // forward and input iterator requirements
 
-    typename std::conditional<present_lvalue, reference, value_type>::type
+    std::conditional_t<present_lvalue, reference, value_type>
     operator*() const {
         return f_.cref()(*inner_);
     }
 
-    typename std::conditional<present_lvalue, pointer, util::pointer_proxy<value_type>>::type
+    std::conditional_t<present_lvalue, pointer, util::pointer_proxy<value_type>>
     operator->() const {
         return pointer_impl(std::integral_constant<bool, present_lvalue>{});
     }
 
-    typename std::conditional<present_lvalue, reference, value_type>::type
+    std::conditional_t<present_lvalue, reference, value_type>
     operator[](difference_type n) const {
         return *(*this+n);
     }
@@ -121,32 +121,31 @@ private:
 };
 
 template <typename I, typename F>
-transform_iterator<I, util::decay_t<F>> make_transform_iterator(const I& i, const F& f) {
-    return transform_iterator<I, util::decay_t<F>>(i, f);
+transform_iterator<I, std::decay_t<F>> make_transform_iterator(const I& i, const F& f) {
+    return transform_iterator<I, std::decay_t<F>>(i, f);
 }
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = enable_if_t<std::is_same<seq_iter, seq_sent>::value>
->
-range<transform_iterator<seq_iter, util::decay_t<F>>>
-transform_view(Seq&& s, const F& f) {
-    return {make_transform_iterator(std::begin(s), f), make_transform_iterator(std::end(s), f)};
+// TODO C++17: simplify with constexpr-if
+namespace transform_impl {
+    using std::begin;
+    using std::end;
+
+    // transform over regular sequences:
+    template <typename Seq, typename F>
+    auto transform_(Seq&& s, const F& f, std::true_type) {
+        return make_range(make_transform_iterator(begin(s), f), make_transform_iterator(end(s), f));
+    }
+
+    // transform over sentinel-terminated sequences:
+    template <typename Seq, typename F>
+    auto transform_(Seq&& s, const F& f, std::false_type) {
+        return make_range(make_transform_iterator(begin(s), f), end(s));
+    }
 }
 
-template <
-    typename Seq,
-    typename F,
-    typename seq_iter = typename sequence_traits<Seq>::iterator,
-    typename seq_sent = typename sequence_traits<Seq>::sentinel,
-    typename = enable_if_t<!std::is_same<seq_iter, seq_sent>::value>
->
-range<transform_iterator<seq_iter, util::decay_t<F>>, seq_sent>
-transform_view(Seq&& s, const F& f) {
-    return {make_transform_iterator(std::begin(s), f), std::end(s)};
+template <typename Seq, typename F>
+auto transform_view(Seq&& s, const F& f) {
+    return transform_impl::transform_(std::forward<Seq>(s), f, is_regular_sequence<Seq&&>{});
 }
 
 } // namespace util

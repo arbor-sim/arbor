@@ -26,7 +26,6 @@ set(unit_sources
     test_any.cpp
     test_backend.cpp
     test_double_buffer.cpp
-    test_cell.cpp
     test_compartments.cpp
     test_counter.cpp
     test_cycle.cpp
@@ -45,6 +44,7 @@ set(unit_sources
     test_mask_stream.cpp
     test_math.cpp
     test_matrix.cpp
+    test_mc_cell.cpp
     test_mechanisms.cpp
     test_mechcat.cpp
     test_merge_events.cpp

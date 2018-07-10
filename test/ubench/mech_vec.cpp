@@ -2,10 +2,13 @@
 //
 // Start with pas (passive dendrite) mechanism
 
+#include <fstream>
+
+#include <arbor/mc_cell.hpp>
+
 #include <backends/multicore/fvm.hpp>
 #include <benchmark/benchmark.h>
 #include <fvm_lowered_cell_impl.hpp>
-#include <fstream>
 
 using namespace arb;
 
@@ -36,7 +39,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cell c;
+        mc_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -75,7 +78,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cell c;
+        mc_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -107,7 +110,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cell c;
+        mc_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");
@@ -141,7 +144,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cell c;
+        mc_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("hh");
@@ -173,7 +176,7 @@ public:
     }
 
     virtual util::unique_any get_cell_description(cell_gid_type gid) const override {
-        cell c;
+        mc_cell c;
 
         auto soma = c.add_soma(12.6157/2.0);
         soma->add_mechanism("pas");

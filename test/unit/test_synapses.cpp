@@ -4,15 +4,15 @@
 #include <tuple>
 #include <vector>
 
-#include <arbor/util/optional.hpp>
+#include <arbor/constants.hpp>
 #include <arbor/mechcat.hpp>
+#include <arbor/util/optional.hpp>
+#include <arbor/mc_cell.hpp>
 
-#include <cell.hpp>
-#include <constants.hpp>
-#include <backends/multicore/fvm.hpp>
-#include <backends/multicore/mechanism.hpp>
-#include <util/maputil.hpp>
-#include <util/range.hpp>
+#include "backends/multicore/fvm.hpp"
+#include "backends/multicore/mechanism.hpp"
+#include "util/maputil.hpp"
+#include "util/range.hpp"
 
 #include "common.hpp"
 
@@ -41,7 +41,7 @@ ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanis
 TEST(synapses, add_to_cell) {
     using namespace arb;
 
-    ::arb::cell cell;
+    mc_cell cell;
 
     // Soma with diameter 12.6157 um and HH channel
     auto soma = cell.add_soma(12.6157/2.0);

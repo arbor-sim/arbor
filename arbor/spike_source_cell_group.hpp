@@ -1,8 +1,15 @@
 #pragma once
 
-#include <cell_group.hpp>
-#include <recipe.hpp>
-#include <time_sequence.hpp>
+#include <vector>
+
+#include <arbor/common_types.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/sampling.hpp>
+#include <arbor/spike.hpp>
+#include <arbor/time_sequence.hpp>
+
+#include "cell_group.hpp"
+#include "epoch.hpp"
 
 namespace arb {
 

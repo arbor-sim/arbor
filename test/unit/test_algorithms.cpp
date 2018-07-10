@@ -6,8 +6,6 @@
 
 #include "../gtest.h"
 
-#include <arbor/util/compat.hpp>
-
 #include "algorithms.hpp"
 #include "util/index_into.hpp"
 #include "util/meta.hpp"
@@ -538,7 +536,7 @@ template <typename Sub, typename Sup>
     }
 
     using std::begin;
-    using compat::end;
+    using std::end;
 
     auto sub_i = begin(sub);
     auto sup_i = begin(sup);
@@ -782,7 +780,7 @@ TEST(algorithms, binary_find)
         auto itv = binary_find(vr, 10);
         auto found = itv!=std::end(vr);
         EXPECT_TRUE(found);
-        EXPECT_EQ(std::distance(arb::util::cbegin(v), itv), 1u);
+        EXPECT_EQ(std::distance(std::cbegin(v), itv), 1u);
         if (found) {
             EXPECT_EQ(*itv, 10);
         }

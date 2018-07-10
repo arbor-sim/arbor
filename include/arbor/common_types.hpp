@@ -21,7 +21,7 @@ using cell_gid_type = std::uint32_t;
 
 // For sizes of collections of cells.
 
-using cell_size_type = typename std::make_unsigned<cell_gid_type>::type;
+using cell_size_type = std::make_unsigned_t<cell_gid_type>;
 
 // For indexes into cell-local data.
 //
@@ -32,7 +32,7 @@ using cell_lid_type = std::uint32_t;
 
 // For counts of cell-local data.
 
-using cell_local_size_type = typename std::make_unsigned<cell_lid_type>::type;
+using cell_local_size_type = std::make_unsigned_t<cell_lid_type>;
 
 // For global identification of an item of cell local data.
 //
@@ -64,6 +64,13 @@ using probe_tag = int;
 
 using sample_size_type = std::int32_t;
 
+// Enumeration for execution back-end targets, as specified in domain decompositions.
+
+enum class backend_kind {
+    multicore,   //  Use multicore back-end for all computation.
+    gpu          //  Use gpu back-end when supported by cell_group implementation.
+};
+
 // Enumeration used to indentify the cell type/kind, used by the model to
 // group equal kinds in the same cell group.
 
@@ -74,10 +81,19 @@ enum class cell_kind {
     benchmark,        // Proxy cell used for benchmarking.
 };
 
-} // namespace arb
+// Enumeration for event time binning policy.
 
-std::ostream& operator<<(std::ostream& O, arb::cell_member_type m);
-std::ostream& operator<<(std::ostream& O, arb::cell_kind k);
+enum class binning_kind {
+    none,
+    regular,   // => round time down to multiple of binning interval.
+    following, // => round times down to previous event if within binning interval.
+};
+
+std::ostream& operator<<(std::ostream& o, cell_member_type m);
+std::ostream& operator<<(std::ostream& o, cell_kind k);
+std::ostream& operator<<(std::ostream& o, backend_kind k);
+
+} // namespace arb
 
 namespace std {
     template <> struct hash<arb::cell_member_type> {

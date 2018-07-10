@@ -1,16 +1,15 @@
-//#include <iostream>
+#include <string>
 #include <type_traits>
+#include <typeinfo>
+
+#include <arbor/util/any.hpp>
+#include <arbor/util/any_ptr.hpp>
 
 #include "../gtest.h"
 #include "common.hpp"
 
-#include <util/any.hpp>
-#include <util/any_ptr.hpp>
-
-#include <typeinfo>
-
+using namespace std::string_literals;
 using namespace arb;
-using namespace testing::string_literals;
 
 TEST(any, copy_construction) {
     util::any any_int(2);
@@ -76,7 +75,7 @@ TEST(any, type) {
     using util::any;
 
     any anyi(42);
-    any anys("hello"_s);
+    any anys("hello"s);
     any anyv(std::vector<int>{1, 2, 3});
     any any0;
 
@@ -142,7 +141,7 @@ TEST(any, any_cast_ptr) {
     auto ptr_i = util::any_cast<int>(&ai);
     EXPECT_EQ(*ptr_i, 42);
 
-    util::any as("hello"_s);
+    util::any as("hello"s);
     auto ptr_s = util::any_cast<std::string>(&as);
     EXPECT_EQ(*ptr_s, "hello");
 
@@ -304,7 +303,7 @@ TEST(any, make_any) {
         // create a string from const char*
         auto a = make_any<std::string>("hello");
 
-        EXPECT_EQ(any_cast<std::string>(a), "hello"_s);
+        EXPECT_EQ(any_cast<std::string>(a), "hello"s);
     }
 
     // test that we make_any correctly forwards rvalue arguments to the constructor

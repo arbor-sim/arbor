@@ -111,8 +111,8 @@ TEST(cycle_iterator, decrement) {
 
 TEST(cycle_iterator, carray) {
     int values[] = { 4, 2, 3 };
-    auto cycle_iter = util::make_cyclic_iterator(util::cbegin(values),
-                                                 util::cend(values));
+    auto cycle_iter = util::make_cyclic_iterator(std::cbegin(values),
+                                                 std::cend(values));
     auto values_size = util::size(values);
     for (auto i = 0u; i < 2*values_size; ++i) {
         EXPECT_EQ(values[i % values_size], *cycle_iter++);

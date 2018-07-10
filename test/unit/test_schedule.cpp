@@ -4,8 +4,8 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/schedule.hpp>
 
-#include <schedule.hpp>
 #include <util/partition.hpp>
 #include <util/rangeutil.hpp>
 

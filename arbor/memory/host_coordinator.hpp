@@ -177,7 +177,7 @@ public:
     }
 
     static constexpr auto
-    alignment() -> decltype(Allocator::alignment()) {
+    alignment() {
         return Allocator::alignment();
     }
 

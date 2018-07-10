@@ -9,8 +9,8 @@
 
 #include "common.hpp"
 
+using namespace std::string_literals;
 using namespace arb::util;
-using namespace testing::string_literals;
 
 TEST(optional, ctors) {
     optional<int> a, b(3), c = b, d = 4;
@@ -173,7 +173,7 @@ TEST(optional, ctor_nocopy) {
 
     const optional<nocopy> ccheck(nocopy(1));
     EXPECT_TRUE(std::is_rvalue_reference<decltype(std::move(ccheck).value())>::value);
-    EXPECT_TRUE(std::is_const<std::remove_reference<decltype(std::move(ccheck).value())>::type>::value);
+    EXPECT_TRUE(std::is_const<std::remove_reference_t<decltype(std::move(ccheck).value())>>::value);
 }
 
 TEST(optional, value_or) {
@@ -194,15 +194,15 @@ TEST(optional, value_or) {
     };
     check_conv cc{true};
 
-    optional<std::string> present = "present"_s;
+    optional<std::string> present = "present"s;
     optional<std::string> absent; // nullopt
 
     auto result = present.value_or(cc);
     EXPECT_EQ(typeid(std::string), typeid(result));
-    EXPECT_EQ("present"_s, result);
+    EXPECT_EQ("present"s, result);
 
     result = absent.value_or(cc);
-    EXPECT_EQ("true"_s, result);
+    EXPECT_EQ("true"s, result);
 
     // Check move semantics in argument:
 
@@ -242,7 +242,7 @@ TEST(optional, ref_value_or) {
 
     const optional<double&> cx = x;
     auto& ref3 = cx.value_or(b);
-    EXPECT_TRUE(std::is_const<std::remove_reference<decltype(ref3)>::type>::value);
+    EXPECT_TRUE(std::is_const<std::remove_reference_t<decltype(ref3)>>::value);
     EXPECT_EQ(&b, &ref3);
 }
 

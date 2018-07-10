@@ -2,7 +2,6 @@
 
 #include <arbor/common_types.hpp>
 
-#include "backends.hpp"
 #include "epoch.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "mc_cell_group.hpp"
@@ -19,7 +18,7 @@ namespace {
         return make_fvm_lowered_cell(backend_kind::multicore);
     }
 
-    cell make_cell() {
+    mc_cell make_cell() {
         auto c = make_cell_ball_and_stick();
 
         c.add_detector({0, 0}, 0);
@@ -52,7 +51,7 @@ TEST(mc_cell_group, test) {
 TEST(mc_cell_group, sources) {
     // Make twenty cells, with an extra detector on gids 0, 3 and 17
     // to make things more interesting.
-    std::vector<cell> cells;
+    std::vector<mc_cell> cells;
 
     for (int i=0; i<20; ++i) {
         cells.push_back(make_cell());

@@ -2,6 +2,8 @@
 
 /* Collection of compatibility workarounds to deal with compiler defects */
 
+// Note: workarounds for xlC removed; use of xlC to build Arbor is deprecated.
+
 #include <cstddef>
 #include <cmath>
 
@@ -25,33 +27,6 @@ constexpr bool using_gnu_compiler(int major=0, int minor=0, int patchlevel=0) {
 #endif
 }
 
-// std::end() broken with (at least) xlC 13.1.4.
-
-namespace impl {
-    using std::end;
-    template <typename T>
-    auto end_(T& x) -> decltype(end(x)) { return end(x); }
-}
-
-template <typename T>
-auto end(T& x) -> decltype(impl::end_(x)) { return impl::end_(x); }
-
-template <typename T, std::size_t N>
-T* end(T (&x)[N]) { return &x[0]+N; }
-
-template <typename T, std::size_t N>
-const T* end(const T (&x)[N]) { return &x[0]+N; }
-
-// Work-around bad optimization reordering in xlC 13.1.4.
-
-inline void compiler_barrier_if_xlc_leq(unsigned ver) {
-#if defined(__xlC__)
-    if (__xlC__<=ver) {
-        asm volatile ("" ::: "memory");
-    }
-#endif
-}
-
 // Work-around a bad inlining-related optimization with icpc 16.0.3 and -xMIC-AVX512,
 
 inline void compiler_barrier_if_icc_leq(unsigned ver) {
@@ -61,11 +36,5 @@ inline void compiler_barrier_if_icc_leq(unsigned ver) {
     }
 #endif
 }
-
-// Work-around bad ordering of std::isinf() (sometimes) within switch, xlC 13.1.4;
-// wrapping the call within another function appears to be sufficient.
-
-template <typename X>
-inline constexpr bool isinf(X x) { return std::isinf(x); }
 
 } // namespace compat

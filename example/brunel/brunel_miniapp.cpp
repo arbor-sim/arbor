@@ -8,8 +8,12 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/event_generator.hpp>
+#include <arbor/lif_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
+#include <arbor/recipe.hpp>
+#include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
 #include <arbor/version.hpp>
 
@@ -18,14 +22,9 @@
 #include "with_mpi.hpp"
 #endif
 
-#include "communication/communicator.hpp"
-#include "event_generator.hpp"
 #include "hardware/gpu.hpp"
 #include "hardware/node_info.hpp"
 #include "io/exporter_spike_file.hpp"
-#include "lif_cell_description.hpp"
-#include "recipe.hpp"
-#include "simulation.hpp"
 #include "util/ioutil.hpp"
 
 #include "partitioner.hpp"
@@ -110,7 +109,7 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto cell = lif_cell_description();
+        auto cell = lif_cell();
         cell.tau_m = 10;
         cell.V_th = 10;
         cell.C_m = 20;
@@ -242,7 +241,7 @@ int main(int argc, char** argv) {
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
         auto register_exporter = [] (const io::cl_options& options) {
-            return util::make_unique<io::exporter_spike_file>
+            return std::make_unique<io::exporter_spike_file>
                        (options.file_name, options.output_path,
                         options.file_extension, options.over_write);
         };

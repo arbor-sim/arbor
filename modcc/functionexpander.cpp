@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 
 #include "astmanip.hpp"
 #include "error.hpp"
@@ -18,7 +19,7 @@ expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression*
 
 expr_list_type lower_function_calls(Expression* e)
 {
-    auto v = make_unique<FunctionCallLowerer>(e->scope());
+    auto v = std::make_unique<FunctionCallLowerer>(e->scope());
 
     if(auto a=e->is_assignment()) {
 #ifdef LOGGING

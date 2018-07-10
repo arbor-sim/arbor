@@ -10,7 +10,6 @@
 #include <tclap/CmdLine.h>
 #include <arbor/util/optional.hpp>
 
-#include "util/meta.hpp"
 #include "io.hpp"
 
 // Let TCLAP understand value arguments that are of an optional type.
@@ -69,7 +68,7 @@ namespace arb {
         template <
         typename T,
         typename Arg,
-        typename = util::enable_if_t<std::is_base_of<TCLAP::Arg, Arg>::value>
+        typename = std::enable_if_t<std::is_base_of<TCLAP::Arg, Arg>::value>
         >
         static void update_option(T& opt, Arg& arg) {
             if (arg.isSet()) {

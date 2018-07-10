@@ -77,7 +77,7 @@ namespace detail {
     struct optional_tag {};
 
     template <typename X>
-    using is_optional = std::is_base_of<optional_tag, typename std::decay<X>::type>;
+    using is_optional = std::is_base_of<optional_tag, std::decay_t<X>>;
 
     template <typename D, typename X>
     struct wrapped_type_impl {
@@ -91,7 +91,7 @@ namespace detail {
 
     template <typename X>
     struct wrapped_type {
-        using type = typename wrapped_type_impl<typename std::decay<X>::type, X>::type;
+        using type = typename wrapped_type_impl<std::decay_t<X>, X>::type;
     };
 
     template <typename X>
@@ -169,7 +169,7 @@ namespace detail {
 
     // type utilities
     template <typename T>
-    using enable_unless_optional_t = typename std::enable_if<!is_optional<T>::value>::type;
+    using enable_unless_optional_t = std::enable_if_t<!is_optional<T>::value>;
 
     // avoid nonnull address warnings when using operator| with e.g. char array constants
     template <typename T>
@@ -251,10 +251,10 @@ struct optional: detail::optional_base<X> {
 
     template <
         typename Y = X,
-        typename = typename std::enable_if<
+        typename = std::enable_if_t<
             std::is_move_assignable<Y>::value &&
             std::is_move_constructible<Y>::value
-        >::type
+        >
     >
     optional& operator=(optional&& o) {
         if (set) {

@@ -99,7 +99,7 @@ private:
 template <
     typename Seq,
     typename SeqIter = typename sequence_traits<Seq>::const_iterator,
-    typename = enable_if_t<is_forward_iterator<SeqIter>::value>
+    typename = std::enable_if_t<is_forward_iterator<SeqIter>::value>
 >
 partition_range<SeqIter> partition_view(const Seq& r) {
     return partition_range<SeqIter>(r);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 
@@ -88,7 +89,7 @@ public:
         stack_.host_access();
 
         if (stack_.overflow()) {
-            throw std::runtime_error("GPU spike buffer overflow.");
+            throw arbor_internal_error("gpu/threshold_watcher: gpu spike buffer overflow");
         }
 
         crossings_.clear();

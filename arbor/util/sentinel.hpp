@@ -58,7 +58,7 @@ public:
 
     sentinel_iterator(I i): e_(i) {}
 
-    template <typename V = S, typename = enable_if_t<!std::is_same<I, V>::value>>
+    template <typename V = S, typename = std::enable_if_t<!std::is_same<I, V>::value>>
     sentinel_iterator(S i): e_(i) {}
 
     sentinel_iterator() = default;
@@ -70,7 +70,7 @@ public:
 
     // forward and input iterator requirements
 
-    auto operator*() const -> decltype(*(this->iter())) { return *iter(); }
+    decltype(auto) operator*() const { return *iter(); }
 
     I operator->() const { return e_.template ptr<0>(); }
 
@@ -141,7 +141,7 @@ public:
         return iter()-x.iter();
     }
 
-    auto operator[](difference_type n) const -> decltype(*(this->iter())) {
+    decltype(auto) operator[](difference_type n) const {
         return *(iter()+n);
     }
 
@@ -174,7 +174,7 @@ public:
 
 template <typename I, typename S>
 using sentinel_iterator_t =
-    typename std::conditional<std::is_same<I, S>::value, I, sentinel_iterator<I, S>>::type;
+    std::conditional_t<std::is_same<I, S>::value, I, sentinel_iterator<I, S>>;
 
 template <typename I, typename S>
 sentinel_iterator_t<I, S> make_sentinel_iterator(const I& i, const S& s) {

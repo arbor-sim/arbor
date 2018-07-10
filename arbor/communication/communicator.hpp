@@ -11,18 +11,19 @@
 #include <arbor/common_types.hpp>
 #include <arbor/communication/gathered_vector.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
 #include "algorithms.hpp"
 #include "connection.hpp"
-#include "domain_decomposition.hpp"
 #include "event_queue.hpp"
 #include "profile/profiler_macro.hpp"
-#include "recipe.hpp"
 #include "threading/threading.hpp"
 #include "util/double_buffer.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 namespace arb {
 
@@ -45,7 +46,6 @@ public:
                           const domain_decomposition& dom_dec,
                           const distributed_context* ctx)
     {
-        using util::make_span;
         context_ = ctx;
         num_domains_ = context_->size();
         num_local_groups_ = dom_dec.groups.size();
@@ -186,7 +186,7 @@ public:
 
         const auto& sp = global_spikes.partition();
         const auto& cp = connection_part_;
-        for (auto dom: make_span(0, num_domains_)) {
+        for (auto dom: make_span(num_domains_)) {
             auto cons = subrange_view(connections_, cp[dom], cp[dom+1]);
             auto spks = subrange_view(global_spikes.values(), sp[dom], sp[dom+1]);
 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#include <morphology.hpp>
+#include <arbor/morphology.hpp>
 
 // Manage access to a single file, std::cout, or an indexed
 // sequence of files.

@@ -138,7 +138,7 @@ public:
     // Constructors
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     explicit array_view(Other&& other) :
         pointer_(other.data()), size_(other.size())
@@ -146,7 +146,7 @@ public:
         #ifdef VERBOSE
         std::cout << util::green("array_view(&&Other) ")
                   << "\n  this  " << util::pretty_printer<array_view>::print(*this)
-                  << "\n  other " << util::pretty_printer<typename std::decay<Other>::type>::print(other)
+                  << "\n  other " << util::pretty_printer<std::decay_t<Other>>::print(other)
                   << "\n";
         #endif
     }
@@ -180,37 +180,29 @@ public:
 
     /// access half open sub-range using two indexes [left, right)
     view_type operator()(size_type left, size_type right) {
-        #ifndef NDEBUG
         arb_assert(right<=size_ && left<=right);
-        #endif
         return view_type(pointer_+left, right-left);
     }
 
     const_view_type operator()(size_type left, size_type right) const {
-        #ifndef NDEBUG
         arb_assert(right<=size_ && left<=right);
-        #endif
         return view_type(pointer_+left, right-left);
     }
 
     /// access half open sub-range using one index and one-past-the-end [left, end)
     view_type operator()(size_type left, end_type) {
-        #ifndef NDEBUG
         arb_assert(left<=size_);
-        #endif
         return view_type(pointer_+left, size_-left);
     }
 
     const_view_type operator()(size_type left, end_type) const {
-        #ifndef NDEBUG
         arb_assert(left<=size_);
-        #endif
         return view_type(pointer_+left, size_-left);
     }
 
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     array_view operator=(Other&& other) {
         #if VERBOSE
@@ -260,16 +252,12 @@ public:
     // per element accessors
     // return a reference type provided by Coordinator
     reference operator[] (size_type i) {
-        #ifndef NDEBUG
         arb_assert(i<size_);
-        #endif
         return coordinator_.make_reference(pointer_+i);
     }
 
     const_reference operator[] (size_type i) const {
-        #ifndef NDEBUG
         arb_assert(i<size_);
-        #endif
         return coordinator_.make_reference(pointer_+i);
     }
 
@@ -286,7 +274,7 @@ public:
     }
 
     static constexpr auto
-    alignment() -> decltype(coordinator_type::alignment()) {
+    alignment() {
         return coordinator_type::alignment();
     }
 
@@ -342,7 +330,7 @@ public:
     // Constructors
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     const_array_view(const Other& other) :
         pointer_(other.data()), size_(other.size())
@@ -350,7 +338,7 @@ public:
 #if VERBOSE
         std::cout << util::green("const_array_view(const Other&)")
                   << "\n  this  " << util::pretty_printer<const_array_view>::print(*this)
-                  << "\n  other " << util::pretty_printer<typename std::decay<Other>::type>::print(other)
+                  << "\n  other " << util::pretty_printer<std::decay_t<Other>>::print(other)
                   << std::endl;
 #endif
     }
@@ -385,23 +373,19 @@ public:
 
     /// access half open sub-range using two indexes [left, right)
     const_view_type operator()(size_type left, size_type right) const {
-#ifndef NDEBUG
         arb_assert(right<=size_ && left<=right);
-#endif
         return const_view_type(pointer_+left, right-left);
     }
 
     /// access half open sub-range using one index and one-past-the-end [left, end)
     const_view_type operator()(size_type left, end_type) const {
-#ifndef NDEBUG
         arb_assert(left<=size_);
-#endif
         return const_view_type(pointer_+left, size_-left);
     }
 
     template <
         typename Other,
-        typename = typename std::enable_if< impl::is_array<Other>::value >::type
+        typename = std::enable_if_t< impl::is_array<Other>::value >
     >
     const_array_view operator=(Other&& other) {
 #if VERBOSE
@@ -439,9 +423,7 @@ public:
     // per element accessors
     // return a reference type provided by Coordinator
     const_reference operator[] (size_type i) const {
-        #ifndef NDEBUG
         arb_assert(i<size_);
-        #endif
         return coordinator_.make_reference(pointer_+i);
     }
 
@@ -458,7 +440,7 @@ public:
     }
 
     static constexpr auto
-    alignment() -> decltype(coordinator_type::alignment()) {
+    alignment() {
         return coordinator_type::alignment();
     }
 

@@ -8,13 +8,9 @@
 #include <utility>
 
 #include <arbor/common_types.hpp>
+#include <arbor/spike_event.hpp>
 #include <arbor/util/optional.hpp>
-
-#include "generic_event.hpp"
-#include "util/meta.hpp"
-#include "util/range.hpp"
-#include "util/rangeutil.hpp"
-#include "util/strprintf.hpp"
+#include <arbor/generic_event.hpp>
 
 namespace arb {
 
@@ -25,31 +21,9 @@ namespace arb {
  * Time values must be well ordered with respect to `operator>`.
  */
 
-struct postsynaptic_spike_event {
-    cell_member_type target;
-    time_type time;
-    float weight;
-
-    friend bool operator==(const postsynaptic_spike_event& l, const postsynaptic_spike_event& r) {
-        return l.target==r.target && l.time==r.time && l.weight==r.weight;
-    }
-
-    friend bool operator<(const postsynaptic_spike_event& l, const postsynaptic_spike_event& r) {
-        return std::tie(l.time, l.target, l.weight) < std::tie(r.time, r.target, r.weight);
-    }
-
-    friend std::ostream& operator<<(std::ostream& o, const arb::postsynaptic_spike_event& e)
-    {
-        return o << "E[tgt " << e.target << ", t " << e.time << ", w " << e.weight << "]";
-    }
-};
-
-using pse_vector = std::vector<postsynaptic_spike_event>;
-using event_lane_subrange = util::subrange_view_type<std::vector<pse_vector>>;
-
 template <typename Event>
 class event_queue {
-public :
+public:
     using value_type = Event;
     using event_time_type = ::arb::event_time_type<Event>;
 

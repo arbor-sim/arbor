@@ -31,7 +31,7 @@ public:
     cell_member_type destination() const { return destination_; }
     cell_size_type index_on_domain() const { return index_on_domain_; }
 
-    postsynaptic_spike_event make_event(const spike& s) {
+    spike_event make_event(const spike& s) {
         return {destination_, s.time + delay_, weight_};
     }
 

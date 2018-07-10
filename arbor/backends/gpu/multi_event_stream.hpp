@@ -2,12 +2,13 @@
 
 // Indexed collection of pop-only event queues --- multicore back-end implementation.
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/generic_event.hpp>
 
 #include "backends/event.hpp"
 #include "backends/multi_event_stream_state.hpp"
-#include "generic_event.hpp"
 #include "memory/array.hpp"
 #include "memory/copy.hpp"
 #include "profile/profiler_macro.hpp"
@@ -68,7 +69,7 @@ protected:
         using ::arb::event_index;
 
         if (staged.size()>std::numeric_limits<size_type>::max()) {
-            throw std::range_error("too many events");
+            throw arbor_internal_error("gpu/multi_event_stream: too many events for size type");
         }
 
         arb_assert(util::is_sorted_by(staged, [](const Event& ev) { return event_index(ev); }));

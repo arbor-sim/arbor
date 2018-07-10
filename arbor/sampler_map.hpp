@@ -10,10 +10,9 @@
 #include <unordered_map>
 
 #include <arbor/common_types.hpp>
+#include <arbor/sampling.hpp>
+#include <arbor/schedule.hpp>
 
-#include "sampling.hpp"
-#include "schedule.hpp"
-#include "util/deduce_return.hpp"
 #include "util/transform.hpp"
 
 namespace arb {
@@ -52,13 +51,13 @@ private:
     std::mutex m_;
 
     static sampler_association& second(assoc_map::value_type& p) { return p.second; }
-    auto assoc_view() DEDUCED_RETURN_TYPE((util::transform_view(map_, &sampler_association_map::second)))
+    auto assoc_view() { return util::transform_view(map_, &sampler_association_map::second); }
 
 public:
     // Range-like view presents just the associations, omitting the handles.
 
-    auto begin() DEDUCED_RETURN_TYPE(assoc_view().begin());
-    auto end()   DEDUCED_RETURN_TYPE(assoc_view().end());
+    auto begin() { return assoc_view().begin(); }
+    auto end()   { return assoc_view().end(); }
 };
 
 // Manage associations between probe ids, probe tags, and (lowered cell) probe handles.

@@ -150,7 +150,7 @@ public :
         return data[global_task_system.get_current_thread()];
     }
 
-    auto size() -> decltype(data.size()) const { return data.size(); }
+    auto size() const { return data.size(); }
 
     iterator begin() { return data.begin(); }
     iterator end()   { return data.end(); }
