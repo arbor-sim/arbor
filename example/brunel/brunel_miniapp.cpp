@@ -21,11 +21,12 @@
 
 #include <aux/ioutil.hpp>
 #include <aux/json_meter.hpp>
+#include <aux/path.hpp>
+#include <aux/spike_emitter.hpp>
+#include <aux/strsub.hpp>
 #ifdef ARB_MPI_ENABLED
 #include <aux/with_mpi.hpp>
 #endif
-
-#include "io/exporter_spike_file.hpp"
 
 #include "io.hpp"
 
@@ -234,12 +235,6 @@ int main(int argc, char** argv) {
 
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
-        auto register_exporter = [] (const io::cl_options& options) {
-            return std::make_unique<io::exporter_spike_file>
-                       (options.file_name, options.output_path,
-                        options.file_extension, options.over_write);
-        };
-
         partition_hint_map hints;
         hints[cell_kind::lif_neuron].cpu_group_size = group_size;
         auto decomp = partition_load_balance(recipe, nd, &context, hints);
@@ -247,27 +242,24 @@ int main(int argc, char** argv) {
         simulation sim(recipe, decomp, &context);
 
         // Initialize the spike exporting interface
-        std::unique_ptr<io::exporter_spike_file> file_exporter;
+        std::fstream spike_out;
         if (options.spike_file_output) {
+            using std::ios_base;
+
+            auto rank = context.id();
+            aux::path p = options.output_path;
+            p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
+
             if (options.single_file_per_rank) {
-                file_exporter = register_exporter(options);
-
-                sim.set_local_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    }
-                );
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_local_spike_callback(aux::spike_emitter(spike_out));
             }
-            else if(context.id()==0) {
-                file_exporter = register_exporter(options);
-
-                sim.set_global_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    }
-                );
+            else if (rank==0) {
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_global_spike_callback(aux::spike_emitter(spike_out));
             }
         }
+
         meters.checkpoint("model-init");
 
         // run simulation
@@ -290,7 +282,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(context.id()==0);
+        std::cerr << aux::mask_stream(context.id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }

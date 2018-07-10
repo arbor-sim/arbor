@@ -134,7 +134,7 @@ int main() {
     generator_recipe recipe;
 
     // Make the domain decomposition for the model
-    auto node = local_domain_info();
+    auto node = arb::local_domain_info();
     auto decomp = arb::partition_load_balance(recipe, node, &context);
 
     // Construct the model.
