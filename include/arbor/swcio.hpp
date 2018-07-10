@@ -13,8 +13,6 @@
 #include <arbor/morphology.hpp>
 #include <arbor/point.hpp>
 
-#include "algorithms.hpp"
-
 namespace arb {
 
 struct swc_error: public arbor_exception {
