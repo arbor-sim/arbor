@@ -45,13 +45,13 @@ template <> struct native<T, N> {\
 
 #if defined(__AVX2__) && defined(__FMA__)
 
-#include <simd/avx.hpp>
+#include <arbor/simd/avx.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 4, avx2)
 ARB_DEF_NATIVE_SIMD_(double, 4, avx2)
 
 #elif defined(__AVX__)
 
-#include <simd/avx.hpp>
+#include <arbor/simd/avx.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 4, avx)
 ARB_DEF_NATIVE_SIMD_(double, 4, avx)
 
@@ -59,7 +59,7 @@ ARB_DEF_NATIVE_SIMD_(double, 4, avx)
 
 #if defined(__AVX512F__)
 
-#include <simd/avx512.hpp>
+#include <arbor/simd/avx512.hpp>
 ARB_DEF_NATIVE_SIMD_(int, 8, avx512)
 ARB_DEF_NATIVE_SIMD_(double, 8, avx512)
 
