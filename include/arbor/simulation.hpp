@@ -23,7 +23,7 @@ class simulation_state;
 
 class simulation {
 public:
-    simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx, arb::threading::impl::task_system& ts);
+    simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx, arb::threading::impl::task_system* ts);
 
     void reset();
 

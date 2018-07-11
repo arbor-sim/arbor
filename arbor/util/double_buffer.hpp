@@ -25,7 +25,7 @@ private:
 public:
     using value_type = T;
 
-    double_buffer(arb::threading::impl::task_system& ts) :
+    double_buffer(arb::threading::impl::task_system* ts) :
         index_(0), buffer_0(ts), buffer_1(ts)
     {}
 

@@ -37,7 +37,7 @@ public:
     //      current:  spikes generated in the current interval
     //      previous: spikes generated in the preceding interval
 
-    spike_double_buffer(threading::impl::task_system& ts): buffer_(ts) {}
+    spike_double_buffer(threading::impl::task_system* ts): buffer_(ts) {}
     thread_private_spike_store& current()  { return buffer_.get(); }
     thread_private_spike_store& previous() { return buffer_.other(); }
     void exchange() { buffer_.exchange(); }
@@ -45,7 +45,7 @@ public:
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx, threading::impl::task_system& ts);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx, threading::impl::task_system* ts);
 
     void reset();
 
@@ -97,7 +97,7 @@ private:
 
     communicator communicator_;
 
-    threading::impl::task_system& task_system;
+    threading::impl::task_system* task_system_;
 
     // Pending events to be delivered.
     std::array<std::vector<pse_vector>, 2> event_lanes_;
@@ -109,7 +109,7 @@ private:
     // Apply a functional to each cell group in parallel.
     template <typename L>
     void foreach_group(L fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system,
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system_,
             [&](int i) { fn(cell_groups_[i]); });
     }
 
@@ -117,7 +117,7 @@ private:
     // the cell group pointer reference and index.
     template <typename L>
     void foreach_group_index(L fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system,
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system_,
             [&](int i) { fn(cell_groups_[i], i); });
     }
 };
@@ -126,11 +126,11 @@ simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
         const distributed_context* ctx,
-        threading::impl::task_system& ts
+        threading::impl::task_system* ts
     ):
     local_spikes_(new spike_double_buffer(ts)),
     communicator_(rec, decomp, ctx, ts),
-    task_system(ts)
+    task_system_(ts)
 {
     const auto num_local_cells = communicator_.num_local_cells();
 
@@ -270,8 +270,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
         // run the tasks, overlapping if the threading model and number of
         // available threads permits it.
-        threading::impl::task_system ts(threading::num_threads());
-        threading::task_group g(ts);
+        threading::task_group g(task_system_);
         g.run(exchange);
         g.run(update_cells);
         g.wait();
@@ -298,9 +297,8 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 //      event_generators  : take all events < t_to
 //      pending_events    : take all events
 void simulation_state::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
-    threading::impl::task_system ts(threading::num_threads());
     const auto n = communicator_.num_local_cells();
-    threading::parallel_for::apply(0, n, ts,
+    threading::parallel_for::apply(0, n, task_system_,
         [&](cell_size_type i) {
             merge_events(
                 t_from, t_to,
@@ -365,7 +363,7 @@ simulation::simulation(
     const recipe& rec,
     const domain_decomposition& decomp,
     const distributed_context* ctx,
-    threading::impl::task_system& ts)
+    threading::impl::task_system* ts)
 {
     impl_.reset(new simulation_state(rec, decomp, ctx, ts));
 }

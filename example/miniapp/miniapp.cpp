@@ -7,6 +7,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
@@ -44,7 +45,9 @@ void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
     // default serial context
+    //execution_context exec_context(num_threads());
     distributed_context context;
+    threading::impl::task_system task_system(num_threads());
 
     try {
 #ifdef ARB_MPI_ENABLED
@@ -88,7 +91,7 @@ int main(int argc, char** argv) {
         };
 
         auto decomp = partition_load_balance(*recipe, nd, &context);
-        simulation sim(*recipe, decomp, &context);
+        simulation sim(*recipe, decomp, &context, &task_system);
 
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.

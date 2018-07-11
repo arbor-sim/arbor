@@ -117,7 +117,7 @@ public:
 ///////////////////////////////////////////////////////////////////////
 template <typename T>
 class enumerable_thread_specific {
-    impl::task_system& global_task_system;
+    impl::task_system* global_task_system;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -126,21 +126,16 @@ public :
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific(impl::task_system& ts):
+    enumerable_thread_specific(impl::task_system* ts):
             global_task_system{ts},
-            data{std::vector<T>(ts.get_num_threads())}
-    {}
-
-    enumerable_thread_specific(const T& init, size_t num_threads):
-        global_task_system{impl::task_system(num_threads)},
-        data{std::vector<T>(num_threads, init)}
+            data{std::vector<T>(ts->get_num_threads())}
     {}
 
     T& local() {
-        return data[global_task_system.get_current_thread()];
+        return data[global_task_system->get_current_thread()];
     }
     const T& local() const {
-        return data[global_task_system.get_current_thread()];
+        return data[global_task_system->get_current_thread()];
     }
 
     auto size() const { return data.size(); }
@@ -169,10 +164,10 @@ using task = std::function<void()>;
 class task_group {
 private:
     std::atomic<std::size_t> in_flight_{0};
-    impl::task_system& task_system_;
+    impl::task_system* task_system_;
 
 public:
-    task_group(impl::task_system& ts):
+    task_group(impl::task_system* ts):
         task_system_{ts}
     {}
 
@@ -222,13 +217,13 @@ public:
     void run(F&& f) {
         ++in_flight_;
 
-        task_system_.async_(make_wrapped_function(std::forward<F>(f), in_flight_));
+        task_system_->async_(make_wrapped_function(std::forward<F>(f), in_flight_));
     }
 
     // wait till all tasks in this group are done
     void wait() {
         while (in_flight_) {
-            task_system_.try_run_task();
+            task_system_->try_run_task();
         }
     }
 
@@ -243,7 +238,7 @@ public:
 ///////////////////////////////////////////////////////////////////////
 struct parallel_for {
     template <typename F>
-    static void apply(int left, int right, impl::task_system& ts, F f) {
+    static void apply(int left, int right, impl::task_system* ts, F f) {
         task_group g(ts);
         for(int i = left; i < right; ++i) {
           g.run([=] {f(i);});

@@ -45,7 +45,7 @@ public:
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
                           const distributed_context* ctx,
-                          threading::impl::task_system& ts)
+                          threading::impl::task_system* ts)
     {
         context_ = ctx;
         num_domains_ = context_->size();
