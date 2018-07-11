@@ -131,11 +131,6 @@ public :
             data{std::vector<T>(ts.get_num_threads())}
     {}
 
-    enumerable_thread_specific(size_t num_threads):
-        global_task_system{impl::task_system(num_threads)},
-        data{std::vector<T>(num_threads)}
-    {}
-
     enumerable_thread_specific(const T& init, size_t num_threads):
         global_task_system{impl::task_system(num_threads)},
         data{std::vector<T>(num_threads, init)}

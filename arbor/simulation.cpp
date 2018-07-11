@@ -97,7 +97,7 @@ private:
 
     communicator communicator_;
 
-    threading::impl::task_system* task_system;
+    threading::impl::task_system& task_system;
 
     // Pending events to be delivered.
     std::array<std::vector<pse_vector>, 2> event_lanes_;
@@ -109,7 +109,7 @@ private:
     // Apply a functional to each cell group in parallel.
     template <typename L>
     void foreach_group(L fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), *task_system,
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system,
             [&](int i) { fn(cell_groups_[i]); });
     }
 
@@ -117,7 +117,7 @@ private:
     // the cell group pointer reference and index.
     template <typename L>
     void foreach_group_index(L fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), *task_system,
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system,
             [&](int i) { fn(cell_groups_[i], i); });
     }
 };

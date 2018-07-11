@@ -12,7 +12,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/util/handle_set.hpp>
-#include <threading/threading.hpp>
+#include <threading/cthread.hpp>
 
 namespace arb {
 

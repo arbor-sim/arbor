@@ -14,6 +14,7 @@
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
+#include <threading/threading.hpp>
 
 #include "hardware/node_info.hpp"
 #include "load_balance.hpp"
@@ -53,8 +54,9 @@ int main(int argc, char** argv) {
         auto decomp = arb::partition_load_balance(recipe, node, &context);
         meters.checkpoint("domain-decomp");
 
+        threading::impl::task_system task_system(threading::num_threads());
         // Construct the model.
-        arb::simulation sim(recipe, decomp, &context);
+        arb::simulation sim(recipe, decomp, &context, task_system);
         meters.checkpoint("model-build");
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.

@@ -5,6 +5,7 @@
 
 #include <arbor/assert.hpp>
 #include <threading/threading.hpp>
+#include <threading/cthread.hpp>
 
 namespace arb {
 namespace util {
@@ -14,7 +15,8 @@ template <typename T>
 class double_buffer {
 private:
     std::atomic<int> index_;
-    std::vector<T> buffers_;
+    T buffer_0;
+    T buffer_1;
 
     int other_index() {
         return index_ ? 0 : 1;
@@ -24,7 +26,7 @@ public:
     using value_type = T;
 
     double_buffer(arb::threading::impl::task_system& ts) :
-        index_(0), buffers_{2, T(ts)}
+        index_(0), buffer_0(ts), buffer_1(ts)
     {}
 
     /// remove the copy and move constructors which won't work with std::atomic
@@ -42,22 +44,26 @@ public:
 
     /// get the current/front buffer
     value_type& get() {
-        return buffers_[index_];
+        return index_ ? buffer_1 : buffer_0;
+        //return buffers_[index_];
     }
 
     /// get the current/front buffer
     const value_type& get() const {
-        return buffers_[index_];
+        return index_ ? buffer_1 : buffer_0;
+        //return buffers_[index_];
     }
 
     /// get the back buffer
     value_type& other() {
-        return buffers_[other_index()];
+        return index_ ? buffer_0 : buffer_1;
+        //return buffers_[other_index()];
     }
 
     /// get the back buffer
     const value_type& other() const {
-        return buffers_[other_index()];
+        return index_ ? buffer_0 : buffer_1;
+        //return buffers_[other_index()];
     }
 };
 
