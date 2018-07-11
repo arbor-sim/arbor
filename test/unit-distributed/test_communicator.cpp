@@ -6,6 +6,7 @@
 
 #include <arbor/distributed_context.hpp>
 #include <arbor/spike_event.hpp>
+#include <threading/cthread.hpp>
 
 #include "communication/communicator.hpp"
 #include "hardware/node_info.hpp"
@@ -372,7 +373,8 @@ TEST(communicator, ring)
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
     const auto D = partition_load_balance(R, hw::node_info(), &g_context);
-    auto C = communicator(R, D, &g_context);
+    threading::impl::task_system ts(threading::num_threads());
+    auto C = communicator(R, D, &g_context, ts);
 
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));

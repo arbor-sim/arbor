@@ -4,6 +4,7 @@
 #include <atomic>
 
 #include <arbor/assert.hpp>
+#include <threading/threading.hpp>
 
 namespace arb {
 namespace util {
@@ -13,7 +14,7 @@ template <typename T>
 class double_buffer {
 private:
     std::atomic<int> index_;
-    std::array<T, 2> buffers_;
+    std::vector<T> buffers_;
 
     int other_index() {
         return index_ ? 0 : 1;
@@ -22,8 +23,8 @@ private:
 public:
     using value_type = T;
 
-    double_buffer() :
-        index_(0)
+    double_buffer(arb::threading::impl::task_system& ts) :
+        index_(0), buffers_{2, T(ts)}
     {}
 
     /// remove the copy and move constructors which won't work with std::atomic

@@ -109,9 +109,6 @@ public:
 
     // Get a stable integer for the current thread that is [0, nthreads).
     std::size_t get_current_thread();
-
-    // Singleton constructor - needed to order construction with other singletons. TODO
-    static task_system& get_global_task_system();
 };
 } //impl
 
@@ -129,14 +126,19 @@ public :
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific():
-        global_task_system{impl::task_system::get_global_task_system()},
-        data{std::vector<T>(global_task_system.get_num_threads())}
+    enumerable_thread_specific(impl::task_system& ts):
+            global_task_system{ts},
+            data{std::vector<T>(ts.get_num_threads())}
     {}
 
-    enumerable_thread_specific(const T& init):
-        global_task_system{impl::task_system::get_global_task_system()},
-        data{std::vector<T>(global_task_system.get_num_threads(), init)}
+    enumerable_thread_specific(size_t num_threads):
+        global_task_system{impl::task_system(num_threads)},
+        data{std::vector<T>(num_threads)}
+    {}
+
+    enumerable_thread_specific(const T& init, size_t num_threads):
+        global_task_system{impl::task_system(num_threads)},
+        data{std::vector<T>(num_threads, init)}
     {}
 
     T& local() {
@@ -175,8 +177,8 @@ private:
     impl::task_system& task_system_;
 
 public:
-    task_group():
-        task_system_{impl::task_system::get_global_task_system()}
+    task_group(impl::task_system& ts):
+        task_system_{ts}
     {}
 
     task_group(const task_group&) = delete;
@@ -246,18 +248,14 @@ public:
 ///////////////////////////////////////////////////////////////////////
 struct parallel_for {
     template <typename F>
-    static void apply(int left, int right, F f) {
-        task_group g;
+    static void apply(int left, int right, impl::task_system& ts, F f) {
+        task_group g(ts);
         for(int i = left; i < right; ++i) {
           g.run([=] {f(i);});
         }
         g.wait();
     }
 };
-
-inline std::size_t thread_id() {
-    return impl::task_system::get_global_task_system().get_current_thread();
-}
 
 } // namespace threading
 } // namespace arb

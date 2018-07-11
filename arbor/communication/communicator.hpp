@@ -44,7 +44,8 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          const distributed_context* ctx)
+                          const distributed_context* ctx,
+                          threading::impl::task_system& ts)
     {
         context_ = ctx;
         num_domains_ = context_->size();
@@ -82,7 +83,8 @@ public:
         // Build the connection information for local cells in parallel.
         std::vector<gid_info> gid_infos;
         gid_infos.resize(num_local_cells_);
-        threading::parallel_for::apply(0, gids.size(),
+
+        threading::parallel_for::apply(0, gids.size(), ts,
             [&](cell_size_type i) {
                 auto gid = gids[i];
                 gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
@@ -125,7 +127,7 @@ public:
         // Sort the connections for each domain.
         // This is num_domains_ independent sorts, so it can be parallelized trivially.
         const auto& cp = connection_part_;
-        threading::parallel_for::apply(0, num_domains_,
+        threading::parallel_for::apply(0, num_domains_, ts,
             [&](cell_size_type i) {
                 util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
             });

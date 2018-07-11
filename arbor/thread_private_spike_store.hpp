@@ -5,6 +5,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
+#include <threading/cthread.hpp>
 
 #include "threading/threading.hpp"
 
@@ -20,7 +21,7 @@ struct local_spike_store_type;
 /// and collate all of the buffers into a single vector respectively.
 class thread_private_spike_store {
 public :
-    thread_private_spike_store();
+    thread_private_spike_store(arb::threading::impl::task_system&);
     ~thread_private_spike_store();
 
     /// Collate all of the individual buffers into a single vector of spikes.

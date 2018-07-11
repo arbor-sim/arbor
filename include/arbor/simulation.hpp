@@ -12,6 +12,7 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/util/handle_set.hpp>
+#include <threading/threading.hpp>
 
 namespace arb {
 
@@ -22,7 +23,7 @@ class simulation_state;
 
 class simulation {
 public:
-    simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx);
+    simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx, arb::threading::impl::task_system& ts);
 
     void reset();
 

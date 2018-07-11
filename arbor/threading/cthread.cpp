@@ -122,10 +122,4 @@ std::size_t task_system::get_current_thread() {
     return thread_ids_[tid];
 }
 
-task_system& task_system::get_global_task_system() {
-    auto num_threads = threading::num_threads();
-    static task_system global_task_system(num_threads);
-    return global_task_system;
-}
-
 
