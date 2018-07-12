@@ -15,10 +15,11 @@
 namespace arb {
 namespace hw {
 
+
 unsigned node_gpus() {
 #ifdef ARB_HAVE_GPU
     int n;
-    if (!cudaGetDeviceCount(&n)) {
+    if (cudaGetDeviceCount(&n)==cudaSuccess) {
         return (unsigned)(n);
     }
 #endif

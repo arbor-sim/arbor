@@ -2,17 +2,19 @@
 #include <random>
 #include <vector>
 
+#include <arbor/math.hpp>
+
+#include "algorithms.hpp"
+#include "matrix.hpp"
+#include "memory/memory.hpp"
+#include "util/span.hpp"
+
+#include "backends/gpu/fvm.hpp"
+#include "backends/multicore/fvm.hpp"
+
 #include "../gtest.h"
 #include "common.hpp"
 
-#include <algorithms.hpp>
-#include <math.hpp>
-#include <matrix.hpp>
-#include <memory/memory.hpp>
-#include <util/span.hpp>
-
-#include <backends/gpu/fvm.hpp>
-#include <backends/multicore/fvm.hpp>
 
 using namespace arb;
 
