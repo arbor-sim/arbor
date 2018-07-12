@@ -1,6 +1,7 @@
 #include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/execution_context.hpp>
 
 #include "hardware/node_info.hpp"
 #include "util/partition.hpp"
@@ -10,7 +11,7 @@ namespace arb {
 
 domain_decomposition partition_load_balance(const recipe& rec,
                                             hw::node_info nd,
-                                            const distributed_context* ctx)
+                                            const execution_context* ctx)
 {
     struct partition_gid_domain {
         partition_gid_domain(std::vector<cell_gid_type> divs):
@@ -27,8 +28,8 @@ domain_decomposition partition_load_balance(const recipe& rec,
 
     using util::make_span;
 
-    unsigned num_domains = ctx->size();
-    unsigned domain_id = ctx->id();
+    unsigned num_domains = ctx->distributed_context_.size();
+    unsigned domain_id = ctx->distributed_context_.id();
     auto num_global_cells = rec.num_cells();
 
     auto dom_size = [&](unsigned dom) -> cell_gid_type {

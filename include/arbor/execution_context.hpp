@@ -5,15 +5,24 @@
 
 #include <arbor/distributed_context.hpp>
 #include <arbor/util/pp_util.hpp>
-#include <threading/cthread.hpp>
+#include <arbor/threadinfo.hpp>
+
 
 namespace arb {
+namespace threading {
+namespace impl {
+    class task_system;
+}
+}
+using task_system_handle = std::shared_ptr<threading::impl::task_system>;
+
+task_system_handle make_ts (int nthreads);
 
 struct execution_context {
     distributed_context distributed_context_;
-    threading::impl::task_system task_system_;
+    task_system_handle task_system_;
 
-    execution_context(size_t num_threads): task_system_(num_threads) {};
+    execution_context(size_t num_threads): task_system_(arb::make_ts(num_threads)) {};
 };
 
 }

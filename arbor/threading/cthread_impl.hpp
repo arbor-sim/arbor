@@ -20,6 +20,7 @@
 #include <type_traits>
 
 #include <cstdlib>
+#include "arbor/execution_context.hpp"
 
 namespace arb {
 namespace threading {
@@ -110,6 +111,7 @@ public:
     // Get a stable integer for the current thread that is [0, nthreads).
     std::size_t get_current_thread();
 };
+
 } //impl
 
 ///////////////////////////////////////////////////////////////////////
@@ -248,4 +250,8 @@ struct parallel_for {
 };
 
 } // namespace threading
+
+inline threading::impl::task_system* get_task_system(task_system_handle* h) {
+    return (*h).get();
+}
 } // namespace arb

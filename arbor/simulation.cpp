@@ -6,6 +6,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/execution_context.hpp>
 
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
@@ -45,7 +46,7 @@ public:
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx, threading::impl::task_system* ts);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context* ctx);
 
     void reset();
 
@@ -125,12 +126,11 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        const distributed_context* ctx,
-        threading::impl::task_system* ts
+        execution_context* ctx
     ):
-    local_spikes_(new spike_double_buffer(ts)),
-    communicator_(rec, decomp, ctx, ts),
-    task_system_(ts)
+    local_spikes_(new spike_double_buffer(get_task_system(&ctx->task_system_))),
+    communicator_(rec, decomp, ctx),
+    task_system_(get_task_system(&ctx->task_system_))
 {
     const auto num_local_cells = communicator_.num_local_cells();
 
@@ -362,10 +362,9 @@ void simulation_state::inject_events(const pse_vector& events) {
 simulation::simulation(
     const recipe& rec,
     const domain_decomposition& decomp,
-    const distributed_context* ctx,
-    threading::impl::task_system* ts)
+    execution_context* ctx)
 {
-    impl_.reset(new simulation_state(rec, decomp, ctx, ts));
+    impl_.reset(new simulation_state(rec, decomp, ctx));
 }
 
 void simulation::reset() {

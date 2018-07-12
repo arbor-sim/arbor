@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <util/double_buffer.hpp>
+#include "threading/cthread.hpp"
 
 // not much to test here: just test that values passed into the constructor
 // are correctly stored in members
@@ -8,7 +9,8 @@ TEST(double_buffer, exchange_and_get)
 {
     using namespace arb::util;
 
-    double_buffer<int> buf;
+    arb::threading::impl::task_system ts(arb::num_threads());
+    double_buffer<int> buf(&ts);
 
     buf.get() = 2134;
     buf.exchange();
@@ -29,7 +31,8 @@ TEST(double_buffer, assign_get_other)
 {
     using namespace arb::util;
 
-    double_buffer<std::string> buf;
+    arb::threading::impl::task_system ts(arb::num_threads());
+    double_buffer<std::string> buf(&ts);
 
     buf.get()   = "1";
     buf.other() = "2";
@@ -42,7 +45,8 @@ TEST(double_buffer, non_pod)
 {
     using namespace arb::util;
 
-    double_buffer<std::string> buf;
+    arb::threading::impl::task_system ts(arb::num_threads());
+    double_buffer<std::string> buf(&ts);
 
     buf.get()   = "1";
     buf.other() = "2";

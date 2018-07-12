@@ -37,7 +37,7 @@ using namespace arb;
 
 using util::any_cast;
 
-void banner(hw::node_info, const distributed_context*);
+void banner(hw::node_info, const execution_context*);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 
@@ -45,9 +45,9 @@ void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
     // default serial context
-    //execution_context exec_context(num_threads());
-    distributed_context context;
-    threading::impl::task_system task_system(num_threads());
+    execution_context exec_context(num_threads());
+    //distributed_context context;
+    //threading::impl::task_system task_system(num_threads());
 
     try {
 #ifdef ARB_MPI_ENABLED
@@ -55,12 +55,12 @@ int main(int argc, char** argv) {
         context = mpi_context(MPI_COMM_WORLD);
 #endif
 
-        profile::meter_manager meters(&context);
+        profile::meter_manager meters(&exec_context);
         meters.start();
 
-        std::cout << util::mask_stream(context.id()==0);
+        std::cout << util::mask_stream(exec_context.distributed_context_.id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.id()==0);
+        io::cl_options options = io::read_options(argc, argv, exec_context.distributed_context_.id()==0);
 
         // TODO: add dry run mode
 
@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
         hw::node_info nd;
         nd.num_cpu_cores = arb::num_threads();
         nd.num_gpus = hw::num_gpus()>0? 1: 0;
-        banner(nd, &context);
+        banner(nd, &exec_context);
 
         meters.checkpoint("setup");
 
@@ -90,8 +90,8 @@ int main(int argc, char** argv) {
                     options.file_extension, options.over_write);
         };
 
-        auto decomp = partition_load_balance(*recipe, nd, &context);
-        simulation sim(*recipe, decomp, &context, &task_system);
+        auto decomp = partition_load_balance(*recipe, nd, &exec_context);
+        simulation sim(*recipe, decomp, &exec_context);
 
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.
@@ -133,7 +133,7 @@ int main(int argc, char** argv) {
                         file_exporter->output(spikes);
                     });
             }
-            else if(context.id()==0) {
+            else if(exec_context.distributed_context_.id()==0) {
                 file_exporter = register_exporter(options);
                 sim.set_global_spike_callback(
                     [&](const std::vector<spike>& spikes) {
@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
 
         auto report = profile::make_meter_report(meters);
         std::cout << report;
-        if (context.id()==0) {
+        if (exec_context.distributed_context_.id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(context.id()==0);
+        std::cerr << util::mask_stream(exec_context.distributed_context_.id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -182,11 +182,11 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const distributed_context* ctx) {
+void banner(hw::node_info nd, const execution_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->size()
-              << " (" << ctx->name() << ")\n";
+    std::cout << "  - distributed : " << ctx->distributed_context_.size()
+              << " (" << ctx->distributed_context_.name() << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
               << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";

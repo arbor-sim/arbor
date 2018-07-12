@@ -11,6 +11,7 @@
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
@@ -30,12 +31,12 @@ using namespace arb;
 
 int main(int argc, char** argv) {
     try {
-        distributed_context context;
+        execution_context context(num_threads());
         #ifdef ARB_HAVE_MPI
         mpi::scoped_guard guard(&argc, &argv);
         context = mpi_context(MPI_COMM_WORLD);
         #endif
-        const bool is_root =  context.id()==0;
+        const bool is_root =  context.distributed_context_.id()==0;
 
         std::cout << util::mask_stream(is_root);
 
@@ -57,7 +58,7 @@ int main(int argc, char** argv) {
 
         threading::impl::task_system task_system(arb::num_threads());
         // Construct the model.
-        arb::simulation sim(recipe, decomp, &context, &task_system);
+        arb::simulation sim(recipe, decomp, &context);
         meters.checkpoint("model-build");
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.

@@ -304,11 +304,11 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const distributed_context* ctx) {
+void banner(hw::node_info nd, const execution_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->size()
-              << " (" << ctx->name() << ")\n";
+    std::cout << "  - distributed : " << ctx->distributed_context_.size()
+              << " (" << ctx->distributed_context_.name() << ")\n";
     std::cout << "  - threads     : " << nd.num_cpu_cores
               << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";

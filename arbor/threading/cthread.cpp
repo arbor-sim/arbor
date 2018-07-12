@@ -7,6 +7,7 @@
 
 #include "cthread.hpp"
 #include "threading.hpp"
+#include "arbor/execution_context.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb;
@@ -120,6 +121,10 @@ int task_system::get_num_threads() {
 std::size_t task_system::get_current_thread() {
     std::thread::id tid = std::this_thread::get_id();
     return thread_ids_[tid];
+}
+
+task_system_handle arb::make_ts(int nthreads) {
+    return task_system_handle(new task_system(nthreads));
 }
 
 

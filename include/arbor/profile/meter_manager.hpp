@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/profile/meter.hpp>
 #include <arbor/profile/timer.hpp>
 
@@ -38,13 +39,13 @@ private:
     std::vector<std::unique_ptr<meter>> meters_;
     std::vector<std::string> checkpoint_names_;
 
-    const distributed_context* glob_ctx_;
+    const execution_context* glob_ctx_;
 
 public:
-    meter_manager(const distributed_context* ctx);
+    meter_manager(const execution_context* ctx);
     void start();
     void checkpoint(std::string name);
-    const distributed_context* context() const;
+    const execution_context* context() const;
 
     const std::vector<std::unique_ptr<meter>>& meters() const;
     const std::vector<std::string>& checkpoint_names() const;

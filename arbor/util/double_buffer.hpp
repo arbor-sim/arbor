@@ -4,7 +4,6 @@
 #include <atomic>
 
 #include <arbor/assert.hpp>
-#include <threading/threading.hpp>
 #include <threading/cthread.hpp>
 
 namespace arb {

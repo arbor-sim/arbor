@@ -35,7 +35,7 @@ measurement::measurement(std::string n, std::string u,
     }
 }
 
-meter_manager::meter_manager(const distributed_context* ctx): glob_ctx_(ctx) {
+meter_manager::meter_manager(const execution_context* ctx): glob_ctx_(ctx) {
     if (auto m = make_memory_meter()) {
         meters_.push_back(std::move(m));
     }
@@ -58,7 +58,7 @@ void meter_manager::start() {
     }
 
     // Enforce a global barrier after taking the time stamp
-    glob_ctx_->barrier();
+    glob_ctx_->distributed_context_.barrier();
 
     start_time_ = timer_type::tic();
 };
@@ -77,7 +77,7 @@ void meter_manager::checkpoint(std::string name) {
     }
 
     // Synchronize all domains before setting start time for the next interval
-    glob_ctx_->barrier();
+    glob_ctx_->distributed_context_.barrier();
     start_time_ = timer<>::tic();
 }
 
@@ -93,7 +93,7 @@ const std::vector<double>& meter_manager::times() const {
     return times_;
 }
 
-const distributed_context* meter_manager::context() const {
+const execution_context* meter_manager::context() const {
     return glob_ctx_;
 }
 
@@ -105,17 +105,17 @@ meter_report make_meter_report(const meter_manager& manager) {
     auto ctx = manager.context();
 
     // Add the times to the meter outputs
-    report.meters.push_back(measurement("time", "s", manager.times(), ctx));
+    report.meters.push_back(measurement("time", "s", manager.times(), &ctx->distributed_context_));
 
     // Gather the meter outputs.
     for (auto& m: manager.meters()) {
         report.meters.push_back(
-            measurement(m->name(), m->units(), m->measurements(), ctx));
+            measurement(m->name(), m->units(), m->measurements(), &ctx->distributed_context_));
     }
 
     // Gather a vector with the names of the node that each rank is running on.
     auto host = util::hostname();
-    auto hosts = ctx->gather(host? *host: "unknown", 0);
+    auto hosts = ctx->distributed_context_.gather(host? *host: "unknown", 0);
     report.hosts = hosts;
 
     // Count the number of unique hosts.
@@ -124,7 +124,7 @@ meter_report make_meter_report(const meter_manager& manager) {
     auto num_hosts = std::distance(hosts.begin(), std::unique(hosts.begin(), hosts.end()));
 
     report.checkpoints = manager.checkpoint_names();
-    report.num_domains = ctx->size();
+    report.num_domains = ctx->distributed_context_.size();
     report.num_hosts = num_hosts;
 
     return report;
