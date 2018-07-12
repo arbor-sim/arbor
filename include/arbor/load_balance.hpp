@@ -18,7 +18,7 @@ using partition_hint_map = std::unordered_map<cell_kind, partition_hint>;
 
 domain_decomposition partition_load_balance(
     const recipe& rec,
-    domain_info nd,
+    proc_allocation nd,
     const distributed_context* ctx,
     partition_hint_map hint_map = {});
 

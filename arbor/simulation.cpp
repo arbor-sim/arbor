@@ -105,17 +105,17 @@ private:
 
     // Apply a functional to each cell group in parallel.
     template <typename L>
-    void foreach_group(L fn) {
+    void foreach_group(L&& fn) {
         threading::parallel_for::apply(0, cell_groups_.size(),
-            [&](int i) { fn(cell_groups_[i]); });
+            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i]); });
     }
 
     // Apply a functional to each cell group in parallel, supplying
     // the cell group pointer reference and index.
     template <typename L>
-    void foreach_group_index(L fn) {
+    void foreach_group_index(L&& fn) {
         threading::parallel_for::apply(0, cell_groups_.size(),
-            [&](int i) { fn(cell_groups_[i], i); });
+            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i], i); });
     }
 };
 

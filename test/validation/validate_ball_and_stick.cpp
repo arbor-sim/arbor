@@ -65,7 +65,7 @@ void run_ncomp_convergence_test(
     runner.load_reference_data(ref_data_path);
 
     distributed_context context;
-    domain_info nd;
+    proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
@@ -196,35 +196,35 @@ void validate_ball_and_squiggle(arb::backend_kind backend) {
 
 TEST(ball_and_stick, neuron_ref) {
     validate_ball_and_stick(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_stick(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_taper, neuron_ref) {
     validate_ball_and_taper(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_taper(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_3stick, neuron_ref) {
     validate_ball_and_3stick(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_3stick(backend_kind::gpu);
     }
 }
 
 TEST(rallpack1, numeric_ref) {
     validate_rallpack1(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_rallpack1(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_squiggle, neuron_ref) {
     validate_ball_and_squiggle(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_squiggle(backend_kind::gpu);
     }
 }

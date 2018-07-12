@@ -32,7 +32,7 @@
 
 using namespace arb;
 
-void banner(domain_info, const distributed_context*);
+void banner(proc_allocation, const distributed_context*);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
         std::cout << aux::mask_stream(context.id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.id()==0);
-        domain_info nd = local_domain_info();
+        proc_allocation nd = local_allocation();
         banner(nd, &context);
 
         meters.checkpoint("setup");
@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(domain_info nd, const distributed_context* ctx) {
+void banner(proc_allocation nd, const distributed_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->size()

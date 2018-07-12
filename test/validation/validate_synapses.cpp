@@ -62,7 +62,7 @@ void run_synapse_test(
     runner.load_reference_data(ref_data_path);
 
     distributed_context context;
-    domain_info nd;
+    proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
@@ -90,7 +90,7 @@ void run_synapse_test(
 TEST(simple_synapse, expsyn_neuron_ref) {
     SCOPED_TRACE("expsyn-multicore");
     run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         SCOPED_TRACE("expsyn-gpu");
         run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::gpu);
     }
@@ -99,7 +99,7 @@ TEST(simple_synapse, expsyn_neuron_ref) {
 TEST(simple_synapse, exp2syn_neuron_ref) {
     SCOPED_TRACE("exp2syn-multicore");
     run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         SCOPED_TRACE("exp2syn-gpu");
         run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::gpu);
     }

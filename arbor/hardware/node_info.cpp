@@ -19,7 +19,7 @@ unsigned node_gpus() {
 #ifdef ARB_HAVE_GPU
     int n;
     if (!cudaGetDeviceCount(&n)) {
-        return static_cast<unsigned>(n);
+        return (unsigned)(n);
     }
 #endif
 

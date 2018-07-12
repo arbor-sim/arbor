@@ -44,7 +44,7 @@ void run_kinetic_dt(
     runner.load_reference_data(ref_file);
 
     distributed_context context;
-    domain_info nd;
+    proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 
     auto decomp = partition_load_balance(rec, nd, &context);
@@ -112,14 +112,14 @@ using namespace arb;
 
 TEST(kinetic, kin1_numeric_ref) {
     validate_kinetic_kin1(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_kinetic_kin1(arb::backend_kind::gpu);
     }
 }
 
 TEST(kinetic, kinlva_numeric_ref) {
     validate_kinetic_kinlva(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_kinetic_kinlva(arb::backend_kind::gpu);
     }
 }

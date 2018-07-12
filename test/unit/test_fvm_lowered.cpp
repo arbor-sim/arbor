@@ -329,7 +329,7 @@ TEST(fvm_lowered, derived_mechs) {
         float times[] = {10.f, 20.f};
 
         distributed_context context;
-        auto decomp = partition_load_balance(rec, domain_info{1, 0}, &context);
+        auto decomp = partition_load_balance(rec, proc_allocation{1, 0}, &context);
         simulation sim(rec, decomp, &context);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);

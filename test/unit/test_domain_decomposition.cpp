@@ -54,7 +54,7 @@ TEST(domain_decomposition, homogenous_population)
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        domain_info nd{1, 0};
+        proc_allocation nd{1, 0};
 
         unsigned num_cells = 10;
         const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
@@ -80,7 +80,7 @@ TEST(domain_decomposition, homogenous_population)
     }
     {   // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that all cells will be placed on gpu in a single group.
-        domain_info nd{1, 1};
+        proc_allocation nd{1, 1};
 
         unsigned num_cells = 10;
         const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
@@ -114,7 +114,7 @@ TEST(domain_decomposition, heterogenous_population)
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        domain_info nd{1, 0};
+        proc_allocation nd{1, 0};
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
@@ -152,7 +152,7 @@ TEST(domain_decomposition, heterogenous_population)
     {   // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that calble cells are on gpu in a single group, and
         // rff cells are on cpu in cell groups of size 1
-        domain_info nd{1, 1};
+        proc_allocation nd{1, 1};
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
@@ -202,7 +202,7 @@ TEST(domain_decomposition, hints) {
 
     domain_decomposition D = partition_load_balance(
         hetero_recipe(20),
-        domain_info{16, 1}, // 16 threads, 1 gpu.
+        proc_allocation{16, 1}, // 16 threads, 1 gpu.
         &context,
         hints);
 

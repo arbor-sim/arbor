@@ -12,7 +12,7 @@ namespace arb {
 
 domain_decomposition partition_load_balance(
     const recipe& rec,
-    domain_info nd,
+    proc_allocation nd,
     const distributed_context* ctx,
     partition_hint_map hint_map)
 {
@@ -85,7 +85,7 @@ domain_decomposition partition_load_balance(
         backend_kind backend = backend_kind::multicore;
         std::size_t group_size = hint.cpu_group_size;
 
-        if (hint.prefer_gpu && nd.num_gpus && has_gpu_backend(k)) {
+        if (hint.prefer_gpu && nd.num_gpus>0 && has_gpu_backend(k)) {
             backend = backend_kind::gpu;
             group_size = hint.gpu_group_size;
         }

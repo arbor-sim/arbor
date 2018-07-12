@@ -72,7 +72,7 @@ TEST(domain_decomposition, homogeneous_population) {
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        domain_info nd{1, 0};
+        proc_allocation nd{1, 0};
 
         // 10 cells per domain
         unsigned n_local = 10;
@@ -103,7 +103,7 @@ TEST(domain_decomposition, homogeneous_population) {
     }
     {   // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that all cells will be placed on gpu in a single group.
-        domain_info nd{1, 1};
+        proc_allocation nd{1, 1};
 
         // 10 cells per domain
         unsigned n_local = 10;
@@ -141,7 +141,7 @@ TEST(domain_decomposition, heterogeneous_population) {
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        domain_info nd{1, 0};
+        proc_allocation nd{1, 0};
 
         // 10 cells per domain
         const unsigned n_local = 10;

@@ -5,8 +5,8 @@
 
 namespace arb {
 
-domain_info local_domain_info() {
-    domain_info info;
+proc_allocation local_allocation() {
+    proc_allocation info;
     info.num_threads = arb::num_threads();
     info.num_gpus = arb::hw::node_gpus();
 

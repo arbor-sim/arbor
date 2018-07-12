@@ -10,13 +10,13 @@
 namespace arb {
 
 /// Local resource info for domain partitioning.
-struct domain_info {
+struct proc_allocation {
     unsigned num_threads = 1;
     unsigned num_gpus = 0;
 };
 
 /// Determine available local domain resources.
-domain_info local_domain_info();
+proc_allocation local_allocation();
 
 /// Metadata for a local cell group.
 struct group_description {

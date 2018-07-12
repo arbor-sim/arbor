@@ -36,7 +36,7 @@ using namespace arb;
 
 using util::any_cast;
 
-void banner(domain_info, const distributed_context*);
+void banner(proc_allocation, const distributed_context*);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 std::fstream& open_or_throw(std::fstream& file, const aux::path& p, bool exclusive = false);
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
 
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
-        domain_info nd = local_domain_info();
+        proc_allocation nd = local_allocation();
         nd.num_gpus = nd.num_gpus>=1? 1: 0;
         banner(nd, &context);
 
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(domain_info nd, const distributed_context* ctx) {
+void banner(proc_allocation nd, const distributed_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->size()

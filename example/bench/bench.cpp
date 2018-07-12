@@ -49,7 +49,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("recipe-build");
 
         // Make the domain decomposition for the model
-        auto local = arb::local_domain_info();
+        auto local = arb::local_allocation();
         auto decomp = arb::partition_load_balance(recipe, local, &context);
         meters.checkpoint("domain-decomp");
 

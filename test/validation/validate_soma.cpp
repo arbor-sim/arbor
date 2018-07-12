@@ -30,7 +30,7 @@ void validate_soma(backend_kind backend) {
     probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     distributed_context context;
-    domain_info nd;
+    proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 
     auto decomp = partition_load_balance(rec, nd, &context);
@@ -69,7 +69,7 @@ end:
 
 TEST(soma, numeric_ref) {
     validate_soma(backend_kind::multicore);
-    if (local_domain_info().num_gpus) {
+    if (local_allocation().num_gpus) {
         validate_soma(backend_kind::gpu);
     }
 }
