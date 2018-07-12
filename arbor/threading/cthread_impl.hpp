@@ -119,7 +119,7 @@ public:
 ///////////////////////////////////////////////////////////////////////
 template <typename T>
 class enumerable_thread_specific {
-    impl::task_system* global_task_system;
+    impl::task_system* global_task_system = nullptr;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -128,6 +128,7 @@ public :
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
+    enumerable_thread_specific() {}
     enumerable_thread_specific(impl::task_system* ts):
             global_task_system{ts},
             data{std::vector<T>(ts->get_num_threads())}
@@ -150,6 +151,11 @@ public :
 
     const_iterator cbegin() const { return data.cbegin(); }
     const_iterator cend()   const { return data.cend(); }
+
+    void set_task_system(impl::task_system* ts) {
+        global_task_system = ts;
+        data.resize(ts->get_num_threads());
+    }
 };
 
 inline std::string description() {

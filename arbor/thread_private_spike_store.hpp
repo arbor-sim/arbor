@@ -21,7 +21,7 @@ struct local_spike_store_type;
 /// and collate all of the buffers into a single vector respectively.
 class thread_private_spike_store {
 public :
-    thread_private_spike_store(arb::threading::impl::task_system*);
+    thread_private_spike_store();
     ~thread_private_spike_store();
 
     /// Collate all of the individual buffers into a single vector of spikes.
@@ -41,6 +41,7 @@ public :
         buff.insert(buff.end(), spikes.begin(), spikes.end());
     }
 
+    void set_task_system (threading::impl::task_system* ts);
 private :
     /// thread private storage for accumulating spikes
     std::unique_ptr<local_spike_store_type> impl_;
