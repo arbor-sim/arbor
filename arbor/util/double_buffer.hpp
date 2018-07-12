@@ -4,8 +4,7 @@
 #include <atomic>
 
 #include <arbor/assert.hpp>
-#include <threading/cthread.hpp>
-
+#include "arbor/execution_context.hpp"
 namespace arb {
 namespace util {
 
@@ -64,7 +63,7 @@ public:
         return buffers_[other_index()];
     }
 
-    void set_task_system(threading::impl::task_system* ts) {
+    void set_task_system(task_system_handle* ts) {
         buffers_[0].set_task_system(ts);
         buffers_[1].set_task_system(ts);
     }

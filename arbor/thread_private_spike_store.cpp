@@ -42,8 +42,8 @@ void thread_private_spike_store::clear() {
     }
 }
 
-void thread_private_spike_store::set_task_system(threading::impl::task_system* ts) {
-    impl_->buffers_.set_task_system(ts); 
+void thread_private_spike_store::set_task_system(task_system_handle* ts) {
+    impl_->buffers_.set_task_system(ts);
 }
 
 } // namespace arb

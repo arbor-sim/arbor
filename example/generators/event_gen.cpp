@@ -129,7 +129,7 @@ int main() {
     // A distributed_context is required for distributed computation (e.g. MPI).
     // For this simple one-cell example, non-distributed context is suitable,
     // which is what we get with a default-constructed distributed_context.
-    arb::distributed_context context;
+    arb::execution_context context(arb::num_threads());
 
     // Create an instance of our recipe.
     generator_recipe recipe;

@@ -1,6 +1,7 @@
 #include "../gtest.h"
 #include "common.hpp"
 #include <arbor/threadinfo.hpp>
+#include "arbor/execution_context.hpp"
 
 #include <iostream>
 #include <ostream>
@@ -205,10 +206,10 @@ TEST(task_group, nested_parallel_for) {
 }
 
 TEST(enumerable_thread_specific, test) {
-    task_system ts(arb::num_threads());
+    arb::execution_context ctx(arb::num_threads());
     arb::threading::enumerable_thread_specific<int> buffers;
-    buffers.set_task_system(&ts);
-    arb::threading::task_group g(&ts);
+    buffers.set_task_system(&ctx.task_system_);
+    arb::threading::task_group g(arb::get_task_system(&ctx.task_system_));
 
     for (int i = 0; i < 100000; i++) {
         g.run([&](){

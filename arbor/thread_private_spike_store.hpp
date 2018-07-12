@@ -5,7 +5,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
-#include <threading/cthread.hpp>
+#include <arbor/execution_context.hpp>
 
 #include "threading/threading.hpp"
 
@@ -41,7 +41,7 @@ public :
         buff.insert(buff.end(), spikes.begin(), spikes.end());
     }
 
-    void set_task_system (threading::impl::task_system* ts);
+    void set_task_system (task_system_handle* ts);
 private :
     /// thread private storage for accumulating spikes
     std::unique_ptr<local_spike_store_type> impl_;

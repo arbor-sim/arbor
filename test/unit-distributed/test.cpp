@@ -20,7 +20,7 @@
 
 using namespace arb;
 
-const execution_context context(num_threads());
+const execution_context g_context(num_threads());
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
     with_mpi guard(argc, argv, false);
     g_context = mpi_context(MPI_COMM_WORLD);
 #elif defined(TEST_LOCAL)
-    context.distributed_context_ = local_context();
+    g_context.distributed_context_ = local_context();
 #else
 #error "define TEST_MPI or TEST_LOCAL for distributed test"
 #endif
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     auto& listeners = testing::UnitTest::GetInstance()->listeners();
     // replace original printer with our custom printer
     delete listeners.Release(listeners.default_result_printer());
-    listeners.Append(new distributed_listener("run_"+context.distributed_context_.name(), &context.distributed_context_));
+    listeners.Append(new distributed_listener("run_"+g_context.distributed_context_.name(), &g_context.distributed_context_));
 
     int return_value = 0;
     try {
@@ -90,5 +90,5 @@ int main(int argc, char **argv) {
 
     // perform global collective, to ensure that all ranks return
     // the same exit code
-    return context.distributed_context_.max(return_value);
+    return g_context.distributed_context_.max(return_value);
 }

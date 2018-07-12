@@ -62,7 +62,7 @@ void run_synapse_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
-    distributed_context context;
+    execution_context context(num_threads());
     hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);

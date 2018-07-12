@@ -23,6 +23,11 @@
 #include "arbor/execution_context.hpp"
 
 namespace arb {
+
+inline threading::impl::task_system* get_task_system(task_system_handle* h) {
+    return (*h).get();
+}
+
 namespace threading {
 
 // Forward declare task_group at bottom of this header
@@ -117,6 +122,7 @@ public:
 ///////////////////////////////////////////////////////////////////////
 // types
 ///////////////////////////////////////////////////////////////////////
+
 template <typename T>
 class enumerable_thread_specific {
     impl::task_system* global_task_system = nullptr;
@@ -152,9 +158,9 @@ public :
     const_iterator cbegin() const { return data.cbegin(); }
     const_iterator cend()   const { return data.cend(); }
 
-    void set_task_system(impl::task_system* ts) {
-        global_task_system = ts;
-        data.resize(ts->get_num_threads());
+    void set_task_system(task_system_handle* ts) {
+        global_task_system = get_task_system(ts);
+        data.resize(get_task_system(ts)->get_num_threads());
     }
 };
 
@@ -256,8 +262,4 @@ struct parallel_for {
 };
 
 } // namespace threading
-
-inline threading::impl::task_system* get_task_system(task_system_handle* h) {
-    return (*h).get();
-}
 } // namespace arb

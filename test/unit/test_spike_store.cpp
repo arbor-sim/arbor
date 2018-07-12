@@ -12,7 +12,7 @@ TEST(spike_store, insert)
 
     arb::execution_context context(arb::num_threads());
     store_type store;
-    store.set_task_system(context.task_system_.get());
+    store.set_task_system(&context.task_system_);
 
     // insert 3 spike events and check that they were inserted correctly
     store.insert({
@@ -58,7 +58,7 @@ TEST(spike_store, clear)
 
     arb::execution_context context(arb::num_threads());
     store_type store;
-    store.set_task_system(context.task_system_.get());
+    store.set_task_system(&context.task_system_);
 
     // insert 3 spike events
     store.insert({
@@ -75,7 +75,7 @@ TEST(spike_store, gather)
 
     arb::execution_context context(arb::num_threads());
     store_type store;
-    store.set_task_system(context.task_system_.get());
+    store.set_task_system(&context.task_system_);
 
     std::vector<spike> spikes =
         { {{0,0}, 0.0f}, {{1,2}, 0.5f}, {{2,4}, 1.0f} };
