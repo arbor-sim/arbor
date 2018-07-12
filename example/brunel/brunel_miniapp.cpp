@@ -32,7 +32,7 @@
 
 using namespace arb;
 
-void banner(hw::node_info, const distributed_context*);
+void banner(hw::node_info, const execution_context*);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -190,7 +190,7 @@ using util::any_cast;
 using util::make_span;
 
 int main(int argc, char** argv) {
-    distributed_context context;
+    execution_context context(num_threads());
 
     try {
 #ifdef ARB_MPI_ENABLED
@@ -199,9 +199,9 @@ int main(int argc, char** argv) {
 #endif
         arb::profile::meter_manager meters(&context);
         meters.start();
-        std::cout << util::mask_stream(context.id()==0);
+        std::cout << util::mask_stream(context.distributed_context_.id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.id()==0);
+        io::cl_options options = io::read_options(argc, argv, context.distributed_context_.id()==0);
         hw::node_info nd;
         nd.num_cpu_cores = arb::num_threads();
         nd.num_gpus = hw::num_gpus()>0? 1: 0;
@@ -261,7 +261,7 @@ int main(int argc, char** argv) {
                     }
                 );
             }
-            else if(context.id()==0) {
+            else if(context.distributed_context_.id()==0) {
                 file_exporter = register_exporter(options);
 
                 sim.set_global_spike_callback(
@@ -284,7 +284,7 @@ int main(int argc, char** argv) {
 
         auto report = profile::make_meter_report(meters);
         std::cout << report;
-        if (context.id()==0) {
+        if (context.distributed_context_.id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -293,7 +293,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(context.id()==0);
+        std::cerr << util::mask_stream(context.distributed_context_.id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }

@@ -48,19 +48,21 @@ struct ftor_wait {
 
 struct ftor_parallel_wait {
 
-    ftor_parallel_wait() {}
+    ftor_parallel_wait(task_system* ts): ts{ts} {}
 
     void operator()() const {
         auto num_threads = arb::num_threads();
         auto duration = std::chrono::microseconds(500);
-        arb::threading::parallel_for::apply(0, num_threads, [=](int i){ std::this_thread::sleep_for(duration);});
+        arb::threading::parallel_for::apply(0, num_threads, ts, [=](int i){ std::this_thread::sleep_for(duration);});
     }
+
+    task_system* ts;
 };
 
 }
 
 TEST(task_system, test_copy) {
-    task_system &ts = arb::threading::impl::task_system::get_global_task_system();
+    task_system ts(arb::num_threads());
 
     ftor f;
     ts.async_(f);
@@ -72,10 +74,10 @@ TEST(task_system, test_copy) {
 }
 
 TEST(task_system, test_move) {
-    task_system &s = arb::threading::impl::task_system::get_global_task_system();
+    task_system ts(arb::num_threads());
 
     ftor f;
-    s.async_(std::move(f));
+    ts.async_(std::move(f));
 
     // Move into new ftor and move ftor into a task (std::function<void()>)
     EXPECT_EQ(2, nmove);
@@ -108,7 +110,8 @@ TEST(notification_queue, test_move) {
 }
 
 TEST(task_group, copy_task) {
-    arb::threading::task_group g;
+    task_system ts(arb::num_threads());
+    arb::threading::task_group g(&ts);
 
     ftor f;
     g.run(f);
@@ -121,7 +124,8 @@ TEST(task_group, copy_task) {
 }
 
 TEST(task_group, move_task) {
-    arb::threading::task_group g;
+    task_system ts(arb::num_threads());
+    arb::threading::task_group g(&ts);
 
     ftor f;
     g.run(std::move(f));
@@ -135,7 +139,8 @@ TEST(task_group, move_task) {
 
 TEST(task_group, individual_tasks) {
     // Simple check for deadlock
-    arb::threading::task_group g;
+    task_system ts(arb::num_threads());
+    arb::threading::task_group g(&ts);
     auto num_threads = arb::num_threads();
 
     ftor_wait f;
@@ -147,10 +152,11 @@ TEST(task_group, individual_tasks) {
 
 TEST(task_group, parallel_for_tasks) {
     // Simple check for deadlock for nested parallelism
-    arb::threading::task_group g;
     auto num_threads = arb::num_threads();
+    task_system ts(num_threads);
+    arb::threading::task_group g(&ts);
 
-    ftor_parallel_wait f;
+    ftor_parallel_wait f(&ts);
     for (int i = 0; i < num_threads; i++) {
         g.run(f);
     }
@@ -159,13 +165,15 @@ TEST(task_group, parallel_for_tasks) {
 
 TEST(task_group, parallel_for) {
 
+    task_system ts(arb::num_threads());
+
     int a = -1;
-    arb::threading::parallel_for::apply(0, 0, [&](int i) {a = i;});
+    arb::threading::parallel_for::apply(0, 0, &ts, [&](int i) {a = i;});
     EXPECT_EQ(-1, a);
 
     for (int n = 1; n < 100000; n*=2) {
         std::vector<int> v(n, -1);
-        arb::threading::parallel_for::apply(0, n, [&](int i) {v[i] = i;});
+        arb::threading::parallel_for::apply(0, n, &ts, [&](int i) {v[i] = i;});
         for (int i = 0; i< n; i++) {
             EXPECT_EQ(i, v[i]);
         }
@@ -174,17 +182,19 @@ TEST(task_group, parallel_for) {
 
 TEST(task_group, nested_parallel_for) {
 
+    task_system ts(arb::num_threads());
+
     int a = -1;
-    arb::threading::parallel_for::apply(0, 0, [&](int i) {
-        arb::threading::parallel_for::apply(0, 0, [&](int i){a = i;});
+    arb::threading::parallel_for::apply(0, 0, &ts, [&](int i) {
+        arb::threading::parallel_for::apply(0, 0, &ts, [&](int i){a = i;});
     });
     EXPECT_EQ(-1, a);
 
 
     for (int n = 1; n < 500; n*=2) {
         std::vector<std::vector<int>> v(n, std::vector<int>(n, -1));
-        arb::threading::parallel_for::apply(0, n, [&](int i) {
-            arb::threading::parallel_for::apply(0, n, [&](int j){v[i][j] = i*n + j;});
+        arb::threading::parallel_for::apply(0, n, &ts, [&](int i) {
+            arb::threading::parallel_for::apply(0, n, &ts, [&](int j){v[i][j] = i*n + j;});
         });
         for (int j = 0; j < n; j++) {
             for (int i = 0; i < n; i++) {
@@ -195,8 +205,10 @@ TEST(task_group, nested_parallel_for) {
 }
 
 TEST(enumerable_thread_specific, test) {
-    arb::threading::enumerable_thread_specific<int> buffers(0);
-    arb::threading::task_group g;
+    task_system ts(arb::num_threads());
+    arb::threading::enumerable_thread_specific<int> buffers;
+    buffers.set_task_system(&ts);
+    arb::threading::task_group g(&ts);
 
     for (int i = 0; i < 100000; i++) {
         g.run([&](){

@@ -9,7 +9,7 @@
 
 namespace arb {
     static
-    domain_decomposition decompose(const recipe& rec, const unsigned group_size, const distributed_context* ctx) {
+    domain_decomposition decompose(const recipe& rec, const unsigned group_size, const execution_context* ctx) {
         struct partition_gid_domain {
             partition_gid_domain(std::vector<cell_gid_type> divs):
                 gid_divisions(std::move(divs))
@@ -24,8 +24,8 @@ namespace arb {
         };
 
         cell_size_type num_global_cells = rec.num_cells();
-        unsigned num_domains = ctx->size();
-        int domain_id = ctx->id();
+        unsigned num_domains = ctx->distributed_context_.size();
+        int domain_id = ctx->distributed_context_.id();
 
         auto dom_size = [&](unsigned dom) -> cell_gid_type {
             const cell_gid_type B = num_global_cells/num_domains;

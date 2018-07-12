@@ -9,8 +9,7 @@ TEST(double_buffer, exchange_and_get)
 {
     using namespace arb::util;
 
-    arb::threading::impl::task_system ts(arb::num_threads());
-    double_buffer<int> buf(&ts);
+    double_buffer<int> buf;
 
     buf.get() = 2134;
     buf.exchange();
@@ -31,8 +30,7 @@ TEST(double_buffer, assign_get_other)
 {
     using namespace arb::util;
 
-    arb::threading::impl::task_system ts(arb::num_threads());
-    double_buffer<std::string> buf(&ts);
+    double_buffer<std::string> buf;
 
     buf.get()   = "1";
     buf.other() = "2";
@@ -45,8 +43,7 @@ TEST(double_buffer, non_pod)
 {
     using namespace arb::util;
 
-    arb::threading::impl::task_system ts(arb::num_threads());
-    double_buffer<std::string> buf(&ts);
+    double_buffer<std::string> buf;
 
     buf.get()   = "1";
     buf.other() = "2";

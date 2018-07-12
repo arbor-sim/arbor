@@ -327,7 +327,7 @@ TEST(fvm_lowered, derived_mechs) {
 
         float times[] = {10.f, 20.f};
 
-        distributed_context context;
+        execution_context context(num_threads());
         auto decomp = partition_load_balance(rec, hw::node_info{1u, 0u}, &context);
         simulation sim(rec, decomp, &context);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
