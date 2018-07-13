@@ -5,7 +5,7 @@
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/util/optional.hpp>
-#include <hardware/affinity.hpp>
+#include <hardware/node_info.hpp>
 
 #include "threading.hpp"
 #include "util/strprintf.hpp"
@@ -58,13 +58,18 @@ util::optional<size_t> get_env_num_threads() {
     return nthreads;
 }
 
-size_t num_threads_init() {
-    auto env_threads = get_env_num_threads();
-    if (!env_threads || *env_threads==0u) {
-        auto detect_threads = hw::num_cores();
-        return detect_threads? *detect_threads: 1;
+std::size_t num_threads_init() {
+    std::size_t n = 0;
+
+    if (auto env_threads = get_env_num_threads()) {
+        n = env_threads.value();
     }
-    return *env_threads;
+
+    if (!n) {
+        n = hw::node_processors();
+    }
+
+    return n? n: 1;
 }
 
 // Returns the number of threads used by the threading back end.

@@ -1,16 +1,20 @@
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/execution_context.hpp>
 
-#include "hardware/node_info.hpp"
+#include "cell_group_factory.hpp"
+#include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/span.hpp"
 
 namespace arb {
 
-domain_decomposition partition_load_balance(const recipe& rec,
-                                            hw::node_info nd,
-                                            const execution_context* ctx)
+domain_decomposition partition_load_balance(
+    const recipe& rec,
+    proc_allocation nd,
+    const execution_context* ctx,
+    partition_hint_map hint_map)
 {
     struct partition_gid_domain {
         partition_gid_domain(std::vector<cell_gid_type> divs):
@@ -45,8 +49,7 @@ domain_decomposition partition_load_balance(const recipe& rec,
 
     // Local load balance
 
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>>
-        kind_lists;
+    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
     for (auto gid: make_span(gid_part[domain_id])) {
         kind_lists[rec.get_cell_kind(gid)].push_back(gid);
     }
@@ -61,6 +64,11 @@ domain_decomposition partition_load_balance(const recipe& rec,
     // the threading internals. We need support for setting the priority
     // of cell group updates according to rules such as the back end on
     // which the cell group is running.
+
+    auto has_gpu_backend = [](cell_kind c) {
+        return cell_kind_supported(c, backend_kind::gpu);
+    };
+
     std::vector<cell_kind> kinds;
     for (auto l: kind_lists) {
         kinds.push_back(cell_kind(l.first));
@@ -69,15 +77,29 @@ domain_decomposition partition_load_balance(const recipe& rec,
 
     std::vector<group_description> groups;
     for (auto k: kinds) {
-        // put all cells into a single cell group on the gpu if possible
-        if (nd.num_gpus && has_gpu_backend(k)) {
-            groups.push_back({k, std::move(kind_lists[k]), backend_kind::gpu});
+        partition_hint hint;
+        if (auto opt_hint = util::value_by_key(hint_map, k)) {
+            hint = opt_hint.value();
         }
-        // otherwise place into cell groups of size 1 on the cpu cores
-        else {
-            for (auto gid: kind_lists[k]) {
-                groups.push_back({k, {gid}, backend_kind::multicore});
+
+        backend_kind backend = backend_kind::multicore;
+        std::size_t group_size = hint.cpu_group_size;
+
+        if (hint.prefer_gpu && nd.num_gpus>0 && has_gpu_backend(k)) {
+            backend = backend_kind::gpu;
+            group_size = hint.gpu_group_size;
+        }
+
+        std::vector<cell_gid_type> group_elements;
+        for (auto gid: kind_lists[k]) {
+            group_elements.push_back(gid);
+            if (group_elements.size()>=group_size) {
+                groups.push_back({k, std::move(group_elements), backend});
+                group_elements.clear();
             }
+        }
+        if (!group_elements.empty()) {
+            groups.push_back({k, std::move(group_elements), backend});
         }
     }
 

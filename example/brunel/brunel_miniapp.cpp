@@ -8,8 +8,10 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
@@ -17,22 +19,20 @@
 #include <arbor/threadinfo.hpp>
 #include <arbor/version.hpp>
 
-#include "json_meter.hpp"
+#include <aux/ioutil.hpp>
+#include <aux/json_meter.hpp>
+#include <aux/path.hpp>
+#include <aux/spike_emitter.hpp>
+#include <aux/strsub.hpp>
 #ifdef ARB_MPI_ENABLED
-#include "with_mpi.hpp"
+#include <aux/with_mpi.hpp>
 #endif
 
-#include "hardware/gpu.hpp"
-#include "hardware/node_info.hpp"
-#include "io/exporter_spike_file.hpp"
-#include "util/ioutil.hpp"
-
-#include "partitioner.hpp"
 #include "io.hpp"
 
 using namespace arb;
 
-void banner(hw::node_info, const execution_context*);
+void banner(proc_allocation, const execution_context*);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -186,9 +186,6 @@ private:
     int seed_;
 };
 
-using util::any_cast;
-using util::make_span;
-
 int main(int argc, char** argv) {
     execution_context context(num_threads());
 
@@ -199,12 +196,10 @@ int main(int argc, char** argv) {
 #endif
         arb::profile::meter_manager meters(&context);
         meters.start();
-        std::cout << util::mask_stream(context.distributed_context_.id()==0);
+        std::cout << aux::mask_stream(context.distributed_context_.id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.distributed_context_.id()==0);
-        hw::node_info nd;
-        nd.num_cpu_cores = arb::num_threads();
-        nd.num_gpus = hw::num_gpus()>0? 1: 0;
+        proc_allocation nd = local_allocation();
         banner(nd, &context);
 
         meters.checkpoint("setup");
@@ -240,37 +235,31 @@ int main(int argc, char** argv) {
 
         brunel_recipe recipe(nexc, ninh, next, in_degree_prop, w, d, rel_inh_strength, poiss_lambda, seed);
 
-        auto register_exporter = [] (const io::cl_options& options) {
-            return std::make_unique<io::exporter_spike_file>
-                       (options.file_name, options.output_path,
-                        options.file_extension, options.over_write);
-        };
+        partition_hint_map hints;
+        hints[cell_kind::lif_neuron].cpu_group_size = group_size;
+        auto decomp = partition_load_balance(recipe, nd, &context, hints);
 
-        auto decomp = decompose(recipe, group_size, &context);
         simulation sim(recipe, decomp, &context);
 
         // Initialize the spike exporting interface
-        std::unique_ptr<io::exporter_spike_file> file_exporter;
+        std::fstream spike_out;
         if (options.spike_file_output) {
+            using std::ios_base;
+
+            auto rank = context.distributed_context_.id();
+            aux::path p = options.output_path;
+            p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
+
             if (options.single_file_per_rank) {
-                file_exporter = register_exporter(options);
-
-                sim.set_local_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    }
-                );
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_local_spike_callback(aux::spike_emitter(spike_out));
             }
-            else if(context.distributed_context_.id()==0) {
-                file_exporter = register_exporter(options);
-
-                sim.set_global_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    }
-                );
+            else if (rank==0) {
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_global_spike_callback(aux::spike_emitter(spike_out));
             }
         }
+
         meters.checkpoint("model-init");
 
         // run simulation
@@ -293,7 +282,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(context.distributed_context_.id()==0);
+        std::cerr << aux::mask_stream(context.distributed_context_.id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -304,12 +293,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const execution_context* ctx) {
+void banner(proc_allocation nd, const execution_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->distributed_context_.size()
               << " (" << ctx->distributed_context_.name() << ")\n";
-    std::cout << "  - threads     : " << nd.num_cpu_cores
+    std::cout << "  - threads     : " << nd.num_threads
               << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";

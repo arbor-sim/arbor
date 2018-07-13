@@ -108,17 +108,17 @@ private:
 
     // Apply a functional to each cell group in parallel.
     template <typename L>
-    void foreach_group(L fn) {
+    void foreach_group(L&& fn) {
         threading::parallel_for::apply(0, cell_groups_.size(), task_system_,
-            [&](int i) { fn(cell_groups_[i]); });
+            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i]); });
     }
 
     // Apply a functional to each cell group in parallel, supplying
     // the cell group pointer reference and index.
     template <typename L>
-    void foreach_group_index(L fn) {
+    void foreach_group_index(L&& fn) {
         threading::parallel_for::apply(0, cell_groups_.size(), task_system_,
-            [&](int i) { fn(cell_groups_[i], i); });
+            [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i], i); });
     }
 };
 
@@ -167,7 +167,11 @@ simulation_state::simulation_state(
     // Generate the cell groups in parallel, with one task per cell group.
     cell_groups_.resize(decomp.groups.size());
     foreach_group_index(
-        [&](cell_group_ptr& group, int i) { group = cell_group_factory(rec, decomp.groups[i]); });
+        [&](cell_group_ptr& group, int i) {
+            const auto& group_info = decomp.groups[i];
+            auto factory = cell_kind_implementation(group_info.kind, group_info.backend);
+            group = factory(group_info.gids, rec);
+        });
 
     // Create event lane buffers.
     // There is one set for each epoch: current (0) and next (1).

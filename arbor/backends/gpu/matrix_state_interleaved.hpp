@@ -2,8 +2,8 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/math.hpp>
 
-#include "math.hpp"
 #include "memory/memory.hpp"
 #include "util/span.hpp"
 #include "util/partition.hpp"

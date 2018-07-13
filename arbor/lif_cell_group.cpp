@@ -6,8 +6,8 @@
 using namespace arb;
 
 // Constructor containing gid of first cell in a group and a container of all cells.
-lif_cell_group::lif_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
-gids_(std::move(gids))
+lif_cell_group::lif_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
+    gids_(gids)
 {
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);

@@ -6,9 +6,9 @@
 
 #include <arbor/mc_cell.hpp>
 
-#include <backends/multicore/fvm.hpp>
-#include <benchmark/benchmark.h>
-#include <fvm_lowered_cell_impl.hpp>
+#include "backends/multicore/fvm.hpp"
+#include "benchmark/benchmark.h"
+#include "fvm_lowered_cell_impl.hpp"
 
 using namespace arb;
 

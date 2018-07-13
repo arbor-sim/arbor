@@ -23,8 +23,8 @@
 
 namespace arb {
 
-mc_cell_group::mc_cell_group(std::vector<cell_gid_type> gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
-    gids_(std::move(gids)), lowered_(std::move(lowered))
+mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
+    gids_(gids), lowered_(std::move(lowered))
 {
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);

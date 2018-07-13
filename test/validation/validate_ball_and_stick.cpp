@@ -3,22 +3,20 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
-
-#include "load_balance.hpp"
-#include "hardware/node_info.hpp"
-#include "hardware/gpu.hpp"
-#include "util/meta.hpp"
-#include "util/path.hpp"
-#include "util/strprintf.hpp"
+#include <aux/path.hpp>
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
+
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
+#include "util.hpp"
 #include "validation_data.hpp"
 
 #include "../gtest.h"
@@ -33,7 +31,7 @@ struct probe_point {
 template <typename ProbePointSeq>
 void run_ncomp_convergence_test(
     const char* model_name,
-    const util::path& ref_data_path,
+    const aux::path& ref_data_path,
     backend_kind backend,
     const mc_cell& c,
     ProbePointSeq& probe_points,
@@ -51,12 +49,12 @@ void run_ncomp_convergence_test(
         {"dt", dt},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", util::to_string(backend)}
+        {"backend_kind", to_string(backend)}
     };
 
     auto exclude = stimulus_ends(c);
 
-    auto n_probe = util::size(probe_points);
+    auto n_probe = size(probe_points);
     std::vector<probe_label> plabels;
     plabels.reserve(n_probe);
     for (unsigned i = 0; i<n_probe; ++i) {
@@ -65,6 +63,9 @@ void run_ncomp_convergence_test(
 
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
+
+    proc_allocation nd;
+    nd.num_gpus = (backend==backend_kind::gpu);
 
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         for (auto& seg: c.segments()) {
@@ -78,7 +79,7 @@ void run_ncomp_convergence_test(
         }
 
         execution_context context(num_threads());
-        hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
+
         auto decomp = partition_load_balance(rec, nd, &context);
         simulation sim(rec, decomp, &context);
 
@@ -196,35 +197,35 @@ void validate_ball_and_squiggle(arb::backend_kind backend) {
 
 TEST(ball_and_stick, neuron_ref) {
     validate_ball_and_stick(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_stick(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_taper, neuron_ref) {
     validate_ball_and_taper(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_taper(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_3stick, neuron_ref) {
     validate_ball_and_3stick(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_3stick(backend_kind::gpu);
     }
 }
 
 TEST(rallpack1, numeric_ref) {
     validate_rallpack1(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_allocation().num_gpus) {
         validate_rallpack1(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_squiggle, neuron_ref) {
     validate_ball_and_squiggle(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_allocation().num_gpus) {
         validate_ball_and_squiggle(backend_kind::gpu);
     }
 }

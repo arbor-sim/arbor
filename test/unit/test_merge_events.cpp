@@ -3,6 +3,8 @@
 #include <event_queue.hpp>
 #include <merge_events.hpp>
 
+#include "util/rangeutil.hpp"
+
 using namespace arb;
 
 std::vector<event_generator> empty_gens;

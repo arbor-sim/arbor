@@ -30,7 +30,7 @@ class mc_cell_group: public cell_group {
 public:
     mc_cell_group() = default;
 
-    mc_cell_group(std::vector<cell_gid_type> gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
+    mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered);
 
     cell_kind get_cell_kind() const override {
         return cell_kind::cable1d_neuron;

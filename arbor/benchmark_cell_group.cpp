@@ -13,9 +13,9 @@
 
 namespace arb {
 
-benchmark_cell_group::benchmark_cell_group(std::vector<cell_gid_type> gids,
+benchmark_cell_group::benchmark_cell_group(const std::vector<cell_gid_type>& gids,
                                            const recipe& rec):
-    gids_(std::move(gids))
+    gids_(gids)
 {
     cells_.reserve(gids_.size());
     for (auto gid: gids_) {

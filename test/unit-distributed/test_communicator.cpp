@@ -5,12 +5,12 @@
 #include <vector>
 
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/spike_event.hpp>
 #include <threading/cthread.hpp>
 
 #include "communication/communicator.hpp"
-#include "hardware/node_info.hpp"
-#include "load_balance.hpp"
 #include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -372,7 +372,7 @@ TEST(communicator, ring)
     auto R = ring_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    const auto D = partition_load_balance(R, hw::node_info(), &g_context);
+    const auto D = partition_load_balance(R, local_allocation(), &g_context);
     auto C = communicator(R, D, &g_context);
 
     // every cell fires
@@ -467,7 +467,7 @@ TEST(communicator, all2all)
     auto R = all2all_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    const auto D = partition_load_balance(R, hw::node_info(), &g_context);
+    const auto D = partition_load_balance(R, local_allocation(), &g_context);
     auto C = communicator(R, D, &g_context);
 
     // every cell fires

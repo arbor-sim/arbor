@@ -8,7 +8,6 @@
 #include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
 
-namespace arb {
 namespace io {
     // Holds the options for a simulation run.
     // Default constructor gives default options.
@@ -60,4 +59,3 @@ namespace io {
 
     cl_options read_options(int argc, char** argv, bool allow_write = true);
 } // namespace io
-} // namespace arbor

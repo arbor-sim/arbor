@@ -2,21 +2,23 @@
 #include <random>
 #include <vector>
 
+#include <cuda.h>
+
+#include <arbor/math.hpp>
+
+#include "algorithms.hpp"
+#include "matrix.hpp"
+#include "memory/memory.hpp"
+#include "util/span.hpp"
+
+#include "backends/gpu/cuda_common.hpp"
+#include "backends/gpu/matrix_state_flat.hpp"
+#include "backends/gpu/matrix_state_interleaved.hpp"
+#include "backends/gpu/matrix_interleave.hpp"
+
 #include "../gtest.h"
 #include "common.hpp"
 
-#include <algorithms.hpp>
-#include <math.hpp>
-#include <matrix.hpp>
-#include <memory/memory.hpp>
-#include <util/span.hpp>
-
-#include <backends/gpu/cuda_common.hpp>
-#include <backends/gpu/matrix_state_flat.hpp>
-#include <backends/gpu/matrix_state_interleaved.hpp>
-#include <backends/gpu/matrix_interleave.hpp>
-
-#include <cuda.h>
 
 using namespace arb;
 

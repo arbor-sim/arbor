@@ -8,7 +8,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include <util/span.hpp>
+#include "util/span.hpp"
 
 using arb::util::make_span;
 

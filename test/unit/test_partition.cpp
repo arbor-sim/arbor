@@ -7,8 +7,7 @@
 
 #include <arbor/assert.hpp>
 
-#include <util/nop.hpp>
-#include <util/partition.hpp>
+#include "util/partition.hpp"
 
 using namespace arb;
 

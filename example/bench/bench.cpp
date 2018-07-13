@@ -11,33 +11,35 @@
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/execution_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
 
 
-#include "hardware/node_info.hpp"
-#include "load_balance.hpp"
-#include "util/ioutil.hpp"
-
-#include "json_meter.hpp"
+#include <aux/ioutil.hpp>
+#include <aux/json_meter.hpp>
+#ifdef ARB_MPI_ENABLED
+#include <aux/with_mpi.hpp>
+#endif
 
 #include "parameters.hpp"
 #include "recipe.hpp"
 
-using namespace arb;
+namespace profile = arb::profile;
 
 int main(int argc, char** argv) {
     try {
-        execution_context context(num_threads());
-        #ifdef ARB_HAVE_MPI
-        mpi::scoped_guard guard(&argc, &argv);
-        context = mpi_context(MPI_COMM_WORLD);
-        #endif
+        arb::execution_context context(arb::num_threads());
+#ifdef ARB_HAVE_MPI
+        aux::with_mpi guard(&argc, &argv);
+        context.distributed_context_ = mpi_context(MPI_COMM_WORLD);
+#endif
         const bool is_root =  context.distributed_context_.id()==0;
 
-        std::cout << util::mask_stream(is_root);
+        std::cout << aux::mask_stream(is_root);
 
         bench_params params = read_options(argc, argv);
 
@@ -51,8 +53,8 @@ int main(int argc, char** argv) {
         meters.checkpoint("recipe-build");
 
         // Make the domain decomposition for the model
-        auto node = arb::hw::get_node_info();
-        auto decomp = arb::partition_load_balance(recipe, node, &context);
+        auto local = arb::local_allocation();
+        auto decomp = arb::partition_load_balance(recipe, local, &context);
         meters.checkpoint("domain-decomp");
 
         // Construct the model.
@@ -75,8 +77,8 @@ int main(int argc, char** argv) {
         }
 
         // output profile and diagnostic feedback
-        auto profile = profile::profiler_summary();
-        std::cout << profile << "\n";
+        auto summary = profile::profiler_summary();
+        std::cout << summary << "\n";
 
         std::cout << "there were " << sim.num_spikes() << " spikes\n";
     }

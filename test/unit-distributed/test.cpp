@@ -5,18 +5,16 @@
 
 #include "../gtest.h"
 
-#include <arbor/distributed_context.hpp>
-
-#include <tinyopt.hpp>
-#include <communication/communicator.hpp>
-#include <util/ioutil.hpp>
-
-#include "distributed_listener.hpp"
+#include <arbor/execution_context.hpp>
 #include "arbor/threadinfo.hpp"
 
+#include <aux/ioutil.hpp>
+#include <aux/tinyopt.hpp>
 #ifdef TEST_MPI
-#include "with_mpi.hpp"
+#include <aux/with_mpi.hpp>
 #endif
+
+#include "distributed_listener.hpp"
 
 using namespace arb;
 
@@ -29,9 +27,6 @@ const char* usage_str =
 "  -h, --help          Display usage information and exit\n";
 
 int main(int argc, char **argv) {
-    // We need to set the communicator policy at the top level
-    // this allows us to build multiple communicators in the tests
-
 #ifdef TEST_MPI
     with_mpi guard(argc, argv, false);
     g_context.distributed_context_ = mpi_context(MPI_COMM_WORLD);

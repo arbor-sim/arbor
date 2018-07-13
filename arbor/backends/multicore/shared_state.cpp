@@ -6,15 +6,15 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
-#include <arbor/common_types.hpp>
 #include <arbor/ion.hpp>
+#include <arbor/math.hpp>
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
 #include "io/sepval.hpp"
-#include "math.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
