@@ -8,6 +8,7 @@ set(bench_sources
     event_setup.cpp
     event_binning.cpp
     mech_vec.cpp
+    task_system.cpp
 )
 
 if(ARB_WITH_CUDA)

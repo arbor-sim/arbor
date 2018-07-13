@@ -12,6 +12,7 @@
 
 #include <random>
 #include <vector>
+#include <algorithm>
 
 #include <event_queue.hpp>
 #include <backends/event.hpp>
