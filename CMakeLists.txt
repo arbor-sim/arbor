@@ -42,9 +42,6 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 # Configure-time features for Arbor:
 #----------------------------------------------------------
 
-set(ARB_THREADING_MODEL "cthread" CACHE STRING "set the threading model, one of cthread/tbb/serial")
-set_property(CACHE ARB_THREADING_MODEL PROPERTY STRINGS cthread tbb serial )
-
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
@@ -150,17 +147,11 @@ endif()
 # Threading model
 #-----------------
 
-if(ARB_THREADING_MODEL MATCHES "tbb")
-    set(ARB_WITH_TBB TRUE)
-    target_link_libraries(arbor-public-deps INTERFACE ext-tbb)
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_TBB)
-elseif(ARB_THREADING_MODEL MATCHES "cthread")
-    set(ARB_WITH_CTHREAD TRUE)
-    find_package(Threads REQUIRED)
-    find_threads_cuda_fix()
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_CTHREAD)
-    target_link_libraries(arbor-private-deps INTERFACE Threads::Threads)
-endif()
+set(ARB_WITH_CTHREAD TRUE)
+find_package(Threads REQUIRED)
+find_threads_cuda_fix()
+target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_CTHREAD)
+target_link_libraries(arbor-private-deps INTERFACE Threads::Threads)
 
 # MPI support
 #-------------------
