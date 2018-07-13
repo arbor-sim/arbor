@@ -1,7 +1,6 @@
 #include "../gtest.h"
 
 #include <util/double_buffer.hpp>
-#include "threading/cthread.hpp"
 
 // not much to test here: just test that values passed into the constructor
 // are correctly stored in members

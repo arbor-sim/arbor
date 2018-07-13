@@ -10,7 +10,6 @@
 
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/execution_context.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
@@ -56,7 +55,6 @@ int main(int argc, char** argv) {
         auto decomp = arb::partition_load_balance(recipe, node, &context);
         meters.checkpoint("domain-decomp");
 
-        threading::impl::task_system task_system(arb::num_threads());
         // Construct the model.
         arb::simulation sim(recipe, decomp, &context);
         meters.checkpoint("model-build");

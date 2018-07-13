@@ -20,7 +20,7 @@
 
 using namespace arb;
 
-const execution_context g_context(num_threads());
+execution_context g_context(num_threads());
 
 const char* usage_str =
 "[OPTION]...\n"

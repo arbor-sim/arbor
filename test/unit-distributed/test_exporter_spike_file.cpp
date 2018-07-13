@@ -26,7 +26,7 @@ protected:
         file_name_("spikes_exporter_spike_file_fixture"),
         path_("./"),
         extension_("gdf"),
-        index_(g_context.id())
+        index_(g_context.distributed_context_.id())
     {}
 
     std::string get_standard_file_name() {
@@ -87,7 +87,7 @@ TEST_F(exporter_spike_file_fixture, create_output_file_path) {
 
 TEST_F(exporter_spike_file_fixture, do_export) {
     {
-        exporter_type exporter(file_name_, path_, extension_, g_context.id());
+        exporter_type exporter(file_name_, path_, extension_, g_context.distributed_context_.id());
 
         // Create some spikes
         std::vector<arb::spike> spikes;

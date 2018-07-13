@@ -3,8 +3,8 @@
 #include <thread>
 
 #include <arbor/threadinfo.hpp>
-#include <arbor/simulation.hpp>
 #include <arbor/execution_context.hpp>
+#include <threading/cthread.hpp>
 
 using namespace arb;
 

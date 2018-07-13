@@ -1,4 +1,4 @@
-add_executable(threadbench bench.cpp)
+add_executable(threadbench benchmark.cpp)
 
 target_link_libraries(threadbench PRIVATE arbor arbor-aux ext-tclap ext-json)
 

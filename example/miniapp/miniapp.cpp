@@ -6,7 +6,6 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/execution_context.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
