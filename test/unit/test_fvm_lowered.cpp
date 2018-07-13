@@ -5,7 +5,10 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/load_balance.hpp>
+#include <arbor/math.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/mc_segment.hpp>
 #include <arbor/recipe.hpp>
@@ -18,8 +21,6 @@
 #include "backends/multicore/mechanism.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
-#include "load_balance.hpp"
-#include "math.hpp"
 #include "sampler_map.hpp"
 #include "util/meta.hpp"
 #include "util/maputil.hpp"
@@ -328,7 +329,7 @@ TEST(fvm_lowered, derived_mechs) {
         float times[] = {10.f, 20.f};
 
         distributed_context context;
-        auto decomp = partition_load_balance(rec, hw::node_info{1u, 0u}, &context);
+        auto decomp = partition_load_balance(rec, proc_allocation{1, 0}, &context);
         simulation sim(rec, decomp, &context);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);

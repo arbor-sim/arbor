@@ -8,10 +8,10 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/math.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "math.hpp"
 #include "memory/memory.hpp"
 #include "util/index_into.hpp"
 #include "util/maputil.hpp"

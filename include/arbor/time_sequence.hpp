@@ -7,10 +7,7 @@
 
 #include <arbor/common_types.hpp>
 
-#include "util/rangeutil.hpp"
-
 namespace arb {
-
 
 struct empty_time_seq {
     time_type front() { return terminal_time; }

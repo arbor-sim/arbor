@@ -1,27 +1,22 @@
 #pragma once
 
+// Provides:
+//
+// * mask_stream
+//
+//   Stream manipulator that enables or disables writing to a stream based on a flag.
+//
+// * open_or_throw
+//
+//   Open an fstream, throwing on error. If the 'excl' flag is set, throw a
+//   std::runtime_error if the path exists.
+
 #include <iostream>
+#include <fstream>
 
-namespace arb {
-namespace util {
+#include <aux/path.hpp>
 
-class iosfmt_guard {
-public:
-    explicit iosfmt_guard(std::ios& stream) :
-        save_(nullptr), stream_(stream)
-    {
-        save_.copyfmt(stream_);
-    }
-
-    ~iosfmt_guard() {
-        stream_.copyfmt(save_);
-    }
-
-private:
-    std::ios save_;
-    std::ios& stream_;
-};
-
+namespace aux {
 
 template <typename charT, typename traitsT = std::char_traits<charT> >
 class basic_null_streambuf: public std::basic_streambuf<charT, traitsT> {
@@ -92,6 +87,12 @@ private:
     bool mask_;
 };
 
-} // namespace util
-} // namespace arb
+std::fstream open_or_throw(const aux::path& p, std::ios_base::openmode, bool exclusive);
+
+inline std::fstream open_or_throw(const aux::path& p, bool exclusive) {
+    using std::ios_base;
+    return open_or_throw(p, ios_base::in|ios_base::out, exclusive);
+}
+
+} // namespace aux
 

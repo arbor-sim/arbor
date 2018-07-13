@@ -114,18 +114,6 @@ C round_up(T v, U b) {
     return v-m+signum(m)*impl::abs_if_signed(b, Signed{});
 }
 
-// Return minimum of the two values
-template <typename T>
-T min(const T& lhs, const T& rhs) {
-    return lhs<rhs? lhs: rhs;
-}
-
-// Return maximum of the two values
-template <typename T>
-T max(const T& lhs, const T& rhs) {
-    return lhs<rhs? rhs: lhs;
-}
-
 // Value of x/(exp(x)-1) with care taken to handle x=0 case
 template <typename T>
 inline

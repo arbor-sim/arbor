@@ -1,10 +1,10 @@
-#include "../gtest.h"
-
 #include <sstream>
 
-#include <util/ioutil.hpp>
+#include "../gtest.h"
 
-using namespace arb::util;
+#include <aux/ioutil.hpp>
+
+using aux::mask_stream;
 
 TEST(mask_stream,nomask) {
     // expect mask_stream(true) on a new stream not to change rdbuf.

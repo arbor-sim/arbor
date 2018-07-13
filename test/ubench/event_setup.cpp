@@ -10,13 +10,14 @@
 // TODO: The staged_events output is a vector of spike_event, not
 // a deliverable event.
 
+#include <algorithm>
 #include <random>
 #include <vector>
 
-#include <event_queue.hpp>
-#include <backends/event.hpp>
-
 #include <benchmark/benchmark.h>
+
+#include "event_queue.hpp"
+#include "backends/event.hpp"
 
 using namespace arb;
 

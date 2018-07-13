@@ -6,6 +6,10 @@
 
 #include "recipe.hpp"
 
+using arb::cell_gid_type;
+using arb::cell_size_type;
+using arb::cell_kind;
+
 cell_size_type bench_recipe::num_cells() const {
     return params_.num_cells;
 }
@@ -27,8 +31,8 @@ arb::util::unique_any bench_recipe::get_cell_description(cell_gid_type gid) cons
     return std::move(cell);
 }
 
-arb::cell_kind bench_recipe::get_cell_kind(arb::cell_gid_type gid) const {
-    return arb::cell_kind::benchmark;
+cell_kind bench_recipe::get_cell_kind(cell_gid_type gid) const {
+    return cell_kind::benchmark;
 }
 
 std::vector<arb::cell_connection> bench_recipe::connections_on(cell_gid_type gid) const {

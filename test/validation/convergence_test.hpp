@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iterator>
 #include <vector>
 
 #include <nlohmann/json.hpp>
@@ -8,9 +9,7 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/schedule.hpp>
-
-#include "util/filter.hpp"
-#include "util/rangeutil.hpp"
+#include <aux/path.hpp>
 
 #include "../gtest.h"
 
@@ -53,19 +52,27 @@ public:
         run_validation_(false),
         meta_(meta)
     {
-        util::assign(probe_labels_, probe_labels);
+        using std::begin;
+        using std::end;
+
+        probe_labels_.assign(begin(probe_labels), end(probe_labels));
     }
 
     // Allow free access to JSON meta data attached to saved traces.
     nlohmann::json& metadata() { return meta_; }
 
-    void load_reference_data(const util::path& ref_path) {
+    void load_reference_data(const aux::path& ref_path) {
         run_validation_ = false;
         try {
             ref_data_ = g_trace_io.load_traces(ref_path);
 
-            run_validation_ = util::all_of(probe_labels_,
-                [&](const probe_label& pl) { return ref_data_.count(pl.label)>0; });
+            run_validation_ = true;
+            for (const auto& pl: probe_labels_) {
+                if (!(ref_data_.count(pl.label)>0)) {
+                    run_validation_ = false;
+                    break;
+                }
+            }
 
             EXPECT_TRUE(run_validation_);
         }
@@ -123,16 +130,27 @@ public:
     void report() {
         if (run_validation_ && g_trace_io.verbose()) {
             // reorder to group by id
-            util::stable_sort_by(conv_tbl_, [](const conv_entry<Param>& e) { return e.id; });
+            std::stable_sort(conv_tbl_.begin(), conv_tbl_.end(),
+                [](const auto& a, const auto& b) { return a.id<b.id; });
+
             report_conv_table(std::cout, conv_tbl_, param_name_);
         }
     }
 
     void assert_all_convergence() const {
+        std::vector<conv_entry<Param>> with_label;
+
         for (const auto& pl: probe_labels_) {
             SCOPED_TRACE(pl.label);
-            assert_convergence(util::filter(conv_tbl_,
-                        [&](const conv_entry<Param>& e) { return e.id==pl.label; }));
+
+            with_label.clear();
+            for (const auto& e: conv_tbl_) {
+                if (e.id==pl.label) {
+                    with_label.push_back(e);
+                }
+            }
+
+            assert_convergence(with_label);
         }
     }
 };
@@ -151,7 +169,7 @@ inline std::vector<float> stimulus_ends(const mc_cell& c) {
         ts.push_back(t1);
     }
 
-    util::sort(ts);
+    std::sort(ts.begin(), ts.end());
     return ts;
 }
 
