@@ -19,7 +19,9 @@
 
 #include <aux/ioutil.hpp>
 #include <aux/json_meter.hpp>
+#ifdef ARB_MPI_ENABLED
 #include <aux/with_mpi.hpp>
+#endif
 
 #include "parameters.hpp"
 #include "recipe.hpp"
