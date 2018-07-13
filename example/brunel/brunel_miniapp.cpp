@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
     try {
 #ifdef ARB_MPI_ENABLED
         with_mpi guard(argc, argv, false);
-        context = mpi_context(MPI_COMM_WORLD);
+        context.distributed_context_ = mpi_context(MPI_COMM_WORLD);
 #endif
         arb::profile::meter_manager meters(&context);
         meters.start();

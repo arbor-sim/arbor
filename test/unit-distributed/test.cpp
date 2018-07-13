@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
 #ifdef TEST_MPI
     with_mpi guard(argc, argv, false);
-    g_context = mpi_context(MPI_COMM_WORLD);
+    g_context.distributed_context_ = mpi_context(MPI_COMM_WORLD);
 #elif defined(TEST_LOCAL)
     g_context.distributed_context_ = local_context();
 #else
