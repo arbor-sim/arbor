@@ -41,25 +41,21 @@ public:
 
     /// get the current/front buffer
     value_type& get() {
-        //return index_ ? buffer_1 : buffer_0;
         return buffers_[index_];
     }
 
     /// get the current/front buffer
     const value_type& get() const {
-        //return index_ ? buffer_1 : buffer_0;
         return buffers_[index_];
     }
 
     /// get the back buffer
     value_type& other() {
-        //return index_ ? buffer_0 : buffer_1;
         return buffers_[other_index()];
     }
 
     /// get the back buffer
     const value_type& other() const {
-        //return index_ ? buffer_0 : buffer_1;
         return buffers_[other_index()];
     }
 

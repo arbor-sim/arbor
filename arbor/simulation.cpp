@@ -6,7 +6,6 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/execution_context.hpp>
 
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"

@@ -1,6 +1,5 @@
 #include <arbor/profile/timer.hpp>
 
-#include <arbor/distributed_context.hpp>
 #include <arbor/profile/meter_manager.hpp>
 
 #include "memory_meter.hpp"
@@ -19,19 +18,19 @@ using util::strprintf;
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
-                         const distributed_context* ctx):
+                         const execution_context* ctx):
     name(std::move(n)), units(std::move(u))
 {
     // Assert that the same number of readings were taken on every domain.
     const auto num_readings = readings.size();
-    if (ctx->min(num_readings)!=ctx->max(num_readings)) {
+    if (ctx->distributed_context_.min(num_readings)!=ctx->distributed_context_.max(num_readings)) {
         throw std::out_of_range(
             "the number of checkpoints in the \""+name+"\" meter do not match across domains");
     }
 
     // Gather across all of the domains onto the root domain.
     for (auto r: readings) {
-        measurements.push_back(ctx->gather(r, 0));
+        measurements.push_back(ctx->distributed_context_.gather(r, 0));
     }
 }
 
@@ -105,12 +104,12 @@ meter_report make_meter_report(const meter_manager& manager) {
     auto ctx = manager.context();
 
     // Add the times to the meter outputs
-    report.meters.push_back(measurement("time", "s", manager.times(), &ctx->distributed_context_));
+    report.meters.push_back(measurement("time", "s", manager.times(), ctx));
 
     // Gather the meter outputs.
     for (auto& m: manager.meters()) {
         report.meters.push_back(
-            measurement(m->name(), m->units(), m->measurements(), &ctx->distributed_context_));
+            measurement(m->name(), m->units(), m->measurements(), ctx));
     }
 
     // Gather a vector with the names of the node that each rank is running on.

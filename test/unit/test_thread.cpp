@@ -7,8 +7,6 @@
 #include <ostream>
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
-
-#if defined(ARB_CTHREAD_ENABLED)
 #include "threading/cthread.hpp"
 
 using namespace arb::threading::impl;
@@ -226,5 +224,3 @@ TEST(enumerable_thread_specific, test) {
 
     EXPECT_EQ(100000, sum);
 }
-
-#endif

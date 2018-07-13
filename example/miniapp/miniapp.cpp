@@ -45,8 +45,6 @@ void report_compartment_stats(const recipe&);
 int main(int argc, char** argv) {
     // default serial context
     execution_context exec_context(num_threads());
-    //distributed_context context;
-    //threading::impl::task_system task_system(num_threads());
 
     try {
 #ifdef ARB_MPI_ENABLED

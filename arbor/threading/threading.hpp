@@ -25,17 +25,4 @@ size_t num_threads();
 } // namespace threading
 } // namespace arb
 
-//#if defined(ARB_HAVE_TBB)
-
-//#include "tbb.hpp"
-
-//#elif defined(ARB_HAVE_CTHREAD)
-
 #include "cthread.hpp"
-
-//#else
-
-//#define ARB_HAVE_SERIAL
-//#include "serial.hpp"
-
-//#endif

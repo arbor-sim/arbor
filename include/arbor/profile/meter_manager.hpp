@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <arbor/distributed_context.hpp>
 #include <arbor/execution_context.hpp>
 #include <arbor/profile/meter.hpp>
 #include <arbor/profile/timer.hpp>
@@ -26,7 +25,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&, const distributed_context*);
+    measurement(std::string, std::string, const std::vector<double>&, const execution_context*);
 };
 
 class meter_manager {
