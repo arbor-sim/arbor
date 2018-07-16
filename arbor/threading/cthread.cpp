@@ -9,27 +9,30 @@
 #include "threading.hpp"
 
 using namespace arb::threading::impl;
+using namespace arb::threading;
 using namespace arb;
 
-bool notification_queue::try_pop(task& tsk) {
+task notification_queue::try_pop() {
+    task tsk;
     lock q_lock{q_mutex_, std::try_to_lock};
-    if (!q_lock || q_tasks_.empty()) return false;
-    tsk = std::move(q_tasks_.front());
-    q_tasks_.pop_front();
-    return true;
+    if (q_lock && !q_tasks_.empty()) {
+        tsk = std::move(q_tasks_.front());
+        q_tasks_.pop_front();
+    }
+    return tsk;
 }
 
-bool notification_queue::pop(task& tsk) {
+task notification_queue::pop() {
+    task tsk;
     lock q_lock{q_mutex_};
     while (q_tasks_.empty() && !quit_) {
         q_tasks_available_.wait(q_lock);
     }
-    if(q_tasks_.empty()) {
-        return false;
+    if(!q_tasks_.empty()) {
+        tsk = std::move(q_tasks_.front());
+        q_tasks_.pop_front();
     }
-    tsk = std::move(q_tasks_.front());
-    q_tasks_.pop_front();
-    return true;
+    return tsk;
 }
 
 bool notification_queue::try_push(task& tsk) {
@@ -37,6 +40,7 @@ bool notification_queue::try_push(task& tsk) {
         lock q_lock{q_mutex_, std::try_to_lock};
         if(!q_lock) return false;
         q_tasks_.push_back(std::move(tsk));
+        tsk = 0;
     }
     q_tasks_available_.notify_all();
     return true;
@@ -63,20 +67,22 @@ void task_system::run_tasks_loop(){
     while (true) {
         task tsk;
         for(unsigned n = 0; n != count_; n++) {
-            if(q_[(i + n) % count_].try_pop(tsk)) break;
+            tsk = q_[(i + n) % count_].try_pop();
+            if(tsk) break;
         }
-        if(!tsk && !q_[i].pop(tsk)) break;
+        if(!tsk) tsk = q_[i].pop();
+        if(!tsk) break;
         tsk();
     }
 }
 
 void task_system::try_run_task() {
     auto i = get_current_thread();
-    auto nt = get_num_threads();
-
+    auto nthreads = get_num_threads();
     task tsk;
-    for(int n = 0; n != nt; n++) {
-        if(q_[(i + n) % nt].try_pop(tsk)) {
+    for(int n = 0; n != nthreads; n++) {
+        tsk = q_[(i + n) % nthreads].try_pop();
+        if(tsk) {
             tsk();
             break;
         }
@@ -92,7 +98,7 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
 
     // and go from there
     lock thread_ids_lock{thread_ids_mutex_};
-    for (std::size_t i = 1; i < count_; i++) {
+    for (unsigned i = 1; i < count_; i++) {
         threads_.emplace_back([this]{run_tasks_loop();});
         tid = threads_.back().get_id();
         thread_ids_[tid] = i;
@@ -104,7 +110,7 @@ task_system::~task_system() {
     for (auto& e : threads_) e.join();
 }
 
-void task_system::async_(task tsk) {
+void task_system::async(task tsk) {
     auto i = index_++;
 
     for(unsigned n = 0; n != count_; n++) {

@@ -27,23 +27,16 @@ namespace threading {
 // Forward declare task_group at bottom of this header
 class task_group;
 
-namespace impl {
-
-using arb::threading::task_group;
 using std::mutex;
 using lock = std::unique_lock<mutex>;
 using std::condition_variable;
-
 using task = std::function<void()>;
-using task_queue = std::deque<task>;
 
-using thread_list = std::vector<std::thread>;
-using thread_map = std::unordered_map<std::thread::id, std::size_t>;
-
+namespace impl {
 class notification_queue {
 private:
     // FIFO of pending tasks.
-    task_queue q_tasks_;
+    std::deque<task> q_tasks_;
 
     // Lock and signal on task availability change this is the crucial bit.
     mutex q_mutex_;
@@ -53,9 +46,9 @@ private:
     bool quit_ = false;
 
 public:
-    // Pops a task from the task queue returns false when queue is empty or quit is set.
-    bool try_pop(task& tsk);
-    bool pop(task& tsk);
+    // Pops a task from the task queue returns false when queue is empty.
+    task try_pop();
+    task pop();
 
     // Pushes a task into the task queue and increases task group counter.
     void push(task&& tsk); // TODO: need to use value?
@@ -64,22 +57,22 @@ public:
     // Stop queue from popping new tasks.
     void quit();
 };
+}// namespace impl
 
-//manipulates in_flight
 class task_system {
 private:
-    std::size_t count_;
+    unsigned count_;
 
-    thread_list threads_;
+    std::vector<std::thread> threads_;
 
-    // lock for thread_map
+    // lock for thread_ids
     mutex thread_ids_mutex_;
 
     // queue of tasks
-    std::vector<notification_queue> q_;
+    std::vector<impl::notification_queue> q_;
 
     // threads -> index
-    thread_map thread_ids_;
+    std::unordered_map<std::thread::id, std::size_t> thread_ids_;
 
     // total number of tasks pushed in all queues
     std::atomic<unsigned> index_{0};
@@ -88,14 +81,14 @@ public:
     // Create nthreads-1 new c std threads
     task_system(int nthreads);
 
-    // task_system is a singleton. TODO
+    // task_system is a singleton.
     task_system(const task_system&) = delete;
     task_system& operator=(const task_system&) = delete;
 
     ~task_system();
 
     // Pushes tasks into notification queue.
-    void async_(task tsk);
+    void async(task tsk);
 
     // Runs tasks until quit is true.
     void run_tasks_loop();
@@ -113,14 +106,13 @@ public:
     // Singleton constructor - needed to order construction with other singletons. TODO
     static task_system& get_global_task_system();
 };
-} //impl
 
 ///////////////////////////////////////////////////////////////////////
 // types
 ///////////////////////////////////////////////////////////////////////
 template <typename T>
 class enumerable_thread_specific {
-    impl::task_system& global_task_system;
+    task_system& global_task_system;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -130,12 +122,12 @@ public :
     using const_iterator = typename storage_class::const_iterator;
 
     enumerable_thread_specific():
-        global_task_system{impl::task_system::get_global_task_system()},
+        global_task_system{task_system::get_global_task_system()},
         data{std::vector<T>(global_task_system.get_num_threads())}
     {}
 
     enumerable_thread_specific(const T& init):
-        global_task_system{impl::task_system::get_global_task_system()},
+        global_task_system{task_system::get_global_task_system()},
         data{std::vector<T>(global_task_system.get_num_threads(), init)}
     {}
 
@@ -164,19 +156,14 @@ inline std::string description() {
 
 constexpr bool multithreaded() { return true; }
 
-using std::mutex;
-using lock = std::unique_lock<mutex>;
-using task = std::function<void()>;
-
-
 class task_group {
 private:
     std::atomic<std::size_t> in_flight_{0};
-    impl::task_system& task_system_;
+    task_system& task_system_;
 
 public:
     task_group():
-        task_system_{impl::task_system::get_global_task_system()}
+        task_system_{task_system::get_global_task_system()}
     {}
 
     task_group(const task_group&) = delete;
@@ -201,7 +188,8 @@ public:
                 counter(other.counter)
         {}
 
-        // Shouldn't be used, but is required if we want to wrap with std::function
+        // std::function is not guaranteed to not copy the contents on move construction
+        // But the class is safe because we don't call operator() more than once on the same wrapped task
         wrap(const wrap& other):
                 f(other.f),
                 counter(other.counter)
@@ -225,7 +213,7 @@ public:
     void run(F&& f) {
         ++in_flight_;
 
-        task_system_.async_(make_wrapped_function(std::forward<F>(f), in_flight_));
+        task_system_.async(make_wrapped_function(std::forward<F>(f), in_flight_));
     }
 
     // wait till all tasks in this group are done
@@ -256,7 +244,7 @@ struct parallel_for {
 };
 
 inline std::size_t thread_id() {
-    return impl::task_system::get_global_task_system().get_current_thread();
+    return task_system::get_global_task_system().get_current_thread();
 }
 
 } // namespace threading
