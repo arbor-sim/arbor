@@ -37,7 +37,9 @@ public:
     //      current:  spikes generated in the current interval
     //      previous: spikes generated in the preceding interval
 
-    void set_task_system(task_system_handle* ts) {buffer_.set_task_system(ts);}
+    spike_double_buffer(): buffer_() {};
+    spike_double_buffer(task_system_handle* ts): buffer_(ts) {}
+
     thread_private_spike_store& current()  { return buffer_.get(); }
     thread_private_spike_store& previous() { return buffer_.other(); }
     void exchange() { buffer_.exchange(); }
@@ -127,11 +129,10 @@ simulation_state::simulation_state(
         const domain_decomposition& decomp,
         execution_context* ctx
     ):
-    local_spikes_(new spike_double_buffer),
+    local_spikes_(new spike_double_buffer(&ctx->task_system_)),
     communicator_(rec, decomp, ctx),
     task_system_(get_task_system(&ctx->task_system_))
 {
-    local_spikes_->set_task_system(&ctx->task_system_);
     const auto num_local_cells = communicator_.num_local_cells();
 
     // Cache the minimum delay of the network

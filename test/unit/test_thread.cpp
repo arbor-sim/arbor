@@ -205,7 +205,7 @@ TEST(task_group, nested_parallel_for) {
 
 TEST(enumerable_thread_specific, test) {
     arb::execution_context ctx(arb::num_threads());
-    arb::threading::enumerable_thread_specific<int> buffers;
+    arb::threading::enumerable_thread_specific<int> buffers(&ctx.task_system_);
     buffers.set_task_system(&ctx.task_system_);
     arb::threading::task_group g(arb::get_task_system(&ctx.task_system_));
 

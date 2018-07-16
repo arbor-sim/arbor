@@ -23,6 +23,9 @@ class thread_private_spike_store {
 public :
     thread_private_spike_store();
     ~thread_private_spike_store();
+    thread_private_spike_store(thread_private_spike_store&& t);
+
+    thread_private_spike_store(task_system_handle* ts);
 
     /// Collate all of the individual buffers into a single vector of spikes.
     /// Does not modify the buffer contents.

@@ -11,9 +11,16 @@ struct local_spike_store_type {
     threading::enumerable_thread_specific<std::vector<spike>> buffers_;
 };
 
+thread_private_spike_store::thread_private_spike_store(thread_private_spike_store&& t): impl_(std::move(t.impl_)) {};
+
 thread_private_spike_store::thread_private_spike_store():
     impl_(new local_spike_store_type)
 {}
+
+thread_private_spike_store::thread_private_spike_store(task_system_handle* ts):
+    impl_(new local_spike_store_type) {
+    impl_->buffers_.set_task_system(ts);
+}
 
 thread_private_spike_store::~thread_private_spike_store() {}
 
