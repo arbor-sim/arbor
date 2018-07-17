@@ -64,6 +64,7 @@ void run_ncomp_convergence_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
+    execution_context context(num_threads());
     proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 
@@ -77,8 +78,6 @@ void run_ncomp_convergence_test(
         for (const auto& p: probe_points) {
             rec.add_probe(0, 0, cell_probe_address{p.where, cell_probe_address::membrane_voltage});
         }
-
-        execution_context context(num_threads());
 
         auto decomp = partition_load_balance(rec, nd, &context);
         simulation sim(rec, decomp, &context);

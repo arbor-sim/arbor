@@ -152,10 +152,10 @@ TEST(lif_cell_group, recipe)
 }
 
 TEST(lif_cell_group, spikes) {
-    execution_context context(num_threads());
     // make two lif cells
     path_recipe recipe(2, 1000, 0.1);
 
+    execution_context context(num_threads());
     proc_allocation nd = local_allocation();
 
     auto decomp = partition_load_balance(recipe, nd, &context);

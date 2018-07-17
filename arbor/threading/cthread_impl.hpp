@@ -24,7 +24,7 @@
 
 namespace arb {
 
-inline threading::impl::task_system* get_task_system(task_system_handle* h) {
+inline threading::impl::task_system* get_task_system(const task_system_handle* h) {
     return (*h).get();
 }
 
@@ -131,7 +131,7 @@ public :
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific(task_system_handle* ts):
+    enumerable_thread_specific(const task_system_handle* ts):
             global_task_system{get_task_system(ts)},
             data{std::vector<T>(global_task_system->get_num_threads())}
     {}

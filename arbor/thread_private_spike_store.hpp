@@ -25,7 +25,7 @@ public :
     ~thread_private_spike_store();
     thread_private_spike_store(thread_private_spike_store&& t);
 
-    thread_private_spike_store(task_system_handle* ts);
+    thread_private_spike_store(const task_system_handle* ts);
 
     /// Collate all of the individual buffers into a single vector of spikes.
     /// Does not modify the buffer contents.
@@ -43,7 +43,7 @@ public :
         auto& buff = get();
         buff.insert(buff.end(), spikes.begin(), spikes.end());
     }
-    
+
 private :
     /// thread private storage for accumulating spikes
     std::unique_ptr<local_spike_store_type> impl_;

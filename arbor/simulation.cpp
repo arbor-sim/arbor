@@ -37,8 +37,7 @@ public:
     //      current:  spikes generated in the current interval
     //      previous: spikes generated in the preceding interval
 
-    spike_double_buffer(): buffer_() {};
-    spike_double_buffer(task_system_handle* ts): buffer_(ts) {}
+    spike_double_buffer(const task_system_handle* ts): buffer_(ts) {}
 
     thread_private_spike_store& current()  { return buffer_.get(); }
     thread_private_spike_store& previous() { return buffer_.other(); }
@@ -47,7 +46,7 @@ public:
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context* ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, const execution_context* ctx);
 
     void reset();
 
@@ -127,7 +126,7 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        execution_context* ctx
+        const execution_context* ctx
     ):
     local_spikes_(new spike_double_buffer(&ctx->task_system_)),
     communicator_(rec, decomp, ctx),
@@ -367,7 +366,7 @@ void simulation_state::inject_events(const pse_vector& events) {
 simulation::simulation(
     const recipe& rec,
     const domain_decomposition& decomp,
-    execution_context* ctx)
+    const execution_context* ctx)
 {
     impl_.reset(new simulation_state(rec, decomp, ctx));
 }

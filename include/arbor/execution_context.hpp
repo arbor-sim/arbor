@@ -22,6 +22,7 @@ struct execution_context {
     distributed_context distributed_context_;
     task_system_handle task_system_;
 
+    execution_context(): task_system_(arb::make_ts(arb::num_threads())) {};
     execution_context(size_t num_threads): task_system_(arb::make_ts(num_threads)) {};
 };
 

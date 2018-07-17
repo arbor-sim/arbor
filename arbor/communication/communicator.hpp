@@ -44,7 +44,7 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          execution_context* ctx)
+                          const execution_context* ctx)
     {
         context_ = ctx;
         num_domains_ = context_->distributed_context_.size();
@@ -260,7 +260,7 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    execution_context* context_;
+    const execution_context* context_;
     std::uint64_t num_spikes_ = 0u;
 };
 

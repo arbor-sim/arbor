@@ -145,7 +145,6 @@ endif()
 
 find_package(Threads REQUIRED)
 find_threads_cuda_fix()
-target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_CTHREAD)
 target_link_libraries(arbor-private-deps INTERFACE Threads::Threads)
 
 # MPI support
