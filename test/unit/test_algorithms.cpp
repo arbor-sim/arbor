@@ -16,7 +16,7 @@
 #include "common.hpp"
 
 /// tests the sort implementation in threading
-/// is only parallel if TBB is being used
+/// Not parallel
 TEST(algorithms, parallel_sort)
 {
     auto n = 10000;

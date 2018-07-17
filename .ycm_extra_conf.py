@@ -36,7 +36,6 @@ import ycm_core
 # CHANGE THIS LIST OF FLAGS. YES, THIS IS THE DROID YOU HAVE BEEN LOOKING FOR.
 flags = [
     '-DNDEBUG',
-    '-DARB_HAVE_CTHREAD',
     '-std=c++11',
     '-x',
     'c++',

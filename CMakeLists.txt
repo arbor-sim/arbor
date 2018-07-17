@@ -21,10 +21,6 @@ set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
 
 option(ARB_VECTORIZE "use explicit SIMD code in generated mechanisms" OFF)
 
-# Use in-tree TBB?
-
-option(ARB_PRIVATE_TBBLIB "build and link against in-tree TBB build" OFF)
-
 # Use externally built modcc?
 
 set(ARB_MODCC "" CACHE STRING "path to external modcc NMODL compiler")
@@ -112,13 +108,13 @@ set(CMAKE_CXX_STANDARD 14)
 add_library(arbor-private-deps INTERFACE)
 
 # Interface library `arbor-public-deps` collects requirements for the
-# users of the arbor library (e.g. tbb, mpi) that will become part
+# users of the arbor library (e.g. mpi) that will become part
 # of arbor's PUBLIC interface.
 
 add_library(arbor-public-deps INTERFACE)
 
-# External libraries in `ext` sub-directory: json, tclap and tbb.
-# Creates interface libraries `ext-json`, `ext-tclap` and `ext-tbb`.
+# External libraries in `ext` sub-directory: json and tclap.
+# Creates interface libraries `ext-json` and `ext-tclap`.
 
 add_subdirectory(ext)
 
@@ -147,7 +143,6 @@ endif()
 # Threading model
 #-----------------
 
-set(ARB_WITH_CTHREAD TRUE)
 find_package(Threads REQUIRED)
 find_threads_cuda_fix()
 target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_CTHREAD)
