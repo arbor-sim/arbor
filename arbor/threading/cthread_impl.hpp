@@ -131,7 +131,6 @@ public :
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific() {}
     enumerable_thread_specific(task_system_handle* ts):
             global_task_system{get_task_system(ts)},
             data{std::vector<T>(global_task_system->get_num_threads())}
@@ -154,11 +153,6 @@ public :
 
     const_iterator cbegin() const { return data.cbegin(); }
     const_iterator cend()   const { return data.cend(); }
-
-    void set_task_system(task_system_handle* ts) {
-        global_task_system = get_task_system(ts);
-        data.resize(get_task_system(ts)->get_num_threads());
-    }
 };
 
 inline std::string description() {

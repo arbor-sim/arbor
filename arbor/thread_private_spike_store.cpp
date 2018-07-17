@@ -9,17 +9,14 @@ namespace arb {
 
 struct local_spike_store_type {
     threading::enumerable_thread_specific<std::vector<spike>> buffers_;
+
+    local_spike_store_type(task_system_handle* ts): buffers_(ts) {};
 };
 
 thread_private_spike_store::thread_private_spike_store(thread_private_spike_store&& t): impl_(std::move(t.impl_)) {};
 
-thread_private_spike_store::thread_private_spike_store():
-    impl_(new local_spike_store_type)
-{}
-
 thread_private_spike_store::thread_private_spike_store(task_system_handle* ts):
-    impl_(new local_spike_store_type) {
-    impl_->buffers_.set_task_system(ts);
+    impl_(new local_spike_store_type(ts)) {
 }
 
 thread_private_spike_store::~thread_private_spike_store() {}
