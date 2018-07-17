@@ -59,8 +59,7 @@ void notification_queue::quit() {
     q_tasks_available_.notify_all();
 }
 
-void task_system::run_tasks_loop(){
-    size_t i = get_current_thread();
+void task_system::run_tasks_loop(int i){
     while (true) {
         task tsk;
         for(unsigned n = 0; n != count_; n++) {
@@ -71,8 +70,7 @@ void task_system::run_tasks_loop(){
     }
 }
 
-void task_system::try_run_task() {
-    auto i = get_current_thread();
+void task_system::try_run_task(int i) {
     auto nt = get_num_threads();
 
     task tsk;
@@ -91,10 +89,8 @@ task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     auto tid = std::this_thread::get_id();
     thread_ids_[tid] = 0;
 
-    // and go from there
-    lock thread_ids_lock{thread_ids_mutex_};
     for (std::size_t i = 1; i < count_; i++) {
-        threads_.emplace_back([this]{run_tasks_loop();});
+        threads_.emplace_back([this, i]{run_tasks_loop(i);});
         tid = threads_.back().get_id();
         thread_ids_[tid] = i;
     }
@@ -119,7 +115,6 @@ int task_system::get_num_threads() {
 }
 
 std::size_t task_system::get_current_thread() {
-    lock thread_ids_lock{thread_ids_mutex_};
     std::thread::id tid = std::this_thread::get_id();
     return thread_ids_[tid];
 }

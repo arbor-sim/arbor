@@ -78,9 +78,6 @@ private:
 
     thread_list threads_;
 
-    // lock for thread_map
-    mutex thread_ids_mutex_;
-
     // queue of tasks
     std::vector<notification_queue> q_;
 
@@ -104,11 +101,11 @@ public:
     void async_(task tsk);
 
     // Runs tasks until quit is true.
-    void run_tasks_loop();
+    void run_tasks_loop(int i);
 
     // Request that the task_system attempts to find and run a _single_ task.
     // Will return without executing a task if no tasks available.
-    void try_run_task();
+    void try_run_task(int i);
 
     // Includes master thread.
     int get_num_threads();
@@ -237,7 +234,7 @@ public:
     // wait till all tasks in this group are done
     void wait() {
         while (in_flight_) {
-            task_system_->try_run_task();
+            task_system_->try_run_task(0);
         }
     }
 
