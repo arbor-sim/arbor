@@ -70,11 +70,6 @@ public:
     const value_type& other() const {
         return buffers_[other_index()];
     }
-
-    void set_task_system(task_system_handle* ts) {
-        buffers_[0].set_task_system(ts);
-        buffers_[1].set_task_system(ts);
-    }
 };
 
 } // namespace util

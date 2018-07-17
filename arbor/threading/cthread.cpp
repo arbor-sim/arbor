@@ -119,6 +119,7 @@ int task_system::get_num_threads() {
 }
 
 std::size_t task_system::get_current_thread() {
+    lock thread_ids_lock{thread_ids_mutex_};
     std::thread::id tid = std::this_thread::get_id();
     return thread_ids_[tid];
 }

@@ -43,8 +43,7 @@ public :
         auto& buff = get();
         buff.insert(buff.end(), spikes.begin(), spikes.end());
     }
-
-    void set_task_system (task_system_handle* ts);
+    
 private :
     /// thread private storage for accumulating spikes
     std::unique_ptr<local_spike_store_type> impl_;
