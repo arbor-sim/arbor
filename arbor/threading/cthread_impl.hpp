@@ -65,9 +65,6 @@ private:
 
     std::vector<std::thread> threads_;
 
-    // lock for thread_ids
-    mutex thread_ids_mutex_;
-
     // queue of tasks
     std::vector<impl::notification_queue> q_;
 
@@ -91,7 +88,7 @@ public:
     void async(task tsk);
 
     // Runs tasks until quit is true.
-    void run_tasks_loop();
+    void run_tasks_loop(int i);
 
     // Request that the task_system attempts to find and run a _single_ task.
     // Will return without executing a task if no tasks available.
