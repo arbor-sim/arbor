@@ -60,6 +60,11 @@ struct range {
         left(std::forward<U1>(l)), right(std::forward<U2>(r))
     {}
 
+    template <typename U1, typename U2>
+    range(const std::pair<U1, U2>& p):
+        left(p.first), right(p.second)
+    {}
+
     template <
         typename U1,
         typename U2,

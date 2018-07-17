@@ -127,7 +127,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     sample_size_type max_samples_per_call = 0;
 
     for (auto& sa: sampler_map_) {
-        auto sample_times = sa.sched.events(tstart, ep.tfinal);
+        util::range<const time_type*> sample_times = sa.sched.events(tstart, ep.tfinal);
         if (sample_times.empty()) {
             continue;
         }

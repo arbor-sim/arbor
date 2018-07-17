@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arbor/time_sequence.hpp>
+#include <arbor/schedule.hpp>
 
 namespace arb {
 
@@ -9,7 +9,7 @@ namespace arb {
 
 struct benchmark_cell {
     // Describes the time points at which spikes are to be generated.
-    time_seq time_sequence;
+    schedule time_sequence;
 
     // Time taken in ms to advance the cell one ms of simulation time.
     // If equal to 1, then a single cell can be advanced in realtime 
