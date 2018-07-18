@@ -114,7 +114,7 @@ class enumerable_thread_specific {
     using storage_class = std::vector<T>;
     storage_class data;
 
-public :
+public:
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
@@ -233,7 +233,7 @@ struct parallel_for {
     template <typename F>
     static void apply(int left, int right, F f) {
         task_group g;
-        for(int i = left; i < right; ++i) {
+        for (int i = left; i < right; ++i) {
           g.run([=] {f(i);});
         }
         g.wait();
