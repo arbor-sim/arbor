@@ -1,7 +1,6 @@
 set(unit-distributed_sources
     distributed_listener.cpp
     test_domain_decomposition.cpp
-    test_exporter_spike_file.cpp
     test_communicator.cpp
     test_mpi.cpp
 

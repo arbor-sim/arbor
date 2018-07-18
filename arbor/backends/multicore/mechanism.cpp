@@ -7,10 +7,10 @@
 
 #include <arbor/fvm_types.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/math.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "math.hpp"
 #include "util/index_into.hpp"
 #include "util/maputil.hpp"
 #include "util/padded_alloc.hpp"

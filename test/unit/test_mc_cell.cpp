@@ -1,8 +1,8 @@
 #include "../gtest.h"
 
 #include <arbor/mc_cell.hpp>
+#include <arbor/math.hpp>
 
-#include "math.hpp"
 #include "tree.hpp"
 
 using namespace arb;

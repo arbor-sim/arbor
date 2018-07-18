@@ -10,18 +10,18 @@ set(arbor_sources
     builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
-    mc_cell.cpp
+    local_alloc.cpp
     event_binner.cpp
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
     hardware/affinity.cpp
-    hardware/gpu.cpp
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     lif_cell_group.cpp
+    mc_cell.cpp
     mc_cell_group.cpp
     mechcat.cpp
     memory/cuda_wrappers.cpp
@@ -43,7 +43,6 @@ set(arbor_sources
     threading/threading.cpp
     thread_private_spike_store.cpp
     util/hostname.cpp
-    util/path.cpp
     util/unwind.cpp
     version.cpp
 )

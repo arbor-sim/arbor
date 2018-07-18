@@ -10,8 +10,8 @@
 
 #include <benchmark/benchmark.h>
 
-#include <util/span.hpp>
-#include <util/transform.hpp>
+#include "util/span.hpp"
+#include "util/transform.hpp"
 
 #define NOINLINE __attribute__((noinline))
 

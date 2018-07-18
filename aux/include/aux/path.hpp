@@ -24,11 +24,7 @@
 #include <utility>
 #include <vector>
 
-#include "util/meta.hpp"
-#include "util/rangeutil.hpp"
-
-namespace arb {
-namespace util {
+namespace aux {
 
 class posix_path {
 public:
@@ -51,33 +47,28 @@ public:
 
     // Construct or assign from value_type string or sequence.
 
-    template <typename Source>
-    posix_path(Source&& source) { assign(std::forward<Source>(source)); }
+    posix_path(string_type source): p_(std::move(source)) {}
+
+    posix_path(const value_type* source): p_(source) {}
 
     template <typename Iter>
     posix_path(Iter b, Iter e) { assign(b, e); }
 
     template <typename Source>
-    posix_path& operator=(const Source& source) { return assign(source); }
+    posix_path& operator=(Source&& source) { return assign(std::forward<Source>(source)); }
 
     posix_path& assign(const posix_path& other) {
         p_ = other.p_;
         return *this;
     }
 
-    posix_path& assign(const string_type& source) {
-        p_ = source;
+    posix_path& assign(string_type source) {
+        p_ = std::move(source);
         return *this;
     }
 
     posix_path& assign(const value_type* source) {
         p_ = source;
-        return *this;
-    }
-
-    template <typename Seq, typename = enable_if_sequence_t<Seq>>
-    posix_path& assign(const Seq& seq) {
-        util::assign(p_, seq);
         return *this;
     }
 
@@ -349,9 +340,6 @@ private:
 namespace posix {
     file_status status(const path&, std::error_code&);
     file_status symlink_status(const path&, std::error_code&);
-
-    // POSIX glob (3) wrapper (not part of std::filesystem!).
-    std::vector<path> glob(const std::string& pattern);
 }
 
 inline file_status status(const path& p, std::error_code& ec) {
@@ -362,15 +350,11 @@ inline file_status symlink_status(const path& p, std::error_code& ec) {
     return posix::symlink_status(p, ec);
 }
 
-inline std::vector<path> glob(const std::string& pattern) {
-    return posix::glob(pattern);
-}
-
 // Wrappers for `status()`, again following std::filesystem.
 
 inline file_status status(const path& p) {
     std::error_code ec;
-    auto r = ::arb::util::posix::status(p, ec);
+    auto r = ::aux::posix::status(p, ec);
     if (ec) {
         throw filesystem_error("status()", p, ec);
     }
@@ -425,6 +409,5 @@ inline bool exists(const path& p, std::error_code& ec) {
     return exists(status(p, ec));
 }
 
-} // namespace util
-} // namespace arb
+} // namespace aux
 

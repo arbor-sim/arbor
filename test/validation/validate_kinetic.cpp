@@ -5,22 +5,19 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
-
-#include "hardware/node_info.hpp"
-#include "hardware/gpu.hpp"
-#include "load_balance.hpp"
-#include "util/rangeutil.hpp"
-#include "util/strprintf.hpp"
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
 
 #include "convergence_test.hpp"
 #include "trace_analysis.hpp"
+#include "util.hpp"
 #include "validation_data.hpp"
 
 void run_kinetic_dt(
@@ -41,13 +38,15 @@ void run_kinetic_dt(
     probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     meta["sim"] = "arbor";
-    meta["backend_kind"] = util::to_string(backend);
+    meta["backend_kind"] = to_string(backend);
 
     convergence_test_runner<float> runner("dt", plabels, meta);
     runner.load_reference_data(ref_file);
 
     distributed_context context;
-    hw::node_info nd(1, backend==backend_kind::gpu? 1: 0);
+    proc_allocation nd;
+    nd.num_gpus = (backend==backend_kind::gpu);
+
     auto decomp = partition_load_balance(rec, nd, &context);
     simulation sim(rec, decomp, &context);
 
@@ -113,14 +112,14 @@ using namespace arb;
 
 TEST(kinetic, kin1_numeric_ref) {
     validate_kinetic_kin1(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_allocation().num_gpus) {
         validate_kinetic_kin1(arb::backend_kind::gpu);
     }
 }
 
 TEST(kinetic, kinlva_numeric_ref) {
     validate_kinetic_kinlva(backend_kind::multicore);
-    if (hw::num_gpus()) {
+    if (local_allocation().num_gpus) {
         validate_kinetic_kinlva(arb::backend_kind::gpu);
     }
 }

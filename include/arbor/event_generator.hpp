@@ -1,9 +1,11 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <random>
 
+#include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/generic_event.hpp>
 #include <arbor/spike_event.hpp>

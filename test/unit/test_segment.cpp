@@ -2,9 +2,8 @@
 
 #include "../gtest.h"
 
+#include <arbor/math.hpp>
 #include <arbor/mc_segment.hpp>
-
-#include "math.hpp"
 
 using namespace arb;
 

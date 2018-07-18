@@ -8,8 +8,7 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/simple_sampler.hpp>
-
-#include "util/path.hpp"
+#include <aux/path.hpp>
 
 namespace arb {
 
@@ -47,7 +46,7 @@ public:
 
     void save_trace(const std::string& label, const trace_data<double>& data, const nlohmann::json& meta);
     void save_trace(const std::string& abscissa, const std::string& label, const trace_data<double>& data, const nlohmann::json& meta);
-    std::map<std::string, trace_data<double>> load_traces(const util::path& name);
+    std::map<std::string, trace_data<double>> load_traces(const aux::path& name);
 
     // common flags, options set by driver
 
@@ -63,9 +62,9 @@ public:
     void set_sample_dt(float dt) { sample_dt_ = dt; }
     float sample_dt() const { return sample_dt_; }
 
-    void set_datadir(const util::path& dir) { datadir_ = dir; }
+    void set_datadir(const aux::path& dir) { datadir_ = dir; }
 
-    void set_output(const util::path& file) {
+    void set_output(const aux::path& file) {
         out_.open(file);
         if (!out_) {
             throw std::runtime_error("unable to open file for writing");
@@ -81,7 +80,7 @@ public:
     }
 
 private:
-    util::path datadir_;
+    aux::path datadir_;
     std::ofstream out_;
     nlohmann::json jtraces_ = nlohmann::json::array();
     bool verbose_flag_ = false;
@@ -94,7 +93,7 @@ private:
     // starting with ARB_DATADIR preprocessor define if defined and
     // if the directory exists, or else try './validation/data'
     // and '../validation/data'.
-    static util::path find_datadir();
+    static aux::path find_datadir();
 };
 
 extern trace_io g_trace_io;
