@@ -10,11 +10,9 @@
 
 namespace arb {
 namespace threading {
-namespace impl {
     class task_system;
 }
-}
-using task_system_handle = std::shared_ptr<threading::impl::task_system>;
+using task_system_handle = std::shared_ptr<threading::task_system>;
 
 task_system_handle make_ts (int nthreads);
 

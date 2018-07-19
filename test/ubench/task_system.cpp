@@ -13,9 +13,10 @@
 using namespace arb;
 
 void run(unsigned long us_per_task, unsigned tasks) {
+    arb::threading::task_system ts(arb::num_threads());
     auto duration = std::chrono::microseconds(us_per_task);
     arb::threading::parallel_for::apply(
-            0, tasks,
+            0, tasks, &ts,
             [&](unsigned i){std::this_thread::sleep_for(duration);});
 }
 

@@ -24,7 +24,7 @@
 
 namespace arb {
 
-inline threading::impl::task_system* get_task_system(const task_system_handle* h) {
+inline threading::task_system* get_task_system(const task_system_handle* h) {
     return (*h).get();
 }
 
@@ -113,7 +113,7 @@ public:
 
 template <typename T>
 class enumerable_thread_specific {
-    impl::task_system* global_task_system = nullptr;
+    task_system* global_task_system = nullptr;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -160,10 +160,10 @@ constexpr bool multithreaded() { return true; }
 class task_group {
 private:
     std::atomic<std::size_t> in_flight_{0};
-    impl::task_system* task_system_;
+    task_system* task_system_;
 
 public:
-    task_group(impl::task_system* ts):
+    task_group(task_system* ts):
         task_system_{ts}
     {}
 
@@ -213,7 +213,7 @@ public:
     template<typename F>
     void run(F&& f) {
         ++in_flight_;
-        task_system_.async(make_wrapped_function(std::forward<F>(f), in_flight_));
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_));
     }
 
     // wait till all tasks in this group are done
@@ -234,7 +234,7 @@ public:
 ///////////////////////////////////////////////////////////////////////
 struct parallel_for {
     template <typename F>
-    static void apply(int left, int right, impl::task_system* ts, F f) {
+    static void apply(int left, int right, task_system* ts, F f) {
         task_group g(ts);
         for (int i = left; i < right; ++i) {
           g.run([=] {f(i);});

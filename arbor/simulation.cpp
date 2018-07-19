@@ -98,7 +98,7 @@ private:
 
     communicator communicator_;
 
-    threading::impl::task_system* task_system_;
+    threading::task_system* task_system_;
 
     // Pending events to be delivered.
     std::array<std::vector<pse_vector>, 2> event_lanes_;
