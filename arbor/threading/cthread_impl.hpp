@@ -54,7 +54,7 @@ public:
     void push(task&& tsk); // TODO: need to use value?
     bool try_push(task& tsk);
 
-    // Stop queue from popping new tasks.
+    // Finish popping all waiting tasks on queue then stop trying to pop new tasks
     void quit();
 };
 }// namespace impl
