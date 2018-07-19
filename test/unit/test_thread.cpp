@@ -140,8 +140,8 @@ TEST(task_group, test_move) {
 
 TEST(task_group, individual_tasks) {
     // Simple check for deadlock
-    task_system ts(arb::num_threads());
-    arb::threading::task_group g(&ts);
+    task_system ts(num_threads());
+    task_group g(&ts);
     auto nthreads = num_threads();
 
     ftor_wait f;
@@ -194,7 +194,7 @@ TEST(task_group, nested_parallel_for) {
 }
 
 TEST(enumerable_thread_specific, test) {
-    execution_context ctx(arb::num_threads());
+    execution_context ctx(num_threads());
     enumerable_thread_specific<int> buffers(&ctx.task_system_);
     task_group g(get_task_system(&ctx.task_system_));
 
