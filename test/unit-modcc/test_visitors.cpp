@@ -2,7 +2,6 @@
 
 #include "perfvisitor.hpp"
 #include "parser.hpp"
-#include "modccutil.hpp"
 
 // overload for parser errors
 template <typename EPtr>
