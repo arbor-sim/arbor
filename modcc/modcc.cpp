@@ -308,13 +308,16 @@ int main(int argc, char **argv) {
             }
         }
     }
-    catch(compiler_exception& e) {
+    catch (io::bulkio_error& e) {
+        return report_error(e.what());
+    }
+    catch (compiler_exception& e) {
         return report_ice(e.what()+std::string(" @ ")+to_string(e.location()));
     }
-    catch(std::exception& e) {
+    catch (std::exception& e) {
         return report_ice(e.what());
     }
-    catch(...) {
+    catch (...) {
         return report_ice("");
     }
 
