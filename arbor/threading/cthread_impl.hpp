@@ -23,11 +23,9 @@
 #include "arbor/execution_context.hpp"
 
 namespace arb {
-
 inline threading::task_system* get_task_system(const task_system_handle* h) {
     return (*h).get();
 }
-
 namespace threading {
 
 // Forward declare task_group at bottom of this header

@@ -82,7 +82,6 @@ public:
         // Build the connection information for local cells in parallel.
         std::vector<gid_info> gid_infos;
         gid_infos.resize(num_local_cells_);
-
         threading::parallel_for::apply(0, gids.size(), get_task_system(&ctx->task_system_),
             [&](cell_size_type i) {
                 auto gid = gids[i];

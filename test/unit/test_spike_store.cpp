@@ -1,7 +1,8 @@
 #include "../gtest.h"
 
 #include <arbor/spike.hpp>
-#include "arbor/execution_context.hpp"
+#include <arbor/execution_context.hpp>
+
 #include "thread_private_spike_store.hpp"
 
 using arb::spike;
