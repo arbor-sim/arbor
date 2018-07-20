@@ -145,7 +145,7 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
         data_var=ion_pfx+".external_concentration";
         break;
     default:
-        throw compiler_exception("unrecognized indexed data source: "+to_string(sym), sym->location());
+        throw compiler_exception(pprintf("unrecognized indexed data source: %", sym), sym->location());
     }
 
     return {data_var, index_var};

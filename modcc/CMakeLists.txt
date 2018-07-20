@@ -4,6 +4,7 @@
 set(libmodcc_sources
 
     astmanip.cpp
+    blocks.cpp
     errorvisitor.cpp
     expression.cpp
     functionexpander.cpp

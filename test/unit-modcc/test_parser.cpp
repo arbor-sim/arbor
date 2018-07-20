@@ -4,7 +4,6 @@
 
 #include "common.hpp"
 #include "module.hpp"
-#include "modccutil.hpp"
 #include "parser.hpp"
 
 #include "io/bulkio.hpp"

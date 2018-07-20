@@ -12,12 +12,12 @@
 #include "printer/printeropt.hpp"
 #include "printer/simd.hpp"
 
-#include "modccutil.hpp"
 #include "module.hpp"
 #include "parser.hpp"
 #include "perfvisitor.hpp"
 
 #include "io/bulkio.hpp"
+#include "io/pprintf.hpp"
 
 using std::cout;
 using std::cerr;
@@ -68,7 +68,7 @@ struct Options {
     std::string modulename;
     bool verbose = true;
     bool analysis = false;
-    std::unordered_set<targetKind, enum_hash> targets;
+    std::unordered_set<targetKind> targets;
 };
 
 // Helper for formatting tabulated output (option reporting).
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
         }
     }
     catch(TCLAP::ArgException &e) {
-        return report_error(e.error()+" for argument "+to_string(e.argId()));
+        return report_error(pprintf("% for argument %", e.error(), e.argId()));
     }
 
     try {
@@ -312,7 +312,7 @@ int main(int argc, char **argv) {
         return report_error(e.what());
     }
     catch (compiler_exception& e) {
-        return report_ice(e.what()+std::string(" @ ")+to_string(e.location()));
+        return report_ice(pprintf("% @ %", e.what(), e.location()));
     }
     catch (std::exception& e) {
         return report_ice(e.what());
