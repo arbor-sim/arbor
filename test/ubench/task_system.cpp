@@ -6,7 +6,10 @@
 #include <iostream>
 #include <thread>
 
-#include <threading/threading.hpp>
+#include <arbor/threadinfo.hpp>
+#include <arbor/version.hpp>
+
+#include "threading/cthread.hpp"
 
 #include <benchmark/benchmark.h>
 
@@ -22,8 +25,7 @@ void run(unsigned long us_per_task, unsigned tasks) {
 
 void task_test(benchmark::State& state) {
     const unsigned us_per_task = state.range(0);
-
-    const auto nthreads = threading::num_threads();
+    const auto nthreads = arb::num_threads();
     const unsigned us_per_s = 1000000;
     const unsigned num_tasks = nthreads*us_per_s/us_per_task;
 

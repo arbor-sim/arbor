@@ -60,7 +60,7 @@ public:
     void push(task&& tsk); // TODO: need to use value?
     bool try_push(task& tsk);
 
-    // Stop queue from popping new tasks.
+    // Finish popping all waiting tasks on queue then stop trying to pop new tasks
     void quit();
 };
 }// namespace impl
@@ -98,7 +98,7 @@ public:
 
     // Request that the task_system attempts to find and run a _single_ task.
     // Will return without executing a task if no tasks available.
-    void try_run_task(int i);
+    void try_run_task();
 
     // Includes master thread.
     int get_num_threads();
@@ -219,7 +219,7 @@ public:
     // wait till all tasks in this group are done
     void wait() {
         while (in_flight_) {
-            task_system_->try_run_task(0);
+            task_system_->try_run_task();
         }
     }
 

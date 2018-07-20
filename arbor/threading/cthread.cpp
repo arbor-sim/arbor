@@ -76,7 +76,7 @@ void task_system::run_tasks_loop(int i){
     }
 }
 
-void task_system::try_run_task(int i) {
+void task_system::try_run_task() {
     auto nthreads = get_num_threads();
     task tsk;
     for (int n = 0; n != nthreads; n++) {

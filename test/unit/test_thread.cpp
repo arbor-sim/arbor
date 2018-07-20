@@ -1,12 +1,13 @@
 #include "../gtest.h"
 #include "common.hpp"
 #include <arbor/threadinfo.hpp>
-#include "arbor/execution_context.hpp"
+#include <arbor/execution_context.hpp>
 
 #include <iostream>
 #include <ostream>
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
+
 #include "threading/cthread.hpp"
 
 using namespace arb::threading::impl;
@@ -142,6 +143,7 @@ TEST(task_group, individual_tasks) {
     // Simple check for deadlock
     task_system ts(num_threads());
     task_group g(&ts);
+
     auto nthreads = num_threads();
 
     ftor_wait f;
