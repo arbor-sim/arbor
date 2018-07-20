@@ -23,9 +23,6 @@
 #include "arbor/execution_context.hpp"
 
 namespace arb {
-inline threading::task_system* get_task_system(const task_system_handle* h) {
-    return (*h).get();
-}
 namespace threading {
 
 // Forward declare task_group at bottom of this header
@@ -111,7 +108,7 @@ public:
 
 template <typename T>
 class enumerable_thread_specific {
-    task_system* global_task_system = nullptr;
+    task_system_handle global_task_system = nullptr;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -120,21 +117,21 @@ public:
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific(const task_system_handle* ts):
-        global_task_system{get_task_system(ts)},
-        data{std::vector<T>(global_task_system->get_num_threads())}
+    enumerable_thread_specific(const task_system_handle& ts):
+        global_task_system{ts},
+        data{std::vector<T>(global_task_system.get()->get_num_threads())}
     {}
 
-    enumerable_thread_specific(const T& init, const task_system_handle* ts):
-        global_task_system{get_task_system(ts)},
-        data{std::vector<T>(global_task_system->get_num_threads(), init)}
+    enumerable_thread_specific(const T& init, const task_system_handle& ts):
+        global_task_system{ts},
+        data{std::vector<T>(global_task_system.get()->get_num_threads(), init)}
     {}
 
     T& local() {
-        return data[global_task_system->get_current_thread()];
+        return data[global_task_system.get()->get_current_thread()];
     }
     const T& local() const {
-        return data[global_task_system->get_current_thread()];
+        return data[global_task_system.get()->get_current_thread()];
     }
 
     auto size() const { return data.size(); }

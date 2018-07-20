@@ -33,7 +33,7 @@ public:
         buffers_.push_back(std::move(r));
     }
 
-    double_buffer(const task_system_handle* ts): index_(0) {
+    double_buffer(const task_system_handle& ts): index_(0) {
         buffers_.reserve(2);
         buffers_.push_back(T(ts));
         buffers_.push_back(T(ts));

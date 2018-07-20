@@ -61,7 +61,7 @@ void run_synapse_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
-    execution_context context(num_threads());
+    execution_context context;
     proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 

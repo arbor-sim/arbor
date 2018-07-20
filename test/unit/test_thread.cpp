@@ -196,9 +196,9 @@ TEST(task_group, nested_parallel_for) {
 }
 
 TEST(enumerable_thread_specific, test) {
-    execution_context ctx(num_threads());
-    enumerable_thread_specific<int> buffers(&ctx.task_system_);
-    task_group g(get_task_system(&ctx.task_system_));
+    execution_context ctx;
+    enumerable_thread_specific<int> buffers(ctx.thread_pool);
+    task_group g(ctx.thread_pool.get());
 
     for (int i = 0; i < 100000; i++) {
         g.run([&](){

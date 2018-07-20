@@ -32,12 +32,12 @@ namespace profile = arb::profile;
 
 int main(int argc, char** argv) {
     try {
-        arb::execution_context context(arb::num_threads());
+        arb::execution_context context;
 #ifdef ARB_HAVE_MPI
         aux::with_mpi guard(&argc, &argv);
-        context.distributed_context_ = mpi_context(MPI_COMM_WORLD);
+        context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
-        const bool is_root =  context.distributed_context_.id()==0;
+        const bool is_root =  context.distributed.id()==0;
 
         std::cout << aux::mask_stream(is_root);
 
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
-        profile::meter_manager meters(&context);
+        profile::meter_manager meters(&context.distributed);
         meters.start();
 
         // Create an instance of our recipe.

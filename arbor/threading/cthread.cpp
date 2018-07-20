@@ -125,7 +125,7 @@ std::size_t task_system::get_current_thread() {
     return thread_ids_[tid];
 }
 
-task_system_handle arb::make_ts(int nthreads) {
+task_system_handle arb::make_thread_pool(int nthreads) {
     return task_system_handle(new task_system(nthreads));
 }
 

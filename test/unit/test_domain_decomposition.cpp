@@ -48,7 +48,7 @@ namespace {
 // test assumes one domain
 TEST(domain_decomposition, homogenous_population)
 {
-    execution_context context(num_threads());
+    execution_context context;
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -108,7 +108,7 @@ TEST(domain_decomposition, homogenous_population)
 
 TEST(domain_decomposition, heterogenous_population)
 {
-    execution_context context(num_threads());
+    execution_context context;
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -193,7 +193,7 @@ TEST(domain_decomposition, hints) {
     // Check that we can provide group size hint and gpu/cpu preference
     // by cell kind.
 
-    execution_context context(arb::num_threads());
+    execution_context context;
 
     partition_hint_map hints;
     hints[cell_kind::cable1d_neuron].cpu_group_size = 3;

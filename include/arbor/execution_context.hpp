@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/distributed_context.hpp>
 #include <arbor/util/pp_util.hpp>
 #include <arbor/threadinfo.hpp>
@@ -14,14 +15,14 @@ namespace threading {
 }
 using task_system_handle = std::shared_ptr<threading::task_system>;
 
-task_system_handle make_ts (int nthreads);
+task_system_handle make_thread_pool (int nthreads);
 
 struct execution_context {
-    distributed_context distributed_context_;
-    task_system_handle task_system_;
+    distributed_context distributed;
+    task_system_handle thread_pool;
 
-    execution_context(): task_system_(arb::make_ts(arb::num_threads())) {};
-    execution_context(size_t num_threads): task_system_(arb::make_ts(num_threads)) {};
+    execution_context(): thread_pool(arb::make_thread_pool(arb::num_threads())) {};
+    execution_context(proc_allocation nd): thread_pool(arb::make_thread_pool(nd.num_threads)) {};
 };
 
 }

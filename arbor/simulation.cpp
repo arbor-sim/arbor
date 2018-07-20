@@ -37,7 +37,7 @@ public:
     //      current:  spikes generated in the current interval
     //      previous: spikes generated in the preceding interval
 
-    spike_double_buffer(const task_system_handle* ts): buffer_(ts) {}
+    spike_double_buffer(const task_system_handle& ts): buffer_(ts) {}
 
     thread_private_spike_store& current()  { return buffer_.get(); }
     thread_private_spike_store& previous() { return buffer_.other(); }
@@ -98,7 +98,7 @@ private:
 
     communicator communicator_;
 
-    threading::task_system* task_system_;
+    task_system_handle task_system_;
 
     // Pending events to be delivered.
     std::array<std::vector<pse_vector>, 2> event_lanes_;
@@ -110,7 +110,7 @@ private:
     // Apply a functional to each cell group in parallel.
     template <typename L>
     void foreach_group(L&& fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system_,
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
             [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i]); });
     }
 
@@ -118,7 +118,7 @@ private:
     // the cell group pointer reference and index.
     template <typename L>
     void foreach_group_index(L&& fn) {
-        threading::parallel_for::apply(0, cell_groups_.size(), task_system_,
+        threading::parallel_for::apply(0, cell_groups_.size(), task_system_.get(),
             [&, fn = std::forward<L>(fn)](int i) { fn(cell_groups_[i], i); });
     }
 };
@@ -128,9 +128,9 @@ simulation_state::simulation_state(
         const domain_decomposition& decomp,
         const execution_context* ctx
     ):
-    local_spikes_(new spike_double_buffer(&ctx->task_system_)),
+    local_spikes_(new spike_double_buffer(ctx->thread_pool)),
     communicator_(rec, decomp, ctx),
-    task_system_(get_task_system(&ctx->task_system_))
+    task_system_(ctx->thread_pool)
 {
     const auto num_local_cells = communicator_.num_local_cells();
 
@@ -274,7 +274,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 
         // run the tasks, overlapping if the threading model and number of
         // available threads permits it.
-        threading::task_group g(task_system_);
+        threading::task_group g(task_system_.get());
         g.run(exchange);
         g.run(update_cells);
         g.wait();
@@ -302,7 +302,7 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 //      pending_events    : take all events
 void simulation_state::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
     const auto n = communicator_.num_local_cells();
-    threading::parallel_for::apply(0, n, task_system_,
+    threading::parallel_for::apply(0, n, task_system_.get(),
         [&](cell_size_type i) {
             merge_events(
                 t_from, t_to,

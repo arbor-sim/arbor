@@ -46,8 +46,10 @@ public:
                           const domain_decomposition& dom_dec,
                           const execution_context* ctx)
     {
-        context_ = ctx;
-        num_domains_ = context_->distributed_context_.size();
+        distributed_ = &ctx->distributed;
+        thread_pool_ = ctx->thread_pool;
+
+        num_domains_ = distributed_->size();
         num_local_groups_ = dom_dec.groups.size();
         num_local_cells_ = dom_dec.num_local_cells;
 
@@ -82,7 +84,7 @@ public:
         // Build the connection information for local cells in parallel.
         std::vector<gid_info> gid_infos;
         gid_infos.resize(num_local_cells_);
-        threading::parallel_for::apply(0, gids.size(), get_task_system(&ctx->task_system_),
+        threading::parallel_for::apply(0, gids.size(), thread_pool_.get(),
             [&](cell_size_type i) {
                 auto gid = gids[i];
                 gid_infos[i] = gid_info(gid, i, rec.connections_on(gid));
@@ -125,7 +127,7 @@ public:
         // Sort the connections for each domain.
         // This is num_domains_ independent sorts, so it can be parallelized trivially.
         const auto& cp = connection_part_;
-        threading::parallel_for::apply(0, num_domains_, get_task_system(&ctx->task_system_),
+        threading::parallel_for::apply(0, num_domains_, thread_pool_.get(),
             [&](cell_size_type i) {
                 util::sort(util::subrange_view(connections_, cp[i], cp[i+1]));
             });
@@ -144,7 +146,7 @@ public:
             local_min = std::min(local_min, con.delay());
         }
 
-        return context_->distributed_context_.min(local_min);
+        return distributed_->min(local_min);
     }
 
     /// Perform exchange of spikes.
@@ -159,7 +161,7 @@ public:
 
         PE(communication_exchange_gather);
         // global all-to-all to gather a local copy of the global spike list on each node.
-        auto global_spikes = context_->distributed_context_.gather_spikes(local_spikes);
+        auto global_spikes = distributed_->gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
         PL();
 
@@ -259,7 +261,8 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    const execution_context* context_;
+    const distributed_context* distributed_;
+    task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 };
 
