@@ -29,7 +29,7 @@ void validate_soma(backend_kind backend) {
     rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});
     probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
-    distributed_context context;
+    execution_context context;
     proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 

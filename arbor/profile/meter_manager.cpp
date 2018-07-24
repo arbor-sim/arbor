@@ -1,6 +1,5 @@
 #include <arbor/profile/timer.hpp>
 
-#include <arbor/distributed_context.hpp>
 #include <arbor/profile/meter_manager.hpp>
 
 #include "memory_meter.hpp"

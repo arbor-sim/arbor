@@ -5,7 +5,8 @@
 
 #include "../gtest.h"
 
-#include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
+#include "arbor/threadinfo.hpp"
 
 #include <aux/ioutil.hpp>
 #include <aux/tinyopt.hpp>
@@ -17,7 +18,7 @@
 
 using namespace arb;
 
-distributed_context g_context;
+execution_context g_context;
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -28,9 +29,9 @@ const char* usage_str =
 int main(int argc, char **argv) {
 #ifdef TEST_MPI
     with_mpi guard(argc, argv, false);
-    g_context = mpi_context(MPI_COMM_WORLD);
+    g_context.distributed = mpi_context(MPI_COMM_WORLD);
 #elif defined(TEST_LOCAL)
-    g_context = local_context();
+    g_context.distributed = local_context();
 #else
 #error "define TEST_MPI or TEST_LOCAL for distributed test"
 #endif
@@ -42,7 +43,7 @@ int main(int argc, char **argv) {
     auto& listeners = testing::UnitTest::GetInstance()->listeners();
     // replace original printer with our custom printer
     delete listeners.Release(listeners.default_result_printer());
-    listeners.Append(new distributed_listener("run_"+g_context.name(), &g_context));
+    listeners.Append(new distributed_listener("run_"+g_context.distributed.name(), &g_context.distributed));
 
     int return_value = 0;
     try {
@@ -84,5 +85,5 @@ int main(int argc, char **argv) {
 
     // perform global collective, to ensure that all ranks return
     // the same exit code
-    return g_context.max(return_value);
+    return g_context.distributed.max(return_value);
 }

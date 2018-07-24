@@ -43,7 +43,7 @@ void run_kinetic_dt(
     convergence_test_runner<float> runner("dt", plabels, meta);
     runner.load_reference_data(ref_file);
 
-    distributed_context context;
+    execution_context context;
     proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 

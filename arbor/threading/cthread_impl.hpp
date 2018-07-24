@@ -20,6 +20,7 @@
 #include <type_traits>
 
 #include <cstdlib>
+#include "arbor/execution_context.hpp"
 
 namespace arb {
 namespace threading {
@@ -97,19 +98,17 @@ public:
     // Includes master thread.
     int get_num_threads();
 
-    // Get a stable integer for the current thread that is [0, nthreads).
-    std::size_t get_current_thread();
-
-    // Singleton constructor - needed to order construction with other singletons. TODO
-    static task_system& get_global_task_system();
+    // Returns the thread_id map
+    std::unordered_map<std::thread::id, std::size_t> get_thread_ids();
 };
 
 ///////////////////////////////////////////////////////////////////////
 // types
 ///////////////////////////////////////////////////////////////////////
+
 template <typename T>
 class enumerable_thread_specific {
-    task_system& global_task_system;
+    std::unordered_map<std::thread::id, std::size_t> thread_ids_;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -118,21 +117,21 @@ public:
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific():
-        global_task_system{task_system::get_global_task_system()},
-        data{std::vector<T>(global_task_system.get_num_threads())}
+    enumerable_thread_specific(const task_system_handle& ts):
+        thread_ids_{ts.get()->get_thread_ids()},
+        data{std::vector<T>(ts.get()->get_num_threads())}
     {}
 
-    enumerable_thread_specific(const T& init):
-        global_task_system{task_system::get_global_task_system()},
-        data{std::vector<T>(global_task_system.get_num_threads(), init)}
+    enumerable_thread_specific(const T& init, const task_system_handle& ts):
+        thread_ids_{ts.get()->get_thread_ids()},
+        data{std::vector<T>(ts.get()->get_num_threads(), init)}
     {}
 
     T& local() {
-        return data[global_task_system.get_current_thread()];
+        return data[thread_ids_.at(std::this_thread::get_id())];
     }
     const T& local() const {
-        return data[global_task_system.get_current_thread()];
+        return data[thread_ids_.at(std::this_thread::get_id())];
     }
 
     auto size() const { return data.size(); }
@@ -156,11 +155,13 @@ constexpr bool multithreaded() { return true; }
 class task_group {
 private:
     std::atomic<std::size_t> in_flight_{0};
-    task_system& task_system_;
+    /// We use a raw pointer here instead of a shared_ptr to avoid a race condition
+    /// on the destruction of a task_system that would lead to a thread trying to join itself
+    task_system* task_system_;
 
 public:
-    task_group():
-        task_system_{task_system::get_global_task_system()}
+    task_group(task_system* ts):
+        task_system_{ts}
     {}
 
     task_group(const task_group&) = delete;
@@ -209,14 +210,13 @@ public:
     template<typename F>
     void run(F&& f) {
         ++in_flight_;
-
-        task_system_.async(make_wrapped_function(std::forward<F>(f), in_flight_));
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_));
     }
 
     // wait till all tasks in this group are done
     void wait() {
         while (in_flight_) {
-            task_system_.try_run_task();
+            task_system_->try_run_task();
         }
     }
 
@@ -231,18 +231,13 @@ public:
 ///////////////////////////////////////////////////////////////////////
 struct parallel_for {
     template <typename F>
-    static void apply(int left, int right, F f) {
-        task_group g;
+    static void apply(int left, int right, task_system* ts, F f) {
+        task_group g(ts);
         for (int i = left; i < right; ++i) {
           g.run([=] {f(i);});
         }
         g.wait();
     }
 };
-
-inline std::size_t thread_id() {
-    return task_system::get_global_task_system().get_current_thread();
-}
-
 } // namespace threading
 } // namespace arb

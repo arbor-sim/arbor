@@ -7,24 +7,19 @@
 #include <thread>
 
 #include <arbor/threadinfo.hpp>
-
 #include <arbor/version.hpp>
-#if defined(ARB_TBB_ENABLED)
-    #include "threading/tbb.hpp"
-#elif defined(ARB_CTHREAD_ENABLED)
-    #include "threading/cthread.hpp"
-#else
-    #include "threading/serial.hpp"
-#endif
+
+#include "threading/cthread.hpp"
 
 #include <benchmark/benchmark.h>
 
 using namespace arb;
 
 void run(unsigned long us_per_task, unsigned tasks) {
+    arb::threading::task_system ts(arb::num_threads());
     auto duration = std::chrono::microseconds(us_per_task);
     arb::threading::parallel_for::apply(
-            0, tasks,
+            0, tasks, &ts,
             [&](unsigned i){std::this_thread::sleep_for(duration);});
 }
 

@@ -14,13 +14,10 @@ addons:
             - libopenmpi-dev
 
 env:
-    # test single node/rank with different threading back ends
-    - BUILD_NAME=serial   WITH_THREAD=serial   WITH_DISTRIBUTED=serial
-    - BUILD_NAME=cthread  WITH_THREAD=cthread  WITH_DISTRIBUTED=serial
-    - BUILD_NAME=tbb      WITH_THREAD=tbb      WITH_DISTRIBUTED=serial
-    # test mpi
-    - BUILD_NAME=mpi      WITH_THREAD=cthread  WITH_DISTRIBUTED=mpi
-    - BUILD_NAME=mpitbb   WITH_THREAD=tbb      WITH_DISTRIBUTED=mpi
+    # test single node/rank with threading backend
+    - BUILD_NAME=cthread  WITH_DISTRIBUTED=serial
+    # test mpi with threading backend
+    - BUILD_NAME=mpi      WITH_DISTRIBUTED=mpi
 
 before_install:
     - CC=gcc-6

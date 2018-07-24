@@ -64,7 +64,7 @@ void run_ncomp_convergence_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
-    distributed_context context;
+    execution_context context;
     proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 

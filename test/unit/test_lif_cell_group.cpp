@@ -155,7 +155,7 @@ TEST(lif_cell_group, spikes) {
     // make two lif cells
     path_recipe recipe(2, 1000, 0.1);
 
-    distributed_context context;
+    execution_context context;
     proc_allocation nd = local_allocation();
 
     auto decomp = partition_load_balance(recipe, nd, &context);
@@ -194,9 +194,8 @@ TEST(lif_cell_group, ring)
     // Total simulation time.
     time_type simulation_time = 100;
 
-    distributed_context context;
+    execution_context context;
     proc_allocation nd = local_allocation();
-
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
     auto decomp = partition_load_balance(recipe, nd, &context);
 

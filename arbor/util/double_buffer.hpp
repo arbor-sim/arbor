@@ -4,6 +4,7 @@
 #include <atomic>
 
 #include <arbor/assert.hpp>
+#include <arbor/execution_context.hpp>
 
 namespace arb {
 namespace util {
@@ -13,7 +14,7 @@ template <typename T>
 class double_buffer {
 private:
     std::atomic<int> index_;
-    std::array<T, 2> buffers_;
+    std::vector<T> buffers_;
 
     int other_index() {
         return index_ ? 0 : 1;
@@ -23,8 +24,14 @@ public:
     using value_type = T;
 
     double_buffer() :
-        index_(0)
+        index_(0), buffers_(2)
     {}
+
+    double_buffer(T l, T r): index_(0) {
+        buffers_.reserve(2);
+        buffers_.push_back(std::move(l));
+        buffers_.push_back(std::move(r));
+    }
 
     /// remove the copy and move constructors which won't work with std::atomic
     double_buffer(double_buffer&&) = delete;
