@@ -18,6 +18,7 @@ using task_system_handle = std::shared_ptr<threading::task_system>;
 task_system_handle make_thread_pool (int nthreads);
 
 struct execution_context {
+    // TODO: use a shared_ptr for distributed_context
     distributed_context distributed;
     task_system_handle thread_pool;
 

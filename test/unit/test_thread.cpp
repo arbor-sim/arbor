@@ -43,7 +43,7 @@ struct ftor_wait {
     ftor_wait() {}
 
     void operator()() const {
-        auto duration = std::chrono::microseconds(500);
+        auto duration = std::chrono::microseconds(100);
         std::this_thread::sleep_for(duration);
     }
 };
@@ -54,7 +54,7 @@ struct ftor_parallel_wait {
 
     void operator()() const {
         auto nthreads = num_threads();
-        auto duration = std::chrono::microseconds(500);
+        auto duration = std::chrono::microseconds(100);
         parallel_for::apply(0, nthreads, ts, [=](int i){ std::this_thread::sleep_for(duration);});
     }
 
@@ -196,9 +196,9 @@ TEST(task_group, nested_parallel_for) {
 }
 
 TEST(enumerable_thread_specific, test) {
-    execution_context ctx;
-    enumerable_thread_specific<int> buffers(ctx.thread_pool);
-    task_group g(ctx.thread_pool.get());
+    task_system_handle ts = task_system_handle(new task_system(num_threads()));
+    enumerable_thread_specific<int> buffers(ts);
+    task_group g(ts.get());
 
     for (int i = 0; i < 100000; i++) {
         g.run([&](){

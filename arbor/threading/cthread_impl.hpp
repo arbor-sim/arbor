@@ -98,8 +98,8 @@ public:
     // Includes master thread.
     int get_num_threads();
 
-    // Get a stable integer for the current thread that is [0, nthreads).
-    std::size_t get_current_thread();
+    // Returns the thread_id map
+    std::unordered_map<std::thread::id, std::size_t> get_thread_ids();
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -108,7 +108,7 @@ public:
 
 template <typename T>
 class enumerable_thread_specific {
-    task_system_handle global_task_system = nullptr;
+    std::unordered_map<std::thread::id, std::size_t> thread_ids_;
 
     using storage_class = std::vector<T>;
     storage_class data;
@@ -118,20 +118,20 @@ public:
     using const_iterator = typename storage_class::const_iterator;
 
     enumerable_thread_specific(const task_system_handle& ts):
-        global_task_system{ts},
-        data{std::vector<T>(global_task_system.get()->get_num_threads())}
+        thread_ids_{ts.get()->get_thread_ids()},
+        data{std::vector<T>(ts.get()->get_num_threads())}
     {}
 
     enumerable_thread_specific(const T& init, const task_system_handle& ts):
-        global_task_system{ts},
-        data{std::vector<T>(global_task_system.get()->get_num_threads(), init)}
+        thread_ids_{ts.get()->get_thread_ids()},
+        data{std::vector<T>(ts.get()->get_num_threads(), init)}
     {}
 
     T& local() {
-        return data[global_task_system.get()->get_current_thread()];
+        return data[thread_ids_.at(std::this_thread::get_id())];
     }
     const T& local() const {
-        return data[global_task_system.get()->get_current_thread()];
+        return data[thread_ids_.at(std::this_thread::get_id())];
     }
 
     auto size() const { return data.size(); }
@@ -155,6 +155,8 @@ constexpr bool multithreaded() { return true; }
 class task_group {
 private:
     std::atomic<std::size_t> in_flight_{0};
+    /// We use a raw pointer here instead of a shared_ptr to avoid a race condition
+    /// on the destruction of a task_system that would lead to a thread trying to join itself
     task_system* task_system_;
 
 public:

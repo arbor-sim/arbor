@@ -37,7 +37,8 @@ public:
     //      current:  spikes generated in the current interval
     //      previous: spikes generated in the preceding interval
 
-    spike_double_buffer(const task_system_handle& ts): buffer_(ts) {}
+    spike_double_buffer(thread_private_spike_store l, thread_private_spike_store r):
+            buffer_(std::move(l), std::move(r)) {}
 
     thread_private_spike_store& current()  { return buffer_.get(); }
     thread_private_spike_store& previous() { return buffer_.other(); }
@@ -128,7 +129,8 @@ simulation_state::simulation_state(
         const domain_decomposition& decomp,
         const execution_context* ctx
     ):
-    local_spikes_(new spike_double_buffer(ctx->thread_pool)),
+    local_spikes_(new spike_double_buffer(thread_private_spike_store(ctx->thread_pool),
+                                          thread_private_spike_store(ctx->thread_pool))),
     communicator_(rec, decomp, ctx),
     task_system_(ctx->thread_pool)
 {
