@@ -32,7 +32,7 @@
 
 using namespace arb;
 
-void banner(proc_allocation, const distributed_context*);
+void banner(proc_allocation, const execution_context*);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -187,18 +187,18 @@ private:
 };
 
 int main(int argc, char** argv) {
-    distributed_context context;
+    execution_context context;
 
     try {
 #ifdef ARB_MPI_ENABLED
         with_mpi guard(argc, argv, false);
-        context = mpi_context(MPI_COMM_WORLD);
+        context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
-        arb::profile::meter_manager meters(&context);
+        arb::profile::meter_manager meters(&context.distributed);
         meters.start();
-        std::cout << aux::mask_stream(context.id()==0);
+        std::cout << aux::mask_stream(context.distributed.id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.id()==0);
+        io::cl_options options = io::read_options(argc, argv, context.distributed.id()==0);
         proc_allocation nd = local_allocation();
         banner(nd, &context);
 
@@ -246,7 +246,7 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             using std::ios_base;
 
-            auto rank = context.id();
+            auto rank = context.distributed.id();
             aux::path p = options.output_path;
             p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
 
@@ -273,7 +273,7 @@ int main(int argc, char** argv) {
 
         auto report = profile::make_meter_report(meters);
         std::cout << report;
-        if (context.id()==0) {
+        if (context.distributed.id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << aux::mask_stream(context.id()==0);
+        std::cerr << aux::mask_stream(context.distributed.id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -293,11 +293,11 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(proc_allocation nd, const distributed_context* ctx) {
+void banner(proc_allocation nd, const execution_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->size()
-              << " (" << ctx->name() << ")\n";
+    std::cout << "  - distributed : " << ctx->distributed.size()
+              << " (" << ctx->distributed.name() << ")\n";
     std::cout << "  - threads     : " << nd.num_threads
               << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";

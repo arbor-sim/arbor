@@ -12,18 +12,11 @@
 
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
-#if defined(ARB_TBB_ENABLED)
-    #include "threading/tbb.hpp"
-#elif defined(ARB_CTHREAD_ENABLED)
-    #include "threading/cthread.hpp"
-#else
-    #include "threading/serial.hpp"
-#endif
-
+#include "threading/cthread.hpp"
 #include "common.hpp"
 
 /// tests the sort implementation in threading
-/// is only parallel if TBB is being used
+/// Not parallel
 TEST(algorithms, parallel_sort)
 {
     auto n = 10000;

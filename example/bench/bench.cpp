@@ -10,12 +10,14 @@
 
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/threadinfo.hpp>
+
 
 #include <aux/ioutil.hpp>
 #include <aux/json_meter.hpp>
@@ -30,12 +32,12 @@ namespace profile = arb::profile;
 
 int main(int argc, char** argv) {
     try {
-        arb::distributed_context context;
+        arb::execution_context context;
 #ifdef ARB_HAVE_MPI
         aux::with_mpi guard(&argc, &argv);
-        context = mpi_context(MPI_COMM_WORLD);
+        context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
-        const bool is_root =  context.id()==0;
+        const bool is_root =  context.distributed.id()==0;
 
         std::cout << aux::mask_stream(is_root);
 
@@ -43,7 +45,7 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
-        profile::meter_manager meters(&context);
+        profile::meter_manager meters(&context.distributed);
         meters.start();
 
         // Create an instance of our recipe.

@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
@@ -22,7 +22,7 @@ class simulation_state;
 
 class simulation {
 public:
-    simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx);
+    simulation(const recipe& rec, const domain_decomposition& decomp, const execution_context* ctx);
 
     void reset();
 

@@ -40,6 +40,7 @@ set(arbor_sources
     spike_source_cell_group.cpp
     swcio.cpp
     threadinfo.cpp
+    threading/cthread.cpp
     threading/threading.cpp
     thread_private_spike_store.cpp
     util/hostname.cpp
@@ -73,11 +74,6 @@ if(ARB_WITH_MPI)
         communication/mpi.cpp
         communication/mpi_error.cpp
         communication/mpi_context.cpp)
-endif()
-
-if(ARB_WITH_CTHREAD)
-    list(APPEND arbor_sources
-        threading/cthread.cpp)
 endif()
 
 # Add special target for private include directory, for use by arbor target

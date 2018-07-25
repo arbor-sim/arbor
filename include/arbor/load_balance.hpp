@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 
@@ -19,7 +19,7 @@ using partition_hint_map = std::unordered_map<cell_kind, partition_hint>;
 domain_decomposition partition_load_balance(
     const recipe& rec,
     proc_allocation nd,
-    const distributed_context* ctx,
+    const execution_context* ctx,
     partition_hint_map hint_map = {});
 
 } // namespace arb

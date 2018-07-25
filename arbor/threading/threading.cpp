@@ -78,12 +78,8 @@ std::size_t num_threads_init() {
 //      number of threads.
 size_t num_threads() {
     // TODO: this is a bit of a hack until we have user-configurable threading.
-#if defined(ARB_HAVE_SERIAL)
-    return 1;
-#else
     static size_t num_threads_cached = num_threads_init();
     return num_threads_cached;
-#endif
 }
 
 } // namespace threading

@@ -1,13 +1,13 @@
 #include "../gtest.h"
 #include "common.hpp"
 #include <arbor/threadinfo.hpp>
+#include <arbor/execution_context.hpp>
 
 #include <iostream>
 #include <ostream>
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
 
-#if defined(ARB_CTHREAD_ENABLED)
 #include "threading/cthread.hpp"
 
 using namespace arb::threading::impl;
@@ -43,26 +43,28 @@ struct ftor_wait {
     ftor_wait() {}
 
     void operator()() const {
-        auto duration = std::chrono::microseconds(500);
+        auto duration = std::chrono::microseconds(100);
         std::this_thread::sleep_for(duration);
     }
 };
 
 struct ftor_parallel_wait {
 
-    ftor_parallel_wait() {}
+    ftor_parallel_wait(task_system* ts): ts{ts} {}
 
     void operator()() const {
         auto nthreads = num_threads();
-        auto duration = std::chrono::microseconds(500);
-        parallel_for::apply(0, nthreads, [=](int i){ std::this_thread::sleep_for(duration);});
+        auto duration = std::chrono::microseconds(100);
+        parallel_for::apply(0, nthreads, ts, [=](int i){ std::this_thread::sleep_for(duration);});
     }
+
+    task_system* ts;
 };
 
 }
 
 TEST(task_system, test_copy) {
-    task_system &ts = task_system::get_global_task_system();
+    task_system ts(num_threads());
 
     ftor f;
     ts.async(f);
@@ -74,10 +76,10 @@ TEST(task_system, test_copy) {
 }
 
 TEST(task_system, test_move) {
-    task_system &s = task_system::get_global_task_system();
+    task_system ts(num_threads());
 
     ftor f;
-    s.async(std::move(f));
+    ts.async(std::move(f));
 
     // Move into new ftor and move ftor into a task (std::function<void()>)
     EXPECT_LE(nmove, 2);
@@ -110,7 +112,8 @@ TEST(notification_queue, test_move) {
 }
 
 TEST(task_group, test_copy) {
-    task_group g;
+    task_system ts(num_threads());
+    task_group g(&ts);
 
     ftor f;
     g.run(f);
@@ -123,7 +126,8 @@ TEST(task_group, test_copy) {
 }
 
 TEST(task_group, test_move) {
-    task_group g;
+    task_system ts(num_threads());
+    task_group g(&ts);
 
     ftor f;
     g.run(std::move(f));
@@ -137,7 +141,9 @@ TEST(task_group, test_move) {
 
 TEST(task_group, individual_tasks) {
     // Simple check for deadlock
-    task_group g;
+    task_system ts(num_threads());
+    task_group g(&ts);
+
     auto nthreads = num_threads();
 
     ftor_wait f;
@@ -149,10 +155,11 @@ TEST(task_group, individual_tasks) {
 
 TEST(task_group, parallel_for_sleep) {
     // Simple check for deadlock for nested parallelism
-    task_group g;
     auto nthreads = num_threads();
+    task_system ts(nthreads);
+    task_group g(&ts);
 
-    ftor_parallel_wait f;
+    ftor_parallel_wait f(&ts);
     for (int i = 0; i < nthreads; i++) {
         g.run(f);
     }
@@ -160,10 +167,10 @@ TEST(task_group, parallel_for_sleep) {
 }
 
 TEST(task_group, parallel_for) {
-
+    task_system ts(num_threads());
     for (int n = 0; n < 10000; n=!n?1:2*n) {
         std::vector<int> v(n, -1);
-        parallel_for::apply(0, n, [&](int i) {v[i] = i;});
+        parallel_for::apply(0, n, &ts, [&](int i) {v[i] = i;});
         for (int i = 0; i< n; i++) {
             EXPECT_EQ(i, v[i]);
         }
@@ -171,13 +178,13 @@ TEST(task_group, parallel_for) {
 }
 
 TEST(task_group, nested_parallel_for) {
-
+    task_system ts(num_threads());
     for (int m = 1; m < 512; m*=2) {
         for (int n = 0; n < 1000; n=!n?1:2*n) {
             std::vector<std::vector<int>> v(n, std::vector<int>(m, -1));
-            parallel_for::apply(0, n, [&](int i) {
+            parallel_for::apply(0, n, &ts, [&](int i) {
                 auto &w = v[i];
-                parallel_for::apply(0, m, [&](int j) { w[j] = i + j; });
+                parallel_for::apply(0, m, &ts, [&](int j) { w[j] = i + j; });
             });
             for (int i = 0; i < n; i++) {
                 for (int j = 0; j < m; j++) {
@@ -189,8 +196,9 @@ TEST(task_group, nested_parallel_for) {
 }
 
 TEST(enumerable_thread_specific, test) {
-    enumerable_thread_specific<int> buffers(0);
-    task_group g;
+    task_system_handle ts = task_system_handle(new task_system(num_threads()));
+    enumerable_thread_specific<int> buffers(ts);
+    task_group g(ts.get());
 
     for (int i = 0; i < 100000; i++) {
         g.run([&](){
@@ -207,5 +215,3 @@ TEST(enumerable_thread_specific, test) {
 
     EXPECT_EQ(100000, sum);
 }
-
-#endif
