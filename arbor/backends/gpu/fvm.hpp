@@ -14,6 +14,7 @@
 #include "backends/gpu/gpu_store_types.hpp"
 #include "backends/gpu/shared_state.hpp"
 
+//#include "matrix_state_fine.hpp"
 #include "matrix_state_interleaved.hpp"
 #include "threshold_watcher.hpp"
 
@@ -40,6 +41,7 @@ struct backend {
     }
 
     using matrix_state = arb::gpu::matrix_state_interleaved<value_type, index_type>;
+    //using matrix_state = arb::gpu::matrix_state_fine<value_type, index_type>;
     using threshold_watcher = arb::gpu::threshold_watcher;
 
     using deliverable_event_stream = arb::gpu::deliverable_event_stream;
