@@ -4,6 +4,9 @@
 
 #ifdef ARB_HAVE_PROFILING
 
+    // initialize profiler
+    #define PI(ts) arb::profile::profiler_initialize(ts)
+
     // enter a profiling region
     #define PE(name) \
         { \
@@ -16,8 +19,8 @@
 
 #else
 
+    #define PI(ts)
     #define PE(name)
     #define PL()
 
 #endif
-
