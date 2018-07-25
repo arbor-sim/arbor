@@ -2,7 +2,6 @@
 
 #include "error.hpp"
 #include "expression.hpp"
-#include "modccutil.hpp"
 
 /// visitor base class
 /// The visitors for all AST nodes throw an exception

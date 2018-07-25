@@ -7,136 +7,125 @@
 
 #include "cthread.hpp"
 #include "threading.hpp"
+#include "arbor/execution_context.hpp"
 
 using namespace arb::threading::impl;
+using namespace arb::threading;
 using namespace arb;
 
-// RAII owner for a task in flight
-struct task_pool::run_task {
-    task_pool& pool;
-    lock& lck;
+task notification_queue::try_pop() {
     task tsk;
-
-    run_task(task_pool&, lock&);
-    ~run_task();
-};
-
-// Own a task in flight
-// lock should be passed locked,
-// and will be unlocked after call
-task_pool::run_task::run_task(task_pool& pool, lock& lck):
-    pool{pool},
-    lck{lck},
-    tsk{}
-{
-    std::swap(tsk, pool.tasks_.front());
-    pool.tasks_.pop_front();
-
-    lck.unlock();
-    pool.tasks_available_.notify_all();
+    lock q_lock{q_mutex_, std::try_to_lock};
+    if (q_lock && !q_tasks_.empty()) {
+        tsk = std::move(q_tasks_.front());
+        q_tasks_.pop_front();
+    }
+    return tsk;
 }
 
-// Release task
-// Call unlocked, returns unlocked
-task_pool::run_task::~run_task() {
-    lck.lock();
-    tsk.second->in_flight--;
-
-    lck.unlock();
-    pool.tasks_available_.notify_all();
+task notification_queue::pop() {
+    task tsk;
+    lock q_lock{q_mutex_};
+    while (q_tasks_.empty() && !quit_) {
+        q_tasks_available_.wait(q_lock);
+    }
+    if (!q_tasks_.empty()) {
+        tsk = std::move(q_tasks_.front());
+        q_tasks_.pop_front();
+    }
+    return tsk;
 }
 
-template<typename B>
-void task_pool::run_tasks_loop(B finished) {
-    lock lck{tasks_mutex_, std::defer_lock};
+bool notification_queue::try_push(task& tsk) {
+    {
+        lock q_lock{q_mutex_, std::try_to_lock};
+        if (!q_lock) return false;
+        q_tasks_.push_back(std::move(tsk));
+        tsk = 0;
+    }
+    q_tasks_available_.notify_all();
+    return true;
+}
+
+void notification_queue::push(task&& tsk) {
+    {
+        lock q_lock{q_mutex_};
+        q_tasks_.push_back(std::move(tsk));
+    }
+    q_tasks_available_.notify_all();
+}
+
+void notification_queue::quit() {
+    {
+        lock q_lock{q_mutex_};
+        quit_ = true;
+    }
+    q_tasks_available_.notify_all();
+}
+
+void task_system::run_tasks_loop(int i){
     while (true) {
-        lck.lock();
-
-        while (! quit_ && tasks_.empty() && ! finished()) {
-            tasks_available_.wait(lck);
+        task tsk;
+        for (unsigned n = 0; n != count_; n++) {
+            tsk = q_[(i + n) % count_].try_pop();
+            if (tsk) break;
         }
-        if (quit_ || finished()) {
-            return;
-        }
-
-        run_task run{*this, lck};
-        run.tsk.first();
+        if (!tsk) tsk = q_[i].pop();
+        if (!tsk) break;
+        tsk();
     }
 }
 
-// runs forever until quit is true
-void task_pool::run_tasks_forever() {
-    run_tasks_loop([] {return false;});
+void task_system::try_run_task() {
+    auto nthreads = get_num_threads();
+    task tsk;
+    for (int n = 0; n != nthreads; n++) {
+        tsk = q_[n % nthreads].try_pop();
+        if (tsk) {
+            tsk();
+            break;
+        }
+    }
 }
 
-// run until out of tasks for a group
-void task_pool::run_tasks_while(task_group* g) {
-    run_tasks_loop([=] {return ! g->in_flight;});
-}
-
-// Create pool and threads
-// new threads are nthreads-1
-task_pool::task_pool(std::size_t nthreads):
-    tasks_mutex_{},
-    tasks_available_{},
-    tasks_{},
-    threads_{}
-{
-    assert(nthreads > 0);
+task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
+    assert( nthreads > 0);
 
     // now for the main thread
     auto tid = std::this_thread::get_id();
     thread_ids_[tid] = 0;
 
-    // and go from there
-    for (std::size_t i = 1; i < nthreads; i++) {
-        threads_.emplace_back([this]{run_tasks_forever();});
+    for (unsigned i = 1; i < count_; i++) {
+        threads_.emplace_back([this, i]{run_tasks_loop(i);});
         tid = threads_.back().get_id();
         thread_ids_[tid] = i;
     }
 }
 
-task_pool::~task_pool() {
-    {
-        lock lck{tasks_mutex_};
-        quit_ = true;
+task_system::~task_system() {
+    for (auto& e: q_) e.quit();
+    for (auto& e: threads_) e.join();
+}
+
+void task_system::async(task tsk) {
+    auto i = index_++;
+
+    for (unsigned n = 0; n != count_; n++) {
+        if (q_[(i + n) % count_].try_push(tsk)) return;
     }
-    tasks_available_.notify_all();
-
-    for (auto& thread: threads_) {
-        thread.join();
-    }
+    q_[i % count_].push(std::move(tsk));
 }
 
-// push a task into pool
-void task_pool::run(const task& tsk) {
-    {
-        lock lck{tasks_mutex_};
-        tasks_.push_back(tsk);
-        tsk.second->in_flight++;
-    }
-    tasks_available_.notify_all();
+int task_system::get_num_threads() {
+    return threads_.size() + 1;
 }
 
-void task_pool::run(task&& tsk) {
-  {
-      lock lck{tasks_mutex_};
-      tasks_.push_back(std::move(tsk));
-      tsk.second->in_flight++;
-  }
-  tasks_available_.notify_all();
+std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() {
+    return thread_ids_;
+};
+
+task_system_handle arb::make_thread_pool(int nthreads) {
+    return task_system_handle(new task_system(nthreads));
 }
 
-// call on main thread
-// uses this thread to run tasks
-// and waits until the entire task
-// queue is cleared
-void task_pool::wait(task_group* g) {
-    run_tasks_while(g);
-}
 
-task_pool& task_pool::get_global_task_pool() {
-    auto num_threads = threading::num_threads();
-    static task_pool global_task_pool(num_threads);
-    return global_task_pool;
-}

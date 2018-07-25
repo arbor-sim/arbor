@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+#include <type_traits>
 
 #include <thread>
 #include <mutex>
@@ -14,130 +16,122 @@
 #include <utility>
 #include <unordered_map>
 #include <deque>
+#include <atomic>
+#include <type_traits>
 
 #include <cstdlib>
+#include "arbor/execution_context.hpp"
 
 namespace arb {
 namespace threading {
-inline namespace cthread {
 
 // Forward declare task_group at bottom of this header
 class task_group;
 
-namespace impl {
-
-using arb::threading::task_group;
 using std::mutex;
 using lock = std::unique_lock<mutex>;
 using std::condition_variable;
+using task = std::function<void()>;
 
-using task = std::pair<std::function<void()>, task_group*>;
-using task_queue = std::deque<task>;
-
-using thread_list = std::vector<std::thread>;
-using thread_map = std::unordered_map<std::thread::id, std::size_t>;
-
-class task_pool {
+namespace impl {
+class notification_queue {
 private:
-    // lock and signal on task availability change
-    // this is the crucial bit
-    mutex tasks_mutex_;
-    condition_variable tasks_available_;
+    // FIFO of pending tasks.
+    std::deque<task> q_tasks_;
 
-    // fifo of pending tasks
-    task_queue tasks_;
+    // Lock and signal on task availability change this is the crucial bit.
+    mutex q_mutex_;
+    condition_variable q_tasks_available_;
 
-    // thread resource
-    thread_list threads_;
-    // threads -> index
-    thread_map thread_ids_;
-    // flag to handle exit from all threads
+    // Flag to handle exit from all threads.
     bool quit_ = false;
 
-    // internals for taking tasks as a resource
-    // and running them (updating above)
-    // They get run by a thread in order to consume
-    // tasks
-    struct run_task;
-    // run tasks until a task_group tasks are done
-    // for wait
-    void run_tasks_while(task_group*);
-    // loop forever for secondary threads
-    // until quit is set
-    void run_tasks_forever();
+public:
+    // Pops a task from the task queue returns false when queue is empty.
+    task try_pop();
+    task pop();
 
-    // common code for the previous
-    // finished is a function/lambda
-    //   that returns true when the infinite loop
-    //   needs to be broken
-    template<typename B>
-    void run_tasks_loop(B finished );
+    // Pushes a task into the task queue and increases task group counter.
+    void push(task&& tsk); // TODO: need to use value?
+    bool try_push(task& tsk);
 
-    // Create nthreads-1 new c std threads
-    // must be > 0
-    // singled only created in static get_global_task_pool()
-    task_pool(std::size_t nthreads);
+    // Finish popping all waiting tasks on queue then stop trying to pop new tasks
+    void quit();
+};
+}// namespace impl
 
-    // task_pool is a singleton 
-    task_pool(const task_pool&) = delete;
-    task_pool& operator=(const task_pool&) = delete;
+class task_system {
+private:
+    unsigned count_;
 
-    // set quit and wait for secondary threads to end
-    ~task_pool();
+    std::vector<std::thread> threads_;
+
+    // queue of tasks
+    std::vector<impl::notification_queue> q_;
+
+    // threads -> index
+    std::unordered_map<std::thread::id, std::size_t> thread_ids_;
+
+    // total number of tasks pushed in all queues
+    std::atomic<unsigned> index_{0};
 
 public:
-    // Like tbb calls: run queues a task,
-    // wait waits for all tasks in the group to be done
-    void run(const task&);
-    void run(task&&);
-    void wait(task_group*);
+    // Create nthreads-1 new c std threads
+    task_system(int nthreads);
 
-    // includes master thread
-    int get_num_threads() {
-        return threads_.size() + 1;
-    }
+    // task_system is a singleton.
+    task_system(const task_system&) = delete;
+    task_system& operator=(const task_system&) = delete;
 
-    // get a stable integer for the current thread that
-    // is 0..nthreads
-    std::size_t get_current_thread() {
-        return thread_ids_[std::this_thread::get_id()];
-    }
+    ~task_system();
 
-    // singleton constructor - needed to order construction
-    // with other singletons (profiler)
-    static task_pool& get_global_task_pool();
+    // Pushes tasks into notification queue.
+    void async(task tsk);
+
+    // Runs tasks until quit is true.
+    void run_tasks_loop(int i);
+
+    // Request that the task_system attempts to find and run a _single_ task.
+    // Will return without executing a task if no tasks available.
+    void try_run_task();
+
+    // Includes master thread.
+    int get_num_threads();
+
+    // Returns the thread_id map
+    std::unordered_map<std::thread::id, std::size_t> get_thread_ids();
 };
-} //impl
 
 ///////////////////////////////////////////////////////////////////////
 // types
 ///////////////////////////////////////////////////////////////////////
+
 template <typename T>
 class enumerable_thread_specific {
-    impl::task_pool& global_task_pool;
+    std::unordered_map<std::thread::id, std::size_t> thread_ids_;
 
     using storage_class = std::vector<T>;
     storage_class data;
 
-public :
+public:
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific():
-        global_task_pool{impl::task_pool::get_global_task_pool()},
-        data{std::vector<T>(global_task_pool.get_num_threads())}
+    enumerable_thread_specific(const task_system_handle& ts):
+        thread_ids_{ts.get()->get_thread_ids()},
+        data{std::vector<T>(ts.get()->get_num_threads())}
     {}
 
-    enumerable_thread_specific(const T& init):
-        global_task_pool{impl::task_pool::get_global_task_pool()},
-        data{std::vector<T>(global_task_pool.get_num_threads(), init)}
+    enumerable_thread_specific(const T& init, const task_system_handle& ts):
+        thread_ids_{ts.get()->get_thread_ids()},
+        data{std::vector<T>(ts.get()->get_num_threads(), init)}
     {}
 
     T& local() {
-      return data[global_task_pool.get_current_thread()];
+        return data[thread_ids_.at(std::this_thread::get_id())];
     }
     const T& local() const {
-      return data[global_task_pool.get_current_thread()];
+        return data[thread_ids_.at(std::this_thread::get_id())];
     }
 
     auto size() const { return data.size(); }
@@ -152,45 +146,6 @@ public :
     const_iterator cend()   const { return data.cend(); }
 };
 
-template <typename T>
-class parallel_vector {
-    using value_type = T;
-    std::vector<value_type> data_;
-
-private:
-    // lock the parallel_vector to update
-    impl::mutex mutex;
-
-    // call a function of type X f() in a lock
-    template<typename F>
-    decltype(auto) critical(F f) {
-        impl::lock lock{mutex};
-        return f();
-    }
-
-public:
-    parallel_vector() = default;
-    using iterator = typename std::vector<value_type>::iterator;
-    using const_iterator = typename std::vector<value_type>::const_iterator;
-
-    iterator begin() { return data_.begin(); }
-    iterator end()   { return data_.end(); }
-
-    const_iterator begin() const { return data_.begin(); }
-    const_iterator end()   const { return data_.end(); }
-
-    const_iterator cbegin() const { return data_.cbegin(); }
-    const_iterator cend()   const { return data_.cend(); }
-
-    // only guarantees the state of the vector, but not the iterators
-    // unlike tbb push_back
-    void push_back (value_type&& val) {
-        critical([&] {
-            data_.push_back(std::move(val));
-        });
-    }
-};
-
 inline std::string description() {
     return "CThread Pool";
 }
@@ -199,46 +154,70 @@ constexpr bool multithreaded() { return true; }
 
 class task_group {
 private:
-    std::size_t in_flight = 0;
-    impl::task_pool& global_task_pool;
-    // task pool manipulates in_flight
-    friend impl::task_pool;
+    std::atomic<std::size_t> in_flight_{0};
+    /// We use a raw pointer here instead of a shared_ptr to avoid a race condition
+    /// on the destruction of a task_system that would lead to a thread trying to join itself
+    task_system* task_system_;
 
 public:
-    task_group():
-        global_task_pool{impl::task_pool::get_global_task_pool()}
+    task_group(task_system* ts):
+        task_system_{ts}
     {}
 
     task_group(const task_group&) = delete;
     task_group& operator=(const task_group&) = delete;
 
-    // send function void f() to threads
-    template<typename F>
-    void run(const F& f) {
-        global_task_pool.run(impl::task{f, this});
+    template <typename F>
+    class wrap {
+        F f;
+        std::atomic<std::size_t>& counter;
+
+    public:
+
+        // Construct from a compatible function and atomic counter
+        template <typename F2>
+        explicit wrap(F2&& other, std::atomic<std::size_t>& c):
+                f(std::forward<F2>(other)),
+                counter(c)
+        {}
+
+        wrap(wrap&& other):
+                f(std::move(other.f)),
+                counter(other.counter)
+        {}
+
+        // std::function is not guaranteed to not copy the contents on move construction
+        // But the class is safe because we don't call operator() more than once on the same wrapped task
+        wrap(const wrap& other):
+                f(other.f),
+                counter(other.counter)
+        {}
+
+        void operator()() {
+            f();
+            --counter;
+        }
+    };
+
+    template <typename F>
+    using callable = typename std::decay<F>::type;
+
+    template <typename F>
+    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c) {
+        return wrap<callable<F>>(std::forward<F>(f), c);
     }
 
     template<typename F>
     void run(F&& f) {
-        global_task_pool.run(impl::task{std::move(f), this});
-    }
-
-    // run function void f() and then wait on all threads in group
-    template<typename F>
-    void run_and_wait(const F& f) {
-        f();
-        global_task_pool.wait(this);
-    }
-
-    template<typename F>
-    void run_and_wait(F&& f) {
-        f();
-        global_task_pool.wait(this);
+        ++in_flight_;
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_));
     }
 
     // wait till all tasks in this group are done
     void wait() {
-        global_task_pool.wait(this);
+        while (in_flight_) {
+            task_system_->try_run_task();
+        }
     }
 
     // Make sure that all tasks are done before clean up
@@ -252,19 +231,13 @@ public:
 ///////////////////////////////////////////////////////////////////////
 struct parallel_for {
     template <typename F>
-    static void apply(int left, int right, F f) {
-        task_group g;
-        for(int i = left; i < right; ++i) {
+    static void apply(int left, int right, task_system* ts, F f) {
+        task_group g(ts);
+        for (int i = left; i < right; ++i) {
           g.run([=] {f(i);});
         }
         g.wait();
     }
 };
-
-inline std::size_t thread_id() {
-    return impl::task_pool::get_global_task_pool().get_current_thread();
-}
-
-} // namespace cthread
 } // namespace threading
 } // namespace arb

@@ -4,7 +4,6 @@
 #include "astmanip.hpp"
 #include "error.hpp"
 #include "functionexpander.hpp"
-#include "modccutil.hpp"
 
 expression_ptr insert_unique_local_assignment(expr_list_type& stmts, Expression* e) {
     auto exprs = make_unique_local_assign(e->scope(), e);

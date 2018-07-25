@@ -4,6 +4,3 @@
 [submodule "sphinx_rtd_theme"]
 	path = ext/sphinx_rtd_theme
 	url = https://github.com/rtfd/sphinx_rtd_theme.git
-[submodule "tbb"]
-	path = ext/tbb
-	url = https://github.com/wjakob/tbb.git

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "modccutil.hpp"
-
 #include <memory>
 #include <string>
 #include <unordered_map>
+
+#include "io/pprintf.hpp"
+
 
 // Scope is templated to avoid circular compilation issues.
 // When performing semantic analysis of expressions via traversal of the AST
