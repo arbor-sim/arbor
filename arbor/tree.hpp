@@ -99,9 +99,11 @@ public:
         return children_;
     }
 
-    /// return the list of all children of branch b
-    auto children(size_type b) const {
-        return util::make_range(&child_index_[b], &child_index_[b+1]);
+    /// return the list of all children of branch i
+    auto children(size_type i) const {
+        const auto b = child_index_[i];
+        const auto e = child_index_[i+1];
+        return util::make_range(&children_[b], &children_[e]);
     }
 
     /// return the list of parents
@@ -123,45 +125,6 @@ public:
             + sizeof(tree);
     }
 
-    /*
-    iarray change_root(size_t b) {
-        assert(b<num_segments());
-
-        // no need to rebalance if the root node has been requested
-        if(b==0) {
-            return iarray();
-        }
-
-        // create new tree with memory allocated
-        tree new_tree;
-        new_tree.init(num_segments());
-
-        // add the root node
-        new_tree.parents_[0] = no_parent;
-        new_tree.child_index_[0] = 0;
-
-        // allocate space for the permutation vector that
-        // will represent the permutation performed on the branches
-        // during the rebalancing
-        iarray p(num_segments(), -1);
-
-        // recersively rebalance the tree
-        new_tree.add_children(0, b, 0, p, *this);
-
-        // renumber the child indexes
-        std::transform(
-            new_tree.children_.begin(), new_tree.children_.end(),
-            new_tree.children_.begin(), [&p] (int i) {return p[i];}
-        );
-
-        // copy in new data with a move because the information in
-        // new_tree is not kept
-        *this = std::move(new_tree);
-
-        return p;
-    }
-    */
-
 private:
     void init(size_type nnode) {
         if (nnode) {
@@ -175,84 +138,6 @@ private:
             child_index_.resize(0);
             parents_.resize(0);
         }
-    }
-
-    /// Renumber the sub-tree with old_node as its root with new_node as
-    /// the new index of old_node. This is a helper function for the
-    /// renumbering required when a new root node is chosen to improve
-    /// the balance of the tree.
-    /// Optionally add the parent of old_node as a child of new_node, which
-    /// will be applied recursively until the old root has been processed,
-    /// which indicates that the renumbering is finished.
-    ///
-    /// precondition - the node new_node has already been placed in the tree
-    /// precondition - all of new_node's children have been added to the tree
-    ///     new_node : the new index of the node whose children are to be added
-    ///                to the tree
-    ///     old_node : the index of new_node in the original tree
-    ///     parent_node : equals index of old_node's parent in the original tree
-    ///                   should be a child of new_node
-    ///                 : equals -1 if the old_node's parent is not a child of
-    ///                   new_node
-    ///     p : permutation vector, p[i] is the new index of node i in the old
-    ///         tree
-    int_type add_children(
-        int_type new_node,
-        int_type old_node,
-        int_type parent_node,
-        iarray& p,
-        tree const& old_tree
-    )
-    {
-        // check for the sentinel that indicates that the old root has
-        // been processed
-        if (old_node==no_parent) {
-            return new_node;
-        }
-
-        p[old_node] = new_node;
-
-        // the list of the children of the original node
-        auto old_children = old_tree.children(old_node);
-
-        auto this_node = new_node;
-        auto pos = child_index_[this_node];
-
-        auto add_parent_as_child = parent_node!=no_parent && old_node>0;
-        //
-        // STEP 1 : add the child indexes for this_node
-        //
-        // first add the children of the node
-        for(auto b : old_children) {
-            if(b != parent_node) {
-                children_[pos++] = b;
-                parents_[pos] = new_node;
-            }
-        }
-        // then add the node's parent as a child if applicable
-        if(add_parent_as_child) {
-            children_[pos++] = old_tree.parent(old_node);
-            parents_[pos] = new_node;
-        }
-        child_index_[this_node+1] = pos;
-
-        //
-        // STEP 2 : recursively add each child's children
-        //
-        new_node++;
-        for (auto b : old_children) {
-            if (b != parent_node) {
-                new_node = add_children(new_node, b, no_parent, p, old_tree);
-            }
-        }
-        if (add_parent_as_child) {
-            new_node =
-                add_children(
-                    new_node, old_tree.parent(old_node), old_node, p, old_tree
-                );
-        }
-
-        return new_node;
     }
 
     // state
