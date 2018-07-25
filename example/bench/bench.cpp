@@ -37,6 +37,9 @@ int main(int argc, char** argv) {
         aux::with_mpi guard(&argc, &argv);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
+#ifdef ARB_HAVE_PROFILING
+        profile::profiler_initialize(context.thread_pool);
+#endif
         const bool is_root =  context.distributed.id()==0;
 
         std::cout << aux::mask_stream(is_root);
@@ -45,7 +48,6 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
-        profile::profiler_initialize(context.thread_pool);
         profile::meter_manager meters(&context.distributed);
         meters.start();
 

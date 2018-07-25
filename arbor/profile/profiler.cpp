@@ -3,12 +3,10 @@
 #include <ostream>
 
 #include <arbor/profile/profiler.hpp>
-#include <arbor/arbexcept.hpp>
 
 #include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
-#include "util/strprintf.hpp"
 
 namespace arb {
 namespace profile {
@@ -105,7 +103,6 @@ class profiler {
 
 public:
     profiler();
-    profiler(unsigned nthreads);
 
     void initialize(task_system_handle& ts);
     void enter(region_id_type index);
