@@ -220,7 +220,6 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     // If spike exchange and cell update are serialized, this is the
     // minimum delay of the network, however we use half this period
     // to overlap communication and computation.
-    PI(task_system_);
     const time_type t_interval = min_delay_/2;
 
     // task that updates cell state in parallel.

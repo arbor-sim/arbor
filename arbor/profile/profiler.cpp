@@ -178,10 +178,6 @@ profiler::profiler() {
     recorders_.resize(threading::num_threads());
 }
 
-profiler::profiler(unsigned nthreads) {
-    recorders_.resize(nthreads);
-}
-
 void profiler::initialize(task_system_handle& ts) {
     recorders_.resize(ts.get()->get_num_threads());
     thread_ids_ = ts.get()->get_thread_ids();
@@ -189,21 +185,18 @@ void profiler::initialize(task_system_handle& ts) {
 }
 
 void profiler::enter(region_id_type index) {
-    if(!init_)
-        throw arbor_exception(util::pprintf(
-                "Profiler not initialized with correct task_system parameters"));
+    if (!init_) return;
     recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
 }
 
 void profiler::enter(const char* name) {
-    if(!init_)
-        throw arbor_exception(util::pprintf(
-                "Profiler not initialized with correct task_system parameters"));
+    if (!init_) return;
     const auto index = region_index(name);
     recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
 }
 
 void profiler::leave() {
+    if (!init_) return;
     recorders_[thread_ids_.at(std::this_thread::get_id())].leave();
 }
 

@@ -45,6 +45,7 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
+        profile::profiler_initialize(context.thread_pool);
         profile::meter_manager meters(&context.distributed);
         meters.start();
 

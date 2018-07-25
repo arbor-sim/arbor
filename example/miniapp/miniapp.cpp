@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
 
+        profile::profiler_initialize(context.thread_pool);
         profile::meter_manager meters(&context.distributed);
         meters.start();
 

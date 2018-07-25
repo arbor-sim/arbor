@@ -194,6 +194,7 @@ int main(int argc, char** argv) {
         with_mpi guard(argc, argv, false);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
+        profile::profiler_initialize(context.thread_pool);
         arb::profile::meter_manager meters(&context.distributed);
         meters.start();
         std::cout << aux::mask_stream(context.distributed.id()==0);
