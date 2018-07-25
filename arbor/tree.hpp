@@ -103,7 +103,7 @@ public:
     auto children(size_type i) const {
         const auto b = child_index_[i];
         const auto e = child_index_[i+1];
-        return util::make_range(&children_[b], &children_[e]);
+        return util::subrange_view(children_, b, e);
     }
 
     /// return the list of parents
