@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
         with_mpi guard(argc, argv, false);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
-#ifdef ARB_HAVE_PROFILING
+#ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
         arb::profile::meter_manager meters(&context.distributed);

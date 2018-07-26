@@ -156,6 +156,8 @@ Running the Profiler
 --------------------
 
 The profiler does not need to be started or stopped by the user.
+It needs to be initialized before entering any profiling region.
+It is initialized using the information provided by the simulation's thread pool.
 At any point a summary of profiler region counts and times can be obtained,
 and the profiler regions can be reset.
 
@@ -168,6 +170,11 @@ and the profiler regions can be reset.
         using namespace arb;
 
         void main() {
+            execution_context context;
+
+            // Initialize the profiler with thread information from the execution context
+            profile::profiler_initialize(context.thread_pool);
+
             PE(init);
             // ...
             PL();
@@ -177,11 +184,11 @@ and the profiler regions can be reset.
             PL();
 
             // Print a summary of the profiler to stdout
-            std::cout << util::profiler_summary() << "\n";
+            std::cout << profile::profiler_summary() << "\n";
 
             // Clear the profiler state, which can then be used to record
             // profile information for a different part of the code.
-            util::profiler_clear();
+            profile::profiler_clear();
         }
 
 After a call to ``util::profiler_clear``, all counters and timers are set to zero.
