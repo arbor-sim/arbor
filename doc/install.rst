@@ -25,9 +25,9 @@ with very few tools.
     =========== ============================================
     Tool        Notes
     =========== ============================================
-    Git         To check out the code, min version 2.0.
-    CMake       To set up the build, min version 3.0.
-    compiler    A C++11 compiler. See `compilers <compilers_>`_.
+    Git         To check out the code, minimum version 2.0.
+    CMake       To set up the build, minimum version 3.8 (3.9 for MPI).
+    compiler    A C++14 compiler. See `compilers <compilers_>`_.
     =========== ============================================
 
 .. _compilers:
@@ -35,8 +35,7 @@ with very few tools.
 Compilers
 ~~~~~~~~~
 
-Arbor requires a C++ compiler that fully supports C++11 (we have plans to move
-to C++14 soon).
+Arbor requires a C++ compiler that fully supports C++14.
 We recommend using GCC or Clang, for which Arbor has been tested and optimised.
 
 .. table:: Supported Compilers
@@ -44,7 +43,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     =========== ============ ============================================
     Compiler    Min version  Notes
     =========== ============ ============================================
-    GCC         5.2.0        5.1 probably works, 5.0 doesn't.
+    GCC         6.1.0
     Clang       4.0          Clang 3.8 and later probably work.
     Apple Clang 9
     Intel       17.0.1       Needs GCC 5 or later for standard library.
@@ -95,10 +94,9 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     faster compilation times; fewer compiler bugs; and support for recent C++ standards.
 
 .. Note::
-    The IBM xlc compiler versions 13.1.4 and 13.1.6 have been tested for compiling on
-    IBM power 8. Arbor contains some patches to work around xlc compiler bugs,
-    however we do not recommend using xlc because GCC produces faster code,
-    with faster compilation times.
+    The IBM XL C/C++ compiler for Linux up to version 14 is not supported, owing to unresolved
+    compiler issues. We strongly recommend building with GCC or Clang instead on PowerPC
+    platforms.
 
 Optional Requirements
 ---------------------
@@ -153,13 +151,13 @@ If you use the zip file, then don't forget to run Git submodule update manually.
 
 .. _building:
 
-Building Arbor
-==============
+Building and Installing Arbor
+=============================
 
 Once the Arbor code has been checked out, it can be built by first running CMake to configure the build, then running make.
 
 Below is a simple workflow for: **1)** getting the source; **2)** configuring the build;
-**3)** building; **4)** then running tests.
+**3)** building; **4)** running tests; **5)** install.
 
 For more detailed build configuration options, see the `quick start <quickstart_>`_ guide.
 
@@ -185,6 +183,9 @@ For more detailed build configuration options, see the `quick start <quickstart_
     ./test/test.exe
     ./test/global_communication.exe
 
+    # 5) Install (by default, to /usrlocal).
+    make install
+
 This will build Arbor in release mode with the `default C++ compiler <note_CC_>`_.
 
 .. _quickstart:
@@ -195,20 +196,17 @@ Quick Start: Examples
 Below are some example of CMake configurations for Arbor. For more detail on individual
 CMake parameters and flags, follow links to the more detailed descriptions below.
 
-.. topic:: `Debug <buildtarget_>`_ mode with `assertions <debugging_>`_,
-           `single threaded <threading_>`_.
+.. topic:: `Debug <buildtarget_>`_ mode with `assertions <debugging_>`_ enabled.
 
     If you encounter problems building or running Arbor, compile with these options
     for testing and debugging.
 
     .. code-block:: bash
 
-        cmake .. -DARB_THREADING_MODEL=serial \
-                 -DARB_WITH_ASSERTIONS=ON     \
-                 -DCMAKE_BUILD_TYPE=debug
+        cmake .. -DARB_WITH_ASSERTIONS=ON -DCMAKE_BUILD_TYPE=debug
 
-.. topic:: `Release <buildtarget_>`_ mode (i.e. build with optimization flags) with default
-           compiler, optimized for the `system architecture <vectorize_>`_.
+.. topic:: `Release <buildtarget_>`_ mode (compiler optimizations enabled) with the default
+           compiler, optimized for the local `system architecture <architecture_>`_.
 
     .. code-block:: bash
 
@@ -222,17 +220,11 @@ CMake parameters and flags, follow links to the more detailed descriptions below
         export CXX=`which clang++`
         cmake ..
 
-.. topic:: `Release <buildtarget_>`_ mode for the `Haswell architecture <vectorize_>`_ with `cthread threading <threading_>`_ and `explicit vectorization <vectorize_>`_ of kernels.
+.. topic:: `Release <buildtarget_>`_ mode for the `Haswell architecture <architecture_>`_ and `explicit vectorization <vectorize_>`_ of kernels.
 
     .. code-block:: bash
 
-        cmake .. -DARB_THREADING_MODEL=cthread -DARB_VECTORIZE=ON -DARB_ARCH=haswell
-
-.. topic:: `Release <buildtarget_>`_ mode on `KNL <vectorize_>`_ with `TBB threading <threading_>`_
-
-    .. code-block:: bash
-
-        cmake .. -DARB_THREADING_MODEL=tbb -DARB_VECTORIZE=ON -DARB_ARCH=knl
+        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=haswell
 
 .. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, targeting the `Broadwell architecture <vectorize_>`_, with support for `P100 GPUs <gpu_>`_, and building with `GCC 5 <compilers_>`_.
 
@@ -241,6 +233,12 @@ CMake parameters and flags, follow links to the more detailed descriptions below
         export CC=gcc-5
         export CXX=g++-5
         cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU_MODEL=P100
+
+.. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, optimized for the `local system architecture <architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
+
+    .. code-block:: bash
+
+        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=native -DCMAKE_INSTALL_PREFIX=/opt/arbor
 
 .. _buildtarget:
 
@@ -255,7 +253,7 @@ with ``-g -O0`` flags), use the ``CMAKE_BUILD_TYPE`` CMake parameter.
 
     cmake -DCMAKE_BUILD_TYPE={debug,release}
 
-..  _vectorize:
+..  _architecture:
 
 Architecture
 ------------
@@ -278,9 +276,13 @@ the specific architecture of that machine. The valid values correspond to those 
 to the ``-mcpu`` or ``-march`` options for GCC and Clang; the build system will translate
 these names to corresponding values for other supported compilers.
 
-Specific recent x86-family CPU architectures include ``ivybridge``, ``haswell``,
-``broadwell``, ``skylake``, ``knl`` (Intel) and ``bdver1``, ``bdver2``, ``bdver3``,
-``bdver4``, ``znver1`` (AMD).
+Specific recent x86-family Intel CPU architectures include ``broadwell``, ``skylake`` and
+``knl``. Complete lists of architecture names can be found in the compiler documentation:
+for example GCC `x86 options <https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html>`_,
+`PowerPC options <https://gcc.gnu.org/onlinedocs/gcc/RS_002f6000-and-PowerPC-Options.html#RS_002f6000-and-PowerPC-Options>`_,
+and `ARM options <https://gcc.gnu.org/onlinedocs/gcc/ARM-Options.html>`_.
+
+..  _vectorize:
 
 Vectorization
 -------------
@@ -293,60 +295,9 @@ Explicit vectorization of computational kernels can be enabled in Arbor by setti
     cmake -DARB_VECTORIZE=ON
 
 With this flag set, the library will use architecture-specific vectorization intrinsics
-to implement these kernels. Supported vectorization ISAs are currently limited to
-AVX, AVX2 and AVX512 as supported on recent Intel and AMD x86 family CPUs.
-
-.. _threading:
-
-Multithreading
---------------
-
-Arbor provides three possible multithreading implementations. The implementation
-is selected at compile time by setting the ``ARB_THREADING_MODEL`` CMake option:
-
-.. code-block:: bash
-
-    cmake -DARB_THREADING_MODEL={serial,cthread,tbb}
-
-By default Arbor is built with multithreading enabled with the **cthread** backend,
-which is implemented in the Arbor source code.
-
-
-.. table:: Threading Models.
-
-    =========== ============== =================================================
-    Model       Source         Description
-    =========== ============== =================================================
-    **cthread** Arbor          Default. Multithreaded, based on C++11 ``std::thread``.
-    **serial**  Arbor          Single threaded.
-    **tbb**     Git submodule  `Intel TBB <https://www.threadingbuildingblocks.org/>`_.
-                               Recommended when using many threads.
-    =========== ============== =================================================
-
-.. Note::
-    The default `cthread` threading is suitable for most applications.
-    However there are some situations when the overheads of the threading runtime
-    become significant. This is often the case for:
-
-    * simulations with many small/light cells (e.g. LIF cells);
-    * running with many threads, such as on IBM Power 8 (80 threads/socket) or Intel
-      KNL (64-256 threads/socket).
-
-    The TBB threading back end is highly optimized, and well suited to these cases.
-
-
-.. Note::
-    If the TBB back end is selected, Arbor's CMake uses a Git submodule of the TBB
-    repository to build and link a static version of the the TBB library. If you get
-    an error stating that the TBB submodule is not available, you must update the Git
-    submodules:
-
-    .. code-block:: bash
-
-        git submodule update --init --recursive
-
-.. Note::
-    The TBB back end can be used on IBM Power 8 systems.
+to implement these kernels. Arbor currently has vectorization support for x86 architectures
+with AVX, AVX2 or AVX512 ISA extensions. Enabling the `ARB_VECTORIZE` option for a target
+without support in Arbor will give a compilation error.
 
 .. _gpu:
 
@@ -363,10 +314,47 @@ CMake ``ARB_GPU_MODEL`` option to match the GPU model to target:
 By default ``ARB_GPU_MODEL=none``, and a GPU target must explicitly be set to
 build for and run on GPUs.
 
+Depending on the configuration of the system where Arbor is being built, the
+C++ compiler may not be able to find the ``cuda.h`` header. The easiest workaround
+is to add the path to the include directory containing the header to the
+``CPATH`` environment variable before configuring and building Arbor, for
+example:
+
+.. code-block:: bash
+
+    export CPATH="/opt/cuda/include:$CPATH"
+    cmake -DARB_GPU_MODEL=P100
+
 .. Note::
     The main difference between the Kepler (K20 & K80) and Pascal (P100) GPUs is
     the latter's built-in support for double precision atomics and fewer GPU
     synchronizations when accessing managed memory.
+
+.. _install:
+
+Installation
+------------
+
+Arbor can be installed with ``make install`` after configuration. The
+installation comprises:
+
+- The static library ``libarbor.a``.
+- Public header files.
+- The ``modcc`` NMODL compiler if built.
+- The HTML documentation if built.
+
+The default install path (``/usr/local``) can be overridden with the standard
+``CMAKE_INSTALL_PREFIX`` configuration option.
+
+Provided that Sphinx is available, HTML documentation for Arbor can be built
+with ``make html``. Note that documentation is not built by default — if
+built, it too will be included in the installation.
+
+Note that the ``modcc`` compiler will not be built by default if the ``ARB_MODCC``
+configuration setting is used to specify a different executable for ``modcc``.
+While ``modcc`` can be used to translate user-supplied NMODL mechanism
+descriptions into C++ and CUDA code for use with Arbor, this generated code
+currently relies upon private headers that are not installed.
 
 .. _cluster:
 
@@ -383,8 +371,8 @@ MPI
 ---
 
 Arbor uses MPI for distributed systems. By default it is built without MPI support, which
-can enabled by setting the ``DARB_DISTRIBUTED_MODEL`` CMake parameter.
-An example of building Arbor with MPI, high-performance threading and optimizations enabled
+can enabled by setting the ``ARB_WITH_MPI`` configuration flag.
+An example of building a 'release' (optimized) version of Arbor with MPI:
 is:
 
 .. code-block:: bash
@@ -394,17 +382,18 @@ is:
     export CXX=`which mpicxx`
 
     # configure with mpi, tbb threading and compiled with optimizations
-    cmake .. -DARB_DISTRIBUTED_MODEL=mpi \      # Use MPI
-             -DCMAKE_BUILD_TYPE=release  \      # Optimizations on
-             -DARB_THREADING_MODEL=tbb   \      # TBB threading library
+    cmake .. -DARB_WITH_MPI=ON \           # Use MPI
+             -DCMAKE_BUILD_TYPE=release    # Optimizations on
 
     # run unit tests for global communication on 2 MPI ranks
     mpirun -n 2 ./tests/global_communication.exe
 
-The example above set ``CC`` and ``CXX`` environment variables to use compiler
-wrappers provided by the MPI implementation. It is recommended to use compiler
-wrappers for MPI, unless you know what you are doing and have a specific use
-case or issue to work around.
+(Note that 'release' build is in fact the default configuration for Arbor.)
+
+The example above sets the ``CC`` and ``CXX`` environment variables to use compiler
+wrappers provided by the MPI implementation. While the configuration process
+will attempt to find MPI libraries and build options automatically, we recommend
+using the supplied MPI compiler wrappers in preference.
 
 .. Note::
     MPI distributions provide **compiler wrappers** for compiling MPI applications.
@@ -476,10 +465,8 @@ then build Arbor is:
     module swap PrgEnv-cray PrgEnv-gnu
     moudle swap gcc/7.1.0
     export CC=`which cc`; export CXX=`which CC`;
-    cmake .. -DARB_DISTRIBUTED_MODEL=mpi \      # MPI support
-             -DCMAKE_BUILD_TYPE=release  \      # optimized
-             -DARB_THREADING_MODEL=tbb   \      # tbb threading
-             -DARB_SYSTEM_TYPE=Cray             # turn on Cray specific options
+    cmake .. -DARB_WITH_MPI=ON           \      # MPI support
+             -DCMAKE_BUILD_TYPE=release         # optimized
 
 .. Note::
     If ``CRAYPE_LINK_TYPE`` isn't set, there will be warnings like the following when linking:
@@ -525,16 +512,18 @@ that has a different architecture to the compute nodes.
 When cross compiling, we have to take care that the *modcc* compiler, which is
 used to convert NMODL to C++/CUDA code, is able to run on the compilation node.
 
-By default, CMake looks for the *modcc* executable, ``modcc``, in paths
-specified by the ``PATH`` environment variable, and will use this executable if
-it finds it. Otherwise, the CMake script will build *modcc* from source. To
-ensure that cross compilation works, a copy of modcc that is compiled for the
-build system should be in ``PATH``.
+By default, building Arbor will build the ``modcc`` executable from source,
+and then use that to build the built-in mechanisms specified in NMODL. This
+behaviour can be overridden with the ``ARB_MODCC`` configuration option, for
+example:
+
+.. code-block:: bash
+
+   cmake .. -DARB_MODCC=path-to-local-modcc 
 
 Here we will use the example of compiling for Intel KNL on a Cray system, which
 has Intel Sandy Bridge CPUs on login nodes that don't support the AVX512
 instructions used by KNL.
-
 
 .. code-block:: bash
 
@@ -556,22 +545,19 @@ instructions used by KNL.
     cmake ..
     make -j modcc
 
-    # set PATH to find modcc
-    cd ..
-    export PATH=`pwd`/build_modcc/modcc:$PATH
-
     #
     #   Step 2: Build Arbor.
     #
 
+    cd ..
     mkdir build; cd build;
     # use the compiler wrappers to build Arbor
     export CC=`which cc`; export CXX=`which CC`;
-    cmake .. -DARB_DISTRIBUTED_MODEL=mpi    \
-             -DCMAKE_BUILD_TYPE=release     \
-             -DARB_THREADING_MODEL=tbb      \
-             -DARB_SYSTEM_TYPE=Cray         \
-             -DARB_ARCH=knl
+    cmake .. -DCMAKE_BUILD_TYPE=release           \
+             -DARB_WITH_MPI=ON                    \
+             -DARB_ARCH=knl                       \
+             -DARB_VECTORIZE=ON                   \
+             -DARB_MODCC=../build_modcc/bin/modcc
 
 
 .. Note::
@@ -633,39 +619,24 @@ and have to be turned on by setting the ``ARB_WITH_ASSERTIONS`` CMake option:
     cmake -DARB_WITH_ASSERTIONS=ON
 
 .. Note::
-    These assertions are in the form of ``EXPECTS`` statements inside the code,
+    These assertions are in the form of ``arb_assert`` macros inside the code,
     for example:
 
     .. code-block:: cpp
 
         void decrement_min_remaining() {
-            EXPECTS(min_remaining_steps_>0);
+            arb_assert(min_remaining_steps_>0);
             if (!--min_remaining_steps_) {
                 compute_min_remaining();
             }
         }
 
-    A failing ``EXPECT`` statement indicates that an error inside the Arbor
+    A failing ``arb_assert`` indicates that an error inside the Arbor
     library, caused either by a logic error in Arbor, or incorrectly checked user input.
 
     If this occurs, it is highly recommended that you attach the output to the
     `bug report <https://github.com/eth-cscs/arbor/issues>`_ you send to the Arbor developers!
 
-
-CMake CMP0023 Warning
----------------------
-
-On version 3.9 or greater CMake generates the following warning:
-
-.. code-block:: none
-
-    CMake Deprecation Warning at CMakeLists.txt:11 (cmake_policy):
-      The OLD behavior for policy CMP0023 will be removed from a future version
-      of CMake.
-
-This is caused because we have to work around conflicting modules in CMake, and
-isn't a problem. It will be fixed when we start using the built in support for
-CUDA introduced in CMake 3.9.
 
 CMake Git Submodule Warnings
 ----------------------------
