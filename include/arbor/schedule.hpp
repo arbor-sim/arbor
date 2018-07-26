@@ -49,8 +49,6 @@ public:
         return *this;
     }
 
-    using time_span = std::pair<const time_type*, const time_type*>;
-
     time_event_span events(time_type t0, time_type t1) {
         return impl_->events(t0, t1);
     }
