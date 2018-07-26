@@ -43,6 +43,7 @@ set(arbor_sources
     threading/cthread.cpp
     threading/threading.cpp
     thread_private_spike_store.cpp
+    tree.cpp
     util/hostname.cpp
     util/unwind.cpp
     version.cpp
@@ -58,6 +59,8 @@ if(ARB_WITH_CUDA)
         backends/gpu/managed_ptr.cpp
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_interleave.cu
+        backends/gpu/matrix_fine.cu
+        backends/gpu/matrix_fine.cpp
         backends/gpu/matrix_solve.cu
         backends/gpu/multi_event_stream.cu
         backends/gpu/shared_state.cu
