@@ -3,8 +3,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <arbor/distributed_context.hpp>
-
 #include "../gtest.h"
 
 #include "distributed_listener.hpp"

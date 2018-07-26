@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
         arb::execution_context context;
 #ifdef ARB_HAVE_MPI
         aux::with_mpi guard(&argc, &argv);
-        context.distributed = mpi_context(MPI_COMM_WORLD);
+        context.distributed = distributed_context_handle(new distributed_context(mpi_context(MPI_COMM_WORLD)));
 #endif
 #ifdef ARB_HAVE_PROFILING
         profile::profiler_initialize(context.thread_pool);

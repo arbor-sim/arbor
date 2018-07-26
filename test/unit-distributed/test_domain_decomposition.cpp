@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 

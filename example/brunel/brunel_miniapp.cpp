@@ -7,7 +7,6 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
@@ -192,7 +191,7 @@ int main(int argc, char** argv) {
     try {
 #ifdef ARB_MPI_ENABLED
         with_mpi guard(argc, argv, false);
-        context.distributed = mpi_context(MPI_COMM_WORLD);
+        context.distributed = distributed_context_handle(new distributed_context(mpi_context(MPI_COMM_WORLD)));
 #endif
 #ifdef ARB_HAVE_PROFILING
         profile::profiler_initialize(context.thread_pool);
