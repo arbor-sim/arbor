@@ -17,6 +17,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
+#include <arbor/version.hpp>
 
 
 #include <aux/ioutil.hpp>
@@ -37,7 +38,7 @@ int main(int argc, char** argv) {
         aux::with_mpi guard(&argc, &argv);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
-#ifdef ARB_HAVE_PROFILING
+#ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
         const bool is_root =  context.distributed.id()==0;
