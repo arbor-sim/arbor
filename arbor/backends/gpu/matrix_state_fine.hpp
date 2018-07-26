@@ -19,13 +19,6 @@
 namespace arb {
 namespace gpu {
 
-template <typename C>
-std::ostream& printt(const C& c, const char* s, std::ostream& o=std::cout) {
-    if (std::strlen(s)) o << s << ":";
-    for (auto x: c) o << " " << x;
-    return o;
-}
-
 // Helper type for branch meta data in setup phase of fine grained
 // matrix storage+solver.
 //
@@ -150,8 +143,6 @@ public:
         num_cells = cell_cv_divs.size()-1;
         unsigned num_branches = 0u;
         for (auto c: make_span(0u, num_cells)) {
-            //std::cout << "CELL " << c << "\n";
-
             // build the parent index for cell c
             auto cell_start = cell_cv_divs[c];
             std::vector<size_type> cell_p =
@@ -307,9 +298,6 @@ public:
             invariant_d_tmp[i] += gij;
             invariant_d_tmp[p[i]] += gij;
         }
-
-        std::cout << "data size  : " << data_size << std::endl;
-        std::cout << "matrix size: " << matrix_size << std::endl;
 
         // the matrix components u, d and rhs are stored in packed form
         auto nan = std::numeric_limits<double>::quiet_NaN();

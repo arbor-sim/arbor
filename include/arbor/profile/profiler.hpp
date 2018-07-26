@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/execution_context.hpp>
 #include <arbor/profile/timer.hpp>
 
 namespace arb {
@@ -32,6 +33,7 @@ struct profile {
 };
 
 void profiler_clear();
+void profiler_initialize(task_system_handle& ts);
 void profiler_enter(std::size_t region_id);
 void profiler_leave();
 

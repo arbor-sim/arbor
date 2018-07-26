@@ -104,7 +104,7 @@ tree::iarray depth_from_root(const tree& t) {
     tree::iarray depth(t.num_segments());
     depth[0] = 0;
     for (auto c: t.children(0)) {
-        impl::depth_from_root(t, depth, c);
+        depth_from_root(t, depth, c);
     }
 
     return depth;

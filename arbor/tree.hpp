@@ -65,20 +65,6 @@ private:
     iarray parents_;
 };
 
-namespace impl{
-
-// recursive helper for the depth_from_root() below
-static
-void depth_from_root(const tree& t, tree::iarray& depth, tree::int_type segment) {
-    auto d = depth[t.parent(segment)] + 1;
-    depth[segment] = d;
-    for(auto c : t.children(segment)) {
-        depth_from_root(t, depth, c);
-    }
-}
-
-} //namespace impl
-
 // Calculates the depth of each branch from the root of a cell segment tree.
 // The root has depth 0, it's children have depth 1, and so on.
 tree::iarray depth_from_root(const tree& t);
