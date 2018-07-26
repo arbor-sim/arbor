@@ -2,20 +2,23 @@
 #include <set>
 #include <vector>
 
+#include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/domain_decomposition.hpp>
-#include <arbor/recipe.hpp>
+#include <arbor/math.hpp>
 
-#include "cell_group.hpp"
-#include "cell_group_factory.hpp"
+#include "io/trace.hpp"
 #include "merge_events.hpp"
-#include "util/filter.hpp"
-#include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
 
 namespace arb {
 
 namespace impl {
+
+// A postsynaptic spike event that has delivery time set to
+// terminal_time, used as a sentinel in `tourney_tree`.
+
+static constexpr spike_event terminal_pse{cell_member_type{0,0}, terminal_time, 0};
+
 
 // The tournament tree data structure is used to merge k sorted lists of events.
 // See online for high-level information about tournament trees.
@@ -30,25 +33,27 @@ namespace impl {
 // unsigned is used for storing the index, because if drawing events from more
 // event generators than can be counted using an unsigned a complete redesign
 // will be needed.
-tourney_tree::tourney_tree(std::vector<event_generator>& input):
+
+tourney_tree::tourney_tree(std::vector<event_span>& input):
     input_(input),
     n_lanes_(input_.size())
 {
-    // Must have at least 1 queue
-    arb_assert(n_lanes_);
-    // Maximum value in unsigned limits how many queues we can have
-    arb_assert(n_lanes_<(1u<<(sizeof(unsigned)*8u-1u)));
+    // Must have at least 1 queue.
+    arb_assert(n_lanes_>=1u);
 
-    leaves_ = next_power_2(n_lanes_);
-    nodes_ = 2u*(leaves_-1u)+1u; // 2*l-1 with overflow protection
+    leaves_ = math::next_pow2(n_lanes_);
+
+    // Must be able to fit leaves in unsigned count.
+    arb_assert(leaves_>=n_lanes_);
+    nodes_ = 2*leaves_-1;
 
     // Allocate space for the tree nodes
     heap_.resize(nodes_);
     // Set the leaf nodes
     for (auto i=0u; i<leaves_; ++i) {
         heap_[leaf(i)] = i<n_lanes_?
-            key_val(i, input[i].front()):
-            key_val(i, make_terminal_pse()); // null leaf node
+            key_val(i, input[i].empty()? terminal_pse: input[i].front()):
+            key_val(i, terminal_pse); // null leaf node
     }
     // Walk the tree to initialize the non-leaf nodes
     setup(0);
@@ -70,10 +75,6 @@ bool tourney_tree::empty() const {
     return event(0).time == terminal_time;
 }
 
-bool tourney_tree::empty(time_type t) const {
-    return event(0).time >= t;
-}
-
 spike_event tourney_tree::head() const {
     return event(0);
 }
@@ -83,10 +84,15 @@ spike_event tourney_tree::head() const {
 void tourney_tree::pop() {
     unsigned lane = id(0);
     unsigned i = leaf(lane);
+
     // draw the next event from the input lane
-    input_[lane].pop();
-    // place event the leaf node for this lane
-    event(i) = input_[lane].front();
+    auto& in = input_[lane];
+
+    if (!in.empty()) {
+        ++in.left;
+    }
+
+    event(i) = in.empty()? terminal_pse: in.front();
 
     // re-heapify the tree with a single walk from leaf to root
     while ((i=parent(i))) {
@@ -138,83 +144,16 @@ const spike_event& tourney_tree::event(unsigned i) const {
     return heap_[i].second;
 }
 
-unsigned tourney_tree::next_power_2(unsigned x) const {
-    unsigned n = 1;
-    while (n<x) n<<=1;
-    return n;
-}
-
 } // namespace impl
 
-void merge_events(time_type t0, time_type t1,
-                  const pse_vector& lc, pse_vector& events,
-                  std::vector<event_generator>& generators,
-                  pse_vector& lf)
-{
-    using std::distance;
-    using std::lower_bound;
-
-    PE(communication_enqueue_sort);
-
-    // Sort events from the communicator in place.
-    util::sort(events);
-    // Clear lf to store merged list.
-    lf.clear();
-
+void tree_merge_events(std::vector<event_span>& sources, pse_vector& out) {
+    PE(communication_enqueue_tree);
+    impl::tourney_tree tree(sources);
+    while (!tree.empty()) {
+        out.push_back(tree.head());
+        tree.pop();
+    }
     PL();
-
-
-    // Merge the incoming event sequences into a single vector in lf
-    if (generators.size()) {
-        // Handle the case where the cell has event generators.
-        // This is performed in two steps:
-        //  Step 1 : Use tournament tree to merge all events in lc, events and
-        //           generators to be delivered in the time interval [t₀, t₁).
-        //  Step 2 : Use std::merge to append events in lc and events with
-        //           delivery times in the interval [t₁, ∞).
-        arb_assert(generators.size()>2u);
-
-        PE(communication_enqueue_setup);
-        // Make an event generator with all the events in events.
-        generators[0] = seq_generator<pse_vector>(events);
-
-        // Make an event generator with all the events in lc with time >= t0
-        auto lc_it = lower_bound(lc.begin(), lc.end(), t0, event_time_less());
-        auto lc_range = util::make_range(lc_it, lc.end());
-        generators[1] = seq_generator<decltype(lc_range)>(lc_range);
-        PL();
-
-        PE(communication_enqueue_tree);
-        // Perform k-way merge of all events in events, lc and the generators
-        // that are due to be delivered in the interval [t₀, t₁)
-        impl::tourney_tree tree(generators);
-        while (!tree.empty(t1)) {
-            lf.push_back(tree.head());
-            tree.pop();
-        }
-        PL();
-
-        PE(communication_enqueue_merge);
-        // Find first event in lc with delivery time >= t1
-        lc_it = lower_bound(lc.begin(), lc.end(), t1, event_time_less());
-        // Find first event in events with delivery time >= t1
-        auto ev_it = lower_bound(events.begin(), events.end(), t1, event_time_less());
-        const auto m = lf.size();
-        const auto n = m + distance(lc_it, lc.end()) + distance(ev_it, events.end());
-        lf.resize(n);
-        std::merge(ev_it, events.end(), lc_it, lc.end(), lf.begin()+m);
-        PL();
-    }
-    else {
-        PE(communication_enqueue_merge);
-        // Handle the case where the cell has no event generators: only events
-        // in lc and lf with delivery times >= t0 must be merged, which can be
-        // handles with a single call to std::merge.
-        auto pos = std::lower_bound(lc.begin(), lc.end(), t0, event_time_less());
-        lf.resize(events.size()+distance(pos, lc.end()));
-        std::merge(events.begin(), events.end(), pos, lc.end(), lf.begin());
-        PL();
-    }
 }
 
 } // namespace arb

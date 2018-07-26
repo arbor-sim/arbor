@@ -126,12 +126,10 @@ public:
         std::mt19937_64 G;
         G.seed(gid + seed_);
 
-        using pgen = poisson_generator<std::mt19937_64>;
-
         time_type t0 = 0;
         cell_member_type target{gid, 0};
 
-        gens.emplace_back(pgen(target, weight_ext_, G, t0, lambda_));
+        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
         return gens;
     }
 

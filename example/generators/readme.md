@@ -92,9 +92,6 @@ The implementation of this with hard-coded frequencies and weights is:
         // The type of random number generator to use.
         using RNG = std::mt19937_64;
 
-        // The poisson_generator is templated on the random number generator type.
-        using pgen = arb::poisson_generator<RNG>;
-
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
 
@@ -109,15 +106,16 @@ The implementation of this with hard-coded frequencies and weights is:
 
         // Add excitatory generator
         gens.emplace_back(
-            pgen(cell_member_type{0,0}, // Target synapse (gid, local_id).
+	    arb::poisson_generator(
+                 cell_member_type{0,0}, // Target synapse (gid, local_id).
                  w_e,                   // Weight of events to deliver
-                 RNG(29562872),         // Random number generator to use
                  t0,                    // Events start being delivered from this time
-                 lambda_e));            // Expected frequency (events per ms)
+                 lambda_e,              // Expected frequency (events per ms)
+                 RNG(29562872)));       // Random number generator to use
 
         // Add inhibitory generator
         gens.emplace_back(
-            pgen(cell_member_type{0,0}, w_i, RNG(86543891), t0, lambda_i));
+            arb::poisson_generator(cell_member_type{0,0}, w_i, t0, lambda_i, RNG(86543891)));
 
         return gens;
     }

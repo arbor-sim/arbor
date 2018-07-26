@@ -7,8 +7,8 @@
 #include <arbor/event_generator.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/morphology.hpp>
+#include <arbor/schedule.hpp>
 #include <arbor/spike_source_cell.hpp>
-#include <arbor/time_sequence.hpp>
 
 
 #include "io.hpp"
@@ -87,9 +87,9 @@ public:
     }
 
     util::unique_any get_cell_description(cell_gid_type i) const override {
-        // The last 'cell' is a spike source cell.
+        // The last 'cell' is a spike source cell, producing one spike at t = 0.
         if (i == ncell_) {
-            return util::unique_any(spike_source_cell{regular_time_seq(0.0, 0.1, 0.1)});
+            return util::unique_any(spike_source_cell{explicit_schedule({0.})});
         }
 
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
