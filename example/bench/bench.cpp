@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 #ifdef ARB_HAVE_PROFILING
         profile::profiler_initialize(context.thread_pool);
 #endif
-        const bool is_root =  context.distributed.id()==0;
+        const bool is_root =  context.distributed.get()->id()==0;
 
         std::cout << aux::mask_stream(is_root);
 
@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
-        profile::meter_manager meters(&context.distributed);
+        profile::meter_manager meters(context.distributed);
         meters.start();
 
         // Create an instance of our recipe.

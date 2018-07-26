@@ -1,6 +1,7 @@
 #include <arbor/profile/timer.hpp>
 
 #include <arbor/profile/meter_manager.hpp>
+#include <arbor/execution_context.hpp>
 
 #include "memory_meter.hpp"
 #include "power_meter.hpp"
@@ -18,23 +19,23 @@ using util::strprintf;
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
-                         const distributed_context* ctx):
+                         distributed_context_handle& ctx):
     name(std::move(n)), units(std::move(u))
 {
     // Assert that the same number of readings were taken on every domain.
     const auto num_readings = readings.size();
-    if (ctx->min(num_readings)!=ctx->max(num_readings)) {
+    if (ctx.get()->min(num_readings)!=ctx.get()->max(num_readings)) {
         throw std::out_of_range(
             "the number of checkpoints in the \""+name+"\" meter do not match across domains");
     }
 
     // Gather across all of the domains onto the root domain.
     for (auto r: readings) {
-        measurements.push_back(ctx->gather(r, 0));
+        measurements.push_back(ctx.get()->gather(r, 0));
     }
 }
 
-meter_manager::meter_manager(const distributed_context* ctx): glob_ctx_(ctx) {
+meter_manager::meter_manager(distributed_context_handle& ctx): glob_ctx_(ctx) {
     if (auto m = make_memory_meter()) {
         meters_.push_back(std::move(m));
     }
@@ -57,7 +58,7 @@ void meter_manager::start() {
     }
 
     // Enforce a global barrier after taking the time stamp
-    glob_ctx_->barrier();
+    glob_ctx_.get()->barrier();
 
     start_time_ = timer_type::tic();
 };
@@ -76,7 +77,7 @@ void meter_manager::checkpoint(std::string name) {
     }
 
     // Synchronize all domains before setting start time for the next interval
-    glob_ctx_->barrier();
+    glob_ctx_.get()->barrier();
     start_time_ = timer<>::tic();
 }
 
@@ -92,7 +93,7 @@ const std::vector<double>& meter_manager::times() const {
     return times_;
 }
 
-const distributed_context* meter_manager::context() const {
+distributed_context_handle meter_manager::context() const {
     return glob_ctx_;
 }
 

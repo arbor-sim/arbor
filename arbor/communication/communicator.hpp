@@ -46,10 +46,10 @@ public:
                           const domain_decomposition& dom_dec,
                           const execution_context* ctx)
     {
-        distributed_ = &ctx->distributed;
+        distributed_ = ctx->distributed;
         thread_pool_ = ctx->thread_pool;
 
-        num_domains_ = distributed_->size();
+        num_domains_ = distributed_.get()->size();
         num_local_groups_ = dom_dec.groups.size();
         num_local_cells_ = dom_dec.num_local_cells;
 
@@ -146,7 +146,7 @@ public:
             local_min = std::min(local_min, con.delay());
         }
 
-        return distributed_->min(local_min);
+        return distributed_.get()->min(local_min);
     }
 
     /// Perform exchange of spikes.
@@ -161,7 +161,7 @@ public:
 
         PE(communication_exchange_gather);
         // global all-to-all to gather a local copy of the global spike list on each node.
-        auto global_spikes = distributed_->gather_spikes(local_spikes);
+        auto global_spikes = distributed_.get()->gather_spikes(local_spikes);
         num_spikes_ += global_spikes.size();
         PL();
 
@@ -261,7 +261,7 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    const distributed_context* distributed_;
+    distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 };

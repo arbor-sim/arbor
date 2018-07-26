@@ -197,11 +197,11 @@ int main(int argc, char** argv) {
 #ifdef ARB_HAVE_PROFILING
         profile::profiler_initialize(context.thread_pool);
 #endif
-        arb::profile::meter_manager meters(&context.distributed);
+        arb::profile::meter_manager meters(context.distributed);
         meters.start();
-        std::cout << aux::mask_stream(context.distributed.id()==0);
+        std::cout << aux::mask_stream(context.distributed.get()->id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.distributed.id()==0);
+        io::cl_options options = io::read_options(argc, argv, context.distributed.get()->id()==0);
         proc_allocation nd = local_allocation();
         banner(nd, &context);
 
@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             using std::ios_base;
 
-            auto rank = context.distributed.id();
+            auto rank = context.distributed.get()->id();
             aux::path p = options.output_path;
             p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
 
@@ -276,7 +276,7 @@ int main(int argc, char** argv) {
 
         auto report = profile::make_meter_report(meters);
         std::cout << report;
-        if (context.distributed.id()==0) {
+        if (context.distributed.get()->id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -285,7 +285,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << aux::mask_stream(context.distributed.id()==0);
+        std::cerr << aux::mask_stream(context.distributed.get()->id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -299,8 +299,8 @@ int main(int argc, char** argv) {
 void banner(proc_allocation nd, const execution_context* ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->distributed.size()
-              << " (" << ctx->distributed.name() << ")\n";
+    std::cout << "  - distributed : " << ctx->distributed.get()->size()
+              << " (" << ctx->distributed.get()->name() << ")\n";
     std::cout << "  - threads     : " << nd.num_threads
               << " (" << arb::thread_implementation() << ")\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
