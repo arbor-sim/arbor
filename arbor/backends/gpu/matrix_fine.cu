@@ -10,6 +10,78 @@ namespace gpu {
 
 namespace kernels {
 
+//
+// gather and scatter kernels
+//
+
+// to[i] = from[p[i]]
+template <typename T, typename I>
+__global__
+void gather(const T* from, T* to, const I* p, unsigned n) {
+    unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
+
+    if (i<n) {
+        to[i] = from[p[i]];
+    }
+}
+
+// to[p[i]] = from[i]
+template <typename T, typename I>
+__global__
+void scatter(const T* from, T* to, const I* p, unsigned n) {
+    unsigned i = threadIdx.x + blockDim.x*blockIdx.x;
+
+    if (i<n) {
+        to[p[i]] = from[i];
+    }
+}
+
+/// GPU implementatin of Hines matrix assembly.
+/// Fine layout.
+/// For a given time step size dt:
+///     - use the precomputed alpha and alpha_d values to construct the diagonal
+///       and off diagonal of the symmetric Hines matrix.
+///     - compute the RHS of the linear system to solve.
+template <typename T, typename I>
+__global__
+void assemble_matrix_fine(
+        T* d,
+        T* rhs,
+        const T* invariant_d,
+        const T* voltage,
+        const T* current,
+        const T* cv_capacitance,
+        const T* area,
+        const I* cv_to_cell,
+        const T* dt_cell,
+        const I* perm,
+        unsigned n)
+{
+    const unsigned tid = threadIdx.x + blockDim.x*blockIdx.x;
+
+    if (tid<n) {
+        auto cid = cv_to_cell[tid];
+        auto dt = dt_cell[cid];
+
+        if (dt>0) {
+            // The 1e-3 is a constant of proportionality required to ensure that the
+            // conductance (gi) values have units μS (micro-Siemens).
+            // See the model documentation in docs/model for more information.
+            T factor = 1e-3/dt;
+
+            const auto gi = factor * cv_capacitance[tid];
+            const auto pid = perm[tid];
+            d[pid] = gi + invariant_d[tid];
+            rhs[pid] = gi*voltage[tid] - T(1e-3)*area[tid]*current[tid];
+        }
+        else {
+            const auto pid = perm[tid];
+            d[pid] = 0;
+            rhs[pid] = voltage[tid];
+        }
+    }
+}
+
 /// GPU implementation of Hines Matrix solver.
 /// Fine-grained tree based solver.
 template <typename T>
@@ -104,6 +176,53 @@ void solve_matrix_fine(
 }
 
 } // namespace kernels
+
+void gather(
+    const fvm_value_type* from,
+    fvm_value_type* to,
+    const fvm_index_type* p,
+    unsigned n)
+{
+    constexpr unsigned blockdim = 128;
+    const unsigned griddim = impl::block_count(n, blockdim);
+
+    kernels::gather<<<blockdim, griddim>>>(from, to, p, n);
+}
+
+void scatter(
+    const fvm_value_type* from,
+    fvm_value_type* to,
+    const fvm_index_type* p,
+    unsigned n)
+{
+    constexpr unsigned blockdim = 128;
+    const unsigned griddim = impl::block_count(n, blockdim);
+
+    kernels::scatter<<<blockdim, griddim>>>(from, to, p, n);
+}
+
+
+void assemble_matrix_fine(
+    fvm_value_type* d,
+    fvm_value_type* rhs,
+    const fvm_value_type* invariant_d,
+    const fvm_value_type* voltage,
+    const fvm_value_type* current,
+    const fvm_value_type* cv_capacitance,
+    const fvm_value_type* area,
+    const fvm_index_type* cv_to_cell,
+    const fvm_value_type* dt_cell,
+    const fvm_index_type* perm,
+    unsigned n)
+{
+    const unsigned block_dim = 128;
+    const unsigned num_blocks = impl::block_count(n, block_dim);
+
+    kernels::assemble_matrix_fine<<<num_blocks, block_dim>>>(
+        d, rhs, invariant_d, voltage, current, cv_capacitance, area,
+        cv_to_cell, dt_cell,
+        perm, n);
+}
 
 void solve_matrix_fine(
     fvm_value_type* rhs,

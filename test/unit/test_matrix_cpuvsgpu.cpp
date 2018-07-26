@@ -69,22 +69,25 @@ TEST(matrix, assemble)
     //           6
     //            \.
     //             7
+    // p_3: 1 branch, 1 compartment
+    //
+    // 0
 
     // The parent indexes that define the two matrix structures
     std::vector<std::vector<I>>
-        p_base = { {0,0,1,2,2,4}, {0,0,1,2,3,3,2,6} };
+        p_base = { {0,0,1,2,2,4}, {0,0,1,2,3,3,2,6}, {0} };
 
     // Make a set of matrices based on repeating this pattern.
     // We assign the patterns round-robin, i.e. so that the input
     // matrices will have alternating sizes of 6 and 8, which will
     // test the solver with variable matrix size, and exercise
     // solvers that reorder matrices according to size.
-    const int num_mtx = 8;
+    const int num_mtx = 100;
 
     std::vector<I> p;
     std::vector<I> cell_index;
     for (auto m=0; m<num_mtx; ++m) {
-        auto &p_ref = p_base[m%2];
+        auto &p_ref = p_base[m%p_base.size()];
         auto first = p.size();
         for (auto i: p_ref) {
             p.push_back(i + first);

@@ -43,6 +43,7 @@ set(arbor_sources
     threading/cthread.cpp
     threading/threading.cpp
     thread_private_spike_store.cpp
+    tree.cpp
     util/hostname.cpp
     util/unwind.cpp
     version.cpp

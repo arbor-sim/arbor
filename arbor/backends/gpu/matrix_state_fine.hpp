@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include <vector>
 #include <type_traits>
 
@@ -16,6 +18,13 @@
 
 namespace arb {
 namespace gpu {
+
+template <typename C>
+std::ostream& printt(const C& c, const char* s, std::ostream& o=std::cout) {
+    if (std::strlen(s)) o << s << ":";
+    for (auto x: c) o << " " << x;
+    return o;
+}
 
 // Helper type for branch meta data in setup phase of fine grained
 // matrix storage+solver.
@@ -43,28 +52,25 @@ namespace gpu {
 struct branch {
     unsigned id;         // branch id
     unsigned parent_id;  // parent branch id
-    unsigned depth;      // depth from leaf
-    unsigned parent_idx;
-    unsigned start_idx;
-    unsigned length;
+    unsigned parent_idx; //
+    unsigned start_idx;  // the index of the first node in the input parent index
+    unsigned length;     // the number of nodes in the branch
 };
 
-// Order branches by
-//  - ascending depth depth
+// order branches by:
 //  - descending length
 //  - ascending id
 inline
 bool operator<(const branch& lhs, const branch& rhs) {
-    return lhs.depth<rhs.depth || lhs.length>rhs.length || lhs.id<rhs.id;
+    return lhs.length>rhs.length || lhs.id<rhs.id;
 }
 
 inline
 std::ostream& operator<<(std::ostream& o, branch b) {
     return o << "[" << b.id
-        << ": dp " << b.depth
-        << ", ln " << b.length
-        << ", pt " << b.parent_idx
-        << ", st " << b.start_idx
+        << ", len " << b.length
+        << ", pid " << b.parent_idx
+        << ", sta " << b.start_idx
         << "]";
 }
 
@@ -101,7 +107,7 @@ public:
     array solution_;
 
     // the most branches per level
-    unsigned max_branches;
+    unsigned max_branches_per_level;
 
     // number of levels
     unsigned num_levels;
@@ -137,12 +143,6 @@ public:
 
         // for now we have single cell per cell group
         arb_assert(cell_cv_divs.size()==2);
-        /* TODO: size_type was uint32_t, replaced by int. Will this break us?
-         * simplest fix is to make a copy of p converted to unsigned.
-        static_assert(
-            std::is_same<cell_lid_type, size_type>::value,
-            "cell_lid_type required by cell tree");
-        */
 
         num_levels = 0u;
         std::vector<std::vector<branch>> branch_map;
@@ -150,6 +150,8 @@ public:
         num_cells = cell_cv_divs.size()-1;
         unsigned num_branches = 0u;
         for (auto c: make_span(0u, num_cells)) {
+            //std::cout << "CELL " << c << "\n";
+
             // build the parent index for cell c
             auto cell_start = cell_cv_divs[c];
             std::vector<size_type> cell_p =
@@ -158,18 +160,22 @@ public:
                         util::subrange_view(p, cell_cv_divs[c], cell_cv_divs[c+1]),
                         [cell_start](size_type i) {return i-cell_start;}));
 
-            // build tree structure that describes the branch topology from parent index.
-            auto cell_tree = tree(cell_p);
-
-            // find the index of the first entry, and depth, of each branch
+            // find the index of the first node for each branch
             auto branch_starts = algorithms::branches(cell_p);
-            auto depths = cell_tree.depth_from_root();
 
-            // convert to depth from leaf
-            num_levels = std::max(num_levels, util::max_value(depths)+1u);
-            for (auto& d: depths) {
-                d = num_levels-d-1;
-            }
+            // find the parent index of branches
+            // we need to convert to cell_lid_type, required to construct a tree.
+            std::vector<cell_lid_type> branch_p =
+                util::assign_from(
+                    algorithms::tree_reduce(cell_p, branch_starts));
+            // build tree structure that describes the branch topology
+            auto cell_tree = tree(branch_p);
+
+            auto depths = depth_from_root(cell_tree);
+
+            // calculate the number of levels in this cell
+            auto cell_num_levels = util::max_value(depths)+1u;
+            num_levels = std::max(num_levels, cell_num_levels);
 
             // build branch_map:
             // branch_map[i] is a list of branch meta-data for branches with depth i
@@ -177,9 +183,10 @@ public:
             if (num_levels > branch_map.size()) {
                 branch_map.resize(num_levels);
             }
-            for (auto i: make_span(0, num_cell_branches)) {
+            for (auto i: make_span(num_cell_branches)) {
                 branch b;
-                b.depth = depths[i];
+                auto depth = depths[i];
+                // give the branch a unique id number
                 b.id = i + num_branches;
                 // take care to mark branches with no parents with npos
                 b.parent_id = cell_tree.parent(i)==cell_tree.no_parent?
@@ -187,10 +194,12 @@ public:
                 b.start_idx = branch_starts[i] + cell_start;
                 b.parent_idx = p[b.start_idx] + cell_start;
                 b.length = branch_starts[i+1] - branch_starts[i];
-                branch_map[b.depth].push_back(b);
+                branch_map[depth].push_back(b);
             }
             num_branches += num_cell_branches;
         }
+
+        std::reverse(branch_map.begin(), branch_map.end());
 
         // Sort all branches on each level in descending order of length.
         // Later, branches will be partitioned over thread blocks, and we will
@@ -208,13 +217,13 @@ public:
 
         // Helper for recording location of a branch once packed.
         struct branch_loc {
-            unsigned level;
-            unsigned index;
+            unsigned level; // the level containing the branch
+            unsigned index; // the index of the branch on that level
         };
 
         // branch_locs will hold the location information for each branch.
         std::vector<branch_loc> branch_locs(num_branches);
-        for (unsigned l: make_span(0u, num_levels)) {
+        for (unsigned l: make_span(num_levels)) {
             const auto& branches = branch_map[l];
 
             // Record the location information
@@ -255,12 +264,16 @@ public:
         // set matrix state
         matrix_size = p.size();
         data_size = pos;
-        max_branches = levels.front().num_branches;
+        max_branches_per_level = std::accumulate(
+                levels.begin(), levels.end(), 0u,
+                [](unsigned value, const level& l) {
+                    return std::max(value, unsigned(l.num_branches));});
+
 
         // form the permutation index used to reorder vectors to/from the
         // ordering used by the fine grained matrix storage.
         std::vector<size_type> perm_tmp(matrix_size);
-        for (auto i: make_span(0u, num_levels)) {
+        for (auto i: make_span(num_levels)) {
             const auto& l = levels[i];
             for (auto j: make_span(0u, l.num_branches)) {
                 const auto& b = branch_map[i][j];
@@ -281,18 +294,22 @@ public:
         // cv_capacitance   : flat
         // invariant_d      : flat
         // solution_        : flat
-        // cv_to_cell       : flat?
+        // cv_to_cell       : flat
+        // area             : flat
 
         // the invariant part of d is stored in in flat form
         std::vector<value_type> invariant_d_tmp(matrix_size, 0);
         managed_vector<value_type> u_tmp(matrix_size, 0);
-        for (auto i: util::make_span(1u, size())) {
+        for (auto i: make_span(1u, size())) {
             auto gij = face_conductance[i];
 
             u_tmp[i] = -gij;
             invariant_d_tmp[i] += gij;
             invariant_d_tmp[p[i]] += gij;
         }
+
+        std::cout << "data size  : " << data_size << std::endl;
+        std::cout << "matrix size: " << matrix_size << std::endl;
 
         // the matrix components u, d and rhs are stored in packed form
         auto nan = std::numeric_limits<double>::quiet_NaN();
@@ -303,8 +320,9 @@ public:
         // transform u_tmp values into packed u vector.
         flat_to_packed(u_tmp, u);
 
-        // the invariant part of d and the solution are in flat form
+        // the invariant part of d, cv_area and the solution are in flat form
         solution_ = array(matrix_size, 0);
+        cv_area = memory::make_const_view(area);
 
         // the cv_capacitance can be copied directly because it is
         // to be stored in flat format
@@ -319,6 +337,16 @@ public:
             ++ci;
         }
         cv_to_cell = memory::make_const_view(cv_to_cell_tmp);
+
+        // TODO: this enforces that the maximum number of branches per level
+        // does not exceed 1024, which is the maximum number of threads per
+        // thread block on an NVIDIA GPU. To remove this, we need to extend
+        // the current implementation to use more than one thread block.
+        if (max_branches_per_level>1024) {
+            throw std::runtime_error(
+                "matrix_fine does not support more than 1024 branches per level, attempted to use:"
+                + std::to_string(max_branches_per_level));
+        }
     }
 
     // Assemble the matrix
@@ -327,33 +355,24 @@ public:
     //   voltage [mV]
     //   current [nA]
     void assemble(const_view dt_cell, const_view voltage, const_view current) {
-        const unsigned n = size();
-
-        // TODO: call assemble kernel via C-prototype defined in matrix_flat.hpp
-        // TODO: write assemble kernel + C-prototype
-        /*
-        const unsigned block_dim = 128;
-        const unsigned num_blocks = impl::block_count(n, block_dim);
-        assemble_matrix_fine<value_type, size_type><<<num_blocks, block_dim>>>(
-            d.data(), rhs.data(), invariant_d.data(), voltage.data(),
-            current.data(), cv_capacitance.data(), perm.data(),
-            cv_to_cell.data(), dt_cell.data(), n);
-        */
+        assemble_matrix_fine(
+            d.data(),
+            rhs.data(),
+            invariant_d.data(),
+            voltage.data(),
+            current.data(),
+            cv_capacitance.data(),
+            cv_area.data(),
+            cv_to_cell.data(),
+            dt_cell.data(),
+            perm.data(),
+            size());
     }
 
     void solve() {
-        // n = maximum number of blocks on any level
-        auto max_branches_per_level = std::accumulate(
-                levels.begin(), levels.end(), 0u,
-                [](unsigned value, const level& l) {
-                    return std::max(value, unsigned(l.num_branches));});
-
-        // TODO: call solve kernel via C-prototype defined in matrix_flat.hpp
-        /*
-        solve_matrix_fine<<<1, n>>>(
+        solve_matrix_fine(
             rhs.data(), d.data(), u.data(), levels.data(),
-            unsigned(levels.size()), num_cells, data_size);
-        */
+            num_cells, unsigned(levels.size()), data_size, max_branches_per_level);
 
         // unpermute the solution
         packed_to_flat(rhs, solution_);
@@ -367,34 +386,16 @@ public:
     void flat_to_packed(const VFrom& from, VTo& to ) {
         arb_assert(from.size()==matrix_size);
         arb_assert(to.size()==data_size);
-        const auto n = from.size();
 
-        // TODO: call C wrapper for scatter, defined in ??
-
-        /*
-        constexpr unsigned blockdim = 256;
-        const unsigned griddim = impl::block_count(n, blockdim);
-
-        //for (i=0:n-1) to[perm[i]] = from[i];
-        scatter<<<blockdim, griddim>>>(from.data(), to.data(), perm.data(), n);
-        */
+        scatter(from.data(), to.data(), perm.data(), perm.size());
     }
 
     template <typename VFrom, typename VTo>
     void packed_to_flat(const VFrom& from, VTo& to ) {
         arb_assert(from.size()==data_size);
         arb_assert(to.size()==matrix_size);
-        const unsigned n = to.size();
 
-        // TODO: call C wrapper for gather, defined in ??
-
-        /*
-        constexpr unsigned blockdim = 256;
-        const unsigned griddim = impl::block_count(n, blockdim);
-
-        //for (i=0:n-1) to[i] = from[perm[i]];
-        gather<<<blockdim, griddim>>>(from.data(), to.data(), perm.data(), n);
-        */
+        gather(from.data(), to.data(), perm.data(), perm.size());
     }
 
 private:
