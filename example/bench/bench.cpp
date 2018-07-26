@@ -34,7 +34,7 @@ namespace profile = arb::profile;
 int main(int argc, char** argv) {
     try {
         arb::execution_context context;
-#ifdef ARB_HAVE_MPI
+#ifdef ARB_MPI_ENABLED
         aux::with_mpi guard(&argc, &argv);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
