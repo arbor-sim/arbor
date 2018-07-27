@@ -40,8 +40,8 @@ set(arbor_sources
     spike_source_cell_group.cpp
     swcio.cpp
     threadinfo.cpp
-    threading/cthread.cpp
-    threading/threading.cpp
+        threading/threading.cpp
+        threading/thread_info.cpp
     thread_private_spike_store.cpp
     util/hostname.cpp
     util/unwind.cpp

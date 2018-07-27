@@ -6,10 +6,9 @@
 #include <iostream>
 #include <thread>
 
-#include <arbor/threadinfo.hpp>
 #include <arbor/version.hpp>
 
-#include "threading/cthread.hpp"
+#include "threading/threading.hpp"
 
 #include <benchmark/benchmark.h>
 

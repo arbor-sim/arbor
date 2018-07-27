@@ -19,7 +19,7 @@
 #include "connection.hpp"
 #include "event_queue.hpp"
 #include "profile/profiler_macro.hpp"
-#include "threading/threading.hpp"
+#include "threading/thread_info.hpp"
 #include "util/double_buffer.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"

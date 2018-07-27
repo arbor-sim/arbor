@@ -1,7 +1,6 @@
 #include <arbor/domain_decomposition.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/execution_context.hpp>
-#include <threading/cthread.hpp>
+#include <threading/threading.hpp>
 
 #include "hardware/node_info.hpp"
 

@@ -7,7 +7,7 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/spike_event.hpp>
-#include <threading/cthread.hpp>
+#include <threading/threading.hpp>
 
 #include "communication/communicator.hpp"
 #include "util/filter.hpp"

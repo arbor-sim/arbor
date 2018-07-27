@@ -12,31 +12,8 @@
 
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
-#include "threading/cthread.hpp"
+#include "threading/threading.hpp"
 #include "common.hpp"
-
-/// tests the sort implementation in threading
-/// Not parallel
-TEST(algorithms, parallel_sort)
-{
-    auto n = 10000;
-    std::vector<int> v(n);
-    std::iota(v.begin(), v.end(), 1);
-
-    // intialize with the default random seed
-    std::shuffle(v.begin(), v.end(), std::mt19937());
-
-    // assert that the original vector has in fact been permuted
-    EXPECT_FALSE(std::is_sorted(v.begin(), v.end()));
-
-    arb::threading::sort(v);
-
-    EXPECT_TRUE(std::is_sorted(v.begin(), v.end()));
-    for(auto i=0; i<n; ++i) {
-       EXPECT_EQ(i+1, v[i]);
-   }
-}
-
 
 TEST(algorithms, sum)
 {

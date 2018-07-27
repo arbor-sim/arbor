@@ -7,7 +7,7 @@
 #include <arbor/spike.hpp>
 #include <arbor/execution_context.hpp>
 
-#include "threading/threading.hpp"
+#include "threading/thread_info.hpp"
 
 namespace arb {
 

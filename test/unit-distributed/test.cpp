@@ -6,7 +6,6 @@
 #include "../gtest.h"
 
 #include <arbor/execution_context.hpp>
-#include "arbor/threadinfo.hpp"
 
 #include <aux/ioutil.hpp>
 #include <aux/tinyopt.hpp>

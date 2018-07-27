@@ -1,6 +1,5 @@
 #include "../gtest.h"
 #include "common.hpp"
-#include <arbor/threadinfo.hpp>
 #include <arbor/execution_context.hpp>
 
 #include <iostream>
@@ -8,7 +7,7 @@
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
 
-#include "threading/cthread.hpp"
+#include "threading/threading.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb::threading;

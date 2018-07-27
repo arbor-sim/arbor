@@ -14,7 +14,6 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/util/any.hpp>
 #include <arbor/version.hpp>
 
@@ -178,8 +177,7 @@ void banner(proc_allocation nd, const execution_context* ctx) {
     std::cout << "  Arbor miniapp\n";
     std::cout << "  - distributed : " << ctx->distributed->size()
               << " (" << ctx->distributed->name() << ")\n";
-    std::cout << "  - threads     : " << nd.num_threads
-              << " (" << arb::thread_implementation() << ")\n";
+    std::cout << "  - threads     : " << nd.num_threads << "\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
 }

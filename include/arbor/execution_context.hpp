@@ -5,7 +5,6 @@
 
 #include <arbor/distributed_context.hpp>
 #include <arbor/util/pp_util.hpp>
-#include <arbor/threadinfo.hpp>
 
 
 namespace arb {

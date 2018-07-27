@@ -3,7 +3,6 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
