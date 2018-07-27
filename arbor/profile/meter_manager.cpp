@@ -24,14 +24,14 @@ measurement::measurement(std::string n, std::string u,
 {
     // Assert that the same number of readings were taken on every domain.
     const auto num_readings = readings.size();
-    if (ctx.get()->min(num_readings)!=ctx.get()->max(num_readings)) {
+    if (ctx->min(num_readings)!=ctx->max(num_readings)) {
         throw std::out_of_range(
             "the number of checkpoints in the \""+name+"\" meter do not match across domains");
     }
 
     // Gather across all of the domains onto the root domain.
     for (auto r: readings) {
-        measurements.push_back(ctx.get()->gather(r, 0));
+        measurements.push_back(ctx->gather(r, 0));
     }
 }
 
@@ -58,7 +58,7 @@ void meter_manager::start() {
     }
 
     // Enforce a global barrier after taking the time stamp
-    glob_ctx_.get()->barrier();
+    glob_ctx_->barrier();
 
     start_time_ = timer_type::tic();
 };
@@ -77,7 +77,7 @@ void meter_manager::checkpoint(std::string name) {
     }
 
     // Synchronize all domains before setting start time for the next interval
-    glob_ctx_.get()->barrier();
+    glob_ctx_->barrier();
     start_time_ = timer<>::tic();
 }
 

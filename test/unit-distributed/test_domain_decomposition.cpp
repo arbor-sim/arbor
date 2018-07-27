@@ -64,8 +64,8 @@ namespace {
 }
 
 TEST(domain_decomposition, homogeneous_population) {
-    const auto N = g_context.distributed.get()->size();
-    const auto I = g_context.distributed.get()->id();
+    const auto N = g_context.distributed->size();
+    const auto I = g_context.distributed->id();
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -133,8 +133,8 @@ TEST(domain_decomposition, homogeneous_population) {
 }
 
 TEST(domain_decomposition, heterogeneous_population) {
-    const auto N = g_context.distributed.get()->size();
-    const auto I = g_context.distributed.get()->id();
+    const auto N = g_context.distributed->size();
+    const auto I = g_context.distributed->id();
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.

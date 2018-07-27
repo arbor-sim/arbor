@@ -22,10 +22,10 @@ struct execution_context {
     distributed_context_handle distributed;
     task_system_handle thread_pool;
 
-    execution_context(): distributed(new distributed_context),
+    execution_context(): distributed(std::make_shared<distributed_context>()),
                          thread_pool(arb::make_thread_pool(arb::num_threads()))  {};
 
-    execution_context(proc_allocation nd): distributed(new distributed_context),
+    execution_context(proc_allocation nd): distributed(std::make_shared<distributed_context>()),
                                            thread_pool(arb::make_thread_pool(nd.num_threads)) {};
 };
 
