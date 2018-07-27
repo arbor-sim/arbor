@@ -88,6 +88,20 @@ void task_system::try_run_task() {
     }
 }
 
+task_system::task_system() : count_(num_threads_init()), q_(num_threads_init()) {
+    assert( nthreads > 0);
+
+    // now for the main thread
+    auto tid = std::this_thread::get_id();
+    thread_ids_[tid] = 0;
+
+    for (unsigned i = 1; i < count_; i++) {
+        threads_.emplace_back([this, i]{run_tasks_loop(i);});
+        tid = threads_.back().get_id();
+        thread_ids_[tid] = i;
+    }
+}
+
 task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
     assert( nthreads > 0);
 
@@ -124,8 +138,6 @@ std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() {
     return thread_ids_;
 };
 
-task_system_handle arb::make_thread_pool(int nthreads) {
-    return task_system_handle(new task_system(nthreads));
+task_system_handle arb::make_thread_pool() {
+    return task_system_handle(new task_system(num_threads_init()));
 }
-
-

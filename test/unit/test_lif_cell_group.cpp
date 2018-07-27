@@ -156,7 +156,7 @@ TEST(lif_cell_group, spikes) {
     path_recipe recipe(2, 1000, 0.1);
 
     execution_context context;
-    proc_allocation nd = local_allocation();
+    proc_allocation nd = local_allocation(&context);
 
     auto decomp = partition_load_balance(recipe, nd, &context);
     simulation sim(recipe, decomp, &context);
@@ -195,7 +195,7 @@ TEST(lif_cell_group, ring)
     time_type simulation_time = 100;
 
     execution_context context;
-    proc_allocation nd = local_allocation();
+    proc_allocation nd = local_allocation(&context);
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
     auto decomp = partition_load_balance(recipe, nd, &context);
 

@@ -72,15 +72,5 @@ std::size_t num_threads_init() {
     return n? n: 1;
 }
 
-// Returns the number of threads used by the threading back end.
-// Throws:
-//      std::runtime_error if an invalid environment variable was set for the
-//      number of threads.
-size_t num_threads() {
-    // TODO: this is a bit of a hack until we have user-configurable threading.
-    static size_t num_threads_cached = num_threads_init();
-    return num_threads_cached;
-}
-
 } // namespace threading
 } // namespace arb

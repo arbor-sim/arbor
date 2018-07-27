@@ -19,7 +19,7 @@ using util::strprintf;
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
-                         distributed_context_handle& ctx):
+                         distributed_context_handle ctx):
     name(std::move(n)), units(std::move(u))
 {
     // Assert that the same number of readings were taken on every domain.

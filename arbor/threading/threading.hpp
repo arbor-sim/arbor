@@ -20,7 +20,7 @@ namespace threading {
 //      Environment variable is set with invalid value.
 util::optional<size_t> get_env_num_threads();
 
-size_t num_threads();
+size_t num_threads_init();
 
 } // namespace threading
 } // namespace arb

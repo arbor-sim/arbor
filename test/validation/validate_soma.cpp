@@ -68,8 +68,9 @@ end:
 }
 
 TEST(soma, numeric_ref) {
+    execution_context ctx;
     validate_soma(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(&ctx).num_gpus) {
         validate_soma(backend_kind::gpu);
     }
 }

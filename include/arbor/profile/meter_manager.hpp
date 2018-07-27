@@ -25,7 +25,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&, distributed_context_handle&);
+    measurement(std::string, std::string, const std::vector<double>&, distributed_context_handle);
 };
 
 class meter_manager {

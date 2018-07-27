@@ -6,10 +6,6 @@
 
 namespace arb {
 
-int num_threads() {
-    return threading::num_threads();
-}
-
 std::string thread_implementation() {
     return threading::description();
 }

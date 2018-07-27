@@ -171,9 +171,7 @@ void recorder::clear() {
 
 // profiler implementation
 
-profiler::profiler() {
-    recorders_.resize(threading::num_threads());
-}
+profiler::profiler() {}
 
 void profiler::initialize(task_system_handle& ts) {
     recorders_.resize(ts.get()->get_num_threads());

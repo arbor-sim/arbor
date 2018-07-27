@@ -76,6 +76,7 @@ private:
     std::atomic<unsigned> index_{0};
 
 public:
+    task_system();
     // Create nthreads-1 new c std threads
     task_system(int nthreads);
 

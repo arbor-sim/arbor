@@ -7,7 +7,6 @@
 
 namespace arb {
 
-int num_threads();
 std::string thread_implementation();
 
 } // namespace arb

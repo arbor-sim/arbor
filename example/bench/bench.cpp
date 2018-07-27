@@ -35,8 +35,8 @@ int main(int argc, char** argv) {
     try {
         arb::execution_context context;
 #ifdef ARB_MPI_ENABLED
-        with_mpi guard(argc, argv, false);
-        context.distributed = std::make_shared<arb::distributed_context>(arb::mpi_context(MPI_COMM_WORLD));
+        aux::with_mpi guard(argc, argv, false);
+        context.distributed = arb::mpi_context(MPI_COMM_WORLD);
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("recipe-build");
 
         // Make the domain decomposition for the model
-        auto local = arb::local_allocation();
+        auto local = arb::local_allocation(&context);
         auto decomp = arb::partition_load_balance(recipe, local, &context);
         meters.checkpoint("domain-decomp");
 

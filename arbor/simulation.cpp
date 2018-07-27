@@ -13,6 +13,7 @@
 #include "communication/communicator.hpp"
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
+#include "threading/cthread.hpp"
 #include "util/double_buffer.hpp"
 #include "util/filter.hpp"
 #include "util/maputil.hpp"

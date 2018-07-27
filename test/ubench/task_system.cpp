@@ -15,22 +15,22 @@
 
 using namespace arb;
 
-void run(unsigned long us_per_task, unsigned tasks) {
-    arb::threading::task_system ts(arb::num_threads());
+void run(unsigned long us_per_task, unsigned tasks, threading::task_system* ts) {
     auto duration = std::chrono::microseconds(us_per_task);
     arb::threading::parallel_for::apply(
-            0, tasks, &ts,
+            0, tasks, ts,
             [&](unsigned i){std::this_thread::sleep_for(duration);});
 }
 
 void task_test(benchmark::State& state) {
     const unsigned us_per_task = state.range(0);
-    const auto nthreads = arb::num_threads();
+    arb::threading::task_system ts;
+    const auto nthreads = ts.get_num_threads();
     const unsigned us_per_s = 1000000;
     const unsigned num_tasks = nthreads*us_per_s/us_per_task;
 
     while (state.KeepRunning()) {
-        run(us_per_task, num_tasks);
+        run(us_per_task, num_tasks, &ts);
     }
 }
 

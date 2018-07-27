@@ -188,8 +188,8 @@ int main(int argc, char** argv) {
 
     try {
 #ifdef ARB_MPI_ENABLED
-        with_mpi guard(argc, argv, false);
-        context.distributed = std::make_shared<distributed_context>(mpi_context(MPI_COMM_WORLD));
+        aux::with_mpi guard(argc, argv, false);
+        context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
@@ -199,7 +199,7 @@ int main(int argc, char** argv) {
         std::cout << aux::mask_stream(context.distributed->id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
-        proc_allocation nd = local_allocation();
+        proc_allocation nd = local_allocation(&context);
         banner(nd, &context);
 
         meters.checkpoint("setup");

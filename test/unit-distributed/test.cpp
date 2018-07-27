@@ -28,8 +28,8 @@ const char* usage_str =
 
 int main(int argc, char **argv) {
 #ifdef TEST_MPI
-    with_mpi guard(argc, argv, false);
-    g_context.distributed = std::make_shared<distributed_context>(mpi_context(MPI_COMM_WORLD));
+    aux::with_mpi guard(argc, argv, false);
+    g_context.distributed = mpi_context(MPI_COMM_WORLD);
 #elif defined(TEST_LOCAL)
     g_context.distributed = std::make_shared<distributed_context>(local_context());
 #else

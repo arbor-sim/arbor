@@ -6,6 +6,7 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/execution_context.hpp>
 
 namespace arb {
 
@@ -16,7 +17,7 @@ struct proc_allocation {
 };
 
 /// Determine available local domain resources.
-proc_allocation local_allocation();
+proc_allocation local_allocation(execution_context* ctx);
 
 /// Metadata for a local cell group.
 struct group_description {
