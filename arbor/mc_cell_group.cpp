@@ -19,6 +19,7 @@
 #include "util/filter.hpp"
 #include "util/maputil.hpp"
 #include "util/partition.hpp"
+#include "util/range.hpp"
 #include "util/span.hpp"
 
 namespace arb {
@@ -127,7 +128,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     sample_size_type max_samples_per_call = 0;
 
     for (auto& sa: sampler_map_) {
-        auto sample_times = sa.sched.events(tstart, ep.tfinal);
+        auto sample_times = util::make_range(sa.sched.events(tstart, ep.tfinal));
         if (sample_times.empty()) {
             continue;
         }

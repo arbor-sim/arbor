@@ -125,12 +125,10 @@ public:
         std::mt19937_64 G;
         G.seed(gid + seed_);
 
-        using pgen = poisson_generator<std::mt19937_64>;
-
         time_type t0 = 0;
         cell_member_type target{gid, 0};
 
-        gens.emplace_back(pgen(target, weight_ext_, G, t0, lambda_));
+        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
         return gens;
     }
 
@@ -193,7 +191,7 @@ int main(int argc, char** argv) {
         with_mpi guard(argc, argv, false);
         context.distributed = distributed_context_handle(new distributed_context(mpi_context(MPI_COMM_WORLD)));
 #endif
-#ifdef ARB_HAVE_PROFILING
+#ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
         arb::profile::meter_manager meters(context.distributed);

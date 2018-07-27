@@ -5,6 +5,7 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/threadinfo.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/spike_source_cell.hpp>
 
@@ -60,7 +61,7 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell{vector_time_seq({0.f})};
+            return spike_source_cell{explicit_schedule({0.f})};
         }
         // LIF cell.
         return lif_cell();

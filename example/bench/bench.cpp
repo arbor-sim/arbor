@@ -17,6 +17,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/threadinfo.hpp>
+#include <arbor/version.hpp>
 
 
 #include <aux/ioutil.hpp>
@@ -33,11 +34,11 @@ namespace profile = arb::profile;
 int main(int argc, char** argv) {
     try {
         arb::execution_context context;
-#ifdef ARB_HAVE_MPI
+#ifdef ARB_MPI_ENABLED
         aux::with_mpi guard(&argc, &argv);
         context.distributed = distributed_context_handle(new distributed_context(mpi_context(MPI_COMM_WORLD)));
 #endif
-#ifdef ARB_HAVE_PROFILING
+#ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
         const bool is_root =  context.distributed.get()->id()==0;

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 #include <utility>
 #include <vector>
 
@@ -12,12 +13,14 @@ namespace arb {
 
 // Regular schedule implementation.
 
-std::vector<time_type> regular_schedule_impl::events(time_type t0, time_type t1) {
-    std::vector<time_type> ts;
+time_event_span regular_schedule_impl::events(time_type t0, time_type t1) {
+    times_.clear();
 
-    t0 = t0<0? 0: t0;
+    t0 = std::max(t0, t0_);
+    t1 = std::min(t1, t1_);
+
     if (t1>t0) {
-        ts.reserve(1+std::size_t((t1-t0)*oodt_));
+        times_.reserve(1+std::size_t((t1-t0)*oodt_));
 
         long long n = t0*oodt_;
         time_type t = n*dt_;
@@ -27,22 +30,24 @@ std::vector<time_type> regular_schedule_impl::events(time_type t0, time_type t1)
         }
 
         while (t<t1) {
-            ts.push_back(t);
+            times_.push_back(t);
             t = (++n)*dt_;
         }
     }
 
-    return ts;
+    return as_time_event_span(times_);
 }
 
 // Explicit schedule implementation.
 
-std::vector<time_type> explicit_schedule_impl::events(time_type t0, time_type t1) {
-    auto lb = std::lower_bound(times_.begin()+start_index_, times_.end(), t0);
-    auto ub = std::lower_bound(times_.begin()+start_index_, times_.end(), t1);
+time_event_span explicit_schedule_impl::events(time_type t0, time_type t1) {
+    time_event_span view = as_time_event_span(times_);
 
-    start_index_ = std::distance(times_.begin(), ub);
-    return std::vector<time_type>(lb, ub);
+    const time_type* lb = std::lower_bound(view.first+start_index_, view.second, t0);
+    const time_type* ub = std::lower_bound(lb, view.second, t1);
+
+    start_index_ = ub-view.first;
+    return {lb, ub};
 }
 
 } // namespace arb
