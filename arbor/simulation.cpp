@@ -20,6 +20,7 @@
 #include "util/partition.hpp"
 #include "util/span.hpp"
 #include "profile/profiler_macro.hpp"
+#include "arbor/version.hpp"
 
 namespace arb {
 
@@ -134,6 +135,9 @@ simulation_state::simulation_state(
     communicator_(rec, decomp, ctx),
     task_system_(ctx.thread_pool)
 {
+    #ifdef ARB_GPU_ENABLED
+    std::cout<<"here: "<<ctx.gpu->gpu_prop.cuda_arch<<std::endl;
+    #endif
     const auto num_local_cells = communicator_.num_local_cells();
 
     // Cache the minimum delay of the network
