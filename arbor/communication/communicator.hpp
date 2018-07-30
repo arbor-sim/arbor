@@ -19,7 +19,7 @@
 #include "connection.hpp"
 #include "event_queue.hpp"
 #include "profile/profiler_macro.hpp"
-#include "threading/thread_info.hpp"
+#include "threading/threading.hpp"
 #include "util/double_buffer.hpp"
 #include "util/partition.hpp"
 #include "util/rangeutil.hpp"
@@ -44,10 +44,10 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          const execution_context* ctx)
+                          const execution_context& ctx)
     {
-        distributed_ = ctx->distributed;
-        thread_pool_ = ctx->thread_pool;
+        distributed_ = ctx.distributed;
+        thread_pool_ = ctx.thread_pool;
 
         num_domains_ = distributed_->size();
         num_local_groups_ = dom_dec.groups.size();

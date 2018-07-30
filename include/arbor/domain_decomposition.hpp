@@ -17,7 +17,7 @@ struct proc_allocation {
 };
 
 /// Determine available local domain resources.
-proc_allocation local_allocation(execution_context* ctx);
+proc_allocation local_allocation(const execution_context& ctx);
 
 /// Metadata for a local cell group.
 struct group_description {

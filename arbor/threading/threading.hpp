@@ -1,26 +1,20 @@
 #pragma once
 
-#include <iostream>
-#include <type_traits>
-
-#include <thread>
-#include <mutex>
 #include <algorithm>
 #include <array>
-#include <chrono>
-#include <string>
-#include <vector>
-#include <type_traits>
-#include <functional>
-#include <condition_variable>
-#include <utility>
-#include <unordered_map>
-#include <deque>
 #include <atomic>
-#include <type_traits>
+#include <condition_variable>
+#include <cstddef>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
+#include <unordered_map>
+#include <utility>
 
-#include <cstdlib>
-#include "arbor/execution_context.hpp"
+#include <arbor/execution_context.hpp>
 
 namespace arb {
 namespace threading {

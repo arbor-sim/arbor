@@ -155,10 +155,10 @@ TEST(lif_cell_group, spikes) {
     path_recipe recipe(2, 1000, 0.1);
 
     execution_context context;
-    proc_allocation nd = local_allocation(&context);
+    proc_allocation nd = local_allocation(context);
 
-    auto decomp = partition_load_balance(recipe, nd, &context);
-    simulation sim(recipe, decomp, &context);
+    auto decomp = partition_load_balance(recipe, nd, context);
+    simulation sim(recipe, decomp, context);
 
     std::vector<spike_event> events;
 
@@ -194,12 +194,12 @@ TEST(lif_cell_group, ring)
     time_type simulation_time = 100;
 
     execution_context context;
-    proc_allocation nd = local_allocation(&context);
+    proc_allocation nd = local_allocation(context);
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
-    auto decomp = partition_load_balance(recipe, nd, &context);
+    auto decomp = partition_load_balance(recipe, nd, context);
 
     // Creates a simulation with a ring recipe of lif neurons
-    simulation sim(recipe, decomp, &context);
+    simulation sim(recipe, decomp, context);
 
     std::vector<spike> spike_buffer;
 

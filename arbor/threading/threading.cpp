@@ -1,13 +1,8 @@
 #include <atomic>
-#include <cassert>
-#include <cstring>
-#include <exception>
-#include <iostream>
-#include <regex>
 
 #include "threading.hpp"
 #include "thread_info.hpp"
-#include "arbor/execution_context.hpp"
+#include <arbor/execution_context.hpp>
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
@@ -89,9 +84,7 @@ void task_system::try_run_task() {
 }
 
 task_system::task_system() : count_(num_threads_init()), q_(num_threads_init()) {
-    assert( nthreads > 0);
-
-    // now for the main thread
+    // Main thread
     auto tid = std::this_thread::get_id();
     thread_ids_[tid] = 0;
 
@@ -103,9 +96,10 @@ task_system::task_system() : count_(num_threads_init()), q_(num_threads_init()) 
 }
 
 task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
-    assert( nthreads > 0);
+    if (nthreads <= 0)
+        throw std::runtime_error("Non-positive number of threads in thread pool");
 
-    // now for the main thread
+    // Main thread
     auto tid = std::this_thread::get_id();
     thread_ids_[tid] = 0;
 
@@ -140,4 +134,8 @@ std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() {
 
 task_system_handle arb::make_thread_pool() {
     return task_system_handle(new task_system(num_threads_init()));
+}
+
+task_system_handle arb::make_thread_pool(int nthreads) {
+    return task_system_handle(new task_system(nthreads));
 }

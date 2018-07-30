@@ -33,8 +33,8 @@ void validate_soma(backend_kind backend) {
     proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 
-    auto decomp = partition_load_balance(rec, nd, &context);
-    simulation sim(rec, decomp, &context);
+    auto decomp = partition_load_balance(rec, nd, context);
+    simulation sim(rec, decomp, context);
 
     nlohmann::json meta = {
         {"name", "membrane voltage"},
@@ -70,7 +70,7 @@ end:
 TEST(soma, numeric_ref) {
     execution_context ctx;
     validate_soma(backend_kind::multicore);
-    if (local_allocation(&ctx).num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_soma(backend_kind::gpu);
     }
 }

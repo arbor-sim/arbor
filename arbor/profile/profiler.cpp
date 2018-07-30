@@ -4,7 +4,7 @@
 
 #include <arbor/profile/profiler.hpp>
 
-#include "threading/thread_info.hpp"
+#include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
 

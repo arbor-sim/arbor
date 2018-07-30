@@ -56,12 +56,12 @@ int main(int argc, char** argv) {
         meters.checkpoint("recipe-build");
 
         // Make the domain decomposition for the model
-        auto local = arb::local_allocation(&context);
-        auto decomp = arb::partition_load_balance(recipe, local, &context);
+        auto local = arb::local_allocation(context);
+        auto decomp = arb::partition_load_balance(recipe, local, context);
         meters.checkpoint("domain-decomp");
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, &context);
+        arb::simulation sim(recipe, decomp, context);
         meters.checkpoint("model-build");
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.

@@ -30,7 +30,7 @@
 
 using namespace arb;
 
-void banner(proc_allocation, const execution_context*);
+void banner(proc_allocation, const execution_context&);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -198,8 +198,8 @@ int main(int argc, char** argv) {
         std::cout << aux::mask_stream(context.distributed->id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
-        proc_allocation nd = local_allocation(&context);
-        banner(nd, &context);
+        proc_allocation nd = local_allocation(context);
+        banner(nd, context);
 
         meters.checkpoint("setup");
 
@@ -236,9 +236,9 @@ int main(int argc, char** argv) {
 
         partition_hint_map hints;
         hints[cell_kind::lif_neuron].cpu_group_size = group_size;
-        auto decomp = partition_load_balance(recipe, nd, &context, hints);
+        auto decomp = partition_load_balance(recipe, nd, context, hints);
 
-        simulation sim(recipe, decomp, &context);
+        simulation sim(recipe, decomp, context);
 
         // Initialize the spike exporting interface
         std::fstream spike_out;
@@ -292,11 +292,11 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(proc_allocation nd, const execution_context* ctx) {
+void banner(proc_allocation nd, const execution_context& ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->distributed->size()
-              << " (" << ctx->distributed->name() << ")\n";
+    std::cout << "  - distributed : " << ctx.distributed->size()
+              << " (" << ctx.distributed->name() << ")\n";
     std::cout << "  - threads     : " << nd.num_threads << "\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";

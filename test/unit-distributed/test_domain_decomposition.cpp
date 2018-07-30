@@ -76,7 +76,7 @@ TEST(domain_decomposition, homogeneous_population) {
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, &g_context);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -107,7 +107,7 @@ TEST(domain_decomposition, homogeneous_population) {
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, &g_context);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -147,7 +147,7 @@ TEST(domain_decomposition, heterogeneous_population) {
         const unsigned n_global = n_local*N;
         const unsigned n_local_grps = n_local; // 1 cell per group
         auto R = hetero_recipe(n_global);
-        const auto D = partition_load_balance(R, nd, &g_context);
+        const auto D = partition_load_balance(R, nd, g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);

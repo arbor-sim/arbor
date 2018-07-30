@@ -39,9 +39,8 @@ set(arbor_sources
     spike_event_io.cpp
     spike_source_cell_group.cpp
     swcio.cpp
-    threadinfo.cpp
-        threading/threading.cpp
-        threading/thread_info.cpp
+    threading/threading.cpp
+    threading/thread_info.cpp
     thread_private_spike_store.cpp
     util/hostname.cpp
     util/unwind.cpp

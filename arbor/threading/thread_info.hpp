@@ -24,5 +24,3 @@ size_t num_threads_init();
 
 } // namespace threading
 } // namespace arb
-
-#include "threading.hpp"

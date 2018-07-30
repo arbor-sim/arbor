@@ -35,7 +35,7 @@ using namespace arb;
 
 using util::any_cast;
 
-void banner(proc_allocation, const execution_context*);
+void banner(proc_allocation, const execution_context&);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 std::fstream& open_or_throw(std::fstream& file, const aux::path& p, bool exclusive = false);
@@ -64,9 +64,9 @@ int main(int argc, char** argv) {
 
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
-        proc_allocation nd = local_allocation(&context);
+        proc_allocation nd = local_allocation(context);
         nd.num_gpus = nd.num_gpus>=1? 1: 0;
-        banner(nd, &context);
+        banner(nd, context);
 
         meters.checkpoint("setup");
 
@@ -80,8 +80,8 @@ int main(int argc, char** argv) {
             report_compartment_stats(*recipe);
         }
 
-        auto decomp = partition_load_balance(*recipe, nd, &context);
-        simulation sim(*recipe, decomp, &context);
+        auto decomp = partition_load_balance(*recipe, nd, context);
+        simulation sim(*recipe, decomp, context);
 
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.
@@ -172,11 +172,11 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(proc_allocation nd, const execution_context* ctx) {
+void banner(proc_allocation nd, const execution_context& ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->distributed->size()
-              << " (" << ctx->distributed->name() << ")\n";
+    std::cout << "  - distributed : " << ctx.distributed->size()
+              << " (" << ctx.distributed->name() << ")\n";
     std::cout << "  - threads     : " << nd.num_threads << "\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
