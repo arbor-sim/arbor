@@ -117,6 +117,7 @@ NetReceiveExpression* find_net_receive(const Module& m);
 struct indexed_variable_info {
     std::string data_var;
     std::string index_var;
+    bool scalar() const { return index_var.empty(); }
 };
 
 indexed_variable_info decode_indexed_variable(IndexedVariable* sym);
