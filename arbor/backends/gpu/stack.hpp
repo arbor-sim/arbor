@@ -46,8 +46,6 @@ public:
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
 
-    stack(): storage_(create_storage(0, 0)), cuda_arch_(0) {}
-
     stack(unsigned cuda_arch): storage_(create_storage(0, cuda_arch)), cuda_arch_(cuda_arch) {}
 
     stack(stack&& other): storage_(create_storage(0, other.cuda_arch_)) {

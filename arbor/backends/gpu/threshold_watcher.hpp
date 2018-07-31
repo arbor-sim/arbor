@@ -40,6 +40,8 @@ public:
     threshold_watcher(threshold_watcher&& other) = default;
     threshold_watcher& operator=(threshold_watcher&& other) = default;
 
+    threshold_watcher(const execution_context& ctx): stack_(ctx.gpu->gpu_prop.cuda_arch) {}
+
     threshold_watcher(
         const fvm_index_type* cv_to_cell,
         const fvm_value_type* t_before,

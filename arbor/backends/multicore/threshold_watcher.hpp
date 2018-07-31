@@ -1,6 +1,7 @@
 #pragma once
 
 #include <arbor/assert.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/math.hpp>
 
@@ -13,6 +14,8 @@ namespace multicore {
 class threshold_watcher {
 public:
     threshold_watcher() = default;
+
+    threshold_watcher(const execution_context& ctx) {}
 
     threshold_watcher(
         const fvm_index_type* cv_to_cell,
