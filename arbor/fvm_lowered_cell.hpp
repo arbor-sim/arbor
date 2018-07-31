@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/recipe.hpp>
 
@@ -44,6 +45,6 @@ struct fvm_lowered_cell {
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
-fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p);
+fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, execution_context ctx);
 
 } // namespace arb

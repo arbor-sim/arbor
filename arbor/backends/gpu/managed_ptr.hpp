@@ -42,8 +42,8 @@ public:
     using pointer = element_type*;
     using reference = element_type&;
 
-    managed_ptr():
-        concurrent_managed_access(device_concurrent_managed_access())
+    managed_ptr(unsigned cuda_arch):
+        concurrent_managed_access(cuda_arch >= 600 : true ? false)
     {}
 
     managed_ptr(const managed_ptr& other) = delete;
@@ -53,8 +53,8 @@ public:
     // point of the wrapper is to hide the complexity of allocating managed
     // memory and constructing a type in place.
     template <typename... Args>
-    managed_ptr(construct_in_place_tag, Args&&... args):
-        concurrent_managed_access(device_concurrent_managed_access())
+    managed_ptr(construct_in_place_tag, unsigned cuda_arch, Args&&... args):
+        concurrent_managed_access(cuda_arch >= 600 : true ? false)
     {
         memory::managed_allocator<element_type> allocator;
         data_ = allocator.allocate(1u);
@@ -134,8 +134,8 @@ private:
 // The correct way to construct a type in managed memory.
 // Equivalent to std::make_unique_ptr for std::unique_ptr
 template <typename T, typename... Args>
-managed_ptr<T> make_managed_ptr(Args&&... args) {
-    return managed_ptr<T>(construct_in_place_tag(), std::forward<Args>(args)...);
+managed_ptr<T> make_managed_ptr(unsigned cuda_arch, Args&&... args) {
+    return managed_ptr<T>(construct_in_place_tag(), cuda_arch, std::forward<Args>(args)...);
 }
 
 } // namespace gpu
