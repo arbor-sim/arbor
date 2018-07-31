@@ -32,6 +32,7 @@ class stack {
 
     using storage_type = stack_storage<value_type>;
     managed_ptr<storage_type> storage_;
+    unsigned cuda_arch_;
 
     managed_ptr<storage_type> create_storage(unsigned n, unsigned cuda_arch) {
         auto p = make_managed_ptr<storage_type>(cuda_arch);
@@ -45,9 +46,11 @@ public:
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
 
-    stack(unsigned cuda_arch): storage_(create_storage(0, cuda_arch)) {}
+    stack(): storage_(create_storage(0, 0)), cuda_arch_(0) {}
 
-    stack(stack&& other): storage_(create_storage(0)) {
+    stack(unsigned cuda_arch): storage_(create_storage(0, cuda_arch)), cuda_arch_(cuda_arch) {}
+
+    stack(stack&& other): storage_(create_storage(0, other.cuda_arch_)) {
         std::swap(storage_, other.storage_);
     }
 

@@ -43,7 +43,7 @@ public:
     using reference = element_type&;
 
     managed_ptr(unsigned cuda_arch):
-        concurrent_managed_access(cuda_arch >= 600 : true ? false)
+        concurrent_managed_access(cuda_arch >= 600)
     {}
 
     managed_ptr(const managed_ptr& other) = delete;
@@ -54,7 +54,7 @@ public:
     // memory and constructing a type in place.
     template <typename... Args>
     managed_ptr(construct_in_place_tag, unsigned cuda_arch, Args&&... args):
-        concurrent_managed_access(cuda_arch >= 600 : true ? false)
+        concurrent_managed_access(cuda_arch >= 600)
     {
         memory::managed_allocator<element_type> allocator;
         data_ = allocator.allocate(1u);
