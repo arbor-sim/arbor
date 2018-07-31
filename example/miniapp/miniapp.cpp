@@ -14,7 +14,6 @@
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/util/any.hpp>
 #include <arbor/version.hpp>
 
@@ -36,7 +35,7 @@ using namespace arb;
 
 using util::any_cast;
 
-void banner(proc_allocation, const execution_context*);
+void banner(proc_allocation, const execution_context&);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 std::fstream& open_or_throw(std::fstream& file, const aux::path& p, bool exclusive = false);
@@ -48,26 +47,26 @@ int main(int argc, char** argv) {
 
     try {
 #ifdef ARB_MPI_ENABLED
-        with_mpi guard(argc, argv, false);
+        aux::with_mpi guard(argc, argv, false);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
-        profile::meter_manager meters(&context.distributed);
+        profile::meter_manager meters(context.distributed);
         meters.start();
 
-        std::cout << aux::mask_stream(context.distributed.id()==0);
+        std::cout << aux::mask_stream(context.distributed->id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.distributed.id()==0);
+        io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
 
         // TODO: add dry run mode
 
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
-        proc_allocation nd = local_allocation();
+        proc_allocation nd = local_allocation(context);
         nd.num_gpus = nd.num_gpus>=1? 1: 0;
-        banner(nd, &context);
+        banner(nd, context);
 
         meters.checkpoint("setup");
 
@@ -81,8 +80,8 @@ int main(int argc, char** argv) {
             report_compartment_stats(*recipe);
         }
 
-        auto decomp = partition_load_balance(*recipe, nd, &context);
-        simulation sim(*recipe, decomp, &context);
+        auto decomp = partition_load_balance(*recipe, nd, context);
+        simulation sim(*recipe, decomp, context);
 
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.
@@ -119,7 +118,7 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             using std::ios_base;
 
-            auto rank = context.distributed.id();
+            auto rank = context.distributed->id();
             aux::path p = options.output_path;
             p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
 
@@ -153,7 +152,7 @@ int main(int argc, char** argv) {
 
         auto report = profile::make_meter_report(meters);
         std::cout << report;
-        if (context.distributed.id()==0) {
+        if (context.distributed->id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -162,7 +161,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << aux::mask_stream(context.distributed.id()==0);
+        std::cerr << aux::mask_stream(context.distributed->id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -173,13 +172,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(proc_allocation nd, const execution_context* ctx) {
+void banner(proc_allocation nd, const execution_context& ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->distributed.size()
-              << " (" << ctx->distributed.name() << ")\n";
-    std::cout << "  - threads     : " << nd.num_threads
-              << " (" << arb::thread_implementation() << ")\n";
+    std::cout << "  - distributed : " << ctx.distributed->size()
+              << " (" << ctx.distributed->name() << ")\n";
+    std::cout << "  - threads     : " << nd.num_threads << "\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
 }

@@ -47,8 +47,8 @@ void run_kinetic_dt(
     proc_allocation nd;
     nd.num_gpus = (backend==backend_kind::gpu);
 
-    auto decomp = partition_load_balance(rec, nd, &context);
-    simulation sim(rec, decomp, &context);
+    auto decomp = partition_load_balance(rec, nd, context);
+    simulation sim(rec, decomp, context);
 
     auto exclude = stimulus_ends(c);
 
@@ -111,15 +111,17 @@ void validate_kinetic_kinlva(arb::backend_kind backend) {
 using namespace arb;
 
 TEST(kinetic, kin1_numeric_ref) {
+    execution_context ctx;
     validate_kinetic_kin1(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_kinetic_kin1(arb::backend_kind::gpu);
     }
 }
 
 TEST(kinetic, kinlva_numeric_ref) {
+    execution_context ctx;
     validate_kinetic_kinlva(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_kinetic_kinlva(arb::backend_kind::gpu);
     }
 }

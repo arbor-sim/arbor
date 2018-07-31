@@ -44,10 +44,10 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          const execution_context* ctx)
+                          execution_context ctx)
     {
-        distributed_ = &ctx->distributed;
-        thread_pool_ = ctx->thread_pool;
+        distributed_ = ctx.distributed;
+        thread_pool_ = ctx.thread_pool;
 
         num_domains_ = distributed_->size();
         num_local_groups_ = dom_dec.groups.size();
@@ -261,7 +261,7 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    const distributed_context* distributed_;
+    distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 };

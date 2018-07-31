@@ -76,8 +76,8 @@ void run_synapse_test(
         // dend.end
         rec.add_probe(0, 0, cell_probe_address{{1, 1.0}, cell_probe_address::membrane_voltage});
 
-        auto decomp = partition_load_balance(rec, nd, &context);
-        simulation sim(rec, decomp, &context);
+        auto decomp = partition_load_balance(rec, nd, context);
+        simulation sim(rec, decomp, context);
 
         sim.inject_events(synthetic_events);
 
@@ -88,18 +88,20 @@ void run_synapse_test(
 }
 
 TEST(simple_synapse, expsyn_neuron_ref) {
+    execution_context ctx;
     SCOPED_TRACE("expsyn-multicore");
     run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         SCOPED_TRACE("expsyn-gpu");
         run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::gpu);
     }
 }
 
 TEST(simple_synapse, exp2syn_neuron_ref) {
+    execution_context ctx;
     SCOPED_TRACE("exp2syn-multicore");
     run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         SCOPED_TRACE("exp2syn-gpu");
         run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::gpu);
     }

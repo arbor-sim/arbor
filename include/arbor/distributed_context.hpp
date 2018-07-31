@@ -165,10 +165,10 @@ inline distributed_context::distributed_context():
 
 // MPI context creation functions only provided if built with MPI support.
 
-distributed_context mpi_context();
+std::shared_ptr<distributed_context> mpi_context();
 
 template <typename MPICommType>
-distributed_context mpi_context(MPICommType);
+std::shared_ptr<distributed_context> mpi_context(MPICommType);
 
 } // namespace arb
 

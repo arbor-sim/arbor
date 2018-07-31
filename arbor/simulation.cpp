@@ -13,6 +13,7 @@
 #include "communication/communicator.hpp"
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
+#include "threading/threading.hpp"
 #include "util/double_buffer.hpp"
 #include "util/filter.hpp"
 #include "util/maputil.hpp"
@@ -48,7 +49,7 @@ public:
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, const execution_context* ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
 
     void reset();
 
@@ -126,12 +127,12 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        const execution_context* ctx
+        execution_context ctx
     ):
-    local_spikes_(new spike_double_buffer(thread_private_spike_store(ctx->thread_pool),
-                                          thread_private_spike_store(ctx->thread_pool))),
+    local_spikes_(new spike_double_buffer(thread_private_spike_store(ctx.thread_pool),
+                                          thread_private_spike_store(ctx.thread_pool))),
     communicator_(rec, decomp, ctx),
-    task_system_(ctx->thread_pool)
+    task_system_(ctx.thread_pool)
 {
     const auto num_local_cells = communicator_.num_local_cells();
 
@@ -418,7 +419,7 @@ void simulation_state::inject_events(const pse_vector& events) {
 simulation::simulation(
     const recipe& rec,
     const domain_decomposition& decomp,
-    const execution_context* ctx)
+    execution_context ctx)
 {
     impl_.reset(new simulation_state(rec, decomp, ctx));
 }
