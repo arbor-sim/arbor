@@ -80,6 +80,8 @@ using namespace arb;
 
 TEST(fvm_lowered, matrix_init)
 {
+    execution_context context;
+
     auto isnan = [](auto v) { return std::isnan(v); };
     auto ispos = [](auto v) { return v>0; };
     auto isneg = [](auto v) { return v<0; };
@@ -92,7 +94,7 @@ TEST(fvm_lowered, matrix_init)
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0}, cable1d_recipe(cell), targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
@@ -116,6 +118,8 @@ TEST(fvm_lowered, matrix_init)
 TEST(fvm_lowered, target_handles) {
     using namespace arb;
 
+    execution_context context;
+
     mc_cell cells[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_3stick()
@@ -135,7 +139,7 @@ TEST(fvm_lowered, target_handles) {
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0, 1}, cable1d_recipe(cells), targets, probe_map);
 
     mechanism* expsyn = find_mechanism(fvcell, "expsyn");
@@ -175,6 +179,8 @@ TEST(fvm_lowered, stimulus) {
     // amplitude | 0.3  |  0.1
     // CV        |   4  |    0
 
+    execution_context context;
+
     std::vector<mc_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
 
@@ -197,7 +203,7 @@ TEST(fvm_lowered, stimulus) {
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0}, cable1d_recipe(cells), targets, probe_map);
 
     mechanism* stim = find_mechanism(fvcell, "_builtin_stimulus");
@@ -250,6 +256,8 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
+    execution_context context;
+
     std::vector<mc_cell> cells(3);
     for (int i = 0; i<3; ++i) {
         mc_cell& c = cells[i];
@@ -290,7 +298,7 @@ TEST(fvm_lowered, derived_mechs) {
         std::vector<target_handle> targets;
         probe_association_map<probe_handle> probe_map;
 
-        fvm_cell fvcell;
+        fvm_cell fvcell(context);
         fvcell.initialize({0, 1, 2}, rec, targets, probe_map);
 
         // Both mechanisms will have the same internal name, "test_kin1".
@@ -373,6 +381,8 @@ TEST(fvm_lowered, weighted_write_ion) {
     // the same as a 100µm dendrite, which makes it easier to describe the
     // expected weights.
 
+    execution_context context;
+
     mc_cell c;
     c.add_soma(5);
 
@@ -394,7 +404,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
 
     auto& state = *(fvcell.*private_state_ptr).get();
