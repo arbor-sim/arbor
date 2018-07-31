@@ -83,19 +83,9 @@ void task_system::try_run_task() {
     }
 }
 
-task_system::task_system() : count_(num_threads_init()), q_(num_threads_init()) {
-    // Main thread
-    auto tid = std::this_thread::get_id();
-    thread_ids_[tid] = 0;
+task_system::task_system(): task_system(num_threads_init()) {}
 
-    for (unsigned i = 1; i < count_; i++) {
-        threads_.emplace_back([this, i]{run_tasks_loop(i);});
-        tid = threads_.back().get_id();
-        thread_ids_[tid] = i;
-    }
-}
-
-task_system::task_system(int nthreads) : count_(nthreads), q_(nthreads) {
+task_system::task_system(int nthreads): count_(nthreads), q_(nthreads) {
     if (nthreads <= 0)
         throw std::runtime_error("Non-positive number of threads in thread pool");
 
@@ -133,7 +123,7 @@ std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() {
 };
 
 task_system_handle arb::make_thread_pool() {
-    return task_system_handle(new task_system(num_threads_init()));
+    return arb::make_thread_pool(num_threads_init());
 }
 
 task_system_handle arb::make_thread_pool(int nthreads) {
