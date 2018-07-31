@@ -44,7 +44,7 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          const execution_context& ctx)
+                          execution_context ctx)
     {
         distributed_ = ctx.distributed;
         thread_pool_ = ctx.thread_pool;

@@ -49,7 +49,7 @@ public:
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, const execution_context& ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
 
     void reset();
 
@@ -127,7 +127,7 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        const execution_context& ctx
+        execution_context ctx
     ):
     local_spikes_(new spike_double_buffer(thread_private_spike_store(ctx.thread_pool),
                                           thread_private_spike_store(ctx.thread_pool))),
@@ -419,7 +419,7 @@ void simulation_state::inject_events(const pse_vector& events) {
 simulation::simulation(
     const recipe& rec,
     const domain_decomposition& decomp,
-    const execution_context& ctx)
+    execution_context ctx)
 {
     impl_.reset(new simulation_state(rec, decomp, ctx));
 }

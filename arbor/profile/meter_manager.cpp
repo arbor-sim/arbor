@@ -19,7 +19,7 @@ using util::strprintf;
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
-                         distributed_context_handle ctx):
+                         const distributed_context_handle& ctx):
     name(std::move(n)), units(std::move(u))
 {
     // Assert that the same number of readings were taken on every domain.
@@ -35,7 +35,7 @@ measurement::measurement(std::string n, std::string u,
     }
 }
 
-meter_manager::meter_manager(distributed_context_handle& ctx): glob_ctx_(ctx) {
+meter_manager::meter_manager(distributed_context_handle ctx): glob_ctx_(ctx) {
     if (auto m = make_memory_meter()) {
         meters_.push_back(std::move(m));
     }

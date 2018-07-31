@@ -22,7 +22,7 @@ class simulation_state;
 
 class simulation {
 public:
-    simulation(const recipe& rec, const domain_decomposition& decomp, const execution_context& ctx);
+    simulation(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
 
     void reset();
 

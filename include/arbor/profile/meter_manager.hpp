@@ -25,7 +25,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&, distributed_context_handle);
+    measurement(std::string, std::string, const std::vector<double>&, const distributed_context_handle&);
 };
 
 class meter_manager {
@@ -41,7 +41,7 @@ private:
     distributed_context_handle glob_ctx_;
 
 public:
-    meter_manager(distributed_context_handle& ctx);
+    meter_manager(distributed_context_handle ctx);
     void start();
     void checkpoint(std::string name);
     distributed_context_handle context() const;
