@@ -60,7 +60,7 @@ struct backend {
             state.voltage.data(),
             cv,
             thresholds,
-            context.gpu->gpu_prop.cuda_arch);
+            context);
     }
 };
 

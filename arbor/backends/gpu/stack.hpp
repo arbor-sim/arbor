@@ -32,10 +32,10 @@ class stack {
 
     using storage_type = stack_storage<value_type>;
     managed_ptr<storage_type> storage_;
-    unsigned cuda_arch_;
+    unsigned gpu_attributes_;
 
-    managed_ptr<storage_type> create_storage(unsigned n, unsigned cuda_arch) {
-        auto p = make_managed_ptr<storage_type>(cuda_arch);
+    managed_ptr<storage_type> create_storage(unsigned n, unsigned gpu_attributes) {
+        auto p = make_managed_ptr<storage_type>(gpu_attributes);
         p->capacity = n;
         p->stores = 0;
         p->data = n? allocator<value_type>().allocate(n): nullptr;
@@ -46,9 +46,9 @@ public:
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
 
-    stack(unsigned cuda_arch): storage_(create_storage(0, cuda_arch)), cuda_arch_(cuda_arch) {}
+    stack(unsigned gpu_attributes): storage_(create_storage(0, gpu_attributes)), gpu_attributes_(gpu_attributes) {}
 
-    stack(stack&& other): storage_(create_storage(0, other.cuda_arch_)) {
+    stack(stack&& other): storage_(create_storage(0, other.gpu_attributes_)) {
         std::swap(storage_, other.storage_);
     }
 
@@ -57,7 +57,8 @@ public:
         return *this;
     }
 
-    explicit stack(unsigned capacity, unsigned cuda_arch): storage_(create_storage(capacity, cuda_arch)) {}
+    explicit stack(unsigned capacity, unsigned gpu_attributes): storage_(create_storage(capacity, gpu_attributes)),
+                                                           gpu_attributes_(gpu_attributes){}
 
     ~stack() {
         storage_.synchronize();

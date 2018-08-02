@@ -56,7 +56,8 @@ struct backend {
             state.time_to.data(),
             state.voltage.data(),
             cv,
-            thresholds);
+            thresholds,
+            context);
     }
 };
 
