@@ -27,7 +27,7 @@ namespace arb {
     T sum(T value) const override { return wrapped.sum(value); }\
     std::vector<T> gather(T value, int root) const override { return wrapped.gather(value, root); }
 
-#define ARB_COLLECTIVE_TYPES_ float, double, int, std::uint32_t, std::uint64_t
+#define ARB_COLLECTIVE_TYPES_ float, double, int, unsigned, long, unsigned long, long long, unsigned long long
 
 // Defines the concept/interface for a distributed communication context.
 //
