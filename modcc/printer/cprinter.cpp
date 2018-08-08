@@ -698,11 +698,15 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
+    std::vector<LocalVariable*> scalar_indexed_vars;
     std::unordered_set<std::string> indices;
     for (auto& sym: indexed_vars) {
         auto info = decode_indexed_variable(sym->external_variable());
         if (!info.scalar()) {
             indices.insert(info.index_var);
+        }
+        else {
+            scalar_indexed_vars.push_back(sym);
         }
     }
 
@@ -745,11 +749,16 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
 
         }
         else {
-            out << "unsigned n_ = width_;\n\n";
+            // We may nonetheless need to read a global scalar indexed variable.
+            for (auto& sym: scalar_indexed_vars) {
+                emit_simd_state_read(out, sym, simd_expr_constraint::other);
+            }
+
             out <<
-                "for (unsigned i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent;
-            out << simdprint(body);
-            out << popindent << "}\n";
+                "unsigned n_ = width_;\n\n"
+                "for (unsigned i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent <<
+                simdprint(body) << popindent <<
+                "}\n";
         }
     }
 }
