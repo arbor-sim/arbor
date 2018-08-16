@@ -15,6 +15,8 @@ class threshold_watcher {
 public:
     threshold_watcher() = default;
 
+    threshold_watcher(const execution_context& ctx) {}
+
     threshold_watcher(
         const fvm_index_type* cv_to_cell,
         const fvm_value_type* t_before,

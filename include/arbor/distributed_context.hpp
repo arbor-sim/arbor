@@ -88,7 +88,7 @@ private:
         virtual void barrier() const = 0;
         virtual std::string name() const = 0;
 
-        ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_);
+        ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
         virtual std::vector<std::string> gather(std::string value, int root) const = 0;
 
         virtual ~interface() {}

@@ -177,7 +177,7 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
     target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU)
 
-    if(ARB_GPU_MODEL MATCHES "K20" OR "K80" OR "P100")
+    if(ARB_GPU_MODEL MATCHES "K20" OR ARB_GPU_MODEL MATCHES "K80" OR ARB_GPU_MODEL MATCHES "P100")
         set(cuda_code_0 sm_35)
         set(cuda_arch_0 compute_35)
         set(cuda_code_1 sm_37)

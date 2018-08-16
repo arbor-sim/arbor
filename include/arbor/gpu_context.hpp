@@ -1,8 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
-#include <iostream>
 #include <arbor/version.hpp>
 
 #ifdef ARB_GPU_ENABLED
