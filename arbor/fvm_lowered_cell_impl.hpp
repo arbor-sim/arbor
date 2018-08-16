@@ -43,7 +43,7 @@ public:
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
 
-    fvm_lowered_cell_impl(execution_context ctx): context_(ctx), threshold_watcher_(ctx) {};
+    fvm_lowered_cell_impl(execution_context ctx): context_(ctx) {};
 
     void reset() override;
 

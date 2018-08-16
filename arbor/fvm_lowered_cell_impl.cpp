@@ -12,7 +12,7 @@
 
 namespace arb {
 
-fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, execution_context ctx) {
+fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx) {
     switch (p) {
     case backend_kind::multicore:
         return fvm_lowered_cell_ptr(new fvm_lowered_cell_impl<multicore::backend>(ctx));

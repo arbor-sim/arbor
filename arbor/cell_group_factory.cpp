@@ -18,7 +18,7 @@ cell_group_ptr make_cell_group(Args&&... args) {
     return cell_group_ptr(new Impl(std::forward<Args>(args)...));
 }
 
-cell_group_factory cell_kind_implementation(cell_kind ck, backend_kind bk, execution_context ctx) {
+cell_group_factory cell_kind_implementation(cell_kind ck, backend_kind bk, const execution_context& ctx) {
     using gid_vector = std::vector<cell_gid_type>;
 
     switch (ck) {

@@ -12,31 +12,34 @@
 
 namespace arb {
 
+#ifndef ARB_GPU_ENABLED
+struct gpu_context {
+    bool has_gpu_ = false;
+    size_t attributes = 0;
+};
+#else
 enum gpu_flags {
     no_sync = 0,
     has_atomic_double = 1
 };
 
 struct gpu_context {
-    bool has_gpu_;
+    bool has_gpu_ = true;
     size_t attributes = 0;
-    gpu_context(): has_gpu_(false), attributes(get_attributes()) {};
-    gpu_context(bool has_gpu): has_gpu_(has_gpu), attributes(get_attributes()) {};
+    gpu_context(): attributes(get_attributes()) {};
 
 private:
     size_t get_attributes() {
-        size_t attributes = 0;
-#ifdef ARB_GPU_ENABLED
         cudaDeviceProp prop;
         cudaGetDeviceProperties(&prop, 0);
+
         if(prop.concurrentManagedAccess)
-        //if(prop.major*100 + prop.minor >= 600)
-            attributes|= (1<<gpu_flags::no_sync);
+            attributes |= (1 << gpu_flags::no_sync);
         if(prop.major*100 + prop.minor >= 600)
-            attributes|= (1<<gpu_flags::has_atomic_double);
-#endif
+            attributes |= (1 << gpu_flags::has_atomic_double);
         return attributes;
     };
 };
+#endif
 
 }

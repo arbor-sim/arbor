@@ -34,7 +34,7 @@ class stack {
     managed_ptr<storage_type> storage_;
     unsigned gpu_attributes_;
 
-    managed_ptr<storage_type> create_storage(unsigned n, unsigned gpu_attributes) {
+    managed_ptr<storage_type> create_storage(unsigned n, size_t gpu_attributes) {
         auto p = make_managed_ptr<storage_type>(gpu_attributes);
         p->capacity = n;
         p->stores = 0;
@@ -46,7 +46,7 @@ public:
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
 
-    stack(unsigned gpu_attributes): storage_(create_storage(0, gpu_attributes)), gpu_attributes_(gpu_attributes) {}
+    stack(size_t gpu_attributes): storage_(create_storage(0, gpu_attributes)), gpu_attributes_(gpu_attributes) {}
 
     stack(stack&& other): storage_(create_storage(0, other.gpu_attributes_)) {
         std::swap(storage_, other.storage_);
@@ -57,8 +57,8 @@ public:
         return *this;
     }
 
-    explicit stack(unsigned capacity, unsigned gpu_attributes): storage_(create_storage(capacity, gpu_attributes)),
-                                                           gpu_attributes_(gpu_attributes){}
+    explicit stack(unsigned capacity, unsigned gpu_attributes):
+        storage_(create_storage(capacity, gpu_attributes)), gpu_attributes_(gpu_attributes) {}
 
     ~stack() {
         storage_.synchronize();

@@ -45,6 +45,6 @@ struct fvm_lowered_cell {
 
 using fvm_lowered_cell_ptr = std::unique_ptr<fvm_lowered_cell>;
 
-fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, execution_context ctx);
+fvm_lowered_cell_ptr make_fvm_lowered_cell(backend_kind p, const execution_context& ctx);
 
 } // namespace arb
