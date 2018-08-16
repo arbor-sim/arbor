@@ -8,10 +8,10 @@ enable_language(CXX)
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
-# Enable CUDA support with ARB_GPU_MODEL.
+# Enable CUDA support with ARB_WITH_GPU.
 
-set(ARB_GPU_MODEL "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
-set_property(CACHE ARB_GPU_MODEL PROPERTY STRINGS none K20 K80 P100 )
+set(ARB_WITH_GPU "OFF" CACHE STRING "The target GPU architecture: one of {ON,OFF}")
+set_property(CACHE ARB_WITH_GPU PROPERTY STRINGS ON OFF )
 
 # Specify target archiecture.
 
@@ -72,7 +72,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 # Add CUDA as a language if GPU support requested.
 # (This has to be set early so as to enable CUDA tests in generator
 # expressions.)
-if(NOT ARB_GPU_MODEL MATCHES "none")
+if(ARB_WITH_GPU MATCHES "ON")
     enable_language(CUDA)
 endif()
 
@@ -169,7 +169,7 @@ endif()
 # CUDA support
 #--------------
 
-if(NOT ARB_GPU_MODEL MATCHES "none")
+if(ARB_WITH_GPU MATCHES "ON")
     set(ARB_WITH_CUDA TRUE)
 
     add_compile_options(
@@ -177,21 +177,12 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
     target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU)
 
-    if(ARB_GPU_MODEL MATCHES "K20" OR ARB_GPU_MODEL MATCHES "K80" OR ARB_GPU_MODEL MATCHES "P100")
-        set(cuda_code_0 sm_35)
-        set(cuda_arch_0 compute_35)
-        set(cuda_code_1 sm_37)
-        set(cuda_arch_1 compute_37)
-        set(cuda_code_2 sm_60)
-        set(cuda_arch_2 compute_60)
-
-        if (ARB_GPU_MODEL MATCHES "P100")
-            set(arb_cuda_arch 600)
-        endif()
-
-    else()
-        message(FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
-    endif()
+    set(cuda_code_0 sm_35)
+    set(cuda_arch_0 compute_35)
+    set(cuda_code_1 sm_37)
+    set(cuda_arch_1 compute_37)
+    set(cuda_code_2 sm_60)
+    set(cuda_arch_2 compute_60)
 
     add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_0},code=${cuda_code_0}>)
     add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_1},code=${cuda_code_1}>)
