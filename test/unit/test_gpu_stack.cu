@@ -11,7 +11,7 @@ TEST(stack, construction) {
     using T = int;
 
     execution_context context;
-    gpu::stack<T> s(10, context.gpu->attributes);
+    gpu::stack<T> s(10, context.gpu->has_concurrent_managed_access());
 
     EXPECT_EQ(0u, s.size());
     EXPECT_EQ(10u, s.capacity());
@@ -57,7 +57,7 @@ TEST(stack, push_back) {
 
     const unsigned n = 10;
     EXPECT_TRUE(n%2 == 0); // require n is even for tests to work
-    auto s = stack(n, context.gpu->attributes);
+    auto s = stack(n, context.gpu->has_concurrent_managed_access());
     auto& sstorage = s.storage();
 
     kernels::push_back<<<1, n>>>(sstorage, kernels::all_ftor());
@@ -91,7 +91,7 @@ TEST(stack, overflow) {
     execution_context context;
 
     const unsigned n = 10;
-    auto s = stack(n, context.gpu->attributes);
+    auto s = stack(n, context.gpu->has_concurrent_managed_access());
     auto& sstorage = s.storage();
     EXPECT_FALSE(s.overflow());
 
@@ -109,7 +109,7 @@ TEST(stack, empty) {
 
     execution_context context;
 
-    stack s(0u, context.gpu->attributes);
+    stack s(0u, context.gpu->has_concurrent_managed_access());
 
     EXPECT_EQ(s.size(), 0u);
     EXPECT_EQ(s.capacity(), 0u);

@@ -32,10 +32,10 @@ class stack {
 
     using storage_type = stack_storage<value_type>;
     managed_ptr<storage_type> storage_;
-    unsigned gpu_attributes_;
+    bool concurrent_managed_access_;
 
-    managed_ptr<storage_type> create_storage(unsigned n, size_t gpu_attributes) {
-        auto p = make_managed_ptr<storage_type>(gpu_attributes);
+    managed_ptr<storage_type> create_storage(unsigned n, bool has_concurrent_managed_access) {
+        auto p = make_managed_ptr<storage_type>(has_concurrent_managed_access);
         p->capacity = n;
         p->stores = 0;
         p->data = n? allocator<value_type>().allocate(n): nullptr;
@@ -46,9 +46,10 @@ public:
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
 
-    stack(size_t gpu_attributes): storage_(create_storage(0, gpu_attributes)), gpu_attributes_(gpu_attributes) {}
+    stack(bool has_concurrent_managed_access): storage_(create_storage(0, has_concurrent_managed_access)),
+        concurrent_managed_access_(has_concurrent_managed_access) {}
 
-    stack(stack&& other): storage_(create_storage(0, other.gpu_attributes_)) {
+    stack(stack&& other): storage_(create_storage(0, other.concurrent_managed_access_)) {
         std::swap(storage_, other.storage_);
     }
 
@@ -57,8 +58,9 @@ public:
         return *this;
     }
 
-    explicit stack(unsigned capacity, unsigned gpu_attributes):
-        storage_(create_storage(capacity, gpu_attributes)), gpu_attributes_(gpu_attributes) {}
+    explicit stack(unsigned capacity, unsigned has_concurrent_managed_access):
+        storage_(create_storage(capacity, has_concurrent_managed_access)),
+        concurrent_managed_access_(has_concurrent_managed_access) {}
 
     ~stack() {
         storage_.synchronize();

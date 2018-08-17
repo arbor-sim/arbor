@@ -40,7 +40,7 @@ public:
     threshold_watcher(threshold_watcher&& other) = default;
     threshold_watcher& operator=(threshold_watcher&& other) = default;
 
-    threshold_watcher(const execution_context& ctx): stack_(ctx.gpu->attributes) {}
+    threshold_watcher(const execution_context& ctx): stack_(ctx.gpu->has_concurrent_managed_access()) {}
 
     threshold_watcher(
         const fvm_index_type* cv_to_cell,
@@ -61,7 +61,7 @@ public:
         v_prev_(memory::const_host_view<fvm_value_type>(values, cv_index.size())),
         // TODO: allocates enough space for 10 spikes per watch.
         // A more robust approach might be needed to avoid overflows.
-        stack_(10*size(), context.gpu->attributes)
+        stack_(10*size(), context.gpu->has_concurrent_managed_access())
     {
         crossings_.reserve(stack_.capacity());
         reset();
