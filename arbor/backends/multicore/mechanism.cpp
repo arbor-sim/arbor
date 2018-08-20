@@ -78,6 +78,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
     vec_v_    = shared.voltage.data();
     vec_i_    = shared.current_density.data();
 
+    temperature_degC_ = &shared.temperature_degC;
+
     auto ion_state_tbl = ion_state_table();
     n_ion_ = ion_state_tbl.size();
     for (auto i: ion_state_tbl) {

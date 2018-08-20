@@ -394,7 +394,12 @@ void CPrinter::visit(VariableExpression *sym) {
 
 void CPrinter::visit(IndexedVariable *sym) {
     indexed_variable_info v = decode_indexed_variable(sym);
-    out_ << v.data_var << "[" << v.index_var << "[i_]]";
+    if (v.scalar()) {
+        out_ << v.data_var << "[0]";
+    }
+    else {
+        out_ << v.data_var << "[" << v.index_var << "[i_]]";
+    }
 }
 
 void CPrinter::visit(CallExpression* e) {
@@ -449,6 +454,10 @@ void emit_state_read(std::ostream& out, LocalVariable* local) {
 
 void emit_state_update(std::ostream& out, Symbol* from, IndexedVariable* external) {
     if (!external->is_write()) return;
+
+    if (decode_indexed_variable(external).scalar()) {
+        throw compiler_exception("Cannot assign to global scalar: "+external->to_string());
+    }
 
     const char* op = external->op()==tok::plus? " += ": " -= ";
     out << cprint(external) << op << from->name() << ";\n";
@@ -524,9 +533,14 @@ void SimdPrinter::visit(AssignmentExpression* e) {
 
 void SimdPrinter::visit(IndexedVariable *sym) {
     indexed_variable_info v = decode_indexed_variable(sym);
-    out_ << "S::indirect(" << v.data_var
-         << ", " << index_i_name(v.index_var)
-         << ", constraint_category_)";
+    if (v.scalar()) {
+        out_ << v.data_var << "[0]";
+    }
+    else {
+        out_ << "S::indirect(" << v.data_var
+             << ", " << index_i_name(v.index_var)
+             << ", constraint_category_)";
+    }
 }
 
 void SimdPrinter::visit(CallExpression* e) {
@@ -576,18 +590,23 @@ void emit_simd_state_read(std::ostream& out, LocalVariable* local, simd_expr_con
 
     if (local->is_read()) {
         indexed_variable_info v = decode_indexed_variable(local->external_variable());
-        if(constraint == simd_expr_constraint::contiguous) {
-            out << "(" <<  v.data_var
-                 << " + " << v.index_var
-                 << "[index_]);\n";
-        }
-        else if(constraint == simd_expr_constraint::constant){
+        if (v.scalar()) {
             out << "(" << v.data_var
-                 << "[" << v.index_var
-                 << "element0]);\n";
+                << "[0]);\n";
         }
-        else
+        else if (constraint == simd_expr_constraint::contiguous) {
+            out << "(" <<  v.data_var
+                << " + " << v.index_var
+                << "[index_]);\n";
+        }
+        else if (constraint == simd_expr_constraint::constant) {
+            out << "(" << v.data_var
+                << "[" << v.index_var
+                << "element0]);\n";
+        }
+        else {
             out << "(" <<  simdprint(local->external_variable()) << ");\n";
+        }
     }
     else {
         out << " = 0;\n";
@@ -600,14 +619,19 @@ void emit_simd_state_update(std::ostream& out, Symbol* from, IndexedVariable* ex
     const char* op = external->op()==tok::plus? " += ": " -= ";
     indexed_variable_info v = decode_indexed_variable(external);
 
-    if(constraint == simd_expr_constraint::contiguous) {
-        out << "simd_value t_"<< external->name() <<"(" << v.data_var << " + " << v.index_var << "[index_]);\n";
-        out << "t_" << external->name() << op << from->name() << ";\n";
-        out << "t_" << external->name() << ".copy_to(" << v.data_var << " + " << v.index_var << "[index_]);\n";
-
+    if (v.scalar()) {
+        throw compiler_exception("Cannot assign to global scalar: "+external->to_string());
     }
     else {
-        out << simdprint(external) << op << from->name() << ";\n";
+        if (constraint == simd_expr_constraint::contiguous) {
+            out << "simd_value t_"<< external->name() <<"(" << v.data_var << " + " << v.index_var << "[index_]);\n";
+            out << "t_" << external->name() << op << from->name() << ";\n";
+            out << "t_" << external->name() << ".copy_to(" << v.data_var << " + " << v.index_var << "[index_]);\n";
+
+        }
+        else {
+            out << simdprint(external) << op << from->name() << ";\n";
+        }
     }
 }
 
@@ -674,9 +698,16 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
     auto body = method->body();
     auto indexed_vars = indexed_locals(method->scope());
 
+    std::vector<LocalVariable*> scalar_indexed_vars;
     std::unordered_set<std::string> indices;
     for (auto& sym: indexed_vars) {
-        indices.insert(decode_indexed_variable(sym->external_variable()).index_var);
+        auto info = decode_indexed_variable(sym->external_variable());
+        if (!info.scalar()) {
+            indices.insert(info.index_var);
+        }
+        else {
+            scalar_indexed_vars.push_back(sym);
+        }
     }
 
     if (!body->statements().empty()) {
@@ -718,11 +749,16 @@ void emit_simd_api_body(std::ostream& out, APIMethod* method, moduleKind module_
 
         }
         else {
-            out << "unsigned n_ = width_;\n\n";
+            // We may nonetheless need to read a global scalar indexed variable.
+            for (auto& sym: scalar_indexed_vars) {
+                emit_simd_state_read(out, sym, simd_expr_constraint::other);
+            }
+
             out <<
-                "for (unsigned i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent;
-            out << simdprint(body);
-            out << popindent << "}\n";
+                "unsigned n_ = width_;\n\n"
+                "for (unsigned i_ = 0; i_ < n_; i_ += simd_width_) {\n" << indent <<
+                simdprint(body) << popindent <<
+                "}\n";
         }
     }
 }

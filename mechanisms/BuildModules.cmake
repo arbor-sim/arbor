@@ -5,6 +5,15 @@ include(CMakeParseArguments)
 function(build_modules)
     cmake_parse_arguments(build_modules "" "MODCC;TARGET;SOURCE_DIR;DEST_DIR;MECH_SUFFIX" "MODCC_FLAGS;GENERATES" ${ARGN})
 
+    if("${build_modules_SOURCE_DIR}" STREQUAL "")
+        set(build_modules_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    endif()
+
+    if("${build_modules_DEST_DIR}" STREQUAL "")
+        set(build_modules_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    endif()
+    file(MAKE_DIRECTORY "${build_modules_DEST_DIR}")
+
     set(all_generated)
     foreach(mech ${build_modules_UNPARSED_ARGUMENTS})
         set(mod "${build_modules_SOURCE_DIR}/${mech}.mod")

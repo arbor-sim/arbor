@@ -10,14 +10,6 @@ set(mod_srcdir "${CMAKE_CURRENT_SOURCE_DIR}/mod")
 set(mech_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${mech_dir}")
 
-set(modcc_flags)
-if(ARB_VECTORIZE)
-    list(APPEND modcc_flags "--simd")
-endif()
-if(ARB_WITH_PROFILING)
-    list(APPEND modcc_flags "--profile")
-endif()
-
 set(external_modcc)
 if(ARB_WITH_EXTERNAL_MODCC)
     set(external_modcc MODCC ${modcc})
@@ -28,7 +20,7 @@ build_modules(
     SOURCE_DIR "${mod_srcdir}"
     DEST_DIR "${mech_dir}"
     ${external_modcc}
-    MODCC_FLAGS -t cpu -t gpu ${modcc_flags}
+    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
     GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
     TARGET build_all_mods
 )

@@ -372,7 +372,10 @@ void emit_api_body_cu(std::ostream& out, APIMethod* e, bool is_point_proc) {
 
     std::unordered_set<std::string> indices;
     for (auto& sym: indexed_vars) {
-        indices.insert(decode_indexed_variable(sym->external_variable()).index_var);
+        auto d = decode_indexed_variable(sym->external_variable());
+        if (!d.scalar()) {
+            indices.insert(d.index_var);
+        }
     }
 
     if (!body->statements().empty()) {
@@ -420,6 +423,10 @@ void emit_state_update_cu(std::ostream& out, Symbol* from,
     const bool is_minus = external->op()==tok::minus;
     auto d = decode_indexed_variable(external);
 
+    if (d.scalar()) {
+        throw compiler_exception("Cannot assign to global scalar: "+external->to_string());
+    }
+
     if (is_point_proc) {
         out << "arb::gpu::reduce_by_key(";
         is_minus && out << "-";
@@ -439,7 +446,12 @@ void CudaPrinter::visit(VariableExpression *sym) {
 
 void CudaPrinter::visit(IndexedVariable *e) {
     auto d = decode_indexed_variable(e);
-    out_ << "params_." << d.data_var << "[" << index_i_name(d.index_var) <<  "]";
+    if (d.scalar()) {
+        out_ << "params_." << d.data_var << "[0]";
+    }
+    else {
+        out_ << "params_." << d.data_var << "[" << index_i_name(d.index_var) <<  "]";
+    }
 }
 
 void CudaPrinter::visit(CallExpression* e) {
