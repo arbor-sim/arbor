@@ -8,11 +8,6 @@ enable_language(CXX)
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
-# Enable CUDA support with ARB_WITH_GPU.
-
-set(ARB_WITH_GPU "OFF" CACHE STRING "The target GPU architecture: one of {ON,OFF}")
-set_property(CACHE ARB_WITH_GPU PROPERTY STRINGS ON OFF )
-
 # Specify target archiecture.
 
 set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
@@ -37,6 +32,7 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 #----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
+option(ARB_WITH_GPU "build with GPU support" OFF)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
@@ -72,7 +68,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 # Add CUDA as a language if GPU support requested.
 # (This has to be set early so as to enable CUDA tests in generator
 # expressions.)
-if(ARB_WITH_GPU MATCHES "ON")
+if(ARB_WITH_GPU)
     enable_language(CUDA)
 endif()
 
@@ -169,7 +165,7 @@ endif()
 # CUDA support
 #--------------
 
-if(ARB_WITH_GPU MATCHES "ON")
+if(ARB_WITH_GPU)
     set(ARB_WITH_CUDA TRUE)
 
     add_compile_options(
@@ -177,17 +173,10 @@ if(ARB_WITH_GPU MATCHES "ON")
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
     target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU)
 
-    set(cuda_code_0 sm_35)
-    set(cuda_arch_0 compute_35)
-    set(cuda_code_1 sm_37)
-    set(cuda_arch_1 compute_37)
-    set(cuda_code_2 sm_60)
-    set(cuda_arch_2 compute_60)
+    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
+    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
+    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
 
-    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_0},code=${cuda_code_0}>)
-    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_1},code=${cuda_code_1}>)
-    add_compile_options($<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=${cuda_arch_2},code=${cuda_code_2}>)
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA_ARCH=${arb_cuda_arch})
 endif()
 
 # Use libunwind if available for pretty printing stack traces

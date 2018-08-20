@@ -5,6 +5,7 @@
 #include <arbor/assert.hpp>
 
 #include "backends/gpu/managed_ptr.hpp"
+#include "gpu_context.hpp"
 #include "memory/allocator.hpp"
 #include "stack_storage.hpp"
 
@@ -31,11 +32,14 @@ class stack {
     using allocator = memory::managed_allocator<U>;
 
     using storage_type = stack_storage<value_type>;
-    managed_ptr<storage_type> storage_;
-    bool concurrent_managed_access_;
 
-    managed_ptr<storage_type> create_storage(unsigned n, bool has_concurrent_managed_access) {
-        auto p = make_managed_ptr<storage_type>(has_concurrent_managed_access);
+    using gpu_context_handle = std::shared_ptr<arb::gpu_context>;
+
+    managed_ptr<storage_type> storage_;
+    gpu_context_handle gpu_context_;
+
+    managed_ptr<storage_type> create_storage(unsigned n) {
+        auto p = make_managed_ptr<storage_type>();
         p->capacity = n;
         p->stores = 0;
         p->data = n? allocator<value_type>().allocate(n): nullptr;
@@ -46,10 +50,10 @@ public:
     stack& operator=(const stack& other) = delete;
     stack(const stack& other) = delete;
 
-    stack(bool has_concurrent_managed_access): storage_(create_storage(0, has_concurrent_managed_access)),
-        concurrent_managed_access_(has_concurrent_managed_access) {}
+    stack(const gpu_context_handle& gpu_ctx):
+        storage_(create_storage(0)), gpu_context_(gpu_ctx) {}
 
-    stack(stack&& other): storage_(create_storage(0, other.concurrent_managed_access_)) {
+    stack(stack&& other): storage_(create_storage(0)), gpu_context_(other.gpu_context_) {
         std::swap(storage_, other.storage_);
     }
 
@@ -58,9 +62,8 @@ public:
         return *this;
     }
 
-    explicit stack(unsigned capacity, unsigned has_concurrent_managed_access):
-        storage_(create_storage(capacity, has_concurrent_managed_access)),
-        concurrent_managed_access_(has_concurrent_managed_access) {}
+    explicit stack(unsigned capacity, const gpu_context_handle& gpu_ctx):
+        storage_(create_storage(capacity)), gpu_context_(gpu_ctx) {}
 
     ~stack() {
         storage_.synchronize();
@@ -72,7 +75,7 @@ public:
     // Perform any required synchronization if concurrent host-side access is not supported.
     // (Correctness still requires that GPU operations on this stack are complete.)
     void host_access() const {
-        storage_.host_access();
+        gpu_context_->synchronize();
     }
 
     void clear() {
