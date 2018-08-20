@@ -51,6 +51,7 @@ enum class sourceKind {
     ion_revpot,
     ion_iconc,
     ion_econc,
+    temperature,
     no_source
 };
 

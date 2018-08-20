@@ -92,14 +92,27 @@ void IdentifierExpression::semantic(scope_ptr scp) {
                        yellow(spelling_)));
         return;
     }
-    // if the symbol is an indexed variable, this is the first time that the
-    // indexed variable is used in this procedure. In which case, we create
-    // a local variable which refers to the indexed variable, which will be
-    // found for any subsequent variable lookup inside the procedure
+
+    // If the symbol is an indexed variable, and we're in an API block,
+    // create a local variable which refers to the indexed variable,
+    // which will be found for any subsequent variable lookup inside the
+    // procedure.
+    //
+    // If, however, we are in a PROCEDURE or FUNCTION block, we do not
+    // have access to indexed variables and this constitutes an error.
+
     if(auto sym = s->is_indexed_variable()) {
-        auto var = new LocalVariable(location_, spelling_);
-        var->external_variable(sym);
-        s = scope_->add_local_symbol(spelling_, scope_type::symbol_ptr{var});
+        if (scope_->in_api_context()) {
+            auto var = new LocalVariable(location_, spelling_);
+            var->external_variable(sym);
+            s = scope_->add_local_symbol(spelling_, scope_type::symbol_ptr{var});
+        }
+        else {
+            error( pprintf("the symbol '%' refers to an external quantity "
+                           "and is unavailable in a function or procedure",
+                           yellow(spelling_)));
+            return;
+        }
     }
 
     // save the symbol
@@ -445,18 +458,17 @@ std::string ProcedureExpression::to_string() const {
     return str;
 }
 
-void ProcedureExpression::semantic(scope_type::symbol_map &global_symbols) {
+void ProcedureExpression::semantic(scope_ptr scp) {
+    scope_ = scp;
+
     // assert that the symbol is already visible in the global_symbols
-    if(global_symbols.find(name()) == global_symbols.end()) {
+    if(scope_->find_global(name()) == nullptr) {
         throw compiler_exception(
             "attempt to perform semantic analysis for procedure '"
             + yellow(name())
             + "' which has not been added to global symbol table",
             location_);
     }
-
-    // create the scope for this procedure
-    scope_ = std::make_shared<scope_type>(global_symbols);
 
     // add the argumemts to the list of local variables
     for(auto& a : args_) {
@@ -474,6 +486,23 @@ void ProcedureExpression::semantic(scope_type::symbol_map &global_symbols) {
 
     // the symbol for this expression is itself
     symbol_ = scope_->find_global(name());
+}
+
+void ProcedureExpression::semantic(scope_type::symbol_map &global_symbols) {
+    // create the scope for this procedure and run semantic pass on it
+    scope_ptr scp = std::make_shared<scope_type>(global_symbols);
+    switch (kind_) {
+    case procedureKind::derivative:
+    case procedureKind::kinetic:
+    case procedureKind::initial:
+    case procedureKind::breakpoint:
+        scp->in_api_context(true);
+        break;
+    default:
+        scp->in_api_context(false);
+        break;
+    }
+    semantic(scp);
 }
 
 /*******************************************************************************
@@ -498,6 +527,14 @@ std::string APIMethod::to_string() const {
     str += body_->to_string();
 
     return str;
+}
+
+void APIMethod::semantic(scope_type::symbol_map &global_symbols) {
+    // create the scope for this procedure, marking it as an API context,
+    // and run semantic pass on it
+    scope_ptr scp = std::make_shared<scope_type>(global_symbols);
+    scp->in_api_context(true);
+    semantic(scp);
 }
 
 /*******************************************************************************

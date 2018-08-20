@@ -79,8 +79,8 @@ void run_ncomp_convergence_test(
             rec.add_probe(0, 0, cell_probe_address{p.where, cell_probe_address::membrane_voltage});
         }
 
-        auto decomp = partition_load_balance(rec, nd, &context);
-        simulation sim(rec, decomp, &context);
+        auto decomp = partition_load_balance(rec, nd, context);
+        simulation sim(rec, decomp, context);
 
         runner.run(sim, ncomp, sample_dt, t_end, dt, exclude);
     }
@@ -195,36 +195,41 @@ void validate_ball_and_squiggle(arb::backend_kind backend) {
 }
 
 TEST(ball_and_stick, neuron_ref) {
+    execution_context ctx;
     validate_ball_and_stick(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_ball_and_stick(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_taper, neuron_ref) {
+    execution_context ctx;
     validate_ball_and_taper(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_ball_and_taper(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_3stick, neuron_ref) {
+    execution_context ctx;
     validate_ball_and_3stick(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_ball_and_3stick(backend_kind::gpu);
     }
 }
 
 TEST(rallpack1, numeric_ref) {
+    execution_context ctx;
     validate_rallpack1(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_rallpack1(backend_kind::gpu);
     }
 }
 
 TEST(ball_and_squiggle, neuron_ref) {
+    execution_context ctx;
     validate_ball_and_squiggle(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    if (local_allocation(ctx).num_gpus) {
         validate_ball_and_squiggle(backend_kind::gpu);
     }
 }

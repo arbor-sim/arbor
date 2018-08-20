@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arbor/time_sequence.hpp>
+#include <arbor/schedule.hpp>
 
 namespace arb {
 
@@ -8,7 +8,7 @@ namespace arb {
 // recipe::cell_kind(gid) returning cell_kind::spike_source
 
 struct spike_source_cell {
-    time_seq seq;
+    schedule seq;
 };
 
 } // namespace arb

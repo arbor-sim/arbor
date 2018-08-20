@@ -2,10 +2,6 @@
 
 #include "backends/event.hpp"
 #include "backends/gpu/multi_event_stream.hpp"
-#include "memory/array.hpp"
-#include "memory/copy.hpp"
-#include "util/rangeutil.hpp"
-
 #include "cuda_common.hpp"
 
 namespace arb {
@@ -90,17 +86,10 @@ namespace kernels {
     }
 } // namespace kernels
 
-void multi_event_stream_base::clear() {
-    memory::fill(span_begin_, 0u);
-    memory::fill(span_end_, 0u);
-    memory::fill(mark_, 0u);
-    n_nonempty_stream_[0] = 0;
-}
-
 // Designate for processing events `ev` at head of each event stream `i`
 // until `event_time(ev)` > `t_until[i]`.
 void multi_event_stream_base::mark_until_after(const_view t_until) {
-    arb_assert(n_streams()==util::size(t_until));
+    arb_assert(n_streams()==t_until.size());
 
     constexpr int block_dim = 128;
 
@@ -113,7 +102,7 @@ void multi_event_stream_base::mark_until_after(const_view t_until) {
 // Designate for processing events `ev` at head of each event stream `i`
 // while `t_until[i]` > `event_time(ev)`.
 void multi_event_stream_base::mark_until(const_view t_until) {
-    arb_assert(n_streams()==util::size(t_until));
+    arb_assert(n_streams()==t_until.size());
     constexpr int block_dim = 128;
 
     unsigned n = n_stream_;

@@ -218,6 +218,13 @@ else()
     set(ARB_WITH_EXTERNAL_MODCC FALSE)
 endif()
 
+set(ARB_MODCC_FLAGS)
+if(ARB_VECTORIZE)
+    list(APPEND ARB_MODCC_FLAGS "--simd")
+endif()
+if(ARB_WITH_PROFILING)
+    list(APPEND ARB_MODCC_FLAGS "--profile")
+endif()
 
 #----------------------------------------------------------
 # Configure targets in sub-directories.

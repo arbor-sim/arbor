@@ -144,6 +144,10 @@ indexed_variable_info decode_indexed_variable(IndexedVariable* sym) {
     case sourceKind::ion_econc:
         data_var=ion_pfx+".external_concentration";
         break;
+    case sourceKind::temperature:
+        data_var="temperature_degC_";
+        index_var=""; // scalar global
+        break;
     default:
         throw compiler_exception(pprintf("unrecognized indexed data source: %", sym), sym->location());
     }

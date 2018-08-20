@@ -1,6 +1,6 @@
 // POSIX headers
 extern "C" {
-#define _POSIX_C_SOURCE 2
+#define _POSIX_C_SOURCE 200809L
 #include <glob.h>
 }
 

@@ -57,7 +57,7 @@ TEST(domain_decomposition, homogenous_population)
         proc_allocation nd{1, 0};
 
         unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -83,7 +83,7 @@ TEST(domain_decomposition, homogenous_population)
         proc_allocation nd{1, 1};
 
         unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -118,7 +118,7 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, nd, &context);
+        const auto D = partition_load_balance(R, nd, context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -156,7 +156,7 @@ TEST(domain_decomposition, heterogenous_population)
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, nd, &context);
+        const auto D = partition_load_balance(R, nd, context);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -203,7 +203,7 @@ TEST(domain_decomposition, hints) {
     domain_decomposition D = partition_load_balance(
         hetero_recipe(20),
         proc_allocation{16, 1}, // 16 threads, 1 gpu.
-        &context,
+        context,
         hints);
 
     std::vector<std::vector<cell_gid_type>> expected_c1d_groups =

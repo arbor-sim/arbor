@@ -35,6 +35,8 @@
 namespace arb {
 
 namespace impl {
+    inline void debug_emit_csv(std::ostream&) {}
+
     template <typename Head, typename... Tail>
     void debug_emit_csv(std::ostream& out, const Head& head, const Tail&... tail) {
         out << head;
@@ -44,7 +46,9 @@ namespace impl {
         debug_emit_csv(out, tail...);
     }
 
-    void debug_emit_trace_leader(std::ostream&, const char* file, int line, const char* vars);
+    inline void debug_emit_trace_leader(std::ostream& out, const char* file, int line, const char* vars) {
+        out << file << ':' << line << ": " << vars << ": ";
+    }
 
     struct emit_nl_locked: public io::locked_ostream {
         emit_nl_locked(std::streambuf* buf):

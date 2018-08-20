@@ -16,7 +16,6 @@
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/version.hpp>
 
 
@@ -35,13 +34,13 @@ int main(int argc, char** argv) {
     try {
         arb::execution_context context;
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(&argc, &argv);
-        context.distributed = mpi_context(MPI_COMM_WORLD);
+        aux::with_mpi guard(argc, argv, false);
+        context.distributed = arb::mpi_context(MPI_COMM_WORLD);
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
-        const bool is_root =  context.distributed.id()==0;
+        const bool is_root =  context.distributed->id()==0;
 
         std::cout << aux::mask_stream(is_root);
 
@@ -49,7 +48,7 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
-        profile::meter_manager meters(&context.distributed);
+        profile::meter_manager meters(context.distributed);
         meters.start();
 
         // Create an instance of our recipe.
@@ -57,12 +56,12 @@ int main(int argc, char** argv) {
         meters.checkpoint("recipe-build");
 
         // Make the domain decomposition for the model
-        auto local = arb::local_allocation();
-        auto decomp = arb::partition_load_balance(recipe, local, &context);
+        auto local = arb::local_allocation(context);
+        auto decomp = arb::partition_load_balance(recipe, local, context);
         meters.checkpoint("domain-decomp");
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, &context);
+        arb::simulation sim(recipe, decomp, context);
         meters.checkpoint("model-build");
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.

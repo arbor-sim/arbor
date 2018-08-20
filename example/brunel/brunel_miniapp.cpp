@@ -7,7 +7,6 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
@@ -16,7 +15,6 @@
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/version.hpp>
 
 #include <aux/ioutil.hpp>
@@ -32,7 +30,7 @@
 
 using namespace arb;
 
-void banner(proc_allocation, const execution_context*);
+void banner(proc_allocation, const execution_context&);
 
 // Samples m unique values in interval [start, end) - gid.
 // We exclude gid because we don't want self-loops.
@@ -126,12 +124,10 @@ public:
         std::mt19937_64 G;
         G.seed(gid + seed_);
 
-        using pgen = poisson_generator<std::mt19937_64>;
-
         time_type t0 = 0;
         cell_member_type target{gid, 0};
 
-        gens.emplace_back(pgen(target, weight_ext_, G, t0, lambda_));
+        gens.emplace_back(poisson_generator(target, weight_ext_, t0, lambda_, G));
         return gens;
     }
 
@@ -191,19 +187,19 @@ int main(int argc, char** argv) {
 
     try {
 #ifdef ARB_MPI_ENABLED
-        with_mpi guard(argc, argv, false);
+        aux::with_mpi guard(argc, argv, false);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
-        arb::profile::meter_manager meters(&context.distributed);
+        arb::profile::meter_manager meters(context.distributed);
         meters.start();
-        std::cout << aux::mask_stream(context.distributed.id()==0);
+        std::cout << aux::mask_stream(context.distributed->id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.distributed.id()==0);
-        proc_allocation nd = local_allocation();
-        banner(nd, &context);
+        io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
+        proc_allocation nd = local_allocation(context);
+        banner(nd, context);
 
         meters.checkpoint("setup");
 
@@ -240,16 +236,16 @@ int main(int argc, char** argv) {
 
         partition_hint_map hints;
         hints[cell_kind::lif_neuron].cpu_group_size = group_size;
-        auto decomp = partition_load_balance(recipe, nd, &context, hints);
+        auto decomp = partition_load_balance(recipe, nd, context, hints);
 
-        simulation sim(recipe, decomp, &context);
+        simulation sim(recipe, decomp, context);
 
         // Initialize the spike exporting interface
         std::fstream spike_out;
         if (options.spike_file_output) {
             using std::ios_base;
 
-            auto rank = context.distributed.id();
+            auto rank = context.distributed->id();
             aux::path p = options.output_path;
             p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
 
@@ -276,7 +272,7 @@ int main(int argc, char** argv) {
 
         auto report = profile::make_meter_report(meters);
         std::cout << report;
-        if (context.distributed.id()==0) {
+        if (context.distributed->id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -285,7 +281,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << aux::mask_stream(context.distributed.id()==0);
+        std::cerr << aux::mask_stream(context.distributed->id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -296,13 +292,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(proc_allocation nd, const execution_context* ctx) {
+void banner(proc_allocation nd, const execution_context& ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->distributed.size()
-              << " (" << ctx->distributed.name() << ")\n";
-    std::cout << "  - threads     : " << nd.num_threads
-              << " (" << arb::thread_implementation() << ")\n";
+    std::cout << "  - distributed : " << ctx.distributed->size()
+              << " (" << ctx.distributed->name() << ")\n";
+    std::cout << "  - threads     : " << nd.num_threads << "\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
 }
