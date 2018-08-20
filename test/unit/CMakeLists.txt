@@ -1,4 +1,4 @@
-# Build unit test mechanisms.
+# Build mechanisms used solely in unit tests.
 
 set(test_mechanisms
     celsius_test
