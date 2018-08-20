@@ -27,16 +27,15 @@ struct gpu_context {
     size_t attributes_;
 
     gpu_context() : has_gpu_(true) {
-        size_t attrib = 0;
         cudaDeviceProp prop;
         cudaGetDeviceProperties(&prop, 0);
+        attributes_ = 0; 
         if (prop.concurrentManagedAccess) {
-            attrib |= (1 << gpu_flags::has_concurrent_managed_access);
+            attributes_ |= (1 << gpu_flags::has_concurrent_managed_access);
         }
         if (prop.major*100 + prop.minor >= 600) {
-            attrib |= (1 << gpu_flags::has_atomic_double);
+            attributes_ |= (1 << gpu_flags::has_atomic_double);
         }
-        attributes_ = attrib;
     };
 
     bool has_concurrent_managed_access() {
