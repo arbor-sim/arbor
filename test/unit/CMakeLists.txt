@@ -1,10 +1,40 @@
+# Build mechanisms used solely in unit tests.
+
+set(test_mechanisms
+    celsius_test
+)
+
+include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
+
+set(external_modcc)
+if(ARB_WITH_EXTERNAL_MODCC)
+    set(external_modcc MODCC ${modcc})
+endif()
+set(test_mech_dir ${CMAKE_CURRENT_BINARY_DIR}/mechanisms)
+
+build_modules(
+    ${test_mechanisms}
+    SOURCE_DIR mod
+    DEST_DIR "${test_mech_dir}"
+    ${external_modcc}
+    MODCC_FLAGS -t cpu -t gpu ${ARB_MODCC_FLAGS}
+    GENERATES .hpp _cpu.cpp _gpu.cpp _gpu.cu
+    TARGET build_test_mods
+)
+
+set(test_mech_sources)
+foreach(mech ${test_mechanisms})
+    list(APPEND test_mech_sources ${test_mech_dir}/${mech}_cpu.cpp)
+    if(ARB_WITH_CUDA)
+        list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cpp)
+        list(APPEND test_mech_sources ${test_mech_dir}/${mech}_gpu.cu)
+    endif()
+endforeach()
+
+
 # TODO: test_mechanism and mechanism prototype comparisons must
 # be re-jigged.
 
-# Build prototype mechanisms for testing in test_mechanisms.
-#
-#include(${PROJECT_SOURCE_DIR}/mechanisms/BuildModules.cmake)
-#
 # set(proto_mechanisms pas hh expsyn exp2syn test_kin1 test_kinlva test_ca)
 # set(mech_proto_dir "${CMAKE_CURRENT_BINARY_DIR}/mech_proto")
 # file(MAKE_DIRECTORY "${mech_proto_dir}")
@@ -46,6 +76,7 @@ set(unit_sources
     test_matrix.cpp
     test_mc_cell.cpp
     test_mechanisms.cpp
+    test_mech_temperature.cpp
     test_mechcat.cpp
     test_merge_events.cpp
     test_multi_event_stream.cpp
@@ -83,7 +114,9 @@ set(unit_sources
     test.cpp
 
     # common routines
+    mech_private_field_access.cpp
     stats.cpp
+    unit_test_catalogue.cpp
 )
 
 if(ARB_WITH_CUDA)
@@ -103,8 +136,9 @@ if(ARB_WITH_CUDA)
     )
 endif()
 
-add_executable(unit ${unit_sources})
-target_compile_options(unit PRIVATE ${CXXOPT_ARCH})
+add_executable(unit ${unit_sources} ${test_mech_sources})
+add_dependencies(unit build_test_mods)
+target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
+target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(unit PRIVATE gtest arbor arbor-private-headers arbor-aux)
-
