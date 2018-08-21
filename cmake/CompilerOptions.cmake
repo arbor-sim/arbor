@@ -81,12 +81,6 @@ function(set_arch_target optvar arch)
 
         if(target_model MATCHES "x86" OR target_model MATCHES "amd64")
             set(arch_opt "-march=${arch}")
-
-            # Disable tree optimizer in gcc pre-version 8.2 on x86, owing to compiler bug.
-            # (See: arbor issue #568, gcc issue #87046.)
-            if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 8.2.o)
-                list(APPEND arch_opt "-fno-tree-vectorize")
-            endif()
         else()
             set(arch_opt "-mcpu=${arch}")
         endif()

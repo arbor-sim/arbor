@@ -37,4 +37,14 @@ inline void compiler_barrier_if_icc_leq(unsigned ver) {
 #endif
 }
 
+// Work-around for bad vectorization of fma in gcc version < 8.2
+
+template <typename T>
+#if defined(__GNUC__) && (100*__GNUC__ + __GNUC_MINOR__ < 802)
+__attribute((optimize("no-tree-vectorize")))
+#endif
+inline auto fma(T a, T b, T c) {
+    return std::fma(a, b, c);
+}
+
 } // namespace compat
