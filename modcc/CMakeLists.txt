@@ -4,6 +4,7 @@
 set(libmodcc_sources
 
     astmanip.cpp
+    blocks.cpp
     errorvisitor.cpp
     expression.cpp
     functionexpander.cpp
@@ -35,5 +36,7 @@ target_link_libraries(modcc libmodcc ext-tclap)
 
 set_target_properties(modcc libmodcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})
 
-install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+if (NOT ARB_WITH_EXTERNAL_MODCC)
+    install(TARGETS modcc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 

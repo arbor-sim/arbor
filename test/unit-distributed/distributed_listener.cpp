@@ -3,8 +3,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <arbor/distributed_context.hpp>
-
 #include "../gtest.h"
 
 #include "distributed_listener.hpp"
@@ -27,7 +25,7 @@ distributed_listener::printer& operator<<(distributed_listener::printer& p, cons
     return p;
 }
 
-distributed_listener::distributed_listener(std::string f_base, const arb::distributed_context* ctx):
+distributed_listener::distributed_listener(std::string f_base, arb::distributed_context_handle ctx):
     context_(ctx),
     rank_(context_->id()),
     size_(context_->size()),

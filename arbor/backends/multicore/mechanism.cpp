@@ -7,10 +7,10 @@
 
 #include <arbor/fvm_types.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/math.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "math.hpp"
 #include "util/index_into.hpp"
 #include "util/maputil.hpp"
 #include "util/padded_alloc.hpp"
@@ -77,6 +77,8 @@ void mechanism::instantiate(unsigned id, backend::shared_state& shared, const la
 
     vec_v_    = shared.voltage.data();
     vec_i_    = shared.current_density.data();
+
+    temperature_degC_ = &shared.temperature_degC;
 
     auto ion_state_tbl = ion_state_table();
     n_ion_ = ion_state_tbl.size();

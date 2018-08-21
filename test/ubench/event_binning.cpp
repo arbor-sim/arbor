@@ -7,12 +7,13 @@
 #include <unordered_map>
 #include <vector>
 
+#include <benchmark/benchmark.h>
+
 #include <arbor/spike_event.hpp>
 
 #include "event_queue.hpp"
 #include "backends/event.hpp"
 
-#include <benchmark/benchmark.h>
 
 using namespace arb;
 

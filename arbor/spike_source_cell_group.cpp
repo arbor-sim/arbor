@@ -2,7 +2,7 @@
 
 #include <arbor/recipe.hpp>
 #include <arbor/spike_source_cell.hpp>
-#include <arbor/time_sequence.hpp>
+#include <arbor/schedule.hpp>
 
 #include "cell_group.hpp"
 #include "profile/profiler_macro.hpp"
@@ -11,8 +11,8 @@
 
 namespace arb {
 
-spike_source_cell_group::spike_source_cell_group(std::vector<cell_gid_type> gids, const recipe& rec):
-    gids_(std::move(gids))
+spike_source_cell_group::spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec):
+    gids_(gids)
 {
     time_sequences_.reserve(gids_.size());
     for (auto gid: gids_) {
@@ -34,14 +34,14 @@ void spike_source_cell_group::advance(epoch ep, time_type dt, const event_lane_s
     PE(advance_sscell);
 
     for (auto i: util::count_along(gids_)) {
-        auto& tseq = time_sequences_[i];
         const auto gid = gids_[i];
 
-        while (tseq.front()<ep.tfinal) {
-            spikes_.push_back({{gid, 0u}, tseq.front()});
-            tseq.pop();
+        for (auto t: util::make_range(time_sequences_[i].events(t_, ep.tfinal))) {
+            spikes_.push_back({{gid, 0u}, t});
         }
     }
+    t_ = ep.tfinal;
+
     PL();
 };
 
@@ -49,6 +49,7 @@ void spike_source_cell_group::reset() {
     for (auto& s: time_sequences_) {
         s.reset();
     }
+    t_ = 0;
 
     clear_spikes();
 }

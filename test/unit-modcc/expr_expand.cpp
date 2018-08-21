@@ -2,7 +2,7 @@
 #include <sstream>
 
 #include "expression.hpp"
-#include "modccutil.hpp"
+#include "io/pprintf.hpp"
 #include "token.hpp"
 
 #include "alg_collect.hpp"
@@ -47,7 +47,7 @@ alg::prodsum expand_expression(Expression* e, const id_prodsum_map& exmap) {
         case tok::pow:
             if (!rhs.is_scalar()) {
                 // make an opaque term for this case (i.e. too hard to simplify)
-                return prodterm("("+to_string(lhs)+")^("+to_string(rhs)+")");
+                return prodterm(pprintf("(%)^(%)", lhs, rhs));
             }
             else return lhs.pow(rhs.first_coeff());
         default:
@@ -60,13 +60,13 @@ alg::prodsum expand_expression(Expression* e, const id_prodsum_map& exmap) {
         case tok::minus:
             return -inner;
         case tok::exp:
-            return prodterm("exp("+to_string(inner)+")");
+            return prodterm(pprintf("exp(%)", inner));
         case tok::log:
-            return prodterm("log("+to_string(inner)+")");
+            return prodterm(pprintf("log(%)", inner));
         case tok::sin:
-            return prodterm("sin("+to_string(inner)+")");
+            return prodterm(pprintf("sin(%)", inner));
         case tok::cos:
-            return prodterm("cos("+to_string(inner)+")");
+            return prodterm(pprintf("cos(%)", inner));
         default:
             throw std::runtime_error("unrecognized unaryop");
         }

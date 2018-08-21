@@ -1,6 +1,7 @@
 #include "../gtest.h"
 
 #include <arbor/spike.hpp>
+#include <arbor/execution_context.hpp>
 
 #include "thread_private_spike_store.hpp"
 
@@ -10,7 +11,8 @@ TEST(spike_store, insert)
 {
     using store_type = arb::thread_private_spike_store;
 
-    store_type store;
+    arb::execution_context context;
+    store_type store(context.thread_pool);
 
     // insert 3 spike events and check that they were inserted correctly
     store.insert({
@@ -54,7 +56,8 @@ TEST(spike_store, clear)
 {
     using store_type = arb::thread_private_spike_store;
 
-    store_type store;
+    arb::execution_context context;
+    store_type store(context.thread_pool);
 
     // insert 3 spike events
     store.insert({
@@ -69,7 +72,8 @@ TEST(spike_store, gather)
 {
     using store_type = arb::thread_private_spike_store;
 
-    store_type store;
+    arb::execution_context context;
+    store_type store(context.thread_pool);
 
     std::vector<spike> spikes =
         { {{0,0}, 0.0f}, {{1,2}, 0.5f}, {{2,4}, 1.0f} };

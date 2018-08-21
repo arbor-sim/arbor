@@ -10,18 +10,18 @@ set(arbor_sources
     builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
-    mc_cell.cpp
+    local_alloc.cpp
     event_binner.cpp
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
     hardware/affinity.cpp
-    hardware/gpu.cpp
     hardware/memory.cpp
     hardware/node_info.cpp
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
     lif_cell_group.cpp
+    mc_cell.cpp
     mc_cell_group.cpp
     mechcat.cpp
     memory/cuda_wrappers.cpp
@@ -39,11 +39,10 @@ set(arbor_sources
     spike_event_io.cpp
     spike_source_cell_group.cpp
     swcio.cpp
-    threadinfo.cpp
     threading/threading.cpp
+    threading/thread_info.cpp
     thread_private_spike_store.cpp
     util/hostname.cpp
-    util/path.cpp
     util/unwind.cpp
     version.cpp
 )
@@ -59,6 +58,7 @@ if(ARB_WITH_CUDA)
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_interleave.cu
         backends/gpu/matrix_solve.cu
+        backends/gpu/multi_event_stream.cpp
         backends/gpu/multi_event_stream.cu
         backends/gpu/shared_state.cu
         backends/gpu/stimulus.cu
@@ -72,11 +72,6 @@ if(ARB_WITH_MPI)
         communication/mpi.cpp
         communication/mpi_error.cpp
         communication/mpi_context.cpp)
-endif()
-
-if(ARB_WITH_CTHREAD)
-    list(APPEND arbor_sources
-        threading/cthread.cpp)
 endif()
 
 # Add special target for private include directory, for use by arbor target

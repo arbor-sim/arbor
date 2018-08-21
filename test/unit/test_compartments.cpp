@@ -3,9 +3,10 @@
 
 #include "../gtest.h"
 
+#include <arbor/math.hpp>
+
 #include "algorithms.hpp"
 #include "fvm_compartment.hpp"
-#include "math.hpp"
 #include "util/span.hpp"
 #include "util/transform.hpp"
 

@@ -80,6 +80,10 @@ public:
         return *this;
     }
 
+    device_reference& operator=(const device_reference& ref) {
+        cuda_memcpy_d2d(pointer_, ref.pointer_, sizeof(T));
+    }
+
     operator T() const {
         T tmp;
         cuda_memcpy_d2h(&tmp, pointer_, sizeof(T));

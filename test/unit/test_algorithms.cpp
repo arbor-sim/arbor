@@ -12,38 +12,8 @@
 
 // (Pending abstraction of threading interface)
 #include <arbor/version.hpp>
-#if defined(ARB_TBB_ENABLED)
-    #include "threading/tbb.hpp"
-#elif defined(ARB_CTHREAD_ENABLED)
-    #include "threading/cthread.hpp"
-#else
-    #include "threading/serial.hpp"
-#endif
-
+#include "threading/threading.hpp"
 #include "common.hpp"
-
-/// tests the sort implementation in threading
-/// is only parallel if TBB is being used
-TEST(algorithms, parallel_sort)
-{
-    auto n = 10000;
-    std::vector<int> v(n);
-    std::iota(v.begin(), v.end(), 1);
-
-    // intialize with the default random seed
-    std::shuffle(v.begin(), v.end(), std::mt19937());
-
-    // assert that the original vector has in fact been permuted
-    EXPECT_FALSE(std::is_sorted(v.begin(), v.end()));
-
-    arb::threading::sort(v);
-
-    EXPECT_TRUE(std::is_sorted(v.begin(), v.end()));
-    for(auto i=0; i<n; ++i) {
-       EXPECT_EQ(i+1, v[i]);
-   }
-}
-
 
 TEST(algorithms, sum)
 {

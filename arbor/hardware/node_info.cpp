@@ -1,19 +1,52 @@
-#include <algorithm>
+#include <thread>
+
+#ifdef ARB_HAVE_GPU
+#include <cuda_runtime.h>
+#endif
+
+// TODO: C++17 use __has_include(<unistd.h>)
+#if defined(__unix__) || defined(__APPLE__) && defined(__MACH__)
+#include <unistd.h>
+#endif
 
 #include "affinity.hpp"
-#include "gpu.hpp"
 #include "node_info.hpp"
 
 namespace arb {
 namespace hw {
 
-// Return a node_info that describes the hardware resources available on this node.
-// If unable to determine the number of available cores, assumes that there is one
-// core available.
-node_info get_node_info() {
-    auto res = num_cores();
-    unsigned ncpu = res? *res: 1u;
-    return {ncpu, num_gpus()};
+
+unsigned node_gpus() {
+#ifdef ARB_HAVE_GPU
+    int n;
+    if (cudaGetDeviceCount(&n)==cudaSuccess) {
+        return (unsigned)(n);
+    }
+#endif
+
+    return 0;
+}
+
+unsigned node_processors() {
+    // Attempt to get count first from affinity information if available.
+    unsigned n = get_affinity().size();
+
+    // If no luck, try sysconf.
+#ifdef _SC_NPROCESSORS_ONLN
+    if (!n) {
+        long r = sysconf(_SC_NPROCESSORS_ONLN);
+        if (r>0) {
+            n = (unsigned)r;
+        }
+    }
+#endif
+
+    // If still zero, try the hint from the library.
+    if (!n) {
+        n = std::thread::hardware_concurrency();
+    }
+
+    return n;
 }
 
 } // namespace util

@@ -8,6 +8,7 @@ set(bench_sources
     event_setup.cpp
     event_binning.cpp
     mech_vec.cpp
+    task_system.cpp
 )
 
 if(ARB_WITH_CUDA)
@@ -23,6 +24,7 @@ foreach(bench_src ${bench_sources})
     string(REGEX REPLACE "\\.[^.]*$" "" bench_exe ${bench_src})
     add_executable(${bench_exe} EXCLUDE_FROM_ALL "${bench_src}")
     target_link_libraries(${bench_exe} arbor arbor-private-headers ext-benchmark)
+    target_compile_options(${bench_exe} PRIVATE ${ARB_CXXOPT_ARCH})
     list(APPEND bench_exe_list ${bench_exe})
 endforeach()
 

@@ -164,6 +164,13 @@ TEST(tree, from_segment_index) {
         EXPECT_EQ(tree.num_children(4), 2u);
         EXPECT_EQ(tree.num_children(5), 0u);
         EXPECT_EQ(tree.num_children(6), 0u);
+
+        EXPECT_EQ(tree.children(0)[0], 1u);
+        EXPECT_EQ(tree.children(0)[1], 2u);
+        EXPECT_EQ(tree.children(1)[0], 3u);
+        EXPECT_EQ(tree.children(1)[1], 4u);
+        EXPECT_EQ(tree.children(4)[0], 5u);
+        EXPECT_EQ(tree.children(4)[1], 6u);
     }
 }
 

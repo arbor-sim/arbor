@@ -1,9 +1,38 @@
 #include "../gtest.h"
 
-#include <event_queue.hpp>
-#include <merge_events.hpp>
+#include <vector>
+
+#include <arbor/event_generator.hpp>
+#include <arbor/spike_event.hpp>
+
+#include "merge_events.hpp"
+#include "util/rangeutil.hpp"
+
+namespace arb {
+void merge_cell_events(
+    time_type t_from,
+    time_type t_to,
+    event_span old_events,
+    event_span pending,
+    std::vector<event_generator>& generators,
+    pse_vector& new_events);
+} // namespace arb
 
 using namespace arb;
+
+// Wrapper for arb::merge_cell_events.
+static void merge_events(
+    time_type t_from,
+    time_type t_to,
+    const pse_vector& old_events,
+    pse_vector& pending,
+    std::vector<event_generator>& generators,
+    pse_vector& new_events)
+{
+    util::sort(pending);
+    merge_cell_events(t_from, t_to, util::range_pointer_view(old_events), util::range_pointer_view(pending), generators, new_events);
+}
+
 
 std::vector<event_generator> empty_gens;
 
@@ -18,6 +47,7 @@ TEST(merge_events, empty)
 
     EXPECT_EQ(lf.size(), 0u);
 }
+
 
 // Test the case where there are no events in lc that are to be delivered
 // after tfinal.
@@ -126,9 +156,9 @@ TEST(merge_events, X)
         {{3, 0}, 26, 4},
     };
 
-    std::vector<event_generator> generators(2);
-    generators.emplace_back(
-        regular_generator(cell_member_type{4,2}, 42.f, t0, 5));
+    std::vector<event_generator> generators = {
+        regular_generator(cell_member_type{4,2}, 42.f, t0, 5)
+    };
 
     merge_events(t0, t1, lc, events, generators, lf);
 
@@ -152,7 +182,7 @@ TEST(merge_events, X)
 // Test the tournament tree for merging two small sequences 
 TEST(merge_events, tourney_seq)
 {
-    pse_vector g1 = {
+    pse_vector evs1 = {
         {{0, 0}, 1, 1},
         {{0, 0}, 2, 2},
         {{0, 0}, 3, 3},
@@ -160,7 +190,7 @@ TEST(merge_events, tourney_seq)
         {{0, 0}, 5, 5},
     };
 
-    pse_vector g2 = {
+    pse_vector evs2 = {
         {{0, 0}, 1.5, 1},
         {{0, 0}, 2.5, 2},
         {{0, 0}, 3.5, 3},
@@ -168,10 +198,13 @@ TEST(merge_events, tourney_seq)
         {{0, 0}, 5.5, 5},
     };
 
-    std::vector<event_generator> generators;
-    generators.emplace_back(seq_generator<pse_vector>(g1));
-    generators.emplace_back(seq_generator<pse_vector>(g2));
-    impl::tourney_tree tree(generators);
+    event_generator g1 = explicit_generator(evs1);
+    event_generator g2 = explicit_generator(evs2);
+
+    std::vector<event_span> spans;
+    spans.emplace_back(g1.events(0, terminal_time));
+    spans.emplace_back(g2.events(0, terminal_time));
+    impl::tourney_tree tree(spans);
 
     pse_vector lf;
     while (!tree.empty()) {
@@ -180,8 +213,8 @@ TEST(merge_events, tourney_seq)
     }
 
     EXPECT_TRUE(std::is_sorted(lf.begin(), lf.end()));
-    auto expected = g1;
-    util::append(expected, g2);
+    auto expected = evs1;
+    util::append(expected, evs2);
     util::sort(expected);
 
     EXPECT_EQ(expected, lf);
@@ -207,17 +240,16 @@ TEST(merge_events, tourney_poisson)
         // of events with the same time but different weights works properly.
         rndgen G(i%(ngen-1));
         generators.emplace_back(
-                poisson_generator<std::mt19937_64>(tgt, weight, G, t0, lambda));
+                poisson_generator(tgt, weight, t0, lambda, G));
     }
 
     // manually generate the expected output
     pse_vector expected;
     for (auto& gen: generators) {
         // Push all events before tfinal in gen to the expected values.
-        while (gen.front().time<tfinal) {
-            expected.push_back(gen.front());
-            gen.pop();
-        }
+        event_span evs = gen.events(t0, tfinal);
+        util::append(expected, evs);
+
         // Reset the generator so that it is ready to generate the same
         // events again for the tournament tree test.
         gen.reset();
@@ -226,9 +258,13 @@ TEST(merge_events, tourney_poisson)
     util::sort(expected);
 
     // Generate output using tournament tree in lf.
-    impl::tourney_tree tree(generators);
+    std::vector<event_span> spans;
+    for (auto& gen: generators) {
+        spans.emplace_back(gen.events(t0, tfinal));
+    }
+    impl::tourney_tree tree(spans);
     pse_vector lf;
-    while (!tree.empty(tfinal)) {
+    while (!tree.empty()) {
         lf.push_back(tree.head());
         tree.pop();
     }

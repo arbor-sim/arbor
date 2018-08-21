@@ -7,8 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/simple_sampler.hpp>
-
-#include "util/path.hpp"
+#include <aux/path.hpp>
 
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
@@ -21,11 +20,11 @@ trace_io g_trace_io;
 #define ARB_DATADIR ""
 #endif
 
-util::path trace_io::find_datadir() {
+aux::path trace_io::find_datadir() {
     // If environment variable is set, use that in preference.
 
     if (const char* env_path = std::getenv("ARB_DATADIR")) {
-        return util::path(env_path);
+        return env_path;
     }
 
     // Otherwise try compile-time path ARB_DATADIR and hard-coded
@@ -40,13 +39,13 @@ util::path trace_io::find_datadir() {
 
     std::error_code ec;
     for (auto p: paths) {
-        if (util::is_directory(p, ec)) {
-            return util::path(p);
+        if (aux::is_directory(p, ec)) {
+            return p;
         }
     }
 
     // Otherwise set to empty path, and rely on command-line option.
-    return util::path();
+    return "";
 }
 
 void trace_io::save_trace(const std::string& label, const trace_data<double>& data, const nlohmann::json& meta) {
@@ -54,13 +53,16 @@ void trace_io::save_trace(const std::string& label, const trace_data<double>& da
 }
 
 void trace_io::save_trace(const std::string& abscissa, const std::string& label, const trace_data<double>& data, const nlohmann::json& meta) {
-    using namespace arb;
+    using nlohmann::json;
 
-    nlohmann::json j = meta;
-    j["data"] = {
-        {abscissa, times(data)},
-        {label, values(data)}
-    };
+    json j = meta;
+    json& times = j["data"][abscissa];
+    json& values = j["data"][label];
+
+    for (const auto& e: data) {
+        times.push_back(e.t);
+        values.push_back(e.v);
+    }
 
     jtraces_ += std::move(j);
 }
@@ -95,8 +97,8 @@ static void parse_trace_json(const nlohmann::json& j, std::map<std::string, trac
     }
 }
 
-std::map<std::string, trace_data<double>> trace_io::load_traces(const util::path& name) {
-    util::path file  = datadir_/name;
+std::map<std::string, trace_data<double>> trace_io::load_traces(const aux::path& name) {
+    aux::path file  = datadir_/name;
     std::ifstream fid(file);
     if (!fid) {
         throw std::runtime_error("unable to load validation data: "+file.native());

@@ -38,11 +38,6 @@ endif()
 if(ARB_WITH_PROFILING)
     list(APPEND arb_features PROFILE)
 endif()
-if(ARB_WITH_TBB)
-    list(APPEND arb_features TBB)
-elseif(ARB_WITH_CTHREAD)
-    list(APPEND arb_features CTHREAD)
-endif()
 
 add_custom_command(
     OUTPUT version.hpp-test

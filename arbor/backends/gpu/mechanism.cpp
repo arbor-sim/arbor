@@ -8,10 +8,10 @@
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
+#include <arbor/math.hpp>
 #include <arbor/mechanism.hpp>
 #include <arbor/util/optional.hpp>
 
-#include "math.hpp"
 #include "memory/memory.hpp"
 #include "util/index_into.hpp"
 #include "util/maputil.hpp"
@@ -75,6 +75,8 @@ void mechanism::instantiate(unsigned id,
 
     pp->vec_v_    = shared.voltage.data();
     pp->vec_i_    = shared.current_density.data();
+
+    pp->temperature_degC_ = shared.temperature_degC.data();
 
     auto ion_state_tbl = ion_state_table();
     num_ions_ = ion_state_tbl.size();

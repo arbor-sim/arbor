@@ -7,11 +7,10 @@
 #include <string>
 #include <vector>
 
-#include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 
-#include <communication/communicator.hpp>
-#include <hardware/node_info.hpp>
-#include <load_balance.hpp>
+#include "util/span.hpp"
 
 #include "../simple_recipes.hpp"
 #include "test.hpp"
@@ -65,19 +64,19 @@ namespace {
 }
 
 TEST(domain_decomposition, homogeneous_population) {
-    const auto N = g_context.size();
-    const auto I = g_context.id();
+    const auto N = g_context.distributed->size();
+    const auto I = g_context.distributed->id();
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        hw::node_info nd(1, 0);
+        proc_allocation nd{1, 0};
 
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, &g_context);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -103,12 +102,12 @@ TEST(domain_decomposition, homogeneous_population) {
     }
     {   // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that all cells will be placed on gpu in a single group.
-        hw::node_info nd(1, 1);
+        proc_allocation nd{1, 1};
 
         // 10 cells per domain
         unsigned n_local = 10;
         unsigned n_global = n_local*N;
-        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, &g_context);
+        const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), nd, g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);
@@ -134,21 +133,21 @@ TEST(domain_decomposition, homogeneous_population) {
 }
 
 TEST(domain_decomposition, heterogeneous_population) {
-    const auto N = g_context.size();
-    const auto I = g_context.id();
+    const auto N = g_context.distributed->size();
+    const auto I = g_context.distributed->id();
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        hw::node_info nd(1, 0);
+        proc_allocation nd{1, 0};
 
         // 10 cells per domain
         const unsigned n_local = 10;
         const unsigned n_global = n_local*N;
         const unsigned n_local_grps = n_local; // 1 cell per group
         auto R = hetero_recipe(n_global);
-        const auto D = partition_load_balance(R, nd, &g_context);
+        const auto D = partition_load_balance(R, nd, g_context);
 
         EXPECT_EQ(D.num_global_cells, n_global);
         EXPECT_EQ(D.num_local_cells, n_local);

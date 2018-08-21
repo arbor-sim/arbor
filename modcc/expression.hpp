@@ -11,7 +11,8 @@
 #include "identifier.hpp"
 #include "memop.hpp"
 #include "scope.hpp"
-#include "modccutil.hpp"
+
+#include "io/pprintf.hpp"
 
 class Visitor;
 
@@ -1020,6 +1021,7 @@ public:
         body_ = std::move(new_body);
     }
 
+    void semantic(scope_ptr scp) override;
     void semantic(scope_type::symbol_map &scp) override;
     ProcedureExpression* is_procedure() override {return this;}
     std::string to_string() const override;
@@ -1048,6 +1050,8 @@ public:
         :   ProcedureExpression(loc, std::move(name), std::move(args), std::move(body), procedureKind::api)
     {}
 
+    using ProcedureExpression::semantic;
+    void semantic(scope_type::symbol_map &scp) override;
     APIMethod* is_api_method() override {return this;}
     void accept(Visitor *v) override;
 

@@ -4,7 +4,9 @@
 #include "parser.hpp"
 #include "perfvisitor.hpp"
 #include "token.hpp"
-#include "modccutil.hpp"
+#include "util.hpp"
+
+#include "io/pprintf.hpp"
 
 // specialize on const char* for lazy evaluation of compile time strings
 bool Parser::expect(tok tok, const char* str) {
@@ -1545,9 +1547,8 @@ expression_ptr Parser::parse_block(bool is_nested) {
     }
 
     if(token_.type != tok::rbrace) {
-        error("could not find closing '" + yellow("}")
-              + "' for else statement that started at "
-              + ::to_string(block_location));
+        error(pprintf("could not find closing '%' for else statement that started at ",
+              yellow("}"), block_location));
         return nullptr;
     }
     get_token(); // consume closing '}'
@@ -1582,9 +1583,8 @@ expression_ptr Parser::parse_initial() {
     }
 
     if(token_.type != tok::rbrace) {
-        error("could not find closing '" + yellow("}")
-              + "' for else statement that started at "
-              + ::to_string(block_location));
+        error(pprintf("could not find closing '%' for else statement that started at ",
+              yellow("}"), block_location));
         return nullptr;
     }
     get_token(); // consume closing '}'

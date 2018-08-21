@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
 #include <arbor/profile/meter.hpp>
 #include <arbor/profile/timer.hpp>
 
@@ -25,7 +25,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&, const distributed_context*);
+    measurement(std::string, std::string, const std::vector<double>&, const distributed_context_handle&);
 };
 
 class meter_manager {
@@ -38,13 +38,13 @@ private:
     std::vector<std::unique_ptr<meter>> meters_;
     std::vector<std::string> checkpoint_names_;
 
-    const distributed_context* glob_ctx_;
+    distributed_context_handle glob_ctx_;
 
 public:
-    meter_manager(const distributed_context* ctx);
+    meter_manager(distributed_context_handle ctx);
     void start();
     void checkpoint(std::string name);
-    const distributed_context* context() const;
+    distributed_context_handle context() const;
 
     const std::vector<std::unique_ptr<meter>>& meters() const;
     const std::vector<std::string>& checkpoint_names() const;

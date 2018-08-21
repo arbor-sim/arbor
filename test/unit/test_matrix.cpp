@@ -3,11 +3,12 @@
 
 #include "../gtest.h"
 
-#include <math.hpp>
-#include <matrix.hpp>
-#include <backends/multicore/fvm.hpp>
-#include <util/rangeutil.hpp>
-#include <util/span.hpp>
+#include <arbor/math.hpp>
+
+#include "matrix.hpp"
+#include "backends/multicore/fvm.hpp"
+#include "util/rangeutil.hpp"
+#include "util/span.hpp"
 
 #include "common.hpp"
 

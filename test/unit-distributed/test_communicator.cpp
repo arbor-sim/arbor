@@ -4,12 +4,12 @@
 #include <stdexcept>
 #include <vector>
 
-#include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/spike_event.hpp>
+#include <threading/threading.hpp>
 
 #include "communication/communicator.hpp"
-#include "hardware/node_info.hpp"
-#include "load_balance.hpp"
 #include "util/filter.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
@@ -22,12 +22,12 @@ static bool is_dry_run() {
 }
 
 TEST(communicator, policy_basics) {
-    const auto num_domains = g_context.size();
-    const auto rank = g_context.id();
+    const auto num_domains = g_context.distributed->size();
+    const auto rank = g_context.distributed->id();
 
-    EXPECT_EQ(g_context.min(rank), 0);
+    EXPECT_EQ(g_context.distributed->min(rank), 0);
     if (!is_dry_run()) {
-        EXPECT_EQ(g_context.max(rank), num_domains-1);
+        EXPECT_EQ(g_context.distributed->max(rank), num_domains-1);
     }
 }
 
@@ -51,8 +51,8 @@ int get_value(const arb::spike& s) {
 // Test low level spike_gather function when each domain produces the same
 // number of spikes in the pattern used by dry run mode.
 TEST(communicator, gather_spikes_equal) {
-    const auto num_domains = g_context.size();
-    const auto rank = g_context.id();
+    const auto num_domains = g_context.distributed->size();
+    const auto rank = g_context.distributed->id();
 
     const auto n_local_spikes = 10;
 
@@ -71,7 +71,7 @@ TEST(communicator, gather_spikes_equal) {
     }
 
     // Perform exchange
-    const auto global_spikes = g_context.gather_spikes(local_spikes);
+    const auto global_spikes = g_context.distributed->gather_spikes(local_spikes);
 
     // Test that partition information is correct
     const auto& part = global_spikes.partition();
@@ -91,7 +91,7 @@ TEST(communicator, gather_spikes_equal) {
     // is a list of num_domains*n_local_spikes spikes that have
     // contiguous source gid
     const auto& spikes = global_spikes.values();
-    EXPECT_EQ(n_local_spikes*g_context.size(), int(spikes.size()));
+    EXPECT_EQ(n_local_spikes*g_context.distributed->size(), int(spikes.size()));
     for (auto i=0u; i<spikes.size(); ++i) {
         const auto s = spikes[i];
         EXPECT_EQ(i, unsigned(s.source.gid));
@@ -112,8 +112,8 @@ TEST(communicator, gather_spikes_variant) {
     // number of spikes.
     if (is_dry_run()) return;
 
-    const auto num_domains = g_context.size();
-    const auto rank = g_context.id();
+    const auto num_domains = g_context.distributed->size();
+    const auto rank = g_context.distributed->id();
 
     // Parameter used to scale the number of spikes generated on successive
     // ranks.
@@ -137,7 +137,7 @@ TEST(communicator, gather_spikes_variant) {
     }
 
     // Perform exchange
-    const auto global_spikes = g_context.gather_spikes(local_spikes);
+    const auto global_spikes = g_context.distributed->gather_spikes(local_spikes);
 
     // Test that partition information is correct
     const auto& part =global_spikes.partition();
@@ -167,7 +167,7 @@ namespace {
     public:
         ring_recipe(cell_size_type s):
             size_(s),
-            ranks_(g_context.size())
+            ranks_(g_context.distributed->size())
         {}
 
         cell_size_type num_cells() const override {
@@ -231,7 +231,7 @@ namespace {
     public:
         all2all_recipe(cell_size_type s):
             size_(s),
-            ranks_(g_context.size())
+            ranks_(g_context.distributed->size())
         {}
 
         cell_size_type num_cells() const override {
@@ -314,10 +314,10 @@ test_ring(const domain_decomposition& D, communicator& C, F&& f) {
 
     // gather the global set of spikes
     auto global_spikes = C.exchange(local_spikes);
-    if (global_spikes.size()!=g_context.sum(local_spikes.size())) {
+    if (global_spikes.size()!=g_context.distributed->sum(local_spikes.size())) {
         return ::testing::AssertionFailure() << "the number of gathered spikes "
             << global_spikes.size() << " doesn't match the expected "
-            << g_context.sum(local_spikes.size());
+            << g_context.distributed->sum(local_spikes.size());
     }
 
     // generate the events
@@ -363,7 +363,7 @@ TEST(communicator, ring)
     using util::make_span;
 
     // construct a homogeneous network of 10*n_domain identical cells in a ring
-    unsigned N = g_context.size();
+    unsigned N = g_context.distributed->size();
 
     unsigned n_local = 10u;
     unsigned n_global = n_local*N;
@@ -371,8 +371,8 @@ TEST(communicator, ring)
     auto R = ring_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    const auto D = partition_load_balance(R, hw::node_info(), &g_context);
-    auto C = communicator(R, D, &g_context);
+    const auto D = partition_load_balance(R, local_allocation(g_context), g_context);
+    auto C = communicator(R, D, g_context);
 
     // every cell fires
     EXPECT_TRUE(test_ring(D, C, [](cell_gid_type g){return true;}));
@@ -405,10 +405,10 @@ test_all2all(const domain_decomposition& D, communicator& C, F&& f) {
 
     // gather the global set of spikes
     auto global_spikes = C.exchange(local_spikes);
-    if (global_spikes.size()!=g_context.sum(local_spikes.size())) {
+    if (global_spikes.size()!=g_context.distributed->sum(local_spikes.size())) {
         return ::testing::AssertionFailure() << "the number of gathered spikes "
             << global_spikes.size() << " doesn't match the expected "
-            << g_context.sum(local_spikes.size());
+            << g_context.distributed->sum(local_spikes.size());
     }
 
     // generate the events
@@ -458,7 +458,7 @@ TEST(communicator, all2all)
     using util::make_span;
 
     // construct a homogeneous network of 10*n_domain identical cells in a ring
-    unsigned N = g_context.size();
+    unsigned N = g_context.distributed->size();
 
     unsigned n_local = 10u;
     unsigned n_global = n_local*N;
@@ -466,8 +466,8 @@ TEST(communicator, all2all)
     auto R = all2all_recipe(n_global);
     // use a node decomposition that reflects the resources available
     // on the node that the test is running on, including gpus.
-    const auto D = partition_load_balance(R, hw::node_info(), &g_context);
-    auto C = communicator(R, D, &g_context);
+    const auto D = partition_load_balance(R, local_allocation(g_context), g_context);
+    auto C = communicator(R, D, g_context);
 
     // every cell fires
     EXPECT_TRUE(test_all2all(D, C, [](cell_gid_type g){return true;}));

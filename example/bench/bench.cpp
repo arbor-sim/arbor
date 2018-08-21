@@ -10,38 +10,45 @@
 
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
+#include <arbor/domain_decomposition.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/version.hpp>
 
-#include "hardware/node_info.hpp"
-#include "load_balance.hpp"
-#include "util/ioutil.hpp"
 
-#include "json_meter.hpp"
+#include <aux/ioutil.hpp>
+#include <aux/json_meter.hpp>
+#ifdef ARB_MPI_ENABLED
+#include <aux/with_mpi.hpp>
+#endif
 
 #include "parameters.hpp"
 #include "recipe.hpp"
 
-using namespace arb;
+namespace profile = arb::profile;
 
 int main(int argc, char** argv) {
     try {
-        distributed_context context;
-        #ifdef ARB_HAVE_MPI
-        mpi::scoped_guard guard(&argc, &argv);
-        context = mpi_context(MPI_COMM_WORLD);
-        #endif
-        const bool is_root =  context.id()==0;
+        arb::execution_context context;
+#ifdef ARB_MPI_ENABLED
+        aux::with_mpi guard(argc, argv, false);
+        context.distributed = arb::mpi_context(MPI_COMM_WORLD);
+#endif
+#ifdef ARB_PROFILE_ENABLED
+        profile::profiler_initialize(context.thread_pool);
+#endif
+        const bool is_root =  context.distributed->id()==0;
 
-        std::cout << util::mask_stream(is_root);
+        std::cout << aux::mask_stream(is_root);
 
         bench_params params = read_options(argc, argv);
 
         std::cout << params << "\n";
 
-        profile::meter_manager meters(&context);
+        profile::meter_manager meters(context.distributed);
         meters.start();
 
         // Create an instance of our recipe.
@@ -49,12 +56,12 @@ int main(int argc, char** argv) {
         meters.checkpoint("recipe-build");
 
         // Make the domain decomposition for the model
-        auto node = arb::hw::get_node_info();
-        auto decomp = arb::partition_load_balance(recipe, node, &context);
+        auto local = arb::local_allocation(context);
+        auto decomp = arb::partition_load_balance(recipe, local, context);
         meters.checkpoint("domain-decomp");
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, &context);
+        arb::simulation sim(recipe, decomp, context);
         meters.checkpoint("model-build");
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.
@@ -73,8 +80,8 @@ int main(int argc, char** argv) {
         }
 
         // output profile and diagnostic feedback
-        auto profile = profile::profiler_summary();
-        std::cout << profile << "\n";
+        auto summary = profile::profiler_summary();
+        std::cout << summary << "\n";
 
         std::cout << "there were " << sim.num_spikes() << " spikes\n";
     }

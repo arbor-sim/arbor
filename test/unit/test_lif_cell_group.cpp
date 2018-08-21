@@ -1,17 +1,14 @@
 #include "../gtest.h"
 
-#include <arbor/distributed_context.hpp>
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
-#include <arbor/threadinfo.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/spike_source_cell.hpp>
 
-#include "cell_group_factory.hpp"
-#include "hardware/node_info.hpp"
 #include "lif_cell_group.hpp"
-#include "load_balance.hpp"
-#include "threading/threading.hpp"
 
 using namespace arb;
 // Simple ring network of LIF neurons.
@@ -63,7 +60,7 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell{vector_time_seq({0.f})};
+            return spike_source_cell{explicit_schedule({0.f})};
         }
         // LIF cell.
         return lif_cell();
@@ -154,16 +151,14 @@ TEST(lif_cell_group, recipe)
 }
 
 TEST(lif_cell_group, spikes) {
-    distributed_context context;
-
     // make two lif cells
     path_recipe recipe(2, 1000, 0.1);
 
-    hw::node_info nd;
-    nd.num_cpu_cores = arb::num_threads();
+    execution_context context;
+    proc_allocation nd = local_allocation(context);
 
-    auto decomp = partition_load_balance(recipe, nd, &context);
-    simulation sim(recipe, decomp, &context);
+    auto decomp = partition_load_balance(recipe, nd, context);
+    simulation sim(recipe, decomp, context);
 
     std::vector<spike_event> events;
 
@@ -195,18 +190,16 @@ TEST(lif_cell_group, ring)
     double weight = 1000;
     double delay = 1;
 
-    hw::node_info nd;
-    nd.num_cpu_cores = threading::num_threads();
-
     // Total simulation time.
     time_type simulation_time = 100;
 
-    distributed_context context;
+    execution_context context;
+    proc_allocation nd = local_allocation(context);
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
-    auto decomp = partition_load_balance(recipe, nd, &context);
+    auto decomp = partition_load_balance(recipe, nd, context);
 
     // Creates a simulation with a ring recipe of lif neurons
-    simulation sim(recipe, decomp, &context);
+    simulation sim(recipe, decomp, context);
 
     std::vector<spike> spike_buffer;
 

@@ -2,33 +2,34 @@
 
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/time_sequence.hpp>
+#include <arbor/schedule.hpp>
 
 #include "recipe.hpp"
+
+using arb::cell_gid_type;
+using arb::cell_size_type;
+using arb::cell_kind;
 
 cell_size_type bench_recipe::num_cells() const {
     return params_.num_cells;
 }
 
 arb::util::unique_any bench_recipe::get_cell_description(cell_gid_type gid) const {
-    using rng_type = std::mt19937_64;
+    std::mt19937_64 rng(gid);
     arb::benchmark_cell cell;
     cell.realtime_ratio = params_.cell.realtime_ratio;
 
     // The time_sequence of the cell produces the series of time points at
-    // which it will spike. We use a poisson_time_seq with a random sequence
+    // which it will spike. We use a poisson_schedule with a random sequence
     // seeded with the gid. In this way, a cell's random stream depends only
     // on its gid, and will hence give reproducable results when run with
     // different MPI ranks and threads.
-    cell.time_sequence =
-        arb::poisson_time_seq<rng_type>(
-                rng_type(gid), 0, 1e-3*params_.cell.spike_freq_hz);
-
+    cell.time_sequence = arb::poisson_schedule(1e-3*params_.cell.spike_freq_hz, rng);
     return std::move(cell);
 }
 
-arb::cell_kind bench_recipe::get_cell_kind(arb::cell_gid_type gid) const {
-    return arb::cell_kind::benchmark;
+cell_kind bench_recipe::get_cell_kind(cell_gid_type gid) const {
+    return cell_kind::benchmark;
 }
 
 std::vector<arb::cell_connection> bench_recipe::connections_on(cell_gid_type gid) const {

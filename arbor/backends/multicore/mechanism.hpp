@@ -72,12 +72,13 @@ protected:
 
     // Non-owning views onto shared cell state, excepting ion state.
 
-    const index_type* vec_ci_;     // CV to cell index.
+    const index_type* vec_ci_;    // CV to cell index.
     const value_type* vec_t_;     // Cell index to cell-local time.
     const value_type* vec_t_to_;  // Cell index to cell-local integration step time end.
     const value_type* vec_dt_;    // CV to integration time step.
     const value_type* vec_v_;     // CV to cell membrane voltage.
     value_type* vec_i_;           // CV to cell membrane current density.
+    const value_type* temperature_degC_; // Pointer to global temperature scalar.
     deliverable_event_stream* event_stream_ptr_;
 
     // Per-mechanism index and weight data, excepting ion indices.
