@@ -9,10 +9,6 @@
 #include <type_traits>
 #include <unordered_map>
 
-#ifdef ARB_HAVE_TBB
-#include <tbb/tbb_stddef.h>
-#endif
-
 #include <util/counter.hpp>
 #include <util/meta.hpp>
 #include <util/range.hpp>
@@ -661,50 +657,3 @@ TEST(range, reverse) {
 
     EXPECT_EQ("olleh"s, rev);
 }
-
-
-#ifdef ARB_HAVE_TBB
-
-TEST(range, tbb_split) {
-    constexpr std::size_t N = 20;
-    int xs[N];
-
-    for (unsigned i = 0; i<N; ++i) {
-        xs[i] = i;
-    }
-
-    auto s = util::make_range(&xs[0], &xs[0]+N);
-
-    while (s.size()>1) {
-        auto ssize = s.size();
-        auto r = decltype(s){s, tbb::split{}};
-        EXPECT_GT(r.size(), 0u);
-        EXPECT_GT(s.size(), 0u);
-        EXPECT_EQ(ssize, r.size()+s.size());
-        EXPECT_EQ(s.end(), r.begin());
-
-        EXPECT_TRUE(r.size()>1 || !r.is_divisible());
-        EXPECT_TRUE(s.size()>1 || !s.is_divisible());
-    }
-
-    for (unsigned i = 1; i<N-1; ++i) {
-        s = util::make_range(&xs[0], &xs[0]+N);
-        // expect exact splitting by proportion in this instance
-
-        auto r = decltype(s){s, tbb::proportional_split{i, N-i}};
-        EXPECT_EQ(&xs[0], s.left);
-        EXPECT_EQ(&xs[0]+i, s.right);
-        EXPECT_EQ(&xs[0]+i, r.left);
-        EXPECT_EQ(&xs[0]+N, r.right);
-    }
-}
-
-TEST(range, tbb_no_split) {
-    std::istringstream sin("10 9 8 7 6");
-    auto s = util::make_range(std::istream_iterator<int>(sin), std::istream_iterator<int>());
-
-    EXPECT_FALSE(decltype(s)::is_splittable_in_proportion());
-    EXPECT_FALSE(s.is_divisible());
-}
-
-#endif

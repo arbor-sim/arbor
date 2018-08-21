@@ -11,9 +11,7 @@ namespace memory {
 
 template <typename LHS, typename RHS>
 void copy(LHS&& from, RHS&& to) {
-#ifndef NDEBUG
     arb_assert(from.size() == to.size());
-#endif
 #ifdef VERBOSE
     std::cerr
         << util::blue("copy") << " "

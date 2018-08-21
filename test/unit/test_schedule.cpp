@@ -6,14 +6,16 @@
 #include <arbor/common_types.hpp>
 #include <arbor/schedule.hpp>
 
-#include <util/partition.hpp>
-#include <util/rangeutil.hpp>
+#include "util/partition.hpp"
+#include "util/rangeutil.hpp"
 
 #include "common.hpp"
 #include "stats.hpp"
 
 using namespace arb;
 using namespace testing;
+
+using time_range = util::range<const time_type*>;
 
 // Pull events from n non-contiguous subintervals of [t0, t1)
 // and check for monotonicity and boundedness.
@@ -31,7 +33,7 @@ void run_invariant_checks(schedule S, time_type t0, time_type t1, unsigned n, in
     bool skip = false;
     for (auto ival: util::partition_view(divisions)) {
         if (!skip) {
-            auto ts = S.events(ival.first, ival.second);
+            time_range ts = S.events(ival.first, ival.second);
 
             EXPECT_TRUE(std::is_sorted(ts.begin(), ts.end()));
             if (!ts.empty()) {
@@ -63,16 +65,22 @@ void run_reset_check(schedule S, time_type t0, time_type t1, unsigned n, int see
 
     std::vector<time_type> first;
     for (auto ival: util::partition_view(first_div)) {
-        util::append(first, S.events(ival.first, ival.second));
+        time_range ts = S.events(ival.first, ival.second);
+        util::append(first, ts);
     }
 
     S.reset();
     std::vector<time_type> second;
     for (auto ival: util::partition_view(second_div)) {
-        util::append(second, S.events(ival.first, ival.second));
+        time_range ts = S.events(ival.first, ival.second);
+        util::append(second, ts);
     }
 
     EXPECT_EQ(first, second);
+}
+
+static std::vector<time_type> as_vector(std::pair<const time_type*, const time_type*> ts) {
+    return std::vector<time_type>(ts.first, ts.second);
 }
 
 TEST(schedule, regular) {
@@ -80,14 +88,14 @@ TEST(schedule, regular) {
     std::vector<time_type> expected = {0, 0.25, 0.5, 0.75, 1.0};
 
     schedule S = regular_schedule(0.25);
-    EXPECT_EQ(expected, S.events(0, 1.25));
+    EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
     S.reset();
-    EXPECT_EQ(expected, S.events(0, 1.25));
+    EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
     S.reset();
     expected = {0.25, 0.5, 0.75, 1.0};
-    EXPECT_EQ(expected, S.events(0.1, 1.01));
+    EXPECT_EQ(expected, as_vector(S.events(0.1, 1.01)));
 }
 
 TEST(schedule, regular_invariants) {
@@ -100,19 +108,54 @@ TEST(schedule, regular_reset) {
     run_reset_check(regular_schedule(0.3), 3, 12, 7);
 }
 
+TEST(schedule, regular_rounding) {
+    // Test for consistent behaviour in the face of rounding at large time values.
+    // Example: with t1, dt below, and int n = floor(t0/dt),
+    // then n*dt is not the smallest multiple of dt greater than or equal to t0.
+    // In fact, (n-4)*dt is still greater than t0.
+
+    time_type t1 = 1802667.f;
+    time_type dt = 0.024999f;
+
+    time_type t0 = t1-10*dt;
+    time_type t2 = t1+10*dt;
+
+    schedule S = regular_schedule(t0, dt);
+    auto int_l = as_vector(S.events(t0, t1));
+    auto int_r = as_vector(S.events(t1, t2));
+
+    S.reset();
+    auto int_a = as_vector(S.events(t0, t2));
+
+    EXPECT_GE(int_l.front(), t0);
+    EXPECT_LT(int_l.back(), t1);
+
+    EXPECT_GE(int_r.front(), t1);
+    EXPECT_LT(int_r.back(), t2);
+
+    EXPECT_GE(int_a.front(), t0);
+    EXPECT_LT(int_a.back(), t2);
+
+    std::vector<time_type> int_merged = int_l;
+    util::append(int_merged, int_r);
+
+    EXPECT_EQ(int_merged, int_a);
+    EXPECT_TRUE(util::is_sorted(int_a));
+}
+
 TEST(schedule, explicit_schedule) {
     time_type times[] = {0.1, 0.3, 1.0, 1.25, 1.7, 2.2};
     std::vector<time_type> expected = {0.1, 0.3, 1.0};
 
     schedule S = explicit_schedule(times);
-    EXPECT_EQ(expected, S.events(0, 1.25));
+    EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
     S.reset();
-    EXPECT_EQ(expected, S.events(0, 1.25));
+    EXPECT_EQ(expected, as_vector(S.events(0, 1.25)));
 
     S.reset();
     expected = {0.3, 1.0, 1.25, 1.7};
-    EXPECT_EQ(expected, S.events(0.3, 1.71));
+    EXPECT_EQ(expected, as_vector(S.events(0.3, 1.71)));
 }
 
 TEST(schedule, explicit_invariants) {
@@ -157,11 +200,11 @@ private:
 };
 
 template <typename RNG>
-double poisson_schedule_dispersion(int nbin, double mean_dt, RNG& G) {
-    schedule S = poisson_schedule(mean_dt, G);
+double poisson_schedule_dispersion(int nbin, double rate_kHz, RNG& G) {
+    schedule S = poisson_schedule(rate_kHz, G);
 
     std::vector<int> bin(nbin);
-    for (auto t: S.events(0, nbin)) {
+    for (auto t: time_range(S.events(0, nbin))) {
         int j = (int)t;
         if (j<0 || j>=nbin) {
             throw std::logic_error("poisson schedule result out of bounds");
@@ -196,7 +239,7 @@ TEST(schedule, poisson_uniformity) {
     constexpr double chi2_ub = 1118.9480663231843;
 
     std::mt19937_64 G;
-    double dispersion = poisson_schedule_dispersion(N, 1.23, G);
+    double dispersion = poisson_schedule_dispersion(N, .813, G);
     double test_value = N*dispersion;
     EXPECT_GT(test_value, chi2_lb);
     EXPECT_LT(test_value, chi2_ub);
@@ -204,8 +247,8 @@ TEST(schedule, poisson_uniformity) {
     // Run one sample K-S test for uniformity, with critical
     // value for the finite K-S statistic Dn of α=0.01.
 
-    schedule S = poisson_schedule(1./100, G);
-    auto events = S.events(0,1);
+    schedule S = poisson_schedule(100., G);
+    auto events = as_vector(S.events(0,1));
     int n = (int)events.size();
     double dn = ks::dn_statistic(events);
 
@@ -215,13 +258,13 @@ TEST(schedule, poisson_uniformity) {
     // source.
 
     skew_adaptor<std::mt19937_64> W(1.5);
-    dispersion = poisson_schedule_dispersion(N, 1.23, W);
+    dispersion = poisson_schedule_dispersion(N, .813, W);
     test_value = N*dispersion;
 
     EXPECT_FALSE(test_value>=chi2_lb && test_value<=chi2_ub);
 
-    S = poisson_schedule(1./100, W);
-    events = S.events(0,1);
+    S = poisson_schedule(100., W);
+    events = as_vector(S.events(0,1));
     n = (int)events.size();
     dn = ks::dn_statistic(events);
 
@@ -242,8 +285,8 @@ TEST(schedule, poisson_rate) {
     constexpr double lambda = 123.4;
 
     std::mt19937_64 G;
-    schedule S = poisson_schedule(1./lambda, G);
-    int n = (int)S.events(0,1).size();
+    schedule S = poisson_schedule(lambda, G);
+    int n = (int)time_range(S.events(0, 1)).size();
     double cdf = poisson::poisson_cdf_approx(n, lambda);
 
     EXPECT_GT(cdf, alpha/2);
@@ -253,8 +296,8 @@ TEST(schedule, poisson_rate) {
     // source.
 
     skew_adaptor<std::mt19937_64> W(1.5);
-    S = poisson_schedule(1./lambda, W);
-    n = (int)S.events(0,1).size();
+    S = poisson_schedule(lambda, W);
+    n = (int)time_range(S.events(0, 1)).size();
     cdf = poisson::poisson_cdf_approx(n, lambda);
 
     EXPECT_FALSE(cdf>=alpha/2 && cdf<=1-alpha/2);
@@ -264,14 +307,14 @@ TEST(schedule, poisson_invariants) {
     SCOPED_TRACE("poisson_invariants");
     std::mt19937_64 G;
     G.discard(100);
-    run_invariant_checks(poisson_schedule(12.3, G), 5.1, 15.3, 7);
+    run_invariant_checks(poisson_schedule(0.81, G), 5.1, 15.3, 7);
 }
 
 TEST(schedule, poisson_reset) {
     SCOPED_TRACE("poisson_reset");
     std::mt19937_64 G;
     G.discard(200);
-    run_reset_check(poisson_schedule(9.1, G), 1, 10, 7);
+    run_reset_check(poisson_schedule(.11, G), 1, 10, 7);
 }
 
 TEST(schedule, poisson_offset) {
@@ -284,7 +327,7 @@ TEST(schedule, poisson_offset) {
     G1.discard(300);
 
     std::vector<time_type> expected;
-    for (auto t: poisson_schedule(3.4, G1).events(0., 100.)) {
+    for (auto t: as_vector(poisson_schedule(.234, G1).events(0., 100.))) {
         t += offset;
         if (t<100.) {
             expected.push_back(t);
@@ -294,13 +337,14 @@ TEST(schedule, poisson_offset) {
     std::mt19937_64 G2;
     G2.discard(300);
 
-    EXPECT_TRUE(seq_almost_eq<time_type>(expected, poisson_schedule(offset, 3.4, G2).events(0., 100.)));
+    EXPECT_TRUE(seq_almost_eq<time_type>(expected,
+        as_vector(poisson_schedule(offset, .234, G2).events(0., 100.))));
 }
 
 TEST(schedule, poisson_offset_reset) {
     SCOPED_TRACE("poisson_reset");
     std::mt19937_64 G;
     G.discard(400);
-    run_reset_check(poisson_schedule(0.3, 9.1, G), 1, 10, 7);
+    run_reset_check(poisson_schedule(3.3, 9.1, G), 1, 10, 7);
 }
 

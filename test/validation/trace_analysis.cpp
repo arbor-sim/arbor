@@ -6,13 +6,11 @@
 
 #include "../gtest.h"
 
-#include <arbor/util/optional.hpp>
+#include <arbor/math.hpp>
 #include <arbor/simple_sampler.hpp>
+#include <arbor/util/optional.hpp>
 
-#include "math.hpp"
-#include "util/partition.hpp"
-#include "util/rangeutil.hpp"
-
+#include "interpolate.hpp"
 #include "trace_analysis.hpp"
 
 namespace arb {
@@ -21,20 +19,9 @@ struct trace_interpolant {
     trace_interpolant(const trace_data<double>& trace): trace_(trace) {}
 
     double operator()(float t) const {
-        if (trace_.empty()) return std::nan("");
-
-        auto tx = times(trace_);
-        auto vx = values(trace_);
-
-        // special case for end points
-        if (t<tx.front()) return vx.front();
-        if (t>=tx.back()) return vx.back();
-
-        auto part = util::partition_view(tx);
-        auto i = part.index(t);
-        arb_assert(i != part.npos);
-        auto p = part[i];
-        return math::lerp(vx[i], vx[i+1], (t-p.first)/(p.second-p.first));
+        return pw_linear_interpolate(t, trace_,
+            [](auto& entry) { return entry.t; },
+            [](auto& entry) { return entry.v; });
     }
 
     const trace_data<double>& trace_;
@@ -43,9 +30,12 @@ struct trace_interpolant {
 double linf_distance(const trace_data<double>& u, const trace_data<double>& r) {
     trace_interpolant f{r};
 
-    return util::max_value(
-            util::transform_view(u,
-                [&](trace_entry<double> x) { return std::abs(x.v-f(x.t)); }));
+    double linf = 0;
+    for (auto entry: u) {
+        linf = std::max(linf, std::abs(entry.v-f(entry.t)));
+    }
+
+    return linf;
 }
 
 // Compute linf distance as above, but excluding sample points that lie
@@ -72,14 +62,14 @@ double linf_distance(const trace_data<double>& u, const trace_data<double>& ref,
         // include points up to and including uj-2, and then proceed from point uj+1,
         // excluding the two points closest to the discontinuity.
 
-        if (uj>1+ui) {
-            util::append(reduced, util::subrange_view(u, ui, uj-1));
+        for (unsigned k = ui; k+1<uj; ++k) {
+            reduced.push_back(u[k]);
         }
         ui = uj+1;
     }
 
-    if (ui<nu) {
-        util::append(reduced, util::subrange_view(u, ui, nu));
+    for (auto k = ui; k<nu; ++k) {
+        reduced.push_back(u[k]);
     }
 
     return linf_distance(reduced, ref);
@@ -89,21 +79,18 @@ std::vector<trace_peak> local_maxima(const trace_data<double>& u) {
     std::vector<trace_peak> peaks;
     if (u.size()<2) return peaks;
 
-    auto tx = times(u);
-    auto vx = values(u);
-
-    int s_prev = math::signum(vx[1]-vx[0]);
+    int s_prev = math::signum(u[1].v-u[0].v);
     std::size_t i_start = 0;
 
     for (std::size_t i = 2; i<u.size()-1; ++i) {
-        int s = math::signum(vx[i]-vx[i-1]);
+        int s = math::signum(u[i].v-u[i-1].v);
         if (s_prev==1 && s==-1) {
             // found peak between i_start and i,
             // observerd peak value at i-1.
-            float t0 = tx[i_start];
-            float t1 = tx[i];
+            float t0 = u[i_start].t;
+            float t1 = u[i].t;
 
-            peaks.push_back({(t0+t1)/2, vx[i-1], (t1-t0)/2});
+            peaks.push_back({(t0+t1)/2, u[i-1].v, (t1-t0)/2});
         }
 
         if (s!=0) {

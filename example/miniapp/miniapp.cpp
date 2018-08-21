@@ -6,26 +6,25 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/util/any.hpp>
 #include <arbor/version.hpp>
 
-#include "hardware/gpu.hpp"
-#include "hardware/node_info.hpp"
-#include "io/exporter_spike_file.hpp"
-#include "load_balance.hpp"
-#include "util/ioutil.hpp"
 
-#include "json_meter.hpp"
+#include <aux/ioutil.hpp>
+#include <aux/json_meter.hpp>
+#include <aux/path.hpp>
+#include <aux/spike_emitter.hpp>
+#include <aux/strsub.hpp>
 #ifdef ARB_MPI_ENABLED
-#include "with_mpi.hpp"
+#include <aux/with_mpi.hpp>
 #endif
 
 #include "io.hpp"
@@ -36,37 +35,38 @@ using namespace arb;
 
 using util::any_cast;
 
-void banner(hw::node_info, const distributed_context*);
+void banner(proc_allocation, const execution_context&);
 std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
-
+std::fstream& open_or_throw(std::fstream& file, const aux::path& p, bool exclusive = false);
 void report_compartment_stats(const recipe&);
 
 int main(int argc, char** argv) {
     // default serial context
-    distributed_context context;
+    execution_context context;
 
     try {
 #ifdef ARB_MPI_ENABLED
-        with_mpi guard(argc, argv, false);
-        context = mpi_context(MPI_COMM_WORLD);
+        aux::with_mpi guard(argc, argv, false);
+        context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
-
-        profile::meter_manager meters(&context);
+#ifdef ARB_PROFILE_ENABLED
+        profile::profiler_initialize(context.thread_pool);
+#endif
+        profile::meter_manager meters(context.distributed);
         meters.start();
 
-        std::cout << util::mask_stream(context.id()==0);
+        std::cout << aux::mask_stream(context.distributed->id()==0);
         // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.id()==0);
+        io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
 
         // TODO: add dry run mode
 
         // Use a node description that uses the number of threads used by the
         // threading back end, and 1 gpu if available.
-        hw::node_info nd;
-        nd.num_cpu_cores = arb::num_threads();
-        nd.num_gpus = hw::num_gpus()>0? 1: 0;
-        banner(nd, &context);
+        proc_allocation nd = local_allocation(context);
+        nd.num_gpus = nd.num_gpus>=1? 1: 0;
+        banner(nd, context);
 
         meters.checkpoint("setup");
 
@@ -80,15 +80,8 @@ int main(int argc, char** argv) {
             report_compartment_stats(*recipe);
         }
 
-        auto register_exporter = [] (const io::cl_options& options) {
-            return
-                std::make_unique<io::exporter_spike_file>(
-                    options.file_name, options.output_path,
-                    options.file_extension, options.over_write);
-        };
-
-        auto decomp = partition_load_balance(*recipe, nd, &context);
-        simulation sim(*recipe, decomp, &context);
+        auto decomp = partition_load_balance(*recipe, nd, context);
+        simulation sim(*recipe, decomp, context);
 
         // Set up samplers for probes on local cable cells, as requested
         // by command line options.
@@ -121,21 +114,21 @@ int main(int argc, char** argv) {
         sim.set_binning_policy(binning_policy, options.bin_dt);
 
         // Initialize the spike exporting interface
-        std::unique_ptr<io::exporter_spike_file> file_exporter;
+        std::fstream spike_out;
         if (options.spike_file_output) {
+            using std::ios_base;
+
+            auto rank = context.distributed->id();
+            aux::path p = options.output_path;
+            p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
+
             if (options.single_file_per_rank) {
-                file_exporter = register_exporter(options);
-                sim.set_local_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                        file_exporter->output(spikes);
-                    });
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_local_spike_callback(aux::spike_emitter(spike_out));
             }
-            else if(context.id()==0) {
-                file_exporter = register_exporter(options);
-                sim.set_global_spike_callback(
-                    [&](const std::vector<spike>& spikes) {
-                       file_exporter->output(spikes);
-                    });
+            else if (rank==0) {
+                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_global_spike_callback(aux::spike_emitter(spike_out));
             }
         }
 
@@ -159,7 +152,7 @@ int main(int argc, char** argv) {
 
         auto report = profile::make_meter_report(meters);
         std::cout << report;
-        if (context.id()==0) {
+        if (context.distributed->id()==0) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
@@ -168,7 +161,7 @@ int main(int argc, char** argv) {
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << util::mask_stream(context.id()==0);
+        std::cerr << aux::mask_stream(context.distributed->id()==0);
         std::cerr << e.what() << "\n";
         return 1;
     }
@@ -179,13 +172,12 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-void banner(hw::node_info nd, const distributed_context* ctx) {
+void banner(proc_allocation nd, const execution_context& ctx) {
     std::cout << "==========================================\n";
     std::cout << "  Arbor miniapp\n";
-    std::cout << "  - distributed : " << ctx->size()
-              << " (" << ctx->name() << ")\n";
-    std::cout << "  - threads     : " << nd.num_cpu_cores
-              << " (" << arb::thread_implementation() << ")\n";
+    std::cout << "  - distributed : " << ctx.distributed->size()
+              << " (" << ctx.distributed->name() << ")\n";
+    std::cout << "  - threads     : " << nd.num_threads << "\n";
     std::cout << "  - gpus        : " << nd.num_gpus << "\n";
     std::cout << "==========================================\n";
 }
@@ -258,3 +250,4 @@ void report_compartment_stats(const recipe& rec) {
 
     std::cout << "compartments/cell: min=" << ncomp_min <<"; max=" << ncomp_max << "; mean=" << (double)ncomp_total/ncell << "\n";
 }
+

@@ -17,7 +17,7 @@ PARAMETER {
     gkbar = .036 (S/cm2)
     gl = .0003 (S/cm2)
     el = -54.3 (mV)
-    celsius = 6.3 (degC)
+    celsius
 }
 
 STATE {
@@ -47,20 +47,20 @@ BREAKPOINT {
 }
 
 INITIAL {
-    rates(v)
+    rates(v, celsius)
     m = minf
     h = hinf
     n = ninf
 }
 
 DERIVATIVE states {
-    rates(v)
+    rates(v, celsius)
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
     n' = (ninf-n)/ntau
 }
 
-PROCEDURE rates(v)
+PROCEDURE rates(v, celsius)
 {
     LOCAL  alpha, beta, sum, q10
 

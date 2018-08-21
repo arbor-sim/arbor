@@ -6,7 +6,6 @@
 
 #include "expression.hpp"
 #include "parser.hpp"
-#include "modccutil.hpp"
 
 extern bool g_verbose_flag;
 

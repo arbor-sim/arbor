@@ -46,7 +46,7 @@ cd $build_path
 #
 progress "Configuring with cmake"
 
-cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_THREADING_MODEL=${WITH_THREAD} -DARB_WITH_MPI=${WITH_MPI} ${CXX_FLAGS}"
+cmake_flags="-DARB_WITH_ASSERTIONS=on -DARB_WITH_MPI=${WITH_MPI} ${CXX_FLAGS}"
 echo "cmake flags: ${cmake_flags}"
 cmake .. ${cmake_flags} || error "unable to configure cmake"
 

@@ -5,8 +5,8 @@
 #include <arbor/common_types.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
+#include <arbor/schedule.hpp>
 #include <arbor/spike.hpp>
-#include <arbor/time_sequence.hpp>
 
 #include "cell_group.hpp"
 #include "epoch.hpp"
@@ -15,7 +15,7 @@ namespace arb {
 
 class spike_source_cell_group: public cell_group {
 public:
-    spike_source_cell_group(std::vector<cell_gid_type> gids, const recipe& rec);
+    spike_source_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec);
 
     cell_kind get_cell_kind() const override;
 
@@ -36,9 +36,10 @@ public:
     void remove_all_samplers() override {}
 
 private:
+    time_type t_ = 0;
     std::vector<spike> spikes_;
     std::vector<cell_gid_type> gids_;
-    std::vector<time_seq> time_sequences_;
+    std::vector<schedule> time_sequences_;
 };
 
 } // namespace arb

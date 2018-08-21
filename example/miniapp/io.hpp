@@ -9,8 +9,7 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/util/optional.hpp>
-
-#include "util/path.hpp"
+#include <aux/path.hpp>
 
 // TODO: this shouldn't be in arb namespace
 namespace arb {

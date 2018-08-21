@@ -4,7 +4,6 @@
 
 #include "symdiff.hpp"
 #include "parser.hpp"
-#include "modccutil.hpp"
 
 // Test visitors for extended constant reduction,
 // identifier presence detection and symbolic differentiation.

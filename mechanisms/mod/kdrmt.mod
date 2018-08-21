@@ -50,16 +50,16 @@ BREAKPOINT {
 }
 
 INITIAL {
-    trates(v)
+    trates(v,celsius)
     m=minf
 }
 
 DERIVATIVE states {
-    trates(v)
+    trates(v,celsius)
     m' = (minf-m)/mtau
 }
 
-PROCEDURE trates(v) {
+PROCEDURE trates(v,celsius) {
     LOCAL qt
     LOCAL alpm, betm
     LOCAL tmp

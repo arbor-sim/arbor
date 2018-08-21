@@ -94,6 +94,7 @@ struct shared_state {
     array  dt_cv;             // Maps CV index to dt [ms].
     array  voltage;           // Maps CV index to membrane voltage [mV].
     array  current_density;   // Maps CV index to current density [A/m²].
+    fvm_value_type temperature_degC;  // Global temperature [°C].
 
     std::unordered_map<ionKind, ion_state> ion_data;
 

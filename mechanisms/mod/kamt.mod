@@ -59,18 +59,18 @@ BREAKPOINT {
 }
 
 INITIAL {
-    trates(v)
+    trates(v,celsius)
     m=minf
     h=hinf
 }
 
 DERIVATIVE states {
-    trates(v)
+    trates(v,celsius)
     m' = (minf-m)/mtau
     h' = (hinf-h)/htau
 }
 
-PROCEDURE trates(v) {
+PROCEDURE trates(v,celsius) {
     LOCAL qt
     qt=q10^((celsius-24)/10)
 

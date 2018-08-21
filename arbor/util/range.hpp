@@ -26,10 +26,6 @@
 #include <type_traits>
 #include <utility>
 
-#ifdef ARB_HAVE_TBB
-#include <tbb/tbb_stddef.h>
-#endif
-
 #include <arbor/assert.hpp>
 
 #include <util/counter.hpp>
@@ -62,6 +58,11 @@ struct range {
     template <typename U1, typename U2>
     range(U1&& l, U2&& r):
         left(std::forward<U1>(l)), right(std::forward<U2>(r))
+    {}
+
+    template <typename U1, typename U2>
+    range(const std::pair<U1, U2>& p):
+        left(p.first), right(p.second)
     {}
 
     template <
@@ -133,42 +134,6 @@ struct range {
     data() const {
         return left;
     }
-
-#ifdef ARB_HAVE_TBB
-    template <
-        typename V = iterator,
-        typename = std::enable_if_t<is_forward_iterator<V>::value>
-    >
-    range(range& r, tbb::split):
-        left(r.left), right(r.right)
-    {
-        std::advance(left, r.size()/2u);
-        r.right = left;
-    }
-
-    template <
-        typename V = iterator,
-        typename = std::enable_if_t<is_forward_iterator<V>::value>
-    >
-    range(range& r, tbb::proportional_split p):
-        left(r.left), right(r.right)
-    {
-        size_type i = (r.size()*p.left())/(p.left()+p.right());
-        if (i<1) {
-            i = 1;
-        }
-        std::advance(left, i);
-        r.right = left;
-    }
-
-    bool is_divisible() const {
-        return is_forward_iterator<U>::value && left != right && std::next(left) != right;
-    }
-
-    static constexpr bool is_splittable_in_proportion() {
-        return is_forward_iterator<U>::value;
-    }
-#endif
 };
 
 template <typename U, typename V>

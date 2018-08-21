@@ -9,10 +9,10 @@
 
 #include <arbor/mc_cell.hpp>
 #include <arbor/morphology.hpp>
+#include <arbor/swcio.hpp>
 
 #include "../gtest.h"
 
-#include "swcio.hpp"
 
 // Path to data directory can be overriden at compile time.
 #if !defined(DATADIR)
@@ -22,8 +22,8 @@
 using namespace arb;
 
 // SWC tests
-void expect_record_equals(const io::swc_record& expected,
-                          const io::swc_record& actual)
+void expect_record_equals(const swc_record& expected,
+                          const swc_record& actual)
 {
     EXPECT_EQ(expected.id, actual.id);
     EXPECT_EQ(expected.type, actual.type);
@@ -36,8 +36,6 @@ void expect_record_equals(const io::swc_record& expected,
 
 TEST(swc_record, construction)
 {
-    using namespace arb::io;
-
     {
         // force an invalid type
         swc_record::kind invalid_type = static_cast<swc_record::kind>(100);
@@ -105,8 +103,6 @@ TEST(swc_record, construction)
 
 TEST(swc_parser, invalid_input_istream)
 {
-    using namespace arb::io;
-
     {
         // check incomplete lines; missing parent
         std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
@@ -127,8 +123,6 @@ TEST(swc_parser, invalid_input_istream)
 
 TEST(swc_parser, invalid_input_parse)
 {
-    using namespace arb::io;
-
     {
         // check incomplete lines; missing parent
         std::istringstream is("1 1 14.566132 34.873772 7.857000 0.717830\n");
@@ -168,8 +162,6 @@ TEST(swc_parser, invalid_input_parse)
 
 TEST(swc_parser, valid_input)
 {
-    using namespace arb::io;
-
     {
         // check empty file; no record may be parsed
         swc_record record, record_orig;
@@ -304,8 +296,6 @@ TEST(swc_parser, valid_input)
 
 TEST(swc_parser, from_allen_db)
 {
-    using namespace arb::io;
-
     std::string datadir{DATADIR};
     auto fname = datadir + "/example.swc";
     std::ifstream fid(fname);
@@ -323,8 +313,6 @@ TEST(swc_parser, from_allen_db)
 
 TEST(swc_parser, input_cleaning)
 {
-    using namespace arb::io;
-
     {
         // Check duplicates
         std::stringstream is;
@@ -391,8 +379,6 @@ TEST(swc_parser, input_cleaning)
 
 TEST(swc_parser, raw)
 {
-    using namespace arb::io;
-
     {
         // Check valid usage
         std::stringstream is;
@@ -469,7 +455,7 @@ TEST(swc_io, cell_construction) {
     };
 
     // swc -> morphology
-    auto morph = io::swc_as_morphology(io::parse_swc_file(is));
+    auto morph = swc_as_morphology(parse_swc_file(is));
 
     mc_cell cell = make_mc_cell(morph, true);
     EXPECT_TRUE(cell.has_soma());
@@ -561,7 +547,7 @@ TEST(swc_parser, from_file_ball_and_stick) {
     }
 
     // read the file as morhpology
-    auto bas_morph = io::swc_as_morphology(io::parse_swc_file(fid));
+    auto bas_morph = swc_as_morphology(parse_swc_file(fid));
 
     // compare with expected morphology
     morphology expected;

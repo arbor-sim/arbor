@@ -5,9 +5,9 @@
 #include <fstream>
 #include <random>
 
-#include "json_params.hpp"
-
 #include <arbor/mc_cell.hpp>
+
+#include <aux/json_params.hpp>
 
 struct cell_parameters {
     cell_parameters() = default;
@@ -94,6 +94,7 @@ arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) 
 ring_params read_options(int argc, char** argv) {
     using aux::find_and_remove_json;
     using aux::param_from_json;
+
     ring_params params;
     if (argc<2) {
         std::cout << "Using default parameters.\n";

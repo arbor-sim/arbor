@@ -19,12 +19,13 @@
 #include "util/filter.hpp"
 #include "util/maputil.hpp"
 #include "util/partition.hpp"
+#include "util/range.hpp"
 #include "util/span.hpp"
 
 namespace arb {
 
-mc_cell_group::mc_cell_group(std::vector<cell_gid_type> gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
-    gids_(std::move(gids)), lowered_(std::move(lowered))
+mc_cell_group::mc_cell_group(const std::vector<cell_gid_type>& gids, const recipe& rec, fvm_lowered_cell_ptr lowered):
+    gids_(gids), lowered_(std::move(lowered))
 {
     // Default to no binning of events
     set_binning_policy(binning_kind::none, 0);
@@ -127,7 +128,7 @@ void mc_cell_group::advance(epoch ep, time_type dt, const event_lane_subrange& e
     sample_size_type max_samples_per_call = 0;
 
     for (auto& sa: sampler_map_) {
-        auto sample_times = sa.sched.events(tstart, ep.tfinal);
+        auto sample_times = util::make_range(sa.sched.events(tstart, ep.tfinal));
         if (sample_times.empty()) {
             continue;
         }

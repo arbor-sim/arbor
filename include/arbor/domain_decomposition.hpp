@@ -6,17 +6,20 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
+#include <arbor/execution_context.hpp>
 
 namespace arb {
 
-inline bool has_gpu_backend(cell_kind k) {
-    if (k==cell_kind::cable1d_neuron) {
-        return true;
-    }
-    return false;
-}
+/// Local resource info for domain partitioning.
+struct proc_allocation {
+    unsigned num_threads = 1;
+    unsigned num_gpus = 0;
+};
 
-/// Meta data for a local cell group.
+/// Determine available local domain resources.
+proc_allocation local_allocation(const execution_context& ctx);
+
+/// Metadata for a local cell group.
 struct group_description {
     /// The kind of cell in the group. All cells in a cell_group have the same type.
     const cell_kind kind;

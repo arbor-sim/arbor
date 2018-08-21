@@ -12,16 +12,16 @@
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/distributed_context.hpp>
+#include <arbor/execution_context.hpp>
+#include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 
-#include "hardware/node_info.hpp"
-#include "load_balance.hpp"
+#include <aux/json_meter.hpp>
 
-#include "json_meter.hpp"
 #include "parameters.hpp"
 
 using arb::cell_gid_type;
@@ -77,7 +77,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::vector_backed_generator({0u, 0u}, event_weight_, {0.f}));
+            gens.push_back(arb::explicit_generator(arb::pse_vector{{{0, 0}, 0.1, 1.0}}));
         }
         return gens;
     }
@@ -109,7 +109,7 @@ struct cell_stats {
     size_type nsegs = 0;
     size_type ncomp = 0;
 
-    cell_stats(arb::distributed_context* ctx, arb::recipe& r) {
+    cell_stats(arb::distributed_context_handle ctx, arb::recipe& r) {
         size_type nranks = ctx->size();
         size_type rank = ctx->id();
         ncells = r.num_cells();
@@ -135,31 +135,37 @@ struct cell_stats {
 
 
 int main(int argc, char** argv) {
-    // A distributed_context is required for distributed computation (e.g. MPI).
-    arb::distributed_context context;
+    // default serial context
+    arb::execution_context context;
 
     try {
 #ifdef ARB_MPI_ENABLED
-        with_mpi guard(argc, argv, false);
-        context = mpi_context(MPI_COMM_WORLD);
+        aux::with_mpi guard(argc, argv, false);
+        context.distributed = mpi_context(MPI_COMM_WORLD);
+#endif
+#ifdef ARB_PROFILE_ENABLED
+        profile::profiler_initialize(context.thread_pool);
 #endif
 
         auto params = read_options(argc, argv);
 
-        arb::profile::meter_manager meters(&context);
+        arb::profile::meter_manager meters(context.distributed);
         meters.start();
 
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
-        cell_stats stats(&context, recipe);
+        cell_stats stats(context.distributed, recipe);
         std::cout << stats << "\n";
 
-        // Make the domain decomposition for the model
-        auto node = arb::hw::get_node_info();
-        auto decomp = arb::partition_load_balance(recipe, node, &context);
+        // Use a node description that uses the number of threads used by the
+        // threading back end, and 1 gpu if available.
+        arb::proc_allocation nd = arb::local_allocation(context);
+        nd.num_gpus = nd.num_gpus>=1? 1: 0;
+
+        auto decomp = arb::partition_load_balance(recipe, nd, context);
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, &context);
+        arb::simulation sim(recipe, decomp, context);
 
         // Set up the probe that will measure voltage in the cell.
 
@@ -174,7 +180,7 @@ int main(int argc, char** argv) {
 
         // Set up output of the global spike list by the root rank.
         std::ofstream fid;
-        if (context.id()==0) {
+        if (context.distributed->id()==0) {
             std::string fname = "spikes.gdf";
 
             fid.open(fname);

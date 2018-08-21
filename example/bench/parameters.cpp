@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include "json_params.hpp"
+#include <aux/json_params.hpp>
 
 #include "parameters.hpp"
 

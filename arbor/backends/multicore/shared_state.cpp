@@ -1,3 +1,4 @@
+#include <cfloat>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -6,15 +7,15 @@
 #include <vector>
 
 #include <arbor/assert.hpp>
+#include <arbor/common_types.hpp>
 #include <arbor/constants.hpp>
 #include <arbor/fvm_types.hpp>
-#include <arbor/common_types.hpp>
 #include <arbor/ion.hpp>
+#include <arbor/math.hpp>
 #include <arbor/simd/simd.hpp>
 
 #include "backends/event.hpp"
 #include "io/sepval.hpp"
-#include "math.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/rangeutil.hpp"
 
@@ -129,6 +130,7 @@ shared_state::shared_state(
     dt_cv(n_cv, pad(alignment)),
     voltage(n_cv, pad(alignment)),
     current_density(n_cv, pad(alignment)),
+    temperature_degC(NAN),
     deliverable_events(n_cell)
 {
     // For indices in the padded tail of cv_to_cell, set index to last valid cell index.
@@ -155,6 +157,7 @@ void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperat
     util::fill(current_density, 0);
     util::fill(time, 0);
     util::fill(time_to, 0);
+    temperature_degC = temperature_K - 273.15;
 
     for (auto& i: ion_data) {
         i.second.reset(temperature_K);

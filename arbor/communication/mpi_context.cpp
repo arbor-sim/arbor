@@ -62,13 +62,13 @@ struct mpi_context_impl {
     }
 };
 
-distributed_context mpi_context() {
-    return mpi_context_impl(MPI_COMM_WORLD);
+std::shared_ptr<distributed_context> mpi_context() {
+    return std::make_shared<distributed_context>(mpi_context_impl(MPI_COMM_WORLD));
 }
 
 template <>
-distributed_context mpi_context(MPI_Comm comm) {
-    return mpi_context_impl(comm);
+std::shared_ptr<distributed_context> mpi_context(MPI_Comm comm) {
+    return std::make_shared<distributed_context>(mpi_context_impl(comm));
 }
 
 } // namespace arb

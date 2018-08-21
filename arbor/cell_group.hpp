@@ -42,9 +42,4 @@ public:
 
 using cell_group_ptr = std::unique_ptr<cell_group>;
 
-template <typename T, typename... Args>
-cell_group_ptr make_cell_group(Args&&... args) {
-    return cell_group_ptr(new T(std::forward<Args>(args)...));
-}
-
 } // namespace arb

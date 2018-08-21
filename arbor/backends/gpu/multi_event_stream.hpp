@@ -1,6 +1,6 @@
 #pragma once
 
-// Indexed collection of pop-only event queues --- multicore back-end implementation.
+// Indexed collection of pop-only event queues --- CUDA back-end implementation.
 
 #include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>

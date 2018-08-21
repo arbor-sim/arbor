@@ -5,9 +5,9 @@
 #include <sstream>
 #include <vector>
 
-#include <tinyopt.hpp>
 #include <arbor/morphology.hpp>
 #include <arbor/util/optional.hpp>
+#include <aux/tinyopt.hpp>
 
 #include "morphio.hpp"
 #include "lsystem.hpp"

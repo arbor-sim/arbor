@@ -1,12 +1,11 @@
 #include <vector>
 
-#include <arbor/arbexcept.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 
 #include "benchmark_cell_group.hpp"
 #include "cell_group.hpp"
+#include "cell_group_factory.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "lif_cell_group.hpp"
 #include "mc_cell_group.hpp"
@@ -14,23 +13,45 @@
 
 namespace arb {
 
-cell_group_ptr cell_group_factory(const recipe& rec, const group_description& group) {
-    switch (group.kind) {
+template <typename Impl, typename... Args>
+cell_group_ptr make_cell_group(Args&&... args) {
+    return cell_group_ptr(new Impl(std::forward<Args>(args)...));
+}
+
+cell_group_factory cell_kind_implementation(cell_kind ck, backend_kind bk) {
+    using gid_vector = std::vector<cell_gid_type>;
+
+    switch (ck) {
     case cell_kind::cable1d_neuron:
-        return make_cell_group<mc_cell_group>(group.gids, rec, make_fvm_lowered_cell(group.backend));
+        return [bk](const gid_vector& gids, const recipe& rec) {
+            return make_cell_group<mc_cell_group>(gids, rec, make_fvm_lowered_cell(bk));
+        };
 
     case cell_kind::spike_source:
-        return make_cell_group<spike_source_cell_group>(group.gids, rec);
+        if (bk!=backend_kind::multicore) break;
+
+        return [](const gid_vector& gids, const recipe& rec) {
+            return make_cell_group<spike_source_cell_group>(gids, rec);
+        };
 
     case cell_kind::lif_neuron:
-        return make_cell_group<lif_cell_group>(group.gids, rec);
+        if (bk!=backend_kind::multicore) break;
+
+        return [](const gid_vector& gids, const recipe& rec) {
+            return make_cell_group<lif_cell_group>(gids, rec);
+        };
 
     case cell_kind::benchmark:
-        return make_cell_group<benchmark_cell_group>(group.gids, rec);
+        if (bk!=backend_kind::multicore) break;
 
-    default:
-        throw arbor_internal_error("cell_group_factory: unknown cell kind");
+        return [](const gid_vector& gids, const recipe& rec) {
+            return make_cell_group<benchmark_cell_group>(gids, rec);
+        };
+
+    default: ;
     }
+
+    return cell_group_factory{}; // empty function => not supported
 }
 
 } // namespace arb
