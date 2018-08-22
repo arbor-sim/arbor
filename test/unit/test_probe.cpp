@@ -19,6 +19,8 @@ using shared_state = multicore::backend::shared_state;
 ACCESS_BIND(std::unique_ptr<shared_state> fvm_cell::*, fvm_state_ptr, &fvm_cell::state_);
 
 TEST(probe, fvm_lowered_cell) {
+    execution_context context;
+
     mc_cell bs = make_cell_ball_and_stick(false);
 
     i_clamp stim(0, 100, 0.3);
@@ -37,7 +39,7 @@ TEST(probe, fvm_lowered_cell) {
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell lcell;
+    fvm_cell lcell(context);
     lcell.initialize({0}, rec, targets, probe_map);
 
     EXPECT_EQ(3u, rec.num_probes(0));

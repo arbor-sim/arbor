@@ -160,7 +160,7 @@ simulation_state::simulation_state(
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
             const auto& group_info = decomp.groups[i];
-            auto factory = cell_kind_implementation(group_info.kind, group_info.backend);
+            auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
             group = factory(group_info.gids, rec);
         });
 

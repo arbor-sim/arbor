@@ -65,8 +65,8 @@ domain_decomposition partition_load_balance(
     // of cell group updates according to rules such as the back end on
     // which the cell group is running.
 
-    auto has_gpu_backend = [](cell_kind c) {
-        return cell_kind_supported(c, backend_kind::gpu);
+    auto has_gpu_backend = [ctx](cell_kind c) {
+        return cell_kind_supported(c, backend_kind::gpu, ctx);
     };
 
     std::vector<cell_kind> kinds;

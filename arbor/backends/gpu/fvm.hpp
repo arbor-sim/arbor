@@ -50,7 +50,8 @@ struct backend {
     static threshold_watcher voltage_watcher(
         const shared_state& state,
         const std::vector<index_type>& cv,
-        const std::vector<value_type>& thresholds)
+        const std::vector<value_type>& thresholds,
+        const execution_context& context)
     {
         return threshold_watcher(
             state.cv_to_cell.data(),
@@ -58,7 +59,8 @@ struct backend {
             state.time_to.data(),
             state.voltage.data(),
             cv,
-            thresholds);
+            thresholds,
+            context);
     }
 };
 
