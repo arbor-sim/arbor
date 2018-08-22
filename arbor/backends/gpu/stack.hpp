@@ -75,7 +75,7 @@ public:
     // Perform any required synchronization if concurrent host-side access is not supported.
     // (Correctness still requires that GPU operations on this stack are complete.)
     void host_access() const {
-        gpu_context_->synchronize();
+        gpu_context_->synchronize_for_managed_access();
     }
 
     void clear() {
