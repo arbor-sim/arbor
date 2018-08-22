@@ -2,9 +2,11 @@
 
 #include <cmath>
 
+#include <arbor/util/compat.hpp>
+
 template <typename T, typename U>
 inline T lerp(T a, T b, U u) {
-    return std::fma(u, b, std::fma(-u, a, a));
+    return compat::fma(T(u), b, compat::fma(T(-u), a, a));
 }
 
 // Piece-wise linear interpolation across a sequence of points (u_i, x_i),

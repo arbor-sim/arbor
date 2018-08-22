@@ -7,6 +7,7 @@
 
 #include <arbor/simd/simd.hpp>
 #include <arbor/simd/avx.hpp>
+#include <arbor/util/compat.hpp>
 
 #include "common.hpp"
 
@@ -266,7 +267,7 @@ TYPED_TEST_P(simd_value, arithmetic) {
         for (unsigned i = 0; i<N; ++i) u_divide_v[i] = u[i]/v[i];
 
         scalar fma_u_v_w[N];
-        for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = std::fma(u[i],v[i],w[i]);
+        for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = compat::fma(u[i],v[i],w[i]);
 
         simd us(u), vs(v), ws(w);
 
