@@ -180,10 +180,9 @@ For more detailed build configuration options, see the `quick start <quickstart_
     make -j 4
 
     # 4) Run tests.
-    ./test/test.exe
-    ./test/global_communication.exe
+    ./bin/unit
 
-    # 5) Install (by default, to /usrlocal).
+    # 5) Install (by default, to /usr/local).
     make install
 
 This will build Arbor in release mode with the `default C++ compiler <note_CC_>`_.
@@ -372,8 +371,7 @@ MPI
 
 Arbor uses MPI for distributed systems. By default it is built without MPI support, which
 can enabled by setting the ``ARB_WITH_MPI`` configuration flag.
-An example of building a 'release' (optimized) version of Arbor with MPI:
-is:
+An example of building a 'release' (optimized) version of Arbor with MPI is:
 
 .. code-block:: bash
 
@@ -381,14 +379,11 @@ is:
     export CC=`which mpicc`
     export CXX=`which mpicxx`
 
-    # configure with mpi, tbb threading and compiled with optimizations
-    cmake .. -DARB_WITH_MPI=ON \           # Use MPI
-             -DCMAKE_BUILD_TYPE=release    # Optimizations on
+    # configure with mpi
+    cmake .. -DARB_WITH_MPI=ON
 
-    # run unit tests for global communication on 2 MPI ranks
-    mpirun -n 2 ./tests/global_communication.exe
-
-(Note that 'release' build is in fact the default configuration for Arbor.)
+    # run MPI-specific unit tests on 2 MPI ranks
+    mpirun -n 2 ./bin/unit-mpi
 
 The example above sets the ``CC`` and ``CXX`` environment variables to use compiler
 wrappers provided by the MPI implementation. While the configuration process
@@ -415,16 +410,16 @@ using the supplied MPI compiler wrappers in preference.
 Cray Systems
 ------------
 
-The compiler used by the MPI wrappers is set using a "programming enviroment" module.
+The compiler used by the MPI wrappers is set using a "programming environment" module.
 The first thing to do is change this module, which by default is set to the Cray
-programming environment.
+programming environment, to a compiler that can compile Arbor.
 For example, to use the GCC compilers, select the GNU programming enviroment:
 
 .. code-block:: bash
 
     module swap PrgEnv-cray PrgEnv-gnu
 
-The version of the GCC can then be set by choosing an appropriate gcc module.
+The version of GCC can then be set by choosing an appropriate gcc module.
 In the example below we use ``module avail`` to see which versions of GCC are available,
 then choose GCC 7.1.0
 
@@ -456,8 +451,7 @@ enviroment variable to ``dynamic``.
 
     export CRAYPE_LINK_TYPE=dynamic
 
-Putting it all together, a typicaly workflow to configure the environment and CMake,
-then build Arbor is:
+Putting it all together, a typical workflow to build Arbor on a Cray system is:
 
 .. code-block:: bash
 
@@ -465,8 +459,7 @@ then build Arbor is:
     module swap PrgEnv-cray PrgEnv-gnu
     moudle swap gcc/7.1.0
     export CC=`which cc`; export CXX=`which CC`;
-    cmake .. -DARB_WITH_MPI=ON           \      # MPI support
-             -DCMAKE_BUILD_TYPE=release         # optimized
+    cmake .. -DARB_WITH_MPI=ON    # MPI support
 
 .. Note::
     If ``CRAYPE_LINK_TYPE`` isn't set, there will be warnings like the following when linking:
@@ -583,7 +576,7 @@ instructions used by KNL.
 
     .. code-block:: none
 
-        $ ./tests/test.exe
+        $ ./bin/unit
         Illegal instruction (core dumped)
 
     On the Cray KNL system, ``srun`` is used to launch (it might be ``mpirun``
@@ -591,7 +584,7 @@ instructions used by KNL.
 
     .. code-block:: none
 
-        $ srun -n1 -c1 ./tests/test.exe
+        $ srun -n1 -c1 ./bin/unit
         [==========] Running 609 tests from 108 test cases.
         [----------] Global test environment set-up.
         [----------] 15 tests from algorithms
