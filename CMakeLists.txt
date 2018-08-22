@@ -45,6 +45,12 @@ option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
 
 #----------------------------------------------------------
+# Python front end for Arbor:
+#----------------------------------------------------------
+
+option(ARB_WITH_PYTHON "enable python front end" OFF)
+
+#----------------------------------------------------------
 # Global CMake configuration
 #----------------------------------------------------------
 
@@ -138,6 +144,15 @@ if(ARB_WITH_PROFILING)
 endif()
 if(ARB_WITH_ASSERTIONS)
     target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_ASSERTIONS)
+endif()
+
+# Python bindings
+#----------------------------------------------------------
+option(ARB_WITH_PYTHON "enable python front end" OFF)
+if(ARB_WITH_PYTHON)
+    # Required to link the dynamic libraries for python modules.
+    # Effectively adds '-fpic' flag to CXX_FLAGS.
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 endif()
 
 # Threading model
@@ -243,7 +258,7 @@ add_subdirectory(arbor)
 # unit, unit-mpi, unit-local, unit-modcc, validate
 add_subdirectory(test)
 
-# miniapp, brunel-minapp, event-gen 
+# miniapp, brunel-minapp, event-gen:
 add_subdirectory(example)
 
 # lmorpho:
@@ -254,6 +269,10 @@ add_subdirectory(doc)
 
 # validation-data:
 if(ARB_BUILD_VALIDATION_DATA)
-    add_subdirectory(validation) # validation-data
+    add_subdirectory(validation)
 endif()
 
+# python interface:
+if (ARB_WITH_PYTHON)
+    add_subdirectory(python)
+endif ()

@@ -45,7 +45,7 @@ Some key features include:
 .. toctree::
    :caption: Users:
 
-   users
+   python
 
 .. toctree::
    :caption: C++ API:
