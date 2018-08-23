@@ -102,21 +102,24 @@ public:
     // the most branches per level
     unsigned max_branches_per_level;
 
-    // number of levels
-    unsigned num_levels;
-
     // number of rows in matrix
     unsigned matrix_size;
 
     // number of cells
     unsigned num_cells;
+    managed_vector<unsigned> num_cells_in_block;
 
-    // length or array to store packed vector
+    // end of the data of each level
+    // use data_size.back() to get the total data size
     //      data_size >= size
-    unsigned data_size;
+    managed_vector<unsigned> data_size; // TODO rename
 
-    // the meta data for each level
+    // the meta data for each level for each block layed out linearly in memory
     managed_vector<level> levels;
+    // the end of the levels of each block (exclusive)
+    // block b owns { leves[levels_end[b-1]], ..., leves[levels_end[b] - 1] }
+    // (where we define levels_end[-1] := 0 as a special case)
+    managed_vector<unsigned> levels_end;
 
     // permutation from front end storage to packed storage
     //      packed[perm[i]] = flat[i]
@@ -137,10 +140,20 @@ public:
         // for now we have single cell per cell group
         arb_assert(cell_cv_divs.size()==2);
 
-        num_levels = 0u;
-        std::vector<std::vector<branch>> branch_map;
-
         num_cells = cell_cv_divs.size()-1;
+
+        // TODO first sort cells by some criterion to improve greedy packaging
+
+        unsigned current_block = 0;
+        std::vector<unsigned> block_num_branches_per_depth;
+        std::vector<unsigned> block_ix(num_cells);
+        num_cells_in_block.resize(1, 0);
+
+        // branch_map = branch_maps[block] is a branch map for each cuda block
+        // branch_map[depth] is list of branches is this level
+        // each branch branch_map[depth][i] has {id, parent_id, start_idx, parent_idx, length}
+        std::vector<std::vector<std::vector<branch>>> branch_maps;
+
         unsigned num_branches = 0u;
         for (auto c: make_span(0u, num_cells)) {
             // build the parent index for cell c
@@ -166,13 +179,53 @@ public:
 
             // calculate the number of levels in this cell
             auto cell_num_levels = util::max_value(depths)+1u;
-            num_levels = std::max(num_levels, cell_num_levels);
+
+            auto num_cell_branches = cell_tree.num_segments();
+
+            // count number of branches per level
+            std::vector<unsigned> cell_num_branches_per_depth(cell_num_levels, 0u);
+            for (auto i: make_span(num_cell_branches)) {
+                cell_num_branches_per_depth[depths[i]] += 1;
+            }
+            // resize the block levels if neccessary
+            if (cell_num_levels > block_num_branches_per_depth.size()) {
+                block_num_branches_per_depth.resize(cell_num_levels, 0);
+            }
+
+
+            // check if we can fit the current cell into the last block
+            bool fits_current_block = true;
+            for (auto i: make_span(cell_num_levels)) {
+                if (block_num_branches_per_depth[i] + cell_num_branches_per_depth[i] > 1024) { // TODO turn into parameter
+                    fits_current_block = false;
+                }
+            }
+            if (fits_current_block) {
+                // put the cell into current block
+                block_ix[c] = current_block;
+                num_cells_in_block[block_ix[c]] += 1;
+                // and increment counter
+                for (auto i: make_span(cell_num_levels)) {
+                    block_num_branches_per_depth[i] += cell_num_branches_per_depth[i];
+                }
+            } else {
+                // start a new block
+                block_ix[c] = current_block + 1;
+                num_cells_in_block.push_back(1);
+                branch_maps.resize(branch_maps.size()+1);
+                current_block += 1;
+                // reset counter
+                block_num_branches_per_depth = cell_num_branches_per_depth; // TODO what to do if one single cell does not fit into the blocksize?
+            }
+
+
+            // the branch map for the block in which we put the cell
+            auto& branch_map = branch_maps[block_ix[c]];
 
             // build branch_map:
             // branch_map[i] is a list of branch meta-data for branches with depth i
-            auto num_cell_branches = cell_tree.num_segments();
-            if (num_levels > branch_map.size()) {
-                branch_map.resize(num_levels);
+            if (cell_num_levels > branch_map.size()) {
+                branch_map.resize(cell_num_levels);
             }
             for (auto i: make_span(num_cell_branches)) {
                 branch b;
@@ -183,21 +236,25 @@ public:
                 b.parent_id = cell_tree.parent(i)==cell_tree.no_parent?
                     npos: cell_tree.parent(i) + num_branches;
                 b.start_idx = branch_starts[i] + cell_start;
-                b.parent_idx = p[b.start_idx] + cell_start;
                 b.length = branch_starts[i+1] - branch_starts[i];
+                b.parent_idx = p[b.start_idx] + cell_start;
                 branch_map[depth].push_back(b);
             }
+            // total number of branches of all cells
             num_branches += num_cell_branches;
         }
 
-        std::reverse(branch_map.begin(), branch_map.end());
+        for (auto& branch_map: branch_maps) {
+            // reverse the levels
+            std::reverse(branch_map.begin(), branch_map.end());
 
-        // Sort all branches on each level in descending order of length.
-        // Later, branches will be partitioned over thread blocks, and we will
-        // take advantage of the fact that the first branch in a partition is
-        // the longest, to determine how to pack all the branches in a block.
-        for (auto& branches: branch_map) {
-            util::sort(branches);
+            // Sort all branches on each level in descending order of length.
+            // Later, branches will be partitioned over thread blocks, and we will
+            // take advantage of the fact that the first branch in a partition is
+            // the longest, to determine how to pack all the branches in a block.
+            for (auto& branches: branch_map) {
+                util::sort(branches);
+            }
         }
 
         // The branches generated above have been assigned contiguous ids.
@@ -208,70 +265,89 @@ public:
 
         // Helper for recording location of a branch once packed.
         struct branch_loc {
+            unsigned block; // the cuda block containing the cell to which the branch blongs to
             unsigned level; // the level containing the branch
             unsigned index; // the index of the branch on that level
         };
 
         // branch_locs will hold the location information for each branch.
         std::vector<branch_loc> branch_locs(num_branches);
-        for (unsigned l: make_span(num_levels)) {
-            const auto& branches = branch_map[l];
+        for (unsigned b: make_span(branch_maps.size())) {
+            const auto& branch_map = branch_maps[b];
+            for (unsigned l: make_span(branch_map.size())) {
+                const auto& branches = branch_map[l];
 
-            // Record the location information
-            for (auto i=0u; i<branches.size(); ++i) {
-                const auto& b = branches[i];
-                branch_locs[b.id] = {l, i};
+                // Record the location information
+                for (auto i=0u; i<branches.size(); ++i) {
+                    const auto& branch = branches[i];
+                    branch_locs[branch.id] = {b, l, i};
+                }
             }
         }
 
-        levels.reserve(num_levels);
+        unsigned total_num_levels = std::accumulate(
+            branch_maps.begin(), branch_maps.end(), 0,
+            [](unsigned value, const decltype(branch_maps[0])& l) {
+                return value + l.size();});
+
+        // construct description for the set of branches on each level
+        levels.reserve(total_num_levels);
+        levels_end.reserve(branch_maps.size());
+        data_size.reserve(branch_maps.size());
+        // offset into the packed data format, used to apply permutation on data
         auto pos = 0u;
-        for (const auto& lvl_branches: branch_map) {
-            level lvl(lvl_branches.size());
+        for (unsigned b: make_span(branch_maps.size())) {
+            const auto& branch_map = branch_maps[b];
+            for (const auto& lvl_branches: branch_map) {
 
-            // The length of the first branch is the upper bound on branch
-            // length as they are sorted in descending order of length.
-            lvl.max_length = lvl_branches.front().length;
-            lvl.data_index = pos;
+                level lvl(lvl_branches.size());
 
-            unsigned bi = 0u;
-            for (const auto& b: lvl_branches) {
-                // Set the length of the branch.
-                lvl.lengths[bi] = b.length;
+                // The length of the first branch is the upper bound on branch
+                // length as they are sorted in descending order of length.
+                lvl.max_length = lvl_branches.front().length;
+                lvl.data_index = pos;
 
-                // Set the parent indexes. During the forward and backward
-                // substitution phases each branch accesses the last node in
-                // its parent branch.
-                auto index = b.parent_id==npos? npos: branch_locs[b.parent_id].index;
-                lvl.parents[bi] = index;
-                ++bi;
+                unsigned bi = 0u;
+                for (const auto& b: lvl_branches) {
+                    // Set the length of the branch.
+                    lvl.lengths[bi] = b.length;
+
+                    // Set the parent indexes. During the forward and backward
+                    // substitution phases each branch accesses the last node in
+                    // its parent branch.
+                    auto index = b.parent_id==npos? npos: branch_locs[b.parent_id].index;
+                    lvl.parents[bi] = index;
+                    ++bi;
+                }
+
+                pos += lvl.max_length*lvl.num_branches;
+
+                levels.push_back(std::move(lvl));
             }
-
-            pos += lvl.max_length*lvl.num_branches;
-
-            levels.push_back(std::move(lvl));
+            auto prev_end = levels_end.size() ? levels_end.back(): 0;
+            levels_end.push_back(prev_end + branch_map.size());
+            data_size.push_back(pos);
         }
 
         // set matrix state
         matrix_size = p.size();
-        data_size = pos;
-        max_branches_per_level = std::accumulate(
-                levels.begin(), levels.end(), 0u,
-                [](unsigned value, const level& l) {
-                    return std::max(value, unsigned(l.num_branches));});
-
 
         // form the permutation index used to reorder vectors to/from the
         // ordering used by the fine grained matrix storage.
         std::vector<size_type> perm_tmp(matrix_size);
-        for (auto i: make_span(num_levels)) {
-            const auto& l = levels[i];
-            for (auto j: make_span(0u, l.num_branches)) {
-                const auto& b = branch_map[i][j];
-                auto to = l.data_index + j + l.num_branches*(l.lengths[j]-1);
-                auto from = b.start_idx;
-                for (auto k: make_span(0u, b.length)) {
-                    perm_tmp[from + k] = to - k*l.num_branches;
+        for (auto block: make_span(branch_maps.size())) {
+            const auto& branch_map = branch_maps[block];
+            const auto first_level = (block!= 0 ? levels_end[block - 1] : 0);
+
+            for (auto i: make_span(first_level, levels_end[block])) {
+                const auto& l = levels[i];
+                for (auto j: make_span(l.num_branches)) {
+                    const auto& b = branch_map[i][j];
+                    auto to = l.data_index + j + l.num_branches*(l.lengths[j]-1);
+                    auto from = b.start_idx;
+                    for (auto k: make_span(b.length)) {
+                        perm_tmp[from + k] = to - k*l.num_branches;
+                    }
                 }
             }
         }
@@ -291,7 +367,7 @@ public:
         // the invariant part of d is stored in in flat form
         std::vector<value_type> invariant_d_tmp(matrix_size, 0);
         managed_vector<value_type> u_tmp(matrix_size, 0);
-        for (auto i: make_span(1u, size())) {
+        for (auto i: make_span(1u, matrix_size)) {
             auto gij = face_conductance[i];
 
             u_tmp[i] = -gij;
@@ -301,9 +377,9 @@ public:
 
         // the matrix components u, d and rhs are stored in packed form
         auto nan = std::numeric_limits<double>::quiet_NaN();
-        d   = array(data_size, nan);
-        u   = array(data_size, nan);
-        rhs = array(data_size, nan);
+        d   = array(data_size.back(), nan);
+        u   = array(data_size.back(), nan);
+        rhs = array(data_size.back(), nan);
 
         // transform u_tmp values into packed u vector.
         flat_to_packed(u_tmp, u);
@@ -325,16 +401,6 @@ public:
             ++ci;
         }
         cv_to_cell = memory::make_const_view(cv_to_cell_tmp);
-
-        // TODO: this enforces that the maximum number of branches per level
-        // does not exceed 1024, which is the maximum number of threads per
-        // thread block on an NVIDIA GPU. To remove this, we need to extend
-        // the current implementation to use more than one thread block.
-        if (max_branches_per_level>1024) {
-            throw std::runtime_error(
-                "matrix_fine does not support more than 1024 branches per level, attempted to use:"
-                + std::to_string(max_branches_per_level));
-        }
     }
 
     // Assemble the matrix
@@ -359,8 +425,11 @@ public:
 
     void solve() {
         solve_matrix_fine(
-            rhs.data(), d.data(), u.data(), levels.data(),
-            num_cells, unsigned(levels.size()), data_size, max_branches_per_level);
+            rhs.data(), d.data(), u.data(),
+            levels.data(), levels_end.data(),
+            num_cells_in_block.data(),
+            data_size.data(),
+            num_cells_in_block.size(), 1024);
 
         // unpermute the solution
         packed_to_flat(rhs, solution_);
@@ -373,14 +442,14 @@ public:
     template <typename VFrom, typename VTo>
     void flat_to_packed(const VFrom& from, VTo& to ) {
         arb_assert(from.size()==matrix_size);
-        arb_assert(to.size()==data_size);
+        arb_assert(to.size()==data_size.back());
 
         scatter(from.data(), to.data(), perm.data(), perm.size());
     }
 
     template <typename VFrom, typename VTo>
     void packed_to_flat(const VFrom& from, VTo& to ) {
-        arb_assert(from.size()==data_size);
+        arb_assert(from.size()==data_size.back());
         arb_assert(to.size()==matrix_size);
 
         gather(from.data(), to.data(), perm.data(), perm.size());

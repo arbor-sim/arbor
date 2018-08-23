@@ -64,13 +64,14 @@ void assemble_matrix_fine(
 
 void solve_matrix_fine(
     fvm_value_type* rhs,
-    fvm_value_type* d,
-    const fvm_value_type* u,
-    const level* levels,              // pointer to an array containing level meta-data
-    unsigned num_cells,               // the number of cells packed into this single matrix
-    unsigned num_levels,              // depth of the tree (in branches)
-    unsigned padded_size,             // length of rhs, d, u, including padding
-    unsigned max_branches_per_level); // the maximum number of branches on any level
+    fvm_value_type* d,                // diagonal values
+    const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
+    const level* levels,              // pointer to an array containing level meta-data for all blocks
+    const unsigned* levels_end,       // end index (exclusive) into levels for each cuda block
+    unsigned* num_cells,              // he number of cells packed into this single matrix
+    unsigned* padded_size,            // length of rhs, d, u, including padding
+    unsigned num_blocks,              // nuber of blocks
+    unsigned blocksize);              // size of each block
 
 } // namespace gpu
 } // namespace arb

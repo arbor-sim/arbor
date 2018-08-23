@@ -10,6 +10,7 @@ namespace kernels {
 
 /// GPU implementation of Hines Matrix solver.
 /// Flat format
+/// p: parent index for each variable. Needed for backward and forward sweep
 template <typename T, typename I>
 __global__
 void solve_matrix_flat(
