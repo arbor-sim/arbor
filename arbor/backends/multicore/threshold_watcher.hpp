@@ -1,11 +1,11 @@
 #pragma once
 
 #include <arbor/assert.hpp>
-#include <arbor/execution_context.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/math.hpp>
 
 #include "backends/threshold_crossing.hpp"
+#include "execution_context.hpp"
 #include "multicore_common.hpp"
 
 namespace arb {

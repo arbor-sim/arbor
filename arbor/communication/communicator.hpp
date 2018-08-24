@@ -10,14 +10,15 @@
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/communication/gathered_vector.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
 #include "algorithms.hpp"
 #include "connection.hpp"
+#include "distributed_context.hpp"
 #include "event_queue.hpp"
+#include "execution_context.hpp"
 #include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
 #include "util/double_buffer.hpp"
@@ -44,7 +45,7 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          execution_context ctx)
+                          execution_context& ctx)
     {
         distributed_ = ctx.distributed;
         thread_pool_ = ctx.thread_pool;

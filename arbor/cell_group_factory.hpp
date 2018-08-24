@@ -11,9 +11,9 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/execution_context.hpp>
 
 #include "cell_group.hpp"
+#include "execution_context.hpp"
 
 namespace arb {
 

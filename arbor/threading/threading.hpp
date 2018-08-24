@@ -14,8 +14,6 @@
 #include <unordered_map>
 #include <utility>
 
-#include <arbor/execution_context.hpp>
-
 namespace arb {
 namespace threading {
 
@@ -91,10 +89,10 @@ public:
     void try_run_task();
 
     // Includes master thread.
-    int get_num_threads();
+    int get_num_threads() const;
 
     // Returns the thread_id map
-    std::unordered_map<std::thread::id, std::size_t> get_thread_ids();
+    std::unordered_map<std::thread::id, std::size_t> get_thread_ids() const;
 };
 
 ///////////////////////////////////////////////////////////////////////
@@ -112,14 +110,14 @@ public:
     using iterator = typename storage_class::iterator;
     using const_iterator = typename storage_class::const_iterator;
 
-    enumerable_thread_specific(const task_system_handle& ts):
-        thread_ids_{ts.get()->get_thread_ids()},
-        data{std::vector<T>(ts.get()->get_num_threads())}
+    enumerable_thread_specific(const task_system& ts):
+        thread_ids_{ts.get_thread_ids()},
+        data{std::vector<T>(ts.get_num_threads())}
     {}
 
-    enumerable_thread_specific(const T& init, const task_system_handle& ts):
-        thread_ids_{ts.get()->get_thread_ids()},
-        data{std::vector<T>(ts.get()->get_num_threads(), init)}
+    enumerable_thread_specific(const T& init, const task_system& ts):
+        thread_ids_{ts.get_thread_ids()},
+        data{std::vector<T>(ts.get_num_threads(), init)}
     {}
 
     T& local() {
@@ -235,4 +233,7 @@ struct parallel_for {
     }
 };
 } // namespace threading
+
+using task_system_handle = std::shared_ptr<threading::task_system>;
+
 } // namespace arb

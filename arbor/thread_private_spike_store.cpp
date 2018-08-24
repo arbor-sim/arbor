@@ -3,6 +3,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
 
+#include "threading/threading.hpp"
 #include "thread_private_spike_store.hpp"
 
 namespace arb {
@@ -10,7 +11,7 @@ namespace arb {
 struct local_spike_store_type {
     threading::enumerable_thread_specific<std::vector<spike>> buffers_;
 
-    local_spike_store_type(const task_system_handle& ts): buffers_(ts) {};
+    local_spike_store_type(const task_system_handle& ts): buffers_(*ts) {};
 };
 
 thread_private_spike_store::thread_private_spike_store(thread_private_spike_store&& t): impl_(std::move(t.impl_)) {};

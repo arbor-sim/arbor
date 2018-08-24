@@ -1,21 +1,24 @@
 #pragma once
 
+#include <cstdlib>
+#include <memory>
+
 namespace arb {
 
-enum gpu_flags {
-    has_concurrent_managed_access = 1,
-    has_atomic_double = 2
-};
+class gpu_context {
+    int id_ = -1;
+    std::size_t attributes_ = 0;
 
-struct gpu_context {
-    bool has_gpu_;
-    size_t attributes_;
-
+public:
     gpu_context();
+    gpu_context(int id);
 
     bool has_concurrent_managed_access() const;
     bool has_atomic_double() const;
     void synchronize_for_managed_access() const;
+    bool has_gpu() const;
 };
 
-}
+using gpu_context_handle = std::shared_ptr<gpu_context>;
+
+} // namespace arb

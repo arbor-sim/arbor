@@ -2,6 +2,7 @@
 #include <mutex>
 #include <ostream>
 
+#include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
 
 #include "threading/threading.hpp"
@@ -341,8 +342,8 @@ void profiler_enter(region_id_type region_id) {
     profiler::get_global_profiler().enter(region_id);
 }
 
-void profiler_initialize(task_system_handle& ts) {
-    profiler::get_global_profiler().initialize(ts);
+void profiler_initialize(context& ctx) {
+    profiler::get_global_profiler().initialize(ctx.task_pool);
 }
 
 // Print profiler statistics to an ostream

@@ -6,6 +6,7 @@
 #include "benchmark_cell_group.hpp"
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
+#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "lif_cell_group.hpp"
 #include "mc_cell_group.hpp"

@@ -4,7 +4,7 @@
 #include <atomic>
 
 #include <arbor/assert.hpp>
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 
 namespace arb {
 namespace util {
