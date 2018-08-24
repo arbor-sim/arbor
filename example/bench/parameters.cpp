@@ -1,10 +1,9 @@
 #include <exception>
 #include <fstream>
+#include <iostream>
 #include <string>
 
-#include <arbor/util/optional.hpp>
-
-#include <nlohmann/json.hpp>
+#include <aux/json_params.hpp>
 
 #include "parameters.hpp"
 
@@ -42,23 +41,9 @@ std::ostream& operator<<(std::ostream& o, const bench_params& p) {
     return o;
 }
 
-using arb::util::optional;
-using nlohmann::json;
-
-// Search a json object for an entry with a given name.
-// If found, return the value and remove from json object.
-template<typename T>
-optional<T> extract(const char* name, json& j) {
-    auto it = j.find(name);
-    if (it==j.end()) {
-        return arb::util::nullopt;
-    }
-    T value = std::move(*it);
-    j.erase(name);
-    return std::move(value);
-}
-
 bench_params read_options(int argc, char** argv) {
+    using aux::param_from_json;
+
     bench_params params;
     if (argc<2) {
         std::cout << "Using default parameters.\n";
@@ -79,27 +64,13 @@ bench_params read_options(int argc, char** argv) {
     nlohmann::json json;
     json << f;
 
-    if (auto o  = extract<std::string>("name", json)) {
-        params.name = *o;
-    }
-    if (auto o  = extract<unsigned>("num-cells", json)) {
-        params.num_cells = *o;
-    }
-    if (auto o  = extract<double>("duration", json)) {
-        params.duration = *o;
-    }
-    if (auto o  = extract<double>("min-delay", json)) {
-        params.network.min_delay = *o;
-    }
-    if (auto o  = extract<unsigned>("fan-in", json)) {
-        params.network.fan_in = *o;
-    }
-    if (auto o  = extract<double>("realtime-ratio", json)) {
-        params.cell.realtime_ratio = *o;
-    }
-    if (auto o  = extract<double>("spike-frequency", json)) {
-        params.cell.spike_freq_hz = *o;
-    }
+    param_from_json(params.name, "name", json);
+    param_from_json(params.num_cells, "num-cells", json);
+    param_from_json(params.duration, "duration", json);
+    param_from_json(params.network.min_delay, "min-delay", json);
+    param_from_json(params.network.fan_in, "fan-in", json);
+    param_from_json(params.cell.realtime_ratio, "realtime-ratio", json);
+    param_from_json(params.cell.spike_freq_hz, "spike-frequency", json);
 
     for (auto it=json.begin(); it!=json.end(); ++it) {
         std::cout << "  Warning: unused input parameter: \"" << it.key() << "\"\n";
@@ -108,4 +79,3 @@ bench_params read_options(int argc, char** argv) {
 
     return params;
 }
-
