@@ -9,12 +9,12 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/communication/gathered_vector.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
 #include "algorithms.hpp"
+#include "communication/gathered_vector.hpp"
 #include "connection.hpp"
 #include "distributed_context.hpp"
 #include "event_queue.hpp"

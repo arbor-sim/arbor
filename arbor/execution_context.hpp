@@ -17,6 +17,11 @@ struct execution_context {
 
     execution_context();
     execution_context(const proc_allocation& resources);
+
+    // Use a template for constructing with a specific distributed context.
+    // Specialised implementations are implemented in execution_context.cpp.
+    template <typename Comm>
+    execution_context(const proc_allocation& resources, Comm comm);
 };
 
 } // namespace arb

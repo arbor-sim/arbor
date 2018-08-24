@@ -33,10 +33,8 @@ bool gpu_context::has_atomic_double() const {
 }
 
 bool gpu_context::has_gpu() const {
-    return id_ == -1;
+    return id_ != -1;
 }
-
-gpu_context::gpu_context() = default;
 
 #ifndef ARB_HAVE_GPU
 

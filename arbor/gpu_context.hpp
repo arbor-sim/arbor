@@ -10,7 +10,7 @@ class gpu_context {
     std::size_t attributes_ = 0;
 
 public:
-    gpu_context();
+    gpu_context() = default;
     gpu_context(int id);
 
     bool has_concurrent_managed_access() const;
