@@ -163,6 +163,8 @@ inline distributed_context::distributed_context():
     distributed_context(local_context())
 {}
 
+std::shared_ptr<distributed_context> dry_run_context(unsigned num_ranks);
+
 // MPI context creation functions only provided if built with MPI support.
 
 std::shared_ptr<distributed_context> mpi_context();

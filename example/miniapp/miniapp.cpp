@@ -46,7 +46,9 @@ int main(int argc, char** argv) {
     execution_context context;
 
     try {
-#ifdef ARB_MPI_ENABLED
+#ifdef ARB_DRY_RUN
+        context.distributed = dry_run_context(2);
+#elif ARB_MPI_ENABLED
         aux::with_mpi guard(argc, argv, false);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
@@ -206,7 +208,9 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
         return make_basic_ring_recipe(options.cells, p, pdist);
     }
     else {
-        return make_basic_rgraph_recipe(options.cells, p, pdist);
+        //return make_basic_rgraph_recipe(options.cells, p, pdist);
+        return make_basic_rgraph_symmetric_recipe(options.cells, 1, p, pdist);
+        //return make_basic_rgraph_tiled_recipe(options.cells, 1, p, pdist);
     }
 }
 
