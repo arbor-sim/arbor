@@ -137,6 +137,8 @@ public:
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
+        max_branches_per_level = 32;
+
         // for now we have single cell per cell group
         arb_assert(cell_cv_divs.size()==2);
 
@@ -197,7 +199,7 @@ public:
             // check if we can fit the current cell into the last block
             bool fits_current_block = true;
             for (auto i: make_span(cell_num_levels)) {
-                if (block_num_branches_per_depth[i] + cell_num_branches_per_depth[i] > 1024) { // TODO turn into parameter
+                if (block_num_branches_per_depth[i] + cell_num_branches_per_depth[i] > max_branches_per_level) {
                     fits_current_block = false;
                 }
             }
@@ -297,8 +299,8 @@ public:
         data_size.reserve(branch_maps.size());
         // offset into the packed data format, used to apply permutation on data
         auto pos = 0u;
-        for (unsigned b: make_span(branch_maps.size())) {
-            const auto& branch_map = branch_maps[b];
+        for (unsigned block: make_span(branch_maps.size())) {
+            const auto& branch_map = branch_maps[block];
             for (const auto& lvl_branches: branch_map) {
 
                 level lvl(lvl_branches.size());
@@ -430,7 +432,7 @@ public:
             levels.data(), levels_end.data(),
             num_cells_in_block.data(),
             data_size.data(),
-            num_cells_in_block.size(), 1024);
+            num_cells_in_block.size(), max_branches_per_level);
 
         // unpermute the solution
         packed_to_flat(rhs, solution_);
