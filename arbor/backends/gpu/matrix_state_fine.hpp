@@ -342,8 +342,8 @@ public:
             const auto& branch_map = branch_maps[block];
             const auto first_level = (block!= 0 ? levels_end[block - 1] : 0);
 
-            for (auto i: make_span(first_level, levels_end[block])) {
-                const auto& l = levels[i];
+            for (auto i: make_span(levels_end[block] - first_level)) {
+                const auto& l = levels[first_level + i];
                 for (auto j: make_span(l.num_branches)) {
                     const auto& b = branch_map[i][j];
                     auto to = l.data_index + j + l.num_branches*(l.lengths[j]-1);
