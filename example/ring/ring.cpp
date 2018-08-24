@@ -35,6 +35,9 @@ using arb::cell_probe_address;
 // Writes voltage trace as a json file.
 void write_trace_json(const arb::trace_data<double>& trace);
 
+// Generate a cell.
+arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
+
 class ring_recipe: public arb::recipe {
 public:
     ring_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
@@ -43,7 +46,6 @@ public:
         min_delay_(min_delay)
     {}
 
-    // There is just the one cell in the model
     cell_size_type num_cells() const override {
         return num_cells_;
     }
@@ -56,17 +58,17 @@ public:
         return cell_kind::cable1d_neuron;
     }
 
-    // Each cell has one spike detector (at the soma)
+    // Each cell has one spike detector (at the soma).
     cell_size_type num_sources(cell_gid_type gid) const override {
         return 1;
     }
 
-    // The cell has one target synapse, which will be connected to cell gid-1
+    // The cell has one target synapse, which will be connected to cell gid-1.
     cell_size_type num_targets(cell_gid_type gid) const override {
         return 1;
     }
 
-    // Each cell has one incoming connection, from cell with gid-1
+    // Each cell has one incoming connection, from cell with gid-1.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         cell_gid_type src = gid? gid-1: num_cells_-1;
         return {arb::cell_connection({src, 0}, {gid, 0}, event_weight_, min_delay_)};
@@ -82,15 +84,15 @@ public:
         return gens;
     }
 
-    // There is one probe (for measuring voltage at the soma) on the cell
+    // There is one probe (for measuring voltage at the soma) on the cell.
     cell_size_type num_probes(cell_gid_type gid)  const override {
         return 1;
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
-        // Get the appropriate kind for measuring voltage
+        // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
-        // Measure at the soma
+        // Measure at the soma.
         arb::segment_location loc(0, 0.0);
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
@@ -147,6 +149,8 @@ int main(int argc, char** argv) {
         profile::profiler_initialize(context.thread_pool);
 #endif
 
+        const bool root = context.distributed->id()==0;
+
         auto params = read_options(argc, argv);
 
         arb::profile::meter_manager meters(context.distributed);
@@ -178,27 +182,13 @@ int main(int argc, char** argv) {
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
         sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
 
-        // Set up output of the global spike list by the root rank.
-        std::ofstream fid;
-        if (context.distributed->id()==0) {
-            std::string fname = "spikes.gdf";
-
-            fid.open(fname);
-            if (!fid.good()) {
-                std::cerr << "Warning: unable to open file " << fname << " for spike output\n";
-            }
-            else {
-                sim.set_global_spike_callback(
-                    [&fid](const std::vector<arb::spike>& spikes) {
-                        for (auto spike : spikes) {
-                            char linebuf[45];
-                            auto n = std::snprintf(
-                                linebuf, sizeof(linebuf), "%u %.4f\n",
-                                unsigned{spike.source.gid}, float(spike.time));
-                            fid.write(linebuf, n);
-                        }
-                    });
-            }
+        // Set up recording of spikes to a vector on the root process.
+        std::vector<arb::spike> recorded_spikes;
+        if (root) {
+            sim.set_global_spike_callback(
+                [&recorded_spikes](const std::vector<arb::spike>& spikes) {
+                    recorded_spikes.insert(recorded_spikes.end(), spikes.begin(), spikes.end());
+                });
         }
 
         meters.checkpoint("model-init");
@@ -211,6 +201,23 @@ int main(int argc, char** argv) {
         auto ns = sim.num_spikes();
         std::cout << "\n" << ns << " spikes generated at rate of "
                   << params.duration/ns << " ms between spikes\n";
+
+        // Write spikes to file
+        if (root) {
+            std::ofstream fid("spikes.gdf");
+            if (!fid.good()) {
+                std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
+            }
+            else {
+                char linebuf[45];
+                for (auto spike: recorded_spikes) {
+                    auto n = std::snprintf(
+                        linebuf, sizeof(linebuf), "%u %.4f\n",
+                        unsigned{spike.source.gid}, float(spike.time));
+                    fid.write(linebuf, n);
+                }
+            }
+        }
 
         // Write the samples to a json file.
         write_trace_json(voltage);
@@ -245,5 +252,67 @@ void write_trace_json(const arb::trace_data<double>& trace) {
 
     std::ofstream file(path);
     file << std::setw(1) << json << "\n";
+}
+
+// Helper used to interpolate in branch_cell.
+template <typename T>
+double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
+    double p = i * 1./(n-1);
+    double r0 = r[0];
+    double r1 = r[1];
+    return r[0] + p*(r1-r0);
+}
+
+arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
+    arb::mc_cell cell;
+
+    // Add soma.
+    auto soma = cell.add_soma(12.6157/2.0); // For area of 500 μm².
+    soma->rL = 100;
+    soma->add_mechanism("hh");
+
+    std::vector<std::vector<unsigned>> levels;
+    levels.push_back({0});
+
+    // Standard mersenne_twister_engine seeded with gid.
+    std::mt19937 gen(gid);
+    std::uniform_real_distribution<double> dis(0, 1);
+
+    double dend_radius = 0.5; // Diameter of 1 μm for each cable.
+
+    unsigned nsec = 1;
+    for (unsigned i=0; i<params.max_depth; ++i) {
+        // Branch prob at this level.
+        double bp = interp(params.branch_probs, i, params.max_depth);
+        // Length at this level.
+        double l = interp(params.lengths, i, params.max_depth);
+        // Number of compartments at this level.
+        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
+
+        std::vector<unsigned> sec_ids;
+        for (unsigned sec: levels[i]) {
+            for (unsigned j=0; j<2; ++j) {
+                if (dis(gen)<bp) {
+                    sec_ids.push_back(nsec++);
+                    auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
+                    dend->set_compartments(nc);
+                    dend->add_mechanism("pas");
+                    dend->rL = 100;
+                }
+            }
+        }
+        if (sec_ids.empty()) {
+            break;
+        }
+        levels.push_back(sec_ids);
+    }
+
+    // Add spike threshold detector at the soma.
+    cell.add_detector({0,0}, 10);
+
+    // Add a synapse to the mid point of the first dendrite.
+    cell.add_synapse({1, 0.5}, "expsyn");
+
+    return cell;
 }
 

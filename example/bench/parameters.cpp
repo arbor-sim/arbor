@@ -42,7 +42,8 @@ std::ostream& operator<<(std::ostream& o, const bench_params& p) {
 }
 
 bench_params read_options(int argc, char** argv) {
-    using aux::find_and_remove_json;
+    using aux::param_from_json;
+
     bench_params params;
     if (argc<2) {
         std::cout << "Using default parameters.\n";
@@ -63,13 +64,13 @@ bench_params read_options(int argc, char** argv) {
     nlohmann::json json;
     json << f;
 
-    aux::param_from_json(params.name, "name", json);
-    aux::param_from_json(params.num_cells, "num-cells", json);
-    aux::param_from_json(params.duration, "duration", json);
-    aux::param_from_json(params.network.min_delay, "min-delay", json);
-    aux::param_from_json(params.network.fan_in, "fan-in", json);
-    aux::param_from_json(params.cell.realtime_ratio, "realtime-ratio", json);
-    aux::param_from_json(params.cell.spike_freq_hz, "spike-frequency", json);
+    param_from_json(params.name, "name", json);
+    param_from_json(params.num_cells, "num-cells", json);
+    param_from_json(params.duration, "duration", json);
+    param_from_json(params.network.min_delay, "min-delay", json);
+    param_from_json(params.network.fan_in, "fan-in", json);
+    param_from_json(params.cell.realtime_ratio, "realtime-ratio", json);
+    param_from_json(params.cell.spike_freq_hz, "spike-frequency", json);
 
     for (auto it=json.begin(); it!=json.end(); ++it) {
         std::cout << "  Warning: unused input parameter: \"" << it.key() << "\"\n";
