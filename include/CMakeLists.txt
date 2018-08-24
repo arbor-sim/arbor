@@ -27,15 +27,19 @@ add_custom_command(
 
 set(arb_features)
 if(ARB_WITH_ASSERTIONS)
+    # define ARB_ASSERT_ENABLED in version.hpp
     list(APPEND arb_features ASSERT)
 endif()
 if(ARB_WITH_MPI)
+    # define ARB_MPI_ENABLED in version.hpp
     list(APPEND arb_features MPI)
 endif()
 if(ARB_WITH_CUDA)
+    # define ARB_GPU_ENABLED in version.hpp
     list(APPEND arb_features GPU)
 endif()
 if(ARB_WITH_PROFILING)
+    # define ARB_PROFILE_ENABLED in version.hpp
     list(APPEND arb_features PROFILE)
 endif()
 
