@@ -11,18 +11,24 @@
 
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/version.hpp>
 
+#include <aux/ioutil.hpp>
 #include <aux/json_meter.hpp>
 
 #include "parameters.hpp"
+
+#ifdef ARB_MPI_ENABLED
+#include <mpi.h>
+#include <aux/with_mpi.hpp>
+#endif
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -106,25 +112,37 @@ private:
 };
 
 struct cell_stats {
-    using size_type = std::uint64_t;
+    using size_type = unsigned;
     size_type ncells = 0;
     size_type nsegs = 0;
     size_type ncomp = 0;
 
-    cell_stats(arb::distributed_context_handle ctx, arb::recipe& r) {
-        size_type nranks = ctx->size();
-        size_type rank = ctx->id();
+    cell_stats(arb::recipe& r) {
+#ifdef ARB_MPI_ENABLED
+        int nranks, rank;
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        MPI_Comm_size(MPI_COMM_WORLD, &nranks);
         ncells = r.num_cells();
         size_type cells_per_rank = ncells/nranks;
         size_type b = rank*cells_per_rank;
         size_type e = (rank==nranks-1)? ncells: (rank+1)*cells_per_rank;
+        size_type nsegs_tmp = 0;
+        size_type ncomp_tmp = 0;
         for (size_type i=b; i<e; ++i) {
+            auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+            nsegs_tmp += c.num_segments();
+            ncomp_tmp += c.num_compartments();
+        }
+        MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+        MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+#else
+        ncells = r.num_cells();
+        for (size_type i=0; i<ncells; ++i) {
             auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
             nsegs += c.num_segments();
             ncomp += c.num_compartments();
         }
-        nsegs = ctx->sum(nsegs);
-        ncomp = ctx->sum(ncomp);
+#endif
     }
 
     friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
@@ -137,36 +155,39 @@ struct cell_stats {
 
 
 int main(int argc, char** argv) {
-    // default serial context
-    arb::execution_context context;
-
     try {
+        bool root = true;
+
 #ifdef ARB_MPI_ENABLED
         aux::with_mpi guard(argc, argv, false);
-        context.distributed = mpi_context(MPI_COMM_WORLD);
+        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
+        {
+            int rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            root = rank==0;
+        }
+#else
+        auto context = arb::make_context();
 #endif
+
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
 
-        const bool root = context.distributed->id()==0;
+        std::cout << aux::mask_stream(root);
 
         auto params = read_options(argc, argv);
 
-        arb::profile::meter_manager meters(context.distributed);
-        meters.start();
+        arb::profile::meter_manager meters;
+        meters.start(context);
 
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
-        cell_stats stats(context.distributed, recipe);
+        //cell_stats stats(context.distributed, recipe);
+        cell_stats stats(recipe);
         std::cout << stats << "\n";
 
-        // Use a node description that uses the number of threads used by the
-        // threading back end, and 1 gpu if available.
-        arb::proc_allocation nd = arb::local_allocation(context);
-        nd.num_gpus = nd.num_gpus>=1? 1: 0;
-
-        auto decomp = arb::partition_load_balance(recipe, nd, context);
+        auto decomp = arb::partition_load_balance(recipe, context);
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
@@ -191,19 +212,19 @@ int main(int argc, char** argv) {
                 });
         }
 
-        meters.checkpoint("model-init");
+        meters.checkpoint("model-init", context);
 
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 
-        meters.checkpoint("model-run");
+        meters.checkpoint("model-run", context);
 
         auto ns = sim.num_spikes();
-        std::cout << "\n" << ns << " spikes generated at rate of "
-                  << params.duration/ns << " ms between spikes\n";
 
         // Write spikes to file
         if (root) {
+            std::cout << "\n" << ns << " spikes generated at rate of "
+                      << params.duration/ns << " ms between spikes\n";
             std::ofstream fid("spikes.gdf");
             if (!fid.good()) {
                 std::cerr << "Warning: unable to open file spikes.gdf for spike output\n";
@@ -220,9 +241,9 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        write_trace_json(voltage);
+        if (root) write_trace_json(voltage);
 
-        auto report = arb::profile::make_meter_report(meters);
+        auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
     }
     catch (std::exception& e) {
