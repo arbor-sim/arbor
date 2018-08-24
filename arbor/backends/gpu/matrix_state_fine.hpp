@@ -153,6 +153,7 @@ public:
         // branch_map[depth] is list of branches is this level
         // each branch branch_map[depth][i] has {id, parent_id, start_idx, parent_idx, length}
         std::vector<std::vector<std::vector<branch>>> branch_maps;
+        branch_maps.resize(1);
 
         unsigned num_branches = 0u;
         for (auto c: make_span(0u, num_cells)) {
