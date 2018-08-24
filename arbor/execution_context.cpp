@@ -27,7 +27,6 @@ context make_context() {
 }
 
 context make_context(const proc_allocation& p) {
-    std::cout << "initialising with allocation: " << p.num_threads << "t; " << p.gpu_id << "g; " << p.has_gpu() << "?g\n";
     return context(new execution_context(p), [](execution_context* p){delete p;});
 }
 

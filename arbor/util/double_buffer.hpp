@@ -1,10 +1,9 @@
 #pragma once
 
-#include <array>
 #include <atomic>
+#include <vector>
 
 #include <arbor/assert.hpp>
-#include <arbor/context.hpp>
 
 namespace arb {
 namespace util {

@@ -5,7 +5,6 @@
 
 #include <arbor/common_types.hpp>
 #include <arbor/spike.hpp>
-#include <arbor/context.hpp>
 
 #include "threading/threading.hpp"
 

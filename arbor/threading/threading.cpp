@@ -2,7 +2,6 @@
 
 #include "threading.hpp"
 #include "thread_info.hpp"
-#include <arbor/context.hpp>
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
