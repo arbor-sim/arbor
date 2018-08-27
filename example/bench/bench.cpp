@@ -31,13 +31,13 @@ namespace profile = arb::profile;
 
 int main(int argc, char** argv) {
     bool is_root = true;
-    int rank = 0;
 
     try {
 #ifdef ARB_MPI_ENABLED
         aux::with_mpi guard(argc, argv, false);
         auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
+            int rank = 0;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             is_root = rank==0;
         }
@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
         auto context = arb::make_context();
 #endif
 #ifdef ARB_PROFILE_ENABLED
-        profile::profiler_initialize(context.thread_pool);
+        profile::profiler_initialize(context);
 #endif
 
         std::cout << aux::mask_stream(is_root);
