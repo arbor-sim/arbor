@@ -4,7 +4,6 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/load_balance.hpp>
@@ -19,6 +18,7 @@
 #include "algorithms.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
+#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
 #include "sampler_map.hpp"
@@ -256,8 +256,6 @@ TEST(fvm_lowered, derived_mechs) {
     //
     // 3. Cell with both test_kin1 and custom_kin1.
 
-    execution_context context;
-
     std::vector<mc_cell> cells(3);
     for (int i = 0; i<3; ++i) {
         mc_cell& c = cells[i];
@@ -298,6 +296,7 @@ TEST(fvm_lowered, derived_mechs) {
         std::vector<target_handle> targets;
         probe_association_map<probe_handle> probe_map;
 
+        execution_context context;
         fvm_cell fvcell(context);
         fvcell.initialize({0, 1, 2}, rec, targets, probe_map);
 
@@ -318,7 +317,6 @@ TEST(fvm_lowered, derived_mechs) {
         util::sort(tau_values);
         EXPECT_EQ(fvec({10., 20.}), tau_values);
     }
-
     {
         // Test dynamics:
         // 1. Current at same point on cell 0 at time 10 ms should equal that
@@ -336,9 +334,9 @@ TEST(fvm_lowered, derived_mechs) {
 
         float times[] = {10.f, 20.f};
 
-        execution_context context;
-        auto decomp = partition_load_balance(rec, proc_allocation{1, 0}, context);
-        simulation sim(rec, decomp, context);
+        auto ctx = make_context();
+        auto decomp = partition_load_balance(rec, ctx);
+        simulation sim(rec, decomp, ctx);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);
 
@@ -353,6 +351,7 @@ TEST(fvm_lowered, derived_mechs) {
         EXPECT_TRUE(testing::near_relative(samples[0][1]+samples[1][1], samples[2][1], relerr));
     }
 }
+
 
 // Test area-weighted linear combination of ion species concentrations
 
