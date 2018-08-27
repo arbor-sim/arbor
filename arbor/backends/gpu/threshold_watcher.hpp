@@ -4,6 +4,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/fvm_types.hpp>
 
+#include "execution_context.hpp"
 #include "memory/memory.hpp"
 #include "util/span.hpp"
 

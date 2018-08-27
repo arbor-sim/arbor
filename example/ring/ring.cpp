@@ -15,6 +15,7 @@
 #include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
+#include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
@@ -171,10 +172,16 @@ int main(int argc, char** argv) {
 #endif
 
 #ifdef ARB_PROFILE_ENABLED
-        profile::profiler_initialize(context.thread_pool);
+        arb::profile::profiler_initialize(context);
 #endif
 
         std::cout << aux::mask_stream(root);
+
+        // Print a banner with information about hardware configuration
+        std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
+        std::cout << "threads:  " << num_threads(context) << "\n";
+        std::cout << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n";
+        std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
 
         auto params = read_options(argc, argv);
 
@@ -183,7 +190,6 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
-        //cell_stats stats(context.distributed, recipe);
         cell_stats stats(recipe);
         std::cout << stats << "\n";
 
@@ -214,6 +220,7 @@ int main(int argc, char** argv) {
 
         meters.checkpoint("model-init", context);
 
+        std::cout << "running simulation" << std::endl;
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 

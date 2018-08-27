@@ -1,3 +1,4 @@
+#include <iostream>
 #include <memory>
 
 #include <arbor/context.hpp>
@@ -61,7 +62,7 @@ unsigned num_ranks(const context& ctx) {
 }
 
 bool has_mpi(const context& ctx) {
-    return ctx->distributed->name() == "mpi";
+    return ctx->distributed->name() == "MPI";
 }
 
 } // namespace arb
