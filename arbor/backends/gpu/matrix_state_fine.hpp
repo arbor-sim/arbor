@@ -55,7 +55,11 @@ struct branch {
 //  - ascending id
 inline
 bool operator<(const branch& lhs, const branch& rhs) {
-    return lhs.length>rhs.length || lhs.id<rhs.id;
+    if (lhs.length!=rhs.length) {
+        return lhs.length>rhs.length;
+    } else {
+        return lhs.id<rhs.id;
+    }
 }
 
 inline
