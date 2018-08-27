@@ -225,14 +225,23 @@ public:
             return conns;
         }
         auto conn_param_gen = std::mt19937(i); // TODO: replace this with hashing generator...
+        auto rank_gen = std::mt19937(i*153*687); // ditto
         auto source_gen = std::mt19937(i*123+457); // ditto
 
-        std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-2);
+        std::uniform_int_distribution<cell_gid_type> rank_distribution(0, ntiles_-1);
 
         for (unsigned t=0; t<param_.num_synapses; ++t) {
-            auto source = source_distribution(source_gen);
-            if (source>=i) ++source;
-
+            auto rank = rank_distribution(rank_gen);
+            arb::cell_gid_type source;
+            if(rank == 0) {
+                std::uniform_int_distribution<cell_gid_type> source_distribution(0, ncell_-2);
+                source = source_distribution(source_gen);
+                if (source>=i) ++source;
+            }
+            else {
+                std::uniform_int_distribution<cell_gid_type> source_distribution((ncell_ + 1)*rank, (ncell_ + 1)*(rank+ 1) - 2);
+                source = source_distribution(source_gen);
+            }
             cell_connection cc = draw_connection_params(conn_param_gen);
             cc.source = {source, 0};
             cc.dest = {i, t};

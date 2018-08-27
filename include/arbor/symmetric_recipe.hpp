@@ -48,7 +48,18 @@ public:
     }
 
     std::vector<cell_connection> connections_on(cell_gid_type i) const override {
-        return tiled_recipe_.connections_on(i % tiled_recipe_.num_cells());
+        int n_local = tiled_recipe_.num_cells();
+        int offset = (i / n_local) * n_local;
+
+        int n_global = num_cells();
+
+        std::vector<cell_connection> conns = tiled_recipe_.connections_on(i % n_local);
+
+        for (int j = 0; j < conns.size(); j++) {
+            conns[j].source = (conns[j].source + offset) % n_global;
+            conns[j].dest = (conns[j].dest + offset) % n_global;
+        }
+        return conns;
     }
 
 

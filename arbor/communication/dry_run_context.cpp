@@ -19,13 +19,19 @@ struct dry_run_context_impl {
         for (unsigned i = 0; i < num_ranks_; i++) {
             gathered_spikes.insert(gathered_spikes.end(), shift_local_spikes.begin(), shift_local_spikes.end());
             for (unsigned j = 0; j < shift_local_spikes.size(); j++) {
-                shift_local_spikes[j].source +=  shift_local_spikes.size();
+                shift_local_spikes[j].source +=  num_cells_per_tile_;
             }
+        }
+        std::vector<count_type> partition;
+        partition.push_back(0u);
+        int count = 0;
+        for(int i = 0; i < num_ranks_; i++) {
+            partition.push_back(static_cast<count_type>(count+=local_spikes.size()));
         }
 
         return gathered_vector<arb::spike>(
                 std::vector<arb::spike>(gathered_spikes),
-                {0u, static_cast<count_type>(local_spikes.size())}
+                std::vector<count_type>(partition.begin(), partition.end())
         );
     }
 
@@ -51,11 +57,16 @@ struct dry_run_context_impl {
         return gathered_v;
     }
 
+    void set_num_cells(unsigned total_cells_) {
+        num_cells_per_tile_ = total_cells_/num_ranks_;
+    }
+
     void barrier() const {}
 
     std::string name() const { return "dry_run"; }
 
     unsigned num_ranks_;
+    unsigned num_cells_per_tile_;
 };
 
 std::shared_ptr<distributed_context> dry_run_context(unsigned num_ranks) {

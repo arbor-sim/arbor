@@ -57,6 +57,8 @@ struct mpi_context_impl {
         return mpi::gather(value, root, comm_);
     }
 
+    void set_num_cells(unsigned total_cells) {}
+
     void barrier() const {
         mpi::barrier(comm_);
     }

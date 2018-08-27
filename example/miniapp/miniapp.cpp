@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 
     try {
 #ifdef ARB_DRY_RUN_ENABLED
-        context.distributed = dry_run_context(2);
+        context.distributed = dry_run_context(1000);
 #elif ARB_MPI_ENABLED
         aux::with_mpi guard(argc, argv, false);
         context.distributed = mpi_context(MPI_COMM_WORLD);
@@ -78,6 +78,9 @@ int main(int argc, char** argv) {
         pdist.all_segments = !options.probe_soma_only;
 
         auto recipe = make_recipe(options, pdist);
+
+        context.distributed->set_num_cells(recipe->num_cells());
+
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -209,7 +212,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     }
     else {
         //return make_basic_rgraph_recipe(options.cells, p, pdist);
-        return make_basic_rgraph_symmetric_recipe(options.cells, 2, p, pdist);
+        return make_basic_rgraph_symmetric_recipe(options.cells, 1000, p, pdist);
         //return make_basic_rgraph_tiled_recipe(options.cells, 1, p, pdist);
     }
 }

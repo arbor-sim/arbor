@@ -69,6 +69,10 @@ public:
         impl_->barrier();
     }
 
+    void set_num_cells(unsigned total_cells) {
+        impl_->set_num_cells(total_cells);
+    }
+
     std::string name() const {
         return impl_->name();
     }
@@ -86,6 +90,7 @@ private:
         virtual int id() const = 0;
         virtual int size() const = 0;
         virtual void barrier() const = 0;
+        virtual void set_num_cells(unsigned total_cells) = 0;
         virtual std::string name() const = 0;
 
         ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
@@ -111,6 +116,9 @@ private:
         }
         void barrier() const override {
             wrapped.barrier();
+        }
+        void set_num_cells(unsigned total_cells) {
+            wrapped.set_num_cells(total_cells);
         }
         std::string name() const override {
             return wrapped.name();
@@ -155,6 +163,8 @@ struct local_context {
     std::vector<T> gather(T value, int) const { return {std::move(value)}; }
 
     void barrier() const {}
+
+    void set_num_cells(unsigned total_cells) {}
 
     std::string name() const { return "local"; }
 };
