@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 
@@ -63,9 +64,11 @@ namespace {
     };
 }
 
+/*
+
 TEST(domain_decomposition, homogeneous_population) {
-    const auto N = g_context.distributed->size();
-    const auto I = g_context.distributed->id();
+    const auto N = arb::num_ranks(g_context);
+    const auto I = arb::rank(g_context);
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -132,9 +135,13 @@ TEST(domain_decomposition, homogeneous_population) {
     }
 }
 
+*/
+
+/*
+
 TEST(domain_decomposition, heterogeneous_population) {
-    const auto N = g_context.distributed->size();
-    const auto I = g_context.distributed->id();
+    const auto N = arb::num_ranks(g_context);
+    const auto I = arb::rank(g_context);
 
     {   // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
@@ -181,3 +188,4 @@ TEST(domain_decomposition, heterogeneous_population) {
     }
 }
 
+*/

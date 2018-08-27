@@ -61,6 +61,10 @@ unsigned num_ranks(const context& ctx) {
     return ctx->distributed->size();
 }
 
+unsigned rank(const context& ctx) {
+    return ctx->distributed->id();
+}
+
 bool has_mpi(const context& ctx) {
     return ctx->distributed->name() == "MPI";
 }

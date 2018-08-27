@@ -3,7 +3,9 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/recipe.hpp>
@@ -32,7 +34,7 @@ template <typename ProbePointSeq>
 void run_ncomp_convergence_test(
     const char* model_name,
     const aux::path& ref_data_path,
-    backend_kind backend,
+    context& context,
     const mc_cell& c,
     ProbePointSeq& probe_points,
     float t_end=100.f)
@@ -49,7 +51,7 @@ void run_ncomp_convergence_test(
         {"dt", dt},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", to_string(backend)}
+        {"backend_kind", (has_gpu(context)? "gpu": "multicore")}
     };
 
     auto exclude = stimulus_ends(c);
@@ -64,10 +66,6 @@ void run_ncomp_convergence_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
-    execution_context context;
-    proc_allocation nd;
-    nd.num_gpus = (backend==backend_kind::gpu);
-
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         for (auto& seg: c.segments()) {
             if (!seg->is_soma()) {
@@ -79,7 +77,7 @@ void run_ncomp_convergence_test(
             rec.add_probe(0, 0, cell_probe_address{p.where, cell_probe_address::membrane_voltage});
         }
 
-        auto decomp = partition_load_balance(rec, nd, context);
+        auto decomp = partition_load_balance(rec, context);
         simulation sim(rec, decomp, context);
 
         runner.run(sim, ncomp, sample_dt, t_end, dt, exclude);
@@ -88,7 +86,7 @@ void run_ncomp_convergence_test(
     runner.assert_all_convergence();
 }
 
-void validate_ball_and_stick(arb::backend_kind backend) {
+void validate_ball_and_stick(context& ctx) {
     using namespace arb;
 
     mc_cell c = make_cell_ball_and_stick();
@@ -101,12 +99,12 @@ void validate_ball_and_stick(arb::backend_kind backend) {
     run_ncomp_convergence_test(
         "ball_and_stick",
         "neuron_ball_and_stick.json",
-        backend,
+        ctx,
         c,
         points);
 }
 
-void validate_ball_and_taper(arb::backend_kind backend) {
+void validate_ball_and_taper(context& ctx) {
     using namespace arb;
 
     mc_cell c = make_cell_ball_and_taper();
@@ -119,12 +117,12 @@ void validate_ball_and_taper(arb::backend_kind backend) {
     run_ncomp_convergence_test(
         "ball_and_taper",
         "neuron_ball_and_taper.json",
-        backend,
+        ctx,
         c,
         points);
 }
 
-void validate_ball_and_3stick(arb::backend_kind backend) {
+void validate_ball_and_3stick(context& ctx) {
     using namespace arb;
 
     mc_cell c = make_cell_ball_and_3stick();
@@ -141,12 +139,12 @@ void validate_ball_and_3stick(arb::backend_kind backend) {
     run_ncomp_convergence_test(
         "ball_and_3stick",
         "neuron_ball_and_3stick.json",
-        backend,
+        ctx,
         c,
         points);
 }
 
-void validate_rallpack1(arb::backend_kind backend) {
+void validate_rallpack1(context& ctx) {
     using namespace arb;
 
     mc_cell c = make_cell_simple_cable();
@@ -159,13 +157,13 @@ void validate_rallpack1(arb::backend_kind backend) {
     run_ncomp_convergence_test(
         "rallpack1",
         "numeric_rallpack1.json",
-        backend,
+        ctx,
         c,
         points,
         250.f);
 }
 
-void validate_ball_and_squiggle(arb::backend_kind backend) {
+void validate_ball_and_squiggle(context& ctx) {
     using namespace arb;
 
     mc_cell c = make_cell_ball_and_squiggle();
@@ -189,47 +187,72 @@ void validate_ball_and_squiggle(arb::backend_kind backend) {
     run_ncomp_convergence_test(
         "ball_and_squiggle_integrator",
         "neuron_ball_and_squiggle.json",
-        backend,
+        ctx,
         c,
         points);
 }
 
 TEST(ball_and_stick, neuron_ref) {
-    execution_context ctx;
-    validate_ball_and_stick(backend_kind::multicore);
-    if (local_allocation(ctx).num_gpus) {
-        validate_ball_and_stick(backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_ball_and_stick(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_ball_and_stick(ctx);
     }
 }
 
 TEST(ball_and_taper, neuron_ref) {
-    execution_context ctx;
-    validate_ball_and_taper(backend_kind::multicore);
-    if (local_allocation(ctx).num_gpus) {
-        validate_ball_and_taper(backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_ball_and_taper(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_ball_and_taper(ctx);
     }
 }
 
 TEST(ball_and_3stick, neuron_ref) {
-    execution_context ctx;
-    validate_ball_and_3stick(backend_kind::multicore);
-    if (local_allocation(ctx).num_gpus) {
-        validate_ball_and_3stick(backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_ball_and_3stick(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_ball_and_3stick(ctx);
     }
 }
 
 TEST(rallpack1, numeric_ref) {
-    execution_context ctx;
-    validate_rallpack1(backend_kind::multicore);
-    if (local_allocation(ctx).num_gpus) {
-        validate_rallpack1(backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_rallpack1(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_rallpack1(ctx);
     }
 }
 
 TEST(ball_and_squiggle, neuron_ref) {
-    execution_context ctx;
-    validate_ball_and_squiggle(backend_kind::multicore);
-    if (local_allocation(ctx).num_gpus) {
-        validate_ball_and_squiggle(backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_ball_and_squiggle(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_ball_and_squiggle(ctx);
     }
 }

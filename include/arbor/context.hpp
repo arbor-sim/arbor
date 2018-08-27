@@ -65,5 +65,6 @@ bool has_gpu(const context&);
 unsigned num_threads(const context&);
 bool has_mpi(const context&);
 unsigned num_ranks(const context&);
+unsigned rank(const context&);
 
 }
