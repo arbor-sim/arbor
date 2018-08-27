@@ -15,6 +15,7 @@
 #include "backends/gpu/matrix_state_flat.hpp"
 #include "backends/gpu/matrix_state_interleaved.hpp"
 #include "backends/gpu/matrix_interleave.hpp"
+#include "backends/gpu/matrix_state_fine.hpp"
 
 #include "../gtest.h"
 #include "common.hpp"
@@ -214,6 +215,7 @@ TEST(matrix, backends)
 
     using state_flat = gpu::matrix_state_flat<T, I>;
     using state_intl = gpu::matrix_state_interleaved<T, I>;
+    using state_fine = gpu::matrix_state_fine<T, I>;
 
     using gpu_array  = memory::device_vector<T>;
 
@@ -286,6 +288,7 @@ TEST(matrix, backends)
     // Make the reference matrix and the gpu matrix
     auto flat = state_flat(p, cell_cv_divs, Cm, g, area); // flat
     auto intl = state_intl(p, cell_cv_divs, Cm, g, area); // interleaved
+    auto fine = state_fine(p, cell_cv_divs, Cm, g, area); // interleaved
 
     // Set the integration times for the cells to be between 0.01 and 0.02 ms.
     std::vector<T> dt(num_mtx, 0);
@@ -300,16 +303,30 @@ TEST(matrix, backends)
 
     flat.assemble(gpu_dt, gpu_v, gpu_i);
     intl.assemble(gpu_dt, gpu_v, gpu_i);
+    fine.assemble(gpu_dt, gpu_v, gpu_i);
 
     flat.solve();
     intl.solve();
+    fine.solve();
 
     // Compare the results.
     // We expect exact equality for the two gpu matrix implementations because both
     // perform the same operations in the same order on the same inputs.
     std::vector<double> x_flat = assign_from(on_host(flat.solution()));
     std::vector<double> x_intl = assign_from(on_host(intl.solution()));
+    // as the fine algorithm contains atomics the solution might be slightly
+    // different from flat and interleaved
+    std::vector<double> x_fine = assign_from(on_host(fine.solution()));
+
+    double max_diff_fine = 0.0;
+    for (int i = 0; i < x_flat.size(); i ++) {
+        if (std::abs(x_flat[i] - x_fine[i]) > max_diff_fine) {
+            max_diff_fine = std::abs(x_flat[i] - x_fine[i]) ;
+        }
+    }
+
     EXPECT_EQ(x_flat, x_intl);
+    EXPECT_LE(max_diff_fine, 1e-12);
 }
 
 /*
