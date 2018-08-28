@@ -191,7 +191,7 @@ void gather(
     constexpr unsigned blockdim = 128;
     const unsigned griddim = impl::block_count(n, blockdim);
 
-    kernels::gather<<<blockdim, griddim>>>(from, to, p, n);
+    kernels::gather<<<griddim, blockdim>>>(from, to, p, n);
 }
 
 void scatter(
@@ -203,7 +203,7 @@ void scatter(
     constexpr unsigned blockdim = 128;
     const unsigned griddim = impl::block_count(n, blockdim);
 
-    kernels::scatter<<<blockdim, griddim>>>(from, to, p, n);
+    kernels::scatter<<<griddim, blockdim>>>(from, to, p, n);
 }
 
 
