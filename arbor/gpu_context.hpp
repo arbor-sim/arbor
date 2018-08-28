@@ -20,5 +20,6 @@ public:
 };
 
 using gpu_context_handle = std::shared_ptr<gpu_context>;
+gpu_context_handle make_gpu_context(int id);
 
 } // namespace arb

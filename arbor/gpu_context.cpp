@@ -16,7 +16,7 @@ enum gpu_flags {
     has_atomic_double = 2
 };
 
-std::shared_ptr<gpu_context> make_gpu_context(int id) {
+gpu_context_handle make_gpu_context(int id) {
     return std::make_shared<gpu_context>(id);
 }
 
