@@ -63,7 +63,7 @@ struct mpi_context_impl {
 };
 
 template <>
-std::shared_ptr<distributed_context> mpi_context(MPI_Comm comm) {
+std::shared_ptr<distributed_context> make_mpi_context(MPI_Comm comm) {
     return std::make_shared<distributed_context>(mpi_context_impl(comm));
 }
 

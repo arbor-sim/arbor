@@ -20,7 +20,7 @@ execution_context::execution_context():
 {}
 
 execution_context::execution_context(const proc_allocation& resources):
-    distributed(std::make_shared<distributed_context>()),
+    distributed(make_local_context()),
     thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
     gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                            : std::make_shared<gpu_context>())
@@ -37,7 +37,7 @@ context make_context(const proc_allocation& p) {
 #ifdef ARB_MPI_ENABLED
 template <>
 execution_context::execution_context<MPI_Comm>(const proc_allocation& resources, MPI_Comm comm):
-    distributed(mpi_context(comm)),
+    distributed(make_mpi_context(comm)),
     thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
     gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
                            : std::make_shared<gpu_context>())
