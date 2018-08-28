@@ -55,6 +55,7 @@ TEST(dry_run_context, sum)
 TEST(dry_run_context, gather_spikes)
 {
     distributed_context_handle ctx = arb::dry_run_context(4);
+    ctx->set_num_cells(16);
     using svec = std::vector<arb::spike>;
 
     svec spikes = {
@@ -86,7 +87,10 @@ TEST(dry_run_context, gather_spikes)
 
     auto& part = s.partition();
     EXPECT_EQ(s.values(), gathered_spikes);
-    EXPECT_EQ(part.size(), 2u);
+    EXPECT_EQ(part.size(), 5u);
     EXPECT_EQ(part[0], 0u);
     EXPECT_EQ(part[1], spikes.size());
+    EXPECT_EQ(part[2], spikes.size()*2);
+    EXPECT_EQ(part[3], spikes.size()*3);
+    EXPECT_EQ(part[4], spikes.size()*4);
 }

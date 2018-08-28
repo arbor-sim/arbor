@@ -36,7 +36,7 @@ using namespace arb;
 using util::any_cast;
 
 void banner(proc_allocation, const execution_context&);
-std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
+std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&, const execution_context&);
 sample_trace make_trace(const probe_info& probe);
 std::fstream& open_or_throw(std::fstream& file, const aux::path& p, bool exclusive = false);
 void report_compartment_stats(const recipe&);
@@ -46,9 +46,7 @@ int main(int argc, char** argv) {
     execution_context context;
 
     try {
-#ifdef ARB_DRY_RUN_ENABLED
-        context.distributed = dry_run_context(1000);
-#elif ARB_MPI_ENABLED
+#ifdef ARB_MPI_ENABLED
         aux::with_mpi guard(argc, argv, false);
         context.distributed = mpi_context(MPI_COMM_WORLD);
 #endif
@@ -61,6 +59,10 @@ int main(int argc, char** argv) {
         std::cout << aux::mask_stream(context.distributed->id()==0);
         // read parameters
         io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
+
+        if(options.dry_run == true) {
+            context.distributed = dry_run_context(options.dry_run_ranks);
+        }
 
         // TODO: add dry run mode
 
@@ -77,7 +79,7 @@ int main(int argc, char** argv) {
         pdist.proportion = options.probe_ratio;
         pdist.all_segments = !options.probe_soma_only;
 
-        auto recipe = make_recipe(options, pdist);
+        auto recipe = make_recipe(options, pdist, context);
 
         context.distributed->set_num_cells(recipe->num_cells());
 
@@ -187,7 +189,7 @@ void banner(proc_allocation nd, const execution_context& ctx) {
     std::cout << "==========================================\n";
 }
 
-std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {
+std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist, const execution_context& ctx) {
     basic_recipe_param p;
 
     if (options.morphologies) {
@@ -212,7 +214,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
     }
     else {
         //return make_basic_rgraph_recipe(options.cells, p, pdist);
-        return make_basic_rgraph_symmetric_recipe(options.cells, 1000, p, pdist);
+        return make_basic_rgraph_symmetric_recipe(options.cells, ctx.distributed->size(), p, pdist);
         //return make_basic_rgraph_tiled_recipe(options.cells, 1, p, pdist);
     }
 }

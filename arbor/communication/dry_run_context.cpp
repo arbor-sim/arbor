@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -13,14 +14,17 @@ struct dry_run_context_impl {
     gathered_vector<arb::spike>
     gather_spikes(const std::vector<arb::spike>& local_spikes) const {
         using count_type = typename gathered_vector<arb::spike>::count_type;
-        std::vector<arb::spike> gathered_spikes;
         std::vector<arb::spike> shift_local_spikes(local_spikes);
+        std::vector<arb::spike> gathered_spikes;
+        gathered_spikes.reserve(local_spikes.size()*num_ranks_);
 
         for (unsigned i = 0; i < num_ranks_; i++) {
             gathered_spikes.insert(gathered_spikes.end(), shift_local_spikes.begin(), shift_local_spikes.end());
-            for (unsigned j = 0; j < shift_local_spikes.size(); j++) {
+            std::for_each(shift_local_spikes.begin(), shift_local_spikes.end(),
+                          [&](arb::spike& s) {s.source += num_cells_per_tile_;});
+            /*for (unsigned j = 0; j < shift_local_spikes.size(); j++) {
                 shift_local_spikes[j].source +=  num_cells_per_tile_;
-            }
+            }*/
         }
         std::vector<count_type> partition;
         partition.push_back(0u);
@@ -30,8 +34,8 @@ struct dry_run_context_impl {
         }
 
         return gathered_vector<arb::spike>(
-                std::vector<arb::spike>(gathered_spikes),
-                std::vector<count_type>(partition.begin(), partition.end())
+                std::move(std::vector<arb::spike>(gathered_spikes)),
+                std::move(std::vector<count_type>(partition.begin(), partition.end()))
         );
     }
 
