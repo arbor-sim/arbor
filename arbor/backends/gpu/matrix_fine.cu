@@ -84,6 +84,13 @@ void assemble_matrix_fine(
 
 /// GPU implementation of Hines Matrix solver.
 /// Fine-grained tree based solver.
+/// Each block solves a set of matricesb iterating over the levels of matrix
+/// and perfoming a backward and forward substitution. On each level one thread
+/// gets assigned to one branch on this level of a matrix and solves and
+/// performs the substitution. Afterwards all threads continue on the next
+/// level.
+/// To avoid idle threads, one should try that on each level, there is a similar
+/// number of branches.
 template <typename T>
 __global__
 void solve_matrix_fine(
@@ -119,6 +126,7 @@ void solve_matrix_fine(
             // alone in that case.
             if (d[pos]==0) return;
 
+            // each branch perform substitution
             T factor = u[pos] / d[pos];
             for (unsigned i=0; i<len-1; ++i) {
                 const unsigned next_pos = pos + width;
@@ -169,6 +177,7 @@ void solve_matrix_fine(
             const unsigned len = lvl.lengths[tid];
             unsigned pos = lvl.data_index + (len-1)*width + tid;
 
+            // each branch perform substitution
             for (unsigned i=0; i<len; ++i) {
                 rhsp = rhs[pos] - u[pos]*rhsp;
                 rhsp /= d[pos];

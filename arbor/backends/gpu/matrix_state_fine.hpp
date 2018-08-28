@@ -103,7 +103,7 @@ public:
     // for storing the solution in unpacked format
     array solution_;
 
-    // the most branches per level
+    // the maximum nuber of branches in each level per block
     unsigned max_branches_per_level;
 
     // number of rows in matrix
@@ -200,7 +200,7 @@ public:
             }
 
 
-            // check if we can fit the current cell into the last block
+            // check if we can fit the current cell into the last cuda block
             bool fits_current_block = true;
             for (auto i: make_span(cell_num_levels)) {
                 if (block_num_branches_per_depth[i] + cell_num_branches_per_depth[i] > max_branches_per_level) {
@@ -216,17 +216,18 @@ public:
                     block_num_branches_per_depth[i] += cell_num_branches_per_depth[i];
                 }
             } else {
-                // start a new block
+                // otherwise start a new block
                 block_ix[c] = current_block + 1;
                 num_cells_in_block.push_back(1);
                 branch_maps.resize(branch_maps.size()+1);
                 current_block += 1;
-                // reset counter
+                // and reset counter
                 block_num_branches_per_depth = cell_num_branches_per_depth; // TODO what to do if one single cell does not fit into the blocksize?
             }
 
 
             // the branch map for the block in which we put the cell
+            // maps levels to a list of branches in that level
             auto& branch_map = branch_maps[block_ix[c]];
 
             // build branch_map:
@@ -297,14 +298,14 @@ public:
             [](unsigned value, const decltype(branch_maps[0])& l) {
                 return value + l.size();});
 
-        // construct description for the set of branches on each level
+        // construct description for the set of branches on each level for each
+        // block
         levels.reserve(total_num_levels);
         levels_end.reserve(branch_maps.size());
         data_size.reserve(branch_maps.size());
         // offset into the packed data format, used to apply permutation on data
         auto pos = 0u;
-        for (unsigned block: make_span(branch_maps.size())) {
-            const auto& branch_map = branch_maps[block];
+        for (const auto& branch_map: branch_maps) {
             for (const auto& lvl_branches: branch_map) {
 
                 level lvl(lvl_branches.size());
