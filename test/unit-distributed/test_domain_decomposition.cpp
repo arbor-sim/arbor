@@ -78,7 +78,11 @@ TEST(domain_decomposition, homogeneous_population_mc) {
     // This assumption will not hold in the future, requiring and update to
     // the test.
     proc_allocation resources{1, -1};
+#ifdef ARB_MPI_ENABLED
     auto ctx = make_context(resources, MPI_COMM_WORLD);
+#else
+    auto ctx = make_context(resources);
+#endif
 
     // 10 cells per domain
     unsigned n_local = 10;
@@ -120,7 +124,11 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
 
     proc_allocation resources;
     resources.num_threads = 1;
-    auto context = make_context(resources, MPI_COMM_WORLD);
+#ifdef ARB_MPI_ENABLED
+    auto ctx = make_context(resources, MPI_COMM_WORLD);
+#else
+    auto ctx = make_context(resources);
+#endif
 
     const unsigned N = arb::num_ranks(context);
     const unsigned I = arb::rank(context);
@@ -161,7 +169,11 @@ TEST(domain_decomposition, heterogeneous_population) {
     // This assumption will not hold in the future, requiring and update to
     // the test.
     proc_allocation resources{1, -1};
+#ifdef ARB_MPI_ENABLED
     auto ctx = make_context(resources, MPI_COMM_WORLD);
+#else
+    auto ctx = make_context(resources);
+#endif
 
     const auto N = arb::num_ranks(ctx);
     const auto I = arb::rank(ctx);
