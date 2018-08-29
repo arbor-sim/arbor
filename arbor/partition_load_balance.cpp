@@ -32,13 +32,9 @@ domain_decomposition partition_load_balance(
 
     using util::make_span;
 
-    unsigned num_domains;
-    unsigned domain_id;
-    cell_size_type num_global_cells;
-
-    num_domains = ctx.distributed->size();
-    domain_id = ctx.distributed->id();
-    num_global_cells = rec.num_cells();
+    unsigned num_domains = ctx.distributed->size();
+    unsigned domain_id = ctx.distributed->id();
+    auto num_global_cells = rec.num_cells();
 
     auto dom_size = [&](unsigned dom) -> cell_gid_type {
         const cell_gid_type B = num_global_cells/num_domains;

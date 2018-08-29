@@ -30,9 +30,6 @@ if(ARB_WITH_ASSERTIONS)
     # define ARB_ASSERT_ENABLED in version.hpp
     list(APPEND arb_features ASSERT)
 endif()
-if(ARB_WITH_DRY_RUN)
-    list(APPEND arb_features DRY_RUN)
-endif()
 if(ARB_WITH_MPI)
     # define ARB_MPI_ENABLED in version.hpp
     list(APPEND arb_features MPI)

@@ -36,8 +36,6 @@ option(ARB_WITH_GPU "build with GPU support" OFF)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
-option(ARB_WITH_DRY_RUN "build in dry_run mode" OFF)
-
 option(ARB_WITH_PROFILING "use built-in profiling" OFF)
 
 option(ARB_WITH_ASSERTIONS "enable arb_assert() assertions in code" OFF)
@@ -163,14 +161,6 @@ if(ARB_WITH_MPI)
     target_compile_definitions(mpi-wrap INTERFACE MPICH_SKIP_MPICXX=1 OMPI_SKIP_MPICXX=1)
     target_link_libraries(arbor-public-deps INTERFACE mpi-wrap)
 endif()
-
-# DRY_RUN mode
-#-----------------
-
-if(ARB_WITH_DRY_RUN)
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_DRY_RUN)
-endif()
-
 
 # CUDA support
 #--------------
