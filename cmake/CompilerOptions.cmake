@@ -135,6 +135,8 @@ function(set_arch_target optvar arch)
         endif()
     endif()
 
+    # Prefix architecture options with `-Xcompiler=` when compiling CUDA sources, i.e.
+    # with nvcc.
     set(arch_opt_cuda_guarded)
     foreach(opt ${arch_opt})
         list(APPEND arch_opt_cuda_guarded "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>${opt}")
