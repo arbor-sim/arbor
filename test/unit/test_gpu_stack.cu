@@ -3,13 +3,15 @@
 #include <backends/gpu/stack.hpp>
 #include <backends/gpu/stack_cu.hpp>
 #include <backends/gpu/managed_ptr.hpp>
+#include <arbor/execution_context.hpp>
 
 using namespace arb;
 
 TEST(stack, construction) {
     using T = int;
 
-    gpu::stack<T> s(10);
+    execution_context context;
+    gpu::stack<T> s(10, context.gpu);
 
     EXPECT_EQ(0u, s.size());
     EXPECT_EQ(10u, s.capacity());
@@ -51,9 +53,11 @@ TEST(stack, push_back) {
     using T = int;
     using stack = gpu::stack<T>;
 
+    execution_context context;
+
     const unsigned n = 10;
     EXPECT_TRUE(n%2 == 0); // require n is even for tests to work
-    auto s = stack(n);
+    auto s = stack(n, context.gpu);
     auto& sstorage = s.storage();
 
     kernels::push_back<<<1, n>>>(sstorage, kernels::all_ftor());
@@ -84,8 +88,10 @@ TEST(stack, overflow) {
     using T = int;
     using stack = gpu::stack<T>;
 
+    execution_context context;
+
     const unsigned n = 10;
-    auto s = stack(n);
+    auto s = stack(n, context.gpu);
     auto& sstorage = s.storage();
     EXPECT_FALSE(s.overflow());
 
@@ -101,7 +107,9 @@ TEST(stack, empty) {
     using T = int;
     using stack = gpu::stack<T>;
 
-    stack s(0u);
+    execution_context context;
+
+    stack s(0u, context.gpu);
 
     EXPECT_EQ(s.size(), 0u);
     EXPECT_EQ(s.capacity(), 0u);
