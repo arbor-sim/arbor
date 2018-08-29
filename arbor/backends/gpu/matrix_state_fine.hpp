@@ -150,6 +150,11 @@ public:
 
         // TODO first sort cells by some criterion to improve greedy packaging
 
+        // First distribute the cells into cuda blocks.
+        // While the total number of branches on each level of theses cells in a
+        // block are less than `max_branches_per_level` we add more cells. If
+        // one block is full, we start a new cuda block.
+
         unsigned current_block = 0;
         std::vector<unsigned> block_num_branches_per_depth;
         std::vector<unsigned> block_ix(num_cells);
@@ -203,7 +208,10 @@ public:
             // check if we can fit the current cell into the last cuda block
             bool fits_current_block = true;
             for (auto i: make_span(cell_num_levels)) {
-                if (block_num_branches_per_depth[i] + cell_num_branches_per_depth[i] > max_branches_per_level) {
+                int new_branches_per_depth =
+                    block_num_branches_per_depth[i]
+                    + cell_num_branches_per_depth[i];
+                if (new_branches_per_depth > max_branches_per_level) {
                     fits_current_block = false;
                 }
             }
