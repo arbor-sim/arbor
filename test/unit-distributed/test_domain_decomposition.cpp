@@ -17,7 +17,7 @@
 #include "../simple_recipes.hpp"
 #include "test.hpp"
 
-#ifdef ARB_MPI_ENABLED
+#ifdef TEST_MPI
 #include <mpi.h>
 #endif
 
@@ -70,19 +70,19 @@ namespace {
 }
 
 TEST(domain_decomposition, homogeneous_population_mc) {
-    const unsigned N = arb::num_ranks(g_context);
-    const unsigned I = arb::rank(g_context);
-
     // Test on a node with 1 cpu core and no gpus.
     // We assume that all cells will be put into cell groups of size 1.
     // This assumption will not hold in the future, requiring and update to
     // the test.
     proc_allocation resources{1, -1};
-#ifdef ARB_MPI_ENABLED
+#ifdef ARB_TEST_MPI
     auto ctx = make_context(resources, MPI_COMM_WORLD);
 #else
     auto ctx = make_context(resources);
 #endif
+
+    const unsigned N = arb::num_ranks(ctx);
+    const unsigned I = arb::rank(ctx);
 
     // 10 cells per domain
     unsigned n_local = 10;
@@ -124,21 +124,21 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
 
     proc_allocation resources;
     resources.num_threads = 1;
-#ifdef ARB_MPI_ENABLED
+#ifdef ARB_TEST_MPI
     auto ctx = make_context(resources, MPI_COMM_WORLD);
 #else
     auto ctx = make_context(resources);
 #endif
 
-    const unsigned N = arb::num_ranks(context);
-    const unsigned I = arb::rank(context);
+    const unsigned N = arb::num_ranks(ctx);
+    const unsigned I = arb::rank(ctx);
 
     if (!resources.has_gpu()) return; // Skip if no gpu available.
 
     // 10 cells per domain
     unsigned n_local = 10;
     unsigned n_global = n_local*N;
-    const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), context);
+    const auto D = partition_load_balance(homo_recipe(n_global, dummy_cell{}), ctx);
 
     EXPECT_EQ(D.num_global_cells, n_global);
     EXPECT_EQ(D.num_local_cells, n_local);
@@ -169,7 +169,7 @@ TEST(domain_decomposition, heterogeneous_population) {
     // This assumption will not hold in the future, requiring and update to
     // the test.
     proc_allocation resources{1, -1};
-#ifdef ARB_MPI_ENABLED
+#ifdef ARB_TEST_MPI
     auto ctx = make_context(resources, MPI_COMM_WORLD);
 #else
     auto ctx = make_context(resources);
