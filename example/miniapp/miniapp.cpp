@@ -36,7 +36,7 @@ using namespace arb;
 using util::any_cast;
 
 void banner(proc_allocation, const execution_context&);
-std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&, const execution_context&);
+std::unique_ptr<recipe> make_recipe(const io::cl_options&, const probe_distribution&);
 sample_trace make_trace(const probe_info& probe);
 std::fstream& open_or_throw(std::fstream& file, const aux::path& p, bool exclusive = false);
 void report_compartment_stats(const recipe&);
@@ -53,17 +53,12 @@ int main(int argc, char** argv) {
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
-        // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
-
-        if (options.dry_run_ranks) {
-            context.distributed = dry_run_context(options.dry_run_ranks);
-        }
-
         profile::meter_manager meters(context.distributed);
         meters.start();
 
         std::cout << aux::mask_stream(context.distributed->id()==0);
+        // read parameters
+        io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
 
         // TODO: add dry run mode
 
@@ -80,10 +75,7 @@ int main(int argc, char** argv) {
         pdist.proportion = options.probe_ratio;
         pdist.all_segments = !options.probe_soma_only;
 
-        auto recipe = make_recipe(options, pdist, context);
-
-        context.distributed->set_num_cells(recipe->num_cells());
-
+        auto recipe = make_recipe(options, pdist);
         if (options.report_compartments) {
             report_compartment_stats(*recipe);
         }
@@ -190,7 +182,7 @@ void banner(proc_allocation nd, const execution_context& ctx) {
     std::cout << "==========================================\n";
 }
 
-std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist, const execution_context& ctx) {
+std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_distribution& pdist) {
     basic_recipe_param p;
 
     if (options.morphologies) {
@@ -214,9 +206,7 @@ std::unique_ptr<recipe> make_recipe(const io::cl_options& options, const probe_d
         return make_basic_ring_recipe(options.cells, p, pdist);
     }
     else {
-        //return make_basic_rgraph_recipe(options.cells, p, pdist);
-        return make_basic_rgraph_symmetric_recipe(options.cells, ctx.distributed->size(), p, pdist);
-        //return make_basic_rgraph_tiled_recipe(options.cells, 1, p, pdist);
+        return make_basic_rgraph_recipe(options.cells, p, pdist);
     }
 }
 

@@ -6,7 +6,6 @@
 
 #include <arbor/util/optional.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/symmetric_recipe.hpp>
 
 #include "morphology_pool.hpp"
 
@@ -56,21 +55,5 @@ std::unique_ptr<recipe> make_basic_rgraph_recipe(
         cell_gid_type ncell,
         basic_recipe_param param,
         probe_distribution pdist = probe_distribution{});
-
-class basic_rgraph_tiled_recipe;
-
-std::unique_ptr<recipe> make_basic_rgraph_tiled_recipe(
-        cell_gid_type ncell,
-        cell_gid_type ntiles,
-        basic_recipe_param param,
-        probe_distribution pdist = probe_distribution{}
-);
-
-std::unique_ptr<recipe> make_basic_rgraph_symmetric_recipe(
-        cell_gid_type ncell,
-        cell_gid_type ntiles,
-        basic_recipe_param param,
-        probe_distribution pdist = probe_distribution{}
-        );
 
 } // namespace arb
