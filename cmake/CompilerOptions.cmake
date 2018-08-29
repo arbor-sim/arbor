@@ -135,5 +135,10 @@ function(set_arch_target optvar arch)
         endif()
     endif()
 
-    set("${optvar}" "${arch_opt}" PARENT_SCOPE)
+    set(arch_opt_cuda_guarded)
+    foreach(opt ${arch_opt})
+        list(APPEND arch_opt_cuda_guarded "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>${opt}")
+    endforeach()
+
+    set("${optvar}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
 endfunction()
