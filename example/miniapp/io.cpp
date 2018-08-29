@@ -186,8 +186,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         TCLAP::ValueArg<unsigned> dry_run_ranks_arg(
             "D","dry-run-ranks","number of ranks in dry run mode",
             false, defopts.dry_run_ranks, "positive integer", cmd);
-        TCLAP::SwitchArg dry_run_arg(
-            "l","dry-run","run in dry-run mode", cmd, false);
         TCLAP::SwitchArg verbose_arg(
              "v", "verbose", "Present more verbose information to stdout", cmd, false);
 
@@ -239,7 +237,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
                         update_option(options.file_extension, fopts, "file_extension");
                     }
 
-                    update_option(options.dry_run, fopts, "dry_run");
                     update_option(options.dry_run_ranks, fopts, "dry_run_ranks");
                 }
                 catch (std::exception& e) {
@@ -273,7 +270,6 @@ cl_options read_options(int argc, char** argv, bool allow_write) {
         update_option(options.report_compartments, report_compartments_arg);
         update_option(options.spike_file_output, spike_output_arg);
         update_option(options.dry_run_ranks, dry_run_ranks_arg);
-        update_option(options.dry_run, dry_run_arg);
 
         if (options.trace_format!="csv" && options.trace_format!="json") {
             throw usage_error("trace format must be one of: csv, json");

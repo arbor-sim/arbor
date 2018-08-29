@@ -5,6 +5,8 @@
 #include <arbor/distributed_context.hpp>
 #include <arbor/spike.hpp>
 
+#include <threading/threading.hpp>
+
 namespace arb {
 
 struct dry_run_context_impl {
@@ -13,24 +15,36 @@ struct dry_run_context_impl {
 
     gathered_vector<arb::spike>
     gather_spikes(const std::vector<arb::spike>& local_spikes) const {
+        long local_size = local_spikes.size();
+        long shift_width = num_cells_per_tile_;
+
         using count_type = typename gathered_vector<arb::spike>::count_type;
-        std::vector<arb::spike> shift_local_spikes(local_spikes);
+
         std::vector<arb::spike> gathered_spikes;
-        gathered_spikes.reserve(local_spikes.size()*num_ranks_);
+        gathered_spikes.reserve(local_size*num_ranks_);
 
         for (unsigned i = 0; i < num_ranks_; i++) {
-            gathered_spikes.insert(gathered_spikes.end(), shift_local_spikes.begin(), shift_local_spikes.end());
-            std::for_each(shift_local_spikes.begin(), shift_local_spikes.end(),
-                          [&](arb::spike& s) {s.source += num_cells_per_tile_;});
-            /*for (unsigned j = 0; j < shift_local_spikes.size(); j++) {
-                shift_local_spikes[j].source +=  num_cells_per_tile_;
-            }*/
+            gathered_spikes.insert(gathered_spikes.end(), local_spikes.begin(), local_spikes.end());
         }
+
+        task_system_handle ts = make_thread_pool();
+        threading::task_group g(ts.get());
+
+        for (unsigned i = 0; i < num_ranks_; i++) {
+            auto shift_spikes = [&gathered_spikes, local_size, i, shift_width](){
+                for (long j = i*local_size; j < (i+1)*local_size; j++){
+                    gathered_spikes[j].source += shift_width*i;
+                }
+            };
+            g.run(shift_spikes);
+        }
+        g.wait();
+
         std::vector<count_type> partition;
         partition.push_back(0u);
         int count = 0;
         for(int i = 0; i < num_ranks_; i++) {
-            partition.push_back(static_cast<count_type>(count+=local_spikes.size()));
+            partition.push_back(static_cast<count_type>(count+=local_size));
         }
 
         return gathered_vector<arb::spike>(

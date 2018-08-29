@@ -53,16 +53,17 @@ int main(int argc, char** argv) {
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context.thread_pool);
 #endif
+        // read parameters
+        io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
+
+        if (options.dry_run_ranks) {
+            context.distributed = dry_run_context(options.dry_run_ranks);
+        }
+
         profile::meter_manager meters(context.distributed);
         meters.start();
 
         std::cout << aux::mask_stream(context.distributed->id()==0);
-        // read parameters
-        io::cl_options options = io::read_options(argc, argv, context.distributed->id()==0);
-
-        if(options.dry_run == true) {
-            context.distributed = dry_run_context(options.dry_run_ranks);
-        }
 
         // TODO: add dry run mode
 

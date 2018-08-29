@@ -54,9 +54,7 @@ struct cl_options {
     std::string file_extension = "gdf";
 
     // Dry run parameters (pertinent only when built with 'dryrun' distrib model).
-    int dry_run_ranks = 1;
-
-    bool dry_run = false;
+    int dry_run_ranks = 0;
 
     // Turn on/off profiling output for all ranks.
     bool profile_only_zero = false;
