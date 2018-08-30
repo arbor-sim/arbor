@@ -1,6 +1,7 @@
 #include <arbor/common_types.hpp>
 #include <arbor/version.hpp>
 
+#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 
 #include "../gtest.h"

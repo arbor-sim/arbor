@@ -3,6 +3,7 @@
 #include <arbor/common_types.hpp>
 
 #include "epoch.hpp"
+#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "mc_cell_group.hpp"
 

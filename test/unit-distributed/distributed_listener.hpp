@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 
 #include "../gtest.h"
 
@@ -29,7 +29,7 @@ class distributed_listener: public testing::EmptyTestEventListener {
     using TestPartResult = testing::TestPartResult;
 
 public:
-    distributed_listener(std::string f_base, arb::distributed_context_handle ctx);
+    distributed_listener(std::string f_base, const arb::context &ctx);
 
     /// Messages that are printed at the start and end of the test program.
     /// i.e. once only.
@@ -57,16 +57,19 @@ private:
         std::ofstream fid_;
         bool cout_;
 
+        printer() = default;
         printer(std::string base_name, int rank);
     };
 
     template <typename T>
     friend printer& operator<<(printer&, const T&);
 
-    arb::distributed_context_handle context_;
+    const arb::context& context_;
     int rank_;
     int size_;
+    bool mpi_;
     printer emit_;
+
     int test_case_failures_;
     int test_case_tests_;
     int test_failures_;

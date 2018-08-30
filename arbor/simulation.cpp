@@ -2,6 +2,7 @@
 #include <set>
 #include <vector>
 
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/generic_event.hpp>
 #include <arbor/recipe.hpp>
@@ -11,6 +12,7 @@
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/communicator.hpp"
+#include "execution_context.hpp"
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
 #include "threading/threading.hpp"
@@ -419,9 +421,9 @@ void simulation_state::inject_events(const pse_vector& events) {
 simulation::simulation(
     const recipe& rec,
     const domain_decomposition& decomp,
-    execution_context ctx)
+    const context& ctx)
 {
-    impl_.reset(new simulation_state(rec, decomp, ctx));
+    impl_.reset(new simulation_state(rec, decomp, *ctx));
 }
 
 void simulation::reset() {

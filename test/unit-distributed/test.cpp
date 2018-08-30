@@ -5,7 +5,7 @@
 
 #include "../gtest.h"
 
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 
 #include <aux/ioutil.hpp>
 #include <aux/tinyopt.hpp>
@@ -13,11 +13,16 @@
 #include <aux/with_mpi.hpp>
 #endif
 
+#include "distributed_context.hpp"
+#include "execution_context.hpp"
+
 #include "distributed_listener.hpp"
+
+#include "test.hpp"
 
 using namespace arb;
 
-execution_context g_context;
+context g_context = make_context();
 
 const char* usage_str =
 "[OPTION]...\n"
@@ -26,11 +31,14 @@ const char* usage_str =
 "  -h, --help          Display usage information and exit\n";
 
 int main(int argc, char **argv) {
+    proc_allocation alloc;
+    alloc.gpu_id = -1;
+
 #ifdef TEST_MPI
     aux::with_mpi guard(argc, argv, false);
-    g_context.distributed = mpi_context(MPI_COMM_WORLD);
+    g_context = arb::make_context(alloc, MPI_COMM_WORLD);
 #elif defined(TEST_LOCAL)
-    g_context.distributed = std::make_shared<distributed_context>(local_context());
+    g_context = arb::make_context(alloc);
 #else
 #error "define TEST_MPI or TEST_LOCAL for distributed test"
 #endif
@@ -42,7 +50,7 @@ int main(int argc, char **argv) {
     auto& listeners = testing::UnitTest::GetInstance()->listeners();
     // replace original printer with our custom printer
     delete listeners.Release(listeners.default_result_printer());
-    listeners.Append(new distributed_listener("run_"+g_context.distributed->name(), g_context.distributed));
+    listeners.Append(new distributed_listener("run_"+g_context->distributed->name(), g_context));
 
     int return_value = 0;
     try {
@@ -84,5 +92,5 @@ int main(int argc, char **argv) {
 
     // perform global collective, to ensure that all ranks return
     // the same exit code
-    return g_context.distributed->max(return_value);
+    return g_context->distributed->max(return_value);
 }

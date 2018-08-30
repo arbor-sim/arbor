@@ -1,6 +1,5 @@
 #include "../gtest.h"
 #include "common.hpp"
-#include <arbor/execution_context.hpp>
 
 #include <iostream>
 #include <ostream>
@@ -8,6 +7,7 @@
 #include <arbor/version.hpp>
 
 #include "threading/threading.hpp"
+#include "threading/enumerable_thread_specific.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb::threading;

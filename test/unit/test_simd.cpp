@@ -706,6 +706,11 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         pow(simd(u), simd(v)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(pow_u_v_int, r));
     }
+
+    // The tests can cause floating point exceptions, which may set errno to nonzero
+    // value.
+    // Reset errno so that subsequent tests are not affected.
+    errno = 0;
 }
 
 // Check special function behaviour for specific values including
