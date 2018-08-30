@@ -50,16 +50,37 @@ struct proc_allocation {
     }
 };
 
-// Forward declare execution_context, then use a unique_ptr as a handle.
-// Because execution_context is an incomplete type, we have to provide
-// a destructor prototype for unique_ptr.
+// arb::execution_context is a container defined in the implementation for state
+// related to execution resources, specifically thread pools, gpus and MPI
+// communicators.
+
+// Forward declare execution_context.
 struct execution_context;
+
+// arb::context is an opaque handle for this container presented in the
+// public API.
+// It doesn't make sense to copy contexts, so we use a std::unique_ptr to
+// implement the handle with lifetime management.
+//
+// Because execution_context is an incomplete type, a destructor prototype must
+// be provided.
 using context = std::unique_ptr<execution_context, void (*)(execution_context*)>;
 
+
+// Helpers for creating contexts. These are implemented in the back end.
+
+// Non-distributed context that uses all detected threads and one GPU if available.
 context make_context();
-context make_context(const proc_allocation&);
+
+// Non-distributed context that uses resources described by resources
+context make_context(const proc_allocation& resources);
+
+// Distributed context that uses MPI communicator comm, and local resources
+// described by resources.
 template <typename Comm>
-context make_context(const proc_allocation&, Comm);
+context make_context(const proc_allocation& resources, Comm comm);
+
+// Queries for properties of execution resources in a context.
 
 bool has_gpu(const context&);
 unsigned num_threads(const context&);
