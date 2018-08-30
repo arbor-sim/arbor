@@ -7,6 +7,7 @@
 #include <arbor/version.hpp>
 
 #include "threading/threading.hpp"
+#include "threading/enumerable_thread_specific.hpp"
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
@@ -195,7 +196,7 @@ TEST(task_group, nested_parallel_for) {
 
 TEST(enumerable_thread_specific, test) {
     task_system_handle ts = task_system_handle(new task_system);
-    enumerable_thread_specific<int> buffers(*ts);
+    enumerable_thread_specific<int> buffers(ts);
     task_group g(ts.get());
 
     for (int i = 0; i < 100000; i++) {
