@@ -48,26 +48,26 @@ struct cell_member_type {
     cell_gid_type gid;
     cell_lid_type index;
 
-    cell_member_type& operator+=(cell_gid_type inc) {
+    cell_member_type& operator= (cell_gid_type inc) {
+        gid = inc;
+        return *this;
+    }
+
+    cell_member_type& operator+= (cell_gid_type inc) {
         gid += inc;
         return *this;
     }
 
-    friend cell_member_type operator+( const cell_member_type& lhs, const cell_gid_type rhs ) {
+    friend cell_member_type operator+ (const cell_member_type& lhs, const cell_gid_type rhs) {
         cell_member_type result = lhs;
         result.gid += rhs;
         return result;
     }
 
-    friend cell_member_type operator%( const cell_member_type& lhs, const cell_gid_type rhs ) {
+    friend cell_member_type operator% (const cell_member_type& lhs, const cell_gid_type rhs) {
         cell_member_type result = lhs;
         result.gid %= rhs;
         return result;
-    }
-
-    cell_member_type& operator= (cell_gid_type inc) {
-        gid = inc;
-        return *this;
     }
 };
 
