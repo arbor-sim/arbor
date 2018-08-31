@@ -80,6 +80,10 @@ context make_context(const proc_allocation& resources);
 template <typename Comm>
 context make_context(const proc_allocation& resources, Comm comm);
 
+// Dry-run context that simulates num_ranks MPI ranks with num_cells_per_rank cell on eacg
+
+context make_context(const proc_allocation& resources, unsigned num_cells, unsigned num_ranks_per_cell);
+
 // Queries for properties of execution resources in a context.
 
 bool has_gpu(const context&);

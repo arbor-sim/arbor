@@ -49,6 +49,18 @@ context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
 }
 #endif
 
+execution_context::execution_context(const proc_allocation& resources,
+        unsigned num_ranks, unsigned num_cells_per_ranks):
+        distributed(make_dryrun_context(num_ranks, num_cells_per_ranks)),
+        thread_pool(std::make_shared<threading::task_system>(resources.num_threads)),
+        gpu(resources.has_gpu()? std::make_shared<gpu_context>(resources.gpu_id)
+                               : std::make_shared<gpu_context>())
+{}
+
+context make_context(const proc_allocation& p, unsigned num_ranks, unsigned num_cells_per_rank) {
+    return context(new execution_context(p, num_ranks, num_cells_per_rank), [](execution_context* p){delete p;});
+}
+
 bool has_gpu(const context& ctx) {
     return ctx->gpu->has_gpu();
 }

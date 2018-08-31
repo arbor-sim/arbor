@@ -1,5 +1,5 @@
 /*
- * A miniapp that demonstrates how to make a ring model
+ * A miniapp that demonstrates how to use dry_run mode
  *
  */
 
@@ -11,19 +11,25 @@
 
 #include <arbor/assert_macro.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
+#include <arbor/profile/profiler.hpp>
 #include <arbor/simple_sampler.hpp>
-#include <arbor/symmetric_recipe.hpp>
 #include <arbor/simulation.hpp>
+#include <arbor/symmetric_recipe.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/version.hpp>
 
 #include <aux/json_meter.hpp>
 
 #include "parameters.hpp"
+
+#ifdef ARB_MPI_ENABLED
+#include <mpi.h>
+#include <aux/with_mpi.hpp>
+#endif
 
 using arb::cell_gid_type;
 using arb::cell_lid_type;
@@ -119,29 +125,55 @@ private:
 };
 
 struct cell_stats {
-    using size_type = std::uint64_t;
+    using size_type = unsigned;
     size_type ncells = 0;
     size_type nranks = 1;
     size_type nsegs = 0;
     size_type ncomp = 0;
 
-    cell_stats(arb::distributed_context_handle ctx, arb::recipe& r) {
-        size_type rank = ctx->id();
-
-        nranks = ctx->size();
-        ncells = r.num_cells(); //total number of cells across all ranks
-
-        size_type cells_per_rank = ncells/nranks;
-        size_type b = rank*cells_per_rank;
-        size_type e = (rank+1)*cells_per_rank;
-        for (size_type i=b; i<e; ++i) {
-            auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
-            nsegs += c.num_segments();
-            ncomp += c.num_compartments();
+    cell_stats(arb::recipe& r, run_params params) {
+        if(params.sim_type == "mpi") {
+#ifdef ARB_MPI_ENABLED
+            int rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+            ncells = r.num_cells();
+            size_type cells_per_rank = ncells/nranks;
+            size_type b = rank*cells_per_rank;
+            size_type e = (rank+1)*cells_per_rank;
+            size_type nsegs_tmp = 0;
+            size_type ncomp_tmp = 0;
+            for (size_type i=b; i<e; ++i) {
+                auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+                nsegs_tmp += c.num_segments();
+                ncomp_tmp += c.num_compartments();
+            }
+            MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+            MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+#endif
         }
+        else if(params.sim_type == "dry_run") {
+            nranks = params.num_ranks;
+            ncells = r.num_cells(); //total number of cells across all ranks
 
-        nsegs = ctx->sum(nsegs);
-        ncomp = ctx->sum(ncomp);
+            for (size_type i = 0; i < params.num_cells_per_rank; ++i) {
+                auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+                nsegs += c.num_segments();
+                ncomp += c.num_compartments();
+            }
+
+            nsegs *= params.num_ranks;
+            ncomp *= params.num_ranks;
+        }
+        else {
+            nranks = 1;
+            ncells = r.num_cells();
+            for (size_type i = 0; i < ncells; ++i) {
+                auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+                nsegs += c.num_segments();
+                ncomp += c.num_compartments();
+            }
+        }
     }
 
     friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
@@ -155,50 +187,49 @@ struct cell_stats {
 
 
 int main(int argc, char** argv) {
-    // default serial context
-    arb::execution_context context;
-
     try {
-#ifdef ARB_PROFILE_ENABLED
-        profile::profiler_initialize(context.thread_pool);
-#endif
+        bool root = true;
         auto params = read_options(argc, argv);
 
+        arb::context ctx = arb::make_context();
+
         if (params.sim_type == "dry_run") {
-            context.distributed = arb::dry_run_context(params.num_ranks, params.num_cells_per_rank);
+            ctx = arb::make_context(arb::proc_allocation(), params.num_ranks, params.num_cells_per_rank);
         }
         else if (params.sim_type == "mpi") {
 #ifdef ARB_MPI_ENABLED
             aux::with_mpi guard(argc, argv, false);
-            context.distributed = mpi_context(MPI_COMM_WORLD);
+            ctx = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
+            {
+                int rank;
+                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+                root = rank==0;
+            }
 #else
             throw std::runtime_error("MPI not available, can run in \"dry_run\" or \"local\" mode.");
 #endif
         }
 
+#ifdef ARB_PROFILE_ENABLED
+        arb::profile::profiler_initialize(ctx);
+#endif
+
         std::cout << "run mode: " << params.sim_type << "\n";
 
-        const bool root = context.distributed->id()==0;
-
-        arb::profile::meter_manager meters(context.distributed);
-        meters.start();
+        arb::profile::meter_manager meters;
+        meters.start(ctx);
 
         // Create an instance of our tile and use it to make a symmetric_recipe.
         auto tile = std::make_unique<tile_desc>(params.num_cells_per_rank, params.num_ranks, params.cell, params.min_delay);
         arb::symmetric_recipe recipe(std::move(tile));
 
-        cell_stats stats(context.distributed, recipe);
+        cell_stats stats(recipe, params);
         std::cout << stats << "\n";
 
-        // Use a node description that uses the number of threads used by the
-        // threading back end, and 1 gpu if available.
-        arb::proc_allocation nd = arb::local_allocation(context);
-        nd.num_gpus = nd.num_gpus>=1? 1: 0;
-
-        auto decomp = arb::partition_load_balance(recipe, nd, context);
+        auto decomp = arb::partition_load_balance(recipe, ctx);
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, context);
+        arb::simulation sim(recipe, decomp, ctx);
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
@@ -209,12 +240,12 @@ int main(int argc, char** argv) {
                     });
         }
 
-        meters.checkpoint("model-init");
+        meters.checkpoint("model-init", ctx);
 
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 
-        meters.checkpoint("model-run");
+        meters.checkpoint("model-run", ctx);
 
         auto ns = sim.num_spikes();
         std::cout << "\n" << ns << " spikes generated at rate of "
@@ -237,7 +268,7 @@ int main(int argc, char** argv) {
             }
         }
 
-        auto report = arb::profile::make_meter_report(meters);
+        auto report = arb::profile::make_meter_report(meters, ctx);
         std::cout << report;
     }
     catch (std::exception& e) {
