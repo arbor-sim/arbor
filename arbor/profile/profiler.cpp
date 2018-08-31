@@ -2,8 +2,10 @@
 #include <mutex>
 #include <ostream>
 
+#include <arbor/context.hpp>
 #include <arbor/profile/profiler.hpp>
 
+#include "execution_context.hpp"
 #include "threading/threading.hpp"
 #include "util/span.hpp"
 #include "util/rangeutil.hpp"
@@ -83,6 +85,8 @@ public:
 class profiler {
     std::vector<recorder> recorders_;
 
+    std::unordered_map<std::thread::id, std::size_t> thread_ids_;
+
     // Hash table that maps region names to a unique index.
     // The regions are assigned consecutive indexes in the order that they are
     // added to the profiler with calls to `region_index()`, with the first
@@ -96,9 +100,13 @@ class profiler {
     // Used to protect name_index_, which is shared between all threads.
     std::mutex mutex_;
 
+    // Flag to indicate whether the profiler has been initialized with the task_system
+    bool init_ = false;
+
 public:
     profiler();
 
+    void initialize(task_system_handle& ts);
     void enter(region_id_type index);
     void enter(const char* name);
     void leave();
@@ -165,21 +173,28 @@ void recorder::clear() {
 
 // profiler implementation
 
-profiler::profiler() {
-    recorders_.resize(threading::num_threads());
+profiler::profiler() {}
+
+void profiler::initialize(task_system_handle& ts) {
+    recorders_.resize(ts.get()->get_num_threads());
+    thread_ids_ = ts.get()->get_thread_ids();
+    init_ = true;
 }
 
 void profiler::enter(region_id_type index) {
-    recorders_[threading::thread_id()].enter(index);
+    if (!init_) return;
+    recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
 }
 
 void profiler::enter(const char* name) {
+    if (!init_) return;
     const auto index = region_index(name);
-    recorders_[threading::thread_id()].enter(index);
+    recorders_[thread_ids_.at(std::this_thread::get_id())].enter(index);
 }
 
 void profiler::leave() {
-    recorders_[threading::thread_id()].leave();
+    if (!init_) return;
+    recorders_[thread_ids_.at(std::this_thread::get_id())].leave();
 }
 
 region_id_type profiler::region_index(const char* name) {
@@ -326,6 +341,10 @@ region_id_type profiler_region_id(const char* name) {
 
 void profiler_enter(region_id_type region_id) {
     profiler::get_global_profiler().enter(region_id);
+}
+
+void profiler_initialize(context& ctx) {
+    profiler::get_global_profiler().initialize(ctx->thread_pool);
 }
 
 // Print profiler statistics to an ostream

@@ -8,10 +8,10 @@
 #include <mpi.h>
 
 #include <arbor/assert.hpp>
-#include <arbor/communication/gathered_vector.hpp>
 #include <arbor/communication/mpi_error.hpp>
 
 #include "algorithms.hpp"
+#include "communication/gathered_vector.hpp"
 #include "profile/profiler_macro.hpp"
 
 
@@ -48,15 +48,19 @@ struct mpi_traits<T> {  \
     constexpr static bool is_mpi_native_type() { return true; } \
 };
 
-MAKE_TRAITS(double, MPI_DOUBLE)
-MAKE_TRAITS(float,  MPI_FLOAT)
-MAKE_TRAITS(int,    MPI_INT)
-MAKE_TRAITS(long int, MPI_LONG)
-MAKE_TRAITS(char,   MPI_CHAR)
-MAKE_TRAITS(unsigned int, MPI_UNSIGNED)
-MAKE_TRAITS(size_t, MPI_UNSIGNED_LONG)
-static_assert(sizeof(size_t)==sizeof(unsigned long),
-              "size_t and unsigned long are not equivalent");
+MAKE_TRAITS(float,              MPI_FLOAT)
+MAKE_TRAITS(double,             MPI_DOUBLE)
+MAKE_TRAITS(char,               MPI_CHAR)
+MAKE_TRAITS(int,                MPI_INT)
+MAKE_TRAITS(unsigned,           MPI_UNSIGNED)
+MAKE_TRAITS(long,               MPI_LONG)
+MAKE_TRAITS(unsigned long,      MPI_UNSIGNED_LONG)
+MAKE_TRAITS(long long,          MPI_LONG_LONG)
+MAKE_TRAITS(unsigned long long, MPI_UNSIGNED_LONG_LONG)
+
+static_assert(std::is_same<std::size_t, unsigned long>::value ||
+              std::is_same<std::size_t, unsigned long long>::value,
+              "size_t is not the same as unsigned long or unsigned long long");
 
 // Gather individual values of type T from each rank into a std::vector on
 // the root rank.

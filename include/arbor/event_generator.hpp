@@ -9,48 +9,67 @@
 #include <arbor/common_types.hpp>
 #include <arbor/generic_event.hpp>
 #include <arbor/spike_event.hpp>
-#include <arbor/time_sequence.hpp>
+#include <arbor/schedule.hpp>
 
 namespace arb {
 
-// Generate a postsynaptic spike event that has delivery time set to
-// terminal_time. Such events are used as sentinels, to indicate the
-// end of a sequence.
-inline constexpr
-spike_event make_terminal_pse() {
-    return spike_event{cell_member_type{0,0}, terminal_time, 0};
-}
+// An `event_generator` generates a sequence of events to be delivered to a cell.
+// The sequence of events is always in ascending order, i.e. each event will be
+// greater than the event that proceded it, where events are ordered by:
+//  - delivery time;
+//  - then target id for events with the same delivery time;
+//  - then weight for events with the same delivery time and target.
+//
+// An `event_generator` supports two operations:
+//
+// `void event_generator::reset()`
+//
+//     Reset generator state.
+//
+// `event_seq event_generator::events(time_type to, time_type from)`
+//
+//     Provide a non-owning view on to the events in the time interval
+//     [to, from).
+//
+// The `event_seq` type is a pair of `spike_event` pointers that
+// provide a view onto an internally-maintained contiguous sequence
+// of generated spike event objects. This view is valid only for
+// the lifetime of the generator, and is invalidated upon a call
+// to `reset` or another call to `events`.
+//
+// Calls to the `events` method must be monotonic in time: without an
+// intervening call to `reset`, two successive calls `events(t0, t1)`
+// and `events(t2, t3)` to the same event generator must satisfy
+// 0 ≤ t0 ≤ t1 ≤ t2 ≤ t3.
+//
+// `event_generator` objects have value semantics, and use type erasure
+// to wrap implementation details. An `event_generator` can be constructed
+// from an onbject of an implementation class Impl that is copy-constructible
+// and otherwise provides `reset` and `events` methods following the
+// API described above.
+//
+// Some pre-defined event generators are included:
+//  - `empty_generator`: produces no events
+//  - `schedule_generator`: events to a fixed target according to a time schedule
 
-inline
-bool is_terminal_pse(const spike_event& e) {
-    return e.time==terminal_time;
-}
+using event_seq = std::pair<const spike_event*, const spike_event*>;
 
 
 // The simplest possible generator that generates no events.
 // Declared ahead of event_generator so that it can be used as the default
 // generator.
 struct empty_generator {
-    spike_event front() {
-        return spike_event{cell_member_type{0,0}, terminal_time, 0};
-    }
-    void pop() {}
     void reset() {}
-    void advance(time_type t) {};
+    event_seq events(time_type, time_type) {
+        return {&no_event, &no_event};
+    }
+
+private:
+    static spike_event no_event;
 };
 
-// An event_generator generates a sequence of events to be delivered to a cell.
-// The sequence of events is always in ascending order, i.e. each event will be
-// greater than the event that proceded it, where events are ordered by:
-//  - delivery time;
-//  - then target id for events with the same delivery time;
-//  - then weight for events with the same delivery time and target.
 class event_generator {
 public:
-    //
-    // copy, move and constructor interface
-    //
-
     event_generator(): event_generator(empty_generator()) {}
 
     template <typename Impl>
@@ -70,40 +89,18 @@ public:
         return *this;
     }
 
-    //
-    // event generator interface
-    //
-
-    // Get the current event in the stream.
-    // Does not modify the state of the stream, i.e. multiple calls to
-    // front() will return the same event in the absence of calls to pop(),
-    // advance() or reset().
-    spike_event front() {
-        return impl_->front();
-    }
-
-    // Move the generator to the next event in the stream.
-    void pop() {
-        impl_->pop();
-    }
-
-    // Reset the generator to the same state that it had on construction.
     void reset() {
         impl_->reset();
     }
 
-    // Update state of the generator such that the event returned by front() is
-    // the first event with delivery time >= t.
-    void advance(time_type t) {
-        return impl_->advance(t);
+    event_seq events(time_type t0, time_type t1) {
+        return impl_->events(t0, t1);
     }
 
 private:
     struct interface {
-        virtual spike_event front() = 0;
-        virtual void pop() = 0;
-        virtual void advance(time_type t) = 0;
         virtual void reset() = 0;
+        virtual event_seq events(time_type, time_type) = 0;
         virtual std::unique_ptr<interface> clone() = 0;
         virtual ~interface() {}
     };
@@ -115,16 +112,8 @@ private:
         explicit wrap(const Impl& impl): wrapped(impl) {}
         explicit wrap(Impl&& impl): wrapped(std::move(impl)) {}
 
-        spike_event front() override {
-            return wrapped.front();
-        }
-
-        void pop() override {
-            return wrapped.pop();
-        }
-
-        void advance(time_type t) override {
-            return wrapped.advance(t);
+        event_seq events(time_type t0, time_type t1) override {
+            return wrapped.events(t0, t1);
         }
 
         void reset() override {
@@ -139,153 +128,93 @@ private:
     };
 };
 
-// Generator that feeds events that are specified with a vector.
-// Makes a copy of the input sequence of events.
-struct vector_backed_generator {
-    using pse = spike_event;
-    vector_backed_generator(cell_member_type target, float weight, std::vector<time_type> samples):
-        target_(target),
-        weight_(weight),
-        tseq_(std::move(samples))
+
+// Generate events with a fixed target and weight according to
+// a provided time schedule.
+
+struct schedule_generator {
+    schedule_generator(cell_member_type target, float weight, schedule sched):
+        target_(target), weight_(weight), sched_(std::move(sched))
     {}
 
-    spike_event front() {
-        return spike_event{target_, tseq_.front(), weight_};
-    }
-
-    void pop() {
-        tseq_.pop();
-    }
-
     void reset() {
-        tseq_.reset();
+        sched_.reset();
     }
 
-    void advance(time_type t) {
-        tseq_.advance(t);
+    event_seq events(time_type t0, time_type t1) {
+        auto ts = sched_.events(t0, t1);
+
+        events_.clear();
+        events_.reserve(ts.second-ts.first);
+
+        for (auto i = ts.first; i!=ts.second; ++i) {
+            events_.push_back(spike_event{target_, *i, weight_});
+        }
+
+        return {events_.data(), events_.data()+events_.size()};
     }
 
 private:
+    pse_vector events_;
     cell_member_type target_;
     float weight_;
-    vector_time_seq tseq_;
+    schedule sched_;
 };
 
-// Generator for events in a generic sequence.
-// The generator keeps a reference to a Seq, i.e. it does not own the sequence.
-// Care must be taken to avoid lifetime issues, to ensure that the generator
-// does not outlive the sequence.
-template <typename Seq>
-struct seq_generator {
-    using pse = spike_event;
-    seq_generator(Seq& events):
-        events_(events),
-        it_(std::begin(events_))
+// Convenience routines for making schedule_generator:
+
+inline event_generator regular_generator(
+    cell_member_type target, float weight, time_type tstart, time_type dt, time_type tstop=terminal_time)
+{
+    return schedule_generator(target, weight, regular_schedule(tstart, dt, tstop));
+}
+
+template <typename RNG>
+inline event_generator poisson_generator(
+    cell_member_type target, float weight, time_type tstart, time_type rate_kHz, const RNG& rng)
+{
+    return schedule_generator(target, weight, poisson_schedule(tstart, rate_kHz, rng));
+}
+
+
+// Generate events from a predefined sorted event sequence.
+
+struct explicit_generator {
+    explicit_generator() = default;
+    explicit_generator(const explicit_generator&) = default;
+    explicit_generator(explicit_generator&&) = default;
+
+    template <typename Seq>
+    explicit_generator(const Seq& events):
+        start_index_(0)
     {
+        using std::begin;
+        using std::end;
+
+        events_ = pse_vector(begin(events), end(events));
         arb_assert(std::is_sorted(events_.begin(), events_.end()));
     }
 
-    spike_event front() {
-        return it_==events_.end()? make_terminal_pse(): *it_;
-    }
-
-    void pop() {
-        if (it_!=events_.end()) {
-            ++it_;
-        }
-    }
-
     void reset() {
-        it_ = events_.begin();
+        start_index_ = 0;
     }
 
-    void advance(time_type t) {
-        it_ = std::lower_bound(events_.begin(), events_.end(), t, event_time_less());
+    event_seq events(time_type t0, time_type t1) {
+        const spike_event* lb = events_.data()+start_index_;
+        const spike_event* ub = events_.data()+events_.size();
+
+        lb = std::lower_bound(lb, ub, t0, event_time_less{});
+        ub = std::lower_bound(lb, ub, t1, event_time_less{});
+
+        start_index_ = ub-events_.data();
+        return {lb, ub};
     }
 
 private:
-    const Seq& events_;
-    typename Seq::const_iterator it_;
+    pse_vector events_;
+    std::size_t start_index_ = 0;
 };
 
-// Generates a set of regularly spaced events:
-//  * with delivery times t=t_start+n*dt, ∀ t ∈ [t_start, t_stop)
-//  * with a set target and weight
-struct regular_generator {
-    using pse = spike_event;
-
-    regular_generator(cell_member_type target,
-                      float weight,
-                      time_type tstart,
-                      time_type dt,
-                      time_type tstop=terminal_time):
-        target_(target),
-        weight_(weight),
-        tseq_(tstart, dt, tstop)
-    {}
-
-    spike_event front() {
-        return spike_event{target_, tseq_.front(), weight_};
-    }
-
-    void pop() {
-        tseq_.pop();
-    }
-
-    void advance(time_type t0) {
-        tseq_.advance(t0);
-    }
-
-    void reset() {
-        tseq_.reset();
-    }
-
-private:
-    cell_member_type target_;
-    float weight_;
-    regular_time_seq tseq_;
-};
-
-// Generates a stream of events at times described by a Poisson point process
-// with rate_per_ms spikes per ms.
-template <typename RandomNumberEngine>
-struct poisson_generator {
-    using pse = spike_event;
-
-    poisson_generator(cell_member_type target,
-                      float weight,
-                      RandomNumberEngine rng,
-                      time_type tstart,
-                      time_type rate_per_ms,
-                      time_type tstop=terminal_time):
-        target_(target),
-        weight_(weight),
-        tseq_(std::move(rng), tstart, rate_per_ms, tstop)
-    {
-        reset();
-    }
-
-    spike_event front() {
-        return spike_event{target_, tseq_.front(), weight_};
-    }
-
-    void pop() {
-        tseq_.pop();
-    }
-
-    void advance(time_type t0) {
-        tseq_.advance(t0);
-    }
-
-    void reset() {
-        tseq_.reset();
-    }
-
-private:
-    const cell_member_type target_;
-    const float weight_;
-    poisson_time_seq<RandomNumberEngine> tseq_;
-};
 
 } // namespace arb
 

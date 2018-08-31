@@ -1,9 +1,11 @@
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 
 #include "cell_group_factory.hpp"
+#include "execution_context.hpp"
+#include "gpu_context.hpp"
 #include "util/maputil.hpp"
 #include "util/partition.hpp"
 #include "util/span.hpp"
@@ -12,10 +14,11 @@ namespace arb {
 
 domain_decomposition partition_load_balance(
     const recipe& rec,
-    proc_allocation nd,
-    const execution_context* ctx,
+    const context& ctx,
     partition_hint_map hint_map)
 {
+    const bool gpu_avail = ctx->gpu->has_gpu();
+
     struct partition_gid_domain {
         partition_gid_domain(std::vector<cell_gid_type> divs):
             gid_divisions(std::move(divs))
@@ -31,8 +34,8 @@ domain_decomposition partition_load_balance(
 
     using util::make_span;
 
-    unsigned num_domains = ctx->distributed.size();
-    unsigned domain_id = ctx->distributed.id();
+    unsigned num_domains = ctx->distributed->size();
+    unsigned domain_id = ctx->distributed->id();
     auto num_global_cells = rec.num_cells();
 
     auto dom_size = [&](unsigned dom) -> cell_gid_type {
@@ -65,8 +68,8 @@ domain_decomposition partition_load_balance(
     // of cell group updates according to rules such as the back end on
     // which the cell group is running.
 
-    auto has_gpu_backend = [](cell_kind c) {
-        return cell_kind_supported(c, backend_kind::gpu);
+    auto has_gpu_backend = [&ctx](cell_kind c) {
+        return cell_kind_supported(c, backend_kind::gpu, *ctx);
     };
 
     std::vector<cell_kind> kinds;
@@ -85,7 +88,7 @@ domain_decomposition partition_load_balance(
         backend_kind backend = backend_kind::multicore;
         std::size_t group_size = hint.cpu_group_size;
 
-        if (hint.prefer_gpu && nd.num_gpus>0 && has_gpu_backend(k)) {
+        if (hint.prefer_gpu && gpu_avail && has_gpu_backend(k)) {
             backend = backend_kind::gpu;
             group_size = hint.gpu_group_size;
         }

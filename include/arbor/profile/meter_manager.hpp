@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include <arbor/distributed_context.hpp>
+#include <arbor/context.hpp>
 #include <arbor/profile/meter.hpp>
 #include <arbor/profile/timer.hpp>
 
@@ -25,7 +25,7 @@ struct measurement {
     std::string name;
     std::string units;
     std::vector<std::vector<double>> measurements;
-    measurement(std::string, std::string, const std::vector<double>&, const distributed_context*);
+    measurement(std::string, std::string, const std::vector<double>&, const context&);
 };
 
 class meter_manager {
@@ -38,17 +38,16 @@ private:
     std::vector<std::unique_ptr<meter>> meters_;
     std::vector<std::string> checkpoint_names_;
 
-    const distributed_context* glob_ctx_;
-
 public:
-    meter_manager(const distributed_context* ctx);
-    void start();
-    void checkpoint(std::string name);
-    const distributed_context* context() const;
+    meter_manager();
+    void start(const context& ctx);
+    void checkpoint(std::string name, const context& ctx);
 
     const std::vector<std::unique_ptr<meter>>& meters() const;
     const std::vector<std::string>& checkpoint_names() const;
     const std::vector<double>& times() const;
+
+    const context& ctx() const;
 };
 
 // Simple type for gathering distributed meter information
@@ -60,7 +59,7 @@ struct meter_report {
     std::vector<std::string> hosts;
 };
 
-meter_report make_meter_report(const meter_manager& manager);
+meter_report make_meter_report(const meter_manager& manager, const context& ctx);
 std::ostream& operator<<(std::ostream& o, const meter_report& report);
 
 } // namespace profile

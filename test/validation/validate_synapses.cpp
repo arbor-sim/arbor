@@ -1,5 +1,6 @@
 #include <nlohmann/json.hpp>
 
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
@@ -24,7 +25,7 @@ using namespace arb;
 void run_synapse_test(
     const char* syn_type,
     const aux::path& ref_data_path,
-    backend_kind backend,
+    const context& context,
     float t_end=70.f,
     float dt=0.001)
 {
@@ -34,7 +35,7 @@ void run_synapse_test(
         {"model", syn_type},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", to_string(backend)}
+        {"backend_kind", arb::has_gpu(context)? "gpu": "multicore"}
     };
 
     mc_cell c = make_cell_ball_and_stick(false); // no stimuli
@@ -61,10 +62,6 @@ void run_synapse_test(
     convergence_test_runner<int> runner("ncomp", plabels, meta);
     runner.load_reference_data(ref_data_path);
 
-    execution_context context;
-    proc_allocation nd;
-    nd.num_gpus = (backend==backend_kind::gpu);
-
     for (int ncomp = 10; ncomp<max_ncomp; ncomp*=2) {
         c.cable(1)->set_compartments(ncomp);
 
@@ -76,8 +73,8 @@ void run_synapse_test(
         // dend.end
         rec.add_probe(0, 0, cell_probe_address{{1, 1.0}, cell_probe_address::membrane_voltage});
 
-        auto decomp = partition_load_balance(rec, nd, &context);
-        simulation sim(rec, decomp, &context);
+        auto decomp = partition_load_balance(rec, context);
+        simulation sim(rec, decomp, context);
 
         sim.inject_events(synthetic_events);
 
@@ -88,19 +85,31 @@ void run_synapse_test(
 }
 
 TEST(simple_synapse, expsyn_neuron_ref) {
-    SCOPED_TRACE("expsyn-multicore");
-    run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        SCOPED_TRACE("expsyn-multicore");
+        run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
         SCOPED_TRACE("expsyn-gpu");
-        run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", backend_kind::gpu);
+        run_synapse_test("expsyn", "neuron_simple_exp_synapse.json", ctx);
     }
 }
 
 TEST(simple_synapse, exp2syn_neuron_ref) {
-    SCOPED_TRACE("exp2syn-multicore");
-    run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::multicore);
-    if (local_allocation().num_gpus) {
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        SCOPED_TRACE("exp2syn-multicore");
+        run_synapse_test("exp2syn", "neuron_simple_exp_synapse.json", ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
         SCOPED_TRACE("exp2syn-gpu");
-        run_synapse_test("exp2syn", "neuron_simple_exp2_synapse.json", backend_kind::gpu);
+        run_synapse_test("exp2syn", "neuron_simple_exp_synapse.json", ctx);
     }
 }

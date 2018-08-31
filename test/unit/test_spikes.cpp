@@ -29,6 +29,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
 
     // the test creates a watch on 3 values in the array values (which has 10
     // elements in total).
+    execution_context context;
     const auto n = 10;
 
     const std::vector<index_type> index{0, 5, 7};
@@ -53,7 +54,7 @@ TEST(SPIKES_TEST_CLASS, threshold_watcher) {
     list expected;
 
     // create the watch
-    backend::threshold_watcher watch(cell_index.data(), time_before.data(), time_after.data(), values.data(), index, thresh);
+    backend::threshold_watcher watch(cell_index.data(), time_before.data(), time_after.data(), values.data(), index, thresh, context);
 
     // initially the first and third watch should not be spiking
     //           the second is spiking

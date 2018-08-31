@@ -9,14 +9,13 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/profile/meter_manager.hpp>
-#include <arbor/common_types.hpp>
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/profile/profiler.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/simulation.hpp>
-#include <arbor/threadinfo.hpp>
+#include <arbor/version.hpp>
 
 
 #include <aux/ioutil.hpp>
@@ -31,13 +30,23 @@
 namespace profile = arb::profile;
 
 int main(int argc, char** argv) {
+    bool is_root = true;
+
     try {
-        arb::execution_context context;
-#ifdef ARB_HAVE_MPI
-        aux::with_mpi guard(&argc, &argv);
-        context.distributed = mpi_context(MPI_COMM_WORLD);
+#ifdef ARB_MPI_ENABLED
+        aux::with_mpi guard(argc, argv, false);
+        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
+        {
+            int rank = 0;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            is_root = rank==0;
+        }
+#else
+        auto context = arb::make_context();
 #endif
-        const bool is_root =  context.distributed.id()==0;
+#ifdef ARB_PROFILE_ENABLED
+        profile::profiler_initialize(context);
+#endif
 
         std::cout << aux::mask_stream(is_root);
 
@@ -45,31 +54,30 @@ int main(int argc, char** argv) {
 
         std::cout << params << "\n";
 
-        profile::meter_manager meters(&context.distributed);
-        meters.start();
+        profile::meter_manager meters;
+        meters.start(context);
 
         // Create an instance of our recipe.
         bench_recipe recipe(params);
-        meters.checkpoint("recipe-build");
+        meters.checkpoint("recipe-build", context);
 
         // Make the domain decomposition for the model
-        auto local = arb::local_allocation();
-        auto decomp = arb::partition_load_balance(recipe, local, &context);
-        meters.checkpoint("domain-decomp");
+        auto decomp = arb::partition_load_balance(recipe, context);
+        meters.checkpoint("domain-decomp", context);
 
         // Construct the model.
-        arb::simulation sim(recipe, decomp, &context);
-        meters.checkpoint("model-build");
+        arb::simulation sim(recipe, decomp, context);
+        meters.checkpoint("model-build", context);
 
         // Run the simulation for 100 ms, with time steps of 0.01 ms.
         sim.run(params.duration, 0.01);
-        meters.checkpoint("model-run");
+        meters.checkpoint("model-run", context);
 
         // write meters
-        auto report = profile::make_meter_report(meters);
+        auto report = profile::make_meter_report(meters, context);
         std::cout << report << "\n";
 
-        if (is_root==0) {
+        if (is_root) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");

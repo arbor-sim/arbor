@@ -2,16 +2,20 @@
 #include <set>
 #include <vector>
 
-#include <arbor/recipe.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
+#include <arbor/generic_event.hpp>
+#include <arbor/recipe.hpp>
 #include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
 
 #include "cell_group.hpp"
 #include "cell_group_factory.hpp"
 #include "communication/communicator.hpp"
+#include "execution_context.hpp"
 #include "merge_events.hpp"
 #include "thread_private_spike_store.hpp"
+#include "threading/threading.hpp"
 #include "util/double_buffer.hpp"
 #include "util/filter.hpp"
 #include "util/maputil.hpp"
@@ -47,7 +51,7 @@ public:
 
 class simulation_state {
 public:
-    simulation_state(const recipe& rec, const domain_decomposition& decomp, const execution_context* ctx);
+    simulation_state(const recipe& rec, const domain_decomposition& decomp, execution_context ctx);
 
     void reset();
 
@@ -95,8 +99,6 @@ private:
     // Hash table for looking up the the local index of a cell with a given gid
     std::unordered_map<cell_gid_type, cell_size_type> gid_to_local_;
 
-    util::optional<cell_size_type> local_cell_index(cell_gid_type);
-
     communicator communicator_;
 
     task_system_handle task_system_;
@@ -127,12 +129,12 @@ private:
 simulation_state::simulation_state(
         const recipe& rec,
         const domain_decomposition& decomp,
-        const execution_context* ctx
+        execution_context ctx
     ):
-    local_spikes_(new spike_double_buffer(thread_private_spike_store(ctx->thread_pool),
-                                          thread_private_spike_store(ctx->thread_pool))),
+    local_spikes_(new spike_double_buffer(thread_private_spike_store(ctx.thread_pool),
+                                          thread_private_spike_store(ctx.thread_pool))),
     communicator_(rec, decomp, ctx),
-    task_system_(ctx->thread_pool)
+    task_system_(ctx.thread_pool)
 {
     const auto num_local_cells = communicator_.num_local_cells();
 
@@ -150,18 +152,7 @@ simulation_state::simulation_state(
             gid_to_local_[gid] = lidx;
 
             // Set up the event generators for cell gid.
-            auto rec_gens = rec.event_generators(gid);
-            auto& gens = event_generators_[lidx];
-            if (rec_gens.size()) {
-                // Allocate two empty event generators that will be used to
-                // merge events from the communicator and those already queued
-                // for delivery in future epochs.
-                gens.reserve(2+rec_gens.size());
-                gens.resize(2);
-                for (auto& g: rec_gens) {
-                    gens.push_back(std::move(g));
-                }
-            }
+            event_generators_[lidx] = rec.event_generators(gid);
             ++lidx;
         }
     }
@@ -171,7 +162,7 @@ simulation_state::simulation_state(
     foreach_group_index(
         [&](cell_group_ptr& group, int i) {
             const auto& group_info = decomp.groups[i];
-            auto factory = cell_kind_implementation(group_info.kind, group_info.backend);
+            auto factory = cell_kind_implementation(group_info.kind, group_info.backend, ctx);
             group = factory(group_info.gids, rec);
         });
 
@@ -196,11 +187,10 @@ void simulation_state::reset() {
         }
     }
 
-    // Reset all event generators, and advance to t_.
+    // Reset all event generators.
     for (auto& lane: event_generators_) {
         for (auto& gen: lane) {
             gen.reset();
-            gen.advance(t_);
         }
     }
 
@@ -294,6 +284,15 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
     return t_;
 }
 
+template <typename Seq, typename Value, typename Less = std::less<>>
+auto split_sorted_range(Seq&& seq, const Value& v, Less cmp = Less{}) {
+    auto canon = util::canonical_view(seq);
+    auto it = std::lower_bound(canon.begin(), canon.end(), v, cmp);
+    return std::make_pair(
+        util::make_range(seq.begin(), it),
+        util::make_range(it, seq.end()));
+}
+
 // Populate the event lanes for epoch+1 (i.e event_lanes_[epoch+1)]
 // Update each lane in parallel, if supported by the threading backend.
 // On completion event_lanes[epoch+1] will contain sorted lists of events with
@@ -302,18 +301,72 @@ time_type simulation_state::run(time_type tfinal, time_type dt) {
 //      event_lanes[epoch]: take all events ≥ t_from
 //      event_generators  : take all events < t_to
 //      pending_events    : take all events
+
+// merge_cell_events() is a separate function for unit testing purposes.
+void merge_cell_events(
+    time_type t_from,
+    time_type t_to,
+    event_span old_events,
+    event_span pending,
+    std::vector<event_generator>& generators,
+    pse_vector& new_events)
+{
+    PE(communication_enqueue_setup);
+    new_events.clear();
+    old_events = split_sorted_range(old_events, t_from, event_time_less()).second;
+    PL();
+
+    if (!generators.empty()) {
+        PE(communication_enqueue_setup);
+        // Tree-merge events in [t_from, t_to) from old, pending and generator events.
+
+        std::vector<event_span> spanbuf;
+        spanbuf.reserve(2+generators.size());
+
+        auto old_split = split_sorted_range(old_events, t_to, event_time_less());
+        auto pending_split = split_sorted_range(pending, t_to, event_time_less());
+
+        spanbuf.push_back(old_split.first);
+        spanbuf.push_back(pending_split.first);
+
+        for (auto& g: generators) {
+            event_span evs = g.events(t_from, t_to);
+            if (!evs.empty()) {
+                spanbuf.push_back(evs);
+            }
+        }
+        PL();
+
+        PE(communication_enqueue_tree);
+        tree_merge_events(spanbuf, new_events);
+        PL();
+
+        old_events = old_split.second;
+        pending = pending_split.second;
+    }
+
+    // Merge (remaining) old and pending events.
+    PE(communication_enqueue_merge);
+    auto n = new_events.size();
+    new_events.resize(n+pending.size()+old_events.size());
+    std::merge(pending.begin(), pending.end(), old_events.begin(), old_events.end(), new_events.begin()+n);
+    PL();
+}
+
 void simulation_state::setup_events(time_type t_from, time_type t_to, std::size_t epoch) {
     const auto n = communicator_.num_local_cells();
     threading::parallel_for::apply(0, n, task_system_.get(),
         [&](cell_size_type i) {
-            merge_events(
-                t_from, t_to,
-                event_lanes(epoch)[i],      // in:  the current event lane
-                pending_events_[i],         // in:  events from the communicator
-                event_generators_[i],       // in:  event generators for this lane
-                event_lanes(epoch+1)[i]);   // out: the event lane for the next epoch
+            PE(communication_enqueue_sort);
+            util::sort(pending_events_[i]);
+            PL();
+
+            event_span pending = util::range_pointer_view(pending_events_[i]);
+            event_span old_events = util::range_pointer_view(event_lanes(epoch)[i]);
+
+            merge_cell_events(t_from, t_to, old_events, pending, event_generators_[i], event_lanes(epoch+1)[i]);
             pending_events_[i].clear();
-        });
+            });
 }
 
 sampler_association_handle simulation_state::add_sampler(
@@ -368,9 +421,9 @@ void simulation_state::inject_events(const pse_vector& events) {
 simulation::simulation(
     const recipe& rec,
     const domain_decomposition& decomp,
-    const execution_context* ctx)
+    const context& ctx)
 {
-    impl_.reset(new simulation_state(rec, decomp, ctx));
+    impl_.reset(new simulation_state(rec, decomp, *ctx));
 }
 
 void simulation::reset() {

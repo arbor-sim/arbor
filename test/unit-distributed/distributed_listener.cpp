@@ -3,8 +3,6 @@
 #include <stdexcept>
 #include <string>
 
-#include <arbor/distributed_context.hpp>
-
 #include "../gtest.h"
 
 #include "distributed_listener.hpp"
@@ -27,10 +25,11 @@ distributed_listener::printer& operator<<(distributed_listener::printer& p, cons
     return p;
 }
 
-distributed_listener::distributed_listener(std::string f_base, const arb::distributed_context* ctx):
+distributed_listener::distributed_listener(std::string f_base, const arb::context& ctx):
     context_(ctx),
-    rank_(context_->id()),
-    size_(context_->size()),
+    rank_(arb::rank(ctx)),
+    size_(arb::num_ranks(ctx)),
+    mpi_(arb::has_mpi(ctx)),
     emit_(std::move(f_base), rank_)
 {}
 
@@ -95,7 +94,13 @@ void distributed_listener::OnTestEnd(const TestInfo& test_info) {
     ++test_case_tests_;
 
     // count the number of ranks that had errors
-    int global_errors = context_->sum(test_failures_>0 ? 1 : 0);
+    int global_errors = test_failures_? 1: 0;
+#ifdef ARB_MPI_ENABLED
+    if (mpi_) {
+        int local_error = test_failures_? 1: 0;
+        MPI_Allreduce(&local_error, global_errors, 1, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+    }
+#endif
     if (global_errors>0) {
         ++test_case_failures_;
         emit_ << "  GLOBAL_FAIL on " << global_errors << "ranks\n";

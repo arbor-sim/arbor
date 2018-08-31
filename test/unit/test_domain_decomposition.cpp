@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 
@@ -12,6 +12,17 @@
 
 using namespace arb;
 using arb::util::make_span;
+
+// TODO
+// The tests here will only test domain decomposition with GPUs when compiled
+// with CUDA support and run on a system with a GPU.
+// Ideally the tests should test domain decompositions under all conditions, however
+// to do that we have to refactor the partition_load_balance algorithm.
+// The partition_load_balance performs the decomposition to distribute
+// over resources described by the user-supplied arb::context, which is a
+// provides an interface to resources available at runtime.
+// The best way to test under all conditions, is probably to refactor the
+// partition_load_balance into components that can be tested in isolation.
 
 namespace {
     // Dummy recipes types for testing.
@@ -48,42 +59,16 @@ namespace {
 // test assumes one domain
 TEST(domain_decomposition, homogenous_population)
 {
-    execution_context context;
+    proc_allocation resources;
+    resources.num_threads = 1;
 
-    {   // Test on a node with 1 cpu core and no gpus.
-        // We assume that all cells will be put into cell groups of size 1.
-        // This assumption will not hold in the future, requiring and update to
-        // the test.
-        proc_allocation nd{1, 0};
-
-        unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
-
-        EXPECT_EQ(D.num_global_cells, num_cells);
-        EXPECT_EQ(D.num_local_cells, num_cells);
-        EXPECT_EQ(D.groups.size(), num_cells);
-
-        auto gids = make_span(num_cells);
-        for (auto gid: gids) {
-            EXPECT_EQ(0, D.gid_domain(gid));
-        }
-
-        // Each cell group contains 1 cell of kind cable1d_neuron
-        // Each group should also be tagged for cpu execution
-        for (auto i: gids) {
-            auto& grp = D.groups[i];
-            EXPECT_EQ(grp.gids.size(), 1u);
-            EXPECT_EQ(grp.gids.front(), unsigned(i));
-            EXPECT_EQ(grp.backend, backend_kind::multicore);
-            EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
-        }
-    }
-    {   // Test on a node with 1 gpu and 1 cpu core.
+    if (resources.has_gpu()) {
+        // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that all cells will be placed on gpu in a single group.
-        proc_allocation nd{1, 1};
+        auto ctx = make_context(resources);
 
         unsigned num_cells = 10;
-        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), nd, &context);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), ctx);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -104,21 +89,17 @@ TEST(domain_decomposition, homogenous_population)
         EXPECT_EQ(grp.backend, backend_kind::gpu);
         EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
     }
-}
+    {
+        resources.gpu_id = -1; // disable GPU if available
+        auto ctx = make_context(resources);
 
-TEST(domain_decomposition, heterogenous_population)
-{
-    execution_context context;
-
-    {   // Test on a node with 1 cpu core and no gpus.
+        // Test on a node with 1 cpu core and no gpus.
         // We assume that all cells will be put into cell groups of size 1.
         // This assumption will not hold in the future, requiring and update to
         // the test.
-        proc_allocation nd{1, 0};
 
         unsigned num_cells = 10;
-        auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, nd, &context);
+        const auto D = partition_load_balance(homo_recipe(num_cells, dummy_cell{}), ctx);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -131,32 +112,30 @@ TEST(domain_decomposition, heterogenous_population)
 
         // Each cell group contains 1 cell of kind cable1d_neuron
         // Each group should also be tagged for cpu execution
-        auto grps = make_span(num_cells);
-        std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
-        for (auto i: grps) {
+        for (auto i: gids) {
             auto& grp = D.groups[i];
             EXPECT_EQ(grp.gids.size(), 1u);
-            auto k = grp.kind;
-            kind_lists[k].insert(grp.gids.front());
+            EXPECT_EQ(grp.gids.front(), unsigned(i));
             EXPECT_EQ(grp.backend, backend_kind::multicore);
-        }
-
-        for (auto k: {cell_kind::cable1d_neuron, cell_kind::spike_source}) {
-            const auto& gids = kind_lists[k];
-            EXPECT_EQ(gids.size(), num_cells/2);
-            for (auto gid: gids) {
-                EXPECT_EQ(k, R.get_cell_kind(gid));
-            }
+            EXPECT_EQ(grp.kind, cell_kind::cable1d_neuron);
         }
     }
-    {   // Test on a node with 1 gpu and 1 cpu core.
+}
+
+TEST(domain_decomposition, heterogenous_population)
+{
+    proc_allocation resources;
+    resources.num_threads = 1;
+
+    if (resources.has_gpu()) {
+        // Test on a node with 1 gpu and 1 cpu core.
         // Assumes that calble cells are on gpu in a single group, and
         // rff cells are on cpu in cell groups of size 1
-        proc_allocation nd{1, 1};
+        auto ctx = make_context(resources);
 
         unsigned num_cells = 10;
         auto R = hetero_recipe(num_cells);
-        const auto D = partition_load_balance(R, nd, &context);
+        const auto D = partition_load_balance(R, ctx);
 
         EXPECT_EQ(D.num_global_cells, num_cells);
         EXPECT_EQ(D.num_local_cells, num_cells);
@@ -187,13 +166,58 @@ TEST(domain_decomposition, heterogenous_population)
         }
         EXPECT_EQ(num_cells, ncells);
     }
+    {
+        // Test on a node with 1 cpu core and no gpus.
+        // We assume that all cells will be put into cell groups of size 1.
+        // This assumption will not hold in the future, requiring and update to
+        // the test.
+
+        resources.gpu_id = -1; // disable GPU if available
+        auto ctx = make_context(resources);
+
+        unsigned num_cells = 10;
+        auto R = hetero_recipe(num_cells);
+        const auto D = partition_load_balance(R, ctx);
+
+        EXPECT_EQ(D.num_global_cells, num_cells);
+        EXPECT_EQ(D.num_local_cells, num_cells);
+        EXPECT_EQ(D.groups.size(), num_cells);
+
+        auto gids = make_span(num_cells);
+        for (auto gid: gids) {
+            EXPECT_EQ(0, D.gid_domain(gid));
+        }
+
+        // Each cell group contains 1 cell of kind cable1d_neuron
+        // Each group should also be tagged for cpu execution
+        auto grps = make_span(num_cells);
+        std::map<cell_kind, std::set<cell_gid_type>> kind_lists;
+        for (auto i: grps) {
+            auto& grp = D.groups[i];
+            EXPECT_EQ(grp.gids.size(), 1u);
+            auto k = grp.kind;
+            kind_lists[k].insert(grp.gids.front());
+            EXPECT_EQ(grp.backend, backend_kind::multicore);
+        }
+
+        for (auto k: {cell_kind::cable1d_neuron, cell_kind::spike_source}) {
+            const auto& gids = kind_lists[k];
+            EXPECT_EQ(gids.size(), num_cells/2);
+            for (auto gid: gids) {
+                EXPECT_EQ(k, R.get_cell_kind(gid));
+            }
+        }
+    }
 }
 
 TEST(domain_decomposition, hints) {
     // Check that we can provide group size hint and gpu/cpu preference
     // by cell kind.
+    // The hints perfer the multicore backend, so the decomposition is expected
+    // to never have cell groups on the GPU, regardless of whether a GPU is
+    // available or not.
 
-    execution_context context;
+    auto ctx = make_context();
 
     partition_hint_map hints;
     hints[cell_kind::cable1d_neuron].cpu_group_size = 3;
@@ -202,8 +226,7 @@ TEST(domain_decomposition, hints) {
 
     domain_decomposition D = partition_load_balance(
         hetero_recipe(20),
-        proc_allocation{16, 1}, // 16 threads, 1 gpu.
-        &context,
+        ctx,
         hints);
 
     std::vector<std::vector<cell_gid_type>> expected_c1d_groups =

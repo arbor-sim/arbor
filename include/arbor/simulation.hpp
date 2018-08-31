@@ -6,11 +6,12 @@
 #include <vector>
 
 #include <arbor/common_types.hpp>
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/sampling.hpp>
 #include <arbor/schedule.hpp>
+#include <arbor/spike.hpp>
 #include <arbor/util/handle_set.hpp>
 
 namespace arb {
@@ -22,7 +23,7 @@ class simulation_state;
 
 class simulation {
 public:
-    simulation(const recipe& rec, const domain_decomposition& decomp, const execution_context* ctx);
+    simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx);
 
     void reset();
 

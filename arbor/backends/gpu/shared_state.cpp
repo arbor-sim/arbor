@@ -120,6 +120,7 @@ shared_state::shared_state(
     dt_cv(n_cv),
     voltage(n_cv),
     current_density(n_cv),
+    temperature_degC(1),
     deliverable_events(n_cell)
 {}
 
@@ -139,6 +140,7 @@ void shared_state::reset(fvm_value_type initial_voltage, fvm_value_type temperat
     memory::fill(current_density, 0);
     memory::fill(time, 0);
     memory::fill(time_to, 0);
+    memory::fill(temperature_degC, temperature_K - 273.15);
 
     for (auto& i: ion_data) {
         i.second.reset(temperature_K);

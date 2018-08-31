@@ -1,11 +1,13 @@
 #include <arbor/profile/timer.hpp>
 
 #include <arbor/profile/meter_manager.hpp>
+#include <arbor/context.hpp>
 
 #include "memory_meter.hpp"
 #include "power_meter.hpp"
 
 #include "algorithms.hpp"
+#include "execution_context.hpp"
 #include "util/hostname.hpp"
 #include "util/strprintf.hpp"
 #include "util/rangeutil.hpp"
@@ -18,23 +20,25 @@ using util::strprintf;
 
 measurement::measurement(std::string n, std::string u,
                          const std::vector<double>& readings,
-                         const distributed_context* ctx):
+                         const context& ctx):
     name(std::move(n)), units(std::move(u))
 {
+    auto dist = ctx->distributed;
+
     // Assert that the same number of readings were taken on every domain.
     const auto num_readings = readings.size();
-    if (ctx->min(num_readings)!=ctx->max(num_readings)) {
+    if (dist->min(num_readings)!=dist->max(num_readings)) {
         throw std::out_of_range(
             "the number of checkpoints in the \""+name+"\" meter do not match across domains");
     }
 
     // Gather across all of the domains onto the root domain.
     for (auto r: readings) {
-        measurements.push_back(ctx->gather(r, 0));
+        measurements.push_back(dist->gather(r, 0));
     }
 }
 
-meter_manager::meter_manager(const distributed_context* ctx): glob_ctx_(ctx) {
+meter_manager::meter_manager() {
     if (auto m = make_memory_meter()) {
         meters_.push_back(std::move(m));
     }
@@ -46,7 +50,7 @@ meter_manager::meter_manager(const distributed_context* ctx): glob_ctx_(ctx) {
     }
 };
 
-void meter_manager::start() {
+void meter_manager::start(const context& ctx) {
     arb_assert(!started_);
 
     started_ = true;
@@ -57,13 +61,13 @@ void meter_manager::start() {
     }
 
     // Enforce a global barrier after taking the time stamp
-    glob_ctx_->barrier();
+    ctx->distributed->barrier();
 
     start_time_ = timer_type::tic();
 };
 
 
-void meter_manager::checkpoint(std::string name) {
+void meter_manager::checkpoint(std::string name, const context& ctx) {
     arb_assert(started_);
 
     // Record the time taken on this domain since the last checkpoint
@@ -76,7 +80,7 @@ void meter_manager::checkpoint(std::string name) {
     }
 
     // Synchronize all domains before setting start time for the next interval
-    glob_ctx_->barrier();
+    ctx->distributed->barrier();
     start_time_ = timer<>::tic();
 }
 
@@ -92,16 +96,10 @@ const std::vector<double>& meter_manager::times() const {
     return times_;
 }
 
-const distributed_context* meter_manager::context() const {
-    return glob_ctx_;
-}
-
 // Build a report of meters, for use at the end of a simulation
 // for output to file or analysis.
-meter_report make_meter_report(const meter_manager& manager) {
+meter_report make_meter_report(const meter_manager& manager, const context& ctx) {
     meter_report report;
-
-    auto ctx = manager.context();
 
     // Add the times to the meter outputs
     report.meters.push_back(measurement("time", "s", manager.times(), ctx));
@@ -114,7 +112,7 @@ meter_report make_meter_report(const meter_manager& manager) {
 
     // Gather a vector with the names of the node that each rank is running on.
     auto host = util::hostname();
-    auto hosts = ctx->gather(host? *host: "unknown", 0);
+    auto hosts = ctx->distributed->gather(host? *host: "unknown", 0);
     report.hosts = hosts;
 
     // Count the number of unique hosts.
@@ -123,7 +121,7 @@ meter_report make_meter_report(const meter_manager& manager) {
     auto num_hosts = std::distance(hosts.begin(), std::unique(hosts.begin(), hosts.end()));
 
     report.checkpoints = manager.checkpoint_names();
-    report.num_domains = ctx->size();
+    report.num_domains = ctx->distributed->size();
     report.num_hosts = num_hosts;
 
     return report;

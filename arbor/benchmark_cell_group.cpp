@@ -3,7 +3,7 @@
 
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/recipe.hpp>
-#include <arbor/time_sequence.hpp>
+#include <arbor/schedule.hpp>
 
 #include "cell_group.hpp"
 #include "profile/profiler_macro.hpp"
@@ -50,7 +50,6 @@ void benchmark_cell_group::advance(epoch ep,
     // Micro-seconds to advance in this epoch.
     auto us = 1e3*(ep.tfinal-t_);
     for (auto i: util::make_span(0, gids_.size())) {
-        auto& tseq = cells_[i].time_sequence;
         // Expected time to complete epoch in micro seconds.
         const double duration_us = cells_[i].realtime_ratio*us;
         const auto gid = gids_[i];
@@ -58,9 +57,9 @@ void benchmark_cell_group::advance(epoch ep,
         // Start timer.
         auto start = high_resolution_clock::now();
 
-        while (tseq.front()<ep.tfinal) {
-            spikes_.push_back({{gid, 0u}, tseq.front()});
-            tseq.pop();
+        auto spike_times = util::make_range(cells_[i].time_sequence.events(t_, ep.tfinal));
+        for (auto t: spike_times) {
+            spikes_.push_back({{gid, 0u}, t});
         }
 
         // Wait until the expected time to advance has elapsed. Use a busy-wait

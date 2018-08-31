@@ -33,6 +33,8 @@
 #include <iterator>
 #include <type_traits>
 
+#include <arbor/util/compat.hpp>
+
 // Derived class I must at minimum provide:
 //
 // * specialization of simd_traits.
@@ -240,7 +242,7 @@ struct implbase {
         I::copy_to(w, c);
 
         for (unsigned i = 0; i<width; ++i) {
-            r[i] = std::fma(a[i], b[i], c[i]);
+            r[i] = compat::fma(a[i], b[i], c[i]);
         }
         return I::copy_from(r);
     }

@@ -8,11 +8,6 @@ enable_language(CXX)
 # Configure-time build options for Arbor:
 #----------------------------------------------------------
 
-# Enable CUDA support with ARB_GPU_MODEL.
-
-set(ARB_GPU_MODEL "none" CACHE STRING "The target GPU architecture: one of {none,K20,K80,P100}")
-set_property(CACHE ARB_GPU_MODEL PROPERTY STRINGS none K20 K80 P100 )
-
 # Specify target archiecture.
 
 set(ARB_ARCH "" CACHE STRING "Target architecture for arbor libraries")
@@ -37,6 +32,7 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 #----------------------------------------------------------
 # Configure-time features for Arbor:
 #----------------------------------------------------------
+option(ARB_WITH_GPU "build with GPU support" OFF)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
@@ -72,7 +68,7 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 # Add CUDA as a language if GPU support requested.
 # (This has to be set early so as to enable CUDA tests in generator
 # expressions.)
-if(NOT ARB_GPU_MODEL MATCHES "none")
+if(ARB_WITH_GPU)
     enable_language(CUDA)
 endif()
 
@@ -169,7 +165,7 @@ endif()
 # CUDA support
 #--------------
 
-if(NOT ARB_GPU_MODEL MATCHES "none")
+if(ARB_WITH_GPU)
     set(ARB_WITH_CUDA TRUE)
 
     add_compile_options(
@@ -177,22 +173,10 @@ if(NOT ARB_GPU_MODEL MATCHES "none")
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
     target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU)
 
-    if(ARB_GPU_MODEL MATCHES "K20")
-        set(cuda_arch sm_35)
-        set(arb_cuda_arch 350)
-    elseif(ARB_GPU_MODEL MATCHES "K80")
-        set(cuda_arch sm_37)
-        set(arb_cuda_arch 370)
-    elseif(ARB_GPU_MODEL MATCHES "P100")
-        set(cuda_arch sm_60)
-        set(arb_cuda_arch 600)
-    else()
-        message(FATAL_ERROR "-- GPU architecture '${ARB_GPU_MODEL}' not supported. Use one of {none, K20, K80, P100}")
-    endif()
+    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
+    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
+    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
 
-    target_compile_options(arbor-private-deps INTERFACE
-        $<$<COMPILE_LANGUAGE:CUDA>:-arch=${cuda_arch}>)
-    target_compile_definitions(arbor-private-deps INTERFACE ARB_CUDA_ARCH=${arb_cuda_arch})
 endif()
 
 # Use libunwind if available for pretty printing stack traces
@@ -218,6 +202,13 @@ else()
     set(ARB_WITH_EXTERNAL_MODCC FALSE)
 endif()
 
+set(ARB_MODCC_FLAGS)
+if(ARB_VECTORIZE)
+    list(APPEND ARB_MODCC_FLAGS "--simd")
+endif()
+if(ARB_WITH_PROFILING)
+    list(APPEND ARB_MODCC_FLAGS "--profile")
+endif()
 
 #----------------------------------------------------------
 # Configure targets in sub-directories.

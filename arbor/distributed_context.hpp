@@ -4,8 +4,9 @@
 #include <string>
 
 #include <arbor/spike.hpp>
-#include <arbor/communication/gathered_vector.hpp>
 #include <arbor/util/pp_util.hpp>
+
+#include "communication/gathered_vector.hpp"
 
 namespace arb {
 
@@ -27,7 +28,7 @@ namespace arb {
     T sum(T value) const override { return wrapped.sum(value); }\
     std::vector<T> gather(T value, int root) const override { return wrapped.gather(value, root); }
 
-#define ARB_COLLECTIVE_TYPES_ float, double, int, std::uint32_t, std::uint64_t
+#define ARB_COLLECTIVE_TYPES_ float, double, int, unsigned, long, unsigned long, long long, unsigned long long
 
 // Defines the concept/interface for a distributed communication context.
 //
@@ -88,7 +89,7 @@ private:
         virtual void barrier() const = 0;
         virtual std::string name() const = 0;
 
-        ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_);
+        ARB_PP_FOREACH(ARB_INTERFACE_COLLECTIVES_, ARB_COLLECTIVE_TYPES_)
         virtual std::vector<std::string> gather(std::string value, int root) const = 0;
 
         virtual ~interface() {}
@@ -163,12 +164,16 @@ inline distributed_context::distributed_context():
     distributed_context(local_context())
 {}
 
+using distributed_context_handle = std::shared_ptr<distributed_context>;
+
+inline
+distributed_context_handle make_local_context() {
+    return std::make_shared<distributed_context>();
+}
+
 // MPI context creation functions only provided if built with MPI support.
-
-distributed_context mpi_context();
-
 template <typename MPICommType>
-distributed_context mpi_context(MPICommType);
+distributed_context_handle make_mpi_context(MPICommType);
 
 } // namespace arb
 

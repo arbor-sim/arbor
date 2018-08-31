@@ -12,8 +12,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arbor/context.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/load_balance.hpp>
@@ -76,7 +76,6 @@ public:
         arb_assert(gid==0); // There is only one cell in the model
 
         using RNG = std::mt19937_64;
-        using pgen = arb::poisson_generator<RNG>;
 
         auto hz_to_freq = [](double hz) { return hz*1e-3; };
         time_type t0 = 0;
@@ -92,15 +91,15 @@ public:
 
         // Add excitatory generator
         gens.push_back(
-            pgen(cell_member_type{0,0}, // Target synapse (gid, local_id).
-                 w_e,                   // Weight of events to deliver
-                 RNG(29562872),         // Random number generator to use
-                 t0,                    // Events start being delivered from this time
-                 lambda_e));            // Expected frequency (events per ms)
+            poisson_generator(cell_member_type{0,0}, // Target synapse (gid, local_id).
+                              w_e,                   // Weight of events to deliver
+                              t0,                    // Events start being delivered from this time
+                              lambda_e,              // Expected frequency (kHz)
+                              RNG(29562872)));       // Random number generator to use
 
         // Add inhibitory generator
         gens.emplace_back(
-            pgen(cell_member_type{0,0}, w_i, RNG(86543891), t0, lambda_i));
+            poisson_generator(cell_member_type{0,0}, w_i, t0, lambda_i,  RNG(86543891)));
 
         return gens;
     }
@@ -128,17 +127,16 @@ int main() {
     // A distributed_context is required for distributed computation (e.g. MPI).
     // For this simple one-cell example, non-distributed context is suitable,
     // which is what we get with a default-constructed distributed_context.
-    arb::execution_context context;
+    auto context = arb::make_context();
 
     // Create an instance of our recipe.
     generator_recipe recipe;
 
     // Make the domain decomposition for the model
-    auto node = arb::local_allocation();
-    auto decomp = arb::partition_load_balance(recipe, node, &context);
+    auto decomp = arb::partition_load_balance(recipe, context);
 
     // Construct the model.
-    arb::simulation sim(recipe, decomp, &context);
+    arb::simulation sim(recipe, decomp, context);
 
     // Set up the probe that will measure voltage in the cell.
 

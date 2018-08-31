@@ -8,18 +8,6 @@
 namespace arb {
 namespace gpu {
 
-// Pre-pascal NVIDIA GPUs don't support page faulting for GPU reads of managed
-// memory, so when a kernel is launched, all managed memory is copied to the
-// GPU. The upshot of this is that no CPU-side reads can be made of _any_
-// managed memory can be made whe _any_ kernel is running.
-//
-// The following helper function can be used to determine whether
-// synchronization is required before CPU-side reads of managed memory: if the
-// device concurrentManagedAccess property is zero, then safe host-side requires
-// a synchronization.
-
-bool device_concurrent_managed_access();
-
 // used to indicate that the type pointed to by the managed_ptr is to be
 // constructed in the managed_ptr constructor
 struct construct_in_place_tag {};
@@ -41,11 +29,7 @@ public:
     using element_type = T;
     using pointer = element_type*;
     using reference = element_type&;
-
-    managed_ptr():
-        concurrent_managed_access(device_concurrent_managed_access())
-    {}
-
+    
     managed_ptr(const managed_ptr& other) = delete;
 
     // Allocate memory and construct in place using args.
@@ -53,18 +37,14 @@ public:
     // point of the wrapper is to hide the complexity of allocating managed
     // memory and constructing a type in place.
     template <typename... Args>
-    managed_ptr(construct_in_place_tag, Args&&... args):
-        concurrent_managed_access(device_concurrent_managed_access())
-    {
+    managed_ptr(construct_in_place_tag, Args&&... args) {
         memory::managed_allocator<element_type> allocator;
         data_ = allocator.allocate(1u);
         synchronize();
         data_ = new (data_) element_type(std::forward<Args>(args)...);
     }
 
-    managed_ptr(managed_ptr&& other):
-        concurrent_managed_access(other.concurrent_managed_access)
-    {
+    managed_ptr(managed_ptr&& other) {
         std::swap(other.data_, data_);
     }
 
@@ -113,16 +93,7 @@ public:
         cudaDeviceSynchronize();
     }
 
-    // Synchronize if concurrent host-side access is not supported.
-    void host_access() const {
-        if (!concurrent_managed_access) {
-            cudaDeviceSynchronize();
-        }
-    }
-
 private:
-    const bool concurrent_managed_access;
-
     __host__ __device__
     bool is_allocated() const {
         return data_!=nullptr;

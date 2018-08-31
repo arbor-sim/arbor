@@ -1,11 +1,10 @@
 #include "../gtest.h"
 
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/lif_cell.hpp>
 #include <arbor/load_balance.hpp>
-#include <arbor/threadinfo.hpp>
 #include <arbor/recipe.hpp>
+#include <arbor/schedule.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/spike_source_cell.hpp>
 
@@ -61,7 +60,7 @@ public:
         // regularly spiking cell.
         if (gid == 0) {
             // Produces just a single spike at time 0ms.
-            return spike_source_cell{vector_time_seq({0.f})};
+            return spike_source_cell{explicit_schedule({0.f})};
         }
         // LIF cell.
         return lif_cell();
@@ -155,11 +154,10 @@ TEST(lif_cell_group, spikes) {
     // make two lif cells
     path_recipe recipe(2, 1000, 0.1);
 
-    execution_context context;
-    proc_allocation nd = local_allocation();
+    auto context = make_context();
 
-    auto decomp = partition_load_balance(recipe, nd, &context);
-    simulation sim(recipe, decomp, &context);
+    auto decomp = partition_load_balance(recipe, context);
+    simulation sim(recipe, decomp, context);
 
     std::vector<spike_event> events;
 
@@ -194,13 +192,12 @@ TEST(lif_cell_group, ring)
     // Total simulation time.
     time_type simulation_time = 100;
 
-    execution_context context;
-    proc_allocation nd = local_allocation();
+    auto context = make_context();
     auto recipe = ring_recipe(num_lif_cells, weight, delay);
-    auto decomp = partition_load_balance(recipe, nd, &context);
+    auto decomp = partition_load_balance(recipe, context);
 
     // Creates a simulation with a ring recipe of lif neurons
-    simulation sim(recipe, decomp, &context);
+    simulation sim(recipe, decomp, context);
 
     std::vector<spike> spike_buffer;
 

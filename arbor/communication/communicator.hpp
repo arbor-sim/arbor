@@ -9,15 +9,16 @@
 
 #include <arbor/assert.hpp>
 #include <arbor/common_types.hpp>
-#include <arbor/communication/gathered_vector.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/spike.hpp>
 
 #include "algorithms.hpp"
+#include "communication/gathered_vector.hpp"
 #include "connection.hpp"
+#include "distributed_context.hpp"
 #include "event_queue.hpp"
+#include "execution_context.hpp"
 #include "profile/profiler_macro.hpp"
 #include "threading/threading.hpp"
 #include "util/double_buffer.hpp"
@@ -44,10 +45,10 @@ public:
 
     explicit communicator(const recipe& rec,
                           const domain_decomposition& dom_dec,
-                          const execution_context* ctx)
+                          execution_context& ctx)
     {
-        distributed_ = &ctx->distributed;
-        thread_pool_ = ctx->thread_pool;
+        distributed_ = ctx.distributed;
+        thread_pool_ = ctx.thread_pool;
 
         num_domains_ = distributed_->size();
         num_local_groups_ = dom_dec.groups.size();
@@ -261,7 +262,7 @@ private:
     std::vector<cell_size_type> index_divisions_;
     util::partition_view_type<std::vector<cell_size_type>> index_part_;
 
-    const distributed_context* distributed_;
+    distributed_context_handle distributed_;
     task_system_handle thread_pool_;
     std::uint64_t num_spikes_ = 0u;
 };

@@ -4,6 +4,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <arbor/context.hpp>
 #include <arbor/common_types.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
@@ -21,7 +22,7 @@
 #include "validation_data.hpp"
 
 void run_kinetic_dt(
-    arb::backend_kind backend,
+    const arb::context& context,
     arb::mc_cell& c,
     arb::cell_probe_address probe,
     float t_end,
@@ -38,17 +39,13 @@ void run_kinetic_dt(
     probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
     meta["sim"] = "arbor";
-    meta["backend_kind"] = to_string(backend);
+    meta["backend_kind"] = arb::has_gpu(context)? "gpu": "multicore";
 
     convergence_test_runner<float> runner("dt", plabels, meta);
     runner.load_reference_data(ref_file);
 
-    execution_context context;
-    proc_allocation nd;
-    nd.num_gpus = (backend==backend_kind::gpu);
-
-    auto decomp = partition_load_balance(rec, nd, &context);
-    simulation sim(rec, decomp, &context);
+    auto decomp = partition_load_balance(rec, context);
+    simulation sim(rec, decomp, context);
 
     auto exclude = stimulus_ends(c);
 
@@ -70,7 +67,7 @@ end:
     runner.assert_all_convergence();
 }
 
-void validate_kinetic_kin1(arb::backend_kind backend) {
+void validate_kinetic_kin1(const arb::context& ctx) {
     using namespace arb;
 
     // 20 µm diameter soma with single mechanism, current probe
@@ -85,10 +82,10 @@ void validate_kinetic_kin1(arb::backend_kind backend) {
         {"units", "nA"}
     };
 
-    run_kinetic_dt(backend, c, probe, 100.f, meta, "numeric_kin1.json");
+    run_kinetic_dt(ctx, c, probe, 100.f, meta, "numeric_kin1.json");
 }
 
-void validate_kinetic_kinlva(arb::backend_kind backend) {
+void validate_kinetic_kinlva(const arb::context& ctx) {
     using namespace arb;
 
     // 20 µm diameter soma with single mechanism, current probe
@@ -104,22 +101,34 @@ void validate_kinetic_kinlva(arb::backend_kind backend) {
         {"units", "mV"}
     };
 
-    run_kinetic_dt(backend, c, probe, 300.f, meta, "numeric_kinlva.json");
+    run_kinetic_dt(ctx, c, probe, 300.f, meta, "numeric_kinlva.json");
 }
 
 
 using namespace arb;
 
 TEST(kinetic, kin1_numeric_ref) {
-    validate_kinetic_kin1(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
-        validate_kinetic_kin1(arb::backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_kinetic_kin1(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_kinetic_kin1(ctx);
     }
 }
 
 TEST(kinetic, kinlva_numeric_ref) {
-    validate_kinetic_kinlva(backend_kind::multicore);
-    if (local_allocation().num_gpus) {
-        validate_kinetic_kinlva(arb::backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_kinetic_kinlva(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_kinetic_kinlva(ctx);
     }
 }

@@ -1,8 +1,8 @@
 #include <vector>
 
 #include "../gtest.h"
+#include "distributed_context.hpp"
 
-#include <arbor/distributed_context.hpp>
 #include <arbor/spike.hpp>
 
 // Test that there are no errors constructing a distributed_context from a local_context

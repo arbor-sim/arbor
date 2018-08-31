@@ -4,7 +4,6 @@
 #include "../gtest.h"
 
 #include <arbor/common_types.hpp>
-#include <arbor/distributed_context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/fvm_types.hpp>
 #include <arbor/load_balance.hpp>
@@ -19,6 +18,7 @@
 #include "algorithms.hpp"
 #include "backends/multicore/fvm.hpp"
 #include "backends/multicore/mechanism.hpp"
+#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "fvm_lowered_cell_impl.hpp"
 #include "sampler_map.hpp"
@@ -80,6 +80,8 @@ using namespace arb;
 
 TEST(fvm_lowered, matrix_init)
 {
+    execution_context context;
+
     auto isnan = [](auto v) { return std::isnan(v); };
     auto ispos = [](auto v) { return v>0; };
     auto isneg = [](auto v) { return v<0; };
@@ -92,7 +94,7 @@ TEST(fvm_lowered, matrix_init)
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0}, cable1d_recipe(cell), targets, probe_map);
 
     auto& J = fvcell.*private_matrix_ptr;
@@ -116,6 +118,8 @@ TEST(fvm_lowered, matrix_init)
 TEST(fvm_lowered, target_handles) {
     using namespace arb;
 
+    execution_context context;
+
     mc_cell cells[] = {
         make_cell_ball_and_stick(),
         make_cell_ball_and_3stick()
@@ -135,7 +139,7 @@ TEST(fvm_lowered, target_handles) {
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0, 1}, cable1d_recipe(cells), targets, probe_map);
 
     mechanism* expsyn = find_mechanism(fvcell, "expsyn");
@@ -175,6 +179,8 @@ TEST(fvm_lowered, stimulus) {
     // amplitude | 0.3  |  0.1
     // CV        |   4  |    0
 
+    execution_context context;
+
     std::vector<mc_cell> cells;
     cells.push_back(make_cell_ball_and_stick(false));
 
@@ -197,7 +203,7 @@ TEST(fvm_lowered, stimulus) {
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0}, cable1d_recipe(cells), targets, probe_map);
 
     mechanism* stim = find_mechanism(fvcell, "_builtin_stimulus");
@@ -290,7 +296,8 @@ TEST(fvm_lowered, derived_mechs) {
         std::vector<target_handle> targets;
         probe_association_map<probe_handle> probe_map;
 
-        fvm_cell fvcell;
+        execution_context context;
+        fvm_cell fvcell(context);
         fvcell.initialize({0, 1, 2}, rec, targets, probe_map);
 
         // Both mechanisms will have the same internal name, "test_kin1".
@@ -310,7 +317,6 @@ TEST(fvm_lowered, derived_mechs) {
         util::sort(tau_values);
         EXPECT_EQ(fvec({10., 20.}), tau_values);
     }
-
     {
         // Test dynamics:
         // 1. Current at same point on cell 0 at time 10 ms should equal that
@@ -328,9 +334,9 @@ TEST(fvm_lowered, derived_mechs) {
 
         float times[] = {10.f, 20.f};
 
-        execution_context context;
-        auto decomp = partition_load_balance(rec, proc_allocation{1, 0}, &context);
-        simulation sim(rec, decomp, &context);
+        auto ctx = make_context();
+        auto decomp = partition_load_balance(rec, ctx);
+        simulation sim(rec, decomp, ctx);
         sim.add_sampler(all_probes, explicit_schedule(times), sampler);
         sim.run(30.0, 1.f/1024);
 
@@ -345,6 +351,7 @@ TEST(fvm_lowered, derived_mechs) {
         EXPECT_TRUE(testing::near_relative(samples[0][1]+samples[1][1], samples[2][1], relerr));
     }
 }
+
 
 // Test area-weighted linear combination of ion species concentrations
 
@@ -373,6 +380,8 @@ TEST(fvm_lowered, weighted_write_ion) {
     // the same as a 100µm dendrite, which makes it easier to describe the
     // expected weights.
 
+    execution_context context;
+
     mc_cell c;
     c.add_soma(5);
 
@@ -394,7 +403,7 @@ TEST(fvm_lowered, weighted_write_ion) {
     std::vector<target_handle> targets;
     probe_association_map<probe_handle> probe_map;
 
-    fvm_cell fvcell;
+    fvm_cell fvcell(context);
     fvcell.initialize({0}, cable1d_recipe(c), targets, probe_map);
 
     auto& state = *(fvcell.*private_state_ptr).get();

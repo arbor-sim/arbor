@@ -15,6 +15,7 @@
 #include "util/range.hpp"
 
 #include "common.hpp"
+#include "mech_private_field_access.hpp"
 
 using namespace arb;
 
@@ -23,17 +24,7 @@ using shared_state = backend::shared_state;
 using value_type = backend::value_type;
 using size_type = backend::size_type;
 
-// Access to mechanisms protected data:
-using field_table_type = std::vector<std::pair<const char*, value_type**>>;
-ACCESS_BIND(field_table_type (multicore::mechanism::*)(), field_table_ptr, &multicore::mechanism::field_table)
-
-util::range<const value_type*> mechanism_field(std::unique_ptr<multicore::mechanism>& m, const std::string& key) {
-    if (auto opt_ptr = util::value_by_key((m.get()->*field_table_ptr)(), key)) {
-        const value_type* field = *opt_ptr.value();
-        return util::make_range(field, field+m->size());
-    }
-    throw std::logic_error("internal error: no such field in mechanism");
-}
+// Access to more mechanism protected data:
 
 ACCESS_BIND(const value_type* multicore::mechanism::*, vec_v_ptr, &multicore::mechanism::vec_v_)
 ACCESS_BIND(value_type* multicore::mechanism::*, vec_i_ptr, &multicore::mechanism::vec_i_)
@@ -74,6 +65,11 @@ static bool all_equal_to(const Seq& s, double v) {
     });
 }
 
+template <typename A, typename B>
+auto unique_cast(std::unique_ptr<B> p) {
+    return std::unique_ptr<A>(dynamic_cast<A*>(p.release()));
+}
+
 TEST(synapses, syn_basic_state) {
     using util::fill;
     using value_type = multicore::backend::value_type;
@@ -83,16 +79,10 @@ TEST(synapses, syn_basic_state) {
     int num_comp = 4;
     int num_cell = 1;
 
-    auto multicore_mechanism_instance = [](const char* name) {
-        return std::unique_ptr<multicore::mechanism>(
-            dynamic_cast<multicore::mechanism*>(
-                global_default_catalogue().instance<backend>(name).release()));
-    };
-
-    auto expsyn = multicore_mechanism_instance("expsyn");
+    auto expsyn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("expsyn"));
     ASSERT_TRUE(expsyn);
 
-    auto exp2syn = multicore_mechanism_instance("exp2syn");
+    auto exp2syn = unique_cast<multicore::mechanism>(global_default_catalogue().instance<backend>("exp2syn"));
     ASSERT_TRUE(exp2syn);
 
     auto align = std::max(expsyn->data_alignment(), exp2syn->data_alignment());

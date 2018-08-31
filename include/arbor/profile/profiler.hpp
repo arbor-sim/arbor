@@ -5,9 +5,11 @@
 #include <unordered_map>
 #include <vector>
 
+#include <arbor/context.hpp>
 #include <arbor/profile/timer.hpp>
 
 namespace arb {
+
 namespace profile {
 
 // type used for region identifiers
@@ -32,6 +34,7 @@ struct profile {
 };
 
 void profiler_clear();
+void profiler_initialize(context& ctx);
 void profiler_enter(std::size_t region_id);
 void profiler_leave();
 
