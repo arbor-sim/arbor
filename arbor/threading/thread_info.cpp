@@ -45,6 +45,7 @@ util::optional<size_t> get_env_num_threads() {
         return util::nullopt;
     }
 
+    errno = 0;
     auto nthreads = std::strtoul(str, nullptr, 10);
 
     // check that the environment variable string describes a non-negative integer

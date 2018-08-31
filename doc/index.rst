@@ -55,7 +55,6 @@ Some key features include:
    cpp_recipe
    cpp_domdec
    cpp_simulation
-   cpp_distributed_context
 
 .. toctree::
    :caption: Developers:
@@ -64,4 +63,5 @@ Some key features include:
    simd_api
    profiler
    sampling_api
+   cpp_distributed_context
 

@@ -11,6 +11,7 @@ set(arbor_sources
     builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
+    execution_context.cpp
     gpu_context.cpp
     local_alloc.cpp
     event_binner.cpp

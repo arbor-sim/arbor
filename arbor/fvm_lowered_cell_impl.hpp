@@ -20,6 +20,7 @@
 #include <arbor/recipe.hpp>
 
 #include "builtin_mechanisms.hpp"
+#include "execution_context.hpp"
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "matrix.hpp"

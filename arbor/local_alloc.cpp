@@ -1,17 +1,16 @@
-#include <arbor/domain_decomposition.hpp>
-#include <arbor/execution_context.hpp>
+#include <arbor/context.hpp>
 
 #include "hardware/node_info.hpp"
+#include "threading/thread_info.hpp"
 #include "threading/threading.hpp"
 
 namespace arb {
 
-proc_allocation local_allocation(const execution_context& ctx) {
-    proc_allocation info;
-    info.num_threads = ctx.thread_pool->get_num_threads();
-    info.num_gpus = arb::hw::node_gpus();
+local_resources get_local_resources() {
+    auto avail_threads = threading::num_threads_init();
+    auto avail_gpus = arb::hw::node_gpus();
 
-    return info;
+    return local_resources(avail_threads, avail_gpus);
 }
 
 } // namespace arb
