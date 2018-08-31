@@ -10,37 +10,33 @@ To build a simulation the following are needed:
 
     * An :cpp:class:`arb::recipe` that describes the cells and connections
       in the model.
-    * An :cpp:class:`arb::hw::node_info` that describes the CPU and GPU hardware
-      resources on which the model will be run.
-    * An :cpp:class:`arb::distributed_context` that describes the distributed system
-      on which the model will run.
+    * An :cpp:class:`arb::context` used to execute the simulation.
 
 The workflow to build a simulation is to first generate a
 :cpp:class:`arb::domain_decomposition` that describes the distribution of the model
-over the local and distributed hardware resources (see :ref:`cppdomdec` and :ref:`cppdistcontext`),
+over the local and distributed hardware resources (see :ref:`cppdomdec`),
 then build the simulation.
 
 .. container:: example-code
 
     .. code-block:: cpp
 
-        // Get a communication context
-        arb::distributed_context context;
+        #include <arbor/context.hpp>
+        #include <arbor/domain_decomposition.hpp>
+        #include <arbor/simulation.hpp>
 
-        // Make description of the hardware that the simulation will run on.
-        arb::hw::node_info node;
-        node.num_cpu_cores = arb::threading::num_threads();
-        node.num_gpus = arb::hw::num_gpus()>0? 1: 0; // use 1 GPU if any available
+        // Get a communication context
+        arb::context context = make_context();
 
         // Make a recipe of user defined type my_recipe.
         my_recipe recipe;
 
         // Get a description of the partition the model over the cores
         // (and gpu if available) on node.
-        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, node, &context);
+        arb::domain_decomposition decomp = arb::partition_load_balance(recipe, context);
 
         // Instatitate the simulation.
-        arb::simulation sim(recipe, decomp, &context);
+        arb::simulation sim(recipe, decomp, context);
 
 
 Class Documentation
@@ -59,8 +55,7 @@ Class Documentation
             *   an :cpp:class:`arb::recipe` that describes the model;
             *   an :cpp:class:`arb::domain_decomposition` that describes how the
                 cells in the model are assigned to hardware resources;
-            *   an :cpp:class:`arb::distributed_context` which performs communication
-                on distributed memory syustems.
+            *   an :cpp:class:`arb::context` which is used to execute the simulation.
         * **Experimental inputs** that can change between model runs, such
           as external spike trains.
 
@@ -81,7 +76,7 @@ Class Documentation
 
     **Constructor:**
 
-    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const distributed_context* ctx)
+    .. cpp:function:: simulation(const recipe& rec, const domain_decomposition& decomp, const context& ctx)
 
     **Experimental inputs:**
 

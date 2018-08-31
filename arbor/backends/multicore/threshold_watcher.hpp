@@ -5,6 +5,7 @@
 #include <arbor/math.hpp>
 
 #include "backends/threshold_crossing.hpp"
+#include "execution_context.hpp"
 #include "multicore_common.hpp"
 
 namespace arb {
@@ -14,13 +15,16 @@ class threshold_watcher {
 public:
     threshold_watcher() = default;
 
+    threshold_watcher(const execution_context& ctx) {}
+
     threshold_watcher(
         const fvm_index_type* cv_to_cell,
         const fvm_value_type* t_before,
         const fvm_value_type* t_after,
         const fvm_value_type* values,
         const std::vector<fvm_index_type>& cv_index,
-        const std::vector<fvm_value_type>& thresholds
+        const std::vector<fvm_value_type>& thresholds,
+        const execution_context& context
     ):
         cv_to_cell_(cv_to_cell),
         t_before_(t_before),

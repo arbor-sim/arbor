@@ -1,6 +1,7 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/common_types.hpp>
+#include <arbor/context.hpp>
 #include <arbor/domain_decomposition.hpp>
 #include <arbor/load_balance.hpp>
 #include <arbor/mc_cell.hpp>
@@ -20,7 +21,7 @@
 
 using namespace arb;
 
-void validate_soma(backend_kind backend) {
+void validate_soma(const context& context) {
     float sample_dt = g_trace_io.sample_dt();
 
     mc_cell c = make_cell_soma_only();
@@ -29,11 +30,7 @@ void validate_soma(backend_kind backend) {
     rec.add_probe(0, 0, cell_probe_address{{0, 0.5}, cell_probe_address::membrane_voltage});
     probe_label plabels[1] = {{"soma.mid", {0u, 0u}}};
 
-    execution_context context;
-    proc_allocation nd;
-    nd.num_gpus = (backend==backend_kind::gpu);
-
-    auto decomp = partition_load_balance(rec, nd, context);
+    auto decomp = partition_load_balance(rec, context);
     simulation sim(rec, decomp, context);
 
     nlohmann::json meta = {
@@ -41,7 +38,7 @@ void validate_soma(backend_kind backend) {
         {"model", "soma"},
         {"sim", "arbor"},
         {"units", "mV"},
-        {"backend_kind", to_string(backend)}
+        {"backend_kind", has_gpu(context)? "gpu": "multicore"}
     };
 
     convergence_test_runner<float> runner("dt", plabels, meta);
@@ -68,9 +65,14 @@ end:
 }
 
 TEST(soma, numeric_ref) {
-    execution_context ctx;
-    validate_soma(backend_kind::multicore);
-    if (local_allocation(ctx).num_gpus) {
-        validate_soma(backend_kind::gpu);
+    proc_allocation resources;
+    {
+        auto ctx = make_context(resources);
+        validate_soma(ctx);
+    }
+    if (resources.has_gpu()) {
+        resources.gpu_id = -1;
+        auto ctx = make_context(resources);
+        validate_soma(ctx);
     }
 }

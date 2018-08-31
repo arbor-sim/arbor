@@ -10,6 +10,8 @@ set(arbor_sources
     builtin_mechanisms.cpp
     cell_group_factory.cpp
     common_types_io.cpp
+    execution_context.cpp
+    gpu_context.cpp
     local_alloc.cpp
     event_binner.cpp
     fvm_layout.cpp
@@ -55,7 +57,6 @@ if(ARB_WITH_CUDA)
         backends/gpu/stimulus.cpp
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
-        backends/gpu/managed_ptr.cpp
         backends/gpu/matrix_assemble.cu
         backends/gpu/matrix_interleave.cu
         backends/gpu/matrix_fine.cu

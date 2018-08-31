@@ -2,7 +2,6 @@
 
 #include "threading.hpp"
 #include "thread_info.hpp"
-#include <arbor/execution_context.hpp>
 
 using namespace arb::threading::impl;
 using namespace arb::threading;
@@ -114,18 +113,10 @@ void task_system::async(task tsk) {
     q_[i % count_].push(std::move(tsk));
 }
 
-int task_system::get_num_threads() {
+int task_system::get_num_threads() const {
     return threads_.size() + 1;
 }
 
-std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() {
+std::unordered_map<std::thread::id, std::size_t> task_system::get_thread_ids() const {
     return thread_ids_;
 };
-
-task_system_handle arb::make_thread_pool() {
-    return arb::make_thread_pool(num_threads_init());
-}
-
-task_system_handle arb::make_thread_pool(int nthreads) {
-    return task_system_handle(new task_system(nthreads));
-}

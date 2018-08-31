@@ -9,6 +9,7 @@
 #include "backends/multicore/multicore_common.hpp"
 #include "backends/multicore/shared_state.hpp"
 #include "backends/multicore/threshold_watcher.hpp"
+#include "execution_context.hpp"
 #include "util/padded_alloc.hpp"
 #include "util/range.hpp"
 #include "util/rangeutil.hpp"
@@ -46,7 +47,8 @@ struct backend {
     static threshold_watcher voltage_watcher(
         const shared_state& state,
         const std::vector<index_type>& cv,
-        const std::vector<value_type>& thresholds)
+        const std::vector<value_type>& thresholds,
+        const execution_context& context)
     {
         return threshold_watcher(
             state.cv_to_cell.data(),
@@ -54,7 +56,8 @@ struct backend {
             state.time_to.data(),
             state.voltage.data(),
             cv,
-            thresholds);
+            thresholds,
+            context);
     }
 };
 
