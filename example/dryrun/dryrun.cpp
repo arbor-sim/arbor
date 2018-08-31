@@ -127,12 +127,11 @@ private:
 struct cell_stats {
     using size_type = unsigned;
     size_type ncells = 0;
-    size_type nranks = 1;
+    int nranks = 1;
     size_type nsegs = 0;
     size_type ncomp = 0;
 
     cell_stats(arb::recipe& r, run_params params) {
-        if(params.sim_type == "mpi") {
 #ifdef ARB_MPI_ENABLED
             int rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -151,8 +150,7 @@ struct cell_stats {
             MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
 #endif
-        }
-        else if(params.sim_type == "dry_run") {
+        if(params.sim_type == "dry_run") {
             nranks = params.num_ranks;
             ncells = r.num_cells(); //total number of cells across all ranks
 
@@ -191,24 +189,20 @@ int main(int argc, char** argv) {
         bool root = true;
         auto params = read_options(argc, argv);
 
-        arb::context ctx = arb::make_context();
-
+#ifdef ARB_MPI_ENABLED
+        aux::with_mpi guard(argc, argv, false);
+        auto ctx = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
+        {
+            int rank;
+            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            root = rank==0;
+        }
+#else
+        auto ctx = arb::make_context();
         if (params.sim_type == "dry_run") {
             ctx = arb::make_context(arb::proc_allocation(), params.num_ranks, params.num_cells_per_rank);
         }
-        else if (params.sim_type == "mpi") {
-#ifdef ARB_MPI_ENABLED
-            aux::with_mpi guard(argc, argv, false);
-            ctx = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
-            {
-                int rank;
-                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-                root = rank==0;
-            }
-#else
-            throw std::runtime_error("MPI not available, can run in \"dry_run\" or \"local\" mode.");
 #endif
-        }
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);
@@ -249,7 +243,7 @@ int main(int argc, char** argv) {
 
         auto ns = sim.num_spikes();
         std::cout << "\n" << ns << " spikes generated at rate of "
-                  << params.duration/ns << " ms between spikes\n";
+                  << params.duration/ns << " ms between spikes\n\n";
 
         // Write spikes to file
         if (root) {
@@ -267,6 +261,9 @@ int main(int argc, char** argv) {
                 }
             }
         }
+
+        auto profile = arb::profile::profiler_summary();
+        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, ctx);
         std::cout << report;

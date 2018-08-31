@@ -147,13 +147,11 @@ const spike_event& tourney_tree::event(unsigned i) const {
 } // namespace impl
 
 void tree_merge_events(std::vector<event_span>& sources, pse_vector& out) {
-    PE(communication_enqueue_tree);
     impl::tourney_tree tree(sources);
     while (!tree.empty()) {
         out.push_back(tree.head());
         tree.pop();
     }
-    PL();
 }
 
 } // namespace arb

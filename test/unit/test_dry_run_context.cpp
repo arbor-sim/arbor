@@ -8,7 +8,7 @@
 
 // Test that there are no errors constructing a distributed_context from a dry_run_context
 using distributed_context_handle = std::shared_ptr<arb::distributed_context>;
-int num_ranks = 100;
+unsigned num_ranks = 100;
 unsigned num_cells_per_rank = 1000;
 
 TEST(dry_run_context, construct_distributed_context)
