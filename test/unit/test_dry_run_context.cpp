@@ -7,17 +7,18 @@
 #include <arbor/spike.hpp>
 
 // Test that there are no errors constructing a distributed_context from a dry_run_context
-int num_ranks = 100;
 using distributed_context_handle = std::shared_ptr<arb::distributed_context>;
+unsigned num_ranks = 100;
+unsigned num_cells_per_rank = 1000;
 
 TEST(dry_run_context, construct_distributed_context)
 {
-    distributed_context_handle ctx = arb::dry_run_context(num_ranks);
+    distributed_context_handle ctx = arb::dry_run_context(num_ranks, num_cells_per_rank);
 }
 
 TEST(dry_run_context, size_rank)
 {
-    distributed_context_handle ctx = arb::dry_run_context(num_ranks);
+    distributed_context_handle ctx = arb::dry_run_context(num_ranks, num_cells_per_rank);
 
     EXPECT_EQ(ctx->size(), num_ranks);
     EXPECT_EQ(ctx->id(), 0);
@@ -25,7 +26,7 @@ TEST(dry_run_context, size_rank)
 
 TEST(dry_run_context, minmax)
 {
-    distributed_context_handle ctx = arb::dry_run_context(num_ranks);
+    distributed_context_handle ctx = arb::dry_run_context(num_ranks, num_cells_per_rank);
 
     EXPECT_EQ(1., ctx->min(1.));
     EXPECT_EQ(1., ctx->max(1.));
@@ -44,7 +45,7 @@ TEST(dry_run_context, minmax)
 
 TEST(dry_run_context, sum)
 {
-    distributed_context_handle ctx = arb::dry_run_context(num_ranks);
+    distributed_context_handle ctx = arb::dry_run_context(num_ranks, num_cells_per_rank);
 
     EXPECT_EQ(42.,  ctx->min(42.));
     EXPECT_EQ(42.f, ctx->min(42.));
@@ -54,8 +55,7 @@ TEST(dry_run_context, sum)
 
 TEST(dry_run_context, gather_spikes)
 {
-    distributed_context_handle ctx = arb::dry_run_context(4);
-    ctx->set_num_cells(16);
+    distributed_context_handle ctx = arb::dry_run_context(4, 4);
     using svec = std::vector<arb::spike>;
 
     svec spikes = {
@@ -84,8 +84,8 @@ TEST(dry_run_context, gather_spikes)
     };
 
     auto s = ctx->gather_spikes(spikes);
-
     auto& part = s.partition();
+
     EXPECT_EQ(s.values(), gathered_spikes);
     EXPECT_EQ(part.size(), 5u);
     EXPECT_EQ(part[0], 0u);

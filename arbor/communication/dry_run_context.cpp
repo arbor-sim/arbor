@@ -11,12 +11,12 @@ namespace arb {
 
 struct dry_run_context_impl {
 
-    explicit dry_run_context_impl(int num_ranks): num_ranks_(num_ranks) {};
+    explicit dry_run_context_impl(unsigned num_ranks, unsigned num_cells_per_tile):
+        num_ranks_(num_ranks), num_cells_per_tile_(num_cells_per_tile) {};
 
     gathered_vector<arb::spike>
     gather_spikes(const std::vector<arb::spike>& local_spikes) const {
-        long local_size = local_spikes.size();
-        long shift_width = num_cells_per_tile_;
+        unsigned long local_size = local_spikes.size();
 
         using count_type = typename gathered_vector<arb::spike>::count_type;
 
@@ -27,24 +27,15 @@ struct dry_run_context_impl {
             gathered_spikes.insert(gathered_spikes.end(), local_spikes.begin(), local_spikes.end());
         }
 
-        task_system_handle ts = make_thread_pool();
-        threading::task_group g(ts.get());
-
         for (unsigned i = 0; i < num_ranks_; i++) {
-            auto shift_spikes = [&gathered_spikes, local_size, i, shift_width](){
-                for (long j = i*local_size; j < (i+1)*local_size; j++){
-                    gathered_spikes[j].source += shift_width*i;
-                }
-            };
-            g.run(shift_spikes);
+            for (unsigned j = i*local_size; j < (i+1)*local_size; j++){
+                gathered_spikes[j].source += num_cells_per_tile_*i;
+            }
         }
-        g.wait();
 
         std::vector<count_type> partition;
-        partition.push_back(0u);
-        int count = 0;
-        for(unsigned i = 0; i < num_ranks_; i++) {
-            partition.push_back(static_cast<count_type>(count+=local_size));
+        for(unsigned i = 0; i <= num_ranks_; i++) {
+            partition.push_back(static_cast<count_type>(i*local_size));
         }
 
         return gathered_vector<arb::spike>(
@@ -75,10 +66,6 @@ struct dry_run_context_impl {
         return gathered_v;
     }
 
-    void set_num_cells(unsigned total_cells_) {
-        num_cells_per_tile_ = total_cells_/num_ranks_;
-    }
-
     void barrier() const {}
 
     std::string name() const { return "dry_run"; }
@@ -87,8 +74,8 @@ struct dry_run_context_impl {
     unsigned num_cells_per_tile_;
 };
 
-std::shared_ptr<distributed_context> dry_run_context(unsigned num_ranks) {
-    return std::make_shared<distributed_context>(dry_run_context_impl(num_ranks));
+std::shared_ptr<distributed_context> dry_run_context(unsigned num_ranks, unsigned num_cells_per_tile) {
+    return std::make_shared<distributed_context>(dry_run_context_impl(num_ranks, num_cells_per_tile));
 }
 
 } // namespace arb
