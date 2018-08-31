@@ -7,6 +7,7 @@
 
 #include <arbor/simd/simd.hpp>
 #include <arbor/simd/avx.hpp>
+#include <arbor/util/compat.hpp>
 
 #include "common.hpp"
 
@@ -266,7 +267,7 @@ TYPED_TEST_P(simd_value, arithmetic) {
         for (unsigned i = 0; i<N; ++i) u_divide_v[i] = u[i]/v[i];
 
         scalar fma_u_v_w[N];
-        for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = std::fma(u[i],v[i],w[i]);
+        for (unsigned i = 0; i<N; ++i) fma_u_v_w[i] = compat::fma(u[i],v[i],w[i]);
 
         simd us(u), vs(v), ws(w);
 
@@ -705,6 +706,11 @@ TYPED_TEST_P(simd_fp_value, fp_maths) {
         pow(simd(u), simd(v)).copy_to(r);
         EXPECT_TRUE(testing::seq_almost_eq<fp>(pow_u_v_int, r));
     }
+
+    // The tests can cause floating point exceptions, which may set errno to nonzero
+    // value.
+    // Reset errno so that subsequent tests are not affected.
+    errno = 0;
 }
 
 // Check special function behaviour for specific values including

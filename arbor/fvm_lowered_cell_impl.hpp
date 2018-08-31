@@ -20,6 +20,7 @@
 #include <arbor/recipe.hpp>
 
 #include "builtin_mechanisms.hpp"
+#include "execution_context.hpp"
 #include "fvm_layout.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "matrix.hpp"
@@ -42,6 +43,8 @@ public:
     using value_type = fvm_value_type;
     using index_type = fvm_index_type;
     using size_type = fvm_size_type;
+
+    fvm_lowered_cell_impl(execution_context ctx): context_(ctx), threshold_watcher_(ctx) {};
 
     void reset() override;
 
@@ -70,6 +73,8 @@ private:
     using shared_state = typename backend::shared_state;
     using sample_event_stream = typename backend::sample_event_stream;
     using threshold_watcher = typename backend::threshold_watcher;
+
+    execution_context context_;
 
     std::unique_ptr<shared_state> state_; // Cell state shared across mechanisms.
 
@@ -446,8 +451,7 @@ void fvm_lowered_cell_impl<B>::initialize(
         }
     }
 
-    threshold_watcher_ = threshold_watcher(state_->cv_to_cell.data(), state_->time.data(),
-        state_->time_to.data(), state_->voltage.data(), detector_cv, detector_threshold);
+    threshold_watcher_ = backend::voltage_watcher(*state_, detector_cv, detector_threshold, context_);
 
     reset();
 }

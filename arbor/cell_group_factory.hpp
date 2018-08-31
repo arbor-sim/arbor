@@ -13,15 +13,20 @@
 #include <arbor/recipe.hpp>
 
 #include "cell_group.hpp"
+#include "execution_context.hpp"
 
 namespace arb {
 
-using cell_group_factory = std::function<cell_group_ptr (const std::vector<cell_gid_type>&, const recipe&)>;
+using cell_group_factory = std::function<
+        cell_group_ptr(const std::vector<cell_gid_type>&, const recipe&)>;
 
-cell_group_factory cell_kind_implementation(cell_kind, backend_kind);
+cell_group_factory cell_kind_implementation(
+        cell_kind, backend_kind, const execution_context&);
 
-inline bool cell_kind_supported(cell_kind c, backend_kind b) {
-    return static_cast<bool>(cell_kind_implementation(c, b));
+inline bool cell_kind_supported(
+        cell_kind c, backend_kind b, const execution_context& ctx)
+{
+    return static_cast<bool>(cell_kind_implementation(c, b, ctx));
 }
 
 } // namespace arb

@@ -4,8 +4,9 @@
 #include <string>
 
 #include <arbor/spike.hpp>
-#include <arbor/communication/gathered_vector.hpp>
 #include <arbor/util/pp_util.hpp>
+
+#include "communication/gathered_vector.hpp"
 
 namespace arb {
 
@@ -163,12 +164,16 @@ inline distributed_context::distributed_context():
     distributed_context(local_context())
 {}
 
+using distributed_context_handle = std::shared_ptr<distributed_context>;
+
+inline
+distributed_context_handle make_local_context() {
+    return std::make_shared<distributed_context>();
+}
+
 // MPI context creation functions only provided if built with MPI support.
-
-std::shared_ptr<distributed_context> mpi_context();
-
 template <typename MPICommType>
-std::shared_ptr<distributed_context> mpi_context(MPICommType);
+distributed_context_handle make_mpi_context(MPICommType);
 
 } // namespace arb
 

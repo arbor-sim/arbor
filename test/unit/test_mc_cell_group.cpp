@@ -14,8 +14,10 @@
 using namespace arb;
 
 namespace {
+    execution_context context;
+
     fvm_lowered_cell_ptr lowered_cell() {
-        return make_fvm_lowered_cell(backend_kind::multicore);
+        return make_fvm_lowered_cell(backend_kind::multicore, context);
     }
 
     mc_cell make_cell() {

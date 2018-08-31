@@ -3,6 +3,7 @@
 #include <arbor/common_types.hpp>
 
 #include "epoch.hpp"
+#include "execution_context.hpp"
 #include "fvm_lowered_cell.hpp"
 #include "mc_cell_group.hpp"
 
@@ -13,7 +14,8 @@ using namespace arb;
 
 namespace {
     fvm_lowered_cell_ptr lowered_cell() {
-        return make_fvm_lowered_cell(backend_kind::gpu);
+        execution_context context;
+        return make_fvm_lowered_cell(backend_kind::gpu, context);
     }
 
     mc_cell make_cell() {

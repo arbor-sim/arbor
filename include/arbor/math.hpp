@@ -5,6 +5,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <arbor/util/compat.hpp>
+
 namespace arb {
 namespace math {
 
@@ -58,7 +60,7 @@ T constexpr area_sphere(T r) {
 // Linear interpolation by u in interval [a,b]: (1-u)*a + u*b.
 template <typename T, typename U>
 T constexpr lerp(T a, T b, U u) {
-    return std::fma(u, b, std::fma(-u, a, a));
+    return compat::fma(T(u), b, compat::fma(T(-u), a, a));
 }
 
 // Return -1, 0 or 1 according to sign of parameter.
