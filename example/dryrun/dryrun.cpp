@@ -40,9 +40,6 @@ using arb::cell_kind;
 using arb::time_type;
 using arb::cell_probe_address;
 
-// Writes voltage trace as a json file.
-void write_trace_json(const arb::trace_data<double>& trace);
-
 // Generate a cell.
 arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
 
@@ -76,13 +73,13 @@ public:
         return 1;
     }
 
-    // The cell has one target synapse, which will be connected to cell gid-1.
+    // The cell has one target synapse
     cell_size_type num_targets(cell_gid_type gid) const override {
         return 1;
     }
 
     // Each cell has one incoming connection, from any cell in the network spanning all ranks:
-    // src gid in {0, num_cells_*num_tiles_}.
+    // src gid in {0, ..., num_cells_*num_tiles_ - 1}.
     std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
         std::uniform_int_distribution<cell_gid_type> source_distribution(0, num_cells_*num_tiles_ - 2);
 
@@ -93,8 +90,9 @@ public:
         return {arb::cell_connection({src, 0}, {gid, 0}, event_weight_, min_delay_)};
     }
 
-    // Return an event generator on every 20th gid. This function needs to generate events for ALL cells on ALL ranks.
-    // This is because the symmetric recipe can not easily translate the src gid of an event generator
+    // Return an event generator on every 20th gid. This function needs to generate events
+    // for ALL cells on ALL ranks. This is because the symmetric recipe can not easily
+    // translate the src gid of an event generator
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (gid%20 == 0) {
@@ -164,8 +162,6 @@ struct cell_stats {
         }
 #endif
         else {
-            nsegs = 0;
-            ncomp = 0;
             nranks = params.num_ranks;
             ncells = r.num_cells(); //total number of cells across all ranks
 
@@ -233,7 +229,8 @@ int main(int argc, char** argv) {
         meters.start(ctx);
 
         // Create an instance of our tile and use it to make a symmetric_recipe.
-        auto tile = std::make_unique<tile_desc>(params.num_cells_per_rank, params.num_ranks, params.cell, params.min_delay);
+        auto tile = std::make_unique<tile_desc>(params.num_cells_per_rank,
+                params.num_ranks, params.cell, params.min_delay);
         arb::symmetric_recipe recipe(std::move(tile));
 
         cell_stats stats(recipe, params);

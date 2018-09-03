@@ -164,8 +164,6 @@ inline distributed_context::distributed_context():
     distributed_context(local_context())
 {}
 
-
-
 using distributed_context_handle = std::shared_ptr<distributed_context>;
 
 inline
