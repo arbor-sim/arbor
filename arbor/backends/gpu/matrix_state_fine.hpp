@@ -230,7 +230,15 @@ public:
                 branch_maps.resize(branch_maps.size()+1);
                 current_block += 1;
                 // and reset counter
-                block_num_branches_per_depth = cell_num_branches_per_depth; // TODO what to do if one single cell does not fit into the blocksize?
+                block_num_branches_per_depth = cell_num_branches_per_depth;
+                for (auto num: block_num_branches_per_depth) {
+                    if (num > max_branches_per_level) {
+                        throw std::runtime_error(
+                            "Could not fit " + std::to_string(num)
+                            + " branches in a block of size "
+                            + std::to_string(max_branches_per_level));
+                    }
+                }
             }
 
 
