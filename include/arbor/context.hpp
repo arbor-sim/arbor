@@ -86,6 +86,7 @@ context make_context(const proc_allocation& resources, unsigned num_cells, unsig
 
 // Queries for properties of execution resources in a context.
 
+std::string distribution_type(const context&);
 bool has_gpu(const context&);
 unsigned num_threads(const context&);
 bool has_mpi(const context&);

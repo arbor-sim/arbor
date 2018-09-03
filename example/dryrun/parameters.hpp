@@ -28,7 +28,7 @@ struct run_params {
     run_params() = default;
 
     std::string name = "default";
-    std::string sim_type = "local";
+    std::string dry_run = "OFF";
     unsigned num_cells_per_rank = 10;
     unsigned num_ranks = 1;
     double min_delay = 10;
@@ -60,7 +60,7 @@ run_params read_options(int argc, char** argv) {
     json << f;
 
     param_from_json(params.name, "name", json);
-    param_from_json(params.sim_type, "simulation-type", json);
+    param_from_json(params.dry_run, "dry-run", json);
     param_from_json(params.num_cells_per_rank, "num-cells-per-rank", json);
     param_from_json(params.num_ranks, "num-ranks", json);
     param_from_json(params.duration, "duration", json);

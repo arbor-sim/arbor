@@ -22,6 +22,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
+#include <aux/ioutil.hpp>
 #include <aux/json_meter.hpp>
 
 #include "parameters.hpp"
@@ -133,6 +134,7 @@ struct cell_stats {
 
     cell_stats(arb::recipe& r, run_params params) {
 #ifdef ARB_MPI_ENABLED
+        if(params.dry_run != "ON") {
             int rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             MPI_Comm_size(MPI_COMM_WORLD, &nranks);
@@ -149,8 +151,21 @@ struct cell_stats {
             }
             MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
             MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
+        }
+#else
+        if(params.dry_run != "ON") {
+            nranks = 1;
+            ncells = r.num_cells();
+            for (size_type i = 0; i < ncells; ++i) {
+                auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
+                nsegs += c.num_segments();
+                ncomp += c.num_compartments();
+            }
+        }
 #endif
-        if(params.sim_type == "dry_run") {
+        else {
+            nsegs = 0;
+            ncomp = 0;
             nranks = params.num_ranks;
             ncells = r.num_cells(); //total number of cells across all ranks
 
@@ -162,15 +177,6 @@ struct cell_stats {
 
             nsegs *= params.num_ranks;
             ncomp *= params.num_ranks;
-        }
-        else {
-            nranks = 1;
-            ncells = r.num_cells();
-            for (size_type i = 0; i < ncells; ++i) {
-                auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
-                nsegs += c.num_segments();
-                ncomp += c.num_compartments();
-            }
         }
     }
 
@@ -194,21 +200,34 @@ int main(int argc, char** argv) {
         auto ctx = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
             int rank;
+            int nranks;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+            MPI_Comm_size(MPI_COMM_WORLD, &nranks);
             root = rank==0;
+            if(params.dry_run != "ON") {
+                params.num_ranks = nranks;
+            }
         }
 #else
         auto ctx = arb::make_context();
-        if (params.sim_type == "dry_run") {
-            ctx = arb::make_context(arb::proc_allocation(), params.num_ranks, params.num_cells_per_rank);
-        }
 #endif
+        if (params.dry_run == "ON") {
+            ctx = arb::make_context(arb::proc_allocation(), params.num_ranks, params.num_cells_per_rank);
+            root = true;
+        }
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);
 #endif
+        std::cout << aux::mask_stream(root);
 
-        std::cout << "run mode: " << params.sim_type << "\n";
+        // Print a banner with information about hardware configuration
+        std::cout << "gpu:      " << (has_gpu(ctx)? "yes": "no") << "\n";
+        std::cout << "threads:  " << num_threads(ctx) << "\n";
+        std::cout << "mpi:      " << (has_mpi(ctx)? "yes": "no") << "\n";
+        std::cout << "ranks:    " << num_ranks(ctx) << "\n" << std::endl;
+
+        std::cout << "run mode: " << distribution_type(ctx) << "\n";
 
         arb::profile::meter_manager meters;
         meters.start(ctx);

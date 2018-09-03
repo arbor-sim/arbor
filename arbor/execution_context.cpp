@@ -61,6 +61,10 @@ context make_context(const proc_allocation& p, unsigned num_ranks, unsigned num_
     return context(new execution_context(p, num_ranks, num_cells_per_rank), [](execution_context* p){delete p;});
 }
 
+std::string distribution_type(const context& ctx) {
+    return ctx->distributed->name();
+}
+
 bool has_gpu(const context& ctx) {
     return ctx->gpu->has_gpu();
 }
