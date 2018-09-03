@@ -70,5 +70,9 @@ range_check_failure::range_check_failure(const std::string& whatstr, double valu
     value(value)
 {}
 
+python_error::python_error(const std::string& message):
+    arbor_exception(pprintf("arbor python wrapper error: {}", message))
+{}
+
 } // namespace arb
 
