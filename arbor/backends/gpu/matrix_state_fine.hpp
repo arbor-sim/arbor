@@ -208,7 +208,7 @@ public:
             // check if we can fit the current cell into the last cuda block
             bool fits_current_block = true;
             for (auto i: make_span(cell_num_levels)) {
-                int new_branches_per_depth =
+                unsigned new_branches_per_depth =
                     block_num_branches_per_depth[i]
                     + cell_num_branches_per_depth[i];
                 if (new_branches_per_depth > max_branches_per_level) {
@@ -303,11 +303,13 @@ public:
 
         unsigned total_num_levels = std::accumulate(
             branch_maps.begin(), branch_maps.end(), 0,
-            [](unsigned value, const decltype(branch_maps[0])& l) {
+            [](unsigned value, decltype(branch_maps[0])& l) {
                 return value + l.size();});
 
         // construct description for the set of branches on each level for each
-        // block
+        // block. This is later used to sort the branches in each block in each
+        // level into conineous chunks which are easier to read for the cuda
+        // kernel.
         levels.reserve(total_num_levels);
         levels_end.reserve(branch_maps.size());
         data_size.reserve(branch_maps.size());
