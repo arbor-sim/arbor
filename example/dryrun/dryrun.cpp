@@ -134,7 +134,7 @@ struct cell_stats {
 
     cell_stats(arb::recipe& r, run_params params) {
 #ifdef ARB_MPI_ENABLED
-        if(params.dry_run != "ON") {
+        if(!params.dry_run) {
             int rank;
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             MPI_Comm_size(MPI_COMM_WORLD, &nranks);
@@ -153,7 +153,7 @@ struct cell_stats {
             MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
         }
 #else
-        if(params.dry_run != "ON") {
+        if(!params.dry_run) {
             nranks = 1;
             ncells = r.num_cells();
             for (size_type i = 0; i < ncells; ++i) {
@@ -204,14 +204,14 @@ int main(int argc, char** argv) {
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
             MPI_Comm_size(MPI_COMM_WORLD, &nranks);
             root = rank==0;
-            if(params.dry_run != "ON") {
+            if(!params.dry_run) {
                 params.num_ranks = nranks;
             }
         }
 #else
         auto ctx = arb::make_context();
 #endif
-        if (params.dry_run == "ON") {
+        if (params.dry_run) {
             ctx = arb::make_context(arb::proc_allocation(), params.num_ranks, params.num_cells_per_rank);
             root = true;
         }

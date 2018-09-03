@@ -28,7 +28,7 @@ struct run_params {
     run_params() = default;
 
     std::string name = "default";
-    std::string dry_run = "OFF";
+    bool dry_run = false;
     unsigned num_cells_per_rank = 10;
     unsigned num_ranks = 1;
     double min_delay = 10;
