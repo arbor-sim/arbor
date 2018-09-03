@@ -74,7 +74,7 @@ struct dry_run_context_impl {
     unsigned num_cells_per_tile_;
 };
 
-std::shared_ptr<distributed_context> make_dryrun_context(unsigned num_ranks, unsigned num_cells_per_tile) {
+std::shared_ptr<distributed_context> make_dry_run_context(unsigned num_ranks, unsigned num_cells_per_tile) {
     return std::make_shared<distributed_context>(dry_run_context_impl(num_ranks, num_cells_per_tile));
 }
 

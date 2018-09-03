@@ -13,12 +13,12 @@ unsigned num_cells_per_rank = 1000;
 
 TEST(dry_run_context, construct_distributed_context)
 {
-    distributed_context_handle ctx = arb::make_dryrun_context(num_ranks, num_cells_per_rank);
+    distributed_context_handle ctx = arb::make_dry_run_context(num_ranks, num_cells_per_rank);
 }
 
 TEST(dry_run_context, size_rank)
 {
-    distributed_context_handle ctx = arb::make_dryrun_context(num_ranks, num_cells_per_rank);
+    distributed_context_handle ctx = arb::make_dry_run_context(num_ranks, num_cells_per_rank);
 
     EXPECT_EQ(ctx->size(), num_ranks);
     EXPECT_EQ(ctx->id(), 0);
@@ -26,7 +26,7 @@ TEST(dry_run_context, size_rank)
 
 TEST(dry_run_context, minmax)
 {
-    distributed_context_handle ctx = arb::make_dryrun_context(num_ranks, num_cells_per_rank);
+    distributed_context_handle ctx = arb::make_dry_run_context(num_ranks, num_cells_per_rank);
 
     EXPECT_EQ(1., ctx->min(1.));
     EXPECT_EQ(1., ctx->max(1.));
@@ -45,7 +45,7 @@ TEST(dry_run_context, minmax)
 
 TEST(dry_run_context, sum)
 {
-    distributed_context_handle ctx = arb::make_dryrun_context(num_ranks, num_cells_per_rank);
+    distributed_context_handle ctx = arb::make_dry_run_context(num_ranks, num_cells_per_rank);
 
     EXPECT_EQ(42.,  ctx->min(42.));
     EXPECT_EQ(42.f, ctx->min(42.));
@@ -55,7 +55,7 @@ TEST(dry_run_context, sum)
 
 TEST(dry_run_context, gather_spikes)
 {
-    distributed_context_handle ctx = arb::make_dryrun_context(4, 4);
+    distributed_context_handle ctx = arb::make_dry_run_context(4, 4);
     using svec = std::vector<arb::spike>;
 
     svec spikes = {
