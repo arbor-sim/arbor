@@ -13,7 +13,14 @@ set(PYBIND11_CPP_STANDARD -std=c++14)
 add_subdirectory(pybind11)
 
 # The python library. MODULE will make a python-exclusive model.
-add_library(pyarb MODULE pyarb.cpp)
+add_library(pyarb MODULE
+    pyarb.cpp
+    strings.cpp
+    identifiers.cpp
+    context.cpp
+    recipe.cpp
+    event_generator.cpp
+    )
 
 target_link_libraries(pyarb PRIVATE arbor pybind11::module)
 set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")

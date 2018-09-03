@@ -95,4 +95,11 @@ struct range_check_failure: arbor_exception {
     double value;
 };
 
+// Python wrapper errors
+
+struct python_error: arbor_exception {
+    explicit python_error(const std::string& message);
+};
+
+
 } // namespace arb

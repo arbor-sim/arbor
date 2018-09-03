@@ -121,7 +121,9 @@ private:
 };
 
 inline schedule regular_schedule(
-    time_type t0, time_type dt, time_type t1 = std::numeric_limits<time_type>::max())
+    time_type t0,
+    time_type dt,
+    time_type t1 = std::numeric_limits<time_type>::max())
 {
     return schedule(regular_schedule_impl(t0, dt, t1));
 }
