@@ -257,9 +257,11 @@ public:
                 // give the branch a unique id number
                 b.id = i + num_branches;
                 // take care to mark branches with no parents with npos
-                b.parent_id = cell_tree.parent(i)==cell_tree.no_parent?
-                    npos: cell_tree.parent(i) + num_branches;
+                b.parent_id = cell_tree.parent(i)==cell_tree.no_parent ?
+                    npos : cell_tree.parent(i) + num_branches;
                 b.start_idx = branch_starts[i] + cell_start;
+                // [i+1] is save as algorithm::branches pushes the total number
+                // of compartments as last element
                 b.length = branch_starts[i+1] - branch_starts[i];
                 b.parent_idx = p[b.start_idx] + cell_start;
                 branch_map[depth].push_back(b);

@@ -190,7 +190,7 @@ std::vector<typename C::value_type> branches(const C& parent_index)
     for (std::size_t i = 1; i < parent_index.size(); ++i) {
         auto p = parent_index[i];
         if (num_child[p] > 1 || parent_index[p] == p) {
-            // parent_index[p] == p -> parent_index[i] is the soma
+            // `parent_index[p] == p` ~> parent_index[i] is the soma
             branch_index.push_back(i);
         }
     }
