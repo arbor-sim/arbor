@@ -188,30 +188,30 @@ struct cell_stats {
 
 int main(int argc, char** argv) {
     try {
+#ifdef ARB_MPI_ENABLED
+        aux::with_mpi guard(argc, argv, false);
+#endif
         bool root = true;
         auto params = read_options(argc, argv);
 
+        auto resources = arb::proc_allocation();
+        auto ctx = arb::make_context(resources);
+
+        if (params.dry_run) {
+            ctx = arb::make_context(resources, arb::dry_run_info(params.num_ranks, params.num_cells_per_rank));
+        }
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
-        auto ctx = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
-        {
-            int rank;
-            int nranks;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            MPI_Comm_size(MPI_COMM_WORLD, &nranks);
-            root = rank==0;
-            if(!params.dry_run) {
-                params.num_ranks = nranks;
+        else {
+            ctx = arb::make_context(resources, MPI_COMM_WORLD);
+            {
+                int rank;
+                MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+                root = rank==0;
             }
         }
-#else
-        auto ctx = arb::make_context();
 #endif
-        if (params.dry_run) {
-            auto dist = arb::dry_run_info(params.num_ranks, params.num_cells_per_rank);
-            ctx = arb::make_context(arb::proc_allocation(), dist);
-            root = true;
-        }
+        arb_assert(arb::num_ranks(ctx)==params.num_ranks);
+
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);
