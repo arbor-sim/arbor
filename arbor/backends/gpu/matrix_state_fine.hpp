@@ -179,6 +179,16 @@ public:
             // find the index of the first node for each branch
             auto branch_starts = algorithms::branches(cell_p);
 
+            // subdivide branches that are too long
+            for (auto b = 0u; b < branch_starts.size() - 1; b++) {
+                auto length = branch_starts[b+1] - branch_starts[b];
+                auto max_length = 10;
+                if (length > max_length) {
+                    // subdivide
+                    branch_starts.insert(branch_starts.begin()+b+1, branch_starts[b] + max_length);
+                }
+            }
+
             // find the parent index of branches
             // we need to convert to cell_lid_type, required to construct a tree.
             std::vector<cell_lid_type> branch_p =
