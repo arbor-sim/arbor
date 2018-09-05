@@ -1,5 +1,8 @@
 .. _cppdistcontext:
 
+.. Note::
+    This is a developer feature for benchmarking, and is not useful for scientific use cases.
+
 Dry-run Mode
 ===================
 

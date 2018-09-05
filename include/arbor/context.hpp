@@ -15,6 +15,15 @@ struct local_resources {
     {}
 };
 
+/// Requested dry-run parameters
+struct dry_run_info {
+    unsigned num_ranks;
+    unsigned num_cells_per_rank;
+    dry_run_info(unsigned ranks, unsigned cells_per_rank):
+            num_ranks(ranks),
+            num_cells_per_rank(cells_per_rank) {}
+};
+
 /// Determine available local domain resources.
 local_resources get_local_resources();
 
@@ -76,13 +85,9 @@ context make_context();
 context make_context(const proc_allocation& resources);
 
 // Distributed context that uses MPI communicator comm, and local resources
-// described by resources.
+// described by resources. Or dry run context that uses dry_run_info.
 template <typename Comm>
 context make_context(const proc_allocation& resources, Comm comm);
-
-// Dry-run context that simulates num_ranks MPI ranks with num_cells_per_rank cell on eacg
-
-context make_context(const proc_allocation& resources, unsigned num_cells, unsigned num_ranks_per_cell);
 
 // Queries for properties of execution resources in a context.
 

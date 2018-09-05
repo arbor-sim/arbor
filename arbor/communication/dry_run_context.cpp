@@ -16,32 +16,29 @@ struct dry_run_context_impl {
 
     gathered_vector<arb::spike>
     gather_spikes(const std::vector<arb::spike>& local_spikes) const {
-        unsigned long local_size = local_spikes.size();
-
         using count_type = typename gathered_vector<arb::spike>::count_type;
+
+        count_type local_size = local_spikes.size();
 
         std::vector<arb::spike> gathered_spikes;
         gathered_spikes.reserve(local_size*num_ranks_);
 
-        for (unsigned i = 0; i < num_ranks_; i++) {
+        for (count_type i = 0; i < num_ranks_; i++) {
             gathered_spikes.insert(gathered_spikes.end(), local_spikes.begin(), local_spikes.end());
         }
 
-        for (unsigned i = 0; i < num_ranks_; i++) {
-            for (unsigned j = i*local_size; j < (i+1)*local_size; j++){
+        for (count_type i = 0; i < num_ranks_; i++) {
+            for (count_type j = i*local_size; j < (i+1)*local_size; j++){
                 gathered_spikes[j].source += num_cells_per_tile_*i;
             }
         }
 
         std::vector<count_type> partition;
-        for(unsigned i = 0; i <= num_ranks_; i++) {
+        for(count_type i = 0; i <= num_ranks_; i++) {
             partition.push_back(static_cast<count_type>(i*local_size));
         }
 
-        return gathered_vector<arb::spike>(
-                std::move(std::vector<arb::spike>(gathered_spikes)),
-                std::move(std::vector<count_type>(partition.begin(), partition.end()))
-        );
+        return gathered_vector<arb::spike>(std::move(gathered_spikes), std::move(partition));
     }
 
     int id() const { return 0; }
@@ -59,16 +56,12 @@ struct dry_run_context_impl {
 
     template <typename T>
     std::vector<T> gather(T value, int) const {
-        std::vector<T> gathered_v;
-        for (unsigned i = 0; i < num_ranks_; i++) {
-            gathered_v.push_back(value);
-        }
-        return gathered_v;
+        return std::vector<T>(num_ranks_, value);
     }
 
     void barrier() const {}
 
-    std::string name() const { return "dry_run"; }
+    std::string name() const { return "dryrun"; }
 
     unsigned num_ranks_;
     unsigned num_cells_per_tile_;

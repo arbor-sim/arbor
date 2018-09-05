@@ -208,7 +208,8 @@ int main(int argc, char** argv) {
         auto ctx = arb::make_context();
 #endif
         if (params.dry_run) {
-            ctx = arb::make_context(arb::proc_allocation(), params.num_ranks, params.num_cells_per_rank);
+            auto dist = arb::dry_run_info(params.num_ranks, params.num_cells_per_rank);
+            ctx = arb::make_context(arb::proc_allocation(), dist);
             root = true;
         }
 

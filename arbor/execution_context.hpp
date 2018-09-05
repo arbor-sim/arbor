@@ -31,9 +31,6 @@ struct execution_context {
     // Specialised implementations are implemented in execution_context.cpp.
     template <typename Comm>
     execution_context(const proc_allocation& resources, Comm comm);
-
-    execution_context(const proc_allocation& resources,
-                      unsigned num_ranks, unsigned num_cells_per_ranks);
 };
 
 } // namespace arb
