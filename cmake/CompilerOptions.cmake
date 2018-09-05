@@ -135,7 +135,8 @@ function(set_arch_target optvar arch)
         endif()
     endif()
 
-    if (ARB_WITH_GPU)
+    get_property(enabled_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
+    if ("CUDA" IN_LIST enabled_languages)
         # Prefix architecture options with `-Xcompiler=` when compiling CUDA sources, i.e.
         # with nvcc.
         set(arch_opt_cuda_guarded)
@@ -144,6 +145,8 @@ function(set_arch_target optvar arch)
         endforeach()
 
         set("${optvar}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
+    else()
+        set("${optvar}" "${arch_opt}" PARENT_SCOPE)
     endif()
 
 endfunction()
