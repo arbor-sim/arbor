@@ -8,6 +8,7 @@ namespace py {
 void register_identifiers(pybind11::module& m);
 void register_contexts(pybind11::module& m);
 void register_event_generators(pybind11::module& m);
+void register_profilers(pybind11::module& m);
 
 }
 }
@@ -19,5 +20,6 @@ PYBIND11_MODULE(pyarb, m) {
     arb::py::register_identifiers(m);
     arb::py::register_contexts(m);
     arb::py::register_event_generators(m);
+    arb::py::register_profilers(m);
 }
 

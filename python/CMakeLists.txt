@@ -20,6 +20,7 @@ add_library(pyarb MODULE
     context.cpp
     recipe.cpp
     event_generator.cpp
+    profiler.cpp
     )
 
 target_link_libraries(pyarb PRIVATE arbor pybind11::module)
