@@ -56,6 +56,8 @@ namespace simd_detail {
 
     template <typename Impl>
     struct simd_impl {
+        static_assert(!std::is_void<Impl>::value, "no such SIMD ABI supported");
+
         // Type aliases:
         //
         //     scalar_type           internal value type in one simd lane,
