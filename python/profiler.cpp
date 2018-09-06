@@ -1,4 +1,5 @@
 #include <pybind11/pybind11.h>
+#include <sstream>
 
 #include <arbor/profile/meter_manager.hpp>
 #include "context.hpp"
@@ -31,8 +32,20 @@ void register_profilers(pybind11::module& m) {
     pybind11::class_<arb::profile::meter_report> meter_report(m, "meter_report");
 
     meter_report
-        .def("__str__", [](){return "<pyarb.meter_report>";})
-        .def("__repr__", [](){return "<pyarb.meter_report>";});
+        .def("__str__", [](const arb::profile::meter_report& report){\
+            std::stringstream s;
+            s << "meter report:\n";
+            s << report;
+            return s.str();
+            //return "<pyarb.meter_report>";
+        })
+        .def("__repr__", [](const arb::profile::meter_report& report){\
+            std::stringstream s;
+            s << "meter report:\n";
+            s << report;
+            return s.str();
+            //return "<pyarb.meter_report>";
+        });
 
     m.def("make_meter_report", [](const arb::profile::meter_manager& manager, const arb::py::context_shim& ctx){\
         return arb::profile::make_meter_report(manager, ctx.context);
