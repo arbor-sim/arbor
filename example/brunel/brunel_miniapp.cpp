@@ -63,7 +63,7 @@ class brunel_recipe: public recipe {
 public:
     brunel_recipe(cell_size_type nexc, cell_size_type ninh, cell_size_type next, double in_degree_prop,
                   float weight, float delay, float rel_inh_strength, double poiss_lambda, int seed = 42):
-        ncells_exc_(nexc), ncells_inh_(ninh), ncells_ext_(next), delay_(delay), seed_(seed) {
+        ncells_exc_(nexc), ncells_inh_(ninh), delay_(delay), seed_(seed) {
         // Make sure that in_degree_prop in the interval (0, 1]
         if (in_degree_prop <= 0.0 || in_degree_prop > 1.0) {
             std::out_of_range("The proportion of incoming connections should be in the interval (0, 1].");
@@ -155,9 +155,6 @@ private:
 
     // Number of inhibitory cells.
     cell_size_type ncells_inh_;
-
-    // Number of Poisson connections each neuron receives 
-    cell_size_type ncells_ext_;
 
     // Weight of excitatory synapses.
     float weight_exc_;
