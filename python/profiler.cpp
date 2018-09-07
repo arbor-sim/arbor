@@ -41,13 +41,11 @@ void register_profilers(pybind11::module& m) {
     meter_report
         .def("__str__", [](const arb::profile::meter_report& report){
             std::stringstream s;
-            s << "meter report:\n";
             s << report;
             return s.str();
         })
         .def("__repr__", [](const arb::profile::meter_report& report){
             std::stringstream s;
-            s << "meter report:\n";
             s << report;
             return s.str();
         });

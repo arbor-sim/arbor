@@ -44,26 +44,39 @@ class ring_recipe(arb.recipe):
         src = self.num_cells()-1 if gid==0 else gid-1
         return [connection(cmem(src,0), cmem(gid,0), 0.1, 10)]
 
-print('^^ creating recipe')
-recipe = ring_recipe(8)
-
-print('^^ creating context')
+# make parallel execution context
 context = arb.context()
 
-print('^^ load balancing')
+print(context, '\n')
+
+meters = arb.meter_manager()
+meters.start(context)
+
+recipe = ring_recipe(100)
+meters.checkpoint('recipe create', context)
+
 decomp = arb.partition_load_balance(recipe, context)
+meters.checkpoint('load balance', context)
 
-print('^^ creating simulation')
 sim = arb.simulation(recipe, decomp, context)
-
-print('^^ creating recorder')
 recorder = arb.make_spike_recorder(sim)
+meters.checkpoint('simulation init', context)
 
-print('^^ run simulation')
-sim.run(200, 0.025)
+sim.run(2000, 0.025)
+meters.checkpoint('simulation run', context)
 
+print(arb.make_meter_report(meters, context))
+
+print('SPIKES:')
 spikes = recorder.spikes
-for spike in spikes:
+
+# print at most 10 spikes
+n_spikes_out = min(len(spikes), 10)
+for i in range(n_spikes_out):
+    spike = spikes[i]
     print('  cell %2d at %8.3f ms'%(spike.source.gid, spike.time))
 
-print('^^ done')
+if n_spikes_out<len(spikes):
+    print('  ...')
+    spike = spikes[-1]
+    print('  cell %2d at %8.3f ms'%(spike.source.gid, spike.time))
