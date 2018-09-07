@@ -47,7 +47,6 @@ public:
     const std::vector<std::string>& checkpoint_names() const;
     const std::vector<double>& times() const;
 
-    const context& ctx() const;
 };
 
 // Simple type for gathering distributed meter information

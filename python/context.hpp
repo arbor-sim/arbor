@@ -1,3 +1,5 @@
+#pragma once
+
 #include <arbor/context.hpp>
 
 namespace arb {

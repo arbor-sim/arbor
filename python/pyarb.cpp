@@ -10,6 +10,7 @@ void register_contexts(pybind11::module& m);
 void register_domain_decomposition(pybind11::module& m);
 void register_event_generators(pybind11::module& m);
 void register_identifiers(pybind11::module& m);
+void register_profilers(pybind11::module& m);
 void register_recipe(pybind11::module& m);
 void register_simulation(pybind11::module& m);
 void register_spike_handling(pybind11::module& m);
@@ -26,6 +27,7 @@ PYBIND11_MODULE(pyarb, m) {
     arb::py::register_domain_decomposition(m);
     arb::py::register_event_generators(m);
     arb::py::register_identifiers(m);
+    arb::py::register_profilers(m);
     arb::py::register_recipe(m);
     arb::py::register_simulation(m);
     arb::py::register_spike_handling(m);

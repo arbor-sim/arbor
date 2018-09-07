@@ -19,6 +19,7 @@ add_library(pyarb MODULE
     event_generator.cpp
     domain_decomposition.cpp
     identifiers.cpp
+    profiler.cpp
     pyarb.cpp
     recipe.cpp
     simulation.cpp
