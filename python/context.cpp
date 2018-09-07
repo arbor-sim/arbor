@@ -16,11 +16,6 @@
 namespace arb {
 namespace py {
 
-/*struct context_shim {
-    arb::context context;
-    context_shim(arb::context&& c): context(std::move(c)) {}
-};*/
-
 void register_contexts(pybind11::module& m) {
     using namespace std::string_literals;
 
