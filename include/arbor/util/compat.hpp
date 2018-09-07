@@ -42,7 +42,7 @@ inline void compiler_barrier_if_icc_leq(unsigned ver) {
 // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85597
 
 template <typename T>
-#if defined(__GNUC__) &&\
+#if !defined(__clang__) && defined(__GNUC__) &&\
     ( __GNUC__<6 ||\
      (__GNUC__==6 && __GNUC_MINOR__*100 + __GNUC_PATCHLEVEL__ < 401) ||\
      (__GNUC__==7 && __GNUC_MINOR__*100 + __GNUC_PATCHLEVEL__ < 301) ||\
