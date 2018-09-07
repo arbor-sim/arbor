@@ -6,13 +6,12 @@
 
 #include <pybind11/pybind11.h>
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 void register_identifiers(pybind11::module& m) {
     using namespace pybind11::literals;
 
-    pybind11::class_<cell_member_type> cell_member(m, "cell_member",
+    pybind11::class_<arb::cell_member_type> cell_member(m, "cell_member",
         "For global identification of a cell-local item.\n\n"
         "Items of cell_member must:\n"
         "(1) be associated with a unique cell, identified by the member gid;\n"
@@ -30,13 +29,12 @@ void register_identifiers(pybind11::module& m) {
             "gid"_a,
             "index"_a,
             "Construct with gid and index.")
-        .def_readwrite("gid",   &cell_member_type::gid,
+        .def_readwrite("gid",   &arb::cell_member_type::gid,
             "The global identifier of the cell.")
-        .def_readwrite("index", &cell_member_type::index,
+        .def_readwrite("index", &arb::cell_member_type::index,
             "Cell-local index of the item.")
         .def("__str__",  &cell_member_string)
         .def("__repr__", &cell_member_string);
 }
 
-} // namespace py
-} // namespace arb
+} // namespace pyarb

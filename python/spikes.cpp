@@ -9,8 +9,7 @@
 
 #include "strings.hpp"
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 // A functor that models arb::spike_export_function.
 // Holds a shared pointer to the spike_vec used to store the spikes, so that if
@@ -74,5 +73,4 @@ void register_spike_handling(pybind11::module& m) {
     m.def("make_spike_recorder", &make_spike_recorder);
 }
 
-} // namespace py
-} // namespace arb
+} // namespace pyarb

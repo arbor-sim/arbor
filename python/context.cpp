@@ -14,8 +14,7 @@
 #include <mpi.h>
 #endif
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 void register_contexts(pybind11::module& m) {
     using namespace std::string_literals;
@@ -27,7 +26,7 @@ void register_contexts(pybind11::module& m) {
             "detected by Arbor, and the total number of GPUs from cudaDeviceCount()")
         .def_readonly("threads", &arb::local_resources::num_threads,
             "The number of threads available locally for execution.")
-        .def_readonly("gpus", &local_resources::num_gpus,
+        .def_readonly("gpus", &arb::local_resources::num_gpus,
             "The number of GPUs available locally for execution.")
         .def("__str__", &local_resources_string)
         .def("__repr__", &local_resources_string);
@@ -35,12 +34,12 @@ void register_contexts(pybind11::module& m) {
     pybind11::class_<arb::proc_allocation> proc_allocation(m, "proc_allocation");
     proc_allocation
         .def(pybind11::init<>())
-        .def_readwrite("threads", &proc_allocation::num_threads,
+        .def_readwrite("threads", &arb::proc_allocation::num_threads,
             "The number of threads available locally for execution.")
-        .def_readwrite("gpu_id",   &proc_allocation::gpu_id,
+        .def_readwrite("gpu_id",   &arb::proc_allocation::gpu_id,
             "The identifier of the GPU to use.\n"
             "Corresponds to the integer index used to identify GPUs in CUDA API calls.")
-        .def_property_readonly("has_gpu", &proc_allocation::has_gpu,
+        .def_property_readonly("has_gpu", &arb::proc_allocation::has_gpu,
             "Whether a GPU is being used (True/False).")
         .def("__str__", &proc_allocation_string)
         .def("__repr__", &proc_allocation_string);
@@ -69,6 +68,5 @@ void register_contexts(pybind11::module& m) {
         .def("__repr__", [](const context_shim& c){return context_string(c.context);});
 }
 
-} // namespace py
-} // namespace arb
+} // namespace pyarb
 

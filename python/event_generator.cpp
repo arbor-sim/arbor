@@ -6,16 +6,15 @@
 
 #include "event_generator.hpp"
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 template <typename Sched>
-arb::py::event_generator py_make_event_generator(
+event_generator py_make_event_generator(
         arb::cell_lid_type lid,
         double weight,
         const Sched& sched)
 {
-    return arb::py::event_generator(lid, weight, sched.schedule());
+    return event_generator(lid, weight, sched.schedule());
 }
 
 void register_event_generators(pybind11::module& m) {
@@ -46,7 +45,7 @@ void register_event_generators(pybind11::module& m) {
     // event_generator
     //
 
-    pybind11::class_<arb::py::event_generator> event_generator(m, "event_generator");
+    pybind11::class_<event_generator> event_generator(m, "event_generator");
 
     event_generator
         .def(pybind11::init<>(
@@ -59,5 +58,4 @@ void register_event_generators(pybind11::module& m) {
 
 }
 
-} // namespace arb
-} // namespace py
+} // namespace pyarb

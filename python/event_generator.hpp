@@ -6,14 +6,15 @@
 #include <arbor/event_generator.hpp>
 #include <arbor/schedule.hpp>
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 // A Python shim that holds the information that describes an
 // arb::regular_schedule. This is wrapped in pybind11, and users constructing
 // a regular_schedule in python are manipulating this type. This is converted to
 // an arb::regular_schedule when a C++ recipe is created from a Python recipe.
 struct regular_schedule_shim {
+    using time_type = arb::time_type;
+
     time_type tstart = arb::terminal_time;
     time_type dt = 0;
     time_type tstop = arb::terminal_time;
@@ -27,7 +28,7 @@ struct regular_schedule_shim {
     {}
 
     arb::schedule schedule() const {
-        return regular_schedule(tstart, dt, tstop);
+        return arb::regular_schedule(tstart, dt, tstop);
     }
 };
 
@@ -36,6 +37,7 @@ struct regular_schedule_shim {
 // a explicit_schedule in python are manipulating this type. This is converted to
 // an arb::explicit_schedule when a C++ recipe is created from a Python recipe.
 struct explicit_schedule_shim {
+    using time_type = arb::time_type;
     pybind11::list py_times;
 
     explicit_schedule_shim() = default;
@@ -53,7 +55,7 @@ struct explicit_schedule_shim {
             std::sort(times.begin(), times.end());
         }
 
-        return explicit_schedule(times);
+        return arb::explicit_schedule(times);
     }
 };
 
@@ -69,6 +71,5 @@ struct event_generator {
     {}
 };
 
-} // namespace arb
-} // namespace py
+} // namespace pyarb
 

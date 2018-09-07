@@ -10,8 +10,7 @@
 
 #include <pybind11/pybind11.h>
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 using namespace pybind11::literals;
 
@@ -58,12 +57,11 @@ void register_domain_decomposition(pybind11::module& m) {
     // The Python recipe has to be shimmed for passing to the function that
     // takes a C++ recipe.
     m.def("partition_load_balance",
-        [](std::shared_ptr<arb::py::recipe>& r, const arb::py::context_shim& ctx) {
-            return arb::partition_load_balance(arb::py::py_recipe_shim(r), ctx.context);
+        [](std::shared_ptr<py_recipe>& r, const context_shim& ctx) {
+            return arb::partition_load_balance(py_recipe_shim(r), ctx.context);
         },
         "Simple load balancer.", "recipe"_a, "context"_a);
 }
 
-} // namespace py
-} // namespace arb
+} // namespace pyarb
 

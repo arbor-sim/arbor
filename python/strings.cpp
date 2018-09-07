@@ -9,8 +9,7 @@
 
 #include "strings.hpp"
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 std::string cell_member_string(const arb::cell_member_type& m) {
     std::stringstream s;
@@ -112,5 +111,4 @@ std::string spike_string(const arb::spike& sp) {
     return s.str();
 }
 
-} // namespace py
-} // namespace arb
+} // namespace pyarb

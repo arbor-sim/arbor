@@ -1,3 +1,4 @@
+#include <arbor/benchmark_cell.hpp>
 #include <arbor/mc_cell.hpp>
 #include <arbor/mc_segment.hpp>
 
@@ -5,8 +6,7 @@
 
 #include <pybind11/pybind11.h>
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 /*
  * Create cell with just a soma:
@@ -25,6 +25,11 @@ auto make_cell_soma_only() {
     soma->add_mechanism("hh");
 
     return c;
+}
+
+template <typename Sched>
+arb::benchmark_cell py_make_benchmark_cell(const Sched& sched) {
+    return arb::benchmark_cell(sched.schedule(), 1.0);
 }
 
 void register_cells(pybind11::module& m) {
@@ -61,7 +66,16 @@ void register_cells(pybind11::module& m) {
         "\n    mechanisms HH;"
         "\n    bulk resistivitiy 100 Ω·cm;"
         "\n    capacitance 0.01 F⋅m⁻²." );
+
+    // Cell kinds.
+
+    pybind11::class_<arb::benchmark_cell> benchmark_cell(m, "benchmark_cell");
+
+    benchmark_cell
+        .def(pybind11::init<>())
+        .def_readwrite("realtime_ratio", &arb::benchmark_cell::realtime_ratio,
+            "Time taken in ms to advance the cell one ms of simulation time. \n"
+            "If equal to 1, then a single cell can be advanced in realtime.");
 }
 
-}
-}
+} // namespace pyarb

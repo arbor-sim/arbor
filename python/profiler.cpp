@@ -4,8 +4,7 @@
 #include <arbor/profile/meter_manager.hpp>
 #include "context.hpp"
 
-namespace arb {
-namespace py {
+namespace pyarb {
 
 void register_profilers(pybind11::module& m) {
     using namespace pybind11::literals;
@@ -19,13 +18,13 @@ void register_profilers(pybind11::module& m) {
 
         // Need to use shimming of context due to pybind11 complaining about incomplete type of execution_context  
         .def("start", 
-            [](arb::profile::meter_manager& manager, const arb::py::context_shim& ctx){
+            [](arb::profile::meter_manager& manager, const context_shim& ctx){
                 manager.start(ctx.context);
             },
             "context"_a,
             "Start profiling.")
         .def("checkpoint", 
-            [](arb::profile::meter_manager& manager, std::string name, const arb::py::context_shim& ctx){
+            [](arb::profile::meter_manager& manager, std::string name, const context_shim& ctx){
                 manager.checkpoint(name, ctx.context);
             },
             "name"_a,
@@ -54,7 +53,7 @@ void register_profilers(pybind11::module& m) {
         });
 
     m.def("make_meter_report", 
-        [](const arb::profile::meter_manager& manager, const arb::py::context_shim& ctx){
+        [](const arb::profile::meter_manager& manager, const context_shim& ctx){
             return arb::profile::make_meter_report(manager, ctx.context);
         }, 
         "manager"_a,
@@ -62,5 +61,4 @@ void register_profilers(pybind11::module& m) {
         "Generate a meter_report from a set of meters.");
 }
 
-} // namespace py
-} // namespace arb
+} // namespace pyarb
