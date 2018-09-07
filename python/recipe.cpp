@@ -14,165 +14,150 @@
 #include <arbor/spike_source_cell.hpp>
 
 #include "event_generator.hpp"
+#include "recipe.hpp"
+#include "strings.hpp"
 
 namespace arb {
 namespace py {
 
-// py::recipe is the recipe interface that used by Python.
-// Calls that return generic types return pybind11::object, to avoid
-// having to wrap some C++ types used by the C++ interface (specifically
-// util::unique_any, util::any, std::unique_ptr, etc.)
-// For example, requests for cell description return pybind11::object, instead
-// of util::unique_any used by the C++ recipe interface.
-// The py_recipe_shim defined unwraps the python objects, and forwards them
-// to the C++ back end.
-class recipe {
-public:
-    recipe() = default;
-    virtual ~recipe() {}
+// The py::recipe::cell_decription returns a pybind11::object, that is
+// unwrapped and copied into a util::unique_any.
+util::unique_any py_recipe_shim::get_cell_description(cell_gid_type gid) const {
+    auto guard = pybind11::gil_scoped_acquire();
+    pybind11::object o = impl_->cell_description(gid);
 
-    virtual cell_size_type   num_cells() const = 0;
-    virtual pybind11::object cell_description(cell_gid_type gid) const = 0;
-    virtual cell_kind        kind(cell_gid_type gid) const = 0;
-    virtual std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const {
-        return {};
-    };
-    virtual cell_size_type num_sources(cell_gid_type) const {
-        return 0;
-    };
-    virtual cell_size_type num_targets(cell_gid_type) const {
-        return 0;
-    };
-    virtual std::vector<pybind11::object> event_generators(cell_gid_type gid) const {
-        auto guard = pybind11::gil_scoped_acquire();
-        return {};
-    };
-};
-
-class recipe_trampoline: public recipe {
-public:
-    using recipe::recipe;
-
-    cell_size_type num_cells() const override {
-        PYBIND11_OVERLOAD_PURE(cell_size_type, recipe, num_cells);
+    if (pybind11::isinstance<arb::mc_cell>(o)) {
+        return util::unique_any(pybind11::cast<arb::mc_cell>(o));
     }
+//  if (pybind11::isinstance<lif_cell>(o)) {
+//      return util::unique_any(pybind11::cast<lif_cell>(o));
+//  }
 
-    pybind11::object cell_description(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD_PURE(pybind11::object, recipe, cell_description, gid);
-    }
+    throw arb::python_error(
+        "recipe.cell_description returned \""
+        + std::string(pybind11::str(o))
+        + "\" which does not describe a known Arbor cell type.");
+}
 
-    cell_kind kind(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD_PURE(cell_kind, recipe, kind, gid);
-    }
+std::vector<arb::event_generator> py_recipe_shim::event_generators(cell_gid_type gid) const {
+    using namespace std::string_literals;
+    using pybind11::isinstance;
+    using pybind11::cast;
 
-    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<arb::cell_connection>, recipe, connections_on, gid);
-    }
+    // Aquire the GIL because it must be held when calling isinstance and cast.
+    auto guard = pybind11::gil_scoped_acquire();
 
-    cell_size_type num_sources(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(cell_size_type, recipe, num_sources, gid);
-    }
+    // Get the python list of arb::py::event_generator from the python front end.
+    auto pygens = impl_->event_generators(gid);
 
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(cell_size_type, recipe, num_targets, gid);
-    }
+    std::vector<arb::event_generator> gens;
+    gens.reserve(pygens.size());
 
-    std::vector<pybind11::object> event_generators(cell_gid_type gid) const override {
-        PYBIND11_OVERLOAD(std::vector<pybind11::object>, recipe, event_generators, gid);
-    }
-};
-
-// A recipe shim that forwards calls to arb::recipe to a python-side
-// arb::py::recipe implementation, and translates the output of the
-// arb::py::recipe return values to those used by arb::recipe.
-// For example, unwrap cell descriptions stored in PyObject, and rewrap
-// in util::unique_any.
-class py_recipe_shim: public arb::recipe {
-    // pointer to the python recipe implementation
-    std::shared_ptr<arb::py::recipe> impl_;
-
-public:
-    using recipe::recipe;
-
-    py_recipe_shim(std::shared_ptr<py::recipe> r): impl_(std::move(r)) {}
-
-    cell_size_type num_cells() const override {
-        return impl_->num_cells();
-    }
-
-    // The py::recipe::cell_decription returns a pybind11::object, that is
-    // unwrapped and copied into a util::unique_any.
-    util::unique_any get_cell_description(cell_gid_type gid) const override {
-        auto guard = pybind11::gil_scoped_acquire();
-        pybind11::object o = impl_->cell_description(gid);
-
-        if (pybind11::isinstance<lif_cell>(o)) {
-            return util::unique_any(pybind11::cast<lif_cell>(o));
+    for (auto& g: pygens) {
+        // check that a valid Python event_generator was passed.
+        if (!isinstance<arb::py::event_generator>(g)) {
+            std::stringstream s;
+            s << "recipe supplied an invalid event generator for gid "
+              << gid << ": " << pybind11::str(g);
+            throw python_error(s.str());
         }
-        /*
-       else if (pybind11::isinstance<mc_cell>(o)) {
-            return util::unique_any(pybind11::cast<mc_cell>(o));
-        }
-        */
+        // get a reference to the python event_generator
+        auto& p = cast<const arb::py::event_generator&>(g);
 
-        throw std::runtime_error(
-            "Python Arbor recipe.cell_description returned ("
-            + std::string(pybind11::str(o))
-            + "), which does not describe a known Arbor cell type.");
+        // convert the event_generator to an arb::event_generator
+        gens.push_back(
+            arb::schedule_generator(
+                {gid, p.lid}, p.weight, std::move(p.time_seq)));
     }
 
-    cell_kind get_cell_kind(cell_gid_type gid) const override {
-        return impl_->kind(gid);
-    }
+    return gens;
+}
 
-    std::vector<cell_connection> connections_on(cell_gid_type gid) const override {
-        return impl_->connections_on(gid);
-    }
+template <typename Sched>
+arb::benchmark_cell py_make_benchmark_cell(const Sched& sched)
+{
+    return arb::benchmark_cell(sched.schedule(), 1.0);
+}
 
-    cell_size_type num_sources(cell_gid_type gid) const override {
-        return impl_->num_sources(gid);
-    }
+void register_recipe(pybind11::module& m) {
+    using namespace pybind11::literals;
 
-    cell_size_type num_targets(cell_gid_type gid) const override {
-        return impl_->num_targets(gid);
-    }
+    // Wrap the cell_kind enum type.
+    pybind11::enum_<arb::cell_kind>(m, "cell_kind")
+        .value("benchmark", arb::cell_kind::benchmark)
+        .value("cable1d", arb::cell_kind::cable1d_neuron)
+        .value("lif", arb::cell_kind::lif_neuron)
+        .value("spike_souce", arb::cell_kind::spike_source);
 
-    std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        using namespace std::string_literals;
-        using pybind11::isinstance;
-        using pybind11::cast;
+    // Connections
+    pybind11::class_<arb::cell_connection> connection(m, "connection");
 
-        // Aquire the GIL because it must be held when calling isinstance and cast.
-        auto guard = pybind11::gil_scoped_acquire();
+    connection
+        .def(pybind11::init<>(
+            [](){return arb::cell_connection({0u,0u}, {0u,0u}, 0.f, 0.f);}))
+        .def(pybind11::init<arb::cell_member_type, arb::cell_member_type, float, float>(),
+            "source"_a, "destination"_a, "weight"_a, "delay"_a)
+        .def_readwrite("source", &arb::cell_connection::source,
+            "The source of the conection (type: pyarb.cell_member)")
+        .def_readwrite("destination", &arb::cell_connection::dest,
+            "The destination of the connection (type: pyarb.cell_member)")
+        .def_readwrite("weight", &arb::cell_connection::weight,
+            "The weight of the connection (S⋅cm⁻²)")
+        .def_readwrite("delay", &arb::cell_connection::delay,
+            "The delay time of the connection (ms)")
+        .def("__str__", &connection_string)
+        .def("__repr__", &connection_string);
 
-        // Get the python list of arb::py::event_generator from the python front end
-        auto pygens = impl_->event_generators(gid);
+    // Recipies
+    pybind11::class_<arb::py::recipe,
+                     arb::py::recipe_trampoline,
+                     std::shared_ptr<arb::py::recipe>>
+        recipe(m, "recipe", pybind11::dynamic_attr());
 
-        std::vector<arb::event_generator> gens;
-        gens.reserve(pygens.size());
+    recipe
+        .def(pybind11::init<>())
+        .def("num_cells", &arb::py::recipe::num_cells,
+            "The number of cells in the model.")
+        .def("cell_description",
+            &arb::py::recipe::cell_description, pybind11::return_value_policy::copy,
+            "High level decription of the cell with global identifier gid.")
+        .def("kind", &arb::py::recipe::kind,
+            "gid"_a,
+            "The cell_kind of cell with global identifier gid.")
+        .def("connections_on", &arb::py::recipe::connections_on,
+            "gid"_a,
+            "A list of the incoming connections to gid")
+        .def("num_targets", &arb::py::recipe::num_targets,
+            "gid"_a,
+            "The number of event targets on gid (e.g. synapses)")
+        .def("num_sources", &arb::py::recipe::num_sources,
+            "gid"_a,
+            "The number of spike sources on gid")
+        .def("__str__", [](const arb::py::recipe&){return "<pyarb.recipe>";})
+        .def("__repr__", [](const arb::py::recipe&){return "<pyarb.recipe>";});
 
-        for (auto& g: pygens) {
-            // check that a valid Python event_generator was passed
-            if (!isinstance<arb::py::event_generator>(g)) {
-                std::stringstream s;
-                s << "recipe supplied an invalid event generator for gid "
-                  << gid << ": " << pybind11::str(g);
-                throw python_error(s.str());
-            }
-            // get a reference to the python event_generator
-            auto& p = cast<const arb::py::event_generator&>(g);
+    // Cell kinds.
 
-            // convert the event_generator to an arb::event_generator
-            gens.push_back(
-                arb::schedule_generator(
-                    {gid, p.lid}, p.weight, std::move(p.time_seq)));
-        }
+    pybind11::class_<arb::benchmark_cell> benchmark_cell(m, "benchmark_cell");
 
-        return gens;
-    }
-};
+    benchmark_cell
+        .def(pybind11::init<>())
+        .def_readwrite("realtime_ratio", &arb::benchmark_cell::realtime_ratio,
+            "Time taken in ms to advance the cell one ms of simulation time. \n"
+            "If equal to 1, then a single cell can be advanced in realtime ");
+    /*
+    struct benchmark_cell {
+        // Describes the time points at which spikes are to be generated.
+        schedule time_sequence;
+
+        // Time taken in ms to advance the cell one ms of simulation time.
+        // If equal to 1, then a single cell can be advanced in realtime 
+        double realtime_ratio;
+    };
+    */
+
+}
 
 } // namespace py
-
 } // namespace arb
 

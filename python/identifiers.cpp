@@ -10,6 +10,8 @@ namespace arb {
 namespace py {
 
 void register_identifiers(pybind11::module& m) {
+    using namespace pybind11::literals;
+
     pybind11::class_<cell_member_type> cell_member(m, "cell_member",
         "For global identification of a cell-local item.\n\n"
         "Items of cell_member must:\n"
@@ -25,9 +27,9 @@ void register_identifiers(pybind11::module& m) {
                 m.index = idx;
                 return m;
             }),
-            "Construct with gid and index.",
-            pybind11::arg("gid"),
-            pybind11::arg("index"))
+            "gid"_a,
+            "index"_a,
+            "Construct with gid and index.")
         .def_readwrite("gid",   &cell_member_type::gid,
             "The global identifier of the cell.")
         .def_readwrite("index", &cell_member_type::index,
