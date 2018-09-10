@@ -13,13 +13,14 @@ endif()
 set(CXXOPT_WALL
     -Wall
 
-    # XL C:
+    # Clang:
     #
     # * Disable 'missing-braces' warning: this will inappropriately
     #   flag initializations such as
     #       std::array<int,3> a={1,2,3};
 
-    $<IF:$<CXX_COMPILER_ID:XL>,-Wno-missing-braces,>
+    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-missing-braces,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-missing-braces,>
 
     # Clang:
     #
@@ -28,6 +29,7 @@ set(CXXOPT_WALL
     #   effects.
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-potentially-evaluated-expression,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-potentially-evaluated-expression,>
 
     # * Clang erroneously warns that T is an 'unused type alias'
     #   in code like this:
@@ -37,10 +39,12 @@ set(CXXOPT_WALL
     #       };
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-unused-local-typedef,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-unused-local-typedef,>
 
     # * Ignore warning if string passed to snprintf is not a string literal.
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-format-security,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-format-security,>
 
     # GCC:
     #
@@ -135,12 +139,18 @@ function(set_arch_target optvar arch)
         endif()
     endif()
 
-    # Prefix architecture options with `-Xcompiler=` when compiling CUDA sources, i.e.
-    # with nvcc.
-    set(arch_opt_cuda_guarded)
-    foreach(opt ${arch_opt})
-        list(APPEND arch_opt_cuda_guarded "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>${opt}")
-    endforeach()
+    get_property(enabled_languages GLOBAL PROPERTY ENABLED_LANGUAGES)
+    if ("CUDA" IN_LIST enabled_languages)
+        # Prefix architecture options with `-Xcompiler=` when compiling CUDA sources, i.e.
+        # with nvcc.
+        set(arch_opt_cuda_guarded)
+        foreach(opt ${arch_opt})
+            list(APPEND arch_opt_cuda_guarded "$<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=>${opt}")
+        endforeach()
 
-    set("${optvar}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
+        set("${optvar}" "${arch_opt_cuda_guarded}" PARENT_SCOPE)
+    else()
+        set("${optvar}" "${arch_opt}" PARENT_SCOPE)
+    endif()
+
 endfunction()

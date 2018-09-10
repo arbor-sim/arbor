@@ -287,16 +287,17 @@ Vectorization
 -------------
 
 Explicit vectorization of computational kernels can be enabled in Arbor by setting the
-``ARB_VECTORIZE`` CMake flag:
+``ARB_VECTORIZE`` CMake flag. This option is typically used in conjunction with the
+``ARB_ARCH`` option to specify the target architecture: without SIMD support in Arbor
+for the architecture, enabling ``ARB_VECTORIZE`` will lead to a compilation error.
 
 .. code-block:: bash
 
-    cmake -DARB_VECTORIZE=ON
+    cmake -DARB_VECTORIZE=ON -DARB_ARCH=native
 
 With this flag set, the library will use architecture-specific vectorization intrinsics
 to implement these kernels. Arbor currently has vectorization support for x86 architectures
-with AVX, AVX2 or AVX512 ISA extensions. Enabling the `ARB_VECTORIZE` option for a target
-without support in Arbor will give a compilation error.
+with AVX, AVX2 or AVX512 ISA extensions.
 
 .. _gpu:
 
