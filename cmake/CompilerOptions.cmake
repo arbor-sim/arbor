@@ -13,13 +13,14 @@ endif()
 set(CXXOPT_WALL
     -Wall
 
-    # XL C:
+    # Clang:
     #
     # * Disable 'missing-braces' warning: this will inappropriately
     #   flag initializations such as
     #       std::array<int,3> a={1,2,3};
 
-    $<IF:$<CXX_COMPILER_ID:XL>,-Wno-missing-braces,>
+    $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-missing-braces,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-missing-braces,>
 
     # Clang:
     #
@@ -28,6 +29,7 @@ set(CXXOPT_WALL
     #   effects.
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-potentially-evaluated-expression,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-potentially-evaluated-expression,>
 
     # * Clang erroneously warns that T is an 'unused type alias'
     #   in code like this:
@@ -37,10 +39,12 @@ set(CXXOPT_WALL
     #       };
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-unused-local-typedef,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-unused-local-typedef,>
 
     # * Ignore warning if string passed to snprintf is not a string literal.
 
     $<IF:$<CXX_COMPILER_ID:Clang>,-Wno-format-security,>
+    $<IF:$<CXX_COMPILER_ID:AppleClang>,-Wno-format-security,>
 
     # GCC:
     #

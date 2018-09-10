@@ -18,7 +18,7 @@ std::fstream open_or_throw(const path& p, std::ios_base::openmode mode, bool exc
         throw std::runtime_error(strsub("unable to open file %", p));
     }
 
-    return std::move(file);
+    return file;
 }
 
 } // namespace aux
