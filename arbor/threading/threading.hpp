@@ -102,6 +102,7 @@ private:
     /// on the destruction of a task_system that would lead to a thread trying to join itself
     task_system* task_system_;
     std::exception_ptr exception_ptr_;
+    std::mutex exception_mutex_;
 
 public:
     task_group(task_system* ts):
@@ -116,21 +117,24 @@ public:
         F f;
         std::atomic<std::size_t>& counter;
         std::exception_ptr& exception_ptr;
+        std::mutex& exception_mutex;
 
     public:
 
         // Construct from a compatible function and atomic counter
         template <typename F2>
-        explicit wrap(F2&& other, std::atomic<std::size_t>& c, std::exception_ptr& ex_p):
+        explicit wrap(F2&& other, std::atomic<std::size_t>& c, std::exception_ptr& ex_p, std::mutex& ex_m):
                 f(std::forward<F2>(other)),
                 counter(c),
-                exception_ptr(ex_p)
+                exception_ptr(ex_p),
+                exception_mutex(ex_m)
         {}
 
         wrap(wrap&& other):
                 f(std::move(other.f)),
                 counter(other.counter),
-                exception_ptr(other.exception_ptr)
+                exception_ptr(other.exception_ptr),
+                exception_mutex(other.exception_mutex)
         {}
 
         // std::function is not guaranteed to not copy the contents on move construction
@@ -138,7 +142,8 @@ public:
         wrap(const wrap& other):
                 f(other.f),
                 counter(other.counter),
-                exception_ptr(other.exception_ptr)
+                exception_ptr(other.exception_ptr),
+                exception_mutex(other.exception_mutex)
         {}
 
         void operator()() {
@@ -147,6 +152,7 @@ public:
                     f();
                 }
                 catch (const std::exception &ex) {
+                    lock exception_lock{exception_mutex};
                     exception_ptr = std::current_exception();
                 }
             }
@@ -159,14 +165,14 @@ public:
 
     template <typename F>
     wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c,
-            std::exception_ptr& exception_p) {
-        return wrap<callable<F>>(std::forward<F>(f), c, exception_p);
+            std::exception_ptr& ex_p, std::mutex& ex_m) {
+        return wrap<callable<F>>(std::forward<F>(f), c, ex_p, ex_m);
     }
 
     template<typename F>
     void run(F&& f) {
         ++in_flight_;
-        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, exception_ptr_));
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, exception_ptr_, exception_mutex_));
     }
 
     // wait till all tasks in this group are done
