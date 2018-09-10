@@ -1,17 +1,17 @@
+#include <sstream>
 #include <string>
 
-#include <arbor/domain_decomposition.hpp>
 #include <arbor/context.hpp>
+#include <arbor/domain_decomposition.hpp>
 #include <arbor/version.hpp>
 
 #include "context.hpp"
 #include "strings.hpp"
-#include "context.hpp" 
 
 #include <pybind11/pybind11.h>
 
 #ifdef ARB_MPI_ENABLED
-#include <mpi.h>
+#include "mpi.hpp"
 #endif
 
 namespace pyarb {
@@ -52,7 +52,7 @@ void register_contexts(pybind11::module& m) {
             [](const arb::proc_allocation& alloc){return context_shim(arb::make_context(alloc));}))
 #ifdef ARB_MPI_ENABLED
         .def(pybind11::init(
-            [](const arb::proc_allocation& alloc, MPI_Comm comm){return context_shim(arb::make_context(alloc, comm));}))
+            [](const arb::proc_allocation& alloc, mpi_comm_shim c){return context_shim(arb::make_context(alloc, c.comm));}))
 #endif
         .def_property_readonly("has_mpi", [](const context_shim& ctx){return arb::has_mpi(ctx.context);},
             "Whether the context uses MPI for distributed communication.")

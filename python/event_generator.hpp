@@ -59,6 +59,24 @@ struct explicit_schedule_shim {
     }
 };
 
+/*
+struct poisson_schedule_shim {
+    using rng_type = std::mt19937_64;
+    using impl = arb::poisson_schedule_impl<rng_type>;
+
+    // default empty time range
+    arb::time_type tstart = arb::max_time;
+    arb::time_type freq = 10; // 10 Hz.
+    rng_type::result_type seed = 0;
+
+    poisson_generator_desc() = default;
+
+    arb::schedule schedule() const {
+        return impl(rng_type(seed), tstart, rate_per_ms, tstop);
+    }
+};
+*/
+
 struct event_generator {
     arb::cell_lid_type lid;
     double weight;

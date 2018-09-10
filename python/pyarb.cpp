@@ -1,3 +1,5 @@
+#include <arbor/version.hpp>
+
 #include <pybind11/pybind11.h>
 
 // forward declarations of functions used to register API
@@ -13,6 +15,9 @@ void register_profilers(pybind11::module& m);
 void register_recipe(pybind11::module& m);
 void register_simulation(pybind11::module& m);
 void register_spike_handling(pybind11::module& m);
+#ifdef ARB_MPI_ENABLED
+void register_mpi(pybind11::module& m);
+#endif
 
 }
 
@@ -29,5 +34,8 @@ PYBIND11_MODULE(pyarb, m) {
     pyarb::register_recipe(m);
     pyarb::register_simulation(m);
     pyarb::register_spike_handling(m);
+    #ifdef ARB_MPI_ENABLED
+    pyarb::register_mpi(m);
+    #endif
 }
 
