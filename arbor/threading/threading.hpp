@@ -101,6 +101,7 @@ private:
     /// We use a raw pointer here instead of a shared_ptr to avoid a race condition
     /// on the destruction of a task_system that would lead to a thread trying to join itself
     task_system* task_system_;
+    std::exception_ptr exception_ptr_;
 
 public:
     task_group(task_system* ts):
@@ -114,30 +115,41 @@ public:
     class wrap {
         F f;
         std::atomic<std::size_t>& counter;
+        std::exception_ptr& exception_ptr;
 
     public:
 
         // Construct from a compatible function and atomic counter
         template <typename F2>
-        explicit wrap(F2&& other, std::atomic<std::size_t>& c):
+        explicit wrap(F2&& other, std::atomic<std::size_t>& c, std::exception_ptr& ex_p):
                 f(std::forward<F2>(other)),
-                counter(c)
+                counter(c),
+                exception_ptr(ex_p)
         {}
 
         wrap(wrap&& other):
                 f(std::move(other.f)),
-                counter(other.counter)
+                counter(other.counter),
+                exception_ptr(other.exception_ptr)
         {}
 
         // std::function is not guaranteed to not copy the contents on move construction
         // But the class is safe because we don't call operator() more than once on the same wrapped task
         wrap(const wrap& other):
                 f(other.f),
-                counter(other.counter)
+                counter(other.counter),
+                exception_ptr(other.exception_ptr)
         {}
 
         void operator()() {
-            f();
+            if(!exception_ptr) {
+                try {
+                    f();
+                }
+                catch (const std::exception &ex) {
+                    exception_ptr = std::current_exception();
+                }
+            }
             --counter;
         }
     };
@@ -146,21 +158,23 @@ public:
     using callable = typename std::decay<F>::type;
 
     template <typename F>
-    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c) {
-        return wrap<callable<F>>(std::forward<F>(f), c);
+    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c,
+            std::exception_ptr& exception_p) {
+        return wrap<callable<F>>(std::forward<F>(f), c, exception_p);
     }
 
     template<typename F>
     void run(F&& f) {
         ++in_flight_;
-        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_));
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, exception_ptr_));
     }
 
     // wait till all tasks in this group are done
-    void wait() {
+    std::exception_ptr wait() {
         while (in_flight_) {
             task_system_->try_run_task();
         }
+        return exception_ptr_;
     }
 
     // Make sure that all tasks are done before clean up
@@ -179,7 +193,18 @@ struct parallel_for {
         for (int i = left; i < right; ++i) {
           g.run([=] {f(i);});
         }
-        g.wait();
+        auto ex = g.wait();
+
+        if(ex) {
+            try
+            {
+                std::rethrow_exception(ex);
+            }
+            catch (const std::exception &e)
+            {
+                throw std::runtime_error(e.what());
+            }
+        }
     }
 };
 } // namespace threading
