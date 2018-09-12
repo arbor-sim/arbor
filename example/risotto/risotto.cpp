@@ -238,11 +238,13 @@ int main(int argc, char** argv) {
 
 
         std::mutex queue_mutex;
+        std::deque<std::tuple< arb::cell_gid_type, arb::cell_lid_type , arb::time_type, double>> traces;
+
 
 
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        sim.add_sampler(arb::all_probes, sched, arb::make_printing_sampler(voltage, queue_mutex));
+        sim.add_sampler(arb::all_probes, sched, arb::make_printing_sampler(voltage, queue_mutex, traces));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
