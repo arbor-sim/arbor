@@ -94,7 +94,7 @@ struct LevelIterator {
 
     void advance_depth_first() {
         auto children = tree_->children(current_node);
-        if (next_children < children.size()) { // TODO && current_level < only_on_level
+        if (next_children < children.size() && current_level <= only_on_level) {
             // go to next children
             current_level += 1;
             current_node = children[next_children];
