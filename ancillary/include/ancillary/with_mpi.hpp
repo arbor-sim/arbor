@@ -4,7 +4,7 @@
 
 #include <arbor/communication/mpi_error.hpp>
 
-namespace aux {
+namespace anc {
 
 struct with_mpi {
     with_mpi(int& argc, char**& argv, bool fatal_errors = true) {

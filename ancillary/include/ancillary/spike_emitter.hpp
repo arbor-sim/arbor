@@ -4,7 +4,7 @@
 
 #include <arbor/spike.hpp>
 
-namespace aux {
+namespace anc {
 
 struct spike_emitter {
     std::reference_wrapper<std::ostream> out;
@@ -13,4 +13,4 @@ struct spike_emitter {
     void operator()(const std::vector<arb::spike>&);
 };
 
-} // namespace aux
+} // namespace anc

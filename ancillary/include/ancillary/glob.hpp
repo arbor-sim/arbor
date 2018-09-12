@@ -4,11 +4,11 @@
 // TODO: emulate for not-entirely-POSIX platforms.
 
 
-#include <aux/path.hpp>
+#include <ancillary/path.hpp>
 
-namespace aux {
+namespace anc {
 
 std::vector<path> glob(const std::string& pattern);
 
-} // namespace aux
+} // namespace anc
 

@@ -9,7 +9,7 @@
 #include <vector>
 
 #include <arbor/morphology.hpp>
-#include <aux/path.hpp>
+#include <ancillary/path.hpp>
 
 namespace arb {
 
@@ -34,7 +34,7 @@ public:
 
 extern morphology_pool default_morphology_pool;
 
-void load_swc_morphology(morphology_pool& pool, const aux::path& swc_path);
+void load_swc_morphology(morphology_pool& pool, const anc::path& swc_path);
 void load_swc_morphology_glob(morphology_pool& pool, const std::string& pattern);
 
 } // namespace arb

@@ -5,7 +5,7 @@
 
 #include <nlohmann/json.hpp>
 
-namespace aux {
+namespace anc {
 
 // Search a json object for an entry with a given name.
 // If found, return the value and remove from json object.
@@ -39,4 +39,4 @@ void param_from_json(std::array<T, N>& x, const char* name, nlohmann::json& j) {
     }
 }
 
-} // namespace aux
+} // namespace anc

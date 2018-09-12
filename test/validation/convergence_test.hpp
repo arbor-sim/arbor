@@ -9,7 +9,7 @@
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/schedule.hpp>
-#include <aux/path.hpp>
+#include <ancillary/path.hpp>
 
 #include "../gtest.h"
 
@@ -61,7 +61,7 @@ public:
     // Allow free access to JSON meta data attached to saved traces.
     nlohmann::json& metadata() { return meta_; }
 
-    void load_reference_data(const aux::path& ref_path) {
+    void load_reference_data(const anc::path& ref_path) {
         run_validation_ = false;
         try {
             ref_data_ = g_trace_io.load_traces(ref_path);

@@ -114,10 +114,10 @@ add_library(arbor-public-deps INTERFACE)
 
 add_subdirectory(ext)
 
-# Auxilary/helper utiliies in `aux` are common across test executables
-# and examples. Creates interface library `arbor-aux`.
+# Ancillary utiliies in `ancillary` are common across test executables
+# and examples. Creates interface library `arbor-anc`.
 
-add_subdirectory(aux)
+add_subdirectory(ancillary)
 
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------

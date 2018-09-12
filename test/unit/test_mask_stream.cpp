@@ -2,9 +2,9 @@
 
 #include "../gtest.h"
 
-#include <aux/ioutil.hpp>
+#include <ancillary/ioutil.hpp>
 
-using aux::mask_stream;
+using anc::mask_stream;
 
 TEST(mask_stream,nomask) {
     // expect mask_stream(true) on a new stream not to change rdbuf.

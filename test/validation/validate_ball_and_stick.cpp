@@ -11,7 +11,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
-#include <aux/path.hpp>
+#include <ancillary/path.hpp>
 
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
@@ -33,7 +33,7 @@ struct probe_point {
 template <typename ProbePointSeq>
 void run_ncomp_convergence_test(
     const char* model_name,
-    const aux::path& ref_data_path,
+    const anc::path& ref_data_path,
     context& context,
     const mc_cell& c,
     ProbePointSeq& probe_points,
