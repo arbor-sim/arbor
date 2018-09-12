@@ -27,6 +27,7 @@ tree::tree(std::vector<tree::int_type> parent_index) {
     memory::copy(parent_index, parents_);
     parents_[0] = no_parent;
 
+    // compute offsets into children_ array
     memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
 
     std::vector<int_type> pos(parents_.size(), 0);

@@ -41,6 +41,8 @@ mean(C const& c)
     return sum(c)/util::size(c);
 }
 
+// returns the prefix sum of c in the form `[0, c[0], c[0]+c[1], ..., sum(c)]`.
+// This means that the returned vector has one more element than c.
 template <typename C>
 C make_index(C const& c)
 {
@@ -94,6 +96,9 @@ bool is_strictly_monotonic_decreasing(C const& c)
     );
 }
 
+// check if c[0] == 0 and c[i] < 0 holds for i != 0
+// this means that children of a node always have larger indices than their
+// parent
 template <
     typename C,
     typename = typename std::enable_if<std::is_integral<typename C::value_type>::value>
@@ -130,6 +135,7 @@ bool all_negative(const C& c) {
     return util::all_of(c, [](auto v) { return v<decltype(v){}; });
 }
 
+// returns a vector containing the number of children for each node.
 template<typename C>
 std::vector<typename C::value_type> child_count(const C& parent_index)
 {
