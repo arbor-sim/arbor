@@ -5,11 +5,11 @@
 #include <vector>
 
 #include <arbor/spike.hpp>
-#include <aux/spike_emitter.hpp>
+#include <ancillary/spike_emitter.hpp>
 
 TEST(spike_emitter, formatting) {
     std::stringstream out;
-    auto callback = aux::spike_emitter(out);
+    auto callback = anc::spike_emitter(out);
 
     std::vector<arb::spike> spikes = {
         { { 0, 0 }, 0.0 },

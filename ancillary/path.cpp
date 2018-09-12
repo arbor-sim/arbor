@@ -5,9 +5,9 @@ extern "C" {
 
 #include <cerrno>
 
-#include <aux/path.hpp>
+#include <ancillary/path.hpp>
 
-namespace aux {
+namespace anc {
 namespace posix {
 
 namespace impl {
@@ -64,5 +64,5 @@ file_status symlink_status(const path& p, std::error_code& ec) {
 }
 
 } // namespace posix
-} // namespace arb
+} // namespace anc
 

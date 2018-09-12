@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include <aux/json_params.hpp>
+#include <ancillary/json_params.hpp>
 
 #include "parameters.hpp"
 
@@ -42,7 +42,7 @@ std::ostream& operator<<(std::ostream& o, const bench_params& p) {
 }
 
 bench_params read_options(int argc, char** argv) {
-    using aux::param_from_json;
+    using anc::param_from_json;
 
     bench_params params;
     if (argc<2) {

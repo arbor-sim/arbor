@@ -1,11 +1,11 @@
 #include <fstream>
 #include <utility>
 
-#include <aux/ioutil.hpp>
-#include <aux/path.hpp>
-#include <aux/strsub.hpp>
+#include <ancillary/ioutil.hpp>
+#include <ancillary/path.hpp>
+#include <ancillary/strsub.hpp>
 
-namespace aux {
+namespace anc {
 
 std::fstream open_or_throw(const path& p, std::ios_base::openmode mode, bool exclusive) {
     if (exclusive && exists(p)) {
@@ -21,5 +21,5 @@ std::fstream open_or_throw(const path& p, std::ios_base::openmode mode, bool exc
     return file;
 }
 
-} // namespace aux
+} // namespace anc
 
