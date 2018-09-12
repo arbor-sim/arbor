@@ -71,6 +71,85 @@ std::ostream& operator<<(std::ostream& o, branch b) {
         << "]";
 }
 
+struct LevelIterator {
+    tree* tree_;
+
+    unsigned current_node;
+    unsigned current_level;
+    unsigned next_children;
+
+    unsigned only_on_level;
+
+    LevelIterator(tree* t, unsigned level) {
+        tree_ = t;
+        only_on_level = level;
+        // due to the ordering of the nodes we know that 0 is the root
+        current_node  = 0;
+        current_level = 0;
+        next_children = 0;
+        if (level != 0) {
+            next();
+        };
+    }
+
+    void advance_depth_first() {
+        auto children = tree_->children(current_node);
+        if (next_children < children.size()) { // TODO && current_level < only_on_level
+            // go to next children
+            current_level += 1;
+            current_node = children[next_children];
+            next_children = 0;
+        } else {
+            // go to parent
+            auto parent_node = tree_->parents()[current_node];
+            constexpr unsigned npos = unsigned(-1);
+            if (parent_node != npos) {
+                auto siblings = tree_->children(parent_node);
+                // get the index in the child list of the parent
+                unsigned index = 0;
+                while (siblings[index] != current_node) { // TODO repalce by array lockup: sibling_nr
+                    index += 1;
+                }
+
+                current_level -= 1;
+                current_node = parent_node;
+                next_children = index + 1;
+            } else {
+                // we are done with the iteration
+                current_level = -1;
+                current_node  = -1;
+                next_children = -1;
+            }
+
+        }
+    }
+
+    unsigned next() {
+        constexpr unsigned npos = unsigned(-1);
+        if (!valid()) {
+            // we are done
+            return npos;
+        } else {
+            advance_depth_first();
+            // next_children != 0 means, that we have seen the node before
+            while (valid() && (current_level != only_on_level || next_children != 0)) {
+                advance_depth_first();
+            }
+            return current_node;
+        }
+    }
+
+    bool valid() {
+        constexpr unsigned npos = unsigned(-1);
+        return this->peek() != npos;
+    }
+
+    unsigned peek() {
+        return current_node;
+    }
+};
+
+
 template <typename T, typename I>
 struct matrix_state_fine {
 public:
@@ -129,6 +208,67 @@ public:
     //      packed[perm[i]] = flat[i]
     iarray perm;
 
+    // takes a vector of trees and the corresponding branch start list
+    static void optimize_trees(std::vector<tree>& trees, std::vector<std::vector<int>>& branch_starts) {
+        using util::make_span;
+
+        // cut the tree
+        unsigned count = 1; // number of nodes found on the previous level
+        for (auto level = 0; count > 0; level++) {
+            count = 0;
+
+            // decide where to cut it ...
+            unsigned max_length = 0;
+            for (auto t_ix: make_span(trees.size())) { // TODO make this local on an intermediate packing
+                for (LevelIterator it (&trees[t_ix], level); it.valid(); it.next()) {
+                    auto length = branch_starts[t_ix][it.peek() + 1] - branch_starts[t_ix][it.peek()];
+                    max_length += length;
+                    count++;
+                }
+            }
+            if (count == 0) {
+                // there exists no tree with branches on this level
+                continue;
+            };
+            max_length = max_length / count;
+            if (max_length <= 1) max_length = 1;
+
+
+            for (auto t_ix: make_span(trees.size())) {
+                // ... cut all trees on this level
+                for (LevelIterator it (&trees[t_ix], level); it.valid(); it.next()) {
+
+                    unsigned length = branch_starts[t_ix][it.peek() + 1] - branch_starts[t_ix][it.peek()];
+                    if (length > max_length) {
+                        // now cut the tree
+
+                        // we are allowed to mess with the tree because of the
+                        // implementation of LevelIterator o.O
+
+                        auto insert_at_b  = branch_starts[t_ix].begin() + it.peek();
+
+                        trees[t_ix].split_node(it.peek());
+
+                        // now the tree got a new node.
+                        // we now have to insert a corresponding new 'branch
+                        // start' to the list
+
+                        // make sure that `branch_starts` for A and N point to
+                        // the correct slices
+                        auto old_start = branch_starts[t_ix][it.peek()];
+                        // first insert, then index peek, as we already
+                        // incremented the iterator
+                        branch_starts[t_ix].insert(insert_at_b, old_start);
+                        branch_starts[t_ix][it.peek() + 1] = old_start + max_length;
+                        // we don't have to shift any indices as we did not
+                        // create any new branch segments, but just split
+                        // one over two nodes
+                    }
+                }
+            }
+        }
+    }
+
     matrix_state_fine() = default;
 
     // constructor for fine-grained matrix.
@@ -141,32 +281,16 @@ public:
         using util::make_span;
         constexpr unsigned npos = unsigned(-1);
 
-        max_branches_per_level = 32;
+        max_branches_per_level = 128;
 
         // for now we have single cell per cell group
         arb_assert(cell_cv_divs.size()==2);
 
         num_cells = cell_cv_divs.size()-1;
 
-        // TODO first sort cells by some criterion to improve greedy packaging
+        std::vector<tree> trees;
+        std::vector<std::vector<int>> tree_branch_starts;
 
-        // First distribute the cells into cuda blocks.
-        // While the total number of branches on each level of theses cells in a
-        // block are less than `max_branches_per_level` we add more cells. If
-        // one block is full, we start a new cuda block.
-
-        unsigned current_block = 0;
-        std::vector<unsigned> block_num_branches_per_depth;
-        std::vector<unsigned> block_ix(num_cells);
-        num_cells_in_block.resize(1, 0);
-
-        // branch_map = branch_maps[block] is a branch map for each cuda block
-        // branch_map[depth] is list of branches is this level
-        // each branch branch_map[depth][i] has {id, parent_id, start_idx, parent_idx, length}
-        std::vector<std::vector<std::vector<branch>>> branch_maps;
-        branch_maps.resize(1);
-
-        unsigned num_branches = 0u;
         for (auto c: make_span(0u, num_cells)) {
             // build the parent index for cell c
             auto cell_start = cell_cv_divs[c];
@@ -179,16 +303,6 @@ public:
             // find the index of the first node for each branch
             auto branch_starts = algorithms::branches(cell_p);
 
-            // subdivide branches that are too long
-            for (auto b = 0u; b < branch_starts.size() - 1; b++) {
-                auto length = branch_starts[b+1] - branch_starts[b];
-                auto max_length = 10;
-                if (length > max_length) {
-                    // subdivide
-                    branch_starts.insert(branch_starts.begin()+b+1, branch_starts[b] + max_length);
-                }
-            }
-
             // find the parent index of branches
             // we need to convert to cell_lid_type, required to construct a tree.
             std::vector<cell_lid_type> branch_p =
@@ -196,6 +310,36 @@ public:
                     algorithms::tree_reduce(cell_p, branch_starts));
             // build tree structure that describes the branch topology
             auto cell_tree = tree(branch_p);
+
+            trees.push_back(cell_tree);
+            tree_branch_starts.push_back(branch_starts);
+
+        }
+
+        optimize_trees(trees, tree_branch_starts);
+
+        // Now distribute the cells into cuda blocks.
+        // While the total number of branches on each level of theses cells in a
+        // block are less than `max_branches_per_level` we add more cells. If
+        // one block is full, we start a new cuda block.
+
+        unsigned current_block = 0;
+        std::vector<unsigned> block_num_branches_per_depth;
+        std::vector<unsigned> block_ix(num_cells);
+        num_cells_in_block.resize(1, 0);
+
+        // branch_map = branch_maps[block] is a branch map for each cuda block
+        // branch_map[depth] is list of branches is this level
+        // each branch branch_map[depth][i] has
+        // {id, parent_id, start_idx, parent_idx, length}
+        std::vector<std::vector<std::vector<branch>>> branch_maps;
+        branch_maps.resize(1);
+
+        unsigned num_branches = 0u;
+        for (auto c: make_span(0u, num_cells)) {
+            auto cell_start = cell_cv_divs[c];
+            auto cell_tree = trees[c];
+            auto branch_starts = tree_branch_starts[c];
 
             auto depths = depth_from_root(cell_tree);
 
