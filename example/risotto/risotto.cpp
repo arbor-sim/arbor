@@ -6,6 +6,8 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <deque>
+#include <mutex>
 
 #include <nlohmann/json.hpp>
 
@@ -16,7 +18,7 @@
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
-#include <arbor/simple_sampler.hpp>
+#include <arbor/printing_sampler.hpp>
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
@@ -73,7 +75,7 @@ public:
                 seg->set_compartments(4);
             }
         }
-        
+
         c.add_detector({0,0}, 10);
         c.add_synapse({1, 0.5}, "expsyn");
 
@@ -118,10 +120,10 @@ public:
     arb::probe_info get_probe(cell_member_type id) const override {
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
-        
+
         // Measure at the soma.
         arb::segment_location loc_soma(0, 0.0);
-        
+
         // Measure at the dendrite.
         arb::segment_location loc_dendrite(1, 1.0);
 
@@ -233,8 +235,14 @@ int main(int argc, char** argv) {
         auto sched = arb::regular_schedule(0.1);
         // This is where the voltage samples will be stored as (time, value) pairs
         arb::trace_data<double> voltage;
+
+
+        std::mutex queue_mutex;
+
+
+
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+        sim.add_sampler(arb::all_probes, sched, arb::make_printing_sampler(voltage, queue_mutex));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
