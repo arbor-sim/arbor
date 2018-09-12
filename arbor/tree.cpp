@@ -72,6 +72,52 @@ tree::int_type& tree::parent(size_t b) {
     return parents_[b];
 }
 
+tree::int_type tree::split_node(int_type ix) {
+    using util::make_span;
+
+    auto insert_at_p  = parents_.begin() + ix;
+    auto insert_at_ci = child_index_.begin() + ix;
+    auto insert_at_c  = children_.begin() + child_index_[ix];
+    auto new_node_ix  = ix;
+
+    // we first adjust the parent sructure
+
+    // first create a new node N below the parent
+    auto parent = parents_[ix];
+    parents_.insert(insert_at_p, parent);
+    // and attach the remining subtree below it
+    parents_[ix+1] = new_node_ix;
+    // shift all parents, as the indices changed when we
+    // inserted a new node
+    for (auto i: make_span(ix + 2, parents().size())) {
+        if (parents_[i] >= new_node_ix) {
+            parents_[i]++;
+        }
+    }
+
+    // now we adjust the children structure
+
+    // insert a child node for the new node N, pointing to
+    // the old node A
+    child_index_.insert(insert_at_ci, child_index_[ix]);
+    // we will set this value later as it will be overridden
+    children_.insert(insert_at_c, ~0u);
+    // shift indices for all larger indices, as we inserted
+    // a new element in the list
+    for (auto i: make_span(ix + 1, child_index_.size())) {
+        child_index_[i]++;
+    }
+    for (auto i: make_span(0, children_.size())) {
+        if(children_[i] > new_node_ix) {
+            children_[i]++;
+        }
+    }
+    // set the children of the new node to the old subtree
+    children_[child_index_[ix]] = ix + 1;
+
+    return ix+1;
+}
+
 /// memory used to store tree (in bytes)
 std::size_t tree::memory() const {
     return sizeof(int_type)*(children_.size()+child_index_.size()+parents_.size())

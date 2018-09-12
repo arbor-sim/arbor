@@ -54,6 +54,19 @@ public:
     const int_type& parent(size_t b) const;
     int_type& parent(size_t b);
 
+    // splits the node in two parts. Returns `ix + 1` which is the new index of
+    // the old node.
+    // .-------------------.
+    // |      P         P  |
+    // |     /         /   |
+    // |    A   ~~>   N    |
+    // |   / \        |    |
+    // |  B  C        A    |
+    // |             / \   |
+    // |            B  C   |
+    // '-------------------'
+    int_type split_node(int_type ix);
+
     /// memory used to store tree (in bytes)
     std::size_t memory() const;
 
