@@ -8,6 +8,10 @@
 #include <iostream>
 #include <deque>
 #include <mutex>
+#include <atomic>
+#include <condition_variable>
+#include <thread>
+
 
 #include <nlohmann/json.hpp>
 
@@ -184,6 +188,49 @@ struct cell_stats {
 };
 
 
+
+//std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>> traces;
+//std::mutex queue_mutex;
+//std::condition_variable wake_up;
+//bool quit;
+//std::thread worker(publisher, traces, queue_mutex, wake_up, quit);
+
+
+void publisher(
+    std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>> &traces,
+    std::mutex & queue_mutex, std::condition_variable &wake_up, bool& quit)
+{
+    std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>> traces_local;
+    bool quit_local;
+    while (true) {
+        // Wait on the wake_up signal,
+        std::unique_lock<std::mutex> lock(queue_mutex);
+        wake_up.wait(lock, [] {return true; });
+        // We now have the mutex
+
+        // Copy / swap the mutex guarded variables
+        traces_local.swap(traces);
+        quit_local = quit;
+
+        // Release our mutex and signal the other thread we are done
+        lock.unlock();
+        wake_up.notify_one();
+
+        std::cout << "We are here ---------------------\n";
+        for (auto& entry : traces_local) {
+
+            std::cout << std::get<0>(entry) << ", "
+                << std::get<1>(entry) << ", "
+                << std::get<2>(entry) << ", "
+                << std::get<3>(entry) << "\n";
+        }
+
+        if (quit_local) {
+            break;
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     try {
         bool root = true;
@@ -237,14 +284,17 @@ int main(int argc, char** argv) {
 
 
 
-        std::mutex queue_mutex;
+
         std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type , arb::time_type, double>> traces;
-
-
+        std::mutex queue_mutex;
+        std::condition_variable wake_up;
+        bool quit;
+        std::thread worker(publisher, std::ref(traces), std::ref(queue_mutex), std::ref(wake_up), std::ref(quit));
 
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        sim.add_sampler(arb::all_probes, sched, queue_sampler( queue_mutex, traces));
+        sim.add_sampler(arb::all_probes, sched,
+            queue_sampler(traces, queue_mutex, wake_up));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
@@ -285,19 +335,16 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-
+        {
+            std::lock_guard<std::mutex> guard(queue_mutex);
+            wake_up.notify_one();
+            quit = true;
+        }
+        worker.join();
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
-        std::cout << "We are here ---------------------\n";
-        for (auto& entry : traces) {
 
-            std::cout << std::get<0>(entry) << ", "
-                << std::get<1>(entry) << ", "
-                << std::get<2>(entry) << ", "
-                << std::get<3>(entry) << "\n";
-
-        }
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp:\n" << e.what() << "\n";
