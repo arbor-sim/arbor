@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <fstream>
 #include <numeric>
 #include <vector>
 
@@ -55,6 +56,62 @@ public:
 
     /// memory used to store tree (in bytes)
     std::size_t memory() const;
+
+
+    // Exports the tree's parent structure into a dot file.
+    // the children and parent trees are equivalent. Both methods are provided
+    // for debugging purposes.
+    void export_parents(std::string file) const {
+        // the labels in the the graph are the branch indices
+        export_parents(file, [](auto i){return i;});
+    }
+
+    template<typename F>
+    void export_parents(std::string file, F label) const {
+        using util::make_span;
+        std::ofstream ofile;
+        ofile.open(file);
+        ofile << "strict digraph Parents {" << std::endl;
+        for (auto i: make_span(parents().size())) {
+            ofile << i << "[label=\"" << label(i) << "\"]" << std::endl;
+        }
+        for (auto i: make_span(parents().size())) {
+            auto p = parent(i);
+            if (p != no_parent) {
+                ofile << i << " -> " << parent(i) << std::endl;
+            }
+        }
+        ofile << "}" << std::endl;
+        ofile.close();
+    }
+
+    // Exports the tree's children structure into a dot file.
+    // the children and parent trees are equivalent. Both methods are provided
+    // for debugging purposes.
+    void export_children(std::string file) const {
+        // the labels in the the graph are the branch indices
+        export_children(file, [](auto i){return i;});
+    }
+
+    template<typename F>
+    void export_children(std::string file, F label) const {
+        using util::make_span;
+        std::ofstream ofile;
+        ofile.open(file);
+        ofile << "strict digraph Children {" << std::endl;
+        for (auto i: make_span(child_index_.size() - 1)) {
+            ofile << i << "[label=\"" << label(i) << "\"]" << std::endl;
+        }
+        for (auto i: make_span(child_index_.size() - 1)) {
+            ofile << i << " -> {";
+            for (auto c: children(i)) {
+                ofile << " " << c;
+            }
+            ofile << "}" << std::endl;
+        }
+        ofile << "}" << std::endl;
+        ofile.close();
+    }
 
 private:
     void init(size_type nnode);
