@@ -18,7 +18,7 @@
 #include <arbor/mc_cell.hpp>
 #include <arbor/profile/meter_manager.hpp>
 #include <arbor/profile/profiler.hpp>
-#include <arbor/printing_sampler.hpp>
+
 #include <arbor/simulation.hpp>
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
@@ -27,6 +27,7 @@
 #include <ancillary/json_meter.hpp>
 
 #include "parameters.hpp"
+#include "queue_sampler.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
@@ -43,8 +44,7 @@ using arb::cell_probe_address;
 using arb::mc_cell;
 using arb::section_kind;
 
-// Writes voltage trace as a json file.
-void write_trace_json(const arb::trace_data<double>& trace);
+
 
 // Generate a cell.
 arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
@@ -234,17 +234,17 @@ int main(int argc, char** argv) {
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(0.1);
         // This is where the voltage samples will be stored as (time, value) pairs
-        arb::trace_data<double> voltage;
+
 
 
         std::mutex queue_mutex;
-        std::deque<std::tuple< arb::cell_gid_type, arb::cell_lid_type , arb::time_type, double>> traces;
+        std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type , arb::time_type, double>> traces;
 
 
 
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        sim.add_sampler(arb::all_probes, sched, arb::make_printing_sampler(voltage, queue_mutex, traces));
+        sim.add_sampler(arb::all_probes, sched, queue_sampler( queue_mutex, traces));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
@@ -285,39 +285,32 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        if (root) write_trace_json(voltage);
+
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
+        std::cout << "We are here ---------------------\n";
+        for (auto& entry : traces) {
+
+            std::cout << std::get<0>(entry) << ", "
+                << std::get<1>(entry) << ", "
+                << std::get<2>(entry) << ", "
+                << std::get<3>(entry) << "\n";
+
+        }
     }
     catch (std::exception& e) {
         std::cerr << "exception caught in ring miniapp:\n" << e.what() << "\n";
         return 1;
     }
 
+
+
+
     return 0;
 }
 
-void write_trace_json(const arb::trace_data<double>& trace) {
-    std::string path = "./voltages.json";
 
-    nlohmann::json json;
-    json["name"] = "ring demo";
-    json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
-
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
-
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
-    }
-
-    std::ofstream file(path);
-    file << std::setw(1) << json << "\n";
-}
 
 // Helper used to interpolate in branch_cell.
 template <typename T>
