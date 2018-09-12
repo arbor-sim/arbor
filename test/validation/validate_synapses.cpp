@@ -7,7 +7,7 @@
 #include <arbor/recipe.hpp>
 #include <arbor/simple_sampler.hpp>
 #include <arbor/simulation.hpp>
-#include <aux/path.hpp>
+#include <ancillary/path.hpp>
 
 
 #include "../gtest.h"
@@ -24,7 +24,7 @@ using namespace arb;
 
 void run_synapse_test(
     const char* syn_type,
-    const aux::path& ref_data_path,
+    const anc::path& ref_data_path,
     const context& context,
     float t_end=70.f,
     float dt=0.001)

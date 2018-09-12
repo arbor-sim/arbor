@@ -1,7 +1,7 @@
 #include <arbor/profile/meter_manager.hpp>
 #include <nlohmann/json.hpp>
 
-namespace aux {
+namespace anc {
 
 static nlohmann::json to_json(const arb::profile::measurement& mnt) {
     nlohmann::json measurements;

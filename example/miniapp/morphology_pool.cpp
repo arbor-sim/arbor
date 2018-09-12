@@ -5,8 +5,8 @@
 #include <arbor/morphology.hpp>
 #include <arbor/swcio.hpp>
 
-#include <aux/glob.hpp>
-#include <aux/path.hpp>
+#include <ancillary/glob.hpp>
+#include <ancillary/path.hpp>
 
 #include "morphology_pool.hpp"
 
@@ -31,7 +31,7 @@ static morphology make_basic_y_morphology() {
 
 morphology_pool default_morphology_pool(make_basic_y_morphology());
 
-void load_swc_morphology(morphology_pool& pool, const aux::path& swc_path) {
+void load_swc_morphology(morphology_pool& pool, const anc::path& swc_path) {
     std::ifstream fi;
     fi.exceptions(std::ifstream::failbit);
 
@@ -43,7 +43,7 @@ void load_swc_morphology_glob(morphology_pool& pool, const std::string& swc_patt
     std::ifstream fi;
     fi.exceptions(std::ifstream::failbit);
 
-    auto swc_paths = aux::glob(swc_pattern);
+    auto swc_paths = anc::glob(swc_pattern);
     for (const auto& p: swc_paths) {
         fi.open(p.c_str());
         pool.insert(swc_as_morphology(parse_swc_file(fi)));

@@ -6,4 +6,4 @@ add_executable(miniapp
     trace.cpp
 )
 
-target_link_libraries(miniapp PRIVATE arbor arbor-aux ext-tclap ext-json)
+target_link_libraries(miniapp PRIVATE arbor arbor-anc ext-tclap ext-json)
