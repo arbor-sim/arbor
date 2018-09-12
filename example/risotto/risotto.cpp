@@ -21,14 +21,14 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
+#include <ancillary/ioutil.hpp>
+#include <ancillary/json_meter.hpp>
 
 #include "parameters.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
-#include <aux/with_mpi.hpp>
+#include <ancillary/with_mpi.hpp>
 #endif
 
 using arb::cell_gid_type;
@@ -112,16 +112,24 @@ public:
 
     // There is one probe (for measuring voltage at the soma) on the cell.
     cell_size_type num_probes(cell_gid_type gid)  const override {
-        return 1;
+        return 2;
     }
 
     arb::probe_info get_probe(cell_member_type id) const override {
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
+        
         // Measure at the soma.
-        arb::segment_location loc(0, 0.0);
+        arb::segment_location loc_soma(0, 0.0);
+        
+        // Measure at the dendrite.
+        arb::segment_location loc_dendrite(1, 1.0);
 
-        return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
+        if (id.index == 0) {
+            return arb::probe_info{id, kind, cell_probe_address{loc_soma, kind}};
+        } else {
+            return arb::probe_info{id, kind, cell_probe_address{loc_dendrite, kind}};
+        }
     }
 
 private:
@@ -179,7 +187,7 @@ int main(int argc, char** argv) {
         bool root = true;
 
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
+        anc::with_mpi guard(argc, argv, false);
         auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
             int rank;
@@ -194,7 +202,7 @@ int main(int argc, char** argv) {
         arb::profile::profiler_initialize(context);
 #endif
 
-        std::cout << aux::mask_stream(root);
+        std::cout << anc::mask_stream(root);
 
         // Print a banner with information about hardware configuration
         std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
