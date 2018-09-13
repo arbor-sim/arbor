@@ -8,4 +8,10 @@ elseif (NOT nesci_FOUND)
 else ()
     add_executable(risotto risotto.cpp)
     target_link_libraries(risotto PRIVATE arbor arbor-anc ext-tclap ext-json contra contra_zmq nesci_producer)
+    add_custom_command(
+        TARGET risotto POST_BUILD
+        COMMAND ${CMAKE_COMMAND}
+        -E copy ${CMAKE_CURRENT_SOURCE_DIR}/risotto_client.py ${CMAKE_BINARY_DIR}/bin/risotto_client.py
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/risotto_client.py
+    )
 endif ()
