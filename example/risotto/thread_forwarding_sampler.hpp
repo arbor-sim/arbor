@@ -118,12 +118,12 @@ void publisher(
                 
             const std::string nesci_id = std::to_string(gid) + " " + std::to_string(lid);
 
-            std::cout << gid << ", " << lid << " \n";
+            // std::cout << gid << ", " << lid << " \n";
             for (auto& value : trace) {
                 auto time = std::get<0>(value);
                 auto voltage = std::get<1>(value);
 
-                std::cout << time << ", " << voltage << "\n";
+                // std::cout << time << ", " << voltage << "\n";
 
                 nesci::producer::ArborMultimeter::Datum datum {
                     time, "voltage", nesci_id, voltage};
