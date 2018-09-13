@@ -31,7 +31,7 @@
 #include <ancillary/json_meter.hpp>
 
 #include "parameters.hpp"
-#include "queue_sampler.hpp"
+#include "thread_forwarding_sampler.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
@@ -278,8 +278,6 @@ int main(int argc, char** argv) {
 
         // Set up the probe that will measure voltage in the cell.
 
-        // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probe_id = cell_member_type{0, 0};
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(0.1);
 
@@ -297,9 +295,9 @@ int main(int argc, char** argv) {
 
 
         // Now attach the sampler at probe_id, with sampling schedule sched,
-        // Connect the queue_sampler that will push all data on a mutex guarded vector
+        // Connect the thread_forwarding_sampler that will push all data on a mutex guarded vector
         sim.add_sampler(arb::all_probes, sched,
-            queue_sampler(traces, queue_mutex, wake_up));
+            thread_forwarding_sampler(traces, queue_mutex, wake_up));
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
