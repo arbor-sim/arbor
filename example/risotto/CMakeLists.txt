@@ -1,3 +1,11 @@
-add_executable(risotto risotto.cpp)
+find_package(contra COMPONENTS core zmq QUIET)
+find_package(nesci COMPONENTS layout producer QUIET)
 
-target_link_libraries(risotto PRIVATE arbor arbor-anc ext-tclap ext-json)
+if (NOT contra_FOUND)
+    message(STATUS "Optional dependency 'contra' not found, skipping creation of example 'risotto'")
+elseif (NOT nesci_FOUND)
+    message(STATUS "Optional dependency 'nesci' not found, skipping creation of example 'risotto'")
+else ()
+    add_executable(risotto risotto.cpp)
+    target_link_libraries(risotto PRIVATE arbor arbor-anc ext-tclap ext-json contra contra_zmq nesci_producer)
+endif ()
