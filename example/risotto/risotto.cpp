@@ -189,21 +189,23 @@ struct cell_stats {
 
 
 
-//std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>> traces;
-//std::mutex queue_mutex;
-//std::condition_variable wake_up;
-//bool quit;
-//std::thread worker(publisher, traces, queue_mutex, wake_up, quit);
-
+// publisher, to be used as a thread that consumes data generated in a different thread
+//
+// Waits for the wake_up signal guarded by a lock that is released on the other side
+// While having the lock, the trace vector data is swapped and
+// the quit flag are copied. With this done the lock is released and the other
+// side notified that processing can continue.
+using traces_type = std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>>;
 
 void publisher(
-    std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>> &traces,
+    traces_type &traces,
     std::mutex & queue_mutex, std::condition_variable &wake_up, bool& quit)
 {
-    std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>> traces_local;
+    traces_type traces_local;
     bool quit_local;
     while (true) {
         // Wait on the wake_up signal,
+        // TODO: WHy a unique lock here and a lock gaurd on the other side
         std::unique_lock<std::mutex> lock(queue_mutex);
         wake_up.wait(lock, [] {return true; });
         // We now have the mutex
@@ -214,9 +216,9 @@ void publisher(
 
         // Release our mutex and signal the other thread we are done
         lock.unlock();
+        // TODO: Should this be all? Because only on receiver can continue
         wake_up.notify_one();
 
-        std::cout << "We are here ---------------------\n";
         for (auto& entry : traces_local) {
 
             std::cout << std::get<0>(entry) << ", "
@@ -280,19 +282,22 @@ int main(int argc, char** argv) {
         auto probe_id = cell_member_type{0, 0};
         // The schedule for sampling is 10 samples every 1 ms.
         auto sched = arb::regular_schedule(0.1);
-        // This is where the voltage samples will be stored as (time, value) pairs
 
 
+        // Data object for storing traces data
 
-
-        std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type , arb::time_type, double>> traces;
+        traces_type traces;
+        // locking tools and signals for the thread communication
         std::mutex queue_mutex;
         std::condition_variable wake_up;
         bool quit;
+
+        // Start the thread that will process the posted data
         std::thread worker(publisher, std::ref(traces), std::ref(queue_mutex), std::ref(wake_up), std::ref(quit));
 
 
-        // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
+        // Now attach the sampler at probe_id, with sampling schedule sched,
+        // Connect the queue_sampler that will push all data on a mutex guarded vector
         sim.add_sampler(arb::all_probes, sched,
             queue_sampler(traces, queue_mutex, wake_up));
 
