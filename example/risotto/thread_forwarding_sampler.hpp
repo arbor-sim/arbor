@@ -28,7 +28,8 @@ using arb::mc_cell;
 using arb::section_kind;
 
 
-using traces_type = std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>>;
+using traces_type = std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type,
+    std::vector<std::tuple<arb::time_type, double>> >>;
 
 
 class thread_forwarding_sampler {
@@ -40,23 +41,23 @@ public:
     void operator()(cell_member_type probe_id, arb::probe_tag tag, std::size_t n,
         const arb::sample_record* recs) {
 
-        {
-            // Take the lock
-            std::lock_guard<std::mutex> guard(mutex_);
+        std::vector<std::tuple<arb::time_type, double>> trace;
 
-
-            // For all samples n in the current batch
-            for (std::size_t i = 0; i < n; ++i) {
-                // TODO: Do we need to check this every single time?
-                //
-                if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
-                    // TODO: put *ps in an array and push that to the other side.
-                    traces_.push_back({ probe_id.gid, probe_id.index, recs[i].time, *p });
-                }
-                else {
-                    throw std::runtime_error("unexpected sample type in printing_sampler");
-                }
+        // For all samples n in the current batch
+        for (std::size_t i = 0; i < n; ++i) {
+            // TODO: Do we need to check this every single time?
+            if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
+                // TODO: put *ps in an array and push that to the other side.
+                trace.push_back({ recs[i].time, *p });
             }
+            else {
+                throw std::runtime_error("unexpected sample type in printing_sampler");
+            }
+        }
+
+        { // take the lock
+            std::lock_guard<std::mutex> guard(mutex_);
+            traces_.push_back({ probe_id.gid, probe_id.index, std::move(trace) });
         }
         //Tell the other side to wake up outside of the lock
         wake_up_.notify_one();

@@ -195,7 +195,8 @@ struct cell_stats {
 // While having the lock, the trace vector data is swapped and
 // the quit flag are copied. With this done the lock is released and the other
 // side notified that processing can continue.
-using traces_type = std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type, arb::time_type, double>>;
+using traces_type = std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type,
+    std::vector<std::tuple<arb::time_type, double>> >>;
 
 void publisher(
     traces_type &traces,
@@ -222,10 +223,16 @@ void publisher(
         for (auto& entry : traces_local) {
 
             std::cout << std::get<0>(entry) << ", "
-                << std::get<1>(entry) << ", "
-                << std::get<2>(entry) << ", "
-                << std::get<3>(entry) << "\n";
+                << std::get<1>(entry) << " \n";
+
+            for (auto& value : std::get<2>(entry)) {
+                std::cout << std::get<0>(value) << ", "
+                    << std::get<1>(value) << "\n";
+            }
+
         }
+        traces_local.clear();
+
 
         if (quit_local) {
             break;
