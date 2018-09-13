@@ -32,6 +32,10 @@ using traces_type = std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_ty
     std::vector<std::tuple<arb::time_type, double>> >>;
 
 
+// sampler that inserts trace information into a vector
+// data insertion is guarded by a mutex, multiple threads might call this sampler function
+// After data insertion a signal is forwarded to the receiver side that
+// information is available.
 class thread_forwarding_sampler {
 public:
     explicit thread_forwarding_sampler(traces_type &traces, std::mutex& mutex,
@@ -41,13 +45,13 @@ public:
     void operator()(cell_member_type probe_id, arb::probe_tag tag, std::size_t n,
         const arb::sample_record* recs) {
 
+        // Local data structure for storing the trace. Filled outside of the mutex
         std::vector<std::tuple<arb::time_type, double>> trace;
 
         // For all samples n in the current batch
         for (std::size_t i = 0; i < n; ++i) {
             // TODO: Do we need to check this every single time?
             if (auto p = arb::util::any_cast<const double*>(recs[i].data)) {
-                // TODO: put *ps in an array and push that to the other side.
                 trace.push_back({ recs[i].time, *p });
             }
             else {

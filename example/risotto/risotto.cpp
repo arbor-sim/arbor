@@ -220,19 +220,21 @@ void publisher(
         // TODO: Should this be all? Because only on receiver can continue
         wake_up.notify_one();
 
+        // Simple plotting
         for (auto& entry : traces_local) {
+            auto gid = std::get<0>(entry);
+            auto lid = std::get<1>(entry);
+            auto trace = std::get<2>(entry);
 
-            std::cout << std::get<0>(entry) << ", "
-                << std::get<1>(entry) << " \n";
+            std::cout << gid << ", " << lid << " \n";
+            for (auto& value : trace) {
+                auto time = std::get<0>(value);
+                auto voltage = std::get<1>(value);
 
-            for (auto& value : std::get<2>(entry)) {
-                std::cout << std::get<0>(value) << ", "
-                    << std::get<1>(value) << "\n";
+                std::cout << time << ", " << voltage << "\n";
             }
-
         }
         traces_local.clear();
-
 
         if (quit_local) {
             break;
