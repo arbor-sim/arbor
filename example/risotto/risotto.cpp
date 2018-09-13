@@ -189,59 +189,6 @@ struct cell_stats {
 
 
 
-// publisher, to be used as a thread that consumes data generated in a different thread
-//
-// Waits for the wake_up signal guarded by a lock that is released on the other side
-// While having the lock, the trace vector data is swapped and
-// the quit flag are copied. With this done the lock is released and the other
-// side notified that processing can continue.
-using traces_type = std::vector<std::tuple< arb::cell_gid_type, arb::cell_lid_type,
-    std::vector<std::tuple<arb::time_type, double>> >>;
-
-void publisher(
-    traces_type &traces,
-    std::mutex & queue_mutex, std::condition_variable &wake_up, bool& quit)
-{
-    traces_type traces_local;
-    bool quit_local;
-    while (true) {
-        // Wait on the wake_up signal,
-        // TODO: WHy a unique lock here and a lock gaurd on the other side
-        std::unique_lock<std::mutex> lock(queue_mutex);
-        wake_up.wait(lock, [] {return true; });
-        // We now have the mutex
-
-        // Copy / swap the mutex guarded variables
-        traces_local.swap(traces);
-        quit_local = quit;
-
-        // Release our mutex and signal the other thread we are done
-        lock.unlock();
-        // TODO: Should this be all? Because only on receiver can continue
-        wake_up.notify_one();
-
-        // Simple plotting
-        for (auto& entry : traces_local) {
-            auto gid = std::get<0>(entry);
-            auto lid = std::get<1>(entry);
-            auto trace = std::get<2>(entry);
-
-            std::cout << gid << ", " << lid << " \n";
-            for (auto& value : trace) {
-                auto time = std::get<0>(value);
-                auto voltage = std::get<1>(value);
-
-                std::cout << time << ", " << voltage << "\n";
-            }
-        }
-        traces_local.clear();
-
-        if (quit_local) {
-            break;
-        }
-    }
-}
-
 int main(int argc, char** argv) {
     try {
         bool root = true;
