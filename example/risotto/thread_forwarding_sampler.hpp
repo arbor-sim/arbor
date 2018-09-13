@@ -132,6 +132,7 @@ void publisher(
         }
         traces_local.clear();
         relay.Send(multimeter.node());
+        multimeter.node().reset();
         
 
         if (quit_local) {
