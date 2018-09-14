@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-
+import time
 import pycontra
 import pynesci
 
@@ -26,28 +26,51 @@ ax1.set_ylabel("voltage")
 
 
 counter = 0
+
+def generate_neuron_idx_for_hackaton():
+    ids = []
+    for gid in range(10):
+        for lid in [0,1]:
+            ids.append(str(gid) + " " + str(lid))
+
+    return ids
+
 data_received = False
+time_out_counter = 0
+
 while True:
+    time.sleep(0.1)
     nodes = receiver.Receive()
 
+    if len(nodes) is 0:
+        if data_received:
+            if time_out_counter > 50:
+                plt.show()
+                break
+
+            time_out_counter = time_out_counter + 1
+            continue
+    else:
+        data_received = True
+        time_out_counter = 0
+
     for node in nodes:
+
         master_node = pycontra.Node()
         master_node.Update(node)
         multimeter.SetNode(node)
 
         #print ( master_node.to_json("json", 2, 0, " ", "\n"))
-
-
         timesteps = multimeter.GetTimesteps()
+
         print ("nr_timesteps: ", len(timesteps))
         attribute = 'voltage'
         neuron_ids = []
         if len(timesteps) > 0:
             neuron_ids = multimeter.GetNeuronIds(timesteps[0], attribute)
 
-        nr_lines = len(neuron_ids)
-        print ("nr_lines", nr_lines)
-        for idx, neuron_id in enumerate(neuron_ids):
+        nr_lines = 20
+        for idx, neuron_id in enumerate(generate_neuron_idx_for_hackaton()):
 
             values = multimeter.GetTimeSeriesData(attribute, neuron_id)
             times = [float(t) for t in timesteps]
@@ -58,5 +81,4 @@ while True:
         fig.canvas.draw()
 
         counter = counter + 1
-        print(counter)
 
