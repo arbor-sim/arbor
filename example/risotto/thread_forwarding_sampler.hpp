@@ -89,7 +89,7 @@ void publisher(
     traces_type &traces,
     std::mutex & queue_mutex, std::condition_variable &wake_up, bool& quit)
 {
-    contra::Relay<contra::ZMQTransport> relay { contra::ZMQTransport::Type::SERVER, "tcp://*:5555", false };
+    contra::Relay<contra::ZMQTransport> relay { contra::ZMQTransport::Type::CLIENT, "tcp://localhost:5556", true };
     nesci::producer::ArborMultimeter multimeter { "some_name" };
 
     traces_type traces_local;

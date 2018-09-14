@@ -6,13 +6,13 @@ import numpy as np
 import pycontra
 import pynesci
 
-receiver = pycontra.ZMQTransportRelay(pycontra.ZMQTransportType.Client,
-                                      "tcp://localhost:5555", True)
+receiver = pycontra.ZMQTransportRelay(pycontra.ZMQTransportType.Server,
+                                      "tcp://*:5556", False)
 
 
 multimeter = pynesci.consumer.ArborMultimeter('some_name')
 
-master_node = pycontra.Node()
+#master_node = pycontra.Node()
 
 
 fig = plt.figure(figsize=(15,7.5))
@@ -31,16 +31,22 @@ while True:
     nodes = receiver.Receive()
 
     for node in nodes:
+        master_node = pycontra.Node()
+        master_node.Update(node)
         multimeter.SetNode(node)
-        #master_node.Update(node)
+
+        #print ( master_node.to_json("json", 2, 0, " ", "\n"))
+
 
         timesteps = multimeter.GetTimesteps()
+        print ("nr_timesteps: ", len(timesteps))
         attribute = 'voltage'
         neuron_ids = []
         if len(timesteps) > 0:
             neuron_ids = multimeter.GetNeuronIds(timesteps[0], attribute)
 
         nr_lines = len(neuron_ids)
+        print ("nr_lines", nr_lines)
         for idx, neuron_id in enumerate(neuron_ids):
 
             values = multimeter.GetTimeSeriesData(attribute, neuron_id)
