@@ -65,6 +65,7 @@ public:
 
         { // take the lock
             std::lock_guard<std::mutex> guard(mutex_);
+
             traces_.push_back({ probe_id.gid, probe_id.index, std::move(trace) });
         }
         //Tell the other side to wake up outside of the lock
@@ -89,7 +90,7 @@ void publisher(
     traces_type &traces,
     std::mutex & queue_mutex, std::condition_variable &wake_up, bool& quit)
 {
-    contra::Relay<contra::ZMQTransport> relay { contra::ZMQTransport::Type::SERVER, "tcp://*:5555", true };
+    contra::Relay<contra::ZMQTransport> relay { contra::ZMQTransport::Type::CLIENT, "tcp://localhost:5556", true };
     nesci::producer::ArborMultimeter multimeter { "some_name" };
 
     traces_type traces_local;
@@ -102,6 +103,7 @@ void publisher(
         // We now have the mutex
 
         // Copy / swap the mutex guarded variables
+        traces_local.clear(); // assure we are empty
         traces_local.swap(traces);
         quit_local = quit;
 
@@ -111,11 +113,12 @@ void publisher(
         wake_up.notify_one();
 
         // Simple plotting
+        std::cout <<  "We are sending traces: "<< traces_local.size() << " \n";
         for (auto& entry : traces_local) {
             auto gid = std::get<0>(entry);
             auto lid = std::get<1>(entry);
             auto trace = std::get<2>(entry);
-                
+
             const std::string nesci_id = std::to_string(gid) + " " + std::to_string(lid);
 
             // std::cout << gid << ", " << lid << " \n";
@@ -130,10 +133,9 @@ void publisher(
                 multimeter.Record(datum);
             }
         }
-        traces_local.clear();
+
         relay.Send(multimeter.node());
         multimeter.node().reset();
-        
 
         if (quit_local) {
             break;
