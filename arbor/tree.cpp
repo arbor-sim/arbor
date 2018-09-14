@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cassert>
 #include <numeric>
+#include <queue>
 #include <vector>
 
 #include <arbor/common_types.hpp>
@@ -201,6 +202,96 @@ tree::iarray tree::select_new_root(int_type root) {
     }
 
     return indices;
+}
+
+tree::iarray tree::minimize_depth() {
+    const auto num_nodes = parents().size();
+    tree::iarray seen(num_nodes, 0);
+
+    // find the furhtest node from the root
+    std::queue<tree::int_type> queue;
+    queue.push(0); // start at the root node
+    seen[0] = 1;
+    auto front = queue.front();
+    // breath first traversal
+    while (!queue.empty()) {
+        front = queue.front();
+        queue.pop();
+        // we only have to check children as we started at the root node
+        auto cs = children(front);
+        for (auto c: cs) {
+            if (seen[c] == 0) {
+                seen[c] = 1;
+                queue.push(c);
+            }
+        }
+    }
+
+    auto u = front;
+
+    // find the furhtest node from this node
+    std::fill(seen.begin(), seen.end(), 0);
+    queue.push(u);
+    seen[u] = 1;
+    front = queue.front();
+    // breath first traversal
+    while (!queue.empty()) {
+        front = queue.front();
+        queue.pop();
+        auto cs = children(front);
+        for (auto c: cs) {
+            if (seen[c] == 0) {
+                seen[c] = 1;
+                queue.push(c);
+            }
+        }
+        // also check the partent node!
+        auto c = parent(front);
+        if (c != tree::no_parent && seen[c] == 0) {
+            seen[c] = 1;
+            queue.push(c);
+        }
+    }
+
+    auto v = front;
+
+    // now find the middle between u and v
+
+    // each path to the root
+    tree::iarray path_to_root_u (1, u);
+    tree::iarray path_to_root_v (1, v);
+
+    auto curr = parent(u);
+    while (curr != tree::no_parent) {
+        path_to_root_u.push_back(curr);
+        curr = parent(curr);
+    }
+    curr = parent(v);
+    while (curr != tree::no_parent) {
+        path_to_root_v.push_back(curr);
+        curr = parent(curr);
+    }
+
+    // reduce the path
+    auto last_together = 0;
+    while (path_to_root_u.back() == path_to_root_v.back()) {
+        last_together = path_to_root_u.back();
+        path_to_root_u.pop_back();
+        path_to_root_v.pop_back();
+    }
+    path_to_root_u.push_back(last_together);
+
+    auto path_length = path_to_root_u.size() + path_to_root_v.size() - 1;
+
+    // walk up half of the path length to find the middle node
+    tree::int_type root;
+    if (path_to_root_u.size() > path_to_root_v.size()) {
+        root = path_to_root_u[path_length / 2];
+    } else {
+        root = path_to_root_v[path_length / 2];
+    }
+
+    return select_new_root(root);
 }
 
 /// memory used to store tree (in bytes)

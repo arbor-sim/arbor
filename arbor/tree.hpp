@@ -81,6 +81,11 @@ public:
     // i.e. `new_node[i] = old_node[perm[i]]`
     iarray select_new_root(int_type root);
 
+    // Selects a new node such that the depth of the graph is minimal.
+    // Returns the permutation applied to the nodes,
+    // i.e. `new_node[i] = old_node[perm[i]]`
+    iarray minimize_depth();
+
     /// memory used to store tree (in bytes)
     std::size_t memory() const;
 
