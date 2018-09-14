@@ -65,6 +65,7 @@ public:
 
         { // take the lock
             std::lock_guard<std::mutex> guard(mutex_);
+
             traces_.push_back({ probe_id.gid, probe_id.index, std::move(trace) });
         }
         //Tell the other side to wake up outside of the lock
@@ -102,6 +103,7 @@ void publisher(
         // We now have the mutex
 
         // Copy / swap the mutex guarded variables
+        traces_local.clear(); // assure we are empty
         traces_local.swap(traces);
         quit_local = quit;
 
@@ -111,6 +113,7 @@ void publisher(
         wake_up.notify_one();
 
         // Simple plotting
+        std::cout <<  "We are sending traces: "<< traces_local.size() << " \n";
         for (auto& entry : traces_local) {
             auto gid = std::get<0>(entry);
             auto lid = std::get<1>(entry);
@@ -130,7 +133,7 @@ void publisher(
                 multimeter.Record(datum);
             }
         }
-        traces_local.clear();
+
         relay.Send(multimeter.node());
         multimeter.node().reset();
 
