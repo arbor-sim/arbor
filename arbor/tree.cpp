@@ -118,6 +118,91 @@ tree::int_type tree::split_node(int_type ix) {
     return ix+1;
 }
 
+tree::iarray tree::select_new_root(int_type root) {
+    using util::make_span;
+
+    const auto num_nodes = parents().size();
+
+    if(root >= num_nodes && root != no_parent) {
+        throw std::domain_error(
+            "root is out of bounds: root="+std::to_string(root)+", nodes="
+            +std::to_string(num_nodes)
+        );
+    }
+
+    // walk up to the old root and turn `parent->child` into `parent<-child`
+    auto prev = no_parent;
+    auto current = root;
+    while (current != no_parent) {
+        auto parent = parents_[current];
+        parents_[current] = prev;
+        prev = current;
+        current = parent;
+    }
+
+    // sort the list to get min degree ordering and keep index such that we
+    // can sort also the `branch_starts` array.
+
+    // comput the depth for each node
+    iarray depth (num_nodes, 0);
+    for (auto n: make_span(num_nodes)) {
+        auto curr = parents_[n];
+        // find the way to the root
+        while (curr != no_parent) {
+            depth[n]++;
+            curr = parents_[curr];
+        }
+    }
+
+    // maps new indices to old indices
+    iarray indices (num_nodes);
+    // fill array with indices
+    for (auto i: make_span(num_nodes)) {
+        indices[i] = i;
+    }
+    // perform sort by depth index to get the permutation
+    std::sort(indices.begin(), indices.end(), [&](auto i, auto j){
+        return depth[i] < depth[j];
+    });
+    // maps old indices to new indices
+    iarray indices_inv (num_nodes);
+    // fill array with indices
+    for (auto i: make_span(num_nodes)) {
+        indices_inv[i] = i;
+    }
+    // perform sort
+    std::sort(indices_inv.begin(), indices_inv.end(), [&](auto i, auto j){
+        return indices[i] < indices[j];
+    });
+
+    // translate the parent vetor to new indices
+    for (auto i: make_span(num_nodes)) {
+        if (parents_[i] != no_parent) {
+            parents_[i] = indices_inv[parents_[i]];
+        }
+    }
+
+    iarray new_parents (num_nodes);
+    for (auto i: make_span(num_nodes)) {
+        new_parents[i] = parents_[indices[i]];
+    }
+    // parent now starts with the root, then it's children, then their
+    // children, etc...
+
+    // recompute the children array
+    memory::copy(new_parents, parents_);
+    memory::copy(algorithms::make_index(algorithms::child_count(parents_)), child_index_);
+
+    std::vector<int_type> pos(parents_.size(), 0);
+    for (auto i = 1u; i < parents_.size(); ++i) {
+        auto p = parents_[i];
+        children_[child_index_[p] + pos[p]] = i;
+        ++pos[p];
+    }
+
+    return indices;
+}
+
 /// memory used to store tree (in bytes)
 std::size_t tree::memory() const {
     return sizeof(int_type)*(children_.size()+child_index_.size()+parents_.size())

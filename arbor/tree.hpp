@@ -67,6 +67,20 @@ public:
     // '-------------------'
     int_type split_node(int_type ix);
 
+    // Changes the root node of a tree
+    // .------------------------.
+    // |        A               |
+    // |       / \         R    |
+    // |      R  B        / \   |
+    // |     /     ~~>   A  C   |
+    // |    C           /  / \  |
+    // |   / \         B  D  E  |
+    // |  D  E                  |
+    // '------------------------'
+    // Returns the permutation applied to the nodes,
+    // i.e. `new_node[i] = old_node[perm[i]]`
+    iarray select_new_root(int_type root);
+
     /// memory used to store tree (in bytes)
     std::size_t memory() const;
 
