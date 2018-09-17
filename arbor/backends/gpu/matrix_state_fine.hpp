@@ -209,7 +209,7 @@ public:
     iarray perm;
 
     // takes a vector of trees and the corresponding branch start list
-    static void optimize_trees(std::vector<tree>& trees, std::vector<std::vector<int>>& branch_starts) {
+    static void optimize_trees(std::vector<tree>& trees, std::vector<std::vector<int>>& branch_starts, std::vector<std::vector<int>>& branch_lengths) {
         using util::make_span;
 
         // cut the tree
@@ -221,7 +221,7 @@ public:
             unsigned max_length = 0;
             for (auto t_ix: make_span(trees.size())) { // TODO make this local on an intermediate packing
                 for (LevelIterator it (&trees[t_ix], level); it.valid(); it.next()) {
-                    auto length = branch_starts[t_ix][it.peek() + 1] - branch_starts[t_ix][it.peek()];
+                    auto length = branch_lengths[t_ix][it.peek()];
                     max_length += length;
                     count++;
                 }
@@ -238,14 +238,15 @@ public:
                 // ... cut all trees on this level
                 for (LevelIterator it (&trees[t_ix], level); it.valid(); it.next()) {
 
-                    unsigned length = branch_starts[t_ix][it.peek() + 1] - branch_starts[t_ix][it.peek()];
+                    unsigned length = branch_lengths[t_ix][it.peek()];
                     if (length > max_length) {
                         // now cut the tree
 
                         // we are allowed to mess with the tree because of the
                         // implementation of LevelIterator o.O
 
-                        auto insert_at_b  = branch_starts[t_ix].begin() + it.peek();
+                        auto insert_at_bs = branch_starts[t_ix].begin() + it.peek();
+                        auto insert_at_ls = branch_lengths[t_ix].begin() + it.peek();
 
                         trees[t_ix].split_node(it.peek());
 
@@ -258,8 +259,10 @@ public:
                         auto old_start = branch_starts[t_ix][it.peek()];
                         // first insert, then index peek, as we already
                         // incremented the iterator
-                        branch_starts[t_ix].insert(insert_at_b, old_start);
+                        branch_starts[t_ix].insert(insert_at_bs, old_start);
+                        branch_lengths[t_ix].insert(insert_at_ls, max_length);
                         branch_starts[t_ix][it.peek() + 1] = old_start + max_length;
+                        branch_lengths[t_ix][it.peek() + 1] = length - max_length;
                         // we don't have to shift any indices as we did not
                         // create any new branch segments, but just split
                         // one over two nodes
@@ -290,6 +293,7 @@ public:
 
         std::vector<tree> trees;
         std::vector<std::vector<int>> tree_branch_starts;
+        std::vector<std::vector<int>> tree_branch_lengths;
 
         for (auto c: make_span(0u, num_cells)) {
             // build the parent index for cell c
@@ -311,12 +315,18 @@ public:
             // build tree structure that describes the branch topology
             auto cell_tree = tree(branch_p);
 
+            std::vector<int> branch_lengths(branch_starts.size() - 1);
+            // compute branch length
+            for (auto i: make_span(branch_lengths.size())) {
+                branch_lengths[i] = branch_starts[i+1] - branch_starts[i];
+            }
             trees.push_back(cell_tree);
             tree_branch_starts.push_back(branch_starts);
+            tree_branch_lengths.push_back(branch_lengths);
 
         }
 
-        optimize_trees(trees, tree_branch_starts);
+        optimize_trees(trees, tree_branch_starts, tree_branch_lengths);
 
         // Now distribute the cells into cuda blocks.
         // While the total number of branches on each level of theses cells in a
@@ -340,6 +350,7 @@ public:
             auto cell_start = cell_cv_divs[c];
             auto cell_tree = trees[c];
             auto branch_starts = tree_branch_starts[c];
+            auto branch_lengths = tree_branch_lengths[c];
 
             auto depths = depth_from_root(cell_tree);
 
@@ -416,7 +427,7 @@ public:
                 b.start_idx = branch_starts[i] + cell_start;
                 // [i+1] is save as algorithm::branches pushes the total number
                 // of compartments as last element
-                b.length = branch_starts[i+1] - branch_starts[i];
+                b.length = branch_lengths[i];
                 b.parent_idx = p[b.start_idx] + cell_start;
                 branch_map[depth].push_back(b);
             }
