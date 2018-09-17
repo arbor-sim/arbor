@@ -56,6 +56,7 @@ set(unit_sources
     test_any.cpp
     test_backend.cpp
     test_double_buffer.cpp
+    test_dry_run_context.cpp
     test_compartments.cpp
     test_counter.cpp
     test_cycle.cpp
