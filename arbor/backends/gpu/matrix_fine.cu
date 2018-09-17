@@ -166,6 +166,8 @@ void solve_matrix_fine(
         const unsigned width = lvl.num_branches;
         const unsigned parent_index = block_levels[l].data_index;
 
+        __syncthreads();
+
         // Perform forward-substitution for each branch on this level.
         // One thread per branch.
         if (tid < width) {
@@ -185,7 +187,6 @@ void solve_matrix_fine(
                 pos -= width;
             }
         }
-        __syncthreads();
     }
 }
 
