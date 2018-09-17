@@ -49,7 +49,7 @@ context make_context<MPI_Comm>(const proc_allocation& p, MPI_Comm comm) {
 }
 #endif
 template <>
-execution_context::execution_context<dry_run_info>(
+execution_context::execution_context(
         const proc_allocation& resources,
         dry_run_info d):
         distributed(make_dry_run_context(d.num_ranks, d.num_cells_per_rank)),
