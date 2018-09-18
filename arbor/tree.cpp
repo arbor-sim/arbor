@@ -146,11 +146,48 @@ tree::iarray tree::select_new_root(int_type root) {
 
     // comput the depth for each node
     iarray depth (num_nodes, 0);
+    // the depth when we don't count nodes that only have one child
+    iarray reduced_depth (num_nodes, 0);
+    // the index of the last node that passed this node on its way to the root
+    // we need this to keep nodes that are part of the same reduced tree close
+    // together in the final sorting.
+    //
+    // Instead of the left order we want the right order.
+    // .-----------------------.
+    // |    0            0     |
+    // |   / \          / \    |
+    // |  1   2        1   3   |
+    // |  |   |        |   |   |
+    // |  3   4        2   4   |
+    // |     / \          / \  |
+    // |    5  6         5  6  |
+    // '-----------------------'
+    //
+    // we achieve this by first sorting by reduced_depth, branch_ix and depth
+    // in this order. The resulting ordering satisfies minimal degree ordering.
+    //
+    // Using the tree above we would get the following results:
+    //
+    // `depth`           `reduced_depth`   `branch_ix`
+    // .-----------.     .-----------.     .-----------.
+    // |    0      |     |    0      |     |    6      |
+    // |   / \     |     |   / \     |     |   / \     |
+    // |  1   1    |     |  1   1    |     |  2   6    |
+    // |  |   |    |     |  |   |    |     |  |   |    |
+    // |  2   2    |     |  1   1    |     |  2   6    |
+    // |     / \   |     |     / \   |     |     / \   |
+    // |    3   3  |     |    2   2  |     |    5   6  |
+    // '-----------'     '-----------'     '-----------'
+    iarray branch_ix (num_nodes, 0);
     for (auto n: make_span(num_nodes)) {
         auto curr = parents_[n];
         // find the way to the root
         while (curr != no_parent) {
             depth[n]++;
+            if (num_children(curr) > 1) {
+                reduced_depth[n]++;
+            }
+            branch_ix[curr] = n;
             curr = parents_[curr];
         }
     }
@@ -163,6 +200,12 @@ tree::iarray tree::select_new_root(int_type root) {
     }
     // perform sort by depth index to get the permutation
     std::sort(indices.begin(), indices.end(), [&](auto i, auto j){
+        if (reduced_depth[i] != reduced_depth[j]) {
+            return reduced_depth[i] < reduced_depth[j];
+        }
+        if (branch_ix[i] != branch_ix[j]) {
+            return branch_ix[i] < branch_ix[j];
+        }
         return depth[i] < depth[j];
     });
     // maps old indices to new indices
