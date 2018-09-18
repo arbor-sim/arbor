@@ -124,28 +124,29 @@ void solve_matrix_fine(
 
             // Zero diagonal term implies dt==0; just leave rhs (for whole matrix)
             // alone in that case.
-            if (d[pos]==0) return;
+            if (d[pos]!=0) {
 
-            // each branch perform substitution
-            T factor = u[pos] / d[pos];
-            for (unsigned i=0; i<len-1; ++i) {
-                const unsigned next_pos = pos + width;
-                d[next_pos]   -= factor * u[pos];
-                rhs[next_pos] -= factor * rhs[pos];
+                // each branch perform substitution
+                T factor = u[pos] / d[pos];
+                for (unsigned i=0; i<len-1; ++i) {
+                    const unsigned next_pos = pos + width;
+                    d[next_pos]   -= factor * u[pos];
+                    rhs[next_pos] -= factor * rhs[pos];
 
-                factor = u[next_pos] / d[next_pos];
-                pos = next_pos;
+                    factor = u[next_pos] / d[next_pos];
+                    pos = next_pos;
+                }
+
+                // Update d and rhs at the parent node of this branch.
+                // A parent may have more than one contributing to it, so we use
+                // atomic updates to avoid races conditions.
+                const unsigned parent_index = block_levels[l+1].data_index;
+                const unsigned p = parent_index + lvl.parents[tid];
+                //d[p]   -= factor * u[pos];
+                cuda_atomic_add(d  +p, -factor*u[pos]);
+                //rhs[p] -= factor * rhs[pos];
+                cuda_atomic_add(rhs+p, -factor*rhs[pos]);
             }
-
-            // Update d and rhs at the parent node of this branch.
-            // A parent may have more than one contributing to it, so we use
-            // atomic updates to avoid races conditions.
-            const unsigned parent_index = block_levels[l+1].data_index;
-            const unsigned p = parent_index + lvl.parents[tid];
-            //d[p]   -= factor * u[pos];
-            cuda_atomic_add(d  +p, -factor*u[pos]);
-            //rhs[p] -= factor * rhs[pos];
-            cuda_atomic_add(rhs+p, -factor*rhs[pos]);
         }
         __syncthreads();
     }
@@ -154,7 +155,9 @@ void solve_matrix_fine(
     // correspond to the root nodes.
     if (tid<num_matrix[bid]) {
         unsigned pos = padded_size[bid] - num_matrix[bid] + tid;
-        rhs[pos] /= d[pos];
+        if (d[pos]!=0) {
+            rhs[pos] /= d[pos];
+        }
     }
 
     // forward substitution
@@ -179,12 +182,14 @@ void solve_matrix_fine(
             const unsigned len = lvl.lengths[tid];
             unsigned pos = lvl.data_index + (len-1)*width + tid;
 
-            // each branch perform substitution
-            for (unsigned i=0; i<len; ++i) {
-                rhsp = rhs[pos] - u[pos]*rhsp;
-                rhsp /= d[pos];
-                rhs[pos] = rhsp;
-                pos -= width;
+            if (d[pos]!=0) {
+                // each branch perform substitution
+                for (unsigned i=0; i<len; ++i) {
+                    rhsp = rhs[pos] - u[pos]*rhsp;
+                    rhsp /= d[pos];
+                    rhs[pos] = rhsp;
+                    pos -= width;
+                }
             }
         }
     }
