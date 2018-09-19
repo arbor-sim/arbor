@@ -20,7 +20,7 @@ TEST(dry_run_context, size_rank)
 {
     distributed_context_handle ctx = arb::make_dry_run_context(num_ranks, num_cells_per_rank);
 
-    EXPECT_EQ(ctx->size(), num_ranks);
+    EXPECT_EQ(ctx->size(), (int)num_ranks);
     EXPECT_EQ(ctx->id(), 0);
 }
 
@@ -41,16 +41,19 @@ TEST(dry_run_context, minmax)
     int64_t one64 = 1;
     EXPECT_EQ(one64, ctx->min(one64));
     EXPECT_EQ(one64, ctx->max(one64));
+
+    EXPECT_EQ(1u,  ctx->min(1u));
+    EXPECT_EQ(1u,  ctx->max(1u));
 }
 
 TEST(dry_run_context, sum)
 {
     distributed_context_handle ctx = arb::make_dry_run_context(num_ranks, num_cells_per_rank);
 
-    EXPECT_EQ(42.,  ctx->min(42.));
-    EXPECT_EQ(42.f, ctx->min(42.));
-    EXPECT_EQ(42 * num_ranks,   ctx->sum(42));
-    EXPECT_EQ(42u,  ctx->min(42u));
+    EXPECT_EQ(42. * num_ranks, ctx->sum(42.));
+    EXPECT_EQ(42.f * num_ranks, ctx->sum(42.f));
+    EXPECT_EQ(int(42 * num_ranks), ctx->sum(42));
+    EXPECT_EQ(unsigned(42 * num_ranks), ctx->sum(42u));
 }
 
 TEST(dry_run_context, gather_spikes)
