@@ -1,64 +1,26 @@
 language: cpp
 sudo: false
+os: linux
+dist: trusty
+compiler: gcc
 
-matrix:
-  include:
-#################### OS X #####################
-    - os: osx 
-      osx_image: xcode10
-      env:
-        - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
-        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
-      compiler: gcc
-
-    - os: osx 
-      osx_image: xcode10
-      env:
-        - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
-        - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
-      compiler: gcc
-
-#################### LINUX #####################
-    - os: linux
-      dist: trusty
-      addons:
-        apt:
-          sources:
+addons:
+    apt:
+        sources:
             - ubuntu-toolchain-r-test
-          packages:
+        packages:
             - g++-6
             - openmpi-bin
             - libopenmpi-dev
-      env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-        - BUILD_NAME=serial WITH_DISTRIBUTED=serial
-      compiler: gcc-6
 
-    - os: linux
-      dist: trusty
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-6
-            - openmpi-bin
-            - libopenmpi-dev
-      env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-        - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
-      compiler: gcc-6
+env:
+    # test single node/rank with threading backend
+    - BUILD_NAME=cthread  WITH_DISTRIBUTED=serial
+    # test mpi with threading backend
+    - BUILD_NAME=mpi      WITH_DISTRIBUTED=mpi
 
-before_script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
-  - if [[ ( "$TRAVIS_OS_NAME" == "osx" ) && ( "$WITH_DISTRIBUTED" == "mpi" ) ]]; then brew install open-mpi; fi
-  - eval "${MATRIX_EVAL}"
+before_install:
+    - CC=gcc-6
+    - CXX=g++-6
 
 script: source ./scripts/travis/build.sh
-
-notifications:
-  email:
-    recipients:
-      - a.kuesters@fz-juelich.de
-    on_success: never
-    on_failure: always
