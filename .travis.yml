@@ -5,18 +5,32 @@ matrix:
   include:
 #################### OS X #####################
     - os: osx 
-      osx_image: xcode10
+      osx_image: xcode9
       env:
         - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
-      compiler: gcc
+      compiler: gcc-6
 
     - os: osx 
-      osx_image: xcode10
+      osx_image: xcode9
       env:
         - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
-      compiler: gcc
+      compiler: gcc-6
+
+    - os: osx
+      osx_image: xcode9
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      compiler: clang
+
+    - os: osx 
+      osx_image: xcode9
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+        - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      compiler: clang
 
 #################### LINUX #####################
     - os: linux
@@ -31,7 +45,7 @@ matrix:
             - libopenmpi-dev
       env:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
-        - BUILD_NAME=serial WITH_DISTRIBUTED=serial
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
       compiler: gcc-6
 
     - os: linux
@@ -48,6 +62,34 @@ matrix:
         - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
       compiler: gcc-6
+
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+            - openmpi-bin
+            - libopenmpi-dev
+      env:
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      compiler: clang-4.0
+
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-4.0
+          packages:
+            - clang-4.0
+            - openmpi-bin
+            - libopenmpi-dev
+      env:
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+        - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      compiler: clang-4.0
 
 before_script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HOMEBREW_NO_AUTO_UPDATE=1; brew cask uninstall --force oclint; fi
