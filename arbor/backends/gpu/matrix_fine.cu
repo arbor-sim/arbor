@@ -151,12 +151,42 @@ void solve_matrix_fine(
         __syncthreads();
     }
 
-    // take advantage of the fact that the last num_matrix in rhs and d
-    // correspond to the root nodes.
-    if (tid<num_matrix[bid]) {
-        unsigned pos = padded_size[bid] - num_matrix[bid] + tid;
-        if (d[pos]!=0) {
-            rhs[pos] /= d[pos];
+    {
+        // the levels are sorted such that the root is the last level
+        const auto& lvl = block_levels[num_levels-1];
+        const unsigned width = num_matrix[bid];
+        //const unsigned width = lvl.num_branches;
+
+        if (tid < width) {
+            const unsigned len = lvl.lengths[tid];
+            unsigned pos = lvl.data_index + tid;
+
+            if (d[pos]!=0) {
+
+                // backward
+                for (unsigned i=0; i<len-1; ++i) {
+                    T factor = u[pos] / d[pos];
+                    const unsigned next_pos = pos + width;
+                    d[next_pos]   -= factor * u[pos];
+                    rhs[next_pos] -= factor * rhs[pos];
+
+                    pos = next_pos;
+                }
+
+                auto rhsp = rhs[pos] / d[pos];
+                rhs[pos] = rhsp;
+                if (bid == 0 && tid == 0 && false) printf("%3d R\n", pos);
+                pos -= width;
+
+                // forward
+                for (unsigned i=0; i<len-1; ++i) {
+                    if (bid == 0 && tid == 0 && false) printf("%3d f\n", pos);
+                    rhsp = rhs[pos] - u[pos]*rhsp;
+                    rhsp /= d[pos];
+                    rhs[pos] = rhsp;
+                    pos -= width;
+                }
+            }
         }
     }
 
