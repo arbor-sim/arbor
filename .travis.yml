@@ -3,21 +3,24 @@ sudo: false
 
 matrix:
   include:
-#################### OS X #####################
-    - os: osx 
+########################## OS X #########################
+## test gcc6 - single node/rank with threading backend ##
+    - os: osx
       osx_image: xcode9
       env:
         - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
       compiler: gcc-6
 
-    - os: osx 
+## test gcc6 - mpi with threading backend ##
+    - os: osx
       osx_image: xcode9
       env:
         - MATRIX_EVAL="brew install gcc@6 && brew link --force --overwrite gcc@6 && CC=gcc-6 && CXX=g++-6"
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
       compiler: gcc-6
 
+## test clang - single node/rank with threading backend ##
     - os: osx
       osx_image: xcode9
       env:
@@ -25,14 +28,16 @@ matrix:
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
       compiler: clang
 
-    - os: osx 
+## test clang - mpi with threading backend ##
+    - os: osx
       osx_image: xcode9
       env:
         - MATRIX_EVAL="CC=clang && CXX=clang++"
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
       compiler: clang
 
-#################### LINUX #####################
+######################### LINUX #########################
+## test gcc6 - single node/rank with threading backend ##
     - os: linux
       dist: trusty
       addons:
@@ -48,6 +53,7 @@ matrix:
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
       compiler: gcc-6
 
+## test gcc6 - mpi with threading backend ##
     - os: linux
       dist: trusty
       addons:
@@ -63,6 +69,7 @@ matrix:
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
       compiler: gcc-6
 
+## test clang - single node/rank with threading backend ##
     - os: linux
       addons:
         apt:
@@ -70,6 +77,7 @@ matrix:
             - llvm-toolchain-trusty-4.0
           packages:
             - clang-4.0
+            - libc++-dev
             - openmpi-bin
             - libopenmpi-dev
       env:
@@ -77,6 +85,7 @@ matrix:
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
       compiler: clang-4.0
 
+## test clang - mpi with threading backend ##
     - os: linux
       addons:
         apt:
@@ -84,6 +93,7 @@ matrix:
             - llvm-toolchain-trusty-4.0
           packages:
             - clang-4.0
+            - libc++-dev
             - openmpi-bin
             - libopenmpi-dev
       env:
