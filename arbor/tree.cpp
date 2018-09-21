@@ -179,15 +179,21 @@ tree::iarray tree::select_new_root(int_type root) {
     // |    3   3  |     |    2   2  |     |    5   6  |
     // '-----------'     '-----------'     '-----------'
     iarray branch_ix (num_nodes, 0);
+    // we cannot use the existing `children_` array as we only updated the
+    // parent structure yet
+    auto new_num_children = algorithms::child_count(parents_);
     for (auto n: make_span(num_nodes)) {
+        branch_ix[n] = n;
+        auto prev = n;
         auto curr = parents_[n];
+
         // find the way to the root
         while (curr != no_parent) {
             depth[n]++;
-            if (num_children(curr) > 1) {
+            if (new_num_children[curr] > 1) {
                 reduced_depth[n]++;
             }
-            branch_ix[curr] = n;
+            branch_ix[curr] = branch_ix[prev];
             curr = parents_[curr];
         }
     }
