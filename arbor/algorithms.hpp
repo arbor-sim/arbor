@@ -145,8 +145,12 @@ std::vector<typename C::value_type> child_count(const C& parent_index)
     );
 
     std::vector<typename C::value_type> count(parent_index.size(), 0);
-    for (auto i = 1u; i < parent_index.size(); ++i) {
-        ++count[parent_index[i]];
+    for (auto i = 0u; i < parent_index.size(); ++i) {
+        auto p = parent_index[i];
+        // -1 means no parent
+        if (p != i && p != -1) {
+            ++count[p];
+        }
     }
 
     return count;
@@ -205,7 +209,9 @@ std::vector<typename C::value_type> branches(const C& parent_index)
     return branch_index;
 }
 
-
+// creates a vector that contains the branch index for each compartment.
+// e.g. {0, 1, 5, 9, 10} -> {0, 1, 1, 1, 1, 2, 2, 2, 2, 3}
+//                  indices  0  1           5           9
 template<typename C>
 std::vector<typename C::value_type> expand_branches(const C& branch_index)
 {
@@ -287,11 +293,13 @@ std::vector<typename C::value_type> tree_reduce(
     arb_assert(has_contiguous_compartments(parent_index));
     arb_assert(is_strictly_monotonic_increasing(branch_index));
 
-    // expand the branch index
+    // expand the branch index to lookup the banch id for each compartment
     auto expanded_branch = expand_branches(branch_index);
 
     std::vector<typename C::value_type> new_parent_index;
-    for (std::size_t i = 0; i < branch_index.size()-1; ++i) {
+    // push the first element manually as the parent of the root might be -1
+    new_parent_index.push_back(expanded_branch[0]);
+    for (std::size_t i = 1; i < branch_index.size()-1; ++i) {
         auto p = parent_index[branch_index[i]];
         new_parent_index.push_back(expanded_branch[p]);
     }
