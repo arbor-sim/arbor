@@ -1,3 +1,9 @@
+##### Testing minimal compiler requirements #####
+# GCC          6.1.0	 
+# Clang        4.0	
+# Apple Clang  9	 
+#################################################
+
 language: cpp
 sudo: false
 
@@ -20,7 +26,7 @@ matrix:
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
       compiler: gcc-6
 
-## test clang - single node/rank with threading backend ##
+## test clang9 - single node/rank with threading backend ##
     - os: osx 
       # xcode9/9.1 broken, 9.2 still uses Apple LLVM version 9.0.0 (clang-900.0.39.2)
       osx_image: xcode9.2
@@ -30,7 +36,7 @@ matrix:
       compiler: clang
 
 
-## test clang - mpi with threading backend ##
+## test clang9 - mpi with threading backend ##
     - os: osx
       osx_image: xcode9.2
       env:
@@ -47,13 +53,13 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-6
+            - g++-6.1
             - openmpi-bin
             - libopenmpi-dev
       env:
-        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+        - MATRIX_EVAL="CC=gcc-6.1 && CXX=g++-6.1"
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
-      compiler: gcc-6
+      compiler: gcc-6.1
 
 ## test gcc6 - mpi with threading backend ##
     - os: linux
@@ -71,7 +77,79 @@ matrix:
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
       compiler: gcc-6
 
-## test clang - single node/rank with threading backend ##
+## test clang3.8 - single node/rank with threading backend ##
+    - os: linux
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.8
+          packages:
+            - clang-3.8
+            - g++-6
+            - openmpi-bin
+            - libopenmpi-dev
+      env:
+        - MATRIX_EVAL="CC=clang-3.8 && CXX=clang++-3.8"
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      compiler: clang-3.8
+
+## test clang3.8 - mpi with threading backend ##
+    - os: linux
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.8
+          packages:
+            - clang-3.8
+            - g++-6
+            - openmpi-bin
+            - libopenmpi-dev
+      env:
+        - MATRIX_EVAL="CC=clang-3.8 && CXX=clang++-3.8"
+        - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      compiler: clang-3.8
+
+## test clang3.9 - single node/rank with threading backend ##
+    - os: linux
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.9
+          packages:
+            - clang-3.9
+            - g++-6
+            - openmpi-bin
+            - libopenmpi-dev
+      env:
+        - MATRIX_EVAL="CC=clang-3.9 && CXX=clang++-3.9"
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      compiler: clang-3.9
+
+## test clang3.9 - mpi with threading backend ##
+    - os: linux
+      dist: trusty
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.9
+          packages:
+            - clang-3.9
+            - g++-6
+            - openmpi-bin
+            - libopenmpi-dev
+      env:
+        - MATRIX_EVAL="CC=clang-3.9 && CXX=clang++-3.9"
+        - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
+      compiler: clang-3.9
+
+## test clang4 - single node/rank with threading backend ##
     - os: linux
       dist: trusty
       addons:
@@ -89,7 +167,7 @@ matrix:
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
       compiler: clang-4.0
 
-## test clang - mpi with threading backend ##
+## test clang4 - mpi with threading backend ##
     - os: linux
       dist: trusty
       addons:
