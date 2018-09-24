@@ -13,7 +13,7 @@ build_path=build-${BUILD_NAME}
 #
 progress "build environment"
 
-compiler_version=`${CXX} | grep -m1 ""`
+compiler_version=`${CXX} --version | grep -m1 ""`
 cmake_version=`cmake --version | grep version | awk '{print $3}'`
 
 echo "compiler   : ${compiler_version}"
