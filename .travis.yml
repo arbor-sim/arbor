@@ -1,7 +1,7 @@
 ######## Testing minimal compiler requirements ########
-# GCC          6.1.0        here: 6.4.0	 
-# Clang        4.0	    here: 3.8,3.9 not compiling
-# Apple Clang  9	    here: clang-900.0.39.2
+# GCC          6.1.0        here: 6.4.0
+# Clang        4.0          here: 3.8,3.9 not compiling
+# Apple Clang  9            here: clang-900.0.39.2
 #######################################################
 
 language: cpp
@@ -27,7 +27,7 @@ matrix:
       compiler: gcc-6
 
 ## test clang9 - single node/rank with threading backend ##
-    - os: osx 
+    - os: osx
       # xcode9/9.1 broken, 9.2 still uses Apple LLVM version 9.0.0 (clang-900.0.39.2)
       osx_image: xcode9.2
       env:
