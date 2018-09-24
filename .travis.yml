@@ -22,7 +22,7 @@ matrix:
 
 ## test clang - single node/rank with threading backend ##
     - os: osx
-      osx_image: xcode9
+      osx_image: xcode8
       env:
         - MATRIX_EVAL="CC=clang && CXX=clang++"
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
@@ -30,7 +30,7 @@ matrix:
 
 ## test clang - mpi with threading backend ##
     - os: osx
-      osx_image: xcode9
+      osx_image: xcode8
       env:
         - MATRIX_EVAL="CC=clang && CXX=clang++"
         - BUILD_NAME=mpi WITH_DISTRIBUTED=mpi
