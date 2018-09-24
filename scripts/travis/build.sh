@@ -13,10 +13,10 @@ build_path=build-${BUILD_NAME}
 #
 progress "build environment"
 
-compiler_version=`${CXX} -dumpversion`
+compiler_version=`${CXX} | grep -m1 ""`
 cmake_version=`cmake --version | grep version | awk '{print $3}'`
 
-echo "compiler   : ${CXX} ${compiler_version}"
+echo "compiler   : ${compiler_version}"
 echo "cmake      : ${cmake_version}"
 echo "build path : ${build_path}"
 echo "base path  : ${base_path}"
@@ -29,7 +29,7 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     CXX="mpicxx"
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
         launch="mpiexec -n 4 --oversubscribe --mca btl tcp,self"
-    else 
+    else
     launch="mpiexec -n 4"
     fi
     WITH_MPI="ON"

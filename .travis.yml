@@ -71,13 +71,15 @@ matrix:
 
 ## test clang - single node/rank with threading backend ##
     - os: linux
+      dist: trusty
       addons:
         apt:
           sources:
+            - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-4.0
           packages:
             - clang-4.0
-            - libc++-dev
+            - g++-6
             - openmpi-bin
             - libopenmpi-dev
       env:
@@ -87,13 +89,15 @@ matrix:
 
 ## test clang - mpi with threading backend ##
     - os: linux
+      dist: trusty
       addons:
         apt:
           sources:
+            - ubuntu-toolchain-r-test
             - llvm-toolchain-trusty-4.0
           packages:
             - clang-4.0
-            - libc++-dev
+            - g++-6
             - openmpi-bin
             - libopenmpi-dev
       env:
