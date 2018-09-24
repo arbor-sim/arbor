@@ -28,6 +28,31 @@ matrix:
         - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
       compiler: clang
 
+## test clang - single node/rank with threading backend ##
+    - os: osx 
+      osx_image: xcode9.3
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      compiler: clang
+
+## test clang - single node/rank with threading backend ##
+    - os: osx 
+      osx_image: xcode9.2
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      compiler: clang
+
+
+## test clang - single node/rank with threading backend ##
+    - os: osx 
+      osx_image: xcode9.1
+      env:
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+        - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
+      compiler: clang
+
 ## test clang - mpi with threading backend ##
     - os: osx
       osx_image: xcode9.4
