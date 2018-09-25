@@ -194,10 +194,10 @@ TEST(test_exception, nested_parallel_for_no_throw) {
     for (int nthreads = 1; nthreads < 20; nthreads*=2) {
         task_system ts(nthreads);
         for (int m = 1; m < 50; m*=2) {
-            for (int n = 0; n < 50; n = !n?1:2*n) {
-                parallel_for::apply(0, n, &ts, [&](int i) {
-                    EXPECT_NO_THROW(parallel_for::apply(0, m, &ts, [](int j) { std::this_thread::sleep_for(duration); }));
-                });
+            for (int n = 1; n < 50; n = !n?1:2*n) {
+                EXPECT_NO_THROW(parallel_for::apply(0, n, &ts, [&](int i) {
+                    parallel_for::apply(0, m, &ts, [](int j) { std::this_thread::sleep_for(duration); });
+                }));
             }
         }
     }
@@ -207,19 +207,19 @@ TEST(test_exception, nested_parallel_for_one_throw) {
     for (int nthreads = 1; nthreads < 20; nthreads*=2) {
         task_system ts(nthreads);
         for (int m = 1; m < 100; m*=2) {
-            for (int n = 0; n < 100; n = !n?1:2*n) {
-                parallel_for::apply(0, n, &ts, [&](int i) {
-                    try {
+            for (int n = 1; n < 100; n = !n?1:2*n) {
+                try {
+                    parallel_for::apply(0, n, &ts, [&](int i) {
                         parallel_for::apply(0, m, &ts, [](int j) { if (j == 0) {throw error(j);} });
-                        FAIL() << "Expected exception";
-                    }
-                    catch (error &e) {
-                        EXPECT_EQ(e.code, 0);
-                    }
-                    catch (...) {
-                        FAIL() << "Expected error type";
-                    }
-                });
+                    });
+                    FAIL() << "Expected exception";
+                }
+                catch (error &e) {
+                    EXPECT_EQ(e.code, 0);
+                }
+                catch (...) {
+                    FAIL() << "Expected error type";
+                }
             }
         }
     }
@@ -229,19 +229,19 @@ TEST(test_exception, nested_parallel_for_many_throw) {
     for (int nthreads = 1; nthreads < 20; nthreads*=2) {
         task_system ts(nthreads);
         for (int m = 1; m < 100; m*=2) {
-            for (int n = 0; n < 100; n = !n?1:2*n) {
-                parallel_for::apply(0, n, &ts, [&](int i) {
-                    try {
-                        parallel_for::apply(0, m, &ts, [](int j) { if (j%10 == 0) {throw error(j);} });
-                        FAIL() << "Expected exception";
-                    }
-                    catch (error &e) {
-                        EXPECT_TRUE(e.code%10==0);
-                    }
-                    catch (...) {
-                        FAIL() << "Expected error type";
-                    }
-                });
+            for (int n = 1; n < 100; n = !n?1:2*n) {
+                try {
+                    parallel_for::apply(0, n, &ts, [&](int i) {
+                            parallel_for::apply(0, m, &ts, [](int j) { if (j%10 == 0) {throw error(j);} });
+                    });
+                    FAIL() << "Expected exception";
+                }
+                catch (error &e) {
+                    EXPECT_TRUE(e.code%10==0);
+                }
+                catch (...) {
+                    FAIL() << "Expected error type";
+                }
             }
         }
     }
@@ -251,19 +251,19 @@ TEST(test_exception, nested_parallel_for_all_throw) {
     for (int nthreads = 1; nthreads < 20; nthreads*=2) {
         task_system ts(nthreads);
         for (int m = 1; m < 100; m*=2) {
-            for (int n = 0; n < 100; n = !n?1:2*n) {
-                parallel_for::apply(0, n, &ts, [&](int i) {
-                    try {
+            for (int n = 1; n < 100; n = !n?1:2*n) {
+                try {
+                    parallel_for::apply(0, n, &ts, [&](int i) {
                         parallel_for::apply(0, m, &ts, [](int j) { throw error(j); });
-                        FAIL() << "Expected exception";
-                    }
-                    catch (error &e) {
-                        EXPECT_TRUE(e.code >= 0 && e.code < m);
-                    }
-                    catch (...) {
-                        FAIL() << "Expected error type";
-                    }
-                });
+                    });
+                    FAIL() << "Expected exception";
+                }
+                catch (error &e) {
+                    EXPECT_TRUE(e.code >= 0 && e.code < m);
+                }
+                catch (...) {
+                    FAIL() << "Expected error type";
+                }
             }
         }
     }

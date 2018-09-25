@@ -97,7 +97,7 @@ public:
 
 class task_group {
 private:
-    struct exception_state_ {
+    struct exception_state {
         std::atomic<bool> error_{false};
         std::exception_ptr exception_;
         std::mutex mutex_;
@@ -117,7 +117,7 @@ private:
             return std::move(exception_);
         }
 
-        ~exception_state_() {
+        ~exception_state() {
             if(error_) {
                 std::rethrow_exception(exception_);
             }
@@ -128,7 +128,7 @@ private:
     /// We use a raw pointer here instead of a shared_ptr to avoid a race condition
     /// on the destruction of a task_system that would lead to a thread trying to join itself
     task_system* task_system_;
-    exception_state_ exception_status_;
+    exception_state exception_status_;
 
 public:
     task_group(task_system* ts):
@@ -142,13 +142,13 @@ public:
     class wrap {
         F f_;
         std::atomic<std::size_t>& counter_;
-        exception_state_& exception_status_;
+        exception_state& exception_status_;
 
     public:
 
         // Construct from a compatible function and atomic counter
         template <typename F2>
-        explicit wrap(F2&& other, std::atomic<std::size_t>& c, exception_state_& ex):
+        explicit wrap(F2&& other, std::atomic<std::size_t>& c, exception_state& ex):
                 f_(std::forward<F2>(other)),
                 counter_(c),
                 exception_status_(ex)
@@ -185,7 +185,7 @@ public:
     using callable = typename std::decay<F>::type;
 
     template <typename F>
-    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c, exception_state_& ex) {
+    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c, exception_state& ex) {
         return wrap<callable<F>>(std::forward<F>(f), c, ex);
     }
 
@@ -200,8 +200,7 @@ public:
         while (in_flight_) {
             task_system_->try_run_task();
         }
-        auto ex = exception_status_.get();
-        if(ex) {
+        if(auto ex = exception_status_.get()) {
             try {
                 std::rethrow_exception(ex);
             }
