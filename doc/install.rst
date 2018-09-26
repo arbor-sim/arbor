@@ -44,8 +44,8 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     Compiler    Min version  Notes
     =========== ============ ============================================
     GCC         6.1.0
-    Clang       4.0          Clang 3.8 and later probably work.
-    Apple Clang 9
+    Clang       4.0          
+    Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
     Intel       17.0.1       Needs GCC 5 or later for standard library.
     =========== ============ ============================================
 
@@ -56,7 +56,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     CMake should use. If these are not set, CMake will attempt to automatically choose a compiler,
     which may be too old to compile Arbor.
     For example, the default compiler chosen below by CMake was GCC 4.8.5 at ``/usr/bin/c++``,
-    so the ``CC`` and ``CXX`` variables were used to specify GCC 5.2.0 before calling ``cmake``.
+    so the ``CC`` and ``CXX`` variables were used to specify GCC 6.1.0 before calling ``cmake``.
 
     .. code-block:: bash
 
@@ -66,7 +66,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
 
         # check which version of GCC is available
         $ g++ --version
-        g++ (GCC) 5.2.0
+        g++ (GCC) 6.1.0
         Copyright (C) 2015 Free Software Foundation, Inc.
 
         # set environment variables for compilers
@@ -75,10 +75,10 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
         # launch CMake
         # the compiler version and path is given in the CMake output
         $ cmake ..
-        -- The C compiler identification is GNU 5.2.0
-        -- The CXX compiler identification is GNU 5.2.0
-        -- Check for working C compiler: /cm/local/apps/gcc/5.2.0/bin/gcc
-        -- Check for working C compiler: /cm/local/apps/gcc/5.2.0/bin/gcc -- works
+        -- The C compiler identification is GNU 6.1.0
+        -- The CXX compiler identification is GNU 6.1.0
+        -- Check for working C compiler: /cm/local/apps/gcc/6.1.0/bin/gcc
+        -- Check for working C compiler: /cm/local/apps/gcc/6.1.0/bin/gcc -- works
         ...
 
 .. Note::

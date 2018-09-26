@@ -27,10 +27,14 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     export OMPI_CXX=${CXX}
     CC="mpicc"
     CXX="mpicxx"
-    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        launch="mpiexec -n 4 --oversubscribe --mca btl tcp,self"
-    else
     launch="mpiexec -n 4"
+    # on mac:
+    # --oversubscribe flag allows more processes on a node than processing elements
+    # --mca btl tcp,self for Open MPI to use the "tcp" and "self" Byte Transfer Layers for transporting MPI messages
+    # "self" to deliver messages to the same rank as the sender
+    # "tcp" sends messages across TCP-based networks (Transmission Control Protocol with Internet Protocol)
+    if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        launch="$launch --oversubscribe --mca btl tcp,self"
     fi
     WITH_MPI="ON"
 else
