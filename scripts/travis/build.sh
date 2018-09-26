@@ -34,7 +34,7 @@ if [[ "${WITH_DISTRIBUTED}" = "mpi" ]]; then
     # "self" to deliver messages to the same rank as the sender
     # "tcp" sends messages across TCP-based networks (Transmission Control Protocol with Internet Protocol)
     if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        launch="$launch --oversubscribe --mca btl tcp,self"
+        launch="${launch} --oversubscribe --mca btl tcp,self"
     fi
     WITH_MPI="ON"
 else

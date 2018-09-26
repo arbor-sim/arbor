@@ -11,7 +11,7 @@ matrix:
   include:
 ########################## OS X #########################
 ## test gcc6 - single node/rank with threading backend ##
-  - name: "osx, gcc, serial"
+  - name: "osx,   gcc,         serial"
     os: osx
     osx_image: xcode9.2
     env:
@@ -20,7 +20,7 @@ matrix:
     compiler: gcc-6
 
 ## test gcc6 - mpi with threading backend ##
-  - name: "osx, gcc, mpi"
+  - name: "osx,   gcc,         mpi"
     os: osx
     osx_image: xcode9.2
     env:
@@ -29,7 +29,7 @@ matrix:
     compiler: gcc-6
 
 ## test clang9 - single node/rank with threading backend ##
-  - name: "osx, apple clang, serial"
+  - name: "osx,   apple clang, serial"
     os: osx
     osx_image: xcode9.2
     env:
@@ -37,9 +37,8 @@ matrix:
       - BUILD_NAME=cthread WITH_DISTRIBUTED=serial
     compiler: clang
 
-
 ## test clang9 - mpi with threading backend ##
-  - name: "osx, apple clang, mpi"
+  - name: "osx,   apple clang, mpi"
     os: osx
     osx_image: xcode9.2
     env:
@@ -49,7 +48,7 @@ matrix:
 
 ######################### LINUX #########################
 ## test gcc6 - single node/rank with threading backend ##
-  - name: "linux, gcc, serial"
+  - name: "linux, gcc,         serial"
     os: linux
     dist: trusty
     addons:
@@ -66,7 +65,7 @@ matrix:
     compiler: gcc-6
 
 ## test gcc6 - mpi with threading backend ##
-  - name: "linux, gcc, mpi"
+  - name: "linux, gcc,         mpi"
     os: linux
     dist: trusty
     addons:
@@ -83,7 +82,7 @@ matrix:
     compiler: gcc-6
 
 ## test clang4 - single node/rank with threading backend ##
-  - name: "linux, llvm clang, serial"
+  - name: "linux, clang,       serial"
     os: linux
     dist: trusty
     addons:
@@ -102,7 +101,7 @@ matrix:
     compiler: clang-4.0
 
 ## test clang4 - mpi with threading backend ##
-  - name: "linux, llvm clang, mpi"
+  - name: "linux, clang,       mpi"
     os: linux
     dist: trusty
     addons:
