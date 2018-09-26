@@ -97,10 +97,38 @@ public:
 
 class task_group {
 private:
+    struct exception_state {
+        std::atomic<bool> error_{false};
+        std::exception_ptr exception_;
+        std::mutex mutex_;
+
+        operator bool() const {
+            return error_.load(std::memory_order_relaxed);
+        }
+
+        void set(std::exception_ptr ex) {
+            error_.store(true, std::memory_order_relaxed);
+            lock ex_lock{mutex_};
+            exception_ = std::move(ex);
+        }
+
+        std::exception_ptr get() {
+            error_.store(false, std::memory_order_relaxed);
+            return std::move(exception_);
+        }
+
+        ~exception_state() {
+            if(error_) {
+                std::rethrow_exception(exception_);
+            }
+        }
+    };
+
     std::atomic<std::size_t> in_flight_{0};
     /// We use a raw pointer here instead of a shared_ptr to avoid a race condition
     /// on the destruction of a task_system that would lead to a thread trying to join itself
     task_system* task_system_;
+    exception_state exception_status_;
 
 public:
     task_group(task_system* ts):
@@ -112,33 +140,44 @@ public:
 
     template <typename F>
     class wrap {
-        F f;
-        std::atomic<std::size_t>& counter;
+        F f_;
+        std::atomic<std::size_t>& counter_;
+        exception_state& exception_status_;
 
     public:
 
         // Construct from a compatible function and atomic counter
         template <typename F2>
-        explicit wrap(F2&& other, std::atomic<std::size_t>& c):
-                f(std::forward<F2>(other)),
-                counter(c)
+        explicit wrap(F2&& other, std::atomic<std::size_t>& c, exception_state& ex):
+                f_(std::forward<F2>(other)),
+                counter_(c),
+                exception_status_(ex)
         {}
 
         wrap(wrap&& other):
-                f(std::move(other.f)),
-                counter(other.counter)
+                f_(std::move(other.f_)),
+                counter_(other.counter_),
+                exception_status_(other.exception_status_)
         {}
 
         // std::function is not guaranteed to not copy the contents on move construction
         // But the class is safe because we don't call operator() more than once on the same wrapped task
         wrap(const wrap& other):
-                f(other.f),
-                counter(other.counter)
+                f_(other.f_),
+                counter_(other.counter_),
+                exception_status_(other.exception_status_)
         {}
 
         void operator()() {
-            f();
-            --counter;
+            if(!exception_status_) {
+                try {
+                    f_();
+                }
+                catch (...) {
+                    exception_status_.set(std::current_exception());
+                }
+            }
+            --counter_;
         }
     };
 
@@ -146,20 +185,28 @@ public:
     using callable = typename std::decay<F>::type;
 
     template <typename F>
-    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c) {
-        return wrap<callable<F>>(std::forward<F>(f), c);
+    wrap<callable<F>> make_wrapped_function(F&& f, std::atomic<std::size_t>& c, exception_state& ex) {
+        return wrap<callable<F>>(std::forward<F>(f), c, ex);
     }
 
     template<typename F>
     void run(F&& f) {
         ++in_flight_;
-        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_));
+        task_system_->async(make_wrapped_function(std::forward<F>(f), in_flight_, exception_status_));
     }
 
     // wait till all tasks in this group are done
     void wait() {
         while (in_flight_) {
             task_system_->try_run_task();
+        }
+        if(auto ex = exception_status_.get()) {
+            try {
+                std::rethrow_exception(ex);
+            }
+            catch (...) {
+                throw;
+            }
         }
     }
 
