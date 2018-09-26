@@ -44,7 +44,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     Compiler    Min version  Notes
     =========== ============ ============================================
     GCC         6.1.0
-    Clang       4.0          
+    Clang       4.0          Needs GCC 6 or later for standard library. 
     Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
     Intel       17.0.1       Needs GCC 5 or later for standard library.
     =========== ============ ============================================
