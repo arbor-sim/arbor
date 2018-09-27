@@ -209,7 +209,7 @@ public:
     iarray perm;
 
     // takes a vector of trees and the corresponding branch start list
-    static void optimize_trees(std::vector<tree>& trees, std::vector<std::vector<int>>& branch_starts, std::vector<std::vector<int>>& branch_lengths) {
+    static void optimize_trees(std::vector<tree>& trees, std::vector<std::vector<unsigned>>& branch_starts, std::vector<std::vector<unsigned>>& branch_lengths) {
         using util::make_span;
 
         // cut the tree
@@ -238,7 +238,7 @@ public:
                 // ... cut all trees on this level
                 for (LevelIterator it (&trees[t_ix], level); it.valid(); it.next()) {
 
-                    unsigned length = branch_lengths[t_ix][it.peek()];
+                    auto length = branch_lengths[t_ix][it.peek()];
                     if (length > max_length) {
                         // now cut the tree
 
@@ -292,17 +292,17 @@ public:
         num_cells = cell_cv_divs.size()-1;
 
         std::vector<tree> trees;
-        std::vector<std::vector<int>> tree_branch_starts;
-        std::vector<std::vector<int>> tree_branch_lengths;
+        std::vector<std::vector<unsigned>> tree_branch_starts;
+        std::vector<std::vector<unsigned>> tree_branch_lengths;
 
         for (auto c: make_span(0u, num_cells)) {
             // build the parent index for cell c
             auto cell_start = cell_cv_divs[c];
-            std::vector<size_type> cell_p =
+            std::vector<unsigned> cell_p =
                 util::assign_from(
                     util::transform_view(
                         util::subrange_view(p, cell_cv_divs[c], cell_cv_divs[c+1]),
-                        [cell_start](size_type i) {return i-cell_start;}));
+                        [cell_start](unsigned i) {return i-cell_start;}));
 
             // find the index of the first node for each branch
             auto branch_starts = algorithms::branches(cell_p);
