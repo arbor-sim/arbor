@@ -291,6 +291,12 @@ public:
 
         num_cells = cell_cv_divs.size()-1;
 
+        // the permutation matrix used by the balancing algorithm
+        // we will later combien this with the permutation used to improve the
+        // access patterms
+        // format: `solver_format[i] = external_format[perm[i]]`
+        std::vector<size_type> perm_balancing(p.size());
+
         std::vector<tree> trees;
         std::vector<std::vector<unsigned>> tree_branch_starts;
         std::vector<std::vector<unsigned>> tree_branch_lengths;
@@ -304,19 +310,26 @@ public:
                         util::subrange_view(p, cell_cv_divs[c], cell_cv_divs[c+1]),
                         [cell_start](unsigned i) {return i-cell_start;}));
 
+            auto fine_tree = tree(cell_p);
+
+            auto perm = fine_tree.select_new_root(0);
+            for (auto i: make_span(perm.size())) {
+                perm_balancing[cell_start + i] = cell_start + perm[i];
+            }
+
             // find the index of the first node for each branch
-            auto branch_starts = algorithms::branches(cell_p);
+            auto branch_starts = algorithms::branches(fine_tree.parents());
 
             // find the parent index of branches
             // we need to convert to cell_lid_type, required to construct a tree.
             std::vector<cell_lid_type> branch_p =
                 util::assign_from(
-                    algorithms::tree_reduce(cell_p, branch_starts));
+                    algorithms::tree_reduce(fine_tree.parents(), branch_starts));
             // build tree structure that describes the branch topology
             auto cell_tree = tree(branch_p);
 
-            std::vector<int> branch_lengths(branch_starts.size() - 1);
-            // compute branch length
+            // compute branch length and apply permutation
+            std::vector<unsigned> branch_lengths(branch_starts.size() - 1);
             for (auto i: make_span(branch_lengths.size())) {
                 branch_lengths[i] = branch_starts[i+1] - branch_starts[i];
             }
@@ -425,8 +438,6 @@ public:
                 b.parent_id = cell_tree.parent(i)==cell_tree.no_parent ?
                     npos : cell_tree.parent(i) + num_branches;
                 b.start_idx = branch_starts[i] + cell_start;
-                // [i+1] is save as algorithm::branches pushes the total number
-                // of compartments as last element
                 b.length = branch_lengths[i];
                 b.parent_idx = p[b.start_idx] + cell_start;
                 branch_map[depth].push_back(b);
@@ -544,8 +555,16 @@ public:
                 }
             }
         }
+
+        // apppy permutation form balancing
+        std::vector<size_type> perm_tmp2(matrix_size);
+        for (auto i: make_span(matrix_size)) {
+             // This is CORRECT! verified by using the ring benchmark with root=0 (where the perumations is actually not id)
+            perm_tmp2[perm_balancing[i]] = perm_tmp[i];
+        }
         // copy permutation to device memory
-        perm = memory::make_const_view(perm_tmp);
+        perm = memory::make_const_view(perm_tmp2);
+
 
         // Summary of fields and their storage format:
         //
