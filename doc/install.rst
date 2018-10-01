@@ -231,7 +231,7 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         export CC=gcc-5
         export CXX=g++-5
-        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU_MODEL=P100
+        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_WITH_GPU=ON
 
 .. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, optimized for the `local system architecture <architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
 
@@ -305,14 +305,14 @@ GPU Backend
 -----------
 
 Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting the
-CMake ``ARB_GPU_MODEL`` option to match the GPU model to target:
+CMake ``ARB_WITH_GPU`` option.
 
 .. code-block:: bash
 
-    cmake -DARB_GPU_MODEL={none, K20, K80, P100}
+    cmake -DARB_WITH_GPU=ON
 
-By default ``ARB_GPU_MODEL=none``, and a GPU target must explicitly be set to
-build for and run on GPUs.
+By default ``ARB_WITH_GPU=OFF``. When the option is turned on, Arbor is built for all
+supported GPUs and the available GPU will be used at runtime.
 
 Depending on the configuration of the system where Arbor is being built, the
 C++ compiler may not be able to find the ``cuda.h`` header. The easiest workaround
@@ -323,12 +323,10 @@ example:
 .. code-block:: bash
 
     export CPATH="/opt/cuda/include:$CPATH"
-    cmake -DARB_GPU_MODEL=P100
+    cmake -DARB_WITH_GPU=ON
 
 .. Note::
-    The main difference between the Kepler (K20 & K80) and Pascal (P100) GPUs is
-    the latter's built-in support for double precision atomics and fewer GPU
-    synchronizations when accessing managed memory.
+    Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
 
 .. _install:
 
