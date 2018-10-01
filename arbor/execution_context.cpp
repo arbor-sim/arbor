@@ -2,14 +2,13 @@
 #include <memory>
 
 #include <arbor/context.hpp>
-#include <arbor/version.hpp>
 
 #include "gpu_context.hpp"
 #include "distributed_context.hpp"
 #include "execution_context.hpp"
 #include "threading/threading.hpp"
 
-#ifdef ARB_MPI_ENABLED
+#ifdef ARB_HAVE_MPI
 #include <mpi.h>
 #endif
 
@@ -34,7 +33,7 @@ context make_context(const proc_allocation& p) {
     return context(new execution_context(p), [](execution_context* p){delete p;});
 }
 
-#ifdef ARB_MPI_ENABLED
+#ifdef ARB_HAVE_MPI
 template <>
 execution_context::execution_context(const proc_allocation& resources, MPI_Comm comm):
     distributed(make_mpi_context(comm)),
