@@ -86,7 +86,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{{0, 0}, 0.1, 1.0}}));
+            gens.push_back(arb::explicit_generator(arb::pse_vector{{{0, 0}, event_weight_, 1.0}}));
         }
         return gens;
     }
@@ -324,7 +324,12 @@ arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) 
                     sec_ids.push_back(nsec++);
                     auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
                     dend->set_compartments(nc);
-                    dend->add_mechanism("pas");
+                    if (params.hh_dend) {
+                        dend->add_mechanism("hh");
+                    }
+                    else {
+                        dend->add_mechanism("pas");
+                    }
                     dend->rL = 100;
                 }
             }
@@ -340,6 +345,11 @@ arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) 
 
     // Add a synapse to the mid point of the first dendrite.
     cell.add_synapse({1, 0.5}, "expsyn");
+
+    // Add additional synapses that will not be connected to anything.
+    for (unsigned i=1u; i<params.synapses; ++i) {
+        cell.add_synapse({1, 0.5}, "expsyn");
+    }
 
     return cell;
 }
