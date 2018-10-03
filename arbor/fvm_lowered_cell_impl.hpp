@@ -208,9 +208,27 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         // Integrate voltage by matrix solve.
 
+        std::cout<<"size: "<<matrix_.size()<<std::endl;
+
+        for(unsigned i = 0; i < matrix_.size(); i++) {
+            std::cout<<"d: "<<matrix_.state_.d[i]<<std::endl;
+            std::cout<<"u: "<<matrix_.state_.u[i]<<std::endl;
+            std::cout<<"rhs: "<<matrix_.state_.rhs[i]<<std::endl;
+        }
+
         PE(advance_integrate_matrix_build);
         matrix_.assemble(state_->dt_cell, state_->voltage, state_->current_density);
         PL();
+
+        std::cout<<"after: "<<std::endl;
+
+        for(unsigned i = 0; i < matrix_.size(); i++) {
+            std::cout<<"d: "<<matrix_.state_.d[i]<<std::endl;
+            std::cout<<"u: "<<matrix_.state_.u[i]<<std::endl;
+            std::cout<<"rhs: "<<matrix_.state_.rhs[i]<<std::endl;
+        }
+
+
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
         memory::copy(matrix_.solution(), state_->voltage);
@@ -344,6 +362,10 @@ void fvm_lowered_cell_impl<B>::initialize(
     fvm_discretization D = fvm_discretize(cells);
     arb_assert(D.ncell == ncell);
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
+    std::cout<<"here: "<<std::endl;
+    for (int i = 0; i < D.cell_segment_part().size();  i++ ) {
+        std::cout<< D.cell_segment_part()[i].first <<" " << D.cell_segment_part()[i].second <<std::endl;
+    }
     sample_events_ = sample_event_stream(ncell);
 
     // Discretize mechanism data.
