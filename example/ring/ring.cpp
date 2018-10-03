@@ -109,7 +109,7 @@ private:
     cell_size_type num_cells_;
     cell_parameters cell_params_;
     double min_delay_;
-    float event_weight_ = 0.01;
+    float event_weight_ = 0.05;
 };
 
 struct cell_stats {
@@ -324,12 +324,7 @@ arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) 
                     sec_ids.push_back(nsec++);
                     auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
                     dend->set_compartments(nc);
-                    if (params.hh_dend) {
-                        dend->add_mechanism("hh");
-                    }
-                    else {
-                        dend->add_mechanism("pas");
-                    }
+                    dend->add_mechanism("pas");
                     dend->rL = 100;
                 }
             }

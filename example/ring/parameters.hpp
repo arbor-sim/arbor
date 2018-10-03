@@ -25,7 +25,6 @@ struct cell_parameters {
 
     // The number of synapses per cell.
     unsigned synapses = 1;
-    bool hh_dend = false;
 };
 
 struct ring_params {
@@ -70,7 +69,6 @@ ring_params read_options(int argc, char** argv) {
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
     param_from_json(params.cell.synapses, "synapses", json);
-    param_from_json(params.cell.hh_dend, "hh-dendrites", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {
