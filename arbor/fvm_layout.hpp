@@ -46,6 +46,18 @@ struct segment_info {
     }
 };
 
+struct gap_junction {
+    using value_type = fvm_value_type;
+    using index_type = fvm_index_type;
+
+    std::pair<index_type, index_type> loc;
+    value_type weight;
+
+    gap_junction(std::pair<index_type, index_type> l, value_type w): loc(l), weight(w) {}
+};
+
+
+
 // Discretization of morphologies and electrical properties for
 // cells in a cell group.
 
@@ -135,6 +147,8 @@ struct fvm_mechanism_data {
     // Total number of targets (point-mechanism points)
     std::size_t ntarget = 0;
 };
+
+std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const fvm_discretization& D);
 
 fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D);
 

@@ -618,3 +618,37 @@ TEST(fvm_layout, ion_weights) {
         EXPECT_TRUE(util::all_of(ca.econc_norm_area, [](fvm_value_type v) { return v==1.; }));
     }
 }
+
+TEST(fvm_layout, gap_junction_coords) {
+
+    mc_cell c, d;
+    std::vector<mc_cell> cells;
+
+    c.add_soma(2.1);
+    c.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
+    c.segment(1)->set_compartments(5);
+
+    d.add_soma(2.4);
+    d.add_cable(0, section_kind::dendrite, 0.3, 0.2, 10);
+    d.segment(1)->set_compartments(2);
+
+    c.add_gap_junction(0, {1, 0.8}, 1, {1, 1}, 0.5);
+    d.add_gap_junction(1, {1, 1}, 0, {1, 0.8}, 0.5);
+
+    cells.push_back(std::move(c));
+    cells.push_back(std::move(d));
+
+    fvm_discretization D = fvm_discretize(cells);
+
+    auto GJ = fvm_gap_junctions(cells, D);
+
+    EXPECT_EQ(4, GJ[0].loc.first);
+    EXPECT_EQ(8, GJ[0].loc.second);
+    EXPECT_EQ(0.5, GJ[0].weight);
+
+    EXPECT_EQ(8, GJ[1].loc.first);
+    EXPECT_EQ(4, GJ[1].loc.second);
+    EXPECT_EQ(0.5, GJ[1].weight);
+
+
+}

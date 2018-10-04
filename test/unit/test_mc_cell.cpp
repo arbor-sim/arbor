@@ -265,12 +265,12 @@ TEST(mc_cell, gap_junctions) {
     EXPECT_EQ(1u, c.gap_junctions().size());
     EXPECT_EQ(d.gap_junctions().size(), c.gap_junctions().size());
 
-    EXPECT_EQ(0, c.gap_junctions()[0].source.gid);
-    EXPECT_EQ(1, c.gap_junctions()[0].source.lid.segment);
+    EXPECT_EQ(0u, c.gap_junctions()[0].source.gid);
+    EXPECT_EQ(1u, c.gap_junctions()[0].source.lid.segment);
     EXPECT_EQ(0.3, c.gap_junctions()[0].source.lid.position);
 
-    EXPECT_EQ(1, c.gap_junctions()[0].dest.gid);
-    EXPECT_EQ(0, c.gap_junctions()[0].dest.lid.segment);
+    EXPECT_EQ(1u, c.gap_junctions()[0].dest.gid);
+    EXPECT_EQ(0u, c.gap_junctions()[0].dest.lid.segment);
     EXPECT_EQ(0.7, c.gap_junctions()[0].dest.lid.position);
 
     EXPECT_EQ(c.gap_junctions()[0].source, d.gap_junctions()[0].dest);

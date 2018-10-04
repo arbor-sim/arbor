@@ -236,6 +236,23 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
     return D;
 }
 
+// Get vector of gap_junctions
+
+std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const fvm_discretization& D) {
+    using size_type = fvm_size_type;
+
+    std::vector<gap_junction> v;
+
+    for (auto cell_idx: make_span(0, D.ncell)) {
+        auto& cell_gj = cells[cell_idx].gap_junctions();
+        for (auto gj : cell_gj) {
+            size_type source_cv = D.segment_location_cv(gj.source.gid, gj.source.lid);
+            size_type dest_cv = D.segment_location_cv(gj.dest.gid, gj.dest.lid);
+            v.push_back(gap_junction(std::make_pair(source_cv, dest_cv), gj.conductance));
+        }
+    }
+    return v;
+}
 
 // Build up mechanisms.
 //
