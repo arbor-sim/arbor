@@ -6,10 +6,13 @@
 #include <arbor/math.hpp>
 #include <arbor/mc_cell.hpp>
 
+#include "backends/multicore/fvm.hpp"
+#include "backends/multicore/mechanism.hpp"
 #include "fvm_layout.hpp"
 #include "util/maputil.hpp"
 #include "util/rangeutil.hpp"
 #include "util/span.hpp"
+#include "matrix.hpp"
 
 #include "common.hpp"
 #include "../common_cells.hpp"
@@ -20,6 +23,58 @@ using namespace arb;
 using util::make_span;
 using util::count_along;
 using util::value_by_key;
+
+std::vector<double> gauss(std::vector<std::vector<double>> M) {
+    unsigned n = M.size();
+
+    for (unsigned i = 0; i < n; i++) {
+        // Find pivot
+        double pivot = std::abs(M[i][i]);
+        int row = i;
+        for (unsigned j = i+1; j < n; j++) {
+            if (std::abs(M[j][i]) > pivot) {
+                pivot = std::abs(M[j][i]);
+                row = j;
+            }
+        }
+        // Swap pivot row with current row
+        std::swap(M[i], M[row]);
+
+        // Triangulate
+        for (unsigned j = i+1; j < n; j++) {
+            double c = -M[j][i]/M[i][i];
+            for (unsigned k = i; k < n+1; k++) {
+                M[j][k] = i==k ? 0 : M[j][k] + c * M[i][k];
+            }
+        }
+    }
+
+    // Solve equation with upper triangular matrix M
+    std::vector<double> res(n);
+    for (int i = n-1; i >= 0; i--) {
+        res[i] = M[i][n]/M[i][i];
+        for (int j = i-1; j >= 0; j--) {
+            M[j][n] -= M[j][i] * res[i];
+        }
+    }
+    return res;
+}
+
+std::vector<std::vector<double>> matrix_to_vec(matrix<arb::multicore::backend>& M) {
+    unsigned n = M.size();
+    std::vector<double> line(n+1, 0);
+    std::vector<std::vector<double>> v(n,line);
+
+    for (unsigned i = 0; i < n; i++) {
+        v[i][i] = M.state_.d[i];
+        if (i > 0) {
+            v[i][M.state_.parent_index[i]] = M.state_.u[i];
+            v[M.state_.parent_index[i]][i] = M.state_.u[i];
+        }
+        v[i][n] = M.state_.rhs[i];
+    }
+    return v;
+}
 
 namespace {
     double area(const mc_segment* s) {
@@ -620,6 +675,7 @@ TEST(fvm_layout, ion_weights) {
 }
 
 TEST(fvm_layout, gap_junction_coords) {
+    using pair = std::pair<int, int>;
 
     mc_cell c, d;
     std::vector<mc_cell> cells;
@@ -642,13 +698,144 @@ TEST(fvm_layout, gap_junction_coords) {
 
     auto GJ = fvm_gap_junctions(cells, D);
 
-    EXPECT_EQ(4, GJ[0].loc.first);
-    EXPECT_EQ(8, GJ[0].loc.second);
+    EXPECT_EQ(pair({4,8}), GJ[0].loc);
     EXPECT_EQ(0.5, GJ[0].weight);
 
-    EXPECT_EQ(8, GJ[1].loc.first);
-    EXPECT_EQ(4, GJ[1].loc.second);
+    EXPECT_EQ(pair({8,4}), GJ[1].loc);
     EXPECT_EQ(0.5, GJ[1].weight);
+}
+
+TEST(fvm_layout, gap_junction_coords_2) {
+    mc_cell c0;
+    std::vector<mc_cell> cells;
+
+    // Make 3 cells
+    c0.add_soma(2.1);
+    c0.add_cable(0, section_kind::dendrite, 0.3, 0.2, 8);
+    c0.segment(1)->set_compartments(1);
+    c0.add_cable(1, section_kind::dendrite, 0.3, 0.2, 8);
+    c0.segment(2)->set_compartments(1);
+    c0.add_cable(1, section_kind::dendrite, 0.3, 0.2, 8);
+    c0.segment(3)->set_compartments(1);
+
+    cells.push_back(std::move(c0));
+
+    fvm_discretization D = fvm_discretize(cells);
+
+    matrix<arb::multicore::backend> M(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
+
+    auto N = matrix_to_vec(M);
+
+    // Construct solution = ones
+    for (unsigned i = 0; i < N.size(); i++ ) {
+        double sum = 0;
+        for (unsigned j = 0; j < N[i].size() - 1; j++) {
+            if(j != i) {
+                sum += N[i][j];
+            }
+        }
+        N[i][i] = sum + 0.1;
+        M.state_.d[i] =  N[i][i];
+        N[i][N[i].size() - 1] = N[i][i] + sum;
+        M.state_.rhs[i] = N[i][N[i].size() - 1];
+    }
 
 
+    M.solve();
+    auto res = gauss(N);
+
+    for(unsigned i = 0; i < M.solution().size(); i++) {
+        EXPECT_DOUBLE_EQ(res[i], M.solution()[i]);
+    }
+}
+
+TEST(fvm_layout, gap_junction_coords_3) {
+    using pair = std::pair<int, int>;
+
+    mc_cell c0, c1, c2;
+    std::vector<mc_cell> cells;
+
+    // Make 3 cells
+    c0.add_soma(2.1);
+    c0.add_cable(0, section_kind::dendrite, 0.3, 0.2, 8);
+    c0.segment(1)->set_compartments(4);
+
+    c1.add_soma(1.4);
+    c1.add_cable(0, section_kind::dendrite, 0.3, 0.5, 12);
+    c1.segment(1)->set_compartments(6);
+    c1.add_cable(1, section_kind::dendrite, 0.3, 0.2, 9);
+    c1.segment(2)->set_compartments(3);
+    c1.add_cable(1, section_kind::dendrite, 0.2, 0.2, 15);
+    c1.segment(3)->set_compartments(5);
+
+    c2.add_soma(2.9);
+    c2.add_cable(0, section_kind::dendrite, 0.3, 0.5, 4);
+    c2.segment(1)->set_compartments(2);
+    c2.add_cable(1, section_kind::dendrite, 0.4, 0.2, 6);
+    c2.segment(2)->set_compartments(2);
+    c2.add_cable(1, section_kind::dendrite, 0.1, 0.2, 8);
+    c2.segment(3)->set_compartments(2);
+    c2.add_cable(2, section_kind::dendrite, 0.2, 0.2, 4);
+    c2.segment(4)->set_compartments(2);
+    c2.add_cable(2, section_kind::dendrite, 0.2, 0.2, 4);
+    c2.segment(5)->set_compartments(2);
+
+    // Add 5 gap junctions
+    c0.add_gap_junction(1, {2, 1}, 0, {1, 1}, 0.3);
+    c1.add_gap_junction(0, {1, 1}, 1, {2, 1}, 0.3);
+
+    c0.add_gap_junction(0, {1, 1}, 1, {1, 1}, 0.4);
+    c1.add_gap_junction(1, {1, 1}, 0, {1, 1}, 0.4);
+
+    c0.add_gap_junction(0, {1, 0.5}, 2, {1, 0.5},  0.1);
+    c2.add_gap_junction(2, {1, 0.5}, 0, {1, 0.5}, 0.1);
+
+    c1.add_gap_junction(1, {1, 0.45}, 2, {4, 1},    0.2);
+    c2.add_gap_junction(2, {4, 1},    1, {1, 0.45}, 0.2);
+
+    c1.add_gap_junction(2, {2, 1},   1, {1, 0.1},  0.1);
+    c2.add_gap_junction(1, {1, 0.1}, 2, {2, 1},    0.1);
+
+    cells.push_back(std::move(c0));
+    cells.push_back(std::move(c1));
+    cells.push_back(std::move(c2));
+
+    fvm_discretization D = fvm_discretize(cells);
+
+    auto GJ = fvm_gap_junctions(cells, D);
+    EXPECT_EQ(10u, GJ.size());
+
+    std::vector<pair> expected_loc = {{14,4}, {4,11}, {2,21}, {4,14}, {11,4} ,{8,28}, {24,6}, {21,2}, {28,8}, {6,24}};
+    std::vector<double> expected_weight = {0.3, 0.4, 0.1, 0.3, 0.4, 0.2, 0.1, 0.1, 0.2, 0.1};
+
+    for (unsigned i = i; i < GJ.size(); i++) {
+        EXPECT_EQ(expected_loc[i], GJ[i].loc);
+        EXPECT_EQ(expected_weight[i], GJ[i].weight);
+    }
+
+    matrix<arb::multicore::backend> M(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
+
+    auto N = matrix_to_vec(M);
+
+    // Construct solution = ones
+    for (unsigned i = 0; i < N.size(); i++ ) {
+        double sum = 0;
+        for (unsigned j = 0; j < N[i].size() - 1; j++) {
+            if(j != i) {
+                sum += N[i][j];
+            }
+        }
+        N[i][i] = sum + 0.4;
+        M.state_.d[i] =  N[i][i];
+        N[i][N[i].size() - 1] = N[i][i] + sum;
+        M.state_.rhs[i] = N[i][N[i].size() - 1];
+    }
+
+
+    M.solve();
+    auto res = gauss(N);
+
+    for(unsigned i = 0; i < M.solution().size(); i++) {
+        EXPECT_NEAR(res[i], M.solution()[i], 1e-8);
+    }
 }
