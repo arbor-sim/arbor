@@ -740,7 +740,6 @@ TEST(fvm_layout, gap_junction_coords_2) {
         M.state_.rhs[i] = N[i][N[i].size() - 1];
     }
 
-
     M.solve();
     auto res = gauss(N);
 
