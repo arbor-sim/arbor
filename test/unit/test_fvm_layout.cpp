@@ -744,7 +744,7 @@ TEST(fvm_layout, gap_junction_coords_2) {
     auto res = gauss(N);
 
     for(unsigned i = 0; i < M.solution().size(); i++) {
-        EXPECT_DOUBLE_EQ(res[i], M.solution()[i]);
+        EXPECT_NEAR(res[i], M.solution()[i], 1e-9);
     }
 }
 

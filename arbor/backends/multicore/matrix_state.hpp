@@ -42,7 +42,7 @@ public:
                  const std::vector<value_type>& area):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
-        d(size(), 0), u(size(), 0), rhs(size()), x(size()),
+        d(size(), 0), u(size(), 0), rhs(size()), x(size(), 0),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
         cv_area(area.begin(), area.end())
@@ -131,7 +131,6 @@ public:
         x = b;
         solve_tdma();
         c = x;
-        x = b;
     }
 
     void solve() {
@@ -222,7 +221,7 @@ public:
 
 
     void solve_cg() {
-        array r(size()), p(size()), Ap(size()), MinvR(size());
+        array r(size()), p(size()), Ap(size()), MinvR(size()), x_0(size(), 0);
         array scalars(5);	// array of variables (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
 
         Set_Up_CG(rhs, r, p, MinvR);
@@ -239,7 +238,7 @@ public:
             DotProduct(r, MinvR, scalars, 0);    // elements placed in scalars[0] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
 
             // Update x and store alpha
-            Update_x(x, p, scalars, 3);          // elements placed in scalars[3] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
+            Update_x(x_0, p, scalars, 3);          // elements placed in scalars[3] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
 
             // Update R
             Update_R(r, Ap, scalars);
@@ -251,9 +250,9 @@ public:
             DotProduct(r, MinvR, scalars, 1);    // elements placed in scalars[1] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
 
             // Check residual threshold and check scalars
-            print_banner(i, scalars);
+            // print_banner(i, scalars);
 
-            if(sqrt(std::abs(scalars[1])) < 1e-11) {
+            if(sqrt(std::abs(scalars[1])) < 1e-20) {
                 break;
             }
 
@@ -262,15 +261,8 @@ public:
         }
 
         solve_tdma();
-        std::cout<<std::endl;
-        std::cout<<std::endl;
 
-        for(unsigned i = 0; i< x.size(); i++) {
-            std::cout << x[i] << " ";
-        }
-
-        std::cout<<std::endl;
-        std::cout<<std::endl;
+        x = x_0;
 
         return;
     };
