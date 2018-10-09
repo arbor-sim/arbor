@@ -1,0 +1,9 @@
+include(CMakeFindDependencyMacro)
+
+foreach(dep @arbor_export_dependencies@)
+    find_dependency(${dep})
+endforeach()
+
+include("${CMAKE_CURRENT_LIST_DIR}/arbor-targets.cmake")
+
+
