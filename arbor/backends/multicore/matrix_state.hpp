@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fvm_layout.hpp>
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
@@ -33,19 +34,23 @@ public:
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
+    std::vector<gap_junction> gj;
+
     matrix_state() = default;
 
     matrix_state(const std::vector<index_type>& p,
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
-                 const std::vector<value_type>& area):
+                 const std::vector<value_type>& area,
+                 const std::vector<gap_junction>& gj_coords):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
         d(size(), 0), u(size(), 0), rhs(size()), x(size(), 0),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
-        cv_area(area.begin(), area.end())
+        cv_area(area.begin(), area.end()),
+        gj(gj_coords)
     {
         arb_assert(cap.size() == size());
         arb_assert(cond.size() == size());
@@ -135,16 +140,10 @@ public:
 
     void solve() {
         x = rhs;
-        for(unsigned i = 0; i < size(); i++) {
-            if(x[i]!=rhs[i]) {
-                std::cout<< "err at "<< i<< std::endl;
-                break;
-            }
-        }
         solve_tdma();
     }
 
-    void MatrixVectorProduct(const array& b, array& c){
+    void MatrixVectorProduct(const array& b, array& c, bool precond) {
         for (unsigned i = 0; i < size(); i++) {
             c[i] = d[i] * b[i];
         }
@@ -153,19 +152,21 @@ public:
             c[p] += u[i] * b[i];
             c[i] += u[i] * b[p];
         }
-        /*for (auto e: A.e) {
-            c[e.coords.first] += e.weight * b[e.coords.second];
-        }*/
+        if(!precond) {
+            for (auto g: gj) {
+                c[g.loc.first] += g.weight * b[g.loc.second];
+            }
+        }
     };
 
-    void Set_Up_CG(const array& b, array& r, array& p, array& MinvR){
+    void Set_Up_CG(const array& b, array& r, array& p, array& MinvR) {
 
         // Solve Mx = b; Solution is Minvb = x(0)
         array Minvb(size());
         solve(b, Minvb);
 
         // R(0) = b - A*x(0) = b - A*MinvB
-        MatrixVectorProduct(Minvb, r);
+        MatrixVectorProduct(Minvb, r, true);
 
         // Solve Mx = R; store in MinvR
         solve(r, MinvR);
@@ -229,7 +230,7 @@ public:
         for (int i = 1; i < 42; ++i){
 
             // Calculate AP
-            MatrixVectorProduct(p, Ap);
+            MatrixVectorProduct(p, Ap, false);
 
             // Calculate P^T*AP and store
             DotProduct(p, Ap, scalars, 2);     // elements placed in scalars[2] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
@@ -259,9 +260,6 @@ public:
             // Update P and compute beta
             Update_P(p, MinvR, scalars, 4);          // elements placed in scalars[4] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
         }
-
-        solve_tdma();
-
         x = x_0;
 
         return;

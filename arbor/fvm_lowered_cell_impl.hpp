@@ -350,7 +350,7 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     auto gj_coords = fvm_gap_junctions(cells, D);
 
-    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
+    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, gj_coords);
 
     sample_events_ = sample_event_stream(ncell);
 

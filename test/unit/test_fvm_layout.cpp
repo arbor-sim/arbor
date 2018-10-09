@@ -73,6 +73,9 @@ std::vector<std::vector<double>> matrix_to_vec(matrix<arb::multicore::backend>& 
         }
         v[i][n] = M.state_.rhs[i];
     }
+    for (auto g: M.state_.gj) {
+        v[g.loc.first][g.loc.second] = g.weight;
+    }
     return v;
 }
 
@@ -722,7 +725,9 @@ TEST(fvm_layout, gap_junction_coords_2) {
 
     fvm_discretization D = fvm_discretize(cells);
 
-    matrix<arb::multicore::backend> M(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
+    std::vector<gap_junction> GJ;
+
+    matrix<arb::multicore::backend> M(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, GJ);
 
     auto N = matrix_to_vec(M);
 
@@ -780,20 +785,20 @@ TEST(fvm_layout, gap_junction_coords_3) {
     c2.segment(5)->set_compartments(2);
 
     // Add 5 gap junctions
-    c0.add_gap_junction(1, {2, 1}, 0, {1, 1}, 0.3);
-    c1.add_gap_junction(0, {1, 1}, 1, {2, 1}, 0.3);
+    c0.add_gap_junction(1, {2, 1}, 0, {1, 1}, 0.03);
+    c1.add_gap_junction(0, {1, 1}, 1, {2, 1}, 0.03);
 
-    c0.add_gap_junction(0, {1, 1}, 1, {1, 1}, 0.4);
-    c1.add_gap_junction(1, {1, 1}, 0, {1, 1}, 0.4);
+    c0.add_gap_junction(0, {1, 1}, 1, {1, 1}, 0.04);
+    c1.add_gap_junction(1, {1, 1}, 0, {1, 1}, 0.04);
 
-    c0.add_gap_junction(0, {1, 0.5}, 2, {1, 0.5},  0.1);
-    c2.add_gap_junction(2, {1, 0.5}, 0, {1, 0.5}, 0.1);
+    c0.add_gap_junction(0, {1, 0.5}, 2, {1, 0.5},  0.01);
+    c2.add_gap_junction(2, {1, 0.5}, 0, {1, 0.5}, 0.01);
 
-    c1.add_gap_junction(1, {1, 0.45}, 2, {4, 1},    0.2);
-    c2.add_gap_junction(2, {4, 1},    1, {1, 0.45}, 0.2);
+    c1.add_gap_junction(1, {1, 0.45}, 2, {4, 1},    0.02);
+    c2.add_gap_junction(2, {4, 1},    1, {1, 0.45}, 0.02);
 
-    c1.add_gap_junction(2, {2, 1},   1, {1, 0.1},  0.1);
-    c2.add_gap_junction(1, {1, 0.1}, 2, {2, 1},    0.1);
+    c1.add_gap_junction(2, {2, 1},   1, {1, 0.1},  0.01);
+    c2.add_gap_junction(1, {1, 0.1}, 2, {2, 1},    0.01);
 
     cells.push_back(std::move(c0));
     cells.push_back(std::move(c1));
@@ -805,14 +810,14 @@ TEST(fvm_layout, gap_junction_coords_3) {
     EXPECT_EQ(10u, GJ.size());
 
     std::vector<pair> expected_loc = {{14,4}, {4,11}, {2,21}, {4,14}, {11,4} ,{8,28}, {24,6}, {21,2}, {28,8}, {6,24}};
-    std::vector<double> expected_weight = {0.3, 0.4, 0.1, 0.3, 0.4, 0.2, 0.1, 0.1, 0.2, 0.1};
+    std::vector<double> expected_weight = {0.03, 0.04, 0.01, 0.03, 0.04, 0.02, 0.01, 0.01, 0.02, 0.01};
 
     for (unsigned i = i; i < GJ.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ[i].loc);
         EXPECT_EQ(expected_weight[i], GJ[i].weight);
     }
 
-    matrix<arb::multicore::backend> M(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
+    matrix<arb::multicore::backend> M(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, GJ);
 
     auto N = matrix_to_vec(M);
 
@@ -829,7 +834,6 @@ TEST(fvm_layout, gap_junction_coords_3) {
         N[i][N[i].size() - 1] = N[i][i] + sum;
         M.state_.rhs[i] = N[i][N[i].size() - 1];
     }
-
 
     M.solve();
     auto res = gauss(N);
