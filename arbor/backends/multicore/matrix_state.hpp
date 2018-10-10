@@ -5,6 +5,7 @@
 #include <util/span.hpp>
 
 #include "multicore_common.hpp"
+#include "profile/profiler_macro.hpp"
 
 namespace arb {
 namespace multicore {
@@ -36,6 +37,9 @@ public:
 
     std::vector<gap_junction> gj;
 
+    array r, p, Ap, MinvR, x_0;
+    array scalars;	// array of variables (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
+
     matrix_state() = default;
 
     matrix_state(const std::vector<index_type>& p,
@@ -49,8 +53,9 @@ public:
         d(size(), 0), u(size(), 0), rhs(size()), x(size(), 0),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
-        cv_area(area.begin(), area.end()),
-        gj(gj_coords)
+        cv_area(area.begin(), area.end()), gj(gj_coords),
+        r(size()), p(size()), Ap(size()),
+        MinvR(size()), x_0(size(), 0), scalars(3)
     {
         arb_assert(cap.size() == size());
         arb_assert(cond.size() == size());
@@ -144,13 +149,11 @@ public:
     }
 
     void MatrixVectorProduct(const array& b, array& c, bool precond) {
-        for (unsigned i = 0; i < size(); i++) {
-            c[i] = d[i] * b[i];
-        }
+        c[0] = d[0] *b[0];
         for (unsigned i = 1; i < size(); i++) {
             unsigned p = parent_index[i];
+            c[i] = d[i] * b[i] +  u[i] * b[p];
             c[p] += u[i] * b[i];
-            c[i] += u[i] * b[p];
         }
         if(!precond) {
             for (auto g: gj) {
@@ -159,55 +162,33 @@ public:
         }
     };
 
-    void Set_Up_CG(const array& b, array& r, array& p, array& MinvR) {
+    void Set_Up_CG() {
 
-        // Solve Mx = b; Solution is Minvb = x(0)
-        array Minvb(size());
-        solve(b, Minvb);
+        // Reset result vector
+        std::fill(x_0.begin(), x_0.end(), 0);
 
-        // R(0) = b - A*x(0) = b - A*MinvB
-        MatrixVectorProduct(Minvb, r, true);
+        // Set residual = rhs
+        r = rhs;
 
-        // Solve Mx = R; store in MinvR
+        // Solve Mx = R; store in MinvR, M being the preconditioning matrix
         solve(r, MinvR);
 
-        // P(0) = MinvR
+        // Set p = MinvR
         p = MinvR;
     };
 
-    void DotProduct(const array& a, const array& b, array& scalars, unsigned pos){
-        value_type sum = 0.;
-        for (unsigned i = 0; i < a.size(); ++i) {
-            sum += a[i] * b[i];
-        }
-        scalars[pos] = sum;
-    };
-
-    void Update_x(array& x, const array& p, array& scalars, unsigned pos){
+    void Update_x_r(){
         float alpha = scalars[0]/scalars[2];
-        scalars[pos] = alpha;
-
-        for (unsigned i = 0; i < x.size(); ++i) {
-            x[i] +=  alpha * p[i];
+        for (unsigned i = 0; i < x_0.size(); ++i) {
+            x_0[i] +=  alpha * p[i];
+            r[i] -= alpha * Ap[i];
         }
     };
 
-    void Update_R(array& r, const array& Ap, const array& scalars){
-        float alpha = scalars[3];
-
-        for (unsigned i = 0; i < r.size(); ++i) {
-            r[i] -= alpha*Ap[i];
-        }
-    };
-
-    void Update_P(array& p, const array& r, array& scalars, unsigned pos){
-
+    void Update_P(){
         float beta = scalars[1]/scalars[0];
-
-        scalars[pos] = beta;
-
         for (unsigned i = 0; i < p.size() ; ++i) {
-            p[i] = r[i] + beta * p[i];
+            p[i] = MinvR[i] + beta * p[i];
         }
     };
 
@@ -215,50 +196,59 @@ public:
         std::cout << "Iteration " << i << ": " << "RTR = " <<  scalars[0]
                   << ", RTR_new = " << scalars[1]
                   << ", pTAp = " << scalars[2]
-                  << ", alpha = " << scalars[3]
-                  << ", beta = " << scalars[4]
+                  << ", alpha = " << scalars[0]/scalars[2]
+                  << ", beta = " << scalars[1]/scalars[2]
                   << std::endl;
     }
 
 
     void solve_cg() {
-        array r(size()), p(size()), Ap(size()), MinvR(size()), x_0(size(), 0);
-        array scalars(5);	// array of variables (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
+        if (d[0]==0) {
+            x = rhs;
+            return;
+        }
 
-        Set_Up_CG(rhs, r, p, MinvR);
+        PE(advance_integrate_matrix_solve_setup);
+        Set_Up_CG();
+        PL();
 
         for (int i = 1; i < 42; ++i){
-
             // Calculate AP
+            PE(advance_integrate_matrix_solve_MV);
             MatrixVectorProduct(p, Ap, false);
+            PL();
 
             // Calculate P^T*AP and store
-            DotProduct(p, Ap, scalars, 2);     // elements placed in scalars[2] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
+            PE(advance_integrate_matrix_solve_VV);
+            scalars[2] = std::inner_product(p.begin(), p.end(), Ap.begin(), value_type(0));
 
             // Calculate R^T*MinvR and store
-            DotProduct(r, MinvR, scalars, 0);    // elements placed in scalars[0] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
+            scalars[0] = std::inner_product(r.begin(), r.end(), MinvR.begin(), value_type(0));
+            PL();
 
-            // Update x and store alpha
-            Update_x(x_0, p, scalars, 3);          // elements placed in scalars[3] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
-
-            // Update R
-            Update_R(r, Ap, scalars);
+            // Update x and r
+            PE(advance_integrate_matrix_solve_update);
+            Update_x_r();
+            PL();
 
             // Calculate new MinvR
+            PE(advance_integrate_matrix_solve_tdma);
             solve(r, MinvR);
+            PL();
 
             // Calculate new residual and store
-            DotProduct(r, MinvR, scalars, 1);    // elements placed in scalars[1] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
+            PE(advance_integrate_matrix_solve_VV);
+            scalars[1] = std::inner_product(r.begin(), r.end(), MinvR.begin(), value_type(0));
+            PL();
 
-            // Check residual threshold and check scalars
-            // print_banner(i, scalars);
-
-            if(sqrt(std::abs(scalars[1])) < 1e-20) {
+            if(sqrt(std::abs(scalars[1])) < 1e-11) {
                 break;
             }
 
             // Update P and compute beta
-            Update_P(p, MinvR, scalars, 4);          // elements placed in scalars[4] (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
+            PE(advance_integrate_matrix_solve_update);
+            Update_P();
+            PL();
         }
         x = x_0;
 

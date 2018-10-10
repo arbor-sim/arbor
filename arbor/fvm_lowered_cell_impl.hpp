@@ -212,10 +212,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         matrix_.assemble(state_->dt_cell, state_->voltage, state_->current_density);
         PL();
 
-        PE(advance_integrate_matrix_solve);
+        //PE(advance_integrate_matrix_solve);
         matrix_.solve();
         memory::copy(matrix_.solution(), state_->voltage);
-        PL();
+        //PL();
 
         // Integrate mechanism state.
 

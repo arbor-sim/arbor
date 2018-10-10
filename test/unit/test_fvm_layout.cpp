@@ -712,7 +712,7 @@ TEST(fvm_layout, gap_junction_coords_2) {
     mc_cell c0;
     std::vector<mc_cell> cells;
 
-    // Make 3 cells
+    // Make 1 cells
     c0.add_soma(2.1);
     c0.add_cable(0, section_kind::dendrite, 0.3, 0.2, 8);
     c0.segment(1)->set_compartments(1);
