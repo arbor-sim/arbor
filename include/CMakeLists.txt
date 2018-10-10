@@ -62,3 +62,5 @@ add_dependencies(arbor-public-headers generate_version_hpp)
 install(DIRECTORY arbor ${CMAKE_CURRENT_BINARY_DIR}/arbor
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     FILES_MATCHING PATTERN "*.hpp")
+
+install(TARGETS arbor-public-headers EXPORT arbor-targets)
