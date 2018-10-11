@@ -128,6 +128,11 @@ add_subdirectory(aux)
 
 set(arbor_export_dependencies)
 
+# Keep track of which 'components' of arbor are included (this is
+# currently just captures MPI support)
+
+set(arbor_supported_components)
+
 # Target microarchitecture for building arbor libraries, tests and examples
 #---------------------------------------------------------------------------
 if(ARB_ARCH)
@@ -152,7 +157,7 @@ find_package(Threads REQUIRED)
 find_threads_cuda_fix()
 target_link_libraries(arbor-private-deps INTERFACE Threads::Threads)
 
-list(APPEND arbor_export_dependencies "Threads\;REQUIRED")
+list(APPEND arbor_export_dependencies "Threads")
 
 # MPI support
 #-------------------
@@ -173,7 +178,8 @@ if(ARB_WITH_MPI)
     target_link_libraries(arbor-public-deps INTERFACE mpi-wrap)
     install(TARGETS mpi-wrap EXPORT arbor-targets)
 
-    list(APPEND arbor_export_dependencies "MPI\;REQUIRED\;CXX")
+    list(APPEND arbor_export_dependencies "MPI\;COMPONENTS\;CXX")
+    list(APPEND arbor_supported_components "MPI")
 endif()
 
 # CUDA support
@@ -202,7 +208,7 @@ if(Unwind_FOUND)
     target_link_libraries(arbor-private-deps INTERFACE Unwind::unwind)
     target_compile_definitions(arbor-private-deps ARB_WITH_UNWIND)
 
-    list(APPEND arbor_export_dependencies "Unwind\;REQUIRED")
+    list(APPEND arbor_export_dependencies "Unwind")
 endif()
 
 # Build and use modcc unless explicit path given
@@ -313,7 +319,8 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion)
 
 # Template file will use contents of arbor_export_dependencies to include the
-# required `find_dependency` statements. 
+# required `find_dependency` statements, and arbor_supported_components will
+# be used to check feature support.
 
 configure_file(
     cmake/arbor-config.cmake.in
