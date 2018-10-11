@@ -138,6 +138,7 @@ public:
         parents_(other.parents_),
         stimuli_(other.stimuli_),
         synapses_(other.synapses_),
+        gap_junctions_(other.gap_junctions_),
         spike_detectors_(other.spike_detectors_)
     {
         // unique_ptr's cannot be copy constructed, do a manual assignment
