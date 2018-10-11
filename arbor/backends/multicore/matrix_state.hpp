@@ -26,7 +26,6 @@ public:
     array d;     // [μS]
     array u;     // [μS]
     array rhs;   // [nA]
-    array x;     // solution
 
     array cv_capacitance;      // [pF]
     array face_conductance;    // [μS]
@@ -37,7 +36,7 @@ public:
 
     std::vector<gap_junction> gj;
 
-    array r, p, Ap, MinvR, x_0;
+    array r, p, Ap, MinvR;
     array scalars;	// array of variables (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
 
     matrix_state() = default;
@@ -50,12 +49,12 @@ public:
                  const std::vector<gap_junction>& gj_coords):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
-        d(size(), 0), u(size(), 0), rhs(size()), x(size(), 0),
+        d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
         cv_area(area.begin(), area.end()), gj(gj_coords),
         r(size()), p(size()), Ap(size()),
-        MinvR(size()), x_0(size(), 0), scalars(3)
+        MinvR(size()), scalars(3)
     {
         arb_assert(cap.size() == size());
         arb_assert(cond.size() == size());
@@ -75,7 +74,7 @@ public:
     const_view solution() const {
         // In this back end the solution is a simple view of the rhs, which
         // contains the solution after the matrix_solve is performed.
-        return x;
+        return rhs;
     }
 
 
@@ -111,7 +110,19 @@ public:
         }
     }
 
-    void solve_tdma() {
+    void solve() {
+        if (gj.size()) {
+            solve_cg();
+        }
+        else {
+            solve_tdma(rhs);
+        }
+    }
+
+
+
+private:
+    void solve_tdma(array& res) {
         // loop over submatrices
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
             auto first = cv_span.first;
@@ -124,138 +135,78 @@ public:
                 for(auto i=last-1; i>first; --i) {
                     auto factor = u[i] / t[i];
                     t[parent_index[i]] -= factor * u[i];
-                    x[parent_index[i]] -= factor * x[i];
+                    res[parent_index[i]] -= factor * res[i];
                 }
-                x[first] /= t[first];
+                res[first] /= t[first];
 
                 // forward sweep
                 for(auto i=first+1; i<last; ++i) {
-                    x[i] -= u[i] * x[parent_index[i]];
-                    x[i] /= t[i];
+                    res[i] -= u[i] * res[parent_index[i]];
+                    res[i] /= t[i];
                 }
             }
         }
     }
 
-    void solve(const array& b, array& c) {
-        x = b;
-        solve_tdma();
-        c = x;
-    }
-
-    void solve() {
-        x = rhs;
-        solve_tdma();
-    }
-
-    void MatrixVectorProduct(const array& b, array& c, bool precond) {
-        c[0] = d[0] *b[0];
-        for (unsigned i = 1; i < size(); i++) {
-            unsigned p = parent_index[i];
-            c[i] = d[i] * b[i] +  u[i] * b[p];
-            c[p] += u[i] * b[i];
-        }
-        if(!precond) {
-            for (auto g: gj) {
-                c[g.loc.first] += g.weight * b[g.loc.second];
-            }
-        }
-    };
-
-    void Set_Up_CG() {
-
-        // Reset result vector
-        std::fill(x_0.begin(), x_0.end(), 0);
-
-        // Set residual = rhs
-        r = rhs;
-
-        // Solve Mx = R; store in MinvR, M being the preconditioning matrix
-        solve(r, MinvR);
-
-        // Set p = MinvR
-        p = MinvR;
-    };
-
-    void Update_x_r(){
-        float alpha = scalars[0]/scalars[2];
-        for (unsigned i = 0; i < x_0.size(); ++i) {
-            x_0[i] +=  alpha * p[i];
-            r[i] -= alpha * Ap[i];
-        }
-    };
-
-    void Update_P(){
-        float beta = scalars[1]/scalars[0];
-        for (unsigned i = 0; i < p.size() ; ++i) {
-            p[i] = MinvR[i] + beta * p[i];
-        }
-    };
-
-    void print_banner(int i, array scalars) {
-        std::cout << "Iteration " << i << ": " << "RTR = " <<  scalars[0]
-                  << ", RTR_new = " << scalars[1]
-                  << ", pTAp = " << scalars[2]
-                  << ", alpha = " << scalars[0]/scalars[2]
-                  << ", beta = " << scalars[1]/scalars[2]
-                  << std::endl;
-    }
-
-
     void solve_cg() {
-        if (d[0]==0) {
-            x = rhs;
-            return;
-        }
+        // Initialize
+        r = rhs;
+        MinvR = r;
+        solve_tdma(MinvR);
+        p = MinvR;
+        std::fill(rhs.begin(), rhs.end(), 0);
 
-        PE(advance_integrate_matrix_solve_setup);
-        Set_Up_CG();
-        PL();
 
+        // Iterate
         for (int i = 1; i < 42; ++i){
             // Calculate AP
-            PE(advance_integrate_matrix_solve_MV);
-            MatrixVectorProduct(p, Ap, false);
-            PL();
+            auto matrix_vector_prod = [this]() {
+                Ap[0] = d[0] *p[0];
+                for (unsigned i = 1; i < size(); i++) {
+                    unsigned pi = parent_index[i];
+                    Ap[i] = d[i] * p[i] +  u[i] * p[pi];
+                    Ap[pi] += u[i] * p[i];
+                }
+                for (auto g: gj) {
+                    Ap[g.loc.first] += g.weight * p[g.loc.second];
+                }
+            };
+
+            matrix_vector_prod();
 
             // Calculate P^T*AP and store
-            PE(advance_integrate_matrix_solve_VV);
             scalars[2] = std::inner_product(p.begin(), p.end(), Ap.begin(), value_type(0));
 
             // Calculate R^T*MinvR and store
             scalars[0] = std::inner_product(r.begin(), r.end(), MinvR.begin(), value_type(0));
-            PL();
 
             // Update x and r
-            PE(advance_integrate_matrix_solve_update);
-            Update_x_r();
-            PL();
+            float alpha = scalars[0]/scalars[2];
+            for (unsigned i = 0; i < rhs.size(); ++i) {
+                rhs[i] +=  alpha * p[i];
+                r[i] -= alpha * Ap[i];
+            }
 
             // Calculate new MinvR
-            PE(advance_integrate_matrix_solve_tdma);
-            solve(r, MinvR);
-            PL();
+            MinvR = r;
+            solve_tdma(MinvR);
 
             // Calculate new residual and store
-            PE(advance_integrate_matrix_solve_VV);
             scalars[1] = std::inner_product(r.begin(), r.end(), MinvR.begin(), value_type(0));
-            PL();
 
             if(sqrt(std::abs(scalars[1])) < 1e-11) {
                 break;
             }
 
             // Update P and compute beta
-            PE(advance_integrate_matrix_solve_update);
-            Update_P();
-            PL();
+            float beta = scalars[1]/scalars[0];
+            for (unsigned i = 0; i < p.size() ; ++i) {
+                p[i] = MinvR[i] + beta * p[i];
+            }
         }
-        x = x_0;
 
         return;
     };
-
-private:
 
     std::size_t size() const {
         return parent_index.size();

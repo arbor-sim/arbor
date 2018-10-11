@@ -63,7 +63,7 @@ public:
 
     /// Solve the linear system.
     void solve() {
-        state_.solve_cg();
+        state_.solve();
     }
 
     /// Assemble the matrix for given dt
