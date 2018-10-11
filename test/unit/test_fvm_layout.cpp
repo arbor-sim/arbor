@@ -753,7 +753,7 @@ TEST(fvm_layout, gap_junction_coords_2) {
     }
 }
 
-TEST(fvm_layout, gap_junction_coords_4) {
+TEST(fvm_layout, gap_junction_coords_3) {
     using pair = std::pair<int, int>;
 
     mc_cell c0, c1;
@@ -783,7 +783,7 @@ TEST(fvm_layout, gap_junction_coords_4) {
     std::vector<pair> expected_loc = {{4, 1}, {1, 4}};
     std::vector<double> expected_weight = {0.3, 0.3};
 
-    for (unsigned i = i; i < GJ.size(); i++) {
+    for (unsigned i = 0; i < GJ.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ[i].loc);
         EXPECT_EQ(expected_weight[i], GJ[i].weight);
     }
@@ -814,7 +814,7 @@ TEST(fvm_layout, gap_junction_coords_4) {
     }
 }
 
-TEST(fvm_layout, gap_junction_coords_3) {
+TEST(fvm_layout, gap_junction_coords_4) {
     using pair = std::pair<int, int>;
 
     mc_cell c0, c1, c2;
@@ -873,7 +873,7 @@ TEST(fvm_layout, gap_junction_coords_3) {
     std::vector<pair> expected_loc = {{14,4}, {4,11}, {2,21}, {4,14}, {11,4} ,{8,28}, {24,6}, {21,2}, {28,8}, {6,24}};
     std::vector<double> expected_weight = {0.03, 0.04, 0.01, 0.03, 0.04, 0.02, 0.01, 0.01, 0.02, 0.01};
 
-    for (unsigned i = i; i < GJ.size(); i++) {
+    for (unsigned i = 0; i < GJ.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ[i].loc);
         EXPECT_EQ(expected_weight[i], GJ[i].weight);
     }
