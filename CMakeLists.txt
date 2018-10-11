@@ -59,6 +59,7 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(GitSubmodule) # required for check_git_submodule
 include(ErrorTarget)  # reguired for add_error_target
 include(FindThreadsCudaFix) # bug work around
+include(FindPythonModule) # find location of python module
 
 # Set release as the default build type (CMake default is debug.)
 
@@ -149,6 +150,11 @@ if(ARB_WITH_PYTHON)
     # Required to link the dynamic libraries for python modules.
     # Effectively adds '-fpic' flag to CXX_FLAGS.
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+    find_python_module(mpi4py)
+    if (HAVE_MPI4PY)
+      include_directories("${PY_MPI4PY}/include")
+    endif()
 endif()
 
 # Threading model
