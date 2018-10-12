@@ -1,8 +1,13 @@
 # 3.8 requirement for CUDA language support.
 cmake_minimum_required(VERSION 3.8)
 
-project(arbor VERSION 0.1)
+file(READ VERSION FULL_VERSION_STRING)
+string(STRIP "${FULL_VERSION_STRING}" FULL_VERSION_STRING)
+string(REGEX MATCH "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?" numeric_version "${FULL_VERSION_STRING}")
+
+project(arbor VERSION ${numeric_version})
 enable_language(CXX)
+
 
 #----------------------------------------------------------
 # Configure-time build options for Arbor:
