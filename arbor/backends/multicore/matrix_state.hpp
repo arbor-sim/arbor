@@ -26,6 +26,7 @@ public:
     array d;     // [μS]
     array u;     // [μS]
     array rhs;   // [nA]
+    array v;     // [nA]
 
     array cv_capacitance;      // [pF]
     array face_conductance;    // [μS]
@@ -49,7 +50,7 @@ public:
                  const std::vector<gap_junction>& gj_coords):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
-        d(size(), 0), u(size(), 0), rhs(size()),
+        d(size(), 0), u(size(), 0), rhs(size()), v(size(), 0),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
         cv_area(area.begin(), area.end()), gj(gj_coords),
@@ -99,12 +100,14 @@ public:
                     d[i] = gi + invariant_d[i];
                     // convert current to units nA
                     rhs[i] = gi*voltage[i] - 1e-3*cv_area[i]*current[i];
+                    v[i] = voltage[i];
                 }
             }
             else {
                 for (auto i: util::make_span(cell_cv_part[m])) {
                     d[i] = 0;
                     rhs[i] = voltage[i];
+                    v[i] = voltage[i];
                 }
             }
         }
@@ -150,29 +153,40 @@ private:
 
     void solve_cg() {
         // Initialize
+        if(d[0] == 0) {
+            return;
+        }
+
+        auto matrix_vector_prod = [this](const array& v_in, array& v_out) {
+            v_out[0] = d[0] *v_in[0];
+            for (unsigned i = 1; i < size(); i++) {
+                unsigned pi = parent_index[i];
+                v_out[i] = d[i] * v_in[i] +  u[i] * v_in[pi];
+                v_out[pi] += u[i] * v_in[i];
+            }
+            for (auto g: gj) {
+                v_out[g.loc.first] += g.weight * v_in[g.loc.second];
+            }
+        };
+
         r = rhs;
+
+        matrix_vector_prod(v, rhs);
+
+        for (unsigned i = 0; i < rhs.size(); ++i) {
+            r[i] -= rhs[i];
+        }
+
         MinvR = r;
         solve_tdma(MinvR);
-        p = MinvR;
-        std::fill(rhs.begin(), rhs.end(), 0);
 
+        p = MinvR;
+        rhs = v;
 
         // Iterate
-        for (int i = 1; i < 42; ++i){
+        for (int j = 1; j < 42; ++j){
             // Calculate AP
-            auto matrix_vector_prod = [this]() {
-                Ap[0] = d[0] *p[0];
-                for (unsigned i = 1; i < size(); i++) {
-                    unsigned pi = parent_index[i];
-                    Ap[i] = d[i] * p[i] +  u[i] * p[pi];
-                    Ap[pi] += u[i] * p[i];
-                }
-                for (auto g: gj) {
-                    Ap[g.loc.first] += g.weight * p[g.loc.second];
-                }
-            };
-
-            matrix_vector_prod();
+            matrix_vector_prod(p, Ap);
 
             // Calculate P^T*AP and store
             scalars[2] = std::inner_product(p.begin(), p.end(), Ap.begin(), value_type(0));
@@ -204,7 +218,6 @@ private:
                 p[i] = MinvR[i] + beta * p[i];
             }
         }
-
         return;
     };
 
