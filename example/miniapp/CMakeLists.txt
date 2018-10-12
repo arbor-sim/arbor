@@ -7,4 +7,4 @@ add_executable(miniapp EXCLUDE_FROM_ALL
 )
 add_dependencies(examples miniapp)
 
-target_link_libraries(miniapp PRIVATE arbor arbor-aux ext-tclap ext-json)
+target_link_libraries(miniapp PRIVATE arbor arbor-sup ext-tclap ext-json)

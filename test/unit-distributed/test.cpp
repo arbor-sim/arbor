@@ -7,10 +7,10 @@
 
 #include <arbor/context.hpp>
 
-#include <aux/ioutil.hpp>
-#include <aux/tinyopt.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/tinyopt.hpp>
 #ifdef TEST_MPI
-#include <aux/with_mpi.hpp>
+#include <sup/with_mpi.hpp>
 #endif
 
 #include "distributed_context.hpp"
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     alloc.gpu_id = -1;
 
 #ifdef TEST_MPI
-    aux::with_mpi guard(argc, argv, false);
+    sup::with_mpi guard(argc, argv, false);
     g_context = arb::make_context(alloc, MPI_COMM_WORLD);
 #elif defined(TEST_LOCAL)
     g_context = arb::make_context(alloc);

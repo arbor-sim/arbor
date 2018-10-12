@@ -123,10 +123,10 @@ install(TARGETS arbor-public-deps EXPORT arbor-targets)
 
 add_subdirectory(ext)
 
-# Auxilary/helper utiliies in `aux` are common across test executables
-# and examples. Creates interface library `arbor-aux`.
+# Support utiliies in `sup` are common across test executables
+# and examples. Creates interface library `arbor-sup`.
 
-add_subdirectory(aux)
+add_subdirectory(sup)
 
 # Keep track of packages we need to add to the generated CMake config
 # file for arbor.

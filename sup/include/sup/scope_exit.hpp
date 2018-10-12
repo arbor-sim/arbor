@@ -5,7 +5,7 @@
 
 // Convenience class for RAII control of resources.
 
-namespace aux {
+namespace sup {
 
 // `scope_exit` guard object will call provided functional object
 // on destruction. The provided functional object must be nothrow
@@ -47,4 +47,4 @@ scope_exit<std::decay_t<F>> on_scope_exit(F&& f) {
     return scope_exit<std::decay_t<F>>(std::forward<F>(f));
 }
 
-} // namespace aux
+} // namespace sup
