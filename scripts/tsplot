@@ -1,5 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #coding: utf-8
+
+from __future__ import print_function
 
 import argparse
 import json
@@ -39,7 +41,6 @@ def parse_clargs():
     P.add_argument('inputs', metavar='FILE', nargs='+',
                    help='time series data in JSON format')
     P.add_argument('-A', '--abscissa', metavar='AXIS', dest='axis',
-                   type=unicode,
                    help='use values from AXIS instead of \'time\' as abscissa')
     P.add_argument('-t', '--trange', metavar='RANGE', dest='trange',
                    type=parse_range_spec,
@@ -226,7 +227,9 @@ def read_json_timeseries(j, axis='time', select=[]):
     for key in jdata.keys():
         if key==axis: continue
 
-        meta = dict(j.items() + {'label': key, 'data': None, 'units': units(key)}.items())
+        meta = j.copy()
+        meta.update({'label': key, 'data': None, 'units': units(key)})
+
         del meta['data']
 
         if not select or any([all([run_select(s, meta) for s in term]) for term in select]):
@@ -450,11 +453,11 @@ for filename in args.inputs:
 
 if args.list:
     for ts in tss:
-        print 'name:', ts.meta['name']
-        print 'label:', ts.meta['label']
+        print('name:', ts.meta['name'])
+        print('label:', ts.meta['label'])
         for k in [x for x in sorted(ts.meta.keys()) if x not in ['name', 'label']]:
-            print k+':', ts.meta[k]
-        print
+            print(k+':', ts.meta[k])
+        print()
 
 else:
     if args.trange:
