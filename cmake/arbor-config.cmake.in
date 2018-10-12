@@ -6,4 +6,12 @@ endforeach()
 
 include("${CMAKE_CURRENT_LIST_DIR}/arbor-targets.cmake")
 
+set(_supported_components @arbor_supported_components@)
+
+foreach(component ${arbor_FIND_COMPONENTS})
+    if(NOT "${component}" IN_LIST _supported_components)
+        set(arbor_FOUND FALSE)
+        set(arbor_NOT_FOUND_MESSAGE "Unsupported component: ${component}")
+    endif()
+endforeach()
 
