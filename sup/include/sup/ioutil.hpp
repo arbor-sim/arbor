@@ -14,9 +14,9 @@
 #include <iostream>
 #include <fstream>
 
-#include <aux/path.hpp>
+#include <sup/path.hpp>
 
-namespace aux {
+namespace sup {
 
 template <typename charT, typename traitsT = std::char_traits<charT> >
 class basic_null_streambuf: public std::basic_streambuf<charT, traitsT> {
@@ -87,12 +87,12 @@ private:
     bool mask_;
 };
 
-std::fstream open_or_throw(const aux::path& p, std::ios_base::openmode, bool exclusive);
+std::fstream open_or_throw(const sup::path& p, std::ios_base::openmode, bool exclusive);
 
-inline std::fstream open_or_throw(const aux::path& p, bool exclusive) {
+inline std::fstream open_or_throw(const sup::path& p, bool exclusive) {
     using std::ios_base;
     return open_or_throw(p, ios_base::in|ios_base::out, exclusive);
 }
 
-} // namespace aux
+} // namespace sup
 

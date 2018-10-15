@@ -17,7 +17,7 @@
 #include <string>
 #include <utility>
 
-namespace aux {
+namespace sup {
 
 // Stream-writing strsub(...):
 
@@ -63,4 +63,4 @@ std::string strsub(const char* templ, Args&&... args) {
     return strsub('%', templ, std::forward<Args>(args)...);
 }
 
-} // namespace aux
+} // namespace sup

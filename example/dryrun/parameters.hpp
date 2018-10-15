@@ -7,7 +7,7 @@
 
 #include <arbor/mc_cell.hpp>
 
-#include <aux/json_params.hpp>
+#include <sup/json_params.hpp>
 
 // Parameters used to generate the random cell morphologies.
 struct cell_parameters {
@@ -37,7 +37,7 @@ struct run_params {
 };
 
 run_params read_options(int argc, char** argv) {
-    using aux::param_from_json;
+    using sup::param_from_json;
 
     run_params params;
     if (argc<2) {
