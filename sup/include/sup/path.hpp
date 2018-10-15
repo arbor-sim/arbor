@@ -24,7 +24,7 @@
 #include <utility>
 #include <vector>
 
-namespace aux {
+namespace sup {
 
 class posix_path {
 public:
@@ -354,7 +354,7 @@ inline file_status symlink_status(const path& p, std::error_code& ec) {
 
 inline file_status status(const path& p) {
     std::error_code ec;
-    auto r = ::aux::posix::status(p, ec);
+    auto r = ::sup::posix::status(p, ec);
     if (ec) {
         throw filesystem_error("status()", p, ec);
     }
@@ -409,5 +409,5 @@ inline bool exists(const path& p, std::error_code& ec) {
     return exists(status(p, ec));
 }
 
-} // namespace aux
+} // namespace sup
 

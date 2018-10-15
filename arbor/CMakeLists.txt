@@ -80,8 +80,15 @@ endif()
 # and arbor unit tests. Private headers are also used for the other binaries
 # until the process of splitting our private and public headers is complete.
 
+# Because we need to add this target to the EXPORT set, and it needs to be
+# installed (despite being private to arbor), we have to qualify the include
+# directory with a build-time only generator expression.
+
 add_library(arbor-private-headers INTERFACE)
-target_include_directories(arbor-private-headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(arbor-private-headers INTERFACE
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>")
+
+install(TARGETS arbor-private-headers EXPORT arbor-targets)
 
 # Mechanisms, generated from .mod files; sets arbor_mechanism_sources
 # variable, build_all_mods target. Note: CMake source file properties are
@@ -97,5 +104,5 @@ add_dependencies(arbor build_all_mods)
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
-install(TARGETS arbor ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 

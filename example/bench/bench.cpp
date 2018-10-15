@@ -18,10 +18,10 @@
 #include <arbor/version.hpp>
 
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
 #ifdef ARB_MPI_ENABLED
-#include <aux/with_mpi.hpp>
+#include <sup/with_mpi.hpp>
 #endif
 
 #include "parameters.hpp"
@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 
     try {
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
+        sup::with_mpi guard(argc, argv, false);
         auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
             int rank = 0;
@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
         profile::profiler_initialize(context);
 #endif
 
-        std::cout << aux::mask_stream(is_root);
+        std::cout << sup::mask_stream(is_root);
 
         bench_params params = read_options(argc, argv);
 
@@ -81,7 +81,7 @@ int main(int argc, char** argv) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << aux::to_json(report) << "\n";
+            fid << std::setw(1) << sup::to_json(report) << "\n";
         }
 
         // output profile and diagnostic feedback
