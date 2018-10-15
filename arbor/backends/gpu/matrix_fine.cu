@@ -124,6 +124,12 @@ void solve_matrix_fine(
 
             // Zero diagonal term implies dt==0; just leave rhs (for whole matrix)
             // alone in that case.
+
+            // Each cell has a different `dt`, because we choose time step size
+            // according to when the next event is arriving at a cell. So, some
+            // cells require more time steps than others, but we have to solve
+            // all the matrices at the same time. When a cell finishes, we put a
+            // `0` on the diagonal to mark that it should not be solved for.
             if (d[pos]!=0) {
 
                 // each branch perform substitution

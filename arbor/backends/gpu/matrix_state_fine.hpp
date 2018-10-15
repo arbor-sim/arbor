@@ -205,7 +205,7 @@ public:
     managed_vector<unsigned> levels_end;
 
     // permutation from front end storage to packed storage
-    //      packed[perm[i]] = flat[i]
+    //      `solver_format[perm[i]] = external_format[i]`
     iarray perm;
 
     // takes a vector of trees and the corresponding branch start list
