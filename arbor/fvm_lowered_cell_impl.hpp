@@ -214,6 +214,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
+
+        for(unsigned i = 0; i < matrix_.solution().size(); i++) {
+            std::cout << matrix_.solution()[i] << " ";
+        }
+        std::cout << "\n";
+
         memory::copy(matrix_.solution(), state_->voltage);
         PL();
 

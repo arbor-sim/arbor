@@ -160,3 +160,77 @@ TEST(probe, fvm_lowered_cell_gj) {
     EXPECT_DOUBLE_EQ(*p_l, *p_r);
 }
 
+TEST(probe, fvm_lowered_cell_gj2) {
+    execution_context context;
+    std::vector<mc_cell> cells;
+
+    mc_cell l = make_cell_ball_and_stick(false);
+    mc_cell c = make_cell_ball_and_stick(false);
+
+    l.add_gap_junction(0, {1, 1}, 1, {1,1}, 0.0029);
+    c.add_gap_junction(1, {1, 1}, 0, {1,1}, 0.0029);
+
+    i_clamp stim(0, 1, 0.3);
+    c.add_stimulus({0, 1}, stim);
+
+    cells.push_back(std::move(l));
+    cells.push_back(std::move(c));
+
+    cable1d_recipe rec(cells);
+
+    segment_location loc0{1, 1};
+
+    rec.add_probe(0, 10, cell_probe_address{loc0, cell_probe_address::membrane_voltage});
+
+    std::vector<target_handle> targets;
+    probe_association_map<probe_handle> probe_map;
+
+    fvm_cell lcell(context);
+    lcell.initialize({0, 1}, rec, targets, probe_map);
+
+    EXPECT_EQ(1u, rec.num_probes(0));
+    EXPECT_EQ(1u, probe_map.size());
+
+    EXPECT_EQ(10, probe_map.at({0, 0}).tag);
+
+    auto& state = *(lcell.*fvm_state_ptr).get();
+    auto& voltage = state.voltage;
+
+    lcell.integrate(10, 0.025, {}, {});
+}
+
+TEST(probe, fvm_lowered_cell_gj3) {
+    execution_context context;
+    std::vector<mc_cell> cells;
+
+    mc_cell c0 = make_cell_ball_and_stick(false);
+    mc_cell c1 = make_cell_ball_and_stick(false);
+    mc_cell c2 = make_cell_ball_and_stick(false);
+
+    // Three gap junctions
+    c0.add_gap_junction(0, {0, 1}, 1, {1, 1}, 0.003);
+    c1.add_gap_junction(1, {1, 1}, 0, {0, 1}, 0.003);
+
+    c1.add_gap_junction(1, {0, 1}, 2, {1, 1}, 0.003);
+    c2.add_gap_junction(2, {1, 1}, 1, {0, 1}, 0.003);
+
+    c2.add_gap_junction(2, {0, 1}, 0, {1, 1}, 0.003);
+    c0.add_gap_junction(0, {1, 1}, 2, {0, 1}, 0.003);
+
+    i_clamp stim(0, 1, 0.3);
+    c0.add_stimulus({0, 1}, stim);
+
+    cells.push_back(std::move(c0));
+    cells.push_back(std::move(c1));
+    cells.push_back(std::move(c2));
+
+    cable1d_recipe rec(cells);
+
+    std::vector<target_handle> targets;
+    probe_association_map<probe_handle> probe_map;
+
+    fvm_cell lcell(context);
+    lcell.initialize({0, 1, 2}, rec, targets, probe_map);
+
+    lcell.integrate(40, 0.05, {}, {});
+}
