@@ -114,12 +114,13 @@ public:
     }
 
     void solve() {
-        if (gj.size()) {
+        /*if (gj.size()) {
             solve_cg();
         }
         else {
             solve_tdma(rhs);
-        }
+        }*/
+        solve_tdma(rhs);
     }
 
 

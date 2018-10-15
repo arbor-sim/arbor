@@ -89,6 +89,9 @@ private:
     value_type initial_voltage_ = NAN;
     value_type temperature_ = NAN;
     std::vector<mechanism_ptr> mechanisms_;
+    std::vector<gap_junction> gap_junctions_;
+    std::vector<value_type> cv_area_;
+    int count = 0;
 
     // Non-physical voltage check threshold, 0 => no check.
     value_type check_voltage_mV = 0;
@@ -174,6 +177,7 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // complete fvm state into shared state object.
 
     while (remaining_steps) {
+        count++;
         // Deliver events and accumulate mechanism current contributions.
 
         PE(advance_integrate_events);
@@ -187,6 +191,18 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
             m->deliver_events();
             m->nrn_current();
         }
+
+        // Add current contribution from gap_junctions
+
+        for (auto gj: gap_junctions_) {
+            auto curr = gj.weight *
+                        (state_->voltage[gj.loc.second] - state_->voltage[gj.loc.first]); // nA
+
+            curr *= (1e3 / cv_area_[gj.loc.first]); // A/m2
+
+            state_->current_density[gj.loc.first] -= curr;
+        }
+
 
         PE(advance_integrate_events);
         state_->deliverable_events.drop_marked_events();
@@ -215,10 +231,12 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
 
-        for(unsigned i = 0; i < matrix_.solution().size(); i++) {
-            std::cout << matrix_.solution()[i] << " ";
+        if(count%10 == 0) {
+            for (unsigned i = 0; i < matrix_.solution().size(); i++) {
+                std::cout << matrix_.solution()[i] << " ";
+            }
+            std::cout << "\n";
         }
-        std::cout << "\n";
 
         memory::copy(matrix_.solution(), state_->voltage);
         PL();
@@ -354,9 +372,10 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     // Get list of gap junctions
 
-    auto gj_coords = fvm_gap_junctions(cells, D);
+    gap_junctions_ = fvm_gap_junctions(cells, D);
+    cv_area_ = D.cv_area;
 
-    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, gj_coords);
+    matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area, gap_junctions_);
 
     sample_events_ = sample_event_stream(ncell);
 

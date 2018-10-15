@@ -167,8 +167,8 @@ TEST(probe, fvm_lowered_cell_gj2) {
     mc_cell l = make_cell_ball_and_stick(false);
     mc_cell c = make_cell_ball_and_stick(false);
 
-    l.add_gap_junction(0, {1, 1}, 1, {1,1}, 0.0029);
-    c.add_gap_junction(1, {1, 1}, 0, {1,1}, 0.0029);
+    l.add_gap_junction(0, {1, 1}, 1, {1,1}, 0.007);
+    c.add_gap_junction(1, {1, 1}, 0, {1,1}, 0.007);
 
     i_clamp stim(0, 1, 0.3);
     c.add_stimulus({0, 1}, stim);
