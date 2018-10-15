@@ -231,8 +231,10 @@ public:
                 continue;
             };
             max_length = max_length / count;
+            // avoid ininite loops
             if (max_length <= 1) max_length = 1;
-
+            // we don't want too small segments
+            if (max_length <= 10) max_length = 10;
 
             for (auto t_ix: make_span(trees.size())) {
                 // ... cut all trees on this level
