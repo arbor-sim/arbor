@@ -5,7 +5,7 @@ include("LVAChannels.jl")
 using JSON
 using Unitful
 using Unitful.DefaultSymbols
-using LVAChannels
+using Main.LVAChannels
 
 scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 

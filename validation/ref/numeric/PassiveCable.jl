@@ -1,5 +1,7 @@
 module PassiveCable
 
+using Unitful: uconvert, NoUnits
+
 export cable_normalize, cable, rallpack1
 
 # Compute solution g(x, t) to
@@ -94,7 +96,7 @@ function cable(x, t, L, lambda, tau, r, V, I; tol=1e-8)
         return V
     else
         tol_n = abs(tol/scale)
-        return scale*cable_normalized(Float64(x/lambda), Float64(t/tau), Float64(L/lambda), tol=tol_n) + V
+        return scale*cable_normalized(uconvert(NoUnits, x/lambda), uconvert(NoUnits, t/tau), uconvert(NoUnits, L/lambda), tol=tol_n) + V
     end
 end
 

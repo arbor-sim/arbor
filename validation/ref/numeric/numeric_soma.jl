@@ -5,7 +5,7 @@ include("HHChannels.jl")
 using JSON
 using Unitful
 using Unitful.DefaultSymbols
-using HHChannels
+using Main.HHChannels
 
 scale(quantity, unit) = uconvert(NoUnits, quantity/unit)
 
