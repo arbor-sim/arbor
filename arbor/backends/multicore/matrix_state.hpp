@@ -70,6 +70,9 @@ public:
             invariant_d[i] += gij;
             invariant_d[p[i]] += gij;
         }
+        /*for (auto g: gj_coords) {
+            invariant_d[g.loc.first] += g.weight;
+        }*/
     }
 
     const_view solution() const {
@@ -166,7 +169,7 @@ private:
                 v_out[pi] += u[i] * v_in[i];
             }
             for (auto g: gj) {
-                v_out[g.loc.first] += g.weight * v_in[g.loc.second];
+                v_out[g.loc.first] -= g.weight * v_in[g.loc.second];
             }
         };
 

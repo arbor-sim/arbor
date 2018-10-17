@@ -74,7 +74,7 @@ std::vector<std::vector<double>> matrix_to_vec(matrix<arb::multicore::backend>& 
         v[i][n] = M.state_.rhs[i];
     }
     for (auto g: M.state_.gj) {
-        v[g.loc.first][g.loc.second] = g.weight;
+        v[g.loc.first][g.loc.second] = -g.weight;
     }
     return v;
 }
