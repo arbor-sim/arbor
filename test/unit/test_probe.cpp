@@ -265,7 +265,7 @@ TEST(probe, fvm_lowered_cell_gj3) {
     fvm_cell lcell(context);
     lcell.initialize({0, 1, 2}, rec, targets, probe_map);
 
-    lcell.integrate(40, 0.05, {}, {});
+    lcell.integrate(40, 0.025, {}, {});
 }
 
 TEST(probe, fvm_lowered_cell_gj3_1) {
