@@ -21,7 +21,10 @@ set(unit-modcc_sources
     expr_expand.cpp
 )
 
-add_executable(unit-modcc ${unit-modcc_sources})
+add_executable(unit-modcc EXCLUDE_FROM_ALL ${unit-modcc_sources})
+if(NOT ARB_WITH_EXTERNAL_MODCC)
+    add_dependencies(tests unit-modcc)
+endif()
+
 target_link_libraries(unit-modcc PRIVATE libmodcc gtest)
 target_compile_definitions(unit-modcc PRIVATE "DATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
-set_target_properties(unit-modcc PROPERTIES EXCLUDE_FROM_ALL ${ARB_WITH_EXTERNAL_MODCC})

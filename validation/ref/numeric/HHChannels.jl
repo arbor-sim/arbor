@@ -6,7 +6,7 @@ using Sundials
 using Unitful
 using Unitful.DefaultSymbols
 
-immutable HHParam
+struct HHParam
     c_m       # membrane spacific capacitance
     gnabar    # Na channel cross-membrane conductivity
     gkbar     # K channel cross-membrane conductivity
@@ -47,7 +47,7 @@ immutable HHParam
 
 end
 
-immutable Stim
+struct Stim
     t0        # start time of stimulus
     t1        # stop time of stimulus
     i_e       # stimulus current density
@@ -144,7 +144,6 @@ function run_hh(t_end; v0=-65mV, stim=Stim(), param=HHParam(), sample_dt=0.01ms)
 
         ydot[1], ydot[2], ydot[3], ydot[4] =
             vdot*t_scale/v_scale, mdot*t_scale, hdot*t_scale, ndot*t_scale
-#            Float64(vdot*t_scale/v_scale), Float64(mdot*t_scale), Float64(hdot*t_scale), Float64(ndot*t_scale)
 
         return Sundials.CV_SUCCESS
     end

@@ -16,10 +16,10 @@ extern "C" {
 
 #include <cerrno>
 
-#include <aux/path.hpp>
-#include <aux/scope_exit.hpp>
+#include <sup/path.hpp>
+#include <sup/scope_exit.hpp>
 
-namespace aux {
+namespace sup {
 
 std::vector<path> glob(const std::string& pattern) {
     std::vector<path> paths;
@@ -43,5 +43,5 @@ std::vector<path> glob(const std::string& pattern) {
     return paths;
 }
 
-} // namespace aux
+} // namespace sup
 

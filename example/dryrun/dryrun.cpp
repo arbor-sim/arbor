@@ -22,14 +22,14 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
 
 #include "parameters.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
-#include <aux/with_mpi.hpp>
+#include <sup/with_mpi.hpp>
 #endif
 
 using arb::cell_gid_type;
@@ -189,7 +189,7 @@ struct cell_stats {
 int main(int argc, char** argv) {
     try {
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
+        sup::with_mpi guard(argc, argv, false);
 #endif
         bool root = true;
         auto params = read_options(argc, argv);
@@ -216,7 +216,7 @@ int main(int argc, char** argv) {
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(ctx);
 #endif
-        std::cout << aux::mask_stream(root);
+        std::cout << sup::mask_stream(root);
 
         // Print a banner with information about hardware configuration
         std::cout << "gpu:      " << (has_gpu(ctx)? "yes": "no") << "\n";

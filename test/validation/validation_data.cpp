@@ -7,7 +7,7 @@
 #include <nlohmann/json.hpp>
 
 #include <arbor/simple_sampler.hpp>
-#include <aux/path.hpp>
+#include <sup/path.hpp>
 
 #include "trace_analysis.hpp"
 #include "validation_data.hpp"
@@ -20,7 +20,7 @@ trace_io g_trace_io;
 #define ARB_DATADIR ""
 #endif
 
-aux::path trace_io::find_datadir() {
+sup::path trace_io::find_datadir() {
     // If environment variable is set, use that in preference.
 
     if (const char* env_path = std::getenv("ARB_DATADIR")) {
@@ -39,7 +39,7 @@ aux::path trace_io::find_datadir() {
 
     std::error_code ec;
     for (auto p: paths) {
-        if (aux::is_directory(p, ec)) {
+        if (sup::is_directory(p, ec)) {
             return p;
         }
     }
@@ -97,8 +97,8 @@ static void parse_trace_json(const nlohmann::json& j, std::map<std::string, trac
     }
 }
 
-std::map<std::string, trace_data<double>> trace_io::load_traces(const aux::path& name) {
-    aux::path file  = datadir_/name;
+std::map<std::string, trace_data<double>> trace_io::load_traces(const sup::path& name) {
+    sup::path file  = datadir_/name;
     std::ifstream fid(file);
     if (!fid) {
         throw std::runtime_error("unable to load validation data: "+file.native());

@@ -21,14 +21,14 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
 
 #include "parameters.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
-#include <aux/with_mpi.hpp>
+#include <sup/with_mpi.hpp>
 #endif
 
 using arb::cell_gid_type;
@@ -86,7 +86,7 @@ public:
     std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
         std::vector<arb::event_generator> gens;
         if (!gid) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{{0, 0}, 0.1, 1.0}}));
+            gens.push_back(arb::explicit_generator(arb::pse_vector{{{0, 0}, 1.0, event_weight_}}));
         }
         return gens;
     }
@@ -109,7 +109,7 @@ private:
     cell_size_type num_cells_;
     cell_parameters cell_params_;
     double min_delay_;
-    float event_weight_ = 0.01;
+    float event_weight_ = 0.05;
 };
 
 struct cell_stats {
@@ -160,7 +160,7 @@ int main(int argc, char** argv) {
         bool root = true;
 
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
+        sup::with_mpi guard(argc, argv, false);
         auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
             int rank;
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
         arb::profile::profiler_initialize(context);
 #endif
 
-        std::cout << aux::mask_stream(root);
+        std::cout << sup::mask_stream(root);
 
         // Print a banner with information about hardware configuration
         std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
@@ -340,6 +340,11 @@ arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) 
 
     // Add a synapse to the mid point of the first dendrite.
     cell.add_synapse({1, 0.5}, "expsyn");
+
+    // Add additional synapses that will not be connected to anything.
+    for (unsigned i=1u; i<params.synapses; ++i) {
+        cell.add_synapse({1, 0.5}, "expsyn");
+    }
 
     return cell;
 }

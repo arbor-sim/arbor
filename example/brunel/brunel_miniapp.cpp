@@ -18,13 +18,13 @@
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
-#include <aux/path.hpp>
-#include <aux/spike_emitter.hpp>
-#include <aux/strsub.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
+#include <sup/path.hpp>
+#include <sup/spike_emitter.hpp>
+#include <sup/strsub.hpp>
 #ifdef ARB_MPI_ENABLED
-#include <aux/with_mpi.hpp>
+#include <sup/with_mpi.hpp>
 #include <mpi.h>
 #endif
 
@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
 
     try {
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
+        sup::with_mpi guard(argc, argv, false);
         auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
             MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -197,7 +197,7 @@ int main(int argc, char** argv) {
         auto context = arb::make_context();
 #endif
 
-        std::cout << aux::mask_stream(root);
+        std::cout << sup::mask_stream(root);
         banner(context);
 
         arb::profile::meter_manager meters;
@@ -250,16 +250,16 @@ int main(int argc, char** argv) {
         if (options.spike_file_output) {
             using std::ios_base;
 
-            aux::path p = options.output_path;
-            p /= aux::strsub("%_%.%", options.file_name, rank, options.file_extension);
+            sup::path p = options.output_path;
+            p /= sup::strsub("%_%.%", options.file_name, rank, options.file_extension);
 
             if (options.single_file_per_rank) {
-                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_local_spike_callback(aux::spike_emitter(spike_out));
+                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_local_spike_callback(sup::spike_emitter(spike_out));
             }
             else if (rank==0) {
-                spike_out = aux::open_or_throw(p, ios_base::out, !options.over_write);
-                sim.set_global_spike_callback(aux::spike_emitter(spike_out));
+                spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
+                sim.set_global_spike_callback(sup::spike_emitter(spike_out));
             }
         }
 
@@ -280,12 +280,12 @@ int main(int argc, char** argv) {
             std::ofstream fid;
             fid.exceptions(std::ios_base::badbit | std::ios_base::failbit);
             fid.open("meters.json");
-            fid << std::setw(1) << aux::to_json(report) << "\n";
+            fid << std::setw(1) << sup::to_json(report) << "\n";
         }
     }
     catch (io::usage_error& e) {
         // only print usage/startup errors on master
-        std::cerr << aux::mask_stream(root);
+        std::cerr << sup::mask_stream(root);
         std::cerr << e.what() << "\n";
         return 1;
     }
