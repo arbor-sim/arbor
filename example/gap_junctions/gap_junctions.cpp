@@ -21,14 +21,14 @@
 #include <arbor/recipe.hpp>
 #include <arbor/version.hpp>
 
-#include <aux/ioutil.hpp>
-#include <aux/json_meter.hpp>
+#include <sup/ioutil.hpp>
+#include <sup/json_meter.hpp>
 
 #include "parameters.hpp"
 
 #ifdef ARB_MPI_ENABLED
 #include <mpi.h>
-#include <aux/with_mpi.hpp>
+#include <sup/with_mpi.hpp>
 #endif
 
 using arb::cell_gid_type;
@@ -61,8 +61,8 @@ public:
             }
         }
         for (unsigned i = 0; i < num_cells - 1; i++) {
-            cells[i].add_gap_junction(i, {0, 1}, i+1, {0,1}, 0.0005);
-            cells[i+1].add_gap_junction(i+1, {0, 1}, i, {0,1}, 0.0005);
+            cells[i].add_gap_junction(i, {0, 1}, i+1, {0,1}, 0.0003430471145874217);
+            cells[i+1].add_gap_junction(i+1, {0, 1}, i, {0,1}, 0.0003430471145874217);
         }
     }
 
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
         bool root = true;
 
 #ifdef ARB_MPI_ENABLED
-        aux::with_mpi guard(argc, argv, false);
+        sup::with_mpi guard(argc, argv, false);
         auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
         {
             int rank;
@@ -172,7 +172,7 @@ int main(int argc, char** argv) {
         arb::profile::profiler_initialize(context);
 #endif
 
-        std::cout << aux::mask_stream(root);
+        std::cout << sup::mask_stream(root);
 
         // Print a banner with information about hardware configuration
         std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
