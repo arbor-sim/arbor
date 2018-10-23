@@ -2,9 +2,9 @@
 #include <iostream>
 
 #include <arbor/spike.hpp>
-#include <aux/spike_emitter.hpp>
+#include <sup/spike_emitter.hpp>
 
-namespace aux {
+namespace sup {
 
 spike_emitter::spike_emitter(std::ostream& out): out(out) {}
 
@@ -20,4 +20,4 @@ void spike_emitter::operator()(const std::vector<arb::spike>& spikes) {
     }
 };
 
-} // namespace aux
+} // namespace sup

@@ -24,22 +24,20 @@ struct cell_parameters {
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 };
 
-struct run_params {
-    run_params() = default;
+struct gj_params {
+    gj_params() = default;
 
     std::string name = "default";
-    bool dry_run = false;
-    unsigned num_cells_per_rank = 10;
-    unsigned num_ranks = 1;
+    unsigned num_cells = 2;
     double min_delay = 10;
     double duration = 100;
     cell_parameters cell;
 };
 
-run_params read_options(int argc, char** argv) {
+gj_params read_options(int argc, char** argv) {
     using sup::param_from_json;
 
-    run_params params;
+    gj_params params;
     if (argc<2) {
         std::cout << "Using default parameters.\n";
         return params;
@@ -60,9 +58,7 @@ run_params read_options(int argc, char** argv) {
     json << f;
 
     param_from_json(params.name, "name", json);
-    param_from_json(params.dry_run, "dry-run", json);
-    param_from_json(params.num_cells_per_rank, "num-cells-per-rank", json);
-    param_from_json(params.num_ranks, "num-ranks", json);
+    param_from_json(params.num_cells, "num-cells", json);
     param_from_json(params.duration, "duration", json);
     param_from_json(params.min_delay, "min-delay", json);
     param_from_json(params.cell.max_depth, "depth", json);

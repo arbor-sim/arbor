@@ -1,5 +1,7 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 #coding: utf-8
+
+from __future__ import print_function
 
 import argparse
 import json
@@ -10,6 +12,7 @@ import logging
 import matplotlib as M
 import matplotlib.pyplot as P
 import numbers
+from functools import reduce
 from distutils.version import LooseVersion
 from itertools import chain, islice, cycle
 
@@ -39,7 +42,6 @@ def parse_clargs():
     P.add_argument('inputs', metavar='FILE', nargs='+',
                    help='time series data in JSON format')
     P.add_argument('-A', '--abscissa', metavar='AXIS', dest='axis',
-                   type=unicode,
                    help='use values from AXIS instead of \'time\' as abscissa')
     P.add_argument('-t', '--trange', metavar='RANGE', dest='trange',
                    type=parse_range_spec,
@@ -226,7 +228,9 @@ def read_json_timeseries(j, axis='time', select=[]):
     for key in jdata.keys():
         if key==axis: continue
 
-        meta = dict(j.items() + {'label': key, 'data': None, 'units': units(key)}.items())
+        meta = j.copy()
+        meta.update({'label': key, 'data': None, 'units': units(key)})
+
         del meta['data']
 
         if not select or any([all([run_select(s, meta) for s in term]) for term in select]):
@@ -286,7 +290,7 @@ class PlotData:
                 if len(set(vs))==1:
                     continue
 
-                for i in xrange(n):
+                for i in range(n):
                     prefix = '' if k=='name' else k+'='
                     if vs[i] is not None:
                         labels[i] += u', '+k+u'='+unicode(formatter(vs[i]))
@@ -320,7 +324,7 @@ def gather_ts_plots(tss, groupby):
 def make_palette(cm_name, n, cmin=0, cmax=1):
     smap = M.cm.ScalarMappable(M.colors.Normalize(cmin/float(cmin-cmax),(cmin-1)/float(cmin-cmax)),
                                M.cm.get_cmap(cm_name))
-    return [smap.to_rgba((2*i+1)/float(2*n)) for i in xrange(n)]
+    return [smap.to_rgba((2*i+1)/float(2*n)) for i in range(n)]
 
 def round_numeric_(x):
     # Helper to round numbers in labels
@@ -338,7 +342,7 @@ def plot_plots(plot_groups, axis='time', colour_overrides=[], save=None, dpi=Non
     group_titles = any((g.group_label() for g in plot_groups))
 
     figure = P.figure()
-    for i in xrange(nplots):
+    for i in range(nplots):
         group = plot_groups[i]
         plot = figure.add_subplot(nplots, 1, i+1)
 
@@ -369,10 +373,10 @@ def plot_plots(plot_groups, axis='time', colour_overrides=[], save=None, dpi=Non
         # store each series in a slot corresponding to one of the units,
         # together with a best-effort label
 
-        series_by_unit = [[] for i in xrange(len(uniq_units))]
+        series_by_unit = [[] for i in range(len(uniq_units))]
         unique_labels = group.unique_labels(formatter=round_numeric_)
 
-        for si in xrange(len(group.series)):
+        for si in range(len(group.series)):
             s = group.series[si]
             label = unique_labels[si]
             try:
@@ -390,7 +394,7 @@ def plot_plots(plot_groups, axis='time', colour_overrides=[], save=None, dpi=Non
         lines = cycle(["-",(0,(3,1))])
 
         first_plot = True
-        for ui in xrange(len(uniq_units)):
+        for ui in range(len(uniq_units)):
             if not first_plot:
                 plot = plot.twinx()
 
@@ -450,11 +454,11 @@ for filename in args.inputs:
 
 if args.list:
     for ts in tss:
-        print 'name:', ts.meta['name']
-        print 'label:', ts.meta['label']
+        print('name:', ts.meta['name'])
+        print('label:', ts.meta['label'])
         for k in [x for x in sorted(ts.meta.keys()) if x not in ['name', 'label']]:
-            print k+':', ts.meta[k]
-        print
+            print(k+':', ts.meta[k])
+        print()
 
 else:
     if args.trange:

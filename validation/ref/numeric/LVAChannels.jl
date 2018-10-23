@@ -6,7 +6,7 @@ using Sundials
 using Unitful
 using Unitful.DefaultSymbols
 
-immutable LVAParam
+struct LVAParam
     c_m       # membrane spacific capacitance
     gbar      # Ca channel cross-membrane conductivity
     eca       # Ca channel reversal potential
@@ -32,7 +32,7 @@ immutable LVAParam
 
 end
 
-immutable Stim
+struct Stim
     t0        # start time of stimulus
     t1        # stop time of stimulus
     i_e       # stimulus current density

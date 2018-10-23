@@ -138,9 +138,11 @@ if(ARB_WITH_CUDA)
     )
 endif()
 
-add_executable(unit ${unit_sources} ${test_mech_sources})
+add_executable(unit EXCLUDE_FROM_ALL ${unit_sources} ${test_mech_sources})
 add_dependencies(unit build_test_mods)
+add_dependencies(tests unit)
+
 target_compile_options(unit PRIVATE ${ARB_CXXOPT_ARCH})
 target_compile_definitions(unit PRIVATE "-DDATADIR=\"${CMAKE_CURRENT_SOURCE_DIR}/swc\"")
 target_include_directories(unit PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_link_libraries(unit PRIVATE gtest arbor arbor-private-headers arbor-aux)
+target_link_libraries(unit PRIVATE gtest arbor arbor-private-headers arbor-sup)

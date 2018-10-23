@@ -44,7 +44,6 @@ struct HHParam
         el     = -54.3mV,
         q10    = 1
     ) = new(c_m, gnabar, gkbar, gl, ena, ek, el, q10)
-
 end
 
 struct Stim
@@ -100,50 +99,103 @@ function initial_conditions(v, q10)
     return (v, minf, hinf, ninf)
 end
 
-# Given time t and state (v, m, h, n),
-# return (vdot, mdot, hdot, ndot)
-function f(t, state; p=HHParam(), stim=Stim())
-    v, m, h, n = state
-
-    # calculate current density due to ion channels
-    gna = p.gnabar*m*m*m*h
-    gk = p.gkbar*n*n*n*n
-
-
-    ina = gna*(v - p.ena)
-    ik = gk*(v - p.ek)
-    il = p.gl*(v - p.el)
-
-    itot = ik + ina + il
-
-    # calculate current density due to stimulus
-    if t>=stim.t0 && t<stim.t1
-        itot -= stim.i_e
+# Get two neighboring somas in a ring of N somas
+function neighbor(m, N)
+    if m == 1
+        l = m + (N-1)
+        r = m + 1
+    elseif m == N
+        l = m-1
+        r = m-(N-1)
+    else
+        l = m-1
+        r = m+1
     end
-        
-    # calculate the voltage dependent rates for the gating variables
-    mtau, minf = m_lims(v, p.q10)
-    htau, hinf = h_lims(v, p.q10)
-    ntau, ninf = n_lims(v, p.q10)
-
-    return (-itot/p.c_m, (minf-m)/mtau, (hinf-h)/htau, (ninf-n)/ntau)
+    return l,r
 end
 
-function run_hh(t_end; v0=-65mV, stim=Stim(), param=HHParam(), sample_dt=0.01ms)
+# Given time t and state (v, m, h, n),
+# return (vdot, mdot, hdot, ndot)
+function f(t, state, ggap; p=HHParam(), stim=Stim())
+
+    # state of somas
+    len     = length(state)
+    n_cells = Int64(len/4)
+
+    result = []
+
+    for i=1:n_cells
+        v = state[(i-1)*4 + 1]
+        m = state[(i-1)*4 + 2]
+        h = state[(i-1)*4 + 3]
+        n = state[(i-1)*4 + 4]
+
+        # calculate current density due to ion channels
+        gna = p.gnabar*m*m*m*h
+        gk  = p.gkbar*n*n*n*n
+        ina = gna*(v - p.ena)
+        ik  = gk*(v - p.ek)
+        il  = p.gl*(v - p.el)
+        
+        # calculate gap junction currents of ring
+        l,r = neighbor(i, n_cells)
+        vl  = state[(l-1)*4 + 1]
+        vr  = state[(r-1)*4 + 1]
+        igapl = ggap*(v - vl)
+        igapr = ggap*(v - vr)
+
+        if (n_cells == 2 && i == 1)
+            igapt = igapr
+        elseif (n_cells == 2 && i == 2)
+            igapt = igapl
+        else
+            igapt = igapl + igapr
+        end
+
+        itot = ik + ina + il + igapt
+
+        # calculate current density due to stimulus
+        if t>=stim.t0 && t<stim.t1 && i==1
+            itot -= stim.i_e
+        end
+        
+        # calculate the voltage dependent rates for the gating variables
+        mtau, minf = m_lims(v, p.q10)
+        htau, hinf = h_lims(v, p.q10)
+        ntau, ninf = n_lims(v, p.q10)
+
+        push!(result, -itot/p.c_m, (minf-m)/mtau, (hinf-h)/htau, (ninf-n)/ntau)
+
+    end
+    return result
+end
+
+function run_hh(t_end, ggap, n_cells; v0=-65mV, stim=Stim(), param=HHParam(), sample_dt=0.01ms)
     v_scale = 1V
     t_scale = 1s
 
-    v0, m0, h0, n0 = initial_conditions(v0, param.q10)
-    y0 = [ v0/v_scale, m0, h0, n0 ]
-
-    samples = collect(0s: sample_dt: t_end)
+    # initialize
+    y0 = Float64[]
+    v, m, h, n = initial_conditions(v0, param.q10)
+    for i=1:n_cells
+       push!(y0, v/v_scale, m, h, n)
+    end
 
     fbis(t, y, ydot) = begin
-        vdot, mdot, hdot, ndot =
-            f(t*t_scale, (y[1]*v_scale, y[2], y[3], y[4]), stim=stim, p=param)
+        state = []
+        
+        for i=1:n_cells
+           push!(state, y[(i-1)*4 + 1]*v_scale, y[(i-1)*4 + 2], y[(i-1)*4 + 3], y[(i-1)*4 + 4])
+        end
 
-        ydot[1], ydot[2], ydot[3], ydot[4] =
-            vdot*t_scale/v_scale, mdot*t_scale, hdot*t_scale, ndot*t_scale
+        fdot = f(t*t_scale, state, ggap, stim=stim, p=param)
+        
+        for i=1:n_cells
+           ydot[(i-1)*4 + 1] = fdot[(i-1)*4 + 1]*t_scale/v_scale
+           ydot[(i-1)*4 + 2] = fdot[(i-1)*4 + 2]*t_scale
+           ydot[(i-1)*4 + 3] = fdot[(i-1)*4 + 3]*t_scale
+           ydot[(i-1)*4 + 4] = fdot[(i-1)*4 + 4]*t_scale
+        end
 
         return Sundials.CV_SUCCESS
     end
@@ -151,9 +203,16 @@ function run_hh(t_end; v0=-65mV, stim=Stim(), param=HHParam(), sample_dt=0.01ms)
     # Ideally would run with vector absolute tolerance to account for v_scale,
     # but this would prevent us using the nice cvode wrapper.
 
+    samples = collect(0s: sample_dt: t_end)
     res = Sundials.cvode(fbis, y0, scale.(samples, t_scale), abstol=1e-6, reltol=5e-10)
 
-    return samples, res[:, 1]*v_scale
+    result = []
+    for i=1:n_cells
+      push!(result, res[:,(i-1)*4+1]*v_scale)
+    end
+
+    return samples, result
+
 end
 
 end # module HHChannels

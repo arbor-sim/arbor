@@ -167,10 +167,10 @@ TEST(probe, fvm_lowered_cell_gj2) {
     mc_cell l = make_cell_ball_and_stick(false);
     mc_cell c = make_cell_ball_and_stick(false);
 
-    l.add_gap_junction(0, {1, 1}, 1, {1,1}, 0.007);
-    c.add_gap_junction(1, {1, 1}, 0, {1,1}, 0.007);
+    l.add_gap_junction(0, {1, 1}, 1, {1,1}, 0.0115);
+    c.add_gap_junction(1, {1, 1}, 0, {1,1}, 0.0115);
 
-    i_clamp stim(0, 1, 0.3);
+    i_clamp stim(10, 1, 0.3);
     c.add_stimulus({0, 1}, stim);
 
     cells.push_back(std::move(l));
@@ -203,10 +203,10 @@ TEST(probe, fvm_lowered_cell_gj2_1) {
     mc_cell l = make_cell_soma_only(false);
     mc_cell c = make_cell_soma_only(false);
 
-    l.add_gap_junction(0, {0, 1}, 1, {0,1}, 0.002);
-    c.add_gap_junction(1, {0, 1}, 0, {0,1}, 0.002);
+    l.add_gap_junction(0, {0, 1}, 1, {0,1}, 0.0005549);
+    c.add_gap_junction(1, {0, 1}, 0, {0,1}, 0.0005549);
 
-    i_clamp stim(0, 100, 0.3);
+    i_clamp stim(20, 2, 0.1);
     c.add_stimulus({0, 1}, stim);
 
     cells.push_back(std::move(l));
@@ -229,7 +229,7 @@ TEST(probe, fvm_lowered_cell_gj2_1) {
 
     EXPECT_EQ(10, probe_map.at({0, 0}).tag);
 
-    lcell.integrate(40, 0.025, {}, {});
+    lcell.integrate(100, 0.025, {}, {});
 }
 
 TEST(probe, fvm_lowered_cell_gj3) {

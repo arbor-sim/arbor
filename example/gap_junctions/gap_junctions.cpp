@@ -1,5 +1,5 @@
 /*
- * A miniapp that demonstrates how to make a ring model
+ * A miniapp that demonstrates how to make a model with gap junctions
  *
  */
 
@@ -40,25 +40,38 @@ using arb::time_type;
 using arb::cell_probe_address;
 
 // Writes voltage trace as a json file.
-void write_trace_json(const arb::trace_data<double>& trace);
+void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params);
+arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params, bool stim);
 
-class ring_recipe: public arb::recipe {
+class gj_recipe: public arb::recipe {
 public:
-    ring_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
+    gj_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
         num_cells_(num_cells),
         cell_params_(params),
         min_delay_(min_delay)
-    {}
+    {
+        for (unsigned i = 0; i < num_cells; i++) {
+            if(i != 0) {
+                cells.push_back(branch_cell(i, cell_params_, false));
+            }
+            else {
+                cells.push_back(branch_cell(i, cell_params_, true));
+            }
+        }
+        for (unsigned i = 0; i < num_cells - 1; i++) {
+            cells[i].add_gap_junction(i, {0, 1}, i+1, {0,1}, 0.05551822537423883);
+            cells[i+1].add_gap_junction(i+1, {0, 1}, i, {0,1}, 0.05551822537423883);
+        }
+    }
 
     cell_size_type num_cells() const override {
         return num_cells_;
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
-        return branch_cell(gid, cell_params_);
+        return std::move(cells[gid]);
     }
 
     cell_kind get_cell_kind(cell_gid_type gid) const override {
@@ -67,28 +80,12 @@ public:
 
     // Each cell has one spike detector (at the soma).
     cell_size_type num_sources(cell_gid_type gid) const override {
-        return 1;
+        return 0;
     }
 
     // The cell has one target synapse, which will be connected to cell gid-1.
     cell_size_type num_targets(cell_gid_type gid) const override {
-        return 1;
-    }
-
-    // Each cell has one incoming connection, from cell with gid-1.
-    std::vector<arb::cell_connection> connections_on(cell_gid_type gid) const override {
-        cell_gid_type src = gid? gid-1: num_cells_-1;
-        return {arb::cell_connection({src, 0}, {gid, 0}, event_weight_, min_delay_)};
-    }
-
-    // Return one event generator on gid 0. This generates a single event that will
-    // kick start the spiking.
-    std::vector<arb::event_generator> event_generators(cell_gid_type gid) const override {
-        std::vector<arb::event_generator> gens;
-        if (!gid) {
-            gens.push_back(arb::explicit_generator(arb::pse_vector{{{0, 0}, 1.0, event_weight_}}));
-        }
-        return gens;
+        return 0;
     }
 
     // There is one probe (for measuring voltage at the soma) on the cell.
@@ -100,7 +97,7 @@ public:
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
-        arb::segment_location loc(0, 0.0);
+        arb::segment_location loc(0, 1);
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
@@ -109,7 +106,7 @@ private:
     cell_size_type num_cells_;
     cell_parameters cell_params_;
     double min_delay_;
-    float event_weight_ = 0.05;
+    std::vector<arb::mc_cell> cells;
 };
 
 struct cell_stats {
@@ -188,26 +185,53 @@ int main(int argc, char** argv) {
         arb::profile::meter_manager meters;
         meters.start(context);
 
+
+        auto partition = [&](){
+            arb::domain_decomposition d;
+            d.num_domains = 1;
+            d.domain_id = 0;
+            d.num_local_cells = params.num_cells;
+            d.num_global_cells = params.num_cells;
+
+            std::vector<cell_gid_type> group_elements;
+            for(unsigned i = 0; i < params.num_cells; i++) {
+                group_elements.push_back(i);
+            }
+
+            std::vector<arb::group_description> group_desc =
+                    {arb::group_description(arb::cell_kind::cable1d_neuron, std::move(group_elements), arb::backend_kind::multicore)};
+            d.groups = std::move(group_desc);
+
+            d.gid_domain = ([](cell_gid_type gid) {return 0;});
+            return d;
+        };
+
         // Create an instance of our recipe.
-        ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
+        gj_recipe recipe(params.num_cells, params.cell, params.min_delay);
+
+        for(unsigned i = 0; i < recipe.num_cells() - 1; i++){
+            std::cout << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
+        }
+
         cell_stats stats(recipe);
         std::cout << stats << "\n";
 
-        auto decomp = arb::partition_load_balance(recipe, context);
+        auto decomp = partition();
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
 
         // Set up the probe that will measure voltage in the cell.
 
-        // The id of the only probe on the cell: the cell_member type points to (cell 0, probe 0)
-        auto probe_id = cell_member_type{0, 0};
-        // The schedule for sampling is 10 samples every 1 ms.
-        auto sched = arb::regular_schedule(0.1);
+        auto sched = arb::regular_schedule(0.025);
         // This is where the voltage samples will be stored as (time, value) pairs
-        arb::trace_data<double> voltage;
+        std::vector<arb::trace_data<double>> voltage(recipe.num_cells());
+
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
-        sim.add_sampler(arb::one_probe(probe_id), sched, arb::make_simple_sampler(voltage));
+        for(unsigned i = 0; i < recipe.num_cells(); i++) {
+            auto t = recipe.get_probe({i, 0});
+            sim.add_sampler(arb::one_probe(t.id), sched, arb::make_simple_sampler(voltage[i]));
+        }
 
         // Set up recording of spikes to a vector on the root process.
         std::vector<arb::spike> recorded_spikes;
@@ -248,102 +272,54 @@ int main(int argc, char** argv) {
         }
 
         // Write the samples to a json file.
-        if (root) write_trace_json(voltage);
+        if (root) {
+            write_trace_json(voltage);
+        }
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
     }
     catch (std::exception& e) {
-        std::cerr << "exception caught in ring miniapp:\n" << e.what() << "\n";
+        std::cerr << "exception caught in gap junction miniapp:\n" << e.what() << "\n";
         return 1;
     }
 
     return 0;
 }
 
-void write_trace_json(const arb::trace_data<double>& trace) {
-    std::string path = "./voltages.json";
+void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
+    for (unsigned i = 0; i < trace.size(); i++) {
+        std::string path = "./voltages" + std::to_string(i) + ".json";
 
-    nlohmann::json json;
-    json["name"] = "ring demo";
-    json["units"] = "mV";
-    json["cell"] = "0.0";
-    json["probe"] = "0";
+        nlohmann::json json;
+        json["name"] = "gj demo";
+        json["units"] = "mV";
+        json["cell"] = "0.0";
+        json["probe"] = "0";
 
-    auto& jt = json["data"]["time"];
-    auto& jy = json["data"]["voltage"];
+        auto &jt = json["data"]["time"];
+        auto &jy = json["data"]["voltage"];
 
-    for (const auto& sample: trace) {
-        jt.push_back(sample.t);
-        jy.push_back(sample.v);
+        for (const auto &sample: trace[i]) {
+            jt.push_back(sample.t);
+            jy.push_back(sample.v);
+        }
+
+        std::ofstream file(path);
+        file << std::setw(1) << json << "\n";
     }
-
-    std::ofstream file(path);
-    file << std::setw(1) << json << "\n";
 }
 
-// Helper used to interpolate in branch_cell.
-template <typename T>
-double interp(const std::array<T,2>& r, unsigned i, unsigned n) {
-    double p = i * 1./(n-1);
-    double r0 = r[0];
-    double r1 = r[1];
-    return r[0] + p*(r1-r0);
-}
-
-arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params) {
+arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params, bool stim ) {
     arb::mc_cell cell;
 
     // Add soma.
-    auto soma = cell.add_soma(12.6157/2.0); // For area of 500 μm².
-    soma->rL = 100;
+    auto soma = cell.add_soma(18.8/2.0);
     soma->add_mechanism("hh");
 
-    std::vector<std::vector<unsigned>> levels;
-    levels.push_back({0});
-
-    // Standard mersenne_twister_engine seeded with gid.
-    std::mt19937 gen(gid);
-    std::uniform_real_distribution<double> dis(0, 1);
-
-    double dend_radius = 0.5; // Diameter of 1 μm for each cable.
-
-    unsigned nsec = 1;
-    for (unsigned i=0; i<params.max_depth; ++i) {
-        // Branch prob at this level.
-        double bp = interp(params.branch_probs, i, params.max_depth);
-        // Length at this level.
-        double l = interp(params.lengths, i, params.max_depth);
-        // Number of compartments at this level.
-        unsigned nc = std::round(interp(params.compartments, i, params.max_depth));
-
-        std::vector<unsigned> sec_ids;
-        for (unsigned sec: levels[i]) {
-            for (unsigned j=0; j<2; ++j) {
-                if (dis(gen)<bp) {
-                    sec_ids.push_back(nsec++);
-                    auto dend = cell.add_cable(sec, arb::section_kind::dendrite, dend_radius, dend_radius, l);
-                    dend->set_compartments(nc);
-                    dend->add_mechanism("pas");
-                    dend->rL = 100;
-                }
-            }
-        }
-        if (sec_ids.empty()) {
-            break;
-        }
-        levels.push_back(sec_ids);
-    }
-
-    // Add spike threshold detector at the soma.
-    cell.add_detector({0,0}, 10);
-
-    // Add a synapse to the mid point of the first dendrite.
-    cell.add_synapse({1, 0.5}, "expsyn");
-
-    // Add additional synapses that will not be connected to anything.
-    for (unsigned i=1u; i<params.synapses; ++i) {
-        cell.add_synapse({1, 0.5}, "expsyn");
+    if (stim) {
+        arb::i_clamp stim(20, 2, 0.1);
+        cell.add_stimulus({0, 1}, stim);
     }
 
     return cell;

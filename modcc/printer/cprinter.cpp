@@ -544,7 +544,7 @@ void SimdPrinter::visit(IndexedVariable *sym) {
 }
 
 void SimdPrinter::visit(CallExpression* e) {
-    out_ << e->name() << "(i_";
+    out_ << e->name() << "(index_";
     for (auto& arg: e->args()) {
         out_ << ", ";
         arg->accept(this);
@@ -578,7 +578,7 @@ void SimdPrinter::visit(BlockExpression* block) {
 }
 
 void emit_simd_procedure_proto(std::ostream& out, ProcedureExpression* e, const std::string& qualified) {
-    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(int i_";
+    out << "void " << qualified << (qualified.empty()? "": "::") << e->name() << "(index_type i_";
     for (auto& arg: e->args()) {
         out << ", const simd_value& " << arg->is_argument()->name();
     }
