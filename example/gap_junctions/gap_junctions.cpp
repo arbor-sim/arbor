@@ -45,9 +45,9 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 // Generate a cell.
 arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params, bool stim);
 
-class ring_recipe: public arb::recipe {
+class gj_recipe: public arb::recipe {
 public:
-    ring_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
+    gj_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
         num_cells_(num_cells),
         cell_params_(params),
         min_delay_(min_delay)
@@ -61,8 +61,8 @@ public:
             }
         }
         for (unsigned i = 0; i < num_cells - 1; i++) {
-            cells[i].add_gap_junction(i, {0, 1}, i+1, {0,1}, 0.0003430471145874217);
-            cells[i+1].add_gap_junction(i+1, {0, 1}, i, {0,1}, 0.0003430471145874217);
+            cells[i].add_gap_junction(i, {0, 1}, i+1, {0,1}, 0.05551822537423883);
+            cells[i+1].add_gap_junction(i+1, {0, 1}, i, {0,1}, 0.05551822537423883);
         }
     }
 
@@ -207,7 +207,7 @@ int main(int argc, char** argv) {
         };
 
         // Create an instance of our recipe.
-        ring_recipe recipe(params.num_cells, params.cell, params.min_delay);
+        gj_recipe recipe(params.num_cells, params.cell, params.min_delay);
 
         for(unsigned i = 0; i < recipe.num_cells() - 1; i++){
             std::cout << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
@@ -280,7 +280,7 @@ int main(int argc, char** argv) {
         std::cout << report;
     }
     catch (std::exception& e) {
-        std::cerr << "exception caught in ring miniapp:\n" << e.what() << "\n";
+        std::cerr << "exception caught in gap junction miniapp:\n" << e.what() << "\n";
         return 1;
     }
 
@@ -292,7 +292,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
         std::string path = "./voltages" + std::to_string(i) + ".json";
 
         nlohmann::json json;
-        json["name"] = "ring demo";
+        json["name"] = "gj demo";
         json["units"] = "mV";
         json["cell"] = "0.0";
         json["probe"] = "0";

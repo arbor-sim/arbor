@@ -24,8 +24,8 @@ struct cell_parameters {
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
 };
 
-struct ring_params {
-    ring_params() = default;
+struct gj_params {
+    gj_params() = default;
 
     std::string name = "default";
     unsigned num_cells = 2;
@@ -34,10 +34,10 @@ struct ring_params {
     cell_parameters cell;
 };
 
-ring_params read_options(int argc, char** argv) {
+gj_params read_options(int argc, char** argv) {
     using sup::param_from_json;
 
-    ring_params params;
+    gj_params params;
     if (argc<2) {
         std::cout << "Using default parameters.\n";
         return params;
