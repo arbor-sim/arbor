@@ -24,7 +24,7 @@ function parse_commandline()
             arg_type = Float64
             default = 18.8
         "--ggap", "-g"
-            help = "conductivity of gap junctions in S cm^-2"
+            help = "conductivity of gap junctions in µS"
             arg_type = Float64
             default = 5e-5
         "--stim_t0"
@@ -60,7 +60,7 @@ n_cells = parsed_args["n_cells"]
 radius = parsed_args["diameter"]/2*µm
 area = 4*pi*radius^2
 
-ggap = parsed_args["ggap"]*S*cm^-2
+ggap = parsed_args["ggap"]*1e-6/scale(area, cm^2)*S*cm^-2
 
 ts0 = parsed_args["stim_t0"]*ms
 ts1 = parsed_args["stim_t1"]*ms

@@ -28,7 +28,7 @@ struct gj_params {
     gj_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 2;
+    unsigned num_cells = 3;
     double min_delay = 10;
     double duration = 100;
     cell_parameters cell;

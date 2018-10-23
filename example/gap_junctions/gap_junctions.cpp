@@ -60,9 +60,9 @@ public:
                 cells.push_back(branch_cell(i, cell_params_, true));
             }
         }
-        for (unsigned i = 0; i < num_cells - 1; i++) {
-            cells[i].add_gap_junction(i, {0, 1}, i+1, {0,1}, 0.05551822537423883);
-            cells[i+1].add_gap_junction(i+1, {0, 1}, i, {0,1}, 0.05551822537423883);
+        for (unsigned i = 0; i < num_cells; i++) {
+            cells[i].add_gap_junction(i, {0, 1}, (i+1)%num_cells, {0,1}, 0.0005551822537423883);
+            cells[i+1].add_gap_junction((i+1)%num_cells, {0, 1}, i, {0,1}, 0.0005551822537423883);
         }
     }
 
@@ -292,9 +292,9 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
         std::string path = "./voltages" + std::to_string(i) + ".json";
 
         nlohmann::json json;
-        json["name"] = "gj demo";
+        json["name"] = "gj demo: cell " + std::to_string(i);
         json["units"] = "mV";
-        json["cell"] = "0.0";
+        json["cell"] = std::to_string(i);
         json["probe"] = "0";
 
         auto &jt = json["data"]["time"];
