@@ -161,7 +161,6 @@ void solve_matrix_fine(
         // the levels are sorted such that the root is the last level
         const auto& lvl = block_levels[num_levels-1];
         const unsigned width = num_matrix[bid];
-        //const unsigned width = lvl.num_branches;
 
         if (tid < width) {
             const unsigned len = lvl.lengths[tid];
@@ -181,12 +180,10 @@ void solve_matrix_fine(
 
                 auto rhsp = rhs[pos] / d[pos];
                 rhs[pos] = rhsp;
-                if (bid == 0 && tid == 0 && false) printf("%3d R\n", pos);
                 pos -= width;
 
                 // forward
                 for (unsigned i=0; i<len-1; ++i) {
-                    if (bid == 0 && tid == 0 && false) printf("%3d f\n", pos);
                     rhsp = rhs[pos] - u[pos]*rhsp;
                     rhsp /= d[pos];
                     rhs[pos] = rhsp;
