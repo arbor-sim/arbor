@@ -98,15 +98,15 @@ void solve_matrix_fine(
     T* d,
     const T* u,
     const level* levels,
-    const unsigned* levels_end,
+    const unsigned* levels_start,
     unsigned* num_matrix, // number of packed matrices = number of cells
     unsigned* padded_size)
 {
     const auto tid = threadIdx.x;
     const auto bid = blockIdx.x;
 
-    const auto first_level = (bid!= 0 ? levels_end[bid - 1] : 0);
-    const auto num_levels  = levels_end[bid] - first_level;
+    const auto first_level = levels_start[bid];
+    const auto num_levels  = levels_start[bid + 1] - first_level;
     const auto block_levels = &levels[first_level];
 
     // backward substitution
@@ -292,24 +292,24 @@ void assemble_matrix_fine(
 //  L2     |       |      L4   |       |       |      L7   |
 //         |       |           |       |       |           |
 //
-// levels     = [L0, L1, L2, L3, L4, L5, L6, L7, ... ]
-// levels_end = [3, 5, 8, ...]
-// num_levels = [3, 2, 3, ...]
-// num_cells  = [2, 3, ...]
-// num_blocks = levels_end.size() = num_levels.size() = num_cells.size()
+// levels       = [L0, L1, L2, L3, L4, L5, L6, L7, ... ]
+// levels_start = [0, 3, 5, 8, ...]
+// num_levels   = [3, 2, 3, ...]
+// num_cells    = [2, 3, ...]
+// num_blocks   = level_start.size() - 1 = num_levels.size() = num_cells.size()
 void solve_matrix_fine(
     fvm_value_type* rhs,
     fvm_value_type* d,                // diagonal values
     const fvm_value_type* u,          // upper diagonal (and lower diagonal as the matrix is SPD)
     const level* levels,              // pointer to an array containing level meta-data for all blocks
-    const unsigned* levels_end,       // end index (exclusive) into levels for each cuda block
+    const unsigned* levels_start,     // start index into levels for each cuda block
     unsigned* num_cells,              // he number of cells packed into this single matrix
     unsigned* padded_size,            // length of rhs, d, u, including padding
     unsigned num_blocks,              // nuber of blocks
     unsigned blocksize)               // size of each block
 {
     kernels::solve_matrix_fine<<<num_blocks, blocksize>>>(
-        rhs, d, u, levels, levels_end,
+        rhs, d, u, levels, levels_start,
         num_cells, padded_size);
 }
 

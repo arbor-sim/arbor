@@ -199,10 +199,11 @@ public:
 
     // the meta data for each level for each block layed out linearly in memory
     managed_vector<level> levels;
-    // the end of the levels of each block (exclusive)
-    // block b owns { leves[levels_end[b-1]], ..., leves[levels_end[b] - 1] }
-    // (where we define levels_end[-1] := 0 as a special case)
-    managed_vector<unsigned> levels_end;
+    // the start of the levels of each block
+    // block b owns { leves[level_start[b]], ..., leves[level_start[b+1] - 1] }
+    // there is an additional entry at the end of the vector to make the above
+    // compuation save
+    managed_vector<unsigned> levels_start;
 
     // permutation from front end storage to packed storage
     //      `solver_format[perm[i]] = external_format[i]`
@@ -499,7 +500,8 @@ public:
         // level into conineous chunks which are easier to read for the cuda
         // kernel.
         levels.reserve(total_num_levels);
-        levels_end.reserve(branch_maps.size());
+        levels_start.reserve(branch_maps.size() + 1);
+        levels_start.push_back(0);
         data_size.reserve(branch_maps.size());
         // offset into the packed data format, used to apply permutation on data
         auto pos = 0u;
@@ -530,8 +532,8 @@ public:
 
                 levels.push_back(std::move(lvl));
             }
-            auto prev_end = levels_end.size() ? levels_end.back(): 0;
-            levels_end.push_back(prev_end + branch_map.size());
+            auto prev_end = levels_start.back();
+            levels_start.push_back(prev_end + branch_map.size());
             data_size.push_back(pos);
         }
 
@@ -543,9 +545,9 @@ public:
         std::vector<size_type> perm_tmp(matrix_size);
         for (auto block: make_span(branch_maps.size())) {
             const auto& branch_map = branch_maps[block];
-            const auto first_level = (block!= 0 ? levels_end[block - 1] : 0);
+            const auto first_level = levels_start[block];
 
-            for (auto i: make_span(levels_end[block] - first_level)) {
+            for (auto i: make_span(levels_start[block + 1] - first_level)) {
                 const auto& l = levels[first_level + i];
                 for (auto j: make_span(l.num_branches)) {
                     const auto& b = branch_map[i][j];
@@ -640,7 +642,7 @@ public:
     void solve() {
         solve_matrix_fine(
             rhs.data(), d.data(), u.data(),
-            levels.data(), levels_end.data(),
+            levels.data(), levels_start.data(),
             num_cells_in_block.data(),
             data_size.data(),
             num_cells_in_block.size(), max_branches_per_level);
