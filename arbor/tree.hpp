@@ -79,6 +79,19 @@ public:
     // '------------------------'
     // Returns the permutation applied to the nodes,
     // i.e. `new_node_data[i] = old_node_data[perm[i]]`
+    //
+    // This function has the additional effect, that branches with only one
+    // child branch get merged. That means that `select_new_root(0)` can also
+    // lead to an permutation of the indices of the compartments:
+    // .------------------------------.
+    // |        0               0     |
+    // |       / \             / \    |
+    // |      1  3            1  3    |
+    // |     /    \   ~~>    /    \   |
+    // |    2     4         2     4   |
+    // |   / \     \       / \     \  |
+    // |  5  6     7      6  7     5  |
+    // '------------------------------'
     iarray select_new_root(int_type root);
 
     // Selects a new node such that the depth of the graph is minimal.
