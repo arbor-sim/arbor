@@ -139,16 +139,17 @@ bool all_negative(const C& c) {
 template<typename C>
 std::vector<typename C::value_type> child_count(const C& parent_index)
 {
+    using value_type = typename C::value_type;
     static_assert(
-        std::is_integral<typename C::value_type>::value,
+        std::is_integral<value_type>::value,
         "integral type required"
     );
 
-    std::vector<typename C::value_type> count(parent_index.size(), 0);
+    std::vector<value_type> count(parent_index.size(), 0);
     for (auto i = 0u; i < parent_index.size(); ++i) {
         auto p = parent_index[i];
         // -1 means no parent
-        if (p != i && p != -1) {
+        if (p != value_type(i) && p != value_type(-1)) {
             ++count[p];
         }
     }

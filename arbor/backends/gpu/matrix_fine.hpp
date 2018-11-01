@@ -18,11 +18,10 @@ struct level {
     unsigned max_length = 0;   // Length of the longest branch
     unsigned data_index = 0;   // Index into data values of the first branch
 
-    //
-    //  the lengths and parents vectors are stored in managed memory
-    //
+    //  The lengths and parents vectors are raw pointers to managed memory,
+    //  so there is need for tricksy deep copy of this type to GPU.
 
-    // An array holding the length of each branch for each branch on this level.
+    // An array holding the length of each branch in the level.
     // length: num_branches.
     unsigned* lengths = nullptr;
 
@@ -37,6 +36,7 @@ struct level {
 
 std::ostream& operator<<(std::ostream& o, const level& l);
 
+// C wrappers around kernels
 void gather(
     const fvm_value_type* from,
     fvm_value_type* to,

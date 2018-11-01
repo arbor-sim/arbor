@@ -16,9 +16,8 @@
 
 #include "threshold_watcher.hpp"
 
-#define USE_FINE_MATRIX
 
-#ifdef USE_FINE_MATRIX
+#ifdef ARB_HAVE_GPU_FINE_MATRIX
     #include "matrix_state_fine.hpp"
 #else
     #include "matrix_state_interleaved.hpp"
@@ -46,7 +45,7 @@ struct backend {
         return memory::on_host(v);
     }
 
-#ifdef USE_FINE_MATRIX
+#ifdef ARB_HAVE_GPU_FINE_MATRIX
     using matrix_state = arb::gpu::matrix_state_fine<value_type, index_type>;
 #else
     using matrix_state = arb::gpu::matrix_state_interleaved<value_type, index_type>;
