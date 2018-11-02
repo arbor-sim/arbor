@@ -15,6 +15,7 @@
 #include "tree.hpp"
 
 #include "matrix_fine.hpp"
+#include "forest.hpp"
 
 namespace arb {
 namespace gpu {
@@ -70,85 +71,6 @@ std::ostream& operator<<(std::ostream& o, branch b) {
         << ", sta " << b.start_idx
         << "]";
 }
-
-struct LevelIterator {
-    tree* tree_;
-
-    unsigned current_node;
-    unsigned current_level;
-    unsigned next_children;
-
-    unsigned only_on_level;
-
-    LevelIterator(tree* t, unsigned level) {
-        tree_ = t;
-        only_on_level = level;
-        // due to the ordering of the nodes we know that 0 is the root
-        current_node  = 0;
-        current_level = 0;
-        next_children = 0;
-        if (level != 0) {
-            next();
-        };
-    }
-
-    void advance_depth_first() {
-        auto children = tree_->children(current_node);
-        if (next_children < children.size() && current_level <= only_on_level) {
-            // go to next children
-            current_level += 1;
-            current_node = children[next_children];
-            next_children = 0;
-        } else {
-            // go to parent
-            auto parent_node = tree_->parents()[current_node];
-            constexpr unsigned npos = unsigned(-1);
-            if (parent_node != npos) {
-                auto siblings = tree_->children(parent_node);
-                // get the index in the child list of the parent
-                unsigned index = 0;
-                while (siblings[index] != current_node) { // TODO repalce by array lockup: sibling_nr
-                    index += 1;
-                }
-
-                current_level -= 1;
-                current_node = parent_node;
-                next_children = index + 1;
-            } else {
-                // we are done with the iteration
-                current_level = -1;
-                current_node  = -1;
-                next_children = -1;
-            }
-
-        }
-    }
-
-    unsigned next() {
-        constexpr unsigned npos = unsigned(-1);
-        if (!valid()) {
-            // we are done
-            return npos;
-        } else {
-            advance_depth_first();
-            // next_children != 0 means, that we have seen the node before
-            while (valid() && (current_level != only_on_level || next_children != 0)) {
-                advance_depth_first();
-            }
-            return current_node;
-        }
-    }
-
-    bool valid() {
-        constexpr unsigned npos = unsigned(-1);
-        return this->peek() != npos;
-    }
-
-    unsigned peek() {
-        return current_node;
-    }
-};
-
 
 template <typename T, typename I>
 struct matrix_state_fine {
@@ -209,71 +131,6 @@ public:
     //      `solver_format[perm[i]] = external_format[i]`
     iarray perm;
 
-    // takes a vector of trees and the corresponding branch start list
-    static void optimize_trees(std::vector<tree>& trees, std::vector<std::vector<unsigned>>& branch_starts, std::vector<std::vector<unsigned>>& branch_lengths) {
-        using util::make_span;
-
-        // cut the tree
-        unsigned count = 1; // number of nodes found on the previous level
-        for (auto level = 0; count > 0; level++) {
-            count = 0;
-
-            // decide where to cut it ...
-            unsigned max_length = 0;
-            for (auto t_ix: make_span(trees.size())) { // TODO make this local on an intermediate packing
-                for (LevelIterator it (&trees[t_ix], level); it.valid(); it.next()) {
-                    auto length = branch_lengths[t_ix][it.peek()];
-                    max_length += length;
-                    count++;
-                }
-            }
-            if (count == 0) {
-                // there exists no tree with branches on this level
-                continue;
-            };
-            max_length = max_length / count;
-            // avoid ininite loops
-            if (max_length <= 1) max_length = 1;
-            // we don't want too small segments
-            if (max_length <= 10) max_length = 10;
-
-            for (auto t_ix: make_span(trees.size())) {
-                // ... cut all trees on this level
-                for (LevelIterator it (&trees[t_ix], level); it.valid(); it.next()) {
-
-                    auto length = branch_lengths[t_ix][it.peek()];
-                    if (length > max_length) {
-                        // now cut the tree
-
-                        // we are allowed to mess with the tree because of the
-                        // implementation of LevelIterator o.O
-
-                        auto insert_at_bs = branch_starts[t_ix].begin() + it.peek();
-                        auto insert_at_ls = branch_lengths[t_ix].begin() + it.peek();
-
-                        trees[t_ix].split_node(it.peek());
-
-                        // now the tree got a new node.
-                        // we now have to insert a corresponding new 'branch
-                        // start' to the list
-
-                        // make sure that `branch_starts` for A and N point to
-                        // the correct slices
-                        auto old_start = branch_starts[t_ix][it.peek()];
-                        // first insert, then index peek, as we already
-                        // incremented the iterator
-                        branch_starts[t_ix].insert(insert_at_bs, old_start);
-                        branch_lengths[t_ix].insert(insert_at_ls, max_length);
-                        branch_starts[t_ix][it.peek() + 1] = old_start + max_length;
-                        branch_lengths[t_ix][it.peek() + 1] = length - max_length;
-                        // we don't have to shift any indices as we did not
-                        // create any new branch segments, but just split
-                        // one over two nodes
-                    }
-                }
-            }
-        }
-    }
 
     matrix_state_fine() = default;
 
@@ -294,55 +151,8 @@ public:
 
         num_cells = cell_cv_divs.size()-1;
 
-        // the permutation matrix used by the balancing algorithm
-        // we will later combien this with the permutation used to improve the
-        // access patterms
-        // format: `solver_format[i] = external_format[perm[i]]`
-        std::vector<size_type> perm_balancing(p.size());
-
-        std::vector<tree> trees;
-        std::vector<std::vector<unsigned>> tree_branch_starts;
-        std::vector<std::vector<unsigned>> tree_branch_lengths;
-
-        for (auto c: make_span(0u, num_cells)) {
-            // build the parent index for cell c
-            auto cell_start = cell_cv_divs[c];
-            std::vector<unsigned> cell_p =
-                util::assign_from(
-                    util::transform_view(
-                        util::subrange_view(p, cell_cv_divs[c], cell_cv_divs[c+1]),
-                        [cell_start](unsigned i) {return i-cell_start;}));
-
-            auto fine_tree = tree(cell_p);
-
-            auto perm = fine_tree.select_new_root(0);
-            for (auto i: make_span(perm.size())) {
-                perm_balancing[cell_start + i] = cell_start + perm[i];
-            }
-
-            // find the index of the first node for each branch
-            auto branch_starts = algorithms::branches(fine_tree.parents());
-
-            // find the parent index of branches
-            // we need to convert to cell_lid_type, required to construct a tree.
-            std::vector<cell_lid_type> branch_p =
-                util::assign_from(
-                    algorithms::tree_reduce(fine_tree.parents(), branch_starts));
-            // build tree structure that describes the branch topology
-            auto cell_tree = tree(branch_p);
-
-            // compute branch length and apply permutation
-            std::vector<unsigned> branch_lengths(branch_starts.size() - 1);
-            for (auto i: make_span(branch_lengths.size())) {
-                branch_lengths[i] = branch_starts[i+1] - branch_starts[i];
-            }
-            trees.push_back(cell_tree);
-            tree_branch_starts.push_back(branch_starts);
-            tree_branch_lengths.push_back(branch_lengths);
-
-        }
-
-        optimize_trees(trees, tree_branch_starts, tree_branch_lengths);
+        forest trees(p, cell_cv_divs);
+        trees.optimize();
 
         // Now distribute the cells into cuda blocks.
         // While the total number of branches on each level of theses cells in a
@@ -364,9 +174,10 @@ public:
         unsigned num_branches = 0u;
         for (auto c: make_span(0u, num_cells)) {
             auto cell_start = cell_cv_divs[c];
-            auto cell_tree = trees[c];
-            auto branch_starts = tree_branch_starts[c];
-            auto branch_lengths = tree_branch_lengths[c];
+            auto cell_tree = trees.branch_tree(c);
+            auto fine_tree = trees.compartment_tree(c);
+            auto branch_starts  = trees.branch_offsets(c);
+            auto branch_lengths = trees.branch_lengths(c);
 
             auto depths = depth_from_root(cell_tree);
 
@@ -560,10 +371,12 @@ public:
             }
         }
 
+        auto perm_balancing = trees.permutation();
+
         // apppy permutation form balancing
         std::vector<size_type> perm_tmp2(matrix_size);
         for (auto i: make_span(matrix_size)) {
-             // This is CORRECT! verified by using the ring benchmark with root=0 (where the perumations is actually not id)
+             // This is CORRECT! verified by using the ring benchmark with root=0 (where the permutation is actually not id)
             perm_tmp2[perm_balancing[i]] = perm_tmp[i];
         }
         // copy permutation to device memory

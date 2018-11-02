@@ -65,6 +65,7 @@ if(ARB_WITH_CUDA)
         backends/gpu/multi_event_stream.cpp
         backends/gpu/multi_event_stream.cu
         backends/gpu/shared_state.cu
+        backends/gpu/forest.cpp
         backends/gpu/stimulus.cu
         backends/gpu/threshold_watcher.cu
         memory/fill.cu
@@ -100,4 +101,3 @@ target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
 install(TARGETS arbor ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-
