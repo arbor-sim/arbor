@@ -22,6 +22,7 @@ struct cell_parameters {
     std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
     std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
+    double gap_cond = 0.005; // conductance of gap_junction in μS
 };
 
 struct gj_params {
@@ -65,6 +66,7 @@ gj_params read_options(int argc, char** argv) {
     param_from_json(params.cell.branch_probs, "branch-probs", json);
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
+    param_from_json(params.cell.gap_cond, "gap-cond", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {

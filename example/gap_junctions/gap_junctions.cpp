@@ -61,8 +61,8 @@ public:
             }
         }
         for (unsigned i = 0; i < num_cells; i++) {
-            cells[i].add_gap_junction(i, {0, 1}, (i+1)%num_cells, {0,1}, 0.0005551822537423883);
-            cells[i+1].add_gap_junction((i+1)%num_cells, {0, 1}, i, {0,1}, 0.0005551822537423883);
+            cells[i].add_gap_junction(i, {0, 1}, (i+1)%num_cells, {0,1}, params.gap_cond);
+            cells[(i+1)%num_cells].add_gap_junction((i+1)%num_cells, {0, 1}, i, {0,1}, params.gap_cond);
         }
     }
 
@@ -209,8 +209,8 @@ int main(int argc, char** argv) {
         // Create an instance of our recipe.
         gj_recipe recipe(params.num_cells, params.cell, params.min_delay);
 
-        for(unsigned i = 0; i < recipe.num_cells() - 1; i++){
-            std::cout << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
+        for(unsigned i = 0; i < recipe.num_cells(); i++){
+            std::cout << "Num gap_junctions for cell " << i << ":" << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
         }
 
         cell_stats stats(recipe);
@@ -289,7 +289,7 @@ int main(int argc, char** argv) {
 
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     for (unsigned i = 0; i < trace.size(); i++) {
-        std::string path = "./voltages" + std::to_string(i) + ".json";
+        std::string path = "./voltages_imp" + std::to_string(i) + ".json";
 
         nlohmann::json json;
         json["name"] = "gj demo: cell " + std::to_string(i);
