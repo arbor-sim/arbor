@@ -32,10 +32,10 @@ struct regular_schedule_shim {
     }
 };
 
-// A Python shim that holds the information that describes an
-// arb::explicit_schedule. This is wrapped in pybind11, and users constructing
-// a explicit_schedule in python are manipulating this type. This is converted to
-// an arb::explicit_schedule when a C++ recipe is created from a Python recipe.
+// A Python shim for arb::explicit_schedule.
+// This is wrapped in pybind11, and users constructing a explicit_schedule in
+// Python are manipulating this type. This is converted to an
+// arb::explicit_schedule when a C++ recipe is created from a Python recipe.
 struct explicit_schedule_shim {
     using time_type = arb::time_type;
     pybind11::list py_times;
@@ -59,23 +59,21 @@ struct explicit_schedule_shim {
     }
 };
 
-/*
 struct poisson_schedule_shim {
     using rng_type = std::mt19937_64;
-    using impl = arb::poisson_schedule_impl<rng_type>;
 
     // default empty time range
-    arb::time_type tstart = arb::max_time;
+    arb::time_type tstart = 0;
     arb::time_type freq = 10; // 10 Hz.
     rng_type::result_type seed = 0;
 
-    poisson_generator_desc() = default;
+    poisson_schedule_shim() = default;
 
     arb::schedule schedule() const {
-        return impl(rng_type(seed), tstart, rate_per_ms, tstop);
+        // convert frequency to kHz.
+        return arb::poisson_schedule(tstart, freq/1000., rng_type(seed));
     }
 };
-*/
 
 struct event_generator {
     arb::cell_lid_type lid;

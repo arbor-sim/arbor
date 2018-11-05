@@ -7,7 +7,7 @@
 
 #include <arbor/morphology.hpp>
 #include <arbor/util/optional.hpp>
-#include <aux/tinyopt.hpp>
+#include <sup/tinyopt.hpp>
 
 #include "morphio.hpp"
 #include "lsystem.hpp"

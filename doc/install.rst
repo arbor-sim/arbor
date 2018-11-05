@@ -44,8 +44,8 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     Compiler    Min version  Notes
     =========== ============ ============================================
     GCC         6.1.0
-    Clang       4.0          Clang 3.8 and later probably work.
-    Apple Clang 9
+    Clang       4.0          Needs GCC 6 or later for standard library. 
+    Apple Clang 9            Apple LLVM version 9.0.0 (clang-900.0.39.2)
     Intel       17.0.1       Needs GCC 5 or later for standard library.
     =========== ============ ============================================
 
@@ -56,7 +56,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
     CMake should use. If these are not set, CMake will attempt to automatically choose a compiler,
     which may be too old to compile Arbor.
     For example, the default compiler chosen below by CMake was GCC 4.8.5 at ``/usr/bin/c++``,
-    so the ``CC`` and ``CXX`` variables were used to specify GCC 5.2.0 before calling ``cmake``.
+    so the ``CC`` and ``CXX`` variables were used to specify GCC 6.1.0 before calling ``cmake``.
 
     .. code-block:: bash
 
@@ -66,7 +66,7 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
 
         # check which version of GCC is available
         $ g++ --version
-        g++ (GCC) 5.2.0
+        g++ (GCC) 6.1.0
         Copyright (C) 2015 Free Software Foundation, Inc.
 
         # set environment variables for compilers
@@ -75,10 +75,10 @@ We recommend using GCC or Clang, for which Arbor has been tested and optimised.
         # launch CMake
         # the compiler version and path is given in the CMake output
         $ cmake ..
-        -- The C compiler identification is GNU 5.2.0
-        -- The CXX compiler identification is GNU 5.2.0
-        -- Check for working C compiler: /cm/local/apps/gcc/5.2.0/bin/gcc
-        -- Check for working C compiler: /cm/local/apps/gcc/5.2.0/bin/gcc -- works
+        -- The C compiler identification is GNU 6.1.0
+        -- The CXX compiler identification is GNU 6.1.0
+        -- Check for working C compiler: /cm/local/apps/gcc/6.1.0/bin/gcc
+        -- Check for working C compiler: /cm/local/apps/gcc/6.1.0/bin/gcc -- works
         ...
 
 .. Note::
@@ -231,7 +231,7 @@ CMake parameters and flags, follow links to the more detailed descriptions below
 
         export CC=gcc-5
         export CXX=g++-5
-        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_GPU_MODEL=P100
+        cmake .. -DARB_VECTORIZE=ON -DARB_ARCH=broadwell -DARB_WITH_GPU=ON
 
 .. topic:: `Release <buildtarget_>`_ mode with `explicit vectorization <vectorize_>`_, optimized for the `local system architecture <architecture_>`_ and `install <install_>`_ in ``/opt/arbor``
 
@@ -305,14 +305,14 @@ GPU Backend
 -----------
 
 Arbor supports NVIDIA GPUs using CUDA. The CUDA back end is enabled by setting the
-CMake ``ARB_GPU_MODEL`` option to match the GPU model to target:
+CMake ``ARB_WITH_GPU`` option.
 
 .. code-block:: bash
 
-    cmake -DARB_GPU_MODEL={none, K20, K80, P100}
+    cmake -DARB_WITH_GPU=ON
 
-By default ``ARB_GPU_MODEL=none``, and a GPU target must explicitly be set to
-build for and run on GPUs.
+By default ``ARB_WITH_GPU=OFF``. When the option is turned on, Arbor is built for all
+supported GPUs and the available GPU will be used at runtime.
 
 Depending on the configuration of the system where Arbor is being built, the
 C++ compiler may not be able to find the ``cuda.h`` header. The easiest workaround
@@ -323,12 +323,10 @@ example:
 .. code-block:: bash
 
     export CPATH="/opt/cuda/include:$CPATH"
-    cmake -DARB_GPU_MODEL=P100
+    cmake -DARB_WITH_GPU=ON
 
 .. Note::
-    The main difference between the Kepler (K20 & K80) and Pascal (P100) GPUs is
-    the latter's built-in support for double precision atomics and fewer GPU
-    synchronizations when accessing managed memory.
+    Arbor supports and has been tested on the Kepler (K20 & K80), Pascal (P100) and Volta (V100) GPUs
 
 .. _install:
 

@@ -31,6 +31,11 @@ add_library(pyarb MODULE
 target_link_libraries(pyarb PRIVATE arbor pybind11::module)
 set_target_properties(pyarb PROPERTIES PREFIX "${PYTHON_MODULE_PREFIX}" SUFFIX "${PYTHON_MODULE_EXTENSION}")
 
+# Required to avoid warnings from the linker:
+#       "caused by different translation units being compiled with different visibility settings"
+# Adding this here makes pyarb link without warnings, however it generates warnings for anything else that links against libarbor.
+#target_compile_options(arbor-private-deps INTERFACE -fvisibility=hidden)
+
 # Determine the installation path, according to the python version.
 find_package(PythonInterp REQUIRED)
 set(ARB_PYEXECDIR "${CMAKE_INSTALL_LIBDIR}/python${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}/site-packages")

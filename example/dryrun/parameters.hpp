@@ -22,25 +22,24 @@ struct cell_parameters {
     std::array<double,2> branch_probs = {1.0, 0.5}; //  Probability of a branch occuring.
     std::array<unsigned,2> compartments = {20, 2};  //  Compartment count on a branch.
     std::array<double,2> lengths = {200, 20};       //  Length of branch in μm.
-
-    // The number of synapses per cell.
-    unsigned synapses = 1;
 };
 
-struct ring_params {
-    ring_params() = default;
+struct run_params {
+    run_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 10;
+    bool dry_run = false;
+    unsigned num_cells_per_rank = 10;
+    unsigned num_ranks = 1;
     double min_delay = 10;
     double duration = 100;
     cell_parameters cell;
 };
 
-ring_params read_options(int argc, char** argv) {
+run_params read_options(int argc, char** argv) {
     using sup::param_from_json;
 
-    ring_params params;
+    run_params params;
     if (argc<2) {
         std::cout << "Using default parameters.\n";
         return params;
@@ -61,14 +60,15 @@ ring_params read_options(int argc, char** argv) {
     json << f;
 
     param_from_json(params.name, "name", json);
-    param_from_json(params.num_cells, "num-cells", json);
+    param_from_json(params.dry_run, "dry-run", json);
+    param_from_json(params.num_cells_per_rank, "num-cells-per-rank", json);
+    param_from_json(params.num_ranks, "num-ranks", json);
     param_from_json(params.duration, "duration", json);
     param_from_json(params.min_delay, "min-delay", json);
     param_from_json(params.cell.max_depth, "depth", json);
     param_from_json(params.cell.branch_probs, "branch-probs", json);
     param_from_json(params.cell.compartments, "compartments", json);
     param_from_json(params.cell.lengths, "lengths", json);
-    param_from_json(params.cell.synapses, "synapses", json);
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {
