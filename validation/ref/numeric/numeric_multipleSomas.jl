@@ -49,7 +49,7 @@ function parse_commandline()
             default = 0.025
         "--output", "-o"
             help = "JSON filename"
-            default = "output.txt"
+            default = "output.json"
     end
     return parse_args(s)
 end
@@ -88,6 +88,6 @@ for i=2:n_cells
     trace[:data][Symbol("soma.mid"*string(i))] = scale.(vs[i], 1mV)
 end
 
-fname = parsed_args["output"]
+fname = "output_$(parsed_args["ggap"]).txt"
 io = open(fname, "w");
 println(io, JSON.json([trace]))

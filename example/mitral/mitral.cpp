@@ -1,8 +1,3 @@
-/*
- * A miniapp that demonstrates how to make a model with gap junctions
- *
- */
-
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -43,27 +38,18 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params, bool stim);
+arb::mc_cell mitral_cell(double delay, double duration);
 
 class gj_recipe: public arb::recipe {
 public:
-    gj_recipe(unsigned num_cells, cell_parameters params, unsigned min_delay):
-        num_cells_(num_cells),
-        cell_params_(params),
-        min_delay_(min_delay)
-    {
-        for (unsigned i = 0; i < num_cells; i++) {
-            if(i != 0) {
-                cells.push_back(branch_cell(i, cell_params_, false));
-            }
-            else {
-                cells.push_back(branch_cell(i, cell_params_, true));
-            }
-        }
-        for (unsigned i = 0; i < num_cells; i++) {
-            cells[i].add_gap_junction(i, {0, 1}, (i+1)%num_cells, {0,1}, params.gap_cond);
-            cells[(i+1)%num_cells].add_gap_junction((i+1)%num_cells, {0, 1}, i, {0,1}, params.gap_cond);
-        }
+    gj_recipe() {
+        cells.push_back(mitral_cell(0.0, 300.0));
+        cells.push_back(mitral_cell(10.0, 300.0));
+
+        cells[0].add_gap_junction(0, {0, 1}, 1, {0,1}, 0.0040);
+        cells[1].add_gap_junction(1, {0, 1}, 0, {0,1}, 0.0040);
+
+        num_cells_ = cells.size();
     }
 
     cell_size_type num_cells() const override {
@@ -102,10 +88,14 @@ public:
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
 
+    arb::util::any get_global_properties(cell_kind k) const override {
+        arb::mc_cell_global_properties a;
+        a.temperature_K = 308.15;
+        return a;
+    }
+
 private:
     cell_size_type num_cells_;
-    cell_parameters cell_params_;
-    double min_delay_;
     std::vector<arb::mc_cell> cells;
 };
 
@@ -207,7 +197,7 @@ int main(int argc, char** argv) {
         };
 
         // Create an instance of our recipe.
-        gj_recipe recipe(params.num_cells, params.cell, params.min_delay);
+        gj_recipe recipe;
 
         for(unsigned i = 0; i < recipe.num_cells(); i++){
             std::cout << "Num gap_junctions for cell " << i << ":" << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
@@ -310,17 +300,120 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     }
 }
 
-arb::mc_cell branch_cell(arb::cell_gid_type gid, const cell_parameters& params, bool stim ) {
+arb::mc_cell mitral_cell(double delay, double duration) {
     arb::mc_cell cell;
 
-    // Add soma.
-    auto soma = cell.add_soma(18.8/2.0);
-    soma->add_mechanism("hh");
+    auto add_dend_mech = [](arb::cable_segment* seg) {
+        seg->cm = 0.018;
+        seg->rL = 150;
 
-    if (stim) {
-        arb::i_clamp stim(20, 2, 0.1);
-        cell.add_stimulus({0, 1}, stim);
+        arb::mechanism_desc pas("pas");
+        pas["g"] = 1.0/12000.0;
+        pas["e"] = -65;
+
+        arb::mechanism_desc nax("nax");
+        nax["gbar"] = 0.04;
+        nax["sh"] = 10;
+
+        arb::mechanism_desc kdrmt("kdrmt");
+        kdrmt["gbar"] = 0.0001;
+
+        arb::mechanism_desc kamt("kamt");
+        kamt["gbar"] = 0.004;
+
+        seg->add_mechanism(pas);
+        seg->add_mechanism(nax);
+        seg->add_mechanism(kdrmt);
+        seg->add_mechanism(kamt);
+
+    };
+
+    auto add_soma_mech = [](arb::soma_segment* seg) {
+        seg->cm = 0.018;
+        seg->rL = 150;
+
+        arb::mechanism_desc pas("pas");
+        pas["g"] = 1.0/12000.0;
+        pas["e"] = -65;
+
+        arb::mechanism_desc nax("nax");
+        nax["gbar"] = 0.04;
+        nax["sh"] = 10;
+
+        arb::mechanism_desc kdrmt("kdrmt");
+        kdrmt["gbar"] = 0.0001;
+
+        arb::mechanism_desc kamt("kamt");
+        kamt["gbar"] = 0.004;
+
+        seg->add_mechanism(pas);
+        seg->add_mechanism(nax);
+        seg->add_mechanism(kdrmt);
+        seg->add_mechanism(kamt);
+
+    };
+
+    auto add_init_seg_mech = [](arb::cable_segment* seg) {
+        seg->cm = 0.018;
+        seg->rL = 150;
+
+        arb::mechanism_desc pas("pas");
+        pas["g"] = 1.0/1000.0;
+        pas["e"] = -65;
+
+        arb::mechanism_desc nax("nax");
+        nax["gbar"] = 0.4;
+        nax["sh"] = 0;
+
+        arb::mechanism_desc kdrmt("kdrmt");
+        kdrmt["gbar"] = 0.0001;
+
+        arb::mechanism_desc kamt("kamt");
+        kamt["gbar"] = 0.04;
+
+        seg->add_mechanism(pas);
+        seg->add_mechanism(nax);
+        seg->add_mechanism(kdrmt);
+        seg->add_mechanism(kamt);
+
+    };
+
+    // Add soma, 2 secondary dendrites, primary dendrite, 20 tuft dendrites,
+    // a "hillock" segment at the soma and the initial segment of an axon
+
+
+    auto soma = cell.add_soma(20.0/2.0);
+    soma->set_compartments(1);
+    add_soma_mech(soma);
+
+    auto sec_dend_0 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 1
+    sec_dend_0->set_compartments(4);
+    add_dend_mech(sec_dend_0);
+
+    auto sec_dend_1 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 2
+    sec_dend_1->set_compartments(4);
+    add_dend_mech(sec_dend_1);
+
+    auto pri_dend = cell.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300); //cable 3
+    pri_dend->set_compartments(5);
+    add_dend_mech(pri_dend);
+
+    for (unsigned i = 0; i < 20; i++){
+        auto tuft_dend = cell.add_cable(3, arb::section_kind::dendrite, 0.4/2.0, 0.4/2.0, 300); // cable 4-23
+        tuft_dend->set_compartments(30);
+        add_dend_mech(tuft_dend);
+
+        arb::i_clamp stim(delay, duration, 0.02);
+        cell.add_stimulus({4+i, 0.25}, stim);
     }
+
+    auto hillock  = cell.add_cable(0, arb::section_kind::dendrite, 20.0/2.0, 1.5/2.0, 5); // cable 24
+    hillock->set_compartments(3);
+    add_dend_mech(hillock);
+
+    auto init_seg = cell.add_cable(24, arb::section_kind::dendrite, 1.5/2.0, 1.5/2.0, 30); //cable 25
+    init_seg->set_compartments(3);
+    add_init_seg_mech(init_seg);
 
     return cell;
 }
