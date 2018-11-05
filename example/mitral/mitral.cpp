@@ -46,8 +46,10 @@ public:
         cells.push_back(mitral_cell(0.0, 300.0));
         cells.push_back(mitral_cell(10.0, 300.0));
 
-        cells[0].add_gap_junction(0, {0, 1}, 1, {0,1}, 0.0040);
-        cells[1].add_gap_junction(1, {0, 1}, 0, {0,1}, 0.0040);
+        for (unsigned i = 0; i < 20; i++) {
+            cells[0].add_gap_junction(0, {4+i, 1}, 1, {4+i, 1}, 0.00037);
+            cells[1].add_gap_junction(1, {4+i, 1}, 0, {4+i, 1}, 0.00037);
+        }
 
         num_cells_ = cells.size();
     }
