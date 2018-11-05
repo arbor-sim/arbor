@@ -300,7 +300,8 @@ arb::mc_cell mitral_cell(double delay, double duration) {
     arb::mc_cell cell;
 
     auto add_dend_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.016;
+        seg->cm = 0.018;
+        seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
         pas["g"] = 1.0/12000.0;
@@ -324,7 +325,8 @@ arb::mc_cell mitral_cell(double delay, double duration) {
     };
 
     auto add_soma_mech = [](arb::soma_segment* seg) {
-        seg->cm = 0.016;
+        seg->cm = 0.018;
+        seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
         pas["g"] = 1.0/12000.0;
@@ -348,7 +350,8 @@ arb::mc_cell mitral_cell(double delay, double duration) {
     };
 
     auto add_init_seg_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.016;
+        seg->cm = 0.018;
+        seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
         pas["g"] = 1.0/1000.0;
