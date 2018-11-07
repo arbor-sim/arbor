@@ -38,17 +38,19 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell mitral_cell(double delay, double duration);
+arb::mc_cell mitral_cell(double delay, double duration, bool change_nax);
 
 class gj_recipe: public arb::recipe {
 public:
-    gj_recipe() {
-        cells.push_back(mitral_cell(0.0, 300.0));
-        cells.push_back(mitral_cell(10.0, 300.0));
+    gj_recipe(bool gj) {
+        cells.push_back(mitral_cell(0.0, 300.0, false));
+        cells.push_back(mitral_cell(10.0, 300.0, false));
 
-        for (unsigned i = 0; i < 20; i++) {
-            cells[0].add_gap_junction(0, {4+i, 1}, 1, {4+i, 1}, 0.00037);
-            cells[1].add_gap_junction(1, {4+i, 1}, 0, {4+i, 1}, 0.00037);
+        if(gj) {
+            for (unsigned i = 0; i < 20; i++) {
+                cells[0].add_gap_junction(0, {4 + i, 0.95}, 1, {4 + i, 0.95}, 0.00037);
+                cells[1].add_gap_junction(1, {4 + i, 0.95}, 0, {4 + i, 0.95}, 0.00037);
+            }
         }
 
         num_cells_ = cells.size();
@@ -85,7 +87,7 @@ public:
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
-        arb::segment_location loc(0, 1);
+        arb::segment_location loc(0, 0.5);
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
@@ -199,7 +201,7 @@ int main(int argc, char** argv) {
         };
 
         // Create an instance of our recipe.
-        gj_recipe recipe;
+        gj_recipe recipe(false);
 
         for(unsigned i = 0; i < recipe.num_cells(); i++){
             std::cout << "Num gap_junctions for cell " << i << ":" << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
@@ -305,8 +307,33 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     }
 }
 
-arb::mc_cell mitral_cell(double delay, double duration) {
+arb::mc_cell mitral_cell(double delay, double duration, bool change_nax) {
     arb::mc_cell cell;
+
+    auto add_tuft_mech = [](arb::cable_segment* seg) {
+        seg->cm = 0.018;
+        seg->rL = 150;
+
+        arb::mechanism_desc pas("pas");
+        pas["g"] = 1.0/12000.0;
+        pas["e"] = -65;
+
+        arb::mechanism_desc nax("nax");
+        nax["gbar"] = 0;
+        nax["sh"] = 10;
+
+        arb::mechanism_desc kdrmt("kdrmt");
+        kdrmt["gbar"] = 0.0001;
+
+        arb::mechanism_desc kamt("kamt");
+        kamt["gbar"] = 0.004;
+
+        seg->add_mechanism(pas);
+        seg->add_mechanism(nax);
+        seg->add_mechanism(kdrmt);
+        seg->add_mechanism(kamt);
+
+    };
 
     auto add_dend_mech = [](arb::cable_segment* seg) {
         seg->cm = 0.018;
@@ -406,7 +433,12 @@ arb::mc_cell mitral_cell(double delay, double duration) {
     for (unsigned i = 0; i < 20; i++){
         auto tuft_dend = cell.add_cable(3, arb::section_kind::dendrite, 0.4/2.0, 0.4/2.0, 300); // cable 4-23
         tuft_dend->set_compartments(30);
-        add_dend_mech(tuft_dend);
+        if(change_nax) {
+            add_tuft_mech(tuft_dend);
+        }
+        else {
+            add_dend_mech(tuft_dend);
+        }
 
         arb::i_clamp stim(delay, duration, 0.02);
         cell.add_stimulus({4+i, 0.25}, stim);
