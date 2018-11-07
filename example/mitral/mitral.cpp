@@ -21,11 +21,6 @@
 
 #include "parameters.hpp"
 
-#ifdef ARB_MPI_ENABLED
-#include <mpi.h>
-#include <sup/with_mpi.hpp>
-#endif
-
 using arb::cell_gid_type;
 using arb::cell_lid_type;
 using arb::cell_size_type;
@@ -38,16 +33,20 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell mitral_cell(double delay, double duration);
+arb::mc_cell mitral_cell(double delay, double duration, bool change_nax);
 
 class gj_recipe: public arb::recipe {
 public:
-    gj_recipe() {
-        cells.push_back(mitral_cell(0.0, 300.0));
-        cells.push_back(mitral_cell(10.0, 300.0));
+    gj_recipe(bool gj, bool eq_gbar_nax) {
+        cells.push_back(mitral_cell(0.0, 300.0, eq_gbar_nax));
+        cells.push_back(mitral_cell(10.0, 300.0, eq_gbar_nax));
 
-        cells[0].add_gap_junction(0, {0, 1}, 1, {0,1}, 0.0040);
-        cells[1].add_gap_junction(1, {0, 1}, 0, {0,1}, 0.0040);
+        if(gj) {
+            for (unsigned i = 0; i < 20; i++) {
+                cells[0].add_gap_junction(0, {4 + i, 0.95}, 1, {4 + i, 0.95}, 0.00037);
+                cells[1].add_gap_junction(1, {4 + i, 0.95}, 0, {4 + i, 0.95}, 0.00037);
+            }
+        }
 
         num_cells_ = cells.size();
     }
@@ -83,7 +82,7 @@ public:
         // Get the appropriate kind for measuring voltage.
         cell_probe_address::probe_kind kind = cell_probe_address::membrane_voltage;
         // Measure at the soma.
-        arb::segment_location loc(0, 1);
+        arb::segment_location loc(0, 0.5);
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
@@ -104,59 +103,40 @@ struct cell_stats {
     size_type ncells = 0;
     size_type nsegs = 0;
     size_type ncomp = 0;
+    std::vector<unsigned> gj_size;
 
     cell_stats(arb::recipe& r) {
-#ifdef ARB_MPI_ENABLED
-        int nranks, rank;
-        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &nranks);
-        ncells = r.num_cells();
-        size_type cells_per_rank = ncells/nranks;
-        size_type b = rank*cells_per_rank;
-        size_type e = (rank==nranks-1)? ncells: (rank+1)*cells_per_rank;
-        size_type nsegs_tmp = 0;
-        size_type ncomp_tmp = 0;
-        for (size_type i=b; i<e; ++i) {
-            auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
-            nsegs_tmp += c.num_segments();
-            ncomp_tmp += c.num_compartments();
-        }
-        MPI_Allreduce(&nsegs_tmp, &nsegs, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-        MPI_Allreduce(&ncomp_tmp, &ncomp, 1, MPI_UNSIGNED, MPI_SUM, MPI_COMM_WORLD);
-#else
         ncells = r.num_cells();
         for (size_type i=0; i<ncells; ++i) {
             auto c = arb::util::any_cast<arb::mc_cell>(r.get_cell_description(i));
             nsegs += c.num_segments();
             ncomp += c.num_compartments();
+            gj_size.push_back(arb::util::any_cast<arb::mc_cell>
+                    (r.get_cell_description(i)).gap_junctions().size());
         }
-#endif
     }
 
     friend std::ostream& operator<<(std::ostream& o, const cell_stats& s) {
-        return o << "cell stats: "
-                 << s.ncells << " cells; "
-                 << s.nsegs << " segments; "
-                 << s.ncomp << " compartments.";
+       o << "cell stats: "
+         << s.ncells << " cells; "
+         << s.nsegs << " segments; "
+         << s.ncomp << " compartments."
+         << std::endl;
+        for(unsigned i = 0; i < s.ncells; i++){
+            o << "Num gap_junctions for cell " << i << ":"
+              << s.gj_size[i]
+              << std::endl;
+        }
+        return o;
     }
+
 };
 
 
 int main(int argc, char** argv) {
     try {
         bool root = true;
-
-#ifdef ARB_MPI_ENABLED
-        sup::with_mpi guard(argc, argv, false);
-        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
-        {
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            root = rank==0;
-        }
-#else
         auto context = arb::make_context();
-#endif
 
 #ifdef ARB_PROFILE_ENABLED
         arb::profile::profiler_initialize(context);
@@ -164,29 +144,23 @@ int main(int argc, char** argv) {
 
         std::cout << sup::mask_stream(root);
 
-        // Print a banner with information about hardware configuration
-        std::cout << "gpu:      " << (has_gpu(context)? "yes": "no") << "\n";
-        std::cout << "threads:  " << num_threads(context) << "\n";
-        std::cout << "mpi:      " << (has_mpi(context)? "yes": "no") << "\n";
-        std::cout << "ranks:    " << num_ranks(context) << "\n" << std::endl;
-
         auto params = read_options(argc, argv);
 
         arb::profile::meter_manager meters;
         meters.start(context);
 
 
+        // Partition load balance
         auto partition = [&](){
             arb::domain_decomposition d;
             d.num_domains = 1;
             d.domain_id = 0;
-            d.num_local_cells = params.num_cells;
-            d.num_global_cells = params.num_cells;
+            d.num_local_cells = 2;
+            d.num_global_cells = 2;
 
             std::vector<cell_gid_type> group_elements;
-            for(unsigned i = 0; i < params.num_cells; i++) {
-                group_elements.push_back(i);
-            }
+            group_elements.push_back(0);
+            group_elements.push_back(1);
 
             std::vector<arb::group_description> group_desc =
                     {arb::group_description(arb::cell_kind::cable1d_neuron, std::move(group_elements), arb::backend_kind::multicore)};
@@ -197,24 +171,20 @@ int main(int argc, char** argv) {
         };
 
         // Create an instance of our recipe.
-        gj_recipe recipe;
+        gj_recipe recipe(params.gap_junction, params.equal_gbar_nax);
 
-        for(unsigned i = 0; i < recipe.num_cells(); i++){
-            std::cout << "Num gap_junctions for cell " << i << ":" << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
-        }
-
+        // Print cell stats
         cell_stats stats(recipe);
         std::cout << stats << "\n";
 
+        // Partition
         auto decomp = partition();
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
 
         // Set up the probe that will measure voltage in the cell.
-
         auto sched = arb::regular_schedule(0.025);
-        // This is where the voltage samples will be stored as (time, value) pairs
         std::vector<arb::trace_data<double>> voltage(recipe.num_cells());
 
         // Now attach the sampler at probe_id, with sampling schedule sched, writing to voltage
@@ -235,6 +205,7 @@ int main(int argc, char** argv) {
         meters.checkpoint("model-init", context);
 
         std::cout << "running simulation" << std::endl;
+
         // Run the simulation for 100 ms, with time steps of 0.025 ms.
         sim.run(params.duration, 0.025);
 
@@ -265,6 +236,9 @@ int main(int argc, char** argv) {
         if (root) {
             write_trace_json(voltage);
         }
+
+        auto profile = arb::profile::profiler_summary();
+        std::cout << profile << "\n";
 
         auto report = arb::profile::make_meter_report(meters, context);
         std::cout << report;
@@ -300,8 +274,33 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     }
 }
 
-arb::mc_cell mitral_cell(double delay, double duration) {
+arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     arb::mc_cell cell;
+
+    auto add_tuft_mech = [](arb::cable_segment* seg) {
+        seg->cm = 0.018;
+        seg->rL = 150;
+
+        arb::mechanism_desc pas("pas");
+        pas["g"] = 1.0/12000.0;
+        pas["e"] = -65;
+
+        arb::mechanism_desc nax("nax");
+        nax["gbar"] = 0;
+        nax["sh"] = 10;
+
+        arb::mechanism_desc kdrmt("kdrmt");
+        kdrmt["gbar"] = 0.0001;
+
+        arb::mechanism_desc kamt("kamt");
+        kamt["gbar"] = 0.004;
+
+        seg->add_mechanism(pas);
+        seg->add_mechanism(nax);
+        seg->add_mechanism(kdrmt);
+        seg->add_mechanism(kamt);
+
+    };
 
     auto add_dend_mech = [](arb::cable_segment* seg) {
         seg->cm = 0.018;
@@ -401,7 +400,12 @@ arb::mc_cell mitral_cell(double delay, double duration) {
     for (unsigned i = 0; i < 20; i++){
         auto tuft_dend = cell.add_cable(3, arb::section_kind::dendrite, 0.4/2.0, 0.4/2.0, 300); // cable 4-23
         tuft_dend->set_compartments(30);
-        add_dend_mech(tuft_dend);
+        if(eq_gbar_nax) {
+            add_dend_mech(tuft_dend);
+        }
+        else {
+            add_tuft_mech(tuft_dend);
+        }
 
         arb::i_clamp stim(delay, duration, 0.02);
         cell.add_stimulus({4+i, 0.25}, stim);
