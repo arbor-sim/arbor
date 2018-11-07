@@ -13,8 +13,9 @@ struct gj_params {
     gj_params() = default;
 
     std::string name = "default";
-    unsigned num_cells = 2;
     double duration = 300;
+    bool gap_junction = false;
+    bool equal_gbar_nax = true;
 };
 
 gj_params read_options(int argc, char** argv) {
@@ -41,8 +42,10 @@ gj_params read_options(int argc, char** argv) {
     json << f;
 
     param_from_json(params.name, "name", json);
-    param_from_json(params.num_cells, "num-cells", json);
     param_from_json(params.duration, "duration", json);
+    param_from_json(params.gap_junction, "gap-junction", json);
+    param_from_json(params.equal_gbar_nax, "equal-gbar-nax", json);
+
 
     if (!json.empty()) {
         for (auto it=json.begin(); it!=json.end(); ++it) {
