@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
 
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     for (unsigned i = 0; i < trace.size(); i++) {
-        std::string path = "./voltages_imp" + std::to_string(i) + ".json";
+        std::string path = "./voltages_exp" + std::to_string(i) + ".json";
 
         nlohmann::json json;
         json["name"] = "gj demo: cell " + std::to_string(i);
