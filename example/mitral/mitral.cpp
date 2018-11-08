@@ -33,12 +33,12 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell mitral_cell(double delay, double duration, bool change_nax);
+arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax);
 
 class gj_recipe: public arb::recipe {
 public:
     gj_recipe(bool gj, bool eq_gbar_nax) {
-        cells.push_back(mitral_cell(0.0, 300.0, eq_gbar_nax));
+        cells.push_back(mitral_cell(0.0, 300.0, true));
         cells.push_back(mitral_cell(10.0, 300.0, eq_gbar_nax));
 
         if(gj) {
@@ -278,7 +278,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     arb::mc_cell cell;
 
     auto add_tuft_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.018;
+        seg->cm = 0.0184;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
@@ -303,7 +303,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     };
 
     auto add_dend_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.018;
+        seg->cm = 0.0184;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
@@ -328,7 +328,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     };
 
     auto add_soma_mech = [](arb::soma_segment* seg) {
-        seg->cm = 0.018;
+        seg->cm = 0.0184;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
@@ -353,7 +353,7 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax) {
     };
 
     auto add_init_seg_mech = [](arb::cable_segment* seg) {
-        seg->cm = 0.018;
+        seg->cm = 0.0184;
         seg->rL = 150;
 
         arb::mechanism_desc pas("pas");
