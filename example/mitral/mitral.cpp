@@ -37,11 +37,11 @@ arb::mc_cell mitral_cell(double delay, double duration, bool eq_gbar_nax);
 
 class gj_recipe: public arb::recipe {
 public:
-    gj_recipe(bool gj, bool eq_gbar_nax) {
-        cells.push_back(mitral_cell(0.0, 300.0, true));
-        cells.push_back(mitral_cell(10.0, 300.0, eq_gbar_nax));
+    gj_recipe(gj_params params) {
+        cells.push_back(mitral_cell(0.0, params.duration, true));
+        cells.push_back(mitral_cell(10.0, params.duration, params.equal_gbar_nax));
 
-        if(gj) {
+        if(params.gap_junction) {
             for (unsigned i = 0; i < 20; i++) {
                 cells[0].add_gap_junction(0, {4 + i, 0.95}, 1, {4 + i, 0.95}, 0.00037);
                 cells[1].add_gap_junction(1, {4 + i, 0.95}, 0, {4 + i, 0.95}, 0.00037);
@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
         };
 
         // Create an instance of our recipe.
-        gj_recipe recipe(params.gap_junction, params.equal_gbar_nax);
+        gj_recipe recipe(params);
 
         // Print cell stats
         cell_stats stats(recipe);
