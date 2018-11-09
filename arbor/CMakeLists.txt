@@ -100,4 +100,5 @@ add_dependencies(arbor build_all_mods)
 target_link_libraries(arbor PRIVATE arbor-private-deps arbor-private-headers)
 target_link_libraries(arbor PUBLIC arbor-public-deps arbor-public-headers)
 
-install(TARGETS arbor ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(TARGETS arbor EXPORT arbor-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
