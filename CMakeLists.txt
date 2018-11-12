@@ -39,6 +39,7 @@ set(ARB_VALIDATION_DATA_DIR "${PROJECT_SOURCE_DIR}/validation/data" CACHE PATH
 #----------------------------------------------------------
 
 option(ARB_WITH_GPU "build with GPU support" OFF)
+option(ARB_WITH_GPU_FINE_MATRIX "use optimized fine matrix solver" ON)
 
 option(ARB_WITH_MPI "build with MPI support" OFF)
 
@@ -197,6 +198,9 @@ if(ARB_WITH_GPU)
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=integer_sign_change>"
         "$<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=unsigned_compare_with_zero>")
     target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU)
+    if(ARB_WITH_GPU_FINE_MATRIX)
+        target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
+    endif()
 
     target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
     target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
