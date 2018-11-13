@@ -66,6 +66,7 @@ TEST(stack, push_back) {
     kernels::push_back<<<1, n>>>(sstorage, kernels::all_ftor());
     cudaDeviceSynchronize();
     EXPECT_EQ(n, s.size());
+    std::sort(sstorage.data, sstorage.data+s.size());
     for (auto i=0; i<int(s.size()); ++i) {
         EXPECT_EQ(i, s[i]);
     }
@@ -74,6 +75,7 @@ TEST(stack, push_back) {
     kernels::push_back<<<1, n>>>(sstorage, kernels::even_ftor());
     cudaDeviceSynchronize();
     EXPECT_EQ(n/2, s.size());
+    std::sort(sstorage.data, sstorage.data+s.size());
     for (auto i=0; i<int(s.size())/2; ++i) {
         EXPECT_EQ(2*i, s[i]);
     }
@@ -82,6 +84,7 @@ TEST(stack, push_back) {
     kernels::push_back<<<1, n>>>(sstorage, kernels::odd_ftor());
     cudaDeviceSynchronize();
     EXPECT_EQ(n/2, s.size());
+    std::sort(sstorage.data, sstorage.data+s.size());
     for (auto i=0; i<int(s.size())/2; ++i) {
         EXPECT_EQ(2*i+1, s[i]);
     }
