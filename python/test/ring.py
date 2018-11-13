@@ -44,9 +44,19 @@ class ring_recipe(arb.recipe):
         src = self.num_cells()-1 if gid==0 else gid-1
         return [connection(cmem(src,0), cmem(gid,0), 0.1, 10)]
 
-# make parallel execution context
+    # Attach a generator to the cell in the middle of the ring.
+    def event_generators(self, gid):
+        if gid==self.num_cells()//2:
+            s = arb.explicit_schedule()
+            s.times = [0]
+            return [arb.event_generator(0, 10, s)]
+        return []
+
+# make execution context
 context = arb.context()
 
+# this will print out information about the number of threads, and information
+# about GPU and MPI if being used.
 print(context, '\n')
 
 meters = arb.meter_manager()
@@ -62,13 +72,14 @@ sim = arb.simulation(recipe, decomp, context)
 recorder = arb.make_spike_recorder(sim)
 meters.checkpoint('simulation init', context)
 
+# run the simulation for 2s (2000ms) with time steps of length 0.025 ms.
 sim.run(2000, 0.025)
 meters.checkpoint('simulation run', context)
 
 print(arb.make_meter_report(meters, context))
 
-print('SPIKES:')
 spikes = recorder.spikes
+print(len(spikes), ' spikes:')
 
 # print at most 10 spikes
 n_spikes_out = min(len(spikes), 10)

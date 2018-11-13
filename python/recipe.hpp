@@ -17,7 +17,7 @@
 
 namespace pyarb {
 
-// py::recipe is the recipe interface used by Python.
+// pyarb::recipe is the recipe interface used by Python.
 // Calls that return generic types return pybind11::object, to avoid
 // having to wrap some C++ types used by the C++ interface (specifically
 // util::unique_any, util::any, std::unique_ptr, etc.)
@@ -74,8 +74,8 @@ public:
 };
 
 // A recipe shim that forwards calls to arb::recipe to a python-side
-// arb::py::recipe implementation, and translates the output of the
-// arb::py::recipe return values to those used by arb::recipe.
+// pyarb::recipe implementation, and translates the output of the
+// pyarb::recipe for use by arb::recipe.
 // For example, unwrap cell descriptions stored in PyObject, and rewrap
 // in util::unique_any.
 class py_recipe_shim: public arb::recipe {
@@ -91,7 +91,7 @@ public:
         return impl_->num_cells();
     }
 
-    // The py::recipe::cell_decription returns a pybind11::object, that is
+    // The pyarb::recipe::cell_decription returns a pybind11::object, that is
     // unwrapped and copied into a util::unique_any.
     arb::util::unique_any get_cell_description(arb::cell_gid_type gid) const override;
 

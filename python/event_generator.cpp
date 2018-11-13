@@ -8,8 +8,9 @@
 
 namespace pyarb {
 
+// helper that builds an event generator given an lid, a weight, and a schedule shim.
 template <typename Sched>
-event_generator py_make_event_generator(
+event_generator make_event_generator(
         arb::cell_lid_type lid,
         double weight,
         const Sched& sched)
@@ -18,6 +19,7 @@ event_generator py_make_event_generator(
 }
 
 void register_event_generators(pybind11::module& m) {
+
     //
     // time sequence wrappers
     //
@@ -50,12 +52,13 @@ void register_event_generators(pybind11::module& m) {
     event_generator
         .def(pybind11::init<>(
             [](arb::cell_lid_type lid, double weight, const regular_schedule_shim& sched){
-                return py_make_event_generator(lid, weight, sched);}))
+                return make_event_generator(lid, weight, sched);}))
         .def(pybind11::init<>(
             [](arb::cell_lid_type lid, double weight, const explicit_schedule_shim& sched){
-                return py_make_event_generator(lid, weight, sched);}))
-        ;
-
+                return make_event_generator(lid, weight, sched);}))
+        .def(pybind11::init<>(
+            [](arb::cell_lid_type lid, double weight, const poisson_schedule_shim& sched){
+                return make_event_generator(lid, weight, sched);}));
 }
 
 } // namespace pyarb

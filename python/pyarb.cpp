@@ -2,8 +2,8 @@
 
 #include <pybind11/pybind11.h>
 
-// forward declarations of functions used to register API
-// types and functions to be expose to python
+// Forward declarations of functions used to register API
+// types and functions to be exposed to Python.
 namespace pyarb {
 
 void register_cells(pybind11::module& m);
