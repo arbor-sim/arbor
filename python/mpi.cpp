@@ -12,8 +12,6 @@
 
 #include "mpi.hpp"
 
-#define ARB_WITH_MPI4PY
-
 #ifdef ARB_WITH_MPI4PY
 #include <mpi4py/mpi4py.h>
 #endif
@@ -81,7 +79,6 @@ void register_mpi(pybind11::module& m) {
     #ifdef ARB_WITH_MPI4PY
     m.def("mpi_comm_from_mpi4py", comm_from_mpi4py);
     #endif
-
 }
 
 } // namespace pyarb
