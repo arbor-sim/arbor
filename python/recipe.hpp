@@ -8,6 +8,7 @@
 #include <pybind11/pytypes.h>
 #include <pybind11/stl.h>
 
+#include <arbor/arbexcept.hpp>
 #include <arbor/benchmark_cell.hpp>
 #include <arbor/event_generator.hpp>
 #include <arbor/lif_cell.hpp>
@@ -33,19 +34,21 @@ public:
     virtual arb::cell_size_type   num_cells() const = 0;
     virtual pybind11::object cell_description(arb::cell_gid_type gid) const = 0;
     virtual arb::cell_kind        kind(arb::cell_gid_type gid) const = 0;
-    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const { return {}; };
-    virtual arb::cell_size_type num_sources(arb::cell_gid_type) const { return 0; };
-    virtual arb::cell_size_type num_targets(arb::cell_gid_type) const { return 0; };
+    virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const { return {}; }
+    virtual arb::cell_size_type num_sources(arb::cell_gid_type) const { return 0; }
+    virtual arb::cell_size_type num_targets(arb::cell_gid_type) const { return 0; }
     virtual arb::cell_size_type num_probes(arb::cell_gid_type)  const { return 0; }
     virtual std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const {
         auto guard = pybind11::gil_scoped_acquire();
         return {};
     };
+    /*
     virtual pybind11::object get_probe(arb::cell_member_type id) const {
         auto guard = pybind11::gil_scoped_acquire();
-        throw bad_probe_id(probe_id);
+        //throw arb::bad_probe_id(arb::probe_id);
         return {};
     }
+    */
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -74,17 +77,21 @@ public:
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_targets, gid);
     }
 
+    /*
     arb::cell_size_type num_probes(arb::cell_gid_type)  const override {
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_probes, gid);
     }
+    */
 
     std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, event_generators, gid);
     }
 
+    /*
     pybind11::object get_probe(arb::cell_member_type id) const override {
         PYBIND11_OVERLOAD(pybind11::object, py_recipe, get_probe, id);
     }
+    */
 };
 
 // A recipe shim that holds a pyarb::recipe implwementation.
