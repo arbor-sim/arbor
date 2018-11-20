@@ -67,7 +67,7 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 
 # When we find threads, prefer -pthread option.
-set(THREADS_PREFER_PTHREAD_FLAG ON)
+set(THREADS_PREFER_PTHREAD_FLAG OFF)
 
 # Add CUDA as a language if GPU support requested.
 # (This has to be set early so as to enable CUDA tests in generator
