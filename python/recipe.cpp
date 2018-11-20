@@ -72,6 +72,9 @@ std::vector<arb::event_generator> py_recipe_shim::event_generators(arb::cell_gid
     return gens;
 }
 
+// TODO: implement py_recipe_shim::get_probe_info
+
+
 void register_recipe(pybind11::module& m) {
     using namespace pybind11::literals;
 
@@ -101,6 +104,8 @@ void register_recipe(pybind11::module& m) {
         .def("__str__", &connection_string)
         .def("__repr__", &connection_string);
 
+    // TODO: wrapper for mc_cell group probe_address?
+
     // Recipies
     pybind11::class_<py_recipe,
                      py_recipe_trampoline,
@@ -126,6 +131,8 @@ void register_recipe(pybind11::module& m) {
         .def("num_sources", &py_recipe::num_sources,
             "gid"_a,
             "The number of spike sources on gid")
+        // TODO: py_recipe_shim::get_probe_info
+        // TODO: py_recipe_shim::get_num_probes
         .def("__str__", [](const py_recipe&){return "<pyarb.recipe>";})
         .def("__repr__", [](const py_recipe&){return "<pyarb.recipe>";});
 }

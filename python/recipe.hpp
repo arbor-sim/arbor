@@ -36,10 +36,16 @@ public:
     virtual std::vector<arb::cell_connection> connections_on(arb::cell_gid_type gid) const { return {}; };
     virtual arb::cell_size_type num_sources(arb::cell_gid_type) const { return 0; };
     virtual arb::cell_size_type num_targets(arb::cell_gid_type) const { return 0; };
+    virtual arb::cell_size_type num_probes(arb::cell_gid_type)  const { return 0; }
     virtual std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const {
         auto guard = pybind11::gil_scoped_acquire();
         return {};
     };
+    virtual pybind11::object get_probe(arb::cell_member_type id) const {
+        auto guard = pybind11::gil_scoped_acquire();
+        throw bad_probe_id(probe_id);
+        return {};
+    }
 };
 
 class py_recipe_trampoline: public py_recipe {
@@ -68,14 +74,22 @@ public:
         PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_targets, gid);
     }
 
+    arb::cell_size_type num_probes(arb::cell_gid_type)  const override {
+        PYBIND11_OVERLOAD(arb::cell_size_type, py_recipe, num_probes, gid);
+    }
+
     std::vector<pybind11::object> event_generators(arb::cell_gid_type gid) const override {
         PYBIND11_OVERLOAD(std::vector<pybind11::object>, py_recipe, event_generators, gid);
     }
+
+    pybind11::object get_probe(arb::cell_member_type id) const override {
+        PYBIND11_OVERLOAD(pybind11::object, py_recipe, get_probe, id);
+    }
 };
 
-// A recipe shim that forwards calls to arb::recipe to a python-side
-// pyarb::recipe implementation, and translates the output of the
-// pyarb::recipe for use by arb::recipe.
+// A recipe shim that holds a pyarb::recipe implwementation.
+// Unwraps/translates python-side output from pyarb::recipe and forwards
+// to arb::recipe.
 // For example, unwrap cell descriptions stored in PyObject, and rewrap
 // in util::unique_any.
 class py_recipe_shim: public arb::recipe {
@@ -111,7 +125,13 @@ public:
         return impl_->num_targets(gid);
     }
 
+    arb::cell_size_type num_probes(arb::cell_gid_type gid) const override {
+        return impl_->num_probes(gid);
+    }
+
     std::vector<arb::event_generator> event_generators(arb::cell_gid_type gid) const override;
+
+    arb::probe_info get_probe(arb::cell_member_type id) const override;
 };
 
 } // namespace pyarb

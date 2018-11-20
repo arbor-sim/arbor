@@ -1,3 +1,17 @@
+#include <memory>
+#include <vector>
+
+#include <arbor/spike.hpp>
+#include <arbor/simulation.hpp>
+
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+
+#include "strings.hpp"
+
+namespace pyarb {
+
+} // namespace pyarb
 
 /*
     // Wrap the cell_kind enum type.
