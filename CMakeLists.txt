@@ -330,6 +330,27 @@ write_basic_package_version_file(
 # Template file will use contents of arbor_export_dependencies to include the
 # required `find_dependency` statements, and arbor_supported_components will
 # be used to check feature support.
+#
+# To avoid CMake users of the installed arbor library conditionally requiring
+# that they add CUDA to their project language, explicitly munge the import
+# language and library dependencies on the installed target if ARP_WITH_GPU
+# is set, via the variables arbor_override_import_lang and arbor_add_import_libs.
+# arbor_build_config records our build type in a way compatible with the
+# generated export cmake files.
+
+set(arbor_build_config NOCONFIG)
+if(CMAKE_BUILD_TYPE)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" arbor_build_config)
+endif()
+
+set(arbor_override_import_lang)
+set(arbor_add_import_libs)
+
+if(ARB_WITH_GPU)
+    set(arbor_override_import_lang CXX)
+    find_package(CUDA REQUIRED)
+    set(arbor_add_import_libs ${CUDA_LIBRARIES})
+endif()
 
 configure_file(
     cmake/arbor-config.cmake.in
