@@ -66,7 +66,8 @@ if (NOT CMAKE_BUILD_TYPE)
     set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "debug" "release")
 endif()
 
-# When we find threads, prefer -pthread option.
+# When we find threads, prefer not to use the -pthread option
+# in order to avoid a CMake 3.12 issue.
 set(THREADS_PREFER_PTHREAD_FLAG OFF)
 
 # Add CUDA as a language if GPU support requested.
