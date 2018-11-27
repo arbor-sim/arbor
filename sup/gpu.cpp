@@ -1,5 +1,7 @@
 #include <vector>
 
+#include <arbor/version.hpp>
+
 #ifdef ARB_GPU_ENABLED
 #include <cuda_runtime.h>
 #endif
