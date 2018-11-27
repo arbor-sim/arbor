@@ -13,13 +13,10 @@ set(arbor_sources
     common_types_io.cpp
     execution_context.cpp
     gpu_context.cpp
-    local_alloc.cpp
     event_binner.cpp
     fvm_layout.cpp
     fvm_lowered_cell_impl.cpp
-    hardware/affinity.cpp
     hardware/memory.cpp
-    hardware/node_info.cpp
     hardware/power.cpp
     io/locked_ostream.cpp
     io/serialize_hex.cpp
@@ -43,7 +40,6 @@ set(arbor_sources
     spike_source_cell_group.cpp
     swcio.cpp
     threading/threading.cpp
-    threading/thread_info.cpp
     thread_private_spike_store.cpp
     tree.cpp
     util/hostname.cpp

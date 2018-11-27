@@ -4,17 +4,6 @@
 
 namespace arb {
 
-/// Summary of all available local computation resource.
-struct local_resources {
-    const unsigned num_threads;
-    const unsigned num_gpus;
-
-    local_resources(unsigned threads, unsigned gpus):
-        num_threads(threads),
-        num_gpus(gpus)
-    {}
-};
-
 /// Requested dry-run parameters
 struct dry_run_info {
     unsigned num_ranks;
@@ -23,9 +12,6 @@ struct dry_run_info {
             num_ranks(ranks),
             num_cells_per_rank(cells_per_rank) {}
 };
-
-/// Determine available local domain resources.
-local_resources get_local_resources();
 
 /// A subset of local computation resources to use in a computation.
 struct proc_allocation {
@@ -37,17 +23,8 @@ struct proc_allocation {
     // see CUDA documenation for cudaSetDevice and cudaDeviceGetAttribute 
     int gpu_id;
 
-    // By default a proc_allocation will take all available threads and the
-    // GPU with id 0, if available.
-    proc_allocation() {
-        auto avail = get_local_resources();
-
-        // By default take all available threads.
-        num_threads = avail.num_threads;
-
-        // Take the first GPU, if available.
-        gpu_id = avail.num_gpus>0? 0: -1;
-    }
+    // By default a proc_allocation uses one thread and no GPU.
+    proc_allocation(): proc_allocation(1, -1) {}
 
     proc_allocation(unsigned threads, int gpu):
         num_threads(threads),
