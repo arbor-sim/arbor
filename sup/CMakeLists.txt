@@ -1,6 +1,8 @@
 set(sup-sources
-
+    affinity.cpp
+    concurrency.cpp
     glob.cpp
+    gpu.cpp
     ioutil.cpp
     json_meter.cpp
     path.cpp

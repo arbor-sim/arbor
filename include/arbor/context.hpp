@@ -23,7 +23,7 @@ struct proc_allocation {
     // see CUDA documenation for cudaSetDevice and cudaDeviceGetAttribute 
     int gpu_id;
 
-    // By default a proc_allocation uses one thread and no GPU.
+    // By default use one thread and no GPU.
     proc_allocation(): proc_allocation(1, -1) {}
 
     proc_allocation(unsigned threads, int gpu):
