@@ -334,7 +334,7 @@ write_basic_package_version_file(
 #
 # To avoid CMake users of the installed arbor library conditionally requiring
 # that they add CUDA to their project language, explicitly munge the import
-# language and library dependencies on the installed target if ARP_WITH_GPU
+# language and library dependencies on the installed target if ARB_WITH_GPU
 # is set, via the variables arbor_override_import_lang and arbor_add_import_libs.
 # arbor_build_config records our build type in a way compatible with the
 # generated export cmake files.
