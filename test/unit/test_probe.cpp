@@ -11,8 +11,6 @@
 #include "common.hpp"
 #include "../common_cells.hpp"
 #include "../simple_recipes.hpp"
-#include <arbor/util/any.hpp>
-
 
 using namespace arb;
 using fvm_cell = fvm_lowered_cell_impl<multicore::backend>;
