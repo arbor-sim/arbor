@@ -91,7 +91,6 @@ private:
     std::vector<mechanism_ptr> mechanisms_;
     std::vector<gap_junction> gap_junctions_;
     std::vector<value_type> cv_area_;
-    int count = 0;
 
     // Non-physical voltage check threshold, 0 => no check.
     value_type check_voltage_mV = 0;
@@ -177,7 +176,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
     // complete fvm state into shared state object.
 
     while (remaining_steps) {
-        count++;
         // Deliver events and accumulate mechanism current contributions.
 
         PE(advance_integrate_events);
@@ -230,14 +228,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
 
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
-
-        /*if(count%10 == 0) {
-            for (unsigned i = 0; i < matrix_.solution().size(); i++) {
-                std::cout << matrix_.solution()[i] << " ";
-            }
-            std::cout << "\n";
-        }*/
-
         memory::copy(matrix_.solution(), state_->voltage);
         PL();
 

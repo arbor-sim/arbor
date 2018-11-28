@@ -1,11 +1,9 @@
 #pragma once
 
-#include <fvm_layout.hpp>
 #include <util/partition.hpp>
 #include <util/span.hpp>
 
 #include "multicore_common.hpp"
-#include "profile/profiler_macro.hpp"
 
 namespace arb {
 namespace multicore {
@@ -26,7 +24,6 @@ public:
     array d;     // [μS]
     array u;     // [μS]
     array rhs;   // [nA]
-    array v;     // [nA]
 
     array cv_capacitance;      // [pF]
     array face_conductance;    // [μS]
@@ -35,27 +32,19 @@ public:
     // the invariant part of the matrix diagonal
     array invariant_d;         // [μS]
 
-    std::vector<gap_junction> gj;
-
-    array r, p, Ap, MinvR;
-    array scalars;	// array of variables (RTMinvR, RTMinvR_new, P^TAP, alpha, beta)
-
     matrix_state() = default;
 
     matrix_state(const std::vector<index_type>& p,
                  const std::vector<index_type>& cell_cv_divs,
                  const std::vector<value_type>& cap,
                  const std::vector<value_type>& cond,
-                 const std::vector<value_type>& area,
-                 const std::vector<gap_junction>& gj_coords):
+                 const std::vector<value_type>& area):
         parent_index(p.begin(), p.end()),
         cell_cv_divs(cell_cv_divs.begin(), cell_cv_divs.end()),
-        d(size(), 0), u(size(), 0), rhs(size()), v(size(), 0),
+        d(size(), 0), u(size(), 0), rhs(size()),
         cv_capacitance(cap.begin(), cap.end()),
         face_conductance(cond.begin(), cond.end()),
-        cv_area(area.begin(), area.end()), gj(gj_coords),
-        r(size()), p(size()), Ap(size()),
-        MinvR(size()), scalars(3)
+        cv_area(area.begin(), area.end())
     {
         arb_assert(cap.size() == size());
         arb_assert(cond.size() == size());
@@ -70,9 +59,6 @@ public:
             invariant_d[i] += gij;
             invariant_d[p[i]] += gij;
         }
-        /*for (auto g: gj_coords) {
-            invariant_d[g.loc.first] += g.weight;
-        }*/
     }
 
     const_view solution() const {
@@ -103,127 +89,42 @@ public:
                     d[i] = gi + invariant_d[i];
                     // convert current to units nA
                     rhs[i] = gi*voltage[i] - 1e-3*cv_area[i]*current[i];
-                    v[i] = voltage[i];
                 }
             }
             else {
                 for (auto i: util::make_span(cell_cv_part[m])) {
                     d[i] = 0;
                     rhs[i] = voltage[i];
-                    v[i] = voltage[i];
                 }
             }
         }
     }
 
     void solve() {
-        /*if (gj.size()) {
-            solve_cg();
-        }
-        else {
-            solve_tdma(rhs);
-        }*/
-        solve_tdma(rhs);
-    }
-
-
-
-private:
-    void solve_tdma(array& res) {
         // loop over submatrices
         for (auto cv_span: util::partition_view(cell_cv_divs)) {
             auto first = cv_span.first;
             auto last = cv_span.second; // one past the end
 
-            auto t = d;
-
-            if (t[first]!=0) {
+            if (d[first]!=0) {
                 // backward sweep
                 for(auto i=last-1; i>first; --i) {
-                    auto factor = u[i] / t[i];
-                    t[parent_index[i]] -= factor * u[i];
-                    res[parent_index[i]] -= factor * res[i];
+                    auto factor = u[i] / d[i];
+                    d[parent_index[i]]   -= factor * u[i];
+                    rhs[parent_index[i]] -= factor * rhs[i];
                 }
-                res[first] /= t[first];
+                rhs[first] /= d[first];
 
                 // forward sweep
                 for(auto i=first+1; i<last; ++i) {
-                    res[i] -= u[i] * res[parent_index[i]];
-                    res[i] /= t[i];
+                    rhs[i] -= u[i] * rhs[parent_index[i]];
+                    rhs[i] /= d[i];
                 }
             }
         }
     }
 
-    void solve_cg() {
-        // Initialize
-        if(d[0] == 0) {
-            return;
-        }
-
-        auto matrix_vector_prod = [this](const array& v_in, array& v_out) {
-            v_out[0] = d[0] *v_in[0];
-            for (unsigned i = 1; i < size(); i++) {
-                unsigned pi = parent_index[i];
-                v_out[i] = d[i] * v_in[i] +  u[i] * v_in[pi];
-                v_out[pi] += u[i] * v_in[i];
-            }
-            for (auto g: gj) {
-                v_out[g.loc.first] -= g.weight * v_in[g.loc.second];
-            }
-        };
-
-        r = rhs;
-
-        matrix_vector_prod(v, rhs);
-
-        for (unsigned i = 0; i < rhs.size(); ++i) {
-            r[i] -= rhs[i];
-        }
-
-        MinvR = r;
-        solve_tdma(MinvR);
-
-        p = MinvR;
-        rhs = v;
-
-        // Iterate
-        for (int j = 1; j < 42; ++j){
-            // Calculate AP
-            matrix_vector_prod(p, Ap);
-
-            // Calculate P^T*AP and store
-            scalars[2] = std::inner_product(p.begin(), p.end(), Ap.begin(), value_type(0));
-
-            // Calculate R^T*MinvR and store
-            scalars[0] = std::inner_product(r.begin(), r.end(), MinvR.begin(), value_type(0));
-
-            // Update x and r
-            float alpha = scalars[0]/scalars[2];
-            for (unsigned i = 0; i < rhs.size(); ++i) {
-                rhs[i] +=  alpha * p[i];
-                r[i] -= alpha * Ap[i];
-            }
-
-            // Calculate new MinvR
-            MinvR = r;
-            solve_tdma(MinvR);
-
-            // Calculate new residual and store
-            scalars[1] = std::inner_product(r.begin(), r.end(), MinvR.begin(), value_type(0));
-
-            if(sqrt(std::abs(scalars[1])) < 1e-11) {
-                break;
-            }
-
-            // Update P and compute beta
-            float beta = scalars[1]/scalars[0];
-            for (unsigned i = 0; i < p.size() ; ++i) {
-                p[i] = MinvR[i] + beta * p[i];
-            }
-        }
-        return;
-    };
+private:
 
     std::size_t size() const {
         return parent_index.size();

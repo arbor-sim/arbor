@@ -95,7 +95,6 @@ public:
         auto gen = std::mt19937(i); // TODO: replace this with hashing generator...
 
         const auto& morph = get_morphology(i);
-
         unsigned cell_segments = morph.components();
 
         auto cell = make_basic_cell(morph, param_.num_compartments, param_.num_synapses,
