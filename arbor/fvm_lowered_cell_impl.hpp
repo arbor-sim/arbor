@@ -225,7 +225,6 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         PE(advance_integrate_matrix_build);
         matrix_.assemble(state_->dt_cell, state_->voltage, state_->current_density);
         PL();
-
         PE(advance_integrate_matrix_solve);
         matrix_.solve();
         memory::copy(matrix_.solution(), state_->voltage);
@@ -358,7 +357,6 @@ void fvm_lowered_cell_impl<B>::initialize(
 
     fvm_discretization D = fvm_discretize(cells);
     arb_assert(D.ncell == ncell);
-
 
     // Get list of gap junctions
 
