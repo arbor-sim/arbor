@@ -86,3 +86,4 @@ TEST(probe, fvm_lowered_cell) {
 
     EXPECT_EQ(voltage[0], *p0);
 }
+

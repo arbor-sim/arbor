@@ -36,11 +36,10 @@ public:
            const std::vector<index_type>& ci,
            const std::vector<value_type>& cv_capacitance,
            const std::vector<value_type>& face_conductance,
-           const std::vector<value_type>& cv_area,
-           const std::vector<gap_junction>& gj_coords = std::vector<gap_junction>()):
+           const std::vector<value_type>& cv_area):
         parent_index_(pi.begin(), pi.end()),
         cell_index_(ci.begin(), ci.end()),
-        state_(pi, ci, cv_capacitance, face_conductance, cv_area, gj_coords)
+        state_(pi, ci, cv_capacitance, face_conductance, cv_area)
     {
         arb_assert(cell_index_[num_cells()] == index_type(parent_index_.size()));
     }
