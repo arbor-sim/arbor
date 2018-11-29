@@ -54,6 +54,44 @@ namespace {
     private:
         cell_size_type size_;
     };
+
+    class gj_recipe: public recipe {
+    public:
+        gj_recipe(cell_size_type s): size_(s) {}
+
+        cell_size_type num_cells() const override {
+            return size_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type) const override {
+            return {};
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return gid%2?
+                   cell_kind::spike_source:
+                   cell_kind::cable1d_neuron;
+        }
+        std::vector<cell_gid_type> group_with(cell_gid_type gid) const override{
+            switch (gid) {
+                case 0 : return {2, 4};
+                case 1 : return {3};
+                case 2 : return {0, 4};
+                case 3 : return {1, 5, 6};
+                case 4 : return {0, 2};
+                case 5 : return {3, 10};
+                case 6 : return {3};
+                case 7 : return {8};
+                case 8 : return {7, 9};
+                case 9 : return {8};
+                case 10 : return {5};
+            }
+        }
+
+    private:
+        cell_size_type size_;
+        std::vector<mc_cell> cells_;
+    };
 }
 
 // test assumes one domain
@@ -208,6 +246,18 @@ TEST(domain_decomposition, heterogenous_population)
             }
         }
     }
+}
+
+TEST(domain_decomposition, compulsory_groups)
+{
+    proc_allocation resources;
+    resources.num_threads = 1;
+    resources.gpu_id = -1; // disable GPU if available
+    auto ctx = make_context(resources);
+
+    unsigned num_cells = 10;
+    auto R = gj_recipe(num_cells);
+    const auto D = partition_load_balance(R, ctx);
 }
 
 TEST(domain_decomposition, hints) {

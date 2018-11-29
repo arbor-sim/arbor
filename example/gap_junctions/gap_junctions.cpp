@@ -104,6 +104,18 @@ public:
         return a;
     }
 
+    std::vector<cell_gid_type> group_with(cell_gid_type gid) const override{
+        std::vector<cell_gid_type> conns;
+        for (auto gj: cells[gid].gap_junctions()) {
+            conns.push_back(gj.dest.gid);
+        }
+
+        std::sort(conns.begin(), conns.end());
+        auto last = std::unique(conns.begin(), conns.end());
+        conns.erase(last, conns.end());
+        return conns;
+    }
+
 private:
     cell_size_type num_cells_;
     std::vector<arb::mc_cell> cells;
@@ -208,6 +220,15 @@ int main(int argc, char** argv) {
 
         // Create an instance of our recipe.
         gj_recipe recipe(params);
+
+        for(unsigned i = 0; i < params.num_cells; i++) {
+            auto conns = recipe.group_with(i);
+            std::cout << "for cell " << i << " : { ";
+            for(auto c: conns) {
+                std::cout << c << " ";
+            }
+            std::cout << "}\n";
+        }
 
         for(unsigned i = 0; i < recipe.num_cells(); i++){
             std::cout << "Num gap_junctions for cell " << i << ":" << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;

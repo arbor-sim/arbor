@@ -11,6 +11,8 @@
 #include "util/partition.hpp"
 #include "util/span.hpp"
 
+#include<iostream>
+
 namespace arb {
 
 domain_decomposition partition_load_balance(
@@ -44,6 +46,48 @@ domain_decomposition partition_load_balance(
         const cell_gid_type R = num_global_cells - num_domains*B;
         return B + (dom<R);
     };
+
+    // Compulsory groups
+    std::vector<std::vector<cell_gid_type>> comp_groups;
+
+    std::unordered_map<cell_gid_type, bool> visited;
+    for (unsigned i = 0; i < rec.num_cells(); i++) {
+        auto conns = rec.group_with(i);
+        if(!conns.empty()){
+            visited[i] = false;
+        }
+    }
+
+    std::queue<cell_gid_type> q;
+    for(auto iter = visited.begin(); iter != visited.end(); ++iter) {
+        if(!visited[iter->first]) {
+            q.push(iter->first);
+            visited[iter->first] = true;
+            std::vector<cell_gid_type> cg;
+            while (!q.empty()) {
+                auto element = q.front();
+                q.pop();
+                cg.push_back(element);
+                auto conns = rec.group_with(element);
+                for (auto c: conns) {
+                    if (!visited[c]) {
+                        q.push(c);
+                        visited[c] = true;
+                    }
+                }
+            }
+            comp_groups.push_back(cg);
+        }
+    }
+
+    for(auto i: comp_groups) {
+        std::sort(i.begin(), i.end());
+        std::cout << "{ ";
+        for(auto j: i) {
+            std::cout << j << " ";
+        }
+        std::cout << "}\n";
+    }
 
     // Global load balance
 

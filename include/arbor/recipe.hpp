@@ -65,6 +65,9 @@ public:
     virtual std::vector<cell_connection> connections_on(cell_gid_type) const {
         return {};
     }
+    virtual std::vector<cell_gid_type> group_with(cell_gid_type) const {
+        return {};
+    }
 
     virtual probe_info get_probe(cell_member_type probe_id) const {
         throw bad_probe_id(probe_id);
