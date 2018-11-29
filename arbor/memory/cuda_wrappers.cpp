@@ -11,7 +11,7 @@
 #include <cuda_runtime.h>
 
 #define HANDLE_CUDA_ERROR(error, msg)\
-throw arbor_exception("memory:: "+std::string(__func__)+" "+std::string((msg))+": "+cudaGetErrorString(error));
+throw arbor_exception("CUDA memory:: "+std::string(__func__)+" "+std::string((msg))+": "+cudaGetErrorString(error));
 
 namespace arb {
 namespace memory {
@@ -21,21 +21,18 @@ using std::to_string;
 void cuda_memcpy_d2d(void* dest, const void* src, std::size_t n) {
     if (auto error = cudaMemcpy(dest, src, n, cudaMemcpyDeviceToDevice)) {
         HANDLE_CUDA_ERROR(error, "n="+to_string(n));
-        abort();
     }
 }
 
 void cuda_memcpy_d2h(void* dest, const void* src, std::size_t n) {
     if (auto error = cudaMemcpy(dest, src, n, cudaMemcpyDeviceToHost)) {
         HANDLE_CUDA_ERROR(error, "n="+to_string(n));
-        abort();
     }
 }
 
 void cuda_memcpy_h2d(void* dest, const void* src, std::size_t n) {
     if (auto error = cudaMemcpy(dest, src, n, cudaMemcpyHostToDevice)) {
         HANDLE_CUDA_ERROR(error, "n="+to_string(n));
-        abort();
     }
 }
 
