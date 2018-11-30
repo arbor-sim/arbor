@@ -72,7 +72,7 @@ namespace {
                    cell_kind::spike_source:
                    cell_kind::cable1d_neuron;
         }
-        std::vector<cell_gid_type> group_with(cell_gid_type gid) const override{
+        std::vector<cell_gid_type> group_with(cell_gid_type gid) const override {
             /*switch (gid) {
                 case 0 : return {2, 4};
                 case 1 : return {3};
@@ -102,12 +102,12 @@ namespace {
                 case 12 : return {};
                 case 13 : return {0};
                 case 14 : return {};
+                default : return {};
             }
         }
 
     private:
         cell_size_type size_;
-        std::vector<mc_cell> cells_;
     };
 }
 

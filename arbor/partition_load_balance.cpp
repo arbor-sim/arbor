@@ -95,6 +95,7 @@ domain_decomposition partition_load_balance(
     comp_groups.erase(std::remove_if(comp_groups.begin(), comp_groups.end(),
             [gid_part, domain_id](std::vector<cell_gid_type> cg)
             {
+                std::sort(cg.begin(), cg.end());
                 return cg.front() < gid_part[domain_id].first;
             }), comp_groups.end());
 
@@ -107,7 +108,7 @@ domain_decomposition partition_load_balance(
         std::cout << "}\n";
     }
 
-    std::cout << "[ ";
+    std::cout << "domain " << domain_id << " [ ";
     for(auto i: ind_cells) {
         std::cout << i << " ";
     }
