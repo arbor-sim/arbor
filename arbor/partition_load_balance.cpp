@@ -12,7 +12,6 @@
 #include "util/span.hpp"
 
 #include<iostream>
-
 namespace arb {
 
 domain_decomposition partition_load_balance(
@@ -47,48 +46,6 @@ domain_decomposition partition_load_balance(
         return B + (dom<R);
     };
 
-    // Compulsory groups
-    std::vector<std::vector<cell_gid_type>> comp_groups;
-
-    std::unordered_map<cell_gid_type, bool> visited;
-    for (unsigned i = 0; i < rec.num_cells(); i++) {
-        auto conns = rec.group_with(i);
-        if(!conns.empty()){
-            visited[i] = false;
-        }
-    }
-
-    std::queue<cell_gid_type> q;
-    for(auto iter = visited.begin(); iter != visited.end(); ++iter) {
-        if(!visited[iter->first]) {
-            q.push(iter->first);
-            visited[iter->first] = true;
-            std::vector<cell_gid_type> cg;
-            while (!q.empty()) {
-                auto element = q.front();
-                q.pop();
-                cg.push_back(element);
-                auto conns = rec.group_with(element);
-                for (auto c: conns) {
-                    if (!visited[c]) {
-                        q.push(c);
-                        visited[c] = true;
-                    }
-                }
-            }
-            comp_groups.push_back(cg);
-        }
-    }
-
-    for(auto i: comp_groups) {
-        std::sort(i.begin(), i.end());
-        std::cout << "{ ";
-        for(auto j: i) {
-            std::cout << j << " ";
-        }
-        std::cout << "}\n";
-    }
-
     // Global load balance
 
     std::vector<cell_gid_type> gid_divisions;
@@ -100,6 +57,50 @@ domain_decomposition partition_load_balance(
     std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
     for (auto gid: make_span(gid_part[domain_id])) {
         kind_lists[rec.get_cell_kind(gid)].push_back(gid);
+    }
+
+    // Compulsory groups
+    std::vector<std::vector<cell_gid_type>> comp_groups;
+
+    // Map to track visited cells (cells that already belong to a group)
+    std::unordered_map<cell_gid_type, bool> visited;
+
+    // Connected components algorithm using BFS
+    std::queue<cell_gid_type> q;
+    for(unsigned i = 0; i < rec.num_cells(); ++i) {
+        // If cell is not required to be in a group, skip
+        if(!rec.group_with(i).empty()) {
+            // If cell hasn't been visisted yet, must belong to new group
+            // Perform BFS starting from that cell
+            if (visited.find(i) == visited.end()) {
+                std::vector<cell_gid_type> cg;
+                q.push(i);
+                visited[i] = true;
+                while (!q.empty()) {
+                    auto element = q.front();
+                    q.pop();
+                    cg.push_back(element);
+                    // Adjacency list
+                    auto conns = rec.group_with(element);
+                    for (auto c: conns) {
+                        if (visited.find(c) == visited.end()) {
+                            q.push(c);
+                            visited[c] = true;
+                        }
+                    }
+                }
+                comp_groups.push_back(cg);
+            }
+        }
+    }
+
+    for(auto i: comp_groups) {
+        std::sort(i.begin(), i.end());
+        std::cout << "{ ";
+        for(auto j: i) {
+            std::cout << j << " ";
+        }
+        std::cout << "}\n";
     }
 
     // Create a flat vector of the cell kinds present on this node,

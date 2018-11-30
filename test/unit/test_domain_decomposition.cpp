@@ -73,7 +73,7 @@ namespace {
                    cell_kind::cable1d_neuron;
         }
         std::vector<cell_gid_type> group_with(cell_gid_type gid) const override{
-            switch (gid) {
+            /*switch (gid) {
                 case 0 : return {2, 4};
                 case 1 : return {3};
                 case 2 : return {0, 4};
@@ -85,6 +85,23 @@ namespace {
                 case 8 : return {7, 9};
                 case 9 : return {8};
                 case 10 : return {5};
+            }*/
+            switch (gid) {
+                case 0 :  return {13};
+                case 1 :  return {};
+                case 2 :  return {7, 11};
+                case 3 :  return {4, 8};
+                case 4 :  return {9, 8};
+                case 5 :  return {};
+                case 6 :  return {};
+                case 7 :  return {2, 11};
+                case 8 :  return {4, 3};
+                case 9 :  return {4};
+                case 10 : return {};
+                case 11 : return {2, 7};
+                case 12 : return {};
+                case 13 : return {0};
+                case 14 : return {};
             }
         }
 
@@ -255,7 +272,7 @@ TEST(domain_decomposition, compulsory_groups)
     resources.gpu_id = -1; // disable GPU if available
     auto ctx = make_context(resources);
 
-    unsigned num_cells = 10;
+    unsigned num_cells = 15;
     auto R = gj_recipe(num_cells);
     const auto D = partition_load_balance(R, ctx);
 }
