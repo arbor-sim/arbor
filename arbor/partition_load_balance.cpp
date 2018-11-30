@@ -54,28 +54,23 @@ domain_decomposition partition_load_balance(
 
     // Local load balance
 
-    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
-    for (auto gid: make_span(gid_part[domain_id])) {
-        kind_lists[rec.get_cell_kind(gid)].push_back(gid);
-    }
-
-    // Compulsory groups
-    std::vector<std::vector<cell_gid_type>> comp_groups;
+    std::vector<std::vector<cell_gid_type>> comp_groups; //compulsory groups
+    std::vector<cell_gid_type> ind_cells; //independent cells
 
     // Map to track visited cells (cells that already belong to a group)
     std::unordered_map<cell_gid_type, bool> visited;
 
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
-    for(unsigned i = 0; i < rec.num_cells(); ++i) {
+    for(auto gid: make_span(gid_part[domain_id])) {
         // If cell is not required to be in a group, skip
-        if(!rec.group_with(i).empty()) {
+        if(!rec.group_with(gid).empty()) {
             // If cell hasn't been visisted yet, must belong to new group
             // Perform BFS starting from that cell
-            if (visited.find(i) == visited.end()) {
+            if (visited.find(gid) == visited.end()) {
                 std::vector<cell_gid_type> cg;
-                q.push(i);
-                visited[i] = true;
+                q.push(gid);
+                visited[gid] = true;
                 while (!q.empty()) {
                     auto element = q.front();
                     q.pop();
@@ -92,7 +87,16 @@ domain_decomposition partition_load_balance(
                 comp_groups.push_back(cg);
             }
         }
+        else {
+            ind_cells.push_back(gid);
+        }
     }
+
+    comp_groups.erase(std::remove_if(comp_groups.begin(), comp_groups.end(),
+            [gid_part, domain_id](std::vector<cell_gid_type> cg)
+            {
+                return cg.front() < gid_part[domain_id].first;
+            }), comp_groups.end());
 
     for(auto i: comp_groups) {
         std::sort(i.begin(), i.end());
@@ -101,6 +105,17 @@ domain_decomposition partition_load_balance(
             std::cout << j << " ";
         }
         std::cout << "}\n";
+    }
+
+    std::cout << "[ ";
+    for(auto i: ind_cells) {
+        std::cout << i << " ";
+    }
+    std::cout << "]\n";
+
+    std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
+    for (auto gid: ind_cells) {
+        kind_lists[rec.get_cell_kind(gid)].push_back(gid);
     }
 
     // Create a flat vector of the cell kinds present on this node,
@@ -149,6 +164,27 @@ domain_decomposition partition_load_balance(
         }
         if (!group_elements.empty()) {
             groups.push_back({k, std::move(group_elements), backend});
+        }
+    }
+    for (auto cg: comp_groups) {
+        cell_kind k = rec.get_cell_kind(cg[0]);
+        partition_hint hint;
+        if (auto opt_hint = util::value_by_key(hint_map, k)) {
+            hint = opt_hint.value();
+        }
+        if (hint.prefer_gpu && gpu_avail && has_gpu_backend(k)) {
+            backend_kind backend = backend_kind::gpu;
+            // if not all cells are of the same kind, group must be assigned to multicore
+            for (unsigned gid = 1; gid < cg.size(); ++gid) {
+                if (rec.get_cell_kind(gid) != k) {
+                    backend = backend_kind::multicore;
+                    break;
+                }
+            }
+            groups.push_back({k, std::move(cg), backend});
+        } else {
+            backend_kind backend = backend_kind::multicore;
+            groups.push_back({k, std::move(cg), backend});
         }
     }
 
