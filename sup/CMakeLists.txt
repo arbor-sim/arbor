@@ -9,6 +9,11 @@ set(sup-sources
     spike_emitter.cpp
 )
 
+if(ARB_WITH_MPI)
+    list(APPEND sup-sources
+        private_gpu.cpp)
+endif()
+
 add_library(arbor-sup ${sup-sources})
 target_compile_options(arbor-sup PRIVATE ${ARB_CXXOPT_ARCH})
 target_link_libraries(arbor-sup PUBLIC ext-json arbor)

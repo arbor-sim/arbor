@@ -19,18 +19,7 @@
 namespace sup {
 
 // Test environment variables for user-specified count of threads.
-//
-// ARB_NUM_THREADS is used if set, otherwise OMP_NUM_THREADS is used.
-//
-// If neither variable is set, returns no value.
-//
-// Valid values for the environment variable are:
-//  0 : Arbor is responsible for picking the number of threads.
-//  >0: The number of threads to use.
-//
-// Throws std::runtime_error:
-//  ARB_NUM_THREADS or OMP_NUM_THREADS is set with invalid value.
-arb::util::optional<size_t> get_env_num_threads() {
+unsigned get_env_num_threads() {
     const char* str;
 
     // select variable to use:
@@ -44,10 +33,9 @@ arb::util::optional<size_t> get_env_num_threads() {
         str = std::getenv("OMP_NUM_THREADS");
     }
 
-    // If the selected var is unset set the number of threads to
-    // the hint given by the standard library
+    // No environment variable set, so return 0.
     if (!str) {
-        return arb::util::nullopt;
+        return 0;
     }
 
     errno = 0;
@@ -57,8 +45,9 @@ arb::util::optional<size_t> get_env_num_threads() {
     if (errno==ERANGE ||
         !std::regex_match(str, std::regex("\\s*\\d*[0-9]\\d*\\s*")))
     {
+        errno = 0;
         throw arb::arbor_exception(
-            std::string("requested number of threads \"") + str + "\" is not a valid value");
+            std::string("Requested number of threads \"") + str + "\" is not a valid value");
     }
     errno = 0;
 

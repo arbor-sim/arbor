@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
     try {
         arb::proc_allocation resources;
         if (auto nt = sup::get_env_num_threads()) {
-            resources.num_threads = *nt;
+            resources.num_threads = nt;
         }
         else {
             resources.num_threads = sup::thread_concurrency();
@@ -198,15 +198,12 @@ int main(int argc, char** argv) {
 
 #ifdef ARB_MPI_ENABLED
         sup::with_mpi guard(argc, argv, false);
-        resources.gpu_id = sup::find_gpu(MPI_COMM_WORLD);
+        resources.gpu_id = sup::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
-        {
-            int rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            root = rank==0;
-        }
+        rank = arb::rank(context);
+        root = arb::rank(context) == 0;
 #else
-        resources.gpu_id = sup::find_gpu();
+        resources.gpu_id = sup::default_gpu();
         auto context = arb::make_context(resources);
 #endif
 
@@ -270,7 +267,7 @@ int main(int argc, char** argv) {
                 spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
                 sim.set_local_spike_callback(sup::spike_emitter(spike_out));
             }
-            else if (rank==0) {
+            else if (root) {
                 spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
                 sim.set_global_spike_callback(sup::spike_emitter(spike_out));
             }

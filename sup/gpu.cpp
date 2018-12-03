@@ -1,35 +1,12 @@
-#include <vector>
+#if defined(ARB_WITH_GPU)
 
-#include <arbor/version.hpp>
-
-#ifdef ARB_GPU_ENABLED
 #include <cuda_runtime.h>
-#endif
-
-#ifdef ARB_MPI_ENABLED
-#include <mpi.h>
-#endif
-
-#include <sup/gpu.hpp>
 
 namespace sup {
 
-#ifndef ARB_GPU_ENABLED
 // When arbor does not have CUDA support, return -1, which always
 // indicates that no GPU is available.
-int find_gpu() {
-    return -1;
-}
-
-#ifdef ARB_MPI_ENABLED
-int find_gpu(MPI_Comm comm) {
-    return -1;
-}
-#endif
-
-#else // GPU support is enabled in Arbor
-
-int find_gpu() {
+int default_gpu() {
     int n;
     if (cudaGetDeviceCount(&n)==cudaSuccess) {
         // if 1 or more GPUs, take the first one.
@@ -39,16 +16,17 @@ int find_gpu() {
     return -1;
 }
 
-#ifdef ARB_MPI_ENABLED
-// just a placeholder for now.
-// greedy search for first available GPU.
-int find_gpu(MPI_Comm comm) {
-    return find_gpu();
-}
-#endif
+} // namespace sup
 
-#endif // ARB_GPU_ENABLED
+#else // defined(ARB_WITH_GPU)
+
+namespace sup {
+
+int default_gpu() {
+    return -1;
+}
 
 } // namespace sup
 
+#endif // ARB_WITH_GPU
 
