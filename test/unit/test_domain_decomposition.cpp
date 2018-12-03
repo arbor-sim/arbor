@@ -73,35 +73,16 @@ namespace {
                    cell_kind::cable1d_neuron;
         }
         std::vector<cell_gid_type> group_with(cell_gid_type gid) const override {
-            /*switch (gid) {
-                case 0 : return {2, 4};
-                case 1 : return {3};
-                case 2 : return {0, 4};
-                case 3 : return {1, 5, 6};
-                case 4 : return {0, 2};
-                case 5 : return {3, 10};
-                case 6 : return {3};
-                case 7 : return {8};
-                case 8 : return {7, 9};
-                case 9 : return {8};
-                case 10 : return {5};
-            }*/
             switch (gid) {
                 case 0 :  return {13};
-                case 1 :  return {};
                 case 2 :  return {7, 11};
                 case 3 :  return {4, 8};
                 case 4 :  return {9, 8};
-                case 5 :  return {};
-                case 6 :  return {};
                 case 7 :  return {2, 11};
                 case 8 :  return {4, 3};
                 case 9 :  return {4};
-                case 10 : return {};
                 case 11 : return {2, 7};
-                case 12 : return {};
                 case 13 : return {0};
-                case 14 : return {};
                 default : return {};
             }
         }
@@ -265,18 +246,6 @@ TEST(domain_decomposition, heterogenous_population)
     }
 }
 
-TEST(domain_decomposition, compulsory_groups)
-{
-    proc_allocation resources;
-    resources.num_threads = 1;
-    resources.gpu_id = -1; // disable GPU if available
-    auto ctx = make_context(resources);
-
-    unsigned num_cells = 15;
-    auto R = gj_recipe(num_cells);
-    const auto D = partition_load_balance(R, ctx);
-}
-
 TEST(domain_decomposition, hints) {
     // Check that we can provide group size hint and gpu/cpu preference
     // by cell kind.
@@ -317,4 +286,24 @@ TEST(domain_decomposition, hints) {
 
     EXPECT_EQ(expected_c1d_groups, c1d_groups);
     EXPECT_EQ(expected_ss_groups, ss_groups);
+}
+
+TEST(domain_decomposition, compulsory_groups)
+{
+    proc_allocation resources;
+    resources.num_threads = 1;
+    resources.gpu_id = -1; // disable GPU if available
+    auto ctx = make_context(resources);
+
+    unsigned num_cells = 15;
+    auto R = gj_recipe(num_cells);
+    const auto D = partition_load_balance(R, ctx);
+    EXPECT_EQ(9u, D.groups.size());
+
+    std::vector<std::vector<cell_gid_type>> expected_groups =
+            { {0, 13}, {2, 7, 11}, {3, 4, 8, 9} };
+
+    EXPECT_EQ(expected_groups[0], D.groups[6].gids);
+    EXPECT_EQ(expected_groups[1], D.groups[7].gids);
+    EXPECT_EQ(expected_groups[2], D.groups[8].gids);
 }

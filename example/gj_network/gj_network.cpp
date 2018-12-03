@@ -65,36 +65,41 @@ public:
 
     std::vector<cell_gid_type> group_with(cell_gid_type gid) const override {
         switch (gid) {
-            case 0 : return {};
-            case 1 : return {};
-            case 2 : return {7, 8};
-            case 3 : return {};
-            case 4 : return {};
-            case 5 : return {};
-            case 6 : return {};
-            case 7 : return {2, 8};
-            case 8 : return {2, 7};
-            case 9 : return {16};
-            case 10 : return {};
-            case 11 : return {};
-            case 12 : return {};
-            case 13 : return {19};
-            case 14 : return {};
-            case 15 : return {};
-            case 16 : return {9, 21};
-            case 17 : return {23};
-            case 18 : return {};
-            case 19 : return {13, 26};
-            case 20 : return {21};
-            case 21 : return {20, 16};
-            case 22 : return {};
-            case 23 : return {17};
-            case 24 : return {};
-            case 25 : return {};
-            case 26 : return {19, 27};
-            case 27 : return {26};
-            case 28 : return {29};
-            case 29 : return {28};
+            case 1 : return {2};
+            case 2 : return {1};
+            case 5 : return {16};
+            case 12 : return {13, 22};
+            case 13 : return {12, 22};
+            case 16 : return {5};
+            case 18 : return {19, 28};
+            case 19 : return {18, 29};
+            case 22 : return {12, 13};
+            case 28 : return {18, 29};
+            case 29 : return {19, 28};
+            case 31 : return {42};
+            case 32 : return {42, 41};
+            case 35 : return {54, 56};
+            case 41 : return {32};
+            case 42 : return {32, 31};
+            case 44 : return {46, 56};
+            case 46 : return {44, 54};
+            case 54 : return {35, 46};
+            case 56 : return {44, 35};
+            case 62 : return {63, 72};
+            case 63 : return {62, 72};
+            case 66 : return {75, 77};
+            case 67 : return {78};
+            case 72 : return {81, 82, 62, 63};
+            case 75 : return {66};
+            case 77 : return {66, 78};
+            case 78 : return {67, 77};
+            case 81 : return {72, 82};
+            case 82 : return {81, 72};
+            case 85 : return {94};
+            case 94 : return {85};
+            case 97 : return {98};
+            case 98 : return {97};
+            default : return {};
         }
     }
 
@@ -104,15 +109,25 @@ private:
 }
 
 int main(int argc, char** argv) {
-        arb::proc_allocation resources{1, -1};
+    arb::proc_allocation resources{1, -1};
+    int rank = 0;
 #ifdef ARB_MPI_ENABLED
-        sup::with_mpi guard(argc, argv, false);
-        auto ctx = make_context(resources, MPI_COMM_WORLD);
+    sup::with_mpi guard(argc, argv, false);
+    auto ctx = make_context(resources, MPI_COMM_WORLD);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 #else
-        auto ctx = make_context(resources);
+    auto ctx = make_context(resources);
 #endif
-        auto R = gj_recipe(30);
-        const auto D = partition_load_balance(R, ctx);
+    auto R = gj_recipe(100);
+    const auto D = partition_load_balance(R, ctx);
 
-        return 0;
+    auto groups = D.groups;
+    for (auto g: groups) {
+        std::cout << "{ ";
+        for (auto id : g.gids) {
+            std::cout << id << " ";
+        }
+        std::cout <<" } - "  << rank <<"\n";
+    }
+    return 0;
 }

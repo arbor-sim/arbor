@@ -67,6 +67,38 @@ namespace {
     private:
         cell_size_type size_;
     };
+
+    class gj_recipe: public recipe {
+    public:
+        gj_recipe(unsigned num_ranks): ncopies_(num_ranks){}
+
+        cell_size_type num_cells() const override {
+            return size_*ncopies_;
+        }
+
+        arb::util::unique_any get_cell_description(cell_gid_type) const override {
+            return {};
+        }
+
+        cell_kind get_cell_kind(cell_gid_type gid) const override {
+            return cell_kind::cable1d_neuron;
+        }
+        std::vector<cell_gid_type> group_with(cell_gid_type gid) const override {
+            unsigned shift = (gid/size_)*size_;
+            switch (gid % size_) {
+                case 1 :  return {7 + shift};
+                case 2 :  return {6 + shift, 9 + shift};
+                case 6 :  return {2 + shift, 7 + shift};
+                case 7 :  return {6 + shift, 1 + shift};
+                case 9 :  return {2 + shift};
+                default : return {};
+            }
+        }
+
+    private:
+        cell_size_type size_ = 10;
+        unsigned ncopies_;
+    };
 }
 
 TEST(domain_decomposition, homogeneous_population_mc) {
@@ -75,7 +107,7 @@ TEST(domain_decomposition, homogeneous_population_mc) {
     // This assumption will not hold in the future, requiring and update to
     // the test.
     proc_allocation resources{1, -1};
-#ifdef ARB_TEST_MPI
+#ifdef TEST_MPI
     auto ctx = make_context(resources, MPI_COMM_WORLD);
 #else
     auto ctx = make_context(resources);
@@ -124,7 +156,7 @@ TEST(domain_decomposition, homogeneous_population_gpu) {
 
     proc_allocation resources;
     resources.num_threads = 1;
-#ifdef ARB_TEST_MPI
+#ifdef TEST_MPI
     auto ctx = make_context(resources, MPI_COMM_WORLD);
 #else
     auto ctx = make_context(resources);
@@ -169,7 +201,7 @@ TEST(domain_decomposition, heterogeneous_population) {
     // This assumption will not hold in the future, requiring and update to
     // the test.
     proc_allocation resources{1, -1};
-#ifdef ARB_TEST_MPI
+#ifdef TEST_MPI
     auto ctx = make_context(resources, MPI_COMM_WORLD);
 #else
     auto ctx = make_context(resources);
@@ -217,3 +249,32 @@ TEST(domain_decomposition, heterogeneous_population) {
     }
 }
 
+TEST(domain_decomposition, compulsory_groups)
+{
+    proc_allocation resources{1, -1};
+    int nranks = 1;
+    int rank = 0;
+#ifdef TEST_MPI
+    auto ctx = make_context(resources, MPI_COMM_WORLD);
+    MPI_Comm_size(MPI_COMM_WORLD, &nranks);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+#else
+    auto ctx = make_context(resources);
+#endif
+    auto R = gj_recipe(nranks);
+    const auto D = partition_load_balance(R, ctx);
+    EXPECT_EQ(6u, D.groups.size());
+
+    unsigned shift = rank*nranks;
+    std::vector<std::vector<cell_gid_type>> expected_groups =
+            { {0 + shift},
+              {3 + shift},
+              {4 + shift},
+              {5 + shift},
+              {8 + shift},
+              {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift} };
+
+    for(unsigned i = 0; i < 6u; i++) {
+        EXPECT_EQ(expected_groups[i], D.groups[i].gids);
+    }
+}
