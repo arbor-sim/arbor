@@ -641,7 +641,8 @@ TEST(fvm_layout, gj_coords) {
 
     fvm_discretization D = fvm_discretize(cells);
 
-    auto GJ = fvm_gap_junctions(cells, D);
+    std::vector<cell_gid_type> gids = {0, 1};
+    auto GJ = fvm_gap_junctions(cells, gids, D);
 
     EXPECT_EQ(pair({4,8}), GJ[0].loc);
     EXPECT_EQ(0.5, GJ[0].weight);
@@ -702,8 +703,9 @@ TEST(fvm_layout, gj_coords_2) {
     cells.push_back(std::move(c2));
 
     fvm_discretization D = fvm_discretize(cells);
+    std::vector<cell_gid_type> gids = {0, 1, 2};
 
-    auto GJ = fvm_gap_junctions(cells, D);
+    auto GJ = fvm_gap_junctions(cells, gids, D);
     EXPECT_EQ(10u, GJ.size());
 
     std::vector<pair> expected_loc = {{14,4}, {4,11}, {2,21}, {4,14}, {11,4} ,{8,28}, {24,6}, {21,2}, {28,8}, {6,24}};
@@ -712,5 +714,48 @@ TEST(fvm_layout, gj_coords_2) {
     for (unsigned i = 0; i < GJ.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ[i].loc);
         EXPECT_EQ(expected_weight[i], GJ[i].weight);
+    }
+}
+
+TEST(fvm_layout, cell_group_gj) {
+    using pair = std::pair<int, int>;
+    mc_cell c[20];
+    std::vector<mc_cell> cell_group0;
+    std::vector<mc_cell> cell_group1;
+
+    // Make 10 cells
+    for (unsigned i = 0; i < 20; i++) {
+        c[i].add_soma(2.1);
+    }
+
+    for (unsigned i = 0; i < 20; i += 2) {
+        auto next_cell = i == 8 ? 0 : (i == 18 ? 10 : i + 2);
+        auto prev_cell = i == 0 ? 8 : (i == 10 ? 18 : i - 2);
+        c[i].add_gap_junction(i, {0, 1}, next_cell, {0, 1}, 0.03);
+        c[i].add_gap_junction(i, {0, 1}, prev_cell, {0, 1}, 0.03);
+    }
+    for (unsigned i = 0; i < 10; i+=2) {
+        cell_group0.push_back(std::move(c[i]));
+        cell_group1.push_back(std::move(c[i + 10]));
+    }
+
+    std::vector<cell_gid_type> gids_cg0 = {0,2,4,6,8};
+    std::vector<cell_gid_type> gids_cg1 = {10,12,14,16,18};
+
+    fvm_discretization D0 = fvm_discretize(cell_group0);
+    fvm_discretization D1 = fvm_discretize(cell_group0);
+
+
+    auto GJ0 = fvm_gap_junctions(cell_group0, gids_cg0, D0);
+    auto GJ1 = fvm_gap_junctions(cell_group1, gids_cg1, D1);
+
+    EXPECT_EQ(10u, GJ0.size());
+    EXPECT_EQ(10u, GJ1.size());
+
+    std::vector<pair> expected_loc = {{0, 1}, {0, 4}, {1, 2}, {1, 0}, {2, 3} ,{2, 1}, {3, 4}, {3, 2}, {4, 0}, {4, 3}};
+
+    for (unsigned i = 0; i < GJ0.size(); i++) {
+        EXPECT_EQ(expected_loc[i], GJ0[i].loc);
+        EXPECT_EQ(expected_loc[i], GJ1[i].loc);
     }
 }

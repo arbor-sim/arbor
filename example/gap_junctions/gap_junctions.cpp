@@ -43,28 +43,21 @@ using arb::cell_probe_address;
 void write_trace_json(const std::vector<arb::trace_data<double>>& trace);
 
 // Generate a cell.
-arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tweak);
+arb::mc_cell gj_cell(unsigned gid, unsigned ring_size, double delay, double duration);
 
 class gj_recipe: public arb::recipe {
 public:
     gj_recipe(gap_params params):
-        num_cells_(params.num_cells)
+    cells_per_ring_(params.cells_per_ring),
+    num_rings_(params.num_rings)
     {
-        double tstart = 0.0;
-        bool tweak = false;
-        for (unsigned i = 0; i < num_cells_; i++) {
-            cells.push_back(branch_cell(params.num_gj, tstart, params.duration, tweak));
-            tstart+=10.0;
-            tweak = true;
-        }
-        for (unsigned i = 0; i < params.num_gj; i++) {
-            cells[0].add_gap_junction(0, {6 + i, 0.95}, 1, {6 + i, 0.95}, 0.00037); //ggap in μS
-            cells[1].add_gap_junction(1, {6 + i, 0.95}, 0, {6 + i, 0.95}, 0.00037);
+        for (unsigned gid = 0; gid < num_rings_*cells_per_ring_; gid++) {
+            cells.push_back(gj_cell(gid, cells_per_ring_, params.delay*gid, params.duration));
         }
     }
 
     cell_size_type num_cells() const override {
-        return num_cells_;
+        return cells_per_ring_*num_rings_;
     }
 
     arb::util::unique_any get_cell_description(cell_gid_type gid) const override {
@@ -98,6 +91,7 @@ public:
 
         return arb::probe_info{id, kind, cell_probe_address{loc, kind}};
     }
+
     arb::util::any get_global_properties(cell_kind k) const override {
         arb::mc_cell_global_properties a;
         a.temperature_K = 308.15;
@@ -117,7 +111,8 @@ public:
     }
 
 private:
-    cell_size_type num_cells_;
+    cell_size_type cells_per_ring_;
+    cell_size_type num_rings_;
     std::vector<arb::mc_cell> cells;
 };
 
@@ -197,38 +192,8 @@ int main(int argc, char** argv) {
         arb::profile::meter_manager meters;
         meters.start(context);
 
-
-        auto partition = [&](){
-            arb::domain_decomposition d;
-            d.num_domains = 1;
-            d.domain_id = 0;
-            d.num_local_cells = params.num_cells;
-            d.num_global_cells = params.num_cells;
-
-            std::vector<cell_gid_type> group_elements;
-            for(unsigned i = 0; i < params.num_cells; i++) {
-                group_elements.push_back(i);
-            }
-
-            std::vector<arb::group_description> group_desc =
-                    {arb::group_description(arb::cell_kind::cable1d_neuron, std::move(group_elements), arb::backend_kind::multicore)};
-            d.groups = std::move(group_desc);
-
-            d.gid_domain = ([](cell_gid_type gid) {return 0;});
-            return d;
-        };
-
         // Create an instance of our recipe.
         gj_recipe recipe(params);
-
-        for(unsigned i = 0; i < params.num_cells; i++) {
-            auto conns = recipe.group_with(i);
-            std::cout << "for cell " << i << " : { ";
-            for(auto c: conns) {
-                std::cout << c << " ";
-            }
-            std::cout << "}\n";
-        }
 
         for(unsigned i = 0; i < recipe.num_cells(); i++){
             std::cout << "Num gap_junctions for cell " << i << ":" << arb::util::any_cast<arb::mc_cell>(recipe.get_cell_description(i)).gap_junctions().size() << std::endl;
@@ -237,7 +202,7 @@ int main(int argc, char** argv) {
         cell_stats stats(recipe);
         std::cout << stats << "\n";
 
-        auto decomp = partition();
+        auto decomp = arb::partition_load_balance(recipe, context);
 
         // Construct the model.
         arb::simulation sim(recipe, decomp, context);
@@ -331,7 +296,7 @@ void write_trace_json(const std::vector<arb::trace_data<double>>& trace) {
     }
 }
 
-arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tweak) {
+arb::mc_cell gj_cell(unsigned gid, unsigned cells_per_ring, double delay, double duration) {
     arb::mc_cell cell;
 
     arb::mechanism_desc nax("nax");
@@ -348,13 +313,6 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
         pas["e"] =  -65;
     };
 
-    auto set_axon_params = [&]() {
-        pas["g"] = 1.0/1000.0;
-        nax["gbar"] = 0.4;
-        nax["sh"] = 0;
-        kamt["gbar"] = 0.04;
-    };
-
     auto setup_seg = [&](auto seg) {
         seg->rL = 100;
         seg->cm = 0.018;
@@ -369,41 +327,29 @@ arb::mc_cell branch_cell(unsigned num_gj, double delay, double duration, bool tw
     setup_seg(soma);
 
     auto dend = cell.add_cable(0, arb::section_kind::dendrite, 3.0/2.0, 3.0/2.0, 300); //cable 1
-    dend->set_compartments(200);
+    dend->set_compartments(1);
     set_reg_params();
     setup_seg(dend);
 
-    auto dend_min0 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 2
-    dend_min0->set_compartments(50);
-    set_reg_params();
-    setup_seg(dend_min0);
+//    auto dend_min0 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 2
+//    dend_min0->set_compartments(50);
+//    set_reg_params();
+//    setup_seg(dend_min0);
 
-    auto dend_min1 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 3
-    dend_min1->set_compartments(50);
-    set_reg_params();
-    setup_seg(dend_min1);
+//    auto dend_min1 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 3
+//    dend_min1->set_compartments(50);
+//    set_reg_params();
+//    setup_seg(dend_min1);
 
-    auto hillock = cell.add_cable(0, arb::section_kind::dendrite, 20.0/2.0, 1.5/2.0, 5); //cable 4
-    hillock->set_compartments(50);
-    set_reg_params();
-    setup_seg(hillock);
+    cell_gid_type ring_start_gid = (gid/cells_per_ring) * cells_per_ring;
+    cell_gid_type next_cell = (gid + 1) % cells_per_ring + ring_start_gid;
+    cell_gid_type prev_cell = (gid - 1 + cells_per_ring) % cells_per_ring + ring_start_gid;
 
-    auto init_seg = cell.add_cable(4, arb::section_kind::dendrite, 1.5/2.0, 1.5/2.0, 30); //cable 5
-    init_seg->set_compartments(50);
-    set_axon_params();
-    setup_seg(init_seg);
+    cell.add_gap_junction(gid, {0, 1}, next_cell, {1, 1}, 0.0037); //ggap in μS
+    cell.add_gap_junction(gid, {1, 1}, prev_cell, {0, 1}, 0.0037); //ggap in μS
 
-    for(unsigned i = 0; i < num_gj; i++) {
-        auto tuft = cell.add_cable(1, arb::section_kind::dendrite, 0.4/2.0, 0.4/2.0, 300); //cable 6
-        tuft->set_compartments(100);
-        set_reg_params();
-        nax["gbar"] = tweak==true ? 0.0 : 0.04;
-
-        setup_seg(tuft);
-
-        arb::i_clamp stim(delay, duration, 0.02);
-        cell.add_stimulus({6 + i, 0.25}, stim);
-    }
+    arb::i_clamp stim(delay, duration, 0.2);
+    cell.add_stimulus({1, 0.95}, stim);
 
     return cell;
 }

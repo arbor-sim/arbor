@@ -238,16 +238,24 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 
 // Get vector of gap_junctions
 
-std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const fvm_discretization& D) {
+std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids, const fvm_discretization& D) {
     using size_type = fvm_size_type;
 
     std::vector<gap_junction> v;
 
+    std::unordered_map<cell_gid_type, unsigned> gid_to_loc;
+    unsigned i = 0;
+    for (auto gid: gids) {
+        gid_to_loc[gid] = i++;
+    }
+
     for (auto cell_idx: make_span(0, D.ncell)) {
         auto& cell_gj = cells[cell_idx].gap_junctions();
         for (auto gj : cell_gj) {
-            size_type source_cv = D.segment_location_cv(gj.source.gid, gj.source.lid);
-            size_type dest_cv = D.segment_location_cv(gj.dest.gid, gj.dest.lid);
+            auto src_cell = gid_to_loc[gj.source.gid];
+            auto dest_cell = gid_to_loc[gj.dest.gid];
+            size_type source_cv = D.segment_location_cv(src_cell, gj.source.lid);
+            size_type dest_cv = D.segment_location_cv(dest_cell, gj.dest.lid);
             v.push_back(gap_junction(std::make_pair(source_cv, dest_cv), gj.conductance));
         }
     }

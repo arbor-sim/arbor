@@ -175,8 +175,10 @@ domain_decomposition partition_load_balance(
     }
 
     // calculate the number of local cells
-    auto rng = gid_part[domain_id];
-    cell_size_type num_local_cells = rng.second - rng.first;
+    cell_size_type num_local_cells = 0;
+    for(auto g : groups) {
+        num_local_cells += g.gids.size();
+    }
 
     domain_decomposition d;
     d.num_domains = num_domains;
