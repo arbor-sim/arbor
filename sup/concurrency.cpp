@@ -1,12 +1,9 @@
-#include <algorithm>
 #include <cstdlib>
-#include <exception>
 #include <regex>
 #include <string>
 #include <thread>
 
 #include <arbor/arbexcept.hpp>
-#include <arbor/util/optional.hpp>
 
 #include <sup/affinity.hpp>
 #include <sup/concurrency.hpp>
@@ -76,7 +73,7 @@ unsigned thread_concurrency() {
     }
 
     // If still zero, use one thread.
-    n = std::max(n, 1u);
+    n = n? n: 1;
 
     return n;
 }
