@@ -57,7 +57,7 @@ namespace {
 
     class gj_recipe: public recipe {
     public:
-        gj_recipe(cell_size_type s): size_(s) {}
+        gj_recipe() {}
 
         cell_size_type num_cells() const override {
             return size_;
@@ -88,7 +88,7 @@ namespace {
         }
 
     private:
-        cell_size_type size_;
+        cell_size_type size_ = 15;
     };
 }
 
@@ -295,8 +295,7 @@ TEST(domain_decomposition, compulsory_groups)
     resources.gpu_id = -1; // disable GPU if available
     auto ctx = make_context(resources);
 
-    unsigned num_cells = 15;
-    auto R = gj_recipe(num_cells);
+    auto R = gj_recipe();
     const auto D = partition_load_balance(R, ctx);
     EXPECT_EQ(9u, D.groups.size());
 

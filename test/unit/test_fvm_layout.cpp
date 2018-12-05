@@ -645,10 +645,10 @@ TEST(fvm_layout, gj_coords) {
     auto GJ = fvm_gap_junctions(cells, gids, D);
 
     EXPECT_EQ(pair({4,8}), GJ[0].loc);
-    EXPECT_EQ(0.5, GJ[0].weight);
+    EXPECT_EQ(0.5, GJ[0].ggap);
 
     EXPECT_EQ(pair({8,4}), GJ[1].loc);
-    EXPECT_EQ(0.5, GJ[1].weight);
+    EXPECT_EQ(0.5, GJ[1].ggap);
 }
 
 TEST(fvm_layout, gj_coords_2) {
@@ -713,7 +713,7 @@ TEST(fvm_layout, gj_coords_2) {
 
     for (unsigned i = 0; i < GJ.size(); i++) {
         EXPECT_EQ(expected_loc[i], GJ[i].loc);
-        EXPECT_EQ(expected_weight[i], GJ[i].weight);
+        EXPECT_EQ(expected_weight[i], GJ[i].ggap);
     }
 }
 
@@ -723,17 +723,20 @@ TEST(fvm_layout, cell_group_gj) {
     std::vector<mc_cell> cell_group0;
     std::vector<mc_cell> cell_group1;
 
-    // Make 10 cells
+    // Make 20 cells
     for (unsigned i = 0; i < 20; i++) {
         c[i].add_soma(2.1);
     }
 
+    // connect 5 of the first 10 cells in a ring; connect 5 of the second 10 cells in a ring
     for (unsigned i = 0; i < 20; i += 2) {
         auto next_cell = i == 8 ? 0 : (i == 18 ? 10 : i + 2);
         auto prev_cell = i == 0 ? 8 : (i == 10 ? 18 : i - 2);
         c[i].add_gap_junction(i, {0, 1}, next_cell, {0, 1}, 0.03);
         c[i].add_gap_junction(i, {0, 1}, prev_cell, {0, 1}, 0.03);
     }
+
+    // create 2 cells groups containing each of the 2 rings' cells
     for (unsigned i = 0; i < 10; i+=2) {
         cell_group0.push_back(std::move(c[i]));
         cell_group1.push_back(std::move(c[i + 10]));
@@ -744,7 +747,6 @@ TEST(fvm_layout, cell_group_gj) {
 
     fvm_discretization D0 = fvm_discretize(cell_group0);
     fvm_discretization D1 = fvm_discretize(cell_group0);
-
 
     auto GJ0 = fvm_gap_junctions(cell_group0, gids_cg0, D0);
     auto GJ1 = fvm_gap_junctions(cell_group1, gids_cg1, D1);

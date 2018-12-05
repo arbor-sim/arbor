@@ -272,9 +272,6 @@ TEST(domain_decomposition, compulsory_groups)
               {4 + shift},
               {5 + shift},
               {8 + shift},
-              {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift} };
-
-    /*for(unsigned i = 0; i < 6u; i++) {
-        EXPECT_EQ(expected_groups[i], D.groups[i].gids);
-    }*/
+              {1 + shift, 2 + shift, 6 + shift, 7 + shift, 9 + shift}
+            };
 }

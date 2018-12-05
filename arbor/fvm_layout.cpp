@@ -243,6 +243,7 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
 
     std::vector<gap_junction> v;
 
+    // Map gid to location in the vector of cells
     std::unordered_map<cell_gid_type, unsigned> gid_to_loc;
     unsigned i = 0;
     for (auto gid: gids) {
@@ -254,9 +255,10 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
         for (auto gj : cell_gj) {
             auto src_cell = gid_to_loc[gj.source.gid];
             auto dest_cell = gid_to_loc[gj.dest.gid];
-            size_type source_cv = D.segment_location_cv(src_cell, gj.source.lid);
+            size_type src_cv = D.segment_location_cv(src_cell, gj.source.lid);
             size_type dest_cv = D.segment_location_cv(dest_cell, gj.dest.lid);
-            v.push_back(gap_junction(std::make_pair(source_cv, dest_cv), gj.conductance));
+            v.push_back(gap_junction(std::make_pair(src_cv, dest_cv),
+                    std::make_pair(D.cv_area[src_cv], D.cv_area[dest_cv]), gj.conductance));
         }
     }
     return v;

@@ -11,7 +11,6 @@
 #include "util/partition.hpp"
 #include "util/span.hpp"
 
-#include<iostream>
 namespace arb {
 
 domain_decomposition partition_load_balance(
@@ -63,9 +62,9 @@ domain_decomposition partition_load_balance(
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
     for(auto gid: make_span(gid_part[domain_id])) {
-        // If cell is not required to be in a group, skip
+        // If cell is not required to be in a group, put in separate group of independent cells
         if(!rec.group_with(gid).empty()) {
-            // If cell hasn't been visisted yet, must belong to new group
+            // If cell hasn't been visited yet, must belong to new group
             // Perform BFS starting from that cell
             if (visited.find(gid) == visited.end()) {
                 std::vector<cell_gid_type> cg;
@@ -92,6 +91,7 @@ domain_decomposition partition_load_balance(
         }
     }
 
+    // Sort groups and only keep those where the first element in the group belongs to domain
     comp_groups.erase(std::remove_if(comp_groups.begin(), comp_groups.end(),
             [gid_part, domain_id](std::vector<cell_gid_type>& cg)
             {
@@ -152,6 +152,9 @@ domain_decomposition partition_load_balance(
             groups.push_back({k, std::move(group_elements), backend});
         }
     }
+    // comp_groups handled separately from ind_cells
+    // If all cells are of the same type and have GPU backend, execute group on GPU
+    // Otherwise execute group on multicore
     for (auto cg: comp_groups) {
         cell_kind k = rec.get_cell_kind(cg[0]);
         partition_hint hint;
@@ -160,7 +163,6 @@ domain_decomposition partition_load_balance(
         }
         if (hint.prefer_gpu && gpu_avail && has_gpu_backend(k)) {
             backend_kind backend = backend_kind::gpu;
-            // if not all cells are of the same kind, group must be assigned to multicore
             for (unsigned gid = 1; gid < cg.size(); ++gid) {
                 if (rec.get_cell_kind(gid) != k) {
                     backend = backend_kind::multicore;

@@ -6,7 +6,6 @@
 
 #include <memory/memory.hpp>
 #include <util/span.hpp>
-#include <fvm_layout.hpp>
 
 namespace arb {
 

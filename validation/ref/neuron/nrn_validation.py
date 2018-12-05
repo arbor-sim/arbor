@@ -203,12 +203,10 @@ def run_nrn_sim(tend, sample_dt=0.025, report_t=None, report_dt=None, dt=None, *
     else:
         common_ncomp = {}
 
-    i = 0
     for s in h.allsec():
         vend = h.Vector()
         vend.record(s(0.5)._ref_v, sample_dt)
-        vtraces.append((s.name()+str(i)+".mid", vend))
-        i = i + 1
+        vtraces.append((s.name()+".mid", vend))
         if s.nseg!=1 or s.name()!='soma':
             vmid = h.Vector()
             vmid.record(s(1.0)._ref_v, sample_dt)

@@ -90,7 +90,6 @@ private:
     value_type temperature_ = NAN;
     std::vector<mechanism_ptr> mechanisms_;
     std::vector<gap_junction> gap_junctions_;
-    std::vector<value_type> cv_area_;
 
     // Non-physical voltage check threshold, 0 => no check.
     value_type check_voltage_mV = 0;
@@ -193,10 +192,10 @@ fvm_integration_result fvm_lowered_cell_impl<Backend>::integrate(
         // Add current contribution from gap_junctions
 
         for (auto gj: gap_junctions_) {
-            auto curr = gj.weight *
+            auto curr = gj.ggap *
                         (state_->voltage[gj.loc.second] - state_->voltage[gj.loc.first]); // nA
 
-            curr *= (1e3 / cv_area_[gj.loc.first]); // A/m2
+            curr *= (1e3 / gj.area.first); // A/m2
 
             state_->current_density[gj.loc.first] -= curr;
         }
@@ -361,7 +360,6 @@ void fvm_lowered_cell_impl<B>::initialize(
     // Get list of gap junctions
 
     gap_junctions_ = fvm_gap_junctions(cells, gids, D);
-    cv_area_ = D.cv_area;
 
     matrix_ = matrix<backend>(D.parent_cv, D.cell_cv_bounds, D.cv_capacitance, D.face_conductance, D.cv_area);
     sample_events_ = sample_event_stream(ncell);
