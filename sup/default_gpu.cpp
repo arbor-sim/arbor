@@ -1,4 +1,4 @@
-#if defined(ARB_WITH_GPU)
+#ifdef ARB_HAVE_GPU
 
 #include <cuda_runtime.h>
 
@@ -18,7 +18,7 @@ int default_gpu() {
 
 } // namespace sup
 
-#else // defined(ARB_WITH_GPU)
+#else // ifdef ARB_HAVE_GPU
 
 namespace sup {
 
@@ -28,5 +28,5 @@ int default_gpu() {
 
 } // namespace sup
 
-#endif // ARB_WITH_GPU
+#endif // ifdef ARB_HAVE_GPU
 
