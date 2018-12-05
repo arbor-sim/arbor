@@ -18,6 +18,8 @@
 #include <arbor/version.hpp>
 
 
+#include <sup/concurrency.hpp>
+#include <sup/gpu.hpp>
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #ifdef ARB_MPI_ENABLED
@@ -33,16 +35,22 @@ int main(int argc, char** argv) {
     bool is_root = true;
 
     try {
+        arb::proc_allocation resources;
+        if (auto nt = sup::get_env_num_threads()) {
+            resources.num_threads = nt;
+        }
+        else {
+            resources.num_threads = sup::thread_concurrency();
+        }
+
 #ifdef ARB_MPI_ENABLED
         sup::with_mpi guard(argc, argv, false);
-        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
-        {
-            int rank = 0;
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            is_root = rank==0;
-        }
+        resources.gpu_id = sup::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        is_root = arb::rank(context) == 0;
 #else
-        auto context = arb::make_context();
+        resources.gpu_id = sup::default_gpu();
+        auto context = arb::make_context(resources);
 #endif
 #ifdef ARB_PROFILE_ENABLED
         profile::profiler_initialize(context);

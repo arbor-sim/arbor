@@ -18,6 +18,8 @@
 #include <arbor/simulation.hpp>
 #include <arbor/version.hpp>
 
+#include <sup/concurrency.hpp>
+#include <sup/gpu.hpp>
 #include <sup/ioutil.hpp>
 #include <sup/json_meter.hpp>
 #include <sup/path.hpp>
@@ -186,15 +188,23 @@ int main(int argc, char** argv) {
     int rank = 0;
 
     try {
+        arb::proc_allocation resources;
+        if (auto nt = sup::get_env_num_threads()) {
+            resources.num_threads = nt;
+        }
+        else {
+            resources.num_threads = sup::thread_concurrency();
+        }
+
 #ifdef ARB_MPI_ENABLED
         sup::with_mpi guard(argc, argv, false);
-        auto context = arb::make_context(arb::proc_allocation(), MPI_COMM_WORLD);
-        {
-            MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-            root = rank==0;
-        }
+        resources.gpu_id = sup::find_private_gpu(MPI_COMM_WORLD);
+        auto context = arb::make_context(resources, MPI_COMM_WORLD);
+        rank = arb::rank(context);
+        root = rank==0;
 #else
-        auto context = arb::make_context();
+        resources.gpu_id = sup::default_gpu();
+        auto context = arb::make_context(resources);
 #endif
 
         std::cout << sup::mask_stream(root);
@@ -257,7 +267,7 @@ int main(int argc, char** argv) {
                 spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
                 sim.set_local_spike_callback(sup::spike_emitter(spike_out));
             }
-            else if (rank==0) {
+            else if (root) {
                 spike_out = sup::open_or_throw(p, ios_base::out, !options.over_write);
                 sim.set_global_spike_callback(sup::spike_emitter(spike_out));
             }
