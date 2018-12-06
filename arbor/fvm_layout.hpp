@@ -8,6 +8,7 @@
 
 #include "fvm_compartment.hpp"
 #include "util/span.hpp"
+#include "../example/bench/recipe.hpp"
 
 namespace arb {
 
@@ -152,7 +153,7 @@ struct fvm_mechanism_data {
     std::size_t ntarget = 0;
 };
 
-std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids, const fvm_discretization& D);
+std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids, const recipe& rec, const fvm_discretization& D);
 
 fvm_mechanism_data fvm_build_mechanism_data(const mechanism_catalogue& catalogue, const std::vector<mc_cell>& cells, const fvm_discretization& D);
 

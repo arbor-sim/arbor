@@ -238,28 +238,48 @@ fvm_discretization fvm_discretize(const std::vector<mc_cell>& cells) {
 
 // Get vector of gap_junctions
 
-std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids, const fvm_discretization& D) {
+std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, const std::vector<cell_gid_type>& gids, const recipe& rec, const fvm_discretization& D) {
     using size_type = fvm_size_type;
 
     std::vector<gap_junction> v;
 
-    // Map gid to location in the vector of cells
+    // Map gid to location in the cell group
     std::unordered_map<cell_gid_type, unsigned> gid_to_loc;
     unsigned i = 0;
     for (auto gid: gids) {
         gid_to_loc[gid] = i++;
     }
 
+    // Get gj locations as cv for every cell in group
+    // These represent one side of the gap_junction
+    std::vector<std::vector<fvm_index_type>> gj_comps_0;
     for (auto cell_idx: make_span(0, D.ncell)) {
         auto& cell_gj = cells[cell_idx].gap_junctions();
+        std::vector<fvm_index_type> gjs;
         for (auto gj : cell_gj) {
-            auto src_cell = gid_to_loc[gj.source.gid];
-            auto dest_cell = gid_to_loc[gj.dest.gid];
-            size_type src_cv = D.segment_location_cv(src_cell, gj.source.lid);
-            size_type dest_cv = D.segment_location_cv(dest_cell, gj.dest.lid);
-            v.push_back(gap_junction(std::make_pair(src_cv, dest_cv),
-                    std::make_pair(D.cv_area[src_cv], D.cv_area[dest_cv]), gj.conductance));
+            size_type cv = D.segment_location_cv(cell_idx, gj);
+            gjs.push_back(cv);
         }
+        gj_comps_0.push_back(gjs);
+    }
+
+    auto num_gj = [&](cell_gid_type gid) { return rec.num_gap_junctions(gid);};
+    std::vector<unsigned> gj_divisions;
+    auto gj_part = make_partition(
+            gj_divisions, transform_view(make_span(D.ncell), num_gj));
+
+    // Get gj connections for every cell in group
+    int j = 0;
+    for (auto gid : gids) {
+        auto gj = rec.gap_junctions_on(gid);
+        for(int i = 0; i < gj.size(); i++) {
+            auto cell_idx = gid_to_loc[gj[i].gid];
+            auto gj_idx = gj[i].index;
+            auto cv1 = gj_comps_0[cell_idx][gj_idx];
+            auto cv0 = gj_comps_0[j][i];
+            v.push_back(gap_junction(std::make_pair(cv0, cv1), std::make_pair(D.cv_area[cv0], D.cv_area[cv1]), 0));
+        }
+        j++;
     }
     return v;
 }

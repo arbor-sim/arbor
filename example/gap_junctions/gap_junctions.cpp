@@ -98,15 +98,18 @@ public:
         return a;
     }
 
-    std::vector<cell_gid_type> group_with(cell_gid_type gid) const override{
-        std::vector<cell_gid_type> conns;
-        for (auto gj: cells[gid].gap_junctions()) {
-            conns.push_back(gj.dest.gid);
-        }
+    std::vector<cell_member_type> gap_junctions_on(cell_gid_type gid) const override{
+        std::vector<cell_member_type> conns;
 
-        std::sort(conns.begin(), conns.end());
-        auto last = std::unique(conns.begin(), conns.end());
-        conns.erase(last, conns.end());
+        cell_gid_type ring_start_gid = (gid/cells_per_ring_) * cells_per_ring_;
+        cell_gid_type next_cell = (gid + 1) % cells_per_ring_ + ring_start_gid;
+        cell_gid_type prev_cell = (gid - 1 + cells_per_ring_) % cells_per_ring_ + ring_start_gid;
+
+        // Our soma is connected to the next cell's dendrite
+        // Our dendrite is connected to the prev cell's soma
+        conns.push_back({next_cell, 1}); // 1 is the id of the dendrite junction
+        conns.push_back({prev_cell, 0}); // 0 is the id of the soma junction
+
         return conns;
     }
 
@@ -331,22 +334,8 @@ arb::mc_cell gj_cell(unsigned gid, unsigned cells_per_ring, double delay, double
     set_reg_params();
     setup_seg(dend);
 
-//    auto dend_min0 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 2
-//    dend_min0->set_compartments(50);
-//    set_reg_params();
-//    setup_seg(dend_min0);
-
-//    auto dend_min1 = cell.add_cable(0, arb::section_kind::dendrite, 2.0/2.0, 2.0/2.0, 100); //cable 3
-//    dend_min1->set_compartments(50);
-//    set_reg_params();
-//    setup_seg(dend_min1);
-
-    cell_gid_type ring_start_gid = (gid/cells_per_ring) * cells_per_ring;
-    cell_gid_type next_cell = (gid + 1) % cells_per_ring + ring_start_gid;
-    cell_gid_type prev_cell = (gid - 1 + cells_per_ring) % cells_per_ring + ring_start_gid;
-
-    cell.add_gap_junction(gid, {0, 1}, next_cell, {1, 1}, 0.0037); //ggap in μS
-    cell.add_gap_junction(gid, {1, 1}, prev_cell, {0, 1}, 0.0037); //ggap in μS
+    cell.add_gap_junction({0, 1}); //ggap in μS
+    cell.add_gap_junction({1, 1}); //ggap in μS
 
     arb::i_clamp stim(delay, duration, 0.2);
     cell.add_stimulus({1, 0.95}, stim);

@@ -62,8 +62,8 @@ domain_decomposition partition_load_balance(
     // Connected components algorithm using BFS
     std::queue<cell_gid_type> q;
     for(auto gid: make_span(gid_part[domain_id])) {
-        // If cell is not required to be in a group, put in separate group of independent cells
-        if(!rec.group_with(gid).empty()) {
+        // If cell has no gap_junctions, put in separate group of independent cells
+        if(!rec.gap_junctions_on(gid).empty()) {
             // If cell hasn't been visited yet, must belong to new group
             // Perform BFS starting from that cell
             if (visited.find(gid) == visited.end()) {
@@ -75,11 +75,18 @@ domain_decomposition partition_load_balance(
                     q.pop();
                     cg.push_back(element);
                     // Adjacency list
-                    auto conns = rec.group_with(element);
+                    auto conns = rec.gap_junctions_on(element);
+                    /*std::sort(conns.begin(), conns.end(),
+                            [](const cell_member_type& a, const cell_member_type&b)
+                            { return a.gid < b.gid; });
+                    auto last = std::unique(conns.begin(), conns.end(),
+                            [](const cell_member_type& a, const cell_member_type&b)
+                            { return a.gid == b.gid; });
+                    conns.erase(last, conns.end());*/
                     for (auto c: conns) {
-                        if (visited.find(c) == visited.end()) {
-                            q.push(c);
-                            visited[c] = true;
+                        if (visited.find(c.gid) == visited.end()) {
+                            q.push(c.gid);
+                            visited[c.gid] = true;
                         }
                     }
                 }
@@ -188,7 +195,7 @@ domain_decomposition partition_load_balance(
     d.num_local_cells = num_local_cells;
     d.num_global_cells = num_global_cells;
     d.groups = std::move(groups);
-    d.gid_domain = partition_gid_domain(std::move(gid_divisions));
+    d.gid_domain = partition_gid_domain(std::move(gid_divisions)); // TODO
 
     return d;
 }

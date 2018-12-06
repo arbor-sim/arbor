@@ -100,24 +100,11 @@ public:
     using value_type = double;
     using point_type = point<value_type>;
 
+    using gap_junction_instance = segment_location;
+
     struct synapse_instance {
         segment_location location;
         mechanism_desc mechanism;
-    };
-
-    struct gap_junction_loc {
-        cell_gid_type gid;
-        segment_location lid;
-
-        friend bool operator==(const gap_junction_loc& lhs, const gap_junction_loc& rhs) {
-            return lhs.gid==rhs.gid && lhs.lid==rhs.lid;
-        }
-    };
-
-    struct gap_junction_instance {
-        gap_junction_loc source;
-        gap_junction_loc dest;
-        value_type conductance;
     };
 
     struct stimulus_instance {
@@ -228,10 +215,9 @@ public:
     //////////////////
     // gap-junction
     //////////////////
-    void add_gap_junction(cell_gid_type source_gid, segment_location source_loc,
-            cell_gid_type dest_gid, segment_location dest_loc, value_type conductance)
+    void add_gap_junction(segment_location location)
     {
-        gap_junctions_.push_back(gap_junction_instance{{source_gid, source_loc}, {dest_gid, dest_loc}, conductance});
+        gap_junctions_.push_back(location);
     }
     const std::vector<gap_junction_instance>& gap_junctions() const {
         return gap_junctions_;
