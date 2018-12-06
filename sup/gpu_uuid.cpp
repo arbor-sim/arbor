@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -311,26 +309,23 @@ gpu_rank assign_gpu(const std::vector<uuid>& uids,
             neighbors.push_back(i);
         }
         else if (match==-1) { // partial match, which is not permitted
-            return gpu_rank(true);
+            return {};
         }
         // case where match==0 can be ignored.
     }
 
-    std::cout << "-- " << rank << " neighbors " << neighbors << std::endl;
-    std::cout << "-- " << rank << " gpus " << local_gpus << std::endl;
-
     // Determine the position of this rank in the sorted list of ranks.
-    auto pos_in_group =
+    int pos_in_group =
         std::distance(
             neighbors.begin(),
             std::find(neighbors.begin(), neighbors.end(), rank));
 
     // The number of GPUs available to the ranks.
-    auto ngpu_in_group = std::distance(local_gpus.first, local_gpus.second);
+    int ngpu_in_group = std::distance(local_gpus.first, local_gpus.second);
 
     // Assign GPUs to the first ngpu ranks. If there are more ranks than GPUs,
     // some ranks will not be assigned a GPU (return -1).
-    return pos_in_group<ngpu_in_group? gpu_rank(pos_in_group): gpu_rank(true);
+    return pos_in_group<ngpu_in_group? gpu_rank(pos_in_group): gpu_rank(-1);
 }
 
 } // namespace sup

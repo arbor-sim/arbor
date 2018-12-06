@@ -32,7 +32,7 @@ struct gpu_rank {
     bool error = true;
     int id = -1;
 
-    gpu_rank(int id): error(false), id(id) {}
+    explicit gpu_rank(int id): error(false), id(id) {}
     gpu_rank() = default;
 };
 

@@ -261,7 +261,7 @@ int main(int argc, char** argv) {
         std::cout << report;
     }
     catch (std::exception& e) {
-        std::cerr << "exception caught in ring miniapp:\n" << e.what() << "\n";
+        std::cerr << "exception caught in ring miniapp: " << e.what() << "\n";
         return 1;
     }
 

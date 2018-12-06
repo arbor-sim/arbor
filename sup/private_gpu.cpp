@@ -1,5 +1,4 @@
 #include <numeric>
-#include <iostream>
 
 #include <mpi.h>
 
@@ -25,29 +24,24 @@ int find_private_gpu(MPI_Comm comm) {
         return global_status==1;
     };
 
-    //std::cout << "rank -- " << rank << " of -- " << nranks << std::endl;
-
-
     // STEP 1: find list of locally available uuid.
 
     bool local_error = false;
+    std::string msg;
     std::vector<uuid> uuids;
     try {
         uuids = get_gpu_uuids();
     }
     catch (const std::exception& e) {
+        msg = e.what();
         local_error = true;
     }
-    //std::cout << "error " << rank << " -- " << (local_error? "fail": "pass") << std::endl;
 
     // STEP 2: mpi test error on any node.
 
     if (test_global_error(local_error)) {
-        std::cerr << "error quering devices" << std::endl;
-        return -1;
+        throw std::runtime_error("unable to detect the unique id of visible GPUs: " + msg);
     }
-
-    for (auto id: uuids) std::cout << "-- " << rank << " -- " << id << "\n";
 
     // STEP 3: Gather all uuids to local rank.
 
@@ -58,13 +52,9 @@ int find_private_gpu(MPI_Comm comm) {
                   gpus_per_rank.data(), 1, MPI_INT,
                   comm);
 
-    //std::cout << "gpu_per_rank["; for (auto i: gpus_per_rank) std::cout << i << " "; std::cout << "]" << std::endl;
-
     // Determine partition of gathered uuid list.
     std::vector<int> gpu_partition(nranks+1);
     std::partial_sum(gpus_per_rank.begin(), gpus_per_rank.end(), gpu_partition.begin()+1);
-
-    //std::cout << "gpu_part["; for (auto i: gpu_partition) std::cout << i << " "; std::cout << "]" << std::endl;
 
     // Make MPI Datatype for uuid
     MPI_Datatype uuid_mpi_type;
@@ -83,12 +73,10 @@ int find_private_gpu(MPI_Comm comm) {
     // step 4: find the local GPU
     auto gpu = assign_gpu(global_uuids, gpu_partition, rank);
 
-    std::cout << "-- " << rank << " gotta gpu: "
-        << "{" << gpu.id << ", " << (gpu.error? "error": "ok") << "}" << std::endl;
-
     if (test_global_error(gpu.error)) {
-        std::cerr << "error determining groups" << std::endl;
-        return -1;
+        throw std::runtime_error(
+            "Unable to assign a unique GPU to MPI rank: the CUDA_VISIBLE_DEVICES"
+            " environment variable is likely incorrectly configured." );
     }
 
     return gpu.id;
