@@ -61,6 +61,7 @@ int main(int argc, char** argv) {
         resources.gpu_id = sup::find_private_gpu(MPI_COMM_WORLD);
         auto context = arb::make_context(resources, MPI_COMM_WORLD);
         root = arb::rank(context) == 0;
+        std::cout << "yar " << arb::rank(context) << ": got gpu " << resources.gpu_id << std::endl;
 #else
         resources.gpu_id = sup::default_gpu();
         auto context = arb::make_context(resources);

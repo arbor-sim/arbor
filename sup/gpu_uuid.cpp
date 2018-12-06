@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -270,6 +272,19 @@ int compare_gpu_groups(R l, R r) {
     return 0;
 }
 
+template <typename T>
+std::ostream& operator<<(std::ostream& o, std::vector<T>& vec) {
+    o << "[";
+    for (auto& v: vec) o << v << " ";
+    return o << "]";
+}
+template <typename I>
+std::ostream& operator<<(std::ostream& o, std::pair<I,I>& vec) {
+    o << "[";
+    for (auto it=vec.first; it!=vec.second; ++it) o << *it << " ";
+    return o << "]";
+}
+
 gpu_rank assign_gpu(const std::vector<uuid>& uids,
                     const std::vector<int>&  uid_part,
                     int rank)
@@ -300,6 +315,9 @@ gpu_rank assign_gpu(const std::vector<uuid>& uids,
         }
         // case where match==0 can be ignored.
     }
+
+    std::cout << "-- " << rank << " neighbors " << neighbors << std::endl;
+    std::cout << "-- " << rank << " gpus " << local_gpus << std::endl;
 
     // Determine the position of this rank in the sorted list of ranks.
     auto pos_in_group =

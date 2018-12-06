@@ -9,8 +9,6 @@
 
 namespace sup {
 
-// Currently a placeholder.
-// Take the default gpu for serial simulations.
 template <>
 int find_private_gpu(MPI_Comm comm) {
     int nranks;
@@ -27,6 +25,9 @@ int find_private_gpu(MPI_Comm comm) {
         return global_status==1;
     };
 
+    //std::cout << "rank -- " << rank << " of -- " << nranks << std::endl;
+
+
     // STEP 1: find list of locally available uuid.
 
     bool local_error = false;
@@ -37,6 +38,7 @@ int find_private_gpu(MPI_Comm comm) {
     catch (const std::exception& e) {
         local_error = true;
     }
+    //std::cout << "error " << rank << " -- " << (local_error? "fail": "pass") << std::endl;
 
     // STEP 2: mpi test error on any node.
 
@@ -56,9 +58,13 @@ int find_private_gpu(MPI_Comm comm) {
                   gpus_per_rank.data(), 1, MPI_INT,
                   comm);
 
+    //std::cout << "gpu_per_rank["; for (auto i: gpus_per_rank) std::cout << i << " "; std::cout << "]" << std::endl;
+
     // Determine partition of gathered uuid list.
     std::vector<int> gpu_partition(nranks+1);
     std::partial_sum(gpus_per_rank.begin(), gpus_per_rank.end(), gpu_partition.begin()+1);
+
+    //std::cout << "gpu_part["; for (auto i: gpu_partition) std::cout << i << " "; std::cout << "]" << std::endl;
 
     // Make MPI Datatype for uuid
     MPI_Datatype uuid_mpi_type;
@@ -77,12 +83,13 @@ int find_private_gpu(MPI_Comm comm) {
     // step 4: find the local GPU
     auto gpu = assign_gpu(global_uuids, gpu_partition, rank);
 
+    std::cout << "-- " << rank << " gotta gpu: "
+        << "{" << gpu.id << ", " << (gpu.error? "error": "ok") << "}" << std::endl;
+
     if (test_global_error(gpu.error)) {
         std::cerr << "error determining groups" << std::endl;
         return -1;
     }
-
-    std::cout << "-- " << rank << " -- selected " << gpu.id << "\n";
 
     return gpu.id;
 }
