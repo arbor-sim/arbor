@@ -202,10 +202,14 @@ if(ARB_WITH_GPU)
         target_compile_definitions(arbor-private-deps INTERFACE ARB_HAVE_GPU_FINE_MATRIX)
     endif()
 
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
-    target_compile_options(arbor-private-deps INTERFACE $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=sm_35>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_37,code=sm_37>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_60,code=sm_60>)
+    target_compile_options(arbor-private-deps INTERFACE
+        $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_70,code=sm_70>)
 endif()
 
 # Use libunwind if available for pretty printing stack traces
@@ -309,6 +313,8 @@ add_subdirectory(doc)
 if(ARB_BUILD_VALIDATION_DATA)
     add_subdirectory(validation) # validation-data
 endif()
+
+message(WARNING "hello")
 
 #----------------------------------------------------------
 # Generate CMake config/version files for install.
