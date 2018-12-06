@@ -251,35 +251,34 @@ std::vector<gap_junction> fvm_gap_junctions(const std::vector<mc_cell>& cells, c
     }
 
     // Get gj locations as cv for every cell in group
-    // These represent one side of the gap_junction
-    std::vector<std::vector<fvm_index_type>> gj_comps_0;
+    // These represent one half of the gap junction
+    std::vector<fvm_index_type> gj_comps;
     for (auto cell_idx: make_span(0, D.ncell)) {
         auto& cell_gj = cells[cell_idx].gap_junctions();
-        std::vector<fvm_index_type> gjs;
         for (auto gj : cell_gj) {
             size_type cv = D.segment_location_cv(cell_idx, gj);
-            gjs.push_back(cv);
+            gj_comps.push_back(cv);
         }
-        gj_comps_0.push_back(gjs);
     }
 
-    auto num_gj = [&](cell_gid_type gid) { return rec.num_gap_junctions(gid);};
     std::vector<unsigned> gj_divisions;
-    auto gj_part = make_partition(
-            gj_divisions, transform_view(make_span(D.ncell), num_gj));
+    auto num_gj = [&](cell_gid_type gid) { return rec.num_gap_junctions(gid);};
+    make_partition(gj_divisions, transform_view(make_span(D.ncell), num_gj));
 
-    // Get gj connections for every cell in group
-    int j = 0;
-    for (auto gid : gids) {
-        auto gj = rec.gap_junctions_on(gid);
-        for(int i = 0; i < gj.size(); i++) {
-            auto cell_idx = gid_to_loc[gj[i].gid];
-            auto gj_idx = gj[i].index;
-            auto cv1 = gj_comps_0[cell_idx][gj_idx];
-            auto cv0 = gj_comps_0[j][i];
-            v.push_back(gap_junction(std::make_pair(cv0, cv1), std::make_pair(D.cv_area[cv0], D.cv_area[cv1]), 0));
+    // Get gj locations as cv from cell's gap_junction connections
+    // These represent the second half of the gap junction
+    for (auto cell_idx: make_span(0, D.ncell)) {
+        auto gj = rec.gap_junctions_on(gids[cell_idx]);
+        for(auto gj_idx: make_span(0, gj.size())) {
+            // locate
+            auto shift = gid_to_loc[gj[gj_idx].location.gid];
+            auto offset = gj[gj_idx].location.index;
+            auto cv1 = gj_comps[gj_divisions[shift] + offset];
+            auto cv0 = gj_comps[cell_idx*gj.size() + gj_idx];
+            v.push_back(gap_junction(std::make_pair(cv0, cv1),
+                    std::make_pair(D.cv_area[cv0], D.cv_area[cv1]),
+                    gj[gj_idx].ggap));
         }
-        j++;
     }
     return v;
 }

@@ -84,9 +84,9 @@ domain_decomposition partition_load_balance(
                             { return a.gid == b.gid; });
                     conns.erase(last, conns.end());*/
                     for (auto c: conns) {
-                        if (visited.find(c.gid) == visited.end()) {
-                            q.push(c.gid);
-                            visited[c.gid] = true;
+                        if (visited.find(c.location.gid) == visited.end()) {
+                            q.push(c.location.gid);
+                            visited[c.location.gid] = true;
                         }
                     }
                 }

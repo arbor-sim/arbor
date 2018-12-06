@@ -98,8 +98,8 @@ public:
         return a;
     }
 
-    std::vector<cell_member_type> gap_junctions_on(cell_gid_type gid) const override{
-        std::vector<cell_member_type> conns;
+    std::vector<arb::gap_junction_connection> gap_junctions_on(cell_gid_type gid) const override{
+        std::vector<arb::gap_junction_connection> conns;
 
         cell_gid_type ring_start_gid = (gid/cells_per_ring_) * cells_per_ring_;
         cell_gid_type next_cell = (gid + 1) % cells_per_ring_ + ring_start_gid;
@@ -107,8 +107,8 @@ public:
 
         // Our soma is connected to the next cell's dendrite
         // Our dendrite is connected to the prev cell's soma
-        conns.push_back({next_cell, 1}); // 1 is the id of the dendrite junction
-        conns.push_back({prev_cell, 0}); // 0 is the id of the soma junction
+        conns.push_back(arb::gap_junction_connection({next_cell, 1}, 0.0037)); // 1 is the id of the dendrite junction
+        conns.push_back(arb::gap_junction_connection({prev_cell, 0}, 0.0037)); // 0 is the id of the soma junction
 
         return conns;
     }
