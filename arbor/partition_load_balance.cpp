@@ -21,16 +21,23 @@ domain_decomposition partition_load_balance(
     const bool gpu_avail = ctx->gpu->has_gpu();
 
     struct partition_gid_domain {
-        partition_gid_domain(std::vector<cell_gid_type> divs):
-            gid_divisions(std::move(divs))
+        partition_gid_domain(gathered_vector<cell_gid_type> divs, unsigned domains):
+            gid_divisions(std::move(divs)), num_domains(domains)
         {}
 
         int operator()(cell_gid_type gid) const {
-            auto gid_part = util::partition_view(gid_divisions);
-            return gid_part.index(gid);
+            auto gid_part = gid_divisions.partition();
+            for(unsigned i = 0; i < num_domains; i++) {
+                auto rank_gids = util::subrange_view(gid_divisions.values(), gid_part[i], gid_part[i+1]);
+                auto lower = std::lower_bound(rank_gids.begin(), rank_gids.end(), gid);
+                if(lower != rank_gids.end())
+                    return i;
+            }
+
         }
 
-        const std::vector<cell_gid_type> gid_divisions;
+        const gathered_vector<cell_gid_type> gid_divisions;
+        unsigned num_domains;
     };
 
     using util::make_span;
@@ -76,13 +83,6 @@ domain_decomposition partition_load_balance(
                     cg.push_back(element);
                     // Adjacency list
                     auto conns = rec.gap_junctions_on(element);
-                    /*std::sort(conns.begin(), conns.end(),
-                            [](const cell_member_type& a, const cell_member_type&b)
-                            { return a.gid < b.gid; });
-                    auto last = std::unique(conns.begin(), conns.end(),
-                            [](const cell_member_type& a, const cell_member_type&b)
-                            { return a.gid == b.gid; });
-                    conns.erase(last, conns.end());*/
                     for (auto c: conns) {
                         if (visited.find(c.location.gid) == visited.end()) {
                             q.push(c.location.gid);
@@ -106,10 +106,20 @@ domain_decomposition partition_load_balance(
                 return cg.front() < gid_part[domain_id].first;
             }), comp_groups.end());
 
+    // Collect local gids that belong to us, and sort independent gid into kind lists
+    std::vector<cell_gid_type> local_gids;
     std::unordered_map<cell_kind, std::vector<cell_gid_type>> kind_lists;
     for (auto gid: ind_cells) {
+        local_gids.push_back(gid);
         kind_lists[rec.get_cell_kind(gid)].push_back(gid);
     }
+
+    for (auto cg: comp_groups) {
+        for (auto gid: cg) {
+            local_gids.push_back(gid);
+        }
+    }
+
 
     // Create a flat vector of the cell kinds present on this node,
     // partitioned such that kinds for which GPU implementation are
@@ -173,11 +183,17 @@ domain_decomposition partition_load_balance(
         groups.push_back({k, std::move(cg), backend});
     }
 
-    // calculate the number of local cells
+    // Calculate the number of local cells
     cell_size_type num_local_cells = 0;
     for(auto g : groups) {
         num_local_cells += g.gids.size();
     }
+
+    // Exchange gid list with all other nodes
+    util::sort(local_gids);
+
+    // global all-to-all to gather a local copy of the global gid list on each node.
+    auto global_gids = ctx->distributed->gather_gids(local_gids);
 
     domain_decomposition d;
     d.num_domains = num_domains;
@@ -185,7 +201,7 @@ domain_decomposition partition_load_balance(
     d.num_local_cells = num_local_cells;
     d.num_global_cells = num_global_cells;
     d.groups = std::move(groups);
-    d.gid_domain = partition_gid_domain(std::move(gid_divisions)); // TODO
+    d.gid_domain = partition_gid_domain(std::move(global_gids), num_domains); // TODO
 
     return d;
 }

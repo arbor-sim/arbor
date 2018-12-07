@@ -33,6 +33,10 @@ struct mpi_context_impl {
         return mpi::gather_all_with_partition(local_spikes, comm_);
     }
 
+    gather_gids(const std::vector<cell_gid_type>& local_gids) const {
+        return mpi::gather_all_with_partition(local_gids, comm_);
+    }
+
     std::string name() const { return "MPI"; }
     int id() const { return rank_; }
     int size() const { return size_; }
